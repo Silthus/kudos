@@ -1,0 +1,34 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a003e5c1531934349
+
+ ❯ tests/periods.test.ts (11 tests | 1 failed) 340ms
+   ❯ busy previous periods (1)
+     × the leaderboard headline still counts the previous period to date when the full period is too big to read 205ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/periods.test.ts > busy previous periods > the leaderboard headline still counts the previous period to date when the full period is too big to read
+AssertionError: expected 875 to be 1350 // Object.is equality
+
+- Expected
++ Received
+
+- 1350
++ 875
+
+ ❯ tests/periods.test.ts:122:40
+    120|     const ana = await signInAs(t, team.ana);
+    121|     const board = await ana.query(api.leaderboard.get, { period: "year…
+    122|     expect(board.highlights.prevTotal).toBe(90 * 15); // Jan 1 – Mar 3…
+       |                                        ^
+    123|     expect(board.truncated).toBe(true);
+    124|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 10 passed (11)
+   Start at  20:13:20
+   Duration  707ms (tests 55%, transform 20%, import 18%, environment 6%, worker 1%)
+

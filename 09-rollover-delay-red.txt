@@ -1,0 +1,40 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a003e5c1531934349
+
+ ❯ convex/lib/time.test.ts (20 tests | 2 failed) 29ms
+   ❯ msUntilRollover (the client's midnight timer) (2)
+     × waits until the next local midnight 3ms
+     × never schedules a zero or negative delay, even around a calendar day that doesn't exist 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  convex/lib/time.test.ts > msUntilRollover (the client's midnight timer) > waits until the next local midnight
+TypeError: msUntilRollover is not a function
+ ❯ convex/lib/time.test.ts:125:12
+    123|   test("waits until the next local midnight", () => {
+    124|     const now = Date.UTC(2026, 8, 23, 21, 59, 30); // 23:59:30 in Berl…
+    125|     expect(msUntilRollover(now, "Europe/Berlin")).toBe(30_000);
+       |            ^
+    126|   });
+    127|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  convex/lib/time.test.ts > msUntilRollover (the client's midnight timer) > never schedules a zero or negative delay, even around a calendar day that doesn't exist
+TypeError: msUntilRollover is not a function
+ ❯ convex/lib/time.test.ts:131:12
+    129|     // Samoa skipped 2011-12-30 entirely; late on the 29th the "next d…
+    130|     const lateOn29th = Date.UTC(2011, 11, 30, 9, 30); // 23:30 at UTC-…
+    131|     expect(msUntilRollover(lateOn29th, "Pacific/Apia")).toBeGreaterTha…
+       |            ^
+    132|   });
+    133| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 18 passed (20)
+   Start at  20:14:18
+   Duration  225ms (environment 32%, transform 32%, tests 23%, import 11%, worker 3%)
+

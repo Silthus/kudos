@@ -1,0 +1,37 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a003e5c1531934349
+
+ ❯ tests/periods.test.ts (10 tests | 1 failed) 142ms
+   ❯ calendar-aligned comparisons (4)
+     × my own period total compares with the whole previous month, the daily overlay day by day 9ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/periods.test.ts > calendar-aligned comparisons > my own period total compares with the whole previous month, the daily overlay day by day
+AssertionError: expected [ 2, 1 ] to deeply equal [ 2, 5 ]
+
+- Expected
++ Received
+
+  [
+    2,
+-   5,
++   1,
+  ]
+
+ ❯ tests/periods.test.ts:102:46
+    100|     const { period, periodLabel, cadence } = await ana.query(api.me.ov…
+    101|     expect(periodLabel).toBe("This month");
+    102|     expect([period.given, period.prevGiven]).toEqual([2, 5]);
+       |                                              ^
+    103|     // Sep 5 lines up with Aug 5; Aug 28 lies beyond today's offset an…
+    104|     expect(cadence.find((d) => d.day === "2026-09-05")?.prevGiven).toB…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 9 passed (10)
+   Start at  20:12:58
+   Duration  488ms (tests 35%, transform 28%, import 26%, environment 10%, worker 1%)
+

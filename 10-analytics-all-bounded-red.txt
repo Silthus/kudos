@@ -1,0 +1,34 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a003e5c1531934349
+
+ ❯ tests/periods.test.ts (12 tests | 1 failed) 484ms
+   ❯ period arguments (3)
+     × the all-time daily chart stays bounded to its most recent year, however far away today is 130ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/periods.test.ts > period arguments > the all-time daily chart stays bounded to its most recent year, however far away today is
+AssertionError: expected [ …(26877) ] to have a length of 366 but got 26877
+
+- Expected
++ Received
+
+- 366
++ 26877
+
+ ❯ tests/periods.test.ts:167:19
+    165|     const { daily, range } = await ana.query(api.analytics.overview, {…
+    166|     expect(range.start).toBe("2026-06-01");
+    167|     expect(daily).toHaveLength(366);
+       |                   ^
+    168|     expect(daily.at(-1)?.day).toBe("2099-12-31");
+    169|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 11 passed (12)
+   Start at  20:14:40
+   Duration  851ms (tests 64%, transform 16%, import 14%, environment 5%)
+
