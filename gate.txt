@@ -14,10 +14,10 @@
  RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a003e5c1531934349
 
 
- Test Files  16 passed (16)
-      Tests  166 passed (166)
-   Start at  20:17:55
-   Duration  16.10s (tests 84%, transform 8%, import 5%, environment 2%)
+ Test Files  18 passed (18)
+      Tests  198 passed (198)
+   Start at  20:20:30
+   Duration  16.40s (tests 82%, transform 9%, import 7%, environment 2%)
 
 
 > kudos@0.1.0 build
@@ -28,7 +28,7 @@
 Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
 vite v8.3.0 building client environment for production...
 transforming...
-✓ 2388 modules transformed.
+✓ 2390 modules transformed.
 rendering chunks...
 computing gzip size...
 dist/index.html                                                          0.79 kB │ gzip:   0.48 kB
@@ -46,12 +46,12 @@ dist/assets/bricolage-grotesque-latin-ext-wght-normal-CcLUaPy7.woff2    18.66 kB
 dist/assets/geist-mono-latin-wght-normal-XN7g48iV.woff2                 23.12 kB
 dist/assets/geist-latin-wght-normal-BgDaEnEv.woff2                      29.40 kB
 dist/assets/bricolage-grotesque-latin-wght-normal-DLoelf7F.woff2        41.34 kB
-dist/assets/index-OYnxPAA1.css                                          57.28 kB │ gzip:  10.52 kB
-dist/assets/index-EneYMvCQ.js                                          596.51 kB │ gzip: 180.59 kB
+dist/assets/index-CT7wvBxb.css                                          61.22 kB │ gzip:  11.09 kB
+dist/assets/index-FDTR4oCX.js                                          619.09 kB │ gzip: 186.57 kB
 
 [plugin builtin:vite-reporter] 
 (!) Some chunks are larger than 500 kB after minification. Consider:
 - Using dynamic import() to code-split the application
 - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 284ms
+✓ built in 306ms
