@@ -1,0 +1,11 @@
+     × keeps names on one line and refuses invisible-only names 5ms
+     × is blocked while received kudos are hidden 10ms
+     × admins create, edit, archive and restore rewards 8ms
+     × restocking never clobbers stock that moved while the editor was open 3ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected [Function] to throw error matching /Switch received visibility to “Only m…/ but got 'The store shows people what they rece…'
+AssertionError: expected { …(7) } to match object { cost: 80, …(2) }
+AssertionError: expected { …(6) } to match object { name: 'Coffee', stock: 3 }
+AssertionError: expected 'Coffee\n on   us' to be 'Coffee on us' // Object.is equality
+ Test Files  2 failed (2)
+      Tests  4 failed | 28 passed (32)
