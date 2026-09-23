@@ -301,7 +301,7 @@ function QuestCard({ today }: { today: string }) {
     <Card className="flex flex-col xl:col-span-5 xl:self-start">
       <CardHeader
         title="Weekly quests"
-        subtitle={`${board.completed} of ${board.available} complete · resets Monday`}
+        subtitle={board.available > 0 ? `${board.completed} of ${board.available} complete · resets Monday` : "Nothing to do this week · resets Monday"}
         icon={<Target className="h-4 w-4 text-saffron" />}
         action={
           board.sweep && (
@@ -349,6 +349,7 @@ function QuestItem({ quest: q }: { quest: QuestRow }) {
         >
           {done && <Check className="h-3 w-3" strokeWidth={3} />}
           {waived && <Minus className="h-3 w-3" strokeWidth={3} />}
+          <span className="sr-only">{done ? "Done" : waived ? "Not available" : "Open"}</span>
         </span>
         <div className={clsx("min-w-0 flex-1", waived && "opacity-60")}>
           <div className="flex items-center justify-between gap-3">

@@ -136,6 +136,46 @@ describe("only thoughtful giving counts", () => {
   });
 });
 
+describe("the clean-sweep flag follows the board", () => {
+  const addDan = () =>
+    t.run((ctx) =>
+      ctx.db.insert("members", {
+        workspaceId: team.workspaceId, slackUserId: "UDAN", name: "Dan", isAdmin: false, isBot: false,
+        deactivated: false, totalGiven: 0, totalReceived: 0, totalMaxedDays: 0,
+      }),
+    );
+
+  test("is set when the last open quest becomes waived", async () => {
+    const dan = await addDan();
+    await setBoard(["fresh", "spread", "channels"]);
+    await message("UANA", "<@UBEN> :taco: thanks for the quick review", "general");
+    await message("UANA", "<@UCLEO> :taco: loved your demo this morning", "random");
+    expect((await completions(team.ana)).some((c) => c.sweep)).toBe(false); // Spread the love is still open
+
+    await t.run((ctx) => ctx.db.patch(dan, { deactivated: true })); // now only 2 teammates
+    await message("UANA", "<@UBEN> :taco: and thanks again for the pairing", "general");
+    expect(await mine(team.ana)).toMatchObject({ sweep: true });
+    expect((await completions(team.ana)).map((c) => [c.questKey, c.sweep])).toEqual([
+      ["fresh", false],
+      ["channels", true],
+    ]);
+  });
+
+  test("is cleared when a waived quest opens up again", async () => {
+    const dan = await addDan();
+    await t.run((ctx) => ctx.db.patch(dan, { deactivated: true }));
+    await setBoard(["fresh", "spread", "channels"]);
+    await message("UANA", "<@UBEN> :taco: thanks for the quick review", "general");
+    await message("UANA", "<@UCLEO> :taco: loved your demo this morning", "random");
+    expect((await completions(team.ana)).filter((c) => c.sweep)).toHaveLength(1);
+
+    await t.run((ctx) => ctx.db.patch(dan, { deactivated: false }));
+    await message("UANA", "<@UBEN> :taco: and thanks again for the pairing", "general");
+    expect(await mine(team.ana)).toMatchObject({ sweep: false });
+    expect((await completions(team.ana)).filter((c) => c.sweep)).toHaveLength(0);
+  });
+});
+
 describe("revoking kudos", () => {
   test("re-checks the week and removes completions that are no longer met", async () => {
     await setBoard(["fresh", "spread", "channels"]);
@@ -149,6 +189,81 @@ describe("revoking kudos", () => {
     expect(await mine(team.ana)).toMatchObject({ completed: 1, sweep: false });
     // The discovery rolled for the kudos stays in the collection.
     expect((await all(t, "discoveries")).length).toBeGreaterThan(0);
+  });
+
+  test("keeps completions that privacy now hides", async () => {
+    await setBoard(["unsung", "channels", "story"]);
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { receivedVisibility: "everyone" }));
+    await message("UANA", "<@UBEN> :taco: thanks for the quick review");
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { receivedVisibility: "hidden" }));
+    const [row] = await all(t, "kudos");
+    await (await signInAs(t, team.ana)).mutation(api.admin.revoke, { kudosId: row._id });
+    expect((await completions(team.ana)).map((c) => c.questKey)).toEqual(["unsung"]);
+  });
+});
+
+describe("facts come from real kudos history", () => {
+  const D = 24 * H;
+  /** Monday 2026-09-21 00:00 in Berlin. */
+  const WEEK_START = Date.UTC(2026, 8, 20, 22);
+  const past = (giverId: Id<"members">, receiverId: Id<"members">, at: number, source: "seed" | "reaction" = "seed") =>
+    t.run((ctx) =>
+      ctx.db.insert("kudos", {
+        workspaceId: team.workspaceId, batchId: `past-${at}-${receiverId}`, giverId, receiverId, amount: 1,
+        dayKey: "2026-01-01", source, channelId: "CPAST", text: "", at,
+      }),
+    );
+
+  test("Old friends: the last kudos to them is 30+ days before, from before the week", async () => {
+    await setBoard(["rekindle", "channels", "story"]);
+    await past(team.ana, team.cleo, WEEK_START - 100 * D); // Ana's first-ever kudos: old enough
+    await past(team.ana, team.ben, WEEK_START - 26 * D); // Ben: recognized 28 days before Wednesday
+    await message("UANA", "<@UBEN> :taco: thanks for the quick review");
+    expect(await status(team.ana)).toMatchObject({ rekindle: ["active", 0] });
+    await past(team.ana, team.cleo, Date.now() - 31 * D);
+    await message("UANA", "<@UCLEO> :taco: good to work with you again");
+    expect(await status(team.ana)).toMatchObject({ rekindle: ["done", 1] });
+  });
+
+  test("Unsung hero: nobody else recognized them in the 14 days before", async () => {
+    await setBoard(["unsung", "channels", "story"]);
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { receivedVisibility: "everyone" }));
+    await past(team.cleo, team.ben, Date.now() - 13 * D);
+    await message("UANA", "<@UBEN> :taco: thanks for the quick review");
+    expect(await status(team.ana)).toMatchObject({ unsung: ["active", 0] });
+    await past(team.ben, team.cleo, Date.now() - 15 * D);
+    await message("UANA", "<@UCLEO> :taco: thanks for the design review");
+    expect(await status(team.ana)).toMatchObject({ unsung: ["done", 1] });
+  });
+
+  test("New connection: an earlier reaction this week already recognized them", async () => {
+    await setBoard(["fresh", "channels", "story"]);
+    await react("UANA", "UBEN");
+    await message("UANA", "<@UBEN> :taco: thanks for the quick review");
+    expect(await status(team.ana)).toMatchObject({ fresh: ["active", 0] });
+  });
+
+  test("the week starts at Monday 00:00 in the workspace timezone", async () => {
+    await setBoard(["steady", "channels", "story"]);
+    await t.run((ctx) =>
+      ctx.db.insert("kudos", {
+        workspaceId: team.workspaceId, batchId: "monday", giverId: team.ana, receiverId: team.ben, amount: 1,
+        dayKey: "2026-09-21", source: "message", channelId: "CMON", text: "", at: WEEK_START, noteWords: 4,
+      }),
+    );
+    await t.run((ctx) =>
+      ctx.db.insert("kudos", {
+        workspaceId: team.workspaceId, batchId: "sunday", giverId: team.ana, receiverId: team.ben, amount: 1,
+        dayKey: "2026-09-20", source: "message", channelId: "CSUN", text: "", at: WEEK_START - 1, noteWords: 4,
+      }),
+    );
+    expect(await status(team.ana)).toMatchObject({ steady: ["active", 1], channels: ["active", 1] });
+  });
+
+  test("a stray duplicate board row doesn't break giving", async () => {
+    await setBoard(["fresh", "spread", "channels"]);
+    await setBoard(["story", "steady", "channels"]);
+    expect((await message("UANA", "<@UBEN> :taco: thanks for the quick review"))?.status).toBe("given");
   });
 });
 
@@ -187,6 +302,10 @@ describe("who can see quests", () => {
     await expect(t.query(api.quests.mine, { today: "2026-09-23" })).rejects.toThrow(/Sign in with Slack/);
   });
 
+  test("`today` must be a real day key", async () => {
+    await expect(mine(team.ana, "2026-02-30")).rejects.toThrow(/day key/);
+  });
+
   test("members only ever see their own board progress", async () => {
     await setBoard(["fresh", "spread", "channels"]);
     await message("UBEN", "<@UANA> :taco: thanks for pairing on the flaky test");
@@ -197,9 +316,11 @@ describe("who can see quests", () => {
 
   test("a member of another workspace sees their own board", async () => {
     const other = await seedTeam(t, {}, "T2");
-    await t.run((ctx) => ctx.db.insert("questBoards", { workspaceId: team.workspaceId, weekKey: WEEK, questKeys: ["unsung", "rekindle", "story"] }));
+    await setBoard(["fresh", "spread", "channels"]);
+    await message("UANA", "<@UBEN> :taco: thanks for the quick review");
     const theirs = await mine(other.ana);
-    expect(theirs.quests.map((q) => q.key)).not.toEqual(["unsung", "rekindle", "story"]);
+    expect(theirs.quests.map((q) => q.key)).not.toEqual(["fresh", "spread", "channels"]);
+    expect(theirs).toMatchObject({ completed: 0, sweep: false });
   });
 });
 
@@ -221,17 +342,23 @@ describe("quests in the demo", () => {
 
   test("a playground message with a Note completes quests; refilling the allowance takes them back", async () => {
     const demo = await enterDemo();
+    const workspaceId = (await t.run((ctx) => ctx.db.query("workspaces").filter((q) => q.eq(q.field("isDemo"), true)).first()))!._id;
+    await t.run((ctx) => ctx.db.insert("questBoards", { workspaceId, weekKey: WEEK, questKeys: ["spread", "channels", "story"] }));
     const res = await demo.mutation(api.demo.simulateMessage, {
       text: "<@UDEMOPRIYA> :taco: thanks for untangling the deploy pipeline on friday, saved my whole afternoon",
       channelName: "general",
     });
     expect(res.status).toBe("given");
     expect((await all(t, "kudos")).find((k) => k.source === "playground")?.noteWords).toBe(12);
-    const board = await demo.query(api.quests.mine, { today: "2026-09-23" });
-    expect(board.enabled && board.quests.some((q) => q.progress > 0)).toBe(true);
-
     await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOJONAS> :taco:", channelName: "design" });
     expect((await all(t, "kudos")).find((k) => k.source === "playground" && k.channelName === "design")?.noteWords).toBe(0);
+    await demo.mutation(api.demo.simulateMessage, {
+      text: "<@UDEMOLENA> :taco: your onboarding checklist turned my first week into a genuinely calm one",
+      channelName: "design",
+    });
+    expect((await demoCompletions()).map((c) => c.questKey).sort()).toEqual(["channels", "story"]);
+    const board = await demo.query(api.quests.mine, { today: "2026-09-23" });
+    expect(board).toMatchObject({ completed: 2 });
 
     await demo.mutation(api.demo.refillAllowance, {});
     expect(await demoCompletions()).toHaveLength(0);

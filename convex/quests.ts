@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { query, type MutationCtx, type QueryCtx } from "./_generated/server";
-import type { Doc } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { requireViewer } from "./lib/access";
 import {
   type GivenFact,
@@ -23,6 +23,9 @@ import { addDays, parseToday, startOfDayUtc } from "./lib/time";
 
 /** Enough for any week at any sane daily limit; the member's own activity bounds it. */
 const MAX_WEEK_ROWS = 1000;
+/** One teammate's kudos to the member around a week (the newest matter most). */
+const MAX_RECIPROCAL_ROWS = 200;
+const MAX_TEAMMATE_LOOKUPS = 200;
 
 function weekBounds(weekKey: string, timeZone: string) {
   return { start: startOfDayUtc(weekKey, timeZone), end: startOfDayUtc(addDays(weekKey, 7), timeZone) };
@@ -32,7 +35,7 @@ async function storedBoard(ctx: QueryCtx, workspace: Doc<"workspaces">, weekKey:
   return await ctx.db
     .query("questBoards")
     .withIndex("by_workspace_week", (q) => q.eq("workspaceId", workspace._id).eq("weekKey", weekKey))
-    .unique();
+    .first();
 }
 
 /** The seeded draw for a week, avoiding the previous week's board (stored, or drawn without exclusions). */
@@ -69,7 +72,11 @@ export async function ensureBoard(ctx: MutationCtx, workspace: Doc<"workspaces">
   return questKeys;
 }
 
-/** Everything `evaluateBoard` needs about `member`'s giving in one quest week. Reads only what the board uses. */
+/**
+ * Everything `evaluateBoard` needs about `member`'s giving in one quest week. It runs inside
+ * `giveKudos`, so it reads only what the board uses and stays bounded by the member's own
+ * activity: per distinct recipient a few index lookups, plus a short, early-exit teammate scan.
+ */
 export async function loadQuestFacts(
   ctx: QueryCtx,
   workspace: Doc<"workspaces">,
@@ -83,8 +90,8 @@ export async function loadQuestFacts(
     .withIndex("by_giver_at", (q) => q.eq("giverId", member._id).gte("at", start).lt("at", end))
     .take(MAX_WEEK_ROWS);
 
-  // The latest earlier kudos to each recipient: before the week from the index, then within it.
-  const lastTo = new Map<string, number | null>();
+  const lastTo = new Map<Id<"members">, number | null>(); // latest earlier kudos from the member
+  const receivedFrom: QuestFacts["receivedFrom"] = [];
   for (const receiverId of new Set(rows.map((r) => r.receiverId))) {
     const before = await ctx.db
       .query("kudos")
@@ -92,21 +99,35 @@ export async function loadQuestFacts(
       .order("desc")
       .first();
     lastTo.set(receiverId, before?.at ?? null);
+    // Their kudos to the member around this week, for the reciprocity rule.
+    const back = await ctx.db
+      .query("kudos")
+      .withIndex("by_giver_receiver_at", (q) =>
+        q.eq("giverId", receiverId).eq("receiverId", member._id).gte("at", start - RECIPROCAL_WINDOW_MS).lt("at", end),
+      )
+      .order("desc")
+      .take(MAX_RECIPROCAL_ROWS);
+    for (const r of back) receivedFrom.push({ giverId: r.giverId, at: r.at });
   }
+
   const unsungOn = board.includes("unsung") && workspace.receivedVisibility === "everyone";
   const given: GivenFact[] = [];
   for (const row of rows) {
-    const lastBeforeAt = lastTo.get(row.receiverId) ?? null;
+    const earlier = lastTo.get(row.receiverId) ?? null;
+    const firstThisWeek = earlier === null || earlier < start;
     lastTo.set(row.receiverId, row.at);
-    // Only needed for Unsung hero, and only for rows that can qualify.
-    const lastReceived =
-      unsungOn && (row.noteWords ?? 0) >= MIN_NOTE_WORDS
-        ? await ctx.db
-            .query("kudos")
-            .withIndex("by_receiver_at", (q) => q.eq("receiverId", row.receiverId).lt("at", row.at))
-            .order("desc")
-            .first()
-        : null;
+    // Unsung hero only needs a lookup for the first row to someone this week: any later row has
+    // the member's own earlier kudos to them, less than 14 days before, so it can't be quiet.
+    let receiverLastReceivedAt: number | null | undefined;
+    if (!firstThisWeek) receiverLastReceivedAt = earlier;
+    else if (unsungOn && (row.noteWords ?? 0) >= MIN_NOTE_WORDS) {
+      const last = await ctx.db
+        .query("kudos")
+        .withIndex("by_receiver_at", (q) => q.eq("receiverId", row.receiverId).lt("at", row.at))
+        .order("desc")
+        .first();
+      receiverLastReceivedAt = last?.at ?? null;
+    }
     given.push({
       batchId: row.batchId,
       receiverId: row.receiverId,
@@ -114,36 +135,12 @@ export async function loadQuestFacts(
       channelId: row.channelId,
       at: row.at,
       noteWords: row.noteWords,
-      lastBeforeAt,
-      receiverLastReceivedAt: lastReceived?.at ?? null,
+      lastBeforeAt: earlier,
+      receiverLastReceivedAt,
     });
   }
 
-  const received = await ctx.db
-    .query("kudos")
-    .withIndex("by_receiver_at", (q) => q.eq("receiverId", member._id).gte("at", start - RECIPROCAL_WINDOW_MS).lt("at", end))
-    .take(MAX_WEEK_ROWS);
-
-  const teammates = (
-    await ctx.db
-      .query("members")
-      .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id))
-      .take(1000)
-  ).filter((m) => !m.isBot && !m.deactivated && m._id !== member._id);
-  let hasUnrecognizedTeammate = true;
-  if (board.includes("fresh")) {
-    hasUnrecognizedTeammate = false;
-    for (const m of teammates) {
-      const any = await ctx.db
-        .query("kudos")
-        .withIndex("by_giver_receiver_at", (q) => q.eq("giverId", member._id).eq("receiverId", m._id))
-        .first();
-      if (!any) {
-        hasUnrecognizedTeammate = true;
-        break;
-      }
-    }
-  }
+  const { activeTeammates, hasUnrecognizedTeammate } = await scanTeammates(ctx, workspace, member, board);
   const firstGiven = board.includes("rekindle")
     ? await ctx.db
         .query("kudos")
@@ -153,13 +150,44 @@ export async function loadQuestFacts(
 
   return {
     given,
-    receivedFrom: received.map((r) => ({ giverId: r.giverId, at: r.at })),
-    activeTeammates: teammates.length,
+    receivedFrom,
+    activeTeammates,
     hasUnrecognizedTeammate,
     firstGivenAt: firstGiven?.at ?? null,
     weekStart: start,
     receivedVisibility: workspace.receivedVisibility,
   };
+}
+
+/**
+ * Just enough about teammates for the waivers: Spread the love needs 3 active teammates, New
+ * connection one the member never recognized. Streams members and stops as soon as both are
+ * known; past MAX_TEAMMATE_LOOKUPS it assumes someone is still unrecognized (never wrongly waived).
+ */
+async function scanTeammates(ctx: QueryCtx, workspace: Doc<"workspaces">, member: Doc<"members">, board: readonly QuestKey[]) {
+  const spreadGoal = QUEST_BY_KEY.spread.goal;
+  const needCount = board.includes("spread");
+  const needFresh = board.includes("fresh");
+  let activeTeammates = needCount ? 0 : spreadGoal;
+  let hasUnrecognizedTeammate = !needFresh;
+  let lookups = 0;
+  if (!needCount && !needFresh) return { activeTeammates, hasUnrecognizedTeammate };
+  for await (const m of ctx.db.query("members").withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id))) {
+    if (m.isBot || m.deactivated || m._id === member._id) continue;
+    if (needCount) activeTeammates++;
+    if (!hasUnrecognizedTeammate) {
+      if (lookups++ >= MAX_TEAMMATE_LOOKUPS) hasUnrecognizedTeammate = true;
+      else {
+        const any = await ctx.db
+          .query("kudos")
+          .withIndex("by_giver_receiver_at", (q) => q.eq("giverId", member._id).eq("receiverId", m._id))
+          .first();
+        if (!any) hasUnrecognizedTeammate = true;
+      }
+    }
+    if (hasUnrecognizedTeammate && activeTeammates >= spreadGoal) break;
+  }
+  return { activeTeammates, hasUnrecognizedTeammate };
 }
 
 async function completionsFor(ctx: QueryCtx, memberId: Doc<"members">["_id"], weekKey: string) {
@@ -190,6 +218,19 @@ async function boardStatus(
 }
 
 /**
+ * Keeps the clean-sweep flag true on exactly one completion (the latest) while the board is swept,
+ * and on none otherwise. A waiver can close or reopen the board without a new completion.
+ */
+async function syncSweep(ctx: MutationCtx, completions: Doc<"questCompletions">[], swept: boolean) {
+  const latest = completions.reduce<Doc<"questCompletions"> | null>((l, c) => (!l || c.completedAt >= l.completedAt ? c : l), null);
+  const keep = swept ? (completions.find((c) => c.sweep) ?? latest) : null;
+  for (const c of completions) {
+    const sweep = c._id === keep?._id;
+    if (c.sweep !== sweep) await ctx.db.patch(c._id, { sweep });
+  }
+}
+
+/**
  * Called from `giveKudos` after a batch with a Note: records newly met quests for the giver.
  * One Convex mutation is one serializable transaction, so the lookup-then-insert can't duplicate.
  */
@@ -197,18 +238,20 @@ export async function onKudosGiven(ctx: MutationCtx, workspace: Doc<"workspaces"
   const weekKey = weekKeyFor(now, workspace.timezone);
   const board = await ensureBoard(ctx, workspace, weekKey);
   const { merged, completions } = await boardStatus(ctx, workspace, giver, weekKey, board);
-  const newlyDone = merged.filter((r) => r.done && !completions.some((c) => c.questKey === r.key));
-  const sweep = isCleanSweep(merged) && !completions.some((c) => c.sweep);
-  for (const [i, r] of newlyDone.entries()) {
-    await ctx.db.insert("questCompletions", {
+  const all = [...completions];
+  for (const r of merged) {
+    if (!r.done || completions.some((c) => c.questKey === r.key)) continue;
+    const id = await ctx.db.insert("questCompletions", {
       workspaceId: workspace._id,
       memberId: giver._id,
       weekKey,
       questKey: r.key,
       completedAt: now,
-      sweep: sweep && i === newlyDone.length - 1,
+      sweep: false,
     });
+    all.push((await ctx.db.get(id))!);
   }
+  await syncSweep(ctx, all, isCleanSweep(merged));
 }
 
 /**
@@ -220,7 +263,7 @@ export async function onKudosRevoked(ctx: MutationCtx, workspace: Doc<"workspace
   const giver = await ctx.db.get(row.giverId);
   if (!giver) return;
   const tz = workspace.timezone;
-  for (const weekKey of new Set([weekKeyFor(row.at, tz), weekKeyFor(Date.now(), tz)])) {
+  for (const weekKey of new Set([weekKeyOfDay(row.dayKey), weekKeyFor(Date.now(), tz)])) {
     const completions = await completionsFor(ctx, giver._id, weekKey);
     if (completions.length === 0) continue;
     const board = await resolveBoard(ctx, workspace, weekKey);
@@ -232,8 +275,7 @@ export async function onKudosRevoked(ctx: MutationCtx, workspace: Doc<"workspace
       if (r && !r.done && r.waived !== "privacy") await ctx.db.delete(c._id);
       else kept.push(c);
     }
-    const stillSwept = isCleanSweep(withCompletions(results, kept));
-    for (const c of kept) if (c.sweep && !stillSwept) await ctx.db.patch(c._id, { sweep: false });
+    await syncSweep(ctx, kept, isCleanSweep(withCompletions(results, kept)));
   }
 }
 

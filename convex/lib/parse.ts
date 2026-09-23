@@ -64,7 +64,7 @@ const NOTE_NOISE = [
   /:[a-z0-9_+'-]+:/gi, // every :shortcode:, skin tones included
   /&(?:amp|lt|gt);/g,
 ];
-const NOTE_WORD = /[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu;
+const NOTE_WORD = /[\p{L}\p{N}][\p{L}\p{M}\p{N}'’-]*/gu; // marks stay inside their word
 
 /**
  * Words in the Note of a kudos message: what's left after mentions, channel links,

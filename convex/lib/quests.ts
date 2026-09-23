@@ -122,15 +122,18 @@ export type GivenFact = {
   noteWords?: number;
   /** When the member last gave this recipient kudos before this row (any source), if ever. */
   lastBeforeAt: number | null;
-  /** When the recipient last received kudos from anyone before this row, if ever. */
-  receiverLastReceivedAt: number | null;
+  /**
+   * When the recipient last received kudos before this row (null: never). Only looked up when
+   * Unsung hero needs it; `undefined` means not looked up and never counts as quiet.
+   */
+  receiverLastReceivedAt?: number | null;
 };
 
 export type QuestFacts = {
   given: GivenFact[];
   /** Kudos the member received from [week start − 72 h, week end): for the reciprocity rule. */
   receivedFrom: { giverId: string; at: number }[];
-  /** Active non-bot members besides the member. */
+  /** Active non-bot members besides the member (counted only as far as the waivers need). */
   activeTeammates: number;
   /** Some active teammate has never received kudos from the member. */
   hasUnrecognizedTeammate: boolean;
@@ -165,7 +168,11 @@ function rawProgress(key: QuestKey, rows: GivenFact[]): number {
     case "rekindle":
       return rows.some((g) => g.lastBeforeAt !== null && g.at - g.lastBeforeAt >= REKINDLE_GAP_MS) ? 1 : 0;
     case "unsung":
-      return rows.some((g) => g.receiverLastReceivedAt === null || g.at - g.receiverLastReceivedAt >= UNSUNG_QUIET_MS) ? 1 : 0;
+      return rows.some(
+        (g) => g.receiverLastReceivedAt === null || (g.receiverLastReceivedAt !== undefined && g.at - g.receiverLastReceivedAt >= UNSUNG_QUIET_MS),
+      )
+        ? 1
+        : 0;
     case "steady":
       return distinct((g) => g.dayKey);
     case "channels":

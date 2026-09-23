@@ -222,6 +222,8 @@ describe("evaluateBoard", () => {
     expect(progress("unsung", [give({ receiverLastReceivedAt: WED - 13 * D })])).toBe(0);
     expect(progress("unsung", [give({ receiverLastReceivedAt: WED - 15 * D })])).toBe(1);
     expect(progress("unsung", [give({ receiverLastReceivedAt: null })])).toBe(1);
+    // Not looked up: never counts as quiet.
+    expect(progress("unsung", [give({ receiverLastReceivedAt: undefined })])).toBe(0);
   });
 
   test("progress is capped at the goal", () => {

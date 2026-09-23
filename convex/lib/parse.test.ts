@@ -73,5 +73,7 @@ describe("countNoteWords", () => {
 
   test("letters and digits in any script count", () => {
     expect(words("danke für 2 Stunden Hilfe, 谢谢")).toBe(6);
+    // Combining marks stay inside their word.
+    expect(words("धन्यवाद बहुत अच्छा")).toBe(3);
   });
 });
