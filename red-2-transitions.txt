@@ -1,0 +1,127 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a799df9ac34799a32
+
+ ❯ tests/store-slack.test.ts (13 tests | 5 failed) 224ms
+   ❯ each step of a request (7)
+     × approving tells the requester who approved it 29ms
+     × fulfilling tells the requester it's theirs, with the decider's note 10ms
+     × declining tells the requester why and that the cost is back in their balance 11ms
+     × refreshes the requester's App Home after every step 7ms
+   ❯ who hears about a request (5)
+     × balances stay out of DMs while received kudos are hidden 6ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/store-slack.test.ts > each step of a request > approving tells the requester who approved it
+AssertionError: expected [] to deeply equal [ Array(1) ]
+
+- Expected
++ Received
+
+- [
+-   "✅ <@UANA> approved *☕ Coffee on us*. It's on its way.",
+- ]
++ []
+
+ ❯ tests/store-slack.test.ts:110:46
+    108|   test("approving tells the requester who approved it", async () => {
+    109|     await requestThen({ action: "approve" });
+    110|     expect(dmsTo("UBEN").map((d) => d.text)).toEqual(["✅ <@UANA> appro…
+       |                                              ^
+    111|   });
+    112|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  tests/store-slack.test.ts > each step of a request > fulfilling tells the requester it's theirs, with the decider's note
+AssertionError: expected [] to deeply equal [ …(2) ]
+
+- Expected
++ Received
+
+- [
+-   "✅ <@UANA> approved *☕ Coffee on us*. It's on its way.",
+-   "🎉 *☕ Coffee on us* is yours! Note from <@UANA>: It's on &lt;!channel&gt; the desk",
+- ]
++ []
+
+ ❯ tests/store-slack.test.ts:115:46
+    113|   test("fulfilling tells the requester it's theirs, with the decider's…
+    114|     await requestThen({ action: "approve" }, { action: "fulfill", note…
+    115|     expect(dmsTo("UBEN").map((d) => d.text)).toEqual([
+       |                                              ^
+    116|       "✅ <@UANA> approved *☕ Coffee on us*. It's on its way.",
+    117|       "🎉 *☕ Coffee on us* is yours! Note from <@UANA>: It's on &lt;!c…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  tests/store-slack.test.ts > each step of a request > declining tells the requester why and that the cost is back in their balance
+AssertionError: expected [] to deeply equal [ Array(1) ]
+
+- Expected
++ Received
+
+- [
+-   "*☕ Coffee on us* was declined by <@UANA>: “Out of beans”. 15 :taco: are back in your balance (42 :taco:).",
+- ]
++ []
+
+ ❯ tests/store-slack.test.ts:123:46
+    121|   test("declining tells the requester why and that the cost is back in…
+    122|     await requestThen({ action: "decline", note: "Out of beans" });
+    123|     expect(dmsTo("UBEN").map((d) => d.text)).toEqual([
+       |                                              ^
+    124|       "*☕ Coffee on us* was declined by <@UANA>: “Out of beans”. 15 :t…
+    125|     ]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  tests/store-slack.test.ts > each step of a request > refreshes the requester's App Home after every step
+AssertionError: expected [] to deeply equal [ 'UBEN', 'UBEN' ]
+
+- Expected
++ Received
+
+- [
+-   "UBEN",
+-   "UBEN",
+- ]
++ []
+
+ ❯ tests/store-slack.test.ts:139:44
+    137|   test("refreshes the requester's App Home after every step", async ()…
+    138|     await requestThen({ action: "approve" }, { action: "fulfill" });
+    139|     expect(published().map((p) => p.user)).toEqual(["UBEN", "UBEN"]);
+       |                                            ^
+    140|   });
+    141|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  tests/store-slack.test.ts > who hears about a request > balances stay out of DMs while received kudos are hidden
+AssertionError: expected [] to deeply equal [ Array(1) ]
+
+- Expected
++ Received
+
+- [
+-   "*☕ Coffee on us* was declined by <@UANA>. 15 :taco: are back in your balance.",
+- ]
++ []
+
+ ❯ tests/store-slack.test.ts:207:46
+    205|     await ana.mutation(api.storeAdmin.decide, { redemptionId, action: …
+    206|     await drain();
+    207|     expect(dmsTo("UBEN").map((d) => d.text)).toEqual(["*☕ Coffee on us…
+       |                                              ^
+    208|   });
+    209|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 8 passed (13)
+   Start at  20:57:39
+   Duration  580ms (tests 46%, transform 24%, import 21%, environment 8%, worker 1%)
+

@@ -1,0 +1,30 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a799df9ac34799a32
+
+ ❯ convex/lib/slack.test.ts (6 tests | 1 failed) 14ms
+   × the slash command hints at /kudos store, without asking for any new scope 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  convex/lib/slack.test.ts > the slash command hints at /kudos store, without asking for any new scope
+AssertionError: expected '[me | top | help]' to be '[me | top | store | help]' // Object.is equality
+
+Expected: "[me | top | store | help]"
+Received: "[me | top | help]"
+
+ ❯ convex/lib/slack.test.ts:43:51
+     41| test("the slash command hints at /kudos store, without asking for any …
+     42|   const m = slackManifest("https://kudos.example");
+     43|   expect(m.features.slash_commands[0].usage_hint).toBe("[me | top | st…
+       |                                                   ^
+     44|   // DMs and chat.update are covered by chat:write + im:write: the Sto…
+     45|   expect(m.oauth_config.scopes.bot).toEqual([
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 5 passed (6)
+   Start at  20:59:47
+   Duration  183ms (environment 42%, transform 30%, tests 15%, import 10%, worker 3%)
+

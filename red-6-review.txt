@@ -1,0 +1,110 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a799df9ac34799a32
+
+ ❯ tests/store-slack.test.ts (31 tests | 5 failed) 342ms
+   ❯ who hears about a request (11)
+     × the admin DM carries the requester's answer, verbatim so Slack doesn't auto-link it 10ms
+     × DMs describe the request as it was when it was made, even if more happened before they went out 9ms
+     × approving passes the decider's note on 7ms
+     × while the store is closed, DMs don't link to a store page that isn't there 8ms
+     × without a site URL the DMs still go out, just without links 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/store-slack.test.ts > who hears about a request > the admin DM carries the requester's answer, verbatim so Slack doesn't auto-link it
+AssertionError: expected { type: 'mrkdwn', …(1) } to deeply equal { Object (type, verbatim, ...) }
+
+- Expected
++ Received
+
+  {
+    "text": "Answer to “Oat or &lt;b&gt;dairy&lt;/b&gt;?”: Oat &lt;please&gt; see acme-payroll.com/login",
+    "type": "mrkdwn",
+-   "verbatim": true,
+  }
+
+ ❯ tests/store-slack.test.ts:196:25
+    194|     await drain();
+    195|     const answer = dmsTo("UANA")[0].blocks.find((b: { text?: { text: s…
+    196|     expect(answer.text).toEqual({
+       |                         ^
+    197|       type: "mrkdwn",
+    198|       verbatim: true,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  tests/store-slack.test.ts > who hears about a request > DMs describe the request as it was when it was made, even if more happened before they went out
+AssertionError: expected [ …(2) ] to deeply equal [ Array(1) ]
+
+- Expected
++ Received
+
+  [
+    "🎁 Your request for *☕ Coffee on us* (15 :taco:) is in. An admin will take it from here. Balance: 27 :taco:.",
++   "🎁 Your request for *☕ Coffee on us* (15 :taco:) is in. An admin will take it from here. Balance: 27 :taco:.",
+  ]
+
+ ❯ tests/store-slack.test.ts:212:46
+    210|     await drain();
+    211|     // The first request left 27, and nobody is asked to review the ca…
+    212|     expect(dmsTo("UBEN").map((d) => d.text)).toEqual([
+       |                                              ^
+    213|       "🎁 Your request for *☕ Coffee on us* (15 :taco:) is in. An admi…
+    214|     ]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  tests/store-slack.test.ts > who hears about a request > approving passes the decider's note on
+AssertionError: expected '✅ <@UANA> approved *☕ Coffee on us*. …' to be '✅ <@UANA> approved *☕ Coffee on us*. …' // Object.is equality
+
+Expected: "✅ <@UANA> approved *☕ Coffee on us*. It's on its way. Note from <@UANA>: Pick it up at reception on Friday"
+Received: "✅ <@UANA> approved *☕ Coffee on us*. It's on its way."
+
+ ❯ tests/store-slack.test.ts:260:35
+    258|     await ana.mutation(api.storeAdmin.decide, { redemptionId, action: …
+    259|     await drain();
+    260|     expect(dmsTo("UBEN")[1].text).toBe("✅ <@UANA> approved *☕ Coffee o…
+       |                                   ^
+    261|   });
+    262|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  tests/store-slack.test.ts > who hears about a request > while the store is closed, DMs don't link to a store page that isn't there
+AssertionError: expected '[{"type":"section","text":{"type":"mr…' not to contain '/store'
+
+Expected: "/store"
+Received: "[{"type":"section","text":{"type":"mrkdwn","text":"*☕ Coffee on us* was declined by <@UANA>. 15 :taco: are back in your balance (42 :taco:)."}},{"type":"context","elements":[{"type":"mrkdwn","text":"Follow it under <https://kudos.example/store#my-requests|My requests>"}]}]"
+
+ ❯ tests/store-slack.test.ts:271:57
+    269|     await ana.mutation(api.storeAdmin.decide, { redemptionId, action: …
+    270|     await drain();
+    271|     expect(JSON.stringify(dmsTo("UBEN")[0].blocks)).not.toContain("/st…
+       |                                                         ^
+    272|   });
+    273|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  tests/store-slack.test.ts > who hears about a request > without a site URL the DMs still go out, just without links
+AssertionError: expected '[{"channel":"UBEN","text":"🎁 Your re…' not to contain '"url"'
+
+Expected: ""url""
+Received: "[{"channel":"UBEN","text":"🎁 Your request for *☕ Coffee on us* (15 :taco:) is in. An admin will take it from here. Balance: 27 :taco:.","blocks":[{"type":"section","text":{"type":"mrkdwn","text":"🎁 Your request for *☕ Coffee on us* (15 :taco:) is in. An admin will take it from here. Balance: 27 :taco:."}},{"type":"context","elements":[{"type":"mrkdwn","text":"Follow it under </store#my-requests|My requests>"}]}]},{"channel":"UANA","text":"🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). Balance after: 27 :taco:.","blocks":[{"type":"section","text":{"type":"mrkdwn","text":"🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). Balance after: 27 :taco:."}},{"type":"actions","elements":[{"type":"button","style":"primary","text":{"type":"plain_text","text":"Review in Kudos"},"url":"/admin?tab=store","action_id":"store_review"}]}]}]"
+
+ ❯ tests/store-slack.test.ts:282:21
+    280|     const all = JSON.stringify(dms());
+    281|     expect(dms()).toHaveLength(2);
+    282|     expect(all).not.toContain('"url"');
+       |                     ^
+    283|     expect(all).not.toContain("<|") && expect(all).not.toContain("</st…
+    284|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 26 passed (31)
+   Start at  21:07:38
+   Duration  706ms (tests 55%, transform 21%, import 17%, environment 6%, worker 1%)
+

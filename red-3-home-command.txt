@@ -1,0 +1,144 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a799df9ac34799a32
+
+ ❯ tests/store-slack.test.ts (21 tests | 7 failed) 294ms
+   ❯ App Home (4)
+     × shows the Rewards store with the balance, 3 rewards and Open store 9ms
+     × admins also see how many requests are waiting and a Review requests button 5ms
+     × an empty catalog says the shelves are still being stocked 3ms
+   ❯ /kudos store (4)
+     × shows your balance, the 5 cheapest rewards and a link to the store 21ms
+     × balance is an alias 3ms
+     × says so when the store isn't open 7ms
+     × the help mentions /kudos store only while the store is open 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/store-slack.test.ts > App Home > shows the Rewards store with the balance, 3 rewards and Open store
+AssertionError: expected '[{"type":"header","text":{"type":"pla…' to contain 'Rewards store'
+
+Expected: "Rewards store"
+Received: "[{"type":"header","text":{"type":"plain_text","text":"Your kudos"}},{"type":"section","fields":[{"type":"mrkdwn","text":"*Left today*\n5 / 5 :taco:"},{"type":"mrkdwn","text":"*Given this week*\n0 :taco:"},{"type":"mrkdwn","text":"*Given all-time*\n0 :taco:"},{"type":"mrkdwn","text":"*Received all-time*\n42 :taco:"}]},{"type":"actions","elements":[{"type":"button","style":"primary","text":{"type":"plain_text","text":"Open dashboard"},"url":"https://kudos.example/me","action_id":"open_dashboard"},{"type":"button","text":{"type":"plain_text","text":"Message gallery"},"url":"https://kudos.example/discoveries","action_id":"open_gallery"}]},{"type":"divider"},{"type":"header","text":{"type":"plain_text","text":"This week's most generous"}},{"type":"section","text":{"type":"mrkdwn","text":"_No kudos yet this week. Be the first!_"}},{"type":"divider"},{"type":"context","elements":[{"type":"mrkdwn","text":"Give kudos: mention teammates and add :taco: to your message, e.g. `@ana :taco::taco: thanks for the review!` Every :taco: gives one kudos to each person you mention."}]}]"
+
+ ❯ tests/store-slack.test.ts:233:18
+    231|     await addReward({ name: "Sold out mug", emoji: "☕", cost: 10, stoc…
+    232|     const home = await openHome("UBEN");
+    233|     expect(home).toContain("Rewards store");
+       |                  ^
+    234|     expect(home).toContain("*Balance*\\n42 :taco:");
+    235|     // The dearest you can afford now, then the next goal.
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  tests/store-slack.test.ts > App Home > admins also see how many requests are waiting and a Review requests button
+AssertionError: expected '[{"type":"header","text":{"type":"pla…' to contain '1 request waiting'
+
+Expected: "1 request waiting"
+Received: "[{"type":"header","text":{"type":"plain_text","text":"Your kudos"}},{"type":"section","fields":[{"type":"mrkdwn","text":"*Left today*\n5 / 5 :taco:"},{"type":"mrkdwn","text":"*Given this week*\n0 :taco:"},{"type":"mrkdwn","text":"*Given all-time*\n0 :taco:"},{"type":"mrkdwn","text":"*Received all-time*\n0 :taco:"}]},{"type":"actions","elements":[{"type":"button","style":"primary","text":{"type":"plain_text","text":"Open dashboard"},"url":"https://kudos.example/me","action_id":"open_dashboard"},{"type":"button","text":{"type":"plain_text","text":"Message gallery"},"url":"https://kudos.example/discoveries","action_id":"open_gallery"}]},{"type":"divider"},{"type":"header","text":{"type":"plain_text","text":"This week's most generous"}},{"type":"section","text":{"type":"mrkdwn","text":"_No kudos yet this week. Be the first!_"}},{"type":"divider"},{"type":"context","elements":[{"type":"mrkdwn","text":"Give kudos: mention teammates and add :taco: to your message, e.g. `@ana :taco::taco: thanks for the review!` Every :taco: gives one kudos to each person you mention."}]}]"
+
+ ❯ tests/store-slack.test.ts:247:18
+    245|     await redeemAsBen(rewardId);
+    246|     const home = await openHome("UANA");
+    247|     expect(home).toContain("1 request waiting");
+       |                  ^
+    248|     expect(home).toContain('"url":"https://kudos.example/admin?tab=sto…
+    249|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  tests/store-slack.test.ts > App Home > an empty catalog says the shelves are still being stocked
+AssertionError: expected '[{"type":"header","text":{"type":"pla…' to contain 'The shelves are empty'
+
+Expected: "The shelves are empty"
+Received: "[{"type":"header","text":{"type":"plain_text","text":"Your kudos"}},{"type":"section","fields":[{"type":"mrkdwn","text":"*Left today*\n5 / 5 :taco:"},{"type":"mrkdwn","text":"*Given this week*\n0 :taco:"},{"type":"mrkdwn","text":"*Given all-time*\n0 :taco:"},{"type":"mrkdwn","text":"*Received all-time*\n42 :taco:"}]},{"type":"actions","elements":[{"type":"button","style":"primary","text":{"type":"plain_text","text":"Open dashboard"},"url":"https://kudos.example/me","action_id":"open_dashboard"},{"type":"button","text":{"type":"plain_text","text":"Message gallery"},"url":"https://kudos.example/discoveries","action_id":"open_gallery"}]},{"type":"divider"},{"type":"header","text":{"type":"plain_text","text":"This week's most generous"}},{"type":"section","text":{"type":"mrkdwn","text":"_No kudos yet this week. Be the first!_"}},{"type":"divider"},{"type":"context","elements":[{"type":"mrkdwn","text":"Give kudos: mention teammates and add :taco: to your message, e.g. `@ana :taco::taco: thanks for the review!` Every :taco: gives one kudos to each person you mention."}]}]"
+
+ ❯ tests/store-slack.test.ts:258:36
+    256|
+    257|   test("an empty catalog says the shelves are still being stocked", as…
+    258|     expect(await openHome("UBEN")).toContain("The shelves are empty");
+       |                                    ^
+    259|   });
+    260| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  tests/store-slack.test.ts > /kudos store > shows your balance, the 5 cheapest rewards and a link to the store
+AssertionError: the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+ ❯ tests/store-slack.test.ts:283:18
+    281|     expect(body.response_type).toBe("ephemeral");
+    282|     const text = JSON.stringify(body.blocks);
+    283|     expect(text).toContain("*Balance*\\n42 :taco:");
+       |                  ^
+    284|     expect(text).toContain("🎁 A · 1 :taco:\\n🎁 B · 2 :taco:\\n🎁 C ·…
+    285|     expect(text).not.toContain("🎁 F");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  tests/store-slack.test.ts > /kudos store > balance is an alias
+AssertionError: the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+ ❯ tests/store-slack.test.ts:290:63
+    288|
+    289|   test("balance is an alias", async () => {
+    290|     expect(JSON.stringify((await command("balance")).blocks)).toContai…
+       |                                                               ^
+    291|   });
+    292|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  tests/store-slack.test.ts > /kudos store > says so when the store isn't open
+AssertionError: expected '*How Kudos works* :taco:\n• Mention t…' to be 'The rewards store isn\'t open in this…' // Object.is equality
+
+- Expected
++ Received
+
+- The rewards store isn't open in this workspace.
++ *How Kudos works* :taco:
++ • Mention teammates and add :taco: to your message: `@ana @ben :taco::taco: thanks for the release!`
++ • Each :taco: gives one kudos to *every* person mentioned. You can give 5 per day.
++ • React with :taco: on a message to give its author one kudos.
++ • The bot answers with messages of different rarities. Collect them all!
++ `/kudos me` your balance · `/kudos top` weekly leaderboard
++ <https://kudos.example|Open the Kudos dashboard>
+
+ ❯ tests/store-slack.test.ts:295:43
+    293|   test("says so when the store isn't open", async () => {
+    294|     await t.run((ctx) => ctx.db.patch(team.workspaceId, { storeEnabled…
+    295|     expect((await command("store")).text).toBe("The rewards store isn'…
+       |                                           ^
+    296|   });
+    297|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+ FAIL  tests/store-slack.test.ts > /kudos store > the help mentions /kudos store only while the store is open
+AssertionError: expected '*How Kudos works* :taco:\n• Mention t…' to contain '`/kudos store`'
+
+- Expected
++ Received
+
+- `/kudos store`
++ *How Kudos works* :taco:
++ • Mention teammates and add :taco: to your message: `@ana @ben :taco::taco: thanks for the release!`
++ • Each :taco: gives one kudos to *every* person mentioned. You can give 5 per day.
++ • React with :taco: on a message to give its author one kudos.
++ • The bot answers with messages of different rarities. Collect them all!
++ `/kudos me` your balance · `/kudos top` weekly leaderboard
++ <https://kudos.example|Open the Kudos dashboard>
+
+ ❯ tests/store-slack.test.ts:299:42
+    297|
+    298|   test("the help mentions /kudos store only while the store is open", …
+    299|     expect((await command("help")).text).toContain("`/kudos store`");
+       |                                          ^
+    300|     await t.run((ctx) => ctx.db.patch(team.workspaceId, { storeEnabled…
+    301|     expect((await command("help")).text).not.toContain("`/kudos store`…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 14 passed (21)
+   Start at  20:58:15
+   Duration  669ms (tests 52%, transform 22%, import 19%, environment 7%, worker 1%)
+

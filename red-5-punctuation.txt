@@ -1,0 +1,31 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a799df9ac34799a32
+
+ ❯ tests/store-slack.test.ts (22 tests | 1 failed) 307ms
+   ❯ each step of a request (8)
+     × a note that ends a sentence isn't followed by a second full stop 14ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/store-slack.test.ts > each step of a request > a note that ends a sentence isn't followed by a second full stop
+AssertionError: expected '*☕ Coffee on us* was declined by <@UA…' to contain '“We\'re out of beans this week.” 15 :…'
+
+Expected: "“We're out of beans this week.” 15 :taco: are back"
+Received: "*☕ Coffee on us* was declined by <@UANA>: “We're out of beans this week.”. 15 :taco: are back in your balance (42 :taco:)."
+
+ ❯ tests/store-slack.test.ts:130:35
+    128|   test("a note that ends a sentence isn't followed by a second full st…
+    129|     await requestThen({ action: "decline", note: "We're out of beans t…
+    130|     expect(dmsTo("UBEN")[0].text).toContain("“We're out of beans this …
+       |                                   ^
+    131|   });
+    132|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 21 passed (22)
+   Start at  21:00:59
+   Duration  669ms (tests 52%, transform 21%, import 19%, environment 7%, worker 1%)
+

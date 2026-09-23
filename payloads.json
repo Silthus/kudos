@@ -1,0 +1,1222 @@
+{
+  "1-requested: requester DM, admin DM, requester Home refresh": [
+    {
+      "method": "chat.postMessage",
+      "channel": "UBEN",
+      "text": "🎁 Your request for *☕ Coffee on us* (15 :taco:) is in. An admin will take it from here. Balance: 27 :taco:.",
+      "blocks": [
+        {
+          "type": "section",
+          "text": {
+            "type": "mrkdwn",
+            "text": "🎁 Your request for *☕ Coffee on us* (15 :taco:) is in. An admin will take it from here. Balance: 27 :taco:.",
+            "verbatim": true
+          }
+        },
+        {
+          "type": "context",
+          "elements": [
+            {
+              "type": "mrkdwn",
+              "text": "Follow it under <https://kudos.example/store#my-requests|My requests>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "method": "chat.postMessage",
+      "channel": "UANA",
+      "text": "🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). Balance after: 27 :taco:.",
+      "blocks": [
+        {
+          "type": "section",
+          "text": {
+            "type": "mrkdwn",
+            "text": "🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). Balance after: 27 :taco:.",
+            "verbatim": true
+          }
+        },
+        {
+          "type": "section",
+          "text": {
+            "type": "mrkdwn",
+            "text": "Answer to “Oat or dairy?”: Oat, please",
+            "verbatim": true
+          }
+        },
+        {
+          "type": "actions",
+          "elements": [
+            {
+              "type": "button",
+              "style": "primary",
+              "text": {
+                "type": "plain_text",
+                "text": "Review in Kudos"
+              },
+              "url": "https://kudos.example/admin?tab=store",
+              "action_id": "store_review"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "method": "views.publish",
+      "user_id": "UBEN",
+      "view": {
+        "type": "home",
+        "blocks": [
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "Your kudos"
+            }
+          },
+          {
+            "type": "section",
+            "fields": [
+              {
+                "type": "mrkdwn",
+                "text": "*Left today*\n5 / 5 :taco:"
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Given this week*\n0 :taco:"
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Given all-time*\n0 :taco:"
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Received all-time*\n42 :taco:"
+              }
+            ]
+          },
+          {
+            "type": "actions",
+            "elements": [
+              {
+                "type": "button",
+                "style": "primary",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Open dashboard"
+                },
+                "url": "https://kudos.example/me",
+                "action_id": "open_dashboard"
+              },
+              {
+                "type": "button",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Message gallery"
+                },
+                "url": "https://kudos.example/discoveries",
+                "action_id": "open_gallery"
+              }
+            ]
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "This week's most generous"
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "_No kudos yet this week. Be the first!_"
+            }
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "Rewards store"
+            }
+          },
+          {
+            "type": "section",
+            "fields": [
+              {
+                "type": "mrkdwn",
+                "text": "*Balance*\n27 :taco:"
+              }
+            ]
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "verbatim": true,
+              "text": "☕ Coffee on us · 15 :taco:\n🏷️ Sticker pack · 5 :taco:\n🥪 Lunch with the team · 40 :taco:  _13 more to go_"
+            }
+          },
+          {
+            "type": "actions",
+            "elements": [
+              {
+                "type": "button",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Open store"
+                },
+                "url": "https://kudos.example/store",
+                "action_id": "open_store"
+              }
+            ]
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "context",
+            "elements": [
+              {
+                "type": "mrkdwn",
+                "text": "Give kudos: mention teammates and add :taco: to your message, e.g. `@ana :taco::taco: thanks for the review!` Every :taco: gives one kudos to each person you mention."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "2-approved (with note)": [
+    {
+      "method": "chat.postMessage",
+      "channel": "UBEN",
+      "text": "✅ <@UANA> approved *☕ Coffee on us*. It's on its way. Note from <@UANA>: Pick it up at reception on Friday.",
+      "blocks": [
+        {
+          "type": "section",
+          "text": {
+            "type": "mrkdwn",
+            "text": "✅ <@UANA> approved *☕ Coffee on us*. It's on its way. Note from <@UANA>: Pick it up at reception on Friday.",
+            "verbatim": true
+          }
+        },
+        {
+          "type": "context",
+          "elements": [
+            {
+              "type": "mrkdwn",
+              "text": "Follow it under <https://kudos.example/store#my-requests|My requests>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "method": "views.publish",
+      "user_id": "UBEN",
+      "view": {
+        "type": "home",
+        "blocks": [
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "Your kudos"
+            }
+          },
+          {
+            "type": "section",
+            "fields": [
+              {
+                "type": "mrkdwn",
+                "text": "*Left today*\n5 / 5 :taco:"
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Given this week*\n0 :taco:"
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Given all-time*\n0 :taco:"
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Received all-time*\n42 :taco:"
+              }
+            ]
+          },
+          {
+            "type": "actions",
+            "elements": [
+              {
+                "type": "button",
+                "style": "primary",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Open dashboard"
+                },
+                "url": "https://kudos.example/me",
+                "action_id": "open_dashboard"
+              },
+              {
+                "type": "button",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Message gallery"
+                },
+                "url": "https://kudos.example/discoveries",
+                "action_id": "open_gallery"
+              }
+            ]
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "This week's most generous"
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "_No kudos yet this week. Be the first!_"
+            }
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "Rewards store"
+            }
+          },
+          {
+            "type": "section",
+            "fields": [
+              {
+                "type": "mrkdwn",
+                "text": "*Balance*\n27 :taco:"
+              }
+            ]
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "verbatim": true,
+              "text": "☕ Coffee on us · 15 :taco:\n🏷️ Sticker pack · 5 :taco:\n🥪 Lunch with the team · 40 :taco:  _13 more to go_"
+            }
+          },
+          {
+            "type": "actions",
+            "elements": [
+              {
+                "type": "button",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Open store"
+                },
+                "url": "https://kudos.example/store",
+                "action_id": "open_store"
+              }
+            ]
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "context",
+            "elements": [
+              {
+                "type": "mrkdwn",
+                "text": "Give kudos: mention teammates and add :taco: to your message, e.g. `@ana :taco::taco: thanks for the review!` Every :taco: gives one kudos to each person you mention."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "3-fulfilled (with note)": [
+    {
+      "method": "chat.postMessage",
+      "channel": "UBEN",
+      "text": "🎉 *☕ Coffee on us* is yours! Note from <@UANA>: Enjoy!",
+      "blocks": [
+        {
+          "type": "section",
+          "text": {
+            "type": "mrkdwn",
+            "text": "🎉 *☕ Coffee on us* is yours! Note from <@UANA>: Enjoy!",
+            "verbatim": true
+          }
+        },
+        {
+          "type": "context",
+          "elements": [
+            {
+              "type": "mrkdwn",
+              "text": "Follow it under <https://kudos.example/store#my-requests|My requests>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "method": "views.publish",
+      "user_id": "UBEN",
+      "view": {
+        "type": "home",
+        "blocks": [
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "Your kudos"
+            }
+          },
+          {
+            "type": "section",
+            "fields": [
+              {
+                "type": "mrkdwn",
+                "text": "*Left today*\n5 / 5 :taco:"
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Given this week*\n0 :taco:"
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Given all-time*\n0 :taco:"
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Received all-time*\n42 :taco:"
+              }
+            ]
+          },
+          {
+            "type": "actions",
+            "elements": [
+              {
+                "type": "button",
+                "style": "primary",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Open dashboard"
+                },
+                "url": "https://kudos.example/me",
+                "action_id": "open_dashboard"
+              },
+              {
+                "type": "button",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Message gallery"
+                },
+                "url": "https://kudos.example/discoveries",
+                "action_id": "open_gallery"
+              }
+            ]
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "This week's most generous"
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "_No kudos yet this week. Be the first!_"
+            }
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "Rewards store"
+            }
+          },
+          {
+            "type": "section",
+            "fields": [
+              {
+                "type": "mrkdwn",
+                "text": "*Balance*\n27 :taco:"
+              }
+            ]
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "verbatim": true,
+              "text": "☕ Coffee on us · 15 :taco:\n🏷️ Sticker pack · 5 :taco:\n🥪 Lunch with the team · 40 :taco:  _13 more to go_"
+            }
+          },
+          {
+            "type": "actions",
+            "elements": [
+              {
+                "type": "button",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Open store"
+                },
+                "url": "https://kudos.example/store",
+                "action_id": "open_store"
+              }
+            ]
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "context",
+            "elements": [
+              {
+                "type": "mrkdwn",
+                "text": "Give kudos: mention teammates and add :taco: to your message, e.g. `@ana :taco::taco: thanks for the review!` Every :taco: gives one kudos to each person you mention."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "4-declined (with note)": [
+    {
+      "method": "chat.postMessage",
+      "channel": "UBEN",
+      "text": "*☕ Coffee on us* was declined by <@UANA>: “We're out of beans this week.” 15 :taco: are back in your balance (27 :taco:).",
+      "blocks": [
+        {
+          "type": "section",
+          "text": {
+            "type": "mrkdwn",
+            "text": "*☕ Coffee on us* was declined by <@UANA>: “We're out of beans this week.” 15 :taco: are back in your balance (27 :taco:).",
+            "verbatim": true
+          }
+        },
+        {
+          "type": "context",
+          "elements": [
+            {
+              "type": "mrkdwn",
+              "text": "Follow it under <https://kudos.example/store#my-requests|My requests>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "method": "views.publish",
+      "user_id": "UBEN",
+      "view": {
+        "type": "home",
+        "blocks": [
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "Your kudos"
+            }
+          },
+          {
+            "type": "section",
+            "fields": [
+              {
+                "type": "mrkdwn",
+                "text": "*Left today*\n5 / 5 :taco:"
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Given this week*\n0 :taco:"
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Given all-time*\n0 :taco:"
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Received all-time*\n42 :taco:"
+              }
+            ]
+          },
+          {
+            "type": "actions",
+            "elements": [
+              {
+                "type": "button",
+                "style": "primary",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Open dashboard"
+                },
+                "url": "https://kudos.example/me",
+                "action_id": "open_dashboard"
+              },
+              {
+                "type": "button",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Message gallery"
+                },
+                "url": "https://kudos.example/discoveries",
+                "action_id": "open_gallery"
+              }
+            ]
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "This week's most generous"
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "_No kudos yet this week. Be the first!_"
+            }
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "Rewards store"
+            }
+          },
+          {
+            "type": "section",
+            "fields": [
+              {
+                "type": "mrkdwn",
+                "text": "*Balance*\n27 :taco:"
+              }
+            ]
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "verbatim": true,
+              "text": "☕ Coffee on us · 15 :taco:\n🏷️ Sticker pack · 5 :taco:\n🥪 Lunch with the team · 40 :taco:  _13 more to go_"
+            }
+          },
+          {
+            "type": "actions",
+            "elements": [
+              {
+                "type": "button",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Open store"
+                },
+                "url": "https://kudos.example/store",
+                "action_id": "open_store"
+              }
+            ]
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "context",
+            "elements": [
+              {
+                "type": "mrkdwn",
+                "text": "Give kudos: mention teammates and add :taco: to your message, e.g. `@ana :taco::taco: thanks for the review!` Every :taco: gives one kudos to each person you mention."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "5-cancelled: no DM, Home refresh only": [
+    {
+      "method": "views.publish",
+      "user_id": "UBEN",
+      "view": {
+        "type": "home",
+        "blocks": [
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "Your kudos"
+            }
+          },
+          {
+            "type": "section",
+            "fields": [
+              {
+                "type": "mrkdwn",
+                "text": "*Left today*\n5 / 5 :taco:"
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Given this week*\n0 :taco:"
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Given all-time*\n0 :taco:"
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Received all-time*\n42 :taco:"
+              }
+            ]
+          },
+          {
+            "type": "actions",
+            "elements": [
+              {
+                "type": "button",
+                "style": "primary",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Open dashboard"
+                },
+                "url": "https://kudos.example/me",
+                "action_id": "open_dashboard"
+              },
+              {
+                "type": "button",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Message gallery"
+                },
+                "url": "https://kudos.example/discoveries",
+                "action_id": "open_gallery"
+              }
+            ]
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "This week's most generous"
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "_No kudos yet this week. Be the first!_"
+            }
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "Rewards store"
+            }
+          },
+          {
+            "type": "section",
+            "fields": [
+              {
+                "type": "mrkdwn",
+                "text": "*Balance*\n27 :taco:"
+              }
+            ]
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "verbatim": true,
+              "text": "☕ Coffee on us · 15 :taco:\n🏷️ Sticker pack · 5 :taco:\n🥪 Lunch with the team · 40 :taco:  _13 more to go_"
+            }
+          },
+          {
+            "type": "actions",
+            "elements": [
+              {
+                "type": "button",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Open store"
+                },
+                "url": "https://kudos.example/store",
+                "action_id": "open_store"
+              }
+            ]
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "context",
+            "elements": [
+              {
+                "type": "mrkdwn",
+                "text": "Give kudos: mention teammates and add :taco: to your message, e.g. `@ana :taco::taco: thanks for the review!` Every :taco: gives one kudos to each person you mention."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "6-app-home-admin": [
+    {
+      "method": "views.publish",
+      "user_id": "UANA",
+      "view": {
+        "type": "home",
+        "blocks": [
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "Your kudos"
+            }
+          },
+          {
+            "type": "section",
+            "fields": [
+              {
+                "type": "mrkdwn",
+                "text": "*Left today*\n5 / 5 :taco:"
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Given this week*\n0 :taco:"
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Given all-time*\n0 :taco:"
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Received all-time*\n0 :taco:"
+              }
+            ]
+          },
+          {
+            "type": "actions",
+            "elements": [
+              {
+                "type": "button",
+                "style": "primary",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Open dashboard"
+                },
+                "url": "https://kudos.example/me",
+                "action_id": "open_dashboard"
+              },
+              {
+                "type": "button",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Message gallery"
+                },
+                "url": "https://kudos.example/discoveries",
+                "action_id": "open_gallery"
+              }
+            ]
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "This week's most generous"
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "_No kudos yet this week. Be the first!_"
+            }
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "Rewards store"
+            }
+          },
+          {
+            "type": "section",
+            "fields": [
+              {
+                "type": "mrkdwn",
+                "text": "*Balance*\n0 :taco:"
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*For admins*\n1 request waiting"
+              }
+            ]
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "verbatim": true,
+              "text": "🏷️ Sticker pack · 5 :taco:  _5 more to go_\n☕ Coffee on us · 15 :taco:  _15 more to go_\n🥪 Lunch with the team · 40 :taco:  _40 more to go_"
+            }
+          },
+          {
+            "type": "actions",
+            "elements": [
+              {
+                "type": "button",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Open store"
+                },
+                "url": "https://kudos.example/store",
+                "action_id": "open_store"
+              },
+              {
+                "type": "button",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Review requests"
+                },
+                "url": "https://kudos.example/admin?tab=store",
+                "action_id": "review_requests"
+              }
+            ]
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "context",
+            "elements": [
+              {
+                "type": "mrkdwn",
+                "text": "Give kudos: mention teammates and add :taco: to your message, e.g. `@ana :taco::taco: thanks for the review!` Every :taco: gives one kudos to each person you mention."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "7-app-home-member": [
+    {
+      "method": "views.publish",
+      "user_id": "UBEN",
+      "view": {
+        "type": "home",
+        "blocks": [
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "Your kudos"
+            }
+          },
+          {
+            "type": "section",
+            "fields": [
+              {
+                "type": "mrkdwn",
+                "text": "*Left today*\n5 / 5 :taco:"
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Given this week*\n0 :taco:"
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Given all-time*\n0 :taco:"
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Received all-time*\n42 :taco:"
+              }
+            ]
+          },
+          {
+            "type": "actions",
+            "elements": [
+              {
+                "type": "button",
+                "style": "primary",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Open dashboard"
+                },
+                "url": "https://kudos.example/me",
+                "action_id": "open_dashboard"
+              },
+              {
+                "type": "button",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Message gallery"
+                },
+                "url": "https://kudos.example/discoveries",
+                "action_id": "open_gallery"
+              }
+            ]
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "This week's most generous"
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "_No kudos yet this week. Be the first!_"
+            }
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "Rewards store"
+            }
+          },
+          {
+            "type": "section",
+            "fields": [
+              {
+                "type": "mrkdwn",
+                "text": "*Balance*\n12 :taco:"
+              }
+            ]
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "verbatim": true,
+              "text": "🏷️ Sticker pack · 5 :taco:\n☕ Coffee on us · 15 :taco:  _3 more to go_\n🥪 Lunch with the team · 40 :taco:  _28 more to go_"
+            }
+          },
+          {
+            "type": "actions",
+            "elements": [
+              {
+                "type": "button",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Open store"
+                },
+                "url": "https://kudos.example/store",
+                "action_id": "open_store"
+              }
+            ]
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "context",
+            "elements": [
+              {
+                "type": "mrkdwn",
+                "text": "Give kudos: mention teammates and add :taco: to your message, e.g. `@ana :taco::taco: thanks for the review!` Every :taco: gives one kudos to each person you mention."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "8-/kudos store": {
+    "blocks": [
+      {
+        "text": {
+          "text": "Rewards store",
+          "type": "plain_text"
+        },
+        "type": "header"
+      },
+      {
+        "fields": [
+          {
+            "text": "*Balance*\n12 :taco:",
+            "type": "mrkdwn"
+          },
+          {
+            "text": "*Open requests*\n1",
+            "type": "mrkdwn"
+          }
+        ],
+        "type": "section"
+      },
+      {
+        "text": {
+          "text": "🏷️ Sticker pack · 5 :taco:\n☕ Coffee on us · 15 :taco:  _3 more to go_\n🥪 Lunch with the team · 40 :taco:  _28 more to go_\n🧥 Hoodie · 60 :taco:  _48 more to go_",
+          "type": "mrkdwn",
+          "verbatim": true
+        },
+        "type": "section"
+      },
+      {
+        "elements": [
+          {
+            "text": "<https://kudos.example/store|Open the store>",
+            "type": "mrkdwn"
+          }
+        ],
+        "type": "context"
+      }
+    ],
+    "response_type": "ephemeral"
+  },
+  "9-/kudos help (store open)": {
+    "response_type": "ephemeral",
+    "text": "*How Kudos works* :taco:\n• Mention teammates and add :taco: to your message: `@ana @ben :taco::taco: thanks for the release!`\n• Each :taco: gives one kudos to *every* person mentioned. You can give 5 per day.\n• React with :taco: on a message to give its author one kudos.\n• The bot answers with messages of different rarities. Collect them all!\n`/kudos me` what you can give today · `/kudos top` weekly leaderboard\n`/kudos store` your balance and the rewards you can spend it on\n<https://kudos.example|Open the Kudos dashboard>"
+  },
+  "10-/kudos store (store closed)": {
+    "response_type": "ephemeral",
+    "text": "The rewards store isn't open in this workspace."
+  },
+  "11-app-home-member (store closed: no Rewards store section)": [
+    {
+      "method": "views.publish",
+      "user_id": "UBEN",
+      "view": {
+        "type": "home",
+        "blocks": [
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "Your kudos"
+            }
+          },
+          {
+            "type": "section",
+            "fields": [
+              {
+                "type": "mrkdwn",
+                "text": "*Left today*\n5 / 5 :taco:"
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Given this week*\n0 :taco:"
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Given all-time*\n0 :taco:"
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Received all-time*\n42 :taco:"
+              }
+            ]
+          },
+          {
+            "type": "actions",
+            "elements": [
+              {
+                "type": "button",
+                "style": "primary",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Open dashboard"
+                },
+                "url": "https://kudos.example/me",
+                "action_id": "open_dashboard"
+              },
+              {
+                "type": "button",
+                "text": {
+                  "type": "plain_text",
+                  "text": "Message gallery"
+                },
+                "url": "https://kudos.example/discoveries",
+                "action_id": "open_gallery"
+              }
+            ]
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "This week's most generous"
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "_No kudos yet this week. Be the first!_"
+            }
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "context",
+            "elements": [
+              {
+                "type": "mrkdwn",
+                "text": "Give kudos: mention teammates and add :taco: to your message, e.g. `@ana :taco::taco: thanks for the review!` Every :taco: gives one kudos to each person you mention."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

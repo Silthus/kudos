@@ -1,0 +1,27 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a799df9ac34799a32
+
+ ❯ tests/store-slack.test.ts (1 test | 1 failed) 42ms
+   ❯ redeeming a reward (1)
+     × DMs the requester a confirmation and each admin a request to review 40ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/store-slack.test.ts > redeeming a reward > DMs the requester a confirmation and each admin a request to review
+TypeError: Cannot read properties of undefined (reading 'text')
+ ❯ tests/store-slack.test.ts:86:17
+     84|
+     85|     const [mine] = dmsTo("UBEN");
+     86|     expect(mine.text).toBe("🎁 Your request for *☕ Coffee on us* (15 :…
+       |                 ^
+     87|     expect(JSON.stringify(mine.blocks)).toContain("<https://kudos.exam…
+     88|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  20:55:50
+   Duration  402ms (transform 39%, import 35%, tests 13%, environment 12%, worker 1%)
+
