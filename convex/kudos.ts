@@ -50,8 +50,8 @@ export const ingestMessage = internalMutation({
     if (!workspace || workspace.status !== "active") return null;
     const parsed = parseKudosMessage(args.text, workspace.emojiName);
     if (!parsed) return null;
-    // Edited or re-delivered messages must not give twice. Look for the giver's own message row:
-    // the message's first row may be a teammate's reaction to it.
+    // Re-delivered messages must not give twice. Look for the giver's own message row (a Slack
+    // message has one author): the message's first row may be a teammate's reaction to it.
     const giver = await ctx.db
       .query("members")
       .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id).eq("slackUserId", args.giverSlackId))

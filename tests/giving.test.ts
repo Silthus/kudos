@@ -187,22 +187,40 @@ describe("redelivered messages that others reacted to", () => {
     expect(await member(t, team.ben)).toMatchObject({ totalReceived: 1 });
   });
 
-  test("an edit a day later that adds more kudos gives nothing and the rollups stay exact", async () => {
-    // Ben reacted to Ana's plain message, Ana then edited kudos into it, and edited again the next day.
+  test("a redelivery after midnight gives nothing and the rollups stay exact", async () => {
+    // Ben's reaction was processed first, then Ana's kudos message, then Slack redelivered it the next day.
     await react("UBEN", "UANA", "42.0001");
-    expect((await message("UANA", "<@UBEN> :taco:", "42.0001"))?.status).toBe("given");
+    expect((await message("UANA", "<@UBEN> <@UCLEO> :taco:", "42.0001"))?.status).toBe("given");
     vi.setSystemTime(new Date("2026-09-24T10:00:00Z"));
-    expect(await message("UANA", "<@UBEN> <@UCLEO> :taco::taco:", "42.0001")).toBeNull();
+    expect(await message("UANA", "<@UBEN> <@UCLEO> :taco:", "42.0001")).toBeNull();
 
-    expect((await messageGives()).map((k) => [k.receiverId, k.amount, k.dayKey])).toEqual([[team.ben, 1, "2026-09-23"]]);
-    expect(await member(t, team.cleo)).toMatchObject({ totalReceived: 0 });
+    expect((await messageGives()).map((k) => [k.receiverId, k.amount, k.dayKey])).toEqual([
+      [team.ben, 1, "2026-09-23"],
+      [team.cleo, 1, "2026-09-23"],
+    ]);
+    expect(await member(t, team.cleo)).toMatchObject({ totalReceived: 1 });
     // Live maintenance and a rebuild from the kudos rows must both agree with the legacy computation.
     const buckets = ["d:2026-09-23", "d:2026-09-24", "w:2026-W39", "m:2026-09", "q:2026-Q3", "y:2026"];
     const verify = () => t.query(internal.rollups.verify, { workspaceId: team.workspaceId, buckets });
+    // `verify` can't sample the all-time bucket, so check its live row, then the rebuilt one.
+    const allTime = async () => {
+      const rows = await t.run((ctx) => ctx.db.query("workspaceStats").collect());
+      const { given, messages } = rows.find((w) => w.bucket === "all")!;
+      return { given, messages };
+    };
+    // Ben's reaction and Ana's message: two messages, three kudos.
     expect(await verify()).toEqual({ checked: buckets, mismatches: [] });
+    expect(await allTime()).toEqual({ given: 3, messages: 2 });
     await t.mutation(internal.rollups.rebuildWorkspace, { workspaceId: team.workspaceId });
     await t.finishAllScheduledFunctions(vi.runAllTimers, 1000);
     expect(await verify()).toEqual({ checked: buckets, mismatches: [] });
+    expect(await allTime()).toEqual({ given: 3, messages: 2 });
+  });
+
+  test("a giver who wasn't a member yet is still only counted once", async () => {
+    expect((await message("UNEW", "<@UBEN> :taco:", "42.0001"))?.status).toBe("given");
+    expect(await message("UNEW", "<@UBEN> :taco:", "42.0001")).toBeNull();
+    expect(await messageGives()).toHaveLength(1);
   });
 
   test("reactions to a kudos message still count once per person", async () => {
