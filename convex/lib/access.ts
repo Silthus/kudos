@@ -31,6 +31,11 @@ export async function requireAdmin(ctx: QueryCtx): Promise<Viewer> {
   return viewer;
 }
 
+/** Everyone shares the demo admin account, so its configuration stays fixed. */
+export function assertNotDemo(workspace: Doc<"workspaces">, what = "Settings are") {
+  if (workspace.isDemo) throw new ConvexError(`${what} read-only in the shared demo workspace.`);
+}
+
 /** Whether `viewer` may see received counts for `subjectMemberId`. */
 export function canSeeReceived(viewer: Viewer, subjectMemberId?: string): boolean {
   switch (viewer.workspace.receivedVisibility) {

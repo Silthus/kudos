@@ -4,7 +4,7 @@ import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { revokeKudosRow } from "./engine";
-import { canSeeReceived, publicSettings, requireAdmin } from "./lib/access";
+import { assertNotDemo, canSeeReceived, publicSettings, requireAdmin } from "./lib/access";
 import { siteUrl } from "./lib/slack";
 import { receivedVisibilityValidator } from "./schema";
 
@@ -21,6 +21,8 @@ export const overview = query({
     return {
       workspace: { _id: workspace._id, name: workspace.name, isDemo: workspace.isDemo, slackTeamId: workspace.slackTeamId },
       settings: publicSettings(workspace),
+      // Not part of `settings`: the settings form posts that object back to `updateSettings`.
+      storeEnabled: Boolean(workspace.storeEnabled),
       slack: {
         connected: Boolean(install),
         botUserId: install?.botUserId ?? null,
@@ -39,11 +41,6 @@ export const overview = query({
     };
   },
 });
-
-/** Everyone shares the demo admin account, so its configuration stays fixed. */
-function assertNotDemo(workspace: Doc<"workspaces">) {
-  if (workspace.isDemo) throw new ConvexError("Settings are read-only in the shared demo workspace.");
-}
 
 function validTimezone(tz: string) {
   try {
@@ -79,6 +76,9 @@ export const updateSettings = mutation({
       throw new ConvexError("Daily allowance must be a whole number between 1 and 100.");
     }
     if (!validTimezone(args.timezone)) throw new ConvexError("Unknown timezone.");
+    if (args.receivedVisibility === "hidden" && workspace.storeEnabled) {
+      throw new ConvexError("Turn off the store before hiding received kudos.");
+    }
     const glyph = args.emojiGlyph.trim();
     if (glyph.length === 0 || glyph.length > 16) throw new ConvexError("Pick an emoji to show in the web app.");
     const unitSingular = args.unitSingular.trim();

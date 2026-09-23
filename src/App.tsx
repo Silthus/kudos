@@ -8,6 +8,7 @@ import { NotInstalled } from "./pages/NotInstalled";
 import { Me } from "./pages/Me";
 import { Leaderboard } from "./pages/Leaderboard";
 import { Discoveries } from "./pages/Discoveries";
+import { Store } from "./pages/Store";
 import { Analytics } from "./pages/Analytics";
 import { Admin } from "./pages/Admin";
 import { Playground } from "./pages/Playground";
@@ -43,6 +44,7 @@ export function App() {
           <Route path="/me" element={<Me />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/discoveries" element={<Discoveries />} />
+          {viewer.workspace.storeEnabled && <Route path="/store" element={<Store />} />}
           <Route path="/analytics" element={<Analytics />} />
           {viewer.member.isAdmin && <Route path="/admin" element={<Admin />} />}
           {viewer.workspace.isDemo && <Route path="/playground" element={<Playground />} />}

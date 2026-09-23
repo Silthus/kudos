@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { motion } from "motion/react";
-import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
-import type { ComponentProps, ReactNode } from "react";
+import { ArrowDownRight, ArrowUpRight, Minus, X } from "lucide-react";
+import { useEffect, useRef, type ComponentProps, type ReactNode } from "react";
 import { RARITY_META, type Rarity } from "@/lib/rarity";
 import { nf } from "@/lib/format";
 
@@ -73,7 +73,8 @@ export function Segmented<T extends string>({
   size?: "sm" | "md";
 }) {
   return (
-    <div role="tablist" className="inline-flex rounded-xl border border-line bg-ink/60 p-1">
+    // Scrolls sideways instead of widening the page when the tabs don't fit a phone.
+    <div role="tablist" className="inline-flex max-w-full overflow-x-auto rounded-xl border border-line bg-ink/60 p-1 [scrollbar-width:none]">
       {options.map((o) => (
         <button
           key={o.value}
@@ -83,7 +84,7 @@ export function Segmented<T extends string>({
           title={o.title}
           onClick={() => onChange(o.value)}
           className={clsx(
-            "relative rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+            "relative shrink-0 whitespace-nowrap rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40",
             size === "sm" ? "px-2.5 py-1 text-xs" : "px-3 py-1.5 text-sm",
             value === o.value ? "text-ink" : "text-muted hover:text-cream",
           )}
@@ -220,14 +221,26 @@ export function PageHeader({ eyebrow, title, subtitle, action }: { eyebrow?: Rea
         <h1 className="font-display text-3xl font-semibold tracking-tight text-cream sm:text-[40px] sm:leading-[1.05]">{title}</h1>
         {subtitle && <p className="mt-2 max-w-2xl text-[15px] text-muted">{subtitle}</p>}
       </div>
-      {action && <div className="flex flex-wrap items-center gap-2">{action}</div>}
+      {action && <div className="flex max-w-full flex-wrap items-center gap-2">{action}</div>}
     </div>
   );
 }
 
-export function Toggle({ checked, onChange, label, description }: { checked: boolean; onChange: (v: boolean) => void; label: string; description?: string }) {
+export function Toggle({
+  checked,
+  onChange,
+  label,
+  description,
+  disabled,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+  description?: ReactNode;
+  disabled?: boolean;
+}) {
   return (
-    <label className="flex cursor-pointer items-start justify-between gap-6 py-3">
+    <label className={clsx("flex items-start justify-between gap-6 py-3", disabled ? "cursor-not-allowed" : "cursor-pointer")}>
       <span>
         <span className="block text-sm font-medium text-cream">{label}</span>
         {description && <span className="mt-0.5 block text-sm text-muted">{description}</span>}
@@ -236,8 +249,10 @@ export function Toggle({ checked, onChange, label, description }: { checked: boo
         type="button"
         role="switch"
         aria-checked={checked}
+        aria-label={label}
+        disabled={disabled}
         onClick={() => onChange(!checked)}
-        className={clsx("relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors", checked ? "bg-saffron" : "bg-panel-3")}
+        className={clsx("relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50", checked ? "bg-saffron" : "bg-panel-3")}
       >
         <motion.span
           layout
@@ -246,5 +261,81 @@ export function Toggle({ checked, onChange, label, description }: { checked: boo
         />
       </button>
     </label>
+  );
+}
+
+export const inputCls = "h-10 w-full rounded-xl border border-line-strong bg-ink/60 px-3 text-sm text-cream outline-none transition focus:border-saffron/60 disabled:opacity-60";
+
+export function Field({ label, hint, children, className }: { label: string; hint?: ReactNode; children: ReactNode; className?: string }) {
+  return (
+    <label className={clsx("block", className)}>
+      <span className="text-sm font-medium">{label}</span>
+      {hint && <span className="mt-0.5 block text-xs text-muted">{hint}</span>}
+      <div className="mt-2">{children}</div>
+    </label>
+  );
+}
+
+/** A modal built on the native <dialog>: focus trapping, Escape and the top layer come for free. */
+export function Dialog({
+  open,
+  onClose,
+  title,
+  subtitle,
+  children,
+  footer,
+  className,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: ReactNode;
+  subtitle?: ReactNode;
+  children: ReactNode;
+  footer?: ReactNode;
+  className?: string;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+    if (open && !dialog.open) dialog.showModal();
+    if (!open && dialog.open) dialog.close();
+  }, [open]);
+  return (
+    <dialog
+      ref={ref}
+      onClose={onClose}
+      onCancel={(e) => {
+        e.preventDefault();
+        onClose();
+      }}
+      // A click on the <dialog> itself (not its content) landed on the backdrop.
+      onClick={(e) => e.target === ref.current && onClose()}
+      className={clsx(
+        "m-auto max-h-[calc(100dvh-24px)] w-[min(560px,calc(100vw-24px))] overflow-visible bg-transparent p-0 text-cream backdrop:bg-ink/75 backdrop:backdrop-blur-sm",
+        className,
+      )}
+    >
+      {open && (
+        <motion.div
+          initial={{ opacity: 0, y: 12, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
+          className="flex max-h-[calc(100dvh-24px)] flex-col rounded-2xl border border-line-strong bg-panel shadow-[0_30px_80px_-20px_rgb(0_0_0/0.9)]"
+        >
+          <header className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+            <div className="min-w-0">
+              <h2 className="font-display text-lg font-semibold tracking-tight">{title}</h2>
+              {subtitle && <p className="mt-0.5 text-sm text-muted">{subtitle}</p>}
+            </div>
+            <button onClick={onClose} className="-mr-1 rounded-lg p-1.5 text-faint hover:bg-panel-2 hover:text-cream" aria-label="Close">
+              <X className="h-4 w-4" />
+            </button>
+          </header>
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
+          {footer && <footer className="flex flex-wrap items-center justify-end gap-2 border-t border-line px-5 py-3">{footer}</footer>}
+        </motion.div>
+      )}
+    </dialog>
   );
 }

@@ -77,6 +77,7 @@ export default defineSchema({
     isDemo: v.boolean(),
     status: v.union(v.literal("active"), v.literal("uninstalled")),
     resettingSince: v.optional(v.number()), // demo only: a reset is in progress
+    storeEnabled: v.optional(v.boolean()), // Rewards Store; undefined = off
     ...settingsFields,
   }).index("by_team", ["slackTeamId"]),
 
@@ -111,6 +112,8 @@ export default defineSchema({
     longestStreak: v.optional(v.number()),
     lastActiveDay: v.optional(v.string()), // latest dayKey with given > 0
     givenByWeekday: v.optional(v.array(v.number())), // 7 sums, Monday first
+    storeSpent: v.optional(v.number()), // Σ cost of non-refunded redemptions; undefined = 0
+    storeGranted: v.optional(v.number()), // Σ balance adjustments; undefined = 0
   })
     .index("by_workspace_slackUser", ["workspaceId", "slackUserId"])
     .index("by_workspace_totalGiven", ["workspaceId", "totalGiven"])
@@ -243,6 +246,21 @@ export default defineSchema({
     ),
     error: v.optional(v.string()),
   }).index("by_member", ["memberId"]),
+
+  // Rewards Store catalog. Archived, never deleted: redemptions link back to them.
+  rewards: defineTable({
+    workspaceId: v.id("workspaces"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    emoji: v.string(),
+    cost: v.number(),
+    stock: v.optional(v.number()), // remaining; undefined = unlimited
+    maxPerMember: v.optional(v.number()), // lifetime cap; undefined = none
+    prompt: v.optional(v.string()), // question the requester must answer
+    status: v.union(v.literal("active"), v.literal("archived")),
+    createdBy: v.id("members"),
+    updatedAt: v.number(),
+  }).index("by_workspace_status_cost", ["workspaceId", "status", "cost"]),
 
   slackEvents: defineTable({
     eventId: v.string(),
