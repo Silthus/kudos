@@ -479,6 +479,7 @@ export const slashCommand = internalMutation({
             type: "section",
             text: {
               type: "mrkdwn",
+              verbatim: true,
               text: rewards.map((r) => rewardLine(r, balance, e)).join("\n") || "_The shelves are empty. Your admins are still stocking the store._",
             },
           },
@@ -510,11 +511,14 @@ export const slashCommand = internalMutation({
 
 /** Admin DMs for one request go to at most this many admins, signed-in ones first. */
 const MAX_ADMIN_DMS = 20;
+/** Admin rows read to pick them from; Slack sync makes every workspace admin a Kudos admin. */
+const MAX_ADMINS_READ = 200;
 
 /**
  * Everything `slack.notifyRedemption` needs to tell people about one redemption, or null
  * when the workspace can't be reached in Slack (uninstalled, demo). `admins` is only
- * filled for a new request. Balances are left out while received kudos are hidden.
+ * filled while a new request is still pending. `showBalance` is false while received
+ * kudos are hidden; `storeOpen` says whether the web store page exists to link to.
  */
 export const redemptionForSlack = internalQuery({
   args: { redemptionId: v.id("redemptions"), withAdmins: v.boolean() },
@@ -524,7 +528,10 @@ export const redemptionForSlack = internalQuery({
       workspaceId: v.id("workspaces"),
       botToken: v.string(),
       emojiName: v.string(),
-      requester: v.object({ slackUserId: v.string(), deactivated: v.boolean(), balance: v.union(v.number(), v.null()) }),
+      showBalance: v.boolean(),
+      storeOpen: v.boolean(),
+      status: redemptionStatusValidator,
+      requester: v.object({ slackUserId: v.string(), deactivated: v.boolean() }),
       reward: v.object({ name: v.string(), emoji: v.string(), cost: v.number() }),
       prompt: v.optional(v.string()),
       answer: v.optional(v.string()),
@@ -550,32 +557,33 @@ export const redemptionForSlack = internalQuery({
       if (!slackIds.has(h.by)) slackIds.set(h.by, (await ctx.db.get(h.by))?.slackUserId ?? null);
     }
 
+    // Asking admins to review a request that was already cancelled or decided helps nobody.
     const admins: { slackUserId: string; isOwn: boolean; signedIn: boolean }[] = [];
-    if (withAdmins) {
-      const rows = ctx.db
+    if (withAdmins && redemption.status === "pending") {
+      const rows = await ctx.db
         .query("members")
-        .withIndex("by_workspace_isAdmin", (q) => q.eq("workspaceId", workspace._id).eq("isAdmin", true));
-      for await (const admin of rows) {
+        .withIndex("by_workspace_isAdmin", (q) => q.eq("workspaceId", workspace._id).eq("isAdmin", true))
+        .take(MAX_ADMINS_READ);
+      for (const admin of rows) {
         if (admin._id === requester._id || admin.deactivated || admin.isBot) continue;
         admins.push({ slackUserId: admin.slackUserId, isOwn: false, signedIn: Boolean(admin.userId) });
       }
       admins.sort((a, b) => Number(b.signedIn) - Number(a.signedIn));
-      admins.splice(MAX_ADMIN_DMS);
       // An admin only reviews their own request when nobody else can (the four-eyes rule).
       if (requester.isAdmin && !requester.deactivated && !(await otherActiveAdminExists(ctx, workspace._id, requester._id))) {
-        admins.push({ slackUserId: requester.slackUserId, isOwn: true, signedIn: true });
+        admins.unshift({ slackUserId: requester.slackUserId, isOwn: true, signedIn: true });
       }
+      admins.splice(MAX_ADMIN_DMS);
     }
 
     return {
       workspaceId: workspace._id,
       botToken: install.botToken,
       emojiName: workspace.emojiName,
-      requester: {
-        slackUserId: requester.slackUserId,
-        deactivated: requester.deactivated,
-        balance: workspace.receivedVisibility !== "hidden" ? balanceOf(requester) : null,
-      },
+      showBalance: workspace.receivedVisibility !== "hidden",
+      storeOpen: storeOpen(workspace),
+      status: redemption.status,
+      requester: { slackUserId: requester.slackUserId, deactivated: requester.deactivated },
       reward: { name: redemption.rewardName, emoji: redemption.rewardEmoji, cost: redemption.cost },
       prompt: redemption.prompt,
       answer: redemption.answer,

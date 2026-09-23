@@ -187,15 +187,100 @@ describe("who hears about a request", () => {
     expect(JSON.stringify(review.blocks)).toContain("Your own request");
   });
 
-  test("the admin DM carries the requester's answer and flags a negative balance", async () => {
+  test("the admin DM carries the requester's answer, verbatim so Slack doesn't auto-link it", async () => {
     await signInAs(t, team.ana);
     const rewardId = await addReward({ prompt: "Oat or <b>dairy</b>?" });
-    await redeemAsBen(rewardId, "Oat <please>");
-    await setMember(team.ben, { totalReceived: 10 }); // kudos revoked after the request
+    await redeemAsBen(rewardId, "Oat <please> see acme-payroll.com/login");
     await drain();
-    const text = JSON.stringify(dmsTo("UANA")[0].blocks);
-    expect(text).toContain("Answer to “Oat or &lt;b&gt;dairy&lt;/b&gt;?”: Oat &lt;please&gt;");
-    expect(text).toContain("Negative balance");
+    const answer = dmsTo("UANA")[0].blocks.find((b: { text?: { text: string } }) => b.text?.text.startsWith("Answer"));
+    expect(answer.text).toEqual({
+      type: "mrkdwn",
+      verbatim: true,
+      text: "Answer to “Oat or &lt;b&gt;dairy&lt;/b&gt;?”: Oat &lt;please&gt; see acme-payroll.com/login",
+    });
+  });
+
+  test("DMs describe the request as it was when it was made, even if more happened before they went out", async () => {
+    await signInAs(t, team.ana);
+    const coffee = await addReward();
+    const ben = await signInAs(t, team.ben);
+    await ben.mutation(api.store.redeem, { rewardId: coffee, expectedCost: 15 });
+    const second = await ben.mutation(api.store.redeem, { rewardId: coffee, expectedCost: 15 });
+    await ben.mutation(api.store.cancel, { redemptionId: second.redemptionId }); // a quick change of mind
+    await drain();
+    // The first request left 27, and nobody is asked to review the cancelled one.
+    expect(dmsTo("UBEN").map((d) => d.text)).toEqual([
+      "🎁 Your request for *☕ Coffee on us* (15 :taco:) is in. An admin will take it from here. Balance: 27 :taco:.",
+    ]);
+    expect(dmsTo("UANA").map((d) => d.text)).toEqual(["🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). Balance after: 27 :taco:."]);
+  });
+
+  test("bots, deactivated admins and plain members never get the review DM; signed-in admins come first, 20 at most", async () => {
+    await t.run(async (ctx) => {
+      for (let i = 0; i < 25; i++) {
+        await ctx.db.insert("members", {
+          workspaceId: team.workspaceId,
+          slackUserId: `UADM${String(i).padStart(2, "0")}`,
+          name: `Admin ${i}`,
+          isAdmin: true,
+          isBot: false,
+          deactivated: false,
+          totalGiven: 0,
+          totalReceived: 0,
+          totalMaxedDays: 0,
+        });
+      }
+    });
+    await setMember(team.bot, { isAdmin: true });
+    await setMember(team.cleo, { isAdmin: true, deactivated: true });
+    await signInAs(t, team.ana);
+    await redeemAsBen(await addReward());
+    await drain();
+    const reviewers = dms().filter((d) => d.text.startsWith("🛎️")).map((d) => d.channel);
+    expect(reviewers).toHaveLength(20);
+    expect(reviewers[0]).toBe("UANA");
+    expect(reviewers).not.toContain("UBOT");
+    expect(reviewers).not.toContain("UCLEO");
+  });
+
+  test("an uninstalled workspace hears nothing", async () => {
+    await signInAs(t, team.ana);
+    const { redemptionId } = await redeemAsBen(await addReward());
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { status: "uninstalled" }));
+    await drain();
+    expect(calls).toEqual([]);
+    expect(await t.run((ctx) => ctx.db.get(redemptionId))).toMatchObject({ status: "pending" });
+  });
+
+  test("approving passes the decider's note on", async () => {
+    const ana = await signInAs(t, team.ana);
+    const { redemptionId } = await redeemAsBen(await addReward());
+    await ana.mutation(api.storeAdmin.decide, { redemptionId, action: "approve", note: "Pick it up at reception on Friday" });
+    await drain();
+    expect(dmsTo("UBEN")[1].text).toBe("✅ <@UANA> approved *☕ Coffee on us*. It's on its way. Note from <@UANA>: Pick it up at reception on Friday");
+  });
+
+  test("while the store is closed, DMs don't link to a store page that isn't there", async () => {
+    const ana = await signInAs(t, team.ana);
+    const { redemptionId } = await redeemAsBen(await addReward());
+    await drain();
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { storeEnabled: false }));
+    calls = [];
+    await ana.mutation(api.storeAdmin.decide, { redemptionId, action: "decline" });
+    await drain();
+    expect(JSON.stringify(dmsTo("UBEN")[0].blocks)).not.toContain("/store");
+  });
+
+  test("without a site URL the DMs still go out, just without links", async () => {
+    vi.stubEnv("SITE_URL", "");
+    vi.stubEnv("CONVEX_SITE_URL", "");
+    await signInAs(t, team.ana);
+    await redeemAsBen(await addReward());
+    await drain();
+    const all = JSON.stringify(dms());
+    expect(dms()).toHaveLength(2);
+    expect(all).not.toContain('"url"');
+    expect(all).not.toContain("</store");
   });
 
   test("balances stay out of DMs while received kudos are hidden", async () => {
@@ -244,7 +329,23 @@ describe("App Home", () => {
     await addReward({ name: "Sticker pack", emoji: "🏷️", cost: 5 });
     expect(await openHome("UBEN")).toContain("🥪 Lunch · 40 :taco:\\n☕ Coffee on us · 15 :taco:\\n🏷️ Sticker pack · 5 :taco:");
     expect(home).toContain('"url":"https://kudos.example/store"');
+  });
+
+  test("members don't see the admin line, even with requests waiting", async () => {
+    await signInAs(t, team.ana);
+    await redeemAsBen(await addReward());
+    const home = await openHome("UCLEO");
+    expect(home).toContain("Rewards store");
+    expect(home).not.toContain("waiting");
     expect(home).not.toContain("Review requests");
+  });
+
+  test("leaves the store out while received kudos are hidden, whatever storeEnabled says", async () => {
+    await addReward();
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { receivedVisibility: "hidden" }));
+    const home = await openHome("UBEN");
+    expect(home).not.toContain("Rewards store");
+    expect(home).not.toContain("42");
   });
 
   test("admins also see how many requests are waiting and a Review requests button", async () => {
@@ -301,6 +402,13 @@ describe("/kudos store", () => {
   test("says so when the store isn't open", async () => {
     await t.run((ctx) => ctx.db.patch(team.workspaceId, { storeEnabled: false }));
     expect((await command("store")).text).toBe("The rewards store isn't open in this workspace.");
+  });
+
+  test("never shows a balance while received kudos are hidden", async () => {
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { receivedVisibility: "hidden" }));
+    const body = await command("balance");
+    expect(body.text).toBe("The rewards store isn't open in this workspace.");
+    expect(JSON.stringify(body)).not.toContain("42");
   });
 
   test("the help mentions /kudos store only while the store is open", async () => {

@@ -5,7 +5,7 @@ import type { Id } from "./_generated/dataModel";
 import { baseEmojiName, parseKudosMessage } from "./lib/parse";
 import { escapeMrkdwn, rewardLine, siteUrl, slackApi, type SlackResponse } from "./lib/slack";
 import { RARITY_SLACK_BADGE, type Rarity } from "./lib/messages";
-import { OPEN_COUNT_CAP } from "./storeAdmin";
+import { OPEN_COUNT_CAP } from "./lib/store";
 
 type SlackEvent = {
   type: string;
@@ -242,6 +242,7 @@ function storeSection(store: StoreHome | null, e: string, site: string) {
       type: "section",
       text: {
         type: "mrkdwn",
+        verbatim: true,
         text: store.rewards.map((r) => rewardLine(r, store.balance, e)).join("\n") || "_The shelves are empty. Your admins are still stocking the store._",
       },
     },
@@ -274,59 +275,72 @@ async function postDm(token: string, channel: string, text: string, blocks: obje
   if (!res.ok) console.warn(`Store DM to ${channel} failed: ${res.error}`);
 }
 
+/** mrkdwn that shows what people typed as-is: no auto-linked URLs, channels or mentions. */
+const verbatim = (text: string) => ({ type: "mrkdwn", text, verbatim: true });
+
 /**
  * Tells the requester (and, for a new request, the admins) about one step of a redemption,
  * then refreshes the requester's App Home. Transactional DMs, not rarity-rolled bot messages
- * (spec D13). Scheduled by the store helpers; a Slack failure never blocks the step.
+ * (spec D13). Scheduled by the store helpers with `balance` as it was right after the step,
+ * since later steps may already have happened; a Slack failure never blocks the step.
  */
 export const notifyRedemption = internalAction({
-  args: { redemptionId: v.id("redemptions"), event: redemptionEventValidator },
+  args: { redemptionId: v.id("redemptions"), event: redemptionEventValidator, balance: v.number() },
   returns: v.null(),
-  handler: async (ctx, { redemptionId, event }) => {
-    const data = await ctx.runQuery(internal.slackData.redemptionForSlack, { redemptionId, withAdmins: event === "requested" });
+  handler: async (ctx, args) => {
+    const { event } = args;
+    const data = await ctx.runQuery(internal.slackData.redemptionForSlack, { redemptionId: args.redemptionId, withAdmins: event === "requested" });
     if (!data) return null;
     const { botToken: token, requester, reward } = data;
     const e = `:${data.emojiName}:`;
     const site = siteUrl();
     const item = `*${escapeMrkdwn(`${reward.emoji} ${reward.name}`)}*`;
     const cost = `${reward.cost} ${e}`;
-    const balance = requester.balance === null ? null : `${requester.balance} ${e}`;
+    const balance = data.showBalance ? `${args.balance} ${e}` : null;
 
     // Word the DM for the step it's about, not the current status: a later step may already have happened.
     const step = [...data.history].reverse().find((h) => h.status === (event === "requested" ? "pending" : event));
     const by = step?.bySlackUserId ? `<@${step.bySlackUserId}>` : "an admin";
     const note = step?.note ? escapeMrkdwn(step.note) : null;
+    const noteFrom = note ? ` Note from ${by}: ${note}` : "";
     const endsSentence = note !== null && /[.!?…]$/.test(note);
     const update = {
-      requested: `🎁 Your request for ${item} (${cost}) is in. An admin will take it from here.${balance ? ` Balance: ${balance}.` : ""}`,
-      approved: `✅ ${by} approved ${item}. It's on its way.`,
-      fulfilled: `🎉 ${item} is yours!${note ? ` Note from ${by}: ${note}` : ""}`,
+      // A request withdrawn before this went out needs no confirmation.
+      requested:
+        data.status === "cancelled"
+          ? null
+          : `🎁 Your request for ${item} (${cost}) is in. An admin will take it from here.${balance ? ` Balance: ${balance}.` : ""}`,
+      approved: `✅ ${by} approved ${item}. It's on its way.${noteFrom}`,
+      fulfilled: `🎉 ${item} is yours!${noteFrom}`,
       declined: `${item} was declined by ${by}${note ? `: “${note}”${endsSentence ? "" : "."}` : "."} ${cost} are back in your balance${balance ? ` (${balance})` : ""}.`,
       cancelled: null, // they did it themselves
     }[event];
     if (update && !requester.deactivated) {
+      // The store page only exists while the store is open.
+      const link = site && data.storeOpen ? `Follow it under <${site}/store#my-requests|My requests>` : null;
       await postDm(token, requester.slackUserId, update, [
-        { type: "section", text: { type: "mrkdwn", text: update } },
-        { type: "context", elements: [{ type: "mrkdwn", text: `Follow it under <${site}/store#my-requests|My requests>` }] },
+        { type: "section", text: verbatim(update) },
+        ...(link ? [{ type: "context", elements: [{ type: "mrkdwn", text: link }] }] : []),
       ]);
     }
+
     for (const admin of data.admins) {
       const text = `🛎️ <@${requester.slackUserId}> wants ${item} (${cost}).${balance ? ` Balance after: ${balance}.` : ""}`;
       const answer = data.answer && `Answer${data.prompt ? ` to “${escapeMrkdwn(data.prompt)}”` : ""}: ${escapeMrkdwn(data.answer)}`;
-      const warnings = [
-        requester.balance !== null && requester.balance < 0 ? "⚠️ Negative balance: some kudos they received were revoked." : null,
-        admin.isOwn ? "👤 Your own request. You're the only admin who can decide it." : null,
-      ].filter(Boolean);
       await postDm(token, admin.slackUserId, text, [
-        { type: "section", text: { type: "mrkdwn", text } },
-        ...(answer ? [{ type: "section", text: { type: "mrkdwn", text: answer } }] : []),
-        ...(warnings.length ? [{ type: "context", elements: [{ type: "mrkdwn", text: warnings.join("  ·  ") }] }] : []),
-        {
-          type: "actions",
-          elements: [
-            { type: "button", style: "primary", text: { type: "plain_text", text: "Review in Kudos" }, url: `${site}/admin?tab=store`, action_id: "store_review" },
-          ],
-        },
+        { type: "section", text: verbatim(text) },
+        ...(answer ? [{ type: "section", text: verbatim(answer) }] : []),
+        ...(admin.isOwn ? [{ type: "context", elements: [{ type: "mrkdwn", text: "👤 Your own request. You're the only admin who can decide it." }] }] : []),
+        ...(site
+          ? [
+              {
+                type: "actions",
+                elements: [
+                  { type: "button", style: "primary", text: { type: "plain_text", text: "Review in Kudos" }, url: `${site}/admin?tab=store`, action_id: "store_review" },
+                ],
+              },
+            ]
+          : []),
       ]);
     }
 

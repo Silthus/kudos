@@ -4,7 +4,7 @@ import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/s
 import type { Doc, Id } from "./_generated/dataModel";
 import { assertNotDemo, requireAdmin } from "./lib/access";
 import { median, workspaceMembers } from "./lib/stats";
-import { assertValidStock, balanceOf, MAX_ACTIVE_REWARDS, validateRewardInput } from "./lib/store";
+import { assertValidStock, balanceOf, MAX_ACTIVE_REWARDS, OPEN_COUNT_CAP, validateRewardInput } from "./lib/store";
 import { redemptionStatusValidator } from "./schema";
 import {
   activeRewards,
@@ -196,8 +196,7 @@ async function rewardInWorkspace(ctx: MutationCtx, workspace: Doc<"workspaces">,
 
 // ── Requests ─────────────────────────────────────────────────────────────────
 
-/** Badges count up to this many open requests and show "99+" beyond. */
-export const OPEN_COUNT_CAP = 100;
+export { OPEN_COUNT_CAP };
 
 export async function openRequestCount(ctx: QueryCtx, workspaceId: Id<"workspaces">) {
   const rows = await ctx.db

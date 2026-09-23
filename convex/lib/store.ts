@@ -8,6 +8,8 @@ import type { Doc } from "../_generated/dataModel";
 
 export const MAX_ACTIVE_REWARDS = 100;
 export const MAX_OPEN_REDEMPTIONS = 5;
+/** Badges count up to this many open requests and show "99+" beyond. */
+export const OPEN_COUNT_CAP = 100;
 
 export const REWARD_BOUNDS = {
   name: 60,

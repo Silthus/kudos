@@ -49,7 +49,7 @@ export function rewardLine(reward: { emoji: string; name: string; cost: number }
   return `${escapeMrkdwn(`${reward.emoji} ${reward.name}`)} · ${reward.cost} ${e}${short > 0 ? `  _${short} more to go_` : ""}`;
 }
 
-export type SlackResponse ={ ok: boolean; error?: string; [key: string]: unknown };
+export type SlackResponse = { ok: boolean; error?: string; [key: string]: unknown };
 
 /** Calls a Slack Web API method with a form-encoded body. */
 export async function slackApi(
