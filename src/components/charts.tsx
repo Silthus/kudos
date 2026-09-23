@@ -2,6 +2,7 @@ import clsx from "clsx";
 import { motion } from "motion/react";
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { dayLabel, nf } from "@/lib/format";
+import { labelWidth, nudgeLabels } from "@/lib/labels";
 
 function useWidth<T extends HTMLElement>() {
   const ref = useRef<T>(null);
@@ -45,7 +46,24 @@ export function monotonePath(points: [number, number][]): string {
   return d;
 }
 
-export type Series = { key: string; label: string; color: string; values: (number | null)[]; dashed?: boolean };
+export type Series = {
+  key: string;
+  label: string;
+  color: string;
+  values: (number | null)[];
+  dashed?: boolean;
+  /** Stroke opacity; dashed series default to 0.55 so they recede when they share the solid series' colour. */
+  opacity?: number;
+  /** A per-point aside shown next to the label in the tooltip, e.g. the aligned previous-period date. */
+  notes?: (string | null)[];
+};
+
+const seriesOpacity = (s: Series) => s.opacity ?? (s.dashed ? 0.55 : 1);
+
+function lastIndex(values: (number | null)[]) {
+  for (let i = values.length - 1; i >= 0; i--) if (values[i] !== null) return i;
+  return -1;
+}
 
 export function Legend({ items }: { items: { label: string; color: string; dashed?: boolean }[] }) {
   return (
@@ -74,11 +92,23 @@ function Tooltip({ x, y, width, children }: { x: number; y: number; width: numbe
   );
 }
 
-/** Multi-series line chart over days: solid current period, dashed comparison. */
-export function LineChart({ days, series, height = 240 }: { days: string[]; series: Series[]; height?: number }) {
+/**
+ * Multi-series line chart over days: solid current period, dashed comparison. `endLabels` direct-labels
+ * each line's last point ("You 23") and reserves a gutter on the right for them.
+ */
+export function LineChart({ days, series, height = 240, endLabels = false }: { days: string[]; series: Series[]; height?: number; endLabels?: boolean }) {
   const [ref, width] = useWidth<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
-  const pad = { top: 12, right: 12, bottom: 28, left: 32 };
+  // Direct labels at each line's last point; the right gutter is as wide as the widest one.
+  const endInfo = endLabels
+    ? series.flatMap((s) => {
+        const i = lastIndex(s.values);
+        const value = s.values[i] ?? 0;
+        return i < 0 ? [] : [{ s, i, value, width: labelWidth(`${s.label} ${nf.format(value)}`) }];
+      })
+    : [];
+  const labelRoom = Math.max(0, ...endInfo.map((e) => e.width));
+  const pad = { top: 12, right: Math.max(12, labelRoom), bottom: 28, left: 32 };
   const w = Math.max(0, width - pad.left - pad.right);
   const h = height - pad.top - pad.bottom;
   const max = niceMax(Math.max(1, ...series.flatMap((s) => s.values.map((v) => v ?? 0))));
@@ -98,9 +128,12 @@ export function LineChart({ days, series, height = 240 }: { days: string[]; seri
     [series, width, max],
   );
   const first = series[0];
-  const area = first && !first.dashed && width > 0
-    ? `${paths[0]}L${x(first.values.length - 1)},${y(0)}L${x(0)},${y(0)}Z`
+  const firstEnd = first ? lastIndex(first.values) : -1;
+  const area = first && !first.dashed && width > 0 && firstEnd >= 0
+    ? `${paths[0]}L${x(firstEnd)},${y(0)}L${x(0)},${y(0)}Z`
     : null;
+  const ends = endInfo.map((e) => ({ ...e, x: x(e.i), y: y(e.value) }));
+  const endYs = nudgeLabels(ends, { gap: 13, width: labelRoom });
 
   return (
     <div ref={ref} className="relative" style={{ height }}>
@@ -138,11 +171,27 @@ export function LineChart({ days, series, height = 240 }: { days: string[]; seri
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeDasharray={s.dashed ? "4 4" : undefined}
-              opacity={s.dashed ? 0.55 : 1}
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: 1 }}
-              transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+              // Drawing a line in animates its dash array, which would erase a dashed series' dashes: fade those in.
+              initial={s.dashed ? { opacity: 0 } : { pathLength: 0, opacity: seriesOpacity(s) }}
+              animate={s.dashed ? { opacity: seriesOpacity(s) } : { pathLength: 1, opacity: seriesOpacity(s) }}
+              transition={{ duration: s.dashed ? 0.6 : 1, ease: [0.22, 1, 0.36, 1] }}
             />
+          ))}
+          {ends.map((e, i) => (
+            <g key={e.s.key}>
+              <circle cx={e.x} cy={e.y} r={4} fill={e.s.color} stroke="var(--color-panel)" strokeWidth={2} />
+              <text
+                x={e.x + 9}
+                y={endYs[i] + 4}
+                className="fill-cream text-[11px] font-medium"
+                stroke="var(--color-panel)"
+                strokeWidth={4}
+                strokeLinejoin="round"
+                paintOrder="stroke"
+              >
+                {e.s.label} <tspan className="tabular">{nf.format(e.value)}</tspan>
+              </text>
+            </g>
           ))}
           {hover !== null && (
             <g>
@@ -176,8 +225,9 @@ export function LineChart({ days, series, height = 240 }: { days: string[]; seri
             s.values[hover] === null ? null : (
               <div key={s.key} className="flex items-center justify-between gap-4">
                 <span className="flex items-center gap-1.5 text-muted">
-                  <span className="h-2 w-2 rounded-full" style={{ background: s.color, opacity: s.dashed ? 0.6 : 1 }} />
+                  <span className="h-2 w-2 rounded-full" style={{ background: s.color, opacity: Math.max(0.6, seriesOpacity(s)) }} />
                   {s.label}
+                  {s.notes?.[hover] && <span className="text-faint">· {s.notes[hover]}</span>}
                 </span>
                 <span className="font-medium text-cream tabular">{nf.format(s.values[hover] ?? 0)}</span>
               </div>
@@ -276,6 +326,53 @@ export function BarChart({
           )}
         </Tooltip>
       )}
+    </div>
+  );
+}
+
+/**
+ * You vs one benchmark on a single metric: two thin bars from a shared baseline, scaled to this row's
+ * own max (rows never share a scale), with the values printed in ink at the bar ends.
+ */
+export function PairedBars({
+  you,
+  benchmark,
+  color,
+  benchmarkColor = "var(--color-benchmark)",
+  labels = ["You", "Benchmark"],
+}: {
+  you: number;
+  benchmark: number | null;
+  color: string;
+  benchmarkColor?: string;
+  labels?: [string, string];
+}) {
+  const max = Math.max(1, you, benchmark ?? 0);
+  const bars = [
+    { key: "you", label: labels[0], value: you, color },
+    ...(benchmark === null ? [] : [{ key: "benchmark", label: labels[1], value: benchmark, color: benchmarkColor }]),
+  ];
+  return (
+    <div className="space-y-1.5" role="img" aria-label={bars.map((b) => `${b.label} ${nf.format(b.value)}`).join(", ")}>
+      {bars.map((b) => (
+        <div key={b.key} className="relative mr-10 h-2">
+          <motion.div
+            className="absolute inset-y-0 left-0 rounded-full"
+            style={{ background: b.color, minWidth: b.value > 0 ? 4 : 0 }}
+            initial={{ width: 0 }}
+            animate={{ width: `${(b.value / max) * 100}%` }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          />
+          <motion.span
+            className="absolute top-1/2 -translate-y-1/2 pl-2 font-mono text-[11px] leading-none text-muted tabular"
+            initial={{ left: "0%" }}
+            animate={{ left: `${(b.value / max) * 100}%` }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {nf.format(b.value)}
+          </motion.span>
+        </div>
+      ))}
     </div>
   );
 }

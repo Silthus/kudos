@@ -25,6 +25,8 @@
   --color-teal-soft: #5fd4bd;
   --color-up: #7ddc9c;
   --color-down: #ff8a78;
+  /* Compare: the neutral ink every benchmark wears (cream at 70% over panel), CVD-checked against both families. */
+  --color-benchmark: #b3ada4;
 
   --color-r-common: #a5a19a;
   --color-r-uncommon: #4fca7d;

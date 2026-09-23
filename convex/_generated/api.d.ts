@@ -11,6 +11,7 @@
 import type * as admin from "../admin.js";
 import type * as analytics from "../analytics.js";
 import type * as auth from "../auth.js";
+import type * as compare_past from "../compare/past.js";
 import type * as crons from "../crons.js";
 import type * as demo from "../demo.js";
 import type * as discoveries from "../discoveries.js";
@@ -20,6 +21,7 @@ import type * as kudos from "../kudos.js";
 import type * as leaderboard from "../leaderboard.js";
 import type * as lib_access from "../lib/access.js";
 import type * as lib_buckets from "../lib/buckets.js";
+import type * as lib_compare from "../lib/compare.js";
 import type * as lib_messages from "../lib/messages.js";
 import type * as lib_parse from "../lib/parse.js";
 import type * as lib_periods from "../lib/periods.js";
@@ -49,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   analytics: typeof analytics;
   auth: typeof auth;
+  "compare/past": typeof compare_past;
   crons: typeof crons;
   demo: typeof demo;
   discoveries: typeof discoveries;
@@ -58,6 +61,7 @@ declare const fullApi: ApiFromModules<{
   leaderboard: typeof leaderboard;
   "lib/access": typeof lib_access;
   "lib/buckets": typeof lib_buckets;
+  "lib/compare": typeof lib_compare;
   "lib/messages": typeof lib_messages;
   "lib/parse": typeof lib_parse;
   "lib/periods": typeof lib_periods;

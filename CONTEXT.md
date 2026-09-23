@@ -35,3 +35,22 @@ Specified in [Spec the Quest system](https://github.com/Silthus/kudos/issues/5).
 | **Waived** | A quest on the board that this member can't possibly complete this week (e.g. Unsung hero while received counts are hidden). Shown muted; doesn't count toward a Clean sweep. | "failed": unfinished quests just expire, there is no failed state |
 | **Clean sweep** | Completing every non-waived quest on a week's board. | — |
 | **Quest message** | A collectible bot message (category `quest_complete`) that can only be obtained by completing a quest. Never Store currency or allowance. | a Store *reward* |
+
+## Compare
+
+Specified in [Spec Compare stats](https://github.com/Silthus/kudos/issues/6). Pure rules (metrics, visibility, distributions) live in `convex/lib/compare.ts`; one query per benchmark in `convex/compare/`. The page is `/compare?vs=…&period=…`.
+
+| Term | Meaning | Not to be confused with |
+|---|---|---|
+| **Comparison** | The viewer ("You"), one benchmark, one period and a fixed metric set, shown as a scoreboard and a race chart. | a leaderboard *rank* |
+| **Benchmark** | What you're compared against: exactly one of **Past you** (your own previous period), **Team** (the participant distribution) or **Teammate** (one other member). Always drawn in the neutral benchmark ink (`--color-benchmark`). | "opponent", "rival" (don't use these) |
+| **Period** | A calendar period from `resolvePeriod`: week, month, quarter or year (default month). Compare has no "all time": it has no previous period and rewards tenure. | a rolling window |
+| **Previous period** | The previous calendar bucket up to the same day offset as today (`previousToDate`): on a Wednesday, Mon–Wed against last Mon–Wed. The race chart also shows how the whole previous bucket finished. | the full previous bucket that per-member leaderboard deltas use |
+| **Participant** | An active, non-bot member whose value for the metric is above 0 in the period: the population the leaderboard ranks. | every member |
+| **Active day** / **Maxed day** | A day with `given > 0` / a day on which the member used their whole allowance (`memberDays.maxed`). | — |
+| **Longest streak** | The longest run of consecutive active days inside the period, clipped to it. | the all-time streak on the member row |
+| **Reach** | Distinct teammates you gave kudos to in the period. | *received* |
+| **Channels** | Distinct channel ids you gave in (ids, because names change). | channel names |
+| **New discoveries** | Bot messages whose first sighting (`discoveries.firstSeenAt`) falls in the period. | the whole collection |
+| **Received-derived metric** | A metric that reveals kudos somebody received: *received* and *new discoveries*. Follows `receivedVisibility`; your own discoveries stay yours to see. | giving metrics, which are always visible |
+| **Locked row** | A scoreboard row whose values the viewer may not see. The server sends `value: null` and the reason (`hidden`: the workspace hides received counts; `private`: each member sees only their own); the row is shown with a lock, never dropped. | a metric that isn't offered in a mode, which is simply absent |

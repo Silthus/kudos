@@ -2,7 +2,7 @@ import clsx from "clsx";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
 import { motion } from "motion/react";
-import { BarChart3, FlaskConical, Gem, Gift, LogOut, Settings2, Trophy, UserRound } from "lucide-react";
+import { ArrowLeftRight, BarChart3, FlaskConical, Gem, Gift, LogOut, Settings2, Trophy, UserRound } from "lucide-react";
 import { useEffect } from "react";
 import { NavLink, Outlet, useLocation } from "react-router";
 import { api } from "../../convex/_generated/api";
@@ -45,6 +45,7 @@ export function AppShell() {
   const nav: { to: string; label: string; short: string; icon: typeof Gift; badge?: number }[] = [
     { to: "/me", label: "My kudos", short: "Me", icon: UserRound },
     { to: "/leaderboard", label: "Leaderboard", short: "Ranks", icon: Trophy },
+    { to: "/compare", label: "Compare", short: "Compare", icon: ArrowLeftRight },
     { to: "/discoveries", label: "Discoveries", short: "Gallery", icon: Gem },
     ...(viewer.workspace.storeEnabled ? [{ to: "/store", label: "Store", short: "Store", icon: Gift }] : []),
     { to: "/analytics", label: "Analytics", short: "Stats", icon: BarChart3 },
