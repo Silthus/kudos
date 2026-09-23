@@ -83,6 +83,14 @@ export async function workspaceBucket(ctx: QueryCtx, workspaceId: Id<"workspaces
     .first();
 }
 
+/** `workspaceStats` rows keyed from `from` to `to` inclusive: one kind of key (`d:` or `m:`), in date order. */
+export async function workspaceStatsBetween(ctx: QueryCtx, workspaceId: Id<"workspaces">, from: string, to: string) {
+  return await ctx.db
+    .query("workspaceStats")
+    .withIndex("by_workspace_bucket", (q) => q.eq("workspaceId", workspaceId).gte("bucket", from).lte("bucket", to))
+    .take(1_200); // a leap year of days, or a century of months
+}
+
 /** Units given in the workspace over a day range, summed from its `d:` rollup rows (≤366). */
 export async function givenOverDays(ctx: QueryCtx, workspaceId: Id<"workspaces">, range: DayRange) {
   const days = await ctx.db

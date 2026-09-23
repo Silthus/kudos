@@ -239,7 +239,10 @@ export function LineChart({ days, series, height = 240, endLabels = false }: { d
   );
 }
 
-/** Daily bars with an optional dashed previous-period line on the same axis. */
+/**
+ * Daily (or, with `grain="month"`, monthly: `days` are each month's first day) bars with an optional
+ * dashed previous-period line on the same axis.
+ */
 export function BarChart({
   days,
   values,
@@ -247,6 +250,7 @@ export function BarChart({
   color = "var(--color-saffron-deep)",
   height = 240,
   unit = "kudos",
+  grain = "day",
 }: {
   days: string[];
   values: number[];
@@ -254,7 +258,11 @@ export function BarChart({
   color?: string;
   height?: number;
   unit?: string;
+  grain?: "day" | "month";
 }) {
+  const axisLabel = (d: string) => (grain === "month" ? dayLabel(d, { month: "short", year: "numeric" }) : dayLabel(d));
+  const tooltipLabel = (d: string) =>
+    grain === "month" ? dayLabel(d, { month: "long", year: "numeric" }) : dayLabel(d, { weekday: "short", month: "short", day: "numeric" });
   const [ref, width] = useWidth<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
   const pad = { top: 12, right: 8, bottom: 28, left: 32 };
@@ -273,7 +281,7 @@ export function BarChart({
   return (
     <div ref={ref} className="relative" style={{ height }}>
       {width > 0 && (
-        <svg width={width} height={height} role="img" aria-label="Daily kudos volume">
+        <svg width={width} height={height} role="img" aria-label={grain === "month" ? "Monthly kudos volume" : "Daily kudos volume"}>
           {[0, max / 2, max].map((t) => (
             <g key={t}>
               <line x1={pad.left} x2={pad.left + w} y1={y(t)} y2={y(t)} stroke="var(--color-line)" />
@@ -302,7 +310,7 @@ export function BarChart({
           {days.map((d, i) =>
             i % labelEvery === 0 ? (
               <text key={d} x={x(i)} y={height - 8} textAnchor="middle" className="fill-faint font-mono text-[10px]">
-                {dayLabel(d)}
+                {axisLabel(d)}
               </text>
             ) : null,
           )}
@@ -313,7 +321,7 @@ export function BarChart({
       )}
       {hover !== null && (
         <Tooltip x={x(hover)} y={y(values[hover])} width={width}>
-          <div className="mb-1 font-mono text-[10px] uppercase tracking-wider text-faint">{dayLabel(days[hover], { weekday: "short", month: "short", day: "numeric" })}</div>
+          <div className="mb-1 font-mono text-[10px] uppercase tracking-wider text-faint">{tooltipLabel(days[hover])}</div>
           <div className="flex justify-between gap-4">
             <span className="text-muted">This period</span>
             <span className="font-medium text-cream tabular">{nf.format(values[hover])} {unit}</span>

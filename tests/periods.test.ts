@@ -117,7 +117,7 @@ describe("across the year boundary", () => {
     const analytics = await ana.query(api.analytics.overview, { period: "year", today: "2027-01-02" });
     // 2026 to date (Jan 1–2) had nothing, so the year-over-year comparison starts from zero.
     expect([analytics.kpis.total, analytics.kpis.prevTotal]).toEqual([1, 0]);
-    expect(analytics.daily.map((d) => d.day)).toEqual(["2027-01-01", "2027-01-02"]);
+    expect(analytics.volume.map((d) => d.day)).toEqual(["2027-01-01", "2027-01-02"]);
   });
 });
 
@@ -139,12 +139,14 @@ describe("period arguments", () => {
     expect(board.previousRange).toBeNull();
   });
 
-  test("the all-time daily chart stays bounded to its most recent year, however far away today is", async () => {
+  test("the all-time chart counts whole months from the first recorded one, however far away today is", async () => {
     await activity(team.ana, "2026-06-01", 2);
     const ana = await signInAs(t, team.ana);
-    const { daily, range } = await ana.query(api.analytics.overview, { period: "all", today: "2099-12-31" });
+    const { volume, grain, range } = await ana.query(api.analytics.overview, { period: "all", today: "2099-12-31" });
     expect(range.start).toBe("2026-06-01");
-    expect(daily).toHaveLength(366);
-    expect(daily.at(-1)?.day).toBe("2099-12-31");
+    expect(grain).toBe("month");
+    expect(volume).toHaveLength((2099 - 2026) * 12 + 7); // June 2026 through December 2099
+    expect(volume[0]).toEqual({ day: "2026-06-01", total: 2, prevTotal: null });
+    expect(volume.at(-1)?.day).toBe("2099-12-01");
   });
 });
