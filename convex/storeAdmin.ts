@@ -2,8 +2,8 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { assertNotDemo, requireAdmin } from "./lib/access";
-import { median } from "./lib/stats";
-import { balanceOf, MAX_ACTIVE_REWARDS, validateRewardInput } from "./lib/store";
+import { median, workspaceMembers } from "./lib/stats";
+import { assertValidStock, balanceOf, MAX_ACTIVE_REWARDS, validateRewardInput } from "./lib/store";
 import { activeRewards } from "./store";
 
 /** Admin side of the Rewards Store: opening it and stocking the catalog. */
@@ -54,11 +54,8 @@ export const overview = query({
       activeRewards: Math.min(active.length, MAX_ACTIVE_REWARDS),
     };
     if (workspace.receivedVisibility === "hidden") return { ...base, totalBalance: null, medianBalance: null };
-    const members = await ctx.db
-      .query("members")
-      .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id))
-      .take(2000);
-    const balances = members.filter((m) => !m.isBot && !m.deactivated).map(balanceOf);
+    const members = await workspaceMembers(ctx, workspace._id);
+    const balances = members.filter((m) => !m.deactivated).map(balanceOf);
     return { ...base, totalBalance: balances.reduce((a, b) => a + b, 0), medianBalance: median(balances) };
   },
 });
@@ -70,7 +67,7 @@ export const setStoreEnabled = mutation({
     const { workspace } = await requireAdmin(ctx);
     assertNotDemo(workspace, "Store settings are");
     if (enabled && workspace.receivedVisibility === "hidden") {
-      throw new ConvexError("The store shows people what they received. Switch received visibility to 'Only themselves' or 'Everyone' first.");
+      throw new ConvexError("The store shows people what they received. Switch received visibility to “Only me” or “Everyone” first.");
     }
     await ctx.db.patch(workspace._id, { storeEnabled: enabled });
     return null;
@@ -121,15 +118,35 @@ export const createReward = mutation({
   },
 });
 
-/** Replaces every editable field (an omitted stock means unlimited). Redemptions keep their own snapshot. */
+const stockValue = v.union(v.number(), v.literal("unlimited"));
+const fromStockValue = (s: number | "unlimited") => (s === "unlimited" ? undefined : s);
+
+/**
+ * Replaces every descriptive field; an omitted optional field is cleared. Stock is live
+ * (redemptions move it), so it only changes through an explicit `stock: { from, to }` that
+ * is refused when the stock moved since the editor opened. Redemptions keep their own snapshot.
+ */
 export const updateReward = mutation({
-  args: { rewardId: v.id("rewards"), ...rewardFields.fields },
+  args: {
+    rewardId: v.id("rewards"),
+    ...rewardFields.omit("stock").fields,
+    stock: v.optional(v.object({ from: stockValue, to: stockValue })),
+  },
   returns: v.null(),
-  handler: async (ctx, { rewardId, ...args }) => {
+  handler: async (ctx, { rewardId, stock, ...args }) => {
     const { workspace } = await requireAdmin(ctx);
     assertNotDemo(workspace, CATALOG_READ_ONLY);
-    await rewardInWorkspace(ctx, workspace, rewardId);
-    await ctx.db.patch(rewardId, { ...validateRewardInput(args), updatedAt: Date.now() });
+    const reward = await rewardInWorkspace(ctx, workspace, rewardId);
+    const { stock: _unused, ...fields } = validateRewardInput(args);
+    const patch: Partial<Doc<"rewards">> = { ...fields, updatedAt: Date.now() };
+    if (stock) {
+      if (fromStockValue(stock.from) !== reward.stock) {
+        throw new ConvexError(`Stock changed while you were editing (now ${reward.stock ?? "unlimited"}). Take another look.`);
+      }
+      patch.stock = fromStockValue(stock.to);
+      assertValidStock(patch.stock);
+    }
+    await ctx.db.patch(rewardId, patch);
     return null;
   },
 });

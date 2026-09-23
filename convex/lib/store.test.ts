@@ -33,6 +33,12 @@ describe("validateRewardInput", () => {
     expect(validateRewardInput({ ...valid, stock: 10_000, maxPerMember: 100 })).toMatchObject({ stock: 10_000, maxPerMember: 100 });
   });
 
+  test("keeps names on one line and refuses invisible-only names", () => {
+    expect(validateRewardInput({ ...valid, name: "Coffee\n on   us" }).name).toBe("Coffee on us");
+    expect(() => validateRewardInput({ ...valid, name: "​​" })).toThrow(/name/);
+    expect(() => validateRewardInput({ ...valid, emoji: "️" })).toThrow(/emoji/);
+  });
+
   test("needs a name of 1–60 characters", () => {
     expect(() => validateRewardInput({ ...valid, name: "  " })).toThrow(/name/);
     expect(validateRewardInput({ ...valid, name: "x".repeat(60) }).name).toHaveLength(60);
@@ -61,13 +67,13 @@ describe("validateRewardInput", () => {
   });
 
   test("tracks stock between 0 and 10 000 whole items", () => {
-    for (const stock of [-1, 10_001, 1.5]) {
+    for (const stock of [-1, 10_001, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
       expect(() => validateRewardInput({ ...valid, stock })).toThrow(/Stock/);
     }
   });
 
   test("limits per person between 1 and 100", () => {
-    for (const maxPerMember of [0, 101, 2.5]) {
+    for (const maxPerMember of [0, 101, 2.5, Number.NaN, Number.POSITIVE_INFINITY]) {
       expect(() => validateRewardInput({ ...valid, maxPerMember })).toThrow(/per-person/);
     }
   });

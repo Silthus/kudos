@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { AnimatePresence, motion } from "motion/react";
 import { Archive, ChevronDown, CircleAlert, MessageCircleQuestion, Pencil, Plus, RotateCcw } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { BigNumber, Button, Card, CardHeader, Dialog, Empty, Eyebrow, Field, inputCls, Segmented, Skeleton, Toggle } from "@/components/ui";
@@ -118,7 +118,7 @@ function Catalog({ isDemo }: { isDemo: boolean }) {
           </div>
         )}
       </Card>
-      <RewardEditor key={editing === "new" ? "new" : editing?._id ?? "closed"} reward={editing} onClose={() => setEditing(null)} />
+      <RewardEditor reward={editing} onClose={() => setEditing(null)} />
     </>
   );
 }
@@ -195,23 +195,45 @@ function RewardEditor({ reward, onClose }: { reward: Reward | "new" | null; onCl
   const create = useMutation(api.storeAdmin.createReward);
   const update = useMutation(api.storeAdmin.updateReward);
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((p) => ({ ...p, [k]: v }));
+  const formId = useId();
 
+  // Start from the reward's current values each time the editor opens.
+  const openedFor = reward === null ? null : reward === "new" ? "new" : reward._id;
+  const [lastOpened, setLastOpened] = useState(openedFor);
+  if (openedFor !== lastOpened) {
+    setLastOpened(openedFor);
+    if (openedFor !== null) {
+      setD(toDraft(existing));
+      setError(null);
+    }
+  }
+
+  const stock = d.unlimited ? undefined : Number(d.stock);
   const payload = {
     emoji: d.emoji,
     name: d.name,
     description: d.description || undefined,
     cost: Number(d.cost),
-    stock: d.unlimited ? undefined : num(d.stock),
     maxPerMember: num(d.maxPerMember),
     prompt: d.prompt || undefined,
   };
 
   const save = async () => {
+    if (!d.unlimited && d.stock.trim() === "") {
+      setError("Enter how many are in stock, or switch on unlimited stock.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
-      if (existing) await update({ rewardId: existing._id as Id<"rewards">, ...payload });
-      else await create(payload);
+      if (existing) {
+        // Stock is live (redemptions move it), so only send it when the admin changed it.
+        const from = existing.stock ?? "unlimited";
+        const to = stock ?? "unlimited";
+        await update({ rewardId: existing._id as Id<"rewards">, ...payload, ...(from !== to ? { stock: { from, to } } : {}) });
+      } else {
+        await create({ ...payload, stock });
+      }
       onClose();
     } catch (e) {
       setError(errorText(e, "Couldn't save the reward."));
@@ -237,20 +259,27 @@ function RewardEditor({ reward, onClose }: { reward: Reward | "new" | null; onCl
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={() => void save()} disabled={saving}>
+          <Button variant="primary" type="submit" form={formId} disabled={saving}>
             {saving ? "Saving…" : existing ? "Save reward" : "Add reward"}
           </Button>
         </>
       }
     >
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_280px]">
+      <form
+        id={formId}
+        onSubmit={(e) => {
+          e.preventDefault();
+          void save();
+        }}
+        className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_280px]"
+      >
         <div className="space-y-4">
           <div className="grid grid-cols-[88px_1fr] gap-3">
             <Field label="Emoji">
               <input className={clsx(inputCls, "text-center text-xl")} value={d.emoji} onChange={(e) => set("emoji", e.target.value)} maxLength={16} />
             </Field>
             <Field label="Name">
-              <input className={inputCls} value={d.name} onChange={(e) => set("name", e.target.value)} placeholder="Coffee on us" maxLength={60} autoFocus />
+              <input className={inputCls} value={d.name} onChange={(e) => set("name", e.target.value)} placeholder="Coffee on us" maxLength={60} data-autofocus />
             </Field>
           </div>
           <div className="flex flex-wrap gap-1.5" aria-label="Emoji suggestions">
@@ -258,6 +287,8 @@ function RewardEditor({ reward, onClose }: { reward: Reward | "new" | null; onCl
               <button
                 key={e}
                 type="button"
+                aria-label={`Use ${e}`}
+                aria-pressed={d.emoji === e}
                 onClick={() => set("emoji", e)}
                 className={clsx("grid h-9 w-9 place-items-center rounded-lg border text-lg transition", d.emoji === e ? "border-saffron/60 bg-saffron/10" : "border-line bg-ink/40 hover:border-line-strong")}
               >
@@ -300,7 +331,7 @@ function RewardEditor({ reward, onClose }: { reward: Reward | "new" | null; onCl
         <div className="md:sticky md:top-0 md:self-start">
           <Eyebrow className="mb-2">Preview</Eyebrow>
           <RewardCard
-            reward={{ ...payload, cost: Number.isFinite(payload.cost) ? payload.cost : 0 }}
+            reward={{ ...payload, stock: Number.isFinite(stock) ? stock : undefined, cost: Number.isFinite(payload.cost) ? payload.cost : 0 }}
             glyph={viewer.workspace.emojiGlyph}
             action={
               <span aria-hidden className="pointer-events-none">
@@ -312,7 +343,7 @@ function RewardEditor({ reward, onClose }: { reward: Reward | "new" | null; onCl
           />
           <p className="mt-2 text-xs text-faint">How members see it in the store.</p>
         </div>
-      </div>
+      </form>
     </Dialog>
   );
 }

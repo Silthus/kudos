@@ -46,7 +46,8 @@ describe("opening the store", () => {
   test("is blocked while received kudos are hidden", async () => {
     await setWorkspace({ receivedVisibility: "hidden" });
     const ana = await signInAs(t, team.ana);
-    await expect(ana.mutation(api.storeAdmin.setStoreEnabled, { enabled: true })).rejects.toThrow(/Switch received visibility/);
+    // The copy names the options the way the Settings form labels them.
+    await expect(ana.mutation(api.storeAdmin.setStoreEnabled, { enabled: true })).rejects.toThrow(/Switch received visibility to “Only me” or “Everyone” first/);
     expect(await ana.query(api.storeAdmin.overview, {})).toMatchObject({ enabled: false, receivedVisibility: "hidden" });
   });
 
@@ -92,12 +93,35 @@ describe("the catalog", () => {
       ["Hoodie", "active"],
       ["Big coffee", "archived"],
     ]);
-    // Editing replaces every field: clearing stock makes it unlimited again.
-    expect(rewards[1]).toMatchObject({ cost: 80, description: "Any size" });
-    expect(rewards[1].stock).toBeUndefined();
+    // Editing without touching stock keeps the live remaining stock.
+    expect(rewards[1]).toMatchObject({ cost: 80, description: "Any size", stock: 10 });
 
     await ana.mutation(api.storeAdmin.setRewardStatus, { rewardId: id, status: "active" });
     expect((await ana.query(api.storeAdmin.rewards, {})).every((r) => r.status === "active")).toBe(true);
+  });
+
+  test("editing clears optional fields the admin emptied", async () => {
+    const ana = await signInAs(t, team.ana);
+    const id = await ana.mutation(api.storeAdmin.createReward, { ...coffee, description: "Flat white", prompt: "Oat?", maxPerMember: 2 });
+    await ana.mutation(api.storeAdmin.updateReward, { rewardId: id, ...coffee });
+    const [reward] = await ana.query(api.storeAdmin.rewards, {});
+    expect([reward.description, reward.prompt, reward.maxPerMember]).toEqual([undefined, undefined, undefined]);
+  });
+
+  test("restocking never clobbers stock that moved while the editor was open", async () => {
+    const ana = await signInAs(t, team.ana);
+    const id = await ana.mutation(api.storeAdmin.createReward, { ...coffee, stock: 4 });
+    // A redemption (next slice) takes one while the admin is editing.
+    await t.run((ctx) => ctx.db.patch(id, { stock: 3 }));
+    await ana.mutation(api.storeAdmin.updateReward, { rewardId: id, ...coffee, name: "Coffee" });
+    expect((await ana.query(api.storeAdmin.rewards, {}))[0]).toMatchObject({ name: "Coffee", stock: 3 });
+
+    await expect(ana.mutation(api.storeAdmin.updateReward, { rewardId: id, ...coffee, stock: { from: 4, to: 10 } })).rejects.toThrow(/Stock changed/);
+    await ana.mutation(api.storeAdmin.updateReward, { rewardId: id, ...coffee, stock: { from: 3, to: 10 } });
+    expect((await ana.query(api.storeAdmin.rewards, {}))[0].stock).toBe(10);
+    await ana.mutation(api.storeAdmin.updateReward, { rewardId: id, ...coffee, stock: { from: 10, to: "unlimited" } });
+    expect((await ana.query(api.storeAdmin.rewards, {}))[0].stock).toBeUndefined();
+    await expect(ana.mutation(api.storeAdmin.updateReward, { rewardId: id, ...coffee, stock: { from: "unlimited", to: -1 } })).rejects.toThrow(/Stock must be/);
   });
 
   test("rejects invalid rewards with readable copy", async () => {
@@ -118,6 +142,9 @@ describe("the catalog", () => {
     const ana = await signInAs(t, team.ana);
     await expect(ana.mutation(api.storeAdmin.createReward, coffee)).rejects.toThrow(/100 active rewards/);
     await expect(ana.mutation(api.storeAdmin.setRewardStatus, { rewardId: archived, status: "active" })).rejects.toThrow(/100 active rewards/);
+    // Restoring a reward that's already active is a no-op, even at the cap.
+    const [active] = await ana.query(api.storeAdmin.rewards, {});
+    await ana.mutation(api.storeAdmin.setRewardStatus, { rewardId: active._id, status: "active" });
   });
 
   test("members see active rewards sorted by cost with what they can afford", async () => {
@@ -190,6 +217,9 @@ describe("balances", () => {
     const ana = await signInAs(t, team.ana);
     // Ana 0, Ben 4, Cleo 1; the bot doesn't count.
     expect(await ana.query(api.storeAdmin.overview, {})).toMatchObject({ totalBalance: 5, medianBalance: 1 });
+    // People who left the workspace don't count either.
+    await t.run((ctx) => ctx.db.patch(team.ben, { deactivated: true }));
+    expect(await ana.query(api.storeAdmin.overview, {})).toMatchObject({ totalBalance: 1, medianBalance: 0.5 });
   });
 
   test("stay out of the pricing context while received kudos are hidden", async () => {
@@ -240,6 +270,7 @@ describe("store access", () => {
       return await ctx.db.insert("rewards", { workspaceId: ws._id, ...coffee, status: "active", createdBy: alex._id, updatedAt: 0 });
     });
     await expect(demo.mutation(api.storeAdmin.setStoreEnabled, { enabled: false })).rejects.toThrow(/demo/);
+    await expect(demo.mutation(api.storeAdmin.setStoreEnabled, { enabled: true })).rejects.toThrow(/demo/);
     await expect(demo.mutation(api.storeAdmin.createReward, coffee)).rejects.toThrow(/demo/);
     await expect(demo.mutation(api.storeAdmin.updateReward, { rewardId, ...coffee })).rejects.toThrow(/demo/);
     await expect(demo.mutation(api.storeAdmin.setRewardStatus, { rewardId, status: "archived" })).rejects.toThrow(/demo/);

@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { motion } from "motion/react";
 import { ArrowDownRight, ArrowUpRight, Minus, X } from "lucide-react";
-import { useEffect, useRef, type ComponentProps, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ComponentProps, type ReactNode } from "react";
 import { RARITY_META, type Rarity } from "@/lib/rarity";
 import { nf } from "@/lib/format";
 
@@ -72,9 +72,25 @@ export function Segmented<T extends string>({
   options: { value: T; label: ReactNode; disabled?: boolean; title?: string }[];
   size?: "sm" | "md";
 }) {
+  const listRef = useRef<HTMLDivElement>(null);
+  // Keep the selected tab visible when the bar scrolls (deep links like ?tab=slack on a phone).
+  useEffect(() => {
+    const list = listRef.current;
+    const tab = list?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!list || !tab) return;
+    const left = tab.offsetLeft; // the list is `relative`, so this is within the scroller
+    if (left < list.scrollLeft || left + tab.offsetWidth > list.scrollLeft + list.clientWidth) {
+      list.scrollTo({ left: left - 8, behavior: "smooth" });
+    }
+  }, [value]);
   return (
     // Scrolls sideways instead of widening the page when the tabs don't fit a phone.
-    <div role="tablist" className="inline-flex max-w-full overflow-x-auto rounded-xl border border-line bg-ink/60 p-1 [scrollbar-width:none]">
+    <motion.div
+      ref={listRef}
+      layoutScroll
+      role="tablist"
+      className="relative inline-flex max-w-full overflow-x-auto rounded-xl border border-line bg-ink/60 p-1 [scrollbar-width:none]"
+    >
       {options.map((o) => (
         <button
           key={o.value}
@@ -99,7 +115,7 @@ export function Segmented<T extends string>({
           <span className="relative flex items-center gap-1.5">{o.label}</span>
         </button>
       ))}
-    </div>
+    </motion.div>
   );
 }
 
@@ -295,22 +311,36 @@ export function Dialog({
   className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  // Only a press that both starts and ends on the backdrop closes: a text selection
+  // dragged out of an input must not throw the draft away.
+  const pressedBackdrop = useRef(false);
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
+    if (open && !dialog.open) {
+      dialog.showModal();
+      // showModal focuses the first control (the close button); honour an explicit start field.
+      dialog.querySelector<HTMLElement>("[data-autofocus]")?.focus();
+    }
+    if (!open && dialog.open) dialog.close(); // restores focus to whatever opened it
   }, [open]);
+  useEffect(() => () => ref.current?.close(), []);
   return (
     <dialog
       ref={ref}
-      onClose={onClose}
+      aria-labelledby={titleId}
+      onClose={() => open && onClose()}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
       }}
-      // A click on the <dialog> itself (not its content) landed on the backdrop.
-      onClick={(e) => e.target === ref.current && onClose()}
+      onPointerDown={(e) => (pressedBackdrop.current = e.target === ref.current)}
+      onClick={(e) => {
+        // A click on the <dialog> itself (not its content) landed on the backdrop.
+        if (pressedBackdrop.current && e.target === ref.current) onClose();
+        pressedBackdrop.current = false;
+      }}
       className={clsx(
         "m-auto max-h-[calc(100dvh-24px)] w-[min(560px,calc(100vw-24px))] overflow-visible bg-transparent p-0 text-cream backdrop:bg-ink/75 backdrop:backdrop-blur-sm",
         className,
@@ -325,7 +355,9 @@ export function Dialog({
         >
           <header className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
             <div className="min-w-0">
-              <h2 className="font-display text-lg font-semibold tracking-tight">{title}</h2>
+              <h2 id={titleId} className="font-display text-lg font-semibold tracking-tight">
+                {title}
+              </h2>
               {subtitle && <p className="mt-0.5 text-sm text-muted">{subtitle}</p>}
             </div>
             <button onClick={onClose} className="-mr-1 rounded-lg p-1.5 text-faint hover:bg-panel-2 hover:text-cream" aria-label="Close">

@@ -175,9 +175,12 @@ export function Store() {
                   glyph={glyph}
                   balance={balance}
                   action={
-                    <Button size="sm" disabled title="Redeeming arrives in the next release">
-                      Coming soon
-                    </Button>
+                    // Disabled buttons don't show tooltips, so the wrapper carries it.
+                    <span title="Redeeming arrives in the next release">
+                      <Button size="sm" disabled>
+                        Coming soon
+                      </Button>
+                    </span>
                   }
                 />
               </motion.div>

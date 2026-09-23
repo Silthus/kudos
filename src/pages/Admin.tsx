@@ -21,7 +21,16 @@ export function Admin() {
   const [params, setParams] = useSearchParams();
   const requested = params.get("tab");
   const tab: Tab = TABS.includes(requested as Tab) ? (requested as Tab) : "settings";
-  const setTab = (next: Tab) => setParams(next === "settings" ? {} : { tab: next }, { replace: true });
+  const setTab = (next: Tab) =>
+    setParams(
+      (prev) => {
+        const params = new URLSearchParams(prev);
+        if (next === "settings") params.delete("tab");
+        else params.set("tab", next);
+        return params;
+      },
+      { replace: true },
+    );
   const data = useQuery(api.admin.overview);
   if (!data) return <PageSkeleton />;
   return (
