@@ -7,6 +7,7 @@ import { Landing } from "./pages/Landing";
 import { NotInstalled } from "./pages/NotInstalled";
 import { Me } from "./pages/Me";
 import { Leaderboard } from "./pages/Leaderboard";
+import { Compare } from "./pages/compare/Compare";
 import { Discoveries } from "./pages/Discoveries";
 import { Store } from "./pages/Store";
 import { Analytics } from "./pages/Analytics";
@@ -43,6 +44,7 @@ export function App() {
         <Route element={<AppShell />}>
           <Route path="/me" element={<Me />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/compare" element={<Compare />} />
           <Route path="/discoveries" element={<Discoveries />} />
           {viewer.workspace.storeEnabled && <Route path="/store" element={<Store />} />}
           <Route path="/analytics" element={<Analytics />} />

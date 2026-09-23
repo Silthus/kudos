@@ -3,6 +3,7 @@ import { query } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { getMemberDay } from "./engine";
 import { canSeeReceived, requireViewer } from "./lib/access";
+import { streaks } from "./lib/compare";
 import { CATALOG, RARITIES, TEMPLATE_BY_KEY } from "./lib/messages";
 import { resolvePeriod } from "./lib/periods";
 import { memberDays, median, rankBy, totalsByMember, workspaceDays } from "./lib/stats";
@@ -21,20 +22,6 @@ import {
 const MAX_CADENCE_DAYS = 366;
 
 const WEEKDAY_NAMES =["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-
-function streaks(activeDays: string[], today: string) {
-  let longest = 0;
-  let run = 0;
-  let prev: string | null = null;
-  for (const d of activeDays) {
-    run = prev && daysBetween(prev, d) === 1 ? run + 1 : 1;
-    longest = Math.max(longest, run);
-    prev = d;
-  }
-  const last = activeDays[activeDays.length - 1];
-  const current = last && daysBetween(last, today) <= 1 ? run : 0;
-  return { longest, current };
-}
 
 /** Everything on the "My Kudos" page. */
 export const overview = query({
