@@ -89,6 +89,10 @@ export default defineSchema({
     status: v.union(v.literal("active"), v.literal("uninstalled")),
     resettingSince: v.optional(v.number()), // demo only: a reset is in progress
     storeEnabled: v.optional(v.boolean()), // Rewards Store; undefined = off
+    // Mirrors the `all` workspaceStats row's `rollupsBackfilledAt` (lib/rebuild.ts markBackfilled).
+    // Queries that must not re-run on every give in the workspace (me.overview) gate on this copy:
+    // the `all` row changes with every give, this document almost never does.
+    rollupsBackfilledAt: v.optional(v.number()),
     ...settingsFields,
   }).index("by_team", ["slackTeamId"]),
 

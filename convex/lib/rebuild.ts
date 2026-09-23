@@ -414,11 +414,20 @@ export async function rebuildWorkspaceAll(ctx: MutationCtx, workspace: Workspace
   await writeChannels(ctx, workspace._id, ALL_BUCKET, channels);
 }
 
-/** Record a finished backfill on the workspace's `all` row (created if the workspace has no activity). */
+/**
+ * Record a finished backfill on the workspace's `all` row (created if the workspace has no activity)
+ * and on the workspace itself, for readers that must not subscribe to the busy `all` row.
+ */
 export async function markBackfilled(ctx: MutationCtx, workspaceId: Id<"workspaces">, at: number) {
   const row = await workspaceRow(ctx, workspaceId, ALL_BUCKET);
   if (row) await ctx.db.patch(row._id, { rollupsBackfilledAt: at });
   else await ctx.db.insert("workspaceStats", { workspaceId, bucket: ALL_BUCKET, ...emptyValues(ALL_BUCKET), rollupsBackfilledAt: at });
+  await ctx.db.patch(workspaceId, { rollupsBackfilledAt: at });
+}
+
+/** Whether the workspace's rollups are complete; until then readers use their legacy scans. */
+export function rollupsReady(workspace: Doc<"workspaces">) {
+  return workspace.rollupsBackfilledAt !== undefined;
 }
 
 /**
