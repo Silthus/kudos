@@ -33,7 +33,7 @@ export type KudosRow = Pick<
   "_id" | "batchId" | "giverId" | "receiverId" | "amount" | "dayKey" | "source" | "channelId" | "channelName" | "channelPrivate" | "hour" | "at"
 >;
 
-const WORKSPACE_COUNTERS = [
+export const WORKSPACE_COUNTERS = [
   "given",
   "kudosRows",
   "messages",
@@ -45,15 +45,15 @@ const WORKSPACE_COUNTERS = [
   "fromReactions",
   "fromMessages",
 ] as const;
-type WorkspaceCounter = (typeof WORKSPACE_COUNTERS)[number];
+export type WorkspaceCounter = (typeof WORKSPACE_COUNTERS)[number];
 type WorkspaceDelta = { counts: Record<WorkspaceCounter, number>; heat: Map<number, number>; found: Record<Rarity, number> };
 
-const MEMBER_COUNTERS = ["given", "received", "maxedDays", "activeDays"] as const;
+export const MEMBER_COUNTERS = ["given", "received", "maxedDays", "activeDays"] as const;
 type MemberCounter = (typeof MEMBER_COUNTERS)[number];
-type MemberCounts = Record<MemberCounter, number>;
+export type MemberCounts = Record<MemberCounter, number>;
 
-const zeroFound = (): Record<Rarity, number> => ({ common: 0, uncommon: 0, rare: 0, epic: 0, legendary: 0 });
-const zeroMember = (): MemberCounts => ({ given: 0, received: 0, maxedDays: 0, activeDays: 0 });
+export const zeroFound = (): Record<Rarity, number> => ({ common: 0, uncommon: 0, rare: 0, epic: 0, legendary: 0 });
+export const zeroMember = (): MemberCounts => ({ given: 0, received: 0, maxedDays: 0, activeDays: 0 });
 
 /** +1 when a count becomes positive, −1 when it drops back to zero. */
 const presence = (before: number, after: number) => (after > 0 ? 1 : 0) - (before > 0 ? 1 : 0);
@@ -241,7 +241,8 @@ export class Rollups {
       const empty =
         WORKSPACE_COUNTERS.every((c) => counts[c] === 0) && heat.every((n) => n === 0) && RARITIES.every((r) => found[r] === 0);
       if (row) {
-        if (empty) await db.delete(row._id);
+        // The `all` row also carries the backfill marker, which must outlive a return to zero.
+        if (empty && row.rollupsBackfilledAt === undefined) await db.delete(row._id);
         else await db.patch(row._id, { ...counts, heat, found });
       } else if (!empty) {
         await db.insert("workspaceStats", { workspaceId: this.workspace._id, bucket, ...counts, heat, found });
@@ -326,7 +327,7 @@ export async function givingProfile(
   };
 }
 
-async function recomputeGivingProfile(ctx: MutationCtx, memberId: Id<"members">): Promise<GivingProfile> {
+export async function recomputeGivingProfile(ctx: MutationCtx, memberId: Id<"members">): Promise<GivingProfile> {
   const givenByWeekday = new Array<number>(7).fill(0);
   let lastActiveDay: string | undefined;
   let run = 0;

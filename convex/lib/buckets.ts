@@ -63,3 +63,41 @@ export function heatSize(bucket: string) {
 export function heatIndex(bucket: string, dayKey: string, hour: number) {
   return bucket.startsWith("d:") ? hour : weekdayOfKey(dayKey) * 24 + hour;
 }
+
+const lastOfMonth = (year: number, month: number) =>
+  `${year}-${pad(month)}-${pad(new Date(Date.UTC(year, month, 0)).getUTCDate())}`;
+
+/** The inclusive day range a `d:`, `w:`, `m:`, `q:` or `y:` bucket covers. */
+export function bucketDays(bucket: string): { start: string; end: string } {
+  const key = bucket.slice(2);
+  switch (bucket.slice(0, 2)) {
+    case "d:":
+      return { start: key, end: key };
+    case "w:": {
+      const [year, week] = key.split("-W").map(Number);
+      const jan4 = `${year}-01-04`; // ISO week 1 holds January 4th
+      const start = addDays(jan4, (week - 1) * 7 - weekdayOfKey(jan4));
+      return { start, end: addDays(start, 6) };
+    }
+    case "m:": {
+      const [year, month] = key.split("-").map(Number);
+      return { start: `${key}-01`, end: lastOfMonth(year, month) };
+    }
+    case "q:": {
+      const [year, quarter] = key.split("-Q").map(Number);
+      return { start: `${year}-${pad(quarter * 3 - 2)}-01`, end: lastOfMonth(year, quarter * 3) };
+    }
+    case "y:":
+      return { start: `${key}-01-01`, end: `${key}-12-31` };
+  }
+  throw new Error(`Not a calendar bucket: ${bucket}`);
+}
+
+/** Every week, month, quarter and year bucket overlapping [from, to], in that order. */
+export function periodBucketsBetween(from: string, to: string): string[] {
+  const kinds = [weekBucket, monthBucket, quarterBucket, yearBucket].map((of) => ({ of, keys: new Set<string>() }));
+  for (let day = from; day <= to; day = addDays(day, 1)) {
+    for (const kind of kinds) kind.keys.add(kind.of(day));
+  }
+  return kinds.flatMap((kind) => [...kind.keys]);
+}

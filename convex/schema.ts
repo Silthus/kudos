@@ -185,6 +185,9 @@ export default defineSchema({
     fromMessages: v.number(), // every non-reaction source
     heat: v.array(v.number()), // day: 24 hours; longer buckets: 7 × 24, Monday-major
     found: rarityCountsValidator, // first discoveries of a message, by rarity
+    // `all` row only: when the last full rebuild finished (convex/rollups.ts). Readers use the
+    // rollups only once it is set; a row carrying it is kept even when every count is zero.
+    rollupsBackfilledAt: v.optional(v.number()),
   }).index("by_workspace_bucket", ["workspaceId", "bucket"]),
 
   // Per-member w/m/q/y buckets. The day bucket is memberDays, all time is members.total*.
