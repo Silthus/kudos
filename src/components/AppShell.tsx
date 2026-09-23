@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { motion } from "motion/react";
-import { BarChart3, FlaskConical, Gem, LogOut, Settings2, Trophy, UserRound } from "lucide-react";
+import { BarChart3, FlaskConical, Gem, Gift, LogOut, Settings2, Trophy, UserRound } from "lucide-react";
 import { useEffect } from "react";
 import { NavLink, Outlet, useLocation } from "react-router";
 import { useViewer } from "@/lib/viewer";
@@ -28,6 +28,7 @@ export function AppShell() {
     { to: "/me", label: "My kudos", short: "Me", icon: UserRound },
     { to: "/leaderboard", label: "Leaderboard", short: "Ranks", icon: Trophy },
     { to: "/discoveries", label: "Discoveries", short: "Gallery", icon: Gem },
+    ...(viewer.workspace.storeEnabled ? [{ to: "/store", label: "Store", short: "Store", icon: Gift }] : []),
     { to: "/analytics", label: "Analytics", short: "Stats", icon: BarChart3 },
     ...(viewer.workspace.isDemo ? [{ to: "/playground", label: "Playground", short: "Try", icon: FlaskConical }] : []),
     ...(viewer.member.isAdmin ? [{ to: "/admin", label: "Admin", short: "Admin", icon: Settings2 }] : []),

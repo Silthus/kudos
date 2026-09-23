@@ -3,18 +3,34 @@ import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { Check, CircleAlert, RefreshCw, RotateCcw, Search, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { Avatar, Button, Card, CardHeader, Eyebrow, PageHeader, PageSkeleton, Segmented, Toggle } from "@/components/ui";
+import { Avatar, Button, Card, CardHeader, Eyebrow, Field, inputCls, PageHeader, PageSkeleton, Segmented, Toggle } from "@/components/ui";
 import { nf, relativeTime } from "@/lib/format";
 import { useViewer } from "@/lib/viewer";
 import { CopyButton } from "./Setup";
 import { SlackMark } from "./Landing";
+import { AdminStore } from "./AdminStore";
 
-type Tab = "settings" | "members" | "moderation" | "slack";
+const TABS = ["settings", "members", "moderation", "store", "slack"] as const;
+type Tab = (typeof TABS)[number];
 
 export function Admin() {
-  const [tab, setTab] = useState<Tab>("settings");
+  // `?tab=store` deep-links from Slack; the tab lives in the URL so reloads keep it.
+  const [params, setParams] = useSearchParams();
+  const requested = params.get("tab");
+  const tab: Tab = TABS.includes(requested as Tab) ? (requested as Tab) : "settings";
+  const setTab = (next: Tab) =>
+    setParams(
+      (prev) => {
+        const params = new URLSearchParams(prev);
+        if (next === "settings") params.delete("tab");
+        else params.set("tab", next);
+        return params;
+      },
+      { replace: true },
+    );
   const data = useQuery(api.admin.overview);
   if (!data) return <PageSkeleton />;
   return (
@@ -31,14 +47,16 @@ export function Admin() {
               { value: "settings", label: "Settings" },
               { value: "members", label: "Members" },
               { value: "moderation", label: "Moderation" },
+              { value: "store", label: "Store" },
               { value: "slack", label: "Slack" },
             ]}
           />
         }
       />
-      {tab === "settings" && <SettingsForm initial={data.settings} isDemo={data.workspace.isDemo} />}
+      {tab === "settings" && <SettingsForm initial={data.settings} isDemo={data.workspace.isDemo} storeEnabled={data.storeEnabled} />}
       {tab === "members" && <Members />}
       {tab === "moderation" && <Moderation />}
+      {tab === "store" && <AdminStore isDemo={data.workspace.isDemo} />}
       {tab === "slack" && <SlackPanel slack={data.slack} isDemo={data.workspace.isDemo} teamId={data.workspace.slackTeamId} />}
     </div>
   );
@@ -48,19 +66,7 @@ type Settings = NonNullable<ReturnType<typeof useQuery<typeof api.admin.overview
 
 const TIMEZONES = ["Europe/Berlin", "Europe/London", "Europe/Lisbon", "Europe/Madrid", "Europe/Stockholm", "America/New_York", "America/Chicago", "America/Los_Angeles", "Asia/Tokyo", "Asia/Kolkata", "Australia/Sydney", "UTC"];
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="text-sm font-medium">{label}</span>
-      {hint && <span className="mt-0.5 block text-xs text-muted">{hint}</span>}
-      <div className="mt-2">{children}</div>
-    </label>
-  );
-}
-
-const inputCls = "h-10 w-full rounded-xl border border-line-strong bg-ink/60 px-3 text-sm text-cream outline-none transition focus:border-saffron/60";
-
-function SettingsForm({ initial, isDemo }: { initial: Settings; isDemo: boolean }) {
+function SettingsForm({ initial, isDemo, storeEnabled }: { initial: Settings; isDemo: boolean; storeEnabled: boolean }) {
   const [s, setS] = useState(initial);
   const [state, setState] = useState<{ kind: "idle" | "saving" | "saved" } | { kind: "error"; message: string }>({ kind: "idle" });
   const update = useMutation(api.admin.updateSettings);
@@ -133,19 +139,28 @@ function SettingsForm({ initial, isDemo }: { initial: Settings; isDemo: boolean 
                 { v: "self", title: "Only me", body: "People see their own received kudos." },
                 { v: "everyone", title: "Everyone", body: "Received counts on leaderboards and analytics." },
               ] as const
-            ).map((o) => (
-              <button
-                key={o.v}
-                onClick={() => set("receivedVisibility", o.v)}
-                className={clsx("rounded-xl border p-3 text-left transition", s.receivedVisibility === o.v ? "border-saffron/60 bg-saffron/10" : "border-line bg-ink/40 hover:border-line-strong")}
-              >
-                <div className="flex items-center justify-between text-sm font-medium">
-                  {o.title}
-                  {s.receivedVisibility === o.v && <Check className="h-4 w-4 text-saffron" />}
-                </div>
-                <p className="mt-1 text-xs text-muted">{o.body}</p>
-              </button>
-            ))}
+            ).map((o) => {
+              // A balance is a received count, so the store and "hidden" can't coexist (ADR 0001).
+              const blocked = o.v === "hidden" && storeEnabled && s.receivedVisibility !== "hidden";
+              return (
+                <button
+                  key={o.v}
+                  onClick={() => set("receivedVisibility", o.v)}
+                  disabled={blocked}
+                  title={blocked ? "Turn off the store before hiding received kudos." : undefined}
+                  className={clsx(
+                    "rounded-xl border p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-50",
+                    s.receivedVisibility === o.v ? "border-saffron/60 bg-saffron/10" : "border-line bg-ink/40 enabled:hover:border-line-strong",
+                  )}
+                >
+                  <div className="flex items-center justify-between text-sm font-medium">
+                    {o.title}
+                    {s.receivedVisibility === o.v && <Check className="h-4 w-4 text-saffron" />}
+                  </div>
+                  <p className="mt-1 text-xs text-muted">{blocked ? "Turn off the store first: balances show what people received." : o.body}</p>
+                </button>
+              );
+            })}
           </div>
           <div className="mt-4 divide-y divide-line">
             <Toggle checked={s.reactionsEnabled} onChange={(v) => set("reactionsEnabled", v)} label="Reactions give kudos" description={`Reacting with :${s.emojiName}: gives the message author one kudos.`} />

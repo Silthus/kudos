@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { query } from "./_generated/server";
 import { getViewer, publicSettings } from "./lib/access";
 import { siteUrl } from "./lib/slack";
+import { storeOpen } from "./lib/store";
 
 /** Who is looking at the web app, and what they're allowed to see. */
 export const viewer = query({
@@ -32,6 +33,7 @@ export const viewer = query({
         iconUrl: workspace.iconUrl,
         isDemo: workspace.isDemo,
         ...publicSettings(workspace),
+        storeEnabled: storeOpen(workspace),
       },
       canSeeOwnReceived: workspace.receivedVisibility !== "hidden",
       canSeeOthersReceived: workspace.receivedVisibility === "everyone",
