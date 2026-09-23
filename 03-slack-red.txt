@@ -1,0 +1,163 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af7d730e7e77c9dd0
+
+ ❯ tests/leaderboard-rollups.test.ts (7 tests | 3 failed | 4 skipped) 1156ms
+   ❯ the Slack App Home and /kudos top on rollups (3)
+     × ties share a week rank, and a teammate who hasn't given this week has none 444ms
+     × reads the week from the rollups once backfilled, the same as from memberDays before 355ms
+     × reads about ten documents for the week standing 356ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/leaderboard-rollups.test.ts > the Slack App Home and /kudos top on rollups > ties share a week rank, and a teammate who hasn't given this week has none
+AssertionError: expected [ 2, 2, 2, 3 ] to deeply equal [ 2, 2, 2, 2 ]
+
+- Expected
++ Received
+
+  [
+    2,
+    2,
+    2,
+-   2,
++   3,
+  ]
+
+ ❯ tests/leaderboard-rollups.test.ts:335:74
+    333|     const ben = await home("UBEN");
+    334|     const cleo = await home("UCLEO");
+    335|     expect([ben.weekGiven, ben.weekRank, cleo.weekGiven, cleo.weekRank…
+       |                                                                          ^
+    336|     expect(ben.top[0]).toEqual({ slackUserId: "UANA", given: 3 });
+    337|     expect(ben.top.map((r: { slackUserId: string }) => r.slackUserId).…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  tests/leaderboard-rollups.test.ts > the Slack App Home and /kudos top on rollups > reads the week from the rollups once backfilled, the same as from memberDays before
+AssertionError: expected [ { weekGiven: +0, …(2) }, …(3) ] to deeply equal [ { weekGiven: 3, …(2) }, …(3) ]
+
+- Expected
++ Received
+
+  [
+    {
+-     "top": [
+-       {
+-         "given": 2,
+-         "slackUserId": "UBEN",
++     "top": [],
++     "weekGiven": 0,
++     "weekRank": null,
+    },
+    {
+-         "given": 2,
+-         "slackUserId": "UCLEO",
++     "top": [],
++     "weekGiven": 0,
++     "weekRank": null,
+    },
+    {
+-         "given": 3,
+-         "slackUserId": "UANA",
+-       },
+-     ],
+-     "weekGiven": 3,
+-     "weekRank": 1,
+-   },
+-   {
+-     "top": [
+-       {
+-         "given": 2,
+-         "slackUserId": "UBEN",
++     "top": [],
++     "weekGiven": 0,
++     "weekRank": null,
+    },
+    {
+-         "given": 2,
+-         "slackUserId": "UCLEO",
+-       },
+-       {
+-         "given": 3,
+-         "slackUserId": "UANA",
+-       },
+-     ],
+-     "weekGiven": 2,
+-     "weekRank": 2,
+-   },
+-   {
+-     "top": [
+-       {
+-         "given": 2,
+-         "slackUserId": "UBEN",
+-       },
+-       {
+-         "given": 2,
+-         "slackUserId": "UCLEO",
+-       },
+-       {
+-         "given": 3,
+-         "slackUserId": "UANA",
+-       },
+-     ],
+-     "weekGiven": 2,
+-     "weekRank": 3,
+-   },
+-   {
+-     "top": [
+-       {
+-         "given": 2,
+-         "slackUserId": "UBEN",
+-       },
+-       {
+-         "given": 2,
+-         "slackUserId": "UCLEO",
+-       },
+-       {
+-         "given": 3,
+-         "slackUserId": "UANA",
+-       },
+-     ],
++     "top": [],
+      "weekGiven": 0,
+      "weekRank": null,
+    },
+  ]
+
+ ❯ tests/leaderboard-rollups.test.ts:351:34
+    349|     const sortTop = (w: ReturnType<typeof week>) => ({ ...w, top: [...…
+    350|     const rollups = await Promise.all(["UANA", "UBEN", "UCLEO", "UDAN"…
+    351|     expect(rollups.map(sortTop)).toEqual(legacy.map(sortTop));
+       |                                  ^
+    352|     expect((await topLines()).split("\n").map((l) => l.replace(/^\S+ /…
+    353|       legacyTop.split("\n").map((l) => l.replace(/^\S+ /, "")).sort(),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  tests/leaderboard-rollups.test.ts > the Slack App Home and /kudos top on rollups > reads about ten documents for the week standing
+TypeError: weekStanding is not a function
+ ❯ tests/leaderboard-rollups.test.ts:363:13
+    361|       const { db, reads } = countingDb(ctx.db);
+    362|       const workspace = (await ctx.db.get(team.workspaceId))!;
+    363|       await weekStanding({ ...ctx, db }, workspace, Date.parse("2026-0…
+       |             ^
+    364|       return reads;
+    365|     });
+ ❯ invokeFunction node_modules/convex/src/server/impl/registration_impl.ts:90:14
+ ❯ invokeMutation node_modules/convex/src/server/impl/registration_impl.ts:70:18
+ ❯ runMutationWithHandler node_modules/convex-test/dist/index.js:1989:31
+ ❯ handler node_modules/convex-test/dist/index.js:2195:24
+ ❯ invokeFunction node_modules/convex/src/server/impl/registration_impl.ts:90:14
+ ❯ invokeAction node_modules/convex/src/server/impl/registration_impl.ts:513:18
+ ❯ run node_modules/convex-test/dist/index.js:2210:31
+ ❯ run node_modules/convex-test/dist/index.js:2222:20
+ ❯ tests/leaderboard-rollups.test.ts:360:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 4 skipped (7)
+   Start at  21:44:50
+   Duration  1.65s (tests 74%, transform 15%, import 8%, environment 3%)
+

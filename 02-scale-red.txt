@@ -1,0 +1,40 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af7d730e7e77c9dd0
+
+ ❯ tests/leaderboard-rollups.test.ts (2 tests | 1 failed | 1 skipped) 68725ms
+   ❯ a 500-member workspace (1)
+     × ranks every member exactly for the whole year, reading only members and rollups 68724ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/leaderboard-rollups.test.ts > a 500-member workspace > ranks every member exactly for the whole year, reading only members and rollups
+AssertionError: expected { delta: 7, isMe: false, …(8) } to match object { value: 11, prevValue: 3, delta: 8 }
+(12 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "delta": 8,
++   "delta": 7,
+    "prevValue": 3,
+-   "value": 11,
++   "value": 10,
+  }
+
+ ❯ tests/leaderboard-rollups.test.ts:251:67
+    249|     expect(board.rows).toHaveLength(MEMBERS);
+    250|     // Scale 007 gives 1 + 7 % 7 = 1 unit on 11 days this year, and 1 …
+    251|     expect(board.rows.find((r) => r.member.name === "Scale 007")).toMa…
+       |                                                                   ^
+    252|     expect(board.highlights.total).toBe(exactTotal);
+    253|     expect(board.highlights.givers).toBe(MEMBERS);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 skipped (2)
+   Start at  21:40:27
+   Duration  69.17s (tests 99%)
+

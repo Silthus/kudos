@@ -1,0 +1,54 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af7d730e7e77c9dd0
+
+ ❯ tests/leaderboard-rollups.test.ts (9 tests | 2 failed | 7 skipped) 423ms
+   ❯ installing Kudos (2)
+     × puts a new workspace on the rollups straight away: it has no history to backfill 19ms
+     × rebuilds a returning workspace that was never backfilled 403ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/leaderboard-rollups.test.ts > installing Kudos > puts a new workspace on the rollups straight away: it has no history to backfill
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/leaderboard-rollups.test.ts:315:43
+    313|   test("puts a new workspace on the rollups straight away: it has no h…
+    314|     const workspaceId = await install("TNEW");
+    315|     expect(await backfilled(workspaceId)).toBe(true);
+       |                                           ^
+    316|   });
+    317|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/leaderboard-rollups.test.ts > installing Kudos > rebuilds a returning workspace that was never backfilled
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/leaderboard-rollups.test.ts:324:48
+    322|     await install("T1");
+    323|     await t.finishAllScheduledFunctions(vi.runAllTimers, 5000);
+    324|     expect(await backfilled(team.workspaceId)).toBe(true);
+       |                                                ^
+    325|     await deleteSources();
+    326|     expect(await (await signInAs(t, team.ana)).query(api.leaderboard.g…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 7 skipped (9)
+   Start at  21:59:47
+   Duration  908ms (tests 51%, transform 28%, import 15%, environment 5%)
+
