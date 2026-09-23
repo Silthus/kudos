@@ -213,6 +213,10 @@ export async function transitionRedemption(
     }
     if (to !== "pending") await notifySlack(ctx, workspace, redemption._id, to, balance);
   }
+  // Every admin's review DM tells the same story as the queue, whichever way the step came in.
+  if (!workspace.isDemo && redemption.adminMessages?.length) {
+    await ctx.scheduler.runAfter(0, internal.slack.syncAdminMessages, { redemptionId: redemption._id });
+  }
   return { status: to };
 }
 

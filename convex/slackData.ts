@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internalMutation, internalQuery, type QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -6,7 +6,7 @@ import { allowanceCheck, ensureMember, remainingToday } from "./engine";
 import { RARITY_SLACK_BADGE, type Rarity } from "./lib/messages";
 import { DEFAULT_SETTINGS } from "./lib/settings";
 import { balanceOf, MAX_ACTIVE_REWARDS, storeOpen } from "./lib/store";
-import { activeRewards, openRedemptionCount, otherActiveAdminExists } from "./store";
+import { activeRewards, openRedemptionCount, otherActiveAdminExists, transitionRedemption } from "./store";
 import { openRequestCount } from "./storeAdmin";
 import { redemptionStatusValidator } from "./schema";
 import { rewardLine, siteUrl } from "./lib/slack";
@@ -594,5 +594,111 @@ export const redemptionForSlack = internalQuery({
       })),
       admins: admins.map(({ slackUserId, isOwn }) => ({ slackUserId, isOwn })),
     };
+  },
+});
+
+/**
+ * Remembers where the admins' review DMs landed, so `slack.syncAdminMessages` can rewrite them.
+ * A step may already have happened while they went out; then those copies are synced right away.
+ */
+export const saveAdminMessages = internalMutation({
+  args: { redemptionId: v.id("redemptions"), messages: v.array(v.object({ channel: v.string(), ts: v.string() })) },
+  returns: v.null(),
+  handler: async (ctx, { redemptionId, messages }) => {
+    const redemption = await ctx.db.get(redemptionId);
+    if (!redemption || messages.length === 0) return null;
+    await ctx.db.patch(redemptionId, { adminMessages: [...(redemption.adminMessages ?? []), ...messages].slice(-MAX_ADMIN_DMS) });
+    if (redemption.status !== "pending") await ctx.scheduler.runAfter(0, internal.slack.syncAdminMessages, { redemptionId });
+    return null;
+  },
+});
+
+/** A redemption's latest state and every admin copy of its review DM, or null if Slack can't be told. */
+export const adminCopies = internalQuery({
+  args: { redemptionId: v.id("redemptions") },
+  returns: v.union(
+    v.null(),
+    v.object({
+      botToken: v.string(),
+      emojiName: v.string(),
+      version: v.string(),
+      status: redemptionStatusValidator,
+      requesterSlackUserId: v.string(),
+      reward: v.object({ name: v.string(), emoji: v.string(), cost: v.number() }),
+      prompt: v.optional(v.string()),
+      answer: v.optional(v.string()),
+      step: v.object({ at: v.number(), bySlackUserId: v.union(v.string(), v.null()), note: v.optional(v.string()) }),
+      messages: v.array(v.object({ channel: v.string(), ts: v.string() })),
+    }),
+  ),
+  handler: async (ctx, { redemptionId }) => {
+    const redemption = await ctx.db.get(redemptionId);
+    if (!redemption?.adminMessages?.length) return null;
+    const workspace = await ctx.db.get(redemption.workspaceId);
+    if (!workspace || workspace.status !== "active" || workspace.isDemo) return null;
+    const install = await ctx.db
+      .query("slackInstallations")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", workspace._id))
+      .unique();
+    const requester = await ctx.db.get(redemption.memberId);
+    if (!install || !requester) return null;
+    const last = redemption.history[redemption.history.length - 1];
+    return {
+      botToken: install.botToken,
+      emojiName: workspace.emojiName,
+      // Changes with every step and every newly saved copy, so a sync can tell it went stale.
+      version: `${redemption.history.length}:${redemption.adminMessages.length}`,
+      status: redemption.status,
+      requesterSlackUserId: requester.slackUserId,
+      reward: { name: redemption.rewardName, emoji: redemption.rewardEmoji, cost: redemption.cost },
+      prompt: redemption.prompt,
+      answer: redemption.answer,
+      step: { at: last.at, bySlackUserId: (await ctx.db.get(last.by))?.slackUserId ?? null, ...(last.note ? { note: last.note } : {}) },
+      messages: redemption.adminMessages,
+    };
+  },
+});
+
+/**
+ * Approve or Mark fulfilled, clicked in an admin's review DM. Nothing in the payload is taken on
+ * trust: the team must be an installed workspace, the Slack user an active admin of it, and the
+ * request one of its own. The store helper then applies the lifecycle and the four-eyes rule,
+ * so a retried or stale click changes nothing. Returns null on success, else what to tell them.
+ */
+export const storeInteraction = internalMutation({
+  args: {
+    teamId: v.string(),
+    slackUserId: v.string(),
+    userTeamId: v.optional(v.string()),
+    action: v.union(v.literal("approve"), v.literal("fulfill")),
+    redemptionId: v.string(),
+  },
+  returns: v.union(v.null(), v.string()),
+  handler: async (ctx, args) => {
+    const workspace = await ctx.db
+      .query("workspaces")
+      .withIndex("by_team", (q) => q.eq("slackTeamId", args.teamId))
+      .unique();
+    if (!workspace || workspace.status !== "active" || workspace.isDemo) return "Kudos isn't installed in this workspace yet.";
+    // Someone from another team (e.g. over Slack Connect) is never one of this workspace's admins.
+    const member =
+      args.userTeamId && args.userTeamId !== args.teamId
+        ? null
+        : await ctx.db
+            .query("members")
+            .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id).eq("slackUserId", args.slackUserId))
+            .unique();
+    if (!member || !member.isAdmin || member.deactivated || member.isBot) return "Only workspace admins can do that.";
+    const id = ctx.db.normalizeId("redemptions", args.redemptionId);
+    const redemption = id ? await ctx.db.get(id) : null;
+    if (!redemption || redemption.workspaceId !== workspace._id) return "Request not found.";
+    try {
+      // Every check runs before the first write, so a refusal leaves nothing behind.
+      await transitionRedemption(ctx, { workspace, redemption, actor: member, action: args.action, now: Date.now() });
+      return null;
+    } catch (error) {
+      if (error instanceof ConvexError && typeof error.data === "string") return error.data;
+      throw error;
+    }
   },
 });

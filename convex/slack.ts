@@ -3,7 +3,7 @@ import { internalAction, type ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { baseEmojiName, parseKudosMessage } from "./lib/parse";
-import { escapeMrkdwn, rewardLine, siteUrl, slackApi, type SlackResponse } from "./lib/slack";
+import { escapeMrkdwn, isSlackResponseUrl, rewardLine, siteUrl, slackApi, type SlackResponse } from "./lib/slack";
 import { RARITY_SLACK_BADGE, type Rarity } from "./lib/messages";
 import { OPEN_COUNT_CAP } from "./lib/store";
 
@@ -270,13 +270,70 @@ const redemptionEventValidator = v.union(
   v.literal("cancelled"),
 );
 
+/** Sends a DM; returns where it landed (the DM channel and ts), or null if Slack refused it. */
 async function postDm(token: string, channel: string, text: string, blocks: object[]) {
   const res = await slackApi(token, "chat.postMessage", { channel, text, blocks });
   if (!res.ok) console.warn(`Store DM to ${channel} failed: ${res.error}`);
+  return res.ok && typeof res.channel === "string" && typeof res.ts === "string" ? { channel: res.channel, ts: res.ts } : null;
 }
 
 /** mrkdwn that shows what people typed as-is: no auto-linked URLs, channels or mentions. */
 const verbatim = (text: string) => ({ type: "mrkdwn", text, verbatim: true });
+
+const button = (text: string, action_id: string, extra: object) => ({ type: "button", text: { type: "plain_text", text }, action_id, ...extra });
+
+const DECIDED = { approved: "✅ Approved", fulfilled: "✔ Fulfilled", declined: "✖ Declined", cancelled: "↩ Cancelled" } as const;
+
+/** Slack renders this in each reader's own time zone ("2 minutes ago"); the fallback is UTC. */
+function ago(at: number) {
+  const fallback = `${new Date(at).toISOString().slice(0, 16).replace("T", " ")} UTC`;
+  return `<!date^${Math.floor(at / 1000)}^{ago}|${fallback}>`;
+}
+
+type AdminCopy = {
+  redemptionId: Id<"redemptions">;
+  status: "pending" | keyof typeof DECIDED;
+  requesterSlackUserId: string;
+  reward: { name: string; emoji: string; cost: number };
+  e: string;
+  prompt?: string;
+  answer?: string;
+  /** Only in the first DM: the balance right after the request, which a later refund makes stale. */
+  balance?: string | null;
+  isOwn?: boolean;
+  step?: { at: number; bySlackUserId: string | null; note?: string };
+};
+
+/**
+ * An admin's copy of a request: who wants what, the answer, and what can still be done. Once
+ * someone decided, it says who and when, and only offers the steps that are left (spec §7).
+ * Declining stays on the web, where there's room for a reason.
+ */
+function adminCopy(copy: AdminCopy) {
+  const site = siteUrl();
+  const item = `*${escapeMrkdwn(`${copy.reward.emoji} ${copy.reward.name}`)}*`;
+  const ask = `🛎️ <@${copy.requesterSlackUserId}> wants ${item} (${copy.reward.cost} ${copy.e}).`;
+  const answer = copy.answer && `Answer${copy.prompt ? ` to “${escapeMrkdwn(copy.prompt)}”` : ""}: ${escapeMrkdwn(copy.answer)}`;
+  const decided = copy.status === "pending" ? null : `${DECIDED[copy.status]} by ${copy.step?.bySlackUserId ? `<@${copy.step.bySlackUserId}>` : "an admin"}`;
+  const note = copy.step?.note ? `: “${escapeMrkdwn(copy.step.note)}”` : "";
+  const value = copy.redemptionId;
+  const buttons = [
+    ...(copy.status === "pending" ? [button("Approve", "store_approve", { style: "primary", value })] : []),
+    ...(copy.status === "pending" || copy.status === "approved" ? [button("Mark fulfilled", "store_fulfill", { value })] : []),
+  ];
+  if (buttons.length > 0 && site) buttons.push(button("Review in Kudos", "store_review", { url: `${site}/admin?tab=store` }));
+  const text = decided ? `${ask} ${decided}` : `${ask}${copy.balance ? ` Balance after: ${copy.balance}.` : ""}`;
+  return {
+    text,
+    blocks: [
+      { type: "section", text: verbatim(decided ? ask : text) },
+      ...(answer ? [{ type: "section", text: verbatim(answer) }] : []),
+      ...(copy.isOwn ? [{ type: "context", elements: [{ type: "mrkdwn", text: "👤 Your own request. You're the only admin who can decide it." }] }] : []),
+      ...(decided ? [{ type: "context", elements: [verbatim(`${decided} · ${ago(copy.step!.at)}${note}`)] }] : []),
+      ...(buttons.length > 0 ? [{ type: "actions", elements: buttons }] : []),
+    ],
+  };
+}
 
 /**
  * Tells the requester (and, for a new request, the admins) about one step of a redemption,
@@ -324,27 +381,78 @@ export const notifyRedemption = internalAction({
       ]);
     }
 
+    const copies: { channel: string; ts: string }[] = [];
     for (const admin of data.admins) {
-      const text = `🛎️ <@${requester.slackUserId}> wants ${item} (${cost}).${balance ? ` Balance after: ${balance}.` : ""}`;
-      const answer = data.answer && `Answer${data.prompt ? ` to “${escapeMrkdwn(data.prompt)}”` : ""}: ${escapeMrkdwn(data.answer)}`;
-      await postDm(token, admin.slackUserId, text, [
-        { type: "section", text: verbatim(text) },
-        ...(answer ? [{ type: "section", text: verbatim(answer) }] : []),
-        ...(admin.isOwn ? [{ type: "context", elements: [{ type: "mrkdwn", text: "👤 Your own request. You're the only admin who can decide it." }] }] : []),
-        ...(site
-          ? [
-              {
-                type: "actions",
-                elements: [
-                  { type: "button", style: "primary", text: { type: "plain_text", text: "Review in Kudos" }, url: `${site}/admin?tab=store`, action_id: "store_review" },
-                ],
-              },
-            ]
-          : []),
-      ]);
+      const { text, blocks } = adminCopy({
+        redemptionId: args.redemptionId,
+        status: "pending",
+        requesterSlackUserId: requester.slackUserId,
+        reward,
+        e,
+        prompt: data.prompt,
+        answer: data.answer,
+        balance,
+        isOwn: admin.isOwn,
+      });
+      const sent = await postDm(token, admin.slackUserId, text, blocks);
+      if (sent) copies.push(sent);
     }
+    if (copies.length > 0) await ctx.runMutation(internal.slackData.saveAdminMessages, { redemptionId: args.redemptionId, messages: copies });
 
     if (!requester.deactivated) await publishHome(ctx, data.workspaceId, token, requester.slackUserId);
+    return null;
+  },
+});
+
+/**
+ * Rewrites every admin's copy of a request after a step, from the web or from Slack. Syncs can
+ * overlap, so each one re-reads the request after updating and goes again if it moved on: the
+ * last one to finish always shows the latest state.
+ */
+export const syncAdminMessages = internalAction({
+  args: { redemptionId: v.id("redemptions") },
+  returns: v.null(),
+  handler: async (ctx, { redemptionId }) => {
+    let shown: string | null = null;
+    for (let round = 0; round < 3; round++) {
+      const data = await ctx.runQuery(internal.slackData.adminCopies, { redemptionId });
+      if (!data || data.version === shown) return null;
+      const { text, blocks } = adminCopy({
+        redemptionId,
+        status: data.status,
+        requesterSlackUserId: data.requesterSlackUserId,
+        reward: data.reward,
+        e: `:${data.emojiName}:`,
+        prompt: data.prompt,
+        answer: data.answer,
+        step: data.step,
+      });
+      for (const { channel, ts } of data.messages) {
+        const res = await slackApi(data.botToken, "chat.update", { channel, ts, text, blocks });
+        if (!res.ok) console.warn(`Updating the store DM ${channel}/${ts} failed: ${res.error}`);
+      }
+      shown = data.version;
+    }
+    return null;
+  },
+});
+
+/** Answers an interaction with a message only the person who clicked sees. */
+export const respond = internalAction({
+  args: { responseUrl: v.string(), text: v.string() },
+  returns: v.null(),
+  handler: async (_ctx, { responseUrl, text }) => {
+    if (!isSlackResponseUrl(responseUrl)) return null;
+    try {
+      const res = await fetch(responseUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ response_type: "ephemeral", replace_original: false, text }),
+      });
+      if (!res.ok) console.warn(`Answering a Slack interaction failed: http_${res.status}`);
+    } catch (e) {
+      console.warn(`Answering a Slack interaction failed: ${e instanceof Error ? e.message : e}`);
+    }
     return null;
   },
 });

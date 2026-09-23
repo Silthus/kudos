@@ -320,6 +320,7 @@ export default defineSchema({
     ),
     requestedAt: v.number(),
     updatedAt: v.number(),
+    adminMessages: v.optional(v.array(v.object({ channel: v.string(), ts: v.string() }))), // the admins' review DMs, rewritten after every step (≤ 20)
   })
     .index("by_workspace_status_requestedAt", ["workspaceId", "status", "requestedAt"])
     .index("by_workspace_isOpen_requestedAt", ["workspaceId", "isOpen", "requestedAt"])

@@ -38,6 +38,16 @@ export async function verifySlackSignature(
   return timingSafeEqual(await signSlackRequest(secret, timestamp, body), signature);
 }
 
+/** Interaction answers only ever go back to Slack, whatever a payload's `response_url` says. */
+export function isSlackResponseUrl(url: string) {
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" && u.hostname === "hooks.slack.com" && u.port === "" && !u.username && !u.password;
+  } catch {
+    return false;
+  }
+}
+
 /** Escapes text people typed (reward names, answers, notes) so it can't ping or link in mrkdwn. */
 export function escapeMrkdwn(text: string) {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
