@@ -1,0 +1,173 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a887d43f3aa3acc38
+
+ ❯ tests/store-slack.test.ts (32 tests | 1 failed) 295ms
+   ❯ balance adjustments (S6) (1)
+     × refresh the member's App Home so its balance isn't stale 7ms
+ ❯ tests/store.test.ts (78 tests | 6 failed) 5564ms
+   ❯ deciding (15)
+     × can't be dodged by demoting the other admin after asking 14ms
+     × can't be dodged by demoting the other admin before the store even opened 5ms
+     × only counts people you demoted who could decide: signed in and still here 4ms
+   ❯ the grantBalance helper (2)
+     × never loses a grant when a caller reuses a stale member document 4ms
+     × names an admin for admin adjustments, never for system grants, and never yourself 2ms
+   ❯ adjustment privacy and edges (4)
+     × ledgers hide the received count under “Only me”, like Admin → Members 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/store-slack.test.ts > balance adjustments (S6) > refresh the member's App Home so its balance isn't stale
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ tests/store-slack.test.ts:427:18
+    425|     await drain();
+    426|     const home = published().filter((p) => p.user === "UBEN");
+    427|     expect(home).toHaveLength(1);
+       |                  ^
+    428|     expect(JSON.stringify(home[0].view.blocks)).toContain("50");
+    429|     // An adjustment is not a redemption step: no DM.
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  tests/store.test.ts > deciding > can't be dodged by demoting the other admin after asking
+ConvexError: Cleo is the only other admin who can decide on your store requests. Make someone else an admin first, so nobody approves their own.
+ ❯ assertDemotionKeepsFourEyes convex/store.ts:91:9
+     89|   if (workspace.storeEnabled === undefined || target._id === actor._id…
+     90|   if (await otherActiveAdminExists(ctx, workspace._id, actor._id, targ…
+     91|   throw new ConvexError(
+       |         ^
+     92|     `${target.name} is the only other admin who can decide on your sto…
+     93|   );
+ ❯ handler convex/admin.ts:143:19
+ ❯ invokeFunction node_modules/convex/src/server/impl/registration_impl.ts:90:14
+ ❯ invokeMutation node_modules/convex/src/server/impl/registration_impl.ts:70:18
+ ❯ runMutationWithHandler node_modules/convex-test/dist/index.js:1989:31
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2133:32
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/store.test.ts:552:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  tests/store.test.ts > deciding > can't be dodged by demoting the other admin before the store even opened
+AssertionError: promise resolved "null" instead of rejecting
+
+- Expected:
+Error {
+  "message": "rejected promise",
+}
+
++ Received:
+null
+
+ ❯ tests/store.test.ts:572:82
+    570|     const { redemptionId } = await ana.mutation(api.store.redeem, { re…
+    571|     for (const action of ["approve", "fulfill", "decline"] as const) {
+    572|       await expect(ana.mutation(api.storeAdmin.decide, { redemptionId,…
+       |                                                                                  ^
+    573|     }
+    574|     // Someone else can still decide on it: a new admin.
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  tests/store.test.ts > deciding > only counts people you demoted who could decide: signed in and still here
+AssertionError: promise resolved "null" instead of rejecting
+
+- Expected:
+Error {
+  "message": "rejected promise",
+}
+
++ Received:
+null
+
+ ❯ tests/store.test.ts:598:99
+    596|     await signInAs(t, team.cleo);
+    597|     const second = (await ana.mutation(api.store.redeem, { rewardId, e…
+    598|     await expect(ana.mutation(api.storeAdmin.decide, { redemptionId: s…
+       |                                                                                                   ^
+    599|   });
+    600|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  tests/store.test.ts > the grantBalance helper > never loses a grant when a caller reuses a stale member document
+AssertionError: expected [ 6, 8 ] to deeply equal [ 6, 13 ]
+
+- Expected
++ Received
+
+  [
+    6,
+-   13,
++   8,
+  ]
+
+ ❯ tests/store.test.ts:1090:22
+    1088|       return [a.balance, b.balance];
+    1089|     });
+    1090|     expect(balances).toEqual([6, 13]);
+       |                      ^
+    1091|     expect(await t.run((ctx) => ctx.db.get(team.ben))).toMatchObject({…
+    1092|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  tests/store.test.ts > the grantBalance helper > names an admin for admin adjustments, never for system grants, and never yourself
+AssertionError: promise resolved "{ …(2) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "adjustmentId": "00000000010006balanceAdjustments",
++   "balance": 6,
+  }
+
+ ❯ tests/store.test.ts:1096:45
+    1094|   test("names an admin for admin adjustments, never for system grants,…
+    1095|     await fund(team.ben, 1);
+    1096|     await expect(grant({ source: "admin" })).rejects.toThrow(/admin wh…
+       |                                             ^
+    1097|     await expect(grant({ source: "admin", by: team.cleo })).rejects.to…
+    1098|     await expect(grant({ source: "admin", by: team.ben })).rejects.toT…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+ FAIL  tests/store.test.ts > adjustment privacy and edges > ledgers hide the received count under “Only me”, like Admin → Members
+AssertionError: expected { adjustments: [], balance: 5, …(5) } to match object { received: null, balance: 5 }
+(10 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "balance": 5,
+-   "received": null,
++   "received": 5,
+  }
+
+ ❯ tests/store.test.ts:1119:82
+    1117|     await fund(team.ben, 5);
+    1118|     const ana = await signInAs(t, team.ana);
+    1119|     expect(await ana.query(api.storeAdmin.memberLedger, { memberId: te…
+       |                                                                                  ^
+    1120|     await setWorkspace({ receivedVisibility: "everyone" });
+    1121|     expect(await ana.query(api.storeAdmin.memberLedger, { memberId: te…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  7 failed | 103 passed (110)
+   Start at  21:47:27
+   Duration  5.99s (tests 90%, transform 5%, import 3%, environment 1%)
+
