@@ -1,0 +1,28 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a599feecbbf6b312e
+
+ ✓ tests/analytics.test.ts > analytics on the rollups > gives exactly what the legacy scans compute, for every period 149ms
+ ✓ tests/analytics.test.ts > analytics on the rollups > once backfilled, reads only the rollups: the source tables can vanish 81ms
+ ✓ tests/periods.test.ts > midnight rollover > the allowance refills when the client's day rolls over, with the server clock standing still 38ms
+ ✓ tests/periods.test.ts > midnight rollover > Monday starts a fresh weekly board and week rank, with last week as the comparison 29ms
+ ✓ tests/periods.test.ts > calendar-aligned comparisons > workspace KPIs compare with the previous month up to the same day 9ms
+ ✓ tests/periods.test.ts > calendar-aligned comparisons > leaderboard values compare with the whole previous month 3ms
+ ✓ tests/periods.test.ts > calendar-aligned comparisons > the leaderboard's workspace headline compares to date, like analytics 3ms
+ ✓ tests/periods.test.ts > calendar-aligned comparisons > my own period total compares with the whole previous month, the daily overlay day by day 4ms
+ ✓ tests/periods.test.ts > busy previous periods > the leaderboard headline still counts the previous period to date when the full period is too big to read 228ms
+ ✓ tests/periods.test.ts > across the year boundary > the year starts on January 1st while ISO week 53 still spans both years 5ms
+ ✓ tests/periods.test.ts > period arguments > reject rolling windows and impossible days 4ms
+ ✓ tests/periods.test.ts > period arguments > all time has no comparison and starts at the first recorded day 3ms
+ ✓ tests/periods.test.ts > period arguments > the all-time chart counts whole months from the first recorded one, however far away today is 8ms
+ ✓ tests/analytics.test.ts > analytics on the rollups > before the backfill, analytics keeps computing from the source tables 53ms
+ ✓ tests/analytics.test.ts > analytics on the rollups > this month, against August to date for volume and the whole of August for givers 50ms
+ ✓ tests/analytics.test.ts > analytics on the rollups > all time charts whole months from the first active month, with no comparison 48ms
+ ✓ tests/analytics.test.ts > analytics on the rollups > hides who received and who recognizes whom unless received kudos are public 48ms
+ ✓ tests/analytics.test.ts > reads at scale > a year stays within ~2.4k small documents, exact and untruncated 257ms
+ ✓ tests/analytics.test.ts > reads at scale > a month and all time read far less 216ms
+
+ Test Files  2 passed (2)
+      Tests  19 passed (19)
+   Start at  21:54:30
+   Duration  1.28s (tests 68%, transform 15%, import 12%, environment 4%)
+

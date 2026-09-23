@@ -1,0 +1,3763 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a599feecbbf6b312e
+
+ ❯ tests/analytics.test.ts (8 tests | 6 failed) 792ms
+   ❯ analytics on the rollups (6)
+     × once backfilled, reads only the rollups: the source tables can vanish 146ms
+     × before the backfill, analytics keeps computing from the source tables 54ms
+     × this month, against August to date for volume and the whole of August for givers 51ms
+     × all time charts whole months from the first active month, with no comparison 50ms
+   ❯ reads at scale (2)
+     × a year stays within ~2.4k small documents, exact and untruncated 157ms
+     × a month and all time read far less 134ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/analytics.test.ts > analytics on the rollups > once backfilled, reads only the rollups: the source tables can vanish
+AssertionError: expected { week: { channels: [], …(13) }, …(4) } to deeply equal { week: { …(14) }, …(4) }
+
+- Expected
++ Received
+
+@@ -1,1616 +1,14 @@
+  {
+    "all": {
+-     "channels": [
+-       {
+-         "name": "general",
+-         "value": 17,
+-       },
+-       {
+-         "name": "random",
+-         "value": 5,
+-       },
+-       {
+-         "name": "Private channels",
+-         "value": 1,
+-       },
+-       {
+-         "name": "design",
+-         "value": 1,
+-       },
+-     ],
++     "channels": [],
+      "daily": [
+        {
+-         "day": "2025-11-10",
+-         "prevTotal": null,
+-         "total": 2,
+-       },
+-       {
+-         "day": "2025-11-11",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-11-12",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-11-13",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-11-14",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-11-15",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-11-16",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-11-17",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-11-18",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-11-19",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-11-20",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-11-21",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-11-22",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-11-23",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-11-24",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-11-25",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-11-26",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-11-27",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-11-28",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-11-29",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-11-30",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-01",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-02",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-03",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-04",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-05",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-06",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-07",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-08",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-09",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-10",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-11",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-12",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-13",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-14",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-15",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-16",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-17",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-18",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-19",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-20",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-21",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-22",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-23",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-24",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-25",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-26",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-27",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-28",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-29",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-30",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2025-12-31",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-01",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-02",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-03",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-04",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-05",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-06",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-07",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-08",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-09",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-10",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-11",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-12",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-13",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-14",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-15",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-16",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-17",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-18",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-19",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-20",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-21",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-22",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-23",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-24",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-25",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-26",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-27",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-28",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-29",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-30",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-01-31",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-01",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-02",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-03",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-04",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-05",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-06",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-07",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-08",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-09",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-10",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-11",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-12",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-13",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-14",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-15",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-16",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-17",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-18",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-19",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-20",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-21",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-22",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-23",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-24",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-25",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-26",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-27",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-02-28",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-01",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-02",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-03",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-04",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-05",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-06",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-07",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-08",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-09",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-10",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-11",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-12",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-13",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-14",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-15",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-16",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-17",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-18",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-19",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-20",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-21",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-22",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-23",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-24",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-25",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-26",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-27",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-28",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-29",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-30",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-03-31",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-01",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-02",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-03",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-04",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-05",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-06",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-07",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-08",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-09",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-10",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-11",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-12",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-13",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-14",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-15",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-16",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-17",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-18",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-19",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-20",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-21",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-22",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-23",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-24",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-25",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-26",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-27",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-28",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-29",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-04-30",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-01",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-02",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-03",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-04",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-05",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-06",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-07",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-08",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-09",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-10",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-11",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-12",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-13",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-14",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-15",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-16",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-17",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-18",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-19",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-20",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-21",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-22",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-23",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-24",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-25",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-26",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-27",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-28",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-29",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-30",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-05-31",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-01",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-02",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-03",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-04",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-05",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-06",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-07",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-08",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-09",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-10",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-11",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-12",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-13",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-14",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-15",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-16",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-17",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-18",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-19",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-20",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-21",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-22",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-23",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-24",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-25",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-26",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-27",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-28",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-29",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-06-30",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-01",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-02",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-03",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-04",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-05",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-06",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-07",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-08",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-09",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-10",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-11",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-12",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-13",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-14",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-15",
+-         "prevTotal": null,
+-         "total": 1,
+-       },
+-       {
+-         "day": "2026-07-16",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-17",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-18",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-19",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-20",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-21",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-22",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-23",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-24",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-25",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-26",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-27",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-28",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-29",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-30",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-07-31",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-01",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-02",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-03",
+-         "prevTotal": null,
+-         "total": 3,
+-       },
+-       {
+-         "day": "2026-08-04",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-05",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-06",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-07",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-08",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-09",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-10",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-11",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-12",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-13",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-14",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-15",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-16",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-17",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-18",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-19",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-20",
+-         "prevTotal": null,
+-         "total": 1,
+-       },
+-       {
+-         "day": "2026-08-21",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-22",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-23",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-24",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-25",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-26",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-27",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-28",
+-         "prevTotal": null,
+-         "total": 2,
+-       },
+-       {
+-         "day": "2026-08-29",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-30",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-08-31",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-09-01",
++         "day": "2026-09-23",
+          "prevTotal": null,
+          "total": 0,
+        },
+-       {
+-         "day": "2026-09-02",
+-         "prevTotal": null,
+-         "total": 4,
+-       },
+-       {
+-         "day": "2026-09-03",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-09-04",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-09-05",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-09-06",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-09-07",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-09-08",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-09-09",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-09-10",
+-         "prevTotal": null,
+-         "total": 1,
+-       },
+-       {
+-         "day": "2026-09-11",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-09-12",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-09-13",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-09-14",
+-         "prevTotal": null,
+-         "total": 4,
+-       },
+-       {
+-         "day": "2026-09-15",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-09-16",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-09-17",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-09-18",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-09-19",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-09-20",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-09-21",
+-         "prevTotal": null,
+-         "total": 1,
+-       },
+-       {
+-         "day": "2026-09-22",
+-         "prevTotal": null,
+-         "total": 0,
+-       },
+-       {
+-         "day": "2026-09-23",
+-         "prevTotal": null,
+-         "total": 5,
+-       },
+      ],
+      "heatmap": [
+        [
+          0,
+          0,
+@@ -1620,15 +18,15 @@
+          0,
+          0,
+          0,
+          0,
+          0,
+-         1,
+-         2,
+-         3,
++         0,
++         0,
++         0,
++         0,
+          0,
+-         4,
+          0,
+          0,
+          0,
+          0,
+          0,
+@@ -1671,14 +69,11 @@
+          0,
+          0,
+          0,
+          0,
+          0,
+-         4,
+          0,
+-         5,
+-         1,
+          0,
+          0,
+          0,
+          0,
+          0,
+@@ -1686,10 +81,13 @@
+          0,
+          0,
+          0,
+          0,
+          0,
++         0,
++         0,
++         0,
+        ],
+        [
+          0,
+          0,
+          0,
+@@ -1700,17 +98,17 @@
+          0,
+          0,
+          0,
+          0,
+          0,
+-         1,
++         0,
++         0,
+          0,
+          0,
+          0,
+          0,
+          0,
+-         1,
+          0,
+          0,
+          0,
+          0,
+          0,
+@@ -1726,11 +124,11 @@
+          0,
+          0,
+          0,
+          0,
+          0,
+-         2,
++         0,
+          0,
+          0,
+          0,
+          0,
+          0,
+@@ -1793,287 +191,82 @@
+          0,
+          0,
+        ],
+      ],
+      "kpis": {
+-       "allowanceUse": 0.48,
+-       "avgPerGiver": 4.8,
+-       "givers": 5,
+-       "maxedDays": 1,
+-       "messages": 10,
+-       "newGivers": 5,
+-       "participation": 1,
++       "allowanceUse": 0,
++       "avgPerGiver": 0,
++       "givers": 0,
++       "maxedDays": 0,
++       "messages": 0,
++       "newGivers": 0,
++       "participation": 0,
+        "prevGivers": null,
+        "prevParticipation": null,
+        "prevTotal": null,
+-       "receivers": 5,
++       "receivers": 0,
+        "retained": 0,
+        "teamSize": 5,
+-       "topShare": 0.5,
+-       "total": 24,
++       "topShare": 0,
++       "total": 0,
+      },
+      "label": "All time",
+      "range": {
+-       "days": 318,
++       "days": 1,
+        "end": "2026-09-23",
+-       "start": "2025-11-10",
++       "start": "2026-09-23",
+      },
+      "rarity": [
+        {
+          "rarity": "common",
+-         "value": 13,
++         "value": 0,
+        },
+        {
+          "rarity": "uncommon",
+-         "value": 5,
++         "value": 0,
+        },
+        {
+          "rarity": "rare",
+-         "value": 2,
++         "value": 0,
+        },
+        {
+          "rarity": "epic",
+-         "value": 1,
++         "value": 0,
+        },
+        {
+          "rarity": "legendary",
+          "value": 0,
+        },
+      ],
+      "showPeople": true,
+-     "sources": [
+-       {
+-         "name": "Messages",
+-         "value": 20,
+-       },
+-       {
+-         "name": "Reactions",
+-         "value": 4,
+-       },
+-     ],
+-     "topGivers": [
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "value": 12,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010007members",
+-           "avatarUrl": null,
+-           "name": "Eve",
+-           "slackUserId": "UEVE",
+-         },
+-         "value": 4,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010003members",
+-           "avatarUrl": null,
+-           "name": "Ben",
+-           "slackUserId": "UBEN",
+-         },
+-         "value": 4,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010004members",
+-           "avatarUrl": null,
+-           "name": "Cleo",
+-           "slackUserId": "UCLEO",
+-         },
+-         "value": 3,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010006members",
+-           "avatarUrl": null,
+-           "name": "Dan",
+-           "slackUserId": "UDAN",
+-         },
+-         "value": 1,
+-       },
+-     ],
+-     "topPairs": [
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010007members",
+-           "avatarUrl": null,
+-           "name": "Eve",
+-           "slackUserId": "UEVE",
+-         },
+-         "value": 5,
+-       },
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010007members",
+-           "avatarUrl": null,
+-           "name": "Eve",
+-           "slackUserId": "UEVE",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "value": 4,
+-       },
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010003members",
+-           "avatarUrl": null,
+-           "name": "Ben",
+-           "slackUserId": "UBEN",
+-         },
+-         "value": 4,
+-       },
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010003members",
+-           "avatarUrl": null,
+-           "name": "Ben",
+-           "slackUserId": "UBEN",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010004members",
+-           "avatarUrl": null,
+-           "name": "Cleo",
+-           "slackUserId": "UCLEO",
+-         },
+-         "value": 3,
+-       },
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010004members",
+-           "avatarUrl": null,
+-           "name": "Cleo",
+-           "slackUserId": "UCLEO",
+-         },
+-         "value": 2,
+-       },
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010004members",
+-           "avatarUrl": null,
+-           "name": "Cleo",
+-           "slackUserId": "UCLEO",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "value": 2,
+-       },
+-     ],
+-     "topReceivers": [
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "value": 8,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010007members",
+-           "avatarUrl": null,
+-           "name": "Eve",
+-           "slackUserId": "UEVE",
+-         },
+-         "value": 5,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010003members",
+-           "avatarUrl": null,
+-           "name": "Ben",
+-           "slackUserId": "UBEN",
+-         },
+-         "value": 5,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010004members",
+-           "avatarUrl": null,
+-           "name": "Cleo",
+-           "slackUserId": "UCLEO",
+-         },
+-         "value": 5,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010006members",
+-           "avatarUrl": null,
+-           "name": "Dan",
+-           "slackUserId": "UDAN",
+-         },
+-         "value": 1,
+-       },
+-     ],
++     "sources": [],
++     "topGivers": [],
++     "topPairs": [],
++     "topReceivers": [],
+      "truncated": false,
+      "unit": {
+        "glyph": "🌮",
+        "plural": "kudos",
+        "singular": "kudos",
+      },
+    },
+    "month": {
+-     "channels": [
+-       {
+-         "name": "general",
+-         "value": 9,
+-       },
+-       {
+-         "name": "random",
+-         "value": 5,
+-       },
+-       {
+-         "name": "Private channels",
+-         "value": 1,
+-       },
+-     ],
++     "channels": [],
+      "daily": [
+        {
+          "day": "2026-09-01",
+          "prevTotal": 0,
+          "total": 0,
+        },
+        {
+          "day": "2026-09-02",
+          "prevTotal": 0,
+-         "total": 4,
++         "total": 0,
+        },
+        {
+          "day": "2026-09-03",
+-         "prevTotal": 3,
++         "prevTotal": 0,
+          "total": 0,
+        },
+        {
+          "day": "2026-09-04",
+          "prevTotal": 0,
+@@ -2105,11 +298,11 @@
+          "total": 0,
+        },
+        {
+          "day": "2026-09-10",
+          "prevTotal": 0,
+-         "total": 1,
++         "total": 0,
+        },
+        {
+          "day": "2026-09-11",
+          "prevTotal": 0,
+          "total": 0,
+@@ -2125,11 +318,11 @@
+          "total": 0,
+        },
+        {
+          "day": "2026-09-14",
+          "prevTotal": 0,
+-         "total": 4,
++         "total": 0,
+        },
+        {
+          "day": "2026-09-15",
+          "prevTotal": 0,
+          "total": 0,
+@@ -2154,46 +347,46 @@
+          "prevTotal": 0,
+          "total": 0,
+        },
+        {
+          "day": "2026-09-20",
+-         "prevTotal": 1,
++         "prevTotal": 0,
+          "total": 0,
+        },
+        {
+          "day": "2026-09-21",
+          "prevTotal": 0,
+-         "total": 1,
++         "total": 0,
+        },
+        {
+          "day": "2026-09-22",
+          "prevTotal": 0,
+          "total": 0,
+        },
+        {
+          "day": "2026-09-23",
+          "prevTotal": 0,
+-         "total": 5,
++         "total": 0,
+        },
+      ],
+      "heatmap": [
+        [
++         0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+-         1,
++         0,
+          0,
+          0,
+          0,
+-         4,
+          0,
+          0,
+          0,
+          0,
+          0,
+@@ -2236,13 +429,11 @@
+          0,
+          0,
+          0,
+          0,
+          0,
+-         4,
+          0,
+-         5,
+          0,
+          0,
+          0,
+          0,
+          0,
+@@ -2251,10 +442,12 @@
+          0,
+          0,
+          0,
+          0,
+          0,
++         0,
++         0,
+        ],
+        [
+          0,
+          0,
+          0,
+@@ -2271,11 +464,11 @@
+          0,
+          0,
+          0,
+          0,
+          0,
+-         1,
++         0,
+          0,
+          0,
+          0,
+          0,
+          0,
+@@ -2358,259 +551,68 @@
+          0,
+          0,
+        ],
+      ],
+      "kpis": {
+-       "allowanceUse": 0.6,
+-       "avgPerGiver": 3.75,
+-       "givers": 4,
+-       "maxedDays": 1,
+-       "messages": 5,
+-       "newGivers": 2,
+-       "participation": 0.8,
+-       "prevGivers": 2,
+-       "prevParticipation": 0.4,
+-       "prevTotal": 4,
+-       "receivers": 4,
+-       "retained": 2,
++       "allowanceUse": 0,
++       "avgPerGiver": 0,
++       "givers": 0,
++       "maxedDays": 0,
++       "messages": 0,
++       "newGivers": 0,
++       "participation": 0,
++       "prevGivers": 0,
++       "prevParticipation": 0,
++       "prevTotal": 0,
++       "receivers": 0,
++       "retained": 0,
+        "teamSize": 5,
+-       "topShare": 0.6,
+-       "total": 15,
++       "topShare": 0,
++       "total": 0,
+      },
+      "label": "This month",
+      "range": {
+        "days": 23,
+        "end": "2026-09-23",
+        "start": "2026-09-01",
+      },
+      "rarity": [
+        {
+          "rarity": "common",
+-         "value": 7,
++         "value": 0,
+        },
+        {
+          "rarity": "uncommon",
+-         "value": 3,
++         "value": 0,
+        },
+        {
+          "rarity": "rare",
+          "value": 0,
+        },
+        {
+          "rarity": "epic",
+-         "value": 1,
++         "value": 0,
+        },
+        {
+          "rarity": "legendary",
+          "value": 0,
+        },
+      ],
+      "showPeople": true,
+-     "sources": [
+-       {
+-         "name": "Messages",
+-         "value": 14,
+-       },
+-       {
+-         "name": "Reactions",
+-         "value": 1,
+-       },
+-     ],
+-     "topGivers": [
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "value": 9,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010007members",
+-           "avatarUrl": null,
+-           "name": "Eve",
+-           "slackUserId": "UEVE",
+-         },
+-         "value": 4,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010003members",
+-           "avatarUrl": null,
+-           "name": "Ben",
+-           "slackUserId": "UBEN",
+-         },
+-         "value": 1,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010004members",
+-           "avatarUrl": null,
+-           "name": "Cleo",
+-           "slackUserId": "UCLEO",
+-         },
+-         "value": 1,
+-       },
+-     ],
+-     "topPairs": [
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010007members",
+-           "avatarUrl": null,
+-           "name": "Eve",
+-           "slackUserId": "UEVE",
+-         },
+-         "value": 5,
+-       },
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010007members",
+-           "avatarUrl": null,
+-           "name": "Eve",
+-           "slackUserId": "UEVE",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "value": 4,
+-       },
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010004members",
+-           "avatarUrl": null,
+-           "name": "Cleo",
+-           "slackUserId": "UCLEO",
+-         },
+-         "value": 2,
+-       },
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010003members",
+-           "avatarUrl": null,
+-           "name": "Ben",
+-           "slackUserId": "UBEN",
+-         },
+-         "value": 2,
+-       },
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010003members",
+-           "avatarUrl": null,
+-           "name": "Ben",
+-           "slackUserId": "UBEN",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "value": 1,
+-       },
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010004members",
+-           "avatarUrl": null,
+-           "name": "Cleo",
+-           "slackUserId": "UCLEO",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010003members",
+-           "avatarUrl": null,
+-           "name": "Ben",
+-           "slackUserId": "UBEN",
+-         },
+-         "value": 1,
+-       },
+-     ],
+-     "topReceivers": [
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "value": 5,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010007members",
+-           "avatarUrl": null,
+-           "name": "Eve",
+-           "slackUserId": "UEVE",
+-         },
+-         "value": 5,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010003members",
+-           "avatarUrl": null,
+-           "name": "Ben",
+-           "slackUserId": "UBEN",
+-         },
+-         "value": 3,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010004members",
+-           "avatarUrl": null,
+-           "name": "Cleo",
+-           "slackUserId": "UCLEO",
+-         },
+-         "value": 2,
+-       },
+-     ],
++     "sources": [],
++     "topGivers": [],
++     "topPairs": [],
++     "topReceivers": [],
+      "truncated": false,
+      "unit": {
+        "glyph": "🌮",
+        "plural": "kudos",
+        "singular": "kudos",
+      },
+    },
+    "quarter": {
+-     "channels": [
+-       {
+-         "name": "general",
+-         "value": 15,
+-       },
+-       {
+-         "name": "random",
+-         "value": 5,
+-       },
+-       {
+-         "name": "Private channels",
+-         "value": 1,
+-       },
+-       {
+-         "name": "design",
+-         "value": 1,
+-       },
+-     ],
++     "channels": [],
+      "daily": [
+        {
+          "day": "2026-07-01",
+          "prevTotal": 0,
+          "total": 0,
+@@ -2681,11 +683,11 @@
+          "total": 0,
+        },
+        {
+          "day": "2026-07-15",
+          "prevTotal": 0,
+-         "total": 1,
++         "total": 0,
+        },
+        {
+          "day": "2026-07-16",
+          "prevTotal": 0,
+          "total": 0,
+@@ -2776,11 +778,11 @@
+          "total": 0,
+        },
+        {
+          "day": "2026-08-03",
+          "prevTotal": 0,
+-         "total": 3,
++         "total": 0,
+        },
+        {
+          "day": "2026-08-04",
+          "prevTotal": 0,
+          "total": 0,
+@@ -2861,11 +863,11 @@
+          "total": 0,
+        },
+        {
+          "day": "2026-08-20",
+          "prevTotal": 0,
+-         "total": 1,
++         "total": 0,
+        },
+        {
+          "day": "2026-08-21",
+          "prevTotal": 0,
+          "total": 0,
+@@ -2901,11 +903,11 @@
+          "total": 0,
+        },
+        {
+          "day": "2026-08-28",
+          "prevTotal": 0,
+-         "total": 2,
++         "total": 0,
+        },
+        {
+          "day": "2026-08-29",
+          "prevTotal": 0,
+          "total": 0,
+@@ -2926,11 +928,11 @@
+          "total": 0,
+        },
+        {
+          "day": "2026-09-02",
+          "prevTotal": 0,
+-         "total": 4,
++         "total": 0,
+        },
+        {
+          "day": "2026-09-03",
+          "prevTotal": 0,
+          "total": 0,
+@@ -2966,11 +968,11 @@
+          "total": 0,
+        },
+        {
+          "day": "2026-09-10",
+          "prevTotal": 0,
+-         "total": 1,
++         "total": 0,
+        },
+        {
+          "day": "2026-09-11",
+          "prevTotal": 0,
+          "total": 0,
+@@ -2986,11 +988,11 @@
+          "total": 0,
+        },
+        {
+          "day": "2026-09-14",
+          "prevTotal": 0,
+-         "total": 4,
++         "total": 0,
+        },
+        {
+          "day": "2026-09-15",
+          "prevTotal": 0,
+          "total": 0,
+@@ -3021,21 +1023,21 @@
+          "total": 0,
+        },
+        {
+          "day": "2026-09-21",
+          "prevTotal": 0,
+-         "total": 1,
++         "total": 0,
+        },
+        {
+          "day": "2026-09-22",
+          "prevTotal": 0,
+          "total": 0,
+        },
+        {
+          "day": "2026-09-23",
+          "prevTotal": 0,
+-         "total": 5,
++         "total": 0,
+        },
+      ],
+      "heatmap": [
+        [
+          0,
+@@ -3046,15 +1048,15 @@
+          0,
+          0,
+          0,
+          0,
+          0,
+-         1,
++         0,
+          0,
+-         3,
+          0,
+-         4,
++         0,
++         0,
+          0,
+          0,
+          0,
+          0,
+          0,
+@@ -3097,14 +1099,14 @@
+          0,
+          0,
+          0,
+          0,
+          0,
+-         4,
+          0,
+-         5,
+-         1,
++         0,
++         0,
++         0,
+          0,
+          0,
+          0,
+          0,
+          0,
+@@ -3114,10 +1116,11 @@
+          0,
+          0,
+          0,
+        ],
+        [
++         0,
+          0,
+          0,
+          0,
+          0,
+          0,
+@@ -3126,17 +1129,16 @@
+          0,
+          0,
+          0,
+          0,
+          0,
+-         1,
++         0,
+          0,
+          0,
+          0,
+          0,
+          0,
+-         1,
+          0,
+          0,
+          0,
+          0,
+          0,
+@@ -3152,11 +1154,10 @@
+          0,
+          0,
+          0,
+          0,
+          0,
+-         2,
+          0,
+          0,
+          0,
+          0,
+          0,
+@@ -3164,10 +1165,11 @@
+          0,
+          0,
+          0,
+          0,
+          0,
++         0,
+        ],
+        [
+          0,
+          0,
+          0,
+@@ -3219,284 +1221,83 @@
+          0,
+          0,
+        ],
+      ],
+      "kpis": {
+-       "allowanceUse": 0.4888888888888889,
+-       "avgPerGiver": 4.4,
+-       "givers": 5,
+-       "maxedDays": 1,
+-       "messages": 9,
+-       "newGivers": 5,
+-       "participation": 1,
++       "allowanceUse": 0,
++       "avgPerGiver": 0,
++       "givers": 0,
++       "maxedDays": 0,
++       "messages": 0,
++       "newGivers": 0,
++       "participation": 0,
+        "prevGivers": 0,
+        "prevParticipation": 0,
+        "prevTotal": 0,
+-       "receivers": 5,
++       "receivers": 0,
+        "retained": 0,
+        "teamSize": 5,
+-       "topShare": 0.45454545454545453,
+-       "total": 22,
++       "topShare": 0,
++       "total": 0,
+      },
+      "label": "This quarter",
+      "range": {
+        "days": 85,
+        "end": "2026-09-23",
+        "start": "2026-07-01",
+      },
+      "rarity": [
+        {
+          "rarity": "common",
+-         "value": 12,
++         "value": 0,
+        },
+        {
+          "rarity": "uncommon",
+-         "value": 4,
++         "value": 0,
+        },
+        {
+          "rarity": "rare",
+-         "value": 2,
++         "value": 0,
+        },
+        {
+          "rarity": "epic",
+-         "value": 1,
++         "value": 0,
+        },
+        {
+          "rarity": "legendary",
+          "value": 0,
+        },
+      ],
+      "showPeople": true,
+-     "sources": [
+-       {
+-         "name": "Messages",
+-         "value": 18,
+-       },
+-       {
+-         "name": "Reactions",
+-         "value": 4,
+-       },
+-     ],
+-     "topGivers": [
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "value": 10,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010007members",
+-           "avatarUrl": null,
+-           "name": "Eve",
+-           "slackUserId": "UEVE",
+-         },
+-         "value": 4,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010003members",
+-           "avatarUrl": null,
+-           "name": "Ben",
+-           "slackUserId": "UBEN",
+-         },
+-         "value": 4,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010004members",
+-           "avatarUrl": null,
+-           "name": "Cleo",
+-           "slackUserId": "UCLEO",
+-         },
+-         "value": 3,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010006members",
+-           "avatarUrl": null,
+-           "name": "Dan",
+-           "slackUserId": "UDAN",
+-         },
+-         "value": 1,
+-       },
+-     ],
+-     "topPairs": [
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010007members",
+-           "avatarUrl": null,
+-           "name": "Eve",
+-           "slackUserId": "UEVE",
+-         },
+-         "value": 5,
+-       },
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010007members",
+-           "avatarUrl": null,
+-           "name": "Eve",
+-           "slackUserId": "UEVE",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "value": 4,
+-       },
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010003members",
+-           "avatarUrl": null,
+-           "name": "Ben",
+-           "slackUserId": "UBEN",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010004members",
+-           "avatarUrl": null,
+-           "name": "Cleo",
+-           "slackUserId": "UCLEO",
+-         },
+-         "value": 3,
+-       },
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010004members",
+-           "avatarUrl": null,
+-           "name": "Cleo",
+-           "slackUserId": "UCLEO",
+-         },
+-         "value": 2,
+-       },
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010003members",
+-           "avatarUrl": null,
+-           "name": "Ben",
+-           "slackUserId": "UBEN",
+-         },
+-         "value": 2,
+-       },
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010004members",
+-           "avatarUrl": null,
+-           "name": "Cleo",
+-           "slackUserId": "UCLEO",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "value": 2,
+-       },
+-     ],
+-     "topReceivers": [
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "value": 8,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010007members",
+-           "avatarUrl": null,
+-           "name": "Eve",
+-           "slackUserId": "UEVE",
+-         },
+-         "value": 5,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010004members",
+-           "avatarUrl": null,
+-           "name": "Cleo",
+-           "slackUserId": "UCLEO",
+-         },
+-         "value": 5,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010003members",
+-           "avatarUrl": null,
+-           "name": "Ben",
+-           "slackUserId": "UBEN",
+-         },
+-         "value": 3,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010006members",
+-           "avatarUrl": null,
+-           "name": "Dan",
+-           "slackUserId": "UDAN",
+-         },
+-         "value": 1,
+-       },
+-     ],
++     "sources": [],
++     "topGivers": [],
++     "topPairs": [],
++     "topReceivers": [],
+      "truncated": false,
+      "unit": {
+        "glyph": "🌮",
+        "plural": "kudos",
+        "singular": "kudos",
+      },
+    },
+    "week": {
+-     "channels": [
+-       {
+-         "name": "general",
+-         "value": 5,
+-       },
+-       {
+-         "name": "random",
+-         "value": 1,
+-       },
+-     ],
++     "channels": [],
+      "daily": [
+        {
+          "day": "2026-09-21",
+-         "prevTotal": 4,
+-         "total": 1,
++         "prevTotal": 0,
++         "total": 0,
+        },
+        {
+          "day": "2026-09-22",
+          "prevTotal": 0,
+          "total": 0,
+        },
+        {
+          "day": "2026-09-23",
+          "prevTotal": 0,
+-         "total": 5,
++         "total": 0,
+        },
+      ],
+      "heatmap": [
+        [
+          0,
+@@ -3507,11 +1308,11 @@
+          0,
+          0,
+          0,
+          0,
+          0,
+-         1,
++         0,
+          0,
+          0,
+          0,
+          0,
+          0,
+@@ -3549,10 +1350,11 @@
+          0,
+          0,
+          0,
+        ],
+        [
++         0,
+          0,
+          0,
+          0,
+          0,
+          0,
+@@ -3560,11 +1362,10 @@
+          0,
+          0,
+          0,
+          0,
+          0,
+-         5,
+          0,
+          0,
+          0,
+          0,
+          0,
+@@ -3680,40 +1481,40 @@
+          0,
+          0,
+        ],
+      ],
+      "kpis": {
+-       "allowanceUse": 0.6,
+-       "avgPerGiver": 3,
+-       "givers": 2,
+-       "maxedDays": 1,
+-       "messages": 2,
+-       "newGivers": 2,
+-       "participation": 0.4,
+-       "prevGivers": 1,
+-       "prevParticipation": 0.2,
+-       "prevTotal": 4,
+-       "receivers": 2,
++       "allowanceUse": 0,
++       "avgPerGiver": 0,
++       "givers": 0,
++       "maxedDays": 0,
++       "messages": 0,
++       "newGivers": 0,
++       "participation": 0,
++       "prevGivers": 0,
++       "prevParticipation": 0,
++       "prevTotal": 0,
++       "receivers": 0,
+        "retained": 0,
+        "teamSize": 5,
+-       "topShare": 0.8333333333333334,
+-       "total": 6,
++       "topShare": 0,
++       "total": 0,
+      },
+      "label": "This week",
+      "range": {
+        "days": 3,
+        "end": "2026-09-23",
+        "start": "2026-09-21",
+      },
+      "rarity": [
+        {
+          "rarity": "common",
+-         "value": 5,
++         "value": 0,
+        },
+        {
+          "rarity": "uncommon",
+-         "value": 1,
++         "value": 0,
+        },
+        {
+          "rarity": "rare",
+          "value": 0,
+        },
+@@ -3725,118 +1526,23 @@
+          "rarity": "legendary",
+          "value": 0,
+        },
+      ],
+      "showPeople": true,
+-     "sources": [
+-       {
+-         "name": "Messages",
+-         "value": 5,
+-       },
+-       {
+-         "name": "Reactions",
+-         "value": 1,
+-       },
+-     ],
+-     "topGivers": [
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "value": 5,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010003members",
+-           "avatarUrl": null,
+-           "name": "Ben",
+-           "slackUserId": "UBEN",
+-         },
+-         "value": 1,
+-       },
+-     ],
+-     "topPairs": [
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010007members",
+-           "avatarUrl": null,
+-           "name": "Eve",
+-           "slackUserId": "UEVE",
+-         },
+-         "value": 5,
+-       },
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010003members",
+-           "avatarUrl": null,
+-           "name": "Ben",
+-           "slackUserId": "UBEN",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "value": 1,
+-       },
+-     ],
+-     "topReceivers": [
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010007members",
+-           "avatarUrl": null,
+-           "name": "Eve",
+-           "slackUserId": "UEVE",
+-         },
+-         "value": 5,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "value": 1,
+-       },
+-     ],
++     "sources": [],
++     "topGivers": [],
++     "topPairs": [],
++     "topReceivers": [],
+      "truncated": false,
+      "unit": {
+        "glyph": "🌮",
+        "plural": "kudos",
+        "singular": "kudos",
+      },
+    },
+    "year": {
+-     "channels": [
+-       {
+-         "name": "general",
+-         "value": 15,
+-       },
+-       {
+-         "name": "random",
+-         "value": 5,
+-       },
+-       {
+-         "name": "Private channels",
+-         "valu
+ Test Files  1 failed (1)
+      Tests  6 failed | 2 passed (8)
+   Start at  21:48:41
+   Duration  1.29s (tests 68%, transform 19%, import 10%, environment 3%)
+
+e": 1,
+-       },
+-       {
+-         "name": "design",
+-         "value": 1,
+-       },
+-     ],
++     "channels": [],
+      "daily": [
+        {
+          "day": "2026-01-01",
+          "prevTotal": 0,
+          "total": 0,
+@@ -4812,11 +2518,11 @@
+          "total": 0,
+        },
+        {
+          "day": "2026-07-15",
+          "prevTotal": 0,
+-         "total": 1,
++         "total": 0,
+        },
+        {
+          "day": "2026-07-16",
+          "prevTotal": 0,
+          "total": 0,
+@@ -4907,11 +2613,11 @@
+          "total": 0,
+        },
+        {
+          "day": "2026-08-03",
+          "prevTotal": 0,
+-         "total": 3,
++         "total": 0,
+        },
+        {
+          "day": "2026-08-04",
+          "prevTotal": 0,
+          "total": 0,
+@@ -4992,11 +2698,11 @@
+          "total": 0,
+        },
+        {
+          "day": "2026-08-20",
+          "prevTotal": 0,
+-         "total": 1,
++         "total": 0,
+        },
+        {
+          "day": "2026-08-21",
+          "prevTotal": 0,
+          "total": 0,
+@@ -5032,11 +2738,11 @@
+          "total": 0,
+        },
+        {
+          "day": "2026-08-28",
+          "prevTotal": 0,
+-         "total": 2,
++         "total": 0,
+        },
+        {
+          "day": "2026-08-29",
+          "prevTotal": 0,
+          "total": 0,
+@@ -5057,11 +2763,11 @@
+          "total": 0,
+        },
+        {
+          "day": "2026-09-02",
+          "prevTotal": 0,
+-         "total": 4,
++         "total": 0,
+        },
+        {
+          "day": "2026-09-03",
+          "prevTotal": 0,
+          "total": 0,
+@@ -5097,11 +2803,11 @@
+          "total": 0,
+        },
+        {
+          "day": "2026-09-10",
+          "prevTotal": 0,
+-         "total": 1,
++         "total": 0,
+        },
+        {
+          "day": "2026-09-11",
+          "prevTotal": 0,
+          "total": 0,
+@@ -5117,11 +2823,11 @@
+          "total": 0,
+        },
+        {
+          "day": "2026-09-14",
+          "prevTotal": 0,
+-         "total": 4,
++         "total": 0,
+        },
+        {
+          "day": "2026-09-15",
+          "prevTotal": 0,
+          "total": 0,
+@@ -5152,21 +2858,21 @@
+          "total": 0,
+        },
+        {
+          "day": "2026-09-21",
+          "prevTotal": 0,
+-         "total": 1,
++         "total": 0,
+        },
+        {
+          "day": "2026-09-22",
+          "prevTotal": 0,
+          "total": 0,
+        },
+        {
+          "day": "2026-09-23",
+          "prevTotal": 0,
+-         "total": 5,
++         "total": 0,
+        },
+      ],
+      "heatmap": [
+        [
+          0,
+@@ -5177,24 +2883,24 @@
+          0,
+          0,
+          0,
+          0,
+          0,
+-         1,
++         0,
+          0,
+-         3,
+          0,
+-         4,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
++         0,
++         0,
+        ],
+        [
+          0,
+          0,
+          0,
+@@ -5219,23 +2925,23 @@
+          0,
+          0,
+          0,
+        ],
+        [
++         0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+-         4,
++         0,
++         0,
+          0,
+-         5,
+-         1,
+          0,
+          0,
+          0,
+          0,
+          0,
+@@ -5245,10 +2951,11 @@
+          0,
+          0,
+          0,
+        ],
+        [
++         0,
+          0,
+          0,
+          0,
+          0,
+          0,
+@@ -5257,22 +2964,21 @@
+          0,
+          0,
+          0,
+          0,
+          0,
+-         1,
+          0,
+          0,
+          0,
+          0,
+          0,
+-         1,
+          0,
+          0,
+          0,
+          0,
+          0,
++         0,
+        ],
+        [
+          0,
+          0,
+          0,
+@@ -5283,11 +2989,11 @@
+          0,
+          0,
+          0,
+          0,
+          0,
+-         2,
++         0,
+          0,
+          0,
+          0,
+          0,
+          0,
+@@ -5350,251 +3056,59 @@
+          0,
+          0,
+        ],
+      ],
+      "kpis": {
+-       "allowanceUse": 0.4888888888888889,
+-       "avgPerGiver": 4.4,
+-       "givers": 5,
+-       "maxedDays": 1,
+-       "messages": 9,
+-       "newGivers": 5,
+-       "participation": 1,
++       "allowanceUse": 0,
++       "avgPerGiver": 0,
++       "givers": 0,
++       "maxedDays": 0,
++       "messages": 0,
++       "newGivers": 0,
++       "participation": 0,
+        "prevGivers": 0,
+        "prevParticipation": 0,
+        "prevTotal": 0,
+-       "receivers": 5,
++       "receivers": 0,
+        "retained": 0,
+        "teamSize": 5,
+-       "topShare": 0.45454545454545453,
+-       "total": 22,
++       "topShare": 0,
++       "total": 0,
+      },
+      "label": "This year",
+      "range": {
+        "days": 266,
+        "end": "2026-09-23",
+        "start": "2026-01-01",
+      },
+      "rarity": [
+        {
+          "rarity": "common",
+-         "value": 12,
++         "value": 0,
+        },
+        {
+          "rarity": "uncommon",
+-         "value": 4,
++         "value": 0,
+        },
+        {
+          "rarity": "rare",
+-         "value": 2,
++         "value": 0,
+        },
+        {
+          "rarity": "epic",
+-         "value": 1,
++         "value": 0,
+        },
+        {
+          "rarity": "legendary",
+          "value": 0,
+        },
+      ],
+      "showPeople": true,
+-     "sources": [
+-       {
+-         "name": "Messages",
+-         "value": 18,
+-       },
+-       {
+-         "name": "Reactions",
+-         "value": 4,
+-       },
+-     ],
+-     "topGivers": [
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "value": 10,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010007members",
+-           "avatarUrl": null,
+-           "name": "Eve",
+-           "slackUserId": "UEVE",
+-         },
+-         "value": 4,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010003members",
+-           "avatarUrl": null,
+-           "name": "Ben",
+-           "slackUserId": "UBEN",
+-         },
+-         "value": 4,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010004members",
+-           "avatarUrl": null,
+-           "name": "Cleo",
+-           "slackUserId": "UCLEO",
+-         },
+-         "value": 3,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010006members",
+-           "avatarUrl": null,
+-           "name": "Dan",
+-           "slackUserId": "UDAN",
+-         },
+-         "value": 1,
+-       },
+-     ],
+-     "topPairs": [
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010007members",
+-           "avatarUrl": null,
+-           "name": "Eve",
+-           "slackUserId": "UEVE",
+-         },
+-         "value": 5,
+-       },
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010007members",
+-           "avatarUrl": null,
+-           "name": "Eve",
+-           "slackUserId": "UEVE",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "value": 4,
+-       },
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010003members",
+-           "avatarUrl": null,
+-           "name": "Ben",
+-           "slackUserId": "UBEN",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010004members",
+-           "avatarUrl": null,
+-           "name": "Cleo",
+-           "slackUserId": "UCLEO",
+-         },
+-         "value": 3,
+-       },
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010004members",
+-           "avatarUrl": null,
+-           "name": "Cleo",
+-           "slackUserId": "UCLEO",
+-         },
+-         "value": 2,
+-       },
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010003members",
+-           "avatarUrl": null,
+-           "name": "Ben",
+-           "slackUserId": "UBEN",
+-         },
+-         "value": 2,
+-       },
+-       {
+-         "giver": {
+-           "_id": "0000000000000000000010004members",
+-           "avatarUrl": null,
+-           "name": "Cleo",
+-           "slackUserId": "UCLEO",
+-         },
+-         "receiver": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "value": 2,
+-       },
+-     ],
+-     "topReceivers": [
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010002members",
+-           "avatarUrl": null,
+-           "name": "Ana",
+-           "slackUserId": "UANA",
+-         },
+-         "value": 8,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010007members",
+-           "avatarUrl": null,
+-           "name": "Eve",
+-           "slackUserId": "UEVE",
+-         },
+-         "value": 5,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010004members",
+-           "avatarUrl": null,
+-           "name": "Cleo",
+-           "slackUserId": "UCLEO",
+-         },
+-         "value": 5,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010003members",
+-           "avatarUrl": null,
+-           "name": "Ben",
+-           "slackUserId": "UBEN",
+-         },
+-         "value": 3,
+-       },
+-       {
+-         "member": {
+-           "_id": "0000000000000000000010006members",
+-           "avatarUrl": null,
+-           "name": "Dan",
+-           "slackUserId": "UDAN",
+-         },
+-         "value": 1,
+-       },
+-     ],
++     "sources": [],
++     "topGivers": [],
++     "topPairs": [],
++     "topReceivers": [],
+      "truncated": false,
+      "unit": {
+        "glyph": "🌮",
+        "plural": "kudos",
+        "singular": "kudos",
+
+ ❯ tests/analytics.test.ts:105:31
+    103|       }
+    104|     });
+    105|     expect(await overviews()).toEqual(before);
+       |                               ^
+    106|   }, 20_000);
+    107|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  tests/analytics.test.ts > analytics on the rollups > before the backfill, analytics keeps computing from the source tables
+AssertionError: expected 15 to be 999 // Object.is equality
+
+- Expected
++ Received
+
+- 999
++ 15
+
+ ❯ tests/analytics.test.ts:117:101
+    115|     expect((await ana.query(api.analytics.overview, { period: "month",…
+    116|     await markRollupsBackfilled();
+    117|     expect((await ana.query(api.analytics.overview, { period: "month",…
+       |                                                                                                     ^
+    118|   }, 20_000);
+    119|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  tests/analytics.test.ts > analytics on the rollups > this month, against August to date for volume and the whole of August for givers
+AssertionError: expected { allowanceUse: 0.6, …(14) } to match object { total: 15, prevTotal: 4, …(9) }
+(4 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "givers": 4,
+    "maxedDays": 1,
+    "messages": 5,
+-   "newGivers": 1,
+-   "prevGivers": 3,
++   "newGivers": 2,
++   "prevGivers": 2,
+    "prevTotal": 4,
+    "receivers": 4,
+-   "retained": 3,
++   "retained": 2,
+    "teamSize": 5,
+    "topShare": 0.6,
+    "total": 15,
+  }
+
+ ❯ tests/analytics.test.ts:125:24
+    123|     const ana = await signInAs(t, team.ana);
+    124|     const month = await ana.query(api.analytics.overview, { period: "m…
+    125|     expect(month.kpis).toMatchObject({
+       |                        ^
+    126|       total: 15,
+    127|       prevTotal: 4, // Aug 1–23: Ben's 3 and Ana's 1; Cleo's Aug 28 is…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  tests/analytics.test.ts > analytics on the rollups > all time charts whole months from the first active month, with no comparison
+AssertionError: expected undefined to be 'month' // Object.is equality
+
+- Expected:
+"month"
+
++ Received:
+undefined
+
+ ❯ tests/analytics.test.ts:163:23
+    161|     const all = await ana.query(api.analytics.overview, { period: "all…
+    162|     expect(all.range.start).toBe("2025-11-10");
+    163|     expect(all.grain).toBe("month");
+       |                       ^
+    164|     expect(all.volume.map((m) => m.day)).toEqual([
+    165|       "2025-11-01", "2025-12-01", "2026-01-01", "2026-02-01", "2026-03…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  tests/analytics.test.ts > reads at scale > a year stays within ~2.4k small documents, exact and untruncated
+ FAIL  tests/analytics.test.ts > reads at scale > a month and all time read far less
+TypeError: overviewFor is not a function
+ ❯ tests/analytics.test.ts:267:28
+    265|       const tally = { docs: 0, bytes: 0, ranges: 0 };
+    266|       const workspace = (await ctx.db.get(team.workspaceId))!;
+    267|       const result = await overviewFor(counting(ctx, tally), workspace…
+       |                            ^
+    268|       return { result, tally };
+    269|     });
+ ❯ invokeFunction node_modules/convex/src/server/impl/registration_impl.ts:90:14
+ ❯ invokeMutation node_modules/convex/src/server/impl/registration_impl.ts:70:18
+ ❯ runMutationWithHandler node_modules/convex-test/dist/index.js:1989:31
+ ❯ handler node_modules/convex-test/dist/index.js:2195:24
+ ❯ invokeFunction node_modules/convex/src/server/impl/registration_impl.ts:90:14
+ ❯ invokeAction node_modules/convex/src/server/impl/registration_impl.ts:513:18
+ ❯ run node_modules/convex-test/dist/index.js:2210:31
+ ❯ run node_modules/convex-test/dist/index.js:2222:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+

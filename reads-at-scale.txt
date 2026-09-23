@@ -1,0 +1,3 @@
+year (today 2026-12-31): {"docs":2301,"bytes":714508,"ranges":11}
+month (today 2026-12-31): {"docs":1567,"bytes":414539,"ranges":9}
+all (today 2026-12-31): {"docs":561,"bytes":169406,"ranges":7}

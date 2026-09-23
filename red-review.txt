@@ -1,0 +1,104 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a599feecbbf6b312e
+
+ ↓ tests/analytics.test.ts > analytics on the rollups > gives exactly what the legacy scans compute, for every period
+ ↓ tests/analytics.test.ts > analytics on the rollups > once backfilled, reads only the rollups: the source tables can vanish
+ ↓ tests/analytics.test.ts > analytics on the rollups > before the backfill, analytics keeps computing from the source tables
+ ↓ tests/analytics.test.ts > analytics on the rollups > this month, against August to date for volume and the whole of August for givers
+ ↓ tests/analytics.test.ts > analytics on the rollups > all time charts whole months from the first active month, with no comparison
+ ↓ tests/analytics.test.ts > analytics on the rollups > hides who received and who recognizes whom unless received kudos are public
+ × tests/analytics.test.ts > rollup edge cases > a tie for the last top channel goes to the first name, however the rows were created 25ms
+   → expected { name: 'zulu', value: 5 } to deeply equal { name: 'alpha', value: 5 }
+ × tests/analytics.test.ts > rollup edge cases > all time starts at the first kudos, not at a day that only saw bot messages 9ms
+   → expected '2026-01-05' to be '2026-03-10' // Object.is equality
+ × tests/analytics.test.ts > rollup edge cases > a client still on an earlier day sees the kudos given up to that day 5ms
+   → expected 10 to be 4 // Object.is equality
+ × tests/analytics.test.ts > rollup edge cases > says which period it describes, so the page words it for the data on screen 16ms
+   → expected undefined to be 'quarter' // Object.is equality
+ ↓ tests/analytics.test.ts > reads at scale > a year stays within ~2.4k small documents, exact and untruncated
+ ↓ tests/analytics.test.ts > reads at scale > a month and all time read far less
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/analytics.test.ts > rollup edge cases > a tie for the last top channel goes to the first name, however the rows were created
+AssertionError: expected { name: 'zulu', value: 5 } to deeply equal { name: 'alpha', value: 5 }
+
+- Expected
++ Received
+
+  {
+-   "name": "alpha",
++   "name": "zulu",
+    "value": 5,
+  }
+
+ ❯ tests/analytics.test.ts:207:29
+    205|     const { channels } = await overview("month");
+    206|     expect(channels).toHaveLength(8);
+    207|     expect(channels.at(-1)).toEqual({ name: "alpha", value: 5 });
+       |                             ^
+    208|   });
+    209|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/analytics.test.ts > rollup edge cases > all time starts at the first kudos, not at a day that only saw bot messages
+AssertionError: expected '2026-01-05' to be '2026-03-10' // Object.is equality
+
+Expected: "2026-03-10"
+Received: "2026-01-05"
+
+ ❯ tests/analytics.test.ts:217:29
+    215|     await workspaceRow("m:2026-03", { given: 3 });
+    216|     const all = await overview("all");
+    217|     expect(all.range.start).toBe("2026-03-10");
+       |                             ^
+    218|     expect(all.volume[0]).toEqual({ day: "2026-03-01", total: 3, prevT…
+    219|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/analytics.test.ts > rollup edge cases > a client still on an earlier day sees the kudos given up to that day
+AssertionError: expected 10 to be 4 // Object.is equality
+
+- Expected
++ Received
+
+- 4
++ 10
+
+ ❯ tests/analytics.test.ts:227:30
+    225|     await workspaceRow("m:2026-09", { given: 10 });
+    226|     const month = await overview("month", "2026-09-15");
+    227|     expect(month.kpis.total).toBe(4);
+       |                              ^
+    228|     expect(month.volume.reduce((n, d) => n + d.total, 0)).toBe(4);
+    229|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  tests/analytics.test.ts > rollup edge cases > says which period it describes, so the page words it for the data on screen
+AssertionError: expected undefined to be 'quarter' // Object.is equality
+
+- Expected:
+"quarter"
+
++ Received:
+undefined
+
+ ❯ tests/analytics.test.ts:232:48
+    230|
+    231|   test("says which period it describes, so the page words it for the d…
+    232|     expect((await overview("quarter")).period).toBe("quarter");
+       |                                                ^
+    233|   });
+    234| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 8 skipped (12)
+   Start at  22:08:54
+   Duration  502ms (transform 48%, import 28%, tests 14%, environment 9%, worker 1%)
+
