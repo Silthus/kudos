@@ -1,0 +1,4 @@
+     × stay out of the pricing context while received kudos are hidden 93ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected { activeRewards: +0, …(4) } to match object { totalBalance: null, …(1) }
+      Tests  1 failed | 17 skipped (18)

@@ -1,0 +1,15 @@
+ ❯ convex/lib/store.test.ts:2:1
+      1| import { describe, expect, test } from "vitest";
+      2| import { balanceOf, validateRewardInput } from "./store";
+       | ^
+      3|
+      4| describe("balanceOf", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  19:54:13
+   Duration  171ms (environment 92%, worker 8%)
+

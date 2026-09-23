@@ -1,0 +1,15 @@
+dist/assets/geist-cyrillic-wght-normal-BEAKL7Jp.woff2                   15.08 kB
+dist/assets/geist-latin-ext-wght-normal-DC-KSUi6.woff2                  16.51 kB
+dist/assets/bricolage-grotesque-latin-ext-wght-normal-CcLUaPy7.woff2    18.66 kB
+dist/assets/geist-mono-latin-wght-normal-XN7g48iV.woff2                 23.12 kB
+dist/assets/geist-latin-wght-normal-BgDaEnEv.woff2                      29.40 kB
+dist/assets/bricolage-grotesque-latin-wght-normal-DLoelf7F.woff2        41.34 kB
+dist/assets/index-C5-lIZTw.css                                          61.18 kB │ gzip:  11.09 kB
+dist/assets/index-CRa6w9oZ.js                                          609.67 kB │ gzip: 184.18 kB
+
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 293ms

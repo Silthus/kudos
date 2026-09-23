@@ -1,0 +1,30 @@
+ ✓ convex/lib/store.test.ts > balanceOf > is everything received when nothing was granted or spent yet 1ms
+ ✓ convex/lib/store.test.ts > balanceOf > adds grants and subtracts spending 0ms
+ ✓ convex/lib/store.test.ts > balanceOf > goes negative when spent kudos were revoked afterwards 0ms
+ ✓ convex/lib/store.test.ts > validateRewardInput > trims text and drops empty optional fields 1ms
+ ✓ convex/lib/store.test.ts > validateRewardInput > keeps stock and per-person limits 0ms
+ ✓ convex/lib/store.test.ts > validateRewardInput > needs a name of 1–60 characters 1ms
+ ✓ convex/lib/store.test.ts > validateRewardInput > needs an emoji of 1–16 characters 1ms
+ ✓ convex/lib/store.test.ts > validateRewardInput > caps the description at 280 and the question at 120 characters 1ms
+ ✓ convex/lib/store.test.ts > validateRewardInput > prices rewards in whole kudos between 1 and 100 000 1ms
+ ✓ convex/lib/store.test.ts > validateRewardInput > tracks stock between 0 and 10 000 whole items 0ms
+ ✓ convex/lib/store.test.ts > validateRewardInput > limits per person between 1 and 100 0ms
+ ✓ tests/store.test.ts > opening the store > is off by default and admins can switch it on 39ms
+ ✓ tests/store.test.ts > opening the store > is blocked while received kudos are hidden 5ms
+ ✓ tests/store.test.ts > opening the store > keeps received kudos from being hidden while it's open 46ms
+ ✓ tests/store.test.ts > opening the store > still lets admins save the regular settings payload while it's open 3ms
+ ✓ tests/store.test.ts > opening the store > is exposed to the web app through the session 7ms
+ ✓ tests/store.test.ts > the catalog > admins create, edit, archive and restore rewards 7ms
+ ✓ tests/store.test.ts > the catalog > rejects invalid rewards with readable copy 2ms
+ ✓ tests/store.test.ts > the catalog > holds at most 100 active rewards 13ms
+ ✓ tests/store.test.ts > the catalog > members see active rewards sorted by cost with what they can afford 18ms
+ ✓ tests/store.test.ts > the catalog > tells members when the store is closed 3ms
+ ✓ tests/store.test.ts > balances > come from received kudos: giving raises them, revoking lowers them 5ms
+ ✓ tests/store.test.ts > balances > subtract spending and add grants, and may go negative 3ms
+ ✓ tests/store.test.ts > balances > give admins pricing context across the workspace 5ms
+ ✓ tests/store.test.ts > store access > members can't use storeAdmin functions 5ms
+ ✓ tests/store.test.ts > store access > signed-out visitors can't read the catalog 1ms
+ ✓ tests/store.test.ts > store access > admins can't touch another workspace's rewards 3ms
+ ✓ tests/store.test.ts > store access > the shared demo catalog is read-only 1737ms
+ Test Files  2 passed (2)
+      Tests  28 passed (28)

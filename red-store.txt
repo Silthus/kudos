@@ -1,0 +1,40 @@
+     × is off by default and admins can switch it on 28ms
+     × is blocked while received kudos are hidden 7ms
+     × keeps received kudos from being hidden while it's open 62ms
+     × is exposed to the web app through the session 24ms
+     × admins create, edit, archive and restore rewards 2ms
+     × rejects invalid rewards with readable copy 2ms
+     × holds at most 100 active rewards 7ms
+     × members see active rewards sorted by cost with what they can afford 21ms
+     × tells members when the store is closed 2ms
+     × come from received kudos: giving raises them, revoking lowers them 2ms
+     × subtract spending and add grants, and may go negative 3ms
+     × give admins pricing context across the workspace 5ms
+     × members can't use storeAdmin functions 1ms
+     × signed-out visitors can't read the catalog 1ms
+     × admins can't touch another workspace's rewards 2ms
+     × the shared demo catalog is read-only 1758ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 16 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/store.test.ts > opening the store > is off by default and admins can switch it on
+Error: Could not find module for: "storeAdmin"
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+ FAIL  tests/store.test.ts > opening the store > is blocked while received kudos are hidden
+AssertionError: expected [Function] to throw error matching /Switch received visibility/ but got 'Could not find module for: "storeAdmi…'
+ FAIL  tests/store.test.ts > opening the store > keeps received kudos from being hidden while it's open
+AssertionError: promise resolved "null" instead of rejecting
+Error {
+ FAIL  tests/store.test.ts > opening the store > is exposed to the web app through the session
+AssertionError: expected { canSeeOthersReceived: false, …(4) } to match object { workspace: { storeEnabled: false } }
+ FAIL  tests/store.test.ts > the catalog > admins create, edit, archive and restore rewards
+Error: Could not find module for: "storeAdmin"
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+ FAIL  tests/store.test.ts > the catalog > rejects invalid rewards with readable copy
+AssertionError: expected [Function] to throw error matching /Cost must be/ but got 'Could not find module for: "storeAdmi…'
+ FAIL  tests/store.test.ts > the catalog > holds at most 100 active rewards
+AssertionError: expected [Function] to throw error matching /100 active rewards/ but got 'Could not find module for: "storeAdmi…'
+ FAIL  tests/store.test.ts > the catalog > members see active rewards sorted by cost with what they can afford
+Error: Could not find module for: "storeAdmin"
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+ FAIL  tests/store.test.ts > the catalog > tells members when the store is closed
+Error: Could not find module for: "storeAdmin"
+    1468|             throw new Error(`Could not find module for: "${path}"`);
