@@ -4,6 +4,7 @@ import { ConvexError } from "convex/values";
 import { AnimatePresence, motion } from "motion/react";
 import { Archive, Check, ChevronDown, CircleAlert, MessageCircleQuestion, PackageCheck, Pencil, Plus, RotateCcw } from "lucide-react";
 import { useId, useState } from "react";
+import { useSearchParams } from "react-router";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { Avatar, BigNumber, Button, Card, CardHeader, Dialog, Empty, Eyebrow, Field, inputCls, Segmented, Skeleton, Toggle } from "@/components/ui";
@@ -11,7 +12,8 @@ import { nf, relativeTime } from "@/lib/format";
 import { useViewer } from "@/lib/viewer";
 import { RedemptionHistory, RewardCard, StatusChip } from "./Store";
 
-type Section = "requests" | "catalog" | "settings";
+const SECTIONS = ["requests", "catalog", "settings"] as const;
+type Section = (typeof SECTIONS)[number];
 type Reward = NonNullable<ReturnType<typeof useQuery<typeof api.storeAdmin.rewards>>>[number];
 
 const errorText = (e: unknown, fallback: string) => (e instanceof ConvexError ? String(e.data) : fallback);
@@ -22,7 +24,20 @@ function DemoNotice({ children }: { children: React.ReactNode }) {
 
 export function AdminStore({ isDemo }: { isDemo: boolean }) {
   // Requests first: that's where the day-to-day work is (and where Slack links land).
-  const [section, setSection] = useState<Section>("requests");
+  // The section lives in the URL (`&section=catalog`) so links can land on the catalog.
+  const [params, setParams] = useSearchParams();
+  const requested = params.get("section");
+  const section: Section = SECTIONS.includes(requested as Section) ? (requested as Section) : "requests";
+  const setSection = (next: Section) =>
+    setParams(
+      (prev) => {
+        const params = new URLSearchParams(prev);
+        if (next === "requests") params.delete("section");
+        else params.set("section", next);
+        return params;
+      },
+      { replace: true },
+    );
   return (
     <div>
       <div className="mb-4">
@@ -54,22 +69,33 @@ function Requests() {
   const { results, status, loadMore } = usePaginatedQuery(api.storeAdmin.redemptions, { filter }, { initialNumItems: 20 });
   const openCount = useQuery(api.storeAdmin.openCount);
   const decide = useMutation(api.storeAdmin.decide);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<{ id: string; text: string } | null>(null);
+  // Per row, so finishing one decision never re-enables or clears another still in flight.
+  const [busy, setBusy] = useState<ReadonlySet<string>>(new Set());
+  const [errors, setErrors] = useState<Readonly<Record<string, string>>>({});
   const [declining, setDeclining] = useState<QueueRow | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
 
+  const setRowError = (id: string, text: string | null) =>
+    setErrors((prev) => {
+      const { [id]: _dropped, ...rest } = prev;
+      return text === null ? rest : { ...rest, [id]: text };
+    });
   const act = async (row: QueueRow, action: "approve" | "fulfill" | "decline", note?: string) => {
-    setBusy(row._id);
-    setError(null);
+    if (busy.has(row._id)) return false;
+    setBusy((prev) => new Set(prev).add(row._id));
+    setRowError(row._id, null);
     try {
       await decide({ redemptionId: row._id, action, note });
       return true;
     } catch (e) {
-      setError({ id: row._id, text: errorText(e, "Couldn't update the request.") });
+      setRowError(row._id, errorText(e, "Couldn't update the request."));
       return false;
     } finally {
-      setBusy(null);
+      setBusy((prev) => {
+        const next = new Set(prev);
+        next.delete(row._id);
+        return next;
+      });
     }
   };
 
@@ -110,14 +136,14 @@ function Requests() {
                 row={r}
                 glyph={glyph}
                 meId={viewer.member._id}
-                busy={busy === r._id}
-                error={error?.id === r._id ? error.text : null}
+                busy={busy.has(r._id)}
+                error={errors[r._id] ?? null}
                 expanded={expanded === r._id}
                 onToggle={() => setExpanded(expanded === r._id ? null : r._id)}
                 onApprove={() => void act(r, "approve")}
                 onFulfill={() => void act(r, "fulfill")}
                 onDecline={() => {
-                  setError(null);
+                  setRowError(r._id, null);
                   setDeclining(r);
                 }}
               />
@@ -132,7 +158,7 @@ function Requests() {
           </Button>
         </div>
       )}
-      <DeclineDialog row={declining} glyph={glyph} onClose={() => setDeclining(null)} onDecline={(row, note) => act(row, "decline", note)} error={declining && error?.id === declining._id ? error.text : null} />
+      <DeclineDialog row={declining} glyph={glyph} onClose={() => setDeclining(null)} onDecline={(row, note) => act(row, "decline", note)} error={declining ? (errors[declining._id] ?? null) : null} />
     </Card>
   );
 }
@@ -165,7 +191,7 @@ function RequestRow({
     <motion.li layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden rounded-xl hover:bg-panel-2/40">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3">
         <Avatar name={r.requester.name} src={r.requester.avatarUrl} size={34} />
-        <button className="min-w-0 flex-1 basis-48 text-left" onClick={onToggle} aria-expanded={expanded} aria-label={`${r.requester.name} wants ${r.rewardName}. Show history`}>
+        <button className="min-w-0 flex-1 basis-48 text-left" onClick={onToggle} aria-expanded={expanded}>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
             <b className="font-medium">{r.requester.name}</b>
             <span className="text-muted">wants</span>

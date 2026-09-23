@@ -25,10 +25,10 @@ function NavBadge({ count, className }: { count: number; className?: string }) {
   return (
     <span
       className={clsx("grid h-[18px] min-w-[18px] place-items-center rounded-full bg-saffron px-1 font-mono text-[10px] font-semibold leading-none text-ink", className)}
-      aria-label={`${label} open store ${count === 1 ? "request" : "requests"}`}
       title={`${label} open store ${count === 1 ? "request" : "requests"}`}
     >
       {label}
+      <span className="sr-only"> open store {count === 1 ? "request" : "requests"}</span>
     </span>
   );
 }
@@ -49,7 +49,7 @@ export function AppShell() {
     ...(viewer.workspace.storeEnabled ? [{ to: "/store", label: "Store", short: "Store", icon: Gift }] : []),
     { to: "/analytics", label: "Analytics", short: "Stats", icon: BarChart3 },
     ...(viewer.workspace.isDemo ? [{ to: "/playground", label: "Playground", short: "Try", icon: FlaskConical }] : []),
-    ...(viewer.member.isAdmin ? [{ to: "/admin", label: "Admin", short: "Admin", icon: Settings2, badge: openRequests }] : []),
+    ...(viewer.member.isAdmin ? [{ to: openRequests ? "/admin?tab=store" : "/admin", label: "Admin", short: "Admin", icon: Settings2, badge: openRequests }] : []),
   ];
 
   return (

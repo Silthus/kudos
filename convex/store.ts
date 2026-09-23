@@ -56,13 +56,17 @@ export async function openRedemptionCount(ctx: QueryCtx, memberId: Id<"members">
   return count;
 }
 
-/** The four-eyes rule needs another active admin; a sole admin decides on their own requests. */
+/**
+ * The four-eyes rule needs another admin who can actually act: signed in to Kudos, not
+ * deactivated, not a bot. Slack sync makes every workspace admin a Kudos admin, so an admin
+ * who never opened the app mustn't leave a request stuck. A sole admin decides alone.
+ */
 export async function otherActiveAdminExists(ctx: QueryCtx, workspaceId: Id<"workspaces">, memberId: Id<"members">) {
   const admins = ctx.db
     .query("members")
     .withIndex("by_workspace_isAdmin", (q) => q.eq("workspaceId", workspaceId).eq("isAdmin", true));
   for await (const admin of admins) {
-    if (admin._id !== memberId && !admin.deactivated && !admin.isBot) return true;
+    if (admin._id !== memberId && admin.userId && !admin.deactivated && !admin.isBot) return true;
   }
   return false;
 }
@@ -119,6 +123,7 @@ export async function requestRedemption(
     answer: reply,
     status: "pending",
     isOpen: true,
+    stockHeld: reward.stock !== undefined,
     history: [{ status: "pending", at: now, by: member._id }],
     requestedAt: now,
     updatedAt: now,
@@ -147,8 +152,12 @@ export async function transitionRedemption(
     now,
   }: { workspace: Doc<"workspaces">; redemption: Doc<"redemptions">; actor: Doc<"members">; action: RedemptionAction; note?: string; now: number },
 ) {
+  // Every path (web, Slack, demo) goes through here, so check the ids here too.
+  if (redemption.workspaceId !== workspace._id || actor.workspaceId !== workspace._id || actor.deactivated) {
+    throw new ConvexError("Request not found.");
+  }
   const last = redemption.history[redemption.history.length - 1];
-  const lastBy = last ? (await ctx.db.get(last.by))?.name : undefined;
+  const lastBy = !last ? undefined : last.by === actor._id ? "you" : (await ctx.db.get(last.by))?.name;
   const isRequester = redemption.memberId === actor._id;
   const { to, refund } = transition(redemption.status, action, { isRequester, isAdmin: actor.isAdmin }, lastBy);
   if (action !== "cancel" && isRequester && (await otherActiveAdminExists(ctx, workspace._id, actor._id))) {
@@ -171,8 +180,9 @@ export async function transitionRedemption(
     await ctx.db.patch(reward._id, {
       ...(closes ? { openCount: Math.max(0, (reward.openCount ?? 0) - 1) } : {}),
       ...(to === "fulfilled" ? { fulfilledCount: (reward.fulfilledCount ?? 0) + 1 } : {}),
+      // Only give back what the request took: nothing if stock was unlimited when it was made.
       // An archived reward is restocked too, which is harmless and keeps the count honest.
-      ...(refund && reward.stock !== undefined ? { stock: reward.stock + 1 } : {}),
+      ...(refund && redemption.stockHeld && reward.stock !== undefined ? { stock: reward.stock + 1 } : {}),
     });
   }
   if (refund) {

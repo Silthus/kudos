@@ -174,8 +174,9 @@ export function Store() {
 
   const { balance, rewards } = data;
   const affordable = rewards.filter((r) => r.affordable && !r.soldOut).length;
-  // Keep the dialog in step with live price and stock changes while it's open.
-  const live = redeeming ? (rewards.find((r) => r._id === redeeming._id) ?? redeeming) : null;
+  // The dialog confirms the price the member saw (D11); the live copy only flags changes.
+  const live = redeeming ? (rewards.find((r) => r._id === redeeming._id) ?? null) : null;
+  const liveBlock = redeeming && (live ? redeemBlock(live, data, glyph) : { label: "", reason: "This reward isn't in the store any more." });
 
   return (
     <div>
@@ -216,7 +217,7 @@ export function Store() {
           <Empty icon="🛍️" title="The shelves are empty">
             Your admins are still stocking the store.{" "}
             {viewer.member.isAdmin && (
-              <Link to="/admin?tab=store" className="font-medium text-saffron underline-offset-4 hover:underline">
+              <Link to="/admin?tab=store&section=catalog" className="font-medium text-saffron underline-offset-4 hover:underline">
                 Add rewards
               </Link>
             )}
@@ -259,12 +260,35 @@ export function Store() {
       )}
 
       <MyRequests />
-      <RedeemDialog reward={live} balance={balance} onClose={() => setRedeeming(null)} />
+      <RedeemDialog
+        reward={redeeming}
+        live={live}
+        block={liveBlock ?? null}
+        balance={balance}
+        onAcceptPrice={() => live && setRedeeming(live)}
+        onClose={() => setRedeeming(null)}
+      />
     </div>
   );
 }
 
-function RedeemDialog({ reward, balance, onClose }: { reward: CatalogReward | null; balance: number; onClose: () => void }) {
+function RedeemDialog({
+  reward,
+  live,
+  block,
+  balance,
+  onAcceptPrice,
+  onClose,
+}: {
+  /** The reward as the member saw it when they clicked Redeem. */
+  reward: CatalogReward | null;
+  /** The same reward now, or null once it's gone from the store. */
+  live: CatalogReward | null;
+  block: { reason: string } | null;
+  balance: number;
+  onAcceptPrice: () => void;
+  onClose: () => void;
+}) {
   const viewer = useViewer();
   const glyph = viewer.workspace.emojiGlyph;
   const redeem = useMutation(api.store.redeem);
@@ -301,15 +325,19 @@ function RedeemDialog({ reward, balance, onClose }: { reward: CatalogReward | nu
   };
 
   const after = balance - (reward?.cost ?? 0);
+  const priceChanged = !done && reward !== null && live !== null && live.cost !== reward.cost;
+  const blocked = !done && !priceChanged && block !== null;
+  // Closing mid-request would hide whether it went through.
+  const close = () => !busy && onClose();
   return (
     <Dialog
       open={reward !== null}
-      onClose={onClose}
+      onClose={close}
       title={done ? "Request sent" : "Redeem this reward?"}
       subtitle={done ? undefined : "The cost comes off your balance now. If an admin declines, you get it back."}
       footer={
         done ? (
-          <Button variant="primary" onClick={onClose}>
+          <Button variant="primary" onClick={close}>
             Done
           </Button>
         ) : (
@@ -319,10 +347,10 @@ function RedeemDialog({ reward, balance, onClose }: { reward: CatalogReward | nu
                 <CircleAlert className="h-4 w-4 shrink-0" /> {error}
               </span>
             )}
-            <Button variant="ghost" onClick={onClose}>
+            <Button variant="ghost" onClick={close} disabled={busy}>
               Not now
             </Button>
-            <Button variant="primary" type="submit" form={formId} disabled={busy}>
+            <Button variant="primary" type="submit" form={formId} disabled={busy || priceChanged || blocked}>
               {busy && <Loader2 className="h-4 w-4 animate-spin" />}
               {busy ? "Redeeming…" : `Confirm · ${reward ? nf.format(reward.cost) : ""} ${glyph}`}
             </Button>
@@ -380,6 +408,25 @@ function RedeemDialog({ reward, balance, onClose }: { reward: CatalogReward | nu
                 />
               </Field>
             )}
+            {priceChanged && live && (
+              <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ember/30 bg-ember/10 px-3 py-2.5 text-sm">
+                <span>
+                  The price changed to{" "}
+                  <b className="font-semibold">
+                    {nf.format(live.cost)} {glyph}
+                  </b>
+                  . Take another look.
+                </span>
+                <Button size="sm" type="button" onClick={onAcceptPrice}>
+                  Use the new price
+                </Button>
+              </div>
+            )}
+            {blocked && block && (
+              <p role="alert" className="flex items-center gap-1.5 rounded-xl border border-line-strong bg-panel-2/60 px-3 py-2.5 text-sm text-muted">
+                <Info className="h-4 w-4 shrink-0 text-faint" /> {block.reason}
+              </p>
+            )}
             <dl className="grid grid-cols-2 gap-2 text-sm">
               <dt className="text-muted">Balance now</dt>
               <dd className="text-right font-mono tabular">
@@ -403,13 +450,17 @@ function MyRequests() {
   const cancel = useMutation(api.store.cancel);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState<string | null>(null);
   const [error, setError] = useState<{ id: string; text: string } | null>(null);
 
   const doCancel = (id: Id<"redemptions">) => {
+    if (cancelling) return;
     setError(null);
+    setCancelling(id);
     cancel({ redemptionId: id })
       .then(() => setConfirming(null))
-      .catch((e) => setError({ id, text: errorText(e, "Couldn't cancel the request.") }));
+      .catch((e) => setError({ id, text: errorText(e, "Couldn't cancel the request.") }))
+      .finally(() => setCancelling(null));
   };
 
   return (
@@ -439,7 +490,6 @@ function MyRequests() {
                       className="min-w-0 flex-1 text-left"
                       onClick={() => setExpanded(isExpanded ? null : r._id)}
                       aria-expanded={isExpanded}
-                      aria-label={`${r.rewardName}, ${r.status}. Show history`}
                     >
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         <span className="truncate font-medium">{r.rewardName}</span>
@@ -455,8 +505,8 @@ function MyRequests() {
                     {r.status === "pending" &&
                       (confirming === r._id ? (
                         <span className="flex shrink-0 items-center gap-1">
-                          <Button size="sm" variant="danger" onClick={() => doCancel(r._id)}>
-                            Cancel request
+                          <Button size="sm" variant="danger" onClick={() => doCancel(r._id)} disabled={cancelling === r._id}>
+                            {cancelling === r._id ? "Cancelling…" : "Cancel request"}
                           </Button>
                           <Button size="sm" variant="ghost" onClick={() => setConfirming(null)}>
                             Keep

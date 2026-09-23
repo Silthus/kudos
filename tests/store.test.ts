@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
+import { requestRedemption, transitionRedemption } from "../convex/store";
 import { all, NOW, seedTeam, setupConvex, signInAs, type Team } from "./helpers";
 
 let t: ReturnType<typeof setupConvex>;
@@ -433,7 +434,7 @@ describe("cancelling", () => {
     expect(await spentBy(team.ben)).toBe(0);
     expect((await rewardDoc(rewardId))!.stock).toBe(5);
     expect(await ben.query(api.store.catalog, {})).toMatchObject({ balance: 10, openCount: 0 });
-    await expect(ben.mutation(api.store.cancel, { redemptionId })).rejects.toThrow(/Already cancelled by Ben/);
+    await expect(ben.mutation(api.store.cancel, { redemptionId })).rejects.toThrow("Already cancelled by you.");
   });
 
   test("is only for the requester", async () => {
@@ -475,8 +476,10 @@ describe("deciding", () => {
     await ana.mutation(api.storeAdmin.decide, { redemptionId, action: "fulfill", note: "Enjoy!" });
     expect(await statusOf(redemptionId)).toBe("fulfilled");
     for (const action of ["approve", "fulfill", "decline"] as const) {
-      await expect(ana.mutation(api.storeAdmin.decide, { redemptionId, action })).rejects.toThrow(/Already fulfilled by Ana/);
+      await expect(ana.mutation(api.storeAdmin.decide, { redemptionId, action })).rejects.toThrow("Already fulfilled by you.");
     }
+    await t.run((ctx) => ctx.db.patch(team.cleo, { isAdmin: true }));
+    await expect((await signInAs(t, team.cleo)).mutation(api.storeAdmin.decide, { redemptionId, action: "decline" })).rejects.toThrow("Already fulfilled by Ana.");
     expect(await spentBy(team.ben)).toBe(3);
     expect(await rewardDoc(rewardId)).toMatchObject({ stock: 4, openCount: 0, fulfilledCount: 1 });
   });
@@ -507,6 +510,7 @@ describe("deciding", () => {
 
   test("admins can't decide on their own request while another admin is around", async () => {
     await t.run((ctx) => ctx.db.patch(team.cleo, { isAdmin: true }));
+    const cleo = await signInAs(t, team.cleo);
     const rewardId = await addReward();
     await fund(team.ana, 10);
     const ana = await signInAs(t, team.ana);
@@ -517,7 +521,22 @@ describe("deciding", () => {
     const [row] = (await ana.query(api.storeAdmin.redemptions, { filter: "open", paginationOpts: page })).page;
     expect(row).toMatchObject({ isOwn: true, canDecide: false });
 
-    await (await signInAs(t, team.cleo)).mutation(api.storeAdmin.decide, { redemptionId, action: "approve" });
+    await cleo.mutation(api.storeAdmin.decide, { redemptionId, action: "approve" });
+    expect(await statusOf(redemptionId)).toBe("approved");
+  });
+
+  test("admins who never opened Kudos, bots and people who left don't count as the other admin", async () => {
+    // Slack sync makes every workspace admin a Kudos admin, signed in or not; they can't act on the queue.
+    await t.run(async (ctx) => {
+      await ctx.db.patch(team.cleo, { isAdmin: true });
+      await ctx.db.patch(team.bot, { isAdmin: true });
+      await ctx.db.patch(team.ben, { isAdmin: true, deactivated: true });
+    });
+    const rewardId = await addReward();
+    await fund(team.ana, 10);
+    const ana = await signInAs(t, team.ana);
+    const { redemptionId } = await ana.mutation(api.store.redeem, { rewardId, expectedCost: 3 });
+    await ana.mutation(api.storeAdmin.decide, { redemptionId, action: "approve" });
     expect(await statusOf(redemptionId)).toBe("approved");
   });
 
@@ -532,6 +551,52 @@ describe("deciding", () => {
     expect(row).toMatchObject({ isOwn: true, canDecide: true });
     await ana.mutation(api.storeAdmin.decide, { redemptionId, action: "fulfill" });
     expect(await statusOf(redemptionId)).toBe("fulfilled");
+  });
+
+  test("a refund only restocks what the request took from stock", async () => {
+    const rewardId = await addReward(); // unlimited when Ben asks
+    await fund(team.ben, 10);
+    const ben = await signInAs(t, team.ben);
+    const { redemptionId } = await ben.mutation(api.store.redeem, { rewardId, expectedCost: 3 });
+    const ana = await signInAs(t, team.ana);
+    await ana.mutation(api.storeAdmin.updateReward, { rewardId, ...coffee, stock: { from: "unlimited", to: 1 } });
+    await ana.mutation(api.storeAdmin.decide, { redemptionId, action: "decline" });
+    expect((await rewardDoc(rewardId))!.stock).toBe(1);
+  });
+
+  test("works in the shared demo, where the queue is meant to be played with", async () => {
+    const userId = await t.mutation(internal.demo.ensureDemoUser, {});
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    const demo = t.withIdentity({ subject: `${userId}|s` });
+    const redemptionId = await t.run(async (ctx) => {
+      const workspace = (await ctx.db.query("workspaces").collect()).find((w) => w.isDemo)!;
+      await ctx.db.patch(workspace._id, { storeEnabled: true });
+      const ws = (await ctx.db.get(workspace._id))!;
+      const people = (await ctx.db.query("members").collect()).filter((m) => m.workspaceId === ws._id && !m.isAdmin && !m.isBot);
+      const member = people.find((m) => m.totalReceived >= 3)!;
+      const rewardId = await ctx.db.insert("rewards", { workspaceId: ws._id, ...coffee, status: "active", createdBy: member._id, updatedAt: 0 });
+      return (await requestRedemption(ctx, { workspace: ws, member, rewardId, expectedCost: 3, now: NOW.getTime() })).redemptionId;
+    });
+    await demo.mutation(api.storeAdmin.decide, { redemptionId, action: "fulfill" });
+    expect(await statusOf(redemptionId)).toBe("fulfilled");
+  });
+
+  test("the core helper refuses actors and requests from another workspace", async () => {
+    const { redemptionId } = await benRequests();
+    const other = await seedTeam(t, {}, "T2");
+    await t.run(async (ctx) => {
+      const workspace = (await ctx.db.get(team.workspaceId))!;
+      const redemption = (await ctx.db.get(redemptionId))!;
+      const outsider = (await ctx.db.get(other.ana))!;
+      await expect(transitionRedemption(ctx, { workspace, redemption, actor: outsider, action: "decline", now: 0 })).rejects.toThrow(/not found/);
+      const foreignWorkspace = (await ctx.db.get(other.workspaceId))!;
+      const ana = (await ctx.db.get(team.ana))!;
+      await expect(transitionRedemption(ctx, { workspace: foreignWorkspace, redemption, actor: ana, action: "decline", now: 0 })).rejects.toThrow(/not found/);
+      await ctx.db.patch(team.ana, { deactivated: true });
+      const gone = (await ctx.db.get(team.ana))!;
+      await expect(transitionRedemption(ctx, { workspace, redemption, actor: gone, action: "decline", now: 0 })).rejects.toThrow(/not found/);
+    });
+    expect(await statusOf(redemptionId)).toBe("pending");
   });
 
   test("still works after the reward was archived or the store closed", async () => {
@@ -629,6 +694,19 @@ describe("negative balances", () => {
     expect(members.find((m) => m.name === "Ben")).toMatchObject({ balance: -3 });
   });
 
+  test("show admins balances only while the store is open", async () => {
+    await fund(team.ben, 7);
+    const ana = await signInAs(t, team.ana);
+    const benRow = async () => (await ana.query(api.admin.members, {})).find((m) => m.name === "Ben")!;
+    // "Only me" hides received counts from admins; the store's balance is the documented exception (D4).
+    expect(await benRow()).toMatchObject({ totalReceived: null, balance: 7 });
+    await setWorkspace({ receivedVisibility: "everyone" });
+    expect(await benRow()).toMatchObject({ totalReceived: 7, balance: 7 });
+    // A closed store must not turn the admin table into a received-count leak under "Only me".
+    await setWorkspace({ storeEnabled: false, receivedVisibility: "self" });
+    expect(await benRow()).toMatchObject({ totalReceived: null, balance: null });
+  });
+
   test("stay private while received kudos are hidden", async () => {
     const { ana } = await benRequests();
     await ana.mutation(api.storeAdmin.setStoreEnabled, { enabled: false });
@@ -652,7 +730,7 @@ describe("the balance invariant", () => {
     let seed = 7;
     const rand = (n: number) => {
       seed = (seed * 1103515245 + 12345) % 2 ** 31;
-      return seed % n;
+      return Math.floor(seed / 2 ** 16) % n; // the low bits of an LCG cycle too quickly
     };
     for (let step = 0; step < 80; step++) {
       const move = rand(4);
@@ -665,18 +743,29 @@ describe("the balance invariant", () => {
         } else {
           const { id, by } = ids[rand(ids.length)];
           if (move === 1) await people[by].mutation(api.store.cancel, { redemptionId: id });
-          else await people[rand(2) ? "ana" : "cleo"].mutation(api.storeAdmin.decide, { redemptionId: id, action: move === 2 ? "decline" : "fulfill" });
+          else {
+            const action = (["approve", "decline", "fulfill"] as const)[rand(3)];
+            await people[rand(2) ? "ana" : "cleo"].mutation(api.storeAdmin.decide, { redemptionId: id, action });
+          }
         }
       } catch {
         // Refusals (sold out, already decided, four eyes…) must leave everything untouched.
       }
     }
 
-    const { redemptions, members, stock } = await t.run(async (ctx) => ({
+    const { redemptions, members, stock, rewardDocs } = await t.run(async (ctx) => ({
       redemptions: await ctx.db.query("redemptions").collect(),
       members: await ctx.db.query("members").collect(),
       stock: (await ctx.db.get(rewards[0]))!.stock,
+      rewardDocs: await Promise.all(rewards.map((id) => ctx.db.get(id))),
     }));
+    // The walk went through every step of the lifecycle.
+    expect(new Set(redemptions.flatMap((r) => r.history.map((h) => h.status))).size).toBe(5);
+    for (const reward of rewardDocs) {
+      const mine = redemptions.filter((r) => r.rewardId === reward!._id);
+      expect(reward!.openCount ?? 0).toBe(mine.filter((r) => r.isOpen).length);
+      expect(reward!.fulfilledCount ?? 0).toBe(mine.filter((r) => r.status === "fulfilled").length);
+    }
     expect(redemptions.length).toBeGreaterThan(5);
     for (const m of members) {
       const held = redemptions.filter((r) => r.memberId === m._id && r.status !== "declined" && r.status !== "cancelled");

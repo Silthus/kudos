@@ -309,6 +309,7 @@ export default defineSchema({
     answer: v.optional(v.string()),
     status: redemptionStatusValidator,
     isOpen: v.boolean(), // pending or approved; lets the admin queue page FIFO over both
+    stockHeld: v.optional(v.boolean()), // took one from stock, so a refund gives it back
     adminNote: v.optional(v.string()), // latest note from a decider
     history: v.array(
       // ≤ 3 entries (pending → approved → fulfilled), append-only
