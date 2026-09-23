@@ -1,0 +1,274 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-ad289ed16c7774904
+
+ ❯ tests/store.test.ts (47 tests | 15 failed) 2096ms
+   ❯ store access (5)
+     × admins' redemption functions refuse members 8ms
+   ❯ cancelling (3)
+     × is only possible while the request is pending 13ms
+   ❯ deciding (8)
+     × declining refunds and restocks, from pending and from approved 3ms
+     × fulfilling is final and keeps the cost spent 2ms
+     × records every step with who decided and their note 2ms
+     × caps the note at 500 characters 2ms
+     × members can't decide 2ms
+     × admins can't decide on their own request while another admin is around 2ms
+     × a sole admin decides on their own requests 2ms
+     × still works after the reward was archived or the store closed 2ms
+   ❯ the admin queue (3)
+     × lists open requests oldest first, pending and approved together 3ms
+     × keeps requests from people who left, flagged 4ms
+     × is scoped to the admin's workspace 3ms
+   ❯ negative balances (2)
+     × appear when spent kudos are revoked, block new requests and flag the queue 19ms
+     × stay private while received kudos are hidden 3ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 15 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/store.test.ts > store access > admins' redemption functions refuse members
+AssertionError: expected [Function] to throw error matching /admins/ but got 'Expected a Convex function exported f…'
+
+- Expected:
+/admins/
+
++ Received:
+"Expected a Convex function exported from module \"storeAdmin\" as `redemptions`, but there is no such export."
+
+ ❯ tests/store.test.ts:266:98
+    264|   test("admins' redemption functions refuse members", async () => {
+    265|     const ben = await signInAs(t, team.ben);
+    266|     await expect(ben.query(api.storeAdmin.redemptions, { filter: "open…
+       |                                                                                                  ^
+    267|     await expect(ben.query(api.storeAdmin.openCount, {})).rejects.toTh…
+    268|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/15]⎯
+
+ FAIL  tests/store.test.ts > cancelling > is only possible while the request is pending
+Error: Expected a Convex function exported from module "storeAdmin" as `decide`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2131:34
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/store.test.ts:439:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/15]⎯
+
+ FAIL  tests/store.test.ts > deciding > declining refunds and restocks, from pending and from approved
+Error: Expected a Convex function exported from module "storeAdmin" as `decide`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2131:34
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/store.test.ts:451:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/15]⎯
+
+ FAIL  tests/store.test.ts > deciding > fulfilling is final and keeps the cost spent
+Error: Expected a Convex function exported from module "storeAdmin" as `decide`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2131:34
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/store.test.ts:464:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/15]⎯
+
+ FAIL  tests/store.test.ts > deciding > records every step with who decided and their note
+Error: Expected a Convex function exported from module "storeAdmin" as `decide`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2131:34
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/store.test.ts:475:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/15]⎯
+
+ FAIL  tests/store.test.ts > deciding > caps the note at 500 characters
+AssertionError: expected [Function] to throw error matching /500 characters/ but got 'Expected a Convex function exported f…'
+
+- Expected:
+/500 characters/
+
++ Received:
+"Expected a Convex function exported from module \"storeAdmin\" as `decide`, but there is no such export."
+
+ ❯ tests/store.test.ts:489:114
+    487|   test("caps the note at 500 characters", async () => {
+    488|     const { redemptionId, ana } = await benRequests();
+    489|     await expect(ana.mutation(api.storeAdmin.decide, { redemptionId, a…
+       |                                                                                                                  ^
+    490|   });
+    491|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/15]⎯
+
+ FAIL  tests/store.test.ts > deciding > members can't decide
+AssertionError: expected [Function] to throw error matching /admins/ but got 'Expected a Convex function exported f…'
+
+- Expected:
+/admins/
+
++ Received:
+"Expected a Convex function exported from module \"storeAdmin\" as `decide`, but there is no such export."
+
+ ❯ tests/store.test.ts:494:91
+    492|   test("members can't decide", async () => {
+    493|     const { redemptionId, ben } = await benRequests();
+    494|     await expect(ben.mutation(api.storeAdmin.decide, { redemptionId, a…
+       |                                                                                           ^
+    495|   });
+    496|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/15]⎯
+
+ FAIL  tests/store.test.ts > deciding > admins can't decide on their own request while another admin is around
+AssertionError: expected [Function] to throw error matching /Another admin decides on your own req…/ but got 'Expected a Convex function exported f…'
+
+- Expected:
+/Another admin decides on your own requests/
+
++ Received:
+"Expected a Convex function exported from module \"storeAdmin\" as `decide`, but there is no such export."
+
+ ❯ tests/store.test.ts:504:82
+    502|     const { redemptionId } = await ana.mutation(api.store.redeem, { re…
+    503|     for (const action of ["approve", "fulfill", "decline"] as const) {
+    504|       await expect(ana.mutation(api.storeAdmin.decide, { redemptionId,…
+       |                                                                                  ^
+    505|     }
+    506|     const [row] = (await ana.query(api.storeAdmin.redemptions, { filte…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/15]⎯
+
+ FAIL  tests/store.test.ts > deciding > a sole admin decides on their own requests
+Error: Expected a Convex function exported from module "storeAdmin" as `redemptions`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2085:34
+ ❯ query node_modules/convex-test/dist/index.js:2172:20
+ ❯ tests/store.test.ts:520:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/15]⎯
+
+ FAIL  tests/store.test.ts > deciding > still works after the reward was archived or the store closed
+Error: Expected a Convex function exported from module "storeAdmin" as `decide`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2131:34
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/store.test.ts:530:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/15]⎯
+
+ FAIL  tests/store.test.ts > the admin queue > lists open requests oldest first, pending and approved together
+Error: Expected a Convex function exported from module "storeAdmin" as `decide`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2131:34
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/store.test.ts:543:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/15]⎯
+
+ FAIL  tests/store.test.ts > the admin queue > keeps requests from people who left, flagged
+Error: Expected a Convex function exported from module "storeAdmin" as `redemptions`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2085:34
+ ❯ query node_modules/convex-test/dist/index.js:2172:20
+ ❯ tests/store.test.ts:573:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/15]⎯
+
+ FAIL  tests/store.test.ts > the admin queue > is scoped to the admin's workspace
+Error: Expected a Convex function exported from module "storeAdmin" as `redemptions`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2085:34
+ ❯ query node_modules/convex-test/dist/index.js:2172:20
+ ❯ tests/store.test.ts:587:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/15]⎯
+
+ FAIL  tests/store.test.ts > negative balances > appear when spent kudos are revoked, block new requests and flag the queue
+Error: Expected a Convex function exported from module "storeAdmin" as `redemptions`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2085:34
+ ❯ query node_modules/convex-test/dist/index.js:2172:20
+ ❯ tests/store.test.ts:614:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/15]⎯
+
+ FAIL  tests/store.test.ts > negative balances > stay private while received kudos are hidden
+Error: Expected a Convex function exported from module "storeAdmin" as `redemptions`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2085:34
+ ❯ query node_modules/convex-test/dist/index.js:2172:20
+ ❯ tests/store.test.ts:626:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/15]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  15 failed | 32 passed (47)
+   Start at  20:28:24
+   Duration  2.49s (tests 88%, transform 6%, import 5%, environment 2%)
+

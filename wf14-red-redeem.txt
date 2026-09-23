@@ -1,0 +1,199 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-ad289ed16c7774904
+
+ ❯ tests/store.test.ts (30 tests | 10 failed) 1995ms
+   ❯ store access (5)
+     × admins' redemption functions refuse members 8ms
+   ❯ redeeming (9)
+     × holds the cost and takes one from stock 13ms
+     × refuses when the store is closed 3ms
+     × refuses archived rewards and rewards from another workspace 3ms
+     × refuses when the price changed since the page rendered 2ms
+     × refuses sold-out rewards: the last one goes to whoever asks first 2ms
+     × refuses past the per-person limit, counting only requests that weren't refunded 2ms
+     × refuses a sixth open request 1ms
+     × needs an answer when the reward asks a question, within 280 characters 2ms
+     × refuses when the balance doesn't cover the cost 2ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/store.test.ts > store access > admins' redemption functions refuse members
+AssertionError: expected [Function] to throw error matching /admins/ but got 'Expected a Convex function exported f…'
+
+- Expected:
+/admins/
+
++ Received:
+"Expected a Convex function exported from module \"storeAdmin\" as `redemptions`, but there is no such export."
+
+ ❯ tests/store.test.ts:265:98
+    263|   test("admins' redemption functions refuse members", async () => {
+    264|     const ben = await signInAs(t, team.ben);
+    265|     await expect(ben.query(api.storeAdmin.redemptions, { filter: "open…
+       |                                                                                                  ^
+    266|     await expect(ben.query(api.storeAdmin.openCount, {})).rejects.toTh…
+    267|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/10]⎯
+
+ FAIL  tests/store.test.ts > redeeming > holds the cost and takes one from stock
+Error: Expected a Convex function exported from module "store" as `redeem`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2131:34
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/store.test.ts:312:39
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/10]⎯
+
+ FAIL  tests/store.test.ts > redeeming > refuses when the store is closed
+AssertionError: expected [Function] to throw error matching /store isn't open/ but got 'Expected a Convex function exported f…'
+
+- Expected:
+/store isn't open/
+
++ Received:
+"Expected a Convex function exported from module \"store\" as `redeem`, but there is no such export."
+
+ ❯ tests/store.test.ts:328:80
+    326|     await setWorkspace({ storeEnabled: false });
+    327|     const ben = await signInAs(t, team.ben);
+    328|     await expect(ben.mutation(api.store.redeem, { rewardId, expectedCo…
+       |                                                                                ^
+    329|   });
+    330|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/10]⎯
+
+ FAIL  tests/store.test.ts > redeeming > refuses archived rewards and rewards from another workspace
+AssertionError: expected [Function] to throw error matching /isn't in the store any more/ but got 'Expected a Convex function exported f…'
+
+- Expected:
+/isn't in the store any more/
+
++ Received:
+"Expected a Convex function exported from module \"store\" as `redeem`, but there is no such export."
+
+ ❯ tests/store.test.ts:340:80
+    338|     await fund(team.ben, 10);
+    339|     const ben = await signInAs(t, team.ben);
+    340|     await expect(ben.mutation(api.store.redeem, { rewardId, expectedCo…
+       |                                                                                ^
+    341|     await expect(ben.mutation(api.store.redeem, { rewardId: foreign, e…
+    342|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/10]⎯
+
+ FAIL  tests/store.test.ts > redeeming > refuses when the price changed since the page rendered
+AssertionError: expected [Function] to throw error matching /price changed/ but got 'Expected a Convex function exported f…'
+
+- Expected:
+/price changed/
+
++ Received:
+"Expected a Convex function exported from module \"store\" as `redeem`, but there is no such export."
+
+ ❯ tests/store.test.ts:348:80
+    346|     await fund(team.ben, 10);
+    347|     const ben = await signInAs(t, team.ben);
+    348|     await expect(ben.mutation(api.store.redeem, { rewardId, expectedCo…
+       |                                                                                ^
+    349|     expect(await spentBy(team.ben)).toBe(0);
+    350|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/10]⎯
+
+ FAIL  tests/store.test.ts > redeeming > refuses sold-out rewards: the last one goes to whoever asks first
+Error: Expected a Convex function exported from module "store" as `redeem`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2131:34
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/store.test.ts:356:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/10]⎯
+
+ FAIL  tests/store.test.ts > redeeming > refuses past the per-person limit, counting only requests that weren't refunded
+Error: Expected a Convex function exported from module "store" as `redeem`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2131:34
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/store.test.ts:365:30
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/10]⎯
+
+ FAIL  tests/store.test.ts > redeeming > refuses a sixth open request
+Error: Expected a Convex function exported from module "store" as `redeem`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2131:34
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/store.test.ts:380:33
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/10]⎯
+
+ FAIL  tests/store.test.ts > redeeming > needs an answer when the reward asks a question, within 280 characters
+AssertionError: expected [Function] to throw error matching /Answer “Oat or dairy\?”/ but got 'Expected a Convex function exported f…'
+
+- Expected:
+/Answer “Oat or dairy\?”/
+
++ Received:
+"Expected a Convex function exported from module \"store\" as `redeem`, but there is no such export."
+
+ ❯ tests/store.test.ts:389:80
+    387|     await fund(team.ben, 10);
+    388|     const ben = await signInAs(t, team.ben);
+    389|     await expect(ben.mutation(api.store.redeem, { rewardId, expectedCo…
+       |                                                                                ^
+    390|     await expect(ben.mutation(api.store.redeem, { rewardId, expectedCo…
+    391|     await expect(ben.mutation(api.store.redeem, { rewardId, expectedCo…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/10]⎯
+
+ FAIL  tests/store.test.ts > redeeming > refuses when the balance doesn't cover the cost
+AssertionError: expected [Function] to throw error matching /need 1 more 🌮/ but got 'Expected a Convex function exported f…'
+
+- Expected:
+/need 1 more 🌮/
+
++ Received:
+"Expected a Convex function exported from module \"store\" as `redeem`, but there is no such export."
+
+ ❯ tests/store.test.ts:401:80
+    399|     await fund(team.ben, 4);
+    400|     const ben = await signInAs(t, team.ben);
+    401|     await expect(ben.mutation(api.store.redeem, { rewardId, expectedCo…
+       |                                                                                ^
+    402|   });
+    403| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/10]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  10 failed | 20 passed (30)
+   Start at  20:26:04
+   Duration  2.40s (tests 87%, transform 6%, import 5%, environment 2%)
+

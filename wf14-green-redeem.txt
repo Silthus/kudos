@@ -1,0 +1,34 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-ad289ed16c7774904
+
+ ❯ tests/store.test.ts (30 tests | 1 failed) 1976ms
+   ❯ store access (5)
+     × admins' redemption functions refuse members 7ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/store.test.ts > store access > admins' redemption functions refuse members
+AssertionError: expected [Function] to throw error matching /admins/ but got 'Expected a Convex function exported f…'
+
+- Expected:
+/admins/
+
++ Received:
+"Expected a Convex function exported from module \"storeAdmin\" as `redemptions`, but there is no such export."
+
+ ❯ tests/store.test.ts:266:98
+    264|   test("admins' redemption functions refuse members", async () => {
+    265|     const ben = await signInAs(t, team.ben);
+    266|     await expect(ben.query(api.storeAdmin.redemptions, { filter: "open…
+       |                                                                                                  ^
+    267|     await expect(ben.query(api.storeAdmin.openCount, {})).rejects.toTh…
+    268|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 29 passed (30)
+   Start at  20:27:23
+   Duration  2.35s (tests 87%, transform 6%, import 5%, environment 2%)
+

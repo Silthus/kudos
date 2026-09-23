@@ -1,0 +1,104 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-ad289ed16c7774904
+
+ ❯ convex/lib/store.test.ts (18 tests | 6 failed) 20ms
+   ❯ transition (5)
+     × admins approve, fulfil or decline a pending request 3ms
+     × admins fulfil or decline an approved request, but can't approve it twice 1ms
+     × the requester cancels only while the request is pending 0ms
+     × finished requests never move again 4ms
+     × only admins decide and only the requester cancels 1ms
+   ❯ isOpen (1)
+     × pending and approved requests are open, the rest are finished 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  convex/lib/store.test.ts > transition > admins approve, fulfil or decline a pending request
+TypeError: transition is not a function
+ ❯ convex/lib/store.test.ts:87:12
+     85|
+     86|   test("admins approve, fulfil or decline a pending request", () => {
+     87|     expect(transition("pending", "approve", admin)).toEqual({ to: "app…
+       |            ^
+     88|     expect(transition("pending", "fulfill", admin)).toEqual({ to: "ful…
+     89|     expect(transition("pending", "decline", admin)).toEqual({ to: "dec…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  convex/lib/store.test.ts > transition > admins fulfil or decline an approved request, but can't approve it twice
+TypeError: transition is not a function
+ ❯ convex/lib/store.test.ts:93:12
+     91|
+     92|   test("admins fulfil or decline an approved request, but can't approv…
+     93|     expect(transition("approved", "fulfill", admin)).toEqual({ to: "fu…
+       |            ^
+     94|     expect(transition("approved", "decline", admin)).toEqual({ to: "de…
+     95|     expect(() => transition("approved", "approve", admin, "Lena")).toT…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  convex/lib/store.test.ts > transition > the requester cancels only while the request is pending
+TypeError: transition is not a function
+ ❯ convex/lib/store.test.ts:99:12
+     97|
+     98|   test("the requester cancels only while the request is pending", () =…
+     99|     expect(transition("pending", "cancel", requester)).toEqual({ to: "…
+       |            ^
+    100|     expect(() => transition("approved", "cancel", requester)).toThrow(…
+    101|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  convex/lib/store.test.ts > transition > finished requests never move again
+AssertionError: expected [Function] to throw error including 'Already fulfilled by Ana.' but got '(0 , __vite_ssr_import_1__.transition…'
+
+Expected: "Already fulfilled by Ana."
+Received: "(0 , __vite_ssr_import_1__.transition) is not a function"
+
+ ❯ convex/lib/store.test.ts:106:62
+    104|     for (const from of ["fulfilled", "declined", "cancelled"] as const…
+    105|       for (const action of ["approve", "fulfill", "decline"] as const)…
+    106|         expect(() => transition(from, action, admin, "Ana")).toThrow(`…
+       |                                                              ^
+    107|       }
+    108|       expect(() => transition(from, "cancel", requester)).toThrow(`Alr…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  convex/lib/store.test.ts > transition > only admins decide and only the requester cancels
+AssertionError: expected [Function] to throw error matching /Only workspace admins/ but got '(0 , __vite_ssr_import_1__.transition…'
+
+- Expected:
+/Only workspace admins/
+
++ Received:
+"(0 , __vite_ssr_import_1__.transition) is not a function"
+
+ ❯ convex/lib/store.test.ts:114:62
+    112|   test("only admins decide and only the requester cancels", () => {
+    113|     for (const action of ["approve", "fulfill", "decline"] as const) {
+    114|       expect(() => transition("pending", action, requester)).toThrow(/…
+       |                                                              ^
+    115|     }
+    116|     expect(() => transition("pending", "cancel", admin)).toThrow(/Only…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  convex/lib/store.test.ts > isOpen > pending and approved requests are open, the rest are finished
+TypeError: undefined is not a function
+ ❯ convex/lib/store.test.ts:124:85
+    122| describe("isOpen", () => {
+    123|   test("pending and approved requests are open, the rest are finished"…
+    124|     expect((["pending", "approved", "fulfilled", "declined", "cancelle…
+       |                                                                                     ^
+    125|   });
+    126| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 12 passed (18)
+   Start at  20:24:49
+   Duration  237ms (environment 37%, transform 30%, tests 18%, import 12%, worker 3%)
+
