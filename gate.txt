@@ -14,10 +14,10 @@
  RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-aeb4bd260d2bf9605
 
 
- Test Files  23 passed (23)
-      Tests  341 passed (341)
-   Start at  21:17:01
-   Duration  16.51s (tests 84%, transform 8%, import 6%, environment 2%)
+ Test Files  24 passed (24)
+      Tests  374 passed (374)
+   Start at  21:18:52
+   Duration  16.53s (tests 83%, transform 9%, import 6%, environment 2%)
 
 
 > kudos@0.1.0 build
@@ -54,4 +54,4 @@ dist/assets/index-4KaYqpTD.js                                          653.08 kB
 - Using dynamic import() to code-split the application
 - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 293ms
+✓ built in 291ms
