@@ -22,30 +22,36 @@ import { addDays, DAY_MS, dayKeyFor, daysBetween, startOfDayUtc, weekdayOfKey, z
  * Backfill and repair of the read-model rollups (see `lib/rebuild.ts`). `rebuildWorkspace` walks a
  * workspace through chained steps, each its own transaction:
  *
- *   days     every `d:` workspace row in the source span, a week per step
- *   members  one member per step: their w/m/q/y member and pair rows per year, then totals,
- *            giving profile and all-time pairs
+ *   days     every `d:` workspace row in the span, a week per step
+ *   members  per member, one step per year (their w/m/q/y member and pair rows), then one step
+ *            for totals, giving profile and all-time pairs
  *   periods  one w/m/q/y bucket per step (weeks, then months, then quarters and years, which
  *            build on months), after the day and member rows they sum
  *   all      the all-time row and channels, then `rollupsBackfilledAt` on the `all` row
  *
  * Live gives and revokes keep running throughout; every unit overwrites absolute values, so the
  * result is exact. Running it again is harmless, which makes it the repair tool too.
+ *
+ * A demo reset rewrites the sources outside the engine. A run remembers the reset it belongs to
+ * (`resetAt`, the workspace's `resettingSince` when it started) and stops as soon as that changes,
+ * so a run that started before a reset can never mark the half-seeded rollups as backfilled. The
+ * reset's own run releases the reset lock when it finishes.
  */
 
 const DAYS_PER_STEP = 7;
 
-const phase = v.union(v.literal("days"), v.literal("members"), v.literal("periods"), v.literal("all"));
+const phaseValidator = v.union(v.literal("days"), v.literal("members"), v.literal("periods"), v.literal("all"));
+type Phase = Infer<typeof phaseValidator>;
 
 /** Start a full rebuild of one workspace's rollups. */
 export const rebuildWorkspace = internalMutation({
-  args: { workspaceId: v.id("workspaces") },
+  args: { workspaceId: v.id("workspaces"), resetAt: v.optional(v.number()) },
   returns: v.null(),
-  handler: async (ctx, { workspaceId }) => {
+  handler: async (ctx, { workspaceId, resetAt }) => {
     const workspace = await ctx.db.get(workspaceId);
-    if (!workspace) return null;
+    if (!workspace || workspace.resettingSince !== resetAt) return null;
     const { from, to } = await sourceSpan(ctx, workspace, dayKeyFor(Date.now(), workspace.timezone));
-    await ctx.scheduler.runAfter(0, internal.rollups.backfillStep, { workspaceId, from, to, phase: "days", cursor: from });
+    await ctx.scheduler.runAfter(0, internal.rollups.backfillStep, { workspaceId, resetAt, from, to, phase: "days", cursor: from });
     return null;
   },
 });
@@ -56,6 +62,7 @@ export const backfillAll = internalMutation({
   returns: v.null(),
   handler: async (ctx) => {
     for await (const workspace of ctx.db.query("workspaces")) {
+      if (workspace.resettingSince !== undefined) continue; // the reset rebuilds it
       await ctx.scheduler.runAfter(0, internal.rollups.rebuildWorkspace, { workspaceId: workspace._id });
     }
     return null;
@@ -65,17 +72,20 @@ export const backfillAll = internalMutation({
 export const backfillStep = internalMutation({
   args: {
     workspaceId: v.id("workspaces"),
+    resetAt: v.optional(v.number()),
     from: v.string(),
     to: v.string(),
-    phase,
-    cursor: v.optional(v.string()),
+    phase: phaseValidator,
+    cursor: v.optional(v.string()), // days: next day; members: current member; periods: bucket index
+    year: v.optional(v.number()), // members: the year to rebuild next, past the span = all time
   },
   returns: v.null(),
-  handler: async (ctx, { workspaceId, from, to, phase, cursor }) => {
+  handler: async (ctx, { workspaceId, resetAt, from, to, phase, cursor, year }) => {
     const workspace = await ctx.db.get(workspaceId);
-    if (!workspace) return null;
-    const next = (phase: "days" | "members" | "periods" | "all", cursor?: string) =>
-      ctx.scheduler.runAfter(0, internal.rollups.backfillStep, { workspaceId, from, to, phase, cursor });
+    if (!workspace || workspace.resettingSince !== resetAt) return null; // superseded by a demo reset
+    const next = (phase: Phase, cursor?: string, year?: number) =>
+      ctx.scheduler.runAfter(0, internal.rollups.backfillStep, { workspaceId, resetAt, from, to, phase, cursor, year });
+    const [firstYear, lastYear] = [Number(from.slice(0, 4)), Number(to.slice(0, 4))];
 
     switch (phase) {
       case "days": {
@@ -87,22 +97,28 @@ export const backfillStep = internalMutation({
         return null;
       }
       case "members": {
+        // Without a year: start on the member after `cursor`, with the span's first year.
         const member = await ctx.db
           .query("members")
           .withIndex("by_workspace_slackUser", (q) =>
-            cursor === undefined ? q.eq("workspaceId", workspaceId) : q.eq("workspaceId", workspaceId).gt("slackUserId", cursor),
+            cursor === undefined
+              ? q.eq("workspaceId", workspaceId)
+              : year === undefined
+                ? q.eq("workspaceId", workspaceId).gt("slackUserId", cursor)
+                : q.eq("workspaceId", workspaceId).eq("slackUserId", cursor),
           )
           .first();
+        const unit = year ?? firstYear;
         if (!member) {
-          await next("periods", "0");
-          return null;
+          await (year === undefined ? next("periods", "0") : next("members", cursor));
+        } else if (unit <= lastYear) {
+          await rebuildMemberYear(ctx, workspace, member._id, unit);
+          await rebuildGiverPairs(ctx, workspace, member._id, unit);
+          await next("members", member.slackUserId, unit + 1);
+        } else {
+          await rebuildMemberAll(ctx, workspace, member);
+          await next("members", member.slackUserId);
         }
-        for (let year = Number(from.slice(0, 4)); year <= Number(to.slice(0, 4)); year++) {
-          await rebuildMemberYear(ctx, workspace, member._id, year);
-          await rebuildGiverPairs(ctx, workspace, member._id, year);
-        }
-        await rebuildMemberAll(ctx, workspace, member);
-        await next("members", member.slackUserId);
         return null;
       }
       case "periods": {
@@ -115,6 +131,7 @@ export const backfillStep = internalMutation({
       case "all": {
         await rebuildWorkspaceAll(ctx, workspace);
         await markBackfilled(ctx, workspaceId, Date.now());
+        if (resetAt !== undefined) await ctx.db.patch(workspaceId, { resettingSince: undefined });
         return null;
       }
     }
@@ -180,13 +197,13 @@ async function verifyBucket(ctx: QueryCtx, workspace: Doc<"workspaces">, bucket:
   };
 
   // The legacy readers' computation: per-member sums over the bucket's memberDays.
-  const days = await workspaceDays(ctx, workspace._id, { start, end, days: daysBetween(start, end) + 1 });
+  const days = await workspaceDays(ctx, workspace._id, { start, end, days: daysBetween(start, end) + 1 }, 15_000);
   const { rows: kudosRows, truncated } = await kudosInRange(
     ctx,
     workspace._id,
     startOfDayUtc(start, tz) - DAY_MS, // a day key may come from another timezone
     startOfDayUtc(addDays(end, 1), tz) + DAY_MS,
-    10_000,
+    15_000,
   );
   if (days.truncated || truncated) throw new ConvexError(`${bucket} is too large to verify in one query`);
   const kudos = kudosRows.filter((k) => k.dayKey >= start && k.dayKey <= end);

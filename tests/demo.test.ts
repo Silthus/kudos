@@ -15,7 +15,7 @@ afterEach(() => vi.useRealTimers());
 
 async function enterDemo() {
   const userId = await t.mutation(internal.demo.ensureDemoUser, {});
-  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  await t.finishAllScheduledFunctions(vi.runAllTimers, 1000);
   return t.withIdentity({ subject: `${userId}|s` });
 }
 
@@ -66,7 +66,7 @@ describe("the demo workspace", () => {
     const demo = await enterDemo();
     await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> :taco:", channelName: "general" });
     await demo.mutation(api.demo.resetDemo, {});
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    await t.finishAllScheduledFunctions(vi.runAllTimers, 1000);
     const kudos = await all(t, "kudos");
     expect(kudos.every((k) => k.source === "seed")).toBe(true);
     expect(await all(t, "notifications")).toHaveLength(0);
@@ -112,10 +112,10 @@ describe("the demo's read-model rollups", () => {
     // Live playground activity on top of the seeded history is maintained transactionally.
     await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> <@UDEMOJONAS> :taco::taco: great work", channelName: "design" });
     await demo.mutation(api.demo.simulateReaction, { authorSlackUserId: "UDEMOLENA", messageText: "shipped!", messageKey: "k1" });
-    await t.finishAllScheduledFunctions(vi.runAllTimers); // teammates thank you back
+    await t.finishAllScheduledFunctions(vi.runAllTimers, 1000); // teammates thank you back
     await demo.mutation(api.demo.refillAllowance, {});
     await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOAIKO> :taco: thanks", channelName: "general" });
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    await t.finishAllScheduledFunctions(vi.runAllTimers, 1000);
     const maintained = await rollupLines();
 
     await t.mutation(internal.rollups.rebuildWorkspace, { workspaceId });
@@ -152,6 +152,44 @@ describe("the demo's read-model rollups", () => {
   });
 });
 
+describe("a demo reset during a running backfill", () => {
+  test("stops the stale run, so the marker is only ever set on rollups that match the kudos", async () => {
+    await enterDemo();
+    const workspaceId = await demoWorkspaceId();
+    await t.mutation(internal.rollups.rebuildWorkspace, { workspaceId });
+    for (let i = 0; i < 44; i++) await runScheduledStep();
+    await t.mutation(internal.demo.startDemoReset, {});
+
+    let marked = 0;
+    for (let i = 0; i < 500 && (await runScheduledStep()); i++) {
+      const state = await t.run(async (ctx) => ({
+        all: (await ctx.db.query("workspaceStats").collect()).find((w) => w.bucket === "all"),
+        given: (await ctx.db.query("kudos").collect()).reduce((n, k) => n + k.amount, 0),
+        resetting: (await ctx.db.get(workspaceId))!.resettingSince !== undefined,
+      }));
+      if (state.all?.rollupsBackfilledAt !== undefined) {
+        marked += 1;
+        expect(state.resetting, `step ${i}: marked while the reset is still running`).toBe(false);
+        expect(state.all.given, `step ${i}`).toBe(state.given);
+      }
+    }
+    expect(marked).toBeGreaterThan(0);
+    const workspace = await t.run((ctx) => ctx.db.get(workspaceId));
+    expect(workspace!.resettingSince).toBeUndefined();
+  });
+});
+
+/** Run the scheduled functions due now; false once nothing is left. */
+async function runScheduledStep() {
+  const pending = await t.run(async (ctx) =>
+    (await ctx.db.system.query("_scheduled_functions").collect()).filter((f) => f.state.kind === "pending"),
+  );
+  if (pending.length === 0) return false;
+  vi.runOnlyPendingTimers();
+  await t.finishInProgressScheduledFunctions();
+  return true;
+}
+
 describe("demo abuse protection", () => {
   test("reactions only work on messages by real demo teammates", async () => {
     const demo = await enterDemo();
@@ -170,7 +208,7 @@ describe("demo abuse protection", () => {
     const demo = await enterDemo();
     await demo.mutation(api.demo.resetDemo, {});
     await demo.mutation(api.demo.resetDemo, {});
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    await t.finishAllScheduledFunctions(vi.runAllTimers, 1000);
     const days = await all(t, "memberDays");
     const keys = days.map((d) => `${d.memberId}|${d.dayKey}`);
     expect(new Set(keys).size).toBe(keys.length);

@@ -261,9 +261,9 @@ export const seedHistory = internalMutation({
     if (day <= untilDay) {
       await ctx.scheduler.runAfter(0, internal.demo.seedHistory, { workspaceId, fromDay: day, untilDay });
     } else {
-      // The seeded rows bypass the engine, so the read-model rollups are rebuilt from them.
-      await ctx.scheduler.runAfter(0, internal.rollups.rebuildWorkspace, { workspaceId });
-      if (workspace.resettingSince) await ctx.db.patch(workspaceId, { resettingSince: undefined });
+      // The seeded rows bypass the engine, so the read-model rollups are rebuilt from them. That
+      // run belongs to this reset and releases its lock when it finishes.
+      await ctx.scheduler.runAfter(0, internal.rollups.rebuildWorkspace, { workspaceId, resetAt: workspace.resettingSince });
     }
     return null;
   },

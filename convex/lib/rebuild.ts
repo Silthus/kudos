@@ -53,11 +53,15 @@ const sameValues = (row: Doc<"workspaceStats">, values: WorkspaceValues) =>
   row.heat.every((n, i) => n === values.heat[i]) &&
   RARITIES.every((r) => row.found[r] === values.found[r]);
 
-async function workspaceRow(ctx: QueryCtx, workspaceId: Id<"workspaces">, bucket: string) {
-  return await ctx.db
+/** The bucket's row; duplicates (which only corruption can create) are deleted, keeping any marker. */
+async function workspaceRow(ctx: MutationCtx, workspaceId: Id<"workspaces">, bucket: string) {
+  const rows = await ctx.db
     .query("workspaceStats")
     .withIndex("by_workspace_bucket", (q) => q.eq("workspaceId", workspaceId).eq("bucket", bucket))
-    .unique();
+    .collect();
+  const keep = rows.find((r) => r.rollupsBackfilledAt !== undefined) ?? rows[0] ?? null;
+  for (const r of rows) if (r !== keep) await ctx.db.delete(r._id);
+  return keep;
 }
 
 async function writeWorkspaceRow(ctx: MutationCtx, workspaceId: Id<"workspaces">, bucket: string, values: WorkspaceValues) {
@@ -417,7 +421,10 @@ export async function markBackfilled(ctx: MutationCtx, workspaceId: Id<"workspac
   else await ctx.db.insert("workspaceStats", { workspaceId, bucket: ALL_BUCKET, ...emptyValues(ALL_BUCKET), rollupsBackfilledAt: at });
 }
 
-/** The day range holding any source or rollup row of the workspace, padded by a day each side. */
+/**
+ * The day range holding any source row of the workspace, or any rollup row (so stray buckets are
+ * rebuilt to zero too), padded by a day each side.
+ */
 export async function sourceSpan(ctx: QueryCtx, workspace: Workspace, today: string) {
   const id = workspace._id;
   const edge = async (order: "asc" | "desc") => {
@@ -428,12 +435,36 @@ export async function sourceSpan(ctx: QueryCtx, workspace: Workspace, today: str
     if (k) keys.push(k.dayKey);
     const found = await ctx.db.query("discoveries").withIndex("by_workspace_firstSeen", (q) => q.eq("workspaceId", id)).order(order).first();
     if (found) keys.push(new Date(found.firstSeenAt).toISOString().slice(0, 10));
-    const stat = await ctx.db
-      .query("workspaceStats")
-      .withIndex("by_workspace_bucket", (q) => q.eq("workspaceId", id).gte("bucket", "d:").lt("bucket", "d:" + END))
-      .order(order)
-      .first();
-    if (stat) keys.push(stat.bucket.slice(2));
+    for (const prefix of ["d:", "w:", "m:", "q:", "y:"]) {
+      const [lo, hi] = [prefix, prefix + END];
+      const rows = [
+        await ctx.db
+          .query("workspaceStats")
+          .withIndex("by_workspace_bucket", (q) => q.eq("workspaceId", id).gte("bucket", lo).lt("bucket", hi))
+          .order(order)
+          .first(),
+        await ctx.db
+          .query("memberStats")
+          .withIndex("by_workspace_bucket_given", (q) => q.eq("workspaceId", id).gte("bucket", lo).lt("bucket", hi))
+          .order(order)
+          .first(),
+        await ctx.db
+          .query("pairStats")
+          .withIndex("by_workspace_bucket_amount", (q) => q.eq("workspaceId", id).gte("bucket", lo).lt("bucket", hi))
+          .order(order)
+          .first(),
+        await ctx.db
+          .query("channelStats")
+          .withIndex("by_workspace_bucket_channel", (q) => q.eq("workspaceId", id).gte("bucket", lo).lt("bucket", hi))
+          .order(order)
+          .first(),
+      ];
+      for (const row of rows) {
+        if (!row) continue;
+        const { start, end } = bucketDays(row.bucket);
+        keys.push(order === "asc" ? start : end);
+      }
+    }
     return keys;
   };
   const first = [...(await edge("asc")), today].sort()[0];

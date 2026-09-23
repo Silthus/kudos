@@ -104,12 +104,21 @@ describe("rebuilding a workspace's rollups from the source tables", () => {
       await ctx.db.patch(anaNextYear._id, { given: 50 });
       const pairNextYear = (await ctx.db.query("pairStats").collect()).find((p) => p.bucket === "m:2027-01")!;
       await ctx.db.delete(pairNextYear._id);
+      // A duplicate bucket row, and stray rows well outside the history.
+      const { _id, _creationTime, ...copy } = day;
+      await ctx.db.insert("workspaceStats", copy);
+      const stray = { workspaceId: team.workspaceId, bucket: "y:2025" };
+      const { _id: _all, _creationTime: _t, rollupsBackfilledAt: _m, ...allRow } = ws.find((w) => w.bucket === "all")!;
+      await ctx.db.insert("workspaceStats", { ...allRow, ...stray });
+      await ctx.db.insert("pairStats", { ...stray, giverId: team.ana, receiverId: team.cleo, amount: 9 });
+      await ctx.db.insert("channelStats", { ...stray, channel: "ghost", amount: 5 });
+      await ctx.db.insert("memberStats", { ...stray, bucket: "m:2025-05", memberId: team.cleo, given: 1, received: 1, maxedDays: 0, activeDays: 1 });
     });
     expect(await rollupLines()).not.toEqual(maintained);
 
     await rebuild();
     expect(await rollupLines()).toEqual(maintained);
-  });
+  }, 20_000); // the stray rows widen the span to a year and a half of days
 
   test("records rollupsBackfilledAt on the all row, and a return to zero keeps it", async () => {
     await t.run((ctx) => ctx.db.patch(team.workspaceId, { notifyGiver: false, notifyReceiver: false }));
@@ -160,6 +169,52 @@ describe("rebuilding a workspace's rollups from the source tables", () => {
     while (await runScheduledStep()) steps += 1;
 
     expect(await rollupLines()).toEqual(maintained);
+  });
+});
+
+describe("rebuilding history written before rollups existed", () => {
+  test("uses the fallbacks live maintenance uses, pins them, and keeps received-only members without a profile", async () => {
+    await t.run(async (ctx) => {
+      await ctx.db.patch(team.workspaceId, { dailyLimit: 3 });
+      // Legacy rows: no kudos.hour, no memberDays.capped (Berlin: 09:30 UTC is 11:30 local).
+      const at = Date.parse("2026-09-21T09:30:00Z");
+      for (const receiverId of [team.ben, team.cleo]) {
+        await ctx.db.insert("kudos", {
+          workspaceId: team.workspaceId, batchId: "CGENERAL:1.0:ana", giverId: team.ana, receiverId, amount: 2, dayKey: "2026-09-21",
+          source: "message", channelId: "CGENERAL", channelName: "general", messageTs: "1.0", text: "legacy", at,
+        });
+      }
+      await ctx.db.insert("memberDays", { workspaceId: team.workspaceId, memberId: team.ana, dayKey: "2026-09-21", given: 4, received: 0, maxed: true });
+      for (const memberId of [team.ben, team.cleo]) {
+        await ctx.db.insert("memberDays", { workspaceId: team.workspaceId, memberId, dayKey: "2026-09-21", given: 0, received: 2, maxed: false });
+      }
+      await ctx.db.patch(team.ana, { totalGiven: 4, totalMaxedDays: 1 });
+      await ctx.db.patch(team.ben, { totalReceived: 2 });
+      await ctx.db.patch(team.cleo, { totalReceived: 2 });
+    });
+    await rebuild();
+
+    const ws = await t.run((ctx) => ctx.db.query("workspaceStats").collect());
+    expect(ws.find((w) => w.bucket === "d:2026-09-21")).toMatchObject({
+      given: 4, kudosRows: 2, messages: 1, givers: 1, receivers: 2, giverDays: 1, cappedGiven: 3, maxedDays: 1,
+      heat: Array.from({ length: 24 }, (_, h) => (h === 11 ? 4 : 0)),
+    });
+    expect(ws.find((w) => w.bucket === "all")).toMatchObject({ given: 4, givers: 1, receivers: 2, cappedGiven: 3 });
+    expect((await t.run((ctx) => ctx.db.query("kudos").collect())).map((k) => k.hour)).toEqual([11, 11]);
+    expect((await t.run((ctx) => ctx.db.query("memberDays").collect())).map((d) => d.capped)).toEqual([3, 0, 0]);
+    const members = await t.run((ctx) => ctx.db.query("members").collect());
+    expect(members.find((m) => m._id === team.ana)).toMatchObject({ currentStreak: 1, longestStreak: 1, lastActiveDay: "2026-09-21", givenByWeekday: [4, 0, 0, 0, 0, 0, 0] });
+    expect(members.find((m) => m._id === team.ben)!.givenByWeekday).toBeUndefined();
+
+    // Pinned: a later limit change can't move them, so a revoke returns the day to zero.
+    await t.run(async (ctx) => {
+      await ctx.db.patch(team.workspaceId, { dailyLimit: 10, timezone: "Asia/Tokyo" });
+      const workspace = (await ctx.db.get(team.workspaceId))!;
+      for (const row of await ctx.db.query("kudos").collect()) await revokeKudosRow(ctx, workspace, row);
+    });
+    const after = await t.run((ctx) => ctx.db.query("workspaceStats").collect());
+    expect(after.map((w) => w.bucket)).toEqual(["all"]);
+    expect(after[0]).toMatchObject({ given: 0, cappedGiven: 0, heat: new Array(168).fill(0) });
   });
 });
 
