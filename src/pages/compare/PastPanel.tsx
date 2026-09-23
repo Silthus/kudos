@@ -71,13 +71,17 @@ function Headline({ data }: { data: Past }) {
         )}
       </div>
       <p className="mt-2 text-sm text-faint">
-        {data.benchmarkNote === "notMember"
-          ? `You joined on ${dayLabel(data.joinedOn!, { month: "long", day: "numeric", year: "numeric" })}, so there's no ${data.benchmarkLabel.toLowerCase()} to compare with yet.`
-          : data.previousTotal.given !== null && `${data.benchmarkLabel} finished at ${nf.format(data.previousTotal.given)}.`}
+        {data.benchmarkNote === "notMember" &&
+          (data.previousTotal.given === null
+            ? `You joined on ${joined(data.joinedOn!)}, so there's no ${data.benchmarkLabel.toLowerCase()} to compare with yet.`
+            : `You joined on ${joined(data.joinedOn!)}, after this point ${data.benchmarkLabel.toLowerCase()}. `)}
+        {data.previousTotal.given !== null && `${data.benchmarkLabel} finished at ${nf.format(data.previousTotal.given)}.`}
       </p>
     </Card>
   );
 }
+
+const joined = (dayKey: string) => dayLabel(dayKey, { month: "long", day: "numeric", year: "numeric" });
 
 function LockedCell() {
   return (
@@ -168,7 +172,7 @@ function Scoreboard({ data }: { data: Past }) {
             { label: benchmark, color: "var(--color-benchmark)" },
           ]}
         />
-        {data.truncated && <span className="text-xs text-faint">Reach and channels count your most recent 2,000 kudos in each range.</span>}
+        {data.truncated && <span className="text-xs text-faint">Too many kudos this period to count reach and channels.</span>}
       </div>
     </Card>
   );
@@ -222,7 +226,7 @@ function Race({ data }: { data: Past }) {
       />
       {empty ? (
         <Empty icon={glyph} title="Nothing to compare yet">
-          Give kudos in Slack to start your streak.
+          {m === "given" ? "Give kudos in Slack to start your streak." : "Kudos your teammates give you will show up here."}
         </Empty>
       ) : (
         <div className="px-3 pb-2 sm:px-5">

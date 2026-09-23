@@ -83,23 +83,24 @@ export const get = query({
     const today = parseToday(todayArg);
     const p = resolvePeriod(period, today);
     const current = p.current;
-    const benchmark = p.previousToDate!;
     const previous = p.previous!;
+    // Like for like: the same days of the previous period. On the period's last day both periods are
+    // complete, so a longer previous period counts in full, as its race line ends (see raceAxis).
+    const benchmark = current.end === p.currentFull.end ? previous : p.previousToDate!;
 
     // One read covers the previous bucket through today: ≤ 2 × 366 rows for "year".
     const days = await memberDays(ctx, member._id, { start: previous.start, end: current.end, days: daysBetween(previous.start, current.end) + 1 });
 
-    // A member created after the benchmark ended has no past to compare, unless their history says
-    // otherwise (back-dated imports, the demo's seeded months).
-    const joinedOn = dayKeyFor(member._creationTime, tz);
-    let notMember = false;
-    if (joinedOn > benchmark.end) {
-      const earlier = await ctx.db
-        .query("memberDays")
-        .withIndex("by_member_day", (q) => q.eq("memberId", member._id).lte("dayKey", benchmark.end))
-        .first();
-      notMember = earlier === null;
-    }
+    // Membership starts when the member row was created, or earlier if their history says so
+    // (back-dated imports, the demo's seeded months). Before it there's nothing to compare, not zero.
+    const createdOn = dayKeyFor(member._creationTime, tz);
+    const firstDay = await ctx.db
+      .query("memberDays")
+      .withIndex("by_member_day", (q) => q.eq("memberId", member._id))
+      .first();
+    const joinedOn = firstDay && firstDay.dayKey < createdOn ? firstDay.dayKey : createdOn;
+    const notMember = joinedOn > benchmark.end; // no "by this point last period"
+    const noPrevious = joinedOn > previous.end; // no last period at all
 
     const cur = metricsFromDays(days, current);
     const prev = metricsFromDays(days, benchmark);
@@ -133,10 +134,15 @@ export const get = query({
     const you = values(cur, curKudos, current);
     const them = values(prev, prevKudos, benchmark);
 
+    // A capped kudos read would compare different windows (the most recent days of each range), so
+    // reach and channels show no number rather than a misleading one.
+    const truncated = curKudos.truncated || prevKudos.truncated;
+    const uncounted = (metric: Metric) => truncated && (metric === "reach" || metric === "channels");
+
     const rows = METRICS.map((metric) => {
       const locked = rowVisibility(workspace.receivedVisibility, "past", metric);
-      const youValue = locked ? null : you[metric];
-      const benchmarkValue = locked || notMember ? null : them[metric];
+      const youValue = locked || uncounted(metric) ? null : you[metric];
+      const benchmarkValue = locked || notMember || uncounted(metric) ? null : them[metric];
       return {
         metric,
         family: familyOf(metric),
@@ -163,19 +169,19 @@ export const get = query({
       joinedOn: notMember ? joinedOn : null,
       rows,
       previousTotal: {
-        given: notMember ? null : prevFull.given,
-        received: notMember || receivedLocked ? null : prevFull.received,
+        given: noPrevious ? null : prevFull.given,
+        received: noPrevious || receivedLocked ? null : prevFull.received,
       },
       race: {
         days: axis.days,
         previousDays: axis.previousDays,
         you: { given: pad(cur.cumulativeGiven), received: receivedLocked ? null : pad(cur.cumulativeReceived) },
         benchmark: {
-          given: notMember ? null : aligned(prevFull.cumulativeGiven),
-          received: notMember || receivedLocked ? null : aligned(prevFull.cumulativeReceived),
+          given: noPrevious ? null : aligned(prevFull.cumulativeGiven),
+          received: noPrevious || receivedLocked ? null : aligned(prevFull.cumulativeReceived),
         },
       },
-      truncated: curKudos.truncated || prevKudos.truncated,
+      truncated,
     };
   },
 });

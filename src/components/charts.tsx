@@ -2,7 +2,7 @@ import clsx from "clsx";
 import { motion } from "motion/react";
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { dayLabel, nf } from "@/lib/format";
-import { nudgeLabels } from "@/lib/labels";
+import { labelWidth, nudgeLabels } from "@/lib/labels";
 
 function useWidth<T extends HTMLElement>() {
   const ref = useRef<T>(null);
@@ -99,7 +99,16 @@ function Tooltip({ x, y, width, children }: { x: number; y: number; width: numbe
 export function LineChart({ days, series, height = 240, endLabels = false }: { days: string[]; series: Series[]; height?: number; endLabels?: boolean }) {
   const [ref, width] = useWidth<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
-  const pad = { top: 12, right: endLabels ? 96 : 12, bottom: 28, left: 32 };
+  // Direct labels at each line's last point; the right gutter is as wide as the widest one.
+  const endInfo = endLabels
+    ? series.flatMap((s) => {
+        const i = lastIndex(s.values);
+        const value = s.values[i] ?? 0;
+        return i < 0 ? [] : [{ s, i, value, width: labelWidth(`${s.label} ${nf.format(value)}`) }];
+      })
+    : [];
+  const labelRoom = Math.max(0, ...endInfo.map((e) => e.width));
+  const pad = { top: 12, right: Math.max(12, labelRoom), bottom: 28, left: 32 };
   const w = Math.max(0, width - pad.left - pad.right);
   const h = height - pad.top - pad.bottom;
   const max = niceMax(Math.max(1, ...series.flatMap((s) => s.values.map((v) => v ?? 0))));
@@ -123,13 +132,8 @@ export function LineChart({ days, series, height = 240, endLabels = false }: { d
   const area = first && !first.dashed && width > 0 && firstEnd >= 0
     ? `${paths[0]}L${x(firstEnd)},${y(0)}L${x(0)},${y(0)}Z`
     : null;
-  const ends = endLabels
-    ? series.flatMap((s) => {
-        const i = lastIndex(s.values);
-        return i < 0 ? [] : [{ s, x: x(i), y: y(s.values[i] ?? 0), value: s.values[i] ?? 0 }];
-      })
-    : [];
-  const endYs = nudgeLabels(ends, { gap: 13, width: 88 });
+  const ends = endInfo.map((e) => ({ ...e, x: x(e.i), y: y(e.value) }));
+  const endYs = nudgeLabels(ends, { gap: 13, width: labelRoom });
 
   return (
     <div ref={ref} className="relative" style={{ height }}>

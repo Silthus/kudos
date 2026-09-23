@@ -1,3 +1,8 @@
+/** Room a direct label needs beside its marker: a 9px gap plus ~6.4px per character at 11px. */
+export function labelWidth(text: string): number {
+  return Math.ceil(9 + text.length * 6.4 + 4);
+}
+
 /**
  * Vertical positions for direct labels anchored at `{x, y}` (text starts at x): labels whose boxes
  * overlap sideways and sit closer than `gap` are spread apart around their middle. Returns one y per

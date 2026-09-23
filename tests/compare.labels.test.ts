@@ -1,5 +1,14 @@
 import { describe, expect, test } from "vitest";
-import { nudgeLabels } from "../src/lib/labels";
+import { labelWidth, nudgeLabels } from "../src/lib/labels";
+
+// At 11px, Geist averages ~6.4px per character: "Last quarter 1,234" renders ~115px wide, "You 3" ~30px.
+describe("labelWidth", () => {
+  test("reserves room for the marker gap plus the text", () => {
+    expect(labelWidth("Last quarter 1,234")).toBeGreaterThanOrEqual(115);
+    expect(labelWidth("Last quarter 1,234")).toBeLessThanOrEqual(140);
+    expect(labelWidth("You 3")).toBeLessThanOrEqual(50);
+  });
+});
 
 // Race-chart endpoint labels ("You 23", "Last month 19") sit beside each line's last point and must not
 // collide when the two lines end close together.
