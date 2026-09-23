@@ -14,10 +14,10 @@
  RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a599feecbbf6b312e
 
 
- Test Files  26 passed (26)
-      Tests  423 passed (423)
-   Start at  22:10:47
-   Duration  67.07s (tests 93%, transform 4%, import 2%, environment 1%)
+ Test Files  27 passed (27)
+      Tests  465 passed (465)
+   Start at  22:15:05
+   Duration  76.79s (tests 95%, transform 2%, import 2%, environment 1%)
 
 
 > kudos@0.1.0 build
@@ -46,8 +46,8 @@ dist/assets/bricolage-grotesque-latin-ext-wght-normal-CcLUaPy7.woff2    18.66 kB
 dist/assets/geist-mono-latin-wght-normal-XN7g48iV.woff2                 23.12 kB
 dist/assets/geist-latin-wght-normal-BgDaEnEv.woff2                      29.40 kB
 dist/assets/bricolage-grotesque-latin-wght-normal-DLoelf7F.woff2        41.34 kB
-dist/assets/index-DcELPe6r.css                                          65.60 kB │ gzip:  11.79 kB
-dist/assets/index-DU1vyv-b.js                                          653.42 kB │ gzip: 195.96 kB
+dist/assets/index-CqjgvI5l.css                                          66.45 kB │ gzip:  11.99 kB
+dist/assets/index-BwguS2kN.js                                          665.47 kB │ gzip: 198.96 kB
 
 [plugin builtin:vite-reporter] 
 (!) Some chunks are larger than 500 kB after minification. Consider:
