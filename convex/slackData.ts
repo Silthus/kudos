@@ -46,6 +46,25 @@ export const pruneEvents = internalMutation({
   },
 });
 
+/**
+ * Daily directory resync for every installed workspace: backstop for missed
+ * user_change events (deactivations) and for installs that predate those subscriptions.
+ */
+export const scheduleDirectorySync = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const installs = await ctx.db.query("slackInstallations").take(1000);
+    let i = 0;
+    for (const install of installs) {
+      const workspace = await ctx.db.get(install.workspaceId);
+      if (!workspace || workspace.isDemo || workspace.status !== "active") continue;
+      await ctx.scheduler.runAfter(i++ * 5_000, internal.slack.syncAllMembers, { workspaceId: workspace._id });
+    }
+    return null;
+  },
+});
+
 const installationValidator = v.object({
   workspace: v.any(),
   botToken: v.string(),

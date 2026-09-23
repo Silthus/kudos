@@ -112,6 +112,7 @@ export default defineSchema({
     source: kudosSourceValidator,
     channelId: v.string(),
     channelName: v.optional(v.string()),
+    channelPrivate: v.optional(v.boolean()), // private channel: name stays out of workspace-wide views
     messageTs: v.optional(v.string()),
     text: v.string(),
     at: v.number(), // when it was given (seeded demo history is back-dated)
@@ -120,7 +121,8 @@ export default defineSchema({
     .index("by_giver_at", ["giverId", "at"])
     .index("by_receiver_at", ["receiverId", "at"])
     .index("by_batch", ["batchId"])
-    .index("by_message", ["workspaceId", "channelId", "messageTs"]),
+    .index("by_message", ["workspaceId", "channelId", "messageTs"])
+    .index("by_message_giver_source", ["workspaceId", "channelId", "messageTs", "giverId", "source"]),
 
   // Per-member daily rollup: powers allowances, leaderboards, streaks and cadence charts.
   memberDays: defineTable({

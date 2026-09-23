@@ -87,7 +87,9 @@ export const BOT_EVENTS = [
   "message.channels",
   "message.groups",
   "reaction_added",
+  "team_join",
   "tokens_revoked",
+  "user_change",
 ];
 
 /** Origin of this deployment's HTTP actions: webhooks and OAuth callbacks live here. */

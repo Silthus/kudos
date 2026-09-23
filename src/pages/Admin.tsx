@@ -223,7 +223,9 @@ function Members() {
                   </div>
                 </td>
                 <td className="px-3 py-2.5 text-right font-mono tabular">{nf.format(m.totalGiven)}</td>
-                <td className="px-3 py-2.5 text-right font-mono tabular">{nf.format(m.totalReceived)}</td>
+                <td className="px-3 py-2.5 text-right font-mono tabular" title={m.totalReceived === null ? "Hidden by the received-kudos visibility setting" : undefined}>
+                  {m.totalReceived === null ? <span className="text-faint">—</span> : nf.format(m.totalReceived)}
+                </td>
                 <td className="px-3 py-2.5 text-right font-mono tabular">{m.totalMaxedDays}</td>
                 <td className="px-3 py-2.5 text-right text-muted">{m.lastGivenAt ? relativeTime(m.lastGivenAt) : "never"}</td>
                 <td className="px-3 py-2.5 text-right">

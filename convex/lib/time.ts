@@ -97,7 +97,17 @@ export function startOfDayUtc(dayKey: string, timeZone: string): number {
     const asUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
     ts = ts - (asUtc - guess);
   }
-  return ts;
+  if (dayKeyFor(ts, timeZone) === dayKey && dayKeyFor(ts - 1, timeZone) < dayKey) return ts;
+  // Midnight doesn't exist (or exists twice) when a DST switch happens at 00:00:
+  // binary-search the first instant whose local day is `dayKey`.
+  let lo = ts - 3 * 3_600_000; // before the day
+  let hi = ts + 3 * 3_600_000; // inside the day
+  while (hi - lo > 1) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (dayKeyFor(mid, timeZone) < dayKey) lo = mid;
+    else hi = mid;
+  }
+  return hi;
 }
 
 export type DayRange = { start: string; end: string; days: number };

@@ -4,7 +4,7 @@ import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { revokeKudosRow } from "./engine";
-import { publicSettings, requireAdmin } from "./lib/access";
+import { canSeeReceived, publicSettings, requireAdmin } from "./lib/access";
 import { siteUrl } from "./lib/slack";
 import { receivedVisibilityValidator } from "./schema";
 
@@ -100,7 +100,8 @@ export const updateSettings = mutation({
 export const members = query({
   args: {},
   handler: async (ctx) => {
-    const { workspace } = await requireAdmin(ctx);
+    const viewer = await requireAdmin(ctx);
+    const { workspace } = viewer;
     const rows = await ctx.db
       .query("members")
       .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id))
@@ -118,7 +119,7 @@ export const members = query({
         deactivated: m.deactivated,
         signedIn: Boolean(m.userId),
         totalGiven: m.totalGiven,
-        totalReceived: m.totalReceived,
+        totalReceived: canSeeReceived(viewer, m._id) ? m.totalReceived : null,
         totalMaxedDays: m.totalMaxedDays,
         lastGivenAt: m.lastGivenAt ?? null,
       }));

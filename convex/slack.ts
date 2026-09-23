@@ -3,13 +3,14 @@ import { internalAction, type ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { baseEmojiName, parseKudosMessage } from "./lib/parse";
-import { siteUrl, slackApi } from "./lib/slack";
+import { siteUrl, slackApi, type SlackResponse } from "./lib/slack";
 import { RARITY_SLACK_BADGE, type Rarity } from "./lib/messages";
 
 type SlackEvent = {
   type: string;
   subtype?: string;
-  user?: string;
+  /** A user id, except on user_change / team_join where Slack sends the full user object. */
+  user?: string | SlackUser;
   bot_id?: string;
   text?: string;
   channel?: string;
@@ -51,19 +52,28 @@ export const processEvent = internalAction({
     const workspaceId = install.workspace._id as Id<"workspaces">;
     const emojiName = install.workspace.emojiName as string;
 
+    // Directory changes: deactivations must lock people out promptly, new hires show up.
+    if (event.type === "user_change" || event.type === "team_join") {
+      if (typeof event.user !== "object" || !event.user?.id) return null;
+      await ctx.runMutation(internal.slackData.upsertSlackUsers, { workspaceId, users: [toMember(event.user)] });
+      return null;
+    }
+    if (typeof event.user !== "string" && event.user !== undefined) return null;
+
     if (event.type === "message") {
       if (event.bot_id || !event.user || !event.text || !event.channel || !event.ts) return null;
       if (event.subtype && IGNORED_SUBTYPES.has(event.subtype)) return null;
       if (event.channel_type === "im") return null;
       if (!parseKudosMessage(event.text, emojiName)) return null;
-      const channelName = await channelNameFor(install.botToken, event.channel);
+      const channel = await channelInfo(install.botToken, event.channel);
       const result = await ctx.runMutation(internal.kudos.ingestMessage, {
         workspaceId,
         botUserId: install.botUserId,
         giverSlackId: event.user,
         text: event.text,
         channelId: event.channel,
-        channelName,
+        channelName: channel.name,
+        channelPrivate: channel.isPrivate,
         messageTs: event.ts,
       });
       if (result) await deliver(ctx, install.botToken, result.notificationIds, event.channel);
@@ -74,23 +84,17 @@ export const processEvent = internalAction({
       if (!event.user || !event.item_user || !event.reaction || event.item?.type !== "message") return null;
       if (baseEmojiName(event.reaction) !== emojiName) return null;
       if (event.user === install.botUserId) return null;
-      const channelName = await channelNameFor(install.botToken, event.item.channel);
-      const history = await slackApi(install.botToken, "conversations.history", {
-        channel: event.item.channel,
-        latest: event.item.ts,
-        inclusive: true,
-        limit: 1,
-      });
-      const messages = (history.messages as { text?: string }[] | undefined) ?? [];
+      const channel = await channelInfo(install.botToken, event.item.channel);
       const result = await ctx.runMutation(internal.kudos.ingestReaction, {
         workspaceId,
         botUserId: install.botUserId,
         reactorSlackId: event.user,
         authorSlackId: event.item_user,
         channelId: event.item.channel,
-        channelName,
+        channelName: channel.name,
+        channelPrivate: channel.isPrivate,
         messageTs: event.item.ts,
-        messageText: messages[0]?.text,
+        messageText: await messageText(install.botToken, event.item.channel, event.item.ts),
       });
       if (result) await deliver(ctx, install.botToken, result.notificationIds, event.item.channel);
       return null;
@@ -103,9 +107,27 @@ export const processEvent = internalAction({
   },
 });
 
-async function channelNameFor(token: string, channel: string): Promise<string | undefined> {
+async function channelInfo(token: string, channel: string): Promise<{ name?: string; isPrivate?: boolean }> {
   const info = await slackApi(token, "conversations.info", { channel });
-  return info.ok ? ((info.channel as { name?: string }).name ?? undefined) : undefined;
+  if (!info.ok) return {};
+  const c = info.channel as { name?: string; is_private?: boolean };
+  return { name: c.name ?? undefined, isPrivate: c.is_private || undefined };
+}
+
+type SlackMessage = { ts?: string; text?: string };
+
+/**
+ * Text of the exact message `ts`. conversations.history only sees top-level messages, so a
+ * thread reply falls back to conversations.replies; never quote a neighbouring message.
+ */
+async function messageText(token: string, channel: string, ts: string): Promise<string | undefined> {
+  const exact = (res: SlackResponse) =>
+    ((res.messages as SlackMessage[] | undefined) ?? []).find((m) => m.ts === ts)?.text;
+  const history = await slackApi(token, "conversations.history", { channel, latest: ts, oldest: ts, inclusive: true, limit: 1 });
+  const top = history.ok ? exact(history) : undefined;
+  if (top !== undefined) return top;
+  const replies = await slackApi(token, "conversations.replies", { channel, ts, latest: ts, oldest: ts, inclusive: true, limit: 2 });
+  return replies.ok ? exact(replies) : undefined;
 }
 
 const EPHEMERAL = new Set(["limit_reached", "self_kudos"]);
@@ -253,8 +275,8 @@ export const syncAllMembers = internalAction({
     if (!install) return null;
     if (!cursor) {
       const team = await slackApi(install.botToken, "team.info");
-      if (team.ok) {
-        const t = team.team as { name?: string; icon?: { image_132?: string } };
+      const t = team.team as { name?: string; icon?: { image_132?: string } } | undefined;
+      if (team.ok && t) {
         await ctx.runMutation(internal.slackData.setWorkspaceIcon, {
           workspaceId,
           iconUrl: t.icon?.image_132,

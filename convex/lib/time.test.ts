@@ -22,6 +22,15 @@ describe("day keys", () => {
 });
 
 describe("startOfDayUtc", () => {
+  test("starts the day at the first local instant when DST skips midnight", () => {
+    for (const [day, tz] of [["2026-09-06", "America/Santiago"], ["2026-03-08", "America/Havana"], ["2026-03-29", "Asia/Beirut"]]) {
+      const ts = startOfDayUtc(day, tz);
+      expect([day, tz, dayKeyFor(ts, tz)]).toEqual([day, tz, day]);
+      expect([day, tz, dayKeyFor(ts - 1, tz)]).toEqual([day, tz, addDays(day, -1)]);
+    }
+  });
+
+
   test("returns local midnight, including on DST change days", () => {
     for (const day of ["2026-03-29", "2026-10-25", "2026-07-01"]) {
       const ts = startOfDayUtc(day, "Europe/Berlin");

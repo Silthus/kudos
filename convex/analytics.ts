@@ -69,7 +69,8 @@ export const overview = query({
     for (const k of rows) {
       const p = zonedParts(k.at, tz);
       heatmap[p.weekday][p.hour] += k.amount;
-      const ch = k.channelName ?? k.channelId;
+      // Workspace-wide view: never reveal what private channels are called.
+      const ch = k.channelPrivate ? "Private channels" : (k.channelName ?? k.channelId);
       channels.set(ch, (channels.get(ch) ?? 0) + k.amount);
       const src = k.source === "reaction" ? "Reactions" : "Messages";
       sources.set(src, (sources.get(src) ?? 0) + k.amount);

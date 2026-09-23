@@ -79,8 +79,11 @@ async function bumpMemberDay(
   const given = Math.max(0, (day?.given ?? 0) + (delta.given ?? 0));
   const received = Math.max(0, (day?.received ?? 0) + (delta.received ?? 0));
   const wasMaxed = day?.maxed ?? false;
-  // Only giving can max out a day; receiving must not re-evaluate it against a changed limit.
-  const maxed = delta.given ? given >= workspace.dailyLimit : wasMaxed;
+  // Only giving can max out a day; receiving must not re-evaluate it against a changed limit,
+  // and a revoke can only un-max a day (never newly max it after the limit was lowered).
+  const givenDelta = delta.given ?? 0;
+  const maxed =
+    givenDelta > 0 ? given >= workspace.dailyLimit : givenDelta < 0 ? wasMaxed && given >= workspace.dailyLimit : wasMaxed;
   if (day) {
     if (given === 0 && received === 0) await ctx.db.delete(day._id);
     else await ctx.db.patch(day._id, { given, received, maxed });
@@ -151,6 +154,7 @@ export type GiveInput = {
   amountEach: number;
   channelId: string;
   channelName?: string;
+  channelPrivate?: boolean;
   messageTs?: string;
   text: string;
   source: KudosSource;
@@ -245,6 +249,7 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
       source: input.source,
       channelId: input.channelId,
       channelName: input.channelName,
+      ...(input.channelPrivate ? { channelPrivate: true } : {}),
       messageTs: input.messageTs,
       text: input.text.slice(0, 500),
       at: now,

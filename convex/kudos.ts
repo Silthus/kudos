@@ -41,6 +41,7 @@ export const ingestMessage = internalMutation({
     text: v.string(),
     channelId: v.string(),
     channelName: v.optional(v.string()),
+    channelPrivate: v.optional(v.boolean()),
     messageTs: v.string(),
   },
   returns: v.union(v.null(), ingestResult),
@@ -65,6 +66,7 @@ export const ingestMessage = internalMutation({
       amountEach: parsed.amountEach,
       channelId: args.channelId,
       channelName: args.channelName,
+      channelPrivate: args.channelPrivate,
       messageTs: args.messageTs,
       text: await readablePreview(ctx, workspace._id, args.text),
       source: "message",
@@ -90,6 +92,7 @@ export const ingestReaction = internalMutation({
     authorSlackId: v.string(),
     channelId: v.string(),
     channelName: v.optional(v.string()),
+    channelPrivate: v.optional(v.boolean()),
     messageTs: v.string(),
     messageText: v.optional(v.string()),
   },
@@ -104,13 +107,18 @@ export const ingestReaction = internalMutation({
       )
       .unique();
     if (giver) {
-      const onMessage = await ctx.db
+      const alreadyReacted = await ctx.db
         .query("kudos")
-        .withIndex("by_message", (q) =>
-          q.eq("workspaceId", workspace._id).eq("channelId", args.channelId).eq("messageTs", args.messageTs),
+        .withIndex("by_message_giver_source", (q) =>
+          q
+            .eq("workspaceId", workspace._id)
+            .eq("channelId", args.channelId)
+            .eq("messageTs", args.messageTs)
+            .eq("giverId", giver._id)
+            .eq("source", "reaction"),
         )
-        .take(100);
-      if (onMessage.some((k) => k.giverId === giver._id && k.source === "reaction")) return null;
+        .first();
+      if (alreadyReacted) return null;
     }
     const snippet = args.messageText ? await readablePreview(ctx, workspace._id, args.messageText, 200) : "";
     const result = await giveKudos(ctx, {
@@ -120,6 +128,7 @@ export const ingestReaction = internalMutation({
       amountEach: 1,
       channelId: args.channelId,
       channelName: args.channelName,
+      channelPrivate: args.channelPrivate,
       messageTs: args.messageTs,
       text: snippet ? `Reacted with :${workspace.emojiName}: to “${snippet}”` : `Reacted with :${workspace.emojiName}:`,
       source: "reaction",

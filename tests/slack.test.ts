@@ -21,7 +21,7 @@ function stubSlackApi(responses: Record<string, unknown> = {}) {
       calls.push({ method, params });
       const defaults: Record<string, unknown> = {
         "conversations.info": { ok: true, channel: { name: "general" } },
-        "conversations.history": { ok: true, messages: [{ text: "shipped it" }] },
+        "conversations.history": { ok: true, messages: [{ ts: "9.9", text: "shipped it" }] },
       };
       return Response.json(responses[method] ?? defaults[method] ?? { ok: true });
     }),
