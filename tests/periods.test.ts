@@ -70,6 +70,12 @@ describe("calendar-aligned comparisons", () => {
     expect(rows[0]).toMatchObject({ value: 2, prevValue: 5, delta: -3, rankChange: 0 });
   });
 
+  test("the leaderboard's workspace headline compares to date, like analytics", async () => {
+    const ana = await signInAs(t, team.ana);
+    const { highlights } = await ana.query(api.leaderboard.get, { period: "month", metric: "given", today: "2026-09-23" });
+    expect([highlights.total, highlights.prevTotal]).toEqual([2, 1]);
+  });
+
   test("my own period total compares with the previous month to date", async () => {
     const ana = await signInAs(t, team.ana);
     const { period, periodLabel } = await ana.query(api.me.overview, { period: "month", today: "2026-09-23" });

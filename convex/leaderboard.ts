@@ -24,6 +24,8 @@ export const get = query({
 
     let current: Map<Id<"members">, Totals>;
     let previous: Map<Id<"members">, Totals> | null = null;
+    // The workspace headline compares with the previous period to date, like analytics does.
+    let prevTotal: number | null = null;
     let truncated = false;
     if (period === "all") {
       current = new Map(
@@ -37,6 +39,9 @@ export const get = query({
       const prev = await workspaceDays(ctx, workspace._id, range.previous!);
       current = totalsByMember(cur.rows);
       previous = totalsByMember(prev.rows);
+      prevTotal = prev.rows
+        .filter((r) => r.dayKey <= range.previousToDate!.end)
+        .reduce((s, r) => s + r[metric], 0);
       truncated = cur.truncated || prev.truncated;
     }
 
@@ -72,7 +77,6 @@ export const get = query({
     });
 
     const total = [...current.values()].reduce((s, t) => s + t[metric], 0);
-    const prevTotal = previous ? [...previous.values()].reduce((s, t) => s + t[metric], 0) : null;
     const givers = [...current.values()].filter((t) => t.given > 0).length;
 
     const since = period === "all" ? 0 : startOfDayUtc(range.current.start, workspace.timezone);
