@@ -301,6 +301,7 @@ export function Dialog({
   children,
   footer,
   className,
+  variant = "modal",
 }: {
   open: boolean;
   onClose: () => void;
@@ -309,7 +310,10 @@ export function Dialog({
   children: ReactNode;
   footer?: ReactNode;
   className?: string;
+  /** "drawer" slides in from the right edge at full height, for side panels like a ledger. */
+  variant?: "modal" | "drawer";
 }) {
+  const drawer = variant === "drawer";
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   // Only a press that both starts and ends on the backdrop closes: a text selection
@@ -330,8 +334,11 @@ export function Dialog({
     <dialog
       ref={ref}
       aria-labelledby={titleId}
-      onClose={() => open && onClose()}
+      // A dialog opened from inside this one (e.g. Adjust balance over the ledger) sends its
+      // close/cancel events up the React tree; only this dialog's own events close it.
+      onClose={(e) => e.target === e.currentTarget && open && onClose()}
       onCancel={(e) => {
+        if (e.target !== e.currentTarget) return;
         e.preventDefault();
         onClose();
       }}
@@ -342,16 +349,21 @@ export function Dialog({
         pressedBackdrop.current = false;
       }}
       className={clsx(
-        "m-auto max-h-[calc(100dvh-24px)] w-[min(560px,calc(100vw-24px))] overflow-visible bg-transparent p-0 text-cream backdrop:bg-ink/75 backdrop:backdrop-blur-sm",
+        "overflow-visible bg-transparent p-0 text-cream backdrop:bg-ink/75 backdrop:backdrop-blur-sm",
+        // max-w-full overrides the UA's `max-width: calc(100% - 6px - 2em)` on modal dialogs.
+        drawer ? "my-0 ml-auto mr-0 h-dvh max-h-dvh w-[min(460px,100vw)] max-w-full" : "m-auto max-h-[calc(100dvh-24px)] w-[min(560px,calc(100vw-24px))]",
         className,
       )}
     >
       {open && (
         <motion.div
-          initial={{ opacity: 0, y: 12, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
-          className="flex max-h-[calc(100dvh-24px)] flex-col rounded-2xl border border-line-strong bg-panel shadow-[0_30px_80px_-20px_rgb(0_0_0/0.9)]"
+          initial={drawer ? { opacity: 0, x: 40 } : { opacity: 0, y: 12, scale: 0.97 }}
+          animate={drawer ? { opacity: 1, x: 0 } : { opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: "spring", bounce: drawer ? 0 : 0.2, duration: drawer ? 0.35 : 0.4 }}
+          className={clsx(
+            "flex flex-col border-line-strong bg-panel shadow-[0_30px_80px_-20px_rgb(0_0_0/0.9)]",
+            drawer ? "h-dvh border-l" : "max-h-[calc(100dvh-24px)] rounded-2xl border",
+          )}
         >
           <header className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
             <div className="min-w-0">
