@@ -1,6 +1,7 @@
 import clsx from "clsx";
+import { useQuery } from "convex/react";
 import { motion } from "motion/react";
-import { CalendarDays, Check, Flame, Hash, Heart, Lock, Sparkles, Target, Users } from "lucide-react";
+import { CalendarDays, Check, ChevronRight, Flame, Hash, Heart, Lock, Minus, Sparkles, Target, Users } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 import { api } from "../../convex/_generated/api";
@@ -175,30 +176,7 @@ export function Me() {
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-12">
-        <Card className="xl:col-span-5">
-          <CardHeader title="Weekly quests" subtitle={`${data.quests.filter((q) => q.done).length} of ${data.quests.length} complete · resets Monday`} icon={<Target className="h-4 w-4 text-saffron" />} />
-          <ul className="space-y-2 px-5 pb-5">
-            {data.quests.map((q) => (
-              <li key={q.id} className={clsx("rounded-xl border p-3.5 transition-colors", q.done ? "border-up/25 bg-up/[0.06]" : "border-line bg-ink/40")}>
-                <div className="flex items-start gap-3">
-                  <span className={clsx("mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full", q.done ? "bg-up text-ink" : "border border-line-strong")}>
-                    {q.done && <Check className="h-3 w-3" strokeWidth={3} />}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-medium">{q.title}</span>
-                      <span className="font-mono text-xs text-muted tabular">
-                        {q.progress}/{q.goal}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted">{q.description}</p>
-                    {!q.done && <Progress value={q.progress} max={q.goal} className="mt-2" height={4} />}
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </Card>
+        <QuestCard today={today} />
 
         <Card className="xl:col-span-7">
           <CardHeader title="Recent activity" subtitle={viewer.canSeeOwnReceived ? "Kudos you gave and received" : "Kudos you gave"} />
@@ -295,6 +273,103 @@ export function Me() {
         </Card>
       </div>
     </div>
+  );
+}
+
+type QuestBoard = Extract<NonNullable<ReturnType<typeof useQuery<typeof api.quests.mine>>>, { enabled: true }>;
+type QuestRow = QuestBoard["quests"][number];
+
+function waivedCopy(q: QuestRow) {
+  switch (q.waivedReason) {
+    case "privacy":
+      return "hidden by your workspace's privacy settings";
+    case "too_new":
+      return "needs more history";
+    case "no_candidates":
+      return q.key === "spread" ? "needs at least 3 teammates" : "you've already recognized everyone 🎉";
+    default:
+      return null;
+  }
+}
+
+/** This week's quest board (quests.mine): progress, waived quests, and how quests count. */
+function QuestCard({ today }: { today: string }) {
+  const board = useQuery(api.quests.mine, { today });
+  if (board === undefined) return <Card className="min-h-64 animate-pulse xl:col-span-5" aria-busy />;
+  if (!board.enabled) return null;
+  return (
+    <Card className="flex flex-col xl:col-span-5 xl:self-start">
+      <CardHeader
+        title="Weekly quests"
+        subtitle={`${board.completed} of ${board.available} complete · resets Monday`}
+        icon={<Target className="h-4 w-4 text-saffron" />}
+        action={
+          board.sweep && (
+            <span className="rounded-full bg-up/15 px-2.5 py-1 text-xs font-medium text-up">Clean sweep 🧹</span>
+          )
+        }
+      />
+      <ul className="space-y-2 px-5">
+        {board.quests.map((q) => (
+          <QuestItem key={q.key} quest={q} />
+        ))}
+      </ul>
+      <details className="group mx-5 mt-3 mb-5 rounded-xl border border-line bg-ink/30 px-3.5 py-2.5 text-xs text-muted">
+        <summary className="flex cursor-pointer list-none items-center gap-1.5 font-medium text-cream/80 select-none [&::-webkit-details-marker]:hidden">
+          <ChevronRight className="h-3.5 w-3.5 transition-transform group-open:rotate-90" /> How quests count
+        </summary>
+        <ul className="mt-2 space-y-1 pl-5 leading-relaxed">
+          <li>
+            Add a few words of <em>why</em> (3+ words).
+          </li>
+          <li>Thanking someone back within 3 days doesn't count.</li>
+          <li>One message counts once, however many people you mention.</li>
+        </ul>
+      </details>
+    </Card>
+  );
+}
+
+function QuestItem({ quest: q }: { quest: QuestRow }) {
+  const done = q.status === "done";
+  const waived = q.status === "waived";
+  return (
+    <li
+      className={clsx(
+        "rounded-xl border p-3.5 transition-colors",
+        done ? "border-up/25 bg-up/[0.06]" : waived ? "border-dashed border-line bg-transparent" : "border-line bg-ink/40",
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <span
+          className={clsx(
+            "mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full",
+            done ? "bg-up text-ink" : waived ? "bg-panel-3 text-faint" : "border border-line-strong",
+          )}
+        >
+          {done && <Check className="h-3 w-3" strokeWidth={3} />}
+          {waived && <Minus className="h-3 w-3" strokeWidth={3} />}
+        </span>
+        <div className={clsx("min-w-0 flex-1", waived && "opacity-60")}>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm font-medium">{q.title}</span>
+            {!waived && (
+              <span className="font-mono text-xs text-muted tabular">
+                {q.progress}/{q.goal}
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-muted">{q.description}</p>
+          {waived && (
+            <p className="mt-1 text-xs text-faint">
+              Not available this week · {waivedCopy(q)}
+            </p>
+          )}
+          {q.status === "active" && <Progress value={q.progress} max={q.goal} className="mt-2" height={4} />}
+          {done && q.completedAt && <p className="mt-1 text-[11px] text-faint">Completed {relativeTime(q.completedAt)}</p>}
+        </div>
+      </div>
+    </li>
   );
 }
 

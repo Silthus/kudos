@@ -56,3 +56,23 @@ export function previewText(
     .trim();
   return resolved.length > max ? `${resolved.slice(0, max - 1)}…` : resolved;
 }
+
+const NOTE_NOISE = [
+  /<[@#!][^>]*>/g, // mentions, channel links, @here/@channel
+  /<(?:https?|mailto):[^>]*>/g, // Slack-formatted links, label included
+  /\bhttps?:\/\/\S+/g, // bare URLs (playground input)
+  /:[a-z0-9_+'-]+:/gi, // every :shortcode:, skin tones included
+  /&(?:amp|lt|gt);/g,
+];
+const NOTE_WORD = /[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu;
+
+/**
+ * Words in the Note of a kudos message: what's left after mentions, channel links,
+ * URLs and emoji are removed. Quests only count kudos whose Note has a few words.
+ */
+export function countNoteWords(rawText: string, emojiName: string, emojiGlyph: string): number {
+  let note = emojiGlyph ? rawText.split(emojiGlyph).join(" ") : rawText;
+  note = note.split(`:${emojiName}:`).join(" ");
+  for (const re of NOTE_NOISE) note = note.replace(re, " ");
+  return note.match(NOTE_WORD)?.length ?? 0;
+}

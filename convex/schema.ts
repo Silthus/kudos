@@ -134,10 +134,12 @@ export default defineSchema({
     text: v.string(),
     at: v.number(), // when it was given (seeded demo history is back-dated)
     hour: v.optional(v.number()), // local hour (0–23) at write time; keeps heatmap buckets stable
+    noteWords: v.optional(v.number()), // words in the Note (lib/parse countNoteWords); absent for reactions and legacy rows
   })
     .index("by_workspace_at", ["workspaceId", "at"])
     .index("by_giver_at", ["giverId", "at"])
     .index("by_receiver_at", ["receiverId", "at"])
+    .index("by_giver_receiver_at", ["giverId", "receiverId", "at"]) // quests: fresh / rekindle lookups
     .index("by_batch", ["batchId"])
     .index("by_message", ["workspaceId", "channelId", "messageTs"])
     .index("by_message_giver_source", ["workspaceId", "channelId", "messageTs", "giverId", "source"]),
@@ -261,6 +263,26 @@ export default defineSchema({
     createdBy: v.id("members"),
     updatedAt: v.number(),
   }).index("by_workspace_status_cost", ["workspaceId", "status", "cost"]),
+
+  // Weekly quests (lib/quests.ts). A board is stored the first time a mutation needs it, so a
+  // running week never reshuffles. Progress is never stored: it's recomputed from kudos rows.
+  questBoards: defineTable({
+    workspaceId: v.id("workspaces"),
+    weekKey: v.string(), // Monday YYYY-MM-DD in the workspace timezone
+    questKeys: v.array(v.string()), // 3 catalog keys, display order
+  }).index("by_workspace_week", ["workspaceId", "weekKey"]),
+
+  questCompletions: defineTable({
+    workspaceId: v.id("workspaces"),
+    memberId: v.id("members"),
+    weekKey: v.string(),
+    questKey: v.string(),
+    completedAt: v.number(),
+    sweep: v.boolean(), // this completion cleared the board
+    notificationId: v.optional(v.id("notifications")), // the Quest message (added with quest rewards)
+  })
+    .index("by_member_week", ["memberId", "weekKey"])
+    .index("by_workspace_week", ["workspaceId", "weekKey"]),
 
   slackEvents: defineTable({
     eventId: v.string(),

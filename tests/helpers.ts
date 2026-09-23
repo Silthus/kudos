@@ -78,7 +78,7 @@ export async function member(t: ReturnType<typeof convexTest>, id: Id<"members">
   return (await t.run((ctx) => ctx.db.get(id)))!;
 }
 
-export async function all<T extends "kudos" | "memberDays" | "notifications" | "discoveries" | "slackEvents">(
+export async function all<T extends "kudos" | "memberDays" | "notifications" | "discoveries" | "slackEvents" | "questBoards" | "questCompletions">(
   t: ReturnType<typeof convexTest>,
   table: T,
 ) {

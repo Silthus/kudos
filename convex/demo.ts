@@ -5,9 +5,10 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { allowanceCheck, findMember, giveKudos, revokeKudosRow } from "./engine";
 import { getViewer, requireViewer } from "./lib/access";
 import { CATALOG, RARITY_WEIGHTS, type Category } from "./lib/messages";
-import { parseKudosMessage, previewText } from "./lib/parse";
+import { countNoteWords, parseKudosMessage, previewText } from "./lib/parse";
 import { addDays, dayKeyFor, startOfDayUtc, weekdayOfKey } from "./lib/time";
 import { DEFAULT_SETTINGS } from "./lib/settings";
+import { mulberry32 } from "./lib/random";
 
 const DEMO_TEAM = "T_DEMO_LUMEN";
 export const DEMO_YOU = "UDEMOYOU";
@@ -65,17 +66,6 @@ const REASONS = [
   "for the brilliant user interviews",
   "for making the install schedule work",
 ];
-
-function mulberry32(seed: number) {
-  let a = seed;
-  return () => {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 function weighted<T>(items: T[], weight: (t: T) => number, r: number): T {
   const total = items.reduce((s, t) => s + weight(t), 0);
@@ -385,6 +375,7 @@ export const simulateMessage = mutation({
       channelName: channelName.replace(/[^a-z0-9-]/gi, "").slice(0, 40) || "general",
       messageTs: `${now / 1000}`,
       text: previewText(text, (id) => known.get(id)),
+      noteWords: countNoteWords(text, workspace.emojiName, workspace.emojiGlyph),
       source: "playground",
       now,
     });
@@ -478,6 +469,7 @@ export const teammateThanks = internalMutation({
     const to = await ctx.db.get(args.toMemberId);
     if (!workspace?.isDemo || !from || !to) return null;
     const now = Date.now();
+    const note = "right back at you, thank you!";
     await giveKudos(ctx, {
       workspace,
       giverSlackId: from.slackUserId,
@@ -486,7 +478,8 @@ export const teammateThanks = internalMutation({
       channelId: `C_DEMO_${args.channelName.toUpperCase()}`,
       channelName: args.channelName,
       messageTs: `${now / 1000}`,
-      text: `@${to.name.split(" ")[0]} 🌮 right back at you, thank you!`,
+      text: `@${to.name.split(" ")[0]} ${workspace.emojiGlyph} ${note}`,
+      noteWords: countNoteWords(note, workspace.emojiName, workspace.emojiGlyph),
       source: "playground",
       now,
     });
@@ -494,7 +487,7 @@ export const teammateThanks = internalMutation({
   },
 });
 
-const DEMO_TABLES = ["kudos", "memberDays", "discoveries", "notifications"] as const;
+const DEMO_TABLES = ["kudos", "memberDays", "discoveries", "questBoards", "questCompletions", "notifications"] as const;
 
 const RESET_LOCK_MS = 15 * 60 * 1000;
 
@@ -528,7 +521,9 @@ export const resetDemoWorkspace = internalMutation({
             ? await ctx.db.query("memberDays").withIndex("by_workspace_day", (q) => q.eq("workspaceId", workspace._id)).take(1000)
             : table === "discoveries"
               ? await ctx.db.query("discoveries").withIndex("by_workspace_firstSeen", (q) => q.eq("workspaceId", workspace._id)).take(1000)
-              : [];
+              : table === "questBoards" || table === "questCompletions"
+                ? await ctx.db.query(table).withIndex("by_workspace_week", (q) => q.eq("workspaceId", workspace._id)).take(1000)
+                : [];
       for (const r of rows) await ctx.db.delete(r._id);
       deleted += rows.length;
     }
