@@ -6,7 +6,7 @@ import { allowanceCheck, ensureMember, remainingToday } from "./engine";
 import { RARITY_SLACK_BADGE, type Rarity } from "./lib/messages";
 import { DEFAULT_SETTINGS } from "./lib/settings";
 import { balanceOf, MAX_ACTIVE_REWARDS, storeOpen } from "./lib/store";
-import { activeRewards, openRedemptionCount, otherActiveAdminExists, transitionRedemption } from "./store";
+import { activeRewards, openRedemptionCount, ownDecisionBlocker, transitionRedemption } from "./store";
 import { openRequestCount } from "./storeAdmin";
 import { redemptionStatusValidator } from "./schema";
 import { rewardLine, siteUrl } from "./lib/slack";
@@ -570,7 +570,7 @@ export const redemptionForSlack = internalQuery({
       }
       admins.sort((a, b) => Number(b.signedIn) - Number(a.signedIn));
       // An admin only reviews their own request when nobody else can (the four-eyes rule).
-      if (requester.isAdmin && !requester.deactivated && !(await otherActiveAdminExists(ctx, workspace._id, requester._id))) {
+      if (requester.isAdmin && !requester.deactivated && (await ownDecisionBlocker(ctx, workspace, requester)) === null) {
         admins.unshift({ slackUserId: requester.slackUserId, isOwn: true, signedIn: true });
       }
       admins.splice(MAX_ADMIN_DMS);

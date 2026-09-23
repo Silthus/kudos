@@ -778,7 +778,8 @@ export function LedgerDrawer({ memberId, isDemo, onClose }: { memberId: Id<"memb
           <dl className="grid grid-cols-3 gap-2 rounded-xl border border-line bg-ink/30 p-3 text-center">
             {(
               [
-                ["Received", nf.format(ledger.received)],
+                // Hidden under "Only me", as in the Members table; the balance is still shown (D4).
+                ["Received", ledger.received === null ? "—" : nf.format(ledger.received)],
                 ["Granted", signed(ledger.granted)],
                 ["Spent", ledger.spent ? `−${nf.format(ledger.spent)}` : "0"],
               ] as const
@@ -937,14 +938,18 @@ function AdjustBalanceDialog({ open, ledger, glyph, onClose }: { open: boolean; 
  * so an admin can spot two people feeding each other their allowance before approving.
  */
 function BalanceContext({ redemptionId, requester, glyph, onLedger }: { redemptionId: Id<"redemptions">; requester: string; glyph: string; onLedger: () => void }) {
+  const viewer = useViewer();
   const context = useQuery(api.storeAdmin.redemptionContext, { redemptionId });
   return (
     <section aria-label="Where this balance came from" className="rounded-xl border border-line bg-ink/30 p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
         <Eyebrow>Where this balance came from</Eyebrow>
-        <button onClick={onLedger} className="shrink-0 whitespace-nowrap text-xs text-muted underline decoration-line-strong underline-offset-4 hover:text-cream">
-          Open ledger
-        </button>
+        {/* Ledgers only exist while the store is open; closed, requests stay decidable but not adjustable. */}
+        {viewer.workspace.storeEnabled && (
+          <button onClick={onLedger} className="shrink-0 whitespace-nowrap text-xs text-muted underline decoration-line-strong underline-offset-4 hover:text-cream">
+            Open ledger
+          </button>
+        )}
       </div>
       {context === undefined ? (
         <Skeleton className="h-16" />

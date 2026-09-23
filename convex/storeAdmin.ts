@@ -23,7 +23,7 @@ import {
   adjustmentValidator,
   grantBalance,
   historyEntryValidator,
-  otherActiveAdminExists,
+  ownDecisionBlocker,
   peopleCache,
   personValidator,
   redemptionInWorkspace,
@@ -277,7 +277,7 @@ export const redemptions = query({
             .paginate(paginationOpts);
     const people = peopleCache(ctx);
     const showBalance = workspace.receivedVisibility !== "hidden";
-    const soleAdmin = !(await otherActiveAdminExists(ctx, workspace._id, me._id));
+    const soleAdmin = (await ownDecisionBlocker(ctx, workspace, me)) === null;
     return {
       ...result,
       page: await Promise.all(
@@ -356,7 +356,7 @@ export const memberLedger = query({
     v.null(),
     v.object({
       member: v.object({ ...personValidator.fields, deactivated: v.boolean(), isYou: v.boolean() }),
-      received: v.number(),
+      received: v.union(v.number(), v.null()),
       granted: v.number(),
       spent: v.number(),
       balance: v.number(),
@@ -390,7 +390,8 @@ export const memberLedger = query({
     const people = peopleCache(ctx);
     return {
       member: { _id: member._id, name: member.name, avatarUrl: member.avatarUrl ?? null, deactivated: member.deactivated, isYou: member._id === me._id },
-      received: member.totalReceived,
+      // Under "Only me" admins see the balance (D4) but not the received count, as in Admin → Members.
+      received: workspace.receivedVisibility === "everyone" ? member.totalReceived : null,
       granted: member.storeGranted ?? 0,
       spent: member.storeSpent ?? 0,
       balance: balanceOf(member),

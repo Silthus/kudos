@@ -231,7 +231,7 @@ export function Store() {
         <p className="mb-5 flex items-start gap-2.5 rounded-xl border border-line-strong bg-panel-2/60 px-4 py-3 text-sm text-muted">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-faint" />
           <span>
-            Your balance is {nf.format(balance)} {glyph} because kudos you'd already spent were revoked, or an admin adjusted it (see Balance adjustments below). New kudos bring it back up.
+            Your balance is {nf.format(balance)} {glyph} because kudos you'd already spent were revoked, or an admin adjusted your balance. New kudos bring it back up.
           </span>
         </p>
       )}

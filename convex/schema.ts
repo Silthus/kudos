@@ -125,10 +125,12 @@ export default defineSchema({
     givenByWeekday: v.optional(v.array(v.number())), // 7 sums, Monday first
     storeSpent: v.optional(v.number()), // Σ cost of non-refunded redemptions; undefined = 0
     storeGranted: v.optional(v.number()), // Σ balance adjustments; undefined = 0
+    adminRemovedBy: v.optional(v.id("members")), // who last removed this member's admin role (four-eyes rule)
   })
     .index("by_workspace_slackUser", ["workspaceId", "slackUserId"])
     .index("by_workspace_totalGiven", ["workspaceId", "totalGiven"])
     .index("by_workspace_isAdmin", ["workspaceId", "isAdmin"]) // the Store's four-eyes rule
+    .index("by_adminRemovedBy", ["adminRemovedBy"]) // …and the admins someone demoted
     .index("by_user", ["userId"]),
 
   kudos: defineTable({

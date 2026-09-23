@@ -64,33 +64,36 @@ export async function openRedemptionCount(ctx: QueryCtx, memberId: Id<"members">
  * deactivated, not a bot. Slack sync makes every workspace admin a Kudos admin, so an admin
  * who never opened the app mustn't leave a request stuck. A sole admin decides alone.
  */
-export async function otherActiveAdminExists(ctx: QueryCtx, workspaceId: Id<"workspaces">, memberId: Id<"members">, besides?: Id<"members">) {
+export async function otherActiveAdminExists(ctx: QueryCtx, workspaceId: Id<"workspaces">, memberId: Id<"members">) {
   const admins = ctx.db
     .query("members")
     .withIndex("by_workspace_isAdmin", (q) => q.eq("workspaceId", workspaceId).eq("isAdmin", true));
   for await (const admin of admins) {
-    if (admin._id !== memberId && admin._id !== besides && canDecideStore(admin)) return true;
+    if (admin._id !== memberId && couldDecide(admin)) return true;
   }
   return false;
 }
 
-/** An admin who can act on the request queue: signed in, still here, not a bot. */
-export function canDecideStore(m: Doc<"members">) {
-  return m.isAdmin && Boolean(m.userId) && !m.deactivated && !m.isBot;
-}
+/** Someone who could act on the request queue if they were an admin: signed in, still here, not a bot. */
+const couldDecide = (m: Doc<"members">) => Boolean(m.userId) && !m.deactivated && !m.isBot;
+
+/** How many people an admin demoted are checked; more than a handful would be odd already. */
+const REMOVED_ADMINS_READ = 50;
 
 /**
- * Closes the four-eyes loophole: an admin can't demote the last other admin who could decide on
- * their store requests, which would make them the sole admin who approves their own. It holds
- * whenever the workspace has ever opened its store (closing it and reopening would dodge it);
- * someone who never signed in could decide nothing, so demoting them changes nothing.
+ * Why `actor` may not decide on their own request, or null when they may (D8). Another admin
+ * who can act decides. A sole admin decides alone, unless they became the sole admin by
+ * demoting someone who could still decide: those four eyes still count, so demoting the other
+ * admins and then approving your own request doesn't work, in whichever order it's tried.
  */
-export async function assertDemotionKeepsFourEyes(ctx: QueryCtx, workspace: Doc<"workspaces">, actor: Doc<"members">, target: Doc<"members">) {
-  if (workspace.storeEnabled === undefined || target._id === actor._id || !canDecideStore(target)) return;
-  if (await otherActiveAdminExists(ctx, workspace._id, actor._id, target._id)) return;
-  throw new ConvexError(
-    `${target.name} is the only other admin who can decide on your store requests. Make someone else an admin first, so nobody approves their own.`,
-  );
+export async function ownDecisionBlocker(ctx: QueryCtx, workspace: Doc<"workspaces">, actor: Doc<"members">): Promise<string | null> {
+  if (await otherActiveAdminExists(ctx, workspace._id, actor._id)) return "Another admin decides on your own requests.";
+  const removed = await ctx.db
+    .query("members")
+    .withIndex("by_adminRemovedBy", (q) => q.eq("adminRemovedBy", actor._id))
+    .take(REMOVED_ADMINS_READ);
+  const decider = removed.find((m) => m.workspaceId === workspace._id && couldDecide(m));
+  return decider ? `You removed ${decider.name}'s admin role, so another admin decides on your own requests.` : null;
 }
 
 /**
@@ -199,8 +202,9 @@ export async function transitionRedemption(
   const lastBy = !last ? undefined : last.by === actor._id ? "you" : (await ctx.db.get(last.by))?.name;
   const isRequester = redemption.memberId === actor._id;
   const { to, refund } = transition(redemption.status, action, { isRequester, isAdmin: actor.isAdmin }, lastBy);
-  if (action !== "cancel" && isRequester && (await otherActiveAdminExists(ctx, workspace._id, actor._id))) {
-    throw new ConvexError("Another admin decides on your own requests.");
+  if (action !== "cancel" && isRequester) {
+    const blocker = await ownDecisionBlocker(ctx, workspace, actor);
+    if (blocker) throw new ConvexError(blocker);
   }
   const text = action === "cancel" ? undefined : note?.trim() || undefined;
   if (text && text.length > REDEMPTION_BOUNDS.adminNote) throw new ConvexError(`Keep the note to ${REDEMPTION_BOUNDS.adminNote} characters.`);
@@ -267,20 +271,31 @@ export async function grantBalance(
   },
 ) {
   if (member.workspaceId !== workspace._id || member.isBot) throw new ConvexError("Member not found.");
-  if (by && by.workspaceId !== workspace._id) throw new ConvexError("Member not found.");
+  if (source === "admin") {
+    if (by?._id === member._id) throw new ConvexError("You can't adjust your own balance. Ask another admin.");
+    if (!by || by.workspaceId !== workspace._id || !by.isAdmin) throw new ConvexError("An admin adjustment needs the admin who made it.");
+  } else if (by) {
+    throw new ConvexError("System grants aren't made by an admin.");
+  }
   const valid = validateAdjustment({ amount, reason });
+  // Re-read: a caller looping over grants may hold a document from before the previous one.
+  const fresh = (await ctx.db.get(member._id))!;
   const adjustmentId = await ctx.db.insert("balanceAdjustments", {
     workspaceId: workspace._id,
     memberId: member._id,
     amount: valid.amount,
     reason: valid.reason,
     source,
-    ...(source === "admin" && by ? { by: by._id } : {}),
+    ...(by ? { by: by._id } : {}),
     at: now,
   });
-  const storeGranted = (member.storeGranted ?? 0) + valid.amount;
+  const storeGranted = (fresh.storeGranted ?? 0) + valid.amount;
   await ctx.db.patch(member._id, { storeGranted });
-  return { adjustmentId, balance: balanceOf({ ...member, storeGranted }) };
+  // The App Home shows the balance; keep it current (the demo has no Slack).
+  if (!workspace.isDemo && !fresh.deactivated) {
+    await ctx.scheduler.runAfter(0, internal.slack.refreshHome, { workspaceId: workspace._id, slackUserId: member.slackUserId });
+  }
+  return { adjustmentId, balance: balanceOf({ ...fresh, storeGranted }) };
 }
 
 /** Loads a redemption, treating one from another workspace as missing. */
