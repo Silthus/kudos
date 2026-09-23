@@ -50,25 +50,6 @@ describe("midnight rollover", () => {
   });
 });
 
-describe("weekly quests", () => {
-  test("count this week's giving even when the week started before the selected period", async () => {
-    // Thursday 2026-10-01: the week began on Monday 2026-09-28, the month only today.
-    const kudos = (receiverId: Id<"members">, dayKey: string, channelId: string) =>
-      t.run(async (ctx) => {
-        const at = Date.UTC(Number(dayKey.slice(0, 4)), Number(dayKey.slice(5, 7)) - 1, Number(dayKey.slice(8)), 10);
-        await ctx.db.insert("kudos", { workspaceId: team.workspaceId, batchId: `${dayKey}-${receiverId}`, giverId: team.ana, receiverId, amount: 1, dayKey, source: "message", channelId, text: "", at });
-      });
-    await kudos(team.ben, "2026-09-29", "C1");
-    await kudos(team.cleo, "2026-09-30", "C2");
-    const ana = await signInAs(t, team.ana);
-    for (const period of ["week", "month"] as const) {
-      const { quests } = await ana.query(api.me.overview, { period, today: "2026-10-01" });
-      const progress = Object.fromEntries(quests.map((q) => [q.id, q.progress]));
-      expect([period, progress.spread, progress.channels, progress.fresh]).toEqual([period, 2, 2, 1]);
-    }
-  });
-});
-
 describe("calendar-aligned comparisons", () => {
   beforeEach(async () => {
     await activity(team.ana, "2026-08-05", 1);

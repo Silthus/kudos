@@ -3,7 +3,7 @@ import { internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { giveKudos, type GiveResult } from "./engine";
-import { mentionedUsers, parseKudosMessage, previewText } from "./lib/parse";
+import { countNoteWords, mentionedUsers, parseKudosMessage, previewText } from "./lib/parse";
 
 const ingestResult = v.object({
   status: v.string(),
@@ -69,6 +69,7 @@ export const ingestMessage = internalMutation({
       channelPrivate: args.channelPrivate,
       messageTs: args.messageTs,
       text: await readablePreview(ctx, workspace._id, args.text),
+      noteWords: countNoteWords(args.text, workspace.emojiName, workspace.emojiGlyph),
       source: "message",
       excludeSlackIds: [args.botUserId],
       now: Date.now(),

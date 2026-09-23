@@ -5,6 +5,8 @@ import { internal } from "./_generated/api";
 import type { kudosSourceValidator } from "./schema";
 import { dayKeyFor, zonedParts } from "./lib/time";
 import { givingProfile, type MemberDayChange, Rollups } from "./lib/rollups";
+import { MIN_NOTE_WORDS } from "./lib/quests";
+import { onKudosGiven, onKudosRevoked } from "./quests";
 import {
   type Category,
   type TemplateVars,
@@ -179,6 +181,8 @@ export type GiveInput = {
   channelPrivate?: boolean;
   messageTs?: string;
   text: string;
+  /** Words in the Note (lib/parse `countNoteWords`); absent for reactions. */
+  noteWords?: number;
   source: KudosSource;
   /** Slack user ids that must never receive kudos (e.g. our own bot). */
   excludeSlackIds?: string[];
@@ -278,6 +282,7 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
       text: input.text.slice(0, 500),
       at: now,
       hour,
+      ...(input.noteWords !== undefined ? { noteWords: input.noteWords } : {}),
     };
     rollups.kudosAdded({ _id: await ctx.db.insert("kudos", row), ...row });
     rollups.memberDayChanged(await bumpMemberDay(ctx, workspace, r._id, dayKey, { received: input.amountEach }));
@@ -337,6 +342,9 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
 
   await rollups.flush();
 
+  // Only a batch with a Note can move quest progress; skip the reads otherwise.
+  if ((input.noteWords ?? 0) >= MIN_NOTE_WORDS) await onKudosGiven(ctx, workspace, giver, now);
+
   return {
     status: "given",
     batchId,
@@ -378,6 +386,7 @@ export async function revokeKudosRow(ctx: MutationCtx, workspace: Doc<"workspace
     );
   }
   await rollups.flush();
+  await onKudosRevoked(ctx, workspace, row);
 }
 
 /** Rarity-rolled "you have N left" message (slash command, App Home, playground). */

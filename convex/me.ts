@@ -175,37 +175,6 @@ export const overview = query({
         lastSeenAt: d.lastSeenAt,
       }));
 
-    // Quests: derived from this week's activity.
-    // The week can start before the selected period (a month that began on a Thursday), so read it on its own.
-    const weekStartTs = startOfDayUtc(week.current.start, tz);
-    const weekGivenRows = await ctx.db
-      .query("kudos")
-      .withIndex("by_giver_at", (q) => q.eq("giverId", member._id).gte("at", weekStartTs).lt("at", endTs))
-      .take(1000);
-    const weekRecipients = new Set(weekGivenRows.map((k) => k.receiverId));
-    const weekChannels = new Set(weekGivenRows.map((k) => k.channelName ?? k.channelId));
-    const weekMine = within(week.current);
-    const priorRecipients = new Set(
-      (
-        await ctx.db
-          .query("kudos")
-          .withIndex("by_giver_at", (q) => q.eq("giverId", member._id).lt("at", weekStartTs))
-          .order("desc")
-          .take(2000)
-      ).map((k) => k.receiverId),
-    );
-    const newConnections = [...weekRecipients].filter((id) => !priorRecipients.has(id)).length;
-    const weekDiscoveries = discoveries.filter((d) => d.firstSeenAt >= weekStartTs).length;
-    const weekStreak = streaks(weekMine.filter((d) => d.given > 0).map((d) => d.dayKey), today).longest;
-    const quests = [
-      { id: "spread", title: "Spread the love", description: "Recognize 3 different teammates this week", progress: weekRecipients.size, goal: 3 },
-      { id: "channels", title: "Channel hopper", description: "Give kudos in 2 different channels", progress: weekChannels.size, goal: 2 },
-      { id: "fresh", title: "New connection", description: "Recognize someone you've never recognized before", progress: newConnections, goal: 1 },
-      { id: "streak", title: "On a roll", description: "Give kudos 3 days in a row", progress: weekStreak, goal: 3 },
-      { id: "fulltank", title: "Full tank", description: `Use your whole allowance (${workspace.dailyLimit}) on 2 days`, progress: weekMine.filter((d) => d.maxed).length, goal: 2 },
-      { id: "collector", title: "Collector", description: "Discover 3 new bot messages", progress: weekDiscoveries, goal: 3 },
-    ].map((q) => ({ ...q, progress: Math.min(q.progress, q.goal), done: q.progress >= q.goal }));
-
     // Recent activity: given + (visible) received, newest first.
     const recentGiven = await ctx.db
       .query("kudos")
@@ -279,7 +248,6 @@ export const overview = query({
         byRarity,
         latest: latestDiscoveries,
       },
-      quests,
       activity,
       botMessages: notifications.map((n) => ({
         _id: n._id,

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { baseEmojiName, countEmoji, mentionedUsers, parseKudosMessage, previewText } from "./parse";
+import { baseEmojiName, countEmoji, countNoteWords, mentionedUsers, parseKudosMessage, previewText } from "./parse";
 
 describe("parseKudosMessage", () => {
   test("every emoji gives one kudos to every mentioned person", () => {
@@ -52,4 +52,28 @@ describe("previewText", () => {
 
 test("only Slack-shaped user ids count as mentions", () => {
   expect(mentionedUsers("<@UDEMOPRIYA> <@U_NOT_SLACK> <@here>")).toEqual(["UDEMOPRIYA"]);
+});
+
+describe("countNoteWords", () => {
+  const words = (text: string) => countNoteWords(text, "taco", "🌮");
+
+  test("counts only the words of the Note", () => {
+    expect(words("<@U1> :taco: thanks for the review")).toBe(4);
+    expect(words("<@U1|ana> <@U2> :taco::taco:")).toBe(0);
+  });
+
+  test("strips mentions, channel links, specials, URLs, shortcodes, skin tones and the glyph", () => {
+    expect(words("<#C1|general> <!here> <https://x.io|the docs> <mailto:a@b.c> :taco::skin-tone-3: :tada: 🌮 🎉 nice one")).toBe(2);
+    expect(words("see https://example.com/a-b now")).toBe(2);
+  });
+
+  test("punctuation isn't a word; apostrophes and hyphens stay inside words", () => {
+    expect(words("<@U1> :taco: — you're a life-saver!!! ... &amp; thanks’n’all")).toBe(4);
+  });
+
+  test("letters and digits in any script count", () => {
+    expect(words("danke für 2 Stunden Hilfe, 谢谢")).toBe(6);
+    // Combining marks stay inside their word.
+    expect(words("धन्यवाद बहुत अच्छा")).toBe(3);
+  });
 });
