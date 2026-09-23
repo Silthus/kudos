@@ -3,8 +3,9 @@ import { internalAction, type ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { baseEmojiName, parseKudosMessage } from "./lib/parse";
-import { siteUrl, slackApi, type SlackResponse } from "./lib/slack";
+import { escapeMrkdwn, rewardLine, siteUrl, slackApi, type SlackResponse } from "./lib/slack";
 import { RARITY_SLACK_BADGE, type Rarity } from "./lib/messages";
+import { OPEN_COUNT_CAP } from "./storeAdmin";
 
 type SlackEvent = {
   type: string;
@@ -203,6 +204,7 @@ async function publishHome(ctx: ActionCtx, workspaceId: Id<"workspaces">, token:
               .join("\n") || "_No kudos yet this week. Be the first!_",
         },
       },
+      ...storeSection(data.store, e, site),
       { type: "divider" },
       {
         type: "context",
@@ -218,12 +220,117 @@ async function publishHome(ctx: ActionCtx, workspaceId: Id<"workspaces">, token:
   await slackApi(token, "views.publish", { user_id: slackUserId, view });
 }
 
+type StoreHome = { balance: number; rewards: { emoji: string; name: string; cost: number }[]; waiting: number | null };
+
+/** The App Home "Rewards store" section; nothing at all while the store is closed. */
+function storeSection(store: StoreHome | null, e: string, site: string) {
+  if (!store) return [];
+  const buttons = [{ type: "button", text: { type: "plain_text", text: "Open store" }, url: `${site}/store`, action_id: "open_store" }];
+  const fields = [`*Balance*\n${store.balance} ${e}`];
+  if (store.waiting !== null) {
+    const count = store.waiting >= OPEN_COUNT_CAP ? `${OPEN_COUNT_CAP - 1}+` : String(store.waiting);
+    fields.push(`*For admins*\n${count} ${store.waiting === 1 ? "request" : "requests"} waiting`);
+    if (store.waiting > 0) {
+      buttons.push({ type: "button", text: { type: "plain_text", text: "Review requests" }, url: `${site}/admin?tab=store`, action_id: "review_requests" });
+    }
+  }
+  return [
+    { type: "divider" },
+    { type: "header", text: { type: "plain_text", text: "Rewards store" } },
+    { type: "section", fields: fields.map((text) => ({ type: "mrkdwn", text })) },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: store.rewards.map((r) => rewardLine(r, store.balance, e)).join("\n") || "_The shelves are empty. Your admins are still stocking the store._",
+      },
+    },
+    { type: "actions", elements: buttons },
+  ];
+}
+
 export const refreshHome = internalAction({
   args: { workspaceId: v.id("workspaces"), slackUserId: v.string() },
   returns: v.null(),
   handler: async (ctx, { workspaceId, slackUserId }) => {
     const install = await ctx.runQuery(internal.slackData.installationForWorkspace, { workspaceId });
     if (install) await publishHome(ctx, workspaceId, install.botToken, slackUserId);
+    return null;
+  },
+});
+
+// ── Rewards Store ────────────────────────────────────────────────────────────
+
+const redemptionEventValidator = v.union(
+  v.literal("requested"),
+  v.literal("approved"),
+  v.literal("fulfilled"),
+  v.literal("declined"),
+  v.literal("cancelled"),
+);
+
+async function postDm(token: string, channel: string, text: string, blocks: object[]) {
+  const res = await slackApi(token, "chat.postMessage", { channel, text, blocks });
+  if (!res.ok) console.warn(`Store DM to ${channel} failed: ${res.error}`);
+}
+
+/**
+ * Tells the requester (and, for a new request, the admins) about one step of a redemption,
+ * then refreshes the requester's App Home. Transactional DMs, not rarity-rolled bot messages
+ * (spec D13). Scheduled by the store helpers; a Slack failure never blocks the step.
+ */
+export const notifyRedemption = internalAction({
+  args: { redemptionId: v.id("redemptions"), event: redemptionEventValidator },
+  returns: v.null(),
+  handler: async (ctx, { redemptionId, event }) => {
+    const data = await ctx.runQuery(internal.slackData.redemptionForSlack, { redemptionId, withAdmins: event === "requested" });
+    if (!data) return null;
+    const { botToken: token, requester, reward } = data;
+    const e = `:${data.emojiName}:`;
+    const site = siteUrl();
+    const item = `*${escapeMrkdwn(`${reward.emoji} ${reward.name}`)}*`;
+    const cost = `${reward.cost} ${e}`;
+    const balance = requester.balance === null ? null : `${requester.balance} ${e}`;
+
+    // Word the DM for the step it's about, not the current status: a later step may already have happened.
+    const step = [...data.history].reverse().find((h) => h.status === (event === "requested" ? "pending" : event));
+    const by = step?.bySlackUserId ? `<@${step.bySlackUserId}>` : "an admin";
+    const note = step?.note ? escapeMrkdwn(step.note) : null;
+    const endsSentence = note !== null && /[.!?…]$/.test(note);
+    const update = {
+      requested: `🎁 Your request for ${item} (${cost}) is in. An admin will take it from here.${balance ? ` Balance: ${balance}.` : ""}`,
+      approved: `✅ ${by} approved ${item}. It's on its way.`,
+      fulfilled: `🎉 ${item} is yours!${note ? ` Note from ${by}: ${note}` : ""}`,
+      declined: `${item} was declined by ${by}${note ? `: “${note}”${endsSentence ? "" : "."}` : "."} ${cost} are back in your balance${balance ? ` (${balance})` : ""}.`,
+      cancelled: null, // they did it themselves
+    }[event];
+    if (update && !requester.deactivated) {
+      await postDm(token, requester.slackUserId, update, [
+        { type: "section", text: { type: "mrkdwn", text: update } },
+        { type: "context", elements: [{ type: "mrkdwn", text: `Follow it under <${site}/store#my-requests|My requests>` }] },
+      ]);
+    }
+    for (const admin of data.admins) {
+      const text = `🛎️ <@${requester.slackUserId}> wants ${item} (${cost}).${balance ? ` Balance after: ${balance}.` : ""}`;
+      const answer = data.answer && `Answer${data.prompt ? ` to “${escapeMrkdwn(data.prompt)}”` : ""}: ${escapeMrkdwn(data.answer)}`;
+      const warnings = [
+        requester.balance !== null && requester.balance < 0 ? "⚠️ Negative balance: some kudos they received were revoked." : null,
+        admin.isOwn ? "👤 Your own request. You're the only admin who can decide it." : null,
+      ].filter(Boolean);
+      await postDm(token, admin.slackUserId, text, [
+        { type: "section", text: { type: "mrkdwn", text } },
+        ...(answer ? [{ type: "section", text: { type: "mrkdwn", text: answer } }] : []),
+        ...(warnings.length ? [{ type: "context", elements: [{ type: "mrkdwn", text: warnings.join("  ·  ") }] }] : []),
+        {
+          type: "actions",
+          elements: [
+            { type: "button", style: "primary", text: { type: "plain_text", text: "Review in Kudos" }, url: `${site}/admin?tab=store`, action_id: "store_review" },
+          ],
+        },
+      ]);
+    }
+
+    if (!requester.deactivated) await publishHome(ctx, data.workspaceId, token, requester.slackUserId);
     return null;
   },
 });

@@ -199,7 +199,7 @@ async function rewardInWorkspace(ctx: MutationCtx, workspace: Doc<"workspaces">,
 /** Badges count up to this many open requests and show "99+" beyond. */
 export const OPEN_COUNT_CAP = 100;
 
-async function openRequestCount(ctx: QueryCtx, workspaceId: Id<"workspaces">) {
+export async function openRequestCount(ctx: QueryCtx, workspaceId: Id<"workspaces">) {
   const rows = await ctx.db
     .query("redemptions")
     .withIndex("by_workspace_isOpen_requestedAt", (q) => q.eq("workspaceId", workspaceId).eq("isOpen", true))

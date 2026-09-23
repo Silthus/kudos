@@ -1,11 +1,15 @@
 import { v } from "convex/values";
-import { internalMutation, internalQuery } from "./_generated/server";
+import { internalMutation, internalQuery, type QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { allowanceCheck, ensureMember, remainingToday } from "./engine";
 import { RARITY_SLACK_BADGE, type Rarity } from "./lib/messages";
 import { DEFAULT_SETTINGS } from "./lib/settings";
-import { siteUrl } from "./lib/slack";
+import { balanceOf, MAX_ACTIVE_REWARDS, storeOpen } from "./lib/store";
+import { activeRewards, openRedemptionCount, otherActiveAdminExists } from "./store";
+import { openRequestCount } from "./storeAdmin";
+import { redemptionStatusValidator } from "./schema";
+import { rewardLine, siteUrl } from "./lib/slack";
 import { addDays, dayKeyFor, weekdayOfKey } from "./lib/time";
 
 /** Slack retries deliveries it thinks failed; claim each event id exactly once. */
@@ -369,11 +373,37 @@ export const homeData = internalQuery({
       weekRank: myIndex >= 0 ? myIndex + 1 : null,
       discovered,
       top,
+      store: member && storeOpen(workspace) ? await storeHome(ctx, workspace, member) : null,
     };
   },
 });
 
-/** `/kudos [me|top|help]` — returns an ephemeral Slack response body. */
+/** Rewards on the shelf now: active and not sold out, cheapest first. */
+async function shelf(ctx: QueryCtx, workspace: Doc<"workspaces">) {
+  return (await activeRewards(ctx, workspace._id))
+    .slice(0, MAX_ACTIVE_REWARDS)
+    .filter((r) => r.stock === undefined || r.stock > 0)
+    .map((r) => ({ emoji: r.emoji, name: r.name, cost: r.cost }));
+}
+
+/**
+ * The App Home "Rewards store" section: the balance, the 3 dearest rewards it covers (topped
+ * up with the cheapest it doesn't, as the next goal) and, for admins, the requests waiting.
+ * Only called while the store is open, so the balance is never a hidden received count.
+ */
+async function storeHome(ctx: QueryCtx, workspace: Doc<"workspaces">, member: Doc<"members">) {
+  const balance = balanceOf(member);
+  const rewards = await shelf(ctx, workspace);
+  const affordable = rewards.filter((r) => r.cost <= balance).slice(-3).reverse();
+  const goals = rewards.filter((r) => r.cost > balance).slice(0, 3 - affordable.length);
+  return {
+    balance,
+    rewards: [...affordable, ...goals],
+    waiting: member.isAdmin ? await openRequestCount(ctx, workspace._id) : null,
+  };
+}
+
+/** `/kudos [me|top|store|help]` — returns an ephemeral Slack response body. */
 export const slashCommand = internalMutation({
   args: { teamId: v.string(), slackUserId: v.string(), text: v.string() },
   returns: v.any(),
@@ -427,6 +457,35 @@ export const slashCommand = internalMutation({
         ],
       };
     }
+    const store = storeOpen(workspace);
+    if (sub === "store" || sub === "balance") {
+      if (!store) return { response_type: "ephemeral", text: "The rewards store isn't open in this workspace." };
+      const member = await ensureMember(ctx, workspace, slackUserId);
+      const balance = balanceOf(member);
+      const rewards = (await shelf(ctx, workspace)).slice(0, 5);
+      const open = await openRedemptionCount(ctx, member._id);
+      return {
+        response_type: "ephemeral",
+        blocks: [
+          { type: "header", text: { type: "plain_text", text: "Rewards store" } },
+          {
+            type: "section",
+            fields: [
+              { type: "mrkdwn", text: `*Balance*\n${balance} ${e}` },
+              { type: "mrkdwn", text: `*Open requests*\n${open}` },
+            ],
+          },
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: rewards.map((r) => rewardLine(r, balance, e)).join("\n") || "_The shelves are empty. Your admins are still stocking the store._",
+            },
+          },
+          { type: "context", elements: [{ type: "mrkdwn", text: `<${site}/store|Open the store>` }] },
+        ],
+      };
+    }
     return {
       response_type: "ephemeral",
       text: [
@@ -436,7 +495,8 @@ export const slashCommand = internalMutation({
         workspace.reactionsEnabled ? `• React with ${e} on a message to give its author one kudos.` : "",
         "• The bot answers with messages of different rarities. Collect them all!",
         "",
-        "`/kudos me` your balance · `/kudos top` weekly leaderboard",
+        "`/kudos me` what you can give today · `/kudos top` weekly leaderboard",
+        store ? "`/kudos store` your balance and the rewards you can spend it on" : "",
         `<${site}|Open the Kudos dashboard>`,
       ]
         .filter(Boolean)
@@ -445,3 +505,86 @@ export const slashCommand = internalMutation({
   },
 });
 
+
+// ── Rewards Store ────────────────────────────────────────────────────────────
+
+/** Admin DMs for one request go to at most this many admins, signed-in ones first. */
+const MAX_ADMIN_DMS = 20;
+
+/**
+ * Everything `slack.notifyRedemption` needs to tell people about one redemption, or null
+ * when the workspace can't be reached in Slack (uninstalled, demo). `admins` is only
+ * filled for a new request. Balances are left out while received kudos are hidden.
+ */
+export const redemptionForSlack = internalQuery({
+  args: { redemptionId: v.id("redemptions"), withAdmins: v.boolean() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      workspaceId: v.id("workspaces"),
+      botToken: v.string(),
+      emojiName: v.string(),
+      requester: v.object({ slackUserId: v.string(), deactivated: v.boolean(), balance: v.union(v.number(), v.null()) }),
+      reward: v.object({ name: v.string(), emoji: v.string(), cost: v.number() }),
+      prompt: v.optional(v.string()),
+      answer: v.optional(v.string()),
+      history: v.array(
+        v.object({ status: redemptionStatusValidator, bySlackUserId: v.union(v.string(), v.null()), note: v.optional(v.string()) }),
+      ),
+      admins: v.array(v.object({ slackUserId: v.string(), isOwn: v.boolean() })),
+    }),
+  ),
+  handler: async (ctx, { redemptionId, withAdmins }) => {
+    const redemption = await ctx.db.get(redemptionId);
+    if (!redemption) return null;
+    const workspace = await ctx.db.get(redemption.workspaceId);
+    if (!workspace || workspace.status !== "active" || workspace.isDemo) return null;
+    const install = await ctx.db
+      .query("slackInstallations")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", workspace._id))
+      .unique();
+    const requester = await ctx.db.get(redemption.memberId);
+    if (!install || !requester) return null;
+    const slackIds = new Map<Id<"members">, string | null>();
+    for (const h of redemption.history) {
+      if (!slackIds.has(h.by)) slackIds.set(h.by, (await ctx.db.get(h.by))?.slackUserId ?? null);
+    }
+
+    const admins: { slackUserId: string; isOwn: boolean; signedIn: boolean }[] = [];
+    if (withAdmins) {
+      const rows = ctx.db
+        .query("members")
+        .withIndex("by_workspace_isAdmin", (q) => q.eq("workspaceId", workspace._id).eq("isAdmin", true));
+      for await (const admin of rows) {
+        if (admin._id === requester._id || admin.deactivated || admin.isBot) continue;
+        admins.push({ slackUserId: admin.slackUserId, isOwn: false, signedIn: Boolean(admin.userId) });
+      }
+      admins.sort((a, b) => Number(b.signedIn) - Number(a.signedIn));
+      admins.splice(MAX_ADMIN_DMS);
+      // An admin only reviews their own request when nobody else can (the four-eyes rule).
+      if (requester.isAdmin && !requester.deactivated && !(await otherActiveAdminExists(ctx, workspace._id, requester._id))) {
+        admins.push({ slackUserId: requester.slackUserId, isOwn: true, signedIn: true });
+      }
+    }
+
+    return {
+      workspaceId: workspace._id,
+      botToken: install.botToken,
+      emojiName: workspace.emojiName,
+      requester: {
+        slackUserId: requester.slackUserId,
+        deactivated: requester.deactivated,
+        balance: workspace.receivedVisibility !== "hidden" ? balanceOf(requester) : null,
+      },
+      reward: { name: redemption.rewardName, emoji: redemption.rewardEmoji, cost: redemption.cost },
+      prompt: redemption.prompt,
+      answer: redemption.answer,
+      history: redemption.history.map((h) => ({
+        status: h.status,
+        bySlackUserId: slackIds.get(h.by) ?? null,
+        ...(h.note ? { note: h.note } : {}),
+      })),
+      admins: admins.map(({ slackUserId, isOwn }) => ({ slackUserId, isOwn })),
+    };
+  },
+});

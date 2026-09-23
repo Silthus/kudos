@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator, paginationResultValidator } from "convex/server";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
+import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { requireViewer } from "./lib/access";
 import {
@@ -12,6 +13,7 @@ import {
   storeOpen,
   transition,
   type RedemptionAction,
+  type RedemptionStatus,
 } from "./lib/store";
 import { redemptionStatusValidator } from "./schema";
 
@@ -69,6 +71,20 @@ export async function otherActiveAdminExists(ctx: QueryCtx, workspaceId: Id<"wor
     if (admin._id !== memberId && admin.userId && !admin.deactivated && !admin.isBot) return true;
   }
   return false;
+}
+
+/**
+ * Tells Slack about a step once this transaction commits. The demo has no Slack; a failed
+ * DM never undoes the step, because the redemption's history is the source of truth.
+ */
+async function notifySlack(
+  ctx: MutationCtx,
+  workspace: Doc<"workspaces">,
+  redemptionId: Id<"redemptions">,
+  event: "requested" | Exclude<RedemptionStatus, "pending">,
+) {
+  if (workspace.isDemo) return;
+  await ctx.scheduler.runAfter(0, internal.slack.notifyRedemption, { redemptionId, event });
 }
 
 /**
@@ -133,6 +149,7 @@ export async function requestRedemption(
     openCount: (reward.openCount ?? 0) + 1,
     ...(reward.stock !== undefined ? { stock: reward.stock - 1 } : {}),
   });
+  await notifySlack(ctx, workspace, redemptionId, "requested");
   return { redemptionId, balance: balance - reward.cost };
 }
 
@@ -189,6 +206,7 @@ export async function transitionRedemption(
     const requester = await ctx.db.get(redemption.memberId);
     if (requester) await ctx.db.patch(requester._id, { storeSpent: (requester.storeSpent ?? 0) - redemption.cost });
   }
+  if (to !== "pending") await notifySlack(ctx, workspace, redemption._id, to);
   return { status: to };
 }
 

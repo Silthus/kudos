@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { signSlackRequest, slackManifest, verifySlackSignature } from "./slack";
+import { escapeMrkdwn, signSlackRequest, slackManifest, verifySlackSignature } from "./slack";
 
 const secret = "8f742231b10e8888abcd99yyyzzz85a5";
 
@@ -36,4 +36,27 @@ test("the manifest points every Slack surface at this deployment over HTTP", () 
   expect(m.settings.socket_mode_enabled).toBe(false);
   expect(m.features.slash_commands[0].url).toBe("https://kudos.example/slack/commands");
   expect(m.oauth_config.redirect_urls).toContain("https://kudos.example/api/auth/callback/slack");
+});
+
+test("the slash command hints at /kudos store, without asking for any new scope", () => {
+  const m = slackManifest("https://kudos.example");
+  expect(m.features.slash_commands[0].usage_hint).toBe("[me | top | store | help]");
+  // DMs and chat.update are covered by chat:write + im:write: the Store needs no reinstall.
+  expect(m.oauth_config.scopes.bot).toEqual([
+    "app_mentions:read",
+    "channels:history",
+    "channels:read",
+    "chat:write",
+    "commands",
+    "groups:history",
+    "groups:read",
+    "im:write",
+    "reactions:read",
+    "team:read",
+    "users:read",
+  ]);
+});
+
+test("escapes what people typed so it can't ping or link in Slack", () => {
+  expect(escapeMrkdwn("Tom & Jerry <!channel> <https://x|y>")).toBe("Tom &amp; Jerry &lt;!channel&gt; &lt;https://x|y&gt;");
 });
