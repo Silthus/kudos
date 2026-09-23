@@ -38,6 +38,17 @@ export async function verifySlackSignature(
   return timingSafeEqual(await signSlackRequest(secret, timestamp, body), signature);
 }
 
+/** Escapes text people typed (reward names, answers, notes) so it can't ping or link in mrkdwn. */
+export function escapeMrkdwn(text: string) {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/** "☕ Coffee on us · 15 :taco:", plus how far off it is when the balance doesn't cover it. */
+export function rewardLine(reward: { emoji: string; name: string; cost: number }, balance: number, e: string) {
+  const short = reward.cost - balance;
+  return `${escapeMrkdwn(`${reward.emoji} ${reward.name}`)} · ${reward.cost} ${e}${short > 0 ? `  _${short} more to go_` : ""}`;
+}
+
 export type SlackResponse = { ok: boolean; error?: string; [key: string]: unknown };
 
 /** Calls a Slack Web API method with a form-encoded body. */
@@ -118,8 +129,8 @@ export function slackManifest(base: string, appName = "Kudos") {
         {
           command: "/kudos",
           url: `${base}/slack/commands`,
-          description: "Your kudos balance, stats and the weekly leaderboard",
-          usage_hint: "[me | top | help]",
+          description: "Your kudos stats, the weekly leaderboard and the rewards store",
+          usage_hint: "[me | top | store | help]",
           should_escape: false,
         },
       ],
