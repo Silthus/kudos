@@ -39,6 +39,7 @@ import type * as lib_store from "../lib/store.js";
 import type * as lib_time from "../lib/time.js";
 import type * as me from "../me.js";
 import type * as quests from "../quests.js";
+import type * as removal from "../removal.js";
 import type * as rollups from "../rollups.js";
 import type * as session from "../session.js";
 import type * as slack from "../slack.js";
@@ -84,6 +85,7 @@ declare const fullApi: ApiFromModules<{
   "lib/time": typeof lib_time;
   me: typeof me;
   quests: typeof quests;
+  removal: typeof removal;
   rollups: typeof rollups;
   session: typeof session;
   slack: typeof slack;

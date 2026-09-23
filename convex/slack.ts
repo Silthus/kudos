@@ -602,6 +602,29 @@ export const syncAdminMessages = internalAction({
   },
 });
 
+/**
+ * Rewrites the admins' review DMs of a request whose requester was removed (`removal.ts`), which
+ * deleted the request: no buttons are left to click, and the copy no longer names them.
+ */
+export const retireAdminMessages = internalAction({
+  args: {
+    workspaceId: v.id("workspaces"),
+    reward: v.object({ name: v.string(), emoji: v.string() }),
+    messages: v.array(v.object({ channel: v.string(), ts: v.string() })),
+  },
+  returns: v.null(),
+  handler: async (ctx, { workspaceId, reward, messages }) => {
+    const install = await ctx.runQuery(internal.slackData.installationForWorkspace, { workspaceId });
+    if (!install) return null;
+    const text = `🗑️ A request for *${escapeMrkdwn(`${reward.emoji} ${reward.name}`)}* was withdrawn: the requester was removed from Kudos.`;
+    for (const { channel, ts } of messages) {
+      const res = await slackApi(install.botToken, "chat.update", { channel, ts, text, blocks: [{ type: "section", text: verbatim(text) }] });
+      if (!res.ok) console.warn(`Retiring the store DM ${channel}/${ts} failed: ${res.error}`);
+    }
+    return null;
+  },
+});
+
 /** Answers an interaction with a message only the person who clicked sees. */
 export const respond = internalAction({
   args: { responseUrl: v.string(), text: v.string() },

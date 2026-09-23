@@ -322,6 +322,8 @@ export const markDelivery = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, { id, delivery, error }) => {
+    // Gone if its member was removed (`removal.ts`) while it was on its way.
+    if (!(await ctx.db.get(id))) return null;
     await ctx.db.patch(id, { delivery, error });
     return null;
   },

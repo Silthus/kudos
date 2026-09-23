@@ -50,3 +50,10 @@ npm run check           # the merge gate: typecheck + tests + build
 ```
 
 Deploy: `npx convex deploy && npx @convex-dev/static-hosting upload --build --prod`.
+
+## Maintenance
+
+Internal functions for operators, run with `npx convex run --prod <function> '<args>'`:
+
+- `rollups:rebuildWorkspace '{"workspaceId":"…"}'` rebuilds a workspace's rollups; `rollups:verify` checks them.
+- `removal:removeMember '{"slackTeamId":"T…","slackUserId":"U…"}'` removes a member for good. Everything they gave or received is revoked, their own rows, store requests and sign-in are deleted, and the workspace's rollups are rebuilt. The work runs in the background; the logs end with a `removeMember: removed …` summary. It refuses bots and the demo. If the person is still in Slack, the next directory sync adds them back as a new, empty member.
