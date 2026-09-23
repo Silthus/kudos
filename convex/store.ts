@@ -14,8 +14,9 @@ import {
   transition,
   type RedemptionAction,
   type RedemptionStatus,
+  validateAdjustment,
 } from "./lib/store";
-import { redemptionStatusValidator } from "./schema";
+import { adjustmentSourceValidator, redemptionStatusValidator } from "./schema";
 
 /**
  * The Rewards Store for members. Like `engine.ts` for kudos, this module is the one
@@ -63,14 +64,33 @@ export async function openRedemptionCount(ctx: QueryCtx, memberId: Id<"members">
  * deactivated, not a bot. Slack sync makes every workspace admin a Kudos admin, so an admin
  * who never opened the app mustn't leave a request stuck. A sole admin decides alone.
  */
-export async function otherActiveAdminExists(ctx: QueryCtx, workspaceId: Id<"workspaces">, memberId: Id<"members">) {
+export async function otherActiveAdminExists(ctx: QueryCtx, workspaceId: Id<"workspaces">, memberId: Id<"members">, besides?: Id<"members">) {
   const admins = ctx.db
     .query("members")
     .withIndex("by_workspace_isAdmin", (q) => q.eq("workspaceId", workspaceId).eq("isAdmin", true));
   for await (const admin of admins) {
-    if (admin._id !== memberId && admin.userId && !admin.deactivated && !admin.isBot) return true;
+    if (admin._id !== memberId && admin._id !== besides && canDecideStore(admin)) return true;
   }
   return false;
+}
+
+/** An admin who can act on the request queue: signed in, still here, not a bot. */
+export function canDecideStore(m: Doc<"members">) {
+  return m.isAdmin && Boolean(m.userId) && !m.deactivated && !m.isBot;
+}
+
+/**
+ * Closes the four-eyes loophole: an admin can't demote the last other admin who could decide on
+ * their store requests, which would make them the sole admin who approves their own. It holds
+ * whenever the workspace has ever opened its store (closing it and reopening would dodge it);
+ * someone who never signed in could decide nothing, so demoting them changes nothing.
+ */
+export async function assertDemotionKeepsFourEyes(ctx: QueryCtx, workspace: Doc<"workspaces">, actor: Doc<"members">, target: Doc<"members">) {
+  if (workspace.storeEnabled === undefined || target._id === actor._id || !canDecideStore(target)) return;
+  if (await otherActiveAdminExists(ctx, workspace._id, actor._id, target._id)) return;
+  throw new ConvexError(
+    `${target.name} is the only other admin who can decide on your store requests. Make someone else an admin first, so nobody approves their own.`,
+  );
 }
 
 /**
@@ -220,6 +240,49 @@ export async function transitionRedemption(
   return { status: to };
 }
 
+/**
+ * An audited balance change that isn't recognition: an admin's correction or an automation's
+ * grant (`source: "system"`, the hook for quest rewards). It moves `storeGranted` only, so
+ * received totals, leaderboards and analytics never see it. Callers do their own authz; this
+ * checks the member belongs to the workspace and enforces the bounds.
+ */
+export async function grantBalance(
+  ctx: MutationCtx,
+  {
+    workspace,
+    member,
+    amount,
+    reason,
+    source,
+    by,
+    now,
+  }: {
+    workspace: Doc<"workspaces">;
+    member: Doc<"members">;
+    amount: number;
+    reason: string;
+    source: "admin" | "system";
+    by?: Doc<"members">;
+    now: number;
+  },
+) {
+  if (member.workspaceId !== workspace._id || member.isBot) throw new ConvexError("Member not found.");
+  if (by && by.workspaceId !== workspace._id) throw new ConvexError("Member not found.");
+  const valid = validateAdjustment({ amount, reason });
+  const adjustmentId = await ctx.db.insert("balanceAdjustments", {
+    workspaceId: workspace._id,
+    memberId: member._id,
+    amount: valid.amount,
+    reason: valid.reason,
+    source,
+    ...(source === "admin" && by ? { by: by._id } : {}),
+    at: now,
+  });
+  const storeGranted = (member.storeGranted ?? 0) + valid.amount;
+  await ctx.db.patch(member._id, { storeGranted });
+  return { adjustmentId, balance: balanceOf({ ...member, storeGranted }) };
+}
+
 /** Loads a redemption, treating one from another workspace as missing. */
 export async function redemptionInWorkspace(ctx: QueryCtx, workspace: Doc<"workspaces">, redemptionId: Id<"redemptions">) {
   const redemption = await ctx.db.get(redemptionId);
@@ -250,6 +313,20 @@ export function peopleCache(ctx: QueryCtx) {
   const history = (r: Doc<"redemptions">) =>
     Promise.all(r.history.map(async (h) => ({ status: h.status, at: h.at, by: await person(h.by), ...(h.note ? { note: h.note } : {}) })));
   return { member, person, history };
+}
+
+export const adjustmentValidator = v.object({
+  _id: v.id("balanceAdjustments"),
+  amount: v.number(),
+  reason: v.string(),
+  source: adjustmentSourceValidator,
+  by: v.union(personValidator, v.null()), // null for system grants, or an admin whose record is gone
+  at: v.number(),
+});
+
+/** Shapes an adjustment for the web, naming the admin who made it. */
+export async function adjustmentRow(people: ReturnType<typeof peopleCache>, a: Doc<"balanceAdjustments">) {
+  return { _id: a._id, amount: a.amount, reason: a.reason, source: a.source, by: a.by ? await people.person(a.by) : null, at: a.at };
 }
 
 const catalogReward = v.object({
@@ -367,6 +444,26 @@ export const myRedemptions = query({
         })),
       ),
     };
+  },
+});
+
+/**
+ * The signed-in member's own balance adjustments, newest first ("+10 🌮 from Lena"). Empty while
+ * the store is closed: an adjustment list next to a hidden balance would hint at it.
+ */
+export const myAdjustments = query({
+  args: { paginationOpts: paginationOptsValidator },
+  returns: paginationResultValidator(adjustmentValidator),
+  handler: async (ctx, { paginationOpts }) => {
+    const { workspace, member } = await requireViewer(ctx);
+    if (!storeOpen(workspace)) return { page: [], isDone: true, continueCursor: "" };
+    const result = await ctx.db
+      .query("balanceAdjustments")
+      .withIndex("by_member_at", (q) => q.eq("memberId", member._id))
+      .order("desc")
+      .paginate(paginationOpts);
+    const people = peopleCache(ctx);
+    return { ...result, page: await Promise.all(result.page.map((a) => adjustmentRow(people, a))) };
   },
 });
 

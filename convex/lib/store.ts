@@ -121,3 +121,38 @@ export function validateRewardInput(input: RewardInput): Required<Pick<RewardInp
   }
   return { name, emoji, cost: input.cost, description, prompt, stock: input.stock, maxPerMember: input.maxPerMember };
 }
+
+// ── Balance adjustments (S6) ─────────────────────────────────────────────────
+
+export const ADJUSTMENT_BOUNDS = { amount: 10_000, reason: { min: 3, max: 200 } } as const;
+
+/** An audited balance change: a whole, non-zero amount within ±10,000 and a one-line reason. */
+export function validateAdjustment({ amount, reason }: { amount: number; reason: string }) {
+  const b = ADJUSTMENT_BOUNDS;
+  if (!Number.isInteger(amount) || amount === 0 || Math.abs(amount) > b.amount) {
+    throw new ConvexError("The amount must be a whole number between −10,000 and 10,000, not 0.");
+  }
+  const text = reason.replace(/\s+/g, " ").trim();
+  if (text.length < b.reason.min || text.length > b.reason.max) {
+    throw new ConvexError(`Give a reason of ${b.reason.min}–${b.reason.max} characters. The member sees it.`);
+  }
+  return { amount, reason: text };
+}
+
+// ── Review aids (S6) ─────────────────────────────────────────────────────────
+
+/** "Where this balance came from" looks at the kudos received in the 90 days before a request. */
+export const CONTEXT_WINDOW_DAYS = 90;
+/** Rows read for that window; someone who received more is summarised from the newest ones. */
+export const CONTEXT_READ_CAP = 3000;
+export const CONCENTRATION = { share: 0.5, min: 20 } as const;
+
+/**
+ * Whether one giver accounts for most of what someone received: half or more, and at least
+ * 20 kudos, so a few kudos from one teammate never look like gaming.
+ */
+export function concentration(givers: { amount: number }[]): boolean {
+  const total = givers.reduce((sum, g) => sum + g.amount, 0);
+  const top = Math.max(0, ...givers.map((g) => g.amount));
+  return top >= CONCENTRATION.min && top >= total * CONCENTRATION.share;
+}

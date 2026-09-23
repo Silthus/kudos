@@ -7,6 +7,7 @@ import { revokeKudosRow } from "./engine";
 import { assertNotDemo, canSeeReceived, publicSettings, requireAdmin } from "./lib/access";
 import { siteUrl } from "./lib/slack";
 import { balanceOf, storeOpen } from "./lib/store";
+import { assertDemotionKeepsFourEyes } from "./store";
 import { receivedVisibilityValidator } from "./schema";
 
 /** Workspace settings plus Slack connection health for the admin page. */
@@ -139,6 +140,7 @@ export const setAdmin = mutation({
     const target = await ctx.db.get(memberId);
     if (!target || target.workspaceId !== workspace._id) throw new ConvexError("Member not found.");
     if (!isAdmin && target._id === me._id) throw new ConvexError("You can't remove your own admin role.");
+    if (!isAdmin) await assertDemotionKeepsFourEyes(ctx, workspace, me, target);
     await ctx.db.patch(memberId, { isAdmin });
     return null;
   },

@@ -4,10 +4,24 @@ import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/s
 import type { Doc, Id } from "./_generated/dataModel";
 import { assertNotDemo, requireAdmin } from "./lib/access";
 import { median, workspaceMembers } from "./lib/stats";
-import { assertValidStock, balanceOf, MAX_ACTIVE_REWARDS, OPEN_COUNT_CAP, validateRewardInput } from "./lib/store";
+import { DAY_MS } from "./lib/time";
+import {
+  assertValidStock,
+  balanceOf,
+  concentration,
+  CONTEXT_READ_CAP,
+  CONTEXT_WINDOW_DAYS,
+  MAX_ACTIVE_REWARDS,
+  OPEN_COUNT_CAP,
+  storeOpen,
+  validateRewardInput,
+} from "./lib/store";
 import { redemptionStatusValidator } from "./schema";
 import {
   activeRewards,
+  adjustmentRow,
+  adjustmentValidator,
+  grantBalance,
   historyEntryValidator,
   otherActiveAdminExists,
   peopleCache,
@@ -297,6 +311,156 @@ export const redemptions = query({
           };
         }),
       ),
+    };
+  },
+});
+
+// ── Balance adjustments and review aids (S6) ─────────────────────────────────
+
+/** A member of the admin's workspace (not a bot), or "not found" so ids can't be probed. */
+async function memberInWorkspace(ctx: QueryCtx, workspace: Doc<"workspaces">, memberId: Id<"members">) {
+  const member = await ctx.db.get(memberId);
+  if (!member || member.workspaceId !== workspace._id || member.isBot) throw new ConvexError("Member not found.");
+  return member;
+}
+
+/**
+ * Corrects someone's balance by hand, with a reason they'll see. Never your own: a self-grant
+ * is the most obvious abuse, so it's refused even for a sole admin. Balances only exist while
+ * the store is open; in the shared demo they're read-only like the catalog.
+ */
+export const adjustBalance = mutation({
+  args: { memberId: v.id("members"), amount: v.number(), reason: v.string() },
+  returns: v.object({ balance: v.number() }),
+  handler: async (ctx, { memberId, amount, reason }) => {
+    const { workspace, member: me } = await requireAdmin(ctx);
+    assertNotDemo(workspace, "Balances are");
+    if (!storeOpen(workspace)) throw new ConvexError("Open the store before adjusting balances.");
+    const member = await memberInWorkspace(ctx, workspace, memberId);
+    if (member._id === me._id) throw new ConvexError("You can't adjust your own balance. Ask another admin.");
+    const { balance } = await grantBalance(ctx, { workspace, member, amount, reason, source: "admin", by: me, now: Date.now() });
+    return { balance };
+  },
+});
+
+const LEDGER_ROWS = 20;
+
+/**
+ * Where a member's balance stands: received + granted − spent, with the latest adjustments and
+ * requests. null while the store is closed (or received kudos hidden): then a balance would be
+ * nothing but a received count in disguise, the leak #14 fixed in `admin.members`.
+ */
+export const memberLedger = query({
+  args: { memberId: v.id("members") },
+  returns: v.union(
+    v.null(),
+    v.object({
+      member: v.object({ ...personValidator.fields, deactivated: v.boolean(), isYou: v.boolean() }),
+      received: v.number(),
+      granted: v.number(),
+      spent: v.number(),
+      balance: v.number(),
+      adjustments: v.array(adjustmentValidator),
+      redemptions: v.array(
+        v.object({
+          _id: v.id("redemptions"),
+          rewardName: v.string(),
+          rewardEmoji: v.string(),
+          cost: v.number(),
+          status: redemptionStatusValidator,
+          requestedAt: v.number(),
+        }),
+      ),
+    }),
+  ),
+  handler: async (ctx, { memberId }) => {
+    const { workspace, member: me } = await requireAdmin(ctx);
+    const member = await memberInWorkspace(ctx, workspace, memberId);
+    if (!storeOpen(workspace)) return null;
+    const adjustments = await ctx.db
+      .query("balanceAdjustments")
+      .withIndex("by_member_at", (q) => q.eq("memberId", member._id))
+      .order("desc")
+      .take(LEDGER_ROWS);
+    const redemptions = await ctx.db
+      .query("redemptions")
+      .withIndex("by_member_requestedAt", (q) => q.eq("memberId", member._id))
+      .order("desc")
+      .take(LEDGER_ROWS);
+    const people = peopleCache(ctx);
+    return {
+      member: { _id: member._id, name: member.name, avatarUrl: member.avatarUrl ?? null, deactivated: member.deactivated, isYou: member._id === me._id },
+      received: member.totalReceived,
+      granted: member.storeGranted ?? 0,
+      spent: member.storeSpent ?? 0,
+      balance: balanceOf(member),
+      adjustments: await Promise.all(adjustments.map((a) => adjustmentRow(people, a))),
+      redemptions: redemptions.map((r) => ({
+        _id: r._id,
+        rewardName: r.rewardName,
+        rewardEmoji: r.rewardEmoji,
+        cost: r.cost,
+        status: r.status,
+        requestedAt: r.requestedAt,
+      })),
+    };
+  },
+});
+
+/**
+ * "Where this balance came from": who gave the requester their kudos in the 90 days before the
+ * request, top 3 first, with a flag when one giver brought most of it (a hint of two people
+ * feeding each other their allowance). The window ends at the request, so the answer doesn't
+ * drift with the clock. null while received kudos are hidden, like the queue's balances.
+ */
+export const redemptionContext = query({
+  args: { redemptionId: v.id("redemptions") },
+  returns: v.union(
+    v.null(),
+    v.object({
+      windowDays: v.number(),
+      total: v.number(),
+      givers: v.array(v.object({ member: v.object({ ...personValidator.fields, deactivated: v.boolean() }), amount: v.number(), share: v.number() })),
+      otherGivers: v.number(), // givers beyond the top 3
+      concentrated: v.boolean(),
+      truncated: v.boolean(), // more than CONTEXT_READ_CAP kudos rows: summarised from the newest
+    }),
+  ),
+  handler: async (ctx, { redemptionId }) => {
+    const { workspace } = await requireAdmin(ctx);
+    const redemption = await redemptionInWorkspace(ctx, workspace, redemptionId);
+    if (workspace.receivedVisibility === "hidden") return null;
+    const to = redemption.requestedAt;
+    const rows = await ctx.db
+      .query("kudos")
+      .withIndex("by_receiver_at", (q) =>
+        q.eq("receiverId", redemption.memberId).gte("at", to - CONTEXT_WINDOW_DAYS * DAY_MS).lte("at", to),
+      )
+      .order("desc")
+      .take(CONTEXT_READ_CAP + 1);
+    const truncated = rows.length > CONTEXT_READ_CAP;
+    const byGiver = new Map<Id<"members">, number>();
+    for (const k of rows.slice(0, CONTEXT_READ_CAP)) byGiver.set(k.giverId, (byGiver.get(k.giverId) ?? 0) + k.amount);
+    const ranked = [...byGiver].map(([giverId, amount]) => ({ giverId, amount })).sort((a, b) => b.amount - a.amount);
+    const total = ranked.reduce((sum, g) => sum + g.amount, 0);
+    const people = peopleCache(ctx);
+    const top = ranked.slice(0, 3);
+    return {
+      windowDays: CONTEXT_WINDOW_DAYS,
+      total,
+      givers: await Promise.all(
+        top.map(async ({ giverId, amount }) => {
+          const m = await people.member(giverId);
+          return {
+            member: { _id: giverId, name: m?.name ?? "Unknown member", avatarUrl: m?.avatarUrl ?? null, deactivated: m?.deactivated ?? true },
+            amount,
+            share: amount / total,
+          };
+        }),
+      ),
+      otherGivers: ranked.length - top.length,
+      concentrated: concentration(ranked),
+      truncated,
     };
   },
 });

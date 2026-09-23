@@ -18,6 +18,9 @@ export const redemptionStatusValidator = v.union(
   v.literal("cancelled"),
 );
 
+/** Who changed a balance: an admin by hand, or an automation such as quest rewards. */
+export const adjustmentSourceValidator = v.union(v.literal("admin"), v.literal("system"));
+
 export const rarityCountsValidator = v.object({
   common: v.number(),
   uncommon: v.number(),
@@ -328,6 +331,20 @@ export default defineSchema({
     .index("by_member_requestedAt", ["memberId", "requestedAt"])
     .index("by_member_status", ["memberId", "status"])
     .index("by_member_reward_status", ["memberId", "rewardId", "status"]),
+
+  // Audited balance changes that aren't recognition (admin corrections, quest rewards). Summed
+  // into members.storeGranted; only grantBalance in store.ts writes this table.
+  balanceAdjustments: defineTable({
+    workspaceId: v.id("workspaces"),
+    memberId: v.id("members"),
+    amount: v.number(), // ±, never 0
+    reason: v.string(),
+    source: adjustmentSourceValidator, // "system" = quests (#5) or other automations
+    by: v.optional(v.id("members")), // the admin who made it; undefined for system grants
+    at: v.number(),
+  })
+    .index("by_member_at", ["memberId", "at"])
+    .index("by_workspace_at", ["workspaceId", "at"]),
 
   slackEvents: defineTable({
     eventId: v.string(),

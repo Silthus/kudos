@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { balanceOf, isOpen, transition, validateRewardInput } from "./store";
+import { balanceOf, concentration, isOpen, transition, validateAdjustment, validateRewardInput } from "./store";
 
 describe("balanceOf", () => {
   test("is everything received when nothing was granted or spent yet", () => {
@@ -122,5 +122,45 @@ describe("transition", () => {
 describe("isOpen", () => {
   test("pending and approved requests are open, the rest are finished", () => {
     expect((["pending", "approved", "fulfilled", "declined", "cancelled"] as const).map(isOpen)).toEqual([true, true, false, false, false]);
+  });
+});
+
+describe("validateAdjustment", () => {
+  test("accepts whole amounts either way and trims the reason", () => {
+    expect(validateAdjustment({ amount: 10, reason: "  Hackathon winner " })).toEqual({ amount: 10, reason: "Hackathon winner" });
+    expect(validateAdjustment({ amount: -10_000, reason: "Took back a hoodie" })).toEqual({ amount: -10_000, reason: "Took back a hoodie" });
+    expect(validateAdjustment({ amount: 10_000, reason: "abc" }).amount).toBe(10_000);
+  });
+
+  test("refuses zero, fractions and amounts beyond 10,000 either way", () => {
+    for (const amount of [0, 1.5, 10_001, -10_001, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(() => validateAdjustment({ amount, reason: "Hackathon winner" })).toThrow(/whole number between −10,000 and 10,000, not 0/);
+    }
+  });
+
+  test("needs a reason of 3–200 characters", () => {
+    expect(() => validateAdjustment({ amount: 5, reason: "  ok " })).toThrow(/reason of 3–200 characters/);
+    expect(() => validateAdjustment({ amount: 5, reason: "x".repeat(201) })).toThrow(/reason of 3–200 characters/);
+    expect(validateAdjustment({ amount: 5, reason: "x".repeat(200) }).reason).toHaveLength(200);
+  });
+
+  test("collapses line breaks so a reason stays one line", () => {
+    expect(validateAdjustment({ amount: 5, reason: "Hackathon\n\nwinner" }).reason).toBe("Hackathon winner");
+  });
+});
+
+describe("concentration", () => {
+  test("is flagged when one giver brings half or more, and at least 20", () => {
+    expect(concentration([{ amount: 20 }, { amount: 20 }])).toBe(true);
+    expect(concentration([{ amount: 30 }, { amount: 10 }, { amount: 5 }])).toBe(true);
+  });
+
+  test("isn't flagged for a spread-out balance", () => {
+    expect(concentration([{ amount: 19 }, { amount: 11 }, { amount: 10 }])).toBe(false);
+  });
+
+  test("isn't flagged below 20 kudos, however lopsided", () => {
+    expect(concentration([{ amount: 19 }])).toBe(false);
+    expect(concentration([])).toBe(false);
   });
 });
