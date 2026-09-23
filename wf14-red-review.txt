@@ -1,0 +1,164 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-ad289ed16c7774904
+
+ ❯ tests/store.test.ts (53 tests | 7 failed) 3766ms
+   ❯ cancelling (3)
+     × refunds the cost and restocks the reward 11ms
+   ❯ deciding (12)
+     × fulfilling is final and keeps the cost spent 5ms
+     × admins who never opened Kudos, bots and people who left don't count as the other admin 13ms
+     × a refund only restocks what the request took from stock 7ms
+     × the core helper refuses actors and requests from another workspace 4ms
+   ❯ negative balances (3)
+     × show admins balances only while the store is open 4ms
+   ❯ the balance invariant (1)
+     × spent always equals the cost of requests that weren't refunded 27ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/store.test.ts > cancelling > refunds the cost and restocks the reward
+AssertionError: expected [Function] to throw error including 'Already cancelled by you.' but got 'Already cancelled by Ben.'
+
+Expected: "Already cancelled by you."
+Received: "Already cancelled by Ben."
+
+ ❯ tests/store.test.ts:437:67
+    435|     expect((await rewardDoc(rewardId))!.stock).toBe(5);
+    436|     expect(await ben.query(api.store.catalog, {})).toMatchObject({ bal…
+    437|     await expect(ben.mutation(api.store.cancel, { redemptionId })).rej…
+       |                                                                   ^
+    438|   });
+    439|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  tests/store.test.ts > deciding > fulfilling is final and keeps the cost spent
+AssertionError: expected [Function] to throw error including 'Already fulfilled by you.' but got 'Already fulfilled by Ana.'
+
+Expected: "Already fulfilled by you."
+Received: "Already fulfilled by Ana."
+
+ ❯ tests/store.test.ts:479:82
+    477|     expect(await statusOf(redemptionId)).toBe("fulfilled");
+    478|     for (const action of ["approve", "fulfill", "decline"] as const) {
+    479|       await expect(ana.mutation(api.storeAdmin.decide, { redemptionId,…
+       |                                                                                  ^
+    480|     }
+    481|     await t.run((ctx) => ctx.db.patch(team.cleo, { isAdmin: true }));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  tests/store.test.ts > deciding > admins who never opened Kudos, bots and people who left don't count as the other admin
+ConvexError: Another admin decides on your own requests.
+ ❯ transitionRedemption convex/store.ts:155:11
+    153|   const { to, refund } = transition(redemption.status, action, { isReq…
+    154|   if (action !== "cancel" && isRequester && (await otherActiveAdminExi…
+    155|     throw new ConvexError("Another admin decides on your own requests.…
+       |           ^
+    156|   }
+    157|   const text = action === "cancel" ? undefined : note?.trim() || undef…
+ ❯ handler convex/storeAdmin.ts:319:5
+ ❯ invokeFunction node_modules/convex/src/server/impl/registration_impl.ts:90:14
+ ❯ invokeMutation node_modules/convex/src/server/impl/registration_impl.ts:70:18
+ ❯ runMutationWithHandler node_modules/convex-test/dist/index.js:1989:31
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2133:32
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/store.test.ts:539:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  tests/store.test.ts > deciding > a refund only restocks what the request took from stock
+AssertionError: expected 2 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ tests/store.test.ts:564:48
+    562|     await ana.mutation(api.storeAdmin.updateReward, { rewardId, ...cof…
+    563|     await ana.mutation(api.storeAdmin.decide, { redemptionId, action: …
+    564|     expect((await rewardDoc(rewardId))!.stock).toBe(1);
+       |                                                ^
+    565|   });
+    566|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  tests/store.test.ts > deciding > the core helper refuses actors and requests from another workspace
+AssertionError: promise resolved "{ status: 'declined' }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "status": "declined",
+  }
+
+ ❯ tests/store.test.ts:591:117
+    589|       const redemption = (await ctx.db.get(redemptionId))!;
+    590|       const outsider = (await ctx.db.get(other.ana))!;
+    591|       await expect(transitionRedemption(ctx, { workspace, redemption, …
+       |                                                                                                                     ^
+    592|       const foreignWorkspace = (await ctx.db.get(other.workspaceId))!;
+    593|       const ana = (await ctx.db.get(team.ana))!;
+ ❯ invokeFunction node_modules/convex/src/server/impl/registration_impl.ts:90:14
+ ❯ invokeMutation node_modules/convex/src/server/impl/registration_impl.ts:70:18
+ ❯ runMutationWithHandler node_modules/convex-test/dist/index.js:1989:31
+ ❯ handler node_modules/convex-test/dist/index.js:2195:24
+ ❯ invokeFunction node_modules/convex/src/server/impl/registration_impl.ts:90:14
+ ❯ invokeAction node_modules/convex/src/server/impl/registration_impl.ts:513:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  tests/store.test.ts > negative balances > show admins balances only while the store is open
+AssertionError: expected { …(13) } to match object { totalReceived: null, balance: null }
+(11 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "balance": null,
++   "balance": 7,
+    "totalReceived": null,
+  }
+
+ ❯ tests/store.test.ts:707:28
+    705|     // A closed store must not turn the admin table into a received-co…
+    706|     await setWorkspace({ storeEnabled: false, receivedVisibility: "sel…
+    707|     expect(await benRow()).toMatchObject({ totalReceived: null, balanc…
+       |                            ^
+    708|   });
+    709|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+ FAIL  tests/store.test.ts > the balance invariant > spent always equals the cost of requests that weren't refunded
+AssertionError: expected 2 to be 5 // Object.is equality
+
+- Expected
++ Received
+
+- 5
++ 2
+
+ ❯ tests/store.test.ts:762:60
+    760|       rewardDocs: await Promise.all(rewards.map((id) => ctx.db.get(id)…
+    761|     }));
+    762|     expect(new Set(redemptions.map((r) => r.status)).size).toBe(5);
+       |                                                            ^
+    763|     for (const reward of rewardDocs) {
+    764|       const mine = redemptions.filter((r) => r.rewardId === reward!._i…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 46 passed (53)
+   Start at  20:47:30
+   Duration  4.19s (tests 92%, transform 4%, import 3%, environment 1%)
+
