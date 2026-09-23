@@ -531,7 +531,7 @@ export const redemptionForSlack = internalQuery({
       showBalance: v.boolean(),
       storeOpen: v.boolean(),
       status: redemptionStatusValidator,
-      requester: v.object({ slackUserId: v.string(), deactivated: v.boolean() }),
+      requester: v.object({ slackUserId: v.string(), name: v.string(), deactivated: v.boolean() }),
       reward: v.object({ name: v.string(), emoji: v.string(), cost: v.number() }),
       prompt: v.optional(v.string()),
       answer: v.optional(v.string()),
@@ -583,7 +583,7 @@ export const redemptionForSlack = internalQuery({
       showBalance: workspace.receivedVisibility !== "hidden",
       storeOpen: storeOpen(workspace),
       status: redemption.status,
-      requester: { slackUserId: requester.slackUserId, deactivated: requester.deactivated },
+      requester: { slackUserId: requester.slackUserId, name: requester.name, deactivated: requester.deactivated },
       reward: { name: redemption.rewardName, emoji: redemption.rewardEmoji, cost: redemption.cost },
       prompt: redemption.prompt,
       answer: redemption.answer,
@@ -602,7 +602,7 @@ export const redemptionForSlack = internalQuery({
  * A step may already have happened while they went out; then those copies are synced right away.
  */
 export const saveAdminMessages = internalMutation({
-  args: { redemptionId: v.id("redemptions"), messages: v.array(v.object({ channel: v.string(), ts: v.string() })) },
+  args: { redemptionId: v.id("redemptions"), messages: v.array(v.object({ channel: v.string(), ts: v.string(), own: v.optional(v.boolean()) })) },
   returns: v.null(),
   handler: async (ctx, { redemptionId, messages }) => {
     const redemption = await ctx.db.get(redemptionId);
@@ -623,12 +623,12 @@ export const adminCopies = internalQuery({
       emojiName: v.string(),
       version: v.string(),
       status: redemptionStatusValidator,
-      requesterSlackUserId: v.string(),
+      requester: v.object({ slackUserId: v.string(), name: v.string() }),
       reward: v.object({ name: v.string(), emoji: v.string(), cost: v.number() }),
       prompt: v.optional(v.string()),
       answer: v.optional(v.string()),
       step: v.object({ at: v.number(), bySlackUserId: v.union(v.string(), v.null()), note: v.optional(v.string()) }),
-      messages: v.array(v.object({ channel: v.string(), ts: v.string() })),
+      messages: v.array(v.object({ channel: v.string(), ts: v.string(), own: v.optional(v.boolean()) })),
     }),
   ),
   handler: async (ctx, { redemptionId }) => {
@@ -647,9 +647,9 @@ export const adminCopies = internalQuery({
       botToken: install.botToken,
       emojiName: workspace.emojiName,
       // Changes with every step and every newly saved copy, so a sync can tell it went stale.
-      version: `${redemption.history.length}:${redemption.adminMessages.length}`,
+      version: `${redemption.history.length}:${redemption.adminMessages.length}:${redemption.adminMessages.at(-1)!.ts}`,
       status: redemption.status,
-      requesterSlackUserId: requester.slackUserId,
+      requester: { slackUserId: requester.slackUserId, name: requester.name },
       reward: { name: redemption.rewardName, emoji: redemption.rewardEmoji, cost: redemption.cost },
       prompt: redemption.prompt,
       answer: redemption.answer,
@@ -689,6 +689,8 @@ export const storeInteraction = internalMutation({
             .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id).eq("slackUserId", args.slackUserId))
             .unique();
     if (!member || !member.isAdmin || member.deactivated || member.isBot) return "Only workspace admins can do that.";
+    // The four-eyes rule only counts admins who have signed in (`otherActiveAdminExists`), so only they decide.
+    if (!member.userId) return "Sign in to Kudos once before you decide requests from Slack.";
     const id = ctx.db.normalizeId("redemptions", args.redemptionId);
     const redemption = id ? await ctx.db.get(id) : null;
     if (!redemption || redemption.workspaceId !== workspace._id) return "Request not found.";

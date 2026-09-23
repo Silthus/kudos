@@ -96,7 +96,7 @@ type InteractionPayload = {
   team?: { id?: string } | null;
   user?: { id?: string; team_id?: string };
   response_url?: string;
-  actions?: { action_id?: string; value?: unknown }[];
+  actions?: { action_id?: unknown; value?: unknown }[];
 };
 
 // Approve and Mark fulfilled in the admins' store DMs. Every other button only opens a URL,
@@ -113,17 +113,23 @@ http.route({
     } catch {
       return new Response("bad request", { status: 400 });
     }
-    const [action] = payload.type === "block_actions" ? (payload.actions ?? []) : [];
-    const step = action?.action_id ? STORE_ACTIONS[action.action_id as keyof typeof STORE_ACTIONS] : undefined;
-    if (!step || typeof action.value !== "string" || !payload.team?.id || !payload.user?.id) return new Response("", { status: 200 });
+    if (typeof payload !== "object" || payload === null) return new Response("bad request", { status: 400 });
+    const [action] = payload.type === "block_actions" && Array.isArray(payload.actions) ? payload.actions : [];
+    const id = action?.action_id;
+    const step = typeof id === "string" && Object.hasOwn(STORE_ACTIONS, id) ? STORE_ACTIONS[id as keyof typeof STORE_ACTIONS] : undefined;
+    // Enterprise Grid sends no `team` for org-wide apps; the user's own team is the workspace then.
+    const teamId = payload.team?.id ?? payload.user?.team_id;
+    if (!step || typeof action.value !== "string" || typeof teamId !== "string" || typeof payload.user?.id !== "string") {
+      return new Response("", { status: 200 });
+    }
     const refusal = await ctx.runMutation(internal.slackData.storeInteraction, {
-      teamId: payload.team.id,
+      teamId,
       slackUserId: payload.user.id,
       userTeamId: payload.user.team_id,
       action: step,
       redemptionId: action.value,
     });
-    if (refusal && payload.response_url) {
+    if (refusal && typeof payload.response_url === "string") {
       await ctx.scheduler.runAfter(0, internal.slack.respond, { responseUrl: payload.response_url, text: refusal });
     }
     return new Response("", { status: 200 });

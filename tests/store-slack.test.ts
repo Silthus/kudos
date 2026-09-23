@@ -30,7 +30,8 @@ function stubSlackApi(responses: Record<string, SlackReply> = {}) {
       const method = api ?? String(url);
       calls.push({ method, params });
       const reply = responses[method];
-      return Response.json((typeof reply === "function" ? await reply(params) : reply) ?? { ok: true });
+      const value = typeof reply === "function" ? await reply(params) : reply;
+      return value instanceof Response ? value : Response.json(value ?? { ok: true });
     }),
   );
 }
@@ -465,7 +466,19 @@ describe("admin copies in Slack", () => {
     const actions = review.blocks.find((b: { type: string }) => b.type === "actions").elements;
     expect(actions).toEqual([
       { type: "button", style: "primary", text: { type: "plain_text", text: "Approve" }, action_id: "store_approve", value: redemptionId },
-      { type: "button", text: { type: "plain_text", text: "Mark fulfilled" }, action_id: "store_fulfill", value: redemptionId },
+      {
+        type: "button",
+        text: { type: "plain_text", text: "Mark fulfilled" },
+        action_id: "store_fulfill",
+        value: redemptionId,
+        // Fulfilled is final, so a stray click deserves a second look.
+        confirm: {
+          title: { type: "plain_text", text: "Mark as fulfilled?" },
+          text: { type: "plain_text", text: "Ben is told it's theirs, and this can't be undone." },
+          confirm: { type: "plain_text", text: "Mark fulfilled" },
+          deny: { type: "plain_text", text: "Not yet" },
+        },
+      },
       { type: "button", text: { type: "plain_text", text: "Review in Kudos" }, url: "https://kudos.example/admin?tab=store", action_id: "store_review" },
     ]);
   });
@@ -520,6 +533,23 @@ describe("admin copies in Slack", () => {
     await drain();
     expect(updates().map((u) => u.text)).toEqual(Array(2).fill("🛎️ <@UBEN> wants *☕ Tea* (15 :taco:). ↩ Cancelled by <@UBEN>"));
     expect(updates().flatMap((u) => buttonsOf(u.blocks))).toEqual([]);
+  });
+
+  test("a rate-limited update is tried again later, so the copies still end up truthful", async () => {
+    let limited = 2;
+    stubWithMessageIds({
+      "chat.update": () =>
+        limited-- > 0 ? new Response(JSON.stringify({ ok: false, error: "ratelimited" }), { status: 429, headers: { "retry-after": "5" } }) : { ok: true },
+    });
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { ana, redemptionId } = await requestWithTwoAdmins();
+    calls = [];
+    await ana.mutation(api.storeAdmin.decide, { redemptionId, action: "fulfill" });
+    await drain();
+    const last = (channel: string) => updates().filter((u) => u.channel === channel).at(-1)?.text;
+    expect(updates().length).toBeGreaterThan(2);
+    expect(last("DUANA")).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). ✔ Fulfilled by <@UANA>");
+    expect(last("DUCLEO")).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). ✔ Fulfilled by <@UANA>");
   });
 
   test("a failed update is logged and doesn't undo the step", async () => {
@@ -591,12 +621,50 @@ describe("Approve and Mark fulfilled in Slack", () => {
     expect(ephemerals()).toEqual([]);
   });
 
-  test("Approve approves, and an admin who never opened Kudos can act from Slack too", async () => {
+  test("Approve approves", async () => {
     const id = await request();
-    await setMember(team.cleo, { userId: undefined });
     await click(blockAction("store_approve", id, { user: "UCLEO" }));
     expect(await statusOf(id)).toMatchObject({ status: "approved" });
     expect(dmsTo("UBEN").map((d) => d.text)).toEqual(["✅ <@UCLEO> approved *☕ Coffee on us*. It's on its way."]);
+  });
+
+  test("an admin who never signed in to Kudos can't decide from Slack, so they can't be the four-eyes loophole", async () => {
+    const id = await request();
+    await setMember(team.cleo, { userId: undefined });
+    await click(blockAction("store_fulfill", id, { user: "UCLEO" }));
+    expect(ephemerals().map((e) => e.text)).toEqual(["Sign in to Kudos once before you decide requests from Slack."]);
+    expect(await statusOf(id)).toMatchObject({ status: "pending" });
+  });
+
+  test("a sole admin decides their own request from Slack, and their copy still says it's their own", async () => {
+    let n = 0;
+    stubSlackApi({ "chat.postMessage": (p: Record<string, string>) => ({ ok: true, channel: `D${p.channel}`, ts: `1700000000.00000${++n}` }) });
+    const ana = await signInAs(t, team.ana);
+    await setMember(team.ana, { totalReceived: 42 });
+    const { redemptionId } = await ana.mutation(api.store.redeem, { rewardId: await addReward(), expectedCost: 15 });
+    await drain();
+    calls = [];
+    await click(blockAction("store_approve", redemptionId));
+    expect(await statusOf(redemptionId)).toMatchObject({ status: "approved" });
+    const [copy] = calls.filter((c) => c.method === "chat.update");
+    expect(copy.params.text).toBe("🛎️ <@UANA> wants *☕ Coffee on us* (15 :taco:). ✅ Approved by <@UANA>");
+    expect(copy.params.blocks).toContain("Your own request");
+  });
+
+  test("an Enterprise Grid payload without a team names the workspace through the user", async () => {
+    const id = await request();
+    const payload = JSON.parse(blockAction("store_fulfill", id));
+    await click(JSON.stringify({ ...payload, team: null, enterprise: { id: "E1" } }));
+    expect(await statusOf(id)).toMatchObject({ status: "fulfilled" });
+  });
+
+  test("malformed payloads are turned away without a server error", async () => {
+    const id = await request();
+    expect((await click("null")).status).toBe(400);
+    expect((await click("{not json")).status).toBe(400);
+    expect((await click(blockAction("constructor", id))).status).toBe(200);
+    expect((await click(blockAction("store_fulfill", id).replace(`"value":"${id}"`, '"value":{"$gt":""}'))).status).toBe(200);
+    expect(await statusOf(id)).toMatchObject({ status: "pending" });
   });
 
   test("a stale button says who got there first, and a retried click changes nothing", async () => {
@@ -617,10 +685,11 @@ describe("Approve and Mark fulfilled in Slack", () => {
 
   test("someone who isn't an admin gets an ephemeral no, and nothing changes", async () => {
     const id = await request();
-    for (const user of ["UBEN", "UNOBODY"]) await click(blockAction("store_fulfill", id, { user }));
+    await setMember(team.bot, { isAdmin: true });
+    for (const user of ["UBEN", "UNOBODY", "UBOT"]) await click(blockAction("store_fulfill", id, { user }));
     await setMember(team.cleo, { deactivated: true });
     await click(blockAction("store_fulfill", id, { user: "UCLEO" }));
-    expect(ephemerals().map((e) => e.text)).toEqual(Array(3).fill("Only workspace admins can do that."));
+    expect(ephemerals().map((e) => e.text)).toEqual(Array(4).fill("Only workspace admins can do that."));
     expect(await statusOf(id)).toMatchObject({ status: "pending" });
     expect(calls.filter((c) => c.method === "chat.update" || c.method === "chat.postMessage")).toEqual([]);
   });
@@ -635,7 +704,7 @@ describe("Approve and Mark fulfilled in Slack", () => {
 
   test("a request from another workspace, or an id that isn't one, is not found", async () => {
     const id = await request();
-    await seedTeam(t, { storeEnabled: true }, "T2"); // Ana is an admin there too, as UANA
+    await signInAs(t, (await seedTeam(t, { storeEnabled: true }, "T2")).ana); // Ana is a signed-in admin there too, as UANA
     await click(blockAction("store_fulfill", id, { team: "T2" }));
     await click(blockAction("store_fulfill", "not-an-id"));
     await click(blockAction("store_fulfill", team.ben)); // a real id, of the wrong table
@@ -647,7 +716,14 @@ describe("Approve and Mark fulfilled in Slack", () => {
     const id = await request();
     await click(blockAction("store_fulfill", id, { userTeam: "TEXTERNAL" }));
     await click(blockAction("store_fulfill", id, { team: "TUNKNOWN" }));
-    expect(ephemerals().map((e) => e.text)).toEqual(["Only workspace admins can do that.", "Kudos isn't installed in this workspace yet."]);
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { status: "uninstalled" }));
+    await click(blockAction("store_fulfill", id));
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { status: "active", isDemo: true }));
+    await click(blockAction("store_fulfill", id));
+    expect(ephemerals().map((e) => e.text)).toEqual([
+      "Only workspace admins can do that.",
+      ...Array(3).fill("Kudos isn't installed in this workspace yet."),
+    ]);
     expect(await statusOf(id)).toMatchObject({ status: "pending" });
   });
 
@@ -668,8 +744,13 @@ describe("Approve and Mark fulfilled in Slack", () => {
 
   test("answers only ever go to Slack's own response URL", async () => {
     const id = await request();
-    await click(blockAction("store_fulfill", id, { user: "UBEN", responseUrl: "https://evil.example/hook" }));
+    for (const responseUrl of ["https://evil.example/hook", "http://hooks.slack.com/x", "https://hooks.slack.com.evil.example/x", "https://u:p@hooks.slack.com/x"]) {
+      await click(blockAction("store_fulfill", id, { user: "UBEN", responseUrl }));
+    }
     expect(calls).toEqual([]);
+    expect(await statusOf(id)).toMatchObject({ status: "pending" });
+    await click(blockAction("store_fulfill", id, { user: "UBEN" }));
+    expect(ephemerals()).toHaveLength(1); // the same refusal, sent to Slack's own URL
   });
 });
 

@@ -280,7 +280,8 @@ async function postDm(token: string, channel: string, text: string, blocks: obje
 /** mrkdwn that shows what people typed as-is: no auto-linked URLs, channels or mentions. */
 const verbatim = (text: string) => ({ type: "mrkdwn", text, verbatim: true });
 
-const button = (text: string, action_id: string, extra: object) => ({ type: "button", text: { type: "plain_text", text }, action_id, ...extra });
+const plain = (text: string) => ({ type: "plain_text", text });
+const button = (text: string, action_id: string, extra: object) => ({ type: "button", text: plain(text), action_id, ...extra });
 
 const DECIDED = { approved: "✅ Approved", fulfilled: "✔ Fulfilled", declined: "✖ Declined", cancelled: "↩ Cancelled" } as const;
 
@@ -293,7 +294,7 @@ function ago(at: number) {
 type AdminCopy = {
   redemptionId: Id<"redemptions">;
   status: "pending" | keyof typeof DECIDED;
-  requesterSlackUserId: string;
+  requester: { slackUserId: string; name: string };
   reward: { name: string; emoji: string; cost: number };
   e: string;
   prompt?: string;
@@ -312,14 +313,27 @@ type AdminCopy = {
 function adminCopy(copy: AdminCopy) {
   const site = siteUrl();
   const item = `*${escapeMrkdwn(`${copy.reward.emoji} ${copy.reward.name}`)}*`;
-  const ask = `🛎️ <@${copy.requesterSlackUserId}> wants ${item} (${copy.reward.cost} ${copy.e}).`;
+  const ask = `🛎️ <@${copy.requester.slackUserId}> wants ${item} (${copy.reward.cost} ${copy.e}).`;
   const answer = copy.answer && `Answer${copy.prompt ? ` to “${escapeMrkdwn(copy.prompt)}”` : ""}: ${escapeMrkdwn(copy.answer)}`;
   const decided = copy.status === "pending" ? null : `${DECIDED[copy.status]} by ${copy.step?.bySlackUserId ? `<@${copy.step.bySlackUserId}>` : "an admin"}`;
   const note = copy.step?.note ? `: “${escapeMrkdwn(copy.step.note)}”` : "";
   const value = copy.redemptionId;
   const buttons = [
     ...(copy.status === "pending" ? [button("Approve", "store_approve", { style: "primary", value })] : []),
-    ...(copy.status === "pending" || copy.status === "approved" ? [button("Mark fulfilled", "store_fulfill", { value })] : []),
+    ...(copy.status === "pending" || copy.status === "approved"
+      ? [
+          button("Mark fulfilled", "store_fulfill", {
+            value,
+            // Fulfilled is final, so a stray click deserves a second look.
+            confirm: {
+              title: plain("Mark as fulfilled?"),
+              text: plain(`${copy.requester.name.slice(0, 80)} is told it's theirs, and this can't be undone.`),
+              confirm: plain("Mark fulfilled"),
+              deny: plain("Not yet"),
+            },
+          }),
+        ]
+      : []),
   ];
   if (buttons.length > 0 && site) buttons.push(button("Review in Kudos", "store_review", { url: `${site}/admin?tab=store` }));
   const text = decided ? `${ask} ${decided}` : `${ask}${copy.balance ? ` Balance after: ${copy.balance}.` : ""}`;
@@ -328,7 +342,9 @@ function adminCopy(copy: AdminCopy) {
     blocks: [
       { type: "section", text: verbatim(decided ? ask : text) },
       ...(answer ? [{ type: "section", text: verbatim(answer) }] : []),
-      ...(copy.isOwn ? [{ type: "context", elements: [{ type: "mrkdwn", text: "👤 Your own request. You're the only admin who can decide it." }] }] : []),
+      ...(copy.isOwn
+        ? [{ type: "context", elements: [{ type: "mrkdwn", text: buttons.length > 0 ? "👤 Your own request. You're the only admin who can decide it." : "👤 Your own request." }] }]
+        : []),
       ...(decided ? [{ type: "context", elements: [verbatim(`${decided} · ${ago(copy.step!.at)}${note}`)] }] : []),
       ...(buttons.length > 0 ? [{ type: "actions", elements: buttons }] : []),
     ],
@@ -381,12 +397,12 @@ export const notifyRedemption = internalAction({
       ]);
     }
 
-    const copies: { channel: string; ts: string }[] = [];
+    const copies: { channel: string; ts: string; own?: boolean }[] = [];
     for (const admin of data.admins) {
       const { text, blocks } = adminCopy({
         redemptionId: args.redemptionId,
         status: "pending",
-        requesterSlackUserId: requester.slackUserId,
+        requester,
         reward,
         e,
         prompt: data.prompt,
@@ -395,7 +411,7 @@ export const notifyRedemption = internalAction({
         isOwn: admin.isOwn,
       });
       const sent = await postDm(token, admin.slackUserId, text, blocks);
-      if (sent) copies.push(sent);
+      if (sent) copies.push({ ...sent, ...(admin.isOwn ? { own: true } : {}) });
     }
     if (copies.length > 0) await ctx.runMutation(internal.slackData.saveAdminMessages, { redemptionId: args.redemptionId, messages: copies });
 
@@ -404,34 +420,45 @@ export const notifyRedemption = internalAction({
   },
 });
 
+const MAX_SYNC_RETRIES = 3;
+
 /**
  * Rewrites every admin's copy of a request after a step, from the web or from Slack. Syncs can
  * overlap, so each one re-reads the request after updating and goes again if it moved on: the
  * last one to finish always shows the latest state.
  */
 export const syncAdminMessages = internalAction({
-  args: { redemptionId: v.id("redemptions") },
+  args: { redemptionId: v.id("redemptions"), attempt: v.optional(v.number()) },
   returns: v.null(),
-  handler: async (ctx, { redemptionId }) => {
+  handler: async (ctx, { redemptionId, attempt = 0 }) => {
     let shown: string | null = null;
+    let retryAfter: number | null = null;
     for (let round = 0; round < 3; round++) {
       const data = await ctx.runQuery(internal.slackData.adminCopies, { redemptionId });
-      if (!data || data.version === shown) return null;
-      const { text, blocks } = adminCopy({
-        redemptionId,
-        status: data.status,
-        requesterSlackUserId: data.requesterSlackUserId,
-        reward: data.reward,
-        e: `:${data.emojiName}:`,
-        prompt: data.prompt,
-        answer: data.answer,
-        step: data.step,
-      });
-      for (const { channel, ts } of data.messages) {
+      if (!data || data.version === shown) break;
+      for (const { channel, ts, own } of data.messages) {
+        const { text, blocks } = adminCopy({
+          redemptionId,
+          status: data.status,
+          requester: data.requester,
+          reward: data.reward,
+          e: `:${data.emojiName}:`,
+          prompt: data.prompt,
+          answer: data.answer,
+          isOwn: own,
+          step: data.step,
+        });
         const res = await slackApi(data.botToken, "chat.update", { channel, ts, text, blocks });
-        if (!res.ok) console.warn(`Updating the store DM ${channel}/${ts} failed: ${res.error}`);
+        if (res.ok) continue;
+        console.warn(`Updating the store DM ${channel}/${ts} failed: ${res.error}`);
+        const limited = res.error?.match(/^ratelimited(?: \(retry after (\d+)s\))?/);
+        if (limited) retryAfter = Math.max(retryAfter ?? 0, Number(limited[1] ?? 30));
       }
       shown = data.version;
+    }
+    // Slack asked us to slow down: go again later rather than leave a copy offering stale buttons.
+    if (retryAfter !== null && attempt < MAX_SYNC_RETRIES) {
+      await ctx.scheduler.runAfter(retryAfter * 1000, internal.slack.syncAdminMessages, { redemptionId, attempt: attempt + 1 });
     }
     return null;
   },
