@@ -7,6 +7,7 @@ import { weekStanding } from "../convex/slackData";
 import { markBackfilled, rebuildMemberYear, rebuildWorkspaceDay, rebuildWorkspacePeriod } from "../convex/lib/rebuild";
 import { mulberry32 } from "../convex/lib/random";
 import { addDays } from "../convex/lib/time";
+import { backfilledRollups } from "../convex/lib/stats";
 import { seedTeam, setupConvex, signInAs, TODAY, type Team } from "./helpers";
 
 // The leaderboard and the Slack App Home read the rollups once a workspace is backfilled
@@ -296,6 +297,36 @@ describe("a 500-member workspace", () => {
   });
 });
 
+describe("installing Kudos", () => {
+  const install = (teamId: string) =>
+    t.mutation(internal.slackData.saveInstallation, {
+      teamId,
+      teamName: `Team ${teamId}`,
+      botToken: "xoxb-test",
+      botUserId: "UBOT",
+      appId: "A1",
+      installerSlackId: "UANA",
+      scope: "",
+    });
+  const backfilled = (workspaceId: Id<"workspaces">) => t.run(async (ctx) => (await backfilledRollups(ctx, workspaceId)) !== null);
+
+  test("puts a new workspace on the rollups straight away: it has no history to backfill", async () => {
+    const workspaceId = await install("TNEW");
+    expect(await backfilled(workspaceId)).toBe(true);
+  });
+
+  test("rebuilds a returning workspace that was never backfilled", async () => {
+    await history();
+    expect(await backfilled(team.workspaceId)).toBe(false);
+    const board = await (await signInAs(t, team.ana)).query(api.leaderboard.get, { period: "month", metric: "given", today: TODAY });
+    await install("T1");
+    await t.finishAllScheduledFunctions(vi.runAllTimers, 5000);
+    expect(await backfilled(team.workspaceId)).toBe(true);
+    await deleteSources();
+    expect(await (await signInAs(t, team.ana)).query(api.leaderboard.get, { period: "month", metric: "given", today: TODAY })).toEqual(board);
+  });
+});
+
 describe("the Slack App Home and /kudos top on rollups", () => {
   const home = (slackUserId: string) => t.query(internal.slackData.homeData, { workspaceId: team.workspaceId, slackUserId });
   const topLines = async () => {
@@ -354,7 +385,7 @@ describe("the Slack App Home and /kudos top on rollups", () => {
     );
   });
 
-  test("reads about ten documents for the week standing", async () => {
+  test("reads the top rows, the member's own row and the givers ahead of it", async () => {
     await thisWeek();
     await rebuild();
     const reads = await t.run(async (ctx) => {

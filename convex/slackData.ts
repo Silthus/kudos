@@ -13,6 +13,7 @@ import { rewardLine, siteUrl } from "./lib/slack";
 import { addDays, dayKeyFor, weekdayOfKey } from "./lib/time";
 import { weekBucket } from "./lib/buckets";
 import { backfilledRollups, memberBucket } from "./lib/stats";
+import { markBackfilled } from "./lib/rebuild";
 
 /** Slack retries deliveries it thinks failed; claim each event id exactly once. */
 export const claimEvent = internalMutation({
@@ -187,6 +188,12 @@ export const saveInstallation = internalMutation({
     }
     const bot = await ensureMember(ctx, workspace, args.botUserId);
     await ctx.db.patch(bot._id, { isBot: true, name: "Kudos" });
+    // Readers use the rollups once a workspace is backfilled. A new one has no history, and the
+    // engine keeps its rollups exact from the first give; a returning one without it is rebuilt.
+    if (isFirstInstall) await markBackfilled(ctx, workspace._id, Date.now());
+    else if (!(await backfilledRollups(ctx, workspace._id))) {
+      await ctx.scheduler.runAfter(0, internal.rollups.rebuildWorkspace, { workspaceId: workspace._id });
+    }
     return workspace._id;
   },
 });
