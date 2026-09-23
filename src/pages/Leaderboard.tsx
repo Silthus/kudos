@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import { motion } from "motion/react";
-import { ArrowDown, ArrowUp, Info, Lock, Sparkles, TrendingUp, Users, Zap } from "lucide-react";
+import { ArrowDown, ArrowUp, Lock, Sparkles, TrendingUp, Users, Zap } from "lucide-react";
 import { useState } from "react";
 import { api } from "../../convex/_generated/api";
 import { Ring } from "@/components/charts";
@@ -203,11 +203,6 @@ export function Leaderboard() {
           )}
         </div>
       </div>
-      {data.truncated && (
-        <p className="mt-3 flex items-center gap-1.5 text-xs text-faint">
-          <Info className="h-3.5 w-3.5" /> This range is very busy: rankings only include the most recent activity.
-        </p>
-      )}
     </div>
   );
 }

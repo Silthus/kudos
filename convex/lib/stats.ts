@@ -1,5 +1,7 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
+import { ALL_BUCKET, dayBucket } from "./buckets";
+import { RARITIES } from "./messages";
 import type { DayRange } from "./time";
 
 /**
@@ -51,12 +53,80 @@ export function totalsByMember(rows: Doc<"memberDays">[]) {
   return out;
 }
 
+/** Upper bound on members read per workspace; the read models are sized for ~500. */
+const MAX_MEMBERS = 5_000;
+
 export async function workspaceMembers(ctx: QueryCtx, workspaceId: Id<"workspaces">) {
   const rows = await ctx.db
     .query("members")
     .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspaceId))
-    .take(5000);
+    .take(MAX_MEMBERS);
   return rows.filter((m) => !m.isBot);
+}
+
+/**
+ * The workspace's `all` rollup row once its backfill has finished (`rollupsBackfilledAt`), else
+ * null. Readers use the rollups only then, and their legacy computation before.
+ */
+export async function backfilledRollups(ctx: QueryCtx, workspaceId: Id<"workspaces">) {
+  const rows = await ctx.db
+    .query("workspaceStats")
+    .withIndex("by_workspace_bucket", (q) => q.eq("workspaceId", workspaceId).eq("bucket", ALL_BUCKET))
+    .take(2);
+  return rows.find((r) => r.rollupsBackfilledAt !== undefined) ?? null;
+}
+
+export async function workspaceBucket(ctx: QueryCtx, workspaceId: Id<"workspaces">, bucket: string) {
+  return await ctx.db
+    .query("workspaceStats")
+    .withIndex("by_workspace_bucket", (q) => q.eq("workspaceId", workspaceId).eq("bucket", bucket))
+    .first();
+}
+
+/** Units given in the workspace over a day range, summed from its `d:` rollup rows (≤366). */
+export async function givenOverDays(ctx: QueryCtx, workspaceId: Id<"workspaces">, range: DayRange) {
+  const days = await ctx.db
+    .query("workspaceStats")
+    .withIndex("by_workspace_bucket", (q) =>
+      q.eq("workspaceId", workspaceId).gte("bucket", dayBucket(range.start)).lte("bucket", dayBucket(range.end)),
+    )
+    .take(range.days);
+  return days.reduce((s, d) => s + d.given, 0);
+}
+
+/** The members' rollup rows in a w/m/q/y bucket with a positive `metric`, highest first. */
+export async function memberBucket(
+  ctx: QueryCtx,
+  workspaceId: Id<"workspaces">,
+  bucket: string,
+  metric: "given" | "received",
+  limit = MAX_MEMBERS,
+) {
+  const rows =
+    metric === "given"
+      ? ctx.db
+          .query("memberStats")
+          .withIndex("by_workspace_bucket_given", (q) => q.eq("workspaceId", workspaceId).eq("bucket", bucket).gt("given", 0))
+      : ctx.db
+          .query("memberStats")
+          .withIndex("by_workspace_bucket_received", (q) =>
+            q.eq("workspaceId", workspaceId).eq("bucket", bucket).gt("received", 0),
+          );
+  return await rows.order("desc").take(limit);
+}
+
+export function totalsOf(rows: Doc<"memberStats">[]) {
+  return new Map<Id<"members">, Totals>(
+    rows.map((r) => [r.memberId, { given: r.given, received: r.received, maxedDays: r.maxedDays, activeDays: r.activeDays }]),
+  );
+}
+
+/** First discoveries counted in a `workspaceStats` bucket: all of them, and the legendary ones. */
+export function discoveriesIn(stats: Doc<"workspaceStats"> | null) {
+  return {
+    discoveries: stats ? RARITIES.reduce((s, r) => s + stats.found[r], 0) : 0,
+    legendaryFinds: stats?.found.legendary ?? 0,
+  };
 }
 
 /** Kudos given in [from, to), newest first. */

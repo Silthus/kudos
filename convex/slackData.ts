@@ -11,6 +11,9 @@ import { openRequestCount } from "./storeAdmin";
 import { redemptionStatusValidator } from "./schema";
 import { rewardLine, siteUrl } from "./lib/slack";
 import { addDays, dayKeyFor, weekdayOfKey } from "./lib/time";
+import { weekBucket } from "./lib/buckets";
+import { backfilledRollups, memberBucket } from "./lib/stats";
+import { markBackfilled } from "./lib/rebuild";
 
 /** Slack retries deliveries it thinks failed; claim each event id exactly once. */
 export const claimEvent = internalMutation({
@@ -185,6 +188,12 @@ export const saveInstallation = internalMutation({
     }
     const bot = await ensureMember(ctx, workspace, args.botUserId);
     await ctx.db.patch(bot._id, { isBot: true, name: "Kudos" });
+    // Readers use the rollups once a workspace is backfilled. A new one has no history, and the
+    // engine keeps its rollups exact from the first give; a returning one without it is rebuilt.
+    if (isFirstInstall) await markBackfilled(ctx, workspace._id, Date.now());
+    else if (!(await backfilledRollups(ctx, workspace._id))) {
+      await ctx.scheduler.runAfter(0, internal.rollups.rebuildWorkspace, { workspaceId: workspace._id });
+    }
     return workspace._id;
   },
 });
@@ -318,12 +327,53 @@ export const markDelivery = internalMutation({
   },
 });
 
-async function weekStanding(
-  ctx: { db: import("./_generated/server").QueryCtx["db"] },
+type WeekStanding = {
+  /** The week's most generous givers, most first. */
+  top: { memberId: Id<"members">; given: number }[];
+  /** `memberId`'s units given this week, and their rank: ties share it, and it's null before they give. */
+  mine: { given: number; rank: number | null };
+};
+
+/**
+ * This week's giving (the ISO week holding `now` in the workspace timezone). Reads the week's
+ * `memberStats` once the workspace is backfilled: the top rows, the member's own row and the
+ * rows ahead of it. Before that, the week's `memberDays`.
+ */
+export async function weekStanding(
+  ctx: QueryCtx,
   workspace: Doc<"workspaces">,
   now: number,
-) {
+  memberId: Id<"members"> | null,
+  limit: number,
+): Promise<WeekStanding> {
   const today = dayKeyFor(now, workspace.timezone);
+  if (!(await backfilledRollups(ctx, workspace._id))) return await legacyWeekStanding(ctx, workspace, today, memberId, limit);
+  const bucket = weekBucket(today);
+  const top = (await memberBucket(ctx, workspace._id, bucket, "given", limit)).map((r) => ({ memberId: r.memberId, given: r.given }));
+  const mine = memberId
+    ? await ctx.db
+        .query("memberStats")
+        .withIndex("by_member_bucket", (q) => q.eq("memberId", memberId).eq("bucket", bucket))
+        .unique()
+    : null;
+  if (!mine || mine.given === 0) return { top, mine: { given: 0, rank: null } };
+  const ahead = await ctx.db
+    .query("memberStats")
+    .withIndex("by_workspace_bucket_given", (q) => q.eq("workspaceId", workspace._id).eq("bucket", bucket).gt("given", mine.given))
+    .take(MAX_WEEK_GIVERS);
+  return { top, mine: { given: mine.given, rank: ahead.length + 1 } };
+}
+
+/** Bounds the givers read for a week rank; the read models are sized for ~500 members. */
+const MAX_WEEK_GIVERS = 5_000;
+
+async function legacyWeekStanding(
+  ctx: QueryCtx,
+  workspace: Doc<"workspaces">,
+  today: string,
+  memberId: Id<"members"> | null,
+  limit: number,
+): Promise<WeekStanding> {
   const start = addDays(today, -weekdayOfKey(today));
   const days = await ctx.db
     .query("memberDays")
@@ -333,7 +383,12 @@ async function weekStanding(
     .take(8000);
   const totals = new Map<Id<"members">, number>();
   for (const d of days) if (d.given > 0) totals.set(d.memberId, (totals.get(d.memberId) ?? 0) + d.given);
-  return [...totals.entries()].sort((a, b) => b[1] - a[1]);
+  const standing = [...totals.entries()].sort((a, b) => b[1] - a[1]);
+  const given = (memberId && totals.get(memberId)) || 0;
+  return {
+    top: standing.slice(0, limit).map(([memberId, given]) => ({ memberId, given })),
+    mine: { given, rank: given > 0 ? standing.filter(([, g]) => g > given).length + 1 : null },
+  };
 }
 
 export const homeData = internalQuery({
@@ -347,13 +402,12 @@ export const homeData = internalQuery({
       .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspaceId).eq("slackUserId", slackUserId))
       .unique();
     const now = Date.now();
-    const standing = await weekStanding(ctx, workspace, now);
+    const standing = await weekStanding(ctx, workspace, now, member?._id ?? null, 5);
     const top = [];
-    for (const [memberId, given] of standing.slice(0, 5)) {
+    for (const { memberId, given } of standing.top) {
       const m = await ctx.db.get(memberId);
       if (m) top.push({ slackUserId: m.slackUserId, given });
     }
-    const myIndex = member ? standing.findIndex(([id]) => id === member._id) : -1;
     const discovered = member
       ? (
           await ctx.db
@@ -369,8 +423,8 @@ export const homeData = internalQuery({
       remaining: member ? await remainingToday(ctx, workspace, member._id, now) : workspace.dailyLimit,
       totalGiven: member?.totalGiven ?? 0,
       totalReceived: member?.totalReceived ?? 0,
-      weekGiven: myIndex >= 0 ? standing[myIndex][1] : 0,
-      weekRank: myIndex >= 0 ? myIndex + 1 : null,
+      weekGiven: standing.mine.given,
+      weekRank: standing.mine.rank,
       discovered,
       top,
       store: member && storeOpen(workspace) ? await storeHome(ctx, workspace, member) : null,
@@ -419,9 +473,9 @@ export const slashCommand = internalMutation({
     const e = `:${workspace.emojiName}:`;
     const sub = text.trim().toLowerCase();
     if (sub === "top" || sub === "leaderboard") {
-      const standing = await weekStanding(ctx, workspace, Date.now());
+      const { top } = await weekStanding(ctx, workspace, Date.now(), null, 10);
       const lines = [];
-      for (const [i, [memberId, given]] of standing.slice(0, 10).entries()) {
+      for (const [i, { memberId, given }] of top.entries()) {
         const m = await ctx.db.get(memberId);
         if (m) lines.push(`${["🥇", "🥈", "🥉"][i] ?? `${i + 1}.`} <@${m.slackUserId}> · ${given} ${e}`);
       }
