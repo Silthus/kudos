@@ -18,14 +18,19 @@ export function Analytics() {
   const k = data.kpis;
   const glyph = data.unit.glyph;
 
+  // Givers are compared with the whole previous period: distinct people can't be counted "to date".
+  // Worded from the data on screen: it lags `period` while a switch loads.
+  const lastPeriod = data.period === "all" ? null : `last ${data.period}`;
   const tiles = [
     { label: "Kudos given", value: nf.format(k.total), trend: <Trend cur={k.total} prev={k.prevTotal} suffix="vs prev. to date" />, hint: `${nf.format(k.messages)} recognition moments` },
-    { label: "Participation", value: pct(k.participation), trend: k.prevParticipation !== null ? <Trend cur={Math.round(k.participation * 100)} prev={Math.round(k.prevParticipation * 100)} suffix="vs prev. to date" /> : null, hint: `${k.givers} of ${k.teamSize} teammates gave` },
+    { label: "Participation", value: pct(k.participation), trend: k.prevParticipation !== null && lastPeriod ? <span className="text-xs text-faint tabular">{pct(k.prevParticipation)} in all of {lastPeriod}</span> : null, hint: `${k.givers} of ${k.teamSize} teammates gave` },
     { label: "Avg. per giver", value: k.avgPerGiver.toFixed(1), trend: null, hint: `${k.receivers} people were recognized` },
     { label: "Allowance used", value: pct(k.allowanceUse), trend: null, hint: `on active days · ${k.maxedDays} maxed days` },
     { label: "Top-20% share", value: pct(k.topShare), trend: null, hint: "of kudos come from the most generous fifth" },
-    { label: "New givers", value: nf.format(k.newGivers), trend: null, hint: `${k.retained} kept giving from last period` },
+    { label: "New givers", value: nf.format(k.newGivers), trend: null, hint: k.prevGivers !== null && lastPeriod ? `${k.retained} of ${lastPeriod}'s ${k.prevGivers} givers kept giving` : "everyone who has ever given" },
   ];
+  const monthly = data.grain === "month";
+  const hasCompare = data.volume.length > 0 && data.volume[0].prevTotal !== null;
 
   return (
     <div className={`transition-opacity duration-200 ${isStale ? "opacity-60" : ""}`} aria-busy={isStale}>
@@ -54,9 +59,13 @@ export function Analytics() {
       </div>
 
       <Card className="mt-4">
-        <CardHeader title="Daily volume" subtitle={`Kudos given per day, ${data.label.toLowerCase()}`} action={<Legend items={[{ label: "This period", color: "var(--color-saffron-deep)" }, ...(data.daily[0]?.prevTotal !== null ? [{ label: "Previous period to date", color: "var(--color-muted)", dashed: true }] : [])]} />} />
+        <CardHeader
+          title={monthly ? "Monthly volume" : "Daily volume"}
+          subtitle={`Kudos given per ${monthly ? "month" : "day"}, ${data.label.toLowerCase()}`}
+          action={hasCompare ? <Legend items={[{ label: "This period", color: "var(--color-saffron-deep)" }, { label: "Previous period to date", color: "var(--color-muted)", dashed: true }]} /> : null}
+        />
         <div className="px-5 pb-5">
-          <BarChart days={data.daily.map((d) => d.day)} values={data.daily.map((d) => d.total)} compare={data.daily[0]?.prevTotal !== null ? data.daily.map((d) => d.prevTotal) : null} height={260} />
+          <BarChart grain={data.grain} days={data.volume.map((d) => d.day)} values={data.volume.map((d) => d.total)} compare={hasCompare ? data.volume.map((d) => d.prevTotal) : null} height={260} />
         </div>
       </Card>
 
