@@ -4,6 +4,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { getMemberDay } from "./engine";
 import { canSeeReceived, requireViewer } from "./lib/access";
 import { CATALOG, RARITIES, TEMPLATE_BY_KEY } from "./lib/messages";
+import { resolvePeriod } from "./lib/periods";
 import { memberDays, median, rankBy, totalsByMember, workspaceDays } from "./lib/stats";
 import {
   addDays,
@@ -11,7 +12,6 @@ import {
   eachDay,
   parseToday,
   periodValidator,
-  resolvePeriod,
   startOfDayUtc,
   weekdayOfKey,
   type DayRange,

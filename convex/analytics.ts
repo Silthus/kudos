@@ -4,7 +4,8 @@ import { requireViewer } from "./lib/access";
 import { RARITIES } from "./lib/messages";
 import { kudosInRange, totalsByMember, workspaceDays, workspaceMembers } from "./lib/stats";
 import { v } from "convex/values";
-import { eachDay, parseToday, periodValidator, resolvePeriod, startOfDayUtc, addDays, zonedParts, daysBetween } from "./lib/time";
+import { resolvePeriod } from "./lib/periods";
+import { eachDay, parseToday, periodValidator, startOfDayUtc, addDays, zonedParts, daysBetween } from "./lib/time";
 
 const MAX_CHART_DAYS = 366;
 

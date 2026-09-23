@@ -87,33 +87,6 @@ export function weekdayOfKey(dayKey: string): number {
   return (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7;
 }
 
-/** ISO 8601 week (Monday start; week 1 holds the year's first Thursday) as [weekYear, week]. */
-function isoWeek(dayKey: string): [number, number] {
-  const thursday = addDays(dayKey, 3 - weekdayOfKey(dayKey));
-  const weekYear = Number(thursday.slice(0, 4));
-  return [weekYear, Math.floor(daysBetween(`${weekYear}-01-01`, thursday) / 7) + 1];
-}
-
-export type BucketKeys = { day: string; week: string; month: string; quarter: string; year: string; all: "all" };
-
-/**
- * Rollup bucket keys for a stored `dayKey`. Pure functions of the day key, so a revoke or rebuild
- * always lands in the bucket the original write did, even after the workspace timezone changes.
- */
-export function bucketKeys(dayKey: string): BucketKeys {
-  const [weekYear, week] = isoWeek(dayKey);
-  const year = dayKey.slice(0, 4);
-  const month = Number(dayKey.slice(5, 7));
-  return {
-    day: `d:${dayKey}`,
-    week: `w:${weekYear}-W${pad(week)}`,
-    month: `m:${dayKey.slice(0, 7)}`,
-    quarter: `q:${year}-Q${Math.ceil(month / 3)}`,
-    year: `y:${year}`,
-    all: "all",
-  };
-}
-
 /** UTC timestamp of local midnight at the start of `dayKey` in `timeZone`. */
 export function startOfDayUtc(dayKey: string, timeZone: string): number {
   const [y, m, d] = dayKey.split("-").map(Number);
@@ -150,6 +123,8 @@ export function msUntilRollover(now: number, timeZone: string): number {
   return Math.max(nextDayStartUtc(now, timeZone) - now, 1_000);
 }
 
+/** The first day the app ever looks at; "all time" starts here. */
+export const EPOCH_DAY = "2000-01-01";
 const LAST_DAY = "2099-12-31";
 
 /**
@@ -168,96 +143,6 @@ export function parseToday(value: string): string {
 }
 
 export type DayRange = { start: string; end: string; days: number };
-export type PeriodRange = {
-  period: Period;
-  label: string;
-  /** Bucket key of the period containing `today` (see `bucketKeys`). */
-  bucket: string;
-  /** From the start of the bucket through `today`. */
-  current: DayRange;
-  /** The whole current bucket, including days still to come. */
-  currentFull: DayRange;
-  previousBucket: string | null;
-  /** The whole previous bucket: per-member values, ranks and rank changes compare with this. */
-  previous: DayRange | null;
-  /** The previous bucket up to the same day offset as `today`: workspace KPIs compare with this. */
-  previousToDate: DayRange | null;
-};
-
-/** The first day the app ever looks at; "all time" starts here. */
-export const EPOCH_DAY = "2000-01-01";
-
-function range(start: string, end: string): DayRange {
-  return { start, end, days: daysBetween(start, end) + 1 };
-}
-
-/** First day of the week/month/quarter/year bucket containing `dayKey`. */
-function bucketStart(period: Exclude<Period, "all">, dayKey: string): string {
-  switch (period) {
-    case "week":
-      return addDays(dayKey, -weekdayOfKey(dayKey));
-    case "month":
-      return `${dayKey.slice(0, 7)}-01`;
-    case "quarter": {
-      const firstMonth = Math.floor((Number(dayKey.slice(5, 7)) - 1) / 3) * 3 + 1;
-      return `${dayKey.slice(0, 4)}-${pad(firstMonth)}-01`;
-    }
-    case "year":
-      return `${dayKey.slice(0, 4)}-01-01`;
-  }
-}
-
-/** First day of the bucket after the one starting at `start`. */
-function nextBucketStart(period: Exclude<Period, "all">, start: string): string {
-  if (period === "week") return addDays(start, 7);
-  const [y, m] = start.split("-").map(Number);
-  const months = period === "month" ? 1 : period === "quarter" ? 3 : 12;
-  const next = new Date(Date.UTC(y, m - 1 + months, 1));
-  return `${next.getUTCFullYear()}-${pad(next.getUTCMonth() + 1)}-01`;
-}
-
-const LABELS: Record<Period, string> = {
-  week: "This week",
-  month: "This month",
-  quarter: "This quarter",
-  year: "This year",
-  all: "All time",
-};
-
-/**
- * Resolve a calendar-aligned period around `today` (a day key in the workspace timezone):
- * the current bucket to date and in full, and the previous bucket in full and to date.
- */
-export function resolvePeriod(period: Period, today: string): PeriodRange {
-  const label = LABELS[period];
-  if (period === "all") {
-    return {
-      period,
-      label,
-      bucket: "all",
-      current: range(EPOCH_DAY, today),
-      currentFull: range(EPOCH_DAY, today),
-      previousBucket: null,
-      previous: null,
-      previousToDate: null,
-    };
-  }
-  const start = bucketStart(period, today);
-  const prevEnd = addDays(start, -1);
-  const prevStart = bucketStart(period, prevEnd);
-  const offset = daysBetween(start, today);
-  const prevToDateEnd = addDays(prevStart, offset) < prevEnd ? addDays(prevStart, offset) : prevEnd;
-  return {
-    period,
-    label,
-    bucket: bucketKeys(today)[period],
-    current: range(start, today),
-    currentFull: range(start, addDays(nextBucketStart(period, start), -1)),
-    previousBucket: bucketKeys(prevStart)[period],
-    previous: range(prevStart, prevEnd),
-    previousToDate: range(prevStart, prevToDateEnd),
-  };
-}
 
 export function eachDay(r: DayRange): string[] {
   const out: string[] = [];

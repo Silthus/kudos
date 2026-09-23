@@ -3,7 +3,8 @@ import { query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { requireViewer } from "./lib/access";
 import { rankBy, totalsByMember, workspaceDays, workspaceMembers, type Totals } from "./lib/stats";
-import { parseToday, periodValidator, resolvePeriod, startOfDayUtc } from "./lib/time";
+import { resolvePeriod } from "./lib/periods";
+import { parseToday, periodValidator, startOfDayUtc } from "./lib/time";
 
 export const get = query({
   args: {
