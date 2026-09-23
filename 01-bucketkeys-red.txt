@@ -1,0 +1,40 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a003e5c1531934349
+
+ ❯ convex/lib/time.test.ts (11 tests | 2 failed) 24ms
+   ❯ bucket keys (2)
+     × are pure functions of the day key 3ms
+     × weeks follow ISO numbering across the year boundary 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  convex/lib/time.test.ts > bucket keys > are pure functions of the day key
+TypeError: bucketKeys is not a function
+ ❯ convex/lib/time.test.ts:6:12
+      4| describe("bucket keys", () => {
+      5|   test("are pure functions of the day key", () => {
+      6|     expect(bucketKeys("2026-09-23")).toEqual({
+       |            ^
+      7|       day: "d:2026-09-23",
+      8|       week: "w:2026-W39",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  convex/lib/time.test.ts > bucket keys > weeks follow ISO numbering across the year boundary
+TypeError: bucketKeys is not a function
+ ❯ convex/lib/time.test.ts:18:12
+     16|   test("weeks follow ISO numbering across the year boundary", () => {
+     17|     // Thu 2026-12-31 and Sun 2027-01-03 share ISO week 2026-W53; Mon …
+     18|     expect(bucketKeys("2026-12-31").week).toBe("w:2026-W53");
+       |            ^
+     19|     expect(bucketKeys("2027-01-03").week).toBe("w:2026-W53");
+     20|     expect(bucketKeys("2027-01-04").week).toBe("w:2027-W01");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 9 passed (11)
+   Start at  19:55:16
+   Duration  208ms (environment 35%, transform 29%, tests 21%, import 12%, worker 3%)
+

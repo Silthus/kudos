@@ -1,0 +1,87 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a003e5c1531934349
+
+ ❯ convex/lib/time.test.ts (18 tests | 5 failed) 31ms
+   ❯ the client's current day (2)
+     × is accepted as a real calendar day key 3ms
+     × is rejected when malformed, impossible or outside the supported years 4ms
+   ❯ nextDayStartUtc (3)
+     × is the next local midnight in the workspace timezone 1ms
+     × follows DST: short and long days, and a skipped midnight 1ms
+     × rolls over into the new year 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  convex/lib/time.test.ts > the client's current day > is accepted as a real calendar day key
+TypeError: parseToday is not a function
+ ❯ convex/lib/time.test.ts:80:12
+     78| describe("the client's current day", () => {
+     79|   test("is accepted as a real calendar day key", () => {
+     80|     expect(parseToday("2026-09-23")).toBe("2026-09-23");
+       |            ^
+     81|     expect(parseToday("2028-02-29")).toBe("2028-02-29");
+     82|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  convex/lib/time.test.ts > the client's current day > is rejected when malformed, impossible or outside the supported years
+AssertionError: 2026-9-23: expected [Function] to throw error matching /must be a day key/ but got '(0 , __vite_ssr_import_1__.parseToday…'
+
+- Expected:
+/must be a day key/
+
++ Received:
+"(0 , __vite_ssr_import_1__.parseToday) is not a function"
+
+ ❯ convex/lib/time.test.ts:86:42
+     84|   test("is rejected when malformed, impossible or outside the supporte…
+     85|     for (const bad of ["2026-9-23", "2026-02-30", "2027-02-29", "2026-…
+     86|       expect(() => parseToday(bad), bad).toThrow(/must be a day key/);
+       |                                          ^
+     87|     }
+     88|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  convex/lib/time.test.ts > nextDayStartUtc > is the next local midnight in the workspace timezone
+TypeError: nextDayStartUtc is not a function
+ ❯ convex/lib/time.test.ts:95:12
+     93|     // 23:59:30 in Berlin (CEST, UTC+2) on 2026-09-23 → midnight is 30…
+     94|     const now = Date.UTC(2026, 8, 23, 21, 59, 30);
+     95|     expect(nextDayStartUtc(now, "Europe/Berlin") - now).toBe(30_000);
+       |            ^
+     96|     // The same instant is still mid-afternoon in Los Angeles.
+     97|     expect(dayKeyFor(nextDayStartUtc(now, "America/Los_Angeles"), "Ame…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  convex/lib/time.test.ts > nextDayStartUtc > follows DST: short and long days, and a skipped midnight
+TypeError: nextDayStartUtc is not a function
+ ❯ convex/lib/time.test.ts:104:12
+    102|     // Berlin's spring-forward day (2026-03-29) lasts 23 hours, its fa…
+    103|     const springStart = startOfDayUtc("2026-03-29", "Europe/Berlin");
+    104|     expect(nextDayStartUtc(springStart, "Europe/Berlin") - springStart…
+       |            ^
+    105|     const fallStart = startOfDayUtc("2026-10-25", "Europe/Berlin");
+    106|     expect(nextDayStartUtc(fallStart, "Europe/Berlin") - fallStart).to…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  convex/lib/time.test.ts > nextDayStartUtc > rolls over into the new year
+TypeError: nextDayStartUtc is not a function
+ ❯ convex/lib/time.test.ts:116:22
+    114|   test("rolls over into the new year", () => {
+    115|     const newYearsEve = Date.UTC(2026, 11, 31, 22, 0); // 23:00 in Ber…
+    116|     expect(dayKeyFor(nextDayStartUtc(newYearsEve, "Europe/Berlin"), "E…
+       |                      ^
+    117|     expect(nextDayStartUtc(newYearsEve, "Europe/Berlin") - newYearsEve…
+    118|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 13 passed (18)
+   Start at  19:56:43
+   Duration  244ms (environment 31%, transform 30%, tests 25%, import 11%, worker 3%)
+

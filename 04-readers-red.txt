@@ -1,0 +1,156 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a003e5c1531934349
+
+ ❯ tests/periods.test.ts (8 tests | 8 failed) 107ms
+   ❯ midnight rollover (2)
+     × the allowance refills when the client's day rolls over, with the server clock standing still 71ms
+     × Monday starts a fresh weekly board and week rank, with last week as the comparison 9ms
+   ❯ calendar-aligned comparisons (3)
+     × workspace KPIs compare with the previous month up to the same day 10ms
+     × leaderboard values compare with the whole previous month 3ms
+     × my own period total compares with the previous month to date 2ms
+   ❯ across the year boundary (1)
+     × the year starts on January 1st while ISO week 53 still spans both years 2ms
+   ❯ period arguments (2)
+     × reject rolling windows and impossible days 6ms
+     × all time has no comparison and starts at the first recorded day 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/periods.test.ts > midnight rollover > the allowance refills when the client's day rolls over, with the server clock standing still
+Error: Validator error: Unexpected field `today` in object
+ ❯ validateValidator node_modules/convex-test/dist/index.js:926:27
+    924|             for (const k of Object.keys(value)) {
+    925|                 if (validator.value[k] === undefined) {
+    926|                     throw new Error(`Validator error: Unexpected field…
+       |                           ^
+    927|                 }
+    928|             }
+ ❯ validateFunctionArgs node_modules/convex-test/dist/index.js:2337:5
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2086:17
+ ❯ query node_modules/convex-test/dist/index.js:2172:20
+ ❯ tests/periods.test.ts:26:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  tests/periods.test.ts > midnight rollover > Monday starts a fresh weekly board and week rank, with last week as the comparison
+Error: Validator error: Unexpected field `today` in object
+ ❯ validateValidator node_modules/convex-test/dist/index.js:926:27
+    924|             for (const k of Object.keys(value)) {
+    925|                 if (validator.value[k] === undefined) {
+    926|                     throw new Error(`Validator error: Unexpected field…
+       |                           ^
+    927|                 }
+    928|             }
+ ❯ validateFunctionArgs node_modules/convex-test/dist/index.js:2337:5
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2086:17
+ ❯ query node_modules/convex-test/dist/index.js:2172:20
+ ❯ tests/periods.test.ts:35:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  tests/periods.test.ts > calendar-aligned comparisons > workspace KPIs compare with the previous month up to the same day
+Error: Validator error: Unexpected field `today` in object
+ ❯ validateValidator node_modules/convex-test/dist/index.js:926:27
+    924|             for (const k of Object.keys(value)) {
+    925|                 if (validator.value[k] === undefined) {
+    926|                     throw new Error(`Validator error: Unexpected field…
+       |                           ^
+    927|                 }
+    928|             }
+ ❯ validateFunctionArgs node_modules/convex-test/dist/index.js:2337:5
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2086:17
+ ❯ query node_modules/convex-test/dist/index.js:2172:20
+ ❯ tests/periods.test.ts:61:36
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  tests/periods.test.ts > calendar-aligned comparisons > leaderboard values compare with the whole previous month
+Error: Validator error: Unexpected field `today` in object
+ ❯ validateValidator node_modules/convex-test/dist/index.js:926:27
+    924|             for (const k of Object.keys(value)) {
+    925|                 if (validator.value[k] === undefined) {
+    926|                     throw new Error(`Validator error: Unexpected field…
+       |                           ^
+    927|                 }
+    928|             }
+ ❯ validateFunctionArgs node_modules/convex-test/dist/index.js:2337:5
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2086:17
+ ❯ query node_modules/convex-test/dist/index.js:2172:20
+ ❯ tests/periods.test.ts:69:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  tests/periods.test.ts > calendar-aligned comparisons > my own period total compares with the previous month to date
+Error: Validator error: Unexpected field `today` in object
+ ❯ validateValidator node_modules/convex-test/dist/index.js:926:27
+    924|             for (const k of Object.keys(value)) {
+    925|                 if (validator.value[k] === undefined) {
+    926|                     throw new Error(`Validator error: Unexpected field…
+       |                           ^
+    927|                 }
+    928|             }
+ ❯ validateFunctionArgs node_modules/convex-test/dist/index.js:2337:5
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2086:17
+ ❯ query node_modules/convex-test/dist/index.js:2172:20
+ ❯ tests/periods.test.ts:75:37
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  tests/periods.test.ts > across the year boundary > the year starts on January 1st while ISO week 53 still spans both years
+Error: Validator error: Unexpected field `today` in object
+ ❯ validateValidator node_modules/convex-test/dist/index.js:926:27
+    924|             for (const k of Object.keys(value)) {
+    925|                 if (validator.value[k] === undefined) {
+    926|                     throw new Error(`Validator error: Unexpected field…
+       |                           ^
+    927|                 }
+    928|             }
+ ❯ validateFunctionArgs node_modules/convex-test/dist/index.js:2337:5
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2086:17
+ ❯ query node_modules/convex-test/dist/index.js:2172:20
+ ❯ tests/periods.test.ts:88:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL  tests/periods.test.ts > period arguments > reject rolling windows and impossible days
+AssertionError: expected [Function] to throw error matching /must be a day key/ but got 'Validator error: Unexpected field `to…'
+
+- Expected:
+/must be a day key/
+
++ Received:
+"Validator error: Unexpected field `today` in object"
+
+ ❯ tests/periods.test.ts:102:94
+    100|     const ana = await signInAs(t, team.ana);
+    101|     await expect(ana.query(api.leaderboard.get, { period: "30d" as "mo…
+    102|     await expect(ana.query(api.analytics.overview, { period: "month", …
+       |                                                                                              ^
+    103|     await expect(ana.query(api.me.today, { today: "tomorrow" })).rejec…
+    104|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL  tests/periods.test.ts > period arguments > all time has no comparison and starts at the first recorded day
+Error: Validator error: Unexpected field `today` in object
+ ❯ validateValidator node_modules/convex-test/dist/index.js:926:27
+    924|             for (const k of Object.keys(value)) {
+    925|                 if (validator.value[k] === undefined) {
+    926|                     throw new Error(`Validator error: Unexpected field…
+       |                           ^
+    927|                 }
+    928|             }
+ ❯ validateFunctionArgs node_modules/convex-test/dist/index.js:2337:5
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2086:17
+ ❯ query node_modules/convex-test/dist/index.js:2172:20
+ ❯ tests/periods.test.ts:109:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  8 failed (8)
+   Start at  19:57:26
+   Duration  483ms (transform 31%, import 29%, tests 29%, environment 11%, worker 1%)
+

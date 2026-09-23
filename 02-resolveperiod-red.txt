@@ -1,0 +1,173 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a003e5c1531934349
+
+ ❯ convex/lib/time.test.ts (13 tests | 6 failed) 34ms
+   ❯ resolvePeriod (6)
+     × week is the ISO week to date, compared with all of last week and last week to date 8ms
+     × month runs from the first; the to-date comparison is clamped to a shorter previous month 3ms
+     × quarter compares with the previous quarter at the same day offset 1ms
+     × every period rolls back across the year boundary 2ms
+     × the last day of a leap year compares with the whole shorter year before 0ms
+     × all time has no comparison period 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  convex/lib/time.test.ts > resolvePeriod > week is the ISO week to date, compared with all of last week and last week to date
+AssertionError: expected { period: 'week', …(3) } to deeply equal { period: 'week', …(7) }
+
+- Expected
++ Received
+
+  {
+-   "bucket": "w:2026-W39",
+    "current": {
+      "days": 3,
+      "end": "2026-09-23",
+-     "start": "2026-09-21",
+-   },
+-   "currentFull": {
+-     "days": 7,
+-     "end": "2026-09-27",
+      "start": "2026-09-21",
+    },
+    "label": "This week",
+    "period": "week",
+    "previous": {
+-     "days": 7,
++     "days": 3,
+      "end": "2026-09-20",
+-     "start": "2026-09-14",
+-   },
+-   "previousBucket": "w:2026-W38",
+-   "previousToDate": {
+-     "days": 3,
+-     "end": "2026-09-16",
+-     "start": "2026-09-14",
++     "start": "2026-09-18",
+    },
+  }
+
+ ❯ convex/lib/time.test.ts:72:46
+     70|
+     71|   test("week is the ISO week to date, compared with all of last week a…
+     72|     expect(resolvePeriod("week", wednesday)).toEqual({
+       |                                              ^
+     73|       period: "week",
+     74|       label: "This week",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  convex/lib/time.test.ts > resolvePeriod > month runs from the first; the to-date comparison is clamped to a shorter previous month
+AssertionError: expected { period: 'month', …(3) } to match object { label: 'This month', …(2) }
+(9 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "bucket": "m:2026-03",
+    "label": "This month",
+-   "previousBucket": "m:2026-02",
+  }
+
+ ❯ convex/lib/time.test.ts:86:15
+     84|   test("month runs from the first; the to-date comparison is clamped t…
+     85|     const p = resolvePeriod("month", "2026-03-31");
+     86|     expect(p).toMatchObject({ label: "This month", bucket: "m:2026-03"…
+       |               ^
+     87|     expect(p.current).toEqual(r("2026-03-01", "2026-03-31", 31));
+     88|     expect(p.previous).toEqual(r("2026-02-01", "2026-02-28", 28));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  convex/lib/time.test.ts > resolvePeriod > quarter compares with the previous quarter at the same day offset
+TypeError: Cannot read properties of undefined (reading 'start')
+ ❯ resolvePeriod convex/lib/time.ts:184:35
+    182|       return { period, current: range("2000-01-01", today), previous: …
+    183|   }
+    184|   const prevEnd = addDays(current.start, -1);
+       |                                   ^
+    185|   const previous = range(addDays(prevEnd, -(current.days - 1)), prevEn…
+    186|   return { period, current, previous, label };
+ ❯ convex/lib/time.test.ts:94:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  convex/lib/time.test.ts > resolvePeriod > every period rolls back across the year boundary
+AssertionError: expected { period: 'week', …(3) } to match object { bucket: 'w:2026-W53', …(3) }
+(2 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "bucket": "w:2026-W53",
+    "current": {
+      "days": 6,
+      "end": "2027-01-02",
+      "start": "2026-12-28",
+    },
+    "previous": {
+-     "days": 7,
++     "days": 6,
+      "end": "2026-12-27",
+-     "start": "2026-12-21",
++     "start": "2026-12-22",
+    },
+-   "previousBucket": "w:2026-W52",
+  }
+
+ ❯ convex/lib/time.test.ts:104:45
+    102|   test("every period rolls back across the year boundary", () => {
+    103|     const saturday = "2027-01-02";
+    104|     expect(resolvePeriod("week", saturday)).toMatchObject({
+       |                                             ^
+    105|       bucket: "w:2026-W53",
+    106|       current: r("2026-12-28", "2027-01-02", 6),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  convex/lib/time.test.ts > resolvePeriod > the last day of a leap year compares with the whole shorter year before
+TypeError: Cannot read properties of undefined (reading 'start')
+ ❯ resolvePeriod convex/lib/time.ts:184:35
+    182|       return { period, current: range("2000-01-01", today), previous: …
+    183|   }
+    184|   const prevEnd = addDays(current.start, -1);
+       |                                   ^
+    185|   const previous = range(addDays(prevEnd, -(current.days - 1)), prevEn…
+    186|   return { period, current, previous, label };
+ ❯ convex/lib/time.test.ts:123:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  convex/lib/time.test.ts > resolvePeriod > all time has no comparison period
+AssertionError: expected { period: 'all', …(3) } to match object { label: 'All time', …(4) }
+(5 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "bucket": "all",
+    "label": "All time",
+    "previous": null,
+-   "previousBucket": null,
+-   "previousToDate": null,
+  }
+
+ ❯ convex/lib/time.test.ts:130:15
+    128|   test("all time has no comparison period", () => {
+    129|     const p = resolvePeriod("all", wednesday);
+    130|     expect(p).toMatchObject({ label: "All time", bucket: "all", previo…
+       |               ^
+    131|     expect(p.current.end).toBe(wednesday);
+    132|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 7 passed (13)
+   Start at  19:55:51
+   Duration  255ms (environment 31%, transform 28%, tests 27%, import 11%, worker 3%)
+

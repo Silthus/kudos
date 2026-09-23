@@ -1,0 +1,37 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a003e5c1531934349
+
+ ❯ tests/periods.test.ts (9 tests | 1 failed) 143ms
+   ❯ calendar-aligned comparisons (4)
+     × the leaderboard's workspace headline compares to date, like analytics 9ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/periods.test.ts > calendar-aligned comparisons > the leaderboard's workspace headline compares to date, like analytics
+AssertionError: expected [ 2, 5 ] to deeply equal [ 2, 1 ]
+
+- Expected
++ Received
+
+  [
+    2,
+-   1,
++   5,
+  ]
+
+ ❯ tests/periods.test.ts:76:54
+     74|     const ana = await signInAs(t, team.ana);
+     75|     const { highlights } = await ana.query(api.leaderboard.get, { peri…
+     76|     expect([highlights.total, highlights.prevTotal]).toEqual([2, 1]);
+       |                                                      ^
+     77|   });
+     78|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 8 passed (9)
+   Start at  20:02:59
+   Duration  519ms (tests 33%, transform 31%, import 26%, environment 9%, worker 1%)
+
