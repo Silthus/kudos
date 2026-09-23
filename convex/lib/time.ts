@@ -1,13 +1,13 @@
-import { v, type Infer } from "convex/values";
+import { ConvexError, v, type Infer } from "convex/values";
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
+/** Calendar-aligned periods in the workspace timezone (ISO weeks start on Monday). */
 export const periodValidator = v.union(
   v.literal("week"),
-  v.literal("7d"),
-  v.literal("30d"),
   v.literal("month"),
-  v.literal("90d"),
+  v.literal("quarter"),
+  v.literal("year"),
   v.literal("all"),
 );
 export type Period = Infer<typeof periodValidator>;
@@ -110,54 +110,39 @@ export function startOfDayUtc(dayKey: string, timeZone: string): number {
   return hi;
 }
 
+/** Start of the local day after the one containing `now`: when day-, week- and period-scoped views roll over. */
+export function nextDayStartUtc(now: number, timeZone: string): number {
+  return startOfDayUtc(addDays(dayKeyFor(now, timeZone), 1), timeZone);
+}
+
+/**
+ * How long a client should wait before re-checking its day key: until the next local midnight, but never
+ * less than a second, since a calendar day that doesn't exist (Samoa, 2011-12-30) has no midnight to wait for.
+ */
+export function msUntilRollover(now: number, timeZone: string): number {
+  return Math.max(nextDayStartUtc(now, timeZone) - now, 1_000);
+}
+
+/** The first day the app ever looks at; "all time" starts here. */
+export const EPOCH_DAY = "2000-01-01";
+const LAST_DAY = "2099-12-31";
+
+/**
+ * Validate the client's current day key (YYYY-MM-DD in the workspace timezone). Reactive queries take
+ * "today" from the client instead of reading the wall clock, so they re-run when the client's day rolls
+ * over at midnight. The key only anchors which calendar period is shown; it grants no extra access.
+ */
+export function parseToday(value: string): string {
+  const valid =
+    /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+    value >= EPOCH_DAY &&
+    value <= LAST_DAY &&
+    addDays(value, 0) === value; // rejects 2026-02-30 and friends
+  if (!valid) throw new ConvexError(`\`today\` must be a day key (YYYY-MM-DD) between ${EPOCH_DAY} and ${LAST_DAY}.`);
+  return value;
+}
+
 export type DayRange = { start: string; end: string; days: number };
-export type PeriodRange = {
-  period: Period;
-  current: DayRange;
-  previous: DayRange | null;
-  label: string;
-};
-
-function range(start: string, end: string): DayRange {
-  return { start, end, days: daysBetween(start, end) + 1 };
-}
-
-/** Resolve a named period to inclusive day ranges, plus the equal-length period before it. */
-export function resolvePeriod(period: Period, now: number, timeZone: string): PeriodRange {
-  const today = dayKeyFor(now, timeZone);
-  let current: DayRange;
-  let label: string;
-  switch (period) {
-    case "week": {
-      const start = addDays(today, -weekdayOfKey(today));
-      current = range(start, today);
-      label = "This week";
-      break;
-    }
-    case "month": {
-      current = range(`${today.slice(0, 8)}01`, today);
-      label = "This month";
-      break;
-    }
-    case "7d":
-      current = range(addDays(today, -6), today);
-      label = "Last 7 days";
-      break;
-    case "30d":
-      current = range(addDays(today, -29), today);
-      label = "Last 30 days";
-      break;
-    case "90d":
-      current = range(addDays(today, -89), today);
-      label = "Last 90 days";
-      break;
-    case "all":
-      return { period, current: range("2000-01-01", today), previous: null, label: "All time" };
-  }
-  const prevEnd = addDays(current.start, -1);
-  const previous = range(addDays(prevEnd, -(current.days - 1)), prevEnd);
-  return { period, current, previous, label };
-}
 
 export function eachDay(r: DayRange): string[] {
   const out: string[] = [];

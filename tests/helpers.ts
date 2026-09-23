@@ -9,6 +9,8 @@ export const modules = import.meta.glob(["../convex/**/*.*s", "!../convex/**/*.t
 
 /** 2026-09-23 10:00 UTC — a Wednesday, noon in Berlin. */
 export const NOW = new Date("2026-09-23T10:00:00Z");
+/** NOW's day key in the default workspace timezone, as the web client passes it to reactive queries. */
+export const TODAY = "2026-09-23";
 
 export type Team = Awaited<ReturnType<typeof seedTeam>>;
 

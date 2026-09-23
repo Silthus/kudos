@@ -21,7 +21,7 @@ export function Card({ className, children, ...rest }: ComponentProps<"section">
 
 export function CardHeader({ title, subtitle, action, icon }: { title: ReactNode; subtitle?: ReactNode; action?: ReactNode; icon?: ReactNode }) {
   return (
-    <header className="flex items-start justify-between gap-4 px-5 pt-5 pb-3">
+    <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3 px-5 pt-5 pb-3">
       <div className="min-w-0">
         <h2 className="flex items-center gap-2 font-display text-[17px] font-semibold tracking-tight text-cream">
           {icon}

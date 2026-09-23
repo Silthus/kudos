@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
-import { all, setupConvex } from "./helpers";
+import { all, setupConvex, TODAY } from "./helpers";
 
 let t: ReturnType<typeof setupConvex>;
 
@@ -56,7 +56,7 @@ describe("the demo workspace", () => {
       ["Alex Rivera", "giver_success"],
       ["Priya Raman", "receiver_success"],
     ]);
-    expect((await demo.query(api.me.today, {})).remaining).toBe(3);
+    expect((await demo.query(api.me.today, { today: TODAY })).remaining).toBe(3);
   });
 
   test("resetting wipes playground activity and re-seeds a fresh history", async () => {
@@ -107,10 +107,10 @@ describe("sharing the demo", () => {
     const demo = await enterDemo();
     const seeded = (await all(t, "kudos")).length;
     await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> :taco::taco::taco::taco::taco:", channelName: "general" });
-    expect((await demo.query(api.me.today, {})).remaining).toBe(0);
+    expect((await demo.query(api.me.today, { today: TODAY })).remaining).toBe(0);
 
     await demo.mutation(api.demo.refillAllowance, {});
-    expect((await demo.query(api.me.today, {})).remaining).toBe(5);
+    expect((await demo.query(api.me.today, { today: TODAY })).remaining).toBe(5);
     expect(await all(t, "kudos")).toHaveLength(seeded);
   });
 });

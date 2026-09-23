@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
-import { all, member, seedTeam, setupConvex, signInAs, type Team } from "./helpers";
+import { all, member, seedTeam, setupConvex, signInAs, TODAY, type Team } from "./helpers";
 
 let t: ReturnType<typeof setupConvex>;
 let team: Team;
@@ -96,7 +96,7 @@ describe("analytics privacy", () => {
   test("admins also respect a private received visibility in analytics", async () => {
     await give("<@UBEN> :taco:");
     const ana = await signInAs(t, team.ana);
-    const analytics = await ana.query(api.analytics.overview, { period: "7d" });
+    const analytics = await ana.query(api.analytics.overview, { period: "week", today: TODAY });
     expect(analytics.topReceivers).toBeNull();
   });
 });

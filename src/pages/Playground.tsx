@@ -5,6 +5,7 @@ import { AtSign, Hash, SendHorizontal, Terminal } from "lucide-react";
 import { useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { api } from "../../convex/_generated/api";
 import { Avatar, Button, Card, Eyebrow, PageHeader, RarityBadge } from "@/components/ui";
+import { useWorkspaceToday } from "@/lib/period";
 import { RARITY_META, type Rarity } from "@/lib/rarity";
 import { useViewer } from "@/lib/viewer";
 
@@ -36,7 +37,7 @@ function renderSlackText(text: string, glyph: string, emojiName: string): ReactN
 export function Playground() {
   const viewer = useViewer();
   const teammates = useQuery(api.demo.teammates) ?? [];
-  const status = useQuery(api.me.today);
+  const status = useQuery(api.me.today, { today: useWorkspaceToday() });
   const send = useMutation(api.demo.simulateMessage);
   const react = useMutation(api.demo.simulateReaction);
   const allowance = useMutation(api.demo.simulateAllowanceCheck);

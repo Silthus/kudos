@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
-import { all, member, seedTeam, setupConvex, signInAs, type Team } from "./helpers";
+import { all, member, seedTeam, setupConvex, signInAs, TODAY, type Team } from "./helpers";
 
 // Findings from the adversarial review of the v1 baseline (Silthus/kudos#2).
 
@@ -73,7 +73,7 @@ describe("private channels", () => {
     stubSlackApi({ "conversations.info": { ok: true, channel: { name: "layoffs-q4", is_private: true } } });
     await processEvent({ type: "message", user: "UANA", text: "<@UBEN> :taco:", channel: "G123", ts: "77.0" });
     const cleo = await signInAs(t, team.cleo);
-    const { channels } = await cleo.query(api.analytics.overview, { period: "7d" });
+    const { channels } = await cleo.query(api.analytics.overview, { period: "week", today: TODAY });
     expect(channels.length).toBe(1);
     expect(JSON.stringify(channels)).not.toContain("layoffs-q4");
   });
@@ -82,7 +82,7 @@ describe("private channels", () => {
     stubSlackApi({ "conversations.info": { ok: true, channel: { name: "general", is_private: false } } });
     await processEvent({ type: "message", user: "UANA", text: "<@UBEN> :taco:", channel: "C1", ts: "78.0" });
     const cleo = await signInAs(t, team.cleo);
-    const { channels } = await cleo.query(api.analytics.overview, { period: "7d" });
+    const { channels } = await cleo.query(api.analytics.overview, { period: "week", today: TODAY });
     expect(channels).toEqual([{ name: "general", value: 1 }]);
   });
 });

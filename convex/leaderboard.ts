@@ -3,21 +3,30 @@ import { query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { requireViewer } from "./lib/access";
 import { rankBy, totalsByMember, workspaceDays, workspaceMembers, type Totals } from "./lib/stats";
-import { periodValidator, resolvePeriod, startOfDayUtc, addDays } from "./lib/time";
+import { resolvePeriod } from "./lib/periods";
+import { parseToday, periodValidator, startOfDayUtc } from "./lib/time";
 
 export const get = query({
-  args: { period: periodValidator, metric: v.union(v.literal("given"), v.literal("received")) },
-  handler: async (ctx, { period, metric: requested }) => {
+  args: {
+    period: periodValidator,
+    metric: v.union(v.literal("given"), v.literal("received")),
+    /** The client's current day in the workspace timezone (see `parseToday`). */
+    today: v.string(),
+  },
+  handler: async (ctx, { period, metric: requested, today }) => {
     const viewer = await requireViewer(ctx);
     const { workspace, member: me } = viewer;
     const receivedAllowed = workspace.receivedVisibility === "everyone";
     const metric = requested === "received" && receivedAllowed ? "received" : "given";
-    const range = resolvePeriod(period, Date.now(), workspace.timezone);
+    // Values, ranks and rank changes compare with the whole previous bucket ("last week's final rank").
+    const range = resolvePeriod(period, parseToday(today));
     const members = await workspaceMembers(ctx, workspace._id);
     const active = members.filter((m) => !m.deactivated);
 
     let current: Map<Id<"members">, Totals>;
     let previous: Map<Id<"members">, Totals> | null = null;
+    // The workspace headline compares with the previous period to date, like analytics does.
+    let prevTotal: number | null = null;
     let truncated = false;
     if (period === "all") {
       current = new Map(
@@ -31,7 +40,12 @@ export const get = query({
       const prev = await workspaceDays(ctx, workspace._id, range.previous!);
       current = totalsByMember(cur.rows);
       previous = totalsByMember(prev.rows);
-      truncated = cur.truncated || prev.truncated;
+      // A capped read keeps the newest days, i.e. drops exactly the to-date part: read it on its own then.
+      const toDate = prev.truncated
+        ? await workspaceDays(ctx, workspace._id, range.previousToDate!)
+        : { rows: prev.rows.filter((r) => r.dayKey <= range.previousToDate!.end), truncated: false };
+      prevTotal = toDate.rows.reduce((s, r) => s + r[metric], 0);
+      truncated = cur.truncated || prev.truncated || toDate.truncated;
     }
 
     const value = (t: Totals | undefined) => (t ? t[metric] : 0);
@@ -66,7 +80,6 @@ export const get = query({
     });
 
     const total = [...current.values()].reduce((s, t) => s + t[metric], 0);
-    const prevTotal = previous ? [...previous.values()].reduce((s, t) => s + t[metric], 0) : null;
     const givers = [...current.values()].filter((t) => t.given > 0).length;
 
     const since = period === "all" ? 0 : startOfDayUtc(range.current.start, workspace.timezone);
@@ -95,7 +108,6 @@ export const get = query({
         maxedDays: [...current.values()].reduce((s, t) => s + t.maxedDays, 0),
       },
       unit: { singular: workspace.unitSingular, plural: workspace.unitPlural, glyph: workspace.emojiGlyph },
-      nextWeekStart: period === "week" ? addDays(range.current.start, 7) : null,
       myRow: rows.find((r) => r.isMe) ?? null,
       truncated,
     };

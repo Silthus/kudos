@@ -3,22 +3,35 @@ import type { Id } from "./_generated/dataModel";
 import { requireViewer } from "./lib/access";
 import { RARITIES } from "./lib/messages";
 import { kudosInRange, totalsByMember, workspaceDays, workspaceMembers } from "./lib/stats";
-import { eachDay, periodValidator, resolvePeriod, startOfDayUtc, addDays, zonedParts, dayKeyFor, daysBetween } from "./lib/time";
+import { v } from "convex/values";
+import { resolvePeriod } from "./lib/periods";
+import { eachDay, parseToday, periodValidator, startOfDayUtc, addDays, zonedParts, daysBetween } from "./lib/time";
+
+const MAX_CHART_DAYS = 366;
 
 /** Organisation-wide recognition analytics. */
 export const overview = query({
-  args: { period: periodValidator },
-  handler: async (ctx, { period }) => {
+  args: {
+    period: periodValidator,
+    /** The client's current day in the workspace timezone (see `parseToday`). */
+    today: v.string(),
+  },
+  handler: async (ctx, { period, today: todayArg }) => {
     const viewer = await requireViewer(ctx);
     const { workspace } = viewer;
     const tz = workspace.timezone;
-    const now = Date.now();
-    // "All time" analytics are capped to the last 365 days to keep reads bounded.
-    const range = resolvePeriod(period === "all" ? "90d" : period, now, tz);
-    const current = period === "all"
-      ? { start: addDays(dayKeyFor(now, tz), -364), end: dayKeyFor(now, tz), days: 365 }
-      : range.current;
-    const previous = period === "all" ? null : range.previous;
+    const today = parseToday(todayArg);
+    const range = resolvePeriod(period, today);
+    // "All time" starts at the workspace's first recorded day, so the daily chart has no empty years.
+    const firstDay = period === "all"
+      ? (await ctx.db
+          .query("memberDays")
+          .withIndex("by_workspace_day", (q) => q.eq("workspaceId", workspace._id).lte("dayKey", today))
+          .first())?.dayKey ?? today
+      : null;
+    const current = firstDay ? { start: firstDay, end: today, days: daysBetween(firstDay, today) + 1 } : range.current;
+    // Workspace KPIs and the daily overlay compare with the previous bucket up to the same day.
+    const previous = range.previousToDate;
     const showPeople = workspace.receivedVisibility === "everyone";
 
     const members = await workspaceMembers(ctx, workspace._id);
@@ -48,10 +61,14 @@ export const overview = query({
     for (const r of curRows) dailyMap.set(r.dayKey, (dailyMap.get(r.dayKey) ?? 0) + r.given);
     const prevDailyMap = new Map<string, number>();
     for (const r of prevRows) prevDailyMap.set(r.dayKey, (prevDailyMap.get(r.dayKey) ?? 0) + r.given);
-    const daily = eachDay(current).map((day, i) => ({
+    // At most a (leap) year of daily points: "all time" charts its most recent year.
+    const chartStart = daysBetween(current.start, current.end) < MAX_CHART_DAYS ? current.start : addDays(current.end, 1 - MAX_CHART_DAYS);
+    const chartDays = { start: chartStart, end: current.end, days: daysBetween(chartStart, current.end) + 1 };
+    const daily = eachDay(chartDays).map((day, i) => ({
       day,
       total: dailyMap.get(day) ?? 0,
-      prevTotal: previous ? (prevDailyMap.get(addDays(previous.start, i)) ?? 0) : null,
+      // Past the end of a shorter previous bucket (Feb vs. Mar 29–31) there is nothing to compare.
+      prevTotal: previous && i < previous.days ? (prevDailyMap.get(addDays(previous.start, i)) ?? 0) : null,
     }));
 
     // When recognition happens + where.
@@ -121,7 +138,7 @@ export const overview = query({
       .take(2000);
 
     return {
-      label: period === "all" ? "Last 365 days" : range.label,
+      label: range.label,
       range: { start: current.start, end: current.end, days: daysBetween(current.start, current.end) + 1 },
       showPeople,
       unit: { glyph: workspace.emojiGlyph, singular: workspace.unitSingular, plural: workspace.unitPlural },

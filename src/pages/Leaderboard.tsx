@@ -1,15 +1,14 @@
 import clsx from "clsx";
 import { motion } from "motion/react";
-import { ArrowDown, ArrowUp, Lock, Sparkles, TrendingUp, Users, Zap } from "lucide-react";
+import { ArrowDown, ArrowUp, Info, Lock, Sparkles, TrendingUp, Users, Zap } from "lucide-react";
 import { useState } from "react";
 import { api } from "../../convex/_generated/api";
 import { Ring } from "@/components/charts";
 import { Avatar, BigNumber, Card, CardHeader, Empty, Eyebrow, PageHeader, PageSkeleton, Segmented, Trend } from "@/components/ui";
 import { nf, pct, rangeLabel } from "@/lib/format";
+import { DEFAULT_PERIOD, PERIOD_OPTIONS, useWorkspaceToday, type Period } from "@/lib/period";
 import { useStableQuery } from "@/lib/useStableQuery";
 import { useViewer } from "@/lib/viewer";
-
-type Period = "week" | "30d" | "month" | "90d" | "all";
 
 const MEDALS = [
   { ring: "ring-[#ffcf5a]", bg: "from-[#ffcf5a]/25", label: "1st", height: "h-28" },
@@ -19,9 +18,10 @@ const MEDALS = [
 
 export function Leaderboard() {
   const viewer = useViewer();
-  const [period, setPeriod] = useState<Period>("week");
+  const [period, setPeriod] = useState<Period>(DEFAULT_PERIOD);
   const [metric, setMetric] = useState<"given" | "received">("given");
-  const { data, isStale } = useStableQuery(api.leaderboard.get, { period, metric });
+  const today = useWorkspaceToday();
+  const { data, isStale } = useStableQuery(api.leaderboard.get, { period, metric, today });
   if (!data) return <PageSkeleton />;
   const glyph = data.unit.glyph;
   const podium = data.rows.slice(0, 3);
@@ -55,13 +55,7 @@ export function Leaderboard() {
             <Segmented
               value={period}
               onChange={setPeriod}
-              options={[
-                { value: "week", label: "Week" },
-                { value: "month", label: "Month" },
-                { value: "30d", label: "30D" },
-                { value: "90d", label: "90D" },
-                { value: "all", label: "All" },
-              ]}
+              options={PERIOD_OPTIONS}
             />
           </>
         }
@@ -170,7 +164,7 @@ export function Leaderboard() {
               <span className="text-2xl">{glyph}</span>
             </div>
             <div className="mt-2">
-              <Trend cur={data.highlights.total} prev={data.highlights.prevTotal} />
+              <Trend cur={data.highlights.total} prev={data.highlights.prevTotal} suffix="vs last period to date" />
             </div>
           </Card>
           <Card className="flex items-center gap-5 p-5">
@@ -209,6 +203,11 @@ export function Leaderboard() {
           )}
         </div>
       </div>
+      {data.truncated && (
+        <p className="mt-3 flex items-center gap-1.5 text-xs text-faint">
+          <Info className="h-3.5 w-3.5" /> This range is very busy: rankings only include the most recent activity.
+        </p>
+      )}
     </div>
   );
 }

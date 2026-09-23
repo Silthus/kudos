@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
-import { all, seedTeam, setupConvex, signInAs, type Team } from "./helpers";
+import { all, seedTeam, setupConvex, signInAs, TODAY, type Team } from "./helpers";
 
 let t: ReturnType<typeof setupConvex>;
 let team: Team;
@@ -30,8 +30,8 @@ afterEach(() => vi.useRealTimers());
 describe("signed-out visitors", () => {
   test("see the landing state and no workspace data", async () => {
     expect(await t.query(api.session.viewer, {})).toEqual({ status: "signedOut" });
-    await expect(t.query(api.me.overview, { period: "30d" })).rejects.toThrow(/Sign in/);
-    await expect(t.query(api.leaderboard.get, { period: "week", metric: "given" })).rejects.toThrow(/Sign in/);
+    await expect(t.query(api.me.overview, { period: "month", today: TODAY })).rejects.toThrow(/Sign in/);
+    await expect(t.query(api.leaderboard.get, { period: "week", metric: "given", today: TODAY })).rejects.toThrow(/Sign in/);
   });
 
   test("never learn secrets from the setup status", async () => {
@@ -63,7 +63,7 @@ describe("received kudos visibility", () => {
     await give("<@UBEN> :taco:");
     await setVisibility("hidden");
     const ben = await signInAs(t, team.ben);
-    const me = await ben.query(api.me.overview, { period: "7d" });
+    const me = await ben.query(api.me.overview, { period: "week", today: TODAY });
     expect(me.totals.received).toBeNull();
     expect(me.cadence.every((d) => d.received === null)).toBe(true);
   });
@@ -71,8 +71,8 @@ describe("received kudos visibility", () => {
   test("'self' shows your own received kudos but keeps the leaderboard on giving", async () => {
     await give("<@UBEN> :taco:");
     const ben = await signInAs(t, team.ben);
-    expect((await ben.query(api.me.overview, { period: "7d" })).totals.received).toBe(1);
-    const board = await ben.query(api.leaderboard.get, { period: "week", metric: "received" });
+    expect((await ben.query(api.me.overview, { period: "week", today: TODAY })).totals.received).toBe(1);
+    const board = await ben.query(api.leaderboard.get, { period: "week", metric: "received", today: TODAY });
     expect(board.metric).toBe("given");
     expect(board.rows.map((r) => r.member.name)).toEqual(["Ana"]);
   });
@@ -81,15 +81,15 @@ describe("received kudos visibility", () => {
     await give("<@UBEN> :taco::taco:");
     await setVisibility("everyone");
     const cleo = await signInAs(t, team.cleo);
-    const board = await cleo.query(api.leaderboard.get, { period: "week", metric: "received" });
+    const board = await cleo.query(api.leaderboard.get, { period: "week", metric: "received", today: TODAY });
     expect(board.rows.map((r) => [r.member.name, r.value])).toEqual([["Ben", 2]]);
-    expect((await cleo.query(api.analytics.overview, { period: "7d" })).topReceivers).not.toBeNull();
+    expect((await cleo.query(api.analytics.overview, { period: "week", today: TODAY })).topReceivers).not.toBeNull();
   });
 
   test("non-admins don't see who receives most while it's private", async () => {
     await give("<@UBEN> :taco:");
     const cleo = await signInAs(t, team.cleo);
-    const analytics = await cleo.query(api.analytics.overview, { period: "7d" });
+    const analytics = await cleo.query(api.analytics.overview, { period: "week", today: TODAY });
     expect(analytics.topReceivers).toBeNull();
     expect(analytics.topPairs).toBeNull();
   });
@@ -123,6 +123,6 @@ describe("admins", () => {
     const other = await seedTeam(t, {}, "T2");
     await give("<@UBEN> :taco:", other.workspaceId);
     const ana = await signInAs(t, team.ana);
-    expect((await ana.query(api.leaderboard.get, { period: "week", metric: "given" })).rows).toHaveLength(0);
+    expect((await ana.query(api.leaderboard.get, { period: "week", metric: "given", today: TODAY })).rows).toHaveLength(0);
   });
 });
