@@ -332,7 +332,7 @@ test("the dashboard overview no longer computes quests", async () => {
 describe("quests in the demo", () => {
   async function enterDemo() {
     const userId = await t.mutation(internal.demo.ensureDemoUser, {});
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    await t.finishAllScheduledFunctions(vi.runAllTimers, 1000); // seeding, then the rollup rebuild
     return t.withIdentity({ subject: `${userId}|s` });
   }
   const demoCompletions = async () => {
@@ -369,8 +369,8 @@ describe("quests in the demo", () => {
     await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> :taco: great work on the release notes", channelName: "general" });
     expect(await all(t, "questBoards")).not.toHaveLength(0);
     await demo.mutation(api.demo.resetDemo, {});
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    await t.finishAllScheduledFunctions(vi.runAllTimers, 1000); // seeding, then the rollup rebuild
     expect(await all(t, "questBoards")).toHaveLength(0);
     expect(await all(t, "questCompletions")).toHaveLength(0);
-  });
+  }, 30_000); // a reset re-seeds 120 days and rebuilds their rollups
 });

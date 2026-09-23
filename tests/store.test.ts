@@ -270,7 +270,7 @@ describe("store access", () => {
 
   test("the shared demo catalog is read-only", async () => {
     const userId = await t.mutation(internal.demo.ensureDemoUser, {});
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    await t.finishAllScheduledFunctions(vi.runAllTimers, 1000); // seeding, then the rollup rebuild
     const demo = t.withIdentity({ subject: `${userId}|s` });
     const rewardId = await t.run(async (ctx) => {
       const ws = (await ctx.db.query("workspaces").collect()).find((w) => w.isDemo)!;

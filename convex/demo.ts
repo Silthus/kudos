@@ -6,7 +6,7 @@ import { allowanceCheck, findMember, giveKudos, revokeKudosRow } from "./engine"
 import { getViewer, requireViewer } from "./lib/access";
 import { CATALOG, RARITY_WEIGHTS, type Category } from "./lib/messages";
 import { countNoteWords, parseKudosMessage, previewText } from "./lib/parse";
-import { addDays, dayKeyFor, startOfDayUtc, weekdayOfKey } from "./lib/time";
+import { addDays, dayKeyFor, startOfDayUtc, weekdayOfKey, zonedParts } from "./lib/time";
 import { DEFAULT_SETTINGS } from "./lib/settings";
 import { mulberry32 } from "./lib/random";
 
@@ -204,6 +204,7 @@ export const seedHistory = internalMutation({
               messageTs: `${Math.floor(at / 1000)}.${i}`,
               text,
               at,
+              hour: zonedParts(at, workspace.timezone).hour,
             });
             received.set(r._id, (received.get(r._id) ?? 0) + amountEach);
             bump(r._id, "received", amountEach);
@@ -227,6 +228,7 @@ export const seedHistory = internalMutation({
             given: used,
             received: received.get(giver._id) ?? 0,
             maxed,
+            capped: Math.min(used, workspace.dailyLimit),
           });
           received.delete(giver._id);
           bump(giver._id, "given", used);
@@ -239,7 +241,7 @@ export const seedHistory = internalMutation({
           .withIndex("by_member_day", (q) => q.eq("memberId", memberId).eq("dayKey", day))
           .unique();
         if (existing) await ctx.db.patch(existing._id, { received: existing.received + amount });
-        else await ctx.db.insert("memberDays", { workspaceId, memberId, dayKey: day, given: 0, received: amount, maxed: false });
+        else await ctx.db.insert("memberDays", { workspaceId, memberId, dayKey: day, given: 0, received: amount, maxed: false, capped: 0 });
       }
       day = addDays(day, 1);
       processed++;
@@ -258,8 +260,10 @@ export const seedHistory = internalMutation({
 
     if (day <= untilDay) {
       await ctx.scheduler.runAfter(0, internal.demo.seedHistory, { workspaceId, fromDay: day, untilDay });
-    } else if (workspace.resettingSince) {
-      await ctx.db.patch(workspaceId, { resettingSince: undefined });
+    } else {
+      // The seeded rows bypass the engine, so the read-model rollups are rebuilt from them. That
+      // run belongs to this reset and releases its lock when it finishes.
+      await ctx.scheduler.runAfter(0, internal.rollups.rebuildWorkspace, { workspaceId, resetAt: workspace.resettingSince });
     }
     return null;
   },
@@ -487,7 +491,43 @@ export const teammateThanks = internalMutation({
   },
 });
 
-const DEMO_TABLES = ["kudos", "memberDays", "discoveries", "questBoards", "questCompletions", "notifications"] as const;
+const DEMO_TABLES = [
+  "kudos",
+  "memberDays",
+  "discoveries",
+  "workspaceStats",
+  "memberStats",
+  "pairStats",
+  "channelStats",
+  "questBoards",
+  "questCompletions",
+  "notifications",
+] as const;
+
+/** Up to 1000 of the demo workspace's rows of a table (notifications are wiped per member). */
+async function demoRows(ctx: MutationCtx, workspaceId: Id<"workspaces">, table: (typeof DEMO_TABLES)[number]) {
+  switch (table) {
+    case "kudos":
+      return await ctx.db.query("kudos").withIndex("by_workspace_at", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+    case "memberDays":
+      return await ctx.db.query("memberDays").withIndex("by_workspace_day", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+    case "discoveries":
+      return await ctx.db.query("discoveries").withIndex("by_workspace_firstSeen", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+    case "workspaceStats":
+      return await ctx.db.query("workspaceStats").withIndex("by_workspace_bucket", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+    case "memberStats":
+      return await ctx.db.query("memberStats").withIndex("by_workspace_bucket_given", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+    case "pairStats":
+      return await ctx.db.query("pairStats").withIndex("by_workspace_bucket_amount", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+    case "channelStats":
+      return await ctx.db.query("channelStats").withIndex("by_workspace_bucket_amount", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+    case "questBoards":
+    case "questCompletions":
+      return await ctx.db.query(table).withIndex("by_workspace_week", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+    case "notifications":
+      return [];
+  }
+}
 
 const RESET_LOCK_MS = 15 * 60 * 1000;
 
@@ -514,16 +554,8 @@ export const resetDemoWorkspace = internalMutation({
     if (!workspace) return null;
     let deleted = 0;
     for (const table of DEMO_TABLES) {
-      const rows =
-        table === "kudos"
-          ? await ctx.db.query("kudos").withIndex("by_workspace_at", (q) => q.eq("workspaceId", workspace._id)).take(1000)
-          : table === "memberDays"
-            ? await ctx.db.query("memberDays").withIndex("by_workspace_day", (q) => q.eq("workspaceId", workspace._id)).take(1000)
-            : table === "discoveries"
-              ? await ctx.db.query("discoveries").withIndex("by_workspace_firstSeen", (q) => q.eq("workspaceId", workspace._id)).take(1000)
-              : table === "questBoards" || table === "questCompletions"
-                ? await ctx.db.query(table).withIndex("by_workspace_week", (q) => q.eq("workspaceId", workspace._id)).take(1000)
-                : [];
+      if (deleted >= 3000) break; // stay well within per-transaction write limits
+      const rows = await demoRows(ctx, workspace._id, table);
       for (const r of rows) await ctx.db.delete(r._id);
       deleted += rows.length;
     }
