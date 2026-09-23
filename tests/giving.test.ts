@@ -163,6 +163,61 @@ describe("giving kudos with a reaction", () => {
   });
 });
 
+describe("redelivered messages that others reacted to", () => {
+  const react = (reactor: string, author: string, messageTs: string) =>
+    t.mutation(internal.kudos.ingestReaction, {
+      workspaceId: team.workspaceId,
+      botUserId: "UBOT",
+      reactorSlackId: reactor,
+      authorSlackId: author,
+      channelId: "CGENERAL",
+      channelName: "general",
+      messageTs,
+    });
+  const messageGives = async () => (await all(t, "kudos")).filter((k) => k.source === "message");
+
+  test("a reaction that lands before the kudos message does not let a redelivery give again", async () => {
+    // Slack delivered Cleo's reaction first, the kudos message after it, then retried the message.
+    expect((await react("UCLEO", "UANA", "42.0001"))?.status).toBe("given");
+    expect((await message("UANA", "<@UBEN> :taco:", "42.0001"))?.status).toBe("given");
+    expect(await message("UANA", "<@UBEN> :taco:", "42.0001")).toBeNull();
+
+    expect(await messageGives()).toHaveLength(1);
+    expect(await member(t, team.ana)).toMatchObject({ totalGiven: 1, totalReceived: 1 });
+    expect(await member(t, team.ben)).toMatchObject({ totalReceived: 1 });
+  });
+
+  test("an edit a day later that adds more kudos gives nothing and the rollups stay exact", async () => {
+    // Ben reacted to Ana's plain message, Ana then edited kudos into it, and edited again the next day.
+    await react("UBEN", "UANA", "42.0001");
+    expect((await message("UANA", "<@UBEN> :taco:", "42.0001"))?.status).toBe("given");
+    vi.setSystemTime(new Date("2026-09-24T10:00:00Z"));
+    expect(await message("UANA", "<@UBEN> <@UCLEO> :taco::taco:", "42.0001")).toBeNull();
+
+    expect((await messageGives()).map((k) => [k.receiverId, k.amount, k.dayKey])).toEqual([[team.ben, 1, "2026-09-23"]]);
+    expect(await member(t, team.cleo)).toMatchObject({ totalReceived: 0 });
+    // Live maintenance and a rebuild from the kudos rows must both agree with the legacy computation.
+    const buckets = ["d:2026-09-23", "d:2026-09-24", "w:2026-W39", "m:2026-09", "q:2026-Q3", "y:2026"];
+    const verify = () => t.query(internal.rollups.verify, { workspaceId: team.workspaceId, buckets });
+    expect(await verify()).toEqual({ checked: buckets, mismatches: [] });
+    await t.mutation(internal.rollups.rebuildWorkspace, { workspaceId: team.workspaceId });
+    await t.finishAllScheduledFunctions(vi.runAllTimers, 1000);
+    expect(await verify()).toEqual({ checked: buckets, mismatches: [] });
+  });
+
+  test("reactions to a kudos message still count once per person", async () => {
+    await message("UANA", "<@UBEN> :taco:", "42.0001");
+    expect((await react("UCLEO", "UANA", "42.0001"))?.status).toBe("given");
+    expect(await react("UCLEO", "UANA", "42.0001")).toBeNull();
+    expect((await react("UBEN", "UANA", "42.0001"))?.status).toBe("given");
+    expect((await all(t, "kudos")).map((k) => [k.source, k.giverId])).toEqual([
+      ["message", team.ana],
+      ["reaction", team.cleo],
+      ["reaction", team.ben],
+    ]);
+  });
+});
+
 describe("revoking kudos", () => {
   test("restores totals, rollups, allowance and maxed days", async () => {
     await message("UANA", "<@UBEN> :taco::taco::taco::taco::taco:");
