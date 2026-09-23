@@ -85,9 +85,14 @@ async function bumpMemberDay(
   const givenDelta = delta.given ?? 0;
   const maxed =
     givenDelta > 0 ? given >= workspace.dailyLimit : givenDelta < 0 ? wasMaxed && given >= workspace.dailyLimit : wasMaxed;
+  // Allowance use is capped by the limit in force when it was given, so a later limit change
+  // can't make a revoke subtract a different cap than the give added.
+  const wasCapped = day ? (day.capped ?? Math.min(day.given, workspace.dailyLimit)) : 0;
+  const capped =
+    givenDelta > 0 ? Math.min(given, workspace.dailyLimit) : givenDelta < 0 ? Math.min(given, wasCapped) : wasCapped;
   if (day) {
     if (given === 0 && received === 0) await ctx.db.delete(day._id);
-    else await ctx.db.patch(day._id, { given, received, maxed });
+    else await ctx.db.patch(day._id, { given, received, maxed, capped });
   } else {
     await ctx.db.insert("memberDays", {
       workspaceId: workspace._id,
@@ -96,13 +101,17 @@ async function bumpMemberDay(
       given,
       received,
       maxed,
+      capped,
     });
   }
   return {
     memberId,
     dayKey,
-    before: { given: day?.given ?? 0, received: day?.received ?? 0, maxed: wasMaxed },
-    after: given === 0 && received === 0 ? { given: 0, received: 0, maxed: false } : { given, received, maxed },
+    before: { given: day?.given ?? 0, received: day?.received ?? 0, maxed: wasMaxed, capped: wasCapped },
+    after:
+      given === 0 && received === 0
+        ? { given: 0, received: 0, maxed: false, capped: 0 }
+        : { given, received, maxed, capped },
     becameMaxed: maxed && !wasMaxed,
     lostMaxed: wasMaxed && !maxed,
   };

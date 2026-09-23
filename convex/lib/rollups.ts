@@ -24,7 +24,7 @@ export function channelKey(row: Pick<Doc<"kudos">, "channelId" | "channelName" |
 }
 
 /** A `memberDays` row's counters; an absent row counts as all zeros. */
-export type DayCounts = { given: number; received: number; maxed: boolean };
+export type DayCounts = { given: number; received: number; maxed: boolean; capped: number };
 export type MemberDayChange = { memberId: Id<"members">; dayKey: string; before: DayCounts; after: DayCounts };
 export type MemberTotals = { given: number; received: number };
 
@@ -90,8 +90,7 @@ export class Rollups {
     const giving = presence(before.given, after.given);
     const receiving = presence(before.received, after.received);
     const maxed = Number(after.maxed) - Number(before.maxed);
-    const limit = this.workspace.dailyLimit;
-    const capped = Math.min(after.given, limit) - Math.min(before.given, limit);
+    const capped = after.capped - before.capped;
     for (const bucket of memberBuckets(dayKey)) {
       const delta = this.member(memberId, bucket);
       delta.given += after.given - before.given;

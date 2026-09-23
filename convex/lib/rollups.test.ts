@@ -2,9 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { Doc } from "../_generated/dataModel";
 import { allowanceCheck, giveKudos, revokeKudosRow, type GiveInput } from "../engine";
 import { member, seedTeam, setupConvex, type Team } from "../../tests/helpers";
-import { heatIndex, heatSize, memberBuckets, pairBuckets, workspaceBuckets } from "./buckets";
-import { channelKey } from "./rollups";
-import { daysBetween, dayKeyFor, weekdayOfKey } from "./time";
+import { dayKeyFor } from "./time";
 
 let t: ReturnType<typeof setupConvex>;
 let team: Team;
@@ -130,6 +128,23 @@ describe("giving kudos keeps the rollups", () => {
     expect(ben.givenByWeekday).toBeUndefined();
   });
 
+  test("a member who gave before rollups existed gets their profile from their full history on the next give", async () => {
+    await t.run(async (ctx) => {
+      for (const [dayKey, given] of [["2026-09-15", 2], ["2026-09-21", 1], ["2026-09-22", 3]] as const) {
+        await ctx.db.insert("memberDays", { workspaceId: team.workspaceId, memberId: team.ana, dayKey, given, received: 0, maxed: false });
+      }
+      await ctx.db.patch(team.ana, { totalGiven: 6 });
+    });
+    await give({ giverSlackId: "UANA", recipientSlackIds: ["UBEN"] }); // Wednesday 2026-09-23
+    expect(await member(t, team.ana)).toMatchObject({
+      totalGiven: 7,
+      currentStreak: 3,
+      longestStreak: 3,
+      lastActiveDay: "2026-09-23",
+      givenByWeekday: [1, 5, 1, 0, 0, 0, 0],
+    });
+  });
+
   test("a message to three teammates touches 42 rollup rows: 6 workspace, 16 member, 15 pair, 5 channel", async () => {
     await t.run((ctx) =>
       ctx.db.insert("members", {
@@ -171,6 +186,36 @@ describe("revoking kudos", () => {
       expect(m.givenByWeekday).toEqual([0, 0, 0, 0, 0, 0, 0]);
       expect(m.lastActiveDay).toBeUndefined();
     }
+  });
+
+  test("allowance use returns to zero even when the daily limit changed between give and revoke", async () => {
+    await give({ giverSlackId: "UANA", recipientSlackIds: ["UBEN"], amountEach: 5 });
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { dailyLimit: 3 }));
+    await revokeAll();
+    expect((await rollups()).workspace).toEqual([]);
+
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { dailyLimit: 5 }));
+    await give({ giverSlackId: "UANA", recipientSlackIds: ["UBEN"], amountEach: 5 });
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { dailyLimit: 10 }));
+    await give({ giverSlackId: "UANA", recipientSlackIds: ["UBEN"], amountEach: 4 });
+    expect((await rollups()).workspace.find((w) => w.bucket === "all")).toMatchObject({ given: 9, cappedGiven: 9 });
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { dailyLimit: 5 }));
+    await revokeAll();
+    expect((await rollups()).workspace).toEqual([]);
+  });
+
+  test("a partial revoke keeps the rest of the day capped at the limit it was given under", async () => {
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { dailyLimit: 10 }));
+    for (const messageTs of ["1.0", "2.0", "3.0"]) {
+      await give({ giverSlackId: "UANA", recipientSlackIds: ["UBEN"], amountEach: 3, messageTs });
+    }
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { dailyLimit: 5 }));
+    await t.run(async (ctx) => {
+      const [first] = await ctx.db.query("kudos").collect();
+      await revokeKudosRow(ctx, (await ctx.db.get(team.workspaceId))!, first);
+    });
+    const day = (await rollups()).workspace.find((w) => w.bucket === "d:2026-09-23");
+    expect(day).toMatchObject({ given: 6, cappedGiven: 6 });
   });
 
   test("a message stops counting only when its last row is revoked", async () => {
@@ -228,10 +273,41 @@ function mulberry32(seed: number) {
   };
 }
 
-// Days around week, month, quarter and year boundaries (2026 has an ISO week 53).
-const DAYS = ["2026-09-21", "2026-09-22", "2026-09-23", "2026-09-30", "2026-10-01", "2026-12-28", "2026-12-31", "2027-01-01", "2027-01-04"];
+// Days around week, month, quarter and year boundaries (2026 has an ISO week 53) and DST switches.
+const DAYS = [
+  "2026-09-21", "2026-09-22", "2026-09-23", "2026-09-30", "2026-10-01", "2026-10-25", "2026-11-01",
+  "2026-12-28", "2026-12-31", "2027-01-01", "2027-01-04", "2027-03-28",
+];
 const ZONES = ["Europe/Berlin", "America/Los_Angeles", "Asia/Tokyo", "UTC"];
 const PEOPLE = ["UANA", "UBEN", "UCLEO", "UDAN", "UEVE"];
+const LIMITS = [3, 5, 8];
+
+// The oracle derives bucket keys on its own (not via lib/buckets): ISO week 1 is the week
+// holding January 4th, found with the platform Date API.
+const DAY_MS = 86_400_000;
+const utc = (dayKey: string) => new Date(`${dayKey}T00:00:00Z`);
+const mondayIndex = (date: Date) => (date.getUTCDay() + 6) % 7;
+function isoWeekKey(dayKey: string) {
+  const date = utc(dayKey);
+  const monday = date.getTime() - mondayIndex(date) * DAY_MS;
+  const week1 = (year: number) => {
+    const jan4 = new Date(Date.UTC(year, 0, 4));
+    return jan4.getTime() - mondayIndex(jan4) * DAY_MS;
+  };
+  let year = date.getUTCFullYear() + 1;
+  while (week1(year) > monday) year -= 1;
+  return `w:${year}-W${String((monday - week1(year)) / (7 * DAY_MS) + 1).padStart(2, "0")}`;
+}
+function oracleBuckets(dayKey: string) {
+  const [y, m] = dayKey.split("-");
+  const quarter = `q:${y}-Q${Math.ceil(Number(m) / 3)}`;
+  const periods = [isoWeekKey(dayKey), `m:${y}-${m}`, quarter, `y:${y}`];
+  return { day: `d:${dayKey}`, member: periods, pair: [...periods, "all"], workspace: [`d:${dayKey}`, ...periods, "all"] };
+}
+const oracleHeat = (bucket: string, dayKey: string, hour: number) =>
+  bucket.startsWith("d:") ? hour : mondayIndex(utc(dayKey)) * 24 + hour;
+const oracleChannel = (k: Doc<"kudos">) => (k.channelPrivate ? "Private channels" : (k.channelName ?? k.channelId));
+const dayGap = (a: string, b: string) => (utc(b).getTime() - utc(a).getTime()) / DAY_MS;
 const CHANNELS = [
   { channelId: "CGENERAL", channelName: "general" },
   { channelId: "CRANDOM", channelName: "random" },
@@ -267,7 +343,7 @@ const add = <K>(m: Map<K, number>, k: K, n: number) => m.set(k, (m.get(k) ?? 0) 
 const sorted = (rows: string[]) => [...rows].sort();
 
 /** Recompute every rollup from the sources and compare. `zoneAt` maps a give's time to its timezone. */
-function expectRollupsMatchSources(s: Sources, zoneAt: Map<number, string>, dailyLimit: number, step: string) {
+function expectRollupsMatchSources(s: Sources, zoneAt: Map<number, string>, lowestLimit: number, step: string) {
   // The sources agree with each other.
   const dayGiven = new Map<string, number>();
   const dayReceived = new Map<string, number>();
@@ -278,6 +354,9 @@ function expectRollupsMatchSources(s: Sources, zoneAt: Map<number, string>, dail
   for (const d of s.memberDays) {
     expect(d.given, step).toBe(dayGiven.get(`${d.memberId}|${d.dayKey}`) ?? 0);
     expect(d.received, step).toBe(dayReceived.get(`${d.memberId}|${d.dayKey}`) ?? 0);
+    // The stored allowance use never exceeds what was given, nor falls below the lowest limit's cap.
+    expect(d.capped, step).toBeLessThanOrEqual(d.given);
+    expect(d.capped, step).toBeGreaterThanOrEqual(Math.min(d.given, lowestLimit));
   }
 
   // workspaceStats
@@ -288,7 +367,7 @@ function expectRollupsMatchSources(s: Sources, zoneAt: Map<number, string>, dail
     if (!row) {
       row = {
         bucket, given: 0, kudosRows: 0, messages: 0, givers: 0, receivers: 0, giverDays: 0, cappedGiven: 0, maxedDays: 0,
-        fromReactions: 0, fromMessages: 0, heat: new Array(heatSize(bucket)).fill(0), found: { ...noFinds },
+        fromReactions: 0, fromMessages: 0, heat: new Array(bucket.startsWith("d:") ? 24 : 168).fill(0), found: { ...noFinds },
       };
       ws.set(bucket, row);
     }
@@ -296,13 +375,14 @@ function expectRollupsMatchSources(s: Sources, zoneAt: Map<number, string>, dail
   };
   const batches = new Map<string, Set<string>>();
   for (const k of s.kudos) {
-    for (const b of workspaceBuckets(k.dayKey)) {
+    expect(k.hour, step).toBeTypeOf("number");
+    for (const b of oracleBuckets(k.dayKey).workspace) {
       const row = wsRow(b);
       row.given += k.amount;
       row.kudosRows += 1;
       if (k.source === "reaction") row.fromReactions += k.amount;
       else row.fromMessages += k.amount;
-      row.heat[heatIndex(b, k.dayKey, k.hour!)] += k.amount;
+      row.heat[oracleHeat(b, k.dayKey, k.hour!)] += k.amount;
       batches.set(b, (batches.get(b) ?? new Set()).add(k.batchId));
     }
   }
@@ -310,11 +390,11 @@ function expectRollupsMatchSources(s: Sources, zoneAt: Map<number, string>, dail
   const memberGiven = new Map<string, number>();
   const memberReceived = new Map<string, number>();
   for (const d of s.memberDays) {
-    for (const b of workspaceBuckets(d.dayKey)) {
+    for (const b of oracleBuckets(d.dayKey).workspace) {
       const row = wsRow(b);
       if (d.given > 0) row.giverDays += 1;
       if (d.maxed) row.maxedDays += 1;
-      row.cappedGiven += Math.min(d.given, dailyLimit);
+      row.cappedGiven += d.capped!;
       add(memberGiven, `${b}|${d.memberId}`, d.given);
       add(memberReceived, `${b}|${d.memberId}`, d.received);
     }
@@ -322,7 +402,7 @@ function expectRollupsMatchSources(s: Sources, zoneAt: Map<number, string>, dail
   for (const [key, n] of memberGiven) if (n > 0) wsRow(key.split("|")[0]).givers += 1;
   for (const [key, n] of memberReceived) if (n > 0) wsRow(key.split("|")[0]).receivers += 1;
   for (const d of s.discoveries) {
-    for (const b of workspaceBuckets(dayKeyFor(d.firstSeenAt, zoneAt.get(d.firstSeenAt)!))) wsRow(b).found[d.rarity] += 1;
+    for (const b of oracleBuckets(dayKeyFor(d.firstSeenAt, zoneAt.get(d.firstSeenAt)!)).workspace) wsRow(b).found[d.rarity] += 1;
   }
   const isZero = (w: Ws) =>
     w.given + w.kudosRows + w.messages + w.givers + w.receivers + w.giverDays + w.cappedGiven + w.maxedDays +
@@ -341,7 +421,7 @@ function expectRollupsMatchSources(s: Sources, zoneAt: Map<number, string>, dail
   // memberStats (w/m/q/y)
   const ms = new Map<string, { given: number; received: number; maxedDays: number; activeDays: number }>();
   for (const d of s.memberDays) {
-    for (const b of memberBuckets(d.dayKey)) {
+    for (const b of oracleBuckets(d.dayKey).member) {
       const key = `${d.memberId}|${b}`;
       const row = ms.get(key) ?? { given: 0, received: 0, maxedDays: 0, activeDays: 0 };
       row.given += d.given;
@@ -359,9 +439,9 @@ function expectRollupsMatchSources(s: Sources, zoneAt: Map<number, string>, dail
   const pairs = new Map<string, number>();
   const channels = new Map<string, number>();
   for (const k of s.kudos) {
-    for (const b of pairBuckets(k.dayKey)) {
+    for (const b of oracleBuckets(k.dayKey).pair) {
       add(pairs, `${k.giverId}>${k.receiverId}|${b}`, k.amount);
-      add(channels, `${channelKey(k)}|${b}`, k.amount);
+      add(channels, `${oracleChannel(k)}|${b}`, k.amount);
     }
   }
   expect(sorted(s.pairStats.map((p) => `${p.giverId}>${p.receiverId}|${p.bucket} ${p.amount}`)), step).toEqual(
@@ -383,11 +463,11 @@ function expectRollupsMatchSources(s: Sources, zoneAt: Map<number, string>, dail
       continue;
     }
     const weekday = new Array(7).fill(0);
-    for (const d of active) weekday[weekdayOfKey(d.dayKey)] += d.given;
+    for (const d of active) weekday[mondayIndex(utc(d.dayKey))] += d.given;
     let run = 0;
     let longest = 0;
     active.forEach((d, i) => {
-      run = i > 0 && daysBetween(active[i - 1].dayKey, d.dayKey) === 1 ? run + 1 : 1;
+      run = i > 0 && dayGap(active[i - 1].dayKey, d.dayKey) === 1 ? run + 1 : 1;
       longest = Math.max(longest, run);
     });
     expect(
@@ -398,7 +478,7 @@ function expectRollupsMatchSources(s: Sources, zoneAt: Map<number, string>, dail
 }
 
 describe("rollups equal a recompute from the sources", () => {
-  const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8];
+  const SEEDS = Array.from({ length: 12 }, (_, i) => i + 1);
 
   test.each(SEEDS)("after a random give/revoke sequence (seed %i), and return to zero once everything is revoked", async (seed) => {
     const random = mulberry32(seed);
@@ -412,7 +492,9 @@ describe("rollups equal a recompute from the sources", () => {
         });
       }
     });
-    const dailyLimit = 5;
+    let lowestLimit = 5;
+    let newcomers = 0;
+    const someone = () => (random() < 0.1 ? `UNEW${newcomers++}` : pick([...PEOPLE, "UBOT", "UFAY"]));
     let zone = "Europe/Berlin";
     const zoneAt = new Map<number, string>();
     const nextTime = () => {
@@ -421,22 +503,23 @@ describe("rollups equal a recompute from the sources", () => {
       return Date.UTC(y, m - 1, d, Math.floor(random() * 24), Math.floor(random() * 60)) + zoneAt.size;
     };
 
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 50; i++) {
       const roll = random();
       let step: string;
       if (roll < 0.55) {
         const now = nextTime();
         zoneAt.set(now, zone);
         vi.setSystemTime(now);
-        const giver = pick(PEOPLE);
-        const recipients = [...new Set([pick([...PEOPLE, "UBOT", "UFAY"]), ...(random() < 0.4 ? [pick(PEOPLE)] : [])])];
+        const giver = random() < 0.9 ? pick(PEOPLE) : someone();
+        const recipients = [...new Set(Array.from({ length: 1 + Math.floor(random() * 4) }, someone))];
         const channel = pick(CHANNELS);
         const result = await give({
           giverSlackId: giver,
           recipientSlackIds: recipients,
           amountEach: 1 + Math.floor(random() * 3),
           source: random() < 0.3 ? "reaction" : "message",
-          messageTs: random() < 0.8 ? `${now / 1000}` : undefined,
+          // A few shared message timestamps make batch ids recur across transactions and days.
+          messageTs: random() < 0.2 ? undefined : random() < 0.3 ? pick(["1.0001", "2.0001"]) : `${now / 1000}`,
           ...channel,
         });
         step = `seed ${seed} step ${i}: ${giver} → ${recipients.join(",")} ${result.status}`;
@@ -446,7 +529,12 @@ describe("rollups equal a recompute from the sources", () => {
         const row = pick(rows);
         await t.run(async (ctx) => revokeKudosRow(ctx, (await ctx.db.get(team.workspaceId))!, row));
         step = `seed ${seed} step ${i}: revoke ${row._id}`;
-      } else if (roll < 0.95) {
+      } else if (roll < 0.9) {
+        const limit = pick(LIMITS);
+        lowestLimit = Math.min(lowestLimit, limit);
+        await t.run((ctx) => ctx.db.patch(team.workspaceId, { dailyLimit: limit }));
+        step = `seed ${seed} step ${i}: daily limit ${limit}`;
+      } else if (roll < 0.96) {
         zone = pick(ZONES);
         await t.run((ctx) => ctx.db.patch(team.workspaceId, { timezone: zone }));
         step = `seed ${seed} step ${i}: timezone ${zone}`;
@@ -459,12 +547,12 @@ describe("rollups equal a recompute from the sources", () => {
         });
         step = `seed ${seed} step ${i}: allowance check`;
       }
-      expectRollupsMatchSources(await snapshot(), zoneAt, dailyLimit, step);
+      expectRollupsMatchSources(await snapshot(), zoneAt, lowestLimit, step);
     }
 
     await revokeAll();
     const s = await snapshot();
-    expectRollupsMatchSources(s, zoneAt, dailyLimit, `seed ${seed}: everything revoked`);
+    expectRollupsMatchSources(s, zoneAt, lowestLimit, `seed ${seed}: everything revoked`);
     expect(s.memberStats).toEqual([]);
     expect(s.pairStats).toEqual([]);
     expect(s.channelStats).toEqual([]);

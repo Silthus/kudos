@@ -554,6 +554,10 @@ export const resetDemoWorkspace = internalMutation({
         totalReceived: 0,
         totalMaxedDays: 0,
         lastGivenAt: undefined,
+        currentStreak: undefined,
+        longestStreak: undefined,
+        lastActiveDay: undefined,
+        givenByWeekday: undefined,
         isAdmin: m.slackUserId === DEMO_YOU || m.slackUserId === "UDEMOLENA",
       });
     }

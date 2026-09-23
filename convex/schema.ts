@@ -147,6 +147,9 @@ export default defineSchema({
     given: v.number(),
     received: v.number(),
     maxed: v.boolean(),
+    // min(given, dailyLimit in force when it was given); lowered only by revokes. Absent on rows
+    // written before rollups: read as min(given, current dailyLimit).
+    capped: v.optional(v.number()),
   })
     .index("by_member_day", ["memberId", "dayKey"])
     .index("by_workspace_day", ["workspaceId", "dayKey"]),
@@ -162,7 +165,7 @@ export default defineSchema({
     givers: v.number(), // distinct members with given > 0 in the bucket
     receivers: v.number(), // distinct members with received > 0 in the bucket
     giverDays: v.number(), // memberDays rows with given > 0
-    cappedGiven: v.number(), // Σ min(given, dailyLimit at write time) over giver-days
+    cappedGiven: v.number(), // Σ memberDays.capped: allowance used, at the limit in force when given
     maxedDays: v.number(),
     fromReactions: v.number(),
     fromMessages: v.number(), // every non-reaction source
