@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { balanceOf, validateRewardInput } from "./store";
+import { balanceOf, isOpen, transition, validateRewardInput } from "./store";
 
 describe("balanceOf", () => {
   test("is everything received when nothing was granted or spent yet", () => {
@@ -76,5 +76,51 @@ describe("validateRewardInput", () => {
     for (const maxPerMember of [0, 101, 2.5, Number.NaN, Number.POSITIVE_INFINITY]) {
       expect(() => validateRewardInput({ ...valid, maxPerMember })).toThrow(/per-person/);
     }
+  });
+});
+
+describe("transition", () => {
+  const admin = { isAdmin: true, isRequester: false };
+  const requester = { isAdmin: false, isRequester: true };
+
+  test("admins approve, fulfil or decline a pending request", () => {
+    expect(transition("pending", "approve", admin)).toEqual({ to: "approved", refund: false });
+    expect(transition("pending", "fulfill", admin)).toEqual({ to: "fulfilled", refund: false });
+    expect(transition("pending", "decline", admin)).toEqual({ to: "declined", refund: true });
+  });
+
+  test("admins fulfil or decline an approved request, but can't approve it twice", () => {
+    expect(transition("approved", "fulfill", admin)).toEqual({ to: "fulfilled", refund: false });
+    expect(transition("approved", "decline", admin)).toEqual({ to: "declined", refund: true });
+    expect(() => transition("approved", "approve", admin, "Lena")).toThrow("Already approved by Lena.");
+  });
+
+  test("the requester cancels only while the request is pending", () => {
+    expect(transition("pending", "cancel", requester)).toEqual({ to: "cancelled", refund: true });
+    expect(() => transition("approved", "cancel", requester)).toThrow(/already approved, so ask an admin/);
+  });
+
+  test("finished requests never move again", () => {
+    for (const from of ["fulfilled", "declined", "cancelled"] as const) {
+      for (const action of ["approve", "fulfill", "decline"] as const) {
+        expect(() => transition(from, action, admin, "Ana")).toThrow(`Already ${from} by Ana.`);
+      }
+      expect(() => transition(from, "cancel", requester)).toThrow(`Already ${from}.`);
+    }
+  });
+
+  test("only admins decide and only the requester cancels", () => {
+    for (const action of ["approve", "fulfill", "decline"] as const) {
+      expect(() => transition("pending", action, requester)).toThrow(/Only workspace admins/);
+    }
+    expect(() => transition("pending", "cancel", admin)).toThrow(/Only the person who asked/);
+    // An admin who asked for a reward can still cancel their own pending request.
+    expect(transition("pending", "cancel", { isAdmin: true, isRequester: true })).toEqual({ to: "cancelled", refund: true });
+  });
+});
+
+describe("isOpen", () => {
+  test("pending and approved requests are open, the rest are finished", () => {
+    expect((["pending", "approved", "fulfilled", "declined", "cancelled"] as const).map(isOpen)).toEqual([true, true, false, false, false]);
   });
 });

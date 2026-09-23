@@ -6,6 +6,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { revokeKudosRow } from "./engine";
 import { assertNotDemo, canSeeReceived, publicSettings, requireAdmin } from "./lib/access";
 import { siteUrl } from "./lib/slack";
+import { balanceOf, storeOpen } from "./lib/store";
 import { receivedVisibilityValidator } from "./schema";
 
 /** Workspace settings plus Slack connection health for the admin page. */
@@ -122,6 +123,9 @@ export const members = query({
         totalReceived: canSeeReceived(viewer, m._id) ? m.totalReceived : null,
         totalMaxedDays: m.totalMaxedDays,
         lastGivenAt: m.lastGivenAt ?? null,
+        // Admins see balances while the store is open, even under "Only me" (spec D4: they
+        // decide on requests). Closed, a balance would just be a received count in disguise.
+        balance: storeOpen(workspace) ? balanceOf(m) : null,
       }));
   },
 });

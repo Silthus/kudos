@@ -10,6 +10,14 @@ export const rarityValidator = v.union(
   v.literal("legendary"),
 );
 
+export const redemptionStatusValidator = v.union(
+  v.literal("pending"),
+  v.literal("approved"),
+  v.literal("fulfilled"),
+  v.literal("declined"),
+  v.literal("cancelled"),
+);
+
 export const rarityCountsValidator = v.object({
   common: v.number(),
   uncommon: v.number(),
@@ -117,6 +125,7 @@ export default defineSchema({
   })
     .index("by_workspace_slackUser", ["workspaceId", "slackUserId"])
     .index("by_workspace_totalGiven", ["workspaceId", "totalGiven"])
+    .index("by_workspace_isAdmin", ["workspaceId", "isAdmin"]) // the Store's four-eyes rule
     .index("by_user", ["userId"]),
 
   kudos: defineTable({
@@ -262,6 +271,9 @@ export default defineSchema({
     status: v.union(v.literal("active"), v.literal("archived")),
     createdBy: v.id("members"),
     updatedAt: v.number(),
+    // Maintained by the redemption helpers in store.ts; undefined = 0.
+    openCount: v.optional(v.number()), // pending + approved requests
+    fulfilledCount: v.optional(v.number()),
   }).index("by_workspace_status_cost", ["workspaceId", "status", "cost"]),
 
   // Weekly quests (lib/quests.ts). A board is stored the first time a mutation needs it, so a
@@ -283,6 +295,34 @@ export default defineSchema({
   })
     .index("by_member_week", ["memberId", "weekKey"])
     .index("by_workspace_week", ["workspaceId", "weekKey"]),
+
+  // One member's request for one reward. The cost is held (debited) at request time and
+  // refunded on decline or cancel. Only the helpers in store.ts write this table.
+  redemptions: defineTable({
+    workspaceId: v.id("workspaces"),
+    memberId: v.id("members"),
+    rewardId: v.id("rewards"),
+    rewardName: v.string(), // snapshot
+    rewardEmoji: v.string(), // snapshot
+    cost: v.number(), // snapshot: what was debited
+    prompt: v.optional(v.string()),
+    answer: v.optional(v.string()),
+    status: redemptionStatusValidator,
+    isOpen: v.boolean(), // pending or approved; lets the admin queue page FIFO over both
+    stockHeld: v.optional(v.boolean()), // took one from stock, so a refund gives it back
+    adminNote: v.optional(v.string()), // latest note from a decider
+    history: v.array(
+      // ≤ 3 entries (pending → approved → fulfilled), append-only
+      v.object({ status: redemptionStatusValidator, at: v.number(), by: v.id("members"), note: v.optional(v.string()) }),
+    ),
+    requestedAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspace_status_requestedAt", ["workspaceId", "status", "requestedAt"])
+    .index("by_workspace_isOpen_requestedAt", ["workspaceId", "isOpen", "requestedAt"])
+    .index("by_member_requestedAt", ["memberId", "requestedAt"])
+    .index("by_member_status", ["memberId", "status"])
+    .index("by_member_reward_status", ["memberId", "rewardId", "status"]),
 
   slackEvents: defineTable({
     eventId: v.string(),

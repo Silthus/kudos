@@ -1,9 +1,11 @@
 import clsx from "clsx";
 import { useAuthActions } from "@convex-dev/auth/react";
+import { useQuery } from "convex/react";
 import { motion } from "motion/react";
 import { BarChart3, FlaskConical, Gem, Gift, LogOut, Settings2, Trophy, UserRound } from "lucide-react";
 import { useEffect } from "react";
 import { NavLink, Outlet, useLocation } from "react-router";
+import { api } from "../../convex/_generated/api";
 import { useViewer } from "@/lib/viewer";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { Avatar } from "./ui";
@@ -17,6 +19,20 @@ export function Logo({ glyph = "🌮" }: { glyph?: string }) {
   );
 }
 
+/** Open store requests on the Admin item. */
+function NavBadge({ count, className }: { count: number; className?: string }) {
+  const label = count > 99 ? "99+" : String(count);
+  return (
+    <span
+      className={clsx("grid h-[18px] min-w-[18px] place-items-center rounded-full bg-saffron px-1 font-mono text-[10px] font-semibold leading-none text-ink", className)}
+      title={`${label} open store ${count === 1 ? "request" : "requests"}`}
+    >
+      {label}
+      <span className="sr-only"> open store {count === 1 ? "request" : "requests"}</span>
+    </span>
+  );
+}
+
 export function AppShell() {
   const viewer = useViewer();
   const { signOut } = useAuthActions();
@@ -24,14 +40,16 @@ export function AppShell() {
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [location.pathname]);
-  const nav = [
+  // Store requests waiting on an admin; capped server-side, so 100 reads as "99+".
+  const openRequests = useQuery(api.storeAdmin.openCount, viewer.member.isAdmin ? {} : "skip") ?? 0;
+  const nav: { to: string; label: string; short: string; icon: typeof Gift; badge?: number }[] = [
     { to: "/me", label: "My kudos", short: "Me", icon: UserRound },
     { to: "/leaderboard", label: "Leaderboard", short: "Ranks", icon: Trophy },
     { to: "/discoveries", label: "Discoveries", short: "Gallery", icon: Gem },
     ...(viewer.workspace.storeEnabled ? [{ to: "/store", label: "Store", short: "Store", icon: Gift }] : []),
     { to: "/analytics", label: "Analytics", short: "Stats", icon: BarChart3 },
     ...(viewer.workspace.isDemo ? [{ to: "/playground", label: "Playground", short: "Try", icon: FlaskConical }] : []),
-    ...(viewer.member.isAdmin ? [{ to: "/admin", label: "Admin", short: "Admin", icon: Settings2 }] : []),
+    ...(viewer.member.isAdmin ? [{ to: openRequests ? "/admin?tab=store" : "/admin", label: "Admin", short: "Admin", icon: Settings2, badge: openRequests }] : []),
   ];
 
   return (
@@ -72,6 +90,7 @@ export function AppShell() {
                   )}
                   <n.icon className={clsx("relative h-4 w-4", isActive && "text-saffron")} />
                   <span className="relative">{n.label}</span>
+                  {!!n.badge && <NavBadge count={n.badge} className="relative ml-auto" />}
                 </>
               )}
             </NavLink>
@@ -130,7 +149,10 @@ export function AppShell() {
               clsx("flex flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5 text-[10px] font-medium", isActive ? "bg-panel-3 text-saffron" : "text-faint")
             }
           >
-            <n.icon className="h-4 w-4" />
+            <span className="relative">
+              <n.icon className="h-4 w-4" />
+              {!!n.badge && <NavBadge count={n.badge} className="absolute -right-3 -top-1.5" />}
+            </span>
             {n.short}
           </NavLink>
         ))}

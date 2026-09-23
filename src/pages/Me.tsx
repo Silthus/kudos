@@ -13,6 +13,7 @@ import { DEFAULT_PERIOD, PERIOD_OPTIONS, useWorkspaceToday, type Period } from "
 import { RARITY_META, type Rarity } from "@/lib/rarity";
 import { useStableQuery } from "@/lib/useStableQuery";
 import { useViewer } from "@/lib/viewer";
+import { StoreBalanceChip } from "./Store";
 
 export function Me() {
   const viewer = useViewer();
@@ -399,6 +400,7 @@ function AllowanceCard({ used, limit, glyph }: { used: number; limit: number; gl
       <p className="mt-3 text-xs text-muted">
         Used {used} of {limit} · resets at midnight
       </p>
+      <StoreBalanceChip glyph={glyph} className="mt-3" />
     </Card>
   );
 }

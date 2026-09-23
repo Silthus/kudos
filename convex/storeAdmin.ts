@@ -1,12 +1,22 @@
 import { ConvexError, v } from "convex/values";
-import { mutation, query, type MutationCtx } from "./_generated/server";
+import { paginationOptsValidator, paginationResultValidator } from "convex/server";
+import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { assertNotDemo, requireAdmin } from "./lib/access";
 import { median, workspaceMembers } from "./lib/stats";
 import { assertValidStock, balanceOf, MAX_ACTIVE_REWARDS, validateRewardInput } from "./lib/store";
-import { activeRewards } from "./store";
+import { redemptionStatusValidator } from "./schema";
+import {
+  activeRewards,
+  historyEntryValidator,
+  otherActiveAdminExists,
+  peopleCache,
+  personValidator,
+  redemptionInWorkspace,
+  transitionRedemption,
+} from "./store";
 
-/** Admin side of the Rewards Store: opening it and stocking the catalog. */
+/** Admin side of the Rewards Store: opening it, stocking the catalog and deciding on requests. */
 
 const rewardFields = v.object({
   name: v.string(),
@@ -31,6 +41,8 @@ const rewardRow = v.object({
   prompt: v.optional(v.string()),
   status: rewardStatusValidator,
   updatedAt: v.number(),
+  openCount: v.number(),
+  fulfilledCount: v.number(),
 });
 
 const CATALOG_READ_ONLY = "The store catalog is";
@@ -44,6 +56,7 @@ export const overview = query({
     totalBalance: v.union(v.number(), v.null()),
     medianBalance: v.union(v.number(), v.null()),
     activeRewards: v.number(),
+    openCount: v.number(),
   }),
   handler: async (ctx) => {
     const { workspace } = await requireAdmin(ctx);
@@ -52,6 +65,7 @@ export const overview = query({
       enabled: Boolean(workspace.storeEnabled),
       receivedVisibility: workspace.receivedVisibility,
       activeRewards: Math.min(active.length, MAX_ACTIVE_REWARDS),
+      openCount: await openRequestCount(ctx, workspace._id),
     };
     if (workspace.receivedVisibility === "hidden") return { ...base, totalBalance: null, medianBalance: null };
     const members = await workspaceMembers(ctx, workspace._id);
@@ -96,6 +110,8 @@ export const rewards = query({
       prompt: r.prompt,
       status: r.status,
       updatedAt: r.updatedAt,
+      openCount: r.openCount ?? 0,
+      fulfilledCount: r.fulfilledCount ?? 0,
     }));
   },
 });
@@ -177,3 +193,130 @@ async function rewardInWorkspace(ctx: MutationCtx, workspace: Doc<"workspaces">,
   if (!reward || reward.workspaceId !== workspace._id) throw new ConvexError("Reward not found.");
   return reward;
 }
+
+// ── Requests ─────────────────────────────────────────────────────────────────
+
+/** Badges count up to this many open requests and show "99+" beyond. */
+export const OPEN_COUNT_CAP = 100;
+
+async function openRequestCount(ctx: QueryCtx, workspaceId: Id<"workspaces">) {
+  const rows = await ctx.db
+    .query("redemptions")
+    .withIndex("by_workspace_isOpen_requestedAt", (q) => q.eq("workspaceId", workspaceId).eq("isOpen", true))
+    .take(OPEN_COUNT_CAP);
+  return rows.length;
+}
+
+/** Open requests waiting on an admin, for the badge on the Admin nav item (capped at 100). */
+export const openCount = query({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    const { workspace } = await requireAdmin(ctx);
+    return await openRequestCount(ctx, workspace._id);
+  },
+});
+
+const queueRow = v.object({
+  _id: v.id("redemptions"),
+  requester: v.object({ ...personValidator.fields, deactivated: v.boolean() }),
+  rewardId: v.id("rewards"),
+  rewardName: v.string(),
+  rewardEmoji: v.string(),
+  cost: v.number(),
+  prompt: v.optional(v.string()),
+  answer: v.optional(v.string()),
+  status: redemptionStatusValidator,
+  adminNote: v.optional(v.string()),
+  requestedAt: v.number(),
+  updatedAt: v.number(),
+  // null while received kudos are hidden: a balance is a received count in disguise.
+  balance: v.union(v.number(), v.null()),
+  negativeBalance: v.union(v.boolean(), v.null()),
+  isOwn: v.boolean(),
+  canDecide: v.boolean(), // false for your own request while another admin can decide (four-eyes)
+  history: v.array(historyEntryValidator),
+});
+
+/**
+ * The request queue. "open" merges pending and approved requests oldest first, so the
+ * queue is first come, first served; the finished filters list the newest first.
+ */
+export const redemptions = query({
+  args: {
+    filter: v.union(v.literal("open"), v.literal("fulfilled"), v.literal("declined"), v.literal("cancelled")),
+    paginationOpts: paginationOptsValidator,
+  },
+  returns: paginationResultValidator(queueRow),
+  handler: async (ctx, { filter, paginationOpts }) => {
+    const { workspace, member: me } = await requireAdmin(ctx);
+    const result =
+      filter === "open"
+        ? await ctx.db
+            .query("redemptions")
+            .withIndex("by_workspace_isOpen_requestedAt", (q) => q.eq("workspaceId", workspace._id).eq("isOpen", true))
+            .order("asc")
+            .paginate(paginationOpts)
+        : await ctx.db
+            .query("redemptions")
+            .withIndex("by_workspace_status_requestedAt", (q) => q.eq("workspaceId", workspace._id).eq("status", filter))
+            .order("desc")
+            .paginate(paginationOpts);
+    const people = peopleCache(ctx);
+    const showBalance = workspace.receivedVisibility !== "hidden";
+    const soleAdmin = !(await otherActiveAdminExists(ctx, workspace._id, me._id));
+    return {
+      ...result,
+      page: await Promise.all(
+        result.page.map(async (r) => {
+          const requester = await people.member(r.memberId);
+          const balance = requester && showBalance ? balanceOf(requester) : null;
+          const isOwn = r.memberId === me._id;
+          return {
+            _id: r._id,
+            requester: {
+              _id: r.memberId,
+              name: requester?.name ?? "Unknown member",
+              avatarUrl: requester?.avatarUrl ?? null,
+              deactivated: requester?.deactivated ?? true,
+            },
+            rewardId: r.rewardId,
+            rewardName: r.rewardName,
+            rewardEmoji: r.rewardEmoji,
+            cost: r.cost,
+            prompt: r.prompt,
+            answer: r.answer,
+            status: r.status,
+            adminNote: r.adminNote,
+            requestedAt: r.requestedAt,
+            updatedAt: r.updatedAt,
+            balance,
+            negativeBalance: balance === null ? null : balance < 0,
+            isOwn,
+            canDecide: r.isOpen && (!isOwn || soleAdmin),
+            history: await people.history(r),
+          };
+        }),
+      ),
+    };
+  },
+});
+
+/**
+ * Approve, fulfil or decline a request. Allowed in the demo (like revoking kudos): the
+ * queue is meant to be played with; only the catalog and store settings are read-only.
+ */
+export const decide = mutation({
+  args: {
+    redemptionId: v.id("redemptions"),
+    action: v.union(v.literal("approve"), v.literal("fulfill"), v.literal("decline")),
+    note: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, { redemptionId, action, note }) => {
+    const { workspace, member } = await requireAdmin(ctx);
+    const redemption = await redemptionInWorkspace(ctx, workspace, redemptionId);
+    await transitionRedemption(ctx, { workspace, redemption, actor: member, action, note, now: Date.now() });
+    return null;
+  },
+});

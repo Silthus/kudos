@@ -220,6 +220,7 @@ function Members() {
               <th className="px-3 py-2 font-normal">Member</th>
               <th className="px-3 py-2 text-right font-normal">Given</th>
               <th className="px-3 py-2 text-right font-normal">Received</th>
+              {viewer.workspace.storeEnabled && <th className="px-3 py-2 text-right font-normal">Balance</th>}
               <th className="px-3 py-2 text-right font-normal">Maxed days</th>
               <th className="px-3 py-2 text-right font-normal">Last gave</th>
               <th className="px-3 py-2 text-right font-normal">Admin</th>
@@ -241,6 +242,11 @@ function Members() {
                 <td className="px-3 py-2.5 text-right font-mono tabular" title={m.totalReceived === null ? "Hidden by the received-kudos visibility setting" : undefined}>
                   {m.totalReceived === null ? <span className="text-faint">—</span> : nf.format(m.totalReceived)}
                 </td>
+                {viewer.workspace.storeEnabled && (
+                  <td className={clsx("px-3 py-2.5 text-right font-mono tabular", m.balance !== null && m.balance < 0 && "text-down")} title="Store balance: received + granted − spent">
+                    {m.balance === null ? <span className="text-faint">—</span> : nf.format(m.balance)}
+                  </td>
+                )}
                 <td className="px-3 py-2.5 text-right font-mono tabular">{m.totalMaxedDays}</td>
                 <td className="px-3 py-2.5 text-right text-muted">{m.lastGivenAt ? relativeTime(m.lastGivenAt) : "never"}</td>
                 <td className="px-3 py-2.5 text-right">

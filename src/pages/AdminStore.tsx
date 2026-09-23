@@ -1,17 +1,19 @@
 import clsx from "clsx";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { AnimatePresence, motion } from "motion/react";
-import { Archive, ChevronDown, CircleAlert, MessageCircleQuestion, Pencil, Plus, RotateCcw } from "lucide-react";
+import { Archive, Check, ChevronDown, CircleAlert, MessageCircleQuestion, PackageCheck, Pencil, Plus, RotateCcw } from "lucide-react";
 import { useId, useState } from "react";
+import { useSearchParams } from "react-router";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { BigNumber, Button, Card, CardHeader, Dialog, Empty, Eyebrow, Field, inputCls, Segmented, Skeleton, Toggle } from "@/components/ui";
-import { nf } from "@/lib/format";
+import { Avatar, BigNumber, Button, Card, CardHeader, Dialog, Empty, Eyebrow, Field, inputCls, Segmented, Skeleton, Toggle } from "@/components/ui";
+import { nf, relativeTime } from "@/lib/format";
 import { useViewer } from "@/lib/viewer";
-import { RewardCard } from "./Store";
+import { RedemptionHistory, RewardCard, StatusChip } from "./Store";
 
-type Section = "requests" | "catalog" | "settings";
+const SECTIONS = ["requests", "catalog", "settings"] as const;
+type Section = (typeof SECTIONS)[number];
 type Reward = NonNullable<ReturnType<typeof useQuery<typeof api.storeAdmin.rewards>>>[number];
 
 const errorText = (e: unknown, fallback: string) => (e instanceof ConvexError ? String(e.data) : fallback);
@@ -21,8 +23,21 @@ function DemoNotice({ children }: { children: React.ReactNode }) {
 }
 
 export function AdminStore({ isDemo }: { isDemo: boolean }) {
-  // Requests is a placeholder until redeeming ships, so the catalog is where admins start.
-  const [section, setSection] = useState<Section>("catalog");
+  // Requests first: that's where the day-to-day work is (and where Slack links land).
+  // The section lives in the URL (`&section=catalog`) so links can land on the catalog.
+  const [params, setParams] = useSearchParams();
+  const requested = params.get("section");
+  const section: Section = SECTIONS.includes(requested as Section) ? (requested as Section) : "requests";
+  const setSection = (next: Section) =>
+    setParams(
+      (prev) => {
+        const params = new URLSearchParams(prev);
+        if (next === "requests") params.delete("section");
+        else params.set("section", next);
+        return params;
+      },
+      { replace: true },
+    );
   return (
     <div>
       <div className="mb-4">
@@ -44,13 +59,276 @@ export function AdminStore({ isDemo }: { isDemo: boolean }) {
   );
 }
 
+type QueueFilter = "open" | "fulfilled" | "declined" | "cancelled";
+type QueueRow = ReturnType<typeof usePaginatedQuery<typeof api.storeAdmin.redemptions>>["results"][number];
+
 function Requests() {
+  const viewer = useViewer();
+  const glyph = viewer.workspace.emojiGlyph;
+  const [filter, setFilter] = useState<QueueFilter>("open");
+  const { results, status, loadMore } = usePaginatedQuery(api.storeAdmin.redemptions, { filter }, { initialNumItems: 20 });
+  const openCount = useQuery(api.storeAdmin.openCount);
+  const decide = useMutation(api.storeAdmin.decide);
+  // Per row, so finishing one decision never re-enables or clears another still in flight.
+  const [busy, setBusy] = useState<ReadonlySet<string>>(new Set());
+  const [errors, setErrors] = useState<Readonly<Record<string, string>>>({});
+  const [declining, setDeclining] = useState<QueueRow | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  const setRowError = (id: string, text: string | null) =>
+    setErrors((prev) => {
+      const { [id]: _dropped, ...rest } = prev;
+      return text === null ? rest : { ...rest, [id]: text };
+    });
+  const act = async (row: QueueRow, action: "approve" | "fulfill" | "decline", note?: string) => {
+    if (busy.has(row._id)) return false;
+    setBusy((prev) => new Set(prev).add(row._id));
+    setRowError(row._id, null);
+    try {
+      await decide({ redemptionId: row._id, action, note });
+      return true;
+    } catch (e) {
+      setRowError(row._id, errorText(e, "Couldn't update the request."));
+      return false;
+    } finally {
+      setBusy((prev) => {
+        const next = new Set(prev);
+        next.delete(row._id);
+        return next;
+      });
+    }
+  };
+
+  const openLabel = openCount ? `Open · ${openCount > 99 ? "99+" : openCount}` : "Open";
   return (
     <Card>
-      <Empty icon="🛎️" title="Requests will land here">
-        Redeeming arrives in the next release. Every request will queue here for an admin to approve, fulfil or decline.
-      </Empty>
+      <CardHeader
+        title="Requests"
+        subtitle={filter === "open" ? "Oldest first. The cost is already held; declining refunds it and restocks the reward." : "Finished requests, newest first."}
+        action={
+          <Segmented
+            size="sm"
+            value={filter}
+            onChange={setFilter}
+            options={[
+              { value: "open", label: openLabel },
+              { value: "fulfilled", label: "Fulfilled" },
+              { value: "declined", label: "Declined" },
+              { value: "cancelled", label: "Cancelled" },
+            ]}
+          />
+        }
+      />
+      {status === "LoadingFirstPage" ? (
+        <div className="px-5 pb-5">
+          <Skeleton className="h-40" />
+        </div>
+      ) : results.length === 0 ? (
+        <Empty icon={filter === "open" ? "🛎️" : "🗂️"} title={filter === "open" ? "No requests waiting" : `Nothing ${filter} yet`}>
+          {filter === "open" ? "When someone redeems a reward, it queues here for an admin to approve, fulfil or decline." : undefined}
+        </Empty>
+      ) : (
+        <ul className="px-2 pb-3">
+          <AnimatePresence initial={false}>
+            {results.map((r) => (
+              <RequestRow
+                key={r._id}
+                row={r}
+                glyph={glyph}
+                meId={viewer.member._id}
+                busy={busy.has(r._id)}
+                error={errors[r._id] ?? null}
+                expanded={expanded === r._id}
+                onToggle={() => setExpanded(expanded === r._id ? null : r._id)}
+                onApprove={() => void act(r, "approve")}
+                onFulfill={() => void act(r, "fulfill")}
+                onDecline={() => {
+                  setRowError(r._id, null);
+                  setDeclining(r);
+                }}
+              />
+            ))}
+          </AnimatePresence>
+        </ul>
+      )}
+      {status === "CanLoadMore" && (
+        <div className="px-5 pb-4">
+          <Button size="sm" variant="ghost" onClick={() => loadMore(20)}>
+            Show more
+          </Button>
+        </div>
+      )}
+      <DeclineDialog row={declining} glyph={glyph} onClose={() => setDeclining(null)} onDecline={(row, note) => act(row, "decline", note)} error={declining ? (errors[declining._id] ?? null) : null} />
     </Card>
+  );
+}
+
+function RequestRow({
+  row: r,
+  glyph,
+  meId,
+  busy,
+  error,
+  expanded,
+  onToggle,
+  onApprove,
+  onFulfill,
+  onDecline,
+}: {
+  row: QueueRow;
+  glyph: string;
+  meId: string;
+  busy: boolean;
+  error: string | null;
+  expanded: boolean;
+  onToggle: () => void;
+  onApprove: () => void;
+  onFulfill: () => void;
+  onDecline: () => void;
+}) {
+  const open = r.status === "pending" || r.status === "approved";
+  return (
+    <motion.li layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden rounded-xl hover:bg-panel-2/40">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3">
+        <Avatar name={r.requester.name} src={r.requester.avatarUrl} size={34} />
+        <button className="min-w-0 flex-1 basis-48 text-left" onClick={onToggle} aria-expanded={expanded}>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+            <b className="font-medium">{r.requester.name}</b>
+            <span className="text-muted">wants</span>
+            <span className="font-medium">
+              {r.rewardEmoji} {r.rewardName}
+            </span>
+            <StatusChip status={r.status} />
+          </div>
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-faint">
+            <span className="font-mono tabular text-saffron">
+              {nf.format(r.cost)} {glyph}
+            </span>
+            <span>· {relativeTime(r.requestedAt)}</span>
+            {r.balance !== null && (
+              <span className={clsx(r.negativeBalance && "font-medium text-down")}>
+                · balance {nf.format(r.balance)} {glyph}
+                {r.negativeBalance && " (negative)"}
+              </span>
+            )}
+            {r.requester.deactivated && <span className="rounded bg-panel-3 px-1.5 py-0.5 text-muted">left workspace</span>}
+          </p>
+          {r.answer && (
+            <p className="mt-1 text-sm text-muted">
+              <MessageCircleQuestion className="mr-1 inline h-3.5 w-3.5 text-faint" />
+              {r.prompt && <span className="text-faint">{r.prompt} </span>}
+              <span className="text-cream">{r.answer}</span>
+            </p>
+          )}
+        </button>
+        {open &&
+          (r.canDecide ? (
+            <div className="ml-auto flex shrink-0 items-center gap-1.5">
+              {r.status === "pending" && (
+                <Button size="sm" onClick={onApprove} disabled={busy}>
+                  <Check className="h-4 w-4" /> Approve
+                </Button>
+              )}
+              <Button size="sm" variant="primary" onClick={onFulfill} disabled={busy}>
+                <PackageCheck className="h-4 w-4" /> Fulfil
+              </Button>
+              <Button size="sm" variant="ghost" onClick={onDecline} disabled={busy}>
+                Decline…
+              </Button>
+            </div>
+          ) : (
+            <span className="ml-auto shrink-0 text-xs text-faint">{r.isOwn ? "Your request · another admin decides" : ""}</span>
+          ))}
+      </div>
+      {error && (
+        <p role="alert" className="flex items-center gap-1.5 px-3 pb-2 text-sm text-down">
+          <CircleAlert className="h-4 w-4 shrink-0" /> {error}
+        </p>
+      )}
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+            <div className="px-3 pb-3 pl-[58px]">
+              <RedemptionHistory history={r.history} meId={meId} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.li>
+  );
+}
+
+function DeclineDialog({
+  row,
+  glyph,
+  error,
+  onClose,
+  onDecline,
+}: {
+  row: QueueRow | null;
+  glyph: string;
+  error: string | null;
+  onClose: () => void;
+  onDecline: (row: QueueRow, note?: string) => Promise<boolean>;
+}) {
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const formId = useId();
+  const openedFor = row?._id ?? null;
+  const [lastOpened, setLastOpened] = useState(openedFor);
+  if (openedFor !== lastOpened) {
+    setLastOpened(openedFor);
+    if (openedFor !== null) setNote("");
+  }
+  return (
+    <Dialog
+      open={row !== null}
+      onClose={onClose}
+      title="Decline this request?"
+      subtitle={row ? `${row.requester.name} gets ${nf.format(row.cost)} ${glyph} back and the reward is restocked.` : undefined}
+      footer={
+        <>
+          {error && (
+            <span role="alert" className="mr-auto flex items-center gap-1.5 text-sm text-down">
+              <CircleAlert className="h-4 w-4 shrink-0" /> {error}
+            </span>
+          )}
+          <Button variant="ghost" onClick={onClose}>
+            Keep it
+          </Button>
+          <Button variant="danger" type="submit" form={formId} disabled={busy}>
+            Decline and refund
+          </Button>
+        </>
+      }
+    >
+      {row && (
+        <form
+          id={formId}
+          onSubmit={(e) => {
+            e.preventDefault();
+            setBusy(true);
+            void onDecline(row, note.trim() || undefined)
+              .then((ok) => ok && onClose())
+              .finally(() => setBusy(false));
+          }}
+        >
+          <p className="mb-4 text-sm text-muted">
+            {row.rewardEmoji} <span className="text-cream">{row.rewardName}</span> for {row.requester.name}
+          </p>
+          <Field label="Reason" hint="Optional, but kind. The requester sees it in their history.">
+            <textarea
+              className={clsx(inputCls, "h-24 resize-none py-2")}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              maxLength={500}
+              placeholder="We're out of hoodies until the next order."
+              data-autofocus
+            />
+          </Field>
+        </form>
+      )}
+    </Dialog>
   );
 }
 
@@ -128,6 +406,8 @@ function RewardRow({ reward: r, glyph, isDemo, onEdit, onToggle }: { reward: Rew
   const meta = [
     r.stock === undefined ? "Unlimited" : r.stock === 0 ? "Sold out" : `${nf.format(r.stock)} in stock`,
     r.maxPerMember !== undefined ? `${r.maxPerMember} per person` : null,
+    r.openCount > 0 ? `${nf.format(r.openCount)} open` : null,
+    r.fulfilledCount > 0 ? `${nf.format(r.fulfilledCount)} fulfilled` : null,
   ].filter(Boolean);
   return (
     <li className={clsx("flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-panel-2/50", archived && "opacity-60")}>

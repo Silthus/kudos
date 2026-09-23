@@ -32,6 +32,46 @@ export function storeOpen(workspace: Pick<Doc<"workspaces">, "storeEnabled" | "r
   return Boolean(workspace.storeEnabled) && workspace.receivedVisibility !== "hidden";
 }
 
+export const REDEMPTION_BOUNDS = { answer: 280, adminNote: 500 } as const;
+
+export type RedemptionStatus = Doc<"redemptions">["status"];
+export type RedemptionAction = "approve" | "fulfill" | "decline" | "cancel";
+export type AdminAction = Exclude<RedemptionAction, "cancel">;
+
+/** Open requests still hold their cost and wait for an admin; the rest are finished. */
+export function isOpen(status: RedemptionStatus): boolean {
+  return status === "pending" || status === "approved";
+}
+
+const NEXT: Record<RedemptionAction, { from: RedemptionStatus[]; to: RedemptionStatus; refund: boolean }> = {
+  approve: { from: ["pending"], to: "approved", refund: false },
+  fulfill: { from: ["pending", "approved"], to: "fulfilled", refund: false },
+  decline: { from: ["pending", "approved"], to: "declined", refund: true },
+  cancel: { from: ["pending"], to: "cancelled", refund: true },
+};
+
+/**
+ * The redemption lifecycle: pending → approved → fulfilled, with declined (admin) and
+ * cancelled (requester, pending only) as off-ramps that refund. `lastBy` names whoever
+ * made the latest change, so a stale action reads "Already fulfilled by Lena."
+ */
+export function transition(
+  from: RedemptionStatus,
+  action: RedemptionAction,
+  { isRequester, isAdmin }: { isRequester: boolean; isAdmin: boolean },
+  lastBy?: string,
+): { to: RedemptionStatus; refund: boolean } {
+  if (action === "cancel" ? !isRequester : !isAdmin) {
+    throw new ConvexError(action === "cancel" ? "Only the person who asked can cancel a request." : "Only workspace admins can do that.");
+  }
+  const next = NEXT[action];
+  if (next.from.includes(from)) return { to: next.to, refund: next.refund };
+  if (action === "cancel" && from === "approved") {
+    throw new ConvexError("This request is already approved, so ask an admin if you need to call it off.");
+  }
+  throw new ConvexError(lastBy ? `Already ${from} by ${lastBy}.` : `Already ${from}.`);
+}
+
 export type RewardInput = {
   name: string;
   emoji: string;
