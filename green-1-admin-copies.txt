@@ -1,0 +1,46 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a6a6697e566329265
+
+ ✓ tests/store-slack.test.ts > redeeming a reward > DMs the requester a confirmation and each admin a request to review 156ms
+ ✓ tests/store-slack.test.ts > each step of a request > approving tells the requester who approved it 14ms
+ ✓ tests/store-slack.test.ts > each step of a request > fulfilling tells the requester it's theirs, with the decider's note 16ms
+ ✓ tests/store-slack.test.ts > each step of a request > declining tells the requester why and that the cost is back in their balance 8ms
+ ✓ tests/store-slack.test.ts > each step of a request > a note that ends a sentence isn't followed by a second full stop 9ms
+ ✓ tests/store-slack.test.ts > each step of a request > cancelling sends no DM, since the requester did it themselves 7ms
+ ✓ tests/store-slack.test.ts > each step of a request > refreshes the requester's App Home after every step 10ms
+ ✓ tests/store-slack.test.ts > each step of a request > a deactivated requester gets no DMs and no Home refresh 6ms
+ ✓ tests/store-slack.test.ts > each step of a request > a failed DM doesn't undo the step 6ms
+ ✓ tests/store-slack.test.ts > who hears about a request > every active admin gets the review DM, and the requester never gets a second copy 5ms
+ ✓ tests/store-slack.test.ts > who hears about a request > an admin who is the only one who can decide gets their own request to review 4ms
+ ✓ tests/store-slack.test.ts > who hears about a request > the admin DM carries the requester's answer, verbatim so Slack doesn't auto-link it 4ms
+ ✓ tests/store-slack.test.ts > who hears about a request > DMs describe the request as it was when it was made, even if more happened before they went out 8ms
+ ✓ tests/store-slack.test.ts > who hears about a request > bots, deactivated admins and plain members never get the review DM; signed-in admins come first, 20 at most 10ms
+ ✓ tests/store-slack.test.ts > who hears about a request > an uninstalled workspace hears nothing 3ms
+ ✓ tests/store-slack.test.ts > who hears about a request > approving passes the decider's note on 6ms
+ ✓ tests/store-slack.test.ts > who hears about a request > while the store is closed, DMs don't link to a store page that isn't there 6ms
+ ✓ tests/store-slack.test.ts > who hears about a request > without a site URL the DMs still go out, just without links 4ms
+ ✓ tests/store-slack.test.ts > who hears about a request > balances stay out of DMs while received kudos are hidden 6ms
+ ✓ tests/store-slack.test.ts > who hears about a request > the demo workspace schedules nothing 2ms
+ ✓ tests/store-slack.test.ts > App Home > shows the Rewards store with the balance, 3 rewards and Open store 5ms
+ ✓ tests/store-slack.test.ts > App Home > members don't see the admin line, even with requests waiting 4ms
+ ✓ tests/store-slack.test.ts > App Home > leaves the store out while received kudos are hidden, whatever storeEnabled says 3ms
+ ✓ tests/store-slack.test.ts > App Home > admins also see how many requests are waiting and a Review requests button 3ms
+ ✓ tests/store-slack.test.ts > App Home > leaves the store out while it's closed 2ms
+ ✓ tests/store-slack.test.ts > App Home > an empty catalog says the shelves are still being stocked 2ms
+ ✓ tests/store-slack.test.ts > /kudos store > shows your balance, the 5 cheapest rewards and a link to the store 21ms
+ ✓ tests/store-slack.test.ts > /kudos store > balance is an alias 3ms
+ ✓ tests/store-slack.test.ts > /kudos store > says so when the store isn't open 3ms
+ ✓ tests/store-slack.test.ts > /kudos store > never shows a balance while received kudos are hidden 2ms
+ ✓ tests/store-slack.test.ts > /kudos store > the help mentions /kudos store only while the store is open 4ms
+ ✓ tests/store-slack.test.ts > admin copies in Slack > the review DM has Approve and Mark fulfilled buttons for this request, next to the web link 5ms
+ ✓ tests/store-slack.test.ts > admin copies in Slack > without a site URL the action buttons still work; only the web link is left out 4ms
+ ✓ tests/store-slack.test.ts > admin copies in Slack > fulfilling on the web rewrites every admin's copy: who did it, when, and no buttons 10ms
+ ✓ tests/store-slack.test.ts > admin copies in Slack > an approved copy still offers Mark fulfilled and the web link, but not Approve 8ms
+ ✓ tests/store-slack.test.ts > admin copies in Slack > a declined or cancelled request's copies say so, without buttons 14ms
+ ✓ tests/store-slack.test.ts > admin copies in Slack > a failed update is logged and doesn't undo the step 9ms
+
+ Test Files  1 passed (1)
+      Tests  37 passed (37)
+   Start at  21:15:44
+   Duration  781ms (tests 57%, transform 21%, import 16%, environment 6%, worker 1%)
+

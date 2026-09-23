@@ -1,0 +1,166 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a6a6697e566329265
+
+ ❯ tests/store-slack.test.ts (37 tests | 6 failed) 389ms
+   ❯ admin copies in Slack (6)
+     × the review DM has Approve and Mark fulfilled buttons for this request, next to the web link 12ms
+     × without a site URL the action buttons still work; only the web link is left out 5ms
+     × fulfilling on the web rewrites every admin's copy: who did it, when, and no buttons 9ms
+     × an approved copy still offers Mark fulfilled and the web link, but not Approve 8ms
+     × a declined or cancelled request's copies say so, without buttons 7ms
+     × a DM Slack didn't deliver has no copy to update, and a failed update doesn't undo the step 7ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/store-slack.test.ts > admin copies in Slack > the review DM has Approve and Mark fulfilled buttons for this request, next to the web link
+AssertionError: expected [ { type: 'button', …(4) } ] to deeply equal [ { type: 'button', …(4) }, …(2) ]
+
+- Expected
++ Received
+
+@@ -1,27 +1,9 @@
+  [
+    {
+-     "action_id": "store_approve",
++     "action_id": "store_review",
+      "style": "primary",
+-     "text": {
+-       "text": "Approve",
+-       "type": "plain_text",
+-     },
+-     "type": "button",
+-     "value": "000000000000000010010redemptions",
+-   },
+-   {
+-     "action_id": "store_fulfill",
+-     "text": {
+-       "text": "Mark fulfilled",
+-       "type": "plain_text",
+-     },
+-     "type": "button",
+-     "value": "000000000000000010010redemptions",
+-   },
+-   {
+-     "action_id": "store_review",
+      "text": {
+        "text": "Review in Kudos",
+        "type": "plain_text",
+      },
+      "type": "button",
+
+ ❯ tests/store-slack.test.ts:466:21
+    464|     const [review] = dmsTo("UANA");
+    465|     const actions = review.blocks.find((b: { type: string }) => b.type…
+    466|     expect(actions).toEqual([
+       |                     ^
+    467|       { type: "button", style: "primary", text: { type: "plain_text", …
+    468|       { type: "button", text: { type: "plain_text", text: "Mark fulfil…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  tests/store-slack.test.ts > admin copies in Slack > without a site URL the action buttons still work; only the web link is left out
+AssertionError: expected [] to deeply equal [ 'store_approve', 'store_fulfill' ]
+
+- Expected
++ Received
+
+- [
+-   "store_approve",
+-   "store_fulfill",
+- ]
++ []
+
+ ❯ tests/store-slack.test.ts:477:48
+    475|     vi.stubEnv("CONVEX_SITE_URL", "");
+    476|     await requestWithTwoAdmins();
+    477|     expect(buttonsOf(dmsTo("UANA")[0].blocks)).toEqual(["store_approve…
+       |                                                ^
+    478|   });
+    479|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  tests/store-slack.test.ts > admin copies in Slack > fulfilling on the web rewrites every admin's copy: who did it, when, and no buttons
+AssertionError: expected [] to deeply equal [ 'DUANA 1700000000.000002', …(1) ]
+
+- Expected
++ Received
+
+- [
+-   "DUANA 1700000000.000002",
+-   "DUCLEO 1700000000.000003",
+- ]
++ []
+
+ ❯ tests/store-slack.test.ts:486:62
+    484|     await drain();
+    485|     const copies = updates();
+    486|     expect(copies.map((u) => `${u.channel} ${u.ts}`).sort()).toEqual([…
+       |                                                              ^
+    487|     for (const copy of copies) {
+    488|       expect(copy.text).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (15 :…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  tests/store-slack.test.ts > admin copies in Slack > an approved copy still offers Mark fulfilled and the web link, but not Approve
+AssertionError: expected [] to have a length of 2 but got +0
+
+- Expected
++ Received
+
+- 2
++ 0
+
+ ❯ tests/store-slack.test.ts:502:23
+    500|     await ana.mutation(api.storeAdmin.decide, { redemptionId, action: …
+    501|     await drain();
+    502|     expect(updates()).toHaveLength(2);
+       |                       ^
+    503|     for (const copy of updates()) {
+    504|       expect(copy.text).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (15 :…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  tests/store-slack.test.ts > admin copies in Slack > a declined or cancelled request's copies say so, without buttons
+AssertionError: expected [] to deeply equal [ …(2) ]
+
+- Expected
++ Received
+
+- [
+-   "🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). ✖ Declined by <@UANA>",
+-   "🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). ✖ Declined by <@UANA>",
+- ]
++ []
+
+ ❯ tests/store-slack.test.ts:514:42
+    512|     await ana.mutation(api.storeAdmin.decide, { redemptionId, action: …
+    513|     await drain();
+    514|     expect(updates().map((u) => u.text)).toEqual(Array(2).fill("🛎️ <@…
+       |                                          ^
+    515|
+    516|     const second = await redeemAsBen(await addReward({ name: "Tea" }));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  tests/store-slack.test.ts > admin copies in Slack > a DM Slack didn't deliver has no copy to update, and a failed update doesn't undo the step
+AssertionError: expected "warn" to be called with arguments: [ Array(1) ]
+
+Number of calls: 0
+
+ ❯ tests/store-slack.test.ts:531:18
+    529|     await ana.mutation(api.storeAdmin.decide, { redemptionId, action: …
+    530|     await drain();
+    531|     expect(warn).toHaveBeenCalledWith(expect.stringContaining("message…
+       |                  ^
+    532|     expect(await t.run((ctx) => ctx.db.get(redemptionId))).toMatchObje…
+    533|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 31 passed (37)
+   Start at  21:14:20
+   Duration  784ms (tests 57%, transform 21%, import 16%, environment 6%)
+

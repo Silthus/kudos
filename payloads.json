@@ -1,0 +1,210 @@
+{
+  "1-admin-dm-pending (chat.postMessage)": {
+    "channel": "UANA",
+    "text": "🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). Balance after: 27 :taco:.",
+    "blocks": [
+      {
+        "type": "section",
+        "text": {
+          "type": "mrkdwn",
+          "text": "🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). Balance after: 27 :taco:.",
+          "verbatim": true
+        }
+      },
+      {
+        "type": "section",
+        "text": {
+          "type": "mrkdwn",
+          "text": "Answer to “Oat or dairy?”: Oat, please",
+          "verbatim": true
+        }
+      },
+      {
+        "type": "actions",
+        "elements": [
+          {
+            "type": "button",
+            "text": {
+              "type": "plain_text",
+              "text": "Approve"
+            },
+            "action_id": "store_approve",
+            "style": "primary",
+            "value": "000000000000000010010redemptions"
+          },
+          {
+            "type": "button",
+            "text": {
+              "type": "plain_text",
+              "text": "Mark fulfilled"
+            },
+            "action_id": "store_fulfill",
+            "value": "000000000000000010010redemptions",
+            "confirm": {
+              "title": {
+                "type": "plain_text",
+                "text": "Mark as fulfilled?"
+              },
+              "text": {
+                "type": "plain_text",
+                "text": "Ben is told it's theirs, and this can't be undone."
+              },
+              "confirm": {
+                "type": "plain_text",
+                "text": "Mark fulfilled"
+              },
+              "deny": {
+                "type": "plain_text",
+                "text": "Not yet"
+              }
+            }
+          },
+          {
+            "type": "button",
+            "text": {
+              "type": "plain_text",
+              "text": "Review in Kudos"
+            },
+            "action_id": "store_review",
+            "url": "https://kudos.example/admin?tab=store"
+          }
+        ]
+      }
+    ]
+  },
+  "2-after-approve-from-slack (chat.update)": {
+    "channel": "DUANA",
+    "ts": "1790157600.000100",
+    "text": "🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). ✅ Approved by <@UCLEO>",
+    "blocks": [
+      {
+        "type": "section",
+        "text": {
+          "type": "mrkdwn",
+          "text": "🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:).",
+          "verbatim": true
+        }
+      },
+      {
+        "type": "section",
+        "text": {
+          "type": "mrkdwn",
+          "text": "Answer to “Oat or dairy?”: Oat, please",
+          "verbatim": true
+        }
+      },
+      {
+        "type": "context",
+        "elements": [
+          {
+            "type": "mrkdwn",
+            "text": "✅ Approved by <@UCLEO> · <!date^1790157720^{ago}|2026-09-23 10:02 UTC>",
+            "verbatim": true
+          }
+        ]
+      },
+      {
+        "type": "actions",
+        "elements": [
+          {
+            "type": "button",
+            "text": {
+              "type": "plain_text",
+              "text": "Mark fulfilled"
+            },
+            "action_id": "store_fulfill",
+            "value": "000000000000000010010redemptions",
+            "confirm": {
+              "title": {
+                "type": "plain_text",
+                "text": "Mark as fulfilled?"
+              },
+              "text": {
+                "type": "plain_text",
+                "text": "Ben is told it's theirs, and this can't be undone."
+              },
+              "confirm": {
+                "type": "plain_text",
+                "text": "Mark fulfilled"
+              },
+              "deny": {
+                "type": "plain_text",
+                "text": "Not yet"
+              }
+            }
+          },
+          {
+            "type": "button",
+            "text": {
+              "type": "plain_text",
+              "text": "Review in Kudos"
+            },
+            "action_id": "store_review",
+            "url": "https://kudos.example/admin?tab=store"
+          }
+        ]
+      }
+    ]
+  },
+  "3-stale-click (ephemeral via response_url)": {
+    "response_type": "ephemeral",
+    "replace_original": false,
+    "text": "Already approved by Cleo."
+  },
+  "4-after-fulfil-from-slack (chat.update)": {
+    "channel": "DUCLEO",
+    "ts": "1790157600.000100",
+    "text": "🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). ✔ Fulfilled by <@UANA>",
+    "blocks": [
+      {
+        "type": "section",
+        "text": {
+          "type": "mrkdwn",
+          "text": "🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:).",
+          "verbatim": true
+        }
+      },
+      {
+        "type": "section",
+        "text": {
+          "type": "mrkdwn",
+          "text": "Answer to “Oat or dairy?”: Oat, please",
+          "verbatim": true
+        }
+      },
+      {
+        "type": "context",
+        "elements": [
+          {
+            "type": "mrkdwn",
+            "text": "✔ Fulfilled by <@UANA> · <!date^1790157720^{ago}|2026-09-23 10:02 UTC>",
+            "verbatim": true
+          }
+        ]
+      }
+    ]
+  },
+  "5-requester-dm-fulfilled (chat.postMessage)": {
+    "channel": "UBEN",
+    "text": "🎉 *☕ Coffee on us* is yours!",
+    "blocks": [
+      {
+        "type": "section",
+        "text": {
+          "type": "mrkdwn",
+          "text": "🎉 *☕ Coffee on us* is yours!",
+          "verbatim": true
+        }
+      },
+      {
+        "type": "context",
+        "elements": [
+          {
+            "type": "mrkdwn",
+            "text": "Follow it under <https://kudos.example/store#my-requests|My requests>"
+          }
+        ]
+      }
+    ]
+  }
+}

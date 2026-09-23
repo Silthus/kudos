@@ -1,0 +1,51 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a6a6697e566329265
+
+ ❯ tests/store-slack.test.ts (49 tests | 2 failed | 47 skipped) 185ms
+   ❯ admin copies stay truthful when steps race the DMs (2)
+     × a decision made on the web while the review DMs are still going out reaches those DMs too 169ms
+     × a sync that was overtaken by a later step renders again, so the copies end on the latest state 15ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/store-slack.test.ts > admin copies stay truthful when steps race the DMs > a decision made on the web while the review DMs are still going out reaches those DMs too
+AssertionError: expected undefined to be '🛎️ <@UBEN> wants *☕ Coffee on us* (1…' // Object.is equality
+
+- Expected:
+"🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). ✅ Approved by <@UANA>"
+
++ Received:
+undefined
+
+ ❯ tests/store-slack.test.ts:693:35
+    691|     ({ redemptionId } = await redeemAsBen(await addReward()));
+    692|     await drain();
+    693|     expect(lastUpdateTo("DUANA")).toBe("🛎️ <@UBEN> wants *☕ Coffee on…
+       |                                   ^
+    694|     expect(lastUpdateTo("DUCLEO")).toBe("🛎️ <@UBEN> wants *☕ Coffee o…
+    695|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/store-slack.test.ts > admin copies stay truthful when steps race the DMs > a sync that was overtaken by a later step renders again, so the copies end on the latest state
+AssertionError: expected '🛎️ <@UBEN> wants *☕ Coffee on us* (1…' to be '🛎️ <@UBEN> wants *☕ Coffee on us* (1…' // Object.is equality
+
+Expected: "🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). ✔ Fulfilled by <@UANA>"
+Received: "🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). ✅ Approved by <@UANA>"
+
+ ❯ tests/store-slack.test.ts:720:35
+    718|     });
+    719|     await t.action(internal.slack.syncAdminMessages, { redemptionId });
+    720|     expect(lastUpdateTo("DUANA")).toBe("🛎️ <@UBEN> wants *☕ Coffee on…
+       |                                   ^
+    721|     expect(lastUpdateTo("DUCLEO")).toBe("🛎️ <@UBEN> wants *☕ Coffee o…
+    722|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 47 skipped (49)
+   Start at  21:17:39
+   Duration  570ms (tests 38%, transform 31%, import 22%, environment 8%, worker 1%)
+

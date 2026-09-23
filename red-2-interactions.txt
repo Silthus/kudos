@@ -1,0 +1,180 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a6a6697e566329265
+
+ ❯ tests/store-slack.test.ts (47 tests | 7 failed) 457ms
+   ❯ Approve and Mark fulfilled in Slack (10)
+     × Mark fulfilled fulfils the request, tells the requester and rewrites every admin's copy 13ms
+     × Approve approves, and an admin who never opened Kudos can act from Slack too 7ms
+     × a stale button says who got there first, and a retried click changes nothing 11ms
+     × someone who isn't an admin gets an ephemeral no, and nothing changes 7ms
+     × the four-eyes rule holds in Slack: an admin can't approve their own request while another admin can 7ms
+     × a request from another workspace, or an id that isn't one, is not found 7ms
+     × a user from another team, or a team without Kudos, is turned away 6ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/store-slack.test.ts > Approve and Mark fulfilled in Slack > Mark fulfilled fulfils the request, tells the requester and rewrites every admin's copy
+AssertionError: expected { …(15) } to match object { status: 'fulfilled' }
+(14 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "status": "fulfilled",
++   "status": "pending",
+  }
+
+ ❯ tests/store-slack.test.ts:586:32
+    584|     const res = await click(blockAction("store_fulfill", id));
+    585|     expect(res.status).toBe(200);
+    586|     expect(await statusOf(id)).toMatchObject({ status: "fulfilled" });
+       |                                ^
+    587|     expect(dmsTo("UBEN").map((d) => d.text)).toEqual(["🎉 *☕ Coffee on…
+    588|     const updated = calls.filter((c) => c.method === "chat.update");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  tests/store-slack.test.ts > Approve and Mark fulfilled in Slack > Approve approves, and an admin who never opened Kudos can act from Slack too
+AssertionError: expected { …(15) } to match object { status: 'approved' }
+(14 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "status": "approved",
++   "status": "pending",
+  }
+
+ ❯ tests/store-slack.test.ts:598:32
+    596|     await setMember(team.cleo, { userId: undefined });
+    597|     await click(blockAction("store_approve", id, { user: "UCLEO" }));
+    598|     expect(await statusOf(id)).toMatchObject({ status: "approved" });
+       |                                ^
+    599|     expect(dmsTo("UBEN").map((d) => d.text)).toEqual(["✅ <@UCLEO> appr…
+    600|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  tests/store-slack.test.ts > Approve and Mark fulfilled in Slack > a stale button says who got there first, and a retried click changes nothing
+AssertionError: expected [] to deeply equal [ { …(4) } ]
+
+- Expected
++ Received
+
+- [
+-   {
+-     "replace_original": false,
+-     "response_type": "ephemeral",
+-     "text": "Already fulfilled by Cleo.",
+-     "url": "https://hooks.slack.com/actions/T1/1/secret",
+-   },
+- ]
++ []
+
+ ❯ tests/store-slack.test.ts:609:26
+    607|     calls = [];
+    608|     await click(blockAction("store_approve", id));
+    609|     expect(ephemerals()).toEqual([{ url: RESPONSE_URL, response_type: …
+       |                          ^
+    610|
+    611|     const again = await request();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  tests/store-slack.test.ts > Approve and Mark fulfilled in Slack > someone who isn't an admin gets an ephemeral no, and nothing changes
+AssertionError: expected [] to deeply equal [ …(3) ]
+
+- Expected
++ Received
+
+- [
+-   "Only workspace admins can do that.",
+-   "Only workspace admins can do that.",
+-   "Only workspace admins can do that.",
+- ]
++ []
+
+ ❯ tests/store-slack.test.ts:623:45
+    621|     await setMember(team.cleo, { deactivated: true });
+    622|     await click(blockAction("store_fulfill", id, { user: "UCLEO" }));
+    623|     expect(ephemerals().map((e) => e.text)).toEqual(Array(3).fill("Onl…
+       |                                             ^
+    624|     expect(await statusOf(id)).toMatchObject({ status: "pending" });
+    625|     expect(calls.filter((c) => c.method === "chat.update" || c.method …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  tests/store-slack.test.ts > Approve and Mark fulfilled in Slack > the four-eyes rule holds in Slack: an admin can't approve their own request while another admin can
+AssertionError: expected [] to deeply equal [ Array(1) ]
+
+- Expected
++ Received
+
+- [
+-   "Another admin decides on your own requests.",
+- ]
++ []
+
+ ❯ tests/store-slack.test.ts:632:45
+    630|     const id = await request();
+    631|     await click(blockAction("store_approve", id, { user: "UBEN" }));
+    632|     expect(ephemerals().map((e) => e.text)).toEqual(["Another admin de…
+       |                                             ^
+    633|     expect(await statusOf(id)).toMatchObject({ status: "pending" });
+    634|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  tests/store-slack.test.ts > Approve and Mark fulfilled in Slack > a request from another workspace, or an id that isn't one, is not found
+AssertionError: expected [] to deeply equal [ 'Request not found.', …(2) ]
+
+- Expected
++ Received
+
+- [
+-   "Request not found.",
+-   "Request not found.",
+-   "Request not found.",
+- ]
++ []
+
+ ❯ tests/store-slack.test.ts:642:45
+    640|     await click(blockAction("store_fulfill", "not-an-id"));
+    641|     await click(blockAction("store_fulfill", team.ben)); // a real id,…
+    642|     expect(ephemerals().map((e) => e.text)).toEqual(Array(3).fill("Req…
+       |                                             ^
+    643|     expect(await statusOf(id)).toMatchObject({ status: "pending" });
+    644|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+ FAIL  tests/store-slack.test.ts > Approve and Mark fulfilled in Slack > a user from another team, or a team without Kudos, is turned away
+AssertionError: expected [] to deeply equal [ …(2) ]
+
+- Expected
++ Received
+
+- [
+-   "Only workspace admins can do that.",
+-   "Kudos isn't installed in this workspace yet.",
+- ]
++ []
+
+ ❯ tests/store-slack.test.ts:650:45
+    648|     await click(blockAction("store_fulfill", id, { userTeam: "TEXTERNA…
+    649|     await click(blockAction("store_fulfill", id, { team: "TUNKNOWN" })…
+    650|     expect(ephemerals().map((e) => e.text)).toEqual(["Only workspace a…
+       |                                             ^
+    651|     expect(await statusOf(id)).toMatchObject({ status: "pending" });
+    652|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 40 passed (47)
+   Start at  21:16:40
+   Duration  841ms (tests 61%, transform 19%, import 14%, environment 5%)
+

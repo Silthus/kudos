@@ -1,0 +1,155 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a6a6697e566329265
+
+ ❯ tests/store-slack.test.ts (54 tests | 6 failed) 573ms
+   ❯ admin copies in Slack (7)
+     × the review DM has Approve and Mark fulfilled buttons for this request, next to the web link 13ms
+     × a rate-limited update is tried again later, so the copies still end up truthful 9ms
+   ❯ Approve and Mark fulfilled in Slack (14)
+     × an admin who never signed in to Kudos can't decide from Slack, so they can't be the four-eyes loophole 10ms
+     × a sole admin decides their own request from Slack, and their copy still says it's their own 12ms
+     × an Enterprise Grid payload without a team names the workspace through the user 7ms
+     × malformed payloads are turned away without a server error 16ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/store-slack.test.ts > admin copies in Slack > the review DM has Approve and Mark fulfilled buttons for this request, next to the web link
+AssertionError: expected [ { type: 'button', …(4) }, …(2) ] to deeply equal [ { type: 'button', …(4) }, …(2) ]
+
+- Expected
++ Received
+
+@@ -9,28 +9,10 @@
+      "type": "button",
+      "value": "000000000000000010010redemptions",
+    },
+    {
+      "action_id": "store_fulfill",
+-     "confirm": {
+-       "confirm": {
+-         "text": "Mark fulfilled",
+-         "type": "plain_text",
+-       },
+-       "deny": {
+-         "text": "Not yet",
+-         "type": "plain_text",
+-       },
+-       "text": {
+-         "text": "Ben is told it's theirs, and this can't be undone.",
+-         "type": "plain_text",
+-       },
+-       "title": {
+-         "text": "Mark as fulfilled?",
+-         "type": "plain_text",
+-       },
+-     },
+      "text": {
+        "text": "Mark fulfilled",
+        "type": "plain_text",
+      },
+      "type": "button",
+
+ ❯ tests/store-slack.test.ts:467:21
+    465|     const [review] = dmsTo("UANA");
+    466|     const actions = review.blocks.find((b: { type: string }) => b.type…
+    467|     expect(actions).toEqual([
+       |                     ^
+    468|       { type: "button", style: "primary", text: { type: "plain_text", …
+    469|       {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  tests/store-slack.test.ts > admin copies in Slack > a rate-limited update is tried again later, so the copies still end up truthful
+AssertionError: expected 2 to be greater than 2
+ ❯ tests/store-slack.test.ts:550:30
+    548|     await drain();
+    549|     const last = (channel: string) => updates().filter((u) => u.channe…
+    550|     expect(updates().length).toBeGreaterThan(2);
+       |                              ^
+    551|     expect(last("DUANA")).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (15…
+    552|     expect(last("DUCLEO")).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (1…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  tests/store-slack.test.ts > Approve and Mark fulfilled in Slack > an admin who never signed in to Kudos can't decide from Slack, so they can't be the four-eyes loophole
+AssertionError: expected [] to deeply equal [ Array(1) ]
+
+- Expected
++ Received
+
+- [
+-   "Sign in to Kudos once before you decide requests from Slack.",
+- ]
++ []
+
+ ❯ tests/store-slack.test.ts:635:45
+    633|     await setMember(team.cleo, { userId: undefined });
+    634|     await click(blockAction("store_fulfill", id, { user: "UCLEO" }));
+    635|     expect(ephemerals().map((e) => e.text)).toEqual(["Sign in to Kudos…
+       |                                             ^
+    636|     expect(await statusOf(id)).toMatchObject({ status: "pending" });
+    637|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  tests/store-slack.test.ts > Approve and Mark fulfilled in Slack > a sole admin decides their own request from Slack, and their copy still says it's their own
+AssertionError: expected '[{"type":"section","text":{"type":"mr…' to contain 'Your own request'
+
+Expected: "Your own request"
+Received: "[{"type":"section","text":{"type":"mrkdwn","text":"🛎️ <@UANA> wants *☕ Coffee on us* (15 :taco:).","verbatim":true}},{"type":"context","elements":[{"type":"mrkdwn","text":"✅ Approved by <@UANA> · <!date^1790157600^{ago}|2026-09-23 10:00 UTC>","verbatim":true}]},{"type":"actions","elements":[{"type":"button","text":{"type":"plain_text","text":"Mark fulfilled"},"action_id":"store_fulfill","value":"000000000000000010008redemptions"},{"type":"button","text":{"type":"plain_text","text":"Review in Kudos"},"action_id":"store_review","url":"https://kudos.example/admin?tab=store"}]}]"
+
+ ❯ tests/store-slack.test.ts:651:32
+    649|     const [copy] = calls.filter((c) => c.method === "chat.update");
+    650|     expect(copy.params.text).toBe("🛎️ <@UANA> wants *☕ Coffee on us* …
+    651|     expect(copy.params.blocks).toContain("Your own request");
+       |                                ^
+    652|   });
+    653|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  tests/store-slack.test.ts > Approve and Mark fulfilled in Slack > an Enterprise Grid payload without a team names the workspace through the user
+AssertionError: expected { …(15) } to match object { status: 'fulfilled' }
+(14 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "status": "fulfilled",
++   "status": "pending",
+  }
+
+ ❯ tests/store-slack.test.ts:658:32
+    656|     const payload = JSON.parse(blockAction("store_fulfill", id));
+    657|     await click(JSON.stringify({ ...payload, team: null, enterprise: {…
+    658|     expect(await statusOf(id)).toMatchObject({ status: "fulfilled" });
+       |                                ^
+    659|   });
+    660|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  tests/store-slack.test.ts > Approve and Mark fulfilled in Slack > malformed payloads are turned away without a server error
+TypeError: Cannot read properties of null (reading 'type')
+ ❯ convex/http.ts:116:30
+    114|       return new Response("bad request", { status: 400 });
+    115|     }
+    116|     const [action] = payload.type === "block_actions" ? (payload.actio…
+       |                              ^
+    117|     const step = action?.action_id ? STORE_ACTIONS[action.action_id as…
+    118|     if (!step || typeof action.value !== "string" || !payload.team?.id…
+ ❯ invokeFunction node_modules/convex/src/server/impl/registration_impl.ts:90:14
+ ❯ invokeHttpAction node_modules/convex/src/server/impl/registration_impl.ts:696:10
+ ❯ fetch node_modules/convex-test/dist/index.js:2269:30
+ ❯ click tests/store-slack.test.ts:584:17
+ ❯ tests/store-slack.test.ts:663:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 48 passed (54)
+   Start at  21:25:38
+   Duration  962ms (tests 65%, transform 17%, import 13%, environment 5%)
+
