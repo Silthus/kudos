@@ -11,7 +11,10 @@ beforeEach(async () => {
   t = setupConvex();
   team = await seedTeam(t);
 });
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
 
 type GiveOptions = Partial<Omit<GiveInput, "workspace">> & { giverSlackId: string; recipientSlackIds: string[] };
 
@@ -96,6 +99,11 @@ describe("rebuilding a workspace's rollups from the source tables", () => {
       const [channel] = await ctx.db.query("channelStats").collect();
       await ctx.db.patch(channel._id, { amount: 123 });
       await ctx.db.insert("channelStats", { workspaceId: team.workspaceId, bucket: "q:2026-Q4", channel: "ghost", amount: 2 });
+      // The second year of history.
+      const anaNextYear = (await ctx.db.query("memberStats").collect()).find((m) => m.memberId === team.ana && m.bucket === "y:2027")!;
+      await ctx.db.patch(anaNextYear._id, { given: 50 });
+      const pairNextYear = (await ctx.db.query("pairStats").collect()).find((p) => p.bucket === "m:2027-01")!;
+      await ctx.db.delete(pairNextYear._id);
     });
     expect(await rollupLines()).not.toEqual(maintained);
 
@@ -122,38 +130,98 @@ describe("rebuilding a workspace's rollups from the source tables", () => {
   });
 
   test("stays exact while live gives and revokes land between its steps", async () => {
+    // A twin backend runs the same history and live traffic with transactional maintenance only.
+    const ops = liveOps(mulberry32(7), 60);
+    // Both twins roll the same bot messages, so they discover the same templates.
+    vi.spyOn(Math, "random").mockImplementation(mulberry32(99));
     await history();
-    const random = mulberry32(7);
+    for (const op of ops) await applyLiveOp(op);
+    const maintained = await rollupLines();
+
+    t = setupConvex();
+    team = await seedTeam(t);
+    vi.spyOn(Math, "random").mockImplementation(mulberry32(99));
+    await history();
     // Rollups as a workspace has them before its first backfill: partly missing, partly wrong.
+    const random = mulberry32(11);
     await t.run(async (ctx) => {
       for (const table of ROLLUP_TABLES) {
         for (const row of await ctx.db.query(table).collect()) if (random() < 0.5) await ctx.db.delete(row._id);
       }
       for (const row of await ctx.db.query("memberStats").collect()) await ctx.db.patch(row._id, { given: row.given + 2 });
     });
-
     await t.mutation(internal.rollups.rebuildWorkspace, { workspaceId: team.workspaceId });
     let steps = 0;
-    while (await runScheduledStep()) {
-      steps += 1;
-      if (random() < 0.3) {
-        const rows = await t.run((ctx) => ctx.db.query("kudos").collect());
-        const row = rows[Math.floor(random() * rows.length)];
-        await t.run(async (ctx) => revokeKudosRow(ctx, (await ctx.db.get(team.workspaceId))!, row));
-      } else {
-        const day = LIVE_DAYS[Math.floor(random() * LIVE_DAYS.length)];
-        const [giver, receiver] = random() < 0.5 ? ["UBEN", "UCLEO"] : ["UCLEO", "UANA"];
-        vi.setSystemTime(new Date(`${day}T${String(8 + steps % 10).padStart(2, "0")}:00:00Z`));
-        await give({ giverSlackId: giver, recipientSlackIds: [receiver], messageTs: `live.${steps}`, source: random() < 0.3 ? "reaction" : "message" });
-      }
+    for (const op of ops) {
+      if (await runScheduledStep()) steps += 1;
+      await applyLiveOp(op);
     }
-    expect(steps).toBeGreaterThan(20);
-    const concurrent = await rollupLines();
+    expect(steps).toBeGreaterThan(20); // the traffic really interleaved with the backfill
+    while (await runScheduledStep()) steps += 1;
 
-    await rebuild();
-    expect(concurrent).toEqual(await rollupLines());
+    expect(await rollupLines()).toEqual(maintained);
   });
 });
+
+describe("verifying rollups against the legacy computation from memberDays and kudos", () => {
+  const SAMPLE = ["d:2026-09-21", "w:2026-W39", "m:2026-09", "q:2026-Q4", "y:2026", "d:2027-01-01", "w:2026-W53"];
+  const verify = (buckets?: string[]) => t.query(internal.rollups.verify, { workspaceId: team.workspaceId, buckets });
+
+  test("finds nothing on maintained rollups, pinpoints corrupted values, and nothing after a rebuild", async () => {
+    await history();
+    expect(await verify(SAMPLE)).toEqual({ checked: SAMPLE, mismatches: [] });
+
+    await t.run(async (ctx) => {
+      const ws = await ctx.db.query("workspaceStats").collect();
+      await ctx.db.patch(ws.find((w) => w.bucket === "d:2026-09-21")!._id, { given: 999 });
+      const anaSeptember = (await ctx.db.query("memberStats").collect()).find((m) => m.memberId === team.ana && m.bucket === "m:2026-09")!;
+      await ctx.db.patch(anaSeptember._id, { received: 6 });
+      const pair = (await ctx.db.query("pairStats").collect()).find(
+        (p) => p.giverId === team.ana && p.receiverId === team.ben && p.bucket === "y:2026",
+      )!;
+      await ctx.db.patch(pair._id, { amount: 7 });
+      const channel = (await ctx.db.query("channelStats").collect()).find((c) => c.bucket === "w:2026-W39")!;
+      await ctx.db.delete(channel._id);
+    });
+    expect((await verify(SAMPLE)).mismatches).toEqual([
+      { bucket: "d:2026-09-21", table: "workspaceStats", key: "d:2026-09-21", field: "given", expected: 4, actual: 999 },
+      { bucket: "w:2026-W39", table: "channelStats", key: "general", field: "amount", expected: 4, actual: 0 },
+      { bucket: "m:2026-09", table: "memberStats", key: team.ana, field: "received", expected: 5, actual: 6 },
+      { bucket: "y:2026", table: "pairStats", key: `${team.ana}>${team.ben}`, field: "amount", expected: 2, actual: 7 },
+    ]);
+
+    await rebuild();
+    expect((await verify(SAMPLE)).mismatches).toEqual([]);
+  });
+
+  test("samples the latest active day, its week and its month by default", async () => {
+    await history();
+    expect(await verify()).toEqual({ checked: ["d:2027-01-04", "w:2027-W01", "m:2027-01"], mismatches: [] });
+  });
+});
+
+type LiveOp = { kind: "revoke"; pick: number } | { kind: "give"; at: string; giver: string; receiver: string; ts: string; reaction: boolean };
+
+/** Live traffic across the history's days and their neighbours: gives and revokes. */
+function liveOps(random: () => number, n: number): LiveOp[] {
+  return Array.from({ length: n }, (_, i): LiveOp => {
+    if (random() < 0.3) return { kind: "revoke", pick: random() };
+    const day = LIVE_DAYS[Math.floor(random() * LIVE_DAYS.length)];
+    const [giver, receiver] = random() < 0.5 ? ["UBEN", "UCLEO"] : ["UCLEO", "UANA"];
+    return { kind: "give", at: `${day}T${String(8 + (i % 10)).padStart(2, "0")}:00:00Z`, giver, receiver, ts: `live.${i}`, reaction: random() < 0.3 };
+  });
+}
+
+async function applyLiveOp(op: LiveOp) {
+  if (op.kind === "revoke") {
+    const rows = await t.run((ctx) => ctx.db.query("kudos").collect());
+    const row = rows[Math.floor(op.pick * rows.length)];
+    await t.run(async (ctx) => revokeKudosRow(ctx, (await ctx.db.get(team.workspaceId))!, row));
+  } else {
+    vi.setSystemTime(new Date(op.at));
+    await give({ giverSlackId: op.giver, recipientSlackIds: [op.receiver], messageTs: op.ts, source: op.reaction ? "reaction" : "message" });
+  }
+}
 
 /** Days of `history()` and their neighbours, across week, month, quarter and year edges. */
 const LIVE_DAYS = ["2026-09-20", "2026-09-21", "2026-09-23", "2026-09-30", "2026-10-01", "2026-12-31", "2027-01-01", "2027-01-04"];

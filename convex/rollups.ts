@@ -1,7 +1,11 @@
-import { v } from "convex/values";
-import { internalMutation } from "./_generated/server";
+import { ConvexError, v, type Infer } from "convex/values";
+import { internalMutation, internalQuery, type QueryCtx } from "./_generated/server";
+import type { Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
-import { periodBucketsBetween } from "./lib/buckets";
+import { bucketDays, dayBucket, monthBucket, periodBucketsBetween, weekBucket } from "./lib/buckets";
+import { RARITIES } from "./lib/messages";
+import { channelKey, WORKSPACE_COUNTERS } from "./lib/rollups";
+import { kudosInRange, totalsByMember, workspaceDays } from "./lib/stats";
 import {
   markBackfilled,
   rebuildGiverPairs,
@@ -12,7 +16,7 @@ import {
   rebuildWorkspacePeriod,
   sourceSpan,
 } from "./lib/rebuild";
-import { addDays, dayKeyFor } from "./lib/time";
+import { addDays, DAY_MS, dayKeyFor, daysBetween, startOfDayUtc, weekdayOfKey, zonedParts } from "./lib/time";
 
 /**
  * Backfill and repair of the read-model rollups (see `lib/rebuild.ts`). `rebuildWorkspace` walks a
@@ -116,3 +120,145 @@ export const backfillStep = internalMutation({
     }
   },
 });
+
+const MAX_MISMATCHES = 100;
+
+const mismatch = v.object({
+  bucket: v.string(),
+  table: v.string(),
+  key: v.string(),
+  field: v.string(),
+  expected: v.number(),
+  actual: v.number(),
+});
+
+/**
+ * Compare sampled rollup buckets with the legacy computation: the readers' own sums over
+ * `memberDays` (lib/stats) and a scan of the bucket's kudos and first discoveries. Pass explicit
+ * `d:`/`w:`/`m:`/`q:`/`y:` buckets, or get the latest active day, its week and its month. Years
+ * and quarters read every kudos row in them, so sample those on small workspaces only.
+ */
+export const verify = internalQuery({
+  args: { workspaceId: v.id("workspaces"), buckets: v.optional(v.array(v.string())) },
+  returns: v.object({ checked: v.array(v.string()), mismatches: v.array(mismatch) }),
+  handler: async (ctx, { workspaceId, buckets }) => {
+    const workspace = await ctx.db.get(workspaceId);
+    if (!workspace) throw new ConvexError("Unknown workspace");
+    let checked = buckets;
+    if (!checked) {
+      const latest = await ctx.db
+        .query("memberDays")
+        .withIndex("by_workspace_day", (q) => q.eq("workspaceId", workspaceId))
+        .order("desc")
+        .first();
+      checked = latest ? [dayBucket(latest.dayKey), weekBucket(latest.dayKey), monthBucket(latest.dayKey)] : [];
+    }
+    const mismatches: Infer<typeof mismatch>[] = [];
+    for (const bucket of checked) {
+      for (const m of await verifyBucket(ctx, workspace, bucket)) {
+        if (mismatches.length < MAX_MISMATCHES) mismatches.push(m);
+      }
+    }
+    return { checked, mismatches };
+  },
+});
+
+async function verifyBucket(ctx: QueryCtx, workspace: Doc<"workspaces">, bucket: string) {
+  const { start, end } = bucketDays(bucket);
+  const tz = workspace.timezone;
+  const out: Infer<typeof mismatch>[] = [];
+  const compare = (table: string, expected: Map<string, Record<string, number>>, actual: Map<string, Record<string, number>>) => {
+    for (const key of [...new Set([...expected.keys(), ...actual.keys()])].sort()) {
+      const e = expected.get(key) ?? {};
+      const a = actual.get(key) ?? {};
+      for (const field of [...new Set([...Object.keys(e), ...Object.keys(a)])]) {
+        if ((e[field] ?? 0) !== (a[field] ?? 0)) {
+          out.push({ bucket, table, key, field, expected: e[field] ?? 0, actual: a[field] ?? 0 });
+        }
+      }
+    }
+  };
+
+  // The legacy readers' computation: per-member sums over the bucket's memberDays.
+  const days = await workspaceDays(ctx, workspace._id, { start, end, days: daysBetween(start, end) + 1 });
+  const { rows: kudosRows, truncated } = await kudosInRange(
+    ctx,
+    workspace._id,
+    startOfDayUtc(start, tz) - DAY_MS, // a day key may come from another timezone
+    startOfDayUtc(addDays(end, 1), tz) + DAY_MS,
+    10_000,
+  );
+  if (days.truncated || truncated) throw new ConvexError(`${bucket} is too large to verify in one query`);
+  const kudos = kudosRows.filter((k) => k.dayKey >= start && k.dayKey <= end);
+  const perMember = totalsByMember(days.rows);
+
+  const ws: Record<string, number> = {
+    given: 0, kudosRows: 0, fromReactions: 0, fromMessages: 0,
+    givers: [...perMember.values()].filter((m) => m.given > 0).length,
+    receivers: [...perMember.values()].filter((m) => m.received > 0).length,
+    giverDays: days.rows.filter((d) => d.given > 0).length,
+    maxedDays: days.rows.filter((d) => d.maxed).length,
+    cappedGiven: days.rows.reduce((n, d) => n + (d.capped ?? Math.min(d.given, workspace.dailyLimit)), 0),
+    messages: new Set(kudos.map((k) => k.batchId)).size,
+  };
+  const channels = new Map<string, Record<string, number>>();
+  const pairs = new Map<string, Record<string, number>>();
+  const bump = (m: Map<string, Record<string, number>>, key: string, n: number) =>
+    m.set(key, { amount: (m.get(key)?.amount ?? 0) + n });
+  for (const k of kudos) {
+    ws.given += k.amount;
+    ws.kudosRows += 1;
+    if (k.source === "reaction") ws.fromReactions += k.amount;
+    else ws.fromMessages += k.amount;
+    const hour = k.hour ?? zonedParts(k.at, tz).hour;
+    const cell = `heat[${bucket.startsWith("d:") ? hour : weekdayOfKey(k.dayKey) * 24 + hour}]`;
+    ws[cell] = (ws[cell] ?? 0) + k.amount;
+    bump(channels, channelKey(k), k.amount);
+    bump(pairs, `${k.giverId}>${k.receiverId}`, k.amount);
+  }
+  const firstSeen = ctx.db
+    .query("discoveries")
+    .withIndex("by_workspace_firstSeen", (q) =>
+      q.eq("workspaceId", workspace._id).gte("firstSeenAt", startOfDayUtc(start, tz)).lt("firstSeenAt", startOfDayUtc(addDays(end, 1), tz)),
+    );
+  for await (const d of firstSeen) ws[`found.${d.rarity}`] = (ws[`found.${d.rarity}`] ?? 0) + 1;
+
+  const row = await ctx.db
+    .query("workspaceStats")
+    .withIndex("by_workspace_bucket", (q) => q.eq("workspaceId", workspace._id).eq("bucket", bucket))
+    .unique();
+  const stored: Record<string, number> = {};
+  if (row) {
+    for (const c of WORKSPACE_COUNTERS) stored[c] = row[c];
+    row.heat.forEach((n, i) => (stored[`heat[${i}]`] = n));
+    for (const r of RARITIES) stored[`found.${r}`] = row.found[r];
+  }
+  compare("workspaceStats", new Map([[bucket, ws]]), new Map([[bucket, stored]]));
+  if (bucket.startsWith("d:")) return out; // the day bucket of members and pairs is memberDays itself
+
+  const storedChannels = await ctx.db
+    .query("channelStats")
+    .withIndex("by_workspace_bucket_channel", (q) => q.eq("workspaceId", workspace._id).eq("bucket", bucket))
+    .collect();
+  compare("channelStats", channels, new Map(storedChannels.map((c) => [c.channel, { amount: c.amount }])));
+
+  const expectedMembers = new Map(
+    [...perMember].filter(([, t]) => t.given + t.received > 0).map(([id, t]) => [id as string, { ...t }]),
+  );
+  const storedMembers = new Map<string, Record<string, number>>();
+  const memberRows = ctx.db
+    .query("memberStats")
+    .withIndex("by_workspace_bucket_given", (q) => q.eq("workspaceId", workspace._id).eq("bucket", bucket));
+  for await (const m of memberRows) {
+    storedMembers.set(m.memberId, { given: m.given, received: m.received, maxedDays: m.maxedDays, activeDays: m.activeDays });
+  }
+  compare("memberStats", expectedMembers, storedMembers);
+
+  const storedPairs = new Map<string, Record<string, number>>();
+  const pairRows = ctx.db
+    .query("pairStats")
+    .withIndex("by_workspace_bucket_amount", (q) => q.eq("workspaceId", workspace._id).eq("bucket", bucket));
+  for await (const p of pairRows) storedPairs.set(`${p.giverId}>${p.receiverId}`, { amount: p.amount });
+  compare("pairStats", pairs, storedPairs);
+  return out;
+}
