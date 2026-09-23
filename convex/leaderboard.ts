@@ -3,7 +3,7 @@ import { query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { requireViewer } from "./lib/access";
 import { rankBy, totalsByMember, workspaceDays, workspaceMembers, type Totals } from "./lib/stats";
-import { addDays, parseToday, periodValidator, resolvePeriod, startOfDayUtc } from "./lib/time";
+import { parseToday, periodValidator, resolvePeriod, startOfDayUtc } from "./lib/time";
 
 export const get = query({
   args: {
@@ -39,10 +39,12 @@ export const get = query({
       const prev = await workspaceDays(ctx, workspace._id, range.previous!);
       current = totalsByMember(cur.rows);
       previous = totalsByMember(prev.rows);
-      prevTotal = prev.rows
-        .filter((r) => r.dayKey <= range.previousToDate!.end)
-        .reduce((s, r) => s + r[metric], 0);
-      truncated = cur.truncated || prev.truncated;
+      // A capped read keeps the newest days, i.e. drops exactly the to-date part: read it on its own then.
+      const toDate = prev.truncated
+        ? await workspaceDays(ctx, workspace._id, range.previousToDate!)
+        : { rows: prev.rows.filter((r) => r.dayKey <= range.previousToDate!.end), truncated: false };
+      prevTotal = toDate.rows.reduce((s, r) => s + r[metric], 0);
+      truncated = cur.truncated || prev.truncated || toDate.truncated;
     }
 
     const value = (t: Totals | undefined) => (t ? t[metric] : 0);
@@ -105,7 +107,6 @@ export const get = query({
         maxedDays: [...current.values()].reduce((s, t) => s + t.maxedDays, 0),
       },
       unit: { singular: workspace.unitSingular, plural: workspace.unitPlural, glyph: workspace.emojiGlyph },
-      nextPeriodStart: period === "all" ? null : addDays(range.currentFull.end, 1),
       myRow: rows.find((r) => r.isMe) ?? null,
       truncated,
     };

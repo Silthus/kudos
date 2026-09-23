@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
+import { addDays } from "../convex/lib/time";
 import { NOW, seedTeam, setupConvex, signInAs, type Team } from "./helpers";
 
 // The server clock stays frozen at NOW (Wed 2026-09-23, Berlin) in every test: whatever rolls over
@@ -49,6 +50,25 @@ describe("midnight rollover", () => {
   });
 });
 
+describe("weekly quests", () => {
+  test("count this week's giving even when the week started before the selected period", async () => {
+    // Thursday 2026-10-01: the week began on Monday 2026-09-28, the month only today.
+    const kudos = (receiverId: Id<"members">, dayKey: string, channelId: string) =>
+      t.run(async (ctx) => {
+        const at = Date.UTC(Number(dayKey.slice(0, 4)), Number(dayKey.slice(5, 7)) - 1, Number(dayKey.slice(8)), 10);
+        await ctx.db.insert("kudos", { workspaceId: team.workspaceId, batchId: `${dayKey}-${receiverId}`, giverId: team.ana, receiverId, amount: 1, dayKey, source: "message", channelId, text: "", at });
+      });
+    await kudos(team.ben, "2026-09-29", "C1");
+    await kudos(team.cleo, "2026-09-30", "C2");
+    const ana = await signInAs(t, team.ana);
+    for (const period of ["week", "month"] as const) {
+      const { quests } = await ana.query(api.me.overview, { period, today: "2026-10-01" });
+      const progress = Object.fromEntries(quests.map((q) => [q.id, q.progress]));
+      expect([period, progress.spread, progress.channels, progress.fresh]).toEqual([period, 2, 2, 1]);
+    }
+  });
+});
+
 describe("calendar-aligned comparisons", () => {
   beforeEach(async () => {
     await activity(team.ana, "2026-08-05", 1);
@@ -76,11 +96,31 @@ describe("calendar-aligned comparisons", () => {
     expect([highlights.total, highlights.prevTotal]).toEqual([2, 1]);
   });
 
-  test("my own period total compares with the previous month to date", async () => {
+  test("my own period total compares with the whole previous month, the daily overlay day by day", async () => {
     const ana = await signInAs(t, team.ana);
-    const { period, periodLabel } = await ana.query(api.me.overview, { period: "month", today: "2026-09-23" });
+    const { period, periodLabel, cadence } = await ana.query(api.me.overview, { period: "month", today: "2026-09-23" });
     expect(periodLabel).toBe("This month");
-    expect([period.given, period.prevGiven]).toEqual([2, 1]);
+    expect([period.given, period.prevGiven]).toEqual([2, 5]);
+    // Sep 5 lines up with Aug 5; Aug 28 lies beyond today's offset and isn't overlaid.
+    expect(cadence.find((d) => d.day === "2026-09-05")?.prevGiven).toBe(1);
+    expect(cadence.reduce((s, d) => s + (d.prevGiven ?? 0), 0)).toBe(1);
+  });
+});
+
+describe("busy previous periods", () => {
+  test("the leaderboard headline still counts the previous period to date when the full period is too big to read", async () => {
+    // 15 rows a day through 2025 is 5,475 rows: more than one capped read keeps (newest first).
+    await t.run(async (ctx) => {
+      for (let day = "2025-01-01"; day <= "2025-12-31"; day = addDays(day, 1)) {
+        for (let i = 0; i < 15; i++) {
+          await ctx.db.insert("memberDays", { workspaceId: team.workspaceId, memberId: team.ben, dayKey: day, given: 1, received: 0, maxed: false });
+        }
+      }
+    });
+    const ana = await signInAs(t, team.ana);
+    const board = await ana.query(api.leaderboard.get, { period: "year", metric: "given", today: "2026-03-31" });
+    expect(board.highlights.prevTotal).toBe(90 * 15); // Jan 1 – Mar 31, 2025
+    expect(board.truncated).toBe(true);
   });
 });
 
@@ -117,5 +157,14 @@ describe("period arguments", () => {
     expect(analytics.kpis.prevTotal).toBeNull();
     const board = await ana.query(api.leaderboard.get, { period: "all", metric: "given", today: "2026-09-23" });
     expect(board.previousRange).toBeNull();
+  });
+
+  test("the all-time daily chart stays bounded to its most recent year, however far away today is", async () => {
+    await activity(team.ana, "2026-06-01", 2);
+    const ana = await signInAs(t, team.ana);
+    const { daily, range } = await ana.query(api.analytics.overview, { period: "all", today: "2099-12-31" });
+    expect(range.start).toBe("2026-06-01");
+    expect(daily).toHaveLength(366);
+    expect(daily.at(-1)?.day).toBe("2099-12-31");
   });
 });

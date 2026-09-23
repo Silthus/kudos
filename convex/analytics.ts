@@ -6,6 +6,8 @@ import { kudosInRange, totalsByMember, workspaceDays, workspaceMembers } from ".
 import { v } from "convex/values";
 import { eachDay, parseToday, periodValidator, resolvePeriod, startOfDayUtc, addDays, zonedParts, daysBetween } from "./lib/time";
 
+const MAX_CHART_DAYS = 366;
+
 /** Organisation-wide recognition analytics. */
 export const overview = query({
   args: {
@@ -58,7 +60,10 @@ export const overview = query({
     for (const r of curRows) dailyMap.set(r.dayKey, (dailyMap.get(r.dayKey) ?? 0) + r.given);
     const prevDailyMap = new Map<string, number>();
     for (const r of prevRows) prevDailyMap.set(r.dayKey, (prevDailyMap.get(r.dayKey) ?? 0) + r.given);
-    const daily = eachDay(current).map((day, i) => ({
+    // At most a (leap) year of daily points: "all time" charts its most recent year.
+    const chartStart = daysBetween(current.start, current.end) < MAX_CHART_DAYS ? current.start : addDays(current.end, 1 - MAX_CHART_DAYS);
+    const chartDays = { start: chartStart, end: current.end, days: daysBetween(chartStart, current.end) + 1 };
+    const daily = eachDay(chartDays).map((day, i) => ({
       day,
       total: dailyMap.get(day) ?? 0,
       // Past the end of a shorter previous bucket (Feb vs. Mar 29–31) there is nothing to compare.

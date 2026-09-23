@@ -19,8 +19,8 @@ export function Analytics() {
   const glyph = data.unit.glyph;
 
   const tiles = [
-    { label: "Kudos given", value: nf.format(k.total), trend: <Trend cur={k.total} prev={k.prevTotal} />, hint: `${nf.format(k.messages)} recognition moments` },
-    { label: "Participation", value: pct(k.participation), trend: k.prevParticipation !== null ? <Trend cur={Math.round(k.participation * 100)} prev={Math.round(k.prevParticipation * 100)} /> : null, hint: `${k.givers} of ${k.teamSize} teammates gave` },
+    { label: "Kudos given", value: nf.format(k.total), trend: <Trend cur={k.total} prev={k.prevTotal} suffix="vs prev. to date" />, hint: `${nf.format(k.messages)} recognition moments` },
+    { label: "Participation", value: pct(k.participation), trend: k.prevParticipation !== null ? <Trend cur={Math.round(k.participation * 100)} prev={Math.round(k.prevParticipation * 100)} suffix="vs prev. to date" /> : null, hint: `${k.givers} of ${k.teamSize} teammates gave` },
     { label: "Avg. per giver", value: k.avgPerGiver.toFixed(1), trend: null, hint: `${k.receivers} people were recognized` },
     { label: "Allowance used", value: pct(k.allowanceUse), trend: null, hint: `on active days · ${k.maxedDays} maxed days` },
     { label: "Top-20% share", value: pct(k.topShare), trend: null, hint: "of kudos come from the most generous fifth" },

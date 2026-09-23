@@ -66,8 +66,8 @@ export const overview = query({
     const myWeek = ranked.find(({ item: [id] }) => id === member._id);
     const lastWeekGiven = (await memberDays(ctx, member._id, week.previous!)).reduce((s, d) => s + d.given, 0);
 
-    // Selected period: cadence + patterns. My own total and the dashed overlay compare with the
-    // previous bucket up to the same day, so early in a month I'm not measured against a whole month.
+    // Selected period: cadence + patterns. Like the week card, my total compares with the whole
+    // previous bucket; the dashed daily overlay lines the previous bucket up day by day to date.
     const range = resolvePeriod(period, today);
     const previous = range.previousToDate;
     const allMine = await ctx.db
@@ -94,13 +94,16 @@ export const overview = query({
     // Totals cover the whole range even when the chart only shows its most recent days.
     const within = (r: DayRange) => allMine.filter((d) => d.dayKey >= r.start && d.dayKey <= r.end);
     const periodGiven = within(current).reduce((s, d) => s + d.given, 0);
-    const prevGiven = previous ? within(previous).reduce((s, d) => s + d.given, 0) : null;
+    const prevGiven = range.previous ? within(range.previous).reduce((s, d) => s + d.given, 0) : null;
     const periodReceived = showReceived ? within(current).reduce((s, d) => s + d.received, 0) : null;
 
+    // Kudos inside the selected days, newest first so a capped read drops the oldest.
     const startTs = startOfDayUtc(current.start, tz);
+    const endTs = startOfDayUtc(addDays(current.end, 1), tz);
     const givenRows = await ctx.db
       .query("kudos")
-      .withIndex("by_giver_at", (q) => q.eq("giverId", member._id).gte("at", startTs))
+      .withIndex("by_giver_at", (q) => q.eq("giverId", member._id).gte("at", startTs).lt("at", endTs))
+      .order("desc")
       .take(3000);
     const recipientCounts = new Map<Id<"members">, number>();
     const channels = new Set<string>();
@@ -115,7 +118,8 @@ export const overview = query({
     if (showReceived) {
       const receivedRows = await ctx.db
         .query("kudos")
-        .withIndex("by_receiver_at", (q) => q.eq("receiverId", member._id).gte("at", startTs))
+        .withIndex("by_receiver_at", (q) => q.eq("receiverId", member._id).gte("at", startTs).lt("at", endTs))
+        .order("desc")
         .take(3000);
       const byGiver = new Map<Id<"members">, number>();
       for (const k of receivedRows) byGiver.set(k.giverId, (byGiver.get(k.giverId) ?? 0) + k.amount);
@@ -172,11 +176,15 @@ export const overview = query({
       }));
 
     // Quests: derived from this week's activity.
+    // The week can start before the selected period (a month that began on a Thursday), so read it on its own.
     const weekStartTs = startOfDayUtc(week.current.start, tz);
-    const weekGivenRows = givenRows.filter((k) => k.at >= weekStartTs);
+    const weekGivenRows = await ctx.db
+      .query("kudos")
+      .withIndex("by_giver_at", (q) => q.eq("giverId", member._id).gte("at", weekStartTs).lt("at", endTs))
+      .take(1000);
     const weekRecipients = new Set(weekGivenRows.map((k) => k.receiverId));
     const weekChannels = new Set(weekGivenRows.map((k) => k.channelName ?? k.channelId));
-    const weekMine = allMine.filter((d) => d.dayKey >= week.current.start);
+    const weekMine = within(week.current);
     const priorRecipients = new Set(
       (
         await ctx.db

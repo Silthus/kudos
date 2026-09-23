@@ -4,6 +4,7 @@ import {
   bucketKeys,
   dayKeyFor,
   daysBetween,
+  msUntilRollover,
   nextDayStartUtc,
   parseToday,
   resolvePeriod,
@@ -32,6 +33,13 @@ describe("bucket keys", () => {
     // Mon 2024-12-30 already belongs to 2025-W01, while its month and year stay in 2024.
     expect(bucketKeys("2024-12-30")).toMatchObject({ week: "w:2025-W01", month: "m:2024-12", quarter: "q:2024-Q4", year: "y:2024" });
     expect(bucketKeys("2026-01-01").week).toBe("w:2026-W01");
+    // Other 53-week years: 2015 (ends Thu) and 2020 (leap year, ends Thu).
+    expect(bucketKeys("2015-12-31").week).toBe("w:2015-W53");
+    expect(bucketKeys("2016-01-03").week).toBe("w:2015-W53");
+    expect(bucketKeys("2016-01-04").week).toBe("w:2016-W01");
+    expect(bucketKeys("2020-12-31").week).toBe("w:2020-W53");
+    expect(bucketKeys("2021-01-03").week).toBe("w:2020-W53");
+    expect(bucketKeys("2021-01-04").week).toBe("w:2021-W01");
   });
 });
 
@@ -115,6 +123,19 @@ describe("nextDayStartUtc", () => {
     const newYearsEve = Date.UTC(2026, 11, 31, 22, 0); // 23:00 in Berlin (CET)
     expect(dayKeyFor(nextDayStartUtc(newYearsEve, "Europe/Berlin"), "Europe/Berlin")).toBe("2027-01-01");
     expect(nextDayStartUtc(newYearsEve, "Europe/Berlin") - newYearsEve).toBe(3_600_000);
+  });
+});
+
+describe("msUntilRollover (the client's midnight timer)", () => {
+  test("waits until the next local midnight", () => {
+    const now = Date.UTC(2026, 8, 23, 21, 59, 30); // 23:59:30 in Berlin
+    expect(msUntilRollover(now, "Europe/Berlin")).toBe(30_000);
+  });
+
+  test("never schedules a zero or negative delay, even around a calendar day that doesn't exist", () => {
+    // Samoa skipped 2011-12-30 entirely; late on the 29th the "next day" never starts.
+    const lateOn29th = Date.UTC(2011, 11, 30, 9, 30); // 23:30 at UTC-10
+    expect(msUntilRollover(lateOn29th, "Pacific/Apia")).toBeGreaterThanOrEqual(1_000);
   });
 });
 

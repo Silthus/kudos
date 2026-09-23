@@ -142,6 +142,14 @@ export function nextDayStartUtc(now: number, timeZone: string): number {
   return startOfDayUtc(addDays(dayKeyFor(now, timeZone), 1), timeZone);
 }
 
+/**
+ * How long a client should wait before re-checking its day key: until the next local midnight, but never
+ * less than a second, since a calendar day that doesn't exist (Samoa, 2011-12-30) has no midnight to wait for.
+ */
+export function msUntilRollover(now: number, timeZone: string): number {
+  return Math.max(nextDayStartUtc(now, timeZone) - now, 1_000);
+}
+
 const LAST_DAY = "2099-12-31";
 
 /**

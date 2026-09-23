@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { dayKeyFor, nextDayStartUtc, type Period } from "../../convex/lib/time";
+import { dayKeyFor, msUntilRollover, type Period } from "../../convex/lib/time";
 import { useViewer } from "./viewer";
 
 export type { Period };
@@ -28,7 +28,7 @@ export function useWorkspaceToday(): string {
       clearTimeout(timer);
       const now = Date.now();
       setToday(dayKeyFor(now, timeZone));
-      timer = setTimeout(sync, nextDayStartUtc(now, timeZone) - now + 50);
+      timer = setTimeout(sync, msUntilRollover(now, timeZone) + 50);
     };
     sync();
     document.addEventListener("visibilitychange", sync);
