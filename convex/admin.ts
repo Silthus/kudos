@@ -6,6 +6,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { revokeKudosRow } from "./engine";
 import { assertNotDemo, canSeeReceived, publicSettings, requireAdmin } from "./lib/access";
 import { siteUrl } from "./lib/slack";
+import { balanceOf } from "./lib/store";
 import { receivedVisibilityValidator } from "./schema";
 
 /** Workspace settings plus Slack connection health for the admin page. */
@@ -122,6 +123,9 @@ export const members = query({
         totalReceived: canSeeReceived(viewer, m._id) ? m.totalReceived : null,
         totalMaxedDays: m.totalMaxedDays,
         lastGivenAt: m.lastGivenAt ?? null,
+        // Private to the member and admins under every visibility except "hidden", where a
+        // balance would give away a received count (ADR 0001).
+        balance: workspace.receivedVisibility === "hidden" ? null : balanceOf(m),
       }));
   },
 });
