@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
-import { Check, CircleAlert, RefreshCw, RotateCcw, Search, Trash2 } from "lucide-react";
+import { Check, CircleAlert, ReceiptText, RefreshCw, RotateCcw, Search, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import { api } from "../../convex/_generated/api";
@@ -11,7 +11,7 @@ import { nf, relativeTime } from "@/lib/format";
 import { useViewer } from "@/lib/viewer";
 import { CopyButton } from "./Setup";
 import { SlackMark } from "./Landing";
-import { AdminStore } from "./AdminStore";
+import { AdminStore, LedgerDrawer } from "./AdminStore";
 
 const TABS = ["settings", "members", "moderation", "store", "slack"] as const;
 type Tab = (typeof TABS)[number];
@@ -199,6 +199,8 @@ function Members() {
   const members = useQuery(api.admin.members);
   const setAdmin = useMutation(api.admin.setAdmin);
   const [q, setQ] = useState("");
+  const [ledgerFor, setLedgerFor] = useState<Id<"members"> | null>(null);
+  const [adminError, setAdminError] = useState<string | null>(null);
   if (!members) return <PageSkeleton />;
   const shown = members.filter((m) => m.name.toLowerCase().includes(q.toLowerCase()));
   return (
@@ -213,6 +215,11 @@ function Members() {
           </div>
         }
       />
+      {adminError && (
+        <p role="alert" className="mx-5 mb-2 flex items-center gap-1.5 text-sm text-down">
+          <CircleAlert className="h-4 w-4 shrink-0" /> {adminError}
+        </p>
+      )}
       <div className="overflow-x-auto px-2 pb-3">
         <table className="w-full min-w-[640px] text-sm">
           <thead>
@@ -243,8 +250,23 @@ function Members() {
                   {m.totalReceived === null ? <span className="text-faint">—</span> : nf.format(m.totalReceived)}
                 </td>
                 {viewer.workspace.storeEnabled && (
-                  <td className={clsx("px-3 py-2.5 text-right font-mono tabular", m.balance !== null && m.balance < 0 && "text-down")} title="Store balance: received + granted − spent">
-                    {m.balance === null ? <span className="text-faint">—</span> : nf.format(m.balance)}
+                  <td className="px-3 py-1.5 text-right">
+                    {m.balance === null ? (
+                      <span className="text-faint">—</span>
+                    ) : (
+                      <button
+                        onClick={() => setLedgerFor(m._id)}
+                        title="Store balance: received + granted − spent. Open the ledger to see or adjust it."
+                        aria-label={`${m.name}'s balance: ${m.balance}. Open ledger`}
+                        className={clsx(
+                          "inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-mono tabular transition hover:bg-panel-3",
+                          m.balance < 0 ? "text-down" : "text-cream",
+                        )}
+                      >
+                        {nf.format(m.balance)}
+                        <ReceiptText className="h-3.5 w-3.5 text-faint" />
+                      </button>
+                    )}
                   </td>
                 )}
                 <td className="px-3 py-2.5 text-right font-mono tabular">{m.totalMaxedDays}</td>
@@ -256,7 +278,12 @@ function Members() {
                     aria-label={`Admin: ${m.name}`}
                     disabled={viewer.workspace.isDemo}
                     title={viewer.workspace.isDemo ? "Read-only in the shared demo" : undefined}
-                    onClick={() => void setAdmin({ memberId: m._id, isAdmin: !m.isAdmin }).catch(() => {})}
+                    onClick={() => {
+                      setAdminError(null);
+                      setAdmin({ memberId: m._id, isAdmin: !m.isAdmin }).catch((e) =>
+                        setAdminError(e instanceof ConvexError ? String(e.data) : "Couldn't change the admin role."),
+                      );
+                    }}
                     className={clsx("relative inline-block h-5 w-9 rounded-full transition-colors disabled:opacity-50", m.isAdmin ? "bg-saffron" : "bg-panel-3")}
                   >
                     <span className={clsx("absolute top-0.5 h-4 w-4 rounded-full bg-cream transition-all", m.isAdmin ? "left-[18px]" : "left-0.5")} />
@@ -267,6 +294,7 @@ function Members() {
           </tbody>
         </table>
       </div>
+      <LedgerDrawer memberId={ledgerFor} isDemo={viewer.workspace.isDemo} onClose={() => setLedgerFor(null)} />
     </Card>
   );
 }

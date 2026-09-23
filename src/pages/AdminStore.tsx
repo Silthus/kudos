@@ -2,15 +2,15 @@ import clsx from "clsx";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { AnimatePresence, motion } from "motion/react";
-import { Archive, Check, ChevronDown, CircleAlert, MessageCircleQuestion, PackageCheck, Pencil, Plus, RotateCcw } from "lucide-react";
+import { Archive, Check, ChevronDown, CircleAlert, MessageCircleQuestion, PackageCheck, Pencil, Plus, RotateCcw, SlidersHorizontal, TriangleAlert } from "lucide-react";
 import { useId, useState } from "react";
 import { useSearchParams } from "react-router";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { Avatar, BigNumber, Button, Card, CardHeader, Dialog, Empty, Eyebrow, Field, inputCls, Segmented, Skeleton, Toggle } from "@/components/ui";
+import { Avatar, BigNumber, Button, Card, CardHeader, Dialog, Empty, Eyebrow, Field, inputCls, Progress, Segmented, Skeleton, Toggle } from "@/components/ui";
 import { nf, relativeTime } from "@/lib/format";
 import { useViewer } from "@/lib/viewer";
-import { RedemptionHistory, RewardCard, StatusChip } from "./Store";
+import { AdjustmentLine, RedemptionHistory, RewardCard, signed, StatusChip } from "./Store";
 
 const SECTIONS = ["requests", "catalog", "settings"] as const;
 type Section = (typeof SECTIONS)[number];
@@ -52,7 +52,7 @@ export function AdminStore({ isDemo }: { isDemo: boolean }) {
           ]}
         />
       </div>
-      {section === "requests" && <Requests />}
+      {section === "requests" && <Requests isDemo={isDemo} />}
       {section === "catalog" && <Catalog isDemo={isDemo} />}
       {section === "settings" && <StoreSettings isDemo={isDemo} />}
     </div>
@@ -62,8 +62,9 @@ export function AdminStore({ isDemo }: { isDemo: boolean }) {
 type QueueFilter = "open" | "fulfilled" | "declined" | "cancelled";
 type QueueRow = ReturnType<typeof usePaginatedQuery<typeof api.storeAdmin.redemptions>>["results"][number];
 
-function Requests() {
+function Requests({ isDemo }: { isDemo: boolean }) {
   const viewer = useViewer();
+  const [ledgerFor, setLedgerFor] = useState<Id<"members"> | null>(null);
   const glyph = viewer.workspace.emojiGlyph;
   const [filter, setFilter] = useState<QueueFilter>("open");
   const { results, status, loadMore } = usePaginatedQuery(api.storeAdmin.redemptions, { filter }, { initialNumItems: 20 });
@@ -146,6 +147,7 @@ function Requests() {
                   setRowError(r._id, null);
                   setDeclining(r);
                 }}
+                onLedger={() => setLedgerFor(r.requester._id)}
               />
             ))}
           </AnimatePresence>
@@ -159,6 +161,7 @@ function Requests() {
         </div>
       )}
       <DeclineDialog row={declining} glyph={glyph} onClose={() => setDeclining(null)} onDecline={(row, note) => act(row, "decline", note)} error={declining ? (errors[declining._id] ?? null) : null} />
+      <LedgerDrawer memberId={ledgerFor} isDemo={isDemo} onClose={() => setLedgerFor(null)} />
     </Card>
   );
 }
@@ -174,6 +177,7 @@ function RequestRow({
   onApprove,
   onFulfill,
   onDecline,
+  onLedger,
 }: {
   row: QueueRow;
   glyph: string;
@@ -185,6 +189,7 @@ function RequestRow({
   onApprove: () => void;
   onFulfill: () => void;
   onDecline: () => void;
+  onLedger: () => void;
 }) {
   const open = r.status === "pending" || r.status === "approved";
   return (
@@ -212,6 +217,10 @@ function RequestRow({
               </span>
             )}
             {r.requester.deactivated && <span className="rounded bg-panel-3 px-1.5 py-0.5 text-muted">left workspace</span>}
+            <span className="inline-flex items-center gap-0.5 text-muted">
+              · {expanded ? "Hide details" : "Where this balance came from"}
+              <ChevronDown className={clsx("h-3.5 w-3.5 transition-transform", expanded && "rotate-180")} />
+            </span>
           </p>
           {r.answer && (
             <p className="mt-1 text-sm text-muted">
@@ -248,7 +257,8 @@ function RequestRow({
       <AnimatePresence initial={false}>
         {expanded && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-            <div className="px-3 pb-3 pl-[58px]">
+            <div className="space-y-3 px-3 pb-3 sm:pl-[58px]">
+              <BalanceContext redemptionId={r._id} requester={r.requester.name} glyph={glyph} onLedger={onLedger} />
               <RedemptionHistory history={r.history} meId={meId} />
             </div>
           </motion.div>
@@ -710,5 +720,285 @@ function StoreSettings({ isDemo }: { isDemo: boolean }) {
         </p>
       </Card>
     </div>
+  );
+}
+
+// ── Balance adjustments and review aids (S6) ─────────────────────────────────
+
+type Ledger = NonNullable<ReturnType<typeof useQuery<typeof api.storeAdmin.memberLedger>>>;
+
+/**
+ * A member's balance from Admin → Members (or a request row): received + granted − spent,
+ * the latest adjustments and requests, and the way into "Adjust balance".
+ */
+export function LedgerDrawer({ memberId, isDemo, onClose }: { memberId: Id<"members"> | null; isDemo: boolean; onClose: () => void }) {
+  const viewer = useViewer();
+  const glyph = viewer.workspace.emojiGlyph;
+  const ledger = useQuery(api.storeAdmin.memberLedger, memberId ? { memberId } : "skip");
+  const [adjusting, setAdjusting] = useState(false);
+  const blocked = ledger ? (ledger.member.isYou ? "You can't adjust your own balance. Another admin can." : isDemo ? "Balances are read-only in the shared demo." : null) : null;
+  return (
+    <Dialog
+      variant="drawer"
+      open={memberId !== null}
+      onClose={onClose}
+      title={ledger ? `${ledger.member.name}'s balance` : "Balance"}
+      subtitle="Received + granted − spent. Grants never count as recognition."
+      footer={
+        ledger && (
+          <>
+            {blocked && <span className="mr-auto text-xs text-faint">{blocked}</span>}
+            <Button variant="primary" onClick={() => setAdjusting(true)} disabled={blocked !== null}>
+              <SlidersHorizontal className="h-4 w-4" /> Adjust balance
+            </Button>
+          </>
+        )
+      }
+    >
+      {ledger === undefined ? (
+        <Skeleton className="h-64" />
+      ) : ledger === null ? (
+        <p className="text-sm text-muted">Balances only exist while the store is open. Open it under Admin → Store → Settings.</p>
+      ) : (
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <Avatar name={ledger.member.name} src={ledger.member.avatarUrl} size={40} />
+            <div className="min-w-0">
+              <div className="font-medium">{ledger.member.name}</div>
+              {ledger.member.deactivated && <div className="text-xs text-faint">Left the workspace</div>}
+            </div>
+            <div className="ml-auto text-right">
+              <div className="text-xs text-muted">Balance</div>
+              <div className={clsx("flex items-baseline justify-end gap-1", ledger.balance < 0 && "text-down")}>
+                <BigNumber value={ledger.balance} className="text-3xl" />
+                <span>{glyph}</span>
+              </div>
+            </div>
+          </div>
+          <dl className="grid grid-cols-3 gap-2 rounded-xl border border-line bg-ink/30 p-3 text-center">
+            {(
+              [
+                // Hidden under "Only me", as in the Members table; the balance is still shown (D4).
+                ["Received", ledger.received === null ? "—" : nf.format(ledger.received)],
+                ["Granted", signed(ledger.granted)],
+                ["Spent", ledger.spent ? `−${nf.format(ledger.spent)}` : "0"],
+              ] as const
+            ).map(([label, value]) => (
+              <div key={label}>
+                <dt className="font-mono text-[10px] uppercase tracking-[0.12em] text-faint">{label}</dt>
+                <dd className="mt-1 font-mono tabular text-cream">{value}</dd>
+              </div>
+            ))}
+          </dl>
+          <section>
+            <Eyebrow className="mb-3">Adjustments</Eyebrow>
+            {ledger.adjustments.length === 0 ? (
+              <p className="text-sm text-faint">No adjustments yet.</p>
+            ) : (
+              <ul className="space-y-3">
+                {ledger.adjustments.map((a) => (
+                  <li key={a._id}>
+                    <AdjustmentLine a={a} glyph={glyph} meId={viewer.member._id} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          <section>
+            <Eyebrow className="mb-3">Requests</Eyebrow>
+            {ledger.redemptions.length === 0 ? (
+              <p className="text-sm text-faint">Nothing redeemed yet.</p>
+            ) : (
+              <ul className="space-y-2">
+                {ledger.redemptions.map((r) => (
+                  <li key={r._id} className="flex items-center gap-2 text-sm">
+                    <span aria-hidden>{r.rewardEmoji}</span>
+                    <span className="min-w-0 flex-1 truncate">{r.rewardName}</span>
+                    <StatusChip status={r.status} />
+                    <span className={clsx("w-14 text-right font-mono tabular", r.status === "declined" || r.status === "cancelled" ? "text-faint line-through" : "text-saffron")}>
+                      {nf.format(r.cost)} {glyph}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+      )}
+      {ledger && <AdjustBalanceDialog open={adjusting} ledger={ledger} glyph={glyph} onClose={() => setAdjusting(false)} />}
+    </Dialog>
+  );
+}
+
+function AdjustBalanceDialog({ open, ledger, glyph, onClose }: { open: boolean; ledger: Ledger; glyph: string; onClose: () => void }) {
+  const adjust = useMutation(api.storeAdmin.adjustBalance);
+  const formId = useId();
+  const [direction, setDirection] = useState<"add" | "deduct">("add");
+  const [amount, setAmount] = useState("");
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  // The dialog stays mounted (focus returns to its trigger); start each opening from scratch.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setDirection("add");
+      setAmount("");
+      setReason("");
+      setError(null);
+    }
+  }
+  const n = Number(amount);
+  const valid = amount.trim() !== "" && Number.isInteger(n) && n >= 1 && n <= 10_000;
+  const delta = valid ? (direction === "add" ? n : -n) : 0;
+  const reasonOk = reason.trim().length >= 3;
+
+  return (
+    <Dialog
+      open={open}
+      onClose={() => !busy && onClose()}
+      title="Adjust balance"
+      subtitle={`${ledger.member.name} sees the change and your reason in their store history.`}
+      footer={
+        <>
+          {error && (
+            <span role="alert" className="mr-auto flex items-center gap-1.5 text-sm text-down">
+              <CircleAlert className="h-4 w-4 shrink-0" /> {error}
+            </span>
+          )}
+          <Button variant="ghost" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button variant="primary" type="submit" form={formId} disabled={busy || !valid || !reasonOk}>
+            {busy ? "Saving…" : valid ? `${direction === "add" ? "Add" : "Deduct"} ${nf.format(n)} ${glyph}` : "Adjust"}
+          </Button>
+        </>
+      }
+    >
+      <form
+        id={formId}
+        className="space-y-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (busy || !valid || !reasonOk) return;
+          setBusy(true);
+          setError(null);
+          adjust({ memberId: ledger.member._id, amount: delta, reason })
+            .then(() => onClose())
+            .catch((err) => setError(errorText(err, "Couldn't adjust the balance.")))
+            .finally(() => setBusy(false));
+        }}
+      >
+        <Segmented
+          value={direction}
+          onChange={setDirection}
+          options={[
+            { value: "add", label: "Add" },
+            { value: "deduct", label: "Deduct" },
+          ]}
+        />
+        <Field label="Amount" hint="A whole number up to 10,000.">
+          <div className="flex items-center gap-2">
+            <input
+              className={clsx(inputCls, "w-32 font-mono")}
+              inputMode="numeric"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, ""))}
+              placeholder="10"
+              aria-invalid={amount !== "" && !valid}
+              data-autofocus
+            />
+            <span>{glyph}</span>
+          </div>
+        </Field>
+        <Field label="Reason" hint="3–200 characters. The member sees it, so keep it kind and specific.">
+          <textarea
+            className={clsx(inputCls, "h-20 resize-none py-2")}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            maxLength={200}
+            placeholder={direction === "add" ? "Hackathon winner" : "Took back a hoodie that never shipped"}
+          />
+        </Field>
+        <p className="text-sm text-muted">
+          Balance after:{" "}
+          <span className={clsx("font-mono tabular", ledger.balance + delta < 0 ? "text-down" : "text-cream")}>
+            {nf.format(ledger.balance + delta)} {glyph}
+          </span>
+          {ledger.balance + delta < 0 && <span className="text-faint"> (negative balances block new requests)</span>}
+        </p>
+      </form>
+    </Dialog>
+  );
+}
+
+/**
+ * "Where this balance came from": the requester's top givers in the 90 days before the request,
+ * so an admin can spot two people feeding each other their allowance before approving.
+ */
+function BalanceContext({ redemptionId, requester, glyph, onLedger }: { redemptionId: Id<"redemptions">; requester: string; glyph: string; onLedger: () => void }) {
+  const viewer = useViewer();
+  const context = useQuery(api.storeAdmin.redemptionContext, { redemptionId });
+  return (
+    <section aria-label="Where this balance came from" className="rounded-xl border border-line bg-ink/30 p-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <Eyebrow>Where this balance came from</Eyebrow>
+        {/* Ledgers only exist while the store is open; closed, requests stay decidable but not adjustable. */}
+        {viewer.workspace.storeEnabled && (
+          <button onClick={onLedger} className="shrink-0 whitespace-nowrap text-xs text-muted underline decoration-line-strong underline-offset-4 hover:text-cream">
+            Open ledger
+          </button>
+        )}
+      </div>
+      {context === undefined ? (
+        <Skeleton className="h-16" />
+      ) : context === null ? (
+        <p className="text-sm text-faint">Hidden while received kudos are hidden in this workspace.</p>
+      ) : context.total === 0 ? (
+        <p className="text-sm text-muted">
+          {requester} received no kudos in the {context.windowDays} days before this request: the balance comes from older kudos or adjustments.
+        </p>
+      ) : (
+        <>
+          <p className="mb-3 text-sm text-muted">
+            In the {context.windowDays} days before this request, {requester} received{" "}
+            <span className="font-mono tabular text-cream">
+              {nf.format(context.total)} {glyph}
+            </span>
+            {context.truncated && " or more"}.
+          </p>
+          {context.concentrated && (
+            <p role="status" className="mb-3 flex items-start gap-2 rounded-lg border border-ember/30 bg-ember/10 px-3 py-2 text-sm text-cream">
+              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-ember" />
+              <span>
+                <b className="font-medium">Mostly from one person.</b> {context.givers[0].member.name} gave {Math.round(context.givers[0].share * 100)}% of it. Worth a look before you approve.
+              </span>
+            </p>
+          )}
+          <ul className="space-y-2">
+            {context.givers.map((g) => (
+              <li key={g.member._id} className="grid grid-cols-[auto_1fr_auto] items-center gap-x-2 gap-y-1 text-sm sm:grid-cols-[auto_minmax(0,7rem)_1fr_auto]">
+                <Avatar name={g.member.name} src={g.member.avatarUrl} size={22} />
+                <span className="truncate">
+                  {g.member.name}
+                  {g.member.deactivated && <span className="text-faint"> (left)</span>}
+                </span>
+                {/* On phones the bar gets its own line under the name, so it stays readable. */}
+                <Progress value={g.share} max={1} height={6} className="order-last col-span-3 sm:order-none sm:col-span-1" />
+                <span className="w-24 text-right font-mono text-xs tabular text-muted">
+                  {nf.format(g.amount)} {glyph} · {Math.round(g.share * 100)}%
+                </span>
+              </li>
+            ))}
+          </ul>
+          {context.otherGivers > 0 && (
+            <p className="mt-2 text-xs text-faint">
+              and {context.otherGivers} more {context.otherGivers === 1 ? "person" : "people"}
+            </p>
+          )}
+        </>
+      )}
+    </section>
   );
 }

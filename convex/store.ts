@@ -14,8 +14,9 @@ import {
   transition,
   type RedemptionAction,
   type RedemptionStatus,
+  validateAdjustment,
 } from "./lib/store";
-import { redemptionStatusValidator } from "./schema";
+import { adjustmentSourceValidator, redemptionStatusValidator } from "./schema";
 
 /**
  * The Rewards Store for members. Like `engine.ts` for kudos, this module is the one
@@ -68,9 +69,31 @@ export async function otherActiveAdminExists(ctx: QueryCtx, workspaceId: Id<"wor
     .query("members")
     .withIndex("by_workspace_isAdmin", (q) => q.eq("workspaceId", workspaceId).eq("isAdmin", true));
   for await (const admin of admins) {
-    if (admin._id !== memberId && admin.userId && !admin.deactivated && !admin.isBot) return true;
+    if (admin._id !== memberId && couldDecide(admin)) return true;
   }
   return false;
+}
+
+/** Someone who could act on the request queue if they were an admin: signed in, still here, not a bot. */
+const couldDecide = (m: Doc<"members">) => Boolean(m.userId) && !m.deactivated && !m.isBot;
+
+/** How many people an admin demoted are checked; more than a handful would be odd already. */
+const REMOVED_ADMINS_READ = 50;
+
+/**
+ * Why `actor` may not decide on their own request, or null when they may (D8). Another admin
+ * who can act decides. A sole admin decides alone, unless they became the sole admin by
+ * demoting someone who could still decide: those four eyes still count, so demoting the other
+ * admins and then approving your own request doesn't work, in whichever order it's tried.
+ */
+export async function ownDecisionBlocker(ctx: QueryCtx, workspace: Doc<"workspaces">, actor: Doc<"members">): Promise<string | null> {
+  if (await otherActiveAdminExists(ctx, workspace._id, actor._id)) return "Another admin decides on your own requests.";
+  const removed = await ctx.db
+    .query("members")
+    .withIndex("by_adminRemovedBy", (q) => q.eq("adminRemovedBy", actor._id))
+    .take(REMOVED_ADMINS_READ);
+  const decider = removed.find((m) => m.workspaceId === workspace._id && couldDecide(m));
+  return decider ? `You removed ${decider.name}'s admin role, so another admin decides on your own requests.` : null;
 }
 
 /**
@@ -179,8 +202,9 @@ export async function transitionRedemption(
   const lastBy = !last ? undefined : last.by === actor._id ? "you" : (await ctx.db.get(last.by))?.name;
   const isRequester = redemption.memberId === actor._id;
   const { to, refund } = transition(redemption.status, action, { isRequester, isAdmin: actor.isAdmin }, lastBy);
-  if (action !== "cancel" && isRequester && (await otherActiveAdminExists(ctx, workspace._id, actor._id))) {
-    throw new ConvexError("Another admin decides on your own requests.");
+  if (action !== "cancel" && isRequester) {
+    const blocker = await ownDecisionBlocker(ctx, workspace, actor);
+    if (blocker) throw new ConvexError(blocker);
   }
   const text = action === "cancel" ? undefined : note?.trim() || undefined;
   if (text && text.length > REDEMPTION_BOUNDS.adminNote) throw new ConvexError(`Keep the note to ${REDEMPTION_BOUNDS.adminNote} characters.`);
@@ -220,6 +244,60 @@ export async function transitionRedemption(
   return { status: to };
 }
 
+/**
+ * An audited balance change that isn't recognition: an admin's correction or an automation's
+ * grant (`source: "system"`, the hook for quest rewards). It moves `storeGranted` only, so
+ * received totals, leaderboards and analytics never see it. Callers do their own authz; this
+ * checks the member belongs to the workspace and enforces the bounds.
+ */
+export async function grantBalance(
+  ctx: MutationCtx,
+  {
+    workspace,
+    member,
+    amount,
+    reason,
+    source,
+    by,
+    now,
+  }: {
+    workspace: Doc<"workspaces">;
+    member: Doc<"members">;
+    amount: number;
+    reason: string;
+    source: "admin" | "system";
+    by?: Doc<"members">;
+    now: number;
+  },
+) {
+  if (member.workspaceId !== workspace._id || member.isBot) throw new ConvexError("Member not found.");
+  if (source === "admin") {
+    if (by?._id === member._id) throw new ConvexError("You can't adjust your own balance. Ask another admin.");
+    if (!by || by.workspaceId !== workspace._id || !by.isAdmin) throw new ConvexError("An admin adjustment needs the admin who made it.");
+  } else if (by) {
+    throw new ConvexError("System grants aren't made by an admin.");
+  }
+  const valid = validateAdjustment({ amount, reason });
+  // Re-read: a caller looping over grants may hold a document from before the previous one.
+  const fresh = (await ctx.db.get(member._id))!;
+  const adjustmentId = await ctx.db.insert("balanceAdjustments", {
+    workspaceId: workspace._id,
+    memberId: member._id,
+    amount: valid.amount,
+    reason: valid.reason,
+    source,
+    ...(by ? { by: by._id } : {}),
+    at: now,
+  });
+  const storeGranted = (fresh.storeGranted ?? 0) + valid.amount;
+  await ctx.db.patch(member._id, { storeGranted });
+  // The App Home shows the balance; keep it current (the demo has no Slack).
+  if (!workspace.isDemo && !fresh.deactivated) {
+    await ctx.scheduler.runAfter(0, internal.slack.refreshHome, { workspaceId: workspace._id, slackUserId: member.slackUserId });
+  }
+  return { adjustmentId, balance: balanceOf({ ...fresh, storeGranted }) };
+}
+
 /** Loads a redemption, treating one from another workspace as missing. */
 export async function redemptionInWorkspace(ctx: QueryCtx, workspace: Doc<"workspaces">, redemptionId: Id<"redemptions">) {
   const redemption = await ctx.db.get(redemptionId);
@@ -250,6 +328,20 @@ export function peopleCache(ctx: QueryCtx) {
   const history = (r: Doc<"redemptions">) =>
     Promise.all(r.history.map(async (h) => ({ status: h.status, at: h.at, by: await person(h.by), ...(h.note ? { note: h.note } : {}) })));
   return { member, person, history };
+}
+
+export const adjustmentValidator = v.object({
+  _id: v.id("balanceAdjustments"),
+  amount: v.number(),
+  reason: v.string(),
+  source: adjustmentSourceValidator,
+  by: v.union(personValidator, v.null()), // null for system grants, or an admin whose record is gone
+  at: v.number(),
+});
+
+/** Shapes an adjustment for the web, naming the admin who made it. */
+export async function adjustmentRow(people: ReturnType<typeof peopleCache>, a: Doc<"balanceAdjustments">) {
+  return { _id: a._id, amount: a.amount, reason: a.reason, source: a.source, by: a.by ? await people.person(a.by) : null, at: a.at };
 }
 
 const catalogReward = v.object({
@@ -367,6 +459,26 @@ export const myRedemptions = query({
         })),
       ),
     };
+  },
+});
+
+/**
+ * The signed-in member's own balance adjustments, newest first ("+10 🌮 from Lena"). Empty while
+ * the store is closed: an adjustment list next to a hidden balance would hint at it.
+ */
+export const myAdjustments = query({
+  args: { paginationOpts: paginationOptsValidator },
+  returns: paginationResultValidator(adjustmentValidator),
+  handler: async (ctx, { paginationOpts }) => {
+    const { workspace, member } = await requireViewer(ctx);
+    if (!storeOpen(workspace)) return { page: [], isDone: true, continueCursor: "" };
+    const result = await ctx.db
+      .query("balanceAdjustments")
+      .withIndex("by_member_at", (q) => q.eq("memberId", member._id))
+      .order("desc")
+      .paginate(paginationOpts);
+    const people = peopleCache(ctx);
+    return { ...result, page: await Promise.all(result.page.map((a) => adjustmentRow(people, a))) };
   },
 });
 

@@ -18,6 +18,9 @@ export const redemptionStatusValidator = v.union(
   v.literal("cancelled"),
 );
 
+/** Who changed a balance: an admin by hand, or an automation such as quest rewards. */
+export const adjustmentSourceValidator = v.union(v.literal("admin"), v.literal("system"));
+
 export const rarityCountsValidator = v.object({
   common: v.number(),
   uncommon: v.number(),
@@ -122,10 +125,12 @@ export default defineSchema({
     givenByWeekday: v.optional(v.array(v.number())), // 7 sums, Monday first
     storeSpent: v.optional(v.number()), // Σ cost of non-refunded redemptions; undefined = 0
     storeGranted: v.optional(v.number()), // Σ balance adjustments; undefined = 0
+    adminRemovedBy: v.optional(v.id("members")), // who last removed this member's admin role (four-eyes rule)
   })
     .index("by_workspace_slackUser", ["workspaceId", "slackUserId"])
     .index("by_workspace_totalGiven", ["workspaceId", "totalGiven"])
     .index("by_workspace_isAdmin", ["workspaceId", "isAdmin"]) // the Store's four-eyes rule
+    .index("by_adminRemovedBy", ["adminRemovedBy"]) // …and the admins someone demoted
     .index("by_user", ["userId"]),
 
   kudos: defineTable({
@@ -328,6 +333,20 @@ export default defineSchema({
     .index("by_member_requestedAt", ["memberId", "requestedAt"])
     .index("by_member_status", ["memberId", "status"])
     .index("by_member_reward_status", ["memberId", "rewardId", "status"]),
+
+  // Audited balance changes that aren't recognition (admin corrections, quest rewards). Summed
+  // into members.storeGranted; only grantBalance in store.ts writes this table.
+  balanceAdjustments: defineTable({
+    workspaceId: v.id("workspaces"),
+    memberId: v.id("members"),
+    amount: v.number(), // ±, never 0
+    reason: v.string(),
+    source: adjustmentSourceValidator, // "system" = quests (#5) or other automations
+    by: v.optional(v.id("members")), // the admin who made it; undefined for system grants
+    at: v.number(),
+  })
+    .index("by_member_at", ["memberId", "at"])
+    .index("by_workspace_at", ["workspaceId", "at"]),
 
   slackEvents: defineTable({
     eventId: v.string(),

@@ -802,3 +802,16 @@ describe("admin copies stay truthful when steps race the DMs", () => {
     expect(lastUpdateTo("DUCLEO")).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). ✔ Fulfilled by <@UANA>");
   });
 });
+
+describe("balance adjustments (S6)", () => {
+  test("refresh the member's App Home so its balance isn't stale", async () => {
+    const ana = await signInAs(t, team.ana);
+    await ana.mutation(api.storeAdmin.adjustBalance, { memberId: team.ben, amount: 8, reason: "Hackathon winner" });
+    await drain();
+    const home = published().filter((p) => p.user === "UBEN");
+    expect(home).toHaveLength(1);
+    expect(JSON.stringify(home[0].view.blocks)).toContain("50");
+    // An adjustment is not a redemption step: no DM.
+    expect(dms()).toEqual([]);
+  });
+});

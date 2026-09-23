@@ -129,6 +129,36 @@ export function StatusChip({ status }: { status: RedemptionStatus }) {
   return <span className={clsx("inline-flex shrink-0 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] ring-1 ring-inset", meta.chip)}>{meta.label}</span>;
 }
 
+/** "+10", "−4": amounts that move a balance either way. */
+export const signed = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${nf.format(Math.abs(n))}`;
+
+export type AdjustmentEntry = {
+  _id: string;
+  amount: number;
+  reason: string;
+  source: "admin" | "system";
+  by: { _id: string; name: string } | null;
+  at: number;
+};
+
+/** "+10 🌮 “Hackathon winner” from Lena · 2d ago". Shared by the admin ledger and the member's history. */
+export function AdjustmentLine({ a, glyph, meId, from }: { a: AdjustmentEntry; glyph: string; meId: string; from?: boolean }) {
+  const who = a.source === "system" ? "Kudos" : a.by ? (a.by._id === meId ? "you" : a.by.name) : "a former admin";
+  return (
+    <div className="flex items-start gap-3 text-sm">
+      <span className={clsx("w-20 shrink-0 text-right font-mono tabular", a.amount > 0 ? "text-up" : "text-down")}>
+        {signed(a.amount)} {glyph}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="break-words text-cream">“{a.reason}”</p>
+        <p className="text-xs text-faint">
+          {from ? "from" : "by"} {who} · {relativeTime(a.at)}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /** Who moved a request and when, with any note from the decider. */
 export function RedemptionHistory({ history, meId }: { history: HistoryEntry[]; meId: string }) {
   return (
@@ -201,7 +231,7 @@ export function Store() {
         <p className="mb-5 flex items-start gap-2.5 rounded-xl border border-line-strong bg-panel-2/60 px-4 py-3 text-sm text-muted">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-faint" />
           <span>
-            Your balance is {nf.format(balance)} {glyph} because some kudos you received were revoked after you spent them. New kudos bring it back up.
+            Your balance is {nf.format(balance)} {glyph} because kudos you'd already spent were revoked, or an admin adjusted your balance. New kudos bring it back up.
           </span>
         </p>
       )}
@@ -260,6 +290,7 @@ export function Store() {
       )}
 
       <MyRequests />
+      <MyAdjustments />
       <RedeemDialog
         reward={redeeming}
         live={live}
@@ -550,6 +581,35 @@ function MyRequests() {
         <div className="px-5 pb-4">
           <Button size="sm" variant="ghost" onClick={() => loadMore(10)}>
             Show older requests
+          </Button>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+/**
+ * Grants and corrections to the member's balance, newest first ("+10 🌮 from Lena"). Only
+ * shown once there is one: most people never get an adjustment.
+ */
+function MyAdjustments() {
+  const viewer = useViewer();
+  const { results, status, loadMore } = usePaginatedQuery(api.store.myAdjustments, {}, { initialNumItems: 10 });
+  if (results.length === 0) return null;
+  return (
+    <Card id="balance-adjustments" className="mt-4 scroll-mt-24">
+      <CardHeader title="Balance adjustments" subtitle="Grants and corrections from your admins. They change what you can spend, never your received kudos." />
+      <ul className="space-y-3 px-5 pb-5">
+        {results.map((a) => (
+          <li key={a._id}>
+            <AdjustmentLine a={a} glyph={viewer.workspace.emojiGlyph} meId={viewer.member._id} from />
+          </li>
+        ))}
+      </ul>
+      {status === "CanLoadMore" && (
+        <div className="px-5 pb-4">
+          <Button size="sm" variant="ghost" onClick={() => loadMore(10)}>
+            Show older adjustments
           </Button>
         </div>
       )}
