@@ -1,0 +1,15 @@
+ ❯ convex/lib/compare.test.ts:2:1
+      1| import { describe, expect, test } from "vitest";
+      2| import { streaks } from "./compare";
+       | ^
+      3|
+      4| describe("streaks", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  20:55:08
+   Duration  161ms (environment 92%, worker 8%)
+

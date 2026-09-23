@@ -1,0 +1,163 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-aeb4bd260d2bf9605
+
+ ❯ convex/lib/compare.test.ts (24 tests | 18 failed) 15ms
+   ❯ reachFromKudos (2)
+     × counts distinct receivers and distinct channel ids; a renamed channel still counts once 3ms
+     × no kudos 1ms
+   ❯ distribution (4)
+     × n = 1: every statistic is the one value 1ms
+     × n = 2 interpolates between the two values 1ms
+     × n = 5: quartiles ignore the outlier 0ms
+     × all zeros, and nobody at all 0ms
+   ❯ percentileBelow (3)
+     × the share of others strictly below; ties are not 'more than' 0ms
+     × n = 1 and n = 2 0ms
+     × all zeros, and nobody to compare with 0ms
+   ❯ rowVisibility (9)
+     × everyone / past 0ms
+     × everyone / team 0ms
+     × everyone / teammate 0ms
+     × self / past 0ms
+     × self / team 0ms
+     × self / teammate 0ms
+     × hidden / past 0ms
+     × hidden / team 0ms
+     × hidden / teammate 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 18 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  convex/lib/compare.test.ts > reachFromKudos > counts distinct receivers and distinct channel ids; a renamed channel still counts once
+TypeError: reachFromKudos is not a function
+ ❯ convex/lib/compare.test.ts:57:12
+     55|       { receiverId: "cleo", channelId: "C1", channelName: "general" },
+     56|     ];
+     57|     expect(reachFromKudos(rows)).toEqual({ reach: 2, channels: 2 });
+       |            ^
+     58|   });
+     59|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/18]⎯
+
+ FAIL  convex/lib/compare.test.ts > reachFromKudos > no kudos
+TypeError: reachFromKudos is not a function
+ ❯ convex/lib/compare.test.ts:61:12
+     59|
+     60|   test("no kudos", () => {
+     61|     expect(reachFromKudos([])).toEqual({ reach: 0, channels: 0 });
+       |            ^
+     62|   });
+     63| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/18]⎯
+
+ FAIL  convex/lib/compare.test.ts > distribution > n = 1: every statistic is the one value
+TypeError: distribution is not a function
+ ❯ convex/lib/compare.test.ts:67:12
+     65| describe("distribution", () => {
+     66|   test("n = 1: every statistic is the one value", () => {
+     67|     expect(distribution([4])).toEqual({ n: 1, min: 4, p25: 4, median: …
+       |            ^
+     68|   });
+     69|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/18]⎯
+
+ FAIL  convex/lib/compare.test.ts > distribution > n = 2 interpolates between the two values
+TypeError: distribution is not a function
+ ❯ convex/lib/compare.test.ts:71:12
+     69|
+     70|   test("n = 2 interpolates between the two values", () => {
+     71|     expect(distribution([6, 2])).toEqual({ n: 2, min: 2, p25: 3, media…
+       |            ^
+     72|   });
+     73|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/18]⎯
+
+ FAIL  convex/lib/compare.test.ts > distribution > n = 5: quartiles ignore the outlier
+TypeError: distribution is not a function
+ ❯ convex/lib/compare.test.ts:75:12
+     73|
+     74|   test("n = 5: quartiles ignore the outlier", () => {
+     75|     expect(distribution([100, 3, 1, 4, 2])).toEqual({ n: 5, min: 1, p2…
+       |            ^
+     76|   });
+     77|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/18]⎯
+
+ FAIL  convex/lib/compare.test.ts > distribution > all zeros, and nobody at all
+TypeError: distribution is not a function
+ ❯ convex/lib/compare.test.ts:79:12
+     77|
+     78|   test("all zeros, and nobody at all", () => {
+     79|     expect(distribution([0, 0, 0])).toEqual({ n: 3, min: 0, p25: 0, me…
+       |            ^
+     80|     expect(distribution([])).toEqual({ n: 0, min: 0, p25: 0, median: 0…
+     81|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/18]⎯
+
+ FAIL  convex/lib/compare.test.ts > percentileBelow > the share of others strictly below; ties are not 'more than'
+TypeError: percentileBelow is not a function
+ ❯ convex/lib/compare.test.ts:86:12
+     84| describe("percentileBelow", () => {
+     85|   test("the share of others strictly below; ties are not 'more than'",…
+     86|     expect(percentileBelow(3, [1, 2, 3, 3, 5])).toBe(0.4);
+       |            ^
+     87|   });
+     88|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/18]⎯
+
+ FAIL  convex/lib/compare.test.ts > percentileBelow > n = 1 and n = 2
+TypeError: percentileBelow is not a function
+ ❯ convex/lib/compare.test.ts:90:12
+     88|
+     89|   test("n = 1 and n = 2", () => {
+     90|     expect(percentileBelow(5, [4])).toBe(1);
+       |            ^
+     91|     expect(percentileBelow(4, [4, 9])).toBe(0);
+     92|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/18]⎯
+
+ FAIL  convex/lib/compare.test.ts > percentileBelow > all zeros, and nobody to compare with
+TypeError: percentileBelow is not a function
+ ❯ convex/lib/compare.test.ts:95:12
+     93|
+     94|   test("all zeros, and nobody to compare with", () => {
+     95|     expect(percentileBelow(0, [0, 0, 0, 0, 0])).toBe(0);
+       |            ^
+     96|     expect(percentileBelow(7, [])).toBe(0);
+     97|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/18]⎯
+
+ FAIL  convex/lib/compare.test.ts > rowVisibility > everyone / past
+ FAIL  convex/lib/compare.test.ts > rowVisibility > everyone / team
+ FAIL  convex/lib/compare.test.ts > rowVisibility > everyone / teammate
+ FAIL  convex/lib/compare.test.ts > rowVisibility > self / past
+ FAIL  convex/lib/compare.test.ts > rowVisibility > self / team
+ FAIL  convex/lib/compare.test.ts > rowVisibility > self / teammate
+ FAIL  convex/lib/compare.test.ts > rowVisibility > hidden / past
+ FAIL  convex/lib/compare.test.ts > rowVisibility > hidden / team
+ FAIL  convex/lib/compare.test.ts > rowVisibility > hidden / teammate
+TypeError: rowVisibility is not a function
+ ❯ convex/lib/compare.test.ts:117:12
+    115|
+    116|   test.each(cases)("%s / %s", (visibility, mode, given, received, newD…
+    117|     expect(rowVisibility(visibility, mode, "given")).toBe(given);
+       |            ^
+    118|     for (const metric of ["activeDays", "maxedDays", "longestStreak", …
+    119|       expect(rowVisibility(visibility, mode, metric)).toBe(given);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/18]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  18 failed | 6 passed (24)
+   Start at  20:56:01
+   Duration  285ms (environment 36%, transform 33%, tests 14%, import 14%, worker 3%)
+

@@ -1,0 +1,53 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-aeb4bd260d2bf9605
+
+ ❯ convex/lib/compare.test.ts (27 tests | 3 failed) 12ms
+   ❯ raceAxis (3)
+     × same-length periods line up day by day 3ms
+     × a longer previous period finishes on the last day, so its line ends at its full total 1ms
+     × a shorter previous period holds its last day 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  convex/lib/compare.test.ts > raceAxis > same-length periods line up day by day
+TypeError: raceAxis is not a function
+ ❯ convex/lib/compare.test.ts:104:18
+    102|
+    103|   test("same-length periods line up day by day", () => {
+    104|     const axis = raceAxis(r("2026-09-21", "2026-09-27", 7), r("2026-09…
+       |                  ^
+    105|     expect(axis.days).toEqual(["2026-09-21", "2026-09-22", "2026-09-23…
+    106|     expect(axis.previousDays).toEqual(["2026-09-14", "2026-09-15", "20…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  convex/lib/compare.test.ts > raceAxis > a longer previous period finishes on the last day, so its line ends at its full total
+TypeError: raceAxis is not a function
+ ❯ convex/lib/compare.test.ts:110:18
+    108|
+    109|   test("a longer previous period finishes on the last day, so its line…
+    110|     const axis = raceAxis(r("2026-02-01", "2026-02-28", 28), r("2026-0…
+       |                  ^
+    111|     expect(axis.days).toHaveLength(28);
+    112|     expect(axis.previousDays.slice(25)).toEqual(["2026-01-26", "2026-0…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  convex/lib/compare.test.ts > raceAxis > a shorter previous period holds its last day
+TypeError: raceAxis is not a function
+ ❯ convex/lib/compare.test.ts:116:18
+    114|
+    115|   test("a shorter previous period holds its last day", () => {
+    116|     const axis = raceAxis(r("2026-03-01", "2026-03-31", 31), r("2026-0…
+       |                  ^
+    117|     expect(axis.previousDays.slice(26)).toEqual(["2026-02-27", "2026-0…
+    118|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 24 passed (27)
+   Start at  20:56:32
+   Duration  214ms (transform 39%, environment 34%, import 14%, tests 10%, worker 3%)
+

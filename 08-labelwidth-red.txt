@@ -1,0 +1,27 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-aeb4bd260d2bf9605
+
+ ❯ tests/compare.labels.test.ts (5 tests | 1 failed) 6ms
+   ❯ labelWidth (1)
+     × reserves room for the marker gap plus the text 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/compare.labels.test.ts > labelWidth > reserves room for the marker gap plus the text
+TypeError: labelWidth is not a function
+ ❯ tests/compare.labels.test.ts:7:12
+      5| describe("labelWidth", () => {
+      6|   test("reserves room for the marker gap plus the text", () => {
+      7|     expect(labelWidth("Last quarter 1,234")).toBeGreaterThanOrEqual(11…
+       |            ^
+      8|     expect(labelWidth("Last quarter 1,234")).toBeLessThanOrEqual(140);
+      9|     expect(labelWidth("You 3")).toBeLessThanOrEqual(50);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  21:14:20
+   Duration  166ms (environment 51%, transform 27%, import 11%, tests 8%, worker 4%)
+

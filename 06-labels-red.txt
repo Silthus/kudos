@@ -1,0 +1,24 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-aeb4bd260d2bf9605
+
+ ❯ tests/compare.labels.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/compare.labels.test.ts [ tests/compare.labels.test.ts ]
+Error: Cannot find module '../src/lib/labels' imported from /home/coder/dev/kudos/.claude/worktrees/agent-aeb4bd260d2bf9605/tests/compare.labels.test.ts
+ ❯ tests/compare.labels.test.ts:2:1
+      1| import { describe, expect, test } from "vitest";
+      2| import { nudgeLabels } from "../src/lib/labels";
+       | ^
+      3|
+      4| // Race-chart endpoint labels ("You 23", "Last month 19") sit beside e…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  20:59:01
+   Duration  158ms (environment 92%, worker 8%)
+

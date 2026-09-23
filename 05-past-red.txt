@@ -1,0 +1,254 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-aeb4bd260d2bf9605
+
+ ❯ tests/compare.past.test.ts (13 tests | 13 failed) 75ms
+   ❯ compare.past.get (13)
+     × signed out 16ms
+     × rejects a malformed today 4ms
+     × on a Wednesday, week compares Mon–Wed with last Mon–Wed 17ms
+     × the race runs over the whole week: you up to today, last week in full 3ms
+     × month is this month to date against last month to date 2ms
+     × reach and channels count distinct teammates and channel ids in each range 15ms
+     × new discoveries count messages first seen in each range 3ms
+     ❯ received follows receivedVisibility (3)
+       × hidden: locked on both sides, never sent; your own discoveries stay visible 2ms
+       × self: your own received is yours to compare 3ms
+       × everyone: your own received is yours to compare 2ms
+     × joined after the previous period: the benchmark is empty, not zero 2ms
+     × earlier activity proves membership even when the member row is newer (e.g. back-dated history) 2ms
+     × only the viewer's own workspace and rows 2ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 13 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/compare.past.test.ts > compare.past.get > signed out
+AssertionError: expected [Function] to throw error including 'Sign in with Slack to continue.' but got 'Could not find module for: "compare/p…'
+
+Expected: "Sign in with Slack to continue."
+Received: "Could not find module for: "compare/past""
+
+ ❯ tests/compare.past.test.ts:67:83
+     65|   test("signed out", async () => {
+     66|     await setup();
+     67|     await expect(t.query(api.compare.past.get, { period: "month", toda…
+       |                                                                                   ^
+     68|   });
+     69|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/13]⎯
+
+ FAIL  tests/compare.past.test.ts > compare.past.get > rejects a malformed today
+AssertionError: expected [Function] to throw error matching /today/ but got 'Could not find module for: "compare/p…'
+
+- Expected:
+/today/
+
++ Received:
+"Could not find module for: \"compare/past\""
+
+ ❯ tests/compare.past.test.ts:73:92
+     71|     await setup();
+     72|     const ana = await signInAs(t, team.ana);
+     73|     await expect(ana.query(api.compare.past.get, { period: "month", to…
+       |                                                                                            ^
+     74|   });
+     75|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/13]⎯
+
+ FAIL  tests/compare.past.test.ts > compare.past.get > on a Wednesday, week compares Mon–Wed with last Mon–Wed
+Error: Could not find module for: "compare/past"
+ ❯ node_modules/convex-test/dist/index.js:1468:19
+    1466|         const module = modulesWithoutExtension[prefix + path];
+    1467|         if (module === undefined) {
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1469|         }
+    1470|         return await module();
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2398:76
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2085:40
+ ❯ query node_modules/convex-test/dist/index.js:2172:41
+ ❯ node_modules/convex-test/dist/index.js:1886:80
+ ❯ Object.result.<computed> [as query] node_modules/convex-test/dist/index.js:1886:56
+ ❯ getPast tests/compare.past.test.ts:60:23
+ ❯ tests/compare.past.test.ts:86:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/13]⎯
+
+ FAIL  tests/compare.past.test.ts > compare.past.get > the race runs over the whole week: you up to today, last week in full
+Error: Could not find module for: "compare/past"
+ ❯ node_modules/convex-test/dist/index.js:1468:19
+    1466|         const module = modulesWithoutExtension[prefix + path];
+    1467|         if (module === undefined) {
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1469|         }
+    1470|         return await module();
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2398:76
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2085:40
+ ❯ query node_modules/convex-test/dist/index.js:2172:41
+ ❯ node_modules/convex-test/dist/index.js:1886:80
+ ❯ Object.result.<computed> [as query] node_modules/convex-test/dist/index.js:1886:56
+ ❯ getPast tests/compare.past.test.ts:60:23
+ ❯ tests/compare.past.test.ts:104:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/13]⎯
+
+ FAIL  tests/compare.past.test.ts > compare.past.get > month is this month to date against last month to date
+Error: Could not find module for: "compare/past"
+ ❯ node_modules/convex-test/dist/index.js:1468:19
+    1466|         const module = modulesWithoutExtension[prefix + path];
+    1467|         if (module === undefined) {
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1469|         }
+    1470|         return await module();
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2398:76
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2085:40
+ ❯ query node_modules/convex-test/dist/index.js:2172:41
+ ❯ node_modules/convex-test/dist/index.js:1886:80
+ ❯ Object.result.<computed> [as query] node_modules/convex-test/dist/index.js:1886:56
+ ❯ getPast tests/compare.past.test.ts:60:23
+ ❯ tests/compare.past.test.ts:117:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/13]⎯
+
+ FAIL  tests/compare.past.test.ts > compare.past.get > reach and channels count distinct teammates and channel ids in each range
+Error: Could not find module for: "compare/past"
+ ❯ node_modules/convex-test/dist/index.js:1468:19
+    1466|         const module = modulesWithoutExtension[prefix + path];
+    1467|         if (module === undefined) {
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1469|         }
+    1470|         return await module();
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2398:76
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2085:40
+ ❯ query node_modules/convex-test/dist/index.js:2172:41
+ ❯ node_modules/convex-test/dist/index.js:1886:80
+ ❯ Object.result.<computed> [as query] node_modules/convex-test/dist/index.js:1886:56
+ ❯ getPast tests/compare.past.test.ts:60:23
+ ❯ tests/compare.past.test.ts:136:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/13]⎯
+
+ FAIL  tests/compare.past.test.ts > compare.past.get > new discoveries count messages first seen in each range
+Error: Could not find module for: "compare/past"
+ ❯ node_modules/convex-test/dist/index.js:1468:19
+    1466|         const module = modulesWithoutExtension[prefix + path];
+    1467|         if (module === undefined) {
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1469|         }
+    1470|         return await module();
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2398:76
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2085:40
+ ❯ query node_modules/convex-test/dist/index.js:2172:41
+ ❯ node_modules/convex-test/dist/index.js:1886:80
+ ❯ Object.result.<computed> [as query] node_modules/convex-test/dist/index.js:1886:56
+ ❯ getPast tests/compare.past.test.ts:60:23
+ ❯ tests/compare.past.test.ts:151:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/13]⎯
+
+ FAIL  tests/compare.past.test.ts > compare.past.get > received follows receivedVisibility > hidden: locked on both sides, never sent; your own discoveries stay visible
+Error: Could not find module for: "compare/past"
+ ❯ node_modules/convex-test/dist/index.js:1468:19
+    1466|         const module = modulesWithoutExtension[prefix + path];
+    1467|         if (module === undefined) {
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1469|         }
+    1470|         return await module();
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2398:76
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2085:40
+ ❯ query node_modules/convex-test/dist/index.js:2172:41
+ ❯ node_modules/convex-test/dist/index.js:1886:80
+ ❯ Object.result.<computed> [as query] node_modules/convex-test/dist/index.js:1886:56
+ ❯ getPast tests/compare.past.test.ts:60:23
+ ❯ tests/compare.past.test.ts:165:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/13]⎯
+
+ FAIL  tests/compare.past.test.ts > compare.past.get > received follows receivedVisibility > self: your own received is yours to compare
+ FAIL  tests/compare.past.test.ts > compare.past.get > received follows receivedVisibility > everyone: your own received is yours to compare
+Error: Could not find module for: "compare/past"
+ ❯ node_modules/convex-test/dist/index.js:1468:19
+    1466|         const module = modulesWithoutExtension[prefix + path];
+    1467|         if (module === undefined) {
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1469|         }
+    1470|         return await module();
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2398:76
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2085:40
+ ❯ query node_modules/convex-test/dist/index.js:2172:41
+ ❯ node_modules/convex-test/dist/index.js:1886:80
+ ❯ Object.result.<computed> [as query] node_modules/convex-test/dist/index.js:1886:56
+ ❯ getPast tests/compare.past.test.ts:60:23
+ ❯ tests/compare.past.test.ts:183:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/13]⎯
+
+ FAIL  tests/compare.past.test.ts > compare.past.get > joined after the previous period: the benchmark is empty, not zero
+Error: Could not find module for: "compare/past"
+ ❯ node_modules/convex-test/dist/index.js:1468:19
+    1466|         const module = modulesWithoutExtension[prefix + path];
+    1467|         if (module === undefined) {
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1469|         }
+    1470|         return await module();
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2398:76
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2085:40
+ ❯ query node_modules/convex-test/dist/index.js:2172:41
+ ❯ node_modules/convex-test/dist/index.js:1886:80
+ ❯ Object.result.<computed> [as query] node_modules/convex-test/dist/index.js:1886:56
+ ❯ getPast tests/compare.past.test.ts:60:23
+ ❯ tests/compare.past.test.ts:194:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/13]⎯
+
+ FAIL  tests/compare.past.test.ts > compare.past.get > earlier activity proves membership even when the member row is newer (e.g. back-dated history)
+Error: Could not find module for: "compare/past"
+ ❯ node_modules/convex-test/dist/index.js:1468:19
+    1466|         const module = modulesWithoutExtension[prefix + path];
+    1467|         if (module === undefined) {
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1469|         }
+    1470|         return await module();
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2398:76
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2085:40
+ ❯ query node_modules/convex-test/dist/index.js:2172:41
+ ❯ node_modules/convex-test/dist/index.js:1886:80
+ ❯ Object.result.<computed> [as query] node_modules/convex-test/dist/index.js:1886:56
+ ❯ getPast tests/compare.past.test.ts:60:23
+ ❯ tests/compare.past.test.ts:205:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/13]⎯
+
+ FAIL  tests/compare.past.test.ts > compare.past.get > only the viewer's own workspace and rows
+Error: Could not find module for: "compare/past"
+ ❯ node_modules/convex-test/dist/index.js:1468:19
+    1466|         const module = modulesWithoutExtension[prefix + path];
+    1467|         if (module === undefined) {
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1469|         }
+    1470|         return await module();
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2398:76
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2085:40
+ ❯ query node_modules/convex-test/dist/index.js:2172:41
+ ❯ node_modules/convex-test/dist/index.js:1886:80
+ ❯ Object.result.<computed> [as query] node_modules/convex-test/dist/index.js:1886:56
+ ❯ getPast tests/compare.past.test.ts:60:23
+ ❯ tests/compare.past.test.ts:217:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/13]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  13 failed (13)
+   Start at  20:57:45
+   Duration  488ms (transform 36%, import 31%, tests 21%, environment 11%, worker 1%)
+

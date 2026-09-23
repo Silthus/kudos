@@ -1,0 +1,22 @@
+
+Palette (dark, surface #17140f, categorical): 2 slots
+  [FAIL] Lightness band         outside band: [["#b3ada4",0.75]]
+  [FAIL] Chroma floor           below floor (reads gray): [["#b3ada4",0.014]]
+  [PASS] CVD separation         worst adjacent #b3ada4↔#cf7d17 ΔE 14.2 (deutan) · tritan 16.1
+  [PASS] Normal-vision floor    worst adjacent #b3ada4↔#cf7d17 ΔE 15.6 (normal)
+  [PASS] Contrast vs surface    all 2 >= 3:1
+
+  → FAILED — fix the marked checks  (CVD in the 6–8 floor band is legal ONLY with secondary encoding: direct labels, gaps, or texture)
+  scope: categorical palettes only. For a lone status/text color check WCAG text contrast; for a sequential ramp, lightness monotonicity.
+
+
+Palette (dark, surface #17140f, categorical): 2 slots
+  [FAIL] Lightness band         outside band: [["#b3ada4",0.75]]
+  [FAIL] Chroma floor           below floor (reads gray): [["#b3ada4",0.014]]
+  [PASS] CVD separation         worst adjacent #b3ada4↔#219c86 ΔE 8.8 (protan) · tritan 17.1
+  [PASS] Normal-vision floor    worst adjacent #b3ada4↔#219c86 ΔE 16.8 (normal)
+  [PASS] Contrast vs surface    all 2 >= 3:1
+
+  → FAILED — fix the marked checks  (CVD in the 6–8 floor band is legal ONLY with secondary encoding: direct labels, gaps, or texture)
+  scope: categorical palettes only. For a lone status/text color check WCAG text contrast; for a sequential ramp, lightness monotonicity.
+

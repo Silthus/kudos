@@ -1,0 +1,115 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-aeb4bd260d2bf9605
+
+ ❯ tests/compare.past.test.ts (20 tests | 4 failed) 305ms
+   ❯ compare.past.get (20)
+     × joined partway through last week: no 'by this point' benchmark, but last week's finish still shows 10ms
+     × on the last day of a month shorter than the one before, both finish lines are compared 9ms
+     × quarter and year compare to date with the previous quarter and year 7ms
+     × too many kudos to count reach and channels: both sides say so instead of comparing different windows 130ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/compare.past.test.ts > compare.past.get > joined partway through last week: no 'by this point' benchmark, but last week's finish still shows
+AssertionError: expected null to be 3 // Object.is equality
+
+- Expected:
+3
+
++ Received:
+null
+
+ ❯ tests/compare.past.test.ts:210:35
+    208|     expect(r.benchmarkNote).toBe("notMember");
+    209|     expect(row(r, "given")).toMatchObject({ you: { value: 2 }, benchma…
+    210|     expect(r.previousTotal.given).toBe(3);
+       |                                   ^
+    211|     expect(r.race.benchmark.given).toEqual([0, 0, 0, 0, 3, 3, 3]);
+    212|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/compare.past.test.ts > compare.past.get > on the last day of a month shorter than the one before, both finish lines are compared
+AssertionError: expected { days: 28, end: '2026-01-28', …(1) } to match object { start: '2026-01-01', …(1) }
+(1 matching property omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "end": "2026-01-31",
++   "end": "2026-01-28",
+    "start": "2026-01-01",
+  }
+
+ ❯ tests/compare.past.test.ts:229:30
+    227|     const r = await getPast("month", team.ana, "2026-02-28");
+    228|     expect(r.range).toMatchObject({ start: "2026-02-01", end: "2026-02…
+    229|     expect(r.benchmarkRange).toMatchObject({ start: "2026-01-01", end:…
+       |                              ^
+    230|     expect(row(r, "given")).toMatchObject({ you: { value: 1 }, benchma…
+    231|     expect(r.race.you.given[27]).toBe(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/compare.past.test.ts > compare.past.get > quarter and year compare to date with the previous quarter and year
+AssertionError: expected { days: 85, end: '2026-06-24', …(1) } to match object { start: '2026-04-01', …(1) }
+(1 matching property omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "end": "2026-06-23",
++   "end": "2026-06-24",
+    "start": "2026-04-01",
+  }
+
+ ❯ tests/compare.past.test.ts:258:36
+    256|     expect(quarter.benchmarkLabel).toBe("Last quarter");
+    257|     expect(quarter.range).toMatchObject({ start: "2026-07-01", end: "2…
+    258|     expect(quarter.benchmarkRange).toMatchObject({ start: "2026-04-01"…
+       |                                    ^
+    259|     expect(row(quarter, "given")).toMatchObject({ you: { value: 4 }, b…
+    260|     expect(quarter.race.days).toHaveLength(92);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  tests/compare.past.test.ts > compare.past.get > too many kudos to count reach and channels: both sides say so instead of comparing different windows
+AssertionError: expected { …(5) } to match object { …(3) }
+(2 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "benchmark": {
+      "locked": null,
+-     "value": null,
++     "value": 0,
+    },
+-   "delta": null,
++   "delta": 2,
+    "you": {
+      "locked": null,
+-     "value": null,
++     "value": 2,
+    },
+  }
+
+ ❯ tests/compare.past.test.ts:323:30
+    321|     expect(r.truncated).toBe(true);
+    322|     for (const metric of ["reach", "channels"]) {
+    323|       expect(row(r, metric)).toMatchObject({ you: { value: null, locke…
+       |                              ^
+    324|     }
+    325|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 16 passed (20)
+   Start at  21:13:19
+   Duration  688ms (tests 52%, transform 22%, import 19%, environment 7%, worker 1%)
+

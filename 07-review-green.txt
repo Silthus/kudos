@@ -1,0 +1,9 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-aeb4bd260d2bf9605
+
+
+ Test Files  1 passed (1)
+      Tests  20 passed (20)
+   Start at  21:13:54
+   Duration  654ms (tests 52%, transform 23%, import 18%, environment 7%, worker 1%)
+
