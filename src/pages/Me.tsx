@@ -8,16 +8,16 @@ import { Legend, LineChart } from "@/components/charts";
 import { MessageText } from "@/components/MessageText";
 import { Avatar, BigNumber, Card, CardHeader, Empty, Eyebrow, PageHeader, PageSkeleton, Progress, RarityBadge, Segmented, Trend } from "@/components/ui";
 import { dayLabel, firstName, greeting, nf, relativeTime } from "@/lib/format";
+import { DEFAULT_PERIOD, PERIOD_OPTIONS, useWorkspaceToday, type Period } from "@/lib/period";
 import { RARITY_META, type Rarity } from "@/lib/rarity";
 import { useStableQuery } from "@/lib/useStableQuery";
 import { useViewer } from "@/lib/viewer";
 
-type Period = "7d" | "30d" | "90d";
-
 export function Me() {
   const viewer = useViewer();
-  const [period, setPeriod] = useState<Period>("30d");
-  const { data, isStale } = useStableQuery(api.me.overview, { period });
+  const [period, setPeriod] = useState<Period>(DEFAULT_PERIOD);
+  const today = useWorkspaceToday();
+  const { data, isStale } = useStableQuery(api.me.overview, { period, today });
   const glyph = viewer.workspace.emojiGlyph;
   if (!data) return <PageSkeleton />;
 
@@ -26,7 +26,9 @@ export function Me() {
     ...(viewer.canSeeOwnReceived
       ? [{ key: "received", label: "Received", color: "var(--color-teal)", values: data.cadence.map((d) => d.received) }]
       : []),
-    { key: "prevGiven", label: "Given (previous period)", color: "var(--color-saffron-deep)", values: data.cadence.map((d) => d.prevGiven), dashed: true },
+    ...(data.period.prevGiven !== null
+      ? [{ key: "prevGiven", label: "Given (previous period to date)", color: "var(--color-saffron-deep)", values: data.cadence.map((d) => d.prevGiven), dashed: true }]
+      : []),
   ];
 
   const weekDelta = data.week.given - data.week.lastWeekGiven;
@@ -34,7 +36,7 @@ export function Me() {
   return (
     <div className={`transition-opacity duration-200 ${isStale ? "opacity-60" : ""}`} aria-busy={isStale}>
       <PageHeader
-        eyebrow={new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+        eyebrow={dayLabel(today, { weekday: "long", month: "long", day: "numeric" })}
         title={
           <>
             {greeting()}, {firstName(viewer.member.name)}
@@ -133,21 +135,11 @@ export function Me() {
             title="Giving cadence"
             subtitle={
               <>
-                {nf.format(data.period.given)} given in the {data.periodLabel.toLowerCase()}{" "}
+                {nf.format(data.period.given)} given {data.periodLabel.toLowerCase()}{" "}
                 {data.period.prevGiven !== null && <Trend cur={data.period.given} prev={data.period.prevGiven} />}
               </>
             }
-            action={
-              <Segmented
-                size="sm"
-                value={period}
-                onChange={setPeriod}
-                options={[
-                  { value: "7d", label: "7D" },
-                  { value: "30d", label: "30D" },
-                  { value: "90d", label: "90D" },
-                ]}
-              />
+            action={<Segmented size="sm" value={period} onChange={setPeriod} options={PERIOD_OPTIONS} />
             }
           />
           <div className="px-5 pb-5">

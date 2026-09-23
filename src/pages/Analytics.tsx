@@ -4,16 +4,16 @@ import { api } from "../../convex/_generated/api";
 import { BarChart, BarList, Heatmap, Legend } from "@/components/charts";
 import { Avatar, BigNumber, Card, CardHeader, Empty, Eyebrow, PageHeader, PageSkeleton, Segmented, Trend } from "@/components/ui";
 import { nf, pct, rangeLabel } from "@/lib/format";
+import { DEFAULT_PERIOD, PERIOD_OPTIONS, useWorkspaceToday, type Period } from "@/lib/period";
 import { RARITY_META, type Rarity } from "@/lib/rarity";
 import { useStableQuery } from "@/lib/useStableQuery";
 import { useViewer } from "@/lib/viewer";
 
-type Period = "7d" | "30d" | "90d" | "all";
-
 export function Analytics() {
   const viewer = useViewer();
-  const [period, setPeriod] = useState<Period>("30d");
-  const { data, isStale } = useStableQuery(api.analytics.overview, { period });
+  const [period, setPeriod] = useState<Period>(DEFAULT_PERIOD);
+  const today = useWorkspaceToday();
+  const { data, isStale } = useStableQuery(api.analytics.overview, { period, today });
   if (!data) return <PageSkeleton />;
   const k = data.kpis;
   const glyph = data.unit.glyph;
@@ -37,12 +37,7 @@ export function Analytics() {
           <Segmented
             value={period}
             onChange={setPeriod}
-            options={[
-              { value: "7d", label: "7D" },
-              { value: "30d", label: "30D" },
-              { value: "90d", label: "90D" },
-              { value: "all", label: "1Y" },
-            ]}
+            options={PERIOD_OPTIONS}
           />
         }
       />
@@ -59,7 +54,7 @@ export function Analytics() {
       </div>
 
       <Card className="mt-4">
-        <CardHeader title="Daily volume" subtitle={`Kudos given per day, ${data.label.toLowerCase()}`} action={<Legend items={[{ label: "This period", color: "var(--color-saffron-deep)" }, ...(data.daily[0]?.prevTotal !== null ? [{ label: "Previous period", color: "var(--color-muted)", dashed: true }] : [])]} />} />
+        <CardHeader title="Daily volume" subtitle={`Kudos given per day, ${data.label.toLowerCase()}`} action={<Legend items={[{ label: "This period", color: "var(--color-saffron-deep)" }, ...(data.daily[0]?.prevTotal !== null ? [{ label: "Previous period to date", color: "var(--color-muted)", dashed: true }] : [])]} />} />
         <div className="px-5 pb-5">
           <BarChart days={data.daily.map((d) => d.day)} values={data.daily.map((d) => d.total)} compare={data.daily[0]?.prevTotal !== null ? data.daily.map((d) => d.prevTotal) : null} height={260} />
         </div>

@@ -7,16 +7,20 @@ import { CATALOG, RARITIES, TEMPLATE_BY_KEY } from "./lib/messages";
 import { memberDays, median, rankBy, totalsByMember, workspaceDays } from "./lib/stats";
 import {
   addDays,
-  dayKeyFor,
   daysBetween,
   eachDay,
+  parseToday,
   periodValidator,
   resolvePeriod,
   startOfDayUtc,
   weekdayOfKey,
+  type DayRange,
 } from "./lib/time";
 
-const WEEKDAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+/** A whole leap year: "year" charts every day, "all time" its most recent year. */
+const MAX_CADENCE_DAYS = 366;
+
+const WEEKDAY_NAMES =["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 function streaks(activeDays: string[], today: string) {
   let longest = 0;
@@ -34,13 +38,16 @@ function streaks(activeDays: string[], today: string) {
 
 /** Everything on the "My Kudos" page. */
 export const overview = query({
-  args: { period: periodValidator },
-  handler: async (ctx, { period }) => {
+  args: {
+    period: periodValidator,
+    /** The client's current day in the workspace timezone (see `parseToday`). */
+    today: v.string(),
+  },
+  handler: async (ctx, { period, today: todayArg }) => {
     const viewer = await requireViewer(ctx);
     const { member, workspace } = viewer;
-    const now = Date.now();
     const tz = workspace.timezone;
-    const today = dayKeyFor(now, tz);
+    const today = parseToday(todayArg);
     const showReceived = canSeeReceived(viewer, member._id);
 
     // Today
@@ -48,7 +55,7 @@ export const overview = query({
     const usedToday = todayRow?.given ?? 0;
 
     // Weekly standing (Mon–today) vs last week
-    const week = resolvePeriod("week", now, tz);
+    const week = resolvePeriod("week", today);
     const { rows: weekRows } = await workspaceDays(ctx, workspace._id, week.current);
     const weekTotals = totalsByMember(weekRows);
     const ranked = rankBy(
@@ -57,11 +64,12 @@ export const overview = query({
       ([id]) => id,
     );
     const myWeek = ranked.find(({ item: [id] }) => id === member._id);
-    const lastWeekRange = { start: addDays(week.current.start, -7), end: addDays(week.current.start, -1), days: 7 };
-    const lastWeekGiven = (await memberDays(ctx, member._id, lastWeekRange)).reduce((s, d) => s + d.given, 0);
+    const lastWeekGiven = (await memberDays(ctx, member._id, week.previous!)).reduce((s, d) => s + d.given, 0);
 
-    // Selected period: cadence + patterns
-    const range = resolvePeriod(period, now, tz);
+    // Selected period: cadence + patterns. My own total and the dashed overlay compare with the
+    // previous bucket up to the same day, so early in a month I'm not measured against a whole month.
+    const range = resolvePeriod(period, today);
+    const previous = range.previousToDate;
     const allMine = await ctx.db
       .query("memberDays")
       .withIndex("by_member_day", (q) => q.eq("memberId", member._id))
@@ -69,9 +77,10 @@ export const overview = query({
     const mineByDay = new Map(allMine.map((d) => [d.dayKey, d]));
     const firstDay = allMine[0]?.dayKey ?? today;
     const current = period === "all" ? { start: firstDay, end: today, days: daysBetween(firstDay, today) + 1 } : range.current;
-    const cadenceDays = eachDay(current).slice(-120);
+    const cadenceDays = eachDay(current).slice(-MAX_CADENCE_DAYS);
     const cadence = cadenceDays.map((day, i) => {
-      const prevDay = range.previous ? addDays(range.previous.start, i + (current.days - cadenceDays.length)) : null;
+      const offset = i + (current.days - cadenceDays.length);
+      const prevDay = previous && offset < previous.days ? addDays(previous.start, offset) : null;
       const cur = mineByDay.get(day);
       const prev = prevDay ? mineByDay.get(prevDay) : undefined;
       return {
@@ -82,9 +91,11 @@ export const overview = query({
         prevReceived: prevDay && showReceived ? (prev?.received ?? 0) : null,
       };
     });
-    const periodGiven = cadence.reduce((s, d) => s + d.given, 0);
-    const prevGiven = range.previous ? cadence.reduce((s, d) => s + (d.prevGiven ?? 0), 0) : null;
-    const periodReceived = showReceived ? cadence.reduce((s, d) => s + (d.received ?? 0), 0) : null;
+    // Totals cover the whole range even when the chart only shows its most recent days.
+    const within = (r: DayRange) => allMine.filter((d) => d.dayKey >= r.start && d.dayKey <= r.end);
+    const periodGiven = within(current).reduce((s, d) => s + d.given, 0);
+    const prevGiven = previous ? within(previous).reduce((s, d) => s + d.given, 0) : null;
+    const periodReceived = showReceived ? within(current).reduce((s, d) => s + d.received, 0) : null;
 
     const startTs = startOfDayUtc(current.start, tz);
     const givenRows = await ctx.db
@@ -276,11 +287,14 @@ export const overview = query({
 
 /** Small, cheap status for live widgets (allowance + collection size). */
 export const today = query({
-  args: {},
+  args: {
+    /** The client's current day in the workspace timezone (see `parseToday`). */
+    today: v.string(),
+  },
   returns: v.object({ used: v.number(), remaining: v.number(), limit: v.number(), discovered: v.number(), total: v.number() }),
-  handler: async (ctx) => {
+  handler: async (ctx, { today }) => {
     const { member, workspace } = await requireViewer(ctx);
-    const row = await getMemberDay(ctx, member._id, dayKeyFor(Date.now(), workspace.timezone));
+    const row = await getMemberDay(ctx, member._id, parseToday(today));
     const used = row?.given ?? 0;
     const discovered = await ctx.db
       .query("discoveries")

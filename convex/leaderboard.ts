@@ -3,16 +3,22 @@ import { query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { requireViewer } from "./lib/access";
 import { rankBy, totalsByMember, workspaceDays, workspaceMembers, type Totals } from "./lib/stats";
-import { periodValidator, resolvePeriod, startOfDayUtc, addDays } from "./lib/time";
+import { addDays, parseToday, periodValidator, resolvePeriod, startOfDayUtc } from "./lib/time";
 
 export const get = query({
-  args: { period: periodValidator, metric: v.union(v.literal("given"), v.literal("received")) },
-  handler: async (ctx, { period, metric: requested }) => {
+  args: {
+    period: periodValidator,
+    metric: v.union(v.literal("given"), v.literal("received")),
+    /** The client's current day in the workspace timezone (see `parseToday`). */
+    today: v.string(),
+  },
+  handler: async (ctx, { period, metric: requested, today }) => {
     const viewer = await requireViewer(ctx);
     const { workspace, member: me } = viewer;
     const receivedAllowed = workspace.receivedVisibility === "everyone";
     const metric = requested === "received" && receivedAllowed ? "received" : "given";
-    const range = resolvePeriod(period, Date.now(), workspace.timezone);
+    // Values, ranks and rank changes compare with the whole previous bucket ("last week's final rank").
+    const range = resolvePeriod(period, parseToday(today));
     const members = await workspaceMembers(ctx, workspace._id);
     const active = members.filter((m) => !m.deactivated);
 
@@ -95,7 +101,7 @@ export const get = query({
         maxedDays: [...current.values()].reduce((s, t) => s + t.maxedDays, 0),
       },
       unit: { singular: workspace.unitSingular, plural: workspace.unitPlural, glyph: workspace.emojiGlyph },
-      nextWeekStart: period === "week" ? addDays(range.current.start, 7) : null,
+      nextPeriodStart: period === "all" ? null : addDays(range.currentFull.end, 1),
       myRow: rows.find((r) => r.isMe) ?? null,
       truncated,
     };
