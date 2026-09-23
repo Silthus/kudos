@@ -55,6 +55,8 @@ export const processEvent = internalAction({
     // Directory changes: deactivations must lock people out promptly, new hires show up.
     if (event.type === "user_change" || event.type === "team_join") {
       if (typeof event.user !== "object" || !event.user?.id) return null;
+      // Slack also reports external people from shared (Slack Connect) channels.
+      if (event.user.team_id && event.user.team_id !== teamId) return null;
       await ctx.runMutation(internal.slackData.upsertSlackUsers, { workspaceId, users: [toMember(event.user)] });
       return null;
     }
@@ -228,6 +230,7 @@ export const refreshHome = internalAction({
 
 type SlackUser = {
   id: string;
+  team_id?: string;
   name: string;
   deleted?: boolean;
   is_bot?: boolean;

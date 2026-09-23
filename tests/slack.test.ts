@@ -63,6 +63,13 @@ describe("POST /slack/events", () => {
     expect(await res.json()).toEqual({ challenge: "c-123" });
   });
 
+  test("processes directory changes, so a deactivation in Slack locks the person out", async () => {
+    const body = eventCallback("EvUser", { type: "user_change", user: { id: "UBEN", team_id: "T1", name: "ben", deleted: true } });
+    expect((await signedPost("/slack/events", body)).status).toBe(200);
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    expect(await member(t, team.ben)).toMatchObject({ deactivated: true });
+  });
+
   test("rejects requests that aren't signed by Slack", async () => {
     const res = await t.fetch("/slack/events", { method: "POST", body: eventCallback("Ev1", { type: "message" }) });
     expect(res.status).toBe(401);

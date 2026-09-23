@@ -49,6 +49,12 @@ describe("people deactivated in Slack", () => {
     expect(members.find((m) => m.slackUserId === "UNEW")).toMatchObject({ deactivated: false, isAdmin: false });
   });
 
+  test("external people from shared channels don't become members", async () => {
+    await processEvent({ type: "user_change", user: slackUser("UEXT", { team_id: "TOTHER" }) });
+    const members = await t.run((ctx) => ctx.db.query("members").collect());
+    expect(members.find((m) => m.slackUserId === "UEXT")).toBeUndefined();
+  });
+
   test("are also caught by the daily directory resync", async () => {
     stubSlackApi({ "users.list": { ok: true, members: [slackUser("UBEN", { deleted: true })] } });
     await t.mutation(internal.slackData.scheduleDirectorySync, {});

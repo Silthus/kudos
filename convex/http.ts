@@ -9,7 +9,15 @@ const http = httpRouter();
 
 auth.addHttpRoutes(http);
 
-const HANDLED_EVENTS = new Set(["message", "reaction_added", "app_home_opened", "app_uninstalled", "tokens_revoked"]);
+const HANDLED_EVENTS = new Set([
+  "message",
+  "reaction_added",
+  "app_home_opened",
+  "app_uninstalled",
+  "tokens_revoked",
+  "user_change",
+  "team_join",
+]);
 
 /** Cheap pre-filter so ordinary chatter never costs a write or an action. */
 function isWorthProcessing(event: { type?: string; text?: string }) {
