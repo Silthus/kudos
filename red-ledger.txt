@@ -1,0 +1,71 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a887d43f3aa3acc38
+
+ ❯ tests/store.test.ts (64 tests | 3 failed | 61 skipped) 142ms
+   ❯ a member's ledger (3)
+     × reconciles: received + granted − spent is the balance 126ms
+     × lists the latest 20 adjustments and requests while the totals cover everything 8ms
+     × is for admins, in their own workspace, and only while the store is open 6ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/store.test.ts > a member's ledger > reconciles: received + granted − spent is the balance
+ConvexError: Sign in with Slack to continue.
+ ❯ requireViewer convex/lib/access.ts:24:22
+     22| export async function requireViewer(ctx: QueryCtx): Promise<Viewer> {
+     23|   const viewer = await getViewer(ctx);
+     24|   if (!viewer) throw new ConvexError("Sign in with Slack to continue."…
+       |                      ^
+     25|   return viewer;
+     26| }
+ ❯ requireAdmin convex/lib/access.ts:29:18
+ ❯ handler convex/storeAdmin.ts:345:35
+ ❯ invokeFunction node_modules/convex/src/server/impl/registration_impl.ts:90:14
+ ❯ invokeMutation node_modules/convex/src/server/impl/registration_impl.ts:70:18
+ ❯ runMutationWithHandler node_modules/convex-test/dist/index.js:1989:31
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2133:32
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/store.test.ts:890:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  tests/store.test.ts > a member's ledger > lists the latest 20 adjustments and requests while the totals cover everything
+Error: Expected a Convex function exported from module "storeAdmin" as `memberLedger`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2085:34
+ ❯ query node_modules/convex-test/dist/index.js:2172:20
+ ❯ tests/store.test.ts:914:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  tests/store.test.ts > a member's ledger > is for admins, in their own workspace, and only while the store is open
+AssertionError: expected [Function] to throw error matching /admins/ but got 'Expected a Convex function exported f…'
+
+- Expected:
+/admins/
+
++ Received:
+"Expected a Convex function exported from module \"storeAdmin\" as `memberLedger`, but there is no such export."
+
+ ❯ tests/store.test.ts:924:81
+    922|     const other = await seedTeam(t, { storeEnabled: true }, "T2");
+    923|     const ben = await signInAs(t, team.ben);
+    924|     await expect(ben.query(api.storeAdmin.memberLedger, { memberId: te…
+       |                                                                                 ^
+    925|     const ana = await signInAs(t, team.ana);
+    926|     await expect(ana.query(api.storeAdmin.memberLedger, { memberId: ot…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 61 skipped (64)
+   Start at  21:26:23
+   Duration  578ms (transform 38%, tests 30%, import 24%, environment 8%, worker 1%)
+

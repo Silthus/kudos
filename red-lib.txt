@@ -1,0 +1,15 @@
+    161|
+    162|   test("isn't flagged below 20 kudos, however lopsided", () => {
+    163|     expect(concentration([{ amount: 19 }])).toBe(false);
+       |            ^
+    164|     expect(concentration([])).toBe(false);
+    165|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 18 passed (25)
+   Start at  21:23:57
+   Duration  244ms (environment 34%, transform 32%, tests 19%, import 12%, worker 3%)
+

@@ -1,0 +1,168 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a887d43f3aa3acc38
+
+ ❯ tests/store.test.ts (61 tests | 8 failed | 53 skipped) 1898ms
+   ❯ balance adjustments (8)
+     × change the balance and are audited 36ms
+     × can't touch your own balance, even as the only admin 10ms
+     × refuse amounts out of bounds and reasons that are too short 3ms
+     × are for admins, and only for people in their own workspace 3ms
+     × need the store open: a closed store shows no balances 2ms
+     × are read-only in the shared demo 1837ms
+     × come from automations too, through grantBalance with source “system” 2ms
+     × are private: members see only their own, and only while the store is open 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/store.test.ts > balance adjustments > change the balance and are audited
+Error: Expected a Convex function exported from module "storeAdmin" as `adjustBalance`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2131:34
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/store.test.ts:793:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  tests/store.test.ts > balance adjustments > can't touch your own balance, even as the only admin
+AssertionError: expected [Function] to throw error matching /your own balance/ but got 'Expected a Convex function exported f…'
+
+- Expected:
+/your own balance/
+
++ Received:
+"Expected a Convex function exported from module \"storeAdmin\" as `adjustBalance`, but there is no such export."
+
+ ❯ tests/store.test.ts:811:121
+    809|     await fund(team.ana, 5);
+    810|     const ana = await signInAs(t, team.ana);
+    811|     await expect(ana.mutation(api.storeAdmin.adjustBalance, { memberId…
+       |                                                                                                                         ^
+    812|     expect(await balanceFor(ana)).toBe(5);
+    813|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  tests/store.test.ts > balance adjustments > refuse amounts out of bounds and reasons that are too short
+AssertionError: expected [Function] to throw error matching /whole number/ but got 'Expected a Convex function exported f…'
+
+- Expected:
+/whole number/
+
++ Received:
+"Expected a Convex function exported from module \"storeAdmin\" as `adjustBalance`, but there is no such export."
+
+ ❯ tests/store.test.ts:819:123
+    817|     const ana = await signInAs(t, team.ana);
+    818|     for (const amount of [0, 2.5, 10_001, -10_001]) {
+    819|       await expect(ana.mutation(api.storeAdmin.adjustBalance, { member…
+       |                                                                                                                           ^
+    820|     }
+    821|     await expect(ana.mutation(api.storeAdmin.adjustBalance, { memberId…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  tests/store.test.ts > balance adjustments > are for admins, and only for people in their own workspace
+AssertionError: expected [Function] to throw error matching /admins/ but got 'Expected a Convex function exported f…'
+
+- Expected:
+/admins/
+
++ Received:
+"Expected a Convex function exported from module \"storeAdmin\" as `adjustBalance`, but there is no such export."
+
+ ❯ tests/store.test.ts:829:118
+    827|     const other = await seedTeam(t, { storeEnabled: true }, "T2");
+    828|     const ben = await signInAs(t, team.ben);
+    829|     await expect(ben.mutation(api.storeAdmin.adjustBalance, { memberId…
+       |                                                                                                                      ^
+    830|     const ana = await signInAs(t, team.ana);
+    831|     await expect(ana.mutation(api.storeAdmin.adjustBalance, { memberId…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  tests/store.test.ts > balance adjustments > need the store open: a closed store shows no balances
+AssertionError: expected [Function] to throw error matching /Open the store/ but got 'Expected a Convex function exported f…'
+
+- Expected:
+/Open the store/
+
++ Received:
+"Expected a Convex function exported from module \"storeAdmin\" as `adjustBalance`, but there is no such export."
+
+ ❯ tests/store.test.ts:837:117
+    835|   test("need the store open: a closed store shows no balances", async …
+    836|     const ana = await signInAs(t, team.ana);
+    837|     await expect(ana.mutation(api.storeAdmin.adjustBalance, { memberId…
+       |                                                                                                                     ^
+    838|   });
+    839|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  tests/store.test.ts > balance adjustments > are read-only in the shared demo
+AssertionError: expected [Function] to throw error matching /demo/ but got 'Expected a Convex function exported f…'
+
+- Expected:
+/demo/
+
++ Received:
+"Expected a Convex function exported from module \"storeAdmin\" as `adjustBalance`, but there is no such export."
+
+ ❯ tests/store.test.ts:845:114
+    843|     const demo = t.withIdentity({ subject: `${userId}|s` });
+    844|     const lena = await t.run(async (ctx) => (await ctx.db.query("membe…
+    845|     await expect(demo.mutation(api.storeAdmin.adjustBalance, { memberI…
+       |                                                                                                                  ^
+    846|   });
+    847|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL  tests/store.test.ts > balance adjustments > come from automations too, through grantBalance with source “system”
+TypeError: grantBalance is not a function
+ ❯ tests/store.test.ts:853:20
+    851|       const workspace = (await ctx.db.get(team.workspaceId))!;
+    852|       const member = (await ctx.db.get(team.ben))!;
+    853|       return await grantBalance(ctx, { workspace, member, amount: 5, r…
+       |                    ^
+    854|     });
+    855|     expect(balance).toBe(6);
+ ❯ invokeFunction node_modules/convex/src/server/impl/registration_impl.ts:90:14
+ ❯ invokeMutation node_modules/convex/src/server/impl/registration_impl.ts:70:18
+ ❯ runMutationWithHandler node_modules/convex-test/dist/index.js:1989:31
+ ❯ handler node_modules/convex-test/dist/index.js:2195:24
+ ❯ invokeFunction node_modules/convex/src/server/impl/registration_impl.ts:90:14
+ ❯ invokeAction node_modules/convex/src/server/impl/registration_impl.ts:513:18
+ ❯ run node_modules/convex-test/dist/index.js:2210:31
+ ❯ run node_modules/convex-test/dist/index.js:2222:20
+ ❯ tests/store.test.ts:850:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL  tests/store.test.ts > balance adjustments > are private: members see only their own, and only while the store is open
+Error: Expected a Convex function exported from module "storeAdmin" as `adjustBalance`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2131:34
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/store.test.ts:870:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  8 failed | 53 skipped (61)
+   Start at  21:25:11
+   Duration  2.32s (tests 85%, transform 8%, import 5%, environment 2%)
+

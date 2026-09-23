@@ -1,0 +1,58 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a887d43f3aa3acc38
+
+ ❯ tests/store.test.ts (72 tests | 2 failed | 69 skipped) 108ms
+   ❯ deciding (15)
+     × can't be dodged by demoting the other admins first 97ms
+     × holds before the request too, and while the store is closed 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/store.test.ts > deciding > can't be dodged by demoting the other admins first
+AssertionError: promise resolved "null" instead of rejecting
+
+- Expected:
+Error {
+  "message": "rejected promise",
+}
+
++ Received:
+null
+
+ ❯ tests/store.test.ts:551:92
+    549|     const { redemptionId } = await ana.mutation(api.store.redeem, { re…
+    550|     // The loophole #14 left open: demote Cleo, become the sole admin,…
+    551|     await expect(ana.mutation(api.admin.setAdmin, { memberId: team.cle…
+       |                                                                                            ^
+    552|     await expect(ana.mutation(api.storeAdmin.decide, { redemptionId, a…
+    553|     expect(await t.run((ctx) => ctx.db.get(team.cleo))).toMatchObject(…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/store.test.ts > deciding > holds before the request too, and while the store is closed
+AssertionError: promise resolved "null" instead of rejecting
+
+- Expected:
+Error {
+  "message": "rejected promise",
+}
+
++ Received:
+null
+
+ ❯ tests/store.test.ts:569:92
+    567|     const ana = await signInAs(t, team.ana);
+    568|     // Otherwise: demote Cleo, reopen the store, redeem and approve al…
+    569|     await expect(ana.mutation(api.admin.setAdmin, { memberId: team.cle…
+       |                                                                                            ^
+    570|   });
+    571|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed | 69 skipped (72)
+   Start at  21:27:59
+   Duration  536ms (transform 41%, import 25%, tests 24%, environment 9%, worker 1%)
+
