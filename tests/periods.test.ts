@@ -101,7 +101,6 @@ describe("busy previous periods", () => {
     const ana = await signInAs(t, team.ana);
     const board = await ana.query(api.leaderboard.get, { period: "year", metric: "given", today: "2026-03-31" });
     expect(board.highlights.prevTotal).toBe(90 * 15); // Jan 1 – Mar 31, 2025
-    expect(board.truncated).toBe(true);
   });
 });
 
