@@ -71,6 +71,9 @@ describe("the demo workspace", () => {
       ctx.db.query("members").filter((q) => q.eq(q.field("slackUserId"), "UDEMOYOU")).unique(),
     );
     expect(alex!.totalGiven).toBe(kudos.filter((k) => k.giverId === (alex!._id as Id<"members">)).reduce((s, k) => s + k.amount, 0));
+    // The giving profile is cleared, so the next give rebuilds it from the fresh history.
+    const { currentStreak, longestStreak, lastActiveDay, givenByWeekday } = alex!;
+    expect({ currentStreak, longestStreak, lastActiveDay, givenByWeekday }).toEqual({});
   });
 });
 

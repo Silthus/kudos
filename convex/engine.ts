@@ -3,7 +3,8 @@ import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { kudosSourceValidator } from "./schema";
-import { dayKeyFor } from "./lib/time";
+import { dayKeyFor, zonedParts } from "./lib/time";
+import { givingProfile, type MemberDayChange, Rollups } from "./lib/rollups";
 import {
   type Category,
   type TemplateVars,
@@ -74,7 +75,7 @@ async function bumpMemberDay(
   memberId: Id<"members">,
   dayKey: string,
   delta: { given?: number; received?: number },
-): Promise<{ becameMaxed: boolean; lostMaxed: boolean }> {
+): Promise<MemberDayChange & { becameMaxed: boolean; lostMaxed: boolean }> {
   const day = await getMemberDay(ctx, memberId, dayKey);
   const given = Math.max(0, (day?.given ?? 0) + (delta.given ?? 0));
   const received = Math.max(0, (day?.received ?? 0) + (delta.received ?? 0));
@@ -84,9 +85,14 @@ async function bumpMemberDay(
   const givenDelta = delta.given ?? 0;
   const maxed =
     givenDelta > 0 ? given >= workspace.dailyLimit : givenDelta < 0 ? wasMaxed && given >= workspace.dailyLimit : wasMaxed;
+  // Allowance use is capped by the limit in force when it was given, so a later limit change
+  // can't make a revoke subtract a different cap than the give added.
+  const wasCapped = day ? (day.capped ?? Math.min(day.given, workspace.dailyLimit)) : 0;
+  const capped =
+    givenDelta > 0 ? Math.min(given, workspace.dailyLimit) : givenDelta < 0 ? Math.min(given, wasCapped) : wasCapped;
   if (day) {
     if (given === 0 && received === 0) await ctx.db.delete(day._id);
-    else await ctx.db.patch(day._id, { given, received, maxed });
+    else await ctx.db.patch(day._id, { given, received, maxed, capped });
   } else {
     await ctx.db.insert("memberDays", {
       workspaceId: workspace._id,
@@ -95,16 +101,28 @@ async function bumpMemberDay(
       given,
       received,
       maxed,
+      capped,
     });
   }
-  return { becameMaxed: maxed && !wasMaxed, lostMaxed: wasMaxed && !maxed };
+  return {
+    memberId,
+    dayKey,
+    before: { given: day?.given ?? 0, received: day?.received ?? 0, maxed: wasMaxed, capped: wasCapped },
+    after:
+      given === 0 && received === 0
+        ? { given: 0, received: 0, maxed: false, capped: 0 }
+        : { given, received, maxed, capped },
+    becameMaxed: maxed && !wasMaxed,
+    lostMaxed: wasMaxed && !maxed,
+  };
 }
 
 type Audience = { slack: TemplateVars; web: TemplateVars };
 
 /**
  * Pick a rarity-rolled message for `member`, record the discovery and queue the
- * bot notification. Returns the notification id.
+ * bot notification. Returns the notification id. A first discovery counts towards the
+ * workspace rollups: pass the caller's `rollups` to batch it, or it is written right away.
  */
 export async function sendBotMessage(
   ctx: MutationCtx,
@@ -113,6 +131,7 @@ export async function sendBotMessage(
   category: Category,
   vars: Audience,
   now: number,
+  rollups?: Rollups,
 ): Promise<Id<"notifications">> {
   const seen = await ctx.db
     .query("discoveries")
@@ -133,6 +152,9 @@ export async function sendBotMessage(
       firstSeenAt: now,
       lastSeenAt: now,
     });
+    const target = rollups ?? new Rollups(ctx, workspace);
+    target.discovered(template.rarity, dayKeyFor(now, workspace.timezone));
+    if (!rollups) await target.flush();
   }
   return await ctx.db.insert("notifications", {
     workspaceId: workspace._id,
@@ -238,8 +260,10 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
   const total = input.amountEach * recipients.length;
 
   const batchId = `${input.channelId}:${input.messageTs ?? now}:${giver._id}`;
+  const hour = zonedParts(now, workspace.timezone).hour;
+  const rollups = new Rollups(ctx, workspace);
   for (const r of recipients) {
-    await ctx.db.insert("kudos", {
+    const row = {
       workspaceId: workspace._id,
       batchId,
       giverId: giver._id,
@@ -253,16 +277,28 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
       messageTs: input.messageTs,
       text: input.text.slice(0, 500),
       at: now,
-    });
-    await bumpMemberDay(ctx, workspace, r._id, dayKey, { received: input.amountEach });
+      hour,
+    };
+    rollups.kudosAdded({ _id: await ctx.db.insert("kudos", row), ...row });
+    rollups.memberDayChanged(await bumpMemberDay(ctx, workspace, r._id, dayKey, { received: input.amountEach }));
     await ctx.db.patch(r._id, { totalReceived: r.totalReceived + input.amountEach });
+    rollups.memberTotalsChanged(
+      { given: r.totalGiven, received: r.totalReceived },
+      { given: r.totalGiven, received: r.totalReceived + input.amountEach },
+    );
   }
-  const { becameMaxed, lostMaxed } = await bumpMemberDay(ctx, workspace, giver._id, dayKey, { given: total });
+  const giverDay = await bumpMemberDay(ctx, workspace, giver._id, dayKey, { given: total });
+  rollups.memberDayChanged(giverDay);
   await ctx.db.patch(giver._id, {
     totalGiven: giver.totalGiven + total,
-    totalMaxedDays: Math.max(0, giver.totalMaxedDays + (becameMaxed ? 1 : 0) - (lostMaxed ? 1 : 0)),
+    totalMaxedDays: Math.max(0, giver.totalMaxedDays + (giverDay.becameMaxed ? 1 : 0) - (giverDay.lostMaxed ? 1 : 0)),
     lastGivenAt: now,
+    ...(await givingProfile(ctx, giver, giverDay)),
   });
+  rollups.memberTotalsChanged(
+    { given: giver.totalGiven, received: giver.totalReceived },
+    { given: giver.totalGiven + total, received: giver.totalReceived },
+  );
 
   const channel = channelVars(input.channelId, input.channelName);
   const notificationIds: Id<"notifications">[] = [];
@@ -285,7 +321,7 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
           limit: workspace.dailyLimit,
           channel: channel.web,
         },
-      }, now),
+      }, now, rollups),
     );
   }
   if (workspace.notifyReceiver) {
@@ -294,10 +330,12 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
         await sendBotMessage(ctx, workspace, r, "receiver_success", {
           slack: { giver: `<@${giver.slackUserId}>`, amount: input.amountEach, emoji: emoji.slack, channel: channel.slack },
           web: { giver: giver.name, amount: input.amountEach, emoji: emoji.web, channel: channel.web },
-        }, now),
+        }, now, rollups),
       );
     }
   }
+
+  await rollups.flush();
 
   return {
     status: "given",
@@ -313,18 +351,33 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
 export async function revokeKudosRow(ctx: MutationCtx, workspace: Doc<"workspaces">, row: Doc<"kudos">) {
   const giver = await ctx.db.get(row.giverId);
   const receiver = await ctx.db.get(row.receiverId);
+  const rollups = new Rollups(ctx, workspace);
   await ctx.db.delete(row._id);
-  const { lostMaxed } = await bumpMemberDay(ctx, workspace, row.giverId, row.dayKey, { given: -row.amount });
-  await bumpMemberDay(ctx, workspace, row.receiverId, row.dayKey, { received: -row.amount });
+  rollups.kudosRemoved(row);
+  const giverDay = await bumpMemberDay(ctx, workspace, row.giverId, row.dayKey, { given: -row.amount });
+  rollups.memberDayChanged(giverDay);
+  rollups.memberDayChanged(await bumpMemberDay(ctx, workspace, row.receiverId, row.dayKey, { received: -row.amount }));
   if (giver) {
+    const totalGiven = Math.max(0, giver.totalGiven - row.amount);
     await ctx.db.patch(giver._id, {
-      totalGiven: Math.max(0, giver.totalGiven - row.amount),
-      totalMaxedDays: Math.max(0, giver.totalMaxedDays - (lostMaxed ? 1 : 0)),
+      totalGiven,
+      totalMaxedDays: Math.max(0, giver.totalMaxedDays - (giverDay.lostMaxed ? 1 : 0)),
+      ...(await givingProfile(ctx, giver, giverDay)),
     });
+    rollups.memberTotalsChanged(
+      { given: giver.totalGiven, received: giver.totalReceived },
+      { given: totalGiven, received: giver.totalReceived },
+    );
   }
   if (receiver) {
-    await ctx.db.patch(receiver._id, { totalReceived: Math.max(0, receiver.totalReceived - row.amount) });
+    const totalReceived = Math.max(0, receiver.totalReceived - row.amount);
+    await ctx.db.patch(receiver._id, { totalReceived });
+    rollups.memberTotalsChanged(
+      { given: receiver.totalGiven, received: receiver.totalReceived },
+      { given: receiver.totalGiven, received: totalReceived },
+    );
   }
+  await rollups.flush();
 }
 
 /** Rarity-rolled "you have N left" message (slash command, App Home, playground). */

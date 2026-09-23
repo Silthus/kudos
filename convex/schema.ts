@@ -10,6 +10,14 @@ export const rarityValidator = v.union(
   v.literal("legendary"),
 );
 
+export const rarityCountsValidator = v.object({
+  common: v.number(),
+  uncommon: v.number(),
+  rare: v.number(),
+  epic: v.number(),
+  legendary: v.number(),
+});
+
 export const categoryValidator = v.union(
   v.literal("giver_success"),
   v.literal("receiver_success"),
@@ -97,6 +105,12 @@ export default defineSchema({
     totalReceived: v.number(),
     totalMaxedDays: v.number(),
     lastGivenAt: v.optional(v.number()),
+    // Giving profile, maintained with every give/revoke (see lib/rollups.ts). Absent until the
+    // member first gives after rollups shipped; the first maintenance recomputes it from memberDays.
+    currentStreak: v.optional(v.number()), // consecutive giving days ending at lastActiveDay
+    longestStreak: v.optional(v.number()),
+    lastActiveDay: v.optional(v.string()), // latest dayKey with given > 0
+    givenByWeekday: v.optional(v.array(v.number())), // 7 sums, Monday first
   })
     .index("by_workspace_slackUser", ["workspaceId", "slackUserId"])
     .index("by_workspace_totalGiven", ["workspaceId", "totalGiven"])
@@ -116,6 +130,7 @@ export default defineSchema({
     messageTs: v.optional(v.string()),
     text: v.string(),
     at: v.number(), // when it was given (seeded demo history is back-dated)
+    hour: v.optional(v.number()), // local hour (0–23) at write time; keeps heatmap buckets stable
   })
     .index("by_workspace_at", ["workspaceId", "at"])
     .index("by_giver_at", ["giverId", "at"])
@@ -132,9 +147,69 @@ export default defineSchema({
     given: v.number(),
     received: v.number(),
     maxed: v.boolean(),
+    // min(given, dailyLimit in force when it was given); lowered only by revokes. Absent on rows
+    // written before rollups: read as min(given, current dailyLimit).
+    capped: v.optional(v.number()),
   })
     .index("by_member_day", ["memberId", "dayKey"])
     .index("by_workspace_day", ["workspaceId", "dayKey"]),
+
+  // Read-model rollups, maintained exactly inside give/revoke (lib/rollups.ts). Bucket keys are
+  // pure functions of dayKey (lib/buckets.ts). All-zero rows are deleted: absent means zero.
+  workspaceStats: defineTable({
+    workspaceId: v.id("workspaces"),
+    bucket: v.string(), // d:, w:, m:, q:, y: or all
+    given: v.number(), // units given
+    kudosRows: v.number(), // one per recipient
+    messages: v.number(), // distinct batchIds
+    givers: v.number(), // distinct members with given > 0 in the bucket
+    receivers: v.number(), // distinct members with received > 0 in the bucket
+    giverDays: v.number(), // memberDays rows with given > 0
+    cappedGiven: v.number(), // Σ memberDays.capped: allowance used, at the limit in force when given
+    maxedDays: v.number(),
+    fromReactions: v.number(),
+    fromMessages: v.number(), // every non-reaction source
+    heat: v.array(v.number()), // day: 24 hours; longer buckets: 7 × 24, Monday-major
+    found: rarityCountsValidator, // first discoveries of a message, by rarity
+  }).index("by_workspace_bucket", ["workspaceId", "bucket"]),
+
+  // Per-member w/m/q/y buckets. The day bucket is memberDays, all time is members.total*.
+  memberStats: defineTable({
+    workspaceId: v.id("workspaces"),
+    memberId: v.id("members"),
+    bucket: v.string(),
+    given: v.number(),
+    received: v.number(),
+    maxedDays: v.number(),
+    activeDays: v.number(), // days with given > 0
+  })
+    .index("by_member_bucket", ["memberId", "bucket"])
+    .index("by_workspace_bucket_given", ["workspaceId", "bucket", "given"])
+    .index("by_workspace_bucket_received", ["workspaceId", "bucket", "received"]),
+
+  // Giver → receiver sums, w/m/q/y/all buckets.
+  pairStats: defineTable({
+    workspaceId: v.id("workspaces"),
+    bucket: v.string(),
+    giverId: v.id("members"),
+    receiverId: v.id("members"),
+    amount: v.number(),
+  })
+    .index("by_giver_bucket_receiver", ["giverId", "bucket", "receiverId"])
+    .index("by_giver_bucket_amount", ["giverId", "bucket", "amount"])
+    .index("by_receiver_bucket_amount", ["receiverId", "bucket", "amount"])
+    .index("by_workspace_bucket_amount", ["workspaceId", "bucket", "amount"]),
+
+  // Units per channel, w/m/q/y/all buckets. Private channels share one row so their names
+  // never reach a workspace-wide table.
+  channelStats: defineTable({
+    workspaceId: v.id("workspaces"),
+    bucket: v.string(),
+    channel: v.string(), // channelName ?? channelId, or PRIVATE_CHANNELS
+    amount: v.number(),
+  })
+    .index("by_workspace_bucket_channel", ["workspaceId", "bucket", "channel"])
+    .index("by_workspace_bucket_amount", ["workspaceId", "bucket", "amount"]),
 
   discoveries: defineTable({
     workspaceId: v.id("workspaces"),
