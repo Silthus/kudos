@@ -1,0 +1,84 @@
+@import "tailwindcss";
+@import "@fontsource-variable/bricolage-grotesque";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+@theme {
+  --font-display: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+
+  --color-ink: #0f0d0b;
+  --color-panel: #17140f;
+  --color-panel-2: #1e1a14;
+  --color-panel-3: #27221b;
+  --color-line: rgb(255 236 210 / 0.08);
+  --color-line-strong: rgb(255 236 210 / 0.16);
+  --color-cream: #f6efe4;
+  --color-muted: #aaa093;
+  --color-faint: #726a5f;
+
+  --color-saffron: #ffb224;
+  --color-saffron-deep: #cf7d17;
+  --color-ember: #ff6b4a;
+  --color-teal: #219c86;
+  --color-teal-soft: #5fd4bd;
+  --color-up: #7ddc9c;
+  --color-down: #ff8a78;
+
+  --color-r-common: #a5a19a;
+  --color-r-uncommon: #4fca7d;
+  --color-r-rare: #4aa8f0;
+  --color-r-epic: #b67cf2;
+  --color-r-legendary: #ffb224;
+
+  --animate-shimmer: shimmer 3.2s linear infinite;
+  --animate-float: float 6s ease-in-out infinite;
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(-4deg); }
+    50% { transform: translateY(-10px) rotate(4deg); }
+  }
+}
+
+@layer base {
+  html { color-scheme: dark; background: var(--color-ink); }
+  body {
+    @apply bg-ink text-cream font-sans antialiased;
+    font-feature-settings: "ss01", "cv11";
+    background-image:
+      radial-gradient(1100px 520px at 12% -10%, rgb(255 178 36 / 0.07), transparent 60%),
+      radial-gradient(900px 480px at 110% 10%, rgb(33 156 134 / 0.06), transparent 60%);
+    background-attachment: fixed;
+    min-height: 100dvh;
+  }
+  ::selection { background: rgb(255 178 36 / 0.35); }
+  :focus-visible { outline: 2px solid var(--color-saffron); outline-offset: 2px; border-radius: 6px; }
+  .tabular { font-variant-numeric: tabular-nums; }
+}
+
+@utility grain {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    opacity: 0.35;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+}
+
+@utility legendary-text {
+  background: linear-gradient(90deg, #ffcf6a, #ff8a3d, #ffe29a, #ff8a3d, #ffcf6a);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: var(--animate-shimmer);
+}

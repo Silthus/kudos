@@ -1,0 +1,231 @@
+import { useAuthActions } from "@convex-dev/auth/react";
+import { AnimatePresence, motion } from "motion/react";
+import { BarChart3, Gem, Lock, Sparkles, Timer, Trophy, Webhook } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router";
+import { Logo } from "@/components/AppShell";
+import { Avatar, Button, Eyebrow, RarityBadge } from "@/components/ui";
+import { RARITY_META, RARITY_ORDER, type Rarity } from "@/lib/rarity";
+import { siteUrl } from "@/lib/viewer";
+
+export function SlackMark({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 122.8 122.8" className={className} aria-hidden>
+      <path d="M25.8 77.6c0 7.1-5.8 12.9-12.9 12.9S0 84.7 0 77.6s5.8-12.9 12.9-12.9h12.9v12.9zm6.5 0c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9v32.3c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V77.6z" fill="#e01e5a" />
+      <path d="M45.2 25.8c-7.1 0-12.9-5.8-12.9-12.9S38.1 0 45.2 0s12.9 5.8 12.9 12.9v12.9H45.2zm0 6.5c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H12.9C5.8 58.1 0 52.3 0 45.2s5.8-12.9 12.9-12.9h32.3z" fill="#36c5f0" />
+      <path d="M97 45.2c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9-5.8 12.9-12.9 12.9H97V45.2zm-6.5 0c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V12.9C64.7 5.8 70.5 0 77.6 0s12.9 5.8 12.9 12.9v32.3z" fill="#2eb67d" />
+      <path d="M77.6 97c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9-12.9-5.8-12.9-12.9V97h12.9zm0-6.5c-7.1 0-12.9-5.8-12.9-12.9s5.8-12.9 12.9-12.9h32.3c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H77.6z" fill="#ecb22e" />
+    </svg>
+  );
+}
+
+const DROPS: { rarity: Rarity; text: string }[] = [
+  { rarity: "common", text: "Delivered! Priya and Jonas just got 2 🌮 from you. 1 left for today." },
+  { rarity: "uncommon", text: "You just made someone's afternoon. 2 🌮 for Priya and Jonas, 1 still up for grabs." },
+  { rarity: "rare", text: "🎯 Direct hit! 2 🌮 landed squarely on Priya and Jonas. Ammo left today: 1." },
+  { rarity: "epic", text: "⚡ Epic giving energy! You channeled 2 🌮 straight into Priya and Jonas. The team morale meter just ticked up." },
+  { rarity: "legendary", text: "🔥 LEGENDARY DROP! M-M-M-Monster 🌮 from your hands flow. 2 points empower Priya and Jonas. Songs will be sung in #releases." },
+];
+
+function SlackMock() {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setI((n) => (n + 1) % DROPS.length), 2800);
+    return () => clearInterval(t);
+  }, []);
+  const drop = DROPS[i];
+  const meta = RARITY_META[drop.rarity];
+  return (
+    <div className="relative">
+      <div className="absolute -inset-10 -z-10 rounded-[40px] bg-[radial-gradient(closest-side,rgb(255_178_36/0.18),transparent)] blur-2xl" />
+      <div className="grain overflow-hidden rounded-3xl border border-line-strong bg-panel shadow-2xl">
+        <div className="flex items-center gap-2 border-b border-line px-5 py-3">
+          <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
+          <span className="ml-3 font-mono text-xs text-faint"># releases</span>
+        </div>
+        <div className="space-y-5 p-5">
+          <div className="flex gap-3">
+            <Avatar name="Alex Rivera" size={38} />
+            <div>
+              <div className="text-sm">
+                <b className="font-semibold">Alex Rivera</b> <span className="text-xs text-faint">10:42</span>
+              </div>
+              <p className="mt-0.5 text-[15px] leading-relaxed text-cream/90">
+                <span className="rounded bg-[#1d9bd1]/20 px-1 text-[#6cc7f5]">@Priya</span>{" "}
+                <span className="rounded bg-[#1d9bd1]/20 px-1 text-[#6cc7f5]">@Jonas</span> 🌮🌮 the release went out without a single hiccup. Legends.
+              </p>
+              <div className="mt-2 flex gap-1.5">
+                <span className="rounded-full border border-[#1d9bd1]/50 bg-[#1d9bd1]/15 px-2 py-0.5 text-xs">🌮 4</span>
+                <span className="rounded-full border border-line-strong px-2 py-0.5 text-xs">🙌 3</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <span className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-lg bg-saffron/20 text-lg">🌮</span>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm">
+                <b className="font-semibold">Kudos</b> <span className="rounded bg-panel-3 px-1 py-px text-[10px] font-semibold text-muted">APP</span>{" "}
+                <span className="text-xs text-faint">Only visible to you</span>
+              </div>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.35 }}
+                  className={`mt-2 rounded-2xl border bg-ink/60 p-4 ring-1 ring-inset ${meta.ring} ${meta.glow}`}
+                  style={{ borderColor: "transparent" }}
+                >
+                  <p className="text-[15px] leading-relaxed">{drop.text}</p>
+                  <div className="mt-3 flex items-center gap-2">
+                    <RarityBadge rarity={drop.rarity} size="xs" />
+                    {drop.rarity !== "common" && <span className="text-xs text-muted">✨ New discovery! ({12 + i}/60)</span>}
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const FEATURES = [
+  { icon: Timer, title: "A daily allowance", body: "Everyone gets a handful of kudos per day. Scarcity makes each one mean something; unused ones vanish at midnight." },
+  { icon: Gem, title: "Collectible bot replies", body: "Every reply rolls a rarity, from Common to Legendary. Discover all 60 messages and brag about your gallery." },
+  { icon: Trophy, title: "Leaderboards with momentum", body: "Weekly and monthly rankings, change vs the last period, and who used their full allowance." },
+  { icon: Lock, title: "Giving first, privacy built in", body: "Received counts are private by default. Admins decide whether they're hidden, personal, or public." },
+  { icon: BarChart3, title: "Analytics that matter", body: "Participation, allowance use, when and where recognition happens, and how concentrated giving is." },
+  { icon: Webhook, title: "Webhooks, not sockets", body: "Slack's Events API posts straight into Convex HTTP actions. No always-on server, no Socket Mode." },
+];
+
+export function Landing() {
+  const { signIn } = useAuthActions();
+  const [params] = useSearchParams();
+  const [busy, setBusy] = useState<"demo" | "slack" | null>(null);
+  const installed = params.get("installed");
+  const installError = params.get("install_error");
+  const site = siteUrl();
+
+  const demo = async () => {
+    setBusy("demo");
+    try {
+      await signIn("demo");
+    } finally {
+      setBusy(null);
+    }
+  };
+  const slack = async () => {
+    setBusy("slack");
+    await signIn("slack", { redirectTo: "/me" });
+  };
+
+  return (
+    <div className="relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_right,rgb(255_236_210/0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgb(255_236_210/0.035)_1px,transparent_1px)] bg-[size:56px_56px] [mask-image:radial-gradient(ellipse_at_top,black_30%,transparent_75%)]" />
+      <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
+        <Logo />
+        <div className="flex items-center gap-2">
+          <Link to="/setup" className="hidden rounded-lg px-3 py-2 text-sm text-muted hover:text-cream sm:block">
+            Install guide
+          </Link>
+          <Button variant="outline" size="sm" onClick={slack} disabled={busy !== null}>
+            <SlackMark /> Sign in with Slack
+          </Button>
+        </div>
+      </header>
+
+      {(installed || installError) && (
+        <div className="mx-auto mt-2 max-w-6xl px-5">
+          <div className={`rounded-xl border px-4 py-3 text-sm ${installed ? "border-up/30 bg-up/10" : "border-down/30 bg-down/10"}`}>
+            {installed ? (
+              <>🎉 Kudos is installed in <b>{installed}</b>. Sign in with Slack to open your dashboard, then invite <code>@Kudos</code> to a channel.</>
+            ) : (
+              <>Installation didn't complete ({installError}). Try again, or check the install guide.</>
+            )}
+          </div>
+        </div>
+      )}
+
+      <section className="mx-auto grid grid-cols-1 max-w-6xl items-center gap-14 px-5 pb-20 pt-12 lg:grid-cols-[1.05fr_1fr] lg:pt-20">
+        <div>
+          <Eyebrow className="mb-5 text-saffron">Peer recognition for Slack</Eyebrow>
+          <h1 className="font-display text-5xl font-semibold leading-[0.98] tracking-[-0.03em] sm:text-7xl">
+            Make appreciation
+            <br />a daily <span className="relative whitespace-nowrap text-saffron">habit<motion.span initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 0.5, duration: 0.7 }} className="absolute -bottom-1 left-0 h-1.5 w-full origin-left rounded-full bg-saffron/40" /></span>.
+          </h1>
+          <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
+            Mention a teammate, add a 🌮, and they get kudos. Everyone has a small daily allowance, every bot reply is a
+            collectible with its own rarity, and the dashboard turns it all into leaderboards and team insight.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <a href={`${site}/slack/install`}>
+              <Button variant="primary" size="lg">
+                <SlackMark className="h-5 w-5" /> Add to Slack
+              </Button>
+            </a>
+            <Button variant="outline" size="lg" onClick={demo} disabled={busy !== null}>
+              <Sparkles className="h-4 w-4 text-saffron" />
+              {busy === "demo" ? "Opening demo…" : "Explore the live demo"}
+            </Button>
+          </div>
+          <p className="mt-4 text-sm text-faint">No sign-up for the demo. It's a sample workspace with 4 months of history.</p>
+        </div>
+        <SlackMock />
+      </section>
+
+      <section className="mx-auto max-w-6xl px-5 pb-20">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {FEATURES.map((f, i) => (
+            <motion.div
+              key={f.title}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.05 }}
+              className="rounded-2xl border border-line bg-panel/60 p-6"
+            >
+              <f.icon className="h-5 w-5 text-saffron" />
+              <h3 className="mt-4 font-display text-lg font-semibold">{f.title}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted">{f.body}</p>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-5 pb-24">
+        <div className="grain rounded-3xl border border-line bg-panel/60 p-8 sm:p-10">
+          <div className="flex flex-wrap items-end justify-between gap-6">
+            <div>
+              <Eyebrow>Drop rates</Eyebrow>
+              <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight">Every reply is a roll of the dice</h2>
+              <p className="mt-2 max-w-lg text-muted">
+                The bot answers givers and receivers with one of 60 messages. Rarer messages are funnier, and the game quietly favours ones you haven't seen yet.
+              </p>
+            </div>
+          </div>
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-5">
+            {RARITY_ORDER.map((r, i) => (
+              <div key={r} className={`rounded-2xl bg-ink/50 p-4 ring-1 ring-inset ${RARITY_META[r].ring} ${RARITY_META[r].glow}`}>
+                <RarityBadge rarity={r} size="xs" />
+                <div className={`mt-4 font-display text-3xl font-semibold tabular ${r === "legendary" ? "legendary-text" : ""}`}>{[55, 25, 12, 6, 2][i]}%</div>
+                <div className="text-xs text-faint">{[25, 15, 10, 5, 5][i]} messages</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <footer className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 border-t border-line px-5 py-8 text-sm text-faint">
+        <span>Built on Convex · Slack Events API over HTTPS</span>
+        <Link to="/setup" className="hover:text-cream">
+          Self-host & install guide →
+        </Link>
+      </footer>
+    </div>
+  );
+}

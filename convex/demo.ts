@@ -1,0 +1,597 @@
+import { ConvexError, v } from "convex/values";
+import { internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
+import { internal } from "./_generated/api";
+import type { Doc, Id } from "./_generated/dataModel";
+import { allowanceCheck, findMember, giveKudos, revokeKudosRow } from "./engine";
+import { getViewer, requireViewer } from "./lib/access";
+import { CATALOG, RARITY_WEIGHTS, type Category } from "./lib/messages";
+import { parseKudosMessage, previewText } from "./lib/parse";
+import { addDays, dayKeyFor, startOfDayUtc, weekdayOfKey } from "./lib/time";
+import { DEFAULT_SETTINGS } from "./lib/settings";
+
+const DEMO_TEAM = "T_DEMO_LUMEN";
+export const DEMO_YOU = "UDEMOYOU";
+const SEED_DAYS = 120;
+const DAYS_PER_CHUNK = 15;
+
+const PEOPLE: { id: string; name: string; realName: string; title: string; generosity: number }[] = [
+  { id: DEMO_YOU, name: "Alex Rivera", realName: "Alex Rivera", title: "Engineering Manager", generosity: 0.55 },
+  { id: "UDEMOPRIYA", name: "Priya Raman", realName: "Priya Raman", title: "Staff Engineer", generosity: 0.8 },
+  { id: "UDEMOJONAS", name: "Jonas Weber", realName: "Jonas Weber", title: "Product Designer", generosity: 0.7 },
+  { id: "UDEMOLENA", name: "Lena Hoffmann", realName: "Lena Hoffmann", title: "Head of People", generosity: 0.9 },
+  { id: "UDEMOMATEO", name: "Mateo García", realName: "Mateo García", title: "Account Executive", generosity: 0.45 },
+  { id: "UDEMOAIKO", name: "Aiko Tanaka", realName: "Aiko Tanaka", title: "Data Scientist", generosity: 0.5 },
+  { id: "UDEMOSAMIR", name: "Samir Haddad", realName: "Samir Haddad", title: "SRE", generosity: 0.35 },
+  { id: "UDEMOFREYA", name: "Freya Lindqvist", realName: "Freya Lindqvist", title: "Customer Success", generosity: 0.75 },
+  { id: "UDEMOTOBIAS", name: "Tobias Brandt", realName: "Tobias Brandt", title: "Backend Engineer", generosity: 0.3 },
+  { id: "UDEMOCHLOE", name: "Chloé Martin", realName: "Chloé Martin", title: "Marketing Lead", generosity: 0.6 },
+  { id: "UDEMOKWAME", name: "Kwame Mensah", realName: "Kwame Mensah", title: "Solutions Engineer", generosity: 0.4 },
+  { id: "UDEMOSOFIA", name: "Sofia Rossi", realName: "Sofia Rossi", title: "QA Lead", generosity: 0.65 },
+  { id: "UDEMOEMIL", name: "Emil Novak", realName: "Emil Novak", title: "Frontend Engineer", generosity: 0.25 },
+  { id: "UDEMOHANNAH", name: "Hannah Schulz", realName: "Hannah Schulz", title: "Finance", generosity: 0.2 },
+  { id: "UDEMODIEGO", name: "Diego Alvarez", realName: "Diego Alvarez", title: "Support Engineer", generosity: 0.55 },
+  { id: "UDEMOYUKI", name: "Yuki Sato", realName: "Yuki Sato", title: "Mobile Engineer", generosity: 0.35 },
+  { id: "UDEMONORA", name: "Nora Klein", realName: "Nora Klein", title: "Recruiter", generosity: 0.7 },
+  { id: "UDEMOOSKAR", name: "Oskar Berg", realName: "Oskar Berg", title: "Installer Ops", generosity: 0.15 },
+];
+
+const CHANNELS = [
+  { name: "general", weight: 3 },
+  { name: "engineering", weight: 4 },
+  { name: "releases", weight: 2 },
+  { name: "customer-love", weight: 2 },
+  { name: "design", weight: 1 },
+  { name: "sales-wins", weight: 2 },
+  { name: "random", weight: 1 },
+];
+
+const REASONS = [
+  "thanks for jumping on the incident at 2am",
+  "that release went out without a single hiccup",
+  "for the incredibly clear onboarding doc",
+  "the customer literally wrote back 'best support ever'",
+  "for pairing with me on the flaky test",
+  "the new dashboard looks stunning",
+  "for closing the biggest deal of the quarter",
+  "you made the all-hands actually fun",
+  "for reviewing 14 PRs today",
+  "for the thoughtful feedback on my proposal",
+  "saved the demo with that last-minute fix",
+  "for mentoring the new joiners",
+  "that migration was flawless",
+  "for staying calm when everything was on fire",
+  "the retro format was a great idea",
+  "for untangling the billing mystery",
+  "for the brilliant user interviews",
+  "for making the install schedule work",
+];
+
+function mulberry32(seed: number) {
+  let a = seed;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function weighted<T>(items: T[], weight: (t: T) => number, r: number): T {
+  const total = items.reduce((s, t) => s + weight(t), 0);
+  let x = r * total;
+  for (const t of items) {
+    x -= weight(t);
+    if (x < 0) return t;
+  }
+  return items[items.length - 1];
+}
+
+async function demoWorkspace(ctx: MutationCtx) {
+  return await ctx.db
+    .query("workspaces")
+    .withIndex("by_team", (q) => q.eq("slackTeamId", DEMO_TEAM))
+    .unique();
+}
+
+/** Creates the demo workspace on first use and returns the shared demo user. */
+export const ensureDemoUser = internalMutation({
+  args: {},
+  returns: v.id("users"),
+  handler: async (ctx) => {
+    let workspace = await demoWorkspace(ctx);
+    if (!workspace) {
+      const id = await ctx.db.insert("workspaces", {
+        slackTeamId: DEMO_TEAM,
+        name: "Lumen Labs",
+        isDemo: true,
+        status: "active",
+        ...DEFAULT_SETTINGS,
+      });
+      workspace = (await ctx.db.get(id))!;
+      for (const p of PEOPLE) {
+        await ctx.db.insert("members", {
+          workspaceId: id,
+          slackUserId: p.id,
+          name: p.name,
+          realName: p.realName,
+          title: p.title,
+          isAdmin: p.id === DEMO_YOU || p.id === "UDEMOLENA",
+          isBot: false,
+          deactivated: false,
+          totalGiven: 0,
+          totalReceived: 0,
+          totalMaxedDays: 0,
+        });
+      }
+      const today = dayKeyFor(Date.now(), workspace.timezone);
+      await ctx.scheduler.runAfter(0, internal.demo.seedHistory, {
+        workspaceId: id,
+        fromDay: addDays(today, -SEED_DAYS),
+        untilDay: addDays(today, -1),
+      });
+    }
+    const me = await ctx.db
+      .query("members")
+      .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id).eq("slackUserId", DEMO_YOU))
+      .unique();
+    if (!me) throw new ConvexError("Demo workspace is missing its demo member");
+    if (me.userId) return me.userId;
+    const userId = await ctx.db.insert("users", { name: me.name, isDemo: true, slackUserId: DEMO_YOU, slackTeamId: DEMO_TEAM });
+    await ctx.db.patch(me._id, { userId });
+    return userId;
+  },
+});
+
+/** Seeds kudos history in chunks so each transaction stays well under Convex limits. */
+export const seedHistory = internalMutation({
+  args: { workspaceId: v.id("workspaces"), fromDay: v.string(), untilDay: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { workspaceId, fromDay, untilDay }) => {
+    const workspace = await ctx.db.get(workspaceId);
+    if (!workspace || !workspace.isDemo) return null;
+    const members = await ctx.db
+      .query("members")
+      .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspaceId))
+      .take(100);
+    const bySlack = new Map(members.map((m) => [m.slackUserId, m]));
+    const totals = new Map<Id<"members">, { given: number; received: number; maxed: number; lastGivenAt?: number }>();
+    const bump = (id: Id<"members">, k: "given" | "received" | "maxed", n: number) => {
+      const t = totals.get(id) ?? { given: 0, received: 0, maxed: 0 };
+      t[k] += n;
+      totals.set(id, t);
+    };
+    const discoveryHits = new Map<Id<"members">, Map<Category, number[]>>();
+    const hit = (id: Id<"members">, c: Category, at: number) => {
+      const byCat = discoveryHits.get(id) ?? new Map<Category, number[]>();
+      byCat.set(c, [...(byCat.get(c) ?? []), at]);
+      discoveryHits.set(id, byCat);
+    };
+
+    let day = fromDay;
+    let processed = 0;
+    while (day <= untilDay && processed < DAYS_PER_CHUNK) {
+      const [y, m, d] = day.split("-").map(Number);
+      const rand = mulberry32(y * 10000 + m * 100 + d);
+      const weekend = weekdayOfKey(day) >= 5;
+      const dayStart = startOfDayUtc(day, workspace.timezone);
+      const received = new Map<Id<"members">, number>();
+      for (const person of PEOPLE) {
+        const giver = bySlack.get(person.id)!;
+        // Momentum: most people give a bit more in recent weeks.
+        const recency = 0.75 + 0.5 * (1 - (Date.now() - dayStart) / (SEED_DAYS * 86_400_000));
+        const chance = person.generosity * (weekend ? 0.12 : 0.62) * recency;
+        if (rand() > chance) continue;
+        let used = 0;
+        const messages = 1 + Math.floor(rand() * 3);
+        for (let i = 0; i < messages && used < workspace.dailyLimit; i++) {
+          const recipientCount = rand() < 0.2 ? 2 : 1;
+          const amountEach = Math.min(1 + Math.floor(rand() * rand() * 3), Math.floor((workspace.dailyLimit - used) / recipientCount));
+          if (amountEach < 1) break;
+          const pool = PEOPLE.filter((p) => p.id !== person.id);
+          const recipients: Doc<"members">[] = [];
+          while (recipients.length < recipientCount) {
+            const pick = bySlack.get(weighted(pool, (p) => 0.3 + p.generosity, rand()).id)!;
+            if (!recipients.includes(pick)) recipients.push(pick);
+          }
+          const channel = weighted(CHANNELS, (c) => c.weight, rand());
+          const hour = 8 + Math.floor(rand() * 10);
+          const at = dayStart + hour * 3_600_000 + Math.floor(rand() * 3_600_000);
+          const reason = REASONS[Math.floor(rand() * REASONS.length)];
+          const text = `${recipients.map((r) => `@${r.name.split(" ")[0]}`).join(" ")} ${"🌮".repeat(amountEach)} ${reason}`;
+          const batchId = `seed:${day}:${person.id}:${i}`;
+          for (const r of recipients) {
+            await ctx.db.insert("kudos", {
+              workspaceId,
+              batchId,
+              giverId: giver._id,
+              receiverId: r._id,
+              amount: amountEach,
+              dayKey: day,
+              source: "seed",
+              channelId: `C_DEMO_${channel.name.toUpperCase()}`,
+              channelName: channel.name,
+              messageTs: `${Math.floor(at / 1000)}.${i}`,
+              text,
+              at,
+            });
+            received.set(r._id, (received.get(r._id) ?? 0) + amountEach);
+            bump(r._id, "received", amountEach);
+            hit(r._id, "receiver_success", at);
+          }
+          used += amountEach * recipients.length;
+          hit(giver._id, "giver_success", at);
+          if (rand() < 0.08) hit(giver._id, "allowance_status", at);
+          if (rand() < 0.03) hit(giver._id, "limit_reached", at);
+          if (rand() < 0.02) hit(giver._id, "self_kudos", at);
+          const t = totals.get(giver._id) ?? { given: 0, received: 0, maxed: 0 };
+          t.lastGivenAt = Math.max(t.lastGivenAt ?? 0, at);
+          totals.set(giver._id, t);
+        }
+        if (used > 0) {
+          const maxed = used >= workspace.dailyLimit;
+          await ctx.db.insert("memberDays", {
+            workspaceId,
+            memberId: giver._id,
+            dayKey: day,
+            given: used,
+            received: received.get(giver._id) ?? 0,
+            maxed,
+          });
+          received.delete(giver._id);
+          bump(giver._id, "given", used);
+          if (maxed) bump(giver._id, "maxed", 1);
+        }
+      }
+      for (const [memberId, amount] of received) {
+        const existing = await ctx.db
+          .query("memberDays")
+          .withIndex("by_member_day", (q) => q.eq("memberId", memberId).eq("dayKey", day))
+          .unique();
+        if (existing) await ctx.db.patch(existing._id, { received: existing.received + amount });
+        else await ctx.db.insert("memberDays", { workspaceId, memberId, dayKey: day, given: 0, received: amount, maxed: false });
+      }
+      day = addDays(day, 1);
+      processed++;
+    }
+
+    for (const [memberId, t] of totals) {
+      const m = (await ctx.db.get(memberId))!;
+      await ctx.db.patch(memberId, {
+        totalGiven: m.totalGiven + t.given,
+        totalReceived: m.totalReceived + t.received,
+        totalMaxedDays: m.totalMaxedDays + t.maxed,
+        lastGivenAt: t.lastGivenAt ? Math.max(t.lastGivenAt, m.lastGivenAt ?? 0) : m.lastGivenAt,
+      });
+    }
+    await seedDiscoveries(ctx, workspaceId, discoveryHits, day);
+
+    if (day <= untilDay) {
+      await ctx.scheduler.runAfter(0, internal.demo.seedHistory, { workspaceId, fromDay: day, untilDay });
+    } else if (workspace.resettingSince) {
+      await ctx.db.patch(workspaceId, { resettingSince: undefined });
+    }
+    return null;
+  },
+});
+
+async function seedDiscoveries(
+  ctx: MutationCtx,
+  workspaceId: Id<"workspaces">,
+  hits: Map<Id<"members">, Map<Category, number[]>>,
+  salt: string,
+) {
+  const rand = mulberry32(salt.split("-").reduce((a, b) => a * 31 + Number(b), 7));
+  const totalWeight = Object.values(RARITY_WEIGHTS).reduce((a, b) => a + b, 0);
+  for (const [memberId, byCat] of hits) {
+    for (const [category, times] of byCat) {
+      const pool = CATALOG.filter((t) => t.category === category);
+      for (const at of times) {
+        let roll = rand() * totalWeight;
+        const rarity = (Object.keys(RARITY_WEIGHTS) as (keyof typeof RARITY_WEIGHTS)[]).find((r) => {
+          roll -= RARITY_WEIGHTS[r];
+          return roll < 0;
+        }) ?? "common";
+        const options = pool.filter((t) => t.rarity === rarity);
+        const template = options[Math.floor(rand() * options.length)];
+        const existing = await ctx.db
+          .query("discoveries")
+          .withIndex("by_member_template", (q) => q.eq("memberId", memberId).eq("templateKey", template.key))
+          .unique();
+        if (existing) {
+          await ctx.db.patch(existing._id, {
+            timesSeen: existing.timesSeen + 1,
+            lastSeenAt: Math.max(existing.lastSeenAt, at),
+            firstSeenAt: Math.min(existing.firstSeenAt, at),
+          });
+        } else {
+          await ctx.db.insert("discoveries", {
+            workspaceId,
+            memberId,
+            templateKey: template.key,
+            rarity: template.rarity,
+            category: template.category,
+            timesSeen: 1,
+            firstSeenAt: at,
+            lastSeenAt: at,
+          });
+        }
+      }
+    }
+  }
+}
+
+async function requireDemoViewer(ctx: MutationCtx) {
+  const viewer = await requireViewer(ctx);
+  if (!viewer.workspace.isDemo) throw new ConvexError("The playground only works in the demo workspace.");
+  return viewer;
+}
+
+const playgroundResult = v.object({
+  status: v.string(),
+  messages: v.array(
+    v.object({
+      _id: v.id("notifications"),
+      to: v.string(),
+      toMe: v.boolean(),
+      category: v.string(),
+      rarity: v.string(),
+      text: v.string(),
+      isNewDiscovery: v.boolean(),
+    }),
+  ),
+});
+
+async function describeNotifications(ctx: MutationCtx, me: Id<"members">, ids: Id<"notifications">[]) {
+  const out = [];
+  for (const id of ids) {
+    const n = (await ctx.db.get(id))!;
+    const member = (await ctx.db.get(n.memberId))!;
+    out.push({
+      _id: n._id,
+      to: member.name,
+      toMe: member._id === me,
+      category: n.category,
+      rarity: n.rarity,
+      text: n.webText,
+      isNewDiscovery: n.isNewDiscovery,
+    });
+  }
+  return out;
+}
+
+/** Sends a message into a pretend Slack channel; runs the exact same pipeline as real Slack events. */
+export const simulateMessage = mutation({
+  args: { text: v.string(), channelName: v.string() },
+  returns: playgroundResult,
+  handler: async (ctx, { text, channelName }) => {
+    const { workspace, member } = await requireDemoViewer(ctx);
+    if (text.length > 1000 || channelName.length > 40) throw new ConvexError("Message is too long.");
+    const parsed = parseKudosMessage(text, workspace.emojiName);
+    if (!parsed) return { status: "no_kudos", messages: [] };
+    const members = await ctx.db
+      .query("members")
+      .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id))
+      .take(100);
+    const known = new Map(members.map((m) => [m.slackUserId, m.name]));
+    const recipients = parsed.recipients.filter((id) => known.has(id));
+    const now = Date.now();
+    const result = await giveKudos(ctx, {
+      workspace,
+      giverSlackId: member.slackUserId,
+      recipientSlackIds: recipients,
+      amountEach: parsed.amountEach,
+      channelId: `C_DEMO_${channelName.toUpperCase()}`,
+      channelName: channelName.replace(/[^a-z0-9-]/gi, "").slice(0, 40) || "general",
+      messageTs: `${now / 1000}`,
+      text: previewText(text, (id) => known.get(id)),
+      source: "playground",
+      now,
+    });
+    if (result.status === "given") {
+      // Teammates sometimes return the favour a few seconds later; shows live updates.
+      const pool = result.recipientIds;
+      const giver = pool[Math.floor(Math.random() * pool.length)];
+      if (giver && Math.random() < 0.6) {
+        await ctx.scheduler.runAfter(2500 + Math.random() * 3000, internal.demo.teammateThanks, {
+          workspaceId: workspace._id,
+          fromMemberId: giver,
+          toMemberId: member._id,
+          channelName,
+        });
+      }
+    }
+    return { status: result.status, messages: await describeNotifications(ctx, member._id, result.notificationIds) };
+  },
+});
+
+export const simulateReaction = mutation({
+  args: { authorSlackUserId: v.string(), messageText: v.string(), messageKey: v.string() },
+  returns: playgroundResult,
+  handler: async (ctx, { authorSlackUserId, messageText, messageKey }) => {
+    const { workspace, member } = await requireDemoViewer(ctx);
+    const author = await findMember(ctx, workspace, authorSlackUserId);
+    if (!author || author.isBot) throw new ConvexError("You can only react to messages from demo teammates.");
+    if (!workspace.reactionsEnabled) return { status: "reactions_disabled", messages: [] };
+    const channelId = "C_DEMO_GENERAL";
+    const messageTs = `demo-${messageKey.slice(0, 40)}-${dayKeyFor(Date.now(), workspace.timezone)}`;
+    const onMessage = await ctx.db
+      .query("kudos")
+      .withIndex("by_message", (q) => q.eq("workspaceId", workspace._id).eq("channelId", channelId).eq("messageTs", messageTs))
+      .take(50);
+    if (onMessage.some((k) => k.giverId === member._id)) return { status: "already_reacted", messages: [] };
+    const result = await giveKudos(ctx, {
+      workspace,
+      giverSlackId: member.slackUserId,
+      recipientSlackIds: [authorSlackUserId],
+      amountEach: 1,
+      channelId,
+      channelName: "general",
+      messageTs,
+      text: `Reacted with :${workspace.emojiName}: to “${messageText.slice(0, 160)}”`,
+      source: "playground",
+      now: Date.now(),
+    });
+    return { status: result.status, messages: await describeNotifications(ctx, member._id, result.notificationIds) };
+  },
+});
+
+export const simulateAllowanceCheck = mutation({
+  args: {},
+  returns: playgroundResult,
+  handler: async (ctx) => {
+    const { workspace, member } = await requireDemoViewer(ctx);
+    const { notificationId } = await allowanceCheck(ctx, workspace, member, Date.now());
+    return { status: "ok", messages: await describeNotifications(ctx, member._id, [notificationId]) };
+  },
+});
+
+/** Everyone shares the demo user, so anyone can hand back today's playground kudos. */
+export const refillAllowance = mutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const { workspace, member } = await requireDemoViewer(ctx);
+    const todayStart = startOfDayUtc(dayKeyFor(Date.now(), workspace.timezone), workspace.timezone);
+    const given = await ctx.db
+      .query("kudos")
+      .withIndex("by_giver_at", (q) => q.eq("giverId", member._id).gte("at", todayStart))
+      .take(200);
+    for (const row of given.filter((k) => k.source === "playground")) {
+      await revokeKudosRow(ctx, workspace, row);
+    }
+    return null;
+  },
+});
+
+export const teammateThanks = internalMutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    fromMemberId: v.id("members"),
+    toMemberId: v.id("members"),
+    channelName: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const workspace = await ctx.db.get(args.workspaceId);
+    const from = await ctx.db.get(args.fromMemberId);
+    const to = await ctx.db.get(args.toMemberId);
+    if (!workspace?.isDemo || !from || !to) return null;
+    const now = Date.now();
+    await giveKudos(ctx, {
+      workspace,
+      giverSlackId: from.slackUserId,
+      recipientSlackIds: [to.slackUserId],
+      amountEach: 1,
+      channelId: `C_DEMO_${args.channelName.toUpperCase()}`,
+      channelName: args.channelName,
+      messageTs: `${now / 1000}`,
+      text: `@${to.name.split(" ")[0]} 🌮 right back at you, thank you!`,
+      source: "playground",
+      now,
+    });
+    return null;
+  },
+});
+
+const DEMO_TABLES = ["kudos", "memberDays", "discoveries", "notifications"] as const;
+
+const RESET_LOCK_MS = 15 * 60 * 1000;
+
+/** Starts a reset unless one is already running (visitors and the nightly cron can overlap). */
+export const startDemoReset = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const workspace = await demoWorkspace(ctx);
+    if (!workspace) return null;
+    if (workspace.resettingSince && Date.now() - workspace.resettingSince < RESET_LOCK_MS) return null;
+    await ctx.db.patch(workspace._id, { resettingSince: Date.now() });
+    await ctx.scheduler.runAfter(0, internal.demo.resetDemoWorkspace, {});
+    return null;
+  },
+});
+
+/** Wipes demo activity in batches, then re-seeds a fresh history. Use `startDemoReset`. */
+export const resetDemoWorkspace = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const workspace = await demoWorkspace(ctx);
+    if (!workspace) return null;
+    let deleted = 0;
+    for (const table of DEMO_TABLES) {
+      const rows =
+        table === "kudos"
+          ? await ctx.db.query("kudos").withIndex("by_workspace_at", (q) => q.eq("workspaceId", workspace._id)).take(1000)
+          : table === "memberDays"
+            ? await ctx.db.query("memberDays").withIndex("by_workspace_day", (q) => q.eq("workspaceId", workspace._id)).take(1000)
+            : table === "discoveries"
+              ? await ctx.db.query("discoveries").withIndex("by_workspace_firstSeen", (q) => q.eq("workspaceId", workspace._id)).take(1000)
+              : [];
+      for (const r of rows) await ctx.db.delete(r._id);
+      deleted += rows.length;
+    }
+    const members = await ctx.db
+      .query("members")
+      .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id))
+      .take(100);
+    for (const m of members) {
+      if (deleted >= 3000) break; // stay well within per-transaction write limits
+      const notes = await ctx.db.query("notifications").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(200);
+      for (const n of notes) await ctx.db.delete(n._id);
+      deleted += notes.length;
+    }
+    if (deleted > 0) {
+      await ctx.scheduler.runAfter(0, internal.demo.resetDemoWorkspace, {});
+      return null;
+    }
+    const defaults = { ...DEFAULT_SETTINGS };
+    await ctx.db.patch(workspace._id, defaults);
+    for (const m of members) {
+      await ctx.db.patch(m._id, {
+        totalGiven: 0,
+        totalReceived: 0,
+        totalMaxedDays: 0,
+        lastGivenAt: undefined,
+        isAdmin: m.slackUserId === DEMO_YOU || m.slackUserId === "UDEMOLENA",
+      });
+    }
+    const today = dayKeyFor(Date.now(), workspace.timezone);
+    await ctx.scheduler.runAfter(0, internal.demo.seedHistory, {
+      workspaceId: workspace._id,
+      fromDay: addDays(today, -SEED_DAYS),
+      untilDay: addDays(today, -1),
+    });
+    return null;
+  },
+});
+
+export const resetDemo = mutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const { member } = await requireDemoViewer(ctx);
+    if (!member.isAdmin) throw new ConvexError("Only admins can reset the demo.");
+    await ctx.scheduler.runAfter(0, internal.demo.startDemoReset, {});
+    return null;
+  },
+});
+
+/** Teammates to @mention in the playground composer. */
+export const teammates = query({
+  args: {},
+  returns: v.array(v.object({ slackUserId: v.string(), name: v.string(), title: v.union(v.string(), v.null()) })),
+  handler: async (ctx) => {
+    const viewer = await getViewer(ctx);
+    if (!viewer?.workspace.isDemo) return [];
+    const members = await ctx.db
+      .query("members")
+      .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", viewer.workspace._id))
+      .take(100);
+    return members
+      .filter((m) => !m.isBot)
+      .map((m) => ({ slackUserId: m.slackUserId, name: m.name, title: m.title ?? null }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  },
+});

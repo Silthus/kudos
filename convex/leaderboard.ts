@@ -1,0 +1,103 @@
+import { v } from "convex/values";
+import { query } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
+import { requireViewer } from "./lib/access";
+import { rankBy, totalsByMember, workspaceDays, workspaceMembers, type Totals } from "./lib/stats";
+import { periodValidator, resolvePeriod, startOfDayUtc, addDays } from "./lib/time";
+
+export const get = query({
+  args: { period: periodValidator, metric: v.union(v.literal("given"), v.literal("received")) },
+  handler: async (ctx, { period, metric: requested }) => {
+    const viewer = await requireViewer(ctx);
+    const { workspace, member: me } = viewer;
+    const receivedAllowed = workspace.receivedVisibility === "everyone";
+    const metric = requested === "received" && receivedAllowed ? "received" : "given";
+    const range = resolvePeriod(period, Date.now(), workspace.timezone);
+    const members = await workspaceMembers(ctx, workspace._id);
+    const active = members.filter((m) => !m.deactivated);
+
+    let current: Map<Id<"members">, Totals>;
+    let previous: Map<Id<"members">, Totals> | null = null;
+    let truncated = false;
+    if (period === "all") {
+      current = new Map(
+        members.map((m) => [
+          m._id,
+          { given: m.totalGiven, received: m.totalReceived, maxedDays: m.totalMaxedDays, activeDays: 0 },
+        ]),
+      );
+    } else {
+      const cur = await workspaceDays(ctx, workspace._id, range.current);
+      const prev = await workspaceDays(ctx, workspace._id, range.previous!);
+      current = totalsByMember(cur.rows);
+      previous = totalsByMember(prev.rows);
+      truncated = cur.truncated || prev.truncated;
+    }
+
+    const value = (t: Totals | undefined) => (t ? t[metric] : 0);
+    const participants = members.filter((m) => value(current.get(m._id)) > 0);
+    const ranked = rankBy(participants, (m) => value(current.get(m._id)), (m) => m.name);
+    const prevRanked = previous
+      ? new Map(
+          rankBy(
+            members.filter((m) => value(previous!.get(m._id)) > 0),
+            (m) => value(previous!.get(m._id)),
+            (m) => m.name,
+          ).map(({ item, rank }) => [item._id, rank]),
+        )
+      : null;
+
+    const rows = ranked.map(({ item: m, rank }) => {
+      const cur = current.get(m._id);
+      const prev = previous?.get(m._id);
+      const prevRank = prevRanked?.get(m._id) ?? null;
+      return {
+        rank,
+        member: { _id: m._id, name: m.name, title: m.title ?? null, avatarUrl: m.avatarUrl ?? null, slackUserId: m.slackUserId },
+        value: value(cur),
+        prevValue: previous ? value(prev) : null,
+        delta: previous ? value(cur) - value(prev) : null,
+        prevRank,
+        rankChange: prevRanked ? (prevRank === null ? null : prevRank - rank) : null,
+        isNew: prevRanked ? prevRank === null : false,
+        maxedDays: cur?.maxedDays ?? 0,
+        isMe: m._id === me._id,
+      };
+    });
+
+    const total = [...current.values()].reduce((s, t) => s + t[metric], 0);
+    const prevTotal = previous ? [...previous.values()].reduce((s, t) => s + t[metric], 0) : null;
+    const givers = [...current.values()].filter((t) => t.given > 0).length;
+
+    const since = period === "all" ? 0 : startOfDayUtc(range.current.start, workspace.timezone);
+    const found = await ctx.db
+      .query("discoveries")
+      .withIndex("by_workspace_firstSeen", (q) => q.eq("workspaceId", workspace._id).gte("firstSeenAt", since))
+      .take(5000);
+
+    return {
+      period: range.period,
+      label: range.label,
+      range: period === "all" ? null : { start: range.current.start, end: range.current.end },
+      previousRange: range.previous ? { start: range.previous.start, end: range.previous.end } : null,
+      metric,
+      receivedAllowed,
+      rows,
+      highlights: {
+        total,
+        prevTotal,
+        givers,
+        teamSize: active.length,
+        participation: active.length ? givers / active.length : 0,
+        rising: rows.filter((r) => (r.delta ?? 0) > 0).length,
+        discoveries: found.length,
+        legendaryFinds: found.filter((d) => d.rarity === "legendary").length,
+        maxedDays: [...current.values()].reduce((s, t) => s + t.maxedDays, 0),
+      },
+      unit: { singular: workspace.unitSingular, plural: workspace.unitPlural, glyph: workspace.emojiGlyph },
+      nextWeekStart: period === "week" ? addDays(range.current.start, 7) : null,
+      myRow: rows.find((r) => r.isMe) ?? null,
+      truncated,
+    };
+  },
+});

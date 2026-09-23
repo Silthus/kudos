@@ -6,6 +6,14 @@ Everything runs on one Convex deployment: the database, Slack's Events API webho
 
 **Live:** https://valiant-monitor-701.convex.site (click "Explore the live demo" for a seeded sample workspace).
 
+| Personal dashboard | Leaderboard |
+| --- | --- |
+| ![My kudos dashboard: daily allowance, rank, giving cadence, weekly quests and discoveries](docs/screenshots/me.png) | ![Leaderboard of givers and receivers](docs/screenshots/leaderboard.png) |
+
+<img src="docs/screenshots/mobile-me.png" alt="The dashboard on a phone" width="260">
+
+More in [`docs/screenshots/`](docs/screenshots/).
+
 ## How it fits together
 
 | Path | What it does |
@@ -38,6 +46,7 @@ npm install
 npx convex dev          # backend, watches convex/
 npm run dev             # Vite on :5173
 npm test                # vitest + convex-test (unit, engine, HTTP/Slack, authorization)
+npm run check           # the merge gate: typecheck + tests + build
 ```
 
 Deploy: `npx convex deploy && npx @convex-dev/static-hosting upload --build --prod`.
