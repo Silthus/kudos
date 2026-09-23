@@ -89,13 +89,49 @@ http.route({
   }),
 });
 
-// Buttons in the App Home only open URLs; acknowledge interaction payloads.
+const STORE_ACTIONS = { store_approve: "approve", store_fulfill: "fulfill" } as const;
+
+type InteractionPayload = {
+  type?: string;
+  team?: { id?: string } | null;
+  user?: { id?: string; team_id?: string };
+  response_url?: string;
+  actions?: { action_id?: unknown; value?: unknown }[];
+};
+
+// Approve and Mark fulfilled in the admins' store DMs. Every other button only opens a URL,
+// so it's just acknowledged. Refusals ("Already fulfilled by Lena.") are answered ephemerally.
 http.route({
   path: "/slack/interactions",
   method: "POST",
-  handler: httpAction(async (_ctx, request) => {
+  handler: httpAction(async (ctx, request) => {
     const check = await verified(request);
     if (!check.ok) return check.response;
+    let payload: InteractionPayload;
+    try {
+      payload = JSON.parse(new URLSearchParams(check.body).get("payload") ?? "");
+    } catch {
+      return new Response("bad request", { status: 400 });
+    }
+    if (typeof payload !== "object" || payload === null) return new Response("bad request", { status: 400 });
+    const [action] = payload.type === "block_actions" && Array.isArray(payload.actions) ? payload.actions : [];
+    const id = action?.action_id;
+    const step = typeof id === "string" && Object.hasOwn(STORE_ACTIONS, id) ? STORE_ACTIONS[id as keyof typeof STORE_ACTIONS] : undefined;
+    // Enterprise Grid sends no `team` for org-wide apps; the user's own team is the workspace then.
+    const teamId = payload.team?.id ?? payload.user?.team_id;
+    if (!step || typeof action.value !== "string" || typeof teamId !== "string" || typeof payload.user?.id !== "string") {
+      return new Response("", { status: 200 });
+    }
+    const refusal = await ctx.runMutation(internal.slackData.storeInteraction, {
+      teamId,
+      slackUserId: payload.user.id,
+      userTeamId: payload.user.team_id,
+      action: step,
+      redemptionId: action.value,
+    });
+    if (refusal && typeof payload.response_url === "string") {
+      await ctx.scheduler.runAfter(0, internal.slack.respond, { responseUrl: payload.response_url, text: refusal });
+    }
     return new Response("", { status: 200 });
   }),
 });
