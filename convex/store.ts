@@ -275,6 +275,16 @@ export const catalog = query({
   },
 });
 
+/** Just the signed-in member's balance (null while the store is closed), for small surfaces like Me. */
+export const balance = query({
+  args: {},
+  returns: v.union(v.number(), v.null()),
+  handler: async (ctx) => {
+    const { workspace, member } = await requireViewer(ctx);
+    return storeOpen(workspace) ? balanceOf(member) : null;
+  },
+});
+
 const myRedemption = v.object({
   _id: v.id("redemptions"),
   rewardName: v.string(),

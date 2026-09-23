@@ -1,11 +1,14 @@
 import clsx from "clsx";
-import { useQuery } from "convex/react";
-import { motion } from "motion/react";
-import { Clock, Info, MessageCircleQuestion } from "lucide-react";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { ConvexError } from "convex/values";
+import { AnimatePresence, motion } from "motion/react";
+import { ChevronDown, CircleAlert, Clock, Gift, Info, Loader2, MessageCircleQuestion } from "lucide-react";
+import { useId, useState } from "react";
 import { Link } from "react-router";
 import { api } from "../../convex/_generated/api";
-import { BigNumber, Button, Card, Empty, PageHeader, PageSkeleton, Progress } from "@/components/ui";
-import { nf } from "@/lib/format";
+import type { Id } from "../../convex/_generated/dataModel";
+import { BigNumber, Button, Card, CardHeader, Dialog, Empty, Field, inputCls, PageHeader, PageSkeleton, Progress, Skeleton } from "@/components/ui";
+import { nf, relativeTime } from "@/lib/format";
 import { useViewer } from "@/lib/viewer";
 
 export type RewardLike = {
@@ -106,9 +109,56 @@ export function RewardCard({
   );
 }
 
+type Catalog = Extract<NonNullable<ReturnType<typeof useQuery<typeof api.store.catalog>>>, { enabled: true }>;
+type CatalogReward = Catalog["rewards"][number];
+type RedemptionStatus = "pending" | "approved" | "fulfilled" | "declined" | "cancelled";
+type HistoryEntry = { status: RedemptionStatus; at: number; by: { _id: string; name: string } | null; note?: string };
+
+const errorText = (e: unknown, fallback: string) => (e instanceof ConvexError ? String(e.data) : fallback);
+
+const STATUS_META: Record<RedemptionStatus, { label: string; chip: string; dot: string; verb: string }> = {
+  pending: { label: "Pending", chip: "bg-saffron/10 text-saffron ring-saffron/30", dot: "var(--color-saffron)", verb: "Requested" },
+  approved: { label: "Approved", chip: "bg-teal/15 text-teal-soft ring-teal/30", dot: "var(--color-teal-soft)", verb: "Approved" },
+  fulfilled: { label: "Fulfilled", chip: "bg-up/10 text-up ring-up/30", dot: "var(--color-up)", verb: "Fulfilled" },
+  declined: { label: "Declined", chip: "bg-down/10 text-down ring-down/25", dot: "var(--color-down)", verb: "Declined" },
+  cancelled: { label: "Cancelled", chip: "bg-panel-3 text-faint ring-line-strong", dot: "var(--color-faint)", verb: "Cancelled" },
+};
+
+export function StatusChip({ status }: { status: RedemptionStatus }) {
+  const meta = STATUS_META[status];
+  return <span className={clsx("inline-flex shrink-0 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] ring-1 ring-inset", meta.chip)}>{meta.label}</span>;
+}
+
+/** Who moved a request and when, with any note from the decider. */
+export function RedemptionHistory({ history, meId }: { history: HistoryEntry[]; meId: string }) {
+  return (
+    <ol className="ml-1 space-y-2.5 border-l border-line pl-4">
+      {history.map((h, i) => (
+        <li key={i} className="relative text-sm">
+          <span className="absolute -left-[21px] top-[7px] h-2 w-2 rounded-full ring-2 ring-panel" style={{ background: STATUS_META[h.status].dot }} />
+          <span className="text-cream">{STATUS_META[h.status].verb}</span>
+          <span className="text-muted"> by {h.by ? (h.by._id === meId ? "you" : h.by.name) : "someone who left"}</span>
+          <span className="text-faint"> · {relativeTime(h.at)}</span>
+          {h.note && <p className="mt-0.5 text-muted">“{h.note}”</p>}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** Why a reward can't be redeemed right now, or null when it can. */
+function redeemBlock(r: CatalogReward, data: Catalog, glyph: string): { label: string; reason: string } | null {
+  if (r.soldOut) return { label: "Sold out", reason: "Sold out. It's back once an admin restocks it." };
+  if (r.limitReached) return { label: "Redeemed", reason: `You've redeemed this. It's ${r.maxPerMember} per person.` };
+  if (!r.affordable) return { label: "Redeem", reason: `Need ${nf.format(r.cost - data.balance)} more ${glyph}` };
+  if (data.openCount >= data.maxOpen) return { label: "Redeem", reason: `${data.maxOpen} open requests: wait for one to finish` };
+  return null;
+}
+
 export function Store() {
   const viewer = useViewer();
   const data = useQuery(api.store.catalog);
+  const [redeeming, setRedeeming] = useState<CatalogReward | null>(null);
   if (!data) return <PageSkeleton />;
   const glyph = viewer.workspace.emojiGlyph;
 
@@ -124,6 +174,8 @@ export function Store() {
 
   const { balance, rewards } = data;
   const affordable = rewards.filter((r) => r.affordable && !r.soldOut).length;
+  // Keep the dialog in step with live price and stock changes while it's open.
+  const live = redeeming ? (rewards.find((r) => r._id === redeeming._id) ?? redeeming) : null;
 
   return (
     <div>
@@ -136,9 +188,11 @@ export function Store() {
         }
         subtitle="Every kudos your teammates give you lands here. Spending never changes your received totals."
         action={
-          <span className="inline-flex items-center gap-2 rounded-full border border-line-strong bg-panel-2 px-3 py-1.5 text-xs text-muted">
-            <Clock className="h-3.5 w-3.5 text-saffron" /> Redeeming opens soon
-          </span>
+          data.openCount > 0 && (
+            <a href="#my-requests" className="inline-flex items-center gap-2 rounded-full border border-line-strong bg-panel-2 px-3 py-1.5 text-xs text-muted hover:text-cream">
+              <Clock className="h-3.5 w-3.5 text-saffron" /> {data.openCount} of {data.maxOpen} requests open
+            </a>
+          )
         }
       />
 
@@ -148,6 +202,12 @@ export function Store() {
           <span>
             Your balance is {nf.format(balance)} {glyph} because some kudos you received were revoked after you spent them. New kudos bring it back up.
           </span>
+        </p>
+      )}
+      {data.openCount >= data.maxOpen && (
+        <p className="mb-5 flex items-start gap-2.5 rounded-xl border border-line-strong bg-panel-2/60 px-4 py-3 text-sm text-muted">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-faint" />
+          <span>You have {data.maxOpen} open requests. Once an admin finishes one, you can redeem again.</span>
         </p>
       )}
 
@@ -168,26 +228,300 @@ export function Store() {
             {rewards.length} {rewards.length === 1 ? "reward" : "rewards"} · you can afford {affordable}
           </p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {rewards.map((r, i) => (
-              <motion.div key={r._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: Math.min(i, 8) * 0.04 }}>
-                <RewardCard
-                  reward={r}
-                  glyph={glyph}
-                  balance={balance}
-                  action={
-                    // Disabled buttons don't show tooltips, so the wrapper carries it.
-                    <span title="Redeeming arrives in the next release">
-                      <Button size="sm" disabled>
-                        Coming soon
-                      </Button>
-                    </span>
-                  }
-                />
-              </motion.div>
-            ))}
+            {rewards.map((r, i) => {
+              const block = redeemBlock(r, data, glyph);
+              return (
+                <motion.div key={r._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: Math.min(i, 8) * 0.04 }}>
+                  <RewardCard
+                    reward={r}
+                    glyph={glyph}
+                    balance={balance}
+                    action={
+                      block ? (
+                        // Disabled buttons don't show tooltips, so the wrapper carries the reason.
+                        <span title={block.reason}>
+                          <Button size="sm" disabled aria-label={`${r.name}: ${block.reason}`}>
+                            {block.label}
+                          </Button>
+                        </span>
+                      ) : (
+                        <Button size="sm" variant="primary" onClick={() => setRedeeming(r)} aria-label={`Redeem ${r.name}`}>
+                          Redeem
+                        </Button>
+                      )
+                    }
+                  />
+                </motion.div>
+              );
+            })}
           </div>
         </>
       )}
+
+      <MyRequests />
+      <RedeemDialog reward={live} balance={balance} onClose={() => setRedeeming(null)} />
     </div>
+  );
+}
+
+function RedeemDialog({ reward, balance, onClose }: { reward: CatalogReward | null; balance: number; onClose: () => void }) {
+  const viewer = useViewer();
+  const glyph = viewer.workspace.emojiGlyph;
+  const redeem = useMutation(api.store.redeem);
+  const [answer, setAnswer] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<{ balance: number } | null>(null);
+  const formId = useId();
+
+  // Start fresh each time the dialog opens for a reward.
+  const openedFor = reward?._id ?? null;
+  const [lastOpened, setLastOpened] = useState(openedFor);
+  if (openedFor !== lastOpened) {
+    setLastOpened(openedFor);
+    if (openedFor !== null) {
+      setAnswer("");
+      setError(null);
+      setDone(null);
+    }
+  }
+
+  const submit = async () => {
+    if (!reward || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await redeem({ rewardId: reward._id, expectedCost: reward.cost, answer: reward.prompt ? answer : undefined });
+      setDone({ balance: result.balance });
+    } catch (e) {
+      setError(errorText(e, "Couldn't redeem this. Try again in a moment."));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const after = balance - (reward?.cost ?? 0);
+  return (
+    <Dialog
+      open={reward !== null}
+      onClose={onClose}
+      title={done ? "Request sent" : "Redeem this reward?"}
+      subtitle={done ? undefined : "The cost comes off your balance now. If an admin declines, you get it back."}
+      footer={
+        done ? (
+          <Button variant="primary" onClick={onClose}>
+            Done
+          </Button>
+        ) : (
+          <>
+            {error && (
+              <span role="alert" className="mr-auto flex items-center gap-1.5 text-sm text-down">
+                <CircleAlert className="h-4 w-4 shrink-0" /> {error}
+              </span>
+            )}
+            <Button variant="ghost" onClick={onClose}>
+              Not now
+            </Button>
+            <Button variant="primary" type="submit" form={formId} disabled={busy}>
+              {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+              {busy ? "Redeeming…" : `Confirm · ${reward ? nf.format(reward.cost) : ""} ${glyph}`}
+            </Button>
+          </>
+        )
+      }
+    >
+      {reward &&
+        (done ? (
+          <div className="flex flex-col items-center gap-3 py-6 text-center">
+            <motion.span
+              initial={{ scale: 0.3, rotate: -12, opacity: 0 }}
+              animate={{ scale: [0.3, 1.25, 1], rotate: [-12, 6, 0], opacity: 1 }}
+              transition={{ duration: 0.55, ease: "easeOut" }}
+              className="grid h-20 w-20 place-items-center rounded-3xl bg-saffron/15 text-5xl ring-1 ring-saffron/30"
+              aria-hidden
+            >
+              {reward.emoji}
+            </motion.span>
+            <p className="font-display text-lg font-semibold">{reward.name} is on its way to an admin</p>
+            <p className="text-sm text-muted">
+              You'll see every step under My requests. Balance: {nf.format(done.balance)} {glyph}
+            </p>
+          </div>
+        ) : (
+          <form
+            id={formId}
+            onSubmit={(e) => {
+              e.preventDefault();
+              void submit();
+            }}
+            className="space-y-4"
+          >
+            <div className="flex items-center gap-3 rounded-xl border border-line bg-ink/30 p-3">
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-saffron/10 text-2xl ring-1 ring-saffron/20" aria-hidden>
+                {reward.emoji}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="font-medium">{reward.name}</div>
+                {reward.description && <p className="text-sm text-muted">{reward.description}</p>}
+              </div>
+              <span className="shrink-0 font-display text-lg font-semibold tabular text-saffron">
+                {nf.format(reward.cost)} {glyph}
+              </span>
+            </div>
+            {reward.prompt && (
+              <Field label={reward.prompt} hint="Your admins need this to get it to you.">
+                <textarea
+                  className={clsx(inputCls, "h-20 resize-none py-2")}
+                  value={answer}
+                  onChange={(e) => setAnswer(e.target.value)}
+                  maxLength={280}
+                  required
+                  data-autofocus
+                />
+              </Field>
+            )}
+            <dl className="grid grid-cols-2 gap-2 text-sm">
+              <dt className="text-muted">Balance now</dt>
+              <dd className="text-right font-mono tabular">
+                {nf.format(balance)} {glyph}
+              </dd>
+              <dt className="text-muted">Balance after</dt>
+              <dd className={clsx("text-right font-mono tabular", after < 0 ? "text-down" : "text-cream")}>
+                {nf.format(after)} {glyph}
+              </dd>
+            </dl>
+          </form>
+        ))}
+    </Dialog>
+  );
+}
+
+function MyRequests() {
+  const viewer = useViewer();
+  const glyph = viewer.workspace.emojiGlyph;
+  const { results, status, loadMore } = usePaginatedQuery(api.store.myRedemptions, {}, { initialNumItems: 10 });
+  const cancel = useMutation(api.store.cancel);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const [error, setError] = useState<{ id: string; text: string } | null>(null);
+
+  const doCancel = (id: Id<"redemptions">) => {
+    setError(null);
+    cancel({ redemptionId: id })
+      .then(() => setConfirming(null))
+      .catch((e) => setError({ id, text: errorText(e, "Couldn't cancel the request.") }));
+  };
+
+  return (
+    <Card id="my-requests" className="mt-8 scroll-mt-24">
+      <CardHeader title="My requests" subtitle="The cost is held while an admin decides. Declined or cancelled requests are refunded in full." />
+      {status === "LoadingFirstPage" ? (
+        <div className="px-5 pb-5">
+          <Skeleton className="h-24" />
+        </div>
+      ) : results.length === 0 ? (
+        <Empty icon="🧾" title="Nothing redeemed yet">
+          Pick a reward above. Your requests and their progress show up here.
+        </Empty>
+      ) : (
+        <ul className="px-2 pb-3">
+          <AnimatePresence initial={false}>
+            {results.map((r) => {
+              const isExpanded = expanded === r._id;
+              const refunded = r.status === "declined" || r.status === "cancelled";
+              return (
+                <motion.li key={r._id} layout initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl hover:bg-panel-2/40">
+                  <div className="flex items-center gap-3 px-3 py-2.5">
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-saffron/10 text-xl ring-1 ring-saffron/20" aria-hidden>
+                      {r.rewardEmoji}
+                    </span>
+                    <button
+                      className="min-w-0 flex-1 text-left"
+                      onClick={() => setExpanded(isExpanded ? null : r._id)}
+                      aria-expanded={isExpanded}
+                      aria-label={`${r.rewardName}, ${r.status}. Show history`}
+                    >
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="truncate font-medium">{r.rewardName}</span>
+                        <StatusChip status={r.status} />
+                      </div>
+                      <p className="mt-0.5 text-xs text-faint">
+                        <span className={clsx("font-mono tabular", refunded ? "text-muted line-through" : "text-saffron")}>
+                          {nf.format(r.cost)} {glyph}
+                        </span>
+                        {refunded && <span className="text-up"> refunded</span>} · {relativeTime(r.updatedAt)}
+                      </p>
+                    </button>
+                    {r.status === "pending" &&
+                      (confirming === r._id ? (
+                        <span className="flex shrink-0 items-center gap-1">
+                          <Button size="sm" variant="danger" onClick={() => doCancel(r._id)}>
+                            Cancel request
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setConfirming(null)}>
+                            Keep
+                          </Button>
+                        </span>
+                      ) : (
+                        <Button size="sm" variant="ghost" onClick={() => setConfirming(r._id)} className="shrink-0">
+                          Cancel
+                        </Button>
+                      ))}
+                    <button onClick={() => setExpanded(isExpanded ? null : r._id)} className="shrink-0 rounded-lg p-1.5 text-faint hover:text-cream" aria-hidden tabIndex={-1}>
+                      <ChevronDown className={clsx("h-4 w-4 transition-transform", isExpanded && "rotate-180")} />
+                    </button>
+                  </div>
+                  {error?.id === r._id && (
+                    <p role="alert" className="flex items-center gap-1.5 px-3 pb-2 text-sm text-down">
+                      <CircleAlert className="h-4 w-4 shrink-0" /> {error.text}
+                    </p>
+                  )}
+                  <AnimatePresence initial={false}>
+                    {isExpanded && (
+                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                        <div className="space-y-3 px-3 pb-3 pl-16">
+                          {r.prompt && r.answer && (
+                            <p className="text-sm">
+                              <span className="text-faint">{r.prompt}</span> <span className="text-cream">{r.answer}</span>
+                            </p>
+                          )}
+                          <RedemptionHistory history={r.history} meId={viewer.member._id} />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.li>
+              );
+            })}
+          </AnimatePresence>
+        </ul>
+      )}
+      {status === "CanLoadMore" && (
+        <div className="px-5 pb-4">
+          <Button size="sm" variant="ghost" onClick={() => loadMore(10)}>
+            Show older requests
+          </Button>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+/** "42 🌮 to spend →" on Me, while the store is open. */
+export function StoreBalanceChip({ glyph, className }: { glyph: string; className?: string }) {
+  const viewer = useViewer();
+  const balance = useQuery(api.store.balance, viewer.workspace.storeEnabled ? {} : "skip");
+  if (balance === undefined || balance === null) return null;
+  return (
+    <Link
+      to="/store"
+      className={clsx(
+        "inline-flex items-center gap-1.5 rounded-full border border-saffron/30 bg-saffron/10 px-2.5 py-1 text-xs font-medium text-saffron transition hover:bg-saffron/15",
+        className,
+      )}
+    >
+      <Gift className="h-3.5 w-3.5" />
+      <span className={clsx("tabular", balance < 0 && "text-down")}>{nf.format(balance)}</span> {glyph} to spend →
+    </Link>
   );
 }

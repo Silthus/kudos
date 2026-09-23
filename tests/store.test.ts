@@ -321,6 +321,17 @@ describe("redeeming", () => {
     expect(mine.page[0].history).toEqual([{ status: "pending", at: NOW.getTime(), by: expect.objectContaining({ name: "Ben" }) }]);
   });
 
+  test("shows members their own balance for the chip on Me, only while the store is open", async () => {
+    const rewardId = await addReward();
+    await fund(team.ben, 10);
+    const ben = await signInAs(t, team.ben);
+    expect(await ben.query(api.store.balance, {})).toBe(10);
+    await ben.mutation(api.store.redeem, { rewardId, expectedCost: 3 });
+    expect(await ben.query(api.store.balance, {})).toBe(7);
+    await setWorkspace({ storeEnabled: false });
+    expect(await ben.query(api.store.balance, {})).toBeNull();
+  });
+
   test("refuses when the store is closed", async () => {
     const rewardId = await addReward();
     await fund(team.ben, 10);
