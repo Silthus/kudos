@@ -6,6 +6,7 @@ import {
   type QuestFacts,
   type QuestKey,
   boardSeed,
+  completionTimes,
   eligibleQuestKeys,
   evaluateBoard,
   isCleanSweep,
@@ -251,5 +252,20 @@ describe("evaluateBoard", () => {
     expect(isCleanSweep(evaluateBoard(["fresh", "unsung", "channels"], f))).toBe(true);
     expect(isCleanSweep(evaluateBoard(["fresh", "spread", "channels"], f))).toBe(false);
     expect(isCleanSweep(evaluateBoard(["unsung"], f))).toBe(false);
+  });
+
+  test("each done quest was completed by the kudos that met its goal", () => {
+    const f = facts([
+      give({ at: WED, channelId: "C1", dayKey: "2026-09-23", receiverId: "ben" }),
+      give({ at: WED + H, channelId: "C1", dayKey: "2026-09-23", noteWords: 2, receiverId: "cleo" }), // no Note: counts for nothing
+      give({ at: WED + 2 * H, channelId: "C2", dayKey: "2026-09-23", receiverId: "cleo" }),
+      give({ at: WED + D, channelId: "C2", dayKey: "2026-09-24", receiverId: "dev" }),
+    ]);
+    expect(completionTimes(["fresh", "spread", "channels", "steady"], f)).toEqual({
+      fresh: WED,
+      spread: WED + D,
+      channels: WED + 2 * H,
+    });
+    expect(completionTimes(["story"], f)).toEqual({});
   });
 });

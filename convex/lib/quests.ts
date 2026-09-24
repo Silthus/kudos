@@ -210,6 +210,21 @@ export function evaluateBoard(board: readonly QuestKey[], facts: QuestFacts): Qu
   });
 }
 
+/**
+ * When each done quest was completed: the `at` of the kudos after which its goal was first met
+ * (replaying the week's giving in order). For history recorded after the fact, like the demo's.
+ */
+export function completionTimes(board: readonly QuestKey[], facts: QuestFacts): Partial<Record<QuestKey, number>> {
+  const given = [...facts.given].sort((a, b) => a.at - b.at);
+  const times: Partial<Record<QuestKey, number>> = {};
+  for (let i = 0; i < given.length; i++) {
+    for (const r of evaluateBoard(board, { ...facts, given: given.slice(0, i + 1) })) {
+      if (r.done && times[r.key] === undefined) times[r.key] = given[i].at;
+    }
+  }
+  return times;
+}
+
 /** Every quest that isn't waived is done (and there is at least one). */
 export function isCleanSweep(results: readonly { done: boolean; waived: WaivedReason | null }[]): boolean {
   const open = results.filter((r) => r.waived === null);

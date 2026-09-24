@@ -12,6 +12,7 @@ import { attemptOutcomeValidator, questProgressValidator } from "./schema";
 import { addDays, dayKeyFor, daysBetween, startOfDayUtc, weekdayOfKey, zonedParts } from "./lib/time";
 import { demoActivity } from "./lib/demoCalendar";
 import { DEMO_ADJUSTMENTS, DEMO_REDEMPTIONS, DEMO_REWARDS, type DemoRedemption, LIVE_FULFIL_NOTES } from "./lib/demoStore";
+import { weekKeyFor } from "./lib/quests";
 import { DEFAULT_SETTINGS } from "./lib/settings";
 import { fnv1a, mulberry32 } from "./lib/random";
 import { balanceOf, validateRewardInput } from "./lib/store";
@@ -86,6 +87,10 @@ const REASONS = [
   "for untangling the billing mystery",
   "for the brilliant user interviews",
   "for making the install schedule work",
+  // Detailed notes (12+ words) complete "Say why".
+  "thanks for untangling the deploy pipeline on friday, it saved my whole afternoon",
+  "your write-up of the outage made a scary week feel calm and fixable for everyone",
+  "you turned a vague customer complaint into three concrete fixes we shipped this sprint",
 ];
 
 function weighted<T>(items: T[], weight: (t: T) => number, r: number): T {
@@ -149,11 +154,14 @@ export const ensureDemoUser = internalMutation({
   },
 });
 
-/** Seeds kudos history in chunks so each transaction stays well under Convex limits. */
+/**
+ * Seeds kudos history in chunks so each transaction stays well under Convex limits. A run belongs to
+ * the reset that started it (`resetAt`, none for the first seeding) and hands that on.
+ */
 export const seedHistory = internalMutation({
-  args: { workspaceId: v.id("workspaces"), fromDay: v.string(), untilDay: v.string() },
+  args: { workspaceId: v.id("workspaces"), fromDay: v.string(), untilDay: v.string(), resetAt: v.optional(v.number()) },
   returns: v.null(),
-  handler: async (ctx, { workspaceId, fromDay, untilDay }) => {
+  handler: async (ctx, { workspaceId, fromDay, untilDay, resetAt }) => {
     const workspace = await ctx.db.get(workspaceId);
     if (!workspace || !workspace.isDemo) return null;
     const members = await ctx.db
@@ -176,6 +184,9 @@ export const seedHistory = internalMutation({
 
     const now = Date.now();
     const today = dayKeyFor(now, workspace.timezone);
+    // This week's quests are left for visitors to complete in the playground: Alex's kudos this week
+    // come without a Note, so they count for nothing (the log shows every week before it).
+    const questWeek = weekKeyFor(now, workspace.timezone);
     let day = fromDay;
     let processed = 0;
     while (day <= untilDay && processed < DAYS_PER_CHUNK) {
@@ -216,6 +227,8 @@ export const seedHistory = internalMutation({
           const roll = rand();
           if (at > now) continue; // later today: hasn't happened yet
           const text = `${recipients.map((r) => `@${r.name.split(" ")[0]}`).join(" ")} ${"🌮".repeat(amountEach)} ${reason}`;
+          const noteWords =
+            person.id === DEMO_YOU && day >= questWeek ? undefined : countNoteWords(reason, workspace.emojiName, workspace.emojiGlyph);
           const batchId = `seed:${day}:${person.id}:${i}`;
           for (const r of recipients) {
             await ctx.db.insert("kudos", {
@@ -230,6 +243,7 @@ export const seedHistory = internalMutation({
               channelName: channel.name,
               messageTs: `${Math.floor(at / 1000)}.${i}`,
               text,
+              noteWords,
               at,
               hour: zonedParts(at, workspace.timezone).hour,
             });
@@ -283,13 +297,14 @@ export const seedHistory = internalMutation({
     await seedDiscoveries(ctx, workspaceId, discoveryHits, day);
 
     if (day <= untilDay) {
-      await ctx.scheduler.runAfter(0, internal.demo.seedHistory, { workspaceId, fromDay: day, untilDay });
+      await ctx.scheduler.runAfter(0, internal.demo.seedHistory, { workspaceId, fromDay: day, untilDay, resetAt });
     } else {
-      // The seeded rows bypass the engine, so the read-model rollups are rebuilt from them. That
-      // run belongs to this reset and releases its lock when it finishes.
-      await ctx.scheduler.runAfter(0, internal.rollups.rebuildWorkspace, { workspaceId, resetAt: workspace.resettingSince });
+      // The seeded rows bypass the engine, so the quests they completed are recorded next, and then
+      // the read-model rollups are rebuilt from them. Both belong to this reset; the rebuild
+      // releases its lock when it finishes.
+      await ctx.scheduler.runAfter(0, internal.quests.seedDemoHistory, { workspaceId, resetAt });
       // Balances are what people received, so the store opens once the whole history is in.
-      await ctx.scheduler.runAfter(0, internal.demo.seedStore, { workspaceId, resetAt: workspace.resettingSince });
+      await ctx.scheduler.runAfter(0, internal.demo.seedStore, { workspaceId, resetAt });
     }
     return null;
   },
@@ -894,7 +909,11 @@ export const resetDemoWorkspace = internalMutation({
         storeGranted: undefined,
       });
     }
-    await ctx.scheduler.runAfter(0, internal.demo.seedHistory, { workspaceId: workspace._id, ...seedWindow(workspace.timezone) });
+    await ctx.scheduler.runAfter(0, internal.demo.seedHistory, {
+      workspaceId: workspace._id,
+      ...seedWindow(workspace.timezone),
+      resetAt: workspace.resettingSince,
+    });
     return null;
   },
 });

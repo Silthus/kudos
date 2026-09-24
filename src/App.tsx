@@ -10,6 +10,7 @@ import { Me } from "./pages/Me";
 import { Leaderboard } from "./pages/Leaderboard";
 import { Compare } from "./pages/compare/Compare";
 import { Discoveries } from "./pages/Discoveries";
+import { Quests } from "./pages/Quests";
 import { Store } from "./pages/Store";
 import { Analytics } from "./pages/Analytics";
 import { Admin } from "./pages/Admin";
@@ -50,6 +51,7 @@ export function App() {
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/compare" element={<Compare />} />
           <Route path="/discoveries" element={<Discoveries />} />
+          <Route path="/quests" element={<Quests />} />
           {viewer.workspace.storeEnabled && <Route path="/store" element={<Store />} />}
           <Route path="/analytics" element={<Analytics />} />
           {viewer.member.isAdmin && <Route path="/admin" element={<Admin />} />}

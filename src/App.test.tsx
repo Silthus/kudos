@@ -49,6 +49,7 @@ vi.mock("./pages/Me", () => ({ Me: page("Me") }));
 vi.mock("./pages/Leaderboard", () => ({ Leaderboard: page("Leaderboard") }));
 vi.mock("./pages/compare/Compare", () => ({ Compare: page("Compare") }));
 vi.mock("./pages/Discoveries", () => ({ Discoveries: page("Discoveries") }));
+vi.mock("./pages/Quests", () => ({ Quests: page("Quests") }));
 vi.mock("./pages/Store", () => ({ Store: page("Store") }));
 vi.mock("./pages/Analytics", () => ({ Analytics: page("Analytics") }));
 vi.mock("./pages/Admin", () => ({ Admin: page("Admin") }));
@@ -104,6 +105,7 @@ describe("a hard reload of a deep link", () => {
     ["/compare?vs=past&period=quarter", "Compare"],
     ["/analytics", "Analytics"],
     ["/discoveries", "Discoveries"],
+    ["/quests", "Quests"], // the Quest log link in every quest completion DM
     // Registered only for some viewers: the store when it's open, admin pages, the demo playground.
     ["/store#my-requests", "Store"],
     ["/admin?tab=store", "Admin"],
