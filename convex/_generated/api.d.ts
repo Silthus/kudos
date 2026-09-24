@@ -37,6 +37,7 @@ import type * as lib_compare from "../lib/compare.js";
 import type * as lib_compareReads from "../lib/compareReads.js";
 import type * as lib_cosmetics from "../lib/cosmetics.js";
 import type * as lib_demoCalendar from "../lib/demoCalendar.js";
+import type * as lib_demoGame from "../lib/demoGame.js";
 import type * as lib_demoStore from "../lib/demoStore.js";
 import type * as lib_gains from "../lib/gains.js";
 import type * as lib_gameBlocks from "../lib/gameBlocks.js";
@@ -111,6 +112,7 @@ declare const fullApi: ApiFromModules<{
   "lib/compareReads": typeof lib_compareReads;
   "lib/cosmetics": typeof lib_cosmetics;
   "lib/demoCalendar": typeof lib_demoCalendar;
+  "lib/demoGame": typeof lib_demoGame;
   "lib/demoStore": typeof lib_demoStore;
   "lib/gains": typeof lib_gains;
   "lib/gameBlocks": typeof lib_gameBlocks;

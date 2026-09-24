@@ -17,7 +17,7 @@ export type DemoRedemption = {
   who: string;
   reward: string;
   /**
-   * When they asked: a fraction of the seeded window (0 = its first day, 1 = today), or
+   * When they asked: a fraction of the time since the game launched (0 = the launch, 1 = today), or
    * `workdaysAgo` for the requests still waiting in the queue.
    */
   at: { share: number } | { workdaysAgo: number };
@@ -32,7 +32,7 @@ const LENA = "UDEMOLENA";
 const ALEX = "UDEMOYOU";
 
 /**
- * A year of the team spending what they received. Mostly fulfilled, a decline and a
+ * The team spending Hog coins since the game launched (#100). Mostly fulfilled, a decline and a
  * cancellation along the way, and a handful of requests still waiting for an admin, so the
  * queue has something to decide the moment a visitor opens it. Lena and Alex are the admins
  * and decide on each other's requests (four eyes).
@@ -64,7 +64,7 @@ export const DEMO_REDEMPTIONS: DemoRedemption[] = [
   { who: "UDEMOSOFIA", reward: "Coffee on us", at: { share: 0.9 }, outcome: "fulfilled", by: ALEX },
   { who: "UDEMOHANNAH", reward: "Coffee on us", at: { share: 0.92 }, outcome: "fulfilled", by: LENA },
   // Still waiting for an admin: the queue a visitor finds.
-  // Everyone can afford these, even in early January when the window is only 120 days.
+  // Everyone can afford these, whenever the demo is seeded: the game has always run 18 weeks by then.
   { who: "UDEMOPRIYA", reward: "Team lunch", at: { workdaysAgo: 4 }, outcome: "approved", by: LENA },
   { who: "UDEMOJONAS", reward: "Coffee on us", at: { workdaysAgo: 3 }, outcome: "pending" },
   { who: "UDEMOOSKAR", reward: "Coffee on us", at: { workdaysAgo: 2 }, outcome: "pending" },

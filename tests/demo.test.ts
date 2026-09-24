@@ -4,6 +4,7 @@ import type { Id } from "../convex/_generated/dataModel";
 import { addDays, weekdayOfKey } from "../convex/lib/time";
 import { coinBalance } from "../convex/lib/coins";
 import { DEMO_REWARDS } from "../convex/lib/demoStore";
+import { GROWN, PLANT_COST, STAGES } from "../convex/lib/garden";
 import { requestRedemption } from "../convex/store";
 import { all, CONVEX_LIMITS, DEMO_TIMEOUT, NOW, seedTeam, setupConvex, signInAs, TODAY } from "./helpers";
 
@@ -142,9 +143,12 @@ describe("the demo plays the game", () => {
     const redemptions = (await t.run((ctx) => ctx.db.query("redemptions").collect())).filter((r) => r.memberId === alexId);
     const adjustments = (await t.run((ctx) => ctx.db.query("balanceAdjustments").collect())).filter((a) => a.memberId === alexId);
     const held = redemptions.filter((r) => r.status !== "declined" && r.status !== "cancelled");
-    expect(fresh.coinsSpent ?? 0).toBe(held.reduce((s, r) => s + r.cost, 0));
+    const plants = await t.run((ctx) => ctx.db.query("plants").collect());
+    expect(fresh.coinsSpent ?? 0).toBe(held.reduce((s, r) => s + r.cost, 0) + PLANT_COST * plants.length);
     expect(fresh.coinsAdjusted ?? 0).toBe(adjustments.reduce((s, a) => s + a.amount, 0));
-    expect(await t.run((ctx) => ctx.db.query("plants").collect())).toEqual([]);
+    // The garden is the reseeded one (#100): no memory, and nothing planted on the day of the old one.
+    expect(plants.length).toBeGreaterThan(0);
+    expect(plants.every((p) => p.memoryAt === undefined && p.plantedDay !== "2026-09-01" && p.seedKudosId !== undefined)).toBe(true);
   });
 });
 
@@ -158,11 +162,19 @@ describe("boosts in the demo (#97)", () => {
     expect(await demo.query(api.boosts.admin, { today: TODAY })).toMatchObject({
       channel: { name: "general" },
       isDemo: true,
-      boosts: [{ dayKey: TODAY, source: "booster", by: "Alex Rivera", text: expect.stringMatching(/^Alex Rivera activated a Kudos booster: Double\./), announcement: { status: "skipped" } }],
+      boosts: [
+        { dayKey: TODAY, source: "booster", by: "Alex Rivera", text: expect.stringMatching(/^Alex Rivera activated a Kudos booster: Double\./), announcement: { status: "skipped" } },
+        { dayKey: "2026-09-25", source: "schedule", by: "Lena Hoffmann" }, // the demo's next bonus day (#100)
+      ],
     });
     await demo.mutation(api.demo.resetDemo, {});
     await t.finishAllScheduledFunctions(vi.runAllTimers, 1000);
-    expect(await t.run((ctx) => ctx.db.query("boosts").collect())).toEqual([]);
+    // Only the demo's scheduled bonus days come back.
+    expect((await t.run((ctx) => ctx.db.query("boosts").collect())).map((b) => [b.dayKey, b.source]).sort()).toEqual([
+      ["2026-05-22", "schedule"],
+      ["2026-08-28", "schedule"],
+      ["2026-09-25", "schedule"],
+    ]);
   });
 });
 
@@ -233,11 +245,11 @@ describe("a year of demo history", () => {
     expect(Math.max(...today.map((d) => d.given))).toBe(4);
   });
 
-  test("never has less than four months of history, even on New Year's Day", async () => {
+  test("reaches back to hold the game's launch and the three months before it, even on New Year's Day", async () => {
     vi.setSystemTime(new Date("2026-12-31T23:30:00Z")); // already 1 January 2027 in Berlin
     await enterDemo();
     const days = [...new Set((await all(t, "kudos")).map((k) => k.dayKey))].sort();
-    expect(days[0]).toBe("2026-09-03"); // 120 days back
+    expect(days[0]).toBe("2026-05-01"); // the game launched on 24 August 2026: its baseline is May to July
     expect(days.at(-1)! <= "2027-01-01").toBe(true);
   });
 
@@ -563,19 +575,21 @@ const page = { numItems: 100, cursor: null };
 
 /** Every store counter agrees with the redemptions, purchases and adjustments behind it; no Hog coin balance is below zero. */
 async function expectStoreInvariants() {
-  const { members, rewards, redemptions, adjustments, players, purchases } = await t.run(async (ctx) => ({
+  const { members, rewards, redemptions, adjustments, players, purchases, plants } = await t.run(async (ctx) => ({
     members: await ctx.db.query("members").collect(),
     rewards: await ctx.db.query("rewards").collect(),
     redemptions: await ctx.db.query("redemptions").collect(),
     adjustments: await ctx.db.query("balanceAdjustments").collect(),
     players: await ctx.db.query("players").collect(),
     purchases: await ctx.db.query("itemPurchases").collect(),
+    plants: await ctx.db.query("plants").collect(),
   }));
   const held = (r: { status: string }) => r.status !== "declined" && r.status !== "cancelled";
   for (const m of members) {
     const mine = redemptions.filter((r) => r.memberId === m._id);
     expect(mine.every((r) => r.unit === "coins"), m.name).toBe(true);
-    const bought = purchases.filter((p) => p.memberId === m._id).reduce((s, p) => s + p.price, 0);
+    // Store items and garden plants (10 Hog coins each) are the rest of what anyone spent.
+    const bought = purchases.filter((p) => p.memberId === m._id).reduce((s, p) => s + p.price, 0) + PLANT_COST * plants.filter((p) => p.ownerId === m._id).length;
     expect(m.coinsSpent ?? 0, m.name).toBe(mine.filter(held).reduce((s, r) => s + r.cost, 0) + bought);
     expect(m.coinsAdjusted ?? 0, m.name).toBe(adjustments.filter((a) => a.memberId === m._id).reduce((s, a) => s + a.amount, 0));
     const player = players.find((p) => p.memberId === m._id);
@@ -621,7 +635,7 @@ describe("the demo store", () => {
     const statuses = new Set(redemptions.map((r) => r.status));
     expect([...statuses].sort()).toEqual(["approved", "cancelled", "declined", "fulfilled", "pending"]);
     const months = new Set(redemptions.map((r) => new Date(r.requestedAt).toISOString().slice(0, 7)));
-    expect(months.size).toBeGreaterThanOrEqual(6); // spread across the year, not bunched up
+    expect(months.size).toBeGreaterThanOrEqual(4); // spread over the months since the game launched (#100), not bunched up
     expect(redemptions.every((r) => r.requestedAt < NOW.getTime() && r.updatedAt <= NOW.getTime())).toBe(true);
 
     // The admin queue has teammates' requests waiting, oldest first.
@@ -636,7 +650,7 @@ describe("the demo store", () => {
   });
 
   // Whenever the demo is reset: mid-year, on a Monday morning, on a Sunday, and early in a new year
-  // when the window is the 120-day minimum.
+  // when the window reaches back into the old year for the game's launch.
   test.each(["2026-09-23T10:00:00Z", "2026-09-28T06:30:00Z", "2026-03-29T10:00:00Z", "2027-01-04T06:00:00Z"])(
     "tells a story with every status, in working hours, whenever it's seeded (%s)",
     async (now) => {
@@ -842,5 +856,132 @@ describe("the demo store", () => {
     const team = await seedTeam(t);
     const ben = await signInAs(t, team.ben);
     await expect(ben.mutation(api.demo.handBackRewards, {})).rejects.toThrow(/only works in the demo workspace/);
+  });
+});
+
+describe("the demo year played through the game (#100, §G16)", () => {
+  async function you() {
+    return (await t.run((ctx) => ctx.db.query("members").collect())).find((m) => m.slackUserId === "UDEMOYOU")!;
+  }
+
+  test("the game launched 18 weeks ago: the kudos before it earned nothing, and the success baseline is the three months before it", async () => {
+    await enterDemo();
+    const workspaceId = await demoWorkspaceId();
+    const workspace = (await t.run((ctx) => ctx.db.get(workspaceId)))!;
+    const launchAt = new Date("2026-05-17T22:00:00Z").getTime(); // Monday 18 May 2026, 00:00 in Berlin
+    expect(workspace.gamePauses).toEqual([{ from: new Date("2025-12-31T23:00:00Z").getTime(), until: launchAt }]);
+    expect(workspace.successBaselineBefore).toBe("2026-05");
+    const events = await all(t, "gameEvents");
+    expect(events.length).toBeGreaterThan(100);
+    expect(events.filter((e) => e.at < launchAt)).toEqual([]);
+    // Played through the rules: every player's XP and coins are the sums of their events.
+    for (const p of await all(t, "players")) {
+      const verified = await t.query(internal.game.verifyMember, { memberId: p.memberId });
+      expect(verified.stored).toBe(verified.events);
+      expect(verified.coins).toBe(verified.eventCoins);
+    }
+  });
+
+  test("Alex lands at level 9 with a half-grown garden, coins to spend, a skill a level away and a spree at 4 of 5", async () => {
+    const demo = await enterDemo();
+    const game = await demo.query(api.game.mine, {});
+    expect(game.player!.level).toBe(9);
+
+    // Coins to spend: enough for a Sunlamp and a company-wide booster.
+    expect(game.wallet!.balance).toBeGreaterThanOrEqual(55);
+
+    // A skill tree grown on the way, points left to spend, and the next tier (level 10) one level away.
+    const skills = (await demo.query(api.skills.mine, {}))!;
+    const taken = Object.values(skills.skills).reduce((a, b) => a + b, 0);
+    expect(taken).toBeGreaterThanOrEqual(5);
+    expect(taken).toBeLessThan(8); // 8 points by level 9: some left for the visitor
+    expect(skills.skills.more_plots).toBe(2);
+    const me = await you();
+    const changes = (await t.run((ctx) => ctx.db.query("skillChanges").collect())).filter((c) => c.memberId === me._id);
+    expect(changes.filter((c) => c.kind === "take")).toHaveLength(taken);
+
+    // Half grown: three plots in use, a fruiting elder, one still growing towards Grown, and the plant
+    // for Emil, whom Alex thanks every week, with every watering Blossoming needs: waiting only on time.
+    const garden = await demo.query(api.gardens.mine, { today: TODAY });
+    if (!garden?.open) throw new Error("Alex's garden is closed");
+    expect(garden.plots).toBe(3);
+    expect(garden.plants).toHaveLength(3);
+    expect(new Set(garden.plants.map((p) => p.forId)).size).toBe(3);
+    const stages = garden.plants.map((p) => STAGES.findIndex((s) => s.key === p.stage));
+    expect(Math.min(...stages)).toBeLessThan(GROWN);
+    expect(garden.plants.some((p) => STAGES.findIndex((s) => s.key === p.stage) >= GROWN && p.fruit.length > 0)).toBe(true);
+    expect(garden.plants.find((p) => p.sunlamp)).toMatchObject({ forName: "Emil Novak", next: { name: "Blossoming" } });
+    expect(game.wallet!.spent).toBeGreaterThanOrEqual(30); // the plants cost 10 each
+
+    // The spree in the playground waits for one more joiner.
+    await demo.mutation(api.demo.openSpree, {});
+    expect(await demo.query(api.demo.spreePost, { today: TODAY })).toMatchObject({ joiners: 4, next: 5, tier: 0, status: "open" });
+  });
+
+  test("an admin scheduled a bonus day at the launch and one a month ago, and the next one is announced", async () => {
+    const demo = await enterDemo();
+    const boosts = await t.run((ctx) => ctx.db.query("boosts").collect());
+    expect(boosts.map((b) => [b.dayKey, b.kind, b.source]).sort()).toEqual([
+      ["2026-05-22", "double", "schedule"],
+      ["2026-08-28", "double", "schedule"],
+      ["2026-09-25", "double", "schedule"],
+    ]);
+    expect(boosts.every((b) => b.createdAt < NOW.getTime())).toBe(true);
+    const banner = await demo.query(api.boosts.banner, { today: TODAY });
+    expect(banner?.upcoming.map((b) => b.dayKey)).toEqual(["2026-09-25"]);
+    // Qualifying kudos on the past bonus days earned their givers double.
+    const onBonusDays = (await all(t, "gameEvents")).filter((e) => e.kind === "give" && (e.dayKey === "2026-05-22" || e.dayKey === "2026-08-28"));
+    expect(onBonusDays.length).toBeGreaterThan(3);
+    expect(onBonusDays.filter((e) => (e.lines ?? []).some((l) => l.boosted)).length).toBeGreaterThan(3);
+  });
+
+  test("a fresh member reaches level 2 in two playground kudos", async () => {
+    await enterDemo();
+    const workspaceId = await demoWorkspaceId();
+    const fresh = await t.run((ctx) =>
+      ctx.db.insert("members", {
+        workspaceId,
+        slackUserId: "UDEMONEWBIE",
+        name: "Robin Newcomer",
+        isAdmin: false,
+        isBot: false,
+        deactivated: false,
+        totalGiven: 0,
+        totalReceived: 0,
+        totalMaxedDays: 0,
+      }),
+    );
+    const robin = await signInAs(t, fresh);
+    for (const id of ["UDEMOPRIYA", "UDEMOJONAS"]) {
+      const res = await robin.mutation(api.demo.simulateMessage, { text: `<@${id}> :taco: thanks for walking me through the release checklist`, channelName: "general" });
+      expect(res.status).toBe("given");
+    }
+    expect((await robin.query(api.game.mine, {})).player).toMatchObject({ level: 2 });
+  });
+
+  test("each reset step deletes at most 1,500 rows: a delete reads its document, and Convex allows 4,096 reads", async () => {
+    await enterDemo();
+    const tables = ["kudos", "memberDays", "discoveries", "gameEvents", "players", "notifications", "questCompletions", "workspaceStats", "memberStats", "pairStats"] as const;
+    const count = () => t.run(async (ctx) => (await Promise.all(tables.map(async (table) => (await ctx.db.query(table).collect()).length))).reduce((a, b) => a + b, 0));
+    const before = await count();
+    expect(before).toBeGreaterThan(3000);
+    await t.mutation(internal.demo.resetDemoWorkspace, {});
+    const after = await count();
+    expect(before - after).toBeGreaterThan(1000);
+    expect(before - after).toBeLessThanOrEqual(1500);
+  });
+
+  test("the same day always seeds the same demo, across a reset", async () => {
+    const demo = await enterDemo();
+    const snapshot = async () => {
+      const me = await you();
+      const plants = (await t.run((ctx) => ctx.db.query("plants").collect())).map((p) => [p.forId, p.species, p.plantedDay, p.plantedAt]);
+      const player = (await all(t, "players")).find((p) => p.memberId === me._id)!;
+      return { plants, xp: player.xp, level: player.level, skills: player.skills, wallet: (await demo.query(api.game.mine, {})).wallet };
+    };
+    const before = await snapshot();
+    await demo.mutation(api.demo.resetDemo, {});
+    await t.finishAllScheduledFunctions(vi.runAllTimers, 1000);
+    expect(await snapshot()).toEqual(before);
   });
 });

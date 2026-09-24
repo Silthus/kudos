@@ -68,7 +68,8 @@ test("a failed playground message can be fixed by editing it, like in Slack", as
   const fixed = await edit(failed.messageTs, over, "<@UDEMOSAMIR> <@UDEMOAIKO> :taco: heroes of the week");
   expect(fixed.status).toBe("given");
   expect(fixed.attempt).toEqual({ outcome: "given", reaction: "taco", guidance: null, messageTs: failed.messageTs });
-  expect(fixed.messages.map((m) => m.to).sort()).toEqual(["Aiko Tanaka", "Alex Rivera", "Samir Haddad"]);
+  // (Alex also grows a plant for Samir in the demo (#100): a gain DM may ride along.)
+  expect(fixed.messages.filter((m) => m.category !== "gains").map((m) => m.to).sort()).toEqual(["Aiko Tanaka", "Alex Rivera", "Samir Haddad"]);
   const attempts = await t.run((ctx) => ctx.db.query("kudosAttempts").collect());
   expect(attempts.map((a) => a.outcome)).toEqual(["given", "given"]);
 
