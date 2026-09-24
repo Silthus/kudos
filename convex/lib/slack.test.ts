@@ -38,10 +38,14 @@ test("the manifest points every Slack surface at this deployment over HTTP", () 
   expect(m.oauth_config.redirect_urls).toContain("https://kudos.example/api/auth/callback/slack");
 });
 
-test("the slash command hints at /kudos store, without asking for any new scope", () => {
+test("the slash command hints at /kudos store", () => {
   const m = slackManifest("https://kudos.example");
   expect(m.features.slash_commands[0].usage_hint).toBe("[me | top | store | help]");
-  // DMs and chat.update are covered by chat:write + im:write: the Store needs no reinstall.
+});
+
+test("the bot scopes: reacting on kudos messages is the only one that needs a reinstall", () => {
+  const m = slackManifest("https://kudos.example");
+  // DMs and chat.update are covered by chat:write + im:write; bot reactions need reactions:write.
   expect(m.oauth_config.scopes.bot).toEqual([
     "app_mentions:read",
     "channels:history",
@@ -52,6 +56,7 @@ test("the slash command hints at /kudos store, without asking for any new scope"
     "groups:read",
     "im:write",
     "reactions:read",
+    "reactions:write",
     "team:read",
     "users:read",
   ]);

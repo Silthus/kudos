@@ -3,11 +3,17 @@ import { internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { giveKudos, type GiveResult } from "./engine";
-import { countNoteWords, mentionedUsers, parseKudosMessage, previewText } from "./lib/parse";
+import { attemptKudos, findAttempt } from "./attempts";
+import { guidance } from "./lib/guidance";
+import { countEmoji, countNoteWords, mentionedUsers, previewText } from "./lib/parse";
 
 const ingestResult = v.object({
   status: v.string(),
   notificationIds: v.array(v.id("notifications")),
+  /** How to fix a failed attempt, shown only to the giver (Slack mrkdwn). */
+  guidance: v.optional(v.string()),
+  /** The reaction the bot puts on the message; absent for reaction-based giving. */
+  attempt: v.optional(v.object({ id: v.id("kudosAttempts"), reaction: v.string() })),
 });
 
 /** Readable preview of a Slack message, with every mention resolved to a name. */
@@ -32,7 +38,11 @@ function summarize(result: GiveResult) {
   return { status: result.status, notificationIds: result.notificationIds };
 }
 
-/** A Slack message that may contain kudos (`@ana :taco: :taco:`). */
+/**
+ * A Slack message that may contain kudos (`@ana :taco: :taco:`). Every message carrying the kudos
+ * emoji is an attempt: it's recorded once, with the reaction the bot puts on it and, if it
+ * failed, how to fix it.
+ */
 export const ingestMessage = internalMutation({
   args: {
     workspaceId: v.id("workspaces"),
@@ -48,10 +58,12 @@ export const ingestMessage = internalMutation({
   handler: async (ctx, args) => {
     const workspace = await ctx.db.get(args.workspaceId);
     if (!workspace || workspace.status !== "active") return null;
-    const parsed = parseKudosMessage(args.text, workspace.emojiName);
-    if (!parsed) return null;
-    // Re-delivered messages must not give twice. Look for the giver's own message row (a Slack
-    // message has one author): the message's first row may be a teammate's reaction to it.
+    const amountEach = countEmoji(args.text, workspace.emojiName);
+    if (amountEach === 0) return null;
+    // Re-delivered messages must not give, react or explain twice.
+    if (await findAttempt(ctx, workspace._id, args.channelId, args.messageTs)) return null;
+    // Messages given before attempts were recorded: look for the giver's own message row (a Slack
+    // message has one author), since the message's first row may be a teammate's reaction to it.
     const giver = await ctx.db
       .query("members")
       .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id).eq("slackUserId", args.giverSlackId))
@@ -71,11 +83,11 @@ export const ingestMessage = internalMutation({
       if (alreadyGiven) return null;
     }
 
-    const result = await giveKudos(ctx, {
+    const { result, attempt } = await attemptKudos(ctx, {
       workspace,
       giverSlackId: args.giverSlackId,
-      recipientSlackIds: parsed.recipients,
-      amountEach: parsed.amountEach,
+      recipientSlackIds: mentionedUsers(args.text),
+      amountEach,
       channelId: args.channelId,
       channelName: args.channelName,
       channelPrivate: args.channelPrivate,
@@ -92,7 +104,11 @@ export const ingestMessage = internalMutation({
         slackUserId: args.giverSlackId,
       });
     }
-    return summarize(result);
+    return {
+      ...summarize(result),
+      ...(attempt?.guidance ? { guidance: attempt.guidance.slack } : {}),
+      ...(attempt ? { attempt: { id: attempt.id, reaction: attempt.reaction } } : {}),
+    };
   },
 });
 
@@ -148,6 +164,11 @@ export const ingestReaction = internalMutation({
       excludeSlackIds: [args.botUserId],
       now: Date.now(),
     });
-    return summarize(result);
+    // There's no message of the giver's own to react to: the explanation goes with the reply.
+    const help =
+      result.status === "limit"
+        ? guidance({ kind: "limit", people: 1, amountEach: 1, remaining: result.remaining, limit: workspace.dailyLimit }, `:${workspace.emojiName}:`)
+        : undefined;
+    return { ...summarize(result), guidance: help };
   },
 });

@@ -5,7 +5,9 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { allowanceCheck, findMember, giveKudos, revokeKudosRow } from "./engine";
 import { getViewer, requireViewer } from "./lib/access";
 import { CATALOG, RARITY_WEIGHTS, type Category } from "./lib/messages";
-import { countNoteWords, parseKudosMessage, previewText } from "./lib/parse";
+import { countEmoji, countNoteWords, mentionedUsers, previewText } from "./lib/parse";
+import { attemptKudos } from "./attempts";
+import { attemptOutcomeValidator } from "./schema";
 import { addDays, dayKeyFor, startOfDayUtc, weekdayOfKey, zonedParts } from "./lib/time";
 import { DEFAULT_SETTINGS } from "./lib/settings";
 import { mulberry32 } from "./lib/random";
@@ -336,6 +338,14 @@ const playgroundResult = v.object({
   ),
 });
 
+/** A simulated message also shows the bot's reaction on it and, if it failed, the guidance. */
+const messageResult = playgroundResult.extend({
+  attempt: v.union(
+    v.null(),
+    v.object({ outcome: attemptOutcomeValidator, reaction: v.string(), guidance: v.union(v.null(), v.string()) }),
+  ),
+});
+
 async function describeNotifications(ctx: MutationCtx, me: Id<"members">, ids: Id<"notifications">[]) {
   const out = [];
   for (const id of ids) {
@@ -357,27 +367,27 @@ async function describeNotifications(ctx: MutationCtx, me: Id<"members">, ids: I
 /** Sends a message into a pretend Slack channel; runs the exact same pipeline as real Slack events. */
 export const simulateMessage = mutation({
   args: { text: v.string(), channelName: v.string() },
-  returns: playgroundResult,
+  returns: messageResult,
   handler: async (ctx, { text, channelName }) => {
     const { workspace, member } = await requireDemoViewer(ctx);
     if (text.length > 1000 || channelName.length > 40) throw new ConvexError("Message is too long.");
-    const parsed = parseKudosMessage(text, workspace.emojiName);
-    if (!parsed) return { status: "no_kudos", messages: [] };
+    const amountEach = countEmoji(text, workspace.emojiName);
+    if (amountEach === 0) return { status: "no_kudos", messages: [], attempt: null };
     const members = await ctx.db
       .query("members")
       .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id))
       .take(100);
     const known = new Map(members.map((m) => [m.slackUserId, m.name]));
-    const recipients = parsed.recipients.filter((id) => known.has(id));
     const now = Date.now();
-    const result = await giveKudos(ctx, {
+    const { result, attempt } = await attemptKudos(ctx, {
       workspace,
       giverSlackId: member.slackUserId,
-      recipientSlackIds: recipients,
-      amountEach: parsed.amountEach,
+      recipientSlackIds: mentionedUsers(text).filter((id) => known.has(id)),
+      amountEach,
       channelId: `C_DEMO_${channelName.toUpperCase()}`,
       channelName: channelName.replace(/[^a-z0-9-]/gi, "").slice(0, 40) || "general",
-      messageTs: `${now / 1000}`,
+      // Unique like a Slack ts, so every simulated message is its own attempt.
+      messageTs: `${now / 1000}-${Math.random().toString(36).slice(2, 10)}`,
       text: previewText(text, (id) => known.get(id)),
       noteWords: countNoteWords(text, workspace.emojiName, workspace.emojiGlyph),
       source: "playground",
@@ -396,7 +406,11 @@ export const simulateMessage = mutation({
         });
       }
     }
-    return { status: result.status, messages: await describeNotifications(ctx, member._id, result.notificationIds) };
+    return {
+      status: result.status,
+      messages: await describeNotifications(ctx, member._id, result.notificationIds),
+      attempt: attempt && { outcome: attempt.outcome, reaction: attempt.reaction, guidance: attempt.guidance?.web ?? null },
+    };
   },
 });
 
@@ -501,6 +515,7 @@ const DEMO_TABLES = [
   "channelStats",
   "questBoards",
   "questCompletions",
+  "kudosAttempts",
   "notifications",
 ] as const;
 
@@ -524,6 +539,8 @@ async function demoRows(ctx: MutationCtx, workspaceId: Id<"workspaces">, table: 
     case "questBoards":
     case "questCompletions":
       return await ctx.db.query(table).withIndex("by_workspace_week", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+    case "kudosAttempts":
+      return await ctx.db.query("kudosAttempts").withIndex("by_message", (q) => q.eq("workspaceId", workspaceId)).take(1000);
     case "notifications":
       return [];
   }

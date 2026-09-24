@@ -1,37 +1,23 @@
-export type ParsedKudos = {
-  /** Unique Slack user ids mentioned, in order of appearance. */
-  recipients: string[];
-  /** Kudos each recipient receives (= number of emojis in the message). */
-  amountEach: number;
-};
-
 const MENTION = /<@([UW][A-Z0-9]+)(?:\|[^>]*)?>/g;
 
 function escapeRegExp(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/**
+ * Kudos each mentioned person receives, HeyTaco-style: every emoji gives one kudos to every
+ * mention, so `@ana @ben :taco: :taco:` gives ana and ben 2 each. 0: not a kudos attempt.
+ */
 export function countEmoji(text: string, emojiName: string): number {
   const re = new RegExp(`:${escapeRegExp(emojiName)}:(?::skin-tone-\\d:)?`, "g");
   return text.match(re)?.length ?? 0;
 }
 
+/** Unique Slack user ids mentioned, in order of appearance. */
 export function mentionedUsers(text: string): string[] {
   const seen = new Set<string>();
   for (const m of text.matchAll(MENTION)) seen.add(m[1]);
   return [...seen];
-}
-
-/**
- * HeyTaco-style parsing: every mention in a message receives one kudos per
- * configured emoji. `@ana @ben :taco: :taco:` → ana and ben get 2 each.
- */
-export function parseKudosMessage(text: string, emojiName: string): ParsedKudos | null {
-  const amountEach = countEmoji(text, emojiName);
-  if (amountEach === 0) return null;
-  const recipients = mentionedUsers(text);
-  if (recipients.length === 0) return null;
-  return { recipients, amountEach };
 }
 
 /** Normalises `taco::skin-tone-2` (as sent in reaction events) to `taco`. */

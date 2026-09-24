@@ -2,7 +2,8 @@ import { v } from "convex/values";
 import { internalAction, type ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { baseEmojiName, parseKudosMessage } from "./lib/parse";
+import { baseEmojiName, countEmoji } from "./lib/parse";
+import { FALLBACK_REACTION } from "./lib/guidance";
 import { escapeMrkdwn, isSlackResponseUrl, rewardLine, siteUrl, slackApi, type SlackResponse } from "./lib/slack";
 import { RARITY_SLACK_BADGE, type Rarity } from "./lib/messages";
 import { OPEN_COUNT_CAP } from "./lib/store";
@@ -67,7 +68,7 @@ export const processEvent = internalAction({
       if (event.bot_id || !event.user || !event.text || !event.channel || !event.ts) return null;
       if (event.subtype && IGNORED_SUBTYPES.has(event.subtype)) return null;
       if (event.channel_type === "im") return null;
-      if (!parseKudosMessage(event.text, emojiName)) return null;
+      if (countEmoji(event.text, emojiName) === 0) return null;
       const channel = await channelInfo(install.botToken, event.channel);
       const result = await ctx.runMutation(internal.kudos.ingestMessage, {
         workspaceId,
@@ -79,7 +80,9 @@ export const processEvent = internalAction({
         channelPrivate: channel.isPrivate,
         messageTs: event.ts,
       });
-      if (result) await deliver(ctx, install.botToken, result.notificationIds, event.channel);
+      if (!result) return null;
+      if (result.attempt) await react(ctx, install.botToken, event.channel, event.ts, result.attempt);
+      await deliver(ctx, install.botToken, result.notificationIds, event.channel, result.guidance ? { user: event.user, text: result.guidance } : undefined);
       return null;
     }
 
@@ -99,7 +102,10 @@ export const processEvent = internalAction({
         messageTs: event.item.ts,
         messageText: await messageText(install.botToken, event.item.channel, event.item.ts),
       });
-      if (result) await deliver(ctx, install.botToken, result.notificationIds, event.item.channel);
+      if (result) {
+        const guidance = result.guidance ? { user: event.user, text: result.guidance } : undefined;
+        await deliver(ctx, install.botToken, result.notificationIds, event.item.channel, guidance);
+      }
       return null;
     }
 
@@ -133,15 +139,34 @@ async function messageText(token: string, channel: string, ts: string): Promise<
   return replies.ok ? exact(replies) : undefined;
 }
 
+/**
+ * Puts the attempt's reaction on the message. Slack rejects a custom kudos emoji the workspace
+ * doesn't have (`invalid_name`): ✅ says "given" then. Reacting twice is fine (`already_reacted`),
+ * and a failure (e.g. `missing_scope` before the app is reinstalled) never blocks the replies.
+ */
+async function react(ctx: ActionCtx, token: string, channel: string, timestamp: string, attempt: { id: Id<"kudosAttempts">; reaction: string }) {
+  let name = attempt.reaction;
+  let res = await slackApi(token, "reactions.add", { channel, timestamp, name });
+  if (res.error === "invalid_name" && name !== FALLBACK_REACTION) {
+    name = FALLBACK_REACTION;
+    res = await slackApi(token, "reactions.add", { channel, timestamp, name });
+    if (res.ok || res.error === "already_reacted") await ctx.runMutation(internal.attempts.setReaction, { id: attempt.id, reaction: name });
+  }
+  if (!res.ok && res.error !== "already_reacted") console.warn(`Reacting with :${name}: on ${channel}/${timestamp} failed: ${res.error}`);
+}
+
 const EPHEMERAL = new Set(["limit_reached", "self_kudos"]);
 
+type Guidance = { user: string; text: string };
+
 /**
- * Sends queued bot messages. Success messages go to DMs; "you can't do that"
- * replies are shown ephemerally in the channel where the attempt happened.
+ * Sends queued bot messages. Success messages go to DMs; "you can't do that" replies are shown
+ * ephemerally in the channel where the attempt happened, together with the `guidance` on how to
+ * fix it. Guidance without such a reply goes out as an ephemeral message of its own.
  */
-async function deliver(ctx: ActionCtx, token: string, ids: Id<"notifications">[], channel?: string) {
-  if (ids.length === 0) return;
-  const rows = await ctx.runQuery(internal.slackData.notificationsForDelivery, { ids });
+async function deliver(ctx: ActionCtx, token: string, ids: Id<"notifications">[], channel?: string, guidance?: Guidance) {
+  let guided = !guidance || !channel;
+  const rows = ids.length > 0 ? await ctx.runQuery(internal.slackData.notificationsForDelivery, { ids }) : [];
   const site = siteUrl();
   for (const n of rows) {
     if (n.delivery !== "pending") continue;
@@ -152,19 +177,28 @@ async function deliver(ctx: ActionCtx, token: string, ids: Id<"notifications">[]
     ]
       .filter(Boolean)
       .join("  ·  ");
+    const ephemeral = EPHEMERAL.has(n.category) && channel;
+    const help = ephemeral && !guided && guidance?.user === n.slackUserId ? guidance.text : null;
+    if (help) guided = true;
     const blocks = [
       { type: "section", text: { type: "mrkdwn", text: n.slackText } },
+      ...(help ? [{ type: "section", text: { type: "mrkdwn", text: help } }] : []),
       { type: "context", elements: [{ type: "mrkdwn", text: context }] },
     ];
-    const res =
-      EPHEMERAL.has(n.category) && channel
-        ? await slackApi(token, "chat.postEphemeral", { channel, user: n.slackUserId, text: n.slackText, blocks })
-        : await slackApi(token, "chat.postMessage", { channel: n.slackUserId, text: n.slackText, blocks });
+    const text = help ? `${n.slackText}\n${help}` : n.slackText;
+    const res = ephemeral
+      ? await slackApi(token, "chat.postEphemeral", { channel, user: n.slackUserId, text, blocks })
+      : await slackApi(token, "chat.postMessage", { channel: n.slackUserId, text, blocks });
     await ctx.runMutation(internal.slackData.markDelivery, {
       id: n._id,
       delivery: res.ok ? "sent" : "failed",
       error: res.ok ? undefined : res.error,
     });
+  }
+  if (!guided && guidance && channel) {
+    const blocks = [{ type: "section", text: { type: "mrkdwn", text: guidance.text } }];
+    const res = await slackApi(token, "chat.postEphemeral", { channel, user: guidance.user, text: guidance.text, blocks });
+    if (!res.ok) console.warn(`Kudos guidance for ${guidance.user} in ${channel} failed: ${res.error}`);
   }
 }
 
