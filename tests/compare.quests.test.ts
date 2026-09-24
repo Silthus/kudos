@@ -1,16 +1,9 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { api } from "../convex/_generated/api";
 import type { Doc, Id } from "../convex/_generated/dataModel";
-import * as quests from "../convex/quests";
 import { weekKeyFor } from "../convex/lib/quests";
 import { startOfDayUtc } from "../convex/lib/time";
-import { seedTeam, setupConvex, signInAs, TODAY, type Team } from "./helpers";
-
-// The admin switch (#23) flips quests through the single `questsOn` hook; the mock lets a test turn it off.
-vi.mock("../convex/quests", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../convex/quests")>();
-  return { ...actual, questsOn: vi.fn(actual.questsOn) };
-});
+import { NOW, seedTeam, setupConvex, signInAs, TODAY, type Team } from "./helpers";
 
 // NOW is Wed 2026-09-23 in Berlin. Quest completions count in the period of the day they happened in the
 // workspace timezone, whatever quest week (ISO week, Monday first) they belong to.
@@ -24,7 +17,6 @@ async function setup(receivedVisibility: Doc<"workspaces">["receivedVisibility"]
   await longtime(team.ana);
   await questsSince("2024-12-30");
 }
-beforeEach(() => vi.mocked(quests.questsOn).mockReturnValue(true));
 afterEach(() => vi.useRealTimers());
 
 /** A member since before any range under test. */
@@ -242,11 +234,40 @@ describe("Teammate and Team: quests are private to each member", () => {
   });
 });
 
-describe("with quests switched off", () => {
-  test("the metric disappears from every benchmark", async () => {
+describe("the admin switch for quests", () => {
+  /** An admin saves the settings form with quests on or off at `at`, the way the Admin page posts it. */
+  async function switchQuests(on: boolean, at: string) {
+    vi.setSystemTime(new Date(at));
+    const admin = await signInAs(t, team.ana);
+    const { settings } = await admin.query(api.admin.overview, {});
+    await admin.mutation(api.admin.updateSettings, { ...settings, questsEnabled: on });
+    vi.setSystemTime(NOW);
+  }
+
+  test("last period spent with quests switched off has nothing to compare with", async () => {
+    await setup();
+    await switchQuests(false, "2026-09-13T20:00:00Z"); // Sun 22:00 Berlin
+    await switchQuests(true, "2026-09-18T10:00:00Z"); // Fri
+    await completed(team.ana, "2026-09-22");
+    const row = questsRow(await past("week"))!; // last week to date: Mon 14 – Wed 16, all switched off
+    expect(row.you.value).toBe(1);
+    expect(row.benchmark.value).toBeNull();
+    expect(row.delta).toBeNull();
+  });
+
+  test("a last period only partly switched off counts the quests completed in it, as they are", async () => {
+    await setup();
+    await completed(team.ana, "2026-09-14");
+    await switchQuests(false, "2026-09-15T10:00:00Z");
+    await switchQuests(true, "2026-09-18T10:00:00Z");
+    const row = questsRow(await past("week"))!;
+    expect(row.benchmark.value).toBe(1);
+  });
+
+  test("while quests are off the metric disappears from every benchmark", async () => {
     await setup();
     await completed(team.ana, "2026-09-22");
-    vi.mocked(quests.questsOn).mockReturnValue(false);
+    await switchQuests(false, "2026-09-23T09:00:00Z");
     const ana = await signInAs(t, team.ana);
     const results = [
       await ana.query(api.compare.past.get, { period: "week", today: TODAY }),

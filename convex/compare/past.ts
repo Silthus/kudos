@@ -15,9 +15,9 @@ import {
 } from "../lib/compare";
 import { resolvePeriod } from "../lib/periods";
 import { completionsIn, firstQuestWeek, givenKudos, memberDiscoveries, newDiscoveriesIn, questCompletions } from "../lib/compareReads";
-import { questsOn } from "../quests";
+import { pausedThroughout, questsOn } from "../quests";
 import { memberDays } from "../lib/stats";
-import { dayKeyFor, daysBetween, parseToday, type DayRange } from "../lib/time";
+import { addDays, dayKeyFor, daysBetween, parseToday, startOfDayUtc, type DayRange } from "../lib/time";
 
 const PREVIOUS_LABELS = { week: "Last week", month: "Last month", quarter: "Last quarter", year: "Last year" } as const;
 
@@ -98,8 +98,6 @@ export const get = query({
       ? { completions: await questCompletions(ctx, member._id, span), since: await firstQuestWeek(ctx, workspace._id) }
       : null;
     const metrics = METRICS.filter((m) => m !== "questsCompleted" || quests);
-    // A benchmark that ended before the first quest week had no quests to complete: nothing to compare.
-    const noQuestsYet = !quests?.since || benchmark.end < quests.since;
 
     const values = (m: typeof cur, k: typeof curKudos, r: DayRange): Values => ({
       given: m.given,
@@ -115,6 +113,14 @@ export const get = query({
     const you = values(cur, curKudos, current);
     const them = values(prev, prevKudos, benchmark);
 
+    // A benchmark with no quests to play has nothing to compare, not a zero: it ended before the first
+    // quest week, or quests were switched off all through it. Completions stored count as they are.
+    const noQuests =
+      !quests?.since ||
+      benchmark.end < quests.since ||
+      (them.questsCompleted === 0 &&
+        pausedThroughout(workspace, startOfDayUtc(benchmark.start, tz), startOfDayUtc(addDays(benchmark.end, 1), tz) - 1));
+
     // A capped kudos read would compare different windows (the most recent days of each range), so
     // reach and channels show no number rather than a misleading one.
     const truncated = curKudos.truncated || prevKudos.truncated;
@@ -123,7 +129,7 @@ export const get = query({
     const rows = metrics.map((metric) => {
       const locked = rowVisibility(workspace.receivedVisibility, "past", metric);
       const youValue = locked || uncounted(metric) ? null : you[metric];
-      const noBenchmark = notMember || uncounted(metric) || (metric === "questsCompleted" && noQuestsYet);
+      const noBenchmark = notMember || uncounted(metric) || (metric === "questsCompleted" && noQuests);
       const benchmarkValue = locked || noBenchmark ? null : them[metric];
       return {
         metric,
