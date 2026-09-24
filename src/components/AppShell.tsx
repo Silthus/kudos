@@ -120,7 +120,7 @@ export function AppShell() {
         {viewer.workspace.isDemo && (
           <p className="mx-auto mb-6 max-w-[1240px] rounded-xl border border-saffron/25 bg-saffron/[0.07] px-4 py-2.5 text-sm leading-relaxed text-cream/90">
             <span className="mr-2 font-mono text-[11px] uppercase tracking-widest text-saffron">Live demo</span>
-            You're exploring <b className="font-semibold">Lumen Labs</b>, a sample workspace with ~4 months of history. Try the{" "}
+            You're exploring <b className="font-semibold">Lumen Labs</b>, a sample workspace with this year's history. Try the{" "}
             <NavLink to="/playground" className="font-medium text-saffron underline-offset-4 hover:underline">
               Slack playground
             </NavLink>{" "}

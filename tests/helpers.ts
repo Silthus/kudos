@@ -68,10 +68,24 @@ export async function signInAs(t: ReturnType<typeof convexTest>, memberId: Id<"m
   return t.withIdentity({ subject: `${userId}|session` });
 }
 
-export function setupConvex() {
+/** Entering the demo seeds a year of history and rebuilds its rollups: slow under convex-test. */
+export const DEMO_TIMEOUT = 60_000;
+
+/** Convex's per-transaction limits (see https://docs.convex.dev/production/state/limits). */
+export const CONVEX_LIMITS = {
+  bytesRead: 16 * 2 ** 20,
+  bytesWritten: 16 * 2 ** 20,
+  documentsRead: 32_000,
+  documentsWritten: 16_000,
+  databaseQueries: 4_096,
+  functionsScheduled: 1_000,
+};
+
+/** `transactionLimits`: enforce Convex's limits (`true`) or tighter ones; off by default. */
+export function setupConvex(options: { transactionLimits?: boolean | Partial<typeof CONVEX_LIMITS> } = {}) {
   vi.useFakeTimers();
   vi.setSystemTime(NOW);
-  return convexTest(schema, modules);
+  return convexTest({ schema, modules, ...options });
 }
 
 export async function member(t: ReturnType<typeof convexTest>, id: Id<"members">) {

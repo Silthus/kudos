@@ -173,7 +173,7 @@ export function Landing() {
               {busy === "demo" ? "Opening demo…" : "Explore the live demo"}
             </Button>
           </div>
-          <p className="mt-4 text-sm text-faint">No sign-up for the demo. It's a sample workspace with 4 months of history.</p>
+          <p className="mt-4 text-sm text-faint">No sign-up for the demo. It's a sample workspace with this year's history.</p>
         </div>
         <SlackMock />
       </section>
