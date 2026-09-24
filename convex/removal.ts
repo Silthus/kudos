@@ -3,6 +3,7 @@ import { internalMutation, type MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id, TableNames } from "./_generated/dataModel";
 import { revokeKudosRow } from "./engine";
+import { Rollups } from "./lib/rollups";
 import { isOpen } from "./lib/store";
 
 /**
@@ -87,7 +88,18 @@ const PHASES: Phase[] = [
     name: "discoveries",
     batch: 500,
     rows: (ctx, m, n) => ctx.db.query("discoveries").withIndex("by_member_template", (q) => q.eq("memberId", m._id)).take(n),
-    clear: remove,
+    // Each one leaves the message's finders (and, with their last one, the collectors) right away.
+    clear: async (ctx, workspace, row) => {
+      const discovery = row as Doc<"discoveries">;
+      await ctx.db.delete(discovery._id);
+      const another = await ctx.db
+        .query("discoveries")
+        .withIndex("by_member_template", (q) => q.eq("memberId", discovery.memberId))
+        .first();
+      const rollups = new Rollups(ctx, workspace);
+      rollups.messageLost(discovery.templateKey, another === null);
+      await rollups.flush();
+    },
   },
   {
     name: "kudosAttempts",

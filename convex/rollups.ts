@@ -4,13 +4,15 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { ALL_BUCKET, bucketDays, dayBucket, monthBucket, periodBucketsBetween, weekBucket } from "./lib/buckets";
 import { CATALOG, pickTemplate, RARITIES, renderTemplate, TEMPLATE_BY_KEY, type Category } from "./lib/messages";
-import { channelKey, WORKSPACE_COUNTERS } from "./lib/rollups";
+import { ANY_MESSAGE, channelKey, WORKSPACE_COUNTERS } from "./lib/rollups";
 import { kudosInRange, totalsByMember, workspaceDays } from "./lib/stats";
 import {
   markBackfilled,
   mirrorBackfillMarker,
+  MESSAGE_KEYS,
   rebuildGiverPairs,
   rebuildMemberAll,
+  rebuildMessageFinders,
   rebuildMemberYear,
   rebuildWorkspaceAll,
   rebuildWorkspaceDay,
@@ -31,6 +33,7 @@ import { addDays, DAY_MS, dayKeyFor, daysBetween, startOfDayUtc, weekdayOfKey, z
  *            for totals, giving profile and all-time pairs
  *   periods  one w/m/q/y bucket per step (weeks, then months, then quarters and years, which
  *            build on months), after the day and member rows they sum
+ *   messages one `messageStats` row per step: each catalog message's finders, then the collectors
  *   all      the all-time row and channels, then `rollupsBackfilledAt` on the `all` row
  *
  * Live gives and revokes keep running throughout; every unit overwrites absolute values, so the
@@ -44,7 +47,13 @@ import { addDays, DAY_MS, dayKeyFor, daysBetween, startOfDayUtc, weekdayOfKey, z
 
 const DAYS_PER_STEP = 7;
 
-const phaseValidator = v.union(v.literal("days"), v.literal("members"), v.literal("periods"), v.literal("all"));
+const phaseValidator = v.union(
+  v.literal("days"),
+  v.literal("members"),
+  v.literal("periods"),
+  v.literal("messages"),
+  v.literal("all"),
+);
 type Phase = Infer<typeof phaseValidator>;
 
 /** Start a full rebuild of one workspace's rollups. */
@@ -112,7 +121,7 @@ export const backfillStep = internalMutation({
     from: v.string(),
     to: v.string(),
     phase: phaseValidator,
-    cursor: v.optional(v.string()), // days: next day; members: current member; periods: bucket index
+    cursor: v.optional(v.string()), // days: next day; members: current member; periods/messages: index
     year: v.optional(v.number()), // members: the year to rebuild next, past the span = all time
   },
   returns: v.null(),
@@ -161,7 +170,14 @@ export const backfillStep = internalMutation({
         const buckets = periodBucketsBetween(from, to);
         const index = Number(cursor ?? "0");
         await rebuildWorkspacePeriod(ctx, workspace, buckets[index]);
-        await (index + 1 < buckets.length ? next("periods", String(index + 1)) : next("all"));
+        await (index + 1 < buckets.length ? next("periods", String(index + 1)) : next("messages", "0"));
+        return null;
+      }
+      case "messages": {
+        // A deploy that shrank the catalog mid-run leaves the index past its end: move on.
+        const index = Number(cursor ?? "0");
+        if (index < MESSAGE_KEYS.length) await rebuildMessageFinders(ctx, workspace, MESSAGE_KEYS[index]);
+        await (index + 1 < MESSAGE_KEYS.length ? next("messages", String(index + 1)) : next("all"));
         return null;
       }
       case "all": {
@@ -190,6 +206,10 @@ const mismatch = v.object({
  * `memberDays` (lib/stats) and a scan of the bucket's kudos and first discoveries. Pass explicit
  * `d:`/`w:`/`m:`/`q:`/`y:` buckets, or get the latest active day, its week and its month. Years
  * and quarters read every kudos row in them, so sample those on small workspaces only.
+ *
+ * `messages:<templateKey>` checks one message's `messageStats` finders against its discoveries,
+ * `messages:*` the collectors against a probe per member; `messages` checks them all and reads
+ * every discovery of the workspace, so on a large one check them one by one.
  */
 export const verify = internalQuery({
   args: { workspaceId: v.id("workspaces"), buckets: v.optional(v.array(v.string())) },
@@ -208,7 +228,8 @@ export const verify = internalQuery({
     }
     const mismatches: Infer<typeof mismatch>[] = [];
     for (const bucket of checked) {
-      for (const m of await verifyBucket(ctx, workspace, bucket)) {
+      const messages = bucket === MESSAGES || bucket.startsWith(`${MESSAGES}:`);
+      for (const m of await (messages ? verifyMessages(ctx, workspace, bucket) : verifyBucket(ctx, workspace, bucket))) {
         if (mismatches.length < MAX_MISMATCHES) mismatches.push(m);
       }
     }
@@ -216,21 +237,70 @@ export const verify = internalQuery({
   },
 });
 
+type Values = Map<string, Record<string, number>>;
+
+/** Every field where `actual` differs from `expected` (absent counts as zero), by key. */
+function differences(bucket: string, table: string, expected: Values, actual: Values) {
+  const out: Infer<typeof mismatch>[] = [];
+  for (const key of [...new Set([...expected.keys(), ...actual.keys()])].sort()) {
+    const e = expected.get(key) ?? {};
+    const a = actual.get(key) ?? {};
+    for (const field of [...new Set([...Object.keys(e), ...Object.keys(a)])]) {
+      if ((e[field] ?? 0) !== (a[field] ?? 0)) out.push({ bucket, table, key, field, expected: e[field] ?? 0, actual: a[field] ?? 0 });
+    }
+  }
+  return out;
+}
+
+/** `verify`'s pseudo-bucket for `messageStats`. */
+const MESSAGES = "messages";
+
+/**
+ * `messageStats` against a recount, counted as the rebuild counts: a catalog message's finders from
+ * its discoveries, the collectors from a probe per member. `messages` checks every row (any other
+ * key should be absent), `messages:<key>` one.
+ */
+async function verifyMessages(ctx: QueryCtx, workspace: Doc<"workspaces">, bucket: string) {
+  const only = bucket === MESSAGES ? null : bucket.slice(MESSAGES.length + 1);
+  if (only !== null && !MESSAGE_KEYS.includes(only)) throw new ConvexError(`Unknown message: ${bucket}`);
+  const finders = new Map<string, Set<Id<"members">>>();
+  const found = (key: string, memberId: Id<"members">) => finders.set(key, (finders.get(key) ?? new Set()).add(memberId));
+  if (only === null) {
+    const known = new Set(MESSAGE_KEYS);
+    const all = ctx.db.query("discoveries").withIndex("by_workspace_firstSeen", (q) => q.eq("workspaceId", workspace._id));
+    for await (const d of all) if (known.has(d.templateKey)) found(d.templateKey, d.memberId);
+  } else if (only !== ANY_MESSAGE) {
+    const one = ctx.db
+      .query("discoveries")
+      .withIndex("by_workspace_template", (q) => q.eq("workspaceId", workspace._id).eq("templateKey", only));
+    for await (const d of one) found(only, d.memberId);
+  }
+  if (only === null || only === ANY_MESSAGE) {
+    const members = ctx.db.query("members").withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id));
+    for await (const m of members) {
+      const first = await ctx.db.query("discoveries").withIndex("by_member_template", (q) => q.eq("memberId", m._id)).first();
+      if (first) found(ANY_MESSAGE, m._id);
+    }
+  }
+  const stored = await ctx.db
+    .query("messageStats")
+    .withIndex("by_workspace_template", (q) =>
+      only === null ? q.eq("workspaceId", workspace._id) : q.eq("workspaceId", workspace._id).eq("templateKey", only),
+    )
+    .collect();
+  return differences(
+    bucket,
+    "messageStats",
+    new Map([...finders].map(([key, members]) => [key, { finders: members.size }])),
+    new Map(stored.map((r) => [r.templateKey, { finders: r.finders }])),
+  );
+}
+
 async function verifyBucket(ctx: QueryCtx, workspace: Doc<"workspaces">, bucket: string) {
   const { start, end } = bucketDays(bucket);
   const tz = workspace.timezone;
   const out: Infer<typeof mismatch>[] = [];
-  const compare = (table: string, expected: Map<string, Record<string, number>>, actual: Map<string, Record<string, number>>) => {
-    for (const key of [...new Set([...expected.keys(), ...actual.keys()])].sort()) {
-      const e = expected.get(key) ?? {};
-      const a = actual.get(key) ?? {};
-      for (const field of [...new Set([...Object.keys(e), ...Object.keys(a)])]) {
-        if ((e[field] ?? 0) !== (a[field] ?? 0)) {
-          out.push({ bucket, table, key, field, expected: e[field] ?? 0, actual: a[field] ?? 0 });
-        }
-      }
-    }
-  };
+  const compare = (table: string, expected: Values, actual: Values) => out.push(...differences(bucket, table, expected, actual));
 
   // The legacy readers' computation: per-member sums over the bucket's memberDays.
   const days = await workspaceDays(ctx, workspace._id, { start, end, days: daysBetween(start, end) + 1 }, 15_000);

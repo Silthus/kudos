@@ -1,8 +1,9 @@
 import type { Doc, Id, TableNames } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { RARITIES } from "./messages";
+import { CATALOG, RARITIES } from "./messages";
 import { ALL_BUCKET, bucketDays, dayBucket, heatSize, memberBuckets, weekBucket } from "./buckets";
 import {
+  ANY_MESSAGE,
   channelKey,
   MEMBER_COUNTERS,
   type MemberCounts,
@@ -413,6 +414,45 @@ export async function rebuildWorkspaceAll(ctx: MutationCtx, workspace: Workspace
   for (const c of await channelRows(ctx, workspace._id, "y:", "y:" + END)) add(channels, c.channel, c.amount);
   await writeWorkspaceRow(ctx, workspace._id, ALL_BUCKET, values);
   await writeChannels(ctx, workspace._id, ALL_BUCKET, channels);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Message finders: `messageStats`, one catalog message per unit, then the collectors.
+
+/** The `messageStats` keys a rebuild writes, in order: every catalog message, then ANY_MESSAGE. */
+export const MESSAGE_KEYS = [...CATALOG.map((t) => t.key), ANY_MESSAGE];
+
+/**
+ * One `messageStats` row: a message's finders from its discoveries (one row per member who found
+ * it), or for ANY_MESSAGE the members with any discovery (a member list and one probe each). The
+ * ANY_MESSAGE unit also deletes rows of keys no longer in the catalog.
+ */
+export async function rebuildMessageFinders(ctx: MutationCtx, workspace: Workspace, templateKey: string) {
+  const finders = new Set<Id<"members">>();
+  if (templateKey === ANY_MESSAGE) {
+    const members = ctx.db.query("members").withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id));
+    for await (const m of members) {
+      const found = await ctx.db.query("discoveries").withIndex("by_member_template", (q) => q.eq("memberId", m._id)).first();
+      if (found) finders.add(m._id);
+    }
+    const known = new Set(MESSAGE_KEYS);
+    const rows = ctx.db.query("messageStats").withIndex("by_workspace_template", (q) => q.eq("workspaceId", workspace._id));
+    for await (const row of rows) if (!known.has(row.templateKey)) await ctx.db.delete(row._id);
+  } else {
+    const found = ctx.db
+      .query("discoveries")
+      .withIndex("by_workspace_template", (q) => q.eq("workspaceId", workspace._id).eq("templateKey", templateKey));
+    for await (const d of found) finders.add(d.memberId);
+  }
+  const existing = await ctx.db
+    .query("messageStats")
+    .withIndex("by_workspace_template", (q) => q.eq("workspaceId", workspace._id).eq("templateKey", templateKey))
+    .collect();
+  const desired = new Map(finders.size > 0 ? [[templateKey, finders.size]] : []);
+  await syncRows(ctx, existing, (r) => r.templateKey, desired, async (row, key, n) => {
+    if (!row) await ctx.db.insert("messageStats", { workspaceId: workspace._id, templateKey: key, finders: n });
+    else if (row.finders !== n) await ctx.db.patch(row._id, { finders: n });
+  });
 }
 
 /**

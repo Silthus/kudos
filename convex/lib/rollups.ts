@@ -6,7 +6,8 @@ import { daysBetween, weekdayOfKey, zonedParts } from "./time";
 
 /**
  * Exact read-model maintenance. The engine reports every change to `kudos`, `memberDays`,
- * member totals and discoveries to one `Rollups` accumulator per transaction, then calls
+ * member totals and discoveries (first finds, and deleted ones for `messageStats`) to one
+ * `Rollups` accumulator per transaction, then calls
  * `flush()` once: each touched rollup row is read and written at most once.
  *
  * Distinct counters (givers, receivers, giverDays, activeDays, maxedDays, messages) only move
@@ -18,6 +19,9 @@ import { daysBetween, weekdayOfKey, zonedParts } from "./time";
 
 /** The single `channelStats` key every private channel shares. */
 export const PRIVATE_CHANNELS = "Private channels";
+
+/** The `messageStats` key counting members who found any message (the gallery's collectors). */
+export const ANY_MESSAGE = "*";
 
 export function channelKey(row: Pick<Doc<"kudos">, "channelId" | "channelName" | "channelPrivate">) {
   return row.channelPrivate ? PRIVATE_CHANNELS : (row.channelName ?? row.channelId);
@@ -67,6 +71,7 @@ export class Rollups {
   private readonly pairDeltas = new Map<string, { giverId: Id<"members">; receiverId: Id<"members">; bucket: string; amount: number }>();
   private readonly channelDeltas = new Map<string, { channel: string; bucket: string; amount: number }>();
   private readonly batches = new Map<string, { added: Set<Id<"kudos">>; removed: KudosRow[] }>();
+  private readonly finderDeltas = new Map<string, number>();
 
   constructor(
     private readonly ctx: MutationCtx,
@@ -121,8 +126,22 @@ export class Rollups {
     for (const bucket of workspaceBuckets(dayKey)) this.workspaceDelta(bucket).found[rarity] += 1;
   }
 
+  /**
+   * A member's first discovery of `templateKey` was inserted; `firstFind` when it is the first
+   * message they ever found (they have no other discovery).
+   */
+  messageFound(templateKey: string, firstFind: boolean) {
+    this.finders(templateKey, 1, firstFind);
+  }
+
+  /** A member's discovery of `templateKey` was deleted; `lastFind` when they have none left. */
+  messageLost(templateKey: string, lastFind: boolean) {
+    this.finders(templateKey, -1, lastFind);
+  }
+
   /** Write every accumulated delta. Call once, after all source writes of the transaction. */
   async flush() {
+    await this.flushFinders();
     await this.flushMessages();
     await this.flushMembers();
     await this.flushWorkspace();
@@ -152,6 +171,12 @@ export class Rollups {
       const ch = this.channelDeltas.get(channelKeyed) ?? { channel, bucket, amount: 0 };
       ch.amount += units;
       this.channelDeltas.set(channelKeyed, ch);
+    }
+  }
+
+  private finders(templateKey: string, sign: 1 | -1, anyMessage: boolean) {
+    for (const key of anyMessage ? [templateKey, ANY_MESSAGE] : [templateKey]) {
+      this.finderDeltas.set(key, (this.finderDeltas.get(key) ?? 0) + sign);
     }
   }
 
@@ -190,6 +215,24 @@ export class Rollups {
       const is = bucketsOf(after);
       for (const bucket of new Set([...was, ...is])) {
         this.workspaceDelta(bucket).counts.messages += Number(is.has(bucket)) - Number(was.has(bucket));
+      }
+    }
+  }
+
+  private async flushFinders() {
+    const { db } = this.ctx;
+    for (const [templateKey, delta] of this.finderDeltas) {
+      if (delta === 0) continue;
+      const row = await db
+        .query("messageStats")
+        .withIndex("by_workspace_template", (q) => q.eq("workspaceId", this.workspace._id).eq("templateKey", templateKey))
+        .unique();
+      const finders = clamp((row?.finders ?? 0) + delta);
+      if (row) {
+        if (finders === 0) await db.delete(row._id);
+        else await db.patch(row._id, { finders });
+      } else if (finders > 0) {
+        await db.insert("messageStats", { workspaceId: this.workspace._id, templateKey, finders });
       }
     }
   }

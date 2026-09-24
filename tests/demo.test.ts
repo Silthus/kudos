@@ -279,7 +279,7 @@ describe("the demo's quest history", () => {
   });
 });
 
-const ROLLUP_TABLES = ["workspaceStats", "memberStats", "pairStats", "channelStats"] as const;
+const ROLLUP_TABLES = ["workspaceStats", "memberStats", "pairStats", "channelStats", "messageStats"] as const;
 
 async function rollupLines() {
   return await t.run(async (ctx) => {
@@ -342,11 +342,51 @@ describe("the demo's read-model rollups", () => {
     const counts = await t.run(async (ctx) =>
       Promise.all(ROLLUP_TABLES.map(async (table) => (await ctx.db.query(table).collect()).length)),
     );
-    expect(counts).toEqual([0, 0, 0, 0]);
+    expect(counts).toEqual([0, 0, 0, 0, 0]);
 
     await t.finishAllScheduledFunctions(vi.runAllTimers, 1000);
     const all = (await t.run((ctx) => ctx.db.query("workspaceStats").collect())).find((w) => w.bucket === "all");
     expect(all?.rollupsBackfilledAt).toBeTypeOf("number");
+  });
+});
+
+describe("the demo's message finders (#86)", () => {
+  test("match the discoveries whenever the gallery reads them: seeded, played, and across a reset", async () => {
+    const demo = await enterDemo();
+    const workspaceId = await demoWorkspaceId();
+    const expectExact = async (step: string) => {
+      const { discoveries, stats } = await t.run(async (ctx) => ({
+        discoveries: await ctx.db.query("discoveries").collect(),
+        stats: await ctx.db.query("messageStats").collect(),
+      }));
+      const byKey = new Map<string, Set<string>>();
+      for (const d of discoveries) byKey.set(d.templateKey, (byKey.get(d.templateKey) ?? new Set()).add(d.memberId));
+      const lines = [...byKey].map(([k, s]) => `${k} ${s.size}`);
+      const collectors = new Set(discoveries.map((d) => d.memberId)).size;
+      lines.push(`* ${collectors}`);
+      expect(stats.map((s) => `${s.templateKey} ${s.finders}`).sort(), step).toEqual(lines.sort());
+      const g = await demo.query(api.discoveries.gallery, {});
+      expect(g.collectors, step).toBe(collectors);
+      expect(g.items.filter((i) => i.foundBy > 0).map((i) => `${i.key} ${i.foundBy}`).sort(), step).toEqual(
+        lines.filter((l) => !l.startsWith("* ")).sort(),
+      );
+    };
+    await expectExact("seeded");
+    expect(new Set((await all(t, "discoveries")).map((d) => d.category)).has("quest_complete")).toBe(true);
+
+    await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> <@UDEMOJONAS> :taco::taco: great work", channelName: "design" });
+    await t.finishAllScheduledFunctions(vi.runAllTimers, 1000); // teammates thank you back
+    await expectExact("played");
+
+    await demo.mutation(api.demo.resetDemo, {});
+    let marked = 0;
+    for (let i = 0; i < 2000 && (await runScheduledStep()); i++) {
+      if ((await t.run((ctx) => ctx.db.get(workspaceId)))!.rollupsBackfilledAt === undefined) continue;
+      marked += 1;
+      await expectExact(`reset step ${i}`);
+    }
+    expect(marked).toBeGreaterThan(0);
+    await expectExact("reset");
   });
 });
 

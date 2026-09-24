@@ -293,7 +293,17 @@ export default defineSchema({
   })
     .index("by_member_template", ["memberId", "templateKey"])
     .index("by_member_lastSeen", ["memberId", "lastSeenAt"])
-    .index("by_workspace_firstSeen", ["workspaceId", "firstSeenAt"]),
+    .index("by_workspace_firstSeen", ["workspaceId", "firstSeenAt"])
+    .index("by_workspace_template", ["workspaceId", "templateKey"]), // messageStats rebuild and verify
+
+  // How many members have found each message (lib/rollups.ts), for the gallery: one row per
+  // message anybody found, plus the ANY_MESSAGE row counting members who found any (collectors).
+  // Maintained where discoveries are first inserted or deleted; all-zero rows are deleted.
+  messageStats: defineTable({
+    workspaceId: v.id("workspaces"),
+    templateKey: v.string(), // a catalog key, or ANY_MESSAGE
+    finders: v.number(), // distinct members with a discovery of it
+  }).index("by_workspace_template", ["workspaceId", "templateKey"]),
 
   // Every message the bot sends (or would send, in the demo workspace).
   notifications: defineTable({

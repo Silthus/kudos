@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { internal } from "../convex/_generated/api";
 import type { Doc } from "../convex/_generated/dataModel";
 import { giveKudos, revokeKudosRow, type GiveInput } from "../convex/engine";
+import { ANY_MESSAGE } from "../convex/lib/rollups";
 import { seedTeam, setupConvex, type Team } from "./helpers";
 
 let t: ReturnType<typeof setupConvex>;
@@ -40,7 +41,7 @@ async function giveAt(iso: string, opts: GiveOptions) {
   expect(result.status, `${iso} ${opts.giverSlackId}`).toBe("given");
 }
 
-const ROLLUP_TABLES = ["workspaceStats", "memberStats", "pairStats", "channelStats"] as const;
+const ROLLUP_TABLES = ["workspaceStats", "memberStats", "pairStats", "channelStats", "messageStats"] as const;
 
 /** Every rollup row as a comparable line: ids, creation times and the backfill marker left out. */
 async function rollupLines() {
@@ -113,6 +114,17 @@ describe("rebuilding a workspace's rollups from the source tables", () => {
       await ctx.db.insert("pairStats", { ...stray, giverId: team.ana, receiverId: team.cleo, amount: 9 });
       await ctx.db.insert("channelStats", { ...stray, channel: "ghost", amount: 5 });
       await ctx.db.insert("memberStats", { ...stray, bucket: "m:2025-05", memberId: team.cleo, given: 1, received: 1, maxedDays: 0, activeDays: 1 });
+      // Message finders: wrong, missing, duplicated, and a message nobody found (or that left the catalog).
+      const messages = await ctx.db.query("messageStats").collect();
+      const collectors = messages.find((m) => m.templateKey === ANY_MESSAGE)!;
+      const found = messages.filter((m) => m !== collectors);
+      expect(found.length).toBeGreaterThan(2);
+      await ctx.db.patch(found[0]._id, { finders: found[0].finders + 4 });
+      await ctx.db.delete(found[1]._id);
+      await ctx.db.delete(collectors._id);
+      const { _id: _dupId, _creationTime: _dupTime, ...dup } = found[2];
+      await ctx.db.insert("messageStats", dup);
+      await ctx.db.insert("messageStats", { workspaceId: team.workspaceId, templateKey: "retired.legendary.1", finders: 2 });
     });
     expect(await rollupLines()).not.toEqual(maintained);
 
@@ -247,6 +259,70 @@ describe("verifying rollups against the legacy computation from memberDays and k
 
     await rebuild();
     expect((await verify(SAMPLE)).mismatches).toEqual([]);
+  });
+
+  test("checks message finders against the discoveries: all messages, or one", async () => {
+    await history();
+    const discoveries = await t.run((ctx) => ctx.db.query("discoveries").collect());
+    const [first, second] = [...new Set(discoveries.map((d) => d.templateKey))];
+    expect(second).toBeDefined();
+    expect(await verify(["messages", `messages:${first}`])).toEqual({ checked: ["messages", `messages:${first}`], mismatches: [] });
+
+    const finders = (key: string) => new Set(discoveries.filter((d) => d.templateKey === key).map((d) => d.memberId)).size;
+    await t.run(async (ctx) => {
+      const rows = await ctx.db.query("messageStats").collect();
+      await ctx.db.patch(rows.find((r) => r.templateKey === first)!._id, { finders: 9 });
+      await ctx.db.delete(rows.find((r) => r.templateKey === second)!._id);
+      await ctx.db.patch(rows.find((r) => r.templateKey === ANY_MESSAGE)!._id, { finders: 1 });
+      await ctx.db.insert("messageStats", { workspaceId: team.workspaceId, templateKey: "retired.legendary.1", finders: 2 });
+    });
+    const mismatch = (bucket: string, key: string, expected: number, actual: number) =>
+      ({ bucket, table: "messageStats", key, field: "finders", expected, actual });
+    expect((await verify([`messages:${second}`])).mismatches).toEqual([mismatch(`messages:${second}`, second, finders(second), 0)]);
+    expect((await verify([`messages:${ANY_MESSAGE}`])).mismatches).toEqual([mismatch(`messages:${ANY_MESSAGE}`, ANY_MESSAGE, 3, 1)]);
+    expect((await verify(["messages"])).mismatches).toEqual(
+      [
+        mismatch("messages", ANY_MESSAGE, 3, 1),
+        mismatch("messages", first, finders(first), 9),
+        mismatch("messages", "retired.legendary.1", 0, 2),
+        mismatch("messages", second, finders(second), 0),
+      ].sort((a, b) => a.key.localeCompare(b.key)),
+    );
+
+    await rebuild();
+    expect((await verify(["messages"])).mismatches).toEqual([]);
+  });
+
+  test("counts message finders the way the rebuild does: catalog messages only, collectors among members", async () => {
+    await history();
+    await t.run(async (ctx) => {
+      const [some] = await ctx.db.query("discoveries").collect();
+      const { _id, _creationTime, ...found } = some;
+      // A discovery of a message that left the catalog, and one left behind by a member who is gone.
+      await ctx.db.insert("discoveries", { ...found, templateKey: "giver.common.99" });
+      const gone = await ctx.db.insert("members", {
+        workspaceId: team.workspaceId, slackUserId: "UGONE", name: "Gone", isAdmin: false, isBot: false, deactivated: false,
+        totalGiven: 0, totalReceived: 0, totalMaxedDays: 0,
+      });
+      await ctx.db.insert("discoveries", { ...found, memberId: gone, templateKey: "self.common.1" });
+      await ctx.db.delete(gone);
+    });
+    await rebuild();
+    expect((await verify(["messages", `messages:${ANY_MESSAGE}`])).mismatches).toEqual([]);
+  });
+
+  test("refuses to check a message that isn't in the catalog", async () => {
+    await expect(verify(["messages:giver.common.99"])).rejects.toThrow(/Unknown message/);
+    await expect(verify(["messages:"])).rejects.toThrow(/Unknown message/);
+  });
+
+  test("a rebuild whose message cursor ran past a shrunken catalog still finishes and marks", async () => {
+    await history();
+    await t.mutation(internal.rollups.backfillStep, {
+      workspaceId: team.workspaceId, from: "2026-09-01", to: "2026-09-30", phase: "messages", cursor: "500",
+    });
+    await t.finishAllScheduledFunctions(vi.runAllTimers, 100);
+    expect((await t.run((ctx) => ctx.db.get(team.workspaceId)))!.rollupsBackfilledAt).toBe(Date.now());
   });
 
   test("samples the latest active day, its week and its month by default", async () => {
