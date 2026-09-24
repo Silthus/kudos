@@ -189,9 +189,9 @@ export function Me() {
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-12">
-        <QuestCard today={today} />
+        {viewer.workspace.questsEnabled && <QuestCard today={today} />}
 
-        <Card className="xl:col-span-7">
+        <Card className={viewer.workspace.questsEnabled ? "xl:col-span-7" : "xl:col-span-12"}>
           <CardHeader title="Recent activity" subtitle={viewer.canSeeOwnReceived ? "Kudos you gave and received" : "Kudos you gave"} />
           {data.activity.length === 0 ? (
             <Empty icon={glyph} title="Nothing here yet">
