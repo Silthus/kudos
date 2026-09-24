@@ -21,7 +21,7 @@ describe("a level-up", () => {
   test("names the level, its title and the skill point", () => {
     expect(gainBlocks([levelUp(2, 1)], link)).toEqual([
       section("*Level 2: Seedling*\nYour thoughtful kudos got you here. You earned a skill point for your skill tree."),
-      context("Level 2  ·  <https://kudos.example/me?ws=T1|Your level>"),
+      context("Level 2  ·  <https://kudos.example/me?ws=T1|Your level>  ·  <https://kudos.example/skills?ws=T1|Your skill tree>"),
     ]);
   });
 
@@ -74,7 +74,7 @@ describe("gains whose tickets emit them later", () => {
     const skill: Gain = { kind: "skill", name: "Lucky charm", branch: "Herald", description: "Your next kudos rolls rarer messages." };
     expect(gainBlocks([skill], link)).toEqual([
       section("🌱 *New skill: Lucky charm*\nHerald branch. Your next kudos rolls rarer messages."),
-      context("<https://kudos.example/me?ws=T1|Your skill tree>"),
+      context("<https://kudos.example/skills?ws=T1|Your skill tree>"),
     ]);
     expect(gainText(skill, "web")).toBe("New skill: Lucky charm. Herald branch. Your next kudos rolls rarer messages.");
   });

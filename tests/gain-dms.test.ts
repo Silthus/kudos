@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { internal } from "../convex/_generated/api";
+import { api, internal } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { Gains, sendGains } from "../convex/gains";
 import type { Gain } from "../convex/lib/gains";
 import { CATALOG, type Category } from "../convex/lib/messages";
-import { seedTeam, setupConvex, type Team } from "./helpers";
+import { seedTeam, setupConvex, signInAs, type Team } from "./helpers";
 
 /**
  * Gain DMs (#55 §G13, #99): discovering or gaining something is a DM, and everything one kudos
@@ -190,6 +190,19 @@ describe("gains outside a Slack event (a skill picked or an item bought on the w
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     expect(calls.filter((c) => c.method === "chat.postMessage")).toEqual([]);
     expect(await t.run((ctx) => ctx.db.query("notifications").collect())).toEqual([]);
+  });
+
+  test("taking a skill (#92) DMs the skill gained, with what it does", async () => {
+    await playing(team.ana, 900, 7);
+    const ana = await signInAs(t, team.ana);
+    await ana.mutation(api.skills.take, { skill: "pathfinder" });
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    const [dm] = dmsTo("UANA");
+    expect(dm.text).toMatch(/^🌱 \*New skill: Pathfinder\*\nScout branch\. /);
+    expect(dm.blocks).toContain("https://kudos.example/skills?ws=T1");
+    await ana.mutation(api.skills.take, { skill: "pathfinder" });
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    expect(dmsTo("UANA")[1].text).toMatch(/^🌱 \*New skill: Pathfinder, rank 2\*/);
   });
 
   test("coins a spree paid stay silent below level 3, like every coin before the wallet opens", async () => {

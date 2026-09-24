@@ -84,7 +84,7 @@ function parts(gain: Gain, audience: Audience, link: LinkTo): Parts {
       return {
         title: `Level ${gain.level}: ${titleForLevel(gain.level)}`,
         body: `Your thoughtful kudos got you here. You earned ${points === 1 ? "a skill point" : `${points} skill points`} for your skill tree.${coins}`,
-        context: links(`Level ${gain.level}`, to("/me", "Your level")),
+        context: links(`Level ${gain.level}`, to("/me", "Your level"), to("/skills", "Your skill tree")),
       };
     }
     case "discovery":
@@ -99,7 +99,7 @@ function parts(gain: Gain, audience: Audience, link: LinkTo): Parts {
         icon: "🌱",
         title: `New skill: ${safe(gain.name, audience)}`,
         body: [`${safe(gain.branch, audience)} branch.`, gain.description && safe(gain.description, audience)].filter(Boolean).join(" "),
-        context: links(to("/me", "Your skill tree")),
+        context: links(to("/skills", "Your skill tree")),
       };
     case "item":
       return {
