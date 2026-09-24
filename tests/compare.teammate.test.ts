@@ -253,6 +253,24 @@ describe("compare.candidates.list", () => {
   });
 });
 
+describe("Leaderboard entry point", () => {
+  test("rows offer Compare only for teammates you can compare with: not yourself, not someone who left", async () => {
+    await setup();
+    await day(team.ana, "2026-09-21", 3);
+    await day(team.ben, "2026-09-21", 2);
+    await day(team.cleo, "2026-09-21", 1);
+    await t.run((ctx) => ctx.db.patch(team.cleo, { deactivated: true })); // gave this week, then left
+
+    const ana = await signInAs(t, team.ana);
+    const { rows } = await ana.query(api.leaderboard.get, { period: "week", metric: "given", today: TODAY });
+    expect(rows.map((r) => [r.member.name, r.comparable])).toEqual([
+      ["Ana", false],
+      ["Ben", true],
+      ["Cleo", false],
+    ]);
+  });
+});
+
 describe("compare.teammate.get: bounded reads", () => {
   test("too many kudos to count the teammate's reach and channels: only their side goes blank", async () => {
     await setup();

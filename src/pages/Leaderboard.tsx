@@ -153,7 +153,7 @@ export function Leaderboard() {
                         </td>
                         <td className="px-3 py-3 text-right font-mono tabular text-muted">{r.maxedDays > 0 ? <span className="text-cream">{r.maxedDays}</span> : "0"}</td>
                         <td className="px-2 py-3 text-right">
-                          {!r.isMe && <CompareWith memberId={r.member._id} name={r.member.name} period={period} />}
+                          {r.comparable && <CompareWith memberId={r.member._id} name={r.member.name} period={period} />}
                         </td>
                       </motion.tr>
                     ))}
