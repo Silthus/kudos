@@ -113,5 +113,6 @@ test("on a phone the members table scrolls inside its card, and nothing in it wi
     ),
   );
   expect(host.querySelector("table")?.textContent).toContain("Lena Park");
+  expect(host.querySelector("table")!.parentElement!.classList, "the wide table scrolls sideways on its own").toContain("overflow-x-auto");
   expect(escapesFromScrollers(host).map(describeElement)).toEqual([]);
 });

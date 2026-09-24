@@ -67,5 +67,6 @@ test("on a phone the standings table scrolls inside its card, and nothing in it 
   const host = render();
   const compareHeader = [...host.querySelectorAll("th .sr-only")].find((s) => s.textContent === "Compare");
   expect(compareHeader, "the Compare column keeps its screen-reader header").toBeDefined();
+  expect(host.querySelector("table")!.parentElement!.classList, "the wide table scrolls sideways on its own").toContain("overflow-x-auto");
   expect(escapesFromScrollers(host).map(describeElement)).toEqual([]);
 });
