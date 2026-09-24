@@ -3,7 +3,16 @@ import { registerStaticRoutes } from "@convex-dev/static-hosting";
 import { httpAction, type ActionCtx } from "./_generated/server";
 import { components, internal } from "./_generated/api";
 import { auth } from "./auth";
-import { BOT_SCOPES, convexSiteUrl, siteUrl, slackManifest, verifySlackSignature } from "./lib/slack";
+import {
+  BOT_SCOPES,
+  convexSiteUrl,
+  holdsInstallState,
+  installStateCookie,
+  siteUrl,
+  slackManifest,
+  spentInstallStateCookie,
+  verifySlackSignature,
+} from "./lib/slack";
 
 const http = httpRouter();
 
@@ -29,6 +38,10 @@ function isWorthProcessing(event: EventText) {
   const texts = event.subtype === "message_changed" ? [event.message?.text, event.previous_message?.text] : [event.text];
   return texts.some((text) => (text ?? "").includes(":"));
 }
+
+/** A 302 that can also set a cookie (`Response.redirect`'s headers are immutable). */
+const redirect = (location: string, cookie?: string) =>
+  new Response(null, { status: 302, headers: { Location: location, ...(cookie ? { "Set-Cookie": cookie } : {}) } });
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -179,7 +192,7 @@ http.route({
     url.searchParams.set("scope", BOT_SCOPES.join(","));
     url.searchParams.set("redirect_uri", `${convexSiteUrl()}/slack/oauth/callback`);
     url.searchParams.set("state", state);
-    return Response.redirect(url.toString(), 302);
+    return redirect(url.toString(), installStateCookie(state));
   }),
 });
 
@@ -189,11 +202,16 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     const url = new URL(request.url);
     const site = siteUrl();
-    const fail = (reason: string) => Response.redirect(`${site}/?install_error=${encodeURIComponent(reason)}`, 302);
+    // Once the state is spent, so is the browser's cookie for it.
+    let spent: string | undefined;
+    const fail = (reason: string) => redirect(`${site}/?install_error=${encodeURIComponent(reason)}`, spent);
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");
     if (url.searchParams.get("error")) return fail(url.searchParams.get("error")!);
     if (!code || !state) return fail("missing_code");
+    // A callback link opened in another browser (login CSRF) must not install into that session.
+    if (!holdsInstallState(request.headers, state)) return fail("state_mismatch");
+    spent = spentInstallStateCookie();
     if (!(await ctx.runMutation(internal.slackData.consumeOAuthState, { state }))) return fail("expired_state");
 
     const res = await fetch("https://slack.com/api/oauth.v2.access", {
@@ -229,7 +247,7 @@ http.route({
       scope: data.scope ?? "",
     });
     await ctx.scheduler.runAfter(0, internal.slack.syncAllMembers, { workspaceId });
-    return Response.redirect(`${site}/?installed=${encodeURIComponent(data.team.name)}`, 302);
+    return redirect(`${site}/?installed=${encodeURIComponent(data.team.name)}`, spent);
   }),
 });
 
