@@ -8,7 +8,7 @@ export function NotInstalled({ name }: { name: string | null }) {
   const { signOut } = useAuthActions();
   return (
     <div className="grid min-h-dvh place-items-center px-5">
-      <Card className="max-w-md p-8 text-center">
+      <Card className="max-w-md p-6 text-center sm:p-8">
         <div className="flex justify-center">
           <Logo />
         </div>

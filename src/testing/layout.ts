@@ -37,4 +37,54 @@ export function escapesFromScrollers(root: ParentNode): Element[] {
   });
 }
 
+// `widensSideways` asks what holds on a phone, so here only unprefixed classes rescue a line…
+const has = (el: Element, re: RegExp) => always(el).some((c) => re.test(c));
+// …while any variant makes a grid or flex container (the safe direction again: `hidden md:flex`).
+const hasAt = (el: Element, re: RegExp) => [...el.classList].some((c) => re.test(c.replace(/^.*:/, "")));
+const SCROLLS = /^overflow(-[xy])?-(auto|scroll)$/;
+const PREFORMATTED = (el: Element) =>
+  el.classList.contains("whitespace-pre") || (el.tagName === "PRE" && !has(el, /^whitespace-(pre-wrap|pre-line|normal|break-spaces)$/));
+const SIZED_TO_CONTENT = /^(inline-block|inline-flex|inline-grid|inline-table|w-max|w-fit|w-min|table)$/;
+const LOOSE_ALIGNMENT = /^(items|self|justify-items|justify-self|place-items|place-self)-(center|start|end|baseline|flex-start|flex-end)$/;
+
+// Does this element grow to fit its widest line instead of the space it's given?
+const growsToContent = (el: Element) => {
+  if (el.tagName === "TD" || el.tagName === "TH" || has(el, SIZED_TO_CONTENT)) return true;
+  const parent = el.parentElement;
+  if (!parent) return false;
+  const shrinks = has(el, /^min-w-0$/) || has(el, CLIPS);
+  // Centred or start-aligned items are fit-content: `min-w-0` doesn't help, only a full width does.
+  const loose = hasAt(parent, LOOSE_ALIGNMENT) || hasAt(el, LOOSE_ALIGNMENT);
+  if (hasAt(parent, /^(inline-)?grid$/)) {
+    if (loose) return !has(el, /^w-full$/);
+    // Tailwind's grid-cols-N is repeat(N, minmax(0, 1fr)): those tracks never grow to fit.
+    const cols = [...parent.classList].filter((c) => /^grid-cols-/.test(c.replace(/^.*:/, "")));
+    const equal = cols.some((c) => /^grid-cols-\d+$/.test(c)) && cols.every((c) => /(^|:)grid-cols-\d+$/.test(c));
+    return !equal && !shrinks;
+  }
+  if (hasAt(parent, /^(inline-)?flex$/)) {
+    const column = has(parent, /^flex-col(-reverse)?$/) && !hasAt(parent, /^flex-row(-reverse)?$/);
+    return column ? loose && !has(el, /^w-full$/) : !shrinks;
+  }
+  return false;
+};
+
+/**
+ * Elements that make a phone page scroll sideways: long unbreakable lines that no scroller holds,
+ * or whose scroller sits in something that grows to fit the line anyway (a grid or flex item
+ * without `min-w-0`, a centred item, a table cell, `w-max`…). Clipping an ancestor doesn't count:
+ * the line is cut off out of reach. Not covered: `whitespace-nowrap` text, `style` attributes.
+ * The setup page's env commands ran ~130 px past a 375 px screen in a plain `<pre>`.
+ */
+export function widensSideways(root: ParentNode): Element[] {
+  return [...root.querySelectorAll("*")].filter((el) => {
+    if (!PREFORMATTED(el)) return false;
+    let p: Element | null = el;
+    while (p && p !== root && !has(p, p === el ? CLIPS : SCROLLS)) p = p.parentElement;
+    if (!p || p === root) return true; // nothing holds the line
+    for (; p && p !== root; p = p.parentElement) if (growsToContent(p)) return true;
+    return false;
+  });
+}
+
 export const describeElement = (el: Element) => `<${el.tagName.toLowerCase()} class="${el.className}">${el.textContent?.slice(0, 30) ?? ""}`;
