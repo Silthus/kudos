@@ -1,6 +1,6 @@
 # 0001: The Store balance is received kudos, not a second currency
 
-- Status: accepted
+- Status: superseded by [0002](0002-store-currency-is-hog-coins.md)
 - Date: 2026-09-23
 - Context: [Spec the Rewards Store](https://github.com/Silthus/kudos/issues/4) (decisions D1–D4), implemented from [#13](https://github.com/Silthus/kudos/issues/13)
 

@@ -10,9 +10,9 @@ Specified in [Spec the Rewards Store](https://github.com/Silthus/kudos/issues/4)
 
 | Term | Meaning | Not to be confused with |
 |---|---|---|
-| **Store** | A workspace's rewards catalog plus the redemption workflow. Admins switch it on or off (`workspaces.storeEnabled`, off by default). It can't be on while received kudos are hidden. | — |
+| **Store** | Where members spend Hog coins: built-in game items that apply instantly, plus, if an admin switches them on (off by default), real rewards with the redemption workflow. Priced only in Hog coins ([ADR 0002](docs/adr/0002-store-currency-is-hog-coins.md)). | — |
 | **Reward** | An item in the catalog that members can request by spending their balance. Archived, never deleted. | "prize" or "item" (don't use these) |
-| **Balance** | What a member can spend: `totalReceived + granted − spent` (`balanceOf`). Private to the member and admins. It can go negative when spent kudos are revoked. See [ADR 0001](docs/adr/0001-store-balance-is-received-kudos.md). | *received*, a lifetime recognition count that spending never reduces |
+| **Balance** | A member's Hog coins available to spend. Private to the member and admins. It can go negative when a revoke takes back coins already spent. Until the Store moves to Hog coins, the code still derives it from received kudos ([ADR 0001](docs/adr/0001-store-balance-is-received-kudos.md), superseded by [ADR 0002](docs/adr/0002-store-currency-is-hog-coins.md)). | *received*, which is only a stat |
 | **Redemption** | One member's request for one reward, with the cost and reward details frozen at request time. | "order" or "purchase" (don't use these) |
 | **Hold / debit** | The cost is subtracted from the balance as soon as a redemption is created. | — |
 | **Refund** | When a pending or approved redemption is declined or cancelled, the cost goes back to the balance and stock is restored. | *revoke*, which undoes a *kudos* (engine) |
@@ -67,3 +67,30 @@ Specified in [Slack: bot reactions confirm every kudos attempt](https://github.c
 | **Outcome** | How an attempt ended: `given` (every mentioned person got the full amount), `limit` (it would have exceeded the giver's remaining allowance: nothing was given) or `invalid` (nobody valid was mentioned: no mention, only group mentions like @here, only yourself, only bots/the app, only deactivated or unknown people, incl. other workspaces' guests). Giving stays all-or-nothing per message. | — |
 | **Bot reaction** | The reaction the Kudos bot puts on the attempt's message: the kudos emoji for `given` (✅ `white_check_mark` if Slack rejects a custom emoji), ⏳ `hourglass_flowing_sand` for `limit`, ❌ `x` for `invalid`. Recorded on the attempt only once Slack shows it. | a member's kudos-emoji reaction, which gives kudos |
 | **Guidance** | The ephemeral note to the giver on a failed attempt: how a valid kudos works, with the multiplication (`2 people × 2 🌮 = 4 🌮`) for `limit` and a one-line example for `invalid`. Not rarity-rolled; it rides along with the rolled "limit reached" / "self kudos" reply when there is one. | a rarity-rolled *bot message* |
+
+## Game
+
+Being settled in [Grill the gamification mechanics with the human](https://github.com/Silthus/kudos/issues/55). The game is an optional layer on top of kudos whose one purpose is to make appreciating others a daily habit. It only rewards *thoughtful* giving: the Quests' **Qualifying kudos** rule is the one definition of "counts".
+
+| Term | Meaning | Not to be confused with |
+|---|---|---|
+| **Game** | The optional layer of XP, levels, Hog coins, the skill tree, gardens, sprees and boosters. A workspace switches it on; a member becomes a player by giving their first kudos. | the kudos engine, which works with or without it |
+| **Player** | A member who has given at least one kudos while the game is on. Before that they can receive kudos, but nothing accrues. | *joining*, which is only for sprees |
+| **Hiding the game** | A member setting that removes the game from their view while kudos keep working. XP keeps accruing, so coming back never costs anything. | leaving the workspace |
+| **XP** | Progress points that set your level. Earned by giving and by receiving thoughtful kudos, and by quests. Never spent, never lost except when the kudos behind it is revoked. | Hog coins, which are spent |
+| **Level** | A rank derived from total XP, with a title. Shown on your profile, never ranked against others. | a leaderboard *rank* |
+| **Hog coin** | The only currency, shown as a gold coin with Max the hedgehog. A thoughtful kudos earns the giver 1 per kudos given; level-ups, quests, daily quests, sprees and garden fruit earn more. Spent in the Store. Never turns into kudos or allowance, and kudos never turn into coins. | kudos, which are only a stat |
+| **Skill tree** | Four branches of permanent abilities a member picks with skill points. There are never enough points to take every skill, so each member's tree is a choice. | *perks* that come automatically with a level (not used) |
+| **Skill point** | Earned one per level-up and spent on a skill in the skill tree. A reset returns all points and costs Hog coins. | XP |
+| **Garden** | A member's own garden of plants, each grown for one teammate they recognise. Others see the plants but not whom they're for. | the team garden |
+| **Plant** | Grown in your garden for one teammate. It grows when you recognise that person again in a later week and can't be rushed. Only the teammate sees that it's for them. | a *reward* |
+| **Dormant** | A plant whose teammate you haven't recognised for a while: it stops growing and fruiting until you recognise them again. Plants never die. | deleted |
+| **Team garden** | The workspace's shared garden. It grows from how many different people give thoughtful kudos, never from who receives. Its milestones can trigger bonus days. | a member's garden |
+| **Daily quest** | One small thoughtful-giving goal per day, on top of the weekly quest board. Missing it costs nothing. | the weekly *quest board* |
+| **Booster** | A consumable, bought with Hog coins, that makes recognition better for a while or for someone else. Some are company-wide and announced with who activated them. | a skill, which is permanent |
+| **Bonus day** | A day on which thoughtful kudos earn extra, announced in advance. Triggered by a team-garden milestone, an admin, or a company-wide booster. | a *streak* (the game has none) |
+| **Super kudos** | A special kudos emoji a member can use a limited number of times a month once they've taken its skill. It gives the usual amount; the receiver gets a unique celebration. | giving more kudos |
+| **Kudos spree** | What a thoughtful kudos becomes when enough teammates join it: 5, then 10, 20, 50 and 100 people (the **tiers**). Each tier reached pays the waiting joins out to the receiver and is celebrated in the kudos' thread. | reaction-giving |
+| **Join** (a spree) | Choosing to add your kudos to someone else's thoughtful kudos, by clicking the bot's reaction and confirming. It reserves one of today's kudos per person named and uses one of your monthly **spree joins** (5 a month by default). The kudos only reaches the receiver when the next tier is reached; if it isn't, the spree join comes back. | *becoming a player* |
+| **Reaction-giving** | An admin setting: reacting with the kudos emoji to a plain message gives its author a bare kudos. Separate from sprees. | joining a spree |
+| **Game item** | Something in the Store that applies instantly and needs no approval: a cosmetic, a booster, extra spree joins, a skill-tree reset. | a *reward*, which an admin fulfils |
