@@ -1,0 +1,90 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a208082a55eea121c
+
+ ❯ tests/success-metrics.test.ts (12 tests | 3 failed) 1902ms
+   ❯ success metrics per month (game spec G18) (11)
+     × shows the last 12 months from the first month anyone gave, and pools the 3 complete months before this one as the baseline 80ms
+     × the baseline takes the calendar months before this one, quiet ones included, from the first month anyone gave 53ms
+     × once the game goes on, the baseline stays the three months before its launch 65ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/success-metrics.test.ts > success metrics per month (game spec G18) > shows the last 12 months from the first month anyone gave, and pools the 3 complete months before this one as the baseline
+AssertionError: expected { from: '2026-06', months: 3, …(5) } to deeply equal { Object (from, to, ...) }
+
+- Expected
++ Received
+
+@@ -1,7 +1,6 @@
+  {
+-   "anchored": false,
+    "from": "2026-06",
+    "months": 3,
+    "participation": 0.5555555555555556,
+    "recipientsPerGiver": 1.2,
+    "reciprocalShare": 0.16666666666666666,
+
+ ❯ tests/success-metrics.test.ts:170:29
+    168|     ]);
+    169|     // June–August: 5 givers over 3 × 3 teammates, 6 pairs, 3 of 6 kud…
+    170|     expect(result.baseline).toEqual({
+       |                             ^
+    171|       from: "2026-06",
+    172|       to: "2026-08",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  tests/success-metrics.test.ts > success metrics per month (game spec G18) > the baseline takes the calendar months before this one, quiet ones included, from the first month anyone gave
+AssertionError: expected { from: '2026-03', months: 3, …(5) } to match object { Object (from, to, ...) }
+(3 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "anchored": false,
+-   "from": "2026-06",
++   "from": "2026-03",
+    "months": 3,
+-   "participation": 0.2222222222222222,
++   "participation": 0.3333333333333333,
+    "to": "2026-08",
+  }
+
+ ❯ tests/success-metrics.test.ts:188:40
+    186|     await giveAt("2026-08-12T09:00:00Z", { giverSlackId: "UBEN", recip…
+    187|     // June, July (nobody gave) and August: 2 givers over 3 × 3 teamma…
+    188|     expect((await metrics()).baseline).toMatchObject({ from: "2026-06"…
+       |                                        ^
+    189|
+    190|     // A workspace younger than three months pools what it has.
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  tests/success-metrics.test.ts > success metrics per month (game spec G18) > once the game goes on, the baseline stays the three months before its launch
+TypeError: anchorSuccessBaseline is not a function
+ ❯ tests/success-metrics.test.ts:201:32
+    199|     await giveAt("2026-06-10T09:00:00Z", { giverSlackId: "UANA", recip…
+    200|     await giveAt("2026-08-12T09:00:00Z", { giverSlackId: "UBEN", recip…
+    201|     await t.run(async (ctx) => anchorSuccessBaseline(ctx, (await ctx.d…
+       |                                ^
+    202|     // A second switch-on later doesn't move it.
+    203|     await t.run(async (ctx) => anchorSuccessBaseline(ctx, (await ctx.d…
+ ❯ invokeFunction node_modules/convex/src/server/impl/registration_impl.ts:90:14
+ ❯ invokeMutation node_modules/convex/src/server/impl/registration_impl.ts:70:18
+ ❯ runMutationWithHandler node_modules/convex-test/dist/index.js:1989:31
+ ❯ handler node_modules/convex-test/dist/index.js:2195:24
+ ❯ invokeFunction node_modules/convex/src/server/impl/registration_impl.ts:90:14
+ ❯ invokeAction node_modules/convex/src/server/impl/registration_impl.ts:513:18
+ ❯ run node_modules/convex-test/dist/index.js:2210:31
+ ❯ run node_modules/convex-test/dist/index.js:2222:20
+ ❯ tests/success-metrics.test.ts:201:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 9 passed (12)
+   Start at  11:52:44
+   Duration  2.41s (tests 81%, transform 11%, import 5%, environment 2%)
+

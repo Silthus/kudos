@@ -1,0 +1,37 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a208082a55eea121c
+
+ ❯ tests/success-metrics.test.ts (12 tests | 1 failed | 11 skipped) 524ms
+   ❯ success metrics per month (game spec G18) (11)
+     × rebuild and verify look back 72 h into the month before for thank-backs 522ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/success-metrics.test.ts > success metrics per month (game spec G18) > rebuild and verify look back 72 h into the month before for thank-backs
+AssertionError: expected { givers: 1, kudos: 1, …(7) } to match object { reciprocalShare: 1 }
+(8 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "reciprocalShare": 1,
++   "reciprocalShare": 0,
+  }
+
+ ❯ tests/success-metrics.test.ts:126:36
+    124|     });
+    125|     await rebuild();
+    126|     expect(await month("2026-09")).toMatchObject({ reciprocalShare: 1 …
+       |                                    ^
+    127|     expect((await verify()).mismatches).toEqual([]);
+    128|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 11 skipped (12)
+   Start at  11:55:12
+   Duration  1.07s (tests 53%, transform 28%, import 14%, environment 4%)
+

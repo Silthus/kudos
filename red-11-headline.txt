@@ -1,0 +1,67 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a208082a55eea121c
+
+ ❯ src/pages/Analytics.test.tsx (5 tests | 3 failed) 112ms
+   × admins see the last complete month against the baseline from before the launch, each with its goal 47ms
+   × before the game launches, the baseline includes the month shown, so nothing is judged yet 20ms
+   × before a rebuild computed them, admins learn why there is nothing yet 11ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/pages/Analytics.test.tsx > admins see the last complete month against the baseline from before the launch, each with its goal
+AssertionError: expected 'Reachshould rise1.2Baseline 2.5below …' to contain '3.0'
+
+Expected: "3.0"
+Received: "Reachshould rise1.2Baseline 2.5below baselinedifferent people each giver recognizedAug 2026Sep 2026"
+
+ ❯ src/pages/Analytics.test.tsx:89:38
+     87|   expect(card.textContent).toContain("Game success metrics");
+     88|   const tile = (label: string) => [...card.querySelectorAll("[data-met…
+     89|   expect(tile("recipientsPerGiver")).toContain("3.0");
+       |                                      ^
+     90|   expect(tile("recipientsPerGiver")).toContain("Baseline 2.5");
+     91|   expect(tile("recipientsPerGiver")).toContain("should rise");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/pages/Analytics.test.tsx > before the game launches, the baseline includes the month shown, so nothing is judged yet
+AssertionError: expected …(3) to have a length of +0 but got 3
+
+- Expected
++ Received
+
+- 0
++ 3
+
+ ❯ src/pages/Analytics.test.tsx:111:51
+    109|   success = { ...launched, baseline: { ...launched.baseline, from: "20…
+    110|   const card = section(render(true))!;
+    111|   expect(card.querySelectorAll("[data-verdict]")).toHaveLength(0);
+       |                                                   ^
+    112|   expect(card.textContent).toContain("Jun – Aug 2026");
+    113|   success = launched;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/pages/Analytics.test.tsx > before a rebuild computed them, admins learn why there is nothing yet
+AssertionError: expected 'Game success metricsPer month, whatev…' to contain 'being computed from your history'
+
+Expected: "being computed from your history"
+Received: "Game success metricsPer month, whatever the period above: the baseline to judge the game byThe success metrics appear after the next rollup rebuild has computed them from your history."
+
+ ❯ src/pages/Analytics.test.tsx:130:28
+    128|   success = { ready: false, months: [], baseline: null };
+    129|   const card = section(render(true))!;
+    130|   expect(card.textContent).toContain("being computed from your history…
+       |                            ^
+    131|   success = undefined;
+    132| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 2 passed (5)
+   Start at  11:55:44
+   Duration  754ms (import 38%, environment 26%, transform 18%, tests 17%)
+

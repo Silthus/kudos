@@ -1,0 +1,36 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a208082a55eea121c
+
+ ❯ tests/success-metrics.test.ts (12 tests | 1 failed | 11 skipped) 541ms
+   ❯ success metrics per month (game spec G18) (11)
+     × rollups:verify checks a month's success counters against its kudos 540ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/success-metrics.test.ts > success metrics per month (game spec G18) > rollups:verify checks a month's success counters against its kudos
+Error: unique() query returned more than one result from table successStats:
+ [00000000000000010152successStats, 00000000000000010373successStats, ...]
+ ❯ QueryImpl.unique node_modules/convex/src/server/impl/query_impl.ts:340:13
+ ❯ verifyBucket convex/rollups.ts:368:17
+    366|   if (month) {
+    367|     const counts = successCounts(kudos, kudosRows);
+    368|     const row = await ctx.db
+       |                 ^
+    369|       .query("successStats")
+    370|       .withIndex("by_workspace_bucket", (q) => q.eq("workspaceId", wor…
+ ❯ handler convex/rollups.ts:234:23
+ ❯ invokeFunction node_modules/convex/src/server/impl/registration_impl.ts:90:14
+ ❯ invokeQuery node_modules/convex/src/server/impl/registration_impl.ts:350:18
+ ❯ runQueryWithHandler node_modules/convex-test/dist/index.js:2027:31
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2087:32
+ ❯ query node_modules/convex-test/dist/index.js:2172:20
+ ❯ tests/success-metrics.test.ts:153:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 11 skipped (12)
+   Start at  11:56:37
+   Duration  1.07s (tests 55%, transform 27%, import 13%, environment 4%)
+
