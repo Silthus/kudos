@@ -23,6 +23,7 @@ import type * as leaderboard from "../leaderboard.js";
 import type * as lib_access from "../lib/access.js";
 import type * as lib_buckets from "../lib/buckets.js";
 import type * as lib_compare from "../lib/compare.js";
+import type * as lib_demoCalendar from "../lib/demoCalendar.js";
 import type * as lib_guidance from "../lib/guidance.js";
 import type * as lib_messages from "../lib/messages.js";
 import type * as lib_parse from "../lib/parse.js";
@@ -67,6 +68,7 @@ declare const fullApi: ApiFromModules<{
   "lib/access": typeof lib_access;
   "lib/buckets": typeof lib_buckets;
   "lib/compare": typeof lib_compare;
+  "lib/demoCalendar": typeof lib_demoCalendar;
   "lib/guidance": typeof lib_guidance;
   "lib/messages": typeof lib_messages;
   "lib/parse": typeof lib_parse;

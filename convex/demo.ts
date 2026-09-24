@@ -9,16 +9,29 @@ import { countEmoji, countNoteWords, mentionedUsers, mentionsGroup, previewText 
 import { attemptKudos, recordReaction } from "./attempts";
 import { attemptOutcomeValidator } from "./schema";
 import { addDays, dayKeyFor, startOfDayUtc, weekdayOfKey, zonedParts } from "./lib/time";
+import { demoActivity } from "./lib/demoCalendar";
 import { DEFAULT_SETTINGS } from "./lib/settings";
 import { mulberry32 } from "./lib/random";
 
 const DEMO_TEAM = "T_DEMO_LUMEN";
 export const DEMO_YOU = "UDEMOYOU";
-const SEED_DAYS = 120;
 const DAYS_PER_CHUNK = 15;
 
+const MIN_SEED_DAYS = 120;
+
+/**
+ * The demo shows the current year so far, from 1 January of the workspace-local year up to today, and
+ * never less than the last 120 days, so early January doesn't open on an empty workspace.
+ */
+function seedWindow(timezone: string) {
+  const today = dayKeyFor(Date.now(), timezone);
+  const newYear = `${today.slice(0, 4)}-01-01`;
+  const minimum = addDays(today, -MIN_SEED_DAYS);
+  return { fromDay: minimum < newYear ? minimum : newYear, untilDay: today };
+}
+
 const PEOPLE: { id: string; name: string; realName: string; title: string; generosity: number }[] = [
-  { id: DEMO_YOU, name: "Alex Rivera", realName: "Alex Rivera", title: "Engineering Manager", generosity: 0.55 },
+  { id: DEMO_YOU, name: "Alex Rivera", realName: "Alex Rivera", title: "Engineering Manager", generosity: 0.75 },
   { id: "UDEMOPRIYA", name: "Priya Raman", realName: "Priya Raman", title: "Staff Engineer", generosity: 0.8 },
   { id: "UDEMOJONAS", name: "Jonas Weber", realName: "Jonas Weber", title: "Product Designer", generosity: 0.7 },
   { id: "UDEMOLENA", name: "Lena Hoffmann", realName: "Lena Hoffmann", title: "Head of People", generosity: 0.9 },
@@ -116,12 +129,7 @@ export const ensureDemoUser = internalMutation({
           totalMaxedDays: 0,
         });
       }
-      const today = dayKeyFor(Date.now(), workspace.timezone);
-      await ctx.scheduler.runAfter(0, internal.demo.seedHistory, {
-        workspaceId: id,
-        fromDay: addDays(today, -SEED_DAYS),
-        untilDay: addDays(today, -1),
-      });
+      await ctx.scheduler.runAfter(0, internal.demo.seedHistory, { workspaceId: id, ...seedWindow(workspace.timezone) });
     }
     const me = await ctx.db
       .query("members")
@@ -160,25 +168,34 @@ export const seedHistory = internalMutation({
       discoveryHits.set(id, byCat);
     };
 
+    const now = Date.now();
+    const today = dayKeyFor(now, workspace.timezone);
     let day = fromDay;
     let processed = 0;
     while (day <= untilDay && processed < DAYS_PER_CHUNK) {
       const [y, m, d] = day.split("-").map(Number);
       const rand = mulberry32(y * 10000 + m * 100 + d);
-      const weekend = weekdayOfKey(day) >= 5;
+      const activity = demoActivity(day);
       const dayStart = startOfDayUtc(day, workspace.timezone);
+      // Today only holds what happened before the seed ran (and stays that way until the next reset). It
+      // leaves the playground something to give: the shared demo user gives nothing yet and teammates keep
+      // one kudos to thank them back with.
+      const isToday = day === today;
+      let givers = PEOPLE.filter((p) => rand() < p.generosity * 0.62 * activity);
+      // Someone always says thanks on a workday, even in the quietest holiday week.
+      if (givers.length === 0 && weekdayOfKey(day) < 5) givers = [weighted(PEOPLE, (p) => p.generosity, rand())];
+      if (isToday) givers = givers.filter((p) => p.id !== DEMO_YOU);
       const received = new Map<Id<"members">, number>();
-      for (const person of PEOPLE) {
+      for (const person of givers) {
         const giver = bySlack.get(person.id)!;
-        // Momentum: most people give a bit more in recent weeks.
-        const recency = 0.75 + 0.5 * (1 - (Date.now() - dayStart) / (SEED_DAYS * 86_400_000));
-        const chance = person.generosity * (weekend ? 0.12 : 0.62) * recency;
-        if (rand() > chance) continue;
+        // Visitors can play while a reset seeds: build on the day the engine already started.
+        const started = await memberDay(ctx, giver._id, day);
+        const budget = (isToday ? workspace.dailyLimit - 1 : workspace.dailyLimit) - (started?.given ?? 0);
         let used = 0;
         const messages = 1 + Math.floor(rand() * 3);
-        for (let i = 0; i < messages && used < workspace.dailyLimit; i++) {
+        for (let i = 0; i < messages && used < budget; i++) {
           const recipientCount = rand() < 0.2 ? 2 : 1;
-          const amountEach = Math.min(1 + Math.floor(rand() * rand() * 3), Math.floor((workspace.dailyLimit - used) / recipientCount));
+          const amountEach = Math.min(1 + Math.floor(rand() * rand() * 3), Math.floor((budget - used) / recipientCount));
           if (amountEach < 1) break;
           const pool = PEOPLE.filter((p) => p.id !== person.id);
           const recipients: Doc<"members">[] = [];
@@ -190,6 +207,8 @@ export const seedHistory = internalMutation({
           const hour = 8 + Math.floor(rand() * 10);
           const at = dayStart + hour * 3_600_000 + Math.floor(rand() * 3_600_000);
           const reason = REASONS[Math.floor(rand() * REASONS.length)];
+          const roll = rand();
+          if (at > now) continue; // later today: hasn't happened yet
           const text = `${recipients.map((r) => `@${r.name.split(" ")[0]}`).join(" ")} ${"🌮".repeat(amountEach)} ${reason}`;
           const batchId = `seed:${day}:${person.id}:${i}`;
           for (const r of recipients) {
@@ -214,34 +233,31 @@ export const seedHistory = internalMutation({
           }
           used += amountEach * recipients.length;
           hit(giver._id, "giver_success", at);
-          if (rand() < 0.08) hit(giver._id, "allowance_status", at);
-          if (rand() < 0.03) hit(giver._id, "limit_reached", at);
-          if (rand() < 0.02) hit(giver._id, "self_kudos", at);
+          if (roll < 0.08) hit(giver._id, "allowance_status", at);
+          else if (roll < 0.11) hit(giver._id, "limit_reached", at);
+          else if (roll < 0.13) hit(giver._id, "self_kudos", at);
           const t = totals.get(giver._id) ?? { given: 0, received: 0, maxed: 0 };
           t.lastGivenAt = Math.max(t.lastGivenAt ?? 0, at);
           totals.set(giver._id, t);
         }
         if (used > 0) {
-          const maxed = used >= workspace.dailyLimit;
-          await ctx.db.insert("memberDays", {
-            workspaceId,
-            memberId: giver._id,
-            dayKey: day,
-            given: used,
-            received: received.get(giver._id) ?? 0,
+          const given = (started?.given ?? 0) + used;
+          const maxed = given >= workspace.dailyLimit;
+          const row = {
+            given,
+            received: (started?.received ?? 0) + (received.get(giver._id) ?? 0),
             maxed,
-            capped: Math.min(used, workspace.dailyLimit),
-          });
+            capped: Math.min(given, workspace.dailyLimit),
+          };
+          if (started) await ctx.db.patch(started._id, row);
+          else await ctx.db.insert("memberDays", { workspaceId, memberId: giver._id, dayKey: day, ...row });
           received.delete(giver._id);
           bump(giver._id, "given", used);
-          if (maxed) bump(giver._id, "maxed", 1);
+          if (maxed && !started?.maxed) bump(giver._id, "maxed", 1);
         }
       }
       for (const [memberId, amount] of received) {
-        const existing = await ctx.db
-          .query("memberDays")
-          .withIndex("by_member_day", (q) => q.eq("memberId", memberId).eq("dayKey", day))
-          .unique();
+        const existing = await memberDay(ctx, memberId, day);
         if (existing) await ctx.db.patch(existing._id, { received: existing.received + amount });
         else await ctx.db.insert("memberDays", { workspaceId, memberId, dayKey: day, given: 0, received: amount, maxed: false, capped: 0 });
       }
@@ -270,6 +286,13 @@ export const seedHistory = internalMutation({
     return null;
   },
 });
+
+async function memberDay(ctx: MutationCtx, memberId: Id<"members">, dayKey: string) {
+  return await ctx.db
+    .query("memberDays")
+    .withIndex("by_member_day", (q) => q.eq("memberId", memberId).eq("dayKey", dayKey))
+    .unique();
+}
 
 async function seedDiscoveries(
   ctx: MutationCtx,
@@ -615,12 +638,7 @@ export const resetDemoWorkspace = internalMutation({
         isAdmin: m.slackUserId === DEMO_YOU || m.slackUserId === "UDEMOLENA",
       });
     }
-    const today = dayKeyFor(Date.now(), workspace.timezone);
-    await ctx.scheduler.runAfter(0, internal.demo.seedHistory, {
-      workspaceId: workspace._id,
-      fromDay: addDays(today, -SEED_DAYS),
-      untilDay: addDays(today, -1),
-    });
+    await ctx.scheduler.runAfter(0, internal.demo.seedHistory, { workspaceId: workspace._id, ...seedWindow(workspace.timezone) });
     return null;
   },
 });

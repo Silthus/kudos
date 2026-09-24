@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
-import type { QuestKey } from "../convex/lib/quests";
-import { all, seedTeam, setupConvex, signInAs, type Team } from "./helpers";
+import { RECIPROCAL_WINDOW_MS, type QuestKey } from "../convex/lib/quests";
+import { all, DEMO_TIMEOUT, NOW, seedTeam, setupConvex, signInAs, type Team } from "./helpers";
 
 let t: ReturnType<typeof setupConvex>;
 let team: Team;
@@ -344,8 +344,18 @@ describe("quests in the demo", () => {
     const demo = await enterDemo();
     const workspaceId = (await t.run((ctx) => ctx.db.query("workspaces").filter((q) => q.eq(q.field("isDemo"), true)).first()))!._id;
     await t.run((ctx) => ctx.db.insert("questBoards", { workspaceId, weekKey: WEEK, questKeys: ["spread", "channels", "story"] }));
+    // Thanking back someone who just recognized you doesn't count, so pick two teammates the seeded
+    // history hasn't had recognize Alex in the last 72 hours.
+    const [first, second] = await t.run(async (ctx) => {
+      const members = await ctx.db.query("members").filter((q) => q.eq(q.field("workspaceId"), workspaceId)).collect();
+      const alex = members.find((m) => m.slackUserId === "UDEMOYOU")!;
+      const recent = (await ctx.db.query("kudos").collect()).filter((k) => k.receiverId === alex._id && k.at >= NOW.getTime() - RECIPROCAL_WINDOW_MS);
+      return members
+        .filter((m) => m._id !== alex._id && m.slackUserId !== "UDEMOJONAS" && !recent.some((k) => k.giverId === m._id))
+        .map((m) => m.slackUserId);
+    });
     const res = await demo.mutation(api.demo.simulateMessage, {
-      text: "<@UDEMOPRIYA> :taco: thanks for untangling the deploy pipeline on friday, saved my whole afternoon",
+      text: `<@${first}> :taco: thanks for untangling the deploy pipeline on friday, saved my whole afternoon`,
       channelName: "general",
     });
     expect(res.status).toBe("given");
@@ -353,7 +363,7 @@ describe("quests in the demo", () => {
     await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOJONAS> :taco:", channelName: "design" });
     expect((await all(t, "kudos")).find((k) => k.source === "playground" && k.channelName === "design")?.noteWords).toBe(0);
     await demo.mutation(api.demo.simulateMessage, {
-      text: "<@UDEMOLENA> :taco: your onboarding checklist turned my first week into a genuinely calm one",
+      text: `<@${second}> :taco: your onboarding checklist turned my first week into a genuinely calm one`,
       channelName: "design",
     });
     expect((await demoCompletions()).map((c) => c.questKey).sort()).toEqual(["channels", "story"]);
@@ -362,7 +372,7 @@ describe("quests in the demo", () => {
 
     await demo.mutation(api.demo.refillAllowance, {});
     expect(await demoCompletions()).toHaveLength(0);
-  });
+  }, DEMO_TIMEOUT);
 
   test("resetting the demo clears quest boards and completions", async () => {
     const demo = await enterDemo();
@@ -372,5 +382,5 @@ describe("quests in the demo", () => {
     await t.finishAllScheduledFunctions(vi.runAllTimers, 1000); // seeding, then the rollup rebuild
     expect(await all(t, "questBoards")).toHaveLength(0);
     expect(await all(t, "questCompletions")).toHaveLength(0);
-  }, 30_000); // a reset re-seeds 120 days and rebuilds their rollups
+  }, DEMO_TIMEOUT); // a reset re-seeds the year and rebuilds its rollups
 });

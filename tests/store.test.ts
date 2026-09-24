@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { grantBalance, requestRedemption, transitionRedemption } from "../convex/store";
-import { all, NOW, seedTeam, setupConvex, signInAs, type Team } from "./helpers";
+import { all, DEMO_TIMEOUT, NOW, seedTeam, setupConvex, signInAs, type Team } from "./helpers";
 
 let t: ReturnType<typeof setupConvex>;
 let team: Team;
@@ -283,7 +283,7 @@ describe("store access", () => {
     await expect(demo.mutation(api.storeAdmin.updateReward, { rewardId, ...coffee })).rejects.toThrow(/demo/);
     await expect(demo.mutation(api.storeAdmin.setRewardStatus, { rewardId, status: "archived" })).rejects.toThrow(/demo/);
     expect(await demo.query(api.storeAdmin.rewards, {})).toHaveLength(1);
-  });
+  }, DEMO_TIMEOUT);
 });
 
 // ── Redeeming (S2) ────────────────────────────────────────────────────────────
@@ -624,7 +624,7 @@ describe("deciding", () => {
 
   test("works in the shared demo, where the queue is meant to be played with", async () => {
     const userId = await t.mutation(internal.demo.ensureDemoUser, {});
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    await t.finishAllScheduledFunctions(vi.runAllTimers, 1000); // seeding, then the rollup rebuild
     const demo = t.withIdentity({ subject: `${userId}|s` });
     const redemptionId = await t.run(async (ctx) => {
       const workspace = (await ctx.db.query("workspaces").collect()).find((w) => w.isDemo)!;
@@ -637,7 +637,7 @@ describe("deciding", () => {
     });
     await demo.mutation(api.storeAdmin.decide, { redemptionId, action: "fulfill" });
     expect(await statusOf(redemptionId)).toBe("fulfilled");
-  });
+  }, DEMO_TIMEOUT);
 
   test("the core helper refuses actors and requests from another workspace", async () => {
     const { redemptionId } = await benRequests();
@@ -906,11 +906,11 @@ describe("balance adjustments", () => {
 
   test("are read-only in the shared demo", async () => {
     const userId = await t.mutation(internal.demo.ensureDemoUser, {});
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    await t.finishAllScheduledFunctions(vi.runAllTimers, 1000); // seeding, then the rollup rebuild
     const demo = t.withIdentity({ subject: `${userId}|s` });
     const lena = await t.run(async (ctx) => (await ctx.db.query("members").collect()).find((m) => m.slackUserId === "UDEMOLENA")!._id);
     await expect(demo.mutation(api.storeAdmin.adjustBalance, { memberId: lena, amount: 5, reason: "Nice work" })).rejects.toThrow(/demo/);
-  });
+  }, DEMO_TIMEOUT);
 
   test("come from automations too, through grantBalance with source “system”", async () => {
     await fund(team.ben, 1);

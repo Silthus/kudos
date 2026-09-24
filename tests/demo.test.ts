@@ -1,15 +1,16 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
-import { all, setupConvex, TODAY } from "./helpers";
+import { addDays, weekdayOfKey } from "../convex/lib/time";
+import { all, CONVEX_LIMITS, DEMO_TIMEOUT, NOW, setupConvex, TODAY } from "./helpers";
 
 let t: ReturnType<typeof setupConvex>;
 
-// Entering the demo seeds 120 days of history and rebuilds its rollups: slow under convex-test.
-vi.setConfig({ testTimeout: 30_000 });
+vi.setConfig({ testTimeout: DEMO_TIMEOUT });
 
 beforeEach(() => {
-  t = setupConvex();
+  // Every demo transaction must fit Convex's limits, as it would on a real deployment.
+  t = setupConvex({ transactionLimits: true });
 });
 afterEach(() => vi.useRealTimers());
 
@@ -78,6 +79,115 @@ describe("the demo workspace", () => {
     const days = (await all(t, "memberDays")).filter((d) => d.memberId === alex!._id && d.given > 0);
     expect(alex!.lastActiveDay).toBe(days.map((d) => d.dayKey).sort().at(-1));
     expect(alex!.givenByWeekday!.reduce((a, b) => a + b, 0)).toBe(alex!.totalGiven);
+  });
+});
+
+/** Every day from `from` through `to`, inclusive. */
+function daysFrom(from: string, to: string) {
+  const days: string[] = [];
+  for (let day = from; day <= to; day = addDays(day, 1)) days.push(day);
+  return days;
+}
+
+describe("a year of demo history", () => {
+  test("covers 1 January up to now, with kudos on every workday and nothing in the future", async () => {
+    await enterDemo();
+    const kudos = await all(t, "kudos");
+    const days = new Set(kudos.map((k) => k.dayKey));
+    expect([...days].sort()[0]).toBe("2026-01-01");
+    const quietWorkdays = daysFrom("2026-01-01", addDays(TODAY, -1)).filter((d) => weekdayOfKey(d) < 5 && !days.has(d));
+    expect(quietWorkdays).toEqual([]);
+    expect(kudos.filter((k) => k.at > NOW.getTime())).toEqual([]);
+    expect(days.has(TODAY)).toBe(true);
+  });
+
+  test("has the rhythm of a real team: quiet weekends and holidays, launches, and growth", async () => {
+    await enterDemo();
+    const perDay = new Map<string, number>();
+    for (const k of await all(t, "kudos")) perDay.set(k.dayKey, (perDay.get(k.dayKey) ?? 0) + k.amount);
+    const year = daysFrom("2026-01-01", addDays(TODAY, -1));
+    /** Average kudos per workday (or per weekend day) between two days. */
+    const average = (from: string, to: string, weekend = false) => {
+      const days = year.filter((d) => d >= from && d <= to && (weekdayOfKey(d) >= 5) === weekend);
+      return days.reduce((s, d) => s + (perDay.get(d) ?? 0), 0) / days.length;
+    };
+
+    expect(average("2026-01-01", TODAY, true)).toBeLessThan(0.3 * average("2026-01-01", TODAY));
+    // New Year, Easter (Good Friday to Easter Monday) and the August summer holidays are quiet.
+    expect(average("2026-01-01", "2026-01-06")).toBeLessThan(0.6 * average("2026-01-12", "2026-01-30"));
+    expect(average("2026-04-03", "2026-04-06")).toBeLessThan(0.6 * average("2026-04-13", "2026-04-30"));
+    expect(average("2026-08-03", "2026-08-21")).toBeLessThan(0.7 * average("2026-06-29", "2026-07-31"));
+    // The spring launch week, the team offsite and the autumn release week stand out.
+    expect(average("2026-03-16", "2026-03-20")).toBeGreaterThan(1.3 * average("2026-03-02", "2026-03-13"));
+    expect(perDay.get("2026-06-25")!).toBeGreaterThan(1.5 * average("2026-06-01", "2026-06-24"));
+    expect(average("2026-09-07", "2026-09-11")).toBeGreaterThan(1.2 * average("2026-08-24", "2026-09-04"));
+    // And the team gives a little more as the year goes on.
+    expect(average("2026-05-04", "2026-06-19")).toBeGreaterThan(1.05 * average("2026-01-12", "2026-02-27"));
+  });
+
+  test("seeds, rebuilds and resets within half of Convex's transaction limits", async () => {
+    const half = Object.fromEntries(Object.entries(CONVEX_LIMITS).map(([k, n]) => [k, n / 2]));
+    t = setupConvex({ transactionLimits: half });
+    const demo = await enterDemo();
+    await demo.mutation(api.demo.resetDemo, {});
+    await t.finishAllScheduledFunctions(vi.runAllTimers, 1000);
+    const failed = await t.run(async (ctx) =>
+      (await ctx.db.system.query("_scheduled_functions").collect()).filter((f) => f.state.kind !== "success"),
+    );
+    expect(failed.map((f) => [f.name, f.state])).toEqual([]);
+    expect((await all(t, "kudos")).map((k) => k.dayKey).sort()[0]).toBe("2026-01-01");
+  });
+
+  test("leaves today's allowances for the playground", async () => {
+    vi.setSystemTime(new Date("2026-09-21T21:30:00Z")); // a busy Monday, 23:30 in Berlin: the whole working day is seeded
+    await enterDemo();
+    const members = await t.run((ctx) => ctx.db.query("members").collect());
+    const alex = members.find((m) => m.slackUserId === "UDEMOYOU")!;
+    const today = (await all(t, "memberDays")).filter((d) => d.dayKey === "2026-09-21" && d.given > 0);
+    expect(today.length).toBeGreaterThan(3);
+    expect(today.find((d) => d.memberId === alex._id)).toBeUndefined();
+    expect(Math.max(...today.map((d) => d.given))).toBe(4);
+  });
+
+  test("never has less than four months of history, even on New Year's Day", async () => {
+    vi.setSystemTime(new Date("2026-12-31T23:30:00Z")); // already 1 January 2027 in Berlin
+    await enterDemo();
+    const days = [...new Set((await all(t, "kudos")).map((k) => k.dayKey))].sort();
+    expect(days[0]).toBe("2026-09-03"); // 120 days back
+    expect(days.at(-1)! <= "2027-01-01").toBe(true);
+  });
+
+  test("playground gives while today is being seeded never double a teammate's day", async () => {
+    const demo = await enterDemo();
+    await demo.mutation(api.demo.resetDemo, {});
+    // Run the reset until the chunk that seeds today is next, then play before it runs.
+    for (let i = 0; i < 500; i++) {
+      const pending = await t.run(async (ctx) =>
+        (await ctx.db.system.query("_scheduled_functions").collect()).filter((f) => f.state.kind === "pending"),
+      );
+      const seed = pending.find((f) => f.name.includes("seedHistory"));
+      if (seed && (seed.args[0] as { fromDay: string }).fromDay > addDays(TODAY, -15)) break;
+      await runScheduledStep();
+    }
+    for (const id of ["UDEMOPRIYA", "UDEMOLENA", "UDEMOJONAS", "UDEMOFREYA", "UDEMOSOFIA"]) {
+      expect((await demo.mutation(api.demo.simulateMessage, { text: `<@${id}> :taco: thanks`, channelName: "general" })).status).toBe("given");
+    }
+    await t.finishAllScheduledFunctions(vi.runAllTimers, 1000);
+
+    const failed = await t.run(async (ctx) =>
+      (await ctx.db.system.query("_scheduled_functions").collect()).filter((f) => f.state.kind === "failed"),
+    );
+    expect(failed.map((f) => [f.name, f.state])).toEqual([]);
+    const days = await all(t, "memberDays");
+    const keys = days.map((d) => `${d.memberId}|${d.dayKey}`);
+    expect(new Set(keys).size).toBe(keys.length);
+    const givenToday = new Map<string, number>();
+    for (const k of (await all(t, "kudos")).filter((k) => k.dayKey === TODAY)) {
+      givenToday.set(k.giverId, (givenToday.get(k.giverId) ?? 0) + k.amount);
+    }
+    for (const d of days.filter((d) => d.dayKey === TODAY)) expect(d.given).toBe(givenToday.get(d.memberId) ?? 0);
+    expect(Math.max(...givenToday.values())).toBeLessThanOrEqual(5);
+    await demo.mutation(api.demo.refillAllowance, {});
   });
 });
 
