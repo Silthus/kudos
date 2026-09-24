@@ -13,6 +13,7 @@ import type * as analytics from "../analytics.js";
 import type * as attempts from "../attempts.js";
 import type * as auth from "../auth.js";
 import type * as compare_past from "../compare/past.js";
+import type * as compare_teammate from "../compare/teammate.js";
 import type * as crons from "../crons.js";
 import type * as demo from "../demo.js";
 import type * as discoveries from "../discoveries.js";
@@ -60,6 +61,7 @@ declare const fullApi: ApiFromModules<{
   attempts: typeof attempts;
   auth: typeof auth;
   "compare/past": typeof compare_past;
+  "compare/teammate": typeof compare_teammate;
   crons: typeof crons;
   demo: typeof demo;
   discoveries: typeof discoveries;
