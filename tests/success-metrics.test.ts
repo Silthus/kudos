@@ -225,6 +225,25 @@ describe("success metrics per month (game spec G18)", () => {
     expect(later.baseline).toMatchObject(expected);
   });
 
+  test("the admin's first switch-on of the game pins the baseline; switching off and on again keeps it", async () => {
+    await rebuild();
+    const settings = {
+      emojiName: "taco", emojiGlyph: "🌮", unitSingular: "kudos", unitPlural: "kudos", dailyLimit: 5, timezone: "Europe/Berlin",
+      receivedVisibility: "self" as const, reactionsEnabled: true, notifyGiver: true, notifyReceiver: true,
+    };
+    const ana = await signInAs(t, team.ana);
+    const switchGame = (gameEnabled: boolean) => ana.mutation(api.admin.updateSettings, { ...settings, gameEnabled });
+    const pinned = async () => (await t.run((ctx) => ctx.db.get(team.workspaceId)))!.successBaselineBefore;
+    await switchGame(false);
+    expect(await pinned()).toBeUndefined();
+    await switchGame(true); // 2026-09-23
+    expect(await pinned()).toBe("2026-09");
+    vi.setSystemTime(new Date("2026-11-05T10:00:00Z"));
+    await switchGame(false);
+    await switchGame(true);
+    expect(await pinned()).toBe("2026-09");
+  });
+
   test("a departed giver still counts in the team of the months they gave", async () => {
     await rebuild();
     await giveAt("2026-08-12T09:00:00Z", { giverSlackId: "UCLEO", recipientSlackIds: ["UBEN"] });
