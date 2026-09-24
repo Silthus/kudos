@@ -1,0 +1,19 @@
+Release #9 (Kudos 1.1) - production valiant-monitor-701 - deployed commit ad0ed90ab5e26bef11e741c370226e0e3992f7b9
+Gate at ad0ed90: npm run check -> typecheck ok, 61 test files / 942 tests passed (889 s), vite build ok
+Snapshot: npx convex export --prod -> ~/kudos-prod-pre-1.1-20260924T1054Z.zip (119 KB, zip intact)
+11:09:00-11:09:05 UTC npx convex deploy -y -> Deployed Convex functions (29 indexes added, none deleted)
+11:09:05-11:09:19 UTC npx @convex-dev/static-hosting upload --build --prod -> 17 assets, Upload complete
+11:09:25 rollups:backfillAll -> null; PostHog Test marked 11:09:29; Lumen Labs demo skipped (stuck resettingSince from failed v1 02:17 reset)
+rollups:mirrorBackfillMarkers -> null
+Signed Slack probes / verify outputs:
+events unsigned event_callback: HTTP 401 invalid signature
+events bad signature: HTTP 401 invalid signature
+events signed but stale timestamp (1h): HTTP 401 invalid signature
+commands unsigned: HTTP 401 invalid signature
+events signed url_verification: HTTP 200 {"challenge":"release-9-probe"}
+commands signed /kudos help: HTTP 200 {"response_type":"ephemeral","text":"*How Kudos works* :taco:\n• Mention teammates and add :taco: to your message: `@ana @ben :taco::taco: thanks for the releas
+commands signed replay (same signature): HTTP 200 
+/kudos help: HTTP 200 ephemeral 580B mentionsQuests=true :: {"response_type":"ephemeral","text":"*How Kudos works* :taco: • Mention teammates and add :taco: to your message: `@ana @ben :taco::taco: thanks for the release!` • Each :taco: gives one kudos to *every* person mentioned
+/kudos quests: HTTP 200 ephemeral 741B mentionsQuests=true :: {"blocks":[{"text":{"text":"This week's quests","type":"plain_text"},"type":"header"},{"text":{"text":"➖ *New connection* · not available Recognize someone you've never recognized before ▫️ *Steady hand* · 0/3 Give thoug
+/kudos me: HTTP 200 ephemeral 511B mentionsQuests=false :: {"blocks":[{"text":{"text":"Fun fact: unused :taco: vanish at midnight. You have 5.","type":"mrkdwn"},"type":"section"},{"fields":[{"text":"*Left today* 5 / 5 :taco:","type":"mrkdwn"},{"text":"*Given all-time* 0 :taco:",
+signed app_home_opened: HTTP 200 in 143 ms, at 2026-09-24T11:28:40.813Z
