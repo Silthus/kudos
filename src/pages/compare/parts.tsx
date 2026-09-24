@@ -22,14 +22,20 @@ export const METRIC_META: Record<Metric, { label: string; hint: string }> = {
   longestStreak: { label: "Longest streak", hint: "Most giving days in a row" },
   reach: { label: "Reach", hint: "Different teammates recognised" },
   channels: { label: "Channels", hint: "Different channels given in" },
+  questsCompleted: { label: "Quests completed", hint: "Weekly quests finished" },
   newDiscoveries: { label: "New discoveries", hint: "Bot messages seen for the first time" },
 };
 
-export const LOCKED_COPY: Record<Locked, string> = { hidden: "Private in this workspace", private: "Only visible to each member" };
+export const LOCKED_COPY: Record<Locked, string> = {
+  hidden: "Private in this workspace",
+  private: "Only visible to each member",
+  personal: "Quests are private to each member",
+};
 
 const LOCKED_TOOLTIP: Record<Locked, string> = {
   hidden: "An admin has kept received counts private in this workspace",
   private: "Received counts are only visible to each member in this workspace",
+  personal: "Quests are only ever shown to the member who completed them",
 };
 
 export const PERIOD_NOUN: Record<ComparePeriod, string> = { week: "week", month: "month", quarter: "quarter", year: "year" };

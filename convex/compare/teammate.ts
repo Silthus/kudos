@@ -16,6 +16,7 @@ import {
 } from "../lib/compare";
 import { givenKudos, memberDiscoveries, newDiscoveriesIn } from "../lib/compareReads";
 import { resolvePeriod } from "../lib/periods";
+import { questsOn } from "../quests";
 import { memberDays } from "../lib/stats";
 import { eachDay, parseToday, type DayRange } from "../lib/time";
 
@@ -50,7 +51,7 @@ async function subject(ctx: QueryCtx, memberId: Id<"members">, range: DayRange, 
     memberDiscoveries(ctx, memberId),
   ]);
   const m = metricsFromDays(days, range);
-  const values: Record<Metric, number> = {
+  const values: Record<Metric, number | null> = {
     given: m.given,
     received: m.received,
     activeDays: m.activeDays,
@@ -58,6 +59,7 @@ async function subject(ctx: QueryCtx, memberId: Id<"members">, range: DayRange, 
     longestStreak: m.longestStreak,
     reach: kudos.reach,
     channels: kudos.channels,
+    questsCompleted: null, // never read: quests are only ever the member's own (Quest spec D10)
     newDiscoveries: newDiscoveriesIn(discoveries, range, timeZone),
   };
   return { values, cumulativeGiven: m.cumulativeGiven, cumulativeReceived: m.cumulativeReceived, truncated: kudos.truncated };
@@ -106,7 +108,9 @@ export const get = query({
     // show no number. Both sides cover the same days, so the other side stays countable.
     const uncounted = (side: typeof you, metric: Metric) => side.truncated && (metric === "reach" || metric === "channels");
 
-    const rows = METRICS.map((metric) => {
+    // While quests are off the metric isn't there at all; while on, its row is always locked.
+    const metrics = METRICS.filter((m) => m !== "questsCompleted" || questsOn(viewer.workspace));
+    const rows = metrics.map((metric) => {
       const locked = rowVisibility(visibility, "teammate", metric);
       const youValue = locked || uncounted(you, metric) ? null : you.values[metric];
       const benchmarkValue = locked || uncounted(other, metric) ? null : other.values[metric];

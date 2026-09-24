@@ -108,10 +108,10 @@ describe("compare.team.get: the participant distribution", () => {
     });
   });
 
-  test("only rollup-backed metrics: no streaks, reach, channels or discoveries", async () => {
+  test("only rollup-backed metrics: no streaks, reach, channels or discoveries (quests only as a locked row)", async () => {
     await setup();
     await fiveGivers();
-    expect((await getTeam()).rows.map((x) => x.metric)).toEqual(["given", "received", "activeDays", "maxedDays"]);
+    expect((await getTeam()).rows.map((x) => x.metric)).toEqual(["given", "received", "activeDays", "maxedDays", "questsCompleted"]);
   });
 
   test("a viewer who gave nothing this period is on the scale but has no percentile", async () => {

@@ -14,7 +14,8 @@ import {
   type Metric,
 } from "../lib/compare";
 import { resolvePeriod } from "../lib/periods";
-import { givenKudos, memberDiscoveries, newDiscoveriesIn } from "../lib/compareReads";
+import { completionsIn, firstQuestWeek, givenKudos, memberDiscoveries, newDiscoveriesIn, questCompletions } from "../lib/compareReads";
+import { questsOn } from "../quests";
 import { memberDays } from "../lib/stats";
 import { dayKeyFor, daysBetween, parseToday, type DayRange } from "../lib/time";
 
@@ -66,7 +67,8 @@ export const get = query({
     const benchmark = current.end === p.currentFull.end ? previous : p.previousToDate!;
 
     // One read covers the previous bucket through today: ≤ 2 × 366 rows for "year".
-    const days = await memberDays(ctx, member._id, { start: previous.start, end: current.end, days: daysBetween(previous.start, current.end) + 1 });
+    const span = { start: previous.start, end: current.end, days: daysBetween(previous.start, current.end) + 1 };
+    const days = await memberDays(ctx, member._id, span);
 
     // Membership starts when the member row was created, or earlier if their history says so
     // (back-dated imports, the demo's seeded months). Before it there's nothing to compare, not zero.
@@ -90,6 +92,15 @@ export const get = query({
 
     const discoveries = await memberDiscoveries(ctx, member._id);
 
+    // Quests: the viewer's own completions (≤ 3 a week), and when the workspace's quests began. While
+    // quests are off the metric isn't there at all.
+    const quests = questsOn(workspace)
+      ? { completions: await questCompletions(ctx, member._id, span), since: await firstQuestWeek(ctx, workspace._id) }
+      : null;
+    const metrics = METRICS.filter((m) => m !== "questsCompleted" || quests);
+    // A benchmark that ended before the first quest week had no quests to complete: nothing to compare.
+    const noQuestsYet = !quests?.since || benchmark.end < quests.since;
+
     const values = (m: typeof cur, k: typeof curKudos, r: DayRange): Values => ({
       given: m.given,
       received: m.received,
@@ -98,6 +109,7 @@ export const get = query({
       longestStreak: m.longestStreak,
       reach: k.reach,
       channels: k.channels,
+      questsCompleted: quests ? completionsIn(quests.completions, r, tz) : 0,
       newDiscoveries: newDiscoveriesIn(discoveries, r, tz),
     });
     const you = values(cur, curKudos, current);
@@ -108,10 +120,11 @@ export const get = query({
     const truncated = curKudos.truncated || prevKudos.truncated;
     const uncounted = (metric: Metric) => truncated && (metric === "reach" || metric === "channels");
 
-    const rows = METRICS.map((metric) => {
+    const rows = metrics.map((metric) => {
       const locked = rowVisibility(workspace.receivedVisibility, "past", metric);
       const youValue = locked || uncounted(metric) ? null : you[metric];
-      const benchmarkValue = locked || notMember || uncounted(metric) ? null : them[metric];
+      const noBenchmark = notMember || uncounted(metric) || (metric === "questsCompleted" && noQuestsYet);
+      const benchmarkValue = locked || noBenchmark ? null : them[metric];
       return {
         metric,
         family: familyOf(metric),
