@@ -91,12 +91,12 @@ describe("redeeming a reward", () => {
 
     const [mine] = dmsTo("UBEN");
     expect(mine.text).toBe("🎁 Your request for *☕ Coffee on us* (15 :taco:) is in. An admin will take it from here. Balance: 27 :taco:.");
-    expect(JSON.stringify(mine.blocks)).toContain("<https://kudos.example/store#my-requests|My requests>");
+    expect(JSON.stringify(mine.blocks)).toContain("<https://kudos.example/store?ws=T1#my-requests|My requests>");
 
     const [review] = dmsTo("UANA");
     expect(review.text).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). Balance after: 27 :taco:.");
     const button = review.blocks.find((b: { type: string }) => b.type === "actions").elements.find((e: { action_id: string }) => e.action_id === "store_review");
-    expect(button).toMatchObject({ type: "button", text: { text: "Review in Kudos" }, url: "https://kudos.example/admin?tab=store" });
+    expect(button).toMatchObject({ type: "button", text: { text: "Review in Kudos" }, url: "https://kudos.example/admin?tab=store&ws=T1" });
     expect(dms()).toHaveLength(2);
   });
 });
@@ -337,7 +337,7 @@ describe("App Home", () => {
     expect(home).not.toContain("Headphones");
     await addReward({ name: "Sticker pack", emoji: "🏷️", cost: 5 });
     expect(await openHome("UBEN")).toContain("🥪 Lunch · 40 :taco:\\n☕ Coffee on us · 15 :taco:\\n🏷️ Sticker pack · 5 :taco:");
-    expect(home).toContain('"url":"https://kudos.example/store"');
+    expect(home).toContain('"url":"https://kudos.example/store?ws=T1"');
   });
 
   test("members don't see the admin line, even with requests waiting", async () => {
@@ -363,7 +363,7 @@ describe("App Home", () => {
     await redeemAsBen(rewardId);
     const home = await openHome("UANA");
     expect(home).toContain("1 request waiting");
-    expect(home).toContain('"url":"https://kudos.example/admin?tab=store"');
+    expect(home).toContain('"url":"https://kudos.example/admin?tab=store&ws=T1"');
   });
 
   test("leaves the store out while it's closed", async () => {
@@ -403,7 +403,7 @@ describe("/kudos store", () => {
     expect(text).toContain("*Balance*\\n42 :taco:");
     expect(text).toContain("🎁 A · 1 :taco:\\n🎁 B · 2 :taco:\\n🎁 C · 3 :taco:\\n🎁 D · 4 :taco:\\n🎁 E · 5 :taco:");
     expect(text).not.toContain("🎁 F");
-    expect(text).toContain("<https://kudos.example/store|Open the store>");
+    expect(text).toContain("<https://kudos.example/store?ws=T1|Open the store>");
   });
 
   test("balance is an alias", async () => {
@@ -483,7 +483,7 @@ describe("admin copies in Slack", () => {
           deny: { type: "plain_text", text: "Not yet" },
         },
       },
-      { type: "button", text: { type: "plain_text", text: "Review in Kudos" }, url: "https://kudos.example/admin?tab=store", action_id: "store_review" },
+      { type: "button", text: { type: "plain_text", text: "Review in Kudos" }, url: "https://kudos.example/admin?tab=store&ws=T1", action_id: "store_review" },
     ]);
   });
 

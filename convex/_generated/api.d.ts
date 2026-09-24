@@ -30,6 +30,7 @@ import type * as lib_compareReads from "../lib/compareReads.js";
 import type * as lib_demoCalendar from "../lib/demoCalendar.js";
 import type * as lib_demoStore from "../lib/demoStore.js";
 import type * as lib_guidance from "../lib/guidance.js";
+import type * as lib_links from "../lib/links.js";
 import type * as lib_messages from "../lib/messages.js";
 import type * as lib_parse from "../lib/parse.js";
 import type * as lib_periods from "../lib/periods.js";
@@ -83,6 +84,7 @@ declare const fullApi: ApiFromModules<{
   "lib/demoCalendar": typeof lib_demoCalendar;
   "lib/demoStore": typeof lib_demoStore;
   "lib/guidance": typeof lib_guidance;
+  "lib/links": typeof lib_links;
   "lib/messages": typeof lib_messages;
   "lib/parse": typeof lib_parse;
   "lib/periods": typeof lib_periods;

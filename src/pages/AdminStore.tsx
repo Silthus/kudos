@@ -109,6 +109,7 @@ function Requests({ isDemo }: { isDemo: boolean }) {
         action={
           <Segmented
             size="sm"
+            wrap
             value={filter}
             onChange={setFilter}
             options={[

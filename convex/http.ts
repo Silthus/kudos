@@ -12,6 +12,7 @@ import {
   slackManifest,
   spentInstallStateCookie,
   verifySlackSignature,
+  webLink,
 } from "./lib/slack";
 
 const http = httpRouter();
@@ -247,7 +248,9 @@ http.route({
       scope: data.scope ?? "",
     });
     await ctx.scheduler.runAfter(0, internal.slack.syncAllMembers, { workspaceId });
-    return redirect(`${site}/?installed=${encodeURIComponent(data.team.name)}`, spent);
+    // Opens the workspace just installed, for someone already signed in to another one.
+    const installed = `/?installed=${encodeURIComponent(data.team.name)}`;
+    return redirect(webLink(data.team.id, installed) ?? `${site}${installed}`, spent);
   }),
 });
 

@@ -41,6 +41,7 @@ export function Admin() {
         subtitle="Tune how kudos work in your workspace, manage admins and keep things fair."
         action={
           <Segmented
+            wrap
             value={tab}
             onChange={setTab}
             options={[

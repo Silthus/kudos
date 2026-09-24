@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import { useHashScroll } from "@/lib/hashScroll";
 import { navItems } from "@/lib/nav";
 import { useViewer } from "@/lib/viewer";
 import { ErrorBoundary } from "./ErrorBoundary";
@@ -53,6 +54,8 @@ export function AppShell() {
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [location.pathname]);
+  // After the scroll to the top: a `#section` link then scrolls on to its section.
+  useHashScroll();
   // Store requests waiting on an admin; capped server-side, so 100 reads as "99+".
   const openRequests = useQuery(api.storeAdmin.openCount, viewer.member.isAdmin ? {} : "skip") ?? 0;
   const nav = navItems({

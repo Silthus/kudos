@@ -4,7 +4,7 @@ import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { baseEmojiName, countEmoji, mentionedUsers } from "./lib/parse";
 import { FALLBACK_REACTION } from "./lib/guidance";
-import { escapeMrkdwn, isSlackResponseUrl, rewardLine, siteUrl, slackApi, type SlackResponse } from "./lib/slack";
+import { escapeMrkdwn, isSlackResponseUrl, rewardLine, slackApi, webLink, type SlackResponse } from "./lib/slack";
 import { RARITY_SLACK_BADGE, type Rarity } from "./lib/messages";
 import { OPEN_COUNT_CAP } from "./lib/store";
 import { questBlocks } from "./lib/questBlocks";
@@ -108,7 +108,7 @@ export const processEvent = internalAction({
       });
       // A thread's parent carries its own ts as thread_ts; its replies go to the channel.
       const threadTs = edited.thread_ts !== edited.ts ? edited.thread_ts : undefined;
-      if (result) await answerAttempt(ctx, install.botToken, { channel: event.channel, ts: edited.ts, threadTs, user: edited.user }, result);
+      if (result) await answerAttempt(ctx, install.botToken, teamId, { channel: event.channel, ts: edited.ts, threadTs, user: edited.user }, result);
       return null;
     }
 
@@ -130,7 +130,7 @@ export const processEvent = internalAction({
         messageTs: event.ts,
         unknownSlackIds: await lookUpUnknownMentions(ctx, install.botToken, workspaceId, teamId, event.text),
       });
-      if (result) await answerAttempt(ctx, install.botToken, { channel: event.channel, ts: event.ts, threadTs: event.thread_ts, user: event.user }, result);
+      if (result) await answerAttempt(ctx, install.botToken, teamId, { channel: event.channel, ts: event.ts, threadTs: event.thread_ts, user: event.user }, result);
       return null;
     }
 
@@ -151,7 +151,7 @@ export const processEvent = internalAction({
         messageText: await messageText(install.botToken, event.item.channel, event.item.ts),
       });
       if (result) {
-        await deliver(ctx, install.botToken, result.notificationIds, {
+        await deliver(ctx, install.botToken, teamId, result.notificationIds, {
           channel: event.item.channel,
           guidance: result.guidance ? { user: event.user, text: result.guidance } : undefined,
         });
@@ -219,13 +219,14 @@ type Ingested = {
 async function answerAttempt(
   ctx: ActionCtx,
   token: string,
+  teamId: string,
   message: { channel: string; ts: string; threadTs?: string; user: string },
   { attempt, notificationIds, guidance }: Ingested,
 ) {
   const { channel, ts } = message;
   for (const stale of attempt?.staleReactions ?? []) await unreact(token, channel, ts, stale);
   if (attempt) await react(ctx, token, channel, ts, attempt);
-  await deliver(ctx, token, notificationIds, {
+  await deliver(ctx, token, teamId, notificationIds, {
     channel,
     threadTs: message.threadTs,
     guidance: guidance ? { user: message.user, text: guidance } : undefined,
@@ -268,11 +269,12 @@ type Attempted = { channel: string; threadTs?: string; guidance?: { user: string
  * ephemerally where the attempt happened, together with the guidance on how to fix it.
  * Guidance without such a reply goes out as an ephemeral message of its own.
  */
-async function deliver(ctx: ActionCtx, token: string, ids: Id<"notifications">[], where?: Attempted) {
+async function deliver(ctx: ActionCtx, token: string, teamId: string, ids: Id<"notifications">[], where?: Attempted) {
   const { channel, threadTs: thread_ts, guidance } = where ?? {};
   let guided = !guidance || !channel;
   const rows = ids.length > 0 ? await ctx.runQuery(internal.slackData.notificationsForDelivery, { ids }) : [];
-  const site = siteUrl();
+  const questLog = webLink(teamId, "/quests");
+  const gallery = webLink(teamId, "/discoveries");
   for (const n of rows) {
     if (n.delivery !== "pending") continue;
     const quest = n.questProgress;
@@ -281,7 +283,7 @@ async function deliver(ctx: ActionCtx, token: string, ids: Id<"notifications">[]
       n.isNewDiscovery ? `✨ New discovery! (${n.discoveredCount} collected)` : null,
       quest ? `${quest.completed} of ${quest.available} quests this week` : null,
       quest?.sweep ? "🧹 Clean sweep!" : null,
-      site ? (quest ? `<${site}/quests|Quest log>` : `<${site}/discoveries|Message gallery>`) : null,
+      quest ? questLog && `<${questLog}|Quest log>` : gallery && `<${gallery}|Message gallery>`,
     ]
       .filter(Boolean)
       .join("  ·  ");
@@ -314,9 +316,9 @@ async function publishHome(ctx: ActionCtx, workspaceId: Id<"workspaces">, token:
   const data = await ctx.runQuery(internal.slackData.homeData, { workspaceId, slackUserId });
   if (!data) return;
   const e = `:${data.emojiName}:`;
-  const site = siteUrl();
+  const link = (path: string) => webLink(data.slackTeamId, path);
   const medal = (i: number) => ["🥇", "🥈", "🥉"][i] ?? `${i + 1}.`;
-  const quests = data.quests ? questBlocks(data.quests, site) : [];
+  const quests = data.quests ? questBlocks(data.quests, link("/quests")) : [];
   const fields = [
     `*Left today*\n${data.remaining} / ${data.dailyLimit} ${e}`,
     `*Given this week*\n${data.weekGiven} ${e}${data.weekRank ? `  (#${data.weekRank})` : ""}`,
@@ -328,13 +330,7 @@ async function publishHome(ctx: ActionCtx, workspaceId: Id<"workspaces">, token:
     blocks: [
       { type: "header", text: { type: "plain_text", text: "Your kudos" } },
       { type: "section", fields: fields.map((text) => ({ type: "mrkdwn", text })) },
-      {
-        type: "actions",
-        elements: [
-          { type: "button", style: "primary", text: { type: "plain_text", text: "Open dashboard" }, url: `${site}/me`, action_id: "open_dashboard" },
-          { type: "button", text: { type: "plain_text", text: "Message gallery" }, url: `${site}/discoveries`, action_id: "open_gallery" },
-        ],
-      },
+      ...actions([linkButton("Open dashboard", "open_dashboard", link("/me"), "primary"), linkButton("Message gallery", "open_gallery", link("/discoveries"))]),
       ...(quests.length > 0 ? [{ type: "divider" }, ...quests] : []),
       { type: "divider" },
       { type: "header", text: { type: "plain_text", text: "This week's most generous" } },
@@ -348,7 +344,7 @@ async function publishHome(ctx: ActionCtx, workspaceId: Id<"workspaces">, token:
               .join("\n") || "_No kudos yet this week. Be the first!_",
         },
       },
-      ...storeSection(data.store, e, site),
+      ...storeSection(data.store, e, link),
       { type: "divider" },
       {
         type: "context",
@@ -366,16 +362,27 @@ async function publishHome(ctx: ActionCtx, workspaceId: Id<"workspaces">, token:
 
 type StoreHome = { balance: number; rewards: { emoji: string; name: string; cost: number }[]; waiting: number | null };
 
+/** A button opening the web app, or none while the site's address isn't configured. */
+function linkButton(text: string, action_id: string, url: string | null, style?: "primary") {
+  return url ? { type: "button", ...(style ? { style } : {}), text: { type: "plain_text", text }, url, action_id } : null;
+}
+
+/** An actions block with the buttons that exist; no block when none do. */
+function actions(buttons: (object | null)[]) {
+  const elements = buttons.filter((b) => b !== null);
+  return elements.length > 0 ? [{ type: "actions", elements }] : [];
+}
+
 /** The App Home "Rewards store" section; nothing at all while the store is closed. */
-function storeSection(store: StoreHome | null, e: string, site: string) {
+function storeSection(store: StoreHome | null, e: string, link: (path: string) => string | null) {
   if (!store) return [];
-  const buttons = [{ type: "button", text: { type: "plain_text", text: "Open store" }, url: `${site}/store`, action_id: "open_store" }];
+  const buttons = [linkButton("Open store", "open_store", link("/store"))];
   const fields = [`*Balance*\n${store.balance} ${e}`];
   if (store.waiting !== null) {
     const count = store.waiting >= OPEN_COUNT_CAP ? `${OPEN_COUNT_CAP - 1}+` : String(store.waiting);
     fields.push(`*For admins*\n${count} ${store.waiting === 1 ? "request" : "requests"} waiting`);
     if (store.waiting > 0) {
-      buttons.push({ type: "button", text: { type: "plain_text", text: "Review requests" }, url: `${site}/admin?tab=store`, action_id: "review_requests" });
+      buttons.push(linkButton("Review requests", "review_requests", link("/admin?tab=store")));
     }
   }
   return [
@@ -390,7 +397,7 @@ function storeSection(store: StoreHome | null, e: string, site: string) {
         text: store.rewards.map((r) => rewardLine(r, store.balance, e)).join("\n") || "_The shelves are empty. Your admins are still stocking the store._",
       },
     },
-    { type: "actions", elements: buttons },
+    ...actions(buttons),
   ];
 }
 
@@ -437,6 +444,7 @@ function ago(at: number) {
 
 type AdminCopy = {
   redemptionId: Id<"redemptions">;
+  slackTeamId: string;
   status: "pending" | keyof typeof DECIDED;
   requester: { slackUserId: string; name: string };
   reward: { name: string; emoji: string; cost: number };
@@ -455,7 +463,7 @@ type AdminCopy = {
  * Declining stays on the web, where there's room for a reason.
  */
 function adminCopy(copy: AdminCopy) {
-  const site = siteUrl();
+  const review = webLink(copy.slackTeamId, "/admin?tab=store");
   const item = `*${escapeMrkdwn(`${copy.reward.emoji} ${copy.reward.name}`)}*`;
   const ask = `🛎️ <@${copy.requester.slackUserId}> wants ${item} (${copy.reward.cost} ${copy.e}).`;
   const answer = copy.answer && `Answer${copy.prompt ? ` to “${escapeMrkdwn(copy.prompt)}”` : ""}: ${escapeMrkdwn(copy.answer)}`;
@@ -479,7 +487,7 @@ function adminCopy(copy: AdminCopy) {
         ]
       : []),
   ];
-  if (buttons.length > 0 && site) buttons.push(button("Review in Kudos", "store_review", { url: `${site}/admin?tab=store` }));
+  if (buttons.length > 0 && review) buttons.push(button("Review in Kudos", "store_review", { url: review }));
   const text = decided ? `${ask} ${decided}` : `${ask}${copy.balance ? ` Balance after: ${copy.balance}.` : ""}`;
   return {
     text,
@@ -510,7 +518,6 @@ export const notifyRedemption = internalAction({
     if (!data) return null;
     const { botToken: token, requester, reward } = data;
     const e = `:${data.emojiName}:`;
-    const site = siteUrl();
     const item = `*${escapeMrkdwn(`${reward.emoji} ${reward.name}`)}*`;
     const cost = `${reward.cost} ${e}`;
     const balance = data.showBalance ? `${args.balance} ${e}` : null;
@@ -534,7 +541,8 @@ export const notifyRedemption = internalAction({
     }[event];
     if (update && !requester.deactivated) {
       // The store page only exists while the store is open.
-      const link = site && data.storeOpen ? `Follow it under <${site}/store#my-requests|My requests>` : null;
+      const myRequests = data.storeOpen ? webLink(data.slackTeamId, "/store#my-requests") : null;
+      const link = myRequests && `Follow it under <${myRequests}|My requests>`;
       await postDm(token, requester.slackUserId, update, [
         { type: "section", text: verbatim(update) },
         ...(link ? [{ type: "context", elements: [{ type: "mrkdwn", text: link }] }] : []),
@@ -545,6 +553,7 @@ export const notifyRedemption = internalAction({
     for (const admin of data.admins) {
       const { text, blocks } = adminCopy({
         redemptionId: args.redemptionId,
+        slackTeamId: data.slackTeamId,
         status: "pending",
         requester,
         reward,
@@ -583,6 +592,7 @@ export const syncAdminMessages = internalAction({
       for (const { channel, ts, own } of data.messages) {
         const { text, blocks } = adminCopy({
           redemptionId,
+          slackTeamId: data.slackTeamId,
           status: data.status,
           requester: data.requester,
           reward: data.reward,
