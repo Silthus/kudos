@@ -5,8 +5,8 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { allowanceCheck, findMember, giveKudos, revokeKudosRow } from "./engine";
 import { getViewer, requireViewer } from "./lib/access";
 import { CATALOG, RARITY_WEIGHTS, type Category } from "./lib/messages";
-import { countEmoji, countNoteWords, mentionedUsers, previewText } from "./lib/parse";
-import { attemptKudos } from "./attempts";
+import { countEmoji, countNoteWords, mentionedUsers, mentionsGroup, previewText } from "./lib/parse";
+import { attemptKudos, recordReaction } from "./attempts";
 import { attemptOutcomeValidator } from "./schema";
 import { addDays, dayKeyFor, startOfDayUtc, weekdayOfKey, zonedParts } from "./lib/time";
 import { DEFAULT_SETTINGS } from "./lib/settings";
@@ -379,10 +379,13 @@ export const simulateMessage = mutation({
       .take(100);
     const known = new Map(members.map((m) => [m.slackUserId, m.name]));
     const now = Date.now();
-    const { result, attempt } = await attemptKudos(ctx, {
+    const mentioned = mentionedUsers(text);
+    const attempted = await attemptKudos(ctx, {
       workspace,
       giverSlackId: member.slackUserId,
-      recipientSlackIds: mentionedUsers(text).filter((id) => known.has(id)),
+      recipientSlackIds: mentioned,
+      unknownSlackIds: mentioned.filter((id) => !known.has(id)),
+      groupMention: mentionsGroup(text),
       amountEach,
       channelId: `C_DEMO_${channelName.toUpperCase()}`,
       channelName: channelName.replace(/[^a-z0-9-]/gi, "").slice(0, 40) || "general",
@@ -393,6 +396,9 @@ export const simulateMessage = mutation({
       source: "playground",
       now,
     });
+    if (!attempted) throw new ConvexError("That message was already sent."); // unique ts: can't happen
+    const { result, attempt } = attempted;
+    if (attempt) await recordReaction(ctx, attempt.id, attempt.reaction); // the chip shows right away
     if (result.status === "given") {
       // Teammates sometimes return the favour a few seconds later; shows live updates.
       const pool = result.recipientIds;

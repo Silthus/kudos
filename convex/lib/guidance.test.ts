@@ -31,7 +31,7 @@ describe("over-allowance guidance shows the math and a fix that fits", () => {
 });
 
 test("every invalid attempt ends with a valid example", () => {
-  for (const kind of ["no_mention", "self", "bots", "inactive"] as const) {
+  for (const kind of ["no_mention", "group", "self", "bots", "inactive"] as const) {
     expect(guidance({ kind }, ":taco:")).toMatch(/like “@alex :taco: thanks for the review!”$/);
   }
 });

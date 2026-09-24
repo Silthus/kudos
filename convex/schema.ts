@@ -56,9 +56,10 @@ export const attemptOutcomeValidator = v.union(v.literal("given"), v.literal("li
 /** Why an attempt gave nothing even though the allowance would have covered it. */
 export const invalidReasonValidator = v.union(
   v.literal("no_mention"), // nobody mentioned
+  v.literal("group"), // only group mentions (@here, @channel, user groups)
   v.literal("self"), // only yourself
   v.literal("bots"), // only bots or the Kudos app
-  v.literal("inactive"), // only deactivated people (possibly alongside bots)
+  v.literal("inactive"), // only deactivated or unknown people (possibly alongside bots)
 );
 
 export const settingsFields = {
@@ -183,7 +184,7 @@ export default defineSchema({
     giverId: v.id("members"),
     outcome: attemptOutcomeValidator,
     reason: v.optional(invalidReasonValidator), // only for outcome "invalid"
-    reaction: v.string(), // Slack reaction name the bot shows (after the ✅ fallback)
+    reaction: v.optional(v.string()), // Slack reaction the bot shows, once Slack confirmed it (✅ after a fallback)
     batchId: v.optional(v.string()), // the kudos batch, once given
     at: v.number(), // when the outcome was decided
   }).index("by_message", ["workspaceId", "channelId", "messageTs"]),

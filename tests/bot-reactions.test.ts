@@ -107,8 +107,75 @@ describe("the bot reacts to every kudos attempt on the message itself", () => {
       await t.run((ctx) => ctx.db.patch(team.ben, { deactivated: true }));
       await post("<@UBEN> :taco: thanks for everything");
       expect(reactions().map((r) => r.name)).toEqual(["x"]);
-      expect(ephemerals()[0].text).toContain("Only active teammates can receive :taco:");
+      expect(ephemerals()[0].text).toContain("Only active teammates in this workspace can receive :taco:");
     });
+
+    test("a deactivated person and a bot", async () => {
+      await t.run((ctx) => ctx.db.patch(team.ben, { deactivated: true }));
+      await post("<@UBEN> <@UBOT> :taco:");
+      expect(ephemerals()[0].text).toContain("Only active teammates in this workspace can receive :taco:");
+    });
+
+    test("only people Slack doesn't know, or from another workspace", async () => {
+      stubSlackApi({
+        "users.info": (p) =>
+          p.user === "UOTHER" ? { ok: true, user: { id: "UOTHER", team_id: "T2", name: "guest" } } : { ok: false, error: "user_not_found" },
+      });
+      await post("<@UNOBODY> <@UOTHER> :taco: thanks");
+      expect(reactions().map((r) => r.name)).toEqual(["x"]);
+      expect(ephemerals()[0].text).toContain("Only active teammates in this workspace can receive :taco:");
+      expect(await all(t, "kudos")).toHaveLength(0);
+      const ids = (await t.run((ctx) => ctx.db.query("members").collect())).map((m) => m.slackUserId);
+      expect(ids).not.toContain("UNOBODY");
+      expect(ids).not.toContain("UOTHER");
+    });
+
+    test("only group mentions like @here or a user group", async () => {
+      await post("<!here> <!subteam^S123|@eng> :taco: great job team");
+      expect(reactions().map((r) => r.name)).toEqual(["x"]);
+      expect(ephemerals()[0].text).toContain("Group mentions like @here or a user group don't give :taco:. Mention each person");
+    });
+  });
+
+  test("a new teammate Kudos hasn't synced yet is looked up and receives", async () => {
+    stubSlackApi({ "users.info": () => ({ ok: true, user: { id: "UDAN", team_id: "T1", name: "dan", real_name: "Dan" } }) });
+    await post("<@UDAN> :taco: welcome aboard");
+    expect(reactions().map((r) => r.name)).toEqual(["taco"]);
+    expect(await all(t, "kudos")).toHaveLength(1);
+  });
+
+  test("in a thread, the guidance shows up in the thread", async () => {
+    await t.action(internal.slack.processEvent, {
+      teamId: "T1",
+      event: { type: "message", user: "UANA", text: ":taco: nobody", channel: "C1", ts: "7.2", thread_ts: "7.1" },
+    });
+    expect(reactions()).toEqual([{ channel: "C1", timestamp: "7.2", name: "x" }]);
+    expect(ephemerals()[0]).toMatchObject({ channel: "C1", user: "UANA", thread_ts: "7.1" });
+  });
+
+  test("no reaction for people who can't give: deactivated authors, other workspaces, Slackbot", async () => {
+    await t.run((ctx) => ctx.db.patch(team.ben, { deactivated: true }));
+    await post("<@UCLEO> :taco:", "UBEN");
+    await t.action(internal.slack.processEvent, {
+      teamId: "T1",
+      event: { type: "message", user: "UGUEST", user_team: "T2", text: ":taco: yum", channel: "C1", ts: "8.1" },
+    });
+    await t.action(internal.slack.processEvent, {
+      teamId: "T1",
+      event: { type: "message", subtype: "slackbot_response", user: "USLACKBOT", text: ":taco: tuesday!", channel: "C1", ts: "8.2" },
+    });
+    expect(reactions()).toEqual([]);
+    expect(ephemerals()).toEqual([]);
+    expect(await t.run((ctx) => ctx.db.query("kudosAttempts").collect())).toEqual([]);
+  });
+
+  test("the bot's own reaction never gives kudos", async () => {
+    await post("<@UBEN> :taco:", "UANA", "6.1");
+    await t.action(internal.slack.processEvent, {
+      teamId: "T1",
+      event: { type: "reaction_added", user: "UBOT", reaction: "taco", item_user: "UANA", item: { type: "message", channel: "C1", ts: "6.1" } },
+    });
+    expect((await all(t, "kudos")).map((k) => k.source)).toEqual(["message"]);
   });
 
   test("messages without the kudos emoji never get a reaction", async () => {
@@ -140,8 +207,11 @@ describe("the bot reacts to every kudos attempt on the message itself", () => {
 
   test("a reaction Slack already shows, or can't add, never blocks the kudos or the DMs", async () => {
     stubSlackApi({ "reactions.add": () => ({ ok: false, error: "missing_scope" }) });
-    await post("<@UBEN> :taco:");
+    await post("<@UBEN> :taco:", "UANA", "4.5");
     expect(reactions()).toHaveLength(1); // no ✅ fallback for errors other than an unknown emoji
+    const [attempt] = await t.run((ctx) => ctx.db.query("kudosAttempts").collect());
+    expect(attempt).toMatchObject({ messageTs: "4.5", outcome: "given" });
+    expect(attempt.reaction).toBeUndefined(); // the record says what's actually shown: nothing
     expect(calls.filter((c) => c.method === "chat.postMessage").map((c) => c.params.channel).sort()).toEqual(["UANA", "UBEN"]);
     stubSlackApi({ "reactions.add": () => ({ ok: false, error: "already_reacted" }) });
     await post(":taco:");

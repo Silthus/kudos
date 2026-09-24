@@ -2,7 +2,8 @@ import type { Infer } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
-import type { invalidReasonValidator, kudosSourceValidator } from "./schema";
+import type { kudosSourceValidator } from "./schema";
+import type { InvalidReason } from "./lib/guidance";
 import { dayKeyFor, zonedParts } from "./lib/time";
 import { givingProfile, type MemberDayChange, Rollups } from "./lib/rollups";
 import { MIN_NOTE_WORDS } from "./lib/quests";
@@ -16,7 +17,6 @@ import {
 } from "./lib/messages";
 
 type KudosSource = Infer<typeof kudosSourceValidator>;
-export type InvalidReason = Infer<typeof invalidReasonValidator>;
 
 export async function findMember(ctx: QueryCtx, workspace: Doc<"workspaces">, slackUserId: string) {
   return await ctx.db
@@ -187,6 +187,8 @@ export type GiveInput = {
   source: KudosSource;
   /** Slack user ids that must never receive kudos (e.g. our own bot). */
   excludeSlackIds?: string[];
+  /** Mentioned ids Slack couldn't resolve to a teammate (unknown, or another workspace's): never receive. */
+  unknownSlackIds?: string[];
   now: number;
 };
 
@@ -195,13 +197,13 @@ export type GiveResult =
   | { status: "limit"; remaining: number; requested: number; people: number; notificationIds: Id<"notifications">[] }
   | { status: "self"; notificationIds: Id<"notifications">[] }
   /** Nobody valid to give to: a failed attempt the giver should hear about. */
-  | { status: "invalid"; reason: Exclude<InvalidReason, "self">; notificationIds: Id<"notifications">[] }
+  | { status: "invalid"; reason: Exclude<InvalidReason, "self" | "group">; notificationIds: Id<"notifications">[] }
   /** Not an attempt at all (e.g. a deactivated giver): nothing to tell anyone. */
   | { status: "ignored"; reason: string; notificationIds: Id<"notifications">[] };
 
 /** Why none of the mentioned people can receive: deactivated people, or only bots and apps. */
-function ineligible(members: (Doc<"members"> | null)[]): "bots" | "inactive" {
-  return members.some((m) => m && m.deactivated && !m.isBot) ? "inactive" : "bots";
+function ineligible(members: Doc<"members">[]): "bots" | "inactive" {
+  return members.some((m) => m.deactivated && !m.isBot) ? "inactive" : "bots";
 }
 
 function emojiVars(workspace: Doc<"workspaces">) {
@@ -225,7 +227,8 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
     return { status: "ignored", reason: "invalid amount", notificationIds: [] };
   }
 
-  const exclude = new Set(input.excludeSlackIds ?? []);
+  const unknown = new Set(input.unknownSlackIds ?? []);
+  const exclude = new Set([...(input.excludeSlackIds ?? []), ...unknown]);
   const mentionedSelf = input.recipientSlackIds.includes(giver.slackUserId);
   const candidateIds = [...new Set(input.recipientSlackIds)].filter(
     (id) => id !== giver.slackUserId && !exclude.has(id),
@@ -235,7 +238,8 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
   if (candidateIds.length === 0) {
     if (!mentionedSelf) {
       // Mentioning only the Kudos app itself counts as mentioning a bot.
-      return { status: "invalid", reason: input.recipientSlackIds.length === 0 ? "no_mention" : "bots", notificationIds: [] };
+      const reason = input.recipientSlackIds.length === 0 ? "no_mention" : input.recipientSlackIds.some((id) => unknown.has(id)) ? "inactive" : "bots";
+      return { status: "invalid", reason, notificationIds: [] };
     }
     const id = await sendBotMessage(ctx, workspace, giver, "self_kudos", {
       slack: { emoji: emoji.slack, user: `<@${giver.slackUserId}>` },
@@ -248,7 +252,7 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
   const known = await Promise.all(candidateIds.map((id) => findMember(ctx, workspace, id)));
   const eligibleIds = candidateIds.filter((_, i) => !known[i] || (!known[i]!.isBot && !known[i]!.deactivated));
   if (eligibleIds.length === 0) {
-    return { status: "invalid", reason: ineligible(known), notificationIds: [] };
+    return { status: "invalid", reason: ineligible(known as Doc<"members">[]) /* no unknown ids left */, notificationIds: [] };
   }
 
   const dayKey = dayKeyFor(now, workspace.timezone);

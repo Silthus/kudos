@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { internalAction, type ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { baseEmojiName, countEmoji } from "./lib/parse";
+import { baseEmojiName, countEmoji, mentionedUsers } from "./lib/parse";
 import { FALLBACK_REACTION } from "./lib/guidance";
 import { escapeMrkdwn, isSlackResponseUrl, rewardLine, siteUrl, slackApi, type SlackResponse } from "./lib/slack";
 import { RARITY_SLACK_BADGE, type Rarity } from "./lib/messages";
@@ -18,6 +18,9 @@ type SlackEvent = {
   channel?: string;
   channel_type?: string;
   ts?: string;
+  thread_ts?: string;
+  /** The author's workspace: another one's for people in shared (Slack Connect) channels. */
+  user_team?: string;
   tab?: string;
   reaction?: string;
   item_user?: string;
@@ -29,6 +32,7 @@ const IGNORED_SUBTYPES = new Set([
   "message_changed",
   "message_deleted",
   "bot_message",
+  "slackbot_response",
   "channel_join",
   "channel_leave",
   "channel_topic",
@@ -68,6 +72,7 @@ export const processEvent = internalAction({
       if (event.bot_id || !event.user || !event.text || !event.channel || !event.ts) return null;
       if (event.subtype && IGNORED_SUBTYPES.has(event.subtype)) return null;
       if (event.channel_type === "im") return null;
+      if (event.user_team && event.user_team !== teamId) return null; // guests from other workspaces can't give
       if (countEmoji(event.text, emojiName) === 0) return null;
       const channel = await channelInfo(install.botToken, event.channel);
       const result = await ctx.runMutation(internal.kudos.ingestMessage, {
@@ -79,10 +84,15 @@ export const processEvent = internalAction({
         channelName: channel.name,
         channelPrivate: channel.isPrivate,
         messageTs: event.ts,
+        unknownSlackIds: await lookUpUnknownMentions(ctx, install.botToken, workspaceId, teamId, event.text),
       });
       if (!result) return null;
       if (result.attempt) await react(ctx, install.botToken, event.channel, event.ts, result.attempt);
-      await deliver(ctx, install.botToken, result.notificationIds, event.channel, result.guidance ? { user: event.user, text: result.guidance } : undefined);
+      await deliver(ctx, install.botToken, result.notificationIds, {
+        channel: event.channel,
+        threadTs: event.thread_ts,
+        guidance: result.guidance ? { user: event.user, text: result.guidance } : undefined,
+      });
       return null;
     }
 
@@ -103,8 +113,10 @@ export const processEvent = internalAction({
         messageText: await messageText(install.botToken, event.item.channel, event.item.ts),
       });
       if (result) {
-        const guidance = result.guidance ? { user: event.user, text: result.guidance } : undefined;
-        await deliver(ctx, install.botToken, result.notificationIds, event.item.channel, guidance);
+        await deliver(ctx, install.botToken, result.notificationIds, {
+          channel: event.item.channel,
+          guidance: result.guidance ? { user: event.user, text: result.guidance } : undefined,
+        });
       }
       return null;
     }
@@ -140,9 +152,30 @@ async function messageText(token: string, channel: string, ts: string): Promise<
 }
 
 /**
- * Puts the attempt's reaction on the message. Slack rejects a custom kudos emoji the workspace
- * doesn't have (`invalid_name`): ✅ says "given" then. Reacting twice is fine (`already_reacted`),
- * and a failure (e.g. `missing_scope` before the app is reinstalled) never blocks the replies.
+ * Looks up mentions Kudos has no member row for. A teammate who just joined is added (so they
+ * can receive); ids Slack doesn't know and people from other workspaces come back as unknown.
+ */
+async function lookUpUnknownMentions(ctx: ActionCtx, token: string, workspaceId: Id<"workspaces">, teamId: string, text: string) {
+  const ids = mentionedUsers(text);
+  const unknown: string[] = ids.length > 0 ? await ctx.runQuery(internal.kudos.unknownMentions, { workspaceId, slackUserIds: ids }) : [];
+  const found = [];
+  const missing = [];
+  for (const id of unknown) {
+    const res = await slackApi(token, "users.info", { user: id });
+    const user = res.ok ? (res.user as SlackUser | undefined) : undefined;
+    // Only a definite answer makes someone unknown: a failed look-up keeps the benefit of the doubt.
+    if (user && (!user.team_id || user.team_id === teamId)) found.push(toMember(user));
+    else if (user || res.error === "user_not_found") missing.push(id);
+  }
+  if (found.length > 0) await ctx.runMutation(internal.slackData.upsertSlackUsers, { workspaceId, users: found });
+  return missing;
+}
+
+/**
+ * Puts the attempt's reaction on the message and records it once Slack shows it. Slack rejects
+ * a custom kudos emoji the workspace doesn't have (`invalid_name`): ✅ says "given" then.
+ * Reacting twice is fine (`already_reacted`), and a failure (e.g. `missing_scope` before the app
+ * is reinstalled) never blocks the replies.
  */
 async function react(ctx: ActionCtx, token: string, channel: string, timestamp: string, attempt: { id: Id<"kudosAttempts">; reaction: string }) {
   let name = attempt.reaction;
@@ -150,21 +183,26 @@ async function react(ctx: ActionCtx, token: string, channel: string, timestamp: 
   if (res.error === "invalid_name" && name !== FALLBACK_REACTION) {
     name = FALLBACK_REACTION;
     res = await slackApi(token, "reactions.add", { channel, timestamp, name });
-    if (res.ok || res.error === "already_reacted") await ctx.runMutation(internal.attempts.setReaction, { id: attempt.id, reaction: name });
   }
-  if (!res.ok && res.error !== "already_reacted") console.warn(`Reacting with :${name}: on ${channel}/${timestamp} failed: ${res.error}`);
+  if (res.ok || res.error === "already_reacted") {
+    await ctx.runMutation(internal.attempts.setReaction, { id: attempt.id, reaction: name });
+  } else {
+    console.warn(`Reacting with :${name}: on ${channel}/${timestamp} failed: ${res.error}`);
+  }
 }
 
 const EPHEMERAL = new Set(["limit_reached", "self_kudos"]);
 
-type Guidance = { user: string; text: string };
+/** Where an attempt happened (its thread, if any), and how to fix it if it failed. */
+type Attempted = { channel: string; threadTs?: string; guidance?: { user: string; text: string } };
 
 /**
  * Sends queued bot messages. Success messages go to DMs; "you can't do that" replies are shown
- * ephemerally in the channel where the attempt happened, together with the `guidance` on how to
- * fix it. Guidance without such a reply goes out as an ephemeral message of its own.
+ * ephemerally where the attempt happened, together with the guidance on how to fix it.
+ * Guidance without such a reply goes out as an ephemeral message of its own.
  */
-async function deliver(ctx: ActionCtx, token: string, ids: Id<"notifications">[], channel?: string, guidance?: Guidance) {
+async function deliver(ctx: ActionCtx, token: string, ids: Id<"notifications">[], where?: Attempted) {
+  const { channel, threadTs: thread_ts, guidance } = where ?? {};
   let guided = !guidance || !channel;
   const rows = ids.length > 0 ? await ctx.runQuery(internal.slackData.notificationsForDelivery, { ids }) : [];
   const site = siteUrl();
@@ -187,7 +225,7 @@ async function deliver(ctx: ActionCtx, token: string, ids: Id<"notifications">[]
     ];
     const text = help ? `${n.slackText}\n${help}` : n.slackText;
     const res = ephemeral
-      ? await slackApi(token, "chat.postEphemeral", { channel, user: n.slackUserId, text, blocks })
+      ? await slackApi(token, "chat.postEphemeral", { channel, thread_ts, user: n.slackUserId, text, blocks })
       : await slackApi(token, "chat.postMessage", { channel: n.slackUserId, text, blocks });
     await ctx.runMutation(internal.slackData.markDelivery, {
       id: n._id,
@@ -197,7 +235,7 @@ async function deliver(ctx: ActionCtx, token: string, ids: Id<"notifications">[]
   }
   if (!guided && guidance && channel) {
     const blocks = [{ type: "section", text: { type: "mrkdwn", text: guidance.text } }];
-    const res = await slackApi(token, "chat.postEphemeral", { channel, user: guidance.user, text: guidance.text, blocks });
+    const res = await slackApi(token, "chat.postEphemeral", { channel, thread_ts, user: guidance.user, text: guidance.text, blocks });
     if (!res.ok) console.warn(`Kudos guidance for ${guidance.user} in ${channel} failed: ${res.error}`);
   }
 }

@@ -1,11 +1,11 @@
 import { v } from "convex/values";
-import { internalMutation } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { giveKudos, type GiveResult } from "./engine";
-import { attemptKudos, findAttempt } from "./attempts";
+import { attemptKudos } from "./attempts";
 import { guidance } from "./lib/guidance";
-import { countEmoji, countNoteWords, mentionedUsers, previewText } from "./lib/parse";
+import { countEmoji, countNoteWords, mentionedUsers, mentionsGroup, previewText } from "./lib/parse";
 
 const ingestResult = v.object({
   status: v.string(),
@@ -38,6 +38,26 @@ function summarize(result: GiveResult) {
   return { status: result.status, notificationIds: result.notificationIds };
 }
 
+/** Look-ups per message are capped; mentions beyond this are treated as teammates, as before. */
+export const MAX_MENTION_LOOKUPS = 20;
+
+/** Which of a message's mentions Kudos has no member row for (a new hire, or nobody at all). */
+export const unknownMentions = internalQuery({
+  args: { workspaceId: v.id("workspaces"), slackUserIds: v.array(v.string()) },
+  returns: v.array(v.string()),
+  handler: async (ctx, { workspaceId, slackUserIds }) => {
+    const unknown = [];
+    for (const slackUserId of slackUserIds.slice(0, MAX_MENTION_LOOKUPS)) {
+      const member = await ctx.db
+        .query("members")
+        .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspaceId).eq("slackUserId", slackUserId))
+        .unique();
+      if (!member) unknown.push(slackUserId);
+    }
+    return unknown;
+  },
+});
+
 /**
  * A Slack message that may contain kudos (`@ana :taco: :taco:`). Every message carrying the kudos
  * emoji is an attempt: it's recorded once, with the reaction the bot puts on it and, if it
@@ -53,6 +73,8 @@ export const ingestMessage = internalMutation({
     channelName: v.optional(v.string()),
     channelPrivate: v.optional(v.boolean()),
     messageTs: v.string(),
+    /** Mentions Slack couldn't resolve to a teammate of this workspace (see `unknownMentions`). */
+    unknownSlackIds: v.optional(v.array(v.string())),
   },
   returns: v.union(v.null(), ingestResult),
   handler: async (ctx, args) => {
@@ -60,10 +82,9 @@ export const ingestMessage = internalMutation({
     if (!workspace || workspace.status !== "active") return null;
     const amountEach = countEmoji(args.text, workspace.emojiName);
     if (amountEach === 0) return null;
-    // Re-delivered messages must not give, react or explain twice.
-    if (await findAttempt(ctx, workspace._id, args.channelId, args.messageTs)) return null;
-    // Messages given before attempts were recorded: look for the giver's own message row (a Slack
-    // message has one author), since the message's first row may be a teammate's reaction to it.
+    // Re-delivered messages must not give, react or explain twice: `attemptKudos` finds the
+    // message's attempt. Messages given before attempts were recorded: look for the giver's own
+    // message row (a Slack message has one author), since the first may be a teammate's reaction.
     const giver = await ctx.db
       .query("members")
       .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id).eq("slackUserId", args.giverSlackId))
@@ -83,10 +104,12 @@ export const ingestMessage = internalMutation({
       if (alreadyGiven) return null;
     }
 
-    const { result, attempt } = await attemptKudos(ctx, {
+    const attempted = await attemptKudos(ctx, {
       workspace,
       giverSlackId: args.giverSlackId,
       recipientSlackIds: mentionedUsers(args.text),
+      unknownSlackIds: args.unknownSlackIds,
+      groupMention: mentionsGroup(args.text),
       amountEach,
       channelId: args.channelId,
       channelName: args.channelName,
@@ -98,6 +121,8 @@ export const ingestMessage = internalMutation({
       excludeSlackIds: [args.botUserId],
       now: Date.now(),
     });
+    if (!attempted) return null;
+    const { result, attempt } = attempted;
     if (result.status === "given") {
       await ctx.scheduler.runAfter(0, internal.slack.refreshHome, {
         workspaceId: workspace._id,

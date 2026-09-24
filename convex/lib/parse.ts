@@ -13,6 +13,11 @@ export function countEmoji(text: string, emojiName: string): number {
   return text.match(re)?.length ?? 0;
 }
 
+/** @here, @channel, @everyone or a user group: none of them gives kudos. */
+export function mentionsGroup(text: string): boolean {
+  return /<!(?:here|channel|everyone)(?:\|[^>]*)?>|<!subteam\^/.test(text);
+}
+
 /** Unique Slack user ids mentioned, in order of appearance. */
 export function mentionedUsers(text: string): string[] {
   const seen = new Set<string>();

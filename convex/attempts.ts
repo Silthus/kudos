@@ -13,7 +13,7 @@ export async function findAttempt(ctx: QueryCtx, workspaceId: Id<"workspaces">, 
 }
 
 /** How an attempt ended and, if it failed, what went wrong. `null`: it wasn't an attempt. */
-function judge(result: GiveResult, input: GiveInput): { outcome: AttemptOutcome; reason?: InvalidReason; problem?: Problem } | null {
+function judge(result: GiveResult, input: AttemptInput): { outcome: AttemptOutcome; reason?: InvalidReason; problem?: Problem } | null {
   switch (result.status) {
     case "given":
       return { outcome: "given" };
@@ -30,7 +30,8 @@ function judge(result: GiveResult, input: GiveInput): { outcome: AttemptOutcome;
       };
     case "self":
     case "invalid": {
-      const reason = result.status === "self" ? "self" : result.reason;
+      const named = result.status === "self" ? "self" : result.reason;
+      const reason = named === "no_mention" && input.groupMention ? "group" : named;
       return { outcome: "invalid", reason, problem: { kind: reason } };
     }
     case "ignored":
@@ -38,10 +39,16 @@ function judge(result: GiveResult, input: GiveInput): { outcome: AttemptOutcome;
   }
 }
 
+export type AttemptInput = GiveInput & {
+  messageTs: string;
+  /** The message mentions @here, @channel or a user group (which never give kudos). */
+  groupMention?: boolean;
+};
+
 export type Attempt = {
   id: Id<"kudosAttempts">;
   outcome: AttemptOutcome;
-  /** Slack reaction name for the message. */
+  /** Slack reaction name to put on the message; recorded with `setReaction` once Slack shows it. */
   reaction: string;
   /** How to fix a failed attempt, for the giver only: Slack mrkdwn and web text. */
   guidance: { slack: string; web: string } | null;
@@ -50,18 +57,20 @@ export type Attempt = {
 /**
  * Gives kudos for a message that carries the kudos emoji and records how the attempt ended,
  * so the bot can react on the message and a redelivery or an edit can find it later.
+ * `null`: the message already has its attempt (a redelivery), nothing happened.
  * Not an attempt at all (a deactivated giver) → `attempt: null`.
  */
 export async function attemptKudos(
   ctx: MutationCtx,
-  input: GiveInput & { messageTs: string },
-): Promise<{ result: GiveResult; attempt: Attempt | null }> {
+  input: AttemptInput,
+): Promise<{ result: GiveResult; attempt: Attempt | null } | null> {
+  // One attempt per message: re-evaluating one (an edit) must update it, never add another.
+  if (await findAttempt(ctx, input.workspace._id, input.channelId, input.messageTs)) return null;
   const result = await giveKudos(ctx, input);
   const verdict = judge(result, input);
   if (!verdict) return { result, attempt: null };
   const { workspace } = input;
   const giver = (await findMember(ctx, workspace, input.giverSlackId))!; // giveKudos made sure it exists
-  const reaction = reactionFor(verdict.outcome, workspace.emojiName);
   const id = await ctx.db.insert("kudosAttempts", {
     workspaceId: workspace._id,
     channelId: input.channelId,
@@ -69,7 +78,6 @@ export async function attemptKudos(
     giverId: giver._id,
     outcome: verdict.outcome,
     ...(verdict.reason ? { reason: verdict.reason } : {}),
-    reaction,
     ...(result.status === "given" ? { batchId: result.batchId } : {}),
     at: input.now,
   });
@@ -79,18 +87,23 @@ export async function attemptKudos(
     attempt: {
       id,
       outcome: verdict.outcome,
-      reaction,
+      reaction: reactionFor(verdict.outcome, workspace.emojiName),
       guidance: problem ? { slack: guidance(problem, `:${workspace.emojiName}:`), web: guidance(problem, workspace.emojiGlyph) } : null,
     },
   };
 }
 
-/** Remembers the reaction that actually landed on the message (after the ✅ fallback). */
+/** Remembers the reaction now shown on the attempt's message (✅ after a fallback). */
+export async function recordReaction(ctx: MutationCtx, id: Id<"kudosAttempts">, reaction: string) {
+  if (await ctx.db.get(id)) await ctx.db.patch(id, { reaction });
+}
+
+/** Slack confirmed the bot's reaction on the message. */
 export const setReaction = internalMutation({
   args: { id: v.id("kudosAttempts"), reaction: v.string() },
   returns: v.null(),
   handler: async (ctx, { id, reaction }) => {
-    if (await ctx.db.get(id)) await ctx.db.patch(id, { reaction });
+    await recordReaction(ctx, id, reaction);
     return null;
   },
 });

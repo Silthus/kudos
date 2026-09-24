@@ -28,12 +28,14 @@ export function guidance(problem: Problem, e: string): string {
   switch (problem.kind) {
     case "no_mention":
       return `Nobody was mentioned, so no ${e} went out. Mention the people you're thanking in the same message, like ${example}`;
+    case "group":
+      return `Group mentions like @here or a user group don't give ${e}. Mention each person you're thanking, like ${example}`;
     case "self":
       return `You can't give ${e} to yourself. Mention a teammate instead, like ${example}`;
     case "bots":
       return `Bots and apps can't receive ${e}, so none went out. Mention a teammate instead, like ${example}`;
     case "inactive":
-      return `Only active teammates can receive ${e}, not deactivated accounts or bots, so none went out. Mention a current teammate, like ${example}`;
+      return `Only active teammates in this workspace can receive ${e}, so none went out. Mention a current teammate, like ${example}`;
     case "limit":
       return limitGuidance(problem, e);
   }
