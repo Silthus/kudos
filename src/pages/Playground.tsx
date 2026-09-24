@@ -411,14 +411,16 @@ export function Playground() {
                     {m.isNewDiscovery && (m.rarity === "legendary" || m.rarity === "epic" || m.rarity === "rare") && <Burst color={meta.color} />}
                     <div className="mb-1.5 text-[11px] text-faint">{m.toMe ? "To you" : `To ${m.to} (they'll get this DM)`} · {CATEGORY_LABEL[m.category] ?? m.category}</div>
                     <p className="text-[15px] leading-relaxed">{m.text}</p>
-                    <div className="mt-3 flex items-center gap-2">
+                    <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5">
                       <RarityBadge rarity={m.rarity as Rarity} size="xs" />
-                      {m.isNewDiscovery && <span className="text-xs font-medium text-saffron">✨ New discovery!</span>}
+                      {m.isNewDiscovery && <span className="text-xs font-medium whitespace-nowrap text-saffron">✨ New discovery!</span>}
                       {m.questProgress && (
-                        <span className="text-xs text-muted">
+                        <span className="text-xs whitespace-nowrap text-muted">
                           {m.questProgress.completed} of {m.questProgress.available} quests this week
-                          {m.questProgress.sweep && <span className="ml-1.5 font-medium text-up">· Clean sweep 🧹</span>}
                         </span>
+                      )}
+                      {m.questProgress?.sweep && (
+                        <span className="rounded-full bg-up/15 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-up">Clean sweep 🧹</span>
                       )}
                     </div>
                   </motion.div>

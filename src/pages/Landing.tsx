@@ -84,7 +84,7 @@ function SlackMock() {
                   <p className="text-[15px] leading-relaxed">{drop.text}</p>
                   <div className="mt-3 flex items-center gap-2">
                     <RarityBadge rarity={drop.rarity} size="xs" />
-                    {drop.rarity !== "common" && <span className="text-xs text-muted">✨ New discovery! ({12 + i}/60)</span>}
+                    {drop.rarity !== "common" && <span className="text-xs text-muted">✨ New discovery! ({12 + i}/72)</span>}
                   </div>
                 </motion.div>
               </AnimatePresence>
