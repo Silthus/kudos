@@ -82,6 +82,18 @@ const PHASES: Phase[] = [
   },
   // What revoking can't reach: rows from before rollups existed, or left behind by past bugs.
   {
+    name: "superKudosGiven",
+    batch: 500,
+    rows: (ctx, m, n) => ctx.db.query("superKudos").withIndex("by_giver_month", (q) => q.eq("giverId", m._id)).take(n),
+    clear: remove,
+  },
+  {
+    name: "superKudosReceived",
+    batch: 500,
+    rows: (ctx, m, n) => ctx.db.query("superKudos").withIndex("by_receiver_at", (q) => q.eq("receiverId", m._id)).take(n),
+    clear: remove,
+  },
+  {
     name: "memberDays",
     batch: 500,
     rows: (ctx, m, n) => ctx.db.query("memberDays").withIndex("by_member_day", (q) => q.eq("memberId", m._id)).take(n),

@@ -4,6 +4,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { BOOSTERS, type BoosterKey, type ItemKey, LUCKY_CHARM } from "./lib/items";
 import { BOOST_NAME, type BoostKind } from "./lib/boosts";
 import { dayKeyFor } from "./lib/time";
+import { COSMETICS, type CosmeticKey, type CosmeticSlot, EMOJI_VARIANTS, type VariantItemKey } from "./lib/cosmetics";
 import { clearSkillTree, resetBlocker } from "./skills";
 import { boostOn, startBonusDay } from "./boosts";
 import { spreeJoinsInMonth } from "./sprees";
@@ -65,7 +66,36 @@ function booster(key: BoosterKey): ItemEffect {
   };
 }
 
+/** Cosmetics and emoji variants are bought once: owning one is having bought it. */
+async function ownedAlready(ctx: QueryCtx, { member }: Buyer, key: ItemKey) {
+  return (await itemsBought(ctx, member._id, key)) > 0 ? "It's yours already." : null;
+}
+
+/** A cosmetic (#98) is worn the moment it's bought; handing it back in the demo takes it off. */
+function cosmeticEffect(key: CosmeticKey, slot: CosmeticSlot): ItemEffect {
+  return {
+    unavailable: (ctx, buyer) => ownedAlready(ctx, buyer, key),
+    apply: async (ctx, { member }) => {
+      const look = (await ctx.db.get(member._id))?.look ?? {};
+      await ctx.db.patch(member._id, { look: { ...look, [slot]: key } });
+    },
+    undo: async (ctx, purchase) => {
+      const look = (await ctx.db.get(purchase.memberId))?.look;
+      if (look?.[slot] !== key) return;
+      const { [slot]: _worn, ...rest } = look;
+      await ctx.db.patch(purchase.memberId, { look: rest });
+    },
+  };
+}
+
+/** A kudos-emoji variant (#98): the purchase row is the ownership the Slack parser reads (`cosmetics.ts`). */
+function variantEffect(key: VariantItemKey): ItemEffect {
+  return { unavailable: (ctx, buyer) => ownedAlready(ctx, buyer, key), apply: async () => {}, undo: async () => {} };
+}
+
 export const ITEM_EFFECTS: Record<ItemKey, ItemEffect> = {
+  ...(Object.fromEntries(COSMETICS.map((c) => [c.key, cosmeticEffect(c.key, c.slot)])) as Record<CosmeticKey, ItemEffect>),
+  ...(Object.fromEntries(EMOJI_VARIANTS.flatMap((v) => (v.item ? [[v.item, variantEffect(v.item)]] : []))) as Record<VariantItemKey, ItemEffect>),
   // The purchase row is the join: kudos sprees (sprees.ts `spreeJoinsOf`) add the joins bought in a
   // month to the 5 everyone gets. One can be handed back only while that month's joins don't need it.
   spreeJoin: {

@@ -56,7 +56,6 @@ type SkillSpec = {
   arrives?: { ticket: number; with: string };
 };
 
-const SUPER = { ticket: 98, with: "Super kudos" };
 const TEAM = { ticket: 96, with: "the team garden and bonus days" };
 
 const TREE = {
@@ -70,11 +69,11 @@ const TREE = {
   orchard: { branch: "gardener", tier: 4, name: "Orchard", effect: "A sixth plot: the biggest garden there is.", ranks: 1, cost: 3, parent: "wide_beds" },
 
   // Herald: the kudos you send (#97, #98).
-  emoji_variants: { branch: "herald", tier: 1, name: "Signature emoji", effect: "Extra kudos-emoji variants to give with.", perRank: "One more variant.", ranks: 2, cost: 1, arrives: SUPER },
+  emoji_variants: { branch: "herald", tier: 1, name: "Signature emoji", effect: "Extra kudos-emoji variants to give with.", perRank: "One more variant.", ranks: 2, cost: 1 },
   charm_discount: { branch: "herald", tier: 2, name: "Charm maker", effect: "Lucky charms cost 3 Hog coins less in the Store per rank: 12, then 9, then 6.", perRank: "3 Hog coins off a Lucky charm.", ranks: 2, cost: 1 },
-  super_kudos: { branch: "herald", tier: 2, name: "Super kudos", effect: "One Super kudos a month: a unique celebration for them and a golden leaf on your plant for them.", ranks: 1, cost: 1, parent: "emoji_variants", arrives: SUPER },
-  encore: { branch: "herald", tier: 3, name: "Encore", effect: "A second Super kudos each month.", ranks: 1, cost: 1, parent: "super_kudos", arrives: SUPER },
-  spotlight: { branch: "herald", tier: 4, name: "Spotlight", effect: "Your Super kudos are featured in the announcement channel.", ranks: 1, cost: 3, parent: "encore", arrives: SUPER },
+  super_kudos: { branch: "herald", tier: 2, name: "Super kudos", effect: "One Super kudos a month: a unique celebration for them and a golden leaf on your plant for them.", ranks: 1, cost: 1, parent: "emoji_variants" },
+  encore: { branch: "herald", tier: 3, name: "Encore", effect: "A second Super kudos each month.", ranks: 1, cost: 1, parent: "super_kudos" },
+  spotlight: { branch: "herald", tier: 4, name: "Spotlight", effect: "Your Super kudos are featured in the announcement channel.", ranks: 1, cost: 3, parent: "encore" },
 
   // Scout: breadth (live).
   pathfinder: { branch: "scout", tier: 1, name: "Pathfinder", effect: "A bigger new-connection bonus: +5 XP per rank on top of the 10.", perRank: "+5 XP for a new connection.", ranks: 2, cost: 1 },

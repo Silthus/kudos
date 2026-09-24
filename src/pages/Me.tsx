@@ -9,6 +9,7 @@ import { Legend, LineChart } from "@/components/charts";
 import { MessageText } from "@/components/MessageText";
 import { QUEST_RULES, QuestBoardBody } from "@/components/quests";
 import { GainLines, GameCard, ScoutHints } from "@/components/game";
+import { LookCard } from "@/components/cosmetics";
 import { Avatar, BigNumber, Card, CardHeader, Empty, Eyebrow, PageHeader, PageSkeleton, RarityBadge, Segmented, Trend } from "@/components/ui";
 import { compareTeamHref } from "@/lib/compare";
 import { dayLabel, firstName, greeting, nf, relativeTime } from "@/lib/format";
@@ -63,6 +64,7 @@ export function Me() {
 
       <div className="mb-4 flex flex-col gap-4">
         <GameCard glyph={glyph} />
+        <LookCard memberId={viewer.member._id} today={today} />
         <ScoutHints today={today} />
       </div>
 

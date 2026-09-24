@@ -17,6 +17,7 @@ import type * as compare_candidates from "../compare/candidates.js";
 import type * as compare_past from "../compare/past.js";
 import type * as compare_team from "../compare/team.js";
 import type * as compare_teammate from "../compare/teammate.js";
+import type * as cosmetics from "../cosmetics.js";
 import type * as crons from "../crons.js";
 import type * as demo from "../demo.js";
 import type * as discoveries from "../discoveries.js";
@@ -34,6 +35,7 @@ import type * as lib_buckets from "../lib/buckets.js";
 import type * as lib_coins from "../lib/coins.js";
 import type * as lib_compare from "../lib/compare.js";
 import type * as lib_compareReads from "../lib/compareReads.js";
+import type * as lib_cosmetics from "../lib/cosmetics.js";
 import type * as lib_demoCalendar from "../lib/demoCalendar.js";
 import type * as lib_demoStore from "../lib/demoStore.js";
 import type * as lib_gains from "../lib/gains.js";
@@ -71,6 +73,7 @@ import type * as slackData from "../slackData.js";
 import type * as sprees from "../sprees.js";
 import type * as store from "../store.js";
 import type * as storeAdmin from "../storeAdmin.js";
+import type * as superKudos from "../superKudos.js";
 
 import type {
   ApiFromModules,
@@ -88,6 +91,7 @@ declare const fullApi: ApiFromModules<{
   "compare/past": typeof compare_past;
   "compare/team": typeof compare_team;
   "compare/teammate": typeof compare_teammate;
+  cosmetics: typeof cosmetics;
   crons: typeof crons;
   demo: typeof demo;
   discoveries: typeof discoveries;
@@ -105,6 +109,7 @@ declare const fullApi: ApiFromModules<{
   "lib/coins": typeof lib_coins;
   "lib/compare": typeof lib_compare;
   "lib/compareReads": typeof lib_compareReads;
+  "lib/cosmetics": typeof lib_cosmetics;
   "lib/demoCalendar": typeof lib_demoCalendar;
   "lib/demoStore": typeof lib_demoStore;
   "lib/gains": typeof lib_gains;
@@ -142,6 +147,7 @@ declare const fullApi: ApiFromModules<{
   sprees: typeof sprees;
   store: typeof store;
   storeAdmin: typeof storeAdmin;
+  superKudos: typeof superKudos;
 }>;
 
 /**

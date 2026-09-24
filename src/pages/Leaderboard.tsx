@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { api } from "../../convex/_generated/api";
 import { Ring } from "@/components/charts";
+import { FramedAvatar } from "@/components/cosmetics";
 import { Avatar, BigNumber, Card, CardHeader, Empty, Eyebrow, PageHeader, PageSkeleton, Segmented, TableScroll, Trend } from "@/components/ui";
 import { compareWithHref, firstName } from "@/lib/compare";
 import { nf, pct, rangeLabel } from "@/lib/format";
@@ -130,7 +131,7 @@ export function Leaderboard() {
                         </td>
                         <td className="px-3 py-3">
                           <div className="flex items-center gap-3">
-                            <Avatar name={r.member.name} src={r.member.avatarUrl} size={32} />
+                            <FramedAvatar name={r.member.name} src={r.member.avatarUrl} size={32} look={r.member.look} />
                             <div className="min-w-0">
                               <div className="truncate font-medium">
                                 {r.member.name}

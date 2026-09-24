@@ -13,6 +13,8 @@ import {
   reactionFor,
 } from "./lib/guidance";
 import { sameKudos } from "./lib/parse";
+import { kudosEmojiReader } from "./cosmetics";
+import { SUPER_SUFFIX } from "./lib/cosmetics";
 
 /** The attempt recorded for one Slack message, if it ever carried the kudos emoji. */
 export async function findAttempt(ctx: QueryCtx, workspaceId: Id<"workspaces">, channelId: string, messageTs: string) {
@@ -90,7 +92,7 @@ export async function attemptKudos(
     ...(input.threadTs ? { threadTs: input.threadTs } : {}),
     ...outcomeFields(result, verdict, input.now),
   });
-  return { result, attempt: describe(id, verdict, input) };
+  return { result, attempt: describe(id, verdict, input, result) };
 }
 
 /** The author edited a message: its raw Slack text after the edit, and before it if Slack says. */
@@ -121,7 +123,13 @@ export async function reattemptKudos(ctx: MutationCtx, input: AttemptInput, edit
   if (existing.outcome === "given") {
     await ctx.db.patch(existing._id, { editTs: edit.ts });
     // Without the text before the edit, it may have been a typo fix: stay quiet.
-    if (edit.previousText === undefined || sameKudos(edit.previousText, edit.text, workspace.emojiName)) return null;
+    if (edit.previousText === undefined) return null;
+    const read = await kudosEmojiReader(ctx, workspace, input.giverSlackId);
+    const kudosOf = (text: string) => {
+      const k = read(text);
+      return `${k.amount}${k.superEmoji > 0 ? " super" : ""}`;
+    };
+    if (sameKudos(edit.previousText, edit.text, kudosOf)) return null;
     return { status: "already_given", note: alreadySent(workspace.unitPlural) };
   }
 
@@ -130,7 +138,7 @@ export async function reattemptKudos(ctx: MutationCtx, input: AttemptInput, edit
   if (!verdict) return null;
   // `reason: undefined` clears a stale reason once the edit gives or goes over the allowance.
   await ctx.db.patch(existing._id, { reason: undefined, ...outcomeFields(result, verdict, input.now), editTs: edit.ts });
-  const attempt = describe(existing._id, verdict, input);
+  const attempt = describe(existing._id, verdict, input, result);
   // Every failure reaction but the new one comes off: the recorded reaction lags behind Slack
   // when two edits overlap or a swap only half worked.
   const staleReactions = [LIMIT_REACTION, INVALID_REACTION].filter((r) => r !== attempt.reaction);
@@ -161,12 +169,14 @@ function outcomeFields(result: GiveResult, verdict: Verdict, at: number) {
   };
 }
 
-function describe(id: Id<"kudosAttempts">, verdict: Verdict, { workspace }: AttemptInput): Attempt {
+function describe(id: Id<"kudosAttempts">, verdict: Verdict, { workspace }: AttemptInput, result: GiveResult): Attempt {
   const problem = verdict.problem;
+  // A Super kudos is confirmed with the Super kudos emoji, for everyone in the channel to see.
+  const superKudos = result.status === "given" && result.superKudos;
   return {
     id,
     outcome: verdict.outcome,
-    reaction: reactionFor(verdict.outcome, workspace.emojiName),
+    reaction: superKudos ? `${workspace.emojiName}-${SUPER_SUFFIX}` : reactionFor(verdict.outcome, workspace.emojiName),
     guidance: problem ? { slack: guidance(problem, `:${workspace.emojiName}:`), web: guidance(problem, workspace.emojiGlyph) } : null,
   };
 }

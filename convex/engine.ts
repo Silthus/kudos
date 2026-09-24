@@ -2,7 +2,7 @@ import type { Infer } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
-import type { earningsValidator, kudosSourceValidator, questProgressValidator } from "./schema";
+import type { earningsValidator, kudosSourceValidator, questProgressValidator, superKudosNoteValidator } from "./schema";
 import type { InvalidReason } from "./lib/guidance";
 import { dayKeyFor, zonedParts } from "./lib/time";
 import { givingProfile, type MemberDayChange, Rollups } from "./lib/rollups";
@@ -11,6 +11,7 @@ import { onKudosGiven, onKudosRevoked, questsOn } from "./quests";
 import { onGameGiven, onGameRevoked } from "./game";
 import { spendLuckyCharm } from "./items";
 import { onSpreeKudosRevoked } from "./sprees";
+import { onSuperKudos, onSuperKudosRevoked } from "./superKudos";
 import { Gains } from "./gains";
 import { discoveryWorthADm } from "./lib/gains";
 import { onGardenGiven } from "./gardens";
@@ -157,6 +158,8 @@ export type BotMessageOptions = {
   questProgress?: Infer<typeof questProgressValidator>;
   /** giver_success while the game is on: what the kudos earned (the earnings reply). */
   earnings?: Infer<typeof earningsValidator>;
+  /** A Super kudos note (#98): the receiver's celebration, or the giver's "sent" or how-to. */
+  superKudos?: Infer<typeof superKudosNoteValidator>;
   /**
    * A message shown only in passing (an ephemeral reply, a slash command): a first discovery of a
    * Rare or rarer message is also a gain of the event, told in the member's gain DM (#55 §G13).
@@ -176,7 +179,7 @@ export async function sendBotMessage(
   category: Category,
   vars: Audience,
   now: number,
-  { rollups, minRarity, skipDelivery, questProgress, earnings, discoveries }: BotMessageOptions = {},
+  { rollups, minRarity, skipDelivery, questProgress, earnings, superKudos, discoveries }: BotMessageOptions = {},
 ): Promise<Id<"notifications">> {
   const seen = await ctx.db
     .query("discoveries")
@@ -221,6 +224,7 @@ export async function sendBotMessage(
     collected,
     ...(questProgress ? { questProgress } : {}),
     ...(earnings ? { earnings } : {}),
+    ...(superKudos ? { superKudos } : {}),
   });
 }
 
@@ -237,6 +241,10 @@ export type GiveInput = {
   /** Words in the Note (lib/parse `countNoteWords`); absent for reactions. */
   noteWords?: number;
   source: KudosSource;
+  /** Given with one of the giver's own kudos-emoji variants (#98): its suffix, e.g. "golden". */
+  variant?: string;
+  /** The message carries the Super kudos emoji (#98), counted while the game is on: judged as a Super kudos. */
+  superEmoji?: boolean;
   /** Slack user ids that must never receive kudos (e.g. our own bot). */
   excludeSlackIds?: string[];
   /** Mentioned ids Slack couldn't resolve to a teammate (unknown, or another workspace's): never receive. */
@@ -245,7 +253,18 @@ export type GiveInput = {
 };
 
 export type GiveResult =
-  | { status: "given"; batchId: string; total: number; remaining: number; notificationIds: Id<"notifications">[]; recipientIds: Id<"members">[] }
+  | {
+      status: "given";
+      batchId: string;
+      total: number;
+      remaining: number;
+      notificationIds: Id<"notifications">[];
+      recipientIds: Id<"members">[];
+      /** It was a Super kudos (#98). */
+      superKudos?: true;
+      /** The giver's Super kudos note when there's no reply to carry it (giver replies are off). */
+      superNote?: { slack: string; web: string };
+    }
   | { status: "limit"; remaining: number; requested: number; people: number; notificationIds: Id<"notifications">[] }
   | { status: "self"; notificationIds: Id<"notifications">[] }
   /** Nobody valid to give to: a failed attempt the giver should hear about. */
@@ -269,7 +288,7 @@ function channelVars(channelId: string, channelName?: string) {
   };
 }
 
-type BatchMeta = Pick<GiveInput, "amountEach" | "source" | "channelId" | "channelName" | "channelPrivate" | "messageTs" | "text" | "noteWords"> & {
+type BatchMeta = Pick<GiveInput, "amountEach" | "source" | "channelId" | "channelName" | "channelPrivate" | "messageTs" | "text" | "noteWords" | "variant"> & {
   batchId: string;
   /** The day whose allowance the kudos use: today, or a spree join's day (it was reserved then). */
   dayKey: string;
@@ -308,6 +327,7 @@ async function writeBatch(
       at,
       hour,
       ...(meta.noteWords !== undefined ? { noteWords: meta.noteWords } : {}),
+      ...(meta.variant ? { variant: meta.variant } : {}),
     };
     const inserted = { _id: await ctx.db.insert("kudos", row), _creationTime: at, ...row };
     rows.push(inserted);
@@ -426,6 +446,7 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
   const game = await onGameGiven(ctx, workspace, giver, rows, input.noteWords, gains);
   // A kudos to someone the giver grows a plant for may have watered it: its stage gains.
   await onGardenGiven(ctx, workspace, giver, rows, gains);
+  const superKudos = input.superEmoji ? await onSuperKudos(ctx, workspace, giver, rows, input) : null;
 
   const channel = channelVars(input.channelId, input.channelName);
   const notificationIds: Id<"notifications">[] = [];
@@ -449,7 +470,12 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
           limit: workspace.dailyLimit,
           channel: channel.web,
         },
-      }, now, { rollups, discoveries: gains, ...(game.earnings ? { earnings: game.earnings } : {}) })),
+      }, now, {
+        rollups,
+        discoveries: gains,
+        ...(game.earnings ? { earnings: game.earnings } : {}),
+        ...(superKudos?.giverNote ? { superKudos: superKudos.giverNote } : {}),
+      })),
     );
   }
   if (workspace.notifyReceiver) {
@@ -460,7 +486,11 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
         await sendBotMessage(ctx, workspace, r, "receiver_success", {
           slack: { giver: `<@${giver.slackUserId}>`, amount: input.amountEach, emoji: emoji.slack, channel: channel.slack },
           web: { giver: giver.name, amount: input.amountEach, emoji: emoji.web, channel: channel.web },
-        }, now, { rollups, ...(charmed.has(r._id) ? { minRarity: "uncommon" as const } : {}) }),
+        }, now, {
+          rollups,
+          ...(charmed.has(r._id) ? { minRarity: "uncommon" as const } : {}),
+          ...(superKudos?.celebration?.receiverId === r._id ? { superKudos: superKudos.celebration.note } : {}),
+        }),
       );
     }
   }
@@ -485,6 +515,8 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
     remaining: remaining - total,
     notificationIds,
     recipientIds: recipients.map((r) => r._id),
+    ...(superKudos?.given ? { superKudos: true as const } : {}),
+    ...(superKudos?.giverNote && !workspace.notifyGiver ? { superNote: { slack: superKudos.giverNote.slackText, web: superKudos.giverNote.webText } } : {}),
   };
 }
 
@@ -522,6 +554,7 @@ export async function revokeKudosRow(ctx: MutationCtx, workspace: Doc<"workspace
   await onKudosRevoked(ctx, workspace, row);
   await onGameRevoked(ctx, row);
   await onSpreeKudosRevoked(ctx, row);
+  await onSuperKudosRevoked(ctx, row);
 }
 
 /**

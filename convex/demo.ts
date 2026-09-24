@@ -5,7 +5,8 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { allowanceCheck, findMember, giveKudos, revokeKudosRow } from "./engine";
 import { getViewer, requireViewer } from "./lib/access";
 import { CATALOG, RARITY_WEIGHTS, type Category } from "./lib/messages";
-import { countEmoji, countNoteWords, mentionedUsers, mentionsGroup, previewText } from "./lib/parse";
+import { countNoteWords, mentionedUsers, mentionsGroup, previewText } from "./lib/parse";
+import { kudosEmojiReader } from "./cosmetics";
 import { attemptKudos, type AttemptInput, findAttempt, reattemptKudos, recordReaction } from "./attempts";
 import { reactionFor } from "./lib/guidance";
 import { attemptOutcomeValidator, questProgressValidator } from "./schema";
@@ -579,6 +580,8 @@ const playgroundResult = v.object({
       gains: v.optional(v.array(v.string())),
       /** A DM with gains: what it's about ("Level up", "New discovery", ...). */
       gainLabel: v.optional(v.string()),
+      /** A Super kudos (#98): the receiver's celebration, or your note on what your Super kudos emoji did. */
+      superKudos: v.optional(v.object({ kind: v.union(v.literal("celebration"), v.literal("sent"), v.literal("howto")), text: v.string() })),
     }),
   ),
 });
@@ -613,6 +616,7 @@ async function describeNotifications(ctx: MutationCtx, me: Id<"members">, ids: I
       isNewDiscovery: n.isNewDiscovery,
       ...(n.questProgress ? { questProgress: n.questProgress } : {}),
       ...(n.earnings ? { earnings: earningsText(n.earnings) } : {}),
+      ...(n.superKudos ? { superKudos: { kind: n.superKudos.kind, text: n.superKudos.webText } } : {}),
       ...(n.gains && n.gains.length > 0
         ? { gainLabel: gainLabel(n.gains), ...(n.category === "gains" ? {} : { gains: n.gains.map((g) => gainText(g, "web")) }) }
         : {}),
@@ -628,10 +632,11 @@ export const simulateMessage = mutation({
   handler: async (ctx, { text, channelName }) => {
     const { workspace, member } = await requireDemoViewer(ctx);
     if (text.length > 1000 || channelName.length > 40) throw new ConvexError("Message is too long.");
-    if (countEmoji(text, workspace.emojiName) === 0) return { status: "no_kudos", messages: [], attempt: null };
     const now = Date.now();
     const messageTs = uniqueTs(now); // every simulated message is its own attempt
-    const attempted = await attemptKudos(ctx, await playgroundAttempt(ctx, workspace, member, { text, channelName, messageTs, now }));
+    const input = await playgroundAttempt(ctx, workspace, member, { text, channelName, messageTs, now });
+    if (input.amountEach === 0) return { status: "no_kudos", messages: [], attempt: null }; // e.g. a variant you don't own
+    const attempted = await attemptKudos(ctx, input);
     if (!attempted) throw new ConvexError("That message was already sent."); // unique ts: can't happen
     const { result, attempt } = attempted;
     if (attempt) await recordReaction(ctx, attempt.id, attempt.reaction); // the chip shows right away
@@ -691,13 +696,16 @@ async function playgroundAttempt(
     .take(100);
   const known = new Map(members.map((m) => [m.slackUserId, m.name]));
   const mentioned = mentionedUsers(text);
+  const emoji = (await kudosEmojiReader(ctx, workspace, member.slackUserId))(text);
   return {
     workspace,
     giverSlackId: member.slackUserId,
     recipientSlackIds: mentioned,
     unknownSlackIds: mentioned.filter((id) => !known.has(id)),
     groupMention: mentionsGroup(text),
-    amountEach: countEmoji(text, workspace.emojiName),
+    amountEach: emoji.amount,
+    ...(emoji.variant ? { variant: emoji.variant } : {}),
+    ...(emoji.superEmoji > 0 ? { superEmoji: true } : {}),
     channelId: `C_DEMO_${channelName.toUpperCase()}`,
     channelName: channelName.replace(/[^a-z0-9-]/gi, "").slice(0, 40) || "general",
     messageTs,
@@ -861,6 +869,7 @@ const DEMO_TABLES = [
   "boosts",
   "sprees",
   "spreeJoins",
+  "superKudos",
   "notifications",
 ] as const;
 
@@ -906,6 +915,8 @@ async function demoRows(ctx: MutationCtx, workspaceId: Id<"workspaces">, table: 
       return await ctx.db.query("sprees").withIndex("by_workspace_kudosAt", (q) => q.eq("workspaceId", workspaceId)).take(1000);
     case "spreeJoins":
       return await ctx.db.query("spreeJoins").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+    case "superKudos":
+      return await ctx.db.query("superKudos").withIndex("by_workspace_at", (q) => q.eq("workspaceId", workspaceId)).take(1000);
     case "notifications":
       return [];
   }
@@ -983,6 +994,7 @@ export const resetDemoWorkspace = internalMutation({
         coinsSpent: undefined,
         coinsAdjusted: undefined,
         gameHidden: undefined,
+        look: undefined, // the cosmetics they wore were bought in the Store, which starts over
       });
     }
     await ctx.scheduler.runAfter(0, internal.demo.seedHistory, {

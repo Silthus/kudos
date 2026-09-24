@@ -2,6 +2,7 @@ import type { Doc } from "../_generated/dataModel";
 import { BOOST_EFFECT, type BoostKind } from "./boosts";
 import { LANTERN, SUNLAMP_DAYS } from "./garden";
 import { type Allocation, rankOf, resetCost } from "./skills";
+import { COSMETICS, type CosmeticKey, EMOJI_VARIANTS, type VariantItemKey } from "./cosmetics";
 import { dayKeyFor } from "./time";
 
 /**
@@ -51,7 +52,7 @@ export function monthOf(ts: number, timeZone: string): string {
   return dayKeyFor(ts, timeZone).slice(0, 7);
 }
 
-export type ItemKey = "spreeJoin" | "skillReset" | "luckyCharm" | "sunlamp" | "lantern" | BoosterKey;
+export type ItemKey = "spreeJoin" | "skillReset" | "luckyCharm" | "sunlamp" | "lantern" | BoosterKey | CosmeticKey | VariantItemKey;
 
 /** The company-wide boosters (#97, §G10): one item per kind of boost (lib/boosts.ts). */
 export type BoosterKey = "boosterDouble" | "boosterNewConnections" | "boosterRekindles" | "boosterUnsung";
@@ -150,6 +151,14 @@ export const ITEMS: readonly ItemDef[] = [
     price: () => 20,
     perMonth: 2,
   },
+  // Cosmetics (#98): bought once, worn at once (`convex/cosmetics.ts`), shown on your profile and next to your name.
+  ...COSMETICS.map((c) => ({ key: c.key, name: c.name, description: c.description, price: () => c.price })),
+  // Kudos-emoji variants (#98): give exactly like the kudos emoji, only for their owner.
+  ...EMOJI_VARIANTS.flatMap(({ item, source, name, suffix }) =>
+    item && source.kind === "store"
+      ? [{ key: item, name, description: `Your own kudos emoji to give with: its name plus “-${suffix}”. It gives the same, and only you can use it.`, price: () => source.price }]
+      : [],
+  ),
 ];
 
 export function itemByKey(key: string): ItemDef | undefined {

@@ -89,6 +89,13 @@ export const gainValidator = v.union(
   v.object({ kind: v.literal("plant_stage"), species: v.string(), stage: v.string(), teammate: personValidator }), // #95
 );
 
+/** A Super kudos note on a DM (#98): the receiver's celebration, or the giver's "sent" or how-to. */
+export const superKudosNoteValidator = v.object({
+  kind: v.union(v.literal("celebration"), v.literal("sent"), v.literal("howto")),
+  slackText: v.string(),
+  webText: v.string(),
+});
+
 export const xpItemKindValidator = v.union(
   v.literal("base"),
   v.literal("new_connection"),
@@ -258,6 +265,8 @@ export default defineSchema({
     coinsSpent: v.optional(v.number()), // Hog coins spent in the Store: items + non-refunded redemptions; undefined = 0
     coinsAdjusted: v.optional(v.number()), // Σ ± balance adjustments in Hog coins; undefined = 0
     gameHidden: v.optional(v.boolean()), // "Hide the game": no game UI or DMs for them; XP keeps accruing
+    // The cosmetics they wear (#98, lib/cosmetics.ts): a cosmetic item key per slot, each one they bought.
+    look: v.optional(v.object({ frame: v.optional(v.string()), banner: v.optional(v.string()), sticker: v.optional(v.string()) })),
     adminRemovedBy: v.optional(v.id("members")), // who last removed this member's admin role (four-eyes rule)
   })
     .index("by_workspace_slackUser", ["workspaceId", "slackUserId"])
@@ -282,6 +291,8 @@ export default defineSchema({
     at: v.number(), // when it was given (seeded demo history is back-dated)
     hour: v.optional(v.number()), // local hour (0–23) at write time; keeps heatmap buckets stable
     noteWords: v.optional(v.number()), // words in the Note (lib/parse countNoteWords); absent for reactions and legacy rows
+    variant: v.optional(v.string()), // given with the giver's own kudos-emoji variant (#98): its suffix, e.g. "golden"
+    superKudos: v.optional(v.literal(true)), // a Super kudos (#98): a `superKudos` row goes with it
   })
     .index("by_workspace_at", ["workspaceId", "at"])
     .index("by_giver_at", ["giverId", "at"])
@@ -579,6 +590,8 @@ export default defineSchema({
     gains: v.optional(v.array(gainValidator)),
     // garden: the plant grown for the member.
     garden: v.optional(gardenNoticeValidator),
+    // A Super kudos (#98): the receiver's celebration, or what the giver's Super kudos emoji did.
+    superKudos: v.optional(superKudosNoteValidator),
   }).index("by_member", ["memberId"]),
 
   // Rewards Store catalog. Archived, never deleted: redemptions link back to them.
@@ -684,6 +697,27 @@ export default defineSchema({
   })
     .index("by_member_at", ["memberId", "at"])
     .index("by_member_unit_at", ["memberId", "unit", "at"])
+    .index("by_workspace_at", ["workspaceId", "at"]),
+
+  // Super kudos (#98, #55 §G7 Herald): one row per Super kudos given, written in its give transaction;
+  // a revoke of the kudos deletes it. Months and quarters are the workspace's, as when it was given.
+  // Gardens (#95) read the golden leaves on a giver's plant for a teammate from `by_giver_receiver_quarter`.
+  superKudos: defineTable({
+    workspaceId: v.id("workspaces"),
+    giverId: v.id("members"),
+    receiverId: v.id("members"),
+    kudosId: v.id("kudos"),
+    month: v.string(), // "YYYY-MM": a giver has 1 (2 with Encore) a month
+    quarter: v.string(), // "q:YYYY-Qn": never to the same person twice in one
+    at: v.number(),
+    note: v.string(), // the message as the kudos shows it, for the receiver's celebration
+    spotlight: v.optional(v.literal(true)), // featured in the announcement channel (Spotlight skill)
+    seenAt: v.optional(v.number()), // when the receiver dismissed their celebration on the web
+  })
+    .index("by_giver_month", ["giverId", "month"])
+    .index("by_giver_receiver_quarter", ["giverId", "receiverId", "quarter"])
+    .index("by_receiver_at", ["receiverId", "at"])
+    .index("by_kudos", ["kudosId"])
     .index("by_workspace_at", ["workspaceId", "at"]),
 
   // Game items bought in the Store (lib/items.ts): applied instantly, no approval. The price is

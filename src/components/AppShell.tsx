@@ -7,12 +7,14 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useHashScroll } from "@/lib/hashScroll";
+import { useWorkspaceToday } from "@/lib/period";
 import { navItems } from "@/lib/nav";
 import { useViewer } from "@/lib/viewer";
 import { BoostBanner } from "./boosts";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { MobileNav, SidebarNav } from "./Nav";
 import { Avatar } from "./ui";
+import { SuperKudosCelebration } from "./cosmetics";
 
 export function Logo({ glyph = "🌮" }: { glyph?: string }) {
   return (
@@ -59,13 +61,15 @@ export function AppShell() {
   useHashScroll();
   // Store requests waiting on an admin; capped server-side, so 100 reads as "99+".
   const openRequests = useQuery(api.storeAdmin.openCount, viewer.member.isAdmin ? {} : "skip") ?? 0;
+  const today = useWorkspaceToday();
+  const gameShown = viewer.workspace.gameEnabled && !viewer.member.gameHidden;
   const nav = navItems({
     isAdmin: viewer.member.isAdmin,
     isDemo: viewer.workspace.isDemo,
     storeEnabled: viewer.workspace.storeEnabled,
     // Off, /quests still answers (it says quests are off and keeps the log); it's just not advertised.
     questsEnabled: viewer.workspace.questsEnabled,
-    gameShown: viewer.workspace.gameEnabled && !viewer.member.gameHidden,
+    gameShown,
     openRequests,
   });
 
@@ -138,6 +142,7 @@ export function AppShell() {
       </main>
 
       <MobileNav items={nav} />
+      {gameShown && <SuperKudosCelebration today={today} />}
     </div>
   );
 }

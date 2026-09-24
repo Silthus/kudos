@@ -100,6 +100,13 @@ test("switching the game on and saving sends it with the other settings, and say
   expect(saved).toHaveBeenCalledWith({ ...settings, gameEnabled: true });
 });
 
+test("with the game on: the game's emoji to upload to Slack (#98)", () => {
+  const gameSwitch = () => host.querySelector<HTMLButtonElement>('[role=switch][aria-label="The game"]');
+  expect(host.textContent).not.toContain(":taco-super:");
+  act(() => gameSwitch()!.click());
+  for (const code of [":taco-super:", ":taco-golden:", ":taco-rainbow:", ":taco-sparkle:", ":taco-heart:"]) expect(host.textContent).toContain(code);
+});
+
 test("sprees have their own switch, off by default, and work with the game off (#94)", async () => {
   const spreesSwitch = () => host.querySelector<HTMLButtonElement>('[role=switch][aria-label="Kudos sprees"]');
   expect(spreesSwitch()?.getAttribute("aria-checked")).toBe("false");

@@ -151,6 +151,14 @@ test("a plant shows its stage, whom it's for and what the next stage needs; a do
   expect(second.textContent).toContain("thank Cleo");
 });
 
+test("golden leaves from Super kudos show on your plant for them, and on the plant grown for you (#98)", () => {
+  mine = { ...empty, plants: [growing({ goldenLeaves: 2 })] };
+  forMe = [{ ...growing({}), ownerId: "m_ana", ownerName: "Ana", ownerAvatarUrl: null, goldenLeaves: 1 }];
+  const host = render();
+  expect(host.querySelector("[data-plant]")!.textContent).toContain("2 golden leaves");
+  expect(text()).toContain("1 golden leaf from Ana's Super kudos");
+});
+
 test("fruit waiting can be picked, and the week's caps are shown", () => {
   mine = { ...empty, plants: [growing({ stage: "grown", stageName: "Grown", fruit: [{ day: "2026-11-08", coins: 2 }, { day: "2026-11-09", coins: 1 }] })], harvest: { ...empty.harvest, weekCoins: 5, weekXp: 6 } };
   render();

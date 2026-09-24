@@ -7,7 +7,8 @@ import { joinSpree, offerSpree, withdrawSpreeJoin } from "./sprees";
 import { baseEmojiName } from "./lib/parse";
 import { attemptKudos, type AttemptInput, findAttempt, reattemptKudos } from "./attempts";
 import { guidance } from "./lib/guidance";
-import { countEmoji, countNoteWords, mentionedUsers, mentionsGroup, previewText } from "./lib/parse";
+import { countNoteWords, mentionedUsers, mentionsGroup, previewText } from "./lib/parse";
+import { kudosEmojiReader } from "./cosmetics";
 
 const spreeOfferValidator = v.object({
   kind: v.union(v.literal("prompt"), v.literal("note")),
@@ -104,8 +105,8 @@ export const ingestMessage = internalMutation({
   handler: async (ctx, args) => {
     const workspace = await ctx.db.get(args.workspaceId);
     if (!workspace || workspace.status !== "active") return null;
-    const amountEach = countEmoji(args.text, workspace.emojiName);
-    if (amountEach === 0) return null;
+    const input = await messageAttempt(ctx, workspace, args);
+    if (input.amountEach === 0) return null; // e.g. someone else's emoji variant: only an emoji
     // Re-delivered messages must not give, react or explain twice: `attemptKudos` finds the
     // message's attempt. Messages given before attempts were recorded: look for the giver's own
     // message row (a Slack message has one author), since the first may be a teammate's reaction.
@@ -128,13 +129,14 @@ export const ingestMessage = internalMutation({
       if (alreadyGiven) return null;
     }
 
-    const attempted = await attemptKudos(ctx, await messageAttempt(ctx, workspace, args));
+    const attempted = await attemptKudos(ctx, input);
     if (!attempted) return null;
     const { result, attempt } = attempted;
     if (result.status === "given") await refreshGiverHome(ctx, workspace._id, args.giverSlackId);
+    const note = attempt?.guidance?.slack ?? (result.status === "given" ? result.superNote?.slack : undefined);
     return {
       ...summarize(result),
-      ...(attempt?.guidance ? { guidance: attempt.guidance.slack } : {}),
+      ...(note ? { guidance: note } : {}),
       ...(attempt ? { attempt: { id: attempt.id, reaction: attempt.reaction } } : {}),
     };
   },
@@ -162,23 +164,27 @@ export const ingestEdit = internalMutation({
     if (reattempt.status === "already_given") return { status: reattempt.status, notificationIds: [], guidance: reattempt.note };
     const { result, attempt, staleReactions } = reattempt;
     if (result.status === "given") await refreshGiverHome(ctx, workspace._id, args.giverSlackId);
+    const note = attempt.guidance?.slack ?? (result.status === "given" ? result.superNote?.slack : undefined);
     return {
       ...summarize(result),
-      ...(attempt.guidance ? { guidance: attempt.guidance.slack } : {}),
+      ...(note ? { guidance: note } : {}),
       attempt: { id: attempt.id, reaction: attempt.reaction, staleReactions },
     };
   },
 });
 
-/** A Slack message with the kudos emoji, as an attempt by its author. */
+/** A Slack message with the kudos emoji, as an attempt by its author (their own variants count). */
 async function messageAttempt(ctx: MutationCtx, workspace: Doc<"workspaces">, args: Infer<typeof messageArgsValidator>): Promise<AttemptInput> {
+  const emoji = (await kudosEmojiReader(ctx, workspace, args.giverSlackId))(args.text);
   return {
     workspace,
     giverSlackId: args.giverSlackId,
     recipientSlackIds: mentionedUsers(args.text),
     unknownSlackIds: args.unknownSlackIds,
     groupMention: mentionsGroup(args.text),
-    amountEach: countEmoji(args.text, workspace.emojiName),
+    amountEach: emoji.amount,
+    ...(emoji.variant ? { variant: emoji.variant } : {}),
+    ...(emoji.superEmoji > 0 ? { superEmoji: true } : {}),
     channelId: args.channelId,
     channelName: args.channelName,
     channelPrivate: args.channelPrivate,
@@ -199,7 +205,8 @@ async function refreshGiverHome(ctx: MutationCtx, workspaceId: Id<"workspaces">,
 /**
  * A reaction added to a message. Clicking the bot's reaction on a kudos that can spree offers to
  * join it (#94); otherwise reacting with the kudos emoji gives the message author one kudos, if the
- * workspace allows reaction-giving.
+ * workspace allows reaction-giving. So does the reactor's own emoji variant, or the Super kudos
+ * emoji, while the game is on (#98; a reaction is never a Super kudos).
  */
 export const ingestReaction = internalMutation({
   args: {
@@ -222,7 +229,9 @@ export const ingestReaction = internalMutation({
     const reaction = args.reaction ?? workspace.emojiName;
     const offer = await offerSpree(ctx, workspace, args.reactorSlackId, args.channelId, args.messageTs, reaction, Date.now());
     if (offer) return { status: "spree", notificationIds: [], ...(offer.kind === "silent" ? {} : { spree: offer }) };
-    if (!workspace.reactionsEnabled || baseEmojiName(reaction) !== workspace.emojiName) return null;
+    if (!workspace.reactionsEnabled) return null;
+    const emoji = (await kudosEmojiReader(ctx, workspace, args.reactorSlackId))(`:${baseEmojiName(reaction)}:`);
+    if (emoji.amount === 0) return null; // not a kudos emoji, or someone else's variant: only an emoji
     const giver = await ctx.db
       .query("members")
       .withIndex("by_workspace_slackUser", (q) =>
@@ -255,6 +264,7 @@ export const ingestReaction = internalMutation({
       messageTs: args.messageTs,
       text: snippet ? `Reacted with :${workspace.emojiName}: to “${snippet}”` : `Reacted with :${workspace.emojiName}:`,
       source: "reaction",
+      ...(emoji.variant ? { variant: emoji.variant } : {}),
       excludeSlackIds: [args.botUserId],
       now: Date.now(),
     });

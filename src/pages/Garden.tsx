@@ -114,7 +114,7 @@ function PlantFace({
   footer,
   onTakeDownLantern,
 }: {
-  plant: Pick<Grown, "plantId" | "speciesName" | "stage" | "stageName" | "dormant"> & Partial<Pick<Grown, "waterings" | "awakeDays" | "next" | "fruit" | "lantern">>;
+  plant: Pick<Grown, "plantId" | "speciesName" | "stage" | "stageName" | "dormant"> & Partial<Pick<Grown, "waterings" | "awakeDays" | "next" | "fruit" | "lantern" | "goldenLeaves">>;
   forName?: string;
   forYou?: boolean;
   action?: React.ReactNode;
@@ -145,6 +145,12 @@ function PlantFace({
           <span className="rounded-full border border-line-strong px-2 py-0.5 text-cream/80">{plant.stageName}</span>
           {plant.dormant && <span className="rounded-full bg-saffron-deep/20 px-2 py-0.5 text-saffron">Dormant</span>}
           {fruit > 0 && <span className="rounded-full bg-saffron/15 px-2 py-0.5 text-saffron">{plural(fruit, "fruit", "fruit")}</span>}
+          {(plant.goldenLeaves ?? 0) > 0 && (
+            // A golden leaf per Super kudos you sent them (#98); art slot for #101.
+            <span data-art-slot="golden-leaf" className="rounded-full bg-[#f7a501]/20 px-2 py-0.5 text-[#fde68a]">
+              {plural(plant.goldenLeaves!, "golden leaf", "golden leaves")}
+            </span>
+          )}
         </div>
         {plant.next !== undefined && <p className="mt-2 text-xs text-muted">{stageLine(plant as Grown)}</p>}
         {plant.dormant && forName && <p className="mt-1 text-xs text-muted">Dormant for now: thank {forName} with a few words on why to wake it.</p>}
@@ -411,7 +417,10 @@ function GrownForYou({ plants }: { plants: ForMe }) {
               <div className="text-sm text-cream">
                 {p.ownerName} is growing a {p.speciesName} for you
               </div>
-              <div className="text-xs text-muted">{p.dormant ? `${p.stageName}, dormant for now` : p.stageName}</div>
+              <div className="text-xs text-muted">
+                {p.dormant ? `${p.stageName}, dormant for now` : p.stageName}
+                {p.goldenLeaves > 0 && <span className="text-[#fde68a]"> · {plural(p.goldenLeaves, "golden leaf", "golden leaves")} from {p.ownerName}'s Super kudos</span>}
+              </div>
               {p.lantern && (
                 <div className="text-xs text-cream/80">
                   Lantern from {p.lantern.by}: “{p.lantern.note}”{" "}
