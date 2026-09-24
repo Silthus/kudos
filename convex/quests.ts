@@ -28,7 +28,7 @@ import {
   weekKeyFor,
   weekKeyOfDay,
 } from "./lib/quests";
-import { addDays, parseToday, startOfDayUtc } from "./lib/time";
+import { addDays, DAY_MS, parseToday, startOfDayUtc } from "./lib/time";
 
 /** Enough for any week at any sane daily limit; the member's own activity bounds it. */
 const MAX_WEEK_ROWS = 1000;
@@ -402,18 +402,33 @@ export function questsOn(workspace: Pick<Doc<"workspaces">, "questsEnabled">): b
 }
 
 /**
- * The workspace patch for the admin switch. Switching off starts a pause and switching back on
- * ends it, so kudos given in between never count towards a board (`pausedAt`). History is kept.
+ * Pauses that ended before the longest quest log reaches back no longer matter to any board, and
+ * an admin toggling away can't grow the list without bound. Forgetting one only ever lets a revoke
+ * re-check of year-old kudos keep a completion; it never creates one.
+ */
+const PAUSE_MEMORY_MS = 53 * 7 * DAY_MS;
+const MAX_PAUSES = 50;
+
+/**
+ * The workspace patch for the admin switch. Switching off opens a pause and switching back on
+ * closes it, so kudos given in between never count towards a board (`pausedAt`). History is kept.
  */
 export function switchQuests(workspace: Doc<"workspaces">, on: boolean, now: number): Partial<Doc<"workspaces">> {
   if (on === questsOn(workspace)) return {};
-  return { questsEnabled: on, questsPause: on ? { from: workspace.questsPause?.from ?? now, until: now } : { from: now } };
+  const pauses = workspace.questsPauses ?? [];
+  const closed = pauses.filter((p) => p.until !== undefined && p.until > now - PAUSE_MEMORY_MS);
+  const open = pauses.at(-1)?.until === undefined ? pauses.at(-1) : undefined;
+  const next = on ? (open ? [...closed, { from: open.from, until: now }] : closed) : [...closed, { from: now }];
+  return { questsEnabled: on, questsPauses: next.slice(-MAX_PAUSES) };
 }
 
-/** Whether quests were off when a kudos was given at `at`. Only the latest pause is kept. */
+function paused(workspace: Doc<"workspaces">, from: number, to: number): boolean {
+  return (workspace.questsPauses ?? []).some((p) => p.from <= from && (p.until === undefined || to < p.until));
+}
+
+/** Whether quests were off when a kudos was given at `at`. */
 function pausedAt(workspace: Doc<"workspaces">, at: number): boolean {
-  const pause = workspace.questsPause;
-  return pause !== undefined && at >= pause.from && (pause.until === undefined || at < pause.until);
+  return paused(workspace, at, at);
 }
 
 /** `member`'s board for the quest week `weekKey`, or `{ enabled: false }`. Only ever their own data. */
@@ -557,6 +572,10 @@ export const history = query({
 
     const weeks = [];
     for (let weekKey = addDays(current, -7); weekKey >= from; weekKey = addDays(weekKey, -7)) {
+      const done = completions.filter((c) => c.weekKey === weekKey);
+      const { start, end } = weekBounds(weekKey, workspace.timezone);
+      // Quests were off all week: there was no board to play, so there's nothing to log.
+      if (done.length === 0 && paused(workspace, start, end - 1)) continue;
       const board = await resolveBoard(ctx, workspace, weekKey);
       const waivers = evaluateBoard(board, {
         given: [],
@@ -564,10 +583,9 @@ export const history = query({
         activeTeammates,
         hasUnrecognizedTeammate: true, // who was still unrecognized back then isn't known
         firstGivenAt: firstGiven.at,
-        weekStart: weekBounds(weekKey, workspace.timezone).start,
+        weekStart: start,
         receivedVisibility: workspace.receivedVisibility,
       });
-      const done = completions.filter((c) => c.weekKey === weekKey);
       const sweep = done.some((c) => c.sweep);
       weeks.push({
         weekKey,

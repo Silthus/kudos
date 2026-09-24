@@ -109,9 +109,9 @@ export default defineSchema({
     status: v.union(v.literal("active"), v.literal("uninstalled")),
     resettingSince: v.optional(v.number()), // demo only: a reset is in progress
     storeEnabled: v.optional(v.boolean()), // Rewards Store; undefined = off
-    // The latest time weekly quests were switched off (`until`: back on). Kudos given in between
-    // are history but never quest steps (quests.ts `loadQuestFacts`).
-    questsPause: v.optional(v.object({ from: v.number(), until: v.optional(v.number()) })),
+    // When weekly quests were switched off (`until`: back on), oldest first; the last year's only
+    // (quests.ts `switchQuests`). Kudos given meanwhile are history but never quest steps.
+    questsPauses: v.optional(v.array(v.object({ from: v.number(), until: v.optional(v.number()) }))),
     // Mirrors the `all` workspaceStats row's `rollupsBackfilledAt` (lib/rebuild.ts markBackfilled).
     // Queries that must not re-run on every give in the workspace (me.overview) gate on this copy:
     // the `all` row changes with every give, this document almost never does.

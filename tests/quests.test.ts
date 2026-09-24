@@ -553,6 +553,41 @@ describe("the admin switch for weekly quests", () => {
     expect(await completions(team.ana)).toHaveLength(0);
     expect(await questMessages()).toHaveLength(1); // the collected message stays
   });
+
+  test("kudos given during an earlier pause still don't count after quests are switched off and on again", async () => {
+    await setBoard(["fresh", "spread", "channels"]);
+    await switchQuests(false);
+    await message("UANA", "<@UBEN> :taco: thanks for the quick review", "general");
+    vi.setSystemTime(NOW.getTime() + H);
+    await switchQuests(true);
+    vi.setSystemTime(NOW.getTime() + 2 * H);
+    await switchQuests(false);
+    vi.setSystemTime(NOW.getTime() + 3 * H);
+    await switchQuests(true);
+    expect(await status(team.ana)).toMatchObject({ fresh: ["active", 0], channels: ["active", 0] });
+    vi.setSystemTime(NOW.getTime() + 4 * H);
+    await message("UANA", "<@UBEN> :taco: thanks again for the careful review", "random");
+    expect(await completions(team.ana)).toHaveLength(0);
+  });
+
+  test("switching on when quests are already on changes nothing", async () => {
+    await switchQuests(true);
+    await setBoard(["fresh", "spread", "channels"]);
+    await message("UANA", "<@UBEN> :taco: thanks for the quick review");
+    expect(await status(team.ana)).toMatchObject({ fresh: ["done", 1] });
+  });
+
+  test("the quest log leaves out weeks quests were off for, and keeps the rest", async () => {
+    await setBoard(["fresh", "spread", "channels"]);
+    await message("UANA", "<@UBEN> :taco: thanks for the quick review");
+    vi.setSystemTime(NOW.getTime() + H);
+    await switchQuests(false); // off from Wednesday 2026-09-23 through Tuesday 2026-10-13
+    vi.setSystemTime(new Date("2026-10-13T10:00:00Z"));
+    await switchQuests(true);
+    const log = await (await signInAs(t, team.ana)).query(api.quests.history, { today: "2026-10-14" });
+    expect(log.weeks.map((w) => w.weekKey)).toEqual([WEEK]);
+    expect(log.weeks[0].board.find((q) => q.key === "fresh")).toMatchObject({ done: true });
+  });
 });
 
 describe("who can see quests", () => {
@@ -664,8 +699,12 @@ describe("quests in the demo", () => {
       ctx.db.insert("questCompletions", { workspaceId, memberId: alex!._id, weekKey: WEEK, questKey: "steady", completedAt: Date.now(), sweep: false }),
     );
     expect(await questRows()).not.toEqual(seeded);
+    // However the demo got its quests switched off, a reset brings them back without the pause.
+    await t.run((ctx) => ctx.db.patch(workspaceId, { questsEnabled: false, questsPauses: [{ from: 0 }] }));
     await demo.mutation(api.demo.resetDemo, {});
     await t.finishAllScheduledFunctions(vi.runAllTimers, 1000); // seeding, then the rollup rebuild
+    const reset = (await t.run((ctx) => ctx.db.get(workspaceId)))!;
+    expect([reset.questsEnabled, reset.questsPauses]).toEqual([true, undefined]);
     expect(await questRows()).toEqual(seeded);
     expect((await all(t, "questCompletions")).every((c) => c.notificationId === undefined)).toBe(true);
   }, DEMO_TIMEOUT); // a reset re-seeds the year and rebuilds its rollups

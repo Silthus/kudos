@@ -892,8 +892,8 @@ export const resetDemoWorkspace = internalMutation({
       await ctx.scheduler.runAfter(0, internal.demo.resetDemoWorkspace, {});
       return null;
     }
-    const defaults = { ...DEFAULT_SETTINGS };
-    await ctx.db.patch(workspace._id, defaults);
+    // Quests come back on with no pause: a pause would keep the seeded kudos out of every board.
+    await ctx.db.patch(workspace._id, { ...DEFAULT_SETTINGS, questsPauses: undefined });
     for (const m of members) {
       await ctx.db.patch(m._id, {
         totalGiven: 0,
