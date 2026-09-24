@@ -66,11 +66,12 @@ export async function workspaceMembers(ctx: QueryCtx, workspaceId: Id<"workspace
 
 /**
  * The team a period's participation is measured against: everyone still here, plus whoever gave
- * in the period and has left since (they were on the team then). So it never has fewer people
- * than gave, and participation (givers / team size) stays within 100%.
+ * in the period and has left since (they were on the team then). A giver `members` doesn't list
+ * (since marked a bot, mid-removal) still counts, so it never has fewer people than gave, and
+ * participation (givers / team size) stays within 100%.
  */
-export function teamSize(members: Doc<"members">[], departedGivers: number) {
-  return members.filter((m) => !m.deactivated).length + departedGivers;
+export function teamSize(members: Doc<"members">[], givers: number, departedGivers: number) {
+  return Math.max(members.filter((m) => !m.deactivated).length + departedGivers, givers);
 }
 
 /** How many of `givers` have left the workspace (are deactivated). */

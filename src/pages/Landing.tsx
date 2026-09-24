@@ -155,7 +155,12 @@ export function Landing() {
             {installed ? (
               <>🎉 Kudos is installed in <b>{installed}</b>. Sign in with Slack to open your dashboard, then invite <code>@Kudos</code> to a channel.</>
             ) : (
-              <>Installation didn't complete ({installError}). Try again, or check the install guide.</>
+              <>
+                Installation didn't complete ({installError}).{" "}
+                {installError === "state_mismatch"
+                  ? "Start it again with Add to Slack, and finish it in this browser."
+                  : "Try again, or check the install guide."}
+              </>
             )}
           </div>
         </div>

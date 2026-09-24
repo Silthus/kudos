@@ -351,8 +351,8 @@ function present(
       .filter(([, t]) => t[metric] > 0)
       .sort(([a, ta], [b, tb]) => tb[metric] - ta[metric] || name(a).localeCompare(name(b)));
   const givers = ranked("given");
-  const team = teamSize(members, departedAmong(members, givers.map(([id]) => id)));
-  const prevTeam = prevGivers ? teamSize(members, departedAmong(members, prevGivers)) : 0;
+  const team = teamSize(members, counts.givers, departedAmong(members, givers.map(([id]) => id)));
+  const prevTeam = prevGivers ? teamSize(members, prevGivers.size, departedAmong(members, prevGivers)) : 0;
 
   // To date: a client still on yesterday doesn't count what the bucket got after it.
   const total = range.period === "all" ? counts.given : [...facts.volume.values()].reduce((s, n) => s + n, 0);

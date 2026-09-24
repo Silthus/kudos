@@ -69,7 +69,7 @@ export async function leaderboard(
         ? await fromRollups(ctx, workspace, range, metric, members)
         : await fromMemberDays(ctx, workspace, range, metric, members);
   const { current, previous } = standings;
-  const team = teamSize(members, standings.departedGivers);
+  const team = teamSize(members, standings.givers, standings.departedGivers);
 
   const value = (t: Totals | undefined) => (t ? t[metric] : 0);
   const participants = members.filter((m) => value(current.get(m._id)) > 0);
@@ -148,10 +148,11 @@ async function fromRollups(
     // Every unit given is a unit received, so the day rows' `given` is either metric's total.
     prevTotal: await givenOverDays(ctx, workspace._id, range.previousToDate!),
     givers: stats?.givers ?? 0,
-    departedGivers:
-      metric === "given"
-        ? departedAmong(members, cur.map((r) => r.memberId))
-        : await departedGiversIn(ctx, members, range.bucket),
+    // A received board read only the receivers: its givers are one more read of ≤ one row each.
+    departedGivers: departedAmong(
+      members,
+      (metric === "given" ? cur : await memberBucket(ctx, workspace._id, range.bucket, "given")).map((r) => r.memberId),
+    ),
     maxedDays: stats?.maxedDays ?? 0,
     ...discoveriesIn(stats),
   };
@@ -217,23 +218,6 @@ async function allTime(
 function giversOf(current: Map<Id<"members">, Totals>, members: Doc<"members">[]) {
   const givers = [...current].filter(([, t]) => t.given > 0).map(([id]) => id);
   return { givers: givers.length, departedGivers: departedAmong(members, givers) };
-}
-
-/**
- * Departed members who gave in a bucket, when the board read only its receivers: one rollup row
- * per departed member, fewer reads than the bucket's givers.
- */
-async function departedGiversIn(ctx: QueryCtx, members: Doc<"members">[], bucket: string) {
-  let n = 0;
-  for (const m of members) {
-    if (!m.deactivated) continue;
-    const row = await ctx.db
-      .query("memberStats")
-      .withIndex("by_member_bucket", (q) => q.eq("memberId", m._id).eq("bucket", bucket))
-      .unique();
-    if ((row?.given ?? 0) > 0) n++;
-  }
-  return n;
 }
 
 async function legacyDiscoveries(ctx: QueryCtx, workspaceId: Id<"workspaces">) {

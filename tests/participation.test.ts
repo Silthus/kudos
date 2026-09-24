@@ -62,6 +62,35 @@ async function everyoneGaveThenTwoLeft() {
   });
 }
 
+test("the received leaderboard's reads don't grow with everyone who ever left", async () => {
+  // Slack's directory sync imports deleted users too: old workspaces hold many departed members.
+  t = setupConvex({ transactionLimits: { databaseQueries: 1_000 } });
+  team = await seedTeam(t, { receivedVisibility: "everyone" });
+  await everyoneGaveThenTwoLeft();
+  await t.run(async (ctx) => {
+    for (let i = 0; i < 1_200; i++) {
+      await ctx.db.insert("members", {
+        workspaceId: team.workspaceId, slackUserId: `UGONE${i}`, name: `Gone ${i}`, isAdmin: false, isBot: false, deactivated: true,
+        totalGiven: 0, totalReceived: 0, totalMaxedDays: 0,
+      });
+    }
+    await markBackfilled(ctx, team.workspaceId, NOW.getTime());
+  });
+  const ana = await signInAs(t, team.ana);
+  const { highlights } = await ana.query(api.leaderboard.get, { period: "month", metric: "received", today: TODAY });
+  expect(highlights).toMatchObject({ givers: 4, teamSize: 4, participation: 1 });
+});
+
+test("a giver the team no longer lists (e.g. since marked a bot) never pushes it past 100%", async () => {
+  await everyoneGaveThenTwoLeft();
+  await t.run((ctx) => ctx.db.patch(team.cleo, { isBot: true }));
+  const ana = await signInAs(t, team.ana);
+  const { kpis } = await ana.query(api.analytics.overview, { period: "month", today: TODAY });
+  expect(kpis).toMatchObject({ givers: 4, teamSize: 4, participation: 1 });
+  const { highlights } = await ana.query(api.leaderboard.get, { period: "month", metric: "given", today: TODAY });
+  expect(highlights).toMatchObject({ givers: 4, teamSize: 4, participation: 1 });
+});
+
 const sources = [
   ["the rollups", true],
   ["the legacy scans", false],
