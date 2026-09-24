@@ -39,10 +39,45 @@ export const categoryValidator = v.union(
 );
 
 /**
- * What a notification is about: a rarity-rolled message category, or a game gain DM that isn't
- * rolled (`level_up`). Only rolled categories become discoveries.
+ * What a notification is about: a rarity-rolled message category, or a DM of game gains that isn't
+ * rolled (`gains`). Only rolled categories become discoveries. `level_up` is legacy: the level-up
+ * DMs written before #99, which now ride in `gains`; never written again.
  */
-export const notificationCategoryValidator = v.union(categoryValidator, v.literal("level_up"));
+export const notificationCategoryValidator = v.union(categoryValidator, v.literal("gains"), v.literal("level_up"));
+
+const personValidator = v.object({ slackUserId: v.string(), name: v.string() });
+
+/**
+ * Something a member discovered or gained, told in a DM (#55 §G13; rendered by `lib/gains.ts`).
+ * One DM carries everything one event gained. Never for XP or coins alone.
+ */
+export const gainValidator = v.union(
+  // A new message, discovered where only they saw it (an ephemeral reply or a slash command).
+  v.object({
+    kind: v.literal("discovery"),
+    category: categoryValidator,
+    rarity: rarityValidator,
+    slackText: v.string(),
+    webText: v.string(),
+    collected: v.number(),
+    total: v.number(),
+  }),
+  // Reaching `level` from `from`: a skill point per level. `balance` only once the wallet is open.
+  v.object({ kind: v.literal("level_up"), level: v.number(), from: v.number(), balance: v.optional(v.number()) }),
+  v.object({ kind: v.literal("skill"), name: v.string(), branch: v.string(), description: v.optional(v.string()) }), // #92
+  v.object({ kind: v.literal("item"), name: v.string(), description: v.optional(v.string()) }), // #91
+  // #94: a spree the member started or joined reached a tier. `coins` only once their wallet is open.
+  v.object({
+    kind: v.literal("spree_tier"),
+    tier: v.number(),
+    role: v.union(v.literal("started"), v.literal("joined")),
+    giver: personValidator,
+    receivers: v.array(personValidator),
+    xp: v.number(),
+    coins: v.optional(v.number()),
+  }),
+  v.object({ kind: v.literal("plant_stage"), species: v.string(), stage: v.string(), teammate: personValidator }), // #95
+);
 
 export const xpItemKindValidator = v.union(
   v.literal("base"),
@@ -435,8 +470,10 @@ export default defineSchema({
     questProgress: v.optional(questProgressValidator),
     // giver_success while the game is on: what the kudos earned, for the reply where it was given.
     earnings: v.optional(earningsValidator),
-    // level_up: the level reached and the skill points it grants.
+    // Legacy (before #99): a level_up row's level. Level-ups are gains now.
     levelUp: v.optional(v.object({ level: v.number(), title: v.string(), skillPoints: v.number() })),
+    // What the member discovered or gained in the event this DM is about (the whole DM for `gains`).
+    gains: v.optional(v.array(gainValidator)),
   }).index("by_member", ["memberId"]),
 
   // Rewards Store catalog. Archived, never deleted: redemptions link back to them.

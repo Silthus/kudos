@@ -9,7 +9,10 @@ import { givingProfile, type MemberDayChange, Rollups } from "./lib/rollups";
 import { MIN_NOTE_WORDS } from "./lib/quests";
 import { onKudosGiven, onKudosRevoked, questsOn } from "./quests";
 import { onGameGiven, onGameRevoked } from "./game";
+import { Gains } from "./gains";
+import { discoveryWorthADm } from "./lib/gains";
 import {
+  CATALOG,
   type Category,
   type Rarity,
   type TemplateVars,
@@ -134,6 +137,11 @@ export type BotMessageOptions = {
   questProgress?: Infer<typeof questProgressValidator>;
   /** giver_success while the game is on: what the kudos earned (the earnings reply). */
   earnings?: Infer<typeof earningsValidator>;
+  /**
+   * A message shown only in passing (an ephemeral reply, a slash command): a first discovery of a
+   * Rare or rarer message is also a gain of the event, told in the member's gain DM (#55 §G13).
+   */
+  discoveries?: Gains;
 };
 
 /**
@@ -148,7 +156,7 @@ export async function sendBotMessage(
   category: Category,
   vars: Audience,
   now: number,
-  { rollups, minRarity, skipDelivery, questProgress, earnings }: BotMessageOptions = {},
+  { rollups, minRarity, skipDelivery, questProgress, earnings, discoveries }: BotMessageOptions = {},
 ): Promise<Id<"notifications">> {
   const seen = await ctx.db
     .query("discoveries")
@@ -174,6 +182,12 @@ export async function sendBotMessage(
     target.messageFound(template.key, seen.length === 0);
     if (!rollups) await target.flush();
   }
+  const slackText = renderTemplate(template.text, vars.slack);
+  const webText = renderTemplate(template.text, vars.web);
+  const collected = seen.length + (existing ? 0 : 1);
+  if (!existing && discoveries && discoveryWorthADm(template.rarity)) {
+    discoveries.add(member._id, { kind: "discovery", category, rarity: template.rarity, slackText, webText, collected, total: CATALOG.length });
+  }
   return await ctx.db.insert("notifications", {
     workspaceId: workspace._id,
     memberId: member._id,
@@ -181,10 +195,10 @@ export async function sendBotMessage(
     templateKey: template.key,
     rarity: template.rarity,
     isNewDiscovery: !existing,
-    slackText: renderTemplate(template.text, vars.slack),
-    webText: renderTemplate(template.text, vars.web),
+    slackText,
+    webText,
     delivery: workspace.isDemo || skipDelivery ? "skipped" : "pending",
-    collected: seen.length + (existing ? 0 : 1),
+    collected,
     ...(questProgress ? { questProgress } : {}),
     ...(earnings ? { earnings } : {}),
   });
@@ -259,11 +273,12 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
       const reason = input.recipientSlackIds.length === 0 ? "no_mention" : input.recipientSlackIds.some((id) => unknown.has(id)) ? "inactive" : "bots";
       return { status: "invalid", reason, notificationIds: [] };
     }
+    const gains = new Gains(ctx, workspace);
     const id = await sendBotMessage(ctx, workspace, giver, "self_kudos", {
       slack: { emoji: emoji.slack, user: `<@${giver.slackUserId}>` },
       web: { emoji: emoji.web, user: giver.name },
-    }, now);
-    return { status: "self", notificationIds: [id] };
+    }, now, { discoveries: gains });
+    return { status: "self", notificationIds: [id, ...(await gains.flush())] };
   }
 
   // Known bots/deactivated people can't receive; unknown ids might be real people.
@@ -280,11 +295,12 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
   const requested = input.amountEach * eligibleIds.length;
 
   if (requested > remaining) {
+    const gains = new Gains(ctx, workspace);
     const id = await sendBotMessage(ctx, workspace, giver, "limit_reached", {
       slack: { emoji: emoji.slack, remaining, limit: workspace.dailyLimit, requested },
       web: { emoji: emoji.web, remaining, limit: workspace.dailyLimit, requested },
-    }, now);
-    return { status: "limit", remaining, requested, people: eligibleIds.length, notificationIds: [id] };
+    }, now, { discoveries: gains });
+    return { status: "limit", remaining, requested, people: eligibleIds.length, notificationIds: [id, ...(await gains.flush())] };
   }
 
   const ensured = [];
@@ -340,8 +356,10 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
     { given: giver.totalGiven + total, received: giver.totalReceived },
   );
 
-  // XP for the giver and the receivers; the giver's share is itemised in their reply.
-  const game = await onGameGiven(ctx, workspace, giver, rows, input.noteWords);
+  // XP for the giver and the receivers; the giver's share is itemised in their reply. What anyone
+  // discovers or gains in this kudos goes out in one DM each, once everything below has run.
+  const gains = new Gains(ctx, workspace);
+  const game = await onGameGiven(ctx, workspace, giver, rows, input.noteWords, gains);
 
   const channel = channelVars(input.channelId, input.channelName);
   const notificationIds: Id<"notifications">[] = [];
@@ -364,7 +382,7 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
           limit: workspace.dailyLimit,
           channel: channel.web,
         },
-      }, now, { rollups, ...(game.earnings ? { earnings: game.earnings } : {}) }),
+      }, now, { rollups, discoveries: gains, ...(game.earnings ? { earnings: game.earnings } : {}) }),
     );
   }
   if (workspace.notifyReceiver) {
@@ -378,11 +396,10 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
     }
   }
 
-  notificationIds.push(...game.notificationIds);
-
   // Only a batch with a Note can move quest progress, and only while quests are on; skip the reads otherwise.
   if (questsOn(workspace) && (input.noteWords ?? 0) >= MIN_NOTE_WORDS) notificationIds.push(...(await onKudosGiven(ctx, workspace, giver, now, rollups)));
 
+  notificationIds.push(...(await gains.flush(notificationIds)));
   await rollups.flush();
 
   return {
@@ -427,10 +444,13 @@ export async function revokeKudosRow(ctx: MutationCtx, workspace: Doc<"workspace
   }
   await rollups.flush();
   await onKudosRevoked(ctx, workspace, row);
-  await onGameRevoked(ctx, workspace, row);
+  await onGameRevoked(ctx, row);
 }
 
-/** Rarity-rolled "you have N left" message (slash command, App Home, playground). */
+/**
+ * Rarity-rolled "you have N left" message (slash command, playground). It's shown only in passing,
+ * so a message new to the member is also a gain DM (`gainIds`, for the caller to deliver).
+ */
 export async function allowanceCheck(
   ctx: MutationCtx,
   workspace: Doc<"workspaces">,
@@ -439,9 +459,10 @@ export async function allowanceCheck(
 ) {
   const remaining = await remainingToday(ctx, workspace, member._id, now);
   const emoji = emojiVars(workspace);
+  const gains = new Gains(ctx, workspace);
   const id = await sendBotMessage(ctx, workspace, member, "allowance_status", {
     slack: { emoji: emoji.slack, remaining, limit: workspace.dailyLimit, user: `<@${member.slackUserId}>` },
     web: { emoji: emoji.web, remaining, limit: workspace.dailyLimit, user: member.name },
-  }, now);
-  return { notificationId: id, remaining };
+  }, now, { discoveries: gains });
+  return { notificationId: id, remaining, gainIds: await gains.flush() };
 }

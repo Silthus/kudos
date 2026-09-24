@@ -15,6 +15,7 @@ import { DEMO_ADJUSTMENTS, DEMO_REDEMPTIONS, DEMO_REWARDS, type DemoRedemption, 
 import { weekKeyFor } from "./lib/quests";
 import { DEMO_SETTINGS } from "./lib/settings";
 import { earningsText } from "./lib/xp";
+import { gainLabel, gainText } from "./lib/gains";
 import { fnv1a, mulberry32 } from "./lib/random";
 import { balanceOf, validateRewardInput } from "./lib/store";
 import { grantBalance, requestRedemption, transitionRedemption, undoRedemption } from "./store";
@@ -552,6 +553,10 @@ const playgroundResult = v.object({
       questProgress: v.optional(questProgressValidator),
       /** Your reply while the game is on: what the kudos earned ("+20 XP · new connection +10"). */
       earnings: v.optional(v.string()),
+      /** What its member gained in this kudos, riding along in their kudos DM (lib/gains.ts). */
+      gains: v.optional(v.array(v.string())),
+      /** A DM with gains: what it's about ("Level up", "New discovery", ...). */
+      gainLabel: v.optional(v.string()),
     }),
   ),
 });
@@ -586,6 +591,9 @@ async function describeNotifications(ctx: MutationCtx, me: Id<"members">, ids: I
       isNewDiscovery: n.isNewDiscovery,
       ...(n.questProgress ? { questProgress: n.questProgress } : {}),
       ...(n.earnings ? { earnings: earningsText(n.earnings) } : {}),
+      ...(n.gains && n.gains.length > 0
+        ? { gainLabel: gainLabel(n.gains), ...(n.category === "gains" ? {} : { gains: n.gains.map((g) => gainText(g, "web")) }) }
+        : {}),
     });
   }
   return out;
@@ -727,8 +735,8 @@ export const simulateAllowanceCheck = mutation({
   returns: playgroundResult,
   handler: async (ctx) => {
     const { workspace, member } = await requireDemoViewer(ctx);
-    const { notificationId } = await allowanceCheck(ctx, workspace, member, Date.now());
-    return { status: "ok", messages: await describeNotifications(ctx, member._id, [notificationId]) };
+    const { notificationId, gainIds } = await allowanceCheck(ctx, workspace, member, Date.now());
+    return { status: "ok", messages: await describeNotifications(ctx, member._id, [notificationId, ...gainIds]) };
   },
 });
 

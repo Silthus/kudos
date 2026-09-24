@@ -4,10 +4,12 @@ import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { earningsValidator } from "./schema";
 import { requireViewer } from "./lib/access";
-import { COINS, coinBalance, lineCoins, WALLET_LEVEL } from "./lib/coins";
+import type { Gains } from "./gains";
+import { coinBalance, lineCoins, WALLET_LEVEL } from "./lib/coins";
 import { hasNote, RECIPROCAL_WINDOW_MS, weekKeyOfDay } from "./lib/quests";
 import { isSkillId, scoutEffects, type Allocation } from "./lib/skills";
-import { type GiveLine, levelForXp, levelProgress, scoreGive, scoreReceive, titleForLevel, type XpItem } from "./lib/xp";
+import type { GameView } from "./lib/gameBlocks";
+import { type GiveLine, levelForXp, levelProgress, nextLockedAreas, scoreGive, scoreReceive, type XpItem } from "./lib/xp";
 
 /**
  * The game's foundation (#55 §G1, G3, G4): the workspace switch, players, the XP and Hog coin
@@ -22,6 +24,9 @@ import { type GiveLine, levelForXp, levelProgress, scoreGive, scoreReceive, titl
  * `players.coins` in the same transaction, and gets a replay step in `rebuildPlayer`. `rebuildPlayer` plays a member's surviving history through the
  * same rules (`lib/xp.ts`): the backfill when the game is switched on, the demo year, and the
  * repair tool. Without revokes it writes exactly what the live path wrote.
+ *
+ * Level-ups are gains (`convex/gains.ts`): pass the event's `Gains` to `addXp` and the level-up
+ * joins the member's one gain DM for that event. A rebuild or a revoke never DMs.
  */
 
 type Earnings = Infer<typeof earningsValidator>;
@@ -112,62 +117,19 @@ async function eventsBetween(ctx: QueryCtx, memberId: Id<"members">, fromDay: st
 
 /**
  * Adds (or takes back) XP and Hog coins. A new level is kept even if a revoke later takes the XP
- * back, and is announced with a level-up DM unless the member hides the game. Returns that DM.
+ * back, and is told in the event's gain DM (`gains`, lib/gains.ts): the level, its title and skill
+ * point, and from level 3 the coins (reaching 3 opens the wallet with what was collected so far).
  */
-async function addXp(
-  ctx: MutationCtx,
-  workspace: Doc<"workspaces">,
-  player: Doc<"players">,
-  delta: number,
-  coinDelta = 0,
-): Promise<Id<"notifications"> | null> {
-  if (delta === 0 && coinDelta === 0) return null;
+export async function addXp(ctx: MutationCtx, player: Doc<"players">, delta: number, coinDelta = 0, gains?: Gains) {
+  if (delta === 0 && coinDelta === 0) return;
   const xp = player.xp + delta;
   const level = Math.max(player.level, levelForXp(xp));
   const coins = (player.coins ?? 0) + coinDelta;
   await ctx.db.patch(player._id, { xp, level, coins });
-  if (level <= player.level) return null;
+  if (level <= player.level || !gains) return;
   const member = await ctx.db.get(player.memberId);
-  if (!member || !gameShownTo(workspace, member)) return null;
-  return await levelUpMessage(ctx, workspace, member, level, player.level, coinBalance({ coins, level }, member).balance);
-}
-
-/**
- * The level-up DM: the level reached, its title and the skill points it grants (one per level).
- * From level 3 it names the Hog coins too: reaching 3 opens the wallet with what was collected
- * silently so far, and every later level says what it paid.
- */
-async function levelUpMessage(
-  ctx: MutationCtx,
-  workspace: Doc<"workspaces">,
-  member: Doc<"members">,
-  level: number,
-  from: number,
-  balance: number,
-) {
-  const title = titleForLevel(level);
-  const skillPoints = level - from;
-  const points = skillPoints === 1 ? "a skill point" : `${skillPoints} skill points`;
-  const coins =
-    from >= WALLET_LEVEL
-      ? ` +${COINS.levelUp * skillPoints} Hog coins.`
-      : level >= WALLET_LEVEL
-        ? ` Your Hog coin wallet is open: ${balance} Hog ${balance === 1 ? "coin" : "coins"} collected so far.`
-        : "";
-  const body = `Your thoughtful kudos got you here. You earned ${points} for your skill tree.${coins}`;
-  const text = (web: boolean) => (web ? `Level ${level}: ${title}. ${body}` : `*Level ${level}: ${title}*\n${body}`);
-  return await ctx.db.insert("notifications", {
-    workspaceId: workspace._id,
-    memberId: member._id,
-    category: "level_up",
-    templateKey: "level_up",
-    rarity: "common",
-    isNewDiscovery: false,
-    slackText: text(false),
-    webText: text(true),
-    delivery: workspace.isDemo ? "skipped" : "pending",
-    levelUp: { level, title, skillPoints },
-  });
+  const wallet = level >= WALLET_LEVEL && member ? { balance: coinBalance({ coins, level }, member).balance } : {};
+  gains.add(player.memberId, { kind: "level_up", level, from: player.level, ...wallet });
 }
 
 async function ensurePlayer(ctx: MutationCtx, workspace: Doc<"workspaces">, memberId: Id<"members">, since: number) {
@@ -229,8 +191,8 @@ function earningsOf(lines: GiveLine[], noteWords: number | undefined): Earnings 
 
 /**
  * Called from `giveKudos` with the rows of one batch: makes the giver a player, writes the giver's
- * and the receivers' XP events and returns what the batch earned the giver (null while the game is
- * off or hidden from them) and any level-up DMs.
+ * and the receivers' XP events, adds any level-ups to the event's `gains` and returns what the batch
+ * earned the giver (null while the game is off or hidden from them).
  */
 export async function onGameGiven(
   ctx: MutationCtx,
@@ -238,8 +200,9 @@ export async function onGameGiven(
   giver: Doc<"members">,
   rows: Doc<"kudos">[],
   noteWords: number | undefined,
-): Promise<{ earnings: Earnings | null; notificationIds: Id<"notifications">[] }> {
-  if (!gameOn(workspace) || rows.length === 0) return { earnings: null, notificationIds: [] };
+  gains: Gains,
+): Promise<{ earnings: Earnings | null }> {
+  if (!gameOn(workspace) || rows.length === 0) return { earnings: null };
   const { dayKey, at, batchId } = rows[0];
   const player = await ensurePlayer(ctx, workspace, giver._id, at);
 
@@ -273,8 +236,7 @@ export async function onGameGiven(
   const xp = lines.reduce((s, l) => s + l.xp, 0);
   const coins = lines.reduce((s, l) => s + l.coins, 0);
   await ctx.db.insert("gameEvents", { workspaceId: workspace._id, memberId: giver._id, kind: "give", batchId, dayKey, at, xp, coins, lines });
-  const notificationIds: Id<"notifications">[] = [];
-  const giverLevelUp = await addXp(ctx, workspace, player, xp, coins);
+  await addXp(ctx, player, xp, coins, gains);
 
   for (const line of lines) {
     const receiver = await playerOf(ctx, line.receiverId as Id<"members">);
@@ -298,22 +260,19 @@ export async function onGameGiven(
       kudosId: line.kudosId as Id<"kudos">,
       giverId: giver._id,
     });
-    const id = await addXp(ctx, workspace, receiver, gained);
-    if (id) notificationIds.push(id);
+    await addXp(ctx, receiver, gained, 0, gains);
   }
-  // The giver's level-up follows their earnings reply; receivers' DMs go out with their kudos DMs.
-  if (giverLevelUp) notificationIds.unshift(giverLevelUp);
-  if (!gameShownTo(workspace, giver)) return { earnings: null, notificationIds };
+  if (!gameShownTo(workspace, giver)) return { earnings: null };
   // Coins collect silently until the wallet opens (level 3, maybe reached with this very kudos).
   const walletOpen = ((await ctx.db.get(player._id))?.level ?? 1) >= WALLET_LEVEL;
-  return { earnings: { ...earningsOf(lines, noteWords), ...(walletOpen ? { coins } : {}) }, notificationIds };
+  return { earnings: { ...earningsOf(lines, noteWords), ...(walletOpen ? { coins } : {}) } };
 }
 
 /**
  * Called from `revokeKudosRow`: takes back exactly what the row earned its giver and its receiver.
  * Runs whether or not the game is on, so a revoke always undoes its XP. Levels reached stay.
  */
-export async function onGameRevoked(ctx: MutationCtx, workspace: Doc<"workspaces">, row: Doc<"kudos">) {
+export async function onGameRevoked(ctx: MutationCtx, row: Doc<"kudos">) {
   const events = await ctx.db
     .query("gameEvents")
     .withIndex("by_batch", (q) => q.eq("batchId", row.batchId))
@@ -334,7 +293,7 @@ export async function onGameRevoked(ctx: MutationCtx, workspace: Doc<"workspaces
       taken = e.xp;
     } else continue;
     const player = await playerOf(ctx, e.memberId);
-    if (player) await addXp(ctx, workspace, player, -taken, -coins);
+    if (player) await addXp(ctx, player, -taken, -coins);
   }
 }
 
@@ -583,6 +542,28 @@ export const mine = query({
     };
   },
 });
+
+/**
+ * "Your game" in Slack (App Home, `/kudos level`; lib/gameBlocks.ts): the member's level, from level
+ * 3 their Hog coins, and what opens next. Null unless they play and see the game.
+ */
+export async function gameView(ctx: QueryCtx, workspace: Doc<"workspaces">, member: Doc<"members">): Promise<GameView | null> {
+  if (!gameShownTo(workspace, member)) return null;
+  const player = await playerOf(ctx, member._id);
+  if (!player) return null;
+  const progress = levelProgress(player.xp, player.level);
+  const locked = nextLockedAreas(progress.level);
+  return {
+    level: progress.level,
+    title: progress.title,
+    xp: progress.xp,
+    next: progress.next,
+    toNext: progress.toNext,
+    fraction: progress.fraction,
+    coins: progress.level >= WALLET_LEVEL ? coinBalance(player, member).balance : null,
+    locked: locked.length > 0 ? { level: locked[0].level, areas: locked.map((a) => a.title) } : null,
+  };
+}
 
 /** "Hide the game" (Me): the game UI and game DMs go away for the viewer; XP keeps accruing. */
 export const setHidden = mutation({

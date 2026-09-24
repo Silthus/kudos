@@ -8,14 +8,15 @@ import { DEFAULT_SETTINGS } from "./lib/settings";
 import { balanceOf, MAX_ACTIVE_REWARDS, storeOpen } from "./lib/store";
 import { activeRewards, openRedemptionCount, ownDecisionBlocker, transitionRedemption } from "./store";
 import { openRequestCount } from "./storeAdmin";
-import { earningsValidator, questProgressValidator, redemptionStatusValidator } from "./schema";
+import { earningsValidator, gainValidator, questProgressValidator, redemptionStatusValidator } from "./schema";
 import { rewardLine, webLink } from "./lib/slack";
 import { addDays, dayKeyFor, weekdayOfKey } from "./lib/time";
 import { weekBucket } from "./lib/buckets";
 import { backfilledRollups, memberBucket } from "./lib/stats";
 import { markBackfilled, mirrorBackfillMarker } from "./lib/rebuild";
 import { questBoard, questsOn } from "./quests";
-import { gameOn, gameShownTo, playerOf } from "./game";
+import { gameOn, gameShownTo, gameView, playerOf } from "./game";
+import { gameBlocks, number } from "./lib/gameBlocks";
 import { coinBalance, WALLET_LEVEL } from "./lib/coins";
 import { questBlocks } from "./lib/questBlocks";
 import { weekKeyFor } from "./lib/quests";
@@ -293,7 +294,7 @@ export const notificationsForDelivery = internalQuery({
       delivery: v.string(),
       questProgress: v.optional(questProgressValidator),
       earnings: v.optional(earningsValidator),
-      levelUp: v.optional(v.object({ level: v.number(), title: v.string(), skillPoints: v.number() })),
+      gains: v.optional(v.array(gainValidator)),
     }),
   ),
   handler: async (ctx, { ids }) => {
@@ -303,13 +304,17 @@ export const notificationsForDelivery = internalQuery({
       if (!n) continue;
       const member = await ctx.db.get(n.memberId);
       if (!member) continue;
-      // Older rows don't know their count: fall back to the collection as it is now.
+      // Older rows don't know their count: fall back to the collection as it is now. Game DMs
+      // aren't rolled messages, so they have none to show.
+      const gameOnly = n.category === "gains" || n.category === "level_up";
       const discoveredCount =
         n.collected ??
-        (await ctx.db
-          .query("discoveries")
-          .withIndex("by_member_template", (q) => q.eq("memberId", member._id))
-          .take(500)).length;
+        (gameOnly
+          ? 0
+          : (await ctx.db
+              .query("discoveries")
+              .withIndex("by_member_template", (q) => q.eq("memberId", member._id))
+              .take(500)).length);
       out.push({
         _id: n._id,
         slackUserId: member.slackUserId,
@@ -321,7 +326,7 @@ export const notificationsForDelivery = internalQuery({
         delivery: n.delivery,
         ...(n.questProgress ? { questProgress: n.questProgress } : {}),
         ...(n.earnings ? { earnings: n.earnings } : {}),
-        ...(n.levelUp ? { levelUp: n.levelUp } : {}),
+        ...(n.gains ? { gains: n.gains } : {}),
       });
     }
     return out;
@@ -448,6 +453,7 @@ export const homeData = internalQuery({
       quests: member ? await questBoard(ctx, workspace, member, weekKeyFor(now, workspace.timezone)) : null,
       // The game's invitation (§G1): shown until the member gives their first kudos, never as a DM.
       invite: gameShownTo(workspace, member ?? {}) && !(member && (await playerOf(ctx, member._id))),
+      game: member ? await gameView(ctx, workspace, member) : null,
     };
   },
 });
@@ -529,7 +535,28 @@ async function coinsReply(ctx: QueryCtx, workspace: Doc<"workspaces">, member: D
   };
 }
 
-/** `/kudos [me|top|quests|coins|store|help]` — returns an ephemeral Slack response body. */
+/**
+ * `/kudos level`: the member's game, the same blocks as their App Home. Never an amount of coins
+ * below level 3, and nothing while the game is hidden or off.
+ */
+async function levelReply(ctx: QueryCtx, workspace: Doc<"workspaces">, member: Doc<"members">) {
+  if (!gameOn(workspace)) return { response_type: "ephemeral", text: "The game isn't on in this workspace." };
+  if (!gameShownTo(workspace, member)) {
+    return { response_type: "ephemeral", text: "You've hidden the game. Show it again on your Me page to see your level." };
+  }
+  const game = await gameView(ctx, workspace, member);
+  if (!game) {
+    return { response_type: "ephemeral", text: "You don't have a level yet. Give your first kudos with a few words on why to start one." };
+  }
+  const next = game.toNext === null ? "the top level." : `${number(game.toNext)} XP to level ${game.level + 1}.`;
+  return {
+    response_type: "ephemeral",
+    text: `Level ${game.level} · ${game.title}: ${next}`,
+    blocks: gameBlocks(game, webLink(workspace.slackTeamId, "/me")),
+  };
+}
+
+/** `/kudos [me|top|quests|level|coins|store|help]` — returns an ephemeral Slack response body. */
 export const slashCommand = internalMutation({
   args: { teamId: v.string(), slackUserId: v.string(), text: v.string() },
   returns: v.any(),
@@ -565,9 +592,10 @@ export const slashCommand = internalMutation({
     }
     if (sub === "" || sub === "me" || sub === "stats" || sub === "left") {
       const member = await ensureMember(ctx, workspace, slackUserId);
-      const { notificationId, remaining } = await allowanceCheck(ctx, workspace, member, Date.now());
-      // The slash command response *is* the delivery.
+      const { notificationId, remaining, gainIds } = await allowanceCheck(ctx, workspace, member, Date.now());
+      // The slash command response *is* the delivery; a message it discovered is a DM of its own.
       await ctx.db.patch(notificationId, { delivery: "sent" });
+      if (gainIds.length > 0) await ctx.scheduler.runAfter(0, internal.slack.deliverNotifications, { workspaceId: workspace._id, ids: gainIds });
       const n = (await ctx.db.get(notificationId))!;
       const fields = [
         `*Left today*\n${remaining} / ${workspace.dailyLimit} ${e}`,
@@ -597,6 +625,9 @@ export const slashCommand = internalMutation({
       const member = await ensureMember(ctx, workspace, slackUserId);
       const board = await questBoard(ctx, workspace, member, weekKeyFor(Date.now(), workspace.timezone));
       return { response_type: "ephemeral", text: "This week's quests", blocks: questBlocks(board, webLink(workspace.slackTeamId, "/quests")) };
+    }
+    if (sub === "level" || sub === "lvl" || sub === "xp") {
+      return await levelReply(ctx, workspace, await ensureMember(ctx, workspace, slackUserId));
     }
     if (sub === "coins" || sub === "coin" || sub === "wallet") {
       return await coinsReply(ctx, workspace, await ensureMember(ctx, workspace, slackUserId), link);
@@ -642,7 +673,7 @@ export const slashCommand = internalMutation({
         "",
         "`/kudos me` what you can give today · `/kudos top` weekly leaderboard",
         quests ? "`/kudos quests` your weekly quests" : "",
-        (await gameShownToSlackUser(ctx, workspace, slackUserId)) ? "`/kudos coins` your Hog coins" : "",
+        (await gameShownToSlackUser(ctx, workspace, slackUserId)) ? "`/kudos level` your level · `/kudos coins` your Hog coins" : "",
         store ? "`/kudos store` your balance and the rewards you can spend it on" : "",
         link("/me", "Open the Kudos dashboard"),
       ]

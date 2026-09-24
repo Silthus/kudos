@@ -8,7 +8,7 @@ import { api } from "../../convex/_generated/api";
 import { Legend, LineChart } from "@/components/charts";
 import { MessageText } from "@/components/MessageText";
 import { QUEST_RULES, QuestItem } from "@/components/quests";
-import { GameCard, ScoutHints } from "@/components/game";
+import { GainLines, GameCard, ScoutHints } from "@/components/game";
 import { Avatar, BigNumber, Card, CardHeader, Empty, Eyebrow, PageHeader, PageSkeleton, RarityBadge, Segmented, Trend } from "@/components/ui";
 import { compareTeamHref } from "@/lib/compare";
 import { dayLabel, firstName, greeting, nf, relativeTime } from "@/lib/format";
@@ -279,10 +279,11 @@ export function Me() {
             <ul className="space-y-2 px-5 pb-5">
               {data.botMessages.map((m) => (
                 <li key={m._id} className="rounded-xl border border-line bg-ink/40 p-3.5">
-                  <p className="text-sm leading-relaxed">{m.text}</p>
+                  <p className="text-sm leading-relaxed whitespace-pre-line">{m.text}</p>
+                  <GainLines lines={m.gains} />
                   <div className="mt-2 flex items-center gap-2">
-                    {m.category === "level_up" ? (
-                      <span className="text-xs font-medium text-saffron">Level up</span>
+                    {m.category === "gains" || m.category === "level_up" ? (
+                      <span className="text-xs font-medium text-saffron">{m.gainLabel ?? "Level up"}</span>
                     ) : (
                       <RarityBadge rarity={m.rarity as Rarity} size="xs" />
                     )}

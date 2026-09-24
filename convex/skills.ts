@@ -6,7 +6,8 @@ import { requireViewer } from "./lib/access";
 import { ALL_BUCKET } from "./lib/buckets";
 import { canSpend, coinBalance, WALLET_LEVEL } from "./lib/coins";
 import { fnv1a } from "./lib/random";
-import { canTake, hasSkill, isSkillId, pointsOf, resetCost, SCOUT, SKILLS, takeBlockText } from "./lib/skills";
+import { BRANCHES, canTake, hasSkill, isSkillId, pointsOf, resetCost, SCOUT, SKILLS, takeBlockText } from "./lib/skills";
+import { sendGains } from "./gains";
 import { addDays, parseToday } from "./lib/time";
 
 /**
@@ -96,8 +97,19 @@ export const take = mutation({
     const skills = skillsOf(player);
     const check = canTake(skills, player.level, skill);
     if (!check.ok) throw new ConvexError(takeBlockText(SKILLS[skill], check.reason, pointsOf(skills, player.level).available));
-    await ctx.db.patch(player._id, { skills: { ...player.skills, [skill]: (skills[skill] ?? 0) + 1 } });
+    const rank = (skills[skill] ?? 0) + 1;
+    await ctx.db.patch(player._id, { skills: { ...player.skills, [skill]: rank } });
     await ctx.db.insert("skillChanges", { workspaceId: member.workspaceId, memberId: member._id, at: Date.now(), kind: "take", skill });
+    // A skill gained is a gain DM (#99, §G13).
+    const { name, branch, effect, perRank } = SKILLS[skill];
+    await sendGains(ctx, workspace, member._id, [
+      {
+        kind: "skill",
+        name: rank > 1 ? `${name}, rank ${rank}` : name,
+        branch: BRANCHES.find((b) => b.id === branch)?.name ?? branch,
+        description: rank > 1 && perRank ? perRank : effect,
+      },
+    ]);
     return null;
   },
 });

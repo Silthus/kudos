@@ -173,8 +173,8 @@ export function slackManifest(base: string, appName = "Kudos") {
         {
           command: "/kudos",
           url: `${base}/slack/commands`,
-          description: "Your kudos stats, weekly quests, the leaderboard and the rewards store",
-          usage_hint: "[me | top | quests | store | help]",
+          description: "Your kudos stats, weekly quests, your level and Hog coins, the leaderboard and the store",
+          usage_hint: "[me | top | quests | level | coins | store | help]",
           should_escape: false,
         },
       ],
