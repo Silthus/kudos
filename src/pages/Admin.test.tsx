@@ -4,6 +4,8 @@ import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter } from "react-router";
 import { getFunctionName, type FunctionReference } from "convex/server";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { ViewerContext, type ReadyViewer } from "@/lib/viewer";
+import { describeElement, escapesFromScrollers } from "@/testing/layout";
 
 const settings = {
   emojiName: "taco",
@@ -25,10 +27,25 @@ const overview = {
   storeEnabled: false,
   slack: {},
 };
+const members = ["Alex Rivera", "Lena Park"].map((name, i) => ({
+  _id: `m${i}`,
+  name,
+  title: null,
+  slackUserId: `U${i}`,
+  avatarUrl: null,
+  deactivated: false,
+  isAdmin: i === 0,
+  signedIn: true,
+  totalGiven: 12,
+  totalReceived: 7,
+  balance: 7,
+  totalMaxedDays: 1,
+  lastGivenAt: null,
+}));
 const saved = vi.fn(async (_args: unknown) => null);
 
 vi.mock("convex/react", () => ({
-  useQuery: (fn: FunctionReference<"query">) => (getFunctionName(fn) === "admin:overview" ? overview : undefined),
+  useQuery: (fn: FunctionReference<"query">) => ({ "admin:overview": overview, "admin:members": members })[getFunctionName(fn)],
   useMutation: (fn: FunctionReference<"mutation">) => (getFunctionName(fn) === "admin:updateSettings" ? saved : vi.fn()),
   usePaginatedQuery: () => ({ results: [], status: "Exhausted", loadMore: vi.fn() }),
 }));
@@ -80,4 +97,22 @@ test("switching the game on and saving sends it with the other settings, and say
   act(() => gameSwitch()!.click());
   await act(async () => button("Save settings").click());
   expect(saved).toHaveBeenCalledWith({ ...settings, gameEnabled: true });
+});
+
+test("on a phone the members table scrolls inside its card, and nothing in it widens the page", () => {
+  const viewer = { member: { _id: "m0", name: "Alex Rivera", isAdmin: true }, workspace: { isDemo: false, storeEnabled: true } } as unknown as ReadyViewer;
+  act(() => root.unmount());
+  root = createRoot(host);
+  act(() =>
+    root.render(
+      <MemoryRouter initialEntries={["/admin?tab=members"]}>
+        <ViewerContext.Provider value={viewer}>
+          <Admin />
+        </ViewerContext.Provider>
+      </MemoryRouter>,
+    ),
+  );
+  expect(host.querySelector("table")?.textContent).toContain("Lena Park");
+  expect(host.querySelector("table")!.parentElement!.classList, "the wide table scrolls sideways on its own").toContain("overflow-x-auto");
+  expect(escapesFromScrollers(host).map(describeElement)).toEqual([]);
 });

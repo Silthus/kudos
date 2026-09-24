@@ -19,6 +19,15 @@ export function Card({ className, children, ...rest }: ComponentProps<"section">
   );
 }
 
+/**
+ * Sideways scroller for a table wider than a phone. It is `relative` so it is the containing block
+ * of anything absolutely positioned inside (sr-only headers, badges): the Card around it has
+ * `backdrop-blur`, which would otherwise contain them outside the scroller and widen the page.
+ */
+export function TableScroll({ children }: { children: ReactNode }) {
+  return <div className="relative overflow-x-auto px-2 pb-3">{children}</div>;
+}
+
 export function CardHeader({ title, subtitle, action, icon }: { title: ReactNode; subtitle?: ReactNode; action?: ReactNode; icon?: ReactNode }) {
   return (
     <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3 px-5 pt-5 pb-3">
