@@ -1,0 +1,21 @@
+{
+  "text": "🌱 *New skill: Pathfinder*\nScout branch. A bigger new-connection bonus: +5 XP per rank on top of the 10.",
+  "blocks": [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "🌱 *New skill: Pathfinder*\nScout branch. A bigger new-connection bonus: +5 XP per rank on top of the 10."
+      }
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "<https://kudos.example/skills?ws=T1|Your skill tree>"
+        }
+      ]
+    }
+  ]
+}

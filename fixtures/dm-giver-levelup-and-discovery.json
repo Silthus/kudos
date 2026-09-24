@@ -1,25 +1,6 @@
 {
-  "text": "New connection: done. Someone's week got better because of you.\n*Level 4: Sprout*\nYour thoughtful kudos got you here. You earned a skill point for your skill tree. +10 Hog coins.\n✨ *New message discovered*\n>Recognition logged: 2 :taco: → <@UBEN>. Daily balance: 3/5.",
+  "text": "*Level 4: Sprout*\nYour thoughtful kudos got you here. You earned a skill point for your skill tree. +10 Hog coins.\n✨ *New message discovered*\n>🎯 Direct hit! 2 :taco: landed squarely on <@UBEN>. Ammo left today: 3.",
   "blocks": [
-    {
-      "type": "section",
-      "text": {
-        "type": "mrkdwn",
-        "text": "New connection: done. Someone's week got better because of you."
-      }
-    },
-    {
-      "type": "context",
-      "elements": [
-        {
-          "type": "mrkdwn",
-          "text": "⚪ Common  ·  ✨ New discovery! (2 collected)  ·  1 of 2 quests this week  ·  <https://kudos.example/quests?ws=T1|Quest log>"
-        }
-      ]
-    },
-    {
-      "type": "divider"
-    },
     {
       "type": "section",
       "text": {
@@ -32,7 +13,7 @@
       "elements": [
         {
           "type": "mrkdwn",
-          "text": "Level 4  ·  <https://kudos.example/me?ws=T1|Your level>"
+          "text": "Level 4  ·  <https://kudos.example/me?ws=T1|Your level>  ·  <https://kudos.example/skills?ws=T1|Your skill tree>"
         }
       ]
     },
@@ -40,7 +21,7 @@
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": "✨ *New message discovered*\n>Recognition logged: 2 :taco: → <@UBEN>. Daily balance: 3/5."
+        "text": "✨ *New message discovered*\n>🎯 Direct hit! 2 :taco: landed squarely on <@UBEN>. Ammo left today: 3."
       }
     },
     {
@@ -48,7 +29,7 @@
       "elements": [
         {
           "type": "mrkdwn",
-          "text": "⚪ Common  ·  1 of 72 collected  ·  <https://kudos.example/discoveries?ws=T1|Message gallery>"
+          "text": "🔵 Rare  ·  1 of 72 collected  ·  <https://kudos.example/discoveries?ws=T1|Message gallery>"
         }
       ]
     }

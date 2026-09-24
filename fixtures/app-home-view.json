@@ -117,7 +117,7 @@
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": "➖ *Spread the love* · not available\nRecognize 3 different teammates, each in their own message\n✅ *New connection* · 1/1 · ⚪ Common\nRecognize someone you've never recognized before\n▫️ *Say why* · 0/2\nWrite a detailed note (12+ words) in 2 kudos messages"
+        "text": "➖ *Spread the love* · not available\nRecognize 3 different teammates, each in their own message\n✅ *New connection* · 1/1\nRecognize someone you've never recognized before\n▫️ *Say why* · 0/2\nWrite a detailed note (12+ words) in 2 kudos messages"
       }
     },
     {
@@ -157,7 +157,7 @@
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": "🥇 <@UANA> · 2 :taco:"
+        "text": "🥇 <@UANA> · 2 :taco:\n🥈 <@UBEN> · 1 :taco:"
       }
     },
     {
