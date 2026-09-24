@@ -8,10 +8,21 @@ import { requireViewer } from "./lib/access";
 import { dayKeyFor } from "./lib/time";
 import type { Gains } from "./gains";
 import { coinBalance, lineCoins, WALLET_LEVEL } from "./lib/coins";
-import { hasNote, RECIPROCAL_WINDOW_MS, weekKeyOfDay } from "./lib/quests";
+import { DAILY_QUEST_BY_KEY, dailyQuestKey, hasNote, isDailyQuestKey, RECIPROCAL_WINDOW_MS, weekKeyOfDay } from "./lib/quests";
 import { isSkillId, scoutEffects, type Allocation } from "./lib/skills";
 import type { GameView } from "./lib/gameBlocks";
-import { type GiveLine, levelForXp, levelProgress, nextLockedAreas, scoreGive, scoreReceive, type XpItem } from "./lib/xp";
+import {
+  type GiveLine,
+  levelForXp,
+  levelProgress,
+  nextLockedAreas,
+  QUEST_REWARDS,
+  type QuestScope,
+  QUESTS_LEVEL,
+  scoreGive,
+  scoreReceive,
+  type XpItem,
+} from "./lib/xp";
 
 /**
  * The game's foundation (#55 §G1, G3, G4): the workspace switch, players, the XP and Hog coin
@@ -122,12 +133,20 @@ async function eventsBetween(ctx: QueryCtx, memberId: Id<"members">, fromDay: st
  * back, and is told in the event's gain DM (`gains`, lib/gains.ts): the level, its title and skill
  * point, and from level 3 the coins (reaching 3 opens the wallet with what was collected so far).
  */
-export async function addXp(ctx: MutationCtx, player: Doc<"players">, delta: number, coinDelta = 0, gains?: Gains) {
+export async function addXp(
+  ctx: MutationCtx,
+  player: Doc<"players">,
+  delta: number,
+  coinDelta = 0,
+  gains?: Gains,
+  /** The part of `coinDelta` that quests paid (the wallet's breakdown, `players.questCoins`). */
+  questCoinDelta = 0,
+) {
   if (delta === 0 && coinDelta === 0) return;
   const xp = player.xp + delta;
   const level = Math.max(player.level, levelForXp(xp));
   const coins = (player.coins ?? 0) + coinDelta;
-  await ctx.db.patch(player._id, { xp, level, coins });
+  await ctx.db.patch(player._id, { xp, level, coins, ...(questCoinDelta !== 0 ? { questCoins: (player.questCoins ?? 0) + questCoinDelta } : {}) });
   if (level <= player.level || !gains) return;
   const member = await ctx.db.get(player.memberId);
   const wallet = level >= WALLET_LEVEL && member ? { balance: coinBalance({ coins, level }, member).balance } : {};
@@ -299,6 +318,60 @@ export async function onGameRevoked(ctx: MutationCtx, row: Doc<"kudos">) {
   }
 }
 
+export type QuestPay = { scope: QuestScope; key: string; completionId?: Id<"questCompletions"> | Id<"dailyQuestCompletions">; dayKey: string; at: number };
+
+/**
+ * A quest payment's `batchId`: `quest:<completion>` for a weekly or daily quest, and
+ * `sweep:<member>:<week>` for a clean sweep (at most one a week), found exactly via `by_batch`.
+ */
+export function questBatchId(memberId: Id<"members">, pay: Pick<QuestPay, "scope" | "key" | "completionId">) {
+  return pay.scope === "sweep" ? `sweep:${memberId}:${pay.key}` : `quest:${pay.completionId}`;
+}
+
+function questEvent(workspace: Doc<"workspaces">, memberId: Id<"members">, pay: QuestPay) {
+  const { xp, coins } = QUEST_REWARDS[pay.scope];
+  return {
+    workspaceId: workspace._id,
+    memberId,
+    kind: "quest" as const,
+    batchId: questBatchId(memberId, pay),
+    dayKey: pay.dayKey,
+    at: pay.at,
+    xp,
+    coins,
+    quest: { scope: pay.scope, key: pay.key },
+    ...(pay.completionId ? { completionId: pay.completionId } : {}),
+  };
+}
+
+/**
+ * Pays a quest (§G11): a `quest` event with its XP and Hog coins, written in the same transaction as
+ * the completion it pays for. A level it reaches is told through the give's `gains`, so it rides in
+ * the same DM as the Quest message (lib/gains.ts).
+ */
+export async function payQuest(ctx: MutationCtx, workspace: Doc<"workspaces">, memberId: Id<"members">, pay: QuestPay, gains?: Gains) {
+  const player = await playerOf(ctx, memberId);
+  if (!player) return;
+  const event = questEvent(workspace, memberId, pay);
+  await ctx.db.insert("gameEvents", event);
+  await addXp(ctx, player, event.xp, event.coins, gains, event.coins);
+}
+
+/** The quest payment with this `batchId` (`questBatchId`), if any. */
+export async function questPayment(ctx: QueryCtx, batchId: string) {
+  return await ctx.db
+    .query("gameEvents")
+    .withIndex("by_batch", (q) => q.eq("batchId", batchId))
+    .first();
+}
+
+/** Takes back exactly what a quest payment paid; the level reached stays. */
+export async function takeBackQuest(ctx: MutationCtx, event: Doc<"gameEvents">) {
+  await ctx.db.delete(event._id);
+  const player = await playerOf(ctx, event.memberId);
+  if (player) await addXp(ctx, player, -event.xp, -(event.coins ?? 0), undefined, -(event.coins ?? 0));
+}
+
 /** A member's history the rebuild reads, per direction. Beyond this, the oldest rows are replayed only. */
 const MAX_HISTORY_ROWS = 8000;
 
@@ -417,14 +490,67 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
     written.push({ at: row.at, xp, coins: 0 });
   }
 
+  // Quests: the stored completions in time order, each paid where the replay had reached level 5
+  // by then (kudos at the same moment first), as the live path pays them (§G11).
   let total = 0;
   let peak = 0;
-  for (const w of written.sort((a, b) => a.at - b.at)) peak = Math.max(peak, (total += w.xp));
+  let questCoins = 0;
+  const kudos = written.sort((a, b) => a.at - b.at);
+  let next = 0;
+  const catchUp = (until: number) => {
+    while (next < kudos.length && kudos[next].at <= until) peak = Math.max(peak, (total += kudos[next++].xp));
+  };
+  const paid = new Set<string>();
+  for (const pay of await questsToReplay(ctx, workspace, member)) {
+    catchUp(pay.at);
+    if (pausedAt(workspace, pay.at) || pay.at < since || levelForXp(peak) < QUESTS_LEVEL) continue;
+    if (pay.scope === "sweep" && !paid.has(pay.sweepOf!)) continue;
+    const { sweepOf: _, ...rest } = pay;
+    const event = questEvent(workspace, member._id, rest);
+    await ctx.db.insert("gameEvents", event);
+    if (pay.completionId) paid.add(pay.completionId);
+    peak = Math.max(peak, (total += event.xp));
+    questCoins += event.coins;
+  }
+  catchUp(Infinity);
   const level = Math.max(existing?.level ?? 1, levelForXp(peak));
-  const coins = written.reduce((s, w) => s + w.coins, 0);
+  const coins = written.reduce((s, w) => s + w.coins, 0) + questCoins;
   const fruitCoins = harvests.reduce((s, w) => s + w.coins, 0) || undefined;
-  if (existing) await ctx.db.patch(existing._id, { xp: total, level, since, coins, fruitCoins });
-  else await ctx.db.insert("players", { workspaceId: workspace._id, memberId: member._id, since, xp: total, level, coins, fruitCoins });
+  if (existing) await ctx.db.patch(existing._id, { xp: total, level, since, coins, fruitCoins, questCoins });
+  else await ctx.db.insert("players", { workspaceId: workspace._id, memberId: member._id, since, xp: total, level, coins, fruitCoins, questCoins });
+}
+
+/** Lifetime completions the rebuild pays: at most 3 weekly quests a week and one daily quest a day. */
+const MAX_REPLAYED_COMPLETIONS = 5000;
+
+/**
+ * Every quest completion a member has on record, as payments in time order: a weekly quest, its
+ * clean sweep right after it (paid only if the quest was), and daily quests.
+ */
+async function questsToReplay(ctx: QueryCtx, workspace: Doc<"workspaces">, member: Doc<"members">) {
+  const weekly = await ctx.db
+    .query("questCompletions")
+    .withIndex("by_member_week", (q) => q.eq("memberId", member._id))
+    .take(MAX_REPLAYED_COMPLETIONS);
+  const daily = await ctx.db
+    .query("dailyQuestCompletions")
+    .withIndex("by_member_day", (q) => q.eq("memberId", member._id))
+    .take(MAX_REPLAYED_COMPLETIONS);
+  // A week's sweep is paid on the completion it was paid on live (`sweepPaid`), else on the one
+  // that holds the clean-sweep flag (history from before the game).
+  const holders = new Map<string, Id<"questCompletions">>();
+  for (const c of weekly) if (c.sweep && !holders.has(c.weekKey)) holders.set(c.weekKey, c._id);
+  for (const c of weekly) if (c.sweepPaid) holders.set(c.weekKey, c._id);
+  const pays: (QuestPay & { sweepOf?: string; order: number })[] = [];
+  for (const c of weekly) {
+    const dayKey = dayKeyFor(c.completedAt, workspace.timezone);
+    pays.push({ scope: "weekly", key: c.questKey, completionId: c._id, dayKey, at: c.completedAt, order: 0 });
+    if (holders.get(c.weekKey) === c._id) {
+      pays.push({ scope: "sweep", key: c.weekKey, completionId: c._id, dayKey, at: c.completedAt, sweepOf: c._id, order: 1 });
+    }
+  }
+  for (const c of daily) pays.push({ scope: "daily", key: c.questKey, completionId: c._id, dayKey: c.dayKey, at: c.completedAt, order: 0 });
+  return pays.sort((a, b) => a.at - b.at || a.order - b.order).map(({ order: _, ...p }) => p);
 }
 
 const MEMBERS_PER_STEP = 25;
@@ -519,6 +645,7 @@ const walletValidator = v.object({
   balance: v.number(),
   fromKudos: v.number(),
   fromFruit: v.number(),
+  fromQuests: v.number(),
   fromLevels: v.number(),
   spent: v.number(),
   adjusted: v.number(),
@@ -554,7 +681,7 @@ export const mine = query({
  * "Your game" in Slack (App Home, `/kudos level`; lib/gameBlocks.ts): the member's level, from level
  * 3 their Hog coins, and what opens next. Null unless they play and see the game.
  */
-export async function gameView(ctx: QueryCtx, workspace: Doc<"workspaces">, member: Doc<"members">): Promise<GameView | null> {
+export async function gameView(ctx: QueryCtx, workspace: Doc<"workspaces">, member: Doc<"members">, now: number): Promise<GameView | null> {
   if (!gameShownTo(workspace, member)) return null;
   const player = await playerOf(ctx, member._id);
   if (!player) return null;
@@ -571,7 +698,22 @@ export async function gameView(ctx: QueryCtx, workspace: Doc<"workspaces">, memb
     // Read by App Home and `/kudos level`, which run from Slack actions: today is the workspace's.
     garden: await gardenSummary(ctx, workspace, player, dayKeyFor(Date.now(), workspace.timezone)),
     locked: locked.length > 0 ? { level: locked[0].level, areas: locked.map((a) => a.title) } : null,
+    dailyQuest: await dailyQuestView(ctx, workspace, member, progress.level, dayKeyFor(now, workspace.timezone)),
   };
+}
+
+/**
+ * Today's daily quest for App Home and `/kudos level` (#93): from level 5 while quests are on (the
+ * admin switch, `questsOn` in quests.ts), ticked once met. The full board is on `/kudos quests`.
+ */
+async function dailyQuestView(ctx: QueryCtx, workspace: Doc<"workspaces">, member: Doc<"members">, level: number, dayKey: string) {
+  if (workspace.questsEnabled === false || level < QUESTS_LEVEL) return null;
+  const done = await ctx.db
+    .query("dailyQuestCompletions")
+    .withIndex("by_member_day", (q) => q.eq("memberId", member._id).eq("dayKey", dayKey))
+    .first();
+  const key = done && isDailyQuestKey(done.questKey) ? done.questKey : dailyQuestKey(workspace._id, dayKey);
+  return { title: DAILY_QUEST_BY_KEY[key].title, done: done !== null };
 }
 
 /** "Hide the game" (Me): the game UI and game DMs go away for the viewer; XP keeps accruing. */

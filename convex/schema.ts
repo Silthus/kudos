@@ -98,6 +98,9 @@ export const xpItemKindValidator = v.union(
   v.literal("thin"),
 );
 
+/** What a quest payment is for (lib/xp.ts `QUEST_REWARDS`). */
+export const questScopeValidator = v.union(v.literal("weekly"), v.literal("daily"), v.literal("sweep"));
+
 /** What a kudos earned its giver, itemised for the earnings reply (lib/xp.ts `earningsText`). */
 export const earningsValidator = v.object({
   xp: v.number(), // after the daily cap
@@ -106,6 +109,8 @@ export const earningsValidator = v.object({
   capped: v.boolean(), // the daily cap cut something
   noReason: v.boolean(), // some recipient got a kudos without a reason
   thankBack: v.boolean(), // some recipient was thanked back within 72 h
+  // Quests this kudos completed from level 5 (§G11), each with what it paid.
+  quests: v.optional(v.array(v.object({ scope: questScopeValidator, title: v.string(), xp: v.number(), coins: v.number() }))),
 });
 
 export const questProgressValidator = v.object({
@@ -419,6 +424,8 @@ export default defineSchema({
     skillResets: v.optional(v.number()), // resets so far: each one costs more (resetCost)
     // Of `coins`, those from picking garden fruit (harvest events); undefined = 0. The rest came from kudos.
     fruitCoins: v.optional(v.number()),
+    // The part of `coins` that quests paid (the wallet's breakdown); undefined = 0.
+    questCoins: v.optional(v.number()),
   }).index("by_member", ["memberId"]),
 
   // A plant in a member's garden, grown for one teammate (gardens.ts, lib/garden.ts). Waterings are
@@ -461,8 +468,10 @@ export default defineSchema({
   gameEvents: defineTable({
     workspaceId: v.id("workspaces"),
     memberId: v.id("members"),
-    // harvest: garden fruit picked (gardens.ts pick); a member's action, kept as it is by a rebuild
-    kind: v.union(v.literal("give"), v.literal("receive"), v.literal("harvest")),
+    // harvest: garden fruit picked (gardens.ts pick); a member's action, kept as it is by a rebuild.
+    // quest: a weekly or daily quest or a clean sweep, paid from level 5 (quests.ts). Its `batchId`
+    // is `quest:<completion>` or `sweep:<member>:<week>`, so a kudos revoke never matches it directly.
+    kind: v.union(v.literal("give"), v.literal("receive"), v.literal("harvest"), v.literal("quest")),
     batchId: v.string(),
     dayKey: v.string(), // the kudos' workspace day: daily caps and same-day decay
     at: v.number(),
@@ -484,6 +493,8 @@ export default defineSchema({
     kudosId: v.optional(v.id("kudos")), // receive: the row
     giverId: v.optional(v.id("members")), // receive: one giver counts once a day
     fruit: v.optional(v.number()), // harvest: fruit picked
+    quest: v.optional(v.object({ scope: questScopeValidator, key: v.string() })), // quest: its catalog key; sweep: the week
+    completionId: v.optional(v.union(v.id("questCompletions"), v.id("dailyQuestCompletions"))), // quest: what it paid for
   })
     .index("by_member_day", ["memberId", "dayKey"])
     .index("by_batch", ["batchId"]),
@@ -556,9 +567,24 @@ export default defineSchema({
     completedAt: v.number(),
     sweep: v.boolean(), // this completion cleared the board
     notificationId: v.optional(v.id("notifications")), // the Quest message (added with quest rewards)
+    // The week's clean-sweep pay (game on, #93) is tied to this completion: it only goes back when a
+    // revoke removes it, so a rebuild pays the sweep here too.
+    sweepPaid: v.optional(v.boolean()),
   })
     .index("by_member_week", ["memberId", "weekKey"])
     .index("by_workspace_week", ["workspaceId", "weekKey"]),
+
+  // Daily quests (lib/quests.ts): only with the game on, from level 5. One row per member and day
+  // the day's quest was met; it pays XP and Hog coins (a `quest` game event), no Quest message.
+  dailyQuestCompletions: defineTable({
+    workspaceId: v.id("workspaces"),
+    memberId: v.id("members"),
+    dayKey: v.string(), // the workspace day
+    questKey: v.string(), // the day's draw (lib/quests.ts dailyQuestKey)
+    completedAt: v.number(),
+  })
+    .index("by_member_day", ["memberId", "dayKey"])
+    .index("by_workspace_day", ["workspaceId", "dayKey"]),
 
   // One member's request for one reward. The cost is held (debited) at request time and
   // refunded on decline or cancel. Only the helpers in store.ts write this table.

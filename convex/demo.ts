@@ -307,9 +307,9 @@ export const seedHistory = internalMutation({
       // The seeded rows bypass the engine, so the quests they completed are recorded next, and then
       // the read-model rollups are rebuilt from them. Both belong to this reset; the rebuild
       // releases its lock when it finishes.
+      // The demo year is then played through the game's rules, like switching the game on would;
+      // the quest seeding schedules that once the completions it pays are recorded.
       await ctx.scheduler.runAfter(0, internal.quests.seedDemoHistory, { workspaceId, resetAt });
-      // The demo year is played through the game's rules, like switching the game on would.
-      await ctx.scheduler.runAfter(0, internal.game.rebuildWorkspace, { workspaceId, resetAt });
       // Balances are Hog coins, so the store story waits for the game rebuild (seedStore polls for it).
       await ctx.scheduler.runAfter(0, internal.demo.seedStore, { workspaceId, resetAt });
     }
@@ -850,6 +850,7 @@ const DEMO_TABLES = [
   "successStats",
   "questBoards",
   "questCompletions",
+  "dailyQuestCompletions",
   "kudosAttempts",
   "rewards",
   "redemptions",
@@ -882,6 +883,8 @@ async function demoRows(ctx: MutationCtx, workspaceId: Id<"workspaces">, table: 
     case "questBoards":
     case "questCompletions":
       return await ctx.db.query(table).withIndex("by_workspace_week", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+    case "dailyQuestCompletions":
+      return await ctx.db.query("dailyQuestCompletions").withIndex("by_workspace_day", (q) => q.eq("workspaceId", workspaceId)).take(1000);
     case "kudosAttempts":
       return await ctx.db.query("kudosAttempts").withIndex("by_message", (q) => q.eq("workspaceId", workspaceId)).take(1000);
     case "rewards":

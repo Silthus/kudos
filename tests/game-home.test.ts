@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { internal } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { slackManifest } from "../convex/lib/slack";
-import { seedTeam, setupConvex, type Team } from "./helpers";
+import { DAILY_QUEST_BY_KEY, dailyQuestKey } from "../convex/lib/quests";
+import { seedTeam, setupConvex, TODAY, type Team } from "./helpers";
 
 /** "Your game" on App Home and `/kudos level` (#55 §G13, #99). */
 
@@ -58,6 +59,30 @@ describe("App Home: your game", () => {
     expect(fields).toEqual(["*Level 4 · Sprout*\n200 XP", "*Next level*\n150 XP to go", "*Hog coins*\n36"]);
     expect(JSON.stringify(gameSection(blocks))).toContain("https://kudos.example/me?ws=T1");
     expect(blocks.length).toBeLessThanOrEqual(100);
+  });
+
+  test("from level 5, today's daily quest, ticked once it's done (#93); /kudos level says the same", async () => {
+    await playing(team.ana, 400, 5);
+    const title = DAILY_QUEST_BY_KEY[dailyQuestKey(team.workspaceId, TODAY)].title;
+    expect(JSON.stringify(gameSection(await home()))).toContain(`*Today's quest*\\n▫️ ${title}`);
+    await t.run((ctx) =>
+      ctx.db.insert("dailyQuestCompletions", { workspaceId: team.workspaceId, memberId: team.ana, dayKey: TODAY, questKey: dailyQuestKey(team.workspaceId, TODAY), completedAt: Date.now() }),
+    );
+    const blocks = gameSection(await home());
+    expect(JSON.stringify(blocks)).toContain(`*Today's quest*\\n✅ ${title}`);
+    expect((await slash("level")).blocks).toEqual(blocks);
+  });
+
+  test("no daily quest below level 5, or while quests are off", async () => {
+    await playing(team.ana, 200, 4);
+    expect(JSON.stringify(gameSection(await home()))).not.toContain("Today's quest");
+
+    await t.run(async (ctx) => {
+      const p = await ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", team.ana)).unique();
+      await ctx.db.patch(p!._id, { xp: 400, level: 5 });
+      await ctx.db.patch(team.workspaceId, { questsEnabled: false });
+    });
+    expect(JSON.stringify(gameSection(await home()))).not.toContain("Today's quest");
   });
 
   test("below level 3 not even the amount of coins is shown; the wallet is a locked area", async () => {

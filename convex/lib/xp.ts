@@ -29,6 +29,18 @@ export const XP = {
 
 export const MAX_LEVEL = 25;
 
+/** With the game on, the weekly board and the daily quest open at this level (§G11). */
+export const QUESTS_LEVEL = 5;
+
+export type QuestScope = "weekly" | "daily" | "sweep";
+
+/** What quests pay (§G3, G4): never allowance or kudos. A clean sweep pays XP only. */
+export const QUEST_REWARDS: Record<QuestScope, { xp: number; coins: number }> = {
+  weekly: { xp: 20, coins: 5 },
+  daily: { xp: 10, coins: 2 },
+  sweep: { xp: 30, coins: 0 },
+};
+
 /** Total XP needed to reach `level`: 30, 75, 175, 350, then 50 × (L − 1) more per level. */
 export function xpForLevel(level: number): number {
   const early = [0, 0, 30, 75, 175, 350];
@@ -99,7 +111,7 @@ export const GAME_AREAS: GameArea[] = [
   { key: "wallet", title: "Hog coins", level: WALLET_LEVEL, how: "Thoughtful kudos collect Hog coins; your wallet opens at level 3 with everything collected so far." },
   { key: "garden", title: "Your garden", level: 3, how: "At level 3 you can grow a plant for a teammate you recognise." },
   { key: "store", title: "Store", level: 5, how: "At level 5 you can spend Hog coins on game items." },
-  { key: "quests", title: "Quests", level: 5, how: "At level 5 the weekly board and a daily quest pay XP and coins." },
+  { key: "quests", title: "Quests", level: QUESTS_LEVEL, how: "At level 5 the weekly board and a daily quest pay XP and coins." },
 ];
 
 /** The areas that open at the next level ahead: a newcomer sees only what's coming next. */
@@ -217,6 +229,8 @@ export function earningsText(e: {
   capped: boolean;
   noReason: boolean;
   thankBack: boolean;
+  /** Quests this kudos completed, with what each paid (from level 5, §G11). */
+  quests?: { scope: QuestScope; title: string; xp: number; coins: number }[];
 }): string {
   // Nothing earned and not capped, from a thoughtful kudos: the third thanks to them today.
   const repeat = e.xp === 0 && !e.capped && !e.noReason && !e.thankBack;
@@ -232,6 +246,10 @@ export function earningsText(e: {
       : e.thankBack
         ? "thanking back within 72 h earns less"
         : null,
+    ...(e.quests ?? []).map((q) => {
+      const name = q.scope === "daily" ? "daily quest done" : q.scope === "sweep" ? "clean sweep" : `${q.title} done`;
+      return [name, `+${q.xp} XP`, q.coins ? `+${q.coins} Hog ${q.coins === 1 ? "coin" : "coins"}` : null].filter(Boolean).join(" ");
+    }),
   ]
     .filter(Boolean)
     .join(" · ");

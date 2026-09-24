@@ -316,12 +316,13 @@ describe("one DM per member per kudos event", () => {
   test("a giver's level-up rides in the quest DM the same kudos earned", async () => {
     await t.run((ctx) => ctx.db.patch(team.workspaceId, { questsEnabled: true }));
     await collectedAll(team.ana, "giver_success");
-    await playing(team.ana, 25, 1);
+    // With the game on, quests open at level 5 (#93); 580 XP + this kudos crosses level 6 (600).
+    await playing(team.ana, 580, 5);
     await post("<@UBEN> :taco: thanks for the thorough review"); // a new connection completes a quest
     const toAna = dmsTo("UANA");
     expect(toAna).toHaveLength(1);
     expect(toAna[0].blocks).toContain("quests this week");
-    expect(toAna[0].text).toContain("Level 2: Seedling");
+    expect(toAna[0].text).toContain("Level 6: Gardener");
   });
 
   test("a reaction's kudos DMs gains the same way", async () => {

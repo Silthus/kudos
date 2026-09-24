@@ -3,7 +3,7 @@ import { useQuery } from "convex/react";
 import { Check, Minus, ScrollText, Target } from "lucide-react";
 import { Link } from "react-router";
 import { api } from "../../convex/_generated/api";
-import { QUEST_ICON, QUEST_RULES, QuestItem, type QuestBoard } from "@/components/quests";
+import { QUEST_ICON, QUEST_RULES, QuestBoardBody, type QuestBoard } from "@/components/quests";
 import { BigNumber, Card, CardHeader, Empty, PageHeader, PageSkeleton } from "@/components/ui";
 import { dayLabel, rangeLabel } from "@/lib/format";
 import { useWorkspaceToday } from "@/lib/period";
@@ -28,9 +28,15 @@ export function Quests() {
       />
       {!board.enabled ? (
         <Card>
-          <Empty icon={<Target className="h-7 w-7 text-faint" />} title="Quests are off in this workspace">
-            An admin can turn weekly quests on in the settings. Your log is kept.
-          </Empty>
+          {board.hidden ? (
+            <Empty icon={<Target className="h-7 w-7 text-faint" />} title="Quests are part of the game you've hidden">
+              They still count and pay while it's hidden. Show the game again on your Me page to see them.
+            </Empty>
+          ) : (
+            <Empty icon={<Target className="h-7 w-7 text-faint" />} title="Quests are off in this workspace">
+              An admin can turn weekly quests on in the settings. Your log is kept.
+            </Empty>
+          )}
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
@@ -52,16 +58,18 @@ function ThisWeek({ board }: { board: QuestBoard }) {
       <CardHeader
         title="This week"
         subtitle={`${rangeLabel(board.weekStart, board.weekEnd)} · ${
-          board.available > 0 ? `${board.completed} of ${board.available} complete` : "nothing to do this week"
+          board.locked
+            ? `opens at level ${board.locked.level}`
+            : board.available > 0
+              ? `${board.completed} of ${board.available} complete`
+              : "nothing to do this week"
         } · resets Monday`}
         icon={<Target className="h-4 w-4 text-saffron" />}
         action={board.sweep && <SweepPill />}
       />
-      <ul className="space-y-3 px-5 pb-5">
-        {board.quests.map((q) => (
-          <QuestItem key={q.key} quest={q} size="lg" />
-        ))}
-      </ul>
+      <div className="px-5 pb-5">
+        <QuestBoardBody board={board} size="lg" />
+      </div>
     </Card>
   );
 }
@@ -114,7 +122,7 @@ function HowQuestsCount() {
         <li>Only the kudos you give count, never the ones you receive.</li>
         <li>Unfinished quests simply expire on Monday: no streaks to keep, nothing to lose.</li>
         <li>
-          Every completed quest earns a collectible{" "}
+          Every completed weekly quest earns a collectible{" "}
           <Link to="/discoveries?category=quest_complete" className="font-medium text-saffron underline-offset-4 hover:underline">
             Quest message
           </Link>

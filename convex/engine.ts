@@ -366,9 +366,10 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
 
   const channel = channelVars(input.channelId, input.channelName);
   const notificationIds: Id<"notifications">[] = [];
+  let giverReply: Id<"notifications"> | null = null;
   if (workspace.notifyGiver) {
     notificationIds.push(
-      await sendBotMessage(ctx, workspace, giver, "giver_success", {
+      (giverReply = await sendBotMessage(ctx, workspace, giver, "giver_success", {
         slack: {
           recipients: joinNames(recipients.map((r) => `<@${r.slackUserId}>`)),
           amount: input.amountEach,
@@ -385,7 +386,7 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
           limit: workspace.dailyLimit,
           channel: channel.web,
         },
-      }, now, { rollups, discoveries: gains, ...(game.earnings ? { earnings: game.earnings } : {}) }),
+      }, now, { rollups, discoveries: gains, ...(game.earnings ? { earnings: game.earnings } : {}) })),
     );
   }
   if (workspace.notifyReceiver) {
@@ -400,7 +401,14 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
   }
 
   // Only a batch with a Note can move quest progress, and only while quests are on; skip the reads otherwise.
-  if (questsOn(workspace) && (input.noteWords ?? 0) >= MIN_NOTE_WORDS) notificationIds.push(...(await onKudosGiven(ctx, workspace, giver, now, rollups)));
+  if (questsOn(workspace) && (input.noteWords ?? 0) >= MIN_NOTE_WORDS) {
+    const quests = await onKudosGiven(ctx, workspace, giver, now, rollups, gains);
+    notificationIds.push(...quests.notificationIds);
+    // What the quests paid joins the giver's earnings reply (delivered after this transaction).
+    if (giverReply && game.earnings && quests.quests.length > 0) {
+      await ctx.db.patch(giverReply, { earnings: { ...game.earnings, quests: quests.quests } });
+    }
+  }
 
   notificationIds.push(...(await gains.flush(notificationIds)));
   await rollups.flush();

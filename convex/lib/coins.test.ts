@@ -16,6 +16,11 @@ describe("Hog coins (#55 §G4)", () => {
     expect(coinBalance({ level: 1 })).toMatchObject({ balance: 0 }); // a player from before coins
   });
 
+  test("quest coins are their own source in the breakdown, not thoughtful kudos", () => {
+    expect(coinBalance({ coins: 12, questCoins: 7, level: 5 })).toEqual({ balance: 52, fromKudos: 5, fromQuests: 7, fromLevels: 40, spent: 0, adjusted: 0 });
+    expect(coinBalance({ coins: 3, level: 1 })).toMatchObject({ fromKudos: 3, fromQuests: 0 });
+  });
+
   test("a revoke can take the balance below zero, which blocks spending until it's positive again", () => {
     expect(canSpend(-3, 1)).toBe(false);
     expect(canSpend(0, 1)).toBe(false);

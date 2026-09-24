@@ -1,14 +1,18 @@
 import { describe, expect, test } from "vitest";
 import {
+  DAILY_QUESTS,
   QUEST_BY_KEY,
   QUESTS,
+  type DailyQuestKey,
   type GivenFact,
   type QuestFacts,
   type QuestKey,
   boardSeed,
   completionTimes,
+  dailyQuestKey,
   eligibleQuestKeys,
   evaluateBoard,
+  evaluateDaily,
   isCleanSweep,
   maxMatching,
   pickBoard,
@@ -331,5 +335,80 @@ describe("evaluateBoard", () => {
       channels: WED + 2 * H,
     });
     expect(completionTimes(["story"], f)).toEqual({});
+  });
+});
+
+describe("the daily quest", () => {
+  test("is one of four small thoughtful-giving goals", () => {
+    expect(DAILY_QUESTS.map((q) => [q.key, q.goal])).toEqual([
+      ["thoughtful", 1],
+      ["detail", 1],
+      ["wider", 1],
+      ["two", 2],
+    ]);
+  });
+
+  const days = Array.from({ length: 120 }, (_, i) => addDays("2026-01-01", i));
+
+  test("is the same for everyone in a workspace on a day, and differs between workspaces", () => {
+    expect(days.map((d) => dailyQuestKey("ws1", d))).toEqual(days.map((d) => dailyQuestKey("ws1", d)));
+    expect(days.map((d) => dailyQuestKey("ws1", d))).not.toEqual(days.map((d) => dailyQuestKey("ws2", d)));
+  });
+
+  test("never repeats yesterday's, and each comes around at least every week", () => {
+    for (const ws of ["ws1", "ws2", "ws3", "k57abc"]) {
+      const keys = days.map((d) => dailyQuestKey(ws, d));
+      for (let i = 1; i < keys.length; i++) expect(keys[i]).not.toBe(keys[i - 1]);
+      for (let i = 0; i + 7 <= keys.length; i++) expect(new Set(keys.slice(i, i + 7)).size).toBe(4);
+    }
+  });
+
+  const T = WED;
+  let n = 0;
+  const row = (over: Partial<GivenFact> = {}): GivenFact => ({
+    batchId: `d${n++}`,
+    receiverId: "ben",
+    dayKey: "2026-09-23",
+    channelId: "C1",
+    at: T,
+    noteWords: 5,
+    lastBeforeAt: T - 2 * D,
+    ...over,
+  });
+  const facts = (given: GivenFact[], receivedFrom: QuestFacts["receivedFrom"] = []): QuestFacts => ({
+    given,
+    receivedFrom,
+    activeTeammates: 5,
+    hasUnrecognizedTeammate: true,
+    firstGivenAt: WEEK_START - 60 * D,
+    weekStart: WEEK_START,
+    receivedVisibility: "everyone",
+  });
+  const daily = (key: DailyQuestKey, given: GivenFact[], receivedFrom?: QuestFacts["receivedFrom"]) =>
+    evaluateDaily(key, facts(given, receivedFrom), "2026-09-23");
+
+  test("only thoughtful kudos given that day count", () => {
+    expect(daily("thoughtful", [row()])).toEqual({ key: "thoughtful", progress: 1, goal: 1, done: true });
+    expect(daily("thoughtful", [row({ noteWords: 2 })]).done).toBe(false);
+    expect(daily("thoughtful", [row({ dayKey: "2026-09-22", at: T - D })]).done).toBe(false);
+    // A thank-back within 72 h doesn't count.
+    expect(daily("thoughtful", [row()], [{ giverId: "ben", at: T - H }]).done).toBe(false);
+  });
+
+  test("Tell the story needs a reason of 12+ words", () => {
+    expect(daily("detail", [row({ noteWords: 11 })]).done).toBe(false);
+    expect(daily("detail", [row({ noteWords: 12 })]).done).toBe(true);
+  });
+
+  test("Widen the circle needs someone last recognized 30+ days ago, or never", () => {
+    expect(daily("wider", [row()]).done).toBe(false);
+    expect(daily("wider", [row({ lastBeforeAt: T - 30 * D })]).done).toBe(true);
+    expect(daily("wider", [row({ lastBeforeAt: null })]).done).toBe(true);
+  });
+
+  test("Two teammates counts different people that day, in one message or two", () => {
+    expect(daily("two", [row(), row({ receiverId: "ben" })])).toMatchObject({ progress: 1, done: false });
+    expect(daily("two", [row({ batchId: "m", receiverId: "ben" }), row({ batchId: "m", receiverId: "cleo" })])).toMatchObject({ progress: 2, done: true });
+    expect(daily("two", [row({ receiverId: "ben" }), row({ receiverId: "cleo" }), row({ receiverId: "dan" })]).progress).toBe(2);
   });
 });

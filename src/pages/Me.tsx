@@ -7,7 +7,7 @@ import { Link } from "react-router";
 import { api } from "../../convex/_generated/api";
 import { Legend, LineChart } from "@/components/charts";
 import { MessageText } from "@/components/MessageText";
-import { QUEST_RULES, QuestItem } from "@/components/quests";
+import { QUEST_RULES, QuestBoardBody } from "@/components/quests";
 import { GainLines, GameCard, ScoutHints } from "@/components/game";
 import { Avatar, BigNumber, Card, CardHeader, Empty, Eyebrow, PageHeader, PageSkeleton, RarityBadge, Segmented, Trend } from "@/components/ui";
 import { compareTeamHref } from "@/lib/compare";
@@ -309,7 +309,13 @@ function QuestCard({ today }: { today: string }) {
     <Card className="flex flex-col xl:col-span-5 xl:self-start">
       <CardHeader
         title="Weekly quests"
-        subtitle={board.available > 0 ? `${board.completed} of ${board.available} complete · resets Monday` : "Nothing to do this week · resets Monday"}
+        subtitle={
+          board.locked
+            ? `Opens at level ${board.locked.level}`
+            : board.available > 0
+              ? `${board.completed} of ${board.available} complete · resets Monday`
+              : "Nothing to do this week · resets Monday"
+        }
         icon={<Target className="h-4 w-4 text-saffron" />}
         action={
           board.sweep && (
@@ -317,11 +323,9 @@ function QuestCard({ today }: { today: string }) {
           )
         }
       />
-      <ul className="space-y-2 px-5">
-        {board.quests.map((q) => (
-          <QuestItem key={q.key} quest={q} />
-        ))}
-      </ul>
+      <div className="px-5">
+        <QuestBoardBody board={board} />
+      </div>
       <details className="group mx-5 mt-3 rounded-xl border border-line bg-ink/30 px-3.5 py-2.5 text-xs text-muted">
         <summary className="flex cursor-pointer list-none items-center gap-1.5 font-medium text-cream/80 select-none [&::-webkit-details-marker]:hidden">
           <ChevronRight className="h-3.5 w-3.5 transition-transform group-open:rotate-90" /> How quests count

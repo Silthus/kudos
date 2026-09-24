@@ -31,6 +31,8 @@ export type CoinBalance = {
   fromKudos: number;
   /** Picked in the garden (`players.fruitCoins`, part of `players.coins`). */
   fromFruit: number;
+  /** Weekly and daily quests (from level 5, §G11). */
+  fromQuests: number;
   fromLevels: number;
   spent: number;
   adjusted: number;
@@ -41,15 +43,16 @@ export type CoinBalance = {
  * and sprees), of which `fruitCoins` came from fruit; and every level above 1 earned 10.
  */
 export function coinBalance(
-  player: { coins?: number; fruitCoins?: number; level: number },
+  player: { coins?: number; fruitCoins?: number; questCoins?: number; level: number },
   member: { coinsSpent?: number; coinsAdjusted?: number } = {},
 ): CoinBalance {
   const fromFruit = player.fruitCoins ?? 0;
-  const fromKudos = (player.coins ?? 0) - fromFruit;
+  const fromQuests = player.questCoins ?? 0;
+  const fromKudos = (player.coins ?? 0) - fromFruit - fromQuests;
   const fromLevels = COINS.levelUp * (player.level - 1);
   const spent = member.coinsSpent ?? 0;
   const adjusted = member.coinsAdjusted ?? 0;
-  return { balance: fromKudos + fromFruit + fromLevels - spent + adjusted, fromKudos, fromFruit, fromLevels, spent, adjusted };
+  return { balance: fromKudos + fromFruit + fromQuests + fromLevels - spent + adjusted, fromKudos, fromFruit, fromQuests, fromLevels, spent, adjusted };
 }
 
 /** Spending needs the whole price in the balance; a negative balance blocks it until it recovers. */
