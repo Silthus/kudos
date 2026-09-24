@@ -42,16 +42,29 @@ export async function resetSkills(ctx: MutationCtx, memberId: Id<"members">, exp
   if (!member || !workspace) throw new ConvexError("Sign in with Slack to continue.");
   const player = await requirePlayer(ctx, workspace, member);
   const cost = resetCost(player.skillResets ?? 0);
-  if (pointsOf(skillsOf(player), player.level).spent === 0) throw new ConvexError("Your tree has no skills to reset.");
+  const blocker = resetBlocker(player);
+  if (blocker) throw new ConvexError(blocker);
   if (player.level < WALLET_LEVEL) throw new ConvexError("A reset costs Hog coins; your wallet opens at level 3.");
   if (expectedCost !== cost) throw new ConvexError(`The reset price is now ${cost} Hog coins. Check it and try again.`);
   const { balance } = coinBalance(player, member);
   if (!canSpend(balance, cost)) throw new ConvexError(`A reset costs ${cost} Hog coins; you have ${balance}.`);
-  const at = Date.now();
   await ctx.db.patch(member._id, { coinsSpent: (member.coinsSpent ?? 0) + cost });
-  await ctx.db.patch(player._id, { skills: undefined, skillResets: (player.skillResets ?? 0) + 1 });
-  await ctx.db.insert("skillChanges", { workspaceId: member.workspaceId, memberId: member._id, at, kind: "reset", coins: cost });
+  await clearSkillTree(ctx, player, cost, Date.now());
   return { cost };
+}
+
+/** Why a player's tree can't be reset, or null when it can. */
+export function resetBlocker(player: Pick<Doc<"players">, "skills" | "level">): string | null {
+  return pointsOf(skillsOf(player), player.level).spent === 0 ? "Your tree has no skills to reset." : null;
+}
+
+/**
+ * Clears a player's tree and records the reset with what it cost. It doesn't charge: `resetSkills`
+ * does, and so does the Store's reset item (#91), which charges through `purchaseItem`.
+ */
+export async function clearSkillTree(ctx: MutationCtx, player: Doc<"players">, cost: number, at: number) {
+  await ctx.db.patch(player._id, { skills: undefined, skillResets: (player.skillResets ?? 0) + 1 });
+  await ctx.db.insert("skillChanges", { workspaceId: player.workspaceId, memberId: player.memberId, at, kind: "reset", coins: cost });
 }
 
 /**

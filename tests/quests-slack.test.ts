@@ -142,21 +142,25 @@ describe("App Home", () => {
 
   test("stays well within Slack's 100-block limit with every section on", async () => {
     await t.run(async (ctx) => {
-      await ctx.db.patch(team.workspaceId, { storeEnabled: true });
+      await ctx.db.patch(team.workspaceId, { gameEnabled: true, realRewardsEnabled: true });
       await ctx.db.patch(team.ana, { isAdmin: true });
+      // Real rewards show on App Home from level 5, where the Store opens.
+      await ctx.db.insert("players", { workspaceId: team.workspaceId, memberId: team.ana, since: 0, xp: 350, level: 5, coins: 0 });
       for (const cost of [5, 10, 20, 40, 80]) {
-        await ctx.db.insert("rewards", { workspaceId: team.workspaceId, name: `Reward ${cost}`, emoji: "🎁", cost, status: "active", createdBy: team.ana, updatedAt: Date.now() });
+        await ctx.db.insert("rewards", { workspaceId: team.workspaceId, name: `Reward ${cost}`, emoji: "🎁", cost, unit: "coins", status: "active", createdBy: team.ana, updatedAt: Date.now() });
       }
     });
     await post("UANA", "<@UBEN> :taco: thanks for the quick review");
     const home = await openHome("UANA");
+    // Every section on: real rewards need the game (#91), so the game section (#99) is on too.
     expect(home.filter((b) => b.type === "header").map((b) => b.text!.text)).toEqual([
       "Your kudos",
+      "Your game",
       "This week's quests",
       "This week's most generous",
       "Rewards store",
     ]);
-    expect(home.length).toBeLessThanOrEqual(25);
+    expect(home.length).toBeLessThanOrEqual(30);
   });
 });
 

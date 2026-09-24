@@ -444,7 +444,7 @@ export const seedScale = internalMutation({
       name: SCALE_WORKSPACE_NAME,
       isDemo: false,
       status: "active",
-      storeEnabled: true,
+      realRewardsEnabled: true,
       ...DEFAULT_SETTINGS,
       receivedVisibility: "everyone", // every received-count read path runs
     });

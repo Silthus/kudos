@@ -57,7 +57,7 @@ Internal functions for operators, run with `npx convex run --prod <function> '<a
 
 - `rollups:rebuildWorkspace '{"workspaceId":"…"}'` rebuilds a workspace's rollups; `rollups:verify '{"workspaceId":"…"}'` checks them (add `"buckets":["m:2026-09",…]` to pick what it samples).
 - `removal:removeMember '{"slackTeamId":"T…","slackUserId":"U…"}'` removes a member for good:
-  - Every kudos they gave or received is revoked, so the people they thanked lose those kudos too: received totals, Store balances (which can go below zero) and quests that needed them go down. Their own rows, Store requests (open ones give back their stock) and sign-in are deleted, the admins' review DMs of their requests lose their buttons, and the workspace's rollups are rebuilt.
+  - Every kudos they gave or received is revoked, so the people they thanked lose those kudos too: received totals, the Hog coins their teammates earned by thanking them (a balance can go below zero) and quests that needed them go down. Their own rows, Store requests (open ones give back their stock) and sign-in are deleted, the admins' review DMs of their requests lose their buttons, and the workspace's rollups are rebuilt.
   - Not touched: other people's bot messages, and the text of messages that also thanked someone else, still show their name; adjustments and request decisions they made as an admin stay and read "a former admin".
   - It refuses bots, the demo, and the workspace's last admin (pass `"force":true` to remove them anyway).
   - The work runs in the background; the logs end with a `removeMember: removed …` summary. If that never appears (a step failed), run it again: a second run finishes what the first left.

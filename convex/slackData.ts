@@ -5,11 +5,12 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { allowanceCheck, ensureMember, remainingToday } from "./engine";
 import { RARITY_SLACK_BADGE, type Rarity } from "./lib/messages";
 import { DEFAULT_SETTINGS } from "./lib/settings";
-import { balanceOf, MAX_ACTIVE_REWARDS, storeOpen } from "./lib/store";
-import { activeRewards, openRedemptionCount, ownDecisionBlocker, transitionRedemption } from "./store";
+import { MAX_ACTIVE_REWARDS } from "./lib/store";
+import { realRewardsOn, SHOP_LEVEL, shopAccess } from "./lib/items";
+import { activeRewards, coinWallet, openRedemptionCount, ownDecisionBlocker, pricedInCoins, shopItems, transitionRedemption } from "./store";
 import { openRequestCount } from "./storeAdmin";
 import { earningsValidator, gainValidator, questProgressValidator, redemptionStatusValidator } from "./schema";
-import { rewardLine, webLink } from "./lib/slack";
+import { escapeMrkdwn, rewardLine, webLink } from "./lib/slack";
 import { addDays, dayKeyFor, weekdayOfKey } from "./lib/time";
 import { weekBucket } from "./lib/buckets";
 import { backfilledRollups, memberBucket } from "./lib/stats";
@@ -17,7 +18,7 @@ import { markBackfilled, mirrorBackfillMarker } from "./lib/rebuild";
 import { questBoard, questsOn } from "./quests";
 import { gameOn, gameShownTo, gameView, playerOf } from "./game";
 import { gameBlocks, number } from "./lib/gameBlocks";
-import { coinBalance, WALLET_LEVEL } from "./lib/coins";
+import { coinBalance, formatCoins, WALLET_LEVEL } from "./lib/coins";
 import { questBlocks } from "./lib/questBlocks";
 import { weekKeyFor } from "./lib/quests";
 
@@ -449,7 +450,7 @@ export const homeData = internalQuery({
       weekRank: standing.mine.rank,
       discovered,
       top,
-      store: member && storeOpen(workspace) ? await storeHome(ctx, workspace, member) : null,
+      store: member && realRewardsOn(workspace) ? await storeHome(ctx, workspace, member) : null,
       quests: member ? await questBoard(ctx, workspace, member, weekKeyFor(now, workspace.timezone)) : null,
       // The game's invitation (§G1): shown until the member gives their first kudos, never as a DM.
       invite: gameShownTo(workspace, member ?? {}) && !(member && (await playerOf(ctx, member._id))),
@@ -465,17 +466,21 @@ const context = (text: string | null) => (text ? [{ type: "context", elements: [
 async function shelf(ctx: QueryCtx, workspace: Doc<"workspaces">) {
   return (await activeRewards(ctx, workspace._id))
     .slice(0, MAX_ACTIVE_REWARDS)
-    .filter((r) => r.stock === undefined || r.stock > 0)
+    .filter((r) => pricedInCoins(r) && (r.stock === undefined || r.stock > 0))
     .map((r) => ({ emoji: r.emoji, name: r.name, cost: r.cost }));
 }
 
 /**
- * The App Home "Rewards store" section: the balance, the 3 dearest rewards it covers (topped
- * up with the cheapest it doesn't, as the next goal) and, for admins, the requests waiting.
- * Only called while the store is open, so the balance is never a hidden received count.
+ * The App Home "Rewards store" section while real rewards are on: the Hog coin balance and the 3
+ * dearest rewards it covers (topped up with the cheapest it doesn't, as the next goal) once the
+ * Store is open to the member (level 5), and for admins, whatever their level, the requests waiting.
  */
 async function storeHome(ctx: QueryCtx, workspace: Doc<"workspaces">, member: Doc<"members">) {
-  const balance = balanceOf(member);
+  const { level, coins } = await coinWallet(ctx, member._id);
+  if (shopAccess(workspace, member, level) !== "open") {
+    return member.isAdmin ? { balance: null, rewards: [], waiting: await openRequestCount(ctx, workspace._id) } : null;
+  }
+  const { balance } = coins;
   const rewards = await shelf(ctx, workspace);
   const affordable = rewards.filter((r) => r.cost <= balance).slice(-3).reverse();
   const goals = rewards.filter((r) => r.cost > balance).slice(0, 3 - affordable.length);
@@ -483,6 +488,55 @@ async function storeHome(ctx: QueryCtx, workspace: Doc<"workspaces">, member: Do
     balance,
     rewards: [...affordable, ...goals],
     waiting: member.isAdmin ? await openRequestCount(ctx, workspace._id) : null,
+  };
+}
+
+/**
+ * `/kudos store`: the Store in Hog coins. Locked below level 5, with how to get there; open, the
+ * balance, the game items and, while an admin has them on, real rewards and open requests.
+ */
+async function storeReply(ctx: QueryCtx, workspace: Doc<"workspaces">, member: Doc<"members">, link: (path: string, label: string) => string | null) {
+  const { level, coins, player } = await coinWallet(ctx, member._id);
+  switch (shopAccess(workspace, member, level)) {
+    case "off":
+      return { response_type: "ephemeral", text: "The game isn't on in this workspace, so there's no Store." };
+    case "hidden":
+      return { response_type: "ephemeral", text: "You've hidden the game. Show it again on your Me page to shop." };
+    case "locked":
+      return { response_type: "ephemeral", text: `The Store opens at level ${SHOP_LEVEL}. You're level ${level}: thoughtful kudos get you there.` };
+    case "open":
+      break;
+  }
+  const { balance } = coins;
+  if (!player) return { response_type: "ephemeral", text: `The Store opens at level ${SHOP_LEVEL}.` };
+  const month = dayKeyFor(Date.now(), workspace.timezone).slice(0, 7);
+  const items = (await shopItems(ctx, { workspace, member, player }, month, balance)).map(
+    (item) => `${escapeMrkdwn(item.name)} · ${formatCoins(item.price)}${item.blocked ? `  _${escapeMrkdwn(item.blocked)}_` : ""}`,
+  );
+  const real = realRewardsOn(workspace);
+  const rewards = real ? (await shelf(ctx, workspace)).slice(0, 5) : [];
+  const fields = [`*Balance*\n${formatCoins(balance)}`, ...(real ? [`*Open requests*\n${await openRedemptionCount(ctx, member._id)}`] : [])];
+  return {
+    response_type: "ephemeral",
+    text: `You have ${formatCoins(balance)} to spend.`,
+    blocks: [
+      { type: "header", text: { type: "plain_text", text: "Store" } },
+      { type: "section", fields: fields.map((text) => ({ type: "mrkdwn", text })) },
+      { type: "section", text: { type: "mrkdwn", verbatim: true, text: `*Game items*, instantly yours\n${items.join("\n")}` } },
+      ...(real
+        ? [
+            {
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                verbatim: true,
+                text: `*Rewards*, an admin hands them over\n${rewards.map((r) => rewardLine(r, balance)).join("\n") || "_The shelves are empty. Your admins are still stocking the store._"}`,
+              },
+            },
+          ]
+        : []),
+      ...context(link("/store", "Open the store")),
+    ],
   };
 }
 
@@ -632,36 +686,9 @@ export const slashCommand = internalMutation({
     if (sub === "coins" || sub === "coin" || sub === "wallet") {
       return await coinsReply(ctx, workspace, await ensureMember(ctx, workspace, slackUserId), link);
     }
-    const store = storeOpen(workspace);
-    if (sub === "store" || sub === "balance") {
-      if (!store) return { response_type: "ephemeral", text: "The rewards store isn't open in this workspace." };
-      const member = await ensureMember(ctx, workspace, slackUserId);
-      const balance = balanceOf(member);
-      const rewards = (await shelf(ctx, workspace)).slice(0, 5);
-      const open = await openRedemptionCount(ctx, member._id);
-      return {
-        response_type: "ephemeral",
-        blocks: [
-          { type: "header", text: { type: "plain_text", text: "Rewards store" } },
-          {
-            type: "section",
-            fields: [
-              { type: "mrkdwn", text: `*Balance*\n${balance} ${e}` },
-              { type: "mrkdwn", text: `*Open requests*\n${open}` },
-            ],
-          },
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              verbatim: true,
-              text: rewards.map((r) => rewardLine(r, balance, e)).join("\n") || "_The shelves are empty. Your admins are still stocking the store._",
-            },
-          },
-          ...context(link("/store", "Open the store")),
-        ],
-      };
-    }
+    // `/kudos balance` was the received-kudos Store balance; the balance is Hog coins now (ADR 0002).
+    if (sub === "balance") return await coinsReply(ctx, workspace, await ensureMember(ctx, workspace, slackUserId), link);
+    if (sub === "store" || sub === "shop") return await storeReply(ctx, workspace, await ensureMember(ctx, workspace, slackUserId), link);
     return {
       response_type: "ephemeral",
       text: [
@@ -674,7 +701,7 @@ export const slashCommand = internalMutation({
         "`/kudos me` what you can give today · `/kudos top` weekly leaderboard",
         quests ? "`/kudos quests` your weekly quests" : "",
         (await gameShownToSlackUser(ctx, workspace, slackUserId)) ? "`/kudos level` your level · `/kudos coins` your Hog coins" : "",
-        store ? "`/kudos store` your balance and the rewards you can spend it on" : "",
+        (await gameShownToSlackUser(ctx, workspace, slackUserId)) ? "`/kudos store` what your Hog coins can buy" : "",
         link("/me", "Open the Kudos dashboard"),
       ]
         .filter(Boolean)
@@ -694,8 +721,8 @@ const MAX_ADMINS_READ = 200;
 /**
  * Everything `slack.notifyRedemption` needs to tell people about one redemption, or null
  * when the workspace can't be reached in Slack (uninstalled, demo). `admins` is only
- * filled while a new request is still pending. `showBalance` is false while received
- * kudos are hidden; `storeOpen` says whether the web store page exists to link to.
+ * filled while a new request is still pending. `storeOpen` says whether the web Store page
+ * exists to link to. Hog coin balances are always shown: they come from giving (ADR 0002).
  */
 export const redemptionForSlack = internalQuery({
   args: { redemptionId: v.id("redemptions"), withAdmins: v.boolean() },
@@ -706,11 +733,11 @@ export const redemptionForSlack = internalQuery({
       slackTeamId: v.string(),
       botToken: v.string(),
       emojiName: v.string(),
-      showBalance: v.boolean(),
       storeOpen: v.boolean(),
       status: redemptionStatusValidator,
       requester: v.object({ slackUserId: v.string(), name: v.string(), deactivated: v.boolean() }),
-      reward: v.object({ name: v.string(), emoji: v.string(), cost: v.number() }),
+      // legacy: a request from the received-kudos Store (ADR 0001), priced in kudos; a refund gives back no coins.
+      reward: v.object({ name: v.string(), emoji: v.string(), cost: v.number(), legacy: v.boolean() }),
       prompt: v.optional(v.string()),
       answer: v.optional(v.string()),
       history: v.array(
@@ -759,11 +786,10 @@ export const redemptionForSlack = internalQuery({
       slackTeamId: workspace.slackTeamId,
       botToken: install.botToken,
       emojiName: workspace.emojiName,
-      showBalance: workspace.receivedVisibility !== "hidden",
-      storeOpen: storeOpen(workspace),
+      storeOpen: gameOn(workspace), // the Store page (and My requests in it) exists while the game is on
       status: redemption.status,
       requester: { slackUserId: requester.slackUserId, name: requester.name, deactivated: requester.deactivated },
-      reward: { name: redemption.rewardName, emoji: redemption.rewardEmoji, cost: redemption.cost },
+      reward: { name: redemption.rewardName, emoji: redemption.rewardEmoji, cost: redemption.cost, legacy: redemption.unit !== "coins" },
       prompt: redemption.prompt,
       answer: redemption.answer,
       history: redemption.history.map((h) => ({
@@ -804,7 +830,8 @@ export const adminCopies = internalQuery({
       version: v.string(),
       status: redemptionStatusValidator,
       requester: v.object({ slackUserId: v.string(), name: v.string() }),
-      reward: v.object({ name: v.string(), emoji: v.string(), cost: v.number() }),
+      // legacy: a request from the received-kudos Store (ADR 0001), priced in kudos; a refund gives back no coins.
+      reward: v.object({ name: v.string(), emoji: v.string(), cost: v.number(), legacy: v.boolean() }),
       prompt: v.optional(v.string()),
       answer: v.optional(v.string()),
       step: v.object({ at: v.number(), bySlackUserId: v.union(v.string(), v.null()), note: v.optional(v.string()) }),
@@ -831,7 +858,7 @@ export const adminCopies = internalQuery({
       version: `${redemption.history.length}:${redemption.adminMessages.length}:${redemption.adminMessages.at(-1)!.ts}`,
       status: redemption.status,
       requester: { slackUserId: requester.slackUserId, name: requester.name },
-      reward: { name: redemption.rewardName, emoji: redemption.rewardEmoji, cost: redemption.cost },
+      reward: { name: redemption.rewardName, emoji: redemption.rewardEmoji, cost: redemption.cost, legacy: redemption.unit !== "coins" },
       prompt: redemption.prompt,
       answer: redemption.answer,
       step: { at: last.at, bySlackUserId: (await ctx.db.get(last.by))?.slackUserId ?? null, ...(last.note ? { note: last.note } : {}) },

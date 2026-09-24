@@ -2,7 +2,7 @@ import clsx from "clsx";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { AnimatePresence, motion } from "motion/react";
-import { ChevronDown, CircleAlert, Clock, Gift, Info, Loader2, MessageCircleQuestion, Undo2 } from "lucide-react";
+import { ChevronDown, CircleAlert, Clock, Coins, Gift, Info, Loader2, MessageCircleQuestion, RotateCcw, Undo2, Users } from "lucide-react";
 import { useId, useState } from "react";
 import { Link } from "react-router";
 import { api } from "../../convex/_generated/api";
@@ -10,6 +10,11 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { BigNumber, Button, Card, CardHeader, Dialog, Empty, Field, inputCls, PageHeader, PageSkeleton, Progress, Skeleton } from "@/components/ui";
 import { nf, relativeTime } from "@/lib/format";
 import { useViewer } from "@/lib/viewer";
+import { useWorkspaceToday } from "@/lib/period";
+import { Locked } from "@/components/game";
+
+/** The Store's only currency (ADR 0002). */
+export const COIN = "Hog coins";
 
 export type RewardLike = {
   name: string;
@@ -146,7 +151,7 @@ export function AdjustmentLine({ a, glyph, meId, from }: { a: AdjustmentEntry; g
   const who = a.source === "system" ? "Kudos" : a.by ? (a.by._id === meId ? "you" : a.by.name) : "a former admin";
   return (
     <div className="flex items-start gap-3 text-sm">
-      <span className={clsx("w-20 shrink-0 text-right font-mono tabular", a.amount > 0 ? "text-up" : "text-down")}>
+      <span className={clsx("w-28 shrink-0 whitespace-nowrap text-right font-mono tabular", a.amount > 0 ? "text-up" : "text-down")}>
         {signed(a.amount)} {glyph}
       </span>
       <div className="min-w-0 flex-1">
@@ -185,23 +190,266 @@ function redeemBlock(r: CatalogReward, data: Catalog, glyph: string): { label: s
   return null;
 }
 
+type Shop = NonNullable<ReturnType<typeof useQuery<typeof api.store.shop>>>;
+type OpenShop = Extract<Shop, { access: "open" }>;
+type ShopItem = OpenShop["items"][number];
+
+/** The Store (#91): Hog coins only, locked until level 5, game items first, real rewards if an admin has them on. */
 export function Store() {
   const viewer = useViewer();
-  const data = useQuery(api.store.catalog);
-  const [redeeming, setRedeeming] = useState<CatalogReward | null>(null);
-  if (!data) return <PageSkeleton />;
-  const glyph = viewer.workspace.emojiGlyph;
-
-  if (!data.enabled) {
+  const today = useWorkspaceToday();
+  const shop = useQuery(api.store.shop, { today });
+  if (!shop) return <PageSkeleton />;
+  if (shop.access === "off") {
     return (
       <Card>
-        <Empty icon="🎁" title="The store is closed">
-          Your admins haven't opened the rewards store in {viewer.workspace.name}.
+        <Empty icon="🎁" title="The Store comes with the game">
+          Hog coins are the Store's only currency, and the game isn't on in {viewer.workspace.name}.
         </Empty>
       </Card>
     );
   }
+  if (shop.access === "hidden") {
+    return (
+      <Card>
+        <Empty icon="🙈" title="You've hidden the game">
+          Your coins are safe.{" "}
+          <Link to="/me" className="font-medium text-saffron underline-offset-4 hover:underline">
+            Show the game on Me
+          </Link>{" "}
+          to shop again.
+        </Empty>
+      </Card>
+    );
+  }
+  if (shop.access === "locked") return <LockedStore shop={shop} />;
+  return <OpenStore shop={shop} />;
+}
 
+function LockedStore({ shop }: { shop: Extract<Shop, { access: "locked" }> }) {
+  return (
+    <div>
+      <PageHeader eyebrow="Store" title={<>Opens at level {shop.unlockLevel}</>} subtitle="Spend Hog coins on game items that are yours the moment you buy them." />
+      <Card className="p-5">
+        <div className="max-w-xl space-y-4">
+          <Locked title="Store" level={shop.unlockLevel} how={shop.how} />
+          <p className="text-sm text-muted">
+            You're level {shop.level}.{" "}
+            {shop.balance !== null ? (
+              <>
+                Your <span className="font-medium text-saffron">{nf.format(shop.balance)} {COIN}</span> wait for you here.
+              </>
+            ) : (
+              "Thoughtful kudos are already collecting Hog coins for it."
+            )}
+          </p>
+        </div>
+      </Card>
+      {/* Requests made before (e.g. in the received-kudos Store) stay in view while the Store is locked. */}
+      <MyRequests onlyIfAny />
+    </div>
+  );
+}
+
+function OpenStore({ shop }: { shop: OpenShop }) {
+  const viewer = useViewer();
+  const [buying, setBuying] = useState<ShopItem | null>(null);
+  const { balance, items } = shop;
+  const live = buying ? (items.find((i) => i.key === buying.key) ?? null) : null;
+  return (
+    <div>
+      <PageHeader
+        eyebrow="Store"
+        title={
+          <>
+            You have <BigNumber value={balance} className={balance < 0 ? "text-down" : "text-saffron"} /> {COIN} to spend
+          </>
+        }
+        subtitle="Thoughtful kudos earn Hog coins. Game items are yours the moment you buy them."
+        action={viewer.workspace.isDemo && <HandBackRewards />}
+      />
+      {balance < 0 && (
+        <p className="mb-5 flex items-start gap-2.5 rounded-xl border border-line-strong bg-panel-2/60 px-4 py-3 text-sm text-muted">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-faint" />
+          <span>
+            Your balance is {nf.format(balance)} {COIN} because a revoked kudos took back coins you'd already spent, or an admin adjusted it. Spending waits until it's above zero again.
+          </span>
+        </p>
+      )}
+      <section aria-labelledby="game-items">
+        <h2 id="game-items" className="mb-3 font-display text-lg font-semibold">
+          Game items
+        </h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {items.map((item, i) => (
+            <motion.div key={item.key} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: Math.min(i, 8) * 0.04 }}>
+              <ItemCard item={item} balance={balance} onBuy={() => setBuying(item)} />
+            </motion.div>
+          ))}
+        </div>
+      </section>
+      {/* Switching real rewards off leaves open requests with the admins: they stay in view. */}
+      {shop.realRewards ? <RealRewards /> : <MyRequests onlyIfAny />}
+      <MyAdjustments />
+      <BuyDialog item={buying} live={live} balance={balance} onClose={() => setBuying(null)} />
+    </div>
+  );
+}
+
+const ITEM_ICONS: Record<string, typeof Gift> = { spreeJoin: Users, skillReset: RotateCcw };
+
+/** Why an item can't be bought now, or null when it can. */
+function buyBlock(item: ShopItem, balance: number): string | null {
+  if (item.blocked) return item.blocked;
+  if (balance < 0) return "Spending waits until your balance is above zero";
+  if (!item.affordable) return `Need ${nf.format(item.price - balance)} more ${COIN}`;
+  return null;
+}
+
+function ItemCard({ item, balance, onBuy }: { item: ShopItem; balance: number; onBuy: () => void }) {
+  const Icon = ITEM_ICONS[item.key] ?? Gift;
+  const block = buyBlock(item, balance);
+  return (
+    <article className={clsx("flex h-full flex-col rounded-2xl border border-line bg-panel/80 p-4", item.blocked && "opacity-70")}>
+      <div className="flex items-start justify-between gap-3">
+        <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-saffron/10 ring-1 ring-saffron/20" aria-hidden>
+          <Icon className="h-7 w-7 text-saffron" />
+        </span>
+        {item.perMonth !== null && (
+          <span className="rounded-full bg-teal/15 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-teal-soft ring-1 ring-inset ring-teal/30">
+            {item.boughtThisMonth}/{item.perMonth} this month
+          </span>
+        )}
+      </div>
+      <h3 className="mt-4 font-display text-lg font-semibold leading-snug tracking-tight text-cream">{item.name}</h3>
+      <p className="mt-1 text-sm leading-relaxed text-muted">{item.description}</p>
+      <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-3">
+        <span className="font-display text-xl font-semibold tabular text-saffron">
+          {nf.format(item.price)} <span className="text-base">{COIN}</span>
+        </span>
+        {block ? (
+          <span title={block}>
+            <Button size="sm" disabled aria-label={`${item.name}: ${block}`}>
+              Buy
+            </Button>
+          </span>
+        ) : (
+          <Button size="sm" variant="primary" onClick={onBuy} aria-label={`Buy ${item.name}`}>
+            Buy
+          </Button>
+        )}
+      </div>
+      {block && <p className="mt-2 text-xs text-faint">{block}</p>}
+    </article>
+  );
+}
+
+function BuyDialog({ item, live, balance, onClose }: { item: ShopItem | null; live: ShopItem | null; balance: number; onClose: () => void }) {
+  const buy = useMutation(api.store.buyItem);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<{ balance: number } | null>(null);
+  const openedFor = item?.key ?? null;
+  const [lastOpened, setLastOpened] = useState(openedFor);
+  if (openedFor !== lastOpened) {
+    setLastOpened(openedFor);
+    if (openedFor !== null) {
+      setError(null);
+      setDone(null);
+    }
+  }
+  const submit = async () => {
+    if (!item || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      setDone(await buy({ item: item.key, expectedPrice: item.price }));
+    } catch (e) {
+      setError(errorText(e, "Couldn't buy this. Try again in a moment."));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const priceChanged = !done && item !== null && live !== null && live.price !== item.price;
+  const close = () => !busy && onClose();
+  return (
+    <Dialog
+      open={item !== null}
+      onClose={close}
+      title={done ? "It's yours" : `Buy ${item?.name ?? ""}?`}
+      subtitle={done ? undefined : "It applies right away. No approval needed."}
+      footer={
+        done ? (
+          <Button variant="primary" onClick={close}>
+            Done
+          </Button>
+        ) : (
+          <>
+            {error && (
+              <span role="alert" className="mr-auto flex items-center gap-1.5 text-sm text-down">
+                <CircleAlert className="h-4 w-4 shrink-0" /> {error}
+              </span>
+            )}
+            <Button variant="ghost" onClick={close} disabled={busy}>
+              Not now
+            </Button>
+            <Button variant="primary" onClick={() => void submit()} disabled={busy || priceChanged}>
+              {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+              {busy ? "Buying…" : `Buy · ${item ? nf.format(item.price) : ""} ${COIN}`}
+            </Button>
+          </>
+        )
+      }
+    >
+      {item &&
+        (done ? (
+          <div className="flex flex-col items-center gap-3 py-6 text-center">
+            <motion.span
+              initial={{ scale: 0.3, rotate: -12, opacity: 0 }}
+              animate={{ scale: [0.3, 1.25, 1], rotate: [-12, 6, 0], opacity: 1 }}
+              transition={{ duration: 0.55, ease: "easeOut" }}
+              className="grid h-20 w-20 place-items-center rounded-3xl bg-saffron/15 ring-1 ring-saffron/30"
+              aria-hidden
+            >
+              <Coins className="h-10 w-10 text-saffron" />
+            </motion.span>
+            <p className="font-display text-lg font-semibold">{item.name} is yours</p>
+            <p className="text-sm text-muted">
+              Balance: {nf.format(done.balance)} {COIN}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-muted">{item.description}</p>
+            {priceChanged && live && (
+              <p role="alert" className="rounded-xl border border-ember/30 bg-ember/10 px-3 py-2.5 text-sm">
+                The price changed to <b className="font-semibold">{nf.format(live.price)} {COIN}</b>. Close this and take another look.
+              </p>
+            )}
+            <dl className="grid grid-cols-2 gap-2 text-sm">
+              <dt className="text-muted">Balance now</dt>
+              <dd className="text-right font-mono tabular">
+                {nf.format(balance)} {COIN}
+              </dd>
+              <dt className="text-muted">Balance after</dt>
+              <dd className="text-right font-mono tabular text-cream">
+                {nf.format(balance - item.price)} {COIN}
+              </dd>
+            </dl>
+          </div>
+        ))}
+    </Dialog>
+  );
+}
+
+/** Real rewards (behind the admin switch): the catalog, redeeming with approval, and the member's requests. */
+function RealRewards() {
+  const viewer = useViewer();
+  const data = useQuery(api.store.catalog);
+  const [redeeming, setRedeeming] = useState<CatalogReward | null>(null);
+  if (!data) return <Skeleton className="mt-8 h-40" />;
+  if (!data.enabled) return null;
+  const glyph = COIN;
   const { balance, rewards } = data;
   const affordable = rewards.filter((r) => r.affordable && !r.soldOut).length;
   // The dialog confirms the price the member saw (D11); the live copy only flags changes.
@@ -209,39 +457,31 @@ export function Store() {
   const liveBlock = redeeming && (live ? redeemBlock(live, data, glyph) : { label: "", reason: "This reward isn't in the store any more." });
 
   return (
-    <div>
-      <PageHeader
-        eyebrow="Rewards store"
-        title={
+    <section aria-labelledby="rewards" className="mt-10">
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 id="rewards" className="font-display text-lg font-semibold">
+          Rewards
+        </h2>
+        {data.openCount > 0 && (
+          <a href="#my-requests" className="inline-flex items-center gap-2 rounded-full border border-line-strong bg-panel-2 px-3 py-1.5 text-xs text-muted hover:text-cream">
+            <Clock className="h-3.5 w-3.5 text-saffron" /> {data.openCount} of {data.maxOpen} requests open
+          </a>
+        )}
+      </div>
+      <p className="mb-4 text-sm text-faint">
+        An admin approves and hands these over.{" "}
+        {rewards.length > 0 && (
           <>
-            You have <BigNumber value={balance} className={balance < 0 ? "text-down" : "text-saffron"} /> {glyph} to spend
+            {rewards.length} {rewards.length === 1 ? "reward" : "rewards"} · you can afford {affordable}
           </>
-        }
-        subtitle="Every kudos your teammates give you lands here. Spending never changes your received totals."
-        action={
-          data.openCount > 0 && (
-            <a href="#my-requests" className="inline-flex items-center gap-2 rounded-full border border-line-strong bg-panel-2 px-3 py-1.5 text-xs text-muted hover:text-cream">
-              <Clock className="h-3.5 w-3.5 text-saffron" /> {data.openCount} of {data.maxOpen} requests open
-            </a>
-          )
-        }
-      />
-
-      {balance < 0 && (
-        <p className="mb-5 flex items-start gap-2.5 rounded-xl border border-line-strong bg-panel-2/60 px-4 py-3 text-sm text-muted">
-          <Info className="mt-0.5 h-4 w-4 shrink-0 text-faint" />
-          <span>
-            Your balance is {nf.format(balance)} {glyph} because kudos you'd already spent were revoked, or an admin adjusted your balance. New kudos bring it back up.
-          </span>
-        </p>
-      )}
+        )}
+      </p>
       {data.openCount >= data.maxOpen && (
         <p className="mb-5 flex items-start gap-2.5 rounded-xl border border-line-strong bg-panel-2/60 px-4 py-3 text-sm text-muted">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-faint" />
           <span>You have {data.maxOpen} open requests. Once an admin finishes one, you can redeem again.</span>
         </p>
       )}
-
       {rewards.length === 0 ? (
         <Card>
           <Empty icon="🛍️" title="The shelves are empty">
@@ -254,43 +494,36 @@ export function Store() {
           </Empty>
         </Card>
       ) : (
-        <>
-          <p className="mb-4 text-sm text-faint">
-            {rewards.length} {rewards.length === 1 ? "reward" : "rewards"} · you can afford {affordable}
-          </p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {rewards.map((r, i) => {
-              const block = redeemBlock(r, data, glyph);
-              return (
-                <motion.div key={r._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: Math.min(i, 8) * 0.04 }}>
-                  <RewardCard
-                    reward={r}
-                    glyph={glyph}
-                    balance={balance}
-                    action={
-                      block ? (
-                        // Disabled buttons don't show tooltips, so the wrapper carries the reason.
-                        <span title={block.reason}>
-                          <Button size="sm" disabled aria-label={`${r.name}: ${block.reason}`}>
-                            {block.label}
-                          </Button>
-                        </span>
-                      ) : (
-                        <Button size="sm" variant="primary" onClick={() => setRedeeming(r)} aria-label={`Redeem ${r.name}`}>
-                          Redeem
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {rewards.map((r, i) => {
+            const block = redeemBlock(r, data, glyph);
+            return (
+              <motion.div key={r._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: Math.min(i, 8) * 0.04 }}>
+                <RewardCard
+                  reward={r}
+                  glyph={glyph}
+                  balance={balance}
+                  action={
+                    block ? (
+                      // Disabled buttons don't show tooltips, so the wrapper carries the reason.
+                      <span title={block.reason}>
+                        <Button size="sm" disabled aria-label={`${r.name}: ${block.reason}`}>
+                          {block.label}
                         </Button>
-                      )
-                    }
-                  />
-                </motion.div>
-              );
-            })}
-          </div>
-        </>
+                      </span>
+                    ) : (
+                      <Button size="sm" variant="primary" onClick={() => setRedeeming(r)} aria-label={`Redeem ${r.name}`}>
+                        Redeem
+                      </Button>
+                    )
+                  }
+                />
+              </motion.div>
+            );
+          })}
+        </div>
       )}
-
       <MyRequests />
-      <MyAdjustments />
       <RedeemDialog
         reward={redeeming}
         live={live}
@@ -299,7 +532,7 @@ export function Store() {
         onAcceptPrice={() => live && setRedeeming(live)}
         onClose={() => setRedeeming(null)}
       />
-    </div>
+    </section>
   );
 }
 
@@ -320,8 +553,7 @@ function RedeemDialog({
   onAcceptPrice: () => void;
   onClose: () => void;
 }) {
-  const viewer = useViewer();
-  const glyph = viewer.workspace.emojiGlyph;
+  const glyph = COIN;
   const redeem = useMutation(api.store.redeem);
   const [answer, setAnswer] = useState("");
   const [busy, setBusy] = useState(false);
@@ -474,7 +706,7 @@ function RedeemDialog({
   );
 }
 
-/** The demo user is shared by every visitor, so anyone can put back what visitors redeemed. */
+/** The demo user is shared by every visitor, so anyone can put back what visitors bought or redeemed. */
 function HandBackRewards() {
   const handBack = useMutation(api.demo.handBackRewards);
   const [busy, setBusy] = useState(false);
@@ -483,26 +715,28 @@ function HandBackRewards() {
       size="sm"
       variant="ghost"
       disabled={busy}
-      title="The demo user is shared by all visitors. The seeded history stays."
+      title="The demo user is shared by all visitors: this returns the game items and rewards visitors bought. The seeded history stays."
       onClick={() => {
         setBusy(true);
         void handBack({}).finally(() => setBusy(false));
       }}
     >
-      {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Undo2 className="h-3.5 w-3.5" />} Hand back my rewards
+      {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Undo2 className="h-3.5 w-3.5" />} Hand back what I bought
     </Button>
   );
 }
 
-function MyRequests() {
+/** The member's requests for real rewards. `onlyIfAny`: nothing at all until they made one. */
+function MyRequests({ onlyIfAny = false }: { onlyIfAny?: boolean }) {
   const viewer = useViewer();
-  const glyph = viewer.workspace.emojiGlyph;
+  const glyph = COIN;
   const { results, status, loadMore } = usePaginatedQuery(api.store.myRedemptions, {}, { initialNumItems: 10 });
   const cancel = useMutation(api.store.cancel);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [error, setError] = useState<{ id: string; text: string } | null>(null);
+  if (onlyIfAny && results.length === 0) return null;
 
   const doCancel = (id: Id<"redemptions">) => {
     if (cancelling) return;
@@ -519,7 +753,6 @@ function MyRequests() {
       <CardHeader
         title="My requests"
         subtitle="The cost is held while an admin decides. Declined or cancelled requests are refunded in full."
-        action={viewer.workspace.isDemo && <HandBackRewards />}
       />
       {status === "LoadingFirstPage" ? (
         <div className="px-5 pb-5">
@@ -552,9 +785,11 @@ function MyRequests() {
                       </div>
                       <p className="mt-0.5 text-xs text-faint">
                         <span className={clsx("font-mono tabular", refunded ? "text-muted line-through" : "text-saffron")}>
-                          {nf.format(r.cost)} {glyph}
+                          {nf.format(r.cost)} {r.legacy ? "kudos" : glyph}
                         </span>
-                        {refunded && <span className="text-up"> refunded</span>} · {relativeTime(r.updatedAt)}
+                        {/* The received-kudos balance was reset, so an old request is never refunded in coins. */}
+                        {refunded && !r.legacy && <span className="text-up"> refunded</span>}
+                        {r.legacy && <span> · old kudos Store</span>} · {relativeTime(r.updatedAt)}
                       </p>
                     </button>
                     {r.status === "pending" &&
@@ -613,7 +848,7 @@ function MyRequests() {
 }
 
 /**
- * Grants and corrections to the member's balance, newest first ("+10 🌮 from Lena"). Only
+ * Grants and corrections to the member's Hog coins, newest first ("+10 Hog coins from Lena"). Only
  * shown once there is one: most people never get an adjustment.
  */
 function MyAdjustments() {
@@ -622,11 +857,11 @@ function MyAdjustments() {
   if (results.length === 0) return null;
   return (
     <Card id="balance-adjustments" className="mt-4 scroll-mt-24">
-      <CardHeader title="Balance adjustments" subtitle="Grants and corrections from your admins. They change what you can spend, never your received kudos." />
+      <CardHeader title="Balance adjustments" subtitle="Hog coins your admins granted or corrected. They change what you can spend, never your kudos." />
       <ul className="space-y-3 px-5 pb-5">
         {results.map((a) => (
           <li key={a._id}>
-            <AdjustmentLine a={a} glyph={viewer.workspace.emojiGlyph} meId={viewer.member._id} from />
+            <AdjustmentLine a={a} glyph={COIN} meId={viewer.member._id} from />
           </li>
         ))}
       </ul>
@@ -641,8 +876,8 @@ function MyAdjustments() {
   );
 }
 
-/** "42 🌮 to spend →" on Me, while the store is open. */
-export function StoreBalanceChip({ glyph, className }: { glyph: string; className?: string }) {
+/** "42 Hog coins to spend →" on Me, once the wallet is open. */
+export function StoreBalanceChip({ className }: { className?: string }) {
   const viewer = useViewer();
   const balance = useQuery(api.store.balance, viewer.workspace.storeEnabled ? {} : "skip");
   if (balance === undefined || balance === null) return null;
@@ -655,7 +890,7 @@ export function StoreBalanceChip({ glyph, className }: { glyph: string; classNam
       )}
     >
       <Gift className="h-3.5 w-3.5" />
-      <span className={clsx("tabular", balance < 0 && "text-down")}>{nf.format(balance)}</span> {glyph} to spend →
+      <span className={clsx("tabular", balance < 0 && "text-down")}>{nf.format(balance)}</span> {COIN} to spend →
     </Link>
   );
 }

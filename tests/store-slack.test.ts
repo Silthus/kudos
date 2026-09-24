@@ -5,7 +5,7 @@ import { signSlackRequest } from "../convex/lib/slack";
 import { NOW, seedTeam, setupConvex, signInAs, type Team } from "./helpers";
 
 /**
- * The Store in Slack (spec #4 §7, slice S3): DMs on every step of a redemption, the
+ * The Store in Slack (spec #4 §7, slice S3; in Hog coins since #91): DMs on every step of a redemption, the
  * App Home "Rewards store" section and `/kudos store`. Slack is a stubbed `fetch`.
  */
 
@@ -53,6 +53,7 @@ async function addReward(reward: Partial<Doc<"rewards">> = {}) {
       name: "Coffee on us",
       emoji: "☕",
       cost: 15,
+      unit: "coins",
       status: "active",
       createdBy: team.ana,
       updatedAt: Date.now(),
@@ -69,10 +70,20 @@ async function redeemAsBen(rewardId: Id<"rewards">, answer?: string) {
   return { ben, ...res };
 }
 
+/** Makes a member a level-5 player (the Store opens there) with `balance` Hog coins, 40 of them from level-ups. */
+async function fund(memberId: Id<"members">, balance: number) {
+  await t.run(async (ctx) => {
+    const m = (await ctx.db.get(memberId))!;
+    const existing = await ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", memberId)).unique();
+    if (existing) await ctx.db.patch(existing._id, { coins: balance - 40 });
+    else await ctx.db.insert("players", { workspaceId: m.workspaceId, memberId, since: 0, xp: 350, level: 5, coins: balance - 40 });
+  });
+}
+
 beforeEach(async () => {
   t = setupConvex();
-  team = await seedTeam(t, { storeEnabled: true, emojiGlyph: "🌮" });
-  await setMember(team.ben, { totalReceived: 42 });
+  team = await seedTeam(t, { gameEnabled: true, questsEnabled: false, realRewardsEnabled: true, emojiGlyph: "🌮" });
+  await fund(team.ben, 42);
   vi.stubEnv("SLACK_SIGNING_SECRET", SECRET);
   vi.stubEnv("SITE_URL", "https://kudos.example");
   stubSlackApi();
@@ -90,11 +101,11 @@ describe("redeeming a reward", () => {
     await drain();
 
     const [mine] = dmsTo("UBEN");
-    expect(mine.text).toBe("🎁 Your request for *☕ Coffee on us* (15 :taco:) is in. An admin will take it from here. Balance: 27 :taco:.");
+    expect(mine.text).toBe("🎁 Your request for *☕ Coffee on us* (15 Hog coins) is in. An admin will take it from here. Balance: 27 Hog coins.");
     expect(JSON.stringify(mine.blocks)).toContain("<https://kudos.example/store?ws=T1#my-requests|My requests>");
 
     const [review] = dmsTo("UANA");
-    expect(review.text).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). Balance after: 27 :taco:.");
+    expect(review.text).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (15 Hog coins). Balance after: 27 Hog coins.");
     const button = review.blocks.find((b: { type: string }) => b.type === "actions").elements.find((e: { action_id: string }) => e.action_id === "store_review");
     expect(button).toMatchObject({ type: "button", text: { text: "Review in Kudos" }, url: "https://kudos.example/admin?tab=store&ws=T1" });
     expect(dms()).toHaveLength(2);
@@ -128,13 +139,13 @@ describe("each step of a request", () => {
   test("declining tells the requester why and that the cost is back in their balance", async () => {
     await requestThen({ action: "decline", note: "Out of beans" });
     expect(dmsTo("UBEN").map((d) => d.text)).toEqual([
-      "*☕ Coffee on us* was declined by <@UANA>: “Out of beans”. 15 :taco: are back in your balance (42 :taco:).",
+      "*☕ Coffee on us* was declined by <@UANA>: “Out of beans”. 15 Hog coins are back in your balance (42 Hog coins).",
     ]);
   });
 
   test("a note that ends a sentence isn't followed by a second full stop", async () => {
     await requestThen({ action: "decline", note: "We're out of beans this week." });
-    expect(dmsTo("UBEN")[0].text).toContain("“We're out of beans this week.” 15 :taco: are back");
+    expect(dmsTo("UBEN")[0].text).toContain("“We're out of beans this week.” 15 Hog coins are back");
   });
 
   test("cancelling sends no DM, since the requester did it themselves", async () => {
@@ -185,7 +196,7 @@ describe("who hears about a request", () => {
 
   test("an admin who is the only one who can decide gets their own request to review", async () => {
     const ana = await signInAs(t, team.ana);
-    await setMember(team.ana, { totalReceived: 42 });
+    await fund(team.ana, 42);
     await ana.mutation(api.store.redeem, { rewardId: await addReward(), expectedCost: 15 });
     await drain();
     const [confirmation, review] = dmsTo("UANA");
@@ -217,9 +228,9 @@ describe("who hears about a request", () => {
     await drain();
     // The first request left 27, and nobody is asked to review the cancelled one.
     expect(dmsTo("UBEN").map((d) => d.text)).toEqual([
-      "🎁 Your request for *☕ Coffee on us* (15 :taco:) is in. An admin will take it from here. Balance: 27 :taco:.",
+      "🎁 Your request for *☕ Coffee on us* (15 Hog coins) is in. An admin will take it from here. Balance: 27 Hog coins.",
     ]);
-    expect(dmsTo("UANA").map((d) => d.text)).toEqual(["🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). Balance after: 27 :taco:."]);
+    expect(dmsTo("UANA").map((d) => d.text)).toEqual(["🛎️ <@UBEN> wants *☕ Coffee on us* (15 Hog coins). Balance after: 27 Hog coins."]);
   });
 
   test("bots, deactivated admins and plain members never get the review DM; signed-in admins come first, 20 at most", async () => {
@@ -267,11 +278,22 @@ describe("who hears about a request", () => {
     expect(dmsTo("UBEN")[1].text).toBe("✅ <@UANA> approved *☕ Coffee on us*. It's on its way. Note from <@UANA>: Pick it up at reception on Friday");
   });
 
-  test("while the store is closed, DMs don't link to a store page that isn't there", async () => {
+  test("with real rewards off, DMs still link to My requests, which stay in the Store", async () => {
     const ana = await signInAs(t, team.ana);
     const { redemptionId } = await redeemAsBen(await addReward());
     await drain();
-    await t.run((ctx) => ctx.db.patch(team.workspaceId, { storeEnabled: false }));
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { realRewardsEnabled: false }));
+    calls = [];
+    await ana.mutation(api.storeAdmin.decide, { redemptionId, action: "decline" });
+    await drain();
+    expect(JSON.stringify(dmsTo("UBEN")[0].blocks)).toContain("/store?ws=T1#my-requests");
+  });
+
+  test("while the game is off, DMs don't link to a Store page that isn't there", async () => {
+    const ana = await signInAs(t, team.ana);
+    const { redemptionId } = await redeemAsBen(await addReward());
+    await drain();
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { gameEnabled: false }));
     calls = [];
     await ana.mutation(api.storeAdmin.decide, { redemptionId, action: "decline" });
     await drain();
@@ -290,18 +312,57 @@ describe("who hears about a request", () => {
     expect(all).not.toContain("</store");
   });
 
-  test("balances stay out of DMs while received kudos are hidden", async () => {
+  test("Hog coin balances stay in DMs while received kudos are hidden: they come from giving (ADR 0002)", async () => {
     await signInAs(t, team.ana);
     const { redemptionId } = await redeemAsBen(await addReward());
-    // Closing the store and hiding received kudos leaves open requests actionable.
-    await t.run((ctx) => ctx.db.patch(team.workspaceId, { storeEnabled: false, receivedVisibility: "hidden" }));
+    // Switching real rewards off and hiding received kudos leaves open requests actionable.
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { realRewardsEnabled: false, receivedVisibility: "hidden" }));
     await drain();
-    expect(dms().map((d) => d.text).join("\n")).not.toMatch(/[Bb]alance/);
+    expect(dmsTo("UBEN")[0].text).toContain("Balance: 27 Hog coins.");
     const ana = await signInAs(t, team.ana);
     calls = [];
     await ana.mutation(api.storeAdmin.decide, { redemptionId, action: "decline" });
     await drain();
-    expect(dmsTo("UBEN").map((d) => d.text)).toEqual(["*☕ Coffee on us* was declined by <@UANA>. 15 :taco: are back in your balance."]);
+    expect(dmsTo("UBEN").map((d) => d.text)).toEqual(["*☕ Coffee on us* was declined by <@UANA>. 15 Hog coins are back in your balance (42 Hog coins)."]);
+  });
+
+  test("the balance stays out of DMs to someone whose wallet isn't shown: hidden game, or below level 3", async () => {
+    const ana = await signInAs(t, team.ana);
+    const { redemptionId } = await redeemAsBen(await addReward());
+    await setMember(team.ben, { gameHidden: true });
+    await drain();
+    calls = [];
+    await ana.mutation(api.storeAdmin.decide, { redemptionId, action: "decline" });
+    await drain();
+    expect(dmsTo("UBEN").map((d) => d.text)).toEqual(["*☕ Coffee on us* was declined by <@UANA>. 15 Hog coins are back in your balance."]);
+  });
+
+  test("declining a request from the received-kudos Store says no coins come back, and admins see it was priced in kudos", async () => {
+    const ana = await signInAs(t, team.ana);
+    const rewardId = await addReward();
+    const redemptionId = await t.run((ctx) =>
+      ctx.db.insert("redemptions", {
+        workspaceId: team.workspaceId, memberId: team.ben, rewardId, rewardName: "Coffee on us", rewardEmoji: "☕", cost: 15,
+        status: "pending", isOpen: true, history: [{ status: "pending", at: 1, by: team.ben }], requestedAt: 1, updatedAt: 1,
+        adminMessages: [{ channel: "DUANA", ts: "1.1" }],
+      }),
+    );
+    await ana.mutation(api.storeAdmin.decide, { redemptionId, action: "decline" });
+    await drain();
+    expect(dmsTo("UBEN").map((d) => d.text)).toEqual([
+      "*☕ Coffee on us* was declined by <@UANA>. It was a request from the old kudos Store, so no Hog coins come back.",
+    ]);
+    const update = calls.find((c) => c.method === "chat.update")!;
+    expect(update.params.text).toContain("wants *☕ Coffee on us* (15 kudos, old Store)");
+  });
+
+  test("a 1-coin refund reads in the singular", async () => {
+    const ana = await signInAs(t, team.ana);
+    const ben = await signInAs(t, team.ben);
+    const { redemptionId } = await ben.mutation(api.store.redeem, { rewardId: await addReward({ cost: 1 }), expectedCost: 1 });
+    await ana.mutation(api.storeAdmin.decide, { redemptionId, action: "decline" });
+    await drain();
+    expect(dmsTo("UBEN").at(-1)!.text).toBe("*☕ Coffee on us* was declined by <@UANA>. 1 Hog coin is back in your balance (42 Hog coins).");
   });
 
   test("the demo workspace sends nothing to Slack", async () => {
@@ -330,46 +391,80 @@ describe("App Home", () => {
     await addReward({ name: "Sold out mug", emoji: "☕", cost: 10, stock: 0 });
     const home = await openHome("UBEN");
     expect(home).toContain("Rewards store");
-    expect(home).toContain("*Balance*\\n42 :taco:");
+    expect(home).toContain("*Balance*\\n42 Hog coins");
     // The dearest you can afford now, topped up with the next goal.
-    expect(home).toContain("🥪 Lunch · 40 :taco:\\n☕ Coffee on us · 15 :taco:\\n🧥 Hoodie · 60 :taco:  _18 more to go_");
+    expect(home).toContain("🥪 Lunch · 40 Hog coins\\n☕ Coffee on us · 15 Hog coins\\n🧥 Hoodie · 60 Hog coins  _18 more to go_");
     expect(home).not.toContain("Sold out mug");
     expect(home).not.toContain("Headphones");
     await addReward({ name: "Sticker pack", emoji: "🏷️", cost: 5 });
-    expect(await openHome("UBEN")).toContain("🥪 Lunch · 40 :taco:\\n☕ Coffee on us · 15 :taco:\\n🏷️ Sticker pack · 5 :taco:");
+    expect(await openHome("UBEN")).toContain("🥪 Lunch · 40 Hog coins\\n☕ Coffee on us · 15 Hog coins\\n🏷️ Sticker pack · 5 Hog coins");
     expect(home).toContain('"url":"https://kudos.example/store?ws=T1"');
   });
 
   test("members don't see the admin line, even with requests waiting", async () => {
     await signInAs(t, team.ana);
     await redeemAsBen(await addReward());
+    await fund(team.cleo, 5);
     const home = await openHome("UCLEO");
     expect(home).toContain("Rewards store");
     expect(home).not.toContain("waiting");
     expect(home).not.toContain("Review requests");
   });
 
-  test("leaves the store out while received kudos are hidden, whatever storeEnabled says", async () => {
+  test("leaves the store out below level 5, where the Store is still locked", async () => {
     await addReward();
-    await t.run((ctx) => ctx.db.patch(team.workspaceId, { receivedVisibility: "hidden" }));
-    const home = await openHome("UBEN");
-    expect(home).not.toContain("Rewards store");
-    expect(home).not.toContain("42");
+    await fund(team.cleo, 30);
+    await t.run(async (ctx) => {
+      const p = (await ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", team.cleo)).unique())!;
+      await ctx.db.patch(p._id, { level: 4, xp: 175 });
+    });
+    expect(await openHome("UCLEO")).not.toContain("Rewards store");
   });
 
   test("admins also see how many requests are waiting and a Review requests button", async () => {
     await signInAs(t, team.ana);
     const rewardId = await addReward();
     await redeemAsBen(rewardId);
+    await fund(team.ana, 5);
     const home = await openHome("UANA");
     expect(home).toContain("1 request waiting");
     expect(home).toContain('"url":"https://kudos.example/admin?tab=store&ws=T1"');
   });
 
-  test("leaves the store out while it's closed", async () => {
+  test("admins below level 5 still see the requests waiting, without a balance or rewards of their own", async () => {
+    await signInAs(t, team.ana);
+    await redeemAsBen(await addReward());
+    const home = await openHome("UANA"); // Ana isn't a player yet: level 1
+    expect(home).toContain("1 request waiting");
+    expect(home).toContain("Review requests");
+    expect(home).not.toContain("*Balance*");
+    expect(home).not.toContain("Coffee on us");
+  });
+
+  test("buying a game item DMs the item gained (#99), linking to the Store", async () => {
+    const ben = await signInAs(t, team.ben);
+    calls = [];
+    await ben.mutation(api.store.buyItem, { item: "spreeJoin", expectedPrice: 8 });
+    await drain();
+    const [dm] = dmsTo("UBEN");
+    expect(dm.text).toMatch(/^🎁 \*Extra spree join is yours\*\nOne more kudos spree to join this month/);
+    expect(JSON.stringify(dm.blocks)).toContain("https://kudos.example/store?ws=T1");
+  });
+
+  test("buying a game item refreshes the buyer's App Home", async () => {
+    const ben = await signInAs(t, team.ben);
+    await ben.mutation(api.store.buyItem, { item: "spreeJoin", expectedPrice: 8 });
+    calls = [];
+    await drain();
+    expect(published().map((p) => p.user)).toEqual(["UBEN"]);
+  });
+
+  test("leaves the store out while real rewards are off, or the game is", async () => {
     await addReward();
-    await t.run((ctx) => ctx.db.patch(team.workspaceId, { storeEnabled: false }));
-    expect(await openHome("UANA")).not.toContain("Rewards store");
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { realRewardsEnabled: false }));
+    expect(await openHome("UBEN")).not.toContain("Rewards store");
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { realRewardsEnabled: true, gameEnabled: false }));
+    expect(await openHome("UBEN")).not.toContain("Rewards store");
   });
 
   test("an empty catalog says the shelves are still being stocked", async () => {
@@ -395,36 +490,58 @@ describe("/kudos store", () => {
     return await res.json();
   }
 
-  test("shows your balance, the 5 cheapest rewards and a link to the store", async () => {
+  test("shows your balance, the game items, the 5 cheapest rewards and a link to the store", async () => {
     for (const [name, cost] of [["A", 1], ["B", 2], ["C", 3], ["D", 4], ["E", 5], ["F", 6]] as const) await addReward({ name, emoji: "🎁", cost });
     const body = await command("store");
     expect(body.response_type).toBe("ephemeral");
     const text = JSON.stringify(body.blocks);
-    expect(text).toContain("*Balance*\\n42 :taco:");
-    expect(text).toContain("🎁 A · 1 :taco:\\n🎁 B · 2 :taco:\\n🎁 C · 3 :taco:\\n🎁 D · 4 :taco:\\n🎁 E · 5 :taco:");
+    expect(text).toContain("*Balance*\\n42 Hog coins");
+    expect(text).toContain("Extra spree join · 8 Hog coins");
+    expect(text).toContain("🎁 A · 1 Hog coin\\n🎁 B · 2 Hog coins\\n🎁 C · 3 Hog coins\\n🎁 D · 4 Hog coins\\n🎁 E · 5 Hog coins");
     expect(text).not.toContain("🎁 F");
     expect(text).toContain("<https://kudos.example/store?ws=T1|Open the store>");
   });
 
-  test("balance is an alias", async () => {
-    expect(JSON.stringify((await command("balance")).blocks)).toContain("*Balance*\\n42 :taco:");
-  });
-
-  test("says so when the store isn't open", async () => {
-    await t.run((ctx) => ctx.db.patch(team.workspaceId, { storeEnabled: false }));
-    expect((await command("store")).text).toBe("The rewards store isn't open in this workspace.");
-  });
-
-  test("never shows a balance while received kudos are hidden", async () => {
-    await t.run((ctx) => ctx.db.patch(team.workspaceId, { receivedVisibility: "hidden" }));
+  test("balance shows your Hog coins now, like /kudos coins (the received-kudos balance is gone)", async () => {
     const body = await command("balance");
-    expect(body.text).toBe("The rewards store isn't open in this workspace.");
-    expect(JSON.stringify(body)).not.toContain("42");
+    expect(body.text).toBe("You have 42 Hog coins.");
+    expect(JSON.stringify(body.blocks)).toContain("*Balance*\\n42 Hog coins");
   });
 
-  test("the help mentions /kudos store only while the store is open", async () => {
+  test("says which game items aren't for sale, the way the web Store does", async () => {
+    const ben = await signInAs(t, team.ben);
+    for (let i = 0; i < 5; i++) await ben.mutation(api.store.buyItem, { item: "spreeJoin", expectedPrice: 8 });
+    const text = JSON.stringify((await command("store")).blocks);
+    expect(text).toContain("Extra spree join · 8 Hog coins  _5 a month: you have them all. More next month._");
+    expect(text).toContain("Skill-tree reset · 50 Hog coins  _Your tree has no skills to reset._");
+  });
+
+  test("with real rewards off, lists only the game items", async () => {
+    await addReward({ name: "A", emoji: "🎁", cost: 1 });
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { realRewardsEnabled: false }));
+    const text = JSON.stringify((await command("store")).blocks);
+    expect(text).toContain("Extra spree join · 8 Hog coins");
+    expect(text).not.toContain("🎁 A");
+    expect(text).not.toContain("Open requests");
+  });
+
+  test("says when the Store is locked, off or hidden, without the balance", async () => {
+    await t.run(async (ctx) => {
+      const p = (await ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", team.ben)).unique())!;
+      await ctx.db.patch(p._id, { level: 4, xp: 175 });
+    });
+    const locked = await command("store");
+    expect(locked.text).toBe("The Store opens at level 5. You're level 4: thoughtful kudos get you there.");
+    expect(JSON.stringify(locked)).not.toContain("Hog coins");
+    await setMember(team.ben, { gameHidden: true });
+    expect((await command("store")).text).toBe("You've hidden the game. Show it again on your Me page to shop.");
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { gameEnabled: false }));
+    expect((await command("store")).text).toBe("The game isn't on in this workspace, so there's no Store.");
+  });
+
+  test("the help mentions /kudos store only while the game is shown to you", async () => {
     expect((await command("help")).text).toContain("`/kudos store`");
-    await t.run((ctx) => ctx.db.patch(team.workspaceId, { storeEnabled: false }));
+    await setMember(team.ben, { gameHidden: true });
     expect((await command("help")).text).not.toContain("`/kudos store`");
   });
 });
@@ -502,7 +619,7 @@ describe("admin copies in Slack", () => {
     const copies = updates();
     expect(copies.map((u) => `${u.channel} ${u.ts}`).sort()).toEqual(["DUANA 1700000000.000002", "DUCLEO 1700000000.000003"]);
     for (const copy of copies) {
-      expect(copy.text).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). ✔ Fulfilled by <@UANA>");
+      expect(copy.text).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (15 Hog coins). ✔ Fulfilled by <@UANA>");
       expect(buttonsOf(copy.blocks)).toEqual([]);
       const status = JSON.stringify(copy.blocks);
       expect(status).toContain(`✔ Fulfilled by <@UANA> · <!date^${Math.floor(NOW.getTime() / 1000)}^{ago}|`);
@@ -518,7 +635,7 @@ describe("admin copies in Slack", () => {
     await drain();
     expect(updates()).toHaveLength(2);
     for (const copy of updates()) {
-      expect(copy.text).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). ✅ Approved by <@UANA>");
+      expect(copy.text).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (15 Hog coins). ✅ Approved by <@UANA>");
       expect(buttonsOf(copy.blocks)).toEqual(["store_fulfill", "store_review"]);
     }
   });
@@ -528,14 +645,14 @@ describe("admin copies in Slack", () => {
     calls = [];
     await ana.mutation(api.storeAdmin.decide, { redemptionId, action: "decline", note: "Out of beans" });
     await drain();
-    expect(updates().map((u) => u.text)).toEqual(Array(2).fill("🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). ✖ Declined by <@UANA>"));
+    expect(updates().map((u) => u.text)).toEqual(Array(2).fill("🛎️ <@UBEN> wants *☕ Coffee on us* (15 Hog coins). ✖ Declined by <@UANA>"));
 
     const second = await redeemAsBen(await addReward({ name: "Tea" }));
     await drain();
     calls = [];
     await second.ben.mutation(api.store.cancel, { redemptionId: second.redemptionId });
     await drain();
-    expect(updates().map((u) => u.text)).toEqual(Array(2).fill("🛎️ <@UBEN> wants *☕ Tea* (15 :taco:). ↩ Cancelled by <@UBEN>"));
+    expect(updates().map((u) => u.text)).toEqual(Array(2).fill("🛎️ <@UBEN> wants *☕ Tea* (15 Hog coins). ↩ Cancelled by <@UBEN>"));
     expect(updates().flatMap((u) => buttonsOf(u.blocks))).toEqual([]);
   });
 
@@ -552,8 +669,8 @@ describe("admin copies in Slack", () => {
     await drain();
     const last = (channel: string) => updates().filter((u) => u.channel === channel).at(-1)?.text;
     expect(updates().length).toBeGreaterThan(2);
-    expect(last("DUANA")).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). ✔ Fulfilled by <@UANA>");
-    expect(last("DUCLEO")).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). ✔ Fulfilled by <@UANA>");
+    expect(last("DUANA")).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (15 Hog coins). ✔ Fulfilled by <@UANA>");
+    expect(last("DUCLEO")).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (15 Hog coins). ✔ Fulfilled by <@UANA>");
   });
 
   test("a failed update is logged and doesn't undo the step", async () => {
@@ -621,7 +738,7 @@ describe("Approve and Mark fulfilled in Slack", () => {
     expect(dmsTo("UBEN").map((d) => d.text)).toEqual(["🎉 *☕ Coffee on us* is yours!"]);
     const updated = calls.filter((c) => c.method === "chat.update");
     expect(updated.map((c) => c.params.channel).sort()).toEqual(["DUANA", "DUCLEO"]);
-    expect(updated.map((c) => c.params.text)).toEqual(Array(2).fill("🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). ✔ Fulfilled by <@UANA>"));
+    expect(updated.map((c) => c.params.text)).toEqual(Array(2).fill("🛎️ <@UBEN> wants *☕ Coffee on us* (15 Hog coins). ✔ Fulfilled by <@UANA>"));
     expect(ephemerals()).toEqual([]);
   });
 
@@ -644,14 +761,14 @@ describe("Approve and Mark fulfilled in Slack", () => {
     let n = 0;
     stubSlackApi({ "chat.postMessage": (p: Record<string, string>) => ({ ok: true, channel: `D${p.channel}`, ts: `1700000000.00000${++n}` }) });
     const ana = await signInAs(t, team.ana);
-    await setMember(team.ana, { totalReceived: 42 });
+    await fund(team.ana, 42);
     const { redemptionId } = await ana.mutation(api.store.redeem, { rewardId: await addReward(), expectedCost: 15 });
     await drain();
     calls = [];
     await click(blockAction("store_approve", redemptionId));
     expect(await statusOf(redemptionId)).toMatchObject({ status: "approved" });
     const [copy] = calls.filter((c) => c.method === "chat.update");
-    expect(copy.params.text).toBe("🛎️ <@UANA> wants *☕ Coffee on us* (15 :taco:). ✅ Approved by <@UANA>");
+    expect(copy.params.text).toBe("🛎️ <@UANA> wants *☕ Coffee on us* (15 Hog coins). ✅ Approved by <@UANA>");
     expect(copy.params.blocks).toContain("Your own request");
   });
 
@@ -775,8 +892,8 @@ describe("admin copies stay truthful when steps race the DMs", () => {
     });
     ({ redemptionId } = await redeemAsBen(await addReward()));
     await drain();
-    expect(lastUpdateTo("DUANA")).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). ✅ Approved by <@UANA>");
-    expect(lastUpdateTo("DUCLEO")).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). ✅ Approved by <@UANA>");
+    expect(lastUpdateTo("DUANA")).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (15 Hog coins). ✅ Approved by <@UANA>");
+    expect(lastUpdateTo("DUCLEO")).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (15 Hog coins). ✅ Approved by <@UANA>");
   });
 
   test("a sync that was overtaken by a later step renders again, so the copies end on the latest state", async () => {
@@ -802,8 +919,8 @@ describe("admin copies stay truthful when steps race the DMs", () => {
       },
     });
     await t.action(internal.slack.syncAdminMessages, { redemptionId });
-    expect(lastUpdateTo("DUANA")).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). ✔ Fulfilled by <@UANA>");
-    expect(lastUpdateTo("DUCLEO")).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (15 :taco:). ✔ Fulfilled by <@UANA>");
+    expect(lastUpdateTo("DUANA")).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (15 Hog coins). ✔ Fulfilled by <@UANA>");
+    expect(lastUpdateTo("DUCLEO")).toBe("🛎️ <@UBEN> wants *☕ Coffee on us* (15 Hog coins). ✔ Fulfilled by <@UANA>");
   });
 });
 

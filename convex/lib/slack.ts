@@ -1,3 +1,4 @@
+import { formatCoins } from "./coins";
 import { appLink } from "./links";
 
 const encoder = new TextEncoder();
@@ -78,10 +79,10 @@ export function escapeMrkdwn(text: string) {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-/** "☕ Coffee on us · 15 :taco:", plus how far off it is when the balance doesn't cover it. */
-export function rewardLine(reward: { emoji: string; name: string; cost: number }, balance: number, e: string) {
-  const short = reward.cost - balance;
-  return `${escapeMrkdwn(`${reward.emoji} ${reward.name}`)} · ${reward.cost} ${e}${short > 0 ? `  _${short} more to go_` : ""}`;
+/** "☕ Coffee on us · 15 Hog coins", plus how far off it is when the balance doesn't cover it. */
+export function rewardLine(reward: { emoji: string; name: string; cost: number }, balance: number) {
+  const short = reward.cost - Math.max(balance, 0);
+  return `${escapeMrkdwn(`${reward.emoji} ${reward.name}`)} · ${formatCoins(reward.cost)}${short > 0 ? `  _${short} more to go_` : ""}`;
 }
 
 export type SlackResponse = { ok: boolean; error?: string; [key: string]: unknown };

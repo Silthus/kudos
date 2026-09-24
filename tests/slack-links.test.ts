@@ -15,8 +15,9 @@ let sent: string[];
 
 beforeEach(async () => {
   t = setupConvex();
-  team = await seedTeam(t, { storeEnabled: true, emojiGlyph: "🌮" }, "TLUMEN");
-  await t.run((ctx) => ctx.db.patch(team.ben, { totalReceived: 42 }));
+  team = await seedTeam(t, { gameEnabled: true, realRewardsEnabled: true, emojiGlyph: "🌮" }, "TLUMEN");
+  // A level-5 player with 42 Hog coins: the Store (and real rewards) open at level 5.
+  await t.run((ctx) => ctx.db.insert("players", { workspaceId: team.workspaceId, memberId: team.ben, since: 0, xp: 350, level: 5, coins: 2 }));
   vi.stubEnv("SLACK_SIGNING_SECRET", SECRET);
   vi.stubEnv("SITE_URL", "https://kudos.example");
   sent = [];
@@ -56,7 +57,7 @@ const links = () => sent.flatMap((s) => s.match(/https:\/\/kudos\.example[^\s"'|
 test("every link into the web app names the Slack workspace it was sent in", async () => {
   const drain = () => t.finishAllScheduledFunctions(vi.runAllTimers);
   const rewardId = await t.run((ctx) =>
-    ctx.db.insert("rewards", { workspaceId: team.workspaceId, name: "Coffee", emoji: "☕", cost: 15, status: "active", createdBy: team.ana, updatedAt: Date.now() }),
+    ctx.db.insert("rewards", { workspaceId: team.workspaceId, name: "Coffee", emoji: "☕", cost: 15, unit: "coins", status: "active", createdBy: team.ana, updatedAt: Date.now() }),
   );
 
   // A kudos with a thoughtful note: the giver's DMs (gallery, and the quest log once a quest is done).

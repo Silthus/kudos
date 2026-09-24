@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { canSpend, coinBalance, lineCoins, WALLET_LEVEL } from "./coins";
+import { canSpend, coinBalance, formatCoins, lineCoins, WALLET_LEVEL } from "./coins";
 import { GAME_AREAS } from "./xp";
 
 describe("Hog coins (#55 §G4)", () => {
@@ -26,5 +26,15 @@ describe("Hog coins (#55 §G4)", () => {
   test("the wallet appears at level 3, where its locked tile said it would", () => {
     expect(WALLET_LEVEL).toBe(3);
     expect(GAME_AREAS.find((a) => a.key === "wallet")?.level).toBe(WALLET_LEVEL);
+  });
+
+  test("amounts read as Hog coins, singular for one", () => {
+    expect([formatCoins(1), formatCoins(12), formatCoins(0), formatCoins(-3), formatCoins(1200)]).toEqual([
+      "1 Hog coin",
+      "12 Hog coins",
+      "0 Hog coins",
+      "−3 Hog coins",
+      "1,200 Hog coins",
+    ]);
   });
 });

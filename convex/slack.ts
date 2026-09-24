@@ -5,6 +5,7 @@ import type { Id } from "./_generated/dataModel";
 import { baseEmojiName, countEmoji, mentionedUsers } from "./lib/parse";
 import { FALLBACK_REACTION } from "./lib/guidance";
 import { escapeMrkdwn, isSlackResponseUrl, rewardLine, slackApi, webLink, type SlackResponse } from "./lib/slack";
+import { formatCoins } from "./lib/coins";
 import { RARITY_SLACK_BADGE, type Rarity } from "./lib/messages";
 import { OPEN_COUNT_CAP } from "./lib/store";
 import { questBlocks } from "./lib/questBlocks";
@@ -377,7 +378,7 @@ async function publishHome(ctx: ActionCtx, workspaceId: Id<"workspaces">, token:
               .join("\n") || "_No kudos yet this week. Be the first!_",
         },
       },
-      ...storeSection(data.store, e, link),
+      ...storeSection(data.store, link),
       { type: "divider" },
       {
         type: "context",
@@ -393,7 +394,8 @@ async function publishHome(ctx: ActionCtx, workspaceId: Id<"workspaces">, token:
   await slackApi(token, "views.publish", { user_id: slackUserId, view });
 }
 
-type StoreHome = { balance: number; rewards: { emoji: string; name: string; cost: number }[]; waiting: number | null };
+/** `balance` null: an admin below level 5 sees only the requests waiting. */
+type StoreHome = { balance: number | null; rewards: { emoji: string; name: string; cost: number }[]; waiting: number | null };
 
 /** A button opening the web app, or none while the site's address isn't configured. */
 function linkButton(text: string, action_id: string, url: string | null, style?: "primary") {
@@ -406,11 +408,12 @@ function actions(buttons: (object | null)[]) {
   return elements.length > 0 ? [{ type: "actions", elements }] : [];
 }
 
-/** The App Home "Rewards store" section; nothing at all while the store is closed. */
-function storeSection(store: StoreHome | null, e: string, link: (path: string) => string | null) {
+/** The App Home "Rewards store" section, in Hog coins; nothing at all while real rewards are off. */
+function storeSection(store: StoreHome | null, link: (path: string) => string | null) {
   if (!store) return [];
-  const buttons = [linkButton("Open store", "open_store", link("/store"))];
-  const fields = [`*Balance*\n${store.balance} ${e}`];
+  const { balance } = store;
+  const buttons = balance === null ? [] : [linkButton("Open store", "open_store", link("/store"))];
+  const fields = balance === null ? [] : [`*Balance*\n${formatCoins(balance)}`];
   if (store.waiting !== null) {
     const count = store.waiting >= OPEN_COUNT_CAP ? `${OPEN_COUNT_CAP - 1}+` : String(store.waiting);
     fields.push(`*For admins*\n${count} ${store.waiting === 1 ? "request" : "requests"} waiting`);
@@ -422,14 +425,18 @@ function storeSection(store: StoreHome | null, e: string, link: (path: string) =
     { type: "divider" },
     { type: "header", text: { type: "plain_text", text: "Rewards store" } },
     { type: "section", fields: fields.map((text) => ({ type: "mrkdwn", text })) },
-    {
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        verbatim: true,
-        text: store.rewards.map((r) => rewardLine(r, store.balance, e)).join("\n") || "_The shelves are empty. Your admins are still stocking the store._",
-      },
-    },
+    ...(balance === null
+      ? []
+      : [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              verbatim: true,
+              text: store.rewards.map((r) => rewardLine(r, balance)).join("\n") || "_The shelves are empty. Your admins are still stocking the store._",
+            },
+          },
+        ]),
     ...actions(buttons),
   ];
 }
@@ -494,8 +501,7 @@ type AdminCopy = {
   slackTeamId: string;
   status: "pending" | keyof typeof DECIDED;
   requester: { slackUserId: string; name: string };
-  reward: { name: string; emoji: string; cost: number };
-  e: string;
+  reward: { name: string; emoji: string; cost: number; legacy: boolean };
   prompt?: string;
   answer?: string;
   /** Only in the first DM: the balance right after the request, which a later refund makes stale. */
@@ -512,7 +518,8 @@ type AdminCopy = {
 function adminCopy(copy: AdminCopy) {
   const review = webLink(copy.slackTeamId, "/admin?tab=store");
   const item = `*${escapeMrkdwn(`${copy.reward.emoji} ${copy.reward.name}`)}*`;
-  const ask = `🛎️ <@${copy.requester.slackUserId}> wants ${item} (${copy.reward.cost} ${copy.e}).`;
+  const price = copy.reward.legacy ? `${copy.reward.cost} kudos, old Store` : formatCoins(copy.reward.cost);
+  const ask = `🛎️ <@${copy.requester.slackUserId}> wants ${item} (${price}).`;
   const answer = copy.answer && `Answer${copy.prompt ? ` to “${escapeMrkdwn(copy.prompt)}”` : ""}: ${escapeMrkdwn(copy.answer)}`;
   const decided = copy.status === "pending" ? null : `${DECIDED[copy.status]} by ${copy.step?.bySlackUserId ? `<@${copy.step.bySlackUserId}>` : "an admin"}`;
   const note = copy.step?.note ? `: “${escapeMrkdwn(copy.step.note)}”` : "";
@@ -557,17 +564,22 @@ function adminCopy(copy: AdminCopy) {
  * since later steps may already have happened; a Slack failure never blocks the step.
  */
 export const notifyRedemption = internalAction({
-  args: { redemptionId: v.id("redemptions"), event: redemptionEventValidator, balance: v.number() },
+  // balance: the requester's Hog coins right after the step, or null when their wallet isn't shown to them.
+  args: { redemptionId: v.id("redemptions"), event: redemptionEventValidator, balance: v.union(v.number(), v.null()) },
   returns: v.null(),
   handler: async (ctx, args) => {
     const { event } = args;
     const data = await ctx.runQuery(internal.slackData.redemptionForSlack, { redemptionId: args.redemptionId, withAdmins: event === "requested" });
     if (!data) return null;
     const { botToken: token, requester, reward } = data;
-    const e = `:${data.emojiName}:`;
     const item = `*${escapeMrkdwn(`${reward.emoji} ${reward.name}`)}*`;
-    const cost = `${reward.cost} ${e}`;
-    const balance = data.showBalance ? `${args.balance} ${e}` : null;
+    const cost = formatCoins(reward.cost);
+    // Hog coins are private to the member and admins, whatever received visibility says (ADR 0002),
+    // and only shown once the requester's wallet is (level 3, game shown).
+    const balance = args.balance === null ? null : formatCoins(args.balance);
+    const refunded = reward.legacy
+      ? "It was a request from the old kudos Store, so no Hog coins come back."
+      : `${cost} ${reward.cost === 1 ? "is" : "are"} back in your balance${balance ? ` (${balance})` : ""}.`;
 
     // Word the DM for the step it's about, not the current status: a later step may already have happened.
     const step = [...data.history].reverse().find((h) => h.status === (event === "requested" ? "pending" : event));
@@ -583,11 +595,11 @@ export const notifyRedemption = internalAction({
           : `🎁 Your request for ${item} (${cost}) is in. An admin will take it from here.${balance ? ` Balance: ${balance}.` : ""}`,
       approved: `✅ ${by} approved ${item}. It's on its way.${noteFrom}`,
       fulfilled: `🎉 ${item} is yours!${noteFrom}`,
-      declined: `${item} was declined by ${by}${note ? `: “${note}”${endsSentence ? "" : "."}` : "."} ${cost} are back in your balance${balance ? ` (${balance})` : ""}.`,
+      declined: `${item} was declined by ${by}${note ? `: “${note}”${endsSentence ? "" : "."}` : "."} ${refunded}`,
       cancelled: null, // they did it themselves
     }[event];
     if (update && !requester.deactivated) {
-      // The store page only exists while the store is open.
+      // The Store page, with My requests, only exists while the game is on.
       const myRequests = data.storeOpen ? webLink(data.slackTeamId, "/store#my-requests") : null;
       const link = myRequests && `Follow it under <${myRequests}|My requests>`;
       await postDm(token, requester.slackUserId, update, [
@@ -604,7 +616,6 @@ export const notifyRedemption = internalAction({
         status: "pending",
         requester,
         reward,
-        e,
         prompt: data.prompt,
         answer: data.answer,
         balance,
@@ -643,7 +654,6 @@ export const syncAdminMessages = internalAction({
           status: data.status,
           requester: data.requester,
           reward: data.reward,
-          e: `:${data.emojiName}:`,
           prompt: data.prompt,
           answer: data.answer,
           isOwn: own,

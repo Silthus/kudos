@@ -49,7 +49,10 @@ afterEach(() => {
 
 describe("the giver's reply is ephemeral where they gave, with what it earned", () => {
   test("in the thread, itemised; the receiver still gets a DM", async () => {
+    // Only a Rare-or-better first discovery is DMed (#99); pin the rarity roll (0.9 rolls Rare), or this passes 1 run in 5.
+    vi.spyOn(Math, "random").mockReturnValue(0.9);
     await post("<@UBEN> :taco: thanks for the thorough review", "UANA", "50.0001");
+    vi.mocked(Math.random).mockRestore();
     const [reply] = ephemerals();
     expect(reply).toMatchObject({ channel: "C1", thread_ts: "50.0001", user: "UANA" });
     expect(reply.text).toContain("+20 XP · new connection +10");

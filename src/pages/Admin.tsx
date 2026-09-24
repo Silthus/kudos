@@ -54,7 +54,7 @@ export function Admin() {
           />
         }
       />
-      {tab === "settings" && <SettingsForm initial={data.settings} isDemo={data.workspace.isDemo} storeEnabled={data.storeEnabled} />}
+      {tab === "settings" && <SettingsForm initial={data.settings} isDemo={data.workspace.isDemo} />}
       {tab === "members" && <Members />}
       {tab === "moderation" && <Moderation />}
       {tab === "store" && <AdminStore isDemo={data.workspace.isDemo} />}
@@ -67,7 +67,7 @@ type Settings = NonNullable<ReturnType<typeof useQuery<typeof api.admin.overview
 
 const TIMEZONES = ["Europe/Berlin", "Europe/London", "Europe/Lisbon", "Europe/Madrid", "Europe/Stockholm", "America/New_York", "America/Chicago", "America/Los_Angeles", "Asia/Tokyo", "Asia/Kolkata", "Australia/Sydney", "UTC"];
 
-function SettingsForm({ initial, isDemo, storeEnabled }: { initial: Settings; isDemo: boolean; storeEnabled: boolean }) {
+function SettingsForm({ initial, isDemo }: { initial: Settings; isDemo: boolean }) {
   const [s, setS] = useState(initial);
   const [state, setState] = useState<{ kind: "idle" | "saving" | "saved" } | { kind: "error"; message: string }>({ kind: "idle" });
   const update = useMutation(api.admin.updateSettings);
@@ -141,14 +141,10 @@ function SettingsForm({ initial, isDemo, storeEnabled }: { initial: Settings; is
                 { v: "everyone", title: "Everyone", body: "Received counts on leaderboards and analytics." },
               ] as const
             ).map((o) => {
-              // A balance is a received count, so the store and "hidden" can't coexist (ADR 0001).
-              const blocked = o.v === "hidden" && storeEnabled && s.receivedVisibility !== "hidden";
               return (
                 <button
                   key={o.v}
                   onClick={() => set("receivedVisibility", o.v)}
-                  disabled={blocked}
-                  title={blocked ? "Turn off the store before hiding received kudos." : undefined}
                   className={clsx(
                     "rounded-xl border p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-50",
                     s.receivedVisibility === o.v ? "border-saffron/60 bg-saffron/10" : "border-line bg-ink/40 enabled:hover:border-line-strong",
@@ -158,7 +154,7 @@ function SettingsForm({ initial, isDemo, storeEnabled }: { initial: Settings; is
                     {o.title}
                     {s.receivedVisibility === o.v && <Check className="h-4 w-4 text-saffron" />}
                   </div>
-                  <p className="mt-1 text-xs text-muted">{blocked ? "Turn off the store first: balances show what people received." : o.body}</p>
+                  <p className="mt-1 text-xs text-muted">{o.body}</p>
                 </button>
               );
             })}
@@ -256,7 +252,7 @@ function Members() {
               <th className="px-3 py-2 font-normal">Member</th>
               <th className="px-3 py-2 text-right font-normal">Given</th>
               <th className="px-3 py-2 text-right font-normal">Received</th>
-              {viewer.workspace.storeEnabled && <th className="px-3 py-2 text-right font-normal">Balance</th>}
+              {viewer.workspace.gameEnabled && <th className="px-3 py-2 text-right font-normal">Hog coins</th>}
               <th className="px-3 py-2 text-right font-normal">Maxed days</th>
               <th className="px-3 py-2 text-right font-normal">Last gave</th>
               <th className="px-3 py-2 text-right font-normal">Admin</th>
@@ -278,14 +274,14 @@ function Members() {
                 <td className="px-3 py-2.5 text-right font-mono tabular" title={m.totalReceived === null ? "Hidden by the received-kudos visibility setting" : undefined}>
                   {m.totalReceived === null ? <span className="text-faint">—</span> : nf.format(m.totalReceived)}
                 </td>
-                {viewer.workspace.storeEnabled && (
+                {viewer.workspace.gameEnabled && (
                   <td className="px-3 py-1.5 text-right">
                     {m.balance === null ? (
                       <span className="text-faint">—</span>
                     ) : (
                       <button
                         onClick={() => setLedgerFor(m._id)}
-                        title="Store balance: received + granted − spent. Open the ledger to see or adjust it."
+                        title="Hog coins: earned + adjusted − spent. Open the ledger to see or adjust them."
                         aria-label={`${m.name}'s balance: ${m.balance}. Open ledger`}
                         className={clsx(
                           "inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-mono tabular transition hover:bg-panel-3",

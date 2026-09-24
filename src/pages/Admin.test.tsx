@@ -99,6 +99,25 @@ test("switching the game on and saving sends it with the other settings, and say
   expect(saved).toHaveBeenCalledWith({ ...settings, gameEnabled: true });
 });
 
+test("admins see Hog coin balances while the game is on, whatever their own level (the ledger is how they adjust coins)", () => {
+  // storeEnabled is the viewing admin's own Store access (level 3+); it must not hide other people's balances.
+  const viewer = { member: { _id: "m0", name: "Alex Rivera", isAdmin: true }, workspace: { isDemo: false, storeEnabled: false, gameEnabled: true } } as unknown as ReadyViewer;
+  act(() => root.unmount());
+  root = createRoot(host);
+  act(() =>
+    root.render(
+      <MemoryRouter initialEntries={["/admin?tab=members"]}>
+        <ViewerContext.Provider value={viewer}>
+          <Admin />
+        </ViewerContext.Provider>
+      </MemoryRouter>,
+    ),
+  );
+  const ledger = host.querySelector<HTMLButtonElement>("button[aria-label=\"Lena Park's balance: 7. Open ledger\"]");
+  expect(ledger).not.toBeNull();
+  expect(ledger!.title).toContain("Hog coins");
+});
+
 test("on a phone the members table scrolls inside its card, and nothing in it widens the page", () => {
   const viewer = { member: { _id: "m0", name: "Alex Rivera", isAdmin: true }, workspace: { isDemo: false, storeEnabled: true } } as unknown as ReadyViewer;
   act(() => root.unmount());

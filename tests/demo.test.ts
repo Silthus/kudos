@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { addDays, weekdayOfKey } from "../convex/lib/time";
+import { coinBalance } from "../convex/lib/coins";
 import { DEMO_REWARDS } from "../convex/lib/demoStore";
 import { requestRedemption } from "../convex/store";
 import { all, CONVEX_LIMITS, DEMO_TIMEOUT, NOW, seedTeam, setupConvex, signInAs, TODAY } from "./helpers";
@@ -99,10 +100,12 @@ describe("the demo plays the game", () => {
     });
     const reply = res.messages.find((m) => m.category === "giver_success");
     expect(reply?.earnings).toMatch(/^\+\d+ XP · \+1 Hog coin\b/);
-    // The year played through the rules left Alex coins to spend.
+    // The year played through the rules left Alex coins to spend, after what the seeded Store story spent (#91).
     const wallet = (await demo.query(api.game.mine, {})).wallet!;
     expect(wallet.fromKudos).toBeGreaterThan(0);
-    expect(wallet.balance).toBe(wallet.fromKudos + wallet.fromLevels);
+    expect(wallet.spent).toBeGreaterThan(0);
+    expect(wallet.balance).toBe(wallet.fromKudos + wallet.fromLevels - wallet.spent + wallet.adjusted);
+    expect(wallet.balance).toBeGreaterThan(0);
 
     // A reset starts the coins over too, including what the Store (#91) spent or admins adjusted.
     const alexId = (await t.run((ctx) => ctx.db.query("members").collect())).find((m) => m.slackUserId === "UDEMOYOU")!._id;
@@ -117,8 +120,13 @@ describe("the demo plays the game", () => {
       expect(p.xp).toBe(after.filter((e) => e.memberId === p.memberId).reduce((s, e) => s + e.xp, 0));
       expect(p.coins).toBe(after.filter((e) => e.memberId === p.memberId).reduce((s, e) => s + (e.coins ?? 0), 0));
     }
+    // What's spent or adjusted now is exactly the reseeded Store story's, not the 40 and −3 from before.
     const fresh = (await t.run((ctx) => ctx.db.get(alexId)))!;
-    expect([fresh.coinsSpent, fresh.coinsAdjusted]).toEqual([undefined, undefined]);
+    const redemptions = (await t.run((ctx) => ctx.db.query("redemptions").collect())).filter((r) => r.memberId === alexId);
+    const adjustments = (await t.run((ctx) => ctx.db.query("balanceAdjustments").collect())).filter((a) => a.memberId === alexId);
+    const held = redemptions.filter((r) => r.status !== "declined" && r.status !== "cancelled");
+    expect(fresh.coinsSpent ?? 0).toBe(held.reduce((s, r) => s + r.cost, 0));
+    expect(fresh.coinsAdjusted ?? 0).toBe(adjustments.reduce((s, a) => s + a.amount, 0));
   });
 });
 
@@ -517,20 +525,25 @@ describe("sharing the demo", () => {
 
 const page = { numItems: 100, cursor: null };
 
-/** Every store counter agrees with the redemptions and adjustments behind it. */
+/** Every store counter agrees with the redemptions, purchases and adjustments behind it; no Hog coin balance is below zero. */
 async function expectStoreInvariants() {
-  const { members, rewards, redemptions, adjustments } = await t.run(async (ctx) => ({
+  const { members, rewards, redemptions, adjustments, players, purchases } = await t.run(async (ctx) => ({
     members: await ctx.db.query("members").collect(),
     rewards: await ctx.db.query("rewards").collect(),
     redemptions: await ctx.db.query("redemptions").collect(),
     adjustments: await ctx.db.query("balanceAdjustments").collect(),
+    players: await ctx.db.query("players").collect(),
+    purchases: await ctx.db.query("itemPurchases").collect(),
   }));
   const held = (r: { status: string }) => r.status !== "declined" && r.status !== "cancelled";
   for (const m of members) {
     const mine = redemptions.filter((r) => r.memberId === m._id);
-    expect(m.storeSpent ?? 0, m.name).toBe(mine.filter(held).reduce((s, r) => s + r.cost, 0));
-    expect(m.storeGranted ?? 0, m.name).toBe(adjustments.filter((a) => a.memberId === m._id).reduce((s, a) => s + a.amount, 0));
-    expect(m.totalReceived + (m.storeGranted ?? 0) - (m.storeSpent ?? 0), `${m.name}'s balance`).toBeGreaterThanOrEqual(0);
+    expect(mine.every((r) => r.unit === "coins"), m.name).toBe(true);
+    const bought = purchases.filter((p) => p.memberId === m._id).reduce((s, p) => s + p.price, 0);
+    expect(m.coinsSpent ?? 0, m.name).toBe(mine.filter(held).reduce((s, r) => s + r.cost, 0) + bought);
+    expect(m.coinsAdjusted ?? 0, m.name).toBe(adjustments.filter((a) => a.memberId === m._id).reduce((s, a) => s + a.amount, 0));
+    const player = players.find((p) => p.memberId === m._id);
+    expect(coinBalance(player ?? { level: 1 }, m).balance, `${m.name}'s balance`).toBeGreaterThanOrEqual(0);
   }
   for (const reward of rewards) {
     const of = redemptions.filter((r) => r.rewardId === reward._id);
@@ -632,10 +645,10 @@ describe("the demo store", () => {
   });
 
   test("Lena never decides in a real workspace", async () => {
-    const team = await seedTeam(t, { storeEnabled: true });
+    const team = await seedTeam(t, { gameEnabled: true, realRewardsEnabled: true });
     const { redemptionId } = await t.run(async (ctx) => {
-      const rewardId = await ctx.db.insert("rewards", { workspaceId: team.workspaceId, name: "Coffee on us", emoji: "☕", cost: 1, status: "active", createdBy: team.ana, updatedAt: 0 });
-      await ctx.db.patch(team.ben, { totalReceived: 5 });
+      const rewardId = await ctx.db.insert("rewards", { workspaceId: team.workspaceId, name: "Coffee on us", emoji: "☕", cost: 1, unit: "coins", status: "active", createdBy: team.ana, updatedAt: 0 });
+      await ctx.db.insert("players", { workspaceId: team.workspaceId, memberId: team.ben, since: 0, xp: 350, level: 5, coins: 0 });
       const workspace = (await ctx.db.get(team.workspaceId))!;
       return await requestRedemption(ctx, { workspace, member: (await ctx.db.get(team.ben))!, rewardId, expectedCost: 1, now: NOW.getTime() });
     });
@@ -763,6 +776,7 @@ describe("the demo store", () => {
     const seeded = await story();
     await redeem(demo, "Hoodie");
     await redeem(demo, "Coffee on us");
+    await demo.mutation(api.store.buyItem, { item: "spreeJoin", expectedPrice: 8 });
     await wait(20_000);
 
     await demo.mutation(api.demo.resetDemo, {});
@@ -777,9 +791,10 @@ describe("the demo store", () => {
     expect(seeding).toBe(true);
     const wiped = await t.run(async (ctx) => ({
       tables: await Promise.all((["rewards", "redemptions", "balanceAdjustments"] as const).map(async (table) => (await ctx.db.query(table).collect()).length)),
-      counters: (await ctx.db.query("members").collect()).filter((m) => m.storeSpent !== undefined || m.storeGranted !== undefined),
+      counters: (await ctx.db.query("members").collect()).filter((m) => m.coinsSpent !== undefined || m.coinsAdjusted !== undefined),
+      purchases: (await ctx.db.query("itemPurchases").collect()).length,
     }));
-    expect(wiped).toEqual({ tables: [0, 0, 0], counters: [] });
+    expect(wiped).toEqual({ tables: [0, 0, 0], counters: [], purchases: 0 });
 
     await t.finishAllScheduledFunctions(vi.runAllTimers, 1000);
     expect(await story()).toEqual(seeded);

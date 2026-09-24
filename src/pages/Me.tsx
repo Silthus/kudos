@@ -364,7 +364,7 @@ function AllowanceCard({ used, limit, glyph }: { used: number; limit: number; gl
       <p className="mt-3 text-xs text-muted">
         Used {used} of {limit} · resets at midnight
       </p>
-      <StoreBalanceChip glyph={glyph} className="mt-3" />
+      <StoreBalanceChip className="mt-3" />
     </Card>
   );
 }

@@ -130,9 +130,15 @@ describe("a hard reload of a deep link", () => {
   });
 
   test("a page this viewer can't open still falls back to the dashboard", () => {
-    reload("/store", readyViewer({ storeEnabled: false }));
+    reload("/store", readyViewer({ storeEnabled: false, gameEnabled: false }));
     expect(url).toBe("/me");
     expect(screen()).toBe("Me");
+  });
+
+  test("the Store opens from a link while the game is on, even before it's in the menu: the page shows its locked state", () => {
+    reload("/store#my-requests", readyViewer({ storeEnabled: false, gameEnabled: true }));
+    expect(url).toBe("/store#my-requests");
+    expect(screen()).toBe("Store");
   });
 });
 
