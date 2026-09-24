@@ -2,6 +2,7 @@ import { useConvexAuth, useQuery } from "convex/react";
 import { Navigate, Route, Routes } from "react-router";
 import { api } from "../convex/_generated/api";
 import { AppShell } from "./components/AppShell";
+import { useLinkedWorkspace } from "./lib/linkedWorkspace";
 import { appScreen } from "./lib/routing";
 import { ViewerContext } from "./lib/viewer";
 import { Landing } from "./pages/Landing";
@@ -30,7 +31,8 @@ export function App() {
   // Asked only once the backend holds the session: an earlier answer would read as signed out.
   const viewer = useQuery(api.session.viewer, auth.isAuthenticated ? {} : "skip");
   const screen = appScreen(auth, viewer);
-  if (screen === "loading") return <Splash />;
+  const followingLink = useLinkedWorkspace(screen === "ready" && viewer?.status === "ready" ? viewer : null);
+  if (screen === "loading" || followingLink) return <Splash />;
 
   if (screen === "signedOut" || viewer?.status !== "ready") {
     // Rendered at the requested URL, so signing in (or a session that was only refreshing) comes back to it.

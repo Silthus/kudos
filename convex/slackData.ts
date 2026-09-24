@@ -9,7 +9,7 @@ import { balanceOf, MAX_ACTIVE_REWARDS, storeOpen } from "./lib/store";
 import { activeRewards, openRedemptionCount, ownDecisionBlocker, transitionRedemption } from "./store";
 import { openRequestCount } from "./storeAdmin";
 import { questProgressValidator, redemptionStatusValidator } from "./schema";
-import { rewardLine, siteUrl } from "./lib/slack";
+import { rewardLine, webLink } from "./lib/slack";
 import { addDays, dayKeyFor, weekdayOfKey } from "./lib/time";
 import { weekBucket } from "./lib/buckets";
 import { backfilledRollups, memberBucket } from "./lib/stats";
@@ -427,6 +427,7 @@ export const homeData = internalQuery({
         ).length
       : 0;
     return {
+      slackTeamId: workspace.slackTeamId,
       emojiName: workspace.emojiName,
       dailyLimit: workspace.dailyLimit,
       showReceived: workspace.receivedVisibility !== "hidden",
@@ -442,6 +443,9 @@ export const homeData = internalQuery({
     };
   },
 });
+
+/** A context line in a slash-command reply; none for a link that can't be built. */
+const context = (text: string | null) => (text ? [{ type: "context", elements: [{ type: "mrkdwn", text }] }] : []);
 
 /** Rewards on the shelf now: active and not sold out, cheapest first. */
 async function shelf(ctx: QueryCtx, workspace: Doc<"workspaces">) {
@@ -480,7 +484,10 @@ export const slashCommand = internalMutation({
     if (!workspace || workspace.status !== "active") {
       return { response_type: "ephemeral", text: "Kudos isn't installed in this workspace yet." };
     }
-    const site = siteUrl();
+    const link = (path: string, label: string) => {
+      const url = webLink(workspace.slackTeamId, path);
+      return url ? `<${url}|${label}>` : null;
+    };
     const e = `:${workspace.emojiName}:`;
     const sub = text.trim().toLowerCase();
     if (sub === "top" || sub === "leaderboard") {
@@ -495,7 +502,7 @@ export const slashCommand = internalMutation({
         blocks: [
           { type: "header", text: { type: "plain_text", text: "This week's most generous" } },
           { type: "section", text: { type: "mrkdwn", text: lines.join("\n") || "_Nobody has given kudos this week yet. Be the first!_" } },
-          { type: "context", elements: [{ type: "mrkdwn", text: `<${site}/leaderboard|Open the full leaderboard>` }] },
+          ...context(link("/leaderboard", "Open the full leaderboard")),
         ],
       };
     }
@@ -517,7 +524,12 @@ export const slashCommand = internalMutation({
           { type: "section", fields: fields.map((t) => ({ type: "mrkdwn", text: t })) },
           {
             type: "context",
-            elements: [{ type: "mrkdwn", text: `${RARITY_SLACK_BADGE[n.rarity as Rarity]}${n.isNewDiscovery ? " · ✨ New discovery!" : ""} · <${site}/me|Your dashboard>` }],
+            elements: [
+              {
+                type: "mrkdwn",
+                text: [RARITY_SLACK_BADGE[n.rarity as Rarity], n.isNewDiscovery ? "✨ New discovery!" : null, link("/me", "Your dashboard")].filter(Boolean).join(" · "),
+              },
+            ],
           },
         ],
       };
@@ -527,7 +539,7 @@ export const slashCommand = internalMutation({
       if (!quests) return { response_type: "ephemeral", text: "Weekly quests aren't on in this workspace." };
       const member = await ensureMember(ctx, workspace, slackUserId);
       const board = await questBoard(ctx, workspace, member, weekKeyFor(Date.now(), workspace.timezone));
-      return { response_type: "ephemeral", text: "This week's quests", blocks: questBlocks(board, site) };
+      return { response_type: "ephemeral", text: "This week's quests", blocks: questBlocks(board, webLink(workspace.slackTeamId, "/quests")) };
     }
     const store = storeOpen(workspace);
     if (sub === "store" || sub === "balance") {
@@ -555,7 +567,7 @@ export const slashCommand = internalMutation({
               text: rewards.map((r) => rewardLine(r, balance, e)).join("\n") || "_The shelves are empty. Your admins are still stocking the store._",
             },
           },
-          { type: "context", elements: [{ type: "mrkdwn", text: `<${site}/store|Open the store>` }] },
+          ...context(link("/store", "Open the store")),
         ],
       };
     }
@@ -571,7 +583,7 @@ export const slashCommand = internalMutation({
         "`/kudos me` what you can give today · `/kudos top` weekly leaderboard",
         quests ? "`/kudos quests` your weekly quests" : "",
         store ? "`/kudos store` your balance and the rewards you can spend it on" : "",
-        `<${site}|Open the Kudos dashboard>`,
+        link("/me", "Open the Kudos dashboard"),
       ]
         .filter(Boolean)
         .join("\n"),
@@ -599,6 +611,7 @@ export const redemptionForSlack = internalQuery({
     v.null(),
     v.object({
       workspaceId: v.id("workspaces"),
+      slackTeamId: v.string(),
       botToken: v.string(),
       emojiName: v.string(),
       showBalance: v.boolean(),
@@ -651,6 +664,7 @@ export const redemptionForSlack = internalQuery({
 
     return {
       workspaceId: workspace._id,
+      slackTeamId: workspace.slackTeamId,
       botToken: install.botToken,
       emojiName: workspace.emojiName,
       showBalance: workspace.receivedVisibility !== "hidden",
@@ -692,6 +706,7 @@ export const adminCopies = internalQuery({
   returns: v.union(
     v.null(),
     v.object({
+      slackTeamId: v.string(),
       botToken: v.string(),
       emojiName: v.string(),
       version: v.string(),
@@ -717,6 +732,7 @@ export const adminCopies = internalQuery({
     if (!install || !requester) return null;
     const last = redemption.history[redemption.history.length - 1];
     return {
+      slackTeamId: workspace.slackTeamId,
       botToken: install.botToken,
       emojiName: workspace.emojiName,
       // Changes with every step and every newly saved copy, so a sync can tell it went stale.

@@ -29,7 +29,7 @@ export function CardHeader({ title, subtitle, action, icon }: { title: ReactNode
         </h2>
         {subtitle && <p className="mt-0.5 text-sm text-muted">{subtitle}</p>}
       </div>
-      {action && <div className="shrink-0">{action}</div>}
+      {action && <div className="max-w-full shrink-0">{action}</div>}
     </header>
   );
 }
@@ -66,11 +66,14 @@ export function Segmented<T extends string>({
   onChange,
   options,
   size = "md",
+  wrap = false,
 }: {
   value: T;
   onChange: (v: T) => void;
   options: { value: T; label: ReactNode; disabled?: boolean; title?: string }[];
   size?: "sm" | "md";
+  /** Page-level tabs: wrap onto a second row on a phone, so every tab stays in sight. */
+  wrap?: boolean;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   // Keep the selected tab visible when the bar scrolls (deep links like ?tab=slack on a phone).
@@ -84,12 +87,15 @@ export function Segmented<T extends string>({
     }
   }, [value]);
   return (
-    // Scrolls sideways instead of widening the page when the tabs don't fit a phone.
+    // Scrolls sideways (or wraps) instead of widening the page when the tabs don't fit a phone.
     <motion.div
       ref={listRef}
       layoutScroll
       role="tablist"
-      className="relative inline-flex max-w-full overflow-x-auto rounded-xl border border-line bg-ink/60 p-1 [scrollbar-width:none]"
+      className={clsx(
+        "relative inline-flex max-w-full rounded-xl border border-line bg-ink/60 p-1",
+        wrap ? "flex-wrap" : "overflow-x-auto [scrollbar-width:none]",
+      )}
     >
       {options.map((o) => (
         <button
@@ -101,6 +107,7 @@ export function Segmented<T extends string>({
           onClick={() => onChange(o.value)}
           className={clsx(
             "relative shrink-0 whitespace-nowrap rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+            wrap && "flex-auto", // wrapped rows share the width evenly
             size === "sm" ? "px-2.5 py-1 text-xs" : "px-3 py-1.5 text-sm",
             value === o.value ? "text-ink" : "text-muted hover:text-cream",
           )}
@@ -112,7 +119,7 @@ export function Segmented<T extends string>({
               transition={{ type: "spring", bounce: 0.2, duration: 0.45 }}
             />
           )}
-          <span className="relative flex items-center gap-1.5">{o.label}</span>
+          <span className="relative flex items-center justify-center gap-1.5">{o.label}</span>
         </button>
       ))}
     </motion.div>

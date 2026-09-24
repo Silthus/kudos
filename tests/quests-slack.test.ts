@@ -94,7 +94,7 @@ describe("App Home", () => {
     expect(context).toMatchObject({ type: "context", elements: [{ type: "mrkdwn", text: "1 of 2 done · Resets Monday · only thoughtful kudos count" }] });
     expect(actions).toMatchObject({
       type: "actions",
-      elements: [{ type: "button", text: { type: "plain_text", text: "Open quest log" }, url: "https://kudos.example/quests", action_id: "open_quest_log" }],
+      elements: [{ type: "button", text: { type: "plain_text", text: "Open quest log" }, url: "https://kudos.example/quests?ws=T1", action_id: "open_quest_log" }],
     });
   });
 

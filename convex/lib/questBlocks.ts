@@ -40,18 +40,21 @@ function tally(board: Extract<QuestBoardView, { enabled: true }>) {
   return [done, "Resets Monday", "only thoughtful kudos count"].filter(Boolean).join(" · ");
 }
 
-/** Header, one line per quest, the tally and the quest log button; nothing while quests are off. */
-export function questBlocks(board: QuestBoardView, site: string): object[] {
+/**
+ * Header, one line per quest, the tally and the quest log button (`questLog`, from `webLink`);
+ * nothing while quests are off.
+ */
+export function questBlocks(board: QuestBoardView, questLog: string | null): object[] {
   if (!board.enabled || board.quests.length === 0) return [];
   return [
     { type: "header", text: { type: "plain_text", text: "This week's quests" } },
     { type: "section", text: { type: "mrkdwn", text: board.quests.map(questLine).join("\n") } },
     { type: "context", elements: [{ type: "mrkdwn", text: tally(board) }] },
-    ...(site
+    ...(questLog
       ? [
           {
             type: "actions",
-            elements: [{ type: "button", text: { type: "plain_text", text: "Open quest log" }, url: `${site}/quests`, action_id: "open_quest_log" }],
+            elements: [{ type: "button", text: { type: "plain_text", text: "Open quest log" }, url: questLog, action_id: "open_quest_log" }],
           },
         ]
       : []),

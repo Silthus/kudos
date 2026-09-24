@@ -3,7 +3,7 @@ import { questBlocks, type QuestBoardView } from "./questBlocks";
 
 /** Block JSON fixtures for "This week's quests" (spec #5 §13), shared by App Home and `/kudos quests`. */
 
-const SITE = "https://kudos.example";
+const QUEST_LOG = "https://kudos.example/quests?ws=T1";
 
 const spread = { title: "Spread the love", description: "Recognize 3 different teammates, each in their own message", goal: 3 };
 const fresh = { title: "New connection", description: "Recognize someone you've never recognized before", goal: 1 };
@@ -24,12 +24,12 @@ const midWeek: QuestBoardView = {
 const header = { type: "header", text: { type: "plain_text", text: "This week's quests" } };
 const questLog = {
   type: "actions",
-  elements: [{ type: "button", text: { type: "plain_text", text: "Open quest log" }, url: `${SITE}/quests`, action_id: "open_quest_log" }],
+  elements: [{ type: "button", text: { type: "plain_text", text: "Open quest log" }, url: QUEST_LOG, action_id: "open_quest_log" }],
 };
 
 describe("questBlocks", () => {
   test("mid-week: a line per quest with its progress, the tally and the quest log", () => {
-    expect(questBlocks(midWeek, SITE)).toEqual([
+    expect(questBlocks(midWeek, QUEST_LOG)).toEqual([
       header,
       {
         type: "section",
@@ -57,7 +57,7 @@ describe("questBlocks", () => {
       completed: 2,
       sweep: true,
     };
-    const [, lines, context] = questBlocks(swept, SITE) as { text?: { text: string }; elements?: { text: string }[] }[];
+    const [, lines, context] = questBlocks(swept, QUEST_LOG) as { text?: { text: string }; elements?: { text: string }[] }[];
     expect(lines.text!.text).toContain("✅ *Say why* · 2/2 · 🟠 *LEGENDARY*");
     expect(context.elements![0].text).toBe("🧹 Clean sweep! · Resets Monday · only thoughtful kudos count");
   });
@@ -69,19 +69,19 @@ describe("questBlocks", () => {
       completed: 0,
       available: 0,
     };
-    const [, , context] = questBlocks(waived, SITE) as { elements?: { text: string }[] }[];
+    const [, , context] = questBlocks(waived, QUEST_LOG) as { elements?: { text: string }[] }[];
     expect(context.elements![0].text).toBe("Resets Monday · only thoughtful kudos count");
   });
 
   test("without a site to link to, there's no button to a broken URL", () => {
-    expect(questBlocks(midWeek, "").map((b) => (b as { type: string }).type)).toEqual(["header", "section", "context"]);
+    expect(questBlocks(midWeek, null).map((b) => (b as { type: string }).type)).toEqual(["header", "section", "context"]);
   });
 
   test("a board with no quests left in the catalog shows nothing rather than an empty section Slack rejects", () => {
-    expect(questBlocks({ ...midWeek, quests: [], completed: 0, available: 0 }, SITE)).toEqual([]);
+    expect(questBlocks({ ...midWeek, quests: [], completed: 0, available: 0 }, QUEST_LOG)).toEqual([]);
   });
 
   test("nothing at all while quests are off", () => {
-    expect(questBlocks({ enabled: false }, SITE)).toEqual([]);
+    expect(questBlocks({ enabled: false }, QUEST_LOG)).toEqual([]);
   });
 });

@@ -1,3 +1,5 @@
+import { appLink } from "./links";
+
 const encoder = new TextEncoder();
 
 function toHex(buf: ArrayBuffer) {
@@ -145,6 +147,14 @@ export function convexSiteUrl() {
 /** Origin of the web app, for browser redirects and links. */
 export function siteUrl() {
   return (process.env.SITE_URL ?? process.env.CONVEX_SITE_URL ?? "").replace(/\/$/, "");
+}
+
+/**
+ * The one way to link into the web app from Slack: `path` in the workspace `slackTeamId` the
+ * message is sent in (see `lib/links.ts`). Null while the site's address isn't configured.
+ */
+export function webLink(slackTeamId: string, path: string) {
+  return appLink(siteUrl(), slackTeamId, path);
 }
 
 export function slackManifest(base: string, appName = "Kudos") {

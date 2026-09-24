@@ -21,6 +21,8 @@ export const viewer = query({
       // Every workspace this user can switch to, the current one first.
       workspaces: usable.map((m) => ({
         memberId: m.member._id,
+        // What links from Slack name (`?ws=`, lib/links.ts): only ever the viewer's own workspaces.
+        slackTeamId: m.workspace.slackTeamId,
         name: m.workspace.name,
         iconUrl: m.workspace.iconUrl ?? null,
         current: m.member._id === member._id,

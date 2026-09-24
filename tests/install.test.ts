@@ -73,7 +73,7 @@ describe("installing Kudos into a workspace", () => {
   test("the callback stores the bot token, makes the installer admin and imports members", async () => {
     const { state, cookie } = await startInstall();
     const res = await callback(`code=good&state=${state}`, cookie);
-    expect(res.headers.get("location")).toBe("https://kudos.example/?installed=Acme");
+    expect(res.headers.get("location")).toBe("https://kudos.example/?installed=Acme&ws=TNEW");
     expect(res.headers.get("set-cookie")).toMatch(new RegExp(`^${COOKIE}=; .*Max-Age=0`)); // spent
     expect(exchanged).toMatchObject({ code: "good", client_id: "123.456", redirect_uri: "https://kudos.example/slack/oauth/callback" });
 

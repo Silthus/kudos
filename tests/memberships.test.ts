@@ -85,8 +85,8 @@ describe("the workspace switcher", () => {
   test("lists every workspace the user can use, the current one first", async () => {
     const viewer = await as().query(api.session.viewer, {});
     expect(viewer.status === "ready" && viewer.workspaces).toEqual([
-      { memberId: globex.ana, name: "Globex", iconUrl: null, current: true },
-      { memberId: acme.ana, name: "Acme", iconUrl: null, current: false },
+      { memberId: globex.ana, slackTeamId: "TGLOBEX", name: "Globex", iconUrl: null, current: true },
+      { memberId: acme.ana, slackTeamId: "TACME", name: "Acme", iconUrl: null, current: false },
     ]);
   });
 
@@ -108,7 +108,7 @@ describe("the workspace switcher", () => {
     await t.run((ctx) => ctx.db.patch(acme.ana, { userId: undefined }));
     const viewer = await as().query(api.session.viewer, {});
     expect(viewer.status === "ready" && viewer.workspaces).toEqual([
-      { memberId: globex.ana, name: "Globex", iconUrl: null, current: true },
+      { memberId: globex.ana, slackTeamId: "TGLOBEX", name: "Globex", iconUrl: null, current: true },
     ]);
   });
 });

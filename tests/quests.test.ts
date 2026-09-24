@@ -745,7 +745,7 @@ describe("the Quest message DM in Slack", () => {
     const [first] = await questDms();
     expect(first).toContain("✨ New discovery! (");
     expect(first).toContain("1 of 2 quests this week");
-    expect(first).toContain("<https://kudos.example/quests|Quest log>");
+    expect(first).toContain("<https://kudos.example/quests?ws=T1|Quest log>");
     expect(first).not.toContain("Clean sweep");
     expect(first).not.toContain("Message gallery");
 
