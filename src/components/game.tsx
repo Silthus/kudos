@@ -187,3 +187,21 @@ export function ScoutHints({ today }: { today: string }) {
     </Card>
   );
 }
+
+/**
+ * What a bot message's event gained its member (#99): a level-up, a skill, an item, a new message
+ * discovered. Shown under the message it rode along in, as the Slack DM shows it.
+ */
+export function GainLines({ lines }: { lines?: string[] }) {
+  if (!lines || lines.length === 0) return null;
+  return (
+    <ul className="mt-2 space-y-1 border-t border-line pt-2">
+      {lines.map((line, i) => (
+        <li key={i} className="flex items-start gap-1.5 text-sm text-saffron">
+          <Sprout className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+          <span>{line}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}

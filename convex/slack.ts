@@ -9,6 +9,8 @@ import { RARITY_SLACK_BADGE, type Rarity } from "./lib/messages";
 import { OPEN_COUNT_CAP } from "./lib/store";
 import { questBlocks } from "./lib/questBlocks";
 import { earningsText } from "./lib/xp";
+import { gainBlocks, gainsText } from "./lib/gains";
+import { gameBlocks } from "./lib/gameBlocks";
 
 type SlackEvent = {
   type: string;
@@ -276,40 +278,55 @@ async function deliver(ctx: ActionCtx, token: string, teamId: string, ids: Id<"n
   const { channel, threadTs: thread_ts, guidance } = where ?? {};
   let guided = !guidance || !channel;
   const rows = ids.length > 0 ? await ctx.runQuery(internal.slackData.notificationsForDelivery, { ids }) : [];
-  const questLog = webLink(teamId, "/quests");
-  const gallery = webLink(teamId, "/discoveries");
-  const profile = webLink(teamId, "/me");
+  const link = (path: string) => webLink(teamId, path);
+  const questLog = link("/quests");
+  const gallery = link("/discoveries");
+  // Members whose reply fell back to a DM: that DM already shows the message it discovered.
+  const repliedByDm = new Set<string>();
   for (const n of rows) {
     if (n.delivery !== "pending") continue;
-    const quest = n.questProgress;
-    const earned = n.earnings ? `*${earningsText(n.earnings)}*` : null;
-    const context = n.levelUp
-      ? [`Level ${n.levelUp.level}`, profile && `<${profile}|Your level>`].filter(Boolean).join("  ·  ")
-      : [
-      RARITY_SLACK_BADGE[n.rarity as Rarity],
-      n.isNewDiscovery ? `✨ New discovery! (${n.discoveredCount} collected)` : null,
-      quest ? `${quest.completed} of ${quest.available} quests this week` : null,
-      quest?.sweep ? "🧹 Clean sweep!" : null,
-      quest ? questLog && `<${questLog}|Quest log>` : gallery && `<${gallery}|Message gallery>`,
-    ]
-      .filter(Boolean)
-      .join("  ·  ");
     const ephemeral = EPHEMERAL.has(n.category) && channel;
     const help = ephemeral && !guided && guidance?.user === n.slackUserId ? guidance.text : null;
     if (help) guided = true;
-    const blocks = [
-      { type: "section", text: { type: "mrkdwn", text: n.slackText } },
-      ...(earned ? [{ type: "section", text: { type: "mrkdwn", text: earned } }] : []),
-      ...(help ? [{ type: "section", text: { type: "mrkdwn", text: help } }] : []),
-      { type: "context", elements: [{ type: "mrkdwn", text: context }] },
-    ];
-    const text = [n.slackText, earned, help].filter(Boolean).join("\n");
+    // What the member discovered or gained in this event (lib/gains.ts): the whole DM, or after the message.
+    const gains = (n.gains ?? []).filter((g) => g.kind !== "discovery" || !repliedByDm.has(n.slackUserId));
+    let blocks: object[];
+    let text: string;
+    if (n.category === "gains" || n.category === "level_up") {
+      if (n.gains && gains.length === 0) {
+        await ctx.runMutation(internal.slackData.markDelivery, { id: n._id, delivery: "skipped" });
+        continue;
+      }
+      blocks = gains.length > 0 ? gainBlocks(gains, link) : [{ type: "section", text: { type: "mrkdwn", text: n.slackText } }];
+      text = gains.length > 0 ? gainsText(gains, "slack") : n.slackText;
+    } else {
+      const quest = n.questProgress;
+      const earned = n.earnings ? `*${earningsText(n.earnings)}*` : null;
+      const context = [
+        RARITY_SLACK_BADGE[n.rarity as Rarity],
+        n.isNewDiscovery ? `✨ New discovery! (${n.discoveredCount} collected)` : null,
+        quest ? `${quest.completed} of ${quest.available} quests this week` : null,
+        quest?.sweep ? "🧹 Clean sweep!" : null,
+        quest ? questLog && `<${questLog}|Quest log>` : gallery && `<${gallery}|Message gallery>`,
+      ]
+        .filter(Boolean)
+        .join("  ·  ");
+      blocks = [
+        { type: "section", text: { type: "mrkdwn", text: n.slackText } },
+        ...(earned ? [{ type: "section", text: { type: "mrkdwn", text: earned } }] : []),
+        ...(help ? [{ type: "section", text: { type: "mrkdwn", text: help } }] : []),
+        { type: "context", elements: [{ type: "mrkdwn", text: context }] },
+        ...(gains.length > 0 ? [{ type: "divider" }, ...gainBlocks(gains, link)] : []),
+      ];
+      text = [n.slackText, earned, help, gains.length > 0 ? gainsText(gains, "slack") : null].filter(Boolean).join("\n");
+    }
     let res = ephemeral
       ? await slackApi(token, "chat.postEphemeral", { channel, thread_ts, user: n.slackUserId, text, blocks })
       : await slackApi(token, "chat.postMessage", { channel: n.slackUserId, text, blocks });
     // The giver's reply used to be a DM: if Slack can't show it where they gave, it still reaches them.
     if (ephemeral && !res.ok && n.category === "giver_success") {
       res = await slackApi(token, "chat.postMessage", { channel: n.slackUserId, text, blocks });
+      if (res.ok) repliedByDm.add(n.slackUserId);
     }
     await ctx.runMutation(internal.slackData.markDelivery, {
       id: n._id,
@@ -346,6 +363,7 @@ async function publishHome(ctx: ActionCtx, workspaceId: Id<"workspaces">, token:
         : []),
       { type: "section", fields: fields.map((text) => ({ type: "mrkdwn", text })) },
       ...actions([linkButton("Open dashboard", "open_dashboard", link("/me"), "primary"), linkButton("Message gallery", "open_gallery", link("/discoveries"))]),
+      ...(data.game ? [{ type: "divider" }, ...gameBlocks(data.game, link("/me"))] : []),
       ...(quests.length > 0 ? [{ type: "divider" }, ...quests] : []),
       { type: "divider" },
       { type: "header", text: { type: "plain_text", text: "This week's most generous" } },
@@ -422,6 +440,20 @@ export const refreshHome = internalAction({
   handler: async (ctx, { workspaceId, slackUserId }) => {
     const install = await ctx.runQuery(internal.slackData.installationForWorkspace, { workspaceId });
     if (install) await publishHome(ctx, workspaceId, install.botToken, slackUserId);
+    return null;
+  },
+});
+
+/**
+ * Sends DMs queued outside a Slack event (`sendGains` for a skill picked or an item bought on the
+ * web, a discovery in a slash command reply): the same delivery as an event's.
+ */
+export const deliverNotifications = internalAction({
+  args: { workspaceId: v.id("workspaces"), ids: v.array(v.id("notifications")) },
+  returns: v.null(),
+  handler: async (ctx, { workspaceId, ids }) => {
+    const install = await ctx.runQuery(internal.slackData.installationForWorkspace, { workspaceId });
+    if (install) await deliver(ctx, install.botToken, install.workspace.slackTeamId, ids);
     return null;
   },
 });

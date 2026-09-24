@@ -38,9 +38,9 @@ test("the manifest points every Slack surface at this deployment over HTTP", () 
   expect(m.oauth_config.redirect_urls).toContain("https://kudos.example/api/auth/callback/slack");
 });
 
-test("the slash command hints at /kudos store", () => {
+test("the slash command hints at every subcommand", () => {
   const m = slackManifest("https://kudos.example");
-  expect(m.features.slash_commands[0].usage_hint).toBe("[me | top | quests | store | help]");
+  expect(m.features.slash_commands[0].usage_hint).toBe("[me | top | quests | level | coins | store | help]");
 });
 
 test("the bot scopes: reacting on kudos messages is the only one that needs a reinstall", () => {

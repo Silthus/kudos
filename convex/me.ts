@@ -5,6 +5,7 @@ import { getMemberDay } from "./engine";
 import { categoryValidator, kudosSourceValidator, notificationCategoryValidator, rarityValidator } from "./schema";
 import { canSeeReceived, requireViewer } from "./lib/access";
 import { gameShownTo } from "./game";
+import { gainLabel, gainsText, gainText } from "./lib/gains";
 import { streaks } from "./lib/compare";
 import { CATALOG, RARITIES, TEMPLATE_BY_KEY } from "./lib/messages";
 import { resolvePeriod, type PeriodRange } from "./lib/periods";
@@ -20,6 +21,9 @@ import {
   weekdayOfKey,
   type DayRange,
 } from "./lib/time";
+
+/** Latest bot messages read for Me's 5: enough that game DMs left out (hidden game) don't empty it. */
+const MAX_BOT_MESSAGES_READ = 40;
 
 /** A whole leap year: "year" charts every day, "all time" its most recent year. */
 const MAX_CADENCE_DAYS = 366;
@@ -84,6 +88,10 @@ const overviewValidator = v.object({
       text: v.string(),
       isNewDiscovery: v.boolean(),
       at: v.number(),
+      /** What the member gained in that event, when it rode along in a kudos DM (lib/gains.ts). */
+      gains: v.optional(v.array(v.string())),
+      /** A DM with gains: what it's about ("Level up", "New discovery", ...). */
+      gainLabel: v.optional(v.string()),
     }),
   ),
 });
@@ -236,16 +244,19 @@ export const overview = query({
       });
     }
 
-    // Game DMs (level-ups) are game UI: gone while the game is off or hidden, back with it.
+    // Game DMs (gains) are game UI: gone while the game is off or hidden, back with it. A discovery
+    // gain repeats a message listed here already (its reply, marked new), so the web leaves it out.
     const showGame = gameShownTo(workspace, member);
+    const gameOnly = (n: Doc<"notifications">) => n.category === "gains" || n.category === "level_up";
+    const shownGains = (n: Doc<"notifications">) => (showGame ? (n.gains ?? []).filter((g) => g.kind !== "discovery") : []);
     const notifications = (
       await ctx.db
         .query("notifications")
         .withIndex("by_member", (q) => q.eq("memberId", member._id))
         .order("desc")
-        .take(10)
+        .take(MAX_BOT_MESSAGES_READ)
     )
-      .filter((n) => showGame || n.category !== "level_up")
+      .filter((n) => !gameOnly(n) || (showGame && (!n.gains || shownGains(n).length > 0)))
       .slice(0, 5);
 
     return {
@@ -280,14 +291,18 @@ export const overview = query({
         latest: latestDiscoveries,
       },
       activity,
-      botMessages: notifications.map((n) => ({
-        _id: n._id,
-        rarity: n.rarity,
-        category: n.category,
-        text: n.webText,
-        isNewDiscovery: n.isNewDiscovery,
-        at: n._creationTime,
-      })),
+      botMessages: notifications.map((n) => {
+        const gains = shownGains(n);
+        return {
+          _id: n._id,
+          rarity: n.rarity,
+          category: n.category,
+          text: gameOnly(n) && gains.length > 0 ? gainsText(gains, "web") : n.webText,
+          isNewDiscovery: n.isNewDiscovery,
+          at: n._creationTime,
+          ...(gains.length > 0 ? { gainLabel: gainLabel(gains), ...(gameOnly(n) ? {} : { gains: gains.map((g) => gainText(g, "web")) }) } : {}),
+        };
+      }),
     };
   },
 });

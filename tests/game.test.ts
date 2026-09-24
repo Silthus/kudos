@@ -206,11 +206,63 @@ describe("hiding the game", () => {
     await message("UANA", "<@UCLEO> :taco: great pairing session today"); // level 2
     const ana = await signInAs(t, team.ana);
     const categories = async () => (await ana.query(api.me.overview, { period: "month", today: TODAY })).botMessages.map((m) => m.category);
-    expect(await categories()).toContain("level_up");
+    expect(await categories()).toContain("gains");
     await ana.mutation(api.game.setHidden, { hidden: true });
-    expect(await categories()).not.toContain("level_up");
+    expect(await categories()).not.toContain("gains");
     await ana.mutation(api.game.setHidden, { hidden: false });
-    expect(await categories()).toContain("level_up");
+    expect(await categories()).toContain("gains");
+  });
+
+  test("a discovery DM doesn't repeat on Me: the reply it came from already shows the message as new", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.85); // every roll is Rare
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { questsEnabled: false })); // no quest DM to ride in
+    await t.run((ctx) => ctx.db.insert("players", { workspaceId: team.workspaceId, memberId: team.ana, since: 0, xp: 25, level: 1, coins: 0 }));
+    await message("UANA", "<@UBEN> :taco: thanks for the thorough review"); // level 2 + a new Rare reply
+    vi.restoreAllMocks();
+    const ana = await signInAs(t, team.ana);
+    const messages = (await ana.query(api.me.overview, { period: "month", today: TODAY })).botMessages;
+    expect(messages.map((m) => m.category)).toEqual(["gains", "giver_success"]);
+    expect(messages[0].text).toMatch(/^Level 2: Seedling/);
+    expect(messages[0].text).not.toContain("New message discovered");
+    expect(messages[1].isNewDiscovery).toBe(true);
+  });
+
+  test("with the game hidden, Me still lists the latest 5 kudos messages, however many game DMs came in between", async () => {
+    for (let i = 0; i < 12; i++) {
+      await t.run((ctx) =>
+        ctx.db.insert("notifications", {
+          workspaceId: team.workspaceId,
+          memberId: team.ana,
+          category: i < 5 ? "receiver_success" : "gains",
+          templateKey: "x",
+          rarity: "common",
+          isNewDiscovery: false,
+          slackText: `m${i}`,
+          webText: `m${i}`,
+          delivery: "sent",
+          ...(i < 5 ? {} : { gains: [{ kind: "item" as const, name: "Golden frame" }] }),
+        }),
+      );
+    }
+    const ana = await signInAs(t, team.ana);
+    await ana.mutation(api.game.setHidden, { hidden: true });
+    const messages = (await ana.query(api.me.overview, { period: "month", today: TODAY })).botMessages;
+    expect(messages.map((m) => m.text)).toEqual(["m4", "m3", "m2", "m1", "m0"]);
+  });
+
+  test("a level-up that rode in a kudos DM shows under that message on Me, labelled, and goes with the game", async () => {
+    await t.run((ctx) => ctx.db.insert("players", { workspaceId: team.workspaceId, memberId: team.ben, since: 0, xp: 28, level: 1, coins: 0 }));
+    await message("UANA", "<@UBEN> :taco: thanks for the thorough review"); // Ben +5: level 2
+    const ben = await signInAs(t, team.ben);
+    const latest = async () => (await ben.query(api.me.overview, { period: "month", today: TODAY })).botMessages[0];
+    expect(await latest()).toMatchObject({
+      category: "receiver_success",
+      gains: ["Level 2: Seedling. Your thoughtful kudos got you here. You earned a skill point for your skill tree."],
+      gainLabel: "Level up",
+    });
+    await ben.mutation(api.game.setHidden, { hidden: true });
+    expect(await latest()).toMatchObject({ category: "receiver_success" });
+    expect((await latest()).gains).toBeUndefined();
   });
 });
 

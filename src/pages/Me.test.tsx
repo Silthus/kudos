@@ -86,3 +86,26 @@ test("with quests switched off, there is no quest card and recent activity takes
   expect(asked).not.toContain("quests:mine");
   expect(activityCard(host).className).toContain("xl:col-span-12");
 });
+
+test("bot messages show what their event gained: a level-up under a kudos DM, and a gains DM labelled instead of a rarity", () => {
+  overview.botMessages = [
+    {
+      _id: "n1",
+      rarity: "rare",
+      category: "receiver_success",
+      text: "Ana sent you 1 🌮 in #general.",
+      isNewDiscovery: false,
+      at: Date.now(),
+      gains: ["Level 2: Seedling. Your thoughtful kudos got you here."],
+      gainLabel: "Level up",
+    },
+    { _id: "n2", rarity: "common", category: "gains", text: "Golden frame is yours.", isNewDiscovery: false, at: Date.now(), gainLabel: "New item" },
+  ] as never[];
+  const host = render(false);
+  const items = [...host.querySelectorAll("li")].filter((li) => li.textContent?.includes("🌮") || li.textContent?.includes("Golden frame"));
+  expect(items[0].textContent).toContain("Level 2: Seedling. Your thoughtful kudos got you here.");
+  expect(items[0].textContent).toContain("Rare");
+  expect(items[1].textContent).toContain("New item");
+  expect(items[1].textContent).not.toContain("Common");
+  overview.botMessages = [];
+});

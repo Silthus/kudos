@@ -9,6 +9,7 @@ import { Avatar, Button, Card, Eyebrow, PageHeader, RarityBadge } from "@/compon
 import { useWorkspaceToday } from "@/lib/period";
 import { CATEGORY_LABEL, RARITY_META, type Rarity } from "@/lib/rarity";
 import { useViewer } from "@/lib/viewer";
+import { GainLines } from "@/components/game";
 
 type BotMessage = {
   _id: string;
@@ -21,8 +22,15 @@ type BotMessage = {
   questProgress?: { completed: number; available: number; sweep: boolean };
   /** Your reply while the game is on: what the kudos earned. */
   earnings?: string;
+  /** What its member gained in this kudos, riding along in their kudos DM. */
+  gains?: string[];
+  /** A DM with gains: what it's about ("Level up", "New discovery", ...). */
+  gainLabel?: string;
 };
 type Outcome = "given" | "limit" | "invalid";
+
+/** A DM of game gains alone (a level-up, a new message discovered, ...): no rolled message, no rarity. */
+const gainsOnly = (m: BotMessage) => m.category === "gains" || m.category === "level_up";
 type FeedItem = {
   id: string;
   author: string;
@@ -429,10 +437,13 @@ export function Playground() {
                     className={clsx("relative rounded-2xl bg-ink/60 p-4 ring-1 ring-inset", meta.ring, meta.glow)}
                   >
                     {m.isNewDiscovery && (m.rarity === "legendary" || m.rarity === "epic" || m.rarity === "rare") && <Burst color={meta.color} />}
-                    <div className="mb-1.5 text-[11px] text-faint">{m.toMe ? "To you" : `To ${m.to} (they'll get this DM)`} · {m.category === "level_up" ? "Level up" : (CATEGORY_LABEL[m.category] ?? m.category)}</div>
-                    <p className="text-[15px] leading-relaxed">{m.text}</p>
+                    <div className="mb-1.5 text-[11px] text-faint">
+                      {m.toMe ? "To you" : `To ${m.to} (they'll get this DM)`} · {gainsOnly(m) ? (m.gainLabel ?? "Level up") : (CATEGORY_LABEL[m.category] ?? m.category)}
+                    </div>
+                    <p className="text-[15px] leading-relaxed whitespace-pre-line">{m.text}</p>
+                    <GainLines lines={m.gains} />
                     <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-                      {m.category !== "level_up" && <RarityBadge rarity={m.rarity as Rarity} size="xs" />}
+                      {!gainsOnly(m) && <RarityBadge rarity={m.rarity as Rarity} size="xs" />}
                       {m.isNewDiscovery && <span className="text-xs font-medium whitespace-nowrap text-saffron">✨ New discovery!</span>}
                       {m.questProgress && (
                         <span className="text-xs whitespace-nowrap text-muted">
