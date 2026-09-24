@@ -64,6 +64,7 @@ export function AppShell() {
     storeEnabled: viewer.workspace.storeEnabled,
     // Off, /quests still answers (it says quests are off and keeps the log); it's just not advertised.
     questsEnabled: viewer.workspace.questsEnabled,
+    gameShown: viewer.workspace.gameEnabled && !viewer.member.gameHidden,
     openRequests,
   });
 

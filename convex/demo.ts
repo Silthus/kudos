@@ -905,8 +905,9 @@ export const resetDemoWorkspace = internalMutation({
       const notes = await ctx.db.query("notifications").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(200);
       const events = await ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", m._id)).take(500);
       const player = await ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(1);
-      for (const row of [...notes, ...events, ...player]) await ctx.db.delete(row._id);
-      deleted += notes.length + events.length + player.length;
+      const skills = await ctx.db.query("skillChanges").withIndex("by_member_at", (q) => q.eq("memberId", m._id)).take(500);
+      for (const row of [...notes, ...events, ...player, ...skills]) await ctx.db.delete(row._id);
+      deleted += notes.length + events.length + player.length + skills.length;
     }
     if (deleted > 0) {
       await ctx.scheduler.runAfter(0, internal.demo.resetDemoWorkspace, {});

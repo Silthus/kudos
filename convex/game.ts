@@ -6,6 +6,7 @@ import type { earningsValidator } from "./schema";
 import { requireViewer } from "./lib/access";
 import { COINS, coinBalance, lineCoins, WALLET_LEVEL } from "./lib/coins";
 import { hasNote, RECIPROCAL_WINDOW_MS, weekKeyOfDay } from "./lib/quests";
+import { isSkillId, scoutEffects, type Allocation } from "./lib/skills";
 import { type GiveLine, levelForXp, levelProgress, scoreGive, scoreReceive, titleForLevel, type XpItem } from "./lib/xp";
 
 /**
@@ -66,6 +67,32 @@ export async function playerOf(ctx: QueryCtx, memberId: Id<"members">) {
     .query("players")
     .withIndex("by_member", (q) => q.eq("memberId", memberId))
     .unique();
+}
+
+/** A player's skill tree (skills.ts) as the pure rules take it. */
+export function skillsOf(player: Pick<Doc<"players">, "skills"> | null): Allocation {
+  return (player?.skills ?? {}) as Allocation;
+}
+
+/**
+ * The skills a member had at each moment, from their `skillChanges`: `at(t)` is the tree right
+ * after every change up to and including `t`. Ask in time order (the rebuild's order).
+ */
+async function skillTimeline(ctx: QueryCtx, memberId: Id<"members">) {
+  const changes = await ctx.db
+    .query("skillChanges")
+    .withIndex("by_member_at", (q) => q.eq("memberId", memberId))
+    .take(2000);
+  let next = 0;
+  let current: Allocation = {};
+  return (t: number): Allocation => {
+    for (; next < changes.length && changes[next].at <= t; next++) {
+      const c = changes[next];
+      if (c.kind === "reset") current = {};
+      else if (c.skill && isSkillId(c.skill)) current = { ...current, [c.skill]: (current[c.skill] ?? 0) + 1 };
+    }
+    return current;
+  };
 }
 
 /** A member's events from `fromDay` to `toDay` (inclusive): a day or a week of their own activity. */
@@ -234,7 +261,8 @@ export async function onGameGiven(
       ...(unsungOn && hasNote(noteWords) && !reciprocal ? { receiverLastReceivedAt: await lastReceivedAt(ctx, row.receiverId, at) } : {}),
     });
   }
-  const lines = ledgerLines(scoreGive({ at, noteWords, unsungOn, earnedToday, recipients }), rows);
+  const scout = scoutEffects(skillsOf(player));
+  const lines = ledgerLines(scoreGive({ at, noteWords, unsungOn, earnedToday, recipients, scout }), rows);
   const xp = lines.reduce((s, l) => s + l.xp, 0);
   const coins = lines.reduce((s, l) => s + l.coins, 0);
   await ctx.db.insert("gameEvents", { workspaceId: workspace._id, memberId: giver._id, kind: "give", batchId, dayKey, at, xp, coins, lines });
@@ -355,6 +383,7 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
   // Giving: batch by batch, as the live path saw each one.
   const batches = new Map<string, Doc<"kudos">[]>();
   for (const k of given) batches.set(k.batchId, [...(batches.get(k.batchId) ?? []), k]);
+  const skillsAt = await skillTimeline(ctx, member._id); // Scout skills as they stood at each batch
   const lastTo = new Map<string, number>(); // latest kudos to each receiver so far, paused or not
   const qualifyingDays = new Map<string, string[]>(); // per receiver: the day of each qualifying line
   const earnedOn = new Map<string, number>();
@@ -376,7 +405,8 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
           ...(unsungOn && hasNote(noteWords) && !reciprocal ? { receiverLastReceivedAt: await lastReceivedAt(ctx, row.receiverId, at) } : {}),
         });
       }
-      const lines = ledgerLines(scoreGive({ at, noteWords, unsungOn, earnedToday: earnedOn.get(dayKey) ?? 0, recipients }), rows);
+      const scout = scoutEffects(skillsAt(at));
+      const lines = ledgerLines(scoreGive({ at, noteWords, unsungOn, earnedToday: earnedOn.get(dayKey) ?? 0, recipients, scout }), rows);
       const xp = lines.reduce((s, l) => s + l.xp, 0);
       const coins = lines.reduce((s, l) => s + l.coins, 0);
       earnedOn.set(dayKey, (earnedOn.get(dayKey) ?? 0) + xp);
