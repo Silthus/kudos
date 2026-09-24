@@ -86,6 +86,10 @@ const REASONS = [
   "for untangling the billing mystery",
   "for the brilliant user interviews",
   "for making the install schedule work",
+  // Detailed notes (12+ words) complete "Say why".
+  "thanks for untangling the deploy pipeline on friday, it saved my whole afternoon",
+  "your write-up of the outage made a scary week feel calm and fixable for everyone",
+  "you turned a vague customer complaint into three concrete fixes we shipped this sprint",
 ];
 
 function weighted<T>(items: T[], weight: (t: T) => number, r: number): T {
@@ -216,6 +220,7 @@ export const seedHistory = internalMutation({
           const roll = rand();
           if (at > now) continue; // later today: hasn't happened yet
           const text = `${recipients.map((r) => `@${r.name.split(" ")[0]}`).join(" ")} ${"🌮".repeat(amountEach)} ${reason}`;
+          const noteWords = countNoteWords(reason, workspace.emojiName, workspace.emojiGlyph);
           const batchId = `seed:${day}:${person.id}:${i}`;
           for (const r of recipients) {
             await ctx.db.insert("kudos", {
@@ -230,6 +235,7 @@ export const seedHistory = internalMutation({
               channelName: channel.name,
               messageTs: `${Math.floor(at / 1000)}.${i}`,
               text,
+              noteWords,
               at,
               hour: zonedParts(at, workspace.timezone).hour,
             });
@@ -285,9 +291,10 @@ export const seedHistory = internalMutation({
     if (day <= untilDay) {
       await ctx.scheduler.runAfter(0, internal.demo.seedHistory, { workspaceId, fromDay: day, untilDay });
     } else {
-      // The seeded rows bypass the engine, so the read-model rollups are rebuilt from them. That
-      // run belongs to this reset and releases its lock when it finishes.
-      await ctx.scheduler.runAfter(0, internal.rollups.rebuildWorkspace, { workspaceId, resetAt: workspace.resettingSince });
+      // The seeded rows bypass the engine, so the quests they completed are recorded next, and then
+      // the read-model rollups are rebuilt from them. Both belong to this reset; the rebuild
+      // releases its lock when it finishes.
+      await ctx.scheduler.runAfter(0, internal.quests.seedDemoHistory, { workspaceId, resetAt: workspace.resettingSince });
       // Balances are what people received, so the store opens once the whole history is in.
       await ctx.scheduler.runAfter(0, internal.demo.seedStore, { workspaceId, resetAt: workspace.resettingSince });
     }

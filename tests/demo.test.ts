@@ -193,6 +193,53 @@ describe("a year of demo history", () => {
   });
 });
 
+describe("the demo's quest history", () => {
+  async function alex() {
+    return (await t.run((ctx) => ctx.db.query("members").collect())).find((m) => m.slackUserId === "UDEMOYOU")!;
+  }
+
+  test("the quest log opens on every week of the year, completed by the seeded kudos, with no DMs", async () => {
+    const demo = await enterDemo();
+    const log = await demo.query(api.quests.history, { today: TODAY, weeks: 52 });
+    // 1 January 2026 is a Thursday: its quest week starts on Monday 29 December.
+    expect(log.weeks[0].weekKey).toBe("2026-09-14");
+    expect(log.weeks.at(-1)!.weekKey).toBe("2025-12-29");
+    expect(log.weeks).toHaveLength(38);
+    // Alive, not perfect: most weeks have a completion, some are clean sweeps, some quests stay open.
+    expect(log.totals.weeksWithCompletion).toBeGreaterThan(log.weeks.length / 2);
+    expect(log.totals.sweeps).toBeGreaterThan(2);
+    expect(log.weeks.flatMap((w) => w.board).filter((q) => !q.done && !q.waived).length).toBeGreaterThan(10);
+
+    // Every completion is the moment one of Alex's own thoughtful seeded kudos met the goal.
+    const me = await alex();
+    const kudos = await all(t, "kudos");
+    expect(kudos.every((k) => (k.noteWords ?? 0) >= 3)).toBe(true);
+    const mine = (await all(t, "questCompletions")).filter((c) => c.memberId === me._id);
+    for (const c of mine) {
+      expect(kudos.some((k) => k.giverId === me._id && k.at === c.completedAt && k.dayKey >= c.weekKey && k.dayKey < addDays(c.weekKey, 7))).toBe(true);
+    }
+    // Quest logs are private and every visitor is Alex, so teammates only have this week's on record:
+    // what their seeded days already met, so their next live kudos doesn't claim it again.
+    const theirs = (await all(t, "questCompletions")).filter((c) => c.memberId !== me._id);
+    expect(new Set(theirs.map((c) => c.memberId)).size).toBeGreaterThan(2);
+    expect(new Set(theirs.map((c) => c.weekKey))).toEqual(new Set(["2026-09-21"]));
+
+    // Their Quest messages are in the collection, but nobody was sent anything.
+    const found = (await all(t, "discoveries")).filter((d) => d.memberId === me._id && d.category === "quest_complete");
+    expect(found.length).toBeGreaterThan(2);
+    expect(found.reduce((n, d) => n + d.timesSeen, 0)).toBe(mine.length);
+    expect(await all(t, "notifications")).toHaveLength(0);
+  });
+
+  test("this week's quests the seeded days already met are on record, so playing only rewards new progress", async () => {
+    const demo = await enterDemo();
+    const board = await demo.query(api.quests.mine, { today: TODAY });
+    if (!board.enabled) throw new Error("quests are disabled");
+    expect(board.completed).toBeGreaterThan(0);
+    for (const q of board.quests.filter((q) => q.status === "done")) expect(q.completedAt).toBeLessThan(NOW.getTime());
+  });
+});
+
 const ROLLUP_TABLES = ["workspaceStats", "memberStats", "pairStats", "channelStats"] as const;
 
 async function rollupLines() {

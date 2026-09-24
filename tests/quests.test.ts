@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { RECIPROCAL_WINDOW_MS, type QuestKey } from "../convex/lib/quests";
+import { addDays } from "../convex/lib/time";
 import { all, DEMO_TIMEOUT, NOW, seedTeam, setupConvex, signInAs, type Team } from "./helpers";
 
 let t: ReturnType<typeof setupConvex>;
@@ -481,21 +482,31 @@ describe("quests in the demo", () => {
     await t.finishAllScheduledFunctions(vi.runAllTimers, 1000); // seeding, then the rollup rebuild
     return t.withIdentity({ subject: `${userId}|s` });
   }
+  /** Alex's completions this week (the seeded history completed quests in the weeks before it). */
   const demoCompletions = async () => {
     const alex = await t.run((ctx) => ctx.db.query("members").filter((q) => q.eq(q.field("slackUserId"), "UDEMOYOU")).unique());
-    return (await all(t, "questCompletions")).filter((c) => c.memberId === alex!._id);
+    return (await all(t, "questCompletions")).filter((c) => c.memberId === alex!._id && c.weekKey === WEEK);
   };
 
   test("a playground message with a Note completes quests; refilling the allowance takes them back", async () => {
+    // First thing on Monday morning: the seeded history has nothing in this quest week yet.
+    vi.setSystemTime(new Date("2026-09-21T05:00:00Z"));
     const demo = await enterDemo();
+    expect(await demoCompletions()).toHaveLength(0);
     const workspaceId = (await t.run((ctx) => ctx.db.query("workspaces").filter((q) => q.eq(q.field("isDemo"), true)).first()))!._id;
-    await t.run((ctx) => ctx.db.insert("questBoards", { workspaceId, weekKey: WEEK, questKeys: ["spread", "channels", "story"] }));
+    await t.run(async (ctx) => {
+      const board = await ctx.db
+        .query("questBoards")
+        .withIndex("by_workspace_week", (q) => q.eq("workspaceId", workspaceId).eq("weekKey", WEEK))
+        .unique();
+      await ctx.db.patch(board!._id, { questKeys: ["spread", "channels", "story"] });
+    });
     // Thanking back someone who just recognized you doesn't count, so pick two teammates the seeded
     // history hasn't had recognize Alex in the last 72 hours.
     const [first, second] = await t.run(async (ctx) => {
       const members = await ctx.db.query("members").filter((q) => q.eq(q.field("workspaceId"), workspaceId)).collect();
       const alex = members.find((m) => m.slackUserId === "UDEMOYOU")!;
-      const recent = (await ctx.db.query("kudos").collect()).filter((k) => k.receiverId === alex._id && k.at >= NOW.getTime() - RECIPROCAL_WINDOW_MS);
+      const recent = (await ctx.db.query("kudos").collect()).filter((k) => k.receiverId === alex._id && k.at >= Date.now() - RECIPROCAL_WINDOW_MS);
       return members
         .filter((m) => m._id !== alex._id && m.slackUserId !== "UDEMOJONAS" && !recent.some((k) => k.giverId === m._id))
         .map((m) => m.slackUserId);
@@ -518,21 +529,27 @@ describe("quests in the demo", () => {
       [true, { completed: 2, available: 3, sweep: false }],
     ]);
     expect((await demoCompletions()).map((c) => c.questKey).sort()).toEqual(["channels", "story"]);
-    const board = await demo.query(api.quests.mine, { today: "2026-09-23" });
+    const board = await demo.query(api.quests.mine, { today: WEEK });
     expect(board).toMatchObject({ completed: 2 });
 
     await demo.mutation(api.demo.refillAllowance, {});
     expect(await demoCompletions()).toHaveLength(0);
   }, DEMO_TIMEOUT);
 
-  test("resetting the demo clears quest boards and completions", async () => {
+  test("resetting the demo replaces playground quests with the same freshly seeded quest history", async () => {
     const demo = await enterDemo();
+    const questRows = async () => ({
+      boards: (await all(t, "questBoards")).map((b) => `${b.weekKey} ${b.questKeys.join(",")}`).sort(),
+      completions: (await all(t, "questCompletions")).map((c) => `${c.memberId} ${c.weekKey} ${c.questKey} ${c.completedAt} ${c.sweep}`).sort(),
+    });
+    const seeded = await questRows();
+    expect(seeded.completions.length).toBeGreaterThan(20);
     await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> :taco: great work on the release notes", channelName: "general" });
-    expect(await all(t, "questBoards")).not.toHaveLength(0);
+    await t.finishAllScheduledFunctions(vi.runAllTimers, 1000); // a teammate may thank Alex back
     await demo.mutation(api.demo.resetDemo, {});
     await t.finishAllScheduledFunctions(vi.runAllTimers, 1000); // seeding, then the rollup rebuild
-    expect(await all(t, "questBoards")).toHaveLength(0);
-    expect(await all(t, "questCompletions")).toHaveLength(0);
+    expect(await questRows()).toEqual(seeded);
+    expect((await all(t, "questCompletions")).every((c) => c.notificationId === undefined)).toBe(true);
   }, DEMO_TIMEOUT); // a reset re-seeds the year and rebuilds its rollups
 });
 
@@ -590,5 +607,101 @@ describe("the Quest message DM in Slack", () => {
       .map((c) => JSON.parse(c.params.blocks).at(-1).elements[0].text as string);
     // Ana's first ever bot message, then her first Quest message.
     expect(contexts.map((c) => c.match(/\((\d+) collected\)/)?.[1])).toEqual(["1", "2"]);
+  });
+});
+
+describe("the quest log", () => {
+  const history = async (memberId: Id<"members">, weeks?: number, today = "2026-09-23") =>
+    await (await signInAs(t, memberId)).query(api.quests.history, { today, ...(weeks !== undefined ? { weeks } : {}) });
+
+  test("lists past weeks since quests began, newest first, with lifetime totals that include this week", async () => {
+    await setBoard(["fresh", "spread", "channels"], "2026-08-31"); // the first week quests ran: nothing done
+    await setBoard(["fresh", "spread", "channels"], "2026-09-14");
+    await setBoard(["fresh", "spread", "channels"]);
+    const lastWednesday = new Date("2026-09-16T10:00:00Z").getTime();
+    vi.setSystemTime(lastWednesday);
+    await message("UANA", "<@UBEN> :taco: thanks for the quick review", "general");
+    vi.setSystemTime(lastWednesday + H);
+    await message("UANA", "<@UCLEO> :taco: loved your demo this morning", "random");
+    vi.setSystemTime(NOW);
+    await message("UANA", "<@UBEN> :taco: thanks for fixing the flaky build", "general");
+    await message("UANA", "<@UCLEO> :taco: great notes from the customer call", "random");
+
+    const log = await history(team.ana);
+    expect(log.totals).toEqual({ completed: 3, sweeps: 2, weeksWithCompletion: 2 });
+    // This week is the board above the log; the log is every week before it since the first board.
+    expect(log.weeks.map((w) => w.weekKey)).toEqual(["2026-09-14", "2026-09-07", "2026-08-31"]);
+    expect(log.weeks[0]).toEqual({
+      weekKey: "2026-09-14",
+      sweep: true,
+      board: [
+        { key: "fresh", title: "New connection", done: true, completedAt: lastWednesday, waived: null },
+        // Ana only has two teammates.
+        { key: "spread", title: "Spread the love", done: false, completedAt: null, waived: "no_candidates" },
+        { key: "channels", title: "Channel hopper", done: true, completedAt: lastWednesday + H, waived: null },
+      ],
+    });
+    // A quiet week nobody's board was stored for still shows the week's draw, with nothing done.
+    expect(log.weeks[1]).toMatchObject({ sweep: false });
+    expect(log.weeks[1].board).toHaveLength(3);
+    expect(log.weeks[1].board.every((q) => !q.done)).toBe(true);
+    expect(log.weeks[2]).toMatchObject({ sweep: false, board: [{ key: "fresh", done: false }, { key: "spread" }, { key: "channels", done: false }] });
+  });
+
+  test("shows the requested number of weeks, one to 52", async () => {
+    for (let week = "2025-09-01"; week <= WEEK; week = addDays(week, 7)) await setBoard(["fresh", "spread", "channels"], week);
+    expect((await history(team.ana)).weeks).toHaveLength(12);
+    expect((await history(team.ana, 3)).weeks.map((w) => w.weekKey)).toEqual(["2026-09-14", "2026-09-07", "2026-08-31"]);
+    expect((await history(team.ana, 500)).weeks).toHaveLength(52);
+    expect((await history(team.ana, -4)).weeks).toHaveLength(1);
+  });
+
+  test("is empty before the first quest week", async () => {
+    expect(await history(team.ana)).toEqual({ totals: { completed: 0, sweeps: 0, weeksWithCompletion: 0 }, weeks: [] });
+  });
+
+  test("an open quest on a clean-sweep week wasn't available that week", async () => {
+    await setBoard(["fresh", "spread", "channels"], "2026-09-07");
+    await setBoard(["fresh", "spread", "channels"], "2026-09-14");
+    vi.setSystemTime(new Date("2026-09-09T10:00:00Z"));
+    await message("UANA", "<@UBEN> :taco: thanks for the quick review", "general");
+    await message("UANA", "<@UCLEO> :taco: loved your demo this morning", "random");
+    // The next week Ana has recognized everyone already: only Channel hopper is left to do.
+    vi.setSystemTime(new Date("2026-09-16T10:00:00Z"));
+    await message("UANA", "<@UBEN> :taco: thanks for fixing the flaky build", "general");
+    await message("UANA", "<@UCLEO> :taco: great notes from the customer call", "random");
+    vi.setSystemTime(NOW);
+    const [week] = (await history(team.ana)).weeks;
+    expect(week).toMatchObject({ weekKey: "2026-09-14", sweep: true });
+    expect(week.board.map((q) => [q.key, q.done, q.waived])).toEqual([
+      ["fresh", false, "no_candidates"],
+      ["spread", false, "no_candidates"],
+      ["channels", true, null],
+    ]);
+  });
+
+  test("a completed Unsung hero stays in the log after received counts are hidden", async () => {
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { receivedVisibility: "everyone" }));
+    await setBoard(["unsung", "channels", "story"], "2026-09-14");
+    await setBoard(["fresh", "spread", "channels"]);
+    vi.setSystemTime(new Date("2026-09-16T10:00:00Z"));
+    await message("UANA", "<@UBEN> :taco: thanks for the quick review");
+    vi.setSystemTime(NOW);
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { receivedVisibility: "hidden" }));
+    const [week] = (await history(team.ana)).weeks;
+    expect(week.board.find((q) => q.key === "unsung")).toMatchObject({ done: true, waived: null });
+  });
+
+  test("is private: signed-out callers are asked to sign in, and members only see their own completions", async () => {
+    await expect(t.query(api.quests.history, { today: "2026-09-23" })).rejects.toThrow(/Sign in with Slack/);
+    await expect(history(team.ana, undefined, "2026-13-01")).rejects.toThrow(/day key/);
+    await setBoard(["fresh", "spread", "channels"], "2026-09-14");
+    vi.setSystemTime(new Date("2026-09-16T10:00:00Z"));
+    await message("UBEN", "<@UANA> :taco: thanks for pairing on the flaky test");
+    vi.setSystemTime(NOW);
+    expect((await history(team.ben)).totals.completed).toBe(1);
+    const ana = await history(team.ana);
+    expect(ana.totals).toEqual({ completed: 0, sweeps: 0, weeksWithCompletion: 0 });
+    expect(ana.weeks[0].board.some((q) => q.done)).toBe(false);
   });
 });

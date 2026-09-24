@@ -1,13 +1,14 @@
 import clsx from "clsx";
 import { useQuery } from "convex/react";
 import { motion } from "motion/react";
-import { CalendarDays, Check, ChevronRight, Flame, Hash, Heart, Lock, Minus, Sparkles, Target, Users } from "lucide-react";
+import { CalendarDays, ChevronRight, Flame, Hash, Heart, Lock, Sparkles, Target, Users } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 import { api } from "../../convex/_generated/api";
 import { Legend, LineChart } from "@/components/charts";
 import { MessageText } from "@/components/MessageText";
-import { Avatar, BigNumber, Card, CardHeader, Empty, Eyebrow, PageHeader, PageSkeleton, Progress, RarityBadge, Segmented, Trend } from "@/components/ui";
+import { QUEST_RULES, QuestItem } from "@/components/quests";
+import { Avatar, BigNumber, Card, CardHeader, Empty, Eyebrow, PageHeader, PageSkeleton, RarityBadge, Segmented, Trend } from "@/components/ui";
 import { dayLabel, firstName, greeting, nf, relativeTime } from "@/lib/format";
 import { DEFAULT_PERIOD, PERIOD_OPTIONS, useWorkspaceToday, type Period } from "@/lib/period";
 import { RARITY_META, type Rarity } from "@/lib/rarity";
@@ -284,23 +285,7 @@ export function Me() {
   );
 }
 
-type QuestBoard = Extract<NonNullable<ReturnType<typeof useQuery<typeof api.quests.mine>>>, { enabled: true }>;
-type QuestRow = QuestBoard["quests"][number];
-
-function waivedCopy(q: QuestRow) {
-  switch (q.waivedReason) {
-    case "privacy":
-      return "hidden by your workspace's privacy settings";
-    case "too_new":
-      return "needs more history";
-    case "no_candidates":
-      return q.key === "spread" ? "needs at least 3 teammates" : "you've already recognized everyone 🎉";
-    default:
-      return null;
-  }
-}
-
-/** This week's quest board (quests.mine): progress, waived quests, and how quests count. */
+/** This week's quest board (quests.mine): progress, waived quests, how quests count, and the way to the log. */
 function QuestCard({ today }: { today: string }) {
   const board = useQuery(api.quests.mine, { today });
   if (board === undefined) return <Card className="min-h-64 animate-pulse xl:col-span-5" aria-busy />;
@@ -322,72 +307,20 @@ function QuestCard({ today }: { today: string }) {
           <QuestItem key={q.key} quest={q} />
         ))}
       </ul>
-      <details className="group mx-5 mt-3 mb-5 rounded-xl border border-line bg-ink/30 px-3.5 py-2.5 text-xs text-muted">
+      <details className="group mx-5 mt-3 rounded-xl border border-line bg-ink/30 px-3.5 py-2.5 text-xs text-muted">
         <summary className="flex cursor-pointer list-none items-center gap-1.5 font-medium text-cream/80 select-none [&::-webkit-details-marker]:hidden">
           <ChevronRight className="h-3.5 w-3.5 transition-transform group-open:rotate-90" /> How quests count
         </summary>
         <ul className="mt-2 space-y-1 pl-5 leading-relaxed">
-          <li>
-            Add a few words of <em>why</em> (3+ words).
-          </li>
-          <li>Thanking someone back within 3 days doesn't count.</li>
-          <li>One message counts once, however many people you mention.</li>
+          {QUEST_RULES.map((rule, i) => (
+            <li key={i}>{rule}</li>
+          ))}
         </ul>
       </details>
+      <Link to="/quests" className="mx-5 mt-3 mb-5 self-end text-sm font-medium text-saffron underline-offset-4 hover:underline">
+        Quest log →
+      </Link>
     </Card>
-  );
-}
-
-function QuestItem({ quest: q }: { quest: QuestRow }) {
-  const done = q.status === "done";
-  const waived = q.status === "waived";
-  return (
-    <li
-      className={clsx(
-        "rounded-xl border p-3.5 transition-colors",
-        done ? "border-up/25 bg-up/[0.06]" : waived ? "border-dashed border-line bg-transparent" : "border-line bg-ink/40",
-      )}
-    >
-      <div className="flex items-start gap-3">
-        <span
-          className={clsx(
-            "mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full",
-            done ? "bg-up text-ink" : waived ? "bg-panel-3 text-faint" : "border border-line-strong",
-          )}
-        >
-          {done && <Check className="h-3 w-3" strokeWidth={3} />}
-          {waived && <Minus className="h-3 w-3" strokeWidth={3} />}
-          <span className="sr-only">{done ? "Done" : waived ? "Not available" : "Open"}</span>
-        </span>
-        <div className={clsx("min-w-0 flex-1", waived && "opacity-60")}>
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm font-medium">{q.title}</span>
-            {!waived && (
-              <span className="font-mono text-xs text-muted tabular">
-                {q.progress}/{q.goal}
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-muted">{q.description}</p>
-          {waived && (
-            <p className="mt-1 text-xs text-faint">
-              Not available this week · {waivedCopy(q)}
-            </p>
-          )}
-          {q.status === "active" && <Progress value={q.progress} max={q.goal} className="mt-2" height={4} />}
-          {done && (q.completedAt || q.messageRarity) && (
-            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-faint">
-              {q.messageRarity && (
-                <Link to="/discoveries?category=quest_complete" title="See your Quest messages in the gallery" className="rounded-full transition hover:opacity-80">
-                  <RarityBadge rarity={q.messageRarity} size="xs" />
-                </Link>
-              )}
-              {q.completedAt && <span>Completed {relativeTime(q.completedAt)}</span>}
-            </div>
-          )}
-        </div>
-      </div>
-    </li>
   );
 }
 

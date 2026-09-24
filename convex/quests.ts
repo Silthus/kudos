@@ -1,10 +1,14 @@
 import { v, type Infer } from "convex/values";
-import { query, type MutationCtx, type QueryCtx } from "./_generated/server";
+import { internalMutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
+import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { rarityValidator } from "./schema";
 import { requireViewer } from "./lib/access";
 import type { Rollups } from "./lib/rollups";
+import { pickTemplate } from "./lib/messages";
+import { fnv1a, mulberry32 } from "./lib/random";
 import { emojiVars, sendBotMessage } from "./engine";
+import { DEMO_YOU } from "./demo";
 import {
   type GivenFact,
   type QuestFacts,
@@ -14,6 +18,7 @@ import {
   QUEST_BY_KEY,
   RECIPROCAL_WINDOW_MS,
   boardSeed,
+  completionTimes,
   eligibleQuestKeys,
   evaluateBoard,
   isCleanSweep,
@@ -345,6 +350,7 @@ export async function onKudosRevoked(ctx: MutationCtx, workspace: Doc<"workspace
 }
 
 const questStatus = v.union(v.literal("active"), v.literal("done"), v.literal("waived"));
+const waivedReasonValidator = v.union(v.null(), v.literal("no_candidates"), v.literal("privacy"), v.literal("too_new"));
 
 /** A member's quest board for one week, as every quest surface (web, App Home, `/kudos quests`) shows it. */
 export const questBoardValidator = v.union(
@@ -364,7 +370,7 @@ export const questBoardValidator = v.union(
         progress: v.number(),
         goal: v.number(),
         status: questStatus,
-        waivedReason: v.union(v.null(), v.literal("no_candidates"), v.literal("privacy"), v.literal("too_new")),
+        waivedReason: waivedReasonValidator,
         completedAt: v.union(v.null(), v.number()),
         /** Rarity of the Quest message this completion earned (null while not done). */
         messageRarity: v.union(v.null(), rarityValidator),
@@ -440,3 +446,214 @@ export const mine = query({
     return await questBoard(ctx, workspace, member, weekKeyOfDay(parseToday(today)));
   },
 });
+
+const DEFAULT_LOG_WEEKS = 12;
+const MAX_LOG_WEEKS = 52;
+/** A member's lifetime completions: at most 3 a week, so this is decades. */
+const MAX_LIFETIME_COMPLETIONS = 3000;
+
+/**
+ * The viewer's quest log: lifetime totals, and the weeks before this one (newest first) since the
+ * workspace's first quest week. Only ever the viewer's own completions.
+ *
+ * Past weeks aren't re-evaluated (that would load every week's facts). A completion is always done,
+ * even if privacy now hides its quest: it's the member's own record, already seen. Open quests
+ * show the waivers that are knowable without the week's facts: too little history for Old
+ * friends, privacy for Unsung hero, too few teammates for Spread the love, and on a clean-sweep
+ * week, whatever was left open (it must have been waived).
+ */
+export const history = query({
+  args: {
+    /** The client's current day in the workspace timezone (see `parseToday`). */
+    today: v.string(),
+    /** How many past weeks to list, 1 to 52 (default 12). */
+    weeks: v.optional(v.number()),
+  },
+  returns: v.object({
+    totals: v.object({ completed: v.number(), sweeps: v.number(), weeksWithCompletion: v.number() }),
+    weeks: v.array(
+      v.object({
+        weekKey: v.string(),
+        sweep: v.boolean(),
+        board: v.array(
+          v.object({
+            key: v.string(),
+            title: v.string(),
+            done: v.boolean(),
+            completedAt: v.union(v.null(), v.number()),
+            waived: waivedReasonValidator,
+          }),
+        ),
+      }),
+    ),
+  }),
+  handler: async (ctx, args) => {
+    const { member, workspace } = await requireViewer(ctx);
+    const current = weekKeyOfDay(parseToday(args.today));
+    const count = Math.min(MAX_LOG_WEEKS, Math.max(1, Math.floor(args.weeks ?? DEFAULT_LOG_WEEKS)));
+
+    const completions = await ctx.db
+      .query("questCompletions")
+      .withIndex("by_member_week", (q) => q.eq("memberId", member._id))
+      .take(MAX_LIFETIME_COMPLETIONS);
+    const totals = {
+      completed: completions.length,
+      sweeps: completions.filter((c) => c.sweep).length,
+      weeksWithCompletion: new Set(completions.map((c) => c.weekKey)).size,
+    };
+
+    const firstBoard = await ctx.db
+      .query("questBoards")
+      .withIndex("by_workspace_week", (q) => q.eq("workspaceId", workspace._id).lt("weekKey", current))
+      .first();
+    if (!firstBoard) return { totals, weeks: [] };
+    const oldest = addDays(current, -7 * count);
+    const from = firstBoard.weekKey > oldest ? firstBoard.weekKey : oldest;
+
+    // The facts behind the waivers that don't depend on the week's own giving.
+    const { activeTeammates } = await scanTeammates(ctx, workspace, member, ["spread"]);
+    const firstGiven = await ctx.db
+      .query("kudos")
+      .withIndex("by_giver_at", (q) => q.eq("giverId", member._id))
+      .first();
+
+    const weeks = [];
+    for (let weekKey = addDays(current, -7); weekKey >= from; weekKey = addDays(weekKey, -7)) {
+      const board = await resolveBoard(ctx, workspace, weekKey);
+      const waivers = evaluateBoard(board, {
+        given: [],
+        receivedFrom: [],
+        activeTeammates,
+        hasUnrecognizedTeammate: true, // who was still unrecognized back then isn't known
+        firstGivenAt: firstGiven?.at ?? null,
+        weekStart: weekBounds(weekKey, workspace.timezone).start,
+        receivedVisibility: workspace.receivedVisibility,
+      });
+      const done = completions.filter((c) => c.weekKey === weekKey);
+      const sweep = done.some((c) => c.sweep);
+      weeks.push({
+        weekKey,
+        sweep,
+        board: waivers.map((r) => {
+          const completion = done.find((c) => c.questKey === r.key);
+          // A clean sweep left only waived quests open; the unknown one is always "no candidates".
+          const waived = completion ? null : (r.waived ?? (sweep ? ("no_candidates" as const) : null));
+          return {
+            key: r.key,
+            title: QUEST_BY_KEY[r.key].title,
+            done: !!completion,
+            completedAt: completion?.completedAt ?? null,
+            waived,
+          };
+        }),
+      });
+    }
+    return { totals, weeks };
+  },
+});
+
+/** A past week evaluates one member; the current week all of them (~18). Far inside the limits. */
+const SEED_WEEKS_PER_CHUNK = 6;
+
+/**
+ * Demo only: records the quests the seeded history completed, week by week from the first seeded
+ * kudos through the current week, as if they had been given live: boards stored, completions at the
+ * moment their goal was met, and a Quest message collected for each (Rare or better for the one
+ * that cleared the board). Nothing is sent. Quest logs are private and every visitor signs in as
+ * the demo user, so only their past weeks are recorded; the current week is recorded for everyone,
+ * so a teammate's next live kudos doesn't claim what their seeded days already met.
+ *
+ * Scheduled by `demo.seedHistory`; it hands over to the rollup rebuild, which releases the reset
+ * lock. Like that rebuild, a run belongs to one reset (`resetAt`) and stops when another starts.
+ */
+export const seedDemoHistory = internalMutation({
+  args: { workspaceId: v.id("workspaces"), resetAt: v.optional(v.number()), weekKey: v.optional(v.string()) },
+  returns: v.null(),
+  handler: async (ctx, { workspaceId, resetAt, weekKey }) => {
+    const workspace = await ctx.db.get(workspaceId);
+    if (!workspace?.isDemo || workspace.resettingSince !== resetAt) return null;
+    const now = Date.now();
+    const current = weekKeyFor(now, workspace.timezone);
+    const first = await ctx.db
+      .query("kudos")
+      .withIndex("by_workspace_at", (q) => q.eq("workspaceId", workspaceId))
+      .first();
+    let week = weekKey ?? (first ? weekKeyFor(first.at, workspace.timezone) : current);
+    const members = (
+      await ctx.db
+        .query("members")
+        .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspaceId))
+        .take(100)
+    ).filter((m) => !m.isBot && !m.deactivated);
+    for (let i = 0; i < SEED_WEEKS_PER_CHUNK && week <= current; i++, week = addDays(week, 7)) {
+      const board = await ensureBoard(ctx, workspace, week);
+      for (const member of members) {
+        if (week === current || member.slackUserId === DEMO_YOU) await seedMemberWeek(ctx, workspace, member, week, board);
+      }
+    }
+    if (week <= current) await ctx.scheduler.runAfter(0, internal.quests.seedDemoHistory, { workspaceId, resetAt, weekKey: week });
+    else await ctx.scheduler.runAfter(0, internal.rollups.rebuildWorkspace, { workspaceId, resetAt });
+    return null;
+  },
+});
+
+async function seedMemberWeek(ctx: MutationCtx, workspace: Doc<"workspaces">, member: Doc<"members">, weekKey: string, board: QuestKey[]) {
+  const { start, end } = weekBounds(weekKey, workspace.timezone);
+  const gave = await ctx.db
+    .query("kudos")
+    .withIndex("by_giver_at", (q) => q.eq("giverId", member._id).gte("at", start).lt("at", end))
+    .first();
+  if (!gave) return;
+  const facts = await loadQuestFacts(ctx, workspace, member, weekKey, board);
+  const results = evaluateBoard(board, facts);
+  const times = completionTimes(board, facts);
+  // Anything already on record (a visitor playing while a reset seeds) stays as it is.
+  const existing = await completionsFor(ctx, member._id, weekKey);
+  const created: Doc<"questCompletions">[] = [];
+  for (const r of results) {
+    const completedAt = times[r.key];
+    if (!r.done || completedAt === undefined || existing.some((c) => c.questKey === r.key)) continue;
+    const id = await ctx.db.insert("questCompletions", {
+      workspaceId: workspace._id,
+      memberId: member._id,
+      weekKey,
+      questKey: r.key,
+      completedAt,
+      sweep: false,
+    });
+    created.push((await ctx.db.get(id))!);
+  }
+  if (created.length === 0) return;
+  created.sort((a, b) => a.completedAt - b.completedAt);
+  const sweep = await syncSweep(ctx, [...existing, ...created], isCleanSweep(results), created.at(-1));
+  const collected = await ctx.db
+    .query("discoveries")
+    .withIndex("by_member_template", (q) => q.eq("memberId", member._id))
+    .take(500);
+  for (const c of created) {
+    // Seeded from the member and week, so every reset collects the same messages.
+    const random = mulberry32(fnv1a(`${member.slackUserId}:${weekKey}:${c.questKey}`));
+    const template = pickTemplate("quest_complete", new Set(collected.map((d) => d.templateKey)), random, {
+      minRarity: c._id === sweep?._id ? "rare" : undefined,
+    });
+    const found = collected.find((d) => d.templateKey === template.key);
+    if (found) {
+      found.timesSeen += 1;
+      found.firstSeenAt = Math.min(found.firstSeenAt, c.completedAt);
+      found.lastSeenAt = Math.max(found.lastSeenAt, c.completedAt);
+      await ctx.db.patch(found._id, { timesSeen: found.timesSeen, firstSeenAt: found.firstSeenAt, lastSeenAt: found.lastSeenAt });
+    } else {
+      const discovery = {
+        workspaceId: workspace._id,
+        memberId: member._id,
+        templateKey: template.key,
+        rarity: template.rarity,
+        category: template.category,
+        timesSeen: 1,
+        firstSeenAt: c.completedAt,
+        lastSeenAt: c.completedAt,
+      };
+      collected.push({ ...discovery, _id: await ctx.db.insert("discoveries", discovery), _creationTime: Date.now() });
+    }
+  }
+}
