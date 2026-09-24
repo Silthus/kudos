@@ -110,6 +110,13 @@ describe("the demo plays the game", () => {
     // A reset starts the coins over too, including what the Store (#91) spent or admins adjusted.
     const alexId = (await t.run((ctx) => ctx.db.query("members").collect())).find((m) => m.slackUserId === "UDEMOYOU")!._id;
     await t.run((ctx) => ctx.db.patch(alexId, { coinsSpent: 40, coinsAdjusted: -3 }));
+    // …and the garden (#95): plants and memories go with the reset.
+    await t.run(async (ctx) => {
+      const lena = (await ctx.db.query("members").collect()).find((m) => m.slackUserId !== "UDEMOYOU" && !m.isBot)!;
+      const plant = { workspaceId: lena.workspaceId, ownerId: alexId, forId: lena._id, species: "helpful_oak", plantedAt: Date.now(), plantedDay: "2026-09-01", pickedThrough: "2026-09-01", announced: 0 };
+      await ctx.db.insert("plants", plant);
+      await ctx.db.insert("plants", { ...plant, memoryAt: Date.now(), memoryReason: "uprooted" as const, memoryStage: 2 });
+    });
     await demo.mutation(api.demo.resetDemo, {});
     await t.finishAllScheduledFunctions(vi.runAllTimers, 1000);
     // Only the fresh seeded year is left in the ledger, and every player's XP adds up again.
@@ -127,6 +134,7 @@ describe("the demo plays the game", () => {
     const held = redemptions.filter((r) => r.status !== "declined" && r.status !== "cancelled");
     expect(fresh.coinsSpent ?? 0).toBe(held.reduce((s, r) => s + r.cost, 0));
     expect(fresh.coinsAdjusted ?? 0).toBe(adjustments.reduce((s, a) => s + a.amount, 0));
+    expect(await t.run((ctx) => ctx.db.query("plants").collect())).toEqual([]);
   });
 });
 

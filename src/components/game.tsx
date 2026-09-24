@@ -3,6 +3,7 @@ import { ChevronRight, Coins, Compass, Lock, Network, Sprout } from "lucide-reac
 import { Link } from "react-router";
 import { api } from "../../convex/_generated/api";
 import type { CoinBalance } from "../../convex/lib/coins";
+import { GARDEN_LEVEL } from "../../convex/lib/garden";
 import { pointsOf, type Allocation } from "../../convex/lib/skills";
 import { daysBetween } from "../../convex/lib/time";
 import { nextLockedAreas, type LevelProgress } from "../../convex/lib/xp";
@@ -39,6 +40,7 @@ export function Locked({ title, level, how }: { title: string; level: number; ho
 export function Wallet({ wallet }: { wallet: CoinBalance }) {
   const sources = [
     `${wallet.fromKudos} from thoughtful kudos`,
+    wallet.fromFruit ? `${wallet.fromFruit} from garden fruit` : null,
     `${wallet.fromLevels} from level-ups`,
     wallet.spent ? `${wallet.spent} spent` : null,
     wallet.adjusted ? `${wallet.adjusted > 0 ? "+" : ""}${wallet.adjusted} by admins` : null,
@@ -139,6 +141,17 @@ export function GameCard({ glyph }: { glyph: string }) {
             <Locked key={a.key} title={a.title} level={a.level} how={a.how} />
           ))}
         </div>
+      )}
+      {game.player.level >= GARDEN_LEVEL && (
+        <Link
+          to="/garden"
+          className="mt-3 flex items-center gap-3 rounded-xl border border-line px-3.5 py-2.5 text-sm transition hover:border-line-strong hover:bg-panel-2"
+        >
+          <Sprout className="h-4 w-4 shrink-0 text-saffron" aria-hidden />
+          <span className="font-medium text-cream">Your garden</span>
+          <span className="flex-1 text-xs text-muted">A plant for each teammate you recognise</span>
+          <ChevronRight className="h-4 w-4 text-faint" aria-hidden />
+        </Link>
       )}
       {available !== null && (
         <Link

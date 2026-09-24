@@ -97,8 +97,8 @@ test("a skill blocked only by points says so to screen readers", () => {
 test("a skill whose system hasn't shipped says what it arrives with and can't be taken", () => {
   tree = { level: 6, skills: {}, resets: 0, resetCost: 50, balance: 42 };
   const host = render();
-  click(node(host, "More plots"));
-  expect(document.body.textContent).toContain("More plots arrives with Gardens.");
+  click(node(host, "Good neighbour"));
+  expect(document.body.textContent).toContain("Good neighbour arrives with the team garden and bonus days.");
   expect(buttonNamed("Take it")).toBeUndefined();
 });
 

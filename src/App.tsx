@@ -13,6 +13,7 @@ import { Compare } from "./pages/compare/Compare";
 import { Discoveries } from "./pages/Discoveries";
 import { Quests } from "./pages/Quests";
 import { Skills } from "./pages/Skills";
+import { Garden, GardenOf } from "./pages/Garden";
 import { Store } from "./pages/Store";
 import { Analytics } from "./pages/Analytics";
 import { Admin } from "./pages/Admin";
@@ -56,6 +57,8 @@ export function App() {
           <Route path="/discoveries" element={<Discoveries />} />
           <Route path="/quests" element={<Quests />} />
           <Route path="/skills" element={<Skills />} />
+          <Route path="/garden" element={<Garden />} />
+          <Route path="/garden/:memberId" element={<GardenOf />} />
           {/* The menu shows the Store from level 3; the page exists while the game is on and shows its own locked state. */}
           {(viewer.workspace.storeEnabled || viewer.workspace.gameEnabled) && <Route path="/store" element={<Store />} />}
           <Route path="/analytics" element={<Analytics />} />

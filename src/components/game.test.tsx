@@ -64,6 +64,13 @@ test("at level 3 the wallet appears with everything collected so far, and the ne
   expect(locked).toEqual(["Store, opens at level 5", "Quests, opens at level 5"]);
 });
 
+test("fruit picked in the garden is its own line in the wallet, and the garden is a click away (#95)", () => {
+  mine = { enabled: true, hidden: false, player: level3, wallet: { balance: 31, fromKudos: 8, fromFruit: 3, fromLevels: 20, spent: 0, adjusted: 0 } };
+  const host = render(<GameCard glyph="🌮" />);
+  expect(host.querySelector("[data-wallet]")!.textContent).toContain("8 from thoughtful kudos · 3 from garden fruit · 20 from level-ups");
+  expect(host.querySelector('a[href="/garden"]')?.textContent).toContain("Your garden");
+});
+
 test("below level 3 there is no wallet, only its locked tile", () => {
   mine = { enabled: true, hidden: false, player: level2, wallet: null };
   const host = render(<GameCard glyph="🌮" />);

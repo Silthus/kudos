@@ -56,21 +56,20 @@ type SkillSpec = {
   arrives?: { ticket: number; with: string };
 };
 
-const GARDENS = { ticket: 95, with: "Gardens" };
 const SPREES = { ticket: 94, with: "Kudos sprees" };
 const BOOSTERS = { ticket: 97, with: "Boosters" };
 const SUPER = { ticket: 98, with: "Super kudos" };
 const TEAM = { ticket: 96, with: "the team garden and bonus days" };
 
 const TREE = {
-  // Gardener: your garden (#95).
-  more_plots: { branch: "gardener", tier: 1, name: "More plots", effect: "A second and third plot in your garden.", perRank: "One more plot.", ranks: 2, cost: 1, arrives: GARDENS },
-  early_bloom: { branch: "gardener", tier: 2, name: "Early bloom", effect: "Your plants reach Sprout and Sapling sooner.", ranks: 1, cost: 1, parent: "more_plots", arrives: GARDENS },
-  plant_picker: { branch: "gardener", tier: 2, name: "Plant picker", effect: "Choose the species you plant, like a Helpful oak.", ranks: 1, cost: 1, parent: "more_plots", arrives: GARDENS },
-  wide_beds: { branch: "gardener", tier: 3, name: "Wide beds", effect: "A fourth and fifth plot.", perRank: "One more plot.", ranks: 2, cost: 1, parent: "more_plots", arrives: GARDENS },
-  rare_species: { branch: "gardener", tier: 3, name: "Rare species", effect: "Rare species join the plant picker.", ranks: 1, cost: 1, parent: "plant_picker", arrives: GARDENS },
-  good_harvest: { branch: "gardener", tier: 3, name: "Good harvest", effect: "Each grown plant holds one more fruit.", ranks: 1, cost: 1, parent: "early_bloom", arrives: GARDENS },
-  orchard: { branch: "gardener", tier: 4, name: "Orchard", effect: "A sixth plot: the biggest garden there is.", ranks: 1, cost: 3, parent: "wide_beds", arrives: GARDENS },
+  // Gardener: your garden (live, lib/garden.ts).
+  more_plots: { branch: "gardener", tier: 1, name: "More plots", effect: "A second and third plot in your garden.", perRank: "One more plot.", ranks: 2, cost: 1 },
+  early_bloom: { branch: "gardener", tier: 2, name: "Early bloom", effect: "Your seeds sprout without a watering, and the first watering makes a Sapling.", ranks: 1, cost: 1, parent: "more_plots" },
+  plant_picker: { branch: "gardener", tier: 2, name: "Plant picker", effect: "Choose the species you plant, like a Helpful oak.", ranks: 1, cost: 1, parent: "more_plots" },
+  wide_beds: { branch: "gardener", tier: 3, name: "Wide beds", effect: "A fourth and fifth plot.", perRank: "One more plot.", ranks: 2, cost: 1, parent: "more_plots" },
+  rare_species: { branch: "gardener", tier: 3, name: "Rare species", effect: "Rare species join the plant picker.", ranks: 1, cost: 1, parent: "plant_picker" },
+  good_harvest: { branch: "gardener", tier: 3, name: "Good harvest", effect: "Each plant holds four fruit instead of three.", ranks: 1, cost: 1, parent: "early_bloom" },
+  orchard: { branch: "gardener", tier: 4, name: "Orchard", effect: "A sixth plot: the biggest garden there is.", ranks: 1, cost: 3, parent: "wide_beds" },
 
   // Herald: the kudos you send (#97, #98).
   emoji_variants: { branch: "herald", tier: 1, name: "Signature emoji", effect: "Extra kudos-emoji variants to give with.", perRank: "One more variant.", ranks: 2, cost: 1, arrives: SUPER },

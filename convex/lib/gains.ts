@@ -126,7 +126,7 @@ function parts(gain: Gain, audience: Audience, link: LinkTo): Parts {
       return {
         icon: "🌿",
         title: `Your ${safe(gain.species, audience)} for ${person(gain.teammate, audience)} is now ${stage}`,
-        context: links(to("/me", "Your garden")),
+        context: links(to("/garden", "Your garden")),
       };
     }
   }

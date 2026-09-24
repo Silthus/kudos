@@ -282,7 +282,7 @@ export function Me() {
                   <p className="text-sm leading-relaxed whitespace-pre-line">{m.text}</p>
                   <GainLines lines={m.gains} />
                   <div className="mt-2 flex items-center gap-2">
-                    {m.category === "gains" || m.category === "level_up" ? (
+                    {m.category === "gains" || m.category === "level_up" || m.category === "garden" ? (
                       <span className="text-xs font-medium text-saffron">{m.gainLabel ?? "Level up"}</span>
                     ) : (
                       <RarityBadge rarity={m.rarity as Rarity} size="xs" />

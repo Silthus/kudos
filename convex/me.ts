@@ -247,7 +247,7 @@ export const overview = query({
     // Game DMs (gains) are game UI: gone while the game is off or hidden, back with it. A discovery
     // gain repeats a message listed here already (its reply, marked new), so the web leaves it out.
     const showGame = gameShownTo(workspace, member);
-    const gameOnly = (n: Doc<"notifications">) => n.category === "gains" || n.category === "level_up";
+    const gameOnly = (n: Doc<"notifications">) => n.category === "gains" || n.category === "level_up" || n.category === "garden";
     const shownGains = (n: Doc<"notifications">) => (showGame ? (n.gains ?? []).filter((g) => g.kind !== "discovery") : []);
     const notifications = (
       await ctx.db
@@ -301,6 +301,7 @@ export const overview = query({
           isNewDiscovery: n.isNewDiscovery,
           at: n._creationTime,
           ...(gains.length > 0 ? { gainLabel: gainLabel(gains), ...(gameOnly(n) ? {} : { gains: gains.map((g) => gainText(g, "web")) }) } : {}),
+          ...(n.category === "garden" ? { gainLabel: "Garden" } : {}),
         };
       }),
     };
