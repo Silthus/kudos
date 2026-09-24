@@ -84,6 +84,52 @@ describe("the giver's reply is ephemeral where they gave, with what it earned", 
   });
 });
 
+describe("Hog coins in the reply and the level-up DM", () => {
+  /** Ana already plays at `level` with `xp` and `coins` collected. */
+  const anaAt = (level: number, xp: number, coins: number) =>
+    t.run((ctx) => ctx.db.insert("players", { workspaceId: team.workspaceId, memberId: team.ana, since: 0, xp, level, coins }));
+
+  test("below level 3 coins collect silently: the reply doesn't mention them", async () => {
+    await post("<@UBEN> :taco::taco: thanks for the thorough review");
+    expect(ephemerals()[0].text).toContain("+20 XP");
+    expect(ephemerals()[0].text).not.toMatch(/coin/i);
+  });
+
+  test("once the wallet is open, the reply shows the coins a kudos earned", async () => {
+    await anaAt(3, 100, 4);
+    await post("<@UBEN> :taco::taco: thanks for the thorough review");
+    expect(ephemerals()[0].text).toContain("+20 XP · +2 Hog coins · new connection +10");
+  });
+
+  test("once the wallet is open, a kudos without a reason is told that one with a reason earns coins", async () => {
+    await anaAt(3, 100, 4);
+    await post("<@UBEN> :taco:");
+    expect(ephemerals()[0].text).toContain("+2 XP · a kudos with a reason (3+ words) earns coins");
+  });
+
+  test("reaching level 3 opens the wallet with what was collected so far; later levels say what they paid", async () => {
+    await anaAt(2, 70, 5);
+    await post("<@UBEN> :taco: thanks for the thorough review"); // +20 XP: level 3, 6 coins + 2 levels × 10
+    expect(dms().find((d) => d.channel === "UANA")?.text).toContain("Your Hog coin wallet is open: 26 Hog coins collected so far.");
+    calls = [];
+    await t.run(async (ctx) => {
+      const p = (await ctx.db.query("players").collect()).find((x) => x.memberId === team.ana)!;
+      await ctx.db.patch(p._id, { xp: 170 });
+    });
+    await post("<@UCLEO> :taco: great pairing session today"); // level 4
+    const dm = dms().find((d) => d.channel === "UANA")?.text;
+    expect(dm).toContain("Level 4: Sprout");
+    expect(dm).toContain("+10 Hog coins");
+  });
+
+  test("reaching level 2 says nothing about coins yet", async () => {
+    await post("<@UBEN> :taco: thanks for the thorough review");
+    calls = [];
+    await post("<@UCLEO> :taco: great pairing session today");
+    expect(dms().find((d) => d.channel === "UANA")?.text).not.toMatch(/coin/i);
+  });
+});
+
 describe("App Home", () => {
   async function home(user: string) {
     await t.action(internal.slack.processEvent, { teamId: "T1", event: { type: "app_home_opened", tab: "home", user } });

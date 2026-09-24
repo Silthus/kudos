@@ -4,6 +4,7 @@
  * kudos or allowance. The engine gathers the facts (convex/game.ts) and stores what these return
  * as per-batch `gameEvents`, so a revoke takes back exactly what its kudos earned.
  */
+import { WALLET_LEVEL } from "./coins";
 import { hasNote, REKINDLE_GAP_MS, STORY_NOTE_WORDS, UNSUNG_QUIET_MS } from "./quests";
 
 export const XP = {
@@ -95,7 +96,7 @@ export function levelProgress(xp: number, reached = 1): LevelProgress {
 export type GameArea = { key: "wallet" | "garden" | "store" | "quests"; title: string; level: number; how: string };
 
 export const GAME_AREAS: GameArea[] = [
-  { key: "wallet", title: "Hog coins", level: 3, how: "Thoughtful kudos collect Hog coins; your wallet opens at level 3 with everything collected so far." },
+  { key: "wallet", title: "Hog coins", level: WALLET_LEVEL, how: "Thoughtful kudos collect Hog coins; your wallet opens at level 3 with everything collected so far." },
   { key: "garden", title: "Your garden", level: 3, how: "At level 3 you can grow a plant for a teammate you recognise." },
   { key: "store", title: "Store", level: 5, how: "At level 5 you can spend Hog coins on game items." },
   { key: "quests", title: "Quests", level: 5, how: "At level 5 the weekly board and a daily quest pay XP and coins." },
@@ -190,10 +191,12 @@ const BONUS_LABEL: Partial<Record<XpItemKind, string>> = {
 
 /**
  * The giver's earnings line for the reply where they gave (Slack ephemeral, playground):
- * "+25 XP · new connection +10 · a real why +5", plus how a thin kudos could earn more.
+ * "+25 XP · +2 Hog coins · new connection +10 · a real why +5", plus how a thin kudos could earn
+ * more. `coins` is only there once their wallet is open (level 3): until then coins collect silently.
  */
 export function earningsText(e: {
   xp: number;
+  coins?: number;
   bonuses: { kind: XpItemKind; xp: number }[];
   capped: boolean;
   noReason: boolean;
@@ -201,12 +204,18 @@ export function earningsText(e: {
 }): string {
   // Nothing earned and not capped, from a thoughtful kudos: the third thanks to them today.
   const repeat = e.xp === 0 && !e.capped && !e.noReason && !e.thankBack;
+  const wallet = e.coins !== undefined;
   return [
     `+${e.xp} XP`,
+    e.coins ? `+${e.coins} Hog ${e.coins === 1 ? "coin" : "coins"}` : null,
     ...(e.xp > 0 ? e.bonuses.filter((b) => BONUS_LABEL[b.kind]).map((b) => `${BONUS_LABEL[b.kind]} +${b.xp}`) : []),
     e.capped ? "daily XP cap reached" : null,
     repeat ? "you've thanked them twice today already" : null,
-    e.noReason ? "a kudos with a reason (3+ words) earns more" : e.thankBack ? "thanking back within 72 h earns less" : null,
+    e.noReason
+      ? `a kudos with a reason (3+ words) earns ${wallet ? "coins" : "more"}`
+      : e.thankBack
+        ? "thanking back within 72 h earns less"
+        : null,
   ]
     .filter(Boolean)
     .join(" · ");

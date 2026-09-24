@@ -6,11 +6,11 @@ import { mulberry32 } from "../convex/lib/random";
 import { seedTeam, setupConvex, signInAs } from "./helpers";
 
 /**
- * XP property test: random histories (thoughtful, thin and thank-back kudos, same-day and
- * same-week repeats, several recipients, daily caps, revokes, the game switched off and on) go
- * through the real Slack path, and every player's XP and level must match an independent
- * recompute written straight from the spec's G3 table. Without revokes, a rebuild must write
- * exactly what the live path wrote.
+ * XP and Hog coins property test: random histories (thoughtful, thin and thank-back kudos, one or
+ * two kudos per person, same-day and same-week repeats, several recipients, daily caps, revokes,
+ * the game switched off and on) go through the real Slack path, and every player's XP, level, coins
+ * and wallet balance must match an independent recompute written straight from the spec's G3 and
+ * G4 tables. Without revokes, a rebuild must write exactly what the live path wrote.
  */
 
 afterEach(() => vi.useRealTimers());
@@ -25,7 +25,7 @@ const levelOf = (xp: number) => {
   return l;
 };
 
-type Row = { id: string; giver: string; receiver: string; at: number; dayKey: string };
+type Row = { id: string; giver: string; receiver: string; at: number; dayKey: string; amount: number };
 type Op =
   | { kind: "give"; at: number; dayKey: string; giver: string; noteWords: number; rows: Row[]; on: boolean }
   | { kind: "revoke"; row: string }
@@ -38,7 +38,7 @@ function weekOf(dayKey: string) {
   return d.toISOString().slice(0, 10);
 }
 
-type Line = { giver: string; receiver: string; dayKey: string; qualifying: boolean; xp: number };
+type Line = { giver: string; receiver: string; dayKey: string; qualifying: boolean; xp: number; coins: number };
 type Recv = { giver: string; receiver: string; dayKey: string; xp: number };
 type State = {
   alive: Map<string, Row & { noteWords: number }>;
@@ -83,7 +83,8 @@ function applyGive(s: State, g: Extract<Op, { kind: "give" }>, unsungOn: boolean
       }
       const xp = Math.min(raw, Math.max(0, 50 - earned));
       earned += xp;
-      scored.push([row, { giver: g.giver, receiver: row.receiver, dayKey: g.dayKey, qualifying, xp }]);
+      // Hog coins (§G4): 1 per kudos given in a qualifying kudos, untouched by XP decay and caps.
+      scored.push([row, { giver: g.giver, receiver: row.receiver, dayKey: g.dayKey, qualifying, xp, coins: qualifying ? row.amount : 0 }]);
     }
     for (const [row, line] of scored) {
       s.lines.set(row.id, line);
@@ -186,13 +187,14 @@ async function run(seed: number, { revokes, visibility }: { revokes: boolean; vi
     // Ben is popular: repeats, thank-backs and caps come up often.
     const favourite = () => (giver !== "UBEN" && random() < 0.4 ? "UBEN" : pick(others));
     const recipients = inBurst ? ["UBEN"] : random() < 0.25 ? [favourite(), pick(others)] : [favourite()];
+    const tacos = !inBurst && random() < 0.3 ? ":taco::taco:" : ":taco:";
     const note = inBurst ? NOTES[2] : pick(NOTES);
     const before = new Set((await t.run((ctx) => ctx.db.query("kudos").collect())).map((k) => k._id));
     const result = await t.mutation(internal.kudos.ingestMessage, {
       workspaceId: team.workspaceId,
       botUserId: "UBOT",
       giverSlackId: giver,
-      text: `${[...new Set(recipients)].map((p) => `<@${p}>`).join(" ")} :taco: ${note}`,
+      text: `${[...new Set(recipients)].map((p) => `<@${p}>`).join(" ")} ${tacos} ${note}`,
       channelId: "C1",
       messageTs: `${ts++}.0001`,
     });
@@ -206,23 +208,34 @@ async function run(seed: number, { revokes, visibility }: { revokes: boolean; vi
       giver,
       noteWords: rows[0].noteWords ?? 0,
       on,
-      rows: rows.map((k) => ({ id: k._id, giver, receiver: byId[k.receiverId], at: k.at, dayKey: k.dayKey })),
+      rows: rows.map((k) => ({ id: k._id, giver, receiver: byId[k.receiverId], at: k.at, dayKey: k.dayKey, amount: k.amount })),
     });
   }
   return { t, team, ids, ops };
 }
 
 async function playersOf(t: ReturnType<typeof setupConvex>, ids: Record<string, Id<"members">>) {
-  const out: Record<string, { xp: number; level: number } | null> = {};
+  const out: Record<string, { xp: number; level: number; coins: number; balance: number } | null> = {};
   for (const [slack, id] of Object.entries(ids)) {
     const p = await t.run((ctx) => ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", id)).unique());
-    out[slack] = p && { xp: p.xp, level: p.level };
+    const wallet = p && p.level >= 3 ? (await (await signInAs(t, id)).query(api.game.mine, {})).wallet : null;
+    out[slack] = p && { xp: p.xp, level: p.level, coins: p.coins ?? 0, balance: wallet?.balance ?? coinsOf(p.coins ?? 0, p.level) };
   }
   return out;
 }
 
+/** The wallet: coins from kudos plus 10 per level reached (§G4); nothing is spent in these histories. */
+const coinsOf = (fromKudos: number, level: number) => fromKudos + 10 * (level - 1);
+
 function expected(state: State) {
-  return Object.fromEntries(PEOPLE.map((m) => [m, state.since.has(m) ? { xp: xpOf(state, m), level: state.level.get(m) ?? 1 } : null]));
+  return Object.fromEntries(
+    PEOPLE.map((m) => {
+      if (!state.since.has(m)) return [m, null];
+      const level = state.level.get(m) ?? 1;
+      const coins = [...state.lines.values()].filter((l) => l.giver === m).reduce((a, l) => a + l.coins, 0);
+      return [m, { xp: xpOf(state, m), level, coins, balance: coinsOf(coins, level) }];
+    }),
+  );
 }
 
 describe("XP matches an independent recompute", () => {

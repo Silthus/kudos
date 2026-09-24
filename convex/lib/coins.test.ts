@@ -1,0 +1,30 @@
+import { describe, expect, test } from "vitest";
+import { canSpend, coinBalance, lineCoins, WALLET_LEVEL } from "./coins";
+import { GAME_AREAS } from "./xp";
+
+describe("Hog coins (#55 §G4)", () => {
+  test("a qualifying kudos earns its giver 1 per kudos given; anything else earns nothing", () => {
+    expect(lineCoins({ qualifying: true, amount: 1 })).toBe(1);
+    expect(lineCoins({ qualifying: true, amount: 2 })).toBe(2); // two tacos to one person
+    expect(lineCoins({ qualifying: false, amount: 3 })).toBe(0); // no reason, or a thank-back
+  });
+
+  test("the balance is what kudos earned plus 10 per level reached, minus spending, plus or minus adjustments", () => {
+    expect(coinBalance({ coins: 7, level: 1 })).toMatchObject({ balance: 7, fromKudos: 7, fromLevels: 0 });
+    expect(coinBalance({ coins: 7, level: 3 })).toMatchObject({ balance: 27, fromKudos: 7, fromLevels: 20 });
+    expect(coinBalance({ coins: 7, level: 3 }, { coinsSpent: 30, coinsAdjusted: -2 })).toMatchObject({ balance: -5, spent: 30, adjusted: -2 });
+    expect(coinBalance({ level: 1 })).toMatchObject({ balance: 0 }); // a player from before coins
+  });
+
+  test("a revoke can take the balance below zero, which blocks spending until it's positive again", () => {
+    expect(canSpend(-3, 1)).toBe(false);
+    expect(canSpend(0, 1)).toBe(false);
+    expect(canSpend(5, 5)).toBe(true);
+    expect(canSpend(5, 6)).toBe(false);
+  });
+
+  test("the wallet appears at level 3, where its locked tile said it would", () => {
+    expect(WALLET_LEVEL).toBe(3);
+    expect(GAME_AREAS.find((a) => a.key === "wallet")?.level).toBe(WALLET_LEVEL);
+  });
+});

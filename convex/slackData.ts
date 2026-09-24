@@ -15,7 +15,8 @@ import { weekBucket } from "./lib/buckets";
 import { backfilledRollups, memberBucket } from "./lib/stats";
 import { markBackfilled, mirrorBackfillMarker } from "./lib/rebuild";
 import { questBoard, questsOn } from "./quests";
-import { gameShownTo, playerOf } from "./game";
+import { gameOn, gameShownTo, playerOf } from "./game";
+import { coinBalance, WALLET_LEVEL } from "./lib/coins";
 import { questBlocks } from "./lib/questBlocks";
 import { weekKeyFor } from "./lib/quests";
 
@@ -479,7 +480,56 @@ async function storeHome(ctx: QueryCtx, workspace: Doc<"workspaces">, member: Do
   };
 }
 
-/** `/kudos [me|top|quests|store|help]` — returns an ephemeral Slack response body. */
+/** The game is on and the member (if Kudos knows them yet) hasn't hidden it. */
+async function gameShownToSlackUser(ctx: QueryCtx, workspace: Doc<"workspaces">, slackUserId: string) {
+  if (!gameOn(workspace)) return false;
+  const member = await ctx.db
+    .query("members")
+    .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id).eq("slackUserId", slackUserId))
+    .unique();
+  return !member?.gameHidden;
+}
+
+/**
+ * `/kudos coins`: the member's Hog coin wallet. Coins collect silently until it opens at level 3,
+ * so before that it only says when it opens, never the amount.
+ */
+async function coinsReply(ctx: QueryCtx, workspace: Doc<"workspaces">, member: Doc<"members">, link: (path: string, label: string) => string | null) {
+  if (!gameOn(workspace)) return { response_type: "ephemeral", text: "The game isn't on in this workspace." };
+  if (!gameShownTo(workspace, member)) {
+    return { response_type: "ephemeral", text: "You've hidden the game. Show it again on your Me page to see your Hog coins." };
+  }
+  const player = await playerOf(ctx, member._id);
+  if (!player || player.level < WALLET_LEVEL) {
+    return {
+      response_type: "ephemeral",
+      text: `Your Hog coin wallet opens at level ${WALLET_LEVEL}. Thoughtful kudos are already collecting coins for it.`,
+    };
+  }
+  const coins = coinBalance(player, member);
+  const fields = [
+    `*Balance*\n${coins.balance} Hog ${coins.balance === 1 ? "coin" : "coins"}`,
+    `*From thoughtful kudos*\n${coins.fromKudos}`,
+    `*From level-ups*\n${coins.fromLevels}`,
+    ...(coins.spent ? [`*Spent*\n${coins.spent}`] : []),
+    ...(coins.adjusted ? [`*Adjusted by admins*\n${coins.adjusted > 0 ? "+" : ""}${coins.adjusted}`] : []),
+  ];
+  const note =
+    coins.balance < 0
+      ? "A revoked kudos took back coins it had earned. Spending waits until your balance is above zero again."
+      : "A thoughtful kudos earns you 1 Hog coin per kudos given, and every level 10.";
+  return {
+    response_type: "ephemeral",
+    text: `You have ${coins.balance} Hog ${coins.balance === 1 ? "coin" : "coins"}.`,
+    blocks: [
+      { type: "header", text: { type: "plain_text", text: "Hog coins" } },
+      { type: "section", fields: fields.map((text) => ({ type: "mrkdwn", text })) },
+      ...context([note, link("/me", "Your wallet")].filter(Boolean).join(" · ")),
+    ],
+  };
+}
+
+/** `/kudos [me|top|quests|coins|store|help]` — returns an ephemeral Slack response body. */
 export const slashCommand = internalMutation({
   args: { teamId: v.string(), slackUserId: v.string(), text: v.string() },
   returns: v.any(),
@@ -548,6 +598,9 @@ export const slashCommand = internalMutation({
       const board = await questBoard(ctx, workspace, member, weekKeyFor(Date.now(), workspace.timezone));
       return { response_type: "ephemeral", text: "This week's quests", blocks: questBlocks(board, webLink(workspace.slackTeamId, "/quests")) };
     }
+    if (sub === "coins" || sub === "coin" || sub === "wallet") {
+      return await coinsReply(ctx, workspace, await ensureMember(ctx, workspace, slackUserId), link);
+    }
     const store = storeOpen(workspace);
     if (sub === "store" || sub === "balance") {
       if (!store) return { response_type: "ephemeral", text: "The rewards store isn't open in this workspace." };
@@ -589,6 +642,7 @@ export const slashCommand = internalMutation({
         "",
         "`/kudos me` what you can give today · `/kudos top` weekly leaderboard",
         quests ? "`/kudos quests` your weekly quests" : "",
+        (await gameShownToSlackUser(ctx, workspace, slackUserId)) ? "`/kudos coins` your Hog coins" : "",
         store ? "`/kudos store` your balance and the rewards you can spend it on" : "",
         link("/me", "Open the Kudos dashboard"),
       ]
