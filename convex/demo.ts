@@ -554,6 +554,8 @@ export const resetDemoWorkspace = internalMutation({
   handler: async (ctx) => {
     const workspace = await demoWorkspace(ctx);
     if (!workspace) return null;
+    // Wiping the rollups unmarks them, however the reset was started (see `startDemoReset`).
+    if (workspace.rollupsBackfilledAt !== undefined) await ctx.db.patch(workspace._id, { rollupsBackfilledAt: undefined });
     let deleted = 0;
     for (const table of DEMO_TABLES) {
       if (deleted >= 3000) break; // stay well within per-transaction write limits

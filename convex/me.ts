@@ -342,14 +342,15 @@ function memberLookup(ctx: QueryCtx): People {
   };
 }
 
-/** The teammate with the most units; ties go to the name that sorts first. */
+/**
+ * The teammate with the most units; ties go to the id that sorts first. Only the winner is read:
+ * each teammate read re-runs the page whenever that teammate gives or gets kudos.
+ */
 async function topOf(totals: Map<Id<"members">, number>, people: People) {
-  const amount = Math.max(0, ...totals.values());
-  if (amount === 0) return null;
-  const tied = [...totals].filter(([, n]) => n === amount).map(([id]) => id);
-  const names = (await Promise.all(tied.map(people))).flatMap((m) => (m ? [m.name] : []));
-  const name = names.sort((a, b) => a.localeCompare(b))[0];
-  return name === undefined ? null : { name, amount };
+  let top: [Id<"members">, number] | null = null;
+  for (const [id, n] of totals) if (n > 0 && (!top || n > top[1] || (n === top[1] && id < top[0]))) top = [id, n];
+  const member = top && (await people(top[0]));
+  return member && top ? { name: member.name, amount: top[1] } : null;
 }
 
 /**

@@ -11,6 +11,7 @@ import {
   zeroFound,
   zeroMember,
 } from "./rollups";
+import { backfilledRollups } from "./stats";
 import { addDays, DAY_MS, startOfDayUtc, weekdayOfKey, zonedParts } from "./time";
 
 /**
@@ -423,6 +424,13 @@ export async function markBackfilled(ctx: MutationCtx, workspaceId: Id<"workspac
   if (row) await ctx.db.patch(row._id, { rollupsBackfilledAt: at });
   else await ctx.db.insert("workspaceStats", { workspaceId, bucket: ALL_BUCKET, ...emptyValues(ALL_BUCKET), rollupsBackfilledAt: at });
   await ctx.db.patch(workspaceId, { rollupsBackfilledAt: at });
+}
+
+/** Copy the `all` row's marker onto a workspace marked before the workspace carried one. */
+export async function mirrorBackfillMarker(ctx: MutationCtx, workspace: Doc<"workspaces">) {
+  if (workspace.rollupsBackfilledAt !== undefined) return;
+  const all = await backfilledRollups(ctx, workspace._id);
+  if (all) await ctx.db.patch(workspace._id, { rollupsBackfilledAt: all.rollupsBackfilledAt });
 }
 
 /** Whether the workspace's rollups are complete; until then readers use their legacy scans. */

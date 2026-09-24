@@ -70,6 +70,20 @@ async function insertLegacyKudos(
   await bump(receiverId, "received");
 }
 
+async function newMember(ctx: MutationCtx, name: string) {
+  return await ctx.db.insert("members", {
+    workspaceId: team.workspaceId,
+    slackUserId: `U${name.replace(/\W/g, "").toUpperCase()}`,
+    name,
+    isAdmin: false,
+    isBot: false,
+    deactivated: false,
+    totalGiven: 0,
+    totalReceived: 0,
+    totalMaxedDays: 0,
+  });
+}
+
 async function rebuild() {
   await t.mutation(internal.rollups.rebuildWorkspace, { workspaceId: team.workspaceId });
   await t.finishAllScheduledFunctions(vi.runAllTimers, 1000);
@@ -130,14 +144,15 @@ describe("me.overview: the personal parts", () => {
     const ana = await signInAs(t, team.ana);
     const month = await ana.query(api.me.overview, { period: "month", today: TODAY });
     expect(month.period).toEqual({ given: 6, prevGiven: 2, received: 3 });
-    // Ben and Cleo both got 3 this month: ties go to the name that sorts first.
+    // Ben and Cleo both got 3 this month: ties go to the teammate whose id sorts first.
+    const tied = [team.ben, team.cleo].sort()[0] === team.ben ? "Ben" : "Cleo";
     expect(month.patterns).toEqual({
       teammatesCelebrated: 2,
       channelsVisited: 2,
       longestStreak: 3,
       currentStreak: 3,
       bestWeekday: "Monday",
-      topRecipient: { name: "Ben", amount: 3 },
+      topRecipient: { name: tied, amount: 3 },
       topSupporter: { name: "Ben", amount: 2 },
     });
     const all = await ana.query(api.me.overview, { period: "all", today: TODAY });
@@ -172,6 +187,27 @@ describe("me.overview: the personal parts", () => {
     },
   );
 
+  test("a tie for top recipient reads one teammate, not everyone tied", async () => {
+    // Every teammate's member document changes whenever they give or get kudos, so each one read
+    // re-runs the page on their activity.
+    const teammates = await t.run(async (ctx) => {
+      const ids = await Promise.all(Array.from({ length: 20 }, (_, i) => newMember(ctx, `Teammate ${i}`)));
+      for (const id of ids) await insertLegacyKudos(ctx, team.ana, id, "2026-09-01");
+      // Ben's thanks fill the recent activity list, so it names none of the tied teammates.
+      for (let i = 0; i < 12; i++) await insertLegacyKudos(ctx, team.ben, team.ana, addDays("2026-09-10", i));
+      return ids;
+    });
+    await rebuild();
+    const ana = await signInAs(t, team.ana);
+    const { result, seen } = await readsOf(ana, "month");
+    expect((result as { patterns: { topRecipient: unknown } }).patterns.topRecipient).toEqual({
+      name: `Teammate ${teammates.indexOf([...teammates].sort()[0])}`,
+      amount: 1,
+    });
+    const teammatesRead = new Set(seen.filter((doc) => teammates.includes(doc._id as Id<"members">)).map((doc) => doc._id));
+    expect(teammatesRead.size).toBe(1);
+  });
+
   test("reads only the viewer's own documents, and the same ones however busy everyone else is", async () => {
     await smallHistory();
     await rebuild();
@@ -179,23 +215,7 @@ describe("me.overview: the personal parts", () => {
     const quiet = await Promise.all(PERIODS.map((period) => readsOf(ana, period)));
 
     // Twenty more teammates who only recognize each other, every day for two months.
-    const others = await t.run(async (ctx) =>
-      Promise.all(
-        Array.from({ length: 20 }, (_, i) =>
-          ctx.db.insert("members", {
-            workspaceId: team.workspaceId,
-            slackUserId: `U${i}`,
-            name: `Teammate ${i}`,
-            isAdmin: false,
-            isBot: false,
-            deactivated: false,
-            totalGiven: 0,
-            totalReceived: 0,
-            totalMaxedDays: 0,
-          }),
-        ),
-      ),
-    );
+    const others = await t.run(async (ctx) => Promise.all(Array.from({ length: 20 }, (_, i) => newMember(ctx, `Teammate ${i}`))));
     await t.run(async (ctx) => {
       for (let day = "2026-07-25"; day <= TODAY; day = addDays(day, 1)) {
         for (let i = 0; i < others.length; i++) {
@@ -241,6 +261,49 @@ describe("the backfill marker on the workspace", () => {
     const demo = await seedTeam(t, { isDemo: true, rollupsBackfilledAt: 1 }, "T_DEMO_LUMEN");
     await t.mutation(internal.demo.startDemoReset, {});
     expect(await marker(demo.workspaceId)).toBeNull();
+  });
+
+  test("so does a reset run on its own, since it wipes the rollups", async () => {
+    const demo = await seedTeam(t, { isDemo: true, rollupsBackfilledAt: 1 }, "T_DEMO_LUMEN");
+    await t.mutation(internal.demo.resetDemoWorkspace, {});
+    expect(await marker(demo.workspaceId)).toBeNull();
+  });
+
+  /** A workspace backfilled before the marker was mirrored: only its `all` row is marked. */
+  async function backfilledBeforeTheMirror() {
+    await smallHistory();
+    await rebuild();
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { rollupsBackfilledAt: undefined }));
+    return await t.run(
+      async (ctx) =>
+        (
+          await ctx.db
+            .query("workspaceStats")
+            .withIndex("by_workspace_bucket", (q) => q.eq("workspaceId", team.workspaceId).eq("bucket", "all"))
+            .unique()
+        )?.rollupsBackfilledAt,
+    );
+  }
+
+  test("workspaces backfilled before the mirror get it from their `all` row", async () => {
+    const at = await backfilledBeforeTheMirror();
+    const other = await seedTeam(t, {}, "T2"); // never backfilled: stays on the legacy scans
+    await t.mutation(internal.rollups.mirrorBackfillMarkers, {});
+    expect(await marker(team.workspaceId)).toBe(at);
+    expect(await marker(other.workspaceId)).toBeNull();
+  });
+
+  test("reinstalling a workspace backfilled before the mirror mirrors its marker", async () => {
+    const at = await backfilledBeforeTheMirror();
+    await t.mutation(internal.slackData.saveInstallation, {
+      teamId: "T1",
+      teamName: "Team T1",
+      botToken: "xoxb-2",
+      botUserId: "UBOT",
+      appId: "A1",
+      scope: "",
+    });
+    expect(await marker(team.workspaceId)).toBe(at);
   });
 });
 

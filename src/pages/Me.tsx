@@ -19,13 +19,14 @@ export function Me() {
   const viewer = useViewer();
   const [period, setPeriod] = useState<Period>(DEFAULT_PERIOD);
   const today = useWorkspaceToday();
-  // Personal numbers only change with my own activity; my standing changes with everyone's, so it
-  // is a separate, small subscription.
+  // My own numbers change with my activity (and the few teammates it names); my standing changes
+  // with every give in the workspace, so it is a separate, small subscription the page doesn't
+  // wait for.
   const { data, isStale } = useStableQuery(api.me.overview, { period, today });
   const { data: standing, isStale: standingStale } = useStableQuery(api.me.standing, { period, today });
   const glyph = viewer.workspace.emojiGlyph;
-  if (!data || !standing) return <PageSkeleton />;
-  const rank = standing.week.rank;
+  if (!data) return <PageSkeleton />;
+  const rank = standing?.week.rank ?? null;
 
   const series = [
     { key: "given", label: "Given", color: "var(--color-saffron-deep)", values: data.cadence.map((d) => d.given) },
@@ -49,9 +50,11 @@ export function Me() {
           </>
         }
         subtitle={
-          rank
-            ? `You're #${rank} of ${standing.week.of} givers this week with ${data.week.given} ${glyph}. ${weekDelta >= 0 ? "Keep it rolling." : "There's still time to catch up."}`
-            : `You haven't given kudos this week yet. Who made your week better?`
+          !standing
+            ? `You've given ${data.week.given} ${glyph} this week.`
+            : rank
+              ? `You're #${rank} of ${standing.week.of} givers this week with ${data.week.given} ${glyph}. ${weekDelta >= 0 ? "Keep it rolling." : "There's still time to catch up."}`
+              : `You haven't given kudos this week yet. Who made your week better?`
         }
       />
 
@@ -61,8 +64,8 @@ export function Me() {
         <Card className="p-5">
           <Eyebrow>This week</Eyebrow>
           <div className="mt-3 flex items-baseline gap-2">
-            <BigNumber value={rank ? `#${rank}` : "–"} className="text-5xl" />
-            {rank && <span className="text-sm text-muted">of {standing.week.of}</span>}
+            <BigNumber value={rank ? `#${rank}` : "–"} className={`text-5xl ${standing ? "" : "animate-pulse text-faint"}`} />
+            {rank && standing && <span className="text-sm text-muted">of {standing.week.of}</span>}
           </div>
           <div className="mt-4 flex items-center justify-between text-sm">
             <span className="text-muted">
@@ -172,10 +175,10 @@ export function Me() {
             <div className="flex items-center justify-between text-xs text-muted">
               <span>You vs. team median</span>
               <span className="font-mono tabular">
-                {data.period.given} vs {Math.round(standing.teamMedian)}
+                {data.period.given} vs {standing ? Math.round(standing.teamMedian) : "–"}
               </span>
             </div>
-            <CompareBars mine={data.period.given} team={standing.teamMedian} />
+            <CompareBars mine={data.period.given} team={standing?.teamMedian ?? 0} />
           </div>
         </Card>
       </div>
