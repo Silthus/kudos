@@ -14,6 +14,7 @@ import {
   pickBoard,
   weekKeyFor,
 } from "./quests";
+import { addDays } from "./time";
 
 const H = 3_600_000;
 const D = 24 * H;
@@ -76,16 +77,37 @@ describe("pickBoard", () => {
     expect(new Set(boards.flat()).size).toBe(7);
   });
 
-  test("avoids last week's quests when it can", () => {
-    for (let i = 0; i < 100; i++) {
-      const seed = boardSeed("ws1", `w${i}`);
-      const previousKeys: QuestKey[] = ["spread", "steady", "story"];
-      const board = pickBoard({ seed, previousKeys, eligibleKeys: all });
-      expect(board.some((k) => previousKeys.includes(k))).toBe(false);
-    }
+  test("keeps at most one of last week's quests, and sometimes does keep one", () => {
+    const previousKeys: QuestKey[] = ["spread", "steady", "story"];
+    const carried = Array.from({ length: 100 }, (_, i) =>
+      pickBoard({ seed: boardSeed("ws1", `w${i}`), previousKeys, eligibleKeys: all }).filter((k) => previousKeys.includes(k)).length,
+    );
+    expect(Math.max(...carried)).toBe(1);
+    expect(carried).toContain(0);
   });
 
-  test("falls back to last week's quests when too few are left", () => {
+  test("doesn't bring back the board from two weeks before when it can avoid it", () => {
+    // 5 drawable quests: keeping one of last week's leaves 3 boards, one of them the earlier board.
+    const eligibleKeys: QuestKey[] = ["spread", "fresh", "steady", "channels", "story"];
+    const earlierKeys: QuestKey[] = ["spread", "steady", "channels"];
+    const previousKeys: QuestKey[] = ["fresh", "channels", "story"];
+    const draw = (i: number, earlier: QuestKey[]) =>
+      pickBoard({ seed: boardSeed("ws1", `w${i}`), previousKeys, earlierKeys: earlier, eligibleKeys }).join();
+    const seeds = Array.from({ length: 100 }, (_, i) => i);
+    expect(seeds.map((i) => draw(i, earlierKeys))).not.toContain(earlierKeys.join());
+    expect(seeds.map((i) => draw(i, []))).toContain(earlierKeys.join());
+  });
+
+  test("never repeats last week's exact board while there is another, even if it has to keep two", () => {
+    // Too few quests to keep only one of last week's (never so with the built-in catalog).
+    const previousKeys: QuestKey[] = ["spread", "steady", "story"];
+    const boards = Array.from({ length: 50 }, (_, i) =>
+      pickBoard({ seed: boardSeed("ws1", `w${i}`), previousKeys, eligibleKeys: ["spread", "steady", "channels", "story"] }).join(),
+    );
+    expect(new Set(boards)).toEqual(new Set(["spread,steady,channels", "spread,channels,story"]));
+  });
+
+  test("keeps one of last week's quests when too few others are left", () => {
     const board = pickBoard({
       seed: 1,
       previousKeys: ["spread", "fresh", "channels"],
@@ -94,6 +116,48 @@ describe("pickBoard", () => {
     expect(board.filter((k) => QUEST_BY_KEY[k].group === "people")).toHaveLength(1);
     expect(board).toContain("steady");
     expect(board).toContain("story");
+  });
+});
+
+describe("boards rotate with variety, week after week", () => {
+  const WEEKS = 26;
+  /** A workspace's boards for consecutive weeks, each drawn against the two stored before it. */
+  function rotation(workspaceId: string, eligibleKeys: QuestKey[]): QuestKey[][] {
+    const boards: QuestKey[][] = [];
+    for (let i = 0, weekKey = "2026-01-05"; i < WEEKS; i++, weekKey = addDays(weekKey, 7)) {
+      const [previousKeys = [], earlierKeys = []] = [boards.at(-1), boards.at(-2)];
+      boards.push(pickBoard({ seed: boardSeed(workspaceId, weekKey), previousKeys, earlierKeys, eligibleKeys }));
+    }
+    return boards;
+  }
+  const sameBoard = (a: readonly QuestKey[], b: readonly QuestKey[]) => [...a].sort().join() === [...b].sort().join();
+  const all = QUESTS.map((q) => q.key);
+  const catalogs: [string, QuestKey[]][] = [
+    ["every quest drawable", all],
+    ["no Unsung hero (received counts not public)", all.filter((k) => k !== "unsung")],
+    ["a young, private workspace (5 quests)", all.filter((k) => k !== "unsung" && k !== "rekindle")],
+  ];
+  const workspaces = ["ws1", "ws2", "jh7a1k2m3n4p5q6r7s8t9v0w", "k17f3b8c9d0e1f2a3b4c5d6e", "demo", "acme", "x", "y"];
+
+  describe.each(catalogs)("%s", (_, eligibleKeys) => {
+    test.each(workspaces)("workspace %s: consecutive boards differ and share at most one quest", (ws) => {
+      const boards = rotation(ws, eligibleKeys);
+      for (let i = 1; i < boards.length; i++) {
+        expect(sameBoard(boards[i], boards[i - 1])).toBe(false);
+        expect(boards[i].filter((k) => boards[i - 1].includes(k)).length).toBeLessThanOrEqual(1);
+      }
+    });
+
+    test.each(workspaces)("workspace %s: boards don't alternate between two sets", (ws) => {
+      const boards = rotation(ws, eligibleKeys);
+      // Alternating would bring back the board from two weeks before, week after week.
+      expect(boards.slice(2).filter((board, i) => sameBoard(board, boards[i]))).toEqual([]);
+      expect(new Set(boards.map((b) => [...b].sort().join())).size).toBeGreaterThanOrEqual(5);
+    });
+
+    test.each(workspaces)("workspace %s: every drawable quest appears", (ws) => {
+      expect(new Set(rotation(ws, eligibleKeys).flat())).toEqual(new Set(eligibleKeys));
+    });
   });
 });
 

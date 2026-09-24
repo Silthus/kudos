@@ -365,6 +365,7 @@ describe("facts come from real kudos history", () => {
 
   test("a past week is judged on what was true then: teammates recognized only later were still new", async () => {
     await setBoard(["fresh", "spread", "channels"], "2026-09-14");
+    await setBoard(["fresh", "steady", "story"]);
     // Ana recognizes Ben and Cleo this week, after the week in question.
     await past(team.ana, team.ben, WEEK_START + H);
     await past(team.ana, team.cleo, WEEK_START + 2 * H);
@@ -437,11 +438,51 @@ describe("quest weeks", () => {
     expect(next.weekKey).toBe("2026-09-28");
     expect(next.completed).toBe(0);
     expect(next.quests.every((q) => q.status !== "done")).toBe(true);
-    // 5 quests are drawable here (no Unsung hero or Old friends yet): both of last week's
-    // leftovers are picked before anything repeats.
+    // 5 quests are drawable here (no Unsung hero or Old friends yet): at most one of last week's
+    // quests carries over, so both of the others are on the new board.
     expect(next.quests.filter((q) => !lastWeek.questKeys.includes(q.key))).toHaveLength(2);
     // Last week's completions are kept.
     expect(await completions(team.ana)).toEqual(lastDone);
+  });
+
+  test("a new board doesn't bring back the board from two weeks before", async () => {
+    const next = "2026-09-28";
+    const board = async () => (await mine(team.ana, next)).quests.map((q) => q.key);
+    await setBoard(["spread", "steady", "channels"], WEEK);
+    const drawn = await board();
+    // Had the week before last had exactly the board next week draws, next week draws another.
+    await setBoard(drawn as QuestKey[], addDays(WEEK, -7));
+    const redrawn = await board();
+    expect(redrawn.slice().sort()).not.toEqual(drawn.slice().sort());
+    expect(redrawn.filter((k) => ["spread", "steady", "channels"].includes(k)).length).toBeLessThanOrEqual(1);
+  });
+
+  test("after a quiet week, the new board varies from the board that week showed", async () => {
+    // Nobody played this week, so its board was never stored: next week's draw must still vary
+    // from the board this week showed (and the quest log shows), not from some other draw.
+    const keys = async (today: string) => (await mine(team.ana, today)).quests.map((q) => q.key);
+    const boardTwoWeeksBefore = await setBoard(["spread", "steady", "channels"], addDays(WEEK, -7));
+    for (const earlier of [
+      ["spread", "steady", "channels"],
+      ["fresh", "steady", "story"],
+      ["spread", "channels", "story"],
+      ["fresh", "channels", "story"],
+      ["spread", "fresh", "steady"],
+    ] as QuestKey[][]) {
+      await t.run((ctx) => ctx.db.patch(boardTwoWeeksBefore, { questKeys: earlier }));
+      const quiet = await keys(WEEK);
+      const next = await keys("2026-09-28");
+      expect(next.filter((k) => quiet.includes(k)).length).toBeLessThanOrEqual(1);
+    }
+    expect(await all(t, "questBoards")).toHaveLength(1);
+  });
+
+  test("a stored board stays as it was drawn, even one the rotation rules would no longer draw", async () => {
+    await setBoard(["spread", "steady", "channels"], addDays(WEEK, -7));
+    await setBoard(["spread", "steady", "channels"]);
+    expect((await mine(team.ana)).quests.map((q) => q.key)).toEqual(["spread", "steady", "channels"]);
+    await message("UANA", "<@UBEN> :taco: thanks for the quick review");
+    expect((await all(t, "questBoards")).map((b) => b.questKeys.join())).toEqual(["spread,steady,channels", "spread,steady,channels"]);
   });
 
   test("Unsung hero on a stored board is waived once received counts are hidden", async () => {
@@ -680,6 +721,23 @@ describe("quests in the demo", () => {
 
     await demo.mutation(api.demo.refillAllowance, {});
     expect(await demoCompletions()).toHaveLength(0);
+  }, DEMO_TIMEOUT);
+
+  test("the seeded year of boards rotates with variety", async () => {
+    await enterDemo();
+    const demo = (await t.run((ctx) => ctx.db.query("workspaces").filter((q) => q.eq(q.field("isDemo"), true)).first()))!;
+    const stored = (await all(t, "questBoards")).filter((b) => b.workspaceId === demo._id).sort((a, b) => a.weekKey.localeCompare(b.weekKey));
+    expect(stored.length).toBeGreaterThanOrEqual(26);
+    const boards = stored.map((b) => b.questKeys);
+    const sameBoard = (a: string[], b: string[]) => [...a].sort().join() === [...b].sort().join();
+    for (let i = 1; i < stored.length; i++) {
+      expect(stored[i].weekKey).toBe(addDays(stored[i - 1].weekKey, 7));
+      expect(sameBoard(boards[i], boards[i - 1])).toBe(false);
+      expect(boards[i].filter((k) => boards[i - 1].includes(k)).length).toBeLessThanOrEqual(1);
+    }
+    expect(boards.slice(2).filter((b, i) => sameBoard(b, boards[i]))).toEqual([]);
+    const drawable = ["spread", "fresh", "rekindle", "steady", "channels", "story", ...(demo.receivedVisibility === "everyone" ? ["unsung"] : [])];
+    expect(new Set(boards.flat())).toEqual(new Set(drawable));
   }, DEMO_TIMEOUT);
 
   test("resetting the demo replaces playground quests with the same freshly seeded quest history", async () => {

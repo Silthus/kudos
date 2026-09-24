@@ -19,13 +19,3 @@ export function fnv1a(s: string): number {
   }
   return h >>> 0;
 }
-
-/** Fisher–Yates shuffle driven by `rand`; returns a new array. */
-export function shuffle<T>(items: readonly T[], rand: () => number): T[] {
-  const out = [...items];
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1));
-    [out[i], out[j]] = [out[j], out[i]];
-  }
-  return out;
-}
