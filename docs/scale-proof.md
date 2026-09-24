@@ -6,7 +6,7 @@
 
 ## Result
 
-**Every dashboard read path stays under 7.1% of Convex's per-transaction read limits at 500 members.** The limits are 32,000 documents and 16 MiB. The worst path is the year leaderboard by received: 2,253 docs and 0.98 MiB. It is also under 14% of the older 16,384-doc / 8 MiB limits the research budgeted against. The rollups are exact: every sampled day, week and month bucket verified with no mismatches. The backfill took **10.5 minutes** end to end. No backfill step read more than 5,658 docs (17.7%) or wrote more than 895.
+**Every dashboard read path that reads the rollups stays under 7.1% of Convex's per-transaction read limits at 500 members.** The limits are 32,000 documents and 16 MiB. The worst path is the year leaderboard by received: 2,253 docs and 0.98 MiB. It is also under 14% of the older 16,384-doc / 8 MiB limits the research budgeted against. The rollups are exact: every sampled day, week and month bucket verified with no mismatches. The backfill took **2.7–10.5 minutes** end to end (the same workspace, run twice on a shared machine). No backfill step read more than 5,714 docs (17.9%) or wrote more than 895.
 
 Three things are flagged. None of them is a dashboard read path on the rollups:
 
@@ -38,11 +38,11 @@ Timing on this machine (aarch64, shared with other lanes' backends): the seed to
 
 - **Viewers:** the busiest member (most own kudos: the heaviest `me`/compare reads), the median member, and the runner-up as the compare teammate. The leaderboard and analytics don't depend on the viewer.
 - **Two anchors for `today`:** 2026-09-24 (the real today) and 2025-12-31 (a complete calendar year, quarter and month behind it: the worst case for "year").
-- **Before and after:** the legacy scans were measured after the seed and before the backfill, which is the state production is in right after the deploy. The rollup reads were measured after `backfillAll` + `mirrorBackfillMarkers`.
+- **Before and after:** the rollup reads were measured after `backfillAll` + `mirrorBackfillMarkers`. The "Before backfill" column was measured on the same code with the markers cleared by `rollups:unmarkBackfilled`, i.e. the legacy scans after a rollback. Right after the deploy the legacy `me.overview` reads a little more, because members don't carry their giving profile yet (`me.ts` then scans all their `memberDays`). A first pass measured on a fresh seed before any backfill (pre-#12 code) had `me.overview` at up to 1,236 docs for the busiest member (vs 832 after the backfill). The other legacy paths matched this column to within a few docs.
 
 ## Measurements
 
-Docs / bytes read per run. The percentage is the worst of both anchors against **32,000 docs / 16 MiB** (the current limits, <https://docs.convex.dev/production/state/limits>). "Fails" means the query exceeded the limits and was killed ("Your request timed out performing too many system operations").
+Docs / bytes read per run. The percentage is the worst of both anchors against **32,000 docs / 16 MiB** (the current limits, <https://docs.convex.dev/production/state/limits>). "Fails" means the query was killed after ~15 s on the local backend ("Your request timed out performing too many system operations"). It is expected to be over the limits: the month scan alone reads 15–17k docs. The backend reports no read counts for a killed query, so the exact figure wasn't measured.
 
 | Read path | Viewer | Today = 2026-09-24 (docs / bytes) | Today = 2025-12-31 (full year) | Worst % of 32k docs / 16 MiB | Before backfill (legacy scan, 2025-12-31) |
 |---|---|---|---|---|---|
@@ -100,13 +100,13 @@ Docs / bytes read per run. The percentage is the worst of both anchors against *
 | `session.viewer` | busiest member | 2 / 0.00 MiB | — | 0.0% / 0.0% | 2 / 0.00 MiB |
 | `discoveries.gallery (capped)` | busiest member | 8,037 / 2.83 MiB | — | 25.1% / 17.7% | 8,037 / 2.83 MiB |
 
-`quests.mine` and `quests.history` read almost nothing here because no quest boards or completions were seeded. Their reads are bounded by the board (3 quests) and by `weeks` (≤ 52 boards plus their completions), so they stay far below 1k docs. `store.catalog` has no rewards or redemptions to read. The "Before backfill" column was measured on the same code by clearing the marker with `rollups:unmarkBackfilled`, which is the runbook's rollback, exercised here at scale.
+`quests.mine` and `quests.history` are **not really measured**: no quest boards or completions were seeded, and `quests.history` returns early when no board exists. Their reads are bounded by the board (3 quests) and by `weeks` (≤ 52 boards plus their completions); that bound is reasoning, not measurement. `store.catalog` has no rewards or redemptions to read. The "Before backfill" column was measured on the same code by clearing the marker with `rollups:unmarkBackfilled`, which is the runbook's rollback, exercised here at scale.
 
 ### Tooling and backfill
 
 | Transaction | Docs read | Bytes read | Docs written | % of limits (read docs / bytes / written docs) |
 |---|---|---|---|---|
-| Heaviest backfill step (a month period: its kudos for channels and messages) | 5,658 | 3.04 MiB | 56 | 17.7% / 19.0% / 0.4% |
+| Heaviest backfill step (a month period: its kudos for channels and messages) | 5,658–5,714 | 3.04 MiB | 56 | 17.9% / 19.0% / 0.4% |
 | Heaviest writing backfill step (a week of day rows) | 619 | 0.29 MiB | 895 | 1.9% / 1.8% / 5.6% |
 | `rollups:verify` one day bucket | 648–1,094 | ≤ 0.51 MiB | — | ≤ 3.4% |
 | `rollups:verify` one week bucket | 3,620–3,902 | ≤ 1.53 MiB | — | ≤ 12.2% |
@@ -116,13 +116,13 @@ Docs / bytes read per run. The percentage is the worst of both anchors against *
 | `rollups:verify` a year | — | — | — | exceeds the limits |
 | `rollups:verify` with several month buckets in one call | 32,001 | — | — | exceeds the limits: buckets add up in one transaction |
 
-**Backfill run:** `backfillAll` at 07:51:06 UTC, marker `rollupsBackfilledAt` at 08:01:36 UTC: **10 min 30 s** for 2,221 chained `backfillStep`s. No errors and no retries. 1.13M docs were read and 309k written (218 MiB) across the run. The Σ execution time was 198 s; the rest was scheduler latency between the chained steps. The duration scales with members × years (1,500 member steps here) plus days / 7 plus the number of periods, not with kudos volume. A production workspace with ~20 people and a few months of history backfills in well under a minute.
+**Backfill runs:** `backfillAll` at 07:51:06 UTC, marker `rollupsBackfilledAt` at 08:01:36 UTC: **10 min 30 s** for 2,221 chained `backfillStep`s, with no errors and no retries. After the rollback exercise (`unmarkBackfilled`), `rebuildWorkspace` on the same workspace took **2 min 44 s** for 2,758 steps, also with no errors, on a quieter machine. Wall time depends on scheduler latency and machine load more than on the work itself. 1.13M docs were read and 309k written (218 MiB) across the run. In the first run, execution time summed to 198 s; the rest was scheduler latency between the chained steps. The step count is members × (calendar years in the span + 1) plus days / 7 plus the number of periods, not kudos volume. `sourceSpan` pads the span by a day each side, so history that starts on 1 January also covers 31 December of the year before: 501 members × 4 year steps here. A production workspace with ~20 people and a few months of history backfills in well under a minute.
 
 **Local-backend note:** `quests.mine` and App Home take ~0.87 s wall time with only 10–95 docs. The time goes to one `kudos.by_workspace_at … .first()`, which costs 0.7–0.96 s on this SQLite local backend (so does a workspace-prefixed `.first()` on `memberDays`), while range reads of thousands of rollup docs take ~100 ms. User code is 8–19 ms. Convex's 1 s execution limit counts user code only, so this is not a limit risk. Check App Home latency in production after the release anyway (see the runbook).
 
 ## Findings
 
-1. **Fix ticket needed: `discoveries.gallery` is capped and silently wrong at scale.** `convex/discoveries.ts` reads `discoveries.by_workspace_firstSeen` with `take(8000)` to count finders per template and distinct collectors. At 500 members a workspace holds ~13k discovery rows after 21 months (up to 72 × members eventually). The read always hits the cap: 8,037 docs, 25% of the limit and 49% of the old 16k budget. `foundBy` and `collectors` then undercount without any flag. Suggested fix: keep per-template finder counts in a small rollup (`templateStats {workspaceId, templateKey, finders}`, maintained where `discoveries` rows are first inserted, rebuilt by the backfill). Then the gallery reads ≤ 72 rows. Outside this ticket's write scope.
+1. **Fix ticket needed: `discoveries.gallery` is capped and silently wrong at scale.** `convex/discoveries.ts` reads `discoveries.by_workspace_firstSeen` with `take(8000)` to count finders per template and distinct collectors. At 500 members the seed holds ~13k discovery rows after 21 months (up to 72 × members eventually). A real workspace holds more: the engine prefers undiscovered messages 65% of the time, and the seed doesn't. The read always hits the cap: 8,037 docs, 25% of the limit and 49% of the old 16k budget. `foundBy` and `collectors` then undercount without any flag. Suggested fix: keep per-template finder counts in a small rollup (`templateStats {workspaceId, templateKey, finders}`, maintained where `discoveries` rows are first inserted, rebuilt by the backfill). Then the gallery reads ≤ 72 rows. Outside this ticket's write scope.
 2. **Tooling limit, handled in the runbook: `rollups:verify` must run one bucket per call.** At this scale, verify days, weeks and months, one call each. For large workspaces, cover quarters and years through their months. Production workspaces are small enough to verify `q:`/`y:` directly (as #43's hand-off asks).
 3. **Accepted: the legacy scans fail at scale before the backfill** (and after an `unmarkBackfilled` rollback). Production data is orders of magnitude smaller, and the backfill runs right after the deploy.
 
@@ -130,9 +130,9 @@ Docs / bytes read per run. The percentage is the worst of both anchors against *
 
 `convex/rollups.ts` holds the internal functions and `convex/lib/scaleSeed.ts` the pure generator:
 
-- `internal.rollups.seedScale({ members?, kudosPerYear?, fromDay?, toDay?, teamId? })`: defaults 500 / 50,000 / 1 January last year / today / `T_SCALE_PROOF`. It creates the workspace, members, users and notifications, then chains `seedScaleStep` one day at a time. It writes sources only, like a production workspace before its backfill. It refuses a team that is already seeded.
-- `internal.rollups.seedScaleViewers`: the viewers the measurement signs in as.
-- **Guard:** every one of them calls `assertLocalDeployment()`, which throws unless `CONVEX_CLOUD_URL` is a loopback host (`127.0.0.1`, `localhost`, `[::1]`, `0.0.0.0`). It fails closed: a missing or unparsable URL is refused, and so is a look-alike host such as `127.0.0.1.evil.example`. On production the URL is `https://valiant-monitor-701.convex.cloud`, so the seed can't run there even through `npx convex run --prod`. Tests: `tests/scale-seed.test.ts` (refusals write nothing; a local seed is consistent, backfills and verifies exactly).
+- `internal.rollups.seedScale({ members?, kudosPerYear?, fromDay?, toDay?, teamId? })`: defaults 500 / 50,000 / 1 January last year / today / `T_SCALE_PROOF`. It creates the workspace, members, users and notifications, then chains `seedScaleStep` one day at a time. It writes sources only, like a production workspace before its backfill, except that the seeded rows already carry `hour`, `capped` and `noteWords` (which v1 rows lack). It refuses a team that is already seeded and more than 2,000 members (one transaction). `seedScaleStep` also refuses any workspace that `seedScale` didn't create, even locally (a rehearsal on an imported production snapshot).
+- `internal.rollups.seedScaleViewers`: the viewers the measurement signs in as (from the default `T_SCALE_PROOF` team).
+- **Guard:** every one of them calls `assertLocalDeployment()`, which throws unless `CONVEX_CLOUD_URL` is a loopback host (`127.0.0.1`, `localhost`, `[::1]`, `0.0.0.0`). It fails closed: a missing or unparsable URL is refused, and so is a look-alike host such as `127.0.0.1.evil.example`. On production the URL is `https://valiant-monitor-701.convex.cloud`, so the seed can't run there even through `npx convex run --prod`. The guard assumes Convex cloud: a self-hosted backend whose cloud origin is left at the default `http://127.0.0.1:3210` would pass it. Tests: `tests/scale-seed.test.ts` (refusals write nothing; a local seed is consistent, backfills and verifies exactly).
 - `internal.rollups.unmarkBackfilled({ workspaceId })`: the rollback used by the runbook. It is not guarded, because it's meant for production.
 
 To reproduce:
@@ -175,7 +175,7 @@ Expected: `Deployed Convex functions to https://valiant-monitor-701.convex.cloud
 **3. List the workspaces.**
 
 ```sh
-npx convex data workspaces --prod --format jsonl
+npx convex data workspaces --prod --format jsonl --limit 1000
 ```
 
 Note each `_id`. None should carry `rollupsBackfilledAt` yet. A demo workspace with `resettingSince` set is skipped by `backfillAll`, because its reset rebuilds it.
@@ -191,7 +191,7 @@ Expected: `null`. It schedules one `rebuildWorkspace` per workspace, which chain
 **5. Wait until every workspace is marked.** Watch progress in `npx convex logs --prod --success`: a stream of `rollups:backfillStep`, and no failures. Check the markers with:
 
 ```sh
-npx convex data workspaces --prod --format jsonl | grep -c rollupsBackfilledAt
+npx convex data workspaces --prod --format jsonl --limit 1000 | grep -c rollupsBackfilledAt
 ```
 
 The count must equal the number of workspaces from step 3 (minus a demo mid-reset). Expected duration: under a minute for a small workspace. 500 members over 21 months took 10.5 min. If a step fails permanently (a red `backfillStep` without a retry), rerun only that workspace. The rebuild is idempotent:
@@ -221,7 +221,7 @@ npx convex run --prod rollups:verify '{"workspaceId":"<id>","buckets":["q:2026-Q
 npx convex run --prod rollups:verify '{"workspaceId":"<id>","buckets":["y:2026"]}'
 ```
 
-Expected: `{ "checked": […], "mismatches": [] }` for each call. If one says `… is too large to verify in one query` (more than 15k kudos or day rows: only at hundreds of members), verify that bucket's months instead (`m:YYYY-MM`, one per call). **Any mismatch:** record it on #9, run `rollups:rebuildWorkspace` for that workspace, wait for its marker to update, and verify again. The mismatch must be gone.
+Expected: `{ "checked": […], "mismatches": [] }` for each call. If one fails with `… is too large to verify in one query` (more than 15k kudos or day rows), or with a raw read-limit `Server Error` (a year at hundreds of members), verify that bucket's months instead (`m:YYYY-MM`, one per call). **Any mismatch:** record it on #9, run `rollups:rebuildWorkspace` for that workspace, wait for its marker to update, and verify again. The mismatch must be gone.
 
 **8. Smoke test with a hard reload.** Open the app: Dashboard (Me), Leaderboard (week … all, given and received), Analytics (week … all), Compare, and the Store if enabled. Every page loads and the numbers look plausible. Then give one kudos in the test workspace: the leaderboard and Me update live. In Slack, open the App Home, which should render within about a second. On the Convex dashboard (production, Health / Insights), there are no read-limit warnings for `leaderboard:get`, `analytics:overview` or `me:*`.
 
@@ -235,13 +235,34 @@ Expected: `{ "checked": […], "mismatches": [] }` for each call. If one says `�
   npx convex run --prod rollups:unmarkBackfilled '{"workspaceId":"<id>"}'
   ```
 
-  Expected: `null`. That workspace's leaderboard, analytics, `me` and App Home read the legacy scans again. Live gives keep maintaining the rollups meanwhile. After fixing the cause, `rollups:rebuildWorkspace` rebuilds and marks it again. Then return to step 7.
+  Expected: `null`, and the workspace no longer shows `rollupsBackfilledAt` in `npx convex data workspaces --prod --format jsonl`. That workspace's leaderboard, analytics, `me`, compare team and App Home read the legacy scans again. Live gives keep maintaining the rollups meanwhile.
+
+  **The rollback does not stick on its own.** Anything that rebuilds the workspace marks it again when it finishes:
+  - a `rebuildWorkspace` or `backfillAll` still in flight (wait until the `backfillStep` runs stop before unmarking);
+  - `removal:removeMember` for a member of that workspace (the #8 hand-off in step 9);
+  - a Slack reinstall of that workspace (`saveInstallation` rebuilds a returning workspace that isn't marked);
+  - for the demo, any demo reset, including the nightly cron.
+
+  While a workspace is rolled back, don't run removals or the reinstall for it, and check its marker again after step 9. Once the cause is fixed, `rollups:rebuildWorkspace '{"workspaceId":"<id>"}'` rebuilds and marks it again; then return to step 7. A persistent "pinned to legacy" switch would need a change to `markBackfilled` in `convex/lib/rebuild.ts`, which is not part of this release.
 - **Repair a corrupted bucket.** `rollups:rebuildWorkspace '{"workspaceId":"<id>"}'`. It is idempotent and exact under live traffic, and needs no rollback.
-- **Full code rollback to v1 (last resort).** Redeploying the old commit alone fails schema validation: the new code wrote fields v1's schema doesn't know (`kudos.hour`, `memberDays.capped`, `members.currentStreak`/…, `workspaces.rollupsBackfilledAt`) and new tables. Restore the snapshot from step 1, then deploy the previous commit:
+- **Code rollback to v1, keeping the data (preferred if the code must go).** Redeploying v1 on its own fails schema validation. v1 is `b797ad3` "Ship the v1 baseline"; confirm it is what production ran before the release. The release wrote fields v1's schema lacks (`kudos.hour`, `memberDays.capped`, `members.currentStreak`/…, `workspaces.rollupsBackfilledAt`) and new tables. Its schema only adds optional fields, new tables and wider unions to v1's tables, so v1's functions run on the release's schema:
 
   ```sh
-  npx convex import --prod --replace-all ~/kudos-prod-pre-1.1-<stamp>.zip
-  git checkout <previous release commit> && npx convex deploy -y && npx @convex-dev/static-hosting upload --build --prod
+  git switch -c rollback-v1 <release commit>
+  git checkout b797ad3 -- convex src && git checkout <release commit> -- convex/schema.ts
+  npx convex deploy -y --typecheck=disable && npx @convex-dev/static-hosting upload --build --prod
   ```
 
-  Everything written after the snapshot is lost (kudos, redemptions, settings). Prefer the readers-only rollback above.
+  No data is lost. The rollup, store, quest and attempt tables stay in the database untouched until you roll forward.
+- **Full restore (last resort, only if the data itself is bad).**
+  1. Pause the deployment in the Convex dashboard (production → Settings → Pause deployment), so Slack events, crons and queued backfill steps can't write new-schema fields into the restored data.
+  2. Restore the snapshot from step 1 and deploy v1:
+
+     ```sh
+     npx convex import --prod --replace-all ~/kudos-prod-pre-1.1-<stamp>.zip
+     git checkout b797ad3 && npx convex deploy -y && npx @convex-dev/static-hosting upload --build --prod
+     ```
+
+  3. Unpause.
+
+  Everything written after the snapshot is lost (kudos, redemptions, settings).

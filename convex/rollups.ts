@@ -320,6 +320,8 @@ async function verifyBucket(ctx: QueryCtx, workspace: Doc<"workspaces">, bucket:
 // Scale proof (#30): a dev-only seed of a large workspace, refused anywhere but a local backend.
 
 const SEED_DAYS_PER_STEP = 1; // ~190 kudos rows, their day rows and discoveries: small enough to never time out
+const SEED_MAX_MEMBERS = 2_000; // 7 writes per member (member, user, 5 notifications) under the 16k-write limit
+const SCALE_WORKSPACE_NAME = "Scale proof";
 const SEED_NOTIFICATIONS_PER_MEMBER = 5; // what the Me page's recent-messages list reads
 
 /**
@@ -339,12 +341,14 @@ export const seedScale = internalMutation({
   returns: v.id("workspaces"),
   handler: async (ctx, args) => {
     assertLocalDeployment();
+    const members = args.members ?? 500;
+    if (members > SEED_MAX_MEMBERS) throw new ConvexError(`seedScale creates at most 2,000 members in one transaction.`);
     const teamId = args.teamId ?? SCALE_TEAM;
     const existing = await ctx.db.query("workspaces").withIndex("by_team", (q) => q.eq("slackTeamId", teamId)).first();
     if (existing) throw new ConvexError(`Team ${teamId} is already seeded; pass another teamId.`);
     const workspaceId = await ctx.db.insert("workspaces", {
       slackTeamId: teamId,
-      name: "Scale proof",
+      name: SCALE_WORKSPACE_NAME,
       isDemo: false,
       status: "active",
       storeEnabled: true,
@@ -353,7 +357,7 @@ export const seedScale = internalMutation({
     });
     const rand = mulberry32(fnv1a(`notifications:${teamId}`));
     const templates = CATALOG.filter((t) => t.category !== "quest_complete");
-    for (const p of scalePeople(args.members ?? 500)) {
+    for (const p of scalePeople(members)) {
       const userId = await ctx.db.insert("users", { name: p.name });
       const memberId = await ctx.db.insert("members", {
         workspaceId,
@@ -443,6 +447,10 @@ export const seedScaleStep = internalMutation({
     assertLocalDeployment();
     const workspace = await ctx.db.get(workspaceId);
     if (!workspace) return null;
+    // Even locally (a rehearsal on an imported production snapshot), only ever write into a seeded workspace.
+    if (workspace.name !== SCALE_WORKSPACE_NAME || workspace.isDemo) {
+      throw new ConvexError("seedScaleStep only writes into a scale-proof workspace created by seedScale.");
+    }
     const tz = workspace.timezone;
     const humans = (
       await ctx.db.query("members").withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspaceId)).collect()

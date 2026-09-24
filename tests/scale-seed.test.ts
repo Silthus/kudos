@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { internal } from "../convex/_generated/api";
-import { setupConvex } from "./helpers";
+import { seedTeam, setupConvex } from "./helpers";
 
 /**
  * The scale-proof seed (#30) writes hundreds of fake members and tens of thousands of kudos, so it
@@ -34,6 +34,23 @@ describe("seedScale guard", () => {
   ])("refuses to run on %s and writes nothing", async (_, url) => {
     vi.stubEnv("CONVEX_CLOUD_URL", url);
     await expect(t.mutation(internal.rollups.seedScale, { members: 5, kudosPerYear: 500 })).rejects.toThrow(/local backend/);
+    expect(await rowCounts()).toEqual({ workspaces: 0, members: 0, kudos: 0 });
+  });
+
+  test("a seed step refuses a cloud deployment, and a real workspace even on a local backend", async () => {
+    const team = await seedTeam(t);
+    const before = await rowCounts();
+    const step = { workspaceId: team.workspaceId, day: "2026-09-21", toDay: "2026-09-23", kudosPerYear: 50_000 };
+    vi.stubEnv("CONVEX_CLOUD_URL", "https://valiant-monitor-701.convex.cloud");
+    await expect(t.mutation(internal.rollups.seedScaleStep, step)).rejects.toThrow(/local backend/);
+    vi.stubEnv("CONVEX_CLOUD_URL", "http://127.0.0.1:3210");
+    await expect(t.mutation(internal.rollups.seedScaleStep, step)).rejects.toThrow(/scale-proof workspace/);
+    expect(await rowCounts()).toEqual(before);
+  });
+
+  test("refuses more members than one transaction can create", async () => {
+    vi.stubEnv("CONVEX_CLOUD_URL", "http://127.0.0.1:3210");
+    await expect(t.mutation(internal.rollups.seedScale, { members: 2_001 })).rejects.toThrow(/at most 2,000/);
     expect(await rowCounts()).toEqual({ workspaces: 0, members: 0, kudos: 0 });
   });
 });

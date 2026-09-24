@@ -24,6 +24,7 @@ const DOCS_LIMIT = 32_000; // https://docs.convex.dev/production/state/limits (p
 const BYTES_LIMIT = 16 * 2 ** 20;
 const OLD_DOCS_LIMIT = 16_384; // the limits the research budgeted against
 const OLD_BYTES_LIMIT = 8 * 2 ** 20;
+const FLAG_SHARE = 0.45;
 
 const admin = () => client.setAdminAuth(adminKey);
 const as = (member) =>
@@ -107,8 +108,11 @@ for (const c of calls) {
     (e) => !claimed.has(e.executionId) && e.identifier === c.name && e.timestamp >= c.started - 1 && e.timestamp <= c.ended + 1,
   );
   if (entry) claimed.add(entry.executionId);
-  const docs = entry?.usageStats?.databaseReadDocuments ?? null;
-  const bytes = entry?.usageStats?.databaseReadBytes ?? null;
+  const error = c.error ?? entry?.error ?? null;
+  // A failed query reports zero usage, and a cached result reads nothing: neither is a measurement.
+  const measured = entry && !error && !entry.cachedResult;
+  const docs = measured ? entry.usageStats.databaseReadDocuments : null;
+  const bytes = measured ? entry.usageStats.databaseReadBytes : null;
   rows.push({
     today: c.args.today ?? "",
     label: c.label,
@@ -117,10 +121,11 @@ for (const c of calls) {
     bytes,
     ms: entry ? Math.round(entry.executionTime * 1000) : null,
     cached: entry?.cachedResult ?? null,
-    error: c.error ?? entry?.error ?? null,
+    error,
     docsPct: docs === null ? "" : pct(docs, DOCS_LIMIT),
     bytesPct: bytes === null ? "" : pct(bytes, BYTES_LIMIT),
-    flag: docs !== null && (docs > OLD_DOCS_LIMIT / 2 || bytes > OLD_BYTES_LIMIT / 2),
+    // Anything that failed, wasn't measured, or used over ~45% of the older 16k-doc / 8 MiB budget.
+    flag: docs === null || docs > OLD_DOCS_LIMIT * FLAG_SHARE || bytes > OLD_BYTES_LIMIT * FLAG_SHARE,
   });
 }
 console.log(JSON.stringify({ workspace, rows }, null, 2));

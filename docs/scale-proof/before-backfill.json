@@ -106,27 +106,27 @@
       "today": "2026-09-24",
       "label": "leaderboard.get year given",
       "viewer": "median member",
-      "docs": 0,
-      "bytes": 0,
+      "docs": null,
+      "bytes": null,
       "ms": 15293,
       "cached": false,
       "error": "[Request ID: b1e4f9290db3d861] Server Error",
-      "docsPct": "0.0%",
-      "bytesPct": "0.0%",
-      "flag": false
+      "docsPct": "",
+      "bytesPct": "",
+      "flag": true
     },
     {
       "today": "2026-09-24",
       "label": "leaderboard.get year received",
       "viewer": "median member",
-      "docs": 0,
-      "bytes": 0,
+      "docs": null,
+      "bytes": null,
       "ms": 15425,
       "cached": false,
       "error": "[Request ID: 15c0e44ad2685ee9] Server Error",
-      "docsPct": "0.0%",
-      "bytesPct": "0.0%",
-      "flag": false
+      "docsPct": "",
+      "bytesPct": "",
+      "flag": true
     },
     {
       "today": "2026-09-24",
@@ -457,27 +457,27 @@
       "today": "2026-09-24",
       "label": "analytics.overview year",
       "viewer": "median member",
-      "docs": 0,
-      "bytes": 0,
+      "docs": null,
+      "bytes": null,
       "ms": 15347,
       "cached": false,
       "error": "[Request ID: 2f2aee0be62ba56f] Server Error",
-      "docsPct": "0.0%",
-      "bytesPct": "0.0%",
-      "flag": false
+      "docsPct": "",
+      "bytesPct": "",
+      "flag": true
     },
     {
       "today": "2026-09-24",
       "label": "analytics.overview all",
       "viewer": "median member",
-      "docs": 0,
-      "bytes": 0,
+      "docs": null,
+      "bytes": null,
       "ms": 15053,
       "cached": false,
       "error": "[Request ID: 8b7bf60d546cb10f] Server Error",
-      "docsPct": "0.0%",
-      "bytesPct": "0.0%",
-      "flag": false
+      "docsPct": "",
+      "bytesPct": "",
+      "flag": true
     },
     {
       "today": "2026-09-24",
@@ -769,27 +769,27 @@
       "today": "2025-12-31",
       "label": "leaderboard.get year given",
       "viewer": "median member",
-      "docs": 0,
-      "bytes": 0,
+      "docs": null,
+      "bytes": null,
       "ms": 15475,
       "cached": false,
       "error": "[Request ID: 5a2d1e7225acee00] Server Error",
-      "docsPct": "0.0%",
-      "bytesPct": "0.0%",
-      "flag": false
+      "docsPct": "",
+      "bytesPct": "",
+      "flag": true
     },
     {
       "today": "2025-12-31",
       "label": "leaderboard.get year received",
       "viewer": "median member",
-      "docs": 0,
-      "bytes": 0,
+      "docs": null,
+      "bytes": null,
       "ms": 15509,
       "cached": false,
       "error": "[Request ID: 7f8afa409ee97e3d] Server Error",
-      "docsPct": "0.0%",
-      "bytesPct": "0.0%",
-      "flag": false
+      "docsPct": "",
+      "bytesPct": "",
+      "flag": true
     },
     {
       "today": "2025-12-31",
@@ -1120,27 +1120,27 @@
       "today": "2025-12-31",
       "label": "analytics.overview year",
       "viewer": "median member",
-      "docs": 0,
-      "bytes": 0,
+      "docs": null,
+      "bytes": null,
       "ms": 15560,
       "cached": false,
       "error": "[Request ID: 704819e4306569fb] Server Error",
-      "docsPct": "0.0%",
-      "bytesPct": "0.0%",
-      "flag": false
+      "docsPct": "",
+      "bytesPct": "",
+      "flag": true
     },
     {
       "today": "2025-12-31",
       "label": "analytics.overview all",
       "viewer": "median member",
-      "docs": 0,
-      "bytes": 0,
+      "docs": null,
+      "bytes": null,
       "ms": 15689,
       "cached": false,
       "error": "[Request ID: 6111e75f104a8d98] Server Error",
-      "docsPct": "0.0%",
-      "bytesPct": "0.0%",
-      "flag": false
+      "docsPct": "",
+      "bytesPct": "",
+      "flag": true
     },
     {
       "today": "2025-12-31",
@@ -1289,14 +1289,14 @@
       "today": "2025-12-31",
       "label": "compare.team year",
       "viewer": "busiest member",
-      "docs": 0,
-      "bytes": 0,
+      "docs": null,
+      "bytes": null,
       "ms": 15576,
       "cached": false,
       "error": "[Request ID: 36a8aac7e04f2129] Server Error",
-      "docsPct": "0.0%",
-      "bytesPct": "0.0%",
-      "flag": false
+      "docsPct": "",
+      "bytesPct": "",
+      "flag": true
     },
     {
       "today": "2025-12-31",
@@ -1400,7 +1400,7 @@
       "error": null,
       "docsPct": "25.1%",
       "bytesPct": "17.7%",
-      "flag": false
+      "flag": true
     },
     {
       "today": "",

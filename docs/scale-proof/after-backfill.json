@@ -1400,7 +1400,7 @@
       "error": null,
       "docsPct": "25.1%",
       "bytesPct": "17.7%",
-      "flag": false,
+      "flag": true,
       "note": "uncached run from the first post-backfill pass; this pass hit the query cache"
     },
     {
