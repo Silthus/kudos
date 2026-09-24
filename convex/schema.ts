@@ -134,6 +134,7 @@ export const kudosSourceValidator = v.union(
   v.literal("reaction"),
   v.literal("playground"),
   v.literal("seed"),
+  v.literal("spree"), // a spree join, paid out to the receivers when a tier was reached (#94)
 );
 
 /** How a kudos attempt (a message carrying the kudos emoji) ended. */
@@ -161,6 +162,7 @@ export const settingsFields = {
   notifyReceiver: v.boolean(),
   questsEnabled: v.optional(v.boolean()), // weekly quests; undefined = on (installed before the switch)
   gameEnabled: v.optional(v.boolean()), // the game (XP, levels, ...); undefined = off, on in the demo
+  spreesEnabled: v.optional(v.boolean()), // kudos sprees (#94), with or without the game; undefined = off
 };
 
 export default defineSchema({
@@ -303,6 +305,7 @@ export default defineSchema({
     batchId: v.optional(v.string()), // the kudos batch, once given
     at: v.number(), // when the outcome was decided (an edit that fixes a failed attempt decides it again)
     editTs: v.optional(v.string()), // the last edit of the message handled, so a redelivered edit is a no-op
+    threadTs: v.optional(v.string()), // the thread the message is a reply in: spree prompts and tier replies go there (#94)
   })
     .index("by_message", ["workspaceId", "channelId", "messageTs"])
     .index("by_giver", ["giverId"]), // member removal (removal.ts)
@@ -435,6 +438,7 @@ export default defineSchema({
     luckyCharms: v.optional(v.number()), // Lucky charm uses left (#97): each qualifying kudos rolls its receivers Uncommon+
     sunlamps: v.optional(v.number()), // Sunlamps bought and not yet used on a plant (#97)
     lanterns: v.optional(v.number()), // Lanterns bought and not yet hung (#97)
+    spreeCoins: v.optional(v.number()), // Hog coins kudos sprees paid (#94, sprees.ts), part of `coins`; undefined = 0
   }).index("by_member", ["memberId"]),
 
   // A plant in a member's garden, grown for one teammate (gardens.ts, lib/garden.ts). Waterings are
@@ -514,7 +518,8 @@ export default defineSchema({
     // harvest: garden fruit picked (gardens.ts pick); a member's action, kept as it is by a rebuild.
     // quest: a weekly or daily quest or a clean sweep, paid from level 5 (quests.ts). Its `batchId`
     // is `quest:<completion>` or `sweep:<member>:<week>`, so a kudos revoke never matches it directly.
-    kind: v.union(v.literal("give"), v.literal("receive"), v.literal("harvest"), v.literal("quest")),
+    // spree: what one tier of a kudos spree paid one member (#94), keyed `spree:<spreeId>`; rebuilds keep it
+    kind: v.union(v.literal("give"), v.literal("receive"), v.literal("harvest"), v.literal("quest"), v.literal("spree")),
     batchId: v.string(),
     dayKey: v.string(), // the kudos' workspace day: daily caps and same-day decay
     at: v.number(),
@@ -539,6 +544,8 @@ export default defineSchema({
     fruit: v.optional(v.number()), // harvest: fruit picked
     quest: v.optional(v.object({ scope: questScopeValidator, key: v.string() })), // quest: its catalog key; sweep: the week
     completionId: v.optional(v.union(v.id("questCompletions"), v.id("dailyQuestCompletions"))), // quest: what it paid for
+    tier: v.optional(v.number()), // spree: the tier reached (1–5)
+    role: v.optional(v.union(v.literal("joined"), v.literal("started"), v.literal("received"))), // spree
   })
     .index("by_member_day", ["memberId", "dayKey"])
     .index("by_batch", ["batchId"]),
@@ -690,6 +697,52 @@ export default defineSchema({
     at: v.number(),
   })
     .index("by_member_item_month", ["memberId", "item", "month"])
+    .index("by_workspace", ["workspaceId"]),
+
+  // A kudos spree (#94, lib/sprees.ts): a thoughtful, bot-confirmed kudos teammates joined. Created
+  // by its first join; only sprees.ts writes it. `joiners` counts waiting + paid joins.
+  sprees: defineTable({
+    workspaceId: v.id("workspaces"),
+    batchId: v.string(), // the kudos it grew on
+    channelId: v.string(),
+    channelName: v.optional(v.string()),
+    channelPrivate: v.optional(v.boolean()),
+    messageTs: v.string(),
+    threadTs: v.optional(v.string()), // where tier replies go: the kudos' thread
+    giverId: v.id("members"),
+    receiverIds: v.array(v.id("members")), // the kudos' qualifying receivers (≤ the daily allowance)
+    text: v.string(), // the kudos' text, for the pooled rows
+    kudosAt: v.number(),
+    status: v.union(v.literal("open"), v.literal("complete"), v.literal("lapsed"), v.literal("cancelled")),
+    tier: v.number(), // tiers reached (0–5)
+    joiners: v.number(),
+    deadline: v.number(), // the next tier must be reached before this
+    tiers: v.array(v.object({ tier: v.number(), at: v.number(), joiners: v.number() })), // ≤ 5
+  })
+    .index("by_message", ["workspaceId", "channelId", "messageTs"])
+    .index("by_batch", ["batchId"])
+    .index("by_giver", ["giverId"])
+    .index("by_workspace_kudosAt", ["workspaceId", "kudosAt"]),
+
+  // One member's join of one spree. A waiting join reserves `amount` of the joiner's kudos on
+  // `dayKey` (engine.ts `usedOn`); waiting and paid joins use one of that month's spree joins.
+  spreeJoins: defineTable({
+    workspaceId: v.id("workspaces"),
+    spreeId: v.id("sprees"),
+    memberId: v.id("members"),
+    // due: its tier was reached, its kudos are being written (sprees.ts payDue); still reserves and counts
+    status: v.union(v.literal("waiting"), v.literal("due"), v.literal("paid"), v.literal("withdrawn"), v.literal("lapsed")),
+    at: v.number(),
+    dayKey: v.string(), // the joiner's workspace day: the kudos reserved are that day's
+    month: v.string(), // "YYYY-MM": the month whose spree joins it uses
+    amount: v.number(), // kudos reserved: one per receiver
+    tier: v.optional(v.number()), // paid: the tier that paid it out
+    batchId: v.optional(v.string()), // paid: its kudos rows
+  })
+    .index("by_spree_member", ["spreeId", "memberId"])
+    .index("by_spree_status", ["spreeId", "status"])
+    .index("by_member_day", ["memberId", "dayKey"])
+    .index("by_member_month", ["memberId", "month"])
     .index("by_workspace", ["workspaceId"]),
 
   slackEvents: defineTable({

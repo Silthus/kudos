@@ -71,6 +71,12 @@ test("fruit picked in the garden is its own line in the wallet, and the garden i
   expect(host.querySelector('a[href="/garden"]')?.textContent).toContain("Your garden");
 });
 
+test("coins from kudos sprees are their own line in the wallet (#94)", () => {
+  mine = { enabled: true, hidden: false, player: level3, wallet: { balance: 34, fromKudos: 8, fromFruit: 0, fromQuests: 0, fromSprees: 6, fromLevels: 20, spent: 0, adjusted: 0 } };
+  const host = render(<GameCard glyph="🌮" />);
+  expect(host.querySelector("[data-wallet]")!.textContent).toContain("8 from thoughtful kudos · 6 from kudos sprees · 20 from level-ups");
+});
+
 test("below level 3 there is no wallet, only its locked tile", () => {
   mine = { enabled: true, hidden: false, player: level2, wallet: null };
   const host = render(<GameCard glyph="🌮" />);

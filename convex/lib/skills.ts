@@ -56,7 +56,6 @@ type SkillSpec = {
   arrives?: { ticket: number; with: string };
 };
 
-const SPREES = { ticket: 94, with: "Kudos sprees" };
 const SUPER = { ticket: 98, with: "Super kudos" };
 const TEAM = { ticket: 96, with: "the team garden and bonus days" };
 
@@ -81,7 +80,7 @@ const TREE = {
   pathfinder: { branch: "scout", tier: 1, name: "Pathfinder", effect: "A bigger new-connection bonus: +5 XP per rank on top of the 10.", perRank: "+5 XP for a new connection.", ranks: 2, cost: 1 },
   lookout: { branch: "scout", tier: 1, name: "Lookout", effect: "A private list of teammates you haven't thanked in 30 days or more.", ranks: 1, cost: 1 },
   rekindler: { branch: "scout", tier: 2, name: "Rekindler", effect: "A bigger rekindle bonus: +5 XP per rank on top of the 5.", perRank: "+5 XP for a rekindle.", ranks: 2, cost: 1, parent: "lookout" },
-  wanderer: { branch: "scout", tier: 2, name: "Wanderer", effect: "+2 spree joins a month.", ranks: 1, cost: 1, parent: "pathfinder", arrives: SPREES },
+  wanderer: { branch: "scout", tier: 2, name: "Wanderer", effect: "+2 spree joins a month.", ranks: 1, cost: 1, parent: "pathfinder" },
   wide_net: { branch: "scout", tier: 3, name: "Wide net", effect: "Lookout also suggests teammates you've never thanked.", ranks: 1, cost: 1, parent: "lookout" },
   trailblazer: { branch: "scout", tier: 4, name: "Trailblazer", effect: "Thanking a teammate after 90 days or more earns at least the new-connection bonus.", ranks: 1, cost: 3, parent: "rekindler" },
 

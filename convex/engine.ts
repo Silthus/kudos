@@ -10,6 +10,7 @@ import { MIN_NOTE_WORDS } from "./lib/quests";
 import { onKudosGiven, onKudosRevoked, questsOn } from "./quests";
 import { onGameGiven, onGameRevoked } from "./game";
 import { spendLuckyCharm } from "./items";
+import { onSpreeKudosRevoked } from "./sprees";
 import { Gains } from "./gains";
 import { discoveryWorthADm } from "./lib/gains";
 import { onGardenGiven } from "./gardens";
@@ -69,14 +70,31 @@ export async function getMemberDay(ctx: QueryCtx, memberId: Id<"members">, dayKe
     .unique();
 }
 
+/** Waiting spree joins hold at most this many kudos a day; reads stop here. */
+const MAX_JOINS_A_DAY = 200;
+
+/** Kudos a member's waiting spree joins reserve on `dayKey` (#94): not given yet, but not free either. */
+export async function reservedOn(ctx: QueryCtx, memberId: Id<"members">, dayKey: string) {
+  const joins = await ctx.db
+    .query("spreeJoins")
+    .withIndex("by_member_day", (q) => q.eq("memberId", memberId).eq("dayKey", dayKey))
+    .take(MAX_JOINS_A_DAY);
+  return joins.reduce((sum, j) => sum + (j.status === "waiting" || j.status === "due" ? j.amount : 0), 0);
+}
+
+/** A member's allowance used on `dayKey`: kudos given plus kudos their waiting spree joins reserve. */
+export async function usedOn(ctx: QueryCtx, memberId: Id<"members">, dayKey: string) {
+  const day = await getMemberDay(ctx, memberId, dayKey);
+  return (day?.given ?? 0) + (await reservedOn(ctx, memberId, dayKey));
+}
+
 export async function remainingToday(
   ctx: QueryCtx,
   workspace: Doc<"workspaces">,
   memberId: Id<"members">,
   now: number,
 ) {
-  const day = await getMemberDay(ctx, memberId, dayKeyFor(now, workspace.timezone));
-  return Math.max(0, workspace.dailyLimit - (day?.given ?? 0));
+  return Math.max(0, workspace.dailyLimit - (await usedOn(ctx, memberId, dayKeyFor(now, workspace.timezone))));
 }
 
 async function bumpMemberDay(
@@ -251,6 +269,91 @@ function channelVars(channelId: string, channelName?: string) {
   };
 }
 
+type BatchMeta = Pick<GiveInput, "amountEach" | "source" | "channelId" | "channelName" | "channelPrivate" | "messageTs" | "text" | "noteWords"> & {
+  batchId: string;
+  /** The day whose allowance the kudos use: today, or a spree join's day (it was reserved then). */
+  dayKey: string;
+  at: number;
+};
+
+/**
+ * Writes one batch: a kudos row per recipient, their totals and days, the giver's, and the rollups
+ * (flushed by the caller). The allowance was checked by the caller.
+ */
+async function writeBatch(
+  ctx: MutationCtx,
+  workspace: Doc<"workspaces">,
+  giver: Doc<"members">,
+  recipients: Doc<"members">[],
+  meta: BatchMeta,
+  rollups: Rollups,
+): Promise<Doc<"kudos">[]> {
+  const { batchId, dayKey, at, amountEach } = meta;
+  const hour = zonedParts(at, workspace.timezone).hour;
+  const rows: Doc<"kudos">[] = [];
+  for (const r of recipients) {
+    const row = {
+      workspaceId: workspace._id,
+      batchId,
+      giverId: giver._id,
+      receiverId: r._id,
+      amount: amountEach,
+      dayKey,
+      source: meta.source,
+      channelId: meta.channelId,
+      channelName: meta.channelName,
+      ...(meta.channelPrivate ? { channelPrivate: true } : {}),
+      messageTs: meta.messageTs,
+      text: meta.text.slice(0, 500),
+      at,
+      hour,
+      ...(meta.noteWords !== undefined ? { noteWords: meta.noteWords } : {}),
+    };
+    const inserted = { _id: await ctx.db.insert("kudos", row), _creationTime: at, ...row };
+    rows.push(inserted);
+    rollups.kudosAdded(inserted);
+    rollups.memberDayChanged(await bumpMemberDay(ctx, workspace, r._id, dayKey, { received: amountEach }));
+    const fresh = (await ctx.db.get(r._id))!; // a receiver named twice in one tier's pool reads its own write
+    await ctx.db.patch(r._id, { totalReceived: fresh.totalReceived + amountEach });
+    rollups.memberTotalsChanged(
+      { given: fresh.totalGiven, received: fresh.totalReceived },
+      { given: fresh.totalGiven, received: fresh.totalReceived + amountEach },
+    );
+  }
+  const total = amountEach * recipients.length;
+  const giverDay = await bumpMemberDay(ctx, workspace, giver._id, dayKey, { given: total });
+  rollups.memberDayChanged(giverDay);
+  const current = (await ctx.db.get(giver._id))!;
+  await ctx.db.patch(giver._id, {
+    totalGiven: current.totalGiven + total,
+    totalMaxedDays: Math.max(0, current.totalMaxedDays + (giverDay.becameMaxed ? 1 : 0) - (giverDay.lostMaxed ? 1 : 0)),
+    lastGivenAt: Math.max(current.lastGivenAt ?? 0, at),
+    ...(await givingProfile(ctx, current, giverDay)),
+  });
+  rollups.memberTotalsChanged(
+    { given: current.totalGiven, received: current.totalReceived },
+    { given: current.totalGiven + total, received: current.totalReceived },
+  );
+  return rows;
+}
+
+/**
+ * A spree join paid out when its tier is reached (sprees.ts): one kudos from the joiner to each of
+ * the spree's receivers, dated at the join (the day whose allowance it reserved). Real kudos rows,
+ * so every total, day and rollup stays exact; the spree pays its own XP and coins, so the game's
+ * give scoring doesn't run. `rollups` is the tier's, flushed by the caller.
+ */
+export async function writePooled(
+  ctx: MutationCtx,
+  workspace: Doc<"workspaces">,
+  joiner: Doc<"members">,
+  receivers: Doc<"members">[],
+  meta: Omit<BatchMeta, "amountEach" | "source" | "noteWords">,
+  rollups: Rollups,
+) {
+  return await writeBatch(ctx, workspace, joiner, receivers, { ...meta, amountEach: 1, source: "spree" }, rollups);
+}
+
 export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<GiveResult> {
   const { workspace, now } = input;
   const giver = await ensureMember(ctx, workspace, input.giverSlackId);
@@ -291,7 +394,7 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
   }
 
   const dayKey = dayKeyFor(now, workspace.timezone);
-  const usedToday = (await getMemberDay(ctx, giver._id, dayKey))?.given ?? 0;
+  const usedToday = await usedOn(ctx, giver._id, dayKey);
   const remaining = Math.max(0, workspace.dailyLimit - usedToday);
   // Check the allowance before creating any member rows, so mass mentions can't create junk.
   const requested = input.amountEach * eligibleIds.length;
@@ -314,49 +417,8 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
   const total = input.amountEach * recipients.length;
 
   const batchId = `${input.channelId}:${input.messageTs ?? now}:${giver._id}`;
-  const hour = zonedParts(now, workspace.timezone).hour;
   const rollups = new Rollups(ctx, workspace);
-  const rows: Doc<"kudos">[] = [];
-  for (const r of recipients) {
-    const row = {
-      workspaceId: workspace._id,
-      batchId,
-      giverId: giver._id,
-      receiverId: r._id,
-      amount: input.amountEach,
-      dayKey,
-      source: input.source,
-      channelId: input.channelId,
-      channelName: input.channelName,
-      ...(input.channelPrivate ? { channelPrivate: true } : {}),
-      messageTs: input.messageTs,
-      text: input.text.slice(0, 500),
-      at: now,
-      hour,
-      ...(input.noteWords !== undefined ? { noteWords: input.noteWords } : {}),
-    };
-    const inserted = { _id: await ctx.db.insert("kudos", row), _creationTime: now, ...row };
-    rows.push(inserted);
-    rollups.kudosAdded(inserted);
-    rollups.memberDayChanged(await bumpMemberDay(ctx, workspace, r._id, dayKey, { received: input.amountEach }));
-    await ctx.db.patch(r._id, { totalReceived: r.totalReceived + input.amountEach });
-    rollups.memberTotalsChanged(
-      { given: r.totalGiven, received: r.totalReceived },
-      { given: r.totalGiven, received: r.totalReceived + input.amountEach },
-    );
-  }
-  const giverDay = await bumpMemberDay(ctx, workspace, giver._id, dayKey, { given: total });
-  rollups.memberDayChanged(giverDay);
-  await ctx.db.patch(giver._id, {
-    totalGiven: giver.totalGiven + total,
-    totalMaxedDays: Math.max(0, giver.totalMaxedDays + (giverDay.becameMaxed ? 1 : 0) - (giverDay.lostMaxed ? 1 : 0)),
-    lastGivenAt: now,
-    ...(await givingProfile(ctx, giver, giverDay)),
-  });
-  rollups.memberTotalsChanged(
-    { given: giver.totalGiven, received: giver.totalReceived },
-    { given: giver.totalGiven + total, received: giver.totalReceived },
-  );
+  const rows = await writeBatch(ctx, workspace, giver, recipients, { ...input, batchId, dayKey, at: now }, rollups);
 
   // XP for the giver and the receivers; the giver's share is itemised in their reply. What anyone
   // discovers or gains in this kudos goes out in one DM each, once everything below has run.
@@ -459,6 +521,7 @@ export async function revokeKudosRow(ctx: MutationCtx, workspace: Doc<"workspace
   await rollups.flush();
   await onKudosRevoked(ctx, workspace, row);
   await onGameRevoked(ctx, row);
+  await onSpreeKudosRevoked(ctx, row);
 }
 
 /**

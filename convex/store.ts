@@ -336,7 +336,7 @@ export async function undoPurchase(ctx: MutationCtx, purchase: Doc<"itemPurchase
   const item = itemByKey(purchase.item);
   const undo = item && ITEM_EFFECTS[item.key].undo;
   if (!undo) return false;
-  await undo(ctx, purchase);
+  if ((await undo(ctx, purchase)) === false) return false; // its effect is in use
   const member = await ctx.db.get(purchase.memberId);
   if (member) await ctx.db.patch(member._id, { coinsSpent: (member.coinsSpent ?? 0) - purchase.price });
   await ctx.db.delete(purchase._id);

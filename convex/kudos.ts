@@ -2,10 +2,20 @@ import { type Infer, v } from "convex/values";
 import { internalMutation, internalQuery, type MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import { giveKudos, type GiveResult } from "./engine";
-import { attemptKudos, type AttemptInput, reattemptKudos } from "./attempts";
+import { ensureMember, findMember, giveKudos, type GiveResult } from "./engine";
+import { joinSpree, offerSpree, withdrawSpreeJoin } from "./sprees";
+import { baseEmojiName } from "./lib/parse";
+import { attemptKudos, type AttemptInput, findAttempt, reattemptKudos } from "./attempts";
 import { guidance } from "./lib/guidance";
 import { countEmoji, countNoteWords, mentionedUsers, mentionsGroup, previewText } from "./lib/parse";
+
+const spreeOfferValidator = v.object({
+  kind: v.union(v.literal("prompt"), v.literal("note")),
+  text: v.string(),
+  /** prompt: the Join button's value. */
+  attemptId: v.optional(v.id("kudosAttempts")),
+  threadTs: v.optional(v.string()),
+});
 
 const ingestResult = v.object({
   status: v.string(),
@@ -21,6 +31,8 @@ const ingestResult = v.object({
       staleReactions: v.optional(v.array(v.string())),
     }),
   ),
+  /** Clicking the bot's reaction on a kudos that can spree (#94): Join / Not now, or why not. */
+  spree: v.optional(spreeOfferValidator),
 });
 
 /** Readable preview of a Slack message, with every mention resolved to a name. */
@@ -76,6 +88,8 @@ const messageArgs = {
   messageTs: v.string(),
   /** Mentions Slack couldn't resolve to a teammate of this workspace (see `unknownMentions`). */
   unknownSlackIds: v.optional(v.array(v.string())),
+  /** The thread the message is a reply in, if any. */
+  threadTs: v.optional(v.string()),
 };
 const messageArgsValidator = v.object(messageArgs);
 
@@ -169,6 +183,7 @@ async function messageAttempt(ctx: MutationCtx, workspace: Doc<"workspaces">, ar
     channelName: args.channelName,
     channelPrivate: args.channelPrivate,
     messageTs: args.messageTs,
+    ...(args.threadTs ? { threadTs: args.threadTs } : {}),
     text: await readablePreview(ctx, workspace._id, args.text),
     noteWords: countNoteWords(args.text, workspace.emojiName, workspace.emojiGlyph),
     source: "message",
@@ -181,9 +196,15 @@ async function refreshGiverHome(ctx: MutationCtx, workspaceId: Id<"workspaces">,
   await ctx.scheduler.runAfter(0, internal.slack.refreshHome, { workspaceId, slackUserId });
 }
 
-/** Reacting with the kudos emoji gives the message author one kudos. */
+/**
+ * A reaction added to a message. Clicking the bot's reaction on a kudos that can spree offers to
+ * join it (#94); otherwise reacting with the kudos emoji gives the message author one kudos, if the
+ * workspace allows reaction-giving.
+ */
 export const ingestReaction = internalMutation({
   args: {
+    /** The reaction's name as Slack sends it (maybe with a skin tone); the kudos emoji if absent. */
+    reaction: v.optional(v.string()),
     workspaceId: v.id("workspaces"),
     botUserId: v.string(),
     reactorSlackId: v.string(),
@@ -195,9 +216,13 @@ export const ingestReaction = internalMutation({
     messageText: v.optional(v.string()),
   },
   returns: v.union(v.null(), ingestResult),
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Infer<typeof ingestResult> | null> => {
     const workspace = await ctx.db.get(args.workspaceId);
-    if (!workspace || workspace.status !== "active" || !workspace.reactionsEnabled) return null;
+    if (!workspace || workspace.status !== "active") return null;
+    const reaction = args.reaction ?? workspace.emojiName;
+    const offer = await offerSpree(ctx, workspace, args.reactorSlackId, args.channelId, args.messageTs, reaction, Date.now());
+    if (offer) return { status: "spree", notificationIds: [], ...(offer.kind === "silent" ? {} : { spree: offer }) };
+    if (!workspace.reactionsEnabled || baseEmojiName(reaction) !== workspace.emojiName) return null;
     const giver = await ctx.db
       .query("members")
       .withIndex("by_workspace_slackUser", (q) =>
@@ -239,5 +264,39 @@ export const ingestReaction = internalMutation({
         ? guidance({ kind: "limit", people: 1, amountEach: 1, remaining: result.remaining, limit: workspace.dailyLimit }, `:${workspace.emojiName}:`)
         : undefined;
     return { ...summarize(result), guidance: help };
+  },
+});
+
+/** A reaction taken off a message: the bot's reaction on a spree joined today withdraws the join (#94). */
+export const ingestUnreaction = internalMutation({
+  args: { workspaceId: v.id("workspaces"), reactorSlackId: v.string(), channelId: v.string(), messageTs: v.string(), reaction: v.string() },
+  returns: v.union(v.null(), v.object({ text: v.string(), threadTs: v.optional(v.string()) })),
+  handler: async (ctx, args) => {
+    const workspace = await ctx.db.get(args.workspaceId);
+    if (!workspace || workspace.status !== "active") return null;
+    const member = await findMember(ctx, workspace, args.reactorSlackId);
+    if (!member) return null;
+    const text = await withdrawSpreeJoin(ctx, workspace, member, args.channelId, args.messageTs, args.reaction, Date.now());
+    if (!text) return null;
+    const attempt = await findAttempt(ctx, workspace._id, args.channelId, args.messageTs);
+    return { text, ...(attempt?.threadTs ? { threadTs: attempt.threadTs } : {}) };
+  },
+});
+
+/** Join on a spree prompt (a Slack button): what to tell the clicker. DMs of a tier it reached go out on their own. */
+export const spreeInteraction = internalMutation({
+  args: { teamId: v.string(), slackUserId: v.string(), userTeamId: v.optional(v.string()), attemptId: v.string() },
+  returns: v.string(),
+  handler: async (ctx, args) => {
+    const workspace = await ctx.db
+      .query("workspaces")
+      .withIndex("by_team", (q) => q.eq("slackTeamId", args.teamId))
+      .unique();
+    const attemptId = ctx.db.normalizeId("kudosAttempts", args.attemptId);
+    if (!workspace || workspace.status !== "active" || !attemptId) return "This spree is over.";
+    // People from other workspaces in a shared channel never take part.
+    if (args.userTeamId && args.userTeamId !== args.teamId) return "Only teammates in this workspace can join its sprees.";
+    const member = await ensureMember(ctx, workspace, args.slackUserId);
+    return (await joinSpree(ctx, workspace, member, attemptId, Date.now())).text;
   },
 });

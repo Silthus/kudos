@@ -132,29 +132,48 @@ export const processEvent = internalAction({
         channelName: channel.name,
         channelPrivate: channel.isPrivate,
         messageTs: event.ts,
+        ...(event.thread_ts && event.thread_ts !== event.ts ? { threadTs: event.thread_ts } : {}),
         unknownSlackIds: await lookUpUnknownMentions(ctx, install.botToken, workspaceId, teamId, event.text),
       });
       if (result) await answerAttempt(ctx, install.botToken, teamId, { channel: event.channel, ts: event.ts, threadTs: event.thread_ts, user: event.user }, result);
       return null;
     }
 
-    if (event.type === "reaction_added") {
+    if (event.type === "reaction_added" || event.type === "reaction_removed") {
       if (!event.user || !event.item_user || !event.reaction || event.item?.type !== "message") return null;
-      if (baseEmojiName(event.reaction) !== emojiName) return null;
+      // The kudos emoji, or the bot's ✅ in its place: the reactions that give kudos or join a spree.
+      if (baseEmojiName(event.reaction) !== emojiName && baseEmojiName(event.reaction) !== FALLBACK_REACTION) return null;
       if (event.user === install.botUserId) return null;
-      const channel = await channelInfo(install.botToken, event.item.channel);
+      if (event.type === "reaction_removed") {
+        const left = await ctx.runMutation(internal.kudos.ingestUnreaction, {
+          workspaceId,
+          reactorSlackId: event.user,
+          channelId: event.item.channel,
+          messageTs: event.item.ts,
+          reaction: event.reaction,
+        });
+        if (left) await ephemeral(install.botToken, { channel: event.item.channel, threadTs: left.threadTs, user: event.user, text: left.text });
+        return null;
+      }
+      // Only a reaction that may give kudos needs the channel and the message's text; ✅ can only join a spree.
+      const giving = baseEmojiName(event.reaction) === emojiName;
+      const channel = giving ? await channelInfo(install.botToken, event.item.channel) : {};
       const result = await ctx.runMutation(internal.kudos.ingestReaction, {
         workspaceId,
         botUserId: install.botUserId,
+        reaction: event.reaction,
         reactorSlackId: event.user,
         authorSlackId: event.item_user,
         channelId: event.item.channel,
         channelName: channel.name,
         channelPrivate: channel.isPrivate,
         messageTs: event.item.ts,
-        messageText: await messageText(install.botToken, event.item.channel, event.item.ts),
+        messageText: giving ? await messageText(install.botToken, event.item.channel, event.item.ts) : undefined,
       });
-      if (result) {
+      if (result?.spree) {
+        const { text, threadTs, attemptId } = result.spree;
+        await ephemeral(install.botToken, { channel: event.item.channel, threadTs, user: event.user, text, ...(attemptId ? { actions: spreeButtons(attemptId) } : {}) });
+      } else if (result) {
         await deliver(ctx, install.botToken, teamId, result.notificationIds, {
           channel: event.item.channel,
           guidance: result.guidance ? { user: event.user, text: result.guidance } : undefined,
@@ -236,6 +255,37 @@ async function answerAttempt(
     guidance: guidance ? { user: message.user, text: guidance } : undefined,
   });
 }
+
+/** Join / Not now on a spree prompt (#94); the http interactions route handles the clicks. */
+function spreeButtons(attemptId: string) {
+  return {
+    type: "actions",
+    elements: [
+      { type: "button", style: "primary", text: { type: "plain_text", text: "Join" }, action_id: "spree_join", value: attemptId },
+      { type: "button", text: { type: "plain_text", text: "Not now" }, action_id: "spree_dismiss", value: attemptId },
+    ],
+  };
+}
+
+/** A message only `user` sees, where something happened (in its thread, if any). */
+async function ephemeral(token: string, m: { channel: string; threadTs?: string; user: string; text: string; actions?: object }) {
+  const blocks = [{ type: "section", text: { type: "mrkdwn", text: m.text } }, ...(m.actions ? [m.actions] : [])];
+  const res = await slackApi(token, "chat.postEphemeral", { channel: m.channel, thread_ts: m.threadTs, user: m.user, text: m.text, blocks });
+  if (!res.ok) console.warn(`Ephemeral for ${m.user} in ${m.channel} failed: ${res.error}`);
+}
+
+/** A spree reached a tier (#94): the public reply in the kudos' thread (§G13). */
+export const postInThread = internalAction({
+  args: { workspaceId: v.id("workspaces"), channel: v.string(), threadTs: v.string(), text: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { workspaceId, channel, threadTs, text }) => {
+    const install = await ctx.runQuery(internal.slackData.installationForWorkspace, { workspaceId });
+    if (!install) return null;
+    const res = await slackApi(install.botToken, "chat.postMessage", { channel, thread_ts: threadTs, text, blocks: [{ type: "section", text: { type: "mrkdwn", text } }] });
+    if (!res.ok) console.warn(`Spree reply in ${channel}/${threadTs} failed: ${res.error}`);
+    return null;
+  },
+});
 
 /** Takes the bot's reaction off the message. Already gone is fine; a failure never blocks the rest. */
 async function unreact(token: string, channel: string, timestamp: string, name: string) {
@@ -732,15 +782,24 @@ export const retireAdminMessages = internalAction({
 
 /** Answers an interaction with a message only the person who clicked sees. */
 export const respond = internalAction({
-  args: { responseUrl: v.string(), text: v.string() },
+  args: {
+    responseUrl: v.string(),
+    text: v.string(),
+    /** Replace the message the button was on (a spree prompt after Join), or delete it (Not now). */
+    original: v.optional(v.union(v.literal("replace"), v.literal("delete"))),
+  },
   returns: v.null(),
-  handler: async (_ctx, { responseUrl, text }) => {
+  handler: async (_ctx, { responseUrl, text, original }) => {
     if (!isSlackResponseUrl(responseUrl)) return null;
+    const body =
+      original === "delete"
+        ? { delete_original: true }
+        : { response_type: "ephemeral", replace_original: original === "replace", text };
     try {
       const res = await fetch(responseUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ response_type: "ephemeral", replace_original: false, text }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) console.warn(`Answering a Slack interaction failed: http_${res.status}`);
     } catch (e) {

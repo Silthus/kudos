@@ -6,6 +6,7 @@ import { BOOST_NAME, type BoostKind } from "./lib/boosts";
 import { dayKeyFor } from "./lib/time";
 import { clearSkillTree, resetBlocker } from "./skills";
 import { boostOn, startBonusDay } from "./boosts";
+import { spreeJoinsInMonth } from "./sprees";
 
 /**
  * What each game item does (the definitions, prices and limits are in `lib/items.ts`). The Store
@@ -31,9 +32,9 @@ export type ItemEffect = {
   apply: (ctx: MutationCtx, buyer: Buyer & { now: number; month: string; price: number }, purchaseId: Id<"itemPurchases">) => Promise<void>;
   /**
    * Takes the item back, for the shared demo's "Hand back" (`undoPurchase`). Without it the
-   * purchase can't be handed back, e.g. once its effect is spent.
+   * purchase can't be handed back, e.g. once its effect is spent; returning `false` keeps this one.
    */
-  undo?: (ctx: MutationCtx, purchase: Doc<"itemPurchases">) => Promise<void>;
+  undo?: (ctx: MutationCtx, purchase: Doc<"itemPurchases">) => Promise<void | false>;
 };
 
 /** Why no company-wide booster can start today: one is on already (§G10: one at a time). */
@@ -65,10 +66,15 @@ function booster(key: BoosterKey): ItemEffect {
 }
 
 export const ITEM_EFFECTS: Record<ItemKey, ItemEffect> = {
-  // The purchase row is the join: kudos sprees (#94) add `itemsBought(ctx, memberId, "spreeJoin",
-  // month)` to the 5 joins everyone gets that month. Nothing can use a join yet, so handing one back
-  // is safe; #94 must make `undo` refuse (throw) once the month's joins include a used bought one.
-  spreeJoin: { apply: async () => {}, undo: async () => {} },
+  // The purchase row is the join: kudos sprees (sprees.ts `spreeJoinsOf`) add the joins bought in a
+  // month to the 5 everyone gets. One can be handed back only while that month's joins don't need it.
+  spreeJoin: {
+    apply: async () => {},
+    undo: async (ctx, purchase) => {
+      const joins = await spreeJoinsInMonth(ctx, purchase.memberId, purchase.month);
+      if (joins.used > joins.allowed - 1) return false;
+    },
+  },
   // The skill tree's reset (#92), the same one as on the skill tree page: every point comes back
   // and the next reset costs more. No `undo`: the points are back the moment it applies.
   skillReset: {

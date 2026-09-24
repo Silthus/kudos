@@ -135,6 +135,7 @@ export const BOT_EVENTS = [
   "message.channels",
   "message.groups",
   "reaction_added",
+  "reaction_removed", // taking the bot's reaction off withdraws a spree join (#94)
   "team_join",
   "tokens_revoked",
   "user_change",

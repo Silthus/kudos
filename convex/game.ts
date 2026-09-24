@@ -155,7 +155,7 @@ export async function addXp(
   gains.add(player.memberId, { kind: "level_up", level, from: player.level, ...wallet });
 }
 
-async function ensurePlayer(ctx: MutationCtx, workspace: Doc<"workspaces">, memberId: Id<"members">, since: number) {
+export async function ensurePlayer(ctx: MutationCtx, workspace: Doc<"workspaces">, memberId: Id<"members">, since: number) {
   const existing = await playerOf(ctx, memberId);
   if (existing) return existing;
   const id = await ctx.db.insert("players", { workspaceId: workspace._id, memberId, since, xp: 0, level: 1, coins: 0 });
@@ -167,6 +167,7 @@ async function thankedBack(ctx: QueryCtx, giverId: Id<"members">, receiverId: Id
   const back = await ctx.db
     .query("kudos")
     .withIndex("by_giver_receiver_at", (q) => q.eq("giverId", receiverId).eq("receiverId", giverId).gt("at", at - RECIPROCAL_WINDOW_MS).lt("at", at))
+    .filter((q) => q.neq(q.field("source"), "spree"))
     .first();
   return back !== null;
 }
@@ -176,6 +177,7 @@ async function lastReceivedAt(ctx: QueryCtx, receiverId: Id<"members">, at: numb
     .query("kudos")
     .withIndex("by_receiver_at", (q) => q.eq("receiverId", receiverId).lt("at", at))
     .order("desc")
+    .filter((q) => q.neq(q.field("source"), "spree"))
     .first();
   return last?.at ?? null;
 }
@@ -246,6 +248,7 @@ export async function onGameGiven(
       .query("kudos")
       .withIndex("by_giver_receiver_at", (q) => q.eq("giverId", giver._id).eq("receiverId", row.receiverId).lte("at", at))
       .order("desc")
+      .filter((q) => q.neq(q.field("source"), "spree")) // XP history is members' own kudos, never pooled ones (#94)
       .take(2);
     const last = latest.find((k) => k.batchId !== batchId);
     const toThem = earlier.filter((l) => l.receiverId === row.receiverId);
@@ -421,19 +424,24 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
   const first = given.find((k) => !pausedAt(workspace, k.at))?.at;
   const since = existing === null ? first : first === undefined ? existing.since : Math.min(existing.since, first);
 
-  // Fruit picked is the member's own doing, like their skills: kept as it is, never replayed.
+  // Fruit picked is the member's own doing, like their skills, and what a spree's tiers paid (#94)
+  // isn't derived from kudos rows either: both are kept as they are, never replayed.
   type Written = { at: number; xp: number; coins: number };
   const harvests: Written[] = [];
+  const sprees: Written[] = [];
   for await (const e of ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", member._id))) {
     if (e.kind === "harvest") harvests.push({ at: e.at, xp: e.xp, coins: e.coins ?? 0 });
+    else if (e.kind === "spree") sprees.push({ at: e.at, xp: e.xp, coins: e.coins ?? 0 });
     else await ctx.db.delete(e._id);
   }
   if (since === undefined) return;
 
-  const written: Written[] = [...harvests];
+  const written: Written[] = [...harvests, ...sprees];
   const unsungOn = workspace.receivedVisibility === "everyone";
-  const receivedFrom = timesBy(received, (k) => k.giverId); // their kudos to the member
-  const givenTo = timesBy(given, (k) => k.receiverId); // the member's kudos to them
+  // XP history is the members' own kudos: pooled spree kudos (#94) never count as a thank-back or an earlier kudos.
+  const own = (k: Doc<"kudos">) => k.source !== "spree";
+  const receivedFrom = timesBy(received.filter(own), (k) => k.giverId); // their kudos to the member
+  const givenTo = timesBy(given.filter(own), (k) => k.receiverId); // the member's kudos to them
 
   // Giving: batch by batch, as the live path saw each one.
   const batches = new Map<string, Doc<"kudos">[]>();
@@ -444,8 +452,9 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
   const qualifyingDays = new Map<string, string[]>(); // per receiver: the day of each qualifying line
   const earnedOn = new Map<string, number>();
   for (const rows of batches.values()) {
-    const { at, dayKey, batchId, noteWords } = rows[0];
-    if (!pausedAt(workspace, at)) {
+    const { at, dayKey, batchId, noteWords, source } = rows[0];
+    // A spree join paid out (#94) earned what its tier paid, never a give's XP.
+    if (!pausedAt(workspace, at) && source !== "spree") {
       const week = weekKeyOfDay(dayKey);
       const recipients = [];
       for (const row of rows) {
@@ -471,14 +480,14 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
       await ctx.db.insert("gameEvents", { workspaceId: workspace._id, memberId: member._id, kind: "give", batchId, dayKey, at, xp, coins, lines });
       written.push({ at, xp, coins });
     }
-    for (const row of rows) lastTo.set(row.receiverId, at);
+    if (source !== "spree") for (const row of rows) lastTo.set(row.receiverId, at);
   }
 
   // Receiving: once they're a player, 5 per distinct qualifying giver a day, at most 15.
   const receivedOn = new Map<string, number>();
   const counted = new Set<string>();
   for (const row of received) {
-    if (pausedAt(workspace, row.at)) continue;
+    if (pausedAt(workspace, row.at) || row.source === "spree") continue; // a spree's receivers earn once per tier
     const qualifying = hasNote(row.noteWords) && !within72h(givenTo.get(row.giverId), row.at);
     const xp = scoreReceive({
       qualifying,
@@ -529,8 +538,9 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
   const level = Math.max(existing?.level ?? 1, levelForXp(peak));
   const coins = written.reduce((s, w) => s + w.coins, 0) + questCoins;
   const fruitCoins = harvests.reduce((s, w) => s + w.coins, 0) || undefined;
-  if (existing) await ctx.db.patch(existing._id, { xp: total, level, since, coins, fruitCoins, questCoins });
-  else await ctx.db.insert("players", { workspaceId: workspace._id, memberId: member._id, since, xp: total, level, coins, fruitCoins, questCoins });
+  const spreeCoins = sprees.reduce((s, w) => s + w.coins, 0) || undefined;
+  if (existing) await ctx.db.patch(existing._id, { xp: total, level, since, coins, fruitCoins, questCoins, spreeCoins });
+  else await ctx.db.insert("players", { workspaceId: workspace._id, memberId: member._id, since, xp: total, level, coins, fruitCoins, questCoins, spreeCoins });
 }
 
 /** Lifetime completions the rebuild pays: at most 3 weekly quests a week and one daily quest a day. */
@@ -659,6 +669,7 @@ const walletValidator = v.object({
   fromKudos: v.number(),
   fromFruit: v.number(),
   fromQuests: v.number(),
+  fromSprees: v.number(),
   fromLevels: v.number(),
   spent: v.number(),
   adjusted: v.number(),

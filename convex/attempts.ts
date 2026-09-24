@@ -53,6 +53,8 @@ export type AttemptInput = GiveInput & {
   messageTs: string;
   /** The message mentions @here, @channel or a user group (which never give kudos). */
   groupMention?: boolean;
+  /** The thread the message is a reply in, if any. */
+  threadTs?: string;
 };
 
 export type Attempt = {
@@ -85,6 +87,7 @@ export async function attemptKudos(
     channelId: input.channelId,
     messageTs: input.messageTs,
     giverId: giver._id,
+    ...(input.threadTs ? { threadTs: input.threadTs } : {}),
     ...outcomeFields(result, verdict, input.now),
   });
   return { result, attempt: describe(id, verdict, input) };

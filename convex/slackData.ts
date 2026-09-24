@@ -571,6 +571,7 @@ async function coinsReply(ctx: QueryCtx, workspace: Doc<"workspaces">, member: D
     `*From thoughtful kudos*\n${coins.fromKudos}`,
     ...(coins.fromFruit ? [`*From garden fruit*\n${coins.fromFruit}`] : []),
     ...(coins.fromQuests ? [`*From quests*\n${coins.fromQuests}`] : []),
+    ...(coins.fromSprees ? [`*From kudos sprees*\n${coins.fromSprees}`] : []),
     `*From level-ups*\n${coins.fromLevels}`,
     ...(coins.spent ? [`*Spent*\n${coins.spent}`] : []),
     ...(coins.adjusted ? [`*Adjusted by admins*\n${coins.adjusted > 0 ? "+" : ""}${coins.adjusted}`] : []),

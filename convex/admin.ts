@@ -71,6 +71,8 @@ export const updateSettings = mutation({
     questsEnabled: v.optional(v.boolean()),
     // Optional, like questsEnabled: the game (XP, levels, ...).
     gameEnabled: v.optional(v.boolean()),
+    // Optional, like questsEnabled: kudos sprees (#94).
+    spreesEnabled: v.optional(v.boolean()),
   },
   returns: v.null(),
   handler: async (ctx, { questsEnabled, gameEnabled, ...args }) => {
