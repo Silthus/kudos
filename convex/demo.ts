@@ -363,7 +363,7 @@ export const seedHistory = internalMutation({
       // releases its lock when it finishes.
       // The demo year is then played through the game's rules, like switching the game on would;
       // the quest seeding schedules that once the completions it pays are recorded.
-      // The Store story follows the game rebuild too, since balances are Hog coins.
+      // Alex's garden and skills follow the replay, and the Store story follows them (balances are Hog coins).
       await ctx.scheduler.runAfter(0, internal.quests.seedDemoHistory, { workspaceId, resetAt });
     }
     return null;
@@ -407,11 +407,15 @@ export const seedGarden = internalMutation({
     if (workspace.resettingSince !== undefined && workspace.resettingSince !== resetAt) return null;
     const alex = await findMember(ctx, workspace, DEMO_YOU);
     const player = alex && (await playerOf(ctx, alex._id));
-    if (!alex || !player) {
+    // A visitor's kudos during the reset makes Alex a player too: only the replay writes the days before today.
+    const today = dayKeyFor(Date.now(), workspace.timezone);
+    const replayed =
+      alex && (await ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", alex._id).lt("dayKey", today)).first());
+    if (!alex || !player || !replayed) {
       if (attempt < STORE_SEED_WAIT.attempts) {
         await ctx.scheduler.runAfter(STORE_SEED_WAIT.everyMs, internal.demo.seedGarden, { workspaceId, resetAt, attempt: attempt + 1 });
       } else {
-        console.warn("Demo garden: the demo user never became a player; no garden.");
+        console.warn("Demo garden: the demo user's history was never replayed; no garden.");
         await ctx.scheduler.runAfter(0, internal.demo.seedStore, { workspaceId, resetAt });
       }
       return null;
@@ -490,18 +494,17 @@ async function growAlexGame(ctx: MutationCtx, workspace: Doc<"workspaces">, alex
   if (eldest) pick(1, (p) => p.state.stage.index < eldest.state.stage.index);
   chosen.sort((a, b) => a.plantedAt - b.plantedAt);
 
-  const members = new Map((await Promise.all(chosen.map((c) => ctx.db.get(c.forId)))).map((m) => [m!._id, m!]));
   for (const plan of chosen) {
     await ctx.db.insert("plants", {
       workspaceId: workspace._id,
       ownerId: alex._id,
       forId: plan.forId,
-      species: defaultSpecies(`${DEMO_YOU}:${members.get(plan.forId)!.slackUserId}:${plan.plantedDay}`),
+      species: defaultSpecies(`${DEMO_YOU}:${plan.plantedAt}`), // the owner and the moment, never the teammate (gardens.ts)
       plantedAt: plan.plantedAt,
       plantedDay: plan.plantedDay,
       seedKudosId: plan.seedId,
-      // Picked two days ago: what grew since waits in the garden for the visitor.
-      pickedThrough: [plan.plantedDay, addDays(today, -2)].sort()[1],
+      // Never picked (no harvest was paid): each plant holds the fruit it can, waiting for the visitor.
+      pickedThrough: plan.plantedDay,
       announced: plan.state.stage.index,
     });
   }
@@ -512,10 +515,10 @@ async function growAlexGame(ctx: MutationCtx, workspace: Doc<"workspaces">, alex
 const STORE_SEED_WAIT = { attempts: 90, everyMs: 2_000 };
 
 /**
- * Opens the demo's Store with real rewards on (#17, #91): the catalog, then a year of the team
- * spending Hog coins, told through the same helpers the web and Slack use, so every balance, stock
- * and count holds. A step someone couldn't have afforded by then, or taken before the Store opened
- * to them at level 5, is left out of the story. Coins come from the game rebuild, which runs one
+ * Opens the demo's Store with real rewards on (#17, #91): the catalog, then the team spending Hog
+ * coins since the game launched, told through the same helpers the web and Slack use, so every
+ * balance, stock and count holds. A step someone couldn't have afforded by then (pro rata of what
+ * they earned), or by someone the Store isn't open to (below level 5), is left out of the story. Coins come from the game rebuild, which runs one
  * member per transaction, so this waits until everyone in the story is a player.
  */
 export const seedStore = internalMutation({

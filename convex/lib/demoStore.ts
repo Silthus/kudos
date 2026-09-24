@@ -32,7 +32,7 @@ const LENA = "UDEMOLENA";
 const ALEX = "UDEMOYOU";
 
 /**
- * A year of the team spending what they received. Mostly fulfilled, a decline and a
+ * The team spending Hog coins since the game launched (#100). Mostly fulfilled, a decline and a
  * cancellation along the way, and a handful of requests still waiting for an admin, so the
  * queue has something to decide the moment a visitor opens it. Lena and Alex are the admins
  * and decide on each other's requests (four eyes).
