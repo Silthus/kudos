@@ -10,6 +10,7 @@
 
 import type * as admin from "../admin.js";
 import type * as analytics from "../analytics.js";
+import type * as attempts from "../attempts.js";
 import type * as auth from "../auth.js";
 import type * as compare_past from "../compare/past.js";
 import type * as crons from "../crons.js";
@@ -22,6 +23,7 @@ import type * as leaderboard from "../leaderboard.js";
 import type * as lib_access from "../lib/access.js";
 import type * as lib_buckets from "../lib/buckets.js";
 import type * as lib_compare from "../lib/compare.js";
+import type * as lib_guidance from "../lib/guidance.js";
 import type * as lib_messages from "../lib/messages.js";
 import type * as lib_parse from "../lib/parse.js";
 import type * as lib_periods from "../lib/periods.js";
@@ -52,6 +54,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   analytics: typeof analytics;
+  attempts: typeof attempts;
   auth: typeof auth;
   "compare/past": typeof compare_past;
   crons: typeof crons;
@@ -64,6 +67,7 @@ declare const fullApi: ApiFromModules<{
   "lib/access": typeof lib_access;
   "lib/buckets": typeof lib_buckets;
   "lib/compare": typeof lib_compare;
+  "lib/guidance": typeof lib_guidance;
   "lib/messages": typeof lib_messages;
   "lib/parse": typeof lib_parse;
   "lib/periods": typeof lib_periods;

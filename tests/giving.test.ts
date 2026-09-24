@@ -99,7 +99,7 @@ describe("giving kudos with a Slack message", () => {
 
   test("bots never receive kudos", async () => {
     const result = await message("UANA", "<@UBOT> :taco:");
-    expect(result?.status).toBe("ignored");
+    expect(result?.status).toBe("invalid"); // an invalid attempt: ❌ and guidance for the giver
     expect(await all(t, "kudos")).toHaveLength(0);
   });
 

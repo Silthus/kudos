@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { useMutation, useQuery } from "convex/react";
 import { AnimatePresence, motion } from "motion/react";
-import { AtSign, Hash, SendHorizontal, Terminal } from "lucide-react";
+import { AtSign, EyeOff, Hash, SendHorizontal, Terminal } from "lucide-react";
 import { useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { api } from "../../convex/_generated/api";
 import { Avatar, Button, Card, Eyebrow, PageHeader, RarityBadge } from "@/components/ui";
@@ -10,7 +10,26 @@ import { RARITY_META, type Rarity } from "@/lib/rarity";
 import { useViewer } from "@/lib/viewer";
 
 type BotMessage = { _id: string; to: string; toMe: boolean; category: string; rarity: string; text: string; isNewDiscovery: boolean };
-type FeedItem = { id: string; author: string; slackUserId: string; text: string; mine: boolean; at: number };
+type Outcome = "given" | "limit" | "invalid";
+type FeedItem = {
+  id: string;
+  author: string;
+  slackUserId: string;
+  text: string;
+  mine: boolean;
+  at: number;
+  /** The Kudos bot's reaction on a kudos attempt. */
+  outcome?: Outcome;
+  /** An ephemeral reply from the Kudos bot, only visible to you. */
+  ephemeral?: boolean;
+};
+
+/** What the bot's reaction on your message means (the kudos emoji itself for "given"). */
+const REACTIONS: Record<Outcome, { glyph?: string; label: string }> = {
+  given: { label: "Kudos given" },
+  limit: { glyph: "⏳", label: "Over today's allowance, nothing was sent" },
+  invalid: { glyph: "❌", label: "Not a valid kudos, nothing was sent" },
+};
 
 const CHANNEL_POSTS: Omit<FeedItem, "at" | "mine">[] = [
   { id: "p1", author: "Priya Raman", slackUserId: "UDEMOPRIYA", text: "Shipped the new onboarding flow 🚀 conversion is up 12% in the first hour" },
@@ -23,6 +42,7 @@ const EXAMPLES = [
   { label: "One for Lena", build: (e: string) => `@Lena Hoffmann ${e} thanks for organising the offsite!` },
   { label: "Try yourself", build: (e: string) => `@Alex Rivera ${e} I deserve this` },
   { label: "Over the limit", build: (e: string) => `@Samir Haddad @Aiko Tanaka ${e.repeat(3)} heroes of the week` },
+  { label: "Forget the mention", build: (e: string) => `${e} great job on the launch everyone` },
 ];
 
 function renderSlackText(text: string, glyph: string, emojiName: string): ReactNode[] {
@@ -72,12 +92,23 @@ export function Playground() {
     const trimmed = raw.trim();
     if (!trimmed) return;
     const slackText = toSlack(trimmed);
-    setFeed((f) => [...f, { id: crypto.randomUUID(), author: viewer.member.name, slackUserId: viewer.member.slackUserId, text: trimmed.replaceAll(glyph, emojiCode), mine: true, at: Date.now() }]);
+    const id = crypto.randomUUID();
+    setFeed((f) => [...f, { id, author: viewer.member.name, slackUserId: viewer.member.slackUserId, text: trimmed.replaceAll(glyph, emojiCode), mine: true, at: Date.now() }]);
     setText("");
     setMention(null);
     const res = await send({ text: slackText, channelName: "general" });
     if (res.status === "no_kudos") setHint(`No kudos in that one. Mention someone and add ${glyph} (or ${emojiCode}).`);
     else setHint(null);
+    const { attempt } = res;
+    if (attempt) {
+      // Like Slack: the bot reacts on the message, and explains a failed attempt only to you.
+      setFeed((f) => [
+        ...f.map((m) => (m.id === id ? { ...m, outcome: attempt.outcome } : m)),
+        ...(attempt.guidance
+          ? [{ id: `${id}-guidance`, author: "Kudos", slackUserId: "", text: attempt.guidance, mine: false, at: Date.now(), ephemeral: true }]
+          : []),
+      ]);
+    }
     pushBot(res.messages);
   };
 
@@ -115,7 +146,7 @@ export function Playground() {
       <PageHeader
         eyebrow="Demo · runs the real kudos engine"
         title="Slack playground"
-        subtitle={`Post in #general like you would in Slack. Mention teammates and add ${glyph} to give kudos, or react to a message. The Kudos bot replies on the right, and everything flows into your dashboard live.`}
+        subtitle={`Post in #general like you would in Slack. Mention teammates and add ${glyph} to give kudos, or react to a message. The Kudos bot reacts on your message (${glyph} given, ⏳ over the allowance, ❌ not valid) and replies on the right, and everything flows into your dashboard live.`}
       />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.35fr_1fr]">
@@ -145,7 +176,22 @@ export function Playground() {
 
           <div className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
             <AnimatePresence initial={false}>
-              {feed.map((m) => (
+              {feed.map((m) => m.ephemeral ? (
+                <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3 rounded-xl bg-panel-2/40 px-2 py-2">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-saffron/20">{glyph}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1 text-xs text-faint">
+                      <EyeOff className="h-3 w-3" /> Only visible to you
+                    </div>
+                    <div className="text-sm">
+                      <b className="font-semibold">Kudos</b>{" "}
+                      <span className="rounded bg-panel-3 px-1 py-px align-middle text-[10px] font-semibold text-muted">APP</span>{" "}
+                      <span className="text-xs text-faint">{new Date(m.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                    </div>
+                    <p className="text-[15px] leading-relaxed text-cream/90">{m.text}</p>
+                  </div>
+                </motion.div>
+              ) : (
                 <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="group flex gap-3 rounded-xl px-2 py-2 hover:bg-panel-2/50">
                   <Avatar name={m.author} size={36} />
                   <div className="min-w-0 flex-1">
@@ -154,6 +200,18 @@ export function Playground() {
                       <span className="text-xs text-faint">{new Date(m.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                     </div>
                     <p className="text-[15px] leading-relaxed text-cream/90">{renderSlackText(m.text, glyph, emojiName)}</p>
+                    {m.outcome && (
+                      <motion.span
+                        initial={{ scale: 0.6, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ type: "spring", bounce: 0.5 }}
+                        title={`Kudos bot: ${REACTIONS[m.outcome].label}`}
+                        aria-label={`Kudos bot reacted: ${REACTIONS[m.outcome].label}`}
+                        className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-line-strong bg-panel-2 px-2 py-0.5 text-xs"
+                      >
+                        {REACTIONS[m.outcome].glyph ?? glyph} <span className="tabular text-muted">1</span>
+                      </motion.span>
+                    )}
                     {!m.mine && (
                       <div className="mt-1.5">
                         <button

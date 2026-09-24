@@ -1,18 +1,16 @@
 import { describe, expect, test } from "vitest";
-import { baseEmojiName, countEmoji, countNoteWords, mentionedUsers, parseKudosMessage, previewText } from "./parse";
+import { baseEmojiName, countEmoji, countNoteWords, mentionedUsers, previewText } from "./parse";
 
-describe("parseKudosMessage", () => {
-  test("every emoji gives one kudos to every mentioned person", () => {
-    expect(parseKudosMessage("<@U1> <@U2> :taco: :taco: thanks!", "taco")).toEqual({
-      recipients: ["U1", "U2"],
-      amountEach: 2,
-    });
+describe("parsing a kudos message", () => {
+  test("every emoji is one kudos for every mentioned person", () => {
+    const text = "<@U1> <@U2> :taco: :taco: thanks!";
+    expect([countEmoji(text, "taco"), mentionedUsers(text)]).toEqual([2, ["U1", "U2"]]);
   });
 
-  test("ignores messages without the configured emoji or without mentions", () => {
-    expect(parseKudosMessage("<@U1> thanks!", "taco")).toBeNull();
-    expect(parseKudosMessage(":taco: for everyone", "taco")).toBeNull();
-    expect(parseKudosMessage("<@U1> :burrito:", "taco")).toBeNull();
+  test("only the configured emoji makes a message a kudos attempt, mentions or not", () => {
+    expect(countEmoji("<@U1> thanks!", "taco")).toBe(0);
+    expect(countEmoji("<@U1> :burrito:", "taco")).toBe(0);
+    expect(countEmoji(":taco: for everyone", "taco")).toBe(1);
   });
 
   test("counts adjacent emojis and skin-tone variants", () => {

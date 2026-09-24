@@ -98,6 +98,7 @@ export const BOT_SCOPES = [
   "groups:read",
   "im:write",
   "reactions:read",
+  "reactions:write", // the bot reacts on every kudos attempt
   "team:read",
   "users:read",
 ];

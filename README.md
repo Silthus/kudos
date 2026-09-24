@@ -19,7 +19,7 @@ More in [`docs/screenshots/`](docs/screenshots/).
 | Path | What it does |
 | --- | --- |
 | `convex/http.ts` | Slack webhooks (`/slack/events`, `/slack/commands`, `/slack/interactions`), OAuth install (`/slack/install`), manifest, auth routes, then the SPA catch-all |
-| `convex/slack.ts` | Event processing and every Slack Web API call (DMs, ephemeral replies, App Home, member sync) |
+| `convex/slack.ts` | Event processing and every Slack Web API call (DMs, ephemeral replies, bot reactions, App Home, member sync) |
 | `convex/engine.ts` | The one place kudos are given or revoked: allowance, rollups, totals, maxed days, rarity-rolled bot messages |
 | `convex/lib/messages.ts` | The 60 discoverable messages and the rarity roll |
 | `convex/me.ts`, `leaderboard.ts`, `analytics.ts`, `discoveries.ts` | Read models for the dashboard |

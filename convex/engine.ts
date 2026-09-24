@@ -3,6 +3,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { kudosSourceValidator } from "./schema";
+import type { InvalidReason } from "./lib/guidance";
 import { dayKeyFor, zonedParts } from "./lib/time";
 import { givingProfile, type MemberDayChange, Rollups } from "./lib/rollups";
 import { MIN_NOTE_WORDS } from "./lib/quests";
@@ -186,14 +187,24 @@ export type GiveInput = {
   source: KudosSource;
   /** Slack user ids that must never receive kudos (e.g. our own bot). */
   excludeSlackIds?: string[];
+  /** Mentioned ids Slack couldn't resolve to a teammate (unknown, or another workspace's): never receive. */
+  unknownSlackIds?: string[];
   now: number;
 };
 
 export type GiveResult =
   | { status: "given"; batchId: string; total: number; remaining: number; notificationIds: Id<"notifications">[]; recipientIds: Id<"members">[] }
-  | { status: "limit"; remaining: number; requested: number; notificationIds: Id<"notifications">[] }
+  | { status: "limit"; remaining: number; requested: number; people: number; notificationIds: Id<"notifications">[] }
   | { status: "self"; notificationIds: Id<"notifications">[] }
+  /** Nobody valid to give to: a failed attempt the giver should hear about. */
+  | { status: "invalid"; reason: Exclude<InvalidReason, "self" | "group">; notificationIds: Id<"notifications">[] }
+  /** Not an attempt at all (e.g. a deactivated giver): nothing to tell anyone. */
   | { status: "ignored"; reason: string; notificationIds: Id<"notifications">[] };
+
+/** Why none of the mentioned people can receive: deactivated people, or only bots and apps. */
+function ineligible(members: Doc<"members">[]): "bots" | "inactive" {
+  return members.some((m) => m.deactivated && !m.isBot) ? "inactive" : "bots";
+}
 
 function emojiVars(workspace: Doc<"workspaces">) {
   return { slack: `:${workspace.emojiName}:`, web: workspace.emojiGlyph };
@@ -216,7 +227,8 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
     return { status: "ignored", reason: "invalid amount", notificationIds: [] };
   }
 
-  const exclude = new Set(input.excludeSlackIds ?? []);
+  const unknown = new Set(input.unknownSlackIds ?? []);
+  const exclude = new Set([...(input.excludeSlackIds ?? []), ...unknown]);
   const mentionedSelf = input.recipientSlackIds.includes(giver.slackUserId);
   const candidateIds = [...new Set(input.recipientSlackIds)].filter(
     (id) => id !== giver.slackUserId && !exclude.has(id),
@@ -224,7 +236,11 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
   const emoji = emojiVars(workspace);
 
   if (candidateIds.length === 0) {
-    if (!mentionedSelf) return { status: "ignored", reason: "no recipients", notificationIds: [] };
+    if (!mentionedSelf) {
+      // Mentioning only the Kudos app itself counts as mentioning a bot.
+      const reason = input.recipientSlackIds.length === 0 ? "no_mention" : input.recipientSlackIds.some((id) => unknown.has(id)) ? "inactive" : "bots";
+      return { status: "invalid", reason, notificationIds: [] };
+    }
     const id = await sendBotMessage(ctx, workspace, giver, "self_kudos", {
       slack: { emoji: emoji.slack, user: `<@${giver.slackUserId}>` },
       web: { emoji: emoji.web, user: giver.name },
@@ -236,7 +252,7 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
   const known = await Promise.all(candidateIds.map((id) => findMember(ctx, workspace, id)));
   const eligibleIds = candidateIds.filter((_, i) => !known[i] || (!known[i]!.isBot && !known[i]!.deactivated));
   if (eligibleIds.length === 0) {
-    return { status: "ignored", reason: "recipients are bots", notificationIds: [] };
+    return { status: "invalid", reason: ineligible(known as Doc<"members">[]) /* no unknown ids left */, notificationIds: [] };
   }
 
   const dayKey = dayKeyFor(now, workspace.timezone);
@@ -250,16 +266,14 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
       slack: { emoji: emoji.slack, remaining, limit: workspace.dailyLimit, requested },
       web: { emoji: emoji.web, remaining, limit: workspace.dailyLimit, requested },
     }, now);
-    return { status: "limit", remaining, requested, notificationIds: [id] };
+    return { status: "limit", remaining, requested, people: eligibleIds.length, notificationIds: [id] };
   }
 
-  const recipients: Doc<"members">[] = [];
-  for (const id of eligibleIds) {
-    const m = await ensureMember(ctx, workspace, id);
-    if (!m.isBot && !m.deactivated) recipients.push(m);
-  }
+  const ensured = [];
+  for (const id of eligibleIds) ensured.push(await ensureMember(ctx, workspace, id));
+  const recipients = ensured.filter((m) => !m.isBot && !m.deactivated);
   if (recipients.length === 0) {
-    return { status: "ignored", reason: "recipients are bots", notificationIds: [] };
+    return { status: "invalid", reason: ineligible(ensured), notificationIds: [] };
   }
   const total = input.amountEach * recipients.length;
 

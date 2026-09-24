@@ -50,6 +50,18 @@ export const kudosSourceValidator = v.union(
   v.literal("seed"),
 );
 
+/** How a kudos attempt (a message carrying the kudos emoji) ended. */
+export const attemptOutcomeValidator = v.union(v.literal("given"), v.literal("limit"), v.literal("invalid"));
+
+/** Why an attempt gave nothing even though the allowance would have covered it. */
+export const invalidReasonValidator = v.union(
+  v.literal("no_mention"), // nobody mentioned
+  v.literal("group"), // only group mentions (@here, @channel, user groups)
+  v.literal("self"), // only yourself
+  v.literal("bots"), // only bots or the Kudos app
+  v.literal("inactive"), // only deactivated or unknown people (possibly alongside bots)
+);
+
 export const settingsFields = {
   emojiName: v.string(), // Slack shortcode without colons, e.g. "taco"
   emojiGlyph: v.string(), // What the web app renders, e.g. "🌮"
@@ -161,6 +173,21 @@ export default defineSchema({
     .index("by_batch", ["batchId"])
     .index("by_message", ["workspaceId", "channelId", "messageTs"])
     .index("by_message_giver_source", ["workspaceId", "channelId", "messageTs", "giverId", "source"]),
+
+  // One row per Slack message that carried the kudos emoji: how the attempt ended and which
+  // reaction the bot put on the message. Redeliveries find it and stop; editing a failed
+  // message re-evaluates it. Only attempts.ts writes this table.
+  kudosAttempts: defineTable({
+    workspaceId: v.id("workspaces"),
+    channelId: v.string(),
+    messageTs: v.string(),
+    giverId: v.id("members"),
+    outcome: attemptOutcomeValidator,
+    reason: v.optional(invalidReasonValidator), // only for outcome "invalid"
+    reaction: v.optional(v.string()), // Slack reaction the bot shows, once Slack confirmed it (✅ after a fallback)
+    batchId: v.optional(v.string()), // the kudos batch, once given
+    at: v.number(), // when the outcome was decided
+  }).index("by_message", ["workspaceId", "channelId", "messageTs"]),
 
   // Per-member daily rollup: powers allowances, leaderboards, streaks and cadence charts.
   memberDays: defineTable({

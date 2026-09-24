@@ -54,3 +54,14 @@ Specified in [Spec Compare stats](https://github.com/Silthus/kudos/issues/6). Pu
 | **New discoveries** | Bot messages whose first sighting (`discoveries.firstSeenAt`) falls in the period. | the whole collection |
 | **Received-derived metric** | A metric that reveals kudos somebody received: *received* and *new discoveries*. Follows `receivedVisibility`; your own discoveries stay yours to see. | giving metrics, which are always visible |
 | **Locked row** | A scoreboard row whose values the viewer may not see. The server sends `value: null` and the reason (`hidden`: the workspace hides received counts; `private`: each member sees only their own); the row is shown with a lock, never dropped. | a metric that isn't offered in a mode, which is simply absent |
+
+## Kudos attempts
+
+Specified in [Slack: bot reactions confirm every kudos attempt](https://github.com/Silthus/kudos/issues/50). Recording lives in `convex/attempts.ts`; reactions and the guidance copy in `convex/lib/guidance.ts`.
+
+| Term | Meaning | Not to be confused with |
+|---|---|---|
+| **Attempt** | A Slack message (or playground message) that carries the kudos emoji. Recorded once per message (`kudosAttempts`, keyed by workspace + channel + message ts) with who tried and how it ended. Messages without the emoji are never attempts. | *reaction-based giving*, which reacts to someone else's message and has no attempt |
+| **Outcome** | How an attempt ended: `given` (every mentioned person got the full amount), `limit` (it would have exceeded the giver's remaining allowance: nothing was given) or `invalid` (nobody valid was mentioned: no mention, only group mentions like @here, only yourself, only bots/the app, only deactivated or unknown people, incl. other workspaces' guests). Giving stays all-or-nothing per message. | — |
+| **Bot reaction** | The reaction the Kudos bot puts on the attempt's message: the kudos emoji for `given` (✅ `white_check_mark` if Slack rejects a custom emoji), ⏳ `hourglass_flowing_sand` for `limit`, ❌ `x` for `invalid`. Recorded on the attempt only once Slack shows it. | a member's kudos-emoji reaction, which gives kudos |
+| **Guidance** | The ephemeral note to the giver on a failed attempt: how a valid kudos works, with the multiplication (`2 people × 2 🌮 = 4 🌮`) for `limit` and a one-line example for `invalid`. Not rarity-rolled; it rides along with the rolled "limit reached" / "self kudos" reply when there is one. | a rarity-rolled *bot message* |
