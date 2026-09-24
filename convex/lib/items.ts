@@ -1,5 +1,7 @@
 import type { Doc } from "../_generated/dataModel";
-import { resetCost } from "./skills";
+import { BOOST_EFFECT, type BoostKind } from "./boosts";
+import { LANTERN, SUNLAMP_DAYS } from "./garden";
+import { type Allocation, rankOf, resetCost } from "./skills";
 import { dayKeyFor } from "./time";
 
 /**
@@ -49,13 +51,25 @@ export function monthOf(ts: number, timeZone: string): string {
   return dayKeyFor(ts, timeZone).slice(0, 7);
 }
 
-export type ItemKey = "spreeJoin" | "skillReset";
+export type ItemKey = "spreeJoin" | "skillReset" | "luckyCharm" | "sunlamp" | "lantern" | BoosterKey;
+
+/** The company-wide boosters (#97, §G10): one item per kind of boost (lib/boosts.ts). */
+export type BoosterKey = "boosterDouble" | "boosterNewConnections" | "boosterRekindles" | "boosterUnsung";
+export const BOOSTERS: Record<BoosterKey, BoostKind> = {
+  boosterDouble: "double",
+  boosterNewConnections: "new_connection",
+  boosterRekindles: "rekindle",
+  boosterUnsung: "unsung",
+};
 
 /** How many of an item a member bought before: ever, and in the current workspace month. */
 export type Bought = { ever: number; thisMonth: number };
 
 /** What of the buyer's player row a price may depend on. */
-export type ItemPlayer = Partial<Pick<Doc<"players">, "skillResets">>;
+export type ItemPlayer = Partial<Pick<Doc<"players">, "skillResets" | "skills">>;
+
+/** Lucky charm (#97, §G10): uses per charm, its price, and the Herald's Charm maker discount per rank. */
+export const LUCKY_CHARM = { uses: 3, price: 12, discountPerRank: 3 } as const;
 
 export type ItemDef = {
   key: ItemKey;
@@ -84,6 +98,57 @@ export const ITEMS: readonly ItemDef[] = [
     description: "Returns every skill point you spent, so you can grow a different tree.",
     // The skill tree's own price (#92): more each time, counting resets on the skill tree page too.
     price: (_bought, player) => resetCost(player.skillResets ?? 0),
+  },
+  {
+    key: "luckyCharm",
+    name: "Lucky charm",
+    description: `Your next ${LUCKY_CHARM.uses} thoughtful kudos roll each receiver's message at Uncommon or better.`,
+    price: (_bought, player) => LUCKY_CHARM.price - LUCKY_CHARM.discountPerRank * rankOf(player.skills as Allocation | undefined, "charm_discount"),
+  },
+  // Garden boosters (§G10): kept until used from the garden (gardens.ts useSunlamp, hangLantern).
+  {
+    key: "sunlamp",
+    name: "Sunlamp",
+    description: `One plant in your garden skips ${SUNLAMP_DAYS} days of its wait for the next stage. It still needs every watering.`,
+    price: () => 15,
+    perMonth: 3,
+  },
+  {
+    key: "lantern",
+    name: "Lantern",
+    description: `Hang a one-line note on a plant in a teammate's garden. It glows there for ${LANTERN.days} days.`,
+    price: () => 5,
+    perMonth: 5,
+  },
+  // Company-wide (§G10): everyone gains, so they cost more than anything personal, and one is on at a
+  // time. A Double is a whole bonus day; the conditional ones only double one kind of kudos.
+  {
+    key: "boosterDouble",
+    name: "Kudos booster: Double",
+    description: `Until midnight, ${BOOST_EFFECT.double} for everyone. Announced to the workspace.`,
+    price: () => 40,
+    perMonth: 1,
+  },
+  {
+    key: "boosterNewConnections",
+    name: "Kudos booster: New connections",
+    description: `Until midnight, ${BOOST_EFFECT.new_connection}, for everyone. Announced to the workspace.`,
+    price: () => 20,
+    perMonth: 2,
+  },
+  {
+    key: "boosterRekindles",
+    name: "Kudos booster: Rekindles",
+    description: `Until midnight, ${BOOST_EFFECT.rekindle}, for everyone. Announced to the workspace.`,
+    price: () => 20,
+    perMonth: 2,
+  },
+  {
+    key: "boosterUnsung",
+    name: "Kudos booster: The unsung",
+    description: `Until midnight, ${BOOST_EFFECT.unsung}, for everyone. Announced to the workspace.`,
+    price: () => 20,
+    perMonth: 2,
   },
 ];
 

@@ -4,6 +4,7 @@
  * kudos or allowance. The engine gathers the facts (convex/game.ts) and stores what these return
  * as per-batch `gameEvents`, so a revoke takes back exactly what its kudos earned.
  */
+import { BOOST_REPLY_LABEL, type BoostKind } from "./boosts";
 import { WALLET_LEVEL } from "./coins";
 import { hasNote, REKINDLE_GAP_MS, STORY_NOTE_WORDS, UNSUNG_QUIET_MS } from "./quests";
 
@@ -120,7 +121,8 @@ export function nextLockedAreas(level: number): GameArea[] {
   return GAME_AREAS.filter((a) => a.level === next);
 }
 
-export type XpItemKind = "base" | "new_connection" | "story" | "rekindle" | "unsung" | "thin";
+/** `boost`: what a bonus day or booster added on top (the doubling, before the daily cap). */
+export type XpItemKind = "base" | "new_connection" | "story" | "rekindle" | "unsung" | "thin" | "boost";
 export type XpItem = { kind: XpItemKind; xp: number };
 
 /** One recipient of a batch, as the giver's history stood right before it. */
@@ -157,7 +159,14 @@ export type GiveLine = {
   xp: number;
   /** What it would earn before the cap, itemised for the earnings reply. */
   items: XpItem[];
+  /** A bonus day or booster doubled it: its XP (before the cap) and its Hog coins (lib/coins.ts). */
+  boosted?: true;
 };
+
+/** Whether the boost on (lib/boosts.ts) doubles a qualifying line with these items. */
+function doubles(boost: BoostKind, items: XpItem[]): boolean {
+  return boost === "double" || items.some((i) => i.kind === boost);
+}
 
 /**
  * The giver's XP for one message (batch), one line per recipient. `earnedToday` is what giving
@@ -172,6 +181,8 @@ export function scoreGive(input: {
   recipients: GiveRecipient[];
   /** The giver's Scout skills at the time; none if absent. */
   scout?: ScoutEffects;
+  /** The bonus day or company-wide booster on when it was given (#55 §G9, G10); none if absent. */
+  boost?: BoostKind;
 }): GiveLine[] {
   const scout = input.scout ?? NO_SKILLS;
   let room = Math.max(0, XP.dailyGiveCap - input.earnedToday);
@@ -203,10 +214,13 @@ export function scoreGive(input: {
         }
       }
     }
+    // A boost doubles everything a qualifying kudos earned, before the daily cap, which stays.
+    const boosted = qualifying && input.boost !== undefined && doubles(input.boost, items);
+    if (boosted) items.push({ kind: "boost", xp: items.reduce((sum, i) => sum + i.xp, 0) });
     const raw = items.reduce((sum, i) => sum + i.xp, 0);
     const xp = Math.min(raw, room);
     room -= xp;
-    return { kudosId: r.kudosId, receiverId: r.receiverId, qualifying, xp, items };
+    return { kudosId: r.kudosId, receiverId: r.receiverId, qualifying, xp, items, ...(boosted ? { boosted: true as const } : {}) };
   });
 }
 
@@ -231,6 +245,8 @@ export function earningsText(e: {
   thankBack: boolean;
   /** Quests this kudos completed, with what each paid (from level 5, §G11). */
   quests?: { scope: QuestScope; title: string; xp: number; coins: number }[];
+  /** The boost that doubled some of it: names the `boost` bonus. */
+  boost?: BoostKind;
 }): string {
   // Nothing earned and not capped, from a thoughtful kudos: the third thanks to them today.
   const repeat = e.xp === 0 && !e.capped && !e.noReason && !e.thankBack;
@@ -238,7 +254,13 @@ export function earningsText(e: {
   return [
     `+${e.xp} XP`,
     e.coins ? `+${e.coins} Hog ${e.coins === 1 ? "coin" : "coins"}` : null,
-    ...(e.xp > 0 ? e.bonuses.filter((b) => BONUS_LABEL[b.kind]).map((b) => `${BONUS_LABEL[b.kind]} +${b.xp}`) : []),
+    ...(e.xp > 0
+      ? e.bonuses.flatMap((b) => {
+          // A boost that doubled nothing (a third thanks today) isn't worth naming.
+          const label = b.kind === "boost" ? b.xp > 0 && e.boost && BOOST_REPLY_LABEL[e.boost] : BONUS_LABEL[b.kind];
+          return label ? [`${label} +${b.xp}`] : [];
+        })
+      : []),
     e.capped ? "daily XP cap reached" : null,
     repeat ? "you've thanked them twice today already" : null,
     e.noReason

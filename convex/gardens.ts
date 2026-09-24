@@ -13,6 +13,9 @@ import {
   GARDEN_LEVEL,
   holdFor,
   isSpeciesId,
+  lanternLit,
+  lanternNote,
+  LANTERN,
   PLANT_COST,
   PLANT_WINDOW_DAYS,
   plantState,
@@ -21,6 +24,7 @@ import {
   plotsFor,
   SPECIES,
   speciesChoices,
+  sunlampHelps,
   wateringDays,
   type SpeciesId,
 } from "./lib/garden";
@@ -66,10 +70,11 @@ async function growthOf(ctx: QueryCtx, workspace: Doc<"workspaces">, plant: Plan
 
 async function stateOf(ctx: QueryCtx, workspace: Doc<"workspaces">, plant: Plant, skills: Allocation, today: string) {
   const waterings = await growthOf(ctx, workspace, plant);
-  const growth = { plantedDay: plant.plantedDay, waterings, earlyBloom: hasSkill(skills, "early_bloom") };
+  const growth = { plantedDay: plant.plantedDay, waterings, earlyBloom: hasSkill(skills, "early_bloom"), sunlamps: plant.sunlamps };
   return {
     waterings,
     state: plantState({ ...growth, today }),
+    sunlamp: sunlampHelps({ ...growth, today }),
     fruit: fruitWaiting({ ...growth, plantId: plant._id, pickedThrough: plant.pickedThrough, today, hold: holdFor(skills) }),
   };
 }
@@ -143,7 +148,26 @@ const plantView = v.object({
   plantedDay: v.string(),
   next: v.union(v.null(), v.object({ name: v.string(), waterings: v.number(), days: v.number() })),
   awakeDays: v.number(),
+  lantern: v.union(v.null(), v.object({ note: v.string(), by: v.string() })), // a teammate's glowing Lantern (#97)
 });
+
+const lanternView = v.union(v.null(), v.object({ note: v.string(), by: v.string() }));
+
+/**
+ * The Lantern glowing on a plant today, with who hung it (#97); null once it has gone out, and
+ * while its hanger is deactivated or the plant's teammate left (nobody could take it down).
+ */
+async function lanternOf(ctx: QueryCtx, plant: Plant, today: string) {
+  if (!plant.lantern || !plant.lanternBy || !lanternLit(plant.lantern, today)) return null;
+  const by = await ctx.db.get(plant.lanternBy);
+  if (!by || by.deactivated || leftFor(await ctx.db.get(plant.forId))) return null;
+  return { note: plant.lantern.note, by: by.name };
+}
+
+/** Who may take a lantern down: the plant's owner, the teammate it's for, and admins. */
+function mayTakeDown(plant: Plant, member: Doc<"members">) {
+  return member.workspaceId === plant.workspaceId && (plant.ownerId === member._id || plant.forId === member._id || member.isAdmin);
+}
 
 const fruitView = v.array(v.object({ day: v.string(), coins: v.number() }));
 
@@ -192,7 +216,7 @@ export const mine = query({
       plots: v.number(),
       cost: v.number(),
       balance: v.number(),
-      plants: v.array(v.object({ ...plantView.fields, forId: v.id("members"), forName: v.string(), fruit: fruitView })),
+      plants: v.array(v.object({ ...plantView.fields, forId: v.id("members"), forName: v.string(), fruit: fruitView, sunlamp: v.boolean() })),
       harvest: v.object({ weekCoins: v.number(), weekXp: v.number(), capCoins: v.number(), capXp: v.number(), hold: v.number() }),
       memories: v.array(v.object({ plantId: v.id("plants"), species: v.string(), speciesName: v.string(), stageName: v.string(), forName: v.string(), memoryDay: v.string(), reason: v.string() })),
       candidates: v.array(candidateView),
@@ -211,14 +235,14 @@ export const mine = query({
     const memories = [];
     const growingFor = new Set<string>();
     for (const { plant, teammate } of await livingPlants(ctx, member._id)) {
-      const { state, fruit } = await stateOf(ctx, workspace, plant, skills, today);
+      const { state, fruit, sunlamp } = await stateOf(ctx, workspace, plant, skills, today);
       if (leftFor(teammate)) {
         // Grown for someone who left: a memory until they come back (§G15).
         memories.push(memoryOf(plant, teammate, state.stage.index, today, "left"));
         continue;
       }
       growingFor.add(plant.forId);
-      plants.push({ ...describe(plant, state), forId: plant.forId, forName: teammate!.name, fruit });
+      plants.push({ ...describe(plant, state), lantern: await lanternOf(ctx, plant, today), forId: plant.forId, forName: teammate!.name, fruit, sunlamp });
     }
     const kept = await ctx.db
       .query("plants")
@@ -351,7 +375,7 @@ export const forMe = query({
       const owner = await ctx.db.get(plant.ownerId);
       if (!owner || owner.deactivated || !gameShownTo(workspace, owner)) continue;
       const { state } = await stateOf(ctx, workspace, plant, skillsOf(await playerOf(ctx, owner._id)), today);
-      out.push({ ...describe(plant, state), ownerId: owner._id, ownerName: owner.name, ownerAvatarUrl: owner.avatarUrl ?? null });
+      out.push({ ...describe(plant, state), lantern: await lanternOf(ctx, plant, today), ownerId: owner._id, ownerName: owner.name, ownerAvatarUrl: owner.avatarUrl ?? null });
     }
     return out;
   },
@@ -374,7 +398,17 @@ export const of = query({
       name: v.string(),
       avatarUrl: v.union(v.string(), v.null()),
       plants: v.array(
-        v.object({ plantId: v.id("plants"), species: v.string(), speciesName: v.string(), stage: v.string(), stageName: v.string(), dormant: v.boolean(), forYou: v.boolean() }),
+        v.object({
+          plantId: v.id("plants"),
+          species: v.string(),
+          speciesName: v.string(),
+          stage: v.string(),
+          stageName: v.string(),
+          dormant: v.boolean(),
+          forYou: v.boolean(),
+          lantern: lanternView,
+          canTakeDown: v.boolean(), // the viewer may take its lantern down
+        }),
       ),
     }),
   ),
@@ -389,7 +423,8 @@ export const of = query({
     for (const { plant } of await livingPlants(ctx, owner._id)) {
       const { state } = await stateOf(ctx, workspace, plant, skills, today);
       const { plantId, species, speciesName, stage, stageName, dormant } = describe(plant, state);
-      plants.push({ plantId, species, speciesName, stage, stageName, dormant, forYou: plant.forId === member._id });
+      const lantern = await lanternOf(ctx, plant, today);
+      plants.push({ plantId, species, speciesName, stage, stageName, dormant, forYou: plant.forId === member._id, lantern, canTakeDown: lantern !== null && mayTakeDown(plant, member) });
     }
     return { name: owner.name, avatarUrl: owner.avatarUrl ?? null, plants };
   },
@@ -552,3 +587,92 @@ export async function gardenSummary(ctx: QueryCtx, workspace: Doc<"workspaces">,
   }
   return plants > 0 ? { plants, dormant } : null;
 }
+
+/**
+ * Uses one of the viewer's Sunlamps (#97, §G10) on a plant in their garden: from today it counts 5
+ * days older, so a stage waiting on age comes sooner. It never stands in for a watering, so it only
+ * works on a plant that has every watering its next stage needs.
+ */
+export const useSunlamp = mutation({
+  args: { plantId: v.id("plants") },
+  returns: v.null(),
+  handler: async (ctx, { plantId }) => {
+    const { workspace, member } = await requireViewer(ctx);
+    const player = await requireGardener(ctx, workspace, member);
+    const plant = await ctx.db.get(plantId);
+    if (!plant || plant.ownerId !== member._id || plant.memoryAt !== undefined || leftFor(await ctx.db.get(plant.forId))) {
+      throw new ConvexError("That plant isn't growing in your garden.");
+    }
+    if ((player.sunlamps ?? 0) <= 0) throw new ConvexError("You have no Sunlamp. They're in the Store.");
+    const now = Date.now();
+    const today = dayKeyFor(now, workspace.timezone);
+    const { sunlamp, state } = await stateOf(ctx, workspace, plant, skillsOf(player), today);
+    if (!sunlamp) {
+      throw new ConvexError(
+        state.next === null ? "It's as grown as a plant gets." : "It's waiting for a watering, not for time: a thoughtful kudos to them helps, a Sunlamp can't.",
+      );
+    }
+    await ctx.db.patch(player._id, { sunlamps: player.sunlamps! - 1 });
+    await ctx.db.patch(plantId, { sunlamps: [...(plant.sunlamps ?? []), today] });
+    // It may have reached its next stage right away: tell the owner, as a watering would.
+    await sendingGains(ctx, workspace, async (gains) => announceGrowth(ctx, workspace, (await ctx.db.get(plantId))!, now, gains));
+    return null;
+  },
+});
+
+/**
+ * Hangs one of the viewer's Lanterns (#97, §G10) on a plant in a teammate's garden: a one-line note
+ * everyone who sees the plant can read, with who hung it, for 7 days. One glowing lantern a plant;
+ * its owner can take it down.
+ */
+export const hangLantern = mutation({
+  args: { plantId: v.id("plants"), note: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const { workspace, member } = await requireViewer(ctx);
+    if (!gameShownTo(workspace, member)) throw new ConvexError("The game is off or hidden.");
+    const player = await playerOf(ctx, member._id);
+    const plant = await ctx.db.get(args.plantId);
+    const owner = plant && (await ctx.db.get(plant.ownerId));
+    if (!plant || !owner || plant.workspaceId !== workspace._id || plant.memoryAt !== undefined || owner.deactivated || !gameShownTo(workspace, owner)) {
+      throw new ConvexError("That plant isn't growing any more.");
+    }
+    if (plant.ownerId === member._id) throw new ConvexError("A Lantern goes on a teammate's plant, not your own.");
+    // Only the teammate knows the plant is theirs: a lantern from them would tell everyone (§G8).
+    if (plant.forId === member._id) throw new ConvexError("This plant is grown for you: a lantern from you would tell everyone it's yours.");
+    if (leftFor(await ctx.db.get(plant.forId))) throw new ConvexError("That plant isn't growing any more.");
+    const note = lanternNote(args.note);
+    if (note === null) throw new ConvexError(`Write a note of one line, ${LANTERN.maxChars} characters at most.`);
+    if (!player || (player.lanterns ?? 0) <= 0) throw new ConvexError("You have no Lantern. They're in the Store.");
+    const now = Date.now();
+    const today = dayKeyFor(now, workspace.timezone);
+    if (lanternLit(plant.lantern, today)) throw new ConvexError("A lantern glows on this plant already. It goes out after 7 days.");
+    if (plant.lanternQuietUntil !== undefined && plant.lanternQuietUntil > today) {
+      throw new ConvexError(`A lantern was taken down from this plant. It can take another from ${plant.lanternQuietUntil}.`);
+    }
+    await ctx.db.patch(player._id, { lanterns: player.lanterns! - 1 });
+    await ctx.db.patch(plant._id, { lantern: { note, at: now, dayKey: today }, lanternBy: member._id });
+    return null;
+  },
+});
+
+/**
+ * Takes a Lantern down: the plant's owner, the teammate it's for, or an admin (moderation). The plant
+ * then takes no new lantern for 7 days, so a note taken down can't go straight back up.
+ */
+export const takeDownLantern = mutation({
+  args: { plantId: v.id("plants") },
+  returns: v.null(),
+  handler: async (ctx, { plantId }) => {
+    const { workspace, member } = await requireViewer(ctx);
+    const plant = await ctx.db.get(plantId);
+    if (!plant || !mayTakeDown(plant, member)) throw new ConvexError("You can't take that lantern down.");
+    const lit = lanternLit(plant.lantern, dayKeyFor(Date.now(), workspace.timezone));
+    await ctx.db.patch(plantId, {
+      lantern: undefined,
+      lanternBy: undefined,
+      ...(lit ? { lanternQuietUntil: addDays(dayKeyFor(Date.now(), workspace.timezone), LANTERN.days) } : {}),
+    });
+    return null;
+  },
+});

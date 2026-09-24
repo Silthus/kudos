@@ -148,6 +148,24 @@ describe("the demo plays the game", () => {
   });
 });
 
+describe("boosts in the demo (#97)", () => {
+  test("a visitor activates a booster, the playground reply shows it doubled, the admin sees the announcement preview, and a reset wipes it", async () => {
+    const demo = await enterDemo();
+    await demo.mutation(api.store.buyItem, { item: "boosterDouble", expectedPrice: 40 });
+    const res = await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> :taco: thanks for pairing on the onboarding flow", channelName: "general" });
+    expect(res.messages.find((m) => m.category === "giver_success")?.earnings).toMatch(/bonus day ×2 \+\d+/);
+    // The demo has no Slack: the post is a preview for #general, never sent.
+    expect(await demo.query(api.boosts.admin, { today: TODAY })).toMatchObject({
+      channel: { name: "general" },
+      isDemo: true,
+      boosts: [{ dayKey: TODAY, source: "booster", by: "Alex Rivera", text: expect.stringMatching(/^Alex Rivera activated a Kudos booster: Double\./), announcement: { status: "skipped" } }],
+    });
+    await demo.mutation(api.demo.resetDemo, {});
+    await t.finishAllScheduledFunctions(vi.runAllTimers, 1000);
+    expect(await t.run((ctx) => ctx.db.query("boosts").collect())).toEqual([]);
+  });
+});
+
 /** Every day from `from` through `to`, inclusive. */
 function daysFrom(from: string, to: string) {
   const days: string[] = [];

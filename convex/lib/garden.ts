@@ -162,12 +162,21 @@ function awakeDays(plantedDay: string, waterings: string[], day: string): number
   return age + Math.min(Math.max(0, daysBetween(prev, day)), DORMANT_AFTER_DAYS);
 }
 
-type Growth = { plantedDay: string; waterings: string[]; earlyBloom?: boolean };
+/** A Sunlamp (#97, §G10) skips this many days of a plant's minimum-age wait; it never replaces a watering. */
+export const SUNLAMP_DAYS = 5;
+
+/** `sunlamps`: the days Sunlamps were used on the plant; each counts from its day on. */
+type Growth = { plantedDay: string; waterings: string[]; earlyBloom?: boolean; sunlamps?: string[] };
+
+/** The age a plant's Sunlamps add by `day`. */
+function lampDays(sunlamps: string[] | undefined, day: string): number {
+  return SUNLAMP_DAYS * (sunlamps ?? []).filter((d) => d <= day).length;
+}
 
 /** The stage a plant is at on `day` (its waterings sorted ascending). */
 export function stageOn(input: Growth & { day: string }): Stage {
   const watered = input.waterings.filter((w) => w <= input.day).length;
-  const age = awakeDays(input.plantedDay, input.waterings, input.day);
+  const age = awakeDays(input.plantedDay, input.waterings, input.day) + lampDays(input.sunlamps, input.day);
   const stages = stagesFor(Boolean(input.earlyBloom));
   let reached = stages[0];
   for (const s of stages) if (watered >= s.waterings && age >= s.days) reached = s;
@@ -205,7 +214,7 @@ export function plantState(input: Growth & { today: string }): PlantState {
   let nextOn: string | null = null;
   if (nextStage && watered >= nextStage.waterings) {
     // Awake days count until 60 days after the last watering: reached then or never.
-    const base = awakeDays(plantedDay, waterings, lastPoint);
+    const base = awakeDays(plantedDay, waterings, lastPoint) + lampDays(input.sunlamps, today);
     const need = nextStage.days - base;
     if (need <= DORMANT_AFTER_DAYS) nextOn = addDays(lastPoint, Math.max(need, daysBetween(lastPoint, today)));
   }
@@ -215,10 +224,40 @@ export function plantState(input: Growth & { today: string }): PlantState {
     lastWatered,
     dormant: daysBetween(lastPoint, today) >= DORMANT_AFTER_DAYS,
     fruiting: fruitsOn({ ...input, day: today }),
-    awakeDays: awakeDays(plantedDay, waterings, today),
+    awakeDays: awakeDays(plantedDay, waterings, today) + lampDays(input.sunlamps, today), // the age that counts, Sunlamps included
     next: nextStage && { key: nextStage.key, name: nextStage.name, waterings: nextStage.waterings, days: nextStage.days },
     nextOn,
   };
+}
+
+/** A Lantern (#97, §G10): a one-line note on a teammate's plant that glows this many days. */
+export const LANTERN = { days: 7, maxChars: 80 } as const;
+
+/** Whether a lantern hung on `dayKey` still glows on `today`. */
+export function lanternLit(lantern: { dayKey: string } | undefined, today: string): boolean {
+  return lantern !== undefined && daysBetween(lantern.dayKey, today) < LANTERN.days;
+}
+
+/**
+ * A lantern's note as it hangs: one line, spaces collapsed, control and format characters (zero
+ * width, direction overrides) dropped; null when nothing visible is left or it's too long.
+ */
+export function lanternNote(note: string): string | null {
+  const line = note
+    .replace(/\s+/g, " ")
+    .replace(/[\p{Cc}\p{Cf}]/gu, "")
+    .replace(/ {2,}/g, " ")
+    .trim();
+  return line.length === 0 || line.length > LANTERN.maxChars ? null : line;
+}
+
+/**
+ * Whether a Sunlamp helps a plant today: it has every watering its next stage needs and waits on
+ * age alone. A plant waiting for a watering (or dormant, or Ancient) needs a kudos, not light.
+ */
+export function sunlampHelps(input: Growth & { today: string }): boolean {
+  const state = plantState(input);
+  return state.next !== null && !state.dormant && state.waterings >= state.next.waterings;
 }
 
 function fruitsOn(input: Growth & { day: string }): boolean {

@@ -7,6 +7,7 @@ import { revokeKudosRow } from "./engine";
 import { switchQuests } from "./quests";
 import { anchorSuccessBaseline } from "./analytics";
 import { gameOn, playerOf, switchGame } from "./game";
+import { retimeBoosts } from "./boosts";
 import { assertNotDemo, canSeeReceived, publicSettings, requireAdmin } from "./lib/access";
 import { siteUrl } from "./lib/slack";
 import { coinBalance } from "./lib/coins";
@@ -83,6 +84,8 @@ export const updateSettings = mutation({
       throw new ConvexError("Daily allowance must be a whole number between 1 and 100.");
     }
     if (!validTimezone(args.timezone)) throw new ConvexError("Unknown timezone.");
+    // Scheduled bonus days start at the start of their day in the workspace's timezone.
+    if (args.timezone !== workspace.timezone) await retimeBoosts(ctx, workspace, args.timezone, Date.now());
     const glyph = args.emojiGlyph.trim();
     if (glyph.length === 0 || glyph.length > 16) throw new ConvexError("Pick an emoji to show in the web app.");
     const unitSingular = args.unitSingular.trim();

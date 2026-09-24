@@ -16,7 +16,7 @@ import {
   type RedemptionStatus,
   validateAdjustment,
 } from "./lib/store";
-import { parseToday } from "./lib/time";
+import { dayKeyFor, parseToday } from "./lib/time";
 import { GAME_AREAS } from "./lib/xp";
 import { playerOf } from "./game";
 import { type Buyer, ITEM_EFFECTS, itemsBought } from "./items";
@@ -76,7 +76,7 @@ export async function purchaseItem(
   const item = itemByKey(key);
   if (!item || !player) throw new ConvexError("That item isn't in the Store.");
   const effect = ITEM_EFFECTS[item.key];
-  const unavailable = await effect.unavailable?.(ctx, { workspace, member, player });
+  const unavailable = await effect.unavailable?.(ctx, { workspace, member, player, today: dayKeyFor(now, workspace.timezone) });
   if (unavailable) throw new ConvexError(`${item.name}: ${unavailable}`);
   const month = monthOf(now, workspace.timezone);
   const bought = { ever: await itemsBought(ctx, member._id, item.key), thisMonth: await itemsBought(ctx, member._id, item.key, month) };
@@ -503,7 +503,7 @@ const shopItem = v.object({
  * many they bought this month, and why they can't buy it now (not for sale yet, or the monthly
  * limit), if so. Shared by the web Store and `/kudos store`, so they never disagree.
  */
-export async function shopItems(ctx: QueryCtx, buyer: Buyer, month: string, balance: number) {
+export async function shopItems(ctx: QueryCtx, buyer: Buyer & { today: string }, month: string, balance: number) {
   return await Promise.all(
     ITEMS.map(async (item) => {
       const memberId = buyer.member._id;
@@ -548,7 +548,8 @@ export const shop = query({
       const how = GAME_AREAS.find((a) => a.key === "store")!.how;
       return { access: "locked" as const, level, unlockLevel: SHOP_LEVEL, how, balance: walletShown(workspace, member, level) ? wallet.balance : null };
     }
-    const items = await shopItems(ctx, { workspace, member, player }, parseToday(today).slice(0, 7), wallet.balance);
+    const day = parseToday(today);
+    const items = await shopItems(ctx, { workspace, member, player, today: day }, day.slice(0, 7), wallet.balance);
     return { access: "open" as const, balance: wallet.balance, realRewards: realRewardsOn(workspace), items };
   },
 });

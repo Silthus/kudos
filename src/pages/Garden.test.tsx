@@ -4,7 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { getFunctionName, type FunctionReference } from "convex/server";
 import { MotionGlobalConfig } from "motion/react";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { ViewerContext, type ReadyViewer } from "@/lib/viewer";
 
 /** The garden pages (#95): your garden, planting, picking fruit, and the plants grown for you. */
@@ -15,14 +15,19 @@ let of: unknown = null;
 const plant = vi.fn();
 const pick = vi.fn();
 const uproot = vi.fn();
+const useSunlamp = vi.fn();
+const hangLantern = vi.fn();
+const takeDownLantern = vi.fn();
+let game: unknown = { enabled: true, hidden: false };
 vi.mock("convex/react", () => ({
   useQuery: (fn: FunctionReference<"query">) => {
     const name = getFunctionName(fn);
-    return name === "gardens:mine" ? mine : name === "gardens:forMe" ? forMe : name === "gardens:of" ? of : name === "game:mine" ? { enabled: true, hidden: false } : undefined;
+    return name === "gardens:mine" ? mine : name === "gardens:forMe" ? forMe : name === "gardens:of" ? of : name === "game:mine" ? game : undefined;
   },
   useMutation: (fn: FunctionReference<"mutation">) => {
     const name = getFunctionName(fn);
-    return name === "gardens:plant" ? plant : name === "gardens:pick" ? pick : uproot;
+    const garden: Record<string, unknown> = { "gardens:plant": plant, "gardens:pick": pick, "gardens:useSunlamp": useSunlamp, "gardens:hangLantern": hangLantern, "gardens:takeDownLantern": takeDownLantern };
+    return garden[name] ?? uproot;
   },
 }));
 
@@ -44,6 +49,10 @@ afterEach(() => {
   uproot.mockReset();
   forMe = [];
   of = null;
+  game = { enabled: true, hidden: false };
+  useSunlamp.mockReset();
+  hangLantern.mockReset();
+  takeDownLantern.mockReset();
 });
 
 function render(path = "/garden") {
@@ -174,4 +183,55 @@ test("a teammate's garden never says whom the plants are for, except yours", () 
   expect(text()).toContain("Ana's garden");
   expect(text()).toContain("Growing for you");
   expect(text()).not.toContain("Ben");
+});
+
+describe("the garden boosters (#97)", () => {
+  test("a plant waiting on age takes a Sunlamp when you have one", () => {
+    game = { enabled: true, hidden: false, sunlamps: 2, lanterns: 0 };
+    mine = { ...empty, plants: [growing({ sunlamp: true, lantern: null }), growing({ plantId: "p2", forName: "Cleo", sunlamp: false, lantern: null })] };
+    render();
+    click(button("Use a Sunlamp on Helpful oak for Ben (2 left)")!);
+    expect(useSunlamp).toHaveBeenCalledWith({ plantId: "p1" });
+    expect(button("Use a Sunlamp on Helpful oak for Cleo (2 left)")).toBeUndefined();
+  });
+
+  test("without a Sunlamp there's no button", () => {
+    game = { enabled: true, hidden: false, sunlamps: 0, lanterns: 0 };
+    mine = { ...empty, plants: [growing({ sunlamp: true, lantern: null })] };
+    render();
+    expect(text()).not.toContain("Sunlamp");
+  });
+
+  test("a lantern shows its note and who hung it, and the owner can take it down", () => {
+    mine = { ...empty, plants: [growing({ sunlamp: false, lantern: { note: "Keep growing!", by: "Cleo" } })] };
+    render();
+    expect(text()).toContain("Lantern from Cleo: “Keep growing!”");
+    click(button("Take down Cleo's lantern")!);
+    expect(takeDownLantern).toHaveBeenCalledWith({ plantId: "p1" });
+  });
+
+  test("no Lantern form on the plant grown for you: it would give away whose it is", () => {
+    game = { enabled: true, hidden: false, sunlamps: 0, lanterns: 1 };
+    of = { name: "Ana", avatarUrl: null, plants: [{ ...growing({}), forId: undefined, forName: undefined, fruit: undefined, forYou: true, lantern: null, canTakeDown: false }] };
+    mine = empty;
+    render("/garden/m_ana");
+    expect(button("Hang a Lantern")).toBeUndefined();
+  });
+
+  test("in a teammate's garden a plant without a lantern can take yours, with a one-line note", () => {
+    game = { enabled: true, hidden: false, sunlamps: 0, lanterns: 1 };
+    of = { name: "Ana", avatarUrl: null, plants: [{ ...growing({}), forId: undefined, forName: undefined, fruit: undefined, forYou: false, lantern: null }] };
+    mine = empty;
+    render("/garden/m_ana");
+    click(button("Hang a Lantern")!);
+    const input = document.querySelector<HTMLInputElement>("input[aria-label='Lantern note']")!;
+    expect(input.maxLength).toBe(80);
+    act(() => {
+      const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+      set.call(input, "Lovely oak");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    click(button("Hang it")!);
+    expect(hangLantern).toHaveBeenCalledWith({ plantId: "p1", note: "Lovely oak" });
+  });
 });

@@ -23,9 +23,12 @@ export const COINS = {
 /** The wallet appears at this level with everything collected silently so far (§G1). */
 export const WALLET_LEVEL = 3;
 
-/** What one kudos row earns its giver: only a qualifying kudos earns, 1 per kudos given. */
-export function lineCoins(line: { qualifying: boolean; amount: number }): number {
-  return line.qualifying ? COINS.perKudos * line.amount : 0;
+/**
+ * What one kudos row earns its giver: only a qualifying kudos earns, 1 per kudos given, doubled
+ * when a bonus day or booster doubled the line (`boosted`, lib/xp.ts `scoreGive`; §G9).
+ */
+export function lineCoins(line: { qualifying: boolean; amount: number; boosted?: boolean }): number {
+  return line.qualifying ? COINS.perKudos * line.amount * (line.boosted ? 2 : 1) : 0;
 }
 
 export type CoinBalance = {

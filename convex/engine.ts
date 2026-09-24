@@ -9,6 +9,7 @@ import { givingProfile, type MemberDayChange, Rollups } from "./lib/rollups";
 import { MIN_NOTE_WORDS } from "./lib/quests";
 import { onKudosGiven, onKudosRevoked, questsOn } from "./quests";
 import { onGameGiven, onGameRevoked } from "./game";
+import { spendLuckyCharm } from "./items";
 import { Gains } from "./gains";
 import { discoveryWorthADm } from "./lib/gains";
 import { onGardenGiven } from "./gardens";
@@ -390,12 +391,14 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
     );
   }
   if (workspace.notifyReceiver) {
+    // A Lucky charm (#97): the receivers of a thoughtful kudos get their message at Uncommon or better.
+    const charmed = await spendLuckyCharm(ctx, giver._id, game.qualifying);
     for (const r of recipients) {
       notificationIds.push(
         await sendBotMessage(ctx, workspace, r, "receiver_success", {
           slack: { giver: `<@${giver.slackUserId}>`, amount: input.amountEach, emoji: emoji.slack, channel: channel.slack },
           web: { giver: giver.name, amount: input.amountEach, emoji: emoji.web, channel: channel.web },
-        }, now, { rollups }),
+        }, now, { rollups, ...(charmed.has(r._id) ? { minRarity: "uncommon" as const } : {}) }),
       );
     }
   }

@@ -96,10 +96,13 @@ export const xpItemKindValidator = v.union(
   v.literal("rekindle"),
   v.literal("unsung"),
   v.literal("thin"),
+  v.literal("boost"), // what a bonus day or booster added (lib/boosts.ts)
 );
 
 /** What a quest payment is for (lib/xp.ts `QUEST_REWARDS`). */
 export const questScopeValidator = v.union(v.literal("weekly"), v.literal("daily"), v.literal("sweep"));
+export const boostKindValidator = v.union(v.literal("double"), v.literal("new_connection"), v.literal("rekindle"), v.literal("unsung"));
+export const boostSourceValidator = v.union(v.literal("schedule"), v.literal("booster"), v.literal("team_garden"), v.literal("capstone"));
 
 /** What a kudos earned its giver, itemised for the earnings reply (lib/xp.ts `earningsText`). */
 export const earningsValidator = v.object({
@@ -111,6 +114,7 @@ export const earningsValidator = v.object({
   thankBack: v.boolean(), // some recipient was thanked back within 72 h
   // Quests this kudos completed from level 5 (§G11), each with what it paid.
   quests: v.optional(v.array(v.object({ scope: questScopeValidator, title: v.string(), xp: v.number(), coins: v.number() }))),
+  boost: v.optional(boostKindValidator), // the bonus day or booster that doubled some of it
 });
 
 export const questProgressValidator = v.object({
@@ -207,6 +211,8 @@ export default defineSchema({
     // "YYYY-MM": the month the game was first switched on. The success metrics' baseline is the
     // three months before it (analytics.ts `anchorSuccessBaseline`); unset, it rolls with today.
     successBaselineBefore: v.optional(v.string()),
+    // Where bonus days and company-wide boosters are announced (#55 §G14; boosts.ts). Unset: only the in-app banner.
+    announceChannel: v.optional(v.object({ id: v.string(), name: v.string() })),
     ...settingsFields,
   }).index("by_team", ["slackTeamId"]),
 
@@ -426,6 +432,9 @@ export default defineSchema({
     fruitCoins: v.optional(v.number()),
     // The part of `coins` that quests paid (the wallet's breakdown); undefined = 0.
     questCoins: v.optional(v.number()),
+    luckyCharms: v.optional(v.number()), // Lucky charm uses left (#97): each qualifying kudos rolls its receivers Uncommon+
+    sunlamps: v.optional(v.number()), // Sunlamps bought and not yet used on a plant (#97)
+    lanterns: v.optional(v.number()), // Lanterns bought and not yet hung (#97)
   }).index("by_member", ["memberId"]),
 
   // A plant in a member's garden, grown for one teammate (gardens.ts, lib/garden.ts). Waterings are
@@ -445,10 +454,44 @@ export default defineSchema({
     memoryAt: v.optional(v.number()),
     memoryReason: v.optional(v.union(v.literal("uprooted"), v.literal("left"))),
     memoryStage: v.optional(v.number()), // the stage index it had when it became a memory
+    // Days the owner used a Sunlamp on it (#97): each skips 5 days of its minimum-age wait from then on.
+    sunlamps: v.optional(v.array(v.string())),
+    // A teammate's Lantern (#97): a one-line note that glows for 7 days (lib/garden.ts LANTERN_DAYS).
+    lantern: v.optional(v.object({ note: v.string(), at: v.number(), dayKey: v.string() })),
+    lanternBy: v.optional(v.id("members")), // who hung it; kept apart so member removal finds it
+    lanternQuietUntil: v.optional(v.string()), // a lantern was taken down: no new one before this day
   })
+    .index("by_lantern_by", ["lanternBy"])
     .index("by_owner_memory", ["ownerId", "memoryAt"])
     .index("by_owner_for", ["ownerId", "forId", "memoryAt"])
     .index("by_for_memory", ["forId", "memoryAt"]),
+
+  // Bonus days and company-wide boosters (#55 §G9, G10; boosts.ts): at most one per workspace day,
+  // from `from` to the end of that day. Qualifying kudos given meanwhile earn their giver double XP
+  // and Hog coins (all of them, or only the kind the booster is about). Never rewritten once
+  // started: a rebuild replays every kudos with the boost that was on (game.ts), so removing a
+  // member only forgets who started one.
+  boosts: defineTable({
+    workspaceId: v.id("workspaces"),
+    dayKey: v.string(), // the workspace day it runs
+    from: v.number(), // when it starts: the day's start when scheduled, the purchase when bought
+    kind: boostKindValidator,
+    source: boostSourceValidator,
+    by: v.optional(v.id("members")), // who scheduled or bought it
+    purchaseId: v.optional(v.id("itemPurchases")), // a booster: its purchase
+    createdAt: v.number(),
+    // The post in the announcement channel: sent, skipped (no channel, or the demo) or failed with Slack's error.
+    announcement: v.optional(
+      v.object({
+        status: v.union(v.literal("pending"), v.literal("sent"), v.literal("skipped"), v.literal("failed")),
+        channel: v.optional(v.string()), // its name, for the admin page
+        channelId: v.optional(v.string()), // where it is (or was) posted, whatever the setting says since
+        error: v.optional(v.string()),
+      }),
+    ),
+  })
+    .index("by_workspace_day", ["workspaceId", "dayKey"])
+    .index("by_by", ["by"]),
 
   // Every change to a player's skill tree, in the transaction that made it (skills.ts): a skill
   // taken (one rank) or the whole tree reset for `coins`. The rebuild replays the Scout skills as
@@ -487,6 +530,7 @@ export default defineSchema({
           xp: v.number(),
           coins: v.optional(v.number()), // 1 per kudos given when qualifying (lib/coins.ts lineCoins)
           items: v.array(v.object({ kind: xpItemKindValidator, xp: v.number() })),
+          boosted: v.optional(v.literal(true)), // a bonus day or booster doubled its XP and coins
         }),
       ),
     ),
