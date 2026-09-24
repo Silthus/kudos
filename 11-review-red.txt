@@ -1,0 +1,213 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a71b03f90ec5bd344
+
+ ❯ tests/gardens.test.ts (41 tests | 7 failed | 32 skipped) 780ms
+   ❯ review fixes (9)
+     × a teammate's garden shows no dates or counts, and asking about another day changes nothing 315ms
+     × a teammate who leaves doesn't give their plant away: others still see it in the garden 33ms
+     × someone who hides the game hides their garden from others too 29ms
+     × with Early bloom a seed sprouts at 3 days on its own, and the owner hears of it 160ms
+     × kudos while a plant waits on its age schedule one look, not one each 56ms
+     × the planting window is the same in the picker and when planting: from the start of the day 7 days ago 26ms
+     × the planted-for-you DM is game UI on the web: labelled Garden, and gone while the game is hidden 66ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/gardens.test.ts > review fixes > a teammate's garden shows no dates or counts, and asking about another day changes nothing
+AssertionError: expected [ 'awakeDays', 'dormant', …(10) ] to deeply equal [ Array(7) ]
+
+- Expected
++ Received
+
+  [
++   "awakeDays",
+    "dormant",
+    "forYou",
++   "lastWatered",
++   "next",
+    "plantId",
++   "plantedDay",
+    "species",
+    "speciesName",
+    "stage",
+    "stageName",
++   "waterings",
+  ]
+
+ ❯ tests/gardens.test.ts:484:72
+    482|     const cleo = await as(team.cleo);
+    483|     const now = await cleo.query(api.gardens.of, { memberId: team.ana,…
+    484|     for (const plant of now!.plants) expect(Object.keys(plant).sort())…
+       |                                                                        ^
+    485|     expect(await cleo.query(api.gardens.of, { memberId: team.ana, toda…
+    486|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  tests/gardens.test.ts > review fixes > a teammate who leaves doesn't give their plant away: others still see it in the garden
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ tests/gardens.test.ts:492:26
+    490|     await t.run((ctx) => ctx.db.patch(team.ben, { deactivated: true })…
+    491|     const seen = await (await as(team.cleo)).query(api.gardens.of, { m…
+    492|     expect(seen!.plants).toHaveLength(1);
+       |                          ^
+    493|   });
+    494|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  tests/gardens.test.ts > review fixes > someone who hides the game hides their garden from others too
+AssertionError: expected { avatarUrl: null, name: 'Ana', …(1) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "avatarUrl": null,
+  "name": "Ana",
+  "plants": [
+    {
+      "awakeDays": 0,
+      "dormant": false,
+      "forYou": false,
+      "lastWatered": null,
+      "next": {
+        "days": 3,
+        "name": "Sprout",
+        "waterings": 1,
+      },
+      "plantId": "00000000000000000000010119plants",
+      "plantedDay": "2026-09-24",
+      "species": "curious_fern",
+      "speciesName": "Curious fern",
+      "stage": "seed",
+      "stageName": "Seed",
+      "waterings": 0,
+    },
+  ],
+}
+
+ ❯ tests/gardens.test.ts:498:103
+    496|     await anaPlantsForBen();
+    497|     await (await as(team.ana)).mutation(api.game.setHidden, { hidden: …
+    498|     expect(await (await as(team.cleo)).query(api.gardens.of, { memberI…
+       |                                                                                                       ^
+    499|     expect(await (await as(team.ben)).query(api.gardens.forMe, { today…
+    500|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  tests/gardens.test.ts > review fixes > with Early bloom a seed sprouts at 3 days on its own, and the owner hears of it
+AssertionError: expected '2026-09-24' to be '2026-09-27' // Object.is equality
+
+Expected: "2026-09-27"
+Received: "2026-09-24"
+
+ ❯ tests/gardens.test.ts:510:52
+    508|     await (await as(team.ana)).mutation(api.gardens.plant, { teammateI…
+    509|     await t.finishAllScheduledFunctions(vi.runAllTimers);
+    510|     expect(dayKeyFor(Date.now(), "Europe/Berlin")).toBe("2026-09-27");
+       |                                                    ^
+    511|     const [dm] = await stageDms(team.ana);
+    512|     expect(dm.gains).toContainEqual(expect.objectContaining({ kind: "p…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  tests/gardens.test.ts > review fixes > kudos while a plant waits on its age schedule one look, not one each
+AssertionError: expected [ { …(6) }, { …(6) }, { …(6) }, …(1) ] to have a length of 1 but got 4
+
+- Expected
++ Received
+
+- 1
++ 4
+
+ ❯ tests/gardens.test.ts:522:19
+    520|     for (let i = 0; i < 4; i++) await thank("UBEN");
+    521|     const looks = (await t.run((ctx) => ctx.db.system.query("_schedule…
+    522|     expect(looks).toHaveLength(1);
+       |                   ^
+    523|   });
+    524|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  tests/gardens.test.ts > review fixes > the planting window is the same in the picker and when planting: from the start of the day 7 days ago
+ConvexError: A plant needs a thoughtful kudos to Ben in the last 7 days (a few words on why).
+ ❯ handler convex/gardens.ts:279:22
+    277|     if (used >= plotsFor(skills)) throw new ConvexError("Your garden h…
+    278|     const seed = await qualifyingKudosTo(ctx, member._id, teammateId, …
+    279|     if (!seed) throw new ConvexError(`A plant needs a thoughtful kudos…
+       |                      ^
+    280|     if (species !== undefined && !(isSpeciesId(species) && speciesChoi…
+    281|       throw new ConvexError("That species isn't in your plant picker."…
+ ❯ invokeFunction node_modules/convex/src/server/impl/registration_impl.ts:90:14
+ ❯ invokeMutation node_modules/convex/src/server/impl/registration_impl.ts:70:18
+ ❯ runMutationWithHandler node_modules/convex-test/dist/index.js:1989:31
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2133:32
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/gardens.test.ts:534:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+ FAIL  tests/gardens.test.ts > review fixes > the planted-for-you DM is game UI on the web: labelled Garden, and gone while the game is hidden
+AssertionError: expected [ { …(6) }, { …(6) }, { …(6) } ] to deep equally contain ObjectContaining{…}
+
+- Expected:
+ObjectContaining {
+  "category": "garden",
+  "gainLabel": "Garden",
+}
+
++ Received:
+[
+  {
+    "_id": "0000000000000010117notifications",
+    "at": 1790244120000.002,
+    "category": "garden",
+    "isNewDiscovery": false,
+    "rarity": "common",
+    "text": "Ana is growing a Curious fern for you. It grows each week Ana thanks you thoughtfully, and only you can see it's yours.",
+  },
+  {
+    "_id": "0000000000000010103notifications",
+    "at": 1790244060000.0127,
+    "category": "receiver_success",
+    "isNewDiscovery": true,
+    "rarity": "common",
+    "text": "Ana gave you 1 🌮 in #general.",
+  },
+  {
+    "_id": "0000000000000010022notifications",
+    "at": 1790157600000.0215,
+    "category": "receiver_success",
+    "isNewDiscovery": true,
+    "rarity": "common",
+    "text": "Incoming: 1 🌮 from Ana. Well deserved.",
+  },
+]
+
+ ❯ tests/gardens.test.ts:541:19
+    539|     const ben = await as(team.ben);
+    540|     const shown = (await ben.query(api.me.overview, { period: "month",…
+    541|     expect(shown).toContainEqual(expect.objectContaining({ category: "…
+       |                   ^
+    542|     await ben.mutation(api.game.setHidden, { hidden: true });
+    543|     const hidden = (await ben.query(api.me.overview, { period: "month"…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 2 passed | 32 skipped (41)
+   Start at  15:04:46
+   Duration  1.20s (tests 70%, transform 15%, import 11%, environment 4%)
+
