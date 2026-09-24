@@ -376,8 +376,10 @@ describe("App Home", () => {
 });
 
 describe("/kudos store", () => {
+  let triggers = 0;
   async function command(text: string, userId = "UBEN") {
-    const body = new URLSearchParams({ team_id: "T1", user_id: userId, command: "/kudos", text }).toString();
+    // Like Slack, every command carries its own trigger id: identical requests are replays.
+    const body = new URLSearchParams({ team_id: "T1", user_id: userId, command: "/kudos", text, trigger_id: `${++triggers}` }).toString();
     const ts = String(Math.floor(Date.now() / 1000));
     const res = await t.fetch("/slack/commands", {
       method: "POST",
