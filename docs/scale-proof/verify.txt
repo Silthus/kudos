@@ -1,0 +1,15 @@
+d:2025-01-02 OK no mismatches
+d:2025-06-30 OK no mismatches
+d:2025-12-31 OK no mismatches
+w:2025-W01 OK no mismatches
+w:2025-W27 OK no mismatches
+w:2026-W01 OK no mismatches
+m:2025-01 OK no mismatches
+m:2025-02 OK no mismatches
+m:2025-12 OK no mismatches
+m:2026-01 OK no mismatches
+m:2026-08 OK no mismatches
+q:2025-Q1 FAIL [CONVEX ?(rollups:verify)] [WARN] Many documents read in a single function execution (actual: 27514, limit: 32000). Consider using smaller limits in your queries, paginating your queries, or using indexed queries with a selective index range expressions. ConvexError: [Request ID: c102dd17c49e19c8] Server Error 
+q:2026-Q3 FAIL [CONVEX ?(rollups:verify)] [WARN] Many documents read in a single function execution (actual: 27189, limit: 32000). Consider using smaller limits in your queries, paginating your queries, or using indexed queries with a selective index range expressions. ConvexError: [Request ID: af9fd715e1a15a07] Server Error 
+y:2025 FAIL Error: [Request ID: a8cbaff4f0cb1237] Server Error 
+y:2026 FAIL Error: [Request ID: 4766235252e62ed5] Server Error 

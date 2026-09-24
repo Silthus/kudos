@@ -1,0 +1,9 @@
+ok executions 2223
+errors {}
+max docs read ('rollups:backfillStep', 5658, 3183011, 56, 25187, 1.362619757)
+max bytes read ('rollups:backfillStep', 5658, 3183011, 56, 25187, 1.362619757)
+max docs written ('rollups:backfillStep', 619, 302037, 895, 683193, 0.121752575)
+max bytes written ('rollups:backfillStep', 619, 302037, 895, 683193, 0.121752575)
+max exec s ('rollups:rebuildWorkspace', 7, 2920, 0, 0, 3.32856482)
+total docs read 1129207 total docs written 309285 bytes written 228295266
+sum exec s 197.5

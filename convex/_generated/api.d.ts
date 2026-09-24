@@ -33,6 +33,7 @@ import type * as lib_guidance from "../lib/guidance.js";
 import type * as lib_messages from "../lib/messages.js";
 import type * as lib_parse from "../lib/parse.js";
 import type * as lib_periods from "../lib/periods.js";
+import type * as lib_questBlocks from "../lib/questBlocks.js";
 import type * as lib_quests from "../lib/quests.js";
 import type * as lib_random from "../lib/random.js";
 import type * as lib_rebuild from "../lib/rebuild.js";
@@ -85,6 +86,7 @@ declare const fullApi: ApiFromModules<{
   "lib/messages": typeof lib_messages;
   "lib/parse": typeof lib_parse;
   "lib/periods": typeof lib_periods;
+  "lib/questBlocks": typeof lib_questBlocks;
   "lib/quests": typeof lib_quests;
   "lib/random": typeof lib_random;
   "lib/rebuild": typeof lib_rebuild;
