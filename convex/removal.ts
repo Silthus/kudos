@@ -4,6 +4,7 @@ import { internal } from "./_generated/api";
 import type { Doc, Id, TableNames } from "./_generated/dataModel";
 import { revokeKudosRow } from "./engine";
 import { rememberPlant } from "./gardens";
+import { counts } from "./sprees";
 import { Rollups } from "./lib/rollups";
 import { isOpen } from "./lib/store";
 
@@ -126,6 +127,32 @@ const PHASES: Phase[] = [
     batch: 500,
     rows: (ctx, m, n) => ctx.db.query("kudosAttempts").withIndex("by_giver", (q) => q.eq("giverId", m._id)).take(n),
     clear: remove,
+  },
+  // Kudos sprees (#94). Revoking their kudos above already cancelled the sprees they started or
+  // received, and revoked the pooled kudos they gave or got. Their joins leave the sprees they
+  // joined (a waiting one stops counting), and sprees they started go with every join of them.
+  {
+    name: "spreeJoins",
+    batch: 200,
+    rows: (ctx, m, n) => ctx.db.query("spreeJoins").withIndex("by_member_day", (q) => q.eq("memberId", m._id)).take(n),
+    clear: async (ctx, _workspace, row) => {
+      const join = row as Doc<"spreeJoins">;
+      const spree = await ctx.db.get(join.spreeId);
+      // `joiners` counts every join that holds one (waiting or paid): they're no longer a joiner.
+      if (spree && counts(join)) await ctx.db.patch(spree._id, { joiners: Math.max(0, spree.joiners - 1) });
+      await ctx.db.delete(join._id);
+    },
+  },
+  {
+    name: "sprees",
+    batch: 5,
+    rows: (ctx, m, n) => ctx.db.query("sprees").withIndex("by_giver", (q) => q.eq("giverId", m._id)).take(n),
+    clear: async (ctx, _workspace, row) => {
+      for await (const join of ctx.db.query("spreeJoins").withIndex("by_spree_member", (q) => q.eq("spreeId", row._id as Id<"sprees">))) {
+        await ctx.db.delete(join._id);
+      }
+      await ctx.db.delete(row._id);
+    },
   },
   {
     name: "notifications",

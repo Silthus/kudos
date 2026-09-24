@@ -54,6 +54,7 @@ import type * as lib_scaleSeed from "../lib/scaleSeed.js";
 import type * as lib_settings from "../lib/settings.js";
 import type * as lib_skills from "../lib/skills.js";
 import type * as lib_slack from "../lib/slack.js";
+import type * as lib_sprees from "../lib/sprees.js";
 import type * as lib_stats from "../lib/stats.js";
 import type * as lib_store from "../lib/store.js";
 import type * as lib_success from "../lib/success.js";
@@ -67,6 +68,7 @@ import type * as session from "../session.js";
 import type * as skills from "../skills.js";
 import type * as slack from "../slack.js";
 import type * as slackData from "../slackData.js";
+import type * as sprees from "../sprees.js";
 import type * as store from "../store.js";
 import type * as storeAdmin from "../storeAdmin.js";
 
@@ -123,6 +125,7 @@ declare const fullApi: ApiFromModules<{
   "lib/settings": typeof lib_settings;
   "lib/skills": typeof lib_skills;
   "lib/slack": typeof lib_slack;
+  "lib/sprees": typeof lib_sprees;
   "lib/stats": typeof lib_stats;
   "lib/store": typeof lib_store;
   "lib/success": typeof lib_success;
@@ -136,6 +139,7 @@ declare const fullApi: ApiFromModules<{
   skills: typeof skills;
   slack: typeof slack;
   slackData: typeof slackData;
+  sprees: typeof sprees;
   store: typeof store;
   storeAdmin: typeof storeAdmin;
 }>;

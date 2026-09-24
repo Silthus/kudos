@@ -1,12 +1,12 @@
 import { ConvexError, v } from "convex/values";
-import { internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
+import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { allowanceCheck, findMember, giveKudos, revokeKudosRow } from "./engine";
 import { getViewer, requireViewer } from "./lib/access";
 import { CATALOG, RARITY_WEIGHTS, type Category } from "./lib/messages";
 import { countEmoji, countNoteWords, mentionedUsers, mentionsGroup, previewText } from "./lib/parse";
-import { attemptKudos, type AttemptInput, reattemptKudos, recordReaction } from "./attempts";
+import { attemptKudos, type AttemptInput, findAttempt, reattemptKudos, recordReaction } from "./attempts";
 import { reactionFor } from "./lib/guidance";
 import { attemptOutcomeValidator, questProgressValidator } from "./schema";
 import { addDays, dayKeyFor, daysBetween, startOfDayUtc, weekdayOfKey, zonedParts } from "./lib/time";
@@ -21,6 +21,8 @@ import { validateRewardInput } from "./lib/store";
 import { canSpend } from "./lib/coins";
 import { SHOP_LEVEL } from "./lib/items";
 import { playerOf } from "./game";
+import { joinOf, joinSpree, paySpree, spreeable, spreeJoinsInMonth, spreesOn } from "./sprees";
+import { nextTier, promptText, refusalText } from "./lib/sprees";
 import { coinWallet, grantBalance, requestRedemption, transitionRedemption, undoPurchase, undoRedemption } from "./store";
 
 const DEMO_TEAM = "T_DEMO_LUMEN";
@@ -857,6 +859,8 @@ const DEMO_TABLES = [
   "balanceAdjustments",
   "itemPurchases",
   "boosts",
+  "sprees",
+  "spreeJoins",
   "notifications",
 ] as const;
 
@@ -898,6 +902,10 @@ async function demoRows(ctx: MutationCtx, workspaceId: Id<"workspaces">, table: 
       return await ctx.db.query("itemPurchases").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(1000);
     case "boosts":
       return await ctx.db.query("boosts").withIndex("by_workspace_day", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+    case "sprees":
+      return await ctx.db.query("sprees").withIndex("by_workspace_kudosAt", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+    case "spreeJoins":
+      return await ctx.db.query("spreeJoins").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(1000);
     case "notifications":
       return [];
   }
@@ -1012,5 +1020,198 @@ export const teammates = query({
       .filter((m) => !m.isBot)
       .map((m) => ({ slackUserId: m.slackUserId, name: m.name, title: m.title ?? null }))
       .sort((a, b) => a.name.localeCompare(b.name));
+  },
+});
+
+// ── Kudos spree (#94, §G16) ─────────────────────────────────────────────────
+
+/** Who the playground's spree is by and for: the first pair whose kudos is thoughtful (no thank-back) and affordable today. */
+const SPREE_PAIRS: [string, string][] = [
+  ["UDEMOFREYA", "UDEMOPRIYA"],
+  ["UDEMOLENA", "UDEMOJONAS"],
+  ["UDEMOCHLOE", "UDEMOSAMIR"],
+  ["UDEMOSOFIA", "UDEMODIEGO"],
+];
+const SPREE_NOTE = "thank you for staying late to walk the customer through the migration, they renewed because of you";
+/** Teammates join the playground's spree until it waits for one more: the visitor's click reaches the tier. */
+const SPREE_HEAD_START = 4;
+
+async function latestSpree(ctx: QueryCtx, workspaceId: Id<"workspaces">) {
+  return await ctx.db
+    .query("sprees")
+    .withIndex("by_workspace_kudosAt", (q) => q.eq("workspaceId", workspaceId))
+    .order("desc")
+    .first();
+}
+
+/**
+ * Takes a playground spree back as if it never happened: its pooled kudos and the kudos it grew on
+ * are revoked, and what its tiers paid anyone is taken back. The demo user is shared, so a spree
+ * one visitor reached must not keep paying the next one.
+ */
+async function discardSpree(ctx: MutationCtx, workspace: Doc<"workspaces">, spree: Doc<"sprees">) {
+  const joins = await ctx.db.query("spreeJoins").withIndex("by_spree_member", (q) => q.eq("spreeId", spree._id)).take(200);
+  for (const join of joins) {
+    if (join.batchId) {
+      for (const row of await ctx.db.query("kudos").withIndex("by_batch", (q) => q.eq("batchId", join.batchId!)).take(50)) {
+        await revokeKudosRow(ctx, workspace, row);
+      }
+    }
+  }
+  for (const row of await ctx.db.query("kudos").withIndex("by_batch", (q) => q.eq("batchId", spree.batchId)).take(50)) {
+    await revokeKudosRow(ctx, workspace, row);
+  }
+  for (const e of await ctx.db.query("gameEvents").withIndex("by_batch", (q) => q.eq("batchId", `spree:${spree._id}`)).take(500)) {
+    await ctx.db.delete(e._id);
+    const player = await playerOf(ctx, e.memberId);
+    if (player) await paySpree(ctx, player, -e.xp, -(e.coins ?? 0));
+  }
+  for (const join of joins) await ctx.db.delete(join._id);
+  const attempt = await findAttempt(ctx, workspace._id, spree.channelId, spree.messageTs);
+  if (attempt) await ctx.db.delete(attempt._id);
+  await ctx.db.delete(spree._id);
+}
+
+/** A teammate's thoughtful kudos in #general that four teammates already joined. */
+async function startSpree(ctx: MutationCtx, workspace: Doc<"workspaces">, now: number) {
+  for (const [authorId, receiverId] of SPREE_PAIRS) {
+    const receiver = await findMember(ctx, workspace, receiverId);
+    if (!receiver) continue;
+    const messageTs = uniqueTs(now);
+    const attempted = await attemptKudos(ctx, {
+      workspace,
+      giverSlackId: authorId,
+      recipientSlackIds: [receiverId],
+      amountEach: 1,
+      channelId: "C_DEMO_GENERAL",
+      channelName: "general",
+      messageTs,
+      text: `@${receiver.name.split(" ")[0]} ${workspace.emojiGlyph} ${SPREE_NOTE}`,
+      noteWords: countNoteWords(SPREE_NOTE, workspace.emojiName, workspace.emojiGlyph),
+      source: "playground",
+      now,
+    });
+    const attempt = attempted?.attempt;
+    if (!attempt || attempted.result.status !== "given") {
+      if (attempt) await ctx.db.delete(attempt.id); // out of allowance today: try the next pair
+      continue;
+    }
+    await recordReaction(ctx, attempt.id, attempt.reaction); // the bot's reaction shows right away
+    const row = (await ctx.db.get(attempt.id))!;
+    if (!(await spreeable(ctx, row))) {
+      // A thank-back can't spree: take it back and try the next pair, so restarts leave nothing behind.
+      for (const k of await ctx.db.query("kudos").withIndex("by_batch", (q) => q.eq("batchId", row.batchId!)).take(10)) {
+        await revokeKudosRow(ctx, workspace, k);
+      }
+      await ctx.db.delete(row._id);
+      continue;
+    }
+    let joined = 0;
+    for (const p of PEOPLE) {
+      if (joined === SPREE_HEAD_START) break;
+      if (p.id === DEMO_YOU || p.id === authorId || p.id === receiverId) continue;
+      const teammate = await findMember(ctx, workspace, p.id);
+      if (teammate && (await joinSpree(ctx, workspace, teammate, attempt.id, now, "web")).status === "joined") joined++;
+    }
+    return;
+  }
+}
+
+/**
+ * The playground's spree, ready for the visitor: kept while it still waits for them (open, no tier
+ * yet, not joined by the shared demo user), otherwise discarded and started afresh at 4 of 5.
+ */
+export const openSpree = mutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const { workspace, member } = await requireDemoViewer(ctx);
+    if (!spreesOn(workspace)) return null;
+    const now = Date.now();
+    const latest = await latestSpree(ctx, workspace._id);
+    if (latest) {
+      const mine = await joinOf(ctx, latest._id, member._id);
+      const waiting = latest.status === "open" && latest.tier === 0 && now < latest.deadline && latest.joiners === SPREE_HEAD_START && !mine;
+      if (waiting) return null;
+      await discardSpree(ctx, workspace, latest);
+    }
+    await startSpree(ctx, workspace, now);
+    return null;
+  },
+});
+
+/** The playground's spree as the visitor sees it: the kudos, how far it is, and the Join prompt. */
+export const spreePost = query({
+  args: { today: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      attemptId: v.id("kudosAttempts"),
+      author: v.string(),
+      authorSlackUserId: v.string(),
+      text: v.string(),
+      at: v.number(),
+      reaction: v.string(),
+      joiners: v.number(),
+      tier: v.number(),
+      next: v.union(v.number(), v.null()),
+      status: v.string(),
+      deadline: v.number(),
+      joined: v.boolean(),
+      /** Join / Not now, while the visitor can join. */
+      prompt: v.union(v.string(), v.null()),
+      /** Why the visitor can't join right now (no spree joins left this month). */
+      note: v.union(v.string(), v.null()),
+    }),
+  ),
+  handler: async (ctx, { today }) => {
+    const viewer = await getViewer(ctx);
+    if (!viewer?.workspace.isDemo) return null;
+    const { workspace, member } = viewer;
+    const spree = await latestSpree(ctx, workspace._id);
+    const attempt = spree && (await findAttempt(ctx, workspace._id, spree.channelId, spree.messageTs));
+    const author = spree && (await ctx.db.get(spree.giverId));
+    if (!spree || !attempt || !author) return null;
+    const receivers = (await Promise.all(spree.receiverIds.map((id) => ctx.db.get(id)))).map((m) => m?.name ?? "a former teammate");
+    const mine = await joinOf(ctx, spree._id, member._id);
+    const joined = mine?.status === "waiting" || mine?.status === "paid";
+    const next = nextTier(spree.tier);
+    const joins = await spreeJoinsInMonth(ctx, member._id, today.slice(0, 7));
+    const unit = receivers.length === 1 ? workspace.unitSingular : workspace.unitPlural;
+    const open = spree.status === "open" && !joined && next !== null;
+    const prompt = open && joins.left > 0 ? promptText({ giver: author.name, receivers, unit, joinsLeft: joins.left, joiners: spree.joiners, next }) : null;
+    const note = open && joins.left === 0 ? refusalText({ kind: "no_joins", allowed: joins.allowed }) : null;
+    return {
+      attemptId: attempt._id,
+      author: author.name,
+      authorSlackUserId: author.slackUserId,
+      text: spree.text,
+      at: spree.kudosAt,
+      reaction: attempt.reaction ?? workspace.emojiName,
+      joiners: spree.joiners,
+      tier: spree.tier,
+      next,
+      status: spree.status,
+      deadline: spree.deadline,
+      joined,
+      prompt,
+      note,
+    };
+  },
+});
+
+/** Join on the playground's spree prompt: the same path as the Join button in Slack. */
+export const simulateSpreeJoin = mutation({
+  args: { attemptId: v.id("kudosAttempts") },
+  returns: playgroundResult.extend({ text: v.string(), thread: v.union(v.string(), v.null()) }),
+  handler: async (ctx, { attemptId }) => {
+    const { workspace, member } = await requireDemoViewer(ctx);
+    const res = await joinSpree(ctx, workspace, member, attemptId, Date.now(), "web");
+    return {
+      status: res.status,
+      text: res.text,
+      thread: res.thread ?? null,
+      messages: await describeNotifications(ctx, member._id, res.notificationIds),
+    };
   },
 });

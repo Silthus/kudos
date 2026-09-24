@@ -20,6 +20,7 @@ const settings = {
   notifyReceiver: true,
   questsEnabled: true,
   gameEnabled: false,
+  spreesEnabled: false,
 };
 const overview = {
   workspace: { _id: "w1", name: "Lumen Labs", isDemo: false, slackTeamId: "T1" },
@@ -97,6 +98,15 @@ test("switching the game on and saving sends it with the other settings, and say
   act(() => gameSwitch()!.click());
   await act(async () => button("Save settings").click());
   expect(saved).toHaveBeenCalledWith({ ...settings, gameEnabled: true });
+});
+
+test("sprees have their own switch, off by default, and work with the game off (#94)", async () => {
+  const spreesSwitch = () => host.querySelector<HTMLButtonElement>('[role=switch][aria-label="Kudos sprees"]');
+  expect(spreesSwitch()?.getAttribute("aria-checked")).toBe("false");
+  expect(host.textContent).toContain("Teammates join a thoughtful kudos by clicking the bot's reaction");
+  act(() => spreesSwitch()!.click());
+  await act(async () => button("Save settings").click());
+  expect(saved).toHaveBeenCalledWith({ ...settings, spreesEnabled: true });
 });
 
 test("admins see Hog coin balances while the game is on, whatever their own level (the ledger is how they adjust coins)", () => {

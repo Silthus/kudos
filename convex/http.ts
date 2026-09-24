@@ -161,6 +161,24 @@ http.route({
     if (typeof payload !== "object" || payload === null) return new Response("bad request", { status: 400 });
     const [action] = payload.type === "block_actions" && Array.isArray(payload.actions) ? payload.actions : [];
     const id = action?.action_id;
+    // Enterprise Grid sends no `team` for org-wide apps; the user's own team is the workspace then.
+    const team = payload.team?.id ?? payload.user?.team_id;
+    const responseUrl = typeof payload.response_url === "string" ? payload.response_url : undefined;
+    // A spree prompt (#94): Join answers in place of the prompt, Not now takes it away.
+    if ((id === "spree_join" || id === "spree_dismiss") && typeof action.value === "string" && typeof team === "string" && typeof payload.user?.id === "string") {
+      if (id === "spree_dismiss") {
+        if (responseUrl) await ctx.scheduler.runAfter(0, internal.slack.respond, { responseUrl, text: "", original: "delete" });
+        return new Response("", { status: 200 });
+      }
+      const text = await ctx.runMutation(internal.kudos.spreeInteraction, {
+        teamId: team,
+        slackUserId: payload.user.id,
+        userTeamId: payload.user.team_id,
+        attemptId: action.value,
+      });
+      if (responseUrl) await ctx.scheduler.runAfter(0, internal.slack.respond, { responseUrl, text, original: "replace" });
+      return new Response("", { status: 200 });
+    }
     const step = typeof id === "string" && Object.hasOwn(STORE_ACTIONS, id) ? STORE_ACTIONS[id as keyof typeof STORE_ACTIONS] : undefined;
     // Enterprise Grid sends no `team` for org-wide apps; the user's own team is the workspace then.
     const teamId = payload.team?.id ?? payload.user?.team_id;

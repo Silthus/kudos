@@ -89,7 +89,7 @@ describe("taking a skill", () => {
     await setLevel(4);
     await expect(ana.mutation(api.skills.take, { skill: "rekindler" })).rejects.toThrow(/Rekindler opens at level 5/);
     await setLevel(12);
-    await expect(ana.mutation(api.skills.take, { skill: "wanderer" })).rejects.toThrow(/Wanderer arrives with Kudos sprees/);
+    await expect(ana.mutation(api.skills.take, { skill: "emoji_variants" })).rejects.toThrow(/Signature emoji arrives with Super kudos/);
     await expect(ana.mutation(api.skills.take, { skill: "lookout" })).rejects.toThrow(/You have every rank of Lookout/);
     await expect(ana.mutation(api.skills.take, { skill: "nonsense" })).rejects.toThrow(/no such skill/);
     await ana.mutation(api.skills.take, { skill: "rekindler" });

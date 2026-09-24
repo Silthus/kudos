@@ -195,6 +195,12 @@ function SettingsForm({ initial, isDemo }: { initial: Settings; isDemo: boolean 
               ? "Switching it off stops XP for every kudos until it's back on; levels and XP already earned are kept."
               : "Switching it on plays the kudos history so far through the rules, so teammates start with the levels they've earned."}
           </p>
+          <Toggle
+            checked={s.spreesEnabled}
+            onChange={(v) => set("spreesEnabled", v)}
+            label="Kudos sprees"
+            description="Teammates join a thoughtful kudos by clicking the bot's reaction on it. Each join uses one of their kudos today and one of 5 spree joins a month, and pays out to the receivers at 5, 10, 20, 50 and 100 joiners. Works with the game off, just without XP or Hog coins."
+          />
         </div>
       </Card>
 

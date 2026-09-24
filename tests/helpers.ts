@@ -27,6 +27,8 @@ export async function seedTeam(
       isDemo: false,
       status: "active",
       ...DEFAULT_SETTINGS,
+      // Reaction-giving is off for new installs since #94; these tests' workspace has it on.
+      reactionsEnabled: true,
       ...overrides,
     });
     await ctx.db.insert("slackInstallations", {

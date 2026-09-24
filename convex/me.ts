@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query, type QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
-import { getMemberDay } from "./engine";
+import { usedOn } from "./engine";
 import { categoryValidator, kudosSourceValidator, notificationCategoryValidator, rarityValidator } from "./schema";
 import { canSeeReceived, requireViewer } from "./lib/access";
 import { gameShownTo } from "./game";
@@ -117,8 +117,7 @@ export const overview = query({
     const people = memberLookup(ctx);
 
     // Today
-    const todayRow = await getMemberDay(ctx, member._id, today);
-    const usedToday = todayRow?.given ?? 0;
+    const usedToday = await usedOn(ctx, member._id, today); // given, plus what waiting spree joins reserve (#94)
 
     // This week (Mon–today) vs the whole of last week
     const week = resolvePeriod("week", today);
@@ -465,8 +464,7 @@ export const today = query({
   returns: v.object({ used: v.number(), remaining: v.number(), limit: v.number(), discovered: v.number(), total: v.number() }),
   handler: async (ctx, { today }) => {
     const { member, workspace } = await requireViewer(ctx);
-    const row = await getMemberDay(ctx, member._id, parseToday(today));
-    const used = row?.given ?? 0;
+    const used = await usedOn(ctx, member._id, parseToday(today)); // given, plus what waiting spree joins reserve (#94)
     const discovered = await ctx.db
       .query("discoveries")
       .withIndex("by_member_template", (q) => q.eq("memberId", member._id))

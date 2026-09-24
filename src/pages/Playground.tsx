@@ -3,13 +3,15 @@ import { useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { AnimatePresence, motion } from "motion/react";
 import { AtSign, EyeOff, Hash, Pencil, SendHorizontal, Terminal } from "lucide-react";
-import { useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { api } from "../../convex/_generated/api";
 import { Avatar, Button, Card, Eyebrow, PageHeader, RarityBadge } from "@/components/ui";
 import { useWorkspaceToday } from "@/lib/period";
 import { CATEGORY_LABEL, RARITY_META, type Rarity } from "@/lib/rarity";
 import { useViewer } from "@/lib/viewer";
 import { GainLines } from "@/components/game";
+import { SpreePost } from "@/components/SpreePost";
+import type { Id } from "../../convex/_generated/dataModel";
 
 type BotMessage = {
   _id: string;
@@ -47,6 +49,8 @@ type FeedItem = {
   /** Your kudos attempt as sent (Slack format), so you can edit it like in Slack. */
   sent?: { messageTs: string; slackText: string };
   edited?: boolean;
+  /** The bot's public reply in a kudos' thread (a spree reached a tier). */
+  threadReply?: boolean;
 };
 
 type AttemptReply = { outcome: Outcome; guidance: string | null } | null;
@@ -84,7 +88,15 @@ function renderSlackText(text: string, glyph: string, emojiName: string): ReactN
 export function Playground() {
   const viewer = useViewer();
   const teammates = useQuery(api.demo.teammates) ?? [];
-  const status = useQuery(api.me.today, { today: useWorkspaceToday() });
+  const today = useWorkspaceToday();
+  const status = useQuery(api.me.today, { today });
+  // A teammate's thoughtful kudos, 4 of 5 joined: one click on the bot's reaction reaches the tier (#94).
+  const spree = useQuery(api.demo.spreePost, { today });
+  const openSpree = useMutation(api.demo.openSpree);
+  const joinSpree = useMutation(api.demo.simulateSpreeJoin);
+  useEffect(() => {
+    if (viewer.workspace.spreesEnabled) void openSpree({});
+  }, [openSpree, viewer.workspace.spreesEnabled]);
   const send = useMutation(api.demo.simulateMessage);
   const edit = useMutation(api.demo.simulateEdit);
   const react = useMutation(api.demo.simulateReaction);
@@ -179,6 +191,18 @@ export function Playground() {
     pushBot(res.messages);
   };
 
+  /** Join on the spree's prompt: your reply shows where you joined, the tier's reply in the thread, the DMs on the right. */
+  const onJoinSpree = async (attemptId: string) => {
+    const res = await joinSpree({ attemptId: attemptId as Id<"kudosAttempts"> });
+    const now = Date.now();
+    setFeed((f) => [
+      ...f,
+      { id: crypto.randomUUID(), author: "Kudos", slackUserId: "", text: res.text, mine: false, at: now, ephemeral: true },
+      ...(res.thread ? [{ id: crypto.randomUUID(), author: "Kudos", slackUserId: "", text: res.thread, mine: false, at: now, threadReply: true }] : []),
+    ]);
+    pushBot(res.messages);
+  };
+
   const onChange = (value: string) => {
     setText(value);
     const caret = inputRef.current?.selectionStart ?? value.length;
@@ -225,7 +249,7 @@ export function Playground() {
             {status && (
               <div className="flex items-center gap-2 text-sm text-muted">
                 {status.remaining < status.limit && (
-                  <button onClick={() => void refill({})} className="rounded-md px-1.5 py-0.5 text-xs text-saffron hover:bg-saffron/10" title="The demo user is shared by all visitors">
+                  <button onClick={() => void refill({}).then(() => viewer.workspace.spreesEnabled && openSpree({}))} className="rounded-md px-1.5 py-0.5 text-xs text-saffron hover:bg-saffron/10" title="The demo user is shared by all visitors">
                     Refill
                   </button>
                 )}
@@ -242,6 +266,7 @@ export function Playground() {
           </div>
 
           <div className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+            {spree && <SpreePost spree={spree} glyph={glyph} onJoin={onJoinSpree} />}
             <AnimatePresence initial={false}>
               {feed.map((m) => m.ephemeral ? (
                 <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3 rounded-xl bg-panel-2/40 px-2 py-2">
@@ -265,6 +290,7 @@ export function Playground() {
                   <div className="min-w-0 flex-1">
                     <div className="text-sm">
                       <b className="font-semibold">{m.author}</b>{" "}
+                      {m.threadReply && <span className="rounded bg-panel-3 px-1 py-px align-middle text-[10px] font-semibold text-muted">APP · replied in the thread</span>}{" "}
                       <span className="text-xs text-faint">{new Date(m.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                     </div>
                     {editing?.id === m.id ? (
