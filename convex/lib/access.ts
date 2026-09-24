@@ -93,5 +93,6 @@ export function publicSettings(w: Doc<"workspaces">) {
     notifyGiver: w.notifyGiver,
     notifyReceiver: w.notifyReceiver,
     questsEnabled: w.questsEnabled ?? true,
+    gameEnabled: w.gameEnabled ?? false,
   };
 }

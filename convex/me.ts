@@ -2,8 +2,9 @@ import { v } from "convex/values";
 import { query, type QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { getMemberDay } from "./engine";
-import { categoryValidator, kudosSourceValidator, rarityValidator } from "./schema";
+import { categoryValidator, kudosSourceValidator, notificationCategoryValidator, rarityValidator } from "./schema";
 import { canSeeReceived, requireViewer } from "./lib/access";
+import { gameShownTo } from "./game";
 import { streaks } from "./lib/compare";
 import { CATALOG, RARITIES, TEMPLATE_BY_KEY } from "./lib/messages";
 import { resolvePeriod, type PeriodRange } from "./lib/periods";
@@ -79,7 +80,7 @@ const overviewValidator = v.object({
     v.object({
       _id: v.id("notifications"),
       rarity: rarityValidator,
-      category: categoryValidator,
+      category: notificationCategoryValidator,
       text: v.string(),
       isNewDiscovery: v.boolean(),
       at: v.number(),
@@ -235,11 +236,17 @@ export const overview = query({
       });
     }
 
-    const notifications = await ctx.db
-      .query("notifications")
-      .withIndex("by_member", (q) => q.eq("memberId", member._id))
-      .order("desc")
-      .take(5);
+    // Game DMs (level-ups) are game UI: gone while the game is off or hidden, back with it.
+    const showGame = gameShownTo(workspace, member);
+    const notifications = (
+      await ctx.db
+        .query("notifications")
+        .withIndex("by_member", (q) => q.eq("memberId", member._id))
+        .order("desc")
+        .take(10)
+    )
+      .filter((n) => showGame || n.category !== "level_up")
+      .slice(0, 5);
 
     return {
       periodLabel: range.label,

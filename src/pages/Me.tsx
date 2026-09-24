@@ -8,6 +8,7 @@ import { api } from "../../convex/_generated/api";
 import { Legend, LineChart } from "@/components/charts";
 import { MessageText } from "@/components/MessageText";
 import { QUEST_RULES, QuestItem } from "@/components/quests";
+import { GameCard } from "@/components/game";
 import { Avatar, BigNumber, Card, CardHeader, Empty, Eyebrow, PageHeader, PageSkeleton, RarityBadge, Segmented, Trend } from "@/components/ui";
 import { compareTeamHref } from "@/lib/compare";
 import { dayLabel, firstName, greeting, nf, relativeTime } from "@/lib/format";
@@ -59,6 +60,10 @@ export function Me() {
               : `You haven't given kudos this week yet. Who made your week better?`
         }
       />
+
+      <div className="mb-4">
+        <GameCard glyph={glyph} />
+      </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <AllowanceCard used={data.today.used} limit={data.today.limit} glyph={glyph} />
@@ -275,7 +280,11 @@ export function Me() {
                 <li key={m._id} className="rounded-xl border border-line bg-ink/40 p-3.5">
                   <p className="text-sm leading-relaxed">{m.text}</p>
                   <div className="mt-2 flex items-center gap-2">
-                    <RarityBadge rarity={m.rarity as Rarity} size="xs" />
+                    {m.category === "level_up" ? (
+                      <span className="text-xs font-medium text-saffron">Level up</span>
+                    ) : (
+                      <RarityBadge rarity={m.rarity as Rarity} size="xs" />
+                    )}
                     {m.isNewDiscovery && <span className="text-xs text-saffron">✨ New discovery</span>}
                     <span className="ml-auto text-xs text-faint">{relativeTime(m.at)}</span>
                   </div>

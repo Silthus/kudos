@@ -13,7 +13,8 @@ import { addDays, dayKeyFor, daysBetween, startOfDayUtc, weekdayOfKey, zonedPart
 import { demoActivity } from "./lib/demoCalendar";
 import { DEMO_ADJUSTMENTS, DEMO_REDEMPTIONS, DEMO_REWARDS, type DemoRedemption, LIVE_FULFIL_NOTES } from "./lib/demoStore";
 import { weekKeyFor } from "./lib/quests";
-import { DEFAULT_SETTINGS } from "./lib/settings";
+import { DEMO_SETTINGS } from "./lib/settings";
+import { earningsText } from "./lib/xp";
 import { fnv1a, mulberry32 } from "./lib/random";
 import { balanceOf, validateRewardInput } from "./lib/store";
 import { grantBalance, requestRedemption, transitionRedemption, undoRedemption } from "./store";
@@ -122,7 +123,7 @@ export const ensureDemoUser = internalMutation({
         name: "Lumen Labs",
         isDemo: true,
         status: "active",
-        ...DEFAULT_SETTINGS,
+        ...DEMO_SETTINGS,
       });
       workspace = (await ctx.db.get(id))!;
       for (const p of PEOPLE) {
@@ -303,6 +304,8 @@ export const seedHistory = internalMutation({
       // the read-model rollups are rebuilt from them. Both belong to this reset; the rebuild
       // releases its lock when it finishes.
       await ctx.scheduler.runAfter(0, internal.quests.seedDemoHistory, { workspaceId, resetAt });
+      // The demo year is played through the game's rules, like switching the game on would.
+      await ctx.scheduler.runAfter(0, internal.game.rebuildWorkspace, { workspaceId, resetAt });
       // Balances are what people received, so the store opens once the whole history is in.
       await ctx.scheduler.runAfter(0, internal.demo.seedStore, { workspaceId, resetAt });
     }
@@ -547,6 +550,8 @@ const playgroundResult = v.object({
       isNewDiscovery: v.boolean(),
       /** Quest messages: how far the week is, as the Slack DM says. */
       questProgress: v.optional(questProgressValidator),
+      /** Your reply while the game is on: what the kudos earned ("+20 XP · new connection +10"). */
+      earnings: v.optional(v.string()),
     }),
   ),
 });
@@ -580,6 +585,7 @@ async function describeNotifications(ctx: MutationCtx, me: Id<"members">, ids: I
       text: n.webText,
       isNewDiscovery: n.isNewDiscovery,
       ...(n.questProgress ? { questProgress: n.questProgress } : {}),
+      ...(n.earnings ? { earnings: earningsText(n.earnings) } : {}),
     });
   }
   return out;
@@ -892,15 +898,17 @@ export const resetDemoWorkspace = internalMutation({
     for (const m of members) {
       if (deleted >= 3000) break; // stay well within per-transaction write limits
       const notes = await ctx.db.query("notifications").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(200);
-      for (const n of notes) await ctx.db.delete(n._id);
-      deleted += notes.length;
+      const events = await ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", m._id)).take(500);
+      const player = await ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(1);
+      for (const row of [...notes, ...events, ...player]) await ctx.db.delete(row._id);
+      deleted += notes.length + events.length + player.length;
     }
     if (deleted > 0) {
       await ctx.scheduler.runAfter(0, internal.demo.resetDemoWorkspace, {});
       return null;
     }
     // Quests come back on with no pause: a pause would keep the seeded kudos out of every board.
-    await ctx.db.patch(workspace._id, { ...DEFAULT_SETTINGS, questsPauses: undefined });
+    await ctx.db.patch(workspace._id, { ...DEMO_SETTINGS, questsPauses: undefined, gamePauses: undefined });
     for (const m of members) {
       await ctx.db.patch(m._id, {
         totalGiven: 0,
@@ -914,6 +922,7 @@ export const resetDemoWorkspace = internalMutation({
         isAdmin: m.slackUserId === DEMO_YOU || m.slackUserId === DEMO_LENA,
         storeSpent: undefined,
         storeGranted: undefined,
+        gameHidden: undefined,
       });
     }
     await ctx.scheduler.runAfter(0, internal.demo.seedHistory, {

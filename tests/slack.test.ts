@@ -109,7 +109,9 @@ describe("POST /slack/events", () => {
     expect(await all(t, "slackEvents")).toHaveLength(1);
     expect(await all(t, "kudos")).toHaveLength(1);
     const dms = calls.filter((c) => c.method === "chat.postMessage").map((c) => c.params.channel);
-    expect(dms.sort()).toEqual(["UANA", "UBEN"]);
+    expect(dms).toEqual(["UBEN"]);
+    // Ana's reply goes where she gave it, only to her (#89), once despite the retry.
+    expect(calls.filter((c) => c.method === "chat.postEphemeral").map((c) => [c.params.channel, c.params.user])).toEqual([["C1", "UANA"]]);
   });
 });
 
@@ -134,9 +136,9 @@ describe("event filtering", () => {
 describe("processing Slack events", () => {
   const process = (event: object) => t.action(internal.slack.processEvent, { teamId: "T1", event });
 
-  test("bot DMs carry the rolled rarity and link to the gallery", async () => {
+  test("bot messages carry the rolled rarity and link to the gallery", async () => {
     await process({ type: "message", user: "UANA", text: "<@UBEN> :taco:", channel: "C1", ts: "1.1" });
-    const dm = calls.find((c) => c.method === "chat.postMessage" && c.params.channel === "UANA")!;
+    const dm = calls.find((c) => c.method === "chat.postEphemeral" && c.params.user === "UANA")!; // the giver's reply
     const blocks = JSON.parse(dm.params.blocks);
     expect(blocks[1].elements[0].text).toMatch(/(Common|Uncommon|Rare|Epic|LEGENDARY).*kudos\.example\/discoveries/);
     expect(await all(t, "notifications")).toEqual(expect.arrayContaining([expect.objectContaining({ delivery: "sent" })]));

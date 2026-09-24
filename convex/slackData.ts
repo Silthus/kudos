@@ -8,13 +8,14 @@ import { DEFAULT_SETTINGS } from "./lib/settings";
 import { balanceOf, MAX_ACTIVE_REWARDS, storeOpen } from "./lib/store";
 import { activeRewards, openRedemptionCount, ownDecisionBlocker, transitionRedemption } from "./store";
 import { openRequestCount } from "./storeAdmin";
-import { questProgressValidator, redemptionStatusValidator } from "./schema";
+import { earningsValidator, questProgressValidator, redemptionStatusValidator } from "./schema";
 import { rewardLine, webLink } from "./lib/slack";
 import { addDays, dayKeyFor, weekdayOfKey } from "./lib/time";
 import { weekBucket } from "./lib/buckets";
 import { backfilledRollups, memberBucket } from "./lib/stats";
 import { markBackfilled, mirrorBackfillMarker } from "./lib/rebuild";
 import { questBoard, questsOn } from "./quests";
+import { gameShownTo, playerOf } from "./game";
 import { questBlocks } from "./lib/questBlocks";
 import { weekKeyFor } from "./lib/quests";
 
@@ -290,6 +291,8 @@ export const notificationsForDelivery = internalQuery({
       discoveredCount: v.number(),
       delivery: v.string(),
       questProgress: v.optional(questProgressValidator),
+      earnings: v.optional(earningsValidator),
+      levelUp: v.optional(v.object({ level: v.number(), title: v.string(), skillPoints: v.number() })),
     }),
   ),
   handler: async (ctx, { ids }) => {
@@ -316,6 +319,8 @@ export const notificationsForDelivery = internalQuery({
         discoveredCount,
         delivery: n.delivery,
         ...(n.questProgress ? { questProgress: n.questProgress } : {}),
+        ...(n.earnings ? { earnings: n.earnings } : {}),
+        ...(n.levelUp ? { levelUp: n.levelUp } : {}),
       });
     }
     return out;
@@ -440,6 +445,8 @@ export const homeData = internalQuery({
       top,
       store: member && storeOpen(workspace) ? await storeHome(ctx, workspace, member) : null,
       quests: member ? await questBoard(ctx, workspace, member, weekKeyFor(now, workspace.timezone)) : null,
+      // The game's invitation (§G1): shown until the member gives their first kudos, never as a DM.
+      invite: gameShownTo(workspace, member ?? {}) && !(member && (await playerOf(ctx, member._id))),
     };
   },
 });
