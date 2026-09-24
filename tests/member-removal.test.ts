@@ -10,7 +10,7 @@ import { seedTeam, setupConvex, type Team } from "./helpers";
 /**
  * Removing a member (#8): `internal.removal.removeMember`, run by an operator with
  * `npx convex run --prod`. Everything they gave or received is revoked, their own rows are
- * deleted, and the workspace ends up exactly as if they had never been there.
+ * deleted, and every counter ends up exactly as if they had never been there.
  */
 
 type T = ReturnType<typeof setupConvex>;
@@ -382,7 +382,7 @@ describe("their store requests", () => {
     expect(updates.map((c) => `${c.params.channel}/${c.params.ts}`).sort()).toEqual(["DCLEO/1.1", "DCLEO/1.2", "DUANA/1.1", "DUANA/1.2"]);
     for (const u of updates) {
       const item = u.params.ts === "1.1" ? "☕ Mug" : "☕ Coffee";
-      expect(u.params.text).toBe(`🗑️ A request for *${item}* was withdrawn: the requester was removed from Kudos.`);
+      expect(u.params.text).toBe(`🗑️ This request for *${item}* is gone: its requester was removed from Kudos.`);
       expect(JSON.parse(u.params.blocks).some((b: { type: string }) => b.type === "actions")).toBe(false);
     }
 
@@ -487,5 +487,61 @@ describe("running a removal", () => {
     expect(await t.run((ctx) => ctx.db.get(team.cleo))).toMatchObject({ totalReceived: 0 });
     const { mismatches } = await t.query(internal.rollups.verify, { workspaceId: team.workspaceId, buckets: await historyBuckets(t) });
     expect(mismatches).toEqual([]);
+  });
+
+  test("won't leave the workspace without an admin unless forced", async () => {
+    await t.run(async (ctx) => {
+      await ctx.db.patch(team.ana, { isAdmin: false });
+      await ctx.db.patch(team.ben, { isAdmin: true, deactivated: true }); // left Slack: can't administer
+      await ctx.db.patch(xavi, { isAdmin: true });
+    });
+    await expect(t.mutation(internal.removal.removeMember, { slackTeamId: "T1", slackUserId: "UXAVI" })).rejects.toThrow(
+      /only admin.*force/,
+    );
+    await drain(t);
+    expect(await t.run((ctx) => ctx.db.get(xavi))).toMatchObject({ deactivated: false });
+
+    expect(await t.mutation(internal.removal.removeMember, { slackTeamId: "T1", slackUserId: "UXAVI", force: true })).toMatchObject({
+      status: "started",
+    });
+    await drain(t);
+    expect(await t.run((ctx) => ctx.db.get(xavi))).toBeNull();
+  });
+});
+
+describe("within Convex's transaction limits", () => {
+  // Every step must fit however much history there is. Tightened here so small fixtures show it.
+  const LIMITS = { documentsRead: 1500 };
+
+  test("a member who gave on hundreds of days: each step stops before it runs out of reads", async () => {
+    t = setupConvex({ transactionLimits: LIMITS });
+    team = await seedTeam(t, { notifyGiver: false, notifyReceiver: false });
+    xavi = await addXavi(t, team);
+    // Revoking a day's only kudos recomputes his streaks from every day he gave on.
+    for (let day = 0; day < 250; day++) {
+      const at = new Date(Date.parse("2026-01-05T09:00:00Z") + day * 86_400_000).toISOString();
+      await giveAt(t, team, at, { giverSlackId: "UXAVI", recipientSlackIds: ["UANA"] });
+    }
+
+    await remove();
+
+    expect(await t.run((ctx) => ctx.db.get(xavi))).toBeNull();
+    expect(await t.run((ctx) => ctx.db.get(team.ana))).toMatchObject({ totalReceived: 0 });
+  });
+
+  test("a sign-in with thousands of refresh tokens is deleted a batch at a time", async () => {
+    t = setupConvex({ transactionLimits: LIMITS });
+    team = await seedTeam(t);
+    xavi = await addXavi(t, team);
+    const userId = await signInXavi();
+    await t.run(async (ctx) => {
+      const [sessionId] = (await ctx.db.query("authSessions").collect()).map((s) => s._id);
+      for (let i = 0; i < 2500; i++) await ctx.db.insert("authRefreshTokens", { sessionId, expirationTime: Date.now() + 1e9 });
+    });
+
+    await remove();
+
+    expect(await t.run((ctx) => ctx.db.get(userId))).toBeNull();
+    expect(await t.run(async (ctx) => (await ctx.db.query("authRefreshTokens").take(1)).length)).toBe(0);
   });
 });

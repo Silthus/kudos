@@ -15,8 +15,8 @@ import { isOpen } from "./lib/store";
  * that is theirs alone is deleted, the member last, and `rollups.rebuildWorkspace` recomputes the
  * workspace so what the engine can't express as a delta (first discoveries) is exact too.
  *
- * The work runs in chained steps, each one phase over a bounded batch, so a member with years of
- * history never hits the transaction limits. Before deleting the member, the last step checks every
+ * The work runs in chained steps, each one phase over a bounded batch that also stops once it has
+ * used half of the transaction's budget, so a member with years of history never hits the limits. Before deleting the member, the last step checks every
  * phase again and starts over if something came back (a give that raced the removal). Running it
  * twice is harmless: a second run finds the member gone, or clears whatever the first left.
  */
@@ -137,19 +137,32 @@ const PHASES: Phase[] = [
     rows: (ctx, m, n) => ctx.db.query("members").withIndex("by_adminRemovedBy", (q) => q.eq("adminRemovedBy", m._id)).take(n),
     clear: (ctx, _workspace, row) => ctx.db.patch(row._id as Id<"members">, { adminRemovedBy: undefined }),
   },
-  // Their sign-in, unless the same user is still a member of another workspace.
+  // Their sign-in, unless the same user is still a member of another workspace. Every token
+  // refresh leaves a row behind, so a long-lived session's refresh tokens get a phase of their own.
+  {
+    name: "authRefreshTokens",
+    batch: 500,
+    rows: async (ctx, m, n) => {
+      const userId = await ownUser(ctx, m);
+      if (!userId) return [];
+      const rows: Doc<TableNames>[] = [];
+      for await (const session of ctx.db.query("authSessions").withIndex("userId", (q) => q.eq("userId", userId))) {
+        const tokens = ctx.db.query("authRefreshTokens").withIndex("sessionId", (q) => q.eq("sessionId", session._id));
+        rows.push(...(await tokens.take(n - rows.length)));
+        if (rows.length === n) break;
+      }
+      return rows;
+    },
+    clear: remove,
+  },
   {
     name: "authSessions",
-    batch: 50,
+    batch: 500,
     rows: async (ctx, m, n) => {
       const userId = await ownUser(ctx, m);
       return userId ? await ctx.db.query("authSessions").withIndex("userId", (q) => q.eq("userId", userId)).take(n) : [];
     },
-    clear: async (ctx, _workspace, row) => {
-      const tokens = ctx.db.query("authRefreshTokens").withIndex("sessionId", (q) => q.eq("sessionId", row._id as Id<"authSessions">));
-      for await (const token of tokens) await ctx.db.delete(token._id);
-      await ctx.db.delete(row._id);
-    },
+    clear: remove,
   },
   {
     name: "authAccounts",
@@ -174,13 +187,26 @@ async function ownUser(ctx: MutationCtx, member: Member) {
   return memberships.some((m) => m._id !== member._id) ? null : userId;
 }
 
+/**
+ * Whether the step has used half of any read or write budget. A revoke re-reads the giver's days
+ * when it empties one (their streaks), so its cost grows with their history; stopping at half
+ * leaves room for the next one to finish.
+ */
+async function halfSpent(ctx: MutationCtx) {
+  const m = await ctx.meta.getTransactionMetrics();
+  return [m.documentsRead, m.bytesRead, m.documentsWritten, m.bytesWritten, m.databaseQueries].some((x) => x.used >= x.remaining);
+}
+
 const countsValidator = v.record(v.string(), v.number());
 
-/** Start removing one member. Refuses bots and the shared demo; a member already gone is a no-op. */
+/**
+ * Start removing one member. Refuses bots, the shared demo, and the workspace's last admin unless
+ * `force` (nobody could run its settings or store afterwards); a member already gone is a no-op.
+ */
 export const removeMember = internalMutation({
-  args: { slackTeamId: v.string(), slackUserId: v.string() },
+  args: { slackTeamId: v.string(), slackUserId: v.string(), force: v.optional(v.boolean()) },
   returns: v.object({ status: v.union(v.literal("started"), v.literal("not_found")) }),
-  handler: async (ctx, { slackTeamId, slackUserId }) => {
+  handler: async (ctx, { slackTeamId, slackUserId, force }) => {
     const workspace = await ctx.db
       .query("workspaces")
       .withIndex("by_team", (q) => q.eq("slackTeamId", slackTeamId))
@@ -203,6 +229,21 @@ export const removeMember = internalMutation({
     if (member.isBot || install?.botUserId === slackUserId) throw new ConvexError(`${slackUserId} is a bot; bots aren't removed.`);
     const user = member.userId ? await ctx.db.get(member.userId) : null;
     if (user?.isDemo) throw new ConvexError(`${slackUserId} is signed in as the shared demo user; it can't be removed.`);
+    if (member.isAdmin && !force) {
+      const admins = ctx.db.query("members").withIndex("by_workspace_isAdmin", (q) => q.eq("workspaceId", workspace._id).eq("isAdmin", true));
+      let another = false;
+      for await (const admin of admins) {
+        if (admin._id !== member._id && !admin.deactivated && !admin.isBot) {
+          another = true;
+          break;
+        }
+      }
+      if (!another) {
+        throw new ConvexError(
+          `${member.name} (${slackUserId}) is the only admin of ${workspace.name}; make someone else an admin first, or pass "force": true.`,
+        );
+      }
+    }
     // Nobody can give to or as them from here on (the engine ignores deactivated members).
     await ctx.db.patch(member._id, { deactivated: true });
     await ctx.scheduler.runAfter(0, internal.removal.removeStep, { memberId: member._id, phase: 0, counts: {} });
@@ -224,9 +265,13 @@ export const removeStep = internalMutation({
     if (phase < PHASES.length) {
       const { name, batch, rows, clear } = PHASES[phase];
       const found = await rows(ctx, member, batch);
-      for (const row of found) await clear(ctx, workspace, row);
-      tally[name] = (tally[name] ?? 0) + found.length;
-      await next(found.length === batch ? phase : phase + 1);
+      let cleared = 0;
+      while (cleared < found.length) {
+        await clear(ctx, workspace, found[cleared++]);
+        if (await halfSpent(ctx)) break;
+      }
+      tally[name] = (tally[name] ?? 0) + cleared;
+      await next(found.length === batch || cleared < found.length ? phase : phase + 1);
       return null;
     }
 

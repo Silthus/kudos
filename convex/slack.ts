@@ -616,7 +616,7 @@ export const retireAdminMessages = internalAction({
   handler: async (ctx, { workspaceId, reward, messages }) => {
     const install = await ctx.runQuery(internal.slackData.installationForWorkspace, { workspaceId });
     if (!install) return null;
-    const text = `🗑️ A request for *${escapeMrkdwn(`${reward.emoji} ${reward.name}`)}* was withdrawn: the requester was removed from Kudos.`;
+    const text = `🗑️ This request for *${escapeMrkdwn(`${reward.emoji} ${reward.name}`)}* is gone: its requester was removed from Kudos.`;
     for (const { channel, ts } of messages) {
       const res = await slackApi(install.botToken, "chat.update", { channel, ts, text, blocks: [{ type: "section", text: verbatim(text) }] });
       if (!res.ok) console.warn(`Retiring the store DM ${channel}/${ts} failed: ${res.error}`);
