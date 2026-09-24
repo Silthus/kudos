@@ -84,7 +84,7 @@ function SlackMock() {
                   <p className="text-[15px] leading-relaxed">{drop.text}</p>
                   <div className="mt-3 flex items-center gap-2">
                     <RarityBadge rarity={drop.rarity} size="xs" />
-                    {drop.rarity !== "common" && <span className="text-xs text-muted">✨ New discovery! ({12 + i}/60)</span>}
+                    {drop.rarity !== "common" && <span className="text-xs text-muted">✨ New discovery! ({12 + i}/72)</span>}
                   </div>
                 </motion.div>
               </AnimatePresence>
@@ -98,7 +98,7 @@ function SlackMock() {
 
 const FEATURES = [
   { icon: Timer, title: "A daily allowance", body: "Everyone gets a handful of kudos per day. Scarcity makes each one mean something; unused ones vanish at midnight." },
-  { icon: Gem, title: "Collectible bot replies", body: "Every reply rolls a rarity, from Common to Legendary. Discover all 60 messages and brag about your gallery." },
+  { icon: Gem, title: "Collectible bot replies", body: "Every reply rolls a rarity, from Common to Legendary. Discover all 72 messages and brag about your gallery." },
   { icon: Trophy, title: "Leaderboards with momentum", body: "Weekly and monthly rankings, change vs the last period, and who used their full allowance." },
   { icon: Lock, title: "Giving first, privacy built in", body: "Received counts are private by default. Admins decide whether they're hidden, personal, or public." },
   { icon: BarChart3, title: "Analytics that matter", body: "Participation, allowance use, when and where recognition happens, and how concentrated giving is." },
@@ -227,7 +227,7 @@ export function Landing() {
               <Eyebrow>Drop rates</Eyebrow>
               <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight">Every reply is a roll of the dice</h2>
               <p className="mt-2 max-w-lg text-muted">
-                The bot answers givers and receivers with one of 60 messages. Rarer messages are funnier, and the game quietly favours ones you haven't seen yet.
+                The bot answers givers and receivers with one of 72 messages. Rarer messages are funnier, and the game quietly favours ones you haven't seen yet.
               </p>
             </div>
           </div>

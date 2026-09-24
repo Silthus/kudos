@@ -1,7 +1,10 @@
 import { v } from "convex/values";
 import { query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
+import { rarityValidator } from "./schema";
 import { requireViewer } from "./lib/access";
+import type { Rollups } from "./lib/rollups";
+import { emojiVars, sendBotMessage } from "./engine";
 import {
   type GivenFact,
   type QuestFacts,
@@ -218,27 +221,79 @@ async function boardStatus(
 }
 
 /**
- * Keeps the clean-sweep flag true on exactly one completion (the latest) while the board is swept,
- * and on none otherwise. A waiver can close or reopen the board without a new completion.
+ * Keeps the clean-sweep flag true on exactly one completion while the board is swept, and on none
+ * otherwise: a completion that just cleared the board (`clearedBy`) takes it, else the flag stays
+ * where it is, else it goes to the latest. A waiver can close or reopen the board without a new
+ * completion; a reopened board that is cleared again is a new sweep (with its own Rare-or-better
+ * Quest message). Returns the flagged completion, if any.
  */
-async function syncSweep(ctx: MutationCtx, completions: Doc<"questCompletions">[], swept: boolean) {
+async function syncSweep(
+  ctx: MutationCtx,
+  completions: Doc<"questCompletions">[],
+  swept: boolean,
+  clearedBy?: Doc<"questCompletions">,
+) {
   const latest = completions.reduce<Doc<"questCompletions"> | null>((l, c) => (!l || c.completedAt >= l.completedAt ? c : l), null);
-  const keep = swept ? (completions.find((c) => c.sweep) ?? latest) : null;
+  const keep = swept ? (clearedBy ?? completions.find((c) => c.sweep) ?? latest) : null;
   for (const c of completions) {
     const sweep = c._id === keep?._id;
     if (c.sweep !== sweep) await ctx.db.patch(c._id, { sweep });
   }
+  return keep;
 }
 
 /**
- * Called from `giveKudos` after a batch with a Note: records newly met quests for the giver.
- * One Convex mutation is one serializable transaction, so the lookup-then-insert can't duplicate.
+ * The reward for a completion: a rarity-rolled Quest message (Rare or better when it cleared the
+ * board), collected like any bot message. It is only sent when the workspace sends giver DMs.
  */
-export async function onKudosGiven(ctx: MutationCtx, workspace: Doc<"workspaces">, giver: Doc<"members">, now: number) {
+async function rewardCompletion(
+  ctx: MutationCtx,
+  workspace: Doc<"workspaces">,
+  giver: Doc<"members">,
+  completion: Doc<"questCompletions">,
+  progress: { completed: number; available: number; sweep: boolean },
+  now: number,
+  rollups?: Rollups,
+) {
+  const emoji = emojiVars(workspace);
+  const quest = QUEST_BY_KEY[completion.questKey as QuestKey].title;
+  const id = await sendBotMessage(
+    ctx,
+    workspace,
+    giver,
+    "quest_complete",
+    {
+      slack: { quest, emoji: emoji.slack, user: `<@${giver.slackUserId}>` },
+      web: { quest, emoji: emoji.web, user: giver.name },
+    },
+    now,
+    {
+      rollups,
+      minRarity: progress.sweep ? "rare" : undefined,
+      skipDelivery: !workspace.notifyGiver,
+      questProgress: progress,
+    },
+  );
+  await ctx.db.patch(completion._id, { notificationId: id });
+  return id;
+}
+
+/**
+ * Called from `giveKudos` after a batch with a Note: records newly met quests for the giver and
+ * rewards each with a Quest message. One Convex mutation is one serializable transaction, so the
+ * lookup-then-insert can't duplicate. Returns the Quest messages to deliver.
+ */
+export async function onKudosGiven(
+  ctx: MutationCtx,
+  workspace: Doc<"workspaces">,
+  giver: Doc<"members">,
+  now: number,
+  rollups?: Rollups,
+): Promise<Id<"notifications">[]> {
   const weekKey = weekKeyFor(now, workspace.timezone);
   const board = await ensureBoard(ctx, workspace, weekKey);
   const { merged, completions } = await boardStatus(ctx, workspace, giver, weekKey, board);
-  const all = [...completions];
+  const created: Doc<"questCompletions">[] = [];
   for (const r of merged) {
     if (!r.done || completions.some((c) => c.questKey === r.key)) continue;
     const id = await ctx.db.insert("questCompletions", {
@@ -249,9 +304,19 @@ export async function onKudosGiven(ctx: MutationCtx, workspace: Doc<"workspaces"
       completedAt: now,
       sweep: false,
     });
-    all.push((await ctx.db.get(id))!);
+    created.push((await ctx.db.get(id))!);
   }
-  await syncSweep(ctx, all, isCleanSweep(merged));
+  const sweep = await syncSweep(ctx, [...completions, ...created], isCleanSweep(merged), created.at(-1));
+
+  // Several quests met by one message count up one by one, so the last one is the one that clears the board.
+  const available = merged.filter((r) => !r.waived).length;
+  let completed = merged.filter((r) => r.done).length - created.length;
+  const ids: Id<"notifications">[] = [];
+  for (const c of created) {
+    completed++;
+    ids.push(await rewardCompletion(ctx, workspace, giver, c, { completed, available, sweep: c._id === sweep?._id }, now, rollups));
+  }
+  return workspace.notifyGiver ? ids : [];
 }
 
 /**
@@ -306,6 +371,8 @@ export const mine = query({
           status: questStatus,
           waivedReason: v.union(v.null(), v.literal("no_candidates"), v.literal("privacy"), v.literal("too_new")),
           completedAt: v.union(v.null(), v.number()),
+          /** Rarity of the Quest message this completion earned (null while not done). */
+          messageRarity: v.union(v.null(), rarityValidator),
         }),
       ),
       completed: v.number(),
@@ -318,6 +385,11 @@ export const mine = query({
     const weekKey = weekKeyOfDay(parseToday(today));
     const board = await resolveBoard(ctx, workspace, weekKey);
     const { merged, completions } = await boardStatus(ctx, workspace, member, weekKey, board);
+    const messages = new Map<string, Doc<"notifications">["rarity"]>();
+    for (const c of completions) {
+      const note = c.notificationId && (await ctx.db.get(c.notificationId));
+      if (note) messages.set(c.questKey, note.rarity);
+    }
     const quests = merged.map((r) => {
       const q = QUEST_BY_KEY[r.key];
       return {
@@ -330,6 +402,7 @@ export const mine = query({
         status: r.done ? ("done" as const) : r.waived ? ("waived" as const) : ("active" as const),
         waivedReason: r.waived,
         completedAt: (r.done && completions.find((c) => c.questKey === r.key)?.completedAt) || null,
+        messageRarity: (r.done && messages.get(r.key)) || null,
       };
     });
     return {

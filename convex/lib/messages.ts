@@ -29,6 +29,7 @@ export const CATEGORY_LABEL: Record<Category, string> = {
   limit_reached: "Limit reached",
   allowance_status: "Allowance check",
   self_kudos: "Self kudos",
+  quest_complete: "Quest complete",
 };
 
 export type Template = { key: string; category: Category; rarity: Rarity; text: string };
@@ -150,6 +151,29 @@ const CATALOG_SOURCE: Record<Category, Tiered> = {
       "🏛️ The Council of Kudos has convened and ruled: you cannot knight yourself. Go make someone else's day.",
     ],
   },
+  // Only ever sent for a quest completion (never bought, never rolled by anything else).
+  quest_complete: {
+    common: [
+      "Quest complete: {quest}. That's how recognition spreads.",
+      "{quest}: done. Someone's week got better because of you.",
+      "You finished {quest}. The team noticed, even if they didn't say so.",
+      "Checked off: {quest}. Thoughtful {emoji} beat loud {emoji} every time.",
+      "{quest} complete. Keep noticing the good stuff.",
+    ],
+    uncommon: [
+      "Quest log updated: {quest} ✔. Your recognition radar is well calibrated.",
+      "{quest} cleared. Somewhere a teammate is re-reading your note.",
+      "No trophies here, just this: {quest} is done and it mattered.",
+    ],
+    rare: [
+      "🧭 Explorer's note: {quest} completed. You found the people others walk past.",
+      "🌱 {quest} complete. Small {emoji}, planted in the right places, grow whole cultures.",
+    ],
+    epic: ["🗺️ Epic quest log entry: {user} completed {quest}. The map of who-helped-whom just got wider."],
+    legendary: [
+      "🏰 The Guild of Gratitude records it in gold: {user} has completed {quest}. The bards are warming up.",
+    ],
+  },
 };
 
 const CATEGORY_PREFIX: Record<Category, string> = {
@@ -158,6 +182,7 @@ const CATEGORY_PREFIX: Record<Category, string> = {
   limit_reached: "limit",
   allowance_status: "allowance",
   self_kudos: "self",
+  quest_complete: "quest",
 };
 
 export const CATALOG: Template[] = (Object.keys(CATALOG_SOURCE) as Category[]).flatMap((category) =>
@@ -173,14 +198,16 @@ export const CATALOG: Template[] = (Object.keys(CATALOG_SOURCE) as Category[]).f
 
 export const TEMPLATE_BY_KEY = new Map(CATALOG.map((t) => [t.key, t]));
 
-export function rollRarity(random: () => number = Math.random): Rarity {
-  const total = RARITIES.reduce((s, r) => s + RARITY_WEIGHTS[r], 0);
+/** Rolls a weighted rarity; a `minRarity` floor rolls only over it and the rarer ones, keeping their weights. */
+export function rollRarity(random: () => number = Math.random, minRarity: Rarity = "common"): Rarity {
+  const tiers = RARITIES.slice(RARITIES.indexOf(minRarity));
+  const total = tiers.reduce((s, r) => s + RARITY_WEIGHTS[r], 0);
   let roll = random() * total;
-  for (const r of RARITIES) {
+  for (const r of tiers) {
     roll -= RARITY_WEIGHTS[r];
     if (roll < 0) return r;
   }
-  return "common";
+  return minRarity;
 }
 
 /**
@@ -191,8 +218,9 @@ export function pickTemplate(
   category: Category,
   discovered: Set<string>,
   random: () => number = Math.random,
+  { minRarity }: { minRarity?: Rarity } = {},
 ): Template {
-  const rarity = rollRarity(random);
+  const rarity = rollRarity(random, minRarity);
   const pool = CATALOG.filter((t) => t.category === category && t.rarity === rarity);
   const fresh = pool.filter((t) => !discovered.has(t.key));
   const source = fresh.length > 0 && random() < 0.65 ? fresh : pool;
@@ -201,7 +229,7 @@ export function pickTemplate(
 
 export type TemplateVars = Partial<
   Record<
-    "giver" | "recipients" | "amount" | "emoji" | "remaining" | "limit" | "channel" | "user" | "requested",
+    "giver" | "recipients" | "amount" | "emoji" | "remaining" | "limit" | "channel" | "user" | "requested" | "quest",
     string | number
   >
 >;

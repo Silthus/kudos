@@ -7,10 +7,19 @@ import { useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "r
 import { api } from "../../convex/_generated/api";
 import { Avatar, Button, Card, Eyebrow, PageHeader, RarityBadge } from "@/components/ui";
 import { useWorkspaceToday } from "@/lib/period";
-import { RARITY_META, type Rarity } from "@/lib/rarity";
+import { CATEGORY_LABEL, RARITY_META, type Rarity } from "@/lib/rarity";
 import { useViewer } from "@/lib/viewer";
 
-type BotMessage = { _id: string; to: string; toMe: boolean; category: string; rarity: string; text: string; isNewDiscovery: boolean };
+type BotMessage = {
+  _id: string;
+  to: string;
+  toMe: boolean;
+  category: string;
+  rarity: string;
+  text: string;
+  isNewDiscovery: boolean;
+  questProgress?: { completed: number; available: number; sweep: boolean };
+};
 type Outcome = "given" | "limit" | "invalid";
 type FeedItem = {
   id: string;
@@ -400,11 +409,19 @@ export function Playground() {
                     className={clsx("relative rounded-2xl bg-ink/60 p-4 ring-1 ring-inset", meta.ring, meta.glow)}
                   >
                     {m.isNewDiscovery && (m.rarity === "legendary" || m.rarity === "epic" || m.rarity === "rare") && <Burst color={meta.color} />}
-                    <div className="mb-1.5 text-[11px] text-faint">{m.toMe ? "To you" : `To ${m.to} (they'll get this DM)`} · {m.category.replace("_", " ")}</div>
+                    <div className="mb-1.5 text-[11px] text-faint">{m.toMe ? "To you" : `To ${m.to} (they'll get this DM)`} · {CATEGORY_LABEL[m.category] ?? m.category}</div>
                     <p className="text-[15px] leading-relaxed">{m.text}</p>
-                    <div className="mt-3 flex items-center gap-2">
+                    <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5">
                       <RarityBadge rarity={m.rarity as Rarity} size="xs" />
-                      {m.isNewDiscovery && <span className="text-xs font-medium text-saffron">✨ New discovery!</span>}
+                      {m.isNewDiscovery && <span className="text-xs font-medium whitespace-nowrap text-saffron">✨ New discovery!</span>}
+                      {m.questProgress && (
+                        <span className="text-xs whitespace-nowrap text-muted">
+                          {m.questProgress.completed} of {m.questProgress.available} quests this week
+                        </span>
+                      )}
+                      {m.questProgress?.sweep && (
+                        <span className="rounded-full bg-up/15 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-up">Clean sweep 🧹</span>
+                      )}
                     </div>
                   </motion.div>
                 );

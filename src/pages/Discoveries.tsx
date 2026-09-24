@@ -3,11 +3,12 @@ import { useQuery } from "convex/react";
 import { AnimatePresence, motion } from "motion/react";
 import { Lock } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import { api } from "../../convex/_generated/api";
 import { MessageText } from "@/components/MessageText";
 import { BigNumber, Card, Eyebrow, PageHeader, PageSkeleton, Progress, RarityBadge, Segmented } from "@/components/ui";
 import { relativeTime } from "@/lib/format";
-import { RARITY_META, RARITY_ORDER, type Rarity } from "@/lib/rarity";
+import { CATEGORY_HINT, RARITY_META, RARITY_ORDER, type Rarity } from "@/lib/rarity";
 import { useViewer } from "@/lib/viewer";
 
 type Filter = "all" | "found" | "hidden";
@@ -16,7 +17,8 @@ export function Discoveries() {
   const viewer = useViewer();
   const data = useQuery(api.discoveries.gallery);
   const [rarity, setRarity] = useState<Rarity | "all">("all");
-  const [category, setCategory] = useState<string>("all");
+  const [params] = useSearchParams();
+  const [category, setCategory] = useState<string>(() => params.get("category") ?? "all"); // deep link, e.g. from a quest
   const [filter, setFilter] = useState<Filter>("all");
 
   const items = useMemo(() => {
@@ -36,7 +38,7 @@ export function Discoveries() {
       <PageHeader
         eyebrow="Message gallery"
         title="Discoveries"
-        subtitle="Every bot reply in Slack is drawn from this collection, with rarer messages showing up less often. Give and receive kudos to uncover them all."
+        subtitle="Every bot reply in Slack is drawn from this collection, with rarer messages showing up less often. Give and receive kudos, and complete weekly quests, to uncover them all."
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_1fr]">
@@ -129,7 +131,7 @@ export function Discoveries() {
                           <div key={n} className="h-3 rounded-full bg-panel-3" style={{ width: n === arr.length - 1 ? "55%" : "100%" }} />
                         ))}
                         <div className="mt-1 flex items-center gap-1.5 text-xs text-faint">
-                          <Lock className="h-3 w-3" /> Not discovered yet
+                          <Lock className="h-3 w-3" /> {CATEGORY_HINT[i.category] ?? "Not discovered yet"}
                         </div>
                       </div>
                     )}

@@ -35,7 +35,14 @@ export const categoryValidator = v.union(
   v.literal("limit_reached"),
   v.literal("allowance_status"),
   v.literal("self_kudos"),
+  v.literal("quest_complete"), // Quest messages: only ever earned by completing a quest
 );
+
+export const questProgressValidator = v.object({
+  completed: v.number(), // done quests on the week's board
+  available: v.number(), // quests on the board that aren't waived
+  sweep: v.boolean(), // this completion cleared the board
+});
 
 export const receivedVisibilityValidator = v.union(
   v.literal("hidden"), // nobody sees received counts (giving-first culture)
@@ -301,6 +308,10 @@ export default defineSchema({
       v.literal("failed"),
     ),
     error: v.optional(v.string()),
+    // Messages the member had collected right after this one (absent on older rows).
+    collected: v.optional(v.number()),
+    // Quest messages only: the quest week as it stood right after this completion, for the DM.
+    questProgress: v.optional(questProgressValidator),
   }).index("by_member", ["memberId"]),
 
   // Rewards Store catalog. Archived, never deleted: redemptions link back to them.

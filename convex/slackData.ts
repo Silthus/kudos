@@ -8,7 +8,7 @@ import { DEFAULT_SETTINGS } from "./lib/settings";
 import { balanceOf, MAX_ACTIVE_REWARDS, storeOpen } from "./lib/store";
 import { activeRewards, openRedemptionCount, ownDecisionBlocker, transitionRedemption } from "./store";
 import { openRequestCount } from "./storeAdmin";
-import { redemptionStatusValidator } from "./schema";
+import { questProgressValidator, redemptionStatusValidator } from "./schema";
 import { rewardLine, siteUrl } from "./lib/slack";
 import { addDays, dayKeyFor, weekdayOfKey } from "./lib/time";
 import { weekBucket } from "./lib/buckets";
@@ -286,6 +286,7 @@ export const notificationsForDelivery = internalQuery({
       isNewDiscovery: v.boolean(),
       discoveredCount: v.number(),
       delivery: v.string(),
+      questProgress: v.optional(questProgressValidator),
     }),
   ),
   handler: async (ctx, { ids }) => {
@@ -295,10 +296,13 @@ export const notificationsForDelivery = internalQuery({
       if (!n) continue;
       const member = await ctx.db.get(n.memberId);
       if (!member) continue;
-      const discovered = await ctx.db
-        .query("discoveries")
-        .withIndex("by_member_template", (q) => q.eq("memberId", member._id))
-        .take(500);
+      // Older rows don't know their count: fall back to the collection as it is now.
+      const discoveredCount =
+        n.collected ??
+        (await ctx.db
+          .query("discoveries")
+          .withIndex("by_member_template", (q) => q.eq("memberId", member._id))
+          .take(500)).length;
       out.push({
         _id: n._id,
         slackUserId: member.slackUserId,
@@ -306,8 +310,9 @@ export const notificationsForDelivery = internalQuery({
         rarity: n.rarity,
         category: n.category,
         isNewDiscovery: n.isNewDiscovery,
-        discoveredCount: discovered.length,
+        discoveredCount,
         delivery: n.delivery,
+        ...(n.questProgress ? { questProgress: n.questProgress } : {}),
       });
     }
     return out;
