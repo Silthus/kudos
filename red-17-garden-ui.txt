@@ -1,0 +1,63 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af06d2b09aefa51d5
+
+ ❯ src/pages/Garden.test.tsx (11 tests | 3 failed) 150ms
+   ❯ the garden boosters (#97) (4)
+     × a plant waiting on age takes a Sunlamp when you have one 11ms
+     × a lantern shows its note and who hung it, and the owner can take it down 10ms
+     × in a teammate's garden a plant without a lantern can take yours, with a one-line note 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/pages/Garden.test.tsx > the garden boosters (#97) > a plant waiting on age takes a Sunlamp when you have one
+TypeError: Cannot read properties of undefined (reading 'click')
+ ❯ src/pages/Garden.test.tsx:77:62
+     75|   return host;
+     76| }
+     77| const click = (el: Element) => act(() => (el as HTMLElement).click());
+       |                                                              ^
+     78| const button = (name: string) => [...document.querySelectorAll("button…
+     79| const text = () => document.body.textContent ?? "";
+ ❯ Proxy.process.env.NODE_ENV.exports.act node_modules/react/cjs/react.development.js:890:22
+ ❯ click src/pages/Garden.test.tsx:77:32
+ ❯ src/pages/Garden.test.tsx:193:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/pages/Garden.test.tsx > the garden boosters (#97) > a lantern shows its note and who hung it, and the owner can take it down
+AssertionError: expected 'Your gameYour gardenGrow a plant for …' to contain 'Lantern from Cleo: “Keep growing!”'
+
+Expected: "Lantern from Cleo: “Keep growing!”"
+Received: "Your gameYour gardenGrow a plant for a teammate you recognise. It grows each week you thank them with a few words on why, and it never dies.No fruit waitingA Grown plant fruits daily while you've thanked its teammate in the last 14 days, and holds 3. This week from fruit: 0 of 14 Hog coins · 0 of 21 XP.Pick fruit1 plant · 1 plot28 Hog coinsHelpful oakfor BenSapling2 of 4 waterings · 12 of 21 days to Young"
+
+ ❯ src/pages/Garden.test.tsx:208:20
+    206|     mine = { ...empty, plants: [growing({ sunlamp: false, lantern: { n…
+    207|     render();
+    208|     expect(text()).toContain("Lantern from Cleo: “Keep growing!”");
+       |                    ^
+    209|     click(button("Take down Cleo's lantern")!);
+    210|     expect(takeDownLantern).toHaveBeenCalledWith({ plantId: "p1" });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/pages/Garden.test.tsx > the garden boosters (#97) > in a teammate's garden a plant without a lantern can take yours, with a one-line note
+TypeError: Cannot read properties of undefined (reading 'click')
+ ❯ src/pages/Garden.test.tsx:77:62
+     75|   return host;
+     76| }
+     77| const click = (el: Element) => act(() => (el as HTMLElement).click());
+       |                                                              ^
+     78| const button = (name: string) => [...document.querySelectorAll("button…
+     79| const text = () => document.body.textContent ?? "";
+ ❯ Proxy.process.env.NODE_ENV.exports.act node_modules/react/cjs/react.development.js:890:22
+ ❯ click src/pages/Garden.test.tsx:77:32
+ ❯ src/pages/Garden.test.tsx:218:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 8 passed (11)
+   Start at  17:31:42
+   Duration  908ms (import 34%, environment 24%, transform 22%, tests 19%)
+

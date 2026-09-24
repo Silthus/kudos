@@ -1,0 +1,120 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af06d2b09aefa51d5
+
+ ❯ tests/garden-boosters.test.ts (11 tests | 5 failed) 678ms
+   ❯ the Sunlamp (4)
+     × skips 5 days of a plant's minimum-age wait: a Seed waiting on age sprouts at once 139ms
+   ❯ the Lantern (7)
+     × one line, 80 characters at most, never on your own plant, and one lit lantern a plant 26ms
+     × the teammate it's for and admins can take a lantern down too, and it can't go straight back up (review #1) 11ms
+     × never from the teammate the plant is for (it would give away whose it is), nor on a plant for someone who left (review #2, #4) 9ms
+     × a note of invisible characters is no note (review #6), and a lantern from someone deactivated goes out 7ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/garden-boosters.test.ts > the Sunlamp > skips 5 days of a plant's minimum-age wait: a Seed waiting on age sprouts at once
+AssertionError: expected { awakeDays: 1, dormant: false, …(14) } to match object { stage: 'sprout', …(2) }
+(16 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "awakeDays": 6,
++   "awakeDays": 1,
+    "stage": "sprout",
+    "sunlamp": false,
+  }
+
+ ❯ tests/garden-boosters.test.ts:86:30
+     84|     garden = await myPlant(team.ana);
+     85|     if (!garden.open) throw new Error("closed");
+     86|     expect(garden.plants[0]).toMatchObject({ stage: "sprout", sunlamp:…
+       |                              ^
+     87|     expect(await (await as(team.ana)).query(api.game.mine, {})).toMatc…
+     88|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  tests/garden-boosters.test.ts > the Lantern > one line, 80 characters at most, never on your own plant, and one lit lantern a plant
+Error: Validator error: Unexpected field `today` in object
+ ❯ validateValidator node_modules/convex-test/dist/index.js:926:27
+    924|             for (const k of Object.keys(value)) {
+    925|                 if (validator.value[k] === undefined) {
+    926|                     throw new Error(`Validator error: Unexpected field…
+       |                           ^
+    927|                 }
+    928|             }
+ ❯ validateFunctionArgs node_modules/convex-test/dist/index.js:2337:5
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2086:17
+ ❯ query node_modules/convex-test/dist/index.js:2172:20
+ ❯ tests/garden-boosters.test.ts:144:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  tests/garden-boosters.test.ts > the Lantern > the teammate it's for and admins can take a lantern down too, and it can't go straight back up (review #1)
+ConvexError: That plant isn't in your garden.
+ ❯ handler convex/gardens.ts:649:55
+    647|     const { member } = await requireViewer(ctx);
+    648|     const plant = await ctx.db.get(plantId);
+    649|     if (!plant || plant.ownerId !== member._id) throw new ConvexError(…
+       |                                                       ^
+    650|     await ctx.db.patch(plantId, { lantern: undefined, lanternBy: undef…
+    651|     return null;
+ ❯ invokeFunction node_modules/convex/src/server/impl/registration_impl.ts:90:14
+ ❯ invokeMutation node_modules/convex/src/server/impl/registration_impl.ts:70:18
+ ❯ runMutationWithHandler node_modules/convex-test/dist/index.js:1989:31
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2133:32
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/garden-boosters.test.ts:159:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  tests/garden-boosters.test.ts > the Lantern > never from the teammate the plant is for (it would give away whose it is), nor on a plant for someone who left (review #2, #4)
+AssertionError: promise resolved "null" instead of rejecting
+
+- Expected:
+Error {
+  "message": "rejected promise",
+}
+
++ Received:
+null
+
+ ❯ tests/garden-boosters.test.ts:174:98
+    172|     const plantId = await anasPlantForBen();
+    173|     await buy(team.ben, "lantern");
+    174|     await expect((await as(team.ben)).mutation(api.gardens.hangLantern…
+       |                                                                                                  ^
+    175|     await buy(team.cleo, "lantern");
+    176|     await t.run((ctx) => ctx.db.patch(team.ben, { deactivated: true })…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  tests/garden-boosters.test.ts > the Lantern > a note of invisible characters is no note (review #6), and a lantern from someone deactivated goes out
+AssertionError: promise resolved "null" instead of rejecting
+
+- Expected:
+Error {
+  "message": "rejected promise",
+}
+
++ Received:
+null
+
+ ❯ tests/garden-boosters.test.ts:186:84
+    184|     await buy(team.cleo, "lantern");
+    185|     const cleo = await as(team.cleo);
+    186|     await expect(cleo.mutation(api.gardens.hangLantern, { plantId, not…
+       |                                                                                    ^
+    187|     await cleo.mutation(api.gardens.hangLantern, { plantId, note: `hi‮…
+    188|     expect((await (await as(team.ana)).query(api.gardens.of, { memberI…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 6 passed (11)
+   Start at  17:46:30
+   Duration  1.06s (tests 70%, transform 14%, import 11%, environment 4%)
+

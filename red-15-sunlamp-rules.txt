@@ -1,0 +1,61 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af06d2b09aefa51d5
+
+ ❯ convex/lib/garden.test.ts (28 tests | 3 failed) 21ms
+   ❯ the Sunlamp (#97, §G10): skips 5 days of the minimum-age wait, never a watering (4)
+     × from the day it's used, the plant counts 5 days older: Grown on day 42 instead of 45 6ms
+     × the day the next stage comes moves 5 days sooner 2ms
+     × helps only a plant waiting on age for its next stage 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  convex/lib/garden.test.ts > the Sunlamp (#97, §G10): skips 5 days of the minimum-age wait, never a watering > from the day it's used, the plant counts 5 days older: Grown on day 42 instead of 45
+AssertionError: expected 'young' to be 'grown' // Object.is equality
+
+Expected: "grown"
+Received: "young"
+
+ ❯ convex/lib/garden.test.ts:93:116
+     91|
+     92|   test("from the day it's used, the plant counts 5 days older: Grown o…
+     93|     expect(stageOn({ plantedDay: "2026-01-05", waterings: six, day: "2…
+       |                                                                                                                    ^
+     94|     expect(stageOn({ plantedDay: "2026-01-05", waterings: six, day: "2…
+     95|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  convex/lib/garden.test.ts > the Sunlamp (#97, §G10): skips 5 days of the minimum-age wait, never a watering > the day the next stage comes moves 5 days sooner
+AssertionError: expected '2026-04-05' to be '2026-03-31' // Object.is equality
+
+Expected: "2026-03-31"
+Received: "2026-04-05"
+
+ ❯ convex/lib/garden.test.ts:100:124
+     98|     const ten = weekly("2026-01-12", 10);
+     99|     expect(plantState({ plantedDay: "2026-01-05", waterings: ten, toda…
+    100|     expect(plantState({ plantedDay: "2026-01-05", waterings: ten, toda…
+       |                                                                                                                            ^
+    101|   });
+    102|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  convex/lib/garden.test.ts > the Sunlamp (#97, §G10): skips 5 days of the minimum-age wait, never a watering > helps only a plant waiting on age for its next stage
+TypeError: sunlampHelps is not a function
+ ❯ convex/lib/garden.test.ts:108:12
+    106|
+    107|   test("helps only a plant waiting on age for its next stage", () => {
+    108|     expect(sunlampHelps({ plantedDay: "2026-01-05", waterings: six, to…
+       |            ^
+    109|     expect(sunlampHelps({ plantedDay: "2026-01-05", waterings: six.sli…
+    110|     expect(sunlampHelps({ plantedDay: "2026-01-05", waterings: six, to…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 25 passed (28)
+   Start at  17:28:03
+   Duration  311ms (transform 53%, environment 22%, import 13%, tests 10%, worker 2%)
+

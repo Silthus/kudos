@@ -1,0 +1,113 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af06d2b09aefa51d5
+
+ ❯ tests/garden-boosters.test.ts (8 tests | 7 failed) 471ms
+   ❯ the Sunlamp (4)
+     × is bought in the Store and kept until it's used 247ms
+     × skips 5 days of a plant's minimum-age wait: a Seed waiting on age sprouts at once 176ms
+     × never stands in for a watering, and only works in your own garden 8ms
+   ❯ the Lantern (4)
+     × hangs a one-line note on a teammate's plant, for everyone who sees it, with who hung it 7ms
+     × one line, 80 characters at most, never on your own plant, and one lit lantern a plant 5ms
+     × the plant's owner can take a lantern down 4ms
+     × goes out when the member who hung it is removed 6ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/garden-boosters.test.ts > the Sunlamp > is bought in the Store and kept until it's used
+TypeError: Cannot destructure property 'price' of 'shop.items.find(...)' as it is undefined.
+ ❯ buy tests/garden-boosters.test.ts:61:11
+     59|   const shop = await member.query(api.store.shop, { today: today() });
+     60|   if (shop.access !== "open") throw new Error(shop.access);
+     61|   const { price } = shop.items.find((i) => i.key === item)!;
+       |           ^
+     62|   return await member.mutation(api.store.buyItem, { item, expectedPric…
+     63| }
+ ❯ tests/garden-boosters.test.ts:70:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  tests/garden-boosters.test.ts > the Sunlamp > skips 5 days of a plant's minimum-age wait: a Seed waiting on age sprouts at once
+TypeError: Cannot destructure property 'price' of 'shop.items.find(...)' as it is undefined.
+ ❯ buy tests/garden-boosters.test.ts:61:11
+     59|   const shop = await member.query(api.store.shop, { today: today() });
+     60|   if (shop.access !== "open") throw new Error(shop.access);
+     61|   const { price } = shop.items.find((i) => i.key === item)!;
+       |           ^
+     62|   return await member.mutation(api.store.buyItem, { item, expectedPric…
+     63| }
+ ❯ tests/garden-boosters.test.ts:79:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  tests/garden-boosters.test.ts > the Sunlamp > never stands in for a watering, and only works in your own garden
+TypeError: Cannot destructure property 'price' of 'shop.items.find(...)' as it is undefined.
+ ❯ buy tests/garden-boosters.test.ts:61:11
+     59|   const shop = await member.query(api.store.shop, { today: today() });
+     60|   if (shop.access !== "open") throw new Error(shop.access);
+     61|   const { price } = shop.items.find((i) => i.key === item)!;
+       |           ^
+     62|   return await member.mutation(api.store.buyItem, { item, expectedPric…
+     63| }
+ ❯ tests/garden-boosters.test.ts:94:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  tests/garden-boosters.test.ts > the Lantern > hangs a one-line note on a teammate's plant, for everyone who sees it, with who hung it
+TypeError: Cannot destructure property 'price' of 'shop.items.find(...)' as it is undefined.
+ ❯ buy tests/garden-boosters.test.ts:61:11
+     59|   const shop = await member.query(api.store.shop, { today: today() });
+     60|   if (shop.access !== "open") throw new Error(shop.access);
+     61|   const { price } = shop.items.find((i) => i.key === item)!;
+       |           ^
+     62|   return await member.mutation(api.store.buyItem, { item, expectedPric…
+     63| }
+ ❯ tests/garden-boosters.test.ts:117:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  tests/garden-boosters.test.ts > the Lantern > one line, 80 characters at most, never on your own plant, and one lit lantern a plant
+TypeError: Cannot destructure property 'price' of 'shop.items.find(...)' as it is undefined.
+ ❯ buy tests/garden-boosters.test.ts:61:11
+     59|   const shop = await member.query(api.store.shop, { today: today() });
+     60|   if (shop.access !== "open") throw new Error(shop.access);
+     61|   const { price } = shop.items.find((i) => i.key === item)!;
+       |           ^
+     62|   return await member.mutation(api.store.buyItem, { item, expectedPric…
+     63| }
+ ❯ tests/garden-boosters.test.ts:133:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  tests/garden-boosters.test.ts > the Lantern > the plant's owner can take a lantern down
+TypeError: Cannot destructure property 'price' of 'shop.items.find(...)' as it is undefined.
+ ❯ buy tests/garden-boosters.test.ts:61:11
+     59|   const shop = await member.query(api.store.shop, { today: today() });
+     60|   if (shop.access !== "open") throw new Error(shop.access);
+     61|   const { price } = shop.items.find((i) => i.key === item)!;
+       |           ^
+     62|   return await member.mutation(api.store.buyItem, { item, expectedPric…
+     63| }
+ ❯ tests/garden-boosters.test.ts:153:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+ FAIL  tests/garden-boosters.test.ts > the Lantern > goes out when the member who hung it is removed
+TypeError: Cannot destructure property 'price' of 'shop.items.find(...)' as it is undefined.
+ ❯ buy tests/garden-boosters.test.ts:61:11
+     59|   const shop = await member.query(api.store.shop, { today: today() });
+     60|   if (shop.access !== "open") throw new Error(shop.access);
+     61|   const { price } = shop.items.find((i) => i.key === item)!;
+       |           ^
+     62|   return await member.mutation(api.store.buyItem, { item, expectedPric…
+     63| }
+ ❯ tests/garden-boosters.test.ts:164:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 1 passed (8)
+   Start at  17:29:26
+   Duration  926ms (tests 57%, transform 21%, import 16%, environment 5%)
+
