@@ -927,6 +927,8 @@ export const resetDemoWorkspace = internalMutation({
         isAdmin: m.slackUserId === DEMO_YOU || m.slackUserId === DEMO_LENA,
         storeSpent: undefined,
         storeGranted: undefined,
+        coinsSpent: undefined,
+        coinsAdjusted: undefined,
         gameHidden: undefined,
       });
     }

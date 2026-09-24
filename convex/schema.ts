@@ -56,6 +56,7 @@ export const xpItemKindValidator = v.union(
 /** What a kudos earned its giver, itemised for the earnings reply (lib/xp.ts `earningsText`). */
 export const earningsValidator = v.object({
   xp: v.number(), // after the daily cap
+  coins: v.optional(v.number()), // Hog coins it earned; only once the giver's wallet is open (level 3)
   bonuses: v.array(v.object({ kind: xpItemKindValidator, xp: v.number() })), // everything but base/thin, before the cap
   capped: v.boolean(), // the daily cap cut something
   noReason: v.boolean(), // some recipient got a kudos without a reason
@@ -191,6 +192,8 @@ export default defineSchema({
     givenByWeekday: v.optional(v.array(v.number())), // 7 sums, Monday first
     storeSpent: v.optional(v.number()), // Σ cost of non-refunded redemptions; undefined = 0
     storeGranted: v.optional(v.number()), // Σ balance adjustments; undefined = 0
+    coinsSpent: v.optional(v.number()), // Hog coins spent (the Store, #91); undefined = 0
+    coinsAdjusted: v.optional(v.number()), // Σ ± admin adjustments of Hog coins (#91); undefined = 0
     gameHidden: v.optional(v.boolean()), // "Hide the game": no game UI or DMs for them; XP keeps accruing
     adminRemovedBy: v.optional(v.id("members")), // who last removed this member's admin role (four-eyes rule)
   })
@@ -359,6 +362,8 @@ export default defineSchema({
     since: v.number(), // their first kudos given while the game was on
     xp: v.number(), // sum of their gameEvents' xp; a revoke can take it below the level's floor
     level: v.number(), // the highest level reached: levels stay when a revoke takes XP back
+    // Hog coins earned by their gameEvents (lib/coins.ts); undefined = 0. Level-up coins follow from `level`.
+    coins: v.optional(v.number()),
   }).index("by_member", ["memberId"]),
 
   // The game ledger: what one kudos batch earned one member, written in the give transaction and
@@ -372,6 +377,7 @@ export default defineSchema({
     dayKey: v.string(), // the kudos' workspace day: daily caps and same-day decay
     at: v.number(),
     xp: v.number(), // give: the sum of its lines; receive: the row's receiving XP
+    coins: v.optional(v.number()), // Hog coins; give: the sum of its lines. Receiving never earns coins.
     // give: one line per recipient row (at most the daily allowance), kept even at 0 XP so later kudos decay
     lines: v.optional(
       v.array(
@@ -380,6 +386,7 @@ export default defineSchema({
           receiverId: v.id("members"),
           qualifying: v.boolean(),
           xp: v.number(),
+          coins: v.optional(v.number()), // 1 per kudos given when qualifying (lib/coins.ts lineCoins)
           items: v.array(v.object({ kind: xpItemKindValidator, xp: v.number() })),
         }),
       ),

@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "convex/react";
-import { Lock, Sprout } from "lucide-react";
+import { Coins, Lock, Sprout } from "lucide-react";
 import { api } from "../../convex/_generated/api";
+import type { CoinBalance } from "../../convex/lib/coins";
 import { nextLockedAreas, type LevelProgress } from "../../convex/lib/xp";
 import { Card, CardHeader, Progress } from "@/components/ui";
 
@@ -28,6 +29,39 @@ export function Locked({ title, level, how }: { title: string; level: number; ho
   );
 }
 
+/**
+ * The Hog coin wallet (§G4), from level 3: the balance and where it came from. Coins collected
+ * silently before level 3 are all in it the first time it appears.
+ */
+export function Wallet({ wallet }: { wallet: CoinBalance }) {
+  const sources = [
+    `${wallet.fromKudos} from thoughtful kudos`,
+    `${wallet.fromLevels} from level-ups`,
+    wallet.spent ? `${wallet.spent} spent` : null,
+    wallet.adjusted ? `${wallet.adjusted > 0 ? "+" : ""}${wallet.adjusted} by admins` : null,
+  ].filter(Boolean);
+  return (
+    <div
+      data-wallet
+      role="group"
+      aria-label={`Hog coins: ${wallet.balance}`}
+      className="flex items-start gap-3 rounded-xl border border-saffron/40 bg-saffron/5 px-3.5 py-3 text-sm"
+    >
+      <Coins className="mt-1 h-5 w-5 shrink-0 text-saffron" aria-hidden />
+      <div className="min-w-0">
+        <div className="flex items-baseline gap-2">
+          <span className="font-display text-2xl font-semibold text-cream tabular">{wallet.balance}</span>
+          <span className="font-medium text-cream/80">Hog coins</span>
+        </div>
+        <p className="mt-0.5 text-xs text-muted">{sources.join(" · ")}</p>
+        {wallet.balance < 0 && (
+          <p className="mt-1 text-xs text-muted">A revoked kudos took back coins it had earned. Spending waits until it's above zero again.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /** Your level, its title and how far it is to the next one. */
 export function LevelPanel({ progress }: { progress: LevelProgress }) {
   const span = progress.next === null ? 1 : progress.next - progress.floor;
@@ -50,8 +84,8 @@ export function LevelPanel({ progress }: { progress: LevelProgress }) {
 }
 
 /**
- * The game on your profile (Me): level, title and the next-level bar, the next areas ahead
- * (locked), and "Hide the game". Before a member's first kudos it only invites them to give.
+ * The game on your profile (Me): level, title and the next-level bar, the wallet from level 3, the
+ * next areas ahead (locked), and "Hide the game". Before a member's first kudos it only invites them to give.
  * Nothing at all while the workspace doesn't play the game.
  */
 export function GameCard({ glyph }: { glyph: string }) {
@@ -61,7 +95,7 @@ export function GameCard({ glyph }: { glyph: string }) {
   if (game.hidden) {
     return (
       <div className="flex items-center justify-between rounded-xl border border-line px-4 py-2.5 text-sm text-muted">
-        <span>The game is hidden. Your kudos still earn XP.</span>
+        <span>The game is hidden. Your kudos still earn XP and Hog coins.</span>
         <button type="button" className="font-medium text-saffron underline-offset-4 hover:underline" onClick={() => void setHidden({ hidden: false })}>
           Show the game
         </button>
@@ -84,6 +118,7 @@ export function GameCard({ glyph }: { glyph: string }) {
     );
   }
   const ahead = nextLockedAreas(game.player.level);
+  const wallet = game.wallet ?? null;
   return (
     <Card className="p-5">
       <div className="flex items-start justify-between gap-3">
@@ -92,8 +127,9 @@ export function GameCard({ glyph }: { glyph: string }) {
         </div>
         {hide}
       </div>
-      {ahead.length > 0 && (
+      {(wallet || ahead.length > 0) && (
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          {wallet && <Wallet wallet={wallet} />}
           {ahead.map((a) => (
             <Locked key={a.key} title={a.title} level={a.level} how={a.how} />
           ))}

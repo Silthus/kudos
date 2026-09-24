@@ -42,6 +42,32 @@ test("a player sees their level, title and the next-level bar, and only the next
   expect(host.textContent).not.toContain("Store");
 });
 
+const level3 = { level: 3, title: "Sprout", xp: 87, floor: 75, next: 175, toNext: 88, fraction: 12 / 100 };
+
+test("at level 3 the wallet appears with everything collected so far, and the next areas stay locked", () => {
+  mine = { enabled: true, hidden: false, player: level3, wallet: { balance: 28, fromKudos: 8, fromLevels: 20, spent: 0, adjusted: 0 } };
+  const host = render(<GameCard glyph="🌮" />);
+  const wallet = host.querySelector("[data-wallet]")!;
+  expect(wallet.getAttribute("aria-label")).toBe("Hog coins: 28");
+  expect(wallet.textContent).toContain("28");
+  expect(wallet.textContent).toContain("8 from thoughtful kudos · 20 from level-ups");
+  const locked = [...host.querySelectorAll("[data-locked]")].map((el) => el.getAttribute("aria-label"));
+  expect(locked).toEqual(["Store, opens at level 5", "Quests, opens at level 5"]);
+});
+
+test("below level 3 there is no wallet, only its locked tile", () => {
+  mine = { enabled: true, hidden: false, player: level2, wallet: null };
+  const host = render(<GameCard glyph="🌮" />);
+  expect(host.querySelector("[data-wallet]")).toBeNull();
+  expect(host.querySelector("[data-locked][aria-label^='Hog coins']")).not.toBeNull();
+});
+
+test("a balance a revoke took below zero says spending waits", () => {
+  mine = { enabled: true, hidden: false, player: level3, wallet: { balance: -2, fromKudos: 8, fromLevels: 20, spent: 30, adjusted: 0 } };
+  const host = render(<GameCard glyph="🌮" />);
+  expect(host.querySelector("[data-wallet]")!.textContent).toContain("Spending waits until it's above zero again");
+});
+
 test("at the top level there is no next level to show", () => {
   mine = { enabled: true, hidden: false, player: { level: 25, title: "Elder hog", xp: 15_000, floor: 14_850, next: null, toNext: null, fraction: 1 } };
   const host = render(<GameCard glyph="🌮" />);
@@ -67,6 +93,7 @@ test("hiding the game leaves only the way back", () => {
   mine = { enabled: true, hidden: true, player: level2 };
   host = render(<GameCard glyph="🌮" />);
   expect(host.textContent).not.toContain("Level 2");
+  expect(host.textContent).toContain("Your kudos still earn XP and Hog coins.");
   const show = [...host.querySelectorAll("button")].find((b) => b.textContent === "Show the game")!;
   act(() => show.click());
   expect(setHidden).toHaveBeenCalledWith({ hidden: false });

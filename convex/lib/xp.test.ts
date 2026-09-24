@@ -157,6 +157,14 @@ describe("the earnings reply", () => {
     expect(earningsText({ ...none, xp: 0 })).toBe("+0 XP · you've thanked them twice today already");
   });
 
+  test("shows Hog coins once the wallet is open, and a kudos without a reason is told that one with a reason earns coins", () => {
+    expect(earningsText({ ...none, xp: 10, coins: 2, bonuses: [{ kind: "new_connection", xp: 10 }] })).toBe("+10 XP · +2 Hog coins · new connection +10");
+    expect(earningsText({ ...none, xp: 10, coins: 1 })).toBe("+10 XP · +1 Hog coin");
+    expect(earningsText({ ...none, xp: 2, coins: 0, noReason: true })).toBe("+2 XP · a kudos with a reason (3+ words) earns coins");
+    expect(earningsText({ ...none, xp: 2, coins: 0, thankBack: true })).toBe("+2 XP · thanking back within 72 h earns less");
+    expect(earningsText({ ...none, xp: 0, coins: 1 })).toBe("+0 XP · +1 Hog coin · you've thanked them twice today already");
+  });
+
   test("the hint for a kudos without a reason works for reactions too", () => {
     expect(earningsText({ ...none, xp: 2, noReason: true })).not.toMatch(/react/i);
   });

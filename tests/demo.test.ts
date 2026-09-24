@@ -98,15 +98,27 @@ describe("the demo plays the game", () => {
       channelName: "general",
     });
     const reply = res.messages.find((m) => m.category === "giver_success");
-    expect(reply?.earnings).toMatch(/^\+\d+ XP/);
+    expect(reply?.earnings).toMatch(/^\+\d+ XP · \+1 Hog coin\b/);
+    // The year played through the rules left Alex coins to spend.
+    const wallet = (await demo.query(api.game.mine, {})).wallet!;
+    expect(wallet.fromKudos).toBeGreaterThan(0);
+    expect(wallet.balance).toBe(wallet.fromKudos + wallet.fromLevels);
 
+    // A reset starts the coins over too, including what the Store (#91) spent or admins adjusted.
+    const alexId = (await t.run((ctx) => ctx.db.query("members").collect())).find((m) => m.slackUserId === "UDEMOYOU")!._id;
+    await t.run((ctx) => ctx.db.patch(alexId, { coinsSpent: 40, coinsAdjusted: -3 }));
     await demo.mutation(api.demo.resetDemo, {});
     await t.finishAllScheduledFunctions(vi.runAllTimers, 1000);
     // Only the fresh seeded year is left in the ledger, and every player's XP adds up again.
     const after = await all(t, "gameEvents");
     const seeded = new Set((await all(t, "kudos")).map((k) => k.batchId));
     expect(after.every((e) => seeded.has(e.batchId))).toBe(true);
-    for (const p of await all(t, "players")) expect(p.xp).toBe(after.filter((e) => e.memberId === p.memberId).reduce((s, e) => s + e.xp, 0));
+    for (const p of await all(t, "players")) {
+      expect(p.xp).toBe(after.filter((e) => e.memberId === p.memberId).reduce((s, e) => s + e.xp, 0));
+      expect(p.coins).toBe(after.filter((e) => e.memberId === p.memberId).reduce((s, e) => s + (e.coins ?? 0), 0));
+    }
+    const fresh = (await t.run((ctx) => ctx.db.get(alexId)))!;
+    expect([fresh.coinsSpent, fresh.coinsAdjusted]).toEqual([undefined, undefined]);
   });
 });
 

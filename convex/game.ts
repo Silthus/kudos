@@ -4,16 +4,21 @@ import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { earningsValidator } from "./schema";
 import { requireViewer } from "./lib/access";
+import { COINS, coinBalance, lineCoins, WALLET_LEVEL } from "./lib/coins";
 import { hasNote, RECIPROCAL_WINDOW_MS, weekKeyOfDay } from "./lib/quests";
 import { type GiveLine, levelForXp, levelProgress, scoreGive, scoreReceive, titleForLevel, type XpItem } from "./lib/xp";
 
 /**
- * The game's foundation (#55 §G1, G3): the workspace switch, players, the XP ledger and levels.
+ * The game's foundation (#55 §G1, G3, G4): the workspace switch, players, the XP and Hog coin
+ * ledger and levels.
  *
- * Every XP change is a `gameEvents` row written in the same transaction as the kudos that earned
- * it: one `give` event per batch for the giver (a line per recipient row) and one `receive` event
- * per row that earned its receiver XP. A revoke takes back exactly the lines of the rows it removes;
- * later kudos keep what they earned. `rebuildPlayer` plays a member's surviving history through the
+ * Every XP and coin change is a `gameEvents` row written in the same transaction as the kudos that
+ * earned it: one `give` event per batch for the giver (a line per recipient row, with its XP and
+ * coins) and one `receive` event per row that earned its receiver XP (receiving never earns coins).
+ * A revoke takes back exactly the lines of the rows it removes; later kudos keep what they earned.
+ * `players.coins` is the sum of the events' coins; level-up coins follow from the level (lib/coins.ts).
+ * A later coin source (quests, sprees, fruit) adds its own event kind with `coins`, adds to
+ * `players.coins` in the same transaction, and gets a replay step in `rebuildPlayer`. `rebuildPlayer` plays a member's surviving history through the
  * same rules (`lib/xp.ts`): the backfill when the game is switched on, the demo year, and the
  * repair tool. Without revokes it writes exactly what the live path wrote.
  */
@@ -72,36 +77,50 @@ async function eventsBetween(ctx: QueryCtx, memberId: Id<"members">, fromDay: st
 }
 
 /**
- * Adds (or takes back) XP. A new level is kept even if a revoke later takes the XP back, and is
- * announced with a level-up DM unless the member hides the game. Returns that DM.
+ * Adds (or takes back) XP and Hog coins. A new level is kept even if a revoke later takes the XP
+ * back, and is announced with a level-up DM unless the member hides the game. Returns that DM.
  */
 async function addXp(
   ctx: MutationCtx,
   workspace: Doc<"workspaces">,
   player: Doc<"players">,
   delta: number,
+  coinDelta = 0,
 ): Promise<Id<"notifications"> | null> {
-  if (delta === 0) return null;
+  if (delta === 0 && coinDelta === 0) return null;
   const xp = player.xp + delta;
   const level = Math.max(player.level, levelForXp(xp));
-  await ctx.db.patch(player._id, { xp, level });
+  const coins = (player.coins ?? 0) + coinDelta;
+  await ctx.db.patch(player._id, { xp, level, coins });
   if (level <= player.level) return null;
   const member = await ctx.db.get(player.memberId);
   if (!member || !gameShownTo(workspace, member)) return null;
-  return await levelUpMessage(ctx, workspace, member, level, level - player.level);
+  return await levelUpMessage(ctx, workspace, member, level, player.level, coinBalance({ coins, level }, member).balance);
 }
 
-/** The level-up DM: the level reached, its title and the skill points it grants (one per level). */
+/**
+ * The level-up DM: the level reached, its title and the skill points it grants (one per level).
+ * From level 3 it names the Hog coins too: reaching 3 opens the wallet with what was collected
+ * silently so far, and every later level says what it paid.
+ */
 async function levelUpMessage(
   ctx: MutationCtx,
   workspace: Doc<"workspaces">,
   member: Doc<"members">,
   level: number,
-  skillPoints: number,
+  from: number,
+  balance: number,
 ) {
   const title = titleForLevel(level);
+  const skillPoints = level - from;
   const points = skillPoints === 1 ? "a skill point" : `${skillPoints} skill points`;
-  const body = `Your thoughtful kudos got you here. You earned ${points} for your skill tree.`;
+  const coins =
+    from >= WALLET_LEVEL
+      ? ` +${COINS.levelUp * skillPoints} Hog coins.`
+      : level >= WALLET_LEVEL
+        ? ` Your Hog coin wallet is open: ${balance} Hog ${balance === 1 ? "coin" : "coins"} collected so far.`
+        : "";
+  const body = `Your thoughtful kudos got you here. You earned ${points} for your skill tree.${coins}`;
   const text = (web: boolean) => (web ? `Level ${level}: ${title}. ${body}` : `*Level ${level}: ${title}*\n${body}`);
   return await ctx.db.insert("notifications", {
     workspaceId: workspace._id,
@@ -120,7 +139,7 @@ async function levelUpMessage(
 async function ensurePlayer(ctx: MutationCtx, workspace: Doc<"workspaces">, memberId: Id<"members">, since: number) {
   const existing = await playerOf(ctx, memberId);
   if (existing) return existing;
-  const id = await ctx.db.insert("players", { workspaceId: workspace._id, memberId, since, xp: 0, level: 1 });
+  const id = await ctx.db.insert("players", { workspaceId: workspace._id, memberId, since, xp: 0, level: 1, coins: 0 });
   return (await ctx.db.get(id))!;
 }
 
@@ -140,6 +159,17 @@ async function lastReceivedAt(ctx: QueryCtx, receiverId: Id<"members">, at: numb
     .order("desc")
     .first();
   return last?.at ?? null;
+}
+
+/** A batch's scored lines as the ledger stores them: each with the Hog coins its kudos row earned. */
+function ledgerLines(lines: GiveLine[], rows: Doc<"kudos">[]) {
+  const amount = new Map<string, number>(rows.map((r) => [r._id, r.amount]));
+  return lines.map((l) => ({
+    ...l,
+    kudosId: l.kudosId as Id<"kudos">,
+    receiverId: l.receiverId as Id<"members">,
+    coins: lineCoins({ qualifying: l.qualifying, amount: amount.get(l.kudosId) ?? 0 }),
+  }));
 }
 
 function giveLines(events: Doc<"gameEvents">[]) {
@@ -204,20 +234,12 @@ export async function onGameGiven(
       ...(unsungOn && hasNote(noteWords) && !reciprocal ? { receiverLastReceivedAt: await lastReceivedAt(ctx, row.receiverId, at) } : {}),
     });
   }
-  const lines = scoreGive({ at, noteWords, unsungOn, earnedToday, recipients });
+  const lines = ledgerLines(scoreGive({ at, noteWords, unsungOn, earnedToday, recipients }), rows);
   const xp = lines.reduce((s, l) => s + l.xp, 0);
-  await ctx.db.insert("gameEvents", {
-    workspaceId: workspace._id,
-    memberId: giver._id,
-    kind: "give",
-    batchId,
-    dayKey,
-    at,
-    xp,
-    lines: lines.map((l) => ({ ...l, kudosId: l.kudosId as Id<"kudos">, receiverId: l.receiverId as Id<"members"> })),
-  });
+  const coins = lines.reduce((s, l) => s + l.coins, 0);
+  await ctx.db.insert("gameEvents", { workspaceId: workspace._id, memberId: giver._id, kind: "give", batchId, dayKey, at, xp, coins, lines });
   const notificationIds: Id<"notifications">[] = [];
-  const giverLevelUp = await addXp(ctx, workspace, player, xp);
+  const giverLevelUp = await addXp(ctx, workspace, player, xp, coins);
 
   for (const line of lines) {
     const receiver = await playerOf(ctx, line.receiverId as Id<"members">);
@@ -246,7 +268,10 @@ export async function onGameGiven(
   }
   // The giver's level-up follows their earnings reply; receivers' DMs go out with their kudos DMs.
   if (giverLevelUp) notificationIds.unshift(giverLevelUp);
-  return { earnings: gameShownTo(workspace, giver) ? earningsOf(lines, noteWords) : null, notificationIds };
+  if (!gameShownTo(workspace, giver)) return { earnings: null, notificationIds };
+  // Coins collect silently until the wallet opens (level 3, maybe reached with this very kudos).
+  const walletOpen = ((await ctx.db.get(player._id))?.level ?? 1) >= WALLET_LEVEL;
+  return { earnings: { ...earningsOf(lines, noteWords), ...(walletOpen ? { coins } : {}) }, notificationIds };
 }
 
 /**
@@ -260,19 +285,21 @@ export async function onGameRevoked(ctx: MutationCtx, workspace: Doc<"workspaces
     .take(500);
   for (const e of events) {
     let taken = 0;
+    let coins = 0;
     if (e.kind === "give" && e.memberId === row.giverId) {
       const line = e.lines?.find((l) => l.kudosId === row._id);
       if (!line) continue;
       const lines = e.lines!.filter((l) => l !== line);
+      coins = line.coins ?? 0;
       if (lines.length === 0) await ctx.db.delete(e._id);
-      else await ctx.db.patch(e._id, { lines, xp: e.xp - line.xp });
+      else await ctx.db.patch(e._id, { lines, xp: e.xp - line.xp, coins: (e.coins ?? 0) - coins });
       taken = line.xp;
     } else if (e.kind === "receive" && e.kudosId === row._id) {
       await ctx.db.delete(e._id);
       taken = e.xp;
     } else continue;
     const player = await playerOf(ctx, e.memberId);
-    if (player) await addXp(ctx, workspace, player, -taken);
+    if (player) await addXp(ctx, workspace, player, -taken, -coins);
   }
 }
 
@@ -319,7 +346,7 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
   }
   if (since === undefined) return;
 
-  type Written = { at: number; xp: number };
+  type Written = { at: number; xp: number; coins: number };
   const written: Written[] = [];
   const unsungOn = workspace.receivedVisibility === "everyone";
   const receivedFrom = timesBy(received, (k) => k.giverId); // their kudos to the member
@@ -349,21 +376,13 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
           ...(unsungOn && hasNote(noteWords) && !reciprocal ? { receiverLastReceivedAt: await lastReceivedAt(ctx, row.receiverId, at) } : {}),
         });
       }
-      const lines = scoreGive({ at, noteWords, unsungOn, earnedToday: earnedOn.get(dayKey) ?? 0, recipients });
+      const lines = ledgerLines(scoreGive({ at, noteWords, unsungOn, earnedToday: earnedOn.get(dayKey) ?? 0, recipients }), rows);
       const xp = lines.reduce((s, l) => s + l.xp, 0);
+      const coins = lines.reduce((s, l) => s + l.coins, 0);
       earnedOn.set(dayKey, (earnedOn.get(dayKey) ?? 0) + xp);
       for (const l of lines) if (l.qualifying) qualifyingDays.set(l.receiverId, [...(qualifyingDays.get(l.receiverId) ?? []), dayKey]);
-      await ctx.db.insert("gameEvents", {
-        workspaceId: workspace._id,
-        memberId: member._id,
-        kind: "give",
-        batchId,
-        dayKey,
-        at,
-        xp,
-        lines: lines.map((l) => ({ ...l, kudosId: l.kudosId as Id<"kudos">, receiverId: l.receiverId as Id<"members"> })),
-      });
-      written.push({ at, xp });
+      await ctx.db.insert("gameEvents", { workspaceId: workspace._id, memberId: member._id, kind: "give", batchId, dayKey, at, xp, coins, lines });
+      written.push({ at, xp, coins });
     }
     for (const row of rows) lastTo.set(row.receiverId, at);
   }
@@ -394,15 +413,16 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
       kudosId: row._id,
       giverId: row.giverId,
     });
-    written.push({ at: row.at, xp });
+    written.push({ at: row.at, xp, coins: 0 });
   }
 
   let total = 0;
   let peak = 0;
   for (const w of written.sort((a, b) => a.at - b.at)) peak = Math.max(peak, (total += w.xp));
   const level = Math.max(existing?.level ?? 1, levelForXp(peak));
-  if (existing) await ctx.db.patch(existing._id, { xp: total, level, since });
-  else await ctx.db.insert("players", { workspaceId: workspace._id, memberId: member._id, since, xp: total, level });
+  const coins = written.reduce((s, w) => s + w.coins, 0);
+  if (existing) await ctx.db.patch(existing._id, { xp: total, level, since, coins });
+  else await ctx.db.insert("players", { workspaceId: workspace._id, memberId: member._id, since, xp: total, level, coins });
 }
 
 const MEMBERS_PER_STEP = 25;
@@ -467,14 +487,19 @@ export const backfillAll = internalMutation({
   },
 });
 
-/** Compares one member's stored XP with a replay of their history (read-only dry run). */
+/** Compares one member's stored XP and Hog coins with the sums of their events (read-only dry run). */
 export const verifyMember = internalQuery({
   args: { memberId: v.id("members") },
-  returns: v.object({ stored: v.number(), events: v.number() }),
+  returns: v.object({ stored: v.number(), events: v.number(), coins: v.number(), eventCoins: v.number() }),
   handler: async (ctx, { memberId }) => {
     const player = await playerOf(ctx, memberId);
     const events = await ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", memberId)).take(10_000);
-    return { stored: player?.xp ?? 0, events: events.reduce((s, e) => s + e.xp, 0) };
+    return {
+      stored: player?.xp ?? 0,
+      events: events.reduce((s, e) => s + e.xp, 0),
+      coins: player?.coins ?? 0,
+      eventCoins: events.reduce((s, e) => s + (e.coins ?? 0), 0),
+    };
   },
 });
 
@@ -488,9 +513,18 @@ const progressValidator = v.object({
   fraction: v.number(),
 });
 
+const walletValidator = v.object({
+  balance: v.number(),
+  fromKudos: v.number(),
+  fromLevels: v.number(),
+  spent: v.number(),
+  adjusted: v.number(),
+});
+
 /**
- * The viewer's game: whether the workspace plays it, whether they hide it, and their level. Never
- * anybody else's: levels are shown on profiles, never ranked (§G12).
+ * The viewer's game: whether the workspace plays it, whether they hide it, their level and, from
+ * level 3, their Hog coin wallet (coins collect silently before that, so not even the amount is
+ * sent). Never anybody else's: levels are shown on profiles, never ranked (§G12).
  */
 export const mine = query({
   args: {},
@@ -498,6 +532,7 @@ export const mine = query({
     enabled: v.boolean(),
     hidden: v.boolean(),
     player: v.union(v.null(), progressValidator),
+    wallet: v.union(v.null(), walletValidator),
   }),
   handler: async (ctx) => {
     const { workspace, member } = await requireViewer(ctx);
@@ -507,6 +542,7 @@ export const mine = query({
       enabled,
       hidden: Boolean(member.gameHidden),
       player: player ? levelProgress(player.xp, player.level) : null,
+      wallet: player && player.level >= WALLET_LEVEL && !member.gameHidden ? coinBalance(player, member) : null,
     };
   },
 });
