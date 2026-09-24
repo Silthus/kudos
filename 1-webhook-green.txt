@@ -1,0 +1,78 @@
+ ✓ tests/slack.test.ts > POST /slack/events > answers Slack's URL verification challenge 47ms
+ ✓ tests/store-slack.test.ts > redeeming a reward > DMs the requester a confirmation and each admin a request to review 189ms
+ ✓ tests/store-slack.test.ts > each step of a request > approving tells the requester who approved it 17ms
+ ✓ tests/store-slack.test.ts > each step of a request > fulfilling tells the requester it's theirs, with the decider's note 15ms
+ ✓ tests/store-slack.test.ts > each step of a request > declining tells the requester why and that the cost is back in their balance 10ms
+ ✓ tests/store-slack.test.ts > each step of a request > a note that ends a sentence isn't followed by a second full stop 10ms
+ ✓ tests/store-slack.test.ts > each step of a request > cancelling sends no DM, since the requester did it themselves 9ms
+ ✓ tests/store-slack.test.ts > each step of a request > refreshes the requester's App Home after every step 10ms
+ ✓ tests/store-slack.test.ts > each step of a request > a deactivated requester gets no DMs and no Home refresh 6ms
+ ✓ tests/store-slack.test.ts > each step of a request > a failed DM doesn't undo the step 7ms
+ ✓ tests/store-slack.test.ts > who hears about a request > every active admin gets the review DM, and the requester never gets a second copy 6ms
+ ✓ tests/store-slack.test.ts > who hears about a request > an admin who is the only one who can decide gets their own request to review 5ms
+ ✓ tests/store-slack.test.ts > who hears about a request > the admin DM carries the requester's answer, verbatim so Slack doesn't auto-link it 6ms
+ ✓ tests/store-slack.test.ts > who hears about a request > DMs describe the request as it was when it was made, even if more happened before they went out 9ms
+ ✓ tests/slack.test.ts > POST /slack/events > processes directory changes, so a deactivation in Slack locks the person out 135ms
+ ✓ tests/slack.test.ts > POST /slack/events > rejects requests that aren't signed by Slack 3ms
+ ✓ tests/slack.test.ts > POST /slack/events > checks the signature before reading the body, so unsigned junk learns nothing 3ms
+ ✓ tests/slack.test.ts > POST /slack/events > once a signing secret is set, even the URL check must be signed 2ms
+ ✓ tests/slack.test.ts > POST /slack/events > before the signing secret is configured > answers only Slack's URL check, so the manifest's request URL verifies on app creation 2ms
+ ✓ tests/slack.test.ts > POST /slack/events > before the signing secret is configured > refuses every event 3ms
+ ✓ tests/slack.test.ts > POST /slack/events > turns a signed message event into kudos and DMs, even when Slack retries it 67ms
+ ✓ tests/slack.test.ts > event filtering > ordinary chatter without any emoji isn't stored or processed 5ms
+ ✓ tests/slack.test.ts > event filtering > old event ids are pruned in batches until none are left 53ms
+ ✓ tests/slack.test.ts > processing Slack events > bot DMs carry the rolled rarity and link to the gallery 11ms
+ ✓ tests/slack.test.ts > processing Slack events > stores the channel name and mention-free message text 8ms
+ ✓ tests/slack.test.ts > processing Slack events > 'not allowed' replies are shown ephemerally in the channel instead of a DM 7ms
+ ✓ tests/slack.test.ts > processing Slack events > ignores edits, bot posts and direct messages 2ms
+ ✓ tests/slack.test.ts > processing Slack events > a kudos-emoji reaction gives the author one kudos 7ms
+ ✓ tests/slack.test.ts > processing Slack events > opening the App Home publishes the personal home tab 2ms
+ ✓ tests/slack.test.ts > processing Slack events > uninstalling the app disconnects the workspace and forgets the token 2ms
+ ✓ tests/slack.test.ts > POST /slack/commands > /kudos me shows the balance with a rarity-rolled message 5ms
+ ✓ tests/slack.test.ts > POST /slack/commands > /kudos me answers inline, so its bot message counts as delivered 4ms
+ ✓ tests/slack.test.ts > POST /slack/commands > /kudos top lists this week's most generous people 9ms
+ ✓ tests/slack.test.ts > POST /slack/commands > anything else explains how Kudos works 3ms
+ ✓ tests/slack.test.ts > POST /slack/commands > a replayed command runs once within Slack's 5-minute signature window 8ms
+ ✓ tests/store-slack.test.ts > who hears about a request > bots, deactivated admins and plain members never get the review DM; signed-in admins come first, 20 at most 9ms
+ ✓ tests/store-slack.test.ts > who hears about a request > an uninstalled workspace hears nothing 4ms
+ ✓ tests/store-slack.test.ts > who hears about a request > approving passes the decider's note on 6ms
+ ✓ tests/store-slack.test.ts > who hears about a request > while the store is closed, DMs don't link to a store page that isn't there 8ms
+ ✓ tests/store-slack.test.ts > who hears about a request > without a site URL the DMs still go out, just without links 4ms
+ ✓ tests/store-slack.test.ts > who hears about a request > balances stay out of DMs while received kudos are hidden 7ms
+ ✓ tests/store-slack.test.ts > who hears about a request > the demo workspace schedules nothing 2ms
+ ✓ tests/store-slack.test.ts > App Home > shows the Rewards store with the balance, 3 rewards and Open store 4ms
+ ✓ tests/store-slack.test.ts > App Home > members don't see the admin line, even with requests waiting 3ms
+ ✓ tests/store-slack.test.ts > App Home > leaves the store out while received kudos are hidden, whatever storeEnabled says 2ms
+ ✓ tests/store-slack.test.ts > App Home > admins also see how many requests are waiting and a Review requests button 3ms
+ ✓ tests/store-slack.test.ts > App Home > leaves the store out while it's closed 2ms
+ ✓ tests/store-slack.test.ts > App Home > an empty catalog says the shelves are still being stocked 2ms
+ ✓ tests/store-slack.test.ts > /kudos store > shows your balance, the 5 cheapest rewards and a link to the store 15ms
+ ✓ tests/store-slack.test.ts > /kudos store > balance is an alias 4ms
+ ✓ tests/store-slack.test.ts > /kudos store > says so when the store isn't open 4ms
+ ✓ tests/store-slack.test.ts > /kudos store > never shows a balance while received kudos are hidden 3ms
+ ✓ tests/store-slack.test.ts > /kudos store > the help mentions /kudos store only while the store is open 5ms
+ ✓ tests/store-slack.test.ts > admin copies in Slack > the review DM has Approve and Mark fulfilled buttons for this request, next to the web link 5ms
+ ✓ tests/store-slack.test.ts > admin copies in Slack > without a site URL the action buttons still work; only the web link is left out 5ms
+ ✓ tests/store-slack.test.ts > admin copies in Slack > fulfilling on the web rewrites every admin's copy: who did it, when, and no buttons 10ms
+ ✓ tests/store-slack.test.ts > admin copies in Slack > an approved copy still offers Mark fulfilled and the web link, but not Approve 10ms
+ ✓ tests/store-slack.test.ts > admin copies in Slack > a declined or cancelled request's copies say so, without buttons 17ms
+ ✓ tests/store-slack.test.ts > admin copies in Slack > a rate-limited update is tried again later, so the copies still end up truthful 11ms
+ ✓ tests/store-slack.test.ts > admin copies in Slack > a failed update is logged and doesn't undo the step 10ms
+ ✓ tests/store-slack.test.ts > Approve and Mark fulfilled in Slack > Mark fulfilled fulfils the request, tells the requester and rewrites every admin's copy 11ms
+ ✓ tests/store-slack.test.ts > Approve and Mark fulfilled in Slack > Approve approves 9ms
+ ✓ tests/store-slack.test.ts > Approve and Mark fulfilled in Slack > an admin who never signed in to Kudos can't decide from Slack, so they can't be the four-eyes loophole 8ms
+ ✓ tests/store-slack.test.ts > Approve and Mark fulfilled in Slack > a sole admin decides their own request from Slack, and their copy still says it's their own 10ms
+ ✓ tests/store-slack.test.ts > Approve and Mark fulfilled in Slack > an Enterprise Grid payload without a team names the workspace through the user 9ms
+ ✓ tests/store-slack.test.ts > Approve and Mark fulfilled in Slack > malformed payloads are turned away without a server error 8ms
+ ✓ tests/store-slack.test.ts > Approve and Mark fulfilled in Slack > a stale button says who got there first, and a retried click changes nothing 22ms
+ ✓ tests/store-slack.test.ts > Approve and Mark fulfilled in Slack > someone who isn't an admin gets an ephemeral no, and nothing changes 11ms
+ ✓ tests/store-slack.test.ts > Approve and Mark fulfilled in Slack > the four-eyes rule holds in Slack: an admin can't approve their own request while another admin can 7ms
+ ✓ tests/store-slack.test.ts > Approve and Mark fulfilled in Slack > a request from another workspace, or an id that isn't one, is not found 11ms
+ ✓ tests/store-slack.test.ts > Approve and Mark fulfilled in Slack > a user from another team, or a team without Kudos, is turned away 12ms
+ ✓ tests/store-slack.test.ts > Approve and Mark fulfilled in Slack > an unsigned or tampered request is rejected before anything is read 5ms
+ ✓ tests/store-slack.test.ts > Approve and Mark fulfilled in Slack > other buttons (links in App Home and DMs) are just acknowledged 6ms
+ ✓ tests/store-slack.test.ts > Approve and Mark fulfilled in Slack > answers only ever go to Slack's own response URL 12ms
+ ✓ tests/store-slack.test.ts > admin copies stay truthful when steps race the DMs > a decision made on the web while the review DMs are still going out reaches those DMs too 9ms
+ ✓ tests/store-slack.test.ts > admin copies stay truthful when steps race the DMs > a sync that was overtaken by a later step renders again, so the copies end on the latest state 8ms
+ ✓ tests/store-slack.test.ts > balance adjustments (S6) > refresh the member's App Home so its balance isn't stale 4ms
+      Tests  77 passed (77)

@@ -1,0 +1,2 @@
+ ✓ tests/suite-timeouts.test.ts > every test file that seeds the demo uses DEMO_TIMEOUT 2ms
+      Tests  1 passed (1)

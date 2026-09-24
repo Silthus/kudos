@@ -1,0 +1,10 @@
+     × the state is bound to the browser that started the install, in a cookie scripts can't read 7ms
+     × the callback stores the bot token, makes the installer admin and imports members 12ms
+     × a callback link opened in another browser is refused, so nobody can install into your session 8ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/install.test.ts > installing Kudos into a workspace > the state is bound to the browser that started the install, in a cookie scripts can't read
+AssertionError: expected '' to contain '__Secure-kudos_install_state=605bd24d…'
+ FAIL  tests/install.test.ts > installing Kudos into a workspace > the callback stores the bot token, makes the installer admin and imports members
+ FAIL  tests/install.test.ts > installing Kudos into a workspace > a callback link opened in another browser is refused, so nobody can install into your session
+AssertionError: expected 'https://kudos.example/?installed=Acme' to be 'https://kudos.example/?install_error=…' // Object.is equality
+      Tests  3 failed | 3 passed (6)

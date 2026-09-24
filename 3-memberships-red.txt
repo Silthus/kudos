@@ -1,0 +1,24 @@
+     × the one they signed in to last, whatever order the rows are in 68ms
+     × before anyone chose, the one they last gave kudos in 7ms
+     × with nothing to go on, still always the same one: the newest membership 4ms
+     × lists every workspace the user can use, the current one first 6ms
+     × switching shows the other workspace from then on 22ms
+     × only to your own, usable memberships 7ms
+     × a user in one workspace has nothing to switch to 5ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/memberships.test.ts > which workspace a user in several of them sees > the one they signed in to last, whatever order the rows are in
+AssertionError: expected 'Acme' to be 'Globex' // Object.is equality
+ FAIL  tests/memberships.test.ts > which workspace a user in several of them sees > before anyone chose, the one they last gave kudos in
+AssertionError: expected 'Acme' to be 'Globex' // Object.is equality
+ FAIL  tests/memberships.test.ts > which workspace a user in several of them sees > with nothing to go on, still always the same one: the newest membership
+AssertionError: expected 'Acme' to be 'Globex' // Object.is equality
+ FAIL  tests/memberships.test.ts > the workspace switcher > lists every workspace the user can use, the current one first
+AssertionError: expected undefined to deeply equal [ { …(4) }, { …(4) } ]
+ FAIL  tests/memberships.test.ts > the workspace switcher > switching shows the other workspace from then on
+Error: Expected a Convex function exported from module "session" as `switchWorkspace`, but there is no such export.
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+ FAIL  tests/memberships.test.ts > the workspace switcher > only to your own, usable memberships
+AssertionError: expected [Function] to throw error matching /can't switch/ but got 'Expected a Convex function exported f…'
+ FAIL  tests/memberships.test.ts > the workspace switcher > a user in one workspace has nothing to switch to
+AssertionError: expected undefined to deeply equal [ { …(4) } ]
+      Tests  7 failed | 1 passed (8)

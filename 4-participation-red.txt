@@ -1,0 +1,19 @@
+     × analytics count teammates who gave and left in the team size too 121ms
+     × so do the leaderboard highlights (month) 49ms
+     × so do the leaderboard highlights (all) 31ms
+     × analytics count teammates who gave and left in the team size too 33ms
+     × so do the leaderboard highlights (month) 34ms
+     × so do the leaderboard highlights (all) 28ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/participation.test.ts > from the rollups > analytics count teammates who gave and left in the team size too
+ FAIL  tests/participation.test.ts > from the legacy scans > analytics count teammates who gave and left in the team size too
+AssertionError: expected { allowanceUse: 0.2, …(14) } to match object { givers: 4, teamSize: 4, …(1) }
+ FAIL  tests/participation.test.ts > from the rollups > so do the leaderboard highlights (month)
+AssertionError: given: expected { discoveries: 8, givers: 4, …(7) } to match object { givers: 4, teamSize: 4, …(1) }
+ FAIL  tests/participation.test.ts > from the rollups > so do the leaderboard highlights (all)
+AssertionError: given: expected { discoveries: 13, givers: 5, …(7) } to match object { givers: 5, teamSize: 5, …(1) }
+ FAIL  tests/participation.test.ts > from the legacy scans > so do the leaderboard highlights (month)
+AssertionError: given: expected { discoveries: 7, givers: 4, …(7) } to match object { givers: 4, teamSize: 4, …(1) }
+ FAIL  tests/participation.test.ts > from the legacy scans > so do the leaderboard highlights (all)
+AssertionError: given: expected { discoveries: 14, givers: 5, …(7) } to match object { givers: 5, teamSize: 5, …(1) }
+      Tests  6 failed (6)

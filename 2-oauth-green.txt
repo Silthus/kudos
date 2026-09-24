@@ -1,0 +1,7 @@
+ ✓ tests/install.test.ts > installing Kudos into a workspace > /slack/install sends the admin to Slack's OAuth screen with a one-time state 166ms
+ ✓ tests/install.test.ts > installing Kudos into a workspace > the state is bound to the browser that started the install, in a cookie scripts can't read 3ms
+ ✓ tests/install.test.ts > installing Kudos into a workspace > the callback stores the bot token, makes the installer admin and imports members 69ms
+ ✓ tests/install.test.ts > installing Kudos into a workspace > a forged or reused state is refused 6ms
+ ✓ tests/install.test.ts > installing Kudos into a workspace > a callback link opened in another browser is refused, so nobody can install into your session 3ms
+ ✓ tests/install.test.ts > installing Kudos into a workspace > Slack errors are passed back to the landing page 2ms
+      Tests  6 passed (6)

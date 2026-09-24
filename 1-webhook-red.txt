@@ -1,0 +1,8 @@
+     × checks the signature before reading the body, so unsigned junk learns nothing 9ms
+     × a replayed command runs once within Slack's 5-minute signature window 8ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/slack.test.ts > POST /slack/events > checks the signature before reading the body, so unsigned junk learns nothing
+AssertionError: expected 400 to be 401 // Object.is equality
+ FAIL  tests/slack.test.ts > POST /slack/commands > a replayed command runs once within Slack's 5-minute signature window
+AssertionError: expected '{"blocks":[{"text":{"text":"👑 By roy…' to be '' // Object.is equality
+      Tests  2 failed | 20 passed (22)

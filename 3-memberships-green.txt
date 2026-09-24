@@ -1,0 +1,21 @@
+ ✓ tests/memberships.test.ts > which workspace a user in several of them sees > the one they signed in to last, whatever order the rows are in 51ms
+ ✓ tests/memberships.test.ts > which workspace a user in several of them sees > before anyone chose, the one they last gave kudos in 6ms
+ ✓ tests/memberships.test.ts > which workspace a user in several of them sees > with nothing to go on, still always the same one: the newest membership 5ms
+ ✓ tests/memberships.test.ts > which workspace a user in several of them sees > never a workspace they can't use: deactivated there, or the app is uninstalled 5ms
+ ✓ tests/memberships.test.ts > the workspace switcher > lists every workspace the user can use, the current one first 6ms
+ ✓ tests/memberships.test.ts > the workspace switcher > switching shows the other workspace from then on 4ms
+ ✓ tests/memberships.test.ts > the workspace switcher > only to your own, usable memberships 6ms
+ ✓ tests/memberships.test.ts > the workspace switcher > a user in one workspace has nothing to switch to 5ms
+ ✓ tests/access.test.ts > signed-out visitors > see the landing state and no workspace data 144ms
+ ✓ tests/access.test.ts > signed-out visitors > never learn secrets from the setup status 5ms
+ ✓ tests/access.test.ts > members > can't use admin functions 16ms
+ ✓ tests/access.test.ts > members > can't use the demo playground in a real workspace 50ms
+ ✓ tests/access.test.ts > received kudos visibility > 'hidden' removes received counts from the personal page 38ms
+ ✓ tests/access.test.ts > received kudos visibility > 'self' shows your own received kudos but keeps the leaderboard on giving 14ms
+ ✓ tests/access.test.ts > received kudos visibility > 'everyone' enables the received leaderboard and people analytics 27ms
+ ✓ tests/access.test.ts > received kudos visibility > non-admins don't see who receives most while it's private 7ms
+ ✓ tests/access.test.ts > admins > can change settings, with validation 6ms
+ ✓ tests/access.test.ts > admins > can't remove their own admin role 2ms
+ ✓ tests/access.test.ts > admins > can't touch another workspace 8ms
+ ✓ tests/access.test.ts > admins > only see their own workspace on the leaderboard 7ms
+      Tests  20 passed (20)

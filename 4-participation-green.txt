@@ -1,0 +1,31 @@
+ ✓ tests/stats.test.ts > when a range is too big to read at once, the newest days are the ones kept 13ms
+ ✓ tests/stats.test.ts > kudos samples also keep the most recent activity 5ms
+ ✓ tests/participation.test.ts > from the rollups > analytics count teammates who gave and left in the team size too 89ms
+ ✓ tests/participation.test.ts > from the rollups > so do the leaderboard highlights (month) 42ms
+ ✓ tests/participation.test.ts > from the rollups > so do the leaderboard highlights (all) 31ms
+ ✓ tests/participation.test.ts > from the legacy scans > analytics count teammates who gave and left in the team size too 28ms
+ ✓ tests/participation.test.ts > from the legacy scans > so do the leaderboard highlights (month) 28ms
+ ✓ tests/participation.test.ts > from the legacy scans > so do the leaderboard highlights (all) 27ms
+ ✓ tests/analytics.test.ts > analytics on the rollups > gives exactly what the legacy scans compute, for every period 157ms
+ ✓ tests/analytics.test.ts > analytics on the rollups > gives the same after the backfill rebuilds every rollup from the source tables 418ms
+ ✓ tests/analytics.test.ts > analytics on the rollups > once backfilled, reads only the rollups: the source tables can vanish 75ms
+ ✓ tests/analytics.test.ts > analytics on the rollups > before the backfill, analytics keeps computing from the source tables 52ms
+ ✓ tests/analytics.test.ts > analytics on the rollups > this month, against August to date for volume and the whole of August for givers 49ms
+ ✓ tests/analytics.test.ts > analytics on the rollups > all time charts whole months from the first active month, with no comparison 47ms
+ ✓ tests/analytics.test.ts > analytics on the rollups > hides who received and who recognizes whom unless received kudos are public 49ms
+ ✓ tests/analytics.test.ts > rollup edge cases > a tie for the last top channel goes to the first name, however the rows were created 3ms
+ ✓ tests/analytics.test.ts > rollup edge cases > all time starts at the first kudos, not at a day that only saw bot messages 4ms
+ ✓ tests/analytics.test.ts > rollup edge cases > a client still on an earlier day sees the kudos given up to that day 3ms
+ ✓ tests/analytics.test.ts > rollup edge cases > says which period it describes, so the page words it for the data on screen 2ms
+ ✓ tests/analytics.test.ts > reads at scale > a year stays within ~2.4k small documents, exact and untruncated 270ms
+ ✓ tests/analytics.test.ts > reads at scale > a month and all time read far less 221ms
+ ✓ tests/leaderboard-rollups.test.ts > the leaderboard on rollups > matches the legacy computation exactly, for every period and metric 1344ms
+ ✓ tests/leaderboard-rollups.test.ts > the leaderboard on rollups > keeps computing from memberDays until the backfill marker is set 988ms
+ ✓ tests/leaderboard-rollups.test.ts > the leaderboard on rollups > never ranks received kudos unless everyone may see them 983ms
+ ✓ tests/leaderboard-rollups.test.ts > a 500-member workspace > ranks every member exactly for the whole year, reading only members and rollups 77083ms
+ ✓ tests/leaderboard-rollups.test.ts > installing Kudos > puts a new workspace on the rollups straight away: it has no history to backfill 4ms
+ ✓ tests/leaderboard-rollups.test.ts > installing Kudos > rebuilds a returning workspace that was never backfilled 1007ms
+ ✓ tests/leaderboard-rollups.test.ts > the Slack App Home and /kudos top on rollups > ties share a week rank, and a teammate who hasn't given this week has none 364ms
+ ✓ tests/leaderboard-rollups.test.ts > the Slack App Home and /kudos top on rollups > reads the week from the rollups once backfilled, the same as from memberDays before 338ms
+ ✓ tests/leaderboard-rollups.test.ts > the Slack App Home and /kudos top on rollups > reads the top rows, the member's own row and the givers ahead of it 328ms
+      Tests  30 passed (30)

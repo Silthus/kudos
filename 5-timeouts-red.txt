@@ -1,0 +1,14 @@
+member-removal.test.ts | a member who gave on hundreds of days: each step stops before it runs out of reads | Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+    at task (file:///home/coder/dev/kudos/.claud
+playground-reactions.test.ts | resetting the demo wipes its kudos attempts | Error: Test timed out in 30000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+    at task (file:///home/coder/dev/kudos/.clau
+   × every test file that seeds the demo uses DEMO_TIMEOUT 6ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+- Expected
++ Received
++ [
++   "./playground-reactions.test.ts",
++ ]
+      Tests  1 failed (1)
