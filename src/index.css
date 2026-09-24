@@ -26,7 +26,7 @@
   --k-text-3: #6b6d63;
   /* Brand */
   --k-accent: #f54e00;
-  --k-link: #c73e00;
+  --k-link: #b83a00;
   --k-on-accent: #111111;
   /* 3D buttons (Lemon idiom: face + 1px border + 3px frame) */
   --k-btn-primary-face: #ffffff;
@@ -43,9 +43,9 @@
   --k-cta-shell: #cd8407;
   --k-cta-border: #b17816;
   /* Status (reserved: never series colours) */
-  --k-success: #388600;
-  --k-warning: #b17816;
-  --k-danger: #db3707;
+  --k-success: #327800;
+  --k-warning: #8a5d00;
+  --k-danger: #c33106;
   /* Data: validated with the dataviz validator (series: light on #fff; rarity: light on #fff) */
   --k-series-given: #f54e00;
   --k-series-received: #1d4aff;
