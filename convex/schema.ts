@@ -129,6 +129,9 @@ export default defineSchema({
     isBot: v.boolean(),
     deactivated: v.boolean(),
     userId: v.optional(v.id("users")),
+    // When the signed-in user last chose this workspace (Slack sign-in or the switcher); a user
+    // linked to several members sees the latest one (see `memberships` in lib/access.ts).
+    activeAt: v.optional(v.number()),
     totalGiven: v.number(),
     totalReceived: v.number(),
     totalMaxedDays: v.number(),
