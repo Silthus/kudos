@@ -226,6 +226,39 @@ describe("what a removal deletes", () => {
     expect(await rollupLines(t)).toEqual(live);
   });
 
+  test("rollup rows no kudos stand behind any more (from before rollups, or past bugs) are gone with them, before the rebuild", async () => {
+    await giveAt(t, team, "2026-09-21T08:00:00Z", { giverSlackId: "UBEN", recipientSlackIds: ["UANA"] });
+    await t.run(async (ctx) => {
+      const ws = team.workspaceId;
+      await ctx.db.insert("memberDays", { workspaceId: ws, memberId: xavi, dayKey: "2026-09-21", given: 2, received: 1, maxed: false });
+      for (const bucket of ["w:2026-W39", "m:2026-09", "q:2026-Q3", "y:2026"]) {
+        await ctx.db.insert("memberStats", { workspaceId: ws, memberId: xavi, bucket, given: 2, received: 1, maxedDays: 0, activeDays: 1 });
+      }
+      for (const bucket of ["m:2026-09", "all"]) {
+        await ctx.db.insert("pairStats", { workspaceId: ws, bucket, giverId: xavi, receiverId: team.ana, amount: 2 });
+        await ctx.db.insert("pairStats", { workspaceId: ws, bucket, giverId: team.cleo, receiverId: xavi, amount: 1 });
+      }
+    });
+
+    await t.mutation(internal.removal.removeMember, { slackTeamId: "T1", slackUserId: "UXAVI" });
+    // Up to the step that deletes him: readers never meet a row naming someone who's gone.
+    for (let i = 0; i < 100 && (await t.run((ctx) => ctx.db.get(xavi))); i++) {
+      vi.runOnlyPendingTimers();
+      await t.finishInProgressScheduledFunctions();
+    }
+    expect(await t.run((ctx) => ctx.db.get(xavi))).toBeNull();
+
+    const left = await t.run(async (ctx) => ({
+      memberDays: (await ctx.db.query("memberDays").collect()).filter((d) => d.memberId === xavi).length,
+      memberStats: (await ctx.db.query("memberStats").collect()).filter((s) => s.memberId === xavi).length,
+      pairStats: (await ctx.db.query("pairStats").collect()).filter((p) => p.giverId === xavi || p.receiverId === xavi).length,
+    }));
+    expect(left).toEqual({ memberDays: 0, memberStats: 0, pairStats: 0 });
+    await drain(t);
+    const { mismatches } = await t.query(internal.rollups.verify, { workspaceId: team.workspaceId, buckets: await historyBuckets(t) });
+    expect(mismatches).toEqual([]);
+  });
+
   test("keeps the sign-in of someone who is still a member of another workspace", async () => {
     const userId = await signInXavi();
     const other = await seedTeam(t, {}, "T2");
@@ -273,7 +306,7 @@ describe("their store requests", () => {
     );
   }
 
-  async function redeem(memberId: Id<"members">, rewardId: Id<"rewards">, then?: "fulfill" | "decline") {
+  async function redeem(memberId: Id<"members">, rewardId: Id<"rewards">, then?: "approve" | "fulfill" | "decline") {
     return await t.run(async (ctx) => {
       const workspace = (await ctx.db.get(team.workspaceId))!;
       const member = (await ctx.db.get(memberId))!;
@@ -318,11 +351,12 @@ describe("their store requests", () => {
     const limited = await addReward("Mug", 3);
     const unlimited = await addReward("Coffee");
     await redeem(xavi, limited);
+    await redeem(xavi, limited, "approve");
     await redeem(xavi, unlimited, "fulfill");
     await redeem(xavi, limited, "decline");
     const bens = await redeem(team.ben, limited);
     await drain(t);
-    expect(await t.run((ctx) => ctx.db.get(limited))).toMatchObject({ stock: 1, openCount: 2 });
+    expect(await t.run((ctx) => ctx.db.get(limited))).toMatchObject({ stock: 0, openCount: 3 });
     expect(await t.run((ctx) => ctx.db.get(unlimited))).toMatchObject({ fulfilledCount: 1 });
 
     await remove();
