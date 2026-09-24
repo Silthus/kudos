@@ -77,6 +77,10 @@ describe("questBlocks", () => {
     expect(questBlocks(midWeek, "").map((b) => (b as { type: string }).type)).toEqual(["header", "section", "context"]);
   });
 
+  test("a board with no quests left in the catalog shows nothing rather than an empty section Slack rejects", () => {
+    expect(questBlocks({ ...midWeek, quests: [], completed: 0, available: 0 }, SITE)).toEqual([]);
+  });
+
   test("nothing at all while quests are off", () => {
     expect(questBlocks({ enabled: false }, SITE)).toEqual([]);
   });

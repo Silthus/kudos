@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { internal } from "../convex/_generated/api";
+import { api, internal } from "../convex/_generated/api";
 import type { QuestKey } from "../convex/lib/quests";
 import { signSlackRequest } from "../convex/lib/slack";
-import { seedTeam, setupConvex, type Team } from "./helpers";
+import { seedTeam, setupConvex, signInAs, type Team } from "./helpers";
 
 /**
  * Quests in Slack (spec #5 §13, ticket #22): the App Home "This week's quests" section and
@@ -107,6 +107,26 @@ describe("App Home", () => {
     expect(context.elements![0].text).toBe("🧹 Clean sweep! · Resets Monday · only thoughtful kudos count");
   });
 
+  test("Unsung hero is not available once received counts are hidden", async () => {
+    await setBoard(["unsung", "steady", "story"]);
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { receivedVisibility: "hidden" }));
+    const [, lines] = questSection(await openHome("UANA"))!;
+    expect(lines.text!.text.split("\n")[0]).toBe("➖ *Unsung hero* · not available");
+  });
+
+  test("the week turns over at Monday 00:00 in the workspace timezone, same as the web board", async () => {
+    await setBoard(["fresh", "spread", "channels"]);
+    await post("UANA", "<@UBEN> :taco: thanks for the quick review");
+    vi.setSystemTime(new Date("2026-09-27T21:59:00Z")); // Sunday 23:59 in Berlin
+    expect(JSON.stringify(questSection(await openHome("UANA")))).toContain("✅ *New connection* · 1/1");
+    vi.setSystemTime(new Date("2026-09-27T22:00:00Z")); // Monday 00:00 in Berlin, still Sunday in UTC
+    const board = await (await signInAs(t, team.ana)).query(api.quests.mine, { today: "2026-09-28" });
+    if (!board.enabled) throw new Error("quests are off");
+    const [, lines] = questSection(await openHome("UANA"))!;
+    expect(lines.text!.text).not.toContain("✅");
+    expect(lines.text!.text.match(/\*([^*]+)\*/g)).toEqual(board.quests.map((q) => `*${q.title}*`));
+  });
+
   test("someone Kudos doesn't know yet gets their Home without a quest section", async () => {
     const home = await openHome("UNEWBIE");
     expect(home[0]).toMatchObject({ type: "header", text: { text: "Your kudos" } });
@@ -166,6 +186,14 @@ describe("/kudos quests", () => {
     const text = JSON.stringify((await command("quests", "UBEN")).blocks);
     expect(text).toContain("▫️ *New connection* · 0/1");
     expect(text).toContain("0 of 2 done");
+  });
+
+  test("someone Kudos doesn't know yet gets a fresh board, and is added like with /kudos me", async () => {
+    await setBoard(["fresh", "spread", "channels"]);
+    const text = JSON.stringify((await command("quests", "UNEWBIE")).blocks);
+    expect(text).toContain("▫️ *New connection* · 0/1");
+    const members = await t.run((ctx) => ctx.db.query("members").collect());
+    expect(members.filter((m) => m.slackUserId === "UNEWBIE")).toHaveLength(1);
   });
 
   test("`quest` works too, and the help lists the command", async () => {

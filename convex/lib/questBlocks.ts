@@ -42,7 +42,7 @@ function tally(board: Extract<QuestBoardView, { enabled: true }>) {
 
 /** Header, one line per quest, the tally and the quest log button; nothing while quests are off. */
 export function questBlocks(board: QuestBoardView, site: string): object[] {
-  if (!board.enabled) return [];
+  if (!board.enabled || board.quests.length === 0) return [];
   return [
     { type: "header", text: { type: "plain_text", text: "This week's quests" } },
     { type: "section", text: { type: "mrkdwn", text: board.quests.map(questLine).join("\n") } },
