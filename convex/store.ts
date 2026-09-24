@@ -245,6 +245,26 @@ export async function transitionRedemption(
 }
 
 /**
+ * Erases a redemption as if it was never made: gives back what it still holds (the cost, and
+ * the stock it took) and uncounts it on its reward. Only the demo's "Hand back my rewards"
+ * uses it; a real workspace refunds through `transitionRedemption` and keeps the history.
+ */
+export async function undoRedemption(ctx: MutationCtx, redemption: Doc<"redemptions">) {
+  const refunded = redemption.status === "declined" || redemption.status === "cancelled";
+  const requester = await ctx.db.get(redemption.memberId);
+  if (requester && !refunded) await ctx.db.patch(requester._id, { storeSpent: (requester.storeSpent ?? 0) - redemption.cost });
+  const reward = await ctx.db.get(redemption.rewardId);
+  if (reward) {
+    await ctx.db.patch(reward._id, {
+      ...(redemption.isOpen ? { openCount: Math.max(0, (reward.openCount ?? 0) - 1) } : {}),
+      ...(redemption.status === "fulfilled" ? { fulfilledCount: Math.max(0, (reward.fulfilledCount ?? 0) - 1) } : {}),
+      ...(!refunded && redemption.stockHeld && reward.stock !== undefined ? { stock: reward.stock + 1 } : {}),
+    });
+  }
+  await ctx.db.delete(redemption._id);
+}
+
+/**
  * An audited balance change that isn't recognition: an admin's correction or an automation's
  * grant (`source: "system"`, the hook for quest rewards). It moves `storeGranted` only, so
  * received totals, leaderboards and analytics never see it. Callers do their own authz; this
@@ -487,7 +507,12 @@ export const redeem = mutation({
   returns: v.object({ redemptionId: v.id("redemptions"), balance: v.number() }),
   handler: async (ctx, { rewardId, expectedCost, answer }) => {
     const { workspace, member } = await requireViewer(ctx);
-    return await requestRedemption(ctx, { workspace, member, rewardId, expectedCost, answer, now: Date.now() });
+    const result = await requestRedemption(ctx, { workspace, member, rewardId, expectedCost, answer, now: Date.now() });
+    // The demo has no Slack and nobody else at the desk: teammate admin Lena decides, live.
+    if (workspace.isDemo) {
+      await ctx.scheduler.runAfter(3_000 + Math.random() * 3_000, internal.demo.storeTeammateDecision, { redemptionId: result.redemptionId, action: "approve" });
+    }
+    return result;
   },
 });
 

@@ -9,13 +9,18 @@ import { countEmoji, countNoteWords, mentionedUsers, mentionsGroup, previewText 
 import { attemptKudos, type AttemptInput, reattemptKudos, recordReaction } from "./attempts";
 import { reactionFor } from "./lib/guidance";
 import { attemptOutcomeValidator, questProgressValidator } from "./schema";
-import { addDays, dayKeyFor, startOfDayUtc, weekdayOfKey, zonedParts } from "./lib/time";
+import { addDays, dayKeyFor, daysBetween, startOfDayUtc, weekdayOfKey, zonedParts } from "./lib/time";
 import { demoActivity } from "./lib/demoCalendar";
+import { DEMO_ADJUSTMENTS, DEMO_REDEMPTIONS, DEMO_REWARDS, type DemoRedemption, LIVE_FULFIL_NOTES } from "./lib/demoStore";
 import { DEFAULT_SETTINGS } from "./lib/settings";
-import { mulberry32 } from "./lib/random";
+import { fnv1a, mulberry32 } from "./lib/random";
+import { balanceOf, validateRewardInput } from "./lib/store";
+import { grantBalance, requestRedemption, transitionRedemption, undoRedemption } from "./store";
 
 const DEMO_TEAM = "T_DEMO_LUMEN";
 export const DEMO_YOU = "UDEMOYOU";
+/** The demo's other admin: she decides on the visitor's own store requests (four eyes). */
+const DEMO_LENA = "UDEMOLENA";
 const DAYS_PER_CHUNK = 15;
 
 const MIN_SEED_DAYS = 120;
@@ -122,7 +127,7 @@ export const ensureDemoUser = internalMutation({
           name: p.name,
           realName: p.realName,
           title: p.title,
-          isAdmin: p.id === DEMO_YOU || p.id === "UDEMOLENA",
+          isAdmin: p.id === DEMO_YOU || p.id === DEMO_LENA,
           isBot: false,
           deactivated: false,
           totalGiven: 0,
@@ -283,10 +288,173 @@ export const seedHistory = internalMutation({
       // The seeded rows bypass the engine, so the read-model rollups are rebuilt from them. That
       // run belongs to this reset and releases its lock when it finishes.
       await ctx.scheduler.runAfter(0, internal.rollups.rebuildWorkspace, { workspaceId, resetAt: workspace.resettingSince });
+      // Balances are what people received, so the store opens once the whole history is in.
+      await ctx.scheduler.runAfter(0, internal.demo.seedStore, { workspaceId, resetAt: workspace.resettingSince });
     }
     return null;
   },
 });
+
+const HOUR_MS = 3_600_000;
+
+/**
+ * Opens the demo's rewards store: the catalog, then a year of the team spending what they
+ * received, told through the same helpers the web and Slack use, so every balance, stock and
+ * count holds. A step someone couldn't have afforded by then is left out of the story.
+ */
+export const seedStore = internalMutation({
+  // `resetAt`: the reset this seed belongs to (the workspace's `resettingSince` when it started).
+  args: { workspaceId: v.id("workspaces"), resetAt: v.optional(v.number()) },
+  returns: v.null(),
+  handler: async (ctx, { workspaceId, resetAt }) => {
+    const existing = await ctx.db.get(workspaceId);
+    if (!existing?.isDemo) return null;
+    // A newer reset is wiping the workspace: its own seed tells the story once the history is in.
+    if (existing.resettingSince !== undefined && existing.resettingSince !== resetAt) return null;
+    const stocked = await ctx.db.query("rewards").withIndex("by_workspace_status_cost", (q) => q.eq("workspaceId", workspaceId)).first();
+    if (stocked) return null; // already seeded since the last reset
+    await ctx.db.patch(workspaceId, { storeEnabled: true });
+    const workspace = (await ctx.db.get(workspaceId))!;
+    const members = await ctx.db
+      .query("members")
+      .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspaceId))
+      .take(100);
+    const ids = new Map(members.map((m) => [m.slackUserId, m._id]));
+    const fresh = async (slackUserId: string) => (await ctx.db.get(ids.get(slackUserId)!))!;
+    const lena = await fresh(DEMO_LENA);
+    // The four-eyes rule only counts admins who signed in: Lena has, so she decides the visitor's requests.
+    if (!lena.userId) {
+      const userId = await ctx.db.insert("users", { name: lena.name, isDemo: true, slackUserId: DEMO_LENA, slackTeamId: DEMO_TEAM });
+      await ctx.db.patch(lena._id, { userId });
+    }
+
+    const now = Date.now();
+    const { timezone } = workspace;
+    // The story spans the seeded history: from its first kudos up to today.
+    const first = await ctx.db.query("kudos").withIndex("by_workspace_at", (q) => q.eq("workspaceId", workspaceId)).first();
+    const today = dayKeyFor(now, timezone);
+    const fromDay = first?.dayKey ?? today;
+    const rand = mulberry32(fnv1a(`store:${fromDay}`));
+    const clock = storyClock(now, timezone, rand);
+    const dayOf = (share: number) => addDays(fromDay, Math.round(share * daysBetween(fromDay, today)));
+
+    const rewardIds = new Map<string, Id<"rewards">>();
+    for (const input of DEMO_REWARDS) {
+      const reward = validateRewardInput(input);
+      const id = await ctx.db.insert("rewards", { workspaceId, ...reward, status: "active", createdBy: lena._id, updatedAt: startOfDayUtc(fromDay, timezone) });
+      rewardIds.set(reward.name, id);
+    }
+
+    for (const a of DEMO_ADJUSTMENTS) {
+      const at = clock.during(dayOf(a.share));
+      await grantBalance(ctx, { workspace, member: await fresh(a.who), amount: a.amount, reason: a.reason, source: "admin", by: await fresh(a.by), now: at });
+    }
+
+    for (const story of DEMO_REDEMPTIONS) {
+      const rewardId = rewardIds.get(story.reward)!;
+      const reward = (await ctx.db.get(rewardId))!;
+      const member = await fresh(story.who);
+      // Only spending what they'd received by then: received kudos build up over the year. A
+      // refunded step never spends, so the story keeps its declines and cancellations.
+      const refunded = story.outcome === "declined" || story.outcome === "cancelled";
+      const earned = member.totalReceived * ("share" in story.at ? story.at.share : 1) + (member.storeGranted ?? 0);
+      if (balanceOf(member) < reward.cost || (!refunded && (member.storeSpent ?? 0) + reward.cost > earned)) continue;
+      const requestedAt = "share" in story.at ? clock.during(dayOf(story.at.share)) : clock.queued(story.at.workdaysAgo);
+      const { redemptionId } = await requestRedemption(ctx, { workspace, member, rewardId, expectedCost: reward.cost, answer: story.answer, now: requestedAt });
+      await tellStory(ctx, workspace, redemptionId, story, clock);
+    }
+    return null;
+  },
+});
+
+/**
+ * Working-hours timestamps for the store story: Monday to Friday, 9:00–17:00 in the workspace's
+ * timezone, never in the future.
+ */
+function storyClock(now: number, timezone: string, rand: () => number) {
+  const today = dayKeyFor(now, timezone);
+  const isWorkday = (day: string) => weekdayOfKey(day) < 5;
+  const nextWorkday = (day: string) => {
+    do day = addDays(day, 1);
+    while (!isWorkday(day));
+    return day;
+  };
+  const previousWorkday = (day: string) => {
+    do day = addDays(day, -1);
+    while (!isWorkday(day));
+    return day;
+  };
+  const at = (day: string, fromHour: number, hours: number) => Math.min(startOfDayUtc(day, timezone) + (fromHour + rand() * hours) * HOUR_MS, now - 60_000);
+  return {
+    /** Some time during the workday on or after `day`. */
+    during: (day: string) => at(isWorkday(day) ? day : nextWorkday(day), 9, 7),
+    /**
+     * A morning `workdaysAgo` workdays back, for the queue: they read in order. Today's request
+     * moves to the previous afternoon while the working day hasn't started.
+     */
+    queued: (workdaysAgo: number) => {
+      let day = isWorkday(today) ? today : previousWorkday(today);
+      for (let i = 0; i < workdaysAgo; i++) day = previousWorkday(day);
+      const morning = startOfDayUtc(day, timezone) + 9 * HOUR_MS;
+      return morning + 3 * HOUR_MS < now ? at(day, 9, 3) : at(previousWorkday(day), 14, 3);
+    },
+    /** Some time during the workday `workdays` after `after`'s day, or later the same working day for 0. */
+    after: (after: number, workdays: number) => {
+      if (workdays === 0) return Math.min(after + (1 + rand()) * HOUR_MS, now - 30_000);
+      let day = dayKeyFor(after, timezone);
+      for (let i = 0; i < workdays; i++) day = nextWorkday(day);
+      return Math.max(after + 60_000, Math.min(at(day, 9, 7), now - 30_000));
+    },
+  };
+}
+
+/**
+ * Lena, the demo's other admin, deciding on the visitor's request: she approves it a few
+ * seconds after it comes in and fulfils it a few seconds later. Nothing happens if the request
+ * has moved on in the meantime (cancelled, decided by someone else, or wiped by a reset).
+ */
+export const storeTeammateDecision = internalMutation({
+  args: { redemptionId: v.id("redemptions"), action: v.union(v.literal("approve"), v.literal("fulfill")) },
+  returns: v.null(),
+  handler: async (ctx, { redemptionId, action }) => {
+    const redemption = await ctx.db.get(redemptionId);
+    if (!redemption || redemption.status !== (action === "approve" ? "pending" : "approved")) return null;
+    const workspace = await ctx.db.get(redemption.workspaceId);
+    if (!workspace?.isDemo) return null;
+    const lena = await findMember(ctx, workspace, DEMO_LENA);
+    if (!lena?.isAdmin || lena.deactivated || lena._id === redemption.memberId) return null;
+    const note = action === "fulfill" ? (LIVE_FULFIL_NOTES[redemption.rewardName] ?? "Enjoy!") : undefined;
+    await transitionRedemption(ctx, { workspace, redemption, actor: lena, action, note, now: Date.now() });
+    if (action === "approve") {
+      await ctx.scheduler.runAfter(4_000 + Math.random() * 4_000, internal.demo.storeTeammateDecision, { redemptionId, action: "fulfill" });
+    }
+    return null;
+  },
+});
+
+/** Rewards that take a few days to arrive are approved first; the rest are fulfilled right away. */
+const APPROVED_FIRST = new Set(["Team lunch", "Hoodie", "Half day off", "Lunch with the CEO"]);
+
+/** Moves a seeded request to its outcome: cancelled within hours, decided a working day or two later. */
+async function tellStory(
+  ctx: MutationCtx,
+  workspace: Doc<"workspaces">,
+  redemptionId: Id<"redemptions">,
+  story: DemoRedemption,
+  clock: ReturnType<typeof storyClock>,
+) {
+  if (story.outcome === "pending" || !story.by) return;
+  const actor = (await findMember(ctx, workspace, story.by))!;
+  const step = async (action: "approve" | "fulfill" | "decline" | "cancel", workdays: number, note?: string) => {
+    const redemption = (await ctx.db.get(redemptionId))!;
+    await transitionRedemption(ctx, { workspace, redemption, actor, action, note, now: clock.after(redemption.updatedAt, workdays) });
+  };
+  if (story.outcome === "cancelled") return await step("cancel", 0);
+  if (story.outcome === "declined") return await step("decline", 1, story.note);
+  const approveFirst = story.outcome === "approved" || APPROVED_FIRST.has(story.reward);
+  if (approveFirst) await step("approve", 1);
+  if (story.outcome === "fulfilled") await step("fulfill", approveFirst ? 2 : 1, story.note);
+}
 
 async function memberDay(ctx: MutationCtx, memberId: Id<"members">, dayKey: string) {
   return await ctx.db
@@ -557,6 +725,28 @@ export const refillAllowance = mutation({
   },
 });
 
+/** A request a visitor made, as opposed to the seeded history: it was recorded the moment it was made. */
+const madeLive = (r: Doc<"redemptions">) => r._creationTime - r.requestedAt < 60_000;
+
+/**
+ * Everyone shares the demo user, so anyone can hand back the rewards visitors redeemed: their
+ * cost and stock return and the requests disappear. The seeded history stays.
+ */
+export const handBackRewards = mutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const { member } = await requireDemoViewer(ctx);
+    const requests = await ctx.db
+      .query("redemptions")
+      .withIndex("by_member_requestedAt", (q) => q.eq("memberId", member._id))
+      .order("desc")
+      .take(200);
+    for (const redemption of requests.filter(madeLive)) await undoRedemption(ctx, redemption);
+    return null;
+  },
+});
+
 export const teammateThanks = internalMutation({
   args: {
     workspaceId: v.id("workspaces"),
@@ -600,6 +790,9 @@ const DEMO_TABLES = [
   "questBoards",
   "questCompletions",
   "kudosAttempts",
+  "rewards",
+  "redemptions",
+  "balanceAdjustments",
   "notifications",
 ] as const;
 
@@ -625,6 +818,12 @@ async function demoRows(ctx: MutationCtx, workspaceId: Id<"workspaces">, table: 
       return await ctx.db.query(table).withIndex("by_workspace_week", (q) => q.eq("workspaceId", workspaceId)).take(1000);
     case "kudosAttempts":
       return await ctx.db.query("kudosAttempts").withIndex("by_message", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+    case "rewards":
+      return await ctx.db.query("rewards").withIndex("by_workspace_status_cost", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+    case "redemptions":
+      return await ctx.db.query("redemptions").withIndex("by_workspace_status_requestedAt", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+    case "balanceAdjustments":
+      return await ctx.db.query("balanceAdjustments").withIndex("by_workspace_at", (q) => q.eq("workspaceId", workspaceId)).take(1000);
     case "notifications":
       return [];
   }
@@ -690,7 +889,9 @@ export const resetDemoWorkspace = internalMutation({
         longestStreak: undefined,
         lastActiveDay: undefined,
         givenByWeekday: undefined,
-        isAdmin: m.slackUserId === DEMO_YOU || m.slackUserId === "UDEMOLENA",
+        isAdmin: m.slackUserId === DEMO_YOU || m.slackUserId === DEMO_LENA,
+        storeSpent: undefined,
+        storeGranted: undefined,
       });
     }
     await ctx.scheduler.runAfter(0, internal.demo.seedHistory, { workspaceId: workspace._id, ...seedWindow(workspace.timezone) });
