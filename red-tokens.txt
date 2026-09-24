@@ -1,0 +1,3 @@
+Error: no :root block in src/index.css
+     11|   if (start < 0) throw new Error(`no ${selector} block in src/index.cs…
+      Tests  no tests

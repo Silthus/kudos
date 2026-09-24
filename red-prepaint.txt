@@ -1,0 +1,11 @@
+     × is in the page head, before the app bundle 4ms
+     × paints the same theme resolveTheme would, for every stored value and system setting 2ms
+     × follows the system when storage is blocked 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/theme-prepaint.test.ts > the pre-paint theme script in index.html > is in the page head, before the app bundle
+AssertionError: expected undefined to be truthy
+ FAIL  tests/theme-prepaint.test.ts > the pre-paint theme script in index.html > paints the same theme resolveTheme would, for every stored value and system setting
+AssertionError: null / system dark false: expected undefined to be 'light' // Object.is equality
+ FAIL  tests/theme-prepaint.test.ts > the pre-paint theme script in index.html > follows the system when storage is blocked
+AssertionError: expected undefined to be 'dark' // Object.is equality
+      Tests  3 failed (3)

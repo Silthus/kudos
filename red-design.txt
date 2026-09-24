@@ -1,0 +1,190 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vitest.config.ts:5:41). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-aa6752df35e3390b4
+
+ ❯ tests/design-system.test.ts (7 tests | 5 failed) 42ms
+   ❯ the foundation speaks only in semantic tokens (5)
+     × src/components/ui.tsx 21ms
+     × src/components/AppShell.tsx 7ms
+     × src/components/KudosMark.tsx 1ms
+     × src/lib/rarity.ts 5ms
+   ❯ RarityBadge (2)
+     × gives every tier its own pip shape, so rarity is never colour alone 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/design-system.test.ts > the foundation speaks only in semantic tokens > src/components/ui.tsx
+AssertionError: expected [ …(38) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "src/components/ui.tsx:12 v1 alias class: \"rounded-2xl border border-line bg-panel/80 backdrop-blur-sm shadow-[0_1px_0_0_rgb(255_236_210/0.04)_inset,0_20px_50px_-30px_rgb(0_0_0/0.8)]\",",
++   "src/components/ui.tsx:12 removed v1 effect (grain, shimmer, glow, blur): \"rounded-2xl border border-line bg-panel/80 backdrop-blur-sm shadow-[0_1px_0_0_rgb(255_236_210/0.04)_inset,0_20px_50px_-30px_rgb(0_0_0/0.8)]\",",
++   "src/components/ui.tsx:26 v1 alias class: <h2 className=\"flex items-center gap-2 font-display text-[17px] font-semibold tracking-tight text-cream\">",
++   "src/components/ui.tsx:30 v1 alias class: {subtitle && <p className=\"mt-0.5 text-sm text-muted\">{subtitle}</p>}",
++   "src/components/ui.tsx:38 v1 alias class: return <div className={clsx(\"font-mono text-[11px] uppercase tracking-[0.14em] text-faint\", className)}>{children}</div>;",
++   "src/components/ui.tsx:51 raw hex colour: variant === \"primary\" && \"bg-saffron text-ink hover:bg-[#ffc14d] shadow-[0_8px_30px_-10px_var(--color-saffron)]\",",
++   "src/components/ui.tsx:51 v1 alias class: variant === \"primary\" && \"bg-saffron text-ink hover:bg-[#ffc14d] shadow-[0_8px_30px_-10px_var(--color-saffron)]\",",
++   "src/components/ui.tsx:51 v1 alias variable: variant === \"primary\" && \"bg-saffron text-ink hover:bg-[#ffc14d] shadow-[0_8px_30px_-10px_var(--color-saffron)]\",",
++   "src/components/ui.tsx:52 v1 alias class: variant === \"outline\" && \"border border-line-strong bg-panel-2 text-cream hover:bg-panel-3\",",
++   "src/components/ui.tsx:53 v1 alias class: variant === \"ghost\" && \"text-muted hover:bg-panel-2 hover:text-cream\",",
++   "src/components/ui.tsx:54 v1 alias class: variant === \"danger\" && \"border border-down/30 bg-down/10 text-down hover:bg-down/20\",",
++   "src/components/ui.tsx:92 v1 alias class: className=\"relative inline-flex max-w-full overflow-x-auto rounded-xl border border-line bg-ink/60 p-1 [scrollbar-width:none]\"",
++   "src/components/ui.tsx:105 v1 alias class: value === o.value ? \"text-ink\" : \"text-muted hover:text-cream\",",
++   "src/components/ui.tsx:111 v1 alias class: className=\"absolute inset-0 rounded-lg bg-cream\"",
++   "src/components/ui.tsx:140 v1 alias class: className={clsx(\"relative inline-grid shrink-0 place-items-center overflow-hidden rounded-full font-display font-semibold text-ink\", ring)}",
++   "src/components/ui.tsx:166 removed v1 effect (grain, shimmer, glow, blur): <span className={rarity === \"legendary\" ? \"legendary-text font-semibold\" : meta.text}>{meta.label}</span>",
++   "src/components/ui.tsx:177 v1 alias class: <span className={clsx(\"inline-flex items-center gap-1 text-xs font-medium tabular\", diff > 0 ? \"text-up\" : diff < 0 ? \"text-down\" : \"text-muted\")}>",
++   "src/components/ui.tsx:180 v1 alias class: {!compact && <span className=\"font-normal text-faint\">{suffix}</span>}",
++   "src/components/ui.tsx:185 v1 alias variable: export function Progress({ value, max, color = \"var(--color-saffron)\", className, height = 6 }: { value: number; max: number; color?: string; className?: string; height?: number }) {",
++   "src/components/ui.tsx:188 v1 alias class: <div className={clsx(\"w-full overflow-hidden rounded-full bg-panel-3\", className)} style={{ height }} role=\"progressbar\" aria-valuenow={value} aria-valuemax={max}>",
++   "src/components/ui.tsx:205 v1 alias class: return <div className={clsx(\"animate-pulse rounded-xl bg-panel-2\", className)} />;",
++   "src/components/ui.tsx:226 v1 alias class: <p className=\"font-display text-base font-semibold text-cream\">{title}</p>",
++   "src/components/ui.tsx:227 v1 alias class: {children && <p className=\"max-w-sm text-sm text-muted\">{children}</p>}",
++   "src/components/ui.tsx:237 v1 alias class: <h1 className=\"font-display text-3xl font-semibold tracking-tight text-cream sm:text-[40px] sm:leading-[1.05]\">{title}</h1>",
++   "src/components/ui.tsx:238 v1 alias class: {subtitle && <p className=\"mt-2 max-w-2xl text-[15px] text-muted\">{subtitle}</p>}",
++   "src/components/ui.tsx:261 v1 alias class: <span className=\"block text-sm font-medium text-cream\">{label}</span>",
++   "src/components/ui.tsx:262 v1 alias class: {description && <span className=\"mt-0.5 block text-sm text-muted\">{description}</span>}",
++   "src/components/ui.tsx:271 v1 alias class: className={clsx(\"relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50\", checked ? \"bg-saffron\" : \"bg-panel-3\")}",
++   "src/components/ui.tsx:276 v1 alias class: className={clsx(\"absolute top-1 h-4 w-4 rounded-full bg-cream shadow\", checked ? \"right-1\" : \"left-1\")}",
++   "src/components/ui.tsx:283 v1 alias class: export const inputCls = \"h-10 w-full rounded-xl border border-line-strong bg-ink/60 px-3 text-sm text-cream outline-none transition focus:border-saffron/60 disabled:opacity-60\";",
++   "src/components/ui.tsx:289 v1 alias class: {hint && <span className=\"mt-0.5 block text-xs text-muted\">{hint}</span>}",
++   "src/components/ui.tsx:352 v1 alias class: \"overflow-visible bg-transparent p-0 text-cream backdrop:bg-ink/75 backdrop:backdrop-blur-sm\",",
++   "src/components/ui.tsx:352 removed v1 effect (grain, shimmer, glow, blur): \"overflow-visible bg-transparent p-0 text-cream backdrop:bg-ink/75 backdrop:backdrop-blur-sm\",",
++   "src/components/ui.tsx:364 v1 alias class: \"flex flex-col border-line-strong bg-panel shadow-[0_30px_80px_-20px_rgb(0_0_0/0.9)]\",",
++   "src/components/ui.tsx:368 v1 alias class: <header className=\"flex items-start justify-between gap-4 border-b border-line px-5 py-4\">",
++   "src/components/ui.tsx:373 v1 alias class: {subtitle && <p className=\"mt-0.5 text-sm text-muted\">{subtitle}</p>}",
++   "src/components/ui.tsx:375 v1 alias class: <button onClick={onClose} className=\"-mr-1 rounded-lg p-1.5 text-faint hover:bg-panel-2 hover:text-cream\" aria-label=\"Close\">",
++   "src/components/ui.tsx:380 v1 alias class: {footer && <footer className=\"flex flex-wrap items-center justify-end gap-2 border-t border-line px-5 py-3\">{footer}</footer>}",
++ ]
+
+ ❯ tests/design-system.test.ts:26:22
+     24|     const lines = source(file).split("\n");
+     25|     const offences = lines.flatMap((line, i) => RULES.filter(([, re]) …
+     26|     expect(offences).toEqual([]);
+       |                      ^
+     27|   });
+     28| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  tests/design-system.test.ts > the foundation speaks only in semantic tokens > src/components/AppShell.tsx
+AssertionError: expected [ …(21) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "src/components/AppShell.tsx:16 v1 alias class: <span className=\"grid h-9 w-9 place-items-center rounded-xl bg-saffron/15 text-lg ring-1 ring-saffron/30\">{glyph}</span>",
++   "src/components/AppShell.tsx:27 v1 alias class: className={clsx(\"grid h-[18px] min-w-[18px] place-items-center rounded-full bg-saffron px-1 font-mono text-[10px] font-semibold leading-none text-ink\", className)}",
++   "src/components/AppShell.tsx:58 v1 alias class: <aside className=\"sticky top-0 hidden h-dvh flex-col border-r border-line bg-ink/60 px-4 py-6 backdrop-blur lg:flex\">",
++   "src/components/AppShell.tsx:58 removed v1 effect (grain, shimmer, glow, blur): <aside className=\"sticky top-0 hidden h-dvh flex-col border-r border-line bg-ink/60 px-4 py-6 backdrop-blur lg:flex\">",
++   "src/components/AppShell.tsx:62 v1 alias class: <div className=\"mt-6 flex items-center gap-3 rounded-xl border border-line bg-panel/70 px-3 py-2.5\">",
++   "src/components/AppShell.tsx:66 v1 alias class: <span className=\"grid h-8 w-8 place-items-center rounded-lg bg-teal/25 font-display text-sm font-bold text-teal-soft\">",
++   "src/components/AppShell.tsx:72 v1 alias class: <div className=\"font-mono text-[10px] uppercase tracking-wider text-faint\">{viewer.workspace.isDemo ? \"Demo workspace\" : \"Slack workspace\"}</div>",
++   "src/components/AppShell.tsx:83 v1 alias class: isActive ? \"text-cream\" : \"text-muted hover:bg-panel/70 hover:text-cream\",",
++   "src/components/AppShell.tsx:90 v1 alias class: <motion.span layoutId=\"nav-active\" className=\"absolute inset-0 rounded-xl border border-line-strong bg-panel-2\" transition={{ type: \"spring\", bounce: 0.2, duration: 0.5 }} />",
++   "src/components/AppShell.tsx:92 v1 alias class: <n.icon className={clsx(\"relative h-4 w-4\", isActive && \"text-saffron\")} />",
++   "src/components/AppShell.tsx:104 v1 alias class: <div className=\"truncate text-xs text-faint\">{viewer.member.isAdmin ? \"Admin\" : viewer.member.title ?? \"Member\"}</div>",
++   "src/components/AppShell.tsx:106 v1 alias class: <button onClick={() => void signOut()} className=\"rounded-lg p-2 text-faint hover:bg-panel-2 hover:text-cream\" title=\"Sign out\" aria-label=\"Sign out\">",
++   "src/components/AppShell.tsx:112 v1 alias class: <header className=\"sticky top-0 z-30 flex items-center justify-between border-b border-line bg-ink/80 px-4 py-3 backdrop-blur lg:hidden\">",
++   "src/components/AppShell.tsx:112 removed v1 effect (grain, shimmer, glow, blur): <header className=\"sticky top-0 z-30 flex items-center justify-between border-b border-line bg-ink/80 px-4 py-3 backdrop-blur lg:hidden\">",
++   "src/components/AppShell.tsx:114 v1 alias class: <button onClick={() => void signOut()} className=\"rounded-lg p-2 text-faint\" aria-label=\"Sign out\">",
++   "src/components/AppShell.tsx:121 v1 alias class: <p className=\"mx-auto mb-6 max-w-[1240px] rounded-xl border border-saffron/25 bg-saffron/[0.07] px-4 py-2.5 text-sm leading-relaxed text-cream/90\">",
++   "src/components/AppShell.tsx:122 v1 alias class: <span className=\"mr-2 font-mono text-[11px] uppercase tracking-widest text-saffron\">Live demo</span>",
++   "src/components/AppShell.tsx:124 v1 alias class: <NavLink to=\"/playground\" className=\"font-medium text-saffron underline-offset-4 hover:underline\">",
++   "src/components/AppShell.tsx:144 v1 alias class: <nav className=\"fixed inset-x-3 bottom-3 z-30 flex justify-around rounded-2xl border border-line-strong bg-panel/90 p-1.5 backdrop-blur-xl lg:hidden\">",
++   "src/components/AppShell.tsx:144 removed v1 effect (grain, shimmer, glow, blur): <nav className=\"fixed inset-x-3 bottom-3 z-30 flex justify-around rounded-2xl border border-line-strong bg-panel/90 p-1.5 backdrop-blur-xl lg:hidden\">",
++   "src/components/AppShell.tsx:150 v1 alias class: clsx(\"flex flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5 text-[10px] font-medium\", isActive ? \"bg-panel-3 text-saffron\" : \"text-faint\")",
++ ]
+
+ ❯ tests/design-system.test.ts:26:22
+     24|     const lines = source(file).split("\n");
+     25|     const offences = lines.flatMap((line, i) => RULES.filter(([, re]) …
+     26|     expect(offences).toEqual([]);
+       |                      ^
+     27|   });
+     28| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  tests/design-system.test.ts > the foundation speaks only in semantic tokens > src/components/KudosMark.tsx
+Error: ENOENT: no such file or directory, open '/home/coder/dev/kudos/.claude/worktrees/agent-aa6752df35e3390b4/src/components/KudosMark.tsx'
+ ❯ source tests/design-system.test.ts:12:34
+     10| // Pages still use the temporary v1 aliases until their own pass; R10 …
+     11| const FOUNDATION = ["src/components/ui.tsx", "src/components/AppShell.…
+     12| const source = (file: string) => readFileSync(new URL(`../${file}`, im…
+       |                                  ^
+     13|
+     14| const V1_ALIAS = "ink|panel(?:-[23])?|line(?:-strong)?|cream|muted|fai…
+ ❯ tests/design-system.test.ts:24:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  tests/design-system.test.ts > the foundation speaks only in semantic tokens > src/lib/rarity.ts
+AssertionError: expected [ …(6) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "src/lib/rarity.ts:5 removed v1 effect (grain, shimmer, glow, blur): export const RARITY_META: Record<Rarity, { label: string; color: string; glow: string; ring: string; text: string; bg: string }> = {",
++   "src/lib/rarity.ts:6 removed v1 effect (grain, shimmer, glow, blur): common: { label: \"Common\", color: \"var(--color-r-common)\", glow: \"\", ring: \"ring-r-common/30\", text: \"text-r-common\", bg: \"bg-r-common/12\" },",
++   "src/lib/rarity.ts:7 removed v1 effect (grain, shimmer, glow, blur): uncommon: { label: \"Uncommon\", color: \"var(--color-r-uncommon)\", glow: \"shadow-[0_0_32px_-10px_var(--color-r-uncommon)]\", ring: \"ring-r-uncommon/35\", text: \"text-r-uncommon\", bg: \"bg-r-uncommon/12\" },",
++   "src/lib/rarity.ts:8 removed v1 effect (grain, shimmer, glow, blur): rare: { label: \"Rare\", color: \"var(--color-r-rare)\", glow: \"shadow-[0_0_36px_-8px_var(--color-r-rare)]\", ring: \"ring-r-rare/40\", text: \"text-r-rare\", bg: \"bg-r-rare/12\" },",
++   "src/lib/rarity.ts:9 removed v1 effect (grain, shimmer, glow, blur): epic: { label: \"Epic\", color: \"var(--color-r-epic)\", glow: \"shadow-[0_0_44px_-8px_var(--color-r-epic)]\", ring: \"ring-r-epic/45\", text: \"text-r-epic\", bg: \"bg-r-epic/14\" },",
++   "src/lib/rarity.ts:10 removed v1 effect (grain, shimmer, glow, blur): legendary: { label: \"Legendary\", color: \"var(--color-r-legendary)\", glow: \"shadow-[0_0_56px_-6px_var(--color-r-legendary)]\", ring: \"ring-r-legendary/60\", text: \"text-r-legendary\", bg: \"bg-r-legendary/14\" },",
++ ]
+
+ ❯ tests/design-system.test.ts:26:22
+     24|     const lines = source(file).split("\n");
+     25|     const offences = lines.flatMap((line, i) => RULES.filter(([, re]) …
+     26|     expect(offences).toEqual([]);
+       |                      ^
+     27|   });
+     28| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  tests/design-system.test.ts > RarityBadge > gives every tier its own pip shape, so rarity is never colour alone
+AssertionError: expected [ undefined, undefined, …(3) ] to deeply equal [ 'ring', 'dot', 'diamond', …(2) ]
+
+- Expected
++ Received
+
+  [
+-   "ring",
+-   "dot",
+-   "diamond",
+-   "sparkle",
+-   "star",
++   undefined,
++   undefined,
++   undefined,
++   undefined,
++   undefined,
+  ]
+
+ ❯ tests/design-system.test.ts:39:20
+     37|   it("gives every tier its own pip shape, so rarity is never colour al…
+     38|     const shapes = badges.map((html) => html.match(/data-pip="([\w-]+)…
+     39|     expect(shapes).toEqual(["ring", "dot", "diamond", "sparkle", "star…
+       |                    ^
+     40|   });
+     41| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 2 passed (7)
+   Start at  04:37:44
+   Duration  9.55s (import 89%, transform 10%)
+

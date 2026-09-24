@@ -1,0 +1,7 @@
+OS dark, pref system -> "dark / #1d1f27"
+OS switched to light live -> "light / #f3f4ef"
+OS light, stored dark, after reload -> "dark"
+clicked Light -> "dark stored=dark"
+OS dark, clicked System -> "dark stored=dark"
+clicked Light -> "light stored=light"
+OS dark, clicked System -> "dark stored=null"

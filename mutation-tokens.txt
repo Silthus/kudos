@@ -1,0 +1,4 @@
+     × text-3 is AA (4.5:1) on every background 3ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: text-3 on bg: expected 3.086919397794172 to be greater than or equal to 4.5
+      Tests  1 failed | 26 passed (27)

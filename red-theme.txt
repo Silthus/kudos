@@ -1,0 +1,15 @@
+ ❯ tests/theme.test.ts:2:1
+      1| import { describe, expect, it } from "vitest";
+      2| import { parseThemePref, resolveTheme } from "../src/lib/theme";
+       | ^
+      3|
+      4| describe("resolveTheme", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  04:35:16
+   Duration  155ms (environment 92%, worker 8%)
+

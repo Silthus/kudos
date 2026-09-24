@@ -1,0 +1,12 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vitest.config.ts:5:41). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-aa6752df35e3390b4
+
+
+ Test Files  4 passed (4)
+      Tests  42 passed (42)
+   Start at  04:40:41
+   Duration  359ms (import 55%, transform 25%, environment 11%, tests 6%, worker 3%)
+
