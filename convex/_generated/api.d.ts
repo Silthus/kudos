@@ -37,6 +37,7 @@ import type * as lib_quests from "../lib/quests.js";
 import type * as lib_random from "../lib/random.js";
 import type * as lib_rebuild from "../lib/rebuild.js";
 import type * as lib_rollups from "../lib/rollups.js";
+import type * as lib_scaleSeed from "../lib/scaleSeed.js";
 import type * as lib_settings from "../lib/settings.js";
 import type * as lib_slack from "../lib/slack.js";
 import type * as lib_stats from "../lib/stats.js";
@@ -88,6 +89,7 @@ declare const fullApi: ApiFromModules<{
   "lib/random": typeof lib_random;
   "lib/rebuild": typeof lib_rebuild;
   "lib/rollups": typeof lib_rollups;
+  "lib/scaleSeed": typeof lib_scaleSeed;
   "lib/settings": typeof lib_settings;
   "lib/slack": typeof lib_slack;
   "lib/stats": typeof lib_stats;
