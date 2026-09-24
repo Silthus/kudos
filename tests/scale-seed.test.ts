@@ -97,6 +97,28 @@ describe("seedScale on a local backend", () => {
     expect(workspace?.rollupsBackfilledAt).toBeDefined();
   });
 
+  test("names the viewers the measurement signs in as: the busiest member, the median one and a teammate", async () => {
+    const workspaceId = await seed();
+    await t.finishAllScheduledFunctions(vi.runAllTimers, 1000);
+    const result = await t.query(internal.rollups.seedScaleViewers, {});
+    const humans = (await t.run((ctx) => ctx.db.query("members").collect())).filter((m) => !m.isBot);
+    const activity = (m: { totalGiven: number; totalReceived: number }) => m.totalGiven + m.totalReceived;
+    const busiest = Math.max(...humans.map(activity));
+
+    expect(result?.workspaceId).toBe(workspaceId);
+    expect(result?.members).toBe(30);
+    const { heaviest, median, teammate } = result!.viewers;
+    expect(activity(humans.find((m) => m._id === heaviest._id)!)).toBe(busiest);
+    expect(humans.filter((m) => activity(m) < activity(humans.find((h) => h._id === median._id)!)).length).toBe(15);
+    expect(teammate._id).not.toBe(heaviest._id);
+    for (const v of [heaviest, median, teammate]) {
+      expect(v.userId).toBe(humans.find((m) => m._id === v._id)!.userId);
+    }
+
+    vi.stubEnv("CONVEX_CLOUD_URL", "https://valiant-monitor-701.convex.cloud");
+    await expect(t.query(internal.rollups.seedScaleViewers, {})).rejects.toThrow(/local backend/);
+  });
+
   test("refuses to seed the same team twice", async () => {
     await seed();
     await expect(seed()).rejects.toThrow(/already/);

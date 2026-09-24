@@ -2,7 +2,7 @@ import { ConvexError, v, type Infer } from "convex/values";
 import { internalMutation, internalQuery, type QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
-import { bucketDays, dayBucket, monthBucket, periodBucketsBetween, weekBucket } from "./lib/buckets";
+import { ALL_BUCKET, bucketDays, dayBucket, monthBucket, periodBucketsBetween, weekBucket } from "./lib/buckets";
 import { CATALOG, pickTemplate, RARITIES, renderTemplate, TEMPLATE_BY_KEY, type Category } from "./lib/messages";
 import { channelKey, WORKSPACE_COUNTERS } from "./lib/rollups";
 import { kudosInRange, totalsByMember, workspaceDays } from "./lib/stats";
@@ -82,6 +82,25 @@ export const mirrorBackfillMarkers = internalMutation({
   returns: v.null(),
   handler: async (ctx) => {
     for await (const workspace of ctx.db.query("workspaces")) await mirrorBackfillMarker(ctx, workspace);
+    return null;
+  },
+});
+
+/**
+ * Rollback: clear a workspace's backfill markers so every reader goes back to its legacy scan.
+ * Live maintenance keeps the rollups exact meanwhile; `rebuildWorkspace` marks them again.
+ */
+export const unmarkBackfilled = internalMutation({
+  args: { workspaceId: v.id("workspaces") },
+  returns: v.null(),
+  handler: async (ctx, { workspaceId }) => {
+    const rows = ctx.db
+      .query("workspaceStats")
+      .withIndex("by_workspace_bucket", (q) => q.eq("workspaceId", workspaceId).eq("bucket", ALL_BUCKET));
+    for await (const row of rows) {
+      if (row.rollupsBackfilledAt !== undefined) await ctx.db.patch(row._id, { rollupsBackfilledAt: undefined });
+    }
+    await ctx.db.patch(workspaceId, { rollupsBackfilledAt: undefined });
     return null;
   },
 });
@@ -300,7 +319,7 @@ async function verifyBucket(ctx: QueryCtx, workspace: Doc<"workspaces">, bucket:
 // ---------------------------------------------------------------------------------------------
 // Scale proof (#30): a dev-only seed of a large workspace, refused anywhere but a local backend.
 
-const SEED_DAYS_PER_STEP = 2;
+const SEED_DAYS_PER_STEP = 1; // ~190 kudos rows, their day rows and discoveries: small enough to never time out
 const SEED_NOTIFICATIONS_PER_MEMBER = 5; // what the Me page's recent-messages list reads
 
 /**
@@ -379,6 +398,41 @@ export const seedScale = internalMutation({
       kudosPerYear: args.kudosPerYear ?? 50_000,
     });
     return workspaceId;
+  },
+});
+
+const scaleViewer = v.object({ _id: v.id("members"), userId: v.id("users"), slackUserId: v.string(), label: v.string() });
+
+/** Who `scripts/scale-proof.mjs` signs in as: the busiest member, the median one and the runner-up. */
+export const seedScaleViewers = internalQuery({
+  args: {},
+  returns: v.union(
+    v.null(),
+    v.object({
+      workspaceId: v.id("workspaces"),
+      members: v.number(),
+      viewers: v.object({ heaviest: scaleViewer, median: scaleViewer, teammate: scaleViewer }),
+    }),
+  ),
+  handler: async (ctx) => {
+    assertLocalDeployment();
+    const workspace = await ctx.db.query("workspaces").withIndex("by_team", (q) => q.eq("slackTeamId", SCALE_TEAM)).first();
+    if (!workspace) return null;
+    const humans = (
+      await ctx.db.query("members").withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id)).collect()
+    ).filter((m) => !m.isBot && m.userId);
+    if (humans.length < 2) return null;
+    humans.sort((a, b) => a.totalGiven + a.totalReceived - (b.totalGiven + b.totalReceived));
+    const viewer = (m: Doc<"members">, label: string) => ({ _id: m._id, userId: m.userId!, slackUserId: m.slackUserId, label });
+    return {
+      workspaceId: workspace._id,
+      members: humans.length,
+      viewers: {
+        heaviest: viewer(humans[humans.length - 1], "busiest member"),
+        median: viewer(humans[Math.floor(humans.length / 2)], "median member"),
+        teammate: viewer(humans[humans.length - 2], "runner-up"),
+      },
+    };
   },
 });
 
