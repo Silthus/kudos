@@ -98,7 +98,16 @@ describe("pickBoard", () => {
     expect(seeds.map((i) => draw(i, []))).toContain(earlierKeys.join());
   });
 
-  test("falls back to last week's quests when too few are left", () => {
+  test("never repeats last week's exact board while there is another, even if it has to keep two", () => {
+    // Too few quests to keep only one of last week's (never so with the built-in catalog).
+    const previousKeys: QuestKey[] = ["spread", "steady", "story"];
+    const boards = Array.from({ length: 50 }, (_, i) =>
+      pickBoard({ seed: boardSeed("ws1", `w${i}`), previousKeys, eligibleKeys: ["spread", "steady", "channels", "story"] }).join(),
+    );
+    expect(new Set(boards)).toEqual(new Set(["spread,steady,channels", "spread,channels,story"]));
+  });
+
+  test("keeps one of last week's quests when too few others are left", () => {
     const board = pickBoard({
       seed: 1,
       previousKeys: ["spread", "fresh", "channels"],

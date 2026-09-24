@@ -48,8 +48,9 @@ async function storedBoard(ctx: QueryCtx, workspace: Doc<"workspaces">, weekKey:
 }
 
 /**
- * The seeded draw for a week against the previous week's board (stored, or drawn without
- * exclusions) and, if stored, the board from two weeks before, so boards don't alternate.
+ * The seeded draw for a week against the previous week's board and, if stored, the board from two
+ * weeks before, so boards don't alternate. An unstored previous week (nobody played it) is drawn
+ * as it resolves itself when the weeks before it are stored, without looking further back.
  */
 async function drawBoard(ctx: QueryCtx, workspace: Doc<"workspaces">, weekKey: string): Promise<QuestKey[]> {
   const firstKudos = await ctx.db
@@ -62,12 +63,14 @@ async function drawBoard(ctx: QueryCtx, workspace: Doc<"workspaces">, weekKey: s
       workspaceFirstKudosAt: firstKudos?.at ?? null,
       weekStart: startOfDayUtc(key, workspace.timezone),
     });
-  const previousKey = addDays(weekKey, -7);
+  const storedKeys = async (weeksBack: number) =>
+    (await storedBoard(ctx, workspace, addDays(weekKey, -7 * weeksBack)))?.questKeys;
+  const draw = (key: string, previousKeys: readonly string[], earlierKeys: readonly string[]) =>
+    pickBoard({ seed: boardSeed(workspace._id, key), previousKeys, earlierKeys, eligibleKeys: eligibleFor(key) });
+  const earlierKeys = (await storedKeys(2)) ?? [];
   const previousKeys =
-    (await storedBoard(ctx, workspace, previousKey))?.questKeys ??
-    pickBoard({ seed: boardSeed(workspace._id, previousKey), previousKeys: [], eligibleKeys: eligibleFor(previousKey) });
-  const earlierKeys = (await storedBoard(ctx, workspace, addDays(weekKey, -14)))?.questKeys ?? [];
-  return pickBoard({ seed: boardSeed(workspace._id, weekKey), previousKeys, earlierKeys, eligibleKeys: eligibleFor(weekKey) });
+    (await storedKeys(1)) ?? draw(addDays(weekKey, -7), earlierKeys, (await storedKeys(3)) ?? []);
+  return draw(weekKey, previousKeys, earlierKeys);
 }
 
 /** A week's board: the stored one, else the deterministic draw (safe in queries). */

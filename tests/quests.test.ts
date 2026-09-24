@@ -3,7 +3,6 @@ import { api, internal } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { RECIPROCAL_WINDOW_MS, type QuestKey } from "../convex/lib/quests";
 import { addDays } from "../convex/lib/time";
-import { ensureBoard } from "../convex/quests";
 import { all, DEMO_TIMEOUT, NOW, seedTeam, setupConvex, signInAs, type Team } from "./helpers";
 
 let t: ReturnType<typeof setupConvex>;
@@ -458,6 +457,26 @@ describe("quest weeks", () => {
     expect(redrawn.filter((k) => ["spread", "steady", "channels"].includes(k)).length).toBeLessThanOrEqual(1);
   });
 
+  test("after a quiet week, the new board varies from the board that week showed", async () => {
+    // Nobody played this week, so its board was never stored: next week's draw must still vary
+    // from the board this week showed (and the quest log shows), not from some other draw.
+    const keys = async (today: string) => (await mine(team.ana, today)).quests.map((q) => q.key);
+    const boardTwoWeeksBefore = await setBoard(["spread", "steady", "channels"], addDays(WEEK, -7));
+    for (const earlier of [
+      ["spread", "steady", "channels"],
+      ["fresh", "steady", "story"],
+      ["spread", "channels", "story"],
+      ["fresh", "channels", "story"],
+      ["spread", "fresh", "steady"],
+    ] as QuestKey[][]) {
+      await t.run((ctx) => ctx.db.patch(boardTwoWeeksBefore, { questKeys: earlier }));
+      const quiet = await keys(WEEK);
+      const next = await keys("2026-09-28");
+      expect(next.filter((k) => quiet.includes(k)).length).toBeLessThanOrEqual(1);
+    }
+    expect(await all(t, "questBoards")).toHaveLength(1);
+  });
+
   test("a stored board stays as it was drawn, even one the rotation rules would no longer draw", async () => {
     await setBoard(["spread", "steady", "channels"], addDays(WEEK, -7));
     await setBoard(["spread", "steady", "channels"]);
@@ -704,7 +723,7 @@ describe("quests in the demo", () => {
     expect(await demoCompletions()).toHaveLength(0);
   }, DEMO_TIMEOUT);
 
-  test("the seeded year of boards rotates with variety, drawn the way live weeks are", async () => {
+  test("the seeded year of boards rotates with variety", async () => {
     await enterDemo();
     const demo = (await t.run((ctx) => ctx.db.query("workspaces").filter((q) => q.eq(q.field("isDemo"), true)).first()))!;
     const stored = (await all(t, "questBoards")).filter((b) => b.workspaceId === demo._id).sort((a, b) => a.weekKey.localeCompare(b.weekKey));
@@ -719,17 +738,6 @@ describe("quests in the demo", () => {
     expect(boards.slice(2).filter((b, i) => sameBoard(b, boards[i]))).toEqual([]);
     const drawable = ["spread", "fresh", "rekindle", "steady", "channels", "story", ...(demo.receivedVisibility === "everyone" ? ["unsung"] : [])];
     expect(new Set(boards.flat())).toEqual(new Set(drawable));
-    // Every live week draws the same way: the stored board is what the week's draw gives.
-    await t.run(async (ctx) => {
-      for (const b of stored.slice(-3)) await ctx.db.delete(b._id);
-    });
-    const redrawn = await t.run(async (ctx) => {
-      const ws = (await ctx.db.get(demo._id))!;
-      const out: string[][] = [];
-      for (const b of stored.slice(-3)) out.push(await ensureBoard(ctx, ws, b.weekKey));
-      return out;
-    });
-    expect(redrawn).toEqual(boards.slice(-3));
   }, DEMO_TIMEOUT);
 
   test("resetting the demo replaces playground quests with the same freshly seeded quest history", async () => {

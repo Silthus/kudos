@@ -34,6 +34,8 @@ export function isQuestKey(key: string): key is QuestKey {
 const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
 export const BOARD_SIZE = 3;
+/** How many of last week's quests a new board may keep. */
+const MAX_CARRY_OVER = 1;
 export const MIN_NOTE_WORDS = 3;
 export const STORY_NOTE_WORDS = 12;
 export const RECIPROCAL_WINDOW_MS = 72 * HOUR_MS;
@@ -72,8 +74,6 @@ export function eligibleQuestKeys(input: {
 }
 
 const isPeople = (key: QuestKey) => QUEST_BY_KEY[key].group === "people";
-/** How many of last week's quests a new board may keep. */
-export const MAX_CARRY_OVER = 1;
 
 /** Every valid board from `keys`: 3 distinct quests with at least 1 people and 1 habit/craft quest. */
 function boardsFrom(keys: readonly QuestKey[]): QuestKey[][] {
