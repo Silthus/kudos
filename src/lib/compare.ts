@@ -1,4 +1,5 @@
-import type { ComparePeriod } from "../../convex/lib/compare";
+import { ConvexError } from "convex/values";
+import { TEAMMATE_UNAVAILABLE, type ComparePeriod } from "../../convex/lib/compare";
 import type { Period } from "../../convex/lib/time";
 import { nf } from "./format";
 
@@ -46,4 +47,9 @@ export const firstName = (name: string) => name.trim().split(/\s+/)[0] || name;
 export function neutralDelta(delta: number) {
   if (delta === 0) return "same";
   return delta > 0 ? `+${nf.format(delta)}` : `−${nf.format(-delta)}`;
+}
+
+/** Whether `error` is the server saying a `?vs=` id isn't a teammate you can compare with (a stale or foreign link). */
+export function isTeammateUnavailable(error: unknown) {
+  return error instanceof ConvexError && error.data === TEAMMATE_UNAVAILABLE;
 }

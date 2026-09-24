@@ -27,6 +27,11 @@ export const METRIC_META: Record<Metric, { label: string; hint: string }> = {
 
 export const LOCKED_COPY: Record<Locked, string> = { hidden: "Private in this workspace", private: "Only visible to each member" };
 
+const LOCKED_TOOLTIP: Record<Locked, string> = {
+  hidden: "An admin has kept received counts private in this workspace",
+  private: "Received counts are only visible to each member in this workspace",
+};
+
 export const PERIOD_NOUN: Record<ComparePeriod, string> = { week: "week", month: "month", quarter: "quarter", year: "year" };
 
 export const formatValue = (n: number | null) => (n === null ? "—" : nf.format(n));
@@ -153,6 +158,7 @@ export function Race({
   dashed = false,
   benchmarkDays,
   emptyCopy,
+  receivedLock,
 }: {
   period: ComparePeriod;
   days: string[];
@@ -164,6 +170,8 @@ export function Race({
   /** The benchmark's own day for each point, when it differs from `days` (Past you). */
   benchmarkDays?: string[];
   emptyCopy: Record<"given" | "received", string>;
+  /** Why received is locked (the Received row's reason), for the toggle's tooltip. */
+  receivedLock: Locked | null;
 }) {
   const glyph = useViewer().workspace.emojiGlyph;
   const [measure, setMeasure] = useState<"given" | "received">("given");
@@ -198,7 +206,7 @@ export function Race({
                   </>
                 ),
                 disabled: receivedLocked,
-                title: receivedLocked ? "An admin has kept received counts private in this workspace" : undefined,
+                title: receivedLocked ? LOCKED_TOOLTIP[receivedLock ?? "hidden"] : undefined,
               },
             ]}
           />

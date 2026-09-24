@@ -34,6 +34,9 @@ export const rowValidator = v.object({
   delta: v.union(v.number(), v.null()),
 });
 
+/** `compare.teammate.get`'s answer for any id that isn't somebody the viewer can compare with. */
+export const TEAMMATE_UNAVAILABLE = "That teammate isn't available to compare.";
+
 export type CompareMode = "past" | "team" | "teammate";
 
 /** Received-derived metrics reveal kudos somebody received (receiver_success discoveries are unlocked by receiving). */

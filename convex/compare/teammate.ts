@@ -11,14 +11,13 @@ import {
   rowValidator,
   rowVisibility,
   seriesValidator,
+  TEAMMATE_UNAVAILABLE,
   type Metric,
 } from "../lib/compare";
 import { givenKudos, memberDiscoveries, newDiscoveriesIn } from "../lib/compareReads";
 import { resolvePeriod } from "../lib/periods";
 import { memberDays } from "../lib/stats";
 import { eachDay, parseToday, type DayRange } from "../lib/time";
-
-const UNAVAILABLE = "That teammate isn't available to compare.";
 
 const memberValidator = v.object({
   _id: v.id("members"),
@@ -38,7 +37,7 @@ async function eligibleTeammate(ctx: QueryCtx, { member: me, workspace }: Viewer
   const id = ctx.db.normalizeId("members", memberId);
   const them = id ? await ctx.db.get(id) : null;
   if (!them || them.workspaceId !== workspace._id || them.isBot || them.deactivated || them._id === me._id) {
-    throw new ConvexError(UNAVAILABLE);
+    throw new ConvexError(TEAMMATE_UNAVAILABLE);
   }
   return them;
 }
@@ -103,15 +102,14 @@ export const get = query({
 
     const [you, other] = await Promise.all([subject(ctx, viewer.member._id, range, tz), subject(ctx, them._id, range, tz)]);
 
-    // A capped kudos read counts only the most recent days, so reach and channels show no number on
-    // either side rather than comparing different windows.
-    const truncated = you.truncated || other.truncated;
-    const uncounted = (metric: Metric) => truncated && (metric === "reach" || metric === "channels");
+    // A capped kudos read counts only that member's most recent days, so their reach and channels
+    // show no number. Both sides cover the same days, so the other side stays countable.
+    const uncounted = (side: typeof you, metric: Metric) => side.truncated && (metric === "reach" || metric === "channels");
 
     const rows = METRICS.map((metric) => {
       const locked = rowVisibility(visibility, "teammate", metric);
-      const youValue = locked || uncounted(metric) ? null : you.values[metric];
-      const benchmarkValue = locked || uncounted(metric) ? null : other.values[metric];
+      const youValue = locked || uncounted(you, metric) ? null : you.values[metric];
+      const benchmarkValue = locked || uncounted(other, metric) ? null : other.values[metric];
       return {
         metric,
         family: familyOf(metric),
@@ -137,7 +135,7 @@ export const get = query({
         you: { given: pad(you.cumulativeGiven), received: receivedLocked ? null : pad(you.cumulativeReceived) },
         benchmark: { given: pad(other.cumulativeGiven), received: receivedLocked ? null : pad(other.cumulativeReceived) },
       },
-      truncated,
+      truncated: you.truncated || other.truncated,
     };
   },
 });

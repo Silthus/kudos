@@ -1,5 +1,7 @@
+import { ConvexError } from "convex/values";
 import { describe, expect, test } from "vitest";
-import { benchmarkFromParam, compareWithHref, firstName, matchCandidates, neutralDelta } from "../src/lib/compare";
+import { TEAMMATE_UNAVAILABLE } from "../convex/lib/compare";
+import { benchmarkFromParam, compareWithHref, firstName, isTeammateUnavailable, matchCandidates, neutralDelta } from "../src/lib/compare";
 
 describe("benchmarkFromParam: the ?vs= deep link", () => {
   test("past and an empty or missing vs are Past you", () => {
@@ -64,6 +66,17 @@ describe("neutralDelta: Teammate differences carry no winner", () => {
 
   test("large numbers are grouped", () => {
     expect(neutralDelta(1234)).toBe("+1,234");
+  });
+});
+
+describe("isTeammateUnavailable: which errors the stale-link card handles", () => {
+  test("only the server's unavailable-teammate answer", () => {
+    expect(isTeammateUnavailable(new ConvexError(TEAMMATE_UNAVAILABLE))).toBe(true);
+  });
+
+  test("signing out, a bad today and plain bugs go to the app-wide handling", () => {
+    expect(isTeammateUnavailable(new ConvexError("Sign in with Slack to continue."))).toBe(false);
+    expect(isTeammateUnavailable(new Error(TEAMMATE_UNAVAILABLE))).toBe(false);
   });
 });
 

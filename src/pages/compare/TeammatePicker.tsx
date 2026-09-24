@@ -30,7 +30,12 @@ export function TeammatePicker({
   useEffect(() => {
     if (open) setSearch("");
   }, [open]);
-  useEffect(() => setActive(0), [search]);
+  // Start on the current teammate, so Enter keeps them and the arrows move from there.
+  useEffect(() => {
+    const current = search ? -1 : matches.findIndex((m) => m._id === selectedId);
+    setActive(Math.max(0, current));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, candidates === undefined, selectedId]);
   useEffect(() => {
     document.getElementById(`${listId}-${active}`)?.scrollIntoView({ block: "nearest" });
   }, [active, listId]);
@@ -64,8 +69,8 @@ export function TeammatePicker({
           placeholder="Search by name or title"
           className={clsx(inputCls, "pl-9")}
           role="combobox"
-          aria-expanded
-          aria-controls={listId}
+          aria-expanded={matches.length > 0}
+          aria-controls={matches.length > 0 ? listId : undefined}
           aria-activedescendant={matches[active] ? optionId(active) : undefined}
           autoComplete="off"
         />

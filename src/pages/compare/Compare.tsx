@@ -1,10 +1,9 @@
-import { ConvexError } from "convex/values";
 import { ChevronDown } from "lucide-react";
 import { Component, useEffect, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
-import type { ComparePeriod } from "../../../convex/lib/compare";
+import { TEAMMATE_UNAVAILABLE, type ComparePeriod } from "../../../convex/lib/compare";
 import { Card, PageHeader, Segmented } from "@/components/ui";
-import { benchmarkFromParam, DEFAULT_COMPARE_PERIOD } from "@/lib/compare";
+import { benchmarkFromParam, DEFAULT_COMPARE_PERIOD, isTeammateUnavailable } from "@/lib/compare";
 import { PERIOD_OPTIONS } from "@/lib/period";
 import { useViewer } from "@/lib/viewer";
 import { PastPanel } from "./PastPanel";
@@ -65,10 +64,11 @@ export function Compare() {
       setParams(next, { replace: true });
     }
   }, [params, vs, period, setParams]);
+  // A new benchmark is a new comparison, so Back returns to the previous one; period flips replace.
   const update = (patch: Record<string, string>) => {
     const next = new URLSearchParams(params);
     for (const [k, v] of Object.entries(patch)) next.set(k, v);
-    setParams(next, { replace: true });
+    setParams(next, { replace: !("vs" in patch) || patch.vs === params.get("vs") });
   };
 
   return (
@@ -123,10 +123,11 @@ class Unavailable extends Component<{ children: ReactNode; resetKey: string; bac
   render() {
     const { error } = this.state;
     if (!error) return this.props.children;
-    if (!(error instanceof ConvexError)) throw error; // a bug, not a stale link: the app-wide boundary handles it
+    // Signing out, a bad `today` or a bug isn't a stale link: the app-wide handling takes those.
+    if (!isTeammateUnavailable(error)) throw error;
     return (
       <Card className="px-6 py-10 text-center">
-        <h2 className="font-display text-xl font-semibold">{String(error.data)}</h2>
+        <h2 className="font-display text-xl font-semibold">{TEAMMATE_UNAVAILABLE}</h2>
         <p className="mt-2 text-sm text-muted">They may have left the workspace, or the link isn't for someone you can compare with.</p>
         <Link to={this.props.backHref} className="mt-5 inline-block text-sm font-medium text-saffron hover:underline">
           Back to Past you

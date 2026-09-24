@@ -17,6 +17,7 @@ type Teammate = FunctionReturnType<typeof api.compare.teammate.get>;
  * winner styling, no red or green, because Kudos rewards generosity rather than rivalry.
  */
 export function TeammatePanel({ period, memberId }: { period: ComparePeriod; memberId: string }) {
+  const { workspace } = useViewer();
   const today = useWorkspaceToday();
   const { data, isStale } = useStableQuery(api.compare.teammate.get, { period, today, memberId });
   if (!data) return <PageSkeleton />;
@@ -38,9 +39,10 @@ export function TeammatePanel({ period, memberId }: { period: ComparePeriod; mem
         you={data.race.you}
         benchmark={data.race.benchmark}
         benchmarkLabel={name}
+        receivedLock={data.rows.find((r) => r.metric === "received")!.you.locked}
         emptyCopy={{
-          given: `Neither of you has given kudos this ${PERIOD_NOUN[data.period]} yet. Give some in Slack to get going.`,
-          received: `Neither of you has received kudos this ${PERIOD_NOUN[data.period]} yet.`,
+          given: `Neither of you has given ${workspace.unitPlural} this ${PERIOD_NOUN[data.period]} yet. Give some in Slack to get going.`,
+          received: `Neither of you has received ${workspace.unitPlural} this ${PERIOD_NOUN[data.period]} yet.`,
         }}
       />
     </div>
@@ -67,7 +69,11 @@ function Headline({ data, name }: { data: Teammate; name: string }) {
       </div>
       {(them === 0 || you === them) && (
         <p className="mt-2 text-sm text-faint">
-          {them === 0 ? `${name} hasn't given kudos this ${noun} yet.` : `You've both given ${nf.format(you)} so far.`}
+          {you === 0 && them === 0
+            ? `Neither of you has given ${workspace.unitPlural} this ${noun} yet.`
+            : them === 0
+              ? `${name} hasn't given ${workspace.unitPlural} this ${noun} yet.`
+              : `You've both given ${nf.format(you)} so far.`}
         </p>
       )}
     </Card>

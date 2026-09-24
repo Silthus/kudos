@@ -133,6 +133,30 @@ describe("compare.teammate.get: head-to-head", () => {
     expect(row(r, "channels")).toMatchObject({ you: { value: 1 }, benchmark: { value: 3 }, delta: -2 });
   });
 
+  test("the teammate's kudos land in the workspace's local day", async () => {
+    await setup();
+    const give = (at: number, channelId: string) =>
+      t.run(async (ctx) => {
+        await ctx.db.insert("kudos", {
+          workspaceId: team.workspaceId,
+          batchId: `b-${channelId}`,
+          giverId: team.ben,
+          receiverId: team.cleo,
+          amount: 1,
+          dayKey: "unused",
+          source: "message",
+          channelId,
+          text: "thanks",
+          at,
+        });
+      });
+    await give(Date.UTC(2026, 8, 20, 21, 30), "C-sunday"); // Sun 23:30 in Berlin: last week
+    await give(Date.UTC(2026, 8, 20, 22, 30), "C-monday"); // Mon 00:30 in Berlin: this week
+
+    const r = await getTeammate(team.ben, "week");
+    expect(row(r, "channels")).toMatchObject({ benchmark: { value: 1 } });
+  });
+
   test("new discoveries are the ones each side first saw in the period", async () => {
     await setup();
     await discovery(team.ana, "t1", "2026-09-22");
@@ -230,8 +254,9 @@ describe("compare.candidates.list", () => {
 });
 
 describe("compare.teammate.get: bounded reads", () => {
-  test("too many kudos to count reach and channels: neither side shows a number", async () => {
+  test("too many kudos to count the teammate's reach and channels: only their side goes blank", async () => {
     await setup();
+    await kudos(team.ana, team.cleo, "2026-09-22", "C4");
     await t.run(async (ctx) => {
       const base = startOfDayUtc("2026-09-21", "Europe/Berlin");
       for (let i = 0; i < 2_001; i++) {
@@ -251,8 +276,10 @@ describe("compare.teammate.get: bounded reads", () => {
     });
     const r = await getTeammate(team.ben, "week");
     expect(r.truncated).toBe(true);
+    // Both sides cover the same days, so a capped read only makes the capped side uncountable:
+    // somebody else's heavy giving never blanks your own numbers.
     for (const metric of ["reach", "channels"]) {
-      expect(row(r, metric)).toMatchObject({ you: { value: null, locked: null }, benchmark: { value: null, locked: null }, delta: null });
+      expect(row(r, metric)).toMatchObject({ you: { value: 1, locked: null }, benchmark: { value: null, locked: null }, delta: null });
     }
   });
 });

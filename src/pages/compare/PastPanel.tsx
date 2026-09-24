@@ -91,6 +91,7 @@ function PastRace({ data }: { data: Past }) {
       benchmarkLabel={data.benchmarkLabel}
       benchmarkDays={data.race.previousDays}
       dashed
+      receivedLock={data.rows.find((r) => r.metric === "received")!.you.locked}
       emptyCopy={{ given: "Give kudos in Slack to start your streak.", received: "Kudos your teammates give you will show up here." }}
     />
   );
