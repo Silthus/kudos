@@ -1,0 +1,27 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a46ddae494f0262ee
+
+ ❯ tests/demo.test.ts (15 tests | 1 failed | 11 skipped) 65385ms
+   ❯ a year of demo history (4)
+     × has the rhythm of a real team: quiet weekends and holidays, launches, and growth 12619ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/demo.test.ts > a year of demo history > has the rhythm of a real team: quiet weekends and holidays, launches, and growth
+AssertionError: expected 21 to be less than 7.84
+ ❯ tests/demo.test.ts:118:49
+    116|     expect(average("2026-01-01", TODAY, true)).toBeLessThan(0.3 * aver…
+    117|     // New Year, Easter (Good Friday to Easter Monday) and the August …
+    118|     expect(average("2026-01-01", "2026-01-06")).toBeLessThan(0.6 * ave…
+       |                                                 ^
+    119|     expect(average("2026-04-03", "2026-04-06")).toBeLessThan(0.6 * ave…
+    120|     expect(average("2026-08-03", "2026-08-21")).toBeLessThan(0.7 * ave…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed | 11 skipped (15)
+   Start at  04:04:53
+   Duration  65.76s (tests 100%)
+

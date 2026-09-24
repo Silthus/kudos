@@ -1,0 +1,31 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a46ddae494f0262ee
+
+ ❯ tests/demo.test.ts (12 tests | 1 failed | 11 skipped) 3873ms
+   ❯ a year of demo history (1)
+     × covers 1 January up to now, with kudos on every workday and nothing in the future 3872ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/demo.test.ts > a year of demo history > covers 1 January up to now, with kudos on every workday and nothing in the future
+AssertionError: expected '2026-05-26' to be '2026-01-01' // Object.is equality
+
+Expected: "2026-01-01"
+Received: "2026-05-26"
+
+ ❯ tests/demo.test.ts:98:33
+     96|     const kudos = await all(t, "kudos");
+     97|     const days = new Set(kudos.map((k) => k.dayKey));
+     98|     expect([...days].sort()[0]).toBe("2026-01-01");
+       |                                 ^
+     99|     const quietWorkdays = daysFrom("2026-01-01", addDays(TODAY, -1)).f…
+    100|     expect(quietWorkdays).toEqual([]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 11 skipped (12)
+   Start at  03:59:40
+   Duration  4.31s (tests 93%, transform 3%, import 3%, environment 1%)
+
