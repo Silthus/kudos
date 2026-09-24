@@ -1,0 +1,66 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af06d2b09aefa51d5
+
+ ❯ convex/lib/boosts.test.ts (5 tests | 4 failed) 7ms
+   ❯ the announcement (§G9, G10, G13) (4)
+     × names the day in words 2ms
+     × a booster: who activated it, what it doubles, until midnight 1ms
+     × a scheduled bonus day, announced in advance 1ms
+     × the team garden and the Block party capstone (#96) say what started them 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  convex/lib/boosts.test.ts > the announcement (§G9, G10, G13) > names the day in words
+TypeError: dayLabel is not a function
+ ❯ convex/lib/boosts.test.ts:19:12
+     17| describe("the announcement (§G9, G10, G13)", () => {
+     18|   test("names the day in words", () => {
+     19|     expect(dayLabel("2026-09-25")).toBe("Friday, 25 September");
+       |            ^
+     20|   });
+     21|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  convex/lib/boosts.test.ts > the announcement (§G9, G10, G13) > a booster: who activated it, what it doubles, until midnight
+TypeError: announcementText is not a function
+ ❯ convex/lib/boosts.test.ts:23:12
+     21|
+     22|   test("a booster: who activated it, what it doubles, until midnight",…
+     23|     expect(announcementText({ kind: "double", source: "booster", dayKe…
+       |            ^
+     24|       "<@UANA> activated a Kudos booster: Double. Today is a bonus day…
+     25|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  convex/lib/boosts.test.ts > the announcement (§G9, G10, G13) > a scheduled bonus day, announced in advance
+TypeError: announcementText is not a function
+ ❯ convex/lib/boosts.test.ts:32:12
+     30|
+     31|   test("a scheduled bonus day, announced in advance", () => {
+     32|     expect(announcementText({ kind: "double", source: "schedule", dayK…
+       |            ^
+     33|       "Bonus day on Friday, 25 September: all day, every thoughtful ku…
+     34|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  convex/lib/boosts.test.ts > the announcement (§G9, G10, G13) > the team garden and the Block party capstone (#96) say what started them
+TypeError: announcementText is not a function
+ ❯ convex/lib/boosts.test.ts:41:12
+     39|
+     40|   test("the team garden and the Block party capstone (#96) say what st…
+     41|     expect(announcementText({ kind: "double", source: "team_garden", d…
+       |            ^
+     42|       "The team garden reached a milestone: bonus day on Friday, 25 Se…
+     43|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 1 passed (5)
+   Start at  16:28:29
+   Duration  198ms (environment 48%, transform 29%, import 11%, tests 8%, worker 4%)
+

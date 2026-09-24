@@ -1,0 +1,164 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af06d2b09aefa51d5
+
+ ❯ tests/boosts-admin.test.ts (10 tests | 9 failed) 72ms
+   ❯ the admin schedule (4)
+     × an admin schedules a bonus day in advance; everyone sees it coming on the banner, then on the day 40ms
+     × always in advance, within 90 days, one boost a day, and only by admins 7ms
+     × an admin can call off a bonus day that hasn't started, and the channel hears it 3ms
+     × a boost that has started can't be called off 3ms
+   ❯ the announcement channel (5)
+     × each boost is announced in the admin's chosen channel 4ms
+     × a company-wide booster is announced with who activated it 2ms
+     × when the Kudos app isn't in the channel, the boost still runs and the admin sees why the post failed 2ms
+     × without a channel only the banner announces it 2ms
+   ❯ the banner (1)
+     × is gone while the game is off or hidden 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/boosts-admin.test.ts > the admin schedule > an admin schedules a bonus day in advance; everyone sees it coming on the banner, then on the day
+Error: Expected a Convex function exported from module "boosts" as `schedule`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2131:34
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/boosts-admin.test.ts:47:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  tests/boosts-admin.test.ts > the admin schedule > always in advance, within 90 days, one boost a day, and only by admins
+AssertionError: expected [Function] to throw error matching /in advance/ but got 'Expected a Convex function exported f…'
+
+- Expected:
+/in advance/
+
++ Received:
+"Expected a Convex function exported from module \"boosts\" as `schedule`, but there is no such export."
+
+ ❯ tests/boosts-admin.test.ts:59:68
+     57|   test("always in advance, within 90 days, one boost a day, and only b…
+     58|     const ana = await as(team.ana);
+     59|     await expect(ana.mutation(api.boosts.schedule, { day: TODAY })).re…
+       |                                                                    ^
+     60|     await expect(ana.mutation(api.boosts.schedule, { day: "2027-01-01"…
+     61|     await ana.mutation(api.boosts.schedule, { day: FRIDAY });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  tests/boosts-admin.test.ts > the admin schedule > an admin can call off a bonus day that hasn't started, and the channel hears it
+Error: Expected a Convex function exported from module "boosts" as `setChannel`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2131:34
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/boosts-admin.test.ts:68:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  tests/boosts-admin.test.ts > the admin schedule > a boost that has started can't be called off
+Error: Expected a Convex function exported from module "boosts" as `schedule`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2131:34
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/boosts-admin.test.ts:81:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  tests/boosts-admin.test.ts > the announcement channel > each boost is announced in the admin's chosen channel
+Error: Expected a Convex function exported from module "boosts" as `setChannel`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2131:34
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/boosts-admin.test.ts:91:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  tests/boosts-admin.test.ts > the announcement channel > a company-wide booster is announced with who activated it
+Error: Expected a Convex function exported from module "boosts" as `setChannel`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2131:34
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/boosts-admin.test.ts:101:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  tests/boosts-admin.test.ts > the announcement channel > when the Kudos app isn't in the channel, the boost still runs and the admin sees why the post failed
+Error: Expected a Convex function exported from module "boosts" as `setChannel`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2131:34
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/boosts-admin.test.ts:116:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+ FAIL  tests/boosts-admin.test.ts > the announcement channel > without a channel only the banner announces it
+Error: Expected a Convex function exported from module "boosts" as `schedule`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2131:34
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/boosts-admin.test.ts:125:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯
+
+ FAIL  tests/boosts-admin.test.ts > the banner > is gone while the game is off or hidden
+Error: Expected a Convex function exported from module "boosts" as `schedule`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2131:34
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/boosts-admin.test.ts:138:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  9 failed | 1 passed (10)
+   Start at  16:29:31
+   Duration  496ms (transform 39%, import 30%, tests 19%, environment 11%, worker 1%)
+

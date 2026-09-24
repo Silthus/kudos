@@ -1,0 +1,24 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af06d2b09aefa51d5
+
+ ❯ src/lib/boosts.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/boosts.test.ts [ src/lib/boosts.test.ts ]
+Error: Cannot find module './boosts' imported from /home/coder/dev/kudos/.claude/worktrees/agent-af06d2b09aefa51d5/src/lib/boosts.test.ts
+ ❯ src/lib/boosts.test.ts:2:1
+      1| import { expect, test } from "vitest";
+      2| import { announcementStatus, startedBy } from "./boosts";
+       | ^
+      3|
+      4| test("an announcement's status reads as what the admin can do about it…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  16:37:09
+   Duration  227ms (environment 92%, worker 8%)
+

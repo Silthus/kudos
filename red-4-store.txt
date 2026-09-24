@@ -1,0 +1,149 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af06d2b09aefa51d5
+
+ ❯ tests/boosts.test.ts (13 tests | 7 failed) 720ms
+   ❯ company-wide boosters in the Store (4)
+     × buying one starts it for the whole workspace until the end of the day 7ms
+     × the conditional ones double only their kind of kudos 3ms
+     × only one at a time: once a boost is on today, every booster waits until tomorrow 4ms
+     × the unsung booster needs received counts visible to everyone 4ms
+   ❯ the Lucky charm (3)
+     × costs 12 Hog coins, 3 less for each rank of Charm maker 3ms
+     × the next 3 thoughtful kudos roll their receivers' messages at Uncommon or better 7ms
+     × isn't sold where receivers get no kudos messages 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/boosts.test.ts > company-wide boosters in the Store > buying one starts it for the whole workspace until the end of the day
+AssertionError: expected undefined to match object { name: 'Kudos booster: Double', …(3) }
+
+- Expected:
+{
+  "blocked": null,
+  "name": "Kudos booster: Double",
+  "perMonth": 1,
+  "price": 40,
+}
+
++ Received:
+undefined
+
+ ❯ tests/boosts.test.ts:149:55
+    147|   test("buying one starts it for the whole workspace until the end of …
+    148|     await playerWith(team.ben, { level: 5, balance: 60 });
+    149|     expect(await shopItem(team.ben, "boosterDouble")).toMatchObject({ …
+       |                                                       ^
+    150|     expect(await buy(team.ben, "boosterDouble")).toEqual({ balance: 20…
+    151|     expect(await boosts()).toMatchObject([{ dayKey: TODAY, kind: "doub…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  tests/boosts.test.ts > company-wide boosters in the Store > the conditional ones double only their kind of kudos
+TypeError: Cannot destructure property 'price' of '(intermediate value)' as it is undefined.
+ ❯ buy tests/boosts.test.ts:70:11
+     68| };
+     69| const buy = async (memberId: Id<"members">, item: string) => {
+     70|   const { price } = await shopItem(memberId, item);
+       |           ^
+     71|   return await (await signInAs(t, memberId)).mutation(api.store.buyIte…
+     72| };
+ ❯ tests/boosts.test.ts:158:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  tests/boosts.test.ts > company-wide boosters in the Store > only one at a time: once a boost is on today, every booster waits until tomorrow
+TypeError: Cannot destructure property 'price' of '(intermediate value)' as it is undefined.
+ ❯ buy tests/boosts.test.ts:70:11
+     68| };
+     69| const buy = async (memberId: Id<"members">, item: string) => {
+     70|   const { price } = await shopItem(memberId, item);
+       |           ^
+     71|   return await (await signInAs(t, memberId)).mutation(api.store.buyIte…
+     72| };
+ ❯ tests/boosts.test.ts:167:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  tests/boosts.test.ts > company-wide boosters in the Store > the unsung booster needs received counts visible to everyone
+AssertionError: expected undefined to match object { blocked: StringMatching{…} }
+
+- Expected:
+{
+  "blocked": StringMatching /received counts visible to everyone/,
+}
+
++ Received:
+undefined
+
+ ❯ tests/boosts.test.ts:175:55
+    173|   test("the unsung booster needs received counts visible to everyone",…
+    174|     await playerWith(team.ben, { level: 5, balance: 100 });
+    175|     expect(await shopItem(team.ben, "boosterUnsung")).toMatchObject({ …
+       |                                                       ^
+    176|     await t.run((ctx) => ctx.db.patch(team.workspaceId, { receivedVisi…
+    177|     expect(await shopItem(team.ben, "boosterUnsung")).toMatchObject({ …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  tests/boosts.test.ts > the Lucky charm > costs 12 Hog coins, 3 less for each rank of Charm maker
+AssertionError: expected undefined to match object { name: 'Lucky charm', price: 12 }
+
+- Expected:
+{
+  "name": "Lucky charm",
+  "price": 12,
+}
+
++ Received:
+undefined
+
+ ❯ tests/boosts.test.ts:189:52
+    187|   test("costs 12 Hog coins, 3 less for each rank of Charm maker", asyn…
+    188|     await playerWith(team.ben, { level: 5, balance: 100 });
+    189|     expect(await shopItem(team.ben, "luckyCharm")).toMatchObject({ nam…
+       |                                                    ^
+    190|     await playerWith(team.ben, { level: 6, balance: 100, skills: { emo…
+    191|     expect(await shopItem(team.ben, "luckyCharm")).toMatchObject({ pri…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  tests/boosts.test.ts > the Lucky charm > the next 3 thoughtful kudos roll their receivers' messages at Uncommon or better
+TypeError: Cannot destructure property 'price' of '(intermediate value)' as it is undefined.
+ ❯ buy tests/boosts.test.ts:70:11
+     68| };
+     69| const buy = async (memberId: Id<"members">, item: string) => {
+     70|   const { price } = await shopItem(memberId, item);
+       |           ^
+     71|   return await (await signInAs(t, memberId)).mutation(api.store.buyIte…
+     72| };
+ ❯ tests/boosts.test.ts:198:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+ FAIL  tests/boosts.test.ts > the Lucky charm > isn't sold where receivers get no kudos messages
+AssertionError: expected undefined to match object { blocked: StringMatching{…} }
+
+- Expected:
+{
+  "blocked": StringMatching /receivers get no message/,
+}
+
++ Received:
+undefined
+
+ ❯ tests/boosts.test.ts:213:52
+    211|     await playerWith(team.ana, { level: 5, balance: 50 });
+    212|     await t.run((ctx) => ctx.db.patch(team.workspaceId, { notifyReceiv…
+    213|     expect(await shopItem(team.ana, "luckyCharm")).toMatchObject({ blo…
+       |                                                    ^
+    214|   });
+    215| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 6 passed (13)
+   Start at  16:25:26
+   Duration  1.26s (tests 64%, transform 19%, import 13%, environment 4%)
+

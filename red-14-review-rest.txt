@@ -1,0 +1,101 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af06d2b09aefa51d5
+
+ ❯ convex/lib/xp.test.ts (27 tests | 1 failed) 26ms
+   ❯ bonus days and company-wide boosters (#55 §G9, G10) (6)
+     × a boost that doubled nothing (a third thanks today) isn't named (review #10) 10ms
+ ❯ tests/boosts-admin.test.ts (21 tests | 1 failed) 954ms
+   ❯ the banner (2)
+     × is empty, not an error, for someone signed out mid-session (review #8) 41ms
+ ❯ tests/boosts.test.ts (17 tests | 2 failed) 3176ms
+   ❯ company-wide boosters in the Store (4)
+     × only one at a time: once a boost is on today, every booster waits until tomorrow 25ms
+   ❯ the Lucky charm (4)
+     × waits while the giver hides the game: no use is spent where they can't see it (review #7) 25ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/boosts-admin.test.ts > the banner > is empty, not an error, for someone signed out mid-session (review #8)
+ConvexError: Sign in with Slack to continue.
+ ❯ requireViewer convex/lib/access.ts:45:22
+     43| export async function requireViewer(ctx: QueryCtx): Promise<Viewer> {
+     44|   const viewer = await getViewer(ctx);
+     45|   if (!viewer) throw new ConvexError("Sign in with Slack to continue."…
+       |                      ^
+     46|   return viewer;
+     47| }
+ ❯ handler convex/boosts.ts:176:35
+ ❯ invokeFunction node_modules/convex/src/server/impl/registration_impl.ts:90:14
+ ❯ invokeQuery node_modules/convex/src/server/impl/registration_impl.ts:350:18
+ ❯ runQueryWithHandler node_modules/convex-test/dist/index.js:2027:31
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2087:32
+ ❯ query node_modules/convex-test/dist/index.js:2172:20
+ ❯ tests/boosts-admin.test.ts:249:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/boosts.test.ts > company-wide boosters in the Store > only one at a time: once a boost is on today, every booster waits until tomorrow
+AssertionError: expected { affordable: true, …(7) } to match object { Object (blocked) }
+(7 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "blocked": "The rekindle booster is on today already. One at a time: try again tomorrow.",
++   "blocked": "A Rekindle booster is on today already. One at a time: try again tomorrow.",
+  }
+
+ ❯ tests/boosts.test.ts:189:56
+    187|     await playerWith(team.cleo, { level: 5, balance: 100 });
+    188|     await buy(team.ben, "boosterRekindles");
+    189|     expect(await shopItem(team.cleo, "boosterDouble")).toMatchObject({…
+       |                                                        ^
+    190|     await expect(buy(team.cleo, "boosterDouble")).rejects.toThrow(/on …
+    191|     expect((await t.run((ctx) => ctx.db.get(team.cleo)))?.coinsSpent).…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/boosts.test.ts > the Lucky charm > waits while the giver hides the game: no use is spent where they can't see it (review #7)
+AssertionError: expected [ 'uncommon' ] to deeply equal [ 'common' ]
+
+- Expected
++ Received
+
+  [
+-   "common",
++   "uncommon",
+  ]
+
+ ❯ tests/boosts.test.ts:255:46
+    253|     await t.run((ctx) => ctx.db.patch(team.ana, { gameHidden: true }));
+    254|     await message("UANA", "<@UBEN> :taco: thanks for the launch");
+    255|     expect(await receiverRarities(team.ben)).toEqual(["common"]);
+       |                                              ^
+    256|     expect(await player(team.ana)).toMatchObject({ luckyCharms: 3 });
+    257|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  convex/lib/xp.test.ts > bonus days and company-wide boosters (#55 §G9, G10) > a boost that doubled nothing (a third thanks today) isn't named (review #10)
+AssertionError: expected '+2 XP · bonus day ×2 +0 · thanking ba…' to be '+2 XP · thanking back within 72 h ear…' // Object.is equality
+
+Expected: "+2 XP · thanking back within 72 h earns less"
+Received: "+2 XP · bonus day ×2 +0 · thanking back within 72 h earns less"
+
+ ❯ convex/lib/xp.test.ts:232:29
+    230|   test("a boost that doubled nothing (a third thanks today) isn't name…
+    231|     const e = { xp: 2, bonuses: [{ kind: "boost" as const, xp: 0 }], c…
+    232|     expect(earningsText(e)).toBe("+2 XP · thanking back within 72 h ea…
+       |                             ^
+    233|   });
+    234| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  3 failed (3)
+      Tests  4 failed | 61 passed (65)
+   Start at  17:02:48
+   Duration  4.26s (tests 64%, transform 20%, import 10%, environment 5%)
+

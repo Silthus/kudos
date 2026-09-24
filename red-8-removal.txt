@@ -1,0 +1,40 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af06d2b09aefa51d5
+
+stdout | tests/boosts.test.ts > members who leave > removing the member who bought a booster keeps the boost for everyone else's history, without their name
+removeMember: removing Ben (UBEN) from Team T1 (T1).
+
+stdout | tests/boosts.test.ts > members who leave > removing the member who bought a booster keeps the boost for everyone else's history, without their name
+removeMember: removed Ben (UBEN) from Team T1; rebuilding its rollups. {"adminRemovedBy":0,"authAccounts":0,"authRefreshTokens":0,"authSessions":0,"balanceAdjustments":0,"discoveries":0,"gameEvents":0,"itemPurchases":1,"kudosAttempts":0,"kudosGiven":0,"kudosReceived":0,"memberDays":0,"memberStats":0,"notifications":1,"pairStatsGiven":0,"pairStatsReceived":0,"players":1,"questCompletions":0,"redemptions":0,"skillChanges":0,"steps":21}
+
+ ❯ tests/boosts.test.ts (14 tests | 1 failed | 13 skipped) 2243ms
+   ❯ members who leave (1)
+     × removing the member who bought a booster keeps the boost for everyone else's history, without their name 2241ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/boosts.test.ts > members who leave > removing the member who bought a booster keeps the boost for everyone else's history, without their name
+AssertionError: expected '0000000000000000000010003members' to be undefined
+
+- Expected:
+undefined
+
++ Received:
+"0000000000000000000010003members"
+
+ ❯ tests/boosts.test.ts:190:22
+    188|     const [boost] = await boosts();
+    189|     expect(boost).toMatchObject({ dayKey: TODAY, kind: "double" });
+    190|     expect(boost.by).toBeUndefined();
+       |                      ^
+    191|     expect(boost.purchaseId).toBeUndefined();
+    192|     await t.mutation(internal.game.rebuildWorkspace, { workspaceId: te…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 13 skipped (14)
+   Start at  16:32:40
+   Duration  3.52s (tests 70%, transform 17%, import 10%, environment 3%)
+

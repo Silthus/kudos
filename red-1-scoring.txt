@@ -1,0 +1,153 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af06d2b09aefa51d5
+
+ ❯ convex/lib/coins.test.ts (6 tests | 1 failed) 20ms
+   ❯ Hog coins (#55 §G4) (6)
+     × on a bonus day a boosted qualifying kudos earns double; a boost never makes a thin one earn (§G9) 5ms
+ ❯ convex/lib/xp.test.ts (26 tests | 5 failed) 22ms
+   ❯ bonus days and company-wide boosters (#55 §G9, G10) (5)
+     × a bonus day doubles what a qualifying kudos earns, bonuses included, but never a thin one 7ms
+     × the daily XP cap stays: doubled lines are cut like any other 2ms
+     × a third thanks today earns no XP but still counts as boosted, so its coins double 1ms
+     × a conditional booster doubles only the kudos it is about 1ms
+     × the earnings reply names the boost 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  convex/lib/coins.test.ts > Hog coins (#55 §G4) > on a bonus day a boosted qualifying kudos earns double; a boost never makes a thin one earn (§G9)
+AssertionError: expected 2 to be 4 // Object.is equality
+
+- Expected
++ Received
+
+- 4
++ 2
+
+ ❯ convex/lib/coins.test.ts:13:71
+     11|
+     12|   test("on a bonus day a boosted qualifying kudos earns double; a boos…
+     13|     expect(lineCoins({ qualifying: true, amount: 2, boosted: true })).…
+       |                                                                       ^
+     14|     expect(lineCoins({ qualifying: false, amount: 2, boosted: true }))…
+     15|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  convex/lib/xp.test.ts > bonus days and company-wide boosters (#55 §G9, G10) > a bonus day doubles what a qualifying kudos earns, bonuses included, but never a thin one
+AssertionError: expected { kudosId: 'k1', …(4) } to match object { qualifying: true, xp: 40, …(1) }
+(3 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "boosted": true,
+    "qualifying": true,
+-   "xp": 40,
++   "xp": 20,
+  }
+
+ ❯ convex/lib/xp.test.ts:193:18
+    191|   test("a bonus day doubles what a qualifying kudos earns, bonuses inc…
+    192|     const [line] = give({ boost: "double", recipients: [recipient({ la…
+    193|     expect(line).toMatchObject({ qualifying: true, xp: 40, boosted: tr…
+       |                  ^
+    194|     expect(line.items).toEqual([
+    195|       { kind: "base", xp: 10 },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  convex/lib/xp.test.ts > bonus days and company-wide boosters (#55 §G9, G10) > the daily XP cap stays: doubled lines are cut like any other
+AssertionError: expected [ 'a:20:false', 'b:10:false' ] to deeply equal [ 'a:30:true', 'b:0:true' ]
+
+- Expected
++ Received
+
+  [
+-   "a:30:true",
+-   "b:0:true",
++   "a:20:false",
++   "b:10:false",
+  ]
+
+ ❯ convex/lib/xp.test.ts:206:79
+    204|   test("the daily XP cap stays: doubled lines are cut like any other",…
+    205|     const two = [recipient({ kudosId: "a", lastGivenAt: null }), recip…
+    206|     expect(show(give({ boost: "double", earnedToday: 20, recipients: t…
+       |                                                                               ^
+    207|   });
+    208|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  convex/lib/xp.test.ts > bonus days and company-wide boosters (#55 §G9, G10) > a third thanks today earns no XP but still counts as boosted, so its coins double
+AssertionError: expected { kudosId: 'k1', …(4) } to match object { xp: +0, boosted: true }
+(4 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "boosted": true,
+    "xp": 0,
+  }
+
+ ❯ convex/lib/xp.test.ts:210:88
+    208|
+    209|   test("a third thanks today earns no XP but still counts as boosted, …
+    210|     expect(give({ boost: "double", recipients: [recipient({ earlierTod…
+       |                                                                                        ^
+    211|   });
+    212|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  convex/lib/xp.test.ts > bonus days and company-wide boosters (#55 §G9, G10) > a conditional booster doubles only the kudos it is about
+AssertionError: expected [ 'a:20:false', 'b:15:false', …(2) ] to deeply equal [ 'a:40:true', 'b:10:false', …(2) ]
+
+- Expected
++ Received
+
+  [
+-   "a:40:true",
+-   "b:10:false",
+-   "c:0:false",
+-   "d:0:false",
++   "a:20:false",
++   "b:15:false",
++   "c:10:false",
++   "d:5:false",
+  ]
+
+ ❯ convex/lib/xp.test.ts:219:81
+    217|     const quiet = recipient({ kudosId: "d", receiverId: "e", receiverL…
+    218|     const recipients = [fresh, old, recent, quiet];
+    219|     expect(show(give({ boost: "new_connection", unsungOn: true, recipi…
+       |                                                                                 ^
+    220|     expect(show(give({ boost: "rekindle", unsungOn: true, recipients }…
+    221|     expect(show(give({ boost: "unsung", unsungOn: true, recipients: [r…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  convex/lib/xp.test.ts > bonus days and company-wide boosters (#55 §G9, G10) > the earnings reply names the boost
+AssertionError: expected '+40 XP · new connection +10' to be '+40 XP · new connection +10 · bonus d…' // Object.is equality
+
+Expected: "+40 XP · new connection +10 · bonus day ×2 +20"
+Received: "+40 XP · new connection +10"
+
+ ❯ convex/lib/xp.test.ts:226:53
+    224|   test("the earnings reply names the boost", () => {
+    225|     const e = { xp: 40, bonuses: [{ kind: "new_connection" as const, x…
+    226|     expect(earningsText({ ...e, boost: "double" })).toBe("+40 XP · new…
+       |                                                     ^
+    227|     expect(earningsText({ ...e, boost: "new_connection" })).toBe("+40 …
+    228|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  6 failed | 26 passed (32)
+   Start at  16:16:35
+   Duration  289ms (transform 45%, environment 28%, tests 13%, import 12%, worker 2%)
+

@@ -1,0 +1,431 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af06d2b09aefa51d5
+
+ ❯ tests/game-property.test.ts (37 tests | 10 failed | 20 skipped) 14897ms
+   ❯ bonus days and boosters double exactly (17)
+     × random history with boosts and revokes #202 (everyone) 859ms
+     × random history with boosts and revokes #203 (self) 817ms
+     × random history with boosts and revokes #205 (self) 475ms
+     × random history with boosts and revokes #206 (everyone) 627ms
+     × random history with boosts and revokes #208 (everyone) 1153ms
+     × without revokes a rebuild replays every boost as it was #301 1443ms
+     × without revokes a rebuild replays every boost as it was #302 1567ms
+     × without revokes a rebuild replays every boost as it was #303 871ms
+     × without revokes a rebuild replays every boost as it was #305 622ms
+     × without revokes a rebuild replays every boost as it was #306 620ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/game-property.test.ts > bonus days and boosters double exactly > random history with boosts and revokes #202 (everyone)
+AssertionError: expected { …(5) } to deeply equal { …(5) }
+
+- Expected
++ Received
+
+@@ -16,14 +16,14 @@
+      "coins": 0,
+      "level": 1,
+      "xp": 4,
+    },
+    "UDAN": {
+-     "balance": 47,
+-     "coins": 17,
+-     "level": 4,
+-     "xp": 181,
++     "balance": 35,
++     "coins": 15,
++     "level": 3,
++     "xp": 156,
+    },
+    "UEVE": {
+      "balance": 15,
+      "coins": 5,
+      "level": 2,
+
+ ❯ tests/game-property.test.ts:308:39
+    306|       const { t, ids, ops } = await run(seed, { revokes: true, visibil…
+    307|       expect(ops.some((op) => op.kind === "boost")).toBe(true);
+    308|       expect(await playersOf(t, ids)).toEqual(expected(recompute(ops, …
+       |                                       ^
+    309|       for (const id of Object.values(ids)) {
+    310|         const v = await t.query(internal.game.verifyMember, { memberId…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/10]⎯
+
+ FAIL  tests/game-property.test.ts > bonus days and boosters double exactly > random history with boosts and revokes #203 (self)
+AssertionError: expected { …(5) } to deeply equal { …(5) }
+
+- Expected
++ Received
+
+@@ -16,14 +16,14 @@
+      "coins": 1,
+      "level": 2,
+      "xp": 31,
+    },
+    "UDAN": {
+-     "balance": 12,
+-     "coins": 2,
+-     "level": 2,
+-     "xp": 31,
++     "balance": 1,
++     "coins": 1,
++     "level": 1,
++     "xp": 21,
+    },
+    "UEVE": {
+      "balance": 12,
+      "coins": 2,
+      "level": 2,
+
+ ❯ tests/game-property.test.ts:308:39
+    306|       const { t, ids, ops } = await run(seed, { revokes: true, visibil…
+    307|       expect(ops.some((op) => op.kind === "boost")).toBe(true);
+    308|       expect(await playersOf(t, ids)).toEqual(expected(recompute(ops, …
+       |                                       ^
+    309|       for (const id of Object.values(ids)) {
+    310|         const v = await t.query(internal.game.verifyMember, { memberId…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/10]⎯
+
+ FAIL  tests/game-property.test.ts > bonus days and boosters double exactly > random history with boosts and revokes #205 (self)
+AssertionError: expected { …(5) } to deeply equal { …(5) }
+
+- Expected
++ Received
+
+@@ -10,23 +10,23 @@
+      "coins": 0,
+      "level": 2,
+      "xp": 40,
+    },
+    "UCLEO": {
+-     "balance": 24,
+-     "coins": 4,
+-     "level": 3,
+-     "xp": 74,
++     "balance": 13,
++     "coins": 3,
++     "level": 2,
++     "xp": 54,
+    },
+    "UDAN": {
+-     "balance": 29,
+-     "coins": 9,
++     "balance": 26,
++     "coins": 6,
+      "level": 3,
+-     "xp": 106,
++     "xp": 101,
+    },
+    "UEVE": {
+-     "balance": 30,
+-     "coins": 10,
++     "balance": 29,
++     "coins": 9,
+      "level": 3,
+-     "xp": 141,
++     "xp": 121,
+    },
+  }
+
+ ❯ tests/game-property.test.ts:308:39
+    306|       const { t, ids, ops } = await run(seed, { revokes: true, visibil…
+    307|       expect(ops.some((op) => op.kind === "boost")).toBe(true);
+    308|       expect(await playersOf(t, ids)).toEqual(expected(recompute(ops, …
+       |                                       ^
+    309|       for (const id of Object.values(ids)) {
+    310|         const v = await t.query(internal.game.verifyMember, { memberId…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/10]⎯
+
+ FAIL  tests/game-property.test.ts > bonus days and boosters double exactly > random history with boosts and revokes #206 (everyone)
+AssertionError: expected { …(5) } to deeply equal { …(5) }
+
+- Expected
++ Received
+
+@@ -22,11 +22,11 @@
+      "coins": 2,
+      "level": 2,
+      "xp": 34,
+    },
+    "UEVE": {
+-     "balance": 27,
+-     "coins": 7,
++     "balance": 25,
++     "coins": 5,
+      "level": 3,
+-     "xp": 104,
++     "xp": 84,
+    },
+  }
+
+ ❯ tests/game-property.test.ts:308:39
+    306|       const { t, ids, ops } = await run(seed, { revokes: true, visibil…
+    307|       expect(ops.some((op) => op.kind === "boost")).toBe(true);
+    308|       expect(await playersOf(t, ids)).toEqual(expected(recompute(ops, …
+       |                                       ^
+    309|       for (const id of Object.values(ids)) {
+    310|         const v = await t.query(internal.game.verifyMember, { memberId…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/10]⎯
+
+ FAIL  tests/game-property.test.ts > bonus days and boosters double exactly > random history with boosts and revokes #208 (everyone)
+AssertionError: expected { …(5) } to deeply equal { …(5) }
+
+- Expected
++ Received
+
+@@ -1,11 +1,11 @@
+  {
+    "UANA": {
+-     "balance": 23,
+-     "coins": 3,
+-     "level": 3,
+-     "xp": 82,
++     "balance": 12,
++     "coins": 2,
++     "level": 2,
++     "xp": 62,
+    },
+    "UBEN": {
+      "balance": 25,
+      "coins": 5,
+      "level": 3,
+
+ ❯ tests/game-property.test.ts:308:39
+    306|       const { t, ids, ops } = await run(seed, { revokes: true, visibil…
+    307|       expect(ops.some((op) => op.kind === "boost")).toBe(true);
+    308|       expect(await playersOf(t, ids)).toEqual(expected(recompute(ops, …
+       |                                       ^
+    309|       for (const id of Object.values(ids)) {
+    310|         const v = await t.query(internal.game.verifyMember, { memberId…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/10]⎯
+
+ FAIL  tests/game-property.test.ts > bonus days and boosters double exactly > without revokes a rebuild replays every boost as it was #301
+AssertionError: expected { …(5) } to deeply equal { …(5) }
+
+- Expected
++ Received
+
+@@ -16,14 +16,14 @@
+      "coins": 4,
+      "level": 2,
+      "xp": 74,
+    },
+    "UDAN": {
+-     "balance": 32,
+-     "coins": 12,
++     "balance": 30,
++     "coins": 10,
+      "level": 3,
+-     "xp": 94,
++     "xp": 92,
+    },
+    "UEVE": {
+      "balance": 13,
+      "coins": 3,
+      "level": 2,
+
+ ❯ tests/game-property.test.ts:330:39
+    328|       await t.mutation(internal.game.rebuildWorkspace, { workspaceId: …
+    329|       await t.finishAllScheduledFunctions(vi.runAllTimers);
+    330|       expect(await playersOf(t, ids)).toEqual(live);
+       |                                       ^
+    331|       expect(await events()).toEqual(before);
+    332|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/10]⎯
+
+ FAIL  tests/game-property.test.ts > bonus days and boosters double exactly > without revokes a rebuild replays every boost as it was #302
+AssertionError: expected { …(5) } to deeply equal { …(5) }
+
+- Expected
++ Received
+
+@@ -1,17 +1,17 @@
+  {
+    "UANA": {
+-     "balance": 27,
+-     "coins": 7,
++     "balance": 25,
++     "coins": 5,
+      "level": 3,
+-     "xp": 106,
++     "xp": 78,
+    },
+    "UBEN": {
+-     "balance": 12,
+-     "coins": 2,
++     "balance": 11,
++     "coins": 1,
+      "level": 2,
+-     "xp": 67,
++     "xp": 51,
+    },
+    "UCLEO": {
+      "balance": 1,
+      "coins": 1,
+      "level": 1,
+@@ -22,11 +22,11 @@
+      "coins": 0,
+      "level": 1,
+      "xp": 2,
+    },
+    "UEVE": {
+-     "balance": 14,
+-     "coins": 4,
++     "balance": 12,
++     "coins": 2,
+      "level": 2,
+-     "xp": 65,
++     "xp": 54,
+    },
+  }
+
+ ❯ tests/game-property.test.ts:330:39
+    328|       await t.mutation(internal.game.rebuildWorkspace, { workspaceId: …
+    329|       await t.finishAllScheduledFunctions(vi.runAllTimers);
+    330|       expect(await playersOf(t, ids)).toEqual(live);
+       |                                       ^
+    331|       expect(await events()).toEqual(before);
+    332|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/10]⎯
+
+ FAIL  tests/game-property.test.ts > bonus days and boosters double exactly > without revokes a rebuild replays every boost as it was #303
+AssertionError: expected { …(5) } to deeply equal { …(5) }
+
+- Expected
++ Received
+
+  {
+    "UANA": {
+-     "balance": 24,
+-     "coins": 4,
++     "balance": 22,
++     "coins": 2,
+      "level": 3,
+-     "xp": 75,
++     "xp": 40,
+    },
+    "UBEN": {
+-     "balance": 24,
+-     "coins": 4,
++     "balance": 22,
++     "coins": 2,
+      "level": 3,
+-     "xp": 85,
++     "xp": 75,
+    },
+    "UCLEO": {
+      "balance": 14,
+      "coins": 4,
+      "level": 2,
+      "xp": 71,
+    },
+    "UDAN": {
+-     "balance": 12,
+-     "coins": 2,
++     "balance": 11,
++     "coins": 1,
+      "level": 2,
+-     "xp": 44,
++     "xp": 29,
+    },
+    "UEVE": {
+-     "balance": 29,
+-     "coins": 9,
++     "balance": 28,
++     "coins": 8,
+      "level": 3,
+-     "xp": 125,
++     "xp": 105,
+    },
+  }
+
+ ❯ tests/game-property.test.ts:330:39
+    328|       await t.mutation(internal.game.rebuildWorkspace, { workspaceId: …
+    329|       await t.finishAllScheduledFunctions(vi.runAllTimers);
+    330|       expect(await playersOf(t, ids)).toEqual(live);
+       |                                       ^
+    331|       expect(await events()).toEqual(before);
+    332|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/10]⎯
+
+ FAIL  tests/game-property.test.ts > bonus days and boosters double exactly > without revokes a rebuild replays every boost as it was #305
+AssertionError: expected { …(5) } to deeply equal { …(5) }
+
+- Expected
++ Received
+
+@@ -1,11 +1,11 @@
+  {
+    "UANA": {
+-     "balance": 12,
+-     "coins": 2,
++     "balance": 11,
++     "coins": 1,
+      "level": 2,
+-     "xp": 40,
++     "xp": 20,
+    },
+    "UBEN": null,
+    "UCLEO": null,
+    "UDAN": null,
+    "UEVE": {
+
+ ❯ tests/game-property.test.ts:321:20
+    319|       const { t, team, ids, ops } = await run(seed, { revokes: false, …
+    320|       const live = await playersOf(t, ids);
+    321|       expect(live).toEqual(expected(recompute(ops, visibility === "eve…
+       |                    ^
+    322|       const events = async () =>
+    323|         (await t.run((ctx) => ctx.db.query("gameEvents").collect()))
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/10]⎯
+
+ FAIL  tests/game-property.test.ts > bonus days and boosters double exactly > without revokes a rebuild replays every boost as it was #306
+AssertionError: expected { …(5) } to deeply equal { …(5) }
+
+- Expected
++ Received
+
+@@ -4,14 +4,14 @@
+      "coins": 0,
+      "level": 1,
+      "xp": 8,
+    },
+    "UBEN": {
+-     "balance": 12,
+-     "coins": 2,
++     "balance": 11,
++     "coins": 1,
+      "level": 2,
+-     "xp": 64,
++     "xp": 41,
+    },
+    "UCLEO": {
+      "balance": 1,
+      "coins": 1,
+      "level": 1,
+
+ ❯ tests/game-property.test.ts:321:20
+    319|       const { t, team, ids, ops } = await run(seed, { revokes: false, …
+    320|       const live = await playersOf(t, ids);
+    321|       expect(live).toEqual(expected(recompute(ops, visibility === "eve…
+       |                    ^
+    322|       const events = async () =>
+    323|         (await t.run((ctx) => ctx.db.query("gameEvents").collect()))
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/10]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  10 failed | 7 passed | 20 skipped (37)
+   Start at  16:24:04
+   Duration  16.25s (tests 93%, transform 4%, import 2%, environment 1%)
+

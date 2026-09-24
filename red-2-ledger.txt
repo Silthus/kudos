@@ -1,0 +1,114 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af06d2b09aefa51d5
+
+ ❯ tests/boosts.test.ts (6 tests | 4 failed) 366ms
+   ❯ a bonus day doubles XP and Hog coins from qualifying kudos (6)
+     × started today, a thoughtful kudos earns double and the reply says so 270ms
+     × the day before and the day after earn as usual; a boost started mid-day only counts from then 18ms
+     × a booster bought mid-day doubles only what comes after it 19ms
+     × a revoke takes back exactly what the boosted kudos earned, and a rebuild replays the boost 24ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/boosts.test.ts > a bonus day doubles XP and Hog coins from qualifying kudos > started today, a thoughtful kudos earns double and the reply says so
+AssertionError: expected { …(8) } to match object { xp: 40, coins: 4 }
+(6 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "coins": 4,
+-   "xp": 40,
++   "coins": 2,
++   "xp": 20,
+  }
+
+ ❯ tests/boosts.test.ts:63:36
+     61|     await message("UANA", "<@UBEN> :taco::taco: thanks for the thoroug…
+     62|     // 10 + new connection 10, doubled; two tacos to one person: 2 coi…
+     63|     expect(await player(team.ana)).toMatchObject({ xp: 40, coins: 4 });
+       |                                    ^
+     64|     expect(await lastEarnings(team.ana)).toMatchObject({ xp: 40, boost…
+     65|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/boosts.test.ts > a bonus day doubles XP and Hog coins from qualifying kudos > the day before and the day after earn as usual; a boost started mid-day only counts from then
+AssertionError: expected { …(8) } to match object { xp: 60, coins: 3 }
+(6 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "coins": 3,
+-   "xp": 60,
++   "coins": 2,
++   "xp": 40,
+  }
+
+ ❯ tests/boosts.test.ts:84:36
+     82|     vi.setSystemTime(NOW.getTime() + 24 * HOUR);
+     83|     await message("UANA", "<@UCLEO> :taco: thanks for the thorough rev…
+     84|     expect(await player(team.ana)).toMatchObject({ xp: 20 + 40, coins:…
+       |                                    ^
+     85|     vi.setSystemTime(NOW.getTime() + 48 * HOUR);
+     86|     await message("UANA", "<@UBEN> :taco: thanks for the design review…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/boosts.test.ts > a bonus day doubles XP and Hog coins from qualifying kudos > a booster bought mid-day doubles only what comes after it
+AssertionError: expected { …(8) } to match object { xp: 40, coins: 2 }
+(6 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "coins": 2,
+-   "xp": 40,
++   "coins": 1,
++   "xp": 20,
+  }
+
+ ❯ tests/boosts.test.ts:95:36
+     93|     await message("UBEN", "<@UCLEO> :taco: thanks for the thorough rev…
+     94|     expect(await player(team.ana)).toMatchObject({ xp: 20, coins: 1 });
+     95|     expect(await player(team.ben)).toMatchObject({ xp: 40, coins: 2 });
+       |                                    ^
+     96|   });
+     97|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  tests/boosts.test.ts > a bonus day doubles XP and Hog coins from qualifying kudos > a revoke takes back exactly what the boosted kudos earned, and a rebuild replays the boost
+AssertionError: expected { …(8) } to match object { xp: 50, coins: 6 }
+(6 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "coins": 6,
+-   "xp": 50,
++   "coins": 3,
++   "xp": 40,
+  }
+
+ ❯ tests/boosts.test.ts:108:36
+    106|     await message("UANA", "<@UCLEO> :taco::taco: thanks for the thorou…
+    107|     await message("UANA", "<@UBEN> :taco: and for the pairing afterwar…
+    108|     expect(await player(team.ana)).toMatchObject({ xp: 50, coins: 6 });
+       |                                    ^
+    109|     expect(await player(team.ben)).toMatchObject({ xp: 20 + 5, coins: …
+    110|     const before = await giveEvents();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 2 passed (6)
+   Start at  16:18:52
+   Duration  788ms (tests 54%, transform 22%, import 17%, environment 6%, worker 1%)
+

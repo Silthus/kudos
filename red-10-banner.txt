@@ -1,0 +1,33 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af06d2b09aefa51d5
+
+ ❯ src/components/boosts.test.tsx (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/boosts.test.tsx [ src/components/boosts.test.tsx ]
+Error: Failed to resolve import "./boosts" from "src/components/boosts.test.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /home/coder/dev/kudos/.claude/worktrees/agent-af06d2b09aefa51d5/src/components/boosts.test.tsx:5:32
+  3  |  import { createRoot } from "react-dom/client";
+  4  |  import { afterEach, expect, test } from "vitest";
+  5  |  import { BoostBannerView } from "./boosts";
+     |                                   ^
+  6  |  var _jsxFileName = "/home/coder/dev/kudos/.claude/worktrees/agent-af06d2b09aefa51d5/src/components/boosts.test.tsx";
+  7  |  import { jsxDEV as _jsxDEV } from "react/jsx-dev-runtime";
+ ❯ TransformPluginContext._formatLog node_modules/vite/dist/node/chunks/node.js:8393:39
+ ❯ TransformPluginContext.error node_modules/vite/dist/node/chunks/node.js:8390:14
+ ❯ normalizeUrl node_modules/vite/dist/node/chunks/node.js:26058:18
+ ❯ node_modules/vite/dist/node/chunks/node.js:26128:30
+ ❯ TransformPluginContext.transform node_modules/vite/dist/node/chunks/node.js:26094:4
+ ❯ EnvironmentPluginContainer.transform node_modules/vite/dist/node/chunks/node.js:8172:14
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/node.js:19634:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  16:36:33
+   Duration  838ms (environment 98%, worker 2%)
+

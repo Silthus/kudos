@@ -1,0 +1,54 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af06d2b09aefa51d5
+
+ ❯ tests/boosts.test.ts (16 tests | 2 failed) 1241ms
+   ❯ a bonus day doubles XP and Hog coins from qualifying kudos (8)
+     × a booster bought while a kudos was in flight never starts before a kudos already given (review #1) 13ms
+     × the team garden and the capstone can only start a bonus day in advance (review #9) 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/boosts.test.ts > a bonus day doubles XP and Hog coins from qualifying kudos > a booster bought while a kudos was in flight never starts before a kudos already given (review #1)
+AssertionError: expected 1790157599999 to be 1790157600001 // Object.is equality
+
+- Expected
++ Received
+
+- 1790157600001
++ 1790157599999
+
+ ❯ tests/boosts.test.ts:128:59
+    126|     const [given] = await t.run((ctx) => ctx.db.query("kudos").collect…
+    127|     const id = await t.run(async (ctx) => startBonusDay(ctx, (await ct…
+    128|     expect((await t.run((ctx) => ctx.db.get(id!)))?.from).toBe(given.a…
+       |                                                           ^
+    129|     const before = await giveEvents();
+    130|     await t.mutation(internal.game.rebuildWorkspace, { workspaceId: te…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/boosts.test.ts > a bonus day doubles XP and Hog coins from qualifying kudos > the team garden and the capstone can only start a bonus day in advance (review #9)
+AssertionError: expected '00000000000000000000010006boosts' to be null
+
+- Expected:
+null
+
++ Received:
+"00000000000000000000010006boosts"
+
+ ❯ tests/boosts.test.ts:137:50
+    135|
+    136|   test("the team garden and the capstone can only start a bonus day in…
+    137|     expect(await bonusDay(TODAY, "team_garden")).toBeNull();
+       |                                                  ^
+    138|     expect(await bonusDay(TODAY, "capstone")).toBeNull();
+    139|     expect(await bonusDay(TODAY, "schedule")).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 14 passed (16)
+   Start at  16:59:30
+   Duration  1.69s (tests 78%, transform 12%, import 8%, environment 3%)
+

@@ -1,0 +1,45 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af06d2b09aefa51d5
+
+ ❯ tests/demo.test.ts (39 tests | 1 failed | 38 skipped) 31411ms
+   ❯ boosts in the demo (#97) (1)
+     × a visitor activates a booster, the playground reply shows it doubled, the admin sees the announcement preview, and a reset wipes it 31410ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/demo.test.ts > boosts in the demo (#97) > a visitor activates a booster, the playground reply shows it doubled, the admin sees the announcement preview, and a reset wipes it
+AssertionError: expected { boosts: [ { …(7) } ], …(3) } to match object { channel: { name: 'general' }, …(2) }
+(1 matching property omitted from actual)
+
+- Expected
++ Received
+
+@@ -8,10 +8,8 @@
+        "dayKey": "2026-09-23",
+        "source": "booster",
+        "text": StringMatching /^Alex Rivera activated a Kudos booster: Double\./,
+      },
+    ],
+-   "channel": {
+-     "name": "general",
+-   },
++   "channel": null,
+    "isDemo": true,
+  }
+
+ ❯ tests/demo.test.ts:140:66
+    138|     expect(res.messages.find((m) => m.category === "giver_success")?.e…
+    139|     // The demo has no Slack: the post is a preview for #general, neve…
+    140|     expect(await demo.query(api.boosts.admin, { today: TODAY })).toMat…
+       |                                                                  ^
+    141|       channel: { name: "general" },
+    142|       isDemo: true,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 38 skipped (39)
+   Start at  16:33:29
+   Duration  32.22s (tests 98%, transform 1%, import 1%)
+
