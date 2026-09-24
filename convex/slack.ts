@@ -7,6 +7,7 @@ import { FALLBACK_REACTION } from "./lib/guidance";
 import { escapeMrkdwn, isSlackResponseUrl, rewardLine, siteUrl, slackApi, type SlackResponse } from "./lib/slack";
 import { RARITY_SLACK_BADGE, type Rarity } from "./lib/messages";
 import { OPEN_COUNT_CAP } from "./lib/store";
+import { questBlocks } from "./lib/questBlocks";
 
 type SlackEvent = {
   type: string;
@@ -315,6 +316,7 @@ async function publishHome(ctx: ActionCtx, workspaceId: Id<"workspaces">, token:
   const e = `:${data.emojiName}:`;
   const site = siteUrl();
   const medal = (i: number) => ["🥇", "🥈", "🥉"][i] ?? `${i + 1}.`;
+  const quests = data.quests ? questBlocks(data.quests, site) : [];
   const fields = [
     `*Left today*\n${data.remaining} / ${data.dailyLimit} ${e}`,
     `*Given this week*\n${data.weekGiven} ${e}${data.weekRank ? `  (#${data.weekRank})` : ""}`,
@@ -333,6 +335,7 @@ async function publishHome(ctx: ActionCtx, workspaceId: Id<"workspaces">, token:
           { type: "button", text: { type: "plain_text", text: "Message gallery" }, url: `${site}/discoveries`, action_id: "open_gallery" },
         ],
       },
+      ...(quests.length > 0 ? [{ type: "divider" }, ...quests] : []),
       { type: "divider" },
       { type: "header", text: { type: "plain_text", text: "This week's most generous" } },
       {
