@@ -3,10 +3,11 @@ import { useQuery } from "convex/react";
 import { AnimatePresence, motion } from "motion/react";
 import { BarChart3, Gem, Lock, Sparkles, Timer, Trophy, Webhook } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router";
+import { Link, useLocation, useSearchParams } from "react-router";
 import { Logo } from "@/components/AppShell";
 import { Avatar, Button, Eyebrow, RarityBadge } from "@/components/ui";
 import { RARITY_META, RARITY_ORDER, type Rarity } from "@/lib/rarity";
+import { signInRedirect } from "@/lib/routing";
 import { siteUrl } from "@/lib/viewer";
 import { api } from "../../convex/_generated/api";
 
@@ -108,6 +109,7 @@ const FEATURES = [
 export function Landing() {
   const { signIn } = useAuthActions();
   const [params] = useSearchParams();
+  const location = useLocation();
   const [busy, setBusy] = useState<"demo" | "slack" | null>(null);
   const [demoFailed, setDemoFailed] = useState(false);
   // Shown until the deployment says the demo is off (DEMO_MODE isn't "true").
@@ -131,7 +133,7 @@ export function Landing() {
   };
   const slack = async () => {
     setBusy("slack");
-    await signIn("slack", { redirectTo: "/me" });
+    await signIn("slack", { redirectTo: signInRedirect(location) });
   };
 
   return (

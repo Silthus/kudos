@@ -1,7 +1,8 @@
-import { useQuery } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { Navigate, Route, Routes } from "react-router";
 import { api } from "../convex/_generated/api";
 import { AppShell } from "./components/AppShell";
+import { appScreen } from "./lib/routing";
 import { ViewerContext } from "./lib/viewer";
 import { Landing } from "./pages/Landing";
 import { NotInstalled } from "./pages/NotInstalled";
@@ -24,15 +25,18 @@ function Splash() {
 }
 
 export function App() {
-  const viewer = useQuery(api.session.viewer);
-  if (viewer === undefined) return <Splash />;
+  const auth = useConvexAuth();
+  // Asked only once the backend holds the session: an earlier answer would read as signed out.
+  const viewer = useQuery(api.session.viewer, auth.isAuthenticated ? {} : "skip");
+  const screen = appScreen(auth, viewer);
+  if (screen === "loading") return <Splash />;
 
-  if (viewer.status !== "ready") {
+  if (screen === "signedOut" || viewer?.status !== "ready") {
+    // Rendered at the requested URL, so signing in (or a session that was only refreshing) comes back to it.
     return (
       <Routes>
         <Route path="/setup" element={<Setup />} />
-        <Route path="/" element={viewer.status === "notInstalled" ? <NotInstalled name={viewer.name} /> : <Landing />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={viewer?.status === "notInstalled" ? <NotInstalled name={viewer.name} /> : <Landing />} />
       </Routes>
     );
   }

@@ -4,7 +4,7 @@ import { useMutation, useQuery } from "convex/react";
 import { motion } from "motion/react";
 import { ArrowLeftRight, BarChart3, ChevronsUpDown, FlaskConical, Gem, Gift, LogOut, Settings2, Trophy, UserRound } from "lucide-react";
 import { useEffect } from "react";
-import { NavLink, Outlet, useLocation } from "react-router";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useViewer } from "@/lib/viewer";
@@ -59,6 +59,9 @@ function WorkspaceSwitcher({ className }: { className?: string }) {
 export function AppShell() {
   const viewer = useViewer();
   const { signOut } = useAuthActions();
+  const navigate = useNavigate();
+  // Signed-out screens render at whatever URL is open; signing out on purpose goes home instead.
+  const leave = () => void signOut().then(() => navigate("/", { replace: true }));
   const location = useLocation();
   useEffect(() => {
     window.scrollTo({ top: 0 });
@@ -128,7 +131,7 @@ export function AppShell() {
             <div className="truncate text-sm font-medium">{viewer.member.name}</div>
             <div className="truncate text-xs text-faint">{viewer.member.isAdmin ? "Admin" : viewer.member.title ?? "Member"}</div>
           </div>
-          <button onClick={() => void signOut()} className="rounded-lg p-2 text-faint hover:bg-panel-2 hover:text-cream" title="Sign out" aria-label="Sign out">
+          <button onClick={leave} className="rounded-lg p-2 text-faint hover:bg-panel-2 hover:text-cream" title="Sign out" aria-label="Sign out">
             <LogOut className="h-4 w-4" />
           </button>
         </div>
@@ -137,7 +140,7 @@ export function AppShell() {
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-ink/80 px-4 py-3 backdrop-blur lg:hidden">
         <Logo glyph={viewer.workspace.emojiGlyph} />
         <WorkspaceSwitcher className="ml-auto mr-2 max-w-[45%] truncate rounded-lg border border-line bg-panel px-2 py-1.5 text-sm text-cream" />
-        <button onClick={() => void signOut()} className="rounded-lg p-2 text-faint" aria-label="Sign out">
+        <button onClick={leave} className="rounded-lg p-2 text-faint" aria-label="Sign out">
           <LogOut className="h-4 w-4" />
         </button>
       </header>
