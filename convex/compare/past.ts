@@ -1,48 +1,27 @@
 import { v } from "convex/values";
-import { query, type QueryCtx } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
+import { query } from "../_generated/server";
 import { requireViewer } from "../lib/access";
 import {
   comparePeriodValidator,
   familyOf,
-  familyValidator,
-  lockedValidator,
   METRICS,
   metricsFromDays,
-  metricValidator,
   raceAxis,
-  reachFromKudos,
+  rangeValidator,
+  rowValidator,
   rowVisibility,
+  seriesValidator,
   type Metric,
 } from "../lib/compare";
 import { resolvePeriod } from "../lib/periods";
+import { givenKudos, memberDiscoveries, newDiscoveriesIn } from "../lib/compareReads";
 import { memberDays } from "../lib/stats";
-import { addDays, dayKeyFor, daysBetween, parseToday, startOfDayUtc, type DayRange } from "../lib/time";
-
-/** Given kudos rows read per range for reach and channels: the daily limit keeps real ranges far below this. */
-const MAX_KUDOS_PER_RANGE = 2_000;
+import { dayKeyFor, daysBetween, parseToday, type DayRange } from "../lib/time";
 
 const PREVIOUS_LABELS = { week: "Last week", month: "Last month", quarter: "Last quarter", year: "Last year" } as const;
 
-const rangeValidator = v.object({ start: v.string(), end: v.string(), days: v.number() });
-const cellValidator = v.object({ value: v.union(v.number(), v.null()), locked: lockedValidator });
-const seriesValidator = v.array(v.union(v.number(), v.null()));
 
 type Values = Record<Metric, number>;
-
-async function givenKudos(ctx: QueryCtx, memberId: Id<"members">, range: DayRange, timeZone: string) {
-  const rows = await ctx.db
-    .query("kudos")
-    .withIndex("by_giver_at", (q) =>
-      q
-        .eq("giverId", memberId)
-        .gte("at", startOfDayUtc(range.start, timeZone))
-        .lt("at", startOfDayUtc(addDays(range.end, 1), timeZone)),
-    )
-    .order("desc")
-    .take(MAX_KUDOS_PER_RANGE);
-  return { ...reachFromKudos(rows), truncated: rows.length === MAX_KUDOS_PER_RANGE };
-}
 
 /**
  * Compare: you this period to date against you last period to date (the Past you benchmark).
@@ -65,9 +44,7 @@ export const get = query({
     previousRange: rangeValidator,
     benchmarkNote: v.union(v.literal("notMember"), v.null()),
     joinedOn: v.union(v.string(), v.null()),
-    rows: v.array(
-      v.object({ metric: metricValidator, family: familyValidator, you: cellValidator, benchmark: cellValidator, delta: v.union(v.number(), v.null()) }),
-    ),
+    rows: v.array(rowValidator),
     previousTotal: v.object({ given: v.union(v.number(), v.null()), received: v.union(v.number(), v.null()) }),
     race: v.object({
       days: v.array(v.string()),
@@ -111,15 +88,7 @@ export const get = query({
       givenKudos(ctx, member._id, benchmark, tz),
     ]);
 
-    const discoveries = await ctx.db
-      .query("discoveries")
-      .withIndex("by_member_template", (q) => q.eq("memberId", member._id))
-      .take(500);
-    const newDiscoveries = (r: DayRange) => {
-      const from = startOfDayUtc(r.start, tz);
-      const to = startOfDayUtc(addDays(r.end, 1), tz);
-      return discoveries.filter((d) => d.firstSeenAt >= from && d.firstSeenAt < to).length;
-    };
+    const discoveries = await memberDiscoveries(ctx, member._id);
 
     const values = (m: typeof cur, k: typeof curKudos, r: DayRange): Values => ({
       given: m.given,
@@ -129,7 +98,7 @@ export const get = query({
       longestStreak: m.longestStreak,
       reach: k.reach,
       channels: k.channels,
-      newDiscoveries: newDiscoveries(r),
+      newDiscoveries: newDiscoveriesIn(discoveries, r, tz),
     });
     const you = values(cur, curKudos, current);
     const them = values(prev, prevKudos, benchmark);

@@ -1,12 +1,33 @@
 import { ConvexError, v } from "convex/values";
 import { query, type QueryCtx } from "../_generated/server";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { publicMember, requireViewer, type Viewer } from "../lib/access";
-import { comparePeriodValidator } from "../lib/compare";
+import {
+  comparePeriodValidator,
+  familyOf,
+  METRICS,
+  metricsFromDays,
+  rangeValidator,
+  rowValidator,
+  rowVisibility,
+  seriesValidator,
+  type Metric,
+} from "../lib/compare";
+import { givenKudos, memberDiscoveries, newDiscoveriesIn } from "../lib/compareReads";
 import { resolvePeriod } from "../lib/periods";
-import { parseToday } from "../lib/time";
+import { memberDays } from "../lib/stats";
+import { eachDay, parseToday, type DayRange } from "../lib/time";
 
 const UNAVAILABLE = "That teammate isn't available to compare.";
+
+const memberValidator = v.object({
+  _id: v.id("members"),
+  slackUserId: v.string(),
+  name: v.string(),
+  realName: v.optional(v.string()),
+  title: v.optional(v.string()),
+  avatarUrl: v.optional(v.string()),
+});
 
 /**
  * The member to compare with: somebody else in the viewer's workspace who is a person and still
@@ -22,7 +43,33 @@ async function eligibleTeammate(ctx: QueryCtx, { member: me, workspace }: Viewer
   return them;
 }
 
-/** Compare: you against one teammate over this period to date (the Teammate benchmark). */
+/** One side of the head-to-head: every metric over `range`, plus its cumulative race series. */
+async function subject(ctx: QueryCtx, memberId: Id<"members">, range: DayRange, timeZone: string) {
+  const [days, kudos, discoveries] = await Promise.all([
+    memberDays(ctx, memberId, range),
+    givenKudos(ctx, memberId, range, timeZone),
+    memberDiscoveries(ctx, memberId),
+  ]);
+  const m = metricsFromDays(days, range);
+  const values: Record<Metric, number> = {
+    given: m.given,
+    received: m.received,
+    activeDays: m.activeDays,
+    maxedDays: m.maxedDays,
+    longestStreak: m.longestStreak,
+    reach: kudos.reach,
+    channels: kudos.channels,
+    newDiscoveries: newDiscoveriesIn(discoveries, range, timeZone),
+  };
+  return { values, cumulativeGiven: m.cumulativeGiven, cumulativeReceived: m.cumulativeReceived, truncated: kudos.truncated };
+}
+
+/**
+ * Compare: you against one teammate over this period to date (the Teammate benchmark). Reads only
+ * the two members' own rows, so its cost doesn't grow with the workspace. Received-derived rows are
+ * locked unless the workspace shows received counts to everyone: a row is shown only when both
+ * subjects in it are visible to the viewer.
+ */
 export const get = query({
   args: {
     period: comparePeriodValidator,
@@ -31,10 +78,66 @@ export const get = query({
     /** From the URL (`?vs=<id>`), so validated here rather than by `v.id`. */
     memberId: v.string(),
   },
+  returns: v.object({
+    mode: v.literal("teammate"),
+    period: comparePeriodValidator,
+    label: v.string(),
+    /** This period to date: the range both sides are counted over. */
+    range: rangeValidator,
+    teammate: memberValidator,
+    rows: v.array(rowValidator),
+    /** Cumulative kudos per day of the whole period; null after today, and received null while locked. */
+    race: v.object({
+      days: v.array(v.string()),
+      you: v.object({ given: seriesValidator, received: v.union(seriesValidator, v.null()) }),
+      benchmark: v.object({ given: seriesValidator, received: v.union(seriesValidator, v.null()) }),
+    }),
+    truncated: v.boolean(),
+  }),
   handler: async (ctx, { period, today: todayArg, memberId }) => {
     const viewer = await requireViewer(ctx);
     const them = await eligibleTeammate(ctx, viewer, memberId);
+    const { receivedVisibility: visibility, timezone: tz } = viewer.workspace;
     const p = resolvePeriod(period, parseToday(todayArg));
-    return { mode: "teammate" as const, period, label: p.label, teammate: publicMember(them) };
+    const range = p.current;
+
+    const [you, other] = await Promise.all([subject(ctx, viewer.member._id, range, tz), subject(ctx, them._id, range, tz)]);
+
+    // A capped kudos read counts only the most recent days, so reach and channels show no number on
+    // either side rather than comparing different windows.
+    const truncated = you.truncated || other.truncated;
+    const uncounted = (metric: Metric) => truncated && (metric === "reach" || metric === "channels");
+
+    const rows = METRICS.map((metric) => {
+      const locked = rowVisibility(visibility, "teammate", metric);
+      const youValue = locked || uncounted(metric) ? null : you.values[metric];
+      const benchmarkValue = locked || uncounted(metric) ? null : other.values[metric];
+      return {
+        metric,
+        family: familyOf(metric),
+        you: { value: youValue, locked },
+        benchmark: { value: benchmarkValue, locked },
+        delta: youValue !== null && benchmarkValue !== null ? youValue - benchmarkValue : null,
+      };
+    });
+
+    const receivedLocked = rowVisibility(visibility, "teammate", "received") !== null;
+    const days = eachDay(p.currentFull);
+    const pad = (series: number[]) => days.map((_, i) => (i < series.length ? series[i] : null));
+
+    return {
+      mode: "teammate" as const,
+      period,
+      label: p.label,
+      range,
+      teammate: publicMember(them),
+      rows,
+      race: {
+        days,
+        you: { given: pad(you.cumulativeGiven), received: receivedLocked ? null : pad(you.cumulativeReceived) },
+        benchmark: { given: pad(other.cumulativeGiven), received: receivedLocked ? null : pad(other.cumulativeReceived) },
+      },
+      truncated,
+    };
   },
 });
