@@ -84,7 +84,7 @@ test("a framed avatar wears its frame and sticker as art slots: the hoggie from 
   const host = render(<FramedAvatar name="Ana" look={{ frame: "frameNightSky", sticker: "stickerReader" }} size={48} />);
   expect(host.querySelector("[data-art-slot='frame-night-sky'] img")).toBeNull(); // our own ring: no PostHog art
   const sticker = host.querySelector("[data-art-slot='hoggie-reader']") as HTMLElement;
-  expect(sticker.style.background).toContain("linear-gradient"); // the placeholder, under the art
+  expect((sticker.querySelector("[data-placeholder]") as HTMLElement).style.background).toContain("linear-gradient"); // the placeholder, under the art
   const hog = sticker.querySelector("img")!;
   expect(hog.getAttribute("src")).toBe("https://cdn.jsdelivr.net/npm/@posthog/brand@0.12.3/dist/generated/hoggies/png/reading.png");
   expect(hog.className).toContain("object-contain"); // a whole hoggie, never cropped
@@ -95,7 +95,7 @@ test("if a hoggie can't load, its sticker keeps the placeholder (#101)", () => {
   act(() => void host.querySelector("[data-art-slot='hoggie-party'] img")!.dispatchEvent(new Event("error")));
   const sticker = host.querySelector("[data-art-slot='hoggie-party']") as HTMLElement;
   expect(sticker.querySelector("img")).toBeNull();
-  expect(sticker.style.background).toContain("linear-gradient");
+  expect((sticker.querySelector("[data-placeholder]") as HTMLElement).style.background).toContain("linear-gradient");
 });
 
 test("the Keyboard garden banner and the Meadow frame are PostHog's Keyboard garden (#101)", () => {

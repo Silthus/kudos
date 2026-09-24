@@ -27,7 +27,7 @@ export function Art({ art, className, round }: { art: ArtSlot; className?: strin
       slot={art.slot}
       fit={art.slot.startsWith("hoggie-") ? "contain" : "cover"}
       className={clsx(round ? "rounded-full" : "rounded-xl", className)}
-      style={{ background: gradient(art.colors) }}
+      fallback={<span data-placeholder className="absolute inset-0" style={{ background: gradient(art.colors) }} />}
     />
   );
 }

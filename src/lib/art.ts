@@ -5,9 +5,15 @@
  * runtime, and `tests/noPosthogArt.test.ts` fails if one ever lands in git. After the move into
  * PostHog's repo these files get vendored and only this registry changes.
  *
- * Every URL is pinned, so the art can't change under us: Cloudinary ids are content-hashed, and the
- * hoggies come from an exact `@posthog/brand` version on jsDelivr (immutable, CORS open). Each
- * entry carries its size so its box is reserved before it loads (no layout shift).
+ * Every URL is pinned as far as its host allows: the hoggies come from an exact `@posthog/brand`
+ * version on jsDelivr (immutable, CORS open; full 1000 px PNGs of ~45 KB, as jsDelivr can't resize).
+ * Cloudinary ids carry an upload hash, so a re-upload gets a new id rather than changing ours; the
+ * crops and AVIF/WebP sizing rely on PostHog's Cloudinary allowing on-the-fly transformations. If
+ * either host fails, each slot's placeholder stays (`RemoteArt`). Each entry carries its size so
+ * its box is reserved before it loads (no layout shift).
+ *
+ * Screenshots of the app now show this art: don't commit new ones (e.g. `docs/screenshots`) while
+ * the repo is public.
  *
  * A slot missing here has no PostHog art (a Starfield banner, the emoji swatches): it keeps its
  * own look, the same placeholder that stands in whenever a remote image fails to load.

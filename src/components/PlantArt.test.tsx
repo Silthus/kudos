@@ -48,6 +48,30 @@ test("each species has its own shape once it's grown: pines and cedars are cones
   expect(new Set(looks).size).toBe(looks.length);
 });
 
+test("a fern's fronds grow taller at every stage, like any tree (review #3)", () => {
+  const tops = (["young", "grown", "blossoming", "ancient"] as const).map((stage) => {
+    const frond = render(<PlantArt stage={stage} species="curious_fern" />).querySelector("[data-leaf]")!;
+    return Number(frond.getAttribute("cy")) - Number(frond.getAttribute("ry")); // the tip of the middle frond
+  });
+  const sapling = render(<PlantArt stage="sapling" species="curious_fern" />);
+  const saplingTop = 86 - Number(sapling.querySelector("[data-growth]")!.getAttribute("data-height"));
+  expect(tops[0]).toBeLessThan(saplingTop); // up is smaller y
+  for (let i = 1; i < tops.length; i++) expect(tops[i]).toBeLessThan(tops[i - 1]);
+});
+
+test("species that share a shape don't share a green: oak and cherry, pine and cedar (review #7)", () => {
+  const fill = (species: SpeciesId) => render(<PlantArt stage="grown" species={species} />).querySelector("[data-leaf]")!.getAttribute("fill")!;
+  const hue = (hex: string) => {
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+    const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+    const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return { h: (h * 60 + 360) % 360, l: (max + min) / 2 };
+  };
+  const apart = (a: string, b: string) => Math.abs(hue(a).h - hue(b).h) >= 20 || Math.abs(hue(a).l - hue(b).l) >= 0.12;
+  expect(apart(fill("helpful_oak"), fill("generous_cherry"))).toBe(true);
+  expect(apart(fill("patient_pine"), fill("brave_cedar"))).toBe(true);
+});
+
 test("a dormant plant turns autumn-coloured and stops blossoming", () => {
   const awake = render(<PlantArt stage="blossoming" species="generous_cherry" />);
   expect(awake.querySelectorAll("[data-blossom]").length).toBeGreaterThan(0);

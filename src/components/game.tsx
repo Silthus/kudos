@@ -205,11 +205,14 @@ export function ScoutHints({ today }: { today: string }) {
   );
 }
 
-/** The giver's earnings reply on the web ("+10 XP · +2 Hog coins"), led by the Hog coin (#101). */
+/**
+ * The giver's earnings reply on the web ("+10 XP · +2 Hog coins"), led by the Hog coin (#101) when
+ * it earned coins. Before the wallet opens (level 3) the reply has none, so no coin either.
+ */
 export function Earnings({ text }: { text: string }) {
   return (
     <p className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold text-saffron">
-      <HogCoin size={18} />
+      {/Hog coin/.test(text) && <HogCoin size={18} />}
       <span>{text}</span>
     </p>
   );
@@ -217,10 +220,10 @@ export function Earnings({ text }: { text: string }) {
 
 /**
  * The level-up hoggie beside a level-up DM on the web (#101): PostHog art from PostHog's servers,
- * nothing if it can't load. Only for DMs labelled "Level up".
+ * nothing if it can't load. For DMs of gains labelled "Level up", and older `level_up` DMs.
  */
-export function LevelUpHoggie({ label }: { label?: string }) {
-  if (label !== "Level up") return null;
+export function LevelUpHoggie({ label, category }: { label?: string; category?: string }) {
+  if (label !== "Level up" && category !== "level_up") return null;
   return <RemoteArt slot="hoggie-level-up" fit="contain" className="float-right -mt-1 ml-3 h-16 w-16" />;
 }
 

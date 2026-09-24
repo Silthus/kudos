@@ -16,10 +16,10 @@ const LOOKS: Record<SpeciesId, Look> = {
   helpful_oak: { canopy: "round", leaf: "#4fca7d", deep: "#219c86" },
   kind_maple: { canopy: "round", leaf: "#e0663a", deep: "#a8402a" },
   steady_birch: { canopy: "round", leaf: "#a3d977", deep: "#5fa640", trunk: "#e8e2d4" },
-  generous_cherry: { canopy: "round", leaf: "#58b86b", deep: "#2f8a4f", blossom: "#f7a8c8" },
+  generous_cherry: { canopy: "round", leaf: "#2e8a55", deep: "#1c5c38", trunk: "#6b2f2a", blossom: "#f7a8c8" },
   wise_ginkgo: { canopy: "round", leaf: "#e9d449", deep: "#b7a22d" },
   patient_pine: { canopy: "cone", leaf: "#2f8f5b", deep: "#1f6b44" },
-  brave_cedar: { canopy: "cone", leaf: "#4a8a6e", deep: "#2a5c43", trunk: "#6e4a32" },
+  brave_cedar: { canopy: "cone", leaf: "#5f8f8a", deep: "#3b615d", trunk: "#6e4a32" },
   bright_sunflower: { canopy: "flower", leaf: "#f7c325", deep: "#3f8f4f" },
   curious_fern: { canopy: "fronds", leaf: "#58b368", deep: "#2f7d45" },
   golden_willow: { canopy: "weeping", leaf: "#c9d65a", deep: "#8f9c32" },
@@ -120,14 +120,17 @@ function Crown({ canopy, top, cy, r, leaf, deep, dormant }: { canopy: Canopy; to
           <circle cx="60" cy={cy} r={r * 0.38} fill={dormant ? "#5a3b20" : "#6b3f1d"} />
         </g>
       );
-    case "fronds":
+    case "fronds": {
+      // Fronds rise from the soil to the plant's full height, so a fern grows like any tree.
+      const h = BASE - top;
       return (
         <g stroke={INK} strokeOpacity="0.4">
           {[-60, 60, -30, 30, 0].map((deg, i) => (
-            <ellipse key={deg} data-leaf={deg === 0 ? "" : undefined} cx="60" cy={BASE - r} rx={r * 0.32} ry={r} fill={i < 2 ? deep : leaf} transform={`rotate(${deg} 60 ${BASE - 2})`} />
+            <ellipse key={deg} data-leaf={deg === 0 ? "" : undefined} cx="60" cy={BASE - h / 2} rx={Math.max(r * 0.32, h * 0.12)} ry={h / 2} fill={i < 2 ? deep : leaf} transform={`rotate(${deg} 60 ${BASE - 2})`} />
           ))}
         </g>
       );
+    }
     case "weeping":
       return (
         <g stroke={INK} strokeOpacity="0.4">

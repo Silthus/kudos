@@ -15,7 +15,7 @@ import { expect, test } from "vitest";
 const ROOT = path.resolve(import.meta.dirname, "..");
 const IMAGE = /\.(png|jpe?g|gif|webp|avif|svg|ico|bmp|tiff?)$/i;
 /** Names PostHog's art goes by: hoggies and hedgehogs, Max, the Keyboard garden, the brand package, its Cloudinary. */
-const POSTHOG_ART = /hog|posthog|(^|[/_.\s-])max([/_.\s-]|$)|keyboard[-_\s]?garden|cloudinary|dmukukwp6/i;
+const POSTHOG_ART = /hog|posthog|(^|[/_.\s-])(ai[_-])?max(\.|[_-](hog|ai|coin|face|portrait|[0-9a-f]{6,}))|keyboard[-_\s]?garden|cloudinary|dmukukwp6/i;
 
 /**
  * SHA-256 of the PostHog originals `src/lib/art.ts` points at (hoggies from `@posthog/brand@0.12.3`,
@@ -43,6 +43,28 @@ function posthogArtIn(files: string[]): string[] {
   return files.filter((f) => (IMAGE.test(f) && POSTHOG_ART.test(f)) || f.includes("@posthog/brand") || /(^|\/)posthog-brand\//.test(f));
 }
 
+const CODE = /\.(tsx?|jsx?|mjs|cjs|css|html)$/;
+/** Where PostHog's art lives. Only the registry (and tests asserting on it) may name these. */
+const POSTHOG_HOSTS = /res\.cloudinary\.com\/dmukukwp6|@posthog\/brand|cdn\.jsdelivr\.net\/npm\/@posthog/;
+const REGISTRY = "src/lib/art.ts";
+/** An image inlined into code: a base64 data URI of any real size (a tiny icon passes). */
+const INLINE_IMAGE = /data:image\/(png|jpe?g|gif|webp|avif);base64,[A-Za-z0-9+/=]{1000,}/;
+
+/** Code files that reference PostHog's art outside the registry, or inline an image. */
+function pastedArtIn(files: string[], read: (file: string) => string): string[] {
+  return files.filter((f) => {
+    if (!CODE.test(f)) return false;
+    let text: string;
+    try {
+      text = read(f);
+    } catch {
+      return false; // deleted but not yet staged
+    }
+    const test = /\.test\.tsx?$/.test(f);
+    return (f !== REGISTRY && !test && POSTHOG_HOSTS.test(text)) || INLINE_IMAGE.test(text);
+  });
+}
+
 test("the guard recognises PostHog art by name, and leaves the app's own images alone", () => {
   expect(
     posthogArtIn([
@@ -53,6 +75,7 @@ test("the guard recognises PostHog art by name, and leaves the app's own images 
       "vendor/@posthog/brand/dist/generated/hoggies/png/heart.png",
       "docs/screenshots/me.png",
       "docs/screenshots/maximize.png",
+      "docs/screenshots/max-width.png",
       "src/lib/art.ts",
     ]),
   ).toEqual(["public/hoggies/party.png", "src/assets/gardener-hog.svg", "public/max.png", "public/keyboard_garden_dark.jpg", "vendor/@posthog/brand/dist/generated/hoggies/png/heart.png"]);
@@ -75,8 +98,26 @@ test("no committed image is a copy of the PostHog originals, whatever it's calle
   expect(copies).toEqual([]);
 });
 
-test("@posthog/brand is not a dependency: its art would ship in the bundle", () => {
+test("the guard finds art pasted into code: PostHog URLs outside the registry, inline images, the brand package's markup", () => {
+  const files: Record<string, string> = {
+    "src/lib/art.ts": 'const src = "https://res.cloudinary.com/dmukukwp6/image/upload/x_0a1b2c3d4e.png"; // @posthog/brand@0.12.3',
+    "src/lib/art.test.ts": 'expect(src).toContain("@posthog/brand@0.12.3/dist/generated/hoggies/png/party.png")',
+    "src/pages/Sneaky.tsx": '<img src="https://res.cloudinary.com/dmukukwp6/image/upload/max_0a1b2c3d4e.png" />',
+    "src/components/Hog.tsx": `const hog = "data:image/png;base64,${"A".repeat(2000)}";`,
+    "src/components/Pasted.tsx": "// from @posthog/brand/dist/generated/hoggies/svg/party.mjs\nexport const Party = () => <svg />;",
+    "src/components/Icon.tsx": 'const dot = "data:image/svg+xml;base64,PHN2Zy8+";',
+    "README.md": "Art comes from res.cloudinary.com/dmukukwp6 at runtime.",
+  };
+  expect(pastedArtIn(Object.keys(files), (f) => files[f])).toEqual(["src/pages/Sneaky.tsx", "src/components/Hog.tsx", "src/components/Pasted.tsx"]);
+});
+
+test("no PostHog art is pasted into the code: it's only ever referenced from src/lib/art.ts", () => {
+  expect(pastedArtIn(committable(), (f) => readFileSync(path.join(ROOT, f), "utf8"))).toEqual([]);
+});
+
+test("@posthog/brand is not a dependency, not even a transitive one: its art would ship in the bundle", () => {
   const pkg = JSON.parse(readFileSync(path.join(ROOT, "package.json"), "utf8")) as Record<string, Record<string, string> | undefined>;
   const deps = { ...pkg.dependencies, ...pkg.devDependencies, ...pkg.optionalDependencies, ...pkg.peerDependencies };
   expect(Object.keys(deps)).not.toContain("@posthog/brand");
+  expect(readFileSync(path.join(ROOT, "package-lock.json"), "utf8")).not.toContain("node_modules/@posthog/brand");
 });

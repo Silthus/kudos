@@ -281,7 +281,7 @@ export function Me() {
             <ul className="space-y-2 px-5 pb-5">
               {data.botMessages.map((m) => (
                 <li key={m._id} className="flow-root rounded-xl border border-line bg-ink/40 p-3.5">
-                  <LevelUpHoggie label={m.gainLabel} />
+                  <LevelUpHoggie label={m.gainLabel} category={m.category} />
                   <p className="text-sm leading-relaxed whitespace-pre-line">{m.text}</p>
                   <GainLines lines={m.gains} />
                   <div className="mt-2 flex items-center gap-2">

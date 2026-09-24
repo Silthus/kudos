@@ -268,7 +268,12 @@ function OpenStore({ shop }: { shop: OpenShop }) {
         eyebrow="Store"
         title={
           <>
-            You have <HogCoin size={34} className="mr-2 -mt-1" /><BigNumber value={balance} className={balance < 0 ? "text-down" : "text-saffron"} /> {COIN} to spend
+            You have{" "}
+            <span className="whitespace-nowrap">
+              <HogCoin size={34} className="mr-2 -mt-1" />
+              <BigNumber value={balance} className={balance < 0 ? "text-down" : "text-saffron"} />
+            </span>{" "}
+            {COIN} to spend
           </>
         }
         subtitle="Thoughtful kudos earn Hog coins. Game items are yours the moment you buy them."

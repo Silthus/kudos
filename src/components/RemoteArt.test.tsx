@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act } from "react";
+import { act, StrictMode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, test } from "vitest";
 import { RemoteArt } from "./RemoteArt";
@@ -66,6 +66,35 @@ test("an absolutely placed slot stays absolute (a frame behind a picture), and a
   expect(placed.className.split(" ")).not.toContain("relative");
   act(() => root!.render(<RemoteArt slot="frame-meadow" className="h-4 w-4" />));
   expect(document.querySelector("[data-art-slot='frame-meadow']")!.className.split(" ")).toContain("relative");
+});
+
+test("art with no placeholder that fails to load leaves no hole behind (review #10)", () => {
+  const host = render(<RemoteArt slot="garden-scene" className="h-32 w-32" />);
+  expect(host.querySelector("[data-art-slot]")).not.toBeNull(); // its box is reserved while it loads
+  act(() => void host.querySelector("img")!.dispatchEvent(new Event("error")));
+  expect(host.innerHTML).toBe("");
+  act(() => root!.render(<RemoteArt slot="banner-starfield" />));
+  expect(host.innerHTML).toBe("");
+});
+
+test("an image the browser already has shows at once (review #9)", () => {
+  const complete = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, "complete");
+  const natural = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, "naturalWidth");
+  Object.defineProperty(HTMLImageElement.prototype, "complete", { configurable: true, get: () => true });
+  Object.defineProperty(HTMLImageElement.prototype, "naturalWidth", { configurable: true, get: () => 1000 });
+  try {
+    const host = render(
+      <StrictMode>
+        <RemoteArt slot="hoggie-party" fallback={placeholder} />
+      </StrictMode>,
+    );
+    expect(host.querySelector("[data-art-slot]")!.getAttribute("data-art")).toBe("loaded");
+  } finally {
+    if (complete) Object.defineProperty(HTMLImageElement.prototype, "complete", complete);
+    else delete (HTMLImageElement.prototype as { complete?: boolean }).complete;
+    if (natural) Object.defineProperty(HTMLImageElement.prototype, "naturalWidth", natural);
+    else delete (HTMLImageElement.prototype as { naturalWidth?: number }).naturalWidth;
+  }
 });
 
 test("a new slot starts loading afresh, even after the last one failed", () => {

@@ -509,7 +509,7 @@ export function Playground() {
                         {m.superKudos.text}
                       </p>
                     )}
-                    <LevelUpHoggie label={m.gainLabel} />
+                    <LevelUpHoggie label={m.gainLabel} category={m.category} />
                     <p className="text-[15px] leading-relaxed whitespace-pre-line">{m.text}</p>
                     <GainLines lines={m.gains} />
                     <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5">

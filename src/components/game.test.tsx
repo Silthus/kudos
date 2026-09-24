@@ -82,10 +82,21 @@ test("the giver's earnings reply on the web leads with the Hog coin (#101)", () 
   expect(host.querySelector("[data-hog-coin]")).not.toBeNull();
 });
 
+test("before the wallet opens the reply earns no coins, so it shows no Hog coin (review #2)", () => {
+  const host = render(<Earnings text="+10 XP · new connection +10" />);
+  expect(host.textContent).toBe("+10 XP · new connection +10");
+  expect(host.querySelector("[data-hog-coin]")).toBeNull();
+});
+
 test("a level-up DM on the web brings the level-up hoggie; other gains don't (#101)", () => {
   expect(render(<LevelUpHoggie label="Level up" />).querySelector("[data-art-slot='hoggie-level-up'] img")?.getAttribute("src")).toContain("/hoggies/png/level-up.png");
   expect(render(<LevelUpHoggie label="New discovery" />).innerHTML).toBe("");
   expect(render(<LevelUpHoggie />).innerHTML).toBe("");
+});
+
+test("an older level-up DM without gains still brings the hoggie (review #4)", () => {
+  expect(render(<LevelUpHoggie category="level_up" />).querySelector("[data-art-slot='hoggie-level-up']")).not.toBeNull();
+  expect(render(<LevelUpHoggie category="giver_success" />).innerHTML).toBe("");
 });
 
 test("fruit picked in the garden is its own line in the wallet, and the garden is a click away (#95)", () => {

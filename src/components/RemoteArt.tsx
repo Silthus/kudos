@@ -30,6 +30,8 @@ export function RemoteArt({
   const settle = (next: Status) => setState({ slot, status: next });
   // The image is placed over the box, so the box must be positioned: relative, unless the caller places it.
   const placed = /(^|\s)(absolute|fixed|sticky)(\s|$)/.test(className ?? "");
+  // Nothing to show at all (no art, no placeholder): leave no empty box behind.
+  if (status === "fallback" && fallback === undefined) return null;
   return (
     <span data-art-slot={slot} data-art={status} aria-hidden className={clsx("block overflow-hidden", !placed && "relative", className)} style={style}>
       {fallback}
@@ -50,7 +52,7 @@ export function RemoteArt({
           onLoad={() => settle("loaded")}
           onError={() => settle("fallback")}
           className={clsx(
-            "absolute inset-0 h-full w-full transition-opacity duration-300",
+            "absolute inset-0 h-full w-full motion-safe:transition-opacity motion-safe:duration-300",
             fit === "cover" ? "object-cover" : "object-contain",
             status === "loaded" ? "opacity-100" : "opacity-0",
           )}

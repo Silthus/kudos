@@ -185,6 +185,16 @@ test("if the Keyboard garden can't load, the page stands as it was, with our own
   expect(host.querySelector("[data-plant] [data-bed=key]")).not.toBeNull();
 });
 
+test("with the game off or hidden, or the garden still locked, the Keyboard garden stays out of the header (review #6)", () => {
+  mine = null;
+  game = { enabled: false, hidden: false };
+  expect(render().querySelector("[data-art-slot='garden-scene']")).toBeNull();
+  act(() => root?.unmount());
+  mine = { open: false, opensAt: 3 };
+  game = { enabled: true, hidden: false };
+  expect(render().querySelector("[data-art-slot='garden-scene']")).toBeNull();
+});
+
 test("fruit waiting can be picked, and the week's caps are shown", () => {
   mine = { ...empty, plants: [growing({ stage: "grown", stageName: "Grown", fruit: [{ day: "2026-11-08", coins: 2 }, { day: "2026-11-09", coins: 1 }] })], harvest: { ...empty.harvest, weekCoins: 5, weekXp: 6 } };
   render();

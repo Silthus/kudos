@@ -41,7 +41,7 @@ export function Garden() {
       eyebrow="Your game"
       title="Your garden"
       subtitle="Grow a plant for a teammate you recognise. It grows each week you thank them with a few words on why, and it never dies."
-      action={<GardenScene />}
+      action={mine?.open && <GardenScene />}
     />
   );
   if (mine === null) {
