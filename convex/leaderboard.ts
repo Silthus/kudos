@@ -99,6 +99,8 @@ export async function leaderboard(
       isNew: prevRanked ? prevRank === null : false,
       maxedDays: cur?.maxedDays ?? 0,
       isMe: m._id === me._id,
+      /** Whether Compare can open a head-to-head with this member: not yourself, not someone who has left. */
+      comparable: m._id !== me._id && !m.deactivated,
     };
   });
 

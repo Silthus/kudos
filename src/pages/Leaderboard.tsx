@@ -1,10 +1,12 @@
 import clsx from "clsx";
 import { motion } from "motion/react";
-import { ArrowDown, ArrowUp, Lock, Sparkles, TrendingUp, Users, Zap } from "lucide-react";
+import { ArrowDown, ArrowLeftRight, ArrowUp, Lock, Sparkles, TrendingUp, Users, Zap } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router";
 import { api } from "../../convex/_generated/api";
 import { Ring } from "@/components/charts";
 import { Avatar, BigNumber, Card, CardHeader, Empty, Eyebrow, PageHeader, PageSkeleton, Segmented, Trend } from "@/components/ui";
+import { compareWithHref, firstName } from "@/lib/compare";
 import { nf, pct, rangeLabel } from "@/lib/format";
 import { DEFAULT_PERIOD, PERIOD_OPTIONS, useWorkspaceToday, type Period } from "@/lib/period";
 import { useStableQuery } from "@/lib/useStableQuery";
@@ -109,6 +111,9 @@ export function Leaderboard() {
                       <th className="w-48 px-3 py-2 font-normal">Kudos {data.metric}</th>
                       <th className="px-3 py-2 text-right font-normal">Change</th>
                       <th className="px-3 py-2 text-right font-normal" title="Days the daily allowance was fully used">Maxed days</th>
+                      <th className="w-12 px-2 py-2 font-normal">
+                        <span className="sr-only">Compare</span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -118,7 +123,7 @@ export function Leaderboard() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: Math.min(i * 0.02, 0.4) }}
-                        className={clsx("border-t border-line", r.isMe && "bg-saffron/[0.07]")}
+                        className={clsx("group border-t border-line", r.isMe && "bg-saffron/[0.07]")}
                       >
                         <td className="px-3 py-3">
                           <span className={clsx("grid h-7 w-7 place-items-center rounded-full font-mono text-xs tabular", r.rank <= 3 ? "bg-cream text-ink font-semibold" : "text-muted")}>{r.rank}</span>
@@ -147,6 +152,9 @@ export function Leaderboard() {
                           <Change delta={r.delta} rankChange={r.rankChange} isNew={r.isNew} />
                         </td>
                         <td className="px-3 py-3 text-right font-mono tabular text-muted">{r.maxedDays > 0 ? <span className="text-cream">{r.maxedDays}</span> : "0"}</td>
+                        <td className="px-2 py-3 text-right">
+                          {r.comparable && <CompareWith memberId={r.member._id} name={r.member.name} period={period} />}
+                        </td>
                       </motion.tr>
                     ))}
                   </tbody>
@@ -204,6 +212,21 @@ export function Leaderboard() {
         </div>
       </div>
     </div>
+  );
+}
+
+/** Row action: a head-to-head with this teammate. Shown on hover or focus with a mouse, always on touch screens. */
+function CompareWith({ memberId, name, period }: { memberId: string; name: string; period: Period }) {
+  const label = `Compare with ${firstName(name)}`;
+  return (
+    <Link
+      to={compareWithHref(memberId, period)}
+      aria-label={label}
+      title={label}
+      className="inline-grid h-8 w-8 place-items-center rounded-lg text-faint transition hover:bg-panel-2 hover:text-cream pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:group-focus-within:opacity-100"
+    >
+      <ArrowLeftRight className="h-4 w-4" aria-hidden />
+    </Link>
   );
 }
 

@@ -21,6 +21,22 @@ export const familyValidator = v.union(v.literal("giving"), v.literal("receiving
 export type Locked = "hidden" | "private" | null;
 export const lockedValidator = v.union(v.literal("hidden"), v.literal("private"), v.null());
 
+export const rangeValidator = v.object({ start: v.string(), end: v.string(), days: v.number() });
+/** One side of a scoreboard row: `value` is null when the row is locked or can't be counted. */
+export const cellValidator = v.object({ value: v.union(v.number(), v.null()), locked: lockedValidator });
+/** A cumulative race series: null for days that haven't happened yet. */
+export const seriesValidator = v.array(v.union(v.number(), v.null()));
+export const rowValidator = v.object({
+  metric: metricValidator,
+  family: familyValidator,
+  you: cellValidator,
+  benchmark: cellValidator,
+  delta: v.union(v.number(), v.null()),
+});
+
+/** `compare.teammate.get`'s answer for any id that isn't somebody the viewer can compare with. */
+export const TEAMMATE_UNAVAILABLE = "That teammate isn't available to compare.";
+
 export type CompareMode = "past" | "team" | "teammate";
 
 /** Received-derived metrics reveal kudos somebody received (receiver_success discoveries are unlocked by receiving). */
