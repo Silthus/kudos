@@ -1,7 +1,8 @@
 import clsx from "clsx";
 import { useMutation, useQuery } from "convex/react";
+import { ConvexError } from "convex/values";
 import { AnimatePresence, motion } from "motion/react";
-import { AtSign, EyeOff, Hash, SendHorizontal, Terminal } from "lucide-react";
+import { AtSign, EyeOff, Hash, Pencil, SendHorizontal, Terminal } from "lucide-react";
 import { useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { api } from "../../convex/_generated/api";
 import { Avatar, Button, Card, Eyebrow, PageHeader, RarityBadge } from "@/components/ui";
@@ -22,7 +23,12 @@ type FeedItem = {
   outcome?: Outcome;
   /** An ephemeral reply from the Kudos bot, only visible to you. */
   ephemeral?: boolean;
+  /** Your kudos attempt as sent (Slack format), so you can edit it like in Slack. */
+  sent?: { messageTs: string; slackText: string };
+  edited?: boolean;
 };
+
+type AttemptReply = { outcome: Outcome; guidance: string | null } | null;
 
 /** What the bot's reaction on your message means (the kudos emoji itself for "given"). */
 const REACTIONS: Record<Outcome, { glyph?: string; label: string }> = {
@@ -59,6 +65,7 @@ export function Playground() {
   const teammates = useQuery(api.demo.teammates) ?? [];
   const status = useQuery(api.me.today, { today: useWorkspaceToday() });
   const send = useMutation(api.demo.simulateMessage);
+  const edit = useMutation(api.demo.simulateEdit);
   const react = useMutation(api.demo.simulateReaction);
   const allowance = useMutation(api.demo.simulateAllowanceCheck);
   const refill = useMutation(api.demo.refillAllowance);
@@ -70,6 +77,7 @@ export function Playground() {
   const [bot, setBot] = useState<(BotMessage & { at: number })[]>([]);
   const [reacted, setReacted] = useState<Set<string>>(new Set());
   const [hint, setHint] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{ id: string; draft: string } | null>(null);
   const [mention, setMention] = useState<{ query: string; index: number } | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -99,16 +107,39 @@ export function Playground() {
     const res = await send({ text: slackText, channelName: "general" });
     if (res.status === "no_kudos") setHint(`No kudos in that one. Mention someone and add ${glyph} (or ${emojiCode}).`);
     else setHint(null);
-    const { attempt } = res;
-    if (attempt) {
-      // Like Slack: the bot reacts on the message, and explains a failed attempt only to you.
-      setFeed((f) => [
-        ...f.map((m) => (m.id === id ? { ...m, outcome: attempt.outcome } : m)),
-        ...(attempt.guidance
-          ? [{ id: `${id}-guidance`, author: "Kudos", slackUserId: "", text: attempt.guidance, mine: false, at: Date.now(), ephemeral: true }]
-          : []),
-      ]);
+    if (res.attempt) setFeed((f) => f.map((m) => (m.id === id ? { ...m, sent: { messageTs: res.attempt!.messageTs, slackText } } : m)));
+    showAttempt(id, res.attempt);
+    pushBot(res.messages);
+  };
+
+  /** Like Slack: the bot reacts on the message, and replies only to you when there's something to fix. */
+  const showAttempt = (id: string, attempt: AttemptReply) => {
+    if (!attempt) return;
+    setFeed((f) => [
+      ...f.map((m) => (m.id === id ? { ...m, outcome: attempt.outcome } : m)),
+      ...(attempt.guidance
+        ? [{ id: crypto.randomUUID(), author: "Kudos", slackUserId: "", text: attempt.guidance, mine: false, at: Date.now(), ephemeral: true }]
+        : []),
+    ]);
+  };
+
+  const saveEdit = async (m: FeedItem) => {
+    const raw = editing?.draft.trim();
+    setEditing(null);
+    if (!raw || !m.sent) return;
+    const slackText = toSlack(raw);
+    if (slackText === m.sent.slackText) return;
+    let res;
+    try {
+      res = await edit({ messageTs: m.sent.messageTs, previousText: m.sent.slackText, text: slackText, channelName: "general" });
+    } catch (e) {
+      setHint(e instanceof ConvexError ? String(e.data) : "That edit didn't go through. Try again.");
+      return;
     }
+    // Like Slack, the message shows the edit either way; only a failed attempt is judged again.
+    setFeed((f) => f.map((x) => (x.id === m.id ? { ...x, text: raw.replaceAll(glyph, emojiCode), sent: { ...m.sent!, slackText }, edited: true } : x)));
+    setHint(res.status === "no_change" && m.outcome !== "given" ? `No ${glyph} in the edit, so there was nothing to send.` : null);
+    showAttempt(m.id, res.attempt);
     pushBot(res.messages);
   };
 
@@ -146,7 +177,7 @@ export function Playground() {
       <PageHeader
         eyebrow="Demo · runs the real kudos engine"
         title="Slack playground"
-        subtitle={`Post in #general like you would in Slack. Mention teammates and add ${glyph} to give kudos, or react to a message. The Kudos bot reacts on your message (${glyph} given, ⏳ over the allowance, ❌ not valid) and replies on the right, and everything flows into your dashboard live.`}
+        subtitle={`Post in #general like you would in Slack. Mention teammates and add ${glyph} to give kudos, or react to a message. The Kudos bot reacts on your message (${glyph} given, ⏳ over the allowance, ❌ not valid), and you can fix a failed one by editing it. Replies show up on the right, and everything flows into your dashboard live.`}
       />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.35fr_1fr]">
@@ -199,7 +230,31 @@ export function Playground() {
                       <b className="font-semibold">{m.author}</b>{" "}
                       <span className="text-xs text-faint">{new Date(m.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                     </div>
-                    <p className="text-[15px] leading-relaxed text-cream/90">{renderSlackText(m.text, glyph, emojiName)}</p>
+                    {editing?.id === m.id ? (
+                      <div className="mt-1 rounded-xl border border-saffron/50 bg-ink/70 p-2">
+                        <textarea
+                          autoFocus
+                          value={editing.draft}
+                          onChange={(e) => setEditing({ id: m.id, draft: e.target.value })}
+                          onKeyDown={(e) => {
+                            if (e.key === "Escape") setEditing(null);
+                            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void saveEdit(m); }
+                          }}
+                          rows={2}
+                          aria-label="Edit message"
+                          className="w-full resize-none bg-transparent px-1 text-[15px] outline-none"
+                        />
+                        <div className="mt-1 flex justify-end gap-2">
+                          <Button size="sm" variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
+                          <Button size="sm" variant="primary" onClick={() => void saveEdit(m)} disabled={!editing.draft.trim()}>Save</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-[15px] leading-relaxed text-cream/90">
+                        {renderSlackText(m.text, glyph, emojiName)}
+                        {m.edited && <span className="ml-1 text-xs text-faint">(edited)</span>}
+                      </p>
+                    )}
                     {m.outcome && (
                       <motion.span
                         initial={{ scale: 0.6, opacity: 0 }}
@@ -211,6 +266,18 @@ export function Playground() {
                       >
                         {REACTIONS[m.outcome].glyph ?? glyph} <span className="tabular text-muted">1</span>
                       </motion.span>
+                    )}
+                    {m.sent && editing?.id !== m.id && (
+                      // Like Slack, every message can be edited; a failed attempt is fixed that way, so it's always offered.
+                      <button
+                        onClick={() => setEditing({ id: m.id, draft: m.text.replaceAll(emojiCode, glyph) })}
+                        className={clsx(
+                          "ml-2 inline-flex items-center gap-1 rounded-full border border-line-strong px-2 py-0.5 text-xs text-muted transition hover:text-cream",
+                          m.outcome === "given" && "opacity-60 hover:opacity-100 focus:opacity-100",
+                        )}
+                      >
+                        <Pencil className="h-3 w-3" /> Edit
+                      </button>
                     )}
                     {!m.mine && (
                       <div className="mt-1.5">

@@ -26,10 +26,22 @@ type SlackEvent = {
   item_user?: string;
   item?: { type: string; channel: string; ts: string };
   tokens?: { bot?: string[]; oauth?: string[] };
+  /** message_changed: the message after the edit (with its original ts), and before it. */
+  message?: EditedMessage;
+  previous_message?: { text?: string };
+};
+
+type EditedMessage = {
+  user?: string;
+  bot_id?: string;
+  text?: string;
+  ts?: string;
+  thread_ts?: string;
+  user_team?: string;
+  edited?: { user?: string; ts?: string };
 };
 
 const IGNORED_SUBTYPES = new Set([
-  "message_changed",
   "message_deleted",
   "bot_message",
   "slackbot_response",
@@ -68,6 +80,37 @@ export const processEvent = internalAction({
     }
     if (typeof event.user !== "string" && event.user !== undefined) return null;
 
+    if (event.type === "message" && event.subtype === "message_changed") {
+      // An edit can fix a failed kudos attempt. `message` is the edited message, with its original ts.
+      const edited = event.message;
+      if (!edited?.user || edited.bot_id || typeof edited.text !== "string" || !edited.ts || !event.channel) return null;
+      // Unfurls and new thread replies also change a message, but only its author edits it.
+      if (!edited.edited) return null;
+      if (event.channel_type === "im") return null;
+      if (edited.user_team && edited.user_team !== teamId) return null;
+      const previousText = event.previous_message?.text;
+      if (edited.text === previousText) return null;
+      if (countEmoji(edited.text, emojiName) === 0 && countEmoji(previousText ?? "", emojiName) === 0) return null;
+      const channel = await channelInfo(install.botToken, event.channel);
+      const result = await ctx.runMutation(internal.kudos.ingestEdit, {
+        workspaceId,
+        botUserId: install.botUserId,
+        giverSlackId: edited.user,
+        text: edited.text,
+        previousText,
+        editTs: edited.edited.ts ?? event.ts ?? edited.ts,
+        channelId: event.channel,
+        channelName: channel.name,
+        channelPrivate: channel.isPrivate,
+        messageTs: edited.ts,
+        unknownSlackIds: await lookUpUnknownMentions(ctx, install.botToken, workspaceId, teamId, edited.text),
+      });
+      // A thread's parent carries its own ts as thread_ts; its replies go to the channel.
+      const threadTs = edited.thread_ts !== edited.ts ? edited.thread_ts : undefined;
+      if (result) await answerAttempt(ctx, install.botToken, { channel: event.channel, ts: edited.ts, threadTs, user: edited.user }, result);
+      return null;
+    }
+
     if (event.type === "message") {
       if (event.bot_id || !event.user || !event.text || !event.channel || !event.ts) return null;
       if (event.subtype && IGNORED_SUBTYPES.has(event.subtype)) return null;
@@ -86,13 +129,7 @@ export const processEvent = internalAction({
         messageTs: event.ts,
         unknownSlackIds: await lookUpUnknownMentions(ctx, install.botToken, workspaceId, teamId, event.text),
       });
-      if (!result) return null;
-      if (result.attempt) await react(ctx, install.botToken, event.channel, event.ts, result.attempt);
-      await deliver(ctx, install.botToken, result.notificationIds, {
-        channel: event.channel,
-        threadTs: event.thread_ts,
-        guidance: result.guidance ? { user: event.user, text: result.guidance } : undefined,
-      });
+      if (result) await answerAttempt(ctx, install.botToken, { channel: event.channel, ts: event.ts, threadTs: event.thread_ts, user: event.user }, result);
       return null;
     }
 
@@ -169,6 +206,35 @@ async function lookUpUnknownMentions(ctx: ActionCtx, token: string, workspaceId:
   }
   if (found.length > 0) await ctx.runMutation(internal.slackData.upsertSlackUsers, { workspaceId, users: found });
   return missing;
+}
+
+type Ingested = {
+  notificationIds: Id<"notifications">[];
+  guidance?: string;
+  attempt?: { id: Id<"kudosAttempts">; reaction: string; staleReactions?: string[] };
+};
+
+/** After a kudos attempt (or an edit of one): the bot's reaction on the message, then the replies. */
+async function answerAttempt(
+  ctx: ActionCtx,
+  token: string,
+  message: { channel: string; ts: string; threadTs?: string; user: string },
+  { attempt, notificationIds, guidance }: Ingested,
+) {
+  const { channel, ts } = message;
+  for (const stale of attempt?.staleReactions ?? []) await unreact(token, channel, ts, stale);
+  if (attempt) await react(ctx, token, channel, ts, attempt);
+  await deliver(ctx, token, notificationIds, {
+    channel,
+    threadTs: message.threadTs,
+    guidance: guidance ? { user: message.user, text: guidance } : undefined,
+  });
+}
+
+/** Takes the bot's reaction off the message. Already gone is fine; a failure never blocks the rest. */
+async function unreact(token: string, channel: string, timestamp: string, name: string) {
+  const res = await slackApi(token, "reactions.remove", { channel, timestamp, name });
+  if (!res.ok && res.error !== "no_reaction") console.warn(`Removing :${name}: from ${channel}/${timestamp} failed: ${res.error}`);
 }
 
 /**

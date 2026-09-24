@@ -24,8 +24,13 @@ export function reactionFor(outcome: AttemptOutcome, emojiName: string) {
  * emoji as the surface renders it (`:taco:` in Slack, 🌮 on the web).
  */
 export function guidance(problem: Problem, e: string): string {
+  if (problem.kind === "limit") return limitGuidance(problem, e);
+  return `${invalidGuidance(problem.kind, e)} Edit your message to fix it.`;
+}
+
+function invalidGuidance(reason: InvalidReason, e: string) {
   const example = `“@alex ${e} thanks for the review!”`;
-  switch (problem.kind) {
+  switch (reason) {
     case "no_mention":
       return `Nobody was mentioned, so no ${e} went out. Mention the people you're thanking in the same message, like ${example}`;
     case "group":
@@ -36,9 +41,12 @@ export function guidance(problem: Problem, e: string): string {
       return `Bots and apps can't receive ${e}, so none went out. Mention a teammate instead, like ${example}`;
     case "inactive":
       return `Only active teammates in this workspace can receive ${e}, so none went out. Mention a current teammate, like ${example}`;
-    case "limit":
-      return limitGuidance(problem, e);
   }
+}
+
+/** An edit can't change kudos that were already sent; the author hears it privately. */
+export function alreadySent(unitPlural: string): string {
+  return `Your edit didn't change anything, because the ${unitPlural} in this message were already sent.`;
 }
 
 function limitGuidance({ people, amountEach, remaining, limit }: Extract<Problem, { kind: "limit" }>, e: string) {
@@ -52,13 +60,13 @@ function limitGuidance({ people, amountEach, remaining, limit }: Extract<Problem
 }
 
 function limitFix(people: number, amountEach: number, remaining: number, e: string) {
-  if (people === 1) return remaining === 1 ? `Use just 1 ${e} to send it.` : `Use up to ${remaining} ${e} to send it.`;
+  if (people === 1) return `Edit your message down to ${remaining} ${e} to send it.`;
   const each = Math.floor(remaining / people);
   const fewer = Math.floor(remaining / amountEach);
   const options = [
     each > 0 ? `use ${each} ${e} so each of them gets ${each} (${each * people} in total)` : null,
     fewer > 0 ? `mention ${fewer === 1 ? "just 1 person" : `at most ${fewer} people`}` : null,
   ].filter(Boolean);
-  if (options.length === 0) return `To fix it, thank one person with up to ${remaining} ${e}.`;
-  return `To fix it, ${options.join(", or ")}.`;
+  if (options.length === 0) return `To fix it, edit your message: thank one person with up to ${remaining} ${e}.`;
+  return `To fix it, edit your message: ${options.join(", or ")}.`;
 }

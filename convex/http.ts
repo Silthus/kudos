@@ -19,10 +19,15 @@ const HANDLED_EVENTS = new Set([
   "team_join",
 ]);
 
+type EventText = { type?: string; subtype?: string; text?: string; message?: { text?: string }; previous_message?: { text?: string } };
+
 /** Cheap pre-filter so ordinary chatter never costs a write or an action. */
-function isWorthProcessing(event: { type?: string; text?: string }) {
+function isWorthProcessing(event: EventText) {
   if (!event.type || !HANDLED_EVENTS.has(event.type)) return false;
-  return event.type !== "message" || (event.text ?? "").includes(":");
+  if (event.type !== "message") return true;
+  // An edit carries the message's text before and after it, not at the top level.
+  const texts = event.subtype === "message_changed" ? [event.message?.text, event.previous_message?.text] : [event.text];
+  return texts.some((text) => (text ?? "").includes(":"));
 }
 
 const json = (body: unknown, status = 200) =>
@@ -44,7 +49,7 @@ http.route({
   method: "POST",
   handler: httpAction(async (ctx, request) => {
     const body = await request.clone().text();
-    let payload: { type?: string; challenge?: string; team_id?: string; event_id?: string; event?: { type?: string; text?: string } };
+    let payload: { type?: string; challenge?: string; team_id?: string; event_id?: string; event?: EventText };
     try {
       payload = JSON.parse(body);
     } catch {
