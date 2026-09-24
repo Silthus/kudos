@@ -6,7 +6,7 @@
 import type { Infer } from "convex/values";
 import type { receivedVisibilityValidator } from "../schema";
 import { fnv1a, mulberry32 } from "./random";
-import { addDays, dayKeyFor, weekdayOfKey } from "./time";
+import { addDays, dayKeyFor, daysBetween, weekdayOfKey } from "./time";
 
 export type QuestKey = "spread" | "fresh" | "rekindle" | "unsung" | "steady" | "channels" | "story";
 export type QuestGroup = "people" | "habit" | "craft";
@@ -264,6 +264,74 @@ export function completionTimes(board: readonly QuestKey[], facts: QuestFacts): 
     }
   }
   return times;
+}
+
+/**
+ * The daily quest (game spec #55 §G11): with the game on, one small thoughtful-giving goal a day
+ * next to the weekly board, from level 5. Missing it costs nothing, so it has no waivers: in a
+ * tiny team one of them can be out of reach for a day, and tomorrow's is a different one.
+ */
+export type DailyQuestKey = "thoughtful" | "detail" | "wider" | "two";
+export type DailyQuest = { key: DailyQuestKey; title: string; description: string; goal: number };
+
+export const DAILY_QUESTS: DailyQuest[] = [
+  { key: "thoughtful", title: "A thoughtful thanks", description: "Give a kudos with a reason (3+ words)", goal: 1 },
+  { key: "detail", title: "Tell the story", description: "Write a reason of 12+ words in one kudos", goal: 1 },
+  { key: "wider", title: "Widen the circle", description: "Recognize someone you haven't recognized in 30 days, or ever", goal: 1 },
+  { key: "two", title: "Two teammates", description: "Recognize 2 different teammates today", goal: 2 },
+];
+
+export const DAILY_QUEST_BY_KEY = Object.fromEntries(DAILY_QUESTS.map((q) => [q.key, q])) as Record<DailyQuestKey, DailyQuest>;
+
+export function isDailyQuestKey(key: string): key is DailyQuestKey {
+  return key in DAILY_QUEST_BY_KEY;
+}
+
+/** Days are counted from a Monday so a cycle of the catalog never depends on the timezone. */
+const DAILY_EPOCH = "2024-01-01";
+
+/** One seeded order of the catalog per cycle of `DAILY_QUESTS.length` days. */
+function dailyCycle(workspaceId: string, cycle: number): DailyQuestKey[] {
+  const keys = DAILY_QUESTS.map((q) => q.key);
+  const random = mulberry32(fnv1a(`${workspaceId}:daily:${cycle}`));
+  for (let i = keys.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [keys[i], keys[j]] = [keys[j], keys[i]];
+  }
+  return keys;
+}
+
+/**
+ * A workspace's daily quest on a day: deterministic like the weekly draw (#79), the same for every
+ * member and nothing stored. Each quest comes once per cycle of four days in a seeded order, and a
+ * cycle never opens with the quest the one before closed on, so no quest runs two days in a row.
+ */
+export function dailyQuestKey(workspaceId: string, dayKey: string): DailyQuestKey {
+  const size = DAILY_QUESTS.length;
+  const n = daysBetween(DAILY_EPOCH, dayKey);
+  const cycle = Math.floor(n / size);
+  const order = dailyCycle(workspaceId, cycle);
+  // The swap only ever touches the first two, so the cycle before still ends as drawn.
+  if (order[0] === dailyCycle(workspaceId, cycle - 1)[size - 1]) [order[0], order[1]] = [order[1], order[0]];
+  return order[n - cycle * size];
+}
+
+export type DailyResult = { key: DailyQuestKey; progress: number; goal: number; done: boolean };
+
+/** Progress on a daily quest from the qualifying kudos given on `dayKey` (the week's facts). */
+export function evaluateDaily(key: DailyQuestKey, facts: QuestFacts, dayKey: string): DailyResult {
+  const rows = qualifyingKudos(facts).filter((g) => g.dayKey === dayKey);
+  const goal = DAILY_QUEST_BY_KEY[key].goal;
+  const raw =
+    key === "thoughtful"
+      ? rows.length
+      : key === "detail"
+        ? rows.filter((g) => (g.noteWords ?? 0) >= STORY_NOTE_WORDS).length
+        : key === "wider"
+          ? rows.filter((g) => g.lastBeforeAt === null || g.at - g.lastBeforeAt >= REKINDLE_GAP_MS).length
+          : new Set(rows.map((g) => g.receiverId)).size;
+  const progress = Math.min(goal, raw);
+  return { key, progress, goal, done: progress >= goal };
 }
 
 /** Every quest that isn't waived is done (and there is at least one). */

@@ -104,8 +104,16 @@ describe("the demo plays the game", () => {
     const wallet = (await demo.query(api.game.mine, {})).wallet!;
     expect(wallet.fromKudos).toBeGreaterThan(0);
     expect(wallet.spent).toBeGreaterThan(0);
-    expect(wallet.balance).toBe(wallet.fromKudos + wallet.fromLevels - wallet.spent + wallet.adjusted);
+    expect(wallet.balance).toBe(wallet.fromKudos + wallet.fromFruit + wallet.fromQuests + wallet.fromLevels - wallet.spent + wallet.adjusted);
     expect(wallet.balance).toBeGreaterThan(0);
+    // The replay pays the quest history the seeding recorded (from level 5): 5 coins a weekly quest.
+    const completions = await all(t, "questCompletions");
+    const questPay = (await all(t, "gameEvents")).filter((e) => e.kind === "quest");
+    for (const e of questPay.filter((e) => e.quest?.scope === "weekly")) expect(completions.some((c) => c._id === e.completionId)).toBe(true);
+    const you = (await t.run((ctx) => ctx.db.query("members").collect())).find((m) => m.slackUserId === "UDEMOYOU")!;
+    const yours = questPay.filter((e) => e.memberId === you._id && e.quest?.scope === "weekly");
+    expect(yours.length).toBeGreaterThan(10);
+    expect(wallet.fromQuests).toBe(questPay.filter((e) => e.memberId === you._id).reduce((s, e) => s + (e.coins ?? 0), 0));
 
     // A reset starts the coins over too, including what the Store (#91) spent or admins adjusted.
     const alexId = (await t.run((ctx) => ctx.db.query("members").collect())).find((m) => m.slackUserId === "UDEMOYOU")!._id;
@@ -122,7 +130,9 @@ describe("the demo plays the game", () => {
     // Only the fresh seeded year is left in the ledger, and every player's XP adds up again.
     const after = await all(t, "gameEvents");
     const seeded = new Set((await all(t, "kudos")).map((k) => k.batchId));
-    expect(after.every((e) => seeded.has(e.batchId))).toBe(true);
+    expect(after.filter((e) => e.kind !== "quest").every((e) => seeded.has(e.batchId))).toBe(true);
+    const recorded = new Set((await all(t, "questCompletions")).map((c) => c._id as string));
+    expect(after.filter((e) => e.quest?.scope === "weekly").every((e) => recorded.has(e.completionId!))).toBe(true);
     for (const p of await all(t, "players")) {
       expect(p.xp).toBe(after.filter((e) => e.memberId === p.memberId).reduce((s, e) => s + e.xp, 0));
       expect(p.coins).toBe(after.filter((e) => e.memberId === p.memberId).reduce((s, e) => s + (e.coins ?? 0), 0));

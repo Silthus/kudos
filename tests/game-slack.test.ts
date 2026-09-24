@@ -56,9 +56,15 @@ describe("the giver's reply is ephemeral where they gave, with what it earned", 
     const [reply] = ephemerals();
     expect(reply).toMatchObject({ channel: "C1", thread_ts: "50.0001", user: "UANA" });
     expect(reply.text).toContain("+20 XP · new connection +10");
-    // The reply itself is no DM; only the message it discovered comes as one (#99).
-    expect(dms().map((d) => d.channel)).toEqual(["UBEN", "UANA"]);
-    expect(dms()[1].text).toContain("New message discovered");
+    // The reply itself is no DM; only the message it discovered comes as one (#99), and only when it
+    // rolled Rare or better. (At level 1 quests are locked with the game on (#93), so no quest DM.)
+    expect(dms()[0].channel).toBe("UBEN");
+    const toAna = dms().filter((d) => d.channel === "UANA");
+    expect(toAna.length).toBeLessThanOrEqual(1);
+    for (const d of toAna) {
+      expect(d.text).toContain("New message discovered");
+      expect(d.text).not.toContain("+20 XP");
+    }
   });
 
   test("if Slack can't show it where they gave (e.g. the bot isn't in the channel), it comes as a DM instead", async () => {

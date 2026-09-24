@@ -180,6 +180,9 @@ describe("what a removal deletes", () => {
       await ctx.db.insert("questCompletions", {
         workspaceId: team.workspaceId, memberId: xavi, weekKey: "2026-09-21", questKey: "fresh_face", completedAt: Date.now(), sweep: false,
       });
+      await ctx.db.insert("dailyQuestCompletions", {
+        workspaceId: team.workspaceId, memberId: xavi, dayKey: "2026-09-23", questKey: "thoughtful", completedAt: Date.now(),
+      });
       const adjustment = { workspaceId: team.workspaceId, reason: "Welcome gift", source: "admin" as const, at: Date.now() };
       await ctx.db.insert("balanceAdjustments", { ...adjustment, memberId: xavi, amount: 5, by: team.ana });
       await ctx.db.insert("balanceAdjustments", { ...adjustment, memberId: team.ben, amount: 3, by: xavi });
@@ -200,6 +203,7 @@ describe("what a removal deletes", () => {
           discoveries: mine(await ctx.db.query("discoveries").collect()),
           notifications: mine(await ctx.db.query("notifications").collect()),
           questCompletions: mine(await ctx.db.query("questCompletions").collect()),
+          dailyQuestCompletions: mine(await ctx.db.query("dailyQuestCompletions").collect()),
           kudosAttempts: (await ctx.db.query("kudosAttempts").collect()).filter((a) => a.giverId === xavi).length,
           balanceAdjustments: mine(await ctx.db.query("balanceAdjustments").collect()),
           adminRemovedBy: (await ctx.db.query("members").collect()).filter((m) => m.adminRemovedBy === xavi).length,
@@ -426,6 +430,37 @@ describe("other members' quests", () => {
     await remove();
 
     expect(await done()).toEqual(["Ben fresh"]);
+  });
+
+  test("with the game on, what those quests paid goes back with them (#93)", async () => {
+    await t.run(async (ctx) => {
+      await ctx.db.patch(team.workspaceId, { gameEnabled: true });
+      await ctx.db.insert("questBoards", { workspaceId: team.workspaceId, weekKey: "2026-09-21", questKeys: ["fresh", "channels", "story"] });
+      await ctx.db.insert("players", { workspaceId: team.workspaceId, memberId: team.ana, since: Date.now() - 1000, xp: 400, level: 5, coins: 0 });
+    });
+    await t.mutation(internal.kudos.ingestMessage, {
+      workspaceId: team.workspaceId,
+      botUserId: "UBOT",
+      giverSlackId: "UANA",
+      text: "<@UXAVI> :taco: thanks for the great help",
+      channelId: "CGENERAL",
+      channelName: "general",
+      messageTs: "93.0001",
+    });
+    const pay = async () =>
+      await t.run(async (ctx) => {
+        const events = (await ctx.db.query("gameEvents").collect()).filter((e) => e.memberId === team.ana);
+        const ana = await ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", team.ana)).unique();
+        return { quest: events.filter((e) => e.kind === "quest").length, xp: ana!.xp, sum: 400 + events.reduce((s, e) => s + e.xp, 0), questCoins: ana!.questCoins ?? 0 };
+      });
+    expect((await pay()).quest).toBeGreaterThan(0);
+
+    await remove();
+
+    expect(await pay()).toMatchObject({ quest: 0, questCoins: 0 });
+    const after = await pay();
+    expect(after.xp).toBe(after.sum);
+    expect(await t.run(async (ctx) => (await ctx.db.query("dailyQuestCompletions").collect()).length)).toBe(0);
   });
 });
 

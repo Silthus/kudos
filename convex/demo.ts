@@ -307,11 +307,10 @@ export const seedHistory = internalMutation({
       // The seeded rows bypass the engine, so the quests they completed are recorded next, and then
       // the read-model rollups are rebuilt from them. Both belong to this reset; the rebuild
       // releases its lock when it finishes.
+      // The demo year is then played through the game's rules, like switching the game on would;
+      // the quest seeding schedules that once the completions it pays are recorded.
+      // The Store story follows the game rebuild too, since balances are Hog coins.
       await ctx.scheduler.runAfter(0, internal.quests.seedDemoHistory, { workspaceId, resetAt });
-      // The demo year is played through the game's rules, like switching the game on would.
-      await ctx.scheduler.runAfter(0, internal.game.rebuildWorkspace, { workspaceId, resetAt });
-      // Balances are Hog coins, so the store story waits for the game rebuild (seedStore polls for it).
-      await ctx.scheduler.runAfter(0, internal.demo.seedStore, { workspaceId, resetAt });
     }
     return null;
   },
@@ -355,6 +354,7 @@ export const seedStore = internalMutation({
       await ctx.scheduler.runAfter(STORE_SEED_WAIT.everyMs, internal.demo.seedStore, { workspaceId, resetAt, attempt: attempt + 1 });
       return null;
     }
+    if (waiting.length > 0) console.warn(`Demo Store story: still no player for ${waiting.join(", ")}; their steps are left out.`);
     await ctx.db.patch(workspaceId, { realRewardsEnabled: true });
     const workspace = (await ctx.db.get(workspaceId))!;
     const fresh = async (slackUserId: string) => (await ctx.db.get(ids.get(slackUserId)!))!;
@@ -396,7 +396,7 @@ export const seedStore = internalMutation({
       // Only spending what they'd earned by then: coins build up over the year. A refunded step
       // never spends, so the story keeps its declines and cancellations.
       const refunded = story.outcome === "declined" || story.outcome === "cancelled";
-      const earned = (coins.fromKudos + coins.fromLevels) * ("share" in story.at ? story.at.share : 1) + coins.adjusted;
+      const earned = (coins.fromKudos + coins.fromFruit + coins.fromQuests + coins.fromLevels) * ("share" in story.at ? story.at.share : 1) + coins.adjusted;
       if (!canSpend(coins.balance, reward.cost) || (!refunded && coins.spent + reward.cost > earned)) continue;
       const requestedAt = "share" in story.at ? clock.during(dayOf(story.at.share)) : clock.queued(story.at.workdaysAgo);
       const { redemptionId } = await requestRedemption(ctx, { workspace, member, rewardId, expectedCost: reward.cost, answer: story.answer, now: requestedAt });
@@ -850,6 +850,7 @@ const DEMO_TABLES = [
   "successStats",
   "questBoards",
   "questCompletions",
+  "dailyQuestCompletions",
   "kudosAttempts",
   "rewards",
   "redemptions",
@@ -882,6 +883,8 @@ async function demoRows(ctx: MutationCtx, workspaceId: Id<"workspaces">, table: 
     case "questBoards":
     case "questCompletions":
       return await ctx.db.query(table).withIndex("by_workspace_week", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+    case "dailyQuestCompletions":
+      return await ctx.db.query("dailyQuestCompletions").withIndex("by_workspace_day", (q) => q.eq("workspaceId", workspaceId)).take(1000);
     case "kudosAttempts":
       return await ctx.db.query("kudosAttempts").withIndex("by_message", (q) => q.eq("workspaceId", workspaceId)).take(1000);
     case "rewards":

@@ -16,6 +16,24 @@ describe("Hog coins (#55 §G4)", () => {
     expect(coinBalance({ level: 1 })).toMatchObject({ balance: 0 }); // a player from before coins
   });
 
+  test("quest coins are their own source in the breakdown, not thoughtful kudos", () => {
+    expect(coinBalance({ coins: 12, questCoins: 7, level: 5 })).toEqual({ balance: 52, fromKudos: 5, fromFruit: 0, fromQuests: 7, fromLevels: 40, spent: 0, adjusted: 0 });
+    expect(coinBalance({ coins: 3, level: 1 })).toMatchObject({ fromKudos: 3, fromQuests: 0 });
+  });
+
+  test("garden fruit and quests are each their own source, and neither counts twice (#95, #93)", () => {
+    // 20 coins from events: 4 picked as fruit, 7 paid by quests, so 9 from kudos.
+    expect(coinBalance({ coins: 20, fruitCoins: 4, questCoins: 7, level: 5 })).toEqual({
+      balance: 60,
+      fromKudos: 9,
+      fromFruit: 4,
+      fromQuests: 7,
+      fromLevels: 40,
+      spent: 0,
+      adjusted: 0,
+    });
+  });
+
   test("a revoke can take the balance below zero, which blocks spending until it's positive again", () => {
     expect(canSpend(-3, 1)).toBe(false);
     expect(canSpend(0, 1)).toBe(false);

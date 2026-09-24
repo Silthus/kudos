@@ -1,11 +1,14 @@
 /**
  * Hog coins: the pure rules of the game's only currency (#55 §G2, G4; ADR 0002). Coins come from
  * *giving* thoughtfully, never from receiving: a qualifying kudos earns its giver 1 per kudos given
- * (the allowance caps it), and every level reached earns 10. Quests, sprees and garden fruit add
- * their own sources later. Coins never turn into kudos or allowance, and kudos never turn into coins.
+ * (the allowance caps it), every level reached earns 10, and garden fruit (#95) and quests (#93) pay
+ * their own. Sprees add theirs later. Coins never turn into kudos or allowance, and kudos never turn
+ * into coins.
  *
  * The ledger (convex/game.ts): coins from kudos ride the per-batch `gameEvents` (a `coins` field on
  * each give line), summed into `players.coins`, so a revoke takes back exactly what its kudos earned.
+ * Fruit (`harvest` events) and quest pay (`quest` events) go into the same sum; `players.fruitCoins`
+ * and `players.questCoins` keep their shares apart, and `fromKudos` is what's left.
  * Level-up coins follow from `players.level`, which never goes down, so they are never taken back.
  * Spending and admin adjustments are kept on the member (`coinsSpent`, `coinsAdjusted`).
  */
@@ -31,6 +34,8 @@ export type CoinBalance = {
   fromKudos: number;
   /** Picked in the garden (`players.fruitCoins`, part of `players.coins`). */
   fromFruit: number;
+  /** Weekly and daily quests (from level 5, §G11). */
+  fromQuests: number;
   fromLevels: number;
   spent: number;
   adjusted: number;
@@ -41,15 +46,16 @@ export type CoinBalance = {
  * and sprees), of which `fruitCoins` came from fruit; and every level above 1 earned 10.
  */
 export function coinBalance(
-  player: { coins?: number; fruitCoins?: number; level: number },
+  player: { coins?: number; fruitCoins?: number; questCoins?: number; level: number },
   member: { coinsSpent?: number; coinsAdjusted?: number } = {},
 ): CoinBalance {
   const fromFruit = player.fruitCoins ?? 0;
-  const fromKudos = (player.coins ?? 0) - fromFruit;
+  const fromQuests = player.questCoins ?? 0;
+  const fromKudos = (player.coins ?? 0) - fromFruit - fromQuests;
   const fromLevels = COINS.levelUp * (player.level - 1);
   const spent = member.coinsSpent ?? 0;
   const adjusted = member.coinsAdjusted ?? 0;
-  return { balance: fromKudos + fromFruit + fromLevels - spent + adjusted, fromKudos, fromFruit, fromLevels, spent, adjusted };
+  return { balance: fromKudos + fromFruit + fromQuests + fromLevels - spent + adjusted, fromKudos, fromFruit, fromQuests, fromLevels, spent, adjusted };
 }
 
 /** Spending needs the whole price in the balance; a negative balance blocks it until it recovers. */

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
 import type { QuestKey } from "../convex/lib/quests";
+import { RARITY_SLACK_BADGE } from "../convex/lib/messages";
 import { signSlackRequest } from "../convex/lib/slack";
 import { seedTeam, setupConvex, signInAs, type Team } from "./helpers";
 
@@ -79,17 +80,17 @@ describe("App Home", () => {
     const section = questSection(home);
     expect(section).not.toBeNull();
     const [, lines, context, actions] = section!;
-    expect(lines.text!.text).toMatch(
-      new RegExp(
-        [
-          "^✅ \\*New connection\\* · 1/1 · .+ (Common|Uncommon|Rare|Epic|LEGENDARY)\\*?",
-          "Recognize someone you've never recognized before",
-          "➖ \\*Spread the love\\* · not available",
-          "Recognize 3 different teammates, each in their own message",
-          "▫️ \\*Channel hopper\\* · 1/2",
-          "Give thoughtful kudos in 2 different channels$",
-        ].join("\\n"),
-      ),
+    // The Quest message's rarity is rolled; the line shows whichever badge it rolled (no flaky pattern).
+    const rolled = (await t.run((ctx) => ctx.db.query("notifications").collect())).find((n) => n.category === "quest_complete")!;
+    expect(lines.text!.text).toBe(
+      [
+        `✅ *New connection* · 1/1 · ${RARITY_SLACK_BADGE[rolled.rarity]}`,
+        "Recognize someone you've never recognized before",
+        "➖ *Spread the love* · not available",
+        "Recognize 3 different teammates, each in their own message",
+        "▫️ *Channel hopper* · 1/2",
+        "Give thoughtful kudos in 2 different channels",
+      ].join("\n"),
     );
     expect(context).toMatchObject({ type: "context", elements: [{ type: "mrkdwn", text: "1 of 2 done · Resets Monday · only thoughtful kudos count" }] });
     expect(actions).toMatchObject({
@@ -216,5 +217,37 @@ describe("/kudos quests", () => {
     await t.run((ctx) => ctx.db.patch(team.workspaceId, { questsEnabled: false }));
     expect(await command("quests")).toEqual({ response_type: "ephemeral", text: "Weekly quests aren't on in this workspace." });
     expect((await command("help")).text).not.toContain("/kudos quests");
+  });
+
+  describe("with the game on (#93)", () => {
+    const playerAt = (memberId: Team["ana"], level: number, xp: number) =>
+      t.run((ctx) => ctx.db.insert("players", { workspaceId: team.workspaceId, memberId, since: Date.now() - 1000, xp, level, coins: 0 }));
+
+    test("below level 5 the board is listed locked, in the App Home and the command alike", async () => {
+      await t.run((ctx) => ctx.db.patch(team.workspaceId, { gameEnabled: true }));
+      await setBoard(["fresh", "spread", "channels"]);
+      await playerAt(team.ana, 3, 80);
+      const reply = await command("quests");
+      expect(JSON.stringify(reply.blocks)).toContain("🔒 *Quests open at level 5* · you're level 3");
+      expect(reply.blocks).toEqual(questSection(await openHome("UANA")));
+    });
+
+    test("from level 5 the App Home shows today's daily quest, done by a thoughtful kudos", async () => {
+      await t.run((ctx) => ctx.db.patch(team.workspaceId, { gameEnabled: true }));
+      await setBoard(["fresh", "spread", "channels"]);
+      await playerAt(team.ana, 5, 400);
+      await post("UANA", "<@UBEN> <@UCLEO> :taco: thanks for staying late to fix the release pipeline, it saved our whole demo today");
+      const [, , today] = questSection(await openHome("UANA"))!;
+      expect(today.text!.text).toMatch(/^\*Today's quest\*\n✅ \*.+\* · (1\/1|2\/2)\n/);
+    });
+
+    test("a member who hides the game is told where quests went", async () => {
+      await t.run((ctx) => ctx.db.patch(team.workspaceId, { gameEnabled: true }));
+      await t.run((ctx) => ctx.db.patch(team.ana, { gameHidden: true }));
+      expect(await command("quests")).toEqual({
+        response_type: "ephemeral",
+        text: "Quests are part of the game, which you've hidden. Show it again on your Me page to see them.",
+      });
+    });
   });
 });

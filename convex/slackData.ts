@@ -20,7 +20,6 @@ import { gameOn, gameShownTo, gameView, playerOf } from "./game";
 import { gameBlocks, number } from "./lib/gameBlocks";
 import { coinBalance, formatCoins, WALLET_LEVEL } from "./lib/coins";
 import { questBlocks } from "./lib/questBlocks";
-import { weekKeyFor } from "./lib/quests";
 
 /** Slack retries deliveries it thinks failed; claim each event id exactly once. */
 export const claimEvent = internalMutation({
@@ -451,10 +450,10 @@ export const homeData = internalQuery({
       discovered,
       top,
       store: member && realRewardsOn(workspace) ? await storeHome(ctx, workspace, member) : null,
-      quests: member ? await questBoard(ctx, workspace, member, weekKeyFor(now, workspace.timezone)) : null,
+      quests: member ? await questBoard(ctx, workspace, member, dayKeyFor(now, workspace.timezone)) : null,
       // The game's invitation (§G1): shown until the member gives their first kudos, never as a DM.
       invite: gameShownTo(workspace, member ?? {}) && !(member && (await playerOf(ctx, member._id))),
-      game: member ? await gameView(ctx, workspace, member) : null,
+      game: member ? await gameView(ctx, workspace, member, now) : null,
     };
   },
 });
@@ -571,6 +570,7 @@ async function coinsReply(ctx: QueryCtx, workspace: Doc<"workspaces">, member: D
     `*Balance*\n${coins.balance} Hog ${coins.balance === 1 ? "coin" : "coins"}`,
     `*From thoughtful kudos*\n${coins.fromKudos}`,
     ...(coins.fromFruit ? [`*From garden fruit*\n${coins.fromFruit}`] : []),
+    ...(coins.fromQuests ? [`*From quests*\n${coins.fromQuests}`] : []),
     `*From level-ups*\n${coins.fromLevels}`,
     ...(coins.spent ? [`*Spent*\n${coins.spent}`] : []),
     ...(coins.adjusted ? [`*Adjusted by admins*\n${coins.adjusted > 0 ? "+" : ""}${coins.adjusted}`] : []),
@@ -578,7 +578,7 @@ async function coinsReply(ctx: QueryCtx, workspace: Doc<"workspaces">, member: D
   const note =
     coins.balance < 0
       ? "A revoked kudos took back coins it had earned. Spending waits until your balance is above zero again."
-      : "A thoughtful kudos earns you 1 Hog coin per kudos given, and every level 10.";
+      : `A thoughtful kudos earns you 1 Hog coin per kudos given, and every level 10${coins.fromQuests ? ". Quests pay more on top" : ""}.`;
   return {
     response_type: "ephemeral",
     text: `You have ${coins.balance} Hog ${coins.balance === 1 ? "coin" : "coins"}.`,
@@ -599,7 +599,7 @@ async function levelReply(ctx: QueryCtx, workspace: Doc<"workspaces">, member: D
   if (!gameShownTo(workspace, member)) {
     return { response_type: "ephemeral", text: "You've hidden the game. Show it again on your Me page to see your level." };
   }
-  const game = await gameView(ctx, workspace, member);
+  const game = await gameView(ctx, workspace, member, Date.now());
   if (!game) {
     return { response_type: "ephemeral", text: "You don't have a level yet. Give your first kudos with a few words on why to start one." };
   }
@@ -678,7 +678,10 @@ export const slashCommand = internalMutation({
     if (sub === "quests" || sub === "quest") {
       if (!quests) return { response_type: "ephemeral", text: "Weekly quests aren't on in this workspace." };
       const member = await ensureMember(ctx, workspace, slackUserId);
-      const board = await questBoard(ctx, workspace, member, weekKeyFor(Date.now(), workspace.timezone));
+      const board = await questBoard(ctx, workspace, member, dayKeyFor(Date.now(), workspace.timezone));
+      if (!board.enabled && board.hidden) {
+        return { response_type: "ephemeral", text: "Quests are part of the game, which you've hidden. Show it again on your Me page to see them." };
+      }
       return { response_type: "ephemeral", text: "This week's quests", blocks: questBlocks(board, webLink(workspace.slackTeamId, "/quests")) };
     }
     if (sub === "level" || sub === "lvl" || sub === "xp") {

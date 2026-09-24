@@ -1,8 +1,9 @@
 import clsx from "clsx";
 import type { useQuery } from "convex/react";
-import { CalendarDays, Check, Hash, History, type LucideIcon, Minus, PenLine, Sparkles, UserPlus, Users } from "lucide-react";
+import { CalendarDays, Check, Hash, History, Lock, type LucideIcon, Minus, PenLine, Sparkles, UserPlus, Users } from "lucide-react";
 import { Link } from "react-router";
 import type { api } from "../../convex/_generated/api";
+import { Locked } from "@/components/game";
 import { Progress, RarityBadge } from "@/components/ui";
 import { relativeTime } from "@/lib/format";
 import { waivedCopy } from "@/lib/quests";
@@ -27,8 +28,82 @@ export const QUEST_RULES = [
     Add a few words of <em>why</em> (3+ words).
   </>,
   <>Thanking someone back within 3 days doesn't count.</>,
-  <>One message counts once, however many people you mention.</>,
+  <>On the weekly board, one message counts once, however many people you mention.</>,
 ];
+
+type Reward = { xp: number; coins: number };
+const rewardLabel = (r: Reward) => [`+${r.xp} XP`, r.coins ? `+${r.coins} Hog ${r.coins === 1 ? "coin" : "coins"}` : null].filter(Boolean).join(" · ");
+
+/**
+ * The week's board as every web surface shows it (Me card, quest log): the quests, and with the
+ * game on (#93, §G11) today's daily quest and what quests pay; below level 5 all of it is visible
+ * but locked, with how to get there.
+ */
+export function QuestBoardBody({ board, size = "md" }: { board: QuestBoard; size?: "md" | "lg" }) {
+  if (board.locked) {
+    return (
+      <div className="space-y-3">
+        <Locked title="Quests" level={board.locked.level} how={`You're level ${board.locked.current}. Thoughtful kudos get you there; then this board and a daily quest pay XP and Hog coins.`} />
+        <ul className="space-y-1.5" aria-label="This week's quests, locked">
+          {[...board.quests.map((q) => q.title), ...(board.daily ? [`Today: ${board.daily.title}`] : [])].map((title) => (
+            <li key={title} className="flex items-center gap-2 rounded-lg border border-dashed border-line px-3 py-2 text-sm text-muted">
+              <Lock className="h-3.5 w-3.5 shrink-0 text-faint" aria-hidden />
+              {title}
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      <ul className={clsx(size === "lg" ? "space-y-3" : "space-y-2")}>
+        {board.quests.map((q) => (
+          <QuestItem key={q.key} quest={q} size={size} />
+        ))}
+      </ul>
+      {board.daily && <DailyQuestItem daily={board.daily} reward={board.rewards?.daily ?? null} />}
+      {board.rewards && (
+        <p className="text-xs text-faint">
+          Each weekly quest {rewardLabel(board.rewards.weekly)} · clean sweep +{board.rewards.sweep.xp} XP
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Today's daily quest: one small goal; missing it costs nothing, tomorrow brings another. */
+function DailyQuestItem({ daily, reward }: { daily: NonNullable<QuestBoard["daily"]>; reward: Reward | null }) {
+  const done = daily.status === "done";
+  return (
+    <div data-daily-quest className={clsx("rounded-xl border p-3.5", done ? "border-up/25 bg-up/[0.06]" : "border-saffron/30 bg-saffron/[0.04]")}>
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-[11px] font-medium tracking-wide text-saffron uppercase">Today's quest</span>
+        {reward && <span className="font-mono text-[11px] text-muted tabular">{rewardLabel(reward)}</span>}
+      </div>
+      <div className="mt-1.5 flex items-start gap-3">
+        <span className={clsx("mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full", done ? "bg-up text-ink" : "border border-line-strong")} {...(done ? { "data-done": true } : {})}>
+          {done && <Check className="h-3 w-3" strokeWidth={3} />}
+          <span className="sr-only">{done ? "Done" : "Open"}</span>
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm font-medium">{daily.title}</span>
+            <span className="font-mono text-xs text-muted tabular">
+              {daily.progress}/{daily.goal}
+            </span>
+          </div>
+          <p className="text-xs text-muted">{daily.description}</p>
+          {done && daily.completedAt ? (
+            <p className="mt-1 text-[11px] text-faint">Completed {relativeTime(daily.completedAt)}</p>
+          ) : (
+            <p className="mt-1 text-[11px] text-faint">A new one tomorrow; missing it costs nothing.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /** A quest on this week's board: progress while open, its Quest message once done, muted when waived. */
 export function QuestItem({ quest: q, size = "md" }: { quest: QuestRow; size?: "md" | "lg" }) {

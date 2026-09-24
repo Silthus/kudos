@@ -9,26 +9,33 @@ import { pickTemplate } from "./lib/messages";
 import { fnv1a, mulberry32 } from "./lib/random";
 import { emojiVars, sendBotMessage } from "./engine";
 import { DEMO_YOU } from "./demo";
+import { gameOn, gameShownTo, payQuest, playerOf, questBatchId, questPayment, takeBackQuest } from "./game";
+import type { Gains } from "./gains";
 import {
   type GivenFact,
   type QuestFacts,
   type QuestKey,
   type QuestResult,
   type WaivedReason,
+  DAILY_QUEST_BY_KEY,
   MIN_NOTE_WORDS,
   QUEST_BY_KEY,
   RECIPROCAL_WINDOW_MS,
   boardSeed,
   completionTimes,
+  dailyQuestKey,
   eligibleQuestKeys,
   evaluateBoard,
+  evaluateDaily,
   isCleanSweep,
+  isDailyQuestKey,
   isQuestKey,
   pickBoard,
   weekKeyFor,
   weekKeyOfDay,
 } from "./lib/quests";
-import { addDays, DAY_MS, parseToday, startOfDayUtc } from "./lib/time";
+import { addDays, DAY_MS, dayKeyFor, parseToday, startOfDayUtc } from "./lib/time";
+import { QUEST_REWARDS, type QuestScope, QUESTS_LEVEL } from "./lib/xp";
 
 /** Enough for any week at any sane daily limit; the member's own activity bounds it. */
 const MAX_WEEK_ROWS = 1000;
@@ -237,10 +244,77 @@ async function boardStatus(
   weekKey: string,
   board: readonly QuestKey[],
 ) {
-  const results = evaluateBoard(board, await loadQuestFacts(ctx, workspace, member, weekKey, board));
+  const facts = await loadQuestFacts(ctx, workspace, member, weekKey, board);
   const completions = await completionsFor(ctx, member._id, weekKey);
-  return { merged: withCompletions(results, completions), completions };
+  return { merged: withCompletions(evaluateBoard(board, facts), completions), completions, facts };
 }
+
+/**
+ * How quests play for a member (#93, game spec §G11): as they always have while the game is off
+ * (`plain`); with the game on they are on the ladder, `open` from level 5 and paying XP and Hog
+ * coins, `locked` below it (visible, nothing progresses).
+ */
+export async function questLadder(ctx: QueryCtx, workspace: Doc<"workspaces">, member: Doc<"members">) {
+  if (!gameOn(workspace)) return { mode: "plain" as const, level: null };
+  const level = (await playerOf(ctx, member._id))?.level ?? 1;
+  return { mode: level >= QUESTS_LEVEL ? ("open" as const) : ("locked" as const), level };
+}
+
+async function dailyCompletionOf(ctx: QueryCtx, memberId: Id<"members">, dayKey: string) {
+  return await ctx.db
+    .query("dailyQuestCompletions")
+    .withIndex("by_member_day", (q) => q.eq("memberId", memberId).eq("dayKey", dayKey))
+    .first();
+}
+
+const paidFor = (ctx: QueryCtx, memberId: Id<"members">, completionId: Id<"questCompletions"> | Id<"dailyQuestCompletions">) =>
+  questPayment(ctx, questBatchId(memberId, { scope: "weekly", key: "", completionId }));
+const sweepPaymentOf = (ctx: QueryCtx, memberId: Id<"members">, weekKey: string) =>
+  questPayment(ctx, questBatchId(memberId, { scope: "sweep", key: weekKey }));
+
+/**
+ * Pays a week's clean sweep once (give path only): when the board is swept and the completion
+ * holding the flag was itself paid. The pay is tied to that completion (`sweepPaid`), and only a
+ * revoke that removes it can take the pay back (`sweepAfterRevoke`): a board that reopens because a
+ * teammate joined costs nothing. Returns whether it paid.
+ */
+async function paySweep(
+  ctx: MutationCtx,
+  workspace: Doc<"workspaces">,
+  memberId: Id<"members">,
+  weekKey: string,
+  flagged: Doc<"questCompletions"> | null,
+  gains?: Gains,
+) {
+  if (!flagged || !(await paidFor(ctx, memberId, flagged._id)) || (await sweepPaymentOf(ctx, memberId, weekKey))) return false;
+  const pay = { scope: "sweep" as const, key: weekKey, completionId: flagged._id, dayKey: dayKeyFor(flagged.completedAt, workspace.timezone), at: flagged.completedAt };
+  await ctx.db.patch(flagged._id, { sweepPaid: true });
+  await payQuest(ctx, workspace, memberId, pay, gains);
+  return true;
+}
+
+/**
+ * After a revoke removed completions (`gone`): a sweep paid on one of them moves to the completion
+ * that now holds the flag if that one was paid too, else it's taken back. A revoke never pays.
+ */
+async function sweepAfterRevoke(
+  ctx: MutationCtx,
+  memberId: Id<"members">,
+  weekKey: string,
+  gone: ReadonlySet<string>,
+  flagged: Doc<"questCompletions"> | null,
+) {
+  const payment = await sweepPaymentOf(ctx, memberId, weekKey);
+  if (!payment?.completionId || !gone.has(payment.completionId)) return;
+  if (flagged && (await paidFor(ctx, memberId, flagged._id))) {
+    await ctx.db.patch(payment._id, { completionId: flagged._id });
+    await ctx.db.patch(flagged._id, { sweepPaid: true });
+  } else await takeBackQuest(ctx, payment);
+}
+
+export type EarnedQuest = { scope: QuestScope; title: string; xp: number; coins: number };
+
+const earned = (scope: QuestScope, title: string): EarnedQuest => ({ scope, title, ...QUEST_REWARDS[scope] });
 
 /**
  * Keeps the clean-sweep flag true on exactly one completion while the board is swept, and on none
@@ -276,6 +350,8 @@ async function rewardCompletion(
   progress: { completed: number; available: number; sweep: boolean },
   now: number,
   rollups?: Rollups,
+  /** Collected but not sent: the member hides the game, which quests are part of while it's on. */
+  silent = false,
 ) {
   const emoji = emojiVars(workspace);
   const quest = QUEST_BY_KEY[completion.questKey as QuestKey].title;
@@ -292,7 +368,7 @@ async function rewardCompletion(
     {
       rollups,
       minRarity: progress.sweep ? "rare" : undefined,
-      skipDelivery: !workspace.notifyGiver,
+      skipDelivery: !workspace.notifyGiver || silent,
       questProgress: progress,
     },
   );
@@ -303,7 +379,12 @@ async function rewardCompletion(
 /**
  * Called from `giveKudos` after a batch with a Note: records newly met quests for the giver and
  * rewards each with a Quest message. One Convex mutation is one serializable transaction, so the
- * lookup-then-insert can't duplicate. Returns the Quest messages to deliver.
+ * lookup-then-insert can't duplicate.
+ *
+ * With the game on, quests only play from level 5 (§G11): each new weekly completion, a clean sweep
+ * and the day's daily quest pay XP and Hog coins as `quest` game events in this same transaction; a
+ * level they reach joins the give's `gains`, so it rides in the Quest message DM. Returns the Quest
+ * messages to deliver and what the quests paid, for the earnings reply.
  */
 export async function onKudosGiven(
   ctx: MutationCtx,
@@ -311,10 +392,16 @@ export async function onKudosGiven(
   giver: Doc<"members">,
   now: number,
   rollups?: Rollups,
-): Promise<Id<"notifications">[]> {
+  gains?: Gains,
+): Promise<{ notificationIds: Id<"notifications">[]; quests: EarnedQuest[] }> {
+  const ladder = await questLadder(ctx, workspace, giver);
   const weekKey = weekKeyFor(now, workspace.timezone);
+  // Stored even while locked, so the week's board shown to everyone can't reshuffle.
   const board = await ensureBoard(ctx, workspace, weekKey);
-  const { merged, completions } = await boardStatus(ctx, workspace, giver, weekKey, board);
+  if (ladder.mode === "locked") return { notificationIds: [], quests: [] };
+  const open = ladder.mode === "open";
+  const silent = open && !gameShownTo(workspace, giver);
+  const { merged, completions, facts } = await boardStatus(ctx, workspace, giver, weekKey, board);
   const created: Doc<"questCompletions">[] = [];
   for (const r of merged) {
     if (!r.done || completions.some((c) => c.questKey === r.key)) continue;
@@ -336,33 +423,85 @@ export async function onKudosGiven(
   const ids: Id<"notifications">[] = [];
   for (const c of created) {
     completed++;
-    ids.push(await rewardCompletion(ctx, workspace, giver, c, { completed, available, sweep: c._id === sweep?._id }, now, rollups));
+    ids.push(await rewardCompletion(ctx, workspace, giver, c, { completed, available, sweep: c._id === sweep?._id }, now, rollups, silent));
   }
-  return workspace.notifyGiver ? ids : [];
+  const notificationIds = workspace.notifyGiver && !silent ? ids : [];
+  if (!open) return { notificationIds, quests: [] };
+
+  const tz = workspace.timezone;
+  const quests: EarnedQuest[] = [];
+  for (const c of created) {
+    const pay = { scope: "weekly" as const, key: c.questKey, completionId: c._id, dayKey: dayKeyFor(c.completedAt, tz), at: c.completedAt };
+    await payQuest(ctx, workspace, giver._id, pay, gains);
+    quests.push(earned("weekly", QUEST_BY_KEY[c.questKey as QuestKey].title));
+  }
+  if (await paySweep(ctx, workspace, giver._id, weekKey, sweep, gains)) quests.push(earned("sweep", "Clean sweep"));
+
+  // The day's daily quest, once a day.
+  const dayKey = dayKeyFor(now, tz);
+  if (!(await dailyCompletionOf(ctx, giver._id, dayKey))) {
+    const key = dailyQuestKey(workspace._id, dayKey);
+    if (evaluateDaily(key, facts, dayKey).done) {
+      const completionId = await ctx.db.insert("dailyQuestCompletions", {
+        workspaceId: workspace._id,
+        memberId: giver._id,
+        dayKey,
+        questKey: key,
+        completedAt: now,
+      });
+      await payQuest(ctx, workspace, giver._id, { scope: "daily", key, completionId, dayKey, at: now }, gains);
+      quests.push(earned("daily", DAILY_QUEST_BY_KEY[key].title));
+    }
+  }
+  return { notificationIds, quests };
 }
 
 /**
  * Called from `revokeKudosRow` after the row is gone: re-checks the giver's week of the row (and
  * the current week, whose Old friends / New connection facts can depend on older kudos) and
- * deletes completions whose goal is no longer met. Discoveries and notifications stay.
+ * deletes completions whose goal is no longer met, and the day's daily quest if the row's day no
+ * longer meets it. Whatever those paid (XP, Hog coins, a clean sweep) is taken back exactly, game on
+ * or off. Discoveries, notifications and levels reached stay.
  */
 export async function onKudosRevoked(ctx: MutationCtx, workspace: Doc<"workspaces">, row: Doc<"kudos">) {
   const giver = await ctx.db.get(row.giverId);
   if (!giver) return;
   const tz = workspace.timezone;
-  for (const weekKey of new Set([weekKeyOfDay(row.dayKey), weekKeyFor(Date.now(), tz)])) {
+  const takeBack = async (completionId: Id<"questCompletions"> | Id<"dailyQuestCompletions">) => {
+    const payment = await paidFor(ctx, giver._id, completionId);
+    if (payment) await takeBackQuest(ctx, payment);
+  };
+  const rowWeek = weekKeyOfDay(row.dayKey);
+  let rowWeekFacts: QuestFacts | null = null;
+  for (const weekKey of new Set([rowWeek, weekKeyFor(Date.now(), tz)])) {
     const completions = await completionsFor(ctx, giver._id, weekKey);
     if (completions.length === 0) continue;
     const board = await resolveBoard(ctx, workspace, weekKey);
-    const results = evaluateBoard(board, await loadQuestFacts(ctx, workspace, giver, weekKey, board));
+    const facts = await loadQuestFacts(ctx, workspace, giver, weekKey, board);
+    if (weekKey === rowWeek) rowWeekFacts = facts;
+    const results = evaluateBoard(board, facts);
     const kept: Doc<"questCompletions">[] = [];
+    const gone = new Set<string>();
     for (const c of completions) {
       const r = results.find((x) => x.key === c.questKey);
       // Privacy-waived quests can't be re-evaluated; keep what was earned.
-      if (r && !r.done && r.waived !== "privacy") await ctx.db.delete(c._id);
-      else kept.push(c);
+      if (r && !r.done && r.waived !== "privacy") {
+        await ctx.db.delete(c._id);
+        gone.add(c._id);
+        await takeBack(c._id);
+      } else kept.push(c);
     }
-    await syncSweep(ctx, kept, isCleanSweep(withCompletions(results, kept)));
+    const flagged = await syncSweep(ctx, kept, isCleanSweep(withCompletions(results, kept)));
+    if (gone.size > 0) await sweepAfterRevoke(ctx, giver._id, weekKey, gone, flagged);
+  }
+
+  const daily = await dailyCompletionOf(ctx, giver._id, row.dayKey);
+  if (daily && isDailyQuestKey(daily.questKey)) {
+    const facts = rowWeekFacts ?? (await loadQuestFacts(ctx, workspace, giver, rowWeek, []));
+    if (!evaluateDaily(daily.questKey, facts, row.dayKey).done) {
+      await ctx.db.delete(daily._id);
+      await takeBack(daily._id);
+    }
   }
 }
 
@@ -370,8 +509,11 @@ const questStatus = v.union(v.literal("active"), v.literal("done"), v.literal("w
 const waivedReasonValidator = v.union(v.null(), v.literal("no_candidates"), v.literal("privacy"), v.literal("too_new"));
 
 /** A member's quest board for one week, as every quest surface (web, App Home, `/kudos quests`) shows it. */
+const rewardValidator = v.object({ xp: v.number(), coins: v.number() });
+
 export const questBoardValidator = v.union(
-  v.object({ enabled: v.literal(false) }),
+  // `hidden`: quests are part of the game, which the member hides (they still play and pay).
+  v.object({ enabled: v.literal(false), hidden: v.optional(v.literal(true)) }),
   v.object({
     enabled: v.literal(true),
     weekKey: v.string(),
@@ -396,6 +538,24 @@ export const questBoardValidator = v.union(
     completed: v.number(),
     available: v.number(), // quests that aren't waived
     sweep: v.boolean(),
+    // With the game on (§G11), below level 5: visible, nothing progresses. Null while open or plain.
+    locked: v.union(v.null(), v.object({ level: v.number(), current: v.number() })),
+    // Today's daily quest: only with the game on.
+    daily: v.union(
+      v.null(),
+      v.object({
+        key: v.string(),
+        title: v.string(),
+        description: v.string(),
+        dayKey: v.string(),
+        progress: v.number(),
+        goal: v.number(),
+        status: v.union(v.literal("active"), v.literal("done")),
+        completedAt: v.union(v.null(), v.number()),
+      }),
+    ),
+    // What quests pay: only with the game on.
+    rewards: v.union(v.null(), v.object({ weekly: rewardValidator, daily: rewardValidator, sweep: rewardValidator })),
   }),
 );
 export type QuestBoard = Infer<typeof questBoardValidator>;
@@ -443,16 +603,54 @@ function pausedAt(workspace: Doc<"workspaces">, at: number): boolean {
   return paused(workspace, at, at);
 }
 
-/** `member`'s board for the quest week `weekKey`, or `{ enabled: false }`. Only ever their own data. */
+/**
+ * `member`'s board for the quest week of `dayKey` (and, with the game on, that day's daily quest),
+ * or `{ enabled: false }`. Only ever their own data.
+ */
 export async function questBoard(
   ctx: QueryCtx,
   workspace: Doc<"workspaces">,
   member: Doc<"members">,
-  weekKey: string,
+  dayKey: string,
 ): Promise<QuestBoard> {
   if (!questsOn(workspace)) return { enabled: false };
+  if (gameOn(workspace) && member.gameHidden) return { enabled: false, hidden: true };
+  const weekKey = weekKeyOfDay(dayKey);
+  const ladder = await questLadder(ctx, workspace, member);
   const board = await resolveBoard(ctx, workspace, weekKey);
-  const { merged, completions } = await boardStatus(ctx, workspace, member, weekKey, board);
+  const week = {
+    enabled: true as const,
+    weekKey,
+    weekStart: weekKey,
+    weekEnd: addDays(weekKey, 6),
+    resetsAt: weekBounds(weekKey, workspace.timezone).end,
+    rewards: ladder.mode === "plain" ? null : QUEST_REWARDS,
+  };
+  const dailyKey = dailyQuestKey(workspace._id, dayKey);
+  const dailyQuest = { ...DAILY_QUEST_BY_KEY[dailyKey], dayKey, progress: 0, status: "active" as const, completedAt: null };
+
+  if (ladder.mode === "locked") {
+    // Visible but locked: the week's quests and today's daily quest, without reading any progress.
+    const quests = board.map((key) => ({
+      ...QUEST_BY_KEY[key],
+      progress: 0,
+      status: "active" as const,
+      waivedReason: null,
+      completedAt: null,
+      messageRarity: null,
+    }));
+    return { ...week, quests, completed: 0, available: quests.length, sweep: false, locked: { level: QUESTS_LEVEL, current: ladder.level }, daily: dailyQuest };
+  }
+
+  const { merged, completions, facts } = await boardStatus(ctx, workspace, member, weekKey, board);
+  let daily: Extract<QuestBoard, { enabled: true }>["daily"] = null;
+  if (ladder.mode === "open") {
+    const stored = await dailyCompletionOf(ctx, member._id, dayKey);
+    const shown = stored && isDailyQuestKey(stored.questKey) ? DAILY_QUEST_BY_KEY[stored.questKey] : DAILY_QUEST_BY_KEY[dailyKey];
+    daily = stored
+      ? { ...shown, dayKey, progress: shown.goal, status: "done", completedAt: stored.completedAt }
+      : { ...dailyQuest, progress: evaluateDaily(dailyKey, facts, dayKey).progress };
+  }
   const messages = new Map<string, Doc<"notifications">["rarity"]>();
   for (const c of completions) {
     const note = c.notificationId && (await ctx.db.get(c.notificationId));
@@ -474,15 +672,13 @@ export async function questBoard(
     };
   });
   return {
-    enabled: true,
-    weekKey,
-    weekStart: weekKey,
-    weekEnd: addDays(weekKey, 6),
-    resetsAt: weekBounds(weekKey, workspace.timezone).end,
+    ...week,
     quests,
     completed: quests.filter((q) => q.status === "done").length,
     available: quests.filter((q) => q.status !== "waived").length,
     sweep: isCleanSweep(merged),
+    locked: null,
+    daily,
   };
 }
 
@@ -495,7 +691,7 @@ export const mine = query({
   returns: questBoardValidator,
   handler: async (ctx, { today }) => {
     const { member, workspace } = await requireViewer(ctx);
-    return await questBoard(ctx, workspace, member, weekKeyOfDay(parseToday(today)));
+    return await questBoard(ctx, workspace, member, parseToday(today));
   },
 });
 
@@ -660,7 +856,13 @@ export const seedDemoHistory = internalMutation({
       }
     }
     if (week <= current) await ctx.scheduler.runAfter(0, internal.quests.seedDemoHistory, { workspaceId, resetAt, weekKey: week });
-    else await ctx.scheduler.runAfter(0, internal.rollups.rebuildWorkspace, { workspaceId, resetAt });
+    else {
+      await ctx.scheduler.runAfter(0, internal.rollups.rebuildWorkspace, { workspaceId, resetAt });
+      // The game replay pays the completions just recorded (from level 5, §G11), so it runs after them.
+      await ctx.scheduler.runAfter(0, internal.game.rebuildWorkspace, { workspaceId, resetAt });
+      // Balances are Hog coins, so the Store story waits for that replay (seedStore polls for it).
+      await ctx.scheduler.runAfter(0, internal.demo.seedStore, { workspaceId, resetAt });
+    }
     return null;
   },
 });

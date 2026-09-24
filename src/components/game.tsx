@@ -41,6 +41,7 @@ export function Wallet({ wallet }: { wallet: CoinBalance }) {
   const sources = [
     `${wallet.fromKudos} from thoughtful kudos`,
     wallet.fromFruit ? `${wallet.fromFruit} from garden fruit` : null,
+    wallet.fromQuests ? `${wallet.fromQuests} from quests` : null,
     `${wallet.fromLevels} from level-ups`,
     wallet.spent ? `${wallet.spent} spent` : null,
     wallet.adjusted ? `${wallet.adjusted > 0 ? "+" : ""}${wallet.adjusted} by admins` : null,

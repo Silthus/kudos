@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { earningsText, levelForXp, levelProgress, nextLockedAreas, scoreGive, scoreReceive, titleForLevel, xpForLevel, type GiveRecipient } from "./xp";
+import { earningsText, levelForXp, levelProgress, nextLockedAreas, QUEST_REWARDS, QUESTS_LEVEL, scoreGive, scoreReceive, titleForLevel, xpForLevel, type GiveRecipient } from "./xp";
 
 const AT = Date.UTC(2026, 8, 23, 10);
 const DAY = 86_400_000;
@@ -163,6 +163,26 @@ describe("the earnings reply", () => {
     expect(earningsText({ ...none, xp: 2, coins: 0, noReason: true })).toBe("+2 XP · a kudos with a reason (3+ words) earns coins");
     expect(earningsText({ ...none, xp: 2, coins: 0, thankBack: true })).toBe("+2 XP · thanking back within 72 h earns less");
     expect(earningsText({ ...none, xp: 0, coins: 1 })).toBe("+0 XP · +1 Hog coin · you've thanked them twice today already");
+  });
+
+  test("lists the quests the kudos completed, each with what it paid", () => {
+    expect(
+      earningsText({
+        ...none,
+        xp: 10,
+        coins: 1,
+        quests: [
+          { scope: "daily", title: "A thoughtful thanks", xp: 10, coins: 2 },
+          { scope: "weekly", title: "Spread the love", xp: 20, coins: 5 },
+          { scope: "sweep", title: "Clean sweep", xp: 30, coins: 0 },
+        ],
+      }),
+    ).toBe("+10 XP · +1 Hog coin · daily quest done +10 XP +2 Hog coins · Spread the love done +20 XP +5 Hog coins · clean sweep +30 XP");
+  });
+
+  test("quest rewards are what the spec pays: weekly 20 XP + 5 coins, daily 10 + 2, clean sweep +30 XP", () => {
+    expect(QUEST_REWARDS).toEqual({ weekly: { xp: 20, coins: 5 }, daily: { xp: 10, coins: 2 }, sweep: { xp: 30, coins: 0 } });
+    expect(QUESTS_LEVEL).toBe(5);
   });
 
   test("the hint for a kudos without a reason works for reactions too", () => {

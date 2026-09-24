@@ -84,4 +84,50 @@ describe("questBlocks", () => {
   test("nothing at all while quests are off", () => {
     expect(questBlocks({ enabled: false }, QUEST_LOG)).toEqual([]);
   });
+
+  test("nothing while the member hides the game quests are part of", () => {
+    expect(questBlocks({ enabled: false, hidden: true }, QUEST_LOG)).toEqual([]);
+  });
+});
+
+describe("questBlocks on the game ladder (#93)", () => {
+  const rewards = { weekly: { xp: 20, coins: 5 }, daily: { xp: 10, coins: 2 }, sweep: { xp: 30, coins: 0 } };
+  const daily = { title: "Tell the story", description: "Write a reason of 12+ words in one kudos", progress: 0, goal: 1, status: "active" as const };
+
+  test("from level 5: today's daily quest under the board, and what quests pay", () => {
+    const [, , today, context] = questBlocks({ ...midWeek, locked: null, daily: { ...daily, progress: 1, status: "done" }, rewards }, QUEST_LOG) as {
+      text?: { text: string };
+      elements?: { text: string }[];
+    }[];
+    expect(today).toEqual({
+      type: "section",
+      text: { type: "mrkdwn", text: "*Today's quest*\n✅ *Tell the story* · 1/1\nWrite a reason of 12+ words in one kudos" },
+    });
+    expect(context.elements![0].text).toBe(
+      "1 of 2 done · Resets Monday · only thoughtful kudos count · a weekly quest pays 20 XP + 5 Hog coins, the daily quest 10 XP + 2, a clean sweep 30 XP more",
+    );
+  });
+
+  test("below level 5: the board and the daily quest are listed, locked, with how to get there", () => {
+    const board: QuestBoardView = { ...midWeek, completed: 0, sweep: false, locked: { level: 5, current: 3 }, daily, rewards };
+    expect(questBlocks(board, QUEST_LOG)).toEqual([
+      header,
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: [
+            "🔒 *Quests open at level 5* · you're level 3",
+            "Thoughtful kudos get you there. Then this board and a daily quest pay XP and Hog coins.",
+            "",
+            "▫️ Spread the love",
+            "▫️ New connection",
+            "▫️ Say why",
+            "▫️ Today: Tell the story",
+          ].join("\n"),
+        },
+      },
+      questLog,
+    ]);
+  });
 });

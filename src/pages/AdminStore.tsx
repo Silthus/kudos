@@ -792,21 +792,28 @@ export function LedgerDrawer({ memberId, isDemo, onClose }: { memberId: Id<"memb
               </div>
             </div>
           </div>
-          <dl className="grid grid-cols-2 gap-2 rounded-xl border border-line bg-ink/30 p-3 text-center sm:grid-cols-4">
-            {(
-              [
-                ["From kudos", nf.format(ledger.fromKudos)],
-                ["From levels", nf.format(ledger.fromLevels)],
-                ["Adjusted", signed(ledger.adjusted)],
-                ["Spent", ledger.spent ? `−${nf.format(ledger.spent)}` : "0"],
-              ] as const
-            ).map(([label, value]) => (
-              <div key={label}>
-                <dt className="font-mono text-[10px] uppercase tracking-[0.12em] text-faint">{label}</dt>
-                <dd className="mt-1 font-mono tabular text-cream">{value}</dd>
-              </div>
-            ))}
-          </dl>
+          {(() => {
+            const cells: (readonly [string, string])[] = [
+              ["From kudos", nf.format(ledger.fromKudos)],
+              ...(ledger.fromFruit ? [["From fruit", nf.format(ledger.fromFruit)] as const] : []),
+              ...(ledger.fromQuests ? [["From quests", nf.format(ledger.fromQuests)] as const] : []),
+              ["From levels", nf.format(ledger.fromLevels)],
+              ["Adjusted", signed(ledger.adjusted)],
+              ["Spent", ledger.spent ? `−${nf.format(ledger.spent)}` : "0"],
+            ];
+            // One row on wider screens, or two even rows when both extra sources show.
+            const columns = cells.length === 6 ? "sm:grid-cols-3" : cells.length === 5 ? "sm:grid-cols-5" : "sm:grid-cols-4";
+            return (
+              <dl className={clsx("grid grid-cols-2 gap-2 rounded-xl border border-line bg-ink/30 p-3 text-center", columns)}>
+                {cells.map(([label, value]) => (
+                  <div key={label}>
+                    <dt className="font-mono text-[10px] uppercase tracking-[0.12em] text-faint">{label}</dt>
+                    <dd className="mt-1 font-mono tabular text-cream">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            );
+          })()}
           <section>
             <Eyebrow className="mb-3">Adjustments</Eyebrow>
             {ledger.adjustments.length === 0 ? (
