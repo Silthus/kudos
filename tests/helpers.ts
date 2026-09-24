@@ -68,8 +68,12 @@ export async function signInAs(t: ReturnType<typeof convexTest>, memberId: Id<"m
   return t.withIdentity({ subject: `${userId}|session` });
 }
 
-/** Entering the demo seeds a year of history and rebuilds its rollups: slow under convex-test. */
-export const DEMO_TIMEOUT = 60_000;
+/**
+ * Entering the demo seeds a year of history and rebuilds its rollups: ~15 s under convex-test on an
+ * idle machine, and a reset seeds it twice. Every test that enters or resets the demo takes this
+ * timeout, sized for a loaded machine running the files in parallel, so load alone never fails it.
+ */
+export const DEMO_TIMEOUT = 180_000;
 
 /** Convex's per-transaction limits (see https://docs.convex.dev/production/state/limits). */
 export const CONVEX_LIMITS = {
