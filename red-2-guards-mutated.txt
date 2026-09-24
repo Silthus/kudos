@@ -1,0 +1,90 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af30b0a5923440d3e
+
+ ❯ tests/compare.team.test.ts (15 tests | 2 failed) 145ms
+   ❯ compare.team.get: small teams (3)
+     × 2–4 teammates: the median only, no quartiles, maximum or percentile 11ms
+     × one teammate: no benchmark at all, so their number can't be read off it 7ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/compare.team.test.ts > compare.team.get: small teams > 2–4 teammates: the median only, no quartiles, maximum or percentile
+AssertionError: expected { …(7) } to match object { you: { value: 5 }, …(3) }
+(3 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "benchmark": {
+      "value": 4,
+    },
+-   "percentile": null,
++   "percentile": 0.6666666666666666,
+    "team": {
+-     "max": null,
++     "max": 9,
+      "median": 4,
+      "n": 3,
+-     "p25": null,
+-     "p75": null,
++     "p25": 3,
++     "p75": 6.5,
+    },
+    "you": {
+      "value": 5,
+    },
+  }
+
+ ❯ tests/compare.team.test.ts:157:29
+    155|     const r = await getTeam();
+    156|     expect(r.participants).toBe(3);
+    157|     expect(row(r, "given")).toMatchObject({
+       |                             ^
+    158|       you: { value: 5 },
+    159|       benchmark: { value: 4 },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/compare.team.test.ts > compare.team.get: small teams > one teammate: no benchmark at all, so their number can't be read off it
+AssertionError: expected { …(7) } to match object { you: { value: 5 }, …(3) }
+(4 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "benchmark": {
+-     "value": null,
++     "value": 7,
+    },
+    "percentile": null,
+-   "team": null,
++   "team": {
++     "max": null,
++     "median": 7,
++     "n": 1,
++     "p25": null,
++     "p75": null,
++   },
+    "you": {
+      "value": 5,
+    },
+  }
+
+ ❯ tests/compare.team.test.ts:170:29
+    168|     const r = await getTeam();
+    169|     expect(r.participants).toBe(1);
+    170|     expect(row(r, "given")).toMatchObject({ you: { value: 5 }, benchma…
+       |                             ^
+    171|     expect(JSON.stringify(r.rows)).not.toContain("7");
+    172|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 13 passed (15)
+   Start at  06:46:53
+   Duration  526ms (tests 34%, transform 30%, import 26%, environment 9%, worker 1%)
+

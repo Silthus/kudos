@@ -1,0 +1,27 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af30b0a5923440d3e
+
+ ❯ tests/compare.links.test.ts (16 tests | 1 failed) 10ms
+   ❯ sharePercent: "you gave more than N% of the team" (1)
+     × rounds down, so it never claims more than is true 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/compare.links.test.ts > sharePercent: "you gave more than N% of the team" > rounds down, so it never claims more than is true
+TypeError: sharePercent is not a function
+ ❯ tests/compare.links.test.ts:46:12
+     44| describe("sharePercent: \"you gave more than N% of the team\"", () => {
+     45|   test("rounds down, so it never claims more than is true", () => {
+     46|     expect(sharePercent(0.8)).toBe("80%");
+       |            ^
+     47|     expect(sharePercent(249 / 500)).toBe("49%");
+     48|     expect(sharePercent(0.999)).toBe("99%");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 15 passed (16)
+   Start at  06:48:27
+   Duration  250ms (transform 45%, environment 25%, import 21%, tests 6%, worker 2%)
+

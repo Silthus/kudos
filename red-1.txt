@@ -1,0 +1,34 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af30b0a5923440d3e
+
+ ❯ tests/compare.team.test.ts (1 test | 1 failed) 31ms
+   ❯ compare.team.get: the participant distribution (1)
+     × given: you against the teammates who gave this period, never the bot or people who left 30ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/compare.team.test.ts > compare.team.get: the participant distribution > given: you against the teammates who gave this period, never the bot or people who left
+Error: Could not find module for: "compare/team"
+ ❯ node_modules/convex-test/dist/index.js:1468:19
+    1466|         const module = modulesWithoutExtension[prefix + path];
+    1467|         if (module === undefined) {
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1469|         }
+    1470|         return await module();
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2398:76
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2085:40
+ ❯ query node_modules/convex-test/dist/index.js:2172:41
+ ❯ node_modules/convex-test/dist/index.js:1886:80
+ ❯ Object.result.<computed> [as query] node_modules/convex-test/dist/index.js:1886:56
+ ❯ getTeam tests/compare.team.test.ts:49:23
+ ❯ tests/compare.team.test.ts:71:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  06:45:10
+   Duration  392ms (transform 42%, import 34%, environment 13%, tests 10%, worker 1%)
+

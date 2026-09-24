@@ -1,0 +1,50 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af30b0a5923440d3e
+
+ ❯ tests/compare.links.test.ts (15 tests | 2 failed) 12ms
+   ❯ benchmarkFromParam: the ?vs= deep link (4)
+     × team is the Team benchmark 5ms
+   ❯ compareTeamHref: the Me page's "Compare in detail" link (1)
+     × keeps the Me page's period, and opens the default month for all time 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/compare.links.test.ts > benchmarkFromParam: the ?vs= deep link > team is the Team benchmark
+AssertionError: expected { kind: 'past' } to deeply equal { kind: 'team' }
+
+- Expected
++ Received
+
+  {
+-   "kind": "team",
++   "kind": "past",
+  }
+
+ ❯ tests/compare.links.test.ts:14:46
+     12|
+     13|   test("team is the Team benchmark", () => {
+     14|     expect(benchmarkFromParam("team", "me")).toEqual({ kind: "team" });
+       |                                              ^
+     15|   });
+     16|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/compare.links.test.ts > compareTeamHref: the Me page's "Compare in detail" link > keeps the Me page's period, and opens the default month for all time
+TypeError: compareTeamHref is not a function
+ ❯ tests/compare.links.test.ts:39:12
+     37| describe("compareTeamHref: the Me page's \"Compare in detail\" link", …
+     38|   test("keeps the Me page's period, and opens the default month for al…
+     39|     expect(compareTeamHref("quarter")).toBe("/compare?vs=team&period=q…
+       |            ^
+     40|     expect(compareTeamHref("all")).toBe("/compare?vs=team&period=month…
+     41|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 13 passed (15)
+   Start at  06:47:59
+   Duration  260ms (transform 49%, environment 23%, import 19%, tests 7%, worker 2%)
+

@@ -1,0 +1,40 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af30b0a5923440d3e
+
+ ❯ tests/compare.links.test.ts (18 tests | 2 failed) 10ms
+   ❯ teamSummary: the range strip's tooltip and accessible label (2)
+     × a full distribution names its median, middle half, most and size 3ms
+     × a small team has only its median 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/compare.links.test.ts > teamSummary: the range strip's tooltip and accessible label > a full distribution names its median, middle half, most and size
+TypeError: teamSummary is not a function
+ ❯ tests/compare.links.test.ts:56:12
+     54| describe("teamSummary: the range strip's tooltip and accessible label"…
+     55|   test("a full distribution names its median, middle half, most and si…
+     56|     expect(teamSummary(14, { n: 38, median: 9, p25: 5, p75: 12.5, max:…
+       |            ^
+     57|       "You 14",
+     58|       "Team median 9",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/compare.links.test.ts > teamSummary: the range strip's tooltip and accessible label > a small team has only its median
+TypeError: teamSummary is not a function
+ ❯ tests/compare.links.test.ts:66:12
+     64|
+     65|   test("a small team has only its median", () => {
+     66|     expect(teamSummary(0, { n: 3, median: 4, p25: null, p75: null, max…
+       |            ^
+     67|   });
+     68| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 16 passed (18)
+   Start at  06:49:21
+   Duration  254ms (transform 47%, environment 25%, import 20%, tests 6%, worker 2%)
+
