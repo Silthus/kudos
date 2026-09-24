@@ -7,7 +7,7 @@ import type { InvalidReason } from "./lib/guidance";
 import { dayKeyFor, zonedParts } from "./lib/time";
 import { givingProfile, type MemberDayChange, Rollups } from "./lib/rollups";
 import { MIN_NOTE_WORDS } from "./lib/quests";
-import { onKudosGiven, onKudosRevoked } from "./quests";
+import { onKudosGiven, onKudosRevoked, questsOn } from "./quests";
 import {
   type Category,
   type Rarity,
@@ -367,8 +367,8 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
     }
   }
 
-  // Only a batch with a Note can move quest progress; skip the reads otherwise.
-  if ((input.noteWords ?? 0) >= MIN_NOTE_WORDS) notificationIds.push(...(await onKudosGiven(ctx, workspace, giver, now, rollups)));
+  // Only a batch with a Note can move quest progress, and only while quests are on; skip the reads otherwise.
+  if (questsOn(workspace) && (input.noteWords ?? 0) >= MIN_NOTE_WORDS) notificationIds.push(...(await onKudosGiven(ctx, workspace, giver, now, rollups)));
 
   await rollups.flush();
 

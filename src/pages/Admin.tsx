@@ -170,6 +170,23 @@ function SettingsForm({ initial, isDemo, storeEnabled }: { initial: Settings; is
         </div>
       </Card>
 
+      <Card>
+        <CardHeader title="Quests" subtitle="A small game on top of giving, visible only to each member." />
+        <div className="px-5 pb-3">
+          <Toggle
+            checked={s.questsEnabled}
+            onChange={(v) => set("questsEnabled", v)}
+            label="Weekly quests"
+            description="Private weekly goals that nudge members toward thoughtful, spread-out recognition. Rewards are collectible messages only."
+          />
+          {!s.questsEnabled && (
+            <p className="border-t border-line py-3 text-xs text-muted">
+              While quests are off, members see no quests on the web or in Slack and nothing counts towards them. Completed quests and collected Quest messages are kept.
+            </p>
+          )}
+        </div>
+      </Card>
+
       <div className="flex flex-wrap items-center gap-3 xl:col-span-2">
         <Button variant="primary" onClick={save} disabled={isDemo || !dirty || state.kind === "saving"}>
           {state.kind === "saving" ? "Saving…" : state.kind === "saved" ? <><Check className="h-4 w-4" /> Saved</> : "Save settings"}

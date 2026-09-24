@@ -80,6 +80,7 @@ export const settingsFields = {
   reactionsEnabled: v.boolean(),
   notifyGiver: v.boolean(),
   notifyReceiver: v.boolean(),
+  questsEnabled: v.optional(v.boolean()), // weekly quests; undefined = on (installed before the switch)
 };
 
 export default defineSchema({
@@ -108,6 +109,9 @@ export default defineSchema({
     status: v.union(v.literal("active"), v.literal("uninstalled")),
     resettingSince: v.optional(v.number()), // demo only: a reset is in progress
     storeEnabled: v.optional(v.boolean()), // Rewards Store; undefined = off
+    // The latest time weekly quests were switched off (`until`: back on). Kudos given in between
+    // are history but never quest steps (quests.ts `loadQuestFacts`).
+    questsPause: v.optional(v.object({ from: v.number(), until: v.optional(v.number()) })),
     // Mirrors the `all` workspaceStats row's `rollupsBackfilledAt` (lib/rebuild.ts markBackfilled).
     // Queries that must not re-run on every give in the workspace (me.overview) gate on this copy:
     // the `all` row changes with every give, this document almost never does.

@@ -10,4 +10,5 @@ export const DEFAULT_SETTINGS = {
   reactionsEnabled: true,
   notifyGiver: true,
   notifyReceiver: true,
+  questsEnabled: true,
 };

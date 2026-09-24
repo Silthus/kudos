@@ -125,6 +125,8 @@ export async function loadQuestFacts(
     const earlier = lastTo.get(row.receiverId) ?? null;
     const firstThisWeek = earlier === null || earlier < start;
     lastTo.set(row.receiverId, row.at);
+    // Given while quests were off: it still recognized the receiver, but it's no quest step.
+    if (pausedAt(workspace, row.at)) continue;
     // Unsung hero only needs a lookup for the first row to someone this week: any later row has
     // the member's own earlier kudos to them, less than 14 days before, so it can't be quiet.
     let receiverLastReceivedAt: number | null | undefined;
@@ -392,11 +394,26 @@ export const questBoardValidator = v.union(
 export type QuestBoard = Infer<typeof questBoardValidator>;
 
 /**
- * Whether the workspace runs weekly quests: always, until the admin switch (#23). It only has to
- * change here, since every quest surface reads its board through `questBoard`.
+ * Whether the workspace runs weekly quests (the admin switch; undefined = on). Every quest surface
+ * reads its board through `questBoard`, and `giveKudos` only checks quests while this holds.
  */
-export function questsOn(_workspace: Doc<"workspaces">): boolean {
-  return true;
+export function questsOn(workspace: Pick<Doc<"workspaces">, "questsEnabled">): boolean {
+  return workspace.questsEnabled ?? true;
+}
+
+/**
+ * The workspace patch for the admin switch. Switching off starts a pause and switching back on
+ * ends it, so kudos given in between never count towards a board (`pausedAt`). History is kept.
+ */
+export function switchQuests(workspace: Doc<"workspaces">, on: boolean, now: number): Partial<Doc<"workspaces">> {
+  if (on === questsOn(workspace)) return {};
+  return { questsEnabled: on, questsPause: on ? { from: workspace.questsPause?.from ?? now, until: now } : { from: now } };
+}
+
+/** Whether quests were off when a kudos was given at `at`. Only the latest pause is kept. */
+function pausedAt(workspace: Doc<"workspaces">, at: number): boolean {
+  const pause = workspace.questsPause;
+  return pause !== undefined && at >= pause.from && (pause.until === undefined || at < pause.until);
 }
 
 /** `member`'s board for the quest week `weekKey`, or `{ enabled: false }`. Only ever their own data. */
