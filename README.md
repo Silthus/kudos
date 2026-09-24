@@ -49,6 +49,8 @@ npm test                # vitest + convex-test (unit, engine, HTTP/Slack, author
 npm run check           # the merge gate: typecheck + tests + build
 ```
 
+Tests need no backend and no `.env.local`: they pass on a fresh clone. Vitest ignores `.env*` files and pins its own placeholder `VITE_CONVEX_URL`/`VITE_CONVEX_SITE_URL` (`src/testing/env.ts`); frontend tests mock `convex/react` instead of talking to a deployment.
+
 Deploy: `npx convex deploy && npx @convex-dev/static-hosting upload --build --prod`.
 
 ## Maintenance
