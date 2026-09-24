@@ -27,7 +27,7 @@ Specified in [Spec the Quest system](https://github.com/Silthus/kudos/issues/5).
 |---|---|---|
 | **Quest** | A weekly goal about the member's own giving, defined in the built-in catalog (`QUESTS`). | "challenge", "mission", "achievement" (don't use these) |
 | **Quest week** | Monday 00:00 to Sunday 24:00 in the workspace timezone, the same week as `resolvePeriod("week")`. Identified by its **week key**, the Monday's `YYYY-MM-DD` day key (`weekKeyOfDay`). | a rolling 7-day window |
-| **Quest board** | The 3 quests every member of a workspace gets for one quest week. Seeded draw, stored (`questBoards`) the first time a mutation needs it. | — |
+| **Quest board** | The 3 quests every member of a workspace gets for one quest week. Seeded draw per workspace-week (`pickBoard`) that keeps at most one of last week's quests and avoids the board from two weeks before, stored (`questBoards`) the first time a mutation needs it and never changed after. | — |
 | **Note** | The words in a kudos message other than mentions, channel links, URLs and emoji (`countNoteWords`, stored as `kudos.noteWords`). Reactions have no note. | the kudos *text*, the readable preview |
 | **Qualifying kudos** | A kudos row whose Note has at least 3 words and that is not Reciprocal. Only qualifying kudos move quest progress. | any kudos: every kudos still counts everywhere else |
 | **Reciprocal kudos** | A kudos from G to R where R gave G any kudos in the 72 hours before it. The kudos goes through as normal; it just doesn't move quests. | — |

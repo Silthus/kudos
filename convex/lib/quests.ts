@@ -5,7 +5,7 @@
  */
 import type { Infer } from "convex/values";
 import type { receivedVisibilityValidator } from "../schema";
-import { fnv1a, mulberry32, shuffle } from "./random";
+import { fnv1a, mulberry32 } from "./random";
 import { addDays, dayKeyFor, weekdayOfKey } from "./time";
 
 export type QuestKey = "spread" | "fresh" | "rekindle" | "unsung" | "steady" | "channels" | "story";
@@ -72,24 +72,54 @@ export function eligibleQuestKeys(input: {
 }
 
 const isPeople = (key: QuestKey) => QUEST_BY_KEY[key].group === "people";
+/** How many of last week's quests a new board may keep. */
+export const MAX_CARRY_OVER = 1;
+
+/** Every valid board from `keys`: 3 distinct quests with at least 1 people and 1 habit/craft quest. */
+function boardsFrom(keys: readonly QuestKey[]): QuestKey[][] {
+  const pool = QUESTS.map((q) => q.key).filter((k) => keys.includes(k));
+  const boards: QuestKey[][] = [];
+  for (let a = 0; a < pool.length; a++) {
+    for (let b = a + 1; b < pool.length; b++) {
+      for (let c = b + 1; c < pool.length; c++) {
+        const board = [pool[a], pool[b], pool[c]];
+        if (board.some(isPeople) && !board.every(isPeople)) boards.push(board);
+      }
+    }
+  }
+  return boards;
+}
 
 /**
- * Seeded draw of a week's board: 1 people quest, 1 habit/craft quest, then 1 more of any kind,
- * preferring quests that weren't on last week's board. People quests come first.
+ * Seeded draw of a week's board among every valid one (1+ people, 1+ habit/craft quest) that keeps
+ * at most one of last week's quests (`previousKeys`) and, where it can, isn't the board from two
+ * weeks before (`earlierKeys`), so boards keep changing instead of alternating between two sets.
+ * Only if the catalog is too small for that, it may keep more, but never last week's exact board
+ * when another exists. People quests come first.
  */
-export function pickBoard(input: { seed: number; previousKeys: readonly string[]; eligibleKeys: readonly QuestKey[] }): QuestKey[] {
-  const shuffled = shuffle(input.eligibleKeys, mulberry32(input.seed));
+export function pickBoard(input: {
+  seed: number;
+  previousKeys: readonly string[];
+  earlierKeys?: readonly string[];
+  eligibleKeys: readonly QuestKey[];
+}): QuestKey[] {
   const previous = new Set(input.previousKeys);
-  const ordered = [...shuffled.filter((k) => !previous.has(k)), ...shuffled.filter((k) => previous.has(k))];
-  const picked: QuestKey[] = [];
-  const take = (key: QuestKey | undefined) => key && picked.push(key);
-  take(ordered.find(isPeople));
-  take(ordered.find((k) => !isPeople(k)));
-  for (const key of ordered) {
-    if (picked.length >= BOARD_SIZE) break;
-    if (!picked.includes(key)) picked.push(key);
-  }
-  return [...picked.filter(isPeople), ...picked.filter((k) => !isPeople(k))];
+  const earlier = new Set(input.earlierKeys);
+  const kept = (board: QuestKey[]) => board.filter((k) => previous.has(k)).length;
+  const isEarlier = (board: QuestKey[]) => earlier.size === board.length && board.every((k) => earlier.has(k));
+  const boards = boardsFrom(input.eligibleKeys);
+  const preferences = [
+    (b: QuestKey[]) => kept(b) <= MAX_CARRY_OVER && !isEarlier(b),
+    (b: QuestKey[]) => kept(b) <= MAX_CARRY_OVER,
+    (b: QuestKey[]) => kept(b) < BOARD_SIZE,
+    () => true,
+  ];
+  const candidates =
+    preferences.map((ok) => boards.filter(ok)).find((c) => c.length > 0) ??
+    // No valid board at all (never with the built-in catalog): the drawable quests as they are.
+    [input.eligibleKeys.slice(0, BOARD_SIZE)];
+  const board = candidates[Math.floor(mulberry32(input.seed)() * candidates.length)];
+  return [...board.filter(isPeople), ...board.filter((k) => !isPeople(k))];
 }
 
 /** Size of a maximum matching between messages and their recipients (augmenting paths). */

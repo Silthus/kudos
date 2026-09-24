@@ -47,7 +47,10 @@ async function storedBoard(ctx: QueryCtx, workspace: Doc<"workspaces">, weekKey:
     .first();
 }
 
-/** The seeded draw for a week, avoiding the previous week's board (stored, or drawn without exclusions). */
+/**
+ * The seeded draw for a week against the previous week's board (stored, or drawn without
+ * exclusions) and, if stored, the board from two weeks before, so boards don't alternate.
+ */
 async function drawBoard(ctx: QueryCtx, workspace: Doc<"workspaces">, weekKey: string): Promise<QuestKey[]> {
   const firstKudos = await ctx.db
     .query("kudos")
@@ -63,7 +66,8 @@ async function drawBoard(ctx: QueryCtx, workspace: Doc<"workspaces">, weekKey: s
   const previousKeys =
     (await storedBoard(ctx, workspace, previousKey))?.questKeys ??
     pickBoard({ seed: boardSeed(workspace._id, previousKey), previousKeys: [], eligibleKeys: eligibleFor(previousKey) });
-  return pickBoard({ seed: boardSeed(workspace._id, weekKey), previousKeys, eligibleKeys: eligibleFor(weekKey) });
+  const earlierKeys = (await storedBoard(ctx, workspace, addDays(weekKey, -14)))?.questKeys ?? [];
+  return pickBoard({ seed: boardSeed(workspace._id, weekKey), previousKeys, earlierKeys, eligibleKeys: eligibleFor(weekKey) });
 }
 
 /** A week's board: the stored one, else the deterministic draw (safe in queries). */
