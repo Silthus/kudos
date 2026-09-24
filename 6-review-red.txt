@@ -1,0 +1,9 @@
+   × the received leaderboard's reads don't grow with everyone who ever left 318ms
+   × a giver the team no longer lists (e.g. since marked a bot) never pushes it past 100% 56ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/participation.test.ts > the received leaderboard's reads don't grow with everyone who ever left
+Error: Too many index ranges read in a single function execution (limit: 1000). This is a Convex limit: https://docs.convex.dev/production/state/limits
+    125|                 throw new Error(`Too many index ranges read in a singl…
+ FAIL  tests/participation.test.ts > a giver the team no longer lists (e.g. since marked a bot) never pushes it past 100%
+AssertionError: expected { allowanceUse: 0.2, …(14) } to match object { givers: 4, teamSize: 4, …(1) }
+      Tests  2 failed | 6 skipped (8)

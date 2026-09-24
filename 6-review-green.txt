@@ -1,0 +1,9 @@
+ ✓ tests/participation.test.ts > the received leaderboard's reads don't grow with everyone who ever left 149ms
+ ✓ tests/participation.test.ts > a giver the team no longer lists (e.g. since marked a bot) never pushes it past 100% 48ms
+ ✓ tests/participation.test.ts > from the rollups > analytics count teammates who gave and left in the team size too 31ms
+ ✓ tests/participation.test.ts > from the rollups > so do the leaderboard highlights (month) 31ms
+ ✓ tests/participation.test.ts > from the rollups > so do the leaderboard highlights (all) 29ms
+ ✓ tests/participation.test.ts > from the legacy scans > analytics count teammates who gave and left in the team size too 28ms
+ ✓ tests/participation.test.ts > from the legacy scans > so do the leaderboard highlights (month) 27ms
+ ✓ tests/participation.test.ts > from the legacy scans > so do the leaderboard highlights (all) 28ms
+      Tests  8 passed (8)

@@ -1,0 +1,8 @@
+> kudos@0.1.0 check
+> npm run typecheck && npm test && npm run build
+> kudos@0.1.0 typecheck
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a24ca91ae56579b09
+ Test Files  37 passed (37)
+      Tests  577 passed (577)
+✓ built in 308ms
+exit 0
