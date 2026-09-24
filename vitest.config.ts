@@ -1,6 +1,6 @@
 import path from "node:path";
 import { defineConfig } from "vitest/config";
-import { TEST_ENV } from "./src/testing/env";
+import { TEST_ENV } from "./src/testing/env.ts";
 
 export default defineConfig({
   // The app's `@/…` imports, as in vite.config.ts, so page components can be tested.
