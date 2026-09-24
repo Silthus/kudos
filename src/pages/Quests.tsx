@@ -3,10 +3,12 @@ import { useQuery } from "convex/react";
 import { Check, Minus, ScrollText, Target } from "lucide-react";
 import { Link } from "react-router";
 import { api } from "../../convex/_generated/api";
-import { QUEST_ICON, QUEST_RULES, QuestItem, waivedCopy, type QuestBoard, type WaivedReason } from "@/components/quests";
+import { QUEST_ICON, QUEST_RULES, QuestItem, type QuestBoard } from "@/components/quests";
 import { BigNumber, Card, CardHeader, Empty, PageHeader, PageSkeleton } from "@/components/ui";
 import { dayLabel, rangeLabel } from "@/lib/format";
 import { useWorkspaceToday } from "@/lib/period";
+import { stampLabel, weekLabel } from "@/lib/quests";
+import { useViewer } from "@/lib/viewer";
 
 type QuestLog = NonNullable<ReturnType<typeof useQuery<typeof api.quests.history>>>;
 
@@ -39,7 +41,7 @@ export function Quests() {
           </div>
         </div>
       )}
-      <PastWeeks weeks={log.weeks} />
+      <PastWeeks weeks={log.weeks} today={today} />
     </div>
   );
 }
@@ -125,21 +127,15 @@ function HowQuestsCount() {
 
 type PastQuest = QuestLog["weeks"][number]["board"][number];
 
-function stampLabel(q: PastQuest) {
-  if (q.done) return `${q.title}: completed${q.completedAt ? ` ${new Date(q.completedAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}` : ""}`;
-  if (q.waived) return `${q.title}: not available (${waivedCopy(q.key, q.waived as WaivedReason)})`;
-  return `${q.title}: not completed`;
-}
-
 /** One stamp: filled when done, outlined when not, dimmed when it wasn't available. Titles show from `sm` up. */
-function Stamp({ quest: q }: { quest: PastQuest }) {
+function Stamp({ quest: q, timeZone }: { quest: PastQuest; timeZone: string }) {
   const Icon = QUEST_ICON[q.key] ?? Target;
+  const label = stampLabel(q, timeZone);
   return (
     <li
-      title={stampLabel(q)}
+      title={label}
       className={clsx(
-        "flex h-9 items-center justify-center gap-1.5 rounded-full border text-xs font-medium sm:justify-start sm:px-3",
-        "w-9 sm:w-auto",
+        "relative flex h-9 w-9 items-center justify-center gap-1.5 rounded-full border text-xs font-medium sm:w-auto sm:justify-start sm:px-3",
         q.done && "border-up/40 bg-up/15 text-up",
         !q.done && !q.waived && "border-line-strong text-muted",
         q.waived && "border-dashed border-line-strong text-faint opacity-60",
@@ -147,14 +143,23 @@ function Stamp({ quest: q }: { quest: PastQuest }) {
     >
       <Icon className="h-4 w-4 shrink-0" aria-hidden />
       <span className="hidden truncate sm:inline">{q.title}</span>
-      {q.done && <Check className="hidden h-3.5 w-3.5 shrink-0 sm:inline" strokeWidth={3} aria-hidden />}
+      {q.done && (
+        <>
+          <Check className="hidden h-3.5 w-3.5 shrink-0 sm:inline" strokeWidth={3} aria-hidden />
+          {/* Icon-only on phones: a check, so done doesn't rely on colour alone. */}
+          <span className="absolute -right-1 -bottom-1 grid h-4 w-4 place-items-center rounded-full bg-up text-ink sm:hidden" aria-hidden>
+            <Check className="h-2.5 w-2.5" strokeWidth={3.5} />
+          </span>
+        </>
+      )}
       {q.waived && <Minus className="hidden h-3.5 w-3.5 shrink-0 sm:inline" strokeWidth={3} aria-hidden />}
-      <span className="sr-only">{stampLabel(q)}</span>
+      <span className="sr-only">{label}</span>
     </li>
   );
 }
 
-function PastWeeks({ weeks }: { weeks: QuestLog["weeks"] }) {
+function PastWeeks({ weeks, today }: { weeks: QuestLog["weeks"]; today: string }) {
+  const { timezone } = useViewer().workspace;
   return (
     <Card className="mt-4">
       <CardHeader
@@ -164,22 +169,22 @@ function PastWeeks({ weeks }: { weeks: QuestLog["weeks"] }) {
         action={<Legend />}
       />
       {weeks.length === 0 ? (
-        <Empty icon={<ScrollText className="h-7 w-7 text-faint" />} title="Your log starts next week">
-          Each Monday, last week's board lands here with a stamp for every quest you completed.
+        <Empty icon={<ScrollText className="h-7 w-7 text-faint" />} title="Nothing in your log yet">
+          The Monday after a week you gave kudos in, that week's board lands here with a stamp for every quest you completed.
         </Empty>
       ) : (
         <ol className="divide-y divide-line px-5 pb-3">
           {weeks.map((w) => (
             <li key={w.weekKey} className="flex items-center gap-3 py-2.5 sm:gap-4">
               <div className="w-16 shrink-0 sm:w-28">
-                <div className="text-sm font-medium tabular">{dayLabel(w.weekKey)}</div>
+                <div className="text-sm font-medium tabular">{weekLabel(w.weekKey, today)}</div>
                 <div className="hidden text-xs text-faint sm:block">
                   {w.board.filter((q) => q.done).length} of {w.board.filter((q) => q.done || !q.waived).length} done
                 </div>
               </div>
-              <ul className="flex min-w-0 flex-1 flex-wrap gap-2" aria-label={`Week of ${dayLabel(w.weekKey, { month: "long", day: "numeric" })}`}>
+              <ul className="flex min-w-0 flex-1 flex-wrap gap-2" aria-label={`Week of ${dayLabel(w.weekKey, { month: "long", day: "numeric", year: "numeric" })}`}>
                 {w.board.map((q) => (
-                  <Stamp key={q.key} quest={q} />
+                  <Stamp key={q.key} quest={q} timeZone={timezone} />
                 ))}
               </ul>
               {w.sweep && <SweepPill compact />}

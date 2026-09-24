@@ -5,10 +5,10 @@ import { Link } from "react-router";
 import type { api } from "../../convex/_generated/api";
 import { Progress, RarityBadge } from "@/components/ui";
 import { relativeTime } from "@/lib/format";
+import { waivedCopy } from "@/lib/quests";
 
 export type QuestBoard = Extract<NonNullable<ReturnType<typeof useQuery<typeof api.quests.mine>>>, { enabled: true }>;
 type QuestRow = QuestBoard["quests"][number];
-export type WaivedReason = QuestRow["waivedReason"];
 
 /** One mark per quest, for the quest log's stamps. */
 export const QUEST_ICON: Record<string, LucideIcon> = {
@@ -20,19 +20,6 @@ export const QUEST_ICON: Record<string, LucideIcon> = {
   channels: Hash,
   story: PenLine,
 };
-
-export function waivedCopy(key: string, reason: WaivedReason) {
-  switch (reason) {
-    case "privacy":
-      return "hidden by your workspace's privacy settings";
-    case "too_new":
-      return "needs more history";
-    case "no_candidates":
-      return key === "spread" ? "needs at least 3 teammates" : "you've already recognized everyone 🎉";
-    default:
-      return null;
-  }
-}
 
 /** What makes a kudos count towards quests, in the member's words. */
 export const QUEST_RULES = [
