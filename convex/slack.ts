@@ -293,7 +293,15 @@ async function deliver(ctx: ActionCtx, token: string, teamId: string, ids: Id<"n
     const gains = (n.gains ?? []).filter((g) => g.kind !== "discovery" || !repliedByDm.has(n.slackUserId));
     let blocks: object[];
     let text: string;
-    if (n.category === "gains" || n.category === "level_up") {
+    if (n.category === "garden") {
+      // A plant grown for them (gardens.ts): no rarity, no gallery; a link to their garden.
+      const garden = link("/garden");
+      blocks = [
+        { type: "section", text: { type: "mrkdwn", text: `🌱 ${n.slackText}` } },
+        ...(garden ? [{ type: "context", elements: [{ type: "mrkdwn", text: `<${garden}|Your garden>` }] }] : []),
+      ];
+      text = n.slackText;
+    } else if (n.category === "gains" || n.category === "level_up") {
       if (n.gains && gains.length === 0) {
         await ctx.runMutation(internal.slackData.markDelivery, { id: n._id, delivery: "skipped" });
         continue;

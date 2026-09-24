@@ -3,7 +3,9 @@ import { internalMutation, internalQuery, mutation, query, type MutationCtx, typ
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { earningsValidator } from "./schema";
+import { gardenSummary } from "./gardens";
 import { requireViewer } from "./lib/access";
+import { dayKeyFor } from "./lib/time";
 import type { Gains } from "./gains";
 import { coinBalance, lineCoins, WALLET_LEVEL } from "./lib/coins";
 import { hasNote, RECIPROCAL_WINDOW_MS, weekKeyOfDay } from "./lib/quests";
@@ -335,13 +337,16 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
   const first = given.find((k) => !pausedAt(workspace, k.at))?.at;
   const since = existing === null ? first : first === undefined ? existing.since : Math.min(existing.since, first);
 
+  // Fruit picked is the member's own doing, like their skills: kept as it is, never replayed.
+  type Written = { at: number; xp: number; coins: number };
+  const harvests: Written[] = [];
   for await (const e of ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", member._id))) {
-    await ctx.db.delete(e._id);
+    if (e.kind === "harvest") harvests.push({ at: e.at, xp: e.xp, coins: e.coins ?? 0 });
+    else await ctx.db.delete(e._id);
   }
   if (since === undefined) return;
 
-  type Written = { at: number; xp: number; coins: number };
-  const written: Written[] = [];
+  const written: Written[] = [...harvests];
   const unsungOn = workspace.receivedVisibility === "everyone";
   const receivedFrom = timesBy(received, (k) => k.giverId); // their kudos to the member
   const givenTo = timesBy(given, (k) => k.receiverId); // the member's kudos to them
@@ -417,8 +422,9 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
   for (const w of written.sort((a, b) => a.at - b.at)) peak = Math.max(peak, (total += w.xp));
   const level = Math.max(existing?.level ?? 1, levelForXp(peak));
   const coins = written.reduce((s, w) => s + w.coins, 0);
-  if (existing) await ctx.db.patch(existing._id, { xp: total, level, since, coins });
-  else await ctx.db.insert("players", { workspaceId: workspace._id, memberId: member._id, since, xp: total, level, coins });
+  const fruitCoins = harvests.reduce((s, w) => s + w.coins, 0) || undefined;
+  if (existing) await ctx.db.patch(existing._id, { xp: total, level, since, coins, fruitCoins });
+  else await ctx.db.insert("players", { workspaceId: workspace._id, memberId: member._id, since, xp: total, level, coins, fruitCoins });
 }
 
 const MEMBERS_PER_STEP = 25;
@@ -512,6 +518,7 @@ const progressValidator = v.object({
 const walletValidator = v.object({
   balance: v.number(),
   fromKudos: v.number(),
+  fromFruit: v.number(),
   fromLevels: v.number(),
   spent: v.number(),
   adjusted: v.number(),
@@ -561,6 +568,8 @@ export async function gameView(ctx: QueryCtx, workspace: Doc<"workspaces">, memb
     toNext: progress.toNext,
     fraction: progress.fraction,
     coins: progress.level >= WALLET_LEVEL ? coinBalance(player, member).balance : null,
+    // Read by App Home and `/kudos level`, which run from Slack actions: today is the workspace's.
+    garden: await gardenSummary(ctx, workspace, player, dayKeyFor(Date.now(), workspace.timezone)),
     locked: locked.length > 0 ? { level: locked[0].level, areas: locked.map((a) => a.title) } : null,
   };
 }

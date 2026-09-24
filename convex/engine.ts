@@ -11,6 +11,7 @@ import { onKudosGiven, onKudosRevoked, questsOn } from "./quests";
 import { onGameGiven, onGameRevoked } from "./game";
 import { Gains } from "./gains";
 import { discoveryWorthADm } from "./lib/gains";
+import { onGardenGiven } from "./gardens";
 import {
   CATALOG,
   type Category,
@@ -360,6 +361,8 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
   // discovers or gains in this kudos goes out in one DM each, once everything below has run.
   const gains = new Gains(ctx, workspace);
   const game = await onGameGiven(ctx, workspace, giver, rows, input.noteWords, gains);
+  // A kudos to someone the giver grows a plant for may have watered it: its stage gains.
+  await onGardenGiven(ctx, workspace, giver, rows, gains);
 
   const channel = channelVars(input.channelId, input.channelName);
   const notificationIds: Id<"notifications">[] = [];

@@ -570,6 +570,7 @@ async function coinsReply(ctx: QueryCtx, workspace: Doc<"workspaces">, member: D
   const fields = [
     `*Balance*\n${coins.balance} Hog ${coins.balance === 1 ? "coin" : "coins"}`,
     `*From thoughtful kudos*\n${coins.fromKudos}`,
+    ...(coins.fromFruit ? [`*From garden fruit*\n${coins.fromFruit}`] : []),
     `*From level-ups*\n${coins.fromLevels}`,
     ...(coins.spent ? [`*Spent*\n${coins.spent}`] : []),
     ...(coins.adjusted ? [`*Adjusted by admins*\n${coins.adjusted > 0 ? "+" : ""}${coins.adjusted}`] : []),

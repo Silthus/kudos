@@ -3,6 +3,7 @@ import { internalMutation, type MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id, TableNames } from "./_generated/dataModel";
 import { revokeKudosRow } from "./engine";
+import { rememberPlant } from "./gardens";
 import { Rollups } from "./lib/rollups";
 import { isOpen } from "./lib/store";
 
@@ -41,6 +42,19 @@ const remove = async (ctx: MutationCtx, _workspace: Workspace, row: Doc<TableNam
  * their board; revokes come before the rows they would otherwise recreate or touch.
  */
 const PHASES: Phase[] = [
+  // Plants grown for them become memories (§G15) before the revokes below take their waterings.
+  {
+    name: "plantsFor",
+    batch: 50,
+    rows: (ctx, m, n) => ctx.db.query("plants").withIndex("by_for_memory", (q) => q.eq("forId", m._id).eq("memoryAt", undefined)).take(n),
+    clear: (ctx, workspace, row) => rememberPlant(ctx, workspace, row as Doc<"plants">, "left"),
+  },
+  {
+    name: "plantsOwned",
+    batch: 200,
+    rows: (ctx, m, n) => ctx.db.query("plants").withIndex("by_owner_memory", (q) => q.eq("ownerId", m._id)).take(n),
+    clear: remove,
+  },
   {
     name: "questCompletions",
     batch: 500,

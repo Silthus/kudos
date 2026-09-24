@@ -40,10 +40,20 @@ export const categoryValidator = v.union(
 
 /**
  * What a notification is about: a rarity-rolled message category, or a DM of game gains that isn't
- * rolled (`gains`). Only rolled categories become discoveries. `level_up` is legacy: the level-up
+ * rolled (`gains`, `garden`). Only rolled categories become discoveries. `level_up` is legacy: the level-up
  * DMs written before #99, which now ride in `gains`; never written again.
  */
-export const notificationCategoryValidator = v.union(categoryValidator, v.literal("gains"), v.literal("level_up"));
+export const notificationCategoryValidator = v.union(categoryValidator, v.literal("gains"), v.literal("level_up"), v.literal("garden"));
+
+/**
+ * A `garden` DM (gardens.ts): a plant grown for the member. Unlike gains it reaches every teammate
+ * who sees the game, players or not, as receiving is open to everyone. Stage DMs are `plant_stage` gains.
+ */
+export const gardenNoticeValidator = v.object({
+  kind: v.literal("planted"),
+  species: v.string(), // lib/garden.ts SpeciesId
+  owner: v.string(), // the grower's name
+});
 
 const personValidator = v.object({ slackUserId: v.string(), name: v.string() });
 
@@ -407,7 +417,31 @@ export default defineSchema({
     // The skill tree (lib/skills.ts): the rank taken of each skill id; undefined = none taken.
     skills: v.optional(v.record(v.string(), v.number())),
     skillResets: v.optional(v.number()), // resets so far: each one costs more (resetCost)
+    // Of `coins`, those from picking garden fruit (harvest events); undefined = 0. The rest came from kudos.
+    fruitCoins: v.optional(v.number()),
   }).index("by_member", ["memberId"]),
+
+  // A plant in a member's garden, grown for one teammate (gardens.ts, lib/garden.ts). Waterings are
+  // never stored: they follow from the owner's kudos to the teammate. A memory is a plant with
+  // `memoryAt`: uprooted, or grown for someone who left; it keeps the stage it had.
+  plants: defineTable({
+    workspaceId: v.id("workspaces"),
+    ownerId: v.id("members"),
+    forId: v.id("members"),
+    species: v.string(), // lib/garden.ts SpeciesId
+    plantedAt: v.number(),
+    plantedDay: v.string(), // the owner's workspace day: its week never waters
+    seedKudosId: v.optional(v.id("kudos")), // the qualifying kudos it was planted with (a revoke leaves the plant)
+    pickedThrough: v.string(), // fruit is picked through this day; it grows again from the next
+    announced: v.number(), // the highest stage index the owner was told about (never told twice)
+    checkOn: v.optional(v.string()), // the day a look for a stage reached by age alone is scheduled for
+    memoryAt: v.optional(v.number()),
+    memoryReason: v.optional(v.union(v.literal("uprooted"), v.literal("left"))),
+    memoryStage: v.optional(v.number()), // the stage index it had when it became a memory
+  })
+    .index("by_owner_memory", ["ownerId", "memoryAt"])
+    .index("by_owner_for", ["ownerId", "forId", "memoryAt"])
+    .index("by_for_memory", ["forId", "memoryAt"]),
 
   // Every change to a player's skill tree, in the transaction that made it (skills.ts): a skill
   // taken (one rank) or the whole tree reset for `coins`. The rebuild replays the Scout skills as
@@ -427,7 +461,8 @@ export default defineSchema({
   gameEvents: defineTable({
     workspaceId: v.id("workspaces"),
     memberId: v.id("members"),
-    kind: v.union(v.literal("give"), v.literal("receive")),
+    // harvest: garden fruit picked (gardens.ts pick); a member's action, kept as it is by a rebuild
+    kind: v.union(v.literal("give"), v.literal("receive"), v.literal("harvest")),
     batchId: v.string(),
     dayKey: v.string(), // the kudos' workspace day: daily caps and same-day decay
     at: v.number(),
@@ -448,6 +483,7 @@ export default defineSchema({
     ),
     kudosId: v.optional(v.id("kudos")), // receive: the row
     giverId: v.optional(v.id("members")), // receive: one giver counts once a day
+    fruit: v.optional(v.number()), // harvest: fruit picked
   })
     .index("by_member_day", ["memberId", "dayKey"])
     .index("by_batch", ["batchId"]),
@@ -479,6 +515,8 @@ export default defineSchema({
     levelUp: v.optional(v.object({ level: v.number(), title: v.string(), skillPoints: v.number() })),
     // What the member discovered or gained in the event this DM is about (the whole DM for `gains`).
     gains: v.optional(v.array(gainValidator)),
+    // garden: the plant grown for the member.
+    garden: v.optional(gardenNoticeValidator),
   }).index("by_member", ["memberId"]),
 
   // Rewards Store catalog. Archived, never deleted: redemptions link back to them.

@@ -106,7 +106,7 @@ describe("gains whose tickets emit them later", () => {
     const plant: Gain = { kind: "plant_stage", species: "Helpful oak", stage: "Sapling", teammate: ben };
     expect(gainBlocks([plant], link)).toEqual([
       section("🌿 *Your Helpful oak for <@UBEN> is now a Sapling*"),
-      context("<https://kudos.example/me?ws=T1|Your garden>"),
+      context("<https://kudos.example/garden?ws=T1|Your garden>"),
     ]);
     expect(gainText({ ...plant, stage: "Ancient" }, "web")).toBe("Your Helpful oak for Ben is now an Ancient plant.");
   });

@@ -4,7 +4,7 @@ import type { Doc, Id } from "../convex/_generated/dataModel";
 import { allowanceCheck, giveKudos, revokeKudosRow, type GiveInput } from "../convex/engine";
 import { CATALOG } from "../convex/lib/messages";
 import { MESSAGE_KEYS } from "../convex/lib/rebuild";
-import { seedTeam, setupConvex, signInAs, type Team } from "./helpers";
+import { DEMO_TIMEOUT, seedTeam, setupConvex, signInAs, type Team } from "./helpers";
 
 /**
  * `messageStats` (#86): how many members found each message, and anything at all. Property: after
@@ -114,7 +114,8 @@ const NOTES = [
 describe("messageStats equals a recount of the discoveries", () => {
   const SEEDS = Array.from({ length: 6 }, (_, i) => i + 1);
 
-  test.each(SEEDS)("after every transaction of a random history (seed %i)", { timeout: 120_000 }, async (seed) => {
+  // Seed 6 alone takes ~100 s on an idle machine; the parallel gate on a shared one needs the heavy-test budget.
+  test.each(SEEDS)("after every transaction of a random history (seed %i)", { timeout: DEMO_TIMEOUT }, async (seed) => {
     const random = mulberry32(seed);
     const pick = <T>(xs: T[]) => xs[Math.floor(random() * xs.length)];
     await t.run(async (ctx) => {

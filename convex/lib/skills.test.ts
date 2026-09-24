@@ -78,7 +78,8 @@ describe("taking a skill", () => {
   });
 
   test("a skill whose system hasn't shipped yet can't be taken", () => {
-    expect(canTake({}, 5, "more_plots")).toEqual({ ok: false, reason: "arrives" });
+    expect(canTake({}, 5, "good_neighbour")).toEqual({ ok: false, reason: "arrives" });
+    expect(canTake({}, 5, "more_plots")).toEqual({ ok: true }); // Gardens shipped (#95)
     expect(canTake({}, 2, "pathfinder")).toEqual({ ok: true });
   });
 });
@@ -97,7 +98,7 @@ describe("valid allocations", () => {
     expect(validAllocation({ pathfinder: 3 }, 9, LIVE)).toBe(false); // over the maximum
     expect(validAllocation({ pathfinder: 2, lookout: 1 }, 3, LIVE)).toBe(false); // 3 points spent, 2 earned
     expect(validAllocation({ nonsense: 1 } as Allocation, 9, LIVE)).toBe(false);
-    expect(validAllocation({ more_plots: 1 }, 9)).toBe(false); // hasn't shipped yet
+    expect(validAllocation({ good_neighbour: 1 }, 9)).toBe(false); // hasn't shipped yet
     expect(validAllocation({ pathfinder: 1 }, 9)).toBe(true);
   });
 
