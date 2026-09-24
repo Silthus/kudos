@@ -1,0 +1,22 @@
+     × fails closed: never from a private channel with a C id, nor when Slack can't say the channel is public (review #1) 33ms
+     × never names someone who hides the game, and nothing goes out once the game is off (review #2) 15ms
+     × with giver replies off, the how-to still reaches the giver, privately 13ms
+     × swapping the kudos emoji for the Super kudos emoji on a sent kudos gets the 'already sent' note (review #5) 17ms
+     × nothing for a receiver who hides the game, not even once they show it again (review #3) 16ms
+AssertionError: expected [ Array(1) ] to deeply equal []
+AssertionError: expected [ Array(1) ] to deeply equal []
+AssertionError: the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+TypeError: .toMatch() expects to receive a string, but got undefined
+AssertionError: expected { at: 1790157600000, …(4) } to be null
+ Test Files  1 failed (1)
+      Tests  5 failed | 15 passed (20)
+     × in Slack: bold title and the note quoted; on the web: plain, the note exactly as written (review #9) 5ms
+AssertionError: expected '🌟 *A Super kudos from Ana!* Each Her…' to be '🌟 A Super kudos from Ana! Each Heral…' // Object.is equality
+ Test Files  1 failed (1)
+      Tests  1 failed | 11 passed (12)
+   × an avatar without a frame keeps its own size, so unframed rows line up (review #10) 7ms
+   × the celebration takes focus and Escape closes it (review #11) 5ms
+AssertionError: expected [ '38px', '38px' ] to deeply equal [ '32px', '32px' ]
+AssertionError: expected null to be 'Close' // Object.is equality
+ Test Files  1 failed (1)
+      Tests  2 failed | 7 passed (9)
