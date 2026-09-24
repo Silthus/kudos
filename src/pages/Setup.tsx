@@ -83,7 +83,7 @@ export function Setup() {
 
         <Card>
           <CardHeader title="2 · Add the app credentials to Convex" subtitle="From Basic Information → App Credentials. Secrets never leave the Convex deployment." />
-          <div className="grid grid-cols-1 gap-6 px-5 pb-5 md:grid-cols-[1fr_1.4fr]">
+          <div className="grid grid-cols-1 gap-6 px-5 pb-5 md:grid-cols-[auto_minmax(0,1fr)]">
             <ul>
               <Status ok={status?.slackClientId} label="SLACK_CLIENT_ID" />
               <Status ok={status?.slackClientSecret} label="SLACK_CLIENT_SECRET" />

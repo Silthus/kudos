@@ -235,7 +235,7 @@ export function Landing() {
           </div>
           <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-5">
             {RARITY_ORDER.map((r, i) => (
-              <div key={r} className={`rounded-2xl bg-ink/50 p-3 ring-1 sm:p-4 ring-inset ${RARITY_META[r].ring} ${RARITY_META[r].glow}`}>
+              <div key={r} className={`rounded-2xl bg-ink/50 p-3 ring-1 ring-inset sm:p-4 ${RARITY_META[r].ring} ${RARITY_META[r].glow}`}>
                 <RarityBadge rarity={r} size="xs" />
                 <div className={`mt-4 font-display text-3xl font-semibold tabular ${r === "legendary" ? "legendary-text" : ""}`}>{[55, 25, 12, 6, 2][i]}%</div>
                 <div className="text-xs text-faint">{[25, 15, 10, 5, 5][i]} messages</div>

@@ -62,3 +62,25 @@ test("a scroller only holds its line back if no grid or flex item around it grow
   expect(widens(`<div class="flex flex-col"><div><pre id="x" class="overflow-x-auto">a long line</pre></div></div>`)).toEqual([]);
   expect(widens(`<div class="flex flex-col md:flex-row"><div><pre id="x" class="overflow-x-auto">a long line</pre></div></div>`)).toEqual(["x"]);
 });
+
+test("only a scroller that scrolls on a phone rescues a line; clipping just cuts it off", () => {
+  expect(widens(`<pre id="x" class="md:overflow-x-auto">a long line</pre>`)).toEqual(["x"]);
+  expect(widens(`<div class="relative overflow-hidden"><pre id="x">a long line</pre></div>`)).toEqual(["x"]);
+  expect(widens(`<pre id="x" class="whitespace-pre-wrap">wraps</pre>`)).toEqual([]);
+});
+
+test("items that size to their content grow to fit the line despite min-w-0", () => {
+  const pre = `<pre id="x" class="overflow-x-auto">a long line</pre>`;
+  expect(widens(`<div class="flex flex-col items-center">${pre}</div>`)).toEqual(["x"]);
+  expect(widens(`<div class="flex flex-col items-start"><div class="min-w-0">${pre}</div></div>`)).toEqual(["x"]);
+  expect(widens(`<div class="grid place-items-center"><div class="min-w-0">${pre}</div></div>`)).toEqual(["x"]);
+  expect(widens(`<div class="grid place-items-center"><div class="w-full">${pre}</div></div>`)).toEqual([]);
+  for (const wrapper of ["inline-block", "w-max", "w-fit"]) expect(widens(`<div class="${wrapper}">${pre}</div>`)).toEqual(["x"]);
+  expect(widens(`<table><tr><td>${pre}</td></tr></table>`)).toEqual(["x"]);
+  expect(widens(`<div class="hidden md:flex"><div>${pre}</div></div>`)).toEqual(["x"]);
+});
+
+test("equal grid columns never grow to fit their content", () => {
+  // Tailwind's grid-cols-N is repeat(N, minmax(0, 1fr)).
+  expect(widens(`<div class="grid grid-cols-1 sm:grid-cols-2"><div><pre id="x" class="overflow-x-auto">a long line</pre></div></div>`)).toEqual([]);
+});
