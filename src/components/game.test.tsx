@@ -54,7 +54,7 @@ test("a player sees their level, title and the next-level bar, and only the next
 const level3 = { level: 3, title: "Sprout", xp: 87, floor: 75, next: 175, toNext: 88, fraction: 12 / 100 };
 
 test("at level 3 the wallet appears with everything collected so far, and the next areas stay locked", () => {
-  mine = { enabled: true, hidden: false, player: level3, wallet: { balance: 28, fromKudos: 8, fromQuests: 0, fromLevels: 20, spent: 0, adjusted: 0 } };
+  mine = { enabled: true, hidden: false, player: level3, wallet: { balance: 28, fromKudos: 8, fromFruit: 0, fromQuests: 0, fromLevels: 20, spent: 0, adjusted: 0 } };
   const host = render(<GameCard glyph="🌮" />);
   const wallet = host.querySelector("[data-wallet]")!;
   expect(wallet.getAttribute("aria-label")).toBe("Hog coins: 28");
@@ -65,7 +65,7 @@ test("at level 3 the wallet appears with everything collected so far, and the ne
 });
 
 test("fruit picked in the garden is its own line in the wallet, and the garden is a click away (#95)", () => {
-  mine = { enabled: true, hidden: false, player: level3, wallet: { balance: 31, fromKudos: 8, fromFruit: 3, fromLevels: 20, spent: 0, adjusted: 0 } };
+  mine = { enabled: true, hidden: false, player: level3, wallet: { balance: 31, fromKudos: 8, fromFruit: 3, fromQuests: 0, fromLevels: 20, spent: 0, adjusted: 0 } };
   const host = render(<GameCard glyph="🌮" />);
   expect(host.querySelector("[data-wallet]")!.textContent).toContain("8 from thoughtful kudos · 3 from garden fruit · 20 from level-ups");
   expect(host.querySelector('a[href="/garden"]')?.textContent).toContain("Your garden");
@@ -79,7 +79,7 @@ test("below level 3 there is no wallet, only its locked tile", () => {
 });
 
 test("a balance a revoke took below zero says spending waits", () => {
-  mine = { enabled: true, hidden: false, player: level3, wallet: { balance: -2, fromKudos: 8, fromQuests: 0, fromLevels: 20, spent: 30, adjusted: 0 } };
+  mine = { enabled: true, hidden: false, player: level3, wallet: { balance: -2, fromKudos: 8, fromFruit: 0, fromQuests: 0, fromLevels: 20, spent: 30, adjusted: 0 } };
   const host = render(<GameCard glyph="🌮" />);
   expect(host.querySelector("[data-wallet]")!.textContent).toContain("Spending waits until it's above zero again");
 });

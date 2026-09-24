@@ -104,7 +104,7 @@ describe("the demo plays the game", () => {
     const wallet = (await demo.query(api.game.mine, {})).wallet!;
     expect(wallet.fromKudos).toBeGreaterThan(0);
     expect(wallet.spent).toBeGreaterThan(0);
-    expect(wallet.balance).toBe(wallet.fromKudos + wallet.fromQuests + wallet.fromLevels - wallet.spent + wallet.adjusted);
+    expect(wallet.balance).toBe(wallet.fromKudos + wallet.fromFruit + wallet.fromQuests + wallet.fromLevels - wallet.spent + wallet.adjusted);
     expect(wallet.balance).toBeGreaterThan(0);
     // The replay pays the quest history the seeding recorded (from level 5): 5 coins a weekly quest.
     const completions = await all(t, "questCompletions");

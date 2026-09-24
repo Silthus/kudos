@@ -363,7 +363,7 @@ export const adjustBalance = mutation({
 const LEDGER_ROWS = 20;
 
 /**
- * Where a member's Hog coins stand: from thoughtful kudos + from quests + from level-ups + adjustments − spent
+ * Where a member's Hog coins stand: from thoughtful kudos + garden fruit + quests + level-ups + adjustments − spent
  * (lib/coins.ts), with the latest adjustments and requests. null while the game is off: then
  * there is no currency.
  */
@@ -374,6 +374,7 @@ export const memberLedger = query({
     v.object({
       member: v.object({ ...personValidator.fields, deactivated: v.boolean(), isYou: v.boolean() }),
       fromKudos: v.number(),
+      fromFruit: v.number(),
       fromQuests: v.number(),
       fromLevels: v.number(),
       adjusted: v.number(),
@@ -412,6 +413,7 @@ export const memberLedger = query({
     return {
       member: { _id: member._id, name: member.name, avatarUrl: member.avatarUrl ?? null, deactivated: member.deactivated, isYou: member._id === me._id },
       fromKudos: coins.fromKudos,
+      fromFruit: coins.fromFruit,
       fromQuests: coins.fromQuests,
       fromLevels: coins.fromLevels,
       adjusted: coins.adjusted,
