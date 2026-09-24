@@ -1,0 +1,40 @@
+{
+  "text": "Ding! 2 :taco: just arrived from <@UANA> in <#C1>.\n*Level 2: Seedling*\nYour thoughtful kudos got you here. You earned a skill point for your skill tree.",
+  "blocks": [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Ding! 2 :taco: just arrived from <@UANA> in <#C1>."
+      }
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "⚪ Common  ·  ✨ New discovery! (1 collected)  ·  <https://kudos.example/discoveries?ws=T1|Message gallery>"
+        }
+      ]
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Level 2: Seedling*\nYour thoughtful kudos got you here. You earned a skill point for your skill tree."
+      }
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "Level 2  ·  <https://kudos.example/me?ws=T1|Your level>"
+        }
+      ]
+    }
+  ]
+}

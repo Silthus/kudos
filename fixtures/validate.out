@@ -1,0 +1,6 @@
+dm-giver-levelup-and-discovery: {"ok":true,"warning":"superfluous_charset","response_metadata":{"warnings":["superfluous_charset"]}}
+dm-receiver-kudos-with-levelup: {"ok":true,"warning":"superfluous_charset","response_metadata":{"warnings":["superfluous_charset"]}}
+dm-later-kinds: {"ok":true,"warning":"superfluous_charset","response_metadata":{"warnings":["superfluous_charset"]}}
+slash-kudos-level: {"ok":true,"warning":"superfluous_charset","response_metadata":{"warnings":["superfluous_charset"]}}
+app-home-view: {"ok":true,"warning":"superfluous_charset","response_metadata":{"warnings":["superfluous_charset"]}}
+18 blocks: header:Your kudos, section, actions, divider, header:Your game, section, context, actions, divider, header:This week's quests, section, context, actions, divider, header:This week's most generous, section, divider, context

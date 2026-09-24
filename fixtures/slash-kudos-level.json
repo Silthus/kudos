@@ -1,0 +1,53 @@
+{
+  "blocks": [
+    {
+      "text": {
+        "text": "Your game",
+        "type": "plain_text"
+      },
+      "type": "header"
+    },
+    {
+      "fields": [
+        {
+          "text": "*Level 4 · Sprout*\n190 XP",
+          "type": "mrkdwn"
+        },
+        {
+          "text": "*Next level*\n160 XP to go",
+          "type": "mrkdwn"
+        },
+        {
+          "text": "*Hog coins*\n44",
+          "type": "mrkdwn"
+        }
+      ],
+      "type": "section"
+    },
+    {
+      "elements": [
+        {
+          "text": "`▰▱▱▱▱▱▱▱▱▱` 9% of the way to level 5  ·  🔒 Level 5: Store, Quests",
+          "type": "mrkdwn"
+        }
+      ],
+      "type": "context"
+    },
+    {
+      "elements": [
+        {
+          "action_id": "open_level",
+          "text": {
+            "text": "Your level",
+            "type": "plain_text"
+          },
+          "type": "button",
+          "url": "https://kudos.example/me?ws=T1"
+        }
+      ],
+      "type": "actions"
+    }
+  ],
+  "response_type": "ephemeral",
+  "text": "Level 4 · Sprout: 160 XP to level 5."
+}

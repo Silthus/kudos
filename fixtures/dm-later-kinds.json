@@ -1,0 +1,85 @@
+{
+  "text": "🌱 *New skill: Lucky charm*\nHerald branch. Your next 3 thoughtful kudos roll the receiver's message at Uncommon or better.\n🎁 *Golden frame is yours*\nIt's on your avatar now.\n🎉 *Your kudos for <@UBEN> became a spree of 10*\n+20 XP · +5 Hog coins\n🎉 *A spree you joined reached 5*\n<@UCLEO>'s kudos for <@UBEN> · +10 XP · +1 Hog coin\n🌿 *Your Helpful oak for <@UBEN> is now a Sapling*",
+  "blocks": [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "🌱 *New skill: Lucky charm*\nHerald branch. Your next 3 thoughtful kudos roll the receiver's message at Uncommon or better."
+      }
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "<https://kudos.example/me?ws=T1|Your skill tree>"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "🎁 *Golden frame is yours*\nIt's on your avatar now."
+      }
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "<https://kudos.example/store?ws=T1|Store>"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "🎉 *Your kudos for <@UBEN> became a spree of 10*\n+20 XP · +5 Hog coins"
+      }
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "<https://kudos.example/me?ws=T1|Your level>"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "🎉 *A spree you joined reached 5*\n<@UCLEO>'s kudos for <@UBEN> · +10 XP · +1 Hog coin"
+      }
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "<https://kudos.example/me?ws=T1|Your level>"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "🌿 *Your Helpful oak for <@UBEN> is now a Sapling*"
+      }
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "<https://kudos.example/me?ws=T1|Your garden>"
+        }
+      ]
+    }
+  ]
+}

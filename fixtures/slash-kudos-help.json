@@ -1,0 +1,4 @@
+{
+  "response_type": "ephemeral",
+  "text": "*How Kudos works* :taco:\n• Mention teammates and add :taco: to your message: `@ana @ben :taco::taco: thanks for the release!`\n• Each :taco: gives one kudos to *every* person mentioned. You can give 5 per day.\n• React with :taco: on a message to give its author one kudos.\n• The bot answers with messages of different rarities. Collect them all!\n`/kudos me` what you can give today · `/kudos top` weekly leaderboard\n`/kudos quests` your weekly quests\n`/kudos level` your level · `/kudos coins` your Hog coins\n<https://kudos.example/me?ws=T1|Open the Kudos dashboard>"
+}

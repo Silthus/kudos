@@ -1,0 +1,176 @@
+{
+  "type": "home",
+  "blocks": [
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "Your kudos"
+      }
+    },
+    {
+      "type": "section",
+      "fields": [
+        {
+          "type": "mrkdwn",
+          "text": "*Left today*\n3 / 5 :taco:"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Given this week*\n2 :taco:  (#1)"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Given all-time*\n2 :taco:"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Received all-time*\n0 :taco:"
+        }
+      ]
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "style": "primary",
+          "text": {
+            "type": "plain_text",
+            "text": "Open dashboard"
+          },
+          "url": "https://kudos.example/me?ws=T1",
+          "action_id": "open_dashboard"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Message gallery"
+          },
+          "url": "https://kudos.example/discoveries?ws=T1",
+          "action_id": "open_gallery"
+        }
+      ]
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "Your game"
+      }
+    },
+    {
+      "type": "section",
+      "fields": [
+        {
+          "type": "mrkdwn",
+          "text": "*Level 4 · Sprout*\n190 XP"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Next level*\n160 XP to go"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Hog coins*\n44"
+        }
+      ]
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "`▰▱▱▱▱▱▱▱▱▱` 9% of the way to level 5  ·  🔒 Level 5: Store, Quests"
+        }
+      ]
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Your level"
+          },
+          "url": "https://kudos.example/me?ws=T1",
+          "action_id": "open_level"
+        }
+      ]
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "This week's quests"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "➖ *Spread the love* · not available\nRecognize 3 different teammates, each in their own message\n✅ *New connection* · 1/1 · ⚪ Common\nRecognize someone you've never recognized before\n▫️ *Say why* · 0/2\nWrite a detailed note (12+ words) in 2 kudos messages"
+      }
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "1 of 2 done · Resets Monday · only thoughtful kudos count"
+        }
+      ]
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Open quest log"
+          },
+          "url": "https://kudos.example/quests?ws=T1",
+          "action_id": "open_quest_log"
+        }
+      ]
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "This week's most generous"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "🥇 <@UANA> · 2 :taco:"
+      }
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "Give kudos: mention teammates and add :taco: to your message, e.g. `@ana :taco::taco: thanks for the review!` Every :taco: gives one kudos to each person you mention."
+        }
+      ]
+    }
+  ]
+}
