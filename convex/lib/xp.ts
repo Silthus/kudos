@@ -129,7 +129,8 @@ export type GiveRecipient = {
 
 /**
  * The giver's Scout skills (lib/skills.ts `scoutEffects`): bigger new-connection and rekindle
- * bonuses, and after `relinkAfterMs` without thanks a teammate is a new connection again.
+ * bonuses, and after `relinkAfterMs` without thanks a rekindle earns at least the new-connection
+ * bonus (it stays a rekindle, so nothing counts it as a new connection).
  * They only grow bonuses about breadth; the base, repeats and the daily cap never change.
  */
 export type ScoutEffects = { newConnection: number; rekindle: number; relinkAfterMs: number | null };
@@ -177,8 +178,10 @@ export function scoreGive(input: {
       items.push({ kind: "base", xp: base });
       if (base > 0) {
         const gap = r.lastGivenAt === null ? null : input.at - r.lastGivenAt;
-        if (gap === null || (scout.relinkAfterMs !== null && gap >= scout.relinkAfterMs)) items.push({ kind: "new_connection", xp: scout.newConnection });
-        else if (gap >= REKINDLE_GAP_MS) items.push({ kind: "rekindle", xp: scout.rekindle });
+        // Trailblazer: a long gap earns at least a new connection's bonus, but stays a rekindle.
+        const relink = gap !== null && scout.relinkAfterMs !== null && gap >= scout.relinkAfterMs;
+        if (gap === null) items.push({ kind: "new_connection", xp: scout.newConnection });
+        else if (gap >= REKINDLE_GAP_MS) items.push({ kind: "rekindle", xp: relink ? Math.max(scout.rekindle, scout.newConnection) : scout.rekindle });
         if (input.unsungOn && r.receiverLastReceivedAt !== undefined && (r.receiverLastReceivedAt === null || input.at - r.receiverLastReceivedAt >= UNSUNG_QUIET_MS)) {
           items.push({ kind: "unsung", xp: XP.unsung });
         }

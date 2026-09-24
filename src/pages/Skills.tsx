@@ -37,13 +37,16 @@ const points = (n: number) => `${n} skill ${n === 1 ? "point" : "points"}`;
  */
 export function Skills() {
   const tree = useQuery(api.skills.mine, {});
+  const game = useQuery(api.game.mine, {});
   const take = useMutation(api.skills.take);
   const reset = useMutation(api.skills.reset);
   const [branch, setBranch] = useState<BranchId>("scout");
   const [open, setOpen] = useState<SkillId | null>(null);
-  const [resetting, setResetting] = useState(false);
+  // The reset's price as shown when it was asked for: the server refuses it if it has moved since.
+  const [resetPrice, setResetPrice] = useState<{ cost: number; next: number } | null>(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  if (tree === undefined) return <PageSkeleton />;
+  if (tree === undefined || (tree === null && game === undefined)) return <PageSkeleton />;
 
   const header = (
     <PageHeader
@@ -53,12 +56,17 @@ export function Skills() {
     />
   );
   if (tree === null) {
+    const [title, body] = !game?.enabled
+      ? ["The game is off in this workspace", "An admin can switch the game on in the settings. Your kudos work as always."]
+      : game.hidden
+        ? ["The game is hidden", "You hid the game, so your tree is out of view. Show the game on My kudos to see it again; your XP kept counting."]
+        : ["Your skill tree starts with your first kudos", "Giving a thoughtful kudos makes you a player; every level after that adds a skill point."];
     return (
       <div>
         {header}
         <Card>
-          <Empty icon={<Network className="h-7 w-7 text-faint" />} title="Your skill tree starts with your first kudos">
-            While the game is on, giving a thoughtful kudos makes you a player; every level after that adds a skill point.{" "}
+          <Empty icon={<Network className="h-7 w-7 text-faint" />} title={title}>
+            {body}{" "}
             <Link to="/me" className="text-saffron underline-offset-4 hover:underline">
               Back to your kudos
             </Link>
@@ -70,13 +78,18 @@ export function Skills() {
 
   const alloc = tree.skills as Allocation;
   const { earned, spent, available } = pointsOf(alloc, tree.level);
+  /** One change at a time: a double tap can't spend a second point or pay twice. */
   const run = async (action: () => Promise<unknown>, done: () => void) => {
+    if (busy) return;
     setError(null);
+    setBusy(true);
     try {
       await action();
       done();
     } catch (e) {
       setError(e instanceof ConvexError ? String(e.data) : "That didn't go through. Try again.");
+    } finally {
+      setBusy(false);
     }
   };
   const openSkill = (id: SkillId) => {
@@ -97,7 +110,14 @@ export function Skills() {
             </div>
           </div>
         </div>
-        <Button size="sm" onClick={() => (setError(null), setResetting(true))} disabled={spent === 0}>
+        <Button
+          size="sm"
+          onClick={() => {
+            setError(null);
+            setResetPrice({ cost: tree.resetCost, next: resetCost(tree.resets + 1) });
+          }}
+          disabled={spent === 0}
+        >
           <RotateCcw className="h-3.5 w-3.5" aria-hidden /> Reset tree
         </Button>
         <span className="sr-only">{`${points(available)} to spend`}</span>
@@ -132,17 +152,19 @@ export function Skills() {
           alloc={alloc}
           level={tree.level}
           error={error}
+          busy={busy}
           onClose={() => setOpen(null)}
-          onTake={() => run(() => take({ skill: open }), () => undefined)}
+          onTake={() => run(() => take({ skill: open }), () => setOpen(null))}
         />
       )}
       <ResetDialog
-        open={resetting}
-        tree={tree}
+        price={resetPrice}
+        balance={tree.balance}
         spent={spent}
         error={error}
-        onClose={() => setResetting(false)}
-        onConfirm={() => run(() => reset({ cost: tree.resetCost }), () => setResetting(false))}
+        busy={busy}
+        onClose={() => setResetPrice(null)}
+        onConfirm={(cost) => run(() => reset({ cost }), () => setResetPrice(null))}
       />
     </div>
   );
@@ -201,6 +223,7 @@ function SkillNode({ skill, level, alloc, onOpen }: { skill: Skill; level: numbe
     reason === "tier" ? `opens at level ${TIER_LEVEL[skill.tier]}` : null,
     reason === "parent" && skill.parent ? `needs ${SKILLS[skill.parent].name}` : null,
     reason === "arrives" ? `arrives with ${skill.arrives?.with}` : null,
+    reason === "points" ? `needs ${points(skill.cost)}` : null,
   ]
     .filter(Boolean)
     .join(", ");
@@ -249,6 +272,7 @@ function SkillDialog({
   alloc,
   level,
   error,
+  busy,
   onClose,
   onTake,
 }: {
@@ -256,6 +280,7 @@ function SkillDialog({
   alloc: Allocation;
   level: number;
   error: string | null;
+  busy: boolean;
   onClose: () => void;
   onTake: () => void;
 }) {
@@ -275,7 +300,7 @@ function SkillDialog({
             {check.ok ? "Not now" : "Close"}
           </Button>
           {check.ok && (
-            <Button variant="primary" onClick={onTake}>
+            <Button variant="primary" onClick={onTake} disabled={busy}>
               Take it · {points(skill.cost)}
             </Button>
           )}
@@ -310,24 +335,27 @@ function SkillDialog({
 }
 
 function ResetDialog({
-  open,
-  tree,
+  price,
+  balance,
   spent,
   error,
+  busy,
   onClose,
   onConfirm,
 }: {
-  open: boolean;
-  tree: Tree;
+  price: { cost: number; next: number } | null;
+  balance: Tree["balance"];
   spent: number;
   error: string | null;
+  busy: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (cost: number) => void;
 }) {
-  const affordable = tree.balance !== null && tree.balance >= tree.resetCost;
+  const cost = price?.cost ?? 0;
+  const affordable = balance !== null && balance >= cost;
   return (
     <Dialog
-      open={open}
+      open={price !== null}
       onClose={onClose}
       title="Reset your skill tree?"
       footer={
@@ -335,20 +363,20 @@ function ResetDialog({
           <Button variant="ghost" onClick={onClose}>
             Keep my tree
           </Button>
-          <Button variant="danger" onClick={onConfirm} disabled={!affordable}>
-            Reset for {tree.resetCost} Hog coins
+          <Button variant="danger" onClick={() => onConfirm(cost)} disabled={!affordable || busy}>
+            Reset for {cost} Hog coins
           </Button>
         </>
       }
     >
       <p className="text-sm text-cream">All {points(spent)} come back, to spend again however you like.</p>
       <p className="mt-2 text-sm text-muted">
-        This reset costs {tree.resetCost} Hog coins; the next one will cost {resetCost(tree.resets + 1)}.
+        This reset costs {cost} Hog coins; the next one will cost {price?.next}.
       </p>
       <p className="mt-2 text-sm text-muted">
-        {tree.balance === null
+        {balance === null
           ? "Resets cost Hog coins; your wallet opens at level 3."
-          : `You have ${tree.balance} Hog ${tree.balance === 1 ? "coin" : "coins"}.${affordable ? "" : " Thoughtful kudos and level-ups earn more."}`}
+          : `You have ${balance} Hog ${balance === 1 ? "coin" : "coins"}.${affordable ? "" : " Thoughtful kudos and level-ups earn more."}`}
       </p>
       {error && (
         <p role="alert" className="mt-3 text-sm text-down">

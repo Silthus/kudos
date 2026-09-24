@@ -97,6 +97,8 @@ describe("valid allocations", () => {
     expect(validAllocation({ pathfinder: 3 }, 9, LIVE)).toBe(false); // over the maximum
     expect(validAllocation({ pathfinder: 2, lookout: 1 }, 3, LIVE)).toBe(false); // 3 points spent, 2 earned
     expect(validAllocation({ nonsense: 1 } as Allocation, 9, LIVE)).toBe(false);
+    expect(validAllocation({ more_plots: 1 }, 9)).toBe(false); // hasn't shipped yet
+    expect(validAllocation({ pathfinder: 1 }, 9)).toBe(true);
   });
 
   test("property: taking and resetting never spends more points than earned, and a reset refunds them all", () => {
@@ -150,11 +152,34 @@ describe("Scout effects", () => {
     expect(score(at - 31 * DAY, { lookout: 1, rekindler: 1 })).toContainEqual({ kind: "rekindle", xp: 10 });
   });
 
-  test("Trailblazer: after 90 days without thanks it's a new connection again", () => {
-    const alloc = { lookout: 1, rekindler: 2, trailblazer: 1, pathfinder: 1 };
-    expect(score(at - 91 * DAY, alloc)).toContainEqual({ kind: "new_connection", xp: 15 });
-    expect(score(at - 91 * DAY, alloc).map((i) => i.kind)).not.toContain("rekindle");
-    expect(score(at - 60 * DAY, alloc)).toContainEqual({ kind: "rekindle", xp: 15 });
+  test("Trailblazer: after 90 days without thanks a rekindle earns at least what a new connection would", () => {
+    // Pathfinder 2 makes a new connection worth 20, more than Rekindler 1's 10.
+    expect(score(at - 91 * DAY, { lookout: 1, rekindler: 1, trailblazer: 1, pathfinder: 2 })).toContainEqual({ kind: "rekindle", xp: 20 });
+    // Rekindler 2's 15 is already more than a plain new connection's 10: it stays 15, never less.
+    expect(score(at - 91 * DAY, { lookout: 1, rekindler: 2, trailblazer: 1 })).toContainEqual({ kind: "rekindle", xp: 15 });
+    // Under 90 days it's the plain rekindle; it's never counted as a new connection.
+    expect(score(at - 60 * DAY, { lookout: 1, rekindler: 1, trailblazer: 1, pathfinder: 2 })).toContainEqual({ kind: "rekindle", xp: 10 });
+    expect(score(at - 91 * DAY, { lookout: 1, rekindler: 1, trailblazer: 1, pathfinder: 2 }).map((i) => i.kind)).not.toContain("new_connection");
+  });
+
+  test("property: taking a skill never lowers the XP of any kudos", () => {
+    const xpOf = (lastGivenAt: number | null, alloc: Allocation) => score(lastGivenAt, alloc).reduce((s, i) => s + i.xp, 0);
+    const gaps = [null, 1, 20 * DAY, 31 * DAY, 89 * DAY, 90 * DAY, 400 * DAY];
+    const scout = LIVE.filter((s) => s.branch === "scout");
+    for (let seed = 1; seed <= 300; seed++) {
+      const rand = mulberry32(seed);
+      let alloc: Allocation = {};
+      for (let step = 0; step < 12; step++) {
+        const id = scout[Math.floor(rand() * scout.length)].id;
+        if (!canTake(alloc, 25, id, LIVE).ok) continue;
+        const next = { ...alloc, [id]: (alloc[id] ?? 0) + 1 };
+        for (const gap of gaps) {
+          const last = gap === null ? null : at - gap;
+          expect(xpOf(last, next)).toBeGreaterThanOrEqual(xpOf(last, alloc));
+        }
+        alloc = next;
+      }
+    }
   });
 
   test("never touch the base, repeats or the daily cap: no XP from volume", () => {

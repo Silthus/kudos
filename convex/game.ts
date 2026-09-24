@@ -74,19 +74,26 @@ export function skillsOf(player: Pick<Doc<"players">, "skills"> | null): Allocat
   return (player?.skills ?? {}) as Allocation;
 }
 
+const MAX_SKILL_CHANGES = 2000;
+
 /**
- * The skills a member had at each moment, from their `skillChanges`: `at(t)` is the tree right
- * after every change up to and including `t`. Ask in time order (the rebuild's order).
+ * The skills a member had when a kudos was given, from their `skillChanges`: `at(row)` is the tree
+ * after every change before it. A change in the same millisecond counts only if it was written
+ * first (`_creationTime`), as the live path saw it. Ask in time order (the rebuild's order).
  */
 async function skillTimeline(ctx: QueryCtx, memberId: Id<"members">) {
   const changes = await ctx.db
     .query("skillChanges")
     .withIndex("by_member_at", (q) => q.eq("memberId", memberId))
-    .take(2000);
+    .take(MAX_SKILL_CHANGES);
+  if (changes.length === MAX_SKILL_CHANGES) {
+    console.warn(`game rebuild: member ${memberId} has more than ${MAX_SKILL_CHANGES} skill changes; later ones were not replayed.`);
+  }
   let next = 0;
   let current: Allocation = {};
-  return (t: number): Allocation => {
-    for (; next < changes.length && changes[next].at <= t; next++) {
+  return (row: Pick<Doc<"kudos">, "at" | "_creationTime">): Allocation => {
+    const before = (c: Doc<"skillChanges">) => c.at < row.at || (c.at === row.at && c._creationTime < row._creationTime);
+    for (; next < changes.length && before(changes[next]); next++) {
       const c = changes[next];
       if (c.kind === "reset") current = {};
       else if (c.skill && isSkillId(c.skill)) current = { ...current, [c.skill]: (current[c.skill] ?? 0) + 1 };
@@ -405,7 +412,7 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
           ...(unsungOn && hasNote(noteWords) && !reciprocal ? { receiverLastReceivedAt: await lastReceivedAt(ctx, row.receiverId, at) } : {}),
         });
       }
-      const scout = scoutEffects(skillsAt(at));
+      const scout = scoutEffects(skillsAt(rows[0]));
       const lines = ledgerLines(scoreGive({ at, noteWords, unsungOn, earnedToday: earnedOn.get(dayKey) ?? 0, recipients, scout }), rows);
       const xp = lines.reduce((s, l) => s + l.xp, 0);
       const coins = lines.reduce((s, l) => s + l.coins, 0);

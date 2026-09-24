@@ -1,11 +1,12 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
-import type { Doc } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { gameOn, gameShownTo, playerOf, skillsOf } from "./game";
 import { requireViewer } from "./lib/access";
 import { ALL_BUCKET } from "./lib/buckets";
 import { canSpend, coinBalance, WALLET_LEVEL } from "./lib/coins";
-import { canTake, isSkillId, pointsOf, resetCost, SCOUT, SKILLS, takeBlockText } from "./lib/skills";
+import { fnv1a } from "./lib/random";
+import { canTake, hasSkill, isSkillId, pointsOf, resetCost, SCOUT, SKILLS, takeBlockText } from "./lib/skills";
 import { addDays, parseToday } from "./lib/time";
 
 /**
@@ -18,21 +19,27 @@ import { addDays, parseToday } from "./lib/time";
  * and the rebuild use (the rebuild via `skillTimeline`).
  */
 
-async function requirePlayer(ctx: QueryCtx) {
-  const { workspace, member } = await requireViewer(ctx);
+/** The game is on and shown to the member (hidden means hands off, not just out of sight), and they play. */
+async function requirePlayer(ctx: QueryCtx, workspace: Doc<"workspaces">, member: Doc<"members">) {
   if (!gameOn(workspace)) throw new ConvexError("The game is off in this workspace.");
+  if (!gameShownTo(workspace, member)) throw new ConvexError("The game is hidden. Show it on My kudos to change your skill tree.");
   const player = await playerOf(ctx, member._id);
   if (!player) throw new ConvexError("Your skill tree starts with your first kudos.");
-  return { workspace, member, player };
+  return player;
 }
 
 /**
- * Resets a player's tree: every point comes back, and the reset's Hog coins are spent in the same
+ * Resets a member's tree: every point comes back, and the reset's Hog coins are spent in the same
  * transaction (`members.coinsSpent`). Each reset costs more (`resetCost`). `expectedCost` is the
  * price the member agreed to; if it changed in the meantime nothing happens. The Store's reset item
- * (#91) calls this too.
+ * (#91) calls this too: it reads the member and player fresh, so coins spent earlier in the same
+ * transaction stay spent.
  */
-export async function resetSkills(ctx: MutationCtx, member: Doc<"members">, player: Doc<"players">, expectedCost: number) {
+export async function resetSkills(ctx: MutationCtx, memberId: Id<"members">, expectedCost: number) {
+  const member = await ctx.db.get(memberId);
+  const workspace = member && (await ctx.db.get(member.workspaceId));
+  if (!member || !workspace) throw new ConvexError("Sign in with Slack to continue.");
+  const player = await requirePlayer(ctx, workspace, member);
   const cost = resetCost(player.skillResets ?? 0);
   if (pointsOf(skillsOf(player), player.level).spent === 0) throw new ConvexError("Your tree has no skills to reset.");
   if (player.level < WALLET_LEVEL) throw new ConvexError("A reset costs Hog coins; your wallet opens at level 3.");
@@ -83,7 +90,8 @@ export const take = mutation({
   args: { skill: v.string() },
   returns: v.null(),
   handler: async (ctx, { skill }) => {
-    const { member, player } = await requirePlayer(ctx);
+    const { workspace, member } = await requireViewer(ctx);
+    const player = await requirePlayer(ctx, workspace, member);
     if (!isSkillId(skill)) throw new ConvexError("There's no such skill.");
     const skills = skillsOf(player);
     const check = canTake(skills, player.level, skill);
@@ -99,8 +107,8 @@ export const reset = mutation({
   args: { cost: v.number() },
   returns: v.object({ cost: v.number() }),
   handler: async (ctx, { cost }) => {
-    const { member, player } = await requirePlayer(ctx);
-    return await resetSkills(ctx, member, player, cost);
+    const { member } = await requireViewer(ctx);
+    return await resetSkills(ctx, member._id, cost);
   },
 });
 
@@ -118,9 +126,11 @@ const NEVER_LIMIT = 3;
 
 /**
  * Lookout (Scout): teammates the viewer has thanked before but not in 30 days or more, the ones
- * they thanked most first; with Wide net also a few they have never thanked, the most recently
- * active givers first. Private: it only reads the viewer's own giving. Null without Lookout.
- * `today` is the viewer's workspace-local day (queries don't read the clock).
+ * they thanked most first; with Wide net also a few they have never thanked, a pick that only
+ * changes with the day (never ordered by anybody's activity, which would give it away). Private:
+ * it only reveals the viewer's own giving. Null without Lookout. `today` is the viewer's
+ * workspace-local day (queries don't read the clock). Reads are bounded by the workspace's size:
+ * at 500 members about 2k documents, like the leaderboard.
  */
 export const hints = query({
   args: { today: v.string() },
@@ -130,7 +140,7 @@ export const hints = query({
     const { workspace, member } = await requireViewer(ctx);
     if (!gameShownTo(workspace, member)) return null;
     const skills = skillsOf(await playerOf(ctx, member._id));
-    if (!skills.lookout) return null;
+    if (!hasSkill(skills, "lookout")) return null;
 
     const pairs = await ctx.db
       .query("pairStats")
@@ -153,15 +163,16 @@ export const hints = query({
     }
 
     let never = null;
-    if (skills.wide_net) {
+    if (hasSkill(skills, "wide_net")) {
       const thanked = new Set<string>(pairs.map((p) => p.receiverId));
       const members = await ctx.db
         .query("members")
         .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id))
         .take(1000);
+      const rank = (m: Doc<"members">) => fnv1a(`${today}:${member._id}:${m._id}`);
       never = members
         .filter((m) => m._id !== member._id && !m.isBot && !m.deactivated && !thanked.has(m._id))
-        .sort((a, b) => (b.lastGivenAt ?? 0) - (a.lastGivenAt ?? 0) || a.name.localeCompare(b.name))
+        .sort((a, b) => rank(a) - rank(b))
         .slice(0, NEVER_LIMIT)
         .map((m) => ({ memberId: m._id, name: m.name, avatarUrl: m.avatarUrl ?? null, lastDay: null }));
     }

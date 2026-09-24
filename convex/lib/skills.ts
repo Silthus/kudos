@@ -34,7 +34,7 @@ const DAY_MS = 24 * 3_600_000;
 export const SCOUT = {
   newConnectionPerRank: 5,
   rekindlePerRank: 5,
-  /** Trailblazer: a teammate you haven't thanked for this long counts as a new connection again. */
+  /** Trailblazer: a rekindle after this long earns at least the new-connection bonus. */
   relinkAfterMs: 90 * DAY_MS,
   /** Lookout: a teammate you've thanked counts as "a while ago" after the rekindle gap. */
   quietAfterMs: REKINDLE_GAP_MS,
@@ -85,7 +85,7 @@ const TREE = {
   rekindler: { branch: "scout", tier: 2, name: "Rekindler", effect: "A bigger rekindle bonus: +5 XP per rank on top of the 5.", perRank: "+5 XP for a rekindle.", ranks: 2, cost: 1, parent: "lookout" },
   wanderer: { branch: "scout", tier: 2, name: "Wanderer", effect: "+2 spree joins a month.", ranks: 1, cost: 1, parent: "pathfinder", arrives: SPREES },
   wide_net: { branch: "scout", tier: 3, name: "Wide net", effect: "Lookout also suggests teammates you've never thanked.", ranks: 1, cost: 1, parent: "lookout" },
-  trailblazer: { branch: "scout", tier: 4, name: "Trailblazer", effect: "A teammate you haven't thanked in 90 days counts as a new connection again.", ranks: 1, cost: 3, parent: "rekindler" },
+  trailblazer: { branch: "scout", tier: 4, name: "Trailblazer", effect: "Thanking a teammate after 90 days or more earns at least the new-connection bonus.", ranks: 1, cost: 3, parent: "rekindler" },
 
   // Neighbour: the team (#96).
   good_neighbour: { branch: "neighbour", tier: 1, name: "Good neighbour", effect: "A bigger share in the team garden.", perRank: "A bigger share.", ranks: 3, cost: 1, arrives: TEAM },
@@ -161,6 +161,7 @@ export function validAllocation(allocation: Allocation, level: number, tree: Ski
     const skill = tree.find((s) => s.id === id);
     if (!skill || !Number.isInteger(rank) || rank < 0 || rank > skill.ranks) return false;
     if (rank === 0) continue;
+    if (skill.arrives) return false;
     if (level < TIER_LEVEL[skill.tier]) return false;
     if (skill.parent && !hasSkill(allocation, skill.parent)) return false;
   }
