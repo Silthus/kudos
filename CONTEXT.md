@@ -67,3 +67,26 @@ Specified in [Slack: bot reactions confirm every kudos attempt](https://github.c
 | **Outcome** | How an attempt ended: `given` (every mentioned person got the full amount), `limit` (it would have exceeded the giver's remaining allowance: nothing was given) or `invalid` (nobody valid was mentioned: no mention, only group mentions like @here, only yourself, only bots/the app, only deactivated or unknown people, incl. other workspaces' guests). Giving stays all-or-nothing per message. | — |
 | **Bot reaction** | The reaction the Kudos bot puts on the attempt's message: the kudos emoji for `given` (✅ `white_check_mark` if Slack rejects a custom emoji), ⏳ `hourglass_flowing_sand` for `limit`, ❌ `x` for `invalid`. Recorded on the attempt only once Slack shows it. | a member's kudos-emoji reaction, which gives kudos |
 | **Guidance** | The ephemeral note to the giver on a failed attempt: how a valid kudos works, with the multiplication (`2 people × 2 🌮 = 4 🌮`) for `limit` and a one-line example for `invalid`. Not rarity-rolled; it rides along with the rolled "limit reached" / "self kudos" reply when there is one. | a rarity-rolled *bot message* |
+
+## Game
+
+Being settled in [Grill the gamification mechanics with the human](https://github.com/Silthus/kudos/issues/55). The game is an optional layer on top of kudos whose one purpose is to make appreciating others a daily habit. It only rewards *thoughtful* giving: the Quests' **Qualifying kudos** rule is the one definition of "counts".
+
+| Term | Meaning | Not to be confused with |
+|---|---|---|
+| **Game** | The optional layer of XP, levels, Hog coins, the skill tree, gardens and boosters. A workspace switches it on; each member joins by giving their first kudos. | the kudos engine, which works with or without it |
+| **Joining** | A member enters the game by giving their first kudos. Before that they can receive kudos, but nothing accrues. | "signing up" |
+| **Hiding the game** | A member setting that removes the game from their view while kudos keep working. XP keeps accruing, so coming back never costs anything. | leaving the workspace |
+| **XP** | Progress points that set your level. Earned by giving and by receiving thoughtful kudos, and by quests. Never spent, never lost except when the kudos behind it is revoked. | Hog coins, which are spent |
+| **Level** | A rank derived from total XP, with a title. Shown on your profile, never ranked against others. | a leaderboard *rank* |
+| **Hog coin** | The game's currency, shown as a gold coin with Max the hedgehog. Giving a kudos earns the giver coins; quests, daily quests and level-ups earn more. Spent on boosters, cosmetics and skill-tree resets. Never turns back into kudos or allowance. | kudos, which are recognition and a stat |
+| **Skill tree** | Four branches of permanent abilities a member picks with skill points. There are never enough points to take every skill, so each member's tree is a choice. | *perks* that come automatically with a level (not used) |
+| **Skill point** | Earned one per level-up and spent on a skill in the skill tree. A reset returns all points and costs Hog coins. | XP |
+| **Garden** | A member's own garden of plants, each grown for one teammate they recognise. Others see the plants but not whom they're for. | the team garden |
+| **Plant** | Grown in your garden for one teammate. It grows when you recognise that person again in a later week and can't be rushed. Only the teammate sees that it's for them. | a *reward* |
+| **Dormant** | A plant whose teammate you haven't recognised for a while: it stops growing and fruiting until you recognise them again. Plants never die. | deleted |
+| **Team garden** | The workspace's shared garden. It grows from how many different people give thoughtful kudos, never from who receives. Its milestones can trigger bonus days. | a member's garden |
+| **Daily quest** | One small thoughtful-giving goal per day, on top of the weekly quest board. Missing it costs nothing. | the weekly *quest board* |
+| **Booster** | A consumable, bought with Hog coins, that makes recognition better for a while or for someone else. Some are company-wide and announced with who activated them. | a skill, which is permanent |
+| **Bonus day** | A day on which thoughtful kudos earn extra, announced in advance. Triggered by a team-garden milestone, an admin, or a company-wide booster. | a *streak* (the game has none) |
+| **Super kudos** | A special kudos emoji a member can use a limited number of times a month once they've taken its skill. It gives the usual amount; the receiver gets a unique celebration. | giving more kudos |
