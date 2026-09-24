@@ -224,7 +224,8 @@ async function boardStatus(
  * Keeps the clean-sweep flag true on exactly one completion while the board is swept, and on none
  * otherwise: a completion that just cleared the board (`clearedBy`) takes it, else the flag stays
  * where it is, else it goes to the latest. A waiver can close or reopen the board without a new
- * completion. Returns the flagged completion, if any.
+ * completion; a reopened board that is cleared again is a new sweep (with its own Rare-or-better
+ * Quest message). Returns the flagged completion, if any.
  */
 async function syncSweep(
   ctx: MutationCtx,

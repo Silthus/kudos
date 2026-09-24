@@ -378,7 +378,7 @@ function QuestItem({ quest: q }: { quest: QuestRow }) {
           {done && (q.completedAt || q.messageRarity) && (
             <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-faint">
               {q.messageRarity && (
-                <Link to="/discoveries" title="See the Quest message you found in the gallery" className="rounded-full transition hover:opacity-80">
+                <Link to="/discoveries?category=quest_complete" title="See your Quest messages in the gallery" className="rounded-full transition hover:opacity-80">
                   <RarityBadge rarity={q.messageRarity} size="xs" />
                 </Link>
               )}

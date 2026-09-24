@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import { AnimatePresence, motion } from "motion/react";
 import { Lock } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import { api } from "../../convex/_generated/api";
 import { MessageText } from "@/components/MessageText";
 import { BigNumber, Card, Eyebrow, PageHeader, PageSkeleton, Progress, RarityBadge, Segmented } from "@/components/ui";
@@ -16,7 +17,8 @@ export function Discoveries() {
   const viewer = useViewer();
   const data = useQuery(api.discoveries.gallery);
   const [rarity, setRarity] = useState<Rarity | "all">("all");
-  const [category, setCategory] = useState<string>("all");
+  const [params] = useSearchParams();
+  const [category, setCategory] = useState<string>(() => params.get("category") ?? "all"); // deep link, e.g. from a quest
   const [filter, setFilter] = useState<Filter>("all");
 
   const items = useMemo(() => {

@@ -180,6 +180,7 @@ export async function sendBotMessage(
     slackText: renderTemplate(template.text, vars.slack),
     webText: renderTemplate(template.text, vars.web),
     delivery: workspace.isDemo || skipDelivery ? "skipped" : "pending",
+    collected: seen.length + (existing ? 0 : 1),
     ...(questProgress ? { questProgress } : {}),
   });
 }

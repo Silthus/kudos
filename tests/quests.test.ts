@@ -183,6 +183,40 @@ describe("a completed quest rewards a Quest message", () => {
     expect((await all(t, "discoveries")).some((d) => d.category === "quest_complete")).toBe(true);
   });
 
+  test("with giver DMs off, a clean sweep still rolls at least Rare", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { notifyGiver: false }));
+    await message("UANA", "<@UBEN> :taco: thanks for the quick review", "general");
+    await message("UANA", "<@UCLEO> :taco: loved your demo this morning", "random");
+    expect((await questMessages()).map((n) => [n.rarity, n.delivery, n.questProgress?.sweep])).toEqual([
+      ["common", "skipped", false],
+      ["rare", "skipped", true],
+    ]);
+  });
+
+  test("a quest hidden by privacy doesn't count towards the week's progress", async () => {
+    await t.run(async (ctx) => {
+      const board = (await ctx.db.query("questBoards").first())!;
+      await ctx.db.patch(board._id, { questKeys: ["unsung", "channels", "story"] }); // received counts are hidden
+    });
+    await message("UANA", "<@UBEN> :taco: thanks for untangling the deploy pipeline on friday, saved my whole afternoon", "general");
+    await message("UANA", "<@UCLEO> :taco: your onboarding checklist turned my first week into a genuinely calm one", "random");
+    expect((await questMessages()).map((n) => n.questProgress)).toEqual([
+      { completed: 1, available: 2, sweep: false },
+      { completed: 2, available: 2, sweep: true },
+    ]);
+  });
+
+  test("Quest message discoveries count once each in the workspace's collection stats", async () => {
+    await message("UANA", "<@UBEN> :taco: thanks for the quick review", "general");
+    await message("UANA", "<@UCLEO> :taco: loved your demo this morning", "random");
+    const byRarity = { common: 0, uncommon: 0, rare: 0, epic: 0, legendary: 0 };
+    for (const d of await all(t, "discoveries")) byRarity[d.rarity]++;
+    expect((await all(t, "discoveries")).filter((d) => d.category === "quest_complete")).toHaveLength(2);
+    const stats = await t.run((ctx) => ctx.db.query("workspaceStats").filter((q) => q.eq(q.field("bucket"), "all")).first());
+    expect(stats?.found).toEqual(byRarity);
+  });
+
   test("the board shows the rarity of each done quest's message", async () => {
     await message("UANA", "<@UBEN> :taco: thanks for the quick review");
     const [note] = await questMessages();
@@ -262,6 +296,29 @@ describe("the clean-sweep flag follows the board", () => {
     await message("UANA", "<@UBEN> :taco: and thanks again for the pairing", "general");
     expect(await mine(team.ana)).toMatchObject({ sweep: false });
     expect((await completions(team.ana)).filter((c) => c.sweep)).toHaveLength(0);
+  });
+
+  test("a board that reopens and is cleared again is a new clean sweep, with a new Rare-or-better message", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0); // every roll without a floor is Common
+    const dan = await addDan();
+    await t.run((ctx) => ctx.db.patch(dan, { deactivated: true })); // Spread the love is waived
+    await setBoard(["fresh", "spread", "channels"]);
+    await message("UANA", "<@UBEN> :taco: thanks for the quick review", "general");
+    await message("UANA", "<@UCLEO> :taco: loved your demo this morning", "random");
+
+    await t.run((ctx) => ctx.db.patch(dan, { deactivated: false })); // Dan is back: the board reopens
+    await message("UANA", "<@UDAN> :taco: welcome back, great to have you here", "general");
+    expect((await completions(team.ana)).map((c) => [c.questKey, c.sweep])).toEqual([
+      ["fresh", false],
+      ["channels", false],
+      ["spread", true],
+    ]);
+    const notes = (await all(t, "notifications")).filter((n) => n.category === "quest_complete");
+    expect(notes.map((n) => [n.rarity, n.questProgress])).toEqual([
+      ["common", { completed: 1, available: 2, sweep: false }],
+      ["rare", { completed: 2, available: 2, sweep: true }],
+      ["rare", { completed: 3, available: 3, sweep: true }],
+    ]);
   });
 });
 
@@ -524,5 +581,14 @@ describe("the Quest message DM in Slack", () => {
     // Sent after the giver's own "kudos delivered" DM.
     const dms = calls.filter((c) => c.method === "chat.postMessage" && c.params.channel === "UANA");
     expect(dms.at(-1)!.params.blocks).toContain("Clean sweep");
+  });
+
+  test("each DM counts the collection as it stood when that message was found", async () => {
+    await post("<@UBEN> :taco: thanks for the quick review", "CGENERAL");
+    const contexts = calls
+      .filter((c) => c.method === "chat.postMessage" && c.params.channel === "UANA")
+      .map((c) => JSON.parse(c.params.blocks).at(-1).elements[0].text as string);
+    // Ana's first ever bot message, then her first Quest message.
+    expect(contexts.map((c) => c.match(/\((\d+) collected\)/)?.[1])).toEqual(["1", "2"]);
   });
 });

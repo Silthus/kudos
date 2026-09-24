@@ -308,6 +308,8 @@ export default defineSchema({
       v.literal("failed"),
     ),
     error: v.optional(v.string()),
+    // Messages the member had collected right after this one (absent on older rows).
+    collected: v.optional(v.number()),
     // Quest messages only: the quest week as it stood right after this completion, for the DM.
     questProgress: v.optional(questProgressValidator),
   }).index("by_member", ["memberId"]),

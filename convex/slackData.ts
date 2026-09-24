@@ -296,10 +296,13 @@ export const notificationsForDelivery = internalQuery({
       if (!n) continue;
       const member = await ctx.db.get(n.memberId);
       if (!member) continue;
-      const discovered = await ctx.db
-        .query("discoveries")
-        .withIndex("by_member_template", (q) => q.eq("memberId", member._id))
-        .take(500);
+      // Older rows don't know their count: fall back to the collection as it is now.
+      const discoveredCount =
+        n.collected ??
+        (await ctx.db
+          .query("discoveries")
+          .withIndex("by_member_template", (q) => q.eq("memberId", member._id))
+          .take(500)).length;
       out.push({
         _id: n._id,
         slackUserId: member.slackUserId,
@@ -307,7 +310,7 @@ export const notificationsForDelivery = internalQuery({
         rarity: n.rarity,
         category: n.category,
         isNewDiscovery: n.isNewDiscovery,
-        discoveredCount: discovered.length,
+        discoveredCount,
         delivery: n.delivery,
         ...(n.questProgress ? { questProgress: n.questProgress } : {}),
       });
