@@ -52,9 +52,10 @@ Specified in [Spec Compare stats](https://github.com/Silthus/kudos/issues/6). Pu
 | **Longest streak** | The longest run of consecutive active days inside the period, clipped to it. | the all-time streak on the member row |
 | **Reach** | Distinct teammates you gave kudos to in the period. | *received* |
 | **Channels** | Distinct channel ids you gave in (ids, because names change). | channel names |
+| **Quests completed** | Your Quest completions whose `completedAt` falls on a day of the period (workspace timezone), so a quest week straddling a month, quarter or year edge splits by day. Only ever your own: Past you shows it; Teammate and Team lock it (`personal`, Quest spec D10). Absent while quests are off. | a teammate's or the team's quest count (never shown) |
 | **New discoveries** | Bot messages whose first sighting (`discoveries.firstSeenAt`) falls in the period. | the whole collection |
 | **Received-derived metric** | A metric that reveals kudos somebody received: *received* and *new discoveries*. Follows `receivedVisibility`; your own discoveries stay yours to see. | giving metrics, which are always visible |
-| **Locked row** | A scoreboard row whose values the viewer may not see. The server sends `value: null` and the reason (`hidden`: the workspace hides received counts; `private`: each member sees only their own); the row is shown with a lock, never dropped. | a metric that isn't offered in a mode, which is simply absent |
+| **Locked row** | A scoreboard row whose values the viewer may not see. The server sends `value: null` and the reason (`hidden`: the workspace hides received counts; `private`: each member sees only their own; `personal`: quests, which are never shown for anyone but yourself); the row is shown with a lock, never dropped. | a metric that isn't offered in a mode, which is simply absent |
 
 ## Kudos attempts
 

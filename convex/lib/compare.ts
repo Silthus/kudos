@@ -10,16 +10,29 @@ import { addDays, daysBetween, eachDay, type DayRange } from "./time";
 export const comparePeriodValidator = v.union(v.literal("week"), v.literal("month"), v.literal("quarter"), v.literal("year"));
 export type ComparePeriod = Infer<typeof comparePeriodValidator>;
 
-export const METRICS = ["given", "received", "activeDays", "maxedDays", "longestStreak", "reach", "channels", "newDiscoveries"] as const;
+export const METRICS = [
+  "given",
+  "received",
+  "activeDays",
+  "maxedDays",
+  "longestStreak",
+  "reach",
+  "channels",
+  "questsCompleted",
+  "newDiscoveries",
+] as const;
 export type Metric = (typeof METRICS)[number];
 export const metricValidator = v.union(...METRICS.map((m) => v.literal(m)));
 
 export type Family = "giving" | "receiving";
 export const familyValidator = v.union(v.literal("giving"), v.literal("receiving"));
 
-/** Why a cell has no value: the workspace hides received counts, or shows them to each member only. */
-export type Locked = "hidden" | "private" | null;
-export const lockedValidator = v.union(v.literal("hidden"), v.literal("private"), v.null());
+/**
+ * Why a cell has no value: the workspace hides received counts, or shows them to each member only;
+ * or the metric is personal by design (quests are only ever the member's own, Quest spec D10).
+ */
+export type Locked = "hidden" | "private" | "personal" | null;
+export const lockedValidator = v.union(v.literal("hidden"), v.literal("private"), v.literal("personal"), v.null());
 
 export const rangeValidator = v.object({ start: v.string(), end: v.string(), days: v.number() });
 /** One side of a scoreboard row: `value` is null when the row is locked or can't be counted. */
@@ -48,9 +61,11 @@ export function familyOf(metric: Metric): Family {
  * Whether a row is locked for the viewer. Received-derived rows follow `receivedVisibility`, and a row is
  * shown only when every subject in it is visible. Past you involves only the viewer, whose own discoveries
  * are always theirs to see (the Me and Discoveries pages show them); their received count is not under
- * `hidden`, matching `me.overview`.
+ * `hidden`, matching `me.overview`. Quests completed is only ever the viewer's own, in any workspace.
  */
 export function rowVisibility(visibility: Doc<"workspaces">["receivedVisibility"], mode: CompareMode, metric: Metric): Locked {
+  // No teammate's quest count and no team aggregate either (Quest spec D10).
+  if (metric === "questsCompleted") return mode === "past" ? null : "personal";
   if (familyOf(metric) === "giving") return null;
   if (visibility === "everyone") return null;
   if (mode === "past") return metric === "received" && visibility === "hidden" ? "hidden" : null;

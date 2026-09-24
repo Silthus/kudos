@@ -426,6 +426,11 @@ function paused(workspace: Doc<"workspaces">, from: number, to: number): boolean
   return (workspace.questsPauses ?? []).some((p) => p.from <= from && (p.until === undefined || to < p.until));
 }
 
+/** Whether quests were off from `from` through `to` (ms), with no board to play in between. */
+export function pausedThroughout(workspace: Doc<"workspaces">, from: number, to: number): boolean {
+  return paused(workspace, from, to);
+}
+
 /** Whether quests were off when a kudos was given at `at`. */
 function pausedAt(workspace: Doc<"workspaces">, at: number): boolean {
   return paused(workspace, at, at);

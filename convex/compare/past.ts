@@ -14,9 +14,10 @@ import {
   type Metric,
 } from "../lib/compare";
 import { resolvePeriod } from "../lib/periods";
-import { givenKudos, memberDiscoveries, newDiscoveriesIn } from "../lib/compareReads";
+import { completionsIn, firstQuestWeek, givenKudos, memberDiscoveries, newDiscoveriesIn, questCompletions } from "../lib/compareReads";
+import { pausedThroughout, questsOn } from "../quests";
 import { memberDays } from "../lib/stats";
-import { dayKeyFor, daysBetween, parseToday, type DayRange } from "../lib/time";
+import { addDays, dayKeyFor, daysBetween, parseToday, startOfDayUtc, type DayRange } from "../lib/time";
 
 const PREVIOUS_LABELS = { week: "Last week", month: "Last month", quarter: "Last quarter", year: "Last year" } as const;
 
@@ -66,7 +67,8 @@ export const get = query({
     const benchmark = current.end === p.currentFull.end ? previous : p.previousToDate!;
 
     // One read covers the previous bucket through today: ≤ 2 × 366 rows for "year".
-    const days = await memberDays(ctx, member._id, { start: previous.start, end: current.end, days: daysBetween(previous.start, current.end) + 1 });
+    const span = { start: previous.start, end: current.end, days: daysBetween(previous.start, current.end) + 1 };
+    const days = await memberDays(ctx, member._id, span);
 
     // Membership starts when the member row was created, or earlier if their history says so
     // (back-dated imports, the demo's seeded months). Before it there's nothing to compare, not zero.
@@ -90,6 +92,13 @@ export const get = query({
 
     const discoveries = await memberDiscoveries(ctx, member._id);
 
+    // Quests: the viewer's own completions (≤ 3 a week), and when the workspace's quests began. While
+    // quests are off the metric isn't there at all.
+    const quests = questsOn(workspace)
+      ? { completions: await questCompletions(ctx, member._id, span), since: await firstQuestWeek(ctx, workspace._id) }
+      : null;
+    const metrics = METRICS.filter((m) => m !== "questsCompleted" || quests);
+
     const values = (m: typeof cur, k: typeof curKudos, r: DayRange): Values => ({
       given: m.given,
       received: m.received,
@@ -98,20 +107,30 @@ export const get = query({
       longestStreak: m.longestStreak,
       reach: k.reach,
       channels: k.channels,
+      questsCompleted: quests ? completionsIn(quests.completions, r, tz) : 0,
       newDiscoveries: newDiscoveriesIn(discoveries, r, tz),
     });
     const you = values(cur, curKudos, current);
     const them = values(prev, prevKudos, benchmark);
+
+    // A benchmark with no quests to play has nothing to compare, not a zero: it ended before the first
+    // quest week, or quests were switched off all through it. Completions stored count as they are.
+    const noQuests =
+      !quests?.since ||
+      benchmark.end < quests.since ||
+      (them.questsCompleted === 0 &&
+        pausedThroughout(workspace, startOfDayUtc(benchmark.start, tz), startOfDayUtc(addDays(benchmark.end, 1), tz) - 1));
 
     // A capped kudos read would compare different windows (the most recent days of each range), so
     // reach and channels show no number rather than a misleading one.
     const truncated = curKudos.truncated || prevKudos.truncated;
     const uncounted = (metric: Metric) => truncated && (metric === "reach" || metric === "channels");
 
-    const rows = METRICS.map((metric) => {
+    const rows = metrics.map((metric) => {
       const locked = rowVisibility(workspace.receivedVisibility, "past", metric);
       const youValue = locked || uncounted(metric) ? null : you[metric];
-      const benchmarkValue = locked || notMember || uncounted(metric) ? null : them[metric];
+      const noBenchmark = notMember || uncounted(metric) || (metric === "questsCompleted" && noQuests);
+      const benchmarkValue = locked || noBenchmark ? null : them[metric];
       return {
         metric,
         family: familyOf(metric),

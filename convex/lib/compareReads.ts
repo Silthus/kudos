@@ -1,6 +1,7 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { reachFromKudos } from "./compare";
+import { weekKeyOfDay } from "./quests";
 import { addDays, startOfDayUtc, type DayRange } from "./time";
 
 /**
@@ -42,4 +43,46 @@ export function newDiscoveriesIn(discoveries: Doc<"discoveries">[], range: DayRa
   const from = startOfDayUtc(range.start, timeZone);
   const to = startOfDayUtc(addDays(range.end, 1), timeZone);
   return discoveries.filter((d) => d.firstSeenAt >= from && d.firstSeenAt < to).length;
+}
+
+/** Quest completions read per member: at most 3 a week, so a year and its previous year are ~320. */
+const MAX_QUEST_COMPLETIONS = 1_000;
+
+/**
+ * `memberId`'s quest completions in every quest week that overlaps `range`, newest first. Only ever
+ * call this for the viewer: quest data is the member's own (Quest spec D10). A week key was taken in
+ * the timezone of its day, so after the workspace moves timezone a completion can sit one week
+ * outside the range's weeks: one more week each side covers it, and `completionsIn` counts by day.
+ */
+export async function questCompletions(ctx: QueryCtx, memberId: Id<"members">, range: DayRange) {
+  return await ctx.db
+    .query("questCompletions")
+    .withIndex("by_member_week", (q) =>
+      q
+        .eq("memberId", memberId)
+        .gte("weekKey", addDays(weekKeyOfDay(range.start), -7))
+        .lte("weekKey", addDays(weekKeyOfDay(range.end), 7)),
+    )
+    .order("desc")
+    .take(MAX_QUEST_COMPLETIONS);
+}
+
+/**
+ * How many of `completions` happened on a day of `range` in the workspace timezone. A quest week
+ * that straddles the edge of a month, quarter or year splits by the day each quest was completed,
+ * as every other Compare metric counts by day.
+ */
+export function completionsIn(completions: Doc<"questCompletions">[], range: DayRange, timeZone: string) {
+  const from = startOfDayUtc(range.start, timeZone);
+  const to = startOfDayUtc(addDays(range.end, 1), timeZone);
+  return completions.filter((c) => c.completedAt >= from && c.completedAt < to).length;
+}
+
+/** The week the workspace's quests began: its first stored board (null while it has none). */
+export async function firstQuestWeek(ctx: QueryCtx, workspaceId: Id<"workspaces">) {
+  const first = await ctx.db
+    .query("questBoards")
+    .withIndex("by_workspace_week", (q) => q.eq("workspaceId", workspaceId))
+    .first();
+  return first?.weekKey ?? null;
 }

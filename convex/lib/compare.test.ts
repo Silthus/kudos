@@ -142,4 +142,11 @@ describe("rowVisibility", () => {
     expect(rowVisibility(visibility, mode, "received")).toBe(received);
     expect(rowVisibility(visibility, mode, "newDiscoveries")).toBe(newDiscoveries);
   });
+
+  // Quest spec D10: quest data is visible only to the member, whatever the workspace shows of received counts.
+  test.each(["everyone", "self", "hidden"] as const)("quests completed under %s: yours only", (visibility) => {
+    expect(rowVisibility(visibility, "past", "questsCompleted")).toBeNull();
+    expect(rowVisibility(visibility, "teammate", "questsCompleted")).toBe("personal");
+    expect(rowVisibility(visibility, "team", "questsCompleted")).toBe("personal");
+  });
 });

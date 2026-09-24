@@ -18,6 +18,7 @@ import { requireViewer } from "../lib/access";
 import { resolvePeriod } from "../lib/periods";
 import { memberTotalsInRange, workspaceMembers, type Totals } from "../lib/stats";
 import { parseToday } from "../lib/time";
+import { questsOn } from "../quests";
 
 const ZERO: Totals = { given: 0, received: 0, activeDays: 0, maxedDays: 0 };
 
@@ -87,13 +88,28 @@ export const get = query({
       };
     });
 
+    // Quests are only ever the member's own, so the team gets no aggregate of them either (Quest spec
+    // D10): a locked row, and nothing read. While quests are off the metric isn't there at all.
+    const personal = (["questsCompleted"] as const).filter(() => questsOn(workspace)).map((metric) => {
+      const locked = rowVisibility(workspace.receivedVisibility, "team", metric);
+      return {
+        metric,
+        family: familyOf(metric),
+        you: { value: null, locked },
+        benchmark: { value: null, locked },
+        delta: null,
+        team: null,
+        percentile: null,
+      };
+    });
+
     return {
       mode: "team" as const,
       period,
       label: p.label,
       range: p.current,
       participants: teammates.filter((id) => takesPart(totals.get(id) ?? ZERO, "given")).length,
-      rows,
+      rows: [...rows, ...personal],
       truncated,
     };
   },
