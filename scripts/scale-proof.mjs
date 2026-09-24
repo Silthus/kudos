@@ -72,9 +72,12 @@ for (const today of todays) {
   for (const period of COMPARE_PERIODS) {
     await measure(`compare.past ${period}`, heaviest, "compare/past:get", { period, today });
     await measure(`compare.teammate ${period}`, heaviest, "compare/teammate:get", { period, today, memberId: teammate._id });
+    await measure(`compare.team ${period}`, heaviest, "compare/team:get", { period, today });
   }
   await measure("me.today", heaviest, "me:today", { today });
   await measure("quests.mine", heaviest, "quests:mine", { today });
+  await measure("quests.history 12 weeks", heaviest, "quests:history", { today });
+  await measure("quests.history 52 weeks", heaviest, "quests:history", { today, weeks: 52 });
 }
 await measure("compare.candidates.list", heaviest, "compare/candidates:list", {});
 await measure("store.balance", heaviest, "store:balance", {});

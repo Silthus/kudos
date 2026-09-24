@@ -1,7 +1,7 @@
 # Scale proof: the read models at 500 members
 
 - Ticket: [Read models: scale proof at 500 members / 50k kudos](https://github.com/Silthus/kudos/issues/30), ticket 7 of [Scale the dashboard read models](https://github.com/Silthus/kudos/issues/3)
-- Measured: 2026-09-24 on `main` at `6526612` (with #22) plus this ticket's tooling, on an isolated local backend (`CONVEX_AGENT_MODE=anonymous`, Convex local backend `precompiled-2026-09-21`)
+- Measured: 2026-09-24 on `main` at `05c8b24` (with #21, #22 and #12) plus this ticket's tooling, on an isolated local backend (`CONVEX_AGENT_MODE=anonymous`, Convex local backend `precompiled-2026-09-21`)
 - Release: the [production runbook](#production-runbook-for-9) at the end is written for [the release](https://github.com/Silthus/kudos/issues/9)
 
 ## Result
@@ -12,7 +12,7 @@ Three things are flagged. None of them is a dashboard read path on the rollups:
 
 1. **`discoveries.gallery` truncates at scale.** It reads the workspace's discoveries with `take(8000)`, and there are 13,332 of them. The read hits the cap on every run, so "found by N teammates" and `collectors` come out silently wrong. It is 25% of the doc limit (49% of the old 16k budget). This needs a fix ticket (see [Findings](#findings)).
 2. **`rollups:verify` on a month reads 13–19k docs (up to 59% of the limit).** Quarters and years can't be verified in one call at this scale. The runbook verifies one bucket per call and uses weeks and months only for large workspaces.
-3. **Before the backfill, the legacy scans fail at this scale.** The year and all-time analytics and the year leaderboard time out. Month and quarter reads use 43–54% of the limit. This only matters between the deploy and the end of the backfill, and production is far smaller. The runbook starts the backfill right after the deploy.
+3. **Before the backfill, the legacy scans fail at this scale.** The year and all-time analytics, the year leaderboard and the year team compare time out. Month and quarter reads use 43–54% of the limit. This only matters between the deploy and the end of the backfill, and production is far smaller. The runbook starts the backfill right after the deploy.
 
 ## The dataset
 
@@ -46,43 +46,61 @@ Docs / bytes read per run. The percentage is the worst of both anchors against *
 
 | Read path | Viewer | Today = 2026-09-24 (docs / bytes) | Today = 2025-12-31 (full year) | Worst % of 32k docs / 16 MiB | Before backfill (legacy scan, 2025-12-31) |
 |---|---|---|---|---|---|
-| `leaderboard.get week given` | median member | 993 / 0.49 MiB | 1,073 / 0.51 MiB | 3.4% / 3.2% | 3,551 / 1.23 MiB |
-| `leaderboard.get week received` | median member | 1,486 / 0.65 MiB | 1,632 / 0.69 MiB | 5.1% / 4.3% | 3,551 / 1.23 MiB |
-| `leaderboard.get month given` | median member | 1,262 / 0.58 MiB | 1,283 / 0.59 MiB | 4.0% / 3.7% | 16,825 / 5.24 MiB |
-| `leaderboard.get month received` | median member | 1,875 / 0.78 MiB | 1,910 / 0.79 MiB | 6.0% / 4.9% | 16,825 / 5.24 MiB |
-| `leaderboard.get quarter given` | median member | 1,455 / 0.66 MiB | 1,470 / 0.67 MiB | 4.6% / 4.2% | 17,270 / 5.39 MiB |
-| `leaderboard.get quarter received` | median member | 2,021 / 0.85 MiB | 2,028 / 0.85 MiB | 6.3% / 5.3% | 17,270 / 5.39 MiB |
-| `leaderboard.get year given` | median member | 1,742 / 0.82 MiB | 994 / 0.48 MiB | 5.4% / 5.1% | fails |
-| `leaderboard.get year received` | median member | **2,253 / 0.98 MiB** | 1,494 / 0.64 MiB | **7.0% / 6.1%** | fails |
-| `leaderboard.get all given` | median member | 504 / 0.32 MiB | 504 / 0.32 MiB | 1.6% / 2.0% | 5,503 / 2.01 MiB |
-| `leaderboard.get all received` | median member | 504 / 0.32 MiB | 504 / 0.32 MiB | 1.6% / 2.0% | 5,503 / 2.01 MiB |
-| `me.overview week` | busiest member | 96 / 0.04 MiB | 99 / 0.04 MiB | 0.3% / 0.3% | 497 / 0.16 MiB |
-| `me.overview month` | busiest member | 158 / 0.07 MiB | 178 / 0.08 MiB | 0.6% / 0.5% | 567 / 0.19 MiB |
-| `me.overview quarter` | busiest member | 340 / 0.14 MiB | 357 / 0.15 MiB | 1.1% / 0.9% | 737 / 0.27 MiB |
-| `me.overview year` | busiest member | 932 / 0.38 MiB | 845 / 0.37 MiB | 2.9% / 2.4% | 1,235 / 0.53 MiB |
-| `me.overview all` | busiest member | 1,247 / 0.57 MiB | 944 / 0.39 MiB | 3.9% / 3.5% | 1,236 / 0.53 MiB |
-| `me.overview` week … all | median member | 72 … 452 docs | 78 … 375 docs | ≤ 1.4% / 1.2% | 268 … 524 docs |
-| `me.standing week` | any | 214 / 0.07 MiB | 292 / 0.10 MiB | 0.9% / 0.6% | 695 / 0.21 MiB |
-| `me.standing month` | any | 569 / 0.18 MiB | 667 / 0.22 MiB | 2.1% / 1.4% | 5,695 / 1.72 MiB |
-| `me.standing quarter` | any | 644 / 0.21 MiB | 723 / 0.23 MiB | 2.3% / 1.5% | 5,695 / 1.72 MiB |
-| `me.standing year` | any | 695 / 0.22 MiB | 781 / 0.25 MiB | 2.4% / 1.6% | 5,695 / 1.72 MiB |
-| `me.standing all` | any | 714 / 0.39 MiB | 792 / 0.41 MiB | 2.5% / 2.6% | 1,195 / 0.46 MiB |
-| `analytics.overview week` | any | 1,224 / 0.56 MiB | 1,276 / 0.58 MiB | 4.0% / 3.6% | 4,092 / 1.54 MiB |
-| `analytics.overview month` | any | 1,454 / 0.65 MiB | 1,456 / 0.66 MiB | 4.5% / 4.1% | 14,825 / 5.46 MiB |
-| `analytics.overview quarter` | any | 1,631 / 0.75 MiB | 1,651 / 0.76 MiB | 5.2% / 4.8% | 15,270 / 5.61 MiB |
+| `leaderboard.get week given` | any | 993 / 0.49 MiB | 1,073 / 0.51 MiB | 3.4% / 3.2% | 3,552 / 1.30 MiB |
+| `leaderboard.get week received` | any | 1,486 / 0.65 MiB | 1,632 / 0.69 MiB | 5.1% / 4.3% | 3,552 / 1.30 MiB |
+| `leaderboard.get month given` | any | 1,262 / 0.58 MiB | 1,283 / 0.59 MiB | 4.0% / 3.7% | 16,826 / 5.31 MiB |
+| `leaderboard.get month received` | any | 1,875 / 0.78 MiB | 1,910 / 0.79 MiB | 6.0% / 4.9% | 16,826 / 5.31 MiB |
+| `leaderboard.get quarter given` | any | 1,455 / 0.66 MiB | 1,470 / 0.67 MiB | 4.6% / 4.2% | 17,271 / 5.47 MiB |
+| `leaderboard.get quarter received` | any | 2,021 / 0.85 MiB | 2,028 / 0.85 MiB | 6.3% / 5.3% | 17,271 / 5.47 MiB |
+| `leaderboard.get year given` | any | 1,742 / 0.82 MiB | 994 / 0.48 MiB | 5.4% / 5.1% | fails |
+| `leaderboard.get year received` | any | 2,253 / 0.98 MiB | 1,494 / 0.64 MiB | 7.0% / 6.1% | fails |
+| `leaderboard.get all given` | any | 504 / 0.32 MiB | 504 / 0.32 MiB | 1.6% / 2.0% | 5,504 / 2.08 MiB |
+| `leaderboard.get all received` | any | 504 / 0.32 MiB | 504 / 0.32 MiB | 1.6% / 2.0% | 5,504 / 2.08 MiB |
+| `me.overview week` | busiest member | 96 / 0.04 MiB | 99 / 0.04 MiB | 0.3% / 0.3% | 93 / 0.04 MiB |
+| `me.overview month` | busiest member | 158 / 0.07 MiB | 178 / 0.08 MiB | 0.6% / 0.5% | 163 / 0.07 MiB |
+| `me.overview quarter` | busiest member | 340 / 0.14 MiB | 357 / 0.15 MiB | 1.1% / 0.9% | 333 / 0.15 MiB |
+| `me.overview year` | busiest member | 932 / 0.38 MiB | 845 / 0.37 MiB | 2.9% / 2.4% | 831 / 0.41 MiB |
+| `me.overview all` | busiest member | 1,247 / 0.57 MiB | 944 / 0.39 MiB | 3.9% / 3.5% | 832 / 0.41 MiB |
+| `me.overview week` | median member | 72 / 0.03 MiB | 78 / 0.04 MiB | 0.2% / 0.2% | 75 / 0.03 MiB |
+| `me.overview month` | median member | 84 / 0.04 MiB | 94 / 0.04 MiB | 0.3% / 0.3% | 91 / 0.04 MiB |
+| `me.overview quarter` | median member | 158 / 0.06 MiB | 170 / 0.07 MiB | 0.5% / 0.4% | 160 / 0.07 MiB |
+| `me.overview year` | median member | 385 / 0.15 MiB | 343 / 0.14 MiB | 1.2% / 0.9% | 330 / 0.15 MiB |
+| `me.overview all` | median member | 452 / 0.19 MiB | 375 / 0.15 MiB | 1.4% / 1.2% | 331 / 0.15 MiB |
+| `me.standing week` | any | 715 / 0.39 MiB | 793 / 0.42 MiB | 2.5% / 2.6% | 1,196 / 0.53 MiB |
+| `me.standing month` | any | 1,070 / 0.51 MiB | 1,168 / 0.54 MiB | 3.6% / 3.4% | 6,196 / 2.04 MiB |
+| `me.standing quarter` | any | 1,145 / 0.53 MiB | 1,224 / 0.56 MiB | 3.8% / 3.5% | 6,196 / 2.04 MiB |
+| `me.standing year` | any | 1,196 / 0.54 MiB | 1,282 / 0.57 MiB | 4.0% / 3.6% | 6,196 / 2.04 MiB |
+| `me.standing all` | any | 1,215 / 0.71 MiB | 1,293 / 0.74 MiB | 4.0% / 4.6% | 1,696 / 0.85 MiB |
+| `analytics.overview week` | any | 1,224 / 0.56 MiB | 1,276 / 0.58 MiB | 4.0% / 3.6% | 4,093 / 1.61 MiB |
+| `analytics.overview month` | any | 1,454 / 0.65 MiB | 1,456 / 0.66 MiB | 4.5% / 4.1% | 14,826 / 5.53 MiB |
+| `analytics.overview quarter` | any | 1,631 / 0.75 MiB | 1,651 / 0.76 MiB | 5.2% / 4.8% | 15,271 / 5.69 MiB |
 | `analytics.overview year` | any | 2,048 / 1.01 MiB | 1,390 / 0.74 MiB | 6.4% / 6.3% | fails |
 | `analytics.overview all` | any | 576 / 0.39 MiB | 567 / 0.38 MiB | 1.8% / 2.5% | fails |
-| `compare.past week / month / quarter / year` | busiest member | 53 / 112 / 338 / 985 | 51 / 135 / 325 / 608 | ≤ 3.1% / 2.8% | same (reads own kudos) |
-| `compare.teammate week / month / quarter / year` | busiest vs runner-up | 90 / 147 / 351 / 988 | 90 / 178 / 381 / 1,241 | ≤ 3.9% / 3.6% | same |
-| `compare.candidates.list` | busiest member | 503 / 0.32 MiB | — | 1.6% / 2.0% | 503 / 0.25 MiB |
-| Slack App Home (`slackData.homeData`, incl. #22's quest section) | busiest / median | 95 / 45 docs | — | 0.3% / 0.2% | 799 / 788 docs |
-| `store.balance` (and `store.catalog`) | busiest member | 2 / 0.001 MiB | — | 0.0% | 2 |
-| `me.today` | busiest member | 37 / 0.01 MiB | 37 | 0.1% | 37 |
-| `quests.mine` | busiest member | 10 / 0.01 MiB | 18 | 0.1% | 18 |
-| `session.viewer` | busiest member | 2 | — | 0.0% | 2 |
-| **`discoveries.gallery`** | busiest member | **8,037 / 2.83 MiB (capped)** | — | **25.1% / 17.7%** | 8,037 |
+| `compare.past week` | busiest member | 53 / 0.02 MiB | 51 / 0.02 MiB | 0.2% / 0.1% | 51 / 0.02 MiB |
+| `compare.past month` | busiest member | 112 / 0.05 MiB | 135 / 0.06 MiB | 0.4% / 0.4% | 135 / 0.06 MiB |
+| `compare.past quarter` | busiest member | 338 / 0.15 MiB | 325 / 0.15 MiB | 1.1% / 1.0% | 325 / 0.15 MiB |
+| `compare.past year` | busiest member | 985 / 0.45 MiB | 608 / 0.28 MiB | 3.1% / 2.8% | 608 / 0.28 MiB |
+| `compare.teammate week` | busiest vs runner-up | 90 / 0.04 MiB | 90 / 0.04 MiB | 0.3% / 0.2% | 90 / 0.04 MiB |
+| `compare.teammate month` | busiest vs runner-up | 147 / 0.06 MiB | 178 / 0.08 MiB | 0.6% / 0.5% | 178 / 0.08 MiB |
+| `compare.teammate quarter` | busiest vs runner-up | 351 / 0.16 MiB | 381 / 0.17 MiB | 1.2% / 1.1% | 381 / 0.17 MiB |
+| `compare.teammate year` | busiest vs runner-up | 988 / 0.46 MiB | 1,241 / 0.57 MiB | 3.9% / 3.6% | 1,241 / 0.57 MiB |
+| `compare.team week` | busiest member | 908 / 0.45 MiB | 968 / 0.47 MiB | 3.0% / 3.0% | 1,196 / 0.53 MiB |
+| `compare.team month` | busiest member | 1,002 / 0.48 MiB | 1,003 / 0.48 MiB | 3.1% / 3.0% | 5,503 / 1.83 MiB |
+| `compare.team quarter` | busiest member | 1,003 / 0.48 MiB | 1,003 / 0.48 MiB | 3.1% / 3.0% | 5,503 / 1.83 MiB |
+| `compare.team year` | busiest member | 1,003 / 0.48 MiB | 1,003 / 0.48 MiB | 3.1% / 3.0% | fails |
+| `compare.candidates.list` | busiest member | 503 / 0.32 MiB | — | 1.6% / 2.0% | 503 / 0.32 MiB |
+| `slackData.homeData (App Home, incl. #22 quests)` | busiest member | 95 / 0.04 MiB | — | 0.3% / 0.2% | 800 / 0.25 MiB |
+| `slackData.homeData (App Home, incl. #22 quests)` | median member | 45 / 0.02 MiB | — | 0.1% / 0.1% | 789 / 0.24 MiB |
+| `store.balance` | busiest member | 2 / 0.00 MiB | — | 0.0% / 0.0% | 2 / 0.00 MiB |
+| `store.catalog` | busiest member | 2 / 0.00 MiB | — | 0.0% / 0.0% | 2 / 0.00 MiB |
+| `me.today` | busiest member | 37 / 0.01 MiB | 37 / 0.01 MiB | 0.1% / 0.1% | 37 / 0.01 MiB |
+| `quests.mine` | busiest member | 10 / 0.01 MiB | 18 / 0.01 MiB | 0.1% / 0.1% | 18 / 0.01 MiB |
+| `quests.history 12 weeks` | busiest member | 3 / 0.00 MiB | 3 / 0.00 MiB | 0.0% / 0.0% | 3 / 0.00 MiB |
+| `quests.history 52 weeks` | busiest member | 3 / 0.00 MiB | 3 / 0.00 MiB | 0.0% / 0.0% | 3 / 0.00 MiB |
+| `session.viewer` | busiest member | 2 / 0.00 MiB | — | 0.0% / 0.0% | 2 / 0.00 MiB |
+| `discoveries.gallery (capped)` | busiest member | 8,037 / 2.83 MiB | — | 25.1% / 17.7% | 8,037 / 2.83 MiB |
 
-Compare "team" ([#12](https://github.com/Silthus/kudos/issues/12)) was not on `main` yet when this was measured. Its read path should be run with `scripts/scale-proof.mjs` once it merges.
+`quests.mine` and `quests.history` read almost nothing here because no quest boards or completions were seeded. Their reads are bounded by the board (3 quests) and by `weeks` (≤ 52 boards plus their completions), so they stay far below 1k docs. `store.catalog` has no rewards or redemptions to read. The "Before backfill" column was measured on the same code by clearing the marker with `rollups:unmarkBackfilled`, which is the runbook's rollback, exercised here at scale.
 
 ### Tooling and backfill
 
@@ -100,13 +118,13 @@ Compare "team" ([#12](https://github.com/Silthus/kudos/issues/12)) was not on `m
 
 **Backfill run:** `backfillAll` at 07:51:06 UTC, marker `rollupsBackfilledAt` at 08:01:36 UTC: **10 min 30 s** for 2,221 chained `backfillStep`s. No errors and no retries. 1.13M docs were read and 309k written (218 MiB) across the run. The Σ execution time was 198 s; the rest was scheduler latency between the chained steps. The duration scales with members × years (1,500 member steps here) plus days / 7 plus the number of periods, not with kudos volume. A production workspace with ~20 people and a few months of history backfills in well under a minute.
 
-**Local-backend note:** `quests.mine` and App Home take ~0.87 s wall time with only 10–95 docs. The time goes to one `kudos.by_workspace_at … .first()`, which costs 0.7–0.96 s on this SQLite local backend for any workspace-prefixed `.first()` over a large table. User code is 8–19 ms. Convex's 1 s execution limit counts user code only, so this is not a limit risk. Check App Home latency in production after the release anyway (see the runbook).
+**Local-backend note:** `quests.mine` and App Home take ~0.87 s wall time with only 10–95 docs. The time goes to one `kudos.by_workspace_at … .first()`, which costs 0.7–0.96 s on this SQLite local backend (so does a workspace-prefixed `.first()` on `memberDays`), while range reads of thousands of rollup docs take ~100 ms. User code is 8–19 ms. Convex's 1 s execution limit counts user code only, so this is not a limit risk. Check App Home latency in production after the release anyway (see the runbook).
 
 ## Findings
 
 1. **Fix ticket needed: `discoveries.gallery` is capped and silently wrong at scale.** `convex/discoveries.ts` reads `discoveries.by_workspace_firstSeen` with `take(8000)` to count finders per template and distinct collectors. At 500 members a workspace holds ~13k discovery rows after 21 months (up to 72 × members eventually). The read always hits the cap: 8,037 docs, 25% of the limit and 49% of the old 16k budget. `foundBy` and `collectors` then undercount without any flag. Suggested fix: keep per-template finder counts in a small rollup (`templateStats {workspaceId, templateKey, finders}`, maintained where `discoveries` rows are first inserted, rebuilt by the backfill). Then the gallery reads ≤ 72 rows. Outside this ticket's write scope.
 2. **Tooling limit, handled in the runbook: `rollups:verify` must run one bucket per call.** At this scale, verify days, weeks and months, one call each. For large workspaces, cover quarters and years through their months. Production workspaces are small enough to verify `q:`/`y:` directly (as #43's hand-off asks).
-3. **Accepted: the legacy scans fail at scale before the backfill.** Production data is orders of magnitude smaller, and the backfill runs right after the deploy.
+3. **Accepted: the legacy scans fail at scale before the backfill** (and after an `unmarkBackfilled` rollback). Production data is orders of magnitude smaller, and the backfill runs right after the deploy.
 
 ## The seed helper
 
