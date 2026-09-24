@@ -478,6 +478,10 @@ async function memberDay(ctx: MutationCtx, memberId: Id<"members">, dayKey: stri
     .unique();
 }
 
+/**
+ * Sources only, like the seeded kudos: the workspace is unmarked while it seeds, and the rebuild
+ * that marks it recomputes the rollups, `found` and `messageStats` included.
+ */
 async function seedDiscoveries(
   ctx: MutationCtx,
   workspaceId: Id<"workspaces">,

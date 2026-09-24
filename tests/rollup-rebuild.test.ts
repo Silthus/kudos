@@ -293,6 +293,38 @@ describe("verifying rollups against the legacy computation from memberDays and k
     expect((await verify(["messages"])).mismatches).toEqual([]);
   });
 
+  test("counts message finders the way the rebuild does: catalog messages only, collectors among members", async () => {
+    await history();
+    await t.run(async (ctx) => {
+      const [some] = await ctx.db.query("discoveries").collect();
+      const { _id, _creationTime, ...found } = some;
+      // A discovery of a message that left the catalog, and one left behind by a member who is gone.
+      await ctx.db.insert("discoveries", { ...found, templateKey: "giver.common.99" });
+      const gone = await ctx.db.insert("members", {
+        workspaceId: team.workspaceId, slackUserId: "UGONE", name: "Gone", isAdmin: false, isBot: false, deactivated: false,
+        totalGiven: 0, totalReceived: 0, totalMaxedDays: 0,
+      });
+      await ctx.db.insert("discoveries", { ...found, memberId: gone, templateKey: "self.common.1" });
+      await ctx.db.delete(gone);
+    });
+    await rebuild();
+    expect((await verify(["messages", `messages:${ANY_MESSAGE}`])).mismatches).toEqual([]);
+  });
+
+  test("refuses to check a message that isn't in the catalog", async () => {
+    await expect(verify(["messages:giver.common.99"])).rejects.toThrow(/Unknown message/);
+    await expect(verify(["messages:"])).rejects.toThrow(/Unknown message/);
+  });
+
+  test("a rebuild whose message cursor ran past a shrunken catalog still finishes and marks", async () => {
+    await history();
+    await t.mutation(internal.rollups.backfillStep, {
+      workspaceId: team.workspaceId, from: "2026-09-01", to: "2026-09-30", phase: "messages", cursor: "500",
+    });
+    await t.finishAllScheduledFunctions(vi.runAllTimers, 100);
+    expect((await t.run((ctx) => ctx.db.get(team.workspaceId)))!.rollupsBackfilledAt).toBe(Date.now());
+  });
+
   test("samples the latest active day, its week and its month by default", async () => {
     await history();
     expect(await verify()).toEqual({ checked: ["d:2027-01-04", "w:2027-W01", "m:2027-01"], mismatches: [] });

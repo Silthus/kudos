@@ -174,8 +174,9 @@ export const backfillStep = internalMutation({
         return null;
       }
       case "messages": {
+        // A deploy that shrank the catalog mid-run leaves the index past its end: move on.
         const index = Number(cursor ?? "0");
-        await rebuildMessageFinders(ctx, workspace, MESSAGE_KEYS[index]);
+        if (index < MESSAGE_KEYS.length) await rebuildMessageFinders(ctx, workspace, MESSAGE_KEYS[index]);
         await (index + 1 < MESSAGE_KEYS.length ? next("messages", String(index + 1)) : next("all"));
         return null;
       }
@@ -254,29 +255,32 @@ function differences(bucket: string, table: string, expected: Values, actual: Va
 /** `verify`'s pseudo-bucket for `messageStats`. */
 const MESSAGES = "messages";
 
-/** `messageStats` against a recount of the discoveries: every message (`messages`) or one (`messages:<key>`). */
+/**
+ * `messageStats` against a recount, counted as the rebuild counts: a catalog message's finders from
+ * its discoveries, the collectors from a probe per member. `messages` checks every row (any other
+ * key should be absent), `messages:<key>` one.
+ */
 async function verifyMessages(ctx: QueryCtx, workspace: Doc<"workspaces">, bucket: string) {
   const only = bucket === MESSAGES ? null : bucket.slice(MESSAGES.length + 1);
+  if (only !== null && !MESSAGE_KEYS.includes(only)) throw new ConvexError(`Unknown message: ${bucket}`);
   const finders = new Map<string, Set<Id<"members">>>();
   const found = (key: string, memberId: Id<"members">) => finders.set(key, (finders.get(key) ?? new Set()).add(memberId));
   if (only === null) {
+    const known = new Set(MESSAGE_KEYS);
     const all = ctx.db.query("discoveries").withIndex("by_workspace_firstSeen", (q) => q.eq("workspaceId", workspace._id));
-    for await (const d of all) {
-      found(d.templateKey, d.memberId);
-      found(ANY_MESSAGE, d.memberId);
-    }
-  } else if (only === ANY_MESSAGE) {
-    // One probe per member instead of every discovery: bounded by the member list.
+    for await (const d of all) if (known.has(d.templateKey)) found(d.templateKey, d.memberId);
+  } else if (only !== ANY_MESSAGE) {
+    const one = ctx.db
+      .query("discoveries")
+      .withIndex("by_workspace_template", (q) => q.eq("workspaceId", workspace._id).eq("templateKey", only));
+    for await (const d of one) found(only, d.memberId);
+  }
+  if (only === null || only === ANY_MESSAGE) {
     const members = ctx.db.query("members").withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id));
     for await (const m of members) {
       const first = await ctx.db.query("discoveries").withIndex("by_member_template", (q) => q.eq("memberId", m._id)).first();
       if (first) found(ANY_MESSAGE, m._id);
     }
-  } else {
-    const one = ctx.db
-      .query("discoveries")
-      .withIndex("by_workspace_template", (q) => q.eq("workspaceId", workspace._id).eq("templateKey", only));
-    for await (const d of one) found(only, d.memberId);
   }
   const stored = await ctx.db
     .query("messageStats")

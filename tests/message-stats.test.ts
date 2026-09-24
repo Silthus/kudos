@@ -3,6 +3,7 @@ import { api, internal } from "../convex/_generated/api";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 import { allowanceCheck, giveKudos, revokeKudosRow, type GiveInput } from "../convex/engine";
 import { CATALOG } from "../convex/lib/messages";
+import { MESSAGE_KEYS } from "../convex/lib/rebuild";
 import { seedTeam, setupConvex, signInAs, type Team } from "./helpers";
 
 /**
@@ -174,6 +175,32 @@ describe("messageStats equals a recount of the discoveries", () => {
       }
       await expectExact(step, ana);
     }
+  });
+
+  test("first finds landing between the rebuild's message steps stay counted", async () => {
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { notifyGiver: true, notifyReceiver: true }));
+    await give(team.workspaceId, { giverSlackId: "UANA", recipientSlackIds: ["UBEN"] });
+    await t.mutation(internal.rollups.rebuildWorkspace, { workspaceId: team.workspaceId });
+    const pendingCursor = async () => {
+      const [next] = await t.run(async (ctx) =>
+        (await ctx.db.system.query("_scheduled_functions").collect()).filter((f) => f.state.kind === "pending"),
+      );
+      const args = next?.args[0] as { phase?: string; cursor?: string } | undefined;
+      return next ? `${args?.phase}:${args?.cursor}` : null;
+    };
+    const lands = new Set([`messages:0`, `messages:${MESSAGE_KEYS.length - 1}`]); // the first message, the collectors
+    let newcomers = 0;
+    for (let cursor = await pendingCursor(); cursor !== null; cursor = await pendingCursor()) {
+      if (lands.has(cursor)) {
+        // Someone's first ever find, and a find of a message somebody already has.
+        const r = await give(team.workspaceId, { giverSlackId: "UCLEO", recipientSlackIds: [`UNEW${newcomers++}`], messageTs: cursor });
+        expect(r.status).toBe("given");
+      }
+      vi.runOnlyPendingTimers();
+      await t.finishInProgressScheduledFunctions();
+    }
+    expect(newcomers).toBe(2);
+    await expectExact("after the rebuild", await signInAs(t, team.ana));
   });
 
   test("quest messages count, and a removed member leaves the collectors with their last find", async () => {

@@ -711,6 +711,7 @@ async function seedMemberWeek(ctx: MutationCtx, workspace: Doc<"workspaces">, me
       found.lastSeenAt = Math.max(found.lastSeenAt, c.completedAt);
       await ctx.db.patch(found._id, { timesSeen: found.timesSeen, firstSeenAt: found.firstSeenAt, lastSeenAt: found.lastSeenAt });
     } else {
+      // Sources only: the demo is unmarked while it seeds, and the rebuild after it counts this find.
       const discovery = {
         workspaceId: workspace._id,
         memberId: member._id,
