@@ -188,7 +188,9 @@ export default defineSchema({
     batchId: v.optional(v.string()), // the kudos batch, once given
     at: v.number(), // when the outcome was decided (an edit that fixes a failed attempt decides it again)
     editTs: v.optional(v.string()), // the last edit of the message handled, so a redelivered edit is a no-op
-  }).index("by_message", ["workspaceId", "channelId", "messageTs"]),
+  })
+    .index("by_message", ["workspaceId", "channelId", "messageTs"])
+    .index("by_giver", ["giverId"]), // member removal (removal.ts)
 
   // Per-member daily rollup: powers allowances, leaderboards, streaks and cadence charts.
   memberDays: defineTable({
