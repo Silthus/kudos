@@ -7,7 +7,7 @@ let calls: SlackCall[];
 let t: ReturnType<typeof setupConvex>;
 let team: Team;
 
-function stubSlackApi() {
+function stubSlackApi(responses: Record<string, unknown> = {}) {
   calls = [];
   vi.stubGlobal(
     "fetch",
@@ -15,6 +15,7 @@ function stubSlackApi() {
       const method = String(url).split("/api/")[1];
       const params = Object.fromEntries(new URLSearchParams(String(init?.body ?? "")));
       calls.push({ method, params });
+      if (method in responses) return Response.json(responses[method]);
       if (method === "conversations.info") return Response.json({ ok: true, channel: { name: "general" } });
       return Response.json({ ok: true });
     }),
@@ -55,9 +56,18 @@ describe("the giver's reply is ephemeral where they gave, with what it earned", 
     expect(dms().map((d) => d.channel)).toEqual(["UBEN"]);
   });
 
+  test("if Slack can't show it where they gave (e.g. the bot isn't in the channel), it comes as a DM instead", async () => {
+    stubSlackApi({ "chat.postEphemeral": { ok: false, error: "channel_not_found" } });
+    await post("<@UBEN> :taco: thanks for the thorough review");
+    const toAna = dms().find((d) => d.channel === "UANA");
+    expect(toAna?.text).toContain("+20 XP · new connection +10");
+    const [note] = await t.run((ctx) => ctx.db.query("notifications").collect());
+    expect(note).toMatchObject({ category: "giver_success", delivery: "sent" });
+  });
+
   test("a kudos without a reason is told how to earn more", async () => {
     await post("<@UBEN> :taco:");
-    expect(ephemerals()[0].text).toContain("+2 XP · add a reason (3+ words) to earn more");
+    expect(ephemerals()[0].text).toContain("+2 XP · a kudos with a reason (3+ words) earns more");
   });
 
   test("with the game off it is still the ephemeral reply, just without XP", async () => {

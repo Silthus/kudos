@@ -165,7 +165,7 @@ function SettingsForm({ initial, isDemo, storeEnabled }: { initial: Settings; is
           </div>
           <div className="mt-4 divide-y divide-line">
             <Toggle checked={s.reactionsEnabled} onChange={(v) => set("reactionsEnabled", v)} label="Reactions give kudos" description={`Reacting with :${s.emojiName}: gives the message author one kudos.`} />
-            <Toggle checked={s.notifyGiver} onChange={(v) => set("notifyGiver", v)} label="DM givers" description="Confirm each kudos with a rarity-rolled message." />
+            <Toggle checked={s.notifyGiver} onChange={(v) => set("notifyGiver", v)} label="Reply to givers" description="Confirm each kudos with a rarity-rolled reply, shown only to the giver where they gave it (with what it earned while the game is on)." />
             <Toggle checked={s.notifyReceiver} onChange={(v) => set("notifyReceiver", v)} label="DM receivers" description="Let people know when they've been recognized." />
           </div>
         </div>

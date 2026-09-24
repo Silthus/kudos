@@ -304,9 +304,13 @@ async function deliver(ctx: ActionCtx, token: string, teamId: string, ids: Id<"n
       { type: "context", elements: [{ type: "mrkdwn", text: context }] },
     ];
     const text = [n.slackText, earned, help].filter(Boolean).join("\n");
-    const res = ephemeral
+    let res = ephemeral
       ? await slackApi(token, "chat.postEphemeral", { channel, thread_ts, user: n.slackUserId, text, blocks })
       : await slackApi(token, "chat.postMessage", { channel: n.slackUserId, text, blocks });
+    // The giver's reply used to be a DM: if Slack can't show it where they gave, it still reaches them.
+    if (ephemeral && !res.ok && n.category === "giver_success") {
+      res = await slackApi(token, "chat.postMessage", { channel: n.slackUserId, text, blocks });
+    }
     await ctx.runMutation(internal.slackData.markDelivery, {
       id: n._id,
       delivery: res.ok ? "sent" : "failed",

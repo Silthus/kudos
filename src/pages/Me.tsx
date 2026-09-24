@@ -280,7 +280,11 @@ export function Me() {
                 <li key={m._id} className="rounded-xl border border-line bg-ink/40 p-3.5">
                   <p className="text-sm leading-relaxed">{m.text}</p>
                   <div className="mt-2 flex items-center gap-2">
-                    <RarityBadge rarity={m.rarity as Rarity} size="xs" />
+                    {m.category === "level_up" ? (
+                      <span className="text-xs font-medium text-saffron">Level up</span>
+                    ) : (
+                      <RarityBadge rarity={m.rarity as Rarity} size="xs" />
+                    )}
                     {m.isNewDiscovery && <span className="text-xs text-saffron">✨ New discovery</span>}
                     <span className="ml-auto text-xs text-faint">{relativeTime(m.at)}</span>
                   </div>

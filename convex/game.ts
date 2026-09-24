@@ -30,8 +30,11 @@ export function gameShownTo(workspace: Pick<Doc<"workspaces">, "gameEnabled">, m
   return gameOn(workspace) && !member.gameHidden;
 }
 
-/** Pauses no rebuild needs to know about any more are dropped (like quests' `switchQuests`). */
-const MAX_PAUSES = 50;
+/**
+ * Unlike quests, a game rebuild replays all history, so pauses are kept; only an admin switching the
+ * game off more than this many times would forget the oldest (and those kudos would earn in a rebuild).
+ */
+const MAX_PAUSES = 500;
 
 /**
  * The workspace patch for the admin switch. Switching off opens a pause and switching back on
@@ -183,11 +186,13 @@ export async function onGameGiven(
   const recipients = [];
   for (const row of rows) {
     const reciprocal = await thankedBack(ctx, giver._id, row.receiverId, at);
-    const last = await ctx.db
+    // The latest earlier kudos to them; an earlier batch in the same millisecond counts too.
+    const latest = await ctx.db
       .query("kudos")
-      .withIndex("by_giver_receiver_at", (q) => q.eq("giverId", giver._id).eq("receiverId", row.receiverId).lt("at", at))
+      .withIndex("by_giver_receiver_at", (q) => q.eq("giverId", giver._id).eq("receiverId", row.receiverId).lte("at", at))
       .order("desc")
-      .first();
+      .take(2);
+    const last = latest.find((k) => k.batchId !== batchId);
     const toThem = earlier.filter((l) => l.receiverId === row.receiverId);
     recipients.push({
       kudosId: row._id,
@@ -271,23 +276,43 @@ export async function onGameRevoked(ctx: MutationCtx, workspace: Doc<"workspaces
   }
 }
 
+/** A member's history the rebuild reads, per direction. Beyond this, the oldest rows are replayed only. */
+const MAX_HISTORY_ROWS = 8000;
+
 /** Every kudos row a member gave or received, oldest first (ties: insertion order). */
-async function historyOf(ctx: QueryCtx, memberId: Id<"members">) {
+async function historyOf(ctx: QueryCtx, member: Doc<"members">) {
   const byTime = (a: Doc<"kudos">, b: Doc<"kudos">) => a.at - b.at || a._creationTime - b._creationTime;
-  const given = await ctx.db.query("kudos").withIndex("by_giver_at", (q) => q.eq("giverId", memberId)).take(8000);
-  const received = await ctx.db.query("kudos").withIndex("by_receiver_at", (q) => q.eq("receiverId", memberId)).take(8000);
+  const given = await ctx.db.query("kudos").withIndex("by_giver_at", (q) => q.eq("giverId", member._id)).take(MAX_HISTORY_ROWS);
+  const received = await ctx.db.query("kudos").withIndex("by_receiver_at", (q) => q.eq("receiverId", member._id)).take(MAX_HISTORY_ROWS);
+  if (given.length === MAX_HISTORY_ROWS || received.length === MAX_HISTORY_ROWS) {
+    console.warn(`game rebuild: ${member.name} (${member._id}) has more than ${MAX_HISTORY_ROWS} kudos rows; only the oldest were replayed.`);
+  }
   return { given: given.sort(byTime), received: received.sort(byTime) };
+}
+
+/** `at`s of rows grouped by a key, oldest first (rows come sorted). */
+function timesBy(rows: Doc<"kudos">[], key: (k: Doc<"kudos">) => string) {
+  const out = new Map<string, number[]>();
+  for (const k of rows) out.set(key(k), [...(out.get(key(k)) ?? []), k.at]);
+  return out;
+}
+
+/** One of `times` falls in the 72 h before `at` (the thank-back window). */
+function within72h(times: number[] | undefined, at: number) {
+  return (times ?? []).some((t) => t > at - RECIPROCAL_WINDOW_MS && t < at);
 }
 
 /**
  * Plays one member's history through the XP rules and replaces their events and player row: what
  * the live path writes for a history without revokes. Kudos given while the game was paused earn
- * nothing and don't make anyone a player. A player stays a player and keeps the level reached.
+ * nothing and don't make anyone a player. A player stays a player and keeps the level reached; they
+ * play from their first unpaused kudos, even if a live give during the rebuild made them one later.
  */
 export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces">, member: Doc<"members">) {
   const existing = await playerOf(ctx, member._id);
-  const { given, received } = await historyOf(ctx, member._id);
-  const since = existing?.since ?? given.find((k) => !pausedAt(workspace, k.at))?.at;
+  const { given, received } = await historyOf(ctx, member);
+  const first = given.find((k) => !pausedAt(workspace, k.at))?.at;
+  const since = existing === null ? first : first === undefined ? existing.since : Math.min(existing.since, first);
 
   for await (const e of ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", member._id))) {
     await ctx.db.delete(e._id);
@@ -297,14 +322,14 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
   type Written = { at: number; xp: number };
   const written: Written[] = [];
   const unsungOn = workspace.receivedVisibility === "everyone";
-  const gaveBackWithin = (from: Id<"members">, to: Id<"members">, at: number, rows: Doc<"kudos">[]) =>
-    rows.some((k) => k.giverId === from && k.receiverId === to && k.at > at - RECIPROCAL_WINDOW_MS && k.at < at);
+  const receivedFrom = timesBy(received, (k) => k.giverId); // their kudos to the member
+  const givenTo = timesBy(given, (k) => k.receiverId); // the member's kudos to them
 
   // Giving: batch by batch, as the live path saw each one.
   const batches = new Map<string, Doc<"kudos">[]>();
   for (const k of given) batches.set(k.batchId, [...(batches.get(k.batchId) ?? []), k]);
   const lastTo = new Map<string, number>(); // latest kudos to each receiver so far, paused or not
-  const qualifyingLines: { receiverId: string; dayKey: string }[] = [];
+  const qualifyingDays = new Map<string, string[]>(); // per receiver: the day of each qualifying line
   const earnedOn = new Map<string, number>();
   for (const rows of batches.values()) {
     const { at, dayKey, batchId, noteWords } = rows[0];
@@ -312,22 +337,22 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
       const week = weekKeyOfDay(dayKey);
       const recipients = [];
       for (const row of rows) {
-        const reciprocal = gaveBackWithin(row.receiverId, member._id, at, received);
-        const toThem = qualifyingLines.filter((l) => l.receiverId === row.receiverId && l.dayKey >= week);
+        const reciprocal = within72h(receivedFrom.get(row.receiverId), at);
+        const toThem = (qualifyingDays.get(row.receiverId) ?? []).filter((d) => d >= week);
         recipients.push({
           kudosId: row._id,
           receiverId: row.receiverId,
           reciprocal,
           lastGivenAt: lastTo.get(row.receiverId) ?? null,
-          earlierToday: toThem.filter((l) => l.dayKey === dayKey).length,
-          earlierDaysThisWeek: new Set(toThem.filter((l) => l.dayKey < dayKey).map((l) => l.dayKey)).size,
+          earlierToday: toThem.filter((d) => d === dayKey).length,
+          earlierDaysThisWeek: new Set(toThem.filter((d) => d < dayKey)).size,
           ...(unsungOn && hasNote(noteWords) && !reciprocal ? { receiverLastReceivedAt: await lastReceivedAt(ctx, row.receiverId, at) } : {}),
         });
       }
       const lines = scoreGive({ at, noteWords, unsungOn, earnedToday: earnedOn.get(dayKey) ?? 0, recipients });
       const xp = lines.reduce((s, l) => s + l.xp, 0);
       earnedOn.set(dayKey, (earnedOn.get(dayKey) ?? 0) + xp);
-      for (const l of lines) if (l.qualifying) qualifyingLines.push({ receiverId: l.receiverId, dayKey });
+      for (const l of lines) if (l.qualifying) qualifyingDays.set(l.receiverId, [...(qualifyingDays.get(l.receiverId) ?? []), dayKey]);
       await ctx.db.insert("gameEvents", {
         workspaceId: workspace._id,
         memberId: member._id,
@@ -348,7 +373,7 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
   const counted = new Set<string>();
   for (const row of received) {
     if (pausedAt(workspace, row.at)) continue;
-    const qualifying = hasNote(row.noteWords) && !gaveBackWithin(member._id, row.giverId, row.at, given);
+    const qualifying = hasNote(row.noteWords) && !within72h(givenTo.get(row.giverId), row.at);
     const xp = scoreReceive({
       qualifying,
       isPlayer: since <= row.at,
@@ -380,28 +405,51 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
   else await ctx.db.insert("players", { workspaceId: workspace._id, memberId: member._id, since, xp: total, level });
 }
 
-/** One member per step: a member's whole history is read and their events rewritten in one transaction. */
-const MEMBERS_PER_STEP = 1;
+const MEMBERS_PER_STEP = 25;
 
 /**
- * Rebuilds every member's XP in chained steps (the backfill; also the repair tool). Live gives keep
- * running: each member is rebuilt in one transaction from what is stored. A demo run belongs to the
- * reset that started it (`resetAt`) and stops when another reset begins. A workspace that never had
- * the game on has nothing to rebuild.
+ * A run belongs to the demo reset that started it (`resetAt`, none outside resets): it stops once
+ * another reset is under way. A finished reset (no reset running) doesn't stop it: rebuilding the
+ * fresh history is always right.
+ */
+function superseded(workspace: Doc<"workspaces">, resetAt: number | undefined) {
+  return workspace.resettingSince !== undefined && workspace.resettingSince !== resetAt;
+}
+
+/**
+ * Rebuilds every member's XP (the backfill; also the repair tool): each step pages through members
+ * and schedules one `rebuildMember` transaction per member, so a member whose history is too big
+ * can't stop the others. Live gives keep running; each member is rebuilt from what is stored. A
+ * workspace that never had the game on has nothing to rebuild.
  */
 export const rebuildWorkspace = internalMutation({
   args: { workspaceId: v.id("workspaces"), resetAt: v.optional(v.number()), cursor: v.optional(v.union(v.string(), v.null())) },
   returns: v.null(),
   handler: async (ctx, { workspaceId, resetAt, cursor }) => {
     const workspace = await ctx.db.get(workspaceId);
-    if (!workspace || workspace.resettingSince !== resetAt) return null;
+    if (!workspace || superseded(workspace, resetAt)) return null;
     if (!gameOn(workspace) && (workspace.gamePauses ?? []).length === 0) return null;
     const page = await ctx.db
       .query("members")
       .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspaceId))
       .paginate({ numItems: MEMBERS_PER_STEP, cursor: cursor ?? null });
-    for (const m of page.page) if (!m.isBot) await rebuildPlayer(ctx, workspace, m);
+    for (const m of page.page) {
+      if (!m.isBot) await ctx.scheduler.runAfter(0, internal.game.rebuildMember, { memberId: m._id, resetAt });
+    }
     if (!page.isDone) await ctx.scheduler.runAfter(0, internal.game.rebuildWorkspace, { workspaceId, resetAt, cursor: page.continueCursor });
+    return null;
+  },
+});
+
+/** One member's rebuild, in its own transaction (see `rebuildWorkspace`). */
+export const rebuildMember = internalMutation({
+  args: { memberId: v.id("members"), resetAt: v.optional(v.number()) },
+  returns: v.null(),
+  handler: async (ctx, { memberId, resetAt }) => {
+    const member = await ctx.db.get(memberId);
+    const workspace = member && (await ctx.db.get(member.workspaceId));
+    if (!member || !workspace || superseded(workspace, resetAt)) return null;
+    await rebuildPlayer(ctx, workspace, member);
     return null;
   },
 });

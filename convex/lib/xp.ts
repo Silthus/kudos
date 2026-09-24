@@ -199,11 +199,14 @@ export function earningsText(e: {
   noReason: boolean;
   thankBack: boolean;
 }): string {
+  // Nothing earned and not capped, from a thoughtful kudos: the third thanks to them today.
+  const repeat = e.xp === 0 && !e.capped && !e.noReason && !e.thankBack;
   return [
     `+${e.xp} XP`,
-    ...e.bonuses.filter((b) => BONUS_LABEL[b.kind]).map((b) => `${BONUS_LABEL[b.kind]} +${b.xp}`),
+    ...(e.xp > 0 ? e.bonuses.filter((b) => BONUS_LABEL[b.kind]).map((b) => `${BONUS_LABEL[b.kind]} +${b.xp}`) : []),
     e.capped ? "daily XP cap reached" : null,
-    e.noReason ? "add a reason (3+ words) to earn more" : e.thankBack ? "thanking back within 72 h earns less" : null,
+    repeat ? "you've thanked them twice today already" : null,
+    e.noReason ? "a kudos with a reason (3+ words) earns more" : e.thankBack ? "thanking back within 72 h earns less" : null,
   ]
     .filter(Boolean)
     .join(" · ");

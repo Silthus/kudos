@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
-import { all, NOW, seedTeam, setupConvex, signInAs, type Team } from "./helpers";
+import { all, NOW, seedTeam, setupConvex, signInAs, TODAY, type Team } from "./helpers";
 
 let t: ReturnType<typeof setupConvex>;
 let team: Team;
@@ -78,6 +78,45 @@ describe("players and XP", () => {
   });
 });
 
+describe("two messages in the same millisecond", () => {
+  test("the second isn't a new connection again, live or in a rebuild", async () => {
+    const same = (messageTs: string) =>
+      t.mutation(internal.kudos.ingestMessage, {
+        workspaceId: team.workspaceId,
+        botUserId: "UBOT",
+        giverSlackId: "UANA",
+        text: "<@UBEN> :taco: thanks for the thorough review",
+        channelId: "CGENERAL",
+        messageTs,
+      });
+    await same("1.0001");
+    await same("1.0002");
+    expect(await player(team.ana)).toMatchObject({ xp: 20 + 2 });
+    await t.mutation(internal.game.rebuildWorkspace, { workspaceId: team.workspaceId });
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    expect(await player(team.ana)).toMatchObject({ xp: 20 + 2 });
+  });
+});
+
+describe("a rebuild during a demo reset", () => {
+  test("stops once another reset is under way, but not when its own reset has finished", async () => {
+    await message("UANA", "<@UBEN> :taco: thanks for the thorough review");
+    const rebuild = async (resetAt?: number) => {
+      await t.run(async (ctx) => {
+        for (const p of await ctx.db.query("players").collect()) await ctx.db.patch(p._id, { xp: 0 });
+      });
+      await t.mutation(internal.game.rebuildWorkspace, { workspaceId: team.workspaceId, resetAt });
+      await t.finishAllScheduledFunctions(vi.runAllTimers);
+      return (await player(team.ana))!.xp;
+    };
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { resettingSince: 2 }));
+    expect(await rebuild(1)).toBe(0); // a run of an older reset
+    expect(await rebuild(2)).toBe(20); // the running reset's own run
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { resettingSince: undefined }));
+    expect(await rebuild(2)).toBe(20); // its reset finished (the rollups released the lock): keep going
+  });
+});
+
 describe("the admin switch", () => {
   const settings = {
     emojiName: "taco",
@@ -111,6 +150,19 @@ describe("the admin switch", () => {
     expect(await player(team.cleo)).toBeNull();
     const ana = await signInAs(t, team.ana);
     expect((await ana.query(api.admin.overview, {})).settings.gameEnabled).toBe(true);
+  });
+
+  test("a kudos given before the switch-on rebuild reaches you doesn't cut your history short", async () => {
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { gameEnabled: undefined }));
+    await message("UBEN", "<@UANA> :taco: thanks for the thorough review"); // Ben plays from here…
+    await message("UCLEO", "<@UBEN> :taco: you made the launch smooth"); // …so this earns him 5
+    const ana = await signInAs(t, team.ana);
+    await ana.mutation(api.admin.updateSettings, { ...settings, gameEnabled: true }); // the rebuild is only scheduled
+    await message("UBEN", "<@UCLEO> :taco: and thanks for the pairing session"); // live, before the rebuild runs
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ ok: true })));
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    vi.unstubAllGlobals();
+    expect(await player(team.ben)).toMatchObject({ xp: 20 + 5 + 2, since: NOW.getTime() }); // Cleo's thanks-back to him counts
   });
 
   test("kudos given while it was switched off never earn anything, not even in a rebuild", async () => {
@@ -147,6 +199,18 @@ describe("hiding the game", () => {
     expect(await ana.query(api.game.mine, {})).toMatchObject({ hidden: true, player: { xp: 20 } });
     await ana.mutation(api.game.setHidden, { hidden: false });
     expect(await ana.query(api.game.mine, {})).toMatchObject({ hidden: false });
+  });
+
+  test("takes level-up messages off the Me page, and they come back with the game", async () => {
+    await message("UANA", "<@UBEN> :taco: thanks for the thorough review");
+    await message("UANA", "<@UCLEO> :taco: great pairing session today"); // level 2
+    const ana = await signInAs(t, team.ana);
+    const categories = async () => (await ana.query(api.me.overview, { period: "month", today: TODAY })).botMessages.map((m) => m.category);
+    expect(await categories()).toContain("level_up");
+    await ana.mutation(api.game.setHidden, { hidden: true });
+    expect(await categories()).not.toContain("level_up");
+    await ana.mutation(api.game.setHidden, { hidden: false });
+    expect(await categories()).toContain("level_up");
   });
 });
 

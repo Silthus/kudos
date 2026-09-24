@@ -148,8 +148,17 @@ describe("the earnings reply", () => {
 
   test("says when the daily cap cut it, and how a kudos without a reason or a thank-back could earn more", () => {
     expect(earningsText({ ...none, xp: 4, capped: true })).toBe("+4 XP · daily XP cap reached");
-    expect(earningsText({ ...none, xp: 2, noReason: true })).toBe("+2 XP · add a reason (3+ words) to earn more");
+    expect(earningsText({ ...none, xp: 2, noReason: true })).toBe("+2 XP · a kudos with a reason (3+ words) earns more");
     expect(earningsText({ ...none, xp: 2, thankBack: true })).toBe("+2 XP · thanking back within 72 h earns less");
+  });
+
+  test("a kudos the cap cut to nothing lists no bonuses, and a third thanks in a day says why it earned nothing", () => {
+    expect(earningsText({ ...none, xp: 0, capped: true, bonuses: [{ kind: "new_connection", xp: 10 }] })).toBe("+0 XP · daily XP cap reached");
+    expect(earningsText({ ...none, xp: 0 })).toBe("+0 XP · you've thanked them twice today already");
+  });
+
+  test("the hint for a kudos without a reason works for reactions too", () => {
+    expect(earningsText({ ...none, xp: 2, noReason: true })).not.toMatch(/react/i);
   });
 });
 
