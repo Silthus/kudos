@@ -51,7 +51,7 @@ test("the playground shows the bot's reaction and guidance for every attempt, li
   const attempts = await t.run((ctx) => ctx.db.query("kudosAttempts").collect());
   expect(attempts.map((a) => a.outcome)).toEqual(["given", "given", "limit", "limit", "invalid", "invalid"]);
   expect(new Set(attempts.map((a) => a.messageTs)).size).toBe(6);
-}, DEMO_TIMEOUT); // entering the demo seeds a year
+});
 
 test("a failed playground message can be fixed by editing it, like in Slack", async () => {
   const demo = await enterDemo();
@@ -81,7 +81,7 @@ test("a failed playground message can be fixed by editing it, like in Slack", as
 
   // Only the demo's own messages: anything else is left alone.
   expect((await edit("1.1", ":taco:", "<@UDEMOPRIYA> :taco:")).attempt).toBeNull();
-}, DEMO_TIMEOUT);
+});
 
 test("resetting the demo wipes its kudos attempts", async () => {
   const demo = await enterDemo();
@@ -90,4 +90,4 @@ test("resetting the demo wipes its kudos attempts", async () => {
   await t.finishAllScheduledFunctions(vi.runAllTimers, 1000);
   expect(await t.run((ctx) => ctx.db.query("kudosAttempts").collect())).toEqual([]);
   expect((await all(t, "kudos")).every((k) => k.source === "seed")).toBe(true);
-}, DEMO_TIMEOUT); // a reset re-seeds the year
+});
