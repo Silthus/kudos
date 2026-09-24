@@ -1,0 +1,9 @@
+     × the giver's plant for the receiver shows them, to the giver and to the receiver 326ms
+AssertionError: expected [ [ …(2) ] ] to deeply equal [ [ …(2) ] ]
+    287|     if (!garden?.open) throw new Error("garden closed");
+ Test Files  1 failed (1)
+      Tests  1 failed | 20 skipped (21)
+   × golden leaves from Super kudos show on your plant for them, and on the plant grown for you (#98) 14ms
+AssertionError: expected 'Helpful oakfor BenSapling2 of 4 water…' to contain '2 golden leaves'
+ Test Files  1 failed (1)
+      Tests  1 failed | 7 passed (8)
