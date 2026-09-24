@@ -2,7 +2,7 @@ import clsx from "clsx";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { AnimatePresence, motion } from "motion/react";
-import { ChevronDown, CircleAlert, Clock, Gift, Info, Loader2, MessageCircleQuestion } from "lucide-react";
+import { ChevronDown, CircleAlert, Clock, Gift, Info, Loader2, MessageCircleQuestion, Undo2 } from "lucide-react";
 import { useId, useState } from "react";
 import { Link } from "react-router";
 import { api } from "../../convex/_generated/api";
@@ -474,6 +474,26 @@ function RedeemDialog({
   );
 }
 
+/** The demo user is shared by every visitor, so anyone can put back what visitors redeemed. */
+function HandBackRewards() {
+  const handBack = useMutation(api.demo.handBackRewards);
+  const [busy, setBusy] = useState(false);
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      disabled={busy}
+      title="The demo user is shared by all visitors. The seeded history stays."
+      onClick={() => {
+        setBusy(true);
+        void handBack({}).finally(() => setBusy(false));
+      }}
+    >
+      {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Undo2 className="h-3.5 w-3.5" />} Hand back my rewards
+    </Button>
+  );
+}
+
 function MyRequests() {
   const viewer = useViewer();
   const glyph = viewer.workspace.emojiGlyph;
@@ -496,7 +516,11 @@ function MyRequests() {
 
   return (
     <Card id="my-requests" className="mt-8 scroll-mt-24">
-      <CardHeader title="My requests" subtitle="The cost is held while an admin decides. Declined or cancelled requests are refunded in full." />
+      <CardHeader
+        title="My requests"
+        subtitle="The cost is held while an admin decides. Declined or cancelled requests are refunded in full."
+        action={viewer.workspace.isDemo && <HandBackRewards />}
+      />
       {status === "LoadingFirstPage" ? (
         <div className="px-5 pb-5">
           <Skeleton className="h-24" />

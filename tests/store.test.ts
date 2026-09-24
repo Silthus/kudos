@@ -272,17 +272,13 @@ describe("store access", () => {
     const userId = await t.mutation(internal.demo.ensureDemoUser, {});
     await t.finishAllScheduledFunctions(vi.runAllTimers, 1000); // seeding, then the rollup rebuild
     const demo = t.withIdentity({ subject: `${userId}|s` });
-    const rewardId = await t.run(async (ctx) => {
-      const ws = (await ctx.db.query("workspaces").collect()).find((w) => w.isDemo)!;
-      const alex = (await ctx.db.query("members").collect()).find((m) => m.workspaceId === ws._id && m.isAdmin)!;
-      return await ctx.db.insert("rewards", { workspaceId: ws._id, ...coffee, status: "active", createdBy: alex._id, updatedAt: 0 });
-    });
+    const rewardId = (await t.run((ctx) => ctx.db.query("rewards").first()))!._id; // the seeded catalog
     await expect(demo.mutation(api.storeAdmin.setStoreEnabled, { enabled: false })).rejects.toThrow(/demo/);
     await expect(demo.mutation(api.storeAdmin.setStoreEnabled, { enabled: true })).rejects.toThrow(/demo/);
     await expect(demo.mutation(api.storeAdmin.createReward, coffee)).rejects.toThrow(/demo/);
     await expect(demo.mutation(api.storeAdmin.updateReward, { rewardId, ...coffee })).rejects.toThrow(/demo/);
     await expect(demo.mutation(api.storeAdmin.setRewardStatus, { rewardId, status: "archived" })).rejects.toThrow(/demo/);
-    expect(await demo.query(api.storeAdmin.rewards, {})).toHaveLength(1);
+    expect(await demo.query(api.storeAdmin.rewards, {})).toHaveLength(6);
   }, DEMO_TIMEOUT);
 });
 

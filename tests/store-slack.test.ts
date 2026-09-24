@@ -304,12 +304,14 @@ describe("who hears about a request", () => {
     expect(dmsTo("UBEN").map((d) => d.text)).toEqual(["*☕ Coffee on us* was declined by <@UANA>. 15 :taco: are back in your balance."]);
   });
 
-  test("the demo workspace schedules nothing", async () => {
+  test("the demo workspace sends nothing to Slack", async () => {
     await t.run((ctx) => ctx.db.patch(team.workspaceId, { isDemo: true }));
     const ana = await signInAs(t, team.ana);
     const { redemptionId } = await redeemAsBen(await addReward());
     await ana.mutation(api.storeAdmin.decide, { redemptionId, action: "fulfill" });
-    expect(await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect())).toEqual([]);
+    // Only the demo's teammate admin is scheduled, to decide on the request live (tests/demo.test.ts).
+    const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+    expect(scheduled.map((f) => f.name)).toEqual(["demo:storeTeammateDecision"]);
   });
 });
 
