@@ -5,11 +5,13 @@ import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { revokeKudosRow } from "./engine";
 import { switchQuests } from "./quests";
+import { anchorSuccessBaseline } from "./analytics";
 import { gameOn, switchGame } from "./game";
 import { assertNotDemo, canSeeReceived, publicSettings, requireAdmin } from "./lib/access";
 import { siteUrl } from "./lib/slack";
 import { balanceOf, storeOpen } from "./lib/store";
 import { receivedVisibilityValidator } from "./schema";
+import { dayKeyFor } from "./lib/time";
 
 /** Workspace settings plus Slack connection health for the admin page. */
 export const overview = query({
@@ -105,6 +107,8 @@ export const updateSettings = mutation({
     // Switched on: play the history through the rules (paused stretches excluded), in the background.
     if (gameEnabled && !gameOn(workspace)) {
       await ctx.scheduler.runAfter(0, internal.game.rebuildWorkspace, { workspaceId: workspace._id });
+      // The first launch pins the success metrics' baseline to the months before it.
+      await anchorSuccessBaseline(ctx, workspace, dayKeyFor(Date.now(), args.timezone));
     }
     return null;
   },

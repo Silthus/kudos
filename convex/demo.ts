@@ -813,6 +813,7 @@ const DEMO_TABLES = [
   "pairStats",
   "channelStats",
   "messageStats",
+  "successStats",
   "questBoards",
   "questCompletions",
   "kudosAttempts",
@@ -841,6 +842,8 @@ async function demoRows(ctx: MutationCtx, workspaceId: Id<"workspaces">, table: 
       return await ctx.db.query("channelStats").withIndex("by_workspace_bucket_amount", (q) => q.eq("workspaceId", workspaceId)).take(1000);
     case "messageStats":
       return await ctx.db.query("messageStats").withIndex("by_workspace_template", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+    case "successStats":
+      return await ctx.db.query("successStats").withIndex("by_workspace_bucket", (q) => q.eq("workspaceId", workspaceId)).take(1000);
     case "questBoards":
     case "questCompletions":
       return await ctx.db.query(table).withIndex("by_workspace_week", (q) => q.eq("workspaceId", workspaceId)).take(1000);
@@ -869,7 +872,7 @@ export const startDemoReset = internalMutation({
     if (workspace.resettingSince && Date.now() - workspace.resettingSince < RESET_LOCK_MS) return null;
     // The reset wipes the rollups (and the `all` row's marker): readers fall back to their legacy
     // scans until the reset's rebuild marks the workspace again.
-    await ctx.db.patch(workspace._id, { resettingSince: Date.now(), rollupsBackfilledAt: undefined });
+    await ctx.db.patch(workspace._id, { resettingSince: Date.now(), rollupsBackfilledAt: undefined, successBackfilledAt: undefined });
     await ctx.scheduler.runAfter(0, internal.demo.resetDemoWorkspace, {});
     return null;
   },
@@ -883,7 +886,9 @@ export const resetDemoWorkspace = internalMutation({
     const workspace = await demoWorkspace(ctx);
     if (!workspace) return null;
     // Wiping the rollups unmarks them, however the reset was started (see `startDemoReset`).
-    if (workspace.rollupsBackfilledAt !== undefined) await ctx.db.patch(workspace._id, { rollupsBackfilledAt: undefined });
+    if (workspace.rollupsBackfilledAt !== undefined || workspace.successBackfilledAt !== undefined) {
+      await ctx.db.patch(workspace._id, { rollupsBackfilledAt: undefined, successBackfilledAt: undefined });
+    }
     let deleted = 0;
     for (const table of DEMO_TABLES) {
       if (deleted >= 3000) break; // stay well within per-transaction write limits

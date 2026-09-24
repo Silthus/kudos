@@ -1,7 +1,9 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { RARITIES, type Rarity } from "./messages";
-import { dayBucket, heatIndex, heatSize, memberBuckets, pairBuckets, workspaceBuckets, ALL_BUCKET } from "./buckets";
+import { dayBucket, heatIndex, heatSize, memberBuckets, monthBucket, pairBuckets, workspaceBuckets, ALL_BUCKET } from "./buckets";
+import { RECIPROCAL_WINDOW_MS, thanksBack } from "./quests";
+import { isStory, SUCCESS_COUNTERS, zeroSuccess, type SuccessCounts } from "./success";
 import { daysBetween, weekdayOfKey, zonedParts } from "./time";
 
 /**
@@ -34,7 +36,19 @@ export type MemberTotals = { given: number; received: number };
 
 export type KudosRow = Pick<
   Doc<"kudos">,
-  "_id" | "batchId" | "giverId" | "receiverId" | "amount" | "dayKey" | "source" | "channelId" | "channelName" | "channelPrivate" | "hour" | "at"
+  | "_id"
+  | "batchId"
+  | "giverId"
+  | "receiverId"
+  | "amount"
+  | "dayKey"
+  | "source"
+  | "channelId"
+  | "channelName"
+  | "channelPrivate"
+  | "hour"
+  | "at"
+  | "noteWords"
 >;
 
 export const WORKSPACE_COUNTERS = [
@@ -72,6 +86,9 @@ export class Rollups {
   private readonly channelDeltas = new Map<string, { channel: string; bucket: string; amount: number }>();
   private readonly batches = new Map<string, { added: Set<Id<"kudos">>; removed: KudosRow[] }>();
   private readonly finderDeltas = new Map<string, number>();
+  private readonly successDeltas = new Map<string, SuccessCounts>();
+  /** Kudos rows added (+1) or deleted (−1) in this transaction, for the Reciprocal kudos count. */
+  private readonly changedRows: { row: KudosRow; sign: 1 | -1 }[] = [];
 
   constructor(
     private readonly ctx: MutationCtx,
@@ -147,6 +164,8 @@ export class Rollups {
     await this.flushWorkspace();
     await this.flushPairs();
     await this.flushChannels();
+    await this.flushReciprocal();
+    await this.flushSuccess();
   }
 
   private kudosRow(row: KudosRow, sign: 1 | -1) {
@@ -161,6 +180,8 @@ export class Rollups {
       const cell = heatIndex(bucket, row.dayKey, hour);
       delta.heat.set(cell, (delta.heat.get(cell) ?? 0) + units);
     }
+    if (isStory(row)) this.success(monthBucket(row.dayKey)).storyRows += sign;
+    this.changedRows.push({ row, sign });
     const channel = channelKey(row);
     for (const bucket of pairBuckets(row.dayKey)) {
       const pairKey = `${row.giverId}|${row.receiverId}|${bucket}`;
@@ -191,6 +212,12 @@ export class Rollups {
     let entry = this.memberDeltas.get(key);
     if (!entry) this.memberDeltas.set(key, (entry = { memberId, bucket, delta: zeroMember() }));
     return entry.delta;
+  }
+
+  private success(bucket: string) {
+    let delta = this.successDeltas.get(bucket);
+    if (!delta) this.successDeltas.set(bucket, (delta = zeroSuccess()));
+    return delta;
   }
 
   private workspaceDelta(bucket: string) {
@@ -301,9 +328,64 @@ export class Rollups {
         .query("pairStats")
         .withIndex("by_giver_bucket_receiver", (q) => q.eq("giverId", giverId).eq("bucket", bucket).eq("receiverId", receiverId))
         .unique();
-      await this.writeAmount(row, clamp((row?.amount ?? 0) + amount), () =>
+      const after = clamp((row?.amount ?? 0) + amount);
+      // A month's pair row appearing or emptying is one more or one fewer distinct recipient.
+      if (bucket.startsWith("m:")) this.success(bucket).pairs += presence(row?.amount ?? 0, after);
+      await this.writeAmount(row, after, () =>
         db.insert("pairStats", { workspaceId: this.workspace._id, bucket, giverId, receiverId, amount }),
       );
+    }
+  }
+
+  /**
+   * Reciprocal kudos: a row is one while its receiver gave its giver a kudos in the 72 h before it.
+   * Adding or deleting a row changes that for the row itself and for the receiver's kudos back to
+   * the giver in the 72 h after it (seeded or re-ordered history), so compare those rows' status
+   * before this transaction's writes (sources now, minus added rows, plus deleted ones) and after.
+   */
+  private async flushReciprocal() {
+    if (this.changedRows.length === 0) return;
+    const added = new Set(this.changedRows.filter((c) => c.sign === 1).map((c) => c.row._id));
+    const removed = this.changedRows.filter((c) => c.sign === -1).map((c) => c.row);
+    const removedIds = new Set(removed.map((r) => r._id));
+    const back = (row: KudosRow, lo: number, hi: number) =>
+      this.ctx.db
+        .query("kudos")
+        .withIndex("by_giver_receiver_at", (q) =>
+          q.eq("giverId", row.receiverId).eq("receiverId", row.giverId).gt("at", lo).lt("at", hi),
+        )
+        .take(MAX_BATCH_ROWS);
+    const rows = new Map<string, KudosRow>();
+    for (const { row } of this.changedRows) {
+      rows.set(row._id, row);
+      for (const later of await back(row, row.at, row.at + RECIPROCAL_WINDOW_MS)) rows.set(later._id, later);
+    }
+    for (const row of rows.values()) {
+      const thanked = (k: KudosRow) => k.giverId === row.receiverId && k.receiverId === row.giverId && thanksBack(row.at, k.at);
+      const earlier = (await back(row, row.at - RECIPROCAL_WINDOW_MS, row.at)).filter(thanked);
+      const after = !removedIds.has(row._id) && earlier.length > 0;
+      const before = !added.has(row._id) && (earlier.some((k) => !added.has(k._id)) || removed.some(thanked));
+      this.success(monthBucket(row.dayKey)).reciprocalRows += Number(after) - Number(before);
+    }
+  }
+
+  private async flushSuccess() {
+    const { db } = this.ctx;
+    for (const [bucket, delta] of this.successDeltas) {
+      if (SUCCESS_COUNTERS.every((c) => delta[c] === 0)) continue;
+      const row = await db
+        .query("successStats")
+        .withIndex("by_workspace_bucket", (q) => q.eq("workspaceId", this.workspace._id).eq("bucket", bucket))
+        .unique();
+      const counts = zeroSuccess();
+      for (const c of SUCCESS_COUNTERS) counts[c] = clamp((row?.[c] ?? 0) + delta[c]);
+      const empty = SUCCESS_COUNTERS.every((c) => counts[c] === 0);
+      if (row) {
+        if (empty) await db.delete(row._id);
+        else await db.patch(row._id, counts);
+      } else if (!empty) {
+        await db.insert("successStats", { workspaceId: this.workspace._id, bucket, ...counts });
+      }
     }
   }
 

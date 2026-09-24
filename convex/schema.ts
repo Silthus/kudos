@@ -145,6 +145,13 @@ export default defineSchema({
     // Queries that must not re-run on every give in the workspace (me.overview) gate on this copy:
     // the `all` row changes with every give, this document almost never does.
     rollupsBackfilledAt: v.optional(v.number()),
+    // When a full rebuild last recomputed `successStats` (lib/rebuild.ts markBackfilled). Rollups
+    // backfilled before that table existed carry `rollupsBackfilledAt` without it, so the success
+    // metrics wait for their own marker instead of showing a history of zeros.
+    successBackfilledAt: v.optional(v.number()),
+    // "YYYY-MM": the month the game was first switched on. The success metrics' baseline is the
+    // three months before it (analytics.ts `anchorSuccessBaseline`); unset, it rolls with today.
+    successBaselineBefore: v.optional(v.string()),
     ...settingsFields,
   }).index("by_team", ["slackTeamId"]),
 
@@ -271,6 +278,16 @@ export default defineSchema({
     // `all` row only: when the last full rebuild finished (convex/rollups.ts). Readers use the
     // rollups only once it is set; a row carrying it is kept even when every count is zero.
     rollupsBackfilledAt: v.optional(v.number()),
+  }).index("by_workspace_bucket", ["workspaceId", "bucket"]),
+
+  // The game's success metrics (spec #55 G18), per workspace month (`m:` bucket), maintained with
+  // the other rollups. Givers and kudos rows per month are in `workspaceStats`.
+  successStats: defineTable({
+    workspaceId: v.id("workspaces"),
+    bucket: v.string(), // m: only
+    pairs: v.number(), // distinct giver → receiver pairs: Σ over givers of distinct recipients
+    storyRows: v.number(), // kudos rows whose Note has 12+ words (a real "why")
+    reciprocalRows: v.number(), // Reciprocal kudos rows: thanking someone back within 72 h
   }).index("by_workspace_bucket", ["workspaceId", "bucket"]),
 
   // Per-member w/m/q/y buckets. The day bucket is memberDays, all time is members.total*.

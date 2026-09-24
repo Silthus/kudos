@@ -5,6 +5,8 @@ import { internal } from "./_generated/api";
 import { ALL_BUCKET, bucketDays, dayBucket, monthBucket, periodBucketsBetween, weekBucket } from "./lib/buckets";
 import { CATALOG, pickTemplate, RARITIES, renderTemplate, TEMPLATE_BY_KEY, type Category } from "./lib/messages";
 import { ANY_MESSAGE, channelKey, WORKSPACE_COUNTERS } from "./lib/rollups";
+import { RECIPROCAL_WINDOW_MS } from "./lib/quests";
+import { successCounts } from "./lib/success";
 import { kudosInRange, totalsByMember, workspaceDays } from "./lib/stats";
 import {
   markBackfilled,
@@ -109,7 +111,7 @@ export const unmarkBackfilled = internalMutation({
     for await (const row of rows) {
       if (row.rollupsBackfilledAt !== undefined) await ctx.db.patch(row._id, { rollupsBackfilledAt: undefined });
     }
-    await ctx.db.patch(workspaceId, { rollupsBackfilledAt: undefined });
+    await ctx.db.patch(workspaceId, { rollupsBackfilledAt: undefined, successBackfilledAt: undefined });
     return null;
   },
 });
@@ -304,10 +306,12 @@ async function verifyBucket(ctx: QueryCtx, workspace: Doc<"workspaces">, bucket:
 
   // The legacy readers' computation: per-member sums over the bucket's memberDays.
   const days = await workspaceDays(ctx, workspace._id, { start, end, days: daysBetween(start, end) + 1 }, 15_000);
+  const month = bucket.startsWith("m:");
   const { rows: kudosRows, truncated } = await kudosInRange(
     ctx,
     workspace._id,
-    startOfDayUtc(start, tz) - DAY_MS, // a day key may come from another timezone
+    // A day key may come from another timezone; a month's thank-backs may answer the 72 h before it.
+    startOfDayUtc(start, tz) - DAY_MS - (month ? RECIPROCAL_WINDOW_MS : 0),
     startOfDayUtc(addDays(end, 1), tz) + DAY_MS,
     15_000,
   );
@@ -358,6 +362,25 @@ async function verifyBucket(ctx: QueryCtx, workspace: Doc<"workspaces">, bucket:
   }
   compare("workspaceStats", new Map([[bucket, ws]]), new Map([[bucket, stored]]));
   if (bucket.startsWith("d:")) return out; // the day bucket of members and pairs is memberDays itself
+
+  if (month) {
+    const counts = successCounts(kudos, kudosRows);
+    const rows = await ctx.db
+      .query("successStats")
+      .withIndex("by_workspace_bucket", (q) => q.eq("workspaceId", workspace._id).eq("bucket", bucket))
+      .take(10);
+    if (rows.length > 1) {
+      // Only corruption duplicates a month; the rebuild keeps one.
+      out.push({ bucket, table: "successStats", key: bucket, field: "rows", expected: 1, actual: rows.length });
+    } else {
+      const [row] = rows;
+      compare(
+        "successStats",
+        new Map([[bucket, { ...counts }]]),
+        new Map<string, Record<string, number>>(row ? [[bucket, { pairs: row.pairs, storyRows: row.storyRows, reciprocalRows: row.reciprocalRows }]] : []),
+      );
+    }
+  }
 
   const storedChannels = await ctx.db
     .query("channelStats")

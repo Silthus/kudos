@@ -13,6 +13,8 @@ import {
   zeroMember,
 } from "./rollups";
 import { backfilledRollups } from "./stats";
+import { RECIPROCAL_WINDOW_MS } from "./quests";
+import { SUCCESS_COUNTERS, successCounts, type SuccessCounts } from "./success";
 import { addDays, DAY_MS, startOfDayUtc, weekdayOfKey, zonedParts } from "./time";
 
 /**
@@ -384,18 +386,43 @@ export async function rebuildWorkspacePeriod(ctx: MutationCtx, workspace: Worksp
 
   const channels = new Map<string, number>();
   if (bucket.startsWith("w:") || bucket.startsWith("m:")) {
+    const month = bucket.startsWith("m:");
+    // A month also reads the days a Reciprocal kudos of it may thank back to (successStats).
+    const read = await kudosOnDays(ctx, workspace._id, month ? reciprocalContextStart(start) : start, end);
+    const kudos = read.filter((k) => k.dayKey >= start);
     const batches = new Set<string>();
-    for (const k of await kudosOnDays(ctx, workspace._id, start, end)) {
+    for (const k of kudos) {
       add(channels, channelKey(k), k.amount);
       batches.add(k.batchId);
     }
     values.messages = batches.size;
+    if (month) await writeSuccessRow(ctx, workspace._id, bucket, successCounts(kudos, read));
   } else {
     const months = await channelRows(ctx, workspace._id, `m:${start.slice(0, 7)}`, `m:${end.slice(0, 7)}` + END);
     for (const c of months) add(channels, c.channel, c.amount);
   }
   await writeWorkspaceRow(ctx, workspace._id, bucket, values);
   await writeChannels(ctx, workspace._id, bucket, channels);
+}
+
+/**
+ * The first day key a kudos may carry and still be within 72 h before a kudos of a day on or after
+ * `start`: 72 h back, plus a day each way for the timezone the keys were written in.
+ */
+export function reciprocalContextStart(start: string) {
+  return addDays(start, -Math.ceil(RECIPROCAL_WINDOW_MS / DAY_MS) - 2);
+}
+
+async function writeSuccessRow(ctx: MutationCtx, workspaceId: Id<"workspaces">, bucket: string, counts: SuccessCounts) {
+  const existing = await ctx.db
+    .query("successStats")
+    .withIndex("by_workspace_bucket", (q) => q.eq("workspaceId", workspaceId).eq("bucket", bucket))
+    .collect();
+  const desired = new Map(SUCCESS_COUNTERS.some((c) => counts[c] !== 0) ? [[bucket, counts]] : []);
+  await syncRows(ctx, existing, (r) => r.bucket, desired, async (row, key, value) => {
+    if (!row) await ctx.db.insert("successStats", { workspaceId, bucket: key, ...value });
+    else if (SUCCESS_COUNTERS.some((c) => row[c] !== value[c])) await ctx.db.patch(row._id, value);
+  });
 }
 
 /** All time: sums of the year rows; givers and receivers from member totals, as live maintenance counts them. */
@@ -463,7 +490,7 @@ export async function markBackfilled(ctx: MutationCtx, workspaceId: Id<"workspac
   const row = await workspaceRow(ctx, workspaceId, ALL_BUCKET);
   if (row) await ctx.db.patch(row._id, { rollupsBackfilledAt: at });
   else await ctx.db.insert("workspaceStats", { workspaceId, bucket: ALL_BUCKET, ...emptyValues(ALL_BUCKET), rollupsBackfilledAt: at });
-  await ctx.db.patch(workspaceId, { rollupsBackfilledAt: at });
+  await ctx.db.patch(workspaceId, { rollupsBackfilledAt: at, successBackfilledAt: at });
 }
 
 /** Copy the `all` row's marker onto a workspace marked before the workspace carried one. */
@@ -513,6 +540,11 @@ export async function sourceSpan(ctx: QueryCtx, workspace: Workspace, today: str
         await ctx.db
           .query("channelStats")
           .withIndex("by_workspace_bucket_channel", (q) => q.eq("workspaceId", id).gte("bucket", lo).lt("bucket", hi))
+          .order(order)
+          .first(),
+        await ctx.db
+          .query("successStats")
+          .withIndex("by_workspace_bucket", (q) => q.eq("workspaceId", id).gte("bucket", lo).lt("bucket", hi))
           .order(order)
           .first(),
       ];

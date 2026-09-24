@@ -174,10 +174,16 @@ export type QuestFacts = {
 
 export type QuestResult = { key: QuestKey; progress: number; goal: number; done: boolean; waived: WaivedReason | null };
 
+/**
+ * The Reciprocal kudos window: a kudos given at `at` thanks someone back when they gave its giver
+ * a kudos at `backAt`, less than 72 h before it.
+ */
+export function thanksBack(at: number, backAt: number) {
+  return backAt < at && backAt > at - RECIPROCAL_WINDOW_MS;
+}
+
 function isReciprocal(row: GivenFact, receivedFrom: QuestFacts["receivedFrom"]) {
-  return receivedFrom.some(
-    (r) => r.giverId === row.receiverId && r.at < row.at && r.at > row.at - RECIPROCAL_WINDOW_MS,
-  );
+  return receivedFrom.some((r) => r.giverId === row.receiverId && thanksBack(row.at, r.at));
 }
 
 /** The Note half of the Qualifying kudos rule: at least 3 words (reactions have no Note). */
