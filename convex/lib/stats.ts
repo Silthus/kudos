@@ -65,6 +65,23 @@ export async function workspaceMembers(ctx: QueryCtx, workspaceId: Id<"workspace
 }
 
 /**
+ * The team a period's participation is measured against: everyone still here, plus whoever gave
+ * in the period and has left since (they were on the team then). So it never has fewer people
+ * than gave, and participation (givers / team size) stays within 100%.
+ */
+export function teamSize(members: Doc<"members">[], departedGivers: number) {
+  return members.filter((m) => !m.deactivated).length + departedGivers;
+}
+
+/** How many of `givers` have left the workspace (are deactivated). */
+export function departedAmong(members: Doc<"members">[], givers: Iterable<Id<"members">>) {
+  const departed = new Set(members.filter((m) => m.deactivated).map((m) => m._id));
+  let n = 0;
+  for (const id of givers) if (departed.has(id)) n++;
+  return n;
+}
+
+/**
  * The workspace's `all` rollup row once its backfill has finished (`rollupsBackfilledAt`), else
  * null. Readers use the rollups only then, and their legacy computation before.
  */

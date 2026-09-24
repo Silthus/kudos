@@ -8,11 +8,13 @@ import { resolvePeriod, type PeriodRange } from "./lib/periods";
 import { channelKey, zeroFound } from "./lib/rollups";
 import {
   backfilledRollups,
+  departedAmong,
   kudosInRange,
   totalsByMember,
   workspaceDays,
   workspaceMembers,
   memberBucket,
+  teamSize,
   workspaceBucket,
   workspaceStatsBetween,
 } from "./lib/stats";
@@ -343,14 +345,14 @@ function present(
     const m = byId.get(id);
     return m ? { _id: m._id, name: m.name, avatarUrl: m.avatarUrl ?? null, slackUserId: m.slackUserId } : null;
   };
-  const teamSize = members.filter((m) => !m.deactivated).length;
-
   // Largest first; ties by name, so the lists don't reshuffle between runs.
   const ranked = (metric: "given" | "received") =>
     [...totals]
       .filter(([, t]) => t[metric] > 0)
       .sort(([a, ta], [b, tb]) => tb[metric] - ta[metric] || name(a).localeCompare(name(b)));
   const givers = ranked("given");
+  const team = teamSize(members, departedAmong(members, givers.map(([id]) => id)));
+  const prevTeam = prevGivers ? teamSize(members, departedAmong(members, prevGivers)) : 0;
 
   // To date: a client still on yesterday doesn't count what the bucket got after it.
   const total = range.period === "all" ? counts.given : [...facts.volume.values()].reduce((s, n) => s + n, 0);
@@ -382,9 +384,9 @@ function present(
       givers: counts.givers,
       prevGivers: prevGivers ? prevGivers.size : null,
       receivers: counts.receivers,
-      teamSize,
-      participation: teamSize ? counts.givers / teamSize : 0,
-      prevParticipation: prevGivers && teamSize ? prevGivers.size / teamSize : null,
+      teamSize: team,
+      participation: team ? counts.givers / team : 0,
+      prevParticipation: prevGivers && prevTeam ? prevGivers.size / prevTeam : null,
       avgPerGiver: counts.givers ? total / counts.givers : 0,
       // Allowance in force when each kudos was given, over today's limit; capped at a full 100%.
       allowanceUse: counts.giverDays ? Math.min(1, counts.cappedGiven / (counts.giverDays * workspace.dailyLimit)) : 0,

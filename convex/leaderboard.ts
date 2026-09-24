@@ -4,10 +4,12 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { requireViewer, type Viewer } from "./lib/access";
 import {
   backfilledRollups,
+  departedAmong,
   discoveriesIn,
   givenOverDays,
   memberBucket,
   rankBy,
+  teamSize,
   totalsByMember,
   totalsOf,
   workspaceBucket,
@@ -29,6 +31,8 @@ type Standings = {
   /** The previous bucket to date: the workspace headline compares with it, like analytics. */
   prevTotal: number | null;
   givers: number;
+  /** Of those givers, how many have left since: they still count in the period's team size. */
+  departedGivers: number;
   maxedDays: number;
   discoveries: number;
   legendaryFinds: number;
@@ -55,7 +59,6 @@ export async function leaderboard(
   const metric = requested === "received" && receivedAllowed ? "received" : "given";
   const range = resolvePeriod(period, parseToday(today));
   const members = await workspaceMembers(ctx, workspace._id);
-  const active = members.filter((m) => !m.deactivated);
 
   // The `all` rollup row, once backfilled: its presence switches the board onto the rollups.
   const allStats = await backfilledRollups(ctx, workspace._id);
@@ -63,9 +66,10 @@ export async function leaderboard(
     period === "all"
       ? await allTime(ctx, workspace, members, metric, allStats)
       : allStats
-        ? await fromRollups(ctx, workspace, range, metric)
-        : await fromMemberDays(ctx, workspace, range, metric);
+        ? await fromRollups(ctx, workspace, range, metric, members)
+        : await fromMemberDays(ctx, workspace, range, metric, members);
   const { current, previous } = standings;
+  const team = teamSize(members, standings.departedGivers);
 
   const value = (t: Totals | undefined) => (t ? t[metric] : 0);
   const participants = members.filter((m) => value(current.get(m._id)) > 0);
@@ -110,8 +114,8 @@ export async function leaderboard(
       total: standings.total,
       prevTotal: standings.prevTotal,
       givers: standings.givers,
-      teamSize: active.length,
-      participation: active.length ? standings.givers / active.length : 0,
+      teamSize: team,
+      participation: team ? standings.givers / team : 0,
       rising: rows.filter((r) => (r.delta ?? 0) > 0).length,
       discoveries: standings.discoveries,
       legendaryFinds: standings.legendaryFinds,
@@ -127,7 +131,13 @@ export async function leaderboard(
  * metric (≤ one per member each), the bucket's workspace row, and the `d:` rows of the
  * previous bucket to date (≤366).
  */
-async function fromRollups(ctx: QueryCtx, workspace: Doc<"workspaces">, range: PeriodRange, metric: Metric): Promise<Standings> {
+async function fromRollups(
+  ctx: QueryCtx,
+  workspace: Doc<"workspaces">,
+  range: PeriodRange,
+  metric: Metric,
+  members: Doc<"members">[],
+): Promise<Standings> {
   const cur = await memberBucket(ctx, workspace._id, range.bucket, metric);
   const prev = await memberBucket(ctx, workspace._id, range.previousBucket!, metric);
   const stats = await workspaceBucket(ctx, workspace._id, range.bucket);
@@ -138,13 +148,23 @@ async function fromRollups(ctx: QueryCtx, workspace: Doc<"workspaces">, range: P
     // Every unit given is a unit received, so the day rows' `given` is either metric's total.
     prevTotal: await givenOverDays(ctx, workspace._id, range.previousToDate!),
     givers: stats?.givers ?? 0,
+    departedGivers:
+      metric === "given"
+        ? departedAmong(members, cur.map((r) => r.memberId))
+        : await departedGiversIn(ctx, members, range.bucket),
     maxedDays: stats?.maxedDays ?? 0,
     ...discoveriesIn(stats),
   };
 }
 
 /** A w/m/q/y board from `memberDays`, for workspaces whose rollups aren't backfilled yet. */
-async function fromMemberDays(ctx: QueryCtx, workspace: Doc<"workspaces">, range: PeriodRange, metric: Metric): Promise<Standings> {
+async function fromMemberDays(
+  ctx: QueryCtx,
+  workspace: Doc<"workspaces">,
+  range: PeriodRange,
+  metric: Metric,
+  members: Doc<"members">[],
+): Promise<Standings> {
   const cur = await workspaceDays(ctx, workspace._id, range.current);
   const prev = await workspaceDays(ctx, workspace._id, range.previous!);
   const current = totalsByMember(cur.rows);
@@ -163,7 +183,7 @@ async function fromMemberDays(ctx: QueryCtx, workspace: Doc<"workspaces">, range
     previous: totalsByMember(prev.rows),
     total: sum(current.values(), (t) => t[metric]),
     prevTotal: toDate.rows.reduce((s, r) => s + r[metric], 0),
-    givers: [...current.values()].filter((t) => t.given > 0).length,
+    ...giversOf(current, members),
     maxedDays: sum(current.values(), (t) => t.maxedDays),
     discoveries: found.length,
     legendaryFinds: found.filter((d) => d.rarity === "legendary").length,
@@ -187,10 +207,33 @@ async function allTime(
     previous: null,
     total: sum(current.values(), (t) => t[metric]),
     prevTotal: null,
-    givers: [...current.values()].filter((t) => t.given > 0).length,
+    ...giversOf(current, members),
     maxedDays: sum(current.values(), (t) => t.maxedDays),
     ...found,
   };
+}
+
+/** Givers among totals that hold every member who gave. */
+function giversOf(current: Map<Id<"members">, Totals>, members: Doc<"members">[]) {
+  const givers = [...current].filter(([, t]) => t.given > 0).map(([id]) => id);
+  return { givers: givers.length, departedGivers: departedAmong(members, givers) };
+}
+
+/**
+ * Departed members who gave in a bucket, when the board read only its receivers: one rollup row
+ * per departed member, fewer reads than the bucket's givers.
+ */
+async function departedGiversIn(ctx: QueryCtx, members: Doc<"members">[], bucket: string) {
+  let n = 0;
+  for (const m of members) {
+    if (!m.deactivated) continue;
+    const row = await ctx.db
+      .query("memberStats")
+      .withIndex("by_member_bucket", (q) => q.eq("memberId", m._id).eq("bucket", bucket))
+      .unique();
+    if ((row?.given ?? 0) > 0) n++;
+  }
+  return n;
 }
 
 async function legacyDiscoveries(ctx: QueryCtx, workspaceId: Id<"workspaces">) {
