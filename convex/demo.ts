@@ -1047,11 +1047,12 @@ export const teammateThanks = internalMutation({
   },
 });
 
+// `workspaceStats` first: its `all` row carries the rollups' marker, which must go before any kudos does.
 const DEMO_TABLES = [
+  "workspaceStats",
   "kudos",
   "memberDays",
   "discoveries",
-  "workspaceStats",
   "memberStats",
   "pairStats",
   "channelStats",
