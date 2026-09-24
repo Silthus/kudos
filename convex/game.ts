@@ -98,8 +98,8 @@ async function levelUpMessage(
 ) {
   const title = titleForLevel(level);
   const points = skillPoints === 1 ? "a skill point" : `${skillPoints} skill points`;
-  const text = (bold: (s: string) => string) =>
-    `${bold(`Level ${level}: ${title}`)}\nYour thoughtful kudos got you to level ${level}. That's ${points} for your skill tree.`;
+  const body = `Your thoughtful kudos got you here. You earned ${points} for your skill tree.`;
+  const text = (web: boolean) => (web ? `Level ${level}: ${title}. ${body}` : `*Level ${level}: ${title}*\n${body}`);
   return await ctx.db.insert("notifications", {
     workspaceId: workspace._id,
     memberId: member._id,
@@ -107,8 +107,8 @@ async function levelUpMessage(
     templateKey: "level_up",
     rarity: "common",
     isNewDiscovery: false,
-    slackText: text((s) => `*${s}*`),
-    webText: text((s) => s),
+    slackText: text(false),
+    webText: text(true),
     delivery: workspace.isDemo ? "skipped" : "pending",
     levelUp: { level, title, skillPoints },
   });
