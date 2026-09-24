@@ -1,12 +1,12 @@
 import clsx from "clsx";
 import { useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
-import { Apple, Flower2, Shovel, Sprout } from "lucide-react";
+import { Apple, Flower2, Lamp, Shovel, Sprout, Sun, X } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import type { StageKey } from "../../convex/lib/garden";
+import { LANTERN, type StageKey } from "../../convex/lib/garden";
 import { Locked } from "@/components/game";
 import { PlantArt } from "@/components/PlantArt";
 import { Avatar, Button, Card, CardHeader, Dialog, Empty, PageHeader, PageSkeleton } from "@/components/ui";
@@ -61,7 +61,7 @@ export function Garden() {
     <div className="flex flex-col gap-4">
       {header}
       {mine.open ? (
-        <OwnGarden garden={mine} />
+        <OwnGarden garden={mine} sunlamps={game.sunlamps ?? 0} />
       ) : (
         <Locked title="Your garden" level={mine.opensAt} how="At level 3 you can grow a plant for a teammate you recognise. Thoughtful kudos get you there." />
       )}
@@ -71,7 +71,7 @@ export function Garden() {
   );
 }
 
-function OwnGarden({ garden }: { garden: OpenGarden }) {
+function OwnGarden({ garden, sunlamps }: { garden: OpenGarden; sunlamps: number }) {
   const [planting, setPlanting] = useState(false);
   const [uprooting, setUprooting] = useState<Grown | null>(null);
   const empty = Math.max(0, garden.plots - garden.plants.length);
@@ -87,7 +87,7 @@ function OwnGarden({ garden }: { garden: OpenGarden }) {
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {garden.plants.map((p) => (
-          <PlantCard key={p.plantId} plant={p} onUproot={() => setUprooting(p)} />
+          <PlantCard key={p.plantId} plant={p} sunlamps={sunlamps} onUproot={() => setUprooting(p)} />
         ))}
         {Array.from({ length: empty }, (_, i) => (
           <EmptyPlot key={i} canPlant={garden.candidates.length > 0} onPlant={() => setPlanting(true)} />
@@ -111,11 +111,17 @@ function PlantFace({
   forName,
   forYou,
   action,
+  footer,
+  onTakeDownLantern,
 }: {
-  plant: Pick<Grown, "plantId" | "speciesName" | "stage" | "stageName" | "dormant"> & Partial<Pick<Grown, "waterings" | "awakeDays" | "next" | "fruit">>;
+  plant: Pick<Grown, "plantId" | "speciesName" | "stage" | "stageName" | "dormant"> & Partial<Pick<Grown, "waterings" | "awakeDays" | "next" | "fruit" | "lantern">>;
   forName?: string;
   forYou?: boolean;
   action?: React.ReactNode;
+  /** Extra controls under the plant (a Sunlamp, a Lantern). */
+  footer?: React.ReactNode;
+  /** The owner may take a teammate's lantern down. */
+  onTakeDownLantern?: () => void;
 }) {
   const fruit = plant.fruit?.length ?? 0;
   return (
@@ -142,17 +148,56 @@ function PlantFace({
         </div>
         {plant.next !== undefined && <p className="mt-2 text-xs text-muted">{stageLine(plant as Grown)}</p>}
         {plant.dormant && forName && <p className="mt-1 text-xs text-muted">Dormant for now: thank {forName} with a few words on why to wake it.</p>}
+        {plant.lantern && (
+          <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-saffron/10 px-2 py-1.5 text-xs text-cream/90">
+            <Lamp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-saffron" aria-hidden />
+            <span className="min-w-0 flex-1 break-words">
+              Lantern from {plant.lantern.by}: “{plant.lantern.note}”
+            </span>
+            {onTakeDownLantern && (
+              <button
+                type="button"
+                aria-label={`Take down ${plant.lantern.by}'s lantern`}
+                title="Take it down"
+                onClick={onTakeDownLantern}
+                className="shrink-0 rounded p-0.5 text-faint hover:text-muted"
+              >
+                <X className="h-3.5 w-3.5" aria-hidden />
+              </button>
+            )}
+          </p>
+        )}
+        {footer}
       </div>
     </Card>
   );
 }
 
-function PlantCard({ plant, onUproot }: { plant: Grown; onUproot: () => void }) {
+function PlantCard({ plant, sunlamps, onUproot }: { plant: Grown; sunlamps: number; onUproot: () => void }) {
   const label = `Uproot ${plant.speciesName} for ${plant.forName}`;
+  const applySunlamp = useMutation(api.gardens.useSunlamp);
+  const takeDown = useMutation(api.gardens.takeDownLantern);
+  const [error, setError] = useState<string | null>(null);
+  const run = (p: Promise<unknown>) => {
+    setError(null);
+    p.catch((e) => setError(errorText(e)));
+  };
+  const lampLabel = `Use a Sunlamp on ${plant.speciesName} for ${plant.forName} (${sunlamps} left)`;
   return (
     <PlantFace
       plant={plant}
       forName={plant.forName}
+      onTakeDownLantern={() => run(takeDown({ plantId: plant.plantId }))}
+      footer={
+        <>
+          {plant.sunlamp && sunlamps > 0 && (
+            <Button size="sm" variant="outline" className="mt-2" aria-label={lampLabel} title={lampLabel} onClick={() => run(applySunlamp({ plantId: plant.plantId }))}>
+              <Sun className="h-3.5 w-3.5" aria-hidden /> Use a Sunlamp · 5 days sooner
+            </Button>
+          )}
+          {error && <p className="mt-1 text-xs text-down">{error}</p>}
+        </>
+      }
       action={
         <button type="button" aria-label={label} title={label} onClick={onUproot} className="rounded-lg p-1 text-faint transition hover:bg-panel-2 hover:text-muted">
           <Shovel className="h-4 w-4" aria-hidden />
@@ -353,6 +398,7 @@ function UprootDialog({ plant, onClose }: { plant: Grown | null; onClose: () => 
 type ForMe = NonNullable<ReturnType<typeof useQuery<typeof api.gardens.forMe>>>;
 
 function GrownForYou({ plants }: { plants: ForMe }) {
+  const takeDown = useMutation(api.gardens.takeDownLantern);
   if (plants.length === 0) return null;
   return (
     <Card>
@@ -366,6 +412,14 @@ function GrownForYou({ plants }: { plants: ForMe }) {
                 {p.ownerName} is growing a {p.speciesName} for you
               </div>
               <div className="text-xs text-muted">{p.dormant ? `${p.stageName}, dormant for now` : p.stageName}</div>
+              {p.lantern && (
+                <div className="text-xs text-cream/80">
+                  Lantern from {p.lantern.by}: “{p.lantern.note}”{" "}
+                  <button type="button" className="text-faint underline-offset-4 hover:text-muted hover:underline" onClick={() => void takeDown({ plantId: p.plantId }).catch(() => {})}>
+                    Take it down
+                  </button>
+                </div>
+              )}
             </div>
             <Link to={`/garden/${p.ownerId}`} className="shrink-0 text-xs text-saffron underline-offset-4 hover:underline">
               {p.ownerName}'s garden
@@ -402,6 +456,8 @@ function Memories({ memories }: { memories: OpenGarden["memories"] }) {
 export function GardenOf() {
   const { memberId } = useParams();
   const garden = useQuery(api.gardens.of, memberId ? { memberId: memberId as Id<"members"> } : "skip");
+  const lanterns = useQuery(api.game.mine, {})?.lanterns ?? 0;
+  const takeDown = useMutation(api.gardens.takeDownLantern);
   if (garden === undefined) return <PageSkeleton />;
   if (garden === null) {
     return (
@@ -428,10 +484,62 @@ export function GardenOf() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {garden.plants.map((p) => (
-            <PlantFace key={p.plantId} plant={p} forYou={p.forYou} />
+            <PlantFace
+              key={p.plantId}
+              plant={p}
+              forYou={p.forYou}
+              // Not on a plant grown for you: a lantern from you would tell everyone it's yours.
+              footer={!p.lantern && !p.forYou && lanterns > 0 && <LanternForm plantId={p.plantId} lanterns={lanterns} />}
+              onTakeDownLantern={p.canTakeDown ? () => void takeDown({ plantId: p.plantId }).catch(() => {}) : undefined}
+            />
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Hangs one of the viewer's Lanterns (#97) on a teammate's plant: a one-line note for 7 days. */
+function LanternForm({ plantId, lanterns }: { plantId: Id<"plants">; lanterns: number }) {
+  const hang = useMutation(api.gardens.hangLantern);
+  const [open, setOpen] = useState(false);
+  const [note, setNote] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  if (!open) {
+    return (
+      <Button size="sm" variant="outline" className="mt-2" onClick={() => setOpen(true)} title={`${lanterns} left`}>
+        <Lamp className="h-3.5 w-3.5" aria-hidden />
+        Hang a Lantern
+      </Button>
+    );
+  }
+  const submit = () => {
+    setError(null);
+    hang({ plantId, note })
+      .then(() => setOpen(false))
+      .catch((e) => setError(errorText(e)));
+  };
+  return (
+    <div className="mt-2 flex flex-col gap-1.5">
+      <input
+        aria-label="Lantern note"
+        className="h-8 w-full rounded-lg border border-line-strong bg-ink/60 px-2 text-xs text-cream outline-none focus:border-saffron/60"
+        maxLength={LANTERN.maxChars}
+        placeholder="One line for everyone who sees this plant"
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && submit()}
+      />
+      <div className="flex items-center gap-2">
+        <Button size="sm" variant="primary" onClick={submit} disabled={note.trim().length === 0}>
+          Hang it
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
+          Not now
+        </Button>
+        <span className="ml-auto text-[10px] text-faint">Glows for {LANTERN.days} days</span>
+      </div>
+      {error && <p className="text-xs text-down">{error}</p>}
     </div>
   );
 }

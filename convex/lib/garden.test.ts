@@ -10,6 +10,7 @@ import {
   SPECIES,
   speciesChoices,
   stageOn,
+  sunlampHelps,
   wateringDays,
 } from "./garden";
 
@@ -82,6 +83,31 @@ describe("plant state", () => {
     expect(state).toMatchObject({ stage: { key: "sprout" }, waterings: 1, next: { key: "sapling", waterings: 2, days: 7 } });
     const ancient = [...weekly("2026-01-12", 20), ...weekly("2026-06-01", 40)];
     expect(plantState({ plantedDay: "2026-01-05", waterings: ancient, today: "2027-01-06" })).toMatchObject({ stage: { key: "ancient" }, next: null });
+  });
+});
+
+describe("the Sunlamp (#97, §G10): skips 5 days of the minimum-age wait, never a watering", () => {
+  const six = weekly("2026-01-12", 6); // Grown needs 45 days: 2026-02-19
+
+  test("from the day it's used, the plant counts 5 days older: Grown on day 42 instead of 45", () => {
+    expect(stageOn({ plantedDay: "2026-01-05", waterings: six, day: "2026-02-16", sunlamps: ["2026-02-16"] }).key).toBe("grown");
+    expect(stageOn({ plantedDay: "2026-01-05", waterings: six, day: "2026-02-16", sunlamps: ["2026-02-17"] }).key).toBe("young"); // not before it's used
+  });
+
+  test("the day the next stage comes moves 5 days sooner", () => {
+    const ten = weekly("2026-01-12", 10);
+    expect(plantState({ plantedDay: "2026-01-05", waterings: ten, today: "2026-03-16" }).nextOn).toBe("2026-04-05");
+    expect(plantState({ plantedDay: "2026-01-05", waterings: ten, today: "2026-03-16", sunlamps: ["2026-03-16"] }).nextOn).toBe("2026-03-31");
+  });
+
+  test("never makes up for a watering", () => {
+    expect(stageOn({ plantedDay: "2026-01-05", waterings: six.slice(0, 5), day: "2026-02-20", sunlamps: ["2026-02-16", "2026-02-17"] }).key).toBe("young");
+  });
+
+  test("helps only a plant waiting on age for its next stage", () => {
+    expect(sunlampHelps({ plantedDay: "2026-01-05", waterings: six, today: "2026-02-16" })).toBe(true);
+    expect(sunlampHelps({ plantedDay: "2026-01-05", waterings: six.slice(0, 5), today: "2026-02-16" })).toBe(false); // needs a watering
+    expect(sunlampHelps({ plantedDay: "2026-01-05", waterings: six, today: "2026-02-19" })).toBe(false); // Grown; Blossoming needs waterings
   });
 });
 

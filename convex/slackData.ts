@@ -508,8 +508,8 @@ async function storeReply(ctx: QueryCtx, workspace: Doc<"workspaces">, member: D
   }
   const { balance } = coins;
   if (!player) return { response_type: "ephemeral", text: `The Store opens at level ${SHOP_LEVEL}.` };
-  const month = dayKeyFor(Date.now(), workspace.timezone).slice(0, 7);
-  const items = (await shopItems(ctx, { workspace, member, player }, month, balance)).map(
+  const today = dayKeyFor(Date.now(), workspace.timezone);
+  const items = (await shopItems(ctx, { workspace, member, player, today }, today.slice(0, 7), balance)).map(
     (item) => `${escapeMrkdwn(item.name)} · ${formatCoins(item.price)}${item.blocked ? `  _${escapeMrkdwn(item.blocked)}_` : ""}`,
   );
   const real = realRewardsOn(workspace);

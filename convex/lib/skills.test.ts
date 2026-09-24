@@ -82,6 +82,11 @@ describe("taking a skill", () => {
     expect(canTake({}, 5, "more_plots")).toEqual({ ok: true }); // Gardens shipped (#95)
     expect(canTake({}, 2, "pathfinder")).toEqual({ ok: true });
   });
+
+  test("Charm maker is live with boosters (#97): it can be taken from level 5", () => {
+    expect(canTake({}, 5, "charm_discount")).toEqual({ ok: true });
+    expect(canTake({}, 4, "charm_discount")).toEqual({ ok: false, reason: "tier" });
+  });
 });
 
 describe("resetting the tree", () => {

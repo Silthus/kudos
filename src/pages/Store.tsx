@@ -2,7 +2,7 @@ import clsx from "clsx";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { AnimatePresence, motion } from "motion/react";
-import { ChevronDown, CircleAlert, Clock, Coins, Gift, Info, Loader2, MessageCircleQuestion, RotateCcw, Undo2, Users } from "lucide-react";
+import { ChevronDown, CircleAlert, Clock, Clover, Coins, Flame, Gift, Handshake, HeartHandshake, Info, Lamp, Loader2, MessageCircleQuestion, RotateCcw, Sun, Undo2, Users, Zap } from "lucide-react";
 import { useId, useState } from "react";
 import { Link } from "react-router";
 import { api } from "../../convex/_generated/api";
@@ -255,6 +255,9 @@ function OpenStore({ shop }: { shop: OpenShop }) {
   const viewer = useViewer();
   const [buying, setBuying] = useState<ShopItem | null>(null);
   const { balance, items } = shop;
+  const game = useQuery(api.game.mine);
+  // Items kept until used (#97): how many are left to use.
+  const held: Record<string, number> = { luckyCharm: game?.luckyCharms ?? 0, sunlamp: game?.sunlamps ?? 0, lantern: game?.lanterns ?? 0 };
   const live = buying ? (items.find((i) => i.key === buying.key) ?? null) : null;
   return (
     <div>
@@ -283,7 +286,7 @@ function OpenStore({ shop }: { shop: OpenShop }) {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((item, i) => (
             <motion.div key={item.key} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: Math.min(i, 8) * 0.04 }}>
-              <ItemCard item={item} balance={balance} onBuy={() => setBuying(item)} />
+              <ItemCard item={item} balance={balance} onBuy={() => setBuying(item)} usesLeft={held[item.key] ?? 0} />
             </motion.div>
           ))}
         </div>
@@ -296,7 +299,17 @@ function OpenStore({ shop }: { shop: OpenShop }) {
   );
 }
 
-const ITEM_ICONS: Record<string, typeof Gift> = { spreeJoin: Users, skillReset: RotateCcw };
+const ITEM_ICONS: Record<string, typeof Gift> = {
+  spreeJoin: Users,
+  skillReset: RotateCcw,
+  luckyCharm: Clover,
+  sunlamp: Sun,
+  lantern: Lamp,
+  boosterDouble: Zap,
+  boosterNewConnections: Handshake,
+  boosterRekindles: Flame,
+  boosterUnsung: HeartHandshake,
+};
 
 /** Why an item can't be bought now, or null when it can. */
 function buyBlock(item: ShopItem, balance: number): string | null {
@@ -306,7 +319,7 @@ function buyBlock(item: ShopItem, balance: number): string | null {
   return null;
 }
 
-function ItemCard({ item, balance, onBuy }: { item: ShopItem; balance: number; onBuy: () => void }) {
+function ItemCard({ item, balance, onBuy, usesLeft }: { item: ShopItem; balance: number; onBuy: () => void; usesLeft: number }) {
   const Icon = ITEM_ICONS[item.key] ?? Gift;
   const block = buyBlock(item, balance);
   return (
@@ -315,6 +328,11 @@ function ItemCard({ item, balance, onBuy }: { item: ShopItem; balance: number; o
         <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-saffron/10 ring-1 ring-saffron/20" aria-hidden>
           <Icon className="h-7 w-7 text-saffron" />
         </span>
+        {usesLeft > 0 && (
+          <span className="rounded-full bg-saffron/15 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-saffron ring-1 ring-inset ring-saffron/30">
+            {usesLeft} {usesLeft === 1 ? "use" : "uses"} left
+          </span>
+        )}
         {item.perMonth !== null && (
           <span className="rounded-full bg-teal/15 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-teal-soft ring-1 ring-inset ring-teal/30">
             {item.boughtThisMonth}/{item.perMonth} this month

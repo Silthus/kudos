@@ -481,7 +481,7 @@ describe("review fixes", () => {
     await thank("UBEN");
     const cleo = await as(team.cleo);
     const now = await cleo.query(api.gardens.of, { memberId: team.ana });
-    for (const plant of now!.plants) expect(Object.keys(plant).sort()).toEqual(["dormant", "forYou", "plantId", "species", "speciesName", "stage", "stageName"]);
+    for (const plant of now!.plants) expect(Object.keys(plant).sort()).toEqual(["canTakeDown", "dormant", "forYou", "lantern", "plantId", "species", "speciesName", "stage", "stageName"]);
     expect(JSON.stringify(now)).not.toMatch(/2026-/); // no day of any kind
   });
 

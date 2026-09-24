@@ -856,6 +856,7 @@ const DEMO_TABLES = [
   "redemptions",
   "balanceAdjustments",
   "itemPurchases",
+  "boosts",
   "notifications",
 ] as const;
 
@@ -895,6 +896,8 @@ async function demoRows(ctx: MutationCtx, workspaceId: Id<"workspaces">, table: 
       return await ctx.db.query("balanceAdjustments").withIndex("by_workspace_at", (q) => q.eq("workspaceId", workspaceId)).take(1000);
     case "itemPurchases":
       return await ctx.db.query("itemPurchases").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+    case "boosts":
+      return await ctx.db.query("boosts").withIndex("by_workspace_day", (q) => q.eq("workspaceId", workspaceId)).take(1000);
     case "notifications":
       return [];
   }

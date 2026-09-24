@@ -23,6 +23,8 @@ import {
   scoreReceive,
   type XpItem,
 } from "./lib/xp";
+import { boostAt, type BoostKind } from "./lib/boosts";
+import { boostOn, boostsOf } from "./boosts";
 
 /**
  * The game's foundation (#55 §G1, G3, G4): the workspace switch, players, the XP and Hog coin
@@ -178,14 +180,17 @@ async function lastReceivedAt(ctx: QueryCtx, receiverId: Id<"members">, at: numb
   return last?.at ?? null;
 }
 
-/** A batch's scored lines as the ledger stores them: each with the Hog coins its kudos row earned. */
+/**
+ * A batch's scored lines as the ledger stores them: each with the Hog coins its kudos row earned,
+ * doubled where a bonus day or booster doubled the line (§G9). Live and rebuild both come here.
+ */
 function ledgerLines(lines: GiveLine[], rows: Doc<"kudos">[]) {
   const amount = new Map<string, number>(rows.map((r) => [r._id, r.amount]));
   return lines.map((l) => ({
     ...l,
     kudosId: l.kudosId as Id<"kudos">,
     receiverId: l.receiverId as Id<"members">,
-    coins: lineCoins({ qualifying: l.qualifying, amount: amount.get(l.kudosId) ?? 0 }),
+    coins: lineCoins({ qualifying: l.qualifying, amount: amount.get(l.kudosId) ?? 0, boosted: l.boosted }),
   }));
 }
 
@@ -194,7 +199,7 @@ function giveLines(events: Doc<"gameEvents">[]) {
 }
 
 /** What a batch earned, itemised for the earnings reply. */
-function earningsOf(lines: GiveLine[], noteWords: number | undefined): Earnings {
+function earningsOf(lines: GiveLine[], noteWords: number | undefined, boost: BoostKind | undefined): Earnings {
   const bonuses = new Map<XpItem["kind"], number>();
   for (const item of lines.flatMap((l) => l.items)) {
     if (item.kind !== "base" && item.kind !== "thin") bonuses.set(item.kind, (bonuses.get(item.kind) ?? 0) + item.xp);
@@ -207,13 +212,15 @@ function earningsOf(lines: GiveLine[], noteWords: number | undefined): Earnings 
     capped: xp < raw,
     noReason: !hasNote(noteWords),
     thankBack: hasNote(noteWords) && lines.some((l) => !l.qualifying),
+    ...(boost && lines.some((l) => l.boosted) ? { boost } : {}),
   };
 }
 
 /**
  * Called from `giveKudos` with the rows of one batch: makes the giver a player, writes the giver's
  * and the receivers' XP events, adds any level-ups to the event's `gains` and returns what the batch
- * earned the giver (null while the game is off or hidden from them).
+ * earned the giver (null while the game is off or hidden from them) and who received a qualifying
+ * kudos in it (none while the game is off).
  */
 export async function onGameGiven(
   ctx: MutationCtx,
@@ -222,8 +229,8 @@ export async function onGameGiven(
   rows: Doc<"kudos">[],
   noteWords: number | undefined,
   gains: Gains,
-): Promise<{ earnings: Earnings | null }> {
-  if (!gameOn(workspace) || rows.length === 0) return { earnings: null };
+): Promise<{ earnings: Earnings | null; qualifying: Id<"members">[] }> {
+  if (!gameOn(workspace) || rows.length === 0) return { earnings: null, qualifying: [] };
   const { dayKey, at, batchId } = rows[0];
   const player = await ensurePlayer(ctx, workspace, giver._id, at);
 
@@ -253,7 +260,9 @@ export async function onGameGiven(
     });
   }
   const scout = scoutEffects(skillsOf(player));
-  const lines = ledgerLines(scoreGive({ at, noteWords, unsungOn, earnedToday, recipients, scout }), rows);
+  const todays = await boostOn(ctx, workspace._id, dayKey);
+  const boost = todays ? boostAt([todays], dayKey, at)?.kind : undefined;
+  const lines = ledgerLines(scoreGive({ at, noteWords, unsungOn, earnedToday, recipients, scout, boost }), rows);
   const xp = lines.reduce((s, l) => s + l.xp, 0);
   const coins = lines.reduce((s, l) => s + l.coins, 0);
   await ctx.db.insert("gameEvents", { workspaceId: workspace._id, memberId: giver._id, kind: "give", batchId, dayKey, at, xp, coins, lines });
@@ -283,10 +292,12 @@ export async function onGameGiven(
     });
     await addXp(ctx, receiver, gained, 0, gains);
   }
-  if (!gameShownTo(workspace, giver)) return { earnings: null };
+  // Items like the Lucky charm act only while the giver sees the game (they can't see their charms otherwise).
+  if (!gameShownTo(workspace, giver)) return { earnings: null, qualifying: [] };
+  const qualifying = lines.filter((l) => l.qualifying).map((l) => l.receiverId);
   // Coins collect silently until the wallet opens (level 3, maybe reached with this very kudos).
   const walletOpen = ((await ctx.db.get(player._id))?.level ?? 1) >= WALLET_LEVEL;
-  return { earnings: { ...earningsOf(lines, noteWords), ...(walletOpen ? { coins } : {}) } };
+  return { earnings: { ...earningsOf(lines, noteWords, boost), ...(walletOpen ? { coins } : {}) }, qualifying };
 }
 
 /**
@@ -428,6 +439,7 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
   const batches = new Map<string, Doc<"kudos">[]>();
   for (const k of given) batches.set(k.batchId, [...(batches.get(k.batchId) ?? []), k]);
   const skillsAt = await skillTimeline(ctx, member._id); // Scout skills as they stood at each batch
+  const boosts = await boostsOf(ctx, workspace._id); // bonus days and boosters, as they were on
   const lastTo = new Map<string, number>(); // latest kudos to each receiver so far, paused or not
   const qualifyingDays = new Map<string, string[]>(); // per receiver: the day of each qualifying line
   const earnedOn = new Map<string, number>();
@@ -450,7 +462,8 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
         });
       }
       const scout = scoutEffects(skillsAt(rows[0]));
-      const lines = ledgerLines(scoreGive({ at, noteWords, unsungOn, earnedToday: earnedOn.get(dayKey) ?? 0, recipients, scout }), rows);
+      const boost = boostAt(boosts, dayKey, at)?.kind;
+      const lines = ledgerLines(scoreGive({ at, noteWords, unsungOn, earnedToday: earnedOn.get(dayKey) ?? 0, recipients, scout, boost }), rows);
       const xp = lines.reduce((s, l) => s + l.xp, 0);
       const coins = lines.reduce((s, l) => s + l.coins, 0);
       earnedOn.set(dayKey, (earnedOn.get(dayKey) ?? 0) + xp);
@@ -663,6 +676,9 @@ export const mine = query({
     hidden: v.boolean(),
     player: v.union(v.null(), progressValidator),
     wallet: v.union(v.null(), walletValidator),
+    luckyCharms: v.number(), // Lucky charm uses left (#97)
+    sunlamps: v.number(), // Sunlamps bought, not yet used (#97)
+    lanterns: v.number(), // Lanterns bought, not yet hung (#97)
   }),
   handler: async (ctx) => {
     const { workspace, member } = await requireViewer(ctx);
@@ -673,6 +689,9 @@ export const mine = query({
       hidden: Boolean(member.gameHidden),
       player: player ? levelProgress(player.xp, player.level) : null,
       wallet: player && player.level >= WALLET_LEVEL && !member.gameHidden ? coinBalance(player, member) : null,
+      luckyCharms: player?.luckyCharms ?? 0,
+      sunlamps: player?.sunlamps ?? 0,
+      lanterns: player?.lanterns ?? 0,
     };
   },
 });

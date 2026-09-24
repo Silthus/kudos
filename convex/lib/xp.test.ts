@@ -204,3 +204,51 @@ describe("XP for receiving", () => {
     expect(scoreReceive({ ...base, isPlayer: false })).toBe(0);
   });
 });
+
+describe("bonus days and company-wide boosters (#55 §G9, G10)", () => {
+  const show = (lines: ReturnType<typeof scoreGive>) => lines.map((l) => `${l.kudosId}:${l.xp}:${l.boosted ?? false}`);
+
+  test("a bonus day doubles what a qualifying kudos earns, bonuses included, but never a thin one", () => {
+    const [line] = give({ boost: "double", recipients: [recipient({ lastGivenAt: null })] }); // 10 + new connection 10
+    expect(line).toMatchObject({ qualifying: true, xp: 40, boosted: true });
+    expect(line.items).toEqual([
+      { kind: "base", xp: 10 },
+      { kind: "new_connection", xp: 10 },
+      { kind: "boost", xp: 20 },
+    ]);
+    const [thin] = give({ boost: "double", noteWords: 1 });
+    expect(thin).toMatchObject({ qualifying: false, xp: 2 });
+    expect(thin.boosted).toBeUndefined();
+  });
+
+  test("the daily XP cap stays: doubled lines are cut like any other", () => {
+    const two = [recipient({ kudosId: "a", lastGivenAt: null }), recipient({ kudosId: "b", receiverId: "c" })];
+    expect(show(give({ boost: "double", earnedToday: 20, recipients: two }))).toEqual(["a:30:true", "b:0:true"]);
+  });
+
+  test("a third thanks today earns no XP but still counts as boosted, so its coins double", () => {
+    expect(give({ boost: "double", recipients: [recipient({ earlierToday: 2 })] })[0]).toMatchObject({ xp: 0, boosted: true });
+  });
+
+  test("a conditional booster doubles only the kudos it is about", () => {
+    const fresh = recipient({ kudosId: "a", lastGivenAt: null }); // 10 + new connection 10
+    const old = recipient({ kudosId: "b", receiverId: "c", lastGivenAt: AT - 40 * DAY }); // 10 + rekindle 5
+    const recent = recipient({ kudosId: "c", receiverId: "d" }); // 10
+    const quiet = recipient({ kudosId: "d", receiverId: "e", receiverLastReceivedAt: null }); // 10 + unsung 5
+    const recipients = [fresh, old, recent, quiet];
+    expect(show(give({ boost: "new_connection", unsungOn: true, recipients }))).toEqual(["a:40:true", "b:10:false", "c:0:false", "d:0:false"]);
+    expect(show(give({ boost: "rekindle", unsungOn: true, recipients }))).toEqual(["a:20:false", "b:30:true", "c:0:false", "d:0:false"]);
+    expect(show(give({ boost: "unsung", unsungOn: true, recipients: [recent, quiet] }))).toEqual(["c:10:false", "d:30:true"]);
+  });
+
+  test("the earnings reply names the boost", () => {
+    const e = { xp: 40, bonuses: [{ kind: "new_connection" as const, xp: 10 }, { kind: "boost" as const, xp: 20 }], capped: false, noReason: false, thankBack: false };
+    expect(earningsText({ ...e, boost: "double" })).toBe("+40 XP · new connection +10 · bonus day ×2 +20");
+    expect(earningsText({ ...e, boost: "new_connection" })).toBe("+40 XP · new connection +10 · new-connections booster ×2 +20");
+  });
+
+  test("a boost that doubled nothing (a third thanks today) isn't named (review #10)", () => {
+    const e = { xp: 2, bonuses: [{ kind: "boost" as const, xp: 0 }], capped: false, noReason: false, thankBack: true, boost: "double" as const };
+    expect(earningsText(e)).toBe("+2 XP · thanking back within 72 h earns less");
+  });
+});

@@ -9,6 +9,7 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { useHashScroll } from "@/lib/hashScroll";
 import { navItems } from "@/lib/nav";
 import { useViewer } from "@/lib/viewer";
+import { BoostBanner } from "./boosts";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { MobileNav, SidebarNav } from "./Nav";
 import { Avatar } from "./ui";
@@ -121,6 +122,7 @@ export function AppShell() {
             to give kudos.
           </p>
         )}
+        <BoostBanner />
         {/* Enter-only transition: an exit phase around <Outlet /> can leave the page stuck invisible. */}
         <motion.div
           key={location.pathname}

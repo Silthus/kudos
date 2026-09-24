@@ -9,6 +9,11 @@ describe("Hog coins (#55 §G4)", () => {
     expect(lineCoins({ qualifying: false, amount: 3 })).toBe(0); // no reason, or a thank-back
   });
 
+  test("on a bonus day a boosted qualifying kudos earns double; a boost never makes a thin one earn (§G9)", () => {
+    expect(lineCoins({ qualifying: true, amount: 2, boosted: true })).toBe(4);
+    expect(lineCoins({ qualifying: false, amount: 2, boosted: true })).toBe(0);
+  });
+
   test("the balance is what kudos earned plus 10 per level reached, minus spending, plus or minus adjustments", () => {
     expect(coinBalance({ coins: 7, level: 1 })).toMatchObject({ balance: 7, fromKudos: 7, fromLevels: 0 });
     expect(coinBalance({ coins: 7, level: 3 })).toMatchObject({ balance: 27, fromKudos: 7, fromLevels: 20 });

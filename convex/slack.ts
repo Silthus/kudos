@@ -449,6 +449,30 @@ function storeSection(store: StoreHome | null, link: (path: string) => string | 
   ];
 }
 
+/**
+ * A bonus day or company-wide booster in the admin's announcement channel (#97, §G13), or a
+ * scheduled one called off. The bot must be a member of the channel: `not_in_channel` (and any
+ * other error) is recorded for the admin page, and the boost runs anyway.
+ */
+export const postAnnouncement = internalAction({
+  args: { boostId: v.id("boosts"), workspaceId: v.id("workspaces"), kind: v.union(v.literal("start"), v.literal("cancel")), dayKey: v.string(), channelId: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { channelId, ...args }) => {
+    const post = await ctx.runQuery(internal.boosts.announcementForSlack, args);
+    const outcome = { boostId: args.boostId, workspaceId: args.workspaceId, dayKey: args.dayKey, channelId };
+    if (!post) {
+      if (args.kind === "start") await ctx.runMutation(internal.boosts.announced, { ...outcome, outcome: "skipped" });
+      return null;
+    }
+    const res = await slackApi(post.token, "chat.postMessage", { channel: channelId, text: post.text, unfurl_links: false });
+    if (!res.ok) console.warn(`Boost announcement in ${channelId} failed: ${res.error}`);
+    if (args.kind === "start") {
+      await ctx.runMutation(internal.boosts.announced, res.ok ? { ...outcome, outcome: "sent" } : { ...outcome, outcome: "failed", error: res.error ?? "unknown_error" });
+    }
+    return null;
+  },
+});
+
 export const refreshHome = internalAction({
   args: { workspaceId: v.id("workspaces"), slackUserId: v.string() },
   returns: v.null(),

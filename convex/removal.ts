@@ -200,6 +200,21 @@ const PHASES: Phase[] = [
     rows: (ctx, m, n) => ctx.db.query("members").withIndex("by_adminRemovedBy", (q) => q.eq("adminRemovedBy", m._id)).take(n),
     clear: (ctx, _workspace, row) => ctx.db.patch(row._id as Id<"members">, { adminRemovedBy: undefined }),
   },
+  // Lanterns they hung on other people's plants go out (#97).
+  {
+    name: "lanterns",
+    batch: 500,
+    rows: (ctx, m, n) => ctx.db.query("plants").withIndex("by_lantern_by", (q) => q.eq("lanternBy", m._id)).take(n),
+    clear: (ctx, _workspace, row) => ctx.db.patch(row._id as Id<"plants">, { lantern: undefined, lanternBy: undefined }),
+  },
+  // Bonus days they scheduled and boosters they bought stay: everyone's kudos that day earned
+  // double, and a rebuild must replay that. Only their name (and the purchase row, gone above) goes.
+  {
+    name: "boosts",
+    batch: 500,
+    rows: (ctx, m, n) => ctx.db.query("boosts").withIndex("by_by", (q) => q.eq("by", m._id)).take(n),
+    clear: (ctx, _workspace, row) => ctx.db.patch(row._id as Id<"boosts">, { by: undefined, purchaseId: undefined }),
+  },
   // Their sign-in, unless the same user is still a member of another workspace. Every token
   // refresh leaves a row behind, so a long-lived session's refresh tokens get a phase of their own.
   {
