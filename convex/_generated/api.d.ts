@@ -45,6 +45,7 @@ import type * as lib_settings from "../lib/settings.js";
 import type * as lib_slack from "../lib/slack.js";
 import type * as lib_stats from "../lib/stats.js";
 import type * as lib_store from "../lib/store.js";
+import type * as lib_success from "../lib/success.js";
 import type * as lib_time from "../lib/time.js";
 import type * as lib_xp from "../lib/xp.js";
 import type * as me from "../me.js";
@@ -101,6 +102,7 @@ declare const fullApi: ApiFromModules<{
   "lib/slack": typeof lib_slack;
   "lib/stats": typeof lib_stats;
   "lib/store": typeof lib_store;
+  "lib/success": typeof lib_success;
   "lib/time": typeof lib_time;
   "lib/xp": typeof lib_xp;
   me: typeof me;

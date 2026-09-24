@@ -89,6 +89,14 @@ test("admins see this month's success metrics against the baseline, each with it
   expect(tile("recipientsPerGiver")).toContain("should rise");
   expect(tile("storyShare")).toContain("45%");
   expect(tile("reciprocalShare")).toContain("must not rise");
+  // The comparison is spelled out, not only coloured.
+  expect(tile("recipientsPerGiver")).toContain("above baseline");
+  expect(tile("reciprocalShare")).toContain("above baseline");
+  expect(card.querySelector("[data-metric='reciprocalShare'] [data-verdict]")!.getAttribute("data-verdict")).toBe("worse");
+  expect(card.querySelector("[data-metric='storyShare'] [data-verdict]")!.getAttribute("data-verdict")).toBe("better");
+  expect(card.querySelector("[data-metric='participation'] [data-verdict]")).toBeNull(); // only watched
+  // The sparkline's time span is labelled.
+  expect(tile("storyShare")).toContain("Aug 2026");
   expect(tile("participation")).toContain("33%");
   expect(card.textContent).toContain("Jun – Aug 2026");
   expect(card.textContent).toContain("Download CSV");

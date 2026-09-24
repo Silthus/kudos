@@ -85,11 +85,14 @@ export function SuccessMetrics({ today }: { today: string }) {
                       <Eyebrow>{metric.label}</Eyebrow>
                       <span className="text-[11px] text-faint">{GOAL_LABEL[metric.goal]}</span>
                     </div>
-                    <div className="mt-1 flex items-baseline gap-3">
+                    <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
                       <span className="font-display text-3xl font-semibold">{formatMetric(metric.key, value)}</span>
-                      <span className={clsx("text-xs", v ? VERDICT_CLASS[v] : "text-muted")}>
-                        Baseline {formatMetric(metric.key, base)}
-                      </span>
+                      <span className="text-xs text-muted">Baseline {formatMetric(metric.key, base)}</span>
+                      {v && value !== null && base !== null && (
+                        <span data-verdict={v} className={clsx("text-xs font-medium", VERDICT_CLASS[v])}>
+                          {v === "same" ? "at baseline" : value > base ? "above baseline" : "below baseline"}
+                        </span>
+                      )}
                     </div>
                     <p className="mt-1 text-xs text-faint">{metric.hint}</p>
                     <div className="mt-3">
@@ -101,6 +104,10 @@ export function SuccessMetrics({ today }: { today: string }) {
                         format={(n) => formatMetric(metric.key, n)}
                         lastPartial={current?.toDate}
                       />
+                      <div className="mt-1 flex justify-between font-mono text-[10px] text-faint">
+                        <span>{monthLabel(result.months[0].month)}</span>
+                        {result.months.length > 1 && <span>{monthLabel(result.months.at(-1)!.month)}</span>}
+                      </div>
                     </div>
                   </div>
                 );
