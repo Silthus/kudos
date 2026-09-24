@@ -1,9 +1,18 @@
 import { httpRouter } from "convex/server";
 import { registerStaticRoutes } from "@convex-dev/static-hosting";
-import { httpAction } from "./_generated/server";
+import { httpAction, type ActionCtx } from "./_generated/server";
 import { components, internal } from "./_generated/api";
 import { auth } from "./auth";
-import { BOT_SCOPES, convexSiteUrl, siteUrl, slackManifest, verifySlackSignature } from "./lib/slack";
+import {
+  BOT_SCOPES,
+  convexSiteUrl,
+  holdsInstallState,
+  installStateCookie,
+  siteUrl,
+  slackManifest,
+  spentInstallStateCookie,
+  verifySlackSignature,
+} from "./lib/slack";
 
 const http = httpRouter();
 
@@ -30,17 +39,49 @@ function isWorthProcessing(event: EventText) {
   return texts.some((text) => (text ?? "").includes(":"));
 }
 
+/** A 302 that can also set a cookie (`Response.redirect`'s headers are immutable). */
+const redirect = (location: string, cookie?: string) =>
+  new Response(null, { status: 302, headers: { Location: location, ...(cookie ? { "Set-Cookie": cookie } : {}) } });
+
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
-async function verified(request: Request): Promise<{ ok: true; body: string } | { ok: false; response: Response }> {
+type Verified = { ok: true; body: string } | { ok: false; response: Response };
+
+const notConfigured = () => new Response("SLACK_SIGNING_SECRET is not configured", { status: 503 });
+
+async function verified(request: Request): Promise<Verified> {
   const body = await request.text();
   const secret = process.env.SLACK_SIGNING_SECRET;
-  if (!secret) return { ok: false, response: new Response("SLACK_SIGNING_SECRET is not configured", { status: 503 }) };
+  if (!secret) return { ok: false, response: notConfigured() };
   if (!(await verifySlackSignature(secret, request.headers, body))) {
     return { ok: false, response: new Response("invalid signature", { status: 401 }) };
   }
   return { ok: true, body };
+}
+
+/** Without a signing secret, only Slack's URL check gets through, unsigned; everything else waits for the secret. */
+async function unsignedUrlCheck(request: Request): Promise<Verified> {
+  const body = await request.text();
+  let type: unknown;
+  try {
+    type = JSON.parse(body)?.type;
+  } catch {
+    type = undefined;
+  }
+  if (type !== "url_verification") return { ok: false, response: notConfigured() };
+  return { ok: true, body };
+}
+
+/**
+ * Slack signs a slash command but gives it no id, so a captured request verifies again for the
+ * 5 minutes its timestamp is accepted. Its signature is unique to it (real commands carry a
+ * fresh `trigger_id`), so each one is claimed once, like an event id.
+ */
+async function claimRequest(ctx: ActionCtx, request: Request) {
+  return await ctx.runMutation(internal.slackData.claimEvent, {
+    eventId: `request:${request.headers.get("x-slack-signature")}`,
+  });
 }
 
 // Slack Events API (HTTP webhooks, no Socket Mode).
@@ -48,20 +89,17 @@ http.route({
   path: "/slack/events",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
-    const body = await request.clone().text();
+    // Answer Slack's URL check even before the signing secret is configured, so the
+    // manifest's request URL verifies on app creation. Echoing the challenge is harmless.
+    // Once there is a secret, nothing is read before the signature checks out.
+    const check = process.env.SLACK_SIGNING_SECRET ? await verified(request) : await unsignedUrlCheck(request);
+    if (!check.ok) return check.response;
     let payload: { type?: string; challenge?: string; team_id?: string; event_id?: string; event?: EventText };
     try {
-      payload = JSON.parse(body);
+      payload = JSON.parse(check.body);
     } catch {
       return new Response("bad request", { status: 400 });
     }
-    // Answer Slack's URL check even before the signing secret is configured, so the
-    // manifest's request URL verifies on app creation. Echoing the challenge is harmless.
-    if (payload.type === "url_verification" && !process.env.SLACK_SIGNING_SECRET) {
-      return json({ challenge: payload.challenge });
-    }
-    const check = await verified(request);
-    if (!check.ok) return check.response;
     if (payload.type === "url_verification") return json({ challenge: payload.challenge });
     if (payload.type !== "event_callback" || !payload.team_id || !payload.event_id || !payload.event) {
       return new Response("", { status: 200 });
@@ -84,6 +122,7 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     const check = await verified(request);
     if (!check.ok) return check.response;
+    if (!(await claimRequest(ctx, request))) return new Response("", { status: 200 });
     const form = new URLSearchParams(check.body);
     const response = await ctx.runMutation(internal.slackData.slashCommand, {
       teamId: form.get("team_id") ?? "",
@@ -153,7 +192,7 @@ http.route({
     url.searchParams.set("scope", BOT_SCOPES.join(","));
     url.searchParams.set("redirect_uri", `${convexSiteUrl()}/slack/oauth/callback`);
     url.searchParams.set("state", state);
-    return Response.redirect(url.toString(), 302);
+    return redirect(url.toString(), installStateCookie(state));
   }),
 });
 
@@ -163,11 +202,16 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     const url = new URL(request.url);
     const site = siteUrl();
-    const fail = (reason: string) => Response.redirect(`${site}/?install_error=${encodeURIComponent(reason)}`, 302);
+    // Once the state is spent, so is the browser's cookie for it.
+    let spent: string | undefined;
+    const fail = (reason: string) => redirect(`${site}/?install_error=${encodeURIComponent(reason)}`, spent);
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");
     if (url.searchParams.get("error")) return fail(url.searchParams.get("error")!);
     if (!code || !state) return fail("missing_code");
+    // A callback link opened in another browser (login CSRF) must not install into that session.
+    if (!holdsInstallState(request.headers, state)) return fail("state_mismatch");
+    spent = spentInstallStateCookie();
     if (!(await ctx.runMutation(internal.slackData.consumeOAuthState, { state }))) return fail("expired_state");
 
     const res = await fetch("https://slack.com/api/oauth.v2.access", {
@@ -203,7 +247,7 @@ http.route({
       scope: data.scope ?? "",
     });
     await ctx.scheduler.runAfter(0, internal.slack.syncAllMembers, { workspaceId });
-    return Response.redirect(`${site}/?installed=${encodeURIComponent(data.team.name)}`, 302);
+    return redirect(`${site}/?installed=${encodeURIComponent(data.team.name)}`, spent);
   }),
 });
 

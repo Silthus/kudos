@@ -1,4 +1,5 @@
 import { useAuthActions } from "@convex-dev/auth/react";
+import { useQuery } from "convex/react";
 import { AnimatePresence, motion } from "motion/react";
 import { BarChart3, Gem, Lock, Sparkles, Timer, Trophy, Webhook } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -7,6 +8,7 @@ import { Logo } from "@/components/AppShell";
 import { Avatar, Button, Eyebrow, RarityBadge } from "@/components/ui";
 import { RARITY_META, RARITY_ORDER, type Rarity } from "@/lib/rarity";
 import { siteUrl } from "@/lib/viewer";
+import { api } from "../../convex/_generated/api";
 
 export function SlackMark({ className = "h-4 w-4" }: { className?: string }) {
   return (
@@ -107,14 +109,22 @@ export function Landing() {
   const { signIn } = useAuthActions();
   const [params] = useSearchParams();
   const [busy, setBusy] = useState<"demo" | "slack" | null>(null);
+  const [demoFailed, setDemoFailed] = useState(false);
+  // Shown until the deployment says the demo is off (DEMO_MODE isn't "true").
+  const demoEnabled = useQuery(api.session.setupStatus)?.demoEnabled !== false;
   const installed = params.get("installed");
   const installError = params.get("install_error");
   const site = siteUrl();
 
   const demo = async () => {
     setBusy("demo");
+    setDemoFailed(false);
     try {
-      await signIn("demo");
+      // A refused sign-in resolves without signing in rather than throwing.
+      const { signingIn } = await signIn("demo");
+      if (!signingIn) setDemoFailed(true);
+    } catch {
+      setDemoFailed(true);
     } finally {
       setBusy(null);
     }
@@ -145,7 +155,12 @@ export function Landing() {
             {installed ? (
               <>🎉 Kudos is installed in <b>{installed}</b>. Sign in with Slack to open your dashboard, then invite <code>@Kudos</code> to a channel.</>
             ) : (
-              <>Installation didn't complete ({installError}). Try again, or check the install guide.</>
+              <>
+                Installation didn't complete ({installError}).{" "}
+                {installError === "state_mismatch"
+                  ? "Start it again with Add to Slack, and finish it in this browser."
+                  : "Try again, or check the install guide."}
+              </>
             )}
           </div>
         </div>
@@ -168,12 +183,20 @@ export function Landing() {
                 <SlackMark className="h-5 w-5" /> Add to Slack
               </Button>
             </a>
-            <Button variant="outline" size="lg" onClick={demo} disabled={busy !== null}>
-              <Sparkles className="h-4 w-4 text-saffron" />
-              {busy === "demo" ? "Opening demo…" : "Explore the live demo"}
-            </Button>
+            {demoEnabled && (
+              <Button variant="outline" size="lg" onClick={demo} disabled={busy !== null}>
+                <Sparkles className="h-4 w-4 text-saffron" />
+                {busy === "demo" ? "Opening demo…" : "Explore the live demo"}
+              </Button>
+            )}
           </div>
-          <p className="mt-4 text-sm text-faint">No sign-up for the demo. It's a sample workspace with this year's history.</p>
+          {demoFailed ? (
+            <p role="alert" className="mt-4 text-sm text-down">
+              The demo couldn't be opened. Try again in a moment, or check the install guide.
+            </p>
+          ) : (
+            demoEnabled && <p className="mt-4 text-sm text-faint">No sign-up for the demo. It's a sample workspace with this year's history.</p>
+          )}
         </div>
         <SlackMock />
       </section>

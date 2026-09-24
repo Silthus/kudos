@@ -1,11 +1,12 @@
 import clsx from "clsx";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { motion } from "motion/react";
-import { ArrowLeftRight, BarChart3, FlaskConical, Gem, Gift, LogOut, Settings2, Trophy, UserRound } from "lucide-react";
+import { ArrowLeftRight, BarChart3, ChevronsUpDown, FlaskConical, Gem, Gift, LogOut, Settings2, Trophy, UserRound } from "lucide-react";
 import { useEffect } from "react";
 import { NavLink, Outlet, useLocation } from "react-router";
 import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 import { useViewer } from "@/lib/viewer";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { Avatar } from "./ui";
@@ -30,6 +31,28 @@ function NavBadge({ count, className }: { count: number; className?: string }) {
       {label}
       <span className="sr-only"> open store {count === 1 ? "request" : "requests"}</span>
     </span>
+  );
+}
+
+/** Picks which of the user's workspaces the app shows; nothing when they're in only one. */
+function WorkspaceSwitcher({ className }: { className?: string }) {
+  const { workspaces } = useViewer();
+  const switchWorkspace = useMutation(api.session.switchWorkspace);
+  if (workspaces.length < 2) return null;
+  const current = workspaces.find((w) => w.current)!;
+  return (
+    <select
+      aria-label="Switch workspace"
+      className={className}
+      value={current.memberId}
+      onChange={(e) => void switchWorkspace({ memberId: e.target.value as Id<"members"> })}
+    >
+      {workspaces.map((w) => (
+        <option key={w.memberId} value={w.memberId}>
+          {w.name}
+        </option>
+      ))}
+    </select>
   );
 }
 
@@ -59,7 +82,7 @@ export function AppShell() {
         <div className="px-2">
           <Logo glyph={viewer.workspace.emojiGlyph} />
         </div>
-        <div className="mt-6 flex items-center gap-3 rounded-xl border border-line bg-panel/70 px-3 py-2.5">
+        <div className="relative mt-6 flex items-center gap-3 rounded-xl border border-line bg-panel/70 px-3 py-2.5 has-[select:focus-visible]:border-saffron/60">
           {viewer.workspace.iconUrl ? (
             <img src={viewer.workspace.iconUrl} alt="" className="h-8 w-8 rounded-lg" />
           ) : (
@@ -67,10 +90,12 @@ export function AppShell() {
               {viewer.workspace.name[0]}
             </span>
           )}
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="truncate text-sm font-medium">{viewer.workspace.name}</div>
             <div className="font-mono text-[10px] uppercase tracking-wider text-faint">{viewer.workspace.isDemo ? "Demo workspace" : "Slack workspace"}</div>
           </div>
+          <WorkspaceSwitcher className="absolute inset-0 cursor-pointer opacity-0" />
+          {viewer.workspaces.length > 1 && <ChevronsUpDown className="h-4 w-4 shrink-0 text-faint" aria-hidden />}
         </div>
         <nav className="mt-6 flex flex-col gap-1">
           {nav.map((n) => (
@@ -111,6 +136,7 @@ export function AppShell() {
 
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-ink/80 px-4 py-3 backdrop-blur lg:hidden">
         <Logo glyph={viewer.workspace.emojiGlyph} />
+        <WorkspaceSwitcher className="ml-auto mr-2 max-w-[45%] truncate rounded-lg border border-line bg-panel px-2 py-1.5 text-sm text-cream" />
         <button onClick={() => void signOut()} className="rounded-lg p-2 text-faint" aria-label="Sign out">
           <LogOut className="h-4 w-4" />
         </button>

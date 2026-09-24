@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { internal } from "../convex/_generated/api";
 import { signSlackRequest } from "../convex/lib/slack";
-import { all, member, seedTeam, setupConvex, type Team } from "./helpers";
+import { all, member, NOW, seedTeam, setupConvex, type Team } from "./helpers";
 
 const SECRET = "test-signing-secret";
 
@@ -73,6 +73,31 @@ describe("POST /slack/events", () => {
   test("rejects requests that aren't signed by Slack", async () => {
     const res = await t.fetch("/slack/events", { method: "POST", body: eventCallback("Ev1", { type: "message" }) });
     expect(res.status).toBe(401);
+  });
+
+  test("checks the signature before reading the body, so unsigned junk learns nothing", async () => {
+    const res = await t.fetch("/slack/events", { method: "POST", body: "{not json" });
+    expect(res.status).toBe(401);
+  });
+
+  test("once a signing secret is set, even the URL check must be signed", async () => {
+    const res = await t.fetch("/slack/events", { method: "POST", body: JSON.stringify({ type: "url_verification", challenge: "c-1" }) });
+    expect(res.status).toBe(401);
+  });
+
+  describe("before the signing secret is configured", () => {
+    beforeEach(() => vi.stubEnv("SLACK_SIGNING_SECRET", ""));
+
+    test("answers only Slack's URL check, so the manifest's request URL verifies on app creation", async () => {
+      const res = await t.fetch("/slack/events", { method: "POST", body: JSON.stringify({ type: "url_verification", challenge: "c-2" }) });
+      expect(await res.json()).toEqual({ challenge: "c-2" });
+    });
+
+    test("refuses every event", async () => {
+      const body = eventCallback("Ev9", { type: "message", user: "UANA", text: "<@UBEN> :taco:", channel: "C1", ts: "1.1" });
+      expect((await t.fetch("/slack/events", { method: "POST", body })).status).toBe(503);
+      expect(await all(t, "slackEvents")).toHaveLength(0);
+    });
   });
 
   test("turns a signed message event into kudos and DMs, even when Slack retries it", async () => {
@@ -159,8 +184,14 @@ describe("processing Slack events", () => {
 });
 
 describe("POST /slack/commands", () => {
+  let triggers = 0;
+  // Like Slack, every command carries its own trigger id: identical requests are replays.
   const command = (text: string) =>
-    signedPost("/slack/commands", new URLSearchParams({ team_id: "T1", user_id: "UANA", command: "/kudos", text }).toString(), "application/x-www-form-urlencoded");
+    signedPost(
+      "/slack/commands",
+      new URLSearchParams({ team_id: "T1", user_id: "UANA", command: "/kudos", text, trigger_id: `${++triggers}` }).toString(),
+      "application/x-www-form-urlencoded",
+    );
 
   test("/kudos me shows the balance with a rarity-rolled message", async () => {
     const body = await (await command("me")).json();
@@ -182,5 +213,31 @@ describe("POST /slack/commands", () => {
   test("anything else explains how Kudos works", async () => {
     const body = await (await command("help")).json();
     expect(body.text).toContain("How Kudos works");
+  });
+
+  test("a replayed command runs once within Slack's 5-minute signature window", async () => {
+    const form = (triggerId: string) =>
+      new URLSearchParams({ team_id: "T1", user_id: "UANA", command: "/kudos", text: "me", trigger_id: triggerId }).toString();
+    const original = await signedPost("/slack/commands", form("1.1"), "application/x-www-form-urlencoded");
+    expect((await original.json()).response_type).toBe("ephemeral");
+
+    vi.advanceTimersByTime(4 * 60 * 1000); // the same signed request, sent again by whoever captured it
+    const ts = String(Math.floor(NOW.getTime() / 1000));
+    const replay = await t.fetch("/slack/commands", {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+        "x-slack-request-timestamp": ts,
+        "x-slack-signature": await signSlackRequest(SECRET, ts, form("1.1")),
+      },
+      body: form("1.1"),
+    });
+    expect(replay.status).toBe(200);
+    expect(await replay.text()).toBe("");
+    expect(await all(t, "notifications")).toHaveLength(1);
+
+    // Each real command carries its own trigger id, so it is a different request.
+    await signedPost("/slack/commands", form("1.2"), "application/x-www-form-urlencoded");
+    expect(await all(t, "notifications")).toHaveLength(2);
   });
 });

@@ -38,6 +38,29 @@ export async function verifySlackSignature(
   return timingSafeEqual(await signSlackRequest(secret, timestamp, body), signature);
 }
 
+/**
+ * The install's OAuth state, bound to the browser that started it: HttpOnly so no script can read
+ * it, Lax so Slack's top-level redirect back still carries it, and only ever sent to the callback.
+ */
+const INSTALL_STATE_COOKIE = "__Secure-kudos_install_state";
+const INSTALL_STATE_PATH = "/slack/oauth/callback";
+
+export function installStateCookie(state: string, maxAgeSeconds = 600) {
+  return `${INSTALL_STATE_COOKIE}=${state}; HttpOnly; Secure; SameSite=Lax; Path=${INSTALL_STATE_PATH}; Max-Age=${maxAgeSeconds}`;
+}
+
+export const spentInstallStateCookie = () => installStateCookie("", 0);
+
+/** Whether the request comes from the browser that was handed `state` by `/slack/install`. */
+export function holdsInstallState(headers: Headers, state: string) {
+  const held = (headers.get("cookie") ?? "")
+    .split(";")
+    .map((pair) => pair.trim())
+    .find((pair) => pair.startsWith(`${INSTALL_STATE_COOKIE}=`))
+    ?.slice(INSTALL_STATE_COOKIE.length + 1);
+  return held !== undefined && timingSafeEqual(held, state);
+}
+
 /** Interaction answers only ever go back to Slack, whatever a payload's `response_url` says. */
 export function isSlackResponseUrl(url: string) {
   try {

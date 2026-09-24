@@ -1,7 +1,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { v } from "convex/values";
-import { query } from "./_generated/server";
-import { getViewer, publicSettings } from "./lib/access";
+import { ConvexError, v } from "convex/values";
+import { mutation, query } from "./_generated/server";
+import { memberships, publicSettings } from "./lib/access";
 import { siteUrl } from "./lib/slack";
 import { storeOpen } from "./lib/store";
 
@@ -11,13 +11,20 @@ export const viewer = query({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return { status: "signedOut" as const };
-    const viewer = await getViewer(ctx);
-    if (!viewer) {
+    const usable = await memberships(ctx, userId);
+    if (!usable.length) {
       const user = await ctx.db.get(userId);
       return { status: "notInstalled" as const, name: user?.name ?? null, slackTeamId: user?.slackTeamId ?? null };
     }
-    const { member, workspace } = viewer;
+    const [{ member, workspace }] = usable;
     return {
+      // Every workspace this user can switch to, the current one first.
+      workspaces: usable.map((m) => ({
+        memberId: m.member._id,
+        name: m.workspace.name,
+        iconUrl: m.workspace.iconUrl ?? null,
+        current: m.member._id === member._id,
+      })),
       status: "ready" as const,
       member: {
         _id: member._id,
@@ -38,6 +45,20 @@ export const viewer = query({
       canSeeOwnReceived: workspace.receivedVisibility !== "hidden",
       canSeeOthersReceived: workspace.receivedVisibility === "everyone",
     };
+  },
+});
+
+/** Shows another of the signed-in user's workspaces from now on (see `memberships`). */
+export const switchWorkspace = mutation({
+  args: { memberId: v.id("members") },
+  returns: v.null(),
+  handler: async (ctx, { memberId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new ConvexError("Sign in with Slack to continue.");
+    const usable = await memberships(ctx, userId);
+    if (!usable.some((m) => m.member._id === memberId)) throw new ConvexError("You can't switch to that workspace.");
+    await ctx.db.patch(memberId, { activeAt: Date.now() });
+    return null;
   },
 });
 

@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
-import { all, setupConvex } from "./helpers";
+import { all, DEMO_TIMEOUT, setupConvex } from "./helpers";
 
 let t: ReturnType<typeof setupConvex>;
 
-// Entering the demo seeds its history and rebuilds its rollups: slow under convex-test.
-vi.setConfig({ testTimeout: 30_000 });
+// Every test here enters the demo (see DEMO_TIMEOUT).
+vi.setConfig({ testTimeout: DEMO_TIMEOUT });
 
 beforeEach(() => {
   t = setupConvex();

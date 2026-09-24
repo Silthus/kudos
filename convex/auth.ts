@@ -75,7 +75,7 @@ function slackUserFields(profile: Record<string, unknown>) {
 }
 
 /** Attach the Slack identity to its member row in an installed workspace (if any). */
-async function linkSlackMember(ctx: MutationCtx, userId: Id<"users">, profile: Record<string, unknown>) {
+export async function linkSlackMember(ctx: MutationCtx, userId: Id<"users">, profile: Record<string, unknown>) {
   const { slackUserId, slackTeamId, name, image } = slackUserFields(profile);
   if (!slackUserId || !slackTeamId) return;
   const workspace = await ctx.db
@@ -90,7 +90,7 @@ async function linkSlackMember(ctx: MutationCtx, userId: Id<"users">, profile: R
     )
     .unique();
   if (member) {
-    await ctx.db.patch(member._id, { userId, avatarUrl: member.avatarUrl ?? image });
+    await ctx.db.patch(member._id, { userId, avatarUrl: member.avatarUrl ?? image, activeAt: Date.now() });
   } else {
     await ctx.db.insert("members", {
       workspaceId: workspace._id,
@@ -101,6 +101,7 @@ async function linkSlackMember(ctx: MutationCtx, userId: Id<"users">, profile: R
       isBot: false,
       deactivated: false,
       userId,
+      activeAt: Date.now(),
       totalGiven: 0,
       totalReceived: 0,
       totalMaxedDays: 0,
