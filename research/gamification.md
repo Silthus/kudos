@@ -8,9 +8,9 @@ This note does **not** make the product decisions. Every choice below is an opti
 
 ## TL;DR
 
-- **The one rule that keeps it honest: the game rewards *how well you appreciate*, never *how much you're appreciated* and never *how many kudos you move*.** Everything below hangs off the "qualifying kudos" rule the Quest spec already uses (a note of 3+ words, not a thank-you-back within 72 h, one message = one step).
-- **Three ledgers, one firewall.** *Kudos* stay what they are (allowance-limited recognition; received kudos are the Store balance, [ADR 0001](../docs/adr/0001-store-balance-is-received-kudos.md)). *XP* is a new, never-spent progress score that decides your *level*. *Seeds* are a new soft currency for boosters, saplings and cosmetics. **Nothing in the game ever writes the Store balance or the daily allowance.** One optional, admin-controlled bridge is sketched in §6.4.
-- **XP: a thoughtful kudos earns the giver 10 XP and the receiver 3**, with per-pair decay, a daily cap and small bonuses for breadth (new connection, rekindled friendship, unsung hero, a real "why"). A steady thoughtful giver reaches level 5 in about 3 weeks and level 10 in about a quarter; a points farmer earns less than half of that (§4).
+- **The one rule that keeps it honest: the game rewards *how well you appreciate*. Being appreciated counts a little, being popular never, and moving lots of kudos never.** Everything below hangs off the "qualifying kudos" rule the Quest spec already uses (a note of 3+ words, not a thank-you-back within 72 h, one message = one step).
+- **Three ledgers, one firewall.** *Kudos* stay what they are (allowance-limited recognition; received kudos are the Store balance, [ADR 0001](../docs/adr/0001-store-balance-is-received-kudos.md)). *XP* is a new, never-spent progress score that decides your *level*. *Seeds* are a new soft currency for boosters, saplings and cosmetics. **In the recommended design nothing in the game writes the Store balance or the daily allowance.** One optional, admin-controlled bridge is sketched in §6.4 as a separate question.
+- **XP: a thoughtful kudos earns the giver 10 XP and the receiver 3**, with per-pair decay, a daily cap and small bonuses for breadth (new connection, rekindled friendship, unsung hero, a real "why"). A steady thoughtful giver reaches level 5 in about 3 weeks and level 10 in about a quarter; a points farmer earns about a quarter of that (§4).
 - **Kudos trees are relationship trees.** You plant a sapling *for a teammate you recognise*; it only grows when you recognise that person again in a later week, it can't be rushed, it fruits Seeds and a little XP, and it goes dormant (never dies) when you stop. An "Ancient" tree means a year of recognising the same person, spread over 20 different weeks (§6.2).
 - **Boosters and perks make your recognition better for the receiver, not your score bigger.** Recommended boosters raise the rarity of the bot message *the receiver* gets, water a whole team grove, or feature a kudos. XP multipliers are listed but not recommended (§6.3).
 - **Progressive disclosure: new areas show up locked with a clear "how to unlock".** Features that already shipped stay open (taking them away would be a loss), and veterans' XP is backfilled from history so nobody starts at level 1 (§5).
@@ -126,12 +126,12 @@ Octalysis Prime (OP) is Chou's gamified learning platform, launched in February 
 
 **What we could not find: plants, seeds, trees or a garden in OP.** None appears in any primary source, and "perks" isn't an in-platform term either. The fan wiki (octalysisprime.fandom.com) was unreachable (HTTP 402), so it's possible they live there. *The tree mechanics in this note therefore borrow from farming games (§2.5), not from OP.* If the human remembers specific OP tree mechanics, the grilling should capture them.
 
-**Chou's own post-mortems of OP are the most useful part** ([daily quest thread](https://yukaichou.com/gamification-analysis/daily-quest-design-octalysis-prime/)):
+**The most useful part is a 2020 design thread Chou published, in which he and OP members pick apart the Daily Quest** ([daily quest thread](https://yukaichou.com/gamification-analysis/daily-quest-design-octalysis-prime/)):
 
-- **Stacked boosters turned learning into "grunt work".** Hardcore members felt they "MUST use potions, Success Buddy Bonus, and now Geomon bonus on every video watched". Chou calls it a black-hat compulsion. *For Kudos: boosters must not stack into an optimisation chore.*
-- **A coin reward for the daily quest made people watch videos they didn't want.** Chou added a paid "refresh" so members could pick different ones. *For Kudos: never reward recognising someone you didn't mean to recognise.*
+- **Stacking every bonus became a chore.** Members reported that hardcore "Silver+ Members 'MUST use potions, Success Buddy Bonus, and now Geomon bonus on every video watched'". Chou flags this as black-hat pressure; he takes it lightly, but the pattern is clear. *For Kudos: boosters must not stack into an optimisation chore.*
+- **A coin reward for the daily quest made people watch videos they didn't want.** Chou added a "refresh" (paid in in-game coins) so members could pick different ones. *For Kudos: never reward recognising someone you didn't mean to recognise.*
 - **Per-video rewatch cooldown.** The proposal was to "cap each video to only be rewatched with exp once a week". *That's the per-pair weekly decay in §4.2.*
-- **Capped comment rewards.** "after the third, with gives no reward, some people stop". *Caps are fine, but the thing itself must stay worth doing after the cap.*
+- **Capped comment rewards.** A member observed that "after the third, with gives no reward, some people stop". *Caps are fine, but the thing itself must stay worth doing after the cap.*
 - **Finishing everything was an "anticlimactic win state".** *Kudos needs an endgame (§5).*
 
 ### 2.3 Chou's rules for boosters
@@ -155,7 +155,7 @@ Chou defines a booster as "any feature that enhances another feature" ([Booster 
 
 | Tool | Relevant mechanics | Anti-gaming | Lesson for Kudos |
 |---|---|---|---|
-| **HeyTaco** | 5 tacos a day, use-it-or-lose-it ([docs](https://heytaco.com/docs/article/75-how-does-heytaco-work)). **50 "Tacotars" = 50 levels**, unlocked "based on your taco giving and receiving behavior" ([Tacotars](https://heytaco.com/tacotars)); thresholds aren't public. Leaderboards for given / received / combined, which admins can hide ([leaderboards](https://heytaco.com/features/leaderboards)). **Giver Mode** keeps only the "Tacos Given" board ([docs](https://heytaco.com/docs/article/74-enable-heytaco-giver-mode-as-part-of-your-culture-of-giving)). "Collaborative Rewards" pool tacos toward a shared goal *(snippet)*. | Admin limits only. "The most important part of HeyTaco is the message behind the taco." | The closest existing product to "levels for recognition". HeyTaco counts receiving too, so Kudos can differentiate by weighting giving. Giver Mode is precedent for givers-only surfaces. |
+| **HeyTaco** | 5 tacos a day, use-it-or-lose-it ([docs](https://heytaco.com/docs/article/75-how-does-heytaco-work)). **50 "Tacotars"** (avatars), unlocked "based on your taco giving and receiving behavior", and each one also unlocks a level; levels continue past the last Tacotar ("You can unlock new Levels forever", [Tacotars](https://heytaco.com/tacotars)). Thresholds aren't public. Leaderboards for given / received / combined, which admins can hide ([leaderboards](https://heytaco.com/features/leaderboards)). **Giver Mode** keeps only the "Tacos Given" board ([docs](https://heytaco.com/docs/article/74-enable-heytaco-giver-mode-as-part-of-your-culture-of-giving)). "Collaborative Rewards" pool tacos toward a shared goal *(snippet)*. | Admin limits only. "The most important part of HeyTaco is the message behind the taco." | The closest existing product to "levels for recognition". HeyTaco counts receiving too, so Kudos can differentiate by weighting giving. Giver Mode is precedent for givers-only surfaces. |
 | **Bonusly** | Two balances: "Giveable points … refresh every month and expire"; "Redeemable points … never expire" ([help](https://help.bonus.ly/en/articles/357124-how-do-bonusly-points-work)). Company-value hashtags can be required *(snippet)*. Automated celebration awards are funded by the company, not by allowance *(snippet)*. | A **Quality Bot** flags "the same user sending the same post to the same person over and over", deactivates the giver, and archives the posts pending admin review. Deleting a post claws the points back from the receiver ([help](https://help.bonus.ly/en/articles/1650845-managing-bonus-quality-user-reports-the-quality-bot)). | Keep giving currency and earning currency separate (Kudos does already). A monitor-first pattern detector is prior art for §3 guard rails. |
 | **Kudos® (kudos.com)** | "Points are always optional": a zero-point message is "still a full recognition post". Senders must pick a value. The only leaderboard ranks **managers by the share of their direct reports recognised** in the last 30 days ([blog](https://www.kudos.com/blog/how-kudos-works)). | None named. | Rank coverage, not volume. Values tagging is prior art for the plant picker (#11). |
 | **Disco** | Values tagging; a monthly raffle where giving or receiving earns one entry *(snippet, [site](https://values.justdisco.com/recognize))*. | — | A raffle is Chou's "rolling rewards" (CD7): cheap and not farmable beyond one entry. |
@@ -183,12 +183,12 @@ Chou defines a booster as "any feature that enhances another feature" ([Booster 
 | Expected, tangible, performance-contingent rewards undermine intrinsic motivation (d = −0.28 to −0.40); **positive feedback increases it**. Meta-analysis of 128 studies. | [Deci, Koestner & Ryan 1999](https://leeds-faculty.colorado.edu/dahe7472/deci%201999.pdf) | Make **feedback** (notes, "Nice note", gift trees) the main reward. Keep anything tangible small, unexpected or optional. |
 | People thrive when "competence, autonomy, and relatedness" are met. | [Ryan & Deci 2000](https://pubmed.ncbi.nlm.nih.gov/11392867/) | Levels serve competence, choices (plant picker, boosters) serve autonomy, and gift trees and mentoring serve relatedness. |
 | Small payments can do *worse* than none ("Pay enough or don't pay at all"). A fine became "a price" and late pickups *rose*, staying up after it was removed. | [Gneezy & Rustichini 2000a](https://academic.oup.com/qje/article-abstract/115/3/791/1828156), [2000b](https://www.journals.uchicago.edu/doi/10.1086/468061) | A tiny Store payout for giving could turn appreciation into a transaction. That's the case against the §6.4 bridge. |
-| Gamification's effects are positive but "greatly dependent on the context … as well as on the users". | [Hamari, Koivisto & Sarsa 2014](https://research.aalto.fi/en/publications/does-gamification-work-a-literature-review-of-empirical-studies-o/) | Pilot it, measure it, keep a kill switch (§8 Q14). |
+| Gamification's effects are positive but "greatly dependent on the context … as well as on the users". | [Hamari, Koivisto & Sarsa 2014](https://research.aalto.fi/en/publications/does-gamification-work-a-literature-review-of-empirical-studies-o/) | Pilot it, measure it, keep a kill switch (§8 Q16). |
 | Points, levels and leaderboards raised the *quantity* of contributions but "did not significantly affect competence or intrinsic motivation" *(snippet)*. | [Mekler et al. 2017](https://www.sciencedirect.com/science/article/abs/pii/S0747563215301229) | XP alone buys volume, and volume is the one thing we don't want. XP must be tied to quality and breadth. |
-| **Consent decides it:** "If they don't buy into the game, there is a negative effect"; "Among non-consenters, performance actually declined slightly." | [Mollick & Rothbard, Wharton](https://knowledge.wharton.upenn.edu/article/gamification-powering-game/) | A workspace switch *and* a per-member "hide the game" option (§8 Q2). |
+| **Consent decides it:** "If they don't buy into the game, there is a negative effect"; "Among non-consenters, performance actually declined slightly." | [Mollick & Rothbard, Wharton](https://knowledge.wharton.upenn.edu/article/gamification-powering-game/) | A workspace switch *and* a per-member "hide the game" option (§8 Q3). |
 | On leaderboards, top ranks became "complacent", and effort from low ranks faded once there seemed to be no "room for competition". | [Na & Han 2023](https://www.emerald.com/intr/article/33/7/1/178330/How-leaderboard-positions-shape-our-motivation-the) | No level leaderboard (§7.2). |
 | "When a measure becomes a target, it ceases to be a good measure" (Goodhart / Strathern). Campbell: indicators used for decisions get "corruption pressures". | [PMC review](https://pmc.ncbi.nlm.nih.gov/articles/PMC7901608/) | XP is a target, so what it measures will be gamed. Measure *breadth* and *notes*, which are hard to fake cheaply. |
-| **Reciprocity:** peer-rating networks show about 41–42% positive reciprocity against a 2–5% null. It's driven mostly by the *least active* users, and "Removing ratings between low activity users is key to suppressing the reciprocity bias". | [Livan, Caccioli & Aste 2017](https://pmc.ncbi.nlm.nih.gov/articles/PMC5471239/) | The 72 h reciprocity rule and per-pair decay target exactly this. Newcomers are the most likely to reciprocate, so onboarding copy should teach "no need to thank back". |
+| **Reciprocity:** peer-rating networks show high positive reciprocity (41% on Slashdot, 42% on Epinions, 18% on Wikipedia) against a null model of about 2–5%. It's driven mostly by the *least active* users, and "Removing ratings between low activity users is key to suppressing the reciprocity bias". | [Livan, Caccioli & Aste 2017](https://pmc.ncbi.nlm.nih.gov/articles/PMC5471239/) | The 72 h reciprocity rule and per-pair decay target exactly this. Newcomers are the most likely to reciprocate, so onboarding copy should teach "no need to thank back". |
 | One-sided feedback channels reduce reciprocal distortion. | [Bolton, Greiner & Ockenfels 2013](https://pubsonline.informs.org/doi/10.1287/mnsc.1120.1609) | "Appreciation received ♥" (#25) is a one-sided acknowledgement instead of a thank-back kudos. |
 | Only about a third of employees strongly agree the recognition they get is **authentic**. Those who find it inauthentic or inequitable are far more likely to be job-seeking (53% / 52%). | [Gallup–Workhuman 2022](https://www.workhuman.com/resources/reports-guides/unleashing-the-human-element-at-work-transforming-workplaces-through-recognition/) | Gamification that produces token kudos makes recognition *worse*. The note is the product. |
 | "Well-recognized employees are 45% less likely to have turned over two years later." | [Gallup](https://www.gallup.com/analytics/472658/workplace-recognition-research.aspx) | Why frequent, genuine recognition is worth nudging at all. |
@@ -207,7 +207,7 @@ How to read the tables:
 - **Data** is a rough data-model impact against today's schema (`members`, `kudos`, `memberDays`, rollups, `questBoards`/`questCompletions`, `discoveries`, `notifications`, `balanceAdjustments`).
 - **Cost** is a first cut: **S** ≈ a day or two, **M** ≈ a vertical slice (about a week), **L** ≈ several slices.
 - ⭐ marks the recommended starter bundle (§7). 🎩 marks black-hat mechanics (§2.1): use sparingly and on purpose.
-- The small print under each name gives the closest of Chou's numbered game techniques (GT#), using only numbers verified on his site (§2.1).
+- The small print under each name gives the closest of Chou's numbered game techniques (GT#), using only numbers stated on Chou's per-core-drive articles (listed in §9).
 
 ### CD1 Epic Meaning & Calling: "I'm part of something bigger"
 
@@ -224,7 +224,7 @@ How to read the tables:
 |---|---|---|---|---|---|---|
 | 5 ⭐ | **XP and levels** <br><sub>GT#1 Status Points</sub> | XP comes mostly from qualifying giving, with bonuses for breadth and detail and a small, capped share from receiving. Level = f(total XP). See §4. | Sustained, spread-out, specific recognition. | Farming by volume, ping-pong or mass mentions is cut by per-pair decay, a daily cap, the 72 h reciprocity rule and "max 3 recipients per message". | `members.xp`, `members.level`, plus an `xpEvents` ledger keyed by kudos batch so a revoke reverses exactly (§4.4). | M |
 | 6 ⭐ | **Level-up moment** <br><sub>GT#17 High Five</sub> | A full-screen celebration (hedgehog + crest, #52) on the web, and a DM in Slack that says what just unlocked. | The feeling of progress, tied to the next thing you can do. | None. At most one DM per level. | A `level_up` notification category. | S |
-| 7 ⭐ | **Crests** (milestones) <br><sub>GT#2 Achievement Symbols</sub> | One-time crests for firsts and breadth: first thoughtful note, recognised 10 / 25 / 50 different people, recognised someone in every team, a year of Steady hands. They're collected on your profile. (Not called "achievements": the glossary reserves that family of words.) | Breadth and craft, not volume. | Crests only count distinct people, weeks or teams, never amounts. | A `crests` table (member, crestKey, earnedAt), checked in the give hook like quests. | M |
+| 7 ⭐ | **Crests** (milestones) <br><sub>GT#2 Achievement Symbols</sub> | One-time crests for firsts and breadth: first thoughtful note, recognised 10 / 25 / 50 different people, recognised someone in every team, 52 different weeks with a thoughtful kudos. They're collected on your profile. (Not called "achievements": the glossary reserves that family of words.) | Breadth and craft, not volume. | Crests only count distinct people, weeks or teams, never amounts. | A `crests` table (member, crestKey, earnedAt), checked in the give hook like quests. | M |
 | 8 ⭐ | **Next-unlock bar** <br><sub>GT#4 Progress Bar</sub> | A progress bar on the dashboard: "240 XP to level 6: a second grove plot". | Knowing what to do next. | None. | None (derived). | S |
 | 9 | **Seasons** | 12-week seasons with a cosmetic season track (a ring on your crest, a seasonal tree skin). Lifetime level never resets. | A fresh start for newcomers and lapsed members. | A season track must not reset anything you own; it only adds. | A `seasonProgress` row per member per season. | M |
 
@@ -234,7 +234,7 @@ How to read the tables:
 |---|---|---|---|---|---|---|
 | 10 ⭐ | **Lucky charm booster** <br><sub>GT#31 Boosters</sub> | Spend Seeds: your next 3 qualifying kudos roll the *receiver's* bot message with a minimum rarity of Uncommon. The Quest spec (§6.3) already plans a `minRarity` option on the roll for clean sweeps; not yet on `main`. | Making someone else's moment special. | It only affects the receiver's message, so it gives the giver nothing to farm. It only fires on qualifying kudos. | A `boosters` table (member, kind, charges, expiresAt). | S |
 | 11 | **Plant picker** <br><sub>GT#11 Plant Picker</sub> | When you plant a tree you choose its species, and each species stands for a value (e.g. *Helpful oak*, *Craft maple*, *Brave birch*, customisable per workspace). The grove becomes a map of what you appreciate in people. | Naming the *why*: values-based recognition (Bonusly's hashtags idea without the hashtags). | None; it's a label. | `trees.species`; optional per-workspace species list. | S |
-| 12 ⭐ | **"Nice note" feedback** | The giver's success message says what made it count: "+5 XP for saying why", "+15 XP new connection". Short notes get "Add a reason next time for more XP". | Better notes, learned by feedback, not rules. | Explains the rules without exposing others' data. It never says "reciprocal" for a single kudos (the Quest spec's inference rule). | A few vars on the giver success message. | S |
+| 12 ⭐ | **"Nice note" feedback** | The giver's success message names the *bonuses* a kudos earned: "Saying why: +5 XP", "New connection: +15 XP". Short notes get "Add a reason next time". It never itemises base XP per kudos. | Better notes, learned by feedback, not rules. | Showing base XP would reveal when a kudos counted as reciprocal (the Quest spec's inference rule, §4). Bonuses only, plus a daily total; the residual inference risk is the one the Quest spec already accepts. | A few vars on the giver success message. | S |
 | 13 | **Grove layout** <br><sub>GT#43 Build From Scratch</sub> | Arrange your trees, paths and a bench; unlock decorations with Seeds. | Ownership and a reason to come back to the web app. | Cosmetic only. | `groveLayout` blob per member. | L |
 | 14 | **Pay-it-forward chain** 🎩 | If someone you recognised goes on to recognise a *third* person within 48 h, you get a small chain bonus, and the chain is shown as a little path on the team grove. | Recognition spreading across the network. | A chain that loops back to anyone earlier in it doesn't count. Bonus capped at 3 chains a week. | A lookup on `kudos.by_giver_at` for the receiver; a `chainBonus` xpEvent. | M |
 
@@ -243,7 +243,7 @@ How to read the tables:
 | # | Mechanic | How it works in Kudos | Fuels | Abuse → guard | Data | Cost |
 |---|---|---|---|---|---|---|
 | 15 ⭐ | **Kudos grove** (relationship trees) <br><sub>GT#36 Protector Quest</sub> | Plant a sapling for a teammate you recognise. It grows a stage when you recognise that person again with a qualifying kudos *in a later week*, and each stage has a minimum age. Grown trees fruit Seeds and a little XP. See §6.2. | Recognising the same people over and over across months, i.e. real relationships, and spreading across many people because plots are limited. | Watering counts at most once per tree per quest week; reciprocal kudos don't water; growth needs time. So spamming one person does nothing. | A `trees` table (owner, partner, species, stage, waterings, plantedAt, lastWateredWeek, lastHarvestAt). Growth is computed lazily from timestamps: no cron. | L |
-| 16 ⭐ | **Seeds** (soft currency) and **booster shop** <br><sub>GT#75 Exchangeable Points</sub> | Seeds come from qualifying giving, quests, crests and tree fruit, and pay for saplings, boosters and cosmetics. They're never convertible to Store balance, allowance or XP. | Choices about how to celebrate others (boosters are mostly altruistic). | Seeds are capped (a "full basket" of 200) and sinks match sources (§6.1). Following Chou's OP coins, which launched before they could be spent (§2.2), Seeds start collecting at level 1 and the shop opens at level 5. | `members.seeds` plus a `seedEvents` ledger. | M |
+| 16 ⭐ | **Seeds** (soft currency) and **booster shop** <br><sub>GT#75 Exchangeable Points</sub> | Seeds come from qualifying giving, quests, crests and tree fruit, and pay for saplings, boosters and cosmetics. They're never convertible to Store balance, allowance or XP. | Choices about how to celebrate others (boosters are mostly altruistic). | Seeds are capped (a "full basket" of 200) and sinks match sources (§6.1). Following Chou's OP coins, which launched before they could be spent (§2.2), Seeds start collecting silently at level 1, the wallet appears with the grove at level 3 (the first sapling costs Seeds), and the shop opens at level 5. | `members.seeds` plus a `seedEvents` ledger. | M |
 | 17 | **Crest and hedgehog customisation** <br><sub>GT#13 Avatar</sub> | Unlock crest frames, colours and PostHog-hedgehog accessories (#52) by level or Seeds. They show next to your name in the web app. | Identity. | Cosmetic only. | `members.cosmetics` (equipped + owned keys). | M |
 | 18 | **Collection sets** <br><sub>GT#16 Collection Set</sub> | Discoveries already form a collection of 60 (72 with quest messages). Completing a *set* (all Uncommons of "receiver" messages, all Quest messages…) awards a crest and Seeds. | Keeps the existing collection loop fresh. | Discoveries can be farmed by spamming `/kudos me` (the Quest spec dropped *Collector* for this). So sets only count giver- and quest-category messages, or set bonuses give crests only, no Seeds. | Derived from `discoveries`. | S |
 | 19 | **Scrapbook** <br><sub>GT#83 Alfred Effect</sub> | Receivers pin their favourite notes they received into a private scrapbook, which you can revisit or export. | The *receiver's* experience: rereading why people thanked you, which is the bit that motivates. | Private to the receiver. | A `pins` table (member, kudosId). | S |
@@ -253,9 +253,9 @@ How to read the tables:
 | # | Mechanic | How it works in Kudos | Fuels | Abuse → guard | Data | Cost |
 |---|---|---|---|---|---|---|
 | 20 ⭐ | **Gift tree** (visible to the receiver) <br><sub>GT#63 Social Treasure</sub> | When you plant a tree for someone, *they* see it: "Ben is growing a Helpful oak for you (Young tree)". Their profile shows "5 people are growing trees for you". | Durable, visible recognition that lasts longer than a message. | It reveals received data, so it follows `receivedVisibility` (hidden: nobody sees it; self: only the receiver; everyone: public). | Read of `trees.by_partner`. | S (on top of #15) |
-| 21 | **Group quest** <br><sub>GT#22 Group Quest</sub> | A weekly team goal ("together, recognise 25 different people this week") that, when met, sends *rain* to everyone's grove (a growth tick). | Collective effort, participation. | Counts distinct recipients of qualifying kudos, not volume. | A new quest kind at workspace scope. Re-opens the Quest spec's "no team quests". | M |
+| 21 | **Group quest** <br><sub>GT#22 Group Quest</sub> | A weekly team goal ("together, recognise 25 different people this week") that, when met, sends *rain*: every tree in the workspace skips 3 days of its current minimum-age wait. Rain never replaces a watering. | Collective effort, participation. | Counts distinct recipients of qualifying kudos, not volume. | A new quest kind at workspace scope. Re-opens the Quest spec's "no team quests". | M |
 | 22 | **Mentor** <br><sub>GT#61 Mentorship</sub> | From level 12, you can sponsor a newcomer (< 30 days in the workspace). When your mentee gives their first 3 qualifying kudos, both get a crest and Seeds. | Onboarding new people into the recognition habit. | One mentee at a time, max 4 a year; the mentee's kudos must not go to the mentor (that's a trade, not a habit). | A `mentorships` table. | M |
-| 23 | **Kudos of the week** <br><sub>GT#55 Water Cooler</sub> | Everyone can nominate one kudos note per week (not their own, not one they received). The most-nominated note is featured in a digest (opt-in channel). | Surfacing great notes as examples. | One nomination per member; can't nominate your own or your received; the receiver can opt out of being featured. | A `nominations` table; a scheduled weekly digest. | M |
+| 23 | **Kudos of the week** <br><sub>GT#55 Water Cooler</sub> | Everyone can nominate one kudos note per week (not their own, not one they received). The most-nominated note is featured in a digest (opt-in channel). | Surfacing great notes as examples. | One nomination per member; can't nominate your own or your received; the receiver can opt out of being featured; kudos from private channels (`channelPrivate`) are never eligible. | A `nominations` table; a scheduled weekly digest. | M |
 | 24 | **Brag button** <br><sub>GT#57 Brag Buttons</sub> | Share a level-up or crest in a channel with one click (opt-in, never automatic). | Social proof for the habit. | Opt-in only, rate-limited to one post a week. | None beyond a Slack post. | S |
 | 25 ⭐ | **Appreciation received ♥** <br><sub>GT#45 Thank-You Economy, GT#62 Social Prod</sub> | The receiver can acknowledge a kudos with one tap ("♥ Felt appreciated") instead of thanking back. The giver gets a small XP bonus and a warm DM. | Closing the loop *without* ping-pong kudos (which the 72 h rule excludes anyway). | One ack per kudos; capped at a small weekly XP; it's not a kudos, so it never touches balances or leaderboards. | `kudos.ackedAt`; an `ack` xpEvent. | S |
 
@@ -265,7 +265,7 @@ How to read the tables:
 |---|---|---|---|---|---|---|
 | 26 ⭐ | **Visible-but-locked areas** <br><sub>GT#19 Milestone Unlock, GT#37 Evolved UI, GT#44 Dangling</sub> | Nav items and dashboard cards for the grove, booster shop, crests and so on show up with a lock and "Unlocks at level 3: plant your first tree". See §5. | Curiosity plus a concrete next step. | Never lock something people already had (see §5). | None (derived from level). | M |
 | 27 | **Harvest window** <br><sub>GT#21 Appointment Dynamics, GT#68 Magnetic Caps</sub> | Trees fruit once a day and hold at most 3 days of fruit. Come back to harvest; nothing is lost beyond the fruit that didn't grow. | A light reason to open the dashboard a few times a week. | The cap means no big pay-out for leaving it, so no anxiety; no push notifications for it. | `trees.lastHarvestAt`. | S |
-| 28 | **Golden kudos** <br><sub>GT#68 Magnetic Caps</sub> | A level perk: once a month, mark one kudos as *golden*. The receiver gets a unique golden message (legendary-rarity floor) and a golden leaf on their gift tree. It doesn't use or add allowance. | Rare, deliberate, big-moment recognition. | One a month, needs a 12+ word note, can't go to the same person twice in a quarter. | `kudos.golden`; perk usage per month. | S |
+| 28 | **Golden kudos** <br><sub>GT#68 Magnetic Caps</sub> | A level perk: once a month, mark one kudos you're giving anyway (inside your allowance, no extra units) as *golden*, e.g. via a message shortcut or `/kudos golden`. The receiver gets a unique golden message (legendary-rarity floor) and a golden leaf on their gift tree. | Rare, deliberate, big-moment recognition. | One a month, needs a 12+ word note, can't go to the same person twice in a quarter. It adds no kudos, so no Store inflation. | `kudos.golden`; perk usage per month; a Slack shortcut. | M |
 | 29 | **Growth time** <br><sub>GT#66 Torture Breaks</sub> | Tree stages have a minimum age (3 / 7 / 21 / 45 / 90 / 365 days). You can't rush a tree. | Patience; recognition over time. | That *is* the guard against bursts. | Part of #15. | S |
 
 ### CD7 Unpredictability & Curiosity: "What happens next?"
@@ -287,7 +287,7 @@ How to read the tables:
 ### Guard rails that apply to every mechanic
 
 - **One definition of "counts".** Every reward in the game reuses the Quest spec's *qualifying kudos*. There is one rule to explain and one place (`lib/parse.ts`, `lib/quests.ts`) to test.
-- **Revoke undoes everything.** A revoked kudos removes the XP, Seeds, waterings and crests it produced, as quest completions already are removed.
+- **Revoke undoes the economy, not the keepsakes.** A revoked kudos removes the XP, Seeds and waterings it produced, as quest completions are removed today. Crests and collectibles already earned stay, matching the Quest spec's D6 (taking a collectible back feels punitive).
 - **Monitor first, block never (at first).** An admin-only "unusual patterns" list (the same pair every day, identical notes, closed rings of 3) is modelled on Bonusly's Quality Bot and Nectar's Guardrails (§2.4). It flags, and admins decide. It builds on the Store's 90-day giver-concentration aid.
 - **Teach "no need to thank back".** Newcomers reciprocate most (§2.6). Onboarding copy and the "♥ Felt appreciated" ack (#25) give them a better way to respond.
 - **Nothing is ranked.** Levels, crests, trees and Seeds never get a leaderboard.
@@ -317,14 +317,14 @@ How to read the tables:
 | … last kudos to that person was 30+ days ago ("Old friends") | **+10** | Same rule as the `rekindle` quest. |
 | … recipient got nothing in 14 days ("Unsung") | **+10** | Only when `receivedVisibility = everyone`, as for the `unsung` quest. |
 | Non-qualifying kudos (reaction, or a note under 3 words) | **1** | Max 5 XP a day from these. |
-| Reciprocal kudos (the receiver gave you kudos in the last 72 h) | **3** | No bonuses. |
+| Reciprocal kudos (the receiver gave you kudos in the last 72 h) | **3** | No bonuses. Not itemised in feedback (#12), so no single kudos is labelled reciprocal. |
 | **Daily giving cap** | **50** | Everything above counts toward it. |
-| Receiving: per *distinct* giver per day with a qualifying note | **3** | Max 30 XP a week from receiving. Off while `receivedVisibility = hidden` if levels are public (§8 Q2). |
+| Receiving: per *distinct* giver per day whose kudos to you is qualifying (3+ word note, not reciprocal) | **3** | Max 30 XP a week from receiving. Counts only if received data may be shown where your level is shown: off under `hidden`, and under `self` only if levels are private (§8 Q3). |
 | Receiver acknowledges your kudos ("♥ Felt appreciated", #25) | **2** | Max 10 XP a week. |
 | Quest completed | **20** | ≤ 3 a week (the board has 3). |
 | Clean sweep | **+30** | Once a week. |
 | Crest earned | **25** | One-time per crest. |
-| Tree fruit (harvested) | **1 per fruiting tree per day** | Max 3 days stored (§6.2). |
+| Tree fruit (harvested) | **1 per Grown-or-older tree per day** | Only trees watered in the last 14 days fruit; max 3 days stored; all trees together max 21 XP a week (§6.2). |
 
 **What never earns XP:** received kudos *amounts*, allowance used, maxed days, discoveries, Store redemptions, Seeds spent.
 
@@ -335,31 +335,31 @@ How to read the tables:
 | Persona | A typical week | XP/week |
 |---|---|---|
 | **Quiet appreciator** | 2 thoughtful messages to 2 people, one of them detailed; thanked by 2 people; 1 quest. | 20 + 5 + 6 + 20 = 51, **~55** with the odd ack or crest |
-| **Steady champion** | 5 thoughtful messages to 4 people (one repeat), 2 detailed, 1 new connection, 1 rekindle; thanked by 4 people; clean sweep; 3 fruiting trees. | 45 + 10 + 15 + 10 + 12 + 90 + 21 = **~200** |
-| **Points farmer** | 20 reactions a day, daily ping-pong with a buddy, one 10-person mass mention a week. | 35 (reactions, capped) + ~30 (ping-pong: decay and reciprocity) + 30 (mass mention: 3 recipients count) + 21 (receiving from the buddy) + 0 quests (reciprocal and short notes don't count) = **~85** |
-| *Ceiling* | Maxes the daily giving cap every day, clean sweep, max receiving, 5 fruiting trees. | 350 + 90 + 30 + 35 + … ≈ **~515** |
+| **Steady champion** | 5 thoughtful messages to 4 people (one repeat), 2 detailed, 1 new connection, 1 rekindle; thanked by 4 people; clean sweep; 3 Grown trees (from about month 3 on). | 45 + 10 + 15 + 10 + 12 + 90 + 21 = **~200** (~180 before the trees fruit) |
+| **Points farmer** | 20 reactions a day, a copy-paste "thanks all!" mass mention, and daily ping-pong with a buddy. | 35 (reactions and short notes, capped at 5 a day) + 21 (ping-pong: every message is reciprocal, 3 XP each) + 0 receiving (the buddy's kudos are reciprocal) + 0 quests (short and reciprocal kudos never count) = **~56** |
+| *Ceiling* | Maxes the daily giving cap every day, clean sweep, max receiving, max acks, trees at their cap. | 350 + 90 + 30 + 10 + 21 ≈ **~500** |
 
-The farmer earns ~40% of the champion. More importantly, the farmer's route is boring and slow while the champion's route is also the one that fills the grove and the quest log.
+The farmer earns under 30% of the champion. More importantly, the farmer's route is boring and slow while the champion's route is also the one that fills the grove and the quest log.
 
 ### 4.4 Level curve
 
 **XP from level L to L+1 = 50 × L**, so **total XP for level L = 25 × L × (L − 1)**. Early levels come fast (onboarding), later ones take months (endgame). A cap at level 25 is suggested, after which Seasons (#9) take over.
 
-| Level | XP to next | Total XP | Quiet (~55/wk) | Steady (~200/wk) | Ceiling (~515/wk) |
+| Level | XP to next | Total XP | Quiet (~55/wk) | Steady (~200/wk) | Ceiling (~500/wk) |
 |---|---|---|---|---|---|
 | 2 | 100 | 50 | < 1 wk | < 1 wk | < 1 wk |
 | 3 | 150 | 150 | 2.7 wk | < 1 wk | < 1 wk |
 | 4 | 200 | 300 | 5.5 wk | 1.5 wk | < 1 wk |
-| 5 | 250 | 500 | 9 wk | 2.5 wk | < 1 wk |
+| 5 | 250 | 500 | 9.1 wk | 2.5 wk | 1 wk |
 | 6 | 300 | 750 | 14 wk | 3.8 wk | 1.5 wk |
-| 8 | 400 | 1,400 | 25 wk | 7 wk | 2.7 wk |
-| 10 | 500 | 2,250 | 41 wk | 11 wk | 4.4 wk |
-| 12 | 600 | 3,300 | 60 wk | 17 wk | 6.4 wk |
-| 15 | 750 | 5,250 | 95 wk | 26 wk | 10 wk |
-| 20 | 1,000 | 9,500 | 173 wk | 48 wk | 18 wk |
-| 25 | 1,250 | 15,000 | 273 wk | 75 wk | 29 wk |
+| 8 | 400 | 1,400 | 25 wk | 7 wk | 2.8 wk |
+| 10 | 500 | 2,250 | 41 wk | 11 wk | 4.5 wk |
+| 12 | 600 | 3,300 | 60 wk | 17 wk | 6.6 wk |
+| 15 | 750 | 5,250 | 95 wk | 26 wk | 11 wk |
+| 20 | 1,000 | 9,500 | 173 wk | 48 wk | 19 wk |
+| 25 | 1,250 | 15,000 | 273 wk | 75 wk | 30 wk |
 
-Knobs for the grilling: the quiet appreciator reaching level 10 only after ~10 months may be too slow. Halving the slope (`25 × L` per level) doubles everyone's pace; a steeper early ramp (a flat 100 XP for levels 2–5) front-loads onboarding.
+The weeks assume a constant weekly rate; in practice tree XP only starts after a couple of months, so real pace is a little slower early on. Knobs for the grilling: the quiet appreciator reaching level 10 only after ~10 months may be too slow. Halving the slope (`25 × L` per level) doubles everyone's pace; a steeper early ramp (a flat 100 XP for levels 2–5) front-loads onboarding.
 
 ### 4.5 Data-model sketch
 
@@ -382,7 +382,7 @@ Knobs for the grilling: the quiet appreciator reaching level 10 only after ~10 m
 | **Scaffolding** | 5–14 | The weekly loop: quests, harvest, boosters. | Booster shop, more plots, golden kudos. |
 | **Endgame** | 15–25+ | Veterans stay because they help others. | Mentor, Elder tree in the team grove, seasons. |
 
-### 5.2 Two ground rules
+### 5.2 Two recommended ground rules
 
 1. **Nothing that already shipped gets locked.** Giving, the dashboard, discoveries, leaderboard, analytics, quests, compare and the Store stay open to everyone at every level. Taking away something people already have is exactly the kind of loss that makes a game feel hostile (CD8 rightful heritage, §2.1). Only **new** features go on the ladder.
 2. **Veterans start where their history puts them.** XP is backfilled from all existing kudos rows and quest completions, so a year-long regular might start at level 9, not level 1. (The demo year from #49 gives the demo user a realistic mid-ladder level.)
@@ -391,20 +391,22 @@ Knobs for the grilling: the quiet appreciator reaching level 10 only after ~10 m
 
 Each locked item is shown with a lock and a one-line "how": *"Level 6: 240 XP to go. Give a thoughtful kudos to someone new for +25."*
 
-| Level | Title | Unlocks | Shown locked until then |
+| Level | Title | Unlocks | Visible but locked at this point (the next teasers) |
 |---|---|---|---|
-| 1 | Newcomer | Everything that exists today; the XP bar; the "Nice note" feedback (#12); the "♥ Felt appreciated" ack (#25). | Grove, crests, booster shop, perks. |
-| 2 | Newcomer | **Crests** gallery (#7) with your first crest. | |
-| 3 | Apprentice | **Grove**: 1 plot, plant your first sapling (#15), which the partner sees as a gift tree (#20); the **team grove** (#1). | |
-| 4 | Apprentice | **Scrapbook** (#19); the *Keeper of the unsung* title track (#3). | |
-| 5 | Gardener | **Booster shop** and Seeds wallet (#16): Lucky charm, Watering can. | |
-| 6 | Gardener | 2nd plot; **Plant picker** (#11); **harvest** (#27). | |
-| 8 | Gardener | 3rd plot; Fertiliser booster; collection-set bonuses (#18). | |
-| 10 | Grove keeper | **Golden kudos** perk, 1 a month (#28); crest customisation (#17). | |
-| 12 | Grove keeper | 4th plot; **Mentor** (#22); Megaphone booster. | |
-| 15 | Grove keeper | 5th plot; **Kudos of the week** nominations weigh double (#23); seasonal skins (#9). | |
-| 20 | Elder | 6th plot; an **Elder tree** with your name in the team grove; a 2nd golden kudos a month. | |
-| 25 | Elder | Cap. Seasons (#9) take over; your crest gets a permanent ring per season completed. | |
+| 1 | Newcomer | Everything that exists today; the XP bar; the "Nice note" feedback (#12); the "♥ Felt appreciated" ack (#25). Seeds start collecting silently. | Crests (L2), Grove (L3), Booster shop (L5), perk list with levels. |
+| 2 | Newcomer | **Crests** gallery (#7) with your first crest. | Grove (L3), Scrapbook (L4). |
+| 3 | Apprentice | **Grove**: 1 plot, plant your first sapling (#15), which the partner sees as a gift tree (#20); the **team grove** (#1); the **Seeds wallet** (the Seeds collected so far are waiting). | Scrapbook (L4), Booster shop (L5). |
+| 4 | Apprentice | **Scrapbook** (#19); the *Keeper of the unsung* title track (#3). | Booster shop (L5), 2nd plot (L6). |
+| 5 | Gardener | **Booster shop** (#16): Lucky charm, Sunlamp. | 2nd plot and Plant picker (L6). |
+| 6 | Gardener | 2nd plot; **Plant picker** (#11); **harvest** (#27). | 3rd plot (L8), Golden kudos (L10). |
+| 8 | Gardener | 3rd plot; Lantern booster; collection-set bonuses (#18). | Golden kudos (L10). |
+| 10 | Grove keeper | **Golden kudos** perk, 1 a month (#28); crest customisation (#17). | Mentor and 4th plot (L12). |
+| 12 | Grove keeper | 4th plot; **Mentor** (#22); Megaphone booster. | 5th plot (L15). |
+| 15 | Grove keeper | 5th plot; seasonal skins (#9). | Grove layout (L17). |
+| 17 | Grove keeper | **Grove layout** (#13): paths, benches, decorations. | Elder (L20). |
+| 20 | Elder | 6th plot; an **Elder tree** with your name in the team grove; a 2nd golden kudos a month. | A second mentee slot (L22). |
+| 22 | Elder | A second mentee slot (#22). | The cap (L25). |
+| 25 | Elder | Cap. Seasons (#9) take over; your crest gets a permanent ring per season completed. | — |
 
 Alternative worth grilling: **also gate some existing surfaces** (e.g. Compare at level 4) for *new* joiners only, grandfathering everyone already active. It makes the ladder richer but adds a "why can't I see what my colleague sees" support question.
 
@@ -420,11 +422,12 @@ Alternative worth grilling: **also gate some existing surfaces** (e.g. Compare a
 | **XP** | Progress. Never spent, never decays. | Mostly qualifying giving (§4). | Level → titles, perks, unlocks. | **No.** |
 | **Seeds** | The game's soft currency. | Qualifying giving, quests, crests, tree fruit. | Saplings, boosters, cosmetics. | **No.** Not convertible, not transferable, not counted anywhere outside the game. |
 
-**Invariants to write into an ADR:**
+**Recommended invariants (they would become an ADR if the grilling adopts them):**
 
 1. Nothing in the game writes `members.storeGranted`, `storeSpent` or `totalReceived`, and nothing changes the daily allowance.
 2. No path turns Seeds or XP into kudos, allowance or Store balance.
-3. Every game reward traces back to a qualifying kudos (or a quest completion, which itself needs qualifying kudos).
+3. Every game reward traces back to a qualifying kudos (or a quest completion, which itself needs qualifying kudos). Boosters can speed up *time* but never replace a kudos.
+5. Trees never out-earn giving: all tree fruit together is capped below what qualifying giving can earn in a week.
 4. Revoking a kudos undoes the XP and Seeds it created. Seeds already spent can make the Seeds balance negative, like the Store balance can (Store spec D9).
 
 **Seeds flow (strawman):**
@@ -433,12 +436,12 @@ Alternative worth grilling: **also gate some existing surfaces** (e.g. Compare a
 |---|---|---|---|
 | Qualifying kudos | 1 each, max 3 a day | Sapling | 10 |
 | Quest completed / clean sweep | 2 / +3 | Lucky charm (3 charges) | 12 |
-| Crest earned | 5 | Watering can (+1 growth tick, once a week) | 8 |
-| Level-up | 5 | Rain cloud (team grove gets a growth tick) | 25 |
-| Tree fruit | 1–3 per fruiting tree per day | Cosmetics (frames, skins, accessories) | 20–60 |
+| Crest earned | 5 | Sunlamp (one tree skips 5 days of its minimum-age wait) | 8 |
+| Level-up | 5 | Lantern (hang a lantern with a one-line message on a teammate's gift tree) | 10 |
+| Tree fruit | 1–2 per fruiting tree per day, **max 14 a week in total** | Cosmetics (frames, skins, accessories) | 20–60 |
 | | | **Basket cap:** 200 Seeds; fruit beyond it isn't picked | |
 
-A steady champion earns ~30–40 Seeds a week, which buys one booster a week plus a sapling or cosmetic every couple of weeks. Plots (1 to 6 by level) cap the number of fruiting trees, so fruit can't snowball.
+A steady champion earns ~25–30 Seeds a week (5 from giving, 9 from quests, up to 14 from fruit), which buys one booster a week plus a sapling or cosmetic every couple of weeks. Giving alone can earn up to 21 a week, so fruit (max 14) never out-earns it, and plots (1 to 6 by level) keep the grove a set of deliberate choices.
 
 ### 6.2 Kudos trees
 
@@ -449,16 +452,18 @@ A steady champion earns ~30–40 Seeds a week, which buys one booster a week plu
 | 🌰 Seed | Plant: a qualifying kudos to that person + 10 Seeds + a free plot | — | — |
 | 🌱 Sprout | 1 more watering | 3 days | — |
 | 🌿 Sapling | 2 waterings | 7 days | — |
-| 🌳 Young tree | 4 waterings | 21 days | 1 Seed |
-| 🌳 Grown | 6 waterings | 45 days | 1 Seed + 1 XP |
+| 🌳 Young tree | 4 waterings | 21 days | — |
+| 🍎 Grown | 6 waterings | 45 days | 1 Seed + 1 XP |
 | 🌸 Blossoming | 10 waterings | 90 days | 2 Seeds + 1 XP |
-| 🌲 Ancient | 20 waterings | 365 days | 3 Seeds + 1 XP, a legendary-floor gift-tree message for your partner, and a permanent place on your crest |
+| 🌲 Ancient | 20 waterings | 365 days | 2 Seeds + 1 XP, plus a legendary-floor gift-tree message for your partner and a permanent place on your crest |
 
-- **Watering** = a qualifying kudos to the tree's partner, **at most once per tree per quest week**. Reciprocal kudos don't water.
+- **Watering** = a qualifying kudos to the tree's partner, **at most once per tree per quest week**. Reciprocal kudos don't water, and no booster or rain ever counts as a watering, so an Ancient tree always means 20 different weeks of recognising that person.
+- **Fruit needs an active relationship:** only trees watered in the last 14 days fruit, and all fruit together is capped at 14 Seeds and 21 XP a week.
 - **Dormant, never dead:** 60 days without watering and the tree turns autumn-coloured and stops fruiting. One watering wakes it (#34).
 - **Growth is computed lazily** from `plantedAt`, `waterings` and `lastWateredWeek` when read or harvested: no cron, no per-tree timers. That fits the codebase rule that public queries don't read `Date.now()` (clients pass `today`).
 - **The partner sees their gift trees** subject to `receivedVisibility` (#20).
 - **Plots** (1 at level 3, up to 6 at level 20) force a choice about whom to grow trees for; a tree can be *uprooted* to free a plot (it's archived in a "memories" list, not destroyed).
+- **Deactivated members:** if the partner is deactivated, the tree becomes a memory (frozen, no fruit) and the plot frees up. A deactivated owner's trees disappear from partners' views. (See §8 Q17.)
 
 **Other tree models to put in front of the human:**
 
@@ -474,10 +479,10 @@ A steady champion earns ~30–40 Seeds a week, which buys one booster a week plu
 | Booster | Effect | Who benefits | Recommend? |
 |---|---|---|---|
 | **Lucky charm** | Next 3 qualifying kudos roll the receiver's message at Uncommon or better. | Receiver | ✅ |
-| **Watering can** | One extra growth tick on one tree (still respects the minimum age). | You (grove) | ✅ |
-| **Rain cloud** | One growth tick for the team grove, credited to you in the grove log. | Everyone | ✅ |
-| **Megaphone** | Your next qualifying kudos is also featured in the digest channel (receiver can decline). | Receiver | ✅ (needs the digest, #23) |
-| **Fertiliser** | Doubles your trees' fruit for 3 days. | You (Seeds) | ⚠️ Fine, but it's Seeds-for-Seeds; keep it pricey. |
+| **Sunlamp** | One tree skips 5 days of its current minimum-age wait. It still needs every watering. | You (grove) | ✅ |
+| **Lantern** | Hang a lantern with a one-line message on a teammate's gift tree. It's cosmetic and they see it. | Receiver | ✅ |
+| **Megaphone** | Your next qualifying kudos (not from a private channel) is also featured in the digest channel (receiver can decline). | Receiver | ✅ (needs the digest, #23) |
+| **Fertiliser** | Doubles your trees' fruit for 3 days (still inside the weekly fruit cap). | You (Seeds) | ⚠️ Seeds-for-Seeds; not on the ladder unless the grilling wants it. |
 | **XP boost** (Duolingo-style 2× for 1 h) | Doubles XP from qualifying kudos for an hour. | You (XP) | ❌ It invites bursts of token kudos in the boost window; the daily cap blunts it but the incentive is the wrong one. Chou's own OP members ended up "MUST use potions … on every video" (§2.2), and Duolingo moved away from XP races (§2.5). |
 
 ### 6.4 Perks (permanent, unlocked by level)
@@ -493,7 +498,7 @@ Perks are abilities, not multipliers: each makes your recognition richer.
 | Mentor | 12 | Sponsor a newcomer (#22). |
 | Elder tree | 20 | Your named tree in the team grove. |
 
-**The optional Store bridge (off by default).** Today the Store only pays *receivers*. If the human wants givers to see a real-world reward too, the least risky bridge is a **fixed, admin-configured grant at a few level milestones** (e.g. +10 balance at levels 5, 10, 15, 20), written through the existing `grantBalance` with `source: "system"` and a reason, so it shows up in the member ledger and the four-eyes context. It's bounded (a handful of grants per person, ever), it rewards thoughtful giving (the only fast way up the ladder), and admins can leave it off. It still turns giving into a paid activity in a small way, which is why it's not the default. This would re-open the Quest spec's D8 and needs its own ADR.
+**The optional Store bridge (off by default).** Today the Store only pays *receivers*. If the human wants givers to see a real-world reward too, the least risky bridge is a **fixed, admin-configured grant at a few level milestones** (e.g. +10 balance at levels 5, 10, 15, 20), written through the existing `grantBalance` with `source: "system"` and a reason, so it shows up in the member ledger and the four-eyes context. It's bounded (a handful of grants per person, ever), it rewards thoughtful giving (the only fast way up the ladder), and admins can leave it off. It still turns giving into a paid activity in a small way, which is why it's not the default. It breaks recommended invariant 1 on purpose, so it is its own question (§8 Q2). It would also re-open the Quest spec's D8 (no currency from the game) and need its own ADR.
 
 ---
 
@@ -506,7 +511,7 @@ Ship in this order; each step works on its own.
 1. **XP, levels, next-unlock bar, level-up moment, "Nice note" feedback** (#5, #6, #8, #12), with the backfill. *Foundation; everything else hangs off the level.*
 2. **Crests** (#7). *First wins for newcomers, breadth for veterans.*
 3. **Grove + gift trees + dormant-not-dead + team grove** (#15, #20, #34, #1). *The signature feature.*
-4. **Seeds + booster shop** with Lucky charm, Watering can, Rain cloud (#16, #10). *Choices, and a sink for fruit.*
+4. **Seeds + booster shop** with Lucky charm, Sunlamp, Lantern (#16, #10). *Choices, and a sink for fruit.*
 5. **Appreciation received ♥** (#25). *Closes the loop without ping-pong.*
 6. **Visible-but-locked** everywhere (#26), rolled out alongside each of the above.
 
@@ -528,36 +533,54 @@ Later candidates: Golden kudos, Mentor, Kudos of the week, Seasons, Plant picker
 
 ## 8. Open questions for the grilling, ordered
 
-Ordered by how much each answer shapes the rest. Each has the recommendation from this note.
+Ordered by how much each answer shapes the rest. Each question comes with this note's recommendation; none of them is decided.
 
-1. **Currency architecture.** How many ledgers, and can anything in the game ever reach the Store balance or the allowance?
-   *Recommend:* three ledgers (Kudos / XP / Seeds) with the firewall in §6.1; the level-milestone Store grant (§6.4) as an admin option, off by default.
-2. **Visibility and consent.** Are levels, crests and trees public, private, or opt-in per member? How do they interact with `receivedVisibility`? Can a workspace turn the game off, and can a member hide it for themselves?
-   *Recommend:* workspace switch (on by default in the demo, admin choice elsewhere); your level and crests visible on your profile to teammates, *never ranked*; receiving-derived bits (gift trees, receiving XP) follow `receivedVisibility`; members can hide the game UI.
-3. **What earns XP.** Giving-to-receiving ratio; per message × recipient vs per kudos unit; reuse the qualifying rule?
-   *Recommend:* §4.2 as written: per message × recipient (max 3), qualifying rule reused, ~3–4× giving over receiving, receiving counts distinct givers only.
-4. **Does gamification re-open the Quest spec?** Quests currently give only collectible messages (D7) and no currency, bonus or public display (D8–D10).
-   *Recommend:* yes, narrowly: quests grant XP and Seeds, still no Store currency, no allowance, no public quest stats.
-5. **What is a kudos tree?** Relationship trees, one personal tree, a team tree, or a money tree (§6.2)? What do trees yield?
-   *Recommend:* relationship trees (A) plus the team grove (C); they yield Seeds and a little XP, never Store kudos.
-6. **Loss.** Can trees wither or die? Any streaks?
-   *Recommend:* dormant, never dead; no loss-framed streaks.
-7. **Progressive gating.** Only new features on the ladder, or also existing ones for new joiners? Backfill XP for veterans?
+1. **Currency architecture.** How many ledgers, and is the firewall absolute (§6.1)?
+   *Recommend:* three ledgers (Kudos / XP / Seeds); XP and Seeds never become kudos, allowance or Store balance.
+2. **The Store bridge.** Should reaching certain levels pay a small, fixed Store grant (§6.4)? It's the one deliberate hole in the firewall, it pays for giving, and it re-opens Quest spec D8.
+   *Recommend:* build it as an admin option, off by default. Alternatively leave it out of 1.x and revisit after a season of data.
+3. **Visibility and consent.** Are levels, crests and trees public, private, or opt-in per member? How do they interact with `receivedVisibility`? Can a workspace turn the game off? Can a member hide it, and does hiding stop XP from accruing or only hide the UI?
+   *Recommend:*
+   - A workspace switch: on in the demo, the admin's choice elsewhere.
+   - Level and crests visible to teammates on profiles, *never ranked*.
+   - Gift trees and receiving XP follow `receivedVisibility`: receiving XP only counts toward a publicly shown level under `everyone`.
+   - Members can hide the game. XP keeps accruing silently, so unhiding later is never a loss.
+4. **Does gamification re-open the Quest spec?** Quests currently give only collectible messages (D7); no currency, bonus allowance or public display (D8–D10); and quest data is private to the member (D10).
+   *Recommend:* yes, narrowly. Quests grant XP and Seeds (D7/D8), which puts quest effort into a level others can see. That is an explicit change to D10, softened by never showing *which* quests someone completed. Still no Store currency and no allowance. Needs sign-off because it reverses a spec decision.
+5. **What earns XP?** Giving vs receiving ratio; per message × recipient vs per kudos unit; reuse the qualifying rule?
+   *Recommend:* §4.2 as written: per message × recipient (max 3), the qualifying rule reused, 10 XP to the giver vs 3 to the receiver, receiving counts distinct givers only.
+6. **What is a kudos tree?** Relationship trees, one personal tree, a team tree, or a money tree (§6.2)? What do trees yield?
+   *Recommend:* relationship trees (A) plus the team grove (C). They yield Seeds and a little XP, capped below what giving earns, and never Store kudos.
+7. **Loss.** Can trees wither or die? Any streaks?
+   *Recommend:* dormant, never dead. No loss-framed streaks.
+8. **Progressive gating.** Only new features on the ladder, or existing ones too for new joiners? Backfill XP for veterans?
    *Recommend:* new features only; backfill everyone.
-8. **Boosters.** Altruistic only, or also self-boosts? Bought with Seeds only, or also earned directly?
-   *Recommend:* the four ✅ boosters in §6.3; Seeds only; no XP multipliers.
-9. **Perks and pacing.** Which perks, at which level; the curve slope; the level cap; seasons?
-   *Recommend:* §4.4 curve, cap 25, perks in §6.4; decide on seasons later.
-10. **Theme and names.** Garden/island (Octalysis Prime-like), PostHog hedgehogs and crests (#52), or both? What are "Seeds", "grove", "crest" called?
-    *Recommend:* garden mechanics dressed in the PostHog look: hedgehogs tend the grove, crests are the level badges.
-11. **Slack surfaces.** Level-up DMs, gift-tree DMs, App Home grove, `/kudos level`? How chatty may the bot get?
-    *Recommend:* one DM per level-up and per gift tree planted for you; App Home shows level + grove summary; no reminder DMs (same as quests).
-12. **Admin knobs.** Which numbers can admins tune (caps, curve, Store bridge), and which are fixed in code?
-    *Recommend:* on/off, Store bridge amounts, species list; everything else fixed in code for 1.x.
-13. **Demo.** How does the seeded demo year (#49) show the game?
-    *Recommend:* backfill the demo user to ~level 9 with a half-grown grove, one locked area one level away, and a scripted level-up on the next thoughtful kudos.
-14. **Success metrics and kill switch.** What tells us it's working (distinct recipients per giver, note length, participation, share of reciprocal kudos) and what would make us turn it off?
-    *Recommend:* define 3 metrics before launch and review after one season.
+9. **Boosters.** Altruistic only, or also self-boosts? Bought with Seeds only, or also earned directly? May they stack?
+   *Recommend:* the four ✅ boosters in §6.3, bought with Seeds only. At most one active booster of each kind. No XP multipliers.
+10. **Perks and pacing.** Which perks at which level; the curve slope; the level cap; seasons?
+    *Recommend:* the §4.4 curve (the quiet appreciator's pace is the knob to watch), cap 25, perks as in §6.4. Decide on seasons later.
+11. **Theme and names.** Garden/island (Octalysis Prime-like), PostHog hedgehogs and crests (#52), or both? What are "Seeds", "grove" and "crest" called?
+    *Recommend:* garden mechanics in the PostHog look: hedgehogs tend the grove, crests are the level badges.
+12. **Slack surfaces.** Level-up DMs, gift-tree DMs, App Home grove, `/kudos level`? How chatty may the bot get?
+    *Recommend:*
+    - One DM per level-up (only when `notifyGiver` is on) and one per gift tree planted for you (only when `notifyReceiver` is on and `receivedVisibility` allows it).
+    - App Home shows your level and a grove summary.
+    - No reminder or "come harvest" DMs, the same stance as quests.
+13. **Relationship to the quest switch.** Is the game one switch with quests, or separate?
+    *Recommend:* separate switches (`gamificationEnabled`, `questsEnabled`). With quests off, quest XP and Seeds simply don't occur.
+14. **Admin knobs.** Which numbers can admins tune (caps, curve, Store bridge amounts, species list), and which are fixed in code?
+    *Recommend:* on/off, the Store bridge amounts and the species list; everything else fixed in code for 1.x.
+15. **Demo.** How does the seeded demo year (#49) show the game?
+    *Recommend:* backfill the demo user to about level 9 with a half-grown grove, one locked area a level away, and a scripted level-up on the next thoughtful kudos.
+16. **Success metrics and kill switch.** What tells us it works?
+    *Recommend:* baseline these three before launch and review them after one season:
+    1. distinct recipients per active giver per month (should rise);
+    2. the share of kudos with a 12+ word note (should rise);
+    3. the share of reciprocal kudos (must not rise).
+
+    Also watch participation (the share of members who give at least once a month). If metric 3 rises or metric 2 falls for a whole season, switch the XP layer off and keep the cosmetics.
+17. **Leavers.** What happens to a deactivated member's level and trees, and to trees planted *for* them?
+    *Recommend:* level and crests are kept (they come back if the member is reactivated); trees for a deactivated partner become frozen memories and free their plot (§6.2).
 
 ---
 
