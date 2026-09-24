@@ -112,7 +112,7 @@ export function Discoveries() {
                     transition={{ duration: 0.2 }}
                     className={clsx(
                       "relative flex min-h-44 flex-col rounded-2xl p-4 ring-1 ring-inset",
-                      i.discovered ? ["bg-panel", meta.ring, meta.glow] : "bg-panel/40 ring-line",
+                      i.discovered ? ["bg-panel", meta.ring] : "bg-panel/40 ring-line",
                     )}
                   >
                     <div className="flex items-center justify-between gap-2">

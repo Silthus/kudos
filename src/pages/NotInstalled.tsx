@@ -1,5 +1,5 @@
 import { useAuthActions } from "@convex-dev/auth/react";
-import { Logo } from "@/components/AppShell";
+import { Logo } from "@/components/KudosMark";
 import { Button, Card } from "@/components/ui";
 import { siteUrl } from "@/lib/viewer";
 import { SlackMark } from "./Landing";
@@ -22,7 +22,7 @@ export function NotInstalled({ name }: { name: string | null }) {
               <SlackMark className="h-5 w-5" /> Add Kudos to Slack
             </Button>
           </a>
-          <Button variant="ghost" onClick={() => void signOut()}>
+          <Button variant="tertiary" onClick={() => void signOut()}>
             Sign out
           </Button>
         </div>

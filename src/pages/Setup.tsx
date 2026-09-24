@@ -3,7 +3,7 @@ import { Check, Copy, ExternalLink, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { api } from "../../convex/_generated/api";
-import { Logo } from "@/components/AppShell";
+import { Logo } from "@/components/KudosMark";
 import { Button, Card, CardHeader, Eyebrow } from "@/components/ui";
 import { siteUrl } from "@/lib/viewer";
 import { SlackMark } from "./Landing";
@@ -24,7 +24,7 @@ export function CopyButton({ text, label = "Copy" }: { text: string; label?: str
   return (
     <Button
       size="sm"
-      variant="outline"
+      variant="secondary"
       onClick={() => {
         void navigator.clipboard.writeText(text);
         setCopied(true);

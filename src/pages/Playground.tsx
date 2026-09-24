@@ -330,7 +330,7 @@ export function Playground() {
                     initial={{ opacity: 0, scale: 0.9, y: -12 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     transition={{ type: "spring", bounce: m.rarity === "legendary" || m.rarity === "epic" ? 0.55 : 0.25 }}
-                    className={clsx("relative rounded-2xl bg-ink/60 p-4 ring-1 ring-inset", meta.ring, meta.glow)}
+                    className={clsx("relative rounded-2xl bg-ink/60 p-4 ring-1 ring-inset", meta.ring)}
                   >
                     {m.isNewDiscovery && (m.rarity === "legendary" || m.rarity === "epic" || m.rarity === "rare") && <Burst color={meta.color} />}
                     <div className="mb-1.5 text-[11px] text-faint">{m.toMe ? "To you" : `To ${m.to} (they'll get this DM)`} · {m.category.replace("_", " ")}</div>

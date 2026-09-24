@@ -6,6 +6,10 @@ import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { MotionConfig } from "motion/react";
 import "./index.css";
 import { App } from "./App";
+import { startTheme } from "./lib/theme";
+
+// The pre-paint script in index.html already painted the theme; from here on it follows the OS, other tabs and the switch.
+startTheme();
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 

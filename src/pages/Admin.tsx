@@ -175,7 +175,7 @@ function SettingsForm({ initial, isDemo, storeEnabled }: { initial: Settings; is
           {state.kind === "saving" ? "Saving…" : state.kind === "saved" ? <><Check className="h-4 w-4" /> Saved</> : "Save settings"}
         </Button>
         {dirty && (
-          <Button variant="ghost" onClick={() => setS(initial)}>
+          <Button variant="tertiary" onClick={() => setS(initial)}>
             Discard
           </Button>
         )}
@@ -185,7 +185,7 @@ function SettingsForm({ initial, isDemo, storeEnabled }: { initial: Settings; is
           </span>
         )}
         {isDemo && (
-          <Button variant="outline" className="ml-auto" onClick={() => void resetDemo()}>
+          <Button variant="secondary" className="ml-auto" onClick={() => void resetDemo()}>
             <RotateCcw className="h-4 w-4" /> Reset demo data
           </Button>
         )}
@@ -336,7 +336,7 @@ function Moderation() {
       </ul>
       {status === "CanLoadMore" && (
         <div className="px-5 pb-5">
-          <Button variant="outline" onClick={() => loadMore(25)}>
+          <Button variant="secondary" onClick={() => loadMore(25)}>
             Load more
           </Button>
         </div>

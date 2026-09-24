@@ -2,6 +2,7 @@ import { useQuery } from "convex/react";
 import { Navigate, Route, Routes } from "react-router";
 import { api } from "../convex/_generated/api";
 import { AppShell } from "./components/AppShell";
+import { KudosMark } from "./components/KudosMark";
 import { ViewerContext } from "./lib/viewer";
 import { Landing } from "./pages/Landing";
 import { NotInstalled } from "./pages/NotInstalled";
@@ -17,8 +18,8 @@ import { Setup } from "./pages/Setup";
 
 function Splash() {
   return (
-    <div className="grid min-h-dvh place-items-center">
-      <div className="animate-float text-5xl" aria-label="Loading">🌮</div>
+    <div className="grid min-h-dvh place-items-center" role="status" aria-label="Loading">
+      <KudosMark size={40} className="animate-pulse" />
     </div>
   );
 }

@@ -1,86 +1,272 @@
+/*
+ * Kudos design tokens: the PostHog product idiom (Lemon UI) in light and dark.
+ * Spec: https://github.com/Silthus/kudos/issues/54 (resolution comment, §3–§7). Glossary: CONTEXT.md "Design system".
+ *
+ * - Raw values live once, as `--k-*` variables per theme (`:root` = light, `[data-theme="dark"]` = dark).
+ *   tests/theme-tokens.test.ts holds every text role to WCAG AA on every background, in both themes.
+ * - Tailwind colours point at them through `@theme inline` (`bg-surface`, `text-text-2`, `border-border-bold`…),
+ *   and `dark:` means `[data-theme="dark"]`, which src/lib/theme.ts (and the pre-paint script in index.html) sets.
+ * - Components use Tailwind classes or `var(--k-*)`; never raw hex.
+ */
 @import "tailwindcss";
-@import "@fontsource-variable/bricolage-grotesque";
-@import "@fontsource-variable/geist";
-@import "@fontsource-variable/geist-mono";
+@import "@fontsource-variable/ibm-plex-sans";
+@import "@fontsource-variable/nunito";
+@import "@fontsource-variable/source-code-pro";
 
-@theme {
-  --font-display: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-  --color-ink: #0f0d0b;
-  --color-panel: #17140f;
-  --color-panel-2: #1e1a14;
-  --color-panel-3: #27221b;
-  --color-line: rgb(255 236 210 / 0.08);
-  --color-line-strong: rgb(255 236 210 / 0.16);
-  --color-cream: #f6efe4;
-  --color-muted: #aaa093;
-  --color-faint: #726a5f;
+:root {
+  /* Surfaces: the scene behind everything, the sidebar, cards and tables, tints */
+  --k-bg: #f3f4ef;
+  --k-sidebar: #eeefe9;
+  --k-surface: #ffffff;
+  --k-surface-2: #f7f8f4; /* table heads, hover */
+  --k-surface-3: #e5e7e0; /* tracks, skeletons */
+  --k-border: #dadbd2;
+  --k-border-bold: #c1c2b9;
+  /* Text */
+  --k-text: #111111;
+  --k-text-2: #4d4f46;
+  --k-text-3: #6b6d63;
+  /* Brand: accent marks active, focus and brand moments; links are a darker orange so they read as text */
+  --k-accent: #f54e00;
+  --k-link: #b83a00;
+  --k-on-fill: #111111; /* ink on bright fills: accent, CTA, avatars */
+  --k-brand: #f54e00; /* KudosMark and favicon only; never text */
+  --k-on-brand: #ffffff;
+  /* Lemon 3D buttons: a face with a 1px border on a 3px frame */
+  --k-btn-primary-face: #ffffff;
+  --k-btn-primary-border: #b17816;
+  --k-btn-primary-border-hover: #8e5b03;
+  --k-btn-primary-frame: #eb9d2a;
+  --k-btn-primary-text: #111111;
+  --k-btn-secondary-face: #f3f4ef;
+  --k-btn-secondary-border: #cccccc;
+  --k-btn-secondary-border-hover: #aaaaaa;
+  --k-btn-secondary-frame: #e1dddd;
+  /* posthog.com call to action (public pages only): orange face on a darker shell */
+  --k-cta-face: #eb9d2a;
+  --k-cta-shell: #cd8407;
+  --k-cta-border: #b17816;
+  /* Status: always shipped with an icon and a word; never series colours */
+  --k-success: #327800;
+  --k-warning: #8a5d00;
+  --k-danger: #c33106;
+  /* Data series (dataviz-validated, CVD-safe): given, received, neutral benchmark */
+  --k-series-given: #f54e00;
+  --k-series-received: #1d4aff;
+  --k-series-neutral: #73756b;
+  /* Rarity: never colour alone (the word and the pip shape always ship with it) */
+  --k-r-common: #73756b;
+  --k-r-uncommon: #529a0a;
+  --k-r-rare: #2f80fa;
+  --k-r-epic: #7f26d9;
+  --k-r-legendary: #f54e00;
+  /* Elevation */
+  --k-shadow-elevation: 0 3px 0 var(--k-border);
+  --k-shadow-window: 0 16px 16px -16px rgb(0 0 0 / 35%), 0 1px 0 var(--k-border);
+  --k-scrim: rgb(17 17 17 / 35%);
+}
 
-  --color-saffron: #ffb224;
-  --color-saffron-deep: #cf7d17;
-  --color-ember: #ff6b4a;
-  --color-teal: #219c86;
-  --color-teal-soft: #5fd4bd;
-  --color-up: #7ddc9c;
-  --color-down: #ff8a78;
-  /* Compare: the neutral ink every benchmark wears (cream at 70% over panel), CVD-checked against both families. */
-  --color-benchmark: #b3ada4;
+[data-theme="dark"] {
+  --k-bg: #1d1f27;
+  --k-sidebar: #191b22;
+  --k-surface: #23252c;
+  --k-surface-2: #2a2c34;
+  --k-surface-3: #35373e;
+  --k-border: #35373e;
+  --k-border-bold: #4a4c52;
+  --k-text: #f4f4f5;
+  --k-text-2: #b0b4c4;
+  --k-text-3: #9094a1;
+  --k-accent: #f7a501; /* PostHog's dark theme swaps the orange for yellow */
+  --k-link: #f7a501;
+  --k-on-fill: #111111;
+  --k-brand: #f54e00;
+  --k-on-brand: #ffffff;
+  --k-btn-primary-face: #f7a501;
+  --k-btn-primary-border: #b17816;
+  --k-btn-primary-border-hover: #e0b050;
+  --k-btn-primary-frame: #926826;
+  --k-btn-primary-text: #111111;
+  --k-btn-secondary-face: #1d1f27;
+  --k-btn-secondary-border: #4a4c52;
+  --k-btn-secondary-border-hover: #5e6064;
+  --k-btn-secondary-frame: #323232;
+  --k-cta-face: #eb9d2a;
+  --k-cta-shell: #99660e;
+  --k-cta-border: #835c19;
+  --k-success: #5ab334;
+  --k-warning: #f7a501;
+  --k-danger: #f2764b;
+  --k-series-given: #f54e00;
+  --k-series-received: #2f80fa;
+  --k-series-neutral: #9ea096;
+  --k-r-common: #9ea096;
+  --k-r-uncommon: #529a0a;
+  --k-r-rare: #2f80fa;
+  --k-r-epic: #7f26d9;
+  --k-r-legendary: #f54e00;
+  --k-shadow-elevation: 0 3px 0 rgb(0 0 0 / 35%);
+  --k-shadow-window: 0 16px 24px -16px rgb(0 0 0 / 70%), 0 1px 0 rgb(0 0 0 / 35%);
+  --k-scrim: rgb(0 0 0 / 60%);
+}
 
-  --color-r-common: #a5a19a;
-  --color-r-uncommon: #4fca7d;
-  --color-r-rare: #4aa8f0;
-  --color-r-epic: #b67cf2;
-  --color-r-legendary: #ffb224;
+@theme inline {
+  --font-display: "Nunito Variable", ui-rounded, system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Source Code Pro Variable", ui-monospace, monospace;
 
-  --animate-shimmer: shimmer 3.2s linear infinite;
-  --animate-float: float 6s ease-in-out infinite;
-  @keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-  }
-  @keyframes float {
-    0%, 100% { transform: translateY(0) rotate(-4deg); }
-    50% { transform: translateY(-10px) rotate(4deg); }
-  }
+  --color-bg: var(--k-bg);
+  --color-sidebar: var(--k-sidebar);
+  --color-surface: var(--k-surface);
+  --color-surface-2: var(--k-surface-2);
+  --color-surface-3: var(--k-surface-3);
+  --color-border: var(--k-border);
+  --color-border-bold: var(--k-border-bold);
+  --color-text: var(--k-text);
+  --color-text-2: var(--k-text-2);
+  --color-text-3: var(--k-text-3);
+  --color-accent: var(--k-accent);
+  --color-link: var(--k-link);
+  --color-on-fill: var(--k-on-fill);
+  --color-success: var(--k-success);
+  --color-warning: var(--k-warning);
+  --color-danger: var(--k-danger);
+  --color-series-given: var(--k-series-given);
+  --color-series-received: var(--k-series-received);
+  --color-series-neutral: var(--k-series-neutral);
+  --color-r-common: var(--k-r-common);
+  --color-r-uncommon: var(--k-r-uncommon);
+  --color-r-rare: var(--k-r-rare);
+  --color-r-epic: var(--k-r-epic);
+  --color-r-legendary: var(--k-r-legendary);
+
+  /*
+   * TEMPORARY v1 aliases: the old names point at the new roles so every page restyles at once.
+   * Page passes (#54 R2–R9) move to the semantic names; R10 deletes this block and forbids the names.
+   */
+  --color-ink: var(--k-bg);
+  --color-panel: var(--k-surface);
+  --color-panel-2: var(--k-surface-2);
+  --color-panel-3: var(--k-surface-3);
+  --color-line: var(--k-border);
+  --color-line-strong: var(--k-border-bold);
+  --color-cream: var(--k-text);
+  --color-muted: var(--k-text-2);
+  --color-faint: var(--k-text-3);
+  --color-saffron: var(--k-accent);
+  --color-saffron-deep: var(--k-series-given);
+  --color-ember: var(--k-warning);
+  --color-teal: var(--k-series-received);
+  --color-teal-soft: var(--k-series-received);
+  --color-up: var(--k-success);
+  --color-down: var(--k-danger);
+  --color-benchmark: var(--k-series-neutral);
+
+  --radius-lemon: 0.375rem; /* controls */
+  --radius-window: 0.625rem; /* cards, tables, windows */
+  --shadow-elevation: var(--k-shadow-elevation);
+  --shadow-window: var(--k-shadow-window);
 }
 
 @layer base {
-  html { color-scheme: dark; background: var(--color-ink); }
+  html {
+    color-scheme: light;
+    background: var(--k-bg);
+  }
+  html[data-theme="dark"] {
+    color-scheme: dark;
+  }
   body {
-    @apply bg-ink text-cream font-sans antialiased;
-    font-feature-settings: "ss01", "cv11";
-    background-image:
-      radial-gradient(1100px 520px at 12% -10%, rgb(255 178 36 / 0.07), transparent 60%),
-      radial-gradient(900px 480px at 110% 10%, rgb(33 156 134 / 0.06), transparent 60%);
-    background-attachment: fixed;
+    @apply bg-bg font-sans text-text antialiased;
+    font-size: 14px;
     min-height: 100dvh;
   }
-  ::selection { background: rgb(255 178 36 / 0.35); }
-  :focus-visible { outline: 2px solid var(--color-saffron); outline-offset: 2px; border-radius: 6px; }
-  .tabular { font-variant-numeric: tabular-nums; }
-}
-
-@utility grain {
-  position: relative;
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    border-radius: inherit;
-    opacity: 0.35;
-    mix-blend-mode: overlay;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  ::selection {
+    background: color-mix(in oklab, var(--k-accent) 30%, transparent);
+  }
+  :focus-visible {
+    outline: 2px solid var(--k-accent);
+    outline-offset: 2px;
+    border-radius: var(--radius-lemon);
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
 }
 
+/*
+ * Lemon 3D button: a face with a 1px border sitting on a 3px frame. Hover lifts 1px, press sinks 2px,
+ * 100 ms, and nothing else animates. Pair with one of the btn-* variants below (Button in ui.tsx does).
+ */
+@utility btn-3d {
+  border-width: 1px;
+  border-style: solid;
+  border-radius: var(--radius-lemon);
+  border-color: var(--btn-border);
+  background: var(--btn-face);
+  color: var(--btn-text);
+  box-shadow: 0 3px 0 -1px var(--btn-frame);
+  margin-bottom: 3px;
+  transition:
+    transform 100ms ease,
+    box-shadow 100ms ease,
+    border-color 100ms ease;
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 0 -1px var(--btn-frame);
+    border-color: var(--btn-border-hover);
+  }
+  &:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 -1px var(--btn-frame);
+  }
+}
+@utility btn-primary {
+  --btn-face: var(--k-btn-primary-face);
+  --btn-border: var(--k-btn-primary-border);
+  --btn-border-hover: var(--k-btn-primary-border-hover);
+  --btn-frame: var(--k-btn-primary-frame);
+  --btn-text: var(--k-btn-primary-text);
+}
+@utility btn-secondary {
+  --btn-face: var(--k-btn-secondary-face);
+  --btn-border: var(--k-btn-secondary-border);
+  --btn-border-hover: var(--k-btn-secondary-border-hover);
+  --btn-frame: var(--k-btn-secondary-frame);
+  --btn-text: var(--k-text);
+}
+@utility btn-cta {
+  --btn-face: var(--k-cta-face);
+  --btn-border: var(--k-cta-border);
+  --btn-border-hover: var(--k-cta-border);
+  --btn-frame: var(--k-cta-shell);
+  --btn-text: var(--k-on-fill);
+}
+@utility btn-danger {
+  --btn-face: var(--k-surface);
+  --btn-border: color-mix(in oklab, var(--k-danger) 60%, var(--k-surface));
+  --btn-border-hover: var(--k-danger);
+  --btn-frame: color-mix(in oklab, var(--k-danger) 40%, var(--k-surface));
+  --btn-text: var(--k-danger);
+}
+
+/*
+ * Not yet available (progressive disclosure, #55): a dashed bold outline over a faint 135° hatch, text in text-3.
+ * Show a lock icon with it, and say "Reach X to use this", never "unlock".
+ */
+@utility locked {
+  border-style: dashed;
+  border-color: var(--k-border-bold);
+  color: var(--k-text-3);
+  background-image: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in oklab, var(--k-text) 5%, transparent) 6px 7px);
+}
+
+/* TEMPORARY v1 aliases for utilities the spec removes (grain, shimmering legendary text); R10 deletes them. */
+@utility grain {
+  position: relative;
+}
 @utility legendary-text {
-  background: linear-gradient(90deg, #ffcf6a, #ff8a3d, #ffe29a, #ff8a3d, #ffcf6a);
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: var(--animate-shimmer);
+  color: var(--k-text);
 }

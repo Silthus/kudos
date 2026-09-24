@@ -155,7 +155,7 @@ function Requests({ isDemo }: { isDemo: boolean }) {
       )}
       {status === "CanLoadMore" && (
         <div className="px-5 pb-4">
-          <Button size="sm" variant="ghost" onClick={() => loadMore(20)}>
+          <Button size="sm" variant="tertiary" onClick={() => loadMore(20)}>
             Show more
           </Button>
         </div>
@@ -241,7 +241,7 @@ function RequestRow({
               <Button size="sm" variant="primary" onClick={onFulfill} disabled={busy}>
                 <PackageCheck className="h-4 w-4" /> Fulfil
               </Button>
-              <Button size="sm" variant="ghost" onClick={onDecline} disabled={busy}>
+              <Button size="sm" variant="tertiary" onClick={onDecline} disabled={busy}>
                 Decline…
               </Button>
             </div>
@@ -303,7 +303,7 @@ function DeclineDialog({
               <CircleAlert className="h-4 w-4 shrink-0" /> {error}
             </span>
           )}
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="tertiary" onClick={onClose}>
             Keep it
           </Button>
           <Button variant="danger" type="submit" form={formId} disabled={busy}>
@@ -546,7 +546,7 @@ function RewardEditor({ reward, onClose }: { reward: Reward | "new" | null; onCl
               <CircleAlert className="h-4 w-4 shrink-0" /> {error}
             </span>
           )}
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="tertiary" onClick={onClose}>
             Cancel
           </Button>
           <Button variant="primary" type="submit" form={formId} disabled={saving}>
@@ -867,7 +867,7 @@ function AdjustBalanceDialog({ open, ledger, glyph, onClose }: { open: boolean; 
               <CircleAlert className="h-4 w-4 shrink-0" /> {error}
             </span>
           )}
-          <Button variant="ghost" onClick={onClose} disabled={busy}>
+          <Button variant="tertiary" onClick={onClose} disabled={busy}>
             Cancel
           </Button>
           <Button variant="primary" type="submit" form={formId} disabled={busy || !valid || !reasonOk}>

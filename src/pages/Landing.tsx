@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { BarChart3, Gem, Lock, Sparkles, Timer, Trophy, Webhook } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import { Logo } from "@/components/AppShell";
+import { Logo } from "@/components/KudosMark";
 import { Avatar, Button, Eyebrow, RarityBadge } from "@/components/ui";
 import { RARITY_META, RARITY_ORDER, type Rarity } from "@/lib/rarity";
 import { siteUrl } from "@/lib/viewer";
@@ -76,7 +76,7 @@ function SlackMock() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.35 }}
-                  className={`mt-2 rounded-2xl border bg-ink/60 p-4 ring-1 ring-inset ${meta.ring} ${meta.glow}`}
+                  className={`mt-2 rounded-2xl border bg-ink/60 p-4 ring-1 ring-inset ${meta.ring}`}
                   style={{ borderColor: "transparent" }}
                 >
                   <p className="text-[15px] leading-relaxed">{drop.text}</p>
@@ -133,7 +133,7 @@ export function Landing() {
           <Link to="/setup" className="hidden rounded-lg px-3 py-2 text-sm text-muted hover:text-cream sm:block">
             Install guide
           </Link>
-          <Button variant="outline" size="sm" onClick={slack} disabled={busy !== null}>
+          <Button variant="secondary" size="sm" onClick={slack} disabled={busy !== null}>
             <SlackMark /> Sign in with Slack
           </Button>
         </div>
@@ -168,7 +168,7 @@ export function Landing() {
                 <SlackMark className="h-5 w-5" /> Add to Slack
               </Button>
             </a>
-            <Button variant="outline" size="lg" onClick={demo} disabled={busy !== null}>
+            <Button variant="secondary" size="lg" onClick={demo} disabled={busy !== null}>
               <Sparkles className="h-4 w-4 text-saffron" />
               {busy === "demo" ? "Opening demo…" : "Explore the live demo"}
             </Button>
@@ -210,7 +210,7 @@ export function Landing() {
           </div>
           <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-5">
             {RARITY_ORDER.map((r, i) => (
-              <div key={r} className={`rounded-2xl bg-ink/50 p-4 ring-1 ring-inset ${RARITY_META[r].ring} ${RARITY_META[r].glow}`}>
+              <div key={r} className={`rounded-2xl bg-ink/50 p-4 ring-1 ring-inset ${RARITY_META[r].ring}`}>
                 <RarityBadge rarity={r} size="xs" />
                 <div className={`mt-4 font-display text-3xl font-semibold tabular ${r === "legendary" ? "legendary-text" : ""}`}>{[55, 25, 12, 6, 2][i]}%</div>
                 <div className="text-xs text-faint">{[25, 15, 10, 5, 5][i]} messages</div>

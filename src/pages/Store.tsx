@@ -378,7 +378,7 @@ function RedeemDialog({
                 <CircleAlert className="h-4 w-4 shrink-0" /> {error}
               </span>
             )}
-            <Button variant="ghost" onClick={close} disabled={busy}>
+            <Button variant="tertiary" onClick={close} disabled={busy}>
               Not now
             </Button>
             <Button variant="primary" type="submit" form={formId} disabled={busy || priceChanged || blocked}>
@@ -539,12 +539,12 @@ function MyRequests() {
                           <Button size="sm" variant="danger" onClick={() => doCancel(r._id)} disabled={cancelling === r._id}>
                             {cancelling === r._id ? "Cancelling…" : "Cancel request"}
                           </Button>
-                          <Button size="sm" variant="ghost" onClick={() => setConfirming(null)}>
+                          <Button size="sm" variant="tertiary" onClick={() => setConfirming(null)}>
                             Keep
                           </Button>
                         </span>
                       ) : (
-                        <Button size="sm" variant="ghost" onClick={() => setConfirming(r._id)} className="shrink-0">
+                        <Button size="sm" variant="tertiary" onClick={() => setConfirming(r._id)} className="shrink-0">
                           Cancel
                         </Button>
                       ))}
@@ -579,7 +579,7 @@ function MyRequests() {
       )}
       {status === "CanLoadMore" && (
         <div className="px-5 pb-4">
-          <Button size="sm" variant="ghost" onClick={() => loadMore(10)}>
+          <Button size="sm" variant="tertiary" onClick={() => loadMore(10)}>
             Show older requests
           </Button>
         </div>
@@ -608,7 +608,7 @@ function MyAdjustments() {
       </ul>
       {status === "CanLoadMore" && (
         <div className="px-5 pb-4">
-          <Button size="sm" variant="ghost" onClick={() => loadMore(10)}>
+          <Button size="sm" variant="tertiary" onClick={() => loadMore(10)}>
             Show older adjustments
           </Button>
         </div>

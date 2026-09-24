@@ -245,7 +245,7 @@ export function Me() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.06 }}
-                  className={clsx("rounded-2xl bg-ink/60 p-4 ring-1 ring-inset", RARITY_META[d.rarity as Rarity].ring, RARITY_META[d.rarity as Rarity].glow)}
+                  className={clsx("rounded-2xl bg-ink/60 p-4 ring-1 ring-inset", RARITY_META[d.rarity as Rarity].ring)}
                 >
                   <RarityBadge rarity={d.rarity as Rarity} size="xs" />
                   <p className="mt-3 text-sm leading-relaxed">

@@ -2,34 +2,95 @@ import clsx from "clsx";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
 import { motion } from "motion/react";
-import { ArrowLeftRight, BarChart3, FlaskConical, Gem, Gift, LogOut, Settings2, Trophy, UserRound } from "lucide-react";
+import { ArrowLeftRight, BarChart3, ChevronRight, FlaskConical, Gem, Gift, LogOut, Monitor, Moon, Settings2, Sun, Trophy, UserRound, type LucideIcon } from "lucide-react";
 import { useEffect } from "react";
 import { NavLink, Outlet, useLocation } from "react-router";
 import { api } from "../../convex/_generated/api";
 import { useViewer } from "@/lib/viewer";
+import { THEME_PREFS, useTheme, type ThemePref } from "@/lib/theme";
 import { ErrorBoundary } from "./ErrorBoundary";
+import { Logo } from "./KudosMark";
 import { Avatar } from "./ui";
-
-export function Logo({ glyph = "🌮" }: { glyph?: string }) {
-  return (
-    <span className="inline-flex items-center gap-2 font-display text-xl font-bold tracking-tight">
-      <span className="grid h-9 w-9 place-items-center rounded-xl bg-saffron/15 text-lg ring-1 ring-saffron/30">{glyph}</span>
-      kudos
-    </span>
-  );
-}
 
 /** Open store requests on the Admin item. */
 function NavBadge({ count, className }: { count: number; className?: string }) {
   const label = count > 99 ? "99+" : String(count);
   return (
     <span
-      className={clsx("grid h-[18px] min-w-[18px] place-items-center rounded-full bg-saffron px-1 font-mono text-[10px] font-semibold leading-none text-ink", className)}
+      className={clsx("grid h-[18px] min-w-[18px] place-items-center rounded-full bg-accent px-1 text-[10px] font-bold leading-none text-on-fill tabular", className)}
       title={`${label} open store ${count === 1 ? "request" : "requests"}`}
     >
       {label}
       <span className="sr-only"> open store {count === 1 ? "request" : "requests"}</span>
     </span>
+  );
+}
+
+/** The sidebar groups, in order. The mobile bar (#41) reuses the same model. */
+const NAV_GROUPS = ["You", "Team", "Workspace"] as const;
+type NavItem = { to: string; label: string; short: string; icon: LucideIcon; group: (typeof NAV_GROUPS)[number]; badge?: number };
+
+const THEME_ICON: Record<ThemePref, LucideIcon> = { light: Sun, dark: Moon, system: Monitor };
+const THEME_LABEL: Record<ThemePref, string> = { light: "Light", dark: "Dark", system: "System" };
+
+/** Light / Dark / System, as a small segmented control. */
+function ThemeSwitch() {
+  const { pref, setPref } = useTheme();
+  return (
+    <div role="radiogroup" aria-label="Theme" className="flex gap-0.5 rounded-lemon border border-border bg-bg p-0.5">
+      {THEME_PREFS.map((p) => {
+        const Icon = THEME_ICON[p];
+        return (
+          <button
+            key={p}
+            role="radio"
+            aria-checked={pref === p}
+            onClick={() => setPref(p)}
+            className={clsx(
+              "flex flex-1 items-center justify-center gap-1 rounded-[5px] py-1 text-[11px] font-semibold",
+              pref === p ? "bg-surface text-text shadow-[0_0_0_1px_var(--k-border-bold)]" : "text-text-3 hover:text-text",
+            )}
+          >
+            <Icon className="h-3 w-3" aria-hidden />
+            {THEME_LABEL[p]}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** On phones there's no sidebar (yet, #41): one button steps Light → Dark → System. */
+function ThemeCycleButton() {
+  const { pref, setPref } = useTheme();
+  const next = THEME_PREFS[(THEME_PREFS.indexOf(pref) + 1) % THEME_PREFS.length];
+  const Icon = THEME_ICON[pref];
+  return (
+    <button onClick={() => setPref(next)} className="rounded-lemon p-2 text-text-3 hover:text-text" aria-label={`Theme: ${THEME_LABEL[pref]}. Switch to ${THEME_LABEL[next]}`}>
+      <Icon className="h-4 w-4" />
+    </button>
+  );
+}
+
+function SidebarLink({ item }: { item: NavItem }) {
+  return (
+    <NavLink
+      to={item.to}
+      className={({ isActive }) =>
+        clsx(
+          "flex items-center gap-2 rounded-lemon px-2 py-1.5 text-[13px] font-semibold",
+          isActive ? "bg-surface text-text shadow-[0_0_0_1px_var(--k-border-bold),0_2px_0_var(--k-border-bold)]" : "text-text-2 hover:bg-text/[0.06] hover:text-text",
+        )
+      }
+    >
+      {({ isActive }) => (
+        <>
+          <item.icon className={clsx("h-4 w-4", isActive ? "text-accent" : "text-text-3")} aria-hidden />
+          <span>{item.label}</span>
+          {!!item.badge && <NavBadge count={item.badge} className="ml-auto" />}
+        </>
+      )}
+    </NavLink>
   );
 }
 
@@ -42,98 +103,104 @@ export function AppShell() {
   }, [location.pathname]);
   // Store requests waiting on an admin; capped server-side, so 100 reads as "99+".
   const openRequests = useQuery(api.storeAdmin.openCount, viewer.member.isAdmin ? {} : "skip") ?? 0;
-  const nav: { to: string; label: string; short: string; icon: typeof Gift; badge?: number }[] = [
-    { to: "/me", label: "My kudos", short: "Me", icon: UserRound },
-    { to: "/leaderboard", label: "Leaderboard", short: "Ranks", icon: Trophy },
-    { to: "/compare", label: "Compare", short: "Compare", icon: ArrowLeftRight },
-    { to: "/discoveries", label: "Discoveries", short: "Gallery", icon: Gem },
-    ...(viewer.workspace.storeEnabled ? [{ to: "/store", label: "Store", short: "Store", icon: Gift }] : []),
-    { to: "/analytics", label: "Analytics", short: "Stats", icon: BarChart3 },
-    ...(viewer.workspace.isDemo ? [{ to: "/playground", label: "Playground", short: "Try", icon: FlaskConical }] : []),
-    ...(viewer.member.isAdmin ? [{ to: openRequests ? "/admin?tab=store" : "/admin", label: "Admin", short: "Admin", icon: Settings2, badge: openRequests }] : []),
+  const nav: NavItem[] = [
+    { to: "/me", label: "My kudos", short: "Me", icon: UserRound, group: "You" },
+    { to: "/compare", label: "Compare", short: "Compare", icon: ArrowLeftRight, group: "You" },
+    { to: "/leaderboard", label: "Leaderboard", short: "Ranks", icon: Trophy, group: "Team" },
+    { to: "/discoveries", label: "Discoveries", short: "Gallery", icon: Gem, group: "Team" },
+    ...(viewer.workspace.storeEnabled ? [{ to: "/store", label: "Store", short: "Store", icon: Gift, group: "Team" } as const] : []),
+    { to: "/analytics", label: "Analytics", short: "Stats", icon: BarChart3, group: "Team" },
+    ...(viewer.workspace.isDemo ? [{ to: "/playground", label: "Slack playground", short: "Try", icon: FlaskConical, group: "Workspace" } as const] : []),
+    ...(viewer.member.isAdmin
+      ? [{ to: openRequests ? "/admin?tab=store" : "/admin", label: "Admin", short: "Admin", icon: Settings2, group: "Workspace", badge: openRequests } as const]
+      : []),
   ];
+  const current = nav.find((n) => location.pathname === n.to.split("?")[0]);
 
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[248px_1fr]">
-      <aside className="sticky top-0 hidden h-dvh flex-col border-r border-line bg-ink/60 px-4 py-6 backdrop-blur lg:flex">
-        <div className="px-2">
-          <Logo glyph={viewer.workspace.emojiGlyph} />
+    <div className="min-h-dvh lg:grid lg:grid-cols-[232px_1fr]">
+      <aside className="sticky top-0 hidden h-dvh flex-col overflow-y-auto border-r border-border bg-sidebar px-2 py-3 lg:flex">
+        <div className="flex items-center justify-between gap-2 px-2 py-1">
+          <Logo />
+          <span className="rounded-lemon border border-border-bold px-1.5 py-px text-[10px] font-bold whitespace-nowrap text-text-2">PostHog edition</span>
         </div>
-        <div className="mt-6 flex items-center gap-3 rounded-xl border border-line bg-panel/70 px-3 py-2.5">
+        <div className="mt-3 flex items-center gap-2 px-2 py-1.5">
           {viewer.workspace.iconUrl ? (
-            <img src={viewer.workspace.iconUrl} alt="" className="h-8 w-8 rounded-lg" />
+            <img src={viewer.workspace.iconUrl} alt="" className="h-6 w-6 rounded" />
           ) : (
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-teal/25 font-display text-sm font-bold text-teal-soft">
+            <span className="grid h-6 w-6 place-items-center rounded bg-accent text-xs font-bold text-on-fill" aria-hidden>
               {viewer.workspace.name[0]}
             </span>
           )}
-          <div className="min-w-0">
-            <div className="truncate text-sm font-medium">{viewer.workspace.name}</div>
-            <div className="font-mono text-[10px] uppercase tracking-wider text-faint">{viewer.workspace.isDemo ? "Demo workspace" : "Slack workspace"}</div>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[13px] font-semibold">{viewer.workspace.name}</div>
+            <div className="text-[11px] text-text-3">{viewer.workspace.isDemo ? "Demo workspace" : "Slack workspace"}</div>
           </div>
         </div>
-        <nav className="mt-6 flex flex-col gap-1">
-          {nav.map((n) => (
-            <NavLink
-              key={n.to}
-              to={n.to}
-              className={({ isActive }) =>
-                clsx(
-                  "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                  isActive ? "text-cream" : "text-muted hover:bg-panel/70 hover:text-cream",
-                )
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  {isActive && (
-                    <motion.span layoutId="nav-active" className="absolute inset-0 rounded-xl border border-line-strong bg-panel-2" transition={{ type: "spring", bounce: 0.2, duration: 0.5 }} />
-                  )}
-                  <n.icon className={clsx("relative h-4 w-4", isActive && "text-saffron")} />
-                  <span className="relative">{n.label}</span>
-                  {!!n.badge && <NavBadge count={n.badge} className="relative ml-auto" />}
-                </>
-              )}
-            </NavLink>
-          ))}
+        <nav className="mt-1 flex flex-col" aria-label="Main">
+          {NAV_GROUPS.map((group) => {
+            const items = nav.filter((n) => n.group === group);
+            if (!items.length) return null;
+            return (
+              <div key={group} className="mt-3 flex flex-col gap-0.5">
+                <div className="px-2 pb-1 text-[11px] font-semibold text-text-3">{group}</div>
+                {items.map((n) => (
+                  <SidebarLink key={n.to} item={n} />
+                ))}
+              </div>
+            );
+          })}
         </nav>
-        <div className="mt-auto flex items-center gap-3 rounded-xl px-2 py-2">
-          <Avatar name={viewer.member.name} src={viewer.member.avatarUrl} size={34} />
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-medium">{viewer.member.name}</div>
-            <div className="truncate text-xs text-faint">{viewer.member.isAdmin ? "Admin" : viewer.member.title ?? "Member"}</div>
+        <div className="mt-auto space-y-2 border-t border-border px-1 pt-3">
+          <ThemeSwitch />
+          <div className="flex items-center gap-2 px-1 py-1">
+            <Avatar name={viewer.member.name} src={viewer.member.avatarUrl} size={28} />
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[13px] font-semibold">{viewer.member.name}</div>
+              <div className="truncate text-[11px] text-text-3">{viewer.member.isAdmin ? "Admin" : (viewer.member.title ?? "Member")}</div>
+            </div>
+            <button onClick={() => void signOut()} className="rounded-lemon p-1.5 text-text-3 hover:bg-text/10 hover:text-text" title="Sign out" aria-label="Sign out">
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
-          <button onClick={() => void signOut()} className="rounded-lg p-2 text-faint hover:bg-panel-2 hover:text-cream" title="Sign out" aria-label="Sign out">
-            <LogOut className="h-4 w-4" />
-          </button>
         </div>
       </aside>
 
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-ink/80 px-4 py-3 backdrop-blur lg:hidden">
-        <Logo glyph={viewer.workspace.emojiGlyph} />
-        <button onClick={() => void signOut()} className="rounded-lg p-2 text-faint" aria-label="Sign out">
-          <LogOut className="h-4 w-4" />
-        </button>
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-sidebar px-4 py-2 lg:hidden">
+        <Logo />
+        <div className="flex items-center">
+          <ThemeCycleButton />
+          <button onClick={() => void signOut()} className="rounded-lemon p-2 text-text-3 hover:text-text" aria-label="Sign out">
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
       </header>
 
-      <main className="min-w-0 px-4 pb-28 pt-6 sm:px-8 lg:px-10 lg:pb-12 lg:pt-10">
-        {viewer.workspace.isDemo && (
-          <p className="mx-auto mb-6 max-w-[1240px] rounded-xl border border-saffron/25 bg-saffron/[0.07] px-4 py-2.5 text-sm leading-relaxed text-cream/90">
-            <span className="mr-2 font-mono text-[11px] uppercase tracking-widest text-saffron">Live demo</span>
-            You're exploring <b className="font-semibold">Lumen Labs</b>, a sample workspace with this year's history. Try the{" "}
-            <NavLink to="/playground" className="font-medium text-saffron underline-offset-4 hover:underline">
-              Slack playground
-            </NavLink>{" "}
-            to give kudos.
-          </p>
-        )}
+      <main className="min-w-0 pb-28 lg:pb-12">
+        <div className="z-20 flex flex-wrap items-center gap-x-1.5 gap-y-1 border-b border-border bg-bg px-4 py-2 text-[13px] sm:px-6 lg:sticky lg:top-0">
+          <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5">
+            <span className="truncate font-semibold text-text-3">{viewer.workspace.name}</span>
+            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-text-3" aria-hidden />
+            <span className="truncate font-semibold text-text" aria-current="page">
+              {current?.label ?? "Kudos"}
+            </span>
+          </nav>
+          {viewer.workspace.isDemo && (
+            <p className="text-[12px] text-text-2 sm:ml-auto">
+              Live demo with this year's sample history.{" "}
+              <NavLink to="/playground" className="font-semibold text-link hover:underline">
+                Give kudos in the Slack playground
+              </NavLink>
+            </p>
+          )}
+        </div>
         {/* Enter-only transition: an exit phase around <Outlet /> can leave the page stuck invisible. */}
         <motion.div
           key={location.pathname}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.22 }}
-          className="mx-auto max-w-[1240px]"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.15 }}
+          className="mx-auto max-w-[1240px] px-4 pt-5 sm:px-6"
         >
           <ErrorBoundary resetKey={location.pathname}>
             <Outlet />
@@ -141,20 +208,25 @@ export function AppShell() {
         </motion.div>
       </main>
 
-      <nav className="fixed inset-x-3 bottom-3 z-30 flex justify-around rounded-2xl border border-line-strong bg-panel/90 p-1.5 backdrop-blur-xl lg:hidden">
+      <nav
+        aria-label="Main"
+        className="fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-border bg-sidebar px-1 pt-1.5 pb-[max(env(safe-area-inset-bottom),6px)] lg:hidden"
+      >
         {nav.map((n) => (
           <NavLink
             key={n.to}
             to={n.to}
-            className={({ isActive }) =>
-              clsx("flex flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5 text-[10px] font-medium", isActive ? "bg-panel-3 text-saffron" : "text-faint")
-            }
+            className={({ isActive }) => clsx("flex flex-1 flex-col items-center gap-0.5 rounded-lemon py-1 text-[10px] font-semibold", isActive ? "text-text" : "text-text-3")}
           >
-            <span className="relative">
-              <n.icon className="h-4 w-4" />
-              {!!n.badge && <NavBadge count={n.badge} className="absolute -right-3 -top-1.5" />}
-            </span>
-            {n.short}
+            {({ isActive }) => (
+              <>
+                <span className="relative">
+                  <n.icon className={clsx("h-4 w-4", isActive && "text-accent")} aria-hidden />
+                  {!!n.badge && <NavBadge count={n.badge} className="absolute -top-1.5 -right-3" />}
+                </span>
+                {n.short}
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
