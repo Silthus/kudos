@@ -32,13 +32,19 @@ export function Discoveries() {
 
   if (!data) return <PageSkeleton />;
   const glyph = viewer.workspace.emojiGlyph;
+  const questsOn = viewer.workspace.questsEnabled;
+  // Quest messages already found stay in the collection when an admin turns quests off; the rest can't be found then.
+  const hint = (category: string) =>
+    category === "quest_complete" && !questsOn ? "Weekly quests are off in this workspace" : (CATEGORY_HINT[category] ?? "Not discovered yet");
 
   return (
     <div>
       <PageHeader
         eyebrow="Message gallery"
         title="Discoveries"
-        subtitle="Every bot reply in Slack is drawn from this collection, with rarer messages showing up less often. Give and receive kudos, and complete weekly quests, to uncover them all."
+        subtitle={`Every bot reply in Slack is drawn from this collection, with rarer messages showing up less often. ${
+          questsOn ? "Give and receive kudos, and complete weekly quests, to uncover them all." : "Give and receive kudos to uncover them all."
+        }`}
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_1fr]">
@@ -131,7 +137,7 @@ export function Discoveries() {
                           <div key={n} className="h-3 rounded-full bg-panel-3" style={{ width: n === arr.length - 1 ? "55%" : "100%" }} />
                         ))}
                         <div className="mt-1 flex items-center gap-1.5 text-xs text-faint">
-                          <Lock className="h-3 w-3" /> {CATEGORY_HINT[i.category] ?? "Not discovered yet"}
+                          <Lock className="h-3 w-3" /> {hint(i.category)}
                         </div>
                       </div>
                     )}

@@ -133,6 +133,13 @@ describe("App Home", () => {
     expect(questSection(home)).toBeNull();
   });
 
+  test("has no quest section while an admin has quests switched off", async () => {
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { questsEnabled: false }));
+    const home = await openHome("UANA");
+    expect(home[0]).toMatchObject({ type: "header", text: { text: "Your kudos" } });
+    expect(questSection(home)).toBeNull();
+  });
+
   test("stays well within Slack's 100-block limit with every section on", async () => {
     await t.run(async (ctx) => {
       await ctx.db.patch(team.workspaceId, { storeEnabled: true });
@@ -199,5 +206,11 @@ describe("/kudos quests", () => {
   test("`quest` works too, and the help lists the command", async () => {
     expect((await command("quest")).blocks[0]).toMatchObject({ type: "header", text: { text: "This week's quests" } });
     expect((await command("help")).text).toContain("`/kudos quests` your weekly quests");
+  });
+
+  test("while quests are switched off, says so and leaves the command out of the help", async () => {
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { questsEnabled: false }));
+    expect(await command("quests")).toEqual({ response_type: "ephemeral", text: "Weekly quests aren't on in this workspace." });
+    expect((await command("help")).text).not.toContain("/kudos quests");
   });
 });

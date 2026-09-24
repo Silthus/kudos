@@ -4,6 +4,7 @@ import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { revokeKudosRow } from "./engine";
+import { switchQuests } from "./quests";
 import { assertNotDemo, canSeeReceived, publicSettings, requireAdmin } from "./lib/access";
 import { siteUrl } from "./lib/slack";
 import { balanceOf, storeOpen } from "./lib/store";
@@ -64,9 +65,11 @@ export const updateSettings = mutation({
     reactionsEnabled: v.boolean(),
     notifyGiver: v.boolean(),
     notifyReceiver: v.boolean(),
+    // Optional: a client that doesn't know the switch leaves quests as they are.
+    questsEnabled: v.optional(v.boolean()),
   },
   returns: v.null(),
-  handler: async (ctx, args) => {
+  handler: async (ctx, { questsEnabled, ...args }) => {
     const { workspace } = await requireAdmin(ctx);
     assertNotDemo(workspace);
     const emojiName = args.emojiName.trim().replace(/^:|:$/g, "").toLowerCase();
@@ -93,6 +96,7 @@ export const updateSettings = mutation({
       emojiGlyph: glyph,
       unitSingular,
       unitPlural,
+      ...(questsEnabled === undefined ? {} : switchQuests(workspace, questsEnabled, Date.now())),
     });
     return null;
   },
