@@ -1,0 +1,3 @@
+Error: Failed to resolve import "./cosmetics" from "src/components/cosmetics.test.tsx". Does the file exist?
+ Test Files  1 failed (1)
+      Tests  no tests

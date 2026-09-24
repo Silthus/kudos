@@ -1,0 +1,6 @@
+ ❯ tests/playground-super.test.ts (3 tests | 1 failed) 96891ms
+   × a demo reset wipes the Super kudos and takes off what everyone wore 48899ms
+ FAIL  tests/playground-super.test.ts > a demo reset wipes the Super kudos and takes off what everyone wore
+AssertionError: expected [ { …(11) } ] to deeply equal []
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)

@@ -1,0 +1,25 @@
+ FAIL  tests/cosmetics.test.ts > your profile (§G12) > only for members of your own workspace
+AssertionError: expected [Function] to throw error matching /not found/ but got 'Could not find module for: "cosmetics"'
+
+- Expected:
+/not found/
+
++ Received:
+"Could not find module for: \"cosmetics\""
+
+ ❯ tests/cosmetics.test.ts:126:93
+    124|   test("only for members of your own workspace", async () => {
+    125|     const other = await seedTeam(t, { gameEnabled: true }, "T2");
+    126|     await expect((await as(other.ana)).query(api.cosmetics.profile, { …
+       |                                                                                             ^
+    127|   });
+    128| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/10]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  9 failed (9)
+   Start at  16:12:48
+   Duration  661ms (tests 32%, transform 30%, import 22%, environment 15%, worker 1%)
+

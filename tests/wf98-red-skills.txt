@@ -1,0 +1,7 @@
+ ❯ tests/skills.test.ts (17 tests | 1 failed | 16 skipped) 525ms
+     × the Herald's Signature emoji, Super kudos, Encore and Spotlight are live (#98) 517ms
+ FAIL  tests/skills.test.ts > taking a skill > the Herald's Signature emoji, Super kudos, Encore and Spotlight are live (#98)
+ConvexError: Signature emoji arrives with Super kudos.
+    112|     if (!check.ok) throw new ConvexError(takeBlockText(SKILLS[skill], …
+ Test Files  1 failed (1)
+      Tests  1 failed | 16 skipped (17)

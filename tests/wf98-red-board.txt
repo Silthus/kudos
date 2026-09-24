@@ -1,0 +1,4 @@
+     × next to your name on the leaderboard: what you wear, unless you or the viewer hide the game 78ms
+AssertionError: expected undefined to deeply equal { frame: 'frameSunrise', …(1) }
+ Test Files  1 failed (1)
+      Tests  1 failed | 9 skipped (10)

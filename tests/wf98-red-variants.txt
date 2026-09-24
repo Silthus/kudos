@@ -1,0 +1,24 @@
+ ❯ tests/emoji-variants.test.ts (11 tests | 7 failed) 474ms
+     × gives like the kudos emoji when the giver owns the variant, and remembers which one 349ms
+     × only counts the owner's variants next to the kudos emoji 58ms
+     × Signature emoji variants count for the member holding the skill 9ms
+     × a redelivery never gives twice 9ms
+     × a failed attempt fixed with the owner's variant gives 6ms
+     × changing the variant count on a sent kudos gets the private 'already sent' note 8ms
+     × gives the author a kudos when the reactor owns the variant 5ms
+ FAIL  tests/emoji-variants.test.ts > a message with a kudos-emoji variant > gives like the kudos emoji when the giver owns the variant, and remembers which one
+AssertionError: expected [] to deeply equal [ [ …(3) ] ]
+ FAIL  tests/emoji-variants.test.ts > a message with a kudos-emoji variant > only counts the owner's variants next to the kudos emoji
+AssertionError: expected [ [ 1, undefined ] ] to deeply equal [ [ 2, 'golden' ] ]
+ FAIL  tests/emoji-variants.test.ts > a message with a kudos-emoji variant > Signature emoji variants count for the member holding the skill
+AssertionError: expected [] to deeply equal [ [ 1, 'sparkle' ] ]
+ FAIL  tests/emoji-variants.test.ts > a message with a kudos-emoji variant > a redelivery never gives twice
+AssertionError: expected [] to have a length of 1 but got +0
+ FAIL  tests/emoji-variants.test.ts > editing a message with a variant > a failed attempt fixed with the owner's variant gives
+AssertionError: expected [] to deeply equal [ 'invalid' ]
+ FAIL  tests/emoji-variants.test.ts > editing a message with a variant > changing the variant count on a sent kudos gets the private 'already sent' note
+AssertionError: expected [] to have a length of 1 but got +0
+ FAIL  tests/emoji-variants.test.ts > reacting with a variant > gives the author a kudos when the reactor owns the variant
+AssertionError: expected [] to deeply equal [ [ …(4) ] ]
+ Test Files  1 failed (1)
+      Tests  7 failed | 4 passed (11)

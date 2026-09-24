@@ -1,0 +1,38 @@
+ ❯ tests/super-kudos.test.ts (12 tests | 11 failed) 884ms
+     × gives the usual amount, celebrates the receiver in their DM and tells the giver what's left 400ms
+     × without the skill it's a normal kudos, and the giver gets a private how-to 27ms
+     × with a short note, or for two people, it's normal and the use stays 17ms
+     × one a month, two with Encore; the month after, they're back 36ms
+     × never to the same person twice in a quarter 32ms
+     × a revoked Super kudos is gone, and its use comes back 67ms
+     × features a Super kudos from a public channel in the announcement channel 13ms
+     × never features one from a private channel, without the skill, or without an announcement channel 3ms
+     × shows once, until they've seen it; only to the receiver 18ms
+     × nothing for a receiver who hides the game 14ms
+     × deletes the Super kudos they gave and received 248ms
+ FAIL  tests/super-kudos.test.ts > a Super kudos > gives the usual amount, celebrates the receiver in their DM and tells the giver what's left
+AssertionError: expected { …(16) } to match object { …(3) }
+ FAIL  tests/super-kudos.test.ts > a Super kudos > without the skill it's a normal kudos, and the giver gets a private how-to
+AssertionError: expected 'Generosity detected in <#C1>! <@UBEN>…' to contain 'counted as a normal kudos'
+ FAIL  tests/super-kudos.test.ts > a Super kudos > with a short note, or for two people, it's normal and the use stays
+AssertionError: expected 'Somewhere, a manager is nodding appro…' to contain '12 words or more'
+ FAIL  tests/super-kudos.test.ts > a Super kudos > one a month, two with Encore; the month after, they're back
+AssertionError: expected '🎯 Direct hit! 1 :taco: landed square…' to contain 'used your Super kudos this month'
+ FAIL  tests/super-kudos.test.ts > a Super kudos > never to the same person twice in a quarter
+AssertionError: expected 'Recognition logged: 1 :taco: → <@UBEN…' to contain 'this quarter'
+ FAIL  tests/super-kudos.test.ts > a Super kudos > a revoked Super kudos is gone, and its use comes back
+AssertionError: expected [] to have a length of 1 but got +0
+ FAIL  tests/super-kudos.test.ts > the Spotlight capstone > features a Super kudos from a public channel in the announcement channel
+ FAIL  tests/super-kudos.test.ts > the Spotlight capstone > never features one from a private channel, without the skill, or without an announcement channel
+Error: Validator error: Unexpected field `announcementChannel` in object
+ FAIL  tests/super-kudos.test.ts > the receiver's celebration on the web > shows once, until they've seen it; only to the receiver
+Error: Could not find module for: "superKudos"
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+ FAIL  tests/super-kudos.test.ts > the receiver's celebration on the web > nothing for a receiver who hides the game
+Error: Could not find module for: "superKudos"
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+ FAIL  tests/super-kudos.test.ts > removing a member > deletes the Super kudos they gave and received
+Error: finishAllScheduledFunctions: too many iterations. Check for infinitely recursive scheduled functions, or increase maxIterations.
+    2316|             throw new Error("finishAllScheduledFunctions: too many ite…
+ Test Files  1 failed (1)
+      Tests  11 failed | 1 passed (12)
