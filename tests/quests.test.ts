@@ -361,6 +361,16 @@ describe("facts come from real kudos history", () => {
       }),
     );
 
+  test("a past week is judged on what was true then: teammates recognized only later were still new", async () => {
+    await setBoard(["fresh", "spread", "channels"], "2026-09-14");
+    // Ana recognizes Ben and Cleo this week, after the week in question.
+    await past(team.ana, team.ben, WEEK_START + H);
+    await past(team.ana, team.cleo, WEEK_START + 2 * H);
+    const lastWeek = await mine(team.ana, "2026-09-16");
+    expect(lastWeek.quests.find((q) => q.key === "fresh")).toMatchObject({ status: "active", waivedReason: null });
+    expect(await status(team.ana)).toMatchObject({ fresh: ["waived", 0] });
+  });
+
   test("Old friends: the last kudos to them is 30+ days before, from before the week", async () => {
     await setBoard(["rekindle", "channels", "story"]);
     await past(team.ana, team.cleo, WEEK_START - 100 * D); // Ana's first-ever kudos: old enough
@@ -546,6 +556,13 @@ describe("quests in the demo", () => {
     expect(seeded.completions.length).toBeGreaterThan(20);
     await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> :taco: great work on the release notes", channelName: "general" });
     await t.finishAllScheduledFunctions(vi.runAllTimers, 1000); // a teammate may thank Alex back
+    // Whatever that message completed, Alex has also completed a quest in the playground this week.
+    const alex = await t.run((ctx) => ctx.db.query("members").filter((q) => q.eq(q.field("slackUserId"), "UDEMOYOU")).unique());
+    const workspaceId = alex!.workspaceId;
+    await t.run((ctx) =>
+      ctx.db.insert("questCompletions", { workspaceId, memberId: alex!._id, weekKey: WEEK, questKey: "steady", completedAt: Date.now(), sweep: false }),
+    );
+    expect(await questRows()).not.toEqual(seeded);
     await demo.mutation(api.demo.resetDemo, {});
     await t.finishAllScheduledFunctions(vi.runAllTimers, 1000); // seeding, then the rollup rebuild
     expect(await questRows()).toEqual(seeded);
@@ -618,6 +635,8 @@ describe("the quest log", () => {
     await setBoard(["fresh", "spread", "channels"], "2026-08-31"); // the first week quests ran: nothing done
     await setBoard(["fresh", "spread", "channels"], "2026-09-14");
     await setBoard(["fresh", "spread", "channels"]);
+    vi.setSystemTime(new Date("2026-09-02T10:00:00Z"));
+    await react("UANA", "UCLEO"); // Ana's first kudos, in the first quest week
     const lastWednesday = new Date("2026-09-16T10:00:00Z").getTime();
     vi.setSystemTime(lastWednesday);
     await message("UANA", "<@UBEN> :taco: thanks for the quick review", "general");
@@ -650,14 +669,49 @@ describe("the quest log", () => {
 
   test("shows the requested number of weeks, one to 52", async () => {
     for (let week = "2025-09-01"; week <= WEEK; week = addDays(week, 7)) await setBoard(["fresh", "spread", "channels"], week);
+    vi.setSystemTime(new Date("2025-09-02T10:00:00Z"));
+    await react("UANA", "UCLEO");
+    vi.setSystemTime(NOW);
     expect((await history(team.ana)).weeks).toHaveLength(12);
     expect((await history(team.ana, 3)).weeks.map((w) => w.weekKey)).toEqual(["2026-09-14", "2026-09-07", "2026-08-31"]);
     expect((await history(team.ana, 500)).weeks).toHaveLength(52);
     expect((await history(team.ana, -4)).weeks).toHaveLength(1);
+    expect((await history(team.ana, Number.NaN)).weeks).toHaveLength(12);
   });
 
   test("is empty before the first quest week", async () => {
     expect(await history(team.ana)).toEqual({ totals: { completed: 0, sweeps: 0, weeksWithCompletion: 0 }, weeks: [] });
+  });
+
+  test("starts at the member's first kudos: no empty weeks from before they joined in", async () => {
+    for (const week of ["2026-08-31", "2026-09-07", "2026-09-14", WEEK]) await setBoard(["fresh", "spread", "channels"], week);
+    vi.setSystemTime(new Date("2026-09-16T10:00:00Z"));
+    await react("UBEN", "UCLEO");
+    vi.setSystemTime(NOW);
+    expect((await history(team.ben)).weeks.map((w) => w.weekKey)).toEqual(["2026-09-14"]);
+    expect((await history(team.cleo)).weeks).toEqual([]);
+  });
+
+  test("an open quest on a clean-sweep week is shown with the only reason it could have been waived", async () => {
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { receivedVisibility: "everyone" }));
+    await setBoard(["unsung", "channels", "story"], "2026-09-14");
+    vi.setSystemTime(new Date("2026-09-16T10:00:00Z"));
+    await react("UANA", "UCLEO");
+    vi.setSystemTime(NOW);
+    // Received counts were hidden that week, so Unsung hero wasn't available; Ana did the rest.
+    for (const questKey of ["channels", "story"]) {
+      await t.run((ctx) =>
+        ctx.db.insert("questCompletions", {
+          workspaceId: team.workspaceId, memberId: team.ana, weekKey: "2026-09-14", questKey, completedAt: Date.now(), sweep: questKey === "story",
+        }),
+      );
+    }
+    const [week] = (await history(team.ana)).weeks;
+    expect(week.board.map((q) => [q.key, q.waived])).toEqual([
+      ["unsung", "privacy"],
+      ["channels", null],
+      ["story", null],
+    ]);
   });
 
   test("an open quest on a clean-sweep week wasn't available that week", async () => {
@@ -698,6 +752,7 @@ describe("the quest log", () => {
     await setBoard(["fresh", "spread", "channels"], "2026-09-14");
     vi.setSystemTime(new Date("2026-09-16T10:00:00Z"));
     await message("UBEN", "<@UANA> :taco: thanks for pairing on the flaky test");
+    await react("UANA", "UCLEO");
     vi.setSystemTime(NOW);
     expect((await history(team.ben)).totals.completed).toBe(1);
     const ana = await history(team.ana);

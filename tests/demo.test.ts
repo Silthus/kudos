@@ -201,10 +201,10 @@ describe("the demo's quest history", () => {
   test("the quest log opens on every week of the year, completed by the seeded kudos, with no DMs", async () => {
     const demo = await enterDemo();
     const log = await demo.query(api.quests.history, { today: TODAY, weeks: 52 });
-    // 1 January 2026 is a Thursday: its quest week starts on Monday 29 December.
+    // From Alex's first kudos of the year, after the New Year lull, to last week.
     expect(log.weeks[0].weekKey).toBe("2026-09-14");
-    expect(log.weeks.at(-1)!.weekKey).toBe("2025-12-29");
-    expect(log.weeks).toHaveLength(38);
+    expect(log.weeks.at(-1)!.weekKey).toBe("2026-01-05");
+    expect(log.weeks).toHaveLength(37);
     // Alive, not perfect: most weeks have a completion, some are clean sweeps, some quests stay open.
     expect(log.totals.weeksWithCompletion).toBeGreaterThan(log.weeks.length / 2);
     expect(log.totals.sweeps).toBeGreaterThan(2);
@@ -213,7 +213,10 @@ describe("the demo's quest history", () => {
     // Every completion is the moment one of Alex's own thoughtful seeded kudos met the goal.
     const me = await alex();
     const kudos = await all(t, "kudos");
-    expect(kudos.every((k) => (k.noteWords ?? 0) >= 3)).toBe(true);
+    // Seeded kudos come with a reason, except Alex's this week: those quests are the playground's.
+    const thisWeek = (k: (typeof kudos)[number]) => k.giverId === me._id && k.dayKey >= "2026-09-21";
+    expect(kudos.filter((k) => !thisWeek(k)).every((k) => (k.noteWords ?? 0) >= 3)).toBe(true);
+    expect(kudos.filter(thisWeek).every((k) => k.noteWords === undefined)).toBe(true);
     const mine = (await all(t, "questCompletions")).filter((c) => c.memberId === me._id);
     for (const c of mine) {
       expect(kudos.some((k) => k.giverId === me._id && k.at === c.completedAt && k.dayKey >= c.weekKey && k.dayKey < addDays(c.weekKey, 7))).toBe(true);
@@ -231,12 +234,48 @@ describe("the demo's quest history", () => {
     expect(await all(t, "notifications")).toHaveLength(0);
   });
 
-  test("this week's quests the seeded days already met are on record, so playing only rewards new progress", async () => {
+  test("Alex's board starts every week open for the playground, even late on a Friday", async () => {
+    vi.setSystemTime(new Date("2026-09-25T15:00:00Z"));
     const demo = await enterDemo();
-    const board = await demo.query(api.quests.mine, { today: TODAY });
+    const me = await alex();
+    // Alex did give this week (the leaderboard and Me page show it) ...
+    expect((await all(t, "kudos")).some((k) => k.giverId === me._id && k.dayKey >= "2026-09-21")).toBe(true);
+    // ... but this week's quests are left for visitors to complete.
+    const board = await demo.query(api.quests.mine, { today: "2026-09-25" });
     if (!board.enabled) throw new Error("quests are disabled");
-    expect(board.completed).toBeGreaterThan(0);
-    for (const q of board.quests.filter((q) => q.status === "done")) expect(q.completedAt).toBeLessThan(NOW.getTime());
+    expect(board.quests.map((q) => [q.status, q.progress]).filter(([s]) => s !== "waived")).toEqual(
+      board.quests.filter((q) => q.status !== "waived").map(() => ["active", 0]),
+    );
+    const res = await demo.mutation(api.demo.simulateMessage, {
+      text: "<@UDEMOOSKAR> :taco: thanks for untangling the deploy pipeline on friday, saved my whole afternoon",
+      channelName: "general",
+    });
+    expect(res.status).toBe("given");
+    const after = await demo.query(api.quests.mine, { today: "2026-09-25" });
+    if (!after.enabled) throw new Error("quests are disabled");
+    expect(after.quests.reduce((n, q) => n + q.progress, 0)).toBeGreaterThan(0);
+  });
+
+  test("a first seeding overtaken by a reset doesn't record quests for the reset's half-seeded history", async () => {
+    await t.mutation(internal.demo.ensureDemoUser, {});
+    for (let i = 0; i < 5; i++) await runScheduledStep(); // part-way through the year
+    const workspaceId = (await t.run((ctx) => ctx.db.query("workspaces").collect())).find((w) => w.isDemo)!._id;
+    await t.run((ctx) => ctx.db.patch(workspaceId, { resettingSince: Date.now() })); // a reset takes the lock
+    await t.finishAllScheduledFunctions(vi.runAllTimers, 1000);
+    expect(await all(t, "questCompletions")).toEqual([]);
+  });
+
+  test("a seeding run from before a reset stops and leaves the reset to the fresh run", async () => {
+    await enterDemo();
+    const workspaceId = (await t.run((ctx) => ctx.db.query("workspaces").collect())).find((w) => w.isDemo)!._id;
+    const before = (await all(t, "questCompletions")).length;
+    await t.run((ctx) => ctx.db.patch(workspaceId, { resettingSince: Date.now() }));
+    await t.mutation(internal.quests.seedDemoHistory, { workspaceId, weekKey: "2026-01-05" }); // the stale run
+    const pending = await t.run(async (ctx) =>
+      (await ctx.db.system.query("_scheduled_functions").collect()).filter((f) => f.state.kind === "pending"),
+    );
+    expect(pending).toEqual([]);
+    expect(await all(t, "questCompletions")).toHaveLength(before);
   });
 });
 

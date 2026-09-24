@@ -14,6 +14,7 @@ import {
   type QuestFacts,
   type QuestKey,
   type QuestResult,
+  type WaivedReason,
   MIN_NOTE_WORDS,
   QUEST_BY_KEY,
   RECIPROCAL_WINDOW_MS,
@@ -148,7 +149,7 @@ export async function loadQuestFacts(
     });
   }
 
-  const { activeTeammates, hasUnrecognizedTeammate } = await scanTeammates(ctx, workspace, member, board);
+  const { activeTeammates, hasUnrecognizedTeammate } = await scanTeammates(ctx, workspace, member, board, end);
   const firstGiven = board.includes("rekindle")
     ? await ctx.db
         .query("kudos")
@@ -171,8 +172,15 @@ export async function loadQuestFacts(
  * Just enough about teammates for the waivers: Spread the love needs 3 active teammates, New
  * connection one the member never recognized. Streams members and stops as soon as both are
  * known; past MAX_TEAMMATE_LOOKUPS it assumes someone is still unrecognized (never wrongly waived).
+ * Only kudos before `until` (the evaluated week's end) count, so a past week is judged as it was.
  */
-async function scanTeammates(ctx: QueryCtx, workspace: Doc<"workspaces">, member: Doc<"members">, board: readonly QuestKey[]) {
+async function scanTeammates(
+  ctx: QueryCtx,
+  workspace: Doc<"workspaces">,
+  member: Doc<"members">,
+  board: readonly QuestKey[],
+  until: number,
+) {
   const spreadGoal = QUEST_BY_KEY.spread.goal;
   const needCount = board.includes("spread");
   const needFresh = board.includes("fresh");
@@ -188,7 +196,7 @@ async function scanTeammates(ctx: QueryCtx, workspace: Doc<"workspaces">, member
       else {
         const any = await ctx.db
           .query("kudos")
-          .withIndex("by_giver_receiver_at", (q) => q.eq("giverId", member._id).eq("receiverId", m._id))
+          .withIndex("by_giver_receiver_at", (q) => q.eq("giverId", member._id).eq("receiverId", m._id).lt("at", until))
           .first();
         if (!any) hasUnrecognizedTeammate = true;
       }
@@ -447,14 +455,26 @@ export const mine = query({
   },
 });
 
+/** Why each quest can be waived (see `evaluateBoard`); habit and craft quests never are. */
+const QUEST_WAIVER: Record<QuestKey, WaivedReason | null> = {
+  spread: "no_candidates",
+  fresh: "no_candidates",
+  rekindle: "too_new",
+  unsung: "privacy",
+  steady: null,
+  channels: null,
+  story: null,
+};
+
 const DEFAULT_LOG_WEEKS = 12;
 const MAX_LOG_WEEKS = 52;
 /** A member's lifetime completions: at most 3 a week, so this is decades. */
 const MAX_LIFETIME_COMPLETIONS = 3000;
 
 /**
- * The viewer's quest log: lifetime totals, and the weeks before this one (newest first) since the
- * workspace's first quest week. Only ever the viewer's own completions.
+ * The viewer's quest log: lifetime totals, and the weeks before this one (newest first) since their
+ * first quest week: the workspace's first stored board, and not before their first kudos. Only ever
+ * the viewer's own completions.
  *
  * Past weeks aren't re-evaluated (that would load every week's facts). A completion is always done,
  * even if privacy now hides its quest: it's the member's own record, already seen. Open quests
@@ -490,7 +510,8 @@ export const history = query({
   handler: async (ctx, args) => {
     const { member, workspace } = await requireViewer(ctx);
     const current = weekKeyOfDay(parseToday(args.today));
-    const count = Math.min(MAX_LOG_WEEKS, Math.max(1, Math.floor(args.weeks ?? DEFAULT_LOG_WEEKS)));
+    const requested = args.weeks !== undefined && Number.isFinite(args.weeks) ? args.weeks : DEFAULT_LOG_WEEKS;
+    const count = Math.min(MAX_LOG_WEEKS, Math.max(1, Math.floor(requested)));
 
     const completions = await ctx.db
       .query("questCompletions")
@@ -506,16 +527,16 @@ export const history = query({
       .query("questBoards")
       .withIndex("by_workspace_week", (q) => q.eq("workspaceId", workspace._id).lt("weekKey", current))
       .first();
-    if (!firstBoard) return { totals, weeks: [] };
-    const oldest = addDays(current, -7 * count);
-    const from = firstBoard.weekKey > oldest ? firstBoard.weekKey : oldest;
-
-    // The facts behind the waivers that don't depend on the week's own giving.
-    const { activeTeammates } = await scanTeammates(ctx, workspace, member, ["spread"]);
     const firstGiven = await ctx.db
       .query("kudos")
       .withIndex("by_giver_at", (q) => q.eq("giverId", member._id))
       .first();
+    if (!firstBoard || !firstGiven) return { totals, weeks: [] };
+    // From the first quest week the member took part in (gave any kudos), at most `count` weeks back.
+    const from = [firstBoard.weekKey, weekKeyFor(firstGiven.at, workspace.timezone), addDays(current, -7 * count)].sort().at(-1)!;
+
+    // The facts behind the waivers that don't depend on the week's own giving.
+    const { activeTeammates } = await scanTeammates(ctx, workspace, member, ["spread"], weekBounds(current, workspace.timezone).start);
 
     const weeks = [];
     for (let weekKey = addDays(current, -7); weekKey >= from; weekKey = addDays(weekKey, -7)) {
@@ -525,7 +546,7 @@ export const history = query({
         receivedFrom: [],
         activeTeammates,
         hasUnrecognizedTeammate: true, // who was still unrecognized back then isn't known
-        firstGivenAt: firstGiven?.at ?? null,
+        firstGivenAt: firstGiven.at,
         weekStart: weekBounds(weekKey, workspace.timezone).start,
         receivedVisibility: workspace.receivedVisibility,
       });
@@ -536,8 +557,8 @@ export const history = query({
         sweep,
         board: waivers.map((r) => {
           const completion = done.find((c) => c.questKey === r.key);
-          // A clean sweep left only waived quests open; the unknown one is always "no candidates".
-          const waived = completion ? null : (r.waived ?? (sweep ? ("no_candidates" as const) : null));
+          // A clean sweep left only waived quests open, each for the one reason it can be waived.
+          const waived = completion ? null : (r.waived ?? (sweep ? QUEST_WAIVER[r.key] : null));
           return {
             key: r.key,
             title: QUEST_BY_KEY[r.key].title,
