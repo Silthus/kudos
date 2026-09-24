@@ -274,10 +274,13 @@ async function deliver(ctx: ActionCtx, token: string, ids: Id<"notifications">[]
   const site = siteUrl();
   for (const n of rows) {
     if (n.delivery !== "pending") continue;
+    const quest = n.questProgress;
     const context = [
       RARITY_SLACK_BADGE[n.rarity as Rarity],
       n.isNewDiscovery ? `✨ New discovery! (${n.discoveredCount} collected)` : null,
-      site ? `<${site}/discoveries|Message gallery>` : null,
+      quest ? `${quest.completed} of ${quest.available} quests this week` : null,
+      quest?.sweep ? "🧹 Clean sweep!" : null,
+      site ? (quest ? `<${site}/quests|Quest log>` : `<${site}/discoveries|Message gallery>`) : null,
     ]
       .filter(Boolean)
       .join("  ·  ");

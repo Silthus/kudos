@@ -375,7 +375,16 @@ function QuestItem({ quest: q }: { quest: QuestRow }) {
             </p>
           )}
           {q.status === "active" && <Progress value={q.progress} max={q.goal} className="mt-2" height={4} />}
-          {done && q.completedAt && <p className="mt-1 text-[11px] text-faint">Completed {relativeTime(q.completedAt)}</p>}
+          {done && (q.completedAt || q.messageRarity) && (
+            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-faint">
+              {q.messageRarity && (
+                <Link to="/discoveries" title="See the Quest message you found in the gallery" className="rounded-full transition hover:opacity-80">
+                  <RarityBadge rarity={q.messageRarity} size="xs" />
+                </Link>
+              )}
+              {q.completedAt && <span>Completed {relativeTime(q.completedAt)}</span>}
+            </div>
+          )}
         </div>
       </div>
     </li>

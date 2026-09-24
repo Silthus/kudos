@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { CATALOG, RARITIES, joinNames, pickTemplate, renderTemplate, rollRarity, type Category } from "./messages";
+import { CATALOG, CATEGORY_LABEL, RARITIES, joinNames, pickTemplate, renderTemplate, rollRarity, type Category } from "./messages";
 
 const sequence = (...values: number[]) => {
   let i = 0;
@@ -7,10 +7,23 @@ const sequence = (...values: number[]) => {
 };
 
 describe("catalog", () => {
-  test("has 60 messages with unique, stable keys", () => {
-    expect(CATALOG).toHaveLength(60);
-    expect(new Set(CATALOG.map((t) => t.key)).size).toBe(60);
+  test("has 72 messages with unique, stable keys", () => {
+    expect(CATALOG).toHaveLength(72);
+    expect(new Set(CATALOG.map((t) => t.key)).size).toBe(72);
     expect(CATALOG[0].key).toBe("giver.common.1");
+  });
+
+  test("has 12 Quest messages you can only get from quests", () => {
+    const quest = CATALOG.filter((t) => t.category === "quest_complete");
+    expect(quest.map((t) => t.key)).toEqual([
+      "quest.common.1", "quest.common.2", "quest.common.3", "quest.common.4", "quest.common.5",
+      "quest.uncommon.1", "quest.uncommon.2", "quest.uncommon.3",
+      "quest.rare.1", "quest.rare.2",
+      "quest.epic.1",
+      "quest.legendary.1",
+    ]);
+    expect(CATEGORY_LABEL.quest_complete).toBe("Quest complete");
+    for (const t of quest) expect(t.text).toContain("{quest}");
   });
 
   test("every category has all five rarities", () => {
@@ -21,7 +34,7 @@ describe("catalog", () => {
   });
 
   test("templates only use placeholders the renderer knows", () => {
-    const known = new Set(["giver", "recipients", "amount", "emoji", "remaining", "limit", "channel", "user", "requested"]);
+    const known = new Set(["giver", "recipients", "amount", "emoji", "remaining", "limit", "channel", "user", "requested", "quest"]);
     for (const t of CATALOG) {
       for (const [, name] of t.text.matchAll(/\{(\w+)\}/g)) expect(known).toContain(name);
     }
@@ -35,6 +48,16 @@ describe("rollRarity", () => {
     expect(rollRarity(() => 0.81)).toBe("rare");
     expect(rollRarity(() => 0.93)).toBe("epic");
     expect(rollRarity(() => 0.999)).toBe("legendary");
+  });
+
+  test("a rarity floor rolls only over the rarities at or above it, keeping their weights", () => {
+    // rare 12 : epic 6 : legendary 2 → bands [0, 0.6) [0.6, 0.9) [0.9, 1)
+    expect(rollRarity(() => 0, "rare")).toBe("rare");
+    expect(rollRarity(() => 0.59, "rare")).toBe("rare");
+    expect(rollRarity(() => 0.61, "rare")).toBe("epic");
+    expect(rollRarity(() => 0.89, "rare")).toBe("epic");
+    expect(rollRarity(() => 0.91, "rare")).toBe("legendary");
+    expect(rollRarity(() => 0.999, "legendary")).toBe("legendary");
   });
 });
 
@@ -53,6 +76,15 @@ describe("pickTemplate", () => {
     const picked = pickTemplate("self_kudos", new Set(), sequence(0.999, 0.9, 0.5));
     expect(picked).toMatchObject({ category: "self_kudos", rarity: "legendary" });
   });
+
+  test("a rarity floor never returns anything below it and still reaches every rarity above", () => {
+    const seen = new Set<string>();
+    for (let i = 0; i < 100; i++) {
+      const roll = i / 100;
+      seen.add(pickTemplate("quest_complete", new Set(), sequence(roll, 0.9, 0.5), { minRarity: "rare" }).rarity);
+    }
+    expect([...seen].sort()).toEqual(["epic", "legendary", "rare"]);
+  });
 });
 
 describe("rendering", () => {
@@ -60,6 +92,7 @@ describe("rendering", () => {
     expect(renderTemplate("{giver} gave {amount} {emoji} {mystery}", { giver: "Ana", amount: 2, emoji: "🌮" })).toBe(
       "Ana gave 2 🌮 {mystery}",
     );
+    expect(renderTemplate("{quest}: done.", { quest: "Say why" })).toBe("Say why: done.");
   });
 
   test("joins names like a human", () => {

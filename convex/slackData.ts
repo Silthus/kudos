@@ -8,7 +8,7 @@ import { DEFAULT_SETTINGS } from "./lib/settings";
 import { balanceOf, MAX_ACTIVE_REWARDS, storeOpen } from "./lib/store";
 import { activeRewards, openRedemptionCount, ownDecisionBlocker, transitionRedemption } from "./store";
 import { openRequestCount } from "./storeAdmin";
-import { redemptionStatusValidator } from "./schema";
+import { questProgressValidator, redemptionStatusValidator } from "./schema";
 import { rewardLine, siteUrl } from "./lib/slack";
 import { addDays, dayKeyFor, weekdayOfKey } from "./lib/time";
 import { weekBucket } from "./lib/buckets";
@@ -286,6 +286,7 @@ export const notificationsForDelivery = internalQuery({
       isNewDiscovery: v.boolean(),
       discoveredCount: v.number(),
       delivery: v.string(),
+      questProgress: v.optional(questProgressValidator),
     }),
   ),
   handler: async (ctx, { ids }) => {
@@ -308,6 +309,7 @@ export const notificationsForDelivery = internalQuery({
         isNewDiscovery: n.isNewDiscovery,
         discoveredCount: discovered.length,
         delivery: n.delivery,
+        ...(n.questProgress ? { questProgress: n.questProgress } : {}),
       });
     }
     return out;

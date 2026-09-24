@@ -16,4 +16,10 @@ export const CATEGORY_LABEL: Record<string, string> = {
   limit_reached: "Limit reached",
   allowance_status: "Allowance check",
   self_kudos: "Self kudos",
+  quest_complete: "Quest complete",
+};
+
+/** How to find a category's messages, shown on the ones you haven't discovered yet. */
+export const CATEGORY_HINT: Partial<Record<string, string>> = {
+  quest_complete: "Complete weekly quests to find these",
 };

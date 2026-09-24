@@ -2,7 +2,7 @@ import type { Infer } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
-import type { kudosSourceValidator } from "./schema";
+import type { kudosSourceValidator, questProgressValidator } from "./schema";
 import type { InvalidReason } from "./lib/guidance";
 import { dayKeyFor, zonedParts } from "./lib/time";
 import { givingProfile, type MemberDayChange, Rollups } from "./lib/rollups";
@@ -10,6 +10,7 @@ import { MIN_NOTE_WORDS } from "./lib/quests";
 import { onKudosGiven, onKudosRevoked } from "./quests";
 import {
   type Category,
+  type Rarity,
   type TemplateVars,
   joinNames,
   pickTemplate,
@@ -122,10 +123,20 @@ async function bumpMemberDay(
 
 type Audience = { slack: TemplateVars; web: TemplateVars };
 
+export type BotMessageOptions = {
+  /** Batch a first discovery into the caller's rollups; otherwise it is written right away. */
+  rollups?: Rollups;
+  /** Roll only this rarity or rarer (a clean sweep's Quest message). */
+  minRarity?: Rarity;
+  /** Collect the message but never send it (the workspace keeps that DM quiet). */
+  skipDelivery?: boolean;
+  questProgress?: Infer<typeof questProgressValidator>;
+};
+
 /**
  * Pick a rarity-rolled message for `member`, record the discovery and queue the
  * bot notification. Returns the notification id. A first discovery counts towards the
- * workspace rollups: pass the caller's `rollups` to batch it, or it is written right away.
+ * workspace rollups.
  */
 export async function sendBotMessage(
   ctx: MutationCtx,
@@ -134,13 +145,13 @@ export async function sendBotMessage(
   category: Category,
   vars: Audience,
   now: number,
-  rollups?: Rollups,
+  { rollups, minRarity, skipDelivery, questProgress }: BotMessageOptions = {},
 ): Promise<Id<"notifications">> {
   const seen = await ctx.db
     .query("discoveries")
     .withIndex("by_member_template", (q) => q.eq("memberId", member._id))
     .take(500);
-  const template = pickTemplate(category, new Set(seen.map((d) => d.templateKey)));
+  const template = pickTemplate(category, new Set(seen.map((d) => d.templateKey)), Math.random, { minRarity });
   const existing = seen.find((d) => d.templateKey === template.key);
   if (existing) {
     await ctx.db.patch(existing._id, { timesSeen: existing.timesSeen + 1, lastSeenAt: now });
@@ -168,7 +179,8 @@ export async function sendBotMessage(
     isNewDiscovery: !existing,
     slackText: renderTemplate(template.text, vars.slack),
     webText: renderTemplate(template.text, vars.web),
-    delivery: workspace.isDemo ? "skipped" : "pending",
+    delivery: workspace.isDemo || skipDelivery ? "skipped" : "pending",
+    ...(questProgress ? { questProgress } : {}),
   });
 }
 
@@ -206,7 +218,7 @@ function ineligible(members: Doc<"members">[]): "bots" | "inactive" {
   return members.some((m) => m.deactivated && !m.isBot) ? "inactive" : "bots";
 }
 
-function emojiVars(workspace: Doc<"workspaces">) {
+export function emojiVars(workspace: Doc<"workspaces">) {
   return { slack: `:${workspace.emojiName}:`, web: workspace.emojiGlyph };
 }
 
@@ -340,7 +352,7 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
           limit: workspace.dailyLimit,
           channel: channel.web,
         },
-      }, now, rollups),
+      }, now, { rollups }),
     );
   }
   if (workspace.notifyReceiver) {
@@ -349,15 +361,15 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
         await sendBotMessage(ctx, workspace, r, "receiver_success", {
           slack: { giver: `<@${giver.slackUserId}>`, amount: input.amountEach, emoji: emoji.slack, channel: channel.slack },
           web: { giver: giver.name, amount: input.amountEach, emoji: emoji.web, channel: channel.web },
-        }, now, rollups),
+        }, now, { rollups }),
       );
     }
   }
 
-  await rollups.flush();
-
   // Only a batch with a Note can move quest progress; skip the reads otherwise.
-  if ((input.noteWords ?? 0) >= MIN_NOTE_WORDS) await onKudosGiven(ctx, workspace, giver, now);
+  if ((input.noteWords ?? 0) >= MIN_NOTE_WORDS) notificationIds.push(...(await onKudosGiven(ctx, workspace, giver, now, rollups)));
+
+  await rollups.flush();
 
   return {
     status: "given",

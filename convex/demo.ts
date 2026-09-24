@@ -8,7 +8,7 @@ import { CATALOG, RARITY_WEIGHTS, type Category } from "./lib/messages";
 import { countEmoji, countNoteWords, mentionedUsers, mentionsGroup, previewText } from "./lib/parse";
 import { attemptKudos, type AttemptInput, reattemptKudos, recordReaction } from "./attempts";
 import { reactionFor } from "./lib/guidance";
-import { attemptOutcomeValidator } from "./schema";
+import { attemptOutcomeValidator, questProgressValidator } from "./schema";
 import { addDays, dayKeyFor, startOfDayUtc, weekdayOfKey, zonedParts } from "./lib/time";
 import { demoActivity } from "./lib/demoCalendar";
 import { DEFAULT_SETTINGS } from "./lib/settings";
@@ -358,6 +358,8 @@ const playgroundResult = v.object({
       rarity: v.string(),
       text: v.string(),
       isNewDiscovery: v.boolean(),
+      /** Quest messages: how far the week is, as the Slack DM says. */
+      questProgress: v.optional(questProgressValidator),
     }),
   ),
 });
@@ -390,6 +392,7 @@ async function describeNotifications(ctx: MutationCtx, me: Id<"members">, ids: I
       rarity: n.rarity,
       text: n.webText,
       isNewDiscovery: n.isNewDiscovery,
+      ...(n.questProgress ? { questProgress: n.questProgress } : {}),
     });
   }
   return out;

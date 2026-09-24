@@ -10,6 +10,7 @@ const LABELS: Record<string, string> = {
   channel: "#channel",
   user: "you",
   requested: "requested",
+  quest: "quest",
 };
 
 /** Renders a message template with its {placeholders} as quiet inline chips. */
