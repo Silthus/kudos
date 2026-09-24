@@ -25,6 +25,16 @@ export function mentionedUsers(text: string): string[] {
   return [...seen];
 }
 
+/** Two versions of a message give the same kudos: same people, same group mentions, same amount. */
+export function sameKudos(before: string, after: string, emojiName: string): boolean {
+  const people = (text: string) => mentionedUsers(text).sort().join(" ");
+  return (
+    countEmoji(before, emojiName) === countEmoji(after, emojiName) &&
+    mentionsGroup(before) === mentionsGroup(after) &&
+    people(before) === people(after)
+  );
+}
+
 /** Normalises `taco::skin-tone-2` (as sent in reaction events) to `taco`. */
 export function baseEmojiName(reaction: string): string {
   return reaction.split("::")[0];

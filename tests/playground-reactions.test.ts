@@ -22,7 +22,12 @@ test("the playground shows the bot's reaction and guidance for every attempt, li
   const demo = await enterDemo();
   const say = (text: string) => demo.mutation(api.demo.simulateMessage, { text, channelName: "general" });
 
-  expect((await say("<@UDEMOPRIYA> :taco: thanks for the review")).attempt).toEqual({ outcome: "given", reaction: "taco", guidance: null });
+  expect((await say("<@UDEMOPRIYA> :taco: thanks for the review")).attempt).toEqual({
+    outcome: "given",
+    reaction: "taco",
+    guidance: null,
+    messageTs: expect.any(String),
+  });
 
   const limit = await say("<@UDEMOPRIYA> <@UDEMOJONAS> :taco::taco: great release"); // 4 asked, 4 left → given
   expect(limit.attempt?.outcome).toBe("given");
@@ -46,6 +51,36 @@ test("the playground shows the bot's reaction and guidance for every attempt, li
   const attempts = await t.run((ctx) => ctx.db.query("kudosAttempts").collect());
   expect(attempts.map((a) => a.outcome)).toEqual(["given", "given", "limit", "limit", "invalid", "invalid"]);
   expect(new Set(attempts.map((a) => a.messageTs)).size).toBe(6);
+});
+
+test("a failed playground message can be fixed by editing it, like in Slack", async () => {
+  const demo = await enterDemo();
+  const say = (text: string) => demo.mutation(api.demo.simulateMessage, { text, channelName: "general" });
+  const edit = (messageTs: string, previousText: string, text: string) =>
+    demo.mutation(api.demo.simulateEdit, { messageTs, previousText, text, channelName: "general" });
+
+  await say("<@UDEMOPRIYA> :taco::taco::taco: thanks"); // 2 of 5 left
+  const over = "<@UDEMOSAMIR> <@UDEMOAIKO> :taco::taco: heroes of the week";
+  const failed = (await say(over)).attempt!;
+  expect(failed).toMatchObject({ outcome: "limit", reaction: "hourglass_flowing_sand", messageTs: expect.any(String) });
+  expect(failed.guidance).toContain("To fix it, edit your message: use 1 🌮 so each of them gets 1 (2 in total)");
+
+  const fixed = await edit(failed.messageTs, over, "<@UDEMOSAMIR> <@UDEMOAIKO> :taco: heroes of the week");
+  expect(fixed.status).toBe("given");
+  expect(fixed.attempt).toEqual({ outcome: "given", reaction: "taco", guidance: null, messageTs: failed.messageTs });
+  expect(fixed.messages.map((m) => m.to).sort()).toEqual(["Aiko Tanaka", "Alex Rivera", "Samir Haddad"]);
+  const attempts = await t.run((ctx) => ctx.db.query("kudosAttempts").collect());
+  expect(attempts.map((a) => a.outcome)).toEqual(["given", "given"]);
+
+  const again = await edit(failed.messageTs, "<@UDEMOSAMIR> <@UDEMOAIKO> :taco: heroes of the week", "<@UDEMOSAMIR> :taco: heroes");
+  expect(again).toEqual({
+    status: "already_given",
+    messages: [],
+    attempt: { outcome: "given", reaction: "taco", guidance: "Your edit didn't change anything, because the kudos in this message were already sent.", messageTs: failed.messageTs },
+  });
+
+  // Only the demo's own messages: anything else is left alone.
+  expect((await edit("1.1", ":taco:", "<@UDEMOPRIYA> :taco:")).attempt).toBeNull();
 });
 
 test("resetting the demo wipes its kudos attempts", async () => {

@@ -6,7 +6,8 @@ import { allowanceCheck, findMember, giveKudos, revokeKudosRow } from "./engine"
 import { getViewer, requireViewer } from "./lib/access";
 import { CATALOG, RARITY_WEIGHTS, type Category } from "./lib/messages";
 import { countEmoji, countNoteWords, mentionedUsers, mentionsGroup, previewText } from "./lib/parse";
-import { attemptKudos, recordReaction } from "./attempts";
+import { attemptKudos, type AttemptInput, reattemptKudos, recordReaction } from "./attempts";
+import { reactionFor } from "./lib/guidance";
 import { attemptOutcomeValidator } from "./schema";
 import { addDays, dayKeyFor, startOfDayUtc, weekdayOfKey, zonedParts } from "./lib/time";
 import { demoActivity } from "./lib/demoCalendar";
@@ -365,7 +366,14 @@ const playgroundResult = v.object({
 const messageResult = playgroundResult.extend({
   attempt: v.union(
     v.null(),
-    v.object({ outcome: attemptOutcomeValidator, reaction: v.string(), guidance: v.union(v.null(), v.string()) }),
+    v.object({
+      outcome: attemptOutcomeValidator,
+      reaction: v.string(),
+      /** What the bot tells only you: how to fix a failed attempt, or why an edit changed nothing. */
+      guidance: v.union(v.null(), v.string()),
+      /** The message, so you can edit it. */
+      messageTs: v.string(),
+    }),
   ),
 });
 
@@ -394,54 +402,98 @@ export const simulateMessage = mutation({
   handler: async (ctx, { text, channelName }) => {
     const { workspace, member } = await requireDemoViewer(ctx);
     if (text.length > 1000 || channelName.length > 40) throw new ConvexError("Message is too long.");
-    const amountEach = countEmoji(text, workspace.emojiName);
-    if (amountEach === 0) return { status: "no_kudos", messages: [], attempt: null };
-    const members = await ctx.db
-      .query("members")
-      .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id))
-      .take(100);
-    const known = new Map(members.map((m) => [m.slackUserId, m.name]));
+    if (countEmoji(text, workspace.emojiName) === 0) return { status: "no_kudos", messages: [], attempt: null };
     const now = Date.now();
-    const mentioned = mentionedUsers(text);
-    const attempted = await attemptKudos(ctx, {
-      workspace,
-      giverSlackId: member.slackUserId,
-      recipientSlackIds: mentioned,
-      unknownSlackIds: mentioned.filter((id) => !known.has(id)),
-      groupMention: mentionsGroup(text),
-      amountEach,
-      channelId: `C_DEMO_${channelName.toUpperCase()}`,
-      channelName: channelName.replace(/[^a-z0-9-]/gi, "").slice(0, 40) || "general",
-      // Unique like a Slack ts, so every simulated message is its own attempt.
-      messageTs: `${now / 1000}-${Math.random().toString(36).slice(2, 10)}`,
-      text: previewText(text, (id) => known.get(id)),
-      noteWords: countNoteWords(text, workspace.emojiName, workspace.emojiGlyph),
-      source: "playground",
-      now,
-    });
+    const messageTs = uniqueTs(now); // every simulated message is its own attempt
+    const attempted = await attemptKudos(ctx, await playgroundAttempt(ctx, workspace, member, { text, channelName, messageTs, now }));
     if (!attempted) throw new ConvexError("That message was already sent."); // unique ts: can't happen
     const { result, attempt } = attempted;
     if (attempt) await recordReaction(ctx, attempt.id, attempt.reaction); // the chip shows right away
-    if (result.status === "given") {
-      // Teammates sometimes return the favour a few seconds later; shows live updates.
-      const pool = result.recipientIds;
-      const giver = pool[Math.floor(Math.random() * pool.length)];
-      if (giver && Math.random() < 0.6) {
-        await ctx.scheduler.runAfter(2500 + Math.random() * 3000, internal.demo.teammateThanks, {
-          workspaceId: workspace._id,
-          fromMemberId: giver,
-          toMemberId: member._id,
-          channelName,
-        });
-      }
-    }
+    if (result.status === "given") await maybeThankBack(ctx, workspace, member, result.recipientIds, channelName);
     return {
       status: result.status,
       messages: await describeNotifications(ctx, member._id, result.notificationIds),
-      attempt: attempt && { outcome: attempt.outcome, reaction: attempt.reaction, guidance: attempt.guidance?.web ?? null },
+      attempt: attempt && { outcome: attempt.outcome, reaction: attempt.reaction, guidance: attempt.guidance?.web ?? null, messageTs },
     };
   },
 });
+
+/**
+ * Edits one of your playground messages; runs the same path as an edit in Slack. Only a failed
+ * attempt is judged again; kudos already sent never change, and you're told so.
+ */
+export const simulateEdit = mutation({
+  args: { messageTs: v.string(), previousText: v.string(), text: v.string(), channelName: v.string() },
+  returns: messageResult,
+  handler: async (ctx, { messageTs, previousText, text, channelName }) => {
+    const { workspace, member } = await requireDemoViewer(ctx);
+    if (text.length > 1000 || previousText.length > 1000 || channelName.length > 40) throw new ConvexError("Message is too long.");
+    const now = Date.now();
+    const input = await playgroundAttempt(ctx, workspace, member, { text, channelName, messageTs, now });
+    const reattempt = await reattemptKudos(ctx, input, { ts: uniqueTs(now), text, previousText }); // every edit is new
+    if (!reattempt) return { status: "no_change", messages: [], attempt: null };
+    if (reattempt.status === "already_given") {
+      const reaction = reactionFor("given", workspace.emojiName);
+      return { status: reattempt.status, messages: [], attempt: { outcome: "given" as const, reaction, guidance: reattempt.note, messageTs } };
+    }
+    const { result, attempt } = reattempt;
+    await recordReaction(ctx, attempt.id, attempt.reaction);
+    if (result.status === "given") await maybeThankBack(ctx, workspace, member, result.recipientIds, channelName);
+    return {
+      status: result.status,
+      messages: await describeNotifications(ctx, member._id, result.notificationIds),
+      attempt: { outcome: attempt.outcome, reaction: attempt.reaction, guidance: attempt.guidance?.web ?? null, messageTs },
+    };
+  },
+});
+
+/** Unique like a Slack ts, even within the same millisecond. */
+function uniqueTs(now: number) {
+  return `${now / 1000}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** A playground message as a kudos attempt by the demo viewer, in a pretend channel. */
+async function playgroundAttempt(
+  ctx: MutationCtx,
+  workspace: Doc<"workspaces">,
+  member: Doc<"members">,
+  { text, channelName, messageTs, now }: { text: string; channelName: string; messageTs: string; now: number },
+): Promise<AttemptInput> {
+  const members = await ctx.db
+    .query("members")
+    .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id))
+    .take(100);
+  const known = new Map(members.map((m) => [m.slackUserId, m.name]));
+  const mentioned = mentionedUsers(text);
+  return {
+    workspace,
+    giverSlackId: member.slackUserId,
+    recipientSlackIds: mentioned,
+    unknownSlackIds: mentioned.filter((id) => !known.has(id)),
+    groupMention: mentionsGroup(text),
+    amountEach: countEmoji(text, workspace.emojiName),
+    channelId: `C_DEMO_${channelName.toUpperCase()}`,
+    channelName: channelName.replace(/[^a-z0-9-]/gi, "").slice(0, 40) || "general",
+    messageTs,
+    text: previewText(text, (id) => known.get(id)),
+    noteWords: countNoteWords(text, workspace.emojiName, workspace.emojiGlyph),
+    source: "playground",
+    now,
+  };
+}
+
+/** Teammates sometimes return the favour a few seconds later; shows live updates. */
+async function maybeThankBack(ctx: MutationCtx, workspace: Doc<"workspaces">, member: Doc<"members">, pool: Id<"members">[], channelName: string) {
+  const giver = pool[Math.floor(Math.random() * pool.length)];
+  if (giver && Math.random() < 0.6) {
+    await ctx.scheduler.runAfter(2500 + Math.random() * 3000, internal.demo.teammateThanks, {
+      workspaceId: workspace._id,
+      fromMemberId: giver,
+      toMemberId: member._id,
+      channelName,
+    });
+  }
+}
 
 export const simulateReaction = mutation({
   args: { authorSlackUserId: v.string(), messageText: v.string(), messageKey: v.string() },

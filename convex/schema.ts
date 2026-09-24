@@ -186,7 +186,8 @@ export default defineSchema({
     reason: v.optional(invalidReasonValidator), // only for outcome "invalid"
     reaction: v.optional(v.string()), // Slack reaction the bot shows, once Slack confirmed it (✅ after a fallback)
     batchId: v.optional(v.string()), // the kudos batch, once given
-    at: v.number(), // when the outcome was decided
+    at: v.number(), // when the outcome was decided (an edit that fixes a failed attempt decides it again)
+    editTs: v.optional(v.string()), // the last edit of the message handled, so a redelivered edit is a no-op
   }).index("by_message", ["workspaceId", "channelId", "messageTs"]),
 
   // Per-member daily rollup: powers allowances, leaderboards, streaks and cadence charts.
