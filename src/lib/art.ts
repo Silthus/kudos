@@ -42,8 +42,8 @@ export const ART = {
   "garden-scene": cloudinary(KEYBOARD_GARDEN, "f_auto,q_auto,w_720", 720, 720),
   /** Max's face, cropped from posthog.com's Max portrait, on the face of every Hog coin. */
   "coin-max": cloudinary("ai_max_e80de99727.png", "c_crop,x_130,y_180,w_420,h_420/f_auto,q_auto,w_96", 96, 96),
-  /** Profile banner: a band through the Keyboard garden where a hedgehog waters the S bed. */
-  "banner-keyboard-garden": cloudinary(KEYBOARD_GARDEN, "c_crop,x_250,y_420,w_1100,h_275/f_auto,q_auto,w_960", 960, 240),
+  /** Profile banner: a band of key beds (H, S and T) through the Keyboard garden, filled edge to edge. */
+  "banner-keyboard-garden": cloudinary(KEYBOARD_GARDEN, "c_crop,x_200,y_600,w_1000,h_250/f_auto,q_auto,w_960", 960, 240),
   /** Frame: the leafy top of the garden's P hedge, so the ring around your picture is hedge. */
   "frame-meadow": cloudinary(KEYBOARD_GARDEN, "c_crop,x_120,y_230,w_320,h_320/f_auto,q_auto,w_160", 160, 160),
   "hoggie-gardener": hoggie("gardener-1"),

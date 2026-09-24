@@ -60,6 +60,14 @@ test("a slot without PostHog art is only its placeholder, with no request at all
   expect(host.querySelector("[data-testid=placeholder]")).not.toBeNull();
 });
 
+test("an absolutely placed slot stays absolute (a frame behind a picture), and anything else holds its image in place", () => {
+  const placed = render(<RemoteArt slot="frame-meadow" className="absolute inset-0" />).querySelector("[data-art-slot]")!;
+  expect(placed.className.split(" ")).toContain("absolute");
+  expect(placed.className.split(" ")).not.toContain("relative");
+  act(() => root!.render(<RemoteArt slot="frame-meadow" className="h-4 w-4" />));
+  expect(document.querySelector("[data-art-slot='frame-meadow']")!.className.split(" ")).toContain("relative");
+});
+
 test("a new slot starts loading afresh, even after the last one failed", () => {
   const host = render(<RemoteArt slot="hoggie-party" fallback={placeholder} />);
   act(() => void host.querySelector("img")!.dispatchEvent(new Event("error")));

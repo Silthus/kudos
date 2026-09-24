@@ -91,9 +91,10 @@ export function LookCard({ memberId, today }: { memberId: Id<"members">; today: 
       <div className="px-5 pb-5">
         <div className="relative overflow-hidden rounded-2xl border border-line">
           {banner ? <Art art={banner.art} className="h-20 w-full rounded-none" /> : <div className="h-20 w-full bg-panel-2" />}
-          <div className="-mt-8 flex items-end gap-3 px-4 pb-3">
+          <div className="relative -mt-8 flex items-end gap-3 px-4 pb-3">
             <FramedAvatar name={profile.name} src={profile.avatarUrl} size={56} look={mine.look} />
-            <div className="min-w-0 pb-1">
+            {/* The name overlaps the banner: a shadow keeps it readable over busy art like the Keyboard garden. */}
+            <div className="min-w-0 pb-1 [text-shadow:0_1px_2px_rgb(0_0_0/0.95),0_0_8px_rgb(0_0_0/0.8)]">
               <div className="truncate font-display text-lg font-semibold text-cream">{profile.name}</div>
               <div className="text-xs text-muted">
                 {profile.level !== null && (

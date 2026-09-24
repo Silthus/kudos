@@ -28,8 +28,10 @@ export function RemoteArt({
   const [state, setState] = useState<{ slot: string; status: Status }>({ slot, status: "loading" });
   const status: Status = !art ? "fallback" : state.slot === slot ? state.status : "loading";
   const settle = (next: Status) => setState({ slot, status: next });
+  // The image is placed over the box, so the box must be positioned: relative, unless the caller places it.
+  const placed = /(^|\s)(absolute|fixed|sticky)(\s|$)/.test(className ?? "");
   return (
-    <span data-art-slot={slot} data-art={status} aria-hidden className={clsx("relative block overflow-hidden", className)} style={style}>
+    <span data-art-slot={slot} data-art={status} aria-hidden className={clsx("block overflow-hidden", !placed && "relative", className)} style={style}>
       {fallback}
       {art && status !== "fallback" && (
         <img
