@@ -1,7 +1,8 @@
 import clsx from "clsx";
 import { motion } from "motion/react";
 import { Ellipsis, X } from "lucide-react";
-import { useCallback, useEffect, useId, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { NavLink, useLocation } from "react-router";
 import { mobileNav, navGroups, type NavBadge as Badge, type NavGroup, type NavItem } from "../lib/nav";
 
@@ -19,17 +20,20 @@ function NavBadge({ badge, className }: { badge: Badge; className?: string }) {
   );
 }
 
-function GroupHeading({ children, className }: { children: string; className?: string }) {
-  return <h3 className={clsx("px-3 font-mono text-[10px] uppercase tracking-wider text-faint", className)}>{children}</h3>;
-}
+const groupLabelCls = "px-3 font-mono text-[10px] uppercase tracking-wider text-faint";
 
 /** Desktop: every page, under You / Team / Workspace. */
 export function SidebarNav({ items }: { items: NavItem[] }) {
+  const id = useId();
   return (
-    <nav aria-label="Main navigation" className="mt-6 flex min-h-0 flex-col gap-5 overflow-y-auto">
+    // Scrolls on short screens; the padding keeps focus outlines clear of the scroll clip.
+    <nav aria-label="Main navigation" className="-mx-2 mt-5 flex min-h-0 flex-col gap-5 overflow-y-auto px-2 py-1">
       {navGroups(items).map((g) => (
-        <div key={g.id}>
-          <GroupHeading className="pb-1.5">{g.label}</GroupHeading>
+        // Groups, not headings: the sidebar comes before the page's own h1.
+        <div key={g.id} role="group" aria-labelledby={`${id}-${g.id}`}>
+          <div id={`${id}-${g.id}`} className={clsx(groupLabelCls, "pb-1.5")}>
+            {g.label}
+          </div>
           <div className="flex flex-col gap-1">
             {g.items.map((n) => (
               <NavLink
@@ -79,16 +83,21 @@ export function MobileNav({ items }: { items: NavItem[] }) {
   const { pathname } = useLocation();
   const { tabs, more, moreBadge } = mobileNav(items, pathname);
   const [open, setOpen] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
   const moreRef = useRef<HTMLButtonElement>(null);
+  const picked = useRef(false);
   const sheetId = useId();
   const close = useCallback(() => setOpen(false), []);
+  const pick = useCallback(() => (picked.current = true), []);
+  // Once the sheet is gone: a page picked from it hands focus to that page's tab, anything else back to More.
+  const restoreFocus = useCallback(() => (picked.current ? navRef.current?.querySelector<HTMLElement>("[aria-current='page']") : moreRef.current)?.focus(), []);
 
-  // Arriving on a page (from the sheet or anywhere else) puts the sheet away.
+  // Arriving on a page (from the sheet, or Back) puts the sheet away.
   useEffect(close, [pathname, close]);
 
   return (
     <>
-      <nav aria-label="Main navigation" className="fixed inset-x-3 bottom-3 z-30 flex justify-around gap-0.5 rounded-2xl border border-line-strong bg-panel/90 p-1.5 backdrop-blur-xl lg:hidden">
+      <nav ref={navRef} aria-label="Main navigation" className="fixed inset-x-3 bottom-3 z-30 flex justify-around gap-0.5 rounded-2xl border border-line-strong bg-panel/90 p-1.5 backdrop-blur-xl lg:hidden">
         {tabs.map((n) => (
           <NavLink key={n.id} to={n.to} className={({ isActive }) => clsx(tabCls, isActive ? "bg-panel-3 text-saffron" : "text-faint")}>
             <TabFace icon={n.icon} label={n.short} badge={n.badge} />
@@ -101,28 +110,39 @@ export function MobileNav({ items }: { items: NavItem[] }) {
             aria-haspopup="dialog"
             aria-expanded={open}
             aria-controls={open ? sheetId : undefined}
-            onClick={() => setOpen((o) => !o)}
+            onClick={() => {
+              picked.current = false;
+              setOpen((o) => !o);
+            }}
             className={clsx(tabCls, open ? "bg-panel-3 text-cream" : "text-faint")}
           >
             <TabFace icon={Ellipsis} label="More" badge={moreBadge} />
           </button>
         )}
       </nav>
-      {open && <MoreSheet id={sheetId} groups={more} onClose={close} returnFocus={moreRef} />}
+      {open && <MoreSheet id={sheetId} groups={more} onClose={close} onPick={pick} restoreFocus={restoreFocus} />}
     </>
   );
 }
 
 const FOCUSABLE = "a[href], button:not([disabled]), [tabindex]:not([tabindex='-1'])";
 
-/** A modal bottom sheet: focus moves in and stays in, Escape or the backdrop close it, focus goes back to More. */
-function MoreSheet({ id, groups, onClose, returnFocus }: { id: string; groups: NavGroup[]; onClose: () => void; returnFocus: RefObject<HTMLButtonElement | null> }) {
+/**
+ * A modal bottom sheet, portalled to <body> so everything else can go inert: focus moves in and
+ * stays in, Escape, the close button or the backdrop put it away. Picking a page doesn't close it
+ * directly; the route change does, so focus can then find the new page's tab.
+ */
+function MoreSheet({ id, groups, onClose, onPick, restoreFocus }: { id: string; groups: NavGroup[]; onClose: () => void; onPick: () => void; restoreFocus: () => void }) {
+  const hostRef = useRef<HTMLDivElement>(null);
   const ref = useRef<HTMLDivElement>(null);
   const titleId = useId();
 
   useEffect(() => {
     const sheet = ref.current!;
-    const opener = returnFocus.current;
+    const host = hostRef.current!;
+    // Screen-reader swipes and browse mode ignore a Tab trap; inert takes the page away from them too.
+    const background = [...document.body.children].filter((el): el is HTMLElement => el instanceof HTMLElement && !el.contains(host) && !el.inert);
+    background.forEach((el) => (el.inert = true));
     sheet.querySelector<HTMLElement>("a[href]")?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -154,12 +174,13 @@ function MoreSheet({ id, groups, onClose, returnFocus }: { id: string; groups: N
       document.removeEventListener("keydown", onKey);
       desktop?.removeEventListener("change", onDesktop);
       document.body.style.overflow = overflow;
-      opener?.focus();
+      background.forEach((el) => (el.inert = false));
+      restoreFocus();
     };
-  }, [onClose, returnFocus]);
+  }, [onClose, restoreFocus]);
 
-  return (
-    <div className="fixed inset-0 z-40 lg:hidden">
+  return createPortal(
+    <div ref={hostRef} className="fixed inset-0 z-40 lg:hidden">
       <motion.div
         data-sheet-backdrop
         aria-hidden
@@ -184,23 +205,17 @@ function MoreSheet({ id, groups, onClose, returnFocus }: { id: string; groups: N
           <h2 id={titleId} className="font-display text-lg font-semibold tracking-tight">
             More
           </h2>
-          <button type="button" onClick={onClose} className="-mr-1 rounded-lg p-2 text-faint hover:bg-panel-2 hover:text-cream" aria-label="Close">
+          <button type="button" onClick={onClose} className="-mr-2 rounded-lg p-3 text-faint hover:bg-panel-2 hover:text-cream" aria-label="Close">
             <X className="h-4 w-4" />
           </button>
         </header>
         <div className="flex flex-col gap-4 px-2 pt-3">
           {groups.map((g) => (
             <div key={g.id}>
-              <GroupHeading className="pb-1">{g.label}</GroupHeading>
+              <h3 className={clsx(groupLabelCls, "pb-1")}>{g.label}</h3>
+              {/* Never the current page: that one is always a tab. */}
               {g.items.map((n) => (
-                <NavLink
-                  key={n.id}
-                  to={n.to}
-                  onClick={onClose}
-                  className={({ isActive }) =>
-                    clsx("flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium", isActive ? "bg-panel-3 text-cream" : "text-muted hover:bg-panel-2 hover:text-cream")
-                  }
-                >
+                <NavLink key={n.id} to={n.to} onClick={onPick} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-muted hover:bg-panel-2 hover:text-cream">
                   <n.icon className="h-4 w-4 text-faint" />
                   <span>{n.label}</span>
                   {n.badge && <NavBadge badge={n.badge} className="ml-auto" />}
@@ -210,6 +225,7 @@ function MoreSheet({ id, groups, onClose, returnFocus }: { id: string; groups: N
           ))}
         </div>
       </motion.div>
-    </div>
+    </div>,
+    document.body,
   );
 }

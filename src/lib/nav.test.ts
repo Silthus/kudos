@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { mobileNav, navGroups, navItems, type NavContext } from "./nav";
+import { Star } from "lucide-react";
+import { mobileNav, navGroups, navItems, type NavContext, type NavItem } from "./nav";
 
 const member: NavContext = { isAdmin: false, isDemo: false, storeEnabled: false, openRequests: 0 };
 const everything: NavContext = { isAdmin: true, isDemo: true, storeEnabled: true, openRequests: 3 };
@@ -33,6 +34,10 @@ describe("navItems", () => {
     expect(idle.to).toBe("/admin");
 
     expect(navItems({ ...everything, openRequests: 1 }).find((i) => i.id === "admin")!.badge?.label).toBe("1 open store request");
+  });
+
+  test("the server caps open requests at 100, which reads as 99+", () => {
+    expect(navItems({ ...everything, openRequests: 100 }).find((i) => i.id === "admin")!.badge).toEqual({ count: 100, label: "99+ open store requests" });
   });
 });
 
@@ -71,12 +76,27 @@ describe("mobileNav", () => {
   test("matching ignores the query and covers nested paths", () => {
     expect(ids(mobileNav(navItems(everything), "/compare/anything").tabs)).toContain("compare");
     expect(ids(mobileNav(navItems(everything), "/me").tabs)).not.toContain("compare");
+    expect(ids(mobileNav(navItems(everything), "/comparex").tabs)).not.toContain("compare");
+  });
+
+  test("matching ignores case, like the router does", () => {
+    expect(ids(mobileNav(navItems(everything), "/Admin").tabs)).toContain("admin");
+  });
+
+  test("a page without a tab priority never pushes the ranked ones aside", () => {
+    const extra: NavItem = { id: "new-page", to: "/new", path: "/new", label: "New page", short: "New", icon: Star, group: "team" };
+    expect(ids(mobileNav([extra, ...navItems(everything)], "/me").tabs)).toEqual(["me", "leaderboard", "quests", "discoveries"]);
   });
 
   test("More counts the badges hidden inside it", () => {
     expect(mobileNav(navItems(everything), "/me").moreBadge).toEqual({ count: 3, label: "3 open store requests" });
     // Once Admin is a tab, its badge shows there and More has nothing to add.
     expect(mobileNav(navItems(everything), "/admin").moreBadge).toBeUndefined();
+  });
+
+  test("More adds up several hidden badges and names each", () => {
+    const flagged: NavItem = { id: "flags", to: "/flags", path: "/flags", label: "Flags", short: "Flags", icon: Star, group: "workspace", badge: { count: 2, label: "2 flagged kudos" } };
+    expect(mobileNav([...navItems(everything), flagged], "/me").moreBadge).toEqual({ count: 5, label: "3 open store requests, 2 flagged kudos" });
   });
 
   test("with four items or fewer there is no More at all", () => {

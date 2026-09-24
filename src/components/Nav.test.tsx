@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { MemoryRouter, useLocation } from "react-router";
+import { MemoryRouter, useLocation, useNavigate, type NavigateFunction } from "react-router";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { navItems, type NavContext } from "../lib/nav";
 import { MobileNav, SidebarNav } from "./Nav";
@@ -13,9 +13,11 @@ const everything: NavContext = { isAdmin: true, isDemo: true, storeEnabled: true
 let root: Root;
 let container: HTMLElement;
 let url = "";
+let navigate: NavigateFunction;
 function LocationProbe() {
   const { pathname, search } = useLocation();
   url = `${pathname}${search}`;
+  navigate = useNavigate();
   return null;
 }
 
@@ -157,6 +159,31 @@ describe("More sheet", () => {
     expect(tabLabels()).toEqual(["Me", "Ranks", "Quests", "Stats"]);
   });
 
+  test("the page behind it is inert while it's open", () => {
+    renderMobile("/me");
+    click(moreButton());
+    expect(container.inert).toBe(true);
+    expect(sheet()!.closest("[inert]")).toBeNull();
+    press("Escape");
+    expect(container.inert).toBe(false);
+  });
+
+  test("after picking a page, focus lands on that page's tab", () => {
+    renderMobile("/me");
+    click(moreButton());
+    click([...sheet()!.querySelectorAll("a")].find((a) => label(a) === "Compare")!);
+    expect(label(document.activeElement!)).toBe("Compare");
+    expect(document.activeElement!.getAttribute("aria-current")).toBe("page");
+  });
+
+  test("leaving the page some other way (e.g. Back) puts the sheet away", () => {
+    renderMobile("/me");
+    click(moreButton());
+    act(() => void navigate("/leaderboard"));
+    expect(sheet()).toBeNull();
+    expect(container.inert).toBe(false);
+  });
+
   test("locks page scrolling while open", () => {
     renderMobile("/me");
     click(moreButton());
@@ -176,7 +203,9 @@ describe("desktop sidebar", () => {
       );
     });
     const nav = container.querySelector("nav")!;
-    expect([...nav.querySelectorAll("h3")].map((h) => h.textContent)).toEqual(["You", "Team", "Workspace"]);
+    const groups = [...nav.querySelectorAll("[role='group']")];
+    expect(groups.map((g) => document.getElementById(g.getAttribute("aria-labelledby")!)?.textContent)).toEqual(["You", "Team", "Workspace"]);
+    expect(groups.map((g) => g.querySelectorAll("a").length)).toEqual([4, 3, 2]);
     expect([...nav.querySelectorAll("a")].map(label)).toEqual([
       "My kudos",
       "Discoveries",

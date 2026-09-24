@@ -76,8 +76,10 @@ export function navGroups(items: NavItem[]): NavGroup[] {
   return GROUPS.map((g) => ({ ...g, items: items.filter((i) => i.group === g.id) })).filter((g) => g.items.length > 0);
 }
 
+/** Case-insensitive, like the router: /Admin renders Admin, so Admin is the active item. */
 export function isActive(item: NavItem, pathname: string): boolean {
-  return pathname === item.path || pathname.startsWith(`${item.path}/`);
+  const path = pathname.toLowerCase();
+  return path === item.path || path.startsWith(`${item.path}/`);
 }
 
 /**
@@ -86,7 +88,8 @@ export function isActive(item: NavItem, pathname: string): boolean {
  * current page is always on screen. More's badge counts whatever badges it hides.
  */
 export function mobileNav(items: NavItem[], pathname: string): { tabs: NavItem[]; more: NavGroup[]; moreBadge?: NavBadge } {
-  const rank = (i: NavItem) => TAB_PRIORITY.indexOf(i.id);
+  // A page missing from the priority list queues behind the ranked ones.
+  const rank = (i: NavItem) => (TAB_PRIORITY.includes(i.id) ? TAB_PRIORITY.indexOf(i.id) : TAB_PRIORITY.length);
   const byPriority = [...items].sort((a, b) => rank(a) - rank(b));
   const tabs = byPriority.slice(0, TAB_COUNT);
   const active = byPriority.slice(TAB_COUNT).find((i) => isActive(i, pathname));
