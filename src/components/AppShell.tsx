@@ -1,14 +1,15 @@
-import clsx from "clsx";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useMutation, useQuery } from "convex/react";
 import { motion } from "motion/react";
-import { ArrowLeftRight, BarChart3, ChevronsUpDown, FlaskConical, Gem, Gift, LogOut, Settings2, Target, Trophy, UserRound } from "lucide-react";
+import { ChevronsUpDown, LogOut } from "lucide-react";
 import { useEffect } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import { navItems } from "@/lib/nav";
 import { useViewer } from "@/lib/viewer";
 import { ErrorBoundary } from "./ErrorBoundary";
+import { MobileNav, SidebarNav } from "./Nav";
 import { Avatar } from "./ui";
 
 export function Logo({ glyph = "🌮" }: { glyph?: string }) {
@@ -16,20 +17,6 @@ export function Logo({ glyph = "🌮" }: { glyph?: string }) {
     <span className="inline-flex items-center gap-2 font-display text-xl font-bold tracking-tight">
       <span className="grid h-9 w-9 place-items-center rounded-xl bg-saffron/15 text-lg ring-1 ring-saffron/30">{glyph}</span>
       kudos
-    </span>
-  );
-}
-
-/** Open store requests on the Admin item. */
-function NavBadge({ count, className }: { count: number; className?: string }) {
-  const label = count > 99 ? "99+" : String(count);
-  return (
-    <span
-      className={clsx("grid h-[18px] min-w-[18px] place-items-center rounded-full bg-saffron px-1 font-mono text-[10px] font-semibold leading-none text-ink", className)}
-      title={`${label} open store ${count === 1 ? "request" : "requests"}`}
-    >
-      {label}
-      <span className="sr-only"> open store {count === 1 ? "request" : "requests"}</span>
     </span>
   );
 }
@@ -68,17 +55,12 @@ export function AppShell() {
   }, [location.pathname]);
   // Store requests waiting on an admin; capped server-side, so 100 reads as "99+".
   const openRequests = useQuery(api.storeAdmin.openCount, viewer.member.isAdmin ? {} : "skip") ?? 0;
-  const nav: { to: string; label: string; short: string; icon: typeof Gift; badge?: number }[] = [
-    { to: "/me", label: "My kudos", short: "Me", icon: UserRound },
-    { to: "/leaderboard", label: "Leaderboard", short: "Ranks", icon: Trophy },
-    { to: "/compare", label: "Compare", short: "Compare", icon: ArrowLeftRight },
-    { to: "/discoveries", label: "Discoveries", short: "Gallery", icon: Gem },
-    { to: "/quests", label: "Quest log", short: "Quests", icon: Target },
-    ...(viewer.workspace.storeEnabled ? [{ to: "/store", label: "Store", short: "Store", icon: Gift }] : []),
-    { to: "/analytics", label: "Analytics", short: "Stats", icon: BarChart3 },
-    ...(viewer.workspace.isDemo ? [{ to: "/playground", label: "Playground", short: "Try", icon: FlaskConical }] : []),
-    ...(viewer.member.isAdmin ? [{ to: openRequests ? "/admin?tab=store" : "/admin", label: "Admin", short: "Admin", icon: Settings2, badge: openRequests }] : []),
-  ];
+  const nav = navItems({
+    isAdmin: viewer.member.isAdmin,
+    isDemo: viewer.workspace.isDemo,
+    storeEnabled: viewer.workspace.storeEnabled,
+    openRequests,
+  });
 
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[248px_1fr]">
@@ -101,31 +83,7 @@ export function AppShell() {
           <WorkspaceSwitcher className="absolute inset-0 cursor-pointer opacity-0" />
           {viewer.workspaces.length > 1 && <ChevronsUpDown className="h-4 w-4 shrink-0 text-faint" aria-hidden />}
         </div>
-        <nav className="mt-6 flex flex-col gap-1">
-          {nav.map((n) => (
-            <NavLink
-              key={n.to}
-              to={n.to}
-              className={({ isActive }) =>
-                clsx(
-                  "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                  isActive ? "text-cream" : "text-muted hover:bg-panel/70 hover:text-cream",
-                )
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  {isActive && (
-                    <motion.span layoutId="nav-active" className="absolute inset-0 rounded-xl border border-line-strong bg-panel-2" transition={{ type: "spring", bounce: 0.2, duration: 0.5 }} />
-                  )}
-                  <n.icon className={clsx("relative h-4 w-4", isActive && "text-saffron")} />
-                  <span className="relative">{n.label}</span>
-                  {!!n.badge && <NavBadge count={n.badge} className="relative ml-auto" />}
-                </>
-              )}
-            </NavLink>
-          ))}
-        </nav>
+        <SidebarNav items={nav} />
         <div className="mt-auto flex items-center gap-3 rounded-xl px-2 py-2">
           <Avatar name={viewer.member.name} src={viewer.member.avatarUrl} size={34} />
           <div className="min-w-0 flex-1">
@@ -171,23 +129,7 @@ export function AppShell() {
         </motion.div>
       </main>
 
-      <nav className="fixed inset-x-3 bottom-3 z-30 flex justify-around rounded-2xl border border-line-strong bg-panel/90 p-1.5 backdrop-blur-xl lg:hidden">
-        {nav.map((n) => (
-          <NavLink
-            key={n.to}
-            to={n.to}
-            className={({ isActive }) =>
-              clsx("flex flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5 text-[10px] font-medium", isActive ? "bg-panel-3 text-saffron" : "text-faint")
-            }
-          >
-            <span className="relative">
-              <n.icon className="h-4 w-4" />
-              {!!n.badge && <NavBadge count={n.badge} className="absolute -right-3 -top-1.5" />}
-            </span>
-            {n.short}
-          </NavLink>
-        ))}
-      </nav>
+      <MobileNav items={nav} />
     </div>
   );
 }
