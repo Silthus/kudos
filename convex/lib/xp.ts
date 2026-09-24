@@ -127,6 +127,16 @@ export type GiveRecipient = {
   receiverLastReceivedAt?: number | null;
 };
 
+/**
+ * The giver's Scout skills (lib/skills.ts `scoutEffects`): bigger new-connection and rekindle
+ * bonuses, and after `relinkAfterMs` without thanks a rekindle earns at least the new-connection
+ * bonus (it stays a rekindle, so nothing counts it as a new connection).
+ * They only grow bonuses about breadth; the base, repeats and the daily cap never change.
+ */
+export type ScoutEffects = { newConnection: number; rekindle: number; relinkAfterMs: number | null };
+
+const NO_SKILLS: ScoutEffects = { newConnection: XP.newConnection, rekindle: XP.rekindle, relinkAfterMs: null };
+
 export type GiveLine = {
   kudosId: string;
   receiverId: string;
@@ -148,7 +158,10 @@ export function scoreGive(input: {
   unsungOn: boolean;
   earnedToday: number;
   recipients: GiveRecipient[];
+  /** The giver's Scout skills at the time; none if absent. */
+  scout?: ScoutEffects;
 }): GiveLine[] {
+  const scout = input.scout ?? NO_SKILLS;
   let room = Math.max(0, XP.dailyGiveCap - input.earnedToday);
   let storyPaid = input.noteWords === undefined || input.noteWords < STORY_NOTE_WORDS;
   return input.recipients.map((r) => {
@@ -164,8 +177,11 @@ export function scoreGive(input: {
             : 0;
       items.push({ kind: "base", xp: base });
       if (base > 0) {
-        if (r.lastGivenAt === null) items.push({ kind: "new_connection", xp: XP.newConnection });
-        else if (input.at - r.lastGivenAt >= REKINDLE_GAP_MS) items.push({ kind: "rekindle", xp: XP.rekindle });
+        const gap = r.lastGivenAt === null ? null : input.at - r.lastGivenAt;
+        // Trailblazer: a long gap earns at least a new connection's bonus, but stays a rekindle.
+        const relink = gap !== null && scout.relinkAfterMs !== null && gap >= scout.relinkAfterMs;
+        if (gap === null) items.push({ kind: "new_connection", xp: scout.newConnection });
+        else if (gap >= REKINDLE_GAP_MS) items.push({ kind: "rekindle", xp: relink ? Math.max(scout.rekindle, scout.newConnection) : scout.rekindle });
         if (input.unsungOn && r.receiverLastReceivedAt !== undefined && (r.receiverLastReceivedAt === null || input.at - r.receiverLastReceivedAt >= UNSUNG_QUIET_MS)) {
           items.push({ kind: "unsung", xp: XP.unsung });
         }

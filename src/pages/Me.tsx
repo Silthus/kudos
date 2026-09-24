@@ -8,7 +8,7 @@ import { api } from "../../convex/_generated/api";
 import { Legend, LineChart } from "@/components/charts";
 import { MessageText } from "@/components/MessageText";
 import { QUEST_RULES, QuestItem } from "@/components/quests";
-import { GameCard } from "@/components/game";
+import { GameCard, ScoutHints } from "@/components/game";
 import { Avatar, BigNumber, Card, CardHeader, Empty, Eyebrow, PageHeader, PageSkeleton, RarityBadge, Segmented, Trend } from "@/components/ui";
 import { compareTeamHref } from "@/lib/compare";
 import { dayLabel, firstName, greeting, nf, relativeTime } from "@/lib/format";
@@ -61,8 +61,9 @@ export function Me() {
         }
       />
 
-      <div className="mb-4">
+      <div className="mb-4 flex flex-col gap-4">
         <GameCard glyph={glyph} />
+        <ScoutHints today={today} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

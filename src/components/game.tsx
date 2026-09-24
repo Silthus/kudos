@@ -1,9 +1,12 @@
 import { useMutation, useQuery } from "convex/react";
-import { Coins, Lock, Sprout } from "lucide-react";
+import { ChevronRight, Coins, Compass, Lock, Network, Sprout } from "lucide-react";
+import { Link } from "react-router";
 import { api } from "../../convex/_generated/api";
 import type { CoinBalance } from "../../convex/lib/coins";
+import { pointsOf, type Allocation } from "../../convex/lib/skills";
+import { daysBetween } from "../../convex/lib/time";
 import { nextLockedAreas, type LevelProgress } from "../../convex/lib/xp";
-import { Card, CardHeader, Progress } from "@/components/ui";
+import { Avatar, Card, CardHeader, Progress } from "@/components/ui";
 
 /**
  * A game area the member hasn't reached yet (§G1 progressive disclosure): visible, with a lock,
@@ -90,6 +93,7 @@ export function LevelPanel({ progress }: { progress: LevelProgress }) {
  */
 export function GameCard({ glyph }: { glyph: string }) {
   const game = useQuery(api.game.mine, {});
+  const tree = useQuery(api.skills.mine, game?.player && !game.hidden ? {} : "skip");
   const setHidden = useMutation(api.game.setHidden);
   if (!game?.enabled) return null;
   if (game.hidden) {
@@ -119,6 +123,7 @@ export function GameCard({ glyph }: { glyph: string }) {
   }
   const ahead = nextLockedAreas(game.player.level);
   const wallet = game.wallet ?? null;
+  const available = tree ? pointsOf(tree.skills as Allocation, tree.level).available : null;
   return (
     <Card className="p-5">
       <div className="flex items-start justify-between gap-3">
@@ -134,6 +139,50 @@ export function GameCard({ glyph }: { glyph: string }) {
             <Locked key={a.key} title={a.title} level={a.level} how={a.how} />
           ))}
         </div>
+      )}
+      {available !== null && (
+        <Link
+          to="/skills"
+          className="mt-3 flex items-center gap-3 rounded-xl border border-line px-3.5 py-2.5 text-sm transition hover:border-line-strong hover:bg-panel-2"
+        >
+          <Network className="h-4 w-4 shrink-0 text-saffron" aria-hidden />
+          <span className="font-medium text-cream">Skill tree</span>
+          <span className="flex-1 text-xs text-muted">
+            {available > 0 ? `${available} skill ${available === 1 ? "point" : "points"} to spend` : "Every level-up brings a skill point"}
+          </span>
+          <ChevronRight className="h-4 w-4 text-faint" aria-hidden />
+        </Link>
+      )}
+    </Card>
+  );
+}
+
+/**
+ * Lookout (Scout skill): teammates you haven't thanked in 30 days or more, and with Wide net a few
+ * you never have. Only you see it, and only while you have the skill.
+ */
+export function ScoutHints({ today }: { today: string }) {
+  const hints = useQuery(api.skills.hints, { today });
+  if (!hints) return null;
+  const rows = [
+    ...hints.quiet.map((h) => ({ ...h, note: `last thanked ${daysBetween(h.lastDay ?? today, today)} days ago` })),
+    ...(hints.never ?? []).map((h) => ({ ...h, note: "never thanked yet" })),
+  ];
+  return (
+    <Card>
+      <CardHeader title="Haven't thanked in a while" subtitle="Only you see this. From your Lookout skill." icon={<Compass className="h-4 w-4 text-saffron" />} />
+      {rows.length === 0 ? (
+        <p className="px-5 pb-5 text-sm text-muted">Nobody right now: everyone you've thanked before heard from you in the last 30 days.</p>
+      ) : (
+        <ul className="px-5 pb-5">
+          {rows.map((h) => (
+            <li key={h.memberId} className="flex items-center gap-3 border-t border-line py-2.5 first:border-t-0">
+              <Avatar name={h.name} src={h.avatarUrl} size={28} />
+              <span className="min-w-0 flex-1 truncate text-sm font-medium text-cream">{h.name}</span>
+              <span className="shrink-0 text-xs text-muted">{h.note}</span>
+            </li>
+          ))}
+        </ul>
       )}
     </Card>
   );

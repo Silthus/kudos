@@ -1,4 +1,4 @@
-import { ArrowLeftRight, BarChart3, FlaskConical, Gem, Gift, Settings2, Target, Trophy, UserRound, type LucideIcon } from "lucide-react";
+import { ArrowLeftRight, BarChart3, FlaskConical, Gem, Gift, Network, Settings2, Target, Trophy, UserRound, type LucideIcon } from "lucide-react";
 
 /**
  * The app's navigation, built once: the desktop sidebar and the mobile tab bar + More sheet
@@ -11,6 +11,8 @@ export type NavContext = {
   storeEnabled: boolean;
   /** Weekly quests; undefined means on (workspaces installed before the switch). */
   questsEnabled?: boolean;
+  /** The game is on and the member hasn't hidden it: the skill tree has a page. */
+  gameShown?: boolean;
   /** Store requests waiting on an admin. */
   openRequests: number;
 };
@@ -42,7 +44,7 @@ const GROUPS: { id: NavGroupId; label: string }[] = [
 ];
 
 /** Which pages earn one of the four mobile tabs, most wanted first; the rest go to More. */
-const TAB_PRIORITY = ["me", "leaderboard", "quests", "discoveries", "compare", "store", "analytics", "playground", "admin"];
+const TAB_PRIORITY = ["me", "leaderboard", "quests", "discoveries", "compare", "store", "skills", "analytics", "playground", "admin"];
 export const TAB_COUNT = 4;
 
 function item(id: string, path: string, label: string, short: string, icon: LucideIcon, group: NavGroupId, extra: Partial<NavItem> = {}): NavItem {
@@ -55,6 +57,7 @@ export function navItems(ctx: NavContext): NavItem[] {
     item("me", "/me", "My kudos", "Me", UserRound, "personal"),
     item("discoveries", "/discoveries", "Discoveries", "Gallery", Gem, "personal"),
     ...(ctx.questsEnabled ?? true ? [item("quests", "/quests", "Quest log", "Quests", Target, "personal")] : []),
+    ...(ctx.gameShown ? [item("skills", "/skills", "Skill tree", "Skills", Network, "personal")] : []),
     ...(ctx.storeEnabled ? [item("store", "/store", "Store", "Store", Gift, "personal")] : []),
     item("leaderboard", "/leaderboard", "Leaderboard", "Ranks", Trophy, "team"),
     item("compare", "/compare", "Compare", "Compare", ArrowLeftRight, "team"),

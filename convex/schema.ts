@@ -364,7 +364,22 @@ export default defineSchema({
     level: v.number(), // the highest level reached: levels stay when a revoke takes XP back
     // Hog coins earned by their gameEvents (lib/coins.ts); undefined = 0. Level-up coins follow from `level`.
     coins: v.optional(v.number()),
+    // The skill tree (lib/skills.ts): the rank taken of each skill id; undefined = none taken.
+    skills: v.optional(v.record(v.string(), v.number())),
+    skillResets: v.optional(v.number()), // resets so far: each one costs more (resetCost)
   }).index("by_member", ["memberId"]),
+
+  // Every change to a player's skill tree, in the transaction that made it (skills.ts): a skill
+  // taken (one rank) or the whole tree reset for `coins`. The rebuild replays the Scout skills as
+  // they stood when each kudos was given; it's also the audit trail of what resets cost.
+  skillChanges: defineTable({
+    workspaceId: v.id("workspaces"),
+    memberId: v.id("members"),
+    at: v.number(),
+    kind: v.union(v.literal("take"), v.literal("reset")),
+    skill: v.optional(v.string()), // take: the skill id
+    coins: v.optional(v.number()), // reset: the Hog coins it cost
+  }).index("by_member_at", ["memberId", "at"]),
 
   // The game ledger: what one kudos batch earned one member, written in the give transaction and
   // taken back line by line by a revoke (game.ts). One `give` event per batch for the giver (a line

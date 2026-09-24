@@ -2,28 +2,37 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { getFunctionName, type FunctionReference } from "convex/server";
+import { MemoryRouter } from "react-router";
 import { afterEach, expect, test, vi } from "vitest";
 
 let mine: unknown;
+let tree: unknown;
+let hints: unknown;
 const setHidden = vi.fn();
 vi.mock("convex/react", () => ({
-  useQuery: (fn: FunctionReference<"query">) => (getFunctionName(fn) === "game:mine" ? mine : undefined),
+  useQuery: (fn: FunctionReference<"query">, args?: unknown) => {
+    if (args === "skip") return undefined;
+    const name = getFunctionName(fn);
+    return name === "game:mine" ? mine : name === "skills:mine" ? tree : name === "skills:hints" ? hints : undefined;
+  },
   useMutation: () => setHidden,
 }));
 
-const { GameCard, Locked } = await import("./game");
+const { GameCard, Locked, ScoutHints } = await import("./game");
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 let root: Root | undefined;
 afterEach(() => {
   act(() => root?.unmount());
   setHidden.mockClear();
+  tree = undefined;
+  hints = undefined;
 });
 
 function render(node: React.ReactNode) {
   const host = document.createElement("div");
   root = createRoot(host);
-  act(() => root!.render(node));
+  act(() => root!.render(<MemoryRouter>{node}</MemoryRouter>));
   return host;
 }
 
@@ -111,4 +120,31 @@ test("the locked primitive: a lock, the name, the level it opens at and one line
   expect(el.textContent).toContain("Level 2");
   expect(el.textContent).toContain("Every level-up brings a skill point.");
   expect(el.querySelector("svg")).not.toBeNull();
+});
+
+test("a player's card links to their skill tree with the points they have to spend", () => {
+  mine = { enabled: true, hidden: false, player: level3, wallet: null };
+  tree = { level: 3, skills: { lookout: 1 }, resets: 0, resetCost: 50, balance: 28 };
+  const host = render(<GameCard glyph="🌮" />);
+  const link = host.querySelector<HTMLAnchorElement>("a[href='/skills']")!;
+  expect(link.textContent).toContain("Skill tree");
+  expect(link.textContent).toContain("1 skill point to spend");
+});
+
+test("Lookout lists teammates you haven't thanked in a while, privately; Wide net adds some you never have", () => {
+  hints = {
+    quiet: [{ memberId: "m2", name: "Ben Ortiz", avatarUrl: null, lastDay: "2026-07-01" }],
+    never: [{ memberId: "m3", name: "Cleo Park", avatarUrl: null, lastDay: null }],
+  };
+  const host = render(<ScoutHints today="2026-09-23" />);
+  expect(host.textContent).toContain("Only you see this");
+  expect(host.textContent).toContain("Ben Ortiz");
+  expect(host.textContent).toContain("last thanked 84 days ago");
+  expect(host.textContent).toContain("Cleo Park");
+  expect(host.textContent).toContain("never thanked yet");
+});
+
+test("without Lookout there are no hints", () => {
+  hints = null;
+  expect(render(<ScoutHints today="2026-09-23" />).textContent).toBe("");
 });

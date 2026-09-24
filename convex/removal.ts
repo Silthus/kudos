@@ -121,6 +121,12 @@ const PHASES: Phase[] = [
     clear: remove,
   },
   {
+    name: "skillChanges",
+    batch: 500,
+    rows: (ctx, m, n) => ctx.db.query("skillChanges").withIndex("by_member_at", (q) => q.eq("memberId", m._id)).take(n),
+    clear: remove,
+  },
+  {
     name: "players",
     batch: 10,
     rows: (ctx, m, n) => ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(n),

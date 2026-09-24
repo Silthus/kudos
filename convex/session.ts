@@ -35,6 +35,7 @@ export const viewer = query({
         avatarUrl: member.avatarUrl,
         slackUserId: member.slackUserId,
         isAdmin: member.isAdmin,
+        gameHidden: Boolean(member.gameHidden),
       },
       workspace: {
         _id: workspace._id,

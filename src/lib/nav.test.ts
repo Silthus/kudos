@@ -24,6 +24,12 @@ describe("navItems", () => {
     expect(ids(navItems({ ...member, questsEnabled: undefined }))).toContain("quests");
   });
 
+  test("the skill tree is there while the game is shown to you, after the quest log", () => {
+    expect(ids(navItems(member))).not.toContain("skills");
+    expect(ids(navItems({ ...member, gameShown: true }))).toEqual(["me", "discoveries", "quests", "skills", "leaderboard", "compare", "analytics"]);
+    expect(navItems({ ...member, gameShown: true }).find((i) => i.id === "skills")).toMatchObject({ to: "/skills", label: "Skill tree", short: "Skills" });
+  });
+
   test("admin carries the open store requests as a badge and links straight to them", () => {
     const admin = navItems(everything).find((i) => i.id === "admin")!;
     expect(admin.badge).toEqual({ count: 3, label: "3 open store requests" });
