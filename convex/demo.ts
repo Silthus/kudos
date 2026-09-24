@@ -1069,56 +1069,61 @@ const DEMO_TABLES = [
   "notifications",
 ] as const;
 
-/** Up to 1000 of the demo workspace's rows of a table (notifications are wiped per member). */
-async function demoRows(ctx: MutationCtx, workspaceId: Id<"workspaces">, table: (typeof DEMO_TABLES)[number]) {
+/** Up to `n` of the demo workspace's rows of a table (notifications are wiped per member). */
+async function demoRows(ctx: MutationCtx, workspaceId: Id<"workspaces">, table: (typeof DEMO_TABLES)[number], n: number) {
   switch (table) {
     case "kudos":
-      return await ctx.db.query("kudos").withIndex("by_workspace_at", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+      return await ctx.db.query("kudos").withIndex("by_workspace_at", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "memberDays":
-      return await ctx.db.query("memberDays").withIndex("by_workspace_day", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+      return await ctx.db.query("memberDays").withIndex("by_workspace_day", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "discoveries":
-      return await ctx.db.query("discoveries").withIndex("by_workspace_firstSeen", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+      return await ctx.db.query("discoveries").withIndex("by_workspace_firstSeen", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "workspaceStats":
-      return await ctx.db.query("workspaceStats").withIndex("by_workspace_bucket", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+      return await ctx.db.query("workspaceStats").withIndex("by_workspace_bucket", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "memberStats":
-      return await ctx.db.query("memberStats").withIndex("by_workspace_bucket_given", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+      return await ctx.db.query("memberStats").withIndex("by_workspace_bucket_given", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "pairStats":
-      return await ctx.db.query("pairStats").withIndex("by_workspace_bucket_amount", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+      return await ctx.db.query("pairStats").withIndex("by_workspace_bucket_amount", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "channelStats":
-      return await ctx.db.query("channelStats").withIndex("by_workspace_bucket_amount", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+      return await ctx.db.query("channelStats").withIndex("by_workspace_bucket_amount", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "messageStats":
-      return await ctx.db.query("messageStats").withIndex("by_workspace_template", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+      return await ctx.db.query("messageStats").withIndex("by_workspace_template", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "successStats":
-      return await ctx.db.query("successStats").withIndex("by_workspace_bucket", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+      return await ctx.db.query("successStats").withIndex("by_workspace_bucket", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "questBoards":
     case "questCompletions":
-      return await ctx.db.query(table).withIndex("by_workspace_week", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+      return await ctx.db.query(table).withIndex("by_workspace_week", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "dailyQuestCompletions":
-      return await ctx.db.query("dailyQuestCompletions").withIndex("by_workspace_day", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+      return await ctx.db.query("dailyQuestCompletions").withIndex("by_workspace_day", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "kudosAttempts":
-      return await ctx.db.query("kudosAttempts").withIndex("by_message", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+      return await ctx.db.query("kudosAttempts").withIndex("by_message", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "rewards":
-      return await ctx.db.query("rewards").withIndex("by_workspace_status_cost", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+      return await ctx.db.query("rewards").withIndex("by_workspace_status_cost", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "redemptions":
-      return await ctx.db.query("redemptions").withIndex("by_workspace_status_requestedAt", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+      return await ctx.db.query("redemptions").withIndex("by_workspace_status_requestedAt", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "balanceAdjustments":
-      return await ctx.db.query("balanceAdjustments").withIndex("by_workspace_at", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+      return await ctx.db.query("balanceAdjustments").withIndex("by_workspace_at", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "itemPurchases":
-      return await ctx.db.query("itemPurchases").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+      return await ctx.db.query("itemPurchases").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "boosts":
-      return await ctx.db.query("boosts").withIndex("by_workspace_day", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+      return await ctx.db.query("boosts").withIndex("by_workspace_day", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "sprees":
-      return await ctx.db.query("sprees").withIndex("by_workspace_kudosAt", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+      return await ctx.db.query("sprees").withIndex("by_workspace_kudosAt", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "spreeJoins":
-      return await ctx.db.query("spreeJoins").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+      return await ctx.db.query("spreeJoins").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "superKudos":
-      return await ctx.db.query("superKudos").withIndex("by_workspace_at", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+      return await ctx.db.query("superKudos").withIndex("by_workspace_at", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "notifications":
       return [];
   }
 }
 
 const RESET_LOCK_MS = 15 * 60 * 1000;
+/**
+ * Rows one reset step deletes. Convex reads a document to delete it and allows 4,096 reads a
+ * transaction; a step that wiped ~3,800 rows came close enough to warn, so steps stay far below.
+ */
+const WIPE_PER_STEP = 1500;
 
 /** Starts a reset unless one is already running (visitors and the nightly cron can overlap). */
 export const startDemoReset = internalMutation({
@@ -1148,9 +1153,10 @@ export const resetDemoWorkspace = internalMutation({
       await ctx.db.patch(workspace._id, { rollupsBackfilledAt: undefined, successBackfilledAt: undefined });
     }
     let deleted = 0;
+    const left = () => WIPE_PER_STEP - deleted;
     for (const table of DEMO_TABLES) {
-      if (deleted >= 3000) break; // stay well within per-transaction write limits
-      const rows = await demoRows(ctx, workspace._id, table);
+      if (left() <= 0) break;
+      const rows = await demoRows(ctx, workspace._id, table, left());
       for (const r of rows) await ctx.db.delete(r._id);
       deleted += rows.length;
     }
@@ -1158,15 +1164,20 @@ export const resetDemoWorkspace = internalMutation({
       .query("members")
       .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id))
       .take(100);
+    const memberRows = [
+      (m: Doc<"members">, n: number) => ctx.db.query("notifications").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(n),
+      (m: Doc<"members">, n: number) => ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", m._id)).take(n),
+      (m: Doc<"members">, n: number) => ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(n),
+      (m: Doc<"members">, n: number) => ctx.db.query("skillChanges").withIndex("by_member_at", (q) => q.eq("memberId", m._id)).take(n),
+      (m: Doc<"members">, n: number) => ctx.db.query("plants").withIndex("by_owner_memory", (q) => q.eq("ownerId", m._id)).take(n),
+    ];
     for (const m of members) {
-      if (deleted >= 3000) break; // stay well within per-transaction write limits
-      const notes = await ctx.db.query("notifications").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(200);
-      const events = await ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", m._id)).take(500);
-      const player = await ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(1);
-      const skills = await ctx.db.query("skillChanges").withIndex("by_member_at", (q) => q.eq("memberId", m._id)).take(500);
-      const plants = await ctx.db.query("plants").withIndex("by_owner_memory", (q) => q.eq("ownerId", m._id)).take(100);
-      for (const row of [...notes, ...events, ...player, ...skills, ...plants]) await ctx.db.delete(row._id);
-      deleted += notes.length + events.length + player.length + skills.length + plants.length;
+      for (const rowsOf of memberRows) {
+        if (left() <= 0) break;
+        const rows = await rowsOf(m, left());
+        for (const row of rows) await ctx.db.delete(row._id);
+        deleted += rows.length;
+      }
     }
     if (deleted > 0) {
       await ctx.scheduler.runAfter(0, internal.demo.resetDemoWorkspace, {});

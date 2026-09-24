@@ -959,6 +959,18 @@ describe("the demo year played through the game (#100, §G16)", () => {
     expect((await robin.query(api.game.mine, {})).player).toMatchObject({ level: 2 });
   });
 
+  test("each reset step deletes at most 1,500 rows: a delete reads its document, and Convex allows 4,096 reads", async () => {
+    await enterDemo();
+    const tables = ["kudos", "memberDays", "discoveries", "gameEvents", "players", "notifications", "questCompletions", "workspaceStats", "memberStats", "pairStats"] as const;
+    const count = () => t.run(async (ctx) => (await Promise.all(tables.map(async (table) => (await ctx.db.query(table).collect()).length))).reduce((a, b) => a + b, 0));
+    const before = await count();
+    expect(before).toBeGreaterThan(3000);
+    await t.mutation(internal.demo.resetDemoWorkspace, {});
+    const after = await count();
+    expect(before - after).toBeGreaterThan(1000);
+    expect(before - after).toBeLessThanOrEqual(1500);
+  });
+
   test("the same day always seeds the same demo, across a reset", async () => {
     const demo = await enterDemo();
     const snapshot = async () => {
