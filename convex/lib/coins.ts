@@ -1,11 +1,13 @@
 /**
  * Hog coins: the pure rules of the game's only currency (#55 §G2, G4; ADR 0002). Coins come from
  * *giving* thoughtfully, never from receiving: a qualifying kudos earns its giver 1 per kudos given
- * (the allowance caps it), and every level reached earns 10. Quests, sprees and garden fruit add
- * their own sources later. Coins never turn into kudos or allowance, and kudos never turn into coins.
+ * (the allowance caps it), every level reached earns 10, and quests pay their own (#93). Sprees and
+ * garden fruit add their own sources later. Coins never turn into kudos or allowance, and kudos never
+ * turn into coins.
  *
  * The ledger (convex/game.ts): coins from kudos ride the per-batch `gameEvents` (a `coins` field on
  * each give line), summed into `players.coins`, so a revoke takes back exactly what its kudos earned.
+ * Quest pay rides `quest` events into the same sum, and `players.questCoins` keeps its share apart.
  * Level-up coins follow from `players.level`, which never goes down, so they are never taken back.
  * Spending and admin adjustments are kept on the member (`coinsSpent`, `coinsAdjusted`).
  */

@@ -578,7 +578,7 @@ async function coinsReply(ctx: QueryCtx, workspace: Doc<"workspaces">, member: D
   const note =
     coins.balance < 0
       ? "A revoked kudos took back coins it had earned. Spending waits until your balance is above zero again."
-      : "A thoughtful kudos earns you 1 Hog coin per kudos given, and every level 10.";
+      : `A thoughtful kudos earns you 1 Hog coin per kudos given, and every level 10${coins.fromQuests ? ". Quests pay more on top" : ""}.`;
   return {
     response_type: "ephemeral",
     text: `You have ${coins.balance} Hog ${coins.balance === 1 ? "coin" : "coins"}.`,

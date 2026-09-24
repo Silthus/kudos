@@ -309,9 +309,8 @@ export const seedHistory = internalMutation({
       // releases its lock when it finishes.
       // The demo year is then played through the game's rules, like switching the game on would;
       // the quest seeding schedules that once the completions it pays are recorded.
+      // The Store story follows the game rebuild too, since balances are Hog coins.
       await ctx.scheduler.runAfter(0, internal.quests.seedDemoHistory, { workspaceId, resetAt });
-      // Balances are Hog coins, so the store story waits for the game rebuild (seedStore polls for it).
-      await ctx.scheduler.runAfter(0, internal.demo.seedStore, { workspaceId, resetAt });
     }
     return null;
   },
@@ -355,6 +354,7 @@ export const seedStore = internalMutation({
       await ctx.scheduler.runAfter(STORE_SEED_WAIT.everyMs, internal.demo.seedStore, { workspaceId, resetAt, attempt: attempt + 1 });
       return null;
     }
+    if (waiting.length > 0) console.warn(`Demo Store story: still no player for ${waiting.join(", ")}; their steps are left out.`);
     await ctx.db.patch(workspaceId, { realRewardsEnabled: true });
     const workspace = (await ctx.db.get(workspaceId))!;
     const fresh = async (slackUserId: string) => (await ctx.db.get(ids.get(slackUserId)!))!;

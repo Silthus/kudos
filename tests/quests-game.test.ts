@@ -184,6 +184,38 @@ describe("with the game on, quests open at level 5", () => {
   });
 });
 
+describe("quest coins in the Store (#91)", () => {
+  test("spend like any coins; a revoke takes them back, the balance can go negative and blocks the next purchase", async () => {
+    await setup({ gameEnabled: true });
+    await setBoard(["fresh", "spread", "channels"]);
+    await playerAt(team.ana, 5, 400);
+    // The level-up coins are already spent, so everything left comes from this one kudos.
+    await t.run((ctx) => ctx.db.patch(team.ana, { coinsSpent: 40 }));
+    await message("UANA", EVERY_DAILY);
+    const ana = await signInAs(t, team.ana);
+    const shop = async () => {
+      const s = await ana.query(api.store.shop, { today: TODAY });
+      if (s.access !== "open") throw new Error(`the shop is ${s.access}`);
+      return s;
+    };
+    const wallet = async () => (await ana.query(api.game.mine, {})).wallet!;
+
+    // 2 coins for the kudos, 5 for New connection, 2 for the daily quest: quests paid most of it.
+    expect(await wallet()).toMatchObject({ fromKudos: 2, fromQuests: 7, balance: 9 });
+    expect((await shop()).balance).toBe(9);
+    expect(await ana.mutation(api.store.buyItem, { item: "spreeJoin", expectedPrice: 8 })).toEqual({ balance: 1 });
+
+    // The message thanked two people: revoking both takes back the kudos and every quest it completed.
+    for (const k of await all(t, "kudos")) await ana.mutation(api.admin.revoke, { kudosId: k._id });
+    expect(await wallet()).toMatchObject({ fromKudos: 0, fromQuests: 0, spent: 48, balance: -8 });
+    expect((await shop()).balance).toBe(-8);
+    await expect(ana.mutation(api.store.buyItem, { item: "spreeJoin", expectedPrice: 8 })).rejects.toThrow();
+    const coins = await t.mutation(internal.slackData.slashCommand, { teamId: "T1", slackUserId: "UANA", text: "coins" });
+    expect(coins.text).toBe("You have -8 Hog coins.");
+    expect(JSON.stringify(coins.blocks)).toContain("A revoked kudos took back coins it had earned.");
+  });
+});
+
 describe("a clean sweep's pay only goes back with a revoke (review of #93)", () => {
   const sweeps = async () => (await questEvents(team.ana)).filter((e) => e.quest?.scope === "sweep");
   const newTeammate = (slackUserId: string, name: string) =>
