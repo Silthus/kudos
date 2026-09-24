@@ -37,4 +37,35 @@ export function escapesFromScrollers(root: ParentNode): Element[] {
   });
 }
 
+const clips = (el: Element) => [...el.classList].some((c) => CLIPS.test(c.replace(/^.*:/, "")));
+const PREFORMATTED = (el: Element) => el.tagName === "PRE" || el.classList.contains("whitespace-pre");
+// A row at some width (safe direction): `flex flex-col md:flex-row` counts.
+const flexRow = (el: Element) => {
+  const cls = [...el.classList];
+  const column = cls.includes("flex-col") || cls.includes("flex-col-reverse");
+  return (cls.includes("flex") || cls.includes("inline-flex")) && (!column || cls.some((c) => /:flex-row(-reverse)?$/.test(c)));
+};
+// Grid and flex items don't shrink below their content's width unless they're `min-w-0` or clip.
+const growsToContent = (el: Element) => {
+  const parent = el.parentElement;
+  const isItem = !!parent && (parent.classList.contains("grid") || parent.classList.contains("inline-grid") || flexRow(parent));
+  return isItem && !el.classList.contains("min-w-0") && !clips(el);
+};
+
+/**
+ * Elements that make a phone page scroll sideways: long unbreakable lines that no scroller clips,
+ * or whose scroller sits in a grid or flex item that grows to fit the line anyway.
+ * The setup page's env commands ran ~130 px past a 375 px screen in a plain `<pre>`.
+ */
+export function widensSideways(root: ParentNode): Element[] {
+  return [...root.querySelectorAll("*")].filter((el) => {
+    if (!PREFORMATTED(el)) return false;
+    let p: Element | null = el;
+    while (p && p !== root && !clips(p)) p = p.parentElement;
+    if (!p || p === root) return true; // nothing clips the line
+    for (; p && p !== root; p = p.parentElement) if (growsToContent(p)) return true;
+    return false;
+  });
+}
+
 export const describeElement = (el: Element) => `<${el.tagName.toLowerCase()} class="${el.className}">${el.textContent?.slice(0, 30) ?? ""}`;

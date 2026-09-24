@@ -89,8 +89,8 @@ export function Setup() {
               <Status ok={status?.slackClientSecret} label="SLACK_CLIENT_SECRET" />
               <Status ok={status?.slackSigningSecret} label="SLACK_SIGNING_SECRET" />
             </ul>
-            <div>
-              <pre className="rounded-xl border border-line bg-ink/70 p-4 font-mono text-xs leading-relaxed text-muted">{envCmd}</pre>
+            <div className="min-w-0">
+              <pre className="overflow-x-auto rounded-xl border border-line bg-ink/70 p-4 font-mono text-xs leading-relaxed text-muted">{envCmd}</pre>
               <div className="mt-2">
                 <CopyButton text={envCmd} />
               </div>

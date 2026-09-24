@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { expect, test } from "vitest";
-import { escapesFromScrollers } from "./layout";
+import { escapesFromScrollers, widensSideways } from "./layout";
 
 /** Ids of the elements the guard reports. */
 function escapes(html: string) {
@@ -36,4 +36,29 @@ test("any overflow other than visible clips sideways too, so vertical scrollers 
 test("the app's grain utility is positioned, and arbitrary child variants don't flag the parent", () => {
   expect(escapes(`<div class="grain overflow-hidden"><span id="x" class="absolute"></span></div>`)).toEqual([]);
   expect(escapes(`<section class="backdrop-blur-sm"><div class="overflow-x-auto"><span id="x" class="[&>span]:absolute"></span></div></section>`)).toEqual([]);
+});
+
+/** Ids of the elements `widensSideways` reports. */
+function widens(html: string) {
+  const host = document.createElement("div");
+  host.innerHTML = html;
+  return widensSideways(host).map((el) => el.id);
+}
+
+test("preformatted text scrolls on its own instead of running past the page edge", () => {
+  expect(widens(`<pre id="x">npx convex env set --prod SLACK_CLIENT_ID=&lt;id&gt;</pre>`)).toEqual(["x"]);
+  expect(widens(`<p id="x" class="whitespace-pre">a long line</p>`)).toEqual(["x"]);
+  expect(widens(`<pre id="x" class="overflow-x-auto">a long line</pre>`)).toEqual([]);
+  expect(widens(`<div class="overflow-auto"><pre id="x">a long line</pre></div>`)).toEqual([]);
+});
+
+test("a scroller only holds its line back if no grid or flex item around it grows to fit the line", () => {
+  // Grid and flex items won't shrink below their content unless they are `min-w-0` (or clip themselves).
+  expect(widens(`<div class="grid md:grid-cols-2"><div><pre id="x" class="overflow-x-auto">a long line</pre></div></div>`)).toEqual(["x"]);
+  expect(widens(`<div class="flex"><div><div><pre id="x" class="overflow-x-auto">a long line</pre></div></div></div>`)).toEqual(["x"]);
+  expect(widens(`<div class="grid md:grid-cols-2"><div class="min-w-0"><pre id="x" class="overflow-x-auto">a long line</pre></div></div>`)).toEqual([]);
+  // A scroll container is itself allowed to shrink, and a stacked flex column lays its items at full width.
+  expect(widens(`<div class="flex"><pre id="x" class="overflow-x-auto">a long line</pre></div>`)).toEqual([]);
+  expect(widens(`<div class="flex flex-col"><div><pre id="x" class="overflow-x-auto">a long line</pre></div></div>`)).toEqual([]);
+  expect(widens(`<div class="flex flex-col md:flex-row"><div><pre id="x" class="overflow-x-auto">a long line</pre></div></div>`)).toEqual(["x"]);
 });
