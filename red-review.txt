@@ -1,0 +1,88 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a46ddae494f0262ee
+
+stderr | tests/demo.test.ts > a year of demo history > playground gives while today is being seeded never double a teammate's day
+Error when running scheduled function demo:teammateThanks Error: unique() query returned more than one result from table memberDays:
+ [0000000000000000027019memberDays, 0000000000000000027308memberDays, ...]
+    at QueryImpl.unique (file:///home/coder/dev/kudos/.claude/worktrees/agent-a46ddae494f0262ee/node_modules/convex/dist/esm/server/impl/query_impl.js:251:13)
+    at getMemberDay (/home/coder/dev/kudos/.claude/worktrees/agent-a46ddae494f0262ee/convex/engine.ts:58:10)
+    at giveKudos (/home/coder/dev/kudos/.claude/worktrees/agent-a46ddae494f0262ee/convex/engine.ts:243:22)
+    at handler (/home/coder/dev/kudos/.claude/worktrees/agent-a46ddae494f0262ee/convex/demo.ts:486:5)
+    at invokeFunction (file:///home/coder/dev/kudos/.claude/worktrees/agent-a46ddae494f0262ee/node_modules/convex/dist/esm/server/impl/registration_impl.js:56:14)
+    at invokeMutation (file:///home/coder/dev/kudos/.claude/worktrees/agent-a46ddae494f0262ee/node_modules/convex/dist/esm/server/impl/registration_impl.js:42:18)
+    at runMutationWithHandler (/home/coder/dev/kudos/.claude/worktrees/agent-a46ddae494f0262ee/node_modules/convex-test/dist/index.js:1989:31)
+    at Object.mutationFromPath (/home/coder/dev/kudos/.claude/worktrees/agent-a46ddae494f0262ee/node_modules/convex-test/dist/index.js:2133:32)
+    at Object.fun (/home/coder/dev/kudos/.claude/worktrees/agent-a46ddae494f0262ee/node_modules/convex-test/dist/index.js:2230:24)
+    at /home/coder/dev/kudos/.claude/worktrees/agent-a46ddae494f0262ee/node_modules/convex-test/dist/index.js:1073:13
+
+ ❯ tests/demo.test.ts (17 tests | 3 failed | 14 skipped) 42511ms
+   ❯ a year of demo history (6)
+     × leaves today's allowances for the playground 13097ms
+     × never has less than four months of history, even on New Year's Day 55ms
+     × playground gives while today is being seeded never double a teammate's day 29357ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/demo.test.ts > a year of demo history > leaves today's allowances for the playground
+AssertionError: expected 2 to be greater than 3
+ ❯ tests/demo.test.ts:147:26
+    145|     const alex = members.find((m) => m.slackUserId === "UDEMOYOU")!;
+    146|     const today = (await all(t, "memberDays")).filter((d) => d.dayKey …
+    147|     expect(today.length).toBeGreaterThan(3);
+       |                          ^
+    148|     expect(today.find((d) => d.memberId === alex._id)).toBeUndefined();
+    149|     expect(Math.max(...today.map((d) => d.given))).toBe(4);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  tests/demo.test.ts > a year of demo history > never has less than four months of history, even on New Year's Day
+AssertionError: expected undefined to be '2026-09-03' // Object.is equality
+
+- Expected:
+"2026-09-03"
+
++ Received:
+undefined
+
+ ❯ tests/demo.test.ts:156:21
+    154|     await enterDemo();
+    155|     const days = [...new Set((await all(t, "kudos")).map((k) => k.dayK…
+    156|     expect(days[0]).toBe("2026-09-03"); // 120 days back
+       |                     ^
+    157|     expect(days.at(-1)! <= "2027-01-01").toBe(true);
+    158|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  tests/demo.test.ts > a year of demo history > playground gives while today is being seeded never double a teammate's day
+AssertionError: expected [ [ 'demo:teammateThanks', …(1) ] ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   [
++     "demo:teammateThanks",
++     {
++       "kind": "failed",
++     },
++   ],
++ ]
+
+ ❯ tests/demo.test.ts:180:50
+    178|       (await ctx.db.system.query("_scheduled_functions").collect()).fi…
+    179|     );
+    180|     expect(failed.map((f) => [f.name, f.state])).toEqual([]);
+       |                                                  ^
+    181|     const days = await all(t, "memberDays");
+    182|     const keys = days.map((d) => `${d.memberId}|${d.dayKey}`);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 14 skipped (17)
+   Start at  04:30:08
+   Duration  42.95s (tests 99%)
+

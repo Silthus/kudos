@@ -1,0 +1,34 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a46ddae494f0262ee
+
+ ❯ tests/demo.test.ts (17 tests | 1 failed | 16 skipped) 12423ms
+   ❯ a year of demo history (6)
+     × leaves today's allowances for the playground 12421ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/demo.test.ts > a year of demo history > leaves today's allowances for the playground
+AssertionError: expected 5 to be 4 // Object.is equality
+
+- Expected
++ Received
+
+- 4
++ 5
+
+ ❯ tests/demo.test.ts:149:52
+    147|     expect(today.length).toBeGreaterThan(3);
+    148|     expect(today.find((d) => d.memberId === alex._id)).toBeUndefined();
+    149|     expect(Math.max(...today.map((d) => d.given))).toBe(4);
+       |                                                    ^
+    150|   });
+    151|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 16 skipped (17)
+   Start at  04:32:02
+   Duration  12.81s (tests 98%, transform 1%, import 1%)
+
