@@ -1019,6 +1019,18 @@ describe("a member's ledger", () => {
     expect(await balanceFor(ben)).toBe(ledger.balance);
   });
 
+  test("names quest coins as their own source, so the totals still add up (#93)", async () => {
+    await fund(team.ben, 0);
+    // 12 coins earned: 5 from kudos, 7 paid by quests (one weekly + one daily).
+    await t.run(async (ctx) => {
+      const p = (await ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", team.ben)).unique())!;
+      await ctx.db.patch(p._id, { coins: 12, questCoins: 7 });
+    });
+    const ledger = (await (await signInAs(t, team.ana)).query(api.storeAdmin.memberLedger, { memberId: team.ben }))!;
+    expect(ledger).toMatchObject({ fromKudos: 5, fromQuests: 7, fromLevels: 40, adjusted: 0, spent: 0, balance: 52 });
+    expect(ledger.fromKudos + ledger.fromQuests + ledger.fromLevels + ledger.adjusted - ledger.spent).toBe(ledger.balance);
+  });
+
   test("lists the latest 20 adjustments and requests while the totals cover everything", async () => {
     await fund(team.ben, 0);
     await t.run(async (ctx) => {

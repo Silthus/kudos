@@ -792,10 +792,11 @@ export function LedgerDrawer({ memberId, isDemo, onClose }: { memberId: Id<"memb
               </div>
             </div>
           </div>
-          <dl className="grid grid-cols-2 gap-2 rounded-xl border border-line bg-ink/30 p-3 text-center sm:grid-cols-4">
+          <dl className={clsx("grid grid-cols-2 gap-2 rounded-xl border border-line bg-ink/30 p-3 text-center", ledger.fromQuests ? "sm:grid-cols-5" : "sm:grid-cols-4")}>
             {(
               [
                 ["From kudos", nf.format(ledger.fromKudos)],
+                ...(ledger.fromQuests ? ([["From quests", nf.format(ledger.fromQuests)]] as const) : []),
                 ["From levels", nf.format(ledger.fromLevels)],
                 ["Adjusted", signed(ledger.adjusted)],
                 ["Spent", ledger.spent ? `−${nf.format(ledger.spent)}` : "0"],

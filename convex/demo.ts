@@ -396,7 +396,7 @@ export const seedStore = internalMutation({
       // Only spending what they'd earned by then: coins build up over the year. A refunded step
       // never spends, so the story keeps its declines and cancellations.
       const refunded = story.outcome === "declined" || story.outcome === "cancelled";
-      const earned = (coins.fromKudos + coins.fromLevels) * ("share" in story.at ? story.at.share : 1) + coins.adjusted;
+      const earned = (coins.fromKudos + coins.fromQuests + coins.fromLevels) * ("share" in story.at ? story.at.share : 1) + coins.adjusted;
       if (!canSpend(coins.balance, reward.cost) || (!refunded && coins.spent + reward.cost > earned)) continue;
       const requestedAt = "share" in story.at ? clock.during(dayOf(story.at.share)) : clock.queued(story.at.workdaysAgo);
       const { redemptionId } = await requestRedemption(ctx, { workspace, member, rewardId, expectedCost: reward.cost, answer: story.answer, now: requestedAt });
