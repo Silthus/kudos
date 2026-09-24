@@ -566,3 +566,86 @@ export function Ring({ value, size = 88, stroke = 8, color = "var(--color-saffro
     </div>
   );
 }
+
+/**
+ * A small single-series line over months, for a stat tile: a zero-based scale, an optional dashed
+ * reference line (a baseline), the latest point marked (hollow while `lastPartial`, e.g. a month
+ * to date), and a hover tooltip per month. Gaps (null) break the line.
+ */
+export function Sparkline({
+  labels,
+  values,
+  reference = null,
+  format,
+  lastPartial = false,
+  color = "var(--color-saffron)",
+  height = 64,
+  label,
+}: {
+  labels: string[];
+  values: (number | null)[];
+  reference?: number | null;
+  format: (v: number) => string;
+  lastPartial?: boolean;
+  color?: string;
+  height?: number;
+  label: string;
+}) {
+  const [ref, width] = useWidth<HTMLDivElement>();
+  const [hover, setHover] = useState<number | null>(null);
+  const pad = { top: 6, right: 6, bottom: 6, left: 6 };
+  const w = Math.max(0, width - pad.left - pad.right);
+  const h = height - pad.top - pad.bottom;
+  const max = Math.max(...values.map((v) => v ?? 0), reference ?? 0) * 1.1 || 1;
+  const x = (i: number) => pad.left + (labels.length <= 1 ? w / 2 : (i / (labels.length - 1)) * w);
+  const y = (v: number) => pad.top + h - (v / max) * h;
+  // One path per run of non-null values.
+  const runs: [number, number][][] = [[]];
+  values.forEach((v, i) => (v === null ? runs.push([]) : runs[runs.length - 1].push([x(i), y(v)])));
+  const last = lastIndex(values);
+  const hollow = lastPartial && last === values.length - 1;
+  return (
+    <div ref={ref} className="relative" style={{ height }}>
+      {width > 0 && (
+        <svg width={width} height={height} className="overflow-visible" role="img" aria-label={label}>
+          <line x1={pad.left} x2={pad.left + w} y1={y(0)} y2={y(0)} stroke="var(--color-line)" />
+          {reference !== null && (
+            <line x1={pad.left} x2={pad.left + w} y1={y(reference)} y2={y(reference)} stroke="var(--color-benchmark)" strokeWidth={1.5} strokeDasharray="4 4" opacity={0.8} />
+          )}
+          {runs.map((run, i) =>
+            run.length === 1 ? (
+              <circle key={i} cx={run[0][0]} cy={run[0][1]} r={2} fill={color} />
+            ) : run.length > 1 ? (
+              <path key={i} d={monotonePath(run)} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+            ) : null,
+          )}
+          {last >= 0 && (
+            <circle cx={x(last)} cy={y(values[last]!)} r={4} fill={hollow ? "var(--color-panel)" : color} stroke={hollow ? color : "var(--color-panel)"} strokeWidth={2} />
+          )}
+          {hover !== null && values[hover] !== null && (
+            <circle cx={x(hover)} cy={y(values[hover]!)} r={4.5} fill={color} stroke="var(--color-panel)" strokeWidth={2} />
+          )}
+          <rect
+            x={0}
+            y={0}
+            width={width}
+            height={height}
+            fill="transparent"
+            onMouseLeave={() => setHover(null)}
+            onMouseMove={(e) => {
+              const r = (e.currentTarget as SVGRectElement).getBoundingClientRect();
+              const i = Math.round(((e.clientX - r.left - pad.left) / Math.max(1, w)) * (labels.length - 1));
+              setHover(Math.max(0, Math.min(labels.length - 1, i)));
+            }}
+          />
+        </svg>
+      )}
+      {hover !== null && (
+        <Tooltip x={x(hover)} y={pad.top} width={width}>
+          <div className="font-mono text-[10px] uppercase tracking-wider text-faint">{labels[hover]}</div>
+          <div className="font-medium text-cream tabular">{values[hover] === null ? "No kudos" : format(values[hover]!)}</div>
+        </Tooltip>
+      )}
+    </div>
+  );
+}
