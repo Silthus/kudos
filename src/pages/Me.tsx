@@ -9,6 +9,7 @@ import { Legend, LineChart } from "@/components/charts";
 import { MessageText } from "@/components/MessageText";
 import { QUEST_RULES, QuestItem } from "@/components/quests";
 import { Avatar, BigNumber, Card, CardHeader, Empty, Eyebrow, PageHeader, PageSkeleton, RarityBadge, Segmented, Trend } from "@/components/ui";
+import { compareTeamHref } from "@/lib/compare";
 import { dayLabel, firstName, greeting, nf, relativeTime } from "@/lib/format";
 import { DEFAULT_PERIOD, PERIOD_OPTIONS, useWorkspaceToday, type Period } from "@/lib/period";
 import { RARITY_META, type Rarity } from "@/lib/rarity";
@@ -180,6 +181,9 @@ export function Me() {
               </span>
             </div>
             <CompareBars mine={data.period.given} team={standing?.teamMedian ?? 0} />
+            <Link to={compareTeamHref(period)} className="mt-3 inline-block text-xs text-saffron hover:underline">
+              Compare in detail →
+            </Link>
           </div>
         </Card>
       </div>

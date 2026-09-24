@@ -108,14 +108,33 @@ describe("me.standing: week rank and team median", () => {
     await smallHistory();
     await rebuild();
     const ana = await signInAs(t, team.ana);
-    // This week (Mon 21 – Wed 23): Ana 5, Ben 6, Cleo 1.
+    // This week (Mon 21 – Wed 23): Ana 5, Ben 6, Cleo 1. The median is the rest of the team's, as on Compare's Team.
     expect(await ana.query(api.me.standing, { period: "week", today: TODAY })).toEqual({
       week: { rank: 2, of: 3 },
-      teamMedian: 5,
+      teamMedian: 3.5,
     });
-    // September: Ana 6, Ben 6, Cleo 2 → median 6. August: Ana 2, Ben 1.
-    expect((await ana.query(api.me.standing, { period: "month", today: TODAY })).teamMedian).toBe(6);
-    expect((await ana.query(api.me.standing, { period: "all", today: TODAY })).teamMedian).toBe(7);
+    // September: Ana 6, Ben 6, Cleo 2 → teammates' median 4. All time: Ana 8, Ben 7, Cleo 2 → 4.5.
+    expect((await ana.query(api.me.standing, { period: "month", today: TODAY })).teamMedian).toBe(4);
+    expect((await ana.query(api.me.standing, { period: "all", today: TODAY })).teamMedian).toBe(4.5);
+  });
+
+  test("the team median leaves out teammates who have left, like Compare's Team benchmark", async () => {
+    await smallHistory();
+    await rebuild();
+    await t.run((ctx) => ctx.db.patch(team.ben, { deactivated: true }));
+    const ana = await signInAs(t, team.ana);
+    // Cleo alone is left: 2 this month, 2 all time.
+    expect((await ana.query(api.me.standing, { period: "month", today: TODAY })).teamMedian).toBe(2);
+    expect((await ana.query(api.me.standing, { period: "all", today: TODAY })).teamMedian).toBe(2);
+  });
+
+  test("the Me page's team median is the one \"Compare in detail\" opens", async () => {
+    await smallHistory();
+    await rebuild();
+    const ana = await signInAs(t, team.ana);
+    const standing = await ana.query(api.me.standing, { period: "month", today: TODAY });
+    const compare = await ana.query(api.compare.team.get, { period: "month", today: TODAY });
+    expect(compare.rows.find((r) => r.metric === "given")!.benchmark.value).toBe(standing.teamMedian);
   });
 
   test("is the same before the backfill (legacy scan) and after it (rollups)", async () => {

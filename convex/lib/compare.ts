@@ -86,6 +86,40 @@ export function percentileBelow(value: number, others: number[]) {
   return others.filter((o) => o < value).length / others.length;
 }
 
+/** Fewer teammates than this and a median would be one person's number: the Team benchmark shows none. */
+export const MIN_TEAM = 2;
+/** Quartiles, the maximum and your percentile appear from this many teammates on (a privacy and statistics floor). */
+export const MIN_DISTRIBUTION = 5;
+
+/** The metrics the Team benchmark has for every member from the rollups. */
+export const TEAM_METRICS = ["given", "received", "activeDays", "maxedDays"] as const satisfies readonly Metric[];
+export type TeamMetric = (typeof TEAM_METRICS)[number];
+
+const nullableNumber = v.union(v.number(), v.null());
+export const teamDistributionValidator = v.object({
+  n: v.number(),
+  median: v.number(),
+  p25: nullableNumber,
+  p75: nullableNumber,
+  max: nullableNumber,
+});
+
+/**
+ * Where the team sits on one metric, from the values of the teammates who take part (never the viewer's
+ * own). Null below `MIN_TEAM`; below `MIN_DISTRIBUTION` only the median, so no single teammate's value
+ * can be read off the edges. `percentile` is the share of them strictly below `you`, and only for a
+ * viewer who takes part themselves.
+ */
+export function teamStanding(others: number[], you: number, youTakePart: boolean) {
+  if (others.length < MIN_TEAM) return { team: null, percentile: null };
+  const d = distribution(others);
+  const full = others.length >= MIN_DISTRIBUTION;
+  return {
+    team: { n: d.n, median: d.median, p25: full ? d.p25 : null, p75: full ? d.p75 : null, max: full ? d.max : null },
+    percentile: full && youTakePart ? percentileBelow(you, others) : null,
+  };
+}
+
 /**
  * The race chart's x axis: every day of the current bucket, each lined up with the same day of the
  * previous bucket. Buckets differ in length (months, leap years), so the last day always pairs with

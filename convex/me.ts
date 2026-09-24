@@ -8,7 +8,7 @@ import { streaks } from "./lib/compare";
 import { CATALOG, RARITIES, TEMPLATE_BY_KEY } from "./lib/messages";
 import { resolvePeriod, type PeriodRange } from "./lib/periods";
 import { rollupsReady } from "./lib/rebuild";
-import { memberDays, median, rankBy, totalsByMember, workspaceDays } from "./lib/stats";
+import { memberDays, median, rankBy, totalsByMember, workspaceDays, workspaceMembers } from "./lib/stats";
 import {
   addDays,
   daysBetween,
@@ -379,7 +379,7 @@ async function givingProfile(ctx: QueryCtx, member: Doc<"members">, today: strin
 }
 
 /**
- * Where I stand in the workspace: my rank among this week's givers and the team's median given for
+ * Where I stand in the workspace: my rank among this week's givers and my teammates' median given for
  * the selected period. Kept apart from `overview` because any give in the workspace changes it.
  */
 export const standing = query({
@@ -398,9 +398,14 @@ export const standing = query({
     const week = await givenByMember(ctx, workspace, resolvePeriod("week", today));
     const ranked = rankBy([...week.entries()], ([, given]) => given, ([id]) => id);
     const selected = period === "week" ? week : await givenByMember(ctx, workspace, resolvePeriod(period, today));
+    // The rest of the team, as Compare's Team benchmark ("Compare in detail") counts it: not me,
+    // and not the people who have left.
+    const teammates = new Set(
+      (await workspaceMembers(ctx, workspace._id)).filter((m) => !m.deactivated && m._id !== member._id).map((m) => m._id),
+    );
     return {
       week: { rank: ranked.find(({ item: [id] }) => id === member._id)?.rank ?? null, of: ranked.length },
-      teamMedian: median([...selected.values()]),
+      teamMedian: median([...selected].filter(([id]) => teammates.has(id)).map(([, given]) => given)),
     };
   },
 });
