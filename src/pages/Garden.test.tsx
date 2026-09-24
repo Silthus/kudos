@@ -159,6 +159,42 @@ test("golden leaves from Super kudos show on your plant for them, and on the pla
   expect(text()).toContain("1 golden leaf from Ana's Super kudos");
 });
 
+test("the garden in the Keyboard garden look: PostHog's scene up top, each plant its species on a key bed, the gardener by an empty plot (#101)", () => {
+  mine = {
+    ...empty,
+    plots: 3,
+    plants: [growing({ species: "patient_pine", stage: "grown", stageName: "Grown", goldenLeaves: 1 }), growing({ plantId: "p2", forName: "Cleo", dormant: true, stage: "young", stageName: "Young" })],
+    memories: [{ plantId: "p0", species: "bright_sunflower", speciesName: "Bright sunflower", stageName: "Grown", forName: "Dan", memoryDay: "2026-09-01", reason: "uprooted" }],
+  };
+  const host = render();
+  expect(host.querySelector("[data-art-slot='garden-scene'] img")?.getAttribute("src")).toContain("keyboard_garden_dark_opt_15e213413c.png");
+  const [pine, dormant] = [...host.querySelectorAll("[data-plant]")].map((p) => p.querySelector("svg")!);
+  expect(pine.getAttribute("data-species")).toBe("patient_pine");
+  expect(pine.querySelector("[data-bed=key]")).not.toBeNull();
+  expect(pine.querySelectorAll("[data-golden-leaf]")).toHaveLength(1);
+  expect(dormant.getAttribute("data-dormant")).toBe("true");
+  expect(host.querySelector("[data-memories] svg")?.getAttribute("data-species")).toBe("bright_sunflower");
+  expect(host.querySelector("[data-plot]:not([data-plant]) [data-art-slot='hoggie-empty-plot'] img")?.getAttribute("src")).toContain("/hoggies/png/gardener-2.png");
+});
+
+test("if the Keyboard garden can't load, the page stands as it was, with our own key beds (#101)", () => {
+  mine = { ...empty, plants: [growing({})] };
+  const host = render();
+  act(() => void host.querySelector("[data-art-slot='garden-scene'] img")!.dispatchEvent(new Event("error")));
+  expect(host.querySelector("[data-art-slot='garden-scene'] img")).toBeNull();
+  expect(host.querySelector("[data-plant] [data-bed=key]")).not.toBeNull();
+});
+
+test("with the game off or hidden, or the garden still locked, the Keyboard garden stays out of the header (review #6)", () => {
+  mine = null;
+  game = { enabled: false, hidden: false };
+  expect(render().querySelector("[data-art-slot='garden-scene']")).toBeNull();
+  act(() => root?.unmount());
+  mine = { open: false, opensAt: 3 };
+  game = { enabled: true, hidden: false };
+  expect(render().querySelector("[data-art-slot='garden-scene']")).toBeNull();
+});
+
 test("fruit waiting can be picked, and the week's caps are shown", () => {
   mine = { ...empty, plants: [growing({ stage: "grown", stageName: "Grown", fruit: [{ day: "2026-11-08", coins: 2 }, { day: "2026-11-09", coins: 1 }] })], harvest: { ...empty.harvest, weekCoins: 5, weekXp: 6 } };
   render();

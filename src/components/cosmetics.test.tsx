@@ -80,11 +80,27 @@ test("nothing while the game is off or hidden", () => {
   expect(host.textContent).toBe("");
 });
 
-test("a framed avatar wears its frame and sticker as art slots, with placeholders until the art loads", () => {
+test("a framed avatar wears its frame and sticker as art slots: the hoggie from PostHog's servers over its placeholder (#101)", () => {
   const host = render(<FramedAvatar name="Ana" look={{ frame: "frameNightSky", sticker: "stickerReader" }} size={48} />);
-  expect(host.querySelector("[data-art-slot='frame-night-sky']")).not.toBeNull();
-  expect(host.querySelector("[data-art-slot='hoggie-reader']")).not.toBeNull();
-  expect(host.querySelector("img")).toBeNull(); // nothing PostHog-drawn is committed: no art URL yet
+  expect(host.querySelector("[data-art-slot='frame-night-sky'] img")).toBeNull(); // our own ring: no PostHog art
+  const sticker = host.querySelector("[data-art-slot='hoggie-reader']") as HTMLElement;
+  expect((sticker.querySelector("[data-placeholder]") as HTMLElement).style.background).toContain("linear-gradient"); // the placeholder, under the art
+  const hog = sticker.querySelector("img")!;
+  expect(hog.getAttribute("src")).toBe("https://cdn.jsdelivr.net/npm/@posthog/brand@0.12.3/dist/generated/hoggies/png/reading.png");
+  expect(hog.className).toContain("object-contain"); // a whole hoggie, never cropped
+});
+
+test("if a hoggie can't load, its sticker keeps the placeholder (#101)", () => {
+  const host = render(<FramedAvatar name="Ana" look={{ sticker: "stickerParty" }} size={48} />);
+  act(() => void host.querySelector("[data-art-slot='hoggie-party'] img")!.dispatchEvent(new Event("error")));
+  const sticker = host.querySelector("[data-art-slot='hoggie-party']") as HTMLElement;
+  expect(sticker.querySelector("img")).toBeNull();
+  expect((sticker.querySelector("[data-placeholder]") as HTMLElement).style.background).toContain("linear-gradient");
+});
+
+test("the Keyboard garden banner and the Meadow frame are PostHog's Keyboard garden (#101)", () => {
+  expect(render(<ItemArt itemKey="bannerKeyboardGarden" />).querySelector("[data-art-slot='banner-keyboard-garden'] img")?.getAttribute("src")).toContain("keyboard_garden_dark_opt_15e213413c.png");
+  expect(render(<ItemArt itemKey="frameMeadow" />).querySelector("[data-art-slot='frame-meadow'] img")?.getAttribute("src")).toContain("keyboard_garden_dark_opt_15e213413c.png");
 });
 
 test("an avatar without a frame keeps its own size, so unframed rows line up (review #10)", () => {
@@ -104,6 +120,7 @@ test("the Super kudos celebration: who chose you and why, until you close it", (
   const dialog = document.querySelector("[role=dialog]")!;
   expect(dialog.textContent).toContain("A Super kudos from Ana");
   expect(dialog.textContent).toContain("for untangling the release pipeline");
+  expect(dialog.querySelector("[data-art-slot='super-kudos-celebration'] img")?.getAttribute("src")).toContain("/hoggies/png/heart.png");
   act(() => (dialog.querySelector("button") as HTMLButtonElement).click());
   expect(mutations["superKudos:seen"]).toHaveBeenCalledWith({ id: "sk1" });
 });

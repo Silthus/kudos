@@ -6,9 +6,11 @@ import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { LANTERN, type StageKey } from "../../convex/lib/garden";
+import { LANTERN, STAGES, type StageKey } from "../../convex/lib/garden";
 import { Locked } from "@/components/game";
 import { PlantArt } from "@/components/PlantArt";
+import { HogCoin } from "@/components/HogCoin";
+import { RemoteArt } from "@/components/RemoteArt";
 import { Avatar, Button, Card, CardHeader, Dialog, Empty, PageHeader, PageSkeleton } from "@/components/ui";
 import { useWorkspaceToday } from "@/lib/period";
 
@@ -18,6 +20,8 @@ type Grown = OpenGarden["plants"][number];
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const coins = (n: number) => plural(n, "Hog coin", "Hog coins");
+/** A memory keeps its stage by name: draw it at that stage (a Seed if the name is unknown). */
+const stageKeyOf = (name: string): StageKey => STAGES.find((s) => s.name === name)?.key ?? "seed";
 const errorText = (e: unknown) => (e instanceof ConvexError ? String(e.data) : "Something went wrong. Try again.");
 
 /**
@@ -37,6 +41,7 @@ export function Garden() {
       eyebrow="Your game"
       title="Your garden"
       subtitle="Grow a plant for a teammate you recognise. It grows each week you thank them with a few words on why, and it never dies."
+      action={mine?.open && <GardenScene />}
     />
   );
   if (mine === null) {
@@ -71,6 +76,14 @@ export function Garden() {
   );
 }
 
+/**
+ * posthog.com's Keyboard garden (#101): its key beds and gardening hedgehogs, PostHog's art from
+ * PostHog's servers. A fixed box, so the header never moves while it loads; nothing if it can't.
+ */
+function GardenScene() {
+  return <RemoteArt slot="garden-scene" fit="contain" className="-my-4 h-32 w-32 sm:-my-6 sm:h-44 sm:w-44" />;
+}
+
 function OwnGarden({ garden, sunlamps }: { garden: OpenGarden; sunlamps: number }) {
   const [planting, setPlanting] = useState(false);
   const [uprooting, setUprooting] = useState<Grown | null>(null);
@@ -83,7 +96,10 @@ function OwnGarden({ garden, sunlamps }: { garden: OpenGarden; sunlamps: number 
           {plural(garden.plants.length, "plant", "plants")} · {plural(garden.plots, "plot", "plots")}
           {garden.plants.length > garden.plots && " (uproot one to plant again)"}
         </span>
-        <span className="tabular">{coins(garden.balance)}</span>
+        <span className="inline-flex items-center gap-1.5 tabular">
+          <HogCoin size={16} />
+          {coins(garden.balance)}
+        </span>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {garden.plants.map((p) => (
@@ -114,7 +130,7 @@ function PlantFace({
   footer,
   onTakeDownLantern,
 }: {
-  plant: Pick<Grown, "plantId" | "speciesName" | "stage" | "stageName" | "dormant"> & Partial<Pick<Grown, "waterings" | "awakeDays" | "next" | "fruit" | "lantern" | "goldenLeaves">>;
+  plant: Pick<Grown, "plantId" | "species" | "speciesName" | "stage" | "stageName" | "dormant"> & Partial<Pick<Grown, "waterings" | "awakeDays" | "next" | "fruit" | "lantern" | "goldenLeaves">>;
   forName?: string;
   forYou?: boolean;
   action?: React.ReactNode;
@@ -131,7 +147,7 @@ function PlantFace({
       data-dormant={plant.dormant ? "true" : "false"}
       className={clsx("flex gap-3 p-4", plant.dormant && "border-saffron-deep/40 bg-saffron-deep/5", forYou && "border-saffron/50")}
     >
-      <PlantArt stage={plant.stage as StageKey} dormant={plant.dormant} fruit={fruit} size={96} />
+      <PlantArt stage={plant.stage as StageKey} species={plant.species} dormant={plant.dormant} fruit={fruit} goldenLeaves={plant.goldenLeaves ?? 0} size={96} />
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -146,7 +162,7 @@ function PlantFace({
           {plant.dormant && <span className="rounded-full bg-saffron-deep/20 px-2 py-0.5 text-saffron">Dormant</span>}
           {fruit > 0 && <span className="rounded-full bg-saffron/15 px-2 py-0.5 text-saffron">{plural(fruit, "fruit", "fruit")}</span>}
           {(plant.goldenLeaves ?? 0) > 0 && (
-            // A golden leaf per Super kudos you sent them (#98); art slot for #101.
+            // A golden leaf per Super kudos you sent them (#98), drawn on the plant too (#101).
             <span data-art-slot="golden-leaf" className="rounded-full bg-[#f7a501]/20 px-2 py-0.5 text-[#fde68a]">
               {plural(plant.goldenLeaves!, "golden leaf", "golden leaves")}
             </span>
@@ -216,7 +232,11 @@ function PlantCard({ plant, sunlamps, onUproot }: { plant: Grown; sunlamps: numb
 function EmptyPlot({ canPlant, onPlant }: { canPlant: boolean; onPlant: () => void }) {
   return (
     <div data-plot className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-line-strong px-4 py-6 text-center">
-      <PlantArt stage="seed" size={72} />
+      <div className="relative">
+        <PlantArt stage="seed" size={72} />
+        {/* A gardening hoggie waits by the plot: PostHog's art, nothing if it can't load. */}
+        <RemoteArt slot="hoggie-empty-plot" fit="contain" className="absolute -right-12 bottom-0 h-14 w-14" />
+      </div>
       <div className="text-sm font-medium text-cream/70">Empty plot</div>
       <Button size="sm" onClick={onPlant} disabled={!canPlant}>
         Plant a seed
@@ -412,7 +432,7 @@ function GrownForYou({ plants }: { plants: ForMe }) {
       <ul className="px-5 pb-5">
         {plants.map((p) => (
           <li key={p.plantId} className="flex items-center gap-3 border-t border-line py-2.5 first:border-t-0">
-            <PlantArt stage={p.stage as StageKey} dormant={p.dormant} size={48} />
+            <PlantArt stage={p.stage as StageKey} species={p.species} dormant={p.dormant} goldenLeaves={p.goldenLeaves} size={48} />
             <div className="min-w-0 flex-1">
               <div className="text-sm text-cream">
                 {p.ownerName} is growing a {p.speciesName} for you
@@ -445,10 +465,14 @@ function Memories({ memories }: { memories: OpenGarden["memories"] }) {
   return (
     <Card>
       <CardHeader title="Memories" subtitle="Plants you uprooted, and plants grown for teammates who left." />
-      <ul className="px-5 pb-5">
+      <ul data-memories className="px-5 pb-5">
         {memories.map((m) => (
           <li key={m.plantId} className="flex items-center justify-between gap-3 border-t border-line py-2 text-sm first:border-t-0">
-            <span className="min-w-0 truncate text-cream/80">
+            {/* A memory is the plant as it was, faded. */}
+            <span className="opacity-60 grayscale-[40%]">
+              <PlantArt stage={stageKeyOf(m.stageName)} species={m.species} size={40} />
+            </span>
+            <span className="min-w-0 flex-1 truncate text-cream/80">
               {m.speciesName} for {m.forName}
             </span>
             <span className="shrink-0 text-xs text-muted">

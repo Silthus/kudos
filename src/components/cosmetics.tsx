@@ -7,32 +7,28 @@ import { Link } from "react-router";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { type ArtSlot, COSMETIC_SLOTS, COSMETICS, cosmeticByKey, type CosmeticSlot, EMOJI_VARIANTS, type Look } from "../../convex/lib/cosmetics";
+import { RemoteArt } from "@/components/RemoteArt";
 import { Avatar, Card, CardHeader } from "@/components/ui";
 
 /**
  * Cosmetics (#98, #55 §G5, §G12): avatar frames, banners, hoggie stickers and kudos-emoji variants.
  *
- * Every piece of art is an **art slot** (§G17): the art pass (#101) maps a slot to PostHog's art,
- * loaded from PostHog's servers at runtime, never committed while the repo is public. Until then,
- * and whenever the art can't load, a placeholder in the slot's colours stands in.
+ * Every piece of art is an **art slot** (§G17): `lib/art.ts` maps a slot to PostHog's art (#101),
+ * loaded from PostHog's servers at runtime, never committed while the repo is public. Slots without
+ * PostHog art, and any art that can't load, show a placeholder in the slot's colours.
  */
-
-/** Where a slot's art is served from. None yet: #101 fills this in with PostHog-hosted URLs. */
-const ART_URLS: Record<string, string> = {};
-
-export function artUrl(slot: string): string | null {
-  return ART_URLS[slot] ?? null;
-}
 
 const gradient = (colors: string[]) => `linear-gradient(135deg, ${colors.join(", ")})`;
 
-/** One art slot: its art once #101 provides it, else the placeholder in its colours. */
+/** One art slot: its PostHog art over the placeholder in its colours. Hoggies are shown whole, scenes fill the slot. */
 export function Art({ art, className, round }: { art: ArtSlot; className?: string; round?: boolean }) {
-  const url = artUrl(art.slot);
   return (
-    <span data-art-slot={art.slot} aria-hidden className={clsx("block overflow-hidden", round ? "rounded-full" : "rounded-xl", className)} style={{ background: gradient(art.colors) }}>
-      {url && <img src={url} alt="" className="h-full w-full object-cover" onError={(e) => e.currentTarget.remove()} />}
-    </span>
+    <RemoteArt
+      slot={art.slot}
+      fit={art.slot.startsWith("hoggie-") ? "contain" : "cover"}
+      className={clsx(round ? "rounded-full" : "rounded-xl", className)}
+      fallback={<span data-placeholder className="absolute inset-0" style={{ background: gradient(art.colors) }} />}
+    />
   );
 }
 
@@ -95,9 +91,10 @@ export function LookCard({ memberId, today }: { memberId: Id<"members">; today: 
       <div className="px-5 pb-5">
         <div className="relative overflow-hidden rounded-2xl border border-line">
           {banner ? <Art art={banner.art} className="h-20 w-full rounded-none" /> : <div className="h-20 w-full bg-panel-2" />}
-          <div className="-mt-8 flex items-end gap-3 px-4 pb-3">
+          <div className="relative -mt-8 flex items-end gap-3 px-4 pb-3">
             <FramedAvatar name={profile.name} src={profile.avatarUrl} size={56} look={mine.look} />
-            <div className="min-w-0 pb-1">
+            {/* The name overlaps the banner: a shadow keeps it readable over busy art like the Keyboard garden. */}
+            <div className="min-w-0 pb-1 [text-shadow:0_1px_2px_rgb(0_0_0/0.95),0_0_8px_rgb(0_0_0/0.8)]">
               <div className="truncate font-display text-lg font-semibold text-cream">{profile.name}</div>
               <div className="text-xs text-muted">
                 {profile.level !== null && (
@@ -215,12 +212,16 @@ export function SuperKudosCelebration({ today }: { today: string }) {
         transition={{ type: "spring", stiffness: 260, damping: 20 }}
         className="relative w-full max-w-md overflow-hidden rounded-3xl border border-saffron/50 bg-panel p-6 text-center shadow-2xl"
       >
-        <Art art={{ slot: "super-kudos-celebration", colors: ["#fde68a", "#f7a501", "#f54e00"] }} className="absolute inset-x-0 top-0 h-24 rounded-none opacity-60" />
-        <button ref={closeRef} type="button" onClick={close} aria-label="Close" className="absolute right-3 top-3 rounded-lg p-1.5 text-muted hover:bg-panel-2 hover:text-cream">
+        <div aria-hidden className="absolute inset-x-0 top-0 h-24 opacity-60" style={{ background: gradient(["#fde68a", "#f7a501", "#f54e00"]) }} />
+        <button ref={closeRef} type="button" onClick={close} aria-label="Close" className="absolute right-3 top-3 z-10 rounded-lg p-1.5 text-muted hover:bg-panel-2 hover:text-cream">
           <X className="h-4 w-4" />
         </button>
         <div className="relative mt-8 flex justify-center">
-          <Avatar name={celebration.from} src={celebration.avatarUrl} size={64} ring="ring-4 ring-saffron" />
+          <span className="relative">
+            <Avatar name={celebration.from} src={celebration.avatarUrl} size={64} ring="ring-4 ring-saffron" />
+            {/* A hoggie hugging a heart beside the giver, outside the flow so the picture stays centred with or without it. */}
+            <RemoteArt slot="super-kudos-celebration" fit="contain" className="absolute bottom-[-6px] left-full ml-1 h-20 w-20" />
+          </span>
         </div>
         <h2 id="super-kudos-title" className="relative mt-4 font-display text-2xl font-semibold text-cream">
           A Super kudos from {celebration.from}
