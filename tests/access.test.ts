@@ -31,6 +31,7 @@ describe("signed-out visitors", () => {
   test("see the landing state and no workspace data", async () => {
     expect(await t.query(api.session.viewer, {})).toEqual({ status: "signedOut" });
     await expect(t.query(api.me.overview, { period: "month", today: TODAY })).rejects.toThrow(/Sign in/);
+    await expect(t.query(api.me.standing, { period: "month", today: TODAY })).rejects.toThrow(/Sign in/);
     await expect(t.query(api.leaderboard.get, { period: "week", metric: "given", today: TODAY })).rejects.toThrow(/Sign in/);
   });
 

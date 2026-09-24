@@ -35,18 +35,19 @@ describe("midnight rollover", () => {
 
     const sunday = await ana.query(api.leaderboard.get, { period: "week", metric: "given", today: "2026-09-27" });
     expect(sunday.rows.map((r) => [r.member.name, r.value])).toEqual([["Ana", 2]]);
-    expect((await ana.query(api.me.overview, { period: "week", today: "2026-09-27" })).week).toMatchObject({ rank: 1, given: 2 });
+    expect((await ana.query(api.me.overview, { period: "week", today: "2026-09-27" })).week).toMatchObject({ given: 2 });
+    expect((await ana.query(api.me.standing, { period: "week", today: "2026-09-27" })).week).toEqual({ rank: 1, of: 1 });
 
     const monday = await ana.query(api.leaderboard.get, { period: "week", metric: "given", today: "2026-09-28" });
     expect(monday.rows).toEqual([]);
     expect(monday.range).toEqual({ start: "2026-09-28", end: "2026-09-28" });
     expect(monday.previousRange).toEqual({ start: "2026-09-21", end: "2026-09-27" });
     expect((await ana.query(api.me.overview, { period: "week", today: "2026-09-28" })).week).toMatchObject({
-      rank: null,
       given: 0,
       lastWeekGiven: 2,
       start: "2026-09-28",
     });
+    expect((await ana.query(api.me.standing, { period: "week", today: "2026-09-28" })).week).toEqual({ rank: null, of: 0 });
   });
 });
 

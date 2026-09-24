@@ -166,7 +166,13 @@ describe("a demo reset during a running backfill", () => {
         all: (await ctx.db.query("workspaceStats").collect()).find((w) => w.bucket === "all"),
         given: (await ctx.db.query("kudos").collect()).reduce((n, k) => n + k.amount, 0),
         resetting: (await ctx.db.get(workspaceId))!.resettingSince !== undefined,
+        mirrored: (await ctx.db.get(workspaceId))!.rollupsBackfilledAt,
       }));
+      // The workspace's copy of the marker (read by `me`) never claims more than the `all` row's.
+      if (state.mirrored !== undefined) {
+        expect(state.resetting, `step ${i}: marked while the reset is still running`).toBe(false);
+        expect(state.mirrored, `step ${i}`).toBe(state.all?.rollupsBackfilledAt);
+      }
       if (state.all?.rollupsBackfilledAt !== undefined) {
         marked += 1;
         expect(state.resetting, `step ${i}: marked while the reset is still running`).toBe(false);
@@ -176,6 +182,7 @@ describe("a demo reset during a running backfill", () => {
     expect(marked).toBeGreaterThan(0);
     const workspace = await t.run((ctx) => ctx.db.get(workspaceId));
     expect(workspace!.resettingSince).toBeUndefined();
+    expect(workspace!.rollupsBackfilledAt).toBeTypeOf("number");
   });
 });
 

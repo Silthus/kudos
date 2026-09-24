@@ -13,7 +13,7 @@ import { rewardLine, siteUrl } from "./lib/slack";
 import { addDays, dayKeyFor, weekdayOfKey } from "./lib/time";
 import { weekBucket } from "./lib/buckets";
 import { backfilledRollups, memberBucket } from "./lib/stats";
-import { markBackfilled } from "./lib/rebuild";
+import { markBackfilled, mirrorBackfillMarker } from "./lib/rebuild";
 
 /** Slack retries deliveries it thinks failed; claim each event id exactly once. */
 export const claimEvent = internalMutation({
@@ -193,7 +193,7 @@ export const saveInstallation = internalMutation({
     if (isFirstInstall) await markBackfilled(ctx, workspace._id, Date.now());
     else if (!(await backfilledRollups(ctx, workspace._id))) {
       await ctx.scheduler.runAfter(0, internal.rollups.rebuildWorkspace, { workspaceId: workspace._id });
-    }
+    } else await mirrorBackfillMarker(ctx, workspace);
     return workspace._id;
   },
 });

@@ -8,6 +8,7 @@ import { channelKey, WORKSPACE_COUNTERS } from "./lib/rollups";
 import { kudosInRange, totalsByMember, workspaceDays } from "./lib/stats";
 import {
   markBackfilled,
+  mirrorBackfillMarker,
   rebuildGiverPairs,
   rebuildMemberAll,
   rebuildMemberYear,
@@ -65,6 +66,19 @@ export const backfillAll = internalMutation({
       if (workspace.resettingSince !== undefined) continue; // the reset rebuilds it
       await ctx.scheduler.runAfter(0, internal.rollups.rebuildWorkspace, { workspaceId: workspace._id });
     }
+    return null;
+  },
+});
+
+/**
+ * One-off after deploying #29: copy the `all` row's backfill marker onto workspaces backfilled
+ * before `markBackfilled` also marked the workspace document. Idempotent; one read per workspace.
+ */
+export const mirrorBackfillMarkers = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    for await (const workspace of ctx.db.query("workspaces")) await mirrorBackfillMarker(ctx, workspace);
     return null;
   },
 });

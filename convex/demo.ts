@@ -539,7 +539,9 @@ export const startDemoReset = internalMutation({
     const workspace = await demoWorkspace(ctx);
     if (!workspace) return null;
     if (workspace.resettingSince && Date.now() - workspace.resettingSince < RESET_LOCK_MS) return null;
-    await ctx.db.patch(workspace._id, { resettingSince: Date.now() });
+    // The reset wipes the rollups (and the `all` row's marker): readers fall back to their legacy
+    // scans until the reset's rebuild marks the workspace again.
+    await ctx.db.patch(workspace._id, { resettingSince: Date.now(), rollupsBackfilledAt: undefined });
     await ctx.scheduler.runAfter(0, internal.demo.resetDemoWorkspace, {});
     return null;
   },
@@ -552,6 +554,8 @@ export const resetDemoWorkspace = internalMutation({
   handler: async (ctx) => {
     const workspace = await demoWorkspace(ctx);
     if (!workspace) return null;
+    // Wiping the rollups unmarks them, however the reset was started (see `startDemoReset`).
+    if (workspace.rollupsBackfilledAt !== undefined) await ctx.db.patch(workspace._id, { rollupsBackfilledAt: undefined });
     let deleted = 0;
     for (const table of DEMO_TABLES) {
       if (deleted >= 3000) break; // stay well within per-transaction write limits

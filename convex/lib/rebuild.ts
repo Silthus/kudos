@@ -11,6 +11,7 @@ import {
   zeroFound,
   zeroMember,
 } from "./rollups";
+import { backfilledRollups } from "./stats";
 import { addDays, DAY_MS, startOfDayUtc, weekdayOfKey, zonedParts } from "./time";
 
 /**
@@ -414,11 +415,27 @@ export async function rebuildWorkspaceAll(ctx: MutationCtx, workspace: Workspace
   await writeChannels(ctx, workspace._id, ALL_BUCKET, channels);
 }
 
-/** Record a finished backfill on the workspace's `all` row (created if the workspace has no activity). */
+/**
+ * Record a finished backfill on the workspace's `all` row (created if the workspace has no activity)
+ * and on the workspace itself, for readers that must not subscribe to the busy `all` row.
+ */
 export async function markBackfilled(ctx: MutationCtx, workspaceId: Id<"workspaces">, at: number) {
   const row = await workspaceRow(ctx, workspaceId, ALL_BUCKET);
   if (row) await ctx.db.patch(row._id, { rollupsBackfilledAt: at });
   else await ctx.db.insert("workspaceStats", { workspaceId, bucket: ALL_BUCKET, ...emptyValues(ALL_BUCKET), rollupsBackfilledAt: at });
+  await ctx.db.patch(workspaceId, { rollupsBackfilledAt: at });
+}
+
+/** Copy the `all` row's marker onto a workspace marked before the workspace carried one. */
+export async function mirrorBackfillMarker(ctx: MutationCtx, workspace: Doc<"workspaces">) {
+  if (workspace.rollupsBackfilledAt !== undefined) return;
+  const all = await backfilledRollups(ctx, workspace._id);
+  if (all) await ctx.db.patch(workspace._id, { rollupsBackfilledAt: all.rollupsBackfilledAt });
+}
+
+/** Whether the workspace's rollups are complete; until then readers use their legacy scans. */
+export function rollupsReady(workspace: Doc<"workspaces">) {
+  return workspace.rollupsBackfilledAt !== undefined;
 }
 
 /**
