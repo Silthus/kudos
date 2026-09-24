@@ -1,11 +1,12 @@
 import { v } from "convex/values";
 import { query, type QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
-import { requireViewer } from "./lib/access";
+import { requireAdmin, requireViewer } from "./lib/access";
 import { dayBucket, monthBucket } from "./lib/buckets";
 import { RARITIES, type Rarity } from "./lib/messages";
 import { resolvePeriod, type PeriodRange } from "./lib/periods";
 import { channelKey, zeroFound } from "./lib/rollups";
+import { metricsOf, type MonthFacts } from "./lib/success";
 import {
   backfilledRollups,
   departedAmong,
@@ -43,6 +44,100 @@ export const overview = query({
     return await overviewFor(ctx, workspace, period, parseToday(today));
   },
 });
+
+/** How many months the success metrics show, the current one included. */
+export const SUCCESS_MONTHS = 12;
+/** Complete months before the current one pooled into the baseline. */
+export const BASELINE_MONTHS = 3;
+
+/**
+ * The game's success metrics (spec #55 G18) for each of the last 12 months up to `today`, from the
+ * first month anyone gave: participation, distinct recipients per active giver, the share of kudos
+ * with a 12+ word Note and the share of thank-backs. Admins only: they evaluate the program, and
+ * aren't a team scoreboard. `baseline` pools the three complete months before the current one.
+ * Reads ≤ 12 `workspaceStats` and `successStats` rows, the members, and each departed giver's
+ * ≤ 12 month rows (participation counts them in the months they gave).
+ */
+export const successMetrics = query({
+  args: {
+    /** The client's current day in the workspace timezone (see `parseToday`). */
+    today: v.string(),
+  },
+  handler: async (ctx, { today }) => {
+    const { workspace } = await requireAdmin(ctx);
+    return await successMetricsFor(ctx, workspace, parseToday(today));
+  },
+});
+
+export async function successMetricsFor(ctx: QueryCtx, workspace: Doc<"workspaces">, today: string) {
+  if (workspace.successBackfilledAt === undefined) return { ready: false as const, months: [], baseline: null };
+  const wsId = workspace._id;
+  const current = monthStart(today);
+  const first = monthStart(addMonths(current, 1 - SUCCESS_MONTHS));
+  const [from, to] = [monthBucket(first), monthBucket(current)];
+  const stats = new Map((await workspaceStatsBetween(ctx, wsId, from, to)).map((r) => [r.bucket, r]));
+  const success = new Map(
+    (
+      await ctx.db
+        .query("successStats")
+        .withIndex("by_workspace_bucket", (q) => q.eq("workspaceId", wsId).gte("bucket", from).lte("bucket", to))
+        .take(SUCCESS_MONTHS)
+    ).map((r) => [r.bucket, r]),
+  );
+  const members = await workspaceMembers(ctx, wsId);
+  // Departed givers still count in the team of the months they gave.
+  const departedGivers = new Map<string, number>();
+  for (const m of members) {
+    if (!m.deactivated || m.totalGiven <= 0) continue;
+    const rows = await ctx.db
+      .query("memberStats")
+      .withIndex("by_member_bucket", (q) => q.eq("memberId", m._id).gte("bucket", from).lte("bucket", to))
+      .take(SUCCESS_MONTHS);
+    for (const r of rows) if (r.given > 0) departedGivers.set(r.bucket, (departedGivers.get(r.bucket) ?? 0) + 1);
+  }
+
+  const months = eachMonth(first, today)
+    .map((day): MonthFacts => {
+      const bucket = monthBucket(day);
+      const ws = stats.get(bucket);
+      const givers = ws?.givers ?? 0;
+      return {
+        month: day.slice(0, 7),
+        givers,
+        kudos: ws?.kudosRows ?? 0,
+        teamSize: teamSize(members, givers, departedGivers.get(bucket) ?? 0),
+        ...pickSuccess(success.get(bucket)),
+      };
+    })
+    // From the first month anyone gave.
+    .filter((m, i, all) => m.month === current.slice(0, 7) || all.slice(0, i + 1).some((e) => e.kudos > 0));
+  const complete = months.filter((m) => m.month < current.slice(0, 7) && m.kudos > 0).slice(-BASELINE_MONTHS);
+  return {
+    ready: true as const,
+    months: months.map((m) => ({
+      month: m.month,
+      toDate: m.month === current.slice(0, 7),
+      givers: m.givers,
+      teamSize: m.teamSize,
+      kudos: m.kudos,
+      ...metricsOf([m]),
+    })),
+    baseline: complete.length ? { from: complete[0].month, to: complete.at(-1)!.month, months: complete.length, ...metricsOf(complete) } : null,
+  };
+}
+
+const pickSuccess = (row: Doc<"successStats"> | undefined) => ({
+  pairs: row?.pairs ?? 0,
+  storyRows: row?.storyRows ?? 0,
+  reciprocalRows: row?.reciprocalRows ?? 0,
+});
+
+/** The first day of the month `n` months after `monthDay`'s. */
+function addMonths(monthDay: string, n: number) {
+  const [y, m] = monthDay.split("-").map(Number);
+  const index = y * 12 + (m - 1) + n;
+  return `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, "0")}-01`;
+}
 
 /**
  * Analytics for `period` up to `today`. Once the workspace's rollups are backfilled every section

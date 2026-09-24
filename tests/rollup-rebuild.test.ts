@@ -41,7 +41,7 @@ async function giveAt(iso: string, opts: GiveOptions) {
   expect(result.status, `${iso} ${opts.giverSlackId}`).toBe("given");
 }
 
-const ROLLUP_TABLES = ["workspaceStats", "memberStats", "pairStats", "channelStats", "messageStats"] as const;
+const ROLLUP_TABLES = ["workspaceStats", "memberStats", "pairStats", "channelStats", "messageStats", "successStats"] as const;
 
 /** Every rollup row as a comparable line: ids, creation times and the backfill marker left out. */
 async function rollupLines() {
@@ -113,6 +113,9 @@ describe("rebuilding a workspace's rollups from the source tables", () => {
       await ctx.db.insert("workspaceStats", { ...allRow, ...stray });
       await ctx.db.insert("pairStats", { ...stray, giverId: team.ana, receiverId: team.cleo, amount: 9 });
       await ctx.db.insert("channelStats", { ...stray, channel: "ghost", amount: 5 });
+      await ctx.db.insert("successStats", { ...stray, bucket: "m:2025-03", pairs: 3, storyRows: 0, reciprocalRows: 1 });
+      const [success] = await ctx.db.query("successStats").collect();
+      await ctx.db.patch(success._id, { pairs: success.pairs + 2, reciprocalRows: 4 });
       await ctx.db.insert("memberStats", { ...stray, bucket: "m:2025-05", memberId: team.cleo, given: 1, received: 1, maxedDays: 0, activeDays: 1 });
       // Message finders: wrong, missing, duplicated, and a message nobody found (or that left the catalog).
       const messages = await ctx.db.query("messageStats").collect();

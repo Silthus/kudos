@@ -305,7 +305,7 @@ describe("the demo's quest history", () => {
   });
 });
 
-const ROLLUP_TABLES = ["workspaceStats", "memberStats", "pairStats", "channelStats", "messageStats"] as const;
+const ROLLUP_TABLES = ["workspaceStats", "memberStats", "pairStats", "channelStats", "messageStats", "successStats"] as const;
 
 async function rollupLines() {
   return await t.run(async (ctx) => {
@@ -368,7 +368,9 @@ describe("the demo's read-model rollups", () => {
     const counts = await t.run(async (ctx) =>
       Promise.all(ROLLUP_TABLES.map(async (table) => (await ctx.db.query(table).collect()).length)),
     );
-    expect(counts).toEqual([0, 0, 0, 0, 0]);
+    expect(counts).toEqual([0, 0, 0, 0, 0, 0]);
+    const demoId = await demoWorkspaceId();
+    expect((await t.run((ctx) => ctx.db.get(demoId)))!.successBackfilledAt).toBeUndefined();
 
     await t.finishAllScheduledFunctions(vi.runAllTimers, 1000);
     const all = (await t.run((ctx) => ctx.db.query("workspaceStats").collect())).find((w) => w.bucket === "all");
