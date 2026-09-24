@@ -49,15 +49,21 @@ export function newDiscoveriesIn(discoveries: Doc<"discoveries">[], range: DayRa
 const MAX_QUEST_COMPLETIONS = 1_000;
 
 /**
- * `memberId`'s quest completions in every quest week that overlaps `range`. Only ever call this for
- * the viewer: quest data is the member's own (Quest spec D10).
+ * `memberId`'s quest completions in every quest week that overlaps `range`, newest first. Only ever
+ * call this for the viewer: quest data is the member's own (Quest spec D10). A week key was taken in
+ * the timezone of its day, so after the workspace moves timezone a completion can sit one week
+ * outside the range's weeks: one more week each side covers it, and `completionsIn` counts by day.
  */
 export async function questCompletions(ctx: QueryCtx, memberId: Id<"members">, range: DayRange) {
   return await ctx.db
     .query("questCompletions")
     .withIndex("by_member_week", (q) =>
-      q.eq("memberId", memberId).gte("weekKey", weekKeyOfDay(range.start)).lte("weekKey", weekKeyOfDay(range.end)),
+      q
+        .eq("memberId", memberId)
+        .gte("weekKey", addDays(weekKeyOfDay(range.start), -7))
+        .lte("weekKey", addDays(weekKeyOfDay(range.end), 7)),
     )
+    .order("desc")
     .take(MAX_QUEST_COMPLETIONS);
 }
 

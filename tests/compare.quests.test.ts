@@ -39,26 +39,34 @@ const questsSince = (weekKey: string) =>
     await ctx.db.insert("questBoards", { workspaceId: team.workspaceId, weekKey, questKeys: ["steady", "story", "spread"] });
   });
 
-/** A quest completed at `hh:mm` Berlin time on `dayKey`, filed under its quest week like the engine does. */
-const completed = (memberId: Id<"members">, dayKey: string, time = "12:00", questKey = "steady") =>
+/**
+ * A quest completed `hh:mm` after Berlin midnight on `dayKey` (or at the instant `at`), filed under its
+ * quest week like the engine does.
+ */
+const completed = (memberId: Id<"members">, dayKey: string, time = "12:00", at?: number) =>
   t.run(async (ctx) => {
     const [h, m] = time.split(":").map(Number);
-    const completedAt = startOfDayUtc(dayKey, TZ) + (h * 60 + m) * 60_000;
+    const completedAt = at ?? startOfDayUtc(dayKey, TZ) + (h * 60 + m) * 60_000;
     await ctx.db.insert("questCompletions", {
       workspaceId: team.workspaceId,
       memberId,
       weekKey: weekKeyFor(completedAt, TZ),
-      questKey,
+      questKey: "steady",
       completedAt,
       sweep: false,
     });
   });
 
 type Period = "week" | "month" | "quarter" | "year";
-async function past(period: Period, memberId = team.ana) {
+async function past(period: Period, memberId = team.ana, today = TODAY) {
   const viewer = await signInAs(t, memberId);
-  return await viewer.query(api.compare.past.get, { period, today: TODAY });
+  return await viewer.query(api.compare.past.get, { period, today });
 }
+
+const noBoards = () =>
+  t.run(async (ctx) => {
+    for (const b of await ctx.db.query("questBoards").collect()) await ctx.db.delete(b._id);
+  });
 const questsRow = (r: { rows: { metric: string }[] }) => r.rows.find((x) => x.metric === "questsCompleted");
 
 describe("Past you: quests completed", () => {
@@ -128,11 +136,58 @@ describe("Past you: quests completed", () => {
     expect(row.benchmark).toEqual({ value: 0, locked: null });
   });
 
+  test("across the spring DST switch the week still starts at Berlin midnight", async () => {
+    await setup();
+    // Clocks go forward on Sun 29 Mar 2026 (CET → CEST): Monday 00:30 Berlin is 22:30 UTC on Sunday.
+    await completed(team.ana, "2026-03-29", "", Date.parse("2026-03-29T21:30:00Z")); // Sun 23:30 CEST, the week before
+    await completed(team.ana, "2026-03-30", "", Date.parse("2026-03-29T22:30:00Z")); // Mon 00:30 CEST, this week
+    await completed(team.ana, "2026-03-25", "23:30"); // Wed, last week to date
+    const row = questsRow(await past("week", team.ana, "2026-04-01"))!;
+    expect(row.you.value).toBe(1);
+    expect(row.benchmark.value).toBe(1);
+  });
+
+  test("on the period's last day, last period counts in full", async () => {
+    await setup();
+    await completed(team.ana, "2026-08-31", "20:00"); // Mon, last day of August
+    await completed(team.ana, "2026-09-30", "08:00"); // Wed, last day of September
+    const row = questsRow(await past("month", team.ana, "2026-09-30"))!;
+    expect(row.you.value).toBe(1);
+    expect(row.benchmark.value).toBe(1);
+  });
+
+  test("completions keep counting by their day after the workspace moves timezone", async () => {
+    await setup();
+    // Filed under the Berlin quest week of Mon 7 Sep, but Mon 14 Sep 06:30 in Tokyo: last week to date there.
+    await completed(team.ana, "2026-09-13", "23:30");
+    await t.run(async (ctx) => {
+      await ctx.db.patch(team.workspaceId, { timezone: "Asia/Tokyo" });
+    });
+    const row = questsRow(await past("week"))!;
+    expect(row.benchmark.value).toBe(1);
+  });
+
+  test("a workspace that never had a quest board has no last period to compare with", async () => {
+    await setup();
+    await noBoards();
+    const row = questsRow(await past("week"))!;
+    expect(row.you).toEqual({ value: 0, locked: null });
+    expect(row.benchmark).toEqual({ value: null, locked: null });
+  });
+
+  test("quests that launched on the day last period to date ends still compare", async () => {
+    await setup();
+    await noBoards();
+    await questsSince("2026-09-14");
+    await completed(team.ana, "2026-09-14");
+    // On Monday 21 Sep, last week to date is Monday 14 Sep alone: the first quest day.
+    const row = questsRow(await past("week", team.ana, "2026-09-21"))!;
+    expect(row.benchmark.value).toBe(1);
+  });
+
   test("before quests existed there is no last period to compare with, not a zero", async () => {
     await setup();
-    await t.run(async (ctx) => {
-      for (const b of await ctx.db.query("questBoards").collect()) await ctx.db.delete(b._id);
-    });
+    await noBoards();
     await questsSince("2026-09-07"); // quests launched in September
     await completed(team.ana, "2026-09-08");
     const row = questsRow(await past("month"))!;
@@ -143,9 +198,7 @@ describe("Past you: quests completed", () => {
 
   test("quests that launched during last period compare with what there was", async () => {
     await setup();
-    await t.run(async (ctx) => {
-      for (const b of await ctx.db.query("questBoards").collect()) await ctx.db.delete(b._id);
-    });
+    await noBoards();
     await questsSince("2026-08-17");
     await completed(team.ana, "2026-08-18");
     const row = questsRow(await past("month"))!;
@@ -200,9 +253,7 @@ describe("with quests switched off", () => {
       await ana.query(api.compare.teammate.get, { period: "week", today: TODAY, memberId: team.ben }),
       await ana.query(api.compare.team.get, { period: "week", today: TODAY }),
     ];
-    for (const r of results) {
-      expect(questsRow(r)).toBeUndefined();
-      expect(r.rows.length).toBeGreaterThan(0);
-    }
+    const others = ["given", "received", "activeDays", "maxedDays", "longestStreak", "reach", "channels", "newDiscoveries"];
+    expect(results.map((r) => r.rows.map((x) => x.metric))).toEqual([others, others, ["given", "received", "activeDays", "maxedDays"]]);
   });
 });
