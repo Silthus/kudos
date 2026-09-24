@@ -18,7 +18,7 @@ vi.mock("convex/react", () => ({
   useMutation: () => setHidden,
 }));
 
-const { GameCard, Locked, ScoutHints } = await import("./game");
+const { Earnings, GameCard, LevelUpHoggie, Locked, ScoutHints } = await import("./game");
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 let root: Root | undefined;
@@ -62,6 +62,30 @@ test("at level 3 the wallet appears with everything collected so far, and the ne
   expect(wallet.textContent).toContain("8 from thoughtful kudos · 20 from level-ups");
   const locked = [...host.querySelectorAll("[data-locked]")].map((el) => el.getAttribute("aria-label"));
   expect(locked).toEqual(["Store, opens at level 5", "Quests, opens at level 5"]);
+});
+
+test("the wallet shows the Hog coin: Max on a gold coin, and the plain gold coin if Max can't load (#101)", () => {
+  mine = { enabled: true, hidden: false, player: level3, wallet: { balance: 28, fromKudos: 8, fromFruit: 0, fromQuests: 0, fromLevels: 20, spent: 0, adjusted: 0 } };
+  const host = render(<GameCard glyph="🌮" />);
+  const coin = host.querySelector("[data-wallet] [data-hog-coin]")!;
+  const max = coin.querySelector("[data-art-slot='coin-max'] img")!;
+  expect(max.getAttribute("src")).toContain("/ai_max_e80de99727.png");
+  act(() => void max.dispatchEvent(new Event("error")));
+  expect(coin.querySelector("img")).toBeNull();
+  expect(coin.querySelector("[data-art-slot='coin-max'] [data-coin-face]")).not.toBeNull(); // the coin's own face
+  expect(coin.textContent).toBe(""); // never reads into the amount
+});
+
+test("the giver's earnings reply on the web leads with the Hog coin (#101)", () => {
+  const host = render(<Earnings text="+10 XP · +2 Hog coins" />);
+  expect(host.textContent).toBe("+10 XP · +2 Hog coins");
+  expect(host.querySelector("[data-hog-coin]")).not.toBeNull();
+});
+
+test("a level-up DM on the web brings the level-up hoggie; other gains don't (#101)", () => {
+  expect(render(<LevelUpHoggie label="Level up" />).querySelector("[data-art-slot='hoggie-level-up'] img")?.getAttribute("src")).toContain("/hoggies/png/level-up.png");
+  expect(render(<LevelUpHoggie label="New discovery" />).innerHTML).toBe("");
+  expect(render(<LevelUpHoggie />).innerHTML).toBe("");
 });
 
 test("fruit picked in the garden is its own line in the wallet, and the garden is a click away (#95)", () => {

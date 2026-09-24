@@ -9,7 +9,7 @@ import { Avatar, Button, Card, Eyebrow, PageHeader, RarityBadge } from "@/compon
 import { useWorkspaceToday } from "@/lib/period";
 import { CATEGORY_LABEL, RARITY_META, type Rarity } from "@/lib/rarity";
 import { useViewer } from "@/lib/viewer";
-import { GainLines } from "@/components/game";
+import { Earnings, GainLines, LevelUpHoggie } from "@/components/game";
 import { SpreePost } from "@/components/SpreePost";
 import type { Id } from "../../convex/_generated/dataModel";
 import { SUPER_SUFFIX, variantBySuffix } from "../../convex/lib/cosmetics";
@@ -312,7 +312,7 @@ export function Playground() {
                       <span className="text-xs text-faint">{new Date(m.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                     </div>
                     <p className="text-[15px] leading-relaxed text-cream/90">{m.text}</p>
-                    {m.earnings && <p className="mt-0.5 text-sm font-semibold text-saffron">{m.earnings}</p>}
+                    {m.earnings && <Earnings text={m.earnings} />}
                     {m.superNote && <p className="mt-1 text-sm text-cream/90">{m.superNote}</p>}
                   </div>
                 </motion.div>
@@ -498,7 +498,7 @@ export function Playground() {
                     initial={{ opacity: 0, scale: 0.9, y: -12 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     transition={{ type: "spring", bounce: m.rarity === "legendary" || m.rarity === "epic" ? 0.55 : 0.25 }}
-                    className={clsx("relative rounded-2xl bg-ink/60 p-4 ring-1 ring-inset", meta.ring, meta.glow)}
+                    className={clsx("relative flow-root rounded-2xl bg-ink/60 p-4 ring-1 ring-inset", meta.ring, meta.glow)}
                   >
                     {m.isNewDiscovery && (m.rarity === "legendary" || m.rarity === "epic" || m.rarity === "rare") && <Burst color={meta.color} />}
                     <div className="mb-1.5 text-[11px] text-faint">
@@ -509,6 +509,7 @@ export function Playground() {
                         {m.superKudos.text}
                       </p>
                     )}
+                    <LevelUpHoggie label={m.gainLabel} />
                     <p className="text-[15px] leading-relaxed whitespace-pre-line">{m.text}</p>
                     <GainLines lines={m.gains} />
                     <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5">

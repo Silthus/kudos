@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "convex/react";
-import { ChevronRight, Coins, Compass, Lock, Network, Sprout } from "lucide-react";
+import { ChevronRight, Compass, Lock, Network, Sprout } from "lucide-react";
 import { Link } from "react-router";
 import { api } from "../../convex/_generated/api";
 import type { CoinBalance } from "../../convex/lib/coins";
@@ -7,6 +7,8 @@ import { GARDEN_LEVEL } from "../../convex/lib/garden";
 import { pointsOf, type Allocation } from "../../convex/lib/skills";
 import { daysBetween } from "../../convex/lib/time";
 import { nextLockedAreas, type LevelProgress } from "../../convex/lib/xp";
+import { HogCoin } from "@/components/HogCoin";
+import { RemoteArt } from "@/components/RemoteArt";
 import { Avatar, Card, CardHeader, Progress } from "@/components/ui";
 
 /**
@@ -54,7 +56,7 @@ export function Wallet({ wallet }: { wallet: CoinBalance }) {
       aria-label={`Hog coins: ${wallet.balance}`}
       className="flex items-start gap-3 rounded-xl border border-saffron/40 bg-saffron/5 px-3.5 py-3 text-sm"
     >
-      <Coins className="mt-1 h-5 w-5 shrink-0 text-saffron" aria-hidden />
+      <HogCoin size={28} className="mt-0.5" />
       <div className="min-w-0">
         <div className="flex items-baseline gap-2">
           <span className="font-display text-2xl font-semibold text-cream tabular">{wallet.balance}</span>
@@ -201,6 +203,25 @@ export function ScoutHints({ today }: { today: string }) {
       )}
     </Card>
   );
+}
+
+/** The giver's earnings reply on the web ("+10 XP · +2 Hog coins"), led by the Hog coin (#101). */
+export function Earnings({ text }: { text: string }) {
+  return (
+    <p className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold text-saffron">
+      <HogCoin size={18} />
+      <span>{text}</span>
+    </p>
+  );
+}
+
+/**
+ * The level-up hoggie beside a level-up DM on the web (#101): PostHog art from PostHog's servers,
+ * nothing if it can't load. Only for DMs labelled "Level up".
+ */
+export function LevelUpHoggie({ label }: { label?: string }) {
+  if (label !== "Level up") return null;
+  return <RemoteArt slot="hoggie-level-up" fit="contain" className="float-right -mt-1 ml-3 h-16 w-16" />;
 }
 
 /**

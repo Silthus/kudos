@@ -91,6 +91,15 @@ test("open, it lists the game items in Hog coins, with items not for sale yet di
   expect(host.textContent).not.toContain("Rewards");
 });
 
+test("your balance and every price carry the Hog coin with Max (#101)", () => {
+  shop = { access: "open", balance: 267, realRewards: false, items: [spreeJoin, skillReset] };
+  const host = render();
+  expect(host.querySelector("h1 [data-hog-coin]")).not.toBeNull();
+  const cards = [...host.querySelectorAll("button[aria-label^='Buy'], button[aria-label^='Skill-tree reset:']")].map((b) => b.closest("article, section, li, div.flex-col") ?? b.parentElement!.parentElement!);
+  expect(cards).toHaveLength(2);
+  for (const card of cards) expect(card.querySelector("[data-hog-coin] [data-art-slot='coin-max']")).not.toBeNull();
+});
+
 test("a negative balance blocks buying and says why", () => {
   shop = { access: "open", balance: -3, realRewards: false, items: [{ ...spreeJoin, affordable: false }] };
   const host = render();

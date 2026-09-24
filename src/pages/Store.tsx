@@ -2,7 +2,7 @@ import clsx from "clsx";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { AnimatePresence, motion } from "motion/react";
-import { ChevronDown, CircleAlert, Clock, Clover, Coins, Flame, Gift, Handshake, HeartHandshake, Info, Lamp, Loader2, MessageCircleQuestion, RotateCcw, Sun, Undo2, Users, Zap } from "lucide-react";
+import { ChevronDown, CircleAlert, Clock, Clover, Flame, Gift, Handshake, HeartHandshake, Info, Lamp, Loader2, MessageCircleQuestion, RotateCcw, Sun, Undo2, Users, Zap } from "lucide-react";
 import { useId, useState } from "react";
 import { Link } from "react-router";
 import { api } from "../../convex/_generated/api";
@@ -13,6 +13,7 @@ import { useViewer } from "@/lib/viewer";
 import { useWorkspaceToday } from "@/lib/period";
 import { Locked } from "@/components/game";
 import { hasItemArt, ItemArt } from "@/components/cosmetics";
+import { HogCoin } from "@/components/HogCoin";
 
 /** The Store's only currency (ADR 0002). */
 export const COIN = "Hog coins";
@@ -106,6 +107,7 @@ export function RewardCard({
         )}
         <div className="flex items-center justify-between gap-3 border-t border-line pt-3">
           <span className="font-display text-xl font-semibold tabular text-saffron">
+            <HogCoin size={20} className="mr-1.5 -mt-0.5" />
             {nf.format(reward.cost)} <span className="text-base">{glyph}</span>
           </span>
           {action}
@@ -266,7 +268,7 @@ function OpenStore({ shop }: { shop: OpenShop }) {
         eyebrow="Store"
         title={
           <>
-            You have <BigNumber value={balance} className={balance < 0 ? "text-down" : "text-saffron"} /> {COIN} to spend
+            You have <HogCoin size={34} className="mr-2 -mt-1" /><BigNumber value={balance} className={balance < 0 ? "text-down" : "text-saffron"} /> {COIN} to spend
           </>
         }
         subtitle="Thoughtful kudos earn Hog coins. Game items are yours the moment you buy them."
@@ -348,6 +350,7 @@ function ItemCard({ item, balance, onBuy, usesLeft }: { item: ShopItem; balance:
       <p className="mt-1 text-sm leading-relaxed text-muted">{item.description}</p>
       <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-3">
         <span className="font-display text-xl font-semibold tabular text-saffron">
+          <HogCoin size={20} className="mr-1.5 -mt-0.5" />
           {nf.format(item.price)} <span className="text-base">{COIN}</span>
         </span>
         {block ? (
@@ -434,7 +437,7 @@ function BuyDialog({ item, live, balance, onClose }: { item: ShopItem | null; li
               className="grid h-20 w-20 place-items-center rounded-3xl bg-saffron/15 ring-1 ring-saffron/30"
               aria-hidden
             >
-              <Coins className="h-10 w-10 text-saffron" />
+              <HogCoin size={48} />
             </motion.span>
             <p className="font-display text-lg font-semibold">{item.name} is yours</p>
             <p className="text-sm text-muted">
@@ -912,7 +915,7 @@ export function StoreBalanceChip({ className }: { className?: string }) {
         className,
       )}
     >
-      <Gift className="h-3.5 w-3.5" />
+      <HogCoin size={14} />
       <span className={clsx("tabular", balance < 0 && "text-down")}>{nf.format(balance)}</span> {COIN} to spend →
     </Link>
   );
