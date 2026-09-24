@@ -56,7 +56,8 @@ export function App() {
           <Route path="/discoveries" element={<Discoveries />} />
           <Route path="/quests" element={<Quests />} />
           <Route path="/skills" element={<Skills />} />
-          {viewer.workspace.storeEnabled && <Route path="/store" element={<Store />} />}
+          {/* The menu shows the Store from level 3; the page exists while the game is on and shows its own locked state. */}
+          {(viewer.workspace.storeEnabled || viewer.workspace.gameEnabled) && <Route path="/store" element={<Store />} />}
           <Route path="/analytics" element={<Analytics />} />
           {viewer.member.isAdmin && <Route path="/admin" element={<Admin />} />}
           {viewer.workspace.isDemo && <Route path="/playground" element={<Playground />} />}

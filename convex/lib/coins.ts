@@ -53,3 +53,9 @@ export function coinBalance(
 export function canSpend(balance: number, cost: number): boolean {
   return balance >= cost;
 }
+
+/** "1 Hog coin", "−3 Hog coins", "1,200 Hog coins": how amounts of coins read everywhere. */
+export function formatCoins(n: number): string {
+  const digits = Math.abs(n).toLocaleString("en-US");
+  return `${n < 0 ? "−" : ""}${digits} Hog coin${Math.abs(n) === 1 ? "" : "s"}`;
+}

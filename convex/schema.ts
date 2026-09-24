@@ -169,7 +169,11 @@ export default defineSchema({
     isDemo: v.boolean(),
     status: v.union(v.literal("active"), v.literal("uninstalled")),
     resettingSince: v.optional(v.number()), // demo only: a reset is in progress
-    storeEnabled: v.optional(v.boolean()), // Rewards Store; undefined = off
+    // The old Rewards Store switch, when it was priced in received kudos (ADR 0001). Never read since
+    // the Store moved to Hog coins (#91, ADR 0002): its prices were never re-set in coins.
+    storeEnabled: v.optional(v.boolean()),
+    // Real rewards (catalog, request → approve → fulfil) in the Store, priced in Hog coins; undefined = off.
+    realRewardsEnabled: v.optional(v.boolean()),
     // When weekly quests were switched off (`until`: back on), oldest first; the last year's only
     // (quests.ts `switchQuests`). Kudos given meanwhile are history but never quest steps.
     questsPauses: v.optional(v.array(v.object({ from: v.number(), until: v.optional(v.number()) }))),
@@ -225,10 +229,11 @@ export default defineSchema({
     longestStreak: v.optional(v.number()),
     lastActiveDay: v.optional(v.string()), // latest dayKey with given > 0
     givenByWeekday: v.optional(v.array(v.number())), // 7 sums, Monday first
-    storeSpent: v.optional(v.number()), // Σ cost of non-refunded redemptions; undefined = 0
-    storeGranted: v.optional(v.number()), // Σ balance adjustments; undefined = 0
-    coinsSpent: v.optional(v.number()), // Hog coins spent (the Store, #91); undefined = 0
-    coinsAdjusted: v.optional(v.number()), // Σ ± admin adjustments of Hog coins (#91); undefined = 0
+    // The received-kudos Store balance (ADR 0001), reset, not converted (ADR 0002): never read since #91.
+    storeSpent: v.optional(v.number()),
+    storeGranted: v.optional(v.number()),
+    coinsSpent: v.optional(v.number()), // Hog coins spent in the Store: items + non-refunded redemptions; undefined = 0
+    coinsAdjusted: v.optional(v.number()), // Σ ± balance adjustments in Hog coins; undefined = 0
     gameHidden: v.optional(v.boolean()), // "Hide the game": no game UI or DMs for them; XP keeps accruing
     adminRemovedBy: v.optional(v.id("members")), // who last removed this member's admin role (four-eyes rule)
   })
@@ -492,6 +497,9 @@ export default defineSchema({
     // Maintained by the redemption helpers in store.ts; undefined = 0.
     openCount: v.optional(v.number()), // pending + approved requests
     fulfilledCount: v.optional(v.number()),
+    // "coins": priced in Hog coins (set on every create and edit since #91). Absent: priced in
+    // received kudos (ADR 0001), so it stays off the shelves until an admin re-saves its price.
+    unit: v.optional(v.literal("coins")),
   }).index("by_workspace_status_cost", ["workspaceId", "status", "cost"]),
 
   // Weekly quests (lib/quests.ts). A board is stored the first time a mutation needs it, so a
@@ -535,6 +543,9 @@ export default defineSchema({
     ),
     requestedAt: v.number(),
     updatedAt: v.number(),
+    // "coins": priced and held in Hog coins (#91). Absent: a request from the received-kudos Store
+    // (ADR 0001), whose cost never touched `coinsSpent`, so a refund gives back no coins.
+    unit: v.optional(v.literal("coins")),
     // The admins' review DMs, rewritten after every step (≤ 20). `own`: the requester's own copy (sole admin).
     adminMessages: v.optional(v.array(v.object({ channel: v.string(), ts: v.string(), own: v.optional(v.boolean()) }))),
   })
@@ -544,8 +555,8 @@ export default defineSchema({
     .index("by_member_status", ["memberId", "status"])
     .index("by_member_reward_status", ["memberId", "rewardId", "status"]),
 
-  // Audited balance changes that aren't recognition (admin corrections, quest rewards). Summed
-  // into members.storeGranted; only grantBalance in store.ts writes this table.
+  // Audited balance changes that aren't recognition (admin corrections, automations). Summed into
+  // members.coinsAdjusted; only grantBalance in store.ts writes this table.
   balanceAdjustments: defineTable({
     workspaceId: v.id("workspaces"),
     memberId: v.id("members"),
@@ -554,9 +565,24 @@ export default defineSchema({
     source: adjustmentSourceValidator, // "system" = quests (#5) or other automations
     by: v.optional(v.id("members")), // the admin who made it; undefined for system grants
     at: v.number(),
+    unit: v.optional(v.literal("coins")), // absent: a received-kudos adjustment (ADR 0001), in no balance
   })
     .index("by_member_at", ["memberId", "at"])
+    .index("by_member_unit_at", ["memberId", "unit", "at"])
     .index("by_workspace_at", ["workspaceId", "at"]),
+
+  // Game items bought in the Store (lib/items.ts): applied instantly, no approval. The price is
+  // added to members.coinsSpent in the same transaction; only buyItem in store.ts writes this table.
+  itemPurchases: defineTable({
+    workspaceId: v.id("workspaces"),
+    memberId: v.id("members"),
+    item: v.string(), // an ItemKey
+    price: v.number(), // Hog coins, as quoted to the member
+    month: v.string(), // "YYYY-MM" in the workspace timezone: monthly limits count by it
+    at: v.number(),
+  })
+    .index("by_member_item_month", ["memberId", "item", "month"])
+    .index("by_workspace", ["workspaceId"]),
 
   slackEvents: defineTable({
     eventId: v.string(),

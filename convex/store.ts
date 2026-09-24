@@ -4,25 +4,101 @@ import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/s
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { requireViewer } from "./lib/access";
+import { canSpend, coinBalance, formatCoins, WALLET_LEVEL } from "./lib/coins";
+import { ITEMS, itemByKey, monthOf, quoteItem, realRewardsOn, SHOP_LEVEL, shopAccess } from "./lib/items";
 import {
-  balanceOf,
   isOpen,
   MAX_ACTIVE_REWARDS,
   MAX_OPEN_REDEMPTIONS,
   REDEMPTION_BOUNDS,
-  storeOpen,
   transition,
   type RedemptionAction,
   type RedemptionStatus,
   validateAdjustment,
 } from "./lib/store";
+import { parseToday } from "./lib/time";
+import { GAME_AREAS } from "./lib/xp";
+import { playerOf } from "./game";
+import { type Buyer, ITEM_EFFECTS, itemsBought } from "./items";
+import { sendGains } from "./gains";
 import { adjustmentSourceValidator, redemptionStatusValidator } from "./schema";
 
 /**
- * The Rewards Store for members. Like `engine.ts` for kudos, this module is the one
- * place balances, stock and redemptions change: every path (web, Slack, demo) goes
- * through `requestRedemption` and `transitionRedemption`.
+ * The Store (#91, ADR 0002), priced only in Hog coins. Like `engine.ts` for kudos, this module is
+ * the one place a coin balance goes down or is adjusted, and stock and redemptions change: every
+ * path (web, Slack, demo) goes through `purchaseItem`, `requestRedemption`, `transitionRedemption`
+ * and `grantBalance`. Each reads the member afresh and checks the balance in the transaction that
+ * spends it, so two purchases racing for the same coins can't both win.
  */
+
+/** A member's Hog coins as they stand in this transaction (a fresh read, never a caller's copy). */
+export async function coinWallet(ctx: QueryCtx, memberId: Id<"members">) {
+  const member = await ctx.db.get(memberId);
+  if (!member) throw new ConvexError("Member not found.");
+  const player = await playerOf(ctx, memberId);
+  return { member, player, level: player?.level ?? 1, coins: coinBalance(player ?? { level: 1 }, member) };
+}
+
+/** Why this member can't shop, as a sentence, or null when the Store is open to them. */
+function shopBlocker(workspace: Doc<"workspaces">, member: Doc<"members">, level: number): string | null {
+  switch (shopAccess(workspace, member, level)) {
+    case "off":
+      return "The game isn't on in this workspace, so there's no Store.";
+    case "hidden":
+      return "You've hidden the game. Show it again on your Me page to shop.";
+    case "locked":
+      return `The Store opens at level ${SHOP_LEVEL}. You're level ${level}.`;
+    case "open":
+      return null;
+  }
+}
+
+/** Spending needs the whole price; a balance below zero (after a revoke) blocks it altogether. */
+function assertAffordable(balance: number, price: number) {
+  if (canSpend(balance, price)) return;
+  if (balance < 0) throw new ConvexError("Your balance is below zero after a revoke. Spending waits until it's above zero again.");
+  const short = price - balance;
+  throw new ConvexError(`You need ${short.toLocaleString("en-US")} more Hog coin${short === 1 ? "" : "s"} for this.`);
+}
+
+/**
+ * Buys a game item (lib/items.ts): it applies instantly, with no approval. Every check, the debit,
+ * the purchase row and the item's effect happen in this one transaction.
+ */
+export async function purchaseItem(
+  ctx: MutationCtx,
+  { workspace, member: caller, item: key, expectedPrice, now }: { workspace: Doc<"workspaces">; member: Doc<"members">; item: string; expectedPrice: number; now: number },
+) {
+  if (caller.workspaceId !== workspace._id || caller.isBot) throw new ConvexError("Member not found.");
+  const { member, player, level, coins: wallet } = await coinWallet(ctx, caller._id);
+  const blocker = shopBlocker(workspace, member, level);
+  if (blocker) throw new ConvexError(blocker);
+  const item = itemByKey(key);
+  if (!item || !player) throw new ConvexError("That item isn't in the Store.");
+  const effect = ITEM_EFFECTS[item.key];
+  const unavailable = await effect.unavailable?.(ctx, { workspace, member, player });
+  if (unavailable) throw new ConvexError(`${item.name}: ${unavailable}`);
+  const month = monthOf(now, workspace.timezone);
+  const bought = { ever: await itemsBought(ctx, member._id, item.key), thisMonth: await itemsBought(ctx, member._id, item.key, month) };
+  const { price, limitReached } = quoteItem(item, bought, player);
+  if (limitReached) throw new ConvexError(`${item.name} is ${item.perMonth} a month, and you have them all. More next month.`);
+  if (expectedPrice !== price) throw new ConvexError(`The price changed to ${formatCoins(price)}. Take another look.`);
+  assertAffordable(wallet.balance, price);
+
+  const purchaseId = await ctx.db.insert("itemPurchases", { workspaceId: workspace._id, memberId: member._id, item: item.key, price, month, at: now });
+  await ctx.db.patch(member._id, { coinsSpent: wallet.spent + price });
+  await effect.apply(ctx, { workspace, member, player, now, month, price }, purchaseId);
+  // An item gained is a gain DM (#99, §G13); the pipeline decides who sees it and how it reads.
+  await sendGains(ctx, workspace, member._id, [{ kind: "item", name: item.name, description: item.description }]);
+  // The App Home shows the balance; keep it current (the demo has no Slack).
+  if (!workspace.isDemo && !member.deactivated) {
+    await ctx.scheduler.runAfter(0, internal.slack.refreshHome, { workspaceId: workspace._id, slackUserId: member.slackUserId });
+  }
+  return { balance: wallet.balance - price };
+}
+
+/** Whether a reward's price is in Hog coins; one from the received-kudos Store waits for an admin to re-save it. */
+export const pricedInCoins = (reward: Pick<Doc<"rewards">, "unit">) => reward.unit === "coins";
 
 /** Active rewards, cheapest first. Reads one more than the cap so callers can detect a full catalog. */
 export async function activeRewards(ctx: QueryCtx, workspaceId: Id<"workspaces">) {
@@ -106,7 +182,7 @@ async function notifySlack(
   workspace: Doc<"workspaces">,
   redemptionId: Id<"redemptions">,
   event: "requested" | Exclude<RedemptionStatus, "pending">,
-  balance: number,
+  balance: number | null,
 ) {
   if (workspace.isDemo) return;
   await ctx.scheduler.runAfter(0, internal.slack.notifyRedemption, { redemptionId, event, balance });
@@ -127,12 +203,16 @@ export async function requestRedemption(
     now,
   }: { workspace: Doc<"workspaces">; member: Doc<"members">; rewardId: Id<"rewards">; expectedCost: number; answer?: string; now: number },
 ) {
-  const glyph = workspace.emojiGlyph;
-  if (!storeOpen(workspace)) throw new ConvexError("The rewards store isn't open in this workspace.");
+  if (!realRewardsOn(workspace)) throw new ConvexError("Real rewards aren't on in this workspace.");
+  if (member.workspaceId !== workspace._id || member.isBot) throw new ConvexError("Member not found.");
+  const { member: fresh, level, coins: wallet } = await coinWallet(ctx, member._id);
+  const blocker = shopBlocker(workspace, fresh, level);
+  if (blocker) throw new ConvexError(blocker);
   const reward = await ctx.db.get(rewardId);
   if (!reward || reward.workspaceId !== workspace._id) throw new ConvexError("Reward not found.");
   if (reward.status !== "active") throw new ConvexError("This reward isn't in the store any more.");
-  if (expectedCost !== reward.cost) throw new ConvexError(`The price changed to ${reward.cost} ${glyph}. Take another look.`);
+  if (!pricedInCoins(reward)) throw new ConvexError("This reward's price is being reviewed. Try again later.");
+  if (expectedCost !== reward.cost) throw new ConvexError(`The price changed to ${formatCoins(reward.cost)}. Take another look.`);
   if (reward.stock !== undefined && reward.stock <= 0) throw new ConvexError("Sold out. Someone got the last one.");
   if (reward.maxPerMember !== undefined && (await countedRedemptions(ctx, member._id, reward._id, reward.maxPerMember)) >= reward.maxPerMember) {
     throw new ConvexError(
@@ -150,8 +230,8 @@ export async function requestRedemption(
     if (!reply) throw new ConvexError(`Answer “${reward.prompt}” to redeem this.`);
     if (reply.length > REDEMPTION_BOUNDS.answer) throw new ConvexError(`Keep your answer to ${REDEMPTION_BOUNDS.answer} characters.`);
   }
-  const balance = balanceOf(member);
-  if (balance < reward.cost) throw new ConvexError(`You need ${reward.cost - balance} more ${glyph} for this.`);
+  const { balance } = wallet;
+  assertAffordable(balance, reward.cost);
 
   const redemptionId = await ctx.db.insert("redemptions", {
     workspaceId: workspace._id,
@@ -168,8 +248,9 @@ export async function requestRedemption(
     history: [{ status: "pending", at: now, by: member._id }],
     requestedAt: now,
     updatedAt: now,
+    unit: "coins",
   });
-  await ctx.db.patch(member._id, { storeSpent: (member.storeSpent ?? 0) + reward.cost });
+  await ctx.db.patch(member._id, { coinsSpent: wallet.spent + reward.cost });
   await ctx.db.patch(reward._id, {
     openCount: (reward.openCount ?? 0) + 1,
     ...(reward.stock !== undefined ? { stock: reward.stock - 1 } : {}),
@@ -230,18 +311,36 @@ export async function transitionRedemption(
   }
   const requester = await ctx.db.get(redemption.memberId);
   if (requester) {
-    let balance = balanceOf(requester);
-    if (refund) {
-      await ctx.db.patch(requester._id, { storeSpent: (requester.storeSpent ?? 0) - redemption.cost });
+    const { coins: wallet, level } = await coinWallet(ctx, requester._id);
+    let balance = wallet.balance;
+    // A request from the received-kudos Store (no unit) never touched the coins, so it gives none back.
+    if (refund && redemption.unit === "coins") {
+      await ctx.db.patch(requester._id, { coinsSpent: wallet.spent - redemption.cost });
       balance += redemption.cost;
     }
-    if (to !== "pending") await notifySlack(ctx, workspace, redemption._id, to, balance);
+    if (to !== "pending") await notifySlack(ctx, workspace, redemption._id, to, walletShown(workspace, requester, level) ? balance : null);
   }
   // Every admin's review DM tells the same story as the queue, whichever way the step came in.
   if (!workspace.isDemo && redemption.adminMessages?.length) {
     await ctx.scheduler.runAfter(0, internal.slack.syncAdminMessages, { redemptionId: redemption._id });
   }
   return { status: to };
+}
+
+/**
+ * Erases a game item purchase as if it was never made: the item is taken back and its price
+ * returns to the balance. Only the demo's "Hand back" uses it, and only for items that can be
+ * taken back (`undo`); returns whether it did.
+ */
+export async function undoPurchase(ctx: MutationCtx, purchase: Doc<"itemPurchases">) {
+  const item = itemByKey(purchase.item);
+  const undo = item && ITEM_EFFECTS[item.key].undo;
+  if (!undo) return false;
+  await undo(ctx, purchase);
+  const member = await ctx.db.get(purchase.memberId);
+  if (member) await ctx.db.patch(member._id, { coinsSpent: (member.coinsSpent ?? 0) - purchase.price });
+  await ctx.db.delete(purchase._id);
+  return true;
 }
 
 /**
@@ -252,7 +351,9 @@ export async function transitionRedemption(
 export async function undoRedemption(ctx: MutationCtx, redemption: Doc<"redemptions">) {
   const refunded = redemption.status === "declined" || redemption.status === "cancelled";
   const requester = await ctx.db.get(redemption.memberId);
-  if (requester && !refunded) await ctx.db.patch(requester._id, { storeSpent: (requester.storeSpent ?? 0) - redemption.cost });
+  if (requester && !refunded && redemption.unit === "coins") {
+    await ctx.db.patch(requester._id, { coinsSpent: (requester.coinsSpent ?? 0) - redemption.cost });
+  }
   const reward = await ctx.db.get(redemption.rewardId);
   if (reward) {
     await ctx.db.patch(reward._id, {
@@ -265,9 +366,9 @@ export async function undoRedemption(ctx: MutationCtx, redemption: Doc<"redempti
 }
 
 /**
- * An audited balance change that isn't recognition: an admin's correction or an automation's
- * grant (`source: "system"`, the hook for quest rewards). It moves `storeGranted` only, so
- * received totals, leaderboards and analytics never see it. Callers do their own authz; this
+ * An audited Hog coin adjustment: an admin's correction or an automation's grant (`source:
+ * "system"`). It moves `coinsAdjusted` only, never XP, levels or kudos, so received totals,
+ * leaderboards and analytics never see it. Callers do their own authz; this
  * checks the member belongs to the workspace and enforces the bounds.
  */
 export async function grantBalance(
@@ -299,7 +400,7 @@ export async function grantBalance(
   }
   const valid = validateAdjustment({ amount, reason });
   // Re-read: a caller looping over grants may hold a document from before the previous one.
-  const fresh = (await ctx.db.get(member._id))!;
+  const { member: fresh, coins: wallet } = await coinWallet(ctx, member._id);
   const adjustmentId = await ctx.db.insert("balanceAdjustments", {
     workspaceId: workspace._id,
     memberId: member._id,
@@ -308,14 +409,14 @@ export async function grantBalance(
     source,
     ...(by ? { by: by._id } : {}),
     at: now,
+    unit: "coins",
   });
-  const storeGranted = (fresh.storeGranted ?? 0) + valid.amount;
-  await ctx.db.patch(member._id, { storeGranted });
+  await ctx.db.patch(member._id, { coinsAdjusted: wallet.adjusted + valid.amount });
   // The App Home shows the balance; keep it current (the demo has no Slack).
   if (!workspace.isDemo && !fresh.deactivated) {
     await ctx.scheduler.runAfter(0, internal.slack.refreshHome, { workspaceId: workspace._id, slackUserId: member.slackUserId });
   }
-  return { adjustmentId, balance: balanceOf({ ...fresh, storeGranted }) };
+  return { adjustmentId, balance: wallet.balance + valid.amount };
 }
 
 /** Loads a redemption, treating one from another workspace as missing. */
@@ -379,7 +480,93 @@ const catalogReward = v.object({
   limitReached: v.boolean(),
 });
 
-/** What the signed-in member can spend and what's on the shelves. The balance is theirs alone. */
+/** Whether the member sees their Hog coins at all: the game is shown to them and the wallet is open (level 3). */
+function walletShown(workspace: Doc<"workspaces">, member: Doc<"members">, level: number) {
+  const access = shopAccess(workspace, member, level);
+  return (access === "open" || access === "locked") && level >= WALLET_LEVEL;
+}
+
+const shopItem = v.object({
+  key: v.string(),
+  name: v.string(),
+  description: v.string(),
+  price: v.number(),
+  perMonth: v.union(v.number(), v.null()),
+  boughtThisMonth: v.number(),
+  affordable: v.boolean(),
+  // Why it can't be bought now (not for sale yet, or the monthly limit), or null.
+  blocked: v.union(v.string(), v.null()),
+});
+
+/**
+ * Every game item as one member sees it in a workspace month ("YYYY-MM"): its price for them, how
+ * many they bought this month, and why they can't buy it now (not for sale yet, or the monthly
+ * limit), if so. Shared by the web Store and `/kudos store`, so they never disagree.
+ */
+export async function shopItems(ctx: QueryCtx, buyer: Buyer, month: string, balance: number) {
+  return await Promise.all(
+    ITEMS.map(async (item) => {
+      const memberId = buyer.member._id;
+      const bought = { ever: await itemsBought(ctx, memberId, item.key), thisMonth: await itemsBought(ctx, memberId, item.key, month) };
+      const { price, limitReached } = quoteItem(item, bought, buyer.player);
+      const unavailable = (await ITEM_EFFECTS[item.key].unavailable?.(ctx, buyer)) ?? null;
+      return {
+        key: item.key,
+        name: item.name,
+        description: item.description,
+        price,
+        perMonth: item.perMonth ?? null,
+        boughtThisMonth: bought.thisMonth,
+        affordable: canSpend(balance, price),
+        blocked: unavailable ?? (limitReached ? `${item.perMonth} a month: you have them all. More next month.` : null),
+      };
+    }),
+  );
+}
+
+/**
+ * The signed-in member's Store: the door (off, hidden, or locked below level 5 with how to get
+ * there) or the game items with their prices and the balance. `today` is the viewer's workspace
+ * day, so monthly limits roll over at midnight without the query reading the clock. Below level 3
+ * not even the balance leaves the server (§G1).
+ */
+export const shop = query({
+  args: { today: v.string() },
+  returns: v.union(
+    v.object({ access: v.literal("off") }),
+    v.object({ access: v.literal("hidden") }),
+    v.object({ access: v.literal("locked"), level: v.number(), unlockLevel: v.number(), how: v.string(), balance: v.union(v.number(), v.null()) }),
+    v.object({ access: v.literal("open"), balance: v.number(), realRewards: v.boolean(), items: v.array(shopItem) }),
+  ),
+  handler: async (ctx, { today }) => {
+    const { workspace, member } = await requireViewer(ctx);
+    const { player, level, coins: wallet } = await coinWallet(ctx, member._id);
+    const access = shopAccess(workspace, member, level);
+    if (access === "off") return { access: "off" as const };
+    if (access === "hidden") return { access: "hidden" as const };
+    if (access === "locked" || !player) {
+      const how = GAME_AREAS.find((a) => a.key === "store")!.how;
+      return { access: "locked" as const, level, unlockLevel: SHOP_LEVEL, how, balance: walletShown(workspace, member, level) ? wallet.balance : null };
+    }
+    const items = await shopItems(ctx, { workspace, member, player }, parseToday(today).slice(0, 7), wallet.balance);
+    return { access: "open" as const, balance: wallet.balance, realRewards: realRewardsOn(workspace), items };
+  },
+});
+
+/** Buys a game item for Hog coins. It applies instantly: no approval. */
+export const buyItem = mutation({
+  args: { item: v.string(), expectedPrice: v.number() },
+  returns: v.object({ balance: v.number() }),
+  handler: async (ctx, { item, expectedPrice }) => {
+    const { workspace, member } = await requireViewer(ctx);
+    return await purchaseItem(ctx, { workspace, member, item, expectedPrice, now: Date.now() });
+  },
+});
+
+/**
+ * Real rewards: what the signed-in member can spend and what's on the shelves, while the admin
+ * switch is on and the Store is open to them (level 5). The balance is theirs alone.
+ */
 export const catalog = query({
   args: {},
   returns: v.union(
@@ -394,9 +581,10 @@ export const catalog = query({
   ),
   handler: async (ctx) => {
     const { workspace, member } = await requireViewer(ctx);
-    if (!storeOpen(workspace)) return { enabled: false as const };
-    const balance = balanceOf(member);
-    const rewards = (await activeRewards(ctx, workspace._id)).slice(0, MAX_ACTIVE_REWARDS);
+    const { level, coins: wallet } = await coinWallet(ctx, member._id);
+    if (!realRewardsOn(workspace) || shopAccess(workspace, member, level) !== "open") return { enabled: false as const };
+    const { balance } = wallet;
+    const rewards = (await activeRewards(ctx, workspace._id)).slice(0, MAX_ACTIVE_REWARDS).filter(pricedInCoins);
     return {
       enabled: true as const,
       balance,
@@ -415,7 +603,7 @@ export const catalog = query({
             maxPerMember: r.maxPerMember,
             prompt: r.prompt,
             yourCount,
-            affordable: balance >= r.cost,
+            affordable: canSpend(balance, r.cost),
             soldOut: r.stock !== undefined && r.stock <= 0,
             limitReached: r.maxPerMember !== undefined && yourCount !== null && yourCount >= r.maxPerMember,
           };
@@ -425,13 +613,14 @@ export const catalog = query({
   },
 });
 
-/** Just the signed-in member's balance (null while the store is closed), for small surfaces like Me. */
+/** Just the signed-in member's Hog coins (null until their wallet is open), for small surfaces. */
 export const balance = query({
   args: {},
   returns: v.union(v.number(), v.null()),
   handler: async (ctx) => {
     const { workspace, member } = await requireViewer(ctx);
-    return storeOpen(workspace) ? balanceOf(member) : null;
+    const { level, coins: wallet } = await coinWallet(ctx, member._id);
+    return walletShown(workspace, member, level) ? wallet.balance : null;
   },
 });
 
@@ -447,6 +636,8 @@ const myRedemption = v.object({
   requestedAt: v.number(),
   updatedAt: v.number(),
   history: v.array(historyEntryValidator),
+  // Made in the received-kudos Store: its cost was kudos, and a refund gives back no coins.
+  legacy: v.boolean(),
 });
 
 /** The signed-in member's own requests, newest first. There is no way to read anyone else's. */
@@ -476,6 +667,7 @@ export const myRedemptions = query({
           requestedAt: r.requestedAt,
           updatedAt: r.updatedAt,
           history: await people.history(r),
+          legacy: r.unit !== "coins",
         })),
       ),
     };
@@ -483,18 +675,20 @@ export const myRedemptions = query({
 });
 
 /**
- * The signed-in member's own balance adjustments, newest first ("+10 🌮 from Lena"). Empty while
- * the store is closed: an adjustment list next to a hidden balance would hint at it.
+ * The signed-in member's own Hog coin adjustments, newest first ("+10 Hog coins from Lena"). Empty
+ * until their wallet is open: an adjustment list next to a hidden balance would hint at it. Old
+ * received-kudos adjustments (no unit) were reset with that balance, so they're left out.
  */
 export const myAdjustments = query({
   args: { paginationOpts: paginationOptsValidator },
   returns: paginationResultValidator(adjustmentValidator),
   handler: async (ctx, { paginationOpts }) => {
     const { workspace, member } = await requireViewer(ctx);
-    if (!storeOpen(workspace)) return { page: [], isDone: true, continueCursor: "" };
+    const { level } = await coinWallet(ctx, member._id);
+    if (!walletShown(workspace, member, level)) return { page: [], isDone: true, continueCursor: "" };
     const result = await ctx.db
       .query("balanceAdjustments")
-      .withIndex("by_member_at", (q) => q.eq("memberId", member._id))
+      .withIndex("by_member_unit_at", (q) => q.eq("memberId", member._id).eq("unit", "coins"))
       .order("desc")
       .paginate(paginationOpts);
     const people = peopleCache(ctx);

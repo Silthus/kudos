@@ -17,8 +17,11 @@ import { DEMO_SETTINGS } from "./lib/settings";
 import { earningsText } from "./lib/xp";
 import { gainLabel, gainText } from "./lib/gains";
 import { fnv1a, mulberry32 } from "./lib/random";
-import { balanceOf, validateRewardInput } from "./lib/store";
-import { grantBalance, requestRedemption, transitionRedemption, undoRedemption } from "./store";
+import { validateRewardInput } from "./lib/store";
+import { canSpend } from "./lib/coins";
+import { SHOP_LEVEL } from "./lib/items";
+import { playerOf } from "./game";
+import { coinWallet, grantBalance, requestRedemption, transitionRedemption, undoPurchase, undoRedemption } from "./store";
 
 const DEMO_TEAM = "T_DEMO_LUMEN";
 export const DEMO_YOU = "UDEMOYOU";
@@ -307,7 +310,7 @@ export const seedHistory = internalMutation({
       await ctx.scheduler.runAfter(0, internal.quests.seedDemoHistory, { workspaceId, resetAt });
       // The demo year is played through the game's rules, like switching the game on would.
       await ctx.scheduler.runAfter(0, internal.game.rebuildWorkspace, { workspaceId, resetAt });
-      // Balances are what people received, so the store opens once the whole history is in.
+      // Balances are Hog coins, so the store story waits for the game rebuild (seedStore polls for it).
       await ctx.scheduler.runAfter(0, internal.demo.seedStore, { workspaceId, resetAt });
     }
     return null;
@@ -316,29 +319,44 @@ export const seedHistory = internalMutation({
 
 const HOUR_MS = 3_600_000;
 
+/** How long `seedStore` waits for the game rebuild to give the story's people their coins. */
+const STORE_SEED_WAIT = { attempts: 90, everyMs: 2_000 };
+
 /**
- * Opens the demo's rewards store: the catalog, then a year of the team spending what they
- * received, told through the same helpers the web and Slack use, so every balance, stock and
- * count holds. A step someone couldn't have afforded by then is left out of the story.
+ * Opens the demo's Store with real rewards on (#17, #91): the catalog, then a year of the team
+ * spending Hog coins, told through the same helpers the web and Slack use, so every balance, stock
+ * and count holds. A step someone couldn't have afforded by then, or taken before the Store opened
+ * to them at level 5, is left out of the story. Coins come from the game rebuild, which runs one
+ * member per transaction, so this waits until everyone in the story is a player.
  */
 export const seedStore = internalMutation({
   // `resetAt`: the reset this seed belongs to (the workspace's `resettingSince` when it started).
-  args: { workspaceId: v.id("workspaces"), resetAt: v.optional(v.number()) },
+  args: { workspaceId: v.id("workspaces"), resetAt: v.optional(v.number()), attempt: v.optional(v.number()) },
   returns: v.null(),
-  handler: async (ctx, { workspaceId, resetAt }) => {
+  handler: async (ctx, { workspaceId, resetAt, attempt = 0 }) => {
     const existing = await ctx.db.get(workspaceId);
     if (!existing?.isDemo) return null;
     // A newer reset is wiping the workspace: its own seed tells the story once the history is in.
     if (existing.resettingSince !== undefined && existing.resettingSince !== resetAt) return null;
     const stocked = await ctx.db.query("rewards").withIndex("by_workspace_status_cost", (q) => q.eq("workspaceId", workspaceId)).first();
     if (stocked) return null; // already seeded since the last reset
-    await ctx.db.patch(workspaceId, { storeEnabled: true });
-    const workspace = (await ctx.db.get(workspaceId))!;
     const members = await ctx.db
       .query("members")
       .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspaceId))
       .take(100);
     const ids = new Map(members.map((m) => [m.slackUserId, m._id]));
+    const cast = new Set([...DEMO_REDEMPTIONS.map((s) => s.who), ...DEMO_ADJUSTMENTS.map((a) => a.who)]);
+    const waiting = [];
+    for (const slackUserId of cast) {
+      const id = ids.get(slackUserId);
+      if (id && !(await playerOf(ctx, id))) waiting.push(slackUserId);
+    }
+    if (waiting.length > 0 && attempt < STORE_SEED_WAIT.attempts) {
+      await ctx.scheduler.runAfter(STORE_SEED_WAIT.everyMs, internal.demo.seedStore, { workspaceId, resetAt, attempt: attempt + 1 });
+      return null;
+    }
+    await ctx.db.patch(workspaceId, { realRewardsEnabled: true });
+    const workspace = (await ctx.db.get(workspaceId))!;
     const fresh = async (slackUserId: string) => (await ctx.db.get(ids.get(slackUserId)!))!;
     const lena = await fresh(DEMO_LENA);
     // The four-eyes rule only counts admins who signed in: Lena has, so she decides the visitor's requests.
@@ -360,7 +378,7 @@ export const seedStore = internalMutation({
     const rewardIds = new Map<string, Id<"rewards">>();
     for (const input of DEMO_REWARDS) {
       const reward = validateRewardInput(input);
-      const id = await ctx.db.insert("rewards", { workspaceId, ...reward, status: "active", createdBy: lena._id, updatedAt: startOfDayUtc(fromDay, timezone) });
+      const id = await ctx.db.insert("rewards", { workspaceId, ...reward, unit: "coins", status: "active", createdBy: lena._id, updatedAt: startOfDayUtc(fromDay, timezone) });
       rewardIds.set(reward.name, id);
     }
 
@@ -373,11 +391,13 @@ export const seedStore = internalMutation({
       const rewardId = rewardIds.get(story.reward)!;
       const reward = (await ctx.db.get(rewardId))!;
       const member = await fresh(story.who);
-      // Only spending what they'd received by then: received kudos build up over the year. A
-      // refunded step never spends, so the story keeps its declines and cancellations.
+      const { level, coins } = await coinWallet(ctx, member._id);
+      if (level < SHOP_LEVEL) continue;
+      // Only spending what they'd earned by then: coins build up over the year. A refunded step
+      // never spends, so the story keeps its declines and cancellations.
       const refunded = story.outcome === "declined" || story.outcome === "cancelled";
-      const earned = member.totalReceived * ("share" in story.at ? story.at.share : 1) + (member.storeGranted ?? 0);
-      if (balanceOf(member) < reward.cost || (!refunded && (member.storeSpent ?? 0) + reward.cost > earned)) continue;
+      const earned = (coins.fromKudos + coins.fromLevels) * ("share" in story.at ? story.at.share : 1) + coins.adjusted;
+      if (!canSpend(coins.balance, reward.cost) || (!refunded && coins.spent + reward.cost > earned)) continue;
       const requestedAt = "share" in story.at ? clock.during(dayOf(story.at.share)) : clock.queued(story.at.workdaysAgo);
       const { redemptionId } = await requestRedemption(ctx, { workspace, member, rewardId, expectedCost: reward.cost, answer: story.answer, now: requestedAt });
       await tellStory(ctx, workspace, redemptionId, story, clock);
@@ -762,8 +782,9 @@ export const refillAllowance = mutation({
 const madeLive = (r: Doc<"redemptions">) => r._creationTime - r.requestedAt < 60_000;
 
 /**
- * Everyone shares the demo user, so anyone can hand back the rewards visitors redeemed: their
- * cost and stock return and the requests disappear. The seeded history stays.
+ * Everyone shares the demo user, so anyone can hand back what visitors bought: rewards they
+ * redeemed (their cost and stock return and the requests disappear) and game items (their price
+ * returns). The seeded history stays.
  */
 export const handBackRewards = mutation({
   args: {},
@@ -776,6 +797,11 @@ export const handBackRewards = mutation({
       .order("desc")
       .take(200);
     for (const redemption of requests.filter(madeLive)) await undoRedemption(ctx, redemption);
+    const purchases = await ctx.db
+      .query("itemPurchases")
+      .withIndex("by_member_item_month", (q) => q.eq("memberId", member._id))
+      .take(200);
+    for (const purchase of purchases) await undoPurchase(ctx, purchase);
     return null;
   },
 });
@@ -828,6 +854,7 @@ const DEMO_TABLES = [
   "rewards",
   "redemptions",
   "balanceAdjustments",
+  "itemPurchases",
   "notifications",
 ] as const;
 
@@ -863,6 +890,8 @@ async function demoRows(ctx: MutationCtx, workspaceId: Id<"workspaces">, table: 
       return await ctx.db.query("redemptions").withIndex("by_workspace_status_requestedAt", (q) => q.eq("workspaceId", workspaceId)).take(1000);
     case "balanceAdjustments":
       return await ctx.db.query("balanceAdjustments").withIndex("by_workspace_at", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+    case "itemPurchases":
+      return await ctx.db.query("itemPurchases").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(1000);
     case "notifications":
       return [];
   }

@@ -6,10 +6,10 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { revokeKudosRow } from "./engine";
 import { switchQuests } from "./quests";
 import { anchorSuccessBaseline } from "./analytics";
-import { gameOn, switchGame } from "./game";
+import { gameOn, playerOf, switchGame } from "./game";
 import { assertNotDemo, canSeeReceived, publicSettings, requireAdmin } from "./lib/access";
 import { siteUrl } from "./lib/slack";
-import { balanceOf, storeOpen } from "./lib/store";
+import { coinBalance } from "./lib/coins";
 import { receivedVisibilityValidator } from "./schema";
 import { dayKeyFor } from "./lib/time";
 
@@ -26,8 +26,6 @@ export const overview = query({
     return {
       workspace: { _id: workspace._id, name: workspace.name, isDemo: workspace.isDemo, slackTeamId: workspace.slackTeamId },
       settings: publicSettings(workspace),
-      // Not part of `settings`: the settings form posts that object back to `updateSettings`.
-      storeEnabled: Boolean(workspace.storeEnabled),
       slack: {
         connected: Boolean(install),
         botUserId: install?.botUserId ?? null,
@@ -85,9 +83,6 @@ export const updateSettings = mutation({
       throw new ConvexError("Daily allowance must be a whole number between 1 and 100.");
     }
     if (!validTimezone(args.timezone)) throw new ConvexError("Unknown timezone.");
-    if (args.receivedVisibility === "hidden" && workspace.storeEnabled) {
-      throw new ConvexError("Turn off the store before hiding received kudos.");
-    }
     const glyph = args.emojiGlyph.trim();
     if (glyph.length === 0 || glyph.length > 16) throw new ConvexError("Pick an emoji to show in the web app.");
     const unitSingular = args.unitSingular.trim();
@@ -123,10 +118,10 @@ export const members = query({
       .query("members")
       .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id))
       .take(2000);
-    return rows
-      .filter((m) => !m.isBot)
-      .sort((a, b) => Number(a.deactivated) - Number(b.deactivated) || b.totalGiven - a.totalGiven)
-      .map((m) => ({
+    const coinsShown = gameOn(workspace);
+    const people = rows.filter((m) => !m.isBot).sort((a, b) => Number(a.deactivated) - Number(b.deactivated) || b.totalGiven - a.totalGiven);
+    return await Promise.all(
+      people.map(async (m) => ({
         _id: m._id,
         name: m.name,
         title: m.title ?? null,
@@ -139,10 +134,11 @@ export const members = query({
         totalReceived: canSeeReceived(viewer, m._id) ? m.totalReceived : null,
         totalMaxedDays: m.totalMaxedDays,
         lastGivenAt: m.lastGivenAt ?? null,
-        // Admins see balances while the store is open, even under "Only me" (spec D4: they
-        // decide on requests). Closed, a balance would just be a received count in disguise.
-        balance: storeOpen(workspace) ? balanceOf(m) : null,
-      }));
+        // Hog coins (ADR 0002) are private to the member and admins, whatever received visibility
+        // says: they come from giving. None while the game is off.
+        balance: coinsShown ? coinBalance((await playerOf(ctx, m._id)) ?? { level: 1 }, m).balance : null,
+      })),
+    );
   },
 });
 

@@ -295,9 +295,13 @@ describe("their store requests", () => {
       }),
     );
     await t.run(async (ctx) => {
-      await ctx.db.patch(team.workspaceId, { storeEnabled: true });
-      await ctx.db.patch(xavi, { totalReceived: 100 });
-      await ctx.db.patch(team.ben, { totalReceived: 100 });
+      await ctx.db.patch(team.workspaceId, { gameEnabled: true, realRewardsEnabled: true });
+      // Level-5 players with 100 Hog coins each: the Store opens at level 5.
+      for (const memberId of [xavi, team.ben]) {
+        const existing = await ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", memberId)).unique();
+        if (existing) await ctx.db.patch(existing._id, { xp: 350, level: 5, coins: 60 });
+        else await ctx.db.insert("players", { workspaceId: team.workspaceId, memberId, since: 0, xp: 350, level: 5, coins: 60 });
+      }
     });
   });
   afterEach(() => vi.unstubAllEnvs());
@@ -305,7 +309,7 @@ describe("their store requests", () => {
   async function addReward(name: string, stock?: number) {
     return await t.run((ctx) =>
       ctx.db.insert("rewards", {
-        workspaceId: team.workspaceId, name, emoji: "☕", cost: 10, status: "active", createdBy: team.ana, updatedAt: Date.now(),
+        workspaceId: team.workspaceId, name, emoji: "☕", cost: 10, unit: "coins", status: "active", createdBy: team.ana, updatedAt: Date.now(),
         ...(stock !== undefined ? { stock } : {}),
       }),
     );
@@ -369,7 +373,7 @@ describe("their store requests", () => {
     expect(await t.run((ctx) => ctx.db.get(limited))).toMatchObject({ stock: 2, openCount: 1 });
     expect(await t.run((ctx) => ctx.db.get(unlimited))).toMatchObject({ fulfilledCount: 0 });
     expect((await t.run((ctx) => ctx.db.query("redemptions").collect())).map((r) => r._id)).toEqual([bens]);
-    expect(await t.run((ctx) => ctx.db.get(team.ben))).toMatchObject({ storeSpent: 10 });
+    expect(await t.run((ctx) => ctx.db.get(team.ben))).toMatchObject({ coinsSpent: 10 });
   });
 
   test("the admins' review DMs are retired, and a click on one answers only the clicker", async () => {

@@ -3,7 +3,9 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { memberships, publicSettings } from "./lib/access";
 import { siteUrl } from "./lib/slack";
-import { storeOpen } from "./lib/store";
+import { WALLET_LEVEL } from "./lib/coins";
+import { realRewardsOn } from "./lib/items";
+import { gameShownTo, playerOf } from "./game";
 
 /** Who is looking at the web app, and what they're allowed to see. */
 export const viewer = query({
@@ -43,7 +45,10 @@ export const viewer = query({
         iconUrl: workspace.iconUrl,
         isDemo: workspace.isDemo,
         ...publicSettings(workspace),
-        storeEnabled: storeOpen(workspace),
+        // The Store is the place to spend Hog coins, so it appears with the wallet (level 3),
+        // visible but locked until level 5 (§G1); never while the game is off or hidden.
+        storeEnabled: gameShownTo(workspace, member) && ((await playerOf(ctx, member._id))?.level ?? 1) >= WALLET_LEVEL,
+        realRewardsEnabled: realRewardsOn(workspace),
       },
       canSeeOwnReceived: workspace.receivedVisibility !== "hidden",
       canSeeOthersReceived: workspace.receivedVisibility === "everyone",

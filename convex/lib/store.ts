@@ -2,8 +2,10 @@ import { ConvexError } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
 
 /**
- * Rules of the Rewards Store. Pure functions, so they can be unit tested and shared
- * by every path that reads or changes a balance (web, Slack, demo).
+ * Rules of the real-rewards part of the Store (catalog, redemptions, adjustments), priced in Hog
+ * coins (ADR 0002). Pure functions, so they can be unit tested and shared by every path (web,
+ * Slack, demo). The balance itself is `coinBalance` (lib/coins.ts); who may shop and the game
+ * items are in lib/items.ts.
  */
 
 export const MAX_ACTIVE_REWARDS = 100;
@@ -20,19 +22,6 @@ export const REWARD_BOUNDS = {
   stock: { min: 0, max: 10_000 },
   maxPerMember: { min: 1, max: 100 },
 } as const;
-
-/**
- * What a member can spend: every kudos they ever received, plus grants, minus spending.
- * Spending never touches `totalReceived`, so recognition stats stay pure.
- */
-export function balanceOf(member: Pick<Doc<"members">, "totalReceived" | "storeGranted" | "storeSpent">): number {
-  return member.totalReceived + (member.storeGranted ?? 0) - (member.storeSpent ?? 0);
-}
-
-/** The Store only opens while members can see what they received (ADR 0001). */
-export function storeOpen(workspace: Pick<Doc<"workspaces">, "storeEnabled" | "receivedVisibility">): boolean {
-  return Boolean(workspace.storeEnabled) && workspace.receivedVisibility !== "hidden";
-}
 
 export const REDEMPTION_BOUNDS = { answer: 280, adminNote: 500 } as const;
 
@@ -141,18 +130,18 @@ export function validateAdjustment({ amount, reason }: { amount: number; reason:
 
 // ── Review aids (S6) ─────────────────────────────────────────────────────────
 
-/** "Where this balance came from" looks at the kudos received in the 90 days before a request. */
+/** "Where these coins came from" looks at the thoughtful kudos given in the 90 days before a request. */
 export const CONTEXT_WINDOW_DAYS = 90;
-/** Rows read for that window; someone who received more is summarised from the newest ones. */
+/** Ledger events read for that window; someone who gave more is summarised from the newest ones. */
 export const CONTEXT_READ_CAP = 3000;
 export const CONCENTRATION = { share: 0.5, min: 20 } as const;
 
 /**
- * Whether one giver accounts for most of what someone received: half or more, and at least
- * 20 kudos, so a few kudos from one teammate never look like gaming.
+ * Whether one person brought most of someone's coins: half or more, and at least 20 coins, so
+ * a few thoughtful kudos to one teammate never look like gaming.
  */
-export function concentration(givers: { amount: number }[]): boolean {
-  const total = givers.reduce((sum, g) => sum + g.amount, 0);
-  const top = Math.max(0, ...givers.map((g) => g.amount));
+export function concentration(people: { amount: number }[]): boolean {
+  const total = people.reduce((sum, g) => sum + g.amount, 0);
+  const top = Math.max(0, ...people.map((g) => g.amount));
   return top >= CONCENTRATION.min && top >= total * CONCENTRATION.share;
 }

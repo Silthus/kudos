@@ -4,6 +4,8 @@ import type { Id } from "../convex/_generated/dataModel";
 import { grantBalance, requestRedemption, transitionRedemption } from "../convex/store";
 import { all, DEMO_TIMEOUT, NOW, seedTeam, setupConvex, signInAs, type Team } from "./helpers";
 
+/** The real-rewards part of the Store, priced in Hog coins (#91, ADR 0002; game items: shop.test.ts). */
+
 let t: ReturnType<typeof setupConvex>;
 let team: Team;
 
@@ -22,58 +24,75 @@ const settings = {
 
 const coffee = { name: "Coffee on us", emoji: "☕", cost: 3 };
 
+/** A thoughtful kudos (a 3+ word note) earns its giver 1 Hog coin per kudos given. */
 const give = (text: string, giverSlackId = "UANA") =>
   t.mutation(internal.kudos.ingestMessage, { workspaceId: team.workspaceId, botUserId: "UBOT", giverSlackId, text, channelId: "C1", messageTs: `${Math.random()}` });
 
-const setWorkspace = (patch: { storeEnabled?: boolean; receivedVisibility?: "hidden" | "self" | "everyone" }) =>
+const setWorkspace = (patch: { realRewardsEnabled?: boolean; gameEnabled?: boolean; receivedVisibility?: "hidden" | "self" | "everyone" }) =>
   t.run((ctx) => ctx.db.patch(team.workspaceId, patch));
+
+/** XP at the floor of level 5, where the Store opens. */
+const LEVEL_5_XP = 350;
+
+/** Makes `memberId` a player at `level` whose game events earned `coins` (level-ups add 10 per level). */
+async function player(memberId: Id<"members">, { level = 5, coins }: { level?: number; coins: number }) {
+  await t.run(async (ctx) => {
+    const m = (await ctx.db.get(memberId))!;
+    const existing = await ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", memberId)).unique();
+    const row = { xp: level === 5 ? LEVEL_5_XP : 0, level, coins };
+    if (existing) await ctx.db.patch(existing._id, row);
+    else await ctx.db.insert("players", { workspaceId: m.workspaceId, memberId, since: 0, ...row });
+  });
+}
 
 beforeEach(async () => {
   t = setupConvex();
-  team = await seedTeam(t);
+  team = await seedTeam(t, { gameEnabled: true, questsEnabled: false });
 });
 afterEach(() => vi.useRealTimers());
 
-describe("opening the store", () => {
+describe("the real-rewards switch", () => {
   test("is off by default and admins can switch it on", async () => {
     const ana = await signInAs(t, team.ana);
-    expect(await ana.query(api.storeAdmin.overview, {})).toMatchObject({ enabled: false });
-    await ana.mutation(api.storeAdmin.setStoreEnabled, { enabled: true });
+    expect(await ana.query(api.storeAdmin.overview, {})).toMatchObject({ enabled: false, gameEnabled: true });
+    await ana.mutation(api.storeAdmin.setRealRewardsEnabled, { enabled: true });
     expect(await ana.query(api.storeAdmin.overview, {})).toMatchObject({ enabled: true });
-    await ana.mutation(api.storeAdmin.setStoreEnabled, { enabled: false });
+    await ana.mutation(api.storeAdmin.setRealRewardsEnabled, { enabled: false });
     expect(await ana.query(api.storeAdmin.overview, {})).toMatchObject({ enabled: false });
   });
 
-  test("is blocked while received kudos are hidden", async () => {
+  test("the old received-kudos store switch opens nothing: its prices were never set in coins", async () => {
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { storeEnabled: true }));
+    await ana_createCoffee();
+    await player(team.ben, { coins: 60 });
+    const ben = await signInAs(t, team.ben);
+    expect(await ben.query(api.store.catalog, {})).toEqual({ enabled: false });
+    expect(await ben.query(api.session.viewer, {})).toMatchObject({ workspace: { realRewardsEnabled: false } });
+  });
+
+  test("no longer depends on received visibility (ADR 0002): hidden and real rewards go together", async () => {
     await setWorkspace({ receivedVisibility: "hidden" });
     const ana = await signInAs(t, team.ana);
-    // The copy names the options the way the Settings form labels them.
-    await expect(ana.mutation(api.storeAdmin.setStoreEnabled, { enabled: true })).rejects.toThrow(/Switch received visibility to “Only me” or “Everyone” first/);
-    expect(await ana.query(api.storeAdmin.overview, {})).toMatchObject({ enabled: false, receivedVisibility: "hidden" });
-  });
-
-  test("keeps received kudos from being hidden while it's open", async () => {
-    await setWorkspace({ storeEnabled: true });
-    const ana = await signInAs(t, team.ana);
-    await expect(ana.mutation(api.admin.updateSettings, { ...settings, receivedVisibility: "hidden" })).rejects.toThrow(/Turn off the store/);
-    await ana.mutation(api.storeAdmin.setStoreEnabled, { enabled: false });
+    await ana.mutation(api.storeAdmin.setRealRewardsEnabled, { enabled: true });
     await ana.mutation(api.admin.updateSettings, { ...settings, receivedVisibility: "hidden" });
-    expect(await t.run((ctx) => ctx.db.get(team.workspaceId))).toMatchObject({ receivedVisibility: "hidden" });
+    expect(await t.run((ctx) => ctx.db.get(team.workspaceId))).toMatchObject({ receivedVisibility: "hidden", realRewardsEnabled: true });
   });
 
-  test("still lets admins save the regular settings payload while it's open", async () => {
-    await setWorkspace({ storeEnabled: true });
+  test("still lets admins save the regular settings payload while it's on", async () => {
+    await setWorkspace({ realRewardsEnabled: true });
     const ana = await signInAs(t, team.ana);
     const { settings: current } = await ana.query(api.admin.overview, {});
     await ana.mutation(api.admin.updateSettings, { ...current, dailyLimit: 7, receivedVisibility: "everyone" });
-    expect(await t.run((ctx) => ctx.db.get(team.workspaceId))).toMatchObject({ dailyLimit: 7, receivedVisibility: "everyone", storeEnabled: true });
+    expect(await t.run((ctx) => ctx.db.get(team.workspaceId))).toMatchObject({ dailyLimit: 7, receivedVisibility: "everyone", realRewardsEnabled: true });
   });
 
-  test("is exposed to the web app through the session", async () => {
+  test("is exposed to the web app through the session, and only counts while the game is on", async () => {
     const ben = await signInAs(t, team.ben);
-    expect(await ben.query(api.session.viewer, {})).toMatchObject({ workspace: { storeEnabled: false } });
-    await setWorkspace({ storeEnabled: true });
-    expect(await ben.query(api.session.viewer, {})).toMatchObject({ workspace: { storeEnabled: true } });
+    expect(await ben.query(api.session.viewer, {})).toMatchObject({ workspace: { realRewardsEnabled: false } });
+    await setWorkspace({ realRewardsEnabled: true });
+    expect(await ben.query(api.session.viewer, {})).toMatchObject({ workspace: { realRewardsEnabled: true } });
+    await setWorkspace({ gameEnabled: false });
+    expect(await ben.query(api.session.viewer, {})).toMatchObject({ workspace: { realRewardsEnabled: false } });
   });
 });
 
@@ -134,11 +153,11 @@ describe("the catalog", () => {
   test("holds at most 100 active rewards", async () => {
     await t.run(async (ctx) => {
       for (let i = 0; i < 100; i++) {
-        await ctx.db.insert("rewards", { workspaceId: team.workspaceId, ...coffee, status: "active", createdBy: team.ana, updatedAt: 0 });
+        await ctx.db.insert("rewards", { workspaceId: team.workspaceId, ...coffee, unit: "coins", status: "active", createdBy: team.ana, updatedAt: 0 });
       }
     });
     const archived = await t.run((ctx) =>
-      ctx.db.insert("rewards", { workspaceId: team.workspaceId, ...coffee, status: "archived", createdBy: team.ana, updatedAt: 0 }),
+      ctx.db.insert("rewards", { workspaceId: team.workspaceId, ...coffee, unit: "coins", status: "archived", createdBy: team.ana, updatedAt: 0 }),
     );
     const ana = await signInAs(t, team.ana);
     await expect(ana.mutation(api.storeAdmin.createReward, coffee)).rejects.toThrow(/100 active rewards/);
@@ -149,8 +168,7 @@ describe("the catalog", () => {
   });
 
   test("members see active rewards sorted by cost with what they can afford", async () => {
-    await setWorkspace({ storeEnabled: true });
-    await give("<@UBEN> :taco::taco::taco::taco: great demo");
+    await fund(team.ben, 4);
     const ana = await signInAs(t, team.ana);
     await ana.mutation(api.storeAdmin.createReward, { name: "Hoodie", emoji: "🧥", cost: 60 });
     await ana.mutation(api.storeAdmin.createReward, { ...coffee, maxPerMember: 1 });
@@ -170,14 +188,17 @@ describe("the catalog", () => {
     ]);
   });
 
-  test("tells members when the store is closed", async () => {
+  test("stays out of sight while real rewards are off, below level 5, or with the game off", async () => {
     await ana_createCoffee();
+    await player(team.ben, { level: 4, coins: 50 });
     const ben = await signInAs(t, team.ben);
     expect(await ben.query(api.store.catalog, {})).toEqual({ enabled: false });
-    // Belt and braces: a store flag that survived a switch to "hidden" never shows a balance.
-    await setWorkspace({ storeEnabled: true, receivedVisibility: "hidden" });
+    await setWorkspace({ realRewardsEnabled: true });
+    expect(await ben.query(api.store.catalog, {})).toEqual({ enabled: false }); // level 4: the Store is locked
+    await player(team.ben, { level: 5, coins: 50 });
+    expect(await ben.query(api.store.catalog, {})).toMatchObject({ enabled: true, balance: 90 });
+    await setWorkspace({ gameEnabled: false });
     expect(await ben.query(api.store.catalog, {})).toEqual({ enabled: false });
-    expect(await ben.query(api.session.viewer, {})).toMatchObject({ workspace: { storeEnabled: false } });
   });
 });
 
@@ -187,48 +208,55 @@ async function ana_createCoffee() {
 }
 
 describe("balances", () => {
-  test("come from received kudos: giving raises them, revoking lowers them", async () => {
-    await setWorkspace({ storeEnabled: true });
+  test("are Hog coins: giving a thoughtful kudos raises them, receiving doesn't, revoking lowers them", async () => {
+    await fund(team.ben, 0);
+    await fund(team.cleo, 0);
     const ben = await signInAs(t, team.ben);
-    const balance = async () => {
-      const c = await ben.query(api.store.catalog, {});
+    const cleo = await signInAs(t, team.cleo);
+    const balance = async (who: typeof ben) => {
+      const c = await who.query(api.store.catalog, {});
       return c.enabled ? c.balance : null;
     };
-    expect(await balance()).toBe(0);
-    await give("<@UBEN> :taco::taco::taco: thanks");
-    expect(await balance()).toBe(3);
+    await give("<@UCLEO> :taco::taco::taco: thanks for the thorough review", "UBEN");
+    expect([await balance(ben), await balance(cleo)]).toEqual([3, 0]);
 
     const [row] = await all(t, "kudos");
     const ana = await signInAs(t, team.ana);
     await ana.mutation(api.admin.revoke, { kudosId: row._id });
-    expect(await balance()).toBe(0);
+    expect(await balance(ben)).toBe(0);
   });
 
-  test("subtract spending and add grants, and may go negative", async () => {
-    await setWorkspace({ storeEnabled: true });
-    await give("<@UBEN> :taco::taco: thanks");
-    await t.run((ctx) => ctx.db.patch(team.ben, { storeSpent: 5, storeGranted: 1 }));
+  test("received kudos don't count, whatever was received before the Store moved to coins (reset, not converted)", async () => {
+    await t.run((ctx) => ctx.db.patch(team.ben, { totalReceived: 500, storeGranted: 20, storeSpent: 3 }));
+    await fund(team.ben, 7);
+    const catalog = await (await signInAs(t, team.ben)).query(api.store.catalog, {});
+    expect(catalog).toMatchObject({ enabled: true, balance: 7 });
+  });
+
+  test("subtract spending and add adjustments, and may go negative", async () => {
+    await fund(team.ben, 2);
+    await t.run((ctx) => ctx.db.patch(team.ben, { coinsSpent: 5, coinsAdjusted: 1 }));
     const ben = await signInAs(t, team.ben);
     const catalog = await ben.query(api.store.catalog, {});
     expect(catalog).toMatchObject({ enabled: true, balance: -2 });
   });
 
   test("give admins pricing context across the workspace", async () => {
-    await give("<@UBEN> :taco::taco::taco::taco: thanks");
-    await give("<@UCLEO> :taco: thanks");
+    await fund(team.ben, 4);
+    await fund(team.cleo, 1);
     const ana = await signInAs(t, team.ana);
-    // Ana 0, Ben 4, Cleo 1; the bot doesn't count.
+    // Ana 0 (not a player yet), Ben 4, Cleo 1; the bot doesn't count.
     expect(await ana.query(api.storeAdmin.overview, {})).toMatchObject({ totalBalance: 5, medianBalance: 1 });
     // People who left the workspace don't count either.
     await t.run((ctx) => ctx.db.patch(team.ben, { deactivated: true }));
     expect(await ana.query(api.storeAdmin.overview, {})).toMatchObject({ totalBalance: 1, medianBalance: 0.5 });
   });
 
-  test("stay out of the pricing context while received kudos are hidden", async () => {
-    await give("<@UBEN> :taco::taco::taco::taco: thanks");
-    await setWorkspace({ receivedVisibility: "hidden" });
+  test("give no pricing context while the game is off: there are no coins", async () => {
+    await fund(team.ben, 4);
+    await setWorkspace({ gameEnabled: false });
     const ana = await signInAs(t, team.ana);
-    expect(await ana.query(api.storeAdmin.overview, {})).toMatchObject({ totalBalance: null, medianBalance: null });
+    expect(await ana.query(api.storeAdmin.overview, {})).toMatchObject({ totalBalance: null, medianBalance: null, gameEnabled: false });
   });
 });
 
@@ -238,7 +266,7 @@ describe("store access", () => {
     const ben = await signInAs(t, team.ben);
     await expect(ben.query(api.storeAdmin.overview, {})).rejects.toThrow(/admins/);
     await expect(ben.query(api.storeAdmin.rewards, {})).rejects.toThrow(/admins/);
-    await expect(ben.mutation(api.storeAdmin.setStoreEnabled, { enabled: true })).rejects.toThrow(/admins/);
+    await expect(ben.mutation(api.storeAdmin.setRealRewardsEnabled, { enabled: true })).rejects.toThrow(/admins/);
     await expect(ben.mutation(api.storeAdmin.createReward, coffee)).rejects.toThrow(/admins/);
     await expect(ben.mutation(api.storeAdmin.updateReward, { rewardId, ...coffee })).rejects.toThrow(/admins/);
     await expect(ben.mutation(api.storeAdmin.setRewardStatus, { rewardId, status: "archived" })).rejects.toThrow(/admins/);
@@ -249,11 +277,11 @@ describe("store access", () => {
   });
 
   test("admins can't touch another workspace's rewards", async () => {
-    const other = await seedTeam(t, { storeEnabled: true }, "T2");
+    const other = await seedTeam(t, { gameEnabled: true, realRewardsEnabled: true }, "T2");
     const foreign: Id<"rewards"> = await t.run((ctx) =>
-      ctx.db.insert("rewards", { workspaceId: other.workspaceId, ...coffee, status: "active", createdBy: other.ana, updatedAt: 0 }),
+      ctx.db.insert("rewards", { workspaceId: other.workspaceId, ...coffee, unit: "coins", status: "active", createdBy: other.ana, updatedAt: 0 }),
     );
-    await setWorkspace({ storeEnabled: true });
+    await fund(team.ana, 0);
     const ana = await signInAs(t, team.ana);
     expect(await ana.query(api.storeAdmin.rewards, {})).toEqual([]);
     await expect(ana.mutation(api.storeAdmin.updateReward, { rewardId: foreign, ...coffee })).rejects.toThrow(/not found/);
@@ -273,8 +301,8 @@ describe("store access", () => {
     await t.finishAllScheduledFunctions(vi.runAllTimers, 1000); // seeding, then the rollup rebuild
     const demo = t.withIdentity({ subject: `${userId}|s` });
     const rewardId = (await t.run((ctx) => ctx.db.query("rewards").first()))!._id; // the seeded catalog
-    await expect(demo.mutation(api.storeAdmin.setStoreEnabled, { enabled: false })).rejects.toThrow(/demo/);
-    await expect(demo.mutation(api.storeAdmin.setStoreEnabled, { enabled: true })).rejects.toThrow(/demo/);
+    await expect(demo.mutation(api.storeAdmin.setRealRewardsEnabled, { enabled: false })).rejects.toThrow(/demo/);
+    await expect(demo.mutation(api.storeAdmin.setRealRewardsEnabled, { enabled: true })).rejects.toThrow(/demo/);
     await expect(demo.mutation(api.storeAdmin.createReward, coffee)).rejects.toThrow(/demo/);
     await expect(demo.mutation(api.storeAdmin.updateReward, { rewardId, ...coffee })).rejects.toThrow(/demo/);
     await expect(demo.mutation(api.storeAdmin.setRewardStatus, { rewardId, status: "archived" })).rejects.toThrow(/demo/);
@@ -286,12 +314,14 @@ describe("store access", () => {
 
 const page = { numItems: 50, cursor: null };
 
-/** Opens the store and gives `memberId` a balance without going through the engine. */
-async function fund(memberId: Id<"members">, totalReceived: number) {
-  await t.run(async (ctx) => {
-    await ctx.db.patch(team.workspaceId, { storeEnabled: true });
-    await ctx.db.patch(memberId, { totalReceived });
-  });
+/**
+ * Switches real rewards on in the member's workspace and makes them a level-5 player with exactly
+ * `balance` Hog coins, without going through the engine (level 5's 40 level-up coins included).
+ */
+async function fund(memberId: Id<"members">, balance: number) {
+  const { workspaceId } = (await t.run((ctx) => ctx.db.get(memberId)))!;
+  await t.run((ctx) => ctx.db.patch(workspaceId, { realRewardsEnabled: true }));
+  await player(memberId, { coins: balance - 40 });
 }
 
 async function addReward(extra: Partial<{ stock: number; maxPerMember: number; prompt: string; cost: number; name: string }> = {}) {
@@ -300,7 +330,7 @@ async function addReward(extra: Partial<{ stock: number; maxPerMember: number; p
 }
 
 const rewardDoc = (id: Id<"rewards">) => t.run((ctx) => ctx.db.get(id));
-const spentBy = async (id: Id<"members">) => (await t.run((ctx) => ctx.db.get(id)))!.storeSpent ?? 0;
+const spentBy = async (id: Id<"members">) => (await t.run((ctx) => ctx.db.get(id)))!.coinsSpent ?? 0;
 
 describe("redeeming", () => {
   test("holds the cost and takes one from stock", async () => {
@@ -318,31 +348,37 @@ describe("redeeming", () => {
     expect(mine.page[0].history).toEqual([{ status: "pending", at: NOW.getTime(), by: expect.objectContaining({ name: "Ben" }) }]);
   });
 
-  test("shows members their own balance for the chip on Me, only while the store is open", async () => {
+  test("shows members their own Hog coins for the chip on Me, only while the game is shown to them", async () => {
     const rewardId = await addReward();
     await fund(team.ben, 10);
     const ben = await signInAs(t, team.ben);
     expect(await ben.query(api.store.balance, {})).toBe(10);
     await ben.mutation(api.store.redeem, { rewardId, expectedCost: 3 });
     expect(await ben.query(api.store.balance, {})).toBe(7);
-    await setWorkspace({ storeEnabled: false });
+    await setWorkspace({ realRewardsEnabled: false });
+    expect(await ben.query(api.store.balance, {})).toBe(7); // coins are the game's, not real rewards'
+    await setWorkspace({ gameEnabled: false });
     expect(await ben.query(api.store.balance, {})).toBeNull();
   });
 
-  test("refuses when the store is closed", async () => {
+  test("refuses while real rewards are off, and below level 5", async () => {
     const rewardId = await addReward();
     await fund(team.ben, 10);
-    await setWorkspace({ storeEnabled: false });
+    await setWorkspace({ realRewardsEnabled: false });
     const ben = await signInAs(t, team.ben);
-    await expect(ben.mutation(api.store.redeem, { rewardId, expectedCost: 3 })).rejects.toThrow(/store isn't open/);
+    await expect(ben.mutation(api.store.redeem, { rewardId, expectedCost: 3 })).rejects.toThrow(/Real rewards aren't on/);
+    await setWorkspace({ realRewardsEnabled: true });
+    await player(team.ben, { level: 4, coins: 100 });
+    await expect(ben.mutation(api.store.redeem, { rewardId, expectedCost: 3 })).rejects.toThrow(/opens at level 5/);
+    expect(await spentBy(team.ben)).toBe(0);
   });
 
   test("refuses archived rewards and rewards from another workspace", async () => {
     const rewardId = await addReward();
     await (await signInAs(t, team.ana)).mutation(api.storeAdmin.setRewardStatus, { rewardId, status: "archived" });
-    const other = await seedTeam(t, { storeEnabled: true }, "T2");
+    const other = await seedTeam(t, { gameEnabled: true, realRewardsEnabled: true }, "T2");
     const foreign = await t.run((ctx) =>
-      ctx.db.insert("rewards", { workspaceId: other.workspaceId, ...coffee, status: "active", createdBy: other.ana, updatedAt: 0 }),
+      ctx.db.insert("rewards", { workspaceId: other.workspaceId, ...coffee, unit: "coins", status: "active", createdBy: other.ana, updatedAt: 0 }),
     );
     await fund(team.ben, 10);
     const ben = await signInAs(t, team.ben);
@@ -361,7 +397,7 @@ describe("redeeming", () => {
   test("refuses sold-out rewards: the last one goes to whoever asks first", async () => {
     const rewardId = await addReward({ stock: 1 });
     await fund(team.ben, 10);
-    await t.run((ctx) => ctx.db.patch(team.cleo, { totalReceived: 10 }));
+    await fund(team.cleo, 10);
     await (await signInAs(t, team.ben)).mutation(api.store.redeem, { rewardId, expectedCost: 3 });
     await expect((await signInAs(t, team.cleo)).mutation(api.store.redeem, { rewardId, expectedCost: 3 })).rejects.toThrow(/Sold out/);
     expect((await rewardDoc(rewardId))!.stock).toBe(0);
@@ -407,11 +443,11 @@ describe("redeeming", () => {
     const rewardId = await addReward({ cost: 5 });
     await fund(team.ben, 4);
     const ben = await signInAs(t, team.ben);
-    await expect(ben.mutation(api.store.redeem, { rewardId, expectedCost: 5 })).rejects.toThrow(/need 1 more 🌮/);
+    await expect(ben.mutation(api.store.redeem, { rewardId, expectedCost: 5 })).rejects.toThrow("You need 1 more Hog coin for this.");
   });
 });
 
-/** Ben redeems a 3-kudos coffee (stock 5) from a balance of 10; Ana and Cleo are around to decide. */
+/** Ben redeems a 3-coin coffee (stock 5) from a balance of 10; Ana and Cleo are around to decide. */
 async function benRequests(extra: Parameters<typeof addReward>[0] = {}) {
   const rewardId = await addReward({ stock: 5, ...extra });
   await fund(team.ben, 10);
@@ -435,7 +471,7 @@ describe("cancelling", () => {
 
   test("is only for the requester", async () => {
     const { redemptionId } = await benRequests();
-    await t.run((ctx) => ctx.db.patch(team.cleo, { totalReceived: 10 }));
+    await fund(team.cleo, 10);
     await expect((await signInAs(t, team.cleo)).mutation(api.store.cancel, { redemptionId })).rejects.toThrow(/Request not found/);
     // Admins decline instead; cancelling is the requester's own call.
     await expect((await signInAs(t, team.ana)).mutation(api.store.cancel, { redemptionId })).rejects.toThrow(/Request not found/);
@@ -623,12 +659,15 @@ describe("deciding", () => {
     await t.finishAllScheduledFunctions(vi.runAllTimers, 1000); // seeding, then the rollup rebuild
     const demo = t.withIdentity({ subject: `${userId}|s` });
     const redemptionId = await t.run(async (ctx) => {
-      const workspace = (await ctx.db.query("workspaces").collect()).find((w) => w.isDemo)!;
-      await ctx.db.patch(workspace._id, { storeEnabled: true });
-      const ws = (await ctx.db.get(workspace._id))!;
+      const ws = (await ctx.db.query("workspaces").collect()).find((w) => w.isDemo)!;
+      expect(ws.realRewardsEnabled).toBe(true);
       const people = (await ctx.db.query("members").collect()).filter((m) => m.workspaceId === ws._id && !m.isAdmin && !m.isBot);
-      const member = people.find((m) => m.totalReceived >= 3)!;
-      const rewardId = await ctx.db.insert("rewards", { workspaceId: ws._id, ...coffee, status: "active", createdBy: member._id, updatedAt: 0 });
+      const players = await ctx.db.query("players").collect();
+      const member = people.find((m) => {
+        const p = players.find((x) => x.memberId === m._id);
+        return p && p.level >= 5 && (p.coins ?? 0) >= 3;
+      })!;
+      const rewardId = await ctx.db.insert("rewards", { workspaceId: ws._id, ...coffee, unit: "coins", status: "active", createdBy: member._id, updatedAt: 0 });
       return (await requestRedemption(ctx, { workspace: ws, member, rewardId, expectedCost: 3, now: NOW.getTime() })).redemptionId;
     });
     await demo.mutation(api.storeAdmin.decide, { redemptionId, action: "fulfill" });
@@ -653,10 +692,10 @@ describe("deciding", () => {
     expect(await statusOf(redemptionId)).toBe("pending");
   });
 
-  test("still works after the reward was archived or the store closed", async () => {
+  test("still works after the reward was archived or real rewards were switched off", async () => {
     const { rewardId, redemptionId, ana } = await benRequests();
     await ana.mutation(api.storeAdmin.setRewardStatus, { rewardId, status: "archived" });
-    await ana.mutation(api.storeAdmin.setStoreEnabled, { enabled: false });
+    await ana.mutation(api.storeAdmin.setRealRewardsEnabled, { enabled: false });
     await ana.mutation(api.storeAdmin.decide, { redemptionId, action: "decline" });
     expect(await spentBy(team.ben)).toBe(0);
     expect((await rewardDoc(rewardId))!.stock).toBe(5);
@@ -704,11 +743,11 @@ describe("the admin queue", () => {
   });
 
   test("is scoped to the admin's workspace", async () => {
-    const other = await seedTeam(t, { storeEnabled: true }, "T2");
+    const other = await seedTeam(t, { gameEnabled: true }, "T2");
     const foreignReward = await t.run((ctx) =>
-      ctx.db.insert("rewards", { workspaceId: other.workspaceId, ...coffee, status: "active", createdBy: other.ana, updatedAt: 0 }),
+      ctx.db.insert("rewards", { workspaceId: other.workspaceId, ...coffee, unit: "coins", status: "active", createdBy: other.ana, updatedAt: 0 }),
     );
-    await t.run((ctx) => ctx.db.patch(other.ben, { totalReceived: 10 }));
+    await fund(other.ben, 10);
     const otherBen = await signInAs(t, other.ben);
     const { redemptionId: foreign } = await otherBen.mutation(api.store.redeem, { rewardId: foreignReward, expectedCost: 3 });
 
@@ -725,9 +764,9 @@ describe("the admin queue", () => {
 });
 
 describe("negative balances", () => {
-  test("appear when spent kudos are revoked, block new requests and flag the queue", async () => {
-    await setWorkspace({ storeEnabled: true });
-    await give("<@UBEN> :taco::taco::taco: thanks");
+  test("appear when the kudos behind spent coins are revoked, block new requests and flag the queue", async () => {
+    await fund(team.ben, 0);
+    await give("<@UCLEO> :taco::taco::taco: thanks for the thorough review", "UBEN");
     const rewardId = await addReward();
     const ben = await signInAs(t, team.ben);
     await ben.mutation(api.store.redeem, { rewardId, expectedCost: 3 });
@@ -735,8 +774,9 @@ describe("negative balances", () => {
     await ana.mutation(api.admin.revoke, { kudosId: (await all(t, "kudos"))[0]._id });
 
     expect(await ben.query(api.store.catalog, {})).toMatchObject({ balance: -3 });
-    await give("<@UBEN> :taco::taco::taco: again");
-    // Back to 0: still not enough for a 3-kudos coffee.
+    await expect(ben.mutation(api.store.redeem, { rewardId, expectedCost: 3 })).rejects.toThrow(/below zero/);
+    await give("<@UCLEO> :taco::taco::taco: thanks again for the pairing session", "UBEN");
+    // Back to 0: still not enough for a 3-coin coffee.
     await expect(ben.mutation(api.store.redeem, { rewardId, expectedCost: 3 })).rejects.toThrow(/need 3 more/);
     await ana.mutation(api.admin.revoke, { kudosId: (await all(t, "kudos")).find((k) => k.text.includes("again"))!._id });
 
@@ -748,26 +788,25 @@ describe("negative balances", () => {
     expect(members.find((m) => m.name === "Ben")).toMatchObject({ balance: -3 });
   });
 
-  test("show admins balances only while the store is open", async () => {
+  test("show admins Hog coins whatever received visibility says, and none while the game is off", async () => {
     await fund(team.ben, 7);
+    await t.run((ctx) => ctx.db.patch(team.ben, { totalReceived: 12 }));
     const ana = await signInAs(t, team.ana);
     const benRow = async () => (await ana.query(api.admin.members, {})).find((m) => m.name === "Ben")!;
-    // "Only me" hides received counts from admins; the store's balance is the documented exception (D4).
+    // Coins come from giving, so they reveal nothing about what anyone received (ADR 0002).
     expect(await benRow()).toMatchObject({ totalReceived: null, balance: 7 });
-    await setWorkspace({ receivedVisibility: "everyone" });
-    expect(await benRow()).toMatchObject({ totalReceived: 7, balance: 7 });
-    // A closed store must not turn the admin table into a received-count leak under "Only me".
-    await setWorkspace({ storeEnabled: false, receivedVisibility: "self" });
-    expect(await benRow()).toMatchObject({ totalReceived: null, balance: null });
+    await setWorkspace({ receivedVisibility: "hidden" });
+    expect(await benRow()).toMatchObject({ totalReceived: null, balance: 7 });
+    await setWorkspace({ gameEnabled: false });
+    expect(await benRow()).toMatchObject({ balance: null });
   });
 
-  test("stay private while received kudos are hidden", async () => {
+  test("stay on the queue while received kudos are hidden and real rewards are off", async () => {
     const { ana } = await benRequests();
-    await ana.mutation(api.storeAdmin.setStoreEnabled, { enabled: false });
+    await ana.mutation(api.storeAdmin.setRealRewardsEnabled, { enabled: false });
     await setWorkspace({ receivedVisibility: "hidden" });
     const [row] = (await ana.query(api.storeAdmin.redemptions, { filter: "open", paginationOpts: page })).page;
-    expect(row).toMatchObject({ balance: null, negativeBalance: null });
-    expect((await ana.query(api.admin.members, {})).every((m) => m.balance === null)).toBe(true);
+    expect(row).toMatchObject({ balance: 7, negativeBalance: false });
   });
 });
 
@@ -777,7 +816,7 @@ describe("the balance invariant", () => {
     const rewards = [await addReward({ cost: 1, stock: 3 }), await addReward({ cost: 2, maxPerMember: 2 }), await addReward({ cost: 5 })];
     const costs = [1, 2, 5];
     await fund(team.ben, 40);
-    await t.run((ctx) => ctx.db.patch(team.ana, { totalReceived: 40 }));
+    await fund(team.ana, 40);
     const people = { ben: await signInAs(t, team.ben), ana: await signInAs(t, team.ana), cleo: await signInAs(t, team.cleo) };
     const ids: { id: Id<"redemptions">; by: "ben" | "ana" }[] = [];
 
@@ -828,8 +867,8 @@ describe("the balance invariant", () => {
     expect(redemptions.length).toBeGreaterThan(5);
     for (const m of members) {
       const held = redemptions.filter((r) => r.memberId === m._id && r.status !== "declined" && r.status !== "cancelled");
-      expect(m.storeSpent ?? 0).toBe(held.reduce((sum, r) => sum + r.cost, 0));
-      expect(m.storeGranted ?? 0).toBe(adjustments.filter((a) => a.memberId === m._id).reduce((sum, a) => sum + a.amount, 0));
+      expect(m.coinsSpent ?? 0).toBe(held.reduce((sum, r) => sum + r.cost, 0));
+      expect(m.coinsAdjusted ?? 0).toBe(adjustments.filter((a) => a.memberId === m._id).reduce((sum, a) => sum + a.amount, 0));
     }
     // Zero amounts were refused and left no trace; the rest were recorded.
     expect(adjustments.length).toBeGreaterThan(3);
@@ -864,8 +903,8 @@ describe("balance adjustments", () => {
       { amount: -4, reason: "Took back a hoodie", source: "admin", by: { name: "Ana" }, at: NOW.getTime() + 1000 },
       { amount: 10, reason: "Hackathon winner", source: "admin", by: { name: "Ana" }, at: NOW.getTime() },
     ]);
-    // Grants never count as recognition.
-    expect(await t.run((ctx) => ctx.db.get(team.ben))).toMatchObject({ totalReceived: 5, storeGranted: 6 });
+    // Adjustments never count as recognition.
+    expect(await t.run((ctx) => ctx.db.get(team.ben))).toMatchObject({ totalReceived: 0, coinsAdjusted: 6 });
   });
 
   test("can't touch your own balance, even as the only admin", async () => {
@@ -887,7 +926,7 @@ describe("balance adjustments", () => {
 
   test("are for admins, and only for people in their own workspace", async () => {
     await fund(team.ben, 5);
-    const other = await seedTeam(t, { storeEnabled: true }, "T2");
+    const other = await seedTeam(t, { gameEnabled: true }, "T2");
     const ben = await signInAs(t, team.ben);
     await expect(ben.mutation(api.storeAdmin.adjustBalance, { memberId: team.cleo, amount: 5, reason: "Nice work" })).rejects.toThrow(/admins/);
     const ana = await signInAs(t, team.ana);
@@ -895,9 +934,15 @@ describe("balance adjustments", () => {
     await expect(ana.mutation(api.storeAdmin.adjustBalance, { memberId: team.bot, amount: 5, reason: "Nice work" })).rejects.toThrow(/not found/);
   });
 
-  test("need the store open: a closed store shows no balances", async () => {
+  test("need the game on: without it there are no coins", async () => {
+    await setWorkspace({ gameEnabled: false });
     const ana = await signInAs(t, team.ana);
-    await expect(ana.mutation(api.storeAdmin.adjustBalance, { memberId: team.ben, amount: 5, reason: "Nice work" })).rejects.toThrow(/Open the store/);
+    await expect(ana.mutation(api.storeAdmin.adjustBalance, { memberId: team.ben, amount: 5, reason: "Nice work" })).rejects.toThrow(/game is on/);
+  });
+
+  test("work with real rewards off, and for people who aren't players yet", async () => {
+    const ana = await signInAs(t, team.ana);
+    expect(await ana.mutation(api.storeAdmin.adjustBalance, { memberId: team.cleo, amount: 5, reason: "Welcome gift" })).toEqual({ balance: 5 });
   });
 
   test("are read-only in the shared demo", async () => {
@@ -927,23 +972,32 @@ describe("balance adjustments", () => {
     ).rejects.toThrow(/not found/);
   });
 
-  test("are private: members see only their own, and only while the store is open", async () => {
+  test("are private: members see only their own, and only while their wallet is shown", async () => {
     await fund(team.ben, 5);
     const ana = await signInAs(t, team.ana);
     await ana.mutation(api.storeAdmin.adjustBalance, { memberId: team.ben, amount: 10, reason: "Hackathon winner" });
     expect(await myAdjustments(await signInAs(t, team.cleo))).toEqual([]);
     const ben = await signInAs(t, team.ben);
     expect(await myAdjustments(ben)).toHaveLength(1);
-    await setWorkspace({ storeEnabled: false });
+    await t.run((ctx) => ctx.db.patch(team.ben, { gameHidden: true }));
     expect(await myAdjustments(ben)).toEqual([]);
+  });
+
+  test("from the received-kudos Store are left out: that balance was reset, not converted", async () => {
+    await fund(team.ben, 5);
+    await t.run((ctx) =>
+      ctx.db.insert("balanceAdjustments", { workspaceId: team.workspaceId, memberId: team.ben, amount: 30, reason: "Old kudos grant", source: "admin", by: team.ana, at: 1 }),
+    );
+    const ben = await signInAs(t, team.ben);
+    expect(await myAdjustments(ben)).toEqual([]);
+    expect((await (await signInAs(t, team.ana)).query(api.storeAdmin.memberLedger, { memberId: team.ben }))!.adjustments).toEqual([]);
   });
 });
 
 describe("a member's ledger", () => {
-  test("reconciles: received + granted − spent is the balance", async () => {
-    await setWorkspace({ storeEnabled: true, receivedVisibility: "everyone" });
-    await give("<@UBEN> :taco::taco::taco::taco::taco: thanks", "UCLEO");
-    await give("<@UBEN> :taco::taco: thanks");
+  test("reconciles: from kudos + from levels + adjusted − spent is the balance", async () => {
+    await fund(team.ben, 0);
+    await player(team.ben, { coins: 7 });
     const rewardId = await addReward();
     const ana = await signInAs(t, team.ana);
     await ana.mutation(api.storeAdmin.adjustBalance, { memberId: team.ben, amount: 10, reason: "Hackathon winner" });
@@ -955,8 +1009,8 @@ describe("a member's ledger", () => {
     await ana.mutation(api.storeAdmin.decide, { redemptionId: refunded, action: "decline" });
 
     const ledger = (await ana.query(api.storeAdmin.memberLedger, { memberId: team.ben }))!;
-    // 7 received, +10 −2 granted, 3 spent (the declined coffee was refunded).
-    expect(ledger).toMatchObject({ member: { name: "Ben" }, received: 7, granted: 8, spent: 3, balance: 12 });
+    // 7 from kudos, 40 from levels, +10 −2 adjusted, 3 spent (the declined coffee was refunded).
+    expect(ledger).toMatchObject({ member: { name: "Ben" }, fromKudos: 7, fromLevels: 40, adjusted: 8, spent: 3, balance: 52 });
     expect(ledger.adjustments.map((a) => [a.amount, a.reason, a.by?.name])).toEqual([
       [-2, "Double-counted", "Ana"],
       [10, "Hackathon winner", "Ana"],
@@ -978,90 +1032,158 @@ describe("a member's ledger", () => {
     const ledger = (await ana.query(api.storeAdmin.memberLedger, { memberId: team.ben }))!;
     expect(ledger.adjustments).toHaveLength(20);
     expect(ledger.adjustments[0]).toMatchObject({ amount: 25, source: "system", by: null });
-    expect(ledger.granted).toBe((25 * 26) / 2);
+    expect(ledger.adjusted).toBe((25 * 26) / 2);
   });
 
-  test("is for admins, in their own workspace, and only while the store is open", async () => {
+  test("is for admins, in their own workspace, and only while the game is on", async () => {
     await fund(team.ben, 4);
-    const other = await seedTeam(t, { storeEnabled: true }, "T2");
+    const other = await seedTeam(t, { gameEnabled: true }, "T2");
     const ben = await signInAs(t, team.ben);
     await expect(ben.query(api.storeAdmin.memberLedger, { memberId: team.ben })).rejects.toThrow(/admins/);
     const ana = await signInAs(t, team.ana);
     await expect(ana.query(api.storeAdmin.memberLedger, { memberId: other.ben })).rejects.toThrow(/not found/);
-    // Closed (or hidden), a ledger would just be a received count in disguise.
-    await setWorkspace({ storeEnabled: false });
+    await setWorkspace({ gameEnabled: false });
     expect(await ana.query(api.storeAdmin.memberLedger, { memberId: team.ben })).toBeNull();
   });
 });
 
-describe("where a balance came from", () => {
+describe("where the coins came from", () => {
   const DAY = 86_400_000;
   const tacos = (n: number) => ":taco:".repeat(n);
 
-  /** Ben receives from each giver (Slack id → amount), then asks for a 3-kudos coffee. */
-  async function benReceivesThenRequests(gifts: Record<string, number>) {
+  /** Ben (level 5) thanks each person (Slack id → amount) thoughtfully, then asks for a 3-coin coffee. */
+  async function benThanksThenRequests(thanks: Record<string, number>) {
     await t.run(async (ctx) => {
-      await ctx.db.patch(team.workspaceId, { storeEnabled: true, dailyLimit: 100 });
-      await ctx.db.insert("members", { workspaceId: team.workspaceId, slackUserId: "UDAN", name: "Dan", isAdmin: false, isBot: false, deactivated: false, totalGiven: 0, totalReceived: 0, totalMaxedDays: 0 });
+      await ctx.db.patch(team.workspaceId, { dailyLimit: 100 });
+      if (!(await ctx.db.query("members").collect()).some((m) => m.slackUserId === "UDAN")) {
+        await ctx.db.insert("members", { workspaceId: team.workspaceId, slackUserId: "UDAN", name: "Dan", isAdmin: false, isBot: false, deactivated: false, totalGiven: 0, totalReceived: 0, totalMaxedDays: 0 });
+      }
     });
-    for (const [giver, amount] of Object.entries(gifts)) await give(`<@UBEN> ${tacos(amount)} thanks`, giver);
+    if (!(await t.run((ctx) => ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", team.ben)).unique()))) await fund(team.ben, 0);
+    for (const [receiver, amount] of Object.entries(thanks)) await give(`<@${receiver}> ${tacos(amount)} thanks for all the help`, "UBEN");
     const rewardId = await addReward();
     const ben = await signInAs(t, team.ben);
     const { redemptionId } = await ben.mutation(api.store.redeem, { rewardId, expectedCost: 3 });
     return { redemptionId, ana: await signInAs(t, team.ana) };
   }
 
-  test("names the top givers with their share and flags one who brought most of it", async () => {
-    const { redemptionId, ana } = await benReceivesThenRequests({ UCLEO: 24, UANA: 4, UDAN: 2 });
-    const context = (await ana.query(api.storeAdmin.redemptionContext, { redemptionId }))!;
-    expect(context).toMatchObject({ windowDays: 90, total: 30, concentrated: true, otherGivers: 0 });
-    expect(context.givers.map((g) => [g.member.name, g.amount, g.share])).toEqual([
+  test("names whom the requester thanked, with their share, and flags one who brought most of it", async () => {
+    const { redemptionId, ana } = await benThanksThenRequests({ UCLEO: 24, UANA: 4, UDAN: 2 });
+    const context = await ana.query(api.storeAdmin.redemptionContext, { redemptionId });
+    expect(context).toMatchObject({ windowDays: 90, total: 30, concentrated: true, otherThanked: 0 });
+    expect(context.thanked.map((g) => [g.member.name, g.amount, g.share])).toEqual([
       ["Cleo", 24, 0.8],
       ["Ana", 4, 4 / 30],
       ["Dan", 2, 2 / 30],
     ]);
   });
 
-  test("doesn't flag a balance spread across teammates", async () => {
-    const { redemptionId, ana } = await benReceivesThenRequests({ UCLEO: 15, UANA: 15, UDAN: 10 });
-    const context = (await ana.query(api.storeAdmin.redemptionContext, { redemptionId }))!;
-    expect(context).toMatchObject({ total: 40, concentrated: false });
+  test("doesn't flag coins spread across teammates", async () => {
+    const { redemptionId, ana } = await benThanksThenRequests({ UCLEO: 15, UANA: 15, UDAN: 10 });
+    expect(await ana.query(api.storeAdmin.redemptionContext, { redemptionId })).toMatchObject({ total: 40, concentrated: false });
+  });
+
+  test("only counts thoughtful kudos: a thank-back or a kudos without a reason earns no coins", async () => {
+    await fund(team.ben, 0);
+    await give(`<@UBEN> :taco: thanks for the thorough review`, "UCLEO");
+    await give(`<@UCLEO> ${tacos(20)} thanks for the thorough review`, "UBEN"); // a thank-back within 72 h
+    await give(`<@UANA> ${tacos(5)}`, "UBEN"); // no reason
+    const { redemptionId, ana } = await benThanksThenRequests({ UDAN: 3 });
+    expect(await ana.query(api.storeAdmin.redemptionContext, { redemptionId })).toMatchObject({ total: 3, concentrated: false });
   });
 
   test("only counts the 90 days before the request", async () => {
+    await fund(team.ben, 0);
     vi.setSystemTime(NOW.getTime() - 91 * DAY);
     await t.run((ctx) => ctx.db.patch(team.workspaceId, { dailyLimit: 100 }));
-    await give(`<@UBEN> ${tacos(40)} long ago`, "UCLEO");
+    await give(`<@UCLEO> ${tacos(40)} thanks for all the help long ago`, "UBEN");
     vi.setSystemTime(NOW);
-    const { redemptionId, ana } = await benReceivesThenRequests({ UANA: 5 });
+    const { redemptionId, ana } = await benThanksThenRequests({ UANA: 5 });
     // Kudos after the request don't change what the admin saw when it came in.
     vi.advanceTimersByTime(DAY);
-    await give(`<@UBEN> ${tacos(30)} later`, "UCLEO");
-    const context = (await ana.query(api.storeAdmin.redemptionContext, { redemptionId }))!;
+    await give(`<@UCLEO> ${tacos(30)} thanks for all the help later`, "UBEN");
+    const context = await ana.query(api.storeAdmin.redemptionContext, { redemptionId });
     expect(context).toMatchObject({ total: 5, concentrated: false });
-    expect(context.givers.map((g) => g.member.name)).toEqual(["Ana"]);
+    expect(context.thanked.map((g) => g.member.name)).toEqual(["Ana"]);
   });
 
-  test("counts givers beyond the top 3", async () => {
+  test("counts people beyond the top 3", async () => {
     await t.run(async (ctx) => {
       await ctx.db.insert("members", { workspaceId: team.workspaceId, slackUserId: "UEVE", name: "Eve", isAdmin: false, isBot: false, deactivated: false, totalGiven: 0, totalReceived: 0, totalMaxedDays: 0 });
     });
-    const { redemptionId, ana } = await benReceivesThenRequests({ UCLEO: 4, UANA: 3, UDAN: 2, UEVE: 1 });
-    const context = (await ana.query(api.storeAdmin.redemptionContext, { redemptionId }))!;
-    expect(context).toMatchObject({ total: 10, otherGivers: 1 });
-    expect(context.givers).toHaveLength(3);
+    const { redemptionId, ana } = await benThanksThenRequests({ UCLEO: 4, UANA: 3, UDAN: 2, UEVE: 1 });
+    const context = await ana.query(api.storeAdmin.redemptionContext, { redemptionId });
+    expect(context).toMatchObject({ total: 10, otherThanked: 1 });
+    expect(context.thanked).toHaveLength(3);
   });
 
-  test("is for admins in the request's workspace, and stays private while received kudos are hidden", async () => {
-    const { redemptionId, ana } = await benReceivesThenRequests({ UCLEO: 5 });
+  test("is for admins in the request's workspace, and shows even while received kudos are hidden: it's giving", async () => {
+    const { redemptionId, ana } = await benThanksThenRequests({ UCLEO: 5 });
     const ben = await signInAs(t, team.ben);
     await expect(ben.query(api.storeAdmin.redemptionContext, { redemptionId })).rejects.toThrow(/admins/);
     const other = await seedTeam(t, {}, "T2");
     const otherAna = await signInAs(t, other.ana);
     await expect(otherAna.query(api.storeAdmin.redemptionContext, { redemptionId })).rejects.toThrow(/not found/);
-    await ana.mutation(api.storeAdmin.setStoreEnabled, { enabled: false });
     await setWorkspace({ receivedVisibility: "hidden" });
-    expect(await ana.query(api.storeAdmin.redemptionContext, { redemptionId })).toBeNull();
+    expect(await ana.query(api.storeAdmin.redemptionContext, { redemptionId })).toMatchObject({ total: 5 });
+  });
+});
+
+describe("what the received-kudos Store left behind (reset, not converted)", () => {
+  /** A reward and a request from before #91: priced and held in received kudos, no unit. */
+  async function legacyRequest(status: "pending" | "approved" = "pending") {
+    return await t.run(async (ctx) => {
+      const rewardId = await ctx.db.insert("rewards", { workspaceId: team.workspaceId, name: "Hoodie", emoji: "🧥", cost: 50, stock: 3, status: "active", createdBy: team.ana, updatedAt: 0, openCount: 1 });
+      const redemptionId = await ctx.db.insert("redemptions", {
+        workspaceId: team.workspaceId,
+        memberId: team.ben,
+        rewardId,
+        rewardName: "Hoodie",
+        rewardEmoji: "🧥",
+        cost: 50,
+        status,
+        isOpen: true,
+        stockHeld: true,
+        history: [{ status: "pending", at: 1, by: team.ben }],
+        requestedAt: 1,
+        updatedAt: 1,
+      });
+      await ctx.db.patch(team.ben, { storeSpent: 50 });
+      return { rewardId, redemptionId };
+    });
+  }
+
+  test("declining or cancelling an old request gives back no coins, and says it's an old request", async () => {
+    await fund(team.ben, 5);
+    const first = await legacyRequest();
+    const ana = await signInAs(t, team.ana);
+    const [row] = (await ana.query(api.storeAdmin.redemptions, { filter: "open", paginationOpts: page })).page;
+    expect(row).toMatchObject({ legacy: true, cost: 50 });
+    await ana.mutation(api.storeAdmin.decide, { redemptionId: first.redemptionId, action: "decline" });
+    const second = await legacyRequest();
+    const ben = await signInAs(t, team.ben);
+    expect((await ben.query(api.store.myRedemptions, { paginationOpts: page })).page.find((r) => r._id === second.redemptionId)).toMatchObject({ legacy: true });
+    await ben.mutation(api.store.cancel, { redemptionId: second.redemptionId });
+    expect((await t.run((ctx) => ctx.db.get(team.ben)))!.coinsSpent).toBeUndefined();
+    expect(await balanceFor(ben)).toBe(5);
+  });
+
+  test("rewards priced before the switch to coins stay off the shelves until an admin re-saves their price", async () => {
+    await fund(team.ben, 500);
+    const { rewardId } = await legacyRequest();
+    const ben = await signInAs(t, team.ben);
+    const shelf = async () => {
+      const c = await ben.query(api.store.catalog, {});
+      return c.enabled ? c.rewards.map((r) => r.name) : null;
+    };
+    expect(await shelf()).toEqual([]);
+    await expect(ben.mutation(api.store.redeem, { rewardId, expectedCost: 50 })).rejects.toThrow(/price is being reviewed/);
+    const ana = await signInAs(t, team.ana);
+    expect((await ana.query(api.storeAdmin.rewards, {})).find((r) => r._id === rewardId)).toMatchObject({ pricedInKudos: true });
+    expect(await ana.query(api.storeAdmin.overview, {})).toMatchObject({ unpricedRewards: 1 });
+    await ana.mutation(api.storeAdmin.updateReward, { rewardId, name: "Hoodie", emoji: "🧥", cost: 80 });
+    expect((await ana.query(api.storeAdmin.rewards, {})).find((r) => r._id === rewardId)).toMatchObject({ pricedInKudos: false, cost: 80 });
+    expect(await shelf()).toEqual(["Hoodie"]);
   });
 });
 
@@ -1084,7 +1206,7 @@ describe("the grantBalance helper", () => {
       return [a.balance, b.balance];
     });
     expect(balances).toEqual([6, 13]);
-    expect(await t.run((ctx) => ctx.db.get(team.ben))).toMatchObject({ storeGranted: 12 });
+    expect(await t.run((ctx) => ctx.db.get(team.ben))).toMatchObject({ coinsAdjusted: 12 });
   });
 
   test("names an admin for admin adjustments, never for system grants, and never yourself", async () => {
@@ -1098,23 +1220,15 @@ describe("the grantBalance helper", () => {
 });
 
 describe("adjustment privacy and edges", () => {
-  test("ledgers and the member's history stay empty while received kudos are hidden", async () => {
+  test("ledgers and the member's history don't depend on received visibility: coins come from giving", async () => {
     await fund(team.ben, 5);
     const ana = await signInAs(t, team.ana);
     await ana.mutation(api.storeAdmin.adjustBalance, { memberId: team.ben, amount: 10, reason: "Hackathon winner" });
     const ben = await signInAs(t, team.ben);
     await t.run((ctx) => ctx.db.patch(team.workspaceId, { receivedVisibility: "hidden" }));
-    expect(await ana.query(api.storeAdmin.memberLedger, { memberId: team.ben })).toBeNull();
-    expect(await myAdjustments(ben)).toEqual([]);
-    await expect(ana.mutation(api.storeAdmin.adjustBalance, { memberId: team.ben, amount: 1, reason: "Hackathon winner" })).rejects.toThrow(/Open the store/);
-  });
-
-  test("ledgers hide the received count under “Only me”, like Admin → Members", async () => {
-    await fund(team.ben, 5);
-    const ana = await signInAs(t, team.ana);
-    expect(await ana.query(api.storeAdmin.memberLedger, { memberId: team.ben })).toMatchObject({ received: null, balance: 5 });
-    await setWorkspace({ receivedVisibility: "everyone" });
-    expect(await ana.query(api.storeAdmin.memberLedger, { memberId: team.ben })).toMatchObject({ received: 5, balance: 5 });
+    expect(await ana.query(api.storeAdmin.memberLedger, { memberId: team.ben })).toMatchObject({ balance: 15 });
+    expect(await myAdjustments(ben)).toHaveLength(1);
+    await ana.mutation(api.storeAdmin.adjustBalance, { memberId: team.ben, amount: 1, reason: "Hackathon winner" });
   });
 
   test("ledgers refuse bots like any other id that isn't a member", async () => {

@@ -1,19 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { balanceOf, concentration, isOpen, transition, validateAdjustment, validateRewardInput } from "./store";
-
-describe("balanceOf", () => {
-  test("is everything received when nothing was granted or spent yet", () => {
-    expect(balanceOf({ totalReceived: 42 })).toBe(42);
-  });
-
-  test("adds grants and subtracts spending", () => {
-    expect(balanceOf({ totalReceived: 42, storeGranted: 10, storeSpent: 15 })).toBe(37);
-  });
-
-  test("goes negative when spent kudos were revoked afterwards", () => {
-    expect(balanceOf({ totalReceived: 12, storeSpent: 15 })).toBe(-3);
-  });
-});
+import { concentration, isOpen, transition, validateAdjustment, validateRewardInput } from "./store";
 
 describe("validateRewardInput", () => {
   const valid = { name: "Coffee on us", emoji: "☕", cost: 15 };

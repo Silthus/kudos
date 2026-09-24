@@ -10,7 +10,7 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { Avatar, BigNumber, Button, Card, CardHeader, Dialog, Empty, Eyebrow, Field, inputCls, Progress, Segmented, Skeleton, Toggle } from "@/components/ui";
 import { nf, relativeTime } from "@/lib/format";
 import { useViewer } from "@/lib/viewer";
-import { AdjustmentLine, RedemptionHistory, RewardCard, signed, StatusChip } from "./Store";
+import { AdjustmentLine, COIN, RedemptionHistory, RewardCard, signed, StatusChip } from "./Store";
 
 const SECTIONS = ["requests", "catalog", "settings"] as const;
 type Section = (typeof SECTIONS)[number];
@@ -65,7 +65,7 @@ type QueueRow = ReturnType<typeof usePaginatedQuery<typeof api.storeAdmin.redemp
 function Requests({ isDemo }: { isDemo: boolean }) {
   const viewer = useViewer();
   const [ledgerFor, setLedgerFor] = useState<Id<"members"> | null>(null);
-  const glyph = viewer.workspace.emojiGlyph;
+  const glyph = COIN;
   const [filter, setFilter] = useState<QueueFilter>("open");
   const { results, status, loadMore } = usePaginatedQuery(api.storeAdmin.redemptions, { filter }, { initialNumItems: 20 });
   const openCount = useQuery(api.storeAdmin.openCount);
@@ -208,7 +208,7 @@ function RequestRow({
           </div>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-faint">
             <span className="font-mono tabular text-saffron">
-              {nf.format(r.cost)} {glyph}
+              {nf.format(r.cost)} {r.legacy ? "kudos, old Store" : glyph}
             </span>
             <span>· {relativeTime(r.requestedAt)}</span>
             {r.balance !== null && (
@@ -296,7 +296,13 @@ function DeclineDialog({
       open={row !== null}
       onClose={onClose}
       title="Decline this request?"
-      subtitle={row ? `${row.requester.name} gets ${nf.format(row.cost)} ${glyph} back and the reward is restocked.` : undefined}
+      subtitle={
+        row
+          ? row.legacy
+            ? `A request from the old kudos Store: ${row.requester.name} gets no Hog coins back (that balance was reset), and the reward is restocked.`
+            : `${row.requester.name} gets ${nf.format(row.cost)} ${glyph} back and the reward is restocked.`
+          : undefined
+      }
       footer={
         <>
           {error && (
@@ -344,7 +350,6 @@ function DeclineDialog({
 }
 
 function Catalog({ isDemo }: { isDemo: boolean }) {
-  const viewer = useViewer();
   const rewards = useQuery(api.storeAdmin.rewards);
   const setStatus = useMutation(api.storeAdmin.setRewardStatus);
   const [editing, setEditing] = useState<Reward | "new" | null>(null);
@@ -353,7 +358,7 @@ function Catalog({ isDemo }: { isDemo: boolean }) {
   if (!rewards) return <Skeleton className="h-80" />;
   const active = rewards.filter((r) => r.status === "active");
   const archived = rewards.filter((r) => r.status === "archived");
-  const glyph = viewer.workspace.emojiGlyph;
+  const glyph = COIN;
 
   const toggleStatus = (r: Reward) => {
     setError(null);
@@ -429,17 +434,22 @@ function RewardRow({ reward: r, glyph, isDemo, onEdit, onToggle }: { reward: Rew
         <div className="flex items-center gap-2">
           <span className="truncate font-medium">{r.name}</span>
           {r.prompt && <MessageCircleQuestion className="h-3.5 w-3.5 shrink-0 text-faint" aria-label={`Asks: ${r.prompt}`} />}
+          {r.pricedInKudos && (
+            <span className="shrink-0 rounded-full bg-ember/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-ember ring-1 ring-inset ring-ember/30" title="Priced in kudos before the Store moved to Hog coins. Members don't see it until you save a price in Hog coins.">
+              Review price
+            </span>
+          )}
         </div>
         {r.description && <p className="truncate text-xs text-muted">{r.description}</p>}
         <p className="truncate font-mono text-[10px] uppercase tracking-wider text-faint">
           <span className="text-saffron sm:hidden">
-            {nf.format(r.cost)} {glyph} ·{" "}
+            {nf.format(r.cost)} {r.pricedInKudos ? "kudos" : glyph} ·{" "}
           </span>
           {meta.join(" · ")}
         </p>
       </div>
       <span className="hidden shrink-0 font-mono text-sm tabular text-saffron sm:block">
-        {nf.format(r.cost)} {glyph}
+        {nf.format(r.cost)} {r.pricedInKudos ? "kudos" : glyph}
       </span>
       <div className="flex shrink-0 items-center">
         <button onClick={onEdit} disabled={isDemo} className="rounded-lg p-2 text-faint hover:bg-panel-3 hover:text-cream disabled:opacity-40" aria-label={`Edit ${r.name}`} title="Edit">
@@ -478,7 +488,6 @@ const toDraft = (r: Reward | null): Draft => ({
 const num = (s: string) => (s.trim() === "" ? undefined : Number(s));
 
 function RewardEditor({ reward, onClose }: { reward: Reward | "new" | null; onClose: () => void }) {
-  const viewer = useViewer();
   const existing = reward && reward !== "new" ? reward : null;
   const [d, setD] = useState<Draft>(() => toDraft(existing));
   const [saving, setSaving] = useState(false);
@@ -538,7 +547,7 @@ function RewardEditor({ reward, onClose }: { reward: Reward | "new" | null; onCl
       open={reward !== null}
       onClose={onClose}
       title={existing ? "Edit reward" : "New reward"}
-      subtitle={existing ? "Changes apply to new requests. Existing requests keep the price they were made at." : "Members spend the kudos they received on it."}
+      subtitle={existing ? "Changes apply to new requests. Existing requests keep the price they were made at." : "Members at level 5 and up request it for Hog coins, and an admin hands it over."}
       className="w-[min(880px,calc(100vw-24px))]"
       footer={
         <>
@@ -597,10 +606,10 @@ function RewardEditor({ reward, onClose }: { reward: Reward | "new" | null; onCl
             />
           </Field>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Cost" hint={`In ${viewer.workspace.unitPlural}, 1–100,000`}>
+            <Field label="Cost" hint="In Hog coins, 1–100,000">
               <div className="relative">
                 <input className={clsx(inputCls, "pr-10")} type="number" min={1} max={100000} value={d.cost} onChange={(e) => set("cost", e.target.value)} />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">{viewer.workspace.emojiGlyph}</span>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-faint">{COIN}</span>
               </div>
             </Field>
             <Field label="Per-person limit" hint="Optional lifetime cap, e.g. 1">
@@ -623,7 +632,7 @@ function RewardEditor({ reward, onClose }: { reward: Reward | "new" | null; onCl
           <Eyebrow className="mb-2">Preview</Eyebrow>
           <RewardCard
             reward={{ ...payload, stock: Number.isFinite(stock) ? stock : undefined, cost: Number.isFinite(payload.cost) ? payload.cost : 0 }}
-            glyph={viewer.workspace.emojiGlyph}
+            glyph={COIN}
             action={
               <span aria-hidden className="pointer-events-none">
                 <Button size="sm" variant="primary" tabIndex={-1}>
@@ -640,13 +649,11 @@ function RewardEditor({ reward, onClose }: { reward: Reward | "new" | null; onCl
 }
 
 function StoreSettings({ isDemo }: { isDemo: boolean }) {
-  const viewer = useViewer();
   const data = useQuery(api.storeAdmin.overview);
-  const setEnabled = useMutation(api.storeAdmin.setStoreEnabled);
+  const setEnabled = useMutation(api.storeAdmin.setRealRewardsEnabled);
   const [error, setError] = useState<string | null>(null);
   if (!data) return <Skeleton className="h-64" />;
-  const glyph = viewer.workspace.emojiGlyph;
-  const hidden = data.receivedVisibility === "hidden";
+  const glyph = COIN;
 
   const toggle = (enabled: boolean) => {
     setError(null);
@@ -656,26 +663,35 @@ function StoreSettings({ isDemo }: { isDemo: boolean }) {
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_1fr]">
       <Card>
-        <CardHeader title="Store" subtitle="Members spend the kudos they received on rewards you stock." />
+        <CardHeader title="Store" subtitle="Members spend Hog coins on game items, which apply instantly. Real rewards you stock and hand over are optional." />
         <div className="px-5 pb-5">
           {isDemo && <DemoNotice>Store settings are read-only in the shared demo.</DemoNotice>}
           <div className="rounded-xl border border-line bg-ink/30 px-4">
             <Toggle
               checked={data.enabled}
               onChange={toggle}
-              disabled={isDemo || (hidden && !data.enabled)}
-              label="Open the store"
+              disabled={isDemo}
+              label="Real rewards"
               description={
-                hidden && !data.enabled
-                  ? "Received kudos are hidden in this workspace. The store shows people what they received, so switch received visibility to “Only me” or “Everyone” first."
+                !data.gameEnabled
+                  ? "The Store comes with the game: switch the game on under Settings first. Hog coins are its only currency."
                   : data.enabled
-                    ? "Members see the Store in the menu and can browse the catalog."
+                    ? "Members at level 5 and up see your catalog next to the game items, and request rewards for Hog coins. You approve and hand them over."
                     : data.activeRewards === 0
-                      ? "Add a few rewards to the catalog before you open it."
-                      : "Closed. Members don't see the Store yet."
+                      ? "Off. Add a few rewards to the catalog, priced in Hog coins, before you switch them on."
+                      : "Off. Members only see the game items."
               }
             />
           </div>
+          {data.unpricedRewards > 0 && (
+            <p className="mt-3 flex items-start gap-2 rounded-xl border border-ember/30 bg-ember/10 px-3 py-2.5 text-sm text-cream">
+              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-ember" />
+              <span>
+                {data.unpricedRewards} {data.unpricedRewards === 1 ? "reward was" : "rewards were"} priced in kudos before the Store moved to Hog coins. Members don't see{" "}
+                {data.unpricedRewards === 1 ? "it" : "them"} until you save a price in Hog coins under Catalog.
+              </span>
+            </p>
+          )}
           {error && (
             <p className="mt-3 flex items-center gap-1.5 text-sm text-down">
               <CircleAlert className="h-4 w-4 shrink-0" /> {error}
@@ -683,16 +699,16 @@ function StoreSettings({ isDemo }: { isDemo: boolean }) {
           )}
           <div className="mt-5 space-y-2 text-sm leading-relaxed text-muted">
             <p>
-              <b className="font-medium text-cream">How balances work.</b> A member's balance is every {viewer.workspace.unitSingular} they ever received, including before the store opened, minus what they spend. Spending never changes received totals, leaderboards or analytics.
+              <b className="font-medium text-cream">How balances work.</b> Members earn Hog coins by giving thoughtful kudos (1 per kudos) and reaching levels (10 each); receiving never earns coins. The balance is what they earned, minus what they spent, plus your adjustments. Kudos are only a stat: nothing buys or spends them.
             </p>
-            <p>Balances are private: only the member and admins see them, whatever the visibility setting. Closing the store keeps every balance.</p>
+            <p>Balances are private: only the member and admins see them, whatever the visibility setting. Switching real rewards off keeps every balance, and open requests stay yours to decide.</p>
           </div>
         </div>
       </Card>
       <Card className="grain overflow-hidden bg-gradient-to-br from-saffron/[0.10] via-panel to-panel p-5">
         <Eyebrow>Pricing context</Eyebrow>
         {data.totalBalance === null || data.medianBalance === null ? (
-          <p className="mt-3 text-sm text-muted">Balances stay private while received kudos are hidden.</p>
+          <p className="mt-3 text-sm text-muted">There are no Hog coins while the game is off.</p>
         ) : (
           <>
             <div className="mt-3 grid grid-cols-2 gap-4">
@@ -729,12 +745,12 @@ function StoreSettings({ isDemo }: { isDemo: boolean }) {
 type Ledger = NonNullable<ReturnType<typeof useQuery<typeof api.storeAdmin.memberLedger>>>;
 
 /**
- * A member's balance from Admin → Members (or a request row): received + granted − spent,
+ * A member's Hog coins from Admin → Members (or a request row): earned + adjusted − spent,
  * the latest adjustments and requests, and the way into "Adjust balance".
  */
 export function LedgerDrawer({ memberId, isDemo, onClose }: { memberId: Id<"members"> | null; isDemo: boolean; onClose: () => void }) {
   const viewer = useViewer();
-  const glyph = viewer.workspace.emojiGlyph;
+  const glyph = COIN;
   const ledger = useQuery(api.storeAdmin.memberLedger, memberId ? { memberId } : "skip");
   const [adjusting, setAdjusting] = useState(false);
   const blocked = ledger ? (ledger.member.isYou ? "You can't adjust your own balance. Another admin can." : isDemo ? "Balances are read-only in the shared demo." : null) : null;
@@ -744,7 +760,7 @@ export function LedgerDrawer({ memberId, isDemo, onClose }: { memberId: Id<"memb
       open={memberId !== null}
       onClose={onClose}
       title={ledger ? `${ledger.member.name}'s balance` : "Balance"}
-      subtitle="Received + granted − spent. Grants never count as recognition."
+      subtitle="Hog coins earned + adjustments − spent. Adjustments never count as recognition."
       footer={
         ledger && (
           <>
@@ -759,7 +775,7 @@ export function LedgerDrawer({ memberId, isDemo, onClose }: { memberId: Id<"memb
       {ledger === undefined ? (
         <Skeleton className="h-64" />
       ) : ledger === null ? (
-        <p className="text-sm text-muted">Balances only exist while the store is open. Open it under Admin → Store → Settings.</p>
+        <p className="text-sm text-muted">Hog coins only exist while the game is on. Switch it on under Admin → Settings.</p>
       ) : (
         <div className="space-y-6">
           <div className="flex items-center gap-3">
@@ -776,12 +792,12 @@ export function LedgerDrawer({ memberId, isDemo, onClose }: { memberId: Id<"memb
               </div>
             </div>
           </div>
-          <dl className="grid grid-cols-3 gap-2 rounded-xl border border-line bg-ink/30 p-3 text-center">
+          <dl className="grid grid-cols-2 gap-2 rounded-xl border border-line bg-ink/30 p-3 text-center sm:grid-cols-4">
             {(
               [
-                // Hidden under "Only me", as in the Members table; the balance is still shown (D4).
-                ["Received", ledger.received === null ? "—" : nf.format(ledger.received)],
-                ["Granted", signed(ledger.granted)],
+                ["From kudos", nf.format(ledger.fromKudos)],
+                ["From levels", nf.format(ledger.fromLevels)],
+                ["Adjusted", signed(ledger.adjusted)],
                 ["Spent", ledger.spent ? `−${nf.format(ledger.spent)}` : "0"],
               ] as const
             ).map(([label, value]) => (
@@ -816,8 +832,8 @@ export function LedgerDrawer({ memberId, isDemo, onClose }: { memberId: Id<"memb
                     <span aria-hidden>{r.rewardEmoji}</span>
                     <span className="min-w-0 flex-1 truncate">{r.rewardName}</span>
                     <StatusChip status={r.status} />
-                    <span className={clsx("w-14 text-right font-mono tabular", r.status === "declined" || r.status === "cancelled" ? "text-faint line-through" : "text-saffron")}>
-                      {nf.format(r.cost)} {glyph}
+                    <span className={clsx("whitespace-nowrap text-right font-mono tabular", r.status === "declined" || r.status === "cancelled" ? "text-faint line-through" : "text-saffron")}>
+                      {nf.format(r.cost)} {r.legacy ? "kudos" : glyph}
                     </span>
                   </li>
                 ))}
@@ -935,18 +951,19 @@ function AdjustBalanceDialog({ open, ledger, glyph, onClose }: { open: boolean; 
 }
 
 /**
- * "Where this balance came from": the requester's top givers in the 90 days before the request,
- * so an admin can spot two people feeding each other their allowance before approving.
+ * "Where these coins came from": whom the requester thanked with the thoughtful kudos that earned
+ * their coins in the 90 days before the request, so an admin can spot two people trading kudos
+ * for coins before approving.
  */
 function BalanceContext({ redemptionId, requester, glyph, onLedger }: { redemptionId: Id<"redemptions">; requester: string; glyph: string; onLedger: () => void }) {
   const viewer = useViewer();
   const context = useQuery(api.storeAdmin.redemptionContext, { redemptionId });
   return (
-    <section aria-label="Where this balance came from" className="rounded-xl border border-line bg-ink/30 p-3">
+    <section aria-label="Where these coins came from" className="rounded-xl border border-line bg-ink/30 p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <Eyebrow>Where this balance came from</Eyebrow>
-        {/* Ledgers only exist while the store is open; closed, requests stay decidable but not adjustable. */}
-        {viewer.workspace.storeEnabled && (
+        <Eyebrow>Where these coins came from</Eyebrow>
+        {/* Ledgers only exist while the game is on; off, requests stay decidable but not adjustable. */}
+        {viewer.workspace.gameEnabled && (
           <button onClick={onLedger} className="shrink-0 whitespace-nowrap text-xs text-muted underline decoration-line-strong underline-offset-4 hover:text-cream">
             Open ledger
           </button>
@@ -954,31 +971,29 @@ function BalanceContext({ redemptionId, requester, glyph, onLedger }: { redempti
       </div>
       {context === undefined ? (
         <Skeleton className="h-16" />
-      ) : context === null ? (
-        <p className="text-sm text-faint">Hidden while received kudos are hidden in this workspace.</p>
       ) : context.total === 0 ? (
         <p className="text-sm text-muted">
-          {requester} received no kudos in the {context.windowDays} days before this request: the balance comes from older kudos or adjustments.
+          {requester} earned no coins from thoughtful kudos in the {context.windowDays} days before this request: the balance comes from levels, older kudos or adjustments.
         </p>
       ) : (
         <>
           <p className="mb-3 text-sm text-muted">
-            In the {context.windowDays} days before this request, {requester} received{" "}
+            In the {context.windowDays} days before this request, {requester} earned{" "}
             <span className="font-mono tabular text-cream">
               {nf.format(context.total)} {glyph}
             </span>
-            {context.truncated && " or more"}.
+            {context.truncated && " or more"} by thanking:
           </p>
           {context.concentrated && (
             <p role="status" className="mb-3 flex items-start gap-2 rounded-lg border border-ember/30 bg-ember/10 px-3 py-2 text-sm text-cream">
               <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-ember" />
               <span>
-                <b className="font-medium">Mostly from one person.</b> {context.givers[0].member.name} gave {Math.round(context.givers[0].share * 100)}% of it. Worth a look before you approve.
+                <b className="font-medium">Mostly from one person.</b> Thanking {context.thanked[0].member.name} brought {Math.round(context.thanked[0].share * 100)}% of it. Worth a look before you approve.
               </span>
             </p>
           )}
           <ul className="space-y-2">
-            {context.givers.map((g) => (
+            {context.thanked.map((g) => (
               <li key={g.member._id} className="grid grid-cols-[auto_1fr_auto] items-center gap-x-2 gap-y-1 text-sm sm:grid-cols-[auto_minmax(0,7rem)_1fr_auto]">
                 <Avatar name={g.member.name} src={g.member.avatarUrl} size={22} />
                 <span className="truncate">
@@ -993,9 +1008,9 @@ function BalanceContext({ redemptionId, requester, glyph, onLedger }: { redempti
               </li>
             ))}
           </ul>
-          {context.otherGivers > 0 && (
+          {context.otherThanked > 0 && (
             <p className="mt-2 text-xs text-faint">
-              and {context.otherGivers} more {context.otherGivers === 1 ? "person" : "people"}
+              and {context.otherThanked} more {context.otherThanked === 1 ? "person" : "people"}
             </p>
           )}
         </>
