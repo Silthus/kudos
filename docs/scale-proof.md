@@ -100,7 +100,7 @@ Docs / bytes read per run. The percentage is the worst of both anchors against *
 | `session.viewer` | busiest member | 2 / 0.00 MiB | — | 0.0% / 0.0% | 2 / 0.00 MiB |
 | `discoveries.gallery (capped)` | busiest member | 8,037 / 2.83 MiB | — | 25.1% / 17.7% | 8,037 / 2.83 MiB |
 
-`quests.mine` and `quests.history` are **not really measured**: no quest boards or completions were seeded, and `quests.history` returns early when no board exists. Their reads are bounded by the board (3 quests) and by `weeks` (≤ 52 boards plus their completions); that bound is reasoning, not measurement. `store.catalog` has no rewards or redemptions to read. The "Before backfill" column was measured on the same code by clearing the marker with `rollups:unmarkBackfilled`, which is the runbook's rollback, exercised here at scale.
+`quests.mine` and `quests.history` are **not really measured**: no quest boards or completions were seeded, and `quests.history` returns early when no board exists. Their reads are bounded by the board (3 quests) and by `weeks` (≤ 52 boards plus their completions); that bound is reasoning, not measurement. [#31](https://github.com/Silthus/kudos/issues/31) merged after these runs. It adds the viewer's quest completions to `compare.past` and `compare.teammate`: ≤ 1,000 `questCompletions` (`MAX_QUEST_COMPLETIONS`) plus one `questBoards` row. `compare.team` reads nothing for it. So the worst compare path stays ≤ ~2.3k docs (≤ 7.1% of the limit), in line with the headline. `store.catalog` has no rewards or redemptions to read. The "Before backfill" column was measured on the same code by clearing the marker with `rollups:unmarkBackfilled`, which is the runbook's rollback, exercised here at scale.
 
 ### Tooling and backfill
 
