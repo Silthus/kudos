@@ -1,0 +1,121 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a71b03f90ec5bd344
+
+ ❯ tests/gardens.test.ts (24 tests | 6 failed) 1289ms
+   ❯ fruit: Grown plants watered in the last 14 days (6)
+     × a Grown plant holds up to three fruit, 1 or 2 Hog coins each; picking pays them and 3 XP a fruit 59ms
+     × no fruit two weeks after the last watering 55ms
+     × picking pays at most 14 Hog coins and 21 XP a quest week; the rest waits on the plants 22ms
+     × a revoked watering can un-grow the plant, but fruit already picked stays picked 58ms
+     × a game rebuild keeps the fruit picked 54ms
+     × nothing to pick while the game is off 55ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/gardens.test.ts > fruit: Grown plants watered in the last 14 days > a Grown plant holds up to three fruit, 1 or 2 Hog coins each; picking pays them and 3 XP a fruit
+AssertionError: expected { Object (awakeDays, dormant, ...) } to match object { stage: 'young', fruit: [] }
+(15 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "fruit": [],
+    "stage": "young",
+  }
+
+ ❯ tests/gardens.test.ts:295:43
+    293|     await anaGrowsBensPlant();
+    294|     jumpTo("2026-11-07");
+    295|     expect((await anasPlant()).plants[0]).toMatchObject({ stage: "youn…
+       |                                           ^
+    296|     jumpTo("2026-11-12");
+    297|     const plant = (await anasPlant()).plants[0];
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  tests/gardens.test.ts > fruit: Grown plants watered in the last 14 days > no fruit two weeks after the last watering
+TypeError: Cannot read properties of undefined (reading 'map')
+ ❯ tests/gardens.test.ts:317:48
+    315|     await anaGrowsBensPlant();
+    316|     jumpTo("2026-11-20");
+    317|     expect((await anasPlant()).plants[0].fruit.map((f) => f.day)).toEq…
+       |                                                ^
+    318|     await (await as(team.ana)).mutation(api.gardens.pick, {});
+    319|     expect((await anasPlant()).plants[0].fruit).toEqual([]); // the la…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  tests/gardens.test.ts > fruit: Grown plants watered in the last 14 days > picking pays at most 14 Hog coins and 21 XP a quest week; the rest waits on the plants
+ConvexError: A plant costs 10 Hog coins; you have 8.
+ ❯ handler convex/gardens.ts:260:47
+    258|     }
+    259|     const { balance } = coinBalance(player, member);
+    260|     if (!canSpend(balance, PLANT_COST)) throw new ConvexError(`A plant…
+       |                                               ^
+    261|
+    262|     const plantedDay = dayKeyFor(now, workspace.timezone);
+ ❯ invokeFunction node_modules/convex/src/server/impl/registration_impl.ts:90:14
+ ❯ invokeMutation node_modules/convex/src/server/impl/registration_impl.ts:70:18
+ ❯ runMutationWithHandler node_modules/convex-test/dist/index.js:1989:31
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2133:32
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/gardens.test.ts:329:73
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  tests/gardens.test.ts > fruit: Grown plants watered in the last 14 days > a revoked watering can un-grow the plant, but fruit already picked stays picked
+Error: Expected a Convex function exported from module "gardens" as `pick`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2131:34
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/gardens.test.ts:350:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  tests/gardens.test.ts > fruit: Grown plants watered in the last 14 days > a game rebuild keeps the fruit picked
+Error: Expected a Convex function exported from module "gardens" as `pick`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2131:34
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/gardens.test.ts:364:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  tests/gardens.test.ts > fruit: Grown plants watered in the last 14 days > nothing to pick while the game is off
+AssertionError: expected [Function] to throw error matching /off or hidden/ but got 'Expected a Convex function exported f…'
+
+- Expected:
+/off or hidden/
+
++ Received:
+"Expected a Convex function exported from module \"gardens\" as `pick`, but there is no such export."
+
+ ❯ tests/gardens.test.ts:374:70
+    372|     jumpTo("2026-11-12");
+    373|     await t.run((ctx) => ctx.db.patch(team.workspaceId, { gameEnabled:…
+    374|     await expect((await as(team.ana)).mutation(api.gardens.pick, {})).…
+       |                                                                      ^
+    375|   });
+    376| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 18 passed (24)
+   Start at  14:22:38
+   Duration  1.71s (tests 80%, transform 10%, import 7%, environment 3%)
+

@@ -1,0 +1,57 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a71b03f90ec5bd344
+
+ ❯ tests/gardens.test.ts (13 tests | 2 failed) 821ms
+   ❯ a plant reaching a new stage: a DM to its owner (3)
+     × sent with the watering that grew it, and never twice for a stage 31ms
+     × when only the age was missing, it arrives on the day the plant is old enough 149ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/gardens.test.ts > a plant reaching a new stage: a DM to its owner > sent with the watering that grew it, and never twice for a stage
+AssertionError: expected undefined to match object { …(2) }
+
+- Expected:
+{
+  "garden": {
+    "kind": "stage",
+    "stage": "sprout",
+  },
+  "webText": "Your Curious fern for Ben reached Sprout.",
+}
+
++ Received:
+undefined
+
+ ❯ tests/gardens.test.ts:197:16
+    195|     const result = await thank("UBEN");
+    196|     const [dm] = await gardenDms(team.ana);
+    197|     expect(dm).toMatchObject({ garden: { kind: "stage", stage: "sprout…
+       |                ^
+    198|     expect(result.notificationIds).toContain(dm._id);
+    199|     const watering = (await all(t, "kudos")).find((k) => k.dayKey === …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/gardens.test.ts > a plant reaching a new stage: a DM to its owner > when only the age was missing, it arrives on the day the plant is old enough
+AssertionError: expected '2026-09-28' to be '2026-09-30' // Object.is equality
+
+Expected: "2026-09-30"
+Received: "2026-09-28"
+
+ ❯ tests/gardens.test.ts:215:52
+    213|     expect(await gardenDms(team.ana)).toEqual([]);
+    214|     await t.finishAllScheduledFunctions(vi.runAllTimers);
+    215|     expect(dayKeyFor(Date.now(), "Europe/Berlin")).toBe("2026-09-30");
+       |                                                    ^
+    216|     expect(await gardenDms(team.ana)).toEqual([expect.objectContaining…
+    217|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 11 passed (13)
+   Start at  14:19:30
+   Duration  1.20s (tests 74%, transform 13%, import 10%, environment 4%)
+

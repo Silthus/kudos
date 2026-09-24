@@ -1,0 +1,49 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a71b03f90ec5bd344
+
+ ❯ src/components/game.test.tsx (13 tests | 1 failed | 12 skipped) 38ms
+   × fruit picked in the garden is its own line in the wallet, and the garden is a click away (#95) 37ms
+ ❯ tests/gardens.test.ts (32 tests | 1 failed | 25 skipped) 909ms
+   ❯ fruit: Grown plants watered in the last 14 days (7)
+     × /kudos coins names the fruit picked as its own source 137ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/gardens.test.ts > fruit: Grown plants watered in the last 14 days > /kudos coins names the fruit picked as its own source
+AssertionError: expected '{"blocks":[{"text":{"text":"Hog coins…' to contain '*From garden fruit*\n5'
+
+Expected: "*From garden fruit*\n5"
+Received: "{"blocks":[{"text":{"text":"Hog coins","type":"plain_text"},"type":"header"},{"fields":[{"text":"*Balance*\n39 Hog coins","type":"mrkdwn"},{"text":"*From thoughtful kudos*\n14","type":"mrkdwn"},{"text":"*From level-ups*\n30","type":"mrkdwn"},{"text":"*Spent*\n10","type":"mrkdwn"}],"type":"section"},{"elements":[{"text":"A thoughtful kudos earns you 1 Hog coin per kudos given, and every level 10.","type":"mrkdwn"}],"type":"context"}],"response_type":"ephemeral","text":"You have 39 Hog coins."}"
+
+ ❯ tests/gardens.test.ts:326:35
+    324|     const { coins } = await (await as(team.ana)).mutation(api.gardens.…
+    325|     const reply = await t.mutation(internal.slackData.slashCommand, { …
+    326|     expect(JSON.stringify(reply)).toContain(`*From garden fruit*\\n${c…
+       |                                   ^
+    327|   });
+    328|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/components/game.test.tsx > fruit picked in the garden is its own line in the wallet, and the garden is a click away (#95)
+AssertionError: expected '31Hog coins8 from thoughtful kudos · …' to contain '8 from thoughtful kudos · 3 from gard…'
+
+Expected: "8 from thoughtful kudos · 3 from garden fruit · 20 from level-ups"
+Received: "31Hog coins8 from thoughtful kudos · 20 from level-ups"
+
+ ❯ src/components/game.test.tsx:70:60
+     68|   mine = { enabled: true, hidden: false, player: level3, wallet: { bal…
+     69|   const host = render(<GameCard glyph="🌮" />);
+     70|   expect(host.querySelector("[data-wallet]")!.textContent).toContain("…
+       |                                                            ^
+     71|   expect(host.querySelector('a[href="/garden"]')?.textContent).toConta…
+     72| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  2 failed | 6 passed | 37 skipped (45)
+   Start at  14:46:16
+   Duration  1.32s (tests 51%, import 20%, transform 16%, environment 12%)
+

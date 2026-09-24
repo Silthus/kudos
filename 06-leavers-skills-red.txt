@@ -1,0 +1,144 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a71b03f90ec5bd344
+
+stdout | tests/gardens.test.ts > leavers (§G15) > removing a member deletes their garden; plants grown for them become memories
+removeMember: removing Ben (UBEN) from Team T1 (T1).
+
+stdout | tests/gardens.test.ts > leavers (§G15) > removing a member deletes their garden; plants grown for them become memories
+removeMember: removed Ben (UBEN) from Team T1; rebuilding its rollups. {"adminRemovedBy":0,"authAccounts":0,"authRefreshTokens":0,"authSessions":0,"balanceAdjustments":0,"discoveries":3,"gameEvents":0,"kudosAttempts":1,"kudosGiven":1,"kudosReceived":2,"memberDays":0,"memberStats":0,"notifications":5,"pairStatsGiven":0,"pairStatsReceived":0,"players":1,"questCompletions":0,"redemptions":0,"skillChanges":0,"steps":20}
+
+ ❯ tests/gardens.test.ts (31 tests | 4 failed) 3499ms
+   ❯ leavers (§G15) (3)
+     × removing a member deletes their garden; plants grown for them become memories 938ms
+   ❯ Gardener skills (3)
+     × can be taken now, and More plots opens a second plot 45ms
+     × after a reset shrinks the garden, the plants stay until uprooted, and nothing new is planted until there's room 27ms
+   ❯ App Home and /kudos level: a garden summary (1)
+     × how many plants grow and how many are dormant 48ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/gardens.test.ts > leavers (§G15) > removing a member deletes their garden; plants grown for them become memories
+AssertionError: expected [ { …(11) }, { …(10) } ] to deeply equal [ ObjectContaining{…} ]
+
+- Expected
++ Received
+
+  [
+    {
+-     "memoryReason": "left",
++     "_creationTime": 1790244120000.001,
++     "_id": "00000000000000000000010119plants",
++     "announced": 0,
++     "forId": "0000000000000000000010003members",
+      "ownerId": "0000000000000000000010002members",
++     "pickedThrough": "2026-09-24",
++     "plantedAt": 1790244120000,
++     "plantedDay": "2026-09-24",
++     "seedKudosId": "000000000000000000000010090kudos",
++     "species": "curious_fern",
++     "workspaceId": "0000000000000000010000workspaces",
++   },
++   {
++     "_creationTime": 1790244180000,
++     "_id": "00000000000000000000010139plants",
++     "announced": 0,
++     "forId": "0000000000000000000010004members",
++     "ownerId": "0000000000000000000010003members",
++     "pickedThrough": "2026-09-24",
++     "plantedAt": 1790244180000,
++     "plantedDay": "2026-09-24",
++     "species": "kind_maple",
++     "workspaceId": "0000000000000000010000workspaces",
+    },
+  ]
+
+ ❯ tests/gardens.test.ts:417:20
+    415|     await t.finishAllScheduledFunctions(vi.runAllTimers, 5000);
+    416|     const plants = await t.run((ctx) => ctx.db.query("plants").collect…
+    417|     expect(plants).toEqual([expect.objectContaining({ ownerId: team.an…
+       |                    ^
+    418|     expect((await anasPlant()).memories).toEqual([expect.objectContain…
+    419|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/gardens.test.ts > Gardener skills > can be taken now, and More plots opens a second plot
+ConvexError: More plots arrives with Gardens.
+ ❯ handler convex/skills.ts:99:26
+     97|     const skills = skillsOf(player);
+     98|     const check = canTake(skills, player.level, skill);
+     99|     if (!check.ok) throw new ConvexError(takeBlockText(SKILLS[skill], …
+       |                          ^
+    100|     const rank = (skills[skill] ?? 0) + 1;
+    101|     await ctx.db.patch(player._id, { skills: { ...player.skills, [skil…
+ ❯ invokeFunction node_modules/convex/src/server/impl/registration_impl.ts:90:14
+ ❯ invokeMutation node_modules/convex/src/server/impl/registration_impl.ts:70:18
+ ❯ runMutationWithHandler node_modules/convex-test/dist/index.js:1989:31
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2133:32
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/gardens.test.ts:426:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/gardens.test.ts > Gardener skills > after a reset shrinks the garden, the plants stay until uprooted, and nothing new is planted until there's room
+ConvexError: More plots arrives with Gardens.
+ ❯ handler convex/skills.ts:99:26
+     97|     const skills = skillsOf(player);
+     98|     const check = canTake(skills, player.level, skill);
+     99|     if (!check.ok) throw new ConvexError(takeBlockText(SKILLS[skill], …
+       |                          ^
+    100|     const rank = (skills[skill] ?? 0) + 1;
+    101|     await ctx.db.patch(player._id, { skills: { ...player.skills, [skil…
+ ❯ invokeFunction node_modules/convex/src/server/impl/registration_impl.ts:90:14
+ ❯ invokeMutation node_modules/convex/src/server/impl/registration_impl.ts:70:18
+ ❯ runMutationWithHandler node_modules/convex-test/dist/index.js:1989:31
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2133:32
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/gardens.test.ts:436:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  tests/gardens.test.ts > App Home and /kudos level: a garden summary > how many plants grow and how many are dormant
+AssertionError: expected { coins: 18, fraction: 0.12, …(6) } to match object { garden: { plants: 1, dormant: +0 } }
+(10 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "garden": {
+-     "dormant": 0,
+-     "plants": 1,
++   "coins": 18,
++   "fraction": 0.12,
++   "level": 3,
++   "locked": {
++     "areas": [
++       "Store",
++       "Quests",
++     ],
++     "level": 5,
+    },
++   "next": 175,
++   "title": "Sprout",
++   "toNext": 88,
++   "xp": 87,
+  }
+
+ ❯ tests/gardens.test.ts:463:34
+    461|     await anaPlantsForBen();
+    462|     const home = () => t.query(internal.slackData.homeData, { workspac…
+    463|     expect((await home())!.game).toMatchObject({ garden: { plants: 1, …
+       |                                  ^
+    464|     jumpTo("2027-01-10");
+    465|     expect((await home())!.game).toMatchObject({ garden: { plants: 1, …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 27 passed (31)
+   Start at  14:37:30
+   Duration  4.31s (tests 85%, transform 9%, import 4%, environment 2%)
+

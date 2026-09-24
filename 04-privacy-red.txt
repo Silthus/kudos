@@ -1,0 +1,88 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a71b03f90ec5bd344
+
+ ❯ tests/gardens.test.ts (18 tests | 4 failed) 999ms
+   ❯ only the teammate sees a plant is for them (3)
+     × Ben sees Ana's plant for him, with its stage, even before his own garden opens 30ms
+     × anyone may look at Ana's garden but only Ben learns which plant is his 20ms
+     × a DM tells Ben when a plant is planted for him, unless receivers get no DMs or he hides the game 25ms
+   ❯ uprooting frees the plot and keeps a memory (2)
+     × the plant becomes a memory with the stage it had 27ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/gardens.test.ts > only the teammate sees a plant is for them > Ben sees Ana's plant for him, with its stage, even before his own garden opens
+Error: Expected a Convex function exported from module "gardens" as `forMe`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2085:34
+ ❯ query node_modules/convex-test/dist/index.js:2172:20
+ ❯ tests/gardens.test.ts:233:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/gardens.test.ts > only the teammate sees a plant is for them > anyone may look at Ana's garden but only Ben learns which plant is his
+Error: Expected a Convex function exported from module "gardens" as `of`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2085:34
+ ❯ query node_modules/convex-test/dist/index.js:2172:20
+ ❯ tests/gardens.test.ts:240:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/gardens.test.ts > only the teammate sees a plant is for them > a DM tells Ben when a plant is planted for him, unless receivers get no DMs or he hides the game
+AssertionError: expected undefined to match object { garden: { kind: 'planted' }, …(1) }
+
+- Expected:
+{
+  "garden": {
+    "kind": "planted",
+  },
+  "webText": StringContaining "Ana is growing a Curious fern for you",
+}
+
++ Received:
+undefined
+
+ ❯ tests/gardens.test.ts:252:16
+    250|     const [dm] = await gardenDms(team.ben);
+    251|     const species = (await anasPlant()).plants[0].speciesName;
+    252|     expect(dm).toMatchObject({ garden: { kind: "planted" }, webText: e…
+       |                ^
+    253|     await t.run((ctx) => ctx.db.patch(team.workspaceId, { notifyReceiv…
+    254|     await (await as(team.ana)).mutation(api.gardens.uproot, { plantId:…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  tests/gardens.test.ts > uprooting frees the plot and keeps a memory > the plant becomes a memory with the stage it had
+Error: Expected a Convex function exported from module "gardens" as `uproot`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2131:34
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:20
+ ❯ tests/gardens.test.ts:266:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 14 passed (18)
+   Start at  14:21:02
+   Duration  1.42s (tests 76%, transform 12%, import 9%, environment 3%)
+

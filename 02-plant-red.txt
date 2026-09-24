@@ -1,0 +1,114 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a71b03f90ec5bd344
+
+ ❯ tests/gardens.test.ts (6 tests | 5 failed) 365ms
+   ❯ the garden opens at level 3 with one plot (2)
+     × locked below level 3, then empty with one plot 220ms
+     × nothing while the game is off or hidden 43ms
+   ❯ planting: 10 Hog coins and a qualifying kudos to them (4)
+     × offers the teammates thanked thoughtfully in the last 7 days, and plants for one 25ms
+     × a kudos without a reason, a thank-back or one older than 7 days doesn't let you plant 32ms
+     × needs a free plot and the coins; one plant per teammate 23ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/gardens.test.ts > the garden opens at level 3 with one plot > locked below level 3, then empty with one plot
+Error: Could not find module for: "gardens"
+ ❯ node_modules/convex-test/dist/index.js:1468:19
+    1466|         const module = modulesWithoutExtension[prefix + path];
+    1467|         if (module === undefined) {
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1469|         }
+    1470|         return await module();
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2398:76
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2085:40
+ ❯ query node_modules/convex-test/dist/index.js:2172:41
+ ❯ node_modules/convex-test/dist/index.js:1886:80
+ ❯ Object.result.<computed> [as query] node_modules/convex-test/dist/index.js:1886:56
+ ❯ garden tests/gardens.test.ts:45:37
+ ❯ tests/gardens.test.ts:58:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  tests/gardens.test.ts > the garden opens at level 3 with one plot > nothing while the game is off or hidden
+Error: Could not find module for: "gardens"
+ ❯ node_modules/convex-test/dist/index.js:1468:19
+    1466|         const module = modulesWithoutExtension[prefix + path];
+    1467|         if (module === undefined) {
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1469|         }
+    1470|         return await module();
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2398:76
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2085:40
+ ❯ query node_modules/convex-test/dist/index.js:2172:41
+ ❯ node_modules/convex-test/dist/index.js:1886:80
+ ❯ Object.result.<computed> [as query] node_modules/convex-test/dist/index.js:1886:56
+ ❯ garden tests/gardens.test.ts:45:37
+ ❯ tests/gardens.test.ts:67:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  tests/gardens.test.ts > planting: 10 Hog coins and a qualifying kudos to them > offers the teammates thanked thoughtfully in the last 7 days, and plants for one
+Error: Could not find module for: "gardens"
+ ❯ node_modules/convex-test/dist/index.js:1468:19
+    1466|         const module = modulesWithoutExtension[prefix + path];
+    1467|         if (module === undefined) {
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1469|         }
+    1470|         return await module();
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2398:76
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2085:40
+ ❯ query node_modules/convex-test/dist/index.js:2172:41
+ ❯ node_modules/convex-test/dist/index.js:1886:80
+ ❯ Object.result.<computed> [as query] node_modules/convex-test/dist/index.js:1886:56
+ ❯ garden tests/gardens.test.ts:45:37
+ ❯ tests/gardens.test.ts:74:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  tests/gardens.test.ts > planting: 10 Hog coins and a qualifying kudos to them > a kudos without a reason, a thank-back or one older than 7 days doesn't let you plant
+Error: Could not find module for: "gardens"
+ ❯ node_modules/convex-test/dist/index.js:1468:19
+    1466|         const module = modulesWithoutExtension[prefix + path];
+    1467|         if (module === undefined) {
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1469|         }
+    1470|         return await module();
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2398:76
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2085:40
+ ❯ query node_modules/convex-test/dist/index.js:2172:41
+ ❯ node_modules/convex-test/dist/index.js:1886:80
+ ❯ Object.result.<computed> [as query] node_modules/convex-test/dist/index.js:1886:56
+ ❯ garden tests/gardens.test.ts:45:37
+ ❯ tests/gardens.test.ts:87:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  tests/gardens.test.ts > planting: 10 Hog coins and a qualifying kudos to them > needs a free plot and the coins; one plant per teammate
+Error: Could not find module for: "gardens"
+ ❯ node_modules/convex-test/dist/index.js:1468:19
+    1466|         const module = modulesWithoutExtension[prefix + path];
+    1467|         if (module === undefined) {
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1469|         }
+    1470|         return await module();
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2398:76
+ ❯ Object.mutationFromPath node_modules/convex-test/dist/index.js:2131:40
+ ❯ mutation node_modules/convex-test/dist/index.js:2181:41
+ ❯ node_modules/convex-test/dist/index.js:1886:80
+ ❯ Object.result.<computed> [as mutation] node_modules/convex-test/dist/index.js:1886:56
+ ❯ tests/gardens.test.ts:98:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 1 passed (6)
+   Start at  14:17:24
+   Duration  734ms (tests 56%, transform 21%, import 16%, environment 6%)
+
