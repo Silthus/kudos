@@ -89,11 +89,17 @@ describe("taking a skill", () => {
     await setLevel(4);
     await expect(ana.mutation(api.skills.take, { skill: "rekindler" })).rejects.toThrow(/Rekindler opens at level 5/);
     await setLevel(12);
-    await expect(ana.mutation(api.skills.take, { skill: "emoji_variants" })).rejects.toThrow(/Signature emoji arrives with Super kudos/);
+    await expect(ana.mutation(api.skills.take, { skill: "good_neighbour" })).rejects.toThrow(/Good neighbour arrives with the team garden and bonus days/);
     await expect(ana.mutation(api.skills.take, { skill: "lookout" })).rejects.toThrow(/You have every rank of Lookout/);
     await expect(ana.mutation(api.skills.take, { skill: "nonsense" })).rejects.toThrow(/no such skill/);
     await ana.mutation(api.skills.take, { skill: "rekindler" });
     expect(await ana.query(api.skills.mine, {})).toMatchObject({ skills: { lookout: 1, rekindler: 1 } });
+  });
+
+  test("the Herald's Signature emoji, Super kudos, Encore and Spotlight are live (#98)", async () => {
+    const ana = await anaAtLevel(21);
+    for (const skill of ["emoji_variants", "emoji_variants", "super_kudos", "encore", "spotlight"]) await ana.mutation(api.skills.take, { skill });
+    expect(await ana.query(api.skills.mine, {})).toMatchObject({ skills: { emoji_variants: 2, super_kudos: 1, encore: 1, spotlight: 1 } });
   });
 
   test("needs the game shown: a member who hides it can't take skills or pay for a reset", async () => {

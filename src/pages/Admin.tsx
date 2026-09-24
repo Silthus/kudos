@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import { kudosEmojiNames } from "../../convex/lib/cosmetics";
 import { Avatar, Button, Card, CardHeader, Eyebrow, Field, inputCls, PageHeader, PageSkeleton, Segmented, TableScroll, Toggle } from "@/components/ui";
 import { nf, relativeTime } from "@/lib/format";
 import { useViewer } from "@/lib/viewer";
@@ -201,6 +202,26 @@ function SettingsForm({ initial, isDemo }: { initial: Settings; isDemo: boolean 
             label="Kudos sprees"
             description="Teammates join a thoughtful kudos by clicking the bot's reaction on it. Each join uses one of their kudos today and one of 5 spree joins a month, and pays out to the receivers at 5, 10, 20, 50 and 100 joiners. Works with the game off, just without XP or Hog coins."
           />
+          {s.gameEnabled && (
+            <div className="space-y-4 border-t border-line py-3">
+              <div>
+                <Eyebrow className="mb-1.5">Emoji to upload to Slack</Eyebrow>
+                <p className="text-xs text-muted">
+                  Slack apps can't add emoji, so upload these once (any image). Until then they're plain text in Slack. While the game is on they give kudos: the
+                  Super kudos one for everyone, each variant only for its owner, so rename any existing emoji with these names first.
+                </p>
+                <ul className="mt-2 flex flex-wrap gap-1.5">
+                  {kudosEmojiNames(s.emojiName)
+                    .slice(1)
+                    .map((name) => (
+                      <li key={name} className="rounded-lg border border-line px-2 py-1 font-mono text-xs text-cream">
+                        :{name}:
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            </div>
+          )}
         </div>
       </Card>
 

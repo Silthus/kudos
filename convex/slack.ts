@@ -2,7 +2,8 @@ import { v } from "convex/values";
 import { internalAction, type ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { baseEmojiName, countEmoji, mentionedUsers } from "./lib/parse";
+import { baseEmojiName, mentionedUsers } from "./lib/parse";
+import { kudosEmojiNames, mayCarryKudos } from "./lib/cosmetics";
 import { FALLBACK_REACTION } from "./lib/guidance";
 import { escapeMrkdwn, isSlackResponseUrl, rewardLine, slackApi, webLink, type SlackResponse } from "./lib/slack";
 import { formatCoins } from "./lib/coins";
@@ -95,7 +96,7 @@ export const processEvent = internalAction({
       if (edited.user_team && edited.user_team !== teamId) return null;
       const previousText = event.previous_message?.text;
       if (edited.text === previousText) return null;
-      if (countEmoji(edited.text, emojiName) === 0 && countEmoji(previousText ?? "", emojiName) === 0) return null;
+      if (!mayCarryKudos(edited.text, emojiName) && !mayCarryKudos(previousText ?? "", emojiName)) return null;
       const channel = await channelInfo(install.botToken, event.channel);
       const result = await ctx.runMutation(internal.kudos.ingestEdit, {
         workspaceId,
@@ -121,7 +122,7 @@ export const processEvent = internalAction({
       if (event.subtype && IGNORED_SUBTYPES.has(event.subtype)) return null;
       if (event.channel_type === "im") return null;
       if (event.user_team && event.user_team !== teamId) return null; // guests from other workspaces can't give
-      if (countEmoji(event.text, emojiName) === 0) return null;
+      if (!mayCarryKudos(event.text, emojiName)) return null; // who gave it decides what counts
       const channel = await channelInfo(install.botToken, event.channel);
       const result = await ctx.runMutation(internal.kudos.ingestMessage, {
         workspaceId,
@@ -141,8 +142,11 @@ export const processEvent = internalAction({
 
     if (event.type === "reaction_added" || event.type === "reaction_removed") {
       if (!event.user || !event.item_user || !event.reaction || event.item?.type !== "message") return null;
-      // The kudos emoji, or the bot's ✅ in its place: the reactions that give kudos or join a spree.
-      if (baseEmojiName(event.reaction) !== emojiName && baseEmojiName(event.reaction) !== FALLBACK_REACTION) return null;
+      // The kudos emoji or a game emoji (who reacted decides what counts), or the bot's ✅ in its
+      // place: the reactions that give kudos or join a spree.
+      const reacted = baseEmojiName(event.reaction);
+      const kudosEmoji = kudosEmojiNames(emojiName).includes(reacted);
+      if (!kudosEmoji && reacted !== FALLBACK_REACTION) return null;
       if (event.user === install.botUserId) return null;
       if (event.type === "reaction_removed") {
         const left = await ctx.runMutation(internal.kudos.ingestUnreaction, {
@@ -156,7 +160,7 @@ export const processEvent = internalAction({
         return null;
       }
       // Only a reaction that may give kudos needs the channel and the message's text; ✅ can only join a spree.
-      const giving = baseEmojiName(event.reaction) === emojiName;
+      const giving = kudosEmoji;
       const channel = giving ? await channelInfo(install.botToken, event.item.channel) : {};
       const result = await ctx.runMutation(internal.kudos.ingestReaction, {
         workspaceId,
@@ -361,6 +365,9 @@ async function deliver(ctx: ActionCtx, token: string, teamId: string, ids: Id<"n
     } else {
       const quest = n.questProgress;
       const earned = n.earnings ? `*${earningsText(n.earnings)}*` : null;
+      // A Super kudos (#98): the receiver's celebration heads their DM; the giver's note follows what it earned.
+      const celebration = n.superKudos?.kind === "celebration" ? n.superKudos.slackText : null;
+      const superNote = n.superKudos && n.superKudos.kind !== "celebration" ? n.superKudos.slackText : null;
       const context = [
         RARITY_SLACK_BADGE[n.rarity as Rarity],
         n.isNewDiscovery ? `✨ New discovery! (${n.discoveredCount} collected)` : null,
@@ -371,13 +378,15 @@ async function deliver(ctx: ActionCtx, token: string, teamId: string, ids: Id<"n
         .filter(Boolean)
         .join("  ·  ");
       blocks = [
+        ...(celebration ? [{ type: "section", text: { type: "mrkdwn", text: celebration } }] : []),
         { type: "section", text: { type: "mrkdwn", text: n.slackText } },
         ...(earned ? [{ type: "section", text: { type: "mrkdwn", text: earned } }] : []),
+        ...(superNote ? [{ type: "section", text: { type: "mrkdwn", text: superNote } }] : []),
         ...(help ? [{ type: "section", text: { type: "mrkdwn", text: help } }] : []),
         { type: "context", elements: [{ type: "mrkdwn", text: context }] },
         ...(gains.length > 0 ? [{ type: "divider" }, ...gainBlocks(gains, link)] : []),
       ];
-      text = [n.slackText, earned, help, gains.length > 0 ? gainsText(gains, "slack") : null].filter(Boolean).join("\n");
+      text = [celebration, n.slackText, earned, superNote, help, gains.length > 0 ? gainsText(gains, "slack") : null].filter(Boolean).join("\n");
     }
     let res = ephemeral
       ? await slackApi(token, "chat.postEphemeral", { channel, thread_ts, user: n.slackUserId, text, blocks })
@@ -543,6 +552,26 @@ export const deliverNotifications = internalAction({
   handler: async (ctx, { workspaceId, ids }) => {
     const install = await ctx.runQuery(internal.slackData.installationForWorkspace, { workspaceId });
     if (install) await deliver(ctx, install.botToken, install.workspace.slackTeamId, ids);
+    return null;
+  },
+});
+
+/**
+ * The Spotlight capstone (#98): a Super kudos featured in the workspace's announcement channel.
+ * The bot must be in that channel; if it isn't, the post fails quietly (the kudos stands).
+ */
+export const postSpotlight = internalAction({
+  args: { superKudosId: v.id("superKudos") },
+  returns: v.null(),
+  handler: async (ctx, { superKudosId }) => {
+    const post = await ctx.runQuery(internal.superKudos.spotlightPost, { superKudosId });
+    if (!post) return null;
+    // Fail closed: only a kudos Slack confirms was given in a public channel is featured.
+    const from = await slackApi(post.botToken, "conversations.info", { channel: post.from });
+    if (!from.ok || (from.channel as { is_private?: boolean } | undefined)?.is_private !== false) return null;
+    const blocks = [{ type: "section", text: { type: "mrkdwn", text: post.text } }];
+    const res = await slackApi(post.botToken, "chat.postMessage", { channel: post.channel, text: post.text, blocks });
+    if (!res.ok) console.warn(`postSpotlight: ${res.error}`);
     return null;
   },
 });

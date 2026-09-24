@@ -12,6 +12,7 @@ import { useViewer } from "@/lib/viewer";
 import { GainLines } from "@/components/game";
 import { SpreePost } from "@/components/SpreePost";
 import type { Id } from "../../convex/_generated/dataModel";
+import { SUPER_SUFFIX, variantBySuffix } from "../../convex/lib/cosmetics";
 
 type BotMessage = {
   _id: string;
@@ -28,6 +29,8 @@ type BotMessage = {
   gains?: string[];
   /** A DM with gains: what it's about ("Level up", "New discovery", ...). */
   gainLabel?: string;
+  /** A Super kudos (#98): the receiver's celebration, or your note on what your Super kudos emoji did. */
+  superKudos?: { kind: "celebration" | "sent" | "howto"; text: string };
 };
 type Outcome = "given" | "limit" | "invalid";
 
@@ -46,6 +49,10 @@ type FeedItem = {
   ephemeral?: boolean;
   /** On the bot's reply to your kudos: what it earned ("+20 XP · new connection +10"). */
   earnings?: string;
+  /** On the bot's reply to your kudos: what your Super kudos emoji did (#98). */
+  superNote?: string;
+  /** The bot confirmed a Super kudos with the Super kudos emoji. */
+  superReaction?: boolean;
   /** Your kudos attempt as sent (Slack format), so you can edit it like in Slack. */
   sent?: { messageTs: string; slackText: string };
   edited?: boolean;
@@ -53,7 +60,7 @@ type FeedItem = {
   threadReply?: boolean;
 };
 
-type AttemptReply = { outcome: Outcome; guidance: string | null } | null;
+type AttemptReply = { outcome: Outcome; reaction?: string; guidance: string | null } | null;
 
 /** What the bot's reaction on your message means (the kudos emoji itself for "given"). */
 const REACTIONS: Record<Outcome, { glyph?: string; label: string }> = {
@@ -76,10 +83,30 @@ const EXAMPLES = [
   { label: "Forget the mention", build: (e: string) => `${e} great job on the launch everyone` },
 ];
 
+/** The kudos emoji with a colour ring: a variant (#98) or the Super kudos emoji, as its art slot's colours. */
+function EmojiChip({ glyph, colors, label }: { glyph: string; colors: string[]; label: string }) {
+  return (
+    <span title={label} className="mx-px inline-grid h-6 w-6 place-items-center rounded-full align-middle text-sm" style={{ background: `linear-gradient(135deg, ${colors.join(", ")})` }}>
+      {glyph}
+    </span>
+  );
+}
+
+const SUPER_COLORS = ["#fde68a", "#f7a501", "#f54e00"];
+
+function variantChip(p: string, glyph: string, emojiName: string, key: number): ReactNode | null {
+  const suffix = p.slice(emojiName.length + 2, -1);
+  if (suffix === SUPER_SUFFIX) return <EmojiChip key={key} glyph={glyph} colors={SUPER_COLORS} label={p} />;
+  const variant = variantBySuffix(suffix);
+  return variant ? <EmojiChip key={key} glyph={glyph} colors={variant.art.colors} label={p} /> : null;
+}
+
 function renderSlackText(text: string, glyph: string, emojiName: string): ReactNode[] {
-  const parts = text.split(new RegExp(`(@[A-ZÀ-Ý][\\p{L}]+ [A-ZÀ-Ý][\\p{L}]+|:${emojiName}:)`, "gu"));
+  const escaped = emojiName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const parts = text.split(new RegExp(`(@[A-ZÀ-Ý][\\p{L}]+ [A-ZÀ-Ý][\\p{L}]+|:${escaped}(?:-[a-z]+)?:)`, "gu"));
   return parts.map((p, i) => {
     if (p === `:${emojiName}:`) return <span key={i}>{glyph}</span>;
+    if (p.startsWith(`:${emojiName}-`) && p.endsWith(":")) return variantChip(p, glyph, emojiName, i) ?? <span key={i}>{p}</span>;
     if (p.startsWith("@")) return <span key={i} className="rounded bg-[#1d9bd1]/20 px-1 text-[#6cc7f5]">{p}</span>;
     return <span key={i}>{p}</span>;
   });
@@ -98,6 +125,9 @@ export function Playground() {
     if (viewer.workspace.spreesEnabled) void openSpree({});
   }, [openSpree, viewer.workspace.spreesEnabled]);
   const send = useMutation(api.demo.simulateMessage);
+  const cosmetics = useQuery(api.cosmetics.mine, { today: useWorkspaceToday() });
+  // Your own kudos-emoji variants and the Super kudos emoji (#98), to add like the kudos emoji.
+  const extraEmoji = [...(cosmetics?.emoji.filter((e) => e.suffix !== null).map((e) => e.shortcode) ?? []), ...(cosmetics?.superKudos ? [cosmetics.superKudos.shortcode] : [])];
   const edit = useMutation(api.demo.simulateEdit);
   const react = useMutation(api.demo.simulateReaction);
   const allowance = useMutation(api.demo.simulateAllowanceCheck);
@@ -129,7 +159,7 @@ export function Playground() {
     if (replies.length > 0) {
       setFeed((f) => [
         ...f,
-        ...replies.map((m) => ({ id: m._id, author: "Kudos", slackUserId: "", text: m.text, mine: false, at: Date.now(), ephemeral: true, earnings: m.earnings })),
+        ...replies.map((m) => ({ id: m._id, author: "Kudos", slackUserId: "", text: m.text, mine: false, at: Date.now(), ephemeral: true, earnings: m.earnings, superNote: m.superKudos?.text })),
       ]);
     }
     const dms = messages.filter((m) => !isReply(m));
@@ -163,8 +193,9 @@ export function Playground() {
   /** Like Slack: the bot reacts on the message, and replies only to you when there's something to fix. */
   const showAttempt = (id: string, attempt: AttemptReply) => {
     if (!attempt) return;
+    const superReaction = attempt.reaction === `${emojiName}-${SUPER_SUFFIX}`;
     setFeed((f) => [
-      ...f.map((m) => (m.id === id ? { ...m, outcome: attempt.outcome } : m)),
+      ...f.map((m) => (m.id === id ? { ...m, outcome: attempt.outcome, superReaction } : m)),
       ...(attempt.guidance
         ? [{ id: crypto.randomUUID(), author: "Kudos", slackUserId: "", text: attempt.guidance, mine: false, at: Date.now(), ephemeral: true }]
         : []),
@@ -282,6 +313,7 @@ export function Playground() {
                     </div>
                     <p className="text-[15px] leading-relaxed text-cream/90">{m.text}</p>
                     {m.earnings && <p className="mt-0.5 text-sm font-semibold text-saffron">{m.earnings}</p>}
+                    {m.superNote && <p className="mt-1 text-sm text-cream/90">{m.superNote}</p>}
                   </div>
                 </motion.div>
               ) : (
@@ -327,7 +359,8 @@ export function Playground() {
                         aria-label={`Kudos bot reacted: ${REACTIONS[m.outcome].label}`}
                         className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-line-strong bg-panel-2 px-2 py-0.5 text-xs"
                       >
-                        {REACTIONS[m.outcome].glyph ?? glyph} <span className="tabular text-muted">1</span>
+                        {m.superReaction ? <EmojiChip glyph={glyph} colors={SUPER_COLORS} label={`:${emojiName}-${SUPER_SUFFIX}:`} /> : (REACTIONS[m.outcome].glyph ?? glyph)}{" "}
+                        <span className="tabular text-muted">1</span>
                       </motion.span>
                     )}
                     {m.sent && editing?.id !== m.id && (
@@ -414,6 +447,11 @@ export function Playground() {
                 <button onClick={() => { setText((t) => `${t}${glyph}`); inputRef.current?.focus(); }} className="rounded-lg p-2 text-lg hover:bg-panel-3" aria-label={`Add ${emojiName}`}>
                   {glyph}
                 </button>
+                {extraEmoji.map((code) => (
+                  <button key={code} onClick={() => { setText((t) => `${t} ${code} `); inputRef.current?.focus(); }} className="rounded-lg p-1 hover:bg-panel-3" aria-label={`Add ${code}`}>
+                    {variantChip(code, glyph, emojiName, 0)}
+                  </button>
+                ))}
                 <Button variant="primary" size="sm" onClick={() => void submit()} disabled={!text.trim()} aria-label="Send">
                   <SendHorizontal className="h-4 w-4" />
                 </Button>
@@ -466,6 +504,11 @@ export function Playground() {
                     <div className="mb-1.5 text-[11px] text-faint">
                       {m.toMe ? "To you" : `To ${m.to} (they'll get this DM)`} · {gainsOnly(m) ? (m.gainLabel ?? "Level up") : (CATEGORY_LABEL[m.category] ?? m.category)}
                     </div>
+                    {m.superKudos?.kind === "celebration" && (
+                      <p data-super-kudos className="mb-2 rounded-xl bg-saffron/10 px-3 py-2 text-sm font-medium whitespace-pre-line text-saffron ring-1 ring-inset ring-saffron/40">
+                        {m.superKudos.text}
+                      </p>
+                    )}
                     <p className="text-[15px] leading-relaxed whitespace-pre-line">{m.text}</p>
                     <GainLines lines={m.gains} />
                     <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5">

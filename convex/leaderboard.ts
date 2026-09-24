@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query, type QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { requireViewer, type Viewer } from "./lib/access";
+import { shownLook } from "./cosmetics";
 import {
   backfilledRollups,
   departedAmong,
@@ -90,7 +91,14 @@ export async function leaderboard(
     const prevRank = prevRanked?.get(m._id) ?? null;
     return {
       rank,
-      member: { _id: m._id, name: m.name, title: m.title ?? null, avatarUrl: m.avatarUrl ?? null, slackUserId: m.slackUserId },
+      member: {
+        _id: m._id,
+        name: m.name,
+        title: m.title ?? null,
+        avatarUrl: m.avatarUrl ?? null,
+        slackUserId: m.slackUserId,
+        look: shownLook(workspace, m, me), // their cosmetics (#98), next to their name
+      },
       value: value(cur),
       prevValue: previous ? value(prev) : null,
       delta: previous ? value(cur) - value(prev) : null,

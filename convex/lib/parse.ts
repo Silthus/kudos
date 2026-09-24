@@ -25,11 +25,14 @@ export function mentionedUsers(text: string): string[] {
   return [...seen];
 }
 
-/** Two versions of a message give the same kudos: same people, same group mentions, same amount. */
-export function sameKudos(before: string, after: string, emojiName: string): boolean {
+/**
+ * Two versions of a message give the same kudos: same people, same group mentions, same amount.
+ * `amount` counts the kudos emoji in a text for its author (their own emoji variants count too).
+ */
+export function sameKudos(before: string, after: string, amount: (text: string) => number | string): boolean {
   const people = (text: string) => mentionedUsers(text).sort().join(" ");
   return (
-    countEmoji(before, emojiName) === countEmoji(after, emojiName) &&
+    amount(before) === amount(after) &&
     mentionsGroup(before) === mentionsGroup(after) &&
     people(before) === people(after)
   );

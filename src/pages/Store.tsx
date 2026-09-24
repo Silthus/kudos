@@ -12,6 +12,7 @@ import { nf, relativeTime } from "@/lib/format";
 import { useViewer } from "@/lib/viewer";
 import { useWorkspaceToday } from "@/lib/period";
 import { Locked } from "@/components/game";
+import { hasItemArt, ItemArt } from "@/components/cosmetics";
 
 /** The Store's only currency (ADR 0002). */
 export const COIN = "Hog coins";
@@ -325,9 +326,13 @@ function ItemCard({ item, balance, onBuy, usesLeft }: { item: ShopItem; balance:
   return (
     <article className={clsx("flex h-full flex-col rounded-2xl border border-line bg-panel/80 p-4", item.blocked && "opacity-70")}>
       <div className="flex items-start justify-between gap-3">
-        <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-saffron/10 ring-1 ring-saffron/20" aria-hidden>
-          <Icon className="h-7 w-7 text-saffron" />
-        </span>
+        {hasItemArt(item.key) ? (
+          <ItemArt itemKey={item.key} />
+        ) : (
+          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-saffron/10 ring-1 ring-saffron/20" aria-hidden>
+            <Icon className="h-7 w-7 text-saffron" />
+          </span>
+        )}
         {usesLeft > 0 && (
           <span className="rounded-full bg-saffron/15 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-saffron ring-1 ring-inset ring-saffron/30">
             {usesLeft} {usesLeft === 1 ? "use" : "uses"} left

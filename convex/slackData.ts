@@ -9,7 +9,7 @@ import { MAX_ACTIVE_REWARDS } from "./lib/store";
 import { realRewardsOn, SHOP_LEVEL, shopAccess } from "./lib/items";
 import { activeRewards, coinWallet, openRedemptionCount, ownDecisionBlocker, pricedInCoins, shopItems, transitionRedemption } from "./store";
 import { openRequestCount } from "./storeAdmin";
-import { earningsValidator, gainValidator, questProgressValidator, redemptionStatusValidator } from "./schema";
+import { earningsValidator, gainValidator, questProgressValidator, redemptionStatusValidator, superKudosNoteValidator } from "./schema";
 import { escapeMrkdwn, rewardLine, webLink } from "./lib/slack";
 import { addDays, dayKeyFor, weekdayOfKey } from "./lib/time";
 import { weekBucket } from "./lib/buckets";
@@ -295,6 +295,7 @@ export const notificationsForDelivery = internalQuery({
       questProgress: v.optional(questProgressValidator),
       earnings: v.optional(earningsValidator),
       gains: v.optional(v.array(gainValidator)),
+      superKudos: v.optional(superKudosNoteValidator),
     }),
   ),
   handler: async (ctx, { ids }) => {
@@ -327,6 +328,7 @@ export const notificationsForDelivery = internalQuery({
         ...(n.questProgress ? { questProgress: n.questProgress } : {}),
         ...(n.earnings ? { earnings: n.earnings } : {}),
         ...(n.gains ? { gains: n.gains } : {}),
+        ...(n.superKudos ? { superKudos: n.superKudos } : {}),
       });
     }
     return out;

@@ -31,6 +31,7 @@ import {
 import { hasNote, RECIPROCAL_WINDOW_MS, weekKeyOfDay } from "./lib/quests";
 import { hasSkill, type Allocation } from "./lib/skills";
 import { addDays, dayKeyFor, parseToday, startOfDayUtc } from "./lib/time";
+import { goldenLeaves } from "./superKudos";
 
 /**
  * Gardens (#55 §G8, G15): a member's plants, each grown for one teammate. The rules are pure in
@@ -149,6 +150,9 @@ const plantView = v.object({
   next: v.union(v.null(), v.object({ name: v.string(), waterings: v.number(), days: v.number() })),
   awakeDays: v.number(),
   lantern: v.union(v.null(), v.object({ note: v.string(), by: v.string() })), // a teammate's glowing Lantern (#97)
+  // A golden leaf per Super kudos its owner sent the teammate it's for (#98). Only the two of them
+  // see it: a teammate's garden (`of`) never shows it, since Super kudos can be public.
+  goldenLeaves: v.number(),
 });
 
 const lanternView = v.union(v.null(), v.object({ note: v.string(), by: v.string() }));
@@ -242,7 +246,15 @@ export const mine = query({
         continue;
       }
       growingFor.add(plant.forId);
-      plants.push({ ...describe(plant, state), lantern: await lanternOf(ctx, plant, today), forId: plant.forId, forName: teammate!.name, fruit, sunlamp });
+      plants.push({
+        ...describe(plant, state),
+        lantern: await lanternOf(ctx, plant, today),
+        forId: plant.forId,
+        forName: teammate!.name,
+        fruit,
+        sunlamp,
+        goldenLeaves: await goldenLeaves(ctx, member._id, plant.forId),
+      });
     }
     const kept = await ctx.db
       .query("plants")
@@ -375,7 +387,14 @@ export const forMe = query({
       const owner = await ctx.db.get(plant.ownerId);
       if (!owner || owner.deactivated || !gameShownTo(workspace, owner)) continue;
       const { state } = await stateOf(ctx, workspace, plant, skillsOf(await playerOf(ctx, owner._id)), today);
-      out.push({ ...describe(plant, state), lantern: await lanternOf(ctx, plant, today), ownerId: owner._id, ownerName: owner.name, ownerAvatarUrl: owner.avatarUrl ?? null });
+      out.push({
+        ...describe(plant, state),
+        lantern: await lanternOf(ctx, plant, today),
+        ownerId: owner._id,
+        ownerName: owner.name,
+        ownerAvatarUrl: owner.avatarUrl ?? null,
+        goldenLeaves: await goldenLeaves(ctx, owner._id, member._id),
+      });
     }
     return out;
   },
