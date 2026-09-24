@@ -1,0 +1,82 @@
+== 1. Fresh local backend: the demo workspace (Lumen Labs, a year of history), after its seeding rebuild
+demo seed + rebuild took 16s
+{
+ "allTime": {
+  "given": 3173,
+  "givers": 18,
+  "messages": 2028,
+  "receivers": 18
+ },
+ "dayKeys": "224 days 2026-01-01..2026-09-23",
+ "isDemo": true,
+ "kudos": 2424,
+ "kudosInvolvingMember": 396,
+ "member": {
+  "name": "Priya Raman",
+  "totalGiven": 257,
+  "totalReceived": 269
+ },
+ "members": 18,
+ "rollupDigest": 819701513,
+ "rollupRowsInvolvingMember": 924,
+ "rollupsBackfilledAt": 1790226942106,
+ "rows": {
+  "channelStats": 364,
+  "memberDays": 2247,
+  "memberStats": 910,
+  "pairStats": 4922,
+  "workspaceStats": 277
+ },
+ "workspaceId": "n97fyx73cy298ahdshfhsnn5bn8f10tj"
+}
+
+== 2. removal:removeMember refuses the shared demo
+ConvexError: [Request ID: 95626db57f090ecc] Server Error
+Uncaught ConvexError: Members of the shared demo workspace can't be removed; reset the demo instead.
+
+== 3. Proof-only: treat Lumen Labs as a regular workspace (uncommitted helper), then remove Priya Raman
+[CONVEX ?(removal:removeMember)] [LOG] 'removeMember: removing Priya Raman (UDEMOPRIYA) from Lumen Labs (T_DEMO_LUMEN).'
+{
+  "status": "started"
+}
+removal + rebuild finished in 19s
+{
+ "allTime": {
+  "given": 2647,
+  "givers": 17,
+  "messages": 1734,
+  "receivers": 17
+ },
+ "dayKeys": "219 days 2026-01-01..2026-09-23",
+ "isDemo": false,
+ "kudos": 2028,
+ "kudosInvolvingMember": 0,
+ "member": null,
+ "members": 17,
+ "rollupDigest": -1960099797,
+ "rollupRowsInvolvingMember": 0,
+ "rollupsBackfilledAt": 1790226969499,
+ "rows": {
+  "channelStats": 360,
+  "memberDays": 1996,
+  "memberStats": 852,
+  "pairStats": 4212,
+  "workspaceStats": 273
+ },
+ "workspaceId": "n97fyx73cy298ahdshfhsnn5bn8f10tj"
+}
+
+== 4. rollups:verify over every day, week, month, quarter and year bucket of the history (see step 4 below)
+
+== 5. A fresh full rebuild changes no rollup row (the 'all' buckets included)
+after removal: -1960099797 {'channelStats': 360, 'memberDays': 1996, 'memberStats': 852, 'pairStats': 4212, 'workspaceStats': 273}
+after rebuild: -1960099797 {'channelStats': 360, 'memberDays': 1996, 'memberStats': 852, 'pairStats': 4212, 'workspaceStats': 273}
+identical: True
+
+== 6. Running it again is a no-op
+[CONVEX ?(removal:removeMember)] [LOG] 'removeMember: UDEMOPRIYA is not a member of Lumen Labs (T_DEMO_LUMEN); nothing to do.'
+{
+  "status": "not_found"
+}
+(Lumen Labs set back to the demo)
+

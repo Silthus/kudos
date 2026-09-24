@@ -1,0 +1,57 @@
+
+> kudos@0.1.0 check
+> npm run typecheck && npm test && npm run build
+
+
+> kudos@0.1.0 typecheck
+> tsc -b && tsc -p convex --noEmit
+
+
+> kudos@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b
+
+
+ Test Files  34 passed (34)
+      Tests  553 passed (553)
+   Start at  05:23:52
+   Duration  345.62s (tests 98%, transform 1%, import 1%)
+
+
+> kudos@0.1.0 build
+> tsc -b && vite build
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vite.config.ts:8:41). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+vite v8.3.0 building client environment for production...
+transforming...
+✓ 2393 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                                          0.79 kB │ gzip:   0.49 kB
+dist/assets/geist-mono-symbols2-wght-normal-CO5SzqOn.woff2               5.81 kB
+dist/assets/geist-mono-cyrillic-ext-wght-normal-X_5orZeX.woff2           6.17 kB
+dist/assets/geist-cyrillic-ext-wght-normal-DjL33-gN.woff2                7.42 kB
+dist/assets/geist-mono-vietnamese-wght-normal-DadHysG0.woff2             7.69 kB
+dist/assets/geist-vietnamese-wght-normal-6IgcOCM7.woff2                  8.00 kB
+dist/assets/bricolage-grotesque-vietnamese-wght-normal-BUzh504Q.woff2    8.60 kB
+dist/assets/geist-mono-cyrillic-wght-normal-DiZS0aHC.woff2              12.94 kB
+dist/assets/geist-mono-latin-ext-wght-normal-Bwz-egvJ.woff2             14.69 kB
+dist/assets/geist-cyrillic-wght-normal-BEAKL7Jp.woff2                   15.08 kB
+dist/assets/geist-latin-ext-wght-normal-DC-KSUi6.woff2                  16.51 kB
+dist/assets/bricolage-grotesque-latin-ext-wght-normal-CcLUaPy7.woff2    18.66 kB
+dist/assets/geist-mono-latin-wght-normal-XN7g48iV.woff2                 23.12 kB
+dist/assets/geist-latin-wght-normal-BgDaEnEv.woff2                      29.40 kB
+dist/assets/bricolage-grotesque-latin-wght-normal-DLoelf7F.woff2        41.34 kB
+dist/assets/index-BwWZZ702.css                                          66.85 kB │ gzip:  12.03 kB
+dist/assets/index-CLUZSSMY.js                                          669.80 kB │ gzip: 200.13 kB
+
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 300ms

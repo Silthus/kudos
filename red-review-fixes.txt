@@ -1,0 +1,161 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b
+
+stdout | tests/member-removal.test.ts > their store requests > the admins' review DMs are retired, and a click on one answers only the clicker
+removeMember: removing Xavi (UXAVI) from Team T1 (T1).
+
+stdout | tests/member-removal.test.ts > their store requests > the admins' review DMs are retired, and a click on one answers only the clicker
+removeMember: removed Xavi (UXAVI) from Team T1; rebuilding its rollups. {"adminRemovedBy":0,"authAccounts":0,"authSessions":0,"balanceAdjustments":0,"discoveries":0,"kudosGiven":0,"kudosReceived":0,"memberDays":0,"memberStats":0,"notifications":0,"pairStatsGiven":0,"pairStatsReceived":0,"questCompletions":0,"redemptions":2,"steps":15}
+
+stdout | tests/member-removal.test.ts > running a removal > won't leave the workspace without an admin unless forced
+removeMember: removing Xavi (UXAVI) from Team T1 (T1).
+
+stdout | tests/member-removal.test.ts > within Convex's transaction limits > a member who gave on hundreds of days: each step stops before it runs out of reads
+removeMember: removing Xavi (UXAVI) from Team T1 (T1).
+
+stderr | tests/member-removal.test.ts > within Convex's transaction limits > a member who gave on hundreds of days: each step stops before it runs out of reads
+Error when running scheduled function removal:removeStep Error: Scanned too many documents in a single function execution (limit: 1500). This is a Convex limit: https://docs.convex.dev/production/state/limits
+    at performAsyncSyscall (file:///home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex/dist/esm/server/impl/syscall.js:28:11)
+    at QueryImpl.next (file:///home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex/dist/esm/server/impl/query_impl.js:187:29)
+    at QueryImpl.collect (file:///home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex/dist/esm/server/impl/query_impl.js:231:22)
+
+stdout | tests/member-removal.test.ts > within Convex's transaction limits > a sign-in with thousands of refresh tokens is deleted a batch at a time
+removeMember: removing Xavi (UXAVI) from Team T1 (T1).
+
+stderr | tests/member-removal.test.ts > within Convex's transaction limits > a sign-in with thousands of refresh tokens is deleted a batch at a time
+Error when running scheduled function removal:removeStep Error: Scanned too many documents in a single function execution (limit: 1500). This is a Convex limit: https://docs.convex.dev/production/state/limits
+    at performAsyncSyscall (file:///home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex/dist/esm/server/impl/syscall.js:28:11)
+    at QueryImpl.next (file:///home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex/dist/esm/server/impl/query_impl.js:187:29)
+    at clear (/home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/convex/removal.ts:150:24)
+    at handler (/home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/convex/removal.ts:227:32)
+    at invokeFunction (file:///home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex/dist/esm/server/impl/registration_impl.js:56:14)
+    at invokeMutation (file:///home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex/dist/esm/server/impl/registration_impl.js:42:18)
+    at runMutationWithHandler (/home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1989:31)
+    at Object.mutationFromPath (/home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2133:32)
+    at Object.fun (/home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2230:24)
+    at /home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1073:13
+
+ ❯ tests/member-removal.test.ts (14 tests | 4 failed) 7891ms
+   ❯ their store requests (3)
+     × the admins' review DMs are retired, and a click on one answers only the clicker 40ms
+   ❯ running a removal (4)
+     × won't leave the workspace without an admin unless forced 5ms
+   ❯ within Convex's transaction limits (2)
+     × a member who gave on hundreds of days: each step stops before it runs out of reads 1887ms
+     × a sign-in with thousands of refresh tokens is deleted a batch at a time 81ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/member-removal.test.ts > their store requests > the admins' review DMs are retired, and a click on one answers only the clicker
+AssertionError: expected '🗑️ A request for *☕ Mug* was withdra…' to be '🗑️ This request for *☕ Mug* is gone:…' // Object.is equality
+
+Expected: "🗑️ This request for *☕ Mug* is gone: its requester was removed from Kudos."
+Received: "🗑️ A request for *☕ Mug* was withdrawn: the requester was removed from Kudos."
+
+ ❯ tests/member-removal.test.ts:385:29
+    383|     for (const u of updates) {
+    384|       const item = u.params.ts === "1.1" ? "☕ Mug" : "☕ Coffee";
+    385|       expect(u.params.text).toBe(`🗑️ This request for *${item}* is go…
+       |                             ^
+    386|       expect(JSON.parse(u.params.blocks).some((b: { type: string }) =>…
+    387|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/member-removal.test.ts > running a removal > won't leave the workspace without an admin unless forced
+AssertionError: promise resolved "{ status: 'started' }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "status": "started",
+  }
+
+ ❯ tests/member-removal.test.ts:498:105
+    496|       await ctx.db.patch(xavi, { isAdmin: true });
+    497|     });
+    498|     await expect(t.mutation(internal.removal.removeMember, { slackTeam…
+       |                                                                                                         ^
+    499|       /only admin.*force/,
+    500|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/member-removal.test.ts > within Convex's transaction limits > a member who gave on hundreds of days: each step stops before it runs out of reads
+AssertionError: expected { …(16) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "_creationTime": 1790157600000.0059,
+  "_id": "0000000000000000000010006members",
+  "currentStreak": 250,
+  "deactivated": true,
+  "givenByWeekday": [
+    36,
+    36,
+    36,
+    36,
+    36,
+    35,
+    35,
+  ],
+  "isAdmin": false,
+  "isBot": false,
+  "lastActiveDay": "2026-09-11",
+  "lastGivenAt": 1789117200000,
+  "longestStreak": 250,
+  "name": "Xavi",
+  "slackUserId": "UXAVI",
+  "totalGiven": 250,
+  "totalMaxedDays": 0,
+  "totalReceived": 0,
+  "workspaceId": "0000000000000000010000workspaces",
+}
+
+ ❯ tests/member-removal.test.ts:528:52
+    526|     await remove();
+    527|
+    528|     expect(await t.run((ctx) => ctx.db.get(xavi))).toBeNull();
+       |                                                    ^
+    529|     expect(await t.run((ctx) => ctx.db.get(team.ana))).toMatchObject({…
+    530|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  tests/member-removal.test.ts > within Convex's transaction limits > a sign-in with thousands of refresh tokens is deleted a batch at a time
+AssertionError: expected { …(5) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "_creationTime": 1790157600000.0068,
+  "_id": "000000000000000000000010007users",
+  "name": "Xavi",
+  "slackTeamId": "T1",
+  "slackUserId": "UXAVI",
+}
+
+ ❯ tests/member-removal.test.ts:544:54
+    542|     await remove();
+    543|
+    544|     expect(await t.run((ctx) => ctx.db.get(userId))).toBeNull();
+       |                                                      ^
+    545|     expect(await t.run(async (ctx) => (await ctx.db.query("authRefresh…
+    546|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 10 passed (14)
+   Start at  04:49:14
+   Duration  8.38s (tests 95%, transform 3%, import 2%)
+

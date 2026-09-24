@@ -1,0 +1,80 @@
+KILLED   given kudos deleted instead of revoked
+         Tests  3 failed | 11 passed (14)
+         × leaves every counter as if they had never been in the workspace
+         × a member with a long history is removed over many steps, and a give racing the removal is revoked too
+         × a member who gave on hundreds of days: each step stops before it runs out of reads
+KILLED   received kudos deleted instead of revoked
+         Tests  3 failed | 11 passed (14)
+         × leaves every counter as if they had never been in the workspace
+         × a quest someone completed only by recognizing the removed member is no longer done
+         × a member with a long history is removed over many steps, and a give racing the removal is revoked too
+KILLED   no rollup rebuild at the end
+         Tests  1 failed | 13 passed (14)
+         × every row that is theirs, their sign-in, and nothing of anyone else's; the rollups verify
+KILLED   no final re-check
+         Tests  1 failed | 13 passed (14)
+         × a member with a long history is removed over many steps, and a give racing the removal is revoked too
+KILLED   open requests keep their stock
+         Tests  1 failed | 13 passed (14)
+         × open requests give their stock back, reward counters stay exact, and other people's requests stay
+KILLED   admin DMs not retired
+         Tests  1 failed | 13 passed (14)
+         × the admins' review DMs are retired, and a click on one answers only the clicker
+KILLED   sign-in deleted though shared
+         Tests  1 failed | 13 passed (14)
+         × keeps the sign-in of someone who is still a member of another workspace
+KILLED   quest completions kept
+         Tests  1 failed | 13 passed (14)
+         × every row that is theirs, their sign-in, and nothing of anyone else's; the rollups verify
+KILLED   pair rows as receiver kept
+         Tests  1 failed | 13 passed (14)
+         × rollup rows no kudos stand behind any more (from before rollups, or past bugs) are gone with them, before the rebuild
+KILLED   four-eyes link kept
+         Tests  1 failed | 13 passed (14)
+         × every row that is theirs, their sign-in, and nothing of anyone else's; the rollups verify
+KILLED   bots not refused
+         Tests  1 failed | 13 passed (14)
+         × refuses bots, the Kudos bot user, and anyone in the shared demo
+KILLED   markDelivery on a removed notification throws
+         Tests  1 failed | 13 passed (14)
+         × a bot message still on its way to them is dropped quietly
+KILLED   memberDays kept
+         Tests  1 failed | 13 passed (14)
+         × rollup rows no kudos stand behind any more (from before rollups, or past bugs) are gone with them, before the rebuild
+KILLED   memberStats kept
+         Tests  1 failed | 13 passed (14)
+         × rollup rows no kudos stand behind any more (from before rollups, or past bugs) are gone with them, before the rebuild
+KILLED   pair rows as giver kept
+         Tests  2 failed | 12 passed (14)
+         × rollup rows no kudos stand behind any more (from before rollups, or past bugs) are gone with them, before the rebuild
+         × a member who gave on hundreds of days: each step stops before it runs out of reads
+KILLED   discoveries kept
+         Tests  1 failed | 13 passed (14)
+         × every row that is theirs, their sign-in, and nothing of anyone else's; the rollups verify
+KILLED   notifications kept
+         Tests  1 failed | 13 passed (14)
+         × every row that is theirs, their sign-in, and nothing of anyone else's; the rollups verify
+KILLED   balance adjustments kept
+         Tests  1 failed | 13 passed (14)
+         × every row that is theirs, their sign-in, and nothing of anyone else's; the rollups verify
+KILLED   redemptions kept
+         Tests  2 failed | 12 passed (14)
+         × open requests give their stock back, reward counters stay exact, and other people's requests stay
+         × the admins' review DMs are retired, and a click on one answers only the clicker
+KILLED   approved requests keep their stock
+         Tests  1 failed | 13 passed (14)
+         × open requests give their stock back, reward counters stay exact, and other people's requests stay
+KILLED   no transaction budget check
+         Tests  1 failed | 13 passed (14)
+         × a member who gave on hundreds of days: each step stops before it runs out of reads
+KILLED   last admin not refused
+         Tests  1 failed | 13 passed (14)
+         × won't leave the workspace without an admin unless forced
+KILLED   refresh tokens left behind
+         Tests  2 failed | 12 passed (14)
+         × every row that is theirs, their sign-in, and nothing of anyone else's; the rollups verify
+         × a sign-in with thousands of refresh tokens is deleted a batch at a time
+KILLED   demo not refused
+         Tests  2 failed | 12 passed (14)
+         × refuses bots, the Kudos bot user, and anyone in the shared demo
+         × a member who gave on hundreds of days: each step stops before it runs out of reads

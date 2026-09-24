@@ -1,0 +1,40 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b
+
+stdout | tests/member-removal.test.ts > what a removal deletes > every row that is theirs, their sign-in, and nothing of anyone else's; the rollups verify
+removeMember: removing Xavi (UXAVI) from Team T1 (T1).
+
+stdout | tests/member-removal.test.ts > what a removal deletes > every row that is theirs, their sign-in, and nothing of anyone else's; the rollups verify
+removeMember: removed Xavi (UXAVI) from Team T1; rebuilding its rollups. {"adminRemovedBy":1,"authAccounts":1,"authRefreshTokens":1,"authSessions":1,"balanceAdjustments":1,"discoveries":6,"kudosGiven":6,"kudosReceived":4,"memberDays":0,"memberStats":0,"notifications":7,"pairStatsGiven":0,"pairStatsReceived":0,"questCompletions":1,"redemptions":0,"steps":16}
+
+ ❯ tests/member-removal.test.ts (14 tests | 1 failed) 9613ms
+   ❯ what a removal deletes (3)
+     × every row that is theirs, their sign-in, and nothing of anyone else's; the rollups verify 1020ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/member-removal.test.ts > what a removal deletes > every row that is theirs, their sign-in, and nothing of anyone else's; the rollups verify
+AssertionError: {"adminRemovedBy":0,"authAccounts":0,"authRefreshTokens":0,"authSessions":0,"authVerificationCodes":0,"balanceAdjustments":0,"discoveries":0,"kudos":0,"kudosAttempts":1,"memberDays":0,"memberStats":0,"notifications":0,"pairStats":0,"questCompletions":0,"users":0}: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/member-removal.test.ts:219:101
+    217|     await remove();
+    218|
+    219|     expect(Object.values(await personal()).every((n) => n === 0), JSON…
+       |                                                                                                     ^
+    220|     // Someone else's adjustment made by Xavi stays; its ledger shows …
+    221|     expect(await t.run(async (ctx) => (await ctx.db.query("balanceAdju…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 13 passed (14)
+   Start at  04:56:21
+   Duration  10.09s (tests 96%, transform 2%, import 1%)
+

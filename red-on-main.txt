@@ -1,0 +1,216 @@
+
+ RUN  v5.0.1 /tmp/wf8b-red
+
+ ❯ tests/member-removal.test.ts (10 tests | 10 failed) 1238ms
+   ❯ removing a member (1)
+     × leaves every counter as if they had never been in the workspace 516ms
+   ❯ what a removal deletes (2)
+     × every row that is theirs, their sign-in, and nothing of anyone else's; the rollups verify 54ms
+     × keeps the sign-in of someone who is still a member of another workspace 2ms
+   ❯ their store requests (3)
+     × open requests give their stock back, reward counters stay exact, and other people's requests stay 96ms
+     × the admins' review DMs are retired, and a click on one answers only the clicker 11ms
+     × a bot message still on its way to them is dropped quietly 4ms
+   ❯ other members' quests (1)
+     × a quest someone completed only by recognizing the removed member is no longer done 14ms
+   ❯ running a removal (3)
+     × refuses bots, the Kudos bot user, and anyone in the shared demo 5ms
+     × is idempotent: a second run, even one started while the first is running, changes nothing more 36ms
+     × a member with a long history is removed over many steps, and a give racing the removal is revoked too 497ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/member-removal.test.ts > removing a member > leaves every counter as if they had never been in the workspace
+Error: Could not find module for: "removal"
+ ❯ ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1468:19
+    1466|         const module = modulesWithoutExtension[prefix + path];
+    1467|         if (module === undefined) {
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1469|         }
+    1470|         return await module();
+ ❯ resolveFunction ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2398:76
+ ❯ Object.mutationFromPath ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2131:40
+ ❯ mutation ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2181:41
+ ❯ ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1886:80
+ ❯ Object.result.<computed> [as mutation] ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1886:56
+ ❯ remove tests/member-removal.test.ts:123:26
+ ❯ tests/member-removal.test.ts:141:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/10]⎯
+
+ FAIL  tests/member-removal.test.ts > what a removal deletes > every row that is theirs, their sign-in, and nothing of anyone else's; the rollups verify
+Error: Could not find module for: "removal"
+ ❯ ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1468:19
+    1466|         const module = modulesWithoutExtension[prefix + path];
+    1467|         if (module === undefined) {
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1469|         }
+    1470|         return await module();
+ ❯ resolveFunction ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2398:76
+ ❯ Object.mutationFromPath ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2131:40
+ ❯ mutation ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2181:41
+ ❯ ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1886:80
+ ❯ Object.result.<computed> [as mutation] ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1886:56
+ ❯ remove tests/member-removal.test.ts:123:26
+ ❯ tests/member-removal.test.ts:212:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/10]⎯
+
+ FAIL  tests/member-removal.test.ts > what a removal deletes > keeps the sign-in of someone who is still a member of another workspace
+Error: Could not find module for: "removal"
+ ❯ ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1468:19
+    1466|         const module = modulesWithoutExtension[prefix + path];
+    1467|         if (module === undefined) {
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1469|         }
+    1470|         return await module();
+ ❯ resolveFunction ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2398:76
+ ❯ Object.mutationFromPath ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2131:40
+ ❯ mutation ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2181:41
+ ❯ ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1886:80
+ ❯ Object.result.<computed> [as mutation] ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1886:56
+ ❯ remove tests/member-removal.test.ts:123:26
+ ❯ tests/member-removal.test.ts:234:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/10]⎯
+
+ FAIL  tests/member-removal.test.ts > their store requests > open requests give their stock back, reward counters stay exact, and other people's requests stay
+Error: Could not find module for: "removal"
+ ❯ ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1468:19
+    1466|         const module = modulesWithoutExtension[prefix + path];
+    1467|         if (module === undefined) {
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1469|         }
+    1470|         return await module();
+ ❯ resolveFunction ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2398:76
+ ❯ Object.mutationFromPath ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2131:40
+ ❯ mutation ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2181:41
+ ❯ ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1886:80
+ ❯ Object.result.<computed> [as mutation] ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1886:56
+ ❯ remove tests/member-removal.test.ts:123:26
+ ❯ tests/member-removal.test.ts:328:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/10]⎯
+
+ FAIL  tests/member-removal.test.ts > their store requests > the admins' review DMs are retired, and a click on one answers only the clicker
+Error: Could not find module for: "removal"
+ ❯ ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1468:19
+    1466|         const module = modulesWithoutExtension[prefix + path];
+    1467|         if (module === undefined) {
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1469|         }
+    1470|         return await module();
+ ❯ resolveFunction ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2398:76
+ ❯ Object.mutationFromPath ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2131:40
+ ❯ mutation ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2181:41
+ ❯ ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1886:80
+ ❯ Object.result.<computed> [as mutation] ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1886:56
+ ❯ remove tests/member-removal.test.ts:123:26
+ ❯ tests/member-removal.test.ts:345:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/10]⎯
+
+ FAIL  tests/member-removal.test.ts > their store requests > a bot message still on its way to them is dropped quietly
+Error: Could not find module for: "removal"
+ ❯ ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1468:19
+    1466|         const module = modulesWithoutExtension[prefix + path];
+    1467|         if (module === undefined) {
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1469|         }
+    1470|         return await module();
+ ❯ resolveFunction ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2398:76
+ ❯ Object.mutationFromPath ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2131:40
+ ❯ mutation ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2181:41
+ ❯ ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1886:80
+ ❯ Object.result.<computed> [as mutation] ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1886:56
+ ❯ remove tests/member-removal.test.ts:123:26
+ ❯ tests/member-removal.test.ts:367:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/10]⎯
+
+ FAIL  tests/member-removal.test.ts > other members' quests > a quest someone completed only by recognizing the removed member is no longer done
+Error: Could not find module for: "removal"
+ ❯ ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1468:19
+    1466|         const module = modulesWithoutExtension[prefix + path];
+    1467|         if (module === undefined) {
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1469|         }
+    1470|         return await module();
+ ❯ resolveFunction ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2398:76
+ ❯ Object.mutationFromPath ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2131:40
+ ❯ mutation ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2181:41
+ ❯ ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1886:80
+ ❯ Object.result.<computed> [as mutation] ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1886:56
+ ❯ remove tests/member-removal.test.ts:123:26
+ ❯ tests/member-removal.test.ts:383:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/10]⎯
+
+ FAIL  tests/member-removal.test.ts > running a removal > refuses bots, the Kudos bot user, and anyone in the shared demo
+AssertionError: expected [Function] to throw error matching /bot/ but got 'Could not find module for: "removal"'
+
+- Expected:
+/bot/
+
++ Received:
+"Could not find module for: \"removal\""
+
+ ❯ tests/member-removal.test.ts:391:104
+    389| describe("running a removal", () => {
+    390|   test("refuses bots, the Kudos bot user, and anyone in the shared dem…
+    391|     await expect(t.mutation(internal.removal.removeMember, { slackTeam…
+       |                                                                                                        ^
+    392|     await t.run((ctx) => ctx.db.patch(team.bot, { isBot: false })); //…
+    393|     await expect(t.mutation(internal.removal.removeMember, { slackTeam…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/10]⎯
+
+ FAIL  tests/member-removal.test.ts > running a removal > is idempotent: a second run, even one started while the first is running, changes nothing more
+Error: Could not find module for: "removal"
+ ❯ ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1468:19
+    1466|         const module = modulesWithoutExtension[prefix + path];
+    1467|         if (module === undefined) {
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1469|         }
+    1470|         return await module();
+ ❯ resolveFunction ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2398:76
+ ❯ Object.mutationFromPath ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2131:40
+ ❯ mutation ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2181:41
+ ❯ ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1886:80
+ ❯ Object.result.<computed> [as mutation] ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1886:56
+ ❯ tests/member-removal.test.ts:411:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/10]⎯
+
+ FAIL  tests/member-removal.test.ts > running a removal > a member with a long history is removed over many steps, and a give racing the removal is revoked too
+Error: Could not find module for: "removal"
+ ❯ ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1468:19
+    1466|         const module = modulesWithoutExtension[prefix + path];
+    1467|         if (module === undefined) {
+    1468|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1469|         }
+    1470|         return await module();
+ ❯ resolveFunction ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2398:76
+ ❯ Object.mutationFromPath ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2131:40
+ ❯ mutation ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:2181:41
+ ❯ ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1886:80
+ ❯ Object.result.<computed> [as mutation] ../../home/coder/dev/kudos/.claude/worktrees/agent-ad253c1b2debe855b/node_modules/convex-test/dist/index.js:1886:56
+ ❯ tests/member-removal.test.ts:431:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/10]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  10 failed (10)
+   Start at  04:26:45
+   Duration  2.74s (tests 47%, transform 47%, import 5%, environment 2%)
+

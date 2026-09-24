@@ -1,0 +1,12 @@
+KILLED   pair rows as receiver kept
+         Tests  1 failed | 10 passed (11)
+         × rollup rows no kudos stand behind any more (from before rollups, or past bugs) are gone with them, before the rebuild
+KILLED   memberDays kept
+         Tests  1 failed | 10 passed (11)
+         × rollup rows no kudos stand behind any more (from before rollups, or past bugs) are gone with them, before the rebuild
+KILLED   memberStats kept
+         Tests  1 failed | 10 passed (11)
+         × rollup rows no kudos stand behind any more (from before rollups, or past bugs) are gone with them, before the rebuild
+KILLED   pair rows as giver kept
+         Tests  1 failed | 10 passed (11)
+         × rollup rows no kudos stand behind any more (from before rollups, or past bugs) are gone with them, before the rebuild
