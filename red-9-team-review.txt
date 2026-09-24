@@ -1,0 +1,110 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af30b0a5923440d3e
+
+ ❯ tests/compare.team.test.ts (28 tests | 4 failed) 424ms
+   ❯ compare.team.get: where the numbers come from (5)
+     × before the backfill it counts memberDays, and says when the read was capped 20ms
+     × a capped rollup read keeps the biggest givers 7ms
+     × has no all-time answer: all time lives on the members, not in a bucket 3ms
+     × a truncated read keeps the median but claims no percentile 205ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/compare.team.test.ts > compare.team.get: where the numbers come from > before the backfill it counts memberDays, and says when the read was capped
+TypeError: Arg 1 `n` to `take` must be a non-negative integer
+ ❯ validateArgIsNonNegativeInteger node_modules/convex/src/server/impl/validate.ts:34:11
+ ❯ QueryImpl.take node_modules/convex/src/server/impl/query_impl.ts:325:5
+ ❯ workspaceDays convex/lib/stats.ts:29:6
+     27|     )
+     28|     .order("desc")
+     29|     .take(cap);
+       |      ^
+     30|   return { rows, truncated: rows.length === cap };
+     31| }
+ ❯ memberTotalsInRange convex/lib/stats.ts:163:37
+ ❯ tests/compare.team.test.ts:317:43
+ ❯ invokeFunction node_modules/convex/src/server/impl/registration_impl.ts:90:14
+ ❯ invokeMutation node_modules/convex/src/server/impl/registration_impl.ts:70:18
+ ❯ runMutationWithHandler node_modules/convex-test/dist/index.js:1989:31
+ ❯ handler node_modules/convex-test/dist/index.js:2195:24
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/compare.team.test.ts > compare.team.get: where the numbers come from > a capped rollup read keeps the biggest givers
+AssertionError: expected { …(2) } to deeply equal { truncated: true, …(1) }
+
+- Expected
++ Received
+
+  {
+    "given": [
+      40,
+      30,
+      12,
++     10,
++     8,
++     6,
++     4,
++     2,
++     0,
+    ],
+-   "truncated": true,
++   "truncated": false,
+  }
+
+ ❯ tests/compare.team.test.ts:332:20
+    330|     });
+    331|     // The bot's 40, Hal's 30 and Finn's 12: the reader filters people…
+    332|     expect(capped).toEqual({ truncated: true, given: [40, 30, 12] });
+       |                    ^
+    333|   });
+    334|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/compare.team.test.ts > compare.team.get: where the numbers come from > has no all-time answer: all time lives on the members, not in a bucket
+AssertionError: promise resolved "null" instead of rejecting
+
+- Expected:
+Error {
+  "message": "rejected promise",
+}
+
++ Received:
+null
+
+ ❯ tests/compare.team.test.ts:341:6
+    339|         await memberTotalsInRange(ctx, (await ctx.db.get(team.workspac…
+    340|       }),
+    341|     ).rejects.toThrow("memberTotalsInRange covers calendar periods onl…
+       |      ^
+    342|   });
+    343|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  tests/compare.team.test.ts > compare.team.get: where the numbers come from > a truncated read keeps the median but claims no percentile
+AssertionError: expected +0 to be null
+
+- Expected:
+null
+
++ Received:
+0
+
+ ❯ tests/compare.team.test.ts:374:40
+    372|     expect(r.truncated).toBe(true);
+    373|     expect(row(r, "given").team).not.toBeNull();
+    374|     expect(row(r, "given").percentile).toBeNull();
+       |                                        ^
+    375|   });
+    376| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 24 passed (28)
+   Start at  07:19:48
+   Duration  869ms (tests 54%, transform 25%, import 16%, environment 5%)
+

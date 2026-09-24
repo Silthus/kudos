@@ -1,0 +1,80 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af30b0a5923440d3e
+
+ ❯ tests/me-split.test.ts (17 tests | 3 failed) 6838ms
+   ❯ me.standing: week rank and team median (5)
+     × ranks me among this week's givers and gives the team median for the period 117ms
+     × the team median leaves out teammates who have left, like Compare's Team benchmark 48ms
+     × the Me page's team median is the one "Compare in detail" opens 49ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/me-split.test.ts > me.standing: week rank and team median > ranks me among this week's givers and gives the team median for the period
+AssertionError: expected { Object (teamMedian, week) } to deeply equal { week: { rank: 2, of: 3 }, …(1) }
+
+- Expected
++ Received
+
+  {
+-   "teamMedian": 3.5,
++   "teamMedian": 5,
+    "week": {
+      "of": 3,
+      "rank": 2,
+    },
+  }
+
+ ❯ tests/me-split.test.ts:112:80
+    110|     const ana = await signInAs(t, team.ana);
+    111|     // This week (Mon 21 – Wed 23): Ana 5, Ben 6, Cleo 1. The median i…
+    112|     expect(await ana.query(api.me.standing, { period: "week", today: T…
+       |                                                                                ^
+    113|       week: { rank: 2, of: 3 },
+    114|       teamMedian: 3.5,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  tests/me-split.test.ts > me.standing: week rank and team median > the team median leaves out teammates who have left, like Compare's Team benchmark
+AssertionError: expected 6 to be 2 // Object.is equality
+
+- Expected
++ Received
+
+- 2
++ 6
+
+ ❯ tests/me-split.test.ts:127:94
+    125|     const ana = await signInAs(t, team.ana);
+    126|     // Cleo alone is left: 2 this month, 2 all time.
+    127|     expect((await ana.query(api.me.standing, { period: "month", today:…
+       |                                                                                              ^
+    128|     expect((await ana.query(api.me.standing, { period: "all", today: T…
+    129|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  tests/me-split.test.ts > me.standing: week rank and team median > the Me page's team median is the one "Compare in detail" opens
+AssertionError: expected 4 to be 6 // Object.is equality
+
+- Expected
++ Received
+
+- 6
++ 4
+
+ ❯ tests/me-split.test.ts:137:77
+    135|     const standing = await ana.query(api.me.standing, { period: "month…
+    136|     const compare = await ana.query(api.compare.team.get, { period: "m…
+    137|     expect(compare.rows.find((r) => r.metric === "given")!.benchmark.v…
+       |                                                                             ^
+    138|   });
+    139|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 14 passed (17)
+   Start at  07:18:19
+   Duration  7.30s (tests 95%, transform 3%, import 2%, environment 1%)
+

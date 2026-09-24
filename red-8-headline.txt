@@ -1,0 +1,92 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-af30b0a5923440d3e
+
+ ❯ tests/compare.links.test.ts (25 tests | 6 failed) 13ms
+   ❯ teamHeadline: what the Team benchmark leads with (6)
+     × your share of the team when you're somewhere in it 3ms
+     × above everyone, it says so rather than "more than 100%" 1ms
+     × below everyone who gave, it falls back to your number against the median rather than "more than 0%" 0ms
+     × nothing given yet in a full team: the invitation 0ms
+     × a small team: your number against its median 0ms
+     × no team to compare with: just your number 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/compare.links.test.ts > teamHeadline: what the Team benchmark leads with > your share of the team when you're somewhere in it
+TypeError: teamHeadline is not a function
+ ❯ tests/compare.links.test.ts:81:12
+     79|
+     80|   test("your share of the team when you're somewhere in it", () => {
+     81|     expect(teamHeadline({ value: 41, team: full, percentile: 0.8125 })…
+       |            ^
+     82|   });
+     83|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  tests/compare.links.test.ts > teamHeadline: what the Team benchmark leads with > above everyone, it says so rather than "more than 100%"
+TypeError: teamHeadline is not a function
+ ❯ tests/compare.links.test.ts:85:12
+     83|
+     84|   test("above everyone, it says so rather than \"more than 100%\"", ()…
+     85|     expect(teamHeadline({ value: 60, team: full, percentile: 1 })).toE…
+       |            ^
+     86|   });
+     87|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  tests/compare.links.test.ts > teamHeadline: what the Team benchmark leads with > below everyone who gave, it falls back to your number against the median rather than "more than 0%"
+TypeError: teamHeadline is not a function
+ ❯ tests/compare.links.test.ts:89:12
+     87|
+     88|   test("below everyone who gave, it falls back to your number against …
+     89|     expect(teamHeadline({ value: 1, team: full, percentile: 0 })).toEq…
+       |            ^
+     90|   });
+     91|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  tests/compare.links.test.ts > teamHeadline: what the Team benchmark leads with > nothing given yet in a full team: the invitation
+TypeError: teamHeadline is not a function
+ ❯ tests/compare.links.test.ts:93:12
+     91|
+     92|   test("nothing given yet in a full team: the invitation", () => {
+     93|     expect(teamHeadline({ value: 0, team: full, percentile: null })).t…
+       |            ^
+     94|   });
+     95|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  tests/compare.links.test.ts > teamHeadline: what the Team benchmark leads with > a small team: your number against its median
+TypeError: teamHeadline is not a function
+ ❯ tests/compare.links.test.ts:97:12
+     95|
+     96|   test("a small team: your number against its median", () => {
+     97|     expect(teamHeadline({ value: 41, team: small, percentile: null }))…
+       |            ^
+     98|     expect(teamHeadline({ value: 0, team: small, percentile: null })).…
+     99|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  tests/compare.links.test.ts > teamHeadline: what the Team benchmark leads with > no team to compare with: just your number
+TypeError: teamHeadline is not a function
+ ❯ tests/compare.links.test.ts:102:12
+    100|
+    101|   test("no team to compare with: just your number", () => {
+    102|     expect(teamHeadline({ value: 41, team: null, percentile: null })).…
+       |            ^
+    103|   });
+    104| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 19 passed (25)
+   Start at  07:19:02
+   Duration  270ms (transform 44%, environment 25%, import 20%, tests 8%, worker 2%)
+
