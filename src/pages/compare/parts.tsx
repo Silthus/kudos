@@ -57,6 +57,7 @@ export function Scoreboard<R extends Row>({
   deltaHeader,
   renderDelta,
   renderVisual,
+  visualHeader = "Bars",
   legend,
   footnote,
 }: {
@@ -67,6 +68,8 @@ export function Scoreboard<R extends Row>({
   renderDelta: (row: R) => ReactNode;
   /** The row's picture of you against the benchmark; paired bars by default. */
   renderVisual?: (row: R) => ReactNode;
+  /** What the visual column shows, for screen readers. */
+  visualHeader?: string;
   /** The benchmark's legend entries, after the two "You" families. */
   legend?: { label: string; color: string }[];
   footnote?: ReactNode;
@@ -84,7 +87,7 @@ export function Scoreboard<R extends Row>({
             <th className="py-2 text-right font-normal">You</th>
             <th className="py-2 pl-3 text-right font-normal">{benchmarkLabel}</th>
             <th className="w-[38%] py-2 pl-5 font-normal">
-              <span className="sr-only">Bars</span>
+              <span className="sr-only">{visualHeader}</span>
             </th>
             <th className="py-2 pr-5 text-right font-normal">{deltaHeader}</th>
           </tr>

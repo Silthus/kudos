@@ -81,7 +81,9 @@ export const get = query({
         you: { value: locked ? null : mine[metric], locked },
         benchmark: { value: standing.team?.median ?? null, locked },
         delta: null,
-        ...standing,
+        team: standing.team,
+        // A capped read misses some of the team, so "more than N% of them" can't be claimed.
+        percentile: truncated ? null : standing.percentile,
       };
     });
 

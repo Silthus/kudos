@@ -143,22 +143,27 @@ export async function memberBucket(
 }
 
 /**
- * Every member's totals for a w/m/q/y period to date: their `memberStats` rows for its bucket (at most
- * one per member; the bucket holds nothing after today) once the workspace's rollups are backfilled,
- * before that its `memberDays`, capped, with `truncated` when the cap was hit.
+ * Every member's totals for a w/m/q/y period to date. Once the workspace's rollups are backfilled
+ * (`rollupsReady`), their `memberStats` rows for its bucket: at most one per member, biggest givers
+ * first so a cap drops the smallest. The bucket runs to its end, which is "to date" because
+ * `today` is the real current day (it can't hold kudos not given yet). Before that, its `memberDays`
+ * through `range.current.end`, newest first. `truncated` when a cap was hit.
  */
 export async function memberTotalsInRange(
   ctx: QueryCtx,
   workspace: Doc<"workspaces">,
   range: PeriodRange,
-  dayCap = MAX_DAY_ROWS,
+  { dayCap = MAX_DAY_ROWS, memberCap = MAX_MEMBERS } = {},
 ): Promise<{ totals: Map<Id<"members">, Totals>; truncated: boolean }> {
+  if (range.period === "all") throw new Error("memberTotalsInRange covers calendar periods only");
+  // `rollupsReady` (lib/rebuild.ts), inlined: rebuild imports this module.
   if (workspace.rollupsBackfilledAt !== undefined) {
     const rows = await ctx.db
       .query("memberStats")
       .withIndex("by_workspace_bucket_given", (q) => q.eq("workspaceId", workspace._id).eq("bucket", range.bucket))
-      .take(MAX_MEMBERS);
-    return { totals: totalsOf(rows), truncated: rows.length === MAX_MEMBERS };
+      .order("desc")
+      .take(memberCap);
+    return { totals: totalsOf(rows), truncated: rows.length === memberCap };
   }
   const { rows, truncated } = await workspaceDays(ctx, workspace._id, range.current, dayCap);
   return { totals: totalsByMember(rows), truncated };

@@ -78,6 +78,29 @@ export function teamSummary(you: number, team: TeamDistribution) {
 /** A share of the team (0–1) as a whole percent, rounded down so "more than N%" is always true. */
 export const sharePercent = (share: number) => `${Math.floor(share * 100 + 1e-9)}%`;
 
+export type TeamHeadline =
+  | { kind: "share"; share: string; teammates: number }
+  | { kind: "everyone"; teammates: number }
+  | { kind: "firstOne"; teammates: number }
+  | { kind: "median"; you: number; median: number; teammates: number }
+  | { kind: "alone"; you: number };
+
+/**
+ * What the Team benchmark leads with, from its Given row: the share of the team you gave more than
+ * while that says something ("more than all" at the top; at the bottom your number against the
+ * median instead of "more than 0%"), the invitation when you haven't given yet, and your number
+ * against the median while the team is too small for shares.
+ */
+export function teamHeadline(given: { value: number | null; team: TeamDistribution | null; percentile: number | null }): TeamHeadline {
+  const you = given.value ?? 0;
+  const { team, percentile } = given;
+  if (!team) return { kind: "alone", you };
+  if (percentile === 1) return { kind: "everyone", teammates: team.n };
+  if (percentile !== null && percentile > 0) return { kind: "share", share: sharePercent(percentile), teammates: team.n };
+  if (team.p25 !== null && you === 0) return { kind: "firstOne", teammates: team.n };
+  return { kind: "median", you, median: team.median, teammates: team.n };
+}
+
 /** Whether `error` is the server saying a `?vs=` id isn't a teammate you can compare with (a stale or foreign link). */
 export function isTeammateUnavailable(error: unknown) {
   return error instanceof ConvexError && error.data === TEAMMATE_UNAVAILABLE;

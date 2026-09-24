@@ -16,7 +16,7 @@ const COMPARE_PERIODS = PERIOD_OPTIONS.filter((o): o is { value: ComparePeriod; 
 
 type Benchmark = "past" | "team" | "teammate";
 
-const BENCHMARKS: { value: Benchmark; label: ReactNode; disabled?: boolean; title?: string }[] = [
+const BENCHMARKS: { value: Benchmark; label: ReactNode; title?: string }[] = [
   { value: "past", label: "Past you" },
   { value: "team", label: "Team", title: "Where you sit among the teammates who took part" },
   {

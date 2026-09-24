@@ -4,6 +4,7 @@ import type { Doc, Id } from "../convex/_generated/dataModel";
 import { giveKudos } from "../convex/engine";
 import { resolvePeriod } from "../convex/lib/periods";
 import { memberTotalsInRange } from "../convex/lib/stats";
+import { addDays } from "../convex/lib/time";
 import { NOW, seedTeam, setupConvex, signInAs, TODAY, type Team } from "./helpers";
 
 // NOW is Wed 2026-09-23 in Berlin: "month" is the m:2026-09 bucket, "week" w:2026-W39.
@@ -134,6 +135,24 @@ describe("compare.team.get: the participant distribution", () => {
     expect(row(await getTeam(), "given").percentile).toBe(0.6);
   });
 
+  test.each([
+    ["week", TODAY, "w:2026-W39", { start: "2026-09-21", end: "2026-09-23", days: 3 }],
+    ["quarter", TODAY, "q:2026-Q3", { start: "2026-07-01", end: "2026-09-23", days: 85 }],
+    ["year", TODAY, "y:2026", { start: "2026-01-01", end: "2026-09-23", days: 266 }],
+    // Friday 1 January 2027 still belongs to ISO week 53 of 2026.
+    ["week", "2027-01-01", "w:2026-W53", { start: "2026-12-28", end: "2027-01-01", days: 5 }],
+  ] as const)("%s on %s reads the %s bucket", async (period, today, bucket, range) => {
+    await setup();
+    await stats(team.ana, { given: 4 }, bucket);
+    await stats(team.ben, { given: 2 }, bucket);
+    await stats(team.cleo, { given: 6 }, bucket);
+    await stats(team.ben, { given: 99 }, "m:2026-09"); // another bucket
+    const viewer = await signInAs(t, team.ana);
+    const r = await viewer.query(api.compare.team.get, { period, today });
+    expect(r.range).toEqual(range);
+    expect(row(r, "given")).toMatchObject({ you: { value: 4 }, team: { n: 2, median: 4 } });
+  });
+
   test("the period picks the bucket", async () => {
     await setup();
     await fiveGivers();
@@ -171,13 +190,33 @@ describe("compare.team.get: small teams", () => {
     const r = await getTeam();
     expect(r.participants).toBe(1);
     expect(row(r, "given")).toMatchObject({ you: { value: 5 }, benchmark: { value: null }, team: null, percentile: null });
-    expect(JSON.stringify(r.rows)).not.toContain("7");
+  });
+
+  test("two teammates: the first median", async () => {
+    await setup();
+    await givers([3, 8]);
+    expect(row(await getTeam(), "given")).toMatchObject({ team: { n: 2, median: 5.5, p25: null, max: null }, percentile: null });
+  });
+
+  test("four teammates: still the median only", async () => {
+    await setup();
+    await givers([1, 2, 3, 4]);
+    expect(row(await getTeam(), "given")).toMatchObject({ team: { n: 4, median: 2.5, p25: null, p75: null, max: null }, percentile: null });
   });
 
   test("five teammates: the whole distribution", async () => {
     await setup();
     await givers([1, 2, 3, 4, 5]);
     expect(row(await getTeam(), "given")).toMatchObject({ team: { n: 5, p25: 2, median: 3, p75: 4, max: 5 }, percentile: 0.8 });
+  });
+
+  test("each metric has its own guard: few receivers get the median only, even when many gave", async () => {
+    await setup("everyone");
+    await stats(team.ana, { given: 5, received: 2 });
+    for (const [i, received] of [0, 0, 0, 4, 6].entries()) await stats(await person(`Mate${i}`), { given: 1 + i, received });
+    const r = await getTeam();
+    expect(row(r, "given")).toMatchObject({ team: { n: 5, max: 5 } });
+    expect(row(r, "received")).toMatchObject({ team: { n: 2, median: 5, p25: null, max: null }, percentile: null });
   });
 });
 
@@ -275,11 +314,64 @@ describe("compare.team.get: where the numbers come from", () => {
     expect(row(r, "activeDays")).toMatchObject({ you: { value: 2 } });
 
     const capped = await t.run(async (ctx) => {
-      const { totals, truncated } = await memberTotalsInRange(ctx, (await ctx.db.get(team.workspaceId))!, resolvePeriod("month", TODAY), 3);
+      const { totals, truncated } = await memberTotalsInRange(ctx, (await ctx.db.get(team.workspaceId))!, resolvePeriod("month", TODAY), { dayCap: 3 });
       return { truncated, given: [...totals.values()].reduce((s, x) => s + x.given, 0) };
     });
     // Only the newest three days are kept: Cleo's 22nd (1), Ana's 21st (2) and Ben's 3rd (4).
     expect(capped).toEqual({ truncated: true, given: 1 + 2 + 4 });
+  });
+
+  test("a capped rollup read keeps the biggest givers", async () => {
+    await setup();
+    await fiveGivers();
+    const capped = await t.run(async (ctx) => {
+      const { totals, truncated } = await memberTotalsInRange(ctx, (await ctx.db.get(team.workspaceId))!, resolvePeriod("month", TODAY), { memberCap: 3 });
+      return { truncated, given: [...totals.values()].map((x) => x.given).sort((a, b) => b - a) };
+    });
+    // The bot's 40, Hal's 30 and Finn's 12: the reader filters people out afterwards, never the other way round.
+    expect(capped).toEqual({ truncated: true, given: [40, 30, 12] });
+  });
+
+  test("has no all-time answer: all time lives on the members, not in a bucket", async () => {
+    await setup();
+    await expect(
+      t.run(async (ctx) => {
+        await memberTotalsInRange(ctx, (await ctx.db.get(team.workspaceId))!, resolvePeriod("all", TODAY));
+      }),
+    ).rejects.toThrow("memberTotalsInRange covers calendar periods only");
+  });
+
+  test("a truncated read keeps the median but claims no percentile", { timeout: 60_000 }, async () => {
+    t = setupConvex();
+    team = await seedTeam(t, { receivedVisibility: "everyone" });
+    // 21 members × 250 giving days this year: more memberDays than one read takes.
+    await t.run(async (ctx) => {
+      const ids = [team.ana, team.ben, team.cleo];
+      for (let i = 0; i < 18; i++) {
+        ids.push(
+          await ctx.db.insert("members", {
+            workspaceId: team.workspaceId,
+            slackUserId: `UMANY${i}`,
+            name: `Many ${i}`,
+            isAdmin: false,
+            isBot: false,
+            deactivated: false,
+            totalGiven: 0,
+            totalReceived: 0,
+            totalMaxedDays: 0,
+          }),
+        );
+      }
+      for (const [i, memberId] of ids.entries()) {
+        for (let d = 0; d < 250; d++) {
+          await ctx.db.insert("memberDays", { workspaceId: team.workspaceId, memberId, dayKey: addDays("2026-01-05", d), given: 1 + (i % 3), received: 0, maxed: false });
+        }
+      }
+    });
+    const r = await getTeam("year");
+    expect(r.truncated).toBe(true);
+    expect(row(r, "given").team).not.toBeNull();
+    expect(row(r, "given").percentile).toBeNull();
   });
 });
 

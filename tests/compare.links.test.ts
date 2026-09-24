@@ -1,7 +1,7 @@
 import { ConvexError } from "convex/values";
 import { describe, expect, test } from "vitest";
 import { TEAMMATE_UNAVAILABLE } from "../convex/lib/compare";
-import { benchmarkFromParam, compareTeamHref, compareWithHref, firstName, isTeammateUnavailable, matchCandidates, neutralDelta, sharePercent, teamStat, teamSummary } from "../src/lib/compare";
+import { benchmarkFromParam, compareTeamHref, compareWithHref, firstName, isTeammateUnavailable, matchCandidates, neutralDelta, sharePercent, teamHeadline, teamStat, teamSummary } from "../src/lib/compare";
 
 describe("benchmarkFromParam: the ?vs= deep link", () => {
   test("past and an empty or missing vs are Past you", () => {
@@ -70,6 +70,36 @@ describe("teamSummary: the range strip's tooltip and accessible label", () => {
 
   test("a small team has only its median", () => {
     expect(teamSummary(0, { n: 3, median: 4, p25: null, p75: null, max: null })).toEqual(["You 0", "Team median 4", "3 teammates"]);
+  });
+});
+
+describe("teamHeadline: what the Team benchmark leads with", () => {
+  const full = { n: 16, median: 21, p25: 12, p75: 29, max: 56 };
+  const small = { n: 3, median: 22, p25: null, p75: null, max: null };
+
+  test("your share of the team when you're somewhere in it", () => {
+    expect(teamHeadline({ value: 41, team: full, percentile: 0.8125 })).toEqual({ kind: "share", share: "81%", teammates: 16 });
+  });
+
+  test("above everyone, it says so rather than \"more than 100%\"", () => {
+    expect(teamHeadline({ value: 60, team: full, percentile: 1 })).toEqual({ kind: "everyone", teammates: 16 });
+  });
+
+  test("below everyone who gave, it falls back to your number against the median rather than \"more than 0%\"", () => {
+    expect(teamHeadline({ value: 1, team: full, percentile: 0 })).toEqual({ kind: "median", you: 1, median: 21, teammates: 16 });
+  });
+
+  test("nothing given yet in a full team: the invitation", () => {
+    expect(teamHeadline({ value: 0, team: full, percentile: null })).toEqual({ kind: "firstOne", teammates: 16 });
+  });
+
+  test("a small team: your number against its median", () => {
+    expect(teamHeadline({ value: 41, team: small, percentile: null })).toEqual({ kind: "median", you: 41, median: 22, teammates: 3 });
+    expect(teamHeadline({ value: 0, team: small, percentile: null })).toEqual({ kind: "median", you: 0, median: 22, teammates: 3 });
+  });
+
+  test("no team to compare with: just your number", () => {
+    expect(teamHeadline({ value: 41, team: null, percentile: null })).toEqual({ kind: "alone", you: 41 });
   });
 });
 
