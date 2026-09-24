@@ -802,6 +802,7 @@ const DEMO_TABLES = [
   "memberStats",
   "pairStats",
   "channelStats",
+  "messageStats",
   "questBoards",
   "questCompletions",
   "kudosAttempts",
@@ -828,6 +829,8 @@ async function demoRows(ctx: MutationCtx, workspaceId: Id<"workspaces">, table: 
       return await ctx.db.query("pairStats").withIndex("by_workspace_bucket_amount", (q) => q.eq("workspaceId", workspaceId)).take(1000);
     case "channelStats":
       return await ctx.db.query("channelStats").withIndex("by_workspace_bucket_amount", (q) => q.eq("workspaceId", workspaceId)).take(1000);
+    case "messageStats":
+      return await ctx.db.query("messageStats").withIndex("by_workspace_template", (q) => q.eq("workspaceId", workspaceId)).take(1000);
     case "questBoards":
     case "questCompletions":
       return await ctx.db.query(table).withIndex("by_workspace_week", (q) => q.eq("workspaceId", workspaceId)).take(1000);

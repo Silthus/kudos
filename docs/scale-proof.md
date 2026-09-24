@@ -10,7 +10,7 @@
 
 Three things are flagged. None of them is a dashboard read path on the rollups:
 
-1. **`discoveries.gallery` truncates at scale.** It reads the workspace's discoveries with `take(8000)`, and there are 13,332 of them. The read hits the cap on every run, so "found by N teammates" and `collectors` come out silently wrong. It is 25% of the doc limit (49% of the old 16k budget). This needs a fix ticket (see [Findings](#findings)).
+1. **`discoveries.gallery` truncates at scale.** It reads the workspace's discoveries with `take(8000)`, and there are 13,332 of them. The read hits the cap on every run, so "found by N teammates" and `collectors` come out silently wrong. It is 25% of the doc limit (49% of the old 16k budget). **Fixed by [#86](https://github.com/Silthus/kudos/issues/86)** (see [Findings](#findings)).
 2. **`rollups:verify` on a month reads 13–19k docs (up to 59% of the limit).** Quarters and years can't be verified in one call at this scale. The runbook verifies one bucket per call and uses weeks and months only for large workspaces.
 3. **Before the backfill, the legacy scans fail at this scale.** The year and all-time analytics, the year leaderboard and the year team compare time out. Month and quarter reads use 43–54% of the limit. This only matters between the deploy and the end of the backfill, and production is far smaller. The runbook starts the backfill right after the deploy.
 
@@ -123,6 +123,8 @@ Docs / bytes read per run. The percentage is the worst of both anchors against *
 ## Findings
 
 1. **Fix ticket needed: `discoveries.gallery` is capped and silently wrong at scale.** `convex/discoveries.ts` reads `discoveries.by_workspace_firstSeen` with `take(8000)` to count finders per template and distinct collectors. At 500 members the seed holds ~13k discovery rows after 21 months (up to 72 × members eventually). A real workspace holds more: the engine prefers undiscovered messages 65% of the time, and the seed doesn't. The read always hits the cap: 8,037 docs, 25% of the limit and 49% of the old 16k budget. `foundBy` and `collectors` then undercount without any flag. Suggested fix: keep per-template finder counts in a small rollup (`templateStats {workspaceId, templateKey, finders}`, maintained where `discoveries` rows are first inserted, rebuilt by the backfill). Then the gallery reads ≤ 72 rows. Outside this ticket's write scope.
+
+   **Fixed by [#86](https://github.com/Silthus/kudos/issues/86):** the `messageStats` rollup holds one row per message anybody found (`finders`) plus a `*` row for the collectors. The engine maintains it when it inserts a first discovery, member removal maintains it when it deletes one, and the rebuild recomputes it (a `messages` phase: 73 more steps per workspace; each step reads one message's discoveries, and the `*` step reads the member list plus one probe per member). Once the workspace is backfilled, the gallery reads only these rows and the viewer's own finds. `tests/discoveries-gallery.test.ts` proves that at 500 members and 13k discoveries under a 204-document read cap. `rollups:verify` checks the rows with `messages` (all of them) or `messages:<templateKey>` (one message; `messages:*` for the collectors).
 2. **Tooling limit, handled in the runbook: `rollups:verify` must run one bucket per call.** At this scale, verify days, weeks and months, one call each. For large workspaces, cover quarters and years through their months. Production workspaces are small enough to verify `q:`/`y:` directly (as #43's hand-off asks).
 3. **Accepted: the legacy scans fail at scale before the backfill** (and after an `unmarkBackfilled` rollback). Production data is orders of magnitude smaller, and the backfill runs right after the deploy.
 
@@ -219,6 +221,12 @@ Then each quarter and year that has history, one call per bucket:
 ```sh
 npx convex run --prod rollups:verify '{"workspaceId":"<id>","buckets":["q:2026-Q3"]}'
 npx convex run --prod rollups:verify '{"workspaceId":"<id>","buckets":["y:2026"]}'
+```
+
+Then the message finders (#86). `messages` recounts every discovery of the workspace in one call; that is fine for production-sized workspaces. On a large one (thousands of discoveries), check one message per call instead, e.g. `messages:*` for the collectors:
+
+```sh
+npx convex run --prod rollups:verify '{"workspaceId":"<id>","buckets":["messages"]}'
 ```
 
 Expected: `{ "checked": […], "mismatches": [] }` for each call. If one fails with `… is too large to verify in one query` (more than 15k kudos or day rows), or with a raw read-limit `Server Error` (a year at hundreds of members), verify that bucket's months instead (`m:YYYY-MM`, one per call). **Any mismatch:** record it on #9, run `rollups:rebuildWorkspace` for that workspace, wait for its marker to update, and verify again. The mismatch must be gone.

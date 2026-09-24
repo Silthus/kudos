@@ -168,6 +168,7 @@ export async function sendBotMessage(
     });
     const target = rollups ?? new Rollups(ctx, workspace);
     target.discovered(template.rarity, dayKeyFor(now, workspace.timezone));
+    target.messageFound(template.key, seen.length === 0);
     if (!rollups) await target.flush();
   }
   return await ctx.db.insert("notifications", {

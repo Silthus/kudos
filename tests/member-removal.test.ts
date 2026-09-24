@@ -90,7 +90,7 @@ async function history(t: T, team: Team, { withXavi }: { withXavi: boolean }) {
   }
 }
 
-const ROLLUP_TABLES = ["workspaceStats", "memberStats", "pairStats", "channelStats"] as const;
+const ROLLUP_TABLES = ["workspaceStats", "memberStats", "pairStats", "channelStats", "messageStats"] as const;
 
 /**
  * The workspace's derived state as comparable lines: every rollup row, every memberDays row and
