@@ -429,7 +429,7 @@ export function Playground() {
                     className={clsx("relative rounded-2xl bg-ink/60 p-4 ring-1 ring-inset", meta.ring, meta.glow)}
                   >
                     {m.isNewDiscovery && (m.rarity === "legendary" || m.rarity === "epic" || m.rarity === "rare") && <Burst color={meta.color} />}
-                    <div className="mb-1.5 text-[11px] text-faint">{m.toMe ? "To you" : `To ${m.to} (they'll get this DM)`} · {CATEGORY_LABEL[m.category] ?? m.category}</div>
+                    <div className="mb-1.5 text-[11px] text-faint">{m.toMe ? "To you" : `To ${m.to} (they'll get this DM)`} · {m.category === "level_up" ? "Level up" : (CATEGORY_LABEL[m.category] ?? m.category)}</div>
                     <p className="text-[15px] leading-relaxed">{m.text}</p>
                     <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5">
                       {m.category !== "level_up" && <RarityBadge rarity={m.rarity as Rarity} size="xs" />}
