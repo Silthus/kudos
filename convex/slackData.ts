@@ -14,6 +14,9 @@ import { addDays, dayKeyFor, weekdayOfKey } from "./lib/time";
 import { weekBucket } from "./lib/buckets";
 import { backfilledRollups, memberBucket } from "./lib/stats";
 import { markBackfilled, mirrorBackfillMarker } from "./lib/rebuild";
+import { questBoard, questsOn } from "./quests";
+import { questBlocks } from "./lib/questBlocks";
+import { weekKeyFor } from "./lib/quests";
 
 /** Slack retries deliveries it thinks failed; claim each event id exactly once. */
 export const claimEvent = internalMutation({
@@ -435,6 +438,7 @@ export const homeData = internalQuery({
       discovered,
       top,
       store: member && storeOpen(workspace) ? await storeHome(ctx, workspace, member) : null,
+      quests: member ? await questBoard(ctx, workspace, member, weekKeyFor(now, workspace.timezone)) : null,
     };
   },
 });
@@ -464,7 +468,7 @@ async function storeHome(ctx: QueryCtx, workspace: Doc<"workspaces">, member: Do
   };
 }
 
-/** `/kudos [me|top|store|help]` — returns an ephemeral Slack response body. */
+/** `/kudos [me|top|quests|store|help]` — returns an ephemeral Slack response body. */
 export const slashCommand = internalMutation({
   args: { teamId: v.string(), slackUserId: v.string(), text: v.string() },
   returns: v.any(),
@@ -518,6 +522,13 @@ export const slashCommand = internalMutation({
         ],
       };
     }
+    const quests = questsOn(workspace);
+    if (sub === "quests" || sub === "quest") {
+      if (!quests) return { response_type: "ephemeral", text: "Weekly quests aren't on in this workspace." };
+      const member = await ensureMember(ctx, workspace, slackUserId);
+      const board = await questBoard(ctx, workspace, member, weekKeyFor(Date.now(), workspace.timezone));
+      return { response_type: "ephemeral", text: "This week's quests", blocks: questBlocks(board, site) };
+    }
     const store = storeOpen(workspace);
     if (sub === "store" || sub === "balance") {
       if (!store) return { response_type: "ephemeral", text: "The rewards store isn't open in this workspace." };
@@ -558,6 +569,7 @@ export const slashCommand = internalMutation({
         "• The bot answers with messages of different rarities. Collect them all!",
         "",
         "`/kudos me` what you can give today · `/kudos top` weekly leaderboard",
+        quests ? "`/kudos quests` your weekly quests" : "",
         store ? "`/kudos store` your balance and the rewards you can spend it on" : "",
         `<${site}|Open the Kudos dashboard>`,
       ]

@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { v, type Infer } from "convex/values";
 import { query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { rarityValidator } from "./schema";
@@ -346,75 +346,97 @@ export async function onKudosRevoked(ctx: MutationCtx, workspace: Doc<"workspace
 
 const questStatus = v.union(v.literal("active"), v.literal("done"), v.literal("waived"));
 
+/** A member's quest board for one week, as every quest surface (web, App Home, `/kudos quests`) shows it. */
+export const questBoardValidator = v.union(
+  v.object({ enabled: v.literal(false) }),
+  v.object({
+    enabled: v.literal(true),
+    weekKey: v.string(),
+    weekStart: v.string(),
+    weekEnd: v.string(),
+    resetsAt: v.number(),
+    quests: v.array(
+      v.object({
+        key: v.string(),
+        title: v.string(),
+        description: v.string(),
+        group: v.string(),
+        progress: v.number(),
+        goal: v.number(),
+        status: questStatus,
+        waivedReason: v.union(v.null(), v.literal("no_candidates"), v.literal("privacy"), v.literal("too_new")),
+        completedAt: v.union(v.null(), v.number()),
+        /** Rarity of the Quest message this completion earned (null while not done). */
+        messageRarity: v.union(v.null(), rarityValidator),
+      }),
+    ),
+    completed: v.number(),
+    available: v.number(), // quests that aren't waived
+    sweep: v.boolean(),
+  }),
+);
+export type QuestBoard = Infer<typeof questBoardValidator>;
+
+/**
+ * Whether the workspace runs weekly quests: always, until the admin switch (#23). It only has to
+ * change here, since every quest surface reads its board through `questBoard`.
+ */
+export function questsOn(_workspace: Doc<"workspaces">): boolean {
+  return true;
+}
+
+/** `member`'s board for the quest week `weekKey`, or `{ enabled: false }`. Only ever their own data. */
+export async function questBoard(
+  ctx: QueryCtx,
+  workspace: Doc<"workspaces">,
+  member: Doc<"members">,
+  weekKey: string,
+): Promise<QuestBoard> {
+  if (!questsOn(workspace)) return { enabled: false };
+  const board = await resolveBoard(ctx, workspace, weekKey);
+  const { merged, completions } = await boardStatus(ctx, workspace, member, weekKey, board);
+  const messages = new Map<string, Doc<"notifications">["rarity"]>();
+  for (const c of completions) {
+    const note = c.notificationId && (await ctx.db.get(c.notificationId));
+    if (note) messages.set(c.questKey, note.rarity);
+  }
+  const quests = merged.map((r) => {
+    const q = QUEST_BY_KEY[r.key];
+    return {
+      key: r.key,
+      title: q.title,
+      description: q.description,
+      group: q.group,
+      progress: r.progress,
+      goal: r.goal,
+      status: r.done ? ("done" as const) : r.waived ? ("waived" as const) : ("active" as const),
+      waivedReason: r.waived,
+      completedAt: (r.done && completions.find((c) => c.questKey === r.key)?.completedAt) || null,
+      messageRarity: (r.done && messages.get(r.key)) || null,
+    };
+  });
+  return {
+    enabled: true,
+    weekKey,
+    weekStart: weekKey,
+    weekEnd: addDays(weekKey, 6),
+    resetsAt: weekBounds(weekKey, workspace.timezone).end,
+    quests,
+    completed: quests.filter((q) => q.status === "done").length,
+    available: quests.filter((q) => q.status !== "waived").length,
+    sweep: isCleanSweep(merged),
+  };
+}
+
 /** The viewer's quest board for this week. Only ever the viewer's own data. */
 export const mine = query({
   args: {
     /** The client's current day in the workspace timezone (see `parseToday`): rolls the week over. */
     today: v.string(),
   },
-  returns: v.union(
-    v.object({ enabled: v.literal(false) }),
-    v.object({
-      enabled: v.literal(true),
-      weekKey: v.string(),
-      weekStart: v.string(),
-      weekEnd: v.string(),
-      resetsAt: v.number(),
-      quests: v.array(
-        v.object({
-          key: v.string(),
-          title: v.string(),
-          description: v.string(),
-          group: v.string(),
-          progress: v.number(),
-          goal: v.number(),
-          status: questStatus,
-          waivedReason: v.union(v.null(), v.literal("no_candidates"), v.literal("privacy"), v.literal("too_new")),
-          completedAt: v.union(v.null(), v.number()),
-          /** Rarity of the Quest message this completion earned (null while not done). */
-          messageRarity: v.union(v.null(), rarityValidator),
-        }),
-      ),
-      completed: v.number(),
-      available: v.number(), // quests that aren't waived
-      sweep: v.boolean(),
-    }),
-  ),
+  returns: questBoardValidator,
   handler: async (ctx, { today }) => {
     const { member, workspace } = await requireViewer(ctx);
-    const weekKey = weekKeyOfDay(parseToday(today));
-    const board = await resolveBoard(ctx, workspace, weekKey);
-    const { merged, completions } = await boardStatus(ctx, workspace, member, weekKey, board);
-    const messages = new Map<string, Doc<"notifications">["rarity"]>();
-    for (const c of completions) {
-      const note = c.notificationId && (await ctx.db.get(c.notificationId));
-      if (note) messages.set(c.questKey, note.rarity);
-    }
-    const quests = merged.map((r) => {
-      const q = QUEST_BY_KEY[r.key];
-      return {
-        key: r.key,
-        title: q.title,
-        description: q.description,
-        group: q.group,
-        progress: r.progress,
-        goal: r.goal,
-        status: r.done ? ("done" as const) : r.waived ? ("waived" as const) : ("active" as const),
-        waivedReason: r.waived,
-        completedAt: (r.done && completions.find((c) => c.questKey === r.key)?.completedAt) || null,
-        messageRarity: (r.done && messages.get(r.key)) || null,
-      };
-    });
-    return {
-      enabled: true as const,
-      weekKey,
-      weekStart: weekKey,
-      weekEnd: addDays(weekKey, 6),
-      resetsAt: weekBounds(weekKey, workspace.timezone).end,
-      quests,
-      completed: quests.filter((q) => q.status === "done").length,
-      available: quests.filter((q) => q.status !== "waived").length,
-      sweep: isCleanSweep(merged),
-    };
+    return await questBoard(ctx, workspace, member, weekKeyOfDay(parseToday(today)));
   },
 });

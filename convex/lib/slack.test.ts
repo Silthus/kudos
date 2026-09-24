@@ -40,7 +40,7 @@ test("the manifest points every Slack surface at this deployment over HTTP", () 
 
 test("the slash command hints at /kudos store", () => {
   const m = slackManifest("https://kudos.example");
-  expect(m.features.slash_commands[0].usage_hint).toBe("[me | top | store | help]");
+  expect(m.features.slash_commands[0].usage_hint).toBe("[me | top | quests | store | help]");
 });
 
 test("the bot scopes: reacting on kudos messages is the only one that needs a reinstall", () => {
