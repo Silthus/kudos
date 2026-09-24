@@ -3,7 +3,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   // The app's `@/…` imports, as in vite.config.ts, so page components can be tested.
-  resolve: { alias: { "@": path.resolve(__dirname, "src") } },
+  resolve: { alias: { "@": path.resolve(import.meta.dirname, "src") } },
   test: {
     environment: "edge-runtime",
     include: ["convex/**/*.test.ts", "tests/**/*.test.ts", "src/**/*.test.{ts,tsx}"],
