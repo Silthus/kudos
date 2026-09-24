@@ -860,8 +860,9 @@ export const seedDemoHistory = internalMutation({
       await ctx.scheduler.runAfter(0, internal.rollups.rebuildWorkspace, { workspaceId, resetAt });
       // The game replay pays the completions just recorded (from level 5, §G11), so it runs after them.
       await ctx.scheduler.runAfter(0, internal.game.rebuildWorkspace, { workspaceId, resetAt });
-      // Balances are Hog coins, so the Store story waits for that replay (seedStore polls for it).
-      await ctx.scheduler.runAfter(0, internal.demo.seedStore, { workspaceId, resetAt });
+      // Alex's garden and skills follow the levels that replay reaches, and the Store story, whose
+      // balances are Hog coins, follows the garden's spending (both poll for the replay).
+      await ctx.scheduler.runAfter(0, internal.demo.seedGarden, { workspaceId, resetAt });
     }
     return null;
   },

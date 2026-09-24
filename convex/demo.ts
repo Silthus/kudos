@@ -12,10 +12,13 @@ import { reactionFor } from "./lib/guidance";
 import { attemptOutcomeValidator, questProgressValidator } from "./schema";
 import { addDays, dayKeyFor, daysBetween, startOfDayUtc, weekdayOfKey, zonedParts } from "./lib/time";
 import { demoActivity } from "./lib/demoCalendar";
+import { demoBonusDays, demoLaunchDay, demoSeedStart } from "./lib/demoGame";
 import { DEMO_ADJUSTMENTS, DEMO_REDEMPTIONS, DEMO_REWARDS, type DemoRedemption, LIVE_FULFIL_NOTES } from "./lib/demoStore";
-import { weekKeyFor } from "./lib/quests";
+import { hasNote, RECIPROCAL_WINDOW_MS, thanksBack, weekKeyFor, weekKeyOfDay } from "./lib/quests";
+import { defaultSpecies, GARDEN_LEVEL, PLANT_COST, plantState, type PlantState, sunlampHelps, wateringDays } from "./lib/garden";
+import { type Allocation, canTake, type SkillId } from "./lib/skills";
 import { DEMO_SETTINGS } from "./lib/settings";
-import { earningsText } from "./lib/xp";
+import { earningsText, levelForXp } from "./lib/xp";
 import { gainLabel, gainText } from "./lib/gains";
 import { fnv1a, mulberry32 } from "./lib/random";
 import { validateRewardInput } from "./lib/store";
@@ -30,19 +33,54 @@ const DEMO_TEAM = "T_DEMO_LUMEN";
 export const DEMO_YOU = "UDEMOYOU";
 /** The demo's other admin: she decides on the visitor's own store requests (four eyes). */
 const DEMO_LENA = "UDEMOLENA";
+/** The teammate Alex mentors and thanks every week: the plant for him waits only on time (a Sunlamp's job). */
+const DEMO_MENTEE = "UDEMOEMIL";
+/** A Friday quieter than this (lib/demoCalendar.ts) is a holiday: nobody has to give then. */
+const MENTORING_MIN_ACTIVITY = 0.4;
 const DAYS_PER_CHUNK = 15;
-
-const MIN_SEED_DAYS = 120;
+const HOUR_MS = 3_600_000;
+const DAY_MS = 24 * HOUR_MS;
 
 /**
  * The demo shows the current year so far, from 1 January of the workspace-local year up to today, and
- * never less than the last 120 days, so early January doesn't open on an empty workspace.
+ * reaches further back when that's needed to hold the game's launch and the three months before it
+ * (lib/demoGame.ts), so early January doesn't open on an empty workspace either.
  */
 function seedWindow(timezone: string) {
   const today = dayKeyFor(Date.now(), timezone);
-  const newYear = `${today.slice(0, 4)}-01-01`;
-  const minimum = addDays(today, -MIN_SEED_DAYS);
-  return { fromDay: minimum < newYear ? minimum : newYear, untilDay: today };
+  return { fromDay: demoSeedStart(today), untilDay: today };
+}
+
+/**
+ * Switches the demo's game on at its simulated launch (#100, §G16): the history before it is a pause,
+ * so it earns nothing when the year is played through the rules, and the success metrics' baseline
+ * is pinned to the months before the launch, as an admin switching the game on would pin it (#102).
+ * The bonus days an admin scheduled since are in place before the replay, which doubles what their
+ * qualifying kudos earned.
+ */
+async function launchDemoGame(ctx: MutationCtx, workspace: Doc<"workspaces">, now: number) {
+  const { timezone } = workspace;
+  const today = dayKeyFor(now, timezone);
+  const launchDay = demoLaunchDay(today);
+  await ctx.db.patch(workspace._id, {
+    gamePauses: [{ from: startOfDayUtc(demoSeedStart(today), timezone), until: startOfDayUtc(launchDay, timezone) }],
+    successBaselineBefore: launchDay.slice(0, 7),
+  });
+  const lena = await findMember(ctx, workspace, DEMO_LENA);
+  const { past, upcoming } = demoBonusDays(today);
+  for (const day of [...past, upcoming]) {
+    const from = startOfDayUtc(day, timezone);
+    await ctx.db.insert("boosts", {
+      workspaceId: workspace._id,
+      dayKey: day,
+      from,
+      kind: "double",
+      source: "schedule",
+      ...(lena ? { by: lena._id } : {}),
+      createdAt: from - 7 * DAY_MS, // scheduled a week ahead: the upcoming one is at most a week away
+      announcement: { status: "skipped" },
+    });
+  }
 }
 
 const PEOPLE: { id: string; name: string; realName: string; title: string; generosity: number }[] = [
@@ -148,6 +186,7 @@ export const ensureDemoUser = internalMutation({
           totalMaxedDays: 0,
         });
       }
+      await launchDemoGame(ctx, workspace, Date.now());
       await ctx.scheduler.runAfter(0, internal.demo.seedHistory, { workspaceId: id, ...seedWindow(workspace.timezone) });
     }
     const me = await ctx.db
@@ -177,6 +216,8 @@ export const seedHistory = internalMutation({
       .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspaceId))
       .take(100);
     const bySlack = new Map(members.map((m) => [m.slackUserId, m]));
+    const you = bySlack.get(DEMO_YOU)!;
+    const mentee = bySlack.get(DEMO_MENTEE)!;
     const totals = new Map<Id<"members">, { given: number; received: number; maxed: number; lastGivenAt?: number }>();
     const bump = (id: Id<"members">, k: "given" | "received" | "maxed", n: number) => {
       const t = totals.get(id) ?? { given: 0, received: 0, maxed: 0 };
@@ -209,6 +250,11 @@ export const seedHistory = internalMutation({
       let givers = PEOPLE.filter((p) => rand() < p.generosity * 0.62 * activity);
       // Someone always says thanks on a workday, even in the quietest holiday week.
       if (givers.length === 0 && weekdayOfKey(day) < 5) givers = [weighted(PEOPLE, (p) => p.generosity, rand())];
+      // Alex thanks Emil every week, on Friday at the latest (unless it's a holiday: Good Friday, New Year).
+      const holiday = activity < MENTORING_MIN_ACTIVITY;
+      if (weekdayOfKey(day) === 4 && !holiday && !givers.includes(PEOPLE[0]) && !(await thankedThisWeek(ctx, you, mentee, day, workspace.timezone))) {
+        givers.push(PEOPLE[0]);
+      }
       if (isToday) givers = givers.filter((p) => p.id !== DEMO_YOU);
       const received = new Map<Id<"members">, number>();
       for (const person of givers) {
@@ -227,6 +273,11 @@ export const seedHistory = internalMutation({
           while (recipients.length < recipientCount) {
             const pick = bySlack.get(weighted(pool, (p) => 0.3 + p.generosity, rand()).id)!;
             if (!recipients.includes(pick)) recipients.push(pick);
+          }
+          // Alex mentors Emil: the first kudos of a week goes to him, so the plant Alex grows for him
+          // is watered every week (a garden's waterings are weekly, §G8).
+          if (person.id === DEMO_YOU && i === 0 && !recipients.includes(mentee) && !(await thankedThisWeek(ctx, giver, mentee, day, workspace.timezone))) {
+            recipients[0] = mentee;
           }
           const channel = weighted(CHANNELS, (c) => c.weight, rand());
           const hour = 8 + Math.floor(rand() * 10);
@@ -319,7 +370,143 @@ export const seedHistory = internalMutation({
   },
 });
 
-const HOUR_MS = 3_600_000;
+/**
+ * The skills Alex took on the way up, each as soon as the level it needs was reached (§G7): plots and
+ * the plant picker for the garden, Super kudos for the playground, the Lookout list. None of them
+ * changes what a kudos earns, so the replay before stays exact. Two points of level 9's eight are
+ * left for the visitor, and the next tier (Wide beds: a fourth plot) opens one level away, at 10.
+ */
+const ALEX_SKILLS: { skill: SkillId; level: number }[] = [
+  { skill: "more_plots", level: 2 },
+  { skill: "lookout", level: 3 },
+  { skill: "more_plots", level: 4 },
+  { skill: "plant_picker", level: 5 },
+  { skill: "emoji_variants", level: 6 },
+  { skill: "super_kudos", level: 7 },
+];
+
+/** A plant Alex could have planted: for a teammate, a minute after a qualifying kudos to them. */
+type PlantPlan = { forId: Id<"members">; seedId: Id<"kudos">; plantedAt: number; plantedDay: string; state: PlantState; sunlamp: boolean };
+
+/**
+ * Alex's half of the demo year the rules can't derive (#100, §G16), once the replay has Alex's
+ * levels: the skills taken along the way and a half-grown garden. Three plots (More plots twice),
+ * each planted a minute after a qualifying kudos to its teammate, for 10 Hog coins, when Alex had
+ * the level and the plot: the one for Emil, whom Alex thanks every week, with every watering its
+ * next stage needs and waiting only on time (a Sunlamp's job, #97), the eldest of the others grown
+ * as far as the kudos let it (fruiting, if one can), and one a stage behind it. Growth is never
+ * stored: it follows from the seeded kudos, like any garden.
+ * The Store story follows, spending what's left.
+ */
+export const seedGarden = internalMutation({
+  args: { workspaceId: v.id("workspaces"), resetAt: v.optional(v.number()), attempt: v.optional(v.number()) },
+  returns: v.null(),
+  handler: async (ctx, { workspaceId, resetAt, attempt = 0 }) => {
+    const workspace = await ctx.db.get(workspaceId);
+    if (!workspace?.isDemo) return null;
+    if (workspace.resettingSince !== undefined && workspace.resettingSince !== resetAt) return null;
+    const alex = await findMember(ctx, workspace, DEMO_YOU);
+    const player = alex && (await playerOf(ctx, alex._id));
+    if (!alex || !player) {
+      if (attempt < STORE_SEED_WAIT.attempts) {
+        await ctx.scheduler.runAfter(STORE_SEED_WAIT.everyMs, internal.demo.seedGarden, { workspaceId, resetAt, attempt: attempt + 1 });
+      } else {
+        console.warn("Demo garden: the demo user never became a player; no garden.");
+        await ctx.scheduler.runAfter(0, internal.demo.seedStore, { workspaceId, resetAt });
+      }
+      return null;
+    }
+    const planted = await ctx.db.query("plants").withIndex("by_owner_memory", (q) => q.eq("ownerId", alex._id)).first();
+    if (!planted && !player.skills) await growAlexGame(ctx, workspace, alex, player);
+    await ctx.scheduler.runAfter(0, internal.demo.seedStore, { workspaceId, resetAt });
+    return null;
+  },
+});
+
+async function growAlexGame(ctx: MutationCtx, workspace: Doc<"workspaces">, alex: Doc<"members">, player: Doc<"players">) {
+  const now = Date.now();
+  const { timezone } = workspace;
+  const today = dayKeyFor(now, timezone);
+
+  // When the replay took Alex to each level.
+  const events = await ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", alex._id)).take(8000);
+  events.sort((a, b) => a.at - b.at);
+  const reachedAt = new Map<number, number>();
+  let xp = 0;
+  for (const e of events) {
+    xp += e.xp;
+    for (let level = 2; level <= levelForXp(xp); level++) if (!reachedAt.has(level)) reachedAt.set(level, e.at);
+  }
+
+  // The skills, each an hour after its level.
+  const allocation: Allocation = {};
+  const plotsFrom: number[] = []; // when each plot opened
+  plotsFrom.push(reachedAt.get(GARDEN_LEVEL) ?? Infinity);
+  for (const { skill, level } of ALEX_SKILLS) {
+    const at = (reachedAt.get(level) ?? Infinity) + HOUR_MS;
+    if (at >= now || !canTake(allocation, player.level, skill).ok) continue;
+    allocation[skill] = (allocation[skill] ?? 0) + 1;
+    await ctx.db.insert("skillChanges", { workspaceId: workspace._id, memberId: alex._id, at, kind: "take", skill });
+    if (skill === "more_plots") plotsFrom.push(Math.max(at, plotsFrom[0]));
+  }
+  if (Object.keys(allocation).length > 0) await ctx.db.patch(player._id, { skills: allocation });
+
+  // Every plant Alex could have planted since the garden opened, grown to today.
+  const since = plotsFrom[0];
+  if (since >= now) return;
+  const given = await ctx.db.query("kudos").withIndex("by_giver_at", (q) => q.eq("giverId", alex._id).gte("at", since)).take(4000);
+  const received = await ctx.db
+    .query("kudos")
+    .withIndex("by_receiver_at", (q) => q.eq("receiverId", alex._id).gte("at", since - RECIPROCAL_WINDOW_MS))
+    .take(4000);
+  const toThem = new Map<Id<"members">, Doc<"kudos">[]>();
+  for (const k of given) toThem.set(k.receiverId, [...(toThem.get(k.receiverId) ?? []), k]);
+  const plans: PlantPlan[] = [];
+  for (const [forId, rows] of toThem) {
+    const backAt = received.filter((k) => k.giverId === forId).map((k) => k.at);
+    for (const seed of rows) {
+      if (!hasNote(seed.noteWords) || backAt.some((at) => thanksBack(seed.at, at))) continue;
+      const plantedAt = seed.at + 60_000;
+      const plantedDay = dayKeyFor(plantedAt, timezone);
+      const waterings = wateringDays({ plantedAt, plantedDay, given: rows, receivedAt: backAt, pauses: workspace.gamePauses });
+      const growth = { plantedDay, waterings, today };
+      plans.push({ forId, seedId: seed._id, plantedAt, plantedDay, state: plantState(growth), sunlamp: sunlampHelps(growth) });
+    }
+  }
+
+  // Three plots for three teammates, each planted once its plot was open: first the plant waiting
+  // only on time, then the eldest of the rest and one a stage behind it.
+  const chosen: PlantPlan[] = [];
+  const pick = (plot: number, fits: (p: PlantPlan) => boolean) => {
+    const open = plotsFrom[plot] ?? Infinity;
+    const best = plans
+      .filter((p) => p.plantedAt >= open && !chosen.some((c) => c.forId === p.forId) && fits(p))
+      .sort((a, b) => b.state.stage.index - a.state.stage.index || Number(b.state.fruiting) - Number(a.state.fruiting) || a.plantedAt - b.plantedAt)[0];
+    if (best) chosen.push(best);
+    return best;
+  };
+  pick(2, (p) => p.sunlamp);
+  const eldest = pick(0, () => true);
+  if (eldest) pick(1, (p) => p.state.stage.index < eldest.state.stage.index);
+  chosen.sort((a, b) => a.plantedAt - b.plantedAt);
+
+  const members = new Map((await Promise.all(chosen.map((c) => ctx.db.get(c.forId)))).map((m) => [m!._id, m!]));
+  for (const plan of chosen) {
+    await ctx.db.insert("plants", {
+      workspaceId: workspace._id,
+      ownerId: alex._id,
+      forId: plan.forId,
+      species: defaultSpecies(`${DEMO_YOU}:${members.get(plan.forId)!.slackUserId}:${plan.plantedDay}`),
+      plantedAt: plan.plantedAt,
+      plantedDay: plan.plantedDay,
+      seedKudosId: plan.seedId,
+      // Picked two days ago: what grew since waits in the garden for the visitor.
+      pickedThrough: [plan.plantedDay, addDays(today, -2)].sort()[1],
+      announced: plan.state.stage.index,
+    });
+  }
+  if (chosen.length > 0) await ctx.db.patch(alex._id, { coinsSpent: (alex.coinsSpent ?? 0) + PLANT_COST * chosen.length });
+}
 
 /** How long `seedStore` waits for the game rebuild to give the story's people their coins. */
 const STORE_SEED_WAIT = { attempts: 90, everyMs: 2_000 };
@@ -370,10 +557,9 @@ export const seedStore = internalMutation({
 
     const now = Date.now();
     const { timezone } = workspace;
-    // The story spans the seeded history: from its first kudos up to today.
-    const first = await ctx.db.query("kudos").withIndex("by_workspace_at", (q) => q.eq("workspaceId", workspaceId)).first();
+    // The story spans the game's time: Hog coins only exist from its launch up to today.
     const today = dayKeyFor(now, timezone);
-    const fromDay = first?.dayKey ?? today;
+    const fromDay = demoLaunchDay(today);
     const rand = mulberry32(fnv1a(`store:${fromDay}`));
     const clock = storyClock(now, timezone, rand);
     const dayOf = (share: number) => addDays(fromDay, Math.round(share * daysBetween(fromDay, today)));
@@ -496,6 +682,16 @@ async function tellStory(
   const approveFirst = story.outcome === "approved" || APPROVED_FIRST.has(story.reward);
   if (approveFirst) await step("approve", 1);
   if (story.outcome === "fulfilled") await step("fulfill", approveFirst ? 2 : 1, story.note);
+}
+
+/** Whether `giver` thanked `receiver` in `day`'s week so far (the seeding goes day by day). */
+async function thankedThisWeek(ctx: MutationCtx, giver: Doc<"members">, receiver: Doc<"members">, day: string, timezone: string) {
+  const from = startOfDayUtc(weekKeyOfDay(day), timezone);
+  const given = await ctx.db
+    .query("kudos")
+    .withIndex("by_giver_receiver_at", (q) => q.eq("giverId", giver._id).eq("receiverId", receiver._id).gte("at", from))
+    .first();
+  return given !== null;
 }
 
 async function memberDay(ctx: MutationCtx, memberId: Id<"members">, dayKey: string) {
@@ -977,7 +1173,8 @@ export const resetDemoWorkspace = internalMutation({
       return null;
     }
     // Quests come back on with no pause: a pause would keep the seeded kudos out of every board.
-    await ctx.db.patch(workspace._id, { ...DEMO_SETTINGS, questsPauses: undefined, gamePauses: undefined });
+    await ctx.db.patch(workspace._id, { ...DEMO_SETTINGS, questsPauses: undefined, gamePauses: undefined, successBaselineBefore: undefined });
+    await launchDemoGame(ctx, (await ctx.db.get(workspace._id))!, Date.now());
     for (const m of members) {
       await ctx.db.patch(m._id, {
         totalGiven: 0,
