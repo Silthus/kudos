@@ -47,24 +47,33 @@ function LockedCell({ reason }: { reason: Locked }) {
 
 /**
  * You against one benchmark, one row per metric: a semantic table on desktop (it doubles as the
- * accessible view of the paired bars) and stacked cards on phones. Each row's bars have their own
- * scale, and the numbers are always printed.
+ * accessible view of the visuals) and stacked cards on phones. Each row's visual has its own scale
+ * (paired bars unless the benchmark draws its own), and the numbers are always printed.
  */
-export function Scoreboard({
+export function Scoreboard<R extends Row>({
   rows,
   benchmarkLabel,
   subtitle,
   deltaHeader,
   renderDelta,
+  renderVisual,
+  legend,
   footnote,
 }: {
-  rows: Row[];
+  rows: R[];
   benchmarkLabel: string;
   subtitle: ReactNode;
   deltaHeader: string;
-  renderDelta: (row: Row) => ReactNode;
+  renderDelta: (row: R) => ReactNode;
+  /** The row's picture of you against the benchmark; paired bars by default. */
+  renderVisual?: (row: R) => ReactNode;
+  /** The benchmark's legend entries, after the two "You" families. */
+  legend?: { label: string; color: string }[];
   footnote?: ReactNode;
 }) {
+  const visual =
+    renderVisual ??
+    ((r: R) => <PairedBars you={r.you.value ?? 0} benchmark={r.benchmark.value} color={FAMILY_COLOR[r.family]} labels={["You", benchmarkLabel]} />);
   return (
     <Card>
       <CardHeader title="Scoreboard" subtitle={subtitle} />
@@ -95,9 +104,7 @@ export function Scoreboard({
                 <>
                   <td className="py-3 text-right font-medium text-cream tabular">{formatValue(r.you.value)}</td>
                   <td className="py-3 pl-3 text-right text-muted tabular">{formatValue(r.benchmark.value)}</td>
-                  <td className="py-3 pl-5">
-                    <PairedBars you={r.you.value ?? 0} benchmark={r.benchmark.value} color={FAMILY_COLOR[r.family]} labels={["You", benchmarkLabel]} />
-                  </td>
+                  <td className="py-3 pl-5">{visual(r)}</td>
                   <td className="py-3 pr-5 text-right">{renderDelta(r)}</td>
                 </>
               )}
@@ -122,9 +129,7 @@ export function Scoreboard({
               )}
             </div>
             {!r.you.locked && (
-              <div className="mt-2">
-                <PairedBars you={r.you.value ?? 0} benchmark={r.benchmark.value} color={FAMILY_COLOR[r.family]} labels={["You", benchmarkLabel]} />
-              </div>
+              <div className="mt-2">{visual(r)}</div>
             )}
           </li>
         ))}
@@ -134,7 +139,7 @@ export function Scoreboard({
           items={[
             { label: "You · giving", color: FAMILY_COLOR.giving },
             { label: "You · receiving", color: FAMILY_COLOR.receiving },
-            { label: benchmarkLabel, color: "var(--color-benchmark)" },
+            ...(legend ?? [{ label: benchmarkLabel, color: "var(--color-benchmark)" }]),
           ]}
         />
         {footnote}

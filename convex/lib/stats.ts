@@ -2,6 +2,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { ALL_BUCKET, dayBucket } from "./buckets";
 import { RARITIES } from "./messages";
+import type { PeriodRange } from "./periods";
 import type { DayRange } from "./time";
 
 /**
@@ -139,6 +140,28 @@ export async function memberBucket(
             q.eq("workspaceId", workspaceId).eq("bucket", bucket).gt("received", 0),
           );
   return await rows.order("desc").take(limit);
+}
+
+/**
+ * Every member's totals for a w/m/q/y period to date: their `memberStats` rows for its bucket (at most
+ * one per member; the bucket holds nothing after today) once the workspace's rollups are backfilled,
+ * before that its `memberDays`, capped, with `truncated` when the cap was hit.
+ */
+export async function memberTotalsInRange(
+  ctx: QueryCtx,
+  workspace: Doc<"workspaces">,
+  range: PeriodRange,
+  dayCap = MAX_DAY_ROWS,
+): Promise<{ totals: Map<Id<"members">, Totals>; truncated: boolean }> {
+  if (workspace.rollupsBackfilledAt !== undefined) {
+    const rows = await ctx.db
+      .query("memberStats")
+      .withIndex("by_workspace_bucket_given", (q) => q.eq("workspaceId", workspace._id).eq("bucket", range.bucket))
+      .take(MAX_MEMBERS);
+    return { totals: totalsOf(rows), truncated: rows.length === MAX_MEMBERS };
+  }
+  const { rows, truncated } = await workspaceDays(ctx, workspace._id, range.current, dayCap);
+  return { totals: totalsByMember(rows), truncated };
 }
 
 export function totalsOf(rows: Doc<"memberStats">[]) {

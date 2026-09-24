@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import { motion } from "motion/react";
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { teamSummary, type TeamDistribution } from "@/lib/compare";
 import { dayLabel, nf } from "@/lib/format";
 import { labelWidth, nudgeLabels } from "@/lib/labels";
 
@@ -381,6 +382,72 @@ export function PairedBars({
           </motion.span>
         </div>
       ))}
+    </div>
+  );
+}
+
+/** The middle half of the team: benchmark ink as a wash, so the median tick stays the loudest benchmark mark. */
+export const BENCHMARK_BAND = "color-mix(in srgb, var(--color-benchmark) 35%, transparent)";
+
+/**
+ * Where you sit in the team on one metric: a track from 0 to the team's most, the middle half of the
+ * team as a band, the median as a tick (both in benchmark ink) and you as a dot in the metric's family
+ * colour. Names nobody, and reads the same for 3 people or 500. A team without quartiles (a small one)
+ * gets the median alone on a track scaled to fit both marks. The two marks are focusable and show the
+ * summary on hover or focus.
+ */
+export function RangeStrip({ you, team, color }: { you: number; team: TeamDistribution; color: string }) {
+  const [active, setActive] = useState<"you" | "median" | null>(null);
+  const end = Math.max(1, you, team.max ?? Math.max(you, team.median) * 1.25);
+  const at = (v: number) => `${(Math.min(v, end) / end) * 100}%`;
+  const summary = teamSummary(you, team);
+  // Each marker leads with its own number: you first, or the team (the rest of the summary).
+  const labels = { you: summary.join(", "), median: summary.slice(1).join(", ") };
+  const marker = (key: "you" | "median", left: string, mark: ReactNode) => (
+    <span
+      tabIndex={0}
+      role="img"
+      aria-label={labels[key]}
+      className="absolute top-1/2 flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-saffron/60"
+      style={{ left }}
+      onMouseEnter={() => setActive(key)}
+      onMouseLeave={() => setActive(null)}
+      onFocus={() => setActive(key)}
+      onBlur={() => setActive(null)}
+    >
+      {mark}
+    </span>
+  );
+  return (
+    <div className="relative mr-12 h-6">
+      <div className="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-line-strong" />
+      {team.p25 !== null && team.p75 !== null && (
+        <div
+          className="absolute top-1/2 h-2 -translate-y-1/2 rounded-full"
+          style={{ left: at(team.p25), width: `calc(${at(team.p75)} - ${at(team.p25)})`, minWidth: 4, background: BENCHMARK_BAND }}
+        />
+      )}
+      {marker("median", at(team.median), <span className="h-3.5 w-0.5 rounded-full" style={{ background: "var(--color-benchmark)" }} />)}
+      {marker(
+        "you",
+        at(you),
+        <span className="h-2.5 w-2.5 rounded-full" style={{ background: color, boxShadow: "0 0 0 2px var(--color-panel)" }} />,
+      )}
+      {team.max !== null && (
+        <span className="absolute left-full top-1/2 -translate-y-1/2 pl-2 font-mono text-[11px] leading-none text-faint tabular">{nf.format(team.max)}</span>
+      )}
+      {active && (
+        <div
+          className="pointer-events-none absolute bottom-full z-10 mb-1.5 min-w-36 -translate-x-1/2 rounded-xl border border-line-strong bg-panel-2/95 px-3 py-2 text-xs shadow-2xl backdrop-blur"
+          style={{ left: `clamp(4.5rem, ${at(active === "you" ? you : team.median)}, calc(100% - 4.5rem))` }}
+        >
+          {summary.map((line, i) => (
+            <div key={line} className={clsx("whitespace-nowrap tabular", i === 0 ? "text-cream" : "text-muted")}>
+              {line}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
