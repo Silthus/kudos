@@ -255,6 +255,27 @@ describe("verifying rollups against the legacy computation from memberDays and k
   });
 });
 
+describe("rolling the readers back to their legacy scans (#30 runbook)", () => {
+  test("unmarkBackfilled clears both markers, keeps the maintained rollups, and a rebuild marks again", async () => {
+    await history();
+    await rebuild();
+    const markers = async () =>
+      await t.run(async (ctx) => ({
+        workspace: (await ctx.db.get(team.workspaceId))!.rollupsBackfilledAt,
+        all: (await ctx.db.query("workspaceStats").collect()).find((w) => w.bucket === "all")?.rollupsBackfilledAt,
+      }));
+    expect(await markers()).toEqual({ workspace: Date.now(), all: Date.now() });
+    const maintained = await rollupLines();
+
+    await t.mutation(internal.rollups.unmarkBackfilled, { workspaceId: team.workspaceId });
+    expect(await markers()).toEqual({ workspace: undefined, all: undefined });
+    expect(await rollupLines()).toEqual(maintained);
+
+    await rebuild();
+    expect(await markers()).toEqual({ workspace: Date.now(), all: Date.now() });
+  });
+});
+
 type LiveOp = { kind: "revoke"; pick: number } | { kind: "give"; at: string; giver: string; receiver: string; ts: string; reaction: boolean };
 
 /** Live traffic across the history's days and their neighbours: gives and revokes. */
