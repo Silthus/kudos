@@ -365,15 +365,21 @@ async function verifyBucket(ctx: QueryCtx, workspace: Doc<"workspaces">, bucket:
 
   if (month) {
     const counts = successCounts(kudos, kudosRows);
-    const row = await ctx.db
+    const rows = await ctx.db
       .query("successStats")
       .withIndex("by_workspace_bucket", (q) => q.eq("workspaceId", workspace._id).eq("bucket", bucket))
-      .unique();
-    compare(
-      "successStats",
-      new Map([[bucket, { ...counts }]]),
-      new Map<string, Record<string, number>>(row ? [[bucket, { pairs: row.pairs, storyRows: row.storyRows, reciprocalRows: row.reciprocalRows }]] : []),
-    );
+      .take(10);
+    if (rows.length > 1) {
+      // Only corruption duplicates a month; the rebuild keeps one.
+      out.push({ bucket, table: "successStats", key: bucket, field: "rows", expected: 1, actual: rows.length });
+    } else {
+      const [row] = rows;
+      compare(
+        "successStats",
+        new Map([[bucket, { ...counts }]]),
+        new Map<string, Record<string, number>>(row ? [[bucket, { pairs: row.pairs, storyRows: row.storyRows, reciprocalRows: row.reciprocalRows }]] : []),
+      );
+    }
   }
 
   const storedChannels = await ctx.db

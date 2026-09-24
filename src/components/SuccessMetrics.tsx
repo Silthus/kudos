@@ -26,21 +26,28 @@ function download(result: SuccessResult) {
   const a = document.createElement("a");
   a.href = url;
   a.download = `kudos-success-metrics-${result.months.at(-1)?.month ?? "empty"}.csv`;
+  document.body.append(a);
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+  // Some browsers start the download after this handler returns.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 const VERDICT_CLASS = { better: "text-up", worse: "text-down", same: "text-muted" } as const;
 
 /**
- * The game's success metrics (spec #55 G18), admins only: this month against the baseline of the
- * three complete months before it, a 12-month line per metric, the numbers as a table, and a CSV.
+ * The game's success metrics (spec #55 G18), admins only: the last complete month against the
+ * baseline (the three months before the game's launch, or before this month until then), a
+ * 12-month line per metric with this month so far, the numbers as a table, and a CSV. Only a month
+ * after the baseline is judged: before the launch the month shown is part of it, and a month in
+ * progress isn't comparable with whole ones.
  */
 export function SuccessMetrics({ today }: { today: string }) {
   const result = useQuery(api.analytics.successMetrics, { today });
   const [showTable, setShowTable] = useState(false);
-  const current = result?.months.at(-1);
+  const current = result?.months.filter((m) => !m.toDate).at(-1);
   const baseline = result?.baseline ?? null;
+  const judged = !!current && !!baseline && current.month > baseline.to;
 
   return (
     <Card id="success-metrics" className="mt-4">
@@ -48,7 +55,7 @@ export function SuccessMetrics({ today }: { today: string }) {
         title="Game success metrics"
         subtitle={
           baseline
-            ? `This month so far against the baseline of ${monthRange(baseline.from, baseline.to)} · the last 12 months, whatever the period above`
+            ? `${current ? monthLabel(current.month) : "Each month"} against the baseline of ${monthRange(baseline.from, baseline.to)}${baseline.anchored ? ", before the game launched" : ""} · the last 12 months, whatever the period above`
             : "Per month, whatever the period above: the baseline to judge the game by"
         }
         action={
@@ -70,7 +77,7 @@ export function SuccessMetrics({ today }: { today: string }) {
         ) : !result.ready ? (
           <p className="flex items-start gap-2 rounded-xl border border-line bg-ink/40 p-4 text-sm text-muted">
             <Info className="mt-0.5 h-4 w-4 shrink-0" />
-            The success metrics appear after the next rollup rebuild has computed them from your history.
+            The success metrics are being computed from your history. Check back in a few minutes.
           </p>
         ) : (
           <>
@@ -78,7 +85,7 @@ export function SuccessMetrics({ today }: { today: string }) {
               {SUCCESS_METRICS.map((metric) => {
                 const value = current?.[metric.key] ?? null;
                 const base = baseline?.[metric.key] ?? null;
-                const v = verdict(metric, value, base);
+                const v = judged ? verdict(metric, value, base) : null;
                 return (
                   <div key={metric.key} data-metric={metric.key} className="rounded-xl border border-line bg-ink/40 p-4">
                     <div className="flex items-baseline justify-between gap-2">
@@ -102,7 +109,7 @@ export function SuccessMetrics({ today }: { today: string }) {
                         values={result.months.map((m) => m[metric.key])}
                         reference={base}
                         format={(n) => formatMetric(metric.key, n)}
-                        lastPartial={current?.toDate}
+                        lastPartial={result.months.at(-1)?.toDate}
                       />
                       <div className="mt-1 flex justify-between font-mono text-[10px] text-faint">
                         <span>{monthLabel(result.months[0].month)}</span>
@@ -115,7 +122,8 @@ export function SuccessMetrics({ today }: { today: string }) {
             </div>
             <p className="mt-3 text-xs text-faint">
               Dashed line: the baseline. Hollow point: this month so far. A kudos counts once per person recognised, whatever its
-              amount; thank-backs follow the Quests' 72-hour rule.
+              amount; reactions count as kudos without a note, and thank-backs follow the Quests' 72-hour rule. Participation is
+              measured against today's team plus anyone who has left since giving that month.
             </p>
             {showTable && (
               <div className="mt-4 overflow-x-auto">

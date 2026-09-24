@@ -149,6 +149,9 @@ export default defineSchema({
     // backfilled before that table existed carry `rollupsBackfilledAt` without it, so the success
     // metrics wait for their own marker instead of showing a history of zeros.
     successBackfilledAt: v.optional(v.number()),
+    // "YYYY-MM": the month the game was first switched on. The success metrics' baseline is the
+    // three months before it (analytics.ts `anchorSuccessBaseline`); unset, it rolls with today.
+    successBaselineBefore: v.optional(v.string()),
     ...settingsFields,
   }).index("by_team", ["slackTeamId"]),
 

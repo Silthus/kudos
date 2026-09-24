@@ -1,5 +1,5 @@
-import { v } from "convex/values";
-import { query, type QueryCtx } from "./_generated/server";
+import { ConvexError, v } from "convex/values";
+import { internalMutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { requireAdmin, requireViewer } from "./lib/access";
 import { dayBucket, monthBucket } from "./lib/buckets";
@@ -47,16 +47,19 @@ export const overview = query({
 
 /** How many months the success metrics show, the current one included. */
 export const SUCCESS_MONTHS = 12;
-/** Complete months before the current one pooled into the baseline. */
+/** Calendar months pooled into the baseline. */
 export const BASELINE_MONTHS = 3;
 
 /**
  * The game's success metrics (spec #55 G18) for each of the last 12 months up to `today`, from the
  * first month anyone gave: participation, distinct recipients per active giver, the share of kudos
  * with a 12+ word Note and the share of thank-backs. Admins only: they evaluate the program, and
- * aren't a team scoreboard. `baseline` pools the three complete months before the current one.
- * Reads ≤ 12 `workspaceStats` and `successStats` rows, the members, and each departed giver's
- * ≤ 12 month rows (participation counts them in the months they gave).
+ * aren't a team scoreboard.
+ *
+ * `baseline` pools the three calendar months before the game's launch month once one is recorded
+ * (`anchorSuccessBaseline`; `anchored`), else before the current month. Quiet months count, months
+ * before anyone gave don't. Reads ≤ 15 `workspaceStats` and `successStats` rows, the members, and
+ * each departed giver's ≤ 15 month rows (participation counts them in the months they gave).
  */
 export const successMetrics = query({
   args: {
@@ -69,12 +72,63 @@ export const successMetrics = query({
   },
 });
 
+/**
+ * Pin the baseline to the three months before the month of `today` (the game's first switch-on),
+ * unless it is pinned already: later switch-ons, and the game's own months, never move it.
+ */
+export async function anchorSuccessBaseline(ctx: MutationCtx, workspace: Doc<"workspaces">, today: string) {
+  if (workspace.successBaselineBefore !== undefined) return;
+  await ctx.db.patch(workspace._id, { successBaselineBefore: today.slice(0, 7) });
+}
+
+/** Operators: pin the baseline to the months before `before` ("YYYY-MM"), or unpin it with null. */
+export const setSuccessBaseline = internalMutation({
+  args: { workspaceId: v.id("workspaces"), before: v.union(v.string(), v.null()) },
+  returns: v.null(),
+  handler: async (ctx, { workspaceId, before }) => {
+    if (before !== null && !/^\d{4}-\d{2}$/.test(before)) throw new ConvexError("Pass a month as YYYY-MM, or null.");
+    await ctx.db.patch(workspaceId, { successBaselineBefore: before ?? undefined });
+    return null;
+  },
+});
+
 export async function successMetricsFor(ctx: QueryCtx, workspace: Doc<"workspaces">, today: string) {
   if (workspace.successBackfilledAt === undefined) return { ready: false as const, months: [], baseline: null };
-  const wsId = workspace._id;
   const current = monthStart(today);
-  const first = monthStart(addMonths(current, 1 - SUCCESS_MONTHS));
-  const [from, to] = [monthBucket(first), monthBucket(current)];
+  const members = await workspaceMembers(ctx, workspace._id);
+  // Months before anyone ever gave aren't quiet months, they're before the workspace used kudos.
+  const firstMonth = (await firstGivingDay(ctx, workspace._id, today))?.slice(0, 7) ?? null;
+  const used = (m: MonthFacts) => firstMonth !== null && m.month >= firstMonth;
+  const window = await monthFacts(ctx, workspace, members, addMonths(current, 1 - SUCCESS_MONTHS), current);
+  const months = window.filter((m) => m.month === current.slice(0, 7) || used(m));
+
+  const anchored = workspace.successBaselineBefore !== undefined;
+  const before = anchored ? `${workspace.successBaselineBefore}-01` : current;
+  const [baseFrom, baseTo] = [addMonths(before, -BASELINE_MONTHS), addMonths(before, -1)];
+  const inWindow = window.filter((m) => m.month >= baseFrom.slice(0, 7) && m.month <= baseTo.slice(0, 7));
+  const baseMonths = (
+    inWindow.length === BASELINE_MONTHS ? inWindow : await monthFacts(ctx, workspace, members, baseFrom, baseTo)
+  ).filter(used);
+  return {
+    ready: true as const,
+    months: months.map((m) => ({
+      month: m.month,
+      toDate: m.month === current.slice(0, 7),
+      givers: m.givers,
+      teamSize: m.teamSize,
+      kudos: m.kudos,
+      ...metricsOf([m]),
+    })),
+    baseline: baseMonths.length
+      ? { from: baseMonths[0].month, to: baseMonths.at(-1)!.month, months: baseMonths.length, anchored, ...metricsOf(baseMonths) }
+      : null,
+  };
+}
+
+/** Each month's facts from its rollup rows, from `first` to `last` (first days of months). */
+async function monthFacts(ctx: QueryCtx, workspace: Doc<"workspaces">, members: Doc<"members">[], first: string, last: string) {
+  const wsId = workspace._id;
+  const [from, to] = [monthBucket(first), monthBucket(last)];
   const stats = new Map((await workspaceStatsBetween(ctx, wsId, from, to)).map((r) => [r.bucket, r]));
   const success = new Map(
     (
@@ -84,7 +138,6 @@ export async function successMetricsFor(ctx: QueryCtx, workspace: Doc<"workspace
         .take(SUCCESS_MONTHS)
     ).map((r) => [r.bucket, r]),
   );
-  const members = await workspaceMembers(ctx, wsId);
   // Departed givers still count in the team of the months they gave.
   const departedGivers = new Map<string, number>();
   for (const m of members) {
@@ -96,34 +149,18 @@ export async function successMetricsFor(ctx: QueryCtx, workspace: Doc<"workspace
     for (const r of rows) if (r.given > 0) departedGivers.set(r.bucket, (departedGivers.get(r.bucket) ?? 0) + 1);
   }
 
-  const months = eachMonth(first, today)
-    .map((day): MonthFacts => {
-      const bucket = monthBucket(day);
-      const ws = stats.get(bucket);
-      const givers = ws?.givers ?? 0;
-      return {
-        month: day.slice(0, 7),
-        givers,
-        kudos: ws?.kudosRows ?? 0,
-        teamSize: teamSize(members, givers, departedGivers.get(bucket) ?? 0),
-        ...pickSuccess(success.get(bucket)),
-      };
-    })
-    // From the first month anyone gave.
-    .filter((m, i, all) => m.month === current.slice(0, 7) || all.slice(0, i + 1).some((e) => e.kudos > 0));
-  const complete = months.filter((m) => m.month < current.slice(0, 7) && m.kudos > 0).slice(-BASELINE_MONTHS);
-  return {
-    ready: true as const,
-    months: months.map((m) => ({
-      month: m.month,
-      toDate: m.month === current.slice(0, 7),
-      givers: m.givers,
-      teamSize: m.teamSize,
-      kudos: m.kudos,
-      ...metricsOf([m]),
-    })),
-    baseline: complete.length ? { from: complete[0].month, to: complete.at(-1)!.month, months: complete.length, ...metricsOf(complete) } : null,
-  };
+  return eachMonth(first, last).map((day): MonthFacts => {
+    const bucket = monthBucket(day);
+    const ws = stats.get(bucket);
+    const givers = ws?.givers ?? 0;
+    return {
+      month: day.slice(0, 7),
+      givers,
+      kudos: ws?.kudosRows ?? 0,
+      teamSize: teamSize(members, givers, departedGivers.get(bucket) ?? 0),
+      ...pickSuccess(success.get(bucket)),
+    };
+  });
 }
 
 const pickSuccess = (row: Doc<"successStats"> | undefined) => ({

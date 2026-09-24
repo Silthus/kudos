@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
+import { anchorSuccessBaseline } from "../convex/analytics";
 import { giveKudos, revokeKudosRow, type GiveInput } from "../convex/engine";
 import { NOW, seedTeam, setupConvex, signInAs, TODAY, type Team } from "./helpers";
 
@@ -110,6 +111,22 @@ describe("success metrics per month (game spec G18)", () => {
     expect(await metrics()).toEqual(live);
   });
 
+  test("rebuild and verify look back 72 h into the month before for thank-backs", async () => {
+    await rebuild();
+    await giveAt("2026-08-29T10:00:00Z", { giverSlackId: "UANA", recipientSlackIds: ["UBEN"] });
+    await giveAt("2026-09-01T09:00:00Z", { giverSlackId: "UBEN", recipientSlackIds: ["UANA"] }); // 71 h later
+    expect(await month("2026-09")).toMatchObject({ reciprocalShare: 1 });
+    const verify = () => t.query(internal.rollups.verify, { workspaceId: team.workspaceId, buckets: ["m:2026-08", "m:2026-09"] });
+    expect((await verify()).mismatches).toEqual([]);
+
+    await t.run(async (ctx) => {
+      for (const row of await ctx.db.query("successStats").collect()) await ctx.db.delete(row._id);
+    });
+    await rebuild();
+    expect(await month("2026-09")).toMatchObject({ reciprocalShare: 1 });
+    expect((await verify()).mismatches).toEqual([]);
+  });
+
   test("rollups:verify checks a month's success counters against its kudos", async () => {
     await rebuild();
     await giveAt("2026-08-31T10:00:00Z", { giverSlackId: "UANA", recipientSlackIds: ["UBEN"] });
@@ -126,12 +143,21 @@ describe("success metrics per month (game spec G18)", () => {
       { bucket: "m:2026-09", table: "successStats", key: "m:2026-09", field: "storyRows", expected: 2, actual: 1 },
       { bucket: "m:2026-09", table: "successStats", key: "m:2026-09", field: "reciprocalRows", expected: 1, actual: 0 },
     ]);
+
+    // A duplicate month row (only corruption makes one) is reported, not thrown.
+    await rebuild();
+    await t.run(async (ctx) => {
+      const { _id, _creationTime, ...row } = (await ctx.db.query("successStats").collect()).find((r) => r.bucket === "m:2026-09")!;
+      await ctx.db.insert("successStats", row);
+    });
+    expect((await verify()).mismatches).toEqual([
+      { bucket: "m:2026-09", table: "successStats", key: "m:2026-09", field: "rows", expected: 1, actual: 2 },
+    ]);
   });
 
   test("shows the last 12 months from the first month anyone gave, and pools the 3 complete months before this one as the baseline", async () => {
     await rebuild();
-    // A year ago and in each of the four months before this one.
-    await giveAt("2025-09-10T09:00:00Z", { giverSlackId: "UANA", recipientSlackIds: ["UBEN"], noteWords: 12 });
+    // In each of the four months before this one.
     await giveAt("2026-05-12T09:00:00Z", { giverSlackId: "UANA", recipientSlackIds: ["UBEN"], noteWords: 12 });
     await giveAt("2026-06-10T09:00:00Z", { giverSlackId: "UANA", recipientSlackIds: ["UBEN", "UCLEO"], noteWords: 12 });
     await giveAt("2026-07-08T09:00:00Z", { giverSlackId: "UBEN", recipientSlackIds: ["UANA"] });
@@ -141,7 +167,7 @@ describe("success metrics per month (game spec G18)", () => {
 
     const result = await metrics();
     expect(result.ready).toBe(true);
-    // September 2025 is outside the window, October 2025 – April 2026 had nothing: the list starts in May.
+    // Nobody gave before May: the list starts there.
     expect(result.months.map((m) => [m.month, m.toDate, m.kudos])).toEqual([
       ["2026-05", false, 1],
       ["2026-06", false, 2],
@@ -154,11 +180,49 @@ describe("success metrics per month (game spec G18)", () => {
       from: "2026-06",
       to: "2026-08",
       months: 3,
+      anchored: false,
       participation: 5 / 9,
       recipientsPerGiver: 6 / 5,
       storyShare: 3 / 6,
       reciprocalShare: 1 / 6,
     });
+
+    // Someone gave a year ago: every month of the window shows, the quiet ones too.
+    await giveAt("2025-09-10T09:00:00Z", { giverSlackId: "UANA", recipientSlackIds: ["UBEN"], noteWords: 12 });
+    const year = (await metrics()).months;
+    expect(year).toHaveLength(12);
+    expect(year[0]).toMatchObject({ month: "2025-10", kudos: 0, participation: 0, storyShare: null });
+  });
+
+  test("the baseline takes the calendar months before this one, quiet ones included, from the first month anyone gave", async () => {
+    await rebuild();
+    await giveAt("2026-03-10T09:00:00Z", { giverSlackId: "UANA", recipientSlackIds: ["UBEN"] });
+    await giveAt("2026-06-10T09:00:00Z", { giverSlackId: "UANA", recipientSlackIds: ["UBEN"] });
+    await giveAt("2026-08-12T09:00:00Z", { giverSlackId: "UBEN", recipientSlackIds: ["UCLEO"] });
+    // June, July (nobody gave) and August: 2 givers over 3 × 3 teammates.
+    expect((await metrics()).baseline).toMatchObject({ from: "2026-06", to: "2026-08", months: 3, participation: 2 / 9, anchored: false });
+
+    // A workspace younger than three months pools what it has.
+    await revokeWhere((k) => k.dayKey < "2026-08-01");
+    expect((await metrics()).baseline).toMatchObject({ from: "2026-08", to: "2026-08", months: 1, participation: 1 / 3 });
+  });
+
+  test("once the game goes on, the baseline stays the three months before its launch", async () => {
+    await rebuild();
+    await giveAt("2026-04-10T09:00:00Z", { giverSlackId: "UANA", recipientSlackIds: ["UBEN"], noteWords: 12 });
+    await giveAt("2026-05-10T09:00:00Z", { giverSlackId: "UANA", recipientSlackIds: ["UBEN"] });
+    await giveAt("2026-06-10T09:00:00Z", { giverSlackId: "UANA", recipientSlackIds: ["UBEN"] });
+    await giveAt("2026-08-12T09:00:00Z", { giverSlackId: "UBEN", recipientSlackIds: ["UCLEO"], noteWords: 20 });
+    await t.run(async (ctx) => anchorSuccessBaseline(ctx, (await ctx.db.get(team.workspaceId))!, "2026-07-02"));
+    // A second switch-on later doesn't move it.
+    await t.run(async (ctx) => anchorSuccessBaseline(ctx, (await ctx.db.get(team.workspaceId))!, "2026-09-20"));
+    const expected = { from: "2026-04", to: "2026-06", months: 3, storyShare: 1 / 3, anchored: true };
+    expect((await metrics()).baseline).toMatchObject(expected);
+    // Long after launch, when those months have left the 12-month window.
+    vi.setSystemTime(new Date("2027-09-10T09:00:00Z"));
+    const later = await metrics("2027-09-10");
+    expect(later.months.map((m) => m.month)).toEqual(["2026-10", "2026-11", "2026-12", "2027-01", "2027-02", "2027-03", "2027-04", "2027-05", "2027-06", "2027-07", "2027-08", "2027-09"]);
+    expect(later.baseline).toMatchObject(expected);
   });
 
   test("a departed giver still counts in the team of the months they gave", async () => {
@@ -191,12 +255,18 @@ describe("success metrics in a 500-member workspace", () => {
   const DEPARTED = 100;
 
   test("read 12 months of rollups, the members and each departed giver's months, within a fixed budget", { timeout: 120_000 }, async () => {
-    // 504 members, 12 + 12 month rows, 12 month rows per departed giver, the viewer's session.
-    t = setupConvex({ transactionLimits: { documentsRead: MEMBERS + 4 + 24 + 12 * DEPARTED + 10 } });
+    // 504 members, 12 + 12 month rows, 12 month rows per departed giver, the first giving month and
+    // day, the viewer's session.
+    t = setupConvex({ transactionLimits: { documentsRead: MEMBERS + 4 + 24 + 12 * DEPARTED + 2 + 10 } });
     team = await seedTeam(t, { rollupsBackfilledAt: NOW.getTime(), successBackfilledAt: NOW.getTime() });
-    const months = Array.from({ length: 12 }, (_, i) => `2026-${String(i + 1).padStart(2, "0")}`).slice(-9); // Jan–Sep
+    const months = Array.from({ length: 9 }, (_, i) => `2026-${String(i + 1).padStart(2, "0")}`); // Jan–Sep
     const earlier = ["2025-10", "2025-11", "2025-12"];
     await t.run(async (ctx) => {
+      await ctx.db.insert("workspaceStats", {
+        workspaceId: team.workspaceId, bucket: "d:2025-10-01", given: 30, kudosRows: 20, messages: 10, givers: 10, receivers: 10,
+        giverDays: 10, cappedGiven: 30, maxedDays: 0, fromReactions: 0, fromMessages: 30, heat: new Array(24).fill(0),
+        found: { common: 0, uncommon: 0, rare: 0, epic: 0, legendary: 0 },
+      });
       for (const month of [...earlier, ...months]) {
         const bucket = `m:${month}`;
         const base = { workspaceId: team.workspaceId, bucket };

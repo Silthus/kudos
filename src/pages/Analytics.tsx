@@ -174,12 +174,12 @@ export function Analytics() {
           ))}
         </div>
       </Card>
-      {viewer.member.isAdmin && <SuccessMetrics today={today} />}
       {data.truncated && (
         <p className="mt-3 flex items-center gap-1.5 text-xs text-faint">
           <Info className="h-3.5 w-3.5" /> This range is very busy: some charts only include the most recent activity.
         </p>
       )}
+      {viewer.member.isAdmin && <SuccessMetrics today={today} />}
     </div>
   );
 }

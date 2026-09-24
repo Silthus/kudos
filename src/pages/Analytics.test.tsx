@@ -27,14 +27,16 @@ const overview = {
   rarity: [],
   truncated: false,
 };
-let success: unknown = {
+// The game went on in July: the baseline is April–June; August is the last complete month.
+const launched = {
   ready: true,
   months: [
-    { month: "2026-08", toDate: false, givers: 6, teamSize: 12, kudos: 40, participation: 0.5, recipientsPerGiver: 2.5, storyShare: 0.3, reciprocalShare: 0.1 },
-    { month: "2026-09", toDate: true, givers: 4, teamSize: 12, kudos: 20, participation: 1 / 3, recipientsPerGiver: 3, storyShare: 0.45, reciprocalShare: 0.15 },
+    { month: "2026-08", toDate: false, givers: 4, teamSize: 12, kudos: 40, participation: 1 / 3, recipientsPerGiver: 3, storyShare: 0.45, reciprocalShare: 0.15 },
+    { month: "2026-09", toDate: true, givers: 2, teamSize: 12, kudos: 5, participation: 1 / 6, recipientsPerGiver: 1.2, storyShare: 0.1, reciprocalShare: 0.3 },
   ],
-  baseline: { from: "2026-06", to: "2026-08", months: 3, participation: 0.5, recipientsPerGiver: 2.5, storyShare: 0.3, reciprocalShare: 0.1 },
+  baseline: { from: "2026-04", to: "2026-06", months: 3, anchored: true, participation: 0.5, recipientsPerGiver: 2.5, storyShare: 0.3, reciprocalShare: 0.1 },
 };
+let success: unknown = launched;
 const asked: string[] = [];
 
 vi.mock("convex/react", () => ({
@@ -80,7 +82,7 @@ function render(isAdmin: boolean) {
 
 const section = (host: HTMLElement) => host.querySelector("#success-metrics") as HTMLElement | null;
 
-test("admins see this month's success metrics against the baseline, each with its goal", () => {
+test("admins see the last complete month against the baseline from before the launch, each with its goal", () => {
   const card = section(render(true))!;
   expect(card.textContent).toContain("Game success metrics");
   const tile = (label: string) => [...card.querySelectorAll("[data-metric]")].find((t) => t.getAttribute("data-metric") === label)!.textContent;
@@ -98,7 +100,17 @@ test("admins see this month's success metrics against the baseline, each with it
   // The sparkline's time span is labelled.
   expect(tile("storyShare")).toContain("Aug 2026");
   expect(tile("participation")).toContain("33%");
+  expect(card.textContent).toContain("Apr – Jun 2026");
+  // This month so far is only in the chart and the table: a partial month isn't judged.
+  expect(tile("recipientsPerGiver")).not.toContain("1.2");
+});
+
+test("before the game launches, the baseline includes the month shown, so nothing is judged yet", () => {
+  success = { ...launched, baseline: { ...launched.baseline, from: "2026-06", to: "2026-08", anchored: false } };
+  const card = section(render(true))!;
+  expect(card.querySelectorAll("[data-verdict]")).toHaveLength(0);
   expect(card.textContent).toContain("Jun – Aug 2026");
+  success = launched;
   expect(card.textContent).toContain("Download CSV");
 });
 
@@ -108,13 +120,14 @@ test("the data table lists every month, the current one marked as to date", () =
   const rows = [...card.querySelectorAll("#success-table tbody tr")].map((r) => r.textContent);
   expect(rows).toHaveLength(2);
   expect(rows[1]).toContain("Sep 2026 (to date)");
-  expect(rows[1]).toContain("45%");
+  expect(rows[0]).toContain("45%");
+  expect(rows[1]).toContain("10%");
 });
 
 test("before a rebuild computed them, admins learn why there is nothing yet", () => {
   success = { ready: false, months: [], baseline: null };
   const card = section(render(true))!;
-  expect(card.textContent).toContain("after the next rollup rebuild");
+  expect(card.textContent).toContain("being computed from your history");
   success = undefined;
 });
 
