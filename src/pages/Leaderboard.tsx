@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { api } from "../../convex/_generated/api";
 import { Ring } from "@/components/charts";
-import { Avatar, BigNumber, Card, CardHeader, Empty, Eyebrow, PageHeader, PageSkeleton, Segmented, Trend } from "@/components/ui";
+import { Avatar, BigNumber, Card, CardHeader, Empty, Eyebrow, PageHeader, PageSkeleton, Segmented, TableScroll, Trend } from "@/components/ui";
 import { compareWithHref, firstName } from "@/lib/compare";
 import { nf, pct, rangeLabel } from "@/lib/format";
 import { DEFAULT_PERIOD, PERIOD_OPTIONS, useWorkspaceToday, type Period } from "@/lib/period";
@@ -102,7 +102,7 @@ export function Leaderboard() {
             {data.rows.length === 0 ? (
               <Empty icon={glyph} title="No kudos in this period yet">The first person to share some appreciation takes the crown.</Empty>
             ) : (
-              <div className="overflow-x-auto px-2 pb-3">
+              <TableScroll>
                 <table className="w-full min-w-[620px] text-sm">
                   <thead>
                     <tr className="text-left font-mono text-[11px] uppercase tracking-[0.12em] text-faint">
@@ -159,7 +159,7 @@ export function Leaderboard() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </TableScroll>
             )}
           </Card>
         </div>

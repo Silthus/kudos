@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { Avatar, Button, Card, CardHeader, Eyebrow, Field, inputCls, PageHeader, PageSkeleton, Segmented, Toggle } from "@/components/ui";
+import { Avatar, Button, Card, CardHeader, Eyebrow, Field, inputCls, PageHeader, PageSkeleton, Segmented, TableScroll, Toggle } from "@/components/ui";
 import { nf, relativeTime } from "@/lib/format";
 import { useViewer } from "@/lib/viewer";
 import { CopyButton } from "./Setup";
@@ -249,7 +249,7 @@ function Members() {
           <CircleAlert className="h-4 w-4 shrink-0" /> {adminError}
         </p>
       )}
-      <div className="overflow-x-auto px-2 pb-3">
+      <TableScroll>
         <table className="w-full min-w-[640px] text-sm">
           <thead>
             <tr className="text-left font-mono text-[11px] uppercase tracking-[0.12em] text-faint">
@@ -322,7 +322,7 @@ function Members() {
             ))}
           </tbody>
         </table>
-      </div>
+      </TableScroll>
       <LedgerDrawer memberId={ledgerFor} isDemo={viewer.workspace.isDemo} onClose={() => setLedgerFor(null)} />
     </Card>
   );
