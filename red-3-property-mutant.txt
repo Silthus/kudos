@@ -1,0 +1,120 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a208082a55eea121c
+
+ ❯ convex/lib/rollups.test.ts (24 tests | 4 failed) 6881ms
+   ❯ rollups equal a recompute from the sources (12)
+     × after a random give/revoke sequence (seed 1), and return to zero once everything is revoked 649ms
+     × after a random give/revoke sequence (seed 2), and return to zero once everything is revoked 304ms
+     × after a random give/revoke sequence (seed 4), and return to zero once everything is revoked 241ms
+     × after a random give/revoke sequence (seed 5), and return to zero once everything is revoked 570ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  convex/lib/rollups.test.ts > rollups equal a recompute from the sources > after a random give/revoke sequence (seed 1), and return to zero once everything is revoked
+AssertionError: seed 1 step 41: revoke 000000000000000000000010044kudos: expected [ 'm:2026-09 9 0 1', …(4) ] to deeply equal [ 'm:2026-09 9 0 0', …(4) ]
+
+- Expected
++ Received
+
+  [
+-   "m:2026-09 9 0 0",
++   "m:2026-09 9 0 1",
+    "m:2026-10 3 3 1",
+    "m:2026-11 1 0 0",
+    "m:2026-12 6 0 0",
+    "m:2027-01 6 0 1",
+  ]
+
+ ❯ expectRollupsMatchSources convex/lib/rollups.test.ts:470:112
+    468|     success.set(`m:${y}-${m}`, row);
+    469|   }
+    470|   expect(sorted(s.successStats.map((r) => `${r.bucket} ${r.pairs} ${r.…
+       |                                                                                                                ^
+    471|     sorted([...success].map(([b, r]) => `${b} ${r.pairs.size} ${r.stor…
+    472|   );
+ ❯ convex/lib/rollups.test.ts:570:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  convex/lib/rollups.test.ts > rollups equal a recompute from the sources > after a random give/revoke sequence (seed 2), and return to zero once everything is revoked
+AssertionError: seed 2 step 29: revoke 000000000000000000000010273kudos: expected [ 'm:2026-09 3 1 0', …(2) ] to deeply equal [ 'm:2026-09 3 1 0', …(2) ]
+
+- Expected
++ Received
+
+  [
+    "m:2026-09 3 1 0",
+    "m:2026-11 1 0 0",
+-   "m:2027-01 3 1 0",
++   "m:2027-01 3 1 1",
+  ]
+
+ ❯ expectRollupsMatchSources convex/lib/rollups.test.ts:470:112
+    468|     success.set(`m:${y}-${m}`, row);
+    469|   }
+    470|   expect(sorted(s.successStats.map((r) => `${r.bucket} ${r.pairs} ${r.…
+       |                                                                                                                ^
+    471|     sorted([...success].map(([b, r]) => `${b} ${r.pairs.size} ${r.stor…
+    472|   );
+ ❯ convex/lib/rollups.test.ts:570:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  convex/lib/rollups.test.ts > rollups equal a recompute from the sources > after a random give/revoke sequence (seed 4), and return to zero once everything is revoked
+AssertionError: seed 4 step 22: UBEN → UEVE,UANA given: expected [ 'm:2026-09 1 0 0', …(4) ] to deeply equal [ 'm:2026-09 1 0 0', …(4) ]
+
+- Expected
++ Received
+
+  [
+    "m:2026-09 1 0 0",
+    "m:2026-10 5 3 0",
+    "m:2026-12 3 2 0",
+-   "m:2027-01 2 0 1",
++   "m:2027-01 2 0 0",
+    "m:2027-03 1 1 0",
+  ]
+
+ ❯ expectRollupsMatchSources convex/lib/rollups.test.ts:470:112
+    468|     success.set(`m:${y}-${m}`, row);
+    469|   }
+    470|   expect(sorted(s.successStats.map((r) => `${r.bucket} ${r.pairs} ${r.…
+       |                                                                                                                ^
+    471|     sorted([...success].map(([b, r]) => `${b} ${r.pairs.size} ${r.stor…
+    472|   );
+ ❯ convex/lib/rollups.test.ts:570:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  convex/lib/rollups.test.ts > rollups equal a recompute from the sources > after a random give/revoke sequence (seed 5), and return to zero once everything is revoked
+AssertionError: seed 5 step 40: UANA → UEVE,UANA given: expected [ 'm:2026-09 6 1 0', …(4) ] to deeply equal [ 'm:2026-09 6 1 1', …(4) ]
+
+- Expected
++ Received
+
+  [
+-   "m:2026-09 6 1 1",
++   "m:2026-09 6 1 0",
+    "m:2026-10 2 0 0",
+    "m:2026-12 5 3 0",
+    "m:2027-01 5 2 1",
+    "m:2027-03 2 0 0",
+  ]
+
+ ❯ expectRollupsMatchSources convex/lib/rollups.test.ts:470:112
+    468|     success.set(`m:${y}-${m}`, row);
+    469|   }
+    470|   expect(sorted(s.successStats.map((r) => `${r.bucket} ${r.pairs} ${r.…
+       |                                                                                                                ^
+    471|     sorted([...success].map(([b, r]) => `${b} ${r.pairs.size} ${r.stor…
+    472|   );
+ ❯ convex/lib/rollups.test.ts:570:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 20 passed (24)
+   Start at  11:02:23
+   Duration  7.43s (tests 94%, transform 4%, import 2%, environment 1%)
+

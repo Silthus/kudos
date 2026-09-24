@@ -1,0 +1,59 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a208082a55eea121c
+
+ ❯ tests/success-metrics.test.ts (8 tests | 1 failed | 7 skipped) 181ms
+   ❯ success metrics per month (game spec G18) (8)
+     × rollups:verify checks a month's success counters against its kudos 180ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/success-metrics.test.ts > success metrics per month (game spec G18) > rollups:verify checks a month's success counters against its kudos
+AssertionError: expected [] to deeply equal [ { bucket: 'm:2026-09', …(5) }, …(2) ]
+
+- Expected
++ Received
+
+- [
+-   {
+-     "actual": 5,
+-     "bucket": "m:2026-09",
+-     "expected": 2,
+-     "field": "pairs",
+-     "key": "m:2026-09",
+-     "table": "successStats",
+-   },
+-   {
+-     "actual": 1,
+-     "bucket": "m:2026-09",
+-     "expected": 2,
+-     "field": "storyRows",
+-     "key": "m:2026-09",
+-     "table": "successStats",
+-   },
+-   {
+-     "actual": 0,
+-     "bucket": "m:2026-09",
+-     "expected": 1,
+-     "field": "reciprocalRows",
+-     "key": "m:2026-09",
+-     "table": "successStats",
+-   },
+- ]
++ []
+
+ ❯ tests/success-metrics.test.ts:124:41
+    122|       await ctx.db.patch(row._id, { pairs: 5, storyRows: 1, reciprocal…
+    123|     });
+    124|     expect((await verify()).mismatches).toEqual([
+       |                                         ^
+    125|       { bucket: "m:2026-09", table: "successStats", key: "m:2026-09", …
+    126|       { bucket: "m:2026-09", table: "successStats", key: "m:2026-09", …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 7 skipped (8)
+   Start at  11:02:40
+   Duration  716ms (transform 41%, tests 29%, import 22%, environment 7%, worker 1%)
+

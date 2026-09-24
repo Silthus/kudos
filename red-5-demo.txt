@@ -1,0 +1,41 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a208082a55eea121c
+
+ ❯ tests/demo.test.ts (37 tests | 1 failed | 33 skipped) 148084ms
+   ❯ the demo's read-model rollups (2)
+     × a reset wipes every rollup row before the fresh history is seeded 23059ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/demo.test.ts > the demo's read-model rollups > a reset wipes every rollup row before the fresh history is seeded
+AssertionError: expected [ +0, +0, +0, +0, +0, 9 ] to deeply equal [ +0, +0, +0, +0, +0, +0 ]
+
+- Expected
++ Received
+
+@@ -2,7 +2,7 @@
+    0,
+    0,
+    0,
+    0,
+    0,
+-   0,
++   9,
+  ]
+
+ ❯ tests/demo.test.ts:345:20
+    343|       Promise.all(ROLLUP_TABLES.map(async (table) => (await ctx.db.que…
+    344|     );
+    345|     expect(counts).toEqual([0, 0, 0, 0, 0, 0]);
+       |                    ^
+    346|     const demoId = await demoWorkspaceId();
+    347|     expect((await t.run((ctx) => ctx.db.get(demoId)))!.successBackfill…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed | 33 skipped (37)
+   Start at  11:03:15
+   Duration  148.56s (tests 100%)
+

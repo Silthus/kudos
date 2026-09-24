@@ -1,0 +1,32 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a208082a55eea121c
+
+ ❯ tests/success-metrics.test.ts (1 test | 1 failed) 207ms
+   ❯ success metrics per month (game spec G18) (1)
+     × live giving keeps reach, 12+ word notes, thank-backs and participation for the month 206ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/success-metrics.test.ts > success metrics per month (game spec G18) > live giving keeps reach, 12+ word notes, thank-backs and participation for the month
+Error: Expected a Convex function exported from module "analytics" as `successMetrics`, but there is no such export.
+ ❯ resolveFunction node_modules/convex-test/dist/index.js:2401:15
+    2399|     const func = module[exportName];
+    2400|     if (func === undefined) {
+    2401|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2402|     }
+    2403|     const handler = getHandler(func);
+ ❯ Object.queryFromPath node_modules/convex-test/dist/index.js:2085:34
+ ❯ query node_modules/convex-test/dist/index.js:2172:20
+ ❯ metrics tests/success-metrics.test.ts:46:10
+ ❯ month tests/success-metrics.test.ts:49:54
+ ❯ tests/success-metrics.test.ts:61:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  10:58:13
+   Duration  742ms (transform 39%, tests 32%, import 22%, environment 7%, worker 1%)
+

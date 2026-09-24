@@ -1,0 +1,24 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a208082a55eea121c
+
+ ❯ src/lib/successMetrics.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/successMetrics.test.ts [ src/lib/successMetrics.test.ts ]
+Error: Cannot find module './successMetrics' imported from /home/coder/dev/kudos/.claude/worktrees/agent-a208082a55eea121c/src/lib/successMetrics.test.ts
+ ❯ src/lib/successMetrics.test.ts:2:1
+      1| import { expect, test } from "vitest";
+      2| import { formatMetric, SUCCESS_METRICS, successCsv, verdict } from "./…
+       | ^
+      3|
+      4| const result = {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  11:10:37
+   Duration  176ms (environment 92%, worker 8%)
+

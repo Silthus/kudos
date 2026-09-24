@@ -1,0 +1,54 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a208082a55eea121c
+
+ ❯ src/pages/Analytics.test.tsx (4 tests | 3 failed) 85ms
+   × admins see this month's success metrics against the baseline, each with its goal 45ms
+   × the data table lists every month, the current one marked as to date 13ms
+   × before a rebuild computed them, admins learn why there is nothing yet 14ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/pages/Analytics.test.tsx > admins see this month's success metrics against the baseline, each with its goal
+TypeError: Cannot read properties of null (reading 'textContent')
+ ❯ src/pages/Analytics.test.tsx:85:15
+     83| test("admins see this month's success metrics against the baseline, ea…
+     84|   const card = section(render(true))!;
+     85|   expect(card.textContent).toContain("Game success metrics");
+       |               ^
+     86|   const tile = (label: string) => [...card.querySelectorAll("[data-met…
+     87|   expect(tile("recipientsPerGiver")).toContain("3.0");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/pages/Analytics.test.tsx > the data table lists every month, the current one marked as to date
+TypeError: Cannot read properties of null (reading 'querySelector')
+ ❯ src/pages/Analytics.test.tsx:99:19
+     97| test("the data table lists every month, the current one marked as to d…
+     98|   const card = section(render(true))!;
+     99|   act(() => (card.querySelector("button[aria-controls='success-table']…
+       |                   ^
+    100|   const rows = [...card.querySelectorAll("#success-table tbody tr")].m…
+    101|   expect(rows).toHaveLength(2);
+ ❯ Proxy.process.env.NODE_ENV.exports.act node_modules/react/cjs/react.development.js:890:22
+ ❯ src/pages/Analytics.test.tsx:99:3
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/pages/Analytics.test.tsx > before a rebuild computed them, admins learn why there is nothing yet
+TypeError: Cannot read properties of null (reading 'textContent')
+ ❯ src/pages/Analytics.test.tsx:109:15
+    107|   success = { ready: false, months: [], baseline: null };
+    108|   const card = section(render(true))!;
+    109|   expect(card.textContent).toContain("after the next rollup rebuild");
+       |               ^
+    110|   success = undefined;
+    111| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 1 passed (4)
+   Start at  11:11:13
+   Duration  770ms (import 40%, environment 30%, transform 17%, tests 13%, worker 1%)
+

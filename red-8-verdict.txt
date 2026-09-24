@@ -1,0 +1,30 @@
+
+ RUN  v5.0.1 /home/coder/dev/kudos/.claude/worktrees/agent-a208082a55eea121c
+
+ ❯ src/pages/Analytics.test.tsx (4 tests | 1 failed) 90ms
+   × admins see this month's success metrics against the baseline, each with its goal 46ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/pages/Analytics.test.tsx > admins see this month's success metrics against the baseline, each with its goal
+AssertionError: expected 'Reachshould rise3.0Baseline 2.5differ…' to contain 'above baseline'
+
+Expected: "above baseline"
+Received: "Reachshould rise3.0Baseline 2.5different people each giver recognized"
+
+ ❯ src/pages/Analytics.test.tsx:93:38
+     91|   expect(tile("reciprocalShare")).toContain("must not rise");
+     92|   // The comparison is spelled out, not only coloured.
+     93|   expect(tile("recipientsPerGiver")).toContain("above baseline");
+       |                                      ^
+     94|   expect(tile("reciprocalShare")).toContain("above baseline");
+     95|   expect(card.querySelector("[data-metric='reciprocalShare'] [data-ver…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed (4)
+   Start at  11:32:45
+   Duration  722ms (import 40%, environment 29%, transform 17%, tests 14%)
+
