@@ -184,6 +184,10 @@ describe("what a removal deletes", () => {
       await ctx.db.insert("balanceAdjustments", { ...adjustment, memberId: xavi, amount: 5, by: team.ana });
       await ctx.db.insert("balanceAdjustments", { ...adjustment, memberId: team.ben, amount: 3, by: xavi });
       await ctx.db.patch(team.cleo, { adminRemovedBy: xavi });
+      // The bot's record of a message of his that carried the emoji but thanked nobody.
+      const attempt = { workspaceId: team.workspaceId, channelId: "CGENERAL", outcome: "invalid" as const, reason: "no_mention" as const, at: Date.now() };
+      await ctx.db.insert("kudosAttempts", { ...attempt, messageTs: "1.1", giverId: xavi });
+      await ctx.db.insert("kudosAttempts", { ...attempt, messageTs: "1.2", giverId: team.ben });
     });
     const personal = async () =>
       await t.run(async (ctx) => {
@@ -196,6 +200,7 @@ describe("what a removal deletes", () => {
           discoveries: mine(await ctx.db.query("discoveries").collect()),
           notifications: mine(await ctx.db.query("notifications").collect()),
           questCompletions: mine(await ctx.db.query("questCompletions").collect()),
+          kudosAttempts: (await ctx.db.query("kudosAttempts").collect()).filter((a) => a.giverId === xavi).length,
           balanceAdjustments: mine(await ctx.db.query("balanceAdjustments").collect()),
           adminRemovedBy: (await ctx.db.query("members").collect()).filter((m) => m.adminRemovedBy === xavi).length,
           users: (await ctx.db.query("users").collect()).filter((u) => u._id === userId).length,
