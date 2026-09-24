@@ -17,6 +17,7 @@ export const CATEGORY_LABEL: Record<string, string> = {
   allowance_status: "Allowance check",
   self_kudos: "Self kudos",
   quest_complete: "Quest complete",
+  level_up: "Level up",
 };
 
 /** How to find a category's messages, shown on the ones you haven't discovered yet. */

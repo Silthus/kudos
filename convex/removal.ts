@@ -113,6 +113,19 @@ const PHASES: Phase[] = [
     rows: (ctx, m, n) => ctx.db.query("notifications").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(n),
     clear: remove,
   },
+  // The revokes above took back every XP event their kudos earned; this catches any left over.
+  {
+    name: "gameEvents",
+    batch: 500,
+    rows: (ctx, m, n) => ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", m._id)).take(n),
+    clear: remove,
+  },
+  {
+    name: "players",
+    batch: 10,
+    rows: (ctx, m, n) => ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(n),
+    clear: remove,
+  },
   {
     name: "balanceAdjustments",
     batch: 500,

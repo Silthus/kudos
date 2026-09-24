@@ -5,6 +5,7 @@ import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { revokeKudosRow } from "./engine";
 import { switchQuests } from "./quests";
+import { gameOn, switchGame } from "./game";
 import { assertNotDemo, canSeeReceived, publicSettings, requireAdmin } from "./lib/access";
 import { siteUrl } from "./lib/slack";
 import { balanceOf, storeOpen } from "./lib/store";
@@ -67,9 +68,11 @@ export const updateSettings = mutation({
     notifyReceiver: v.boolean(),
     // Optional: a client that doesn't know the switch leaves quests as they are.
     questsEnabled: v.optional(v.boolean()),
+    // Optional, like questsEnabled: the game (XP, levels, ...).
+    gameEnabled: v.optional(v.boolean()),
   },
   returns: v.null(),
-  handler: async (ctx, { questsEnabled, ...args }) => {
+  handler: async (ctx, { questsEnabled, gameEnabled, ...args }) => {
     const { workspace } = await requireAdmin(ctx);
     assertNotDemo(workspace);
     const emojiName = args.emojiName.trim().replace(/^:|:$/g, "").toLowerCase();
@@ -97,7 +100,12 @@ export const updateSettings = mutation({
       unitSingular,
       unitPlural,
       ...(questsEnabled === undefined ? {} : switchQuests(workspace, questsEnabled, Date.now())),
+      ...(gameEnabled === undefined ? {} : switchGame(workspace, gameEnabled, Date.now())),
     });
+    // Switched on: play the history through the rules (paused stretches excluded), in the background.
+    if (gameEnabled && !gameOn(workspace)) {
+      await ctx.scheduler.runAfter(0, internal.game.rebuildWorkspace, { workspaceId: workspace._id });
+    }
     return null;
   },
 });

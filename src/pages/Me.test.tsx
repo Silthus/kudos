@@ -39,6 +39,7 @@ vi.mock("convex/react", () => ({
     if (name === "quests:mine") return board;
     return undefined;
   },
+  useMutation: () => vi.fn(),
 }));
 vi.mock("@/components/charts", () => ({ LineChart: () => null, Legend: () => null }));
 

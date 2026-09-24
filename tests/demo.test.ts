@@ -84,6 +84,32 @@ describe("the demo workspace", () => {
   });
 });
 
+describe("the demo plays the game", () => {
+  test("the demo year is played through the XP rules, the playground reply shows what a kudos earned, and a reset starts over", async () => {
+    const demo = await enterDemo();
+    const players = await all(t, "players");
+    const alex = (await demo.query(api.game.mine, {})).player!;
+    expect(alex.level).toBeGreaterThan(3);
+    const events = await all(t, "gameEvents");
+    for (const p of players) expect(p.xp).toBe(events.filter((e) => e.memberId === p.memberId).reduce((s, e) => s + e.xp, 0));
+
+    const res = await demo.mutation(api.demo.simulateMessage, {
+      text: "<@UDEMOPRIYA> :taco: thanks for pairing on the onboarding flow",
+      channelName: "general",
+    });
+    const reply = res.messages.find((m) => m.category === "giver_success");
+    expect(reply?.earnings).toMatch(/^\+\d+ XP/);
+
+    await demo.mutation(api.demo.resetDemo, {});
+    await t.finishAllScheduledFunctions(vi.runAllTimers, 1000);
+    // Only the fresh seeded year is left in the ledger, and every player's XP adds up again.
+    const after = await all(t, "gameEvents");
+    const seeded = new Set((await all(t, "kudos")).map((k) => k.batchId));
+    expect(after.every((e) => seeded.has(e.batchId))).toBe(true);
+    for (const p of await all(t, "players")) expect(p.xp).toBe(after.filter((e) => e.memberId === p.memberId).reduce((s, e) => s + e.xp, 0));
+  });
+});
+
 /** Every day from `from` through `to`, inclusive. */
 function daysFrom(from: string, to: string) {
   const days: string[] = [];

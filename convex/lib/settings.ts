@@ -11,4 +11,9 @@ export const DEFAULT_SETTINGS = {
   notifyGiver: true,
   notifyReceiver: true,
   questsEnabled: true,
+  // The game is opt-in: an admin switches it on (the kill switch is the same setting).
+  gameEnabled: false,
 };
+
+/** The demo workspace plays the game (spec #55 §G1). */
+export const DEMO_SETTINGS = { ...DEFAULT_SETTINGS, gameEnabled: true };

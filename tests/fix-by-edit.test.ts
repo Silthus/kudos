@@ -91,8 +91,8 @@ describe("editing a failed kudos message fixes it", () => {
 
     expect(reactionCalls()).toEqual(["remove hourglass_flowing_sand", "remove x", "add taco"]);
     expect(calls.find((c) => c.method === "reactions.remove")?.params).toMatchObject({ channel: "C1", timestamp: "2.2" });
-    expect(ephemerals()).toEqual([]);
-    expect(dms()).toEqual(["UANA", "UBEN", "UCLEO"]); // as usual: the recipients, and Ana's confirmation
+    expect(ephemerals().map((e) => e.user)).toEqual(["UANA"]); // as usual: Ana's reply where she gave, no guidance
+    expect(dms()).toEqual(["UBEN", "UCLEO"]); // …and the recipients' DMs
     const fixed = (await all(t, "kudos")).filter((k) => k.messageTs === "2.2");
     expect(fixed.map((k) => [k.receiverId, k.amount])).toEqual([
       [team.ben, 1],
@@ -108,7 +108,7 @@ describe("editing a failed kudos message fixes it", () => {
     calls = [];
     await edit("3.1", ":taco: great job", "<@UBEN> :taco: great job");
     expect(reactionCalls()).toEqual(["remove hourglass_flowing_sand", "remove x", "add taco"]);
-    expect(ephemerals()).toEqual([]);
+    expect(ephemerals().map((e) => e.user)).toEqual(["UANA"]); // her reply, no guidance
     expect((await all(t, "kudos")).map((k) => [k.receiverId, k.messageTs])).toEqual([[team.ben, "3.1"]]);
     const [attempt] = await attempts();
     expect(attempt).toMatchObject({ outcome: "given", reaction: "taco" });
@@ -232,7 +232,7 @@ describe("edits that change nothing are ignored", () => {
     await edit("8.2", "<@UBEN> :taco:", "<@UBEN> <@UCLEO> :taco:", note);
     await edit("8.2", "<@UBEN> :taco:", "<@UBEN> <@UCLEO> :taco:", note);
     expect(reactionCalls()).toEqual(["remove hourglass_flowing_sand", "remove x", "add taco"]);
-    expect(ephemerals()).toHaveLength(1); // the note, once
+    expect(ephemerals()).toHaveLength(2); // the reply to the fixed kudos and the note, once each
     expect(await all(t, "kudos")).toHaveLength(2);
   });
 
@@ -266,7 +266,7 @@ describe("edits that change nothing are ignored", () => {
       await deliverEvent(event);
     }
     expect(reactionCalls()).toEqual(["remove hourglass_flowing_sand", "remove x", "add taco"]);
-    expect(ephemerals()).toEqual([]);
+    expect(ephemerals()).toHaveLength(1); // the reply to the fixed kudos; no note for the sent one
     expect((await all(t, "kudos")).map((k) => k.messageTs)).toEqual(["8.9", "8.8"]);
   });
 

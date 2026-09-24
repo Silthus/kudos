@@ -8,6 +8,7 @@ import { escapeMrkdwn, isSlackResponseUrl, rewardLine, slackApi, webLink, type S
 import { RARITY_SLACK_BADGE, type Rarity } from "./lib/messages";
 import { OPEN_COUNT_CAP } from "./lib/store";
 import { questBlocks } from "./lib/questBlocks";
+import { earningsText } from "./lib/xp";
 
 type SlackEvent = {
   type: string;
@@ -259,15 +260,17 @@ async function react(ctx: ActionCtx, token: string, channel: string, timestamp: 
   }
 }
 
-const EPHEMERAL = new Set(["limit_reached", "self_kudos"]);
+/** Replies only the giver sees, where they gave (game spec §G13: the giver's reply is no DM). */
+const EPHEMERAL = new Set(["giver_success", "limit_reached", "self_kudos"]);
 
 /** Where an attempt happened (its thread, if any), and how to fix it if it failed. */
 type Attempted = { channel: string; threadTs?: string; guidance?: { user: string; text: string } };
 
 /**
- * Sends queued bot messages. Success messages go to DMs; "you can't do that" replies are shown
- * ephemerally where the attempt happened, together with the guidance on how to fix it.
- * Guidance without such a reply goes out as an ephemeral message of its own.
+ * Sends queued bot messages. The giver's reply (with what the kudos earned, while the game is on)
+ * and "you can't do that" replies are shown ephemerally where the attempt happened, the latter
+ * together with the guidance on how to fix it; everything else is a DM. Guidance without such a
+ * reply goes out as an ephemeral message of its own.
  */
 async function deliver(ctx: ActionCtx, token: string, teamId: string, ids: Id<"notifications">[], where?: Attempted) {
   const { channel, threadTs: thread_ts, guidance } = where ?? {};
@@ -275,10 +278,14 @@ async function deliver(ctx: ActionCtx, token: string, teamId: string, ids: Id<"n
   const rows = ids.length > 0 ? await ctx.runQuery(internal.slackData.notificationsForDelivery, { ids }) : [];
   const questLog = webLink(teamId, "/quests");
   const gallery = webLink(teamId, "/discoveries");
+  const profile = webLink(teamId, "/me");
   for (const n of rows) {
     if (n.delivery !== "pending") continue;
     const quest = n.questProgress;
-    const context = [
+    const earned = n.earnings ? `*${earningsText(n.earnings)}*` : null;
+    const context = n.levelUp
+      ? [`Level ${n.levelUp.level}`, profile && `<${profile}|Your level>`].filter(Boolean).join("  ·  ")
+      : [
       RARITY_SLACK_BADGE[n.rarity as Rarity],
       n.isNewDiscovery ? `✨ New discovery! (${n.discoveredCount} collected)` : null,
       quest ? `${quest.completed} of ${quest.available} quests this week` : null,
@@ -292,10 +299,11 @@ async function deliver(ctx: ActionCtx, token: string, teamId: string, ids: Id<"n
     if (help) guided = true;
     const blocks = [
       { type: "section", text: { type: "mrkdwn", text: n.slackText } },
+      ...(earned ? [{ type: "section", text: { type: "mrkdwn", text: earned } }] : []),
       ...(help ? [{ type: "section", text: { type: "mrkdwn", text: help } }] : []),
       { type: "context", elements: [{ type: "mrkdwn", text: context }] },
     ];
-    const text = help ? `${n.slackText}\n${help}` : n.slackText;
+    const text = [n.slackText, earned, help].filter(Boolean).join("\n");
     const res = ephemeral
       ? await slackApi(token, "chat.postEphemeral", { channel, thread_ts, user: n.slackUserId, text, blocks })
       : await slackApi(token, "chat.postMessage", { channel: n.slackUserId, text, blocks });
@@ -329,6 +337,9 @@ async function publishHome(ctx: ActionCtx, workspaceId: Id<"workspaces">, token:
     type: "home",
     blocks: [
       { type: "header", text: { type: "plain_text", text: "Your kudos" } },
+      ...(data.invite
+        ? [{ type: "section", text: { type: "mrkdwn", text: `*You can give kudos too.* Mention a teammate with ${e} and a few words on why. Your first kudos starts your level.` } }]
+        : []),
       { type: "section", fields: fields.map((text) => ({ type: "mrkdwn", text })) },
       ...actions([linkButton("Open dashboard", "open_dashboard", link("/me"), "primary"), linkButton("Message gallery", "open_gallery", link("/discoveries"))]),
       ...(quests.length > 0 ? [{ type: "divider" }, ...quests] : []),

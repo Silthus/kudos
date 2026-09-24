@@ -1,0 +1,475 @@
+import { v, type Infer } from "convex/values";
+import { internalMutation, internalQuery, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
+import { internal } from "./_generated/api";
+import type { Doc, Id } from "./_generated/dataModel";
+import type { earningsValidator } from "./schema";
+import { requireViewer } from "./lib/access";
+import { hasNote, RECIPROCAL_WINDOW_MS, weekKeyOfDay } from "./lib/quests";
+import { type GiveLine, levelForXp, levelProgress, scoreGive, scoreReceive, titleForLevel, type XpItem } from "./lib/xp";
+
+/**
+ * The game's foundation (#55 §G1, G3): the workspace switch, players, the XP ledger and levels.
+ *
+ * Every XP change is a `gameEvents` row written in the same transaction as the kudos that earned
+ * it: one `give` event per batch for the giver (a line per recipient row) and one `receive` event
+ * per row that earned its receiver XP. A revoke takes back exactly the lines of the rows it removes;
+ * later kudos keep what they earned. `rebuildPlayer` plays a member's surviving history through the
+ * same rules (`lib/xp.ts`): the backfill when the game is switched on, the demo year, and the
+ * repair tool. Without revokes it writes exactly what the live path wrote.
+ */
+
+type Earnings = Infer<typeof earningsValidator>;
+
+/** Whether the workspace plays the game (the admin switch; off unless switched on). */
+export function gameOn(workspace: Pick<Doc<"workspaces">, "gameEnabled">): boolean {
+  return workspace.gameEnabled === true;
+}
+
+/** The game is on and the member hasn't hidden it: show them game UI and send them game DMs. */
+export function gameShownTo(workspace: Pick<Doc<"workspaces">, "gameEnabled">, member: Pick<Doc<"members">, "gameHidden">) {
+  return gameOn(workspace) && !member.gameHidden;
+}
+
+/** Pauses no rebuild needs to know about any more are dropped (like quests' `switchQuests`). */
+const MAX_PAUSES = 50;
+
+/**
+ * The workspace patch for the admin switch. Switching off opens a pause and switching back on
+ * closes it; kudos given in between never earn anything. The first switch-on opens nothing: the
+ * history before it is played through by the rebuild the caller schedules (`startRebuild`).
+ */
+export function switchGame(workspace: Doc<"workspaces">, on: boolean, now: number): Partial<Doc<"workspaces">> {
+  if (on === gameOn(workspace)) return {};
+  const pauses = workspace.gamePauses ?? [];
+  const last = pauses.at(-1);
+  if (on) {
+    const next = last && last.until === undefined ? [...pauses.slice(0, -1), { ...last, until: now }] : pauses;
+    return { gameEnabled: true, gamePauses: next.length > 0 ? next : undefined };
+  }
+  return { gameEnabled: false, gamePauses: [...pauses, { from: now }].slice(-MAX_PAUSES) };
+}
+
+function pausedAt(workspace: Doc<"workspaces">, at: number): boolean {
+  return (workspace.gamePauses ?? []).some((p) => p.from <= at && (p.until === undefined || at < p.until));
+}
+
+export async function playerOf(ctx: QueryCtx, memberId: Id<"members">) {
+  return await ctx.db
+    .query("players")
+    .withIndex("by_member", (q) => q.eq("memberId", memberId))
+    .unique();
+}
+
+/** A member's events from `fromDay` to `toDay` (inclusive): a day or a week of their own activity. */
+async function eventsBetween(ctx: QueryCtx, memberId: Id<"members">, fromDay: string, toDay: string) {
+  return await ctx.db
+    .query("gameEvents")
+    .withIndex("by_member_day", (q) => q.eq("memberId", memberId).gte("dayKey", fromDay).lte("dayKey", toDay))
+    .take(1000);
+}
+
+/**
+ * Adds (or takes back) XP. A new level is kept even if a revoke later takes the XP back, and is
+ * announced with a level-up DM unless the member hides the game. Returns that DM.
+ */
+async function addXp(
+  ctx: MutationCtx,
+  workspace: Doc<"workspaces">,
+  player: Doc<"players">,
+  delta: number,
+): Promise<Id<"notifications"> | null> {
+  if (delta === 0) return null;
+  const xp = player.xp + delta;
+  const level = Math.max(player.level, levelForXp(xp));
+  await ctx.db.patch(player._id, { xp, level });
+  if (level <= player.level) return null;
+  const member = await ctx.db.get(player.memberId);
+  if (!member || !gameShownTo(workspace, member)) return null;
+  return await levelUpMessage(ctx, workspace, member, level, level - player.level);
+}
+
+/** The level-up DM: the level reached, its title and the skill points it grants (one per level). */
+async function levelUpMessage(
+  ctx: MutationCtx,
+  workspace: Doc<"workspaces">,
+  member: Doc<"members">,
+  level: number,
+  skillPoints: number,
+) {
+  const title = titleForLevel(level);
+  const points = skillPoints === 1 ? "a skill point" : `${skillPoints} skill points`;
+  const text = (bold: (s: string) => string) =>
+    `${bold(`Level ${level}: ${title}`)}\nYour thoughtful kudos got you to level ${level}. That's ${points} for your skill tree.`;
+  return await ctx.db.insert("notifications", {
+    workspaceId: workspace._id,
+    memberId: member._id,
+    category: "level_up",
+    templateKey: "level_up",
+    rarity: "common",
+    isNewDiscovery: false,
+    slackText: text((s) => `*${s}*`),
+    webText: text((s) => s),
+    delivery: workspace.isDemo ? "skipped" : "pending",
+    levelUp: { level, title, skillPoints },
+  });
+}
+
+async function ensurePlayer(ctx: MutationCtx, workspace: Doc<"workspaces">, memberId: Id<"members">, since: number) {
+  const existing = await playerOf(ctx, memberId);
+  if (existing) return existing;
+  const id = await ctx.db.insert("players", { workspaceId: workspace._id, memberId, since, xp: 0, level: 1 });
+  return (await ctx.db.get(id))!;
+}
+
+/** Their kudos to the giver in the 72 h before `at`: a thank-back (the Qualifying kudos rule). */
+async function thankedBack(ctx: QueryCtx, giverId: Id<"members">, receiverId: Id<"members">, at: number) {
+  const back = await ctx.db
+    .query("kudos")
+    .withIndex("by_giver_receiver_at", (q) => q.eq("giverId", receiverId).eq("receiverId", giverId).gt("at", at - RECIPROCAL_WINDOW_MS).lt("at", at))
+    .first();
+  return back !== null;
+}
+
+async function lastReceivedAt(ctx: QueryCtx, receiverId: Id<"members">, at: number) {
+  const last = await ctx.db
+    .query("kudos")
+    .withIndex("by_receiver_at", (q) => q.eq("receiverId", receiverId).lt("at", at))
+    .order("desc")
+    .first();
+  return last?.at ?? null;
+}
+
+function giveLines(events: Doc<"gameEvents">[]) {
+  return events.filter((e) => e.kind === "give").flatMap((e) => (e.lines ?? []).map((l) => ({ ...l, dayKey: e.dayKey })));
+}
+
+/** What a batch earned, itemised for the earnings reply. */
+function earningsOf(lines: GiveLine[], noteWords: number | undefined): Earnings {
+  const bonuses = new Map<XpItem["kind"], number>();
+  for (const item of lines.flatMap((l) => l.items)) {
+    if (item.kind !== "base" && item.kind !== "thin") bonuses.set(item.kind, (bonuses.get(item.kind) ?? 0) + item.xp);
+  }
+  const raw = lines.flatMap((l) => l.items).reduce((s, i) => s + i.xp, 0);
+  const xp = lines.reduce((s, l) => s + l.xp, 0);
+  return {
+    xp,
+    bonuses: [...bonuses].map(([kind, xp]) => ({ kind, xp })),
+    capped: xp < raw,
+    noReason: !hasNote(noteWords),
+    thankBack: hasNote(noteWords) && lines.some((l) => !l.qualifying),
+  };
+}
+
+/**
+ * Called from `giveKudos` with the rows of one batch: makes the giver a player, writes the giver's
+ * and the receivers' XP events and returns what the batch earned the giver (null while the game is
+ * off or hidden from them) and any level-up DMs.
+ */
+export async function onGameGiven(
+  ctx: MutationCtx,
+  workspace: Doc<"workspaces">,
+  giver: Doc<"members">,
+  rows: Doc<"kudos">[],
+  noteWords: number | undefined,
+): Promise<{ earnings: Earnings | null; notificationIds: Id<"notifications">[] }> {
+  if (!gameOn(workspace) || rows.length === 0) return { earnings: null, notificationIds: [] };
+  const { dayKey, at, batchId } = rows[0];
+  const player = await ensurePlayer(ctx, workspace, giver._id, at);
+
+  const week = await eventsBetween(ctx, giver._id, weekKeyOfDay(dayKey), dayKey);
+  const earlier = giveLines(week).filter((l) => l.qualifying);
+  const earnedToday = week.filter((e) => e.kind === "give" && e.dayKey === dayKey).reduce((s, e) => s + e.xp, 0);
+  const unsungOn = workspace.receivedVisibility === "everyone";
+  const recipients = [];
+  for (const row of rows) {
+    const reciprocal = await thankedBack(ctx, giver._id, row.receiverId, at);
+    const last = await ctx.db
+      .query("kudos")
+      .withIndex("by_giver_receiver_at", (q) => q.eq("giverId", giver._id).eq("receiverId", row.receiverId).lt("at", at))
+      .order("desc")
+      .first();
+    const toThem = earlier.filter((l) => l.receiverId === row.receiverId);
+    recipients.push({
+      kudosId: row._id,
+      receiverId: row.receiverId,
+      reciprocal,
+      lastGivenAt: last?.at ?? null,
+      earlierToday: toThem.filter((l) => l.dayKey === dayKey).length,
+      earlierDaysThisWeek: new Set(toThem.filter((l) => l.dayKey < dayKey).map((l) => l.dayKey)).size,
+      ...(unsungOn && hasNote(noteWords) && !reciprocal ? { receiverLastReceivedAt: await lastReceivedAt(ctx, row.receiverId, at) } : {}),
+    });
+  }
+  const lines = scoreGive({ at, noteWords, unsungOn, earnedToday, recipients });
+  const xp = lines.reduce((s, l) => s + l.xp, 0);
+  await ctx.db.insert("gameEvents", {
+    workspaceId: workspace._id,
+    memberId: giver._id,
+    kind: "give",
+    batchId,
+    dayKey,
+    at,
+    xp,
+    lines: lines.map((l) => ({ ...l, kudosId: l.kudosId as Id<"kudos">, receiverId: l.receiverId as Id<"members"> })),
+  });
+  const notificationIds: Id<"notifications">[] = [];
+  const giverLevelUp = await addXp(ctx, workspace, player, xp);
+
+  for (const line of lines) {
+    const receiver = await playerOf(ctx, line.receiverId as Id<"members">);
+    if (!receiver) continue;
+    const today = (await eventsBetween(ctx, receiver.memberId, dayKey, dayKey)).filter((e) => e.kind === "receive");
+    const gained = scoreReceive({
+      qualifying: line.qualifying,
+      isPlayer: receiver.since <= at,
+      giverCountedToday: today.some((e) => e.giverId === giver._id),
+      earnedToday: today.reduce((s, e) => s + e.xp, 0),
+    });
+    if (gained === 0) continue;
+    await ctx.db.insert("gameEvents", {
+      workspaceId: workspace._id,
+      memberId: receiver.memberId,
+      kind: "receive",
+      batchId,
+      dayKey,
+      at,
+      xp: gained,
+      kudosId: line.kudosId as Id<"kudos">,
+      giverId: giver._id,
+    });
+    const id = await addXp(ctx, workspace, receiver, gained);
+    if (id) notificationIds.push(id);
+  }
+  // The giver's level-up follows their earnings reply; receivers' DMs go out with their kudos DMs.
+  if (giverLevelUp) notificationIds.unshift(giverLevelUp);
+  return { earnings: gameShownTo(workspace, giver) ? earningsOf(lines, noteWords) : null, notificationIds };
+}
+
+/**
+ * Called from `revokeKudosRow`: takes back exactly what the row earned its giver and its receiver.
+ * Runs whether or not the game is on, so a revoke always undoes its XP. Levels reached stay.
+ */
+export async function onGameRevoked(ctx: MutationCtx, workspace: Doc<"workspaces">, row: Doc<"kudos">) {
+  const events = await ctx.db
+    .query("gameEvents")
+    .withIndex("by_batch", (q) => q.eq("batchId", row.batchId))
+    .take(500);
+  for (const e of events) {
+    let taken = 0;
+    if (e.kind === "give" && e.memberId === row.giverId) {
+      const line = e.lines?.find((l) => l.kudosId === row._id);
+      if (!line) continue;
+      const lines = e.lines!.filter((l) => l !== line);
+      if (lines.length === 0) await ctx.db.delete(e._id);
+      else await ctx.db.patch(e._id, { lines, xp: e.xp - line.xp });
+      taken = line.xp;
+    } else if (e.kind === "receive" && e.kudosId === row._id) {
+      await ctx.db.delete(e._id);
+      taken = e.xp;
+    } else continue;
+    const player = await playerOf(ctx, e.memberId);
+    if (player) await addXp(ctx, workspace, player, -taken);
+  }
+}
+
+/** Every kudos row a member gave or received, oldest first (ties: insertion order). */
+async function historyOf(ctx: QueryCtx, memberId: Id<"members">) {
+  const byTime = (a: Doc<"kudos">, b: Doc<"kudos">) => a.at - b.at || a._creationTime - b._creationTime;
+  const given = await ctx.db.query("kudos").withIndex("by_giver_at", (q) => q.eq("giverId", memberId)).take(8000);
+  const received = await ctx.db.query("kudos").withIndex("by_receiver_at", (q) => q.eq("receiverId", memberId)).take(8000);
+  return { given: given.sort(byTime), received: received.sort(byTime) };
+}
+
+/**
+ * Plays one member's history through the XP rules and replaces their events and player row: what
+ * the live path writes for a history without revokes. Kudos given while the game was paused earn
+ * nothing and don't make anyone a player. A player stays a player and keeps the level reached.
+ */
+export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces">, member: Doc<"members">) {
+  const existing = await playerOf(ctx, member._id);
+  const { given, received } = await historyOf(ctx, member._id);
+  const since = existing?.since ?? given.find((k) => !pausedAt(workspace, k.at))?.at;
+
+  for await (const e of ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", member._id))) {
+    await ctx.db.delete(e._id);
+  }
+  if (since === undefined) return;
+
+  type Written = { at: number; xp: number };
+  const written: Written[] = [];
+  const unsungOn = workspace.receivedVisibility === "everyone";
+  const gaveBackWithin = (from: Id<"members">, to: Id<"members">, at: number, rows: Doc<"kudos">[]) =>
+    rows.some((k) => k.giverId === from && k.receiverId === to && k.at > at - RECIPROCAL_WINDOW_MS && k.at < at);
+
+  // Giving: batch by batch, as the live path saw each one.
+  const batches = new Map<string, Doc<"kudos">[]>();
+  for (const k of given) batches.set(k.batchId, [...(batches.get(k.batchId) ?? []), k]);
+  const lastTo = new Map<string, number>(); // latest kudos to each receiver so far, paused or not
+  const qualifyingLines: { receiverId: string; dayKey: string }[] = [];
+  const earnedOn = new Map<string, number>();
+  for (const rows of batches.values()) {
+    const { at, dayKey, batchId, noteWords } = rows[0];
+    if (!pausedAt(workspace, at)) {
+      const week = weekKeyOfDay(dayKey);
+      const recipients = [];
+      for (const row of rows) {
+        const reciprocal = gaveBackWithin(row.receiverId, member._id, at, received);
+        const toThem = qualifyingLines.filter((l) => l.receiverId === row.receiverId && l.dayKey >= week);
+        recipients.push({
+          kudosId: row._id,
+          receiverId: row.receiverId,
+          reciprocal,
+          lastGivenAt: lastTo.get(row.receiverId) ?? null,
+          earlierToday: toThem.filter((l) => l.dayKey === dayKey).length,
+          earlierDaysThisWeek: new Set(toThem.filter((l) => l.dayKey < dayKey).map((l) => l.dayKey)).size,
+          ...(unsungOn && hasNote(noteWords) && !reciprocal ? { receiverLastReceivedAt: await lastReceivedAt(ctx, row.receiverId, at) } : {}),
+        });
+      }
+      const lines = scoreGive({ at, noteWords, unsungOn, earnedToday: earnedOn.get(dayKey) ?? 0, recipients });
+      const xp = lines.reduce((s, l) => s + l.xp, 0);
+      earnedOn.set(dayKey, (earnedOn.get(dayKey) ?? 0) + xp);
+      for (const l of lines) if (l.qualifying) qualifyingLines.push({ receiverId: l.receiverId, dayKey });
+      await ctx.db.insert("gameEvents", {
+        workspaceId: workspace._id,
+        memberId: member._id,
+        kind: "give",
+        batchId,
+        dayKey,
+        at,
+        xp,
+        lines: lines.map((l) => ({ ...l, kudosId: l.kudosId as Id<"kudos">, receiverId: l.receiverId as Id<"members"> })),
+      });
+      written.push({ at, xp });
+    }
+    for (const row of rows) lastTo.set(row.receiverId, at);
+  }
+
+  // Receiving: once they're a player, 5 per distinct qualifying giver a day, at most 15.
+  const receivedOn = new Map<string, number>();
+  const counted = new Set<string>();
+  for (const row of received) {
+    if (pausedAt(workspace, row.at)) continue;
+    const qualifying = hasNote(row.noteWords) && !gaveBackWithin(member._id, row.giverId, row.at, given);
+    const xp = scoreReceive({
+      qualifying,
+      isPlayer: since <= row.at,
+      giverCountedToday: counted.has(`${row.dayKey}:${row.giverId}`),
+      earnedToday: receivedOn.get(row.dayKey) ?? 0,
+    });
+    if (xp === 0) continue;
+    counted.add(`${row.dayKey}:${row.giverId}`);
+    receivedOn.set(row.dayKey, (receivedOn.get(row.dayKey) ?? 0) + xp);
+    await ctx.db.insert("gameEvents", {
+      workspaceId: workspace._id,
+      memberId: member._id,
+      kind: "receive",
+      batchId: row.batchId,
+      dayKey: row.dayKey,
+      at: row.at,
+      xp,
+      kudosId: row._id,
+      giverId: row.giverId,
+    });
+    written.push({ at: row.at, xp });
+  }
+
+  let total = 0;
+  let peak = 0;
+  for (const w of written.sort((a, b) => a.at - b.at)) peak = Math.max(peak, (total += w.xp));
+  const level = Math.max(existing?.level ?? 1, levelForXp(peak));
+  if (existing) await ctx.db.patch(existing._id, { xp: total, level, since });
+  else await ctx.db.insert("players", { workspaceId: workspace._id, memberId: member._id, since, xp: total, level });
+}
+
+/** One member per step: a member's whole history is read and their events rewritten in one transaction. */
+const MEMBERS_PER_STEP = 1;
+
+/**
+ * Rebuilds every member's XP in chained steps (the backfill; also the repair tool). Live gives keep
+ * running: each member is rebuilt in one transaction from what is stored. A demo run belongs to the
+ * reset that started it (`resetAt`) and stops when another reset begins. A workspace that never had
+ * the game on has nothing to rebuild.
+ */
+export const rebuildWorkspace = internalMutation({
+  args: { workspaceId: v.id("workspaces"), resetAt: v.optional(v.number()), cursor: v.optional(v.union(v.string(), v.null())) },
+  returns: v.null(),
+  handler: async (ctx, { workspaceId, resetAt, cursor }) => {
+    const workspace = await ctx.db.get(workspaceId);
+    if (!workspace || workspace.resettingSince !== resetAt) return null;
+    if (!gameOn(workspace) && (workspace.gamePauses ?? []).length === 0) return null;
+    const page = await ctx.db
+      .query("members")
+      .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspaceId))
+      .paginate({ numItems: MEMBERS_PER_STEP, cursor: cursor ?? null });
+    for (const m of page.page) if (!m.isBot) await rebuildPlayer(ctx, workspace, m);
+    if (!page.isDone) await ctx.scheduler.runAfter(0, internal.game.rebuildWorkspace, { workspaceId, resetAt, cursor: page.continueCursor });
+    return null;
+  },
+});
+
+/** Start the game backfill for every workspace that has the game on (or had it). */
+export const backfillAll = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    for await (const workspace of ctx.db.query("workspaces")) {
+      if (workspace.resettingSince !== undefined) continue; // the reset rebuilds it
+      await ctx.scheduler.runAfter(0, internal.game.rebuildWorkspace, { workspaceId: workspace._id });
+    }
+    return null;
+  },
+});
+
+/** Compares one member's stored XP with a replay of their history (read-only dry run). */
+export const verifyMember = internalQuery({
+  args: { memberId: v.id("members") },
+  returns: v.object({ stored: v.number(), events: v.number() }),
+  handler: async (ctx, { memberId }) => {
+    const player = await playerOf(ctx, memberId);
+    const events = await ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", memberId)).take(10_000);
+    return { stored: player?.xp ?? 0, events: events.reduce((s, e) => s + e.xp, 0) };
+  },
+});
+
+const progressValidator = v.object({
+  level: v.number(),
+  title: v.string(),
+  xp: v.number(),
+  floor: v.number(),
+  next: v.union(v.number(), v.null()),
+  toNext: v.union(v.number(), v.null()),
+  fraction: v.number(),
+});
+
+/**
+ * The viewer's game: whether the workspace plays it, whether they hide it, and their level. Never
+ * anybody else's: levels are shown on profiles, never ranked (§G12).
+ */
+export const mine = query({
+  args: {},
+  returns: v.object({
+    enabled: v.boolean(),
+    hidden: v.boolean(),
+    player: v.union(v.null(), progressValidator),
+  }),
+  handler: async (ctx) => {
+    const { workspace, member } = await requireViewer(ctx);
+    const enabled = gameOn(workspace);
+    const player = enabled ? await playerOf(ctx, member._id) : null;
+    return {
+      enabled,
+      hidden: Boolean(member.gameHidden),
+      player: player ? levelProgress(player.xp, player.level) : null,
+    };
+  },
+});
+
+/** "Hide the game" (Me): the game UI and game DMs go away for the viewer; XP keeps accruing. */
+export const setHidden = mutation({
+  args: { hidden: v.boolean() },
+  returns: v.null(),
+  handler: async (ctx, { hidden }) => {
+    const { member } = await requireViewer(ctx);
+    await ctx.db.patch(member._id, { gameHidden: hidden || undefined });
+    return null;
+  },
+});

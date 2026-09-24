@@ -180,9 +180,14 @@ function isReciprocal(row: GivenFact, receivedFrom: QuestFacts["receivedFrom"]) 
   );
 }
 
+/** The Note half of the Qualifying kudos rule: at least 3 words (reactions have no Note). */
+export function hasNote(noteWords: number | undefined): boolean {
+  return (noteWords ?? 0) >= MIN_NOTE_WORDS;
+}
+
 /** Qualifying kudos: a Note of at least 3 words, and not thanking someone back within 72 h. */
 export function qualifyingKudos(facts: QuestFacts): GivenFact[] {
-  return facts.given.filter((g) => (g.noteWords ?? 0) >= MIN_NOTE_WORDS && !isReciprocal(g, facts.receivedFrom));
+  return facts.given.filter((g) => hasNote(g.noteWords) && !isReciprocal(g, facts.receivedFrom));
 }
 
 function rawProgress(key: QuestKey, rows: GivenFact[]): number {

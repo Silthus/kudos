@@ -818,9 +818,9 @@ describe("the Quest message DM in Slack", () => {
   test("each DM counts the collection as it stood when that message was found", async () => {
     await post("<@UBEN> :taco: thanks for the quick review", "CGENERAL");
     const contexts = calls
-      .filter((c) => c.method === "chat.postMessage" && c.params.channel === "UANA")
+      .filter((c) => (c.method === "chat.postMessage" && c.params.channel === "UANA") || (c.method === "chat.postEphemeral" && c.params.user === "UANA"))
       .map((c) => JSON.parse(c.params.blocks).at(-1).elements[0].text as string);
-    // Ana's first ever bot message, then her first Quest message.
+    // Ana's first ever bot message (her reply where she gave), then her first Quest message (a DM).
     expect(contexts.map((c) => c.match(/\((\d+) collected\)/)?.[1])).toEqual(["1", "2"]);
   });
 });

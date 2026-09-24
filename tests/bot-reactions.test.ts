@@ -52,7 +52,8 @@ describe("the bot reacts to every kudos attempt on the message itself", () => {
   test("kudos given: the workspace's kudos emoji, and no guidance", async () => {
     await post("<@UBEN> :taco: thanks for the review", "UANA", "1.1");
     expect(reactions()).toEqual([{ channel: "C1", timestamp: "1.1", name: "taco" }]);
-    expect(ephemerals()).toEqual([]);
+    // Only Ana's reply where she gave it (no longer a DM, #89): a message and its context, no guidance.
+    expect(ephemerals().map((e) => [e.user, JSON.parse(e.blocks).map((b: { type: string }) => b.type)])).toEqual([["UANA", ["section", "context"]]]);
   });
 
   test("over the allowance: ⏳, and the guidance shows the multiplication that pushed it over", async () => {
@@ -192,7 +193,7 @@ describe("the bot reacts to every kudos attempt on the message itself", () => {
       await post(text, "UANA", messageTs);
     }
     expect(reactions().map((r) => r.name)).toEqual(["taco", "x"]);
-    expect(ephemerals()).toHaveLength(1);
+    expect(ephemerals()).toHaveLength(2); // the reply to the kudos and the guidance for the invalid one, once each
     expect(await all(t, "kudos")).toHaveLength(1);
   });
 
@@ -212,7 +213,8 @@ describe("the bot reacts to every kudos attempt on the message itself", () => {
     const [attempt] = await t.run((ctx) => ctx.db.query("kudosAttempts").collect());
     expect(attempt).toMatchObject({ messageTs: "4.5", outcome: "given" });
     expect(attempt.reaction).toBeUndefined(); // the record says what's actually shown: nothing
-    expect(calls.filter((c) => c.method === "chat.postMessage").map((c) => c.params.channel).sort()).toEqual(["UANA", "UBEN"]);
+    expect(calls.filter((c) => c.method === "chat.postMessage").map((c) => c.params.channel)).toEqual(["UBEN"]);
+    expect(ephemerals().map((e) => e.user)).toEqual(["UANA"]); // Ana's reply, where she gave
     stubSlackApi({ "reactions.add": () => ({ ok: false, error: "already_reacted" }) });
     await post(":taco:");
     expect(ephemerals()).toHaveLength(1);

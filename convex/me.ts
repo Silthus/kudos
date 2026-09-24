@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { query, type QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { getMemberDay } from "./engine";
-import { categoryValidator, kudosSourceValidator, rarityValidator } from "./schema";
+import { categoryValidator, kudosSourceValidator, notificationCategoryValidator, rarityValidator } from "./schema";
 import { canSeeReceived, requireViewer } from "./lib/access";
 import { streaks } from "./lib/compare";
 import { CATALOG, RARITIES, TEMPLATE_BY_KEY } from "./lib/messages";
@@ -79,7 +79,7 @@ const overviewValidator = v.object({
     v.object({
       _id: v.id("notifications"),
       rarity: rarityValidator,
-      category: categoryValidator,
+      category: notificationCategoryValidator,
       text: v.string(),
       isNewDiscovery: v.boolean(),
       at: v.number(),

@@ -38,6 +38,30 @@ export const categoryValidator = v.union(
   v.literal("quest_complete"), // Quest messages: only ever earned by completing a quest
 );
 
+/**
+ * What a notification is about: a rarity-rolled message category, or a game gain DM that isn't
+ * rolled (`level_up`). Only rolled categories become discoveries.
+ */
+export const notificationCategoryValidator = v.union(categoryValidator, v.literal("level_up"));
+
+export const xpItemKindValidator = v.union(
+  v.literal("base"),
+  v.literal("new_connection"),
+  v.literal("story"),
+  v.literal("rekindle"),
+  v.literal("unsung"),
+  v.literal("thin"),
+);
+
+/** What a kudos earned its giver, itemised for the earnings reply (lib/xp.ts `earningsText`). */
+export const earningsValidator = v.object({
+  xp: v.number(), // after the daily cap
+  bonuses: v.array(v.object({ kind: xpItemKindValidator, xp: v.number() })), // everything but base/thin, before the cap
+  capped: v.boolean(), // the daily cap cut something
+  noReason: v.boolean(), // some recipient got a kudos without a reason
+  thankBack: v.boolean(), // some recipient was thanked back within 72 h
+});
+
 export const questProgressValidator = v.object({
   completed: v.number(), // done quests on the week's board
   available: v.number(), // quests on the board that aren't waived
@@ -81,6 +105,7 @@ export const settingsFields = {
   notifyGiver: v.boolean(),
   notifyReceiver: v.boolean(),
   questsEnabled: v.optional(v.boolean()), // weekly quests; undefined = on (installed before the switch)
+  gameEnabled: v.optional(v.boolean()), // the game (XP, levels, ...); undefined = off, on in the demo
 };
 
 export default defineSchema({
@@ -112,6 +137,10 @@ export default defineSchema({
     // When weekly quests were switched off (`until`: back on), oldest first; the last year's only
     // (quests.ts `switchQuests`). Kudos given meanwhile are history but never quest steps.
     questsPauses: v.optional(v.array(v.object({ from: v.number(), until: v.optional(v.number()) }))),
+    // When the game was switched off after being on (`until`: back on), oldest first (game.ts
+    // `switchGame`). Kudos given meanwhile never earn anything, not even in a rebuild. Before the
+    // game was first switched on nothing is paused: switching it on plays the history through.
+    gamePauses: v.optional(v.array(v.object({ from: v.number(), until: v.optional(v.number()) }))),
     // Mirrors the `all` workspaceStats row's `rollupsBackfilledAt` (lib/rebuild.ts markBackfilled).
     // Queries that must not re-run on every give in the workspace (me.overview) gate on this copy:
     // the `all` row changes with every give, this document almost never does.
@@ -155,6 +184,7 @@ export default defineSchema({
     givenByWeekday: v.optional(v.array(v.number())), // 7 sums, Monday first
     storeSpent: v.optional(v.number()), // Σ cost of non-refunded redemptions; undefined = 0
     storeGranted: v.optional(v.number()), // Σ balance adjustments; undefined = 0
+    gameHidden: v.optional(v.boolean()), // "Hide the game": no game UI or DMs for them; XP keeps accruing
     adminRemovedBy: v.optional(v.id("members")), // who last removed this member's admin role (four-eyes rule)
   })
     .index("by_workspace_slackUser", ["workspaceId", "slackUserId"])
@@ -305,11 +335,49 @@ export default defineSchema({
     finders: v.number(), // distinct members with a discovery of it
   }).index("by_workspace_template", ["workspaceId", "templateKey"]),
 
+  // A member who has given kudos while the game was on (game.ts). Absent: not a player, nothing accrues.
+  players: defineTable({
+    workspaceId: v.id("workspaces"),
+    memberId: v.id("members"),
+    since: v.number(), // their first kudos given while the game was on
+    xp: v.number(), // sum of their gameEvents' xp; a revoke can take it below the level's floor
+    level: v.number(), // the highest level reached: levels stay when a revoke takes XP back
+  }).index("by_member", ["memberId"]),
+
+  // The game ledger: what one kudos batch earned one member, written in the give transaction and
+  // taken back line by line by a revoke (game.ts). One `give` event per batch for the giver (a line
+  // per recipient row) and one `receive` event per recipient row that earned receiving XP.
+  gameEvents: defineTable({
+    workspaceId: v.id("workspaces"),
+    memberId: v.id("members"),
+    kind: v.union(v.literal("give"), v.literal("receive")),
+    batchId: v.string(),
+    dayKey: v.string(), // the kudos' workspace day: daily caps and same-day decay
+    at: v.number(),
+    xp: v.number(), // give: the sum of its lines; receive: the row's receiving XP
+    // give: one line per recipient row (at most the daily allowance), kept even at 0 XP so later kudos decay
+    lines: v.optional(
+      v.array(
+        v.object({
+          kudosId: v.id("kudos"),
+          receiverId: v.id("members"),
+          qualifying: v.boolean(),
+          xp: v.number(),
+          items: v.array(v.object({ kind: xpItemKindValidator, xp: v.number() })),
+        }),
+      ),
+    ),
+    kudosId: v.optional(v.id("kudos")), // receive: the row
+    giverId: v.optional(v.id("members")), // receive: one giver counts once a day
+  })
+    .index("by_member_day", ["memberId", "dayKey"])
+    .index("by_batch", ["batchId"]),
+
   // Every message the bot sends (or would send, in the demo workspace).
   notifications: defineTable({
     workspaceId: v.id("workspaces"),
     memberId: v.id("members"),
-    category: categoryValidator,
+    category: notificationCategoryValidator,
     templateKey: v.string(),
     rarity: rarityValidator,
     isNewDiscovery: v.boolean(),
@@ -326,6 +394,10 @@ export default defineSchema({
     collected: v.optional(v.number()),
     // Quest messages only: the quest week as it stood right after this completion, for the DM.
     questProgress: v.optional(questProgressValidator),
+    // giver_success while the game is on: what the kudos earned, for the reply where it was given.
+    earnings: v.optional(earningsValidator),
+    // level_up: the level reached and the skill points it grants.
+    levelUp: v.optional(v.object({ level: v.number(), title: v.string(), skillPoints: v.number() })),
   }).index("by_member", ["memberId"]),
 
   // Rewards Store catalog. Archived, never deleted: redemptions link back to them.

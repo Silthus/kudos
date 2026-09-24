@@ -19,6 +19,8 @@ type BotMessage = {
   text: string;
   isNewDiscovery: boolean;
   questProgress?: { completed: number; available: number; sweep: boolean };
+  /** Your reply while the game is on: what the kudos earned. */
+  earnings?: string;
 };
 type Outcome = "given" | "limit" | "invalid";
 type FeedItem = {
@@ -32,6 +34,8 @@ type FeedItem = {
   outcome?: Outcome;
   /** An ephemeral reply from the Kudos bot, only visible to you. */
   ephemeral?: boolean;
+  /** On the bot's reply to your kudos: what it earned ("+20 XP · new connection +10"). */
+  earnings?: string;
   /** Your kudos attempt as sent (Slack format), so you can edit it like in Slack. */
   sent?: { messageTs: string; slackText: string };
   edited?: boolean;
@@ -95,7 +99,22 @@ export function Playground() {
     [mention, teammates],
   );
 
-  const pushBot = (messages: BotMessage[]) => setBot((prev) => [...messages.map((m) => ({ ...m, at: Date.now() })), ...prev].slice(0, 30));
+  /**
+   * Like Slack: your reply to a kudos you gave shows only to you, right where you gave it (with what
+   * it earned while the game is on); everything else is a DM on the right.
+   */
+  const pushBot = (messages: BotMessage[]) => {
+    const isReply = (m: BotMessage) => m.toMe && m.category === "giver_success";
+    const replies = messages.filter(isReply);
+    if (replies.length > 0) {
+      setFeed((f) => [
+        ...f,
+        ...replies.map((m) => ({ id: m._id, author: "Kudos", slackUserId: "", text: m.text, mine: false, at: Date.now(), ephemeral: true, earnings: m.earnings })),
+      ]);
+    }
+    const dms = messages.filter((m) => !isReply(m));
+    setBot((prev) => [...dms.map((m) => ({ ...m, at: Date.now() })), ...prev].slice(0, 30));
+  };
 
   const toSlack = (raw: string) => {
     let out = raw.replaceAll(glyph, emojiCode);
@@ -229,6 +248,7 @@ export function Playground() {
                       <span className="text-xs text-faint">{new Date(m.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                     </div>
                     <p className="text-[15px] leading-relaxed text-cream/90">{m.text}</p>
+                    {m.earnings && <p className="mt-0.5 text-sm font-semibold text-saffron">{m.earnings}</p>}
                   </div>
                 </motion.div>
               ) : (
@@ -412,7 +432,7 @@ export function Playground() {
                     <div className="mb-1.5 text-[11px] text-faint">{m.toMe ? "To you" : `To ${m.to} (they'll get this DM)`} · {CATEGORY_LABEL[m.category] ?? m.category}</div>
                     <p className="text-[15px] leading-relaxed">{m.text}</p>
                     <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-                      <RarityBadge rarity={m.rarity as Rarity} size="xs" />
+                      {m.category !== "level_up" && <RarityBadge rarity={m.rarity as Rarity} size="xs" />}
                       {m.isNewDiscovery && <span className="text-xs font-medium whitespace-nowrap text-saffron">✨ New discovery!</span>}
                       {m.questProgress && (
                         <span className="text-xs whitespace-nowrap text-muted">

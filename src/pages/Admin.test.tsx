@@ -17,6 +17,7 @@ const settings = {
   notifyGiver: true,
   notifyReceiver: true,
   questsEnabled: true,
+  gameEnabled: false,
 };
 const overview = {
   workspace: { _id: "w1", name: "Lumen Labs", isDemo: false, slackTeamId: "T1" },
@@ -70,4 +71,13 @@ test("switching quests off and saving sends the setting with the others", async 
   expect(questsSwitch()!.getAttribute("aria-checked")).toBe("false");
   await act(async () => button("Save settings").click());
   expect(saved).toHaveBeenCalledWith({ ...settings, questsEnabled: false });
+});
+
+test("switching the game on and saving sends it with the other settings, and says what switching on does", async () => {
+  const gameSwitch = () => host.querySelector<HTMLButtonElement>('[role=switch][aria-label="The game"]');
+  expect(gameSwitch()?.getAttribute("aria-checked")).toBe("false");
+  expect(host.textContent).toContain("Switching it on plays the kudos history so far through the rules");
+  act(() => gameSwitch()!.click());
+  await act(async () => button("Save settings").click());
+  expect(saved).toHaveBeenCalledWith({ ...settings, gameEnabled: true });
 });

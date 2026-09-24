@@ -185,6 +185,17 @@ function SettingsForm({ initial, isDemo, storeEnabled }: { initial: Settings; is
               While quests are off, members see no quests on the web or in Slack and nothing counts towards them. Completed quests and collected Quest messages are kept.
             </p>
           )}
+          <Toggle
+            checked={s.gameEnabled}
+            onChange={(v) => set("gameEnabled", v)}
+            label="The game"
+            description="XP and levels for thoughtful kudos: a member plays from their first kudos. Levels show on profiles and are never ranked."
+          />
+          <p className="border-t border-line py-3 text-xs text-muted">
+            {s.gameEnabled
+              ? "Switching it off stops XP for every kudos until it's back on; levels and XP already earned are kept."
+              : "Switching it on plays the kudos history so far through the rules, so teammates start with the levels they've earned."}
+          </p>
         </div>
       </Card>
 

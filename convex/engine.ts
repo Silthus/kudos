@@ -2,12 +2,13 @@ import type { Infer } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
-import type { kudosSourceValidator, questProgressValidator } from "./schema";
+import type { earningsValidator, kudosSourceValidator, questProgressValidator } from "./schema";
 import type { InvalidReason } from "./lib/guidance";
 import { dayKeyFor, zonedParts } from "./lib/time";
 import { givingProfile, type MemberDayChange, Rollups } from "./lib/rollups";
 import { MIN_NOTE_WORDS } from "./lib/quests";
 import { onKudosGiven, onKudosRevoked, questsOn } from "./quests";
+import { onGameGiven, onGameRevoked } from "./game";
 import {
   type Category,
   type Rarity,
@@ -131,6 +132,8 @@ export type BotMessageOptions = {
   /** Collect the message but never send it (the workspace keeps that DM quiet). */
   skipDelivery?: boolean;
   questProgress?: Infer<typeof questProgressValidator>;
+  /** giver_success while the game is on: what the kudos earned (the earnings reply). */
+  earnings?: Infer<typeof earningsValidator>;
 };
 
 /**
@@ -145,7 +148,7 @@ export async function sendBotMessage(
   category: Category,
   vars: Audience,
   now: number,
-  { rollups, minRarity, skipDelivery, questProgress }: BotMessageOptions = {},
+  { rollups, minRarity, skipDelivery, questProgress, earnings }: BotMessageOptions = {},
 ): Promise<Id<"notifications">> {
   const seen = await ctx.db
     .query("discoveries")
@@ -183,6 +186,7 @@ export async function sendBotMessage(
     delivery: workspace.isDemo || skipDelivery ? "skipped" : "pending",
     collected: seen.length + (existing ? 0 : 1),
     ...(questProgress ? { questProgress } : {}),
+    ...(earnings ? { earnings } : {}),
   });
 }
 
@@ -294,6 +298,7 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
   const batchId = `${input.channelId}:${input.messageTs ?? now}:${giver._id}`;
   const hour = zonedParts(now, workspace.timezone).hour;
   const rollups = new Rollups(ctx, workspace);
+  const rows: Doc<"kudos">[] = [];
   for (const r of recipients) {
     const row = {
       workspaceId: workspace._id,
@@ -312,7 +317,9 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
       hour,
       ...(input.noteWords !== undefined ? { noteWords: input.noteWords } : {}),
     };
-    rollups.kudosAdded({ _id: await ctx.db.insert("kudos", row), ...row });
+    const inserted = { _id: await ctx.db.insert("kudos", row), _creationTime: now, ...row };
+    rows.push(inserted);
+    rollups.kudosAdded(inserted);
     rollups.memberDayChanged(await bumpMemberDay(ctx, workspace, r._id, dayKey, { received: input.amountEach }));
     await ctx.db.patch(r._id, { totalReceived: r.totalReceived + input.amountEach });
     rollups.memberTotalsChanged(
@@ -332,6 +339,9 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
     { given: giver.totalGiven, received: giver.totalReceived },
     { given: giver.totalGiven + total, received: giver.totalReceived },
   );
+
+  // XP for the giver and the receivers; the giver's share is itemised in their reply.
+  const game = await onGameGiven(ctx, workspace, giver, rows, input.noteWords);
 
   const channel = channelVars(input.channelId, input.channelName);
   const notificationIds: Id<"notifications">[] = [];
@@ -354,7 +364,7 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
           limit: workspace.dailyLimit,
           channel: channel.web,
         },
-      }, now, { rollups }),
+      }, now, { rollups, ...(game.earnings ? { earnings: game.earnings } : {}) }),
     );
   }
   if (workspace.notifyReceiver) {
@@ -367,6 +377,8 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
       );
     }
   }
+
+  notificationIds.push(...game.notificationIds);
 
   // Only a batch with a Note can move quest progress, and only while quests are on; skip the reads otherwise.
   if (questsOn(workspace) && (input.noteWords ?? 0) >= MIN_NOTE_WORDS) notificationIds.push(...(await onKudosGiven(ctx, workspace, giver, now, rollups)));
@@ -415,6 +427,7 @@ export async function revokeKudosRow(ctx: MutationCtx, workspace: Doc<"workspace
   }
   await rollups.flush();
   await onKudosRevoked(ctx, workspace, row);
+  await onGameRevoked(ctx, workspace, row);
 }
 
 /** Rarity-rolled "you have N left" message (slash command, App Home, playground). */
