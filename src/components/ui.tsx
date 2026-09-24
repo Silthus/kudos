@@ -2,14 +2,14 @@ import clsx from "clsx";
 import { motion } from "motion/react";
 import { ArrowDownRight, ArrowUpRight, Minus, X } from "lucide-react";
 import { useEffect, useId, useRef, type ComponentProps, type ReactNode } from "react";
-import { RARITY_META, type Rarity } from "@/lib/rarity";
+import { RARITY_META, RARITY_ORDER, type Rarity } from "@/lib/rarity";
 import { nf } from "@/lib/format";
 
 export function Card({ className, children, ...rest }: ComponentProps<"section">) {
   return (
     <section
       className={clsx(
-        "rounded-2xl border border-line bg-panel/80 backdrop-blur-sm shadow-[0_1px_0_0_rgb(255_236_210/0.04)_inset,0_20px_50px_-30px_rgb(0_0_0/0.8)]",
+        "rounded-[var(--radius-window)] border border-border bg-surface",
         className,
       )}
       {...rest}
@@ -21,13 +21,13 @@ export function Card({ className, children, ...rest }: ComponentProps<"section">
 
 export function CardHeader({ title, subtitle, action, icon }: { title: ReactNode; subtitle?: ReactNode; action?: ReactNode; icon?: ReactNode }) {
   return (
-    <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3 px-5 pt-5 pb-3">
+    <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3 px-4 pt-4 pb-3">
       <div className="min-w-0">
-        <h2 className="flex items-center gap-2 font-display text-[17px] font-semibold tracking-tight text-cream">
+        <h2 className="flex items-center gap-2 text-[15px] font-bold text-text">
           {icon}
           {title}
         </h2>
-        {subtitle && <p className="mt-0.5 text-sm text-muted">{subtitle}</p>}
+        {subtitle && <p className="mt-0.5 text-[13px] text-text-2">{subtitle}</p>}
       </div>
       {action && <div className="shrink-0">{action}</div>}
     </header>
@@ -35,25 +35,33 @@ export function CardHeader({ title, subtitle, action, icon }: { title: ReactNode
 }
 
 export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={clsx("font-mono text-[11px] uppercase tracking-[0.14em] text-faint", className)}>{children}</div>;
+  return <div className={clsx("text-xs font-semibold text-text-3", className)}>{children}</div>;
 }
 
-type ButtonProps = ComponentProps<"button"> & { variant?: "primary" | "ghost" | "outline" | "danger"; size?: "sm" | "md" | "lg" };
+type ButtonProps = ComponentProps<"button"> & { variant?: "primary" | "secondary" | "tertiary" | "cta" | "ghost" | "outline" | "danger"; size?: "sm" | "md" | "lg" };
 
-export function Button({ variant = "outline", size = "md", className, children, ...rest }: ButtonProps) {
+const BUTTON_VARS = {
+  primary: { "--frame": "var(--k-btn-primary-frame)", "--border-hover": "var(--k-btn-primary-border-hover)", background: "var(--k-btn-primary-face)", borderColor: "var(--k-btn-primary-border)", color: "var(--k-btn-primary-text)" },
+  secondary: { "--frame": "var(--k-btn-secondary-frame)", "--border-hover": "var(--k-btn-secondary-border-hover)", background: "var(--k-btn-secondary-face)", borderColor: "var(--k-btn-secondary-border)", color: "var(--k-text)" },
+  cta: { "--frame": "var(--k-cta-shell)", "--border-hover": "var(--k-cta-border)", background: "var(--k-cta-face)", borderColor: "var(--k-cta-border)", color: "#111" },
+  danger: { "--frame": "color-mix(in oklab, var(--k-danger) 45%, var(--k-surface))", "--border-hover": "var(--k-danger)", background: "var(--k-surface)", borderColor: "color-mix(in oklab, var(--k-danger) 60%, var(--k-surface))", color: "var(--k-danger)" },
+} as Record<string, React.CSSProperties>;
+
+/** Lemon-style buttons: primary/secondary/cta/danger sit on a 3D frame; tertiary is flat. */
+export function Button({ variant = "secondary", size = "md", className, children, style, ...rest }: ButtonProps) {
+  const v = variant === "outline" ? "secondary" : variant === "ghost" ? "tertiary" : variant;
+  const raised = v !== "tertiary";
   return (
     <button
       className={clsx(
-        "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50",
-        size === "sm" && "h-8 px-3 text-sm",
-        size === "md" && "h-10 px-4 text-sm",
-        size === "lg" && "h-12 px-6 text-base",
-        variant === "primary" && "bg-saffron text-ink hover:bg-[#ffc14d] shadow-[0_8px_30px_-10px_var(--color-saffron)]",
-        variant === "outline" && "border border-line-strong bg-panel-2 text-cream hover:bg-panel-3",
-        variant === "ghost" && "text-muted hover:bg-panel-2 hover:text-cream",
-        variant === "danger" && "border border-down/30 bg-down/10 text-down hover:bg-down/20",
+        "inline-flex items-center justify-center gap-1.5 font-semibold whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60",
+        raised ? "btn-3d" : "rounded-[var(--radius-lemon)] text-text-2 hover:bg-text/[0.075] hover:text-text active:bg-text/[0.05]",
+        size === "sm" && "h-7 px-2.5 text-[13px]",
+        size === "md" && "h-8 px-3 text-sm",
+        size === "lg" && "h-10 px-4 text-[15px]",
         className,
       )}
+      style={{ ...(raised ? BUTTON_VARS[v] : {}), ...style }}
       {...rest}
     >
       {children}
@@ -89,7 +97,7 @@ export function Segmented<T extends string>({
       ref={listRef}
       layoutScroll
       role="tablist"
-      className="relative inline-flex max-w-full overflow-x-auto rounded-xl border border-line bg-ink/60 p-1 [scrollbar-width:none]"
+      className="relative inline-flex max-w-full overflow-x-auto rounded-[var(--radius-lemon)] border border-border-bold bg-surface-2 p-0.5 [scrollbar-width:none]"
     >
       {options.map((o) => (
         <button
@@ -100,16 +108,16 @@ export function Segmented<T extends string>({
           title={o.title}
           onClick={() => onChange(o.value)}
           className={clsx(
-            "relative shrink-0 whitespace-nowrap rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40",
-            size === "sm" ? "px-2.5 py-1 text-xs" : "px-3 py-1.5 text-sm",
-            value === o.value ? "text-ink" : "text-muted hover:text-cream",
+            "relative shrink-0 whitespace-nowrap rounded-[5px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+            size === "sm" ? "px-2 py-0.5 text-xs" : "px-2.5 py-1 text-[13px]",
+            value === o.value ? "text-text" : "text-text-2 hover:text-text",
           )}
         >
           {value === o.value && (
             <motion.span
               layoutId={`seg-${options.map((x) => x.value).join("")}`}
-              className="absolute inset-0 rounded-lg bg-cream"
-              transition={{ type: "spring", bounce: 0.2, duration: 0.45 }}
+              className="absolute inset-0 rounded-[5px] border border-border-bold bg-surface shadow-[0_2px_0_var(--k-border-bold)]"
+              transition={{ type: "spring", bounce: 0, duration: 0.25 }}
             />
           )}
           <span className="relative flex items-center gap-1.5">{o.label}</span>
@@ -137,12 +145,12 @@ export function Avatar({ name, src, size = 36, ring }: { name: string; src?: str
   const hue = hueFor(name);
   return (
     <span
-      className={clsx("relative inline-grid shrink-0 place-items-center overflow-hidden rounded-full font-display font-semibold text-ink", ring)}
+      className={clsx("relative inline-grid shrink-0 place-items-center overflow-hidden rounded-full font-sans font-bold text-[#111]", ring)}
       style={{
         width: size,
         height: size,
         fontSize: size * 0.38,
-        background: `linear-gradient(135deg, hsl(${hue} 85% 72%), hsl(${(hue + 40) % 360} 70% 55%))`,
+        background: `hsl(${hue} 70% 78%)`,
       }}
       aria-hidden
     >
@@ -155,16 +163,25 @@ export function RarityBadge({ rarity, size = "sm" }: { rarity: Rarity; size?: "x
   const meta = RARITY_META[rarity];
   return (
     <span
-      className={clsx(
-        "inline-flex items-center gap-1.5 rounded-full font-mono uppercase tracking-[0.12em] ring-1 ring-inset",
-        size === "xs" ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-1 text-[11px]",
-        meta.ring,
-        meta.bg,
-      )}
+      className={clsx("inline-flex items-center gap-1.5 rounded-[var(--radius-lemon)] border font-semibold text-text", size === "xs" ? "px-1.5 py-px text-[11px]" : "px-2 py-0.5 text-xs")}
+      style={{ borderColor: `color-mix(in oklab, ${meta.color} 45%, var(--k-border))`, background: `color-mix(in oklab, ${meta.color} 10%, var(--k-surface))` }}
     >
-      <span className="h-1.5 w-1.5 rounded-full" style={{ background: meta.color }} />
-      <span className={rarity === "legendary" ? "legendary-text font-semibold" : meta.text}>{meta.label}</span>
+      <RarityPip rarity={rarity} />
+      {meta.label}
     </span>
+  );
+}
+
+/** Rarity is never colour alone: the pip's shape grows with the tier (dot, diamond, star-ish) and the word is always shown. */
+export function RarityPip({ rarity, size = 8 }: { rarity: Rarity; size?: number }) {
+  const color = RARITY_META[rarity].color;
+  const tier = RARITY_ORDER.indexOf(rarity);
+  if (tier <= 1) return <span className="inline-block rounded-full" style={{ width: size, height: size, background: tier === 0 ? "transparent" : color, border: `1.5px solid ${color}` }} />;
+  if (tier === 2) return <span className="inline-block rotate-45 rounded-[1px]" style={{ width: size - 1, height: size - 1, background: color }} />;
+  return (
+    <svg width={size + 3} height={size + 3} viewBox="0 0 12 12" aria-hidden>
+      <path d="M6 0l1.6 4.2L12 6l-4.4 1.8L6 12 4.4 7.8 0 6l4.4-1.8z" fill={color} />
+    </svg>
   );
 }
 
@@ -198,11 +215,11 @@ export function Progress({ value, max, color = "var(--color-saffron)", className
 }
 
 export function BigNumber({ value, className }: { value: number | string; className?: string }) {
-  return <span className={clsx("font-display font-semibold tracking-tight tabular", className)}>{typeof value === "number" ? nf.format(value) : value}</span>;
+  return <span className={clsx("font-display font-extrabold tracking-tight tabular", className)}>{typeof value === "number" ? nf.format(value) : value}</span>;
 }
 
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={clsx("animate-pulse rounded-xl bg-panel-2", className)} />;
+  return <div className={clsx("animate-pulse rounded-[var(--radius-lemon)] bg-surface-3", className)} />;
 }
 
 export function PageSkeleton() {
@@ -231,14 +248,44 @@ export function Empty({ icon, title, children }: { icon?: ReactNode; title: stri
 
 export function PageHeader({ eyebrow, title, subtitle, action }: { eyebrow?: ReactNode; title: ReactNode; subtitle?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
-      <div>
-        {eyebrow && <Eyebrow className="mb-2">{eyebrow}</Eyebrow>}
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-cream sm:text-[40px] sm:leading-[1.05]">{title}</h1>
-        {subtitle && <p className="mt-2 max-w-2xl text-[15px] text-muted">{subtitle}</p>}
+    <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
+      <div className="min-w-0">
+        {eyebrow && <div className="mb-1 text-xs font-semibold text-text-3">{eyebrow}</div>}
+        <h1 className="font-display text-[26px] leading-tight font-extrabold tracking-tight text-text">{title}</h1>
+        {subtitle && <p className="mt-1 max-w-2xl text-sm text-text-2">{subtitle}</p>}
       </div>
       {action && <div className="flex max-w-full flex-wrap items-center gap-2">{action}</div>}
     </div>
+  );
+}
+
+/**
+ * Window chrome (posthog.com idiom) for moments, dialogs and celebrations: slim title bar, pop-in on an
+ * ease-out-back spring, still final frame. `tint` colours the title bar (rarity, status).
+ */
+export function Window({ title, tint, onClose, children, className, pop = true, icon }: { title: ReactNode; tint?: string; onClose?: () => void; children: ReactNode; className?: string; pop?: boolean; icon?: ReactNode }) {
+  return (
+    <motion.section
+      initial={pop ? { opacity: 0, scale: 0.9 } : false}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.2, ease: [0.34, 1.56, 0.64, 1] }}
+      className={clsx("overflow-hidden rounded-[var(--radius-window)] border border-border-bold bg-surface", className)}
+      style={{ boxShadow: "var(--k-shadow-window)" }}
+    >
+      <header
+        className="flex items-center gap-2 border-b border-border-bold px-2 py-1 text-[13px] font-semibold"
+        style={tint ? { background: `color-mix(in oklab, ${tint} 16%, var(--k-surface-2))`, borderBottomColor: `color-mix(in oklab, ${tint} 40%, var(--k-border-bold))` } : { background: "var(--k-surface-2)" }}
+      >
+        {icon}
+        <span className="min-w-0 flex-1 truncate">{title}</span>
+        {onClose && (
+          <button onClick={onClose} className="rounded p-0.5 text-text-3 hover:bg-text/10 hover:text-text" aria-label="Close">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </header>
+      {children}
+    </motion.section>
   );
 }
 
@@ -268,19 +315,19 @@ export function Toggle({
         aria-label={label}
         disabled={disabled}
         onClick={() => onChange(!checked)}
-        className={clsx("relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50", checked ? "bg-saffron" : "bg-panel-3")}
+        className={clsx("relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50", checked ? "bg-accent" : "bg-border-bold")}
       >
         <motion.span
           layout
           transition={{ type: "spring", bounce: 0.3, duration: 0.35 }}
-          className={clsx("absolute top-1 h-4 w-4 rounded-full bg-cream shadow", checked ? "right-1" : "left-1")}
+          className={clsx("absolute top-1 h-4 w-4 rounded-full bg-white shadow", checked ? "right-1" : "left-1")}
         />
       </button>
     </label>
   );
 }
 
-export const inputCls = "h-10 w-full rounded-xl border border-line-strong bg-ink/60 px-3 text-sm text-cream outline-none transition focus:border-saffron/60 disabled:opacity-60";
+export const inputCls = "h-8 w-full rounded-[var(--radius-lemon)] border border-border-bold bg-surface px-2.5 text-sm text-text outline-none transition hover:border-text-3 focus:border-accent disabled:opacity-60";
 
 export function Field({ label, hint, children, className }: { label: string; hint?: ReactNode; children: ReactNode; className?: string }) {
   return (

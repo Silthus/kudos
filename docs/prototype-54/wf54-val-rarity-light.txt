@@ -1,0 +1,11 @@
+
+Palette (light, surface #ffffff, categorical): 4 slots
+  [PASS] Lightness band         all 4 inside L 0.43–0.77
+  [PASS] Chroma floor           all 4 >= 0.1
+  [PASS] CVD separation         worst adjacent #7f26d9↔#2f80fa ΔE 9.3 (deutan) · tritan 7.0
+  [PASS] Normal-vision floor    worst adjacent #7f26d9↔#2f80fa ΔE 19.3 (normal)
+  [PASS] Contrast vs surface    all 4 >= 3:1
+
+  → ALL CHECKS PASS  (CVD in the 6–8 floor band is legal ONLY with secondary encoding: direct labels, gaps, or texture)
+  scope: categorical palettes only. For a lone status/text color check WCAG text contrast; for a sequential ramp, lightness monotonicity.
+

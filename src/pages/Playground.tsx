@@ -1,12 +1,16 @@
 import clsx from "clsx";
 import { useMutation, useQuery } from "convex/react";
 import { AnimatePresence, motion } from "motion/react";
-import { AtSign, Hash, SendHorizontal, Terminal } from "lucide-react";
+import { AtSign, Dices, Hash, SendHorizontal, Terminal } from "lucide-react";
+import { useSearchParams } from "react-router";
+import { DiscoveryMoment } from "@/components/moments";
+import { MomentsGallery } from "./PlaygroundMoments.prototype";
+import { PrototypeSwitcher } from "@/components/PrototypeSwitcher";
 import { useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { api } from "../../convex/_generated/api";
-import { Avatar, Button, Card, Eyebrow, PageHeader, RarityBadge } from "@/components/ui";
+import { Avatar, Button, Card, Eyebrow, PageHeader } from "@/components/ui";
 import { useWorkspaceToday } from "@/lib/period";
-import { RARITY_META, type Rarity } from "@/lib/rarity";
+import { type Rarity } from "@/lib/rarity";
 import { useViewer } from "@/lib/viewer";
 
 type BotMessage = { _id: string; to: string; toMe: boolean; category: string; rarity: string; text: string; isNewDiscovery: boolean };
@@ -35,6 +39,18 @@ function renderSlackText(text: string, glyph: string, emojiName: string): ReactN
 }
 
 export function Playground() {
+  const [params] = useSearchParams();
+  if (params.get("variant") === "moments")
+    return (
+      <>
+        <MomentsGallery />
+        <PrototypeSwitcher variants={["live", "moments"]} names={{ live: "Live playground", moments: "Moments gallery" }} current="moments" />
+      </>
+    );
+  return <LivePlayground />;
+}
+
+function LivePlayground() {
   const viewer = useViewer();
   const teammates = useQuery(api.demo.teammates) ?? [];
   const status = useQuery(api.me.today, { today: useWorkspaceToday() });
@@ -237,7 +253,7 @@ export function Playground() {
 
         <Card className="flex min-h-[640px] flex-col overflow-hidden">
           <div className="flex items-center gap-3 border-b border-line px-5 py-3.5">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-saffron/20">{glyph}</span>
+            <span className="grid h-8 w-8 place-items-center rounded-[var(--radius-lemon)] border border-border-bold bg-surface-2">{glyph}</span>
             <div>
               <div className="font-display text-base font-semibold">
                 Kudos <span className="ml-1 rounded bg-panel-3 px-1 py-px align-middle text-[10px] font-semibold text-muted">APP</span>
@@ -257,33 +273,17 @@ export function Playground() {
             {bot.length === 0 && (
               <div className="grid h-full place-items-center text-center text-sm text-muted">
                 <div>
-                  <div className="mb-2 text-4xl">🎲</div>
+                  <Dices className="mx-auto mb-2 h-8 w-8 text-text-3" />
                   Bot replies appear here. Each one rolls a rarity.
                 </div>
               </div>
             )}
             <AnimatePresence initial={false}>
-              {bot.map((m) => {
-                const meta = RARITY_META[m.rarity as Rarity];
-                return (
-                  <motion.div
-                    key={m._id}
-                    layout
-                    initial={{ opacity: 0, scale: 0.9, y: -12 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{ type: "spring", bounce: m.rarity === "legendary" || m.rarity === "epic" ? 0.55 : 0.25 }}
-                    className={clsx("relative rounded-2xl bg-ink/60 p-4 ring-1 ring-inset", meta.ring, meta.glow)}
-                  >
-                    {m.isNewDiscovery && (m.rarity === "legendary" || m.rarity === "epic" || m.rarity === "rare") && <Burst color={meta.color} />}
-                    <div className="mb-1.5 text-[11px] text-faint">{m.toMe ? "To you" : `To ${m.to} (they'll get this DM)`} · {m.category.replace("_", " ")}</div>
-                    <p className="text-[15px] leading-relaxed">{m.text}</p>
-                    <div className="mt-3 flex items-center gap-2">
-                      <RarityBadge rarity={m.rarity as Rarity} size="xs" />
-                      {m.isNewDiscovery && <span className="text-xs font-medium text-saffron">✨ New discovery!</span>}
-                    </div>
-                  </motion.div>
-                );
-              })}
+              {bot.map((m) => (
+                <motion.div key={m._id} layout>
+                  <DiscoveryMoment rarity={m.rarity as Rarity} text={m.text} isNew={m.isNewDiscovery} to={m.toMe ? "To you" : `To ${m.to} (they get this DM)`} category={m.category.replace("_", " ")} />
+                </motion.div>
+              ))}
             </AnimatePresence>
           </div>
         </Card>
@@ -292,22 +292,3 @@ export function Playground() {
   );
 }
 
-function Burst({ color }: { color: string }) {
-  return (
-    <div className="pointer-events-none absolute inset-0">
-      {Array.from({ length: 14 }).map((_, i) => {
-        const angle = (i / 14) * Math.PI * 2;
-        return (
-          <motion.span
-            key={i}
-            className="absolute left-1/2 top-1/2 h-1.5 w-1.5 rounded-full"
-            style={{ background: color }}
-            initial={{ x: 0, y: 0, opacity: 1 }}
-            animate={{ x: Math.cos(angle) * 140, y: Math.sin(angle) * 70, opacity: 0 }}
-            transition={{ duration: 0.9, ease: "easeOut" }}
-          />
-        );
-      })}
-    </div>
-  );
-}

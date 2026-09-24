@@ -1,86 +1,207 @@
+/*
+ * PROTOTYPE (#54): PostHog restyle foundation. Throwaway branch `prototype/54-posthog-restyle`.
+ * Semantic tokens live as CSS variables per theme; Tailwind colours point at them via `@theme inline`.
+ * The v1 names (ink/panel/cream/saffron/…) are aliased onto the new roles so every page restyles for free;
+ * the real slices migrate pages to the semantic names and then delete the aliases.
+ */
 @import "tailwindcss";
-@import "@fontsource-variable/bricolage-grotesque";
-@import "@fontsource-variable/geist";
-@import "@fontsource-variable/geist-mono";
+@import "@fontsource-variable/ibm-plex-sans";
+@import "@fontsource-variable/nunito";
+@import "@fontsource-variable/source-code-pro";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  /* Surfaces: scene behind, sidebar, cards/tables, tints */
+  --k-bg: #f3f4ef;
+  --k-bg-sidebar: #eeefe9;
+  --k-surface: #ffffff;
+  --k-surface-2: #f7f8f4;
+  --k-surface-3: #e5e7e0;
+  --k-border: #dadbd2;
+  --k-border-bold: #c1c2b9;
+  /* Text */
+  --k-text: #111111;
+  --k-text-2: #4d4f46;
+  --k-text-3: #6b6d63;
+  /* Brand */
+  --k-accent: #f54e00;
+  --k-link: #c73e00;
+  --k-on-accent: #111111;
+  /* 3D buttons (Lemon idiom: face + 1px border + 3px frame) */
+  --k-btn-primary-face: #ffffff;
+  --k-btn-primary-border: #b17816;
+  --k-btn-primary-border-hover: #8e5b03;
+  --k-btn-primary-frame: #eb9d2a;
+  --k-btn-primary-text: #111111;
+  --k-btn-secondary-face: #f3f4ef;
+  --k-btn-secondary-border: #cccccc;
+  --k-btn-secondary-border-hover: #aaaaaa;
+  --k-btn-secondary-frame: #e1dddd;
+  /* posthog.com call-to-action (orange face on a darker shell) */
+  --k-cta-face: #eb9d2a;
+  --k-cta-shell: #cd8407;
+  --k-cta-border: #b17816;
+  /* Status (reserved: never series colours) */
+  --k-success: #388600;
+  --k-warning: #b17816;
+  --k-danger: #db3707;
+  /* Data: validated with the dataviz validator (series: light on #fff; rarity: light on #fff) */
+  --k-series-given: #f54e00;
+  --k-series-received: #1d4aff;
+  --k-series-neutral: #73756b;
+  --k-r-common: #73756b;
+  --k-r-uncommon: #529a0a;
+  --k-r-rare: #2f80fa;
+  --k-r-epic: #7f26d9;
+  --k-r-legendary: #f54e00;
+  --k-shadow-elevation: 0 3px 0 var(--k-border);
+  --k-shadow-window: 0 16px 16px -16px rgb(0 0 0 / 35%), 0 1px 0 var(--k-border);
+}
+
+[data-theme="dark"] {
+  --k-bg: #1d1f27;
+  --k-bg-sidebar: #191b22;
+  --k-surface: #23252c;
+  --k-surface-2: #2a2c34;
+  --k-surface-3: #35373e;
+  --k-border: #35373e;
+  --k-border-bold: #4a4c52;
+  --k-text: #f4f4f5;
+  --k-text-2: #b0b4c4;
+  --k-text-3: #9094a1;
+  --k-accent: #f7a501;
+  --k-link: #f7a501;
+  --k-on-accent: #111111;
+  --k-btn-primary-face: #f7a501;
+  --k-btn-primary-border: #b17816;
+  --k-btn-primary-border-hover: #e0b050;
+  --k-btn-primary-frame: #926826;
+  --k-btn-primary-text: #111111;
+  --k-btn-secondary-face: #1d1f27;
+  --k-btn-secondary-border: #4a4c52;
+  --k-btn-secondary-border-hover: #5e6064;
+  --k-btn-secondary-frame: #323232;
+  --k-cta-face: #eb9d2a;
+  --k-cta-shell: #99660e;
+  --k-cta-border: #835c19;
+  --k-success: #5ab334;
+  --k-warning: #f7a501;
+  --k-danger: #f2764b;
+  --k-series-given: #f54e00;
+  --k-series-received: #2f80fa;
+  --k-series-neutral: #9ea096;
+  --k-r-common: #9ea096;
+  --k-r-uncommon: #529a0a;
+  --k-r-rare: #2f80fa;
+  --k-r-epic: #7f26d9;
+  --k-r-legendary: #f54e00;
+  --k-shadow-elevation: 0 3px 0 #15161c;
+  --k-shadow-window: 0 16px 24px -16px rgb(0 0 0 / 70%), 0 1px 0 #15161c;
+}
+
+@theme inline {
+  --font-display: "Nunito Variable", ui-rounded, system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Source Code Pro Variable", ui-monospace, monospace;
+
+  --color-bg: var(--k-bg);
+  --color-sidebar: var(--k-bg-sidebar);
+  --color-surface: var(--k-surface);
+  --color-surface-2: var(--k-surface-2);
+  --color-surface-3: var(--k-surface-3);
+  --color-border: var(--k-border);
+  --color-border-bold: var(--k-border-bold);
+  --color-text: var(--k-text);
+  --color-text-2: var(--k-text-2);
+  --color-text-3: var(--k-text-3);
+  --color-accent: var(--k-accent);
+  --color-link: var(--k-link);
+  --color-on-accent: var(--k-on-accent);
+  --color-success: var(--k-success);
+  --color-warning: var(--k-warning);
+  --color-danger: var(--k-danger);
+  --color-series-given: var(--k-series-given);
+  --color-series-received: var(--k-series-received);
+
+  /* v1 aliases (prototype only) */
+  --color-ink: var(--k-bg);
+  --color-panel: var(--k-surface);
+  --color-panel-2: var(--k-surface-2);
+  --color-panel-3: var(--k-surface-3);
+  --color-line: var(--k-border);
+  --color-line-strong: var(--k-border-bold);
+  --color-cream: var(--k-text);
+  --color-muted: var(--k-text-2);
+  --color-faint: var(--k-text-3);
+  --color-saffron: var(--k-accent);
+  --color-saffron-deep: var(--k-series-given);
+  --color-ember: var(--k-accent);
+  --color-teal: var(--k-series-received);
+  --color-teal-soft: var(--k-series-received);
+  --color-up: var(--k-success);
+  --color-down: var(--k-danger);
+  --color-benchmark: var(--k-series-neutral);
+
+  --color-r-common: var(--k-r-common);
+  --color-r-uncommon: var(--k-r-uncommon);
+  --color-r-rare: var(--k-r-rare);
+  --color-r-epic: var(--k-r-epic);
+  --color-r-legendary: var(--k-r-legendary);
+
+  --radius-lemon: 0.375rem;
+  --radius-window: 0.625rem;
+}
 
 @theme {
-  --font-display: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
-
-  --color-ink: #0f0d0b;
-  --color-panel: #17140f;
-  --color-panel-2: #1e1a14;
-  --color-panel-3: #27221b;
-  --color-line: rgb(255 236 210 / 0.08);
-  --color-line-strong: rgb(255 236 210 / 0.16);
-  --color-cream: #f6efe4;
-  --color-muted: #aaa093;
-  --color-faint: #726a5f;
-
-  --color-saffron: #ffb224;
-  --color-saffron-deep: #cf7d17;
-  --color-ember: #ff6b4a;
-  --color-teal: #219c86;
-  --color-teal-soft: #5fd4bd;
-  --color-up: #7ddc9c;
-  --color-down: #ff8a78;
-  /* Compare: the neutral ink every benchmark wears (cream at 70% over panel), CVD-checked against both families. */
-  --color-benchmark: #b3ada4;
-
-  --color-r-common: #a5a19a;
-  --color-r-uncommon: #4fca7d;
-  --color-r-rare: #4aa8f0;
-  --color-r-epic: #b67cf2;
-  --color-r-legendary: #ffb224;
-
-  --animate-shimmer: shimmer 3.2s linear infinite;
   --animate-float: float 6s ease-in-out infinite;
-  @keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-  }
   @keyframes float {
-    0%, 100% { transform: translateY(0) rotate(-4deg); }
-    50% { transform: translateY(-10px) rotate(4deg); }
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
   }
 }
 
 @layer base {
-  html { color-scheme: dark; background: var(--color-ink); }
+  html { color-scheme: light; background: var(--k-bg); }
+  html[data-theme="dark"] { color-scheme: dark; }
   body {
-    @apply bg-ink text-cream font-sans antialiased;
-    font-feature-settings: "ss01", "cv11";
-    background-image:
-      radial-gradient(1100px 520px at 12% -10%, rgb(255 178 36 / 0.07), transparent 60%),
-      radial-gradient(900px 480px at 110% 10%, rgb(33 156 134 / 0.06), transparent 60%);
-    background-attachment: fixed;
+    @apply bg-bg text-text font-sans antialiased;
     min-height: 100dvh;
+    font-size: 14px;
   }
-  ::selection { background: rgb(255 178 36 / 0.35); }
-  :focus-visible { outline: 2px solid var(--color-saffron); outline-offset: 2px; border-radius: 6px; }
+  ::selection { background: color-mix(in oklab, var(--k-accent) 30%, transparent); }
+  :focus-visible { outline: 2px solid var(--k-accent); outline-offset: 2px; border-radius: 6px; }
   .tabular { font-variant-numeric: tabular-nums; }
+}
+
+/* The Lemon 3D button: a face on a 3px frame; hover lifts, press sinks. No hover animation beyond that. */
+@utility btn-3d {
+  --depth: 3px;
+  position: relative;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: var(--radius-lemon);
+  box-shadow: 0 var(--depth) 0 -1px var(--frame);
+  transform: translateY(0);
+  transition: transform 100ms ease, box-shadow 100ms ease, border-color 100ms ease;
+  margin-bottom: 3px;
+  &:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 calc(var(--depth) + 1px) 0 -1px var(--frame); border-color: var(--border-hover); }
+  &:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 -1px var(--frame); }
+}
+
+/* Unearned / not-yet-available: a debossed outline, never hidden (progressive disclosure slots in here). */
+@utility locked {
+  background: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in oklab, var(--k-text) 4%, transparent) 6px 7px);
+  border-style: dashed;
+}
+
+@utility legendary-text {
+  background: linear-gradient(90deg, var(--k-r-legendary), #f7a501);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 @utility grain {
   position: relative;
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    border-radius: inherit;
-    opacity: 0.35;
-    mix-blend-mode: overlay;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  }
-}
-
-@utility legendary-text {
-  background: linear-gradient(90deg, #ffcf6a, #ff8a3d, #ffe29a, #ff8a3d, #ffcf6a);
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: var(--animate-shimmer);
 }
