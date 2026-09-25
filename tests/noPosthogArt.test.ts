@@ -19,7 +19,8 @@ const POSTHOG_ART = /hog|posthog|(^|[/_.\s-])(ai[_-])?max(\.|[_-](hog|ai|coin|fa
 
 /**
  * SHA-256 of the PostHog originals `src/lib/art.ts` points at (hoggies from `@posthog/brand@0.12.3`,
- * the Keyboard garden and Max from Cloudinary), so a copy is caught even under another name.
+ * the Keyboard garden and Max from Cloudinary, the Hedgehog Mode atlas from
+ * `@posthog/hedgehog-mode@0.0.58`), so a copy is caught even under another name.
  */
 const POSTHOG_ORIGINALS = new Set([
   "80bd8b6bfddc6b9ea390159954ea15d8fc3cda6cbbc58ce89a607c9ac32173d1", // gardener-1.png
@@ -31,6 +32,7 @@ const POSTHOG_ORIGINALS = new Set([
   "edeff3655793d86990e9da7265b61bd0839a063a6b45ad246d6a7f4543d81f14", // keyboard_garden_dark_opt_15e213413c.png
   "a35fc7d97bb9d0f1374f6c6c5cc1fc7d3b5cbd10f8d9e2fbc8c9a561c97b67fa", // keyboard_garden_light_opt_compressed_5094746caf.png
   "24370e847d02a816fe3235d514b584ff328de220398a4f786871b148106f353d", // ai_max_e80de99727.png
+  "edb312165649a48d2352f9093b735d1c1654dc9081066833a61ae921c8188805", // hedgehog-mode sprites.png
 ]);
 
 /** Every file git would commit: tracked, plus untracked files that aren't ignored. */

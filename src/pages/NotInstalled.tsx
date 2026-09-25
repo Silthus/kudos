@@ -1,5 +1,5 @@
 import { useAuthActions } from "@convex-dev/auth/react";
-import { Logo } from "@/components/AppShell";
+import { Logo } from "@/components/ui";
 import { Button, Card } from "@/components/ui";
 import { siteUrl } from "@/lib/viewer";
 import { SlackMark } from "./Landing";

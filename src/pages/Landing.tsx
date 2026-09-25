@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { BarChart3, Gem, Lock, Sparkles, Timer, Trophy, Webhook } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router";
-import { Logo } from "@/components/AppShell";
+import { Logo } from "@/components/ui";
 import { Avatar, Button, Eyebrow, RarityBadge } from "@/components/ui";
 import { RARITY_META, RARITY_ORDER, type Rarity } from "@/lib/rarity";
 import { signInRedirect } from "@/lib/routing";

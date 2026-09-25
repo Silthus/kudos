@@ -1,8 +1,8 @@
 import { ArrowLeftRight, BarChart3, FlaskConical, Gem, Gift, Network, Settings2, Sprout, Target, Trophy, UserRound, type LucideIcon } from "lucide-react";
 
 /**
- * The app's navigation, built once: the desktop sidebar and the mobile tab bar + More sheet
- * both render from it, so a page's condition, group and badge live in exactly one place.
+ * The app's navigation, built once: the world's places (`src/world/places.ts`) and the Places list
+ * render from it, so a page's condition, group and badge live in exactly one place.
  */
 
 export type NavContext = {
@@ -43,10 +43,6 @@ const GROUPS: { id: NavGroupId; label: string }[] = [
   { id: "workspace", label: "Workspace" },
 ];
 
-/** Which pages earn one of the four mobile tabs, most wanted first; the rest go to More. */
-const TAB_PRIORITY = ["me", "leaderboard", "quests", "discoveries", "compare", "store", "skills", "garden", "analytics", "playground", "admin"];
-export const TAB_COUNT = 4;
-
 function item(id: string, path: string, label: string, short: string, icon: LucideIcon, group: NavGroupId, extra: Partial<NavItem> = {}): NavItem {
   return { id, to: path, path, label, short, icon, group, ...extra };
 }
@@ -83,22 +79,4 @@ export function navGroups(items: NavItem[]): NavGroup[] {
 export function isActive(item: NavItem, pathname: string): boolean {
   const path = pathname.toLowerCase();
   return path === item.path || path.startsWith(`${item.path}/`);
-}
-
-/**
- * The mobile split: four tabs by priority, the rest grouped in the More sheet. When the open
- * page lives in More it takes the last tab (the page it displaces moves into More), so the
- * current page is always on screen. More's badge counts whatever badges it hides.
- */
-export function mobileNav(items: NavItem[], pathname: string): { tabs: NavItem[]; more: NavGroup[]; moreBadge?: NavBadge } {
-  // A page missing from the priority list queues behind the ranked ones.
-  const rank = (i: NavItem) => (TAB_PRIORITY.includes(i.id) ? TAB_PRIORITY.indexOf(i.id) : TAB_PRIORITY.length);
-  const byPriority = [...items].sort((a, b) => rank(a) - rank(b));
-  const tabs = byPriority.slice(0, TAB_COUNT);
-  const active = byPriority.slice(TAB_COUNT).find((i) => isActive(i, pathname));
-  if (active) tabs[TAB_COUNT - 1] = active;
-  const more = items.filter((i) => !tabs.includes(i));
-  const badges = more.flatMap((i) => (i.badge ? [i.badge] : []));
-  const moreBadge = badges.length ? { count: badges.reduce((n, b) => n + b.count, 0), label: badges.map((b) => b.label).join(", ") } : undefined;
-  return { tabs, more: navGroups(more), moreBadge };
 }
