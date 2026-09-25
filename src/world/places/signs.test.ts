@@ -23,9 +23,9 @@ function hogBox(door: { x: number; y: number }, scale: number): Box {
   return { x0: feet.x * scale - 24, x1: feet.x * scale + 24, y0: feet.y * scale - 44, y1: feet.y * scale + 4 };
 }
 
-const MINE = ["discoveries", "store", "skills", "playground"];
+const MINE = ["discoveries", "store", "skills", "playground", "compare", "analytics", "admin"];
 
-test.each([3, 2])("the gallery's, the stall's, the oak's and the sandbox's signs are clear of every door and of every other sign (at %i×)", (scale) => {
+test.each([3, 2])("the gallery's, the stall's, the oak's, the sandbox's, the pond's, the observatory's and the gatehouse's signs are clear of every door and of every other sign (at %i×)", (scale) => {
   const clashes: string[] = [];
   for (const p of PLACES) {
     const sign = signBox(p.name, signPoint(p), scale);
@@ -38,7 +38,7 @@ test.each([3, 2])("the gallery's, the stall's, the oak's and the sandbox's signs
   expect(clashes).toEqual([]);
 });
 
-test("the way to the gallery, the stall, the oak and the sandbox keeps to the paths, never across a building or the lawn", () => {
+test("the way to the gallery, the stall, the oak, the sandbox, the pond, the observatory and the gatehouse keeps to the paths, never across a building or the lawn", () => {
   const grid = walkGrid(PLACES);
   for (const id of MINE) {
     const p = PLACES.find((q) => q.id === id)!;

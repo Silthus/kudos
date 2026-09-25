@@ -2,7 +2,7 @@ import { ChevronDown } from "lucide-react";
 import { Component, useEffect, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
 import { TEAMMATE_UNAVAILABLE, type ComparePeriod } from "../../../convex/lib/compare";
-import { Card, PageHeader, Segmented } from "@/components/ui";
+import { Card, Segmented } from "@/components/ui";
 import { benchmarkFromParam, DEFAULT_COMPARE_PERIOD, isTeammateUnavailable } from "@/lib/compare";
 import { PERIOD_OPTIONS } from "@/lib/period";
 import { useViewer } from "@/lib/viewer";
@@ -18,17 +18,17 @@ type Benchmark = "past" | "team" | "teammate";
 
 const BENCHMARKS: { value: Benchmark; label: ReactNode; title?: string }[] = [
   { value: "past", label: "Past you" },
-  { value: "team", label: "Team", title: "Where you sit among the teammates who took part" },
   {
     value: "teammate",
     label: (
       <>
-        Teammate
+        A teammate
         <ChevronDown className="h-3.5 w-3.5" aria-hidden />
       </>
     ),
     title: "Pick a teammate for a side-by-side look",
   },
+  { value: "team", label: "The team", title: "Where you sit among the teammates who took part" },
 ];
 
 function parsePeriod(value: string | null): ComparePeriod {
@@ -63,22 +63,22 @@ export function Compare() {
   };
 
   return (
-    <div>
-      <PageHeader
-        eyebrow="Compare"
-        title="How are you doing?"
-        subtitle="You against one benchmark at a time. Giving is what counts here, not rank."
-        action={
-          <>
-            <Segmented
-              value={benchmark.kind}
-              onChange={(value) => (value === "teammate" ? setPicking(true) : update({ vs: value }))}
-              options={BENCHMARKS}
-            />
-            <Segmented value={period} onChange={(value) => update({ period: value })} options={COMPARE_PERIODS} />
-          </>
-        }
-      />
+    <div className="space-y-4">
+      <p className="text-sm text-ink/75">You against one benchmark at a time. Giving is what counts here, not rank.</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        {/* The benchmark tabs stand on the pond's edge: a strip of water under them. */}
+        <div data-water-edge className="flex max-w-full flex-col">
+          <Segmented
+            label="Compare with"
+            value={benchmark.kind}
+            onChange={(value) => (value === "teammate" ? setPicking(true) : update({ vs: value }))}
+            options={BENCHMARKS}
+          />
+          <span aria-hidden className="mx-1 mt-1 block h-1 bg-pond" />
+          <span aria-hidden className="mx-1 block h-1 bg-pond-deep" />
+        </div>
+        <Segmented label="Period" size="sm" value={period} onChange={(value) => update({ period: value })} options={COMPARE_PERIODS} />
+      </div>
       <TeammatePicker
         open={picking}
         onClose={() => setPicking(false)}

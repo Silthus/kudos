@@ -2,12 +2,12 @@ import clsx from "clsx";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "../../../convex/_generated/api";
 import type { ComparePeriod } from "../../../convex/lib/compare";
-import { BigNumber, Card, Eyebrow, PageSkeleton, Trend } from "@/components/ui";
+import { BigNumber, PageSkeleton, Trend } from "@/components/ui";
 import { dayLabel, nf, rangeLabel } from "@/lib/format";
 import { useWorkspaceToday } from "@/lib/period";
 import { useStableQuery } from "@/lib/useStableQuery";
 import { useViewer } from "@/lib/viewer";
-import { Race, Scoreboard, type Row } from "./parts";
+import { Race, Reflection, Scoreboard, type Row } from "./parts";
 
 type Past = FunctionReturnType<typeof api.compare.past.get>;
 
@@ -30,34 +30,40 @@ function Headline({ data }: { data: Past }) {
   const given = data.rows.find((r) => r.metric === "given")!;
   const you = given.you.value ?? 0;
   const unit = you === 1 ? viewer.workspace.unitSingular : viewer.workspace.unitPlural;
+  const then = data.benchmarkLabel.toLowerCase();
+  const note =
+    (data.benchmarkNote === "notMember"
+      ? data.previousTotal.given === null
+        ? `You joined on ${joined(data.joinedOn!)}, so there's no ${then} to compare with yet.`
+        : `You joined on ${joined(data.joinedOn!)}, after this point ${then}. `
+      : "") + (data.previousTotal.given !== null ? `${data.benchmarkLabel} finished at ${nf.format(data.previousTotal.given)}.` : "");
   return (
-    <Card className="relative overflow-hidden px-6 py-6 sm:px-8">
-      <Eyebrow>
-        {rangeLabel(data.range.start, data.range.end)}
-        {data.benchmarkNote === null && ` vs ${rangeLabel(data.benchmarkRange.start, data.benchmarkRange.end)}`}
-      </Eyebrow>
-      <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-2">
-        <p className="text-lg text-ink/75">
-          <BigNumber value={you} className="mr-2 text-5xl text-ink [font-variant-numeric:proportional-nums]" />
-          {unit} given {data.label.toLowerCase()}
+    <Reflection
+      when={
+        <>
+          {rangeLabel(data.range.start, data.range.end)}
+          {data.benchmarkNote === null && ` against ${rangeLabel(data.benchmarkRange.start, data.benchmarkRange.end)}`}
+        </>
+      }
+      you={
+        <p>
+          You gave <BigNumber value={you} className="mx-1 text-5xl text-ink [font-variant-numeric:proportional-nums]" /> {unit} {data.label.toLowerCase()}
         </p>
-        {given.benchmark.value !== null && (
-          <span className="inline-flex items-center gap-2 text-sm text-ink/75">
-            <Trend cur={you} prev={given.benchmark.value} compact />
+      }
+      mirror={
+        given.benchmark.value !== null ? (
+          <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <span>
-              vs <b className="font-medium text-ink tabular">{nf.format(given.benchmark.value)}</b> by this point {data.benchmarkLabel.toLowerCase()}
+              Past you gave <BigNumber value={given.benchmark.value} className="mx-1 text-3xl [font-variant-numeric:proportional-nums]" /> by this point {then}
             </span>
-          </span>
-        )}
-      </div>
-      <p className="mt-2 text-sm text-ink/70">
-        {data.benchmarkNote === "notMember" &&
-          (data.previousTotal.given === null
-            ? `You joined on ${joined(data.joinedOn!)}, so there's no ${data.benchmarkLabel.toLowerCase()} to compare with yet.`
-            : `You joined on ${joined(data.joinedOn!)}, after this point ${data.benchmarkLabel.toLowerCase()}. `)}
-        {data.previousTotal.given !== null && `${data.benchmarkLabel} finished at ${nf.format(data.previousTotal.given)}.`}
-      </p>
-    </Card>
+            <Trend cur={you} prev={given.benchmark.value} compact />
+          </p>
+        ) : (
+          <p>Past you has nothing to show {then} yet.</p>
+        )
+      }
+      note={note || undefined}
+    />
   );
 }
 
