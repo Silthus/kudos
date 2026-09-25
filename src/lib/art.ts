@@ -67,3 +67,19 @@ export const ART = {
 export function artFor(slot: string): RemoteImage | null {
   return Object.hasOwn(ART, slot) ? ART[slot as keyof typeof ART] : null;
 }
+
+/** The `@posthog/hedgehog-mode` release the world's hedgehog is pinned to (MIT, #128). */
+export const HEDGEHOG_MODE_VERSION = "0.0.58";
+const HEDGEHOG_ASSETS = `https://cdn.jsdelivr.net/npm/@posthog/hedgehog-mode@${HEDGEHOG_MODE_VERSION}/assets`;
+
+/**
+ * Hedgehog Mode's sprite atlas: the player in the world is PostHog's own hedgehog (never one we
+ * drew). A TexturePacker sheet of 80 × 80 frames (`sprites.json`) over one 2000 × 1440 PNG, which
+ * `src/world/atlas.ts` loads after first paint and draws frame by frame (not the package's Pixi
+ * renderer).
+ */
+export const HEDGEHOG_MODE = {
+  json: `${HEDGEHOG_ASSETS}/sprites.json`,
+  png: { src: `${HEDGEHOG_ASSETS}/sprites.png`, width: 2000, height: 1440 } satisfies RemoteImage,
+  credit: "Hedgehog Mode by PostHog (MIT)",
+};

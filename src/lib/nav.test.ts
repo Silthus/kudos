@@ -1,6 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { Star } from "lucide-react";
-import { mobileNav, navGroups, navItems, type NavContext, type NavItem } from "./nav";
+import { navGroups, navItems, type NavContext } from "./nav";
 
 const member: NavContext = { isAdmin: false, isDemo: false, storeEnabled: false, openRequests: 0 };
 const everything: NavContext = { isAdmin: true, isDemo: true, storeEnabled: true, openRequests: 3 };
@@ -60,57 +59,3 @@ describe("navGroups", () => {
   });
 });
 
-describe("mobileNav", () => {
-  test("four primary tabs, everything else in More", () => {
-    const nav = mobileNav(navItems(everything), "/me");
-    expect(ids(nav.tabs)).toEqual(["me", "leaderboard", "quests", "discoveries"]);
-    expect(nav.more.map((g) => [g.label, ids(g.items)])).toEqual([
-      ["You", ["store"]],
-      ["Team", ["compare", "analytics"]],
-      ["Workspace", ["playground", "admin"]],
-    ]);
-  });
-
-  test("with quests off the next page takes the free tab", () => {
-    expect(ids(mobileNav(navItems({ ...member, questsEnabled: false }), "/me").tabs)).toEqual(["me", "leaderboard", "discoveries", "compare"]);
-  });
-
-  test("an active page that lives in More takes the last tab, so it stays visible", () => {
-    const nav = mobileNav(navItems(everything), "/admin");
-    expect(ids(nav.tabs)).toEqual(["me", "leaderboard", "quests", "admin"]);
-    expect(ids(nav.more.flatMap((g) => g.items))).toEqual(["discoveries", "store", "compare", "analytics", "playground"]);
-  });
-
-  test("matching ignores the query and covers nested paths", () => {
-    expect(ids(mobileNav(navItems(everything), "/compare/anything").tabs)).toContain("compare");
-    expect(ids(mobileNav(navItems(everything), "/me").tabs)).not.toContain("compare");
-    expect(ids(mobileNav(navItems(everything), "/comparex").tabs)).not.toContain("compare");
-  });
-
-  test("matching ignores case, like the router does", () => {
-    expect(ids(mobileNav(navItems(everything), "/Admin").tabs)).toContain("admin");
-  });
-
-  test("a page without a tab priority never pushes the ranked ones aside", () => {
-    const extra: NavItem = { id: "new-page", to: "/new", path: "/new", label: "New page", short: "New", icon: Star, group: "team" };
-    expect(ids(mobileNav([extra, ...navItems(everything)], "/me").tabs)).toEqual(["me", "leaderboard", "quests", "discoveries"]);
-  });
-
-  test("More counts the badges hidden inside it", () => {
-    expect(mobileNav(navItems(everything), "/me").moreBadge).toEqual({ count: 3, label: "3 open store requests" });
-    // Once Admin is a tab, its badge shows there and More has nothing to add.
-    expect(mobileNav(navItems(everything), "/admin").moreBadge).toBeUndefined();
-  });
-
-  test("More adds up several hidden badges and names each", () => {
-    const flagged: NavItem = { id: "flags", to: "/flags", path: "/flags", label: "Flags", short: "Flags", icon: Star, group: "workspace", badge: { count: 2, label: "2 flagged kudos" } };
-    expect(mobileNav([...navItems(everything), flagged], "/me").moreBadge).toEqual({ count: 5, label: "3 open store requests, 2 flagged kudos" });
-  });
-
-  test("with four items or fewer there is no More at all", () => {
-    const four = navItems(member).slice(0, 4);
-    const nav = mobileNav(four, "/me");
-    expect(ids(nav.tabs)).toEqual(["me", "leaderboard", "quests", "discoveries"]);
-    expect(nav.more).toEqual([]);
-  });
-});

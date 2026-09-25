@@ -1,7 +1,6 @@
 import { useConvexAuth, useQuery } from "convex/react";
 import { Navigate, Route, Routes } from "react-router";
 import { api } from "../convex/_generated/api";
-import { AppShell } from "./components/AppShell";
 import { useLinkedWorkspace } from "./lib/linkedWorkspace";
 import { appScreen } from "./lib/routing";
 import { ViewerContext } from "./lib/viewer";
@@ -19,13 +18,19 @@ import { Analytics } from "./pages/Analytics";
 import { Admin } from "./pages/Admin";
 import { Playground } from "./pages/Playground";
 import { Setup } from "./pages/Setup";
+import { HogFrame } from "./world/Hog";
+import { WorldShell } from "./world/WorldShell";
 
+/** While the session and the viewer load: your hedgehog, still, on the dusk sky. */
 function Splash() {
   return (
-    <div className="grid min-h-dvh place-items-center">
-      <p role="status" className="font-display text-2xl text-cream">
-        Loading the garden…
-      </p>
+    <div className="grid min-h-dvh place-items-center bg-dusk">
+      <div className="flex flex-col items-center gap-2">
+        <HogFrame scale={2} />
+        <p role="status" className="font-display text-2xl text-cream">
+          Loading the garden…
+        </p>
+      </div>
     </div>
   );
 }
@@ -52,7 +57,9 @@ export function App() {
     <ViewerContext.Provider value={viewer}>
       <Routes>
         <Route path="/setup" element={<Setup />} />
-        <Route element={<AppShell />}>
+        {/* The world: `/` is the map, every page opens as a window at its place. */}
+        <Route element={<WorldShell />}>
+          <Route index element={null} />
           <Route path="/me" element={<Me />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/compare" element={<Compare />} />
@@ -67,7 +74,7 @@ export function App() {
           {viewer.member.isAdmin && <Route path="/admin" element={<Admin />} />}
           {viewer.workspace.isDemo && <Route path="/playground" element={<Playground />} />}
         </Route>
-        <Route path="*" element={<Navigate to="/me" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </ViewerContext.Provider>
   );

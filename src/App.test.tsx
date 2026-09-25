@@ -49,7 +49,15 @@ vi.mock("convex/react", () => ({
 
 // Every screen is a stub naming itself, so the test sees which page the router chose.
 const page = (name: string) => () => <h1>{name}</h1>;
-vi.mock("./components/AppShell", () => ({ AppShell: () => <Outlet /> }));
+// The world stands in as a plain frame round the page it would open as a window.
+vi.mock("./world/WorldShell", () => ({
+  WorldShell: () => (
+    <div data-world>
+      <Outlet />
+    </div>
+  ),
+}));
+vi.mock("./world/Hog", () => ({ HogFrame: () => null }));
 vi.mock("./pages/Landing", () => ({ Landing: page("Landing") }));
 vi.mock("./pages/NotInstalled", () => ({ NotInstalled: page("NotInstalled") }));
 vi.mock("./pages/Me", () => ({ Me: page("Me") }));
@@ -87,7 +95,8 @@ function open(path: string) {
   });
 }
 const step = (patch: Partial<Session>) => act(() => setSession(patch));
-const screen = () => container.querySelector("h1")?.textContent ?? "Splash";
+/** The page's name, "Map" for the world with no window open, or "Splash" while loading. */
+const screen = () => container.querySelector("h1")?.textContent ?? (container.querySelector("[data-world]") ? "Map" : "Splash");
 
 /** A hard reload: the page renders before the stored session has been restored. */
 function reload(path: string, viewer = readyViewer()) {
@@ -129,10 +138,16 @@ describe("a hard reload of a deep link", () => {
     expect(screen()).toBe("Splash");
   });
 
-  test("a page this viewer can't open still falls back to the dashboard", () => {
+  test("a page this viewer can't open falls back to the map", () => {
     reload("/store", readyViewer({ storeEnabled: false, gameEnabled: false }));
-    expect(url).toBe("/me");
-    expect(screen()).toBe("Me");
+    expect(url).toBe("/");
+    expect(screen()).toBe("Map");
+  });
+
+  test("an unknown path falls back to the map", () => {
+    reload("/nowhere");
+    expect(url).toBe("/");
+    expect(screen()).toBe("Map");
   });
 
   test("the Store opens from a link while the game is on, even before it's in the menu: the page shows its locked state", () => {
@@ -154,12 +169,13 @@ describe("a signed-out visitor on a deep link", () => {
     expect(url).toBe("/admin?tab=store");
   });
 
-  test("the landing page itself leads to the dashboard after signing in", () => {
+  test("the landing page itself leads into the world after signing in", () => {
     session = { isLoading: false, isAuthenticated: false, tokenOnServer: false, viewer: readyViewer() };
     open("/");
     expect(screen()).toBe("Landing");
     step({ isAuthenticated: true, tokenOnServer: true });
-    expect(url).toBe("/me");
+    expect(url).toBe("/");
+    expect(screen()).toBe("Map");
   });
 
   test("a user whose workspace hasn't installed Kudos sees that at the requested URL", () => {
