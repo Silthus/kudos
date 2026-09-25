@@ -15,7 +15,7 @@ describe("the quest log's labels", () => {
     expect(stampLabel({ ...quest, completedAt: at }, "Asia/Tokyo")).toBe("New connection: completed Mon, Sep 21");
     expect(stampLabel({ ...quest, done: false, completedAt: null }, "Europe/Berlin")).toBe("New connection: not completed");
     expect(stampLabel({ ...quest, done: false, completedAt: null, waived: "no_candidates" }, "Europe/Berlin")).toBe(
-      "New connection: not available (you've already recognized everyone 🎉)",
+      "New connection: not available (you've already recognized everyone)",
     );
   });
 });

@@ -3,6 +3,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter } from "react-router";
 import { afterEach, expect, test } from "vitest";
+import { copyTells } from "@/testing/window";
 import { QuestBoardBody, type QuestBoard } from "./quests";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -68,9 +69,10 @@ test("from level 5 today's daily quest sits under the board and each shows what 
   const today = host.querySelector("[data-daily-quest]")!;
   expect(today.textContent).toContain("Today's quest");
   expect(today.textContent).toContain("Tell the story");
-  expect(today.textContent).toContain("+10 XP · +2 Hog coins");
+  expect(today.textContent).toContain("Pays 10 XP and 2 Hog coins");
   expect(today.querySelector("[data-done]")).not.toBeNull();
-  expect(host.textContent).toContain("Each weekly quest +20 XP · +5 Hog coins · clean sweep +30 XP");
+  expect(host.textContent).toContain("Each weekly quest pays 20 XP and 5 Hog coins. A clean sweep pays 30 XP more.");
+  expect(copyTells(host)).toEqual([]);
 });
 
 test("below level 5 the board and the daily quest are visible but locked, with how to get there", () => {

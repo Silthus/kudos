@@ -5,7 +5,9 @@ import { MemoryRouter } from "react-router";
 import { getFunctionName, type FunctionReference } from "convex/server";
 import { afterEach, expect, test, vi } from "vitest";
 import { ViewerContext, type ReadyViewer } from "@/lib/viewer";
-import { describeElement, escapesFromScrollers, parchmentTextOnDusk } from "@/testing/layout";
+import { PERIOD_OPTIONS } from "@/lib/period";
+import { describeElement, escapesFromScrollers, parchmentTextOnDusk, widensSideways } from "@/testing/layout";
+import { copyTells, InWindow, viewportLayout } from "@/testing/window";
 
 const row = (rank: number, id: string, name: string, isMe = false) => ({
   rank,
@@ -55,7 +57,9 @@ function render() {
     root!.render(
       <MemoryRouter>
         <ViewerContext.Provider value={viewer}>
-          <Leaderboard />
+          <InWindow>
+            <Leaderboard />
+          </InWindow>
         </ViewerContext.Provider>
       </MemoryRouter>,
     ),
@@ -70,4 +74,44 @@ test("on a phone the standings table scrolls inside its card, and nothing in it 
   expect(host.querySelector("table")!.parentElement!.classList, "the wide table scrolls sideways on its own").toContain("overflow-x-auto");
   expect(escapesFromScrollers(host).map(describeElement)).toEqual([]);
   expect(parchmentTextOnDusk(host).map(describeElement)).toEqual([]);
+});
+
+test("the notice board has no page sign, and its words are signposts: no crown, no middle dots, no arrows", () => {
+  const host = render();
+  expect(host.querySelector("h1")).toBeNull();
+  expect(copyTells(host, ["🌮"])).toEqual([]);
+  expect(host.textContent).not.toContain("YOU");
+});
+
+test("the notice board lays out by the window's width, not the screen's", () => {
+  const host = render();
+  expect(viewportLayout(host).map(describeElement)).toEqual([]);
+  expect(widensSideways(host).map(describeElement)).toEqual([]);
+});
+
+test("the period switcher is a row of pixel tabs", () => {
+  const host = render();
+  const tabs = [...host.querySelectorAll("[role=tablist]")].map((l) => [...l.querySelectorAll("[role=tab]")].map((t) => t.textContent));
+  expect(tabs).toContainEqual(PERIOD_OPTIONS.map((o) => o.label));
+});
+
+test("every comparable row has a Compare pixel button that walks to the mirror pond; your own row has none", () => {
+  const host = render();
+  const buttons = [...host.querySelectorAll<HTMLAnchorElement>("tbody a.pixel-btn")];
+  expect(buttons.map((b) => b.getAttribute("aria-label"))).toEqual(["Compare with Lena", "Compare with Sam", "Compare with Kai"]);
+  expect(buttons[0].getAttribute("href")).toBe("/compare?vs=m2&period=month");
+  expect(buttons[0].textContent).toBe("Compare");
+});
+
+test("a change of place is a small pixel arrow, up in hedge and down in ember, and says so in words", () => {
+  board.rows[2] = { ...board.rows[2], rankChange: 2 };
+  board.rows[3] = { ...board.rows[3], rankChange: -1 };
+  const host = render();
+  const rows = [...host.querySelectorAll("tbody tr")];
+  expect(rows[2].querySelector("svg.text-hedge-deep")).not.toBeNull();
+  expect(rows[2].textContent).toContain("2 places up");
+  expect(rows[3].querySelector("svg.text-ember-deep")).not.toBeNull();
+  expect(rows[3].textContent).toContain("1 place down");
+  board.rows[2] = { ...board.rows[2], rankChange: 0 };
+  board.rows[3] = { ...board.rows[3], rankChange: 0 };
 });
