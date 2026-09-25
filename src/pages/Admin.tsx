@@ -7,7 +7,7 @@ import { useSearchParams } from "react-router";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { kudosEmojiNames } from "../../convex/lib/cosmetics";
-import { Avatar, Button, Card, CardHeader, Eyebrow, Field, inputCls, PageHeader, PageSkeleton, Segmented, TableScroll, Toggle } from "@/components/ui";
+import { Avatar, Button, Card, CardHeader, Eyebrow, Field, inputCls, PageSkeleton, Segmented, TableScroll, Toggle } from "@/components/ui";
 import { nf, relativeTime } from "@/lib/format";
 import { useViewer } from "@/lib/viewer";
 import { CopyButton } from "./Setup";
@@ -36,26 +36,23 @@ export function Admin() {
   const data = useQuery(api.admin.overview);
   if (!data) return <PageSkeleton />;
   return (
-    <div>
-      <PageHeader
-        eyebrow={data.workspace.name}
-        title="Admin"
-        subtitle="Tune how kudos work in your workspace, manage admins and keep things fair."
-        action={
-          <Segmented
-            wrap
-            value={tab}
-            onChange={setTab}
-            options={[
-              { value: "settings", label: "Settings" },
-              { value: "members", label: "Members" },
-              { value: "moderation", label: "Moderation" },
-              { value: "store", label: "Store" },
-              { value: "boosts", label: "Bonus days" },
-              { value: "slack", label: "Slack" },
-            ]}
-          />
-        }
+    <div className="space-y-4">
+      <p className="text-sm text-ink/75">
+        Run <b className="font-semibold text-ink" data-user-text>{data.workspace.name}</b>: tune how kudos work, manage admins and keep things fair.
+      </p>
+      <Segmented
+        wrap
+        label="Gatehouse"
+        value={tab}
+        onChange={setTab}
+        options={[
+          { value: "settings", label: "Settings" },
+          { value: "members", label: "Members" },
+          { value: "moderation", label: "Moderation" },
+          { value: "store", label: "Store" },
+          { value: "boosts", label: "Bonus days" },
+          { value: "slack", label: "Slack" },
+        ]}
       />
       {tab === "settings" && <SettingsForm initial={data.settings} isDemo={data.workspace.isDemo} />}
       {tab === "members" && <Members />}
@@ -92,15 +89,15 @@ function SettingsForm({ initial, isDemo }: { initial: Settings; isDemo: boolean 
   };
 
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4">
       {isDemo && (
-        <div className="pixel-note px-4 py-3 text-sm xl:col-span-2">
+        <div className="border-2 border-soil bg-lantern/10 px-4 py-3 text-sm">
           Everyone exploring the demo shares this admin account, so settings are read-only here. In your own workspace every option below is live.
         </div>
       )}
       <Card>
         <CardHeader title="Giving" subtitle="What people type in Slack and how much they can give." />
-        <div className="grid grid-cols-1 gap-5 px-5 pb-5 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 px-5 pb-5 @lg:grid-cols-2">
           <Field label="Slack emoji" hint="Shortcode without colons, custom emoji work too">
             <div className="flex items-center gap-2">
               <span className="tabular text-ink/75">:</span>
@@ -137,7 +134,7 @@ function SettingsForm({ initial, isDemo }: { initial: Settings; isDemo: boolean 
         <CardHeader title="Privacy & notifications" />
         <div className="px-5 pb-5">
           <Eyebrow className="mb-2">Received kudos visibility</Eyebrow>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2 @lg:grid-cols-3">
             {(
               [
                 { v: "hidden", title: "Hidden", body: "Nobody sees received counts. Pure giving culture." },
@@ -225,7 +222,7 @@ function SettingsForm({ initial, isDemo }: { initial: Settings; isDemo: boolean 
         </div>
       </Card>
 
-      <div className="flex flex-wrap items-center gap-3 xl:col-span-2">
+      <div className="flex flex-wrap items-center gap-3">
         <Button variant="primary" onClick={save} disabled={isDemo || !dirty || state.kind === "saving"}>
           {state.kind === "saving" ? "Saving…" : state.kind === "saved" ? <><Check className="h-4 w-4" /> Saved</> : "Save settings"}
         </Button>
@@ -262,7 +259,7 @@ function Members() {
     <Card>
       <CardHeader
         title={`${members.length} members`}
-        subtitle={`${members.filter((m) => m.isAdmin).length} admins · ${members.filter((m) => m.signedIn).length} have opened the dashboard`}
+        subtitle={`${members.filter((m) => m.isAdmin).length} admins, ${members.filter((m) => m.signedIn).length} have opened the dashboard`}
         action={
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/70" />
@@ -368,15 +365,15 @@ function Moderation() {
             <Avatar name={k.giver?.name ?? "?"} src={k.giver?.avatarUrl} size={30} />
             <div className="min-w-0 flex-1">
               <div className="text-sm">
-                <b className="font-medium">{k.giver?.name}</b> <span className="text-ink/75">→</span> <b className="font-medium">{k.receiver?.name}</b>{" "}
+                <b className="font-medium">{k.giver?.name}</b> <span className="text-ink/75">gave</span> <b className="font-medium">{k.receiver?.name}</b>{" "}
                 <span className="tabular text-xs text-soil">
-                  {k.amount} {viewer.workspace.emojiGlyph}
+                  {k.amount} <span data-user-text>{viewer.workspace.emojiGlyph}</span>
                 </span>
                 {k.channel && <span className="ml-2 tabular text-xs text-ink/70">#{k.channel}</span>}
               </div>
               <p className="truncate text-xs text-ink/75">{k.text}</p>
             </div>
-            <span className="hidden text-xs text-ink/70 sm:block">{relativeTime(k.at)}</span>
+            <span className="hidden text-xs text-ink/70 @md:block">{relativeTime(k.at)}</span>
             {confirm === k._id ? (
               <Button size="sm" variant="danger" onClick={() => void revoke({ kudosId: k._id }).then(() => setConfirm(null))}>
                 Confirm
@@ -413,7 +410,7 @@ function SlackPanel({ slack, isDemo, teamId }: { slack: SlackInfo; isDemo: boole
     { label: "App manifest", value: slack.endpoints.manifest },
   ];
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+    <div className="grid grid-cols-1 gap-4">
       <Card className="p-5">
         <Eyebrow>Connection</Eyebrow>
         <div className="mt-3 flex items-center gap-3">
@@ -443,7 +440,7 @@ function SlackPanel({ slack, isDemo, teamId }: { slack: SlackInfo; isDemo: boole
         <CardHeader title="Endpoints" subtitle="Slack talks to Kudos over plain HTTPS webhooks (no Socket Mode)." />
         <ul className="space-y-2 px-5 pb-5">
           {rows.map((r) => (
-            <li key={r.label} className="flex items-center gap-3 border border-parchment-deep bg-parchment-deep/40 px-3 py-2">
+            <li key={r.label} data-endpoint className="flex items-center gap-3 border-b border-parchment-deep py-2 last:border-0">
               <div className="min-w-0 flex-1">
                 <div className="text-xs text-ink/75">{r.label}</div>
                 <div className="truncate tabular text-xs">{r.value}</div>
