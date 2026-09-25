@@ -65,4 +65,18 @@ test("the weekday by hour heatmap is drawn in stepped shades of pond, and its nu
   expect(rows).toHaveLength(7);
   expect(rows[1]).toContain("Tue");
   expect(rows[1]).toContain("8");
+  // The table is what screen readers get; the grid of cells is a picture of it.
+  expect(el.querySelector("[data-cell]")!.parentElement!.closest("[aria-hidden=true]")).not.toBeNull();
+});
+
+test("each heatmap step holds a quarter of the busiest hour: a trickle is the lightest, the busiest the deepest", () => {
+  const values = [0, 1, 25, 26, 50, 51, 75, 76, 100];
+  const data = Array.from({ length: 7 }, (_, d) => Array.from({ length: 24 }, (_, h) => (d === 0 ? (values[h] ?? 0) : 0)));
+  const el = render(<Heatmap data={data} />);
+  const cell = (h: number) => el.querySelector(`[aria-label="Mon ${String(h).padStart(2, "0")}:00, ${values[h]} kudos"]`) as HTMLElement;
+  // 0 is no step; 1 and 25 share the lightest; 26 and 50 the next; 51 and 75 pond; 76 and 100 deep pond.
+  expect(values.map((_, h) => Number(cell(h).dataset.step))).toEqual([0, 1, 1, 2, 2, 3, 3, 4, 4]);
+  expect(cell(0).style.background).toContain("parchment-deep");
+  expect(cell(6).style.background).toBe("var(--color-pond)");
+  expect(cell(8).style.background).toBe("var(--color-pond-deep)");
 });

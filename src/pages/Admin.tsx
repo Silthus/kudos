@@ -70,7 +70,7 @@ type Settings = NonNullable<ReturnType<typeof useQuery<typeof api.admin.overview
 const PIXEL_RANGE = clsx(
   "h-3 flex-1 cursor-pointer appearance-none border-2 border-bark bg-parchment-deep",
   "[&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:bg-bark [&::-webkit-slider-thumb]:shadow-[inset_0_-3px_0_0_var(--color-lantern)]",
-  "[&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:[border-radius:0] [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-bark",
+  "[&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:[border-radius:0] [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-bark [&::-moz-range-thumb]:shadow-[inset_0_-3px_0_0_var(--color-lantern)]",
 );
 
 const TIMEZONES = ["Europe/Berlin", "Europe/London", "Europe/Lisbon", "Europe/Madrid", "Europe/Stockholm", "America/New_York", "America/Chicago", "America/Los_Angeles", "Asia/Tokyo", "Asia/Kolkata", "Australia/Sydney", "UTC"];
@@ -299,7 +299,7 @@ function Members() {
                   <div className="flex items-center gap-3">
                     <Avatar name={m.name} src={m.avatarUrl} size={30} />
                     <div>
-                      <div className="font-medium">{m.name}</div>
+                      <div className="font-medium" data-user-text>{m.name}</div>
                       <div className="text-xs text-ink/70">{m.deactivated ? "Deactivated" : m.title ?? m.slackUserId}</div>
                     </div>
                   </div>
@@ -378,7 +378,7 @@ function Moderation() {
                 </span>
                 {k.channel && <span className="ml-2 tabular text-xs text-ink/70">#{k.channel}</span>}
               </div>
-              <p className="truncate text-xs text-ink/75">{k.text}</p>
+              <p className="truncate text-xs text-ink/75" data-user-text>{k.text}</p>
             </div>
             <span className="hidden text-xs text-ink/70 @md:block">{relativeTime(k.at)}</span>
             {confirm === k._id ? (

@@ -486,7 +486,9 @@ const HEAT_STEPS = [
   "var(--color-pond)",
   "var(--color-pond-deep)",
 ];
-const heatShade = (v: number, max: number) => (v <= 0 ? "var(--color-parchment-deep)" : HEAT_STEPS[Math.min(3, Math.ceil((v / max) * 4) - 1)]);
+/** The step an hour falls on: 0 for none, then 1 to 4 by quarters of the busiest hour. */
+const heatStep = (v: number, max: number) => (v <= 0 ? 0 : Math.min(4, Math.ceil((v / max) * 4)));
+const heatShade = (step: number) => (step === 0 ? "var(--color-parchment-deep)" : HEAT_STEPS[step - 1]);
 const hourLabel = (h: number) => `${String(h).padStart(2, "0")}:00`;
 
 /** Weekday × hour intensity grid in stepped shades of pond, with its numbers as a table. */
@@ -495,7 +497,7 @@ export function Heatmap({ data }: { data: number[][] }) {
   const max = Math.max(1, ...data.flat());
   return (
     <div className="relative">
-      <div className="grid gap-[2px]" style={{ gridTemplateColumns: "30px repeat(24, minmax(0, 1fr))" }}>
+      <div aria-hidden className="grid gap-[2px]" style={{ gridTemplateColumns: "30px repeat(24, minmax(0, 1fr))" }}>
         {data.map((row, d) => (
           <div key={d} className="contents">
             <div className="flex items-center tabular text-[10px] text-ink/70">{DAYS[d]}</div>
@@ -506,8 +508,8 @@ export function Heatmap({ data }: { data: number[][] }) {
                 onMouseEnter={() => setHover({ d, h })}
                 onMouseLeave={() => setHover(null)}
                 className={clsx("aspect-square", hover?.d === d && hover?.h === h && "ring-2 ring-ink")}
-                style={{ background: heatShade(v, max) }}
-                aria-label={`${DAYS[d]} ${h}:00, ${v} kudos`}
+                data-step={heatStep(v, max)} style={{ background: heatShade(heatStep(v, max)) }}
+                aria-label={`${DAYS[d]} ${hourLabel(h)}, ${v} kudos`}
               />
             ))}
           </div>
@@ -520,7 +522,7 @@ export function Heatmap({ data }: { data: number[][] }) {
         ))}
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-ink/75">
-        <span className="tabular">{hover ? `${DAYS[hover.d]} ${hourLabel(hover.h)} to ${hourLabel(hover.h + 1)}: ${nf.format(data[hover.d][hover.h])} kudos` : "Hover a cell for details"}</span>
+        <span className="tabular">{hover ? `${DAYS[hover.d]} ${hourLabel(hover.h)} to ${hourLabel((hover.h + 1) % 24)}: ${nf.format(data[hover.d][hover.h])} kudos` : "Hover a cell for details"}</span>
         <span className="flex items-center gap-1.5">
           Less
           {HEAT_STEPS.map((c) => (

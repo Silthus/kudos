@@ -59,7 +59,7 @@ function Headline({ data }: { data: Past }) {
             <Trend cur={you} prev={given.benchmark.value} compact />
           </p>
         ) : (
-          <p>Past you has nothing to show {then} yet.</p>
+          <p>You weren't here yet by this point {then}.</p>
         )
       }
       note={note || undefined}

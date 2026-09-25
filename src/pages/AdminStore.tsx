@@ -43,6 +43,7 @@ export function AdminStore({ isDemo }: { isDemo: boolean }) {
       <div className="mb-4">
         <Segmented
           size="sm"
+          label="Store section"
           value={section}
           onChange={setSection}
           options={[
@@ -109,6 +110,7 @@ function Requests({ isDemo }: { isDemo: boolean }) {
         action={
           <Segmented
             size="sm"
+            label="Requests"
             wrap
             value={filter}
             onChange={setFilter}

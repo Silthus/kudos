@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { MemoryRouter, useLocation } from "react-router";
+import { MemoryRouter, useLocation, useNavigationType } from "react-router";
 import { getFunctionName, type FunctionReference } from "convex/server";
 import { MotionGlobalConfig } from "motion/react";
 import { afterEach, expect, test, vi } from "vitest";
@@ -75,9 +75,11 @@ const viewer = {
 let root: Root | undefined;
 let host: HTMLElement;
 let location = "";
+let how = "";
 function Where() {
   const l = useLocation();
   location = l.pathname + l.search;
+  how = useNavigationType();
   return null;
 }
 afterEach(() => {
@@ -119,8 +121,42 @@ test("the URL keeps the comparison: a bare /compare is Past you this month, and 
   expect(location).toBe("/compare?vs=past&period=month");
   act(() => tabs("Compare with")[2].click());
   expect(location).toBe("/compare?vs=team&period=month");
+  expect(how, "a new benchmark is a new history entry, so Back returns to the last one").toBe("PUSH");
   act(() => tabs("Period").find((t) => t.textContent === "Quarter")!.click());
   expect(location).toBe("/compare?vs=team&period=quarter");
+  expect(how, "a period flip replaces the entry").toBe("REPLACE");
+});
+
+test("an empty race invites you to give, with the workspace's own emoji kept apart from the copy", () => {
+  const zero = (s: (number | null)[]) => s.map(() => 0);
+  const before = past.race;
+  past.race = { ...before, you: { given: zero(before.you.given), received: null }, benchmark: { given: zero(before.benchmark.given), received: null } };
+  try {
+    render("/compare?vs=past&period=month");
+    expect(host.textContent).toContain("Nothing to compare yet");
+    expect(windowPageProblems(host)).toEqual([]);
+  } finally {
+    past.race = before;
+  }
+});
+
+test("Past you before you joined: the mirror says you weren't here yet, not that last month is unfinished", () => {
+  const before = { ...past };
+  Object.assign(past, { benchmarkNote: "notMember", joinedOn: "2026-08-20", previousTotal: { given: 3, received: null } });
+  past.rows = [row("given", "giving", 14, null), ...before.rows.slice(1)];
+  try {
+    render("/compare?vs=past&period=month");
+    expect(reflection()).toContain("You weren't here yet by this point last month");
+    expect(reflection()).not.toContain("nothing to show");
+    expect(windowPageProblems(host)).toEqual([]);
+  } finally {
+    Object.assign(past, before);
+  }
+});
+
+test("every set of tabs in the pond is named for screen readers", () => {
+  render("/compare?vs=past&period=month");
+  expect([...host.querySelectorAll("[role=tablist]")].map((t) => t.getAttribute("aria-label"))).toEqual(["Compare with", "Period", "Measure"]);
 });
 
 test("Past you: the headline is a reflection, you over the water and past you mirrored in it", () => {

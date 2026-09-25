@@ -35,7 +35,7 @@ export function Analytics() {
     { label: "Participation", value: pct(k.participation), meter: k.participation, trend: k.prevParticipation !== null && lastPeriod ? <span className="text-xs text-ink/70 tabular">{pct(k.prevParticipation)} in all of {lastPeriod}</span> : null, hint: `${k.givers} of ${k.teamSize} teammates gave` },
     { label: "Avg. per giver", value: k.avgPerGiver.toFixed(1), meter: null, trend: null, hint: `${k.receivers} people were recognized` },
     { label: "Allowance used", value: pct(k.allowanceUse), meter: k.allowanceUse, trend: null, hint: `on active days, with ${k.maxedDays} maxed ${k.maxedDays === 1 ? "day" : "days"}` },
-    { label: "Top-20% share", value: pct(k.topShare), meter: k.topShare, trend: null, hint: "of kudos come from the most generous fifth" },
+    { label: "Top-20% share", value: pct(k.topShare), meter: null, trend: null, hint: "of kudos come from the most generous fifth" },
     { label: "New givers", value: nf.format(k.newGivers), meter: null, trend: null, hint: k.prevGivers !== null && lastPeriod ? `${k.retained} of ${lastPeriod}'s ${k.prevGivers} givers kept giving` : "everyone who has ever given" },
   ];
   const monthly = data.grain === "month";
@@ -44,12 +44,12 @@ export function Analytics() {
   const person = (m: { name: string; avatarUrl?: string | null } | null) => (
     <span className="flex items-center gap-2">
       <Avatar name={m?.name ?? "?"} src={m?.avatarUrl} size={22} />
-      {m?.name}
+      <span data-user-text>{m?.name}</span>
     </span>
   );
 
   return (
-    <div className={`space-y-4 ${isStale ? "[&_.pixel-frame>*]:opacity-60" : ""}`} aria-busy={isStale}>
+    <div className={`space-y-4 ${isStale ? "[&_.pixel-frame>*]:opacity-60 [&_[data-dial]]:opacity-60" : ""}`} aria-busy={isStale}>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-semibold">{rangeLabel(data.range.start, data.range.end)}</p>
@@ -63,7 +63,7 @@ export function Analytics() {
           <div key={t.label} data-dial className="border-2 border-soil bg-lantern/10 p-3 @lg:p-4">
             <Eyebrow>{t.label}</Eyebrow>
             <BigNumber value={t.value} className="mt-1 block text-3xl" />
-            <div className="mt-2 min-h-4">{t.meter !== null ? <Progress value={t.meter} max={1} /> : t.trend}</div>
+            <div className="mt-2 min-h-4">{t.meter !== null ? <Progress value={t.meter} max={1} label={t.label} /> : t.trend}</div>
             {t.meter !== null && t.trend && <div className="mt-1">{t.trend}</div>}
             <p className="mt-1 text-xs text-ink/70">{t.hint}</p>
           </div>

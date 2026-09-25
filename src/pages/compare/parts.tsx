@@ -230,6 +230,7 @@ export function Race({
         action={
           <Segmented
             size="sm"
+            label="Measure"
             value={m}
             onChange={setMeasure}
             options={[
@@ -249,7 +250,7 @@ export function Race({
         }
       />
       {empty ? (
-        <Empty icon={glyph} title="Nothing to compare yet">
+        <Empty icon={<span data-user-text>{glyph}</span>} title="Nothing to compare yet">
           {emptyCopy[m]}
         </Empty>
       ) : (

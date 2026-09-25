@@ -128,6 +128,7 @@ export function SuccessMetrics({ today }: { today: string }) {
             {showTable && (
               <div className="relative mt-4 overflow-x-auto">
                 <table id="success-table" className="w-full text-left text-sm">
+                  <caption className="sr-only">Game success metrics per month</caption>
                   <thead className="text-xs text-ink/75">
                     <tr>
                       <th className="py-2 pr-4 font-medium">Month</th>

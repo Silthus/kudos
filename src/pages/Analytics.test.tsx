@@ -56,10 +56,13 @@ vi.mock("convex/react", () => ({
 }));
 vi.mock("@/components/charts", () => ({
   BarChart: () => null, BarList: () => null, Heatmap: () => null, Legend: () => null, Sparkline: () => null,
-  DataTable: ({ children }: { children: ReactNode }) => (
+  DataTable: ({ caption, children }: { caption: string; children: ReactNode }) => (
     <details>
       <summary>Show data</summary>
-      <table>{children}</table>
+      <table>
+        <caption>{caption}</caption>
+        {children}
+      </table>
     </details>
   ),
 }));
@@ -102,7 +105,9 @@ test("the key numbers are brass dials: each rate shows as a pixel meter with its
   expect(host.querySelectorAll("[data-dial]")).toHaveLength(6);
   expect(dial("Participation").textContent).toContain("50%");
   expect(dial("Participation").querySelector("[role=progressbar]")!.getAttribute("aria-valuenow")).toBe("0.5");
-  expect(dial("Allowance used").querySelector("[role=progressbar]")).not.toBeNull();
+  expect(dial("Allowance used").querySelector("[role=progressbar]")!.getAttribute("aria-label")).toBe("Allowance used");
+  expect(dial("Participation").querySelector("[role=progressbar]")!.getAttribute("aria-label")).toBe("Participation");
+  expect(dial("Top-20% share").querySelector("[role=progressbar]"), "a fuller bar would read as better, but concentrated giving isn't").toBeNull();
   expect(dial("Kudos given").textContent).toContain("10");
 });
 
@@ -117,7 +122,8 @@ test("the daily volume keeps its numbers in a table", () => {
   const host = render(false);
   const volume = host.querySelector("#volume")!;
   expect(volume.querySelector("summary")?.textContent).toBe("Show data");
-  expect(volume.querySelector("tbody tr")?.textContent).toContain("1");
+  expect([...volume.querySelectorAll("tbody tr td")].map((td) => td.textContent)).toEqual(["Tue, Sep 1", "1", "0"]);
+  expect(volume.querySelector("caption")?.textContent).toBe("Kudos given per day");
 });
 
 test("while received kudos are private, the people who received most are a parchment footnote with a padlock", () => {

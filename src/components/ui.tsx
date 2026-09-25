@@ -206,9 +206,9 @@ export function meterFill(value: number, max: number) {
 }
 
 /** The pixel meter: a stepped bar in 4 px blocks, outlined in bark. */
-export function Progress({ value, max, color = "var(--color-lantern)", className, height = 8 }: { value: number; max: number; color?: string; className?: string; height?: number }) {
+export function Progress({ value, max, color = "var(--color-lantern)", className, height = 8, label }: { value: number; max: number; color?: string; className?: string; height?: number; label?: string }) {
   return (
-    <div className={clsx("pixel-meter w-full", className)} style={{ height }} role="progressbar" aria-valuenow={value} aria-valuemax={max}>
+    <div className={clsx("pixel-meter w-full", className)} style={{ height }} role="progressbar" aria-valuenow={value} aria-valuemax={max} aria-label={label}>
       <div data-fill style={{ "--fill": meterFill(value, max), background: color } as CSSProperties} />
     </div>
   );

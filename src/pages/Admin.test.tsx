@@ -84,7 +84,7 @@ const queries: Record<string, unknown> = {
 };
 const pages: Record<string, unknown[]> = {
   "storeAdmin:redemptions": [request],
-  "admin:recentKudos": [{ _id: "k1", giver: { name: "Alex Rivera", avatarUrl: null }, receiver: { name: "Lena Park", avatarUrl: null }, amount: 2, channel: "general", text: "Thanks for the review", at: Date.now() }],
+  "admin:recentKudos": [{ _id: "k1", giver: { name: "Alex Rivera", avatarUrl: null }, receiver: { name: "Lena Park", avatarUrl: null }, amount: 2, channel: "general", text: "Thanks for the review 🎉", at: Date.now() }],
 };
 const members = ["Alex Rivera", "Lena Park"].map((name, i) => ({
   _id: `m${i}`,
@@ -202,7 +202,9 @@ test("on a phone the members table scrolls inside its card, and nothing in it wi
     root.render(
       <MemoryRouter initialEntries={["/admin?tab=members"]}>
         <ViewerContext.Provider value={viewer}>
-          <InWindow><Admin /></InWindow>
+          <InWindow>
+            <Admin />
+          </InWindow>
         </ViewerContext.Provider>
       </MemoryRouter>,
     ),
@@ -243,6 +245,7 @@ test("the gatehouse's rooms are pixel tabs kept in ?tab=, settings first", () =>
   expect(tabs.map((t) => t.textContent)).toEqual(["Settings", "Members", "Moderation", "Store", "Bonus days", "Slack"]);
   act(() => tabs[3].click());
   expect(location).toBe("?tab=store");
+  expect([...host.querySelectorAll("[role=tablist]")].map((t) => t.getAttribute("aria-label"))).toEqual(["Gatehouse", "Store section", "Requests"]);
   expect(host.textContent).toContain("Coffee on us");
   act(() => tabs[0].click());
   expect(location).toBe("");
@@ -253,7 +256,7 @@ test("the Slack room lists every endpoint to copy, and the manifest", () => {
   const rows = [...host.querySelectorAll("[data-endpoint]")].map((r) => r.textContent);
   expect(rows).toHaveLength(5);
   expect(rows.at(-1)).toContain("App manifest");
-  expect(rows.at(-1)).toContain("https://kudos.example/slack/manifest");
+  expect(host.querySelector<HTMLAnchorElement>("[data-endpoint] a")?.getAttribute("href"), "the manifest opens as a link").toBe("https://kudos.example/slack/manifest");
 });
 
 test.each([
