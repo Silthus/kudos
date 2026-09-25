@@ -5,7 +5,8 @@ import { MemoryRouter, Route, Routes } from "react-router";
 import { getFunctionName, type FunctionReference } from "convex/server";
 import { MotionGlobalConfig } from "motion/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { describeElement, escapesFromScrollers, parchmentTextOnDusk, widensSideways } from "@/testing/layout";
+import { describeElement, escapesFromScrollers, widensSideways } from "@/testing/layout";
+import { windowPageProblems } from "@/testing/windowPage";
 import { ViewerContext, type ReadyViewer } from "@/lib/viewer";
 
 /**
@@ -86,8 +87,8 @@ function render(path = "/garden") {
       </MemoryRouter>,
     ),
   );
-  // Text written for parchment never lands on the dusk ground (#127).
-  expect(parchmentTextOnDusk(host).map(describeElement)).toEqual([]);
+  // A window page (#127, #131): no page sign, viewport breakpoint, sideways scroll, dots, arrows or emoji.
+  expect(windowPageProblems(host)).toEqual([]);
   return host;
 }
 const click = (el: Element) => act(() => (el as HTMLElement).click());
