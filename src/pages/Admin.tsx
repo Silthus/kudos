@@ -94,7 +94,7 @@ function SettingsForm({ initial, isDemo }: { initial: Settings; isDemo: boolean 
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
       {isDemo && (
-        <div className="rounded-xl border border-line-strong bg-panel-2/60 px-4 py-3 text-sm text-muted xl:col-span-2">
+        <div className="pixel-note px-4 py-3 text-sm xl:col-span-2">
           Everyone exploring the demo shares this admin account, so settings are read-only here. In your own workspace every option below is live.
         </div>
       )}
@@ -103,9 +103,9 @@ function SettingsForm({ initial, isDemo }: { initial: Settings; isDemo: boolean 
         <div className="grid grid-cols-1 gap-5 px-5 pb-5 sm:grid-cols-2">
           <Field label="Slack emoji" hint="Shortcode without colons, custom emoji work too">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-muted">:</span>
+              <span className="tabular text-ink/75">:</span>
               <input className={inputCls} value={s.emojiName} onChange={(e) => set("emojiName", e.target.value)} />
-              <span className="font-mono text-muted">:</span>
+              <span className="tabular text-ink/75">:</span>
             </div>
           </Field>
           <Field label="Web emoji" hint="Shown in the dashboard">
@@ -113,7 +113,7 @@ function SettingsForm({ initial, isDemo }: { initial: Settings; isDemo: boolean 
           </Field>
           <Field label="Daily allowance" hint="Kudos each person can give per day">
             <div className="flex items-center gap-3">
-              <input type="range" min={1} max={20} value={s.dailyLimit} onChange={(e) => set("dailyLimit", Number(e.target.value))} className="flex-1 accent-[var(--color-saffron)]" />
+              <input type="range" min={1} max={20} value={s.dailyLimit} onChange={(e) => set("dailyLimit", Number(e.target.value))} className="flex-1 accent-[var(--color-lantern)]" />
               <span className="w-10 text-right font-display text-xl font-semibold tabular">{s.dailyLimit}</span>
             </div>
           </Field>
@@ -150,20 +150,20 @@ function SettingsForm({ initial, isDemo }: { initial: Settings; isDemo: boolean 
                   key={o.v}
                   onClick={() => set("receivedVisibility", o.v)}
                   className={clsx(
-                    "rounded-xl border p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-50",
-                    s.receivedVisibility === o.v ? "border-saffron/60 bg-saffron/10" : "border-line bg-ink/40 enabled:hover:border-line-strong",
+                    "border p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-50",
+                    s.receivedVisibility === o.v ? "border-lantern/60 bg-lantern/10" : "border-parchment-deep bg-parchment-deep/40 enabled:hover:border-bark/60",
                   )}
                 >
                   <div className="flex items-center justify-between text-sm font-medium">
                     {o.title}
-                    {s.receivedVisibility === o.v && <Check className="h-4 w-4 text-saffron" />}
+                    {s.receivedVisibility === o.v && <Check className="h-4 w-4 text-soil" />}
                   </div>
-                  <p className="mt-1 text-xs text-muted">{o.body}</p>
+                  <p className="mt-1 text-xs text-ink/75">{o.body}</p>
                 </button>
               );
             })}
           </div>
-          <div className="mt-4 divide-y divide-line">
+          <div className="mt-4 divide-y divide-parchment-deep">
             <Toggle checked={s.reactionsEnabled} onChange={(v) => set("reactionsEnabled", v)} label="Reactions give kudos" description={`Reacting with :${s.emojiName}: gives the message author one kudos.`} />
             <Toggle checked={s.notifyGiver} onChange={(v) => set("notifyGiver", v)} label="Reply to givers" description="Confirm each kudos with a rarity-rolled reply, shown only to the giver where they gave it (with what it earned while the game is on)." />
             <Toggle checked={s.notifyReceiver} onChange={(v) => set("notifyReceiver", v)} label="DM receivers" description="Let people know when they've been recognized." />
@@ -181,7 +181,7 @@ function SettingsForm({ initial, isDemo }: { initial: Settings; isDemo: boolean 
             description="Private weekly goals that nudge members toward thoughtful, spread-out recognition. Rewards are collectible messages only."
           />
           {!s.questsEnabled && (
-            <p className="border-t border-line py-3 text-xs text-muted">
+            <p className="border-t border-parchment-deep py-3 text-xs text-ink/75">
               While quests are off, members see no quests on the web or in Slack and nothing counts towards them. Completed quests and collected Quest messages are kept.
             </p>
           )}
@@ -191,7 +191,7 @@ function SettingsForm({ initial, isDemo }: { initial: Settings; isDemo: boolean 
             label="The game"
             description="XP and levels for thoughtful kudos: a member plays from their first kudos. Levels show on profiles and are never ranked."
           />
-          <p className="border-t border-line py-3 text-xs text-muted">
+          <p className="border-t border-parchment-deep py-3 text-xs text-ink/75">
             {s.gameEnabled
               ? "Switching it off stops XP for every kudos until it's back on; levels and XP already earned are kept."
               : "Switching it on plays the kudos history so far through the rules, so teammates start with the levels they've earned."}
@@ -203,10 +203,10 @@ function SettingsForm({ initial, isDemo }: { initial: Settings; isDemo: boolean 
             description="Teammates join a thoughtful kudos by clicking the bot's reaction on it. Each join uses one of their kudos today and one of 5 spree joins a month, and pays out to the receivers at 5, 10, 20, 50 and 100 joiners. Works with the game off, just without XP or Hog coins."
           />
           {s.gameEnabled && (
-            <div className="space-y-4 border-t border-line py-3">
+            <div className="space-y-4 border-t border-parchment-deep py-3">
               <div>
                 <Eyebrow className="mb-1.5">Emoji to upload to Slack</Eyebrow>
-                <p className="text-xs text-muted">
+                <p className="text-xs text-ink/75">
                   Slack apps can't add emoji, so upload these once (any image). Until then they're plain text in Slack. While the game is on they give kudos: the
                   Super kudos one for everyone, each variant only for its owner, so rename any existing emoji with these names first.
                 </p>
@@ -214,7 +214,7 @@ function SettingsForm({ initial, isDemo }: { initial: Settings; isDemo: boolean 
                   {kudosEmojiNames(s.emojiName)
                     .slice(1)
                     .map((name) => (
-                      <li key={name} className="rounded-lg border border-line px-2 py-1 font-mono text-xs text-cream">
+                      <li key={name} className="border border-parchment-deep px-2 py-1 tabular text-xs text-ink">
                         :{name}:
                       </li>
                     ))}
@@ -235,7 +235,7 @@ function SettingsForm({ initial, isDemo }: { initial: Settings; isDemo: boolean 
           </Button>
         )}
         {state.kind === "error" && (
-          <span className="flex items-center gap-1.5 text-sm text-down">
+          <span className="flex items-center gap-1.5 text-sm text-ember-deep">
             <CircleAlert className="h-4 w-4" /> {state.message}
           </span>
         )}
@@ -265,20 +265,20 @@ function Members() {
         subtitle={`${members.filter((m) => m.isAdmin).length} admins · ${members.filter((m) => m.signedIn).length} have opened the dashboard`}
         action={
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/65" />
             <input className={clsx(inputCls, "w-56 pl-9")} placeholder="Search members" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
         }
       />
       {adminError && (
-        <p role="alert" className="mx-5 mb-2 flex items-center gap-1.5 text-sm text-down">
+        <p role="alert" className="mx-5 mb-2 flex items-center gap-1.5 text-sm text-ember-deep">
           <CircleAlert className="h-4 w-4 shrink-0" /> {adminError}
         </p>
       )}
       <TableScroll>
         <table className="w-full min-w-[640px] text-sm">
           <thead>
-            <tr className="text-left font-mono text-[11px] uppercase tracking-[0.12em] text-faint">
+            <tr className="text-left tabular text-[11px] text-ink/65">
               <th className="px-3 py-2 font-normal">Member</th>
               <th className="px-3 py-2 text-right font-normal">Given</th>
               <th className="px-3 py-2 text-right font-normal">Received</th>
@@ -290,42 +290,42 @@ function Members() {
           </thead>
           <tbody>
             {shown.map((m) => (
-              <tr key={m._id} className={clsx("border-t border-line", m.deactivated && "opacity-50")}>
+              <tr key={m._id} className={clsx("border-t border-parchment-deep", m.deactivated && "opacity-50")}>
                 <td className="px-3 py-2.5">
                   <div className="flex items-center gap-3">
                     <Avatar name={m.name} src={m.avatarUrl} size={30} />
                     <div>
                       <div className="font-medium">{m.name}</div>
-                      <div className="text-xs text-faint">{m.deactivated ? "Deactivated" : m.title ?? m.slackUserId}</div>
+                      <div className="text-xs text-ink/65">{m.deactivated ? "Deactivated" : m.title ?? m.slackUserId}</div>
                     </div>
                   </div>
                 </td>
-                <td className="px-3 py-2.5 text-right font-mono tabular">{nf.format(m.totalGiven)}</td>
-                <td className="px-3 py-2.5 text-right font-mono tabular" title={m.totalReceived === null ? "Hidden by the received-kudos visibility setting" : undefined}>
-                  {m.totalReceived === null ? <span className="text-faint">—</span> : nf.format(m.totalReceived)}
+                <td className="px-3 py-2.5 text-right tabular">{nf.format(m.totalGiven)}</td>
+                <td className="px-3 py-2.5 text-right tabular" title={m.totalReceived === null ? "Hidden by the received-kudos visibility setting" : undefined}>
+                  {m.totalReceived === null ? <span className="text-ink/65">—</span> : nf.format(m.totalReceived)}
                 </td>
                 {viewer.workspace.gameEnabled && (
                   <td className="px-3 py-1.5 text-right">
                     {m.balance === null ? (
-                      <span className="text-faint">—</span>
+                      <span className="text-ink/65">—</span>
                     ) : (
                       <button
                         onClick={() => setLedgerFor(m._id)}
                         title="Hog coins: earned + adjusted − spent. Open the ledger to see or adjust them."
                         aria-label={`${m.name}'s balance: ${m.balance}. Open ledger`}
                         className={clsx(
-                          "inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-mono tabular transition hover:bg-panel-3",
-                          m.balance < 0 ? "text-down" : "text-cream",
+                          "inline-flex items-center gap-1.5 px-2 py-1 tabular transition hover:bg-parchment-deep",
+                          m.balance < 0 ? "text-ember-deep" : "text-ink",
                         )}
                       >
                         {nf.format(m.balance)}
-                        <ReceiptText className="h-3.5 w-3.5 text-faint" />
+                        <ReceiptText className="h-3.5 w-3.5 text-ink/65" />
                       </button>
                     )}
                   </td>
                 )}
-                <td className="px-3 py-2.5 text-right font-mono tabular">{m.totalMaxedDays}</td>
-                <td className="px-3 py-2.5 text-right text-muted">{m.lastGivenAt ? relativeTime(m.lastGivenAt) : "never"}</td>
+                <td className="px-3 py-2.5 text-right tabular">{m.totalMaxedDays}</td>
+                <td className="px-3 py-2.5 text-right text-ink/75">{m.lastGivenAt ? relativeTime(m.lastGivenAt) : "never"}</td>
                 <td className="px-3 py-2.5 text-right">
                   <button
                     role="switch"
@@ -339,9 +339,9 @@ function Members() {
                         setAdminError(e instanceof ConvexError ? String(e.data) : "Couldn't change the admin role."),
                       );
                     }}
-                    className={clsx("relative inline-block h-5 w-9 rounded-full transition-colors disabled:opacity-50", m.isAdmin ? "bg-saffron" : "bg-panel-3")}
+                    className={clsx("relative inline-block h-5 w-9 pixel-chip transition-colors disabled:opacity-50", m.isAdmin ? "bg-lantern" : "bg-parchment-deep")}
                   >
-                    <span className={clsx("absolute top-0.5 h-4 w-4 rounded-full bg-cream transition-all", m.isAdmin ? "left-[18px]" : "left-0.5")} />
+                    <span className={clsx("absolute top-0.5 h-4 w-4 bg-bark transition-all", m.isAdmin ? "left-[18px]" : "left-0.5")} />
                   </button>
                 </td>
               </tr>
@@ -364,25 +364,25 @@ function Moderation() {
       <CardHeader title="Recent kudos" subtitle="Revoke kudos given by mistake. Totals, allowances and leaderboards update instantly." />
       <ul className="px-2 pb-3">
         {results.map((k) => (
-          <li key={k._id} className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-panel-2/50">
+          <li key={k._id} className="flex items-center gap-3 px-3 py-2.5 hover:bg-parchment-deep/50">
             <Avatar name={k.giver?.name ?? "?"} src={k.giver?.avatarUrl} size={30} />
             <div className="min-w-0 flex-1">
               <div className="text-sm">
-                <b className="font-medium">{k.giver?.name}</b> <span className="text-muted">→</span> <b className="font-medium">{k.receiver?.name}</b>{" "}
-                <span className="font-mono text-xs text-saffron">
+                <b className="font-medium">{k.giver?.name}</b> <span className="text-ink/75">→</span> <b className="font-medium">{k.receiver?.name}</b>{" "}
+                <span className="tabular text-xs text-soil">
                   {k.amount} {viewer.workspace.emojiGlyph}
                 </span>
-                {k.channel && <span className="ml-2 font-mono text-xs text-faint">#{k.channel}</span>}
+                {k.channel && <span className="ml-2 tabular text-xs text-ink/65">#{k.channel}</span>}
               </div>
-              <p className="truncate text-xs text-muted">{k.text}</p>
+              <p className="truncate text-xs text-ink/75">{k.text}</p>
             </div>
-            <span className="hidden text-xs text-faint sm:block">{relativeTime(k.at)}</span>
+            <span className="hidden text-xs text-ink/65 sm:block">{relativeTime(k.at)}</span>
             {confirm === k._id ? (
               <Button size="sm" variant="danger" onClick={() => void revoke({ kudosId: k._id }).then(() => setConfirm(null))}>
                 Confirm
               </Button>
             ) : (
-              <button onClick={() => setConfirm(k._id)} className="rounded-lg p-2 text-faint hover:bg-down/10 hover:text-down" aria-label="Revoke kudos">
+              <button onClick={() => setConfirm(k._id)} className="p-2 text-ink/65 hover:bg-ember/10 hover:text-ember-deep" aria-label="Revoke kudos">
                 <Trash2 className="h-4 w-4" />
               </button>
             )}
@@ -413,18 +413,18 @@ function SlackPanel({ slack, isDemo, teamId }: { slack: SlackInfo; isDemo: boole
     { label: "App manifest", value: slack.endpoints.manifest },
   ];
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_1.4fr]">
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
       <Card className="p-5">
         <Eyebrow>Connection</Eyebrow>
         <div className="mt-3 flex items-center gap-3">
-          <span className={clsx("h-2.5 w-2.5 rounded-full", slack.connected ? "bg-up shadow-[0_0_12px_var(--color-up)]" : "bg-faint")} />
+          <span className={clsx("h-2.5 w-2.5", slack.connected ? "bg-hedge" : "bg-ink/65")} />
           <span className="font-display text-xl font-semibold">{isDemo ? "Demo workspace" : slack.connected ? "Connected to Slack" : "Not connected"}</span>
         </div>
         <dl className="mt-4 space-y-2 text-sm">
-          <div className="flex justify-between"><dt className="text-muted">Team ID</dt><dd className="font-mono">{teamId}</dd></div>
-          <div className="flex justify-between"><dt className="text-muted">Bot user</dt><dd className="font-mono">{slack.botUserId ?? "–"}</dd></div>
-          <div className="flex justify-between"><dt className="text-muted">Signing secret</dt><dd>{slack.signingSecretConfigured ? "configured" : "missing"}</dd></div>
-          <div className="flex justify-between"><dt className="text-muted">OAuth credentials</dt><dd>{slack.oauthConfigured ? "configured" : "missing"}</dd></div>
+          <div className="flex justify-between"><dt className="text-ink/75">Team ID</dt><dd className="tabular">{teamId}</dd></div>
+          <div className="flex justify-between"><dt className="text-ink/75">Bot user</dt><dd className="tabular">{slack.botUserId ?? "–"}</dd></div>
+          <div className="flex justify-between"><dt className="text-ink/75">Signing secret</dt><dd>{slack.signingSecretConfigured ? "configured" : "missing"}</dd></div>
+          <div className="flex justify-between"><dt className="text-ink/75">OAuth credentials</dt><dd>{slack.oauthConfigured ? "configured" : "missing"}</dd></div>
         </dl>
         <div className="mt-5 flex flex-wrap gap-2">
           <a href={slack.endpoints.install}>
@@ -443,10 +443,10 @@ function SlackPanel({ slack, isDemo, teamId }: { slack: SlackInfo; isDemo: boole
         <CardHeader title="Endpoints" subtitle="Slack talks to Kudos over plain HTTPS webhooks (no Socket Mode)." />
         <ul className="space-y-2 px-5 pb-5">
           {rows.map((r) => (
-            <li key={r.label} className="flex items-center gap-3 rounded-xl border border-line bg-ink/40 px-3 py-2">
+            <li key={r.label} className="flex items-center gap-3 border border-parchment-deep bg-parchment-deep/40 px-3 py-2">
               <div className="min-w-0 flex-1">
-                <div className="text-xs text-muted">{r.label}</div>
-                <div className="truncate font-mono text-xs">{r.value}</div>
+                <div className="text-xs text-ink/75">{r.label}</div>
+                <div className="truncate tabular text-xs">{r.value}</div>
               </div>
               <CopyButton text={r.value} />
             </li>

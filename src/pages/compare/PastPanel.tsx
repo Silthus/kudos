@@ -31,26 +31,26 @@ function Headline({ data }: { data: Past }) {
   const you = given.you.value ?? 0;
   const unit = you === 1 ? viewer.workspace.unitSingular : viewer.workspace.unitPlural;
   return (
-    <Card className="grain overflow-hidden px-6 py-6 sm:px-8">
+    <Card className="relative overflow-hidden px-6 py-6 sm:px-8">
       <Eyebrow>
         {rangeLabel(data.range.start, data.range.end)}
         {data.benchmarkNote === null && ` vs ${rangeLabel(data.benchmarkRange.start, data.benchmarkRange.end)}`}
       </Eyebrow>
       <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-2">
-        <p className="text-lg text-muted">
-          <BigNumber value={you} className="mr-2 text-5xl text-cream [font-variant-numeric:proportional-nums]" />
+        <p className="text-lg text-ink/75">
+          <BigNumber value={you} className="mr-2 text-5xl text-ink [font-variant-numeric:proportional-nums]" />
           {unit} given {data.label.toLowerCase()}
         </p>
         {given.benchmark.value !== null && (
-          <span className="inline-flex items-center gap-2 text-sm text-muted">
+          <span className="inline-flex items-center gap-2 text-sm text-ink/75">
             <Trend cur={you} prev={given.benchmark.value} compact />
             <span>
-              vs <b className="font-medium text-cream tabular">{nf.format(given.benchmark.value)}</b> by this point {data.benchmarkLabel.toLowerCase()}
+              vs <b className="font-medium text-ink tabular">{nf.format(given.benchmark.value)}</b> by this point {data.benchmarkLabel.toLowerCase()}
             </span>
           </span>
         )}
       </div>
-      <p className="mt-2 text-sm text-faint">
+      <p className="mt-2 text-sm text-ink/65">
         {data.benchmarkNote === "notMember" &&
           (data.previousTotal.given === null
             ? `You joined on ${joined(data.joinedOn!)}, so there's no ${data.benchmarkLabel.toLowerCase()} to compare with yet.`
@@ -71,13 +71,13 @@ function PastScoreboard({ data }: { data: Past }) {
       subtitle={`${data.label} so far vs the same days ${data.benchmarkLabel.toLowerCase()}`}
       deltaHeader="Change"
       renderDelta={(r) => <Delta row={r} />}
-      footnote={data.truncated && <span className="text-xs text-faint">Too many kudos this period to count reach and channels.</span>}
+      footnote={data.truncated && <span className="text-xs text-ink/65">Too many kudos this period to count reach and channels.</span>}
     />
   );
 }
 
 function Delta({ row }: { row: Row }) {
-  if (row.delta === null || row.benchmark.value === null || row.you.value === null) return <span className="text-xs text-faint">—</span>;
+  if (row.delta === null || row.benchmark.value === null || row.you.value === null) return <span className="text-xs text-ink/65">—</span>;
   return <Trend cur={row.you.value} prev={row.benchmark.value} compact />;
 }
 

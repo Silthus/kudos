@@ -46,8 +46,8 @@ export function QuestBoardBody({ board, size = "md" }: { board: QuestBoard; size
         <Locked title="Quests" level={board.locked.level} how={`You're level ${board.locked.current}. Thoughtful kudos get you there; then this board and a daily quest pay XP and Hog coins.`} />
         <ul className="space-y-1.5" aria-label="This week's quests, locked">
           {[...board.quests.map((q) => q.title), ...(board.daily ? [`Today: ${board.daily.title}`] : [])].map((title) => (
-            <li key={title} className="flex items-center gap-2 rounded-lg border border-dashed border-line px-3 py-2 text-sm text-muted">
-              <Lock className="h-3.5 w-3.5 shrink-0 text-faint" aria-hidden />
+            <li key={title} className="flex items-center gap-2 border border-dashed border-parchment-deep px-3 py-2 text-sm text-ink/75">
+              <Lock className="h-3.5 w-3.5 shrink-0 text-ink/65" aria-hidden />
               {title}
             </li>
           ))}
@@ -64,7 +64,7 @@ export function QuestBoardBody({ board, size = "md" }: { board: QuestBoard; size
       </ul>
       {board.daily && <DailyQuestItem daily={board.daily} reward={board.rewards?.daily ?? null} />}
       {board.rewards && (
-        <p className="text-xs text-faint">
+        <p className="text-xs text-ink/65">
           Each weekly quest {rewardLabel(board.rewards.weekly)} · clean sweep +{board.rewards.sweep.xp} XP
         </p>
       )}
@@ -76,28 +76,28 @@ export function QuestBoardBody({ board, size = "md" }: { board: QuestBoard; size
 function DailyQuestItem({ daily, reward }: { daily: NonNullable<QuestBoard["daily"]>; reward: Reward | null }) {
   const done = daily.status === "done";
   return (
-    <div data-daily-quest className={clsx("rounded-xl border p-3.5", done ? "border-up/25 bg-up/[0.06]" : "border-saffron/30 bg-saffron/[0.04]")}>
+    <div data-daily-quest className={clsx("border p-3.5", done ? "border-hedge/25 bg-hedge/[0.06]" : "border-lantern/30 bg-lantern/[0.04]")}>
       <div className="flex items-center justify-between gap-3">
-        <span className="text-[11px] font-medium tracking-wide text-saffron uppercase">Today's quest</span>
-        {reward && <span className="font-mono text-[11px] text-muted tabular">{rewardLabel(reward)}</span>}
+        <span className="text-[11px] font-medium text-soil">Today's quest</span>
+        {reward && <span className="text-[11px] text-ink/75 tabular">{rewardLabel(reward)}</span>}
       </div>
       <div className="mt-1.5 flex items-start gap-3">
-        <span className={clsx("mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full", done ? "bg-up text-ink" : "border border-line-strong")} {...(done ? { "data-done": true } : {})}>
+        <span className={clsx("mt-0.5 grid h-5 w-5 shrink-0 place-items-center", done ? "bg-hedge text-ink" : "border border-bark/60")} {...(done ? { "data-done": true } : {})}>
           {done && <Check className="h-3 w-3" strokeWidth={3} />}
           <span className="sr-only">{done ? "Done" : "Open"}</span>
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-3">
             <span className="text-sm font-medium">{daily.title}</span>
-            <span className="font-mono text-xs text-muted tabular">
+            <span className="text-xs text-ink/75 tabular">
               {daily.progress}/{daily.goal}
             </span>
           </div>
-          <p className="text-xs text-muted">{daily.description}</p>
+          <p className="text-xs text-ink/75">{daily.description}</p>
           {done && daily.completedAt ? (
-            <p className="mt-1 text-[11px] text-faint">Completed {relativeTime(daily.completedAt)}</p>
+            <p className="mt-1 text-[11px] text-ink/65">Completed {relativeTime(daily.completedAt)}</p>
           ) : (
-            <p className="mt-1 text-[11px] text-faint">A new one tomorrow; missing it costs nothing.</p>
+            <p className="mt-1 text-[11px] text-ink/65">A new one tomorrow; missing it costs nothing.</p>
           )}
         </div>
       </div>
@@ -113,17 +113,17 @@ export function QuestItem({ quest: q, size = "md" }: { quest: QuestRow; size?: "
   return (
     <li
       className={clsx(
-        "rounded-xl border transition-colors",
+        "border transition-colors",
         large ? "p-4" : "p-3.5",
-        done ? "border-up/25 bg-up/[0.06]" : waived ? "border-dashed border-line bg-transparent" : "border-line bg-ink/40",
+        done ? "border-hedge/25 bg-hedge/[0.06]" : waived ? "border-dashed border-parchment-deep bg-transparent" : "border-parchment-deep bg-parchment-deep/40",
       )}
     >
       <div className="flex items-start gap-3">
         <span
           className={clsx(
-            "mt-0.5 grid shrink-0 place-items-center rounded-full",
+            "mt-0.5 grid shrink-0 place-items-center",
             large ? "h-6 w-6" : "h-5 w-5",
-            done ? "bg-up text-ink" : waived ? "bg-panel-3 text-faint" : "border border-line-strong",
+            done ? "bg-hedge text-ink" : waived ? "bg-parchment-deep text-ink/65" : "border border-bark/60",
           )}
         >
           {done && <Check className="h-3 w-3" strokeWidth={3} />}
@@ -134,18 +134,18 @@ export function QuestItem({ quest: q, size = "md" }: { quest: QuestRow; size?: "
           <div className="flex items-center justify-between gap-3">
             <span className={clsx("font-medium", large ? "text-base" : "text-sm")}>{q.title}</span>
             {!waived && (
-              <span className="font-mono text-xs text-muted tabular">
+              <span className="text-xs text-ink/75 tabular">
                 {q.progress}/{q.goal}
               </span>
             )}
           </div>
-          <p className={clsx("text-muted", large ? "text-sm" : "text-xs")}>{q.description}</p>
-          {waived && <p className="mt-1 text-xs text-faint">Not available this week · {waivedCopy(q.key, q.waivedReason)}</p>}
+          <p className={clsx("text-ink/75", large ? "text-sm" : "text-xs")}>{q.description}</p>
+          {waived && <p className="mt-1 text-xs text-ink/65">Not available this week · {waivedCopy(q.key, q.waivedReason)}</p>}
           {q.status === "active" && <Progress value={q.progress} max={q.goal} className="mt-2" height={large ? 6 : 4} />}
           {done && (q.completedAt || q.messageRarity) && (
-            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-faint">
+            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-ink/65">
               {q.messageRarity && (
-                <Link to="/discoveries?category=quest_complete" title="See your Quest messages in the gallery" className="rounded-full transition hover:opacity-80">
+                <Link to="/discoveries?category=quest_complete" title="See your Quest messages in the gallery" className="transition hover:opacity-80">
                   <RarityBadge rarity={q.messageRarity} size="xs" />
                 </Link>
               )}

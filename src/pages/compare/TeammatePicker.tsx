@@ -60,7 +60,7 @@ export function TeammatePicker({
     <Dialog open={open} onClose={onClose} title="Compare with a teammate" subtitle="A side-by-side look at the same period. Nobody wins here.">
       <label className="relative block">
         <span className="sr-only">Search teammates</span>
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" aria-hidden />
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/65" aria-hidden />
         <input
           data-autofocus
           value={search}
@@ -83,7 +83,7 @@ export function TeammatePicker({
             ))}
           </div>
         ) : matches.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted">{candidates.length === 0 ? "Nobody else to compare with yet." : `Nobody matches “${search.trim()}”.`}</p>
+          <p className="py-6 text-center text-sm text-ink/75">{candidates.length === 0 ? "Nobody else to compare with yet." : `Nobody matches “${search.trim()}”.`}</p>
         ) : (
           <ul id={listId} role="listbox" aria-label="Teammates" className="space-y-1">
             {matches.map((m, i) => (
@@ -94,16 +94,16 @@ export function TeammatePicker({
                   onClick={() => pick(m._id)}
                   onMouseEnter={() => setActive(i)}
                   className={clsx(
-                    "flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors",
-                    i === active ? "bg-panel-2" : "hover:bg-panel-2/60",
+                    "flex w-full items-center gap-3 px-3 py-2 text-left transition-colors",
+                    i === active ? "bg-parchment-deep/50" : "hover:bg-parchment-deep/50",
                   )}
                 >
                   <Avatar name={m.name} src={m.avatarUrl} size={32} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-cream">{m.name}</span>
-                    {(m.title || m.realName) && <span className="block truncate text-xs text-faint">{m.title || m.realName}</span>}
+                    <span className="block truncate text-sm font-medium text-ink">{m.name}</span>
+                    {(m.title || m.realName) && <span className="block truncate text-xs text-ink/65">{m.title || m.realName}</span>}
                   </span>
-                  {m._id === selectedId && <span className="font-mono text-[10px] uppercase tracking-wider text-muted">Current</span>}
+                  {m._id === selectedId && <span className="tabular text-[10px] text-ink/75">Current</span>}
                 </button>
               </li>
             ))}

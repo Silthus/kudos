@@ -52,9 +52,9 @@ export function Garden() {
       <div>
         {header}
         <Card>
-          <Empty icon={<Sprout className="h-7 w-7 text-faint" />} title={title}>
+          <Empty icon={<Sprout className="h-7 w-7 text-ink/65" />} title={title}>
             {body}{" "}
-            <Link to="/me" className="text-saffron underline-offset-4 hover:underline">
+            <Link to="/me" className="text-soil underline-offset-4 hover:underline">
               Back to your kudos
             </Link>
           </Empty>
@@ -91,7 +91,7 @@ function OwnGarden({ garden, sunlamps }: { garden: OpenGarden; sunlamps: number 
   return (
     <>
       <Harvest garden={garden} />
-      <div className="flex items-baseline justify-between gap-3 text-xs text-muted">
+      <div className="flex items-baseline justify-between gap-3 text-xs text-ink/75">
         <span>
           {plural(garden.plants.length, "plant", "plants")} · {plural(garden.plots, "plot", "plots")}
           {garden.plants.length > garden.plots && " (uproot one to plant again)"}
@@ -145,34 +145,34 @@ function PlantFace({
       data-plot
       data-plant={plant.plantId}
       data-dormant={plant.dormant ? "true" : "false"}
-      className={clsx("flex gap-3 p-4", plant.dormant && "border-saffron-deep/40 bg-saffron-deep/5", forYou && "border-saffron/50")}
+      className={clsx("flex gap-3 p-4", plant.dormant && "border-soil/40 bg-soil/5", forYou && "border-lantern/50")}
     >
       <PlantArt stage={plant.stage as StageKey} species={plant.species} dormant={plant.dormant} fruit={fruit} goldenLeaves={plant.goldenLeaves ?? 0} size={96} />
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="truncate font-medium text-cream">{plant.speciesName}</div>
-            {forName && <div className="truncate text-xs text-muted">for {forName}</div>}
-            {forYou && <div className="text-xs font-medium text-saffron">Growing for you</div>}
+            <div className="truncate font-medium text-ink">{plant.speciesName}</div>
+            {forName && <div className="truncate text-xs text-ink/75">for {forName}</div>}
+            {forYou && <div className="text-xs font-medium text-soil">Growing for you</div>}
           </div>
           {action}
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
-          <span className="rounded-full border border-line-strong px-2 py-0.5 text-cream/80">{plant.stageName}</span>
-          {plant.dormant && <span className="rounded-full bg-saffron-deep/20 px-2 py-0.5 text-saffron">Dormant</span>}
-          {fruit > 0 && <span className="rounded-full bg-saffron/15 px-2 py-0.5 text-saffron">{plural(fruit, "fruit", "fruit")}</span>}
+          <span className="border border-bark/60 px-2 py-0.5 text-ink">{plant.stageName}</span>
+          {plant.dormant && <span className="bg-soil/20 px-2 py-0.5 text-soil">Dormant</span>}
+          {fruit > 0 && <span className="bg-lantern/15 px-2 py-0.5 text-soil">{plural(fruit, "fruit", "fruit")}</span>}
           {(plant.goldenLeaves ?? 0) > 0 && (
             // A golden leaf per Super kudos you sent them (#98), drawn on the plant too (#101).
-            <span data-art-slot="golden-leaf" className="rounded-full bg-[#f7a501]/20 px-2 py-0.5 text-[#fde68a]">
+            <span data-art-slot="golden-leaf" className="bg-[#f7a501]/20 px-2 py-0.5 text-[#fde68a]">
               {plural(plant.goldenLeaves!, "golden leaf", "golden leaves")}
             </span>
           )}
         </div>
-        {plant.next !== undefined && <p className="mt-2 text-xs text-muted">{stageLine(plant as Grown)}</p>}
-        {plant.dormant && forName && <p className="mt-1 text-xs text-muted">Dormant for now: thank {forName} with a few words on why to wake it.</p>}
+        {plant.next !== undefined && <p className="mt-2 text-xs text-ink/75">{stageLine(plant as Grown)}</p>}
+        {plant.dormant && forName && <p className="mt-1 text-xs text-ink/75">Dormant for now: thank {forName} with a few words on why to wake it.</p>}
         {plant.lantern && (
-          <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-saffron/10 px-2 py-1.5 text-xs text-cream/90">
-            <Lamp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-saffron" aria-hidden />
+          <p className="mt-2 flex items-start gap-1.5 bg-lantern/10 px-2 py-1.5 text-xs text-ink">
+            <Lamp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-soil" aria-hidden />
             <span className="min-w-0 flex-1 break-words">
               Lantern from {plant.lantern.by}: “{plant.lantern.note}”
             </span>
@@ -182,7 +182,7 @@ function PlantFace({
                 aria-label={`Take down ${plant.lantern.by}'s lantern`}
                 title="Take it down"
                 onClick={onTakeDownLantern}
-                className="shrink-0 rounded p-0.5 text-faint hover:text-muted"
+                className="shrink-0 p-0.5 text-ink/65 hover:text-ink/75"
               >
                 <X className="h-3.5 w-3.5" aria-hidden />
               </button>
@@ -217,11 +217,11 @@ function PlantCard({ plant, sunlamps, onUproot }: { plant: Grown; sunlamps: numb
               <Sun className="h-3.5 w-3.5" aria-hidden /> Use a Sunlamp · 5 days sooner
             </Button>
           )}
-          {error && <p className="mt-1 text-xs text-down">{error}</p>}
+          {error && <p className="mt-1 text-xs text-ember-deep">{error}</p>}
         </>
       }
       action={
-        <button type="button" aria-label={label} title={label} onClick={onUproot} className="rounded-lg p-1 text-faint transition hover:bg-panel-2 hover:text-muted">
+        <button type="button" aria-label={label} title={label} onClick={onUproot} className="p-1 text-ink/65 transition hover:bg-parchment-deep/50 hover:text-ink/75">
           <Shovel className="h-4 w-4" aria-hidden />
         </button>
       }
@@ -231,17 +231,17 @@ function PlantCard({ plant, sunlamps, onUproot }: { plant: Grown; sunlamps: numb
 
 function EmptyPlot({ canPlant, onPlant }: { canPlant: boolean; onPlant: () => void }) {
   return (
-    <div data-plot className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-line-strong px-4 py-6 text-center">
+    <div data-plot className="flex flex-col items-center justify-center gap-2 border border-dashed border-bark/60 px-4 py-6 text-center">
       <div className="relative">
         <PlantArt stage="seed" size={72} />
         {/* A gardening hoggie waits by the plot: PostHog's art, nothing if it can't load. */}
         <RemoteArt slot="hoggie-empty-plot" fit="contain" className="absolute -right-12 bottom-0 h-14 w-14" />
       </div>
-      <div className="text-sm font-medium text-cream/70">Empty plot</div>
+      <div className="text-sm font-medium text-ink">Empty plot</div>
       <Button size="sm" onClick={onPlant} disabled={!canPlant}>
         Plant a seed
       </Button>
-      {!canPlant && <p className="max-w-[16rem] text-xs text-muted">Thank a teammate in Slack with a few words on why. For 7 days after, you can plant for them here.</p>}
+      {!canPlant && <p className="max-w-[16rem] text-xs text-ink/75">Thank a teammate in Slack with a few words on why. For 7 days after, you can plant for them here.</p>}
     </div>
   );
 }
@@ -267,15 +267,15 @@ function Harvest({ garden }: { garden: OpenGarden }) {
   };
   return (
     <Card className="flex flex-wrap items-center gap-3 p-4">
-      <Apple className="h-5 w-5 shrink-0 text-saffron" aria-hidden />
+      <Apple className="h-5 w-5 shrink-0 text-soil" aria-hidden />
       <div className="min-w-0 flex-1 text-sm">
-        <div className="font-medium text-cream">{fruit.length > 0 ? `${plural(fruit.length, "fruit", "fruit")} waiting · ${coins(worth)}` : "No fruit waiting"}</div>
-        <div className="text-xs text-muted">
+        <div className="font-medium text-ink">{fruit.length > 0 ? `${plural(fruit.length, "fruit", "fruit")} waiting · ${coins(worth)}` : "No fruit waiting"}</div>
+        <div className="text-xs text-ink/75">
           A Grown plant fruits daily while you've thanked its teammate in the last 14 days, and holds {harvest.hold}. This week from fruit: {harvest.weekCoins} of {harvest.capCoins} Hog coins ·{" "}
           {harvest.weekXp} of {harvest.capXp} XP.
         </div>
         {result && (
-          <div role="status" className="mt-1 text-xs text-saffron">
+          <div role="status" className="mt-1 text-xs text-soil">
             {result}
           </div>
         )}
@@ -329,7 +329,7 @@ function PlantDialog({ garden, open, onClose }: { garden: OpenGarden; open: bool
       }
     >
       <div className="flex flex-col gap-3 p-5">
-        <p className="text-sm text-muted">Teammates you thanked thoughtfully in the last 7 days:</p>
+        <p className="text-sm text-ink/75">Teammates you thanked thoughtfully in the last 7 days:</p>
         <ul className="grid gap-2 sm:grid-cols-2">
           {garden.candidates.map((c) => (
             <li key={c.memberId}>
@@ -339,8 +339,8 @@ function PlantDialog({ garden, open, onClose }: { garden: OpenGarden; open: bool
                 aria-pressed={teammate === c.memberId}
                 onClick={() => setTeammate(c.memberId)}
                 className={clsx(
-                  "flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm transition",
-                  teammate === c.memberId ? "border-saffron bg-saffron/10 text-cream" : "border-line-strong text-cream/80 hover:bg-panel-2",
+                  "flex w-full items-center gap-2 border px-3 py-2 text-left text-sm transition",
+                  teammate === c.memberId ? "border-lantern bg-lantern/10 text-ink" : "border-bark/60 text-ink hover:bg-parchment-deep/50",
                 )}
               >
                 <Avatar name={c.name} src={c.avatarUrl} size={24} />
@@ -351,8 +351,8 @@ function PlantDialog({ garden, open, onClose }: { garden: OpenGarden; open: bool
         </ul>
         {garden.species.length > 0 && (
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-muted">Species (your plant picker)</span>
-            <select value={species} onChange={(e) => setSpecies(e.target.value)} className="h-10 rounded-xl border border-line-strong bg-ink/60 px-3 text-cream">
+            <span className="text-ink/75">Species (your plant picker)</span>
+            <select value={species} onChange={(e) => setSpecies(e.target.value)} className="h-10 border border-bark/60 bg-parchment-deep/40 px-3 text-ink">
               <option value="">Pick one for me</option>
               {garden.species.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -363,9 +363,9 @@ function PlantDialog({ garden, open, onClose }: { garden: OpenGarden; open: bool
             </select>
           </label>
         )}
-        {short && <p className="text-xs text-muted">Thoughtful kudos earn Hog coins: you need {garden.cost - garden.balance} more.</p>}
+        {short && <p className="text-xs text-ink/75">Thoughtful kudos earn Hog coins: you need {garden.cost - garden.balance} more.</p>}
         {error && (
-          <p role="alert" className="text-sm text-down">
+          <p role="alert" className="text-sm text-ember-deep">
             {error}
           </p>
         )}
@@ -412,7 +412,7 @@ function UprootDialog({ plant, onClose }: { plant: Grown | null; onClose: () => 
     >
       <div className="px-5 py-3">
         {error && (
-          <p role="alert" className="text-sm text-down">
+          <p role="alert" className="text-sm text-ember-deep">
             {error}
           </p>
         )}
@@ -428,29 +428,29 @@ function GrownForYou({ plants }: { plants: ForMe }) {
   if (plants.length === 0) return null;
   return (
     <Card>
-      <CardHeader title="Grown for you" subtitle="Only you can see these plants are yours." icon={<Flower2 className="h-4 w-4 text-saffron" />} />
+      <CardHeader title="Grown for you" subtitle="Only you can see these plants are yours." icon={<Flower2 className="h-4 w-4 text-soil" />} />
       <ul className="px-5 pb-5">
         {plants.map((p) => (
-          <li key={p.plantId} className="flex items-center gap-3 border-t border-line py-2.5 first:border-t-0">
+          <li key={p.plantId} className="flex items-center gap-3 border-t border-parchment-deep py-2.5 first:border-t-0">
             <PlantArt stage={p.stage as StageKey} species={p.species} dormant={p.dormant} goldenLeaves={p.goldenLeaves} size={48} />
             <div className="min-w-0 flex-1">
-              <div className="text-sm text-cream">
+              <div className="text-sm text-ink">
                 {p.ownerName} is growing a {p.speciesName} for you
               </div>
-              <div className="text-xs text-muted">
+              <div className="text-xs text-ink/75">
                 {p.dormant ? `${p.stageName}, dormant for now` : p.stageName}
                 {p.goldenLeaves > 0 && <span className="text-[#fde68a]"> · {plural(p.goldenLeaves, "golden leaf", "golden leaves")} from {p.ownerName}'s Super kudos</span>}
               </div>
               {p.lantern && (
-                <div className="text-xs text-cream/80">
+                <div className="text-xs text-ink">
                   Lantern from {p.lantern.by}: “{p.lantern.note}”{" "}
-                  <button type="button" className="text-faint underline-offset-4 hover:text-muted hover:underline" onClick={() => void takeDown({ plantId: p.plantId }).catch(() => {})}>
+                  <button type="button" className="text-ink/65 underline-offset-4 hover:text-ink/75 hover:underline" onClick={() => void takeDown({ plantId: p.plantId }).catch(() => {})}>
                     Take it down
                   </button>
                 </div>
               )}
             </div>
-            <Link to={`/garden/${p.ownerId}`} className="shrink-0 text-xs text-saffron underline-offset-4 hover:underline">
+            <Link to={`/garden/${p.ownerId}`} className="shrink-0 text-xs text-soil underline-offset-4 hover:underline">
               {p.ownerName}'s garden
             </Link>
           </li>
@@ -467,15 +467,15 @@ function Memories({ memories }: { memories: OpenGarden["memories"] }) {
       <CardHeader title="Memories" subtitle="Plants you uprooted, and plants grown for teammates who left." />
       <ul data-memories className="px-5 pb-5">
         {memories.map((m) => (
-          <li key={m.plantId} className="flex items-center justify-between gap-3 border-t border-line py-2 text-sm first:border-t-0">
+          <li key={m.plantId} className="flex items-center justify-between gap-3 border-t border-parchment-deep py-2 text-sm first:border-t-0">
             {/* A memory is the plant as it was, faded. */}
             <span className="opacity-60 grayscale-[40%]">
               <PlantArt stage={stageKeyOf(m.stageName)} species={m.species} size={40} />
             </span>
-            <span className="min-w-0 flex-1 truncate text-cream/80">
+            <span className="min-w-0 flex-1 truncate text-ink">
               {m.speciesName} for {m.forName}
             </span>
-            <span className="shrink-0 text-xs text-muted">
+            <span className="shrink-0 text-xs text-ink/75">
               {m.stageName} · {m.reason === "left" ? "they left" : `uprooted ${m.memoryDay}`}
             </span>
           </li>
@@ -497,9 +497,9 @@ export function GardenOf() {
       <div>
         <PageHeader eyebrow="Gardens" title="Garden" />
         <Card>
-          <Empty icon={<Sprout className="h-7 w-7 text-faint" />} title="This garden isn't here">
+          <Empty icon={<Sprout className="h-7 w-7 text-ink/65" />} title="This garden isn't here">
             It may belong to someone who left, or the game is off or hidden.{" "}
-            <Link to="/garden" className="text-saffron underline-offset-4 hover:underline">
+            <Link to="/garden" className="text-soil underline-offset-4 hover:underline">
               Your garden
             </Link>
           </Empty>
@@ -512,7 +512,7 @@ export function GardenOf() {
       <PageHeader eyebrow="Gardens" title={`${garden.name}'s garden`} subtitle="Every plant here is for a teammate. Only they know which one is theirs." />
       {garden.plants.length === 0 ? (
         <Card>
-          <Empty icon={<Sprout className="h-7 w-7 text-faint" />} title="Nothing planted yet" />
+          <Empty icon={<Sprout className="h-7 w-7 text-ink/65" />} title="Nothing planted yet" />
         </Card>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -556,7 +556,7 @@ function LanternForm({ plantId, lanterns }: { plantId: Id<"plants">; lanterns: n
     <div className="mt-2 flex flex-col gap-1.5">
       <input
         aria-label="Lantern note"
-        className="h-8 w-full rounded-lg border border-line-strong bg-ink/60 px-2 text-xs text-cream outline-none focus:border-saffron/60"
+        className="h-8 w-full border border-bark/60 bg-parchment-deep/40 px-2 text-xs text-ink outline-none focus:border-lantern/60"
         maxLength={LANTERN.maxChars}
         placeholder="One line for everyone who sees this plant"
         value={note}
@@ -570,9 +570,9 @@ function LanternForm({ plantId, lanterns }: { plantId: Id<"plants">; lanterns: n
         <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
           Not now
         </Button>
-        <span className="ml-auto text-[10px] text-faint">Glows for {LANTERN.days} days</span>
+        <span className="ml-auto text-[10px] text-ink/65">Glows for {LANTERN.days} days</span>
       </div>
-      {error && <p className="text-xs text-down">{error}</p>}
+      {error && <p className="text-xs text-ember-deep">{error}</p>}
     </div>
   );
 }

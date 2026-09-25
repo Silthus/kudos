@@ -23,7 +23,7 @@ export function MessageText({ text, emoji }: { text: string; emoji: string }) {
         if (!m) return <Fragment key={i}>{p}</Fragment>;
         if (m[1] === "emoji") return <span key={i}>{emoji}</span>;
         return (
-          <span key={i} className="mx-0.5 inline-flex -translate-y-px items-center rounded-md border border-line-strong bg-panel-3 px-1.5 py-px font-mono text-[0.78em] text-muted">
+          <span key={i} className="mx-0.5 inline-flex -translate-y-px items-center border border-bark/60 bg-parchment-deep px-1.5 py-px tabular text-[0.78em] text-ink/75">
             {LABELS[m[1]] ?? m[1]}
           </span>
         );

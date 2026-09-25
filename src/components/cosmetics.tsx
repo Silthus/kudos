@@ -26,7 +26,7 @@ export function Art({ art, className, round }: { art: ArtSlot; className?: strin
     <RemoteArt
       slot={art.slot}
       fit={art.slot.startsWith("hoggie-") ? "contain" : "cover"}
-      className={clsx(round ? "rounded-full" : "rounded-xl", className)}
+      className={clsx(round ? "rounded-full" : "", className)}
       fallback={<span data-placeholder className="absolute inset-0" style={{ background: gradient(art.colors) }} />}
     />
   );
@@ -87,19 +87,19 @@ export function LookCard({ memberId, today }: { memberId: Id<"members">; today: 
   const owned = COSMETICS.filter((c) => mine.owned.includes(c.key));
   return (
     <Card>
-      <CardHeader title="Your look" subtitle="What teammates see next to your name." icon={<Palette className="h-4 w-4 text-saffron" />} />
+      <CardHeader title="Your look" subtitle="What teammates see next to your name." icon={<Palette className="h-4 w-4 text-soil" />} />
       <div className="px-5 pb-5">
-        <div className="relative overflow-hidden rounded-2xl border border-line">
-          {banner ? <Art art={banner.art} className="h-20 w-full rounded-none" /> : <div className="h-20 w-full bg-panel-2" />}
+        <div className="relative overflow-hidden border border-parchment-deep">
+          {banner ? <Art art={banner.art} className="h-20 w-full" /> : <div className="h-20 w-full bg-parchment-deep/50" />}
           <div className="relative -mt-8 flex items-end gap-3 px-4 pb-3">
             <FramedAvatar name={profile.name} src={profile.avatarUrl} size={56} look={mine.look} />
-            {/* The name overlaps the banner: a shadow keeps it readable over busy art like the Keyboard garden. */}
-            <div className="min-w-0 pb-1 [text-shadow:0_1px_2px_rgb(0_0_0/0.95),0_0_8px_rgb(0_0_0/0.8)]">
-              <div className="truncate font-display text-lg font-semibold text-cream">{profile.name}</div>
-              <div className="text-xs text-muted">
+            {/* The name overlaps the banner: a crisp 1 px parchment halo keeps it readable over busy art like the Keyboard garden. */}
+            <div className="min-w-0 pb-1 [text-shadow:1px_0_0_var(--color-parchment),-1px_0_0_var(--color-parchment),0_1px_0_var(--color-parchment),0_-1px_0_var(--color-parchment)]">
+              <div className="truncate font-display text-lg font-semibold text-ink">{profile.name}</div>
+              <div className="text-xs text-ink/75">
                 {profile.level !== null && (
                   <>
-                    Level {profile.level} · <span className="text-saffron">{profile.title}</span> ·{" "}
+                    Level {profile.level} · <span className="text-soil">{profile.title}</span> ·{" "}
                   </>
                 )}
                 {profile.given} given
@@ -109,9 +109,9 @@ export function LookCard({ memberId, today }: { memberId: Id<"members">; today: 
         </div>
 
         {owned.length === 0 ? (
-          <p className="mt-4 text-sm text-muted">
+          <p className="mt-4 text-sm text-ink/75">
             Frames, banners and hoggie stickers are in the{" "}
-            <Link to="/store" className="text-saffron hover:underline">
+            <Link to="/store" className="text-soil hover:underline">
               Store
             </Link>
             .
@@ -123,7 +123,7 @@ export function LookCard({ memberId, today }: { memberId: Id<"members">; today: 
               if (choices.length === 0) return null;
               return (
                 <div key={slot} className="flex flex-wrap items-center gap-2">
-                  <span className="w-16 text-xs text-muted">{SLOT_NAMES[slot]}</span>
+                  <span className="w-16 text-xs text-ink/75">{SLOT_NAMES[slot]}</span>
                   {choices.map((c) => (
                     <button
                       key={c.key}
@@ -132,8 +132,8 @@ export function LookCard({ memberId, today }: { memberId: Id<"members">; today: 
                       aria-label={`Wear ${c.name}`}
                       onClick={() => void wear({ slot, key: c.key })}
                       className={clsx(
-                        "flex items-center gap-2 rounded-xl border px-2.5 py-1.5 text-sm transition",
-                        mine.look[slot] === c.key ? "border-saffron/60 bg-saffron/10 text-cream" : "border-line text-muted hover:border-line-strong",
+                        "flex items-center gap-2 border px-2.5 py-1.5 text-sm transition",
+                        mine.look[slot] === c.key ? "border-lantern/60 bg-lantern/10 text-ink" : "border-parchment-deep text-ink/75 hover:border-bark/60",
                       )}
                     >
                       <Art art={c.art} round={slot !== "banner"} className={slot === "banner" ? "h-4 w-7" : "h-4 w-4"} />
@@ -141,7 +141,7 @@ export function LookCard({ memberId, today }: { memberId: Id<"members">; today: 
                     </button>
                   ))}
                   {mine.look[slot] && (
-                    <button type="button" aria-label={`Take off your ${slot}`} onClick={() => void wear({ slot, key: null })} className="text-xs text-faint hover:text-muted">
+                    <button type="button" aria-label={`Take off your ${slot}`} onClick={() => void wear({ slot, key: null })} className="text-xs text-ink/65 hover:text-ink/75">
                       Take off
                     </button>
                   )}
@@ -151,27 +151,27 @@ export function LookCard({ memberId, today }: { memberId: Id<"members">; today: 
           </div>
         )}
 
-        <div className="mt-4 border-t border-line pt-3">
-          <div className="text-xs text-muted">Your kudos emoji in Slack</div>
+        <div className="mt-4 border-t border-parchment-deep pt-3">
+          <div className="text-xs text-ink/75">Your kudos emoji in Slack</div>
           <ul className="mt-2 flex flex-wrap gap-2">
             {mine.emoji.map((e) => (
-              <li key={e.shortcode} className="rounded-lg border border-line px-2 py-1 font-mono text-xs text-cream" title={e.name}>
+              <li key={e.shortcode} className="border border-parchment-deep px-2 py-1 tabular text-xs text-ink" title={e.name}>
                 {e.shortcode}
               </li>
             ))}
           </ul>
-          {mine.emoji.length > 1 && <p className="mt-1.5 text-xs text-faint">Your variants give like the kudos emoji. Only you can give with them.</p>}
+          {mine.emoji.length > 1 && <p className="mt-1.5 text-xs text-ink/65">Your variants give like the kudos emoji. Only you can give with them.</p>}
         </div>
 
         {mine.superKudos && (
-          <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-saffron/40 bg-saffron/5 px-3.5 py-3 text-sm">
-            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-saffron" aria-hidden />
+          <div className="mt-3 flex items-start gap-2.5 border border-lantern/40 bg-lantern/5 px-3.5 py-3 text-sm">
+            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-soil" aria-hidden />
             <div>
-              <div className="font-medium text-cream">
+              <div className="font-medium text-ink">
                 {mine.superKudos.left} of {mine.superKudos.perMonth} Super kudos left this month
               </div>
-              <p className="mt-0.5 text-xs text-muted">
-                Use <span className="font-mono text-cream">{mine.superKudos.shortcode}</span> for one person, with a note of 12 words or more. Not the same person twice in a quarter.
+              <p className="mt-0.5 text-xs text-ink/75">
+                Use <span className="tabular text-ink">{mine.superKudos.shortcode}</span> for one person, with a note of 12 words or more. Not the same person twice in a quarter.
                 {mine.superKudos.spotlight && " Spotlight features it in the announcement channel."}
               </p>
             </div>
@@ -202,7 +202,7 @@ export function SuperKudosCelebration({ today }: { today: string }) {
   if (!celebration) return null;
   const close = () => void seen({ id: celebration.id });
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-ink/70 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-dusk-deep/70 p-4">
       <motion.div
         role="dialog"
         aria-modal="true"
@@ -210,24 +210,24 @@ export function SuperKudosCelebration({ today }: { today: string }) {
         initial={{ opacity: 0, scale: 0.9, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 260, damping: 20 }}
-        className="relative w-full max-w-md overflow-hidden rounded-3xl border border-saffron/50 bg-panel p-6 text-center shadow-2xl"
+        className="relative w-full max-w-md overflow-hidden border border-lantern/50 bg-parchment p-6 text-center"
       >
-        <div aria-hidden className="absolute inset-x-0 top-0 h-24 opacity-60" style={{ background: gradient(["#fde68a", "#f7a501", "#f54e00"]) }} />
-        <button ref={closeRef} type="button" onClick={close} aria-label="Close" className="absolute right-3 top-3 z-10 rounded-lg p-1.5 text-muted hover:bg-panel-2 hover:text-cream">
+        <div aria-hidden className="absolute inset-x-0 top-0 h-24 opacity-60" style={{ background: "var(--color-lantern)" }} />
+        <button ref={closeRef} type="button" onClick={close} aria-label="Close" className="absolute right-3 top-3 z-10 p-1.5 text-ink/75 hover:bg-parchment-deep/50 hover:text-ink">
           <X className="h-4 w-4" />
         </button>
         <div className="relative mt-8 flex justify-center">
           <span className="relative">
-            <Avatar name={celebration.from} src={celebration.avatarUrl} size={64} ring="ring-4 ring-saffron" />
+            <Avatar name={celebration.from} src={celebration.avatarUrl} size={64} ring="ring-4 ring-lantern" />
             {/* A hoggie hugging a heart beside the giver, outside the flow so the picture stays centred with or without it. */}
             <RemoteArt slot="super-kudos-celebration" fit="contain" className="absolute bottom-[-6px] left-full ml-1 h-20 w-20" />
           </span>
         </div>
-        <h2 id="super-kudos-title" className="relative mt-4 font-display text-2xl font-semibold text-cream">
+        <h2 id="super-kudos-title" className="relative mt-4 font-display text-2xl font-semibold text-ink">
           A Super kudos from {celebration.from}
         </h2>
-        <p className="mt-1 text-sm text-muted">Each Herald only has one or two a month, and they chose you.</p>
-        {celebration.note && <blockquote className="mt-4 rounded-2xl bg-panel-2 px-4 py-3 text-left text-sm italic text-cream">{celebration.note}</blockquote>}
+        <p className="mt-1 text-sm text-ink/75">Each Herald only has one or two a month, and they chose you.</p>
+        {celebration.note && <blockquote className="mt-4 bg-parchment-deep/50 px-4 py-3 text-left text-sm italic text-ink">{celebration.note}</blockquote>}
       </motion.div>
     </div>
   );

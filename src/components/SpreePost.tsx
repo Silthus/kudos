@@ -48,45 +48,45 @@ export function SpreePost({ spree, glyph, onJoin }: { spree: Spree; glyph: strin
   };
   return (
     <div>
-      <div className="group flex gap-3 rounded-xl px-2 py-2 hover:bg-panel-2/50">
+      <div className="group flex gap-3 px-2 py-2 hover:bg-parchment-deep/50">
         <Avatar name={spree.author} size={36} />
         <div className="min-w-0 flex-1">
           <div className="text-sm">
             <b className="font-semibold">{spree.author}</b>{" "}
-            <span className="text-xs text-faint">{new Date(spree.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+            <span className="text-xs text-ink/65">{new Date(spree.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
           </div>
-          <p className="text-[15px] leading-relaxed text-cream/90">{spree.text}</p>
+          <p className="text-[15px] leading-relaxed text-ink">{spree.text}</p>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <button
               onClick={() => setAsking((a) => !a)}
               aria-label={`Kudos bot reacted: ${progress(spree)}. Click to join the spree`}
               className="inline-flex items-center gap-1 rounded-full border border-[#1d9bd1]/60 bg-[#1d9bd1]/15 px-2 py-0.5 text-xs transition hover:bg-[#1d9bd1]/25"
             >
-              {glyph} <span className="tabular text-muted">{spree.joiners + 1}</span>
+              {glyph} <span className="tabular text-ink/75">{spree.joiners + 1}</span>
             </button>
-            <span className="rounded-full bg-saffron/10 px-2 py-0.5 text-xs font-medium text-saffron">{progress(spree)}</span>
+            <span className="rounded-full bg-lantern/10 px-2 py-0.5 text-xs font-medium text-soil">{progress(spree)}</span>
           </div>
         </div>
       </div>
       {note && (
-        <div className="flex gap-3 rounded-xl bg-panel-2/40 px-2 py-2">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-saffron/20">{glyph}</span>
+        <div className="flex gap-3 bg-parchment-deep/50 px-2 py-2">
+          <span className="grid h-9 w-9 shrink-0 place-items-center bg-lantern/20">{glyph}</span>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1 text-xs text-faint">
+            <div className="flex items-center gap-1 text-xs text-ink/65">
               <EyeOff className="h-3 w-3" /> Only visible to you
             </div>
-            <p className="text-[15px] leading-relaxed text-cream/90">{note}</p>
+            <p className="text-[15px] leading-relaxed text-ink">{note}</p>
           </div>
         </div>
       )}
       {prompt && (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3 rounded-xl bg-panel-2/40 px-2 py-2">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-saffron/20">{glyph}</span>
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3 bg-parchment-deep/50 px-2 py-2">
+          <span className="grid h-9 w-9 shrink-0 place-items-center bg-lantern/20">{glyph}</span>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1 text-xs text-faint">
+            <div className="flex items-center gap-1 text-xs text-ink/65">
               <EyeOff className="h-3 w-3" /> Only visible to you
             </div>
-            <p className="text-[15px] leading-relaxed text-cream/90">{prompt}</p>
+            <p className="text-[15px] leading-relaxed text-ink">{prompt}</p>
             <div className="mt-2 flex gap-2">
               <Button size="sm" variant="primary" onClick={() => void join()} disabled={busy}>
                 Join

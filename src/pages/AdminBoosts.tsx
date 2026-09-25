@@ -24,8 +24,8 @@ export function AdminBoosts({ gameEnabled }: { gameEnabled: boolean }) {
   return (
     <div className="grid gap-6 xl:grid-cols-2">
       {!gameEnabled && (
-        <p className="flex items-start gap-2.5 rounded-xl border border-line-strong bg-panel-2/60 px-4 py-3 text-sm text-muted xl:col-span-2">
-          <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-faint" />
+        <p className="flex items-start gap-2.5 border border-bark/60 bg-parchment-deep/50 px-4 py-3 text-sm text-ink/75 xl:col-span-2">
+          <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-ink/65" />
           Bonus days double XP and Hog coins, which only exist while the game is on (Settings).
         </p>
       )}
@@ -35,12 +35,12 @@ export function AdminBoosts({ gameEnabled }: { gameEnabled: boolean }) {
         <CardHeader
           title="Today and ahead"
           subtitle="One boost a day at most. Scheduled days can be called off until they start; a booster runs until midnight."
-          icon={<Zap className="h-4 w-4 text-saffron" />}
+          icon={<Zap className="h-4 w-4 text-soil" />}
         />
         {data.boosts.length === 0 ? (
-          <p className="px-5 pb-5 text-sm text-muted">No bonus days or boosters yet.</p>
+          <p className="px-5 pb-5 text-sm text-ink/75">No bonus days or boosters yet.</p>
         ) : (
-          <ul className="divide-y divide-line">
+          <ul className="divide-y divide-parchment-deep">
             {data.boosts.map((b) => (
               <BoostRow key={b._id} boost={b} today={today} isDemo={data.isDemo} hasChannel={data.channel !== null} />
             ))}
@@ -63,10 +63,10 @@ function BoostRow({ boost, today, isDemo, hasChannel }: { boost: AdminBoost; tod
     <li className="px-5 py-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="font-medium text-cream">
+          <div className="font-medium text-ink">
             {boost.dayKey === today ? "Today" : dayLabel(boost.dayKey)} · {BOOST_NAME[boost.kind]}
           </div>
-          <div className="text-xs text-faint">{startedBy(boost.source, boost.by)}</div>
+          <div className="text-xs text-ink/65">{startedBy(boost.source, boost.by)}</div>
         </div>
         {cancellable && (
           <Button
@@ -81,14 +81,14 @@ function BoostRow({ boost, today, isDemo, hasChannel }: { boost: AdminBoost; tod
           </Button>
         )}
       </div>
-      <blockquote className="mt-3 rounded-xl border border-line bg-ink/50 px-4 py-3 text-sm leading-relaxed text-cream/90">
-        <span className="mb-1 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-faint">
+      <blockquote className="mt-3 border border-parchment-deep bg-parchment-deep/40 px-4 py-3 text-sm leading-relaxed text-ink">
+        <span className="mb-1 flex items-center gap-1.5 tabular text-[10px] text-ink/65">
           <Megaphone className="h-3 w-3" aria-hidden /> Announcement
         </span>
         {boost.text}
       </blockquote>
       <div className="mt-2 flex flex-wrap items-center gap-3">
-        <p className={clsx("text-xs", status.tone === "ok" ? "text-teal-soft" : status.tone === "error" ? "text-down" : "text-muted")}>{status.text}</p>
+        <p className={clsx("text-xs", status.tone === "ok" ? "text-pond-deep" : status.tone === "error" ? "text-ember-deep" : "text-ink/75")}>{status.text}</p>
         {!isDemo && hasChannel && boost.dayKey >= today && (boost.announcement?.status === "failed" || boost.announcement?.status === "skipped") && (
           <Button
             variant="outline"
@@ -102,7 +102,7 @@ function BoostRow({ boost, today, isDemo, hasChannel }: { boost: AdminBoost; tod
           </Button>
         )}
       </div>
-      {error && <p className="mt-1 text-xs text-down">{error}</p>}
+      {error && <p className="mt-1 text-xs text-ember-deep">{error}</p>}
     </li>
   );
 }
@@ -127,7 +127,7 @@ function ScheduleCard({ today, maxAheadDays, channel }: { today: string; maxAhea
       <CardHeader
         title="Schedule a bonus day"
         subtitle="All day, every thoughtful kudos earns double XP and Hog coins. Kudos amounts, allowances and the daily XP cap stay as they are."
-        icon={<CalendarPlus className="h-4 w-4 text-saffron" />}
+        icon={<CalendarPlus className="h-4 w-4 text-soil" />}
       />
       <div className="flex flex-wrap items-end gap-3 px-5 pb-5">
         <Field label="Day" hint="Announced as soon as you schedule it." className="min-w-[200px] flex-1">
@@ -136,9 +136,9 @@ function ScheduleCard({ today, maxAheadDays, channel }: { today: string; maxAhea
         <Button variant="primary" onClick={() => void submit()} disabled={state.kind === "saving" || !day}>
           {state.kind === "saving" ? "Scheduling…" : "Schedule bonus day"}
         </Button>
-        {state.kind === "error" && <p className="w-full text-sm text-down">{state.message}</p>}
+        {state.kind === "error" && <p className="w-full text-sm text-ember-deep">{state.message}</p>}
         {state.kind === "done" && (
-          <p className="w-full text-sm text-teal-soft">{channel ? `Scheduled, and announced in #${channel.name}.` : "Scheduled. It's announced on the banner in the app."}</p>
+          <p className="w-full text-sm text-pond-deep">{channel ? `Scheduled, and announced in #${channel.name}.` : "Scheduled. It's announced on the banner in the app."}</p>
         )}
       </div>
     </Card>
@@ -164,16 +164,16 @@ function ChannelCard({ channel, isDemo }: { channel: Channel | null; isDemo: boo
       <CardHeader
         title="Announcement channel"
         subtitle="Bonus days and company-wide boosters are posted here, and always shown on a banner in the app."
-        icon={<Megaphone className="h-4 w-4 text-saffron" />}
+        icon={<Megaphone className="h-4 w-4 text-soil" />}
       />
       <div className="space-y-3 px-5 pb-5 text-sm">
         {isDemo ? (
-          <p className="text-muted">
+          <p className="text-ink/75">
             The demo has no Slack. In a real workspace boosts are posted in the channel you pick; here each one shows its post for{" "}
-            <span className="font-medium text-cream">#{channel?.name ?? "general"}</span> as a preview.
+            <span className="font-medium text-ink">#{channel?.name ?? "general"}</span> as a preview.
           </p>
         ) : channels === null && !error ? (
-          <p className="text-muted">Loading channels…</p>
+          <p className="text-ink/75">Loading channels…</p>
         ) : (
           <Field label="Channel" hint="The Kudos app can only post in channels it's in. Missing one? Invite it there with /invite @Kudos, then reload.">
             <select
@@ -196,9 +196,9 @@ function ChannelCard({ channel, isDemo }: { channel: Channel | null; isDemo: boo
           </Field>
         )}
         {channels !== null && channel && !current && (
-          <p className="text-down">The Kudos app isn't in #{channel.name}, so it can't post there. Invite it with /invite @Kudos in that channel.</p>
+          <p className="text-ember-deep">The Kudos app isn't in #{channel.name}, so it can't post there. Invite it with /invite @Kudos in that channel.</p>
         )}
-        {error && <p className="text-down">{error}</p>}
+        {error && <p className="text-ember-deep">{error}</p>}
       </div>
     </Card>
   );

@@ -40,37 +40,36 @@ function SlackMock() {
   const meta = RARITY_META[drop.rarity];
   return (
     <div className="relative">
-      <div className="absolute -inset-10 -z-10 rounded-[40px] bg-[radial-gradient(closest-side,rgb(255_178_36/0.18),transparent)] blur-2xl" />
-      <div className="grain overflow-hidden rounded-3xl border border-line-strong bg-panel shadow-2xl">
-        <div className="flex items-center gap-2 border-b border-line px-5 py-3">
+      <div className="relative overflow-hidden border border-bark/60 bg-parchment">
+        <div className="flex items-center gap-2 border-b border-parchment-deep px-5 py-3">
           <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
           <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
           <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
-          <span className="ml-3 font-mono text-xs text-faint"># releases</span>
+          <span className="ml-3 tabular text-xs text-ink/65"># releases</span>
         </div>
         <div className="space-y-5 p-5">
           <div className="flex gap-3">
             <Avatar name="Alex Rivera" size={38} />
             <div>
               <div className="text-sm">
-                <b className="font-semibold">Alex Rivera</b> <span className="text-xs text-faint">10:42</span>
+                <b className="font-semibold">Alex Rivera</b> <span className="text-xs text-ink/65">10:42</span>
               </div>
-              <p className="mt-0.5 text-[15px] leading-relaxed text-cream/90">
-                <span className="rounded bg-[#1d9bd1]/20 px-1 text-[#6cc7f5]">@Priya</span>{" "}
-                <span className="rounded bg-[#1d9bd1]/20 px-1 text-[#6cc7f5]">@Jonas</span> 🌮🌮 the release went out without a single hiccup. Legends.
+              <p className="mt-0.5 text-[15px] leading-relaxed text-ink">
+                <span className="bg-[#1d9bd1]/20 px-1 text-pond-deep">@Priya</span>{" "}
+                <span className="bg-[#1d9bd1]/20 px-1 text-pond-deep">@Jonas</span> 🌮🌮 the release went out without a single hiccup. Legends.
               </p>
               <div className="mt-2 flex gap-1.5">
                 <span className="rounded-full border border-[#1d9bd1]/50 bg-[#1d9bd1]/15 px-2 py-0.5 text-xs">🌮 4</span>
-                <span className="rounded-full border border-line-strong px-2 py-0.5 text-xs">🙌 3</span>
+                <span className="rounded-full border border-bark/60 px-2 py-0.5 text-xs">🙌 3</span>
               </div>
             </div>
           </div>
           <div className="flex gap-3">
-            <span className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-lg bg-saffron/20 text-lg">🌮</span>
+            <span className="grid h-[38px] w-[38px] shrink-0 place-items-center bg-lantern/20 text-lg">🌮</span>
             <div className="min-w-0 flex-1">
               <div className="text-sm">
-                <b className="font-semibold">Kudos</b> <span className="rounded bg-panel-3 px-1 py-px text-[10px] font-semibold text-muted">APP</span>{" "}
-                <span className="text-xs text-faint">Only visible to you</span>
+                <b className="font-semibold">Kudos</b> <span className="bg-parchment-deep px-1 py-px text-[10px] font-semibold text-ink/75">APP</span>{" "}
+                <span className="text-xs text-ink/65">Only visible to you</span>
               </div>
               <AnimatePresence mode="wait">
                 <motion.div
@@ -79,13 +78,13 @@ function SlackMock() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.35 }}
-                  className={`mt-2 rounded-2xl border bg-ink/60 p-4 ring-1 ring-inset ${meta.ring} ${meta.glow}`}
+                  className={`mt-2 border bg-parchment-deep/40 p-4 ring-1 ring-inset ${meta.ring} ${meta.glow}`}
                   style={{ borderColor: "transparent" }}
                 >
                   <p className="text-[15px] leading-relaxed">{drop.text}</p>
                   <div className="mt-3 flex items-center gap-2">
                     <RarityBadge rarity={drop.rarity} size="xs" />
-                    {drop.rarity !== "common" && <span className="text-xs text-muted">✨ New discovery! ({12 + i}/72)</span>}
+                    {drop.rarity !== "common" && <span className="text-xs text-ink/75">✨ New discovery! ({12 + i}/72)</span>}
                   </div>
                 </motion.div>
               </AnimatePresence>
@@ -138,11 +137,10 @@ export function Landing() {
 
   return (
     <div className="relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_right,rgb(255_236_210/0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgb(255_236_210/0.035)_1px,transparent_1px)] bg-[size:56px_56px] [mask-image:radial-gradient(ellipse_at_top,black_30%,transparent_75%)]" />
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
         <Logo />
         <div className="flex items-center gap-2">
-          <Link to="/setup" className="hidden rounded-lg px-3 py-2 text-sm text-muted hover:text-cream sm:block">
+          <Link to="/setup" className="hidden px-3 py-2 text-sm text-cream/80 hover:text-cream sm:block">
             Install guide
           </Link>
           <Button variant="outline" size="sm" onClick={slack} disabled={busy !== null}>
@@ -153,7 +151,7 @@ export function Landing() {
 
       {(installed || installError) && (
         <div className="mx-auto mt-2 max-w-6xl px-5">
-          <div className={`rounded-xl border px-4 py-3 text-sm ${installed ? "border-up/30 bg-up/10" : "border-down/30 bg-down/10"}`}>
+          <div className={`border px-4 py-3 text-sm ${installed ? "border-hedge/30 bg-hedge/10" : "border-ember/30 bg-ember/10"}`}>
             {installed ? (
               <>🎉 Kudos is installed in <b>{installed}</b>. Sign in with Slack to open your dashboard, then invite <code>@Kudos</code> to a channel.</>
             ) : (
@@ -170,12 +168,12 @@ export function Landing() {
 
       <section className="mx-auto grid grid-cols-1 max-w-6xl items-center gap-14 px-5 pb-20 pt-12 lg:grid-cols-[1.05fr_1fr] lg:pt-20">
         <div>
-          <Eyebrow className="mb-5 text-saffron">Peer recognition for Slack</Eyebrow>
-          <h1 className="font-display text-5xl font-semibold leading-[0.98] tracking-[-0.03em] sm:text-7xl">
+          <Eyebrow className="mb-5 text-lantern">Peer recognition for Slack</Eyebrow>
+          <h1 className="font-display text-5xl font-semibold leading-[0.98] sm:text-7xl">
             Make appreciation
-            <br />a daily <span className="relative whitespace-nowrap text-saffron">habit<motion.span initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 0.5, duration: 0.7 }} className="absolute -bottom-1 left-0 h-1.5 w-full origin-left rounded-full bg-saffron/40" /></span>.
+            <br />a daily <span className="relative whitespace-nowrap text-lantern">habit<motion.span initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 0.5, duration: 0.7 }} className="absolute -bottom-1 left-0 h-1.5 w-full origin-left bg-ember" /></span>.
           </h1>
-          <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
+          <p className="mt-6 max-w-xl text-lg leading-relaxed text-cream/80">
             Mention a teammate, add a 🌮, and they get kudos. Everyone has a small daily allowance, every bot reply is a
             collectible with its own rarity, and the dashboard turns it all into leaderboards and team insight.
           </p>
@@ -187,17 +185,17 @@ export function Landing() {
             </a>
             {demoEnabled && (
               <Button variant="outline" size="lg" onClick={demo} disabled={busy !== null}>
-                <Sparkles className="h-4 w-4 text-saffron" />
+                <Sparkles className="h-4 w-4 text-soil" />
                 {busy === "demo" ? "Opening demo…" : "Explore the live demo"}
               </Button>
             )}
           </div>
           {demoFailed ? (
-            <p role="alert" className="mt-4 text-sm text-down">
+            <p role="alert" className="mt-4 text-sm text-ember">
               The demo couldn't be opened. Try again in a moment, or check the install guide.
             </p>
           ) : (
-            demoEnabled && <p className="mt-4 text-sm text-faint">No sign-up for the demo. It's a sample workspace with this year's history.</p>
+            demoEnabled && <p className="mt-4 text-sm text-cream/70">No sign-up for the demo. It's a sample workspace with this year's history.</p>
           )}
         </div>
         <SlackMock />
@@ -212,40 +210,40 @@ export function Landing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.05 }}
-              className="rounded-2xl border border-line bg-panel/60 p-6"
+              className="border border-parchment-deep bg-parchment p-6"
             >
-              <f.icon className="h-5 w-5 text-saffron" />
+              <f.icon className="h-5 w-5 text-soil" />
               <h3 className="mt-4 font-display text-lg font-semibold">{f.title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted">{f.body}</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-ink/75">{f.body}</p>
             </motion.div>
           ))}
         </div>
       </section>
 
       <section className="mx-auto max-w-6xl px-5 pb-24">
-        <div className="grain rounded-3xl border border-line bg-panel/60 p-5 sm:p-10">
+        <div className="relative border border-parchment-deep bg-parchment p-5 sm:p-10">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
               <Eyebrow>Drop rates</Eyebrow>
-              <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight">Every reply is a roll of the dice</h2>
-              <p className="mt-2 max-w-lg text-muted">
+              <h2 className="mt-2 font-display text-3xl font-semibold">Every reply is a roll of the dice</h2>
+              <p className="mt-2 max-w-lg text-ink/75">
                 The bot answers givers and receivers with one of 72 messages. Rarer messages are funnier, and the game quietly favours ones you haven't seen yet.
               </p>
             </div>
           </div>
           <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-5">
             {RARITY_ORDER.map((r, i) => (
-              <div key={r} className={`rounded-2xl bg-ink/50 p-3 ring-1 ring-inset sm:p-4 ${RARITY_META[r].ring} ${RARITY_META[r].glow}`}>
+              <div key={r} className={`bg-parchment-deep/40 p-3 ring-1 ring-inset sm:p-4 ${RARITY_META[r].ring} ${RARITY_META[r].glow}`}>
                 <RarityBadge rarity={r} size="xs" />
                 <div className={`mt-4 font-display text-3xl font-semibold tabular ${r === "legendary" ? "legendary-text" : ""}`}>{[55, 25, 12, 6, 2][i]}%</div>
-                <div className="text-xs text-faint">{[25, 15, 10, 5, 5][i]} messages</div>
+                <div className="text-xs text-ink/65">{[25, 15, 10, 5, 5][i]} messages</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <footer className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 border-t border-line px-5 py-8 text-sm text-faint">
+      <footer className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 border-t border-bark px-5 py-8 text-sm text-cream/70">
         <span>Built on Convex · Slack Events API over HTTPS</span>
         <Link to="/setup" className="hover:text-cream">
           Self-host & install guide →

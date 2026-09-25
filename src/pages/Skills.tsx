@@ -65,9 +65,9 @@ export function Skills() {
       <div>
         {header}
         <Card>
-          <Empty icon={<Network className="h-7 w-7 text-faint" />} title={title}>
+          <Empty icon={<Network className="h-7 w-7 text-ink/65" />} title={title}>
             {body}{" "}
-            <Link to="/me" className="text-saffron underline-offset-4 hover:underline">
+            <Link to="/me" className="text-soil underline-offset-4 hover:underline">
               Back to your kudos
             </Link>
           </Empty>
@@ -102,10 +102,10 @@ export function Skills() {
       {header}
       <Card className="mb-4 flex flex-wrap items-center justify-between gap-3 p-4">
         <div className="flex items-baseline gap-3">
-          <span className="font-display text-3xl font-semibold text-cream tabular">{available}</span>
+          <span className="font-display text-3xl font-semibold text-ink tabular">{available}</span>
           <div>
-            <div className="text-sm font-medium text-cream">{available === 1 ? "skill point to spend" : "skill points to spend"}</div>
-            <div className="text-xs text-muted">
+            <div className="text-sm font-medium text-ink">{available === 1 ? "skill point to spend" : "skill points to spend"}</div>
+            <div className="text-xs text-ink/75">
               Level {tree.level} · {points(earned)} earned · {spent} spent
             </div>
           </div>
@@ -133,10 +133,10 @@ export function Skills() {
             key={b.id}
             data-branch={b.id}
             aria-label={b.name}
-            className={clsx("rounded-2xl border border-line bg-panel/60 p-4 lg:block", b.id === branch ? "block" : "hidden")}
+            className={clsx("border border-parchment-deep bg-parchment p-4 lg:block", b.id === branch ? "block" : "hidden")}
           >
-            <h2 className="font-display text-lg font-semibold text-cream">{b.name}</h2>
-            <p className="mt-0.5 text-xs text-muted">{b.about}</p>
+            <h2 className="font-display text-lg font-semibold text-ink">{b.name}</h2>
+            <p className="mt-0.5 text-xs text-ink/75">{b.about}</p>
             <div className="mt-4 flex flex-col gap-4">
               {TIERS.map((tier) => (
                 <TierBlock key={tier} branch={b} tier={tier} level={tree.level} alloc={alloc} onOpen={openSkill} />
@@ -191,15 +191,15 @@ function TierBlock({
       data-tier
       role="group"
       aria-label={`${branch.name} ${TIER_NAME[tier].toLowerCase()}, ${isOpen ? "open" : `opens at level ${opensAt}`}`}
-      className={clsx(!isOpen && "rounded-xl border border-dashed border-line-strong bg-ink/30 p-2.5")}
+      className={clsx(!isOpen && "border border-dashed border-bark/60 bg-parchment-deep/40 p-2.5")}
     >
-      <div className="mb-2 flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-faint">
+      <div className="mb-2 flex items-center gap-1.5 tabular text-[11px] text-ink/65">
         {!isOpen && <Lock className="h-3 w-3" aria-hidden />}
         <span>{TIER_NAME[tier]}</span>
         {tier > 1 && <span>· level {opensAt}</span>}
       </div>
       {!isOpen && (
-        <p className="-mt-1 mb-2 text-xs text-muted">
+        <p className="-mt-1 mb-2 text-xs text-ink/75">
           Opens at level {opensAt}: {opensAt - level} {opensAt - level === 1 ? "level" : "levels"} to go.
         </p>
       )}
@@ -234,17 +234,17 @@ function SkillNode({ skill, level, alloc, onOpen }: { skill: Skill; level: numbe
       aria-label={label}
       onClick={onOpen}
       className={clsx(
-        "group flex w-full items-start gap-2.5 rounded-xl border px-3 py-2.5 text-left transition",
-        rank > 0 && "border-saffron/50 bg-saffron/10 hover:bg-saffron/15",
-        rank === 0 && check.ok && "border-teal/50 bg-teal/5 hover:bg-teal/10",
-        rank === 0 && !check.ok && "border-line bg-ink/30 hover:bg-ink/50",
+        "group flex w-full items-start gap-2.5 border px-3 py-2.5 text-left transition",
+        rank > 0 && "border-lantern/50 bg-lantern/10 hover:bg-lantern/15",
+        rank === 0 && check.ok && "border-pond/50 bg-pond/5 hover:bg-pond/10",
+        rank === 0 && !check.ok && "border-parchment-deep bg-parchment-deep/40 hover:bg-parchment-deep/40",
         blocked && "opacity-60",
       )}
     >
       <span
         className={clsx(
-          "mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border",
-          rank > 0 ? "border-saffron bg-saffron text-ink" : check.ok ? "border-teal text-teal-soft" : "border-line-strong text-faint",
+          "mt-0.5 grid h-5 w-5 shrink-0 place-items-center border",
+          rank > 0 ? "border-lantern bg-lantern text-ink" : check.ok ? "border-pond text-pond-deep" : "border-bark/60 text-ink/65",
         )}
         aria-hidden
       >
@@ -252,14 +252,14 @@ function SkillNode({ skill, level, alloc, onOpen }: { skill: Skill; level: numbe
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-baseline justify-between gap-2">
-          <span className={clsx("text-sm font-medium", rank > 0 || check.ok ? "text-cream" : "text-cream/70")}>{skill.name}</span>
+          <span className={clsx("text-sm font-medium", rank > 0 || check.ok ? "text-ink" : "text-ink")}>{skill.name}</span>
           {skill.ranks > 1 && (
-            <span className="font-mono text-[11px] text-muted tabular">
+            <span className="text-[11px] text-ink/75 tabular">
               {rank}/{skill.ranks}
             </span>
           )}
         </span>
-        <span className="mt-0.5 block text-xs leading-snug text-muted">
+        <span className="mt-0.5 block text-xs leading-snug text-ink/75">
           {skill.arrives ? `Arrives with ${skill.arrives.with}` : skill.parent && rank === 0 && reason === "parent" ? `After ${SKILLS[skill.parent].name}` : skill.effect}
         </span>
       </span>
@@ -307,26 +307,26 @@ function SkillDialog({
         </>
       }
     >
-      <p className="text-sm text-cream">{skill.effect}</p>
-      {skill.perRank && <p className="mt-1 text-sm text-muted">Each rank: {skill.perRank}</p>}
+      <p className="text-sm text-ink">{skill.effect}</p>
+      {skill.perRank && <p className="mt-1 text-sm text-ink/75">Each rank: {skill.perRank}</p>}
       <dl className="mt-4 grid grid-cols-2 gap-2 text-sm">
-        <div className="rounded-xl border border-line px-3 py-2">
-          <dt className="text-xs text-muted">Rank</dt>
+        <div className="border border-parchment-deep px-3 py-2">
+          <dt className="text-xs text-ink/75">Rank</dt>
           <dd className="font-medium tabular">
             {rank} of {skill.ranks}
           </dd>
         </div>
-        <div className="rounded-xl border border-line px-3 py-2">
-          <dt className="text-xs text-muted">Cost</dt>
+        <div className="border border-parchment-deep px-3 py-2">
+          <dt className="text-xs text-ink/75">Cost</dt>
           <dd className="font-medium">{points(skill.cost)} per rank</dd>
         </div>
       </dl>
-      {skill.parent && <p className="mt-3 text-xs text-muted">Follows {SKILLS[skill.parent].name}.</p>}
-      {why && <p className="mt-3 rounded-xl border border-dashed border-line-strong px-3 py-2 text-sm text-muted">{why}</p>}
-      {rank === skill.ranks && <p className="mt-3 text-sm text-saffron">You have every rank of it.</p>}
-      {check.ok && <p className="mt-3 text-xs text-muted">Points stay spent until you reset the whole tree, which costs Hog coins.</p>}
+      {skill.parent && <p className="mt-3 text-xs text-ink/75">Follows {SKILLS[skill.parent].name}.</p>}
+      {why && <p className="mt-3 border border-dashed border-bark/60 px-3 py-2 text-sm text-ink/75">{why}</p>}
+      {rank === skill.ranks && <p className="mt-3 text-sm text-soil">You have every rank of it.</p>}
+      {check.ok && <p className="mt-3 text-xs text-ink/75">Points stay spent until you reset the whole tree, which costs Hog coins.</p>}
       {error && (
-        <p role="alert" className="mt-3 text-sm text-down">
+        <p role="alert" className="mt-3 text-sm text-ember-deep">
           {error}
         </p>
       )}
@@ -369,17 +369,17 @@ function ResetDialog({
         </>
       }
     >
-      <p className="text-sm text-cream">All {points(spent)} come back, to spend again however you like.</p>
-      <p className="mt-2 text-sm text-muted">
+      <p className="text-sm text-ink">All {points(spent)} come back, to spend again however you like.</p>
+      <p className="mt-2 text-sm text-ink/75">
         This reset costs {cost} Hog coins; the next one will cost {price?.next}.
       </p>
-      <p className="mt-2 text-sm text-muted">
+      <p className="mt-2 text-sm text-ink/75">
         {balance === null
           ? "Resets cost Hog coins; your wallet opens at level 3."
           : `You have ${balance} Hog ${balance === 1 ? "coin" : "coins"}.${affordable ? "" : " Thoughtful kudos and level-ups earn more."}`}
       </p>
       {error && (
-        <p role="alert" className="mt-3 text-sm text-down">
+        <p role="alert" className="mt-3 text-sm text-ember-deep">
           {error}
         </p>
       )}

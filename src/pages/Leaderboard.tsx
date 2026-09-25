@@ -14,9 +14,9 @@ import { useStableQuery } from "@/lib/useStableQuery";
 import { useViewer } from "@/lib/viewer";
 
 const MEDALS = [
-  { ring: "ring-[#ffcf5a]", bg: "from-[#ffcf5a]/25", label: "1st", height: "h-28" },
-  { ring: "ring-[#d8dbe2]", bg: "from-[#d8dbe2]/20", label: "2nd", height: "h-20" },
-  { ring: "ring-[#d98c52]", bg: "from-[#d98c52]/20", label: "3rd", height: "h-14" },
+  { ring: "ring-lantern", bg: "bg-lantern/45", label: "1st", height: "h-28" },
+  { ring: "ring-parchment-deep", bg: "bg-parchment-deep", label: "2nd", height: "h-20" },
+  { ring: "ring-soil", bg: "bg-soil/25", label: "3rd", height: "h-14" },
 ];
 
 export function Leaderboard() {
@@ -64,10 +64,10 @@ export function Leaderboard() {
         }
       />
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_320px]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-4">
           {podium.length > 0 && (
-            <Card className="grain overflow-hidden">
+            <Card className="relative overflow-hidden">
               <div className="grid grid-cols-3 items-end gap-3 px-4 pt-8 sm:gap-6 sm:px-10">
                 {[1, 0, 2].map((idx) => {
                   const r = podium[idx];
@@ -82,13 +82,13 @@ export function Leaderboard() {
                       className="flex flex-col items-center text-center"
                     >
                       {idx === 0 && <div className="mb-1 text-2xl">👑</div>}
-                      <Avatar name={r.member.name} src={r.member.avatarUrl} size={idx === 0 ? 76 : 60} ring={clsx("ring-4 ring-offset-4 ring-offset-panel", m.ring)} />
+                      <Avatar name={r.member.name} src={r.member.avatarUrl} size={idx === 0 ? 76 : 60} ring={clsx("ring-4 ring-offset-4 ring-offset-parchment", m.ring)} />
                       <div className="mt-3 max-w-full truncate font-display text-base font-semibold sm:text-lg">{r.member.name}</div>
-                      <div className="text-xs text-muted">{r.member.title}</div>
+                      <div className="text-xs text-ink/75">{r.member.title}</div>
                       <div className="mt-1 font-display text-2xl font-semibold tabular">
                         {nf.format(r.value)} <span className="text-lg">{glyph}</span>
                       </div>
-                      <div className={clsx("mt-3 flex w-full items-start justify-center rounded-t-2xl bg-gradient-to-b to-transparent pt-3 font-mono text-xs text-muted", m.bg, m.height)}>
+                      <div className={clsx("mt-3 flex w-full items-start justify-center pt-3 tabular text-xs text-ink/75", m.bg, m.height)}>
                         {m.label}
                       </div>
                     </motion.div>
@@ -106,7 +106,7 @@ export function Leaderboard() {
               <TableScroll>
                 <table className="w-full min-w-[620px] text-sm">
                   <thead>
-                    <tr className="text-left font-mono text-[11px] uppercase tracking-[0.12em] text-faint">
+                    <tr className="text-left tabular text-[11px] text-ink/65">
                       <th className="w-14 px-3 py-2 font-normal">#</th>
                       <th className="px-3 py-2 font-normal">Teammate</th>
                       <th className="w-48 px-3 py-2 font-normal">Kudos {data.metric}</th>
@@ -124,10 +124,10 @@ export function Leaderboard() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: Math.min(i * 0.02, 0.4) }}
-                        className={clsx("group border-t border-line", r.isMe && "bg-saffron/[0.07]")}
+                        className={clsx("group border-t border-parchment-deep", r.isMe && "bg-lantern/[0.07]")}
                       >
                         <td className="px-3 py-3">
-                          <span className={clsx("grid h-7 w-7 place-items-center rounded-full font-mono text-xs tabular", r.rank <= 3 ? "bg-cream text-ink font-semibold" : "text-muted")}>{r.rank}</span>
+                          <span className={clsx("grid h-7 w-7 place-items-center text-xs tabular", r.rank <= 3 ? "bg-lantern text-ink font-semibold" : "text-ink/75")}>{r.rank}</span>
                         </td>
                         <td className="px-3 py-3">
                           <div className="flex items-center gap-3">
@@ -135,24 +135,24 @@ export function Leaderboard() {
                             <div className="min-w-0">
                               <div className="truncate font-medium">
                                 {r.member.name}
-                                {r.isMe && <span className="ml-2 rounded bg-saffron/20 px-1.5 py-px font-mono text-[10px] text-saffron">YOU</span>}
+                                {r.isMe && <span className="ml-2 bg-lantern/20 px-1.5 py-px tabular text-[10px] text-soil">YOU</span>}
                               </div>
-                              {r.member.title && <div className="truncate text-xs text-faint">{r.member.title}</div>}
+                              {r.member.title && <div className="truncate text-xs text-ink/65">{r.member.title}</div>}
                             </div>
                           </div>
                         </td>
                         <td className="px-3 py-3">
                           <div className="flex items-center gap-3">
                             <span className="w-8 text-right font-display text-base font-semibold tabular">{nf.format(r.value)}</span>
-                            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-panel-3">
-                              <motion.div className="h-full rounded-full bg-saffron-deep" initial={{ width: 0 }} animate={{ width: `${(r.value / max) * 100}%` }} transition={{ duration: 0.7, delay: Math.min(i * 0.02, 0.4) }} />
+                            <div className="h-1.5 flex-1 overflow-hidden bg-parchment-deep">
+                              <motion.div className="h-full bg-soil" initial={{ width: 0 }} animate={{ width: `${(r.value / max) * 100}%` }} transition={{ duration: 0.7, delay: Math.min(i * 0.02, 0.4) }} />
                             </div>
                           </div>
                         </td>
                         <td className="px-3 py-3 text-right">
                           <Change delta={r.delta} rankChange={r.rankChange} isNew={r.isNew} />
                         </td>
-                        <td className="px-3 py-3 text-right font-mono tabular text-muted">{r.maxedDays > 0 ? <span className="text-cream">{r.maxedDays}</span> : "0"}</td>
+                        <td className="px-3 py-3 text-right tabular text-ink/75">{r.maxedDays > 0 ? <span className="text-ink">{r.maxedDays}</span> : "0"}</td>
                         <td className="px-2 py-3 text-right">
                           {r.comparable && <CompareWith memberId={r.member._id} name={r.member.name} period={period} />}
                         </td>
@@ -166,7 +166,7 @@ export function Leaderboard() {
         </div>
 
         <div className="space-y-4">
-          <Card className="grain overflow-hidden bg-gradient-to-br from-teal/[0.18] via-panel to-panel p-5">
+          <Card className="relative overflow-hidden p-5">
             <Eyebrow>Kudos shared</Eyebrow>
             <div className="mt-2 flex items-baseline gap-2">
               <BigNumber value={data.highlights.total} className="text-5xl" />
@@ -177,19 +177,19 @@ export function Leaderboard() {
             </div>
           </Card>
           <Card className="flex items-center gap-5 p-5">
-            <Ring value={data.highlights.participation} color="var(--color-teal-soft)">
+            <Ring value={data.highlights.participation} color="var(--color-pond)">
               <span className="font-display text-lg font-semibold tabular">{pct(data.highlights.participation)}</span>
             </Ring>
             <div>
               <Eyebrow>Participation</Eyebrow>
-              <p className="mt-1 text-sm text-muted">
-                <b className="text-cream">{data.highlights.givers}</b> of {data.highlights.teamSize} teammates gave kudos
+              <p className="mt-1 text-sm text-ink/75">
+                <b className="text-ink">{data.highlights.givers}</b> of {data.highlights.teamSize} teammates gave kudos
               </p>
             </div>
           </Card>
           <div className="grid grid-cols-2 gap-4">
-            <MiniStat icon={<TrendingUp className="h-4 w-4 text-up" />} label="Rising" value={data.highlights.rising} hint="gave more than last period" />
-            <MiniStat icon={<Zap className="h-4 w-4 text-saffron" />} label="Maxed days" value={data.highlights.maxedDays} hint="full allowance used" />
+            <MiniStat icon={<TrendingUp className="h-4 w-4 text-hedge-deep" />} label="Rising" value={data.highlights.rising} hint="gave more than last period" />
+            <MiniStat icon={<Zap className="h-4 w-4 text-soil" />} label="Maxed days" value={data.highlights.maxedDays} hint="full allowance used" />
             <MiniStat icon={<Sparkles className="h-4 w-4 text-r-epic" />} label="Discoveries" value={data.highlights.discoveries} hint="messages unlocked" />
             <MiniStat icon={<Users className="h-4 w-4 text-r-legendary" />} label="Legendary" value={data.highlights.legendaryFinds} hint="legendary finds" />
           </div>
@@ -200,7 +200,7 @@ export function Leaderboard() {
                 <Avatar name={viewer.member.name} src={viewer.member.avatarUrl} size={40} />
                 <div>
                   <div className="font-display text-2xl font-semibold">#{data.myRow.rank}</div>
-                  <div className="text-xs text-muted">
+                  <div className="text-xs text-ink/75">
                     {data.myRow.value} {glyph} {data.metric}
                   </div>
                 </div>
@@ -224,7 +224,7 @@ function CompareWith({ memberId, name, period }: { memberId: string; name: strin
       to={compareWithHref(memberId, period)}
       aria-label={label}
       title={label}
-      className="inline-grid h-8 w-8 place-items-center rounded-lg text-faint transition hover:bg-panel-2 hover:text-cream pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:group-focus-within:opacity-100"
+      className="inline-grid h-8 w-8 place-items-center text-ink/65 transition hover:bg-parchment-deep/50 hover:text-ink pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:group-focus-within:opacity-100"
     >
       <ArrowLeftRight className="h-4 w-4" aria-hidden />
     </Link>
@@ -232,17 +232,17 @@ function CompareWith({ memberId, name, period }: { memberId: string; name: strin
 }
 
 function Change({ delta, rankChange, isNew }: { delta: number | null; rankChange: number | null; isNew: boolean }) {
-  if (delta === null) return <span className="text-faint">–</span>;
-  if (isNew) return <span className="rounded-full bg-r-epic/15 px-2 py-0.5 font-mono text-[11px] text-r-epic">NEW</span>;
+  if (delta === null) return <span className="text-ink/65">–</span>;
+  if (isNew) return <span className="bg-r-epic/15 px-2 py-0.5 tabular text-[11px] text-r-epic">NEW</span>;
   return (
     <span className="inline-flex items-center gap-2">
       {rankChange !== null && rankChange !== 0 && (
-        <span className={clsx("inline-flex items-center font-mono text-[11px]", rankChange > 0 ? "text-up" : "text-down")} title={`${Math.abs(rankChange)} place${Math.abs(rankChange) === 1 ? "" : "s"} ${rankChange > 0 ? "up" : "down"}`}>
+        <span className={clsx("inline-flex items-center tabular text-[11px]", rankChange > 0 ? "text-hedge-deep" : "text-ember-deep")} title={`${Math.abs(rankChange)} place${Math.abs(rankChange) === 1 ? "" : "s"} ${rankChange > 0 ? "up" : "down"}`}>
           {rankChange > 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
           {Math.abs(rankChange)}
         </span>
       )}
-      <span className={clsx("font-mono text-xs tabular", delta > 0 ? "text-up" : delta < 0 ? "text-down" : "text-faint")}>
+      <span className={clsx("text-xs tabular", delta > 0 ? "text-hedge-deep" : delta < 0 ? "text-ember-deep" : "text-ink/65")}>
         {delta > 0 ? `+${delta}` : delta === 0 ? "±0" : delta}
       </span>
     </span>
@@ -252,12 +252,12 @@ function Change({ delta, rankChange, isNew }: { delta: number | null; rankChange
 function MiniStat({ icon, label, value, hint }: { icon: React.ReactNode; label: string; value: number; hint: string }) {
   return (
     <Card className="p-4">
-      <div className="flex items-center gap-2 text-xs text-muted">
+      <div className="flex items-center gap-2 text-xs text-ink/75">
         {icon}
         {label}
       </div>
       <BigNumber value={value} className="mt-2 block text-3xl" />
-      <div className="text-[11px] text-faint">{hint}</div>
+      <div className="text-[11px] text-ink/65">{hint}</div>
     </Card>
   );
 }

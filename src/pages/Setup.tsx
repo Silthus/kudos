@@ -11,10 +11,10 @@ import { SlackMark } from "./Landing";
 function Status({ ok, label }: { ok: boolean | undefined; label: string }) {
   return (
     <li className="flex items-center gap-3 py-2 text-sm">
-      <span className={`grid h-5 w-5 place-items-center rounded-full ${ok ? "bg-up/20 text-up" : "bg-panel-3 text-faint"}`}>
+      <span className={`grid h-5 w-5 place-items-center ${ok ? "bg-hedge/20 text-hedge-deep" : "bg-parchment-deep text-ink/65"}`}>
         {ok ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
       </span>
-      <code className="font-mono text-[13px]">{label}</code>
+      <code className="tabular text-[13px]">{label}</code>
     </li>
   );
 }
@@ -31,7 +31,7 @@ export function CopyButton({ text, label = "Copy" }: { text: string; label?: str
         setTimeout(() => setCopied(false), 1500);
       }}
     >
-      {copied ? <Check className="h-3.5 w-3.5 text-up" /> : <Copy className="h-3.5 w-3.5" />}
+      {copied ? <Check className="h-3.5 w-3.5 text-hedge-deep" /> : <Copy className="h-3.5 w-3.5" />}
       {copied ? "Copied" : label}
     </Button>
   );
@@ -59,8 +59,8 @@ export function Setup() {
       </div>
       <div className="mt-12">
         <Eyebrow>Install guide</Eyebrow>
-        <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight">Connect Kudos to Slack</h1>
-        <p className="mt-3 max-w-2xl text-muted">
+        <h1 className="mt-2 font-display text-4xl font-semibold">Connect Kudos to Slack</h1>
+        <p className="mt-3 max-w-2xl text-cream/80">
           Kudos runs entirely on this Convex deployment: the web app, the database and Slack's Events API webhooks. Setting it up takes three steps.
         </p>
       </div>
@@ -77,7 +77,7 @@ export function Setup() {
               </a>
               {manifest && <CopyButton text={manifest} label="Copy manifest JSON" />}
             </div>
-            <pre className="max-h-72 overflow-auto rounded-xl border border-line bg-ink/70 p-4 font-mono text-xs leading-relaxed text-muted">{manifest || "Loading manifest…"}</pre>
+            <pre className="max-h-72 overflow-auto border border-parchment-deep bg-parchment-deep/40 p-4 tabular text-xs leading-relaxed text-ink/75">{manifest || "Loading manifest…"}</pre>
           </div>
         </Card>
 
@@ -90,7 +90,7 @@ export function Setup() {
               <Status ok={status?.slackSigningSecret} label="SLACK_SIGNING_SECRET" />
             </ul>
             <div className="min-w-0">
-              <pre className="overflow-x-auto rounded-xl border border-line bg-ink/70 p-4 font-mono text-xs leading-relaxed text-muted">{envCmd}</pre>
+              <pre className="overflow-x-auto border border-parchment-deep bg-parchment-deep/40 p-4 tabular text-xs leading-relaxed text-ink/75">{envCmd}</pre>
               <div className="mt-2">
                 <CopyButton text={envCmd} />
               </div>
@@ -106,8 +106,8 @@ export function Setup() {
                 <SlackMark /> Add to Slack
               </Button>
             </a>
-            <span className="text-sm text-muted">
-              Then <code className="rounded bg-panel-3 px-1.5 py-0.5 font-mono text-xs">/invite @Kudos</code> to the channels where people celebrate each other.
+            <span className="text-sm text-ink/75">
+              Then <code className="bg-parchment-deep px-1.5 py-0.5 tabular text-xs">/invite @Kudos</code> to the channels where people celebrate each other.
             </span>
           </div>
         </Card>

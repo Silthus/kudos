@@ -13,7 +13,7 @@ export function NotInstalled({ name }: { name: string | null }) {
           <Logo />
         </div>
         <h1 className="mt-6 font-display text-2xl font-semibold">Almost there{name ? `, ${name.split(" ")[0]}` : ""}!</h1>
-        <p className="mt-2 text-muted">
+        <p className="mt-2 text-ink/75">
           You're signed in, but Kudos isn't installed in your Slack workspace yet. Add it to Slack, then sign in again.
         </p>
         <div className="mt-6 flex flex-col gap-2">
