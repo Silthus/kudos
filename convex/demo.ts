@@ -15,14 +15,14 @@ import { demoActivity } from "./lib/demoCalendar";
 import { demoBonusDays, demoLaunchDay, demoSeedStart } from "./lib/demoGame";
 import { DEMO_ADJUSTMENTS, DEMO_REDEMPTIONS, DEMO_REWARDS, type DemoRedemption, LIVE_FULFIL_NOTES } from "./lib/demoStore";
 import { hasNote, RECIPROCAL_WINDOW_MS, thanksBack, weekKeyFor, weekKeyOfDay } from "./lib/quests";
-import { defaultSpecies, GARDEN_LEVEL, PLANT_COST, plantState, type PlantState, sunlampHelps, wateringDays } from "./lib/garden";
+import { defaultSpecies, GARDEN_LEVEL, PLANT_COST, plantState, type PlantState, plotsFor, sunlampHelps, wateringDays } from "./lib/garden";
 import { type Allocation, canTake, type SkillId } from "./lib/skills";
 import { DEMO_SETTINGS } from "./lib/settings";
 import { earningsText, levelForXp } from "./lib/xp";
 import { gainLabel, gainText } from "./lib/gains";
 import { fnv1a, mulberry32 } from "./lib/random";
 import { validateRewardInput } from "./lib/store";
-import { canSpend } from "./lib/coins";
+import { canSpend, coinBalance } from "./lib/coins";
 import { SHOP_LEVEL } from "./lib/items";
 import { playerOf } from "./game";
 import { joinOf, joinSpree, paySpree, spreeable, spreeJoinsInMonth, spreesOn } from "./sprees";
@@ -421,8 +421,91 @@ export const seedGarden = internalMutation({
       return null;
     }
     const planted = await ctx.db.query("plants").withIndex("by_owner_memory", (q) => q.eq("ownerId", alex._id)).first();
-    if (!planted && !player.skills) await growAlexGame(ctx, workspace, alex, player);
+    if (!planted && !player.skills) {
+      await growAlexGame(ctx, workspace, alex, player);
+      await plantNeighbours(ctx, workspace, alex);
+    }
     await ctx.scheduler.runAfter(0, internal.demo.seedStore, { workspaceId, resetAt });
+    return null;
+  },
+});
+
+/** Teammates whose gardens the demo grows round Alex's (#129): the ones Alex exchanges the most kudos with. */
+const DEMO_NEIGHBOURS = 10;
+
+/** Schedules a garden for each of Alex's closest teammates, one transaction each. */
+async function plantNeighbours(ctx: MutationCtx, workspace: Doc<"workspaces">, alex: Doc<"members">) {
+  const since = Date.now() - 90 * DAY_MS;
+  const given = await ctx.db.query("kudos").withIndex("by_giver_at", (q) => q.eq("giverId", alex._id).gte("at", since)).take(2000);
+  const received = await ctx.db.query("kudos").withIndex("by_receiver_at", (q) => q.eq("receiverId", alex._id).gte("at", since)).take(2000);
+  const exchanged = new Map<Id<"members">, number>();
+  for (const k of given) exchanged.set(k.receiverId, (exchanged.get(k.receiverId) ?? 0) + 1);
+  for (const k of received) exchanged.set(k.giverId, (exchanged.get(k.giverId) ?? 0) + 1);
+  const closest = [...exchanged].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, DEMO_NEIGHBOURS);
+  for (const [memberId] of closest) {
+    await ctx.scheduler.runAfter(0, internal.demo.seedNeighbourGarden, { workspaceId: workspace._id, memberId, resetAt: workspace.resettingSince });
+  }
+}
+
+/**
+ * A demo teammate's garden (#129), so the neighbours' ring round Alex's has beds to visit: as many
+ * plants as their plots hold, each for a teammate (never Alex, whose "Grown for you" stays the demo
+ * story's) a minute after a qualifying kudos in the last 90 days, the furthest grown first, for 10
+ * Hog coins each while they can pay. Growth follows from the seeded kudos, like any garden.
+ */
+export const seedNeighbourGarden = internalMutation({
+  args: { workspaceId: v.id("workspaces"), memberId: v.id("members"), resetAt: v.optional(v.number()) },
+  returns: v.null(),
+  handler: async (ctx, { workspaceId, memberId, resetAt }) => {
+    const workspace = await ctx.db.get(workspaceId);
+    if (!workspace?.isDemo) return null;
+    if (workspace.resettingSince !== undefined && workspace.resettingSince !== resetAt) return null;
+    const member = await ctx.db.get(memberId);
+    const player = member && (await playerOf(ctx, member._id));
+    if (!member || member.isBot || member.deactivated || member.slackUserId === DEMO_YOU || !player || player.level < GARDEN_LEVEL) return null;
+    if (await ctx.db.query("plants").withIndex("by_owner_memory", (q) => q.eq("ownerId", member._id)).first()) return null;
+
+    const now = Date.now();
+    const today = dayKeyFor(now, workspace.timezone);
+    const since = now - 90 * DAY_MS;
+    const given = await ctx.db.query("kudos").withIndex("by_giver_at", (q) => q.eq("giverId", member._id).gte("at", since)).take(1500);
+    const received = await ctx.db
+      .query("kudos")
+      .withIndex("by_receiver_at", (q) => q.eq("receiverId", member._id).gte("at", since - RECIPROCAL_WINDOW_MS))
+      .take(1500);
+    const toThem = new Map<Id<"members">, Doc<"kudos">[]>();
+    for (const k of given) toThem.set(k.receiverId, [...(toThem.get(k.receiverId) ?? []), k]);
+    const plans: PlantPlan[] = [];
+    for (const [forId, rows] of toThem) {
+      const teammate = await ctx.db.get(forId);
+      if (!teammate || teammate.isBot || teammate.deactivated || teammate.slackUserId === DEMO_YOU) continue;
+      const backAt = received.filter((k) => k.giverId === forId).map((k) => k.at);
+      const seed = rows.find((k) => hasNote(k.noteWords) && !backAt.some((at) => thanksBack(k.at, at)));
+      if (!seed) continue;
+      const plantedAt = seed.at + 60_000;
+      const plantedDay = dayKeyFor(plantedAt, workspace.timezone);
+      const waterings = wateringDays({ plantedAt, plantedDay, given: rows, receivedAt: backAt, pauses: workspace.gamePauses });
+      const growth = { plantedDay, waterings, today };
+      plans.push({ forId, seedId: seed._id, plantedAt, plantedDay, state: plantState(growth), sunlamp: false });
+    }
+    plans.sort((a, b) => b.state.stage.index - a.state.stage.index || a.plantedAt - b.plantedAt);
+    const { balance } = coinBalance(player, member);
+    const chosen = plans.slice(0, Math.min(plotsFor(player.skills ?? {}), Math.floor(Math.max(0, balance) / PLANT_COST)));
+    for (const plan of chosen) {
+      await ctx.db.insert("plants", {
+        workspaceId: workspace._id,
+        ownerId: member._id,
+        forId: plan.forId,
+        species: defaultSpecies(`${member.slackUserId}:${plan.plantedAt}`),
+        plantedAt: plan.plantedAt,
+        plantedDay: plan.plantedDay,
+        seedKudosId: plan.seedId,
+        pickedThrough: plan.plantedDay,
+        announced: plan.state.stage.index,
+        plot: chosen.indexOf(plan),
+      });
+    }
+    if (chosen.length > 0) await ctx.db.patch(member._id, { coinsSpent: (member.coinsSpent ?? 0) + PLANT_COST * chosen.length });
     return null;
   },
 });
@@ -506,6 +589,7 @@ async function growAlexGame(ctx: MutationCtx, workspace: Doc<"workspaces">, alex
       // Never picked (no harvest was paid): each plant holds the fruit it can, waiting for the visitor.
       pickedThrough: plan.plantedDay,
       announced: plan.state.stage.index,
+      plot: chosen.indexOf(plan),
     });
   }
   if (chosen.length > 0) await ctx.db.patch(alex._id, { coinsSpent: (alex.coinsSpent ?? 0) + PLANT_COST * chosen.length });

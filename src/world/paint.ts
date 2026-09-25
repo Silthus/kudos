@@ -21,8 +21,12 @@ const LIFT: Partial<Record<Terrain, number>> = { garden: 3, fence: 3, gate: 3, p
 
 export type Pixels = { width: number; height: number; data: Uint8ClampedArray };
 
-/** A neighbour's bed on the map, and the plants you grow in your key beds (by stage, 0–4). */
-export type WorldFurniture = { beds: { tile: Tile }[]; plants: number[] };
+/**
+ * What grows on the map: the neighbours' beds (each with its plant, a sprout if none is given) and
+ * your plot tiles (`world.plots`, in order): a key bed with its plant, or null where the lawn is
+ * still lawn (#129, `gardenWorld.ts`). `key` names the drawing, so the canvas repaints on a change.
+ */
+export type WorldFurniture = { beds: { tile: Tile; sprite?: PixelMap }[]; plots: (PixelMap | null)[]; key?: string };
 
 const rgbCache = new Map<string, [number, number, number]>();
 function rgb(hex: string): [number, number, number] {
@@ -154,6 +158,11 @@ export function paintWorld(img: Pixels, world: World, places: PlaceDef[], furnit
       }
     }
 
+  // Plot tiles that aren't yours (yet) are lawn.
+  world.plots.forEach((t, i) => {
+    if (!furniture.plots[i]) paintTile(img, t, GROUND.garden[0], lift(t.x, t.y));
+  });
+
   const items: Drawable[] = [];
   const at = (t: Tile, extra = 0) => {
     const c = tileCentre(t);
@@ -183,11 +192,11 @@ export function paintWorld(img: Pixels, world: World, places: PlaceDef[], furnit
         },
       });
     }
-  for (const bed of furniture.beds) items.push({ depth: bed.tile.x + bed.tile.y, draw: () => stand(img, DECOR_SPRITES.sprout, at(bed.tile, -1)) });
-  furniture.plants.slice(0, world.plots.length).forEach((stage, i) => {
+  for (const bed of furniture.beds) items.push({ depth: bed.tile.x + bed.tile.y, draw: () => stand(img, bed.sprite ?? DECOR_SPRITES.sprout, at(bed.tile, -1)) });
+  // A key bed's sprite has its key's top centred 9 px above its bottom row: over the plot tile.
+  furniture.plots.slice(0, world.plots.length).forEach((m, i) => {
     const tile = world.plots[i];
-    const m = DECOR_SPRITES.plants[Math.max(0, Math.min(4, stage))];
-    items.push({ depth: tile.x + tile.y, draw: () => stand(img, m, at(tile, -1)) });
+    if (m) items.push({ depth: tile.x + tile.y, draw: () => stand(img, m, at(tile, 5)) });
   });
   for (const p of places) {
     const { x, y, w, h } = p.footprint;

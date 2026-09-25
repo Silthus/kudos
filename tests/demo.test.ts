@@ -143,7 +143,7 @@ describe("the demo plays the game", () => {
     const redemptions = (await t.run((ctx) => ctx.db.query("redemptions").collect())).filter((r) => r.memberId === alexId);
     const adjustments = (await t.run((ctx) => ctx.db.query("balanceAdjustments").collect())).filter((a) => a.memberId === alexId);
     const held = redemptions.filter((r) => r.status !== "declined" && r.status !== "cancelled");
-    const plants = await t.run((ctx) => ctx.db.query("plants").collect());
+    const plants = (await t.run((ctx) => ctx.db.query("plants").collect())).filter((p) => p.ownerId === alexId);
     expect(fresh.coinsSpent ?? 0).toBe(held.reduce((s, r) => s + r.cost, 0) + PLANT_COST * plants.length);
     expect(fresh.coinsAdjusted ?? 0).toBe(adjustments.reduce((s, a) => s + a.amount, 0));
     // The garden is the reseeded one (#100): no memory, and nothing planted on the day of the old one.
@@ -912,6 +912,13 @@ describe("the demo year played through the game (#100, §G16)", () => {
     expect(garden.plants.some((p) => STAGES.findIndex((s) => s.key === p.stage) >= GROWN && p.fruit.length > 0)).toBe(true);
     expect(garden.plants.find((p) => p.sunlamp)).toMatchObject({ forName: "Emil Novak", next: { name: "Blossoming" } });
     expect(game.wallet!.spent).toBeGreaterThanOrEqual(30); // the plants cost 10 each
+
+    // The neighbours' ring (#129): Alex's closest teammates grow gardens too, never for Alex.
+    const ring = await demo.query(api.gardens.neighbours, {});
+    expect(ring.length).toBeGreaterThanOrEqual(3);
+    expect(ring.every((n) => n.plants >= 1 && n.memberId !== me._id)).toBe(true);
+    const theirs = (await t.run((ctx) => ctx.db.query("plants").collect())).filter((p) => p.ownerId !== me._id);
+    expect(theirs.every((p) => p.forId !== me._id && p.seedKudosId !== undefined)).toBe(true);
 
     // The spree in the playground waits for one more joiner.
     await demo.mutation(api.demo.openSpree, {});

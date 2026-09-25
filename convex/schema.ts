@@ -465,6 +465,7 @@ export default defineSchema({
     seedKudosId: v.optional(v.id("kudos")), // the qualifying kudos it was planted with (a revoke leaves the plant)
     pickedThrough: v.string(), // fruit is picked through this day; it grows again from the next
     announced: v.number(), // the highest stage index the owner was told about (never told twice)
+    plot: v.optional(v.number()), // the key bed it grows in on the map (#129, lib/garden.ts assignPlots)
     checkOn: v.optional(v.string()), // the day a look for a stage reached by age alone is scheduled for
     memoryAt: v.optional(v.number()),
     memoryReason: v.optional(v.union(v.literal("uprooted"), v.literal("left"))),

@@ -559,3 +559,24 @@ describe("review fixes", () => {
     expect(await (await as(other.cleo)).query(api.gardens.of, { memberId: team.ana })).toBeNull();
   });
 });
+
+describe("plots: each plant keeps its key bed on the map (#129)", () => {
+  test("uprooting one leaves the others where they stand, and the next plant takes the free plot", async () => {
+    await anaReachesLevel3();
+    await t.run(async (ctx) => {
+      const p = await ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", team.ana)).unique();
+      await ctx.db.patch(p!._id, { skills: { more_plots: 2 } });
+      await ctx.db.patch(team.ana, { coinsAdjusted: 50 });
+    });
+    const ana = await as(team.ana);
+    await ana.mutation(api.gardens.plant, { teammateId: team.ben });
+    await ana.mutation(api.gardens.plant, { teammateId: team.cleo });
+    const plots = async () => Object.fromEntries((await garden(team.ana))!.plants.map((p) => [p.forName, p.plot]));
+    expect(await plots()).toEqual({ Ben: 0, Cleo: 1 });
+    const ben = (await garden(team.ana))!.plants.find((p) => p.forName === "Ben")!;
+    await ana.mutation(api.gardens.uproot, { plantId: ben.plantId });
+    expect(await plots()).toEqual({ Cleo: 1 });
+    await ana.mutation(api.gardens.plant, { teammateId: team.dan });
+    expect(await plots()).toEqual({ Cleo: 1, Dan: 0 });
+  });
+});

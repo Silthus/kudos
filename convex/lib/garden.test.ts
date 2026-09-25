@@ -1,6 +1,8 @@
 import { describe, expect, test } from "vitest";
 import {
+  assignPlots,
   FRUIT,
+  freePlot,
   fruitValue,
   fruitWaiting,
   holdFor,
@@ -13,6 +15,22 @@ import {
   sunlampHelps,
   wateringDays,
 } from "./garden";
+
+describe("plots: each plant keeps its key bed (#129)", () => {
+  test("a plant stays in its plot when another is uprooted; the next plant takes the lowest free one", () => {
+    expect(assignPlots([{ plot: 0 }, { plot: 2 }])).toEqual([0, 2]);
+    expect(freePlot([{ plot: 0 }, { plot: 2 }])).toBe(1);
+    expect(freePlot([{ plot: 1 }])).toBe(0);
+    expect(freePlot([])).toBe(0);
+  });
+
+  test("plants from before plots were kept fill the free plots in planting order; a clash keeps the first", () => {
+    expect(assignPlots([{}, {}, {}])).toEqual([0, 1, 2]);
+    expect(assignPlots([{}, { plot: 0 }, {}])).toEqual([1, 0, 2]);
+    expect(assignPlots([{ plot: 1 }, { plot: 1 }])).toEqual([1, 0]);
+    expect(freePlot([{}, { plot: 0 }])).toBe(2);
+  });
+});
 
 /** Gardens (#55 §G8): plants for teammates, growth by waterings and age, dormancy and fruit. */
 
