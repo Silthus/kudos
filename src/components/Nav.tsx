@@ -12,7 +12,7 @@ function NavBadge({ badge, className }: { badge: Badge; className?: string }) {
     <span
       data-nav-badge
       title={badge.label}
-      className={clsx("grid h-[18px] min-w-[18px] place-items-center rounded-full bg-saffron px-1 font-mono text-[10px] font-semibold leading-none text-ink", className)}
+      className={clsx("grid h-[18px] min-w-[18px] place-items-center bg-lantern px-1 tabular text-[11px] font-bold leading-none text-ink", className)}
     >
       <span aria-hidden>{badge.count > 99 ? "99+" : badge.count}</span>
       <span className="sr-only">{badge.label}</span>
@@ -20,7 +20,7 @@ function NavBadge({ badge, className }: { badge: Badge; className?: string }) {
   );
 }
 
-const groupLabelCls = "px-3 font-mono text-[10px] uppercase tracking-wider text-faint";
+const groupLabelCls = "px-3 text-xs font-semibold opacity-70";
 
 /** Desktop: every page, under You / Team / Workspace. */
 export function SidebarNav({ items }: { items: NavItem[] }) {
@@ -41,17 +41,14 @@ export function SidebarNav({ items }: { items: NavItem[] }) {
                 to={n.to}
                 className={({ isActive }) =>
                   clsx(
-                    "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                    isActive ? "text-cream" : "text-muted hover:bg-panel/70 hover:text-cream",
+                    "relative flex items-center gap-3 px-3 py-2.5 text-sm font-semibold",
+                    isActive ? "bg-dusk text-cream shadow-[inset_2px_0_0_0_var(--color-lantern)]" : "text-cream/80 hover:bg-dusk/60 hover:text-cream",
                   )
                 }
               >
                 {({ isActive }) => (
                   <>
-                    {isActive && (
-                      <motion.span layoutId="nav-active" className="absolute inset-0 rounded-xl border border-line-strong bg-panel-2" transition={{ type: "spring", bounce: 0.2, duration: 0.5 }} />
-                    )}
-                    <n.icon className={clsx("relative h-4 w-4", isActive && "text-saffron")} />
+                    <n.icon className={clsx("relative h-4 w-4", isActive && "text-lantern")} />
                     <span className="relative">{n.label}</span>
                     {n.badge && <NavBadge badge={n.badge} className="relative ml-auto" />}
                   </>
@@ -65,7 +62,7 @@ export function SidebarNav({ items }: { items: NavItem[] }) {
   );
 }
 
-const tabCls = "relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5 text-[10px] font-medium";
+const tabCls = "relative flex min-w-0 flex-1 flex-col items-center gap-0.5 py-1.5 text-[11px] font-semibold";
 
 /** Icon over label; the badge sits on the icon's corner but follows the label, so it's read as "Admin, 5 open…". */
 function TabFace({ icon: Icon, label, badge }: { icon: NavItem["icon"]; label: string; badge?: Badge }) {
@@ -97,9 +94,9 @@ export function MobileNav({ items }: { items: NavItem[] }) {
 
   return (
     <>
-      <nav ref={navRef} aria-label="Main navigation" className="fixed inset-x-3 bottom-3 z-30 flex justify-around gap-0.5 rounded-2xl border border-line-strong bg-panel/90 p-1.5 backdrop-blur-xl lg:hidden">
+      <nav ref={navRef} aria-label="Main navigation" className="fixed inset-x-3 bottom-3 z-30 flex justify-around gap-0.5 bg-bark p-1.5 text-cream shadow-[inset_0_0_0_2px_var(--color-soil),3px_3px_0_0_var(--color-dusk-deep)] lg:hidden">
         {tabs.map((n) => (
-          <NavLink key={n.id} to={n.to} className={({ isActive }) => clsx(tabCls, isActive ? "bg-panel-3 text-saffron" : "text-faint")}>
+          <NavLink key={n.id} to={n.to} className={({ isActive }) => clsx(tabCls, isActive ? "bg-dusk text-lantern" : "text-cream/75")}>
             <TabFace icon={n.icon} label={n.short} badge={n.badge} />
           </NavLink>
         ))}
@@ -114,7 +111,7 @@ export function MobileNav({ items }: { items: NavItem[] }) {
               picked.current = false;
               setOpen((o) => !o);
             }}
-            className={clsx(tabCls, open ? "bg-panel-3 text-cream" : "text-faint")}
+            className={clsx(tabCls, open ? "bg-dusk text-cream" : "text-cream/75")}
           >
             <TabFace icon={Ellipsis} label="More" badge={moreBadge} />
           </button>
@@ -187,8 +184,8 @@ function MoreSheet({ id, groups, onClose, onPick, restoreFocus }: { id: string; 
         onClick={onClose}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.18 }}
-        className="absolute inset-0 bg-ink/75 backdrop-blur-sm"
+        transition={{ duration: 0.12 }}
+        className="absolute inset-0 bg-dusk-deep/70"
       />
       <motion.div
         ref={ref}
@@ -198,15 +195,15 @@ function MoreSheet({ id, groups, onClose, onPick, restoreFocus }: { id: string; 
         aria-labelledby={titleId}
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", bounce: 0.15, duration: 0.35 }}
-        className="absolute inset-x-3 bottom-3 max-h-[calc(100dvh-24px)] overflow-y-auto rounded-2xl border border-line-strong bg-panel pb-2 shadow-[0_30px_80px_-20px_rgb(0_0_0/0.9)]"
+        transition={{ duration: 0.12, ease: "easeOut" }}
+        className="pixel-frame absolute inset-x-3 bottom-3 max-h-[calc(100dvh-24px)] overflow-y-auto pb-2"
       >
-        <header className="flex items-center justify-between border-b border-line px-4 py-3">
-          <h2 id={titleId} className="font-display text-lg font-semibold tracking-tight">
+        <header className="flex items-center justify-between bg-bark px-4 py-3 text-cream">
+          <h2 id={titleId} className="font-display text-xl font-medium">
             More
           </h2>
-          <button type="button" onClick={onClose} className="-mr-2 rounded-lg p-3 text-faint hover:bg-panel-2 hover:text-cream" aria-label="Close">
-            <X className="h-4 w-4" />
+          <button type="button" onClick={onClose} className="pixel-chip grid h-10 w-10 place-items-center bg-parchment text-ink hover:bg-lantern focus-visible:outline-lantern" aria-label="Close">
+            <X className="h-4 w-4" strokeWidth={3} />
           </button>
         </header>
         <div className="flex flex-col gap-4 px-2 pt-3">
@@ -215,8 +212,8 @@ function MoreSheet({ id, groups, onClose, onPick, restoreFocus }: { id: string; 
               <h3 className={clsx(groupLabelCls, "pb-1")}>{g.label}</h3>
               {/* Never the current page: that one is always a tab. */}
               {g.items.map((n) => (
-                <NavLink key={n.id} to={n.to} onClick={onPick} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-muted hover:bg-panel-2 hover:text-cream">
-                  <n.icon className="h-4 w-4 text-faint" />
+                <NavLink key={n.id} to={n.to} onClick={onPick} className="flex items-center gap-3 px-3 py-3 text-sm font-semibold text-ink/80 hover:bg-parchment-deep/60 hover:text-ink">
+                  <n.icon className="h-4 w-4 text-ink/70" />
                   <span>{n.label}</span>
                   {n.badge && <NavBadge badge={n.badge} className="ml-auto" />}
                 </NavLink>

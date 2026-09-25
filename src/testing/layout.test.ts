@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { expect, test } from "vitest";
-import { escapesFromScrollers, widensSideways } from "./layout";
+import { escapesFromScrollers, parchmentTextOnDusk, widensSideways } from "./layout";
 
 /** Ids of the elements the guard reports. */
 function escapes(html: string) {
@@ -83,4 +83,30 @@ test("items that size to their content grow to fit the line despite min-w-0", ()
 test("equal grid columns never grow to fit their content", () => {
   // Tailwind's grid-cols-N is repeat(N, minmax(0, 1fr)).
   expect(widens(`<div class="grid grid-cols-1 sm:grid-cols-2"><div><pre id="x" class="overflow-x-auto">a long line</pre></div></div>`)).toEqual([]);
+});
+
+/** Ids of the elements the surface guard reports. */
+function onDusk(html: string) {
+  const host = document.createElement("div");
+  host.innerHTML = html;
+  return parchmentTextOnDusk(host).map((el) => el.id);
+}
+
+test("text written for parchment is fine inside a frame, a note, a parchment block or its own parchment face", () => {
+  expect(onDusk(`<section class="relative pixel-frame"><p id="a" class="text-ink/75">Hi</p></section>`)).toEqual([]);
+  expect(onDusk(`<p class="pixel-note"><span id="a" class="text-soil">Live demo.</span></p>`)).toEqual([]);
+  expect(onDusk(`<div class="bg-parchment"><b id="a" class="text-ember-deep">3 left</b></div>`)).toEqual([]);
+  expect(onDusk(`<input id="a" class="border-2 bg-parchment text-ink" />`)).toEqual([]);
+  // The bark sign recolours parchment text for itself; a dialog is its own framed window.
+  expect(onDusk(`<div class="pixel-sign"><b id="a" class="text-ember-deep">-3</b></div>`)).toEqual([]);
+  expect(onDusk(`<dialog id="a" class="text-ink"></dialog>`)).toEqual([]);
+});
+
+test("text written for parchment on the dusk ground, a bark sign or a see-through wash is reported", () => {
+  expect(onDusk(`<main><p id="a" class="text-ink/75">3 plants</p></main>`)).toEqual(["a"]);
+  expect(onDusk(`<div class="bg-bark"><span id="a" class="text-ember-deep">-4</span></div>`)).toEqual(["a"]);
+  expect(onDusk(`<div class="bg-parchment-deep/40"><span id="a" class="text-ink">Note</span></div>`)).toEqual(["a"]);
+  expect(onDusk(`<section class="pixel-frame"><div class="bg-bark"><span id="a" class="text-soil">x</span></div></section>`)).toEqual(["a"]);
+  // Only the resting colour counts, and cream is the dusk colour.
+  expect(onDusk(`<main><a id="a" class="text-cream/80 hover:text-ink">Guide</a></main>`)).toEqual([]);
 });

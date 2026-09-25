@@ -17,9 +17,8 @@ export class ErrorBoundary extends Component<{ children: ReactNode; resetKey?: s
     if (!this.state.error) return this.props.children;
     return (
       <div className="mx-auto mt-20 max-w-md text-center">
-        <div className="text-4xl">🌮💥</div>
-        <h1 className="mt-4 font-display text-2xl font-semibold">Something went wrong</h1>
-        <p className="mt-2 text-sm text-muted">{this.state.error.message}</p>
+                <h1 className="mt-4 font-display text-2xl font-semibold">Something went wrong</h1>
+        <p className="mt-2 text-sm text-cream/80">{this.state.error.message}</p>
         <Button className="mt-6" onClick={() => location.reload()}>
           Reload
         </Button>

@@ -23,7 +23,9 @@ import { Setup } from "./pages/Setup";
 function Splash() {
   return (
     <div className="grid min-h-dvh place-items-center">
-      <div className="animate-float text-5xl" aria-label="Loading">🌮</div>
+      <p role="status" className="font-display text-2xl text-cream">
+        Loading the garden…
+      </p>
     </div>
   );
 }

@@ -48,20 +48,20 @@ export function Discoveries() {
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_1fr]">
-        <Card className="grain h-fit overflow-hidden bg-gradient-to-br from-r-epic/[0.14] via-panel to-panel p-5">
+        <Card className="relative h-fit overflow-hidden p-5">
           <Eyebrow>Collection</Eyebrow>
           <div className="mt-2 flex items-baseline gap-2">
             <BigNumber value={data.discovered} className="text-6xl" />
-            <span className="text-muted">/ {data.total}</span>
+            <span className="text-ink/75">/ {data.total}</span>
           </div>
-          <Progress value={data.discovered} max={data.total} color="linear-gradient(90deg, var(--color-r-rare), var(--color-r-epic), var(--color-r-legendary))" className="mt-3" height={8} />
+          <Progress value={data.discovered} max={data.total} color="var(--color-r-epic)" className="mt-3" height={8} />
           <ul className="mt-6 space-y-3">
             {data.byRarity.map((r) => (
               <li key={r.rarity}>
-                <button onClick={() => setRarity(rarity === r.rarity ? "all" : (r.rarity as Rarity))} className={clsx("w-full rounded-lg p-1 text-left transition", rarity === r.rarity && "bg-panel-3/60")}>
+                <button onClick={() => setRarity(rarity === r.rarity ? "all" : (r.rarity as Rarity))} className={clsx("w-full p-1 text-left transition", rarity === r.rarity && "bg-parchment-deep")}>
                   <div className="mb-1.5 flex items-center justify-between">
                     <RarityBadge rarity={r.rarity as Rarity} size="xs" />
-                    <span className="font-mono text-xs text-muted tabular">
+                    <span className="text-xs text-ink/75 tabular">
                       {r.discovered}/{r.total}
                     </span>
                   </div>
@@ -70,14 +70,14 @@ export function Discoveries() {
               </li>
             ))}
           </ul>
-          <div className="mt-6 border-t border-line pt-4">
+          <div className="mt-6 border-t border-parchment-deep pt-4">
             <Eyebrow className="mb-2">By moment</Eyebrow>
             <ul className="space-y-1.5 text-sm">
               {data.categories.map((c) => (
                 <li key={c.id}>
-                  <button onClick={() => setCategory(category === c.id ? "all" : c.id)} className={clsx("flex w-full items-center justify-between rounded-lg px-2 py-1 transition", category === c.id ? "bg-panel-3 text-cream" : "text-muted hover:text-cream")}>
+                  <button onClick={() => setCategory(category === c.id ? "all" : c.id)} className={clsx("flex w-full items-center justify-between px-2 py-1 transition", category === c.id ? "bg-parchment-deep text-ink" : "text-ink/75 hover:text-ink")}>
                     <span>{c.label}</span>
-                    <span className="font-mono text-xs tabular">
+                    <span className="text-xs tabular">
                       {c.discovered}/{c.total}
                     </span>
                   </button>
@@ -85,7 +85,7 @@ export function Discoveries() {
               ))}
             </ul>
           </div>
-          <p className="mt-5 text-xs text-faint">{data.collectors} teammates are collecting in {viewer.workspace.name}.</p>
+          <p className="mt-5 text-xs text-ink/70">{data.collectors} teammates are collecting in {viewer.workspace.name}.</p>
         </Card>
 
         <div>
@@ -100,11 +100,11 @@ export function Discoveries() {
               ]}
             />
             {(rarity !== "all" || category !== "all") && (
-              <button onClick={() => { setRarity("all"); setCategory("all"); }} className="rounded-lg px-3 py-1.5 text-sm text-saffron hover:bg-panel-2">
+              <button onClick={() => { setRarity("all"); setCategory("all"); }} className="px-3 py-1.5 text-sm font-semibold text-lantern hover:bg-dusk-deep">
                 Clear filters
               </button>
             )}
-            <span className="ml-auto text-sm text-faint">{items.length} messages</span>
+            <span className="ml-auto text-sm text-cream/75">{items.length} messages</span>
           </div>
           <motion.div layout className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <AnimatePresence mode="popLayout">
@@ -119,13 +119,13 @@ export function Discoveries() {
                     exit={{ opacity: 0, scale: 0.96 }}
                     transition={{ duration: 0.2 }}
                     className={clsx(
-                      "relative flex min-h-44 flex-col rounded-2xl p-4 ring-1 ring-inset",
-                      i.discovered ? ["bg-panel", meta.ring, meta.glow] : "bg-panel/40 ring-line",
+                      "relative flex min-h-44 flex-col p-4 ring-1 ring-inset",
+                      i.discovered ? ["bg-parchment", meta.ring, meta.glow] : "bg-parchment ring-parchment-deep",
                     )}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <RarityBadge rarity={i.rarity as Rarity} size="xs" />
-                      <span className="font-mono text-[10px] uppercase tracking-wider text-faint">{i.categoryLabel}</span>
+                      <span className="tabular text-[10px] text-ink/70">{i.categoryLabel}</span>
                     </div>
                     {i.discovered && i.text ? (
                       <p className="mt-3 flex-1 text-[15px] leading-relaxed">
@@ -134,14 +134,14 @@ export function Discoveries() {
                     ) : (
                       <div className="mt-3 flex flex-1 flex-col justify-center gap-2" aria-label="Undiscovered message">
                         {Array.from({ length: Math.max(1, Math.round(i.length / 48)) }).map((_, n, arr) => (
-                          <div key={n} className="h-3 rounded-full bg-panel-3" style={{ width: n === arr.length - 1 ? "55%" : "100%" }} />
+                          <div key={n} className="h-3 bg-parchment-deep" style={{ width: n === arr.length - 1 ? "55%" : "100%" }} />
                         ))}
-                        <div className="mt-1 flex items-center gap-1.5 text-xs text-faint">
+                        <div className="mt-1 flex items-center gap-1.5 text-xs text-ink/70">
                           <Lock className="h-3 w-3" /> {hint(i.category)}
                         </div>
                       </div>
                     )}
-                    <div className="mt-3 flex items-center justify-between border-t border-line pt-2.5 font-mono text-[10px] text-faint">
+                    <div className="mt-3 flex items-center justify-between border-t border-parchment-deep pt-2.5 tabular text-[10px] text-ink/70">
                       {i.discovered ? <span>Seen {i.timesSeen}× · {relativeTime(i.lastSeenAt!)}</span> : <span>&nbsp;</span>}
                       <span title="Teammates who found this message">
                         {i.foundBy === 0 ? "Nobody has found this" : `Found by ${i.foundBy}`}

@@ -57,8 +57,8 @@ export function RewardCard({
   return (
     <article
       className={clsx(
-        "group relative flex h-full flex-col rounded-2xl border border-line bg-panel/80 p-4 transition-colors hover:border-line-strong",
-        dimmed && "opacity-70",
+        "group relative flex h-full flex-col border border-parchment-deep bg-parchment p-4 transition-colors hover:border-bark/60",
+        dimmed && "[&>*]:opacity-60",
         className,
       )}
     >
@@ -66,7 +66,7 @@ export function RewardCard({
         <motion.span
           whileHover={{ rotate: -6, scale: 1.06 }}
           transition={{ type: "spring", bounce: 0.5, duration: 0.4 }}
-          className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-saffron/10 text-[30px] ring-1 ring-saffron/20"
+          className="grid h-14 w-14 shrink-0 place-items-center bg-lantern/10 text-[30px] ring-1 ring-lantern/20"
           aria-hidden
         >
           {reward.emoji || "🎁"}
@@ -74,39 +74,39 @@ export function RewardCard({
         {badge && (
           <span
             className={clsx(
-              "rounded-full px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] ring-1 ring-inset",
-              badge.tone === "ember" && "bg-ember/10 text-ember ring-ember/30",
-              badge.tone === "teal" && "bg-teal/15 text-teal-soft ring-teal/30",
-              badge.tone === "muted" && "bg-panel-3 text-muted ring-line-strong",
+              "px-2.5 py-1 tabular text-[10px] ring-1 ring-inset",
+              badge.tone === "ember" && "bg-ember/10 text-ember-deep ring-ember/40",
+              badge.tone === "teal" && "bg-pond/15 text-pond-deep ring-pond/30",
+              badge.tone === "muted" && "bg-parchment-deep text-ink/75 ring-bark/60",
             )}
           >
             {badge.label}
           </span>
         )}
       </div>
-      <h3 className="mt-4 font-display text-lg font-semibold leading-snug tracking-tight text-cream">{reward.name || "Untitled reward"}</h3>
-      {reward.description && <p className="mt-1 text-sm leading-relaxed text-muted">{reward.description}</p>}
+      <h3 className="mt-4 font-display text-lg font-semibold leading-snug text-ink">{reward.name || "Untitled reward"}</h3>
+      {reward.description && <p className="mt-1 text-sm leading-relaxed text-ink/75">{reward.description}</p>}
       {reward.prompt && (
-        <p className="mt-2 flex items-center gap-1.5 text-xs text-faint">
+        <p className="mt-2 flex items-center gap-1.5 text-xs text-ink/70">
           <MessageCircleQuestion className="h-3.5 w-3.5" /> Asks: {reward.prompt}
         </p>
       )}
       <div className="mt-auto pt-4">
         {short > 0 && (
           <div className="mb-3">
-            <div className="mb-1.5 flex justify-between text-xs text-muted">
+            <div className="mb-1.5 flex justify-between text-xs text-ink/75">
               <span>
                 Need {nf.format(short)} more {glyph}
               </span>
-              <span className="font-mono tabular">
+              <span className="tabular">
                 {nf.format(Math.max(0, balance ?? 0))}/{nf.format(reward.cost)}
               </span>
             </div>
             <Progress value={Math.max(0, balance ?? 0)} max={reward.cost} height={4} />
           </div>
         )}
-        <div className="flex items-center justify-between gap-3 border-t border-line pt-3">
-          <span className="font-display text-xl font-semibold tabular text-saffron">
+        <div className="flex items-center justify-between gap-3 border-t border-parchment-deep pt-3">
+          <span className="font-display text-xl font-semibold tabular text-soil">
             <HogCoin size={20} className="mr-1.5 -mt-0.5" />
             {nf.format(reward.cost)} <span className="text-base">{glyph}</span>
           </span>
@@ -125,16 +125,16 @@ type HistoryEntry = { status: RedemptionStatus; at: number; by: { _id: string; n
 const errorText = (e: unknown, fallback: string) => (e instanceof ConvexError ? String(e.data) : fallback);
 
 const STATUS_META: Record<RedemptionStatus, { label: string; chip: string; dot: string; verb: string }> = {
-  pending: { label: "Pending", chip: "bg-saffron/10 text-saffron ring-saffron/30", dot: "var(--color-saffron)", verb: "Requested" },
-  approved: { label: "Approved", chip: "bg-teal/15 text-teal-soft ring-teal/30", dot: "var(--color-teal-soft)", verb: "Approved" },
-  fulfilled: { label: "Fulfilled", chip: "bg-up/10 text-up ring-up/30", dot: "var(--color-up)", verb: "Fulfilled" },
-  declined: { label: "Declined", chip: "bg-down/10 text-down ring-down/25", dot: "var(--color-down)", verb: "Declined" },
-  cancelled: { label: "Cancelled", chip: "bg-panel-3 text-faint ring-line-strong", dot: "var(--color-faint)", verb: "Cancelled" },
+  pending: { label: "Pending", chip: "bg-lantern/10 text-soil ring-lantern/30", dot: "var(--color-lantern)", verb: "Requested" },
+  approved: { label: "Approved", chip: "bg-pond/15 text-pond-deep ring-pond/30", dot: "var(--color-pond)", verb: "Approved" },
+  fulfilled: { label: "Fulfilled", chip: "bg-hedge/10 text-hedge-deep ring-hedge/30", dot: "var(--color-hedge)", verb: "Fulfilled" },
+  declined: { label: "Declined", chip: "bg-ember/10 text-ember-deep ring-ember/25", dot: "var(--color-ember)", verb: "Declined" },
+  cancelled: { label: "Cancelled", chip: "bg-parchment-deep text-ink/70 ring-bark/60", dot: "var(--color-benchmark)", verb: "Cancelled" },
 };
 
 export function StatusChip({ status }: { status: RedemptionStatus }) {
   const meta = STATUS_META[status];
-  return <span className={clsx("inline-flex shrink-0 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] ring-1 ring-inset", meta.chip)}>{meta.label}</span>;
+  return <span className={clsx("inline-flex shrink-0 px-2 py-0.5 tabular text-[10px] ring-1 ring-inset", meta.chip)}>{meta.label}</span>;
 }
 
 /** "+10", "−4": amounts that move a balance either way. */
@@ -154,12 +154,12 @@ export function AdjustmentLine({ a, glyph, meId, from }: { a: AdjustmentEntry; g
   const who = a.source === "system" ? "Kudos" : a.by ? (a.by._id === meId ? "you" : a.by.name) : "a former admin";
   return (
     <div className="flex items-start gap-3 text-sm">
-      <span className={clsx("w-28 shrink-0 whitespace-nowrap text-right font-mono tabular", a.amount > 0 ? "text-up" : "text-down")}>
+      <span className={clsx("w-28 shrink-0 whitespace-nowrap text-right tabular", a.amount > 0 ? "text-hedge-deep" : "text-ember-deep")}>
         {signed(a.amount)} {glyph}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="break-words text-cream">“{a.reason}”</p>
-        <p className="text-xs text-faint">
+        <p className="break-words text-ink">“{a.reason}”</p>
+        <p className="text-xs text-ink/70">
           {from ? "from" : "by"} {who} · {relativeTime(a.at)}
         </p>
       </div>
@@ -170,14 +170,14 @@ export function AdjustmentLine({ a, glyph, meId, from }: { a: AdjustmentEntry; g
 /** Who moved a request and when, with any note from the decider. */
 export function RedemptionHistory({ history, meId }: { history: HistoryEntry[]; meId: string }) {
   return (
-    <ol className="ml-1 space-y-2.5 border-l border-line pl-4">
+    <ol className="ml-1 space-y-2.5 border-l border-parchment-deep pl-4">
       {history.map((h, i) => (
         <li key={i} className="relative text-sm">
-          <span className="absolute -left-[21px] top-[7px] h-2 w-2 rounded-full ring-2 ring-panel" style={{ background: STATUS_META[h.status].dot }} />
-          <span className="text-cream">{STATUS_META[h.status].verb}</span>
-          <span className="text-muted"> by {h.by ? (h.by._id === meId ? "you" : h.by.name) : "someone who left"}</span>
-          <span className="text-faint"> · {relativeTime(h.at)}</span>
-          {h.note && <p className="mt-0.5 text-muted">“{h.note}”</p>}
+          <span className="absolute -left-[21px] top-[7px] h-2 w-2 ring-2 ring-parchment" style={{ background: STATUS_META[h.status].dot }} />
+          <span className="text-ink">{STATUS_META[h.status].verb}</span>
+          <span className="text-ink/75"> by {h.by ? (h.by._id === meId ? "you" : h.by.name) : "someone who left"}</span>
+          <span className="text-ink/70"> · {relativeTime(h.at)}</span>
+          {h.note && <p className="mt-0.5 text-ink/75">“{h.note}”</p>}
         </li>
       ))}
     </ol>
@@ -217,7 +217,7 @@ export function Store() {
       <Card>
         <Empty icon="🙈" title="You've hidden the game">
           Your coins are safe.{" "}
-          <Link to="/me" className="font-medium text-saffron underline-offset-4 hover:underline">
+          <Link to="/me" className="font-medium text-soil underline-offset-4 hover:underline">
             Show the game on Me
           </Link>{" "}
           to shop again.
@@ -236,11 +236,11 @@ function LockedStore({ shop }: { shop: Extract<Shop, { access: "locked" }> }) {
       <Card className="p-5">
         <div className="max-w-xl space-y-4">
           <Locked title="Store" level={shop.unlockLevel} how={shop.how} />
-          <p className="text-sm text-muted">
+          <p className="text-sm text-ink/75">
             You're level {shop.level}.{" "}
             {shop.balance !== null ? (
               <>
-                Your <span className="font-medium text-saffron">{nf.format(shop.balance)} {COIN}</span> wait for you here.
+                Your <span className="font-medium text-soil">{nf.format(shop.balance)} {COIN}</span> wait for you here.
               </>
             ) : (
               "Thoughtful kudos are already collecting Hog coins for it."
@@ -271,7 +271,7 @@ function OpenStore({ shop }: { shop: OpenShop }) {
             You have{" "}
             <span className="whitespace-nowrap">
               <HogCoin size={34} className="mr-2 -mt-1" />
-              <BigNumber value={balance} className={balance < 0 ? "text-down" : "text-saffron"} />
+              <BigNumber value={balance} className={balance < 0 ? "text-ember-deep" : "text-soil"} />
             </span>{" "}
             {COIN} to spend
           </>
@@ -280,8 +280,8 @@ function OpenStore({ shop }: { shop: OpenShop }) {
         action={viewer.workspace.isDemo && <HandBackRewards />}
       />
       {balance < 0 && (
-        <p className="mb-5 flex items-start gap-2.5 rounded-xl border border-line-strong bg-panel-2/60 px-4 py-3 text-sm text-muted">
-          <Info className="mt-0.5 h-4 w-4 shrink-0 text-faint" />
+        <p className="pixel-note mb-5 flex items-start gap-2.5 px-4 py-3 text-sm">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-ink/70" />
           <span>
             Your balance is {nf.format(balance)} {COIN} because a revoked kudos took back coins you'd already spent, or an admin adjusted it. Spending waits until it's above zero again.
           </span>
@@ -331,30 +331,30 @@ function ItemCard({ item, balance, onBuy, usesLeft }: { item: ShopItem; balance:
   const Icon = ITEM_ICONS[item.key] ?? Gift;
   const block = buyBlock(item, balance);
   return (
-    <article className={clsx("flex h-full flex-col rounded-2xl border border-line bg-panel/80 p-4", item.blocked && "opacity-70")}>
+    <article className={clsx("flex h-full flex-col border border-parchment-deep bg-parchment p-4", item.blocked && "[&>*]:opacity-60")}>
       <div className="flex items-start justify-between gap-3">
         {hasItemArt(item.key) ? (
           <ItemArt itemKey={item.key} />
         ) : (
-          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-saffron/10 ring-1 ring-saffron/20" aria-hidden>
-            <Icon className="h-7 w-7 text-saffron" />
+          <span className="grid h-14 w-14 shrink-0 place-items-center bg-lantern/10 ring-1 ring-lantern/20" aria-hidden>
+            <Icon className="h-7 w-7 text-soil" />
           </span>
         )}
         {usesLeft > 0 && (
-          <span className="rounded-full bg-saffron/15 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-saffron ring-1 ring-inset ring-saffron/30">
+          <span className="bg-lantern/15 px-2.5 py-1 tabular text-[10px] text-soil ring-1 ring-inset ring-lantern/30">
             {usesLeft} {usesLeft === 1 ? "use" : "uses"} left
           </span>
         )}
         {item.perMonth !== null && (
-          <span className="rounded-full bg-teal/15 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-teal-soft ring-1 ring-inset ring-teal/30">
+          <span className="bg-pond/15 px-2.5 py-1 tabular text-[10px] text-pond-deep ring-1 ring-inset ring-pond/30">
             {item.boughtThisMonth}/{item.perMonth} this month
           </span>
         )}
       </div>
-      <h3 className="mt-4 font-display text-lg font-semibold leading-snug tracking-tight text-cream">{item.name}</h3>
-      <p className="mt-1 text-sm leading-relaxed text-muted">{item.description}</p>
-      <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-3">
-        <span className="font-display text-xl font-semibold tabular text-saffron">
+      <h3 className="mt-4 font-display text-lg font-semibold leading-snug text-ink">{item.name}</h3>
+      <p className="mt-1 text-sm leading-relaxed text-ink/75">{item.description}</p>
+      <div className="mt-auto flex items-center justify-between gap-3 border-t border-parchment-deep pt-3">
+        <span className="font-display text-xl font-semibold tabular text-soil">
           <HogCoin size={20} className="mr-1.5 -mt-0.5" />
           {nf.format(item.price)} <span className="text-base">{COIN}</span>
         </span>
@@ -370,7 +370,7 @@ function ItemCard({ item, balance, onBuy, usesLeft }: { item: ShopItem; balance:
           </Button>
         )}
       </div>
-      {block && <p className="mt-2 text-xs text-faint">{block}</p>}
+      {block && <p className="mt-2 text-xs text-ink/70">{block}</p>}
     </article>
   );
 }
@@ -417,7 +417,7 @@ function BuyDialog({ item, live, balance, onClose }: { item: ShopItem | null; li
         ) : (
           <>
             {error && (
-              <span role="alert" className="mr-auto flex items-center gap-1.5 text-sm text-down">
+              <span role="alert" className="mr-auto flex items-center gap-1.5 text-sm text-ember-deep">
                 <CircleAlert className="h-4 w-4 shrink-0" /> {error}
               </span>
             )}
@@ -439,31 +439,31 @@ function BuyDialog({ item, live, balance, onClose }: { item: ShopItem | null; li
               initial={{ scale: 0.3, rotate: -12, opacity: 0 }}
               animate={{ scale: [0.3, 1.25, 1], rotate: [-12, 6, 0], opacity: 1 }}
               transition={{ duration: 0.55, ease: "easeOut" }}
-              className="grid h-20 w-20 place-items-center rounded-3xl bg-saffron/15 ring-1 ring-saffron/30"
+              className="grid h-20 w-20 place-items-center bg-lantern/15 ring-1 ring-lantern/30"
               aria-hidden
             >
               <HogCoin size={48} />
             </motion.span>
             <p className="font-display text-lg font-semibold">{item.name} is yours</p>
-            <p className="text-sm text-muted">
+            <p className="text-sm text-ink/75">
               Balance: {nf.format(done.balance)} {COIN}
             </p>
           </div>
         ) : (
           <div className="space-y-4">
-            <p className="text-sm text-muted">{item.description}</p>
+            <p className="text-sm text-ink/75">{item.description}</p>
             {priceChanged && live && (
-              <p role="alert" className="rounded-xl border border-ember/30 bg-ember/10 px-3 py-2.5 text-sm">
+              <p role="alert" className="border border-ember/30 bg-ember/10 px-3 py-2.5 text-sm">
                 The price changed to <b className="font-semibold">{nf.format(live.price)} {COIN}</b>. Close this and take another look.
               </p>
             )}
             <dl className="grid grid-cols-2 gap-2 text-sm">
-              <dt className="text-muted">Balance now</dt>
-              <dd className="text-right font-mono tabular">
+              <dt className="text-ink/75">Balance now</dt>
+              <dd className="text-right tabular">
                 {nf.format(balance)} {COIN}
               </dd>
-              <dt className="text-muted">Balance after</dt>
-              <dd className="text-right font-mono tabular text-cream">
+              <dt className="text-ink/75">Balance after</dt>
+              <dd className="text-right tabular text-ink">
                 {nf.format(balance - item.price)} {COIN}
               </dd>
             </dl>
@@ -494,12 +494,12 @@ function RealRewards() {
           Rewards
         </h2>
         {data.openCount > 0 && (
-          <a href="#my-requests" className="inline-flex items-center gap-2 rounded-full border border-line-strong bg-panel-2 px-3 py-1.5 text-xs text-muted hover:text-cream">
-            <Clock className="h-3.5 w-3.5 text-saffron" /> {data.openCount} of {data.maxOpen} requests open
+          <a href="#my-requests" className="pixel-note inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold">
+            <Clock className="h-3.5 w-3.5 text-soil" /> {data.openCount} of {data.maxOpen} requests open
           </a>
         )}
       </div>
-      <p className="mb-4 text-sm text-faint">
+      <p className="mb-4 text-sm text-cream/75">
         An admin approves and hands these over.{" "}
         {rewards.length > 0 && (
           <>
@@ -508,8 +508,8 @@ function RealRewards() {
         )}
       </p>
       {data.openCount >= data.maxOpen && (
-        <p className="mb-5 flex items-start gap-2.5 rounded-xl border border-line-strong bg-panel-2/60 px-4 py-3 text-sm text-muted">
-          <Info className="mt-0.5 h-4 w-4 shrink-0 text-faint" />
+        <p className="pixel-note mb-5 flex items-start gap-2.5 px-4 py-3 text-sm">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-ink/70" />
           <span>You have {data.maxOpen} open requests. Once an admin finishes one, you can redeem again.</span>
         </p>
       )}
@@ -518,7 +518,7 @@ function RealRewards() {
           <Empty icon="🛍️" title="The shelves are empty">
             Your admins are still stocking the store.{" "}
             {viewer.member.isAdmin && (
-              <Link to="/admin?tab=store&section=catalog" className="font-medium text-saffron underline-offset-4 hover:underline">
+              <Link to="/admin?tab=store&section=catalog" className="font-medium text-soil underline-offset-4 hover:underline">
                 Add rewards
               </Link>
             )}
@@ -637,7 +637,7 @@ function RedeemDialog({
         ) : (
           <>
             {error && (
-              <span role="alert" className="mr-auto flex items-center gap-1.5 text-sm text-down">
+              <span role="alert" className="mr-auto flex items-center gap-1.5 text-sm text-ember-deep">
                 <CircleAlert className="h-4 w-4 shrink-0" /> {error}
               </span>
             )}
@@ -659,13 +659,13 @@ function RedeemDialog({
               initial={{ scale: 0.3, rotate: -12, opacity: 0 }}
               animate={{ scale: [0.3, 1.25, 1], rotate: [-12, 6, 0], opacity: 1 }}
               transition={{ duration: 0.55, ease: "easeOut" }}
-              className="grid h-20 w-20 place-items-center rounded-3xl bg-saffron/15 text-5xl ring-1 ring-saffron/30"
+              className="grid h-20 w-20 place-items-center bg-lantern/15 text-5xl ring-1 ring-lantern/30"
               aria-hidden
             >
               {reward.emoji}
             </motion.span>
             <p className="font-display text-lg font-semibold">{reward.name} is on its way to an admin</p>
-            <p className="text-sm text-muted">
+            <p className="text-sm text-ink/75">
               You'll see every step under My requests. Balance: {nf.format(done.balance)} {glyph}
             </p>
           </div>
@@ -678,15 +678,15 @@ function RedeemDialog({
             }}
             className="space-y-4"
           >
-            <div className="flex items-center gap-3 rounded-xl border border-line bg-ink/30 p-3">
-              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-saffron/10 text-2xl ring-1 ring-saffron/20" aria-hidden>
+            <div className="flex items-center gap-3 border border-parchment-deep bg-parchment-deep/40 p-3">
+              <span className="grid h-12 w-12 shrink-0 place-items-center bg-lantern/10 text-2xl ring-1 ring-lantern/20" aria-hidden>
                 {reward.emoji}
               </span>
               <div className="min-w-0 flex-1">
                 <div className="font-medium">{reward.name}</div>
-                {reward.description && <p className="text-sm text-muted">{reward.description}</p>}
+                {reward.description && <p className="text-sm text-ink/75">{reward.description}</p>}
               </div>
-              <span className="shrink-0 font-display text-lg font-semibold tabular text-saffron">
+              <span className="shrink-0 font-display text-lg font-semibold tabular text-soil">
                 {nf.format(reward.cost)} {glyph}
               </span>
             </div>
@@ -703,7 +703,7 @@ function RedeemDialog({
               </Field>
             )}
             {priceChanged && live && (
-              <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ember/30 bg-ember/10 px-3 py-2.5 text-sm">
+              <div role="alert" className="flex flex-wrap items-center justify-between gap-3 border border-ember/30 bg-ember/10 px-3 py-2.5 text-sm">
                 <span>
                   The price changed to{" "}
                   <b className="font-semibold">
@@ -717,17 +717,17 @@ function RedeemDialog({
               </div>
             )}
             {blocked && block && (
-              <p role="alert" className="flex items-center gap-1.5 rounded-xl border border-line-strong bg-panel-2/60 px-3 py-2.5 text-sm text-muted">
-                <Info className="h-4 w-4 shrink-0 text-faint" /> {block.reason}
+              <p role="alert" className="flex items-center gap-1.5 border border-bark/60 bg-parchment-deep/50 px-3 py-2.5 text-sm text-ink/75">
+                <Info className="h-4 w-4 shrink-0 text-ink/70" /> {block.reason}
               </p>
             )}
             <dl className="grid grid-cols-2 gap-2 text-sm">
-              <dt className="text-muted">Balance now</dt>
-              <dd className="text-right font-mono tabular">
+              <dt className="text-ink/75">Balance now</dt>
+              <dd className="text-right tabular">
                 {nf.format(balance)} {glyph}
               </dd>
-              <dt className="text-muted">Balance after</dt>
-              <dd className={clsx("text-right font-mono tabular", after < 0 ? "text-down" : "text-cream")}>
+              <dt className="text-ink/75">Balance after</dt>
+              <dd className={clsx("text-right tabular", after < 0 ? "text-ember-deep" : "text-ink")}>
                 {nf.format(after)} {glyph}
               </dd>
             </dl>
@@ -800,9 +800,9 @@ function MyRequests({ onlyIfAny = false }: { onlyIfAny?: boolean }) {
               const isExpanded = expanded === r._id;
               const refunded = r.status === "declined" || r.status === "cancelled";
               return (
-                <motion.li key={r._id} layout initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl hover:bg-panel-2/40">
+                <motion.li key={r._id} layout initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="hover:bg-parchment-deep/50">
                   <div className="flex items-center gap-3 px-3 py-2.5">
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-saffron/10 text-xl ring-1 ring-saffron/20" aria-hidden>
+                    <span className="grid h-10 w-10 shrink-0 place-items-center bg-lantern/10 text-xl ring-1 ring-lantern/20" aria-hidden>
                       {r.rewardEmoji}
                     </span>
                     <button
@@ -814,12 +814,12 @@ function MyRequests({ onlyIfAny = false }: { onlyIfAny?: boolean }) {
                         <span className="truncate font-medium">{r.rewardName}</span>
                         <StatusChip status={r.status} />
                       </div>
-                      <p className="mt-0.5 text-xs text-faint">
-                        <span className={clsx("font-mono tabular", refunded ? "text-muted line-through" : "text-saffron")}>
+                      <p className="mt-0.5 text-xs text-ink/70">
+                        <span className={clsx("tabular", refunded ? "text-ink/75 line-through" : "text-soil")}>
                           {nf.format(r.cost)} {r.legacy ? "kudos" : glyph}
                         </span>
                         {/* The received-kudos balance was reset, so an old request is never refunded in coins. */}
-                        {refunded && !r.legacy && <span className="text-up"> refunded</span>}
+                        {refunded && !r.legacy && <span className="text-hedge-deep"> refunded</span>}
                         {r.legacy && <span> · old kudos Store</span>} · {relativeTime(r.updatedAt)}
                       </p>
                     </button>
@@ -838,12 +838,12 @@ function MyRequests({ onlyIfAny = false }: { onlyIfAny?: boolean }) {
                           Cancel
                         </Button>
                       ))}
-                    <button onClick={() => setExpanded(isExpanded ? null : r._id)} className="shrink-0 rounded-lg p-1.5 text-faint hover:text-cream" aria-hidden tabIndex={-1}>
+                    <button onClick={() => setExpanded(isExpanded ? null : r._id)} className="shrink-0 p-1.5 text-ink/70 hover:text-ink" aria-hidden tabIndex={-1}>
                       <ChevronDown className={clsx("h-4 w-4 transition-transform", isExpanded && "rotate-180")} />
                     </button>
                   </div>
                   {error?.id === r._id && (
-                    <p role="alert" className="flex items-center gap-1.5 px-3 pb-2 text-sm text-down">
+                    <p role="alert" className="flex items-center gap-1.5 px-3 pb-2 text-sm text-ember-deep">
                       <CircleAlert className="h-4 w-4 shrink-0" /> {error.text}
                     </p>
                   )}
@@ -853,7 +853,7 @@ function MyRequests({ onlyIfAny = false }: { onlyIfAny?: boolean }) {
                         <div className="space-y-3 px-3 pb-3 pl-16">
                           {r.prompt && r.answer && (
                             <p className="text-sm">
-                              <span className="text-faint">{r.prompt}</span> <span className="text-cream">{r.answer}</span>
+                              <span className="text-ink/70">{r.prompt}</span> <span className="text-ink">{r.answer}</span>
                             </p>
                           )}
                           <RedemptionHistory history={r.history} meId={viewer.member._id} />
@@ -916,12 +916,12 @@ export function StoreBalanceChip({ className }: { className?: string }) {
     <Link
       to="/store"
       className={clsx(
-        "inline-flex items-center gap-1.5 rounded-full border border-saffron/30 bg-saffron/10 px-2.5 py-1 text-xs font-medium text-saffron transition hover:bg-saffron/15",
+        "inline-flex items-center gap-1.5 border border-lantern/30 bg-lantern/10 px-2.5 py-1 text-xs font-medium text-soil transition hover:bg-lantern/15",
         className,
       )}
     >
       <HogCoin size={14} />
-      <span className={clsx("tabular", balance < 0 && "text-down")}>{nf.format(balance)}</span> {COIN} to spend →
+      <span className={clsx("tabular", balance < 0 && "text-ember-deep")}>{nf.format(balance)}</span> {COIN} to spend →
     </Link>
   );
 }

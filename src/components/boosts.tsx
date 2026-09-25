@@ -21,21 +21,21 @@ export function BoostBannerView({ banner }: { banner: Banner | undefined }) {
   return (
     <div role="status" aria-label="Bonus days" className="mx-auto mb-6 max-w-[1240px] space-y-2">
       {banner.current && (
-        <p className="flex items-start gap-3 rounded-xl border border-saffron/40 bg-saffron/[0.12] px-4 py-3 text-sm leading-relaxed text-cream">
-          <Zap className="mt-0.5 h-4 w-4 shrink-0 text-saffron" aria-hidden />
+        <p className="flex items-start gap-3 px-4 py-3 text-sm leading-relaxed pixel-note [box-shadow:inset_4px_0_0_0_var(--color-lantern),inset_0_0_0_1px_var(--color-parchment-deep),3px_3px_0_0_var(--color-dusk-deep)]">
+          <Zap className="mt-0.5 h-4 w-4 shrink-0 text-soil" aria-hidden />
           <span>
-            <span className="mr-2 font-mono text-[11px] uppercase tracking-widest text-saffron">{banner.current.kind === "double" ? "Bonus day" : "Booster"}</span>
+            <span className="mr-2 font-semibold text-soil">{banner.current.kind === "double" ? "Bonus day" : "Booster"}</span>
             {banner.current.text}
           </span>
         </p>
       )}
       {next && (
-        <p className="flex items-start gap-3 rounded-xl border border-teal/30 bg-teal/[0.08] px-4 py-2.5 text-sm leading-relaxed text-cream/90">
-          <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-teal-soft" aria-hidden />
+        <p className="flex items-start gap-3 px-4 py-2.5 text-sm leading-relaxed pixel-note">
+          <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-pond-deep" aria-hidden />
           <span>
-            <span className="mr-2 font-mono text-[11px] uppercase tracking-widest text-teal-soft">Coming up</span>
+            <span className="mr-2 font-semibold text-pond-deep">Coming up.</span>
             {next.text}
-            {later.length > 0 && <span className="text-muted"> (+{later.length} more bonus {later.length === 1 ? "day" : "days"} ahead)</span>}
+            {later.length > 0 && <span className="text-ink/75"> (+{later.length} more bonus {later.length === 1 ? "day" : "days"} ahead)</span>}
           </span>
         </p>
       )}

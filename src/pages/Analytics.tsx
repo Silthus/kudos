@@ -24,7 +24,7 @@ export function Analytics() {
   const lastPeriod = data.period === "all" ? null : `last ${data.period}`;
   const tiles = [
     { label: "Kudos given", value: nf.format(k.total), trend: <Trend cur={k.total} prev={k.prevTotal} suffix="vs prev. to date" />, hint: `${nf.format(k.messages)} recognition moments` },
-    { label: "Participation", value: pct(k.participation), trend: k.prevParticipation !== null && lastPeriod ? <span className="text-xs text-faint tabular">{pct(k.prevParticipation)} in all of {lastPeriod}</span> : null, hint: `${k.givers} of ${k.teamSize} teammates gave` },
+    { label: "Participation", value: pct(k.participation), trend: k.prevParticipation !== null && lastPeriod ? <span className="text-xs text-ink/70 tabular">{pct(k.prevParticipation)} in all of {lastPeriod}</span> : null, hint: `${k.givers} of ${k.teamSize} teammates gave` },
     { label: "Avg. per giver", value: k.avgPerGiver.toFixed(1), trend: null, hint: `${k.receivers} people were recognized` },
     { label: "Allowance used", value: pct(k.allowanceUse), trend: null, hint: `on active days · ${k.maxedDays} maxed days` },
     { label: "Top-20% share", value: pct(k.topShare), trend: null, hint: "of kudos come from the most generous fifth" },
@@ -34,7 +34,7 @@ export function Analytics() {
   const hasCompare = data.volume.length > 0 && data.volume[0].prevTotal !== null;
 
   return (
-    <div className={`transition-opacity duration-200 ${isStale ? "opacity-60" : ""}`} aria-busy={isStale}>
+    <div className={`${isStale ? "[&_.pixel-frame>*]:opacity-60" : ""}`} aria-busy={isStale}>
       <PageHeader
         eyebrow={rangeLabel(data.range.start, data.range.end)}
         title="Team analytics"
@@ -54,7 +54,7 @@ export function Analytics() {
             <Eyebrow>{t.label}</Eyebrow>
             <BigNumber value={t.value} className="mt-2 block text-4xl" />
             <div className="mt-2 min-h-5">{t.trend}</div>
-            <p className="mt-1 text-xs text-faint">{t.hint}</p>
+            <p className="mt-1 text-xs text-ink/70">{t.hint}</p>
           </Card>
         ))}
       </div>
@@ -63,7 +63,7 @@ export function Analytics() {
         <CardHeader
           title={monthly ? "Monthly volume" : "Daily volume"}
           subtitle={`Kudos given per ${monthly ? "month" : "day"}, ${data.label.toLowerCase()}`}
-          action={hasCompare ? <Legend items={[{ label: "This period", color: "var(--color-saffron-deep)" }, { label: "Previous period to date", color: "var(--color-muted)", dashed: true }]} /> : null}
+          action={hasCompare ? <Legend items={[{ label: "This period", color: "var(--color-ember)" }, { label: "Previous period to date", color: "var(--color-benchmark)", dashed: true }]} /> : null}
         />
         <div className="px-5 pb-5">
           <BarChart grain={data.grain} days={data.volume.map((d) => d.day)} values={data.volume.map((d) => d.total)} compare={hasCompare ? data.volume.map((d) => d.prevTotal) : null} height={260} />
@@ -84,8 +84,8 @@ export function Analytics() {
             {data.sources.length > 0 && (
               <div className="mt-6 flex gap-3">
                 {data.sources.map((s) => (
-                  <div key={s.name} className="flex-1 rounded-xl border border-line bg-ink/40 px-4 py-3">
-                    <div className="text-xs text-muted">{s.name}</div>
+                  <div key={s.name} className="flex-1 border border-parchment-deep bg-parchment-deep/40 px-4 py-3">
+                    <div className="text-xs text-ink/75">{s.name}</div>
                     <div className="font-display text-xl font-semibold tabular">{nf.format(s.value)}</div>
                   </div>
                 ))}
@@ -118,7 +118,7 @@ export function Analytics() {
           <div className="px-5 pb-5">
             {data.topReceivers ? (
               <BarList
-                color="var(--color-teal)"
+                color="var(--color-pond)"
                 items={data.topReceivers.map((g) => ({
                   key: g.member?._id ?? "?",
                   label: (
@@ -141,13 +141,13 @@ export function Analytics() {
             {data.topPairs ? (
               <ul className="space-y-2">
                 {data.topPairs.map((p, i) => (
-                  <li key={i} className="flex items-center gap-2 rounded-xl border border-line bg-ink/40 px-3 py-2 text-sm">
+                  <li key={i} className="flex items-center gap-2 border border-parchment-deep bg-parchment-deep/40 px-3 py-2 text-sm">
                     <Avatar name={p.giver?.name ?? "?"} src={p.giver?.avatarUrl} size={24} />
                     <span className="truncate">{p.giver?.name.split(" ")[0]}</span>
-                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-faint" />
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-ink/70" />
                     <Avatar name={p.receiver?.name ?? "?"} src={p.receiver?.avatarUrl} size={24} />
                     <span className="truncate">{p.receiver?.name.split(" ")[0]}</span>
-                    <span className="ml-auto font-mono text-xs text-muted tabular">
+                    <span className="ml-auto text-xs text-ink/75 tabular">
                       {p.value} {glyph}
                     </span>
                   </li>
@@ -164,9 +164,9 @@ export function Analytics() {
         <CardHeader title="Messages discovered" subtitle="New bot messages unlocked across the team, by rarity" />
         <div className="grid grid-cols-1 gap-3 px-5 pb-5 sm:grid-cols-5">
           {data.rarity.map((r) => (
-            <div key={r.rarity} className="rounded-xl border border-line bg-ink/40 p-4">
-              <div className="flex items-center gap-2 text-xs text-muted">
-                <span className="h-2 w-2 rounded-full" style={{ background: RARITY_META[r.rarity as Rarity].color }} />
+            <div key={r.rarity} className="border border-parchment-deep bg-parchment-deep/40 p-4">
+              <div className="flex items-center gap-2 text-xs text-ink/75">
+                <span className="h-2 w-2" style={{ background: RARITY_META[r.rarity as Rarity].color }} />
                 {RARITY_META[r.rarity as Rarity].label}
               </div>
               <div className="mt-1 font-display text-2xl font-semibold tabular">{nf.format(r.value)}</div>
@@ -175,7 +175,7 @@ export function Analytics() {
         </div>
       </Card>
       {data.truncated && (
-        <p className="mt-3 flex items-center gap-1.5 text-xs text-faint">
+        <p className="mt-3 flex items-center gap-1.5 text-xs text-cream/75">
           <Info className="h-3.5 w-3.5" /> This range is very busy: some charts only include the most recent activity.
         </p>
       )}
@@ -186,7 +186,7 @@ export function Analytics() {
 
 function PrivateNote() {
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-line bg-ink/40 p-4 text-sm text-muted">
+    <div className="flex items-start gap-3 border border-parchment-deep bg-parchment-deep/40 p-4 text-sm text-ink/75">
       <Lock className="mt-0.5 h-4 w-4 shrink-0" />
       Received kudos are private in this workspace. Admins can change this in settings.
     </div>

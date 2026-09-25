@@ -5,7 +5,7 @@ import { MemoryRouter } from "react-router";
 import { getFunctionName, type FunctionReference } from "convex/server";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { ViewerContext, type ReadyViewer } from "@/lib/viewer";
-import { describeElement, escapesFromScrollers } from "@/testing/layout";
+import { describeElement, escapesFromScrollers, parchmentTextOnDusk } from "@/testing/layout";
 
 const settings = {
   emojiName: "taco",
@@ -151,4 +151,5 @@ test("on a phone the members table scrolls inside its card, and nothing in it wi
   expect(host.querySelector("table")?.textContent).toContain("Lena Park");
   expect(host.querySelector("table")!.parentElement!.classList, "the wide table scrolls sideways on its own").toContain("overflow-x-auto");
   expect(escapesFromScrollers(host).map(describeElement)).toEqual([]);
+  expect(parchmentTextOnDusk(host).map(describeElement)).toEqual([]);
 });

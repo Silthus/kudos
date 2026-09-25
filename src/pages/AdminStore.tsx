@@ -19,7 +19,7 @@ type Reward = NonNullable<ReturnType<typeof useQuery<typeof api.storeAdmin.rewar
 const errorText = (e: unknown, fallback: string) => (e instanceof ConvexError ? String(e.data) : fallback);
 
 function DemoNotice({ children }: { children: React.ReactNode }) {
-  return <div className="mb-4 rounded-xl border border-line-strong bg-panel-2/60 px-4 py-3 text-sm text-muted">{children}</div>;
+  return <div className="mb-4 border border-bark/60 bg-parchment-deep/50 px-4 py-3 text-sm text-ink/75">{children}</div>;
 }
 
 export function AdminStore({ isDemo }: { isDemo: boolean }) {
@@ -194,40 +194,40 @@ function RequestRow({
 }) {
   const open = r.status === "pending" || r.status === "approved";
   return (
-    <motion.li layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden rounded-xl hover:bg-panel-2/40">
+    <motion.li layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden hover:bg-parchment-deep/50">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3">
         <Avatar name={r.requester.name} src={r.requester.avatarUrl} size={34} />
         <button className="min-w-0 flex-1 basis-48 text-left" onClick={onToggle} aria-expanded={expanded}>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
             <b className="font-medium">{r.requester.name}</b>
-            <span className="text-muted">wants</span>
+            <span className="text-ink/75">wants</span>
             <span className="font-medium">
               {r.rewardEmoji} {r.rewardName}
             </span>
             <StatusChip status={r.status} />
           </div>
-          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-faint">
-            <span className="font-mono tabular text-saffron">
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink/70">
+            <span className="tabular text-soil">
               {nf.format(r.cost)} {r.legacy ? "kudos, old Store" : glyph}
             </span>
             <span>· {relativeTime(r.requestedAt)}</span>
             {r.balance !== null && (
-              <span className={clsx(r.negativeBalance && "font-medium text-down")}>
+              <span className={clsx(r.negativeBalance && "font-medium text-ember-deep")}>
                 · balance {nf.format(r.balance)} {glyph}
                 {r.negativeBalance && " (negative)"}
               </span>
             )}
-            {r.requester.deactivated && <span className="rounded bg-panel-3 px-1.5 py-0.5 text-muted">left workspace</span>}
-            <span className="inline-flex items-center gap-0.5 text-muted">
+            {r.requester.deactivated && <span className="bg-parchment-deep px-1.5 py-0.5 text-ink/75">left workspace</span>}
+            <span className="inline-flex items-center gap-0.5 text-ink/75">
               · {expanded ? "Hide details" : "Where this balance came from"}
               <ChevronDown className={clsx("h-3.5 w-3.5 transition-transform", expanded && "rotate-180")} />
             </span>
           </p>
           {r.answer && (
-            <p className="mt-1 text-sm text-muted">
-              <MessageCircleQuestion className="mr-1 inline h-3.5 w-3.5 text-faint" />
-              {r.prompt && <span className="text-faint">{r.prompt} </span>}
-              <span className="text-cream">{r.answer}</span>
+            <p className="mt-1 text-sm text-ink/75">
+              <MessageCircleQuestion className="mr-1 inline h-3.5 w-3.5 text-ink/70" />
+              {r.prompt && <span className="text-ink/70">{r.prompt} </span>}
+              <span className="text-ink">{r.answer}</span>
             </p>
           )}
         </button>
@@ -247,11 +247,11 @@ function RequestRow({
               </Button>
             </div>
           ) : (
-            <span className="ml-auto shrink-0 text-xs text-faint">{r.isOwn ? "Your request · another admin decides" : ""}</span>
+            <span className="ml-auto shrink-0 text-xs text-ink/70">{r.isOwn ? "Your request · another admin decides" : ""}</span>
           ))}
       </div>
       {error && (
-        <p role="alert" className="flex items-center gap-1.5 px-3 pb-2 text-sm text-down">
+        <p role="alert" className="flex items-center gap-1.5 px-3 pb-2 text-sm text-ember-deep">
           <CircleAlert className="h-4 w-4 shrink-0" /> {error}
         </p>
       )}
@@ -306,7 +306,7 @@ function DeclineDialog({
       footer={
         <>
           {error && (
-            <span role="alert" className="mr-auto flex items-center gap-1.5 text-sm text-down">
+            <span role="alert" className="mr-auto flex items-center gap-1.5 text-sm text-ember-deep">
               <CircleAlert className="h-4 w-4 shrink-0" /> {error}
             </span>
           )}
@@ -330,8 +330,8 @@ function DeclineDialog({
               .finally(() => setBusy(false));
           }}
         >
-          <p className="mb-4 text-sm text-muted">
-            {row.rewardEmoji} <span className="text-cream">{row.rewardName}</span> for {row.requester.name}
+          <p className="mb-4 text-sm text-ink/75">
+            {row.rewardEmoji} <span className="text-ink">{row.rewardName}</span> for {row.requester.name}
           </p>
           <Field label="Reason" hint="Optional, but kind. The requester sees it in their history.">
             <textarea
@@ -379,7 +379,7 @@ function Catalog({ isDemo }: { isDemo: boolean }) {
           }
         />
         {error && (
-          <p className="mx-5 mb-2 flex items-center gap-1.5 text-sm text-down">
+          <p className="mx-5 mb-2 flex items-center gap-1.5 text-sm text-ember-deep">
             <CircleAlert className="h-4 w-4" /> {error}
           </p>
         )}
@@ -395,8 +395,8 @@ function Catalog({ isDemo }: { isDemo: boolean }) {
           </ul>
         )}
         {archived.length > 0 && (
-          <div className="border-t border-line px-2 pb-3 pt-2">
-            <button onClick={() => setShowArchived((s) => !s)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted hover:text-cream" aria-expanded={showArchived}>
+          <div className="border-t border-parchment-deep px-2 pb-3 pt-2">
+            <button onClick={() => setShowArchived((s) => !s)} className="flex items-center gap-2 px-3 py-2 text-sm text-ink/75 hover:text-ink" aria-expanded={showArchived}>
               <ChevronDown className={clsx("h-4 w-4 transition-transform", showArchived && "rotate-180")} />
               {archived.length} archived
             </button>
@@ -426,39 +426,39 @@ function RewardRow({ reward: r, glyph, isDemo, onEdit, onToggle }: { reward: Rew
     r.fulfilledCount > 0 ? `${nf.format(r.fulfilledCount)} fulfilled` : null,
   ].filter(Boolean);
   return (
-    <li className={clsx("flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-panel-2/50", archived && "opacity-60")}>
-      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-saffron/10 text-xl ring-1 ring-saffron/20" aria-hidden>
+    <li className={clsx("flex items-center gap-3 px-3 py-2.5 hover:bg-parchment-deep/50", archived && "opacity-60")}>
+      <span className="grid h-10 w-10 shrink-0 place-items-center bg-lantern/10 text-xl ring-1 ring-lantern/20" aria-hidden>
         {r.emoji}
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="truncate font-medium">{r.name}</span>
-          {r.prompt && <MessageCircleQuestion className="h-3.5 w-3.5 shrink-0 text-faint" aria-label={`Asks: ${r.prompt}`} />}
+          {r.prompt && <MessageCircleQuestion className="h-3.5 w-3.5 shrink-0 text-ink/70" aria-label={`Asks: ${r.prompt}`} />}
           {r.pricedInKudos && (
-            <span className="shrink-0 rounded-full bg-ember/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-ember ring-1 ring-inset ring-ember/30" title="Priced in kudos before the Store moved to Hog coins. Members don't see it until you save a price in Hog coins.">
+            <span className="shrink-0 bg-ember/10 px-2 py-0.5 tabular text-[10px] text-ember-deep ring-1 ring-inset ring-ember/40" title="Priced in kudos before the Store moved to Hog coins. Members don't see it until you save a price in Hog coins.">
               Review price
             </span>
           )}
         </div>
-        {r.description && <p className="truncate text-xs text-muted">{r.description}</p>}
-        <p className="truncate font-mono text-[10px] uppercase tracking-wider text-faint">
-          <span className="text-saffron sm:hidden">
+        {r.description && <p className="truncate text-xs text-ink/75">{r.description}</p>}
+        <p className="truncate tabular text-[10px] text-ink/70">
+          <span className="text-soil sm:hidden">
             {nf.format(r.cost)} {r.pricedInKudos ? "kudos" : glyph} ·{" "}
           </span>
           {meta.join(" · ")}
         </p>
       </div>
-      <span className="hidden shrink-0 font-mono text-sm tabular text-saffron sm:block">
+      <span className="hidden shrink-0 text-sm tabular text-soil sm:block">
         {nf.format(r.cost)} {r.pricedInKudos ? "kudos" : glyph}
       </span>
       <div className="flex shrink-0 items-center">
-        <button onClick={onEdit} disabled={isDemo} className="rounded-lg p-2 text-faint hover:bg-panel-3 hover:text-cream disabled:opacity-40" aria-label={`Edit ${r.name}`} title="Edit">
+        <button onClick={onEdit} disabled={isDemo} className="p-2 text-ink/70 hover:bg-parchment-deep hover:text-ink disabled:opacity-40" aria-label={`Edit ${r.name}`} title="Edit">
           <Pencil className="h-4 w-4" />
         </button>
         <button
           onClick={onToggle}
           disabled={isDemo}
-          className="rounded-lg p-2 text-faint hover:bg-panel-3 hover:text-cream disabled:opacity-40"
+          className="p-2 text-ink/70 hover:bg-parchment-deep hover:text-ink disabled:opacity-40"
           aria-label={`${archived ? "Restore" : "Archive"} ${r.name}`}
           title={archived ? "Restore" : "Archive"}
         >
@@ -552,7 +552,7 @@ function RewardEditor({ reward, onClose }: { reward: Reward | "new" | null; onCl
       footer={
         <>
           {error && (
-            <span className="mr-auto flex items-center gap-1.5 text-sm text-down">
+            <span className="mr-auto flex items-center gap-1.5 text-sm text-ember-deep">
               <CircleAlert className="h-4 w-4 shrink-0" /> {error}
             </span>
           )}
@@ -571,7 +571,7 @@ function RewardEditor({ reward, onClose }: { reward: Reward | "new" | null; onCl
           e.preventDefault();
           void save();
         }}
-        className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_280px]"
+        className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,1fr)_280px]"
       >
         <div className="space-y-4">
           <div className="grid grid-cols-[88px_1fr] gap-3">
@@ -590,7 +590,7 @@ function RewardEditor({ reward, onClose }: { reward: Reward | "new" | null; onCl
                 aria-label={`Use ${e}`}
                 aria-pressed={d.emoji === e}
                 onClick={() => set("emoji", e)}
-                className={clsx("grid h-9 w-9 place-items-center rounded-lg border text-lg transition", d.emoji === e ? "border-saffron/60 bg-saffron/10" : "border-line bg-ink/40 hover:border-line-strong")}
+                className={clsx("grid h-9 w-9 place-items-center border text-lg transition", d.emoji === e ? "border-lantern/60 bg-lantern/10" : "border-parchment-deep bg-parchment-deep/40 hover:border-bark/60")}
               >
                 {e}
               </button>
@@ -609,14 +609,14 @@ function RewardEditor({ reward, onClose }: { reward: Reward | "new" | null; onCl
             <Field label="Cost" hint="In Hog coins, 1–100,000">
               <div className="relative">
                 <input className={clsx(inputCls, "pr-10")} type="number" min={1} max={100000} value={d.cost} onChange={(e) => set("cost", e.target.value)} />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-faint">{COIN}</span>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink/70">{COIN}</span>
               </div>
             </Field>
             <Field label="Per-person limit" hint="Optional lifetime cap, e.g. 1">
               <input className={inputCls} type="number" min={1} max={100} value={d.maxPerMember} onChange={(e) => set("maxPerMember", e.target.value)} placeholder="No limit" />
             </Field>
           </div>
-          <div className="rounded-xl border border-line bg-ink/30 px-3">
+          <div className="border border-parchment-deep bg-parchment-deep/40 px-3">
             <Toggle checked={d.unlimited} onChange={(v) => set("unlimited", v)} label="Unlimited stock" description="Turn off to count down the items you have." />
             {!d.unlimited && (
               <div className="pb-3">
@@ -641,7 +641,7 @@ function RewardEditor({ reward, onClose }: { reward: Reward | "new" | null; onCl
               </span>
             }
           />
-          <p className="mt-2 text-xs text-faint">How members see it in the store.</p>
+          <p className="mt-2 text-xs text-ink/70">How members see it in the store.</p>
         </div>
       </form>
     </Dialog>
@@ -666,7 +666,7 @@ function StoreSettings({ isDemo }: { isDemo: boolean }) {
         <CardHeader title="Store" subtitle="Members spend Hog coins on game items, which apply instantly. Real rewards you stock and hand over are optional." />
         <div className="px-5 pb-5">
           {isDemo && <DemoNotice>Store settings are read-only in the shared demo.</DemoNotice>}
-          <div className="rounded-xl border border-line bg-ink/30 px-4">
+          <div className="border border-parchment-deep bg-parchment-deep/40 px-4">
             <Toggle
               checked={data.enabled}
               onChange={toggle}
@@ -684,8 +684,8 @@ function StoreSettings({ isDemo }: { isDemo: boolean }) {
             />
           </div>
           {data.unpricedRewards > 0 && (
-            <p className="mt-3 flex items-start gap-2 rounded-xl border border-ember/30 bg-ember/10 px-3 py-2.5 text-sm text-cream">
-              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-ember" />
+            <p className="mt-3 flex items-start gap-2 border border-ember/30 bg-ember/10 px-3 py-2.5 text-sm text-ink">
+              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-ember-deep" />
               <span>
                 {data.unpricedRewards} {data.unpricedRewards === 1 ? "reward was" : "rewards were"} priced in kudos before the Store moved to Hog coins. Members don't see{" "}
                 {data.unpricedRewards === 1 ? "it" : "them"} until you save a price in Hog coins under Catalog.
@@ -693,46 +693,46 @@ function StoreSettings({ isDemo }: { isDemo: boolean }) {
             </p>
           )}
           {error && (
-            <p className="mt-3 flex items-center gap-1.5 text-sm text-down">
+            <p className="mt-3 flex items-center gap-1.5 text-sm text-ember-deep">
               <CircleAlert className="h-4 w-4 shrink-0" /> {error}
             </p>
           )}
-          <div className="mt-5 space-y-2 text-sm leading-relaxed text-muted">
+          <div className="mt-5 space-y-2 text-sm leading-relaxed text-ink/75">
             <p>
-              <b className="font-medium text-cream">How balances work.</b> Members earn Hog coins by giving thoughtful kudos (1 per kudos) and reaching levels (10 each); receiving never earns coins. The balance is what they earned, minus what they spent, plus your adjustments. Kudos are only a stat: nothing buys or spends them.
+              <b className="font-medium text-ink">How balances work.</b> Members earn Hog coins by giving thoughtful kudos (1 per kudos) and reaching levels (10 each); receiving never earns coins. The balance is what they earned, minus what they spent, plus your adjustments. Kudos are only a stat: nothing buys or spends them.
             </p>
             <p>Balances are private: only the member and admins see them, whatever the visibility setting. Switching real rewards off keeps every balance, and open requests stay yours to decide.</p>
           </div>
         </div>
       </Card>
-      <Card className="grain overflow-hidden bg-gradient-to-br from-saffron/[0.10] via-panel to-panel p-5">
+      <Card className="relative overflow-hidden p-5">
         <Eyebrow>Pricing context</Eyebrow>
         {data.totalBalance === null || data.medianBalance === null ? (
-          <p className="mt-3 text-sm text-muted">There are no Hog coins while the game is off.</p>
+          <p className="mt-3 text-sm text-ink/75">There are no Hog coins while the game is off.</p>
         ) : (
           <>
             <div className="mt-3 grid grid-cols-2 gap-4">
               <div>
-                <div className="text-sm text-muted">Workspace balance</div>
+                <div className="text-sm text-ink/75">Workspace balance</div>
                 <div className="mt-1 flex items-baseline gap-1.5">
                   <BigNumber value={data.totalBalance} className="text-4xl" />
                   <span>{glyph}</span>
                 </div>
               </div>
               <div>
-                <div className="text-sm text-muted">Median per person</div>
+                <div className="text-sm text-ink/75">Median per person</div>
                 <div className="mt-1 flex items-baseline gap-1.5">
                   <BigNumber value={Math.round(data.medianBalance)} className="text-4xl" />
                   <span>{glyph}</span>
                 </div>
               </div>
             </div>
-            <p className="mt-5 text-sm text-muted">
+            <p className="mt-5 text-sm text-ink/75">
               Price everyday treats below the median so most people can afford one, and save the big rewards for a few months of recognition.
             </p>
           </>
         )}
-        <p className="mt-3 font-mono text-[11px] uppercase tracking-wider text-faint">
+        <p className="mt-3 tabular text-[11px] text-ink/70">
           {data.activeRewards} active {data.activeRewards === 1 ? "reward" : "rewards"}
         </p>
       </Card>
@@ -764,7 +764,7 @@ export function LedgerDrawer({ memberId, isDemo, onClose }: { memberId: Id<"memb
       footer={
         ledger && (
           <>
-            {blocked && <span className="mr-auto text-xs text-faint">{blocked}</span>}
+            {blocked && <span className="mr-auto text-xs text-ink/70">{blocked}</span>}
             <Button variant="primary" onClick={() => setAdjusting(true)} disabled={blocked !== null}>
               <SlidersHorizontal className="h-4 w-4" /> Adjust balance
             </Button>
@@ -775,18 +775,18 @@ export function LedgerDrawer({ memberId, isDemo, onClose }: { memberId: Id<"memb
       {ledger === undefined ? (
         <Skeleton className="h-64" />
       ) : ledger === null ? (
-        <p className="text-sm text-muted">Hog coins only exist while the game is on. Switch it on under Admin → Settings.</p>
+        <p className="text-sm text-ink/75">Hog coins only exist while the game is on. Switch it on under Admin → Settings.</p>
       ) : (
         <div className="space-y-6">
           <div className="flex items-center gap-3">
             <Avatar name={ledger.member.name} src={ledger.member.avatarUrl} size={40} />
             <div className="min-w-0">
               <div className="font-medium">{ledger.member.name}</div>
-              {ledger.member.deactivated && <div className="text-xs text-faint">Left the workspace</div>}
+              {ledger.member.deactivated && <div className="text-xs text-ink/70">Left the workspace</div>}
             </div>
             <div className="ml-auto text-right">
-              <div className="text-xs text-muted">Balance</div>
-              <div className={clsx("flex items-baseline justify-end gap-1", ledger.balance < 0 && "text-down")}>
+              <div className="text-xs text-ink/75">Balance</div>
+              <div className={clsx("flex items-baseline justify-end gap-1", ledger.balance < 0 && "text-ember-deep")}>
                 <BigNumber value={ledger.balance} className="text-3xl" />
                 <span>{glyph}</span>
               </div>
@@ -804,11 +804,11 @@ export function LedgerDrawer({ memberId, isDemo, onClose }: { memberId: Id<"memb
             // One row on wider screens, or two even rows when both extra sources show.
             const columns = cells.length === 6 ? "sm:grid-cols-3" : cells.length === 5 ? "sm:grid-cols-5" : "sm:grid-cols-4";
             return (
-              <dl className={clsx("grid grid-cols-2 gap-2 rounded-xl border border-line bg-ink/30 p-3 text-center", columns)}>
+              <dl className={clsx("grid grid-cols-2 gap-2 border border-parchment-deep bg-parchment-deep/40 p-3 text-center", columns)}>
                 {cells.map(([label, value]) => (
                   <div key={label}>
-                    <dt className="font-mono text-[10px] uppercase tracking-[0.12em] text-faint">{label}</dt>
-                    <dd className="mt-1 font-mono tabular text-cream">{value}</dd>
+                    <dt className="tabular text-[10px] text-ink/70">{label}</dt>
+                    <dd className="mt-1 tabular text-ink">{value}</dd>
                   </div>
                 ))}
               </dl>
@@ -817,7 +817,7 @@ export function LedgerDrawer({ memberId, isDemo, onClose }: { memberId: Id<"memb
           <section>
             <Eyebrow className="mb-3">Adjustments</Eyebrow>
             {ledger.adjustments.length === 0 ? (
-              <p className="text-sm text-faint">No adjustments yet.</p>
+              <p className="text-sm text-ink/70">No adjustments yet.</p>
             ) : (
               <ul className="space-y-3">
                 {ledger.adjustments.map((a) => (
@@ -831,7 +831,7 @@ export function LedgerDrawer({ memberId, isDemo, onClose }: { memberId: Id<"memb
           <section>
             <Eyebrow className="mb-3">Requests</Eyebrow>
             {ledger.redemptions.length === 0 ? (
-              <p className="text-sm text-faint">Nothing redeemed yet.</p>
+              <p className="text-sm text-ink/70">Nothing redeemed yet.</p>
             ) : (
               <ul className="space-y-2">
                 {ledger.redemptions.map((r) => (
@@ -839,7 +839,7 @@ export function LedgerDrawer({ memberId, isDemo, onClose }: { memberId: Id<"memb
                     <span aria-hidden>{r.rewardEmoji}</span>
                     <span className="min-w-0 flex-1 truncate">{r.rewardName}</span>
                     <StatusChip status={r.status} />
-                    <span className={clsx("whitespace-nowrap text-right font-mono tabular", r.status === "declined" || r.status === "cancelled" ? "text-faint line-through" : "text-saffron")}>
+                    <span className={clsx("whitespace-nowrap text-right tabular", r.status === "declined" || r.status === "cancelled" ? "text-ink/70 line-through" : "text-soil")}>
                       {nf.format(r.cost)} {r.legacy ? "kudos" : glyph}
                     </span>
                   </li>
@@ -887,7 +887,7 @@ function AdjustBalanceDialog({ open, ledger, glyph, onClose }: { open: boolean; 
       footer={
         <>
           {error && (
-            <span role="alert" className="mr-auto flex items-center gap-1.5 text-sm text-down">
+            <span role="alert" className="mr-auto flex items-center gap-1.5 text-sm text-ember-deep">
               <CircleAlert className="h-4 w-4 shrink-0" /> {error}
             </span>
           )}
@@ -925,7 +925,7 @@ function AdjustBalanceDialog({ open, ledger, glyph, onClose }: { open: boolean; 
         <Field label="Amount" hint="A whole number up to 10,000.">
           <div className="flex items-center gap-2">
             <input
-              className={clsx(inputCls, "w-32 font-mono")}
+              className={clsx(inputCls, "w-32 tabular")}
               inputMode="numeric"
               value={amount}
               onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, ""))}
@@ -945,12 +945,12 @@ function AdjustBalanceDialog({ open, ledger, glyph, onClose }: { open: boolean; 
             placeholder={direction === "add" ? "Hackathon winner" : "Took back a hoodie that never shipped"}
           />
         </Field>
-        <p className="text-sm text-muted">
+        <p className="text-sm text-ink/75">
           Balance after:{" "}
-          <span className={clsx("font-mono tabular", ledger.balance + delta < 0 ? "text-down" : "text-cream")}>
+          <span className={clsx("tabular", ledger.balance + delta < 0 ? "text-ember-deep" : "text-ink")}>
             {nf.format(ledger.balance + delta)} {glyph}
           </span>
-          {ledger.balance + delta < 0 && <span className="text-faint"> (negative balances block new requests)</span>}
+          {ledger.balance + delta < 0 && <span className="text-ink/70"> (negative balances block new requests)</span>}
         </p>
       </form>
     </Dialog>
@@ -966,12 +966,12 @@ function BalanceContext({ redemptionId, requester, glyph, onLedger }: { redempti
   const viewer = useViewer();
   const context = useQuery(api.storeAdmin.redemptionContext, { redemptionId });
   return (
-    <section aria-label="Where these coins came from" className="rounded-xl border border-line bg-ink/30 p-3">
+    <section aria-label="Where these coins came from" className="border border-parchment-deep bg-parchment-deep/40 p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
         <Eyebrow>Where these coins came from</Eyebrow>
         {/* Ledgers only exist while the game is on; off, requests stay decidable but not adjustable. */}
         {viewer.workspace.gameEnabled && (
-          <button onClick={onLedger} className="shrink-0 whitespace-nowrap text-xs text-muted underline decoration-line-strong underline-offset-4 hover:text-cream">
+          <button onClick={onLedger} className="shrink-0 whitespace-nowrap text-xs text-ink/75 underline decoration-bark/60 underline-offset-4 hover:text-ink">
             Open ledger
           </button>
         )}
@@ -979,21 +979,21 @@ function BalanceContext({ redemptionId, requester, glyph, onLedger }: { redempti
       {context === undefined ? (
         <Skeleton className="h-16" />
       ) : context.total === 0 ? (
-        <p className="text-sm text-muted">
+        <p className="text-sm text-ink/75">
           {requester} earned no coins from thoughtful kudos in the {context.windowDays} days before this request: the balance comes from levels, older kudos or adjustments.
         </p>
       ) : (
         <>
-          <p className="mb-3 text-sm text-muted">
+          <p className="mb-3 text-sm text-ink/75">
             In the {context.windowDays} days before this request, {requester} earned{" "}
-            <span className="font-mono tabular text-cream">
+            <span className="tabular text-ink">
               {nf.format(context.total)} {glyph}
             </span>
             {context.truncated && " or more"} by thanking:
           </p>
           {context.concentrated && (
-            <p role="status" className="mb-3 flex items-start gap-2 rounded-lg border border-ember/30 bg-ember/10 px-3 py-2 text-sm text-cream">
-              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-ember" />
+            <p role="status" className="mb-3 flex items-start gap-2 border border-ember/30 bg-ember/10 px-3 py-2 text-sm text-ink">
+              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-ember-deep" />
               <span>
                 <b className="font-medium">Mostly from one person.</b> Thanking {context.thanked[0].member.name} brought {Math.round(context.thanked[0].share * 100)}% of it. Worth a look before you approve.
               </span>
@@ -1005,18 +1005,18 @@ function BalanceContext({ redemptionId, requester, glyph, onLedger }: { redempti
                 <Avatar name={g.member.name} src={g.member.avatarUrl} size={22} />
                 <span className="truncate">
                   {g.member.name}
-                  {g.member.deactivated && <span className="text-faint"> (left)</span>}
+                  {g.member.deactivated && <span className="text-ink/70"> (left)</span>}
                 </span>
                 {/* On phones the bar gets its own line under the name, so it stays readable. */}
                 <Progress value={g.share} max={1} height={6} className="order-last col-span-3 sm:order-none sm:col-span-1" />
-                <span className="w-24 text-right font-mono text-xs tabular text-muted">
+                <span className="w-24 text-right text-xs tabular text-ink/75">
                   {nf.format(g.amount)} {glyph} · {Math.round(g.share * 100)}%
                 </span>
               </li>
             ))}
           </ul>
           {context.otherThanked > 0 && (
-            <p className="mt-2 text-xs text-faint">
+            <p className="mt-2 text-xs text-ink/70">
               and {context.otherThanked} more {context.otherThanked === 1 ? "person" : "people"}
             </p>
           )}

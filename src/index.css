@@ -1,86 +1,176 @@
 @import "tailwindcss";
-@import "@fontsource-variable/bricolage-grotesque";
-@import "@fontsource-variable/geist";
-@import "@fontsource-variable/geist-mono";
+@import "@fontsource-variable/pixelify-sans";
+@import "@fontsource-variable/nunito";
 
+/*
+ * The garden-world pixel design system (#126, #127). A dusk garden, not a dark UI: windows are
+ * parchment in bark frames on a dusk sky. Depth is pixel steps (hard 1–2 px offsets, never soft).
+ * Text on parchment is `ink`; text on dusk and bark is `cream`. Accent text on parchment uses the
+ * `-deep` shades (`soil` for lantern, `pond-deep`, `hedge-deep`, `ember-deep`) so it passes AA.
+ */
 @theme {
-  --font-display: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+  --font-display: "Pixelify Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Nunito Variable", ui-sans-serif, system-ui, sans-serif;
 
-  --color-ink: #0f0d0b;
-  --color-panel: #17140f;
-  --color-panel-2: #1e1a14;
-  --color-panel-3: #27221b;
-  --color-line: rgb(255 236 210 / 0.08);
-  --color-line-strong: rgb(255 236 210 / 0.16);
+  --color-dusk: #241e33;
+  --color-dusk-deep: #161226;
+  --color-hedge: #4f7a3c;
+  --color-hedge-deep: #2f5128;
+  --color-soil: #5a3b2a;
+  --color-bark: #3a2a22;
+  --color-parchment: #efe3c4;
+  --color-parchment-deep: #d9c79c;
+  --color-lantern: #f7a501;
+  --color-ember: #f54e00;
+  /* Ember's text shade on parchment (5.1:1); ember itself is 2.8:1 there. */
+  --color-ember-deep: #a83800;
+  --color-pond: #2f80fa;
+  --color-pond-deep: #1e3f7a;
+  --color-ink: #1d1f27;
   --color-cream: #f6efe4;
-  --color-muted: #aaa093;
-  --color-faint: #726a5f;
-
-  --color-saffron: #ffb224;
-  --color-saffron-deep: #cf7d17;
-  --color-ember: #ff6b4a;
-  --color-teal: #219c86;
-  --color-teal-soft: #5fd4bd;
-  --color-up: #7ddc9c;
-  --color-down: #ff8a78;
-  /* Compare: the neutral ink every benchmark wears (cream at 70% over panel), CVD-checked against both families. */
+  /* Compare: the neutral every benchmark wears, CVD-checked against the given and received families. */
   --color-benchmark: #b3ada4;
 
   --color-r-common: #a5a19a;
-  --color-r-uncommon: #4fca7d;
-  --color-r-rare: #4aa8f0;
-  --color-r-epic: #b67cf2;
-  --color-r-legendary: #ffb224;
-
-  --animate-shimmer: shimmer 3.2s linear infinite;
-  --animate-float: float 6s ease-in-out infinite;
-  @keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-  }
-  @keyframes float {
-    0%, 100% { transform: translateY(0) rotate(-4deg); }
-    50% { transform: translateY(-10px) rotate(4deg); }
-  }
+  --color-r-uncommon: #6aa84f;
+  --color-r-rare: #2f80fa;
+  --color-r-epic: #8567ff;
+  --color-r-legendary: #f7a501;
 }
 
 @layer base {
-  html { color-scheme: dark; background: var(--color-ink); }
+  html { color-scheme: dark; background: var(--color-dusk); }
   body {
-    @apply bg-ink text-cream font-sans antialiased;
-    font-feature-settings: "ss01", "cv11";
-    background-image:
-      radial-gradient(1100px 520px at 12% -10%, rgb(255 178 36 / 0.07), transparent 60%),
-      radial-gradient(900px 480px at 110% 10%, rgb(33 156 134 / 0.06), transparent 60%);
-    background-attachment: fixed;
+    @apply bg-dusk text-cream font-sans antialiased;
     min-height: 100dvh;
   }
-  ::selection { background: rgb(255 178 36 / 0.35); }
-  :focus-visible { outline: 2px solid var(--color-saffron); outline-offset: 2px; border-radius: 6px; }
+  ::selection { background: var(--color-lantern); color: var(--color-ink); }
+  :focus-visible { outline: 2px solid var(--color-lantern); outline-offset: 2px; }
+  /* Lantern on parchment is 1.6:1, too faint to find the focus: on a light face it's drawn in bark… */
+  :where(.pixel-frame, .pixel-note, .bg-parchment, .bg-parchment-deep, [role="tablist"]) :focus-visible { outline-color: var(--color-bark); }
+  /* …and back in lantern on a bark or dusk block inside one (a window's title bar). */
+  :where(.pixel-frame, .pixel-note, .bg-parchment, .bg-parchment-deep) :where(.bg-bark, .bg-dusk, .bg-dusk-deep, .pixel-sign) :focus-visible { outline-color: var(--color-lantern); }
+  /* Pixel buttons and chips draw a 2 px edge outside their box: the ring clears it. */
+  :where(.pixel-btn, .pixel-chip, .pixel-note):focus-visible { outline-offset: 4px; }
+  /* A surface sets its own ink, so text that names no colour stays readable on it. */
+  :where(.bg-parchment, .bg-parchment-deep, .bg-lantern) { color: var(--color-ink); }
+  :where(.bg-bark, .bg-dusk, .bg-dusk-deep, .bg-soil) { color: var(--color-cream); }
+  /* No monospace anywhere (#126): code and commands read in Nunito too. */
+  code, kbd, pre, samp { font-family: var(--font-sans); }
   .tabular { font-variant-numeric: tabular-nums; }
 }
 
-@utility grain {
-  position: relative;
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    border-radius: inherit;
-    opacity: 0.35;
-    mix-blend-mode: overlay;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+/* Sprites and art that must stay crisp when scaled. */
+@utility pixels {
+  image-rendering: pixelated;
+}
+
+/*
+ * A pixel window frame: a 2 px bark outline with notched corners, a 1 px parchment-deep inner rule,
+ * a parchment face, and a 2 px dusk-deep step below-right. All box-shadows, so it takes no layout.
+ */
+@utility pixel-frame {
+  background-color: var(--color-parchment);
+  color: var(--color-ink);
+  box-shadow:
+    inset 0 0 0 1px var(--color-parchment-deep),
+    0 -2px 0 0 var(--color-bark),
+    0 2px 0 0 var(--color-bark),
+    -2px 0 0 0 var(--color-bark),
+    2px 0 0 0 var(--color-bark),
+    2px 4px 0 0 var(--color-dusk-deep),
+    4px 2px 0 0 var(--color-dusk-deep);
+}
+
+/*
+ * The 3-D pixel button: a face over a 2 px underside, outlined in bark with notched corners.
+ * Pressing sinks the face 2 px onto its underside. Variants only swap the three colours.
+ */
+@utility pixel-btn {
+  --btn-face: var(--color-lantern);
+  --btn-under: var(--color-soil);
+  --btn-text: var(--color-ink);
+  background-color: var(--btn-face);
+  color: var(--btn-text);
+  box-shadow:
+    inset 0 -2px 0 0 var(--btn-under),
+    0 -2px 0 0 var(--color-bark),
+    0 2px 0 0 var(--color-bark),
+    -2px 0 0 0 var(--color-bark),
+    2px 0 0 0 var(--color-bark);
+  transition: transform 60ms steps(2);
+  &:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow:
+      inset 0 2px 0 0 var(--btn-under),
+      0 -2px 0 0 var(--color-bark),
+      0 2px 0 0 var(--color-bark),
+      -2px 0 0 0 var(--color-bark),
+      2px 0 0 0 var(--color-bark);
+  }
+}
+@utility pixel-btn-secondary {
+  --btn-face: var(--color-parchment);
+  --btn-under: var(--color-parchment-deep);
+}
+@utility pixel-btn-danger {
+  --btn-face: var(--color-ember);
+  --btn-under: var(--color-ember-deep);
+}
+
+/* A stepped meter: the track and fill are cut into 4 px blocks, and the fill grows a block at a time. */
+@utility pixel-meter {
+  background-color: var(--color-parchment-deep);
+  box-shadow: 0 0 0 1px var(--color-bark);
+  & > [data-fill] {
+    height: 100%;
+    width: var(--fill);
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='1'%3E%3Crect width='3' height='1'/%3E%3C/svg%3E");
+    mask-size: 4px 100%;
+    mask-repeat: repeat-x;
+    transition: width 240ms steps(6);
+  }
+  /* Snap to whole blocks where round() exists; elsewhere the plain width stands. */
+  @supports (width: round(down, 10%, 4px)) {
+    & > [data-fill] { width: round(down, var(--fill), 4px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    & > [data-fill] { transition: none; }
   }
 }
 
+/* A parchment note on the dusk ground (the demo and bonus-day notices): a 1 px rule and a pixel step. */
+@utility pixel-note {
+  background-color: var(--color-parchment);
+  color: var(--color-ink);
+  box-shadow: inset 0 0 0 1px var(--color-parchment-deep), 3px 3px 0 0 var(--color-dusk-deep);
+}
+
+/*
+ * A wooden sign (the page title board): bark with a soil rim and a pixel step. Page copy is written
+ * for parchment, so on the sign its ink reads cream and its accents take their bright shades;
+ * anything that brings its own light face (tabs, inputs, chips, parchment blocks) keeps its colours.
+ */
+@utility pixel-sign {
+  background-color: var(--color-bark);
+  color: var(--color-cream);
+  box-shadow: inset 0 0 0 2px var(--color-soil), 4px 4px 0 0 var(--color-dusk-deep);
+  & [class*="text-ink"]:not([role="tablist"], [role="tablist"] *, input, select, textarea, .pixel-chip, .pixel-chip *, .pixel-btn, .pixel-btn *, .bg-parchment, .bg-parchment *, .bg-parchment-deep, .bg-parchment-deep *) { color: color-mix(in srgb, var(--color-cream) 80%, transparent); }
+  & [class*="text-soil"]:not(.pixel-btn *, .bg-parchment *, .bg-parchment-deep *) { color: var(--color-lantern); }
+  & [class*="text-ember-deep"]:not(.pixel-btn *, .bg-parchment *, .bg-parchment-deep *) { color: var(--color-ember); }
+  & [class*="text-pond-deep"]:not(.pixel-btn *, .bg-parchment *, .bg-parchment-deep *) { color: var(--color-pond); }
+  & [class*="text-hedge-deep"]:not(.pixel-btn *, .bg-parchment *, .bg-parchment-deep *) { color: var(--color-cream); }
+}
+
+/* A small tag with a 1 px bark outline. */
+@utility pixel-chip {
+  box-shadow: inset 0 0 0 1px var(--color-bark);
+}
+
+/* Legendary text: ink with a two-colour pixel underline, lantern over ember. It never moves. */
 @utility legendary-text {
-  background: linear-gradient(90deg, #ffcf6a, #ff8a3d, #ffe29a, #ff8a3d, #ffcf6a);
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: var(--animate-shimmer);
+  color: var(--color-ink);
+  box-shadow: 0 2px 0 0 var(--color-lantern), 0 4px 0 0 var(--color-ember);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }

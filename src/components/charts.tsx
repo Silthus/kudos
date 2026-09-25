@@ -68,11 +68,11 @@ function lastIndex(values: (number | null)[]) {
 
 export function Legend({ items }: { items: { label: string; color: string; dashed?: boolean }[] }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink/75">
       {items.map((i) => (
         <span key={i.label} className="inline-flex items-center gap-1.5">
           <svg width="18" height="8" aria-hidden>
-            <line x1="1" x2="17" y1="4" y2="4" stroke={i.color} strokeWidth="2" strokeLinecap="round" strokeDasharray={i.dashed ? "3 3" : undefined} />
+            <line x1="1" x2="17" y1="4" y2="4" stroke={i.color} strokeWidth="2" strokeLinecap="square" strokeDasharray={i.dashed ? "3 3" : undefined} />
           </svg>
           {i.label}
         </span>
@@ -85,11 +85,31 @@ function Tooltip({ x, y, width, children }: { x: number; y: number; width: numbe
   const left = Math.min(Math.max(x, 90), width - 90);
   return (
     <div
-      className="pointer-events-none absolute z-10 min-w-40 -translate-x-1/2 -translate-y-full rounded-xl border border-line-strong bg-panel-2/95 px-3 py-2 text-xs shadow-2xl backdrop-blur"
+      className="pointer-events-none absolute z-10 min-w-40 -translate-x-1/2 -translate-y-full bg-parchment px-3 py-2 text-xs text-ink shadow-[inset_0_0_0_1px_var(--color-bark),2px_2px_0_0_var(--color-dusk-deep)]"
       style={{ left, top: y - 10 }}
     >
       {children}
     </div>
+  );
+}
+
+/**
+ * A square data marker (the pixel kit has no round dots): 8 px, centred on its point, with a 2 px
+ * parchment ring so it stays legible where it overlaps a line. `stroke` draws a hollow marker.
+ */
+function Marker({ x, y, fill, stroke, size = 8, ring = true }: { x: number; y: number; fill: string; stroke?: string; size?: number; ring?: boolean }) {
+  return (
+    <rect
+      data-marker
+      x={x - size / 2}
+      y={y - size / 2}
+      width={size}
+      height={size}
+      fill={fill}
+      stroke={stroke ?? (ring ? "var(--color-parchment)" : "none")}
+      strokeWidth={2}
+      shapeRendering="crispEdges"
+    />
   );
 }
 
@@ -140,28 +160,22 @@ export function LineChart({ days, series, height = 240, endLabels = false }: { d
     <div ref={ref} className="relative" style={{ height }}>
       {width > 0 && (
         <svg width={width} height={height} className="overflow-visible" role="img" aria-label={`Chart of ${series.map((s) => s.label).join(", ")}`}>
-          <defs>
-            <linearGradient id="area-fill" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor={first?.color} stopOpacity="0.28" />
-              <stop offset="100%" stopColor={first?.color} stopOpacity="0" />
-            </linearGradient>
-          </defs>
           {ticks.map((t) => (
             <g key={t}>
-              <line x1={pad.left} x2={pad.left + w} y1={y(t)} y2={y(t)} stroke="var(--color-line)" />
-              <text x={pad.left - 8} y={y(t) + 4} textAnchor="end" className="fill-faint font-mono text-[10px]">
+              <line x1={pad.left} x2={pad.left + w} y1={y(t)} y2={y(t)} stroke="var(--color-parchment-deep)" />
+              <text x={pad.left - 8} y={y(t) + 4} textAnchor="end" className="fill-ink/70 tabular text-[10px]">
                 {nf.format(t)}
               </text>
             </g>
           ))}
           {days.map((d, i) =>
             i % labelEvery === 0 ? (
-              <text key={d} x={x(i)} y={height - 8} textAnchor="middle" className="fill-faint font-mono text-[10px]">
+              <text key={d} x={x(i)} y={height - 8} textAnchor="middle" className="fill-ink/70 tabular text-[10px]">
                 {dayLabel(d)}
               </text>
             ) : null,
           )}
-          {area && <motion.path d={area} fill="url(#area-fill)" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }} />}
+          {area && <motion.path d={area} fill={first?.color} fillOpacity={0.12} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} />}
           {series.map((s, si) => (
             <motion.path
               key={s.key}
@@ -169,8 +183,7 @@ export function LineChart({ days, series, height = 240, endLabels = false }: { d
               fill="none"
               stroke={s.color}
               strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
+              strokeLinecap="square"
               strokeDasharray={s.dashed ? "4 4" : undefined}
               // Drawing a line in animates its dash array, which would erase a dashed series' dashes: fade those in.
               initial={s.dashed ? { opacity: 0 } : { pathLength: 0, opacity: seriesOpacity(s) }}
@@ -180,12 +193,12 @@ export function LineChart({ days, series, height = 240, endLabels = false }: { d
           ))}
           {ends.map((e, i) => (
             <g key={e.s.key}>
-              <circle cx={e.x} cy={e.y} r={4} fill={e.s.color} stroke="var(--color-panel)" strokeWidth={2} />
+              <Marker x={e.x} y={e.y} fill={e.s.color} />
               <text
                 x={e.x + 9}
                 y={endYs[i] + 4}
-                className="fill-cream text-[11px] font-medium"
-                stroke="var(--color-panel)"
+                className="fill-ink text-[11px] font-medium"
+                stroke="var(--color-parchment)"
                 strokeWidth={4}
                 strokeLinejoin="round"
                 paintOrder="stroke"
@@ -196,10 +209,10 @@ export function LineChart({ days, series, height = 240, endLabels = false }: { d
           ))}
           {hover !== null && (
             <g>
-              <line x1={x(hover)} x2={x(hover)} y1={pad.top} y2={pad.top + h} stroke="var(--color-line-strong)" />
+              <line x1={x(hover)} x2={x(hover)} y1={pad.top} y2={pad.top + h} stroke="var(--color-bark)" />
               {series.map((s) =>
                 s.values[hover] === null ? null : (
-                  <circle key={s.key} cx={x(hover)} cy={y(s.values[hover] ?? 0)} r={4.5} fill={s.color} stroke="var(--color-panel)" strokeWidth={2} />
+                  <Marker key={s.key} x={x(hover)} y={y(s.values[hover] ?? 0)} fill={s.color} />
                 ),
               )}
             </g>
@@ -221,16 +234,16 @@ export function LineChart({ days, series, height = 240, endLabels = false }: { d
       )}
       {hover !== null && (
         <Tooltip x={x(hover)} y={pad.top + 8} width={width}>
-          <div className="mb-1 font-mono text-[10px] uppercase tracking-wider text-faint">{dayLabel(days[hover], { weekday: "short", month: "short", day: "numeric" })}</div>
+          <div className="mb-1 tabular text-[10px] text-ink/70">{dayLabel(days[hover], { weekday: "short", month: "short", day: "numeric" })}</div>
           {series.map((s) =>
             s.values[hover] === null ? null : (
               <div key={s.key} className="flex items-center justify-between gap-4">
-                <span className="flex items-center gap-1.5 text-muted">
-                  <span className="h-2 w-2 rounded-full" style={{ background: s.color, opacity: Math.max(0.6, seriesOpacity(s)) }} />
+                <span className="flex items-center gap-1.5 text-ink/75">
+                  <span className="h-2 w-2" style={{ background: s.color, opacity: Math.max(0.6, seriesOpacity(s)) }} />
                   {s.label}
-                  {s.notes?.[hover] && <span className="text-faint">· {s.notes[hover]}</span>}
+                  {s.notes?.[hover] && <span className="text-ink/70">({s.notes[hover]})</span>}
                 </span>
-                <span className="font-medium text-cream tabular">{nf.format(s.values[hover] ?? 0)}</span>
+                <span className="font-medium text-ink tabular">{nf.format(s.values[hover] ?? 0)}</span>
               </div>
             ),
           )}
@@ -248,7 +261,7 @@ export function BarChart({
   days,
   values,
   compare,
-  color = "var(--color-saffron-deep)",
+  color = "var(--color-ember)",
   height = 240,
   unit = "kudos",
   grain = "day",
@@ -285,8 +298,8 @@ export function BarChart({
         <svg width={width} height={height} role="img" aria-label={grain === "month" ? "Monthly kudos volume" : "Daily kudos volume"}>
           {[0, max / 2, max].map((t) => (
             <g key={t}>
-              <line x1={pad.left} x2={pad.left + w} y1={y(t)} y2={y(t)} stroke="var(--color-line)" />
-              <text x={pad.left - 8} y={y(t) + 4} textAnchor="end" className="fill-faint font-mono text-[10px]">
+              <line x1={pad.left} x2={pad.left + w} y1={y(t)} y2={y(t)} stroke="var(--color-parchment-deep)" />
+              <text x={pad.left - 8} y={y(t) + 4} textAnchor="end" className="fill-ink/70 tabular text-[10px]">
                 {nf.format(t)}
               </text>
             </g>
@@ -298,7 +311,7 @@ export function BarChart({
                 key={days[i]}
                 x={x(i) - barW / 2}
                 width={barW}
-                rx={Math.min(4, barW / 2)}
+                shapeRendering="crispEdges"
                 initial={{ y: pad.top + h, height: 0 }}
                 animate={{ y: pad.top + h - bh, height: bh }}
                 transition={{ duration: 0.6, delay: i * 0.006, ease: [0.22, 1, 0.36, 1] }}
@@ -307,10 +320,10 @@ export function BarChart({
               />
             );
           })}
-          {comparePath && <path d={comparePath} fill="none" stroke="var(--color-cream)" strokeOpacity={0.45} strokeWidth={2} strokeDasharray="4 4" strokeLinecap="round" />}
+          {comparePath && <path d={comparePath} fill="none" stroke="var(--color-benchmark)" strokeWidth={2} strokeDasharray="4 4" strokeLinecap="square" />}
           {days.map((d, i) =>
             i % labelEvery === 0 ? (
-              <text key={d} x={x(i)} y={height - 8} textAnchor="middle" className="fill-faint font-mono text-[10px]">
+              <text key={d} x={x(i)} y={height - 8} textAnchor="middle" className="fill-ink/70 tabular text-[10px]">
                 {axisLabel(d)}
               </text>
             ) : null,
@@ -322,15 +335,15 @@ export function BarChart({
       )}
       {hover !== null && (
         <Tooltip x={x(hover)} y={y(values[hover])} width={width}>
-          <div className="mb-1 font-mono text-[10px] uppercase tracking-wider text-faint">{tooltipLabel(days[hover])}</div>
+          <div className="mb-1 tabular text-[10px] text-ink/70">{tooltipLabel(days[hover])}</div>
           <div className="flex justify-between gap-4">
-            <span className="text-muted">This period</span>
-            <span className="font-medium text-cream tabular">{nf.format(values[hover])} {unit}</span>
+            <span className="text-ink/75">This period</span>
+            <span className="font-medium text-ink tabular">{nf.format(values[hover])} {unit}</span>
           </div>
           {compare && compare[hover] !== null && (
             <div className="flex justify-between gap-4">
-              <span className="text-muted">Previous period</span>
-              <span className="font-medium text-cream tabular">{nf.format(compare[hover] ?? 0)}</span>
+              <span className="text-ink/75">Previous period</span>
+              <span className="font-medium text-ink tabular">{nf.format(compare[hover] ?? 0)}</span>
             </div>
           )}
         </Tooltip>
@@ -366,14 +379,14 @@ export function PairedBars({
       {bars.map((b) => (
         <div key={b.key} className="relative mr-10 h-2">
           <motion.div
-            className="absolute inset-y-0 left-0 rounded-full"
+            className="absolute inset-y-0 left-0"
             style={{ background: b.color, minWidth: b.value > 0 ? 4 : 0 }}
             initial={{ width: 0 }}
             animate={{ width: `${(b.value / max) * 100}%` }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           />
           <motion.span
-            className="absolute top-1/2 -translate-y-1/2 pl-2 font-mono text-[11px] leading-none text-muted tabular"
+            className="absolute top-1/2 -translate-y-1/2 pl-2 text-[11px] leading-none text-ink/75 tabular"
             initial={{ left: "0%" }}
             animate={{ left: `${(b.value / max) * 100}%` }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
@@ -409,7 +422,7 @@ export function RangeStrip({ label, you, team, color }: { label: string; you: nu
       tabIndex={0}
       role="img"
       aria-label={labels[key]}
-      className="absolute top-1/2 flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-saffron/60"
+      className="absolute top-1/2 flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center"
       style={{ left }}
       onMouseEnter={() => setActive(key)}
       onMouseLeave={() => setActive(null)}
@@ -422,35 +435,35 @@ export function RangeStrip({ label, you, team, color }: { label: string; you: nu
   );
   return (
     <div className="relative mr-12 h-6">
-      <div className="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-line-strong" />
+      <div className="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 bg-bark/60" />
       {team.p25 !== null && team.p75 !== null && (
         <div
-          className="absolute top-1/2 h-2 -translate-y-1/2 rounded-full"
+          className="absolute top-1/2 h-2 -translate-y-1/2"
           style={{ left: at(team.p25), width: `calc(${at(team.p75)} - ${at(team.p25)})`, minWidth: 4, background: BENCHMARK_BAND }}
         />
       )}
       {team.max !== null && team.max < end && (
-        <span className="absolute top-1/2 h-2.5 w-px -translate-y-1/2 bg-faint" style={{ left: at(team.max) }} aria-hidden />
+        <span className="absolute top-1/2 h-2.5 w-px -translate-y-1/2 bg-ink/70" style={{ left: at(team.max) }} aria-hidden />
       )}
-      {marker("median", at(team.median), <span className="h-3.5 w-0.5 rounded-full" style={{ background: "var(--color-benchmark)" }} />)}
+      {marker("median", at(team.median), <span className="h-3.5 w-0.5" style={{ background: "var(--color-benchmark)" }} />)}
       {marker(
         "you",
         at(you),
-        <span className="h-2.5 w-2.5 rounded-full" style={{ background: color, boxShadow: "0 0 0 2px var(--color-panel)" }} />,
+        <span className="h-2.5 w-2.5" style={{ background: color, boxShadow: "0 0 0 2px var(--color-parchment)" }} />,
       )}
       {team.max !== null && team.max === end && (
-        <span className="absolute left-full top-1/2 -translate-y-1/2 pl-2 font-mono text-[11px] leading-none text-faint tabular" aria-hidden>
+        <span className="absolute left-full top-1/2 -translate-y-1/2 pl-2 text-[11px] leading-none text-ink/70 tabular" aria-hidden>
           {nf.format(team.max)}
         </span>
       )}
       {active && (
         <div
-          className="pointer-events-none absolute bottom-full z-10 mb-1.5 min-w-36 -translate-x-1/2 rounded-xl border border-line-strong bg-panel-2/95 px-3 py-2 text-xs shadow-2xl backdrop-blur"
+          className="pointer-events-none absolute bottom-full z-10 mb-1.5 min-w-36 -translate-x-1/2 bg-parchment px-3 py-2 text-xs text-ink shadow-[inset_0_0_0_1px_var(--color-bark),2px_2px_0_0_var(--color-dusk-deep)]"
           style={{ left: `clamp(4.5rem, ${at(active === "you" ? you : team.median)}, calc(100% - 4.5rem))` }}
         >
-          <div className="mb-0.5 font-mono text-[10px] uppercase tracking-wider text-faint">{label}</div>
+          <div className="mb-0.5 tabular text-[10px] text-ink/70">{label}</div>
           {summary.map((line, i) => (
-            <div key={line} className={clsx("whitespace-nowrap tabular", i === 0 ? "text-cream" : "text-muted")}>
+            <div key={line} className={clsx("whitespace-nowrap tabular", i === 0 ? "text-ink" : "text-ink/75")}>
               {line}
             </div>
           ))}
@@ -471,15 +484,15 @@ export function Heatmap({ data }: { data: number[][] }) {
       <div className="grid gap-[3px]" style={{ gridTemplateColumns: "34px repeat(24, minmax(0, 1fr))" }}>
         {data.map((row, d) => (
           <div key={d} className="contents">
-            <div className="flex items-center font-mono text-[10px] text-faint">{DAYS[d]}</div>
+            <div className="flex items-center tabular text-[10px] text-ink/70">{DAYS[d]}</div>
             {row.map((v, h) => (
               <div
                 key={h}
                 onMouseEnter={() => setHover({ d, h })}
                 onMouseLeave={() => setHover(null)}
-                className={clsx("aspect-square rounded-[4px] transition-transform", hover?.d === d && hover?.h === h && "scale-125 ring-2 ring-cream/70")}
+                className={clsx("aspect-square transition-transform", hover?.d === d && hover?.h === h && "scale-125 ring-2 ring-ink")}
                 style={{
-                  background: v === 0 ? "var(--color-panel-3)" : `color-mix(in oklab, var(--color-saffron) ${Math.round(18 + (v / max) * 82)}%, var(--color-panel-3))`,
+                  background: v === 0 ? "var(--color-parchment-deep)" : `color-mix(in oklab, var(--color-lantern) ${Math.round(18 + (v / max) * 82)}%, var(--color-parchment-deep))`,
                 }}
                 aria-label={`${DAYS[d]} ${h}:00 – ${v} kudos`}
               />
@@ -488,17 +501,17 @@ export function Heatmap({ data }: { data: number[][] }) {
         ))}
         <div />
         {Array.from({ length: 24 }).map((_, h) => (
-          <div key={h} className="pt-1 text-center font-mono text-[9px] text-faint">
+          <div key={h} className="pt-1 text-center tabular text-[9px] text-ink/70">
             {h % 6 === 0 ? `${h}h` : ""}
           </div>
         ))}
       </div>
-      <div className="mt-3 flex items-center justify-between text-xs text-muted">
-        <span className="tabular">{hover ? `${DAYS[hover.d]} · ${String(hover.h).padStart(2, "0")}:00–${String(hover.h + 1).padStart(2, "0")}:00 · ${nf.format(data[hover.d][hover.h])} kudos` : "Hover a cell for details"}</span>
+      <div className="mt-3 flex items-center justify-between text-xs text-ink/75">
+        <span className="tabular">{hover ? `${DAYS[hover.d]} ${String(hover.h).padStart(2, "0")}:00–${String(hover.h + 1).padStart(2, "0")}:00: ${nf.format(data[hover.d][hover.h])} kudos` : "Hover a cell for details"}</span>
         <span className="flex items-center gap-1.5">
           Less
           {[0.18, 0.45, 0.72, 1].map((t) => (
-            <span key={t} className="h-2.5 w-2.5 rounded-[3px]" style={{ background: `color-mix(in oklab, var(--color-saffron) ${Math.round(t * 100)}%, var(--color-panel-3))` }} />
+            <span key={t} className="h-2.5 w-2.5" style={{ background: `color-mix(in oklab, var(--color-lantern) ${Math.round(t * 100)}%, var(--color-parchment-deep))` }} />
           ))}
           More
         </span>
@@ -510,7 +523,7 @@ export function Heatmap({ data }: { data: number[][] }) {
 /** Labelled horizontal bars; text stays in ink colors, the bar carries magnitude. */
 export function BarList({
   items,
-  color = "var(--color-saffron-deep)",
+  color = "var(--color-ember)",
   format = (n: number) => nf.format(n),
 }: {
   items: { key: string; label: ReactNode; value: number; color?: string }[];
@@ -523,12 +536,12 @@ export function BarList({
       {items.map((i, idx) => (
         <li key={i.key} className="group">
           <div className="mb-1 flex items-center justify-between gap-3 text-sm">
-            <span className="min-w-0 truncate text-cream">{i.label}</span>
-            <span className="font-mono text-xs text-muted tabular">{format(i.value)}</span>
+            <span className="min-w-0 truncate text-ink">{i.label}</span>
+            <span className="text-xs text-ink/75 tabular">{format(i.value)}</span>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-panel-3">
+          <div className="h-2 overflow-hidden bg-parchment-deep">
             <motion.div
-              className="h-full rounded-full"
+              className="h-full"
               style={{ background: i.color ?? color }}
               initial={{ width: 0 }}
               animate={{ width: `${(i.value / max) * 100}%` }}
@@ -541,13 +554,13 @@ export function BarList({
   );
 }
 
-export function Ring({ value, size = 88, stroke = 8, color = "var(--color-saffron)", children }: { value: number; size?: number; stroke?: number; color?: string; children?: ReactNode }) {
+export function Ring({ value, size = 88, stroke = 8, color = "var(--color-lantern)", children }: { value: number; size?: number; stroke?: number; color?: string; children?: ReactNode }) {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   return (
     <div className="relative inline-grid place-items-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-panel-3)" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-parchment-deep)" strokeWidth={stroke} />
         <motion.circle
           cx={size / 2}
           cy={size / 2}
@@ -555,7 +568,7 @@ export function Ring({ value, size = 88, stroke = 8, color = "var(--color-saffro
           fill="none"
           stroke={color}
           strokeWidth={stroke}
-          strokeLinecap="round"
+          strokeLinecap="butt"
           strokeDasharray={c}
           initial={{ strokeDashoffset: c }}
           animate={{ strokeDashoffset: c * (1 - Math.max(0, Math.min(1, value))) }}
@@ -578,7 +591,7 @@ export function Sparkline({
   reference = null,
   format,
   lastPartial = false,
-  color = "var(--color-saffron)",
+  color = "var(--color-lantern)",
   height = 64,
   label,
 }: {
@@ -608,22 +621,22 @@ export function Sparkline({
     <div ref={ref} className="relative" style={{ height }}>
       {width > 0 && (
         <svg width={width} height={height} className="overflow-visible" role="img" aria-label={label}>
-          <line x1={pad.left} x2={pad.left + w} y1={y(0)} y2={y(0)} stroke="var(--color-line)" />
+          <line x1={pad.left} x2={pad.left + w} y1={y(0)} y2={y(0)} stroke="var(--color-parchment-deep)" />
           {reference !== null && (
             <line x1={pad.left} x2={pad.left + w} y1={y(reference)} y2={y(reference)} stroke="var(--color-benchmark)" strokeWidth={1.5} strokeDasharray="4 4" opacity={0.8} />
           )}
           {runs.map((run, i) =>
             run.length === 1 ? (
-              <circle key={i} cx={run[0][0]} cy={run[0][1]} r={2} fill={color} />
+              <Marker key={i} x={run[0][0]} y={run[0][1]} fill={color} size={4} ring={false} />
             ) : run.length > 1 ? (
-              <path key={i} d={monotonePath(run)} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+              <path key={i} d={monotonePath(run)} fill="none" stroke={color} strokeWidth={2} strokeLinecap="square" />
             ) : null,
           )}
           {last >= 0 && (
-            <circle cx={x(last)} cy={y(values[last]!)} r={4} fill={hollow ? "var(--color-panel)" : color} stroke={hollow ? color : "var(--color-panel)"} strokeWidth={2} />
+            <Marker x={x(last)} y={y(values[last]!)} fill={hollow ? "var(--color-parchment)" : color} stroke={hollow ? color : undefined} />
           )}
           {hover !== null && values[hover] !== null && (
-            <circle cx={x(hover)} cy={y(values[hover]!)} r={4.5} fill={color} stroke="var(--color-panel)" strokeWidth={2} />
+            <Marker x={x(hover)} y={y(values[hover]!)} fill={color} />
           )}
           <rect
             x={0}
@@ -642,8 +655,8 @@ export function Sparkline({
       )}
       {hover !== null && (
         <Tooltip x={x(hover)} y={pad.top} width={width}>
-          <div className="font-mono text-[10px] uppercase tracking-wider text-faint">{labels[hover]}</div>
-          <div className="font-medium text-cream tabular">{values[hover] === null ? "No kudos" : format(values[hover]!)}</div>
+          <div className="tabular text-[10px] text-ink/70">{labels[hover]}</div>
+          <div className="font-medium text-ink tabular">{values[hover] === null ? "No kudos" : format(values[hover]!)}</div>
         </Tooltip>
       )}
     </div>

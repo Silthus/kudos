@@ -33,7 +33,7 @@ function download(result: SuccessResult) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-const VERDICT_CLASS = { better: "text-up", worse: "text-down", same: "text-muted" } as const;
+const VERDICT_CLASS = { better: "text-hedge-deep", worse: "text-ember-deep", same: "text-ink/75" } as const;
 
 /**
  * The game's success metrics (spec #55 G18), admins only: the last complete month against the
@@ -75,7 +75,7 @@ export function SuccessMetrics({ today }: { today: string }) {
         {!result ? (
           <Skeleton className="h-40" />
         ) : !result.ready ? (
-          <p className="flex items-start gap-2 rounded-xl border border-line bg-ink/40 p-4 text-sm text-muted">
+          <p className="flex items-start gap-2 border border-parchment-deep bg-parchment-deep/40 p-4 text-sm text-ink/75">
             <Info className="mt-0.5 h-4 w-4 shrink-0" />
             The success metrics are being computed from your history. Check back in a few minutes.
           </p>
@@ -87,21 +87,21 @@ export function SuccessMetrics({ today }: { today: string }) {
                 const base = baseline?.[metric.key] ?? null;
                 const v = judged ? verdict(metric, value, base) : null;
                 return (
-                  <div key={metric.key} data-metric={metric.key} className="rounded-xl border border-line bg-ink/40 p-4">
+                  <div key={metric.key} data-metric={metric.key} className="border border-parchment-deep bg-parchment-deep/40 p-4">
                     <div className="flex items-baseline justify-between gap-2">
                       <Eyebrow>{metric.label}</Eyebrow>
-                      <span className="text-[11px] text-faint">{GOAL_LABEL[metric.goal]}</span>
+                      <span className="text-[11px] text-ink/70">{GOAL_LABEL[metric.goal]}</span>
                     </div>
                     <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
                       <span className="font-display text-3xl font-semibold">{formatMetric(metric.key, value)}</span>
-                      <span className="text-xs text-muted">Baseline {formatMetric(metric.key, base)}</span>
+                      <span className="text-xs text-ink/75">Baseline {formatMetric(metric.key, base)}</span>
                       {v && value !== null && base !== null && (
                         <span data-verdict={v} className={clsx("text-xs font-medium", VERDICT_CLASS[v])}>
                           {v === "same" ? "at baseline" : value > base ? "above baseline" : "below baseline"}
                         </span>
                       )}
                     </div>
-                    <p className="mt-1 text-xs text-faint">{metric.hint}</p>
+                    <p className="mt-1 text-xs text-ink/70">{metric.hint}</p>
                     <div className="mt-3">
                       <Sparkline
                         label={`${metric.label} per month`}
@@ -111,7 +111,7 @@ export function SuccessMetrics({ today }: { today: string }) {
                         format={(n) => formatMetric(metric.key, n)}
                         lastPartial={result.months.at(-1)?.toDate}
                       />
-                      <div className="mt-1 flex justify-between font-mono text-[10px] text-faint">
+                      <div className="mt-1 flex justify-between tabular text-[10px] text-ink/70">
                         <span>{monthLabel(result.months[0].month)}</span>
                         {result.months.length > 1 && <span>{monthLabel(result.months.at(-1)!.month)}</span>}
                       </div>
@@ -120,7 +120,7 @@ export function SuccessMetrics({ today }: { today: string }) {
                 );
               })}
             </div>
-            <p className="mt-3 text-xs text-faint">
+            <p className="mt-3 text-xs text-ink/70">
               Dashed line: the baseline. Hollow point: this month so far. A kudos counts once per person recognised, whatever its
               amount; reactions count as kudos without a note, and thank-backs follow the Quests' 72-hour rule. Participation is
               measured against today's team plus anyone who has left since giving that month.
@@ -128,7 +128,7 @@ export function SuccessMetrics({ today }: { today: string }) {
             {showTable && (
               <div className="mt-4 overflow-x-auto">
                 <table id="success-table" className="w-full text-left text-sm">
-                  <thead className="text-xs text-muted">
+                  <thead className="text-xs text-ink/75">
                     <tr>
                       <th className="py-2 pr-4 font-medium">Month</th>
                       {SUCCESS_METRICS.map((m) => (
@@ -140,7 +140,7 @@ export function SuccessMetrics({ today }: { today: string }) {
                   </thead>
                   <tbody className="tabular">
                     {result.months.map((row) => (
-                      <tr key={row.month} className="border-t border-line">
+                      <tr key={row.month} className="border-t border-parchment-deep">
                         <td className="py-2 pr-4">{monthLabel(row.month)}{row.toDate ? " (to date)" : ""}</td>
                         {SUCCESS_METRICS.map((m) => (
                           <td key={m.key} className="py-2 pr-4 text-right">{formatMetric(m.key, row[m.key])}</td>

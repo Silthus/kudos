@@ -21,15 +21,15 @@ export function Locked({ title, level, how }: { title: string; level: number; ho
       data-locked
       role="group"
       aria-label={`${title}, opens at level ${level}`}
-      className="flex items-start gap-3 rounded-xl border border-dashed border-line-strong bg-ink/30 px-3.5 py-3 text-sm"
+      className="flex items-start gap-3 border border-dashed border-bark/60 bg-parchment-deep px-3.5 py-3 text-sm"
     >
-      <Lock className="mt-0.5 h-4 w-4 shrink-0 text-faint" aria-hidden />
+      <Lock className="mt-0.5 h-4 w-4 shrink-0 text-ink/70" aria-hidden />
       <div className="min-w-0">
         <div className="flex items-baseline gap-2">
-          <span className="font-medium text-cream/70">{title}</span>
-          <span className="font-mono text-[11px] text-faint">Level {level}</span>
+          <span className="font-medium text-ink">{title}</span>
+          <span className="tabular text-[11px] text-ink/70">Level {level}</span>
         </div>
-        <p className="mt-0.5 text-xs text-muted">{how}</p>
+        <p className="mt-0.5 text-xs text-ink/75">{how}</p>
       </div>
     </div>
   );
@@ -54,17 +54,17 @@ export function Wallet({ wallet }: { wallet: CoinBalance }) {
       data-wallet
       role="group"
       aria-label={`Hog coins: ${wallet.balance}`}
-      className="flex items-start gap-3 rounded-xl border border-saffron/40 bg-saffron/5 px-3.5 py-3 text-sm"
+      className="flex items-start gap-3 border border-lantern/40 bg-lantern/5 px-3.5 py-3 text-sm"
     >
       <HogCoin size={28} className="mt-0.5" />
       <div className="min-w-0">
         <div className="flex items-baseline gap-2">
-          <span className="font-display text-2xl font-semibold text-cream tabular">{wallet.balance}</span>
-          <span className="font-medium text-cream/80">Hog coins</span>
+          <span className="font-display text-2xl font-semibold text-ink tabular">{wallet.balance}</span>
+          <span className="font-medium text-ink">Hog coins</span>
         </div>
-        <p className="mt-0.5 text-xs text-muted">{sources.join(" · ")}</p>
+        <p className="mt-0.5 text-xs text-ink/75">{sources.join(" · ")}</p>
         {wallet.balance < 0 && (
-          <p className="mt-1 text-xs text-muted">A revoked kudos took back coins it had earned. Spending waits until it's above zero again.</p>
+          <p className="mt-1 text-xs text-ink/75">A revoked kudos took back coins it had earned. Spending waits until it's above zero again.</p>
         )}
       </div>
     </div>
@@ -79,13 +79,13 @@ export function LevelPanel({ progress }: { progress: LevelProgress }) {
     <div>
       <div className="flex items-baseline justify-between gap-3">
         <div className="flex items-baseline gap-2">
-          <span className="font-display text-3xl font-semibold text-cream">Level {progress.level}</span>
-          <span className="text-sm text-saffron">{progress.title}</span>
+          <span className="font-display text-3xl font-semibold text-ink">Level {progress.level}</span>
+          <span className="text-sm text-soil">{progress.title}</span>
         </div>
-        <span className="font-mono text-xs text-muted tabular">{progress.xp} XP</span>
+        <span className="text-xs text-ink/75 tabular">{progress.xp} XP</span>
       </div>
       <Progress value={into} max={span} className="mt-3" height={8} />
-      <div className="mt-1.5 text-xs text-muted">
+      <div className="mt-1.5 text-xs text-ink/75">
         {progress.toNext === null ? "Top level reached" : `${progress.toNext} XP to level ${progress.level + 1}`}
       </div>
     </div>
@@ -104,24 +104,24 @@ export function GameCard({ glyph }: { glyph: string }) {
   if (!game?.enabled) return null;
   if (game.hidden) {
     return (
-      <div className="flex items-center justify-between rounded-xl border border-line px-4 py-2.5 text-sm text-muted">
+      <div className="flex items-center justify-between border border-parchment-deep px-4 py-2.5 text-sm text-ink/75">
         <span>The game is hidden. Your kudos still earn XP and Hog coins.</span>
-        <button type="button" className="font-medium text-saffron underline-offset-4 hover:underline" onClick={() => void setHidden({ hidden: false })}>
+        <button type="button" className="font-medium text-soil underline-offset-4 hover:underline" onClick={() => void setHidden({ hidden: false })}>
           Show the game
         </button>
       </div>
     );
   }
   const hide = (
-    <button type="button" className="text-xs text-faint underline-offset-4 hover:text-muted hover:underline" onClick={() => void setHidden({ hidden: true })}>
+    <button type="button" className="text-xs text-ink/70 underline-offset-4 hover:text-ink/75 hover:underline" onClick={() => void setHidden({ hidden: true })}>
       Hide the game
     </button>
   );
   if (!game.player) {
     return (
       <Card>
-        <CardHeader title="You can give kudos too" icon={<Sprout className="h-4 w-4 text-saffron" />} action={hide} />
-        <p className="px-5 pb-5 text-sm text-muted">
+        <CardHeader title="You can give kudos too" icon={<Sprout className="h-4 w-4 text-soil" />} action={hide} />
+        <p className="px-5 pb-5 text-sm text-ink/75">
           Mention a teammate in Slack with {glyph} and a few words on why. Your first kudos starts your level; thoughtful ones earn the most.
         </p>
       </Card>
@@ -149,25 +149,25 @@ export function GameCard({ glyph }: { glyph: string }) {
       {game.player.level >= GARDEN_LEVEL && (
         <Link
           to="/garden"
-          className="mt-3 flex items-center gap-3 rounded-xl border border-line px-3.5 py-2.5 text-sm transition hover:border-line-strong hover:bg-panel-2"
+          className="mt-3 flex items-center gap-3 border border-parchment-deep px-3.5 py-2.5 text-sm transition hover:border-bark/60 hover:bg-parchment-deep/50"
         >
-          <Sprout className="h-4 w-4 shrink-0 text-saffron" aria-hidden />
-          <span className="font-medium text-cream">Your garden</span>
-          <span className="flex-1 text-xs text-muted">A plant for each teammate you recognise</span>
-          <ChevronRight className="h-4 w-4 text-faint" aria-hidden />
+          <Sprout className="h-4 w-4 shrink-0 text-soil" aria-hidden />
+          <span className="font-medium text-ink">Your garden</span>
+          <span className="flex-1 text-xs text-ink/75">A plant for each teammate you recognise</span>
+          <ChevronRight className="h-4 w-4 text-ink/70" aria-hidden />
         </Link>
       )}
       {available !== null && (
         <Link
           to="/skills"
-          className="mt-3 flex items-center gap-3 rounded-xl border border-line px-3.5 py-2.5 text-sm transition hover:border-line-strong hover:bg-panel-2"
+          className="mt-3 flex items-center gap-3 border border-parchment-deep px-3.5 py-2.5 text-sm transition hover:border-bark/60 hover:bg-parchment-deep/50"
         >
-          <Network className="h-4 w-4 shrink-0 text-saffron" aria-hidden />
-          <span className="font-medium text-cream">Skill tree</span>
-          <span className="flex-1 text-xs text-muted">
+          <Network className="h-4 w-4 shrink-0 text-soil" aria-hidden />
+          <span className="font-medium text-ink">Skill tree</span>
+          <span className="flex-1 text-xs text-ink/75">
             {available > 0 ? `${available} skill ${available === 1 ? "point" : "points"} to spend` : "Every level-up brings a skill point"}
           </span>
-          <ChevronRight className="h-4 w-4 text-faint" aria-hidden />
+          <ChevronRight className="h-4 w-4 text-ink/70" aria-hidden />
         </Link>
       )}
     </Card>
@@ -187,16 +187,16 @@ export function ScoutHints({ today }: { today: string }) {
   ];
   return (
     <Card>
-      <CardHeader title="Haven't thanked in a while" subtitle="Only you see this. From your Lookout skill." icon={<Compass className="h-4 w-4 text-saffron" />} />
+      <CardHeader title="Haven't thanked in a while" subtitle="Only you see this. From your Lookout skill." icon={<Compass className="h-4 w-4 text-soil" />} />
       {rows.length === 0 ? (
-        <p className="px-5 pb-5 text-sm text-muted">Nobody right now: everyone you've thanked before heard from you in the last 30 days.</p>
+        <p className="px-5 pb-5 text-sm text-ink/75">Nobody right now: everyone you've thanked before heard from you in the last 30 days.</p>
       ) : (
         <ul className="px-5 pb-5">
           {rows.map((h) => (
-            <li key={h.memberId} className="flex items-center gap-3 border-t border-line py-2.5 first:border-t-0">
+            <li key={h.memberId} className="flex items-center gap-3 border-t border-parchment-deep py-2.5 first:border-t-0">
               <Avatar name={h.name} src={h.avatarUrl} size={28} />
-              <span className="min-w-0 flex-1 truncate text-sm font-medium text-cream">{h.name}</span>
-              <span className="shrink-0 text-xs text-muted">{h.note}</span>
+              <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">{h.name}</span>
+              <span className="shrink-0 text-xs text-ink/75">{h.note}</span>
             </li>
           ))}
         </ul>
@@ -211,7 +211,7 @@ export function ScoutHints({ today }: { today: string }) {
  */
 export function Earnings({ text }: { text: string }) {
   return (
-    <p className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold text-saffron">
+    <p className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold text-soil">
       {/Hog coin/.test(text) && <HogCoin size={18} />}
       <span>{text}</span>
     </p>
@@ -234,9 +234,9 @@ export function LevelUpHoggie({ label, category }: { label?: string; category?: 
 export function GainLines({ lines }: { lines?: string[] }) {
   if (!lines || lines.length === 0) return null;
   return (
-    <ul className="mt-2 space-y-1 border-t border-line pt-2">
+    <ul className="mt-2 space-y-1 border-t border-parchment-deep pt-2">
       {lines.map((line, i) => (
-        <li key={i} className="flex items-start gap-1.5 text-sm text-saffron">
+        <li key={i} className="flex items-start gap-1.5 text-sm text-soil">
           <Sprout className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
           <span>{line}</span>
         </li>

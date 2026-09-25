@@ -18,8 +18,8 @@ import { SuperKudosCelebration } from "./cosmetics";
 
 export function Logo({ glyph = "🌮" }: { glyph?: string }) {
   return (
-    <span className="inline-flex items-center gap-2 font-display text-xl font-bold tracking-tight">
-      <span className="grid h-9 w-9 place-items-center rounded-xl bg-saffron/15 text-lg ring-1 ring-saffron/30">{glyph}</span>
+    <span className="inline-flex items-center gap-2 font-display text-2xl font-medium">
+      <span className="grid h-9 w-9 place-items-center bg-dusk text-lg shadow-[inset_0_0_0_2px_var(--color-lantern)]">{glyph}</span>
       kudos
     </span>
   );
@@ -75,52 +75,53 @@ export function AppShell() {
 
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[248px_1fr]">
-      <aside className="sticky top-0 hidden h-dvh flex-col border-r border-line bg-ink/60 px-4 py-6 backdrop-blur lg:flex">
+      {/* The old shell, recoloured only: the world shell (#128) replaces it. */}
+      <aside className="sticky top-0 hidden h-dvh flex-col bg-bark px-4 py-6 text-cream shadow-[2px_0_0_0_var(--color-dusk-deep)] lg:flex">
         <div className="px-2">
           <Logo glyph={viewer.workspace.emojiGlyph} />
         </div>
-        <div className="relative mt-6 flex items-center gap-3 rounded-xl border border-line bg-panel/70 px-3 py-2.5 has-[select:focus-visible]:border-saffron/60">
+        <div className="relative mt-6 flex items-center gap-3 bg-dusk/60 px-3 py-2.5 shadow-[inset_0_0_0_2px_var(--color-soil)] has-[select:focus-visible]:shadow-[inset_0_0_0_2px_var(--color-lantern)]">
           {viewer.workspace.iconUrl ? (
-            <img src={viewer.workspace.iconUrl} alt="" className="h-8 w-8 rounded-lg" />
+            <img src={viewer.workspace.iconUrl} alt="" className="h-8 w-8" />
           ) : (
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-teal/25 font-display text-sm font-bold text-teal-soft">
+            <span className="grid h-8 w-8 place-items-center bg-hedge-deep font-display text-base font-medium text-cream">
               {viewer.workspace.name[0]}
             </span>
           )}
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-medium">{viewer.workspace.name}</div>
-            <div className="font-mono text-[10px] uppercase tracking-wider text-faint">{viewer.workspace.isDemo ? "Demo workspace" : "Slack workspace"}</div>
+            <div className="truncate text-sm font-semibold">{viewer.workspace.name}</div>
+            <div className="text-xs text-cream/70">{viewer.workspace.isDemo ? "Demo workspace" : "Slack workspace"}</div>
           </div>
           <WorkspaceSwitcher className="absolute inset-0 cursor-pointer opacity-0" />
-          {viewer.workspaces.length > 1 && <ChevronsUpDown className="h-4 w-4 shrink-0 text-faint" aria-hidden />}
+          {viewer.workspaces.length > 1 && <ChevronsUpDown className="h-4 w-4 shrink-0 text-cream/70" aria-hidden />}
         </div>
         <SidebarNav items={nav} />
-        <div className="mt-auto flex items-center gap-3 rounded-xl px-2 py-2">
+        <div className="mt-auto flex items-center gap-3 px-2 py-2">
           <Avatar name={viewer.member.name} src={viewer.member.avatarUrl} size={34} />
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-medium">{viewer.member.name}</div>
-            <div className="truncate text-xs text-faint">{viewer.member.isAdmin ? "Admin" : viewer.member.title ?? "Member"}</div>
+            <div className="truncate text-sm font-semibold">{viewer.member.name}</div>
+            <div className="truncate text-xs text-cream/70">{viewer.member.isAdmin ? "Admin" : viewer.member.title ?? "Member"}</div>
           </div>
-          <button onClick={leave} className="rounded-lg p-2 text-faint hover:bg-panel-2 hover:text-cream" title="Sign out" aria-label="Sign out">
+          <button onClick={leave} className="p-2 text-cream/70 hover:bg-dusk hover:text-cream" title="Sign out" aria-label="Sign out">
             <LogOut className="h-4 w-4" />
           </button>
         </div>
       </aside>
 
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-ink/80 px-4 py-3 backdrop-blur lg:hidden">
+      <header className="sticky top-0 z-30 flex items-center justify-between bg-bark px-4 py-3 text-cream shadow-[0_2px_0_0_var(--color-dusk-deep)] lg:hidden">
         <Logo glyph={viewer.workspace.emojiGlyph} />
-        <WorkspaceSwitcher className="ml-auto mr-2 max-w-[45%] truncate rounded-lg border border-line bg-panel px-2 py-1.5 text-sm text-cream" />
-        <button onClick={leave} className="rounded-lg p-2 text-faint" aria-label="Sign out">
+        <WorkspaceSwitcher className="ml-auto mr-2 max-w-[45%] truncate border-2 border-soil bg-dusk px-2 py-1.5 text-sm text-cream" />
+        <button onClick={leave} className="p-2 text-cream/70" aria-label="Sign out">
           <LogOut className="h-4 w-4" />
         </button>
       </header>
 
       <main className="min-w-0 px-4 pb-28 pt-6 sm:px-8 lg:px-10 lg:pb-12 lg:pt-10">
         {viewer.workspace.isDemo && (
-          <p className="mx-auto mb-6 max-w-[1240px] rounded-xl border border-saffron/25 bg-saffron/[0.07] px-4 py-2.5 text-sm leading-relaxed text-cream/90">
-            <span className="mr-2 font-mono text-[11px] uppercase tracking-widest text-saffron">Live demo</span>
+          <p className="mx-auto mb-6 max-w-[1240px] pixel-note px-4 py-2.5 text-sm leading-relaxed">
+            <span className="mr-2 font-semibold text-soil">Live demo.</span>
             You're exploring <b className="font-semibold">Lumen Labs</b>, a sample workspace with this year's history. Try the{" "}
-            <NavLink to="/playground" className="font-medium text-saffron underline-offset-4 hover:underline">
+            <NavLink to="/playground" className="font-semibold text-ember-deep underline decoration-2 underline-offset-4">
               Slack playground
             </NavLink>{" "}
             to give kudos.
@@ -132,7 +133,7 @@ export function AppShell() {
           key={location.pathname}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.22 }}
+          transition={{ duration: 0.12, ease: "easeOut" }}
           className="mx-auto max-w-[1240px]"
         >
           <ErrorBoundary resetKey={location.pathname}>

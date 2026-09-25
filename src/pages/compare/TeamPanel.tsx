@@ -44,9 +44,9 @@ export function TeamPanel({ period }: { period: ComparePeriod }) {
         footnote={
           <>
             {/* The headline already says so when Given is the small one. */}
-            {!small(given) && data.rows.some(small) && <span className="text-xs text-faint">{SMALL_TEAM}</span>}
+            {!small(given) && data.rows.some(small) && <span className="text-xs text-ink/70">{SMALL_TEAM}</span>}
             {data.truncated && (
-              <span className="text-xs text-faint">Too much activity to count everyone this {PERIOD_NOUN[data.period]}, so these numbers are partial.</span>
+              <span className="text-xs text-ink/70">Too much activity to count everyone this {PERIOD_NOUN[data.period]}, so these numbers are partial.</span>
             )}
           </>
         }
@@ -60,7 +60,7 @@ function Headline({ data, given }: { data: Team; given: TeamRow }) {
   const when = data.label.toLowerCase();
   const units = workspace.unitPlural;
   const teammates = (n: number) => `${nf.format(n)} ${n === 1 ? "teammate" : "teammates"}`;
-  const big = "mr-2 text-5xl text-cream [font-variant-numeric:proportional-nums]";
+  const big = "mr-2 text-5xl text-ink [font-variant-numeric:proportional-nums]";
   const h = teamHeadline({ value: given.you.value, team: given.team, percentile: given.percentile });
 
   let headline;
@@ -95,7 +95,7 @@ function Headline({ data, given }: { data: Team; given: TeamRow }) {
           {h.you === 1 ? workspace.unitSingular : units} given {when}
           {h.kind === "median" && (
             <span className="ml-3 text-sm">
-              vs a team median of <b className="font-medium text-cream tabular">{teamStat(h.median)}</b> across {teammates(h.teammates)}
+              vs a team median of <b className="font-medium text-ink tabular">{teamStat(h.median)}</b> across {teammates(h.teammates)}
             </span>
           )}
         </>
@@ -104,10 +104,10 @@ function Headline({ data, given }: { data: Team; given: TeamRow }) {
 
   const team = given.team;
   return (
-    <Card className="grain overflow-hidden px-6 py-6 sm:px-8">
+    <Card className="relative overflow-hidden px-6 py-6 sm:px-8">
       <Eyebrow>{rangeLabel(data.range.start, data.range.end)} · you and the team</Eyebrow>
-      <p className="mt-3 text-lg text-muted">{headline}</p>
-      <p className="mt-2 text-sm text-faint">
+      <p className="mt-3 text-lg text-ink/75">{headline}</p>
+      <p className="mt-2 text-sm text-ink/70">
         {!team
           ? `Not enough teammates were active this ${PERIOD_NOUN[data.period]} to compare.`
           : team.p25 === null || team.p75 === null
@@ -119,15 +119,15 @@ function Headline({ data, given }: { data: Team; given: TeamRow }) {
 }
 
 function Strip({ row }: { row: TeamRow }) {
-  if (!row.team) return <span className="text-xs text-faint">Too few teammates to compare</span>;
+  if (!row.team) return <span className="text-xs text-ink/70">Too few teammates to compare</span>;
   return <RangeStrip label={METRIC_META[row.metric].label} you={row.you.value ?? 0} team={row.team} color={FAMILY_COLOR[row.family]} />;
 }
 
 /** Share of the team strictly below you: neutral ink, since the team isn't a rival. */
 function Standing({ row }: { row: TeamRow }) {
-  if (row.percentile === null) return <span className="text-xs text-faint">—</span>;
+  if (row.percentile === null) return <span className="text-xs text-ink/70">—</span>;
   return (
-    <span className="rounded-md bg-panel-3 px-1.5 py-0.5 font-mono text-xs text-muted tabular">
+    <span className="bg-parchment-deep px-1.5 py-0.5 text-xs text-ink/75 tabular">
       {/* The desktop column header says "You're above"; the phone cards have no header. */}
       <span className="sm:sr-only">above </span>
       {sharePercent(row.percentile)}

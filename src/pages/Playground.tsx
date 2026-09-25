@@ -107,7 +107,7 @@ function renderSlackText(text: string, glyph: string, emojiName: string): ReactN
   return parts.map((p, i) => {
     if (p === `:${emojiName}:`) return <span key={i}>{glyph}</span>;
     if (p.startsWith(`:${emojiName}-`) && p.endsWith(":")) return variantChip(p, glyph, emojiName, i) ?? <span key={i}>{p}</span>;
-    if (p.startsWith("@")) return <span key={i} className="rounded bg-[#1d9bd1]/20 px-1 text-[#6cc7f5]">{p}</span>;
+    if (p.startsWith("@")) return <span key={i} className="bg-[#1d9bd1]/20 px-1 text-[#6cc7f5]">{p}</span>;
     return <span key={i}>{p}</span>;
   });
 }
@@ -273,14 +273,14 @@ export function Playground() {
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.35fr_1fr]">
         <Card className="flex min-h-[640px] flex-col overflow-hidden">
-          <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
+          <div className="flex items-center justify-between border-b border-parchment-deep px-5 py-3.5">
             <div className="flex items-center gap-1.5 font-display text-base font-semibold">
-              <Hash className="h-4 w-4 text-muted" /> general
+              <Hash className="h-4 w-4 text-ink/75" /> general
             </div>
             {status && (
-              <div className="flex items-center gap-2 text-sm text-muted">
+              <div className="flex items-center gap-2 text-sm text-ink/75">
                 {status.remaining < status.limit && (
-                  <button onClick={() => void refill({}).then(() => viewer.workspace.spreesEnabled && openSpree({}))} className="rounded-md px-1.5 py-0.5 text-xs text-saffron hover:bg-saffron/10" title="The demo user is shared by all visitors">
+                  <button onClick={() => void refill({}).then(() => viewer.workspace.spreesEnabled && openSpree({}))} className="px-1.5 py-0.5 text-xs text-soil hover:bg-lantern/10" title="The demo user is shared by all visitors">
                     Refill
                   </button>
                 )}
@@ -300,33 +300,33 @@ export function Playground() {
             {spree && <SpreePost spree={spree} glyph={glyph} onJoin={onJoinSpree} />}
             <AnimatePresence initial={false}>
               {feed.map((m) => m.ephemeral ? (
-                <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3 rounded-xl bg-panel-2/40 px-2 py-2">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-saffron/20">{glyph}</span>
+                <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3 bg-parchment-deep/50 px-2 py-2">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center bg-lantern/20">{glyph}</span>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1 text-xs text-faint">
+                    <div className="flex items-center gap-1 text-xs text-ink/70">
                       <EyeOff className="h-3 w-3" /> Only visible to you
                     </div>
                     <div className="text-sm">
                       <b className="font-semibold">Kudos</b>{" "}
-                      <span className="rounded bg-panel-3 px-1 py-px align-middle text-[10px] font-semibold text-muted">APP</span>{" "}
-                      <span className="text-xs text-faint">{new Date(m.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                      <span className="bg-parchment-deep px-1 py-px align-middle text-[10px] font-semibold text-ink/75">APP</span>{" "}
+                      <span className="text-xs text-ink/70">{new Date(m.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                     </div>
-                    <p className="text-[15px] leading-relaxed text-cream/90">{m.text}</p>
+                    <p className="text-[15px] leading-relaxed text-ink">{m.text}</p>
                     {m.earnings && <Earnings text={m.earnings} />}
-                    {m.superNote && <p className="mt-1 text-sm text-cream/90">{m.superNote}</p>}
+                    {m.superNote && <p className="mt-1 text-sm text-ink">{m.superNote}</p>}
                   </div>
                 </motion.div>
               ) : (
-                <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="group flex gap-3 rounded-xl px-2 py-2 hover:bg-panel-2/50">
+                <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="group flex gap-3 px-2 py-2 hover:bg-parchment-deep/50">
                   <Avatar name={m.author} size={36} />
                   <div className="min-w-0 flex-1">
                     <div className="text-sm">
                       <b className="font-semibold">{m.author}</b>{" "}
-                      {m.threadReply && <span className="rounded bg-panel-3 px-1 py-px align-middle text-[10px] font-semibold text-muted">APP · replied in the thread</span>}{" "}
-                      <span className="text-xs text-faint">{new Date(m.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                      {m.threadReply && <span className="bg-parchment-deep px-1 py-px align-middle text-[10px] font-semibold text-ink/75">APP · replied in the thread</span>}{" "}
+                      <span className="text-xs text-ink/70">{new Date(m.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                     </div>
                     {editing?.id === m.id ? (
-                      <div className="mt-1 rounded-xl border border-saffron/50 bg-ink/70 p-2">
+                      <div className="mt-1 border border-lantern/50 bg-parchment-deep/40 p-2">
                         <textarea
                           autoFocus
                           value={editing.draft}
@@ -337,7 +337,7 @@ export function Playground() {
                           }}
                           rows={2}
                           aria-label="Edit message"
-                          className="w-full resize-none bg-transparent px-1 text-[15px] outline-none"
+                          className="w-full resize-none bg-transparent px-1 text-[15px]"
                         />
                         <div className="mt-1 flex justify-end gap-2">
                           <Button size="sm" variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
@@ -345,9 +345,9 @@ export function Playground() {
                         </div>
                       </div>
                     ) : (
-                      <p className="text-[15px] leading-relaxed text-cream/90">
+                      <p className="text-[15px] leading-relaxed text-ink">
                         {renderSlackText(m.text, glyph, emojiName)}
-                        {m.edited && <span className="ml-1 text-xs text-faint">(edited)</span>}
+                        {m.edited && <span className="ml-1 text-xs text-ink/70">(edited)</span>}
                       </p>
                     )}
                     {m.outcome && (
@@ -357,10 +357,10 @@ export function Playground() {
                         transition={{ type: "spring", bounce: 0.5 }}
                         title={`Kudos bot: ${REACTIONS[m.outcome].label}`}
                         aria-label={`Kudos bot reacted: ${REACTIONS[m.outcome].label}`}
-                        className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-line-strong bg-panel-2 px-2 py-0.5 text-xs"
+                        className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-bark/60 bg-parchment-deep/50 px-2 py-0.5 text-xs"
                       >
                         {m.superReaction ? <EmojiChip glyph={glyph} colors={SUPER_COLORS} label={`:${emojiName}-${SUPER_SUFFIX}:`} /> : (REACTIONS[m.outcome].glyph ?? glyph)}{" "}
-                        <span className="tabular text-muted">1</span>
+                        <span className="tabular text-ink/75">1</span>
                       </motion.span>
                     )}
                     {m.sent && editing?.id !== m.id && (
@@ -368,7 +368,7 @@ export function Playground() {
                       <button
                         onClick={() => setEditing({ id: m.id, draft: m.text.replaceAll(emojiCode, glyph) })}
                         className={clsx(
-                          "ml-2 inline-flex items-center gap-1 rounded-full border border-line-strong px-2 py-0.5 text-xs text-muted transition hover:text-cream",
+                          "ml-2 inline-flex items-center gap-1 rounded-full border border-bark/60 px-2 py-0.5 text-xs text-ink/75 transition hover:text-ink",
                           m.outcome === "given" && "opacity-60 hover:opacity-100 focus:opacity-100",
                         )}
                       >
@@ -387,7 +387,7 @@ export function Playground() {
                           }}
                           className={clsx(
                             "rounded-full border px-2 py-0.5 text-xs transition",
-                            reacted.has(m.id) ? "border-[#1d9bd1]/60 bg-[#1d9bd1]/15" : "border-line-strong text-muted opacity-70 hover:opacity-100 group-hover:opacity-100",
+                            reacted.has(m.id) ? "border-[#1d9bd1]/60 bg-[#1d9bd1]/15" : "border-bark/60 text-ink/75 group-hover:opacity-100",
                           )}
                         >
                           {glyph} {reacted.has(m.id) ? "1" : "React"}
@@ -400,16 +400,16 @@ export function Playground() {
             </AnimatePresence>
           </div>
 
-          <div className="border-t border-line p-4">
+          <div className="border-t border-parchment-deep p-4">
             <div className="mb-3 flex flex-wrap gap-2">
               {EXAMPLES.map((ex) => (
-                <button key={ex.label} onClick={() => { setText(ex.build(glyph)); inputRef.current?.focus(); }} className="rounded-full border border-line-strong bg-panel-2 px-3 py-1 text-xs text-muted hover:text-cream">
+                <button key={ex.label} onClick={() => { setText(ex.build(glyph)); inputRef.current?.focus(); }} className="rounded-full border border-bark/60 bg-parchment-deep/50 px-3 py-1 text-xs text-ink/75 hover:text-ink">
                   {ex.label}
                 </button>
               ))}
               <button
                 onClick={async () => pushBot((await allowance({})).messages)}
-                className="flex items-center gap-1 rounded-full border border-line-strong bg-panel-2 px-3 py-1 font-mono text-xs text-muted hover:text-cream"
+                className="flex items-center gap-1 rounded-full border border-bark/60 bg-parchment-deep/50 px-3 py-1 tabular text-xs text-ink/75 hover:text-ink"
               >
                 <Terminal className="h-3 w-3" /> /kudos me
               </button>
@@ -417,20 +417,20 @@ export function Playground() {
             <div className="relative">
               <AnimatePresence>
                 {mention && suggestions.length > 0 && (
-                  <motion.ul initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute bottom-full left-0 z-10 mb-2 w-72 overflow-hidden rounded-xl border border-line-strong bg-panel-2 p-1 shadow-2xl">
+                  <motion.ul initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute bottom-full left-0 z-10 mb-2 w-72 overflow-hidden border border-bark/60 bg-parchment-deep/50 p-1">
                     {suggestions.map((s, i) => (
                       <li key={s.slackUserId}>
-                        <button onMouseDown={(e) => { e.preventDefault(); pick(s.name); }} className={clsx("flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm", i === mention.index && "bg-panel-3")}>
+                        <button onMouseDown={(e) => { e.preventDefault(); pick(s.name); }} className={clsx("flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm", i === mention.index && "bg-parchment-deep")}>
                           <Avatar name={s.name} size={24} />
                           <span className="font-medium">{s.name}</span>
-                          <span className="truncate text-xs text-faint">{s.title}</span>
+                          <span className="truncate text-xs text-ink/70">{s.title}</span>
                         </button>
                       </li>
                     ))}
                   </motion.ul>
                 )}
               </AnimatePresence>
-              <div className="flex items-end gap-2 rounded-xl border border-line-strong bg-ink/70 p-2 focus-within:border-saffron/50">
+              <div className="flex items-end gap-2 border border-bark/60 bg-parchment-deep/40 p-2 focus-within:border-bark">
                 <textarea
                   ref={inputRef}
                   value={text}
@@ -438,17 +438,17 @@ export function Playground() {
                   onKeyDown={onKey}
                   rows={2}
                   placeholder={`Message #general · try "@Priya Raman ${glyph} thanks!"`}
-                  className="min-h-12 flex-1 resize-none bg-transparent px-2 py-1.5 text-[15px] outline-none placeholder:text-faint"
+                  className="min-h-12 flex-1 resize-none bg-transparent px-2 py-1.5 text-[15px] placeholder:text-ink/70"
                   aria-label="Message"
                 />
-                <button onClick={() => { setText((t) => `${t}@`); setMention({ query: "", index: 0 }); inputRef.current?.focus(); }} className="rounded-lg p-2 text-faint hover:text-cream" aria-label="Mention someone">
+                <button onClick={() => { setText((t) => `${t}@`); setMention({ query: "", index: 0 }); inputRef.current?.focus(); }} className="p-2 text-ink/70 hover:text-ink" aria-label="Mention someone">
                   <AtSign className="h-4 w-4" />
                 </button>
-                <button onClick={() => { setText((t) => `${t}${glyph}`); inputRef.current?.focus(); }} className="rounded-lg p-2 text-lg hover:bg-panel-3" aria-label={`Add ${emojiName}`}>
+                <button onClick={() => { setText((t) => `${t}${glyph}`); inputRef.current?.focus(); }} className="p-2 text-lg hover:bg-parchment-deep" aria-label={`Add ${emojiName}`}>
                   {glyph}
                 </button>
                 {extraEmoji.map((code) => (
-                  <button key={code} onClick={() => { setText((t) => `${t} ${code} `); inputRef.current?.focus(); }} className="rounded-lg p-1 hover:bg-panel-3" aria-label={`Add ${code}`}>
+                  <button key={code} onClick={() => { setText((t) => `${t} ${code} `); inputRef.current?.focus(); }} className="p-1 hover:bg-parchment-deep" aria-label={`Add ${code}`}>
                     {variantChip(code, glyph, emojiName, 0)}
                   </button>
                 ))}
@@ -457,31 +457,31 @@ export function Playground() {
                 </Button>
               </div>
             </div>
-            {hint && <p className="mt-2 text-xs text-saffron">{hint}</p>}
+            {hint && <p className="mt-2 text-xs text-soil">{hint}</p>}
           </div>
         </Card>
 
         <Card className="flex min-h-[640px] flex-col overflow-hidden">
-          <div className="flex items-center gap-3 border-b border-line px-5 py-3.5">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-saffron/20">{glyph}</span>
+          <div className="flex items-center gap-3 border-b border-parchment-deep px-5 py-3.5">
+            <span className="grid h-8 w-8 place-items-center bg-lantern/20">{glyph}</span>
             <div>
               <div className="font-display text-base font-semibold">
-                Kudos <span className="ml-1 rounded bg-panel-3 px-1 py-px align-middle text-[10px] font-semibold text-muted">APP</span>
+                Kudos <span className="ml-1 bg-parchment-deep px-1 py-px align-middle text-[10px] font-semibold text-ink/75">APP</span>
               </div>
-              <div className="text-xs text-faint">Direct messages & ephemeral replies</div>
+              <div className="text-xs text-ink/70">Direct messages & ephemeral replies</div>
             </div>
             {status && (
               <div className="ml-auto text-right">
                 <Eyebrow>Collected</Eyebrow>
                 <div className="font-display text-lg font-semibold tabular">
-                  {status.discovered}<span className="text-sm text-muted">/{status.total}</span>
+                  {status.discovered}<span className="text-sm text-ink/75">/{status.total}</span>
                 </div>
               </div>
             )}
           </div>
           <div className="flex-1 space-y-3 overflow-y-auto p-4">
             {bot.length === 0 && (
-              <div className="grid h-full place-items-center text-center text-sm text-muted">
+              <div className="grid h-full place-items-center text-center text-sm text-ink/75">
                 <div>
                   <div className="mb-2 text-4xl">🎲</div>
                   Bot replies appear here. Each one rolls a rarity.
@@ -498,14 +498,14 @@ export function Playground() {
                     initial={{ opacity: 0, scale: 0.9, y: -12 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     transition={{ type: "spring", bounce: m.rarity === "legendary" || m.rarity === "epic" ? 0.55 : 0.25 }}
-                    className={clsx("relative flow-root rounded-2xl bg-ink/60 p-4 ring-1 ring-inset", meta.ring, meta.glow)}
+                    className={clsx("relative flow-root bg-parchment-deep/40 p-4 ring-1 ring-inset", meta.ring, meta.glow)}
                   >
                     {m.isNewDiscovery && (m.rarity === "legendary" || m.rarity === "epic" || m.rarity === "rare") && <Burst color={meta.color} />}
-                    <div className="mb-1.5 text-[11px] text-faint">
+                    <div className="mb-1.5 text-[11px] text-ink/70">
                       {m.toMe ? "To you" : `To ${m.to} (they'll get this DM)`} · {gainsOnly(m) ? (m.gainLabel ?? "Level up") : (CATEGORY_LABEL[m.category] ?? m.category)}
                     </div>
                     {m.superKudos?.kind === "celebration" && (
-                      <p data-super-kudos className="mb-2 rounded-xl bg-saffron/10 px-3 py-2 text-sm font-medium whitespace-pre-line text-saffron ring-1 ring-inset ring-saffron/40">
+                      <p data-super-kudos className="mb-2 bg-lantern/10 px-3 py-2 text-sm font-medium whitespace-pre-line text-soil ring-1 ring-inset ring-lantern/40">
                         {m.superKudos.text}
                       </p>
                     )}
@@ -514,14 +514,14 @@ export function Playground() {
                     <GainLines lines={m.gains} />
                     <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5">
                       {!gainsOnly(m) && <RarityBadge rarity={m.rarity as Rarity} size="xs" />}
-                      {m.isNewDiscovery && <span className="text-xs font-medium whitespace-nowrap text-saffron">✨ New discovery!</span>}
+                      {m.isNewDiscovery && <span className="text-xs font-medium whitespace-nowrap text-soil">✨ New discovery!</span>}
                       {m.questProgress && (
-                        <span className="text-xs whitespace-nowrap text-muted">
+                        <span className="text-xs whitespace-nowrap text-ink/75">
                           {m.questProgress.completed} of {m.questProgress.available} quests this week
                         </span>
                       )}
                       {m.questProgress?.sweep && (
-                        <span className="rounded-full bg-up/15 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-up">Clean sweep 🧹</span>
+                        <span className="rounded-full bg-hedge/15 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-hedge-deep">Clean sweep 🧹</span>
                       )}
                     </div>
                   </motion.div>

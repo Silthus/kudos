@@ -12,7 +12,7 @@ import { useViewer } from "@/lib/viewer";
 export type Row = FunctionReturnType<typeof api.compare.past.get>["rows"][number];
 type Locked = NonNullable<Row["you"]["locked"]>;
 
-export const FAMILY_COLOR = { giving: "var(--color-saffron-deep)", receiving: "var(--color-teal)" } as const;
+export const FAMILY_COLOR = { giving: "var(--color-ember)", receiving: "var(--color-pond)" } as const;
 
 export const METRIC_META: Record<Metric, { label: string; hint: string }> = {
   given: { label: "Given", hint: "Kudos given" },
@@ -44,7 +44,7 @@ export const formatValue = (n: number | null) => (n === null ? "—" : nf.format
 
 function LockedCell({ reason }: { reason: Locked }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs text-faint">
+    <span className="inline-flex items-center gap-1.5 text-xs text-ink/70">
       <Lock className="h-3 w-3" aria-hidden />
       {LOCKED_COPY[reason]}
     </span>
@@ -88,7 +88,7 @@ export function Scoreboard<R extends Row>({
       <CardHeader title="Scoreboard" subtitle={subtitle} />
       <table className="hidden w-full text-sm sm:table">
         <thead>
-          <tr className="border-b border-line text-left font-mono text-[10px] uppercase tracking-wider text-faint">
+          <tr className="border-b border-parchment-deep text-left tabular text-[10px] text-ink/70">
             <th className="py-2 pl-5 font-normal">Metric</th>
             <th className="py-2 text-right font-normal">You</th>
             <th className="py-2 pl-3 text-right font-normal">{benchmarkLabel}</th>
@@ -100,10 +100,10 @@ export function Scoreboard<R extends Row>({
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.metric} className="border-b border-line/60 last:border-0">
+            <tr key={r.metric} className="border-b border-parchment-deep last:border-0">
               <th scope="row" className="py-3 pl-5 text-left font-normal">
-                <div className="text-cream">{METRIC_META[r.metric].label}</div>
-                <div className="text-xs text-faint">{METRIC_META[r.metric].hint}</div>
+                <div className="text-ink">{METRIC_META[r.metric].label}</div>
+                <div className="text-xs text-ink/70">{METRIC_META[r.metric].hint}</div>
               </th>
               {r.you.locked ? (
                 <td colSpan={4} className="py-3 pr-5 text-right">
@@ -111,8 +111,8 @@ export function Scoreboard<R extends Row>({
                 </td>
               ) : (
                 <>
-                  <td className="py-3 text-right font-medium text-cream tabular">{formatValue(r.you.value)}</td>
-                  <td className="py-3 pl-3 text-right text-muted tabular">{formatValue(r.benchmark.value)}</td>
+                  <td className="py-3 text-right font-medium text-ink tabular">{formatValue(r.you.value)}</td>
+                  <td className="py-3 pl-3 text-right text-ink/75 tabular">{formatValue(r.benchmark.value)}</td>
                   <td className="py-3 pl-5">{visual(r)}</td>
                   <td className="py-3 pr-5 text-right">{renderDelta(r)}</td>
                 </>
@@ -123,16 +123,16 @@ export function Scoreboard<R extends Row>({
       </table>
       <ul className="space-y-2 px-3 pb-3 sm:hidden">
         {rows.map((r) => (
-          <li key={r.metric} className="rounded-xl border border-line/70 bg-panel-2/50 px-3 py-3">
+          <li key={r.metric} className="border border-parchment-deep bg-parchment-deep/50 px-3 py-3">
             <div className="flex items-baseline justify-between gap-3">
-              <span className="text-sm text-cream">{METRIC_META[r.metric].label}</span>
+              <span className="text-sm text-ink">{METRIC_META[r.metric].label}</span>
               {r.you.locked ? (
                 <LockedCell reason={r.you.locked} />
               ) : (
                 <span className="flex items-baseline gap-2 text-sm">
-                  <b className="font-medium text-cream tabular">{formatValue(r.you.value)}</b>
-                  <span className="text-faint">vs</span>
-                  <span className="text-muted tabular">{formatValue(r.benchmark.value)}</span>
+                  <b className="font-medium text-ink tabular">{formatValue(r.you.value)}</b>
+                  <span className="text-ink/70">vs</span>
+                  <span className="text-ink/75 tabular">{formatValue(r.benchmark.value)}</span>
                   {renderDelta(r)}
                 </span>
               )}
@@ -143,7 +143,7 @@ export function Scoreboard<R extends Row>({
           </li>
         ))}
       </ul>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-5 py-3">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-parchment-deep px-5 py-3">
         <Legend
           items={[
             { label: "You · giving", color: FAMILY_COLOR.giving },
@@ -263,12 +263,12 @@ function RaceTable({
 }) {
   const short = (d: string) => dayLabel(d, { weekday: "short", month: "short", day: "numeric" });
   return (
-    <details className="group mb-3 mt-3 rounded-xl border border-line/70 px-3 py-2 text-sm">
-      <summary className="cursor-pointer select-none text-xs font-medium text-muted hover:text-cream">Show data</summary>
+    <details className="group mb-3 mt-3 border border-parchment-deep px-3 py-2 text-sm">
+      <summary className="cursor-pointer select-none text-xs font-medium text-ink/75 hover:text-ink">Show data</summary>
       <div className="mt-2 max-h-72 overflow-y-auto">
         <table className="w-full text-xs">
-          <thead className="sticky top-0 bg-panel">
-            <tr className="text-left font-mono text-[10px] uppercase tracking-wider text-faint">
+          <thead className="sticky top-0 bg-parchment">
+            <tr className="text-left tabular text-[10px] text-ink/70">
               <th className="py-1.5 font-normal">Day</th>
               <th className="py-1.5 text-right font-normal">You, so far</th>
               {benchmark && benchmarkDays && <th className="py-1.5 pl-3 font-normal">{benchmarkLabel}</th>}
@@ -277,11 +277,11 @@ function RaceTable({
           </thead>
           <tbody>
             {days.map((d, i) => (
-              <tr key={d} className="border-t border-line/50">
-                <td className="py-1.5 text-muted">{short(d)}</td>
-                <td className="py-1.5 text-right text-cream tabular">{formatValue(you[i])}</td>
-                {benchmark && benchmarkDays && <td className="py-1.5 pl-3 text-muted">{short(benchmarkDays[i])}</td>}
-                {benchmark && <td className="py-1.5 text-right text-muted tabular">{formatValue(benchmark[i])}</td>}
+              <tr key={d} className="border-t border-parchment-deep">
+                <td className="py-1.5 text-ink/75">{short(d)}</td>
+                <td className="py-1.5 text-right text-ink tabular">{formatValue(you[i])}</td>
+                {benchmark && benchmarkDays && <td className="py-1.5 pl-3 text-ink/75">{short(benchmarkDays[i])}</td>}
+                {benchmark && <td className="py-1.5 text-right text-ink/75 tabular">{formatValue(benchmark[i])}</td>}
               </tr>
             ))}
           </tbody>

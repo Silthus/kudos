@@ -121,8 +121,8 @@ class Unavailable extends Component<{ children: ReactNode; resetKey: string; bac
     return (
       <Card className="px-6 py-10 text-center">
         <h2 className="font-display text-xl font-semibold">{TEAMMATE_UNAVAILABLE}</h2>
-        <p className="mt-2 text-sm text-muted">They may have left the workspace, or the link isn't for someone you can compare with.</p>
-        <Link to={this.props.backHref} className="mt-5 inline-block text-sm font-medium text-saffron hover:underline">
+        <p className="mt-2 text-sm text-ink/75">They may have left the workspace, or the link isn't for someone you can compare with.</p>
+        <Link to={this.props.backHref} className="mt-5 inline-block text-sm font-medium text-soil hover:underline">
           Back to Past you
         </Link>
       </Card>
