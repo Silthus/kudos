@@ -81,6 +81,7 @@ export function Segmented<T extends string>({
   options,
   size = "md",
   wrap = false,
+  label,
 }: {
   value: T;
   onChange: (v: T) => void;
@@ -88,6 +89,8 @@ export function Segmented<T extends string>({
   size?: "sm" | "md";
   /** Page-level tabs: wrap onto a second row on a phone, so every tab stays in sight. */
   wrap?: boolean;
+  /** What the tabs choose, for screen readers when a page has more than one set. */
+  label?: string;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   // Keep the selected tab visible when the bar scrolls (deep links like ?tab=slack on a phone).
@@ -105,6 +108,7 @@ export function Segmented<T extends string>({
     <div
       ref={listRef}
       role="tablist"
+      aria-label={label}
       className={clsx(
         "pixel-chip relative inline-flex max-w-full gap-0.5 bg-parchment-deep p-1 text-ink",
         wrap ? "flex-wrap" : "overflow-x-auto [scrollbar-width:none]",

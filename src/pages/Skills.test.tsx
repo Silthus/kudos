@@ -5,6 +5,7 @@ import { MemoryRouter } from "react-router";
 import { getFunctionName, type FunctionReference } from "convex/server";
 import { MotionGlobalConfig } from "motion/react";
 import { afterEach, expect, test, vi } from "vitest";
+import { InWindow, windowPageProblems } from "@/testing/windowPage";
 
 let tree: unknown;
 let game: unknown = { enabled: true, hidden: false, player: { level: 6 } };
@@ -44,13 +45,16 @@ function render() {
   document.body.append(host);
   root = createRoot(host);
   rerender();
+  expect(windowPageProblems(host)).toEqual([]);
   return host;
 }
 function rerender() {
   act(() =>
     root!.render(
       <MemoryRouter>
-        <Skills />
+        <InWindow>
+          <Skills />
+        </InWindow>
       </MemoryRouter>,
     ),
   );
@@ -70,6 +74,22 @@ test("shows the points to spend, the four branches and the tiers still ahead, vi
   expect(tiers).toContain("Scout tier 2, open");
   expect(node(host, "Lookout").getAttribute("aria-label")).toBe("Lookout, rank 1 of 1");
   expect(node(host, "Trailblazer").getAttribute("aria-label")).toContain("opens at level 20");
+});
+
+test("the elder oak: each branch grows from the trunk with tier 1 low and the capstone at the top; taken skills are lit, open ones outlined, the rest dim with their level", () => {
+  tree = { level: 6, skills: { lookout: 1 }, resets: 0, resetCost: 50, balance: 42 };
+  const host = render();
+  expect(host.querySelector("[data-trunk]")).not.toBeNull();
+  expect(host.querySelector("[data-points]")?.textContent).toBe("4");
+  const tiers = [...host.querySelectorAll("[data-branch='scout'] [data-tier]")].map((t) => t.getAttribute("aria-label")!.split(",")[0]);
+  expect(tiers).toEqual(["Scout capstone", "Scout tier 3", "Scout tier 2", "Scout tier 1"]);
+  // Wanderer, the spree skill, lives on the Scout branch as SKILL_TREE has it.
+  expect(host.querySelector("[data-branch='scout'] [data-skill='wanderer']")).not.toBeNull();
+  expect(node(host, "Lookout").dataset.state).toBe("taken");
+  expect(node(host, "Rekindler").dataset.state).toBe("open");
+  expect(node(host, "Trailblazer").dataset.state).toBe("locked");
+  expect(node(host, "Trailblazer").textContent).toContain("Level 20, 14 to go");
+  expect(host.textContent).toContain("Level 6. 5 skill points earned, 1 spent.");
 });
 
 test("choosing a skill that can be taken opens it; Take it spends a point on it, once, and closes", async () => {
@@ -138,6 +158,7 @@ test("on a phone one branch shows at a time, picked with the branch switcher", (
   const column = (id: string) => host.querySelector(`[data-branch="${id}"]`)!;
   expect(column("scout").className).not.toMatch(/(^|\s)hidden(\s|$)/);
   expect(column("herald").className).toMatch(/(^|\s)hidden(\s|$)/);
+  expect(column("herald").className).toContain("@lg:flex"); // a wide window shows all four
   click([...host.querySelectorAll("[role=tab]")].find((t) => t.textContent === "Herald")!);
   expect(column("herald").className).not.toMatch(/(^|\s)hidden(\s|$)/);
   expect(column("scout").className).toMatch(/(^|\s)hidden(\s|$)/);
