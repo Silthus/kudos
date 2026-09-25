@@ -7,7 +7,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { ViewerContext, type ReadyViewer } from "@/lib/viewer";
 import { PERIOD_OPTIONS } from "@/lib/period";
 import { describeElement, escapesFromScrollers, parchmentTextOnDusk, widensSideways } from "@/testing/layout";
-import { copyTells, InWindow, viewportLayout } from "@/testing/window";
+import { copyTells, InWindow, viewportLayout } from "@/testing/windowPage";
 
 const row = (rank: number, id: string, name: string, isMe = false) => ({
   rank,

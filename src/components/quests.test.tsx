@@ -3,7 +3,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter } from "react-router";
 import { afterEach, expect, test } from "vitest";
-import { copyTells } from "@/testing/window";
+import { copyTells } from "@/testing/windowPage";
 import { QuestBoardBody, type QuestBoard } from "./quests";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

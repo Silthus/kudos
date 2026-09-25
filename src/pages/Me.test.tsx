@@ -5,7 +5,7 @@ import { MemoryRouter } from "react-router";
 import { getFunctionName, type FunctionReference } from "convex/server";
 import { afterEach, expect, test, vi } from "vitest";
 import { describeElement, escapesFromScrollers, parchmentTextOnDusk, widensSideways } from "@/testing/layout";
-import { copyTells, InWindow, viewportLayout } from "@/testing/window";
+import { copyTells, InWindow, viewportLayout } from "@/testing/windowPage";
 import { ViewerContext, type ReadyViewer } from "@/lib/viewer";
 
 const overview = {

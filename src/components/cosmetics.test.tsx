@@ -4,7 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { getFunctionName, type FunctionReference } from "convex/server";
 import { MemoryRouter } from "react-router";
 import { afterEach, expect, test, vi } from "vitest";
-import { copyTells } from "@/testing/window";
+import { copyTells } from "@/testing/windowPage";
 
 /** Cosmetics on the web (#98): your look on Me, the Store's previews and the Super kudos celebration. */
 

@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { expect, test } from "vitest";
-import { copyTells, viewportLayout } from "./window";
+import { copyTells, viewportLayout } from "./windowPage";
 
 const html = (s: string) => {
   const div = document.createElement("div");
