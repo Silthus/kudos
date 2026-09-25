@@ -3,7 +3,7 @@ import { useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import { api } from "../../convex/_generated/api";
-import { STAGES } from "../../convex/lib/garden";
+import type { Id } from "../../convex/_generated/dataModel";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SuperKudosCelebration } from "@/components/cosmetics";
 import { useHashScroll } from "@/lib/hashScroll";
@@ -11,9 +11,10 @@ import { navItems } from "@/lib/nav";
 import { useWorkspaceToday } from "@/lib/period";
 import { useViewer } from "@/lib/viewer";
 import { Camera, worldScale, type CameraHandle } from "./Camera";
+import { gardenPlots, plotCount, plotFrom, plotIndex, PLOTS, ringBeds, useGardenSway, type RingBed } from "./gardenWorld";
 import { Hog, HOG_FEET, HOG_SIZE, type HogHandle } from "./Hog";
 import { Hud } from "./Hud";
-import { findPath, sameTile, stepFor, tileAt, type Point, type Tile } from "./iso";
+import { findPath, sameTile, stepFor, tileAt, tileCentre, type Point, type Tile } from "./iso";
 import { CANVAS_H, CANVAS_W, ORIGIN, spriteFoot, tileOnCanvas } from "./paint";
 import { placeForPath, routablePlaces, visiblePlaces, type Place } from "./places";
 import { mapHeight, mapWidth } from "./pixels";
@@ -30,7 +31,7 @@ import { WorldCanvas } from "./WorldCanvas";
  * Walking runs on refs and requestAnimationFrame: a walk re-renders nothing until it arrives.
  */
 
-type Neighbour = { tile: Tile; memberId: string; name: string };
+type Neighbour = RingBed;
 
 /** How long one step takes: brisk for long walks, so no walk takes much over two seconds. */
 const stepMs = (length: number) => Math.max(70, Math.min(180, 2400 / Math.max(1, length)));
@@ -78,18 +79,25 @@ export function WorldShell() {
   // A page open from a link before its place is on your map (the locked store) still has its building.
   const onMap = target && !shown.some((p) => p.id === target.place.id) ? [...shown, target.place] : shown;
 
-  // Your plants in your key beds, and a bed by your garden for each teammate you grow one for.
+  // Your plants on your key beds, and the neighbours' ring round your garden (#129, gardenWorld.ts).
   const garden = useQuery(api.gardens.mine, gameShown ? { today } : "skip");
-  const neighbours = useMemo<Neighbour[]>(() => {
-    if (!garden?.open) return [];
-    const seen = new Set<string>();
-    return garden.plants
-      .filter((p) => !seen.has(p.forId) && seen.add(p.forId))
-      .slice(0, WORLD.beds.length)
-      .map((p, i) => ({ tile: WORLD.beds[i], memberId: p.forId, name: p.forName }));
-  }, [garden]);
-  const plants = useMemo(() => (garden?.open ? garden.plants.map((p) => Math.min(4, Math.max(0, STAGES.findIndex((s) => s.key === p.stage)))) : []), [garden]);
-  const furniture = useMemo(() => ({ beds: neighbours, plants }), [neighbours, plants]);
+  const ring = useQuery(api.gardens.neighbours, gameShown ? {} : "skip");
+  const neighbours = useMemo<Neighbour[]>(() => ringBeds(ring), [ring]);
+  const sway = useGardenSway(garden, today, still);
+  const furniture = useMemo(() => {
+    const plotSprites = gardenPlots(garden, { today, sway });
+    // Named by what's drawn, so a new balance or harvest doesn't repaint the world.
+    return { beds: neighbours, plots: plotSprites, key: `${plotSprites.map((p) => p?.rows.join() ?? "").join("|")}|${JSON.stringify(ring ?? null)}` };
+  }, [garden, ring, neighbours, today, sway]);
+  const plots = plotCount(garden);
+  // `/garden?plot=2`: that plot, if it's one of yours. Its link waits for your garden to load, so
+  // it lands on the plot rather than at the gate and then walks.
+  const plotAsked = target?.place.id === "garden" && !target.memberId && new URLSearchParams(location.search).has("plot");
+  const plotPending = plotAsked && gameShown && garden === undefined;
+  const plotParam = plotAsked ? plotFrom(location.search, plots) : null;
+  // A teammate's garden from a link, when they aren't in your ring: their name for the title.
+  const inRing = !!target?.memberId && neighbours.some((b) => b.memberId === target.memberId);
+  const visited = useQuery(api.gardens.of, target?.memberId && !inRing ? { memberId: target.memberId as Id<"members"> } : "skip");
 
   const vw = useViewportWidth();
   const scale = worldScale(vw);
@@ -99,8 +107,8 @@ export function WorldShell() {
 
   // Everything the walk loop and key handlers read, fresh each render without restarting them.
   const grid = walkGrid(onMap);
-  const live = useRef({ onMap, target, neighbours, scale, still, gameShown, navigate, grid });
-  live.current = { onMap, target, neighbours, scale, still, gameShown, navigate, grid };
+  const live = useRef({ onMap, target, neighbours, scale, still, gameShown, navigate, grid, plots, plotParam });
+  live.current = { onMap, target, neighbours, scale, still, gameShown, navigate, grid, plots, plotParam };
 
   const [arrived, setArrived] = useState<string | null>(null);
   const [where, setWhere] = useState("Your garden");
@@ -156,6 +164,9 @@ export function WorldShell() {
       hog.current?.play("wave", { loop: false, then: "idle" });
       navigate(door.to);
     }
+    // One of your key beds opens its plot in the garden window (#129).
+    const plot = plotIndex(w.tile);
+    if (!door && plot >= 0 && plot < live.current.plots && live.current.plotParam !== plot) navigate(`/garden?plot=${plot}`);
   };
 
   const faceTowards = (from: Tile, to: Tile) => hog.current?.face(to.x - from.x - (to.y - from.y) < 0);
@@ -243,12 +254,13 @@ export function WorldShell() {
     start();
   };
 
-  /** Where a URL's place is: its door nearest the hedgehog, or a teammate's bed. */
-  const destination = (t: NonNullable<typeof target>): Tile => {
+  /** Where a URL's place is: its door nearest the hedgehog, a teammate's bed, or one of your plots. */
+  const destination = (t: NonNullable<typeof target>, plot: number | null = null): Tile => {
     if (t.memberId) {
       const bed = live.current.neighbours.find((b) => b.memberId === t.memberId);
       if (bed) return bed.tile;
     }
+    if (plot !== null) return PLOTS[plot];
     const w = walker.current;
     const doors = t.place.doors;
     return doors.reduce((a, b) => (Math.abs(b.x - w.tile.x) + Math.abs(b.y - w.tile.y) < Math.abs(a.x - w.tile.x) + Math.abs(a.y - w.tile.y) ? b : a));
@@ -256,18 +268,23 @@ export function WorldShell() {
 
   // The route leads: a place's URL walks there (or lands there, on first load) and opens it.
   const first = useRef(true);
-  const targetKey = target ? `${target.place.id}:${target.memberId ?? ""}` : null;
+  const targetKey = plotPending ? "pending" : target ? `${target.place.id}:${target.memberId ?? ""}:${plotParam ?? ""}` : null;
   useEffect(() => {
+    if (plotPending) return;
     const landing = first.current;
     first.current = false;
     if (!target || !targetKey) {
       setArrived(null);
       if (landing) place(tileOnCanvas(walker.current.tile), true);
+      // Back on the map at a neighbour's bed: its bubble shows again.
+      setBubble(live.current.neighbours.find((b) => sameTile(b.tile, walker.current.tile)) ?? null);
       return;
     }
-    const dest = destination(target);
+    const dest = destination(target, plotParam);
     const w = walker.current;
-    const atDoor = !w.step && (sameTile(w.tile, dest) || (!target.memberId && target.place.doors.some((d) => sameTile(d, w.tile))));
+    // At the place already: its door, or for your garden (no plot asked for) any of your key beds.
+    const inPlace = !target.memberId && plotParam === null && (target.place.doors.some((d) => sameTile(d, w.tile)) || (target.place.id === "garden" && plotIndex(w.tile) >= 0));
+    const atDoor = !w.step && (sameTile(w.tile, dest) || inPlace);
     if (landing || atDoor) {
       if (landing) {
         w.tile = dest;
@@ -375,6 +392,16 @@ export function WorldShell() {
         return art.x >= foot.x - w / 2 && art.x <= foot.x + w / 2 && art.y >= foot.y - mapHeight(p.sprite) && art.y <= foot.y;
       });
     if (hit) return goTo(hit);
+    // One of your plants, by its crown as well as its bed: front-most first (the painter's key bed
+    // stands 5 px below the tile's centre line, and a plant is at most 16 px wide and 30 px tall).
+    const plant = PLOTS.slice(0, plots)
+      .map((t, i) => ({ t, i, c: tileCentre(t) }))
+      .sort((a, b) => b.t.x + b.t.y - (a.t.x + a.t.y))
+      .find(({ c }) => Math.abs(art.x - c.x) <= 8 && art.y <= c.y + 5 && art.y >= c.y + 5 - 30);
+    if (plant) {
+      abandon();
+      return walkTo(plant.t);
+    }
     const tile = tileAt(art);
     const owner = onMap.find((p) => {
       const f = p.footprint;
@@ -389,7 +416,7 @@ export function WorldShell() {
 
   const close = () => navigate("/");
   const bubbleAt = bubble && !windowOpen ? tileOnCanvas(bubble.tile) : null;
-  const title = target?.memberId ? `${neighbours.find((b) => b.memberId === target.memberId)?.name ?? "A teammate"}'s garden` : target?.place.name;
+  const title = target?.memberId ? `${neighbours.find((b) => b.memberId === target.memberId)?.name ?? visited?.name ?? "A teammate"}'s garden` : target?.place.name;
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-dusk">
@@ -400,12 +427,14 @@ export function WorldShell() {
         </div>
         {bubbleAt && (
           <div
+            data-neighbour-bubble
             className="pixel-note absolute z-10 whitespace-nowrap px-3 py-2 text-sm"
             style={{ left: bubbleAt.x * scale, top: bubbleAt.y * scale - HOG_FEET - 8, transform: "translate(-50%, -100%)" }}
             onPointerDown={(e) => e.stopPropagation()}
             onPointerUp={(e) => e.stopPropagation()}
           >
             <p className="font-display text-base font-medium">{bubble!.name}'s bed</p>
+            <p className="text-xs text-ink/75">{bubble!.plants === 1 ? "1 plant" : `${bubble!.plants} plants`}</p>
             <Link to={`/garden/${bubble!.memberId}`} className="font-semibold text-ember-deep underline decoration-2 underline-offset-4">
               Visit garden
             </Link>

@@ -25,7 +25,7 @@ export function WorldCanvas({
 }) {
   const base = useRef<HTMLCanvasElement>(null);
   const shimmer = useRef<HTMLCanvasElement>(null);
-  const key = `${places.map((p) => p.id).join()}|${furniture.beds.map((b) => `${b.tile.x},${b.tile.y}`).join()}|${furniture.plants.join()}`;
+  const key = `${places.map((p) => p.id).join()}|${furniture.beds.map((b) => `${b.tile.x},${b.tile.y}`).join()}|${furniture.key ?? furniture.plots.map((p) => p?.rows.join() ?? "").join("|")}`;
 
   useEffect(() => {
     const ctx = base.current?.getContext("2d");

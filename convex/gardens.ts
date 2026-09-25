@@ -7,7 +7,9 @@ import { Gains } from "./gains";
 import { requireViewer } from "./lib/access";
 import { canSpend, coinBalance } from "./lib/coins";
 import {
+  assignPlots,
   defaultSpecies,
+  freePlot,
   FRUIT,
   fruitWaiting,
   GARDEN_LEVEL,
@@ -32,6 +34,7 @@ import { hasNote, RECIPROCAL_WINDOW_MS, weekKeyOfDay } from "./lib/quests";
 import { hasSkill, type Allocation } from "./lib/skills";
 import { addDays, dayKeyFor, parseToday, startOfDayUtc } from "./lib/time";
 import { goldenLeaves } from "./superKudos";
+import { ALL_BUCKET } from "./lib/buckets";
 
 /**
  * Gardens (#55 §G8, G15): a member's plants, each grown for one teammate. The rules are pure in
@@ -220,7 +223,7 @@ export const mine = query({
       plots: v.number(),
       cost: v.number(),
       balance: v.number(),
-      plants: v.array(v.object({ ...plantView.fields, forId: v.id("members"), forName: v.string(), fruit: fruitView, sunlamp: v.boolean() })),
+      plants: v.array(v.object({ ...plantView.fields, forId: v.id("members"), forName: v.string(), fruit: fruitView, sunlamp: v.boolean(), plot: v.number() })),
       harvest: v.object({ weekCoins: v.number(), weekXp: v.number(), capCoins: v.number(), capXp: v.number(), hold: v.number() }),
       memories: v.array(v.object({ plantId: v.id("plants"), species: v.string(), speciesName: v.string(), stageName: v.string(), forName: v.string(), memoryDay: v.string(), reason: v.string() })),
       candidates: v.array(candidateView),
@@ -238,7 +241,10 @@ export const mine = query({
     const plants = [];
     const memories = [];
     const growingFor = new Set<string>();
-    for (const { plant, teammate } of await livingPlants(ctx, member._id)) {
+    const living = await livingPlants(ctx, member._id);
+    // Each growing plant's key bed; a plant for someone who left is a memory and frees its plot.
+    const slots = assignPlots(living.filter((l) => !leftFor(l.teammate)).map((l) => l.plant));
+    for (const { plant, teammate } of living) {
       const { state, fruit, sunlamp } = await stateOf(ctx, workspace, plant, skills, today);
       if (leftFor(teammate)) {
         // Grown for someone who left: a memory until they come back (§G15).
@@ -254,6 +260,7 @@ export const mine = query({
         fruit,
         sunlamp,
         goldenLeaves: await goldenLeaves(ctx, member._id, plant.forId),
+        plot: slots[plants.length],
       });
     }
     const kept = await ctx.db
@@ -301,9 +308,10 @@ export const mine = query({
  * plant picker the viewer may choose the species; otherwise it's picked for them.
  */
 export const plant = mutation({
-  args: { teammateId: v.id("members"), species: v.optional(v.string()) },
+  // `plot`: the key bed to plant in (#129); the lowest free one if not given.
+  args: { teammateId: v.id("members"), species: v.optional(v.string()), plot: v.optional(v.number()) },
   returns: v.id("plants"),
-  handler: async (ctx, { teammateId, species }) => {
+  handler: async (ctx, { teammateId, species, plot }) => {
     const { workspace, member } = await requireViewer(ctx);
     const player = await requireGardener(ctx, workspace, member);
     const skills = skillsOf(player);
@@ -316,6 +324,11 @@ export const plant = mutation({
     if (growing.some((g) => g.plant.forId === teammateId)) throw new ConvexError(`You're already growing a plant for ${teammate.name}.`);
     const used = growing.filter((g) => !leftFor(g.teammate)).length;
     if (used >= plotsFor(skills)) throw new ConvexError("Your garden has no free plot. Uproot a plant to make room.");
+    const taken = await keepPlots(ctx, growing);
+    if (plot !== undefined) {
+      if (!Number.isInteger(plot) || plot < 0 || plot >= plotsFor(skills)) throw new ConvexError("That plot isn't one of your plots.");
+      if (taken.includes(plot)) throw new ConvexError("A plant is already growing in that plot.");
+    }
     const plantedDay = dayKeyFor(now, workspace.timezone);
     const seed = await qualifyingKudosTo(ctx, member._id, teammateId, plantWindowStart(workspace, plantedDay));
     if (!seed) throw new ConvexError(`A plant needs a thoughtful kudos to ${teammate.name} in the last 7 days (a few words on why).`);
@@ -337,6 +350,7 @@ export const plant = mutation({
       plantedDay,
       seedKudosId: seed._id,
       pickedThrough: plantedDay,
+      plot: plot ?? freePlot(taken.map((p) => ({ plot: p }))),
       announced: 0,
     });
     await sendingGains(ctx, workspace, async (gains) => announceGrowth(ctx, workspace, (await ctx.db.get(plantId))!, now, gains));
@@ -358,10 +372,23 @@ export const uproot = mutation({
     await requireGardener(ctx, workspace, member);
     const plant = await ctx.db.get(plantId);
     if (!plant || plant.ownerId !== member._id || plant.memoryAt !== undefined) throw new ConvexError("That plant isn't growing in your garden.");
+    // The others stay in their beds once this one's is free.
+    await keepPlots(ctx, await livingPlants(ctx, member._id));
     await rememberPlant(ctx, workspace, plant, "uprooted");
     return null;
   },
 });
+
+/**
+ * Writes down the plot of each growing plant that has none stored yet (planted before #129) or
+ * clashes, as `mine` shows it, so a change to the garden never moves them. Returns the plots taken.
+ */
+async function keepPlots(ctx: MutationCtx, living: Awaited<ReturnType<typeof livingPlants>>) {
+  const growing = living.filter((l) => !leftFor(l.teammate)).map((l) => l.plant);
+  const slots = assignPlots(growing);
+  for (const [i, plant] of growing.entries()) if (plant.plot !== slots[i]) await ctx.db.patch(plant._id, { plot: slots[i] });
+  return slots;
+}
 
 /**
  * The plants teammates grow for the viewer: only they see these are theirs (§G8, G12). Open to
@@ -446,6 +473,75 @@ export const of = query({
       plants.push({ plantId, species, speciesName, stage, stageName, dormant, forYou: plant.forId === member._id, lantern, canTakeDown: lantern !== null && mayTakeDown(plant, member) });
     }
     return { name: owner.name, avatarUrl: owner.avatarUrl ?? null, plants };
+  },
+});
+
+/** Beds in the neighbours' ring round your garden (`WORLD.beds` on the map). */
+const RING_BEDS = 20;
+/** All-time pair totals read per direction, and teammates looked at, for the ring. */
+const RING_PAIRS = 200;
+const RING_LOOKS = 60;
+
+/**
+ * The neighbours' ring round the viewer's garden on the map (#129, #126): up to 20 teammates with a
+ * growing plant, the ones they exchanged the most kudos with (given plus received, all time) first.
+ * Each comes with how many plants they grow and their tallest, at the stage it was last announced
+ * (`plants.announced`), so the ring reads no kudos; their garden window (`of`) has today's plants.
+ * Like `of`: never whom a plant is for, nobody who left or hides the game.
+ */
+export const neighbours = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      memberId: v.id("members"),
+      name: v.string(),
+      plants: v.number(),
+      top: v.object({ species: v.string(), stage: v.string() }),
+    }),
+  ),
+  handler: async (ctx) => {
+    const { workspace, member } = await requireViewer(ctx);
+    if (!gameShownTo(workspace, member)) return [];
+    const given = await ctx.db
+      .query("pairStats")
+      .withIndex("by_giver_bucket_amount", (q) => q.eq("giverId", member._id).eq("bucket", ALL_BUCKET))
+      .order("desc")
+      .take(RING_PAIRS);
+    const received = await ctx.db
+      .query("pairStats")
+      .withIndex("by_receiver_bucket_amount", (q) => q.eq("receiverId", member._id).eq("bucket", ALL_BUCKET))
+      .order("desc")
+      .take(RING_PAIRS);
+    const exchanged = new Map<Id<"members">, number>();
+    for (const row of given) exchanged.set(row.receiverId, (exchanged.get(row.receiverId) ?? 0) + row.amount);
+    for (const row of received) exchanged.set(row.giverId, (exchanged.get(row.giverId) ?? 0) + row.amount);
+    exchanged.delete(member._id);
+
+    // Only the closest are looked up, so the ring reads (and follows) few members and gardens.
+    const teammates = [];
+    for (const [id, amount] of [...exchanged].sort((a, b) => b[1] - a[1]).slice(0, RING_LOOKS)) {
+      const teammate = await ctx.db.get(id);
+      if (teammate && teammate.workspaceId === workspace._id && !teammate.isBot && !teammate.deactivated && gameShownTo(workspace, teammate)) teammates.push({ teammate, amount });
+    }
+    teammates.sort((a, b) => b.amount - a.amount || a.teammate.name.localeCompare(b.teammate.name));
+
+    const ring = [];
+    for (const { teammate } of teammates) {
+      const plants = await ctx.db
+        .query("plants")
+        .withIndex("by_owner_memory", (q) => q.eq("ownerId", teammate._id).eq("memoryAt", undefined))
+        .take(MAX_PLANTS);
+      if (plants.length === 0) continue;
+      const top = plants.reduce((a, b) => (b.announced > a.announced ? b : a));
+      ring.push({
+        memberId: teammate._id,
+        name: teammate.name,
+        plants: plants.length,
+        top: { species: top.species, stage: (STAGES[top.announced] ?? STAGES[0]).key },
+      });
+      if (ring.length === RING_BEDS) break;
+    }
+    return ring;
   },
 });
 

@@ -107,6 +107,30 @@ export function plotsFor(skills: Allocation): number {
   return Math.min(MAX_PLOTS, 1 + rankOf(skills, "more_plots") + rankOf(skills, "wide_beds") + rankOf(skills, "orchard"));
 }
 
+/**
+ * Which plot (key bed on the map, #129) each growing plant stands in, in the plants' order: its own
+ * `plot` while that's free, else the lowest free one (plants from before plots were kept, or a clash).
+ */
+export function assignPlots(plants: { plot?: number }[]): number[] {
+  const taken = new Set<number>();
+  const kept = plants.map((p) => (p.plot !== undefined && !taken.has(p.plot) ? (taken.add(p.plot), p.plot) : null));
+  let next = 0;
+  return kept.map((plot) => {
+    if (plot !== null) return plot;
+    while (taken.has(next)) next++;
+    taken.add(next);
+    return next;
+  });
+}
+
+/** The plot a new plant goes in: the lowest one no growing plant stands in. */
+export function freePlot(plants: { plot?: number }[]): number {
+  const taken = new Set(assignPlots(plants));
+  let plot = 0;
+  while (taken.has(plot)) plot++;
+  return plot;
+}
+
 /** Fruit one plant holds (Good harvest: one more). */
 export function holdFor(skills: Allocation): number {
   return FRUIT.hold + (hasSkill(skills, "good_harvest") ? 1 : 0);

@@ -6,9 +6,9 @@ import { STAGES, type SpeciesId, SPECIES } from "../../convex/lib/garden";
 import { PlantArt } from "./PlantArt";
 
 /**
- * A plant in its Keyboard-garden bed (#101, #55 §G8): an isometric keyboard key with the plant for
- * its stage and species on top. Dormant plants turn autumn-coloured; golden leaves (#98) show on it.
- * Our own drawing: no hedgehogs, nothing PostHog-drawn.
+ * A plant on its key bed (#129): our own 32 × 32 pixel sprite (`src/world/plants.ts`), drawn at a
+ * whole-number scale with hard edges, for its stage and species. Dormant plants turn autumn-coloured;
+ * fruit and golden leaves (#98) show on it. No hedgehogs, nothing PostHog-drawn.
  */
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -21,79 +21,65 @@ function render(node: React.ReactNode) {
   act(() => root!.render(node));
   return host.querySelector("svg")!;
 }
+const fills = (svg: SVGSVGElement) => new Set([...svg.querySelectorAll("rect")].map((r) => r.getAttribute("fill")!.toLowerCase()));
 
-test("every stage grows on an isometric keyboard-key bed, one step bigger than the last", () => {
-  const heights = STAGES.map((s) => {
-    const svg = render(<PlantArt stage={s.key} species="helpful_oak" />);
-    expect(svg.querySelector("[data-bed=key]"), s.key).not.toBeNull();
-    expect(svg.getAttribute("data-stage")).toBe(s.key);
-    return Number(svg.querySelector("[data-growth]")!.getAttribute("data-height"));
-  });
-  for (let i = 1; i < heights.length; i++) expect(heights[i], STAGES[i].key).toBeGreaterThan(heights[i - 1]);
+test("a plant is pixels at a whole-number scale of 32 × 32, never blurred", () => {
+  for (const [size, px] of [
+    [96, 96],
+    [100, 96],
+    [48, 32],
+    [40, 32],
+    [8, 32],
+  ]) {
+    const svg = render(<PlantArt stage="grown" size={size} />);
+    expect([svg.getAttribute("width"), svg.getAttribute("height")], `size ${size}`).toEqual([String(px), String(px)]);
+    expect(svg.getAttribute("viewBox")).toBe("0 0 32 32");
+    expect(svg.getAttribute("shape-rendering")).toBe("crispEdges");
+    // Every pixel sits on the grid.
+    for (const r of svg.querySelectorAll("rect")) for (const a of ["x", "y", "width", "height"]) expect(Number.isInteger(Number(r.getAttribute(a)))).toBe(true);
+  }
 });
 
-test("each species has its own shape once it's grown: pines and cedars are cones, the sunflower a flower, the fern fronds, the willow weeps", () => {
-  const canopy = (species: SpeciesId) => render(<PlantArt stage="grown" species={species} />).querySelector("[data-canopy]")!.getAttribute("data-canopy");
+test("every stage grows on the keyboard-key bed, each a new drawing", () => {
+  const drawings = STAGES.map((s) => {
+    const svg = render(<PlantArt stage={s.key} species="helpful_oak" />);
+    expect(svg.getAttribute("data-bed"), s.key).toBe("key");
+    expect(svg.getAttribute("data-stage")).toBe(s.key);
+    return svg.innerHTML;
+  });
+  expect(new Set(drawings).size).toBe(STAGES.length);
+});
+
+test("each species has its own shape and colours once it's grown", () => {
+  const canopy = (species: SpeciesId) => render(<PlantArt stage="grown" species={species} />).getAttribute("data-canopy");
   expect(canopy("patient_pine")).toBe("cone");
   expect(canopy("brave_cedar")).toBe("cone");
   expect(canopy("bright_sunflower")).toBe("flower");
   expect(canopy("curious_fern")).toBe("fronds");
   expect(canopy("golden_willow")).toBe("weeping");
   expect(canopy("helpful_oak")).toBe("round");
-  // Every species is drawn, and no two share both shape and colour.
-  const looks = (Object.keys(SPECIES) as SpeciesId[]).map((s) => {
-    const svg = render(<PlantArt stage="grown" species={s} />);
-    return `${svg.querySelector("[data-canopy]")!.getAttribute("data-canopy")}:${svg.querySelector("[data-leaf]")!.getAttribute("fill")}`;
-  });
+  const looks = (Object.keys(SPECIES) as SpeciesId[]).map((s) => render(<PlantArt stage="grown" species={s} />).innerHTML);
   expect(new Set(looks).size).toBe(looks.length);
-});
-
-test("a fern's fronds grow taller at every stage, like any tree (review #3)", () => {
-  const tops = (["young", "grown", "blossoming", "ancient"] as const).map((stage) => {
-    const frond = render(<PlantArt stage={stage} species="curious_fern" />).querySelector("[data-leaf]")!;
-    return Number(frond.getAttribute("cy")) - Number(frond.getAttribute("ry")); // the tip of the middle frond
-  });
-  const sapling = render(<PlantArt stage="sapling" species="curious_fern" />);
-  const saplingTop = 86 - Number(sapling.querySelector("[data-growth]")!.getAttribute("data-height"));
-  expect(tops[0]).toBeLessThan(saplingTop); // up is smaller y
-  for (let i = 1; i < tops.length; i++) expect(tops[i]).toBeLessThan(tops[i - 1]);
-});
-
-test("species that share a shape don't share a green: oak and cherry, pine and cedar (review #7)", () => {
-  const fill = (species: SpeciesId) => render(<PlantArt stage="grown" species={species} />).querySelector("[data-leaf]")!.getAttribute("fill")!;
-  const hue = (hex: string) => {
-    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
-    const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
-    const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
-    return { h: (h * 60 + 360) % 360, l: (max + min) / 2 };
-  };
-  const apart = (a: string, b: string) => Math.abs(hue(a).h - hue(b).h) >= 20 || Math.abs(hue(a).l - hue(b).l) >= 0.12;
-  expect(apart(fill("helpful_oak"), fill("generous_cherry"))).toBe(true);
-  expect(apart(fill("patient_pine"), fill("brave_cedar"))).toBe(true);
 });
 
 test("a dormant plant turns autumn-coloured and stops blossoming", () => {
   const awake = render(<PlantArt stage="blossoming" species="generous_cherry" />);
-  expect(awake.querySelectorAll("[data-blossom]").length).toBeGreaterThan(0);
-  const leafAwake = awake.querySelector("[data-leaf]")!.getAttribute("fill");
+  expect(fills(awake).has("#f7a8c8")).toBe(true); // cherry blossom
   const dormant = render(<PlantArt stage="blossoming" species="generous_cherry" dormant />);
   expect(dormant.getAttribute("data-dormant")).toBe("true");
-  expect(dormant.querySelectorAll("[data-blossom]").length).toBe(0);
-  expect(dormant.querySelector("[data-leaf]")!.getAttribute("fill")).not.toBe(leafAwake);
-  expect(dormant.querySelector("[data-leaf]")!.getAttribute("fill")).toBe("#cf7d17");
+  expect(fills(dormant).has("#f7a8c8")).toBe(false);
+  expect(fills(dormant).has("#cf7d17")).toBe(true);
 });
 
-test("golden leaves from Super kudos show on the plant, up to three drawn", () => {
-  expect(render(<PlantArt stage="young" species="kind_maple" />).querySelectorAll("[data-golden-leaf]").length).toBe(0);
-  expect(render(<PlantArt stage="young" species="kind_maple" goldenLeaves={2} />).querySelectorAll("[data-golden-leaf]").length).toBe(2);
-  expect(render(<PlantArt stage="seed" species="kind_maple" goldenLeaves={7} />).querySelectorAll("[data-golden-leaf]").length).toBe(3);
-});
-
-test("fruit hangs on grown plants, up to four drawn", () => {
-  expect(render(<PlantArt stage="grown" species="helpful_oak" fruit={2} />).querySelectorAll("[data-fruit]").length).toBe(2);
-  expect(render(<PlantArt stage="ancient" species="helpful_oak" fruit={9} />).querySelectorAll("[data-fruit]").length).toBe(4);
+test("golden leaves from Super kudos show on the plant, up to three drawn; fruit up to four", () => {
+  expect(render(<PlantArt stage="young" species="kind_maple" />).getAttribute("data-golden-leaves")).toBe("0");
+  expect(render(<PlantArt stage="young" species="kind_maple" goldenLeaves={2} />).getAttribute("data-golden-leaves")).toBe("2");
+  expect(render(<PlantArt stage="seed" species="kind_maple" goldenLeaves={7} />).getAttribute("data-golden-leaves")).toBe("3");
+  expect(fills(render(<PlantArt stage="seed" species="kind_maple" goldenLeaves={1} />)).has("#f7c325")).toBe(true);
+  expect(render(<PlantArt stage="grown" species="helpful_oak" fruit={2} />).getAttribute("data-fruit")).toBe("2");
+  expect(render(<PlantArt stage="ancient" species="helpful_oak" fruit={9} />).getAttribute("data-fruit")).toBe("4");
 });
 
 test("an unknown species still draws, as the common oak", () => {
-  expect(render(<PlantArt stage="grown" species="no_such_tree" />).querySelector("[data-canopy]")!.getAttribute("data-canopy")).toBe("round");
+  expect(render(<PlantArt stage="grown" species="no_such_tree" />).innerHTML).toBe(render(<PlantArt stage="grown" species="helpful_oak" />).innerHTML);
 });

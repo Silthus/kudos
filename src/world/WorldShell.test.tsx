@@ -247,15 +247,73 @@ describe("a Super kudos celebration", () => {
 });
 
 describe("a teammate's bed", () => {
-  const garden = {
-    open: true,
-    plants: [{ forId: "m7", forName: "Ana", stage: "sprout" }],
-  };
+  const ring = [{ memberId: "m7", name: "Ana", plants: 3, top: { species: "helpful_oak", stage: "grown" } }];
 
   test("a deep link to their garden stands you at their bed, and says so", () => {
-    queries = { "gardens:mine": garden };
+    queries = { "gardens:neighbours": ring };
     open("/garden/m7");
     expect(windowTitle()).toBe("Ana's garden");
     expect(caption()).toBe("Ana's bed");
   });
+
+  test("back on the map at their bed, a bubble says whose it is, what grows there, and invites you in", () => {
+    queries = { "gardens:neighbours": ring };
+    open("/garden/m7");
+    act(() => openWindow()!.querySelector<HTMLButtonElement>("[data-close]")!.click());
+    const bubble = host.querySelector("[data-neighbour-bubble]")!;
+    expect(bubble.textContent).toContain("Ana's bed");
+    expect(bubble.textContent).toContain("3 plants");
+    expect(bubble.querySelector("a")!.getAttribute("href")).toBe("/garden/m7");
+    expect(bubble.querySelector("a")!.textContent).toBe("Visit garden");
+  });
+});
+
+describe("your plots", () => {
+  const plant = { plot: 0, forId: "m7", forName: "Ana", stage: "sprout", species: "helpful_oak", dormant: false, fruit: [], goldenLeaves: 0, lastWatered: "2026-01-01" };
+  const mine = (plots: number) => ({ open: true, plots, candidates: [], plants: [plant] });
+  const keys = (...ks: string[]) => ks.forEach((k) => (press(k), walkFor(400)));
+
+  test("walking onto one of your plots opens it in the garden window", () => {
+    queries = { "gardens:mine": mine(2) };
+    open("/");
+    keys("d", "s", "s", "d"); // out of the middle square, down the path, onto the first key bed
+    expect(url).toBe("/garden?plot=0");
+    expect(windowTitle()).toBe("Your garden");
+  });
+
+  test("a plot that isn't yours yet is lawn: walking onto it opens nothing", () => {
+    queries = { "gardens:mine": mine(1) };
+    open("/");
+    keys("d", "s", "d", "d", "d", "s"); // along the path to the second plot
+    expect(url).toBe("/");
+    expect(openWindow()).toBeNull();
+  });
+
+  test("a link to a plot stands you on it with the garden window open", () => {
+    queries = { "gardens:mine": mine(2) };
+    open("/garden?plot=1");
+    expect(windowTitle()).toBe("Your garden");
+    act(() => openWindow()!.querySelector<HTMLButtonElement>("[data-close]")!.click());
+    expect(url).toBe("/");
+    keys("a", "d"); // off the plot and back on
+    expect(url).toBe("/garden?plot=1");
+  });
+
+  test("a link to a plot, opened before your garden has loaded, still lands on the plot without a walk (review #2)", () => {
+    queries = {};
+    open("/garden?plot=1");
+    expect(openWindow()).toBeNull(); // waiting for the garden, not at its gate
+    queries = { "gardens:mine": mine(2) };
+    open("/garden?plot=1"); // the garden arrives
+    expect(windowTitle()).toBe("Your garden"); // at once: no walk
+    act(() => openWindow()!.querySelector<HTMLButtonElement>("[data-close]")!.click());
+    keys("a", "d");
+    expect(url).toBe("/garden?plot=1");
+  });
+});
+
+test("a teammate's garden from a link names them in the title, even when they're not in your ring (review #8)", () => {
+  queries = { "gardens:of": { name: "Zoe", avatarUrl: null, plants: [] } };
+  open("/garden/m9");
+  expect(windowTitle()).toBe("Zoe's garden");
 });
