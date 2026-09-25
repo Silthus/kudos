@@ -97,7 +97,8 @@ export function Window({
               <X className="h-4 w-4" strokeWidth={3} aria-hidden />
             </button>
           </header>
-          <div ref={body} data-window-body className="relative min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5">
+          {/* A size container: pages inside can lay out by the window's width (`@lg:`), not the viewport's. */}
+          <div ref={body} data-window-body className="@container relative min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5">
             {children}
           </div>
           <footer className="border-t border-parchment-deep px-4 py-3 sm:hidden">
