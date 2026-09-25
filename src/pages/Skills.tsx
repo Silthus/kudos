@@ -21,19 +21,22 @@ import {
   type SkillId,
   type Tier,
 } from "../../convex/lib/skills";
-import { Button, Card, Dialog, Empty, PageHeader, PageSkeleton, Segmented } from "@/components/ui";
+import { Button, Card, Dialog, Empty, PageSkeleton, Segmented } from "@/components/ui";
 
 type Tree = NonNullable<ReturnType<typeof useQuery<typeof api.skills.mine>>>;
 
-const TIERS: Tier[] = [1, 2, 3, 4];
+/** The oak grows up: the capstones at the top, tier 1 nearest the trunk. */
+const TIERS_TOP_DOWN: Tier[] = [4, 3, 2, 1];
 const TIER_NAME: Record<Tier, string> = { 1: "Tier 1", 2: "Tier 2", 3: "Tier 3", 4: "Capstone" };
 const points = (n: number) => `${n} skill ${n === 1 ? "point" : "points"}`;
 
 /**
- * The skill tree (#55 §G7): one point per level-up to spend on four branches, never enough for all
- * of it. Every tier is visible; the ones ahead show the level they open at. A skill opens in a
- * dialog to take it; the reset asks first, with its price. Desktop shows the branches side by side;
- * a phone shows one at a time.
+ * The elder oak (#55 §G7, #131): the skill tree as an oak with four branches, one point per
+ * level-up to spend on them, never enough for all of it. Each branch grows up from the trunk, tier 1
+ * lowest and the capstone at the top; every tier is visible, and the ones ahead show the level they
+ * open at. A skill opens in a dialog to take it; the reset asks first, with its price. A wide window
+ * shows the four branches side by side; a narrow one shows one at a time. `SKILL_TREE` is the only
+ * source of what grows where.
  */
 export function Skills() {
   const tree = useQuery(api.skills.mine, {});
@@ -48,27 +51,23 @@ export function Skills() {
   const [error, setError] = useState<string | null>(null);
   if (tree === undefined || (tree === null && game === undefined)) return <PageSkeleton />;
 
-  const header = (
-    <PageHeader
-      eyebrow="Your game"
-      title="Skill tree"
-      subtitle="Every level-up gives you a skill point. There are never enough points for the whole tree, so what you take is your choice."
-    />
+  const intro = (
+    <p className="mb-5 text-sm text-ink/75">Every level-up gives you a skill point. There are never enough points for the whole tree, so what you take is your choice.</p>
   );
   if (tree === null) {
     const [title, body] = !game?.enabled
       ? ["The game is off in this workspace", "An admin can switch the game on in the settings. Your kudos work as always."]
       : game.hidden
-        ? ["The game is hidden", "You hid the game, so your tree is out of view. Show the game on My kudos to see it again; your XP kept counting."]
+        ? ["The game is hidden", "You hid the game, so your tree is out of view. Show the game in your cabin to see it again; your XP kept counting."]
         : ["Your skill tree starts with your first kudos", "Giving a thoughtful kudos makes you a player; every level after that adds a skill point."];
     return (
       <div>
-        {header}
+        {intro}
         <Card>
-          <Empty icon={<Network className="h-7 w-7 text-ink/70" />} title={title}>
+          <Empty icon={<Network className="h-7 w-7 text-ink/70" aria-hidden />} title={title}>
             {body}{" "}
-            <Link to="/me" className="text-soil underline-offset-4 hover:underline">
-              Back to your kudos
+            <Link to="/me" className="text-soil underline underline-offset-4">
+              Go to your cabin
             </Link>
           </Empty>
         </Card>
@@ -99,16 +98,20 @@ export function Skills() {
 
   return (
     <div>
-      {header}
-      <Card className="mb-4 flex flex-wrap items-center justify-between gap-3 p-4">
-        <div className="flex items-baseline gap-3">
-          <span className="font-display text-3xl font-semibold text-ink tabular">{available}</span>
+      {intro}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          {/* The points left, as a lantern-lit pixel counter. */}
+          <span data-points aria-hidden className="pixel-chip grid h-14 min-w-14 place-items-center bg-lantern px-2 font-display text-[40px] leading-none text-ink tabular">
+            {available}
+          </span>
           <div>
-            <div className="text-sm font-medium text-ink">{available === 1 ? "skill point to spend" : "skill points to spend"}</div>
+            <div className="font-display text-xl font-medium leading-7">{available === 1 ? "skill point to spend" : "skill points to spend"}</div>
             <div className="text-xs text-ink/75">
-              Level {tree.level} · {points(earned)} earned · {spent} spent
+              Level {tree.level}. {points(earned)} earned, {spent} spent.
             </div>
           </div>
+          <span className="sr-only">{`${points(available)} to spend`}</span>
         </div>
         <Button
           size="sm"
@@ -120,31 +123,33 @@ export function Skills() {
         >
           <RotateCcw className="h-3.5 w-3.5" aria-hidden /> Reset tree
         </Button>
-        <span className="sr-only">{`${points(available)} to spend`}</span>
-      </Card>
+      </div>
 
-      <div className="mb-4 lg:hidden">
+      <div className="mb-4 @lg:hidden">
         <Segmented value={branch} onChange={setBranch} options={BRANCHES.map((b) => ({ value: b.id, label: b.name }))} wrap />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+      {/* The oak: four branches side by side over one trunk in a wide window, one branch at a time in a narrow one. */}
+      <div className="grid grid-cols-1 gap-3 @lg:grid-cols-4">
         {BRANCHES.map((b) => (
-          <section
-            key={b.id}
-            data-branch={b.id}
-            aria-label={b.name}
-            className={clsx("border border-parchment-deep bg-parchment p-4 lg:block", b.id === branch ? "block" : "hidden")}
-          >
-            <h2 className="font-display text-lg font-semibold text-ink">{b.name}</h2>
-            <p className="mt-0.5 text-xs text-ink/75">{b.about}</p>
-            <div className="mt-4 flex flex-col gap-4">
-              {TIERS.map((tier) => (
+          <section key={b.id} data-branch={b.id} aria-label={b.name} className={clsx("relative flex-col @lg:flex", b.id === branch ? "flex" : "hidden")}>
+            {/* The branch itself: a bark limb up the middle, behind its leaves. */}
+            <span aria-hidden className="absolute bottom-0 left-1/2 top-3 w-2 -translate-x-1/2 bg-bark" />
+            <div className="relative flex flex-1 flex-col gap-4">
+              {TIERS_TOP_DOWN.map((tier) => (
                 <TierBlock key={tier} branch={b} tier={tier} level={tree.level} alloc={alloc} onOpen={openSkill} />
               ))}
+            </div>
+            <div className="relative mt-3 bg-bark px-2 py-1.5 text-center text-cream">
+              <h2 className="font-display text-lg font-medium leading-6">{b.name}</h2>
+              <p className="text-xs text-cream/80">{b.about}</p>
             </div>
           </section>
         ))}
       </div>
+      {/* The trunk and its roots, where the four branches meet. */}
+      <div data-trunk aria-hidden className="mx-auto h-8 w-1/3 max-w-40 bg-bark shadow-[-8px_8px_0_0_var(--color-soil),8px_8px_0_0_var(--color-soil)]" />
+      <div aria-hidden className="h-2" />
 
       {open && (
         <SkillDialog
@@ -154,7 +159,12 @@ export function Skills() {
           error={error}
           busy={busy}
           onClose={() => setOpen(null)}
-          onTake={() => run(() => take({ skill: open }), () => setOpen(null))}
+          onTake={() =>
+            run(
+              () => take({ skill: open }),
+              () => setOpen(null),
+            )
+          }
         />
       )}
       <ResetDialog
@@ -164,45 +174,29 @@ export function Skills() {
         error={error}
         busy={busy}
         onClose={() => setResetPrice(null)}
-        onConfirm={(cost) => run(() => reset({ cost }), () => setResetPrice(null))}
+        onConfirm={(cost) =>
+          run(
+            () => reset({ cost }),
+            () => setResetPrice(null),
+          )
+        }
       />
     </div>
   );
 }
 
-function TierBlock({
-  branch,
-  tier,
-  level,
-  alloc,
-  onOpen,
-}: {
-  branch: (typeof BRANCHES)[number];
-  tier: Tier;
-  level: number;
-  alloc: Allocation;
-  onOpen: (id: SkillId) => void;
-}) {
+function TierBlock({ branch, tier, level, alloc, onOpen }: { branch: (typeof BRANCHES)[number]; tier: Tier; level: number; alloc: Allocation; onOpen: (id: SkillId) => void }) {
   const skills = SKILL_TREE.filter((s) => s.branch === branch.id && s.tier === tier);
   const opensAt = TIER_LEVEL[tier];
   const isOpen = level >= opensAt;
   return (
-    <div
-      data-tier
-      role="group"
-      aria-label={`${branch.name} ${TIER_NAME[tier].toLowerCase()}, ${isOpen ? "open" : `opens at level ${opensAt}`}`}
-      className={clsx(!isOpen && "border border-dashed border-bark/60 bg-parchment-deep/40 p-2.5")}
-    >
-      <div className="mb-2 flex items-center gap-1.5 tabular text-[11px] text-ink/70">
-        {!isOpen && <Lock className="h-3 w-3" aria-hidden />}
-        <span>{TIER_NAME[tier]}</span>
-        {tier > 1 && <span>· level {opensAt}</span>}
+    <div data-tier role="group" aria-label={`${branch.name} ${TIER_NAME[tier].toLowerCase()}, ${isOpen ? "open" : `opens at level ${opensAt}`}`}>
+      <div className="mb-1.5 flex justify-center">
+        <span className={clsx("pixel-chip px-1.5 py-px text-[11px] tabular", isOpen ? "bg-parchment text-ink/75" : "bg-parchment-deep text-ink/75")}>
+          {TIER_NAME[tier]}
+          {tier > 1 && `, level ${opensAt}`}
+        </span>
       </div>
-      {!isOpen && (
-        <p className="-mt-1 mb-2 text-xs text-ink/75">
-          Opens at level {opensAt}: {opensAt - level} {opensAt - level === 1 ? "level" : "levels"} to go.
-        </p>
-      )}
       <div className="flex flex-col gap-2">
         {skills.map((s) => (
           <SkillNode key={s.id} skill={s} level={level} alloc={alloc} onOpen={() => onOpen(s.id)} />
@@ -212,11 +206,12 @@ function TierBlock({
   );
 }
 
+/** A leaf on the oak: lit in lantern once taken, outlined while it can be taken, dim until its tier opens. */
 function SkillNode({ skill, level, alloc, onOpen }: { skill: Skill; level: number; alloc: Allocation; onOpen: () => void }) {
   const rank = rankOf(alloc, skill.id);
   const check = canTake(alloc, level, skill.id);
   const reason = check.ok ? null : check.reason;
-  const blocked = rank === 0 && reason !== null && reason !== "points";
+  const state = rank > 0 ? "taken" : check.ok ? "open" : reason === "points" ? "waiting" : "locked";
   const label = [
     `${skill.name}, rank ${rank} of ${skill.ranks}`,
     check.ok ? "can be taken" : null,
@@ -227,41 +222,54 @@ function SkillNode({ skill, level, alloc, onOpen }: { skill: Skill; level: numbe
   ]
     .filter(Boolean)
     .join(", ");
+  const note =
+    reason === "tier"
+      ? `Level ${TIER_LEVEL[skill.tier]}, ${TIER_LEVEL[skill.tier] - level} to go`
+      : skill.arrives
+        ? `Arrives with ${skill.arrives.with}`
+        : skill.parent && rank === 0 && reason === "parent"
+          ? `After ${SKILLS[skill.parent].name}`
+          : skill.effect;
   return (
     <button
       type="button"
       data-skill={skill.id}
+      data-state={state}
       aria-label={label}
       onClick={onOpen}
       className={clsx(
-        "group flex w-full items-start gap-2.5 border px-3 py-2.5 text-left transition",
-        rank > 0 && "border-lantern/50 bg-lantern/10 hover:bg-lantern/15",
-        rank === 0 && check.ok && "border-pond/50 bg-pond/5 hover:bg-pond/10",
-        rank === 0 && !check.ok && "border-parchment-deep bg-parchment-deep/40 hover:bg-parchment-deep/40",
-        blocked && "opacity-60",
+        "pixel-chip flex w-full items-start gap-2 px-2.5 py-2 text-left",
+        state === "taken" && "bg-lantern text-ink shadow-[2px_2px_0_0_var(--color-soil)] hover:bg-lantern/85",
+        state === "open" && "bg-parchment text-ink shadow-[inset_0_0_0_2px_var(--color-pond-deep)] hover:bg-parchment-deep",
+        state === "waiting" && "bg-parchment text-ink hover:bg-parchment-deep",
+        state === "locked" && "bg-parchment-deep text-ink/70 hover:text-ink",
       )}
     >
       <span
-        className={clsx(
-          "mt-0.5 grid h-5 w-5 shrink-0 place-items-center border",
-          rank > 0 ? "border-lantern bg-lantern text-ink" : check.ok ? "border-pond text-pond-deep" : "border-bark/60 text-ink/70",
-        )}
         aria-hidden
+        className={clsx(
+          "mt-0.5 grid h-4 w-4 shrink-0 place-items-center",
+          state === "taken" ? "bg-ink text-lantern" : state === "open" ? "bg-pond-deep text-cream" : "text-ink/70",
+        )}
       >
-        {rank > 0 ? <Check className="h-3 w-3" /> : check.ok ? <Plus className="h-3 w-3" /> : reason === "tier" ? <Lock className="h-2.5 w-2.5" /> : null}
+        {state === "taken" ? (
+          <Check className="h-3 w-3" strokeWidth={3} />
+        ) : state === "open" ? (
+          <Plus className="h-3 w-3" strokeWidth={3} />
+        ) : state === "locked" && reason === "tier" ? (
+          <Lock className="h-3 w-3" />
+        ) : null}
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-baseline justify-between gap-2">
-          <span className={clsx("text-sm font-medium", rank > 0 || check.ok ? "text-ink" : "text-ink")}>{skill.name}</span>
+          <span className="text-sm font-semibold">{skill.name}</span>
           {skill.ranks > 1 && (
-            <span className="text-[11px] text-ink/75 tabular">
+            <span className="text-[11px] tabular">
               {rank}/{skill.ranks}
             </span>
           )}
         </span>
-        <span className="mt-0.5 block text-xs leading-snug text-ink/75">
-          {skill.arrives ? `Arrives with ${skill.arrives.with}` : skill.parent && rank === 0 && reason === "parent" ? `After ${SKILLS[skill.parent].name}` : skill.effect}
-        </span>
+        <span className="mt-0.5 block text-xs leading-snug">{note}</span>
       </span>
     </button>
   );
@@ -293,7 +301,7 @@ function SkillDialog({
       open
       onClose={onClose}
       title={skill.name}
-      subtitle={`${branch.name} · ${TIER_NAME[skill.tier]}${skill.tier > 1 ? ` · level ${TIER_LEVEL[skill.tier]}` : ""}`}
+      subtitle={`${branch.name} branch, ${TIER_NAME[skill.tier].toLowerCase()}${skill.tier > 1 ? `, level ${TIER_LEVEL[skill.tier]}` : ""}`}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
@@ -301,7 +309,7 @@ function SkillDialog({
           </Button>
           {check.ok && (
             <Button variant="primary" onClick={onTake} disabled={busy}>
-              Take it · {points(skill.cost)}
+              Take it for {points(skill.cost)}
             </Button>
           )}
         </>
