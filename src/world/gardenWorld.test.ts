@@ -9,7 +9,7 @@ import { WORLD } from "./tiles";
  */
 
 const plant = (extra: object = {}) => ({ plot: 0, species: "helpful_oak", stage: "grown", dormant: false, fruit: [], goldenLeaves: 0, lastWatered: "2026-09-20", ...extra });
-const garden = (extra: object = {}) => ({ open: true as const, plots: 3, candidates: [{ memberId: "m2" }], plants: [plant(), plant({ plot: 1, species: "patient_pine", stage: "sprout" })], ...extra });
+const garden = (extra: object = {}) => ({ open: true as const, plots: 3, balance: 28, cost: 10, candidates: [{ memberId: "m2" }], plants: [plant(), plant({ plot: 1, species: "patient_pine", stage: "sprout" })], ...extra });
 /** The sprite on your k-th plot (the painter's array is in map order). */
 const on = (plots: ReturnType<typeof gardenPlots>, k: number) => plots[WORLD.plots.indexOf(PLOTS[k])];
 
@@ -32,8 +32,10 @@ test("each of your plots is a key bed on the map: your plants first, then empty 
   expect(on(plots, 1)).toEqual(plantSprite({ stage: "sprout", species: "patient_pine", dormant: false, fruit: 0, goldenLeaves: 0 }));
   expect(on(plots, 2)).toEqual(keyBedSprite({ sign: true })); // someone to plant for: a small sign
   expect(plots.filter((p) => p === null)).toHaveLength(WORLD.plots.length - 3);
-  // Nobody to plant for: a bare key.
-  expect(on(gardenPlots(garden({ candidates: [] }) as never, { today: "2026-09-25" }), 2)).toEqual(keyBedSprite({ sign: false }));
+  // Nobody to plant for, too few coins, or every plot in use (after a reset): a bare key (review #3).
+  for (const g of [garden({ candidates: [] }), garden({ balance: 9 })]) expect(on(gardenPlots(g as never, { today: "2026-09-25" }), 2)).toEqual(keyBedSprite({ sign: false }));
+  const full = garden({ plots: 2, plants: [plant(), plant({ plot: 2 })] });
+  expect(on(gardenPlots(full as never, { today: "2026-09-25" }), 1)).toEqual(keyBedSprite({ sign: false }));
 });
 
 test("fruit and golden leaves show on the map; a plant sways on its watering day, all of them when you pick", () => {

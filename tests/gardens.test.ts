@@ -579,4 +579,39 @@ describe("plots: each plant keeps its key bed on the map (#129)", () => {
     await ana.mutation(api.gardens.plant, { teammateId: team.dan });
     expect(await plots()).toEqual({ Cleo: 1, Dan: 0 });
   });
+
+  test("planting in the plot you opened: it grows there; a taken or missing plot is refused (review #1)", async () => {
+    await anaReachesLevel3();
+    await t.run(async (ctx) => {
+      const p = await ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", team.ana)).unique();
+      await ctx.db.patch(p!._id, { skills: { more_plots: 2 } }); // 3 plots
+      await ctx.db.patch(team.ana, { coinsAdjusted: 50 });
+    });
+    const ana = await as(team.ana);
+    await ana.mutation(api.gardens.plant, { teammateId: team.ben, plot: 2 });
+    await expect(ana.mutation(api.gardens.plant, { teammateId: team.cleo, plot: 2 })).rejects.toThrow(/already growing in that plot/);
+    await expect(ana.mutation(api.gardens.plant, { teammateId: team.cleo, plot: 3 })).rejects.toThrow(/isn't one of your plots/);
+    await expect(ana.mutation(api.gardens.plant, { teammateId: team.cleo, plot: 0.5 })).rejects.toThrow(/isn't one of your plots/);
+    await ana.mutation(api.gardens.plant, { teammateId: team.cleo, plot: 0 });
+    expect(Object.fromEntries((await garden(team.ana))!.plants.map((p) => [p.forName, p.plot]))).toEqual({ Ben: 2, Cleo: 0 });
+  });
+
+  test("plants from before plots were kept get their plot written down on the next change, so they don't move (review #4)", async () => {
+    await anaReachesLevel3();
+    await t.run(async (ctx) => {
+      const p = await ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", team.ana)).unique();
+      await ctx.db.patch(p!._id, { skills: { more_plots: 2 } });
+      await ctx.db.patch(team.ana, { coinsAdjusted: 50 });
+    });
+    const ana = await as(team.ana);
+    await ana.mutation(api.gardens.plant, { teammateId: team.ben });
+    await ana.mutation(api.gardens.plant, { teammateId: team.cleo });
+    // As if planted before #129: no plot stored.
+    await t.run(async (ctx) => {
+      for (const p of await ctx.db.query("plants").collect()) await ctx.db.patch(p._id, { plot: undefined });
+    });
+    const ben = (await garden(team.ana))!.plants.find((p) => p.forName === "Ben")!;
+    await ana.mutation(api.gardens.uproot, { plantId: ben.plantId });
+    expect((await garden(team.ana))!.plants.map((p) => [p.forName, p.plot])).toEqual([["Cleo", 1]]);
+  });
 });

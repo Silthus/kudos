@@ -308,9 +308,10 @@ export const mine = query({
  * plant picker the viewer may choose the species; otherwise it's picked for them.
  */
 export const plant = mutation({
-  args: { teammateId: v.id("members"), species: v.optional(v.string()) },
+  // `plot`: the key bed to plant in (#129); the lowest free one if not given.
+  args: { teammateId: v.id("members"), species: v.optional(v.string()), plot: v.optional(v.number()) },
   returns: v.id("plants"),
-  handler: async (ctx, { teammateId, species }) => {
+  handler: async (ctx, { teammateId, species, plot }) => {
     const { workspace, member } = await requireViewer(ctx);
     const player = await requireGardener(ctx, workspace, member);
     const skills = skillsOf(player);
@@ -323,6 +324,11 @@ export const plant = mutation({
     if (growing.some((g) => g.plant.forId === teammateId)) throw new ConvexError(`You're already growing a plant for ${teammate.name}.`);
     const used = growing.filter((g) => !leftFor(g.teammate)).length;
     if (used >= plotsFor(skills)) throw new ConvexError("Your garden has no free plot. Uproot a plant to make room.");
+    const taken = await keepPlots(ctx, growing);
+    if (plot !== undefined) {
+      if (!Number.isInteger(plot) || plot < 0 || plot >= plotsFor(skills)) throw new ConvexError("That plot isn't one of your plots.");
+      if (taken.includes(plot)) throw new ConvexError("A plant is already growing in that plot.");
+    }
     const plantedDay = dayKeyFor(now, workspace.timezone);
     const seed = await qualifyingKudosTo(ctx, member._id, teammateId, plantWindowStart(workspace, plantedDay));
     if (!seed) throw new ConvexError(`A plant needs a thoughtful kudos to ${teammate.name} in the last 7 days (a few words on why).`);
@@ -344,7 +350,7 @@ export const plant = mutation({
       plantedDay,
       seedKudosId: seed._id,
       pickedThrough: plantedDay,
-      plot: freePlot(growing.filter((g) => !leftFor(g.teammate)).map((g) => g.plant)),
+      plot: plot ?? freePlot(taken.map((p) => ({ plot: p }))),
       announced: 0,
     });
     await sendingGains(ctx, workspace, async (gains) => announceGrowth(ctx, workspace, (await ctx.db.get(plantId))!, now, gains));
@@ -366,10 +372,23 @@ export const uproot = mutation({
     await requireGardener(ctx, workspace, member);
     const plant = await ctx.db.get(plantId);
     if (!plant || plant.ownerId !== member._id || plant.memoryAt !== undefined) throw new ConvexError("That plant isn't growing in your garden.");
+    // The others stay in their beds once this one's is free.
+    await keepPlots(ctx, await livingPlants(ctx, member._id));
     await rememberPlant(ctx, workspace, plant, "uprooted");
     return null;
   },
 });
+
+/**
+ * Writes down the plot of each growing plant that has none stored yet (planted before #129) or
+ * clashes, as `mine` shows it, so a change to the garden never moves them. Returns the plots taken.
+ */
+async function keepPlots(ctx: MutationCtx, living: Awaited<ReturnType<typeof livingPlants>>) {
+  const growing = living.filter((l) => !leftFor(l.teammate)).map((l) => l.plant);
+  const slots = assignPlots(growing);
+  for (const [i, plant] of growing.entries()) if (plant.plot !== slots[i]) await ctx.db.patch(plant._id, { plot: slots[i] });
+  return slots;
+}
 
 /**
  * The plants teammates grow for the viewer: only they see these are theirs (§G8, G12). Open to
@@ -498,15 +517,16 @@ export const neighbours = query({
     for (const row of received) exchanged.set(row.giverId, (exchanged.get(row.giverId) ?? 0) + row.amount);
     exchanged.delete(member._id);
 
+    // Only the closest are looked up, so the ring reads (and follows) few members and gardens.
     const teammates = [];
-    for (const [id, amount] of exchanged) {
+    for (const [id, amount] of [...exchanged].sort((a, b) => b[1] - a[1]).slice(0, RING_LOOKS)) {
       const teammate = await ctx.db.get(id);
       if (teammate && teammate.workspaceId === workspace._id && !teammate.isBot && !teammate.deactivated && gameShownTo(workspace, teammate)) teammates.push({ teammate, amount });
     }
     teammates.sort((a, b) => b.amount - a.amount || a.teammate.name.localeCompare(b.teammate.name));
 
     const ring = [];
-    for (const { teammate } of teammates.slice(0, RING_LOOKS)) {
+    for (const { teammate } of teammates) {
       const plants = await ctx.db
         .query("plants")
         .withIndex("by_owner_memory", (q) => q.eq("ownerId", teammate._id).eq("memoryAt", undefined))

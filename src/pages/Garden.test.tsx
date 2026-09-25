@@ -16,6 +16,7 @@ import { ViewerContext, type ReadyViewer } from "@/lib/viewer";
 let mine: unknown;
 let forMe: unknown = [];
 let of: unknown = null;
+let neighbours: unknown = [];
 const plant = vi.fn();
 const pick = vi.fn();
 const uproot = vi.fn();
@@ -26,7 +27,8 @@ let game: unknown = { enabled: true, hidden: false };
 vi.mock("convex/react", () => ({
   useQuery: (fn: FunctionReference<"query">) => {
     const name = getFunctionName(fn);
-    return name === "gardens:mine" ? mine : name === "gardens:forMe" ? forMe : name === "gardens:of" ? of : name === "game:mine" ? game : undefined;
+    const results: Record<string, unknown> = { "gardens:mine": mine, "gardens:forMe": forMe, "gardens:of": of, "gardens:neighbours": neighbours, "game:mine": game };
+    return results[name];
   },
   useMutation: (fn: FunctionReference<"mutation">) => {
     const name = getFunctionName(fn);
@@ -55,6 +57,7 @@ afterEach(() => {
   uproot.mockReset();
   forMe = [];
   of = null;
+  neighbours = [];
   game = { enabled: true, hidden: false };
   useSunlamp.mockReset();
   hangLantern.mockReset();
@@ -137,7 +140,36 @@ test("an empty garden at level 3: one empty key bed, and its plot window plants 
   expect(button("Pick a teammate")?.hasAttribute("disabled")).toBe(true);
   click(document.querySelector('[data-candidate="m_cleo"]')!);
   click(button("Plant for Cleo")!);
-  expect(plant).toHaveBeenCalledWith({ teammateId: "m_cleo" });
+  expect(plant).toHaveBeenCalledWith({ teammateId: "m_cleo", plot: 0 });
+});
+
+test("planting in the plot you opened plants there, not in the first free one (review #1)", () => {
+  mine = { ...empty, plots: 3, plants: [growing({})] };
+  render("/garden?plot=2");
+  click(document.querySelector('[data-candidate="m_cleo"]')!);
+  click(button("Plant for Cleo")!);
+  expect(plant).toHaveBeenCalledWith({ teammateId: "m_cleo", plot: 2 });
+});
+
+test("with every plot in use (more plants than plots after a reset), an empty bed says so and offers no planting (review #3)", () => {
+  mine = { ...empty, plots: 1, plants: [growing({ plot: 1 })] };
+  const host = render();
+  expect(host.querySelector('a[href="/garden?plot=0"]')?.textContent).not.toContain("Plant here");
+  render("/garden?plot=0");
+  expect(text()).toContain("Your garden has no free plot. Uproot a plant to make room.");
+  expect(document.querySelector("[data-candidate]")).toBeNull();
+});
+
+test("the neighbours are listed in the window too, each with a way to their garden (review #6)", () => {
+  mine = empty;
+  neighbours = [
+    { memberId: "m_ana", name: "Ana", plants: 2, top: { species: "kind_maple", stage: "grown" } },
+    { memberId: "m_dan", name: "Dan", plants: 1, top: { species: "helpful_oak", stage: "seed" } },
+  ];
+  const host = render();
+  const list = host.querySelector("[data-neighbours]")!;
+  expect([...list.querySelectorAll("li")].map((li) => li.textContent)).toEqual(["Ana2 plantsVisit garden", "Dan1 plantVisit garden"]);
+  expect([...list.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual(["/garden/m_ana", "/garden/m_dan"]);
 });
 
 test("with the plant picker, the plot window offers the species too", () => {
@@ -150,7 +182,7 @@ test("with the plant picker, the plot window offers the species too", () => {
     select.dispatchEvent(new Event("change", { bubbles: true }));
   });
   click(button("Plant for Ben")!);
-  expect(plant).toHaveBeenCalledWith({ teammateId: "m_ben", species: "patient_pine" });
+  expect(plant).toHaveBeenCalledWith({ teammateId: "m_ben", species: "patient_pine", plot: 0 });
 });
 
 test("without a thoughtful kudos this week there's nobody to plant for, and the plot says how to get there", () => {

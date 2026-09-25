@@ -421,10 +421,7 @@ export const seedGarden = internalMutation({
       return null;
     }
     const planted = await ctx.db.query("plants").withIndex("by_owner_memory", (q) => q.eq("ownerId", alex._id)).first();
-    if (!planted && !player.skills) {
-      await growAlexGame(ctx, workspace, alex, player);
-      await plantNeighbours(ctx, workspace, alex);
-    }
+    if (!planted && !player.skills) await growAlexGame(ctx, workspace, alex, player);
     await ctx.scheduler.runAfter(0, internal.demo.seedStore, { workspaceId, resetAt });
     return null;
   },
@@ -433,17 +430,27 @@ export const seedGarden = internalMutation({
 /** Teammates whose gardens the demo grows round Alex's (#129): the ones Alex exchanges the most kudos with. */
 const DEMO_NEIGHBOURS = 10;
 
-/** Schedules a garden for each of Alex's closest teammates, one transaction each. */
-async function plantNeighbours(ctx: MutationCtx, workspace: Doc<"workspaces">, alex: Doc<"members">) {
+/**
+ * Schedules a garden for each of Alex's closest teammates, one transaction each. Called once the
+ * Store story is told, so the plants only spend the Hog coins the story left.
+ */
+async function plantNeighbours(ctx: MutationCtx, workspace: Doc<"workspaces">, alex: Doc<"members">, resetAt: number | undefined) {
   const since = Date.now() - 90 * DAY_MS;
   const given = await ctx.db.query("kudos").withIndex("by_giver_at", (q) => q.eq("giverId", alex._id).gte("at", since)).take(2000);
   const received = await ctx.db.query("kudos").withIndex("by_receiver_at", (q) => q.eq("receiverId", alex._id).gte("at", since)).take(2000);
   const exchanged = new Map<Id<"members">, number>();
   for (const k of given) exchanged.set(k.receiverId, (exchanged.get(k.receiverId) ?? 0) + 1);
   for (const k of received) exchanged.set(k.giverId, (exchanged.get(k.giverId) ?? 0) + 1);
-  const closest = [...exchanged].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, DEMO_NEIGHBOURS);
-  for (const [memberId] of closest) {
-    await ctx.scheduler.runAfter(0, internal.demo.seedNeighbourGarden, { workspaceId: workspace._id, memberId, resetAt: workspace.resettingSince });
+  exchanged.delete(alex._id);
+  // Ties by Slack id: document ids change with every reset, the cast doesn't.
+  const ranked = [];
+  for (const [id, count] of exchanged) {
+    const member = await ctx.db.get(id);
+    if (member) ranked.push({ id, count, slackUserId: member.slackUserId });
+  }
+  ranked.sort((a, b) => b.count - a.count || a.slackUserId.localeCompare(b.slackUserId));
+  for (const { id } of ranked.slice(0, DEMO_NEIGHBOURS)) {
+    await ctx.scheduler.runAfter(0, internal.demo.seedNeighbourGarden, { workspaceId: workspace._id, memberId: id, resetAt });
   }
 }
 
@@ -454,15 +461,21 @@ async function plantNeighbours(ctx: MutationCtx, workspace: Doc<"workspaces">, a
  * Hog coins each while they can pay. Growth follows from the seeded kudos, like any garden.
  */
 export const seedNeighbourGarden = internalMutation({
-  args: { workspaceId: v.id("workspaces"), memberId: v.id("members"), resetAt: v.optional(v.number()) },
+  args: { workspaceId: v.id("workspaces"), memberId: v.id("members"), resetAt: v.optional(v.number()), attempt: v.optional(v.number()) },
   returns: v.null(),
-  handler: async (ctx, { workspaceId, memberId, resetAt }) => {
+  handler: async (ctx, { workspaceId, memberId, resetAt, attempt = 0 }) => {
     const workspace = await ctx.db.get(workspaceId);
     if (!workspace?.isDemo) return null;
     if (workspace.resettingSince !== undefined && workspace.resettingSince !== resetAt) return null;
     const member = await ctx.db.get(memberId);
-    const player = member && (await playerOf(ctx, member._id));
-    if (!member || member.isBot || member.deactivated || member.slackUserId === DEMO_YOU || !player || player.level < GARDEN_LEVEL) return null;
+    if (!member || member.isBot || member.deactivated || member.slackUserId === DEMO_YOU) return null;
+    const player = await playerOf(ctx, member._id);
+    // Their history may still be replaying: wait for it like the Store story does.
+    if (!player && attempt < STORE_SEED_WAIT.attempts) {
+      await ctx.scheduler.runAfter(STORE_SEED_WAIT.everyMs, internal.demo.seedNeighbourGarden, { workspaceId, memberId, resetAt, attempt: attempt + 1 });
+      return null;
+    }
+    if (!player || player.level < GARDEN_LEVEL) return null;
     if (await ctx.db.query("plants").withIndex("by_owner_memory", (q) => q.eq("ownerId", member._id)).first()) return null;
 
     const now = Date.now();
@@ -678,6 +691,9 @@ export const seedStore = internalMutation({
       const { redemptionId } = await requestRedemption(ctx, { workspace, member, rewardId, expectedCost: reward.cost, answer: story.answer, now: requestedAt });
       await tellStory(ctx, workspace, redemptionId, story, clock);
     }
+    // The neighbours' gardens round Alex's (#129), from what the story left them.
+    const alex = ids.get(DEMO_YOU);
+    if (alex) await plantNeighbours(ctx, workspace, (await ctx.db.get(alex))!, resetAt);
     return null;
   },
 });

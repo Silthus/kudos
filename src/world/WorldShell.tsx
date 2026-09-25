@@ -3,6 +3,7 @@ import { useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SuperKudosCelebration } from "@/components/cosmetics";
 import { useHashScroll } from "@/lib/hashScroll";
@@ -13,7 +14,7 @@ import { Camera, worldScale, type CameraHandle } from "./Camera";
 import { gardenPlots, plotCount, plotFrom, plotIndex, PLOTS, ringBeds, useGardenSway, type RingBed } from "./gardenWorld";
 import { Hog, HOG_FEET, HOG_SIZE, type HogHandle } from "./Hog";
 import { Hud } from "./Hud";
-import { findPath, sameTile, stepFor, tileAt, type Point, type Tile } from "./iso";
+import { findPath, sameTile, stepFor, tileAt, tileCentre, type Point, type Tile } from "./iso";
 import { CANVAS_H, CANVAS_W, ORIGIN, spriteFoot, tileOnCanvas } from "./paint";
 import { placeForPath, routablePlaces, visiblePlaces, type Place } from "./places";
 import { mapHeight, mapWidth } from "./pixels";
@@ -83,13 +84,20 @@ export function WorldShell() {
   const ring = useQuery(api.gardens.neighbours, gameShown ? {} : "skip");
   const neighbours = useMemo<Neighbour[]>(() => ringBeds(ring), [ring]);
   const sway = useGardenSway(garden, today, still);
-  const furniture = useMemo(
-    () => ({ beds: neighbours, plots: gardenPlots(garden, { today, sway }), key: `${JSON.stringify(garden ?? null)}|${JSON.stringify(ring ?? null)}|${sway}` }),
-    [garden, ring, neighbours, today, sway],
-  );
+  const furniture = useMemo(() => {
+    const plotSprites = gardenPlots(garden, { today, sway });
+    // Named by what's drawn, so a new balance or harvest doesn't repaint the world.
+    return { beds: neighbours, plots: plotSprites, key: `${plotSprites.map((p) => p?.rows.join() ?? "").join("|")}|${JSON.stringify(ring ?? null)}` };
+  }, [garden, ring, neighbours, today, sway]);
   const plots = plotCount(garden);
-  // `/garden?plot=2`: that plot, if it's one of yours.
-  const plotParam = target?.place.id === "garden" && !target.memberId ? plotFrom(location.search, plots) : null;
+  // `/garden?plot=2`: that plot, if it's one of yours. Its link waits for your garden to load, so
+  // it lands on the plot rather than at the gate and then walks.
+  const plotAsked = target?.place.id === "garden" && !target.memberId && new URLSearchParams(location.search).has("plot");
+  const plotPending = plotAsked && gameShown && garden === undefined;
+  const plotParam = plotAsked ? plotFrom(location.search, plots) : null;
+  // A teammate's garden from a link, when they aren't in your ring: their name for the title.
+  const inRing = !!target?.memberId && neighbours.some((b) => b.memberId === target.memberId);
+  const visited = useQuery(api.gardens.of, target?.memberId && !inRing ? { memberId: target.memberId as Id<"members"> } : "skip");
 
   const vw = useViewportWidth();
   const scale = worldScale(vw);
@@ -260,8 +268,9 @@ export function WorldShell() {
 
   // The route leads: a place's URL walks there (or lands there, on first load) and opens it.
   const first = useRef(true);
-  const targetKey = target ? `${target.place.id}:${target.memberId ?? ""}:${plotParam ?? ""}` : null;
+  const targetKey = plotPending ? "pending" : target ? `${target.place.id}:${target.memberId ?? ""}:${plotParam ?? ""}` : null;
   useEffect(() => {
+    if (plotPending) return;
     const landing = first.current;
     first.current = false;
     if (!target || !targetKey) {
@@ -383,6 +392,16 @@ export function WorldShell() {
         return art.x >= foot.x - w / 2 && art.x <= foot.x + w / 2 && art.y >= foot.y - mapHeight(p.sprite) && art.y <= foot.y;
       });
     if (hit) return goTo(hit);
+    // One of your plants, by its crown as well as its bed: front-most first (the painter's key bed
+    // stands 5 px below the tile's centre line, and a plant is at most 16 px wide and 30 px tall).
+    const plant = PLOTS.slice(0, plots)
+      .map((t, i) => ({ t, i, c: tileCentre(t) }))
+      .sort((a, b) => b.t.x + b.t.y - (a.t.x + a.t.y))
+      .find(({ c }) => Math.abs(art.x - c.x) <= 8 && art.y <= c.y + 5 && art.y >= c.y + 5 - 30);
+    if (plant) {
+      abandon();
+      return walkTo(plant.t);
+    }
     const tile = tileAt(art);
     const owner = onMap.find((p) => {
       const f = p.footprint;
@@ -397,7 +416,7 @@ export function WorldShell() {
 
   const close = () => navigate("/");
   const bubbleAt = bubble && !windowOpen ? tileOnCanvas(bubble.tile) : null;
-  const title = target?.memberId ? `${neighbours.find((b) => b.memberId === target.memberId)?.name ?? "A teammate"}'s garden` : target?.place.name;
+  const title = target?.memberId ? `${neighbours.find((b) => b.memberId === target.memberId)?.name ?? visited?.name ?? "A teammate"}'s garden` : target?.place.name;
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-dusk">

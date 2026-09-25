@@ -14,7 +14,7 @@ import { HogCoin } from "@/components/HogCoin";
 import { RemoteArt } from "@/components/RemoteArt";
 import { Avatar, Button, Card, CardHeader, Dialog, Empty, PageSkeleton } from "@/components/ui";
 import { useWorkspaceToday } from "@/lib/period";
-import { FRUIT_PICKED, plotCount, plotFrom } from "@/world/gardenWorld";
+import { canPlant, FRUIT_PICKED, plotCount, plotFrom } from "@/world/gardenWorld";
 
 type Mine = NonNullable<ReturnType<typeof useQuery<typeof api.gardens.mine>>>;
 type OpenGarden = Extract<Mine, { open: true }>;
@@ -109,11 +109,37 @@ function OwnGarden({ garden }: { garden: OpenGarden }) {
         <ul className="grid gap-2 @sm:grid-cols-2">
           {Array.from({ length: shown }, (_, i) => {
             const p = garden.plants.find((g) => g.plot === i);
-            return p ? <PlotRow key={p.plantId} plant={p} index={i} /> : <EmptyRow key={`empty-${i}`} index={i} canPlant={garden.candidates.length > 0} />;
+            return p ? <PlotRow key={p.plantId} plant={p} index={i} /> : <EmptyRow key={`empty-${i}`} index={i} canPlant={canPlant(garden)} />;
           })}
         </ul>
       </section>
+      <Neighbours />
     </>
+  );
+}
+
+/** The neighbours' ring round your garden, for everyone who doesn't walk the map (#129). */
+function Neighbours() {
+  const ring = useQuery(api.gardens.neighbours, {});
+  if (!ring?.length) return null;
+  return (
+    <section aria-labelledby="neighbours">
+      <h3 id="neighbours" className="font-display text-lg font-medium text-ink">
+        Neighbours
+      </h3>
+      <p className="mb-2 text-xs text-ink/75">The teammates you thank most and who thank you, with their gardens round yours.</p>
+      <ul data-neighbours className="grid gap-x-3 gap-y-1 text-sm text-ink @sm:grid-cols-2">
+        {ring.map((n) => (
+          <li key={n.memberId} className="flex min-w-0 items-baseline gap-2">
+            <span className="min-w-0 truncate font-semibold">{n.name}</span>
+            <span className="shrink-0 text-xs text-ink/75">{plural(n.plants, "plant", "plants")}</span>
+            <Link to={`/garden/${n.memberId}`} className={clsx(linkCls, "ml-auto shrink-0 text-xs")}>
+              Visit garden
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -166,7 +192,7 @@ function PlotWindow({ garden, plot, sunlamps }: { garden: OpenGarden; plot: numb
           All of your garden
         </Link>
       </p>
-      {plant ? <PlotPlant plant={plant} sunlamps={sunlamps} /> : <EmptyPlot garden={garden} />}
+      {plant ? <PlotPlant plant={plant} sunlamps={sunlamps} /> : <EmptyPlot garden={garden} plot={plot} />}
     </div>
   );
 }
@@ -253,7 +279,8 @@ function PlotPlant({ plant, sunlamps }: { plant: Grown; sunlamps: number }) {
 }
 
 /** An empty key bed: plant for a teammate you thanked this week, or how to get there. */
-function EmptyPlot({ garden }: { garden: OpenGarden }) {
+function EmptyPlot({ garden, plot }: { garden: OpenGarden; plot: number }) {
+  const full = garden.plants.length >= garden.plots;
   return (
     <div data-plot className="flex flex-col gap-4 @sm:flex-row @sm:items-start">
       <div className="relative self-center bg-dusk p-2 @sm:self-start">
@@ -263,8 +290,10 @@ function EmptyPlot({ garden }: { garden: OpenGarden }) {
       </div>
       <div className="min-w-0 flex-1">
         <h3 className="mb-2 font-display text-2xl font-medium text-ink">Empty plot</h3>
-        {garden.candidates.length > 0 ? (
-          <PlantForm garden={garden} />
+        {full ? (
+          <p className="text-sm text-ink/75">Your garden has no free plot. Uproot a plant to make room.</p>
+        ) : garden.candidates.length > 0 ? (
+          <PlantForm garden={garden} plot={plot} />
         ) : (
           <p className="text-sm text-ink/75">Thank a teammate in Slack with a few words on why. For 7 days after, you can plant for them here.</p>
         )}
@@ -273,7 +302,7 @@ function EmptyPlot({ garden }: { garden: OpenGarden }) {
   );
 }
 
-function PlantForm({ garden }: { garden: OpenGarden }) {
+function PlantForm({ garden, plot }: { garden: OpenGarden; plot: number }) {
   const plant = useMutation(api.gardens.plant);
   const [teammate, setTeammate] = useState<Id<"members"> | null>(null);
   const [species, setSpecies] = useState<string>("");
@@ -286,7 +315,7 @@ function PlantForm({ garden }: { garden: OpenGarden }) {
     setBusy(true);
     setError(null);
     try {
-      await plant({ teammateId: teammate, ...(species ? { species } : {}) });
+      await plant({ teammateId: teammate, ...(species ? { species } : {}), plot });
     } catch (e) {
       setError(errorText(e));
     } finally {

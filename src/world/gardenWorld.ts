@@ -36,6 +36,10 @@ export const plotIndex = (t: Tile) => PLOTS.findIndex((p) => sameTile(p, t));
 export const plotCount = (garden: Mine | undefined) =>
   garden?.open ? Math.min(WORLD.plots.length, Math.max(garden.plots, garden.plants.length, ...garden.plants.map((p) => p.plot + 1))) : 0;
 
+/** Can you plant now: a teammate to plant for, a free plot, and the Hog coins. */
+export const canPlant = (garden: Extract<NonNullable<Mine>, { open: true }>) =>
+  garden.candidates.length > 0 && garden.plants.length < garden.plots && garden.balance >= garden.cost;
+
 /**
  * One sprite per plot tile, in `WORLD.plots`'s order (the painter's): a plant on its key bed, an
  * empty key (with a small "plant" sign when there's a teammate to plant for), or null where the lawn
@@ -47,7 +51,7 @@ export function gardenPlots(garden: Mine | undefined, { today, sway = null }: { 
     const i = plotIndex(tile);
     if (!garden?.open || i >= yours) return null;
     const p = garden.plants.find((g) => g.plot === i);
-    if (!p) return keyBedSprite({ sign: garden.candidates.length > 0 });
+    if (!p) return keyBedSprite({ sign: canPlant(garden) });
     return plantSprite({
       stage: p.stage as StageKey,
       species: p.species,

@@ -62,7 +62,28 @@ test("teammates with plants, most kudos exchanged first (both ways), each with t
     { memberId: team.ben, name: "Ben", plants: 2, top: { species: "kind_maple", stage: "grown" } },
     { memberId: team.dan, name: "Dan", plants: 1, top: { species: "curious_fern", stage: "seed" } },
   ]);
-  expect(JSON.stringify(ring)).not.toContain("forId");
+});
+
+test("never a bot, nor anyone from another workspace", async () => {
+  const other = await seedTeam(t, { gameEnabled: true }, "T2");
+  await exchanged(team.ana, team.bot, 9);
+  await exchanged(team.ana, other.ben, 9);
+  await plant(team.bot, team.ben, "helpful_oak", 1);
+  await t.run((ctx) =>
+    ctx.db.insert("plants", { workspaceId: other.workspaceId, ownerId: other.ben, forId: other.cleo, species: "helpful_oak", plantedAt: 1, plantedDay: "2026-01-01", pickedThrough: "2026-01-01", announced: 1 }),
+  );
+  expect(await (await signInAs(t, team.ana)).query(api.gardens.neighbours, {})).toEqual([]);
+});
+
+test("only the closest sixty teammates are looked at: the ring stays a light read at any size", async () => {
+  for (let i = 0; i < 70; i++) {
+    const id = await t.run((ctx) =>
+      ctx.db.insert("members", { workspaceId: team.workspaceId, slackUserId: `U${i}`, name: `Mate ${String(i).padStart(2, "0")}`, isAdmin: false, isBot: false, deactivated: false, totalGiven: 0, totalReceived: 0, totalMaxedDays: 0 }),
+    );
+    await exchanged(team.ana, id, 200 - i);
+    if (i >= 65) await plant(id, team.ben, "helpful_oak", 1); // only the least close have gardens
+  }
+  expect(await (await signInAs(t, team.ana)).query(api.gardens.neighbours, {})).toEqual([]);
 });
 
 test("nobody while the game is off or hidden for you", async () => {

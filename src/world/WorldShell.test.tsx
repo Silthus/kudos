@@ -298,4 +298,22 @@ describe("your plots", () => {
     keys("a", "d"); // off the plot and back on
     expect(url).toBe("/garden?plot=1");
   });
+
+  test("a link to a plot, opened before your garden has loaded, still lands on the plot without a walk (review #2)", () => {
+    queries = {};
+    open("/garden?plot=1");
+    expect(openWindow()).toBeNull(); // waiting for the garden, not at its gate
+    queries = { "gardens:mine": mine(2) };
+    open("/garden?plot=1"); // the garden arrives
+    expect(windowTitle()).toBe("Your garden"); // at once: no walk
+    act(() => openWindow()!.querySelector<HTMLButtonElement>("[data-close]")!.click());
+    keys("a", "d");
+    expect(url).toBe("/garden?plot=1");
+  });
+});
+
+test("a teammate's garden from a link names them in the title, even when they're not in your ring (review #8)", () => {
+  queries = { "gardens:of": { name: "Zoe", avatarUrl: null, plants: [] } };
+  open("/garden/m9");
+  expect(windowTitle()).toBe("Zoe's garden");
 });
