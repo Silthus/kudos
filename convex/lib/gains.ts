@@ -109,7 +109,7 @@ function parts(gain: Gain, audience: Audience, link: LinkTo): Parts {
         context: links(to("/store", "Store")),
       };
     case "spree_tier": {
-      const paid = [`+${gain.xp} XP`, gain.coins ? `+${hogCoins(gain.coins)}` : null].filter(Boolean).join(" · ");
+      const paid = [`+${gain.xp} XP`, gain.coins ? `+${hogCoins(gain.coins)}` : null].filter(Boolean).join(audience === "slack" ? " · " : " and ");
       const whose = `${person(gain.giver, audience)}'s kudos for ${people(gain.receivers, audience)}`;
       return gain.role === "started"
         ? { icon: "🎉", title: `Your kudos for ${people(gain.receivers, audience)} became a spree of ${gain.tier}`, body: paid, context: links(to("/me", "Your level")) }

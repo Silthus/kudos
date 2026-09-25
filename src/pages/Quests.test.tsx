@@ -93,8 +93,10 @@ function render() {
 test("the signpost pins this week's three quests as papers, and today's quest as a smaller note", () => {
   const host = render();
   const papers = [...host.querySelectorAll("[data-quest-paper]")];
-  expect(papers.map((p) => p.querySelector("h3, [data-title]")?.textContent)).toEqual(["New connection", "Steady hand", "Rekindle"]);
+  expect(papers.map((p) => p.querySelector("h4")?.textContent)).toEqual(["New connection", "Steady hand", "Rekindle"]);
   expect(host.querySelector("[data-daily-quest]")?.textContent).toContain("Tell the story");
+  // The done paper wears a hedge rim; open ones don't.
+  expect(papers.map((p) => p.querySelector("[data-done-rim]") !== null)).toEqual([true, false, false]);
   // No page sign: the window's title names the signpost.
   expect(host.querySelector("h1")).toBeNull();
 });

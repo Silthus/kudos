@@ -198,7 +198,7 @@ export function Trend({ cur, prev, suffix = "vs prev.", compact }: { cur: number
  * How far a meter's fill reaches, for the stylesheet to cut into 4 px blocks: any progress shows
  * at least one block, and anything short of the max stops a block before full.
  */
-function meterFill(value: number, max: number) {
+export function meterFill(value: number, max: number) {
   const pct = max > 0 ? (value / max) * 100 : 0;
   if (!(pct > 0)) return "0%"; // also NaN
   if (pct >= 100) return "100%";
@@ -226,8 +226,8 @@ export function Skeleton({ className }: { className?: string }) {
 export function PageSkeleton() {
   return (
     <div className="space-y-6">
-      <Skeleton className="h-10 w-72" />
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <Skeleton className="h-10 w-full max-w-72" />
+      <div className="grid grid-cols-2 gap-4 @lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton key={i} className="h-36" />
         ))}

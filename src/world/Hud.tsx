@@ -178,7 +178,7 @@ function SettingsMenu({ gameOn }: { gameOn: boolean }) {
         <MenuPanel id={id} panel={menu.panel}>
           <WorkspaceSwitcher />
           {gameOn && (
-            <Link to="/me" onClick={() => menu.setOpen(false)} className="block px-3 py-2 text-sm hover:bg-parchment-deep">
+            <Link to="/me#door" onClick={() => menu.setOpen(false)} className="block px-3 py-2 text-sm hover:bg-parchment-deep">
               <span className="font-semibold">Hide the game</span>
               <span className="block text-xs text-ink/75">In your cabin: your kudos still earn XP and Hog coins.</span>
             </Link>

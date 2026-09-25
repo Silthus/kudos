@@ -124,10 +124,10 @@ export function GameCard({ glyph }: { glyph: string }) {
   if (!game.player) {
     return (
       <div className="pixel-note px-4 py-3">
-        <h3 className="flex items-center gap-2 font-display text-lg font-medium">
+        <h4 className="flex items-center gap-2 font-display text-lg font-medium">
           <Sprout className="h-4 w-4 text-soil" aria-hidden />
           You can give kudos too
-        </h3>
+        </h4>
         <p className="mt-1 text-sm text-ink/75">
           Mention a teammate in Slack with {glyph} and a few words on why. Your first kudos starts your level, and thoughtful ones earn the most.
         </p>
@@ -169,7 +169,7 @@ export function GameSwitch() {
   return (
     <Toggle
       label="Show the game"
-      description="Your level, coins and quests in the world. Hidden, your kudos still earn XP and Hog coins."
+      description="Your level, garden and quests in the world. Hidden, your kudos still earn XP and Hog coins."
       checked={!game.hidden}
       onChange={(show) => void setHidden({ hidden: !show })}
     />
@@ -189,10 +189,10 @@ export function ScoutHints({ today }: { today: string }) {
   ];
   return (
     <div className="pixel-note px-4 py-3">
-      <h3 className="flex items-center gap-2 font-display text-lg font-medium">
+      <h4 className="flex items-center gap-2 font-display text-lg font-medium">
         <Compass className="h-4 w-4 text-soil" aria-hidden />
         Haven't thanked in a while
-      </h3>
+      </h4>
       <p className="text-xs text-ink/75">Only you see this. From your Lookout skill.</p>
       {rows.length === 0 ? (
         <p className="mt-2 text-sm text-ink/75">Nobody right now: everyone you've thanked before heard from you in the last 30 days.</p>

@@ -71,7 +71,7 @@ test("wearing another frame, or taking one off", () => {
 test("your look is a room of the cabin, in plain words: no middle dots between level, title and kudos given", () => {
   results = { "cosmetics:mine": mine, "cosmetics:profile": profile };
   const host = render(<LookCard memberId={"m1" as never} today="2026-09-23" />);
-  expect(host.querySelector("section > header h2")?.textContent).toBe("Your look");
+  expect(host.querySelector("section > header h3")?.textContent).toBe("Your look");
   expect(copyTells(host)).toEqual([]);
   expect(host.textContent).toContain("Level 6 Gardener, 42 given");
 });

@@ -9,8 +9,10 @@ const html = (s: string) => {
 };
 
 test("viewport breakpoints are flagged inside a window, the window's own container breakpoints are not", () => {
-  const root = html(`<div class="grid @lg:grid-cols-2"></div><div class="grid xl:grid-cols-4"></div><p class="max-sm:hidden"></p><p class="hover:underline"></p>`);
-  expect(viewportLayout(root).map((el) => el.className)).toEqual(["grid xl:grid-cols-4", "max-sm:hidden"]);
+  const root = html(
+    `<div class="grid @lg:grid-cols-2"></div><div class="grid xl:grid-cols-4"></div><p class="max-sm:hidden"></p><p class="hover:underline"></p><p class="hover:md:flex"></p><p class="min-[480px]:block"></p>`,
+  );
+  expect(viewportLayout(root).map((el) => el.className)).toEqual(["grid xl:grid-cols-4", "max-sm:hidden", "hover:md:flex", "min-[480px]:block"]);
 });
 
 test("middle dots, arrows and emoji are copy tells; allowed data like the kudos emoji is not", () => {

@@ -132,7 +132,7 @@ export function QuestItem({ quest: q, size = "md" }: { quest: QuestRow; size?: "
         <div className="flex items-start gap-3">
           <Tick status={done ? "done" : waived ? "waived" : "open"} large={large} />
           <div className="min-w-0 flex-1">
-            <h3 className={clsx("font-semibold", large ? "text-base" : "text-sm")}>{q.title}</h3>
+            <h4 className={clsx("font-semibold", large ? "text-base" : "text-sm")}>{q.title}</h4>
             <p className={clsx("text-ink/75", large ? "text-sm" : "text-xs")}>{q.description}</p>
           </div>
         </div>

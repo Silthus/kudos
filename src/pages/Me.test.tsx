@@ -37,6 +37,8 @@ let game: unknown = null;
 const asked: string[] = [];
 const signOut = vi.fn(async () => undefined);
 const mutate = vi.fn();
+/** Other queries' answers by name (the look, Lookout, the store balance…); anything else is loading. */
+let extra: Record<string, unknown> = {};
 
 vi.mock("convex/react", () => ({
   useQuery: (fn: FunctionReference<"query">, args?: unknown) => {
@@ -46,9 +48,9 @@ vi.mock("convex/react", () => ({
     if (name === "me:overview") return overview;
     if (name === "quests:mine") return board;
     if (name === "game:mine") return game;
-    return undefined;
+    return extra[name];
   },
-  useMutation: () => mutate,
+  useMutation: (fn: FunctionReference<"mutation">) => (args: unknown) => mutate(getFunctionName(fn), args),
 }));
 vi.mock("@convex-dev/auth/react", () => ({ useAuthActions: () => ({ signOut }) }));
 vi.mock("@/components/charts", () => ({ LineChart: () => null, Legend: () => null }));
@@ -62,14 +64,15 @@ afterEach(() => {
   asked.length = 0;
   game = null;
   mutate.mockClear();
+  extra = {};
 });
 
-type Options = { questsEnabled?: boolean; workspaces?: { memberId: string; name: string; current: boolean }[] };
-function render({ questsEnabled = true, workspaces = [] }: Options = {}) {
+type Options = { questsEnabled?: boolean; storeEnabled?: boolean; workspaces?: { memberId: string; name: string; current: boolean }[] };
+function render({ questsEnabled = true, storeEnabled = false, workspaces = [] }: Options = {}) {
   const viewer = {
     workspaces,
     member: { _id: "m1", name: "Alex Rivera", isAdmin: false },
-    workspace: { name: "Lumen Labs", emojiGlyph: "🌮", timezone: "Europe/Berlin", storeEnabled: false, questsEnabled },
+    workspace: { name: "Lumen Labs", emojiGlyph: "🌮", timezone: "Europe/Berlin", storeEnabled, questsEnabled },
     canSeeOwnReceived: true,
     canSeeOthersReceived: false,
   } as unknown as ReadyViewer;
@@ -90,8 +93,8 @@ function render({ questsEnabled = true, workspaces = [] }: Options = {}) {
   expect(parchmentTextOnDusk(host).map(describeElement)).toEqual([]);
   return host;
 }
-const headings = (host: HTMLElement) => [...host.querySelectorAll("h2")].map((h) => h.textContent);
-const section = (host: HTMLElement, title: string) => [...host.querySelectorAll("h2")].find((h) => h.textContent === title)?.closest("section") ?? null;
+const headings = (host: HTMLElement) => [...host.querySelectorAll("h3")].map((h) => h.textContent);
+const section = (host: HTMLElement, title: string) => [...host.querySelectorAll("h3")].find((h) => h.textContent === title)?.closest("section") ?? null;
 
 test("the cabin is one window of rooms, in order: you, your giving, your look, lately, found lately, the bot, the quests and the door", () => {
   game = { enabled: true, hidden: false, player: player(2), wallet: null };
@@ -102,27 +105,83 @@ test("the cabin is one window of rooms, in order: you, your giving, your look, l
   expect(host.querySelector("h1")).toBeNull();
 });
 
-test("the cabin lays out by the window's width, so a 640 px window never scrolls sideways (#128 review #9)", () => {
+/** Every room with something in it: the look, Lookout, the store, activity, finds and a bot message with gains. */
+function furnish() {
   game = { enabled: true, hidden: false, player: player(3), wallet };
-  const host = render();
+  extra = {
+    "cosmetics:mine": { look: {}, owned: [], emoji: [{ shortcode: ":taco:", name: "Kudos emoji", source: "workspace", suffix: null }], superKudos: null },
+    "cosmetics:profile": { name: "Alex Rivera", avatarUrl: null, level: 3, title: "Sprout", given: 10, look: {} },
+    "skills:hints": { quiet: [{ memberId: "m2", name: "Ben Ortiz", avatarUrl: null, lastDay: "2026-07-01" }], never: [] },
+    "store:balance": 28,
+  };
+  overview.activity = [{ _id: "k1", direction: "given", other: { name: "Ana Lopez", avatarUrl: null }, amount: 1, channel: "general", at: Date.now(), text: "Thanks for the review" }];
+  overview.discoveries.latest = [{ key: "d1", rarity: "rare", text: "A kind word", timesSeen: 2, firstSeenAt: Date.now() }];
+  (overview.discoveries as { byRarity: unknown[] }).byRarity = [{ rarity: "rare", discovered: 1, total: 10 }];
+  overview.botMessages = [
+    { _id: "n1", rarity: "rare", category: "receiver_success", text: "Ana sent you 1 🌮.", isNewDiscovery: true, at: Date.now(), gains: ["Your kudos for Ben became a spree of 10. +20 XP and +5 Hog coins"] },
+  ];
+}
+afterEach(() => {
+  overview.activity = [];
+  overview.discoveries.latest = [];
+  (overview.discoveries as { byRarity: unknown[] }).byRarity = [];
+  overview.botMessages = [];
+});
+
+test("a full cabin lays out by the window's width, so a 640 px window never scrolls sideways (#128 review #9)", () => {
+  furnish();
+  const host = render({ storeEnabled: true });
+  expect(headings(host)).toContain("Your look");
   expect(viewportLayout(host).map(describeElement)).toEqual([]);
   expect(escapesFromScrollers(host).map(describeElement)).toEqual([]);
   expect(widensSideways(host).map(describeElement)).toEqual([]);
 });
 
-test("its words are signposts: no middle dots, arrows or emoji, only the workspace's kudos emoji", () => {
-  game = { enabled: true, hidden: false, player: player(3), wallet };
-  overview.botMessages = [{ _id: "n1", rarity: "rare", category: "receiver_success", text: "Ana sent you 1 🌮.", isNewDiscovery: true, at: Date.now(), gains: [] }];
-  overview.discoveries.latest = [{ key: "d1", rarity: "rare", text: "A kind word", timesSeen: 2, firstSeenAt: Date.now() }];
-  const host = render();
+test("a full cabin's words are signposts: no middle dots, arrows or emoji, only the workspace's kudos emoji", () => {
+  furnish();
+  const host = render({ storeEnabled: true });
+  expect(host.textContent).toContain("Ben Ortiz");
   expect(copyTells(host, ["🌮"])).toEqual([]);
-  overview.botMessages = [];
-  overview.discoveries.latest = [];
 });
 
-test("below level 3 the cabin shows no Hog coins at all, only the wallet's locked tile", () => {
-  game = { enabled: true, hidden: false, player: player(2), wallet: null };
+test("while your standing loads, this week's place doesn't claim you have none", () => {
   const host = render();
+  const stat = [...host.querySelectorAll("dt")].find((d) => d.textContent === "This week")!.parentElement!;
+  expect(stat.textContent).not.toContain("none yet");
+});
+
+test("a small share still shows on the team meter: at least one block", () => {
+  extra = { "me:standing": { week: { rank: 2, of: 9 }, teamMedian: 100 } };
+  const host = render();
+  const fills = [...host.querySelectorAll<HTMLElement>("[data-compare-bars] [data-fill]")].map((f) => f.style.getPropertyValue("--fill"));
+  expect(fills[0]).toMatch(/^clamp\(4px/); // 4 of 100
+});
+
+test("the settings menu's Hide the game lands on the door: it has the id #door", () => {
+  const host = render();
+  expect(section(host, "The door")!.id).toBe("door");
+});
+
+test("switching workspace at the door switches to the one picked", () => {
+  const host = render({
+    workspaces: [
+      { memberId: "m1", name: "Lumen Labs", current: true },
+      { memberId: "m9", name: "Side project", current: false },
+    ],
+  });
+  const pick = section(host, "The door")!.querySelector<HTMLSelectElement>("select")!;
+  act(() => {
+    pick.value = "m9";
+    pick.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  expect(mutate).toHaveBeenCalledWith("session:switchWorkspace", { memberId: "m9" });
+});
+
+test("below level 3 the cabin shows no Hog coins at all, only the wallet's locked tile, even with the store open", () => {
+  game = { enabled: true, hidden: false, player: player(2), wallet: null };
+  extra = { "store:balance": null }; // the server hides the balance below level 3
+  const host = render({ storeEnabled: true });
+  expect(host.querySelector("a[href='/store']")).toBeNull();
   expect(host.querySelector("[data-wallet]")).toBeNull();
   expect(host.querySelector("[data-hog-coin]")).toBeNull();
   expect(host.querySelector("[data-locked][aria-label^='Hog coins']")).not.toBeNull();
@@ -182,7 +241,7 @@ test("the game's switch hangs on the cabin wall, by the door", () => {
   expect(toggle.getAttribute("aria-label")).toBe("Show the game");
   expect(toggle.getAttribute("aria-checked")).toBe("true");
   act(() => toggle.click());
-  expect(mutate).toHaveBeenCalledWith({ hidden: true });
+  expect(mutate).toHaveBeenCalledWith("game:setHidden", { hidden: true });
 });
 
 test("bot messages show what their event gained: a level-up under a kudos DM, and a gains DM labelled instead of a rarity", () => {

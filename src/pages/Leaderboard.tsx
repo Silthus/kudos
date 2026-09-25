@@ -6,7 +6,7 @@ import { api } from "../../convex/_generated/api";
 import { Ring } from "@/components/charts";
 import { FramedAvatar } from "@/components/cosmetics";
 import { PixelArrow, Room } from "@/components/room";
-import { Avatar, BigNumber, Empty, PageSkeleton, Segmented, TableScroll, Trend } from "@/components/ui";
+import { Avatar, BigNumber, Empty, meterFill, PageSkeleton, Segmented, TableScroll, Trend } from "@/components/ui";
 import { compareWithHref, firstName } from "@/lib/compare";
 import { nf, pct, rangeLabel } from "@/lib/format";
 import { DEFAULT_PERIOD, PERIOD_OPTIONS, useWorkspaceToday, type Period } from "@/lib/period";
@@ -41,7 +41,7 @@ export function Leaderboard() {
     <div className={clsx("space-y-8", isStale && "[&_section>*]:opacity-60")} aria-busy={isStale}>
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          <Segmented value={period} onChange={setPeriod} options={PERIOD_OPTIONS} />
+          <Segmented wrap value={period} onChange={setPeriod} options={PERIOD_OPTIONS} />
           <Segmented
             value={metric}
             onChange={setMetric}
@@ -67,7 +67,7 @@ export function Leaderboard() {
       </div>
 
       {podium.length > 0 && (
-        <div className="grid grid-cols-3 items-end gap-3 px-1 @md:gap-6 @md:px-8" aria-label="The top three">
+        <div role="group" className="grid grid-cols-3 items-end gap-3 px-1 @md:gap-6 @md:px-8" aria-label="The top three">
           {[1, 0, 2].map((idx) => {
             const r = podium[idx];
             if (!r) return <div key={idx} />;
@@ -76,6 +76,7 @@ export function Leaderboard() {
               <div key={r.member._id} className="flex min-w-0 flex-col items-center text-center">
                 <FramedAvatar name={r.member.name} src={r.member.avatarUrl} size={idx === 0 ? 64 : 48} look={r.member.look} />
                 <div className="mt-2 w-full truncate font-display text-base font-medium">{r.member.name}</div>
+                {r.member.title && <div className="w-full truncate text-xs text-ink/75">{r.member.title}</div>}
                 <div className="font-display text-xl font-medium tabular">
                   {nf.format(r.value)} <span className="text-base">{glyph}</span>
                 </div>
@@ -128,7 +129,7 @@ export function Leaderboard() {
                       <div className="flex items-center gap-3">
                         <span className="w-8 text-right font-display text-base font-medium tabular">{nf.format(r.value)}</span>
                         <div className="pixel-meter h-2.5 min-w-0 flex-1">
-                          <div data-fill style={{ "--fill": `${(r.value / max) * 100}%`, background: "var(--color-soil)" } as React.CSSProperties} />
+                          <div data-fill style={{ "--fill": meterFill(r.value, max), background: "var(--color-soil)" } as React.CSSProperties} />
                         </div>
                       </div>
                     </td>
@@ -206,7 +207,13 @@ function CompareWith({ memberId, name, period }: { memberId: string; name: strin
 }
 
 function Change({ delta, rankChange, isNew }: { delta: number | null; rankChange: number | null; isNew: boolean }) {
-  if (delta === null) return <span className="text-ink/70">none</span>;
+  if (delta === null)
+    return (
+      <span className="text-ink/70">
+        <span aria-hidden>–</span>
+        <span className="sr-only">No earlier period</span>
+      </span>
+    );
   if (isNew) return <span className="pixel-chip bg-r-epic/25 px-2 py-0.5 text-[11px] font-semibold text-ink">New</span>;
   const places = rankChange === null ? 0 : Math.abs(rankChange);
   return (

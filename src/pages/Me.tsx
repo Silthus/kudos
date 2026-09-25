@@ -13,7 +13,7 @@ import { QUEST_RULES, QuestBoardBody } from "@/components/quests";
 import { GainLines, GameCard, GameSwitch, LevelUpHoggie, ScoutHints } from "@/components/game";
 import { LookCard } from "@/components/cosmetics";
 import { Room } from "@/components/room";
-import { Avatar, BigNumber, Empty, PageSkeleton, RarityBadge, Segmented, Trend } from "@/components/ui";
+import { Avatar, BigNumber, Empty, meterFill, PageSkeleton, RarityBadge, Segmented, Trend } from "@/components/ui";
 import { HEDGEHOG_MODE } from "@/lib/art";
 import { compareTeamHref } from "@/lib/compare";
 import { dayLabel, firstName, greeting, nf, relativeTime } from "@/lib/format";
@@ -66,7 +66,7 @@ export function Me() {
         </div>
       </Room>
 
-      <Room title="Your giving" subtitle={data.periodLabel} action={<Segmented size="sm" value={period} onChange={setPeriod} options={PERIOD_OPTIONS} />}>
+      <Room title="Your giving" action={<Segmented size="sm" value={period} onChange={setPeriod} options={PERIOD_OPTIONS} />}>
         <YourGiving data={data} standing={standing ?? null} period={period} glyph={glyph} />
       </Room>
 
@@ -184,7 +184,7 @@ function YourGiving({ data, standing, period, glyph }: { data: Overview; standin
   return (
     <div className="space-y-6">
       <dl className="grid grid-cols-2 gap-3 @lg:grid-cols-4">
-        <Stat label="This week" value={rank ? `#${rank}` : "none yet"} dim={!rank}>
+        <Stat label="This week" value={!standing ? "…" : rank ? `#${rank}` : "none yet"} dim={!rank}>
           {rank && standing ? `of ${standing.week.of} givers, ` : ""}
           {data.week.given} given
           <span className="block">
@@ -212,7 +212,7 @@ function YourGiving({ data, standing, period, glyph }: { data: Overview; standin
       </dl>
 
       <div>
-        <h3 className="font-display text-lg font-medium">Giving cadence</h3>
+        <h4 className="font-display text-lg font-medium">Giving cadence</h4>
         <p className="text-sm text-ink/75">
           {nf.format(data.period.given)} given {data.periodLabel.toLowerCase()}{" "}
           {data.period.prevGiven !== null && <Trend cur={data.period.given} prev={data.period.prevGiven} />}
@@ -227,7 +227,7 @@ function YourGiving({ data, standing, period, glyph }: { data: Overview; standin
 
       <div className="grid grid-cols-1 gap-6 @lg:grid-cols-2">
         <div>
-          <h3 className="font-display text-lg font-medium">Recognition patterns</h3>
+          <h4 className="font-display text-lg font-medium">Recognition patterns</h4>
           <ul>
             <Pattern icon={<Users className="h-4 w-4" />} label="Teammates celebrated" value={data.patterns.teammatesCelebrated} />
             <Pattern icon={<Hash className="h-4 w-4" />} label="Channels visited" value={data.patterns.channelsVisited} />
@@ -250,7 +250,7 @@ function YourGiving({ data, standing, period, glyph }: { data: Overview; standin
           </ul>
         </div>
         <div>
-          <h3 className="font-display text-lg font-medium">You and the team</h3>
+          <h4 className="font-display text-lg font-medium">You and the team</h4>
           <p className="text-sm text-ink/75">
             You gave {data.period.given}, the team's median is {standing ? Math.round(standing.teamMedian) : "on its way"}.
           </p>
@@ -281,7 +281,7 @@ function Allowance({ used, limit, glyph }: { used: number; limit: number; glyph:
   const left = Math.max(0, limit - used);
   return (
     <div>
-      <h3 className="font-display text-lg font-medium">Kudos to give today</h3>
+      <h4 className="font-display text-lg font-medium">Kudos to give today</h4>
       <div data-allowance role="img" aria-label={`${left} of ${limit} kudos left today`} className="mt-2 flex flex-wrap gap-2">
         {Array.from({ length: limit }, (_, i) =>
           i < left ? (
@@ -387,7 +387,8 @@ function Door() {
   const leave = () => void signOut().then(() => navigate("/", { replace: true }));
   const current = workspaces.find((w) => w.current);
   return (
-    <Room title="The door">
+    // `#door`: the HUD's settings menu links here for "Hide the game".
+    <Room title="The door" id="door">
       <GameSwitch />
       {workspaces.length > 1 && current && (
         <label className="block py-3">
@@ -435,7 +436,7 @@ function Pattern({ icon, label, value, hint }: { icon: React.ReactNode; label: s
 function CompareBars({ mine, team }: { mine: number; team: number }) {
   const max = Math.max(1, mine, team);
   return (
-    <div className="mt-3 space-y-2">
+    <div data-compare-bars className="mt-3 space-y-2">
       {[
         { label: "You", value: mine, color: "var(--color-ember)" },
         { label: "Team", value: team, color: "var(--color-benchmark)" },
@@ -443,7 +444,7 @@ function CompareBars({ mine, team }: { mine: number; team: number }) {
         <div key={r.label} className="flex items-center gap-3">
           <span className="w-10 shrink-0 text-xs text-ink/75">{r.label}</span>
           <div className="pixel-meter h-3 min-w-0 flex-1">
-            <div data-fill style={{ "--fill": `${(r.value / max) * 100}%`, background: r.color } as React.CSSProperties} />
+            <div data-fill style={{ "--fill": meterFill(r.value, max), background: r.color } as React.CSSProperties} />
           </div>
         </div>
       ))}

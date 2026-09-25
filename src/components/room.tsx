@@ -8,7 +8,8 @@ import { useId, type ComponentProps, type ReactNode } from "react";
  */
 
 /**
- * One room of a window: a Pixelify title over a 2 px parchment-deep rule, and what's in it. No
+ * One room of a window: a Pixelify title over a 2 px parchment-deep rule, and what's in it. The
+ * title is an `h3` under the window's own `h2`, and headings inside a room are `h4`. No
  * frame of its own. `action` sits at the title's right (tabs, a link), and wraps under it when narrow.
  */
 export function Room({ title, subtitle, action, children, className, ...rest }: { title: ReactNode; subtitle?: ReactNode; action?: ReactNode } & Omit<ComponentProps<"section">, "title">) {
@@ -17,9 +18,9 @@ export function Room({ title, subtitle, action, children, className, ...rest }: 
     <section aria-labelledby={id} className={clsx("min-w-0", className)} {...rest}>
       <header className="mb-3 flex flex-wrap items-end justify-between gap-x-4 gap-y-2 border-b-2 border-parchment-deep pb-2">
         <div className="min-w-0">
-          <h2 id={id} className="font-display text-xl font-medium leading-7">
+          <h3 id={id} className="font-display text-xl font-medium leading-7">
             {title}
-          </h2>
+          </h3>
           {subtitle && <p className="text-sm text-ink/75">{subtitle}</p>}
         </div>
         {action && <div className="max-w-full">{action}</div>}
@@ -38,12 +39,13 @@ export function Paper({ pin = "bg-lantern", tone, className, children, ...rest }
     <div
       className={clsx(
         "pixel-note relative px-3.5 pt-4 pb-3",
-        tone === "done" && "shadow-[inset_0_0_0_2px_var(--color-hedge),3px_3px_0_0_var(--color-dusk-deep)]",
         tone === "faded" && "opacity-70",
         className,
       )}
       {...rest}
     >
+      {/* Done papers get a hedge rim of their own, so it never competes with the note's step. */}
+      {tone === "done" && <span aria-hidden data-done-rim className="pointer-events-none absolute inset-0 border-2 border-hedge" />}
       <span aria-hidden className={clsx("pixel-chip absolute top-1 left-1/2 -ml-1 h-2 w-2", pin)} />
       {children}
     </div>
