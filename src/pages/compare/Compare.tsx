@@ -69,6 +69,7 @@ export function Compare() {
         {/* The benchmark tabs stand on the pond's edge: a strip of water under them. */}
         <div data-water-edge className="flex max-w-full flex-col">
           <Segmented
+            wrap
             label="Compare with"
             value={benchmark.kind}
             onChange={(value) => (value === "teammate" ? setPicking(true) : update({ vs: value }))}

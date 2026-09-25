@@ -66,6 +66,13 @@ export function Admin() {
 
 type Settings = NonNullable<ReturnType<typeof useQuery<typeof api.admin.overview>>>["settings"];
 
+/** A pixel slider: a parchment-deep slot in a bark inset, and a square bark knob. */
+const PIXEL_RANGE = clsx(
+  "h-3 flex-1 cursor-pointer appearance-none border-2 border-bark bg-parchment-deep",
+  "[&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:bg-bark [&::-webkit-slider-thumb]:shadow-[inset_0_-3px_0_0_var(--color-lantern)]",
+  "[&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:[border-radius:0] [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-bark",
+);
+
 const TIMEZONES = ["Europe/Berlin", "Europe/London", "Europe/Lisbon", "Europe/Madrid", "Europe/Stockholm", "America/New_York", "America/Chicago", "America/Los_Angeles", "Asia/Tokyo", "Asia/Kolkata", "Australia/Sydney", "UTC"];
 
 function SettingsForm({ initial, isDemo }: { initial: Settings; isDemo: boolean }) {
@@ -110,7 +117,7 @@ function SettingsForm({ initial, isDemo }: { initial: Settings; isDemo: boolean 
           </Field>
           <Field label="Daily allowance" hint="Kudos each person can give per day">
             <div className="flex items-center gap-3">
-              <input type="range" min={1} max={20} value={s.dailyLimit} onChange={(e) => set("dailyLimit", Number(e.target.value))} className="flex-1 accent-[var(--color-lantern)]" />
+              <input type="range" min={1} max={20} value={s.dailyLimit} onChange={(e) => set("dailyLimit", Number(e.target.value))} aria-label="Daily allowance" className={PIXEL_RANGE} />
               <span className="w-10 text-right font-display text-xl font-semibold tabular">{s.dailyLimit}</span>
             </div>
           </Field>
@@ -407,7 +414,7 @@ function SlackPanel({ slack, isDemo, teamId }: { slack: SlackInfo; isDemo: boole
     { label: "Slash command URL (/kudos)", value: slack.endpoints.commands },
     { label: "Interactivity URL", value: slack.endpoints.interactions },
     { label: "Install link (OAuth)", value: slack.endpoints.install },
-    { label: "App manifest", value: slack.endpoints.manifest },
+    { label: "App manifest", value: slack.endpoints.manifest, open: true },
   ];
   return (
     <div className="grid grid-cols-1 gap-4">
@@ -443,7 +450,7 @@ function SlackPanel({ slack, isDemo, teamId }: { slack: SlackInfo; isDemo: boole
             <li key={r.label} data-endpoint className="flex items-center gap-3 border-b border-parchment-deep py-2 last:border-0">
               <div className="min-w-0 flex-1">
                 <div className="text-xs text-ink/75">{r.label}</div>
-                <div className="truncate tabular text-xs">{r.value}</div>
+                <div className="truncate tabular text-xs">{"open" in r ? <a href={r.value} target="_blank" rel="noreferrer" className="font-medium text-ember-deep underline underline-offset-2">{r.value}</a> : r.value}</div>
               </div>
               <CopyButton text={r.value} />
             </li>

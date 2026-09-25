@@ -42,7 +42,7 @@ function mirrorPond() {
         // Rim stones: chunky 3 × 2 blocks, lit on top, shaded where they face you.
         const n = noise(Math.floor(x / 3), Math.floor(y / 2), 3);
         c.set(x, y, n < 0.15 ? "M" : n < 0.3 ? "P" : front && y % 2 === 1 ? "M" : "m");
-      } else if (r > 0.82) c.set(x, y, "k"); // the shadow under the stones
+      } else if (r > 0.82) c.set(x, y, "k"); // the dark line where the stones meet the water
       else if (front && r > 0.7) c.set(x, y, noise(x, y, 4) < 0.5 ? "w" : "W"); // the shallows
     }
 

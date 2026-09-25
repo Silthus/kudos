@@ -480,8 +480,9 @@ const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
  * an empty one): a quarter of the busiest hour or less, half, three quarters, and the busiest.
  */
 const HEAT_STEPS = [
-  "color-mix(in oklab, var(--color-pond) 30%, var(--color-parchment-deep))",
-  "color-mix(in oklab, var(--color-pond) 60%, var(--color-parchment-deep))",
+  // Tinted towards cream, not the tan parchment, so the light steps stay blue instead of going grey.
+  "color-mix(in srgb, var(--color-pond) 40%, var(--color-cream))",
+  "color-mix(in srgb, var(--color-pond) 70%, var(--color-cream))",
   "var(--color-pond)",
   "var(--color-pond-deep)",
 ];
