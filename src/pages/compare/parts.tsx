@@ -4,6 +4,7 @@ import { api } from "../../../convex/_generated/api";
 import type { ComparePeriod, Metric } from "../../../convex/lib/compare";
 import { Legend, LineChart, PairedBars } from "@/components/charts";
 import { Card, CardHeader, Empty, Eyebrow, Segmented } from "@/components/ui";
+import { Padlock } from "@/components/Padlock";
 import { dayLabel, nf } from "@/lib/format";
 import { useViewer } from "@/lib/viewer";
 
@@ -40,20 +41,6 @@ const LOCKED_TOOLTIP: Record<Locked, string> = {
 export const PERIOD_NOUN: Record<ComparePeriod, string> = { week: "week", month: "month", quarter: "quarter", year: "year" };
 
 export const formatValue = (n: number | null) => (n === null ? "—" : nf.format(n));
-
-/** A padlock drawn in pixels: an ink shackle over a brass body with a keyhole. */
-export function Padlock() {
-  return (
-    <svg data-padlock width="10" height="12" viewBox="0 0 5 6" shapeRendering="crispEdges" className="shrink-0" aria-hidden>
-      <rect x="1" y="0" width="3" height="1" fill="currentColor" />
-      <rect x="1" y="1" width="1" height="1" fill="currentColor" />
-      <rect x="3" y="1" width="1" height="1" fill="currentColor" />
-      <rect x="0" y="2" width="5" height="4" fill="var(--color-soil)" />
-      <rect x="1" y="3" width="3" height="2" fill="var(--color-lantern)" />
-      <rect x="2" y="3" width="1" height="2" fill="var(--color-soil)" />
-    </svg>
-  );
-}
 
 function LockedCell({ reason }: { reason: Locked }) {
   return (

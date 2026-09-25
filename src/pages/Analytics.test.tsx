@@ -4,7 +4,8 @@ import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter } from "react-router";
 import { getFunctionName, type FunctionReference } from "convex/server";
 import { afterEach, expect, test, vi } from "vitest";
-import { describeElement, parchmentTextOnDusk } from "@/testing/layout";
+import type { ReactNode } from "react";
+import { InWindow, windowPageProblems } from "@/testing/windowPage";
 import { ViewerContext, type ReadyViewer } from "@/lib/viewer";
 
 const overview = {
@@ -40,17 +41,27 @@ const launched = {
 let success: unknown = launched;
 const asked: string[] = [];
 
+const periods: unknown[] = [];
 vi.mock("convex/react", () => ({
   useQuery: (fn: FunctionReference<"query">, args?: unknown) => {
     const name = getFunctionName(fn);
     if (args !== "skip") asked.push(name);
-    if (name === "analytics:overview") return overview;
+    if (name === "analytics:overview") {
+      periods.push((args as { period: string }).period);
+      return overview;
+    }
     if (name === "analytics:successMetrics" && args !== "skip") return success;
     return undefined;
   },
 }));
 vi.mock("@/components/charts", () => ({
   BarChart: () => null, BarList: () => null, Heatmap: () => null, Legend: () => null, Sparkline: () => null,
+  DataTable: ({ children }: { children: ReactNode }) => (
+    <details>
+      <summary>Show data</summary>
+      <table>{children}</table>
+    </details>
+  ),
 }));
 
 const { Analytics } = await import("./Analytics");
@@ -73,15 +84,49 @@ function render(isAdmin: boolean) {
     root!.render(
       <MemoryRouter>
         <ViewerContext.Provider value={viewer}>
-          <Analytics />
+          <InWindow>
+            <Analytics />
+          </InWindow>
         </ViewerContext.Provider>
       </MemoryRouter>,
     ),
   );
-  // Text written for parchment never lands on the dusk ground (#127).
-  expect(parchmentTextOnDusk(host).map(describeElement)).toEqual([]);
+  // The observatory's window (#132): laid out by the window, text on parchment, no page sign.
+  expect(windowPageProblems(host)).toEqual([]);
   return host;
 }
+
+test("the key numbers are brass dials: each rate shows as a pixel meter with its number", () => {
+  const host = render(false);
+  const dial = (label: string) => [...host.querySelectorAll("[data-dial]")].find((d) => d.textContent?.includes(label))!;
+  expect(host.querySelectorAll("[data-dial]")).toHaveLength(6);
+  expect(dial("Participation").textContent).toContain("50%");
+  expect(dial("Participation").querySelector("[role=progressbar]")!.getAttribute("aria-valuenow")).toBe("0.5");
+  expect(dial("Allowance used").querySelector("[role=progressbar]")).not.toBeNull();
+  expect(dial("Kudos given").textContent).toContain("10");
+});
+
+test("the period is a row of pixel tabs, and switching it asks for that period", () => {
+  const host = render(false);
+  const tab = [...host.querySelectorAll("[role=tablist][aria-label=Period] [role=tab]")].find((t) => t.textContent === "Year") as HTMLButtonElement;
+  act(() => tab.click());
+  expect(periods.at(-1)).toBe("year");
+});
+
+test("the daily volume keeps its numbers in a table", () => {
+  const host = render(false);
+  const volume = host.querySelector("#volume")!;
+  expect(volume.querySelector("summary")?.textContent).toBe("Show data");
+  expect(volume.querySelector("tbody tr")?.textContent).toContain("1");
+});
+
+test("while received kudos are private, the people who received most are a parchment footnote with a padlock", () => {
+  const host = render(false);
+  const notes = [...host.querySelectorAll("[data-footnote]")];
+  expect(notes.length).toBeGreaterThan(0);
+  expect(notes[0].textContent).toContain("Received kudos are private in this workspace");
+  expect(notes[0].querySelector("[data-padlock]")).not.toBeNull();
+});
 
 const section = (host: HTMLElement) => host.querySelector("#success-metrics") as HTMLElement | null;
 

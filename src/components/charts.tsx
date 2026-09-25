@@ -475,26 +475,38 @@ export function RangeStrip({ label, you, team, color }: { label: string; you: nu
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-/** Weekday × hour intensity grid (sequential, one hue). */
+/**
+ * The heatmap's sequential ramp, one hue light to dark in four pixel steps (no hour is blank but
+ * an empty one): a quarter of the busiest hour or less, half, three quarters, and the busiest.
+ */
+const HEAT_STEPS = [
+  "color-mix(in oklab, var(--color-pond) 30%, var(--color-parchment-deep))",
+  "color-mix(in oklab, var(--color-pond) 60%, var(--color-parchment-deep))",
+  "var(--color-pond)",
+  "var(--color-pond-deep)",
+];
+const heatShade = (v: number, max: number) => (v <= 0 ? "var(--color-parchment-deep)" : HEAT_STEPS[Math.min(3, Math.ceil((v / max) * 4) - 1)]);
+const hourLabel = (h: number) => `${String(h).padStart(2, "0")}:00`;
+
+/** Weekday × hour intensity grid in stepped shades of pond, with its numbers as a table. */
 export function Heatmap({ data }: { data: number[][] }) {
   const [hover, setHover] = useState<{ d: number; h: number } | null>(null);
   const max = Math.max(1, ...data.flat());
   return (
     <div className="relative">
-      <div className="grid gap-[3px]" style={{ gridTemplateColumns: "34px repeat(24, minmax(0, 1fr))" }}>
+      <div className="grid gap-[2px]" style={{ gridTemplateColumns: "30px repeat(24, minmax(0, 1fr))" }}>
         {data.map((row, d) => (
           <div key={d} className="contents">
             <div className="flex items-center tabular text-[10px] text-ink/70">{DAYS[d]}</div>
             {row.map((v, h) => (
               <div
                 key={h}
+                data-cell
                 onMouseEnter={() => setHover({ d, h })}
                 onMouseLeave={() => setHover(null)}
-                className={clsx("aspect-square transition-transform", hover?.d === d && hover?.h === h && "scale-125 ring-2 ring-ink")}
-                style={{
-                  background: v === 0 ? "var(--color-parchment-deep)" : `color-mix(in oklab, var(--color-lantern) ${Math.round(18 + (v / max) * 82)}%, var(--color-parchment-deep))`,
-                }}
-                aria-label={`${DAYS[d]} ${h}:00 – ${v} kudos`}
+                className={clsx("aspect-square", hover?.d === d && hover?.h === h && "ring-2 ring-ink")}
+                style={{ background: heatShade(v, max) }}
+                aria-label={`${DAYS[d]} ${h}:00, ${v} kudos`}
               />
             ))}
           </div>
@@ -506,17 +518,61 @@ export function Heatmap({ data }: { data: number[][] }) {
           </div>
         ))}
       </div>
-      <div className="mt-3 flex items-center justify-between text-xs text-ink/75">
-        <span className="tabular">{hover ? `${DAYS[hover.d]} ${String(hover.h).padStart(2, "0")}:00–${String(hover.h + 1).padStart(2, "0")}:00: ${nf.format(data[hover.d][hover.h])} kudos` : "Hover a cell for details"}</span>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-ink/75">
+        <span className="tabular">{hover ? `${DAYS[hover.d]} ${hourLabel(hover.h)} to ${hourLabel(hover.h + 1)}: ${nf.format(data[hover.d][hover.h])} kudos` : "Hover a cell for details"}</span>
         <span className="flex items-center gap-1.5">
           Less
-          {[0.18, 0.45, 0.72, 1].map((t) => (
-            <span key={t} className="h-2.5 w-2.5" style={{ background: `color-mix(in oklab, var(--color-lantern) ${Math.round(t * 100)}%, var(--color-parchment-deep))` }} />
+          {HEAT_STEPS.map((c) => (
+            <span key={c} className="h-2.5 w-2.5" style={{ background: c }} />
           ))}
           More
         </span>
       </div>
+      <DataTable caption="Kudos by weekday and hour">
+        <thead>
+          <tr>
+            <th className="py-1.5 pr-2 text-left font-normal">Day</th>
+            {Array.from({ length: 24 }, (_, h) => (
+              <th key={h} className="px-1 py-1.5 text-right font-normal">
+                {h}h
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((row, d) => (
+            <tr key={d} className="border-t border-parchment-deep">
+              <th scope="row" className="py-1.5 pr-2 text-left font-normal text-ink/75">
+                {DAYS[d]}
+              </th>
+              {row.map((v, h) => (
+                <td key={h} className="px-1 py-1.5 text-right text-ink tabular">
+                  {nf.format(v)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </DataTable>
     </div>
+  );
+}
+
+/**
+ * A chart's numbers as a table behind "Show data": the accessible view of the picture. The table
+ * scrolls sideways inside its own box, so a wide one never widens a phone.
+ */
+export function DataTable({ caption, children }: { caption: string; children: ReactNode }) {
+  return (
+    <details className="mt-3 border border-parchment-deep px-3 py-2 text-sm">
+      <summary className="cursor-pointer select-none text-xs font-medium text-ink/75 hover:text-ink">Show data</summary>
+      <div className="relative mt-2 max-h-72 overflow-auto">
+        <table className="w-full text-xs">
+          <caption className="sr-only">{caption}</caption>
+          {children}
+        </table>
+      </div>
+    </details>
   );
 }
 
