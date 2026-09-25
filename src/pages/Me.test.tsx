@@ -4,6 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter } from "react-router";
 import { getFunctionName, type FunctionReference } from "convex/server";
 import { afterEach, expect, test, vi } from "vitest";
+import { describeElement, parchmentTextOnDusk } from "@/testing/layout";
 import { ViewerContext, type ReadyViewer } from "@/lib/viewer";
 
 const overview = {
@@ -70,6 +71,8 @@ function render(questsEnabled: boolean) {
       </MemoryRouter>,
     ),
   );
+  // Text written for parchment never lands on the dusk ground (#127).
+  expect(parchmentTextOnDusk(host).map(describeElement)).toEqual([]);
   return host;
 }
 const activityCard = (host: HTMLElement) => [...host.querySelectorAll("h2")].find((h) => h.textContent === "Recent activity")!.closest(".xl\\:col-span-7, .xl\\:col-span-12")!;

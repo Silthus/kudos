@@ -60,7 +60,7 @@ export function TeammatePicker({
     <Dialog open={open} onClose={onClose} title="Compare with a teammate" subtitle="A side-by-side look at the same period. Nobody wins here.">
       <label className="relative block">
         <span className="sr-only">Search teammates</span>
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/65" aria-hidden />
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/70" aria-hidden />
         <input
           data-autofocus
           value={search}
@@ -101,7 +101,7 @@ export function TeammatePicker({
                   <Avatar name={m.name} src={m.avatarUrl} size={32} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium text-ink">{m.name}</span>
-                    {(m.title || m.realName) && <span className="block truncate text-xs text-ink/65">{m.title || m.realName}</span>}
+                    {(m.title || m.realName) && <span className="block truncate text-xs text-ink/70">{m.title || m.realName}</span>}
                   </span>
                   {m._id === selectedId && <span className="tabular text-[10px] text-ink/75">Current</span>}
                 </button>

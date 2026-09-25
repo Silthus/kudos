@@ -90,7 +90,7 @@ export function SuccessMetrics({ today }: { today: string }) {
                   <div key={metric.key} data-metric={metric.key} className="border border-parchment-deep bg-parchment-deep/40 p-4">
                     <div className="flex items-baseline justify-between gap-2">
                       <Eyebrow>{metric.label}</Eyebrow>
-                      <span className="text-[11px] text-ink/65">{GOAL_LABEL[metric.goal]}</span>
+                      <span className="text-[11px] text-ink/70">{GOAL_LABEL[metric.goal]}</span>
                     </div>
                     <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
                       <span className="font-display text-3xl font-semibold">{formatMetric(metric.key, value)}</span>
@@ -101,7 +101,7 @@ export function SuccessMetrics({ today }: { today: string }) {
                         </span>
                       )}
                     </div>
-                    <p className="mt-1 text-xs text-ink/65">{metric.hint}</p>
+                    <p className="mt-1 text-xs text-ink/70">{metric.hint}</p>
                     <div className="mt-3">
                       <Sparkline
                         label={`${metric.label} per month`}
@@ -111,7 +111,7 @@ export function SuccessMetrics({ today }: { today: string }) {
                         format={(n) => formatMetric(metric.key, n)}
                         lastPartial={result.months.at(-1)?.toDate}
                       />
-                      <div className="mt-1 flex justify-between tabular text-[10px] text-ink/65">
+                      <div className="mt-1 flex justify-between tabular text-[10px] text-ink/70">
                         <span>{monthLabel(result.months[0].month)}</span>
                         {result.months.length > 1 && <span>{monthLabel(result.months.at(-1)!.month)}</span>}
                       </div>
@@ -120,7 +120,7 @@ export function SuccessMetrics({ today }: { today: string }) {
                 );
               })}
             </div>
-            <p className="mt-3 text-xs text-ink/65">
+            <p className="mt-3 text-xs text-ink/70">
               Dashed line: the baseline. Hollow point: this month so far. A kudos counts once per person recognised, whatever its
               amount; reactions count as kudos without a note, and thank-backs follow the Quests' 72-hour rule. Participation is
               measured against today's team plus anyone who has left since giving that month.

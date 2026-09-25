@@ -47,7 +47,7 @@ export function QuestBoardBody({ board, size = "md" }: { board: QuestBoard; size
         <ul className="space-y-1.5" aria-label="This week's quests, locked">
           {[...board.quests.map((q) => q.title), ...(board.daily ? [`Today: ${board.daily.title}`] : [])].map((title) => (
             <li key={title} className="flex items-center gap-2 border border-dashed border-parchment-deep px-3 py-2 text-sm text-ink/75">
-              <Lock className="h-3.5 w-3.5 shrink-0 text-ink/65" aria-hidden />
+              <Lock className="h-3.5 w-3.5 shrink-0 text-ink/70" aria-hidden />
               {title}
             </li>
           ))}
@@ -64,7 +64,7 @@ export function QuestBoardBody({ board, size = "md" }: { board: QuestBoard; size
       </ul>
       {board.daily && <DailyQuestItem daily={board.daily} reward={board.rewards?.daily ?? null} />}
       {board.rewards && (
-        <p className="text-xs text-ink/65">
+        <p className="text-xs text-ink/70">
           Each weekly quest {rewardLabel(board.rewards.weekly)} · clean sweep +{board.rewards.sweep.xp} XP
         </p>
       )}
@@ -95,9 +95,9 @@ function DailyQuestItem({ daily, reward }: { daily: NonNullable<QuestBoard["dail
           </div>
           <p className="text-xs text-ink/75">{daily.description}</p>
           {done && daily.completedAt ? (
-            <p className="mt-1 text-[11px] text-ink/65">Completed {relativeTime(daily.completedAt)}</p>
+            <p className="mt-1 text-[11px] text-ink/70">Completed {relativeTime(daily.completedAt)}</p>
           ) : (
-            <p className="mt-1 text-[11px] text-ink/65">A new one tomorrow; missing it costs nothing.</p>
+            <p className="mt-1 text-[11px] text-ink/70">A new one tomorrow; missing it costs nothing.</p>
           )}
         </div>
       </div>
@@ -123,7 +123,7 @@ export function QuestItem({ quest: q, size = "md" }: { quest: QuestRow; size?: "
           className={clsx(
             "mt-0.5 grid shrink-0 place-items-center",
             large ? "h-6 w-6" : "h-5 w-5",
-            done ? "bg-hedge text-ink" : waived ? "bg-parchment-deep text-ink/65" : "border border-bark/60",
+            done ? "bg-hedge text-ink" : waived ? "bg-parchment-deep text-ink/70" : "border border-bark/60",
           )}
         >
           {done && <Check className="h-3 w-3" strokeWidth={3} />}
@@ -140,10 +140,10 @@ export function QuestItem({ quest: q, size = "md" }: { quest: QuestRow; size?: "
             )}
           </div>
           <p className={clsx("text-ink/75", large ? "text-sm" : "text-xs")}>{q.description}</p>
-          {waived && <p className="mt-1 text-xs text-ink/65">Not available this week · {waivedCopy(q.key, q.waivedReason)}</p>}
+          {waived && <p className="mt-1 text-xs text-ink/70">Not available this week · {waivedCopy(q.key, q.waivedReason)}</p>}
           {q.status === "active" && <Progress value={q.progress} max={q.goal} className="mt-2" height={large ? 6 : 4} />}
           {done && (q.completedAt || q.messageRarity) && (
-            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-ink/65">
+            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-ink/70">
               {q.messageRarity && (
                 <Link to="/discoveries?category=quest_complete" title="See your Quest messages in the gallery" className="transition hover:opacity-80">
                   <RarityBadge rarity={q.messageRarity} size="xs" />

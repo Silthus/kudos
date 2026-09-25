@@ -68,7 +68,7 @@ test("the page header is a wooden sign with the title only: an eyebrow is accept
   expect(el.textContent).not.toContain("Friday, September 25");
   expect(el.querySelector("h1")!.textContent).toBe("Good evening, Alex");
   expect(el.textContent).toContain("You're #4 this week.");
-  expect(el.querySelector("h1")!.closest(".bg-bark")).not.toBeNull();
+  expect(el.querySelector("h1")!.closest(".pixel-sign")).not.toBeNull();
 });
 
 const fillOf = (el: HTMLElement) => (el.querySelector("[data-fill]") as HTMLElement).style.getPropertyValue("--fill");
@@ -81,6 +81,13 @@ test("the meter fills in blocks: any progress shows a block, and it never looks 
   expect(fillOf(render(<Progress value={2045} max={2100} />))).toBe("clamp(4px, 97.38%, 100% - 4px)");
   act(() => root?.unmount());
   expect(fillOf(render(<Progress value={2100} max={2100} />))).toBe("100%");
+  act(() => root?.unmount());
+  // Odd inputs never draw a broken or overfull bar.
+  expect(fillOf(render(<Progress value={NaN} max={100} />))).toBe("0%");
+  act(() => root?.unmount());
+  expect(fillOf(render(<Progress value={5} max={0} />))).toBe("0%");
+  act(() => root?.unmount());
+  expect(fillOf(render(<Progress value={150} max={100} />))).toBe("100%");
   act(() => root?.unmount());
   const meter = render(<Progress value={50} max={100} />).querySelector('[role="progressbar"]')!;
   expect(classes(meter)).toContain("pixel-meter");

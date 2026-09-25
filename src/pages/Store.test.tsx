@@ -4,6 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter } from "react-router";
 import { getFunctionName, type FunctionReference } from "convex/server";
 import { afterEach, expect, test, vi } from "vitest";
+import { describeElement, parchmentTextOnDusk } from "@/testing/layout";
 import { ViewerContext, type ReadyViewer } from "@/lib/viewer";
 
 /** The Store page (#91): Hog coins only, locked until level 5, game items first, real rewards behind the admin switch. */
@@ -52,6 +53,8 @@ function render() {
       </MemoryRouter>,
     ),
   );
+  // Text written for parchment never lands on the dusk ground (#127).
+  expect(parchmentTextOnDusk(host).map(describeElement)).toEqual([]);
   return host;
 }
 

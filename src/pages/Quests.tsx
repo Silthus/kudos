@@ -29,11 +29,11 @@ export function Quests() {
       {!board.enabled ? (
         <Card>
           {board.hidden ? (
-            <Empty icon={<Target className="h-7 w-7 text-ink/65" />} title="Quests are part of the game you've hidden">
+            <Empty icon={<Target className="h-7 w-7 text-ink/70" />} title="Quests are part of the game you've hidden">
               They still count and pay while it's hidden. Show the game again on your Me page to see them.
             </Empty>
           ) : (
-            <Empty icon={<Target className="h-7 w-7 text-ink/65" />} title="Quests are off in this workspace">
+            <Empty icon={<Target className="h-7 w-7 text-ink/70" />} title="Quests are off in this workspace">
               An admin can turn weekly quests on in the settings. Your log is kept.
             </Empty>
           )}
@@ -115,7 +115,7 @@ function HowQuestsCount() {
   return (
     <Card>
       <CardHeader title="How quests count" />
-      <ul className="list-disc space-y-1.5 px-5 pb-5 pl-10 text-sm leading-relaxed text-ink/75 marker:text-ink/65">
+      <ul className="list-disc space-y-1.5 px-5 pb-5 pl-10 text-sm leading-relaxed text-ink/75 marker:text-ink/70">
         {QUEST_RULES.map((rule, i) => (
           <li key={i}>{rule}</li>
         ))}
@@ -146,7 +146,7 @@ function Stamp({ quest: q, timeZone }: { quest: PastQuest; timeZone: string }) {
         "relative flex h-9 w-9 items-center justify-center gap-1.5 border text-xs font-medium sm:w-auto sm:justify-start sm:px-3",
         q.done && "border-hedge/40 bg-hedge/15 text-hedge-deep",
         !q.done && !q.waived && "border-bark/60 text-ink/75",
-        q.waived && "border-dashed border-bark/60 text-ink/65 opacity-60",
+        q.waived && "border-dashed border-bark/60 text-ink/70 opacity-60",
       )}
     >
       <Icon className="h-4 w-4 shrink-0" aria-hidden />
@@ -177,7 +177,7 @@ function PastWeeks({ weeks, today }: { weeks: QuestLog["weeks"]; today: string }
         action={<Legend />}
       />
       {weeks.length === 0 ? (
-        <Empty icon={<ScrollText className="h-7 w-7 text-ink/65" />} title="Nothing in your log yet">
+        <Empty icon={<ScrollText className="h-7 w-7 text-ink/70" />} title="Nothing in your log yet">
           The Monday after a week you gave kudos in, that week's board lands here with a stamp for every quest you completed.
         </Empty>
       ) : (
@@ -186,7 +186,7 @@ function PastWeeks({ weeks, today }: { weeks: QuestLog["weeks"]; today: string }
             <li key={w.weekKey} className="flex items-center gap-3 py-2.5 sm:gap-4">
               <div className="w-16 shrink-0 sm:w-28">
                 <div className="text-sm font-medium tabular">{weekLabel(w.weekKey, today)}</div>
-                <div className="hidden text-xs text-ink/65 sm:block">
+                <div className="hidden text-xs text-ink/70 sm:block">
                   {w.board.filter((q) => q.done).length} of {w.board.filter((q) => q.done || !q.waived).length} done
                 </div>
               </div>

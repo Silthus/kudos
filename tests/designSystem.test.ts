@@ -51,6 +51,15 @@ test("the display face is Pixelify Sans and the reading face is Nunito, with no 
   expect(Object.keys(deps).filter((d) => d.startsWith("@fontsource")).sort()).toEqual(["@fontsource-variable/nunito", "@fontsource-variable/pixelify-sans"]);
 });
 
+test("focus is a 2 px ring that stays visible: lantern on dusk and bark, bark on parchment faces", () => {
+  expect(css).toMatch(/:focus-visible\s*\{\s*outline:\s*2px solid var\(--color-lantern\);\s*outline-offset:\s*2px;/);
+  // Lantern on parchment is 1.6:1: every light face redraws the ring in bark (10.7:1)…
+  const onLight = css.match(/:where\(([^)]*)\)\s*:focus-visible\s*\{\s*outline-color:\s*var\(--color-bark\)/)?.[1] ?? "";
+  for (const face of [".pixel-frame", ".pixel-note", ".bg-parchment", ".bg-parchment-deep", '[role="tablist"]']) expect(onLight).toContain(face);
+  // …and a bark or dusk block inside one goes back to lantern.
+  expect(css).toMatch(/:where\([^)]*\)\s*:where\([^)]*\.bg-bark[^)]*\)\s*:focus-visible\s*\{\s*outline-color:\s*var\(--color-lantern\)/);
+});
+
 test("the stylesheet has no blur, glass, gradient, grain or shimmer", () => {
   expect(css).not.toMatch(/blur|gradient|grain|shimmer|backdrop/i);
 });

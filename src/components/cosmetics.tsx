@@ -141,7 +141,7 @@ export function LookCard({ memberId, today }: { memberId: Id<"members">; today: 
                     </button>
                   ))}
                   {mine.look[slot] && (
-                    <button type="button" aria-label={`Take off your ${slot}`} onClick={() => void wear({ slot, key: null })} className="text-xs text-ink/65 hover:text-ink/75">
+                    <button type="button" aria-label={`Take off your ${slot}`} onClick={() => void wear({ slot, key: null })} className="text-xs text-ink/70 hover:text-ink/75">
                       Take off
                     </button>
                   )}
@@ -160,7 +160,7 @@ export function LookCard({ memberId, today }: { memberId: Id<"members">; today: 
               </li>
             ))}
           </ul>
-          {mine.emoji.length > 1 && <p className="mt-1.5 text-xs text-ink/65">Your variants give like the kudos emoji. Only you can give with them.</p>}
+          {mine.emoji.length > 1 && <p className="mt-1.5 text-xs text-ink/70">Your variants give like the kudos emoji. Only you can give with them.</p>}
         </div>
 
         {mine.superKudos && (
@@ -207,10 +207,10 @@ export function SuperKudosCelebration({ today }: { today: string }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="super-kudos-title"
-        initial={{ opacity: 0, scale: 0.9, y: 12 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 260, damping: 20 }}
-        className="relative w-full max-w-md overflow-hidden border border-lantern/50 bg-parchment p-6 text-center"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.12, ease: "easeOut" }}
+        className="pixel-frame relative w-full max-w-md overflow-hidden p-6 text-center"
       >
         <div aria-hidden className="absolute inset-x-0 top-0 h-24 opacity-60" style={{ background: "var(--color-lantern)" }} />
         <button ref={closeRef} type="button" onClick={close} aria-label="Close" className="absolute right-3 top-3 z-10 p-1.5 text-ink/75 hover:bg-parchment-deep/50 hover:text-ink">

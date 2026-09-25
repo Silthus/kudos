@@ -11,7 +11,7 @@ import { SlackMark } from "./Landing";
 function Status({ ok, label }: { ok: boolean | undefined; label: string }) {
   return (
     <li className="flex items-center gap-3 py-2 text-sm">
-      <span className={`grid h-5 w-5 place-items-center ${ok ? "bg-hedge/20 text-hedge-deep" : "bg-parchment-deep text-ink/65"}`}>
+      <span className={`grid h-5 w-5 place-items-center ${ok ? "bg-hedge/20 text-hedge-deep" : "bg-parchment-deep text-ink/70"}`}>
         {ok ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
       </span>
       <code className="tabular text-[13px]">{label}</code>

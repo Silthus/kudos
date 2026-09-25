@@ -84,7 +84,7 @@ export function AppShell() {
           {viewer.workspace.iconUrl ? (
             <img src={viewer.workspace.iconUrl} alt="" className="h-8 w-8" />
           ) : (
-            <span className="grid h-8 w-8 place-items-center bg-hedge font-display text-base font-medium text-cream">
+            <span className="grid h-8 w-8 place-items-center bg-hedge-deep font-display text-base font-medium text-cream">
               {viewer.workspace.name[0]}
             </span>
           )}

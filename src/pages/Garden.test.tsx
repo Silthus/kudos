@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from "react-router";
 import { getFunctionName, type FunctionReference } from "convex/server";
 import { MotionGlobalConfig } from "motion/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { describeElement, parchmentTextOnDusk } from "@/testing/layout";
 import { ViewerContext, type ReadyViewer } from "@/lib/viewer";
 
 /** The garden pages (#95): your garden, planting, picking fruit, and the plants grown for you. */
@@ -72,6 +73,8 @@ function render(path = "/garden") {
       </MemoryRouter>,
     ),
   );
+  // Text written for parchment never lands on the dusk ground (#127).
+  expect(parchmentTextOnDusk(host).map(describeElement)).toEqual([]);
   return host;
 }
 const click = (el: Element) => act(() => (el as HTMLElement).click());

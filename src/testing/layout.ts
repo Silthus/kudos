@@ -88,3 +88,29 @@ export function widensSideways(root: ParentNode): Element[] {
 }
 
 export const describeElement = (el: Element) => `<${el.tagName.toLowerCase()} class="${el.className}">${el.textContent?.slice(0, 30) ?? ""}`;
+
+// The pixel kit's text colours for parchment (ink and the -deep accents) and its surfaces.
+const PARCHMENT_TEXT = /^text-(ink|soil|ember-deep|pond-deep|hedge-deep)(\/\d+)?$/;
+// Opaque light faces: a frame, a note, a pixel button, or a solid parchment / parchment-deep / lantern fill.
+// `pixel-sign` is bark, but it recolours parchment text for itself (index.css), so it counts here.
+const LIGHT_SURFACE = /^(pixel-frame|pixel-note|pixel-btn|pixel-sign|bg-(parchment|parchment-deep|lantern|cream)(\/(8\d|9\d|100))?)$/;
+const DARK_SURFACE = /^bg-(bark|dusk|dusk-deep|soil|ink)(\/(8\d|9\d|100))?$/;
+
+/**
+ * Text coloured for parchment that sits on the dusk ground or a bark board instead, where it can't
+ * be read (ink on dusk is 1:1). The nearest opaque surface decides; see-through washes don't count,
+ * and with none at all the element is on the page's dusk. Only resting (unprefixed) classes count.
+ */
+export function parchmentTextOnDusk(root: ParentNode): Element[] {
+  return [...root.querySelectorAll("*")].filter((el) => {
+    if (!always(el).some((c) => PARCHMENT_TEXT.test(c))) return false;
+    for (let p: Element | null = el; p && p !== root; p = p.parentElement) {
+      // A <dialog> is drawn in the top layer on its own pixel frame, never on the page's dusk.
+      if (p.tagName === "DIALOG") return false;
+      const cls = always(p);
+      if (cls.some((c) => LIGHT_SURFACE.test(c))) return false;
+      if (cls.some((c) => DARK_SURFACE.test(c))) return true;
+    }
+    return true;
+  });
+}

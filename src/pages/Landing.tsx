@@ -45,14 +45,14 @@ function SlackMock() {
           <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
           <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
           <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
-          <span className="ml-3 tabular text-xs text-ink/65"># releases</span>
+          <span className="ml-3 tabular text-xs text-ink/70"># releases</span>
         </div>
         <div className="space-y-5 p-5">
           <div className="flex gap-3">
             <Avatar name="Alex Rivera" size={38} />
             <div>
               <div className="text-sm">
-                <b className="font-semibold">Alex Rivera</b> <span className="text-xs text-ink/65">10:42</span>
+                <b className="font-semibold">Alex Rivera</b> <span className="text-xs text-ink/70">10:42</span>
               </div>
               <p className="mt-0.5 text-[15px] leading-relaxed text-ink">
                 <span className="bg-[#1d9bd1]/20 px-1 text-pond-deep">@Priya</span>{" "}
@@ -69,7 +69,7 @@ function SlackMock() {
             <div className="min-w-0 flex-1">
               <div className="text-sm">
                 <b className="font-semibold">Kudos</b> <span className="bg-parchment-deep px-1 py-px text-[10px] font-semibold text-ink/75">APP</span>{" "}
-                <span className="text-xs text-ink/65">Only visible to you</span>
+                <span className="text-xs text-ink/70">Only visible to you</span>
               </div>
               <AnimatePresence mode="wait">
                 <motion.div
@@ -236,14 +236,14 @@ export function Landing() {
               <div key={r} className={`bg-parchment-deep/40 p-3 ring-1 ring-inset sm:p-4 ${RARITY_META[r].ring} ${RARITY_META[r].glow}`}>
                 <RarityBadge rarity={r} size="xs" />
                 <div className={`mt-4 font-display text-3xl font-semibold tabular ${r === "legendary" ? "legendary-text" : ""}`}>{[55, 25, 12, 6, 2][i]}%</div>
-                <div className="text-xs text-ink/65">{[25, 15, 10, 5, 5][i]} messages</div>
+                <div className="text-xs text-ink/70">{[25, 15, 10, 5, 5][i]} messages</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <footer className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 border-t border-bark px-5 py-8 text-sm text-cream/70">
+      <footer className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 border-t-2 border-soil px-5 py-8 text-sm text-cream/70">
         <span>Built on Convex · Slack Events API over HTTPS</span>
         <Link to="/setup" className="hover:text-cream">
           Self-host & install guide →

@@ -44,7 +44,7 @@ export const formatValue = (n: number | null) => (n === null ? "—" : nf.format
 
 function LockedCell({ reason }: { reason: Locked }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs text-ink/65">
+    <span className="inline-flex items-center gap-1.5 text-xs text-ink/70">
       <Lock className="h-3 w-3" aria-hidden />
       {LOCKED_COPY[reason]}
     </span>
@@ -88,7 +88,7 @@ export function Scoreboard<R extends Row>({
       <CardHeader title="Scoreboard" subtitle={subtitle} />
       <table className="hidden w-full text-sm sm:table">
         <thead>
-          <tr className="border-b border-parchment-deep text-left tabular text-[10px] text-ink/65">
+          <tr className="border-b border-parchment-deep text-left tabular text-[10px] text-ink/70">
             <th className="py-2 pl-5 font-normal">Metric</th>
             <th className="py-2 text-right font-normal">You</th>
             <th className="py-2 pl-3 text-right font-normal">{benchmarkLabel}</th>
@@ -103,7 +103,7 @@ export function Scoreboard<R extends Row>({
             <tr key={r.metric} className="border-b border-parchment-deep last:border-0">
               <th scope="row" className="py-3 pl-5 text-left font-normal">
                 <div className="text-ink">{METRIC_META[r.metric].label}</div>
-                <div className="text-xs text-ink/65">{METRIC_META[r.metric].hint}</div>
+                <div className="text-xs text-ink/70">{METRIC_META[r.metric].hint}</div>
               </th>
               {r.you.locked ? (
                 <td colSpan={4} className="py-3 pr-5 text-right">
@@ -131,7 +131,7 @@ export function Scoreboard<R extends Row>({
               ) : (
                 <span className="flex items-baseline gap-2 text-sm">
                   <b className="font-medium text-ink tabular">{formatValue(r.you.value)}</b>
-                  <span className="text-ink/65">vs</span>
+                  <span className="text-ink/70">vs</span>
                   <span className="text-ink/75 tabular">{formatValue(r.benchmark.value)}</span>
                   {renderDelta(r)}
                 </span>
@@ -268,7 +268,7 @@ function RaceTable({
       <div className="mt-2 max-h-72 overflow-y-auto">
         <table className="w-full text-xs">
           <thead className="sticky top-0 bg-parchment">
-            <tr className="text-left tabular text-[10px] text-ink/65">
+            <tr className="text-left tabular text-[10px] text-ink/70">
               <th className="py-1.5 font-normal">Day</th>
               <th className="py-1.5 text-right font-normal">You, so far</th>
               {benchmark && benchmarkDays && <th className="py-1.5 pl-3 font-normal">{benchmarkLabel}</th>}

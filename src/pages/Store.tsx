@@ -58,7 +58,7 @@ export function RewardCard({
     <article
       className={clsx(
         "group relative flex h-full flex-col border border-parchment-deep bg-parchment p-4 transition-colors hover:border-bark/60",
-        dimmed && "opacity-70",
+        dimmed && "[&>*]:opacity-60",
         className,
       )}
     >
@@ -75,7 +75,7 @@ export function RewardCard({
           <span
             className={clsx(
               "px-2.5 py-1 tabular text-[10px] ring-1 ring-inset",
-              badge.tone === "ember" && "bg-ember/10 text-ember ring-ember/30",
+              badge.tone === "ember" && "bg-ember/10 text-ember-deep ring-ember/40",
               badge.tone === "teal" && "bg-pond/15 text-pond-deep ring-pond/30",
               badge.tone === "muted" && "bg-parchment-deep text-ink/75 ring-bark/60",
             )}
@@ -87,7 +87,7 @@ export function RewardCard({
       <h3 className="mt-4 font-display text-lg font-semibold leading-snug text-ink">{reward.name || "Untitled reward"}</h3>
       {reward.description && <p className="mt-1 text-sm leading-relaxed text-ink/75">{reward.description}</p>}
       {reward.prompt && (
-        <p className="mt-2 flex items-center gap-1.5 text-xs text-ink/65">
+        <p className="mt-2 flex items-center gap-1.5 text-xs text-ink/70">
           <MessageCircleQuestion className="h-3.5 w-3.5" /> Asks: {reward.prompt}
         </p>
       )}
@@ -129,7 +129,7 @@ const STATUS_META: Record<RedemptionStatus, { label: string; chip: string; dot: 
   approved: { label: "Approved", chip: "bg-pond/15 text-pond-deep ring-pond/30", dot: "var(--color-pond)", verb: "Approved" },
   fulfilled: { label: "Fulfilled", chip: "bg-hedge/10 text-hedge-deep ring-hedge/30", dot: "var(--color-hedge)", verb: "Fulfilled" },
   declined: { label: "Declined", chip: "bg-ember/10 text-ember-deep ring-ember/25", dot: "var(--color-ember)", verb: "Declined" },
-  cancelled: { label: "Cancelled", chip: "bg-parchment-deep text-ink/65 ring-bark/60", dot: "var(--color-benchmark)", verb: "Cancelled" },
+  cancelled: { label: "Cancelled", chip: "bg-parchment-deep text-ink/70 ring-bark/60", dot: "var(--color-benchmark)", verb: "Cancelled" },
 };
 
 export function StatusChip({ status }: { status: RedemptionStatus }) {
@@ -159,7 +159,7 @@ export function AdjustmentLine({ a, glyph, meId, from }: { a: AdjustmentEntry; g
       </span>
       <div className="min-w-0 flex-1">
         <p className="break-words text-ink">“{a.reason}”</p>
-        <p className="text-xs text-ink/65">
+        <p className="text-xs text-ink/70">
           {from ? "from" : "by"} {who} · {relativeTime(a.at)}
         </p>
       </div>
@@ -176,7 +176,7 @@ export function RedemptionHistory({ history, meId }: { history: HistoryEntry[]; 
           <span className="absolute -left-[21px] top-[7px] h-2 w-2 ring-2 ring-parchment" style={{ background: STATUS_META[h.status].dot }} />
           <span className="text-ink">{STATUS_META[h.status].verb}</span>
           <span className="text-ink/75"> by {h.by ? (h.by._id === meId ? "you" : h.by.name) : "someone who left"}</span>
-          <span className="text-ink/65"> · {relativeTime(h.at)}</span>
+          <span className="text-ink/70"> · {relativeTime(h.at)}</span>
           {h.note && <p className="mt-0.5 text-ink/75">“{h.note}”</p>}
         </li>
       ))}
@@ -280,8 +280,8 @@ function OpenStore({ shop }: { shop: OpenShop }) {
         action={viewer.workspace.isDemo && <HandBackRewards />}
       />
       {balance < 0 && (
-        <p className="mb-5 flex items-start gap-2.5 border border-bark/60 bg-parchment-deep/50 px-4 py-3 text-sm text-ink/75">
-          <Info className="mt-0.5 h-4 w-4 shrink-0 text-ink/65" />
+        <p className="pixel-note mb-5 flex items-start gap-2.5 px-4 py-3 text-sm">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-ink/70" />
           <span>
             Your balance is {nf.format(balance)} {COIN} because a revoked kudos took back coins you'd already spent, or an admin adjusted it. Spending waits until it's above zero again.
           </span>
@@ -331,7 +331,7 @@ function ItemCard({ item, balance, onBuy, usesLeft }: { item: ShopItem; balance:
   const Icon = ITEM_ICONS[item.key] ?? Gift;
   const block = buyBlock(item, balance);
   return (
-    <article className={clsx("flex h-full flex-col border border-parchment-deep bg-parchment p-4", item.blocked && "opacity-70")}>
+    <article className={clsx("flex h-full flex-col border border-parchment-deep bg-parchment p-4", item.blocked && "[&>*]:opacity-60")}>
       <div className="flex items-start justify-between gap-3">
         {hasItemArt(item.key) ? (
           <ItemArt itemKey={item.key} />
@@ -370,7 +370,7 @@ function ItemCard({ item, balance, onBuy, usesLeft }: { item: ShopItem; balance:
           </Button>
         )}
       </div>
-      {block && <p className="mt-2 text-xs text-ink/65">{block}</p>}
+      {block && <p className="mt-2 text-xs text-ink/70">{block}</p>}
     </article>
   );
 }
@@ -494,12 +494,12 @@ function RealRewards() {
           Rewards
         </h2>
         {data.openCount > 0 && (
-          <a href="#my-requests" className="inline-flex items-center gap-2 border border-bark/60 bg-parchment-deep/50 px-3 py-1.5 text-xs text-ink/75 hover:text-ink">
+          <a href="#my-requests" className="pixel-note inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold">
             <Clock className="h-3.5 w-3.5 text-soil" /> {data.openCount} of {data.maxOpen} requests open
           </a>
         )}
       </div>
-      <p className="mb-4 text-sm text-ink/65">
+      <p className="mb-4 text-sm text-cream/75">
         An admin approves and hands these over.{" "}
         {rewards.length > 0 && (
           <>
@@ -508,8 +508,8 @@ function RealRewards() {
         )}
       </p>
       {data.openCount >= data.maxOpen && (
-        <p className="mb-5 flex items-start gap-2.5 border border-bark/60 bg-parchment-deep/50 px-4 py-3 text-sm text-ink/75">
-          <Info className="mt-0.5 h-4 w-4 shrink-0 text-ink/65" />
+        <p className="pixel-note mb-5 flex items-start gap-2.5 px-4 py-3 text-sm">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-ink/70" />
           <span>You have {data.maxOpen} open requests. Once an admin finishes one, you can redeem again.</span>
         </p>
       )}
@@ -718,7 +718,7 @@ function RedeemDialog({
             )}
             {blocked && block && (
               <p role="alert" className="flex items-center gap-1.5 border border-bark/60 bg-parchment-deep/50 px-3 py-2.5 text-sm text-ink/75">
-                <Info className="h-4 w-4 shrink-0 text-ink/65" /> {block.reason}
+                <Info className="h-4 w-4 shrink-0 text-ink/70" /> {block.reason}
               </p>
             )}
             <dl className="grid grid-cols-2 gap-2 text-sm">
@@ -814,7 +814,7 @@ function MyRequests({ onlyIfAny = false }: { onlyIfAny?: boolean }) {
                         <span className="truncate font-medium">{r.rewardName}</span>
                         <StatusChip status={r.status} />
                       </div>
-                      <p className="mt-0.5 text-xs text-ink/65">
+                      <p className="mt-0.5 text-xs text-ink/70">
                         <span className={clsx("tabular", refunded ? "text-ink/75 line-through" : "text-soil")}>
                           {nf.format(r.cost)} {r.legacy ? "kudos" : glyph}
                         </span>
@@ -838,7 +838,7 @@ function MyRequests({ onlyIfAny = false }: { onlyIfAny?: boolean }) {
                           Cancel
                         </Button>
                       ))}
-                    <button onClick={() => setExpanded(isExpanded ? null : r._id)} className="shrink-0 p-1.5 text-ink/65 hover:text-ink" aria-hidden tabIndex={-1}>
+                    <button onClick={() => setExpanded(isExpanded ? null : r._id)} className="shrink-0 p-1.5 text-ink/70 hover:text-ink" aria-hidden tabIndex={-1}>
                       <ChevronDown className={clsx("h-4 w-4 transition-transform", isExpanded && "rotate-180")} />
                     </button>
                   </div>
@@ -853,7 +853,7 @@ function MyRequests({ onlyIfAny = false }: { onlyIfAny?: boolean }) {
                         <div className="space-y-3 px-3 pb-3 pl-16">
                           {r.prompt && r.answer && (
                             <p className="text-sm">
-                              <span className="text-ink/65">{r.prompt}</span> <span className="text-ink">{r.answer}</span>
+                              <span className="text-ink/70">{r.prompt}</span> <span className="text-ink">{r.answer}</span>
                             </p>
                           )}
                           <RedemptionHistory history={r.history} meId={viewer.member._id} />

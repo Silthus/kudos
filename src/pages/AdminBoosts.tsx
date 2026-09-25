@@ -25,7 +25,7 @@ export function AdminBoosts({ gameEnabled }: { gameEnabled: boolean }) {
     <div className="grid gap-6 xl:grid-cols-2">
       {!gameEnabled && (
         <p className="flex items-start gap-2.5 border border-bark/60 bg-parchment-deep/50 px-4 py-3 text-sm text-ink/75 xl:col-span-2">
-          <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-ink/65" />
+          <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-ink/70" />
           Bonus days double XP and Hog coins, which only exist while the game is on (Settings).
         </p>
       )}
@@ -66,7 +66,7 @@ function BoostRow({ boost, today, isDemo, hasChannel }: { boost: AdminBoost; tod
           <div className="font-medium text-ink">
             {boost.dayKey === today ? "Today" : dayLabel(boost.dayKey)} · {BOOST_NAME[boost.kind]}
           </div>
-          <div className="text-xs text-ink/65">{startedBy(boost.source, boost.by)}</div>
+          <div className="text-xs text-ink/70">{startedBy(boost.source, boost.by)}</div>
         </div>
         {cancellable && (
           <Button
@@ -82,7 +82,7 @@ function BoostRow({ boost, today, isDemo, hasChannel }: { boost: AdminBoost; tod
         )}
       </div>
       <blockquote className="mt-3 border border-parchment-deep bg-parchment-deep/40 px-4 py-3 text-sm leading-relaxed text-ink">
-        <span className="mb-1 flex items-center gap-1.5 tabular text-[10px] text-ink/65">
+        <span className="mb-1 flex items-center gap-1.5 tabular text-[10px] text-ink/70">
           <Megaphone className="h-3 w-3" aria-hidden /> Announcement
         </span>
         {boost.text}

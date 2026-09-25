@@ -52,7 +52,7 @@ export function Garden() {
       <div>
         {header}
         <Card>
-          <Empty icon={<Sprout className="h-7 w-7 text-ink/65" />} title={title}>
+          <Empty icon={<Sprout className="h-7 w-7 text-ink/70" />} title={title}>
             {body}{" "}
             <Link to="/me" className="text-soil underline-offset-4 hover:underline">
               Back to your kudos
@@ -91,7 +91,7 @@ function OwnGarden({ garden, sunlamps }: { garden: OpenGarden; sunlamps: number 
   return (
     <>
       <Harvest garden={garden} />
-      <div className="flex items-baseline justify-between gap-3 text-xs text-ink/75">
+      <div className="flex items-baseline justify-between gap-3 text-xs text-cream/80">
         <span>
           {plural(garden.plants.length, "plant", "plants")} · {plural(garden.plots, "plot", "plots")}
           {garden.plants.length > garden.plots && " (uproot one to plant again)"}
@@ -182,7 +182,7 @@ function PlantFace({
                 aria-label={`Take down ${plant.lantern.by}'s lantern`}
                 title="Take it down"
                 onClick={onTakeDownLantern}
-                className="shrink-0 p-0.5 text-ink/65 hover:text-ink/75"
+                className="shrink-0 p-0.5 text-ink/70 hover:text-ink/75"
               >
                 <X className="h-3.5 w-3.5" aria-hidden />
               </button>
@@ -221,7 +221,7 @@ function PlantCard({ plant, sunlamps, onUproot }: { plant: Grown; sunlamps: numb
         </>
       }
       action={
-        <button type="button" aria-label={label} title={label} onClick={onUproot} className="p-1 text-ink/65 transition hover:bg-parchment-deep/50 hover:text-ink/75">
+        <button type="button" aria-label={label} title={label} onClick={onUproot} className="p-1 text-ink/70 transition hover:bg-parchment-deep/50 hover:text-ink/75">
           <Shovel className="h-4 w-4" aria-hidden />
         </button>
       }
@@ -231,7 +231,7 @@ function PlantCard({ plant, sunlamps, onUproot }: { plant: Grown; sunlamps: numb
 
 function EmptyPlot({ canPlant, onPlant }: { canPlant: boolean; onPlant: () => void }) {
   return (
-    <div data-plot className="flex flex-col items-center justify-center gap-2 border border-dashed border-bark/60 px-4 py-6 text-center">
+    <div data-plot className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-bark/60 bg-parchment-deep px-4 py-6 text-center">
       <div className="relative">
         <PlantArt stage="seed" size={72} />
         {/* A gardening hoggie waits by the plot: PostHog's art, nothing if it can't load. */}
@@ -444,7 +444,7 @@ function GrownForYou({ plants }: { plants: ForMe }) {
               {p.lantern && (
                 <div className="text-xs text-ink">
                   Lantern from {p.lantern.by}: “{p.lantern.note}”{" "}
-                  <button type="button" className="text-ink/65 underline-offset-4 hover:text-ink/75 hover:underline" onClick={() => void takeDown({ plantId: p.plantId }).catch(() => {})}>
+                  <button type="button" className="text-ink/70 underline-offset-4 hover:text-ink/75 hover:underline" onClick={() => void takeDown({ plantId: p.plantId }).catch(() => {})}>
                     Take it down
                   </button>
                 </div>
@@ -497,7 +497,7 @@ export function GardenOf() {
       <div>
         <PageHeader eyebrow="Gardens" title="Garden" />
         <Card>
-          <Empty icon={<Sprout className="h-7 w-7 text-ink/65" />} title="This garden isn't here">
+          <Empty icon={<Sprout className="h-7 w-7 text-ink/70" />} title="This garden isn't here">
             It may belong to someone who left, or the game is off or hidden.{" "}
             <Link to="/garden" className="text-soil underline-offset-4 hover:underline">
               Your garden
@@ -512,7 +512,7 @@ export function GardenOf() {
       <PageHeader eyebrow="Gardens" title={`${garden.name}'s garden`} subtitle="Every plant here is for a teammate. Only they know which one is theirs." />
       {garden.plants.length === 0 ? (
         <Card>
-          <Empty icon={<Sprout className="h-7 w-7 text-ink/65" />} title="Nothing planted yet" />
+          <Empty icon={<Sprout className="h-7 w-7 text-ink/70" />} title="Nothing planted yet" />
         </Card>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -556,7 +556,7 @@ function LanternForm({ plantId, lanterns }: { plantId: Id<"plants">; lanterns: n
     <div className="mt-2 flex flex-col gap-1.5">
       <input
         aria-label="Lantern note"
-        className="h-8 w-full border border-bark/60 bg-parchment-deep/40 px-2 text-xs text-ink outline-none focus:border-lantern/60"
+        className="h-8 w-full border border-bark/60 bg-parchment-deep/40 px-2 text-xs text-ink"
         maxLength={LANTERN.maxChars}
         placeholder="One line for everyone who sees this plant"
         value={note}
@@ -570,7 +570,7 @@ function LanternForm({ plantId, lanterns }: { plantId: Id<"plants">; lanterns: n
         <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
           Not now
         </Button>
-        <span className="ml-auto text-[10px] text-ink/65">Glows for {LANTERN.days} days</span>
+        <span className="ml-auto text-[10px] text-ink/70">Glows for {LANTERN.days} days</span>
       </div>
       {error && <p className="text-xs text-ember-deep">{error}</p>}
     </div>

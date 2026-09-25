@@ -213,7 +213,7 @@ function MoreSheet({ id, groups, onClose, onPick, restoreFocus }: { id: string; 
               {/* Never the current page: that one is always a tab. */}
               {g.items.map((n) => (
                 <NavLink key={n.id} to={n.to} onClick={onPick} className="flex items-center gap-3 px-3 py-3 text-sm font-semibold text-ink/80 hover:bg-parchment-deep/60 hover:text-ink">
-                  <n.icon className="h-4 w-4 text-ink/65" />
+                  <n.icon className="h-4 w-4 text-ink/70" />
                   <span>{n.label}</span>
                   {n.badge && <NavBadge badge={n.badge} className="ml-auto" />}
                 </NavLink>

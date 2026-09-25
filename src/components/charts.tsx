@@ -163,14 +163,14 @@ export function LineChart({ days, series, height = 240, endLabels = false }: { d
           {ticks.map((t) => (
             <g key={t}>
               <line x1={pad.left} x2={pad.left + w} y1={y(t)} y2={y(t)} stroke="var(--color-parchment-deep)" />
-              <text x={pad.left - 8} y={y(t) + 4} textAnchor="end" className="fill-ink/65 tabular text-[10px]">
+              <text x={pad.left - 8} y={y(t) + 4} textAnchor="end" className="fill-ink/70 tabular text-[10px]">
                 {nf.format(t)}
               </text>
             </g>
           ))}
           {days.map((d, i) =>
             i % labelEvery === 0 ? (
-              <text key={d} x={x(i)} y={height - 8} textAnchor="middle" className="fill-ink/65 tabular text-[10px]">
+              <text key={d} x={x(i)} y={height - 8} textAnchor="middle" className="fill-ink/70 tabular text-[10px]">
                 {dayLabel(d)}
               </text>
             ) : null,
@@ -234,14 +234,14 @@ export function LineChart({ days, series, height = 240, endLabels = false }: { d
       )}
       {hover !== null && (
         <Tooltip x={x(hover)} y={pad.top + 8} width={width}>
-          <div className="mb-1 tabular text-[10px] text-ink/65">{dayLabel(days[hover], { weekday: "short", month: "short", day: "numeric" })}</div>
+          <div className="mb-1 tabular text-[10px] text-ink/70">{dayLabel(days[hover], { weekday: "short", month: "short", day: "numeric" })}</div>
           {series.map((s) =>
             s.values[hover] === null ? null : (
               <div key={s.key} className="flex items-center justify-between gap-4">
                 <span className="flex items-center gap-1.5 text-ink/75">
                   <span className="h-2 w-2" style={{ background: s.color, opacity: Math.max(0.6, seriesOpacity(s)) }} />
                   {s.label}
-                  {s.notes?.[hover] && <span className="text-ink/65">· {s.notes[hover]}</span>}
+                  {s.notes?.[hover] && <span className="text-ink/70">({s.notes[hover]})</span>}
                 </span>
                 <span className="font-medium text-ink tabular">{nf.format(s.values[hover] ?? 0)}</span>
               </div>
@@ -299,7 +299,7 @@ export function BarChart({
           {[0, max / 2, max].map((t) => (
             <g key={t}>
               <line x1={pad.left} x2={pad.left + w} y1={y(t)} y2={y(t)} stroke="var(--color-parchment-deep)" />
-              <text x={pad.left - 8} y={y(t) + 4} textAnchor="end" className="fill-ink/65 tabular text-[10px]">
+              <text x={pad.left - 8} y={y(t) + 4} textAnchor="end" className="fill-ink/70 tabular text-[10px]">
                 {nf.format(t)}
               </text>
             </g>
@@ -323,7 +323,7 @@ export function BarChart({
           {comparePath && <path d={comparePath} fill="none" stroke="var(--color-benchmark)" strokeWidth={2} strokeDasharray="4 4" strokeLinecap="square" />}
           {days.map((d, i) =>
             i % labelEvery === 0 ? (
-              <text key={d} x={x(i)} y={height - 8} textAnchor="middle" className="fill-ink/65 tabular text-[10px]">
+              <text key={d} x={x(i)} y={height - 8} textAnchor="middle" className="fill-ink/70 tabular text-[10px]">
                 {axisLabel(d)}
               </text>
             ) : null,
@@ -335,7 +335,7 @@ export function BarChart({
       )}
       {hover !== null && (
         <Tooltip x={x(hover)} y={y(values[hover])} width={width}>
-          <div className="mb-1 tabular text-[10px] text-ink/65">{tooltipLabel(days[hover])}</div>
+          <div className="mb-1 tabular text-[10px] text-ink/70">{tooltipLabel(days[hover])}</div>
           <div className="flex justify-between gap-4">
             <span className="text-ink/75">This period</span>
             <span className="font-medium text-ink tabular">{nf.format(values[hover])} {unit}</span>
@@ -422,7 +422,7 @@ export function RangeStrip({ label, you, team, color }: { label: string; you: nu
       tabIndex={0}
       role="img"
       aria-label={labels[key]}
-      className="absolute top-1/2 flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-lantern/60"
+      className="absolute top-1/2 flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center"
       style={{ left }}
       onMouseEnter={() => setActive(key)}
       onMouseLeave={() => setActive(null)}
@@ -443,7 +443,7 @@ export function RangeStrip({ label, you, team, color }: { label: string; you: nu
         />
       )}
       {team.max !== null && team.max < end && (
-        <span className="absolute top-1/2 h-2.5 w-px -translate-y-1/2 bg-ink/65" style={{ left: at(team.max) }} aria-hidden />
+        <span className="absolute top-1/2 h-2.5 w-px -translate-y-1/2 bg-ink/70" style={{ left: at(team.max) }} aria-hidden />
       )}
       {marker("median", at(team.median), <span className="h-3.5 w-0.5" style={{ background: "var(--color-benchmark)" }} />)}
       {marker(
@@ -452,7 +452,7 @@ export function RangeStrip({ label, you, team, color }: { label: string; you: nu
         <span className="h-2.5 w-2.5" style={{ background: color, boxShadow: "0 0 0 2px var(--color-parchment)" }} />,
       )}
       {team.max !== null && team.max === end && (
-        <span className="absolute left-full top-1/2 -translate-y-1/2 pl-2 text-[11px] leading-none text-ink/65 tabular" aria-hidden>
+        <span className="absolute left-full top-1/2 -translate-y-1/2 pl-2 text-[11px] leading-none text-ink/70 tabular" aria-hidden>
           {nf.format(team.max)}
         </span>
       )}
@@ -461,7 +461,7 @@ export function RangeStrip({ label, you, team, color }: { label: string; you: nu
           className="pointer-events-none absolute bottom-full z-10 mb-1.5 min-w-36 -translate-x-1/2 bg-parchment px-3 py-2 text-xs text-ink shadow-[inset_0_0_0_1px_var(--color-bark),2px_2px_0_0_var(--color-dusk-deep)]"
           style={{ left: `clamp(4.5rem, ${at(active === "you" ? you : team.median)}, calc(100% - 4.5rem))` }}
         >
-          <div className="mb-0.5 tabular text-[10px] text-ink/65">{label}</div>
+          <div className="mb-0.5 tabular text-[10px] text-ink/70">{label}</div>
           {summary.map((line, i) => (
             <div key={line} className={clsx("whitespace-nowrap tabular", i === 0 ? "text-ink" : "text-ink/75")}>
               {line}
@@ -484,7 +484,7 @@ export function Heatmap({ data }: { data: number[][] }) {
       <div className="grid gap-[3px]" style={{ gridTemplateColumns: "34px repeat(24, minmax(0, 1fr))" }}>
         {data.map((row, d) => (
           <div key={d} className="contents">
-            <div className="flex items-center tabular text-[10px] text-ink/65">{DAYS[d]}</div>
+            <div className="flex items-center tabular text-[10px] text-ink/70">{DAYS[d]}</div>
             {row.map((v, h) => (
               <div
                 key={h}
@@ -501,13 +501,13 @@ export function Heatmap({ data }: { data: number[][] }) {
         ))}
         <div />
         {Array.from({ length: 24 }).map((_, h) => (
-          <div key={h} className="pt-1 text-center tabular text-[9px] text-ink/65">
+          <div key={h} className="pt-1 text-center tabular text-[9px] text-ink/70">
             {h % 6 === 0 ? `${h}h` : ""}
           </div>
         ))}
       </div>
       <div className="mt-3 flex items-center justify-between text-xs text-ink/75">
-        <span className="tabular">{hover ? `${DAYS[hover.d]} · ${String(hover.h).padStart(2, "0")}:00–${String(hover.h + 1).padStart(2, "0")}:00 · ${nf.format(data[hover.d][hover.h])} kudos` : "Hover a cell for details"}</span>
+        <span className="tabular">{hover ? `${DAYS[hover.d]} ${String(hover.h).padStart(2, "0")}:00–${String(hover.h + 1).padStart(2, "0")}:00: ${nf.format(data[hover.d][hover.h])} kudos` : "Hover a cell for details"}</span>
         <span className="flex items-center gap-1.5">
           Less
           {[0.18, 0.45, 0.72, 1].map((t) => (
@@ -655,7 +655,7 @@ export function Sparkline({
       )}
       {hover !== null && (
         <Tooltip x={x(hover)} y={pad.top} width={width}>
-          <div className="tabular text-[10px] text-ink/65">{labels[hover]}</div>
+          <div className="tabular text-[10px] text-ink/70">{labels[hover]}</div>
           <div className="font-medium text-ink tabular">{values[hover] === null ? "No kudos" : format(values[hover]!)}</div>
         </Tooltip>
       )}

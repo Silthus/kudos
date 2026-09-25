@@ -50,7 +50,7 @@ function Headline({ data }: { data: Past }) {
           </span>
         )}
       </div>
-      <p className="mt-2 text-sm text-ink/65">
+      <p className="mt-2 text-sm text-ink/70">
         {data.benchmarkNote === "notMember" &&
           (data.previousTotal.given === null
             ? `You joined on ${joined(data.joinedOn!)}, so there's no ${data.benchmarkLabel.toLowerCase()} to compare with yet.`
@@ -71,13 +71,13 @@ function PastScoreboard({ data }: { data: Past }) {
       subtitle={`${data.label} so far vs the same days ${data.benchmarkLabel.toLowerCase()}`}
       deltaHeader="Change"
       renderDelta={(r) => <Delta row={r} />}
-      footnote={data.truncated && <span className="text-xs text-ink/65">Too many kudos this period to count reach and channels.</span>}
+      footnote={data.truncated && <span className="text-xs text-ink/70">Too many kudos this period to count reach and channels.</span>}
     />
   );
 }
 
 function Delta({ row }: { row: Row }) {
-  if (row.delta === null || row.benchmark.value === null || row.you.value === null) return <span className="text-xs text-ink/65">—</span>;
+  if (row.delta === null || row.benchmark.value === null || row.you.value === null) return <span className="text-xs text-ink/70">—</span>;
   return <Trend cur={row.you.value} prev={row.benchmark.value} compact />;
 }
 

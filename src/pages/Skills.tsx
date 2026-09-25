@@ -65,7 +65,7 @@ export function Skills() {
       <div>
         {header}
         <Card>
-          <Empty icon={<Network className="h-7 w-7 text-ink/65" />} title={title}>
+          <Empty icon={<Network className="h-7 w-7 text-ink/70" />} title={title}>
             {body}{" "}
             <Link to="/me" className="text-soil underline-offset-4 hover:underline">
               Back to your kudos
@@ -193,7 +193,7 @@ function TierBlock({
       aria-label={`${branch.name} ${TIER_NAME[tier].toLowerCase()}, ${isOpen ? "open" : `opens at level ${opensAt}`}`}
       className={clsx(!isOpen && "border border-dashed border-bark/60 bg-parchment-deep/40 p-2.5")}
     >
-      <div className="mb-2 flex items-center gap-1.5 tabular text-[11px] text-ink/65">
+      <div className="mb-2 flex items-center gap-1.5 tabular text-[11px] text-ink/70">
         {!isOpen && <Lock className="h-3 w-3" aria-hidden />}
         <span>{TIER_NAME[tier]}</span>
         {tier > 1 && <span>· level {opensAt}</span>}
@@ -244,7 +244,7 @@ function SkillNode({ skill, level, alloc, onOpen }: { skill: Skill; level: numbe
       <span
         className={clsx(
           "mt-0.5 grid h-5 w-5 shrink-0 place-items-center border",
-          rank > 0 ? "border-lantern bg-lantern text-ink" : check.ok ? "border-pond text-pond-deep" : "border-bark/60 text-ink/65",
+          rank > 0 ? "border-lantern bg-lantern text-ink" : check.ok ? "border-pond text-pond-deep" : "border-bark/60 text-ink/70",
         )}
         aria-hidden
       >

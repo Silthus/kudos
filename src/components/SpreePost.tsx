@@ -53,7 +53,7 @@ export function SpreePost({ spree, glyph, onJoin }: { spree: Spree; glyph: strin
         <div className="min-w-0 flex-1">
           <div className="text-sm">
             <b className="font-semibold">{spree.author}</b>{" "}
-            <span className="text-xs text-ink/65">{new Date(spree.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+            <span className="text-xs text-ink/70">{new Date(spree.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
           </div>
           <p className="text-[15px] leading-relaxed text-ink">{spree.text}</p>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
@@ -72,7 +72,7 @@ export function SpreePost({ spree, glyph, onJoin }: { spree: Spree; glyph: strin
         <div className="flex gap-3 bg-parchment-deep/50 px-2 py-2">
           <span className="grid h-9 w-9 shrink-0 place-items-center bg-lantern/20">{glyph}</span>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1 text-xs text-ink/65">
+            <div className="flex items-center gap-1 text-xs text-ink/70">
               <EyeOff className="h-3 w-3" /> Only visible to you
             </div>
             <p className="text-[15px] leading-relaxed text-ink">{note}</p>
@@ -83,7 +83,7 @@ export function SpreePost({ spree, glyph, onJoin }: { spree: Spree; glyph: strin
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3 bg-parchment-deep/50 px-2 py-2">
           <span className="grid h-9 w-9 shrink-0 place-items-center bg-lantern/20">{glyph}</span>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1 text-xs text-ink/65">
+            <div className="flex items-center gap-1 text-xs text-ink/70">
               <EyeOff className="h-3 w-3" /> Only visible to you
             </div>
             <p className="text-[15px] leading-relaxed text-ink">{prompt}</p>

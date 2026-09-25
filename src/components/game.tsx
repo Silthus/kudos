@@ -21,13 +21,13 @@ export function Locked({ title, level, how }: { title: string; level: number; ho
       data-locked
       role="group"
       aria-label={`${title}, opens at level ${level}`}
-      className="flex items-start gap-3 border border-dashed border-bark/60 bg-parchment-deep/40 px-3.5 py-3 text-sm"
+      className="flex items-start gap-3 border border-dashed border-bark/60 bg-parchment-deep px-3.5 py-3 text-sm"
     >
-      <Lock className="mt-0.5 h-4 w-4 shrink-0 text-ink/65" aria-hidden />
+      <Lock className="mt-0.5 h-4 w-4 shrink-0 text-ink/70" aria-hidden />
       <div className="min-w-0">
         <div className="flex items-baseline gap-2">
           <span className="font-medium text-ink">{title}</span>
-          <span className="tabular text-[11px] text-ink/65">Level {level}</span>
+          <span className="tabular text-[11px] text-ink/70">Level {level}</span>
         </div>
         <p className="mt-0.5 text-xs text-ink/75">{how}</p>
       </div>
@@ -113,7 +113,7 @@ export function GameCard({ glyph }: { glyph: string }) {
     );
   }
   const hide = (
-    <button type="button" className="text-xs text-ink/65 underline-offset-4 hover:text-ink/75 hover:underline" onClick={() => void setHidden({ hidden: true })}>
+    <button type="button" className="text-xs text-ink/70 underline-offset-4 hover:text-ink/75 hover:underline" onClick={() => void setHidden({ hidden: true })}>
       Hide the game
     </button>
   );
@@ -154,7 +154,7 @@ export function GameCard({ glyph }: { glyph: string }) {
           <Sprout className="h-4 w-4 shrink-0 text-soil" aria-hidden />
           <span className="font-medium text-ink">Your garden</span>
           <span className="flex-1 text-xs text-ink/75">A plant for each teammate you recognise</span>
-          <ChevronRight className="h-4 w-4 text-ink/65" aria-hidden />
+          <ChevronRight className="h-4 w-4 text-ink/70" aria-hidden />
         </Link>
       )}
       {available !== null && (
@@ -167,7 +167,7 @@ export function GameCard({ glyph }: { glyph: string }) {
           <span className="flex-1 text-xs text-ink/75">
             {available > 0 ? `${available} skill ${available === 1 ? "point" : "points"} to spend` : "Every level-up brings a skill point"}
           </span>
-          <ChevronRight className="h-4 w-4 text-ink/65" aria-hidden />
+          <ChevronRight className="h-4 w-4 text-ink/70" aria-hidden />
         </Link>
       )}
     </Card>

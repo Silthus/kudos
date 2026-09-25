@@ -235,7 +235,7 @@ function SettingsForm({ initial, isDemo }: { initial: Settings; isDemo: boolean 
           </Button>
         )}
         {state.kind === "error" && (
-          <span className="flex items-center gap-1.5 text-sm text-ember-deep">
+          <span className="pixel-note flex items-center gap-1.5 px-3 py-2 text-sm text-ember-deep">
             <CircleAlert className="h-4 w-4" /> {state.message}
           </span>
         )}
@@ -265,7 +265,7 @@ function Members() {
         subtitle={`${members.filter((m) => m.isAdmin).length} admins · ${members.filter((m) => m.signedIn).length} have opened the dashboard`}
         action={
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/65" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/70" />
             <input className={clsx(inputCls, "w-56 pl-9")} placeholder="Search members" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
         }
@@ -278,7 +278,7 @@ function Members() {
       <TableScroll>
         <table className="w-full min-w-[640px] text-sm">
           <thead>
-            <tr className="text-left tabular text-[11px] text-ink/65">
+            <tr className="text-left tabular text-[11px] text-ink/70">
               <th className="px-3 py-2 font-normal">Member</th>
               <th className="px-3 py-2 text-right font-normal">Given</th>
               <th className="px-3 py-2 text-right font-normal">Received</th>
@@ -296,18 +296,18 @@ function Members() {
                     <Avatar name={m.name} src={m.avatarUrl} size={30} />
                     <div>
                       <div className="font-medium">{m.name}</div>
-                      <div className="text-xs text-ink/65">{m.deactivated ? "Deactivated" : m.title ?? m.slackUserId}</div>
+                      <div className="text-xs text-ink/70">{m.deactivated ? "Deactivated" : m.title ?? m.slackUserId}</div>
                     </div>
                   </div>
                 </td>
                 <td className="px-3 py-2.5 text-right tabular">{nf.format(m.totalGiven)}</td>
                 <td className="px-3 py-2.5 text-right tabular" title={m.totalReceived === null ? "Hidden by the received-kudos visibility setting" : undefined}>
-                  {m.totalReceived === null ? <span className="text-ink/65">—</span> : nf.format(m.totalReceived)}
+                  {m.totalReceived === null ? <span className="text-ink/70">—</span> : nf.format(m.totalReceived)}
                 </td>
                 {viewer.workspace.gameEnabled && (
                   <td className="px-3 py-1.5 text-right">
                     {m.balance === null ? (
-                      <span className="text-ink/65">—</span>
+                      <span className="text-ink/70">—</span>
                     ) : (
                       <button
                         onClick={() => setLedgerFor(m._id)}
@@ -319,7 +319,7 @@ function Members() {
                         )}
                       >
                         {nf.format(m.balance)}
-                        <ReceiptText className="h-3.5 w-3.5 text-ink/65" />
+                        <ReceiptText className="h-3.5 w-3.5 text-ink/70" />
                       </button>
                     )}
                   </td>
@@ -372,17 +372,17 @@ function Moderation() {
                 <span className="tabular text-xs text-soil">
                   {k.amount} {viewer.workspace.emojiGlyph}
                 </span>
-                {k.channel && <span className="ml-2 tabular text-xs text-ink/65">#{k.channel}</span>}
+                {k.channel && <span className="ml-2 tabular text-xs text-ink/70">#{k.channel}</span>}
               </div>
               <p className="truncate text-xs text-ink/75">{k.text}</p>
             </div>
-            <span className="hidden text-xs text-ink/65 sm:block">{relativeTime(k.at)}</span>
+            <span className="hidden text-xs text-ink/70 sm:block">{relativeTime(k.at)}</span>
             {confirm === k._id ? (
               <Button size="sm" variant="danger" onClick={() => void revoke({ kudosId: k._id }).then(() => setConfirm(null))}>
                 Confirm
               </Button>
             ) : (
-              <button onClick={() => setConfirm(k._id)} className="p-2 text-ink/65 hover:bg-ember/10 hover:text-ember-deep" aria-label="Revoke kudos">
+              <button onClick={() => setConfirm(k._id)} className="p-2 text-ink/70 hover:bg-ember/10 hover:text-ember-deep" aria-label="Revoke kudos">
                 <Trash2 className="h-4 w-4" />
               </button>
             )}
@@ -417,7 +417,7 @@ function SlackPanel({ slack, isDemo, teamId }: { slack: SlackInfo; isDemo: boole
       <Card className="p-5">
         <Eyebrow>Connection</Eyebrow>
         <div className="mt-3 flex items-center gap-3">
-          <span className={clsx("h-2.5 w-2.5", slack.connected ? "bg-hedge" : "bg-ink/65")} />
+          <span className={clsx("h-2.5 w-2.5", slack.connected ? "bg-hedge" : "bg-ink/70")} />
           <span className="font-display text-xl font-semibold">{isDemo ? "Demo workspace" : slack.connected ? "Connected to Slack" : "Not connected"}</span>
         </div>
         <dl className="mt-4 space-y-2 text-sm">

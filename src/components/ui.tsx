@@ -38,7 +38,7 @@ export function CardHeader({ title, subtitle, action, icon }: { title: ReactNode
           {icon}
           {title}
         </h2>
-        {subtitle && <p className="mt-0.5 text-sm opacity-75">{subtitle}</p>}
+        {subtitle && <p className="mt-0.5 text-sm text-ink/75">{subtitle}</p>}
       </div>
       {action && <div className="max-w-full shrink-0">{action}</div>}
     </header>
@@ -185,7 +185,7 @@ export function Trend({ cur, prev, suffix = "vs prev.", compact }: { cur: number
     <span className={clsx("inline-flex items-center gap-1 text-xs font-semibold tabular", diff > 0 ? "text-hedge-deep" : diff < 0 ? "text-ember-deep" : "text-ink/75")}>
       <Icon className="h-3.5 w-3.5" aria-hidden />
       {pctText}
-      {!compact && <span className="font-normal text-ink/65">{suffix}</span>}
+      {!compact && <span className="font-normal text-ink/70">{suffix}</span>}
     </span>
   );
 }
@@ -196,7 +196,7 @@ export function Trend({ cur, prev, suffix = "vs prev.", compact }: { cur: number
  */
 function meterFill(value: number, max: number) {
   const pct = max > 0 ? (value / max) * 100 : 0;
-  if (pct <= 0) return "0%";
+  if (!(pct > 0)) return "0%"; // also NaN
   if (pct >= 100) return "100%";
   return `clamp(4px, ${Math.round(pct * 100) / 100}%, 100% - 4px)`;
 }
@@ -239,7 +239,7 @@ export function Empty({ icon, title, children }: { icon?: ReactNode; title: stri
     <div className="flex flex-col items-center justify-center gap-2 px-6 py-10 text-center">
       {icon && <div className="text-3xl">{icon}</div>}
       <p className="font-display text-lg font-medium">{title}</p>
-      {children && <p className="max-w-sm text-sm opacity-75">{children}</p>}
+      {children && <p className="max-w-sm text-sm text-ink/75">{children}</p>}
     </div>
   );
 }
@@ -250,14 +250,7 @@ export function Empty({ icon, title, children }: { icon?: ReactNode; title: stri
  */
 export function PageHeader({ title, subtitle, action }: { eyebrow?: ReactNode; title: ReactNode; subtitle?: ReactNode; action?: ReactNode }) {
   return (
-    <div
-      className={clsx(
-        "mb-7 flex flex-wrap items-end justify-between gap-4 bg-bark px-5 py-4 text-cream shadow-[inset_0_0_0_2px_var(--color-soil),4px_4px_0_0_var(--color-dusk-deep)]",
-        // Page copy is written for parchment: on the bark sign its ink reads cream and its soil accent lantern.
-        // Controls that bring their own parchment face (tabs, inputs, selects) keep their ink.
-        "[&_[class*='text-ink']:not([role=tab],[role=tablist],input,select,textarea)]:text-cream/80 [&_[class*='text-soil']]:text-lantern",
-      )}
-    >
+    <div className="pixel-sign mb-7 flex flex-wrap items-end justify-between gap-4 px-5 py-4">
       <div className="min-w-0">
         <h1 className="font-display text-[28px] font-medium leading-9 sm:text-[40px] sm:leading-[48px]">{title}</h1>
         {subtitle && <p className="mt-1 max-w-2xl text-[15px] text-cream/80">{subtitle}</p>}
@@ -285,7 +278,7 @@ export function Toggle({
     <label className={clsx("flex items-start justify-between gap-6 py-3", disabled ? "cursor-not-allowed" : "cursor-pointer")}>
       <span>
         <span className="block text-sm font-semibold">{label}</span>
-        {description && <span className="mt-0.5 block text-sm opacity-75">{description}</span>}
+        {description && <span className="mt-0.5 block text-sm text-ink/75">{description}</span>}
       </span>
       <button
         type="button"
@@ -304,13 +297,13 @@ export function Toggle({
 
 /** Inputs sit in a 2 px bark inset with a parchment-deep step inside, like a slot cut in the board. */
 export const inputCls =
-  "h-10 w-full border-2 border-bark bg-parchment px-3 text-sm text-ink shadow-[inset_2px_2px_0_0_var(--color-parchment-deep)] placeholder:text-ink/65 disabled:opacity-60";
+  "h-10 w-full border-2 border-bark bg-parchment px-3 text-sm text-ink shadow-[inset_2px_2px_0_0_var(--color-parchment-deep)] placeholder:text-ink/70 disabled:opacity-60";
 
 export function Field({ label, hint, children, className }: { label: string; hint?: ReactNode; children: ReactNode; className?: string }) {
   return (
     <label className={clsx("block", className)}>
       <span className="text-sm font-semibold">{label}</span>
-      {hint && <span className="mt-0.5 block text-xs opacity-75">{hint}</span>}
+      {hint && <span className="mt-0.5 block text-xs text-ink/75">{hint}</span>}
       <div className="mt-2">{children}</div>
     </label>
   );

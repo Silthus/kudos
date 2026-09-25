@@ -45,7 +45,7 @@ export function Me() {
   const weekDelta = data.week.given - data.week.lastWeekGiven;
 
   return (
-    <div className={`transition-opacity duration-200 ${isStale || standingStale ? "opacity-60" : ""}`} aria-busy={isStale || standingStale}>
+    <div className={`${isStale || standingStale ? "[&_.pixel-frame>*]:opacity-60" : ""}`} aria-busy={isStale || standingStale}>
       <PageHeader
         eyebrow={dayLabel(today, { weekday: "long", month: "long", day: "numeric" })}
         title={
@@ -74,7 +74,7 @@ export function Me() {
         <Card className="p-5">
           <Eyebrow>This week</Eyebrow>
           <div className="mt-3 flex items-baseline gap-2">
-            <BigNumber value={rank ? `#${rank}` : "–"} className={`text-5xl ${standing ? "" : "text-ink/65"}`} />
+            <BigNumber value={rank ? `#${rank}` : "–"} className={`text-5xl ${standing ? "" : "text-ink/70"}`} />
             {rank && standing && <span className="text-sm text-ink/75">of {standing.week.of}</span>}
           </div>
           <div className="mt-4 flex items-center justify-between text-sm">
@@ -83,7 +83,7 @@ export function Me() {
             </span>
             <Trend cur={data.week.given} prev={data.week.lastWeekGiven} suffix="vs last week" />
           </div>
-          <div className="mt-1 tabular text-[11px] text-ink/65">
+          <div className="mt-1 tabular text-[11px] text-ink/70">
             {dayLabel(data.week.start)} – {dayLabel(data.week.end)}
           </div>
         </Card>
@@ -103,7 +103,7 @@ export function Me() {
                 <b className="font-semibold tabular">{nf.format(data.totals.received)}</b>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 text-ink/65">
+              <div className="flex items-center gap-1.5 text-ink/70">
                 <Lock className="h-3.5 w-3.5" /> Received counts are hidden in this workspace
               </div>
             )}
@@ -225,8 +225,8 @@ export function Me() {
                         {a.direction === "given" ? "−" : "+"}
                         {a.amount} {glyph}
                       </span>
-                      {a.channel && <span className="tabular text-xs text-ink/65">#{a.channel}</span>}
-                      <span className="ml-auto text-xs text-ink/65">{relativeTime(a.at)}</span>
+                      {a.channel && <span className="tabular text-xs text-ink/70">#{a.channel}</span>}
+                      <span className="ml-auto text-xs text-ink/70">{relativeTime(a.at)}</span>
                     </div>
                     <p className="mt-0.5 truncate text-sm text-ink/75">{a.text}</p>
                   </div>
@@ -264,7 +264,7 @@ export function Me() {
                   <p className="mt-3 text-sm leading-relaxed">
                     “<MessageText text={d.text} emoji={glyph} />”
                   </p>
-                  <div className="mt-3 tabular text-[10px] text-ink/65">
+                  <div className="mt-3 tabular text-[10px] text-ink/70">
                     Seen {d.timesSeen}× · first {relativeTime(d.firstSeenAt)}
                   </div>
                 </motion.div>
@@ -291,7 +291,7 @@ export function Me() {
                       <RarityBadge rarity={m.rarity as Rarity} size="xs" />
                     )}
                     {m.isNewDiscovery && <span className="text-xs text-soil">✨ New discovery</span>}
-                    <span className="ml-auto text-xs text-ink/65">{relativeTime(m.at)}</span>
+                    <span className="ml-auto text-xs text-ink/70">{relativeTime(m.at)}</span>
                   </div>
                 </li>
               ))}
@@ -383,7 +383,7 @@ function Pattern({ icon, label, value, hint }: { icon: React.ReactNode; label: s
       <span className="flex-1 text-sm text-ink/75">{label}</span>
       <span className="text-right">
         <span className="block font-display text-base font-semibold tabular">{value}</span>
-        {hint && <span className="block text-[11px] text-ink/65">{hint}</span>}
+        {hint && <span className="block text-[11px] text-ink/70">{hint}</span>}
       </span>
     </li>
   );

@@ -85,7 +85,7 @@ export function Discoveries() {
               ))}
             </ul>
           </div>
-          <p className="mt-5 text-xs text-ink/65">{data.collectors} teammates are collecting in {viewer.workspace.name}.</p>
+          <p className="mt-5 text-xs text-ink/70">{data.collectors} teammates are collecting in {viewer.workspace.name}.</p>
         </Card>
 
         <div>
@@ -100,11 +100,11 @@ export function Discoveries() {
               ]}
             />
             {(rarity !== "all" || category !== "all") && (
-              <button onClick={() => { setRarity("all"); setCategory("all"); }} className="px-3 py-1.5 text-sm text-soil hover:bg-parchment-deep/50">
+              <button onClick={() => { setRarity("all"); setCategory("all"); }} className="px-3 py-1.5 text-sm font-semibold text-lantern hover:bg-dusk-deep">
                 Clear filters
               </button>
             )}
-            <span className="ml-auto text-sm text-ink/65">{items.length} messages</span>
+            <span className="ml-auto text-sm text-cream/75">{items.length} messages</span>
           </div>
           <motion.div layout className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <AnimatePresence mode="popLayout">
@@ -125,7 +125,7 @@ export function Discoveries() {
                   >
                     <div className="flex items-center justify-between gap-2">
                       <RarityBadge rarity={i.rarity as Rarity} size="xs" />
-                      <span className="tabular text-[10px] text-ink/65">{i.categoryLabel}</span>
+                      <span className="tabular text-[10px] text-ink/70">{i.categoryLabel}</span>
                     </div>
                     {i.discovered && i.text ? (
                       <p className="mt-3 flex-1 text-[15px] leading-relaxed">
@@ -136,12 +136,12 @@ export function Discoveries() {
                         {Array.from({ length: Math.max(1, Math.round(i.length / 48)) }).map((_, n, arr) => (
                           <div key={n} className="h-3 bg-parchment-deep" style={{ width: n === arr.length - 1 ? "55%" : "100%" }} />
                         ))}
-                        <div className="mt-1 flex items-center gap-1.5 text-xs text-ink/65">
+                        <div className="mt-1 flex items-center gap-1.5 text-xs text-ink/70">
                           <Lock className="h-3 w-3" /> {hint(i.category)}
                         </div>
                       </div>
                     )}
-                    <div className="mt-3 flex items-center justify-between border-t border-parchment-deep pt-2.5 tabular text-[10px] text-ink/65">
+                    <div className="mt-3 flex items-center justify-between border-t border-parchment-deep pt-2.5 tabular text-[10px] text-ink/70">
                       {i.discovered ? <span>Seen {i.timesSeen}× · {relativeTime(i.lastSeenAt!)}</span> : <span>&nbsp;</span>}
                       <span title="Teammates who found this message">
                         {i.foundBy === 0 ? "Nobody has found this" : `Found by ${i.foundBy}`}

@@ -206,7 +206,7 @@ function RequestRow({
             </span>
             <StatusChip status={r.status} />
           </div>
-          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink/65">
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink/70">
             <span className="tabular text-soil">
               {nf.format(r.cost)} {r.legacy ? "kudos, old Store" : glyph}
             </span>
@@ -225,8 +225,8 @@ function RequestRow({
           </p>
           {r.answer && (
             <p className="mt-1 text-sm text-ink/75">
-              <MessageCircleQuestion className="mr-1 inline h-3.5 w-3.5 text-ink/65" />
-              {r.prompt && <span className="text-ink/65">{r.prompt} </span>}
+              <MessageCircleQuestion className="mr-1 inline h-3.5 w-3.5 text-ink/70" />
+              {r.prompt && <span className="text-ink/70">{r.prompt} </span>}
               <span className="text-ink">{r.answer}</span>
             </p>
           )}
@@ -247,7 +247,7 @@ function RequestRow({
               </Button>
             </div>
           ) : (
-            <span className="ml-auto shrink-0 text-xs text-ink/65">{r.isOwn ? "Your request · another admin decides" : ""}</span>
+            <span className="ml-auto shrink-0 text-xs text-ink/70">{r.isOwn ? "Your request · another admin decides" : ""}</span>
           ))}
       </div>
       {error && (
@@ -433,15 +433,15 @@ function RewardRow({ reward: r, glyph, isDemo, onEdit, onToggle }: { reward: Rew
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="truncate font-medium">{r.name}</span>
-          {r.prompt && <MessageCircleQuestion className="h-3.5 w-3.5 shrink-0 text-ink/65" aria-label={`Asks: ${r.prompt}`} />}
+          {r.prompt && <MessageCircleQuestion className="h-3.5 w-3.5 shrink-0 text-ink/70" aria-label={`Asks: ${r.prompt}`} />}
           {r.pricedInKudos && (
-            <span className="shrink-0 bg-ember/10 px-2 py-0.5 tabular text-[10px] text-ember ring-1 ring-inset ring-ember/30" title="Priced in kudos before the Store moved to Hog coins. Members don't see it until you save a price in Hog coins.">
+            <span className="shrink-0 bg-ember/10 px-2 py-0.5 tabular text-[10px] text-ember-deep ring-1 ring-inset ring-ember/40" title="Priced in kudos before the Store moved to Hog coins. Members don't see it until you save a price in Hog coins.">
               Review price
             </span>
           )}
         </div>
         {r.description && <p className="truncate text-xs text-ink/75">{r.description}</p>}
-        <p className="truncate tabular text-[10px] text-ink/65">
+        <p className="truncate tabular text-[10px] text-ink/70">
           <span className="text-soil sm:hidden">
             {nf.format(r.cost)} {r.pricedInKudos ? "kudos" : glyph} ·{" "}
           </span>
@@ -452,13 +452,13 @@ function RewardRow({ reward: r, glyph, isDemo, onEdit, onToggle }: { reward: Rew
         {nf.format(r.cost)} {r.pricedInKudos ? "kudos" : glyph}
       </span>
       <div className="flex shrink-0 items-center">
-        <button onClick={onEdit} disabled={isDemo} className="p-2 text-ink/65 hover:bg-parchment-deep hover:text-ink disabled:opacity-40" aria-label={`Edit ${r.name}`} title="Edit">
+        <button onClick={onEdit} disabled={isDemo} className="p-2 text-ink/70 hover:bg-parchment-deep hover:text-ink disabled:opacity-40" aria-label={`Edit ${r.name}`} title="Edit">
           <Pencil className="h-4 w-4" />
         </button>
         <button
           onClick={onToggle}
           disabled={isDemo}
-          className="p-2 text-ink/65 hover:bg-parchment-deep hover:text-ink disabled:opacity-40"
+          className="p-2 text-ink/70 hover:bg-parchment-deep hover:text-ink disabled:opacity-40"
           aria-label={`${archived ? "Restore" : "Archive"} ${r.name}`}
           title={archived ? "Restore" : "Archive"}
         >
@@ -609,7 +609,7 @@ function RewardEditor({ reward, onClose }: { reward: Reward | "new" | null; onCl
             <Field label="Cost" hint="In Hog coins, 1–100,000">
               <div className="relative">
                 <input className={clsx(inputCls, "pr-10")} type="number" min={1} max={100000} value={d.cost} onChange={(e) => set("cost", e.target.value)} />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink/65">{COIN}</span>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink/70">{COIN}</span>
               </div>
             </Field>
             <Field label="Per-person limit" hint="Optional lifetime cap, e.g. 1">
@@ -641,7 +641,7 @@ function RewardEditor({ reward, onClose }: { reward: Reward | "new" | null; onCl
               </span>
             }
           />
-          <p className="mt-2 text-xs text-ink/65">How members see it in the store.</p>
+          <p className="mt-2 text-xs text-ink/70">How members see it in the store.</p>
         </div>
       </form>
     </Dialog>
@@ -685,7 +685,7 @@ function StoreSettings({ isDemo }: { isDemo: boolean }) {
           </div>
           {data.unpricedRewards > 0 && (
             <p className="mt-3 flex items-start gap-2 border border-ember/30 bg-ember/10 px-3 py-2.5 text-sm text-ink">
-              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-ember" />
+              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-ember-deep" />
               <span>
                 {data.unpricedRewards} {data.unpricedRewards === 1 ? "reward was" : "rewards were"} priced in kudos before the Store moved to Hog coins. Members don't see{" "}
                 {data.unpricedRewards === 1 ? "it" : "them"} until you save a price in Hog coins under Catalog.
@@ -732,7 +732,7 @@ function StoreSettings({ isDemo }: { isDemo: boolean }) {
             </p>
           </>
         )}
-        <p className="mt-3 tabular text-[11px] text-ink/65">
+        <p className="mt-3 tabular text-[11px] text-ink/70">
           {data.activeRewards} active {data.activeRewards === 1 ? "reward" : "rewards"}
         </p>
       </Card>
@@ -764,7 +764,7 @@ export function LedgerDrawer({ memberId, isDemo, onClose }: { memberId: Id<"memb
       footer={
         ledger && (
           <>
-            {blocked && <span className="mr-auto text-xs text-ink/65">{blocked}</span>}
+            {blocked && <span className="mr-auto text-xs text-ink/70">{blocked}</span>}
             <Button variant="primary" onClick={() => setAdjusting(true)} disabled={blocked !== null}>
               <SlidersHorizontal className="h-4 w-4" /> Adjust balance
             </Button>
@@ -782,7 +782,7 @@ export function LedgerDrawer({ memberId, isDemo, onClose }: { memberId: Id<"memb
             <Avatar name={ledger.member.name} src={ledger.member.avatarUrl} size={40} />
             <div className="min-w-0">
               <div className="font-medium">{ledger.member.name}</div>
-              {ledger.member.deactivated && <div className="text-xs text-ink/65">Left the workspace</div>}
+              {ledger.member.deactivated && <div className="text-xs text-ink/70">Left the workspace</div>}
             </div>
             <div className="ml-auto text-right">
               <div className="text-xs text-ink/75">Balance</div>
@@ -807,7 +807,7 @@ export function LedgerDrawer({ memberId, isDemo, onClose }: { memberId: Id<"memb
               <dl className={clsx("grid grid-cols-2 gap-2 border border-parchment-deep bg-parchment-deep/40 p-3 text-center", columns)}>
                 {cells.map(([label, value]) => (
                   <div key={label}>
-                    <dt className="tabular text-[10px] text-ink/65">{label}</dt>
+                    <dt className="tabular text-[10px] text-ink/70">{label}</dt>
                     <dd className="mt-1 tabular text-ink">{value}</dd>
                   </div>
                 ))}
@@ -817,7 +817,7 @@ export function LedgerDrawer({ memberId, isDemo, onClose }: { memberId: Id<"memb
           <section>
             <Eyebrow className="mb-3">Adjustments</Eyebrow>
             {ledger.adjustments.length === 0 ? (
-              <p className="text-sm text-ink/65">No adjustments yet.</p>
+              <p className="text-sm text-ink/70">No adjustments yet.</p>
             ) : (
               <ul className="space-y-3">
                 {ledger.adjustments.map((a) => (
@@ -831,7 +831,7 @@ export function LedgerDrawer({ memberId, isDemo, onClose }: { memberId: Id<"memb
           <section>
             <Eyebrow className="mb-3">Requests</Eyebrow>
             {ledger.redemptions.length === 0 ? (
-              <p className="text-sm text-ink/65">Nothing redeemed yet.</p>
+              <p className="text-sm text-ink/70">Nothing redeemed yet.</p>
             ) : (
               <ul className="space-y-2">
                 {ledger.redemptions.map((r) => (
@@ -839,7 +839,7 @@ export function LedgerDrawer({ memberId, isDemo, onClose }: { memberId: Id<"memb
                     <span aria-hidden>{r.rewardEmoji}</span>
                     <span className="min-w-0 flex-1 truncate">{r.rewardName}</span>
                     <StatusChip status={r.status} />
-                    <span className={clsx("whitespace-nowrap text-right tabular", r.status === "declined" || r.status === "cancelled" ? "text-ink/65 line-through" : "text-soil")}>
+                    <span className={clsx("whitespace-nowrap text-right tabular", r.status === "declined" || r.status === "cancelled" ? "text-ink/70 line-through" : "text-soil")}>
                       {nf.format(r.cost)} {r.legacy ? "kudos" : glyph}
                     </span>
                   </li>
@@ -950,7 +950,7 @@ function AdjustBalanceDialog({ open, ledger, glyph, onClose }: { open: boolean; 
           <span className={clsx("tabular", ledger.balance + delta < 0 ? "text-ember-deep" : "text-ink")}>
             {nf.format(ledger.balance + delta)} {glyph}
           </span>
-          {ledger.balance + delta < 0 && <span className="text-ink/65"> (negative balances block new requests)</span>}
+          {ledger.balance + delta < 0 && <span className="text-ink/70"> (negative balances block new requests)</span>}
         </p>
       </form>
     </Dialog>
@@ -993,7 +993,7 @@ function BalanceContext({ redemptionId, requester, glyph, onLedger }: { redempti
           </p>
           {context.concentrated && (
             <p role="status" className="mb-3 flex items-start gap-2 border border-ember/30 bg-ember/10 px-3 py-2 text-sm text-ink">
-              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-ember" />
+              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-ember-deep" />
               <span>
                 <b className="font-medium">Mostly from one person.</b> Thanking {context.thanked[0].member.name} brought {Math.round(context.thanked[0].share * 100)}% of it. Worth a look before you approve.
               </span>
@@ -1005,7 +1005,7 @@ function BalanceContext({ redemptionId, requester, glyph, onLedger }: { redempti
                 <Avatar name={g.member.name} src={g.member.avatarUrl} size={22} />
                 <span className="truncate">
                   {g.member.name}
-                  {g.member.deactivated && <span className="text-ink/65"> (left)</span>}
+                  {g.member.deactivated && <span className="text-ink/70"> (left)</span>}
                 </span>
                 {/* On phones the bar gets its own line under the name, so it stays readable. */}
                 <Progress value={g.share} max={1} height={6} className="order-last col-span-3 sm:order-none sm:col-span-1" />
@@ -1016,7 +1016,7 @@ function BalanceContext({ redemptionId, requester, glyph, onLedger }: { redempti
             ))}
           </ul>
           {context.otherThanked > 0 && (
-            <p className="mt-2 text-xs text-ink/65">
+            <p className="mt-2 text-xs text-ink/70">
               and {context.otherThanked} more {context.otherThanked === 1 ? "person" : "people"}
             </p>
           )}

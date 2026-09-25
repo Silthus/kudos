@@ -31,7 +31,7 @@ export function Leaderboard() {
   const max = Math.max(1, ...data.rows.map((r) => r.value));
 
   return (
-    <div className={`transition-opacity duration-200 ${isStale ? "opacity-60" : ""}`} aria-busy={isStale}>
+    <div className={`${isStale ? "[&_.pixel-frame>*]:opacity-60" : ""}`} aria-busy={isStale}>
       <PageHeader
         eyebrow={data.range ? rangeLabel(data.range.start, data.range.end) : "Since the beginning"}
         title="Recognition leaderboard"
@@ -106,7 +106,7 @@ export function Leaderboard() {
               <TableScroll>
                 <table className="w-full min-w-[620px] text-sm">
                   <thead>
-                    <tr className="text-left tabular text-[11px] text-ink/65">
+                    <tr className="text-left tabular text-[11px] text-ink/70">
                       <th className="w-14 px-3 py-2 font-normal">#</th>
                       <th className="px-3 py-2 font-normal">Teammate</th>
                       <th className="w-48 px-3 py-2 font-normal">Kudos {data.metric}</th>
@@ -137,7 +137,7 @@ export function Leaderboard() {
                                 {r.member.name}
                                 {r.isMe && <span className="ml-2 bg-lantern/20 px-1.5 py-px tabular text-[10px] text-soil">YOU</span>}
                               </div>
-                              {r.member.title && <div className="truncate text-xs text-ink/65">{r.member.title}</div>}
+                              {r.member.title && <div className="truncate text-xs text-ink/70">{r.member.title}</div>}
                             </div>
                           </div>
                         </td>
@@ -224,7 +224,7 @@ function CompareWith({ memberId, name, period }: { memberId: string; name: strin
       to={compareWithHref(memberId, period)}
       aria-label={label}
       title={label}
-      className="inline-grid h-8 w-8 place-items-center text-ink/65 transition hover:bg-parchment-deep/50 hover:text-ink pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:group-focus-within:opacity-100"
+      className="inline-grid h-8 w-8 place-items-center text-ink/70 transition hover:bg-parchment-deep/50 hover:text-ink pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:group-focus-within:opacity-100"
     >
       <ArrowLeftRight className="h-4 w-4" aria-hidden />
     </Link>
@@ -232,8 +232,8 @@ function CompareWith({ memberId, name, period }: { memberId: string; name: strin
 }
 
 function Change({ delta, rankChange, isNew }: { delta: number | null; rankChange: number | null; isNew: boolean }) {
-  if (delta === null) return <span className="text-ink/65">–</span>;
-  if (isNew) return <span className="bg-r-epic/15 px-2 py-0.5 tabular text-[11px] text-r-epic">NEW</span>;
+  if (delta === null) return <span className="text-ink/70">–</span>;
+  if (isNew) return <span className="pixel-chip bg-r-epic/15 px-2 py-0.5 text-[11px] font-semibold text-ink">New</span>;
   return (
     <span className="inline-flex items-center gap-2">
       {rankChange !== null && rankChange !== 0 && (
@@ -242,7 +242,7 @@ function Change({ delta, rankChange, isNew }: { delta: number | null; rankChange
           {Math.abs(rankChange)}
         </span>
       )}
-      <span className={clsx("text-xs tabular", delta > 0 ? "text-hedge-deep" : delta < 0 ? "text-ember-deep" : "text-ink/65")}>
+      <span className={clsx("text-xs tabular", delta > 0 ? "text-hedge-deep" : delta < 0 ? "text-ember-deep" : "text-ink/70")}>
         {delta > 0 ? `+${delta}` : delta === 0 ? "±0" : delta}
       </span>
     </span>
@@ -257,7 +257,7 @@ function MiniStat({ icon, label, value, hint }: { icon: React.ReactNode; label: 
         {label}
       </div>
       <BigNumber value={value} className="mt-2 block text-3xl" />
-      <div className="text-[11px] text-ink/65">{hint}</div>
+      <div className="text-[11px] text-ink/70">{hint}</div>
     </Card>
   );
 }

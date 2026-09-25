@@ -28,7 +28,9 @@ const FORBIDDEN: [string, RegExp][] = [
   ["rounded panel", /(?<![\w-])(?:[\w-]+:)*rounded(?:-(?:xs|sm|md|lg|xl|2xl|3xl|[tblr]|[tb][lr]|[tblr]-\w+|\[[^\]]+\]))?(?![\w-])/],
   ["soft shadow", /(?<![\w-])(?:[\w-]+:)*shadow(?:-(?:sm|md|lg|xl|2xl|inner))?(?![\w[-])/],
   ["all-caps label", /(?<![\w-])uppercase(?![\w-])/],
-  ["looping animation", /(?<![\w-])animate-(?:pulse|float|shimmer|bounce|ping)(?![\w-])/],
+  ["hidden focus ring", /(?<![\w-])(?:[\w-]+:)*outline-none(?![\w-])/],
+  ["drop shadow", /(?<![\w-])(?:[\w-]+:)*drop-shadow(?:-\w+)?(?![\w-])/],
+  ["looping animation",/(?<![\w-])animate-(?:pulse|float|shimmer|bounce|ping)(?![\w-])/],
 ];
 
 /** A `shadow-[…]` whose any layer has a non-zero blur: `x y blur spread color`. */
