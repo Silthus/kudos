@@ -48,6 +48,16 @@ export function windowPageProblems(root: HTMLElement): string[] {
   for (const el of widensSideways(root)) problems.push(`widens sideways: ${describeElement(el)}`);
   for (const el of parchmentTextOnDusk(root)) problems.push(`parchment text on a dark face: ${describeElement(el)}`);
   if (root.querySelector(".pixel-sign, h1")) problems.push("a page sign of its own: the window's title bar names the place");
+  return [...problems, ...copyProblems(root)];
+}
+
+/**
+ * Copy with middle-dot joins, arrows or emoji (#126 "Words are signposts"), on any screen. Elements
+ * marked `data-user-text` (people's own words, and the Slack mocks, which keep Slack's emoji) are
+ * left out.
+ */
+export function copyProblems(root: HTMLElement): string[] {
+  const problems: string[] = [];
   const copy = root.cloneNode(true) as HTMLElement;
   copy.querySelectorAll("[data-user-text]").forEach((el) => el.remove());
   const text = copy.textContent ?? "";
