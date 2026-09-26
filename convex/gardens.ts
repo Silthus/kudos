@@ -580,6 +580,7 @@ async function plantedNotice(ctx: MutationCtx, workspace: Doc<"workspaces">, own
     slackText: text(`<@${owner.slackUserId}>`),
     webText: text(owner.name),
     delivery: workspace.isDemo ? "skipped" : "pending",
+    at: workspaceNow(workspace),
     garden: { kind: "planted", species, owner: owner.name },
   });
 }

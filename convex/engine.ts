@@ -224,6 +224,7 @@ export async function sendBotMessage(
     slackText,
     webText,
     delivery: workspace.isDemo || skipDelivery ? "skipped" : "pending",
+    at: now,
     collected,
     ...(questProgress ? { questProgress } : {}),
     ...(earnings ? { earnings } : {}),

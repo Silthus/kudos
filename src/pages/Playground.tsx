@@ -15,7 +15,7 @@ import { Earnings, GainLines, LevelUpHoggie } from "@/components/game";
 import { SpreePost } from "@/components/SpreePost";
 import type { Id } from "../../convex/_generated/dataModel";
 import { SUPER_SUFFIX, variantBySuffix } from "../../convex/lib/cosmetics";
-import { isSimulatorWorkspace, shownSimulator } from "@/world/simulator";
+import { isSimulatorWorkspace, runNote, shownSimulator } from "@/world/simulator";
 import { SimulatorClock } from "@/world/SimulatorClock";
 import { SimulatorTab } from "./SimulatorTab";
 
@@ -32,6 +32,8 @@ import { SimulatorTab } from "./SimulatorTab";
 
 type BotMessage = {
   _id: string;
+  /** When the bot sent it, on the workspace's clock (a simulator's runs ahead). */
+  at: number;
   to: string;
   toMe: boolean;
   category: string;
@@ -72,9 +74,16 @@ type FeedItem = {
   /** Your kudos attempt as sent (Slack format), so you can edit it like in Slack. */
   sent?: { messageTs: string; slackText: string };
   edited?: boolean;
-  /** The bot's public reply in a kudos' thread (a spree reached a tier). */
-  threadReply?: boolean;
+  /** The Kudos bot's public post: its reply in a kudos' thread (a spree reached a tier), or a note in the channel (a fast-forward's, #171). */
+  bot?: "thread" | "channel";
 };
+
+/** The envelopes on the stack: newest first by the workspace's clock, each once, 30 at most (#171). */
+const stacked = (messages: BotMessage[]) =>
+  messages
+    .filter((m, i) => messages.findIndex((o) => o._id === m._id) === i)
+    .sort((a, b) => b.at - a.at)
+    .slice(0, 30);
 
 type AttemptReply = { outcome: Outcome; reaction?: string; guidance: string | null } | null;
 
@@ -205,7 +214,7 @@ function Sandbox() {
 
   const [text, setText] = useState("");
   const [feed, setFeed] = useState<FeedItem[]>(() => CHANNEL_POSTS.map((p, i) => ({ ...p, mine: false, at: workspaceClockNow() - (3 - i) * 600_000 })));
-  const [bot, setBot] = useState<(BotMessage & { at: number })[]>([]);
+  const [bot, setBot] = useState<BotMessage[]>([]);
   const [reacted, setReacted] = useState<Set<string>>(new Set());
   const [hint, setHint] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ id: string; draft: string } | null>(null);
@@ -244,9 +253,23 @@ function Sandbox() {
       ]);
     }
     const dms = messages.filter((m) => !isReply(m));
-    setBot((prev) => [...dms.map((m) => ({ ...m, at: workspaceClockNow() })), ...prev].slice(0, 30));
+    setBot((prev) => stacked([...dms, ...prev]));
     setNewDms(dms.length);
   };
+
+  // A fast-forward over (#171): its DMs join the stack at their days, and the bot says in #general
+  // what it played, so the sandbox is where the clock is. Once per run.
+  const lastRun = inSimulator ? simulator?.lastRun : null;
+  const finishedRun = lastRun && lastRun.status !== "running" ? lastRun : null;
+  const runDms = useQuery(api.simulator.runMessages, finishedRun ? { runId: finishedRun._id } : "skip");
+  const toldRun = useRef<string | null>(null);
+  useEffect(() => {
+    if (!finishedRun || !runDms || toldRun.current === finishedRun._id) return;
+    toldRun.current = finishedRun._id;
+    setFeed((f) => [...f, { id: `run-${finishedRun._id}`, author: "Kudos", slackUserId: "", text: runNote(finishedRun), mine: false, at: workspaceClockNow(), bot: "channel" }]);
+    pushBot(runDms);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finishedRun?._id, runDms]);
 
   const toSlack = (raw: string) => slackMentions(raw.replaceAll(glyph, emojiCode), teammates);
 
@@ -304,7 +327,7 @@ function Sandbox() {
     setFeed((f) => [
       ...f,
       { id: crypto.randomUUID(), author: "Kudos", slackUserId: "", text: res.text, mine: false, at: now, ephemeral: true },
-      ...(res.thread ? [{ id: crypto.randomUUID(), author: "Kudos", slackUserId: "", text: res.thread, mine: false, at: now, threadReply: true }] : []),
+      ...(res.thread ? [{ id: crypto.randomUUID(), author: "Kudos", slackUserId: "", text: res.thread, mine: false, at: now, bot: "thread" as const }] : []),
     ]);
     pushBot(res.messages);
   };
@@ -417,10 +440,10 @@ function Sandbox() {
                     </motion.div>
                   ) : (
                     <motion.div key={m.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.12, ease: "easeOut" }} className="group flex gap-2.5 px-2 py-2 hover:bg-ink/5">
-                      {m.threadReply ? <BotAvatar glyph={glyph} /> : <Avatar name={m.author} size={36} />}
+                      {m.bot ? <BotAvatar glyph={glyph} /> : <Avatar name={m.author} size={36} />}
                       <div className="min-w-0 flex-1">
                         <div className="text-sm">
-                          <b className="font-bold">{m.author}</b> {m.threadReply && <AppTag>APP, replied in the thread</AppTag>} <span className="text-xs text-ink/70">{clock(m.at)}</span>
+                          <b className="font-bold">{m.author}</b> {m.bot && <AppTag>{m.bot === "thread" ? "APP, replied in the thread" : "APP"}</AppTag>} <span className="text-xs text-ink/70">{clock(m.at)}</span>
                         </div>
                         {editing?.id === m.id ? (
                           <div className="mt-1 bg-white p-2 shadow-[inset_0_0_0_2px_#1264a3]">
@@ -481,7 +504,7 @@ function Sandbox() {
                               <Pencil className="h-3 w-3" aria-hidden /> Edit
                             </button>
                           )}
-                          {!m.mine && !m.threadReply && (
+                          {!m.mine && !m.bot && (
                             <button
                               disabled={reacted.has(m.id)}
                               aria-label={reacted.has(m.id) ? `You reacted to ${m.author}'s message` : `React to ${m.author}'s message with ${emojiCode}`}
@@ -734,7 +757,7 @@ function EnvelopeIcon({ seal }: { seal: string }) {
 }
 
 /** The bot's DMs, newest on top: a stack of envelopes, each opened to its message. */
-function Envelopes({ messages, status, ref }: { messages: (BotMessage & { at: number })[]; status: { discovered: number; total: number } | undefined; ref?: Ref<HTMLElement> }) {
+function Envelopes({ messages, status, ref }: { messages: BotMessage[]; status: { discovered: number; total: number } | undefined; ref?: Ref<HTMLElement> }) {
   const titleId = useId();
   return (
     <section ref={ref} aria-labelledby={titleId} className="min-w-0 scroll-mt-4">

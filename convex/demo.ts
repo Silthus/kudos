@@ -10,7 +10,7 @@ import { kudosEmojiReader } from "./cosmetics";
 import { attemptKudos, type AttemptInput, findAttempt, reattemptKudos, recordReaction } from "./attempts";
 import { reactionFor } from "./lib/guidance";
 import { attemptOutcomeValidator, questProgressValidator } from "./schema";
-import { addDays, dayKeyFor, daysBetween, startOfDayUtc, weekdayOfKey, zonedParts, workspaceNow } from "./lib/time";
+import { addDays, dayKeyFor, daysBetween, sentAt, startOfDayUtc, weekdayOfKey, zonedParts, workspaceNow } from "./lib/time";
 import { demoActivity } from "./lib/demoCalendar";
 import { demoBonusDays, demoLaunchDay, demoSeedStart } from "./lib/demoGame";
 import { DEMO_ADJUSTMENTS, DEMO_REDEMPTIONS, DEMO_REWARDS, type DemoRedemption, LIVE_FULFIL_NOTES } from "./lib/demoStore";
@@ -865,11 +865,11 @@ async function requireDemoViewer(ctx: MutationCtx) {
   return viewer;
 }
 
-const playgroundResult = v.object({
-  status: v.string(),
-  messages: v.array(
-    v.object({
+/** A bot DM as the sandbox shows it: an envelope, or your reply where you gave. */
+export const botMessageValidator = v.object({
       _id: v.id("notifications"),
+      /** When it was sent, on the workspace's clock: the sandbox's stack is in this order (#171). */
+      at: v.number(),
       to: v.string(),
       toMe: v.boolean(),
       category: v.string(),
@@ -886,8 +886,11 @@ const playgroundResult = v.object({
       gainLabel: v.optional(v.string()),
       /** A Super kudos (#98): the receiver's celebration, or your note on what your Super kudos emoji did. */
       superKudos: v.optional(v.object({ kind: v.union(v.literal("celebration"), v.literal("sent"), v.literal("howto")), text: v.string() })),
-    }),
-  ),
+});
+
+const playgroundResult = v.object({
+  status: v.string(),
+  messages: v.array(botMessageValidator),
 });
 
 /** A simulated message also shows the bot's reaction on it and, if it failed, the guidance. */
@@ -905,15 +908,21 @@ const messageResult = playgroundResult.extend({
   ),
 });
 
-async function describeNotifications(ctx: MutationCtx, me: Id<"members">, ids: Id<"notifications">[]) {
+/** The bot's DMs, as the sandbox shows them to `viewer`. */
+export async function describeNotifications(
+  ctx: QueryCtx,
+  viewer: { workspace: Doc<"workspaces">; member: Doc<"members"> },
+  ids: Id<"notifications">[],
+) {
   const out = [];
   for (const id of ids) {
     const n = (await ctx.db.get(id))!;
     const member = (await ctx.db.get(n.memberId))!;
     out.push({
       _id: n._id,
+      at: sentAt(n, viewer.workspace),
       to: member.name,
-      toMe: member._id === me,
+      toMe: member._id === viewer.member._id,
       category: n.category,
       rarity: n.rarity,
       text: n.webText,
@@ -947,7 +956,7 @@ export const simulateMessage = mutation({
     if (result.status === "given") await maybeThankBack(ctx, workspace, member, result.recipientIds, channelName);
     return {
       status: result.status,
-      messages: await describeNotifications(ctx, member._id, result.notificationIds),
+      messages: await describeNotifications(ctx, { workspace, member }, result.notificationIds),
       attempt: attempt && { outcome: attempt.outcome, reaction: attempt.reaction, guidance: attempt.guidance?.web ?? null, messageTs },
     };
   },
@@ -976,7 +985,7 @@ export const simulateEdit = mutation({
     if (result.status === "given") await maybeThankBack(ctx, workspace, member, result.recipientIds, channelName);
     return {
       status: result.status,
-      messages: await describeNotifications(ctx, member._id, result.notificationIds),
+      messages: await describeNotifications(ctx, { workspace, member }, result.notificationIds),
       attempt: { outcome: attempt.outcome, reaction: attempt.reaction, guidance: attempt.guidance?.web ?? null, messageTs },
     };
   },
@@ -1060,7 +1069,7 @@ export const simulateReaction = mutation({
       source: "playground",
       now: workspaceNow(workspace),
     });
-    return { status: result.status, messages: await describeNotifications(ctx, member._id, result.notificationIds) };
+    return { status: result.status, messages: await describeNotifications(ctx, { workspace, member }, result.notificationIds) };
   },
 });
 
@@ -1070,7 +1079,7 @@ export const simulateAllowanceCheck = mutation({
   handler: async (ctx) => {
     const { workspace, member } = await requireDemoViewer(ctx);
     const { notificationId, gainIds } = await allowanceCheck(ctx, workspace, member, workspaceNow(workspace));
-    return { status: "ok", messages: await describeNotifications(ctx, member._id, [notificationId, ...gainIds]) };
+    return { status: "ok", messages: await describeNotifications(ctx, { workspace, member }, [notificationId, ...gainIds]) };
   },
 });
 
@@ -1569,7 +1578,7 @@ export const simulateSpreeJoin = mutation({
       status: res.status,
       text: res.text,
       thread: res.thread ?? null,
-      messages: await describeNotifications(ctx, member._id, res.notificationIds),
+      messages: await describeNotifications(ctx, { workspace, member }, res.notificationIds),
     };
   },
 });

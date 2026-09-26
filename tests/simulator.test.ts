@@ -493,3 +493,45 @@ describe("the cabin in a simulator (#144)", () => {
     for (const dm of overview.botMessages) expect(Math.abs(dm.at - given.at)).toBeLessThan(60_000);
   });
 });
+
+describe("the sandbox after a fast-forward (#171)", () => {
+  test("a DM keeps the simulator's time it was sent at: one from before a move of the clock reads older", async () => {
+    await visitor("a").mutation(api.simulator.start, {});
+    expect((await say(`<@UDEMOPRIYA> :taco: ${NOTE}`)).status).toBe("given");
+    const started = await visitor("a").query(api.simulator.state, {});
+    if (!started.active) throw new Error("no simulator");
+    const sentAt = Date.now() + started.clockOffsetMs;
+    await visitor("a").mutation(api.simulator.advance, { days: 3 });
+    const state = await visitor("a").query(api.simulator.state, {});
+    if (!state.active) throw new Error("no simulator");
+    const overview = await visitor("a").query(api.me.overview, { period: "month", today: state.day });
+    expect(overview.botMessages.length).toBeGreaterThan(0);
+    // Sent on day 0 with no offset yet: not three days later, where the clock stands now.
+    for (const dm of overview.botMessages) expect(Math.abs(dm.at - sentAt)).toBeLessThan(60_000);
+  });
+
+  test("the run's DMs to the visitor, newest first on the simulator's clock, without the replies to each kudos", async () => {
+    await visitor("a").mutation(api.simulator.start, { level: 4 });
+    const before = Date.now();
+    const runId = await visitor("a").mutation(api.simulator.fastForward, { levels: 2 });
+    await settle();
+    const dms = await visitor("a").query(api.simulator.runMessages, { runId });
+    expect(dms.length).toBeGreaterThan(0);
+    expect(dms.every((m) => m.toMe && m.to === "Alex Rivera")).toBe(true);
+    expect(dms.some((m) => m.category === "giver_success")).toBe(false);
+    expect(dms.filter((m) => m.gainLabel === "Level up").length).toBeGreaterThan(0);
+    // Days apart on the simulator's clock, though the bot played them within seconds.
+    const times = dms.map((m) => m.at);
+    expect(times).toEqual([...times].sort((a, b) => b - a));
+    expect(times[0] - times.at(-1)!).toBeGreaterThan(DAY_MS / 2);
+    expect(times.at(-1)!).toBeGreaterThanOrEqual(before);
+  });
+
+  test("another visitor can't read a run's DMs", async () => {
+    await visitor("a").mutation(api.simulator.start, { level: 4 });
+    const runId = await visitor("a").mutation(api.simulator.fastForward, { levels: 1 });
+    await settle();
+    await visitor("b").mutation(api.simulator.start, {});
+    expect(await visitor("b").query(api.simulator.runMessages, { runId })).toEqual([]);
+  });
+});

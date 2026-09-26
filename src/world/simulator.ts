@@ -64,5 +64,13 @@ export function advanceToasts(result: { day: string; dayIndex: number; changes: 
   return result.changes.map((body) => ({ kind: "clock", title, body, link: linkFor(body) }));
 }
 
+/** The bot's note in the sandbox's #general once a fast-forward is over: "The bot played 7 days: 35 kudos, level 3 to 5." */
+export function runNote(run: SimulatorRun) {
+  const s = run.summary;
+  const days = s.daysPlayed === 1 ? "1 day" : `${nf.format(s.daysPlayed)} days`;
+  const levels = s.levelsGained > 0 ? `level ${run.fromLevel} to ${run.fromLevel + s.levelsGained}` : `still level ${run.fromLevel}`;
+  return `${run.status === "done" ? "The bot played" : "The bot stopped after"} ${days}: ${nf.format(s.kudosGiven)} kudos, ${levels}.`;
+}
+
 /** How many levels a fast-forward may play from `level`: up to the top. */
 export const levelsLeft = (level: number) => Math.max(0, MAX_LEVEL - level);

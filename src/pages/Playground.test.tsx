@@ -79,22 +79,24 @@ beforeEach(() => {
 });
 afterEach(() => act(() => root?.unmount()));
 
+let tree: () => React.ReactNode;
 function render(admin = false, workspaces: Ws[] = [], simulator = false) {
   host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
-  act(() =>
-    root!.render(
-      <MemoryRouter>
-        <ViewerContext.Provider value={viewer(admin, workspaces, simulator)}>
-          <InWindow>
-            <Playground />
-          </InWindow>
-        </ViewerContext.Provider>
-      </MemoryRouter>,
-    ),
+  tree = () => (
+    <MemoryRouter>
+      <ViewerContext.Provider value={viewer(admin, workspaces, simulator)}>
+        <InWindow>
+          <Playground />
+        </InWindow>
+      </ViewerContext.Provider>
+    </MemoryRouter>
   );
+  act(() => root!.render(tree()));
 }
+/** Renders again, as a query's new answer does. */
+const rerender = () => act(() => root!.render(tree()));
 const button = (name: string | RegExp) =>
   [...host.querySelectorAll("button")].find((b) => {
     const label = b.getAttribute("aria-label") ?? b.textContent?.trim() ?? "";
@@ -422,4 +424,36 @@ test("review: from the shared demo, restarting says it takes you there", async (
   await click("Simulator");
   await click("Restart at level 7 and go there");
   expect(calls["simulator:reset"]).toHaveBeenCalledWith({ level: 7 });
+});
+
+test("simulator: after a fast-forward the run's DMs top the stack in the simulator's time order, and the bot leaves one note in #general (#171)", async () => {
+  replies["demo:simulateAllowanceCheck"] = { messages: [dm({ text: "A DM from day 1", at: 1_000 })] };
+  queries["simulator:state"] = simulatorState();
+  render(false, inSim, true);
+  await click("/kudos me");
+  // The bot plays 7 days, and its run's DMs come back unordered.
+  const run = {
+    _id: "run1",
+    status: "done",
+    fromLevel: 3,
+    toLevel: 5,
+    stopReason: null,
+    summary: { daysPlayed: 7, kudosGiven: 35, thoughtfulKudos: 35, questsCompleted: { weekly: 1, daily: 3, sweeps: 0 }, coinsEarned: 90, fruitPicked: 0, plantsPlanted: 0, levelsGained: 2, newConnections: 6 },
+    levelDays: [],
+  };
+  queries["simulator:state"] = simulatorState({ level: 5, dayIndex: 9, lastRun: run });
+  const mine = { to: "Alex Rivera", toMe: true, category: "gains", gainLabel: "Level up" };
+  queries["simulator:runMessages"] = [dm({ ...mine, text: "Level 4, Sprout", at: 5_000 }), dm({ ...mine, text: "Level 5, Gardener", at: 9_000 })];
+  rerender();
+  rerender();
+  const envelopes = [...host.querySelectorAll("[data-envelope]")].map((e) => e.textContent);
+  expect(envelopes).toHaveLength(3);
+  expect(envelopes[0]).toContain("Level 5, Gardener");
+  expect(envelopes[1]).toContain("Level 4, Sprout");
+  expect(envelopes[2]).toContain("A DM from day 1");
+  const terminal = host.querySelector("[data-slack-terminal]")!.textContent!;
+  const note = "The bot played 7 days: 35 kudos, level 3 to 5.";
+  expect(terminal.split(note)).toHaveLength(2);
+  // After the channel's posts: the feed ends where the clock is.
+  expect(terminal.indexOf(note)).toBeGreaterThan(terminal.indexOf("Postmortem doc incoming."));
 });

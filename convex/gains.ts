@@ -3,6 +3,7 @@ import type { MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { gameShownTo, playerOf } from "./game";
 import { DM_CATEGORIES, type Gain, gainsText, mergeGains, visibleTo } from "./lib/gains";
+import { workspaceNow } from "./lib/time";
 
 /**
  * The one pipeline for game DMs (#55 §G13): whatever a member discovers or gains is `add`ed while
@@ -64,6 +65,7 @@ export class Gains {
           slackText: gainsText(gains, "slack"),
           webText: gainsText(gains, "web"),
           delivery: workspace.isDemo ? "skipped" : "pending",
+          at: workspaceNow(workspace),
           gains,
         }),
       );

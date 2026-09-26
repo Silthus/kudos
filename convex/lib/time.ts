@@ -78,6 +78,14 @@ export function workspaceNow(workspace: { clockOffsetMs?: number }, wallClock = 
   return wallClock + (workspace.clockOffsetMs ?? 0);
 }
 
+/**
+ * When a DM was sent, on its workspace's clock: the time it keeps (#171), or for a row from before
+ * it kept one, its creation told with the clock's offset now.
+ */
+export function sentAt(notification: { at?: number; _creationTime: number }, workspace: { clockOffsetMs?: number }): number {
+  return notification.at ?? workspaceNow(workspace, notification._creationTime);
+}
+
 /** Calendar arithmetic on YYYY-MM-DD keys; timezone independent. */
 export function addDays(dayKey: string, days: number): string {
   const [y, m, d] = dayKey.split("-").map(Number);
