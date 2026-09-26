@@ -27,13 +27,13 @@ const STRUCTURES = [
   { kind: "structure", id: "structure_windmill", district: "terrace", name: "Windmill", about: "A small windmill on the terraces; its sails turn when someone gives kudos.", cost: 600, stage: "great" },
   { kind: "structure", id: "structure_bell", district: "base_camp", name: "The bell", about: "A bell at base camp that rings for every stage the tree reaches.", cost: 300, stage: "great" },
   { kind: "structure", id: "structure_market_awnings", district: "stall", name: "Market awnings", about: "Striped awnings and bunting over the stall.", cost: 500, stage: "great" },
-  { kind: "structure", id: "structure_oasis_garden", district: "pool", name: "Oasis garden", about: "Reeds, lilies and a heron around the mirror pool.", cost: 800, stage: "ancient" },
+  { kind: "structure", id: "structure_oasis_garden", district: "pool", name: "Oasis garden", about: "Reeds and lilies around the mirror pool.", cost: 800, stage: "ancient" },
   { kind: "structure", id: "structure_stargazer_deck", district: "observatory", name: "Stargazer deck", about: "A deck above the observatory, open at night.", cost: 1200, stage: "ancient" },
   { kind: "structure", id: "structure_root_stair", district: "near_ruins", name: "Root stair", about: "A stair carved into the roots, down to the ruins.", cost: 2000, stage: "elder" },
 ] as const;
 
-/** Every district that has a place, or homes, can be dressed in one of four styles. */
-const STYLED: DistrictId[] = DISTRICTS.filter((d) => d.places.length > 0 || d.id === "homes").map((d) => d.id);
+/** Every district that has a place, or homes, can be dressed in one of four styles; not the crew's plaque, a small place of its own (#161). */
+const STYLED: DistrictId[] = DISTRICTS.filter((d) => (d.places.length > 0 || d.id === "homes") && d.id !== "crew").map((d) => d.id);
 type StyleId = `style_${DistrictId}`;
 const STYLES = STYLED.map((id) => {
   const d = DISTRICTS.find((x) => x.id === id)!;
