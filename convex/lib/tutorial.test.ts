@@ -50,14 +50,30 @@ describe("level-gated steps", () => {
 
   test("a step below its level says the level; at it, nothing waits", () => {
     const grow = TUTORIAL_STEPS[4];
-    expect(stepGate(grow, { level: 2, homesOpen: false })).toEqual({ kind: "level", level: 3, label: "at level 3" });
-    expect(stepGate(grow, { level: 3, homesOpen: false })).toBeNull();
+    expect(stepGate(grow, { level: 2, open: ["terrace"] })).toEqual({ kind: "level", level: 3, label: "at level 3" });
+    expect(stepGate(grow, { level: 3, open: ["terrace"] })).toBeNull();
+  });
+});
+
+describe("steps whose place the tree hasn't opened yet", () => {
+  test("each waits for its district, the level first", () => {
+    expect(TUTORIAL_STEPS.filter((s) => s.district).map((s) => [s.id, s.district])).toEqual([
+      ["grow", "terrace"],
+      ["learn", "oak"],
+      ["trade", "stall"],
+      ["explore", "near_ruins"],
+      ["settle", "homes"],
+      ["together", "crew"],
+    ]);
+    const grow = TUTORIAL_STEPS[4];
+    expect(stepGate(grow, { level: 2, open: [] })).toMatchObject({ kind: "level" });
+    expect(stepGate(grow, { level: 3, open: ["base_camp"] })).toEqual({ kind: "district", label: "when the tree opens the terraces" });
   });
 
-  test("settling waits for the homes ring to open", () => {
+  test("settling waits for the homes", () => {
     const settle = TUTORIAL_STEPS[8];
-    expect(stepGate(settle, { level: 20, homesOpen: false })).toEqual({ kind: "district", label: "when the homes ring opens" });
-    expect(stepGate(settle, { level: 20, homesOpen: true })).toBeNull();
+    expect(stepGate(settle, { level: 20, open: ["terrace"] })).toEqual({ kind: "district", label: "when the tree opens the homes" });
+    expect(stepGate(settle, { level: 20, open: ["homes"] })).toBeNull();
   });
 });
 

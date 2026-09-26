@@ -128,6 +128,11 @@ describe("the checklist in the HUD", () => {
     game = mine(3);
     render();
     expect(host.querySelector("[data-tutorial-next] [role='progressbar']")).toBeNull();
+    // At the level, the terrace still waits for the tree to open it.
+    expect(host.querySelector("[data-tutorial-next]")!.textContent).toContain("Next: Grow something, when the tree opens the terraces");
+    tree = { layout: { districts: [{ id: "base_camp", open: true }, { id: "terrace", open: true }] } };
+    render();
+    expect(host.querySelector("[data-tutorial-next]")!.textContent).not.toContain("when");
   });
 
   test("gone once the chain is done, or without one", () => {

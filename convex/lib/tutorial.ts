@@ -9,6 +9,8 @@
  * draw dim with a hint. Every route and every mutation works whatever step a member is on.
  */
 
+import { DISTRICT_BY_ID, type DistrictId } from "./tree";
+
 export type TutorialStepId = "arrive" | "thanks" | "feed" | "look" | "grow" | "learn" | "trade" | "explore" | "settle" | "together";
 
 export type TutorialStep = {
@@ -25,8 +27,8 @@ export type TutorialStep = {
   to?: string;
   /** It waits for this level (shown "at level N" with the XP bar); done at any level all the same. */
   level?: number;
-  /** It waits for the homes ring to open (the tree's grown stage). */
-  homes?: true;
+  /** It waits for the tree to open the district where it's done (the company's own disclosure, #152 S1). */
+  district?: DistrictId;
   /** Done in the world, not by anything the server records: the client says so (`api.tutorial.advance`). */
   client?: true;
 };
@@ -39,12 +41,12 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   { id: "thanks", n: 2, title: "Say thanks", action: "Give your first thoughtful kudos", why: "A few words on why is what makes the tree grow." },
   { id: "feed", n: 3, title: "Feed the tree", action: "Offer your appreciation at the offering stone", why: "Your kudos wait at the tree as Hog coins until you offer them.", to: "/offering" },
   { id: "look", n: 4, title: "Look around", action: "Open Places in the top corner", why: "Every place round the tree is one click away from there.", client: true },
-  { id: "grow", n: 5, title: "Grow something", action: "Plant for a teammate on your terrace", why: "A plant grows each week you thank the teammate it's for.", to: "/garden", level: 3 },
-  { id: "learn", n: 6, title: "Learn", action: "Take a skill on the elder oak", why: "Every level brings a skill point to spend on how you play.", to: "/skills", level: 4 },
-  { id: "trade", n: 7, title: "Trade", action: "Sell a fruit or buy an item at the stall", why: "Hog coins buy boosters, looks and more at the stall.", to: "/store", level: 5 },
-  { id: "explore", n: 8, title: "Explore", action: "Go on your first expedition into the ruins", why: "The ruins hold coins, gear and secrets, and kudos restore your stamina.", level: 6 },
-  { id: "settle", n: 9, title: "Settle", action: "Buy a branch plot for your home", why: "A home on the tree is yours to build, stage by stage.", homes: true },
-  { id: "together", n: 10, title: "Together", action: "Join a crew quest or a party expedition", why: "Some things on the tree only the whole crew can build." },
+  { id: "grow", n: 5, title: "Grow something", action: "Plant for a teammate on your terrace", why: "A plant grows each week you thank the teammate it's for.", to: "/garden", level: 3, district: "terrace" },
+  { id: "learn", n: 6, title: "Learn", action: "Take a skill on the elder oak", why: "Every level brings a skill point to spend on how you play.", to: "/skills", level: 4, district: "oak" },
+  { id: "trade", n: 7, title: "Trade", action: "Sell a fruit or buy an item at the stall", why: "Hog coins buy boosters, looks and more at the stall.", to: "/store", level: 5, district: "stall" },
+  { id: "explore", n: 8, title: "Explore", action: "Go on your first expedition into the ruins", why: "The ruins hold coins, gear and secrets, and kudos restore your stamina.", level: 6, district: "near_ruins" },
+  { id: "settle", n: 9, title: "Settle", action: "Buy a branch plot for your home", why: "A home on the tree is yours to build, stage by stage.", district: "homes" },
+  { id: "together", n: 10, title: "Together", action: "Join a crew quest or a party expedition", why: "Some things on the tree only the whole crew can build.", district: "crew" },
 ];
 
 export const TUTORIAL_STEP_BY_ID = Object.fromEntries(TUTORIAL_STEPS.map((s) => [s.id, s])) as Record<TutorialStepId, TutorialStep>;
@@ -54,12 +56,12 @@ export function tutorialStep(completed: number): TutorialStep | null {
   return TUTORIAL_STEPS[completed] ?? null;
 }
 
-/** What a step still waits for before its action can be done, if anything. */
+/** What a step still waits for before its action can be done, if anything: your level first, then the tree. */
 export type StepGate = { kind: "level"; level: number; label: string } | { kind: "district"; label: string };
 
-export function stepGate(step: TutorialStep, at: { level: number; homesOpen: boolean }): StepGate | null {
+export function stepGate(step: TutorialStep, at: { level: number; open: DistrictId[] }): StepGate | null {
   if (step.level !== undefined && at.level < step.level) return { kind: "level", level: step.level, label: `at level ${step.level}` };
-  if (step.homes && !at.homesOpen) return { kind: "district", label: "when the homes ring opens" };
+  if (step.district && !at.open.includes(step.district)) return { kind: "district", label: `when the tree opens ${DISTRICT_BY_ID[step.district].name.replace(/^The /, "the ")}` };
   return null;
 }
 

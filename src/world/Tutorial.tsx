@@ -30,7 +30,7 @@ export type TutorialNow = {
   step: number;
   /** The step on, or null once done. */
   current: TutorialStep | null;
-  /** What the step on still waits for (a level, the homes ring), if anything. */
+  /** What the step on still waits for (a level, a district the tree hasn't opened), if anything. */
   gate: StepGate | null;
   met: boolean;
   /** Your level and how far into it, for a level-gated step's XP bar. */
@@ -50,8 +50,8 @@ export function useTutorial(): TutorialNow | null | undefined {
   const p = game?.player;
   const level = p ? { level: p.level, into: p.next === null ? 1 : Math.max(0, p.xp - p.floor), span: p.next === null ? 1 : p.next - p.floor } : null;
   const current = tutorialStep(state.step - 1);
-  const homesOpen = !!tree?.layout.districts.some((d) => d.id === "homes" && d.open);
-  return { step: state.step, current, gate: current && stepGate(current, { level: level?.level ?? 1, homesOpen }), met: state.met, level };
+  const open = (tree?.layout.districts ?? []).filter((d) => d.open).map((d) => d.id);
+  return { step: state.step, current, gate: current && stepGate(current, { level: level?.level ?? 1, open }), met: state.met, level };
 }
 
 type Completed = { step: number; coins: number | null }[];
@@ -88,7 +88,8 @@ export function useAdvance() {
 function CoinsHop({ from }: { from: React.RefObject<HTMLElement | null> }) {
   const [hop, setHop] = useState<{ id: number; coins: number } | null>(null);
   useEffect(() => {
-    const on = (e: Event) => setHop({ id: Date.now(), coins: Math.min(8, (e as CustomEvent<number>).detail) });
+    // Only into a wallet the HUD shows (from step 3): before that the toast says what was paid.
+    const on = (e: Event) => document.querySelector("[data-hud-coins]") && setHop({ id: Date.now(), coins: Math.min(8, (e as CustomEvent<number>).detail) });
     window.addEventListener(COINS_EVENT, on);
     return () => window.removeEventListener(COINS_EVENT, on);
   }, []);

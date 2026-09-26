@@ -78,7 +78,7 @@ export function Elder() {
               {now.level && <Progress value={now.level.into} max={now.level.span} className="w-48" height={8} label="XP to your next level" />}
             </div>
           ) : now.gate ? (
-            <p className="font-semibold text-ink">When the homes ring opens.</p>
+            <p className="font-semibold text-ink">{`${now.gate.label[0].toUpperCase()}${now.gate.label.slice(1)}.`}</p>
           ) : (
             <Action step={current} />
           )}
