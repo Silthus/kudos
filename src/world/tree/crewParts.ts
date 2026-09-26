@@ -1,5 +1,7 @@
+import type { CrewPartKind, DistrictStyle } from "../../../convex/lib/crewCatalogue";
 import { PALETTE, PixelCanvas, type PixelMap } from "../pixels";
 import { hash } from "../tiles";
+import type { CanopyColour, StructureId } from "./cosmetics";
 
 /**
  * The crew's parts for the Ancient Tree (#161, plan #152 §S6), our own pixel art in the dusk palette.
@@ -282,9 +284,7 @@ export const STRUCTURE_SPRITES = {
   structure_oasis_garden: oasisGarden(),
   structure_stargazer_deck: stargazerDeck(),
   structure_root_stair: rootStair(),
-} satisfies Record<string, PixelMap>;
-
-export type StructureId = keyof typeof STRUCTURE_SPRITES;
+} satisfies Record<StructureId, PixelMap>;
 
 // ---------------------------------------------------------------------------------------------
 // The plaque and the banner.
@@ -377,7 +377,6 @@ export const STATUE_PLINTH_TOP = {
 // ---------------------------------------------------------------------------------------------
 // District styles and canopy colours.
 
-type DistrictStyleId = "mossy" | "lantern" | "blossom" | "crystal";
 
 /**
  * How a district's ground looks in each style, by the hex of each ground pixel: the lawn's three
@@ -385,7 +384,7 @@ type DistrictStyleId = "mossy" | "lantern" | "blossom" | "crystal";
  * at the given chance per pixel. Mossy is deeper and cooler; lantern is lit gold; blossom is
  * pink-tinged with fallen petals; crystal is blue-violet with pale glints.
  */
-export const DISTRICT_STYLE_GROUND: Record<DistrictStyleId, { recolour: Record<string, string>; sprinkle: { hex: string; chance: number }[] }> = {
+export const DISTRICT_STYLE_GROUND: Record<DistrictStyle, { recolour: Record<string, string>; sprinkle: { hex: string; chance: number }[] }> = {
   mossy: {
     recolour: { [PALETTE.g]: "#3e6e3c", [PALETTE.G]: "#244629", [PALETTE.u]: "#58904c", [PALETTE.P]: "#a8ae8a", [PALETTE.m]: "#8c9684", [PALETTE.M]: "#5c6656" },
     sprinkle: [{ hex: "#1b3a22", chance: 0.06 }],
@@ -407,10 +406,9 @@ export const DISTRICT_STYLE_GROUND: Record<DistrictStyleId, { recolour: Record<s
   },
 };
 
-type CanopyColourId = "amber" | "rose" | "sap green" | "moon blue";
 
 /** The tree's leaf colours (g mid, u lit, G shade, k the dark rim) in each canopy colour a crew can choose. */
-export const CANOPY_COLOURS_PALETTE: Record<CanopyColourId, Record<"g" | "G" | "u" | "k", string>> = {
+export const CANOPY_COLOURS_PALETTE: Record<CanopyColour, Record<"g" | "G" | "u" | "k", string>> = {
   amber: { g: "#c4862c", G: "#87561f", u: "#e8b24e", k: "#2a1812" },
   rose: { g: "#bd6479", G: "#7e3a52", u: "#e290a4", k: "#261222" },
   "sap green": { g: "#56a043", G: "#2f6a2e", u: "#8fd66e", k: "#10201a" },
@@ -523,7 +521,7 @@ const structureThumbs: Record<StructureId, () => PixelMap> = {
 };
 
 /** A small iso diamond of lawn in a district style, with the style's own detail on it. */
-function styleThumb(style: DistrictStyleId): PixelMap {
+function styleThumb(style: DistrictStyle): PixelMap {
   const c = new PixelCanvas(THUMB, THUMB);
   const { recolour, sprinkle } = DISTRICT_STYLE_GROUND[style];
   // The lawn: a diamond two tiles across, with its earth edge under it.
@@ -552,7 +550,7 @@ function styleThumb(style: DistrictStyleId): PixelMap {
 }
 
 /** A round clump of the canopy on a stub of trunk, in a canopy colour. */
-function canopyThumb(colour: CanopyColourId): PixelMap {
+function canopyThumb(colour: CanopyColour): PixelMap {
   const c = new PixelCanvas(THUMB, THUMB);
   c.rect(11, 16, 3, 7, "s").rect(11, 16, 1, 7, "B");
   // The crown first, then the two lower clumps over it, so each clump's dark rim is on the outside.
@@ -583,17 +581,16 @@ function bannerThumb(): PixelMap {
 
 const statueThumb = () => plinth({ w: THUMB, h: THUMB, size: 1.25, inner: 1, stepH: 3, blockH: 9 });
 
-export type CrewPartThumbKind = "structure" | "district_style" | "canopy_colour" | "banner" | "statue";
 
 const isStructure = (id: string): id is StructureId => id in structureThumbs;
-const isStyle = (s: string | undefined): s is DistrictStyleId => !!s && s in DISTRICT_STYLE_GROUND;
-const isCanopy = (s: string | undefined): s is CanopyColourId => !!s && s in CANOPY_COLOURS_PALETTE;
+const isStyle = (s: string | undefined): s is DistrictStyle => !!s && s in DISTRICT_STYLE_GROUND;
+const isCanopy = (s: string | undefined): s is CanopyColour => !!s && s in CANOPY_COLOURS_PALETTE;
 
 /**
  * The part's 24 × 24 icon in the catalogue. A style or a canopy colour shows the chosen option, or
  * the first one; an unknown structure id falls back to the empty plinth.
  */
-export function partThumbnail(kind: CrewPartThumbKind, id: string, option?: string): PixelMap {
+export function partThumbnail(kind: CrewPartKind, id: string, option?: string): PixelMap {
   switch (kind) {
     case "structure":
       return isStructure(id) ? structureThumbs[id]() : statueThumb();

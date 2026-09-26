@@ -266,22 +266,22 @@ export function crewOverlays(world: World): { banner: (ArtRect & { text: string 
   const mill = crew?.props.find((p) => p.id === "structure_windmill");
   let sails: Point | null = null;
   if (mill) {
-    const box = spriteBox(STRUCTURE_SPRITES.structure_windmill, propFoot(world, mill.tile));
+    const box = spriteBox(STRUCTURE_SPRITES.structure_windmill, footOn(world, mill.tile));
     sails = { x: box.x + WINDMILL_HUB.x, y: box.y + WINDMILL_HUB.y };
   }
   let statue: { at: Point; width: number } | null = null;
   if (crew?.statue) {
     const plinth = statuePlinth();
-    const box = spriteBox(plinth, propFoot(world, crew.statue.tile));
+    const box = spriteBox(plinth, footOn(world, crew.statue.tile));
     statue = { at: { x: box.x + STATUE_PLINTH_TOP.x, y: box.y + STATUE_PLINTH_TOP.y }, width: mapWidth(plinth) };
   }
   return { banner, sails, statue };
 }
 
-/** Where something standing on a tile has its foot: the tile's front corner, lifted with its ground. */
-function propFoot(world: World, t: Tile): Point {
+/** Where something standing on a tile has its foot: the tile's front corner, lifted with its ground (and `extraY` lower). */
+function footOn(world: World, t: Tile, extraY = 0): Point {
   const c = tileCentre(t);
-  return { x: c.x, y: c.y + TILE_H / 2 - 1 - lift(world, t.x, t.y) };
+  return { x: c.x, y: c.y + TILE_H / 2 - 1 - lift(world, t.x, t.y) + extraY };
 }
 
 /** How tall the tree stands, in art pixels (0 before the seed is planted). */
@@ -558,10 +558,7 @@ type Drawable = { depth: number; sprite: PixelMap; foot: Point; tree?: boolean; 
 /** What stands in the world, each with its sprite, where it stands and its depth. */
 function standing(world: World, furniture: WorldFurniture): Drawable[] {
   const items: Drawable[] = [];
-  const onTile = (t: Tile, extraY = 0) => {
-    const c = tileCentre(t);
-    return { x: c.x, y: c.y + TILE_H / 2 - 1 - lift(world, t.x, t.y) + extraY };
-  };
+  const onTile = (t: Tile, extraY = 0) => footOn(world, t, extraY);
   if (world.trunk) items.push({ depth: treeDepth(world), sprite: crewTreeSprite(world), foot: treeFoot(world), tree: true });
   // What the crew built (#161): its structures by their districts, the statue's plinth at the tree's foot.
   for (const p of world.crew?.props ?? []) items.push({ depth: p.tile.x + p.tile.y + 0.1, sprite: STRUCTURE_SPRITES[p.id], foot: onTile(p.tile) });

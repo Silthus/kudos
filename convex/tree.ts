@@ -479,6 +479,7 @@ const eventValidator = v.object({
   stage: v.optional(treeStageValidator), // stage: the stage reached
   rings: v.optional(v.number()), // ring: the rings the tree has now
   part: v.optional(v.string()), // crew_funded, crew_built: the crew's part (lib/crewCatalogue.ts, #161)
+  option: v.optional(v.string()), // …and its option, where it has one
 });
 
 async function eventView(ctx: QueryCtx, viewer: Viewer, e: Doc<"treeEvents">) {
@@ -492,6 +493,7 @@ async function eventView(ctx: QueryCtx, viewer: Viewer, e: Doc<"treeEvents">) {
     ...(e.stage ? { stage: e.stage } : {}),
     ...(e.rings !== undefined ? { rings: e.rings } : {}),
     ...(e.part !== undefined ? { part: e.part } : {}),
+    ...(e.option !== undefined ? { option: e.option } : {}),
   };
 }
 

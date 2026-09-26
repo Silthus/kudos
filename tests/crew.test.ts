@@ -49,7 +49,7 @@ const as = (memberId: Id<"members">) => signInAs(t, memberId);
 const propose = async (memberId: Id<"members">, args: { partId: string; option?: string; text?: string }) => (await as(memberId)).mutation(api.crew.propose, args);
 const contribute = async (memberId: Id<"members">, questId: Id<"crewQuests">, coins: number) => (await as(memberId)).mutation(api.crew.contribute, { questId, coins });
 const open = async (memberId: Id<"members">) => (await as(memberId)).query(api.crew.open, {});
-const plaque = async (memberId: Id<"members">) => (await as(memberId)).query(api.crew.built, {});
+const plaque = async (memberId: Id<"members">) => (await (await as(memberId)).query(api.crew.built, { paginationOpts: { numItems: 20, cursor: null } })).page;
 const balance = async (memberId: Id<"members">) => (await (await as(memberId)).query(api.game.mine, {})).wallet?.balance;
 const quest = (id: Id<"crewQuests">) => t.run((ctx) => ctx.db.get(id));
 const cosmetics = () => t.run(async (ctx) => (await ctx.db.query("trees").withIndex("by_workspace", (q) => q.eq("workspaceId", team.workspaceId)).unique())?.cosmetics);
@@ -248,6 +248,8 @@ describe("building", () => {
     expect((await open(team.ana)).available.map((p) => p.id)).toContain("style_stall");
     expect((await open(team.ana)).available.map((p) => p.id)).not.toContain("structure_bell");
     await expect(propose(team.ben, { partId: "structure_bell" })).rejects.toThrow(/isn't in the catalogue/);
+    // Paying to build what's already there changes nothing: refused.
+    await expect(propose(team.ben, { partId: "style_stall", option: "crystal" })).rejects.toThrow(/already/);
   });
 
   test("each contributor gets one DM when it's built; funding and building are posted once each", async () => {
@@ -272,6 +274,19 @@ describe("building", () => {
     expect(await crewGains()).toHaveLength(2);
   });
 
+  test("the plaque pages through everything the crew built, newest built first", async () => {
+    for (const option of ["mossy", "lantern", "blossom"]) {
+      const id = await propose(team.ben, { partId: "style_stall", option });
+      await contribute(team.ana, id, 350);
+      vi.setSystemTime(Date.now() + CREW.buildDays * DAY_MS);
+      await settle();
+    }
+    const first = await (await as(team.cleo)).query(api.crew.built, { paginationOpts: { numItems: 2, cursor: null } });
+    expect(first.page.map((b) => b.option)).toEqual(["blossom", "lantern"]);
+    const rest = await (await as(team.cleo)).query(api.crew.built, { paginationOpts: { numItems: 2, cursor: first.continueCursor } });
+    expect(rest.page.map((b) => b.option)).toEqual(["mossy"]);
+  });
+
   test("the plaque lists what the crew built with the names of everyone who gave", async () => {
     const id = await propose(team.ben, { partId: "banner", text: "Thanks make the tree grow" });
     await contribute(team.cleo, id, 150);
@@ -293,10 +308,59 @@ describe("banner moderation", () => {
     await expect((await as(team.ben)).mutation(api.crew.approveBanner, { questId: id })).rejects.toThrow(/admins/);
     await (await as(team.ana)).mutation(api.crew.approveBanner, { questId: id });
     expect(await contribute(team.cleo, id, 5)).toMatchObject({ added: 5 });
-    // An admin's own banner needs no second look.
-    await treeAt("elder");
-    const own = await propose(team.ana, { partId: "structure_bell" });
+  });
+
+  test("an admin's own banner needs no second look", async () => {
+    await (await as(team.ana)).mutation(api.crew.updateSettings, { proposers: "level", bannerModeration: true });
+    const own = await propose(team.ana, { partId: "banner", text: "Onwards and upwards" });
     expect(await quest(own)).not.toHaveProperty("awaitingApproval");
+  });
+
+  test("a saying waiting for approval is shown only to admins and whoever proposed it", async () => {
+    await (await as(team.ana)).mutation(api.crew.updateSettings, { proposers: "level", bannerModeration: true });
+    await propose(team.ben, { partId: "banner", text: "Onwards and upwards" });
+    expect((await open(team.cleo)).quests[0]).toMatchObject({ awaitingApproval: true, text: null });
+    expect((await open(team.ben)).quests[0]).toMatchObject({ text: "Onwards and upwards" });
+    expect((await open(team.ana)).quests[0]).toMatchObject({ text: "Onwards and upwards" });
+  });
+
+  test("switching moderation off lets a waiting banner take coins", async () => {
+    await (await as(team.ana)).mutation(api.crew.updateSettings, { proposers: "level", bannerModeration: true });
+    const id = await propose(team.ben, { partId: "banner", text: "Onwards and upwards" });
+    await (await as(team.ana)).mutation(api.crew.updateSettings, { proposers: "level", bannerModeration: false });
+    expect((await open(team.cleo)).quests[0]).toMatchObject({ awaitingApproval: false, text: "Onwards and upwards" });
+    expect(await contribute(team.cleo, id, 5)).toMatchObject({ added: 5 });
+  });
+
+  test("in the shared demo nobody writes on the tree: banners aren't proposed there", async () => {
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { isDemo: true }));
+    await expect(propose(team.ana, { partId: "banner", text: "Anything at all" })).rejects.toThrow(/shared demo/);
+    expect((await open(team.ana)).available.map((p) => p.id)).not.toContain("banner");
+  });
+
+  test("an admin can call off a quest the crew has given to, and every coin goes back", async () => {
+    const id = await propose(team.ben, { partId: "structure_bell" });
+    const before = { ben: await balance(team.ben), cleo: await balance(team.cleo) };
+    await contribute(team.ben, id, 40);
+    await contribute(team.cleo, id, 60);
+    await expect((await as(team.ben)).mutation(api.crew.withdraw, { questId: id })).rejects.toThrow(/given/);
+    await (await as(team.ana)).mutation(api.crew.withdraw, { questId: id });
+    expect(await quest(id)).toBeNull();
+    expect(await balance(team.ben)).toBe(before.ben);
+    expect(await balance(team.cleo)).toBe(before.cleo);
+    expect(await t.run((ctx) => ctx.db.query("crewContributions").collect())).toEqual([]);
+    // A funded one is being built: nobody calls it off.
+    const bell = await propose(team.ben, { partId: "structure_bell" });
+    await contribute(team.ana, bell, 300);
+    await expect((await as(team.ana)).mutation(api.crew.withdraw, { questId: bell })).rejects.toThrow(/isn't open/);
+  });
+
+  test("another workspace's admin can neither approve nor withdraw", async () => {
+    await (await as(team.ana)).mutation(api.crew.updateSettings, { proposers: "level", bannerModeration: true });
+    const id = await propose(team.ben, { partId: "banner", text: "Onwards and upwards" });
+    const other = await seedTeam(t, { gameEnabled: true }, "T2");
+    await expect((await as(other.ana)).mutation(api.crew.approveBanner, { questId: id })).rejects.toThrow(/isn't waiting/);
+    await expect((await as(other.ana)).mutation(api.crew.withdraw, { questId: id })).rejects.toThrow(/isn't open/);
   });
 
   test("an admin can turn down a waiting banner, and a proposal nobody has given to can be withdrawn", async () => {

@@ -6,7 +6,6 @@ import { tileCentre } from "./iso";
 import { behindTree, crewOverlays, elderOf, hogsOf, labelsOf, paintStanding, signPoints, spriteFoot, standingRect, treeDepth, treeFoot, type ArtRect, type WorldFurniture } from "./paint";
 import { PixelArt } from "./PixelArt";
 import { RemoteArt } from "@/components/RemoteArt";
-import { onToastShown } from "./toastBus";
 import { windmillSails } from "./tree/crewParts";
 import type { Place } from "./places";
 import { mapHeight, mapWidth, pixelAt, type PixelMap } from "./pixels";
@@ -95,20 +94,33 @@ function SeedMoment({ world, scale, onDone }: { world: World; scale: number; onD
   );
 }
 
+/**
+ * The banner's saying fills its face: as tall as the face allows, smaller where a long saying needs it
+ * to fit the width (a Pixelify letter is about 0.62 of its size wide).
+ */
+export function bannerFontPx(face: { width: number; height: number; text: string }, scale: number) {
+  return Math.min(face.height * scale * 1.1, (face.width * scale) / (Math.max(1, [...face.text].length) * 0.62));
+}
+
 /** Frames of the windmill's one turn: two full turns of its four frames. */
 const SAIL_TURN = 8;
 const SAIL_FRAME_MS = 110;
 
 /**
  * What the crew built that the canvases can't hold (#161): the windmill's sails, which turn once
- * whenever a toast comes up (someone's kudos, the tree's news), the banner's saying in the display
- * face, and the hoggie standing as a statue on its plinth at the tree's foot.
+ * whenever the tree grows (a thoughtful kudos' seed planted, or its coins offered at the stone: how
+ * someone's kudos reaches the tree), the banner's saying in the display face, and the hoggie standing
+ * as a statue on its plinth at the tree's foot.
  */
-function CrewOverlays({ world, scale, still }: { world: World; scale: number; still: boolean }) {
+function CrewOverlays({ world, scale, still, growth }: { world: World; scale: number; still: boolean; growth: number }) {
   const over = crewOverlays(world);
   const [turn, setTurn] = useState(0);
   const canvas = useRef<HTMLCanvasElement>(null);
-  useEffect(() => (over.sails && !still ? onToastShown(() => setTurn(SAIL_TURN)) : undefined), [!!over.sails, still]);
+  const lastGrowth = useRef(growth);
+  useEffect(() => {
+    if (growth > lastGrowth.current && over.sails && !still) setTurn(SAIL_TURN);
+    lastGrowth.current = growth;
+  }, [growth, !!over.sails, still]);
   useEffect(() => {
     if (turn <= 0) return;
     const timer = setTimeout(() => setTurn(turn - 1), SAIL_FRAME_MS);
@@ -117,7 +129,8 @@ function CrewOverlays({ world, scale, still }: { world: World; scale: number; st
   const sails = windmillSails(turn % 4);
   useEffect(() => drawMap(canvas.current, sails), [turn, !!over.sails]);
   const millTile = world.crew?.props.find((p) => p.id === "structure_windmill")?.tile;
-  const millZ = millTile && millTile.x + millTile.y < treeDepth(world) ? Z.behind + 1 : Z.front + 1;
+  // In the tree's layers like the tower under them: behind the trunk or in front of it, never over a hog in front.
+  const millZ = millTile && millTile.x + millTile.y < treeDepth(world) ? Z.behind + 1 : Z.front;
   return (
     <>
       {over.sails && (
@@ -136,7 +149,7 @@ function CrewOverlays({ world, scale, still }: { world: World; scale: number; st
           data-tree-banner
           aria-hidden
           className="pointer-events-none absolute flex items-center justify-center overflow-hidden whitespace-nowrap font-display font-medium leading-none text-ink"
-          style={{ zIndex: Z.tree + 1, left: over.banner.x * scale, top: over.banner.y * scale, width: over.banner.width * scale, height: over.banner.height * scale, fontSize: over.banner.height * scale * 1.1, lineHeight: 1 }}
+          style={{ zIndex: Z.tree + 1, left: over.banner.x * scale, top: over.banner.y * scale, width: over.banner.width * scale, height: over.banner.height * scale, fontSize: bannerFontPx(over.banner, scale), lineHeight: 1 }}
         >
           {over.banner.text}
         </div>
@@ -147,7 +160,7 @@ function CrewOverlays({ world, scale, still }: { world: World; scale: number; st
           fit="contain"
           className="pointer-events-none absolute [filter:grayscale(1)_sepia(0.35)_brightness(1.05)_contrast(1.1)]"
           // The hoggie's picture has a little air under its feet: they stand on the plinth's top.
-          style={{ zIndex: Z.front + 1, left: (over.statue.at.x - over.statue.width * 0.575) * scale, top: (over.statue.at.y - over.statue.width * 1.15 * 0.88) * scale, width: over.statue.width * 1.15 * scale, height: over.statue.width * 1.15 * scale }}
+          style={{ zIndex: Z.front, left: (over.statue.at.x - over.statue.width * 0.575) * scale, top: (over.statue.at.y - over.statue.width * 1.15 * 0.88) * scale, width: over.statue.width * 1.15 * scale, height: over.statue.width * 1.15 * scale }}
         />
       )}
     </>
@@ -165,6 +178,7 @@ export function WorldCanvas({
   fresh = [],
   seedMoment = false,
   onSeedMomentDone,
+  growth = 0,
   onPlace,
   onSite,
   ruins = [],
@@ -184,6 +198,8 @@ export function WorldCanvas({
   fresh?: string[];
   seedMoment?: boolean;
   onSeedMomentDone?: () => void;
+  /** The tree's growth: the crew's windmill turns when it rises (#161). */
+  growth?: number;
   onPlace: (place: Place) => void;
   onSite: (site: Site) => void;
   /** The ruins' entrances out in the sand (#162): each its own small picture, named only on approach. */
@@ -273,7 +289,7 @@ export function WorldCanvas({
         style={{ ...box, zIndex: Z.front }}
       />
       {seedMoment && <SeedMoment world={world} scale={scale} onDone={() => onSeedMomentDone?.()} />}
-      {ready && !seedMoment && <CrewOverlays world={world} scale={scale} still={still} />}
+      {ready && !seedMoment && <CrewOverlays world={world} scale={scale} still={still} growth={growth} />}
       {/* PostHog's hedgehog, silvered with age, on its mat (#159): its sign and its door open its window. */}
       {elderAt && elderPlace && (
         <div aria-hidden data-elder className="pointer-events-none absolute" style={{ zIndex: Z.front, left: elderAt.x * scale - HOG_SIZE / 2, top: (elderAt.y + 4) * scale - HOG_FEET }}>

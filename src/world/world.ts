@@ -124,8 +124,11 @@ export const BASE_CAMP = {
     { kind: "tent", tile: { x: 0, y: 6 } },
   ] satisfies Prop[] as Prop[],
   places: { me: { x: 8, y: -1 }, playground: { x: -1, y: 8 }, offering: { x: 3, y: 3 }, elder: { x: 6, y: 2 } } as Record<string, Tile>,
-  /** Where the crew's bell hangs and the statue stands (#161), in front of the trunk, clear of the doors. */
-  crew: { bell: { x: 8, y: 6 }, statue: { x: 1, y: 6 } } as { bell: Tile; statue: Tile },
+  /** Where the crew's bell hangs and the statue stands (#161): the first of these that's clear, in front of the trunk. */
+  crew: {
+    bell: [{ x: 11, y: 3 }, { x: 10, y: 4 }, { x: 9, y: 5 }],
+    statue: [{ x: 3, y: 7 }, { x: 2, y: 7 }, { x: 1, y: 6 }],
+  } as { bell: Tile[]; statue: Tile[] },
 };
 
 /** How far the trunk reaches from the origin at each stage (a square of 2r + 1 tiles). */
@@ -307,16 +310,19 @@ export function buildWorld({ seed, layout, planted, standing, litPlots = [], cos
     !underCanopy(x, y) &&
     ![[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => doorTiles.has(tileKey(x + dx, y + dy))) &&
     !overlay.has(tileKey(x, y));
+  // Base camp's own spots first, then beside the district's places.
+  const standAt = (site: Site, spots: Tile[] = []) => spots.find((t) => clearFor(t.x, t.y)) ?? besideSite(site, clearFor);
+  const baseCamp = sites.find((x) => x.id === "base_camp")!;
   for (const s of cosmetics.structures) {
     const site = sites.find((x) => x.id === s.district);
     if (!site?.open) continue;
-    const fixed = s.district === "base_camp" ? BASE_CAMP.crew.bell : null;
-    const tile = fixed ?? besideSite(site, clearFor);
+    const tile = standAt(site, s.district === "base_camp" ? BASE_CAMP.crew.bell : []);
     if (!tile) continue;
     blocked.add(tileKey(tile.x, tile.y));
     crewProps.push({ id: s.id, district: s.district, tile });
   }
-  const statue = planted && cosmetics.statue ? { statue: cosmetics.statue, tile: BASE_CAMP.crew.statue } : null;
+  const statueTile = planted && cosmetics.statue ? standAt(baseCamp, BASE_CAMP.crew.statue) : null;
+  const statue = cosmetics.statue && statueTile ? { statue: cosmetics.statue, tile: statueTile } : null;
   if (statue) blocked.add(tileKey(statue.tile.x, statue.tile.y));
 
   const rings = layout.rings;
@@ -481,14 +487,21 @@ export function ruinStones(door: Tile): Tile[] {
   ];
 }
 
-/** The nearest clear tile round a district's tiles (a ring out, then two), in a fixed order: where its crew structure stands. */
+/**
+ * The nearest clear tile round a district's tiles (two rings out, then three, then four), in a fixed order:
+ * where its crew structure stands. Beside the district first (level with its middle on screen), so the
+ * structure stands next to its place rather than in front of it, on its side away from the trunk.
+ */
 function besideSite(site: Site, clear: (x: number, y: number) => boolean): Tile | null {
-  for (const d of [1, 2, 3]) {
-    const r = grow(site.claim, d);
+  const c = site.claim;
+  const depth = (c.x0 + c.x1 + c.y0 + c.y1) / 2;
+  // Two tiles out at least: a structure is as wide as a place, and a tile's step aside would stand it on the place.
+  for (const d of [2, 3, 4]) {
+    const r = grow(c, d);
     const ring: Tile[] = [];
     for (let y = r.y0; y <= r.y1; y++) for (let x = r.x0; x <= r.x1; x++) if (x === r.x0 || x === r.x1 || y === r.y0 || y === r.y1) ring.push({ x, y });
-    // In front of it first (down the screen, +x + y), so it reads as the district's own.
-    ring.sort((a, b) => b.x + b.y - (a.x + a.y) || a.x - b.x);
+    // Of two sides, the one away from the trunk, where less of the town stands.
+    ring.sort((a, b) => Math.abs(a.x + a.y - depth) - Math.abs(b.x + b.y - depth) || Math.hypot(b.x, b.y) - Math.hypot(a.x, a.y) || a.x - b.x || a.y - b.y);
     const found = ring.find((t) => clear(t.x, t.y));
     if (found) return found;
   }

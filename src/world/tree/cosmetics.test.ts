@@ -10,7 +10,7 @@ import { cosmeticsKey, treeCosmetics, type TreeCosmetics } from "./cosmetics";
 
 const ALL = PLACES.map((p) => p.id);
 const SEEDS = Array.from({ length: 30 }, (_, i) => (i * 2_654_435_761) >>> 0);
-const EVERY_STRUCTURE = treeCosmetics(CREW_PARTS.filter((p) => p.kind === "structure").map((p) => ({ part: p.id })));
+const EVERY_STRUCTURE = treeCosmetics([...CREW_PARTS.filter((p) => p.kind === "structure").map((p) => ({ part: p.id })), { part: "statue", option: "party" }]);
 const world = (seed: number, growth: number, cosmetics: TreeCosmetics) => buildWorld({ seed, layout: layout(seed, growth), planted: true, standing: ALL, cosmetics });
 
 describe("what the crew built, read from the tree", () => {
@@ -42,7 +42,8 @@ describe("structures stand by their districts", () => {
       expect(w.crew.props.map((p) => p.id).sort(), `${seed}`).toEqual(EVERY_STRUCTURE.structures.map((s) => s.id).sort());
       const doors = w.places.flatMap((p) => p.doors);
       const taken = new Set<string>();
-      for (const prop of w.crew.props) {
+      expect(w.crew.statue, `${seed}: the statue`).not.toBeNull();
+      for (const prop of [...w.crew.props, { id: "statue", district: "base_camp" as const, tile: w.crew.statue!.tile }]) {
         const k = `${prop.tile.x},${prop.tile.y}`;
         expect(taken.has(k), `${seed} ${prop.id} shares ${k}`).toBe(false);
         taken.add(k);

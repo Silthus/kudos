@@ -1,4 +1,5 @@
 import { ConvexError, v } from "convex/values";
+import { paginationOptsValidator, paginationResultValidator } from "convex/server";
 import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -22,7 +23,9 @@ import { spendCoins } from "./wallet";
  *   only; a part the tree's stage allows that isn't built (once-only parts) or open already; CREW.maxOpen
  *   quests open at once (proposed or funded, not yet built). A banner's saying is one line of plain
  *   text; with banner moderation on, a banner proposed by someone who isn't an admin waits for an
- *   admin's approval (`approveBanner`) before it takes coins. A quest nobody has given to can be withdrawn.
+ *   admin's approval (`approveBanner`) before it takes coins. Its proposer withdraws a quest nobody has
+ *   given to; an admin calls off any quest not yet funded, and every coin given to it goes back. In the
+ *   shared demo, where every visitor is the same admin, nobody writes a banner's saying on the tree.
  * - **Contribute** (`contribute`): coins are spent at once from the wallet (`spendCoins`), never
  *   refunded, and only what the goal still needs. The quest row holds the running total, so
  *   contributions racing for the last coins conflict and retry: exactly one funds it. The ledger
@@ -39,14 +42,15 @@ import { spendCoins } from "./wallet";
 
 /** Ledger lines a quest keeps: one per member, so this many teammates may give to one quest. */
 export const CONTRIBUTORS_MAX = 500;
-/** Built quests the plaque shows, newest first (each with up to CONTRIBUTORS_MAX names). */
-const PLAQUE_MAX = 12;
-/** Quests a workspace may have open at once is CREW.maxOpen; reads take a few more in case of a race. */
+/** Quests a workspace may have open at once is CREW.maxOpen; reads take a few more, for stories that seed more. */
 const OPEN_READ = CREW.maxOpen + 4;
 const FORMER = "a former teammate";
+/** Built quests a plaque page holds at most: each reads up to CONTRIBUTORS_MAX lines and their names. */
+const PLAQUE_PAGE = 5;
 const BUILD_MS = CREW.buildDays * DAY_MS;
 
 type Quest = Doc<"crewQuests">;
+type BuiltPart = NonNullable<Doc<"trees">["cosmetics"]>[number];
 
 /** The quests not yet built (proposed or funded), oldest first. */
 async function openQuests(ctx: QueryCtx, workspaceId: Id<"workspaces">): Promise<Quest[]> {
@@ -61,13 +65,32 @@ async function openQuests(ctx: QueryCtx, workspaceId: Id<"workspaces">): Promise
   return [...proposed, ...funded].sort((a, b) => a.proposedAt - b.proposedAt);
 }
 
-/** The parts built on the tree, one per part id (a style built again replaced the one before). */
-async function builtParts(ctx: QueryCtx, workspaceId: Id<"workspaces">) {
-  return (await treeOf(ctx, workspaceId))?.cosmetics ?? [];
+/** The tree's stage (from its peak) and the parts built on it, one per part id (a style built again replaced the one before). */
+async function treeFacts(ctx: QueryCtx, workspaceId: Id<"workspaces">): Promise<{ stage: TreeStageId; built: BuiltPart[] }> {
+  const tree = await treeOf(ctx, workspaceId);
+  return { stage: stageForGrowth(tree?.peakGrowth ?? 0), built: tree?.cosmetics ?? [] };
 }
 
-async function stageOf(ctx: QueryCtx, workspaceId: Id<"workspaces">): Promise<TreeStageId> {
-  return stageForGrowth((await treeOf(ctx, workspaceId))?.peakGrowth ?? 0);
+/** The shared demo (not a visitor's own simulator): every visitor is the same admin there. */
+const sharedDemo = (workspace: Doc<"workspaces">) => workspace.isDemo && !workspace.simulator;
+
+/** The parts the viewer may propose now: the catalogue's, less banners in the shared demo. */
+function proposable(workspace: Doc<"workspaces">, stage: TreeStageId, built: BuiltPart[], open: Quest[]) {
+  return partsAvailable(stage, { built: built.map((b) => b.part), open: open.map((q) => q.part) }).filter((p) => !(p.kind === "banner" && sharedDemo(workspace)));
+}
+
+/** A banner's saying waits for an admin only while the gatehouse moderates banners: switching it off lets it through. */
+const waitsForApproval = (workspace: Doc<"workspaces">, q: Quest) => q.awaitingApproval === true && workspace.crewBannerModeration === true;
+
+/**
+ * Writes a built part into the tree's cosmetics, replacing the same part built before: the one way a
+ * part reaches the tree (a build, and a story's).
+ */
+async function putOnTree(ctx: MutationCtx, workspaceId: Id<"workspaces">, quest: Pick<Quest, "_id" | "part" | "option" | "text">, builtAt: number) {
+  const tree = await treeOf(ctx, workspaceId);
+  if (!tree) return;
+  const built: BuiltPart = { part: quest.part, questId: quest._id, builtAt, ...(quest.option !== undefined ? { option: quest.option } : {}), ...(quest.text !== undefined ? { text: quest.text } : {}) };
+  await ctx.db.patch(tree._id, { cosmetics: [...(tree.cosmetics ?? []).filter((b) => b.part !== quest.part), built] });
 }
 
 const crewOpen = (stage: TreeStageId) => districtsOpen(stage).includes("crew");
@@ -105,12 +128,12 @@ export const propose = mutation({
   handler: async (ctx, { partId, option, text }) => {
     const viewer = await gameViewer(ctx);
     const { workspace, member } = viewer;
-    const stage = await stageOf(ctx, workspace._id);
+    const { stage, built } = await treeFacts(ctx, workspace._id);
     const open = await openQuests(ctx, workspace._id);
     const may = await mayPropose(ctx, viewer, stage, open);
     if (!may.ok) throw new ConvexError(may.why);
-    const built = (await builtParts(ctx, workspace._id)).map((b) => b.part);
-    const part = partsAvailable(stage, { built, open: open.map((q) => q.part) }).find((p) => p.id === partId);
+    if (partId === "banner" && sharedDemo(workspace)) throw new ConvexError("In the shared demo nobody writes on the tree: try a banner in your own simulator.");
+    const part = proposable(workspace, stage, built, open).find((p) => p.id === partId);
     if (!part) throw new ConvexError("That part isn't in the catalogue right now: it's built, open already, or needs a bigger tree.");
     if (!validOption(part, option)) throw new ConvexError("options" in part ? `Pick one of: ${part.options.join(", ")}.` : "Pick nothing for this part: it comes as it is.");
     let saying: string | undefined;
@@ -118,6 +141,8 @@ export const propose = mutation({
       saying = bannerText(text ?? "") ?? undefined;
       if (!saying) throw new ConvexError(`Write the banner's saying: one line of plain text, up to ${BANNER_TEXT.max} characters.`);
     } else if (text !== undefined) throw new ConvexError("Only a banner has a saying.");
+    const now = built.find((b) => b.part === part.id);
+    if (now && now.option === option && now.text === saying) throw new ConvexError("The tree has that already: pick another look, or another part.");
     const waits = part.kind === "banner" && workspace.crewBannerModeration === true && !member.isAdmin;
     return await ctx.db.insert("crewQuests", {
       workspaceId: workspace._id,
@@ -148,16 +173,30 @@ export const approveBanner = mutation({
   },
 });
 
-/** Its proposer or an admin withdraws a quest nobody has given to yet (an admin turning a banner down, too). */
+/**
+ * Withdraws a quest not yet funded: its proposer, while nobody has given to it; an admin, any time
+ * (turning a banner down, or freeing a slot the crew won't fill), and every coin given to it goes back
+ * to whoever gave it (lines of someone who left have nobody to go back to). An admin needs no game.
+ */
 export const withdraw = mutation({
   args: { questId: v.id("crewQuests") },
   returns: v.null(),
   handler: async (ctx, { questId }) => {
-    const { workspace, member } = await gameViewer(ctx);
+    const { workspace, member } = await requireViewer(ctx);
+    if (!member.isAdmin && !gameShownTo(workspace, member)) throw new ConvexError("Crew quests are part of the game: switch it on (or show it on your Me page).");
     const quest = await questIn(ctx, workspace._id, questId);
     if (!quest || quest.status !== "proposed") throw new ConvexError("That crew quest isn't open.");
     if (!member.isAdmin && quest.proposedBy !== member._id) throw new ConvexError("Only whoever proposed it, or an admin, can withdraw it.");
-    if (quest.contributed > 0) throw new ConvexError("Teammates have given to it already: it stays until it's funded.");
+    if (!member.isAdmin && quest.contributed > 0) throw new ConvexError("Teammates have given to it already: it stays until it's funded, or an admin calls it off.");
+    const lines = await ctx.db
+      .query("crewContributions")
+      .withIndex("by_quest_at", (q) => q.eq("questId", quest._id))
+      .take(CONTRIBUTORS_MAX);
+    for (const line of lines) {
+      const giver = line.memberId && (await ctx.db.get(line.memberId));
+      if (giver) await ctx.db.patch(giver._id, { coinsSpent: (giver.coinsSpent ?? 0) - line.amount });
+      await ctx.db.delete(line._id);
+    }
     await ctx.db.delete(quest._id);
     return null;
   },
@@ -174,7 +213,7 @@ export const contribute = mutation({
     const quest = await questIn(ctx, workspace._id, questId);
     if (!quest || quest.status === "built") throw new ConvexError("That crew quest isn't open.");
     if (quest.status === "funded") throw new ConvexError("That crew quest is funded already: it's being built.");
-    if (quest.awaitingApproval) throw new ConvexError("That banner is waiting for an admin's approval before it takes coins.");
+    if (waitsForApproval(workspace, quest)) throw new ConvexError("That banner is waiting for an admin's approval before it takes coins.");
     const player = await playerOf(ctx, member._id);
     if (!player || player.level < WALLET_LEVEL) throw new ConvexError(`Your Hog coin wallet opens at level ${WALLET_LEVEL}: give a few thoughtful kudos first.`);
     const added = Math.min(coins, quest.goal - quest.contributed);
@@ -206,7 +245,7 @@ async function firstCrewEvent(ctx: MutationCtx, workspace: Doc<"workspaces">, me
 /** The quest reached its goal: an event and a post, and the build CREW.buildDays from now. */
 async function fund(ctx: MutationCtx, workspace: Doc<"workspaces">, questId: Id<"crewQuests">, now: number) {
   const quest = (await ctx.db.get(questId))!;
-  const eventId = await ctx.db.insert("treeEvents", { workspaceId: workspace._id, kind: "crew_funded", at: now, questId, part: quest.part });
+  const eventId = await ctx.db.insert("treeEvents", { workspaceId: workspace._id, kind: "crew_funded", at: now, questId, part: quest.part, ...(quest.option !== undefined ? { option: quest.option } : {}) });
   await announceTreeEvent(ctx, workspace, eventId);
   await ctx.scheduler.runAfter(BUILD_MS, internal.crew.build, { questId });
 }
@@ -223,13 +262,10 @@ async function buildIfDue(ctx: MutationCtx, workspace: Doc<"workspaces">, quest:
   const now = workspaceNow(workspace);
   const due = quest.fundedAt + BUILD_MS;
   if (now < due) return false;
-  await ctx.db.patch(quest._id, { status: "built", builtAt: due });
-  const tree = await treeOf(ctx, workspace._id);
-  if (tree) {
-    const built = { part: quest.part, questId: quest._id, builtAt: due, ...(quest.option !== undefined ? { option: quest.option } : {}), ...(quest.text !== undefined ? { text: quest.text } : {}) };
-    await ctx.db.patch(tree._id, { cosmetics: [...(tree.cosmetics ?? []).filter((b) => b.part !== quest.part), built] });
-  }
-  const eventId = await ctx.db.insert("treeEvents", { workspaceId: workspace._id, kind: "crew_built", at: due, questId: quest._id, part: quest.part });
+  // Built now, when the world sees it (a simulator's day may have run past the due time).
+  await ctx.db.patch(quest._id, { status: "built", builtAt: now });
+  await putOnTree(ctx, workspace._id, quest, now);
+  const eventId = await ctx.db.insert("treeEvents", { workspaceId: workspace._id, kind: "crew_built", at: now, questId: quest._id, part: quest.part, ...(quest.option !== undefined ? { option: quest.option } : {}) });
   await announceTreeEvent(ctx, workspace, eventId);
   await tellContributors(ctx, workspace, quest, now);
   return true;
@@ -263,14 +299,14 @@ export const build = internalMutation({
   },
 });
 
-/** Builds every funded quest whose days are up: a simulator's day went by (its clock runs ahead of the scheduler's). */
-export async function settleCrew(ctx: MutationCtx, workspace: Doc<"workspaces">): Promise<string[]> {
+/** Builds every funded quest whose days are up: a simulator's day went by (its clock runs ahead of the scheduler's). Returns how many. */
+export async function settleCrew(ctx: MutationCtx, workspace: Doc<"workspaces">): Promise<number> {
   const funded = await ctx.db
     .query("crewQuests")
     .withIndex("by_workspace_status", (q) => q.eq("workspaceId", workspace._id).eq("status", "funded"))
     .take(OPEN_READ);
-  const built: string[] = [];
-  for (const quest of funded) if (await buildIfDue(ctx, workspace, quest)) built.push(crewPartTitle(quest.part, quest.option));
+  let built = 0;
+  for (const quest of funded) if (await buildIfDue(ctx, workspace, quest)) built++;
   return built;
 }
 
@@ -320,11 +356,10 @@ export async function seedQuest(ctx: MutationCtx, workspace: Doc<"workspaces">, 
   }
   for (const [memberId, l] of lines) await ctx.db.insert("crewContributions", { workspaceId: workspace._id, questId, memberId, ...l });
   if (funded) {
-    await ctx.db.insert("treeEvents", { workspaceId: workspace._id, kind: "crew_funded", at: fundedAt!, questId, part: part.id });
-    await ctx.db.insert("treeEvents", { workspaceId: workspace._id, kind: "crew_built", at: story.builtAt!, questId, part: part.id });
-    const tree = await treeOf(ctx, workspace._id);
-    const built = { part: part.id, questId, builtAt: story.builtAt!, ...(story.option !== undefined ? { option: story.option } : {}), ...(story.text !== undefined ? { text: story.text } : {}) };
-    if (tree) await ctx.db.patch(tree._id, { cosmetics: [...(tree.cosmetics ?? []).filter((b) => b.part !== part.id), built] });
+    const option = story.option !== undefined ? { option: story.option } : {};
+    await ctx.db.insert("treeEvents", { workspaceId: workspace._id, kind: "crew_funded", at: fundedAt!, questId, part: part.id, ...option });
+    await ctx.db.insert("treeEvents", { workspaceId: workspace._id, kind: "crew_built", at: story.builtAt!, questId, part: part.id, ...option });
+    await putOnTree(ctx, workspace._id, { _id: questId, part: part.id, option: story.option, text: story.text }, story.builtAt!);
   }
   return questId;
 }
@@ -354,8 +389,10 @@ export const seedStory = internalMutation({
     const now = workspaceNow(workspace);
     const goal = Math.round(part.cost * (built ? 1 : Math.min(0.99, share)));
     const givers = members.slice(0, 5);
-    const gifts = givers.map((m, i) => ({ memberId: m._id, coins: Math.floor(goal / givers.length) + (i === 0 ? goal % givers.length : 0), at: now - (5 - i) * 60_000 }));
-    return await seedQuest(ctx, workspace, { part: partId, option, text, proposedBy: proposer._id, proposedAt: now - DAY_MS, gifts, builtAt: built ? now : undefined });
+    // Proposed a day before it was funded, given to in between, built CREW.buildDays after (now, when built).
+    const proposedAt = now - (built ? BUILD_MS : 0) - DAY_MS;
+    const gifts = givers.map((m, i) => ({ memberId: m._id, coins: Math.floor(goal / givers.length) + (i === 0 ? goal % givers.length : 0), at: proposedAt + (i + 1) * 60 * 60_000 }));
+    return await seedQuest(ctx, workspace, { part: partId, option, text, proposedBy: proposer._id, proposedAt, gifts, builtAt: built ? now : undefined });
   },
 });
 
@@ -375,7 +412,7 @@ function partView(p: CrewPart) {
   return { id: p.id, kind: p.kind, name: p.name, about: p.about, cost: p.cost, district: "district" in p ? p.district : null, options: "options" in p ? [...p.options] : [] };
 }
 
-const nameOf = async (ctx: QueryCtx, memberId: Id<"members"> | undefined) => (memberId && (await ctx.db.get(memberId))?.name) || FORMER;
+const memberName = async (ctx: QueryCtx, memberId: Id<"members"> | undefined) => (memberId && (await ctx.db.get(memberId))?.name) || FORMER;
 
 const questValidator = v.object({
   _id: v.id("crewQuests"),
@@ -422,11 +459,10 @@ export const open = query({
     const { workspace, member } = viewer;
     const settings = { proposers: workspace.crewProposers ?? ("level" as const), bannerModeration: workspace.crewBannerModeration === true };
     const shown = gameShownTo(workspace, member);
-    const stage = shown ? await stageOf(ctx, workspace._id) : "seed";
+    const { stage, built } = shown ? await treeFacts(ctx, workspace._id) : { stage: "seed" as const, built: [] };
     const off = { enabled: false, stage, quests: [], available: [], canPropose: { ok: false as const, why: "" }, wallet: null, isAdmin: member.isAdmin, settings };
     if (!shown || !crewOpen(stage)) return off;
     const quests = await openQuests(ctx, workspace._id);
-    const built = (await builtParts(ctx, workspace._id)).map((b) => b.part);
     const player = await playerOf(ctx, member._id);
     return {
       enabled: true,
@@ -438,19 +474,21 @@ export const open = query({
             .withIndex("by_quest_member", (x) => x.eq("questId", q._id).eq("memberId", member._id))
             .unique();
           const part = crewPart(q.part);
+          const waits = waitsForApproval(workspace, q);
           return {
             _id: q._id,
             part: q.part,
             kind: part?.kind ?? "structure",
             name: part?.name ?? q.part,
             option: q.option ?? null,
-            text: q.text ?? null,
+            // A saying no admin has approved yet is only for admins and whoever proposed it.
+            text: waits && !member.isAdmin && q.proposedBy !== member._id ? null : (q.text ?? null),
             goal: q.goal,
             contributed: q.contributed,
             contributors: q.contributors,
             status: q.status as "proposed" | "funded",
-            awaitingApproval: q.awaitingApproval === true,
-            proposedBy: await nameOf(ctx, q.proposedBy),
+            awaitingApproval: waits,
+            proposedBy: await memberName(ctx, q.proposedBy),
             proposedByMe: q.proposedBy === member._id,
             fundedAt: q.fundedAt ?? null,
             buildsAt: q.fundedAt !== undefined ? q.fundedAt + BUILD_MS : null,
@@ -458,7 +496,7 @@ export const open = query({
           };
         }),
       ),
-      available: partsAvailable(stage, { built, open: quests.map((q) => q.part) }).map(partView),
+      available: proposable(workspace, stage, built, quests).map(partView),
       canPropose: await mayPropose(ctx, viewer, stage, quests),
       wallet: player && player.level >= WALLET_LEVEL ? coinBalance(player, member).balance : null,
       isAdmin: member.isAdmin,
@@ -467,52 +505,61 @@ export const open = query({
   },
 });
 
+const plaqueLineValidator = v.object({
+  _id: v.id("crewQuests"),
+  part: v.string(),
+  name: v.string(),
+  option: v.union(v.null(), v.string()),
+  text: v.union(v.null(), v.string()),
+  builtAt: v.number(),
+  proposedBy: v.string(),
+  contributed: v.number(),
+  contributors: v.array(v.string()),
+});
+
 /**
- * The plaque: what the crew built, newest first (the latest PLAQUE_MAX), each with who proposed it and
- * the names of everyone who gave, in the order they gave. Someone who left is "a former teammate".
+ * The plaque: everything the crew built, newest built first, a page at a time (it keeps growing, and
+ * the names stay forever), each with who proposed it and the names of everyone who gave, in the order
+ * they gave. Someone who left is "a former teammate". Each member is read once a page.
  */
 export const built = query({
-  args: {},
-  returns: v.array(
-    v.object({
-      _id: v.id("crewQuests"),
-      part: v.string(),
-      name: v.string(),
-      option: v.union(v.null(), v.string()),
-      text: v.union(v.null(), v.string()),
-      builtAt: v.number(),
-      proposedBy: v.string(),
-      contributed: v.number(),
-      contributors: v.array(v.string()),
-    }),
-  ),
-  handler: async (ctx) => {
+  args: { paginationOpts: paginationOptsValidator },
+  returns: paginationResultValidator(plaqueLineValidator),
+  handler: async (ctx, { paginationOpts }) => {
     const { workspace, member } = await requireViewer(ctx);
-    if (!gameShownTo(workspace, member)) return [];
-    const quests = await ctx.db
+    if (!gameShownTo(workspace, member)) return { page: [], isDone: true, continueCursor: "" };
+    const result = await ctx.db
       .query("crewQuests")
-      .withIndex("by_workspace_status", (q) => q.eq("workspaceId", workspace._id).eq("status", "built"))
+      .withIndex("by_workspace_status_builtAt", (q) => q.eq("workspaceId", workspace._id).eq("status", "built"))
       .order("desc")
-      .take(PLAQUE_MAX);
-    return await Promise.all(
-      quests.map(async (q) => {
-        const lines = await ctx.db
-          .query("crewContributions")
-          .withIndex("by_quest_at", (x) => x.eq("questId", q._id))
-          .take(CONTRIBUTORS_MAX);
-        return {
-          _id: q._id,
-          part: q.part,
-          name: crewPart(q.part)?.name ?? q.part,
-          option: q.option ?? null,
-          text: q.text ?? null,
-          builtAt: q.builtAt ?? q.proposedAt,
-          proposedBy: await nameOf(ctx, q.proposedBy),
-          contributed: q.contributed,
-          contributors: await Promise.all(lines.map((l) => nameOf(ctx, l.memberId))),
-        };
-      }),
-    );
+      .paginate({ ...paginationOpts, numItems: Math.min(paginationOpts.numItems, PLAQUE_PAGE) });
+    const names = new Map<Id<"members">, string>();
+    const nameOf = async (id: Id<"members"> | undefined) => {
+      if (!id) return FORMER;
+      if (!names.has(id)) names.set(id, (await ctx.db.get(id))?.name ?? FORMER);
+      return names.get(id)!;
+    };
+    const page = [];
+    for (const q of result.page) {
+      const lines = await ctx.db
+        .query("crewContributions")
+        .withIndex("by_quest_at", (x) => x.eq("questId", q._id))
+        .take(CONTRIBUTORS_MAX);
+      const contributors = [];
+      for (const l of lines) contributors.push(await nameOf(l.memberId));
+      page.push({
+        _id: q._id,
+        part: q.part,
+        name: crewPart(q.part)?.name ?? q.part,
+        option: q.option ?? null,
+        text: q.text ?? null,
+        builtAt: q.builtAt ?? q.proposedAt,
+        proposedBy: await nameOf(q.proposedBy),
+        contributed: q.contributed,
+        contributors,
+      });
+    }
+    return { ...result, page };
   },
 });
 

@@ -18,7 +18,7 @@ type Full = NonNullable<FunctionReturnType<typeof api.tree.state>>;
 export type TreeState = Pick<Full, "planted" | "stage" | "growth" | "peakGrowth" | "plantedBy" | "worldSeed" | "rings"> & {
   layout: Full["layout"] | Layout;
   /** The latest events (the crew's funded and built toasts) and what the crew built (#161). */
-  events?: Pick<Full["events"][number], "_id" | "kind" | "part">[];
+  events?: Pick<Full["events"][number], "_id" | "kind" | "part" | "option">[];
   cosmetics?: Full["cosmetics"];
 };
 
@@ -50,7 +50,7 @@ export function closedLine(site: { opens: TreeStageId }, peakGrowth: number) {
   return `Opens when the tree is ${TREE_STAGE_BY_ID[site.opens].name}: ${growthToReach(peakGrowth, site.opens)} more thoughtful kudos.`;
 }
 
-export type CrewMoment = { kind: "crew_funded" | "crew_built"; part: string };
+export type CrewMoment = { kind: "crew_funded" | "crew_built"; part: string; option?: string };
 export type TreeMoments = { seeded: boolean; opened: DistrictId[]; crew: CrewMoment[] };
 
 /** The districts open on a tree that this client knows (a newer server may know more). */
@@ -68,7 +68,7 @@ export function treeMoments(prev: TreeState | null | undefined, next: TreeState 
   const crew = (next.events ?? [])
     .filter((e): e is typeof e & { kind: CrewMoment["kind"]; part: string } => !seen.has(e._id) && (e.kind === "crew_funded" || e.kind === "crew_built") && !!e.part)
     .reverse()
-    .map((e) => ({ kind: e.kind, part: e.part }));
+    .map((e) => ({ kind: e.kind, part: e.part, ...(e.option ? { option: e.option } : {}) }));
   return { seeded: !prev.planted && next.planted, opened: openIds(next).filter((id) => !was.has(id)), crew };
 }
 
@@ -98,8 +98,8 @@ export function treeToasts(m: TreeMoments, next: TreeState): Toast[] {
   for (const c of m.crew)
     toasts.push(
       c.kind === "crew_funded"
-        ? { kind: "tree", title: `The crew funded ${crewPartTitle(c.part)}`, body: `It will be built in ${CREW.buildDays} days, and everyone who gave is on the plaque.` }
-        : { kind: "tree", title: `The crew built ${crewPartTitle(c.part)}`, body: "It stands on the tree now, for good.", link: { to: "/crew", label: "See the plaque" } },
+        ? { kind: "tree", title: `The crew funded ${crewPartTitle(c.part, c.option)}`, body: `It will be built in ${CREW.buildDays} days, and everyone who gave is on the plaque.` }
+        : { kind: "tree", title: `The crew built ${crewPartTitle(c.part, c.option)}`, body: "It stands on the tree now, for good.", link: { to: "/crew", label: "See the plaque" } },
     );
   return toasts;
 }

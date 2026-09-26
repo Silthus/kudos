@@ -21,7 +21,8 @@ const approve = vi.fn();
 const withdraw = vi.fn();
 const updateSettings = vi.fn();
 vi.mock("convex/react", () => ({
-  useQuery: (fn: FunctionReference<"query">) => ({ "crew:open": open, "crew:built": built })[getFunctionName(fn)],
+  useQuery: (fn: FunctionReference<"query">) => ({ "crew:open": open })[getFunctionName(fn)],
+  usePaginatedQuery: () => ({ results: built, status: "Exhausted", loadMore: vi.fn() }),
   useMutation: (fn: FunctionReference<"mutation">) =>
     ({ "crew:contribute": contribute, "crew:propose": propose, "crew:approveBanner": approve, "crew:withdraw": withdraw, "crew:updateSettings": updateSettings })[getFunctionName(fn)],
 }));
@@ -112,9 +113,9 @@ describe("open crew quests", () => {
     expect(text()).toContain("300 of 500 Hog coins (60 %)");
     expect(text()).toContain("Proposed by Priya Raman");
     expect(document.querySelector("[data-crew-quest] [data-thumb] svg")).not.toBeNull(); // its pixel picture
-    click(button("All"));
+    click(document.querySelector('[aria-label="Set all the coins it still needs, or all you have"]'));
     expect((document.querySelector("[data-coins-input]") as HTMLInputElement).value).toBe("120");
-    click(button("20"));
+    click(document.querySelector('[aria-label="Set 20 coins"]'));
     contribute.mockResolvedValue({ added: 20, funded: false });
     await act(async () => (document.querySelector("[data-crew-quest] form") as HTMLFormElement).requestSubmit());
     expect(contribute).toHaveBeenCalledWith({ questId: "q1", coins: 20 });
@@ -133,6 +134,9 @@ describe("open crew quests", () => {
     open = openState({ quests: [quest({ status: "funded", contributed: 500, fundedAt: Date.now(), buildsAt: Date.now() + 2.5 * 86_400_000 })] });
     render();
     expect(text()).toContain("Funded. The crew builds it in 3 days.");
+    open = openState({ quests: [quest({ status: "funded", contributed: 500, fundedAt: Date.now() - 4 * 86_400_000, buildsAt: Date.now() - 86_400_000 })] });
+    render();
+    expect(text()).toContain("Funded. The crew is building it now.");
     expect(document.querySelector("[data-coins-input]")).toBeNull();
   });
 
@@ -169,7 +173,7 @@ describe("proposing", () => {
     expect(document.querySelectorAll("[data-option]")).toHaveLength(4);
     click(document.querySelector('[data-option="crystal"]'));
     propose.mockResolvedValue("q2");
-    await act(async () => button("Propose it for 350 Hog coins")!.click());
+    await act(async () => button("Propose it")!.click());
     expect(propose).toHaveBeenCalledWith({ partId: "style_stall", option: "crystal" });
   });
 
@@ -178,12 +182,20 @@ describe("proposing", () => {
     built = [];
     render();
     click(document.querySelector('[data-part="banner"]'));
-    const go = () => button("Propose it for 200 Hog coins")!;
+    const go = () => button("Propose it")!;
     expect(go().disabled).toBe(true);
     type(document.querySelector("[data-banner-text]") as HTMLInputElement, "Thanks make the tree grow");
     propose.mockResolvedValue("q3");
     await act(async () => go().click());
     expect(propose).toHaveBeenCalledWith({ partId: "banner", text: "Thanks make the tree grow" });
+  });
+
+  test("a statue's four options each show their hoggie on the plinth", () => {
+    open = openState({ quests: [], available: [{ id: "statue", kind: "statue", name: "Statue", about: "A statue of a hoggie.", cost: 5000, district: "base_camp", options: ["gardener", "reader", "party", "explorer"] }] });
+    built = [];
+    render();
+    click(document.querySelector('[data-part="statue"]'));
+    expect([...document.querySelectorAll("[data-option] [data-art-slot]")].map((e) => e.getAttribute("data-art-slot"))).toEqual(["hoggie-gardener", "hoggie-reader", "hoggie-party", "hoggie-explorer"]);
   });
 
   test("who may not propose sees why, and the catalogue stays to look at", () => {

@@ -752,6 +752,7 @@ export function WorldShell() {
           fresh={fresh}
           seedMoment={seedMoment}
           onSeedMomentDone={() => setSeedMoment(false)}
+          growth={tree?.growth ?? 0}
           onPlace={goTo}
           onSite={goToSite}
         />

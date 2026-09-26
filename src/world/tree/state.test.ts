@@ -99,9 +99,9 @@ describe("the crew's moments (#161)", () => {
     expect(treeToasts(m, funded)).toEqual([
       expect.objectContaining({ kind: "tree", title: "The crew funded the lantern bridge", body: "It will be built in 3 days, and everyone who gave is on the plaque." }),
     ]);
-    const built = state(3000, { events: [event("e3", "crew_built", "style_stall"), ...funded.events!] });
+    const built = state(3000, { events: [{ ...(event("e3", "crew_built", "style_stall") as object), option: "blossom" } as never, ...funded.events!] });
     expect(treeToasts(treeMoments(funded, built), built)).toEqual([
-      expect.objectContaining({ title: "The crew built the stall style", link: { to: "/crew", label: "See the plaque" } }),
+      expect.objectContaining({ title: "The crew built the stall style (blossom)", link: { to: "/crew", label: "See the plaque" } }),
     ]);
     // Arriving is no moment, nor the same events again.
     expect(treeMoments(undefined, built).crew).toEqual([]);

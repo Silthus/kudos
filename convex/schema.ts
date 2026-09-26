@@ -391,7 +391,7 @@ export default defineSchema({
     // The received-kudos Store balance (ADR 0001), reset, not converted (ADR 0002): never read since #91.
     storeSpent: v.optional(v.number()),
     storeGranted: v.optional(v.number()),
-    coinsSpent: v.optional(v.number()), // Hog coins spent in the Store: items + non-refunded redemptions; undefined = 0
+    coinsSpent: v.optional(v.number()), // Hog coins spent: Store items + non-refunded redemptions, and outside the Store (wallet.ts spendCoins); undefined = 0
     coinsAdjusted: v.optional(v.number()), // Σ ± balance adjustments in Hog coins; undefined = 0
     gameHidden: v.optional(v.boolean()), // "Hide the game": no game UI or DMs for them; XP keeps accruing
     // The cosmetics they wear (#98, lib/cosmetics.ts): a cosmetic item key per slot, each one they bought.
@@ -1123,6 +1123,7 @@ export default defineSchema({
     rings: v.optional(v.number()), // ring: the rings the tree has now
     questId: v.optional(v.id("crewQuests")), // crew_*: the quest
     part: v.optional(v.string()), // crew_*: its part (lib/crewCatalogue.ts)
+    option: v.optional(v.string()), // crew_*: the part's option (a style, a colour, a statue)
     announcement: v.optional(
       v.object({
         status: v.union(v.literal("pending"), v.literal("sent"), v.literal("skipped"), v.literal("failed")),
@@ -1243,6 +1244,7 @@ export default defineSchema({
     builtAt: v.optional(v.number()),
   })
     .index("by_workspace_status", ["workspaceId", "status"])
+    .index("by_workspace_status_builtAt", ["workspaceId", "status", "builtAt"]) // the plaque, newest built first
     .index("by_proposedBy", ["proposedBy"]),
 
   // A crew quest's ledger (#161): one line per member per quest, their coins added up (spent, never

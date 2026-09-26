@@ -1,12 +1,15 @@
 import clsx from "clsx";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { Fragment, useMemo, useState } from "react";
 import { Link } from "react-router";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "../../convex/_generated/api";
 import { BANNER_TEXT, CREW, type CrewPartKind } from "../../convex/lib/crewCatalogue";
+import { formatCoins as coins } from "../../convex/lib/coins";
+import { DAY_MS } from "../../convex/lib/time";
 import { crewPartTitle } from "../../convex/lib/treeView";
+import { RemoteArt } from "@/components/RemoteArt";
 import { HogCoin } from "@/components/HogCoin";
 import { Button, Card, Empty, PageSkeleton, Progress, Segmented, Toggle, inputCls } from "@/components/ui";
 import { relativeTime } from "@/lib/format";
@@ -32,16 +35,17 @@ type Part = Open["available"][number];
 
 const errorText = (e: unknown) => (e instanceof ConvexError ? String(e.data) : "Something went wrong. Try again.");
 const plural = (n: number, one: string, many: string) => `${n.toLocaleString("en-US")} ${n === 1 ? one : many}`;
-const coins = (n: number) => plural(n, "Hog coin", "Hog coins");
-const HOUR_MS = 60 * 60 * 1000;
-const DAY_MS = 24 * HOUR_MS;
+const HOUR_MS = DAY_MS / 24;
 
-/** A part's small picture: its option's, where it has one. */
+/** A part's small picture: its option's, where it has one; a statue shows its hoggie on the plinth (the art slot). */
 function Thumb({ kind, id, option, label, className }: { kind: string; id: string; option?: string | null; label?: string; className?: string }) {
   const map = useMemo(() => partThumbnail(kind as CrewPartKind, id, option ?? undefined), [kind, id, option]);
   return (
-    <span data-thumb={id} className={clsx("grid shrink-0 place-items-center bg-dusk", className ?? "h-14 w-14")}>
+    <span data-thumb={id} className={clsx("relative grid shrink-0 place-items-center bg-dusk", className ?? "h-14 w-14")}>
       <PixelArt map={map} label={label} className="h-full w-full" />
+      {kind === "statue" && option && (
+        <RemoteArt slot={`hoggie-${option}`} fit="contain" className="absolute inset-x-[18%] top-0 bottom-[42%] [filter:grayscale(1)_sepia(0.35)_brightness(1.05)]" />
+      )}
     </span>
   );
 }
@@ -99,16 +103,16 @@ function AddCoins({ quest, wallet }: { quest: Quest; wallet: number | null }) {
             step={1}
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className={clsx(inputCls, "font-display tabular-nums")}
+            className={clsx(inputCls, "tabular-nums")}
             data-coins-input
           />
         </span>
         {[5, 20].map((q) => (
-          <Button key={q} type="button" size="sm" disabled={busy || q > wallet} onClick={() => setAmount(String(Math.min(q, needed)))}>
+          <Button key={q} type="button" size="sm" aria-label={`Set ${q} coins`} disabled={busy || q > wallet} onClick={() => setAmount(String(Math.min(q, needed)))}>
             {q}
           </Button>
         ))}
-        <Button type="button" size="sm" disabled={busy || all < 1} onClick={() => setAmount(String(all))}>
+        <Button type="button" size="sm" aria-label="Set all the coins it still needs, or all you have" disabled={busy || all < 1} onClick={() => setAmount(String(all))}>
           All
         </Button>
         <Button type="submit" variant="primary" size="sm" disabled={busy || !valid || all < 1}>
@@ -153,10 +157,14 @@ function QuestCard({ quest, wallet, isAdmin, now }: { quest: Quest; wallet: numb
         </span>
       </p>
       {quest.status === "funded" ? (
-        <p className="mt-3 bg-sap/25 px-2 py-1.5 text-sm font-semibold text-ink">Funded. The crew builds it in {plural(daysLeft, "day", "days")}.</p>
+        <p className="mt-3 bg-sap/25 px-2 py-1.5 text-sm font-semibold text-ink">
+          {quest.buildsAt !== null && quest.buildsAt <= now ? "Funded. The crew is building it now." : `Funded. The crew builds it in ${plural(daysLeft, "day", "days")}.`}
+        </p>
       ) : quest.awaitingApproval ? (
         <div className="mt-3">
-          <p className="text-sm text-ink">This banner waits for an admin to approve its saying before it takes coins.</p>
+          <p className="text-sm text-ink">
+            {quest.text === null ? "Its saying waits for an admin's approval: then it's on the board, and the crew can give to it." : "This banner waits for an admin to approve its saying before it takes coins."}
+          </p>
           {isAdmin && (
             <div className="mt-2 flex gap-2">
               <Button size="sm" variant="primary" onClick={() => act(() => approve({ questId: quest._id }))}>
@@ -213,7 +221,7 @@ function ProposeForm({ entry, onDone }: { entry: Entry; onDone: (said: string) =
     setError(null);
     try {
       await propose({ partId: part.id, ...(option ? { option } : {}), ...(part.kind === "banner" ? { text } : {}) });
-      onDone(`You proposed ${title}. The crew can give to it now.`);
+      onDone(`You proposed ${title}. It's up with the open quests.`);
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -261,8 +269,12 @@ function ProposeForm({ entry, onDone }: { entry: Entry; onDone: (said: string) =
           <span className="mt-0.5 block text-xs text-ink/75">One line, up to {BANNER_TEXT.max} characters. It hangs across the trunk for everyone to read.</span>
         </label>
       )}
-      <Button variant="primary" size="sm" className="mt-3" disabled={busy || (part.kind === "banner" && text.trim() === "")} onClick={() => void onPropose()}>
-        Propose it for {coins(part.cost)}
+      <p className="mt-3 flex items-center gap-1.5 text-sm text-ink tabular-nums first:mt-0">
+        <HogCoin size={14} />
+        Goal: {coins(part.cost)}, pooled by the crew
+      </p>
+      <Button variant="primary" size="sm" className="mt-2" disabled={busy || (part.kind === "banner" && text.trim() === "")} onClick={() => void onPropose()}>
+        Propose it
       </Button>
       {error && (
         <p role="alert" className="mt-2 text-sm text-ember-deep">
@@ -293,7 +305,6 @@ function Propose({ parts, canPropose }: { parts: Part[]; canPropose: Open["canPr
                 <button
                   type="button"
                   data-part={e.key}
-                  aria-pressed={picked === e.key}
                   aria-expanded={picked === e.key}
                   disabled={!canPropose.ok}
                   onClick={() => {
@@ -340,12 +351,15 @@ function Propose({ parts, canPropose }: { parts: Part[]; canPropose: Open["canPr
   );
 }
 
+/** Built parts a plaque page shows; "Show more" brings the next (the server holds a page to 5). */
+const PLAQUE_PAGE = 5;
+
 function Plaque() {
-  const built = useQuery(api.crew.built, {});
+  const { results: built, status, loadMore } = usePaginatedQuery(api.crew.built, {}, { initialNumItems: PLAQUE_PAGE });
   return (
     <Card className="p-4" data-plaque>
       <h2 className="font-display text-lg font-medium text-ink">The plaque</h2>
-      {built === undefined ? null : built.length === 0 ? (
+      {status === "LoadingFirstPage" ? null : built.length === 0 ? (
         <p className="mt-1 text-sm text-ink/75">Nothing built yet. The first part the crew funds gets the first line.</p>
       ) : (
         <ul className="mt-2 flex flex-col gap-3">
@@ -359,6 +373,11 @@ function Plaque() {
             </li>
           ))}
         </ul>
+      )}
+      {status === "CanLoadMore" && (
+        <Button size="sm" className="mt-3" onClick={() => loadMore(PLAQUE_PAGE)}>
+          Show more of the plaque
+        </Button>
       )}
     </Card>
   );
