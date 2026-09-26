@@ -146,7 +146,9 @@ describe("the demo plays the game", () => {
     expect(after.filter((e) => e.quest?.scope === "weekly").every((e) => recorded.has(e.completionId!))).toBe(true);
     for (const p of await all(t, "players")) {
       expect(p.xp).toBe(after.filter((e) => e.memberId === p.memberId).reduce((s, e) => s + e.xp, 0));
-      expect(p.coins).toBe(after.filter((e) => e.memberId === p.memberId).reduce((s, e) => s + (e.coins ?? 0), 0));
+      // A give's coins count once its offering is claimed (#157): the ledger's own check says so.
+      const ledger = await t.query(internal.game.verifyMember, { memberId: p.memberId });
+      expect(p.coins).toBe(ledger.eventCoins);
     }
     // What's spent or adjusted now is exactly the reseeded Store story's, not the 40 and −3 from before.
     const fresh = (await t.run((ctx) => ctx.db.get(alexId)))!;
