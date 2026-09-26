@@ -32,9 +32,9 @@ const WHY = "for pairing with me all afternoon on the onboarding flow and catchi
 test("a Super kudos: the receiver's celebration, the giver's note and the Super kudos reaction", async () => {
   const demo = await enterDemo();
   await heraldWithGolden();
-  const res = await demo.mutation(api.demo.simulateMessage, { text: `<@UDEMOPRIYA> :taco-super: ${WHY}`, channelName: "general" });
+  const res = await demo.mutation(api.demo.simulateMessage, { text: `<@UDEMOPRIYA> :seedling-super: ${WHY}`, channelName: "general" });
   expect(res.status).toBe("given");
-  expect(res.attempt).toMatchObject({ outcome: "given", reaction: "taco-super" });
+  expect(res.attempt).toMatchObject({ outcome: "given", reaction: "seedling-super" });
   const toPriya = res.messages.find((m) => !m.toMe)!;
   expect(toPriya.superKudos).toMatchObject({ kind: "celebration" });
   expect(toPriya.superKudos!.text).toContain("A Super kudos from Alex");
@@ -47,7 +47,7 @@ test("a Super kudos: the receiver's celebration, the giver's note and the Super 
 test("a demo reset wipes the Super kudos and takes off what everyone wore", async () => {
   const demo = await enterDemo();
   await heraldWithGolden();
-  await demo.mutation(api.demo.simulateMessage, { text: `<@UDEMOPRIYA> :taco-super: ${WHY}`, channelName: "general" });
+  await demo.mutation(api.demo.simulateMessage, { text: `<@UDEMOPRIYA> :seedling-super: ${WHY}`, channelName: "general" });
   await t.run(async (ctx) => {
     const you = (await ctx.db.query("members").collect()).find((m) => m.slackUserId === "UDEMOYOU")!;
     await ctx.db.patch(you._id, { look: { frame: "frameSunrise" } });
@@ -61,9 +61,9 @@ test("a demo reset wipes the Super kudos and takes off what everyone wore", asyn
 test("an emoji variant gives for its owner in the playground", async () => {
   const demo = await enterDemo();
   await heraldWithGolden();
-  const res = await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> :taco-golden: thanks for the review", channelName: "general" });
+  const res = await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> :seedling-golden: thanks for the review", channelName: "general" });
   expect(res.status).toBe("given");
   const rows = await t.run((ctx) => ctx.db.query("kudos").withIndex("by_workspace_at").order("desc").take(1));
   expect(rows[0]).toMatchObject({ variant: "golden", source: "playground" });
-  expect(await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> :taco-rainbow: thanks", channelName: "general" })).toMatchObject({ status: "no_kudos" });
+  expect(await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> :seedling-rainbow: thanks", channelName: "general" })).toMatchObject({ status: "no_kudos" });
 });

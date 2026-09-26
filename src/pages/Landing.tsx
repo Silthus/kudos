@@ -1,7 +1,7 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
 import { AnimatePresence, motion, useReducedMotionConfig } from "motion/react";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router";
 import { Avatar, Button, RarityBadge } from "@/components/ui";
 import { RARITY_META, RARITY_ORDER, type Rarity } from "@/lib/rarity";
@@ -9,6 +9,7 @@ import { signInRedirect } from "@/lib/routing";
 import { siteUrl } from "@/lib/viewer";
 import { LandingScene } from "@/world/LandingScene";
 import { api } from "../../convex/_generated/api";
+import { DEFAULT_SETTINGS } from "../../convex/lib/settings";
 import { KudosSign } from "./signedOut";
 
 export function SlackMark({ className = "h-4 w-4" }: { className?: string }) {
@@ -34,12 +35,15 @@ export function SlackMark({ className = "h-4 w-4" }: { className?: string }) {
   );
 }
 
+/** The kudos emoji a new install gives with (#168): the page shows Kudos as it comes. */
+const SEED = DEFAULT_SETTINGS.emojiGlyph;
+
 const DROPS: { rarity: Rarity; text: string }[] = [
-  { rarity: "common", text: "Delivered! Priya and Jonas just got 2 🌮 from you. 1 left for today." },
-  { rarity: "uncommon", text: "You just made someone's afternoon. 2 🌮 for Priya and Jonas, 1 still up for grabs." },
-  { rarity: "rare", text: "🎯 Direct hit! 2 🌮 landed squarely on Priya and Jonas. Ammo left today: 1." },
-  { rarity: "epic", text: "⚡ Epic giving energy! You channeled 2 🌮 straight into Priya and Jonas. The team morale meter just ticked up." },
-  { rarity: "legendary", text: "🔥 LEGENDARY DROP! M-M-M-Monster 🌮 from your hands flow. 2 points empower Priya and Jonas. Songs will be sung in #releases." },
+  { rarity: "common", text: `Delivered! Priya and Jonas just got 2 ${SEED} from you. 1 left for today.` },
+  { rarity: "uncommon", text: `You just made someone's afternoon. 2 ${SEED} for Priya and Jonas, 1 still up for grabs.` },
+  { rarity: "rare", text: `🎯 Direct hit! 2 ${SEED} landed squarely on Priya and Jonas. Ammo left today: 1.` },
+  { rarity: "epic", text: `⚡ Epic giving energy! You channeled 2 ${SEED} straight into Priya and Jonas. The team morale meter just ticked up.` },
+  { rarity: "legendary", text: `🔥 LEGENDARY DROP! M-M-M-Monster ${SEED} from your hands flow. 2 points empower Priya and Jonas. Songs will be sung in #releases.` },
 ];
 
 /** A kudos in Slack and the bot's reply, rolling through the rarities. A mock of Slack: it keeps Slack's look and emoji. */
@@ -67,17 +71,17 @@ function SlackMock() {
               <b className="font-semibold">Alex Rivera</b> <span className="text-xs text-ink/70">10:42</span>
             </div>
             <p className="mt-0.5 text-[15px] leading-relaxed text-ink">
-              <span className="bg-[#1d9bd1]/20 px-1 text-pond-deep">@Priya</span> <span className="bg-[#1d9bd1]/20 px-1 text-pond-deep">@Jonas</span> 🌮🌮 the release went out
+              <span className="bg-[#1d9bd1]/20 px-1 text-pond-deep">@Priya</span> <span className="bg-[#1d9bd1]/20 px-1 text-pond-deep">@Jonas</span> {SEED.repeat(2)} the release went out
               without a single hiccup. Legends.
             </p>
             <div className="mt-2 flex gap-1.5">
-              <span className="rounded-full border border-[#1d9bd1]/50 bg-[#1d9bd1]/15 px-2 py-0.5 text-xs">🌮 4</span>
+              <span className="rounded-full border border-[#1d9bd1]/50 bg-[#1d9bd1]/15 px-2 py-0.5 text-xs">{SEED} 4</span>
               <span className="rounded-full border border-ink/30 px-2 py-0.5 text-xs">🙌 3</span>
             </div>
           </div>
         </div>
         <div className="flex gap-3">
-          <span className="grid h-[38px] w-[38px] shrink-0 place-items-center bg-lantern text-lg">🌮</span>
+          <span className="grid h-[38px] w-[38px] shrink-0 place-items-center bg-lantern text-lg">{SEED}</span>
           <div className="min-w-0 flex-1">
             <div className="text-sm">
               <b className="font-semibold">Kudos</b> <span className="bg-parchment-deep px-1 py-px text-[10px] font-semibold text-ink/75">APP</span>{" "}
@@ -107,9 +111,16 @@ function SlackMock() {
 }
 
 /** The three short signs under the world: what you do in Kudos. */
-const SIGNS = [
-  { title: "Give in Slack", body: "Mention a teammate and add the kudos emoji. Everyone has a few to give each day, so each one counts." },
-  { title: "Grow a garden", body: "Thoughtful kudos earn XP and Hog coins. Plant for the people you thank and watch the garden grow." },
+const SIGNS: { title: string; body: ReactNode }[] = [
+  {
+    title: "Give a seed",
+    body: (
+      <>
+        Thank a teammate in Slack: @name <span data-user-text>{SEED}</span> and a few words on why. Everyone has a few to give each day, so each one counts.
+      </>
+    ),
+  },
+  { title: "Grow a garden", body: "Seeds with a few words on why earn XP and Hog coins. Plant for the people you thank and watch the garden grow." },
   { title: "Discover messages", body: "Every bot reply rolls a rarity, from Common to Legendary. Find all 72 and hang them in your gallery." },
 ];
 

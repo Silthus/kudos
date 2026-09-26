@@ -4,6 +4,16 @@ The shared vocabulary of the Kudos codebase. Use these words in code, tests, UI 
 
 Decisions that are hard to reverse live in [`docs/adr/`](docs/adr/).
 
+## Kudos
+
+The act of appreciation itself. Parsing lives in `convex/lib/parse.ts`, giving in the engine (`convex/engine.ts`), each workspace's settings in `workspaces` (new installs start from `DEFAULT_SETTINGS`, `convex/lib/settings.ts`).
+
+| Term | Meaning | Not to be confused with |
+|---|---|---|
+| **Kudos** | One unit of appreciation from a giver to a person they mention, given by putting the kudos emoji in a Slack message (each emoji gives one kudos to every person mentioned) or, where an admin allows it, by reacting with it. Stats count kudos: *kudos given*, *kudos received*, the daily allowance. | a *seed*, which is how the copy talks about giving one |
+| **Kudos emoji** | The workspace's emoji for giving: a Slack shortcode (`emojiName`) and the glyph the web app draws (`emojiGlyph`). New installs, the shared demo and every simulator use Slack's standard 🌱 `seedling`, which needs no upload; an admin can pick any other, custom ones included, and a workspace keeps what it chose. The bot confirms a kudos with the same emoji. | the game's emoji variants and Super kudos emoji (`seedling-super`), which an admin uploads |
+| **Seed of appreciation** | What the copy calls a kudos as you give it: "Give a seed: @name 🌱 and a few words on why". Only a word for the act; the kudos stays the unit, and counts keep saying *kudos*. With the Ancient Tree ([#152](https://github.com/Silthus/kudos/issues/152)), a qualifying kudos also sows one tree **seed** per person thanked, which its receiver plants at the tree. | a garden plant's *Seed* stage, a demo row's `seed` source, and the simulator's *seed event* |
+
 ## Rewards Store
 
 Specified in [Spec the Rewards Store](https://github.com/Silthus/kudos/issues/4) and moved to Hog coins in [Store: priced in Hog coins with built-in game items](https://github.com/Silthus/kudos/issues/91) ([ADR 0002](docs/adr/0002-store-currency-is-hog-coins.md)). Who may shop and the game items live in `convex/lib/items.ts`, the real-rewards rules in `convex/lib/store.ts`, what each item does in `convex/items.ts`; every balance, stock, purchase or redemption change goes through `convex/store.ts`.
@@ -68,7 +78,7 @@ Specified in [Slack: bot reactions confirm every kudos attempt](https://github.c
 | **Attempt** | A Slack message (or playground message) that carries the kudos emoji. Recorded once per message (`kudosAttempts`, keyed by workspace + channel + message ts) with who tried and how it ended. Messages without the emoji are never attempts. | *reaction-based giving*, which reacts to someone else's message and has no attempt |
 | **Outcome** | How an attempt ended: `given` (every mentioned person got the full amount), `limit` (it would have exceeded the giver's remaining allowance: nothing was given) or `invalid` (nobody valid was mentioned: no mention, only group mentions like @here, only yourself, only bots/the app, only deactivated or unknown people, incl. other workspaces' guests). Giving stays all-or-nothing per message. | — |
 | **Bot reaction** | The reaction the Kudos bot puts on the attempt's message: the kudos emoji for `given` (✅ `white_check_mark` if Slack rejects a custom emoji), ⏳ `hourglass_flowing_sand` for `limit`, ❌ `x` for `invalid`. Recorded on the attempt only once Slack shows it. | a member's kudos-emoji reaction, which gives kudos |
-| **Guidance** | The ephemeral note to the giver on a failed attempt: how a valid kudos works, with the multiplication (`2 people × 2 🌮 = 4 🌮`) for `limit` and a one-line example for `invalid`. Not rarity-rolled; it rides along with the rolled "limit reached" / "self kudos" reply when there is one. | a rarity-rolled *bot message* |
+| **Guidance** | The ephemeral note to the giver on a failed attempt: how a valid kudos works, with the multiplication (`2 people × 2 🌱 = 4 🌱`) for `limit` and a one-line example for `invalid`. Not rarity-rolled; it rides along with the rolled "limit reached" / "self kudos" reply when there is one. | a rarity-rolled *bot message* |
 
 ## Game
 

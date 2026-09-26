@@ -285,7 +285,7 @@ export const seedHistory = internalMutation({
           const reason = REASONS[Math.floor(rand() * REASONS.length)];
           const roll = rand();
           if (at > now) continue; // later today: hasn't happened yet
-          const text = `${recipients.map((r) => `@${r.name.split(" ")[0]}`).join(" ")} ${"🌮".repeat(amountEach)} ${reason}`;
+          const text = `${recipients.map((r) => `@${r.name.split(" ")[0]}`).join(" ")} ${workspace.emojiGlyph.repeat(amountEach)} ${reason}`;
           const noteWords =
             person.id === DEMO_YOU && day >= questWeek ? undefined : countNoteWords(reason, workspace.emojiName, workspace.emojiGlyph);
           const batchId = `seed:${day}:${person.id}:${i}`;

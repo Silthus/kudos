@@ -427,7 +427,7 @@ async function publishHome(ctx: ActionCtx, workspaceId: Id<"workspaces">, token:
     blocks: [
       { type: "header", text: { type: "plain_text", text: "Your kudos" } },
       ...(data.invite
-        ? [{ type: "section", text: { type: "mrkdwn", text: `*You can give kudos too.* Mention a teammate with ${e} and a few words on why. Your first kudos starts your level.` } }]
+        ? [{ type: "section", text: { type: "mrkdwn", text: `*You can give seeds of appreciation too.* Give a seed: @name ${e} and a few words on why. Your first kudos starts your level.` } }]
         : []),
       { type: "section", fields: fields.map((text) => ({ type: "mrkdwn", text })) },
       ...actions([linkButton("Open dashboard", "open_dashboard", link("/me"), "primary"), linkButton("Message gallery", "open_gallery", link("/discoveries"))]),
@@ -452,7 +452,7 @@ async function publishHome(ctx: ActionCtx, workspaceId: Id<"workspaces">, token:
         elements: [
           {
             type: "mrkdwn",
-            text: `Give kudos: mention teammates and add ${e} to your message, e.g. \`@ana ${e}${e} thanks for the review!\` Every ${e} gives one kudos to each person you mention.`,
+            text: `Give a seed of appreciation: mention teammates with ${e} and a few words on why, like \`@ana ${e} thanks for the thorough review\`. Every ${e} gives one kudos to each person you mention.`,
           },
         ],
       },

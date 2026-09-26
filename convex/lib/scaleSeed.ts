@@ -1,5 +1,6 @@
 import { ConvexError } from "convex/values";
 import { fnv1a, mulberry32 } from "./random";
+import { DEFAULT_SETTINGS } from "./settings";
 import { weekdayOfKey } from "./time";
 
 /**
@@ -128,7 +129,7 @@ export function planDay(day: string, people: ScalePerson[], kudosPerYear: number
       source: reaction ? "reaction" : "message",
       channel,
       secondOfDay: (8 + Math.floor(rand() * 10)) * 3600 + Math.floor(rand() * 3600),
-      text: `${mentions} ${":taco:".repeat(amountEach)} ${note}`.trim(),
+      text: `${mentions} ${`:${DEFAULT_SETTINGS.emojiName}:`.repeat(amountEach)} ${note}`.trim(),
       ...(reaction ? {} : { noteWords: note ? note.split(" ").length : 0 }),
     });
     used[giver] += amountEach * recipients.length;

@@ -99,7 +99,12 @@ test("without the demo the page offers only Slack", () => {
 test("three short signs say what you do, then the Slack mock and the drop rates", () => {
   const host = render(<Landing />);
   const signs = [...host.querySelectorAll("[data-landing-feature] h2")].map((h) => h.textContent);
-  expect(signs).toEqual(["Give in Slack", "Grow a garden", "Discover messages"]);
+  expect(signs).toEqual(["Give a seed", "Grow a garden", "Discover messages"]);
+  // Seeds of appreciation (#168): the first sign shows how, with the seedling a new install gives with.
+  const give = host.querySelector("[data-landing-feature] p")!;
+  expect(give.textContent).toBe("Thank a teammate in Slack: @name 🌱 and a few words on why. Everyone has a few to give each day, so each one counts.");
+  expect(give.querySelector("[data-user-text]")?.textContent).toBe("🌱");
+  expect(host.querySelector("[data-slack-mock]")!.textContent).not.toContain("🌮");
   expect(host.querySelector("[data-slack-mock]")).not.toBeNull();
   expect(host.textContent).toContain("Every reply is a roll of the dice");
   expect(host.querySelectorAll("[data-drop-rate]")).toHaveLength(5);

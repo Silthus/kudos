@@ -700,7 +700,7 @@ export const slashCommand = internalMutation({
       response_type: "ephemeral",
       text: [
         `*How Kudos works* ${e}`,
-        `• Mention teammates and add ${e} to your message: \`@ana @ben ${e}${e} thanks for the release!\``,
+        `• Give a seed of appreciation: mention teammates with ${e} and a few words on why, like \`@ana @ben ${e}${e} thanks for the release!\``,
         `• Each ${e} gives one kudos to *every* person mentioned. You can give ${workspace.dailyLimit} per day.`,
         workspace.reactionsEnabled ? `• React with ${e} on a message to give its author one kudos.` : "",
         "• The bot answers with messages of different rarities. Collect them all!",

@@ -21,7 +21,7 @@ export function reactionFor(outcome: AttemptOutcome, emojiName: string) {
 
 /**
  * How to turn a failed attempt into a valid kudos, for the giver's eyes only. `e` is the kudos
- * emoji as the surface renders it (`:taco:` in Slack, 🌮 on the web).
+ * emoji as the surface renders it (`:seedling:` in Slack, 🌱 on the web).
  */
 export function guidance(problem: Problem, e: string): string {
   if (problem.kind === "limit") return limitGuidance(problem, e);
