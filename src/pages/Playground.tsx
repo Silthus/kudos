@@ -734,7 +734,7 @@ function Envelopes({ messages, status, ref }: { messages: (BotMessage & { at: nu
         </h2>
         {status && (
           <span className="text-sm text-ink/75">
-            Collected <b className="font-display text-lg font-medium tabular text-ink">{status.discovered}</b> of {status.total}
+            Collected <b className="text-base font-bold tabular text-ink">{status.discovered}</b> of {status.total}
           </span>
         )}
       </div>

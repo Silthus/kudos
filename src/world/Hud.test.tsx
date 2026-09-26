@@ -69,14 +69,14 @@ const viewer = {
   workspace: { name: "Lumen Labs", isDemo: false, gameEnabled: true, storeEnabled: true },
 } as unknown as ReadyViewer;
 
-function render() {
+function render({ insetRight }: { insetRight?: number } = {}) {
   const places = visiblePlaces(navItems({ isAdmin: true, isDemo: false, storeEnabled: true, gameShown: true, openRequests: 2 }));
   act(() =>
     root.render(
       <MemoryRouter initialEntries={["/"]}>
         <MotionProvider>
           <ViewerContext.Provider value={viewer}>
-            <Hud places={places} where="Your garden" />
+            <Hud places={places} where="Your garden" insetRight={insetRight} />
             <Probe />
           </ViewerContext.Provider>
         </MotionProvider>
@@ -102,6 +102,20 @@ describe("the HUD", () => {
     render();
     const meter = host.querySelector("[data-hud-you] [role='progressbar']")!;
     expect([...meter.classList].filter((c) => /^w-/.test(c))).toEqual(["w-24"]);
+  });
+
+  test("the level number is set in Nunito with tabular figures, the word in Pixelify: Pixelify's 5 reads as an S (#171)", () => {
+    // Class names only (happy-dom has no stylesheet): the nearest font class round the number wins.
+    game = mine({ player: player(25) });
+    render();
+    const numbers = [...host.querySelectorAll("[data-hud-you] *")].filter((el) => el.children.length === 0 && el.textContent === "25");
+    // Both the wide card and the phone's one-liner.
+    expect(numbers).toHaveLength(2);
+    for (const n of numbers) {
+      expect(n.closest(".font-display, .font-sans")?.classList).toContain("font-sans");
+      expect(n.closest(".tabular")).not.toBeNull();
+      expect(n.closest(".font-display, .font-sans")?.parentElement?.closest(".font-display")?.textContent).toMatch(/^Level/);
+    }
   });
 
   test("shows just your name while the game is hidden", () => {
@@ -137,6 +151,24 @@ describe("the HUD", () => {
     act(() => stall.click());
     expect(url).toBe("/store");
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  test("the Places button speaks its badge in its name, with no hidden text that can hang past the screen's edge (#171)", () => {
+    game = mine({});
+    render();
+    const toggle = host.querySelector<HTMLButtonElement>("nav[aria-label='Places'] button[aria-expanded]")!;
+    expect(toggle.getAttribute("aria-label")).toBe("Places (something waits for you)");
+    expect(toggle.querySelector(".sr-only")).toBeNull();
+  });
+
+  test("with a window docked on the right the caption's notes wrap in the width left of it (#171)", () => {
+    game = mine({});
+    render({ insetRight: 664 });
+    expect(host.querySelector<HTMLElement>("[data-hud-caption]")!.style.right).toBe("664px");
+    act(() => root.unmount());
+    root = createRoot(host);
+    render();
+    expect(host.querySelector<HTMLElement>("[data-hud-caption]")!.style.right).toBe("");
   });
 
   test("the open Places list lies over the caption's notes and scrolls on a short screen, so every place can be tapped (#148)", () => {

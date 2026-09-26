@@ -17,6 +17,7 @@ export function Window({
   children,
   scrollKey,
   returnFocus,
+  onBackdropClick,
 }: {
   open: boolean;
   title: ReactNode;
@@ -26,6 +27,8 @@ export function Window({
   scrollKey?: string;
   /** Where focus goes on close when nothing opened the window, or its opener is gone. */
   returnFocus?: () => HTMLElement | null;
+  /** A click on the world round the window, at a screen point; it closes the window if not given. */
+  onBackdropClick?: (point: { x: number; y: number }) => void;
 }) {
   const still = useReducedMotionConfig();
   const ref = useRef<HTMLDialogElement>(null);
@@ -67,7 +70,10 @@ export function Window({
       }}
       onPointerDown={(e) => (pressedBackdrop.current = e.target === ref.current)}
       onClick={(e) => {
-        if (pressedBackdrop.current && e.target === ref.current) onClose();
+        if (pressedBackdrop.current && e.target === ref.current) {
+          if (onBackdropClick) onBackdropClick({ x: e.clientX, y: e.clientY });
+          else onClose();
+        }
         pressedBackdrop.current = false;
       }}
       className={clsx(

@@ -272,6 +272,14 @@ test("review: the envelope names who gets the DM in plain words", async () => {
   expect(host.querySelector("[data-envelope]")?.textContent).toContain("Lena gets this DM");
 });
 
+test("the DMs' collected count is set in Nunito with tabular figures: Pixelify's 3 reads as an 8 (#171)", () => {
+  render();
+  const count = [...host.querySelectorAll("b")].find((b) => b.textContent === "12")!;
+  expect(count.parentElement?.textContent).toBe("Collected 12 of 72");
+  expect(count.closest(".font-display, .font-sans")).toBeNull();
+  expect(count.classList).toContain("tabular");
+});
+
 // ── The simulator (#144) ─────────────────────────────────────────────────────
 
 const simulatorState = (over: Record<string, unknown> = {}) => ({ active: true, shown: true, level: 7, xp: 900, day: "2026-10-14", dayIndex: 2, clockOffsetMs: 0, lastRun: null, ...over });

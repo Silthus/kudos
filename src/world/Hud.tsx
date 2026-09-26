@@ -126,6 +126,7 @@ function PlacesMenu({ places, simulator }: { places: Place[]; simulator: ActiveS
   const menu = useMenu();
   const id = useId();
   const onArrows = arrowKeys(menu);
+  const waiting = places.some((p) => p.badge);
   return (
     <nav
       aria-label="Places"
@@ -139,6 +140,8 @@ function PlacesMenu({ places, simulator }: { places: Place[]; simulator: ActiveS
       <button
         ref={menu.button}
         type="button"
+        // The badge is spoken in the name: hidden text inside would hang past the screen's edge (#171).
+        aria-label={waiting ? "Places (something waits for you)" : undefined}
         aria-expanded={menu.open}
         aria-controls={menu.open ? id : undefined}
         onClick={() => menu.setOpen((o) => !o)}
@@ -146,12 +149,7 @@ function PlacesMenu({ places, simulator }: { places: Place[]; simulator: ActiveS
       >
         <MapPin className="h-4 w-4" aria-hidden />
         Places
-        {places.some((p) => p.badge) && (
-          <>
-            <span className="h-2 w-2 bg-ember" aria-hidden />
-            <span className="sr-only">(something waits for you)</span>
-          </>
-        )}
+        {waiting && <span className="h-2 w-2 bg-ember" aria-hidden />}
       </button>
       {menu.open && (
         <MenuPanel id={id} panel={menu.panel}>
@@ -282,6 +280,15 @@ function SettingsMenu({ gameOn, simulator }: { gameOn: boolean; simulator: Simul
   );
 }
 
+/** "Level 25": the word in Pixelify, the number in Nunito with tabular figures, since Pixelify's 5 reads as an S (#171). */
+function LevelLabel({ level, className }: { level: number; className: string }) {
+  return (
+    <span className={clsx("font-display font-medium text-lantern", className)}>
+      Level <span className="font-sans font-bold tabular">{level}</span>
+    </span>
+  );
+}
+
 /** Top left: you. Your hedgehog, and your level, XP and coins while you play. */
 function You({ game }: { game: ReturnType<typeof hudGame> }) {
   const viewer = useViewer();
@@ -295,7 +302,7 @@ function You({ game }: { game: ReturnType<typeof hudGame> }) {
         {game && (
           <div className="hidden sm:block">
             <div className="flex items-baseline gap-2">
-              <span className="font-display text-lg font-medium leading-6 text-lantern">Level {game.level}</span>
+              <LevelLabel level={game.level} className="text-lg leading-6" />
               <span className="text-xs text-cream/80">{game.title}</span>
             </div>
             <div className="mt-1 flex items-center gap-3">
@@ -311,7 +318,7 @@ function You({ game }: { game: ReturnType<typeof hudGame> }) {
             </div>
           </div>
         )}
-        {game && <div className="font-display text-sm text-lantern sm:hidden">Level {game.level}</div>}
+        {game && <LevelLabel level={game.level} className="block text-sm sm:hidden" />}
       </div>
     </div>
   );
@@ -333,12 +340,33 @@ function LanternString() {
   );
 }
 
-/** Bottom: where you are and how to walk, then the demo and bonus-day lines. */
-function Caption({ where, banner, inSimulator, simulator, clock }: { where: string; banner: Banner | undefined; inSimulator: boolean; simulator: ActiveSimulator | null; clock?: ReactNode }) {
+/**
+ * Bottom: where you are and how to walk, then the demo and bonus-day lines. They wrap in the width
+ * left of a docked window (`insetRight`), not under it (#171).
+ */
+function Caption({
+  where,
+  banner,
+  inSimulator,
+  simulator,
+  clock,
+  insetRight,
+}: {
+  where: string;
+  banner: Banner | undefined;
+  inSimulator: boolean;
+  simulator: ActiveSimulator | null;
+  clock?: ReactNode;
+  insetRight: number;
+}) {
   const { workspace } = useViewer();
   const next = banner?.upcoming[0];
   return (
-    <div data-hud-caption className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex flex-col items-start gap-1.5 p-3 sm:p-4">
+    <div
+      data-hud-caption
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex flex-col items-start gap-1.5 p-3 sm:p-4"
+      style={insetRight > 0 ? { right: insetRight } : undefined}
+    >
       {clock && <div className="pointer-events-auto w-full">{clock}</div>}
       {inSimulator ? (
         <p className="pointer-events-auto pixel-note max-w-full px-3 py-1.5 text-sm">
@@ -383,7 +411,8 @@ function Caption({ where, banner, inSimulator, simulator, clock }: { where: stri
   );
 }
 
-export function Hud({ places, where }: { places: Place[]; where: string }) {
+/** `insetRight`: screen pixels on the right covered by a docked window. */
+export function Hud({ places, where, insetRight = 0 }: { places: Place[]; where: string; insetRight?: number }) {
   const viewer = useViewer();
   const game = hudGame(useQuery(api.game.mine, {}));
   const today = useWorkspaceToday();
@@ -413,7 +442,7 @@ export function Hud({ places, where }: { places: Place[]; where: string }) {
           {wide && clock}
         </div>
       </div>
-      <Caption where={where} banner={banner} inSimulator={inSimulator} simulator={simulator} clock={!wide && clock} />
+      <Caption where={where} banner={banner} inSimulator={inSimulator} simulator={simulator} clock={!wide && clock} insetRight={insetRight} />
     </>
   );
 }

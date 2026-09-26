@@ -167,6 +167,59 @@ describe("the world and its windows follow the URL", () => {
   });
 });
 
+describe("beside an open window (#171)", () => {
+  /** A place's sign at a spot on the screen (happy-dom lays nothing out). */
+  const signAt = (id: string, box: { left: number; top: number; width: number; height: number }) => {
+    const sign = host.querySelector<HTMLElement>(`[data-sign=${id}]`)!;
+    sign.getBoundingClientRect = () => ({ ...box, x: box.left, y: box.top, right: box.left + box.width, bottom: box.top + box.height, toJSON: () => ({}) }) as DOMRect;
+  };
+  /** A click on the dimmed world round the window: it lands on the dialog's backdrop. */
+  const clickBeside = (x: number, y: number) =>
+    act(() => {
+      const dialog = openWindow()!;
+      dialog.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: x, clientY: y }));
+      dialog.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: x, clientY: y }));
+    });
+
+  test("one click on a place's sign closes the window and walks there: a sign is a door", () => {
+    open("/quests");
+    signAt("store", { left: 100, top: 200, width: 120, height: 20 });
+    clickBeside(150, 210);
+    expect(url).toBe("/store");
+    expect(openWindow()).toBeNull();
+    walkFor(4000);
+    expect(windowTitle()).toBe("The store stall");
+    expect(caption()).toBe("The store stall");
+  });
+
+  test("a click beside the window that isn't on a sign just closes it, the hedgehog staying put", () => {
+    open("/quests");
+    signAt("store", { left: 100, top: 200, width: 120, height: 20 });
+    clickBeside(400, 500);
+    expect(url).toBe("/");
+    expect(openWindow()).toBeNull();
+    walkFor(4000);
+    expect(caption()).toBe("Quest signpost");
+  });
+
+  test("the open place's own sign closes its window", () => {
+    open("/quests");
+    signAt("quests", { left: 100, top: 200, width: 120, height: 20 });
+    clickBeside(150, 210);
+    expect(url).toBe("/");
+    expect(openWindow()).toBeNull();
+  });
+
+  test("the caption's notes wrap in the width left of the docked window, and get the width back when it closes", () => {
+    // happy-dom's screen is 1024 px wide: the window docks at half of it plus its frame's room.
+    open("/quests");
+    const captionBox = () => host.querySelector<HTMLElement>("[data-hud-caption]")!;
+    expect(captionBox().style.right).toBe("536px");
+    act(() => openWindow()!.querySelector<HTMLButtonElement>("[data-close]")!.click());
+    expect(captionBox().style.right).toBe("");
+  });
+});
+
 describe("walking with the keys", () => {
   test("a step off the garden square and back in opens your garden", () => {
     open("/");
