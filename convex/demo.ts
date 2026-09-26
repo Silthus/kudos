@@ -27,7 +27,7 @@ import { canSpend, coinBalance } from "./lib/coins";
 import { SHOP_LEVEL } from "./lib/items";
 import { DEMO_HOMES, DEMO_LANTERNS } from "./lib/demoHomes";
 import { nextHomeStage } from "./lib/homes";
-import { homePlots } from "./lib/tree";
+import { districtsOpen, homePlots, stageForGrowth } from "./lib/tree";
 import { treeOf } from "./tree";
 import { playerOf, skillsOf, thankedBack } from "./game";
 import { finishedTutorial } from "./tutorial";
