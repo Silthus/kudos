@@ -115,7 +115,7 @@ export function Analytics() {
               {data.sources.map((s) => (
                 <div key={s.name} className="min-w-0 flex-1 border border-parchment-deep bg-parchment-deep/40 px-3 py-2">
                   <div className="text-xs text-ink/75">{s.name}</div>
-                  <div className="font-display text-xl font-semibold tabular">{nf.format(s.value)}</div>
+                  <div className="text-xl font-sans font-bold tabular">{nf.format(s.value)}</div>
                 </div>
               ))}
             </div>
@@ -179,7 +179,7 @@ export function Analytics() {
                 <span className="h-2 w-2" style={{ background: RARITY_META[r.rarity as Rarity].color }} />
                 {RARITY_META[r.rarity as Rarity].label}
               </div>
-              <div className="mt-1 font-display text-2xl font-semibold tabular">{nf.format(r.value)}</div>
+              <div className="mt-1 text-2xl font-sans font-bold tabular">{nf.format(r.value)}</div>
             </div>
           ))}
         </div>

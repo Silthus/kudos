@@ -118,7 +118,7 @@ function SettingsForm({ initial, isDemo }: { initial: Settings; isDemo: boolean 
           <Field label="Daily allowance" hint="Kudos each person can give per day">
             <div className="flex items-center gap-3">
               <input type="range" min={1} max={20} value={s.dailyLimit} onChange={(e) => set("dailyLimit", Number(e.target.value))} aria-label="Daily allowance" className={PIXEL_RANGE} />
-              <span className="w-10 text-right font-display text-xl font-semibold tabular">{s.dailyLimit}</span>
+              <span className="w-10 text-right text-xl font-sans font-bold tabular">{s.dailyLimit}</span>
             </div>
           </Field>
           <Field label="Timezone" hint="When the daily allowance resets">

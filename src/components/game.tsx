@@ -64,7 +64,7 @@ export function Wallet({ wallet }: { wallet: CoinBalance }) {
       <HogCoin size={28} className="mt-0.5" />
       <div className="min-w-0">
         <div className="flex items-baseline gap-2">
-          <span className="font-display text-2xl font-medium text-ink tabular">{wallet.balance}</span>
+          <span className="text-2xl font-sans font-bold text-ink tabular">{wallet.balance}</span>
           <span className="font-semibold text-ink">Hog coins</span>
         </div>
         <p className="mt-0.5 text-xs text-ink/75">{sentence}</p>

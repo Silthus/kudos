@@ -378,7 +378,7 @@ const Plank = () => <span aria-hidden className="-mx-2 mt-1.5 block h-2 bg-soil 
 /** A price: the Hog coin and the amount, in Pixelify. */
 function Price({ amount, unit = COIN }: { amount: number; unit?: string }) {
   return (
-    <span data-price className="whitespace-nowrap font-display text-lg font-medium tabular text-soil">
+    <span data-price className="whitespace-nowrap text-lg font-sans font-bold tabular text-soil">
       <HogCoin size={18} className="mr-1.5 -mt-0.5" />
       {nf.format(amount)} {unit}
     </span>
@@ -754,7 +754,7 @@ function RedeemDialog({
                 <div className="font-medium">{reward.name}</div>
                 {reward.description && <p className="text-sm text-ink/75">{reward.description}</p>}
               </div>
-              <span className="shrink-0 font-display text-lg font-semibold tabular text-soil">
+              <span className="shrink-0 text-lg font-sans font-bold tabular text-soil">
                 {nf.format(reward.cost)} {glyph}
               </span>
             </div>

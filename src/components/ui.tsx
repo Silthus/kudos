@@ -219,7 +219,7 @@ export function Progress({ value, max, color = "var(--color-lantern)", className
 }
 
 export function BigNumber({ value, className }: { value: number | string; className?: string }) {
-  return <span className={clsx("font-display font-medium tabular", className)}>{typeof value === "number" ? nf.format(value) : value}</span>;
+  return <span className={clsx("font-sans font-bold tabular", className)}>{typeof value === "number" ? nf.format(value) : value}</span>;
 }
 
 /** A still parchment-deep block where content is on its way. */

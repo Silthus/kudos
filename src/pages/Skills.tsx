@@ -102,7 +102,7 @@ export function Skills() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           {/* The points left, as a lantern-lit pixel counter. */}
-          <span data-points aria-hidden className="pixel-chip grid h-14 min-w-14 place-items-center bg-lantern px-2 font-display text-[40px] leading-none text-ink tabular">
+          <span data-points aria-hidden className="pixel-chip grid h-14 min-w-14 place-items-center bg-lantern px-2 text-[40px] font-sans font-bold leading-none text-ink tabular">
             {available}
           </span>
           <div>
