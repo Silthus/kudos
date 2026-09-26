@@ -1,8 +1,9 @@
-import { growthFor, stageForGrowth } from "../convex/lib/tree";
+import { growthFor, layout, stageForGrowth, TREE_STAGE_BY_ID } from "../convex/lib/tree";
+import { generateRuin } from "../convex/lib/rpg";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
-import { DEMO_SETTINGS } from "../convex/lib/settings";
+import { DEMO_SETTINGS, DEMO_WORLD_SEED } from "../convex/lib/settings";
 import { DAY_MS } from "../convex/lib/time";
 import { DEMO_TIMEOUT, setupConvex } from "./helpers";
 
@@ -102,5 +103,17 @@ describe("a simulator", () => {
     expect(await rows("trees")).toEqual([]);
     expect(await rows("treeEvents")).toEqual([]);
     expect(sharedDemo).toBeDefined();
+  });
+});
+
+describe("the demo's ruins (#162)", () => {
+  test("its fixed world seed holds a puzzle room in at least two near ruins and a secret room in at least one, the first included", () => {
+    const near = layout(DEMO_WORLD_SEED, TREE_STAGE_BY_ID.elder.growth).ruins.filter((r) => r.tier === 1);
+    expect(near).toHaveLength(6);
+    const kinds = near.map((r) => generateRuin(DEMO_WORLD_SEED, r.id).rooms.map((room) => room.kind));
+    expect(kinds.filter((k) => k.includes("puzzle")).length).toBeGreaterThanOrEqual(2);
+    expect(kinds.filter((k) => k.includes("secret")).length).toBeGreaterThanOrEqual(1);
+    // Alex's first seeded run (demo.ts `seedAlexRuins`) finds its lore card in a real secret room.
+    expect(kinds[0]).toContain("secret");
   });
 });

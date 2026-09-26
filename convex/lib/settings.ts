@@ -20,6 +20,13 @@ export const DEFAULT_SETTINGS = {
 };
 
 /** The demo workspace plays the game, sprees included, and its playground shows reaction-giving (spec #55 §G1, §G16). */
+/**
+ * The demo's world seed (lib/tree.ts `layout`): Lumen Labs' tree stands the same way after every
+ * reset. A data value, not a rule, chosen (#162) so that the demo's near ruins hold puzzle rooms and a
+ * secret room to show; `tests/tree-demo.test.ts` pins that.
+ */
+export const DEMO_WORLD_SEED = 0x4c756d67;
+
 export const DEMO_SETTINGS = {
   ...DEFAULT_SETTINGS,
   // Every kudos of the demo's seeded year is an offering (#157): the last 30 days' still wait at the tree.

@@ -17,7 +17,7 @@ import { DEMO_ADJUSTMENTS, DEMO_REDEMPTIONS, DEMO_REWARDS, type DemoRedemption, 
 import { hasNote, RECIPROCAL_WINDOW_MS, thanksBack, weekKeyFor, weekKeyOfDay } from "./lib/quests";
 import { defaultSpecies, GARDEN_LEVEL, PLANT_COST, plantState, type PlantState, plotsFor, sunlampHelps, wateringDays } from "./lib/garden";
 import { type Allocation, canTake, type SkillId } from "./lib/skills";
-import { DEMO_SETTINGS } from "./lib/settings";
+import { DEMO_SETTINGS, DEMO_WORLD_SEED } from "./lib/settings";
 import { earningsText, levelForXp } from "./lib/xp";
 import { gainLabel, gainText } from "./lib/gains";
 import { seedsToPlantText } from "./lib/treeView";
@@ -41,8 +41,6 @@ import { nextTier, promptText, refusalText } from "./lib/sprees";
 import { coinWallet, grantBalance, requestRedemption, transitionRedemption, undoPurchase, undoRedemption } from "./store";
 
 const DEMO_TEAM = "T_DEMO_LUMEN";
-/** The demo's world seed (lib/tree.ts `layout`): Lumen Labs' tree stands the same way after every reset. */
-const DEMO_WORLD_SEED = 0x4c756d65; // "Lume"
 export const DEMO_YOU = "UDEMOYOU";
 /** The demo's other admin: she decides on the visitor's own store requests (four eyes). */
 const DEMO_LENA = "UDEMOLENA";

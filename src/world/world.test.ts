@@ -6,6 +6,7 @@ import { BEDS, PLOTS } from "./places/garden";
 import { mapHeight, mapWidth } from "./pixels";
 import { treeSprite } from "./tree/sprite";
 import { CANOPY, buildWorld, inRect, ruinStones, settle, underCanopy, type World } from "./world";
+import { DEMO_WORLD_SEED } from "../../convex/lib/settings";
 
 /**
  * The world on the tree (#156): the desert with the tree at the origin, and the districts the
@@ -211,7 +212,7 @@ describe("your garden on the terrace", () => {
 
 describe("the ruins' entrances (#162)", () => {
   test("each stands on stones nobody walks through, its door is sand you can walk to from base camp", () => {
-    for (const seed of [7, 1282764143, 0x4c756d65]) {
+    for (const seed of [7, 1282764143, DEMO_WORLD_SEED]) {
       const w = world(seed, 3500);
       expect(w.ruins.length).toBeGreaterThan(0);
       for (const r of w.ruins.filter((r) => r.tier === 1)) {
