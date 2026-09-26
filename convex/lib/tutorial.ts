@@ -80,7 +80,7 @@ export function hudShows(current: number | null): { wallet: boolean; stamina: bo
  * next) and what opens it, the step before.
  */
 const PLACE_OPENS: Record<string, { step: TutorialStepId; after: string }> = {
-  offering: { step: "feed", after: "your first thoughtful kudos" },
+  offering: { step: "feed", after: "you say thanks" },
   quests: { step: "look", after: "you feed the tree" },
   me: { step: "grow", after: "you look around" },
   garden: { step: "grow", after: "you look around" },

@@ -112,9 +112,10 @@ const meets = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b
  * where both are biggest: the sign is 14 px Pixelify text (about 8 px a letter) with 8 px padding a
  * side and 24 px tall, the hedgehog about 48 × 44 px above its feet. Clear at 2× is clear at 3×.
  */
-const signBox = (name: string, at: Point): Box => {
-  const half = (name.length * 8 + 16) / 4;
-  return { x0: at.x - half, x1: at.x + half, y0: at.y - 12, y1: at.y };
+const signBox = (name: string, at: Point, hint?: string): Box => {
+  // A dim place's hint (#159) is a second line in 12 px Nunito, about 6.5 px a letter.
+  const half = (Math.max(name.length * 8, hint ? hint.length * 6.5 : 0) + 16) / 4;
+  return { x0: at.x - half, x1: at.x + half, y0: at.y - (hint ? 20 : 12), y1: at.y };
 };
 const hogBox = (door: Tile): Box => {
   const feet = tileCentre(door);
@@ -127,14 +128,14 @@ const hogBox = (door: Tile): Box => {
  * another sign, the nearest spot to the side, above, or at its foot. In a fixed order, so it's the
  * same every time. A label with no clear spot is left out (missing from the map).
  */
-export function signPoints(places: PlaceDef[], labels: Label[] = [], standing: Tile[] = []): Map<string, Point> {
+export function signPoints(places: (PlaceDef & { hint?: string })[], labels: Label[] = [], standing: Tile[] = []): Map<string, Point> {
   // Where a hedgehog stands: at every door, and wherever else one waits (you arriving, the elder hog).
   const doors = [...places.flatMap((p) => p.doors), ...standing].map(hogBox);
   const taken: Box[] = [];
   const out = new Map<string, Point>();
   const signs = [
-    ...places.filter((p) => !p.nameTag).map((p) => ({ id: p.id, name: p.name, home: signPoint(p), below: mapHeight(p.sprite) - emptyTop(p.sprite) + 16, place: true })),
-    ...labels.map((l) => ({ id: l.id, name: l.name, home: l.at, below: 16, place: false })),
+    ...places.filter((p) => !p.nameTag).map((p) => ({ id: p.id, name: p.name, hint: p.hint, home: signPoint(p), below: mapHeight(p.sprite) - emptyTop(p.sprite) + 16, place: true })),
+    ...labels.map((l) => ({ id: l.id, name: l.name, hint: undefined, home: l.at, below: 16, place: false })),
   ];
   for (const p of signs) {
     const { home, below } = p;
@@ -143,13 +144,13 @@ export function signPoints(places: PlaceDef[], labels: Label[] = [], standing: T
       ? [0, -14, below, -28, below + 14, -42].flatMap((dy) => [0, -12, 12, -24, 24, -36, 36, -48, 48, -60, 60, -72, 72].map((dx) => ({ x: dx, y: dy })))
       : [0, -14, -28].flatMap((dy) => [0, -12, 12].map((dx) => ({ x: dx, y: dy })));
     const spots = tries.map((d) => ({ x: home.x + d.x, y: home.y + d.y }));
-    const clearOfDoors = (at: Point) => !doors.some((b) => meets(signBox(p.name, at), b));
+    const clearOfDoors = (at: Point) => !doors.some((b) => meets(signBox(p.name, at, p.hint), b));
     // Clear of everything. Failing that, a place's sign at least keeps clear of the doors, where a
     // hedgehog would hide it; a label (a marker's name) is left out rather than crowd one.
-    const clear = spots.find((at) => clearOfDoors(at) && !taken.some((b) => meets(signBox(p.name, at), b)));
+    const clear = spots.find((at) => clearOfDoors(at) && !taken.some((b) => meets(signBox(p.name, at, p.hint), b)));
     if (!clear && !p.place) continue;
     const spot = clear ?? spots.find(clearOfDoors) ?? home;
-    taken.push(signBox(p.name, spot));
+    taken.push(signBox(p.name, spot, p.hint));
     out.set(p.id, spot);
   }
   return out;

@@ -94,7 +94,7 @@ describe("gating the HUD", () => {
 describe("places not yet reached draw dim with a hint", () => {
   test("each place opens with the step that uses it", () => {
     // Step 2 opens the stone (step 3 feeds the tree), step 3 the signpost, step 4 your tent.
-    expect(placeHint("offering", 2)).toBe("Opens after your first thoughtful kudos");
+    expect(placeHint("offering", 2)).toBe("Opens after you say thanks");
     expect(placeHint("offering", 3)).toBeNull();
     expect(placeHint("quests", 3)).toBe("Opens after you feed the tree");
     expect(placeHint("quests", 4)).toBeNull();
