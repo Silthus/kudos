@@ -83,7 +83,7 @@ async function launchDemoGame(ctx: MutationCtx, workspace: Doc<"workspaces">, no
   }
 }
 
-const PEOPLE: { id: string; name: string; realName: string; title: string; generosity: number }[] = [
+export const PEOPLE: { id: string; name: string; realName: string; title: string; generosity: number }[] = [
   { id: DEMO_YOU, name: "Alex Rivera", realName: "Alex Rivera", title: "Engineering Manager", generosity: 0.75 },
   { id: "UDEMOPRIYA", name: "Priya Raman", realName: "Priya Raman", title: "Staff Engineer", generosity: 0.8 },
   { id: "UDEMOJONAS", name: "Jonas Weber", realName: "Jonas Weber", title: "Product Designer", generosity: 0.7 },
@@ -1170,6 +1170,7 @@ const DEMO_TABLES = [
   "sprees",
   "spreeJoins",
   "superKudos",
+  "simulatorRuns",
   "notifications",
 ] as const;
 
@@ -1217,6 +1218,8 @@ async function demoRows(ctx: MutationCtx, workspaceId: Id<"workspaces">, table: 
       return await ctx.db.query("spreeJoins").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "superKudos":
       return await ctx.db.query("superKudos").withIndex("by_workspace_at", (q) => q.eq("workspaceId", workspaceId)).take(n);
+    case "simulatorRuns":
+      return await ctx.db.query("simulatorRuns").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "notifications":
       return [];
   }
@@ -1228,6 +1231,38 @@ const RESET_LOCK_MS = 15 * 60 * 1000;
  * transaction; a step that wiped ~3,800 rows came close enough to warn, so steps stay far below.
  */
 const WIPE_PER_STEP = 1500;
+
+/**
+ * One step of wiping a demo workspace's activity (the shared demo's reset; a simulator's wipe,
+ * simulator.ts): deletes up to WIPE_PER_STEP of its rows, workspace tables first, then each member's
+ * own rows, and returns how many it deleted. Zero: nothing is left but the members.
+ */
+export async function wipeActivity(ctx: MutationCtx, workspaceId: Id<"workspaces">, members: Doc<"members">[]): Promise<number> {
+  let deleted = 0;
+  const left = () => WIPE_PER_STEP - deleted;
+  for (const table of DEMO_TABLES) {
+    if (left() <= 0) break;
+    const rows = await demoRows(ctx, workspaceId, table, left());
+    for (const r of rows) await ctx.db.delete(r._id);
+    deleted += rows.length;
+  }
+  const memberRows = [
+    (m: Doc<"members">, n: number) => ctx.db.query("notifications").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(n),
+    (m: Doc<"members">, n: number) => ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", m._id)).take(n),
+    (m: Doc<"members">, n: number) => ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(n),
+    (m: Doc<"members">, n: number) => ctx.db.query("skillChanges").withIndex("by_member_at", (q) => q.eq("memberId", m._id)).take(n),
+    (m: Doc<"members">, n: number) => ctx.db.query("plants").withIndex("by_owner_memory", (q) => q.eq("ownerId", m._id)).take(n),
+  ];
+  for (const m of members) {
+    for (const rowsOf of memberRows) {
+      if (left() <= 0) break;
+      const rows = await rowsOf(m, left());
+      for (const row of rows) await ctx.db.delete(row._id);
+      deleted += rows.length;
+    }
+  }
+  return deleted;
+}
 
 /** Starts a reset unless one is already running (visitors and the nightly cron can overlap). */
 export const startDemoReset = internalMutation({
@@ -1256,33 +1291,11 @@ export const resetDemoWorkspace = internalMutation({
     if (workspace.rollupsBackfilledAt !== undefined || workspace.successBackfilledAt !== undefined) {
       await ctx.db.patch(workspace._id, { rollupsBackfilledAt: undefined, successBackfilledAt: undefined });
     }
-    let deleted = 0;
-    const left = () => WIPE_PER_STEP - deleted;
-    for (const table of DEMO_TABLES) {
-      if (left() <= 0) break;
-      const rows = await demoRows(ctx, workspace._id, table, left());
-      for (const r of rows) await ctx.db.delete(r._id);
-      deleted += rows.length;
-    }
     const members = await ctx.db
       .query("members")
       .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id))
       .take(100);
-    const memberRows = [
-      (m: Doc<"members">, n: number) => ctx.db.query("notifications").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(n),
-      (m: Doc<"members">, n: number) => ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", m._id)).take(n),
-      (m: Doc<"members">, n: number) => ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(n),
-      (m: Doc<"members">, n: number) => ctx.db.query("skillChanges").withIndex("by_member_at", (q) => q.eq("memberId", m._id)).take(n),
-      (m: Doc<"members">, n: number) => ctx.db.query("plants").withIndex("by_owner_memory", (q) => q.eq("ownerId", m._id)).take(n),
-    ];
-    for (const m of members) {
-      for (const rowsOf of memberRows) {
-        if (left() <= 0) break;
-        const rows = await rowsOf(m, left());
-        for (const row of rows) await ctx.db.delete(row._id);
-        deleted += rows.length;
-      }
-    }
+    const deleted = await wipeActivity(ctx, workspace._id, members);
     if (deleted > 0) {
       await ctx.scheduler.runAfter(0, internal.demo.resetDemoWorkspace, {});
       return null;
@@ -1322,7 +1335,8 @@ export const resetDemo = mutation({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
-    const { member } = await requireDemoViewer(ctx);
+    const { workspace, member } = await requireDemoViewer(ctx);
+    if (workspace.simulator) throw new ConvexError("This is your simulator: reset it from the simulator instead.");
     if (!member.isAdmin) throw new ConvexError("Only admins can reset the demo.");
     await ctx.scheduler.runAfter(0, internal.demo.startDemoReset, {});
     return null;

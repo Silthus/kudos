@@ -425,18 +425,21 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
   const since = existing === null ? first : first === undefined ? existing.since : Math.min(existing.since, first);
 
   // Fruit picked is the member's own doing, like their skills, and what a spree's tiers paid (#94)
-  // isn't derived from kudos rows either: both are kept as they are, never replayed.
+  // isn't derived from kudos rows either, nor is the level a simulator visitor joined at (#143): all
+  // are kept as they are, never replayed.
   type Written = { at: number; xp: number; coins: number };
   const harvests: Written[] = [];
   const sprees: Written[] = [];
+  const seeds: Written[] = [];
   for await (const e of ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", member._id))) {
     if (e.kind === "harvest") harvests.push({ at: e.at, xp: e.xp, coins: e.coins ?? 0 });
     else if (e.kind === "spree") sprees.push({ at: e.at, xp: e.xp, coins: e.coins ?? 0 });
+    else if (e.kind === "seed") seeds.push({ at: e.at, xp: e.xp, coins: e.coins ?? 0 });
     else await ctx.db.delete(e._id);
   }
   if (since === undefined) return;
 
-  const written: Written[] = [...harvests, ...sprees];
+  const written: Written[] = [...harvests, ...sprees, ...seeds];
   const unsungOn = workspace.receivedVisibility === "everyone";
   // XP history is the members' own kudos: pooled spree kudos (#94) never count as a thank-back or an earlier kudos.
   const own = (k: Doc<"kudos">) => k.source !== "spree";

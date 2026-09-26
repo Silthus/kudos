@@ -509,6 +509,29 @@ export async function withdrawSpreeJoin(ctx: MutationCtx, workspace: Workspace, 
   return leftText(await names(ctx, spree.giverId, spree.receiverIds, audience));
 }
 
+/** The longest a spree stays open: its first window and one more after each of its tiers. */
+const LONGEST_SPREE_MS = WINDOW_MS * (TIERS.length + 1);
+
+/**
+ * Closes a workspace's sprees whose window ran out by `now`, as their scheduled `lapse` would. A
+ * simulator's clock jumps ahead of those (they wait on the wall clock): `advance` calls this.
+ * Returns how many it closed.
+ */
+export async function lapseDue(ctx: MutationCtx, workspace: Workspace, now: number): Promise<number> {
+  const recent = await ctx.db
+    .query("sprees")
+    .withIndex("by_workspace_kudosAt", (q) => q.eq("workspaceId", workspace._id).gt("kudosAt", now - LONGEST_SPREE_MS - WINDOW_MS))
+    .take(200);
+  let closed = 0;
+  for (const spree of recent) {
+    if (spree.status === "open" && now >= spree.deadline) {
+      await closeSpree(ctx, spree);
+      closed++;
+    }
+  }
+  return closed;
+}
+
 /** A spree's window ran out (scheduled at its deadline; a later tier moved the deadline: no-op). */
 export const lapse = internalMutation({
   args: { spreeId: v.id("sprees"), deadline: v.number() },

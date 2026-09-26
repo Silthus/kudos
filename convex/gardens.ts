@@ -311,57 +311,67 @@ export const plant = mutation({
   // `plot`: the key bed to plant in (#129); the lowest free one if not given.
   args: { teammateId: v.id("members"), species: v.optional(v.string()), plot: v.optional(v.number()) },
   returns: v.id("plants"),
-  handler: async (ctx, { teammateId, species, plot }) => {
+  handler: async (ctx, args) => {
     const { workspace, member } = await requireViewer(ctx);
-    const player = await requireGardener(ctx, workspace, member);
-    const skills = skillsOf(player);
-    const teammate = await ctx.db.get(teammateId);
-    if (!teammate || teammate.workspaceId !== workspace._id || teammate._id === member._id || teammate.isBot || teammate.deactivated) {
-      throw new ConvexError("You can grow a plant for a teammate you've thanked.");
-    }
-    const now = workspaceNow(workspace);
-    const growing = await livingPlants(ctx, member._id);
-    if (growing.some((g) => g.plant.forId === teammateId)) throw new ConvexError(`You're already growing a plant for ${teammate.name}.`);
-    const used = growing.filter((g) => !leftFor(g.teammate)).length;
-    if (used >= plotsFor(skills)) throw new ConvexError("Your garden has no free plot. Uproot a plant to make room.");
-    const taken = await keepPlots(ctx, growing);
-    if (plot !== undefined) {
-      if (!Number.isInteger(plot) || plot < 0 || plot >= plotsFor(skills)) throw new ConvexError("That plot isn't one of your plots.");
-      if (taken.includes(plot)) throw new ConvexError("A plant is already growing in that plot.");
-    }
-    const plantedDay = dayKeyFor(now, workspace.timezone);
-    const seed = await qualifyingKudosTo(ctx, member._id, teammateId, plantWindowStart(workspace, plantedDay));
-    if (!seed) throw new ConvexError(`A plant needs a thoughtful kudos to ${teammate.name} in the last 7 days (a few words on why).`);
-    if (species !== undefined && !(isSpeciesId(species) && speciesChoices(skills).includes(species))) {
-      throw new ConvexError("That species isn't in your plant picker.");
-    }
-    const { balance } = coinBalance(player, member);
-    if (!canSpend(balance, PLANT_COST)) throw new ConvexError(`A plant costs ${PLANT_COST} Hog coins; you have ${balance}.`);
-
-    await ctx.db.patch(member._id, { coinsSpent: (member.coinsSpent ?? 0) + PLANT_COST });
-    // Seeded by the owner and the moment, never the teammate: others see the species.
-    const chosen: SpeciesId = (species as SpeciesId | undefined) ?? defaultSpecies(`${member._id}:${now}`);
-    const plantId = await ctx.db.insert("plants", {
-      workspaceId: workspace._id,
-      ownerId: member._id,
-      forId: teammateId,
-      species: chosen,
-      plantedAt: now,
-      plantedDay,
-      seedKudosId: seed._id,
-      pickedThrough: plantedDay,
-      plot: plot ?? freePlot(taken.map((p) => ({ plot: p }))),
-      announced: 0,
-    });
-    await sendingGains(ctx, workspace, async (gains) => announceGrowth(ctx, workspace, (await ctx.db.get(plantId))!, now, gains));
-    // Only they learn it's for them (§G8): a DM like a received kudos, if receivers get DMs.
-    if (workspace.notifyReceiver && gameShownTo(workspace, teammate)) {
-      const id = await plantedNotice(ctx, workspace, member, teammateId, chosen);
-      if (!workspace.isDemo) await ctx.scheduler.runAfter(0, internal.slack.deliverNotifications, { workspaceId: workspace._id, ids: [id] });
-    }
-    return plantId;
+    return await plantFor(ctx, workspace, member, args);
   },
 });
+
+/** `member` plants for a teammate (the `plant` mutation; the simulator's bot plants the same way). */
+export async function plantFor(
+  ctx: MutationCtx,
+  workspace: Doc<"workspaces">,
+  member: Doc<"members">,
+  { teammateId, species, plot }: { teammateId: Id<"members">; species?: string; plot?: number },
+): Promise<Id<"plants">> {
+  const player = await requireGardener(ctx, workspace, member);
+  const skills = skillsOf(player);
+  const teammate = await ctx.db.get(teammateId);
+  if (!teammate || teammate.workspaceId !== workspace._id || teammate._id === member._id || teammate.isBot || teammate.deactivated) {
+    throw new ConvexError("You can grow a plant for a teammate you've thanked.");
+  }
+  const now = workspaceNow(workspace);
+  const growing = await livingPlants(ctx, member._id);
+  if (growing.some((g) => g.plant.forId === teammateId)) throw new ConvexError(`You're already growing a plant for ${teammate.name}.`);
+  const used = growing.filter((g) => !leftFor(g.teammate)).length;
+  if (used >= plotsFor(skills)) throw new ConvexError("Your garden has no free plot. Uproot a plant to make room.");
+  const taken = await keepPlots(ctx, growing);
+  if (plot !== undefined) {
+    if (!Number.isInteger(plot) || plot < 0 || plot >= plotsFor(skills)) throw new ConvexError("That plot isn't one of your plots.");
+    if (taken.includes(plot)) throw new ConvexError("A plant is already growing in that plot.");
+  }
+  const plantedDay = dayKeyFor(now, workspace.timezone);
+  const seed = await qualifyingKudosTo(ctx, member._id, teammateId, plantWindowStart(workspace, plantedDay));
+  if (!seed) throw new ConvexError(`A plant needs a thoughtful kudos to ${teammate.name} in the last 7 days (a few words on why).`);
+  if (species !== undefined && !(isSpeciesId(species) && speciesChoices(skills).includes(species))) {
+    throw new ConvexError("That species isn't in your plant picker.");
+  }
+  const { balance } = coinBalance(player, member);
+  if (!canSpend(balance, PLANT_COST)) throw new ConvexError(`A plant costs ${PLANT_COST} Hog coins; you have ${balance}.`);
+
+  await ctx.db.patch(member._id, { coinsSpent: (member.coinsSpent ?? 0) + PLANT_COST });
+  // Seeded by the owner and the moment, never the teammate: others see the species.
+  const chosen: SpeciesId = (species as SpeciesId | undefined) ?? defaultSpecies(`${member._id}:${now}`);
+  const plantId = await ctx.db.insert("plants", {
+    workspaceId: workspace._id,
+    ownerId: member._id,
+    forId: teammateId,
+    species: chosen,
+    plantedAt: now,
+    plantedDay,
+    seedKudosId: seed._id,
+    pickedThrough: plantedDay,
+    plot: plot ?? freePlot(taken.map((p) => ({ plot: p }))),
+    announced: 0,
+  });
+  await sendingGains(ctx, workspace, async (gains) => announceGrowth(ctx, workspace, (await ctx.db.get(plantId))!, now, gains));
+  // Only they learn it's for them (§G8): a DM like a received kudos, if receivers get DMs.
+  if (workspace.notifyReceiver && gameShownTo(workspace, teammate)) {
+    const id = await plantedNotice(ctx, workspace, member, teammateId, chosen);
+    if (!workspace.isDemo) await ctx.scheduler.runAfter(0, internal.slack.deliverNotifications, { workspaceId: workspace._id, ids: [id] });
+  }
+  return plantId;
+}
 
 /** Uproots one of the viewer's plants: its plot is free again, and the plant stays as a memory. */
 export const uproot = mutation({
@@ -647,35 +657,56 @@ export const pick = mutation({
   returns: v.object({ coins: v.number(), xp: v.number(), fruit: v.number() }),
   handler: async (ctx) => {
     const { workspace, member } = await requireViewer(ctx);
-    const player = await requireGardener(ctx, workspace, member);
-    const skills = skillsOf(player);
-    const now = workspaceNow(workspace);
-    const today = dayKeyFor(now, workspace.timezone);
-    const plants = [];
-    for (const { plant, teammate } of await livingPlants(ctx, member._id)) {
-      if (leftFor(teammate)) continue;
-      plants.push({ plantId: plant._id, fruit: (await stateOf(ctx, workspace, plant, skills, today)).fruit });
-    }
-    const week = await pickedThisWeek(ctx, member._id, today);
-    const result = pickFruit({ plants, today, ...week });
-    if (result.fruit === 0) return { coins: 0, xp: 0, fruit: 0 };
-    for (const p of result.plants) if (p.pickedThrough !== null) await ctx.db.patch(p.plantId as Id<"plants">, { pickedThrough: p.pickedThrough });
-    await ctx.db.insert("gameEvents", {
-      workspaceId: workspace._id,
-      memberId: member._id,
-      kind: "harvest",
-      batchId: `harvest:${member._id}:${now}`,
-      dayKey: today,
-      at: now,
-      xp: result.xp,
-      coins: result.coins,
-      fruit: result.fruit,
-    });
-    await ctx.db.patch(player._id, { fruitCoins: (player.fruitCoins ?? 0) + result.coins });
-    await sendingGains(ctx, workspace, (gains) => addXp(ctx, player, result.xp, result.coins, gains));
-    return { coins: result.coins, xp: result.xp, fruit: result.fruit };
+    return await pickFor(ctx, workspace, member);
   },
 });
+
+/** `member` picks their fruit (the `pick` mutation; the simulator's bot picks the same way). */
+export async function pickFor(ctx: MutationCtx, workspace: Doc<"workspaces">, member: Doc<"members">) {
+  const player = await requireGardener(ctx, workspace, member);
+  const skills = skillsOf(player);
+  const now = workspaceNow(workspace);
+  const today = dayKeyFor(now, workspace.timezone);
+  const plants = [];
+  for (const { plant, teammate } of await livingPlants(ctx, member._id)) {
+    if (leftFor(teammate)) continue;
+    plants.push({ plantId: plant._id, fruit: (await stateOf(ctx, workspace, plant, skills, today)).fruit });
+  }
+  const week = await pickedThisWeek(ctx, member._id, today);
+  const result = pickFruit({ plants, today, ...week });
+  if (result.fruit === 0) return { coins: 0, xp: 0, fruit: 0 };
+  for (const p of result.plants) if (p.pickedThrough !== null) await ctx.db.patch(p.plantId as Id<"plants">, { pickedThrough: p.pickedThrough });
+  await ctx.db.insert("gameEvents", {
+    workspaceId: workspace._id,
+    memberId: member._id,
+    kind: "harvest",
+    batchId: `harvest:${member._id}:${now}`,
+    dayKey: today,
+    at: now,
+    xp: result.xp,
+    coins: result.coins,
+    fruit: result.fruit,
+  });
+  await ctx.db.patch(player._id, { fruitCoins: (player.fruitCoins ?? 0) + result.coins });
+  await sendingGains(ctx, workspace, (gains) => addXp(ctx, player, result.xp, result.coins, gains));
+  return { coins: result.coins, xp: result.xp, fruit: result.fruit };
+}
+
+/**
+ * A simulator's day went by (simulator.ts `advance`): every plant of `ownerId`'s is looked at, as the
+ * scheduled `checkGrowth` would when its day comes (those wait on the wall clock). Returns the plants
+ * that reached a new stage, for the day's report.
+ */
+export async function lookAtGrowth(ctx: MutationCtx, workspace: Doc<"workspaces">, ownerId: Id<"members">) {
+  const grown: { teammate: string; stage: string }[] = [];
+  for (const { plant, teammate } of await livingPlants(ctx, ownerId)) {
+    if (leftFor(teammate)) continue;
+    await sendingGains(ctx, workspace, (gains) => announceGrowth(ctx, workspace, plant, workspaceNow(workspace), gains));
+    const after = (await ctx.db.get(plant._id))!;
+    if (after.announced > plant.announced) grown.push({ teammate: teammate!.name, stage: STAGES[after.announced].name });
+  }
+  return grown;
+}
 
 /**
  * Turns a plant into a memory with the stage it has now: uprooted by its owner, or grown for
