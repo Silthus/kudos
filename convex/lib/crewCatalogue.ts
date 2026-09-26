@@ -68,9 +68,11 @@ export function crewPart(id: string): CrewPart | null {
   return CREW_PARTS.find((p) => p.id === id) ?? null;
 }
 
-/** The parts a tree at `stage` may have proposed, less the once-only parts it already has or is funding. */
-export function partsAvailable(stage: TreeStageId, taken: readonly string[] = []): CrewPart[] {
-  return CREW_PARTS.filter((p) => stageIndex(p.stage) <= stageIndex(stage) && !(BUILT_ONCE.includes(p.kind) && taken.includes(p.id)));
+/** The parts a tree at `stage` may have proposed: not the once-only parts it already `built`, and nothing with an `open` proposal. */
+export function partsAvailable(stage: TreeStageId, taken: { built?: readonly string[]; open?: readonly string[] } = {}): CrewPart[] {
+  const built = taken.built ?? [];
+  const open = taken.open ?? [];
+  return CREW_PARTS.filter((p) => stageIndex(p.stage) <= stageIndex(stage) && !open.includes(p.id) && !(BUILT_ONCE.includes(p.kind) && built.includes(p.id)));
 }
 
 /** Whether `option` is one the part offers; parts without options take none. */
@@ -84,9 +86,7 @@ export const BANNER_TEXT = { max: 60 } as const;
 /** One short line of plain text, trimmed, or null: no markup, no control characters or line breaks. */
 export function bannerText(text: string): string | null {
   const t = text.trim();
-  const control = [...t].some((ch) => {
-    const c = ch.charCodeAt(0);
-    return c < 0x20 || c === 0x7f || c === 0x2028 || c === 0x2029;
-  });
-  return t.length > 0 && t.length <= BANNER_TEXT.max && !control && !/[<>]/.test(t) ? t : null;
+  const chars = [...t];
+  const hidden = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(t);
+  return chars.length > 0 && chars.length <= BANNER_TEXT.max && !hidden && !/[<>]/.test(t) ? t : null;
 }

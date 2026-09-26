@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { BLIGHT, blightDamage, blightHp } from "./blight";
+import { BLIGHT, blightDamage, blightHp, nextBlightAt } from "./blight";
 
 /** Blights (#152 S8): a shared foe the company wears down together. */
 
@@ -14,6 +14,12 @@ describe("blights", () => {
     expect(BLIGHT.everyDays).toEqual([14, 28]);
     expect(BLIGHT.rewardCoins).toBe(20);
     expect(BLIGHT.activeDays).toBe(30);
+    const day = 86_400_000;
+    const at = nextBlightAt(7, 1_000 * day, 0);
+    expect(at).toBe(nextBlightAt(7, 1_000 * day, 0));
+    expect(at - 1_000 * day).toBeGreaterThanOrEqual(14 * day);
+    expect(at - 1_000 * day).toBeLessThanOrEqual(28 * day);
+    expect(nextBlightAt(7, 1_000 * day, 1)).not.toBe(at);
   });
 
   test("damage comes from qualifying kudos and from rooms the party actually cleared with effort", () => {

@@ -3,8 +3,10 @@
  * which the whole company wears down for five days with thoughtful kudos, cleared expedition rooms
  * and the blight raid at the tree's foot. Victory calls a bonus day; a defeat only dims the
  * lanterns for a week and makes the next blight smaller. Nothing owned is ever lost to a blight.
+ * A revoked kudos never takes its damage back: the blight is a shared story, not a ledger.
  */
 import { whole } from "./numbers";
+import { fnv1a, mulberry32 } from "./random";
 import type { Room } from "./rpg";
 
 export const BLIGHT = {
@@ -25,6 +27,15 @@ export const BLIGHT = {
 } as const;
 
 export type BlightSource = keyof typeof BLIGHT.damage;
+
+const DAY_MS = 86_400_000;
+
+/** When the next blight arrives: 14–28 days after `after`, seeded so a rebuild lands on the same day. */
+export function nextBlightAt(seed: number, after: number, previous: number): number {
+  const [lo, hi] = BLIGHT.everyDays;
+  const rand = mulberry32(fnv1a(`blight:${seed >>> 0}:${previous}`));
+  return after + (lo + Math.floor(rand() * (hi - lo + 1))) * DAY_MS;
+}
 
 export function blightHp(activeMembers: number, lastDefeated = false): number {
   const base = Math.max(BLIGHT.minHp, BLIGHT.hpPerActiveMember * Math.max(0, whole(activeMembers)));

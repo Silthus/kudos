@@ -3,6 +3,7 @@ import {
   DISTRICT_BY_ID,
   DISTRICTS,
   districtsOpen,
+  fuelForLine,
   growthFor,
   growthToNext,
   growthToReach,
@@ -13,6 +14,7 @@ import {
   MAX_ANCHOR_RADIUS,
   MAX_HOME_PLOTS,
   MIN_ANCHOR_GAP,
+  OFFERING_AUTO_CLAIM_DAYS,
   placeDistrict,
   raidTier,
   ringsForGrowth,
@@ -65,11 +67,15 @@ describe("stages by growth", () => {
     expect([0, 11_999, 12_000, 22_000, 52_000].map(ringsForGrowth)).toEqual([0, 0, 0, 1, 4]);
   });
 
-  test("growth is planted seeds plus half a point per coin claimed", () => {
-    expect(growthFor({ sap: 10, fuelCoins: 0 })).toBe(10);
-    expect(growthFor({ sap: 10, fuelCoins: 7 })).toBe(13);
-    expect(growthFor({ sap: 10, fuelCoins: -4 })).toBe(10);
-    expect(growthFor({ sap: NaN, fuelCoins: NaN })).toBe(0);
+  test("growth is planted seeds plus half a point per fuel claimed; fuel is one per qualifying line, never the coin amount", () => {
+    expect(growthFor({ sap: 10, fuel: 0 })).toBe(10);
+    expect(growthFor({ sap: 10, fuel: 7 })).toBe(13);
+    expect(growthFor({ sap: 10, fuel: -4 })).toBe(10);
+    expect(growthFor({ sap: -50, fuel: 10 })).toBe(5);
+    expect(growthFor({ sap: NaN, fuel: NaN })).toBe(0);
+    expect(fuelForLine({ qualifying: true })).toBe(1);
+    expect(fuelForLine({ qualifying: false })).toBe(0);
+    expect(OFFERING_AUTO_CLAIM_DAYS).toBe(30);
   });
 
   test("bad numbers never break it: negative growth is the seed, fractions and NaN are truncated", () => {

@@ -15,7 +15,10 @@ import {
   maxHp,
   PARTY,
   puzzleHint,
+  PUZZLE_OPTIONS,
   PUZZLE_TRIES,
+  paidFor,
+  RAID_BOSS,
   resolveTurn,
   roomLoot,
   runLoot,
@@ -127,11 +130,13 @@ describe("the bestiary and ruins", () => {
     expect(() => generateRuin(1, "ruin:1:9")).toThrow(/Not a ruin id/);
   });
 
-  test("the blight raid is a ruin that ends on the blight heart at the top tier", () => {
-    const raid = generateRuin(7, "raid:3");
-    expect(raid.tier).toBe(3);
-    expect(raid.rooms[raid.rooms.length - 1]).toEqual({ kind: "foe", foe: "blight_heart" });
-    expect(generateRuin(7, "raid:1").rooms.at(-1)?.kind).toBe("foe");
+  test("the blight raid is a ruin that ends on its tier's boss, and the blight heart appears nowhere else", () => {
+    for (const tier of [1, 2, 3] as const) {
+      const raid = generateRuin(7, `raid:${tier}`);
+      expect(raid.tier).toBe(tier);
+      expect(raid.rooms.at(-1)).toEqual({ kind: "foe", foe: RAID_BOSS[tier] });
+    }
+    for (let i = 0; i < 200; i++) for (const r of generateRuin(i, "ruin:3:1").rooms) if (r.kind === "foe") expect(r.foe).not.toBe("blight_heart");
   });
 
   test("deeper tiers run longer on average", () => {
@@ -142,6 +147,7 @@ describe("the bestiary and ruins", () => {
   test("random sources for turns and loot are their own per turn, room and member", () => {
     expect(turnRand(1, 0, 0)()).toBe(turnRand(1, 0, 0)());
     expect(turnRand(1, 0, 0)()).not.toBe(turnRand(1, 0, 1)());
+    expect(turnRand(1, 0, 0)()).not.toBe(turnRand(1, 1, 0)());
     expect(lootRand(1, "ana", 0)()).not.toBe(lootRand(1, "ben", 0)());
     expect(lootRand(1, "ana", -1)()).not.toBe(lootRand(1, "ana", 0)());
   });
@@ -198,9 +204,12 @@ describe("turns", () => {
     expect(resolveTurn(stall, { ana: { kind: "strike" } }, rand)).toBe(stall);
   });
 
-  test("a member with no choice yet waits; the foe still acts; a broken hp counts as fallen", () => {
-    const next = resolveTurn(startEncounter(foeRoom(), [hero(), hero({ id: "ben" })]), { ana: { kind: "strike" } }, mulberry32(5));
+  test("a member with no choice yet waits; the foe still acts; a broken hp counts as fallen; an unknown choice does nothing", () => {
+    const e = startEncounter(foeRoom(), [hero(), hero({ id: "ben" })]);
+    const next = resolveTurn(e, { ana: { kind: "strike" } }, mulberry32(5));
     expect(next.turn).toBe(1);
+    expect(next.foeHp).toBe(e.foeHp - 16);
+    expect(resolveTurn(e, { ana: { kind: "use" } as never }, mulberry32(5)).foeHp).toBe(e.foeHp);
     expect(next.party.reduce((n, p) => n + p.hp, 0)).toBeLessThan(20);
     expect(startEncounter(foeRoom(), [hero({ hp: NaN })]).party[0].hp).toBe(0);
     expect(resolveTurn(startEncounter(foeRoom(), [hero({ hp: NaN })]), {}, mulberry32(6)).done).toBe("fallen");
@@ -217,16 +226,22 @@ describe("turns", () => {
     let shut = e;
     for (let i = 0; i < PUZZLE_TRIES; i++) shut = resolveTurn(shut, { ana: { kind: "answer", correct: false } }, mulberry32(6));
     expect(shut.done).toBe("retreated");
+    expect(PUZZLE_OPTIONS).toBeGreaterThan(PUZZLE_TRIES);
     expect(puzzleHint(4, 4)).toBe(true);
     expect(puzzleHint(3, 4)).toBe(false);
     expect(resolveTurn(startEncounter(foeRoom(), [hero()]), { ana: { kind: "answer", correct: true } }, mulberry32(6)).done).toBeNull();
   });
 
-  test("rest rooms heal on entry and clear on the next turn whatever anyone does; secret rooms clear", () => {
+  test("rest rooms heal on entry and clear on the next turn whatever anyone does; secret rooms clear; a fallen party clears nothing", () => {
     const rest = startEncounter({ kind: "rest" }, [hero({ hp: 2 })]);
     expect(rest.party[0].hp).toBe(6);
     expect(resolveTurn(rest, {}, mulberry32(7)).done).toBe("cleared");
-    expect(resolveTurn(startEncounter({ kind: "secret", lore: 1 }, [hero()]), {}, mulberry32(7)).done).toBe("cleared");
+    const secret = resolveTurn(startEncounter({ kind: "secret", lore: 1 }, [hero(), hero({ id: "ben", hp: 0 })]), {}, mulberry32(7));
+    expect(secret.done).toBe("cleared");
+    expect(paidFor(secret).map((p) => p.id)).toEqual(["ana"]);
+    const dead = resolveTurn(startEncounter({ kind: "secret", lore: 1 }, [hero({ hp: 0 })]), {}, mulberry32(7));
+    expect(dead.done).toBe("fallen");
+    expect(paidFor(dead)).toEqual([]);
   });
 });
 
@@ -332,7 +347,7 @@ describe("loot", () => {
 
 describe("parties", () => {
   test("a party is 1 to 4, invited within 8 tiles, and every member needs the tier's level and a stamina", () => {
-    expect(PARTY).toEqual({ min: 1, max: 4, inviteRadius: 8, decideSeconds: 60 });
+    expect(PARTY).toEqual({ max: 4, inviteRadius: 8, decideSeconds: 60 });
     expect(canJoinParty({ level: 6, stamina: 1, distance: 3, size: 1 }, 1)).toEqual({ ok: true });
     expect(canJoinParty({ level: 6, stamina: 1, distance: 9, size: 1 }, 1)).toEqual({ ok: false, reason: "too_far" });
     expect(canJoinParty({ level: 6, stamina: 1, distance: 3, size: 4 }, 1)).toEqual({ ok: false, reason: "full" });

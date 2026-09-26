@@ -30,11 +30,11 @@ describe("the catalogue", () => {
     expect(crewPart("structure_lantern_bridge")?.stage).toBe("great");
     expect(crewPart("style_gatehouse")?.stage).toBe("great");
     expect(crewPart("nope")).toBeNull();
-    const taken = ["structure_bell", "style_terrace", "statue"];
-    const ids = partsAvailable("world_tree", taken).map((p) => p.id);
+    const ids = partsAvailable("world_tree", { built: ["structure_bell", "style_terrace", "statue"], open: ["style_homes"] }).map((p) => p.id);
     expect(ids).not.toContain("structure_bell");
     expect(ids).not.toContain("statue");
     expect(ids).toContain("style_terrace");
+    expect(ids).not.toContain("style_homes");
   });
 
   test("options are checked against the part", () => {

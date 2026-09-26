@@ -7,9 +7,14 @@
  * the places of the world, hung on the tree as it grows. Past the world tree the tree grows a
  * **ring** every 10,000 growth, forever, which adds branches and home plots but opens nothing new.
  *
- * A revoke can lower growth, but a tree never shrinks: the layout takes the **peak** growth the
- * tree has reached (the backend keeps it), so a district that opened stays open and a plot that
- * was sold stays on the map.
+ * A revoke can lower growth, but a tree never shrinks: **the stage is always the stage of the peak
+ * growth** the tree has reached (the backend keeps `peakGrowth`; `stageForGrowth(peak)` is the one
+ * stage every system uses: districts, raids, crew parts, blights, announcements), and only the
+ * meter to the next stage reads current growth. So a district that opened stays open and a plot
+ * that was sold stays on the map.
+ *
+ * Seeds are uint32 (`worldSeed`, drawn as `Math.floor(Math.random() * 2 ** 32)` at install); the
+ * layout is computed on the server, since trig isn't bit-identical across browser engines.
  *
  * The layout is seeded by the workspace, so every company's tree stands differently. Each anchor's
  * angle comes only from the seed and the district's own name, and the collision stepping runs in
@@ -17,7 +22,7 @@
  * earlier-opening one under a player. Only the structures are server state; the terrain around
  * them is drawn from the same seed on the client.
  */
-import { clampInt, whole } from "./numbers";
+import { whole } from "./numbers";
 import { fnv1a, mulberry32 } from "./random";
 
 export type TreeStageId = "seed" | "sprout" | "sapling" | "young" | "grown" | "great" | "ancient" | "elder" | "world_tree";
@@ -64,18 +69,24 @@ export function seedsForLine(line: { qualifying: boolean }): number {
 /** A seed nobody planted plants itself after this many days, so an absent receiver never stalls the tree. */
 export const SEED_AUTO_PLANT_DAYS = 30;
 
-/** Fuel per Hog coin claimed at the stone: a claim is a burst, but never worth more than the giving itself. */
-export const FUEL_PER_COIN = 0.5;
-
 /**
- * The tree's growth from its two sources: `sap` is the seeds planted (by their receivers, or by
- * time), `fuelCoins` the coins givers claimed at the stone (unboosted, as the offering rows keep them).
+ * Fuel one kudos line adds to its offering when claimed: 1 per qualifying line, whatever the amount
+ * or the bonus day (so a claim is a burst, but never worth more than the giving itself). The
+ * offering row stores this next to the credited coins; the tree counts `fuel` in halves.
  */
-export function growthFor(t: { sap: number; fuelCoins: number }): number {
-  return whole(t.sap) + Math.floor(Math.max(0, whole(t.fuelCoins)) * FUEL_PER_COIN);
+export function fuelForLine(line: { qualifying: boolean }): number {
+  return line.qualifying ? 1 : 0;
+}
+export const GROWTH_PER_FUEL = 0.5;
+/** An offering nobody claimed claims itself after this many days, with a DM. */
+export const OFFERING_AUTO_CLAIM_DAYS = 30;
+
+/** The tree's growth: `sap` (seeds planted by their receivers or by time) plus half a point per `fuel` claimed. */
+export function growthFor(t: { sap: number; fuel: number }): number {
+  return Math.max(0, whole(t.sap)) + Math.floor(Math.max(0, whole(t.fuel)) * GROWTH_PER_FUEL);
 }
 
-/** The stage `growth` has reached; below zero (after revokes) is still the seed. */
+/** The stage `growth` has reached; below zero (after revokes) is still the seed. Pass the **peak** growth. */
 export function stageForGrowth(growth: number): TreeStageId {
   const g = whole(growth);
   let stage = TREE_STAGES[0];
@@ -209,10 +220,12 @@ const gap = (a: Tile, b: Tile) => Math.hypot(a.x - b.x, a.y - b.y);
 /** A random source that depends only on the seed and one name, so no anchor depends on another's draw. */
 const draw = (seed: number, name: string) => mulberry32(fnv1a(`tree:${seed >>> 0}:${name}`));
 
-/** The ruins of a tier are `ruin:<tier>:<0–5>`; the blight raid is `raid:<tier>`. */
+/** The ruins of a tier are `ruin:<tier>:<index>` with six per tier; the blight raid is `raid:<tier>`. */
 export function ruinTier(id: string): RuinTier | null {
-  const m = /^(?:ruin:([123]):[0-5]|raid:([123]))$/.exec(id);
-  return m ? (Number(m[1] ?? m[2]) as RuinTier) : null;
+  const m = /^(?:ruin:([123]):(\d)|raid:([123]))$/.exec(id);
+  if (!m) return null;
+  if (m[2] !== undefined && Number(m[2]) >= RUINS_PER_TIER) return null;
+  return Number(m[1] ?? m[3]) as RuinTier;
 }
 
 export function isRaidId(id: string): boolean {
@@ -245,11 +258,8 @@ export function layout(seed: number, peakGrowth: number): Layout {
   }
 
   const homes: Tile[] = [];
-  if (open.has("homes")) {
-    const start = draw(seed, "homes")() * Math.PI * 2;
-    const count = Math.min(MAX_HOME_PLOTS, HOMES_BASE + HOMES_PER_RING * rings);
-    for (let i = 0; i < count; i++) homes.push(tile(start + i * GOLDEN_ANGLE, HOMES_INNER_RADIUS + i * HOMES_SPIRAL_STEP));
-  }
+  const start = draw(seed, "homes")() * Math.PI * 2;
+  for (let i = 0; i < homePlots(peakGrowth); i++) homes.push(tile(start + i * GOLDEN_ANGLE, HOMES_INNER_RADIUS + i * HOMES_SPIRAL_STEP));
 
   const ruins: RuinSite[] = [];
   const tiers: { tier: RuinTier; district: DistrictId }[] = [
@@ -272,9 +282,8 @@ export function layout(seed: number, peakGrowth: number): Layout {
   return { tree: { ...TREE_ORIGIN }, stage, rings, districts, homes, ruins };
 }
 
-/** The number of home plots a tree at `peakGrowth` has, for the backend's plot bookkeeping. */
+/** The number of home plots a tree at `peakGrowth` has: none until the homes district opens. */
 export function homePlots(peakGrowth: number): number {
-  return stageIndex(stageForGrowth(peakGrowth)) >= stageIndex("grown") ? Math.min(MAX_HOME_PLOTS, HOMES_BASE + HOMES_PER_RING * ringsForGrowth(peakGrowth)) : 0;
+  const open = districtsOpen(stageForGrowth(peakGrowth)).includes("homes");
+  return open ? Math.min(MAX_HOME_PLOTS, HOMES_BASE + HOMES_PER_RING * ringsForGrowth(peakGrowth)) : 0;
 }
-
-export { clampInt };

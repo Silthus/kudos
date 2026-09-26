@@ -2,8 +2,11 @@
  * The desert RPG (#152 §S7): the pure rules behind expeditions into the ruins around the Ancient
  * Tree. Everything is deterministic from a seed and small integers, so a run stored as (seed,
  * rooms, choices) replays exactly, tests can prove the odds, and no rule pays anything that didn't
- * start as a kudos: stamina comes only from thoughtful giving and moon fruit, gear only from ruins,
- * fruit and the stall, and a fallen player simply returns to camp. Stats are derived, never stored.
+ * start as a kudos: stamina comes only from thoughtful giving and moon fruit, gear only from ruins
+ * and the stall, and a fallen player simply returns to camp. Stats are derived, never stored.
+ * A revoke never takes stamina back (a kudos once given was still an act of thanks, and revokes are
+ * an admin's tool, not a player's). The bestiary is append-only: a creature is never removed or
+ * renamed, so a stored foe id always resolves and a run in progress never changes under a party.
  *
  * Decisions recorded on #153: the deep ruins are meant for parties (a solo hero at the tier's level
  * mostly falls, three of them mostly clear); a foe's hit points grow with the party and it hits two
@@ -19,9 +22,9 @@ import { fnv1a, mulberry32 } from "./random";
 import type { FruitId } from "./fruits";
 import { rankOf, SKILL_TREE, type Allocation } from "./skills";
 import { isRaidId, ruinTier, type RuinTier } from "./tree";
+export type { RuinTier };
 
 export type Stat = "might" | "wits" | "heart";
-export type { RuinTier };
 
 /** Stamina: the only cost of an expedition, restored only by qualifying kudos and moon fruit. */
 export const STAMINA = { max: 5, cost: 1, perKudos: 1, perMoonFruit: 1 } as const;
@@ -73,6 +76,12 @@ export const GEAR = {
 
 export type GearId = keyof typeof GEAR;
 export const GEAR_IDS = Object.keys(GEAR) as GearId[];
+/** What the stall sells, in Hog coins: the common pieces only; everything better is found in the ruins. */
+export const STALL_GEAR: { id: GearId; price: number }[] = [
+  { id: "dune_hat", price: 25 },
+  { id: "brass_trowel", price: 25 },
+  { id: "amber_charm", price: 25 },
+];
 /** What a member wears: at most one item per slot. */
 export type Equipped = Partial<Record<GearSlot, GearId>>;
 
@@ -157,6 +166,10 @@ export const BESTIARY: Creature[] = [
 ];
 
 const CREATURES = new Map(BESTIARY.map((c) => [c.id, c]));
+/** The blight itself only appears in the raid; the ordinary deep ruins draw from the other three. */
+const RAID_ONLY: CreatureId[] = ["blight_heart"];
+/** What waits at the end of each tier's blight raid. */
+export const RAID_BOSS: Record<RuinTier, CreatureId> = { 1: "blight_sprout", 2: "thirst_shade", 3: "blight_heart" };
 
 export function creature(id: CreatureId): Creature {
   const c = CREATURES.get(id);
@@ -177,8 +190,9 @@ export function foeTargets(standing: number): number {
 /** A puzzle asks something about the team's own, public kudos history; the caller checks the answer. */
 export type PuzzleKind = "who_thanked" | "most_thanked_by" | "last_channel";
 export const PUZZLES: PuzzleKind[] = ["who_thanked", "most_thanked_by", "last_channel"];
-/** Wrong answers a party may give before the ruin turns them back. */
+/** Wrong answers a party may give before the ruin turns them back; a puzzle offers at least this many options, so guessing can't clear it. */
 export const PUZZLE_TRIES = 3;
+export const PUZZLE_OPTIONS = 5;
 
 export type Room =
   | { kind: "foe"; foe: CreatureId }
@@ -192,8 +206,8 @@ export const RUIN = { minRooms: 3, maxRooms: 6, lores: 12 } as const;
 
 /**
  * A ruin's rooms from (seed, ruin id): 3–6 rooms (deeper tiers run longer), at most one secret,
- * always a foe at the end; the blight raid (`raid:<tier>`) is the same shape and always ends on
- * the Blight heart or its tier's worst foe. The same ruin reads the same for every party that
+ * always a foe at the end; the blight raid (`raid:<tier>`) is the same shape and ends on its
+ * tier's `RAID_BOSS`. The same ruin reads the same for every party that
  * enters it on the same seed, so a workspace's ruins are landmarks, not lotteries. Callers store
  * the rooms on the expedition, so a later bestiary change never alters a run in progress.
  */
@@ -201,7 +215,7 @@ export function generateRuin(seed: number, ruinId: string): Ruin {
   const tier = ruinTier(ruinId);
   if (!tier) throw new Error(`Not a ruin id: ${ruinId}`);
   const rand = mulberry32(fnv1a(`${seed >>> 0}:${ruinId}`));
-  const foes = BESTIARY.filter((c) => c.tier === tier);
+  const foes = BESTIARY.filter((c) => c.tier === tier && !RAID_ONLY.includes(c.id));
   const pick = () => foes[Math.floor(rand() * foes.length)].id;
   const span = { 1: 3, 2: 4, 3: 3 }[tier];
   const count = Math.min(RUIN.maxRooms, (tier === 3 ? 4 : RUIN.minRooms) + Math.floor(rand() * span));
@@ -216,7 +230,7 @@ export function generateRuin(seed: number, ruinId: string): Ruin {
     else if (roll < 0.45) rooms.push({ kind: "rest" });
     else rooms.push({ kind: "foe", foe: pick() });
   }
-  rooms.push({ kind: "foe", foe: isRaidId(ruinId) ? (tier === 3 ? "blight_heart" : foes[foes.length - 1].id) : pick() });
+  rooms.push({ kind: "foe", foe: isRaidId(ruinId) ? RAID_BOSS[tier] : pick() });
   return { id: ruinId, tier, rooms };
 }
 
@@ -292,6 +306,7 @@ export function resolveTurn(e: Encounter, choices: Record<string, Choice>, rand:
   const foe = e.room.kind === "foe" ? creature(e.room.foe) : null;
   const finish = (done: Encounter["done"], ...tail: string[]): Encounter => ({ ...e, party, foeHp, wrong, log: [...e.log, ...log, ...tail], turn: e.turn + 1, done });
 
+  if (standingOf(party).length === 0) return finish("fallen");
   if (e.room.kind === "rest" || e.room.kind === "secret") return finish("cleared", e.room.kind === "rest" ? "Rested, the party moves on." : "A hidden room. Something glints.");
 
   if (e.room.kind === "puzzle") {
@@ -319,7 +334,7 @@ export function resolveTurn(e: Encounter, choices: Record<string, Choice>, rand:
       log.push(`${m.id} rallies the party: everyone heals ${heal}.`);
       continue;
     }
-    if (!foe) continue;
+    if (!foe || !(choice.kind in ATTACKS)) continue;
     const stat = ATTACKS[choice.kind];
     const dealt = s[stat] * (foe.weakness === stat ? 2 : 1);
     foeHp = Math.max(0, foeHp - dealt);
@@ -340,6 +355,11 @@ export function resolveTurn(e: Encounter, choices: Record<string, Choice>, rand:
   if (standingOf(party).length === 0) return finish("fallen");
   if (e.turn + 1 >= MAX_TURNS) return finish("retreated", "The party retreats to camp.");
   return finish(null);
+}
+
+/** Who is paid: a member standing when the room clears gets its room loot; a member standing at the end of the run gets run loot. */
+export function paidFor(e: Encounter): Fighter[] {
+  return e.done === "cleared" ? standingOf(e.party) : [];
 }
 
 export type RoomLoot = { fruits: FruitId[]; gear: GearId[]; lore: number | null };
@@ -381,7 +401,7 @@ export function runLoot(tier: RuinTier, rand: () => number): RunLoot {
   return { coins: lo + Math.floor(rand() * (hi - lo + 1)), secret: rand() < SECRET_CHANCE ? { lore: Math.floor(rand() * RUIN.lores) } : null };
 }
 
-export const PARTY = { min: 1, max: 4, inviteRadius: 8, decideSeconds: 60 } as const;
+export const PARTY = { max: 4, inviteRadius: 8, decideSeconds: 60 } as const;
 
 export type JoinBlock = "too_far" | "full" | StartBlock;
 
