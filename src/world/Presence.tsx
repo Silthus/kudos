@@ -355,7 +355,7 @@ function HogCardView({ other, viewer, onClose, ref }: { other: Other; viewer: Pr
       data-hog-card={other.id}
       onPointerDown={(e) => e.stopPropagation()}
       onPointerUp={(e) => e.stopPropagation()}
-      className="pixel-frame absolute w-60 -translate-x-1/2 -translate-y-full p-3 outline-none"
+      className="pixel-frame absolute w-60 -translate-x-1/2 -translate-y-full p-3"
       style={{ zIndex: Z.notes }}
     >
       <button type="button" aria-label="Close" onClick={onClose} className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center text-ink/75 hover:text-ink">
