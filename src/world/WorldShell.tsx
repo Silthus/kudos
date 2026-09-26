@@ -11,25 +11,34 @@ import { navItems } from "@/lib/nav";
 import { useWorkspaceToday } from "@/lib/period";
 import { useViewer } from "@/lib/viewer";
 import { Camera, worldScale, type CameraHandle } from "./Camera";
-import { gardenPlots, plotCount, plotFrom, plotIndex, PLOTS, ringBeds, useGardenSway, type RingBed } from "./gardenWorld";
+import { gardenPlots, plotCount, plotFrom, plotIndex, ringBeds, useGardenSway, type RingBed } from "./gardenWorld";
 import { Hog, HOG_FEET, HOG_SIZE, type HogHandle } from "./Hog";
 import { Hud } from "./Hud";
 import { Life } from "./Life";
 import { arrivalFor, skyFor, withSprout } from "./life";
 import { findPath, sameTile, stepFor, tileAt, tileCentre, type Point, type Tile } from "./iso";
-import { CANVAS_H, CANVAS_W, ORIGIN, spriteFoot, tileOnCanvas } from "./paint";
-import { placeForPath, routablePlaces, visiblePlaces, type Place } from "./places";
+import { spriteFoot, tileOnCanvas, treeHeight } from "./paint";
+import { placeForPath, placesOnMap, routablePlaces, visiblePlaces, type Place } from "./places";
 import { Sky } from "./Sky";
 import { mapHeight, mapWidth } from "./pixels";
-import { GARDEN, WORLD, walkGrid } from "./tiles";
+import { pushToasts } from "./toastBus";
+import { closedLine, treeInput, treeMoments, treeToasts, type TreeState } from "./tree/moments";
 import { Window } from "./Window";
-import { WorldCanvas } from "./WorldCanvas";
+import { layout } from "../../convex/lib/tree";
+import { BASE_CAMP, buildWorld, inRect, type Site, type World } from "./world";
+import { WorldCanvas, type WorldCanvasHandle } from "./WorldCanvas";
 
 /**
  * The signed-in app (#126, #128): the world, the hedgehog, the HUD, and one window at a time. The
  * router is the source of truth: `/` is the map with no window; `/<place>` puts the hedgehog at
  * that place's door with its window open (a deep link lands there at once; a link from inside a
  * window walks there first); closing goes back to `/` with the hedgehog where it stands.
+ *
+ * The world is the desert round the Ancient Tree (#156, `world.ts`): the tree's state
+ * (`api.tree.state`) says where every district stands and which are open. A place stands once its
+ * district is open; a link to a closed one walks you to its dry outline and says when it opens.
+ * The seed planted and districts opening while you're here are moments: a toast, the seed sprouting,
+ * a district fading in.
  *
  * Walking runs on refs and requestAnimationFrame: a walk re-renders nothing until it arrives.
  */
@@ -67,6 +76,38 @@ function AskAhead({ memberId }: { memberId: string }) {
   return null;
 }
 
+/** The world while your tree is loading: base camp in the sand. */
+const PENDING_LAYOUT = layout(0, 0);
+/** How long a district that just opened takes to fade in. */
+const FRESH_MS = 1000;
+
+/** A closed district from a link: where it will stand, and when. */
+function NotOpen({ site }: { site: Site }) {
+  return (
+    <div data-not-open className="space-y-2">
+      <p className="font-display text-xl font-medium text-ink">Not open yet</p>
+      <p className="text-ink">{site.promise}</p>
+      <p className="text-ink/75">{closedLine(site)}</p>
+    </div>
+  );
+}
+
+/** What a tile in the world is called, for the caption. */
+function nameOf(world: World, t: Tile, gameShown: boolean): string {
+  const terrain = world.terrainAt(t.x, t.y);
+  const site = world.sites.find((s) => !s.open && (sameTile(s.approach, t) || inRect(s.outline, t.x, t.y)));
+  if (site) return `${site.name}, not open yet`;
+  const ruin = world.ruins.find((r) => Math.max(Math.abs(r.at.x - t.x), Math.abs(r.at.y - t.y)) <= 1);
+  if (ruin) return ruin.name;
+  const garden = world.places.find((p) => p.id === "garden");
+  if (garden && inRect({ x0: garden.footprint.x, y0: garden.footprint.y, x1: garden.footprint.x + 6, y1: garden.footprint.y + 6 }, t.x, t.y)) return gameShown ? "Your garden" : "The green";
+  if (Math.hypot(t.x, t.y) <= 7) return "Base camp";
+  if (terrain === "path" || terrain === "gate") return "The path";
+  if (terrain === "lawn") return "Under the tree";
+  if (terrain === "oasis") return "An oasis";
+  return "The desert";
+}
+
 /** Is focus somewhere keys mean typing or choosing, not walking? */
 function typingIn(target: EventTarget | null) {
   const el = target instanceof HTMLElement ? target : null;
@@ -100,8 +141,22 @@ export function WorldShell() {
     }),
   );
   const target = placeForPath(location.pathname, routablePlaces(shown));
+
+  // The tree, and the world round it (#156). While your tree is loading the world waits.
+  const tree = useQuery(api.tree.state, gameShown ? {} : "skip");
+  const trunk = treeInput(gameShown ? tree : null);
+  const treePending = trunk === null;
   // A page open from a link before its place is on your map (the locked store) still has its building.
-  const onMap = target && !shown.some((p) => p.id === target.place.id) ? [...shown, target.place] : shown;
+  const standing = [...shown.map((p) => p.id), ...(target && !shown.some((p) => p.id === target.place.id) ? [target.place.id] : [])];
+  const input = trunk ?? { seed: 0, layout: PENDING_LAYOUT, peakGrowth: 0, planted: false };
+  const worldKey = `${input.seed}:${input.peakGrowth}:${input.planted}:${JSON.stringify(input.layout.districts)}:${standing.join()}`;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const world = useMemo(() => buildWorld({ ...input, standing }), [worldKey]);
+  // The places standing on your map, where the tree put them, with their links and badges.
+  const onMap = placesOnMap(world.places, routablePlaces(shown));
+  const onMapShown = onMap.filter((p) => shown.some((q) => q.id === p.id));
+  // A link to a place whose district hasn't opened: its outline, and a window saying so.
+  const closedTarget = target && !onMap.some((p) => p.id === target.place.id) ? (world.sites.find((s) => s.places.some((p) => p.id === target.place.id)) ?? null) : null;
 
   // Your plants on your key beds, and the neighbours' ring round your garden (#129, gardenWorld.ts).
   const garden = useQuery(api.gardens.mine, gameShown ? { today } : "skip");
@@ -111,9 +166,9 @@ export function WorldShell() {
   const sprouts = useQuery(api.life.sprouts, gameShown && ringIds.length > 0 ? { today, memberIds: ringIds.slice(0, 20) } : "skip");
   const sproutKey = (sprouts ?? []).join();
   const neighbours = useMemo<Neighbour[]>(
-    () => ringBeds(ring).map((b) => (sprouts?.includes(b.memberId) ? { ...b, sprite: withSprout(b.sprite), sprout: true } : b)),
+    () => ringBeds(ring, world.beds).map((b) => (sprouts?.includes(b.memberId) ? { ...b, sprite: withSprout(b.sprite), sprout: true } : b)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [ring, sproutKey],
+    [ring, sproutKey, world.beds],
   );
   const sway = useGardenSway(garden, today, still);
   const furniture = useMemo(() => {
@@ -127,28 +182,54 @@ export function WorldShell() {
   // `/garden?plot=2`: that plot, if it's one of yours. Its link waits for your garden to load, so
   // it lands on the plot rather than at the gate and then walks.
   const plotAsked = target?.place.id === "garden" && !target.memberId && new URLSearchParams(location.search).has("plot");
-  const plotPending = plotAsked && gameShown && garden === undefined;
+  const plotPending = (plotAsked && gameShown && garden === undefined) || treePending;
   const plotParam = plotAsked ? plotFrom(location.search, plots) : null;
+
+  // The tree's moments while you're here (#156): the seed planted, districts opening. Arriving,
+  // loading or the game switching on is no moment; each plays once.
+  const [seedMoment, setSeedMoment] = useState(false);
+  const [fresh, setFresh] = useState<string[]>([]);
+  const lastTree = useRef<TreeState | null | undefined>(undefined);
+  useEffect(() => {
+    if (!gameShown) {
+      lastTree.current = undefined;
+      return;
+    }
+    if (tree === undefined) return;
+    const moments = treeMoments(lastTree.current, tree);
+    lastTree.current = tree;
+    if (!tree) return;
+    pushToasts(treeToasts(moments, tree));
+    if (moments.seeded && !still) setSeedMoment(true);
+    if (moments.opened.length && !still) setFresh(moments.opened);
+  }, [tree, gameShown, still]);
+  useEffect(() => {
+    if (!fresh.length) return;
+    const timer = setTimeout(() => setFresh([]), FRESH_MS);
+    return () => clearTimeout(timer);
+  }, [fresh]);
 
   const vw = useViewportWidth();
   const scale = worldScale(vw);
   const camera = useRef<CameraHandle>(null);
+  const canvas = useRef<WorldCanvasHandle>(null);
   const hog = useRef<HogHandle>(null);
   const hogEl = useRef<HTMLDivElement>(null);
-  const world = useRef<HTMLDivElement>(null);
+  const shell = useRef<HTMLDivElement>(null);
 
   // Everything the walk loop and key handlers read, fresh each render without restarting them.
-  const grid = walkGrid(onMap);
-  const live = useRef({ onMap, target, neighbours, scale, still, gameShown, navigate, grid, plots, plotParam });
-  live.current = { onMap, target, neighbours, scale, still, gameShown, navigate, grid, plots, plotParam };
+  const live = useRef({ onMap, target, closedTarget, neighbours, scale, still, gameShown, navigate, world, plots, plotParam });
+  live.current = { onMap, target, closedTarget, neighbours, scale, still, gameShown, navigate, world, plots, plotParam };
 
   const [arrived, setArrived] = useState<string | null>(null);
-  const [where, setWhere] = useState("Your garden");
+  const [where, setWhere] = useState("Base camp");
   const [bubble, setBubble] = useState<Neighbour | null>(null);
+  /** A closed district or a ruin you're standing by: what it says. */
+  const [notice, setNotice] = useState<{ tile: Tile; title: string; body: string } | null>(null);
 
   const walker = useRef({
-    tile: WORLD.spawn as Tile,
-    pos: tileOnCanvas(WORLD.spawn) as Point,
+    tile: BASE_CAMP.spawn as Tile,
+    pos: tileOnCanvas(BASE_CAMP.spawn) as Point,
     queue: [] as Tile[],
     step: null as null | { from: Point; to: Tile; start: number; ms: number },
     ms: 150,
@@ -170,14 +251,23 @@ export function WorldShell() {
     camera.current?.lookAt({ x: p.x * s, y: p.y * s }, { instant });
   };
 
-  const nameOf = (t: Tile) => {
-    const { onMap, neighbours, gameShown } = live.current;
+  const nameHere = (t: Tile) => {
+    const { onMap, neighbours, gameShown, world } = live.current;
     const door = onMap.find((p) => p.doors.some((d) => sameTile(d, t)));
     if (door) return door.name;
     const bed = neighbours.find((b) => sameTile(b.tile, t));
     if (bed) return `${bed.name}'s bed`;
-    if (t.x >= GARDEN.x0 && t.x <= GARDEN.x1 && t.y >= GARDEN.y0 && t.y <= GARDEN.y1) return gameShown ? "Your garden" : "The green";
-    return ["path", "gate"].includes(WORLD.terrainAt(t.x, t.y)) ? "The garden path" : "The lawn";
+    return nameOf(world, t, gameShown);
+  };
+
+  /** What a closed district or a ruin says when you stop by it. */
+  const noticeAt = (t: Tile) => {
+    const { world } = live.current;
+    const site = world.sites.find((s) => !s.open && (sameTile(s.approach, t) || inRect({ x0: s.outline.x0 - 1, y0: s.outline.y0 - 1, x1: s.outline.x1 + 1, y1: s.outline.y1 + 1 }, t.x, t.y)));
+    if (site) return { tile: site.approach, title: site.name, body: closedLine(site) };
+    const ruin = world.ruins.find((r) => Math.max(Math.abs(r.at.x - t.x), Math.abs(r.at.y - t.y)) <= 2);
+    if (ruin) return { tile: ruin.at, title: ruin.name, body: "A ruin in the sand. Nobody has gone in yet." };
+    return null;
   };
 
   /** The hedgehog came to rest: a door opens its place, a neighbour's bed says whose it is. */
@@ -185,8 +275,9 @@ export function WorldShell() {
     const w = walker.current;
     const { onMap, target, neighbours, navigate } = live.current;
     hog.current?.play("idle");
-    setWhere(nameOf(w.tile));
+    setWhere(nameHere(w.tile));
     setBubble(neighbours.find((b) => sameTile(b.tile, w.tile)) ?? null);
+    setNotice(noticeAt(w.tile));
     const arrive = w.arrive;
     w.arrive = null;
     if (arrive) return arrive();
@@ -197,7 +288,7 @@ export function WorldShell() {
       navigate(door.to);
     }
     // One of your key beds opens its plot in the garden window (#129).
-    const plot = plotIndex(w.tile);
+    const plot = plotIndex(live.current.world.plots, w.tile);
     if (!door && plot >= 0 && plot < live.current.plots && live.current.plotParam !== plot) navigate(`/garden?plot=${plot}`);
   };
 
@@ -237,7 +328,7 @@ export function WorldShell() {
     w.tapped = null;
     if (!d) return null;
     const next = { x: w.tile.x + d.x, y: w.tile.y + d.y };
-    if (!live.current.grid.walkable(next.x, next.y)) {
+    if (!live.current.world.walkable(next.x, next.y)) {
       faceTowards(w.tile, next);
       return null;
     }
@@ -269,7 +360,7 @@ export function WorldShell() {
   const walkTo = (dest: Tile, arrive?: () => void) => {
     const w = walker.current;
     const from = w.step?.to ?? w.tile;
-    const path = findPath(live.current.grid, from, dest);
+    const path = findPath(live.current.world, from, dest);
     if (!path || live.current.still) {
       cancelAnimationFrame(w.raf);
       w.raf = 0;
@@ -286,28 +377,38 @@ export function WorldShell() {
     start();
   };
 
-  /** Where a URL's place is: its door nearest the hedgehog, a teammate's bed, or one of your plots. */
+  /** Where a URL's place is: its door nearest the hedgehog, a teammate's bed, one of your plots, or a closed district's outline. */
   const destination = (t: NonNullable<typeof target>, plot: number | null = null): Tile => {
+    const { neighbours, world, onMap, closedTarget } = live.current;
     if (t.memberId) {
-      const bed = live.current.neighbours.find((b) => b.memberId === t.memberId);
+      const bed = neighbours.find((b) => b.memberId === t.memberId);
       if (bed) return bed.tile;
     }
-    if (plot !== null) return PLOTS[plot];
+    if (plot !== null && world.plots[plot]) return world.plots[plot];
+    const standing = onMap.find((p) => p.id === t.place.id);
+    if (!standing && closedTarget) return closedTarget.approach;
     const w = walker.current;
-    const doors = t.place.doors;
+    const doors = (standing ?? t.place).doors;
     return doors.reduce((a, b) => (Math.abs(b.x - w.tile.x) + Math.abs(b.y - w.tile.y) < Math.abs(a.x - w.tile.x) + Math.abs(a.y - w.tile.y) ? b : a));
   };
 
   // The route leads: a place's URL walks there (or lands there, on first load) and opens it.
   const first = useRef(true);
-  const targetKey = plotPending ? "pending" : target ? `${target.place.id}:${target.memberId ?? ""}:${plotParam ?? ""}` : null;
+  const targetKey = plotPending ? "pending" : target ? `${target.place.id}:${target.memberId ?? ""}:${plotParam ?? ""}:${closedTarget ? "closed" : ""}` : null;
   useEffect(() => {
     if (plotPending) return;
     const landing = first.current;
     first.current = false;
     if (!target || !targetKey) {
       setArrived(null);
-      if (landing) place(tileOnCanvas(walker.current.tile), true);
+      if (landing) {
+        place(tileOnCanvas(walker.current.tile), true);
+        // Arriving on the map: the tree in view over the hedgehog, the hero of the scene.
+        const hog = tileOnCanvas(walker.current.tile);
+        const s = live.current.scale;
+        const lift = Math.min(70, treeHeight(live.current.world) / 3);
+        camera.current?.lookAt({ x: ((hog.x * 2) / 3) * s, y: (hog.y - lift) * s }, { instant: true, centre: true });
+      }
       // Back on the map at a neighbour's bed: its bubble shows again.
       setBubble(live.current.neighbours.find((b) => sameTile(b.tile, walker.current.tile)) ?? null);
       return;
@@ -315,14 +416,15 @@ export function WorldShell() {
     const dest = destination(target, plotParam);
     const w = walker.current;
     // At the place already: its door, or for your garden (no plot asked for) any of your key beds.
-    const inPlace = !target.memberId && plotParam === null && (target.place.doors.some((d) => sameTile(d, w.tile)) || (target.place.id === "garden" && plotIndex(w.tile) >= 0));
+    const doors = onMap.find((p) => p.id === target.place.id)?.doors ?? [];
+    const inPlace = !target.memberId && plotParam === null && (doors.some((d) => sameTile(d, w.tile)) || (target.place.id === "garden" && plotIndex(world.plots, w.tile) >= 0));
     const atDoor = !w.step && (sameTile(w.tile, dest) || inPlace);
     if (landing || atDoor) {
       if (landing) {
         w.tile = dest;
         place(tileOnCanvas(dest), true);
       }
-      setWhere(target.memberId ? nameOf(w.tile) : target.place.name);
+      setWhere(target.memberId ? nameHere(w.tile) : closedTarget ? nameHere(w.tile) : target.place.name);
       setArrived(targetKey);
       return;
     }
@@ -413,7 +515,7 @@ export function WorldShell() {
   };
 
   const onTap = (stagePoint: Point) => {
-    const art = { x: stagePoint.x / scale - ORIGIN.x, y: stagePoint.y / scale - ORIGIN.y };
+    const art = { x: stagePoint.x / scale, y: stagePoint.y / scale };
     // A building's sprite, front-most first.
     const hit = [...onMap]
       .filter((p) => !p.walkable)
@@ -426,7 +528,8 @@ export function WorldShell() {
     if (hit) return goTo(hit);
     // One of your plants, by its crown as well as its bed: front-most first (the painter's key bed
     // stands 5 px below the tile's centre line, and a plant is at most 16 px wide and 30 px tall).
-    const plant = PLOTS.slice(0, plots)
+    const plant = world.plots
+      .slice(0, plots)
       .map((t, i) => ({ t, i, c: tileCentre(t) }))
       .sort((a, b) => b.t.x + b.t.y - (a.t.x + a.t.y))
       .find(({ c }) => Math.abs(art.x - c.x) <= 8 && art.y <= c.y + 5 && art.y >= c.y + 5 - 30);
@@ -440,10 +543,16 @@ export function WorldShell() {
       return !p.walkable && tile.x >= f.x && tile.x < f.x + f.w && tile.y >= f.y && tile.y < f.y + f.h;
     });
     if (owner) return goTo(owner);
-    if (live.current.grid.walkable(tile.x, tile.y)) {
+    if (world.walkable(tile.x, tile.y)) {
       abandon();
       walkTo(tile);
     }
+  };
+
+  /** A closed district's sign: walk up to its outline, where it says when it opens. */
+  const goToSite = (site: Site) => {
+    abandon();
+    walkTo(site.approach);
   };
 
   const close = () => navigate("/");
@@ -453,7 +562,7 @@ export function WorldShell() {
    * on the open place's own sign, it closes the window.
    */
   const clickBeside = ({ x, y }: Point) => {
-    const sign = [...(world.current?.querySelectorAll<HTMLElement>("[data-sign]") ?? [])].find((el) => {
+    const sign = [...(shell.current?.querySelectorAll<HTMLElement>("[data-sign]") ?? [])].find((el) => {
       const box = el.getBoundingClientRect();
       return x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
     });
@@ -464,6 +573,7 @@ export function WorldShell() {
   };
   const inset = windowOpen ? dockedWidth(vw) : 0;
   const bubbleAt = bubble && !windowOpen ? tileOnCanvas(bubble.tile) : null;
+  const noticeShown = !bubble && !windowOpen ? notice : null;
   const ringName = target?.memberId ? neighbours.find((b) => b.memberId === target.memberId)?.name : undefined;
   const title = !target?.memberId ? (
     target?.place.name
@@ -477,10 +587,28 @@ export function WorldShell() {
   );
 
   return (
-    <div ref={world} className="fixed inset-0 overflow-hidden bg-dusk">
+    <div ref={shell} className="fixed inset-0 overflow-hidden bg-dusk">
       <Sky golden={sky.golden} />
-      <Camera ref={camera} stage={{ width: CANVAS_W * scale, height: CANVAS_H * scale }} insetRight={inset} onTap={onTap}>
-        <WorldCanvas places={onMap} furniture={furniture} scale={scale} still={still} onPlace={goTo} />
+      <Camera
+        ref={camera}
+        insetRight={inset}
+        onTap={onTap}
+        onView={(v) => canvas.current?.show({ x: v.x / live.current.scale, y: v.y / live.current.scale, width: v.width / live.current.scale, height: v.height / live.current.scale })}
+      >
+        <WorldCanvas
+          ref={canvas}
+          world={world}
+          worldKey={worldKey}
+          places={onMap}
+          furniture={furniture}
+          scale={scale}
+          still={still}
+          fresh={fresh}
+          seedMoment={seedMoment}
+          onSeedMomentDone={() => setSeedMoment(false)}
+          onPlace={goTo}
+          onSite={goToSite}
+        />
         <div ref={hogEl} className="pointer-events-none absolute left-0 top-0">
           <Hog ref={hog} still={still} accessory={sky.party ? "party" : undefined} />
         </div>
@@ -500,8 +628,20 @@ export function WorldShell() {
             </Link>
           </div>
         )}
+        {noticeShown && (
+          <div
+            data-site-notice
+            className="pixel-note absolute z-10 w-max max-w-72 px-3 py-2 text-sm"
+            style={{ left: tileOnCanvas(noticeShown.tile).x * scale, top: tileOnCanvas(noticeShown.tile).y * scale - HOG_FEET - 8, transform: "translate(-50%, -100%)" }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+          >
+            <p className="font-display text-base font-medium">{noticeShown.title}</p>
+            <p className="text-xs text-ink/75">{noticeShown.body}</p>
+          </div>
+        )}
       </Camera>
-      <Hud places={shown} where={where} insetRight={inset} />
+      <Hud places={onMapShown} where={where} insetRight={inset} />
       <Window
         open={windowOpen}
         title={title ?? ""}
@@ -510,9 +650,7 @@ export function WorldShell() {
         scrollKey={location.pathname}
         returnFocus={() => document.querySelector<HTMLElement>("nav[aria-label='Places'] button")}
       >
-        <ErrorBoundary resetKey={location.pathname}>
-          <Outlet />
-        </ErrorBoundary>
+        <ErrorBoundary resetKey={location.pathname}>{closedTarget ? <NotOpen site={closedTarget} /> : <Outlet />}</ErrorBoundary>
       </Window>
       {target?.memberId && !ringName && (
         <ErrorBoundary resetKey={target.memberId} fallback={null}>

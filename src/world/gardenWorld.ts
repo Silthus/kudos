@@ -4,13 +4,14 @@ import type { api } from "../../convex/_generated/api";
 import type { StageKey } from "../../convex/lib/garden";
 import { sameTile, type Tile } from "./iso";
 import type { PixelMap } from "./pixels";
+import { PLOTS } from "./places/garden";
 import { keyBedSprite, plantSprite } from "./plants";
-import { WORLD } from "./tiles";
 
 /**
- * Your garden on the map (#129): the art for your key beds and the neighbours' ring, from
- * `api.gardens.mine` and `api.gardens.neighbours`. The shell hands these to the painter
- * (`WorldFurniture`), and knows a plot by its tile, so walking onto one opens it.
+ * Your garden on the map (#129, on the tree's terrace since #156): the art for your key beds and the
+ * neighbours' ring, from `api.gardens.mine` and `api.gardens.neighbours`. The shell hands these to
+ * the painter (`WorldFurniture`), and knows a plot by its tile (`world.plots`), so walking onto one
+ * opens it.
  */
 
 type Mine = FunctionReturnType<typeof api.gardens.mine>;
@@ -19,36 +20,24 @@ type Ring = FunctionReturnType<typeof api.gardens.neighbours>;
 /** Which plants lean for one frame: those watered today (on arriving), or all of them (fruit picked). */
 export type Sway = "watered" | "picked" | null;
 
-/**
- * Your plot tiles in planting order: round the little square in the middle first (front, right,
- * left, back), then further out, so a young garden stands together where you start.
- */
-export const PLOTS: Tile[] = [...WORLD.plots].sort((a, b) => {
-  const ring = (t: Tile) => Math.max(Math.abs(t.x - 19.5), Math.abs(t.y - 13.5));
-  const side = (t: Tile) => (t.x > 19.5 ? 0 : 2) + (t.y > 13.5 ? 0 : 1);
-  return ring(a) - ring(b) || Math.abs(a.x - 19.5) + Math.abs(a.y - 13.5) - (Math.abs(b.x - 19.5) + Math.abs(b.y - 13.5)) || side(a) - side(b);
-});
-
 /** The plot a tile is, in planting order, or -1. */
-export const plotIndex = (t: Tile) => PLOTS.findIndex((p) => sameTile(p, t));
+export const plotIndex = (plots: Tile[], t: Tile) => plots.findIndex((p) => sameTile(p, t));
 
 /** How many of the plot tiles are yours: your plots, or more if you grow more plants than you have plots. */
 export const plotCount = (garden: Mine | undefined) =>
-  garden?.open ? Math.min(WORLD.plots.length, Math.max(garden.plots, garden.plants.length, ...garden.plants.map((p) => p.plot + 1))) : 0;
+  garden?.open ? Math.min(PLOTS.length, Math.max(garden.plots, garden.plants.length, ...garden.plants.map((p) => p.plot + 1))) : 0;
 
 /** Can you plant now: a teammate to plant for, a free plot, and the Hog coins. */
 export const canPlant = (garden: Extract<NonNullable<Mine>, { open: true }>) =>
   garden.candidates.length > 0 && garden.plants.length < garden.plots && garden.balance >= garden.cost;
 
 /**
- * One sprite per plot tile, in `WORLD.plots`'s order (the painter's): a plant on its key bed, an
- * empty key (with a small "plant" sign when there's a teammate to plant for), or null where the lawn
- * is still lawn. Plants take the tiles in `PLOTS` order.
+ * One sprite per plot tile, in planting order: a plant on its key bed, an empty key (with a small
+ * "plant" sign when there's a teammate to plant for), or null where the lawn is still lawn.
  */
 export function gardenPlots(garden: Mine | undefined, { today, sway = null }: { today: string; sway?: Sway }): (PixelMap | null)[] {
   const yours = plotCount(garden);
-  return WORLD.plots.map((tile) => {
-    const i = plotIndex(tile);
+  return PLOTS.map((_, i) => {
     if (!garden?.open || i >= yours) return null;
     const p = garden.plants.find((g) => g.plot === i);
     if (!p) return keyBedSprite({ sign: canPlant(garden) });
@@ -65,11 +54,11 @@ export function gardenPlots(garden: Mine | undefined, { today, sway = null }: { 
 
 export type RingBed = Ring[number] & { tile: Tile; sprite: PixelMap };
 
-/** The neighbours on their beds, the closest first on the beds nearest your garden's front. */
-export function ringBeds(ring: Ring | undefined): RingBed[] {
-  return (ring ?? []).slice(0, WORLD.beds.length).map((n, i) => ({
+/** The neighbours on their beds (`world.beds`), the closest first on the beds nearest your garden's front. */
+export function ringBeds(ring: Ring | undefined, beds: Tile[]): RingBed[] {
+  return (ring ?? []).slice(0, beds.length).map((n, i) => ({
     ...n,
-    tile: WORLD.beds[i],
+    tile: beds[i],
     sprite: plantSprite({ stage: n.top.stage as StageKey, species: n.top.species, bed: false, mini: true }),
   }));
 }

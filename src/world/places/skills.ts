@@ -43,9 +43,7 @@ function oak() {
 export const place: PlaceDef = {
   id: "skills",
   name: "The elder oak",
-  footprint: { x: 6, y: 12, w: 3, h: 3 },
-  doors: [{ x: 9, y: 14 }],
+  footprint: { x: -1, y: -1, w: 3, h: 3 },
+  doors: [{ x: 2, y: 1 }],
   sprite: oak(),
-  // Nudged left, clear of the gallery's sign next door on a phone.
-  signOffset: { x: -7, y: 0 },
 };

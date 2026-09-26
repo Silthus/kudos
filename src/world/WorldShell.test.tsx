@@ -7,6 +7,8 @@ import { ViewerContext, type ReadyViewer } from "@/lib/viewer";
 import { parchmentTextOnDusk } from "@/testing/layout";
 
 let queries: Record<string, unknown> = {};
+/** What a query answers when a test doesn't say: the tree, grown, every page's district open. */
+let defaults: Record<string, unknown> = {};
 /** The queries asked for (not skipped), in order. */
 let asked: string[] = [];
 vi.mock("convex/react", async () => {
@@ -14,7 +16,8 @@ vi.mock("convex/react", async () => {
   // A query set to an Error fails the way Convex's `useQuery` does: it throws while rendering.
   const useQuery = (fn: never, args: unknown) => {
     if (args !== "skip") asked.push(getFunctionName(fn));
-    const result = args === "skip" ? undefined : queries[getFunctionName(fn)];
+    const name = getFunctionName(fn);
+    const result = args === "skip" ? undefined : name in queries ? queries[name] : defaults[name];
     if (result instanceof Error) throw result;
     return result;
   };
@@ -32,6 +35,25 @@ vi.mock("@/components/cosmetics", () => ({
 vi.mock("./atlas", async (real) => ({ ...(await real<typeof import("./atlas")>()), loadAtlas: () => new Promise(() => {}) }));
 
 const { WorldShell } = await import("./WorldShell");
+const { layout } = await import("../../convex/lib/tree");
+/** The workspace's tree at a growth, as `api.tree.state` answers. */
+const treeAt = (growth: number, planted = growth > 0) => ({
+  planted,
+  stage: layout(1, growth).stage,
+  growth,
+  peakGrowth: growth,
+  sap: growth,
+  fuel: 0,
+  rings: 0,
+  next: { stage: "great", growth: 1 },
+  plantedBy: planted ? "Lena Hoffmann" : null,
+  plantedAt: planted ? 1 : null,
+  seedsToPlant: 0,
+  hasSeedsToPlant: false,
+  worldSeed: 1,
+  layout: layout(1, growth),
+  events: [],
+});
 const { useQuery } = await import("convex/react");
 const { api } = await import("../../convex/_generated/api");
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -65,6 +87,7 @@ let root: Root;
 let host: HTMLElement;
 beforeEach(() => {
   queries = {};
+  defaults = { "tree:state": treeAt(400) };
   asked = [];
   reduced = false;
   celebrating = false;
@@ -125,10 +148,10 @@ const press = (key: string) =>
   });
 
 describe("the world and its windows follow the URL", () => {
-  test("the map itself has no window, and you start in your garden", () => {
+  test("the map itself has no window, and you start in base camp at the tree's foot", () => {
     open("/");
     expect(openWindow()).toBeNull();
-    expect(caption()).toBe("Your garden");
+    expect(caption()).toBe("Base camp");
     expect(host.querySelector("canvas[data-world]")?.getAttribute("aria-hidden")).toBe("true");
   });
 
@@ -161,7 +184,7 @@ describe("the world and its windows follow the URL", () => {
     expect(url).toBe("/quests");
     // On the way: no window yet.
     expect(openWindow()).toBeNull();
-    walkFor(4000);
+    walkFor(9000);
     expect(windowTitle()).toBe("Quest signpost");
     expect(caption()).toBe("Quest signpost");
   });
@@ -229,7 +252,8 @@ describe("beside an open window (#171)", () => {
 
 describe("walking with the keys", () => {
   test("a step off the garden square and back in opens your garden", () => {
-    open("/");
+    open("/garden");
+    act(() => openWindow()!.querySelector<HTMLButtonElement>("[data-close]")!.click());
     press("ArrowUp");
     walkFor(400);
     // Off the square, on the garden's own path: still in your garden, nothing opens.
@@ -243,21 +267,14 @@ describe("walking with the keys", () => {
   });
 
   test("a key tapped while a step is under way is the next step, not lost", () => {
-    open("/");
+    open("/garden");
+    act(() => openWindow()!.querySelector<HTMLButtonElement>("[data-close]")!.click());
     press("ArrowUp");
     walkFor(40);
     press("s");
     walkFor(800);
     // Up off the square and straight back onto it: in through the gate, so the garden opens.
     expect(url).toBe("/garden");
-  });
-
-  test("shuffling between the square's tiles doesn't open it", () => {
-    open("/");
-    press("ArrowRight");
-    walkFor(400);
-    expect(openWindow()).toBeNull();
-    expect(url).toBe("/");
   });
 
   test("after a window closes, focus is back on Places and every arrow key still walks (#148 review)", () => {
@@ -301,7 +318,7 @@ describe("walks that change their mind", () => {
     walkFor(300);
     act(() => host.querySelector<HTMLElement>("[data-sign=leaderboard]")!.click());
     expect(url).toBe("/");
-    walkFor(4000);
+    walkFor(9000);
     expect(url).toBe("/leaderboard");
     expect(windowTitle()).toBe("Notice board");
   });
@@ -311,7 +328,7 @@ describe("walks that change their mind", () => {
     act(() => openWindow()!.querySelector("a")!.click());
     walkFor(300);
     act(() => host.querySelector<HTMLElement>("[data-sign=quests]")!.click());
-    walkFor(4000);
+    walkFor(9000);
     expect(url).toBe("/quests");
     expect(windowTitle()).toBe("Quest signpost");
   });
@@ -321,7 +338,7 @@ describe("walks that change their mind", () => {
     act(() => openWindow()!.querySelector("a")!.click());
     walkFor(300);
     press("ArrowUp");
-    walkFor(4000);
+    walkFor(9000);
     expect(url).toBe("/");
     expect(openWindow()).toBeNull();
   });
@@ -392,18 +409,23 @@ describe("your plots", () => {
   const mine = (plots: number) => ({ open: true, plots, candidates: [], plants: [plant] });
   const keys = (...ks: string[]) => ks.forEach((k) => (press(k), walkFor(400)));
 
+  const inTheGarden = () => {
+    open("/garden");
+    act(() => openWindow()!.querySelector<HTMLButtonElement>("[data-close]")!.click());
+  };
+
   test("walking onto one of your plots opens it in the garden window", () => {
     queries = { "gardens:mine": mine(2) };
-    open("/");
-    keys("d", "s", "s", "d"); // out of the middle square, down the path, onto the first key bed
+    inTheGarden();
+    keys("d", "s"); // out of the middle square along the path, onto the first key bed
     expect(url).toBe("/garden?plot=0");
     expect(windowTitle()).toBe("Your garden");
   });
 
   test("a plot that isn't yours yet is lawn: walking onto it opens nothing", () => {
     queries = { "gardens:mine": mine(1) };
-    open("/");
-    keys("d", "s", "d", "d", "d", "s"); // along the path to the second plot
+    inTheGarden();
+    keys("d", "w"); // along the path to the second plot
     expect(url).toBe("/");
     expect(openWindow()).toBeNull();
   });
@@ -469,7 +491,7 @@ describe("life in the world (#134)", () => {
     open("/me");
     act(() => openWindow()!.querySelector<HTMLButtonElement>("[data-close]")!.click());
     act(() => host.querySelector<HTMLElement>("[data-sign=leaderboard]")!.click());
-    walkFor(4000);
+    walkFor(9000);
     expect(windowTitle()).toBe("Notice board");
     expect(hog().dataset.animation).toBe("sign");
   });
@@ -574,5 +596,97 @@ describe("life in the world (#134)", () => {
     open("/");
     expect(host.querySelector("[data-sky]")?.getAttribute("data-sky")).toBe("dusk");
     expect(hog().dataset.accessory).toBeUndefined();
+  });
+});
+
+describe("the tree's districts (#156)", () => {
+  test("a place whose district the tree hasn't opened isn't on the map or in the Places list", () => {
+    defaults = { "tree:state": treeAt(30) }; // a sapling: the stall, the pond, the oak wait for a young tree
+    open("/");
+    expect(host.querySelector("[data-sign=store]")).toBeNull();
+    expect(host.querySelector("[data-sign=leaderboard]")).not.toBeNull();
+    const places = host.querySelector<HTMLButtonElement>("nav[aria-label='Places'] button")!;
+    act(() => places.click());
+    const listed = [...host.querySelectorAll("nav[aria-label='Places'] li")].map((li) => li.textContent);
+    expect(listed.some((t) => t?.includes("The store stall"))).toBe(false);
+    expect(listed.some((t) => t?.includes("Notice board"))).toBe(true);
+  });
+
+  test("a link to a closed place walks you to its dry outline, and its window says it's not open yet and how much more the tree needs", () => {
+    defaults = { "tree:state": treeAt(30) };
+    open("/store");
+    expect(windowTitle()).toBe("The store stall");
+    expect(caption()).toBe("The stall, not open yet");
+    expect(openWindow()!.querySelector("[data-not-open]")?.textContent).toContain("Opens when the tree is a young tree: 70 more thoughtful kudos.");
+    expect(openWindow()!.textContent).not.toContain("Store");
+  });
+
+  test("the next stage's districts carry a dim sign, and standing by one says what it waits for", () => {
+    defaults = { "tree:state": treeAt(30) };
+    open("/");
+    const sign = host.querySelector<HTMLElement>("[data-closed-sign=stall]")!;
+    expect(sign.textContent).toBe("The stall");
+    // The grown tree's districts wait unnamed.
+    expect(host.querySelector("[data-closed-sign=observatory]")).toBeNull();
+    act(() => sign.click());
+    walkFor(9000);
+    expect(host.querySelector("[data-site-notice]")?.textContent).toContain("The stall");
+    expect(host.querySelector("[data-site-notice]")?.textContent).toContain("Opens when the tree is a young tree: 70 more thoughtful kudos.");
+  });
+
+  test("the seed planted while you watch: it sprouts once where the tree stands, and a toast names the planter", () => {
+    defaults = { "tree:state": treeAt(0) };
+    open("/");
+    expect(host.querySelector("[data-seed-moment]")).toBeNull();
+    defaults = { "tree:state": treeAt(1) };
+    open("/");
+    expect(host.querySelector("[data-seed-moment]")?.getAttribute("data-seed-moment")).toBe("0");
+    expect(document.querySelector("[data-toast=tree]")?.textContent).toContain("Lena Hoffmann planted it");
+    for (let i = 0; i < 5; i++) walkFor(220);
+    expect(host.querySelector("[data-seed-moment]")?.getAttribute("data-seed-moment")).toBe("5");
+    walkFor(1000);
+    expect(host.querySelector("[data-seed-moment]")).toBeNull();
+    // Another look at the same tree is no second moment.
+    defaults = { "tree:state": treeAt(2) };
+    open("/");
+    expect(host.querySelector("[data-seed-moment]")).toBeNull();
+  });
+
+  test("a tree already planted when you arrive is no moment", () => {
+    defaults = { "tree:state": treeAt(1) };
+    open("/");
+    expect(host.querySelector("[data-seed-moment]")).toBeNull();
+    expect(document.querySelector("[data-toast=tree]")).toBeNull();
+  });
+
+  test("under reduced motion the seed doesn't play, but the toast still says who planted it", () => {
+    reduced = true;
+    defaults = { "tree:state": treeAt(0) };
+    open("/");
+    defaults = { "tree:state": treeAt(1) };
+    open("/");
+    expect(host.querySelector("[data-seed-moment]")).toBeNull();
+    expect(document.querySelector("[data-toast=tree]")?.textContent).toContain("Lena Hoffmann");
+  });
+
+  test("a district opening while you're here: a toast says so, and it fades in once", () => {
+    defaults = { "tree:state": treeAt(99) };
+    open("/");
+    defaults = { "tree:state": treeAt(100) };
+    open("/");
+    expect(document.querySelector("[data-toast=tree]")?.textContent).toContain("The tree is now a young tree");
+    expect(host.querySelector("canvas[data-fresh]")?.getAttribute("data-fresh")).toBe("stall,oak,pool");
+    walkFor(1200);
+    expect(host.querySelector("canvas[data-fresh]")).toBeNull();
+    expect(host.querySelector("[data-sign=store]")).not.toBeNull();
+  });
+
+  test("while your tree loads, a deep link waits instead of landing somewhere else", () => {
+    defaults = {};
+    open("/quests");
+    expect(openWindow()).toBeNull();
+    defaults = { "tree:state": treeAt(400) };
+    open("/quests");
+    expect(windowTitle()).toBe("Quest signpost");
   });
 });

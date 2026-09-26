@@ -38,7 +38,21 @@ test("the colour tokens are exactly the dusk-garden palette", () => {
     "r-rare": "#2F80FA",
     "r-epic": "#8567FF",
     "r-legendary": "#F7A501",
+    // The desert and the tree (#152 "Tokens", #156).
+    sand: "#D8B97A",
+    "sand-deep": "#B8955A",
+    "dune-shadow": "#8A6A3E",
+    "night-sand": "#6E5A3B",
+    sap: "#8FE07A",
+    blight: "#7A3E8A",
+    "bark-light": "#7A5A3E",
   });
+});
+
+test("the world's pixel palette draws the desert and the tree in exactly those tokens", async () => {
+  const { PALETTE } = await import("../src/world/pixels");
+  const hexes = new Set(Object.values(PALETTE).map((h) => h.toUpperCase()));
+  for (const token of ["sand", "sand-deep", "dune-shadow", "night-sand", "sap", "blight", "bark-light"]) expect(hexes.has(colorTokens[token]), token).toBe(true);
 });
 
 test("the display face is Pixelify Sans and the reading face is Nunito, with no monospace", () => {

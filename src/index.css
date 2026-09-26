@@ -36,6 +36,21 @@
   --color-r-rare: #2f80fa;
   --color-r-epic: #8567ff;
   --color-r-legendary: #f7a501;
+
+  /* The desert and the Ancient Tree (#152 "Tokens"): sand, dunes and the night beyond the tree's light; its sap, its living wood, and the blight. */
+  --color-sand: #d8b97a;
+  --color-sand-deep: #b8955a;
+  --color-dune-shadow: #8a6a3e;
+  --color-night-sand: #6e5a3b;
+  --color-sap: #8fe07a;
+  --color-blight: #7a3e8a;
+  --color-bark-light: #7a5a3e;
+}
+
+/* A district the tree just opened fades in, once (#156). */
+@keyframes district-open {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @layer base {

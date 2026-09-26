@@ -34,9 +34,7 @@ function gallery() {
 export const place: PlaceDef = {
   id: "discoveries",
   name: "The gallery",
-  footprint: { x: 6, y: 7, w: 3, h: 2 },
-  doors: [{ x: 9, y: 8 }],
+  footprint: { x: -1, y: -1, w: 3, h: 2 },
+  doors: [{ x: 2, y: 0 }],
   sprite: gallery(),
-  // Nudged right, clear of the oak's sign next door on a phone.
-  signOffset: { x: 7, y: 0 },
 };

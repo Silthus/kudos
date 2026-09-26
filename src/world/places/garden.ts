@@ -1,10 +1,13 @@
+import type { Tile } from "../iso";
 import { PixelCanvas } from "../pixels";
-import type { PlaceDef } from "../places";
+import type { PlaceDef, PlaceGround } from "../places";
 
 /**
- * Your garden, the centre of the world: the raised lawn with its key beds is the map's own
- * (`tiles.ts` lays it out); this is its gate sign. You're in the garden at its heart, the little
- * square where its paths meet.
+ * Your garden on the terrace (#129, moved onto the tree's terrace district by #156): a raised lawn
+ * 7 × 7 tiles inside a low fence, a gate in the middle of each side, paths crossing at the little
+ * square in the middle where you stand to go in, and your key beds on the diagonals round it. The
+ * teammates you thank the most have their beds in a ring just outside the fence. All in tiles from
+ * the terrace's anchor; `world.ts` puts it where the tree's layout says.
  */
 function gateSign() {
   const c = new PixelCanvas(24, 26);
@@ -16,17 +19,47 @@ function gateSign() {
   return c.outline().map();
 }
 
+/**
+ * Your plot tiles in planting order: round the little square first (front, right, left, back),
+ * then the outer corners, so a young garden stands together where you come in.
+ */
+export const PLOTS: Tile[] = [
+  { x: 1, y: 1 },
+  { x: 1, y: -1 },
+  { x: -1, y: 1 },
+  { x: -1, y: -1 },
+  { x: 2, y: 2 },
+  { x: 2, y: -2 },
+  { x: -2, y: 2 },
+  { x: -2, y: -2 },
+];
+
+/** The neighbours' beds just outside the fence, every other tile clear of the gates, the front corner first. */
+export const BEDS: Tile[] = (() => {
+  const beds: Tile[] = [];
+  for (let y = -4; y <= 4; y++)
+    for (let x = -4; x <= 4; x++) if (Math.max(Math.abs(x), Math.abs(y)) === 4 && x % 2 === 0 && y % 2 === 0 && x !== 0 && y !== 0) beds.push({ x, y });
+  const d = (t: Tile) => Math.abs(t.x - 4) + Math.abs(t.y - 4);
+  return beds.sort((a, b) => d(a) - d(b) || a.x - b.x);
+})();
+
+/** The terrace's own ground: fence and gates round the edge, the crossing paths, the plots. */
+const ground: PlaceGround = (x, y) => {
+  const lane = x === 0 || y === 0;
+  if (Math.max(Math.abs(x), Math.abs(y)) === 3) return lane ? "gate" : "fence";
+  if (lane) return "path";
+  return PLOTS.some((p) => p.x === x && p.y === y) ? "plot" : "garden";
+};
+
 export const place: PlaceDef = {
   id: "garden",
   name: "Your garden",
-  footprint: { x: 15, y: 9, w: 10, h: 10 },
+  footprint: { x: -3, y: -3, w: 7, h: 7 },
   walkable: true,
-  doors: [
-    { x: 19, y: 13 },
-    { x: 20, y: 13 },
-    { x: 19, y: 14 },
-    { x: 20, y: 14 },
-  ],
-  spriteAt: { x: 21, y: 18 },
+  ground,
+  doors: [{ x: 0, y: 0 }],
+  // By the right-hand gate, clear of you in the middle of the terrace.
+  spriteAt: { x: 4, y: 1 },
+  spriteOffset: { x: 4, y: 0 },
   sprite: gateSign(),
 };

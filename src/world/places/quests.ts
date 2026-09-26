@@ -32,7 +32,7 @@ function signpost() {
 export const place: PlaceDef = {
   id: "quests",
   name: "Quest signpost",
-  footprint: { x: 19, y: 24, w: 1, h: 1 },
-  doors: [{ x: 20, y: 24 }],
+  footprint: { x: 0, y: 0, w: 1, h: 1 },
+  doors: [{ x: 1, y: 0 }],
   sprite: signpost(),
 };

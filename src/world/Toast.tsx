@@ -62,7 +62,7 @@ function ToastCard({ toast, onDone, still }: { toast: Toast; onDone: () => void;
         if (from && !e.currentTarget.contains(from)) cameFrom.current = from;
       }}
       onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setHeld(false)}
-      className={clsx("pixel-frame pointer-events-auto flex items-start gap-3 p-3", toast.kind === "level" && "shadow-[inset_0_4px_0_0_var(--color-lantern)] pt-4")}
+      className={clsx("pixel-frame pointer-events-auto flex items-start gap-3 p-3", toast.kind === "level" && "shadow-[inset_0_4px_0_0_var(--color-lantern)] pt-4", toast.kind === "tree" && "shadow-[inset_0_4px_0_0_var(--color-sap)] pt-4")}
     >
       {toast.kind === "discovery" && <FramedCard />}
       {toast.kind === "level" && <Npc slot="hoggie-level-up" size={56} />}

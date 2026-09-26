@@ -57,7 +57,7 @@ function cabin() {
 export const place: PlaceDef = {
   id: "me",
   name: "Your cabin",
-  footprint: { x: 6, y: 18, w: 2, h: 2 },
-  doors: [{ x: 8, y: 19 }],
+  footprint: { x: -1, y: -1, w: 2, h: 2 },
+  doors: [{ x: 1, y: 0 }],
   sprite: cabin(),
 };

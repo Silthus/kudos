@@ -4,8 +4,9 @@ import type { Point } from "./iso";
 
 /**
  * The camera (#126 "Layout"): the world at a whole-number scale, following the hedgehog with a dead
- * zone, draggable by mouse or finger. It moves by writing a transform on the stage, never through
- * React state, so walking re-renders nothing.
+ * zone, draggable by mouse or finger, over a plane with no edge (#156). It moves by writing a
+ * transform on the stage, never through React state, so walking re-renders nothing; each move tells
+ * `onView` what it sees, so the desert's chunks come and go the same way.
  */
 
 type Size = { width: number; height: number };
@@ -33,33 +34,27 @@ export function follow(cam: Point, p: Point, view: Size): Point {
   return { x: cam.x + (vx < x0 ? vx - x0 : vx > x1 ? vx - x1 : 0), y: cam.y + (vy < y0 ? vy - y0 : vy > y1 ? vy - y1 : 0) };
 }
 
-/** How much sky may show past the world's edge. */
-const EDGE = 48;
-
-/** Keeps the world on screen; a world smaller than the view sits in its middle. */
-export function clampCamera(cam: Point, view: Size, stage: Size): Point {
-  const axis = (c: number, v: number, s: number) => (s <= v ? (s - v) / 2 : Math.min(Math.max(c, -EDGE), s - v + EDGE));
-  return { x: axis(cam.x, view.width, stage.width), y: axis(cam.y, view.height, stage.height) };
-}
-
 export type CameraHandle = {
   /** Keeps a stage point in view: at once, or gliding there. `centre` puts it in the middle. */
   lookAt: (p: Point, how?: { instant?: boolean; centre?: boolean }) => void;
 };
 
+/** What the camera sees: a rectangle of the stage, in screen pixels. */
+export type View = { x: number; y: number; width: number; height: number };
+
 export function Camera({
-  stage,
   insetRight = 0,
   onTap,
+  onView,
   children,
   ref,
 }: {
-  /** The stage's size in screen pixels. */
-  stage: Size;
   /** Screen pixels on the right covered by a docked window: the view is what's left of it. */
   insetRight?: number;
   /** A tap or click that wasn't a drag, at a stage point. */
   onTap: (p: Point) => void;
+  /** Where the camera looks now, after every move. */
+  onView?: (view: View) => void;
   children: ReactNode;
   ref?: Ref<CameraHandle>;
 }) {
@@ -71,14 +66,18 @@ export function Camera({
   const lastLook = useRef<Point | null>(null);
   const frame = useRef(0);
   const drag = useRef<{ id: number; start: Point; cam: Point; moved: boolean } | null>(null);
-  const stageRef = useRef(stage);
-  stageRef.current = stage;
+  const viewed = useRef(onView);
+  viewed.current = onView;
   const inset = useRef(insetRight);
   inset.current = insetRight;
 
   const view = (): Size => ({ width: Math.max(1, (viewport.current?.clientWidth ?? window.innerWidth) - inset.current), height: viewport.current?.clientHeight ?? window.innerHeight });
   const apply = () => {
-    if (stageEl.current) stageEl.current.style.transform = `translate3d(${-Math.round(cam.current.x)}px, ${-Math.round(cam.current.y)}px, 0)`;
+    const x = Math.round(cam.current.x);
+    const y = Math.round(cam.current.y);
+    if (stageEl.current) stageEl.current.style.transform = `translate3d(${-x}px, ${-y}px, 0)`;
+    // The whole viewport, window or not: the ground under a docked window still shows at its edge.
+    viewed.current?.({ x, y, width: viewport.current?.clientWidth ?? window.innerWidth, height: viewport.current?.clientHeight ?? window.innerHeight });
   };
   const glide = () => {
     cancelAnimationFrame(frame.current);
@@ -100,7 +99,7 @@ export function Camera({
   const lookAt: CameraHandle["lookAt"] = (p, how = {}) => {
     lastLook.current = p;
     const v = view();
-    const next = clampCamera(how.centre ? centreOn(p, v) : follow(goal.current, p, v), v, stageRef.current);
+    const next = how.centre ? centreOn(p, v) : follow(goal.current, p, v);
     goal.current = next;
     if (how.instant || still) {
       cancelAnimationFrame(frame.current);
@@ -123,7 +122,7 @@ export function Camera({
     window.addEventListener("resize", again);
     return () => window.removeEventListener("resize", again);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stage.width, stage.height, insetRight]);
+  }, [insetRight]);
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
 
   return (
@@ -143,7 +142,7 @@ export function Camera({
         if (!d.moved) viewport.current?.setPointerCapture?.(e.pointerId);
         d.moved = true;
         cancelAnimationFrame(frame.current);
-        cam.current = clampCamera({ x: d.cam.x - dx, y: d.cam.y - dy }, view(), stageRef.current);
+        cam.current = { x: d.cam.x - dx, y: d.cam.y - dy };
         goal.current = { ...cam.current };
         apply();
       }}
@@ -156,7 +155,7 @@ export function Camera({
       }}
       onPointerCancel={() => (drag.current = null)}
     >
-      <div ref={stageEl} className="absolute left-0 top-0 will-change-transform" style={{ width: stage.width, height: stage.height }}>
+      <div ref={stageEl} className="absolute left-0 top-0 h-0 w-0 will-change-transform">
         {children}
       </div>
     </div>

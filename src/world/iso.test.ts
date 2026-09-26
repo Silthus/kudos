@@ -3,8 +3,6 @@ import { TILE_H, TILE_W, findPath, stepFor, tileAt, tileCentre, type Grid } from
 
 /** A grid from rows of text: `.` walkable, `#` blocked. */
 const grid = (rows: string[]): Grid => ({
-  width: rows[0].length,
-  height: rows.length,
   walkable: (x, y) => rows[y]?.[x] === ".",
 });
 
@@ -94,5 +92,27 @@ describe("path finding", () => {
     expect(findPath(map, { x: 0, y: 0 }, { x: 1, y: 1 })).toBeNull();
     expect(findPath(grid([".#.", "##.", "..."]), { x: 0, y: 0 }, { x: 2, y: 2 })).toBeNull();
     expect(findPath(map, { x: 0, y: 0 }, { x: 9, y: 0 })).toBeNull();
+  });
+
+  test("the plane has no edge: walks cross negative tiles, far out and back (#156)", () => {
+    const open: Grid = { walkable: (x, y) => !(x === 0 && y > -50 && y < 50) };
+    const path = findPath(open, { x: -3, y: 0 }, { x: 3, y: 0 })!;
+    // Round the wall's end, 50 tiles up, and back down.
+    expect(path.at(-1)).toEqual({ x: 3, y: 0 });
+    expect(path.length).toBe(106);
+    expect(findPath(open, { x: 0, y: -60 }, { x: -120, y: 90 })).toHaveLength(270);
+  });
+
+  test("gives up on a tile walled in far away instead of searching the endless desert", () => {
+    const walled: Grid = { walkable: (x, y) => !(Math.max(Math.abs(x - 500), Math.abs(y)) === 1) };
+    const t0 = performance.now();
+    expect(findPath(walled, { x: 0, y: 0 }, { x: 500, y: 0 })).toBeNull();
+    expect(performance.now() - t0).toBeLessThan(2000);
+  });
+
+  test("keeps within a grid's bounds when it has them", () => {
+    const boxed: Grid = { walkable: () => true, bounds: { x0: -2, y0: -2, x1: 2, y1: 2 } };
+    expect(findPath(boxed, { x: 0, y: 0 }, { x: 3, y: 0 })).toBeNull();
+    expect(findPath(boxed, { x: -2, y: -2 }, { x: 2, y: 2 })).toHaveLength(8);
   });
 });

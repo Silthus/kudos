@@ -40,10 +40,7 @@ function stall() {
 export const place: PlaceDef = {
   id: "store",
   name: "The store stall",
-  footprint: { x: 12, y: 24, w: 2, h: 2 },
-  doors: [{ x: 14, y: 25 }],
+  footprint: { x: -1, y: -1, w: 2, h: 2 },
+  doors: [{ x: 1, y: 0 }],
   sprite: stall(),
-  // One tile west of where #128 put it, so the hedgehog at the door leaves the signpost's sign in
-  // view; the sign hangs in front of the stall, clear of the cabin's doorstep above it (#128).
-  signOffset: { x: 8, y: 62 },
 };
