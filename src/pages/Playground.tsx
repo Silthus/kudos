@@ -15,7 +15,7 @@ import { Earnings, GainLines, LevelUpHoggie } from "@/components/game";
 import { SpreePost } from "@/components/SpreePost";
 import type { Id } from "../../convex/_generated/dataModel";
 import { SUPER_SUFFIX, variantBySuffix } from "../../convex/lib/cosmetics";
-import { isSimulatorWorkspace, runNote, shownSimulator } from "@/world/simulator";
+import { inYourSimulator, runNote, shownSimulator } from "@/world/simulator";
 import { SimulatorClock } from "@/world/SimulatorClock";
 import { SimulatorTab } from "./SimulatorTab";
 
@@ -192,7 +192,7 @@ export function Playground() {
 function Sandbox() {
   const viewer = useViewer();
   // Known at once from your workspaces (a cold load never offers the shared demo's reset); the clock waits for the state.
-  const inSimulator = viewer.workspaces.some((w) => w.current && isSimulatorWorkspace(w));
+  const inSimulator = inYourSimulator(viewer.workspaces);
   const simulator = shownSimulator(useQuery(api.simulator.state, {}));
   const teammates = useQuery(api.demo.teammates) ?? [];
   const today = useWorkspaceToday();

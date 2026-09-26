@@ -21,10 +21,25 @@ import type { Site, World } from "./world";
  */
 
 /**
- * The world's stacking order: the ground, what stands behind the tree, the hedgehog when it's behind
- * the trunk (`Z.hogBehind`), the tree, what stands in front of it, the hedgehog in front, then names.
+ * The world's stacking order: the ground, what stands behind the tree, the hedgehogs behind the
+ * trunk (`Z.hogBehind`), the tree, what stands in front of it, the hedgehogs in front, the names,
+ * then the notes and cards that pop up over it all. Each hedgehog band is wide: within it, the
+ * hedgehogs stand in depth order (`hogZ`).
  */
-export const Z = { ground: 0, behind: 10, hogBehind: 15, tree: 20, front: 30, hogFront: 40, labels: 50 } as const;
+export const Z = { ground: 0, behind: 100, hogBehind: 1000, tree: 2000, front: 2100, hogFront: 3000, labels: 4000, notes: 4100 } as const;
+
+/** Hedgehogs this far apart on screen (art pixels) or more simply keep their order. */
+const HOG_DEPTH = 900;
+
+/**
+ * Where another hedgehog stands in the stack: in the band behind the trunk or in front of it, and
+ * within it, `below` art pixels lower on screen than yours (your hedgehog is the band itself) is
+ * nearer. Level with yours, it stands behind: nobody ever covers you.
+ */
+export function hogZ(behind: boolean, below: number): number {
+  const b = Math.round(below);
+  return (behind ? Z.hogBehind : Z.hogFront) + Math.max(-HOG_DEPTH, Math.min(HOG_DEPTH, b <= 0 ? b - 1 : b));
+}
 
 export type WorldCanvasHandle = {
   /** The camera's view moved: `view` in art pixels. */
@@ -172,10 +187,11 @@ export function WorldCanvas({
   const elderAt = elder && tileCentre(elder.tile);
   return (
     <>
-      <div ref={groundHost} aria-hidden data-ground className="absolute left-0 top-0 isolate" style={{ zIndex: Z.ground }} />
-      <canvas ref={town} width={rect.width} height={rect.height} aria-hidden data-world className="pixels absolute" style={{ ...box, zIndex: Z.behind }} />
-      <canvas ref={treeCanvas} width={rect.width} height={rect.height} aria-hidden data-tree className="pixels absolute" style={{ ...box, zIndex: Z.tree }} />
-      <canvas ref={frontCanvas} width={rect.width} height={rect.height} aria-hidden data-front className="pixels absolute" style={{ ...box, zIndex: Z.front }} />
+      {/* The canvases are pictures: a click goes through them to the camera, or to a hog under the tree (#158). */}
+      <div ref={groundHost} aria-hidden data-ground className="pointer-events-none absolute left-0 top-0 isolate" style={{ zIndex: Z.ground }} />
+      <canvas ref={town} width={rect.width} height={rect.height} aria-hidden data-world className="pixels pointer-events-none absolute" style={{ ...box, zIndex: Z.behind }} />
+      <canvas ref={treeCanvas} width={rect.width} height={rect.height} aria-hidden data-tree className="pixels pointer-events-none absolute" style={{ ...box, zIndex: Z.tree }} />
+      <canvas ref={frontCanvas} width={rect.width} height={rect.height} aria-hidden data-front className="pixels pointer-events-none absolute" style={{ ...box, zIndex: Z.front }} />
       <canvas
         // A new opening is a new canvas, so it fades in even right after another.
         key={freshKey}
@@ -184,7 +200,7 @@ export function WorldCanvas({
         height={rect.height}
         aria-hidden
         data-fresh={freshKey || undefined}
-        className={clsx("pixels absolute", freshKey && !still && "animate-[district-open_900ms_ease-out_both]")}
+        className={clsx("pixels pointer-events-none absolute", freshKey && !still && "animate-[district-open_900ms_ease-out_both]")}
         style={{ ...box, zIndex: Z.front }}
       />
       {seedMoment && <SeedMoment world={world} scale={scale} onDone={() => onSeedMomentDone?.()} />}

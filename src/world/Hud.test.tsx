@@ -10,8 +10,15 @@ import { MOTION_KEY, MotionProvider } from "./motion";
 import { visiblePlaces } from "./places";
 
 let game: unknown;
+/** Who is online (`presence:online`), and what it was last asked with. */
+let online: unknown;
+let onlineArgs: unknown;
 vi.mock("convex/react", () => ({
-  useQuery: (fn: FunctionReference<"query">) => (getFunctionName(fn) === "game:mine" ? game : undefined),
+  useQuery: (fn: FunctionReference<"query">, args: unknown) => {
+    const name = getFunctionName(fn);
+    if (name === "presence:online" && args !== "skip") onlineArgs = args;
+    return name === "game:mine" ? game : name === "presence:online" && args !== "skip" ? online : undefined;
+  },
   useMutation: () => vi.fn(),
 }));
 vi.mock("@convex-dev/auth/react", () => ({ useAuthActions: () => ({ signOut: vi.fn(async () => undefined) }) }));
@@ -24,7 +31,7 @@ HTMLCanvasElement.prototype.getContext = (() => null) as never;
 
 const player = (level: number) => ({ level, title: level >= 9 ? "Gardener" : "Seedling", xp: 1650, floor: 1500, next: 1900, toNext: 250, fraction: 0.4 });
 const wallet = { balance: 84, fromKudos: 84, fromFruit: 0, fromQuests: 0, fromSprees: 0, fromLevels: 0, spent: 0, adjusted: 0 };
-const mine = (patch: Record<string, unknown>) => ({ enabled: true, hidden: false, player: player(9), wallet, luckyCharms: 0, sunlamps: 0, lanterns: 0, ...patch });
+const mine = (patch: Record<string, unknown>) => ({ enabled: true, hidden: false, player: player(9), wallet, luckyCharms: 0, sunlamps: 0, lanterns: 0, look: { color: null, accessory: null }, ...patch });
 
 describe("what the HUD shows of your game", () => {
   test("level, title, XP and coins from level 3", () => {
@@ -69,14 +76,14 @@ const viewer = {
   workspace: { name: "Lumen Labs", isDemo: false, gameEnabled: true, storeEnabled: true },
 } as unknown as ReadyViewer;
 
-function render({ insetRight }: { insetRight?: number } = {}) {
+function render({ insetRight, whereIs }: { insetRight?: number; whereIs?: (spot: { x: number; y: number }) => string } = {}) {
   const places = visiblePlaces(navItems({ isAdmin: true, isDemo: false, storeEnabled: true, gameShown: true, openRequests: 2 }));
   act(() =>
     root.render(
       <MemoryRouter initialEntries={["/"]}>
         <MotionProvider>
           <ViewerContext.Provider value={viewer}>
-            <Hud places={places} where="Your garden" insetRight={insetRight} />
+            <Hud places={places} where="Your garden" insetRight={insetRight} whereIs={whereIs} />
             <Probe />
           </ViewerContext.Provider>
         </MotionProvider>
@@ -280,5 +287,58 @@ describe("the HUD", () => {
     expect(localStorage.getItem(MOTION_KEY)).toBe("reduced");
     act(() => option("On").click());
     expect(localStorage.getItem(MOTION_KEY)).toBe("on");
+  });
+});
+
+describe("who's online", () => {
+  const whereIs = (spot: { x: number; y: number }) => (spot.x > 100 ? "The desert" : "Base camp");
+  const players = [
+    { memberId: "m1", name: "Alex Rivera", x: 4, y: 4, you: true },
+    { memberId: "m2", name: "Ana Lima", x: 300, y: -300, you: false },
+    { memberId: "m3", name: "Ben Okafor", x: 2, y: 3, you: false },
+  ];
+  const button = () => [...host.querySelectorAll("button")].find((b) => /online/.test(b.textContent ?? ""));
+  beforeEach(() => {
+    online = undefined;
+    onlineArgs = undefined;
+    game = mine({});
+  });
+
+  test("\"3 online\" opens the list: each name, and where they are", () => {
+    online = { count: 3, players };
+    render({ whereIs });
+    expect(button()?.textContent).toBe("3 online");
+    act(() => button()!.click());
+    const rows = [...host.querySelectorAll("[data-online] li")].map((li) => li.textContent);
+    // You're where your caption says, at once; the others where they were within the last 15 s.
+    expect(rows).toEqual(["You, Your garden", "Ana Lima, The desert", "Ben Okafor, Base camp"]);
+  });
+
+  test("asks on the workspace clock, rounded to 5 s", () => {
+    vi.useFakeTimers({ toFake: ["Date", "setInterval", "clearInterval"] });
+    vi.setSystemTime(1_000_004_321);
+    online = { count: 1, players: players.slice(0, 1) };
+    render({ whereIs });
+    expect(onlineArgs).toEqual({ now: 1_000_000_000 });
+    vi.useRealTimers();
+  });
+
+  test("it stays open while the next answer loads (review #2)", () => {
+    online = { count: 3, players };
+    render({ whereIs });
+    act(() => button()!.click());
+    online = undefined;
+    render({ whereIs });
+    expect(button()?.textContent).toBe("3 online");
+    expect(host.querySelectorAll("[data-online] li")).toHaveLength(3);
+  });
+
+  test("not there outside the world, nor before anyone is in it", () => {
+    online = { count: 3, players };
+    render();
+    expect(button()).toBeUndefined();
+    online = { count: 0, players: [] };
+    render({ whereIs });
+    expect(button()).toBeUndefined();
   });
 });

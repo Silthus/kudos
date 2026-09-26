@@ -19,6 +19,9 @@ import { arrivalFor, skyFor, withSprout } from "./life";
 import { findPath, sameTile, stepFor, tileAt, tileCentre, type Point, type Tile } from "./iso";
 import { behindTree, siteName, spriteFoot, tileOnCanvas, treeBox, treeHeight } from "./paint";
 import { placeForPath, placesOnMap, routablePlaces, visiblePlaces, type Place } from "./places";
+import { Presence, type PresenceHandle } from "./Presence";
+import { whereIs, type Beat } from "./presence";
+import { inYourSimulator } from "./simulator";
 import { Sky } from "./Sky";
 import { mapHeight, mapWidth } from "./pixels";
 import { pushToasts } from "./toastBus";
@@ -39,6 +42,9 @@ import { WorldCanvas, Z, type WorldCanvasHandle } from "./WorldCanvas";
  * district is open; a link to a closed one walks you to its dry outline and says when it opens.
  * The seed planted and districts opening while you're here are moments: a toast, the seed sprouting,
  * a district fading in.
+ *
+ * Everyone else in the world walks it too (#158, `Presence.tsx`): your hedgehog's heartbeat tells
+ * them where you are, and theirs show round you. You reappear where you left (`api.presence.mine`).
  *
  * Walking runs on refs and requestAnimationFrame: a walk re-renders nothing until it arrives.
  */
@@ -115,7 +121,7 @@ function nameOf(world: World, t: Tile, gameShown: boolean): string {
 /** Is focus somewhere keys mean typing or choosing, not walking? */
 function typingIn(target: EventTarget | null) {
   const el = target instanceof HTMLElement ? target : null;
-  return !!el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || !!el.closest("[data-hud-menu]"));
+  return !!el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || !!el.closest("[data-hud-menu], [data-hog-card]"));
 }
 
 export function WorldShell() {
@@ -187,6 +193,11 @@ export function WorldShell() {
   const plots = plotCount(garden);
   // Golden hour, the lanterns and the party hat on a bonus day or booster (#134; the HUD hangs the lanterns).
   const sky = skyFor(useQuery(api.boosts.banner, { today }));
+  // Your hedgehog's look (#158, chosen in the cabin); on a bonus day everyone wears the party hat.
+  const look = useQuery(api.game.mine, gameShown ? {} : "skip")?.look ?? null;
+  const worn = sky.party ? { color: look?.color ?? null, accessory: "party" as const } : look;
+  // The shared demo, where the seeded teammates wander (#158): never a real workspace, nor your simulator.
+  const sharedDemo = viewer.workspace.isDemo && !inYourSimulator(viewer.workspaces);
   // `/garden?plot=2`: that plot, if it's one of yours. Its link waits for your garden to load, so
   // it lands on the plot rather than at the gate and then walks.
   const plotAsked = target?.place.id === "garden" && !target.memberId && new URLSearchParams(location.search).has("plot");
@@ -224,6 +235,7 @@ export function WorldShell() {
   const hog = useRef<HogHandle>(null);
   const hogEl = useRef<HTMLDivElement>(null);
   const shell = useRef<HTMLDivElement>(null);
+  const presence = useRef<PresenceHandle>(null);
 
   // Everything the walk loop and key handlers read, fresh each render without restarting them.
   const live = useRef({ onMap, target, closedTarget, neighbours, scale, still, gameShown, navigate, world, plots, plotParam, peakGrowth });
@@ -481,9 +493,36 @@ export function WorldShell() {
     cancelAnimationFrame(w.raf);
     Object.assign(w, { raf: 0, step: null, queue: [], arrive: null, tile: BASE_CAMP.spawn });
     place(tileOnCanvas(BASE_CAMP.spawn), true);
+    // …or where you left that one.
+    setPlacedMine(false);
     setWhere(nameHere(BASE_CAMP.spawn));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceId]);
+
+  /** Your hedgehog now, for its heartbeat: the tile it stands on or is stepping to, and what it's doing. */
+  const readHog = (): Beat => {
+    const w = walker.current;
+    const at = w.step?.to ?? w.tile;
+    return { x: at.x, y: at.y, ...(hog.current?.now() ?? { animation: "idle", facing: "right" }) };
+  };
+
+  // Where you left the world (#155 `mine`): asked once, and only then, as it changes with every
+  // heartbeat. On the map with the hedgehog still where it arrived, it moves there; a link to a
+  // place, or a walk already under way, wins.
+  const [placedMine, setPlacedMine] = useState(false);
+  const mine = useQuery(api.presence.mine, gameShown && !placedMine && !treePending ? {} : "skip");
+  useEffect(() => {
+    if (mine === undefined || placedMine) return;
+    setPlacedMine(true);
+    const w = walker.current;
+    const at = mine?.at;
+    if (!at || target || w.raf || w.step || !sameTile(w.tile, BASE_CAMP.spawn) || !world.walkable(at.x, at.y)) return;
+    w.tile = at;
+    place(tileOnCanvas(at), true);
+    camera.current?.lookAt({ x: tileOnCanvas(at).x * scale, y: tileOnCanvas(at).y * scale }, { instant: true, centre: true });
+    setWhere(nameHere(at));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mine]);
 
   // Re-seat the hedgehog when the scale changes.
   useEffect(() => place(walker.current.pos, true), [scale]);
@@ -637,7 +676,11 @@ export function WorldShell() {
         ref={camera}
         insetRight={inset}
         onTap={onTap}
-        onView={(v) => canvas.current?.show({ x: v.x / live.current.scale, y: v.y / live.current.scale, width: v.width / live.current.scale, height: v.height / live.current.scale })}
+        onView={(v) => {
+          const s = live.current.scale;
+          canvas.current?.show({ x: v.x / s, y: v.y / s, width: v.width / s, height: v.height / s });
+          presence.current?.view(tileAt({ x: (v.x + v.width / 2) / s, y: (v.y + v.height / 2) / s }));
+        }}
       >
         <WorldCanvas
           ref={canvas}
@@ -655,13 +698,27 @@ export function WorldShell() {
           onSite={goToSite}
         />
         <div ref={hogEl} className="pointer-events-none absolute left-0 top-0">
-          <Hog ref={hog} still={still} accessory={sky.party ? "party" : undefined} />
+          <Hog ref={hog} still={still} look={worn} />
         </div>
+        <Presence
+          ref={presence}
+          on={gameShown && !treePending}
+          beating={placedMine}
+          world={world}
+          scale={scale}
+          still={still}
+          viewer={{ memberId: viewer.member._id, workspaceName: viewer.workspace.name, sharedDemo }}
+          read={readHog}
+          wanderers={ring ?? []}
+          today={today}
+          party={sky.party}
+          windowOpen={windowOpen}
+        />
         {bubbleAt && (
           <div
             data-neighbour-bubble
-            className="pixel-note absolute z-[60] whitespace-nowrap px-3 py-2 text-sm"
-            style={{ left: bubbleAt.x * scale, top: bubbleAt.y * scale - HOG_FEET - 8, transform: "translate(-50%, -100%)" }}
+            className="pixel-note absolute whitespace-nowrap px-3 py-2 text-sm"
+            style={{ zIndex: Z.notes, left: bubbleAt.x * scale, top: bubbleAt.y * scale - HOG_FEET - 8, transform: "translate(-50%, -100%)" }}
             onPointerDown={(e) => e.stopPropagation()}
             onPointerUp={(e) => e.stopPropagation()}
           >
@@ -676,8 +733,8 @@ export function WorldShell() {
         {noticeShown && (
           <div
             data-site-notice
-            className="pixel-note absolute z-[60] w-max max-w-72 px-3 py-2 text-sm"
-            style={{ left: tileOnCanvas(noticeShown.tile).x * scale, top: tileOnCanvas(noticeShown.tile).y * scale - HOG_FEET - 8, transform: "translate(-50%, -100%)" }}
+            className="pixel-note absolute w-max max-w-72 px-3 py-2 text-sm"
+            style={{ zIndex: Z.notes, left: tileOnCanvas(noticeShown.tile).x * scale, top: tileOnCanvas(noticeShown.tile).y * scale - HOG_FEET - 8, transform: "translate(-50%, -100%)" }}
             onPointerDown={(e) => e.stopPropagation()}
             onPointerUp={(e) => e.stopPropagation()}
           >
@@ -686,7 +743,7 @@ export function WorldShell() {
           </div>
         )}
       </Camera>
-      <Hud places={treePending ? [] : onMapShown} where={where} insetRight={inset} />
+      <Hud places={treePending ? [] : onMapShown} where={where} insetRight={inset} whereIs={gameShown && !treePending ? (spot) => whereIs(world, spot) : undefined} />
       <Window
         open={windowOpen}
         title={title ?? ""}

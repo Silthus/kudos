@@ -2,7 +2,7 @@ import clsx from "clsx";
 import { useMutation, useQuery } from "convex/react";
 import { motion, useReducedMotionConfig } from "motion/react";
 import { Sparkles, X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { Link } from "react-router";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -81,7 +81,7 @@ const SLOT_NAMES: Record<CosmeticSlot, string> = { frame: "Frame", banner: "Bann
  * you wear and the rest of what you own to switch to, the kudos emoji you can give with, and your
  * Super kudos this month. Nothing while the game is off or hidden.
  */
-export function LookCard({ memberId, today }: { memberId: Id<"members">; today: string }) {
+export function LookCard({ memberId, today, children }: { memberId: Id<"members">; today: string; children?: ReactNode }) {
   const mine = useQuery(api.cosmetics.mine, { today });
   const profile = useQuery(api.cosmetics.profile, mine ? { memberId } : "skip");
   const wear = useMutation(api.cosmetics.wear);
@@ -89,7 +89,8 @@ export function LookCard({ memberId, today }: { memberId: Id<"members">; today: 
   const banner = mine.look.banner ? cosmeticByKey(mine.look.banner) : undefined;
   const owned = COSMETICS.filter((c) => mine.owned.includes(c.key));
   return (
-    <Room title="Your look" subtitle="What teammates see next to your name.">
+    <Room title="Your look" subtitle="Your hedgehog in the world, and what teammates see next to your name.">
+      {children && <div className="mb-5 border-b border-parchment-deep pb-5">{children}</div>}
       <div>
         <div className="pixel-chip relative overflow-hidden">
           {banner ? <Art art={banner.art} className="h-20 w-full" /> : <div className="h-20 w-full bg-parchment-deep/50" />}

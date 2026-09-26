@@ -32,6 +32,11 @@ export function isSimulatorWorkspace(w: { slackTeamId: string }) {
   return w.slackTeamId.startsWith("SIM-");
 }
 
+/** Whether the workspace you're looking at is your simulator. */
+export function inYourSimulator(workspaces: { current: boolean; slackTeamId: string }[]) {
+  return workspaces.some((w) => w.current && isSimulatorWorkspace(w));
+}
+
 /** The day the simulator started on is day 1. */
 export const dayNumber = (state: { dayIndex: number }) => state.dayIndex + 1;
 

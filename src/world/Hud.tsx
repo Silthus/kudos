@@ -14,18 +14,22 @@ import { Progress } from "@/components/ui";
 import { HEDGEHOG_MODE } from "@/lib/art";
 import { nf } from "@/lib/format";
 import { useWorkspaceToday } from "@/lib/period";
+import { useStableQuery } from "@/lib/useStableQuery";
 import { useViewer } from "@/lib/viewer";
 import { HogFrame } from "./Hog";
 import { useMotion, type MotionChoice } from "./motion";
 import type { Place } from "./places";
-import { dayNumber, isSimulatorWorkspace, shownSimulator, type ActiveSimulator, type SimulatorState } from "./simulator";
+import { useWorldNow } from "./worldNow";
+import type { Spot } from "./presence";
+import { dayNumber, inYourSimulator, isSimulatorWorkspace, shownSimulator, type ActiveSimulator, type SimulatorState } from "./simulator";
 import { SimulatorClock } from "./SimulatorClock";
 
 /**
  * The HUD (#126 "Interaction model"): four small things in the corners. Top left, you: your
  * hedgehog, level, XP and (from level 3) Hog coins. Top right, the Places list (the navigation
- * landmark and the keyboard's way to every place) and settings. At the bottom, one caption: where
- * you are, how to walk, and the demo and bonus-day lines.
+ * landmark and the keyboard's way to every place) and settings, and under them who's online in the
+ * world (#158). At the bottom, one caption: where you are, how to walk, and the demo and bonus-day
+ * lines.
  *
  * In your simulator (#144) the clock joins the top right, by the Places button (at the bottom, over
  * the caption, on a phone, clear of the toasts under your corner), and the Places list, the caption
@@ -281,6 +285,50 @@ function SettingsMenu({ gameOn, simulator }: { gameOn: boolean; simulator: Simul
   );
 }
 
+/**
+ * Who's in the world now (#158, #152 S2): "3 online", opening a parchment list of each name and
+ * where they are (`whereIs`, by district). Only people online (`api.presence.online`: seen in the
+ * last minute, never anyone offline); you're in it as "You", where your caption says you are (the
+ * others' spots are up to 15 s old). Not there before anyone is.
+ */
+function OnlineList({ whereIs, here }: { whereIs: (spot: Spot) => string; here: string }) {
+  const menu = useMenu();
+  const id = useId();
+  const now = useWorldNow(true);
+  // Asked again every 5 s: the last answer stays while the next loads, so the list never blinks.
+  const online = useStableQuery(api.presence.online, { now }).data;
+  if (!online || online.count === 0) return null;
+  return (
+    <div className="relative" onKeyDown={menu.onKeyDown} onBlur={menu.onFocusOut}>
+      <button
+        ref={menu.button}
+        type="button"
+        aria-expanded={menu.open}
+        aria-controls={menu.open ? id : undefined}
+        onClick={() => menu.setOpen((o) => !o)}
+        className="pixel-btn pixel-btn-secondary inline-flex h-8 items-center gap-2 px-2.5 text-sm font-semibold"
+      >
+        <span aria-hidden className="h-2 w-2 bg-hedge shadow-[0_0_0_1px_var(--color-bark)]" />
+        {online.count} online
+      </button>
+      {menu.open && (
+        <MenuPanel id={id} panel={menu.panel} className="w-64">
+          <p className="px-3 pb-1 pt-2 font-display text-base font-medium">In the world now</p>
+          <ul data-online>
+            {online.players.map((p, i) => (
+              <li key={`${p.memberId}:${i}`} className="flex items-baseline justify-between gap-3 border-t border-parchment-deep px-3 py-1.5 text-sm first:border-t-0">
+                <span className="min-w-0 truncate font-semibold">{p.you ? "You" : p.name}</span>
+                <span className="sr-only">, </span>
+                <span className="shrink-0 text-xs text-ink/75">{p.you ? here : whereIs(p)}</span>
+              </li>
+            ))}
+          </ul>
+        </MenuPanel>
+      )}
+    </div>
+  );
+}
+
 /** Top left: you. Your hedgehog, and your level, XP and coins while you play. */
 function You({ game }: { game: ReturnType<typeof hudGame> }) {
   const viewer = useViewer();
@@ -403,8 +451,11 @@ function Caption({
   );
 }
 
-/** `insetRight`: screen pixels on the right covered by a docked window. */
-export function Hud({ places, where, insetRight = 0 }: { places: Place[]; where: string; insetRight?: number }) {
+/**
+ * `insetRight`: screen pixels on the right covered by a docked window. `whereIs` names where a
+ * spot in the world is: given while you're in the world, it brings the online list.
+ */
+export function Hud({ places, where, insetRight = 0, whereIs }: { places: Place[]; where: string; insetRight?: number; whereIs?: (spot: Spot) => string }) {
   const viewer = useViewer();
   const game = hudGame(useQuery(api.game.mine, {}));
   const today = useWorkspaceToday();
@@ -414,7 +465,7 @@ export function Hud({ places, where, insetRight = 0 }: { places: Place[]; where:
   const simulatorState = useQuery(api.simulator.state, viewer.workspace.isDemo ? {} : "skip");
   const simulator = shownSimulator(simulatorState);
   // Known at once from your workspaces, so a cold load never says Live demo inside the simulator.
-  const inSimulator = viewer.workspaces.some((w) => w.current && isSimulatorWorkspace(w));
+  const inSimulator = inYourSimulator(viewer.workspaces);
   const wide = useWide();
   // Keyed by its workspace: a restarted simulator's clock starts clean.
   const clock = simulator && <SimulatorClock key={viewer.workspace._id} simulator={simulator} />;
@@ -431,6 +482,7 @@ export function Hud({ places, where, insetRight = 0 }: { places: Place[]; where:
             <PlacesMenu places={places} simulator={simulator} />
             <SettingsMenu gameOn={gameOn} simulator={simulatorState} />
           </div>
+          {whereIs && <OnlineList whereIs={whereIs} here={where} />}
           {wide && clock}
         </div>
       </div>

@@ -234,6 +234,14 @@ describe("your look", () => {
     expect(await ana.query(api.presence.mine, {})).toMatchObject({ look: { color: null, accessory: "tophat" } });
   });
 
+  test("your game carries your look, so your own hog and the cabin wear it as it changes (#158)", async () => {
+    const ana = await session(team.ana);
+    expect(await ana.query(api.game.mine, {})).toMatchObject({ look: { color: null, accessory: null } });
+    await makePlayer(team.ana);
+    await ana.mutation(api.presence.setLook, { color: "sepia", accessory: "beret" });
+    expect(await ana.query(api.game.mine, {})).toMatchObject({ look: { color: "sepia", accessory: "beret" } });
+  });
+
   test("anything not in the lists is refused", async () => {
     await makePlayer(team.ana);
     const ana = await session(team.ana);
