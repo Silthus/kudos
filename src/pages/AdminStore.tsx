@@ -2,7 +2,7 @@ import clsx from "clsx";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { AnimatePresence, motion } from "motion/react";
-import { Archive, Check, ChevronDown, CircleAlert, MessageCircleQuestion, PackageCheck, Pencil, Plus, RotateCcw, SlidersHorizontal, TriangleAlert } from "lucide-react";
+import { Archive, BellRing, Check, ChevronDown, CircleAlert, FolderOpen, MessageCircleQuestion, PackageCheck, Pencil, Plus, RotateCcw, ShoppingBag, SlidersHorizontal, TriangleAlert } from "lucide-react";
 import { useId, useState } from "react";
 import { useSearchParams } from "react-router";
 import { api } from "../../convex/_generated/api";
@@ -43,6 +43,7 @@ export function AdminStore({ isDemo }: { isDemo: boolean }) {
       <div className="mb-4">
         <Segmented
           size="sm"
+          label="Store section"
           value={section}
           onChange={setSection}
           options={[
@@ -100,7 +101,7 @@ function Requests({ isDemo }: { isDemo: boolean }) {
     }
   };
 
-  const openLabel = openCount ? `Open · ${openCount > 99 ? "99+" : openCount}` : "Open";
+  const openLabel = openCount ? `Open (${openCount > 99 ? "99+" : openCount})` : "Open";
   return (
     <Card>
       <CardHeader
@@ -109,6 +110,7 @@ function Requests({ isDemo }: { isDemo: boolean }) {
         action={
           <Segmented
             size="sm"
+            label="Requests"
             wrap
             value={filter}
             onChange={setFilter}
@@ -126,7 +128,7 @@ function Requests({ isDemo }: { isDemo: boolean }) {
           <Skeleton className="h-40" />
         </div>
       ) : results.length === 0 ? (
-        <Empty icon={filter === "open" ? "🛎️" : "🗂️"} title={filter === "open" ? "No requests waiting" : `Nothing ${filter} yet`}>
+        <Empty icon={filter === "open" ? <BellRing className="h-7 w-7 text-ink/70" aria-hidden /> : <FolderOpen className="h-7 w-7 text-ink/70" aria-hidden />} title={filter === "open" ? "No requests waiting" : `Nothing ${filter} yet`}>
           {filter === "open" ? "When someone redeems a reward, it queues here for an admin to approve, fulfil or decline." : undefined}
         </Empty>
       ) : (
@@ -202,7 +204,7 @@ function RequestRow({
             <b className="font-medium">{r.requester.name}</b>
             <span className="text-ink/75">wants</span>
             <span className="font-medium">
-              {r.rewardEmoji} {r.rewardName}
+              <span data-user-text>{r.rewardEmoji}</span> {r.rewardName}
             </span>
             <StatusChip status={r.status} />
           </div>
@@ -210,16 +212,16 @@ function RequestRow({
             <span className="tabular text-soil">
               {nf.format(r.cost)} {r.legacy ? "kudos, old Store" : glyph}
             </span>
-            <span>· {relativeTime(r.requestedAt)}</span>
+            <span>requested {relativeTime(r.requestedAt)}</span>
             {r.balance !== null && (
               <span className={clsx(r.negativeBalance && "font-medium text-ember-deep")}>
-                · balance {nf.format(r.balance)} {glyph}
+                balance {nf.format(r.balance)} {glyph}
                 {r.negativeBalance && " (negative)"}
               </span>
             )}
             {r.requester.deactivated && <span className="bg-parchment-deep px-1.5 py-0.5 text-ink/75">left workspace</span>}
             <span className="inline-flex items-center gap-0.5 text-ink/75">
-              · {expanded ? "Hide details" : "Where this balance came from"}
+              {expanded ? "Hide details" : "Where this balance came from"}
               <ChevronDown className={clsx("h-3.5 w-3.5 transition-transform", expanded && "rotate-180")} />
             </span>
           </p>
@@ -247,7 +249,7 @@ function RequestRow({
               </Button>
             </div>
           ) : (
-            <span className="ml-auto shrink-0 text-xs text-ink/70">{r.isOwn ? "Your request · another admin decides" : ""}</span>
+            <span className="ml-auto shrink-0 text-xs text-ink/70">{r.isOwn ? "Your request: another admin decides" : ""}</span>
           ))}
       </div>
       {error && (
@@ -258,7 +260,7 @@ function RequestRow({
       <AnimatePresence initial={false}>
         {expanded && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-            <div className="space-y-3 px-3 pb-3 sm:pl-[58px]">
+            <div className="space-y-3 px-3 pb-3 @md:pl-[58px]">
               <BalanceContext redemptionId={r._id} requester={r.requester.name} glyph={glyph} onLedger={onLedger} />
               <RedemptionHistory history={r.history} meId={meId} />
             </div>
@@ -384,7 +386,7 @@ function Catalog({ isDemo }: { isDemo: boolean }) {
           </p>
         )}
         {active.length === 0 ? (
-          <Empty icon="🛍️" title="No rewards yet">
+          <Empty icon={<ShoppingBag className="h-7 w-7 text-ink/70" aria-hidden />} title="No rewards yet">
             Stock the shelves before you open the store: coffee, a charity donation, a half day off.
           </Empty>
         ) : (
@@ -427,7 +429,7 @@ function RewardRow({ reward: r, glyph, isDemo, onEdit, onToggle }: { reward: Rew
   ].filter(Boolean);
   return (
     <li className={clsx("flex items-center gap-3 px-3 py-2.5 hover:bg-parchment-deep/50", archived && "opacity-60")}>
-      <span className="grid h-10 w-10 shrink-0 place-items-center bg-lantern/10 text-xl ring-1 ring-lantern/20" aria-hidden>
+      <span className="grid h-10 w-10 shrink-0 place-items-center bg-lantern/10 text-xl ring-1 ring-lantern/20" data-user-text aria-hidden>
         {r.emoji}
       </span>
       <div className="min-w-0 flex-1">
@@ -442,13 +444,13 @@ function RewardRow({ reward: r, glyph, isDemo, onEdit, onToggle }: { reward: Rew
         </div>
         {r.description && <p className="truncate text-xs text-ink/75">{r.description}</p>}
         <p className="truncate tabular text-[10px] text-ink/70">
-          <span className="text-soil sm:hidden">
-            {nf.format(r.cost)} {r.pricedInKudos ? "kudos" : glyph} ·{" "}
+          <span className="text-soil @md:hidden">
+            {nf.format(r.cost)} {r.pricedInKudos ? "kudos" : glyph},{" "}
           </span>
-          {meta.join(" · ")}
+          {meta.join(", ")}
         </p>
       </div>
-      <span className="hidden shrink-0 text-sm tabular text-soil sm:block">
+      <span className="hidden shrink-0 text-sm tabular text-soil @md:block">
         {nf.format(r.cost)} {r.pricedInKudos ? "kudos" : glyph}
       </span>
       <div className="flex shrink-0 items-center">
@@ -661,7 +663,7 @@ function StoreSettings({ isDemo }: { isDemo: boolean }) {
   };
 
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_1fr]">
+    <div className="grid grid-cols-1 gap-4">
       <Card>
         <CardHeader title="Store" subtitle="Members spend Hog coins on game items, which apply instantly. Real rewards you stock and hand over are optional." />
         <div className="px-5 pb-5">
@@ -745,7 +747,7 @@ function StoreSettings({ isDemo }: { isDemo: boolean }) {
 type Ledger = NonNullable<ReturnType<typeof useQuery<typeof api.storeAdmin.memberLedger>>>;
 
 /**
- * A member's Hog coins from Admin → Members (or a request row): earned + adjusted − spent,
+ * A member's Hog coins from the gatehouse's Members (or a request row): earned + adjusted − spent,
  * the latest adjustments and requests, and the way into "Adjust balance".
  */
 export function LedgerDrawer({ memberId, isDemo, onClose }: { memberId: Id<"members"> | null; isDemo: boolean; onClose: () => void }) {
@@ -775,7 +777,7 @@ export function LedgerDrawer({ memberId, isDemo, onClose }: { memberId: Id<"memb
       {ledger === undefined ? (
         <Skeleton className="h-64" />
       ) : ledger === null ? (
-        <p className="text-sm text-ink/75">Hog coins only exist while the game is on. Switch it on under Admin → Settings.</p>
+        <p className="text-sm text-ink/75">Hog coins only exist while the game is on. Switch it on in the gatehouse's Settings.</p>
       ) : (
         <div className="space-y-6">
           <div className="flex items-center gap-3">
@@ -1001,16 +1003,16 @@ function BalanceContext({ redemptionId, requester, glyph, onLedger }: { redempti
           )}
           <ul className="space-y-2">
             {context.thanked.map((g) => (
-              <li key={g.member._id} className="grid grid-cols-[auto_1fr_auto] items-center gap-x-2 gap-y-1 text-sm sm:grid-cols-[auto_minmax(0,7rem)_1fr_auto]">
+              <li key={g.member._id} className="grid grid-cols-[auto_1fr_auto] items-center gap-x-2 gap-y-1 text-sm @md:grid-cols-[auto_minmax(0,7rem)_1fr_auto]">
                 <Avatar name={g.member.name} src={g.member.avatarUrl} size={22} />
                 <span className="truncate">
                   {g.member.name}
                   {g.member.deactivated && <span className="text-ink/70"> (left)</span>}
                 </span>
                 {/* On phones the bar gets its own line under the name, so it stays readable. */}
-                <Progress value={g.share} max={1} height={6} className="order-last col-span-3 sm:order-none sm:col-span-1" />
+                <Progress value={g.share} max={1} height={6} className="order-last col-span-3 @md:order-none @md:col-span-1" />
                 <span className="w-24 text-right text-xs tabular text-ink/75">
-                  {nf.format(g.amount)} {glyph} · {Math.round(g.share * 100)}%
+                  {nf.format(g.amount)} {glyph}, {Math.round(g.share * 100)}%
                 </span>
               </li>
             ))}

@@ -22,16 +22,16 @@ export function AdminBoosts({ gameEnabled }: { gameEnabled: boolean }) {
   const data = useQuery(api.boosts.admin, { today });
   if (!data) return <PageSkeleton />;
   return (
-    <div className="grid gap-6 xl:grid-cols-2">
+    <div className="grid gap-4">
       {!gameEnabled && (
-        <p className="flex items-start gap-2.5 border border-bark/60 bg-parchment-deep/50 px-4 py-3 text-sm text-ink/75 xl:col-span-2">
+        <p className="flex items-start gap-2.5 border border-bark/60 bg-parchment-deep/50 px-4 py-3 text-sm text-ink/75">
           <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-ink/70" />
           Bonus days double XP and Hog coins, which only exist while the game is on (Settings).
         </p>
       )}
       <ScheduleCard today={today} maxAheadDays={data.maxAheadDays} channel={data.isDemo ? null : data.channel} />
       <ChannelCard channel={data.channel} isDemo={data.isDemo} />
-      <Card className="xl:col-span-2">
+      <Card>
         <CardHeader
           title="Today and ahead"
           subtitle="One boost a day at most. Scheduled days can be called off until they start; a booster runs until midnight."
@@ -64,7 +64,7 @@ function BoostRow({ boost, today, isDemo, hasChannel }: { boost: AdminBoost; tod
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="font-medium text-ink">
-            {boost.dayKey === today ? "Today" : dayLabel(boost.dayKey)} · {BOOST_NAME[boost.kind]}
+            {boost.dayKey === today ? "Today" : dayLabel(boost.dayKey)}: {BOOST_NAME[boost.kind]}
           </div>
           <div className="text-xs text-ink/70">{startedBy(boost.source, boost.by)}</div>
         </div>

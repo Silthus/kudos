@@ -50,12 +50,12 @@ export function SuccessMetrics({ today }: { today: string }) {
   const judged = !!current && !!baseline && current.month > baseline.to;
 
   return (
-    <Card id="success-metrics" className="mt-4">
+    <Card id="success-metrics">
       <CardHeader
         title="Game success metrics"
         subtitle={
           baseline
-            ? `${current ? monthLabel(current.month) : "Each month"} against the baseline of ${monthRange(baseline.from, baseline.to)}${baseline.anchored ? ", before the game launched" : ""} · the last 12 months, whatever the period above`
+            ? `${current ? monthLabel(current.month) : "Each month"} against the baseline of ${monthRange(baseline.from, baseline.to)}${baseline.anchored ? ", before the game launched" : ""}. The last 12 months, whatever the period above`
             : "Per month, whatever the period above: the baseline to judge the game by"
         }
         action={
@@ -81,7 +81,7 @@ export function SuccessMetrics({ today }: { today: string }) {
           </p>
         ) : (
           <>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 @lg:grid-cols-2">
               {SUCCESS_METRICS.map((metric) => {
                 const value = current?.[metric.key] ?? null;
                 const base = baseline?.[metric.key] ?? null;
@@ -126,8 +126,9 @@ export function SuccessMetrics({ today }: { today: string }) {
               measured against today's team plus anyone who has left since giving that month.
             </p>
             {showTable && (
-              <div className="mt-4 overflow-x-auto">
+              <div className="relative mt-4 overflow-x-auto">
                 <table id="success-table" className="w-full text-left text-sm">
+                  <caption className="sr-only">Game success metrics per month</caption>
                   <thead className="text-xs text-ink/75">
                     <tr>
                       <th className="py-2 pr-4 font-medium">Month</th>

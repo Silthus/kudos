@@ -3,13 +3,13 @@ import type { FunctionReturnType } from "convex/server";
 import { api } from "../../../convex/_generated/api";
 import { MIN_DISTRIBUTION, type ComparePeriod } from "../../../convex/lib/compare";
 import { BENCHMARK_BAND, RangeStrip } from "@/components/charts";
-import { BigNumber, Card, Eyebrow, PageSkeleton } from "@/components/ui";
+import { BigNumber, PageSkeleton } from "@/components/ui";
 import { sharePercent, teamHeadline, teamStat } from "@/lib/compare";
 import { nf, rangeLabel } from "@/lib/format";
 import { useWorkspaceToday } from "@/lib/period";
 import { useStableQuery } from "@/lib/useStableQuery";
 import { useViewer } from "@/lib/viewer";
-import { FAMILY_COLOR, METRIC_META, PERIOD_NOUN, Scoreboard } from "./parts";
+import { FAMILY_COLOR, METRIC_META, PERIOD_NOUN, Reflection, Scoreboard } from "./parts";
 
 type Team = FunctionReturnType<typeof api.compare.team.get>;
 type TeamRow = Team["rows"][number];
@@ -60,61 +60,43 @@ function Headline({ data, given }: { data: Team; given: TeamRow }) {
   const when = data.label.toLowerCase();
   const units = workspace.unitPlural;
   const teammates = (n: number) => `${nf.format(n)} ${n === 1 ? "teammate" : "teammates"}`;
-  const big = "mr-2 text-5xl text-ink [font-variant-numeric:proportional-nums]";
+  const you = given.you.value ?? 0;
   const h = teamHeadline({ value: given.you.value, team: given.team, percentile: given.percentile });
 
-  let headline;
-  switch (h.kind) {
-    case "share":
-      headline = (
-        <>
-          You gave more than <BigNumber value={h.share} className={big} /> of the {teammates(h.teammates)} who gave {units} {when}.
-        </>
-      );
-      break;
-    case "everyone":
-      headline = (
-        <>
-          You gave more than <BigNumber value={`all ${nf.format(h.teammates)}`} className={big} /> teammates who gave {units} {when}.
-        </>
-      );
-      break;
-    case "firstOne":
-      headline = (
-        <>
-          <BigNumber value={h.teammates} className={big} />
-          teammates gave {units} {when}; your first one puts you on the board.
-        </>
-      );
-      break;
-    case "median":
-    case "alone":
-      headline = (
-        <>
-          <BigNumber value={h.you} className={big} />
-          {h.you === 1 ? workspace.unitSingular : units} given {when}
-          {h.kind === "median" && (
-            <span className="ml-3 text-sm">
-              vs a team median of <b className="font-medium text-ink tabular">{teamStat(h.median)}</b> across {teammates(h.teammates)}
-            </span>
-          )}
-        </>
-      );
-  }
-
+  // Where that puts you, in words: the share of the team below you, or the invitation to start.
+  const standing =
+    h.kind === "share"
+      ? `That's more than ${h.share} of the ${teammates(h.teammates)} who gave ${units} ${when}.`
+      : h.kind === "everyone"
+        ? `That's more than all ${teammates(h.teammates)} who gave ${units} ${when}.`
+        : h.kind === "firstOne"
+          ? `${teammates(h.teammates)} gave ${units} ${when}; your first one puts you on the board.`
+          : "";
   const team = given.team;
+  const spread = !team
+    ? `Not enough teammates were active this ${PERIOD_NOUN[data.period]} to compare.`
+    : team.p25 === null || team.p75 === null
+      ? SMALL_TEAM
+      : `Half the team gave between ${teamStat(team.p25)} and ${teamStat(team.p75)}.`;
   return (
-    <Card className="relative overflow-hidden px-6 py-6 sm:px-8">
-      <Eyebrow>{rangeLabel(data.range.start, data.range.end)} · you and the team</Eyebrow>
-      <p className="mt-3 text-lg text-ink/75">{headline}</p>
-      <p className="mt-2 text-sm text-ink/70">
-        {!team
-          ? `Not enough teammates were active this ${PERIOD_NOUN[data.period]} to compare.`
-          : team.p25 === null || team.p75 === null
-            ? SMALL_TEAM
-            : `Half the team gave between ${teamStat(team.p25)} and ${teamStat(team.p75)}; the median is ${teamStat(team.median)}.`}
-      </p>
-    </Card>
+    <Reflection
+      when={`${rangeLabel(data.range.start, data.range.end)}, you and the team`}
+      you={
+        <p>
+          You gave <BigNumber value={you} className="mx-1 text-5xl text-ink [font-variant-numeric:proportional-nums]" /> {you === 1 ? workspace.unitSingular : units} {when}
+        </p>
+      }
+      mirror={
+        team ? (
+          <p>
+            The team's median is <BigNumber value={teamStat(team.median)} className="mx-1 text-3xl [font-variant-numeric:proportional-nums]" /> across {teammates(team.n)}
+          </p>
+        ) : (
+          <p>The team has no median to show yet.</p>
+        )
+      }
+      note={`${standing ? `${standing} ` : ""}${spread}`}
+    />
   );
 }
 
@@ -129,7 +111,7 @@ function Standing({ row }: { row: TeamRow }) {
   return (
     <span className="bg-parchment-deep px-1.5 py-0.5 text-xs text-ink/75 tabular">
       {/* The desktop column header says "You're above"; the phone cards have no header. */}
-      <span className="sm:sr-only">above </span>
+      <span className="@lg:sr-only">above </span>
       {sharePercent(row.percentile)}
     </span>
   );

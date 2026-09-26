@@ -1,10 +1,10 @@
 import type { FunctionReturnType } from "convex/server";
-import { Lock } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { api } from "../../../convex/_generated/api";
 import type { ComparePeriod, Metric } from "../../../convex/lib/compare";
 import { Legend, LineChart, PairedBars } from "@/components/charts";
-import { Card, CardHeader, Empty, Segmented } from "@/components/ui";
+import { Card, CardHeader, Empty, Eyebrow, Segmented } from "@/components/ui";
+import { Padlock } from "@/components/Padlock";
 import { dayLabel, nf } from "@/lib/format";
 import { useViewer } from "@/lib/viewer";
 
@@ -45,9 +45,31 @@ export const formatValue = (n: number | null) => (n === null ? "—" : nf.format
 function LockedCell({ reason }: { reason: Locked }) {
   return (
     <span className="inline-flex items-center gap-1.5 text-xs text-ink/70">
-      <Lock className="h-3 w-3" aria-hidden />
+      <Padlock />
       {LOCKED_COPY[reason]}
     </span>
+  );
+}
+
+/**
+ * The pond's headline: you above the water line, the benchmark mirrored in the water below it
+ * ("You gave 14", and under the surface "Past you gave 9"), with a note underneath.
+ */
+export function Reflection({ when, you, mirror, note }: { when: ReactNode; you: ReactNode; mirror: ReactNode; note?: ReactNode }) {
+  return (
+    <Card data-reflection>
+      <div className="px-5 pb-3 pt-4 @lg:px-6">
+        <Eyebrow>{when}</Eyebrow>
+        <div className="mt-2 text-lg text-ink/75">{you}</div>
+      </div>
+      <div className="relative border-t-2 border-pond bg-pond/15 px-5 pb-4 pt-3 @lg:px-6">
+        {/* Ripples on the water, drawn in pixels. */}
+        <span aria-hidden className="absolute right-6 top-3 block h-0.5 w-6 bg-pond/50" />
+        <span aria-hidden className="absolute right-10 top-5 block h-0.5 w-3 bg-pond/50" />
+        <div className="pr-12 text-lg text-pond-deep">{mirror}</div>
+      </div>
+      {note && <p className="px-5 py-3 text-sm text-ink/70 @lg:px-6">{note}</p>}
+    </Card>
   );
 }
 
@@ -86,7 +108,7 @@ export function Scoreboard<R extends Row>({
   return (
     <Card>
       <CardHeader title="Scoreboard" subtitle={subtitle} />
-      <table className="hidden w-full text-sm sm:table">
+      <table className="hidden w-full text-sm @lg:table">
         <thead>
           <tr className="border-b border-parchment-deep text-left tabular text-[10px] text-ink/70">
             <th className="py-2 pl-5 font-normal">Metric</th>
@@ -121,7 +143,7 @@ export function Scoreboard<R extends Row>({
           ))}
         </tbody>
       </table>
-      <ul className="space-y-2 px-3 pb-3 sm:hidden">
+      <ul className="space-y-2 px-3 pb-3 @lg:hidden">
         {rows.map((r) => (
           <li key={r.metric} className="border border-parchment-deep bg-parchment-deep/50 px-3 py-3">
             <div className="flex items-baseline justify-between gap-3">
@@ -146,8 +168,8 @@ export function Scoreboard<R extends Row>({
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-parchment-deep px-5 py-3">
         <Legend
           items={[
-            { label: "You · giving", color: FAMILY_COLOR.giving },
-            { label: "You · receiving", color: FAMILY_COLOR.receiving },
+            { label: "You, giving", color: FAMILY_COLOR.giving },
+            { label: "You, receiving", color: FAMILY_COLOR.receiving },
             ...(legend ?? [{ label: benchmarkLabel, color: "var(--color-benchmark)" }]),
           ]}
         />
@@ -208,6 +230,7 @@ export function Race({
         action={
           <Segmented
             size="sm"
+            label="Measure"
             value={m}
             onChange={setMeasure}
             options={[
@@ -216,7 +239,7 @@ export function Race({
                 value: "received",
                 label: (
                   <>
-                    {receivedLocked && <Lock className="h-3 w-3" />}Received
+                    {receivedLocked && <Padlock />}Received
                   </>
                 ),
                 disabled: receivedLocked,
@@ -227,15 +250,15 @@ export function Race({
         }
       />
       {empty ? (
-        <Empty icon={glyph} title="Nothing to compare yet">
+        <Empty icon={<span data-user-text>{glyph}</span>} title="Nothing to compare yet">
           {emptyCopy[m]}
         </Empty>
       ) : (
-        <div className="px-3 pb-2 sm:px-5">
-          <div className="hidden sm:block">
+        <div className="px-3 pb-2 @lg:px-5">
+          <div className="hidden @lg:block">
             <LineChart days={days} series={series} height={260} endLabels />
           </div>
-          <div className="sm:hidden">
+          <div className="@lg:hidden">
             <LineChart days={days} series={series} height={200} endLabels />
           </div>
           <div className="mt-2 flex flex-wrap items-center justify-between gap-2 px-1">
