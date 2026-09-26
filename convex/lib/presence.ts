@@ -22,9 +22,19 @@ export const PER_CHUNK = 50;
 export const MAX_SESSIONS = 100;
 /** The online list names at most this many members. */
 export const ONLINE_LIMIT = 200;
-/** How far a client's `now` may be from the server's before it is pulled back (clock skew). */
-export const MAX_SKEW_MS = 30_000;
-/** Heartbeats closer together than this are coalesced: the client sends at most 4 a second. */
+/**
+ * How far behind the server's clock a client's `now` may be (it rounds down to a few seconds, and
+ * clocks drift) before it is pulled forward, so nobody gone for more than ~70 s is ever shown…
+ */
+export const MAX_BEHIND_MS = 10_000;
+/** …and how far ahead (a client ahead only sees less). */
+export const MAX_AHEAD_MS = 30_000;
+/** The online list's position of a hog is refreshed at most this often, so the list isn't re-read at every step. */
+export const ONLINE_BEAT_MS = 15_000;
+/**
+ * Heartbeats closer together than this that change only the position are coalesced: the client
+ * sends at most 4 a second. A new facing or animation always lands, so a stop is never lost.
+ */
 export const MIN_BEAT_MS = 150;
 /** Tiles from the origin a hog may stand at: the desert is endless, numbers aren't. */
 export const WORLD_LIMIT = 1_000_000;
@@ -104,8 +114,9 @@ export function isTile(x: number, y: number): boolean {
 
 /**
  * Whether a heartbeat saves the hog's position to `players.at`: only when it moved since the last
- * save, never within SAVE_EVERY_MS of it, and while walking only every SAVE_WALKING_MS. The player
- * row is read by many queries, so a walking hog doesn't rewrite it every few seconds.
+ * save (`players.atSavedAt`, per member however many devices they walk on), never within
+ * SAVE_EVERY_MS of it, and while walking only every SAVE_WALKING_MS. The player row is read by many
+ * queries and written by every kudos, so a walking hog doesn't rewrite it every few seconds.
  */
 export function shouldSave(p: { at: Tile | undefined; x: number; y: number; walking: boolean; savedAt: number | undefined; now: number }): boolean {
   if (p.at && p.at.x === p.x && p.at.y === p.y) return false;

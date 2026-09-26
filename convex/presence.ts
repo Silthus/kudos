@@ -1,6 +1,6 @@
 import { getAuthSessionId } from "@convex-dev/auth/server";
 import { ConvexError, v } from "convex/values";
-import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
+import { internalMutation, mutation, query, type QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { gameShownTo, playerOf } from "./game";
 import { requireViewer, type Viewer } from "./lib/access";
@@ -12,10 +12,11 @@ import {
   isChunkKey,
   isTile,
   lookValidator,
+  MAX_AHEAD_MS,
+  MAX_BEHIND_MS,
   MAX_CHUNKS,
-  MAX_SESSIONS,
-  MAX_SKEW_MS,
   MIN_BEAT_MS,
+  ONLINE_BEAT_MS,
   ONLINE_LIMIT,
   ONLINE_MS,
   PER_CHUNK,
@@ -25,27 +26,41 @@ import {
   tileValidator,
 } from "./lib/presence";
 import { workspaceNow } from "./lib/time";
+import { isSharedDemo, leaveWorld } from "./lib/world";
 import { titleForLevel } from "./lib/xp";
 
 /**
  * Presence in the shared world (#155, design plan #152 S2). The client sends a heartbeat while its
  * hog is in the world (at most 4 a second while walking, every 20 s standing still); each one
- * upserts the viewer's `worldPresence` row for their sign-in session, and now and then saves where
- * they stand to `players.at` so they reappear there. Other clients read the rows of the chunks
- * around them (`nearby`) and who is online (`online`). Only within the workspace, and only while
- * the game is shown to both: a member who hides the game, or a workspace with the game off, is
- * never in the world and sees nobody in it. Rows older than a minute are offline and never shown;
- * `sweep` deletes them after ten.
+ * upserts the viewer's `worldPresence` row for their sign-in session (every visitor to the shared
+ * demo is the same member, each their own hog), every 15 s its `worldOnline` copy, and now and then
+ * saves where they stand to `players.at` so they reappear there. Other clients read the rows of the
+ * chunks around them (`nearby`) and who is online (`online`). Only within the workspace, and only
+ * while the game is shown to both: a member who hides the game, or a workspace with the game off,
+ * is never in the world and sees nobody in it. Rows older than a minute are offline and never
+ * shown; `sweep` deletes them after ten.
+ *
+ * Every time is on the workspace clock. Queries take the client's `now` rather than reading the
+ * clock (they aren't re-run as time passes); the server's clock only bounds how far back it looks.
  */
 
-/** The viewer's sign-in session: every visitor to the shared demo is the same member, each their own hog. */
+/** The viewer's sign-in session. */
 async function sessionOf(ctx: QueryCtx): Promise<string> {
   return (await getAuthSessionId(ctx)) ?? "";
 }
 
-function ownRow(ctx: QueryCtx, { workspace, member }: Viewer, sessionId: string) {
+/** The viewer's hog in this session. */
+function ownHog(ctx: QueryCtx, { workspace, member }: Viewer, sessionId: string) {
   return ctx.db
     .query("worldPresence")
+    .withIndex("by_workspace_member_session", (q) => q.eq("workspaceId", workspace._id).eq("memberId", member._id).eq("sessionId", sessionId))
+    .unique();
+}
+
+/** The viewer's entry in the online list for this session. */
+function ownListing(ctx: QueryCtx, { workspace, member }: Viewer, sessionId: string) {
+  return ctx.db
+    .query("worldOnline")
     .withIndex("by_workspace_member_session", (q) => q.eq("workspaceId", workspace._id).eq("memberId", member._id).eq("sessionId", sessionId))
     .unique();
 }
@@ -56,36 +71,28 @@ function inWorld({ workspace, member }: Viewer): boolean {
 }
 
 /**
- * The client's "now" on the workspace clock, pulled to within MAX_SKEW_MS of the server's: queries
- * take the time as an argument (they aren't re-run as time passes), but never to look further back.
+ * The oldest time a hog may have been seen and still show: a minute before the client's `now`,
+ * with `now` pulled to within MAX_BEHIND_MS / MAX_AHEAD_MS of the server's workspace clock, so a
+ * crafted `now` never shows anyone gone for more than ~70 s.
  */
-function clampNow(workspace: Doc<"workspaces">, now: number): number {
+function onlineSince(workspace: Doc<"workspaces">, now: number): number {
   const server = workspaceNow(workspace);
-  if (!Number.isFinite(now)) return server;
-  return Math.min(Math.max(now, server - MAX_SKEW_MS), server + MAX_SKEW_MS);
+  const at = Number.isFinite(now) ? Math.min(Math.max(now, server - MAX_BEHIND_MS), server + MAX_AHEAD_MS) : server;
+  return at - ONLINE_MS;
 }
 
-/** A member leaves the world at once, every session of theirs (hiding the game: game.ts `setHidden`). */
-export async function leaveWorld(ctx: MutationCtx, member: Doc<"members">) {
-  const rows = await ctx.db
-    .query("worldPresence")
-    .withIndex("by_workspace_member_session", (q) => q.eq("workspaceId", member.workspaceId).eq("memberId", member._id))
-    .take(MAX_SESSIONS);
-  for (const row of rows) await ctx.db.delete(row._id);
-}
-
-/** How a presence row is shown to others. */
+/** How a hog is shown to others. */
 const hogValidator = v.object({
-  id: v.id("worldPresence"),
+  id: v.id("worldPresence"), // one per member and sign-in session: the key to draw it by
   memberId: v.id("members"),
   name: v.string(),
-  title: v.string(),
+  title: v.string(), // their level title
   x: v.number(),
   y: v.number(),
   facing: facingValidator,
   animation: hogAnimationValidator,
   look: lookValidator,
-  hasHome: v.boolean(),
+  hasHome: v.boolean(), // "Visit their home": homes arrive with #160
   updatedAt: v.number(),
 });
 
@@ -100,35 +107,39 @@ function hogOf(row: Doc<"worldPresence">) {
     facing: row.facing,
     animation: row.animation,
     look: row.look,
-    hasHome: false, // homes arrive with #160
+    hasHome: false,
     updatedAt: row.updatedAt,
   };
 }
 
 /**
- * The viewer's hog is at (x, y), facing and doing this. True when recorded; false (and their hog
- * leaves the world) when the game is off or hidden for them. One presence write per call; where they
- * stand is also saved to `players.at` when `shouldSave` says so.
+ * The viewer's hog is at (x, y), facing and doing this. "ok" when recorded; "notShown" when the game
+ * is off or hidden for them (stop beating until it's shown again), "resetting" while the shared demo
+ * resets (keep beating slowly): either way their hog leaves the world. One presence write per call;
+ * every 15 s its online copy, and where they stand is saved to `players.at` when `shouldSave` says so.
  */
 export const heartbeat = mutation({
   args: { x: v.number(), y: v.number(), facing: facingValidator, animation: hogAnimationValidator },
-  returns: v.boolean(),
+  returns: v.union(v.literal("ok"), v.literal("notShown"), v.literal("resetting")),
   handler: async (ctx, { x, y, facing, animation }) => {
     const viewer = await requireViewer(ctx);
     const { workspace, member } = viewer;
     const sessionId = await sessionOf(ctx);
-    const row = await ownRow(ctx, viewer, sessionId);
     if (!inWorld(viewer)) {
-      if (row) await ctx.db.delete(row._id);
-      return false;
+      await leaveWorld(ctx, workspace, member._id, sessionId);
+      return gameShownTo(workspace, member) ? "resetting" : "notShown";
     }
     if (!isTile(x, y)) throw new ConvexError("That tile is outside the world.");
     const now = workspaceNow(workspace);
-    if (row && now - row.updatedAt < MIN_BEAT_MS && row.x === x && row.y === y && row.facing === facing && row.animation === animation) return true;
+    const row = await ownHog(ctx, viewer, sessionId);
+    if (row && now - row.updatedAt < MIN_BEAT_MS && row.facing === facing && row.animation === animation) return "ok";
+
     const player = await playerOf(ctx, member._id);
-    const save = player !== null && shouldSave({ at: player.at, x, y, walking: animation === "walk", savedAt: row?.savedAt, now });
-    if (save) await ctx.db.patch(player._id, { at: { x, y } });
-    const fields = {
+    // The shared demo's visitors are one member: a saved spot would be wherever another visitor left.
+    if (player && !isSharedDemo(workspace) && shouldSave({ at: player.at, x, y, walking: animation === "walk", savedAt: player.atSavedAt, now })) {
+      await ctx.db.patch(player._id, { at: { x, y }, atSavedAt: now });
+    }
+    const hog = {
       x,
       y,
       chunk: chunkKey(x, y),
@@ -138,11 +149,15 @@ export const heartbeat = mutation({
       title: titleForLevel(player?.level ?? 1),
       look: player?.look ?? DEFAULT_LOOK,
       updatedAt: now,
-      ...(save ? { savedAt: now } : {}),
     };
-    if (row) await ctx.db.patch(row._id, fields);
-    else await ctx.db.insert("worldPresence", { workspaceId: workspace._id, memberId: member._id, sessionId, ...fields });
-    return true;
+    if (row) await ctx.db.patch(row._id, hog);
+    else await ctx.db.insert("worldPresence", { workspaceId: workspace._id, memberId: member._id, sessionId, ...hog });
+
+    const listed = await ownListing(ctx, viewer, sessionId);
+    const entry = { name: member.name, x, y, seenAt: now };
+    if (!listed) await ctx.db.insert("worldOnline", { workspaceId: workspace._id, memberId: member._id, sessionId, ...entry });
+    else if (now - listed.seenAt >= ONLINE_BEAT_MS || listed.name !== member.name) await ctx.db.patch(listed._id, entry);
+    return "ok";
   },
 });
 
@@ -159,15 +174,18 @@ export const mine = query({
     const viewer = await requireViewer(ctx);
     if (!inWorld(viewer)) return null;
     const player = await playerOf(ctx, viewer.member._id);
-    const row = await ownRow(ctx, viewer, await sessionOf(ctx));
     // This session's hog (kept up to ten minutes after it stopped beating) is where a reload left it,
     // even mid-walk, before `players.at` caught up.
+    const row = await ownHog(ctx, viewer, await sessionOf(ctx));
     const at = row ? { x: row.x, y: row.y } : (player?.at ?? null);
     return { at, look: player?.look ?? DEFAULT_LOOK };
   },
 });
 
-/** Your hog's look (the cabin): a Hedgehog Mode colour filter and accessory, or none. Worn at once. */
+/**
+ * Your hog's look (the cabin): a Hedgehog Mode colour filter and accessory, or none. Worn at once
+ * here; your other sessions put it on with their next heartbeat.
+ */
 export const setLook = mutation({
   args: lookValidator.fields,
   returns: v.null(),
@@ -177,19 +195,18 @@ export const setLook = mutation({
     const player = await playerOf(ctx, viewer.member._id);
     if (!player) throw new ConvexError("Your hog's look opens with your first kudos.");
     await ctx.db.patch(player._id, { look });
-    const rows = await ctx.db
-      .query("worldPresence")
-      .withIndex("by_workspace_member_session", (q) => q.eq("workspaceId", viewer.workspace._id).eq("memberId", viewer.member._id))
-      .take(MAX_SESSIONS);
-    for (const row of rows) await ctx.db.patch(row._id, { look });
+    const row = await ownHog(ctx, viewer, await sessionOf(ctx));
+    if (row) await ctx.db.patch(row._id, { look });
     return null;
   },
 });
 
 /**
  * Who is in the world now (the HUD's online list): every member seen in the last minute before `now`
- * (the client's workspace-clock time, as for `nearby`), once each at their freshest position, the
- * most recently seen first, at most 200; the viewer too (`you`). Never anyone offline.
+ * (the client's workspace-clock time, as for `nearby`), once each at where they were within the last
+ * 15 s, the most recently seen first, at most 200; the viewer too (`you`). In the shared demo every
+ * visitor is listed (they're all the demo user); `you` is only the viewer's own session. Never anyone
+ * offline.
  */
 export const online = query({
   args: { now: v.number() },
@@ -200,17 +217,20 @@ export const online = query({
   handler: async (ctx, args) => {
     const viewer = await requireViewer(ctx);
     if (!inWorld(viewer)) return { count: 0, players: [] };
-    const since = clampNow(viewer.workspace, args.now) - ONLINE_MS;
+    const bySession = isSharedDemo(viewer.workspace);
+    const sessionId = await sessionOf(ctx);
     const rows = await ctx.db
-      .query("worldPresence")
-      .withIndex("by_workspace_updatedAt", (q) => q.eq("workspaceId", viewer.workspace._id).gte("updatedAt", since))
+      .query("worldOnline")
+      .withIndex("by_workspace_seenAt", (q) => q.eq("workspaceId", viewer.workspace._id).gte("seenAt", onlineSince(viewer.workspace, args.now)))
       .order("desc")
-      // Sessions of one member (demo visitors, a second tab) collapse into one name.
+      // A member's sessions (a second tab) collapse into one name.
       .take(2 * ONLINE_LIMIT);
-    const seen = new Map<Id<"members">, { memberId: Id<"members">; name: string; x: number; y: number; you: boolean }>();
+    const seen = new Map<string, { memberId: Id<"members">; name: string; x: number; y: number; you: boolean }>();
     for (const row of rows) {
       if (seen.size === ONLINE_LIMIT) break;
-      if (!seen.has(row.memberId)) seen.set(row.memberId, { memberId: row.memberId, name: row.name, x: row.x, y: row.y, you: row.memberId === viewer.member._id });
+      const key = bySession ? `${row.memberId}|${row.sessionId}` : row.memberId;
+      const you = row.memberId === viewer.member._id && (!bySession || row.sessionId === sessionId);
+      if (!seen.has(key)) seen.set(key, { memberId: row.memberId, name: row.name, x: row.x, y: row.y, you });
     }
     const players = [...seen.values()];
     return { count: players.length, players };
@@ -218,41 +238,23 @@ export const online = query({
 });
 
 /**
- * The cron (crons.ts): deletes rows not updated for ten minutes, at most 1,500 a run, and returns
- * how many. Across every workspace, so it compares with the wall clock: a simulator's rows (its
- * clock runs ahead) stay a little longer, and go with the simulator's wipe at the latest.
- */
-export const sweep = internalMutation({
-  args: {},
-  returns: v.number(),
-  handler: async (ctx) => {
-    const rows = await ctx.db
-      .query("worldPresence")
-      .withIndex("by_updatedAt", (q) => q.lt("updatedAt", Date.now() - SWEEP_AFTER_MS))
-      .take(SWEEP_BATCH);
-    for (const row of rows) await ctx.db.delete(row._id);
-    return rows.length;
-  },
-});
-
-/**
  * The hogs online in these chunks ("cx:cy", lib/presence.ts `chunksAround`: at most 9), at most 50
- * a chunk, the viewer's own hog left out. `now` is the client's workspace-clock time (round it to a
- * few seconds so the subscription is shared); rows older than a minute before it are offline.
+ * a chunk, the viewer's own hog (this session) left out. `now` is the client's workspace-clock time:
+ * round it down to a few seconds so the subscription changes rarely; rows seen more than a minute
+ * before it are offline.
  */
 export const nearby = query({
   args: { chunks: v.array(v.string()), now: v.number() },
   returns: v.array(hogValidator),
   handler: async (ctx, args) => {
     const viewer = await requireViewer(ctx);
-    const chunks = [...new Set(args.chunks)];
-    if (chunks.length > MAX_CHUNKS) throw new ConvexError(`At most ${MAX_CHUNKS} chunks at a time.`);
-    if (!chunks.every(isChunkKey)) throw new ConvexError("A chunk is \"cx:cy\".");
+    if (args.chunks.length > MAX_CHUNKS) throw new ConvexError(`At most ${MAX_CHUNKS} chunks at a time.`);
+    if (!args.chunks.every(isChunkKey)) throw new ConvexError('A chunk is "cx:cy".');
     if (!inWorld(viewer)) return [];
-    const since = clampNow(viewer.workspace, args.now) - ONLINE_MS;
+    const since = onlineSince(viewer.workspace, args.now);
     const sessionId = await sessionOf(ctx);
     const hogs = [];
-    for (const chunk of chunks) {
+    for (const chunk of new Set(args.chunks)) {
       const rows = await ctx.db
         .query("worldPresence")
         .withIndex("by_workspace_chunk_updatedAt", (q) => q.eq("workspaceId", viewer.workspace._id).eq("chunk", chunk).gte("updatedAt", since))
@@ -264,3 +266,23 @@ export const nearby = query({
   },
 });
 
+/**
+ * The cron (crons.ts): deletes hogs not seen for ten minutes, at most 1,500 rows a run, and returns
+ * how many. Across every workspace, so it compares with the wall clock: a simulator's rows (its
+ * clock runs ahead) stay a little longer, and go with the simulator's wipe at the latest.
+ */
+export const sweep = internalMutation({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    const before = Date.now() - SWEEP_AFTER_MS;
+    const hogs = await ctx.db
+      .query("worldPresence")
+      .withIndex("by_updatedAt", (q) => q.lt("updatedAt", before))
+      .take(SWEEP_BATCH);
+    const room = SWEEP_BATCH - hogs.length;
+    const listed = room > 0 ? await ctx.db.query("worldOnline").withIndex("by_seenAt", (q) => q.lt("seenAt", before)).take(room) : [];
+    for (const row of [...hogs, ...listed]) await ctx.db.delete(row._id);
+    return hogs.length + listed.length;
+  },
+});

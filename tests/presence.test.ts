@@ -37,7 +37,7 @@ describe("heartbeat and nearby", () => {
   test("a heartbeat puts your hog in the world, where a teammate nearby sees it", async () => {
     const ana = await session(team.ana);
     const ben = await session(team.ben);
-    expect(await ana.mutation(api.presence.heartbeat, { x: 3, y: 4, ...walk })).toBe(true);
+    expect(await ana.mutation(api.presence.heartbeat, { x: 3, y: 4, ...walk })).toBe("ok");
 
     const seen = await ben.query(api.presence.nearby, { chunks: ["0:0"], now: Date.now() });
     expect(seen).toEqual([
@@ -77,6 +77,15 @@ describe("who is shown", () => {
     await ana.mutation(api.presence.heartbeat, { x: 1, y: 1, ...walk });
     advance(5 * 60_000);
     expect(await ben.query(api.presence.nearby, { chunks: ["0:0"], now: Date.now() - 5 * 60_000 })).toEqual([]);
+  });
+
+  test("a client running 30 s behind still sees nobody gone for more than about a minute", async () => {
+    const ana = await session(team.ana);
+    const ben = await session(team.ben);
+    await ana.mutation(api.presence.heartbeat, { x: 1, y: 1, ...walk });
+    advance(75_000);
+    expect(await ben.query(api.presence.nearby, { chunks: ["0:0"], now: Date.now() - 30_000 })).toEqual([]);
+    expect(await ben.query(api.presence.online, { now: Date.now() - 30_000 })).toMatchObject({ count: 0 });
   });
 
   test("only the chunks asked for, and never your own hog", async () => {
@@ -123,7 +132,7 @@ describe("only while the game is shown", () => {
   test("a heartbeat is refused while the game is off, and nobody is seen", async () => {
     await t.run((ctx) => ctx.db.patch(team.workspaceId, { gameEnabled: false }));
     const ana = await session(team.ana);
-    expect(await ana.mutation(api.presence.heartbeat, { x: 1, y: 1, ...walk })).toBe(false);
+    expect(await ana.mutation(api.presence.heartbeat, { x: 1, y: 1, ...walk })).toBe("notShown");
     expect(await t.run((ctx) => ctx.db.query("worldPresence").collect())).toEqual([]);
   });
 
@@ -135,7 +144,7 @@ describe("only while the game is shown", () => {
     await ana.mutation(api.game.setHidden, { hidden: true });
     expect(await ana.query(api.presence.nearby, { chunks: ["0:0"], now: Date.now() })).toEqual([]);
     expect(await ben.query(api.presence.nearby, { chunks: ["0:0"], now: Date.now() })).toEqual([]);
-    expect(await ana.mutation(api.presence.heartbeat, { x: 1, y: 1, ...walk })).toBe(false);
+    expect(await ana.mutation(api.presence.heartbeat, { x: 1, y: 1, ...walk })).toBe("notShown");
   });
 
   test("a switched-off game shows nobody, even rows from before", async () => {
@@ -190,9 +199,22 @@ describe("where you left", () => {
     expect(await at()).toEqual({ x: 21, y: 0 });
   });
 
+  test("a member on two devices is saved at the same pace as on one", async () => {
+    await makePlayer(team.ana);
+    const laptop = await session(team.ana, "laptop");
+    const phone = await session(team.ana, "phone");
+    await laptop.mutation(api.presence.heartbeat, { x: 1, y: 1, ...stand });
+    advance(5_000);
+    await phone.mutation(api.presence.heartbeat, { x: 2, y: 2, ...stand });
+    expect(await at()).toEqual({ x: 1, y: 1 });
+    advance(5_000);
+    await phone.mutation(api.presence.heartbeat, { x: 3, y: 3, ...stand });
+    expect(await at()).toEqual({ x: 3, y: 3 });
+  });
+
   test("members who haven't played yet walk too, and nothing is saved for them", async () => {
     const ana = await session(team.ana);
-    expect(await ana.mutation(api.presence.heartbeat, { x: 1, y: 1, ...stand })).toBe(true);
+    expect(await ana.mutation(api.presence.heartbeat, { x: 1, y: 1, ...stand })).toBe("ok");
     expect(await t.run((ctx) => ctx.db.query("players").collect())).toEqual([]);
   });
 });
@@ -274,6 +296,18 @@ describe("who is online", () => {
     ]);
   });
 
+  test("where someone is in the list moves in 15 s steps: the list isn't redrawn at every step they take", async () => {
+    const ana = await session(team.ana);
+    const ben = await session(team.ben);
+    await ana.mutation(api.presence.heartbeat, { x: 1, y: 1, ...walk });
+    advance(5_000);
+    await ana.mutation(api.presence.heartbeat, { x: 9, y: 9, ...walk });
+    expect((await ben.query(api.presence.online, { now: Date.now() })).players).toMatchObject([{ name: "Ana", x: 1, y: 1 }]);
+    advance(10_000);
+    await ana.mutation(api.presence.heartbeat, { x: 10, y: 10, ...walk });
+    expect((await ben.query(api.presence.online, { now: Date.now() })).players).toMatchObject([{ name: "Ana", x: 10, y: 10 }]);
+  });
+
   test("nobody while the game is hidden for the viewer", async () => {
     const ana = await session(team.ana);
     const ben = await session(team.ben);
@@ -286,7 +320,7 @@ describe("who is online", () => {
     await t.run(async (ctx) => {
       for (let i = 0; i < 210; i++) {
         const memberId = await ctx.db.insert("members", { workspaceId: team.workspaceId, slackUserId: `U${i}`, name: `M${i}`, isAdmin: false, isBot: false, deactivated: false, totalGiven: 0, totalReceived: 0, totalMaxedDays: 0 });
-        await ctx.db.insert("worldPresence", { workspaceId: team.workspaceId, memberId, sessionId: "x", x: 1, y: 1, chunk: "0:0", facing: "left", animation: "idle", name: `M${i}`, title: "Seedling", look: { color: null, accessory: null }, updatedAt: Date.now() });
+        await ctx.db.insert("worldOnline", { workspaceId: team.workspaceId, memberId, sessionId: "x", name: `M${i}`, x: 1, y: 1, seenAt: Date.now() });
       }
     });
     const ben = await session(team.ben);
@@ -309,7 +343,7 @@ describe("sweeping", () => {
     const ben = await session(team.ben);
     await ben.mutation(api.presence.heartbeat, { x: 1, y: 1, ...walk });
     advance(60_001);
-    expect(await t.mutation(internal.presence.sweep, {})).toBe(1);
+    expect(await t.mutation(internal.presence.sweep, {})).toBe(2); // her hog and its online copy
     expect((await t.run((ctx) => ctx.db.query("worldPresence").collect())).map((r) => r.memberId)).toEqual([team.ben]);
   });
 
@@ -376,10 +410,42 @@ describe("demo and simulator", () => {
     expect((await t.run((ctx) => ctx.db.query("worldPresence").collect())).every((r) => r.workspaceId === sharedDemo)).toBe(true);
   });
 
+  test("every demo visitor is their own hog in the online list, and only their own is 'you'", async () => {
+    await visitor("b").mutation(api.presence.heartbeat, { x: 2, y: 2, ...walk });
+    await visitor("c").mutation(api.presence.heartbeat, { x: 3, y: 3, ...walk });
+    const online = await visitor("b").query(api.presence.online, { now: Date.now() });
+    expect(online.count).toBe(2);
+    expect(online.players.map((p) => [p.name, p.x, p.you])).toEqual([
+      ["Alex Rivera", 3, false],
+      ["Alex Rivera", 2, true],
+    ]);
+  });
+
+  test("the shared demo never saves where its visitors stand: they'd appear where another visitor left", async () => {
+    const alex = await t.run(async (ctx) => (await ctx.db.query("members").withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", sharedDemo).eq("slackUserId", "UDEMOYOU")).unique())!._id);
+    await t.run((ctx) => ctx.db.insert("players", { workspaceId: sharedDemo, memberId: alex, since: Date.now(), xp: 0, level: 9 }));
+    await visitor("b").mutation(api.presence.heartbeat, { x: 2, y: 2, facing: "left", animation: "idle" });
+    expect((await t.run((ctx) => ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", alex)).unique()))!.at).toBeUndefined();
+    expect(await visitor("b").query(api.presence.mine, {})).toMatchObject({ at: { x: 2, y: 2 } });
+    expect(await visitor("c").query(api.presence.mine, {})).toMatchObject({ at: null });
+  });
+
+  test("hiding the game in the shared demo takes every visitor's hog out as it next beats", async () => {
+    await visitor("b").mutation(api.presence.heartbeat, { x: 2, y: 2, ...walk });
+    await visitor("c").mutation(api.presence.heartbeat, { x: 3, y: 3, ...walk });
+    await visitor("b").mutation(api.game.setHidden, { hidden: true });
+    expect(await visitor("c").mutation(api.presence.heartbeat, { x: 3, y: 3, ...walk })).toBe("notShown");
+    expect(await t.run((ctx) => ctx.db.query("worldPresence").collect())).toEqual([]);
+  });
+
   test("the demo's reset wipes the world, and no hog walks in while it runs", async () => {
     await visitor("b").mutation(api.presence.heartbeat, { x: 2, y: 2, ...walk });
+    await visitor("d").mutation(api.presence.heartbeat, { x: 4, y: 4, ...walk });
     await t.run((ctx) => ctx.db.patch(sharedDemo, { resettingSince: Date.now() }));
-    expect(await visitor("c").mutation(api.presence.heartbeat, { x: 2, y: 2, ...walk })).toBe(false);
+    expect(await visitor("c").mutation(api.presence.heartbeat, { x: 2, y: 2, ...walk })).toBe("resetting");
+    // A hog already there leaves as it next beats.
+    expect(await visitor("d").mutation(api.presence.heartbeat, { x: 4, y: 4, ...walk })).toBe("resetting");
+    expect((await t.run((ctx) => ctx.db.query("worldPresence").collect())).map((r) => r.x)).toEqual([2]);
     const members = await t.run((ctx) => ctx.db.query("members").collect());
     while ((await t.run((ctx) => wipeActivity(ctx, sharedDemo, members.filter((m) => m.workspaceId === sharedDemo)))) > 0);
     expect(await t.run((ctx) => ctx.db.query("worldPresence").collect())).toEqual([]);
@@ -397,12 +463,21 @@ describe("heartbeats racing", () => {
   test("beats closer together than the client sends them are coalesced", async () => {
     const ana = await session(team.ana);
     await ana.mutation(api.presence.heartbeat, { x: 1, y: 1, ...walk });
-    const first = (await t.run((ctx) => ctx.db.query("worldPresence").unique()))!;
+    const row = async () => (await t.run((ctx) => ctx.db.query("worldPresence").unique()))!;
+    const first = await row();
     advance(50);
     await ana.mutation(api.presence.heartbeat, { x: 1, y: 1, ...walk });
-    expect((await t.run((ctx) => ctx.db.query("worldPresence").unique()))!.updatedAt).toBe(first.updatedAt);
+    expect((await row()).updatedAt).toBe(first.updatedAt);
+    // Only a new position, too soon: a client beating faster than it should gets nowhere faster.
     advance(50);
     await ana.mutation(api.presence.heartbeat, { x: 2, y: 1, ...walk });
-    expect(await t.run((ctx) => ctx.db.query("worldPresence").unique())).toMatchObject({ x: 2 });
+    expect(await row()).toMatchObject({ x: 1, updatedAt: first.updatedAt });
+    // Stopping (a new animation) always lands, so the hog is never left walking.
+    advance(10);
+    await ana.mutation(api.presence.heartbeat, { x: 2, y: 1, facing: "right", animation: "idle" });
+    expect(await row()).toMatchObject({ x: 2, animation: "idle" });
+    advance(200);
+    await ana.mutation(api.presence.heartbeat, { x: 3, y: 1, ...walk });
+    expect(await row()).toMatchObject({ x: 3 });
   });
 });

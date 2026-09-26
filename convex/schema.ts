@@ -491,6 +491,7 @@ export default defineSchema({
     spreeCoins: v.optional(v.number()), // Hog coins kudos sprees paid (#94, sprees.ts), part of `coins`; undefined = 0
     // Where they last stood in the shared world (#155, presence.ts): they reappear there. Undefined: the base camp.
     at: v.optional(tileValidator),
+    atSavedAt: v.optional(v.number()), // when `at` was last saved (workspace clock): lib/presence.ts `shouldSave`
     // Their hog's look in the world (#155, lib/presence.ts): a Hedgehog Mode colour filter and accessory. Undefined: the default.
     look: v.optional(lookValidator),
   }).index("by_member", ["memberId"]),
@@ -865,12 +866,27 @@ export default defineSchema({
     title: v.string(), // their level title
     look: lookValidator,
     updatedAt: v.number(),
-    savedAt: v.optional(v.number()), // when this session last saved `players.at`
   })
     .index("by_workspace_chunk_updatedAt", ["workspaceId", "chunk", "updatedAt"])
     .index("by_workspace_updatedAt", ["workspaceId", "updatedAt"])
     .index("by_workspace_member_session", ["workspaceId", "memberId", "sessionId"])
     .index("by_updatedAt", ["updatedAt"]),
+
+  // The online list's copy of each hog (#155, presence.ts `online`), refreshed at most every 15 s
+  // (`seenAt`, workspace clock) so the list isn't re-read at every step anyone takes. Swept, wiped
+  // and removed with `worldPresence`.
+  worldOnline: defineTable({
+    workspaceId: v.id("workspaces"),
+    memberId: v.id("members"),
+    sessionId: v.string(),
+    name: v.string(),
+    x: v.number(),
+    y: v.number(),
+    seenAt: v.number(),
+  })
+    .index("by_workspace_seenAt", ["workspaceId", "seenAt"])
+    .index("by_workspace_member_session", ["workspaceId", "memberId", "sessionId"])
+    .index("by_seenAt", ["seenAt"]),
 
   slackEvents: defineTable({
     eventId: v.string(),

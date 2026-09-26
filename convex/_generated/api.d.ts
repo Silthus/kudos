@@ -64,6 +64,7 @@ import type * as lib_stats from "../lib/stats.js";
 import type * as lib_store from "../lib/store.js";
 import type * as lib_success from "../lib/success.js";
 import type * as lib_time from "../lib/time.js";
+import type * as lib_world from "../lib/world.js";
 import type * as lib_xp from "../lib/xp.js";
 import type * as life from "../life.js";
 import type * as me from "../me.js";
@@ -144,6 +145,7 @@ declare const fullApi: ApiFromModules<{
   "lib/store": typeof lib_store;
   "lib/success": typeof lib_success;
   "lib/time": typeof lib_time;
+  "lib/world": typeof lib_world;
   "lib/xp": typeof lib_xp;
   life: typeof life;
   me: typeof me;
