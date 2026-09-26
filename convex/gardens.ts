@@ -32,7 +32,7 @@ import {
 } from "./lib/garden";
 import { hasNote, RECIPROCAL_WINDOW_MS, weekKeyOfDay } from "./lib/quests";
 import { hasSkill, type Allocation } from "./lib/skills";
-import { addDays, dayKeyFor, parseToday, startOfDayUtc } from "./lib/time";
+import { addDays, dayKeyFor, parseToday, startOfDayUtc, workspaceNow } from "./lib/time";
 import { goldenLeaves } from "./superKudos";
 import { ALL_BUCKET } from "./lib/buckets";
 
@@ -319,7 +319,7 @@ export const plant = mutation({
     if (!teammate || teammate.workspaceId !== workspace._id || teammate._id === member._id || teammate.isBot || teammate.deactivated) {
       throw new ConvexError("You can grow a plant for a teammate you've thanked.");
     }
-    const now = Date.now();
+    const now = workspaceNow(workspace);
     const growing = await livingPlants(ctx, member._id);
     if (growing.some((g) => g.plant.forId === teammateId)) throw new ConvexError(`You're already growing a plant for ${teammate.name}.`);
     const used = growing.filter((g) => !leftFor(g.teammate)).length;
@@ -463,7 +463,7 @@ export const of = query({
     if (!gameShownTo(workspace, member)) return null;
     const owner = await ctx.db.get(args.memberId);
     if (!owner || owner.workspaceId !== workspace._id || owner.isBot || !gameShownTo(workspace, owner) || owner.deactivated) return null;
-    const today = dayKeyFor(Date.now(), workspace.timezone);
+    const today = dayKeyFor(workspaceNow(workspace), workspace.timezone);
     const skills = skillsOf(await playerOf(ctx, owner._id));
     const plants = [];
     for (const { plant } of await livingPlants(ctx, owner._id)) {
@@ -595,7 +595,9 @@ async function announceGrowth(ctx: MutationCtx, workspace: Doc<"workspaces">, pl
   // One look per day it's due, however many kudos came in meanwhile.
   if (state.nextOn !== null && state.nextOn > today && state.nextOn !== plant.checkOn) {
     await ctx.db.patch(plant._id, { checkOn: state.nextOn });
-    await ctx.scheduler.runAt(startOfDayUtc(state.nextOn, workspace.timezone) + 60_000, internal.gardens.checkGrowth, { plantId: plant._id });
+    // On the workspace clock (lib/time.ts workspaceNow): the look is due that far from `now`.
+    const due = startOfDayUtc(state.nextOn, workspace.timezone) + 60_000;
+    await ctx.scheduler.runAfter(Math.max(0, due - now), internal.gardens.checkGrowth, { plantId: plant._id });
   }
 }
 
@@ -622,7 +624,7 @@ export const checkGrowth = internalMutation({
     const plant = await ctx.db.get(plantId);
     const workspace = plant && (await ctx.db.get(plant.workspaceId));
     if (!plant || !workspace || !gameOn(workspace)) return null;
-    await sendingGains(ctx, workspace, (gains) => announceGrowth(ctx, workspace, plant, Date.now(), gains));
+    await sendingGains(ctx, workspace, (gains) => announceGrowth(ctx, workspace, plant, workspaceNow(workspace), gains));
     return null;
   },
 });
@@ -647,7 +649,7 @@ export const pick = mutation({
     const { workspace, member } = await requireViewer(ctx);
     const player = await requireGardener(ctx, workspace, member);
     const skills = skillsOf(player);
-    const now = Date.now();
+    const now = workspaceNow(workspace);
     const today = dayKeyFor(now, workspace.timezone);
     const plants = [];
     for (const { plant, teammate } of await livingPlants(ctx, member._id)) {
@@ -680,7 +682,7 @@ export const pick = mutation({
  * someone removed from the workspace (removal.ts). Its plot is free again.
  */
 export async function rememberPlant(ctx: MutationCtx, workspace: Doc<"workspaces">, plant: Plant, reason: "uprooted" | "left") {
-  const now = Date.now();
+  const now = workspaceNow(workspace);
   const skills = skillsOf(await playerOf(ctx, plant.ownerId));
   const { state } = await stateOf(ctx, workspace, plant, skills, dayKeyFor(now, workspace.timezone));
   await ctx.db.patch(plant._id, { memoryAt: now, memoryReason: reason, memoryStage: state.stage.index });
@@ -719,7 +721,7 @@ export const useSunlamp = mutation({
       throw new ConvexError("That plant isn't growing in your garden.");
     }
     if ((player.sunlamps ?? 0) <= 0) throw new ConvexError("You have no Sunlamp. They're in the Store.");
-    const now = Date.now();
+    const now = workspaceNow(workspace);
     const today = dayKeyFor(now, workspace.timezone);
     const { sunlamp, state } = await stateOf(ctx, workspace, plant, skillsOf(player), today);
     if (!sunlamp) {
@@ -759,7 +761,7 @@ export const hangLantern = mutation({
     const note = lanternNote(args.note);
     if (note === null) throw new ConvexError(`Write a note of one line, ${LANTERN.maxChars} characters at most.`);
     if (!player || (player.lanterns ?? 0) <= 0) throw new ConvexError("You have no Lantern. They're in the Store.");
-    const now = Date.now();
+    const now = workspaceNow(workspace);
     const today = dayKeyFor(now, workspace.timezone);
     if (lanternLit(plant.lantern, today)) throw new ConvexError("A lantern glows on this plant already. It goes out after 7 days.");
     if (plant.lanternQuietUntil !== undefined && plant.lanternQuietUntil > today) {
@@ -782,11 +784,11 @@ export const takeDownLantern = mutation({
     const { workspace, member } = await requireViewer(ctx);
     const plant = await ctx.db.get(plantId);
     if (!plant || !mayTakeDown(plant, member)) throw new ConvexError("You can't take that lantern down.");
-    const lit = lanternLit(plant.lantern, dayKeyFor(Date.now(), workspace.timezone));
+    const lit = lanternLit(plant.lantern, dayKeyFor(workspaceNow(workspace), workspace.timezone));
     await ctx.db.patch(plantId, {
       lantern: undefined,
       lanternBy: undefined,
-      ...(lit ? { lanternQuietUntil: addDays(dayKeyFor(Date.now(), workspace.timezone), LANTERN.days) } : {}),
+      ...(lit ? { lanternQuietUntil: addDays(dayKeyFor(workspaceNow(workspace), workspace.timezone), LANTERN.days) } : {}),
     });
     return null;
   },

@@ -44,6 +44,8 @@ export const viewer = query({
         name: workspace.name,
         iconUrl: workspace.iconUrl,
         isDemo: workspace.isDemo,
+        // The workspace clock (lib/time.ts workspaceNow): the web client adds it to compute today (src/lib/period.ts).
+        clockOffsetMs: workspace.clockOffsetMs ?? 0,
         ...publicSettings(workspace),
         // The Store is the place to spend Hog coins, so it appears with the wallet (level 3),
         // visible but locked until level 5 (§G1); never while the game is off or hidden.

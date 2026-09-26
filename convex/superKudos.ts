@@ -19,7 +19,7 @@ import {
 import { monthOf } from "./lib/items";
 import { escapeMrkdwn } from "./lib/slack";
 import { hasSkill } from "./lib/skills";
-import { dayKeyFor, parseToday } from "./lib/time";
+import { dayKeyFor, parseToday, workspaceNow } from "./lib/time";
 import { gameShownTo, playerOf, skillsOf } from "./game";
 
 /**
@@ -168,10 +168,10 @@ export const seen = mutation({
   args: { id: v.id("superKudos") },
   returns: v.null(),
   handler: async (ctx, { id }) => {
-    const { member } = await requireViewer(ctx);
+    const { workspace, member } = await requireViewer(ctx);
     const row = await ctx.db.get(id);
     if (!row || row.receiverId !== member._id) throw new ConvexError("Not found.");
-    if (row.seenAt === undefined) await ctx.db.patch(id, { seenAt: Date.now() });
+    if (row.seenAt === undefined) await ctx.db.patch(id, { seenAt: workspaceNow(workspace) });
     return null;
   },
 });

@@ -5,7 +5,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import type { earningsValidator } from "./schema";
 import { gardenSummary } from "./gardens";
 import { requireViewer } from "./lib/access";
-import { dayKeyFor } from "./lib/time";
+import { dayKeyFor, workspaceNow } from "./lib/time";
 import type { Gains } from "./gains";
 import { coinBalance, lineCoins, WALLET_LEVEL } from "./lib/coins";
 import { DAILY_QUEST_BY_KEY, dailyQuestKey, hasNote, isDailyQuestKey, RECIPROCAL_WINDOW_MS, weekKeyOfDay } from "./lib/quests";
@@ -726,7 +726,7 @@ export async function gameView(ctx: QueryCtx, workspace: Doc<"workspaces">, memb
     fraction: progress.fraction,
     coins: progress.level >= WALLET_LEVEL ? coinBalance(player, member).balance : null,
     // Read by App Home and `/kudos level`, which run from Slack actions: today is the workspace's.
-    garden: await gardenSummary(ctx, workspace, player, dayKeyFor(Date.now(), workspace.timezone)),
+    garden: await gardenSummary(ctx, workspace, player, dayKeyFor(workspaceNow(workspace), workspace.timezone)),
     locked: locked.length > 0 ? { level: locked[0].level, areas: locked.map((a) => a.title) } : null,
     dailyQuest: await dailyQuestView(ctx, workspace, member, progress.level, dayKeyFor(now, workspace.timezone)),
   };

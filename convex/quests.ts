@@ -34,7 +34,7 @@ import {
   weekKeyFor,
   weekKeyOfDay,
 } from "./lib/quests";
-import { addDays, DAY_MS, dayKeyFor, parseToday, startOfDayUtc } from "./lib/time";
+import { addDays, DAY_MS, dayKeyFor, parseToday, startOfDayUtc, workspaceNow } from "./lib/time";
 import { QUEST_REWARDS, type QuestScope, QUESTS_LEVEL } from "./lib/xp";
 
 /** Enough for any week at any sane daily limit; the member's own activity bounds it. */
@@ -473,7 +473,7 @@ export async function onKudosRevoked(ctx: MutationCtx, workspace: Doc<"workspace
   };
   const rowWeek = weekKeyOfDay(row.dayKey);
   let rowWeekFacts: QuestFacts | null = null;
-  for (const weekKey of new Set([rowWeek, weekKeyFor(Date.now(), tz)])) {
+  for (const weekKey of new Set([rowWeek, weekKeyFor(workspaceNow(workspace), tz)])) {
     const completions = await completionsFor(ctx, giver._id, weekKey);
     if (completions.length === 0) continue;
     const board = await resolveBoard(ctx, workspace, weekKey);
@@ -836,7 +836,7 @@ export const seedDemoHistory = internalMutation({
   handler: async (ctx, { workspaceId, resetAt, weekKey }) => {
     const workspace = await ctx.db.get(workspaceId);
     if (!workspace?.isDemo || workspace.resettingSince !== resetAt) return null;
-    const now = Date.now();
+    const now = workspaceNow(workspace);
     const current = weekKeyFor(now, workspace.timezone);
     const first = await ctx.db
       .query("kudos")

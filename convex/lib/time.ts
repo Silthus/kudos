@@ -67,6 +67,17 @@ export function dayKeyFor(ts: number, timeZone: string): string {
   return `${p.year}-${pad(p.month)}-${pad(p.day)}`;
 }
 
+/**
+ * The workspace clock: a workspace's "now". Every write path reads the time through this, so a
+ * workspace with a `clockOffsetMs` (a visitor's simulator, #143) lives that far ahead of the wall
+ * clock: its kudos land on its own day, its allowance, quest weeks, plants, sprees and bonus days
+ * follow its own days. Without an offset (every real workspace and the shared demo) it is `Date.now()`.
+ * The web client adds the same offset to compute the workspace's today (src/lib/period.ts).
+ */
+export function workspaceNow(workspace: { clockOffsetMs?: number }, wallClock = Date.now()): number {
+  return wallClock + (workspace.clockOffsetMs ?? 0);
+}
+
 /** Calendar arithmetic on YYYY-MM-DD keys; timezone independent. */
 export function addDays(dayKey: string, days: number): string {
   const [y, m, d] = dayKey.split("-").map(Number);

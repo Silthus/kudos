@@ -222,8 +222,31 @@ export default defineSchema({
     successBaselineBefore: v.optional(v.string()),
     // Where bonus days and company-wide boosters are announced (#55 §G14; boosts.ts). Unset: only the in-app banner.
     announceChannel: v.optional(v.object({ id: v.string(), name: v.string() })),
+    // The workspace clock (lib/time.ts `workspaceNow`): how far this workspace's "now" is from the wall
+    // clock. Only simulators have one (simulator.ts advances it); undefined = 0, the wall clock.
+    clockOffsetMs: v.optional(v.number()),
+    // A visitor's private simulator (#143, simulator.ts): the demo sign-in session it belongs to, when it
+    // started (wall clock; the cron wipes it 7 days later), the level it started at and whether the
+    // visitor is looking at it (their other workspace is the shared demo). Its visitor member has no
+    // `userId`: the shared demo user would otherwise list every visitor's simulator.
+    simulator: v.optional(
+      v.object({
+        sessionId: v.string(),
+        userId: v.id("users"),
+        startedAt: v.number(),
+        startLevel: v.number(),
+        shown: v.boolean(),
+        // The simulated day it started on (workspace-local): `state.dayIndex` counts from it.
+        startDay: v.string(),
+      }),
+    ),
+    // Detached simulators (reset, stopped, expired) are wiped in steps; this marks one on its way out.
+    wipingSince: v.optional(v.number()),
     ...settingsFields,
-  }).index("by_team", ["slackTeamId"]),
+  })
+    .index("by_team", ["slackTeamId"])
+    .index("by_simulator_session", ["simulator.sessionId"])
+    .index("by_simulator_startedAt", ["simulator.startedAt"]),
 
   // Secrets live apart from `workspaces` so no public query can leak them by accident.
   slackInstallations: defineTable({

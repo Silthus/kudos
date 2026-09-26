@@ -9,6 +9,7 @@ import { attemptKudos, type AttemptInput, findAttempt, reattemptKudos } from "./
 import { guidance } from "./lib/guidance";
 import { countNoteWords, mentionedUsers, mentionsGroup, previewText } from "./lib/parse";
 import { kudosEmojiReader } from "./cosmetics";
+import { workspaceNow } from "./lib/time";
 
 const spreeOfferValidator = v.object({
   kind: v.union(v.literal("prompt"), v.literal("note")),
@@ -194,7 +195,7 @@ async function messageAttempt(ctx: MutationCtx, workspace: Doc<"workspaces">, ar
     noteWords: countNoteWords(args.text, workspace.emojiName, workspace.emojiGlyph),
     source: "message",
     excludeSlackIds: [args.botUserId],
-    now: Date.now(),
+    now: workspaceNow(workspace),
   };
 }
 
@@ -227,7 +228,7 @@ export const ingestReaction = internalMutation({
     const workspace = await ctx.db.get(args.workspaceId);
     if (!workspace || workspace.status !== "active") return null;
     const reaction = args.reaction ?? workspace.emojiName;
-    const offer = await offerSpree(ctx, workspace, args.reactorSlackId, args.channelId, args.messageTs, reaction, Date.now());
+    const offer = await offerSpree(ctx, workspace, args.reactorSlackId, args.channelId, args.messageTs, reaction, workspaceNow(workspace));
     if (offer) return { status: "spree", notificationIds: [], ...(offer.kind === "silent" ? {} : { spree: offer }) };
     if (!workspace.reactionsEnabled) return null;
     const emoji = (await kudosEmojiReader(ctx, workspace, args.reactorSlackId))(`:${baseEmojiName(reaction)}:`);
@@ -266,7 +267,7 @@ export const ingestReaction = internalMutation({
       source: "reaction",
       ...(emoji.variant ? { variant: emoji.variant } : {}),
       excludeSlackIds: [args.botUserId],
-      now: Date.now(),
+      now: workspaceNow(workspace),
     });
     // There's no message of the giver's own to react to: the explanation goes with the reply.
     const help =
@@ -286,7 +287,7 @@ export const ingestUnreaction = internalMutation({
     if (!workspace || workspace.status !== "active") return null;
     const member = await findMember(ctx, workspace, args.reactorSlackId);
     if (!member) return null;
-    const text = await withdrawSpreeJoin(ctx, workspace, member, args.channelId, args.messageTs, args.reaction, Date.now());
+    const text = await withdrawSpreeJoin(ctx, workspace, member, args.channelId, args.messageTs, args.reaction, workspaceNow(workspace));
     if (!text) return null;
     const attempt = await findAttempt(ctx, workspace._id, args.channelId, args.messageTs);
     return { text, ...(attempt?.threadTs ? { threadTs: attempt.threadTs } : {}) };
@@ -307,6 +308,6 @@ export const spreeInteraction = internalMutation({
     // People from other workspaces in a shared channel never take part.
     if (args.userTeamId && args.userTeamId !== args.teamId) return "Only teammates in this workspace can join its sprees.";
     const member = await ensureMember(ctx, workspace, args.slackUserId);
-    return (await joinSpree(ctx, workspace, member, attemptId, Date.now())).text;
+    return (await joinSpree(ctx, workspace, member, attemptId, workspaceNow(workspace))).text;
   },
 });

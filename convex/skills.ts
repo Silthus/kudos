@@ -8,7 +8,7 @@ import { canSpend, coinBalance, WALLET_LEVEL } from "./lib/coins";
 import { fnv1a } from "./lib/random";
 import { BRANCHES, canTake, hasSkill, isSkillId, pointsOf, resetCost, SCOUT, SKILLS, takeBlockText } from "./lib/skills";
 import { sendGains } from "./gains";
-import { addDays, parseToday } from "./lib/time";
+import { addDays, parseToday, workspaceNow } from "./lib/time";
 
 /**
  * The skill tree (#55 §G7): taking skills with skill points and the paid reset. The rules are pure
@@ -49,7 +49,7 @@ export async function resetSkills(ctx: MutationCtx, memberId: Id<"members">, exp
   const { balance } = coinBalance(player, member);
   if (!canSpend(balance, cost)) throw new ConvexError(`A reset costs ${cost} Hog coins; you have ${balance}.`);
   await ctx.db.patch(member._id, { coinsSpent: (member.coinsSpent ?? 0) + cost });
-  await clearSkillTree(ctx, player, cost, Date.now());
+  await clearSkillTree(ctx, player, cost, workspaceNow(workspace));
   return { cost };
 }
 
@@ -112,7 +112,7 @@ export const take = mutation({
     if (!check.ok) throw new ConvexError(takeBlockText(SKILLS[skill], check.reason, pointsOf(skills, player.level).available));
     const rank = (skills[skill] ?? 0) + 1;
     await ctx.db.patch(player._id, { skills: { ...player.skills, [skill]: rank } });
-    await ctx.db.insert("skillChanges", { workspaceId: member.workspaceId, memberId: member._id, at: Date.now(), kind: "take", skill });
+    await ctx.db.insert("skillChanges", { workspaceId: member.workspaceId, memberId: member._id, at: workspaceNow(workspace), kind: "take", skill });
     // A skill gained is a gain DM (#99, §G13).
     const { name, branch, effect, perRank } = SKILLS[skill];
     await sendGains(ctx, workspace, member._id, [

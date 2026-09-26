@@ -286,7 +286,8 @@ export async function joinSpree(ctx: MutationCtx, workspace: Workspace, member: 
       deadline,
       tiers: [],
     });
-    await ctx.scheduler.runAt(deadline, internal.sprees.lapse, { spreeId: id, deadline });
+    // `deadline` is on the workspace clock (lib/time.ts workspaceNow): wait for it from `now`.
+    await ctx.scheduler.runAfter(Math.max(0, deadline - now), internal.sprees.lapse, { spreeId: id, deadline });
     spree = (await ctx.db.get(id))!;
   }
 
@@ -355,7 +356,7 @@ async function reachTier(ctx: MutationCtx, workspace: Workspace, spree: Doc<"spr
     tiers: [...spree.tiers, { tier, at: now, joiners: spree.joiners }],
     ...(final ? { status: "complete" as const } : { deadline }),
   });
-  if (!final) await ctx.scheduler.runAt(deadline, internal.sprees.lapse, { spreeId: spree._id, deadline });
+  if (!final) await ctx.scheduler.runAfter(Math.max(0, deadline - now), internal.sprees.lapse, { spreeId: spree._id, deadline });
 
   const gains = new Gains(ctx, workspace);
   const slackWho = await names(ctx, spree.giverId, receivers.map((r) => r._id), "slack");

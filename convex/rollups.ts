@@ -24,7 +24,7 @@ import {
 import { assertLocalDeployment, planDay, SCALE_TEAM, scalePeople } from "./lib/scaleSeed";
 import { DEFAULT_SETTINGS } from "./lib/settings";
 import { fnv1a, mulberry32 } from "./lib/random";
-import { addDays, DAY_MS, dayKeyFor, daysBetween, startOfDayUtc, weekdayOfKey, zonedParts } from "./lib/time";
+import { addDays, DAY_MS, dayKeyFor, daysBetween, startOfDayUtc, weekdayOfKey, zonedParts, workspaceNow } from "./lib/time";
 
 /**
  * Backfill and repair of the read-model rollups (see `lib/rebuild.ts`). `rebuildWorkspace` walks a
@@ -65,7 +65,7 @@ export const rebuildWorkspace = internalMutation({
   handler: async (ctx, { workspaceId, resetAt }) => {
     const workspace = await ctx.db.get(workspaceId);
     if (!workspace || workspace.resettingSince !== resetAt) return null;
-    const { from, to } = await sourceSpan(ctx, workspace, dayKeyFor(Date.now(), workspace.timezone));
+    const { from, to } = await sourceSpan(ctx, workspace, dayKeyFor(workspaceNow(workspace), workspace.timezone));
     await ctx.scheduler.runAfter(0, internal.rollups.backfillStep, { workspaceId, resetAt, from, to, phase: "days", cursor: from });
     return null;
   },
