@@ -6,7 +6,7 @@ import { switchGame } from "../convex/game";
 import { BOOST_KINDS, type BoostKind } from "../convex/lib/boosts";
 import { mulberry32 } from "../convex/lib/random";
 import { addDays, dayKeyFor } from "../convex/lib/time";
-import { seedTeam, setupConvex, signInAs } from "./helpers";
+import { claimAtTree, seedTeam, setupConvex, signInAs } from "./helpers";
 
 /**
  * XP and Hog coins property test: random histories (thoughtful, thin and thank-back kudos, one or
@@ -248,6 +248,7 @@ async function run(seed: number, { revokes, visibility, boosts = false }: { revo
 async function playersOf(t: ReturnType<typeof setupConvex>, ids: Record<string, Id<"members">>) {
   const out: Record<string, { xp: number; level: number; coins: number; balance: number } | null> = {};
   for (const [slack, id] of Object.entries(ids)) {
+    await claimAtTree(t, id); // a give's coins are the giver's once offered at the tree (#157)
     const p = await t.run((ctx) => ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", id)).unique());
     const wallet = p && p.level >= 3 ? (await (await signInAs(t, id)).query(api.game.mine, {})).wallet : null;
     out[slack] = p && { xp: p.xp, level: p.level, coins: p.coins ?? 0, balance: wallet?.balance ?? coinsOf(p.coins ?? 0, p.level) };

@@ -48,6 +48,21 @@ export function pixelAt(m: PixelMap, x: number, y: number): string | null {
   return m.palette?.[ch] ?? PALETTE[ch] ?? null;
 }
 
+/** One rect per run of same-coloured pixels in a row, for drawing a map as SVG: a few hundred at most, however big it's drawn. */
+export function pixelRuns(m: PixelMap) {
+  const out: { x: number; y: number; w: number; fill: string }[] = [];
+  m.rows.forEach((row, y) => {
+    for (let x = 0; x < row.length; ) {
+      const fill = pixelAt(m, x, y);
+      let end = x + 1;
+      while (end < row.length && pixelAt(m, end, y) === fill) end++;
+      if (fill) out.push({ x, y, w: end - x, fill });
+      x = end;
+    }
+  });
+  return out;
+}
+
 type Pt = [number, number];
 /** An iso box drawn on a canvas: its top diamond's corners and its wall height. */
 export type Box = { T: Pt; R: Pt; B: Pt; L: Pt; height: number };

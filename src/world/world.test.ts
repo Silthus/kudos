@@ -91,7 +91,7 @@ describe("the districts on the tree", () => {
 
   test("open districts' places stand; closed ones are dry outlines you can walk over", () => {
     const w = world(5, 30); // a sapling: the stall is closed
-    expect(w.places.map((p) => p.id).sort()).toEqual(["discoveries", "garden", "leaderboard", "me", "playground", "quests"]);
+    expect(w.places.map((p) => p.id).sort()).toEqual(["discoveries", "garden", "leaderboard", "me", "offering", "playground", "quests"]);
     const stall = w.sites.find((s) => s.id === "stall")!;
     expect(stall).toMatchObject({ open: false, name: DISTRICT_BY_ID.stall.name, opens: "young" });
     for (let y = stall.claim.y0 + 1; y < stall.claim.y1; y++) for (let x = stall.claim.x0 + 1; x < stall.claim.x1; x++) expect(w.walkable(x, y), `${x},${y}`).toBe(true);
@@ -164,15 +164,19 @@ describe("the tree and base camp", () => {
     expect(w.trunk).toEqual({ x0: -1, y0: -1, x1: 1, y1: 1 });
     const bare = world(9, 0, false);
     expect(bare.trunk).toBeNull();
-    expect(bare.places.map((p) => p.id).sort()).toEqual(["me", "playground"]);
+    expect(bare.places.map((p) => p.id).sort()).toEqual(["me", "offering", "playground"]);
     expect(bare.terrainAt(0, 0)).not.toBe("lawn");
   });
 
-  test("you start in base camp, at the tree's foot by the offering stone", () => {
+  test("you start in base camp, at the tree's foot by the offering stone, a place you walk up to", () => {
     const w = world(9, 400);
     expect(Math.hypot(w.spawn.x, w.spawn.y)).toBeLessThan(8);
     expect(w.walkable(w.spawn.x, w.spawn.y)).toBe(true);
-    expect(w.props.map((p) => p.kind)).toContain("stone");
+    const stone = w.places.find((p) => p.id === "offering")!;
+    expect(Math.hypot(stone.footprint.x - w.spawn.x, stone.footprint.y - w.spawn.y)).toBeLessThan(3);
+    expect(w.walkable(stone.footprint.x, stone.footprint.y)).toBe(false);
+    expect(findPath(w, w.spawn, stone.doors[0])).not.toBeNull();
+    expect(w.props.map((p) => p.kind)).not.toContain("stone");
   });
 
   test("the tree greens the desert round its foot, more the bigger it grows", () => {

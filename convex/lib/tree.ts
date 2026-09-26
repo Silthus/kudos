@@ -149,7 +149,7 @@ export type District = {
 
 /** In opening order; `districtsOpen` returns a prefix of this list. */
 export const DISTRICTS: District[] = [
-  { id: "base_camp", name: "Base camp", opens: "seed", places: ["me", "playground"], promise: "", radius: 0 },
+  { id: "base_camp", name: "Base camp", opens: "seed", places: ["me", "playground", "offering"], promise: "", radius: 0 },
   { id: "signpost", name: "The signpost", opens: "sprout", places: ["quests"], promise: "Quests hang here once the tree sprouts.", radius: 7 },
   { id: "notice_board", name: "The notice board", opens: "sprout", places: ["leaderboard"], promise: "The company's standings, pinned up once the tree sprouts.", radius: 7 },
   { id: "terrace", name: "The terraces", opens: "sapling", places: ["garden"], promise: "Your own garden, on the tree's first branch.", radius: 10 },

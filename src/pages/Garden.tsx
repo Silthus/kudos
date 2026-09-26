@@ -2,8 +2,7 @@ import clsx from "clsx";
 import { useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { Lamp, Sprout, X } from "lucide-react";
-import { motion, useReducedMotionConfig } from "motion/react";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -16,6 +15,7 @@ import { Npc } from "@/world/Npc";
 import { Avatar, Button, Card, CardHeader, Dialog, Empty, PageSkeleton } from "@/components/ui";
 import { useWorkspaceToday } from "@/lib/period";
 import { canPlant, FRUIT_PICKED, plotCount, plotFrom } from "@/world/gardenWorld";
+import { CoinsToWallet } from "@/world/CoinsToWallet";
 
 type Mine = NonNullable<ReturnType<typeof useQuery<typeof api.gardens.mine>>>;
 type OpenGarden = Extract<Mine, { open: true }>;
@@ -311,14 +311,15 @@ function PlantForm({ garden, plot }: { garden: OpenGarden; plot: number }) {
   const [species, setSpecies] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const short = garden.balance < garden.cost;
+  const [superSeed, setSuperSeed] = useState(false);
+  const short = !superSeed && garden.balance < garden.cost;
   const chosen = garden.candidates.find((c) => c.memberId === teammate);
   const submit = async () => {
     if (!teammate) return;
     setBusy(true);
     setError(null);
     try {
-      await plant({ teammateId: teammate, ...(species ? { species } : {}), plot });
+      await plant({ teammateId: teammate, ...(species ? { species } : {}), plot, ...(superSeed ? { superSeed: true } : {}) });
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -361,6 +362,14 @@ function PlantForm({ garden, plot }: { garden: OpenGarden; plot: number }) {
               </option>
             ))}
           </select>
+        </label>
+      )}
+      {(garden.superSeeds ?? 0) > 0 && (
+        <label className="flex items-center gap-2">
+          <input type="checkbox" data-super-seed checked={superSeed} onChange={(e) => setSuperSeed(e.target.checked)} className="h-4 w-4 accent-ember" />
+          <span>
+            Plant a Super seed: it starts as a Sapling. You have {garden.superSeeds}.
+          </span>
         </label>
       )}
       {short && <p className="text-xs text-ink/75">Thoughtful kudos earn Hog coins: you need {garden.cost - garden.balance} more.</p>}
@@ -420,50 +429,8 @@ function Harvest({ garden }: { garden: OpenGarden }) {
       <Button ref={button} variant="primary" size="sm" disabled={fruit.length === 0 || busy} onClick={() => void onPick()}>
         {fruit.length > 0 ? `Pick ${plural(fruit.length, "fruit", "fruit")}` : "Pick fruit"}
       </Button>
-      {hop && <FruitHop key={hop.id} from={hop.from} count={hop.count} onDone={() => setHop(null)} />}
+      {hop && <CoinsToWallet key={hop.id} from={hop.from} count={hop.count} onDone={() => setHop(null)} />}
     </Card>
-  );
-}
-
-/** How long the picked fruit takes to hop to your coins. */
-const HOP_MS = 900;
-
-/**
- * Picked fruit hops from the Pick button to the Hog coins in the corner (#129): a few gold pixels,
- * once, then gone. Nothing under reduced motion.
- */
-function FruitHop({ from, count, onDone }: { from: HTMLElement; count: number; onDone: () => void }) {
-  const still = useReducedMotionConfig();
-  const layer = useRef<HTMLDivElement>(null);
-  const [path, setPath] = useState<{ x: number; y: number; dx: number; dy: number } | null>(null);
-  useLayoutEffect(() => {
-    // Measured against the layer itself: inside a window, `fixed` may be relative to the window.
-    const origin = layer.current?.getBoundingClientRect() ?? { left: 0, top: 0 };
-    const a = from.getBoundingClientRect();
-    const start = { x: a.left + a.width / 2, y: a.top };
-    const coinsAt = document.querySelector("[data-hud-coins]")?.getBoundingClientRect();
-    const end = coinsAt && coinsAt.width > 0 ? { x: coinsAt.left + 8, y: coinsAt.top + 8 } : { x: start.x, y: -24 };
-    setPath({ x: start.x - origin.left, y: start.y - origin.top, dx: end.x - start.x, dy: end.y - start.y });
-    const timer = setTimeout(onDone, HOP_MS + count * 60);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [from]);
-  if (still) return null;
-  return (
-    <div ref={layer} aria-hidden className="pointer-events-none fixed left-0 top-0 z-50 h-0 w-0">
-      {path &&
-        Array.from({ length: count }, (_, i) => (
-          <motion.span
-            key={i}
-            data-fruit-hop
-            className="absolute h-2 w-2 bg-lantern shadow-[2px_2px_0_var(--color-dusk-deep)]"
-            style={{ left: path.x + (i - (count - 1) / 2) * 10, top: path.y }}
-            initial={{ x: 0, y: 0 }}
-            animate={{ x: path.dx - (i - (count - 1) / 2) * 10, y: [0, -32, path.dy] }}
-            transition={{ duration: HOP_MS / 1000, delay: i * 0.06, ease: "easeOut" }}
-          />
-        ))}
-    </div>
   );
 }
 

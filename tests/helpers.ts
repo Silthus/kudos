@@ -2,6 +2,8 @@
 import { convexTest } from "convex-test";
 import { vi } from "vitest";
 import schema from "../convex/schema";
+import { claimOfferings } from "../convex/offerings";
+import { workspaceNow } from "../convex/lib/time";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 import { DEFAULT_SETTINGS } from "../convex/lib/settings";
 
@@ -71,6 +73,23 @@ export async function signInAs(t: ReturnType<typeof convexTest>, memberId: Id<"m
     return userId;
   });
   return t.withIdentity({ subject: `${userId}|session` });
+}
+
+/**
+ * Offers a member's appreciation at the tree (#157): claims the Hog coins their thoughtful kudos left
+ * waiting there, as pressing "Offer your appreciation" at the offering stone does.
+ */
+export async function claimAtTree(t: ReturnType<typeof setupConvex>, memberId: Id<"members">) {
+  return await t.run(async (ctx) => {
+    const player = await ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", memberId)).unique();
+    const workspace = player && (await ctx.db.get(player.workspaceId));
+    if (!player || !workspace) return null;
+    const waiting = await ctx.db
+      .query("offerings")
+      .withIndex("by_member_claimedAt_createdAt", (q) => q.eq("memberId", memberId).eq("claimedAt", undefined))
+      .collect();
+    return await claimOfferings(ctx, workspace, player, waiting, "player", workspaceNow(workspace));
+  });
 }
 
 /**

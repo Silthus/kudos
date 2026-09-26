@@ -3,7 +3,7 @@ import { api, internal } from "../convex/_generated/api";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 import { startBonusDay } from "../convex/boosts";
 import type { BoostSource } from "../convex/lib/boosts";
-import { NOW, seedTeam, setupConvex, signInAs, TODAY, type Team } from "./helpers";
+import { claimAtTree, NOW, seedTeam, setupConvex, signInAs, type Team, TODAY } from "./helpers";
 
 /** Bonus days and company-wide boosters (#97, #55 §G9, G10): double XP and coins from qualifying kudos. */
 
@@ -33,8 +33,11 @@ async function message(giver: string, text: string) {
   return result;
 }
 
-const player = (memberId: Id<"members">) =>
-  t.run((ctx) => ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", memberId)).unique());
+/** A member's player row, once they have claimed the coins waiting for them at the tree (#157). */
+async function player(memberId: Id<"members">) {
+  await claimAtTree(t, memberId);
+  return await t.run((ctx) => ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", memberId)).unique());
+}
 
 /** The seam the team garden (#96) and the Block party capstone call. Today: a booster; later: scheduled. */
 const bonusDay = (day: string, source: BoostSource = day === TODAY ? "booster" : "schedule", by?: Id<"members">) =>

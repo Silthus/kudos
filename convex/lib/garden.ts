@@ -189,8 +189,14 @@ function awakeDays(plantedDay: string, waterings: string[], day: string): number
 /** A Sunlamp (#97, §G10) skips this many days of a plant's minimum-age wait; it never replaces a watering. */
 export const SUNLAMP_DAYS = 5;
 
-/** `sunlamps`: the days Sunlamps were used on the plant; each counts from its day on. */
-type Growth = { plantedDay: string; waterings: string[]; earlyBloom?: boolean; sunlamps?: string[] };
+/**
+ * `sunlamps`: the days Sunlamps were used on the plant; each counts from its day on. `superSeed`: it
+ * grew from a heart fruit's Super seed (#157), so it is a Sapling from the day it was planted.
+ */
+type Growth = { plantedDay: string; waterings: string[]; earlyBloom?: boolean; sunlamps?: string[]; superSeed?: boolean };
+
+/** Where a Super seed starts (lib/fruits.ts, heart fruit's `plantStage`). */
+const SUPER_SEED_STAGE = STAGES.find((s) => s.key === "sapling")!;
 
 /** The age a plant's Sunlamps add by `day`. */
 function lampDays(sunlamps: string[] | undefined, day: string): number {
@@ -204,7 +210,7 @@ export function stageOn(input: Growth & { day: string }): Stage {
   const stages = stagesFor(Boolean(input.earlyBloom));
   let reached = stages[0];
   for (const s of stages) if (watered >= s.waterings && age >= s.days) reached = s;
-  return STAGES[reached.index];
+  return STAGES[Math.max(reached.index, input.superSeed ? SUPER_SEED_STAGE.index : 0)];
 }
 
 function lastWateringBy(waterings: string[], day: string): string | null {

@@ -23,10 +23,10 @@ describe("navItems", () => {
     expect(ids(navItems({ ...member, questsEnabled: undefined }))).toContain("quests");
   });
 
-  test("the skill tree and the garden are there while the game is shown to you, after the quest log", () => {
+  test("the offering stone, the skill tree and the garden are there while the game is shown to you, after the quest log", () => {
     expect(ids(navItems(member))).not.toContain("skills");
     expect(ids(navItems(member))).not.toContain("garden");
-    expect(ids(navItems({ ...member, gameShown: true }))).toEqual(["me", "discoveries", "quests", "skills", "garden", "leaderboard", "compare", "analytics"]);
+    expect(ids(navItems({ ...member, gameShown: true }))).toEqual(["me", "discoveries", "quests", "offering", "skills", "garden", "leaderboard", "compare", "analytics"]);
     expect(navItems({ ...member, gameShown: true }).find((i) => i.id === "garden")).toMatchObject({ to: "/garden", label: "Garden", short: "Garden" });
     expect(navItems({ ...member, gameShown: true }).find((i) => i.id === "skills")).toMatchObject({ to: "/skills", label: "Skill tree", short: "Skills" });
   });

@@ -220,10 +220,10 @@ async function announceStage(ctx: MutationCtx, workspace: Doc<"workspaces">, eve
 /**
  * Fuel claimed at the offering stone (#157): half a point of growth each (`growthFor`); negative to
  * take a revoked claim back. Fuel before any planting grows the desert's tree-to-be, but only a
- * planting is its seed moment.
+ * planting is its seed moment. A rebuild's replay passes `live: false`: a stage it passes isn't posted.
  */
-export async function addFuel(ctx: MutationCtx, workspace: Doc<"workspaces">, fuel: number, at: number) {
-  if (fuel !== 0) await grow(ctx, workspace, { fuel, at, live: true });
+export async function addFuel(ctx: MutationCtx, workspace: Doc<"workspaces">, fuel: number, at: number, { live = true } = {}) {
+  if (fuel !== 0) await grow(ctx, workspace, { fuel, at, live });
 }
 
 /** Plants `seeds` (all of one workspace, unplanted) and grows the tree by them, with a planting in the log. */

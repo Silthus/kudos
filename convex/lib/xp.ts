@@ -233,8 +233,9 @@ const BONUS_LABEL: Partial<Record<XpItemKind, string>> = {
 
 /**
  * The giver's earnings line for the reply where they gave (Slack ephemeral, playground):
- * "+25 XP · +2 Hog coins · new connection +10 · a real why +5", plus how a thin kudos could earn
- * more. `coins` is only there once their wallet is open (level 3): until then coins collect silently.
+ * "+25 XP · +2 Hog coins waiting at the tree · new connection +10 · a real why +5", plus how a thin
+ * kudos could earn more. The coins wait at the tree until claimed (#157). `coins` is only there once
+ * their wallet is open (level 3): until then coins collect silently.
  */
 export function earningsText(e: {
   xp: number;
@@ -253,7 +254,7 @@ export function earningsText(e: {
   const wallet = e.coins !== undefined;
   return [
     `+${e.xp} XP`,
-    e.coins ? `+${e.coins} Hog ${e.coins === 1 ? "coin" : "coins"}` : null,
+    e.coins ? `+${e.coins} Hog ${e.coins === 1 ? "coin" : "coins"} waiting at the tree` : null,
     ...(e.xp > 0
       ? e.bonuses.flatMap((b) => {
           // A boost that doubled nothing (a third thanks today) isn't worth naming.

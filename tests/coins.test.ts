@@ -1,9 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
-import { all, seedTeam, setupConvex, signInAs, type Team } from "./helpers";
+import { all, claimAtTree, seedTeam, setupConvex, signInAs, type Team } from "./helpers";
 
-/** Hog coins (#55 §G2, G4): the ledger rides the game's per-batch events; the wallet opens at level 3. */
+/**
+ * Hog coins (#55 §G2, G4): the ledger rides the game's per-batch events; the wallet opens at level 3.
+ * Coins from kudos wait at the tree until claimed (#157, tests/offerings.test.ts): these tests claim
+ * before they look.
+ */
 
 let t: ReturnType<typeof setupConvex>;
 let team: Team & { dan: Id<"members">; eve: Id<"members"> };
@@ -37,10 +41,14 @@ async function message(giver: string, text: string) {
   return result;
 }
 
-const player = (memberId: Id<"members">) =>
-  t.run((ctx) => ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", memberId)).unique());
+/** A member's player row, once they have claimed what waits for them at the tree. */
+async function player(memberId: Id<"members">) {
+  await claimAtTree(t, memberId);
+  return await t.run((ctx) => ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", memberId)).unique());
+}
 
 async function wallet(memberId: Id<"members">) {
+  await claimAtTree(t, memberId);
   const as = await signInAs(t, memberId);
   return (await as.query(api.game.mine, {})).wallet;
 }
@@ -92,7 +100,7 @@ describe("the wallet", () => {
     expect(await wallet(team.ana)).toBeNull(); // not even the amount leaves the server
     vi.setSystemTime(Date.now() + DAY);
     await message("UANA", `<@UBEN> <@UCLEO> <@UDAN> <@UEVE> :taco: ${STORY}`);
-    expect(await wallet(team.ana)).toEqual({ balance: 8 + 20, fromKudos: 8, fromFruit: 0, fromQuests: 0, fromSprees: 0, fromLevels: 20, spent: 0, adjusted: 0 });
+    expect(await wallet(team.ana)).toEqual({ balance: 8 + 20, waiting: 0, fromKudos: 8, fromFruit: 0, fromQuests: 0, fromSprees: 0, fromLevels: 20, spent: 0, adjusted: 0 });
   });
 
   test("is part of the game: nothing while the game is hidden", async () => {

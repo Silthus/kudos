@@ -3,7 +3,7 @@ import { api, internal } from "../convex/_generated/api";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 import { signSlackRequest } from "../convex/lib/slack";
 import { coinBalance } from "../convex/lib/coins";
-import { all, member, seedTeam, setupConvex, signInAs, TODAY, type Team } from "./helpers";
+import { all, claimAtTree, member, seedTeam, setupConvex, signInAs, TODAY, type Team } from "./helpers";
 
 /**
  * Kudos sprees in Slack (#94, game spec §G6): clicking the bot's reaction on a thoughtful kudos
@@ -441,6 +441,7 @@ describe("tiers", () => {
     const msg = await post(THOUGHTFUL);
     for (const u of ["UCLEO", ...crowd.slice(0, 4).map((c) => c.slackUserId)]) await join(u, msg);
     const wallet = async (id: Id<"members">) => {
+      await claimAtTree(t, id); // her kudos' coin, offered at the tree (#157)
       const player = (await t.run((ctx) => ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", id)).unique()))!;
       return { spreeCoins: player.spreeCoins, coins: player.coins ?? 0, ...coinBalance(player) };
     };

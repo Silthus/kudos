@@ -158,11 +158,11 @@ describe("the earnings reply", () => {
   });
 
   test("shows Hog coins once the wallet is open, and a kudos without a reason is told that one with a reason earns coins", () => {
-    expect(earningsText({ ...none, xp: 10, coins: 2, bonuses: [{ kind: "new_connection", xp: 10 }] })).toBe("+10 XP · +2 Hog coins · new connection +10");
-    expect(earningsText({ ...none, xp: 10, coins: 1 })).toBe("+10 XP · +1 Hog coin");
+    expect(earningsText({ ...none, xp: 10, coins: 2, bonuses: [{ kind: "new_connection", xp: 10 }] })).toBe("+10 XP · +2 Hog coins waiting at the tree · new connection +10");
+    expect(earningsText({ ...none, xp: 10, coins: 1 })).toBe("+10 XP · +1 Hog coin waiting at the tree");
     expect(earningsText({ ...none, xp: 2, coins: 0, noReason: true })).toBe("+2 XP · a seed with a few words on why (3 or more) earns coins");
     expect(earningsText({ ...none, xp: 2, coins: 0, thankBack: true })).toBe("+2 XP · thanking back within 72 h earns less");
-    expect(earningsText({ ...none, xp: 0, coins: 1 })).toBe("+0 XP · +1 Hog coin · you've thanked them twice today already");
+    expect(earningsText({ ...none, xp: 0, coins: 1 })).toBe("+0 XP · +1 Hog coin waiting at the tree · you've thanked them twice today already");
   });
 
   test("lists the quests the kudos completed, each with what it paid", () => {
@@ -177,7 +177,7 @@ describe("the earnings reply", () => {
           { scope: "sweep", title: "Clean sweep", xp: 30, coins: 0 },
         ],
       }),
-    ).toBe("+10 XP · +1 Hog coin · daily quest done +10 XP +2 Hog coins · Spread the love done +20 XP +5 Hog coins · clean sweep +30 XP");
+    ).toBe("+10 XP · +1 Hog coin waiting at the tree · daily quest done +10 XP +2 Hog coins · Spread the love done +20 XP +5 Hog coins · clean sweep +30 XP");
   });
 
   test("quest rewards are what the spec pays: weekly 20 XP + 5 coins, daily 10 + 2, clean sweep +30 XP", () => {

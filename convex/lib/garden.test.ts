@@ -255,3 +255,12 @@ describe("Gardener skills", () => {
     expect(all.some((s) => SPECIES[s].rare)).toBe(true);
   });
 });
+
+describe("a Super seed (heart fruit, #157): a Sapling from the day it's planted", () => {
+  test("is a Sapling unwatered on its first day, and grows on by the usual rules", () => {
+    expect(stageOn({ plantedDay: "2026-09-01", waterings: [], superSeed: true, day: "2026-09-01" }).key).toBe("sapling");
+    expect(stageOn({ plantedDay: "2026-09-01", waterings: [], day: "2026-09-01" }).key).toBe("seed");
+    const four = ["2026-09-08", "2026-09-15", "2026-09-22", "2026-09-29"];
+    expect(stageOn({ plantedDay: "2026-09-01", waterings: four, superSeed: true, day: "2026-10-01" }).key).toBe("young");
+  });
+});

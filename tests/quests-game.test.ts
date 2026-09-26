@@ -3,7 +3,7 @@ import { api, internal } from "../convex/_generated/api";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 import { DAILY_QUEST_BY_KEY, dailyQuestKey, type QuestKey } from "../convex/lib/quests";
 import { earningsText } from "../convex/lib/xp";
-import { all, seedTeam, setupConvex, signInAs, TODAY, type Team } from "./helpers";
+import { all, claimAtTree, seedTeam, setupConvex, signInAs, type Team, TODAY } from "./helpers";
 
 /**
  * Quests on the game ladder (#93, game spec #55 §G11): with the game on, the weekly board and the
@@ -46,8 +46,11 @@ const setBoard = (questKeys: QuestKey[], weekKey = WEEK) =>
 const playerAt = (memberId: Id<"members">, level: number, xp: number) =>
   t.run((ctx) => ctx.db.insert("players", { workspaceId: team.workspaceId, memberId, since: Date.now() - 1000, xp, level, coins: 0 }));
 
-const player = (memberId: Id<"members">) =>
-  t.run((ctx) => ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", memberId)).unique());
+/** A member's player row, once they have claimed the coins waiting for them at the tree (#157). */
+async function player(memberId: Id<"members">) {
+  await claimAtTree(t, memberId);
+  return await t.run((ctx) => ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", memberId)).unique());
+}
 const questEvents = async (memberId: Id<"members">) => (await all(t, "gameEvents")).filter((e) => e.memberId === memberId && e.kind === "quest");
 const completions = async (memberId: Id<"members">) => (await all(t, "questCompletions")).filter((c) => c.memberId === memberId);
 const dailies = (memberId: Id<"members">) =>
@@ -192,6 +195,7 @@ describe("quest coins in the Store (#91)", () => {
     // The level-up coins are already spent, so everything left comes from this one kudos.
     await t.run((ctx) => ctx.db.patch(team.ana, { coinsSpent: 40 }));
     await message("UANA", EVERY_DAILY);
+    await claimAtTree(t, team.ana); // the kudos' coins, offered at the tree (#157)
     const ana = await signInAs(t, team.ana);
     const shop = async () => {
       const s = await ana.query(api.store.shop, { today: TODAY });

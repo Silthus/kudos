@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
-import { NOW, seedTeam, setupConvex, signInAs, TODAY, type Team } from "./helpers";
+import { claimAtTree, NOW, seedTeam, setupConvex, signInAs, TODAY, type Team } from "./helpers";
 
 /**
  * Bonus days on the admin schedule, the announcement channel and the in-app banner (#97, #55 §G9,
@@ -86,6 +86,7 @@ describe("the admin schedule", () => {
       channelId: "CGENERAL",
       messageTs: "1.0001",
     });
+    await claimAtTree(t, team.ana);
     const player = await t.run((ctx) => ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", team.ana)).unique());
     expect(player).toMatchObject({ xp: 40, coins: 2 });
   });

@@ -41,13 +41,14 @@ export function Locked({ title, level, how }: { title: string; level: number; ho
 const inWords = (parts: string[]) => (parts.length < 2 ? parts.join("") : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`);
 
 /**
- * The Hog coin wallet (§G4), from level 3: the balance and where it came from, in a sentence.
- * Coins collected silently before level 3 are all in it the first time it appears.
+ * The Hog coin wallet (§G4), from level 3: the balance and where it came from, in a sentence, and
+ * what waits at the tree to be offered (#157). Coins collected silently before level 3 are all in it
+ * the first time it appears.
  */
 export function Wallet({ wallet }: { wallet: CoinBalance }) {
   const earned = [
     `${wallet.fromKudos} from thoughtful kudos`,
-    wallet.fromFruit ? `${wallet.fromFruit} from garden fruit` : null,
+    wallet.fromFruit ? `${wallet.fromFruit} from fruit` : null,
     wallet.fromQuests ? `${wallet.fromQuests} from quests` : null,
     wallet.fromSprees ? `${wallet.fromSprees} from kudos sprees` : null,
     `${wallet.fromLevels} from level-ups`,
@@ -68,6 +69,14 @@ export function Wallet({ wallet }: { wallet: CoinBalance }) {
           <span className="font-semibold text-ink">Hog coins</span>
         </div>
         <p className="mt-0.5 text-xs text-ink/75">{sentence}</p>
+        {wallet.waiting > 0 && (
+          <p className="mt-1 text-xs text-ink/75">
+            {wallet.waiting} more wait at the tree.{" "}
+            <Link to="/offering" className="font-semibold text-ember-deep underline decoration-2 underline-offset-4">
+              Offer them at the stone
+            </Link>
+          </p>
+        )}
         {wallet.balance < 0 && (
           <p className="mt-1 text-xs text-ink/75">A revoked kudos took back coins it had earned. Spending waits until it's above zero again.</p>
         )}

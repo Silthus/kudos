@@ -58,6 +58,9 @@ export const gardenNoticeValidator = v.object({
 
 const personValidator = v.object({ slackUserId: v.string(), name: v.string() });
 
+/** A tree fruit's kind (lib/fruits.ts `FruitId`). */
+export const fruitIdValidator = v.union(v.literal("sun"), v.literal("moon"), v.literal("amber"), v.literal("star"), v.literal("heart"));
+
 /**
  * Something a member discovered or gained, told in a DM (#55 §G13; rendered by `lib/gains.ts`).
  * One DM carries everything one event gained. Never for XP or coins alone.
@@ -90,6 +93,9 @@ export const gainValidator = v.union(
   v.object({ kind: v.literal("plant_stage"), species: v.string(), stage: v.string(), teammate: personValidator }), // #95
   // #154: the member's thoughtful kudos to `receiver` was the first seed planted at the tree: the seed moment.
   v.object({ kind: v.literal("tree_seed"), receiver: personValidator }),
+  // #157: offerings nobody claimed for 30 days claimed themselves: `since` is when the oldest was made,
+  // `coins` only once the wallet is open, and the fruit they dropped.
+  v.object({ kind: v.literal("offering_claimed"), since: v.number(), coins: v.optional(v.number()), fruits: v.array(fruitIdValidator) }),
 );
 
 /** A Super kudos note on a DM (#98): the receiver's celebration, or the giver's "sent" or how-to. */
@@ -515,6 +521,15 @@ export default defineSchema({
     atSavedAt: v.optional(v.number()), // when `at` was last saved (workspace clock): lib/presence.ts `shouldSave`
     // Their hog's look in the world (#155, lib/presence.ts): a Hedgehog Mode colour filter and accessory. Undefined: the default.
     look: v.optional(lookValidator),
+    // Tree fruit (#157, offerings.ts): the coins claimed at the offering stone, net of revokes (part of
+    // `coins`), and the most ever claimed: a fruit drops for every five coins past the peak (lib/fruits.ts).
+    claimedCoins: v.optional(v.number()),
+    claimedPeak: v.optional(v.number()),
+    // Fruit effects waiting for their systems (#157): stamina for expeditions (C3, lib/rpg.ts), a star
+    // fruit's discount on a home's next build stage (C1, lib/homes.ts), heart fruit's Super seeds to plant.
+    stamina: v.optional(v.number()),
+    homeDiscount: v.optional(v.number()), // percent off the next home build stage; undefined = none
+    superSeeds: v.optional(v.number()),
   }).index("by_member", ["memberId"]),
 
   // A plant in a member's garden, grown for one teammate (gardens.ts, lib/garden.ts). Waterings are
@@ -541,6 +556,7 @@ export default defineSchema({
     lantern: v.optional(v.object({ note: v.string(), at: v.number(), dayKey: v.string() })),
     lanternBy: v.optional(v.id("members")), // who hung it; kept apart so member removal finds it
     lanternQuietUntil: v.optional(v.string()), // a lantern was taken down: no new one before this day
+    superSeed: v.optional(v.literal(true)), // grown from a Super seed (heart fruit, #157): a Sapling from the start
   })
     .index("by_lantern_by", ["lanternBy"])
     .index("by_owner_memory", ["ownerId", "memoryAt"])
@@ -598,7 +614,19 @@ export default defineSchema({
     // spree: what one tier of a kudos spree paid one member (#94), keyed `spree:<spreeId>`; rebuilds keep it
     // seed: a simulator visitor joining at a level (#143, simulator.ts): that level's XP floor, keyed
     // `seed:<memberId>`. Not derived from kudos, so rebuilds keep it; never a kudos, never earnings.
-    kind: v.union(v.literal("give"), v.literal("receive"), v.literal("harvest"), v.literal("quest"), v.literal("spree"), v.literal("seed")),
+    // claim: offerings claimed at the tree (#157, offerings.ts), by the player or by time; the first one
+    // is #159's "fed the tree". Carries no `coins` (its offerings hold them); kept by rebuilds.
+    // sale: tree fruit sold at the stall (#157): its coins are part of `players.fruitCoins`; kept by rebuilds.
+    kind: v.union(
+      v.literal("give"),
+      v.literal("receive"),
+      v.literal("harvest"),
+      v.literal("quest"),
+      v.literal("spree"),
+      v.literal("seed"),
+      v.literal("claim"),
+      v.literal("sale"),
+    ),
     batchId: v.string(),
     dayKey: v.string(), // the kudos' workspace day: daily caps and same-day decay
     at: v.number(),
@@ -625,7 +653,12 @@ export default defineSchema({
     completionId: v.optional(v.union(v.id("questCompletions"), v.id("dailyQuestCompletions"))), // quest: what it paid for
     tier: v.optional(v.number()), // spree: the tier reached (1–5)
     role: v.optional(v.union(v.literal("joined"), v.literal("started"), v.literal("received"))), // spree
+    claimed: v.optional(v.number()), // claim: the coins claimed
+    fuel: v.optional(v.number()), // claim: the fuel the tree took
+    by: v.optional(v.union(v.literal("player"), v.literal("time"))), // claim: at the stone, or after 30 days
+    fruits: v.optional(v.array(fruitIdValidator)), // claim: the fruit it dropped, in order; sale: what was sold
   })
+    .index("by_member_kind", ["memberId", "kind"])
     .index("by_member_day", ["memberId", "dayKey"])
     .index("by_batch", ["batchId"]),
 
@@ -974,6 +1007,37 @@ export default defineSchema({
     .index("by_workspace_at", ["workspaceId", "at"])
     .index("by_workspace_kind_at", ["workspaceId", "kind", "at"])
     .index("by_member", ["memberId"]),
+
+  // An offering at the tree (#157, offerings.ts; plan #152 S3): what one kudos batch earned its giver
+  // (the coins of its qualifying lines, lib/coins.ts `lineCoins`, and one fuel a line, lib/tree.ts
+  // `fuelForLine`), written in the give transaction instead of crediting the wallet. It waits until
+  // the giver claims it at the offering stone, or time does after OFFERING_AUTO_CLAIM_DAYS. A revoke
+  // takes its line out (and, once claimed, the coins and fuel back). The rebuild replays offerings from
+  // the surviving kudos and keeps which batches were claimed. Times are the workspace clock.
+  offerings: defineTable({
+    workspaceId: v.id("workspaces"),
+    memberId: v.id("members"),
+    batchId: v.string(),
+    coins: v.number(),
+    fuel: v.number(),
+    createdAt: v.number(),
+    claimedAt: v.optional(v.number()),
+  })
+    .index("by_batch", ["batchId"])
+    .index("by_member_claimedAt_createdAt", ["memberId", "claimedAt", "createdAt"])
+    .index("by_workspace_claimedAt_createdAt", ["workspaceId", "claimedAt", "createdAt"])
+    .index("by_claimedAt_createdAt", ["claimedAt", "createdAt"]), // the auto-claim cron, across workspaces
+
+  // A member's tree fruit (#157, lib/fruits.ts): one row per kind held, deleted at zero. Fruit comes
+  // only from claims and goes at the stall (sold or used): state, never replayed.
+  inventory: defineTable({
+    workspaceId: v.id("workspaces"),
+    memberId: v.id("members"),
+    fruit: fruitIdValidator,
+    count: v.number(),
+  })
+    .index("by_member_fruit", ["memberId", "fruit"])
+    .index("by_workspace", ["workspaceId"]),
 
   slackEvents: defineTable({
     eventId: v.string(),

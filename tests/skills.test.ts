@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { resetSkills } from "../convex/skills";
-import { member, seedTeam, setupConvex, signInAs, TODAY, type Team } from "./helpers";
+import { claimAtTree, member, seedTeam, setupConvex, signInAs, type Team, TODAY } from "./helpers";
 
 /** The skill tree (#55 §G7): points from levels, taking skills, the paid reset and the Scout branch. */
 
@@ -36,8 +36,11 @@ async function message(giver: string, text: string) {
   return result;
 }
 
-const player = (memberId: Id<"members">) =>
-  t.run((ctx) => ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", memberId)).unique());
+/** A member's player row, once they have claimed the coins waiting for them at the tree (#157). */
+async function player(memberId: Id<"members">) {
+  await claimAtTree(t, memberId);
+  return await t.run((ctx) => ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", memberId)).unique());
+}
 
 /** Lifts Ana straight to `level` (setup only: levels come from XP). */
 async function setLevel(level: number) {
