@@ -80,3 +80,15 @@ test("before your first kudos there's no look to choose yet", () => {
   expect(host.textContent).toContain("Your hog's look opens with your first kudos.");
   expect(host.querySelector('[role="group"]')).toBeNull();
 });
+
+test("two quick choices: the last one shows, whatever the first one's answer (review #15)", async () => {
+  game = mine({ color: null, accessory: null });
+  let refuseFirst: (e: unknown) => void = () => {};
+  setLook.mockImplementationOnce(() => new Promise((_, reject) => (refuseFirst = reject)));
+  render();
+  await click(choice("Colour", "Red"));
+  await click(choice("Colour", "None"));
+  await act(async () => refuseFirst(new ConvexError("Too slow.")));
+  expect(choice("Colour", "None").getAttribute("aria-pressed")).toBe("true");
+  expect(host.textContent).not.toContain("Too slow.");
+});

@@ -11,9 +11,10 @@ import { useStableQuery } from "@/lib/useStableQuery";
 import { Hog, HOG_FEET, HOG_SIZE, type HogHandle } from "./Hog";
 import { findPath, tileAt, type Tile } from "./iso";
 import { behindTree, tileOnCanvas } from "./paint";
-import { BEAT_MOVING_MS, cardFor, cardNudge, glideAt, glideTo, shouldBeat, wanderRoutes, wandererAt, type Beat, type Glide, type HogWho, type Round, type Spot } from "./presence";
+import { BEAT_MOVING_MS, cardFor, cardNudge, glideAt, glideTo, shouldBeat, wanderRoutes, wanderStops, wandererAt, type Beat, type Glide, type HogWho, type PresenceViewer, type Round, type Spot } from "./presence";
 import type { World } from "./world";
 import { hogZ, Z } from "./WorldCanvas";
+import { useWorldNow } from "./worldNow";
 
 /**
  * Presence in the world (#158, design plan #152 S2, backend #155): your hog's heartbeat, and the
@@ -31,8 +32,13 @@ import { hogZ, Z } from "./WorldCanvas";
  * walking, every 20 s standing still). Only while `on` (the game shown and the world open), never
  * in a hidden tab (a tab back in view beats at once). The server may answer that the game isn't
  * shown to you (no more beats until it's shown again) or that the shared demo is resetting (the
- * idle pace until it's done). A beat that fails is simply sent again on a later tick.
+ * idle pace until it's done). A beat that fails is tried again after a second, then two, four…
+ * up to a minute, until one goes through.
  */
+/** A failed beat is tried again after this, doubling each time it fails again, up to RETRY_MAX_MS. */
+const RETRY_MS = 1_000;
+const RETRY_MAX_MS = 60_000;
+
 export function useHeartbeat({ on, read }: { on: boolean; read: () => Beat | null }) {
   const mutation = useMutation(api.presence.heartbeat);
   // Read fresh on every tick, so neither restarts the clock.
@@ -47,20 +53,26 @@ export function useHeartbeat({ on, read }: { on: boolean; read: () => Beat | nul
     let stopped = false;
     let busy = false;
     let timer: ReturnType<typeof setInterval> | undefined;
+    /** After a failed beat: when to try again, and how long the wait after the next failure. */
+    let retryAt = 0;
+    let backoff = RETRY_MS;
     const tick = () => {
       const beat = reader.current();
       const now = Date.now();
-      if (stopped || busy || !beat || !shouldBeat(last, beat, now, pace)) return;
+      if (stopped || busy || !beat || now < retryAt || !shouldBeat(last, beat, now, pace)) return;
       busy = true;
       last = { beat, at: now };
       Promise.resolve(sender.current(beat))
         .then((status) => {
           if (status === "notShown") stopped = true;
           pace = status === "resetting" ? "slow" : "normal";
+          backoff = RETRY_MS;
         })
         .catch(() => {
-          // Offline for a moment: the next tick tries again.
+          // Offline, or the server refusing: try again later, and later still if it fails again.
           last = null;
+          retryAt = Date.now() + backoff;
+          backoff = Math.min(RETRY_MAX_MS, backoff * 2);
         })
         .finally(() => (busy = false));
     };
@@ -81,25 +93,6 @@ export function useHeartbeat({ on, read }: { on: boolean; read: () => Beat | nul
   }, [on]);
 }
 
-/** The world's clock for presence queries, rounded down to this, so they're asked again only this often. */
-const NOW_STEP_MS = 5_000;
-
-/**
- * The workspace clock (a simulator's runs ahead, #143), rounded down to 5 s and moving on every
- * 5 s while `on`: presence queries take it as `now` (they can't read the clock themselves).
- */
-export function useWorldNow(on: boolean): number {
-  const round = () => Math.floor(workspaceClockNow() / NOW_STEP_MS) * NOW_STEP_MS;
-  const [now, setNow] = useState(round);
-  useEffect(() => {
-    if (!on) return;
-    setNow(round());
-    const timer = setInterval(() => setNow(round()), NOW_STEP_MS);
-    return () => clearInterval(timer);
-  }, [on]);
-  return now;
-}
-
 /** At most this many of the demo's teammates wander at once. */
 const WANDERERS = 6;
 /** How far a wanderer's walk between two stops may search: every open door is within it. */
@@ -111,7 +104,7 @@ type NearbyHog = FunctionReturnType<typeof api.presence.nearby>[number];
 type Other = { id: string; who: HogWho; look: Look; row?: NearbyHog; round?: Round };
 
 /** One hog's element and what the frame loop keeps for it. */
-type Tracked = { el: HTMLDivElement | null; hog: HogHandle | null; glide: Glide | null; shown: string };
+type Tracked = { el: HTMLDivElement | null; hog: HogHandle | null; glide: Glide | null; shown: string; placed: string };
 
 export type PresenceHandle = {
   /** The camera looks at this tile now: hogs are read in the chunks round it. */
@@ -120,6 +113,7 @@ export type PresenceHandle = {
 
 export function Presence({
   on,
+  beating,
   world,
   scale,
   still,
@@ -133,10 +127,12 @@ export function Presence({
 }: {
   /** The game shown to you and the world open: otherwise no heartbeat, and nobody else. */
   on: boolean;
+  /** Your hedgehog stands where it will stay (where you left the world is known): its heartbeat may go. */
+  beating: boolean;
   world: World;
   scale: number;
   still: boolean;
-  viewer: { memberId: string; workspaceName: string; sharedDemo: boolean };
+  viewer: PresenceViewer;
   /** Your hog now: where it stands (a tile), which way it faces and what it's doing. */
   read: () => Beat | null;
   /** The teammates who may wander the shared demo (the neighbours' ring, closest first). */
@@ -149,7 +145,7 @@ export function Presence({
   windowOpen: boolean;
   ref?: Ref<PresenceHandle>;
 }) {
-  useHeartbeat({ on, read });
+  useHeartbeat({ on: on && beating, read });
   const reader = useRef(read);
   reader.current = read;
 
@@ -163,13 +159,12 @@ export function Presence({
   const now = useWorldNow(on);
   const nearby = useStableQuery(api.presence.nearby, on ? { chunks: chunksAround(cx * CHUNK_TILES, cy * CHUNK_TILES), now } : "skip").data;
 
-  // The shared demo's wanderers: the day's rounds between base camp and the open districts.
+  // The shared demo's wanderers: the day's rounds between the open districts.
   const team = on && viewer.sharedDemo ? wanderers.slice(0, WANDERERS) : [];
   const teamKey = team.map((t) => `${t.memberId}:${t.name}`).join();
   const rounds = useMemo(() => {
     if (team.length === 0) return [];
-    const stops = [world.spawn, ...world.sites.filter((s) => s.open && s.id !== "base_camp").map((s) => s.approach)];
-    return wanderRoutes(today, team, stops, (a, b) => findPath(world, a, b, WANDER_SEARCH));
+    return wanderRoutes(today, team, wanderStops(world), (a, b) => findPath(world, a, b, WANDER_SEARCH));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamKey, today, world]);
 
@@ -188,7 +183,7 @@ export function Presence({
   const tracked = useRef(new Map<string, Tracked>());
   const track = (id: string) => {
     let t = tracked.current.get(id);
-    if (!t) tracked.current.set(id, (t = { el: null, hog: null, glide: null, shown: "" }));
+    if (!t) tracked.current.set(id, (t = { el: null, hog: null, glide: null, shown: "", placed: "" }));
     return t;
   };
   const live = useRef({ others, world, scale, still });
@@ -232,19 +227,28 @@ export function Presence({
         facing = o.row!.facing;
       }
       const p = tileOnCanvas(spot);
-      t.el.style.transform = `translate3d(${Math.round(p.x * scale - HOG_SIZE / 2)}px, ${Math.round(p.y * scale - HOG_FEET)}px, 0)`;
-      t.el.style.zIndex = String(hogZ(behindTree(world, tileAt(p)), mine ? p.y - mine.y : 0));
+      const x = Math.round(p.x * scale);
+      const y = Math.round(p.y * scale);
+      const z = hogZ(behindTree(world, tileAt(p)), mine ? p.y - mine.y : 0);
+      // Only what changed is written: most hogs stand still most of the time.
+      const placed = `${x},${y},${z}`;
+      const moved = placed !== t.placed;
+      if (moved) {
+        t.placed = placed;
+        t.el.style.transform = `translate3d(${x - HOG_SIZE / 2}px, ${y - HOG_FEET}px, 0)`;
+        t.el.style.zIndex = String(z);
+      }
       const shown = `${animation}:${facing}`;
       if (shown !== t.shown && t.hog) {
         t.shown = shown;
         t.hog.play(animation);
         t.hog.face(facing === "left");
       }
-      if (o.id === open && cardEl.current) {
-        const card = cardEl.current;
-        const x = Math.round(p.x * scale);
+      const card = cardEl.current;
+      if (o.id === open && card && (moved || card.dataset.placed !== placed)) {
+        card.dataset.placed = placed;
         card.style.left = `${x}px`;
-        card.style.top = `${Math.round(p.y * scale - HOG_FEET - 4)}px`;
+        card.style.top = `${y - HOG_FEET - 4}px`;
         // Over a hog by the screen's edge it moves in, whole.
         const box = card.getBoundingClientRect();
         const dx = cardNudge(box.left, box.right, window.innerWidth);
@@ -277,9 +281,8 @@ export function Presence({
   useEffect(() => {
     if (!open) return;
     const key = (e: KeyboardEvent) => e.key === "Escape" && setOpen(null);
-    const away = (e: PointerEvent) => {
-      if (!(e.target as Element | null)?.closest?.("[data-hog-card], [data-hog-hit], [data-name-tag]")) setOpen(null);
-    };
+    // A press on the card, a hog or a name tag never gets here (each stops it).
+    const away = () => setOpen(null);
     document.addEventListener("keydown", key);
     document.addEventListener("pointerdown", away);
     return () => {
@@ -335,19 +338,24 @@ export function Presence({
 }
 
 /** A hog's card, over it on the map: who they are and the ways to them. */
-function HogCardView({ other, viewer, onClose, ref }: { other: Other; viewer: { memberId: string; workspaceName: string; sharedDemo: boolean }; onClose: () => void; ref?: Ref<HTMLDivElement> }) {
+function HogCardView({ other, viewer, onClose, ref }: { other: Other; viewer: PresenceViewer; onClose: () => void; ref?: Ref<HTMLDivElement> }) {
   // A wandering teammate's title comes from their profile; someone online brings theirs.
   const profile = useQuery(api.cosmetics.profile, other.round ? { memberId: other.who.memberId as Id<"members"> } : "skip");
   const card = cardFor({ ...other.who, title: other.who.title ?? profile?.title ?? null }, viewer);
+  // Opened, it takes focus, so a screen reader reads it out; the arrow keys don't walk while it has it.
+  const self = useRef<HTMLDivElement>(null);
+  useImperativeHandle(ref, () => self.current!);
+  useEffect(() => self.current?.focus({ preventScroll: true }), [other.id]);
   return (
     <div
-      ref={ref}
+      ref={self}
+      tabIndex={-1}
       role="dialog"
       aria-label={card.name}
       data-hog-card={other.id}
       onPointerDown={(e) => e.stopPropagation()}
       onPointerUp={(e) => e.stopPropagation()}
-      className="pixel-frame absolute w-60 -translate-x-1/2 -translate-y-full p-3"
+      className="pixel-frame absolute w-60 -translate-x-1/2 -translate-y-full p-3 outline-none"
       style={{ zIndex: Z.notes }}
     >
       <button type="button" aria-label="Close" onClick={onClose} className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center text-ink/75 hover:text-ink">

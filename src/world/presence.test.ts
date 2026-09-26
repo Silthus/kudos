@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { layout } from "../../convex/lib/tree";
 import { findPath, type Tile } from "./iso";
-import { cardFor, cardNudge, glideAt, glideTo, shouldBeat, wanderRoutes, wandererAt, whereIs, type Beat } from "./presence";
+import { cardFor, cardNudge, wanderStops, glideAt, glideTo, shouldBeat, wanderRoutes, wandererAt, whereIs, type Beat } from "./presence";
 import { PLACES } from "./places";
 import { buildWorld } from "./world";
 
@@ -107,6 +107,12 @@ describe("a hog's card", () => {
     expect(cardFor(ana, viewer)).toEqual({ name: "Ana Lima", title: "Gardener", note: null, actions: [{ label: "Visit their garden", to: "/garden/m2" }] });
   });
 
+  test("your own hog in another window is you (review #19)", () => {
+    const card = cardFor({ ...ana, memberId: "m1", name: "Alex Rivera" }, viewer);
+    expect(card.note).toBe("You, in another window");
+    expect(card.actions).toEqual([{ label: "Visit your garden", to: "/garden" }]);
+  });
+
   test("with a home, a way to it too", () => {
     expect(cardFor({ ...ana, hasHome: true }, viewer).actions).toEqual([
       { label: "Visit their garden", to: "/garden/m2" },
@@ -186,5 +192,19 @@ describe("the demo's wandering teammates", () => {
     const walled = (a: Tile, b: Tile) => (b.x === 14 && b.y === 2 ? null : walk(a, b));
     for (const route of wanderRoutes("2026-09-26", team, stops, walled)) for (const leg of route.legs) expect(leg.path).not.toContainEqual({ x: 14, y: 2 });
     expect(wanderRoutes("2026-09-26", team, [{ x: 4, y: 4 }], walk)).toEqual([]);
+  });
+});
+
+describe("where the demo's teammates stop", () => {
+  test("beside each open district's door, never on it, and never where you arrive (review #3)", () => {
+    const world = buildWorld({ seed: 1, layout: layout(1, 20_000), planted: true, standing: PLACES.map((p) => p.id) });
+    const stops = wanderStops(world);
+    const doors = world.places.flatMap((p) => p.doors);
+    expect(stops.length).toBeGreaterThanOrEqual(4);
+    for (const s of stops) {
+      expect(world.walkable(s.x, s.y)).toBe(true);
+      expect(doors).not.toContainEqual(s);
+      expect(s).not.toEqual(world.spawn);
+    }
   });
 });

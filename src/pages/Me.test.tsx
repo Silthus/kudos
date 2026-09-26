@@ -54,6 +54,8 @@ vi.mock("convex/react", () => ({
 }));
 vi.mock("@convex-dev/auth/react", () => ({ useAuthActions: () => ({ signOut }) }));
 vi.mock("@/components/charts", () => ({ LineChart: () => null, Legend: () => null }));
+// No atlas in tests: your hedgehog in the look picker keeps its placeholder.
+vi.mock("@/world/atlas", async (real) => ({ ...(await real<typeof import("@/world/atlas")>()), loadAtlas: () => new Promise(() => {}) }));
 
 const { Me } = await import("./Me");
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

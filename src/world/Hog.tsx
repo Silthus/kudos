@@ -97,8 +97,11 @@ export function Hog({ still, look, ref, className }: { still: boolean; look?: Lo
   const color = look?.color ?? null;
   const accessory = look?.accessory ?? null;
 
-  const mirror = (flip: boolean) => {
-    for (const c of [canvas.current, worn.current]) if (c) c.style.transform = flip ? "scaleX(-1)" : "";
+  /** Which way it's drawn: as it faces, but the sign says "Hello", and mirrored it would read backwards. */
+  const drawnLeft = () => left.current && anim.current.name !== "sign";
+  /** Mirrors the hedgehog and what it wears to face the way it's drawn. */
+  const mirror = () => {
+    for (const c of [canvas.current, worn.current]) if (c) c.style.transform = drawnLeft() ? "scaleX(-1)" : "";
   };
 
   useImperativeHandle(ref, () => ({
@@ -106,20 +109,19 @@ export function Hog({ still, look, ref, className }: { still: boolean; look?: Lo
       // Reduced motion: the still idle frame, whatever happened.
       if (still && name !== "idle") name = "idle";
       if (canvas.current) canvas.current.dataset.animation = name;
-      // The sign says "Hello": mirrored it would read backwards, so it's held up facing right.
-      if (name === "sign") mirror(false);
-      if (anim.current.name === name && anim.current.loop && (how.loop ?? true)) return;
-      anim.current = { name, loop: how.loop ?? true, then: how.then, start: performance.now() };
+      if (!(anim.current.name === name && anim.current.loop && (how.loop ?? true))) anim.current = { name, loop: how.loop ?? true, then: how.then, start: performance.now() };
+      mirror();
     },
     face: (l) => {
       left.current = l;
-      mirror(l);
+      mirror();
     },
-    now: () => ({ animation: anim.current.name, facing: left.current ? "left" : "right" }),
+    now: () => ({ animation: anim.current.name, facing: drawnLeft() ? "left" : "right" }),
   }));
 
-  // What it wears: drawn once, over the hedgehog.
+  // What it wears: drawn once, over the hedgehog, facing its way.
   useEffect(() => {
+    mirror();
     const ctx = context(worn.current);
     const rect = loaded && accessory ? frameRect(loaded.atlas, `accessories/${accessory}.png`) : null;
     if (ctx && loaded && rect) drawFrame(ctx, loaded, rect);
@@ -147,6 +149,7 @@ export function Hog({ still, look, ref, className }: { still: boolean; look?: Lo
       if (!a.loop && a.then && i === frames.length - 1 && now - a.start > (frames.length * 1000) / FPS[a.name]) {
         anim.current = { name: a.then, loop: true, start: now };
         if (canvas.current) canvas.current.dataset.animation = a.then;
+        mirror();
         i = 0;
       }
       const key = `${anim.current.name}:${i}`;

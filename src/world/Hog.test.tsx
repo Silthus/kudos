@@ -65,6 +65,23 @@ test("with no look, no tint and nothing worn", () => {
   expect(worn).toBeNull();
 });
 
+test("put on after turning left, what it wears faces left too (review #6)", () => {
+  const ref = createRef<Handle>();
+  act(() => root.render(<Hog ref={ref} still={false} look={{ color: null, accessory: null }} />));
+  ref.current!.face(true);
+  act(() => root.render(<Hog ref={ref} still={false} look={{ color: null, accessory: "cap" }} />));
+  expect(host.querySelector<HTMLCanvasElement>("canvas[data-hog-accessory]")!.style.transform).toBe("scaleX(-1)");
+});
+
+test("holding up its sign after facing left, it says it faces right, as drawn (review #7)", () => {
+  const { hog, canvas } = render(false);
+  hog.face(true);
+  hog.play("sign", { loop: false, then: "idle" });
+  hog.face(true);
+  expect(canvas.style.transform).toBe("");
+  expect(hog.now().facing).toBe("right");
+});
+
 test("turning left, what it wears turns with it", () => {
   const { hog, canvas, worn } = render(false, { color: null, accessory: "cap" });
   hog.face(true);

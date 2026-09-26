@@ -310,7 +310,8 @@ describe("who's online", () => {
     expect(button()?.textContent).toBe("3 online");
     act(() => button()!.click());
     const rows = [...host.querySelectorAll("[data-online] li")].map((li) => li.textContent);
-    expect(rows).toEqual(["You, Base camp", "Ana Lima, The desert", "Ben Okafor, Base camp"]);
+    // You're where your caption says, at once; the others where they were within the last 15 s.
+    expect(rows).toEqual(["You, Your garden", "Ana Lima, The desert", "Ben Okafor, Base camp"]);
   });
 
   test("asks on the workspace clock, rounded to 5 s", () => {
@@ -320,6 +321,16 @@ describe("who's online", () => {
     render({ whereIs });
     expect(onlineArgs).toEqual({ now: 1_000_000_000 });
     vi.useRealTimers();
+  });
+
+  test("it stays open while the next answer loads (review #2)", () => {
+    online = { count: 3, players };
+    render({ whereIs });
+    act(() => button()!.click());
+    online = undefined;
+    render({ whereIs });
+    expect(button()?.textContent).toBe("3 online");
+    expect(host.querySelectorAll("[data-online] li")).toHaveLength(3);
   });
 
   test("not there outside the world, nor before anyone is in it", () => {

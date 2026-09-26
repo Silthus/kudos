@@ -42,7 +42,7 @@ export type Spot = { x: number; y: number };
  * motion"): from where it is now, over the time between the two sightings (the pace its heartbeats
  * came at), at least GLIDE_MIN_MS and at most GLIDE_MAX_MS so a long gap still reads as a walk.
  */
-export type Glide = { from: Spot; to: Spot; start: number; ms: number; seenAt: number };
+export type Glide = { from: Spot; to: Spot; start: number; ms: number };
 
 const GLIDE_MIN_MS = 120;
 const GLIDE_MAX_MS = 800;
@@ -53,8 +53,9 @@ export function glideTo(prev: Glide | null, to: Spot, now: number, still: boolea
   if (prev && prev.to.x === to.x && prev.to.y === to.y) return prev;
   const from = prev ? glideAt(prev, now).at : to;
   const far = Math.abs(to.x - from.x) + Math.abs(to.y - from.y) > GLIDE_TILES;
-  const ms = !prev || still || far ? 0 : Math.min(GLIDE_MAX_MS, Math.max(GLIDE_MIN_MS, now - prev.seenAt));
-  return { from: ms ? from : to, to, start: now, ms, seenAt: now };
+  // The last sighting started the last glide: the time since is the pace of its heartbeats.
+  const ms = !prev || still || far ? 0 : Math.min(GLIDE_MAX_MS, Math.max(GLIDE_MIN_MS, now - prev.start));
+  return { from: ms ? from : to, to, start: now, ms };
 }
 
 /** Where a gliding hog is now, and whether it's still on its way. */
@@ -88,6 +89,8 @@ export function whereIs(world: World, at: Spot): string {
 export type HogWho = { memberId: string; name: string; title: string | null; hasHome: boolean; npc?: boolean };
 export type CardAction = { label: string; to: string };
 export type HogCard = { name: string; title: string | null; note: string | null; actions: CardAction[] };
+/** Who is looking: the member, their workspace's name, and whether it's the shared demo (every visitor one member). */
+export type PresenceViewer = { memberId: string; workspaceName: string; sharedDemo: boolean };
 
 /**
  * What clicking a hog shows: their name, level title, a line on who they are when that needs
@@ -95,10 +98,12 @@ export type HogCard = { name: string; title: string | null; note: string | null;
  * here once an expedition is forming. "Visit their home" waits for homes (#160: `hasHome`, and the
  * route it owns).
  */
-export function cardFor(hog: HogWho, viewer: { memberId: string; workspaceName: string; sharedDemo: boolean }): HogCard {
-  // Every visitor to the shared demo is its one member: another visitor's garden is the one you have.
-  if (viewer.sharedDemo && !hog.npc && hog.memberId === viewer.memberId)
-    return { name: hog.name, title: hog.title, note: "Another visitor exploring the demo", actions: [{ label: "Visit the garden", to: "/garden" }] };
+export function cardFor(hog: HogWho, viewer: PresenceViewer): HogCard {
+  if (!hog.npc && hog.memberId === viewer.memberId) {
+    // Every visitor to the shared demo is its one member: another visitor's garden is the one you have.
+    if (viewer.sharedDemo) return { name: hog.name, title: hog.title, note: "Another visitor exploring the demo", actions: [{ label: "Visit the garden", to: "/garden" }] };
+    return { name: hog.name, title: hog.title, note: "You, in another window", actions: [{ label: "Visit your garden", to: "/garden" }] };
+  }
   const actions = [{ label: "Visit their garden", to: `/garden/${hog.memberId}` }];
   if (hog.hasHome) actions.push({ label: "Visit their home", to: `/home/${hog.memberId}` });
   return { name: hog.name, title: hog.title, note: hog.npc ? `${viewer.workspaceName} teammate` : null, actions };
@@ -122,6 +127,34 @@ export function cardNudge(left: number, right: number, width: number): number {
 // signed in, a few seeded teammates stroll between the open districts. Only on the client, only in
 // the shared demo, and on a schedule fixed by the day: everyone looking sees them at the same spot.
 
+/** Steps off a door a wanderer stops at, nearest first: beside it, never on it or in its way. */
+const BESIDE = [
+  { x: 2, y: 0 },
+  { x: 0, y: 2 },
+  { x: -2, y: 0 },
+  { x: 0, y: -2 },
+  { x: 2, y: 1 },
+  { x: 1, y: 2 },
+  { x: 3, y: 0 },
+  { x: 0, y: 3 },
+];
+
+/**
+ * Where the demo's teammates stop: beside each open district's door (a step or two off it, on
+ * ground they can stand on), never on a door, whose taps are yours, nor where you arrive.
+ */
+export function wanderStops(world: World): Tile[] {
+  const doors = world.places.flatMap((p) => p.doors);
+  const taken = (t: Tile) => doors.some((d) => d.x === t.x && d.y === t.y) || (t.x === world.spawn.x && t.y === world.spawn.y);
+  const stops: Tile[] = [];
+  for (const site of world.sites) {
+    if (!site.open || site.id === "base_camp") continue;
+    const at = BESIDE.map((d) => ({ x: site.approach.x + d.x, y: site.approach.y + d.y })).find((t) => world.walkable(t.x, t.y) && !taken(t));
+    if (at) stops.push(at);
+  }
+  return stops;
+}
+
 /** Stops on a wanderer's round, before it comes back to the first. */
 const ROUND_STOPS = 4;
 /** A stroll: this long a tile. */
@@ -144,12 +177,19 @@ function lookFor(rand: () => number): Look {
 
 /**
  * Each teammate's round on `day` (the workspace's "YYYY-MM-DD"): ROUND_STOPS stops picked from
- * `stops` (the open districts' doors and base camp), walked with `walk` (the world's path finder).
+ * `stops` (`wanderStops`: beside the open districts' doors), walked with `walk` (the world's path finder).
  * The same day, teammates and stops give the same rounds; a stop nobody can walk to is left out,
  * and with fewer than two stops nobody wanders.
  */
 export function wanderRoutes(day: string, who: { memberId: string; name: string }[], stops: Tile[], walk: (from: Tile, to: Tile) => Tile[] | null): Round[] {
   if (stops.length < 2) return [];
+  // Each walk between two stops is found once, whoever takes it.
+  const walks = new Map<string, Tile[] | null>();
+  const path = (from: Tile, to: Tile) => {
+    const key = `${from.x},${from.y}>${to.x},${to.y}`;
+    if (!walks.has(key)) walks.set(key, walk(from, to));
+    return walks.get(key)!;
+  };
   const rounds: Round[] = [];
   for (const { memberId, name } of who) {
     const rand = mulberry32(fnv1a(`${day}:${memberId}`));
@@ -162,17 +202,17 @@ export function wanderRoutes(day: string, who: { memberId: string; name: string 
     const round = [first];
     for (let tries = 0; round.length < ROUND_STOPS && tries < 4 * ROUND_STOPS; tries++) {
       const next = pick(round.at(-1)!);
-      if (walk(round.at(-1)!, next) && walk(next, first)) round.push(next);
+      if (path(round.at(-1)!, next) && path(next, first)) round.push(next);
     }
     if (round.length < 2) continue;
     const legs: Leg[] = [];
     let at = 0;
     for (let i = 0; i < round.length; i++) {
       const from = round[i];
-      const path = [from, ...(walk(from, round[(i + 1) % round.length]) ?? [])];
+      const tiles = [from, ...(path(from, round[(i + 1) % round.length]) ?? [])];
       const dwellMs = DWELL_MIN_MS + Math.floor(rand() * DWELL_SPAN_MS);
-      const walkMs = (path.length - 1) * WANDER_STEP_MS;
-      legs.push({ path, startMs: at, dwellMs, walkMs });
+      const walkMs = (tiles.length - 1) * WANDER_STEP_MS;
+      legs.push({ path: tiles, startMs: at, dwellMs, walkMs });
       at += dwellMs + walkMs;
     }
     rounds.push({ memberId, name, look, legs, cycleMs: at, offsetMs: Math.floor(rand() * at) });

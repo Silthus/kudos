@@ -14,13 +14,14 @@ import { Progress } from "@/components/ui";
 import { HEDGEHOG_MODE } from "@/lib/art";
 import { nf } from "@/lib/format";
 import { useWorkspaceToday } from "@/lib/period";
+import { useStableQuery } from "@/lib/useStableQuery";
 import { useViewer } from "@/lib/viewer";
 import { HogFrame } from "./Hog";
 import { useMotion, type MotionChoice } from "./motion";
 import type { Place } from "./places";
-import { useWorldNow } from "./Presence";
+import { useWorldNow } from "./worldNow";
 import type { Spot } from "./presence";
-import { dayNumber, isSimulatorWorkspace, shownSimulator, type ActiveSimulator, type SimulatorState } from "./simulator";
+import { dayNumber, inYourSimulator, isSimulatorWorkspace, shownSimulator, type ActiveSimulator, type SimulatorState } from "./simulator";
 import { SimulatorClock } from "./SimulatorClock";
 
 /**
@@ -287,13 +288,15 @@ function SettingsMenu({ gameOn, simulator }: { gameOn: boolean; simulator: Simul
 /**
  * Who's in the world now (#158, #152 S2): "3 online", opening a parchment list of each name and
  * where they are (`whereIs`, by district). Only people online (`api.presence.online`: seen in the
- * last minute, never anyone offline); you're in it as "You". Not there before anyone is.
+ * last minute, never anyone offline); you're in it as "You", where your caption says you are (the
+ * others' spots are up to 15 s old). Not there before anyone is.
  */
-function OnlineList({ whereIs }: { whereIs: (spot: Spot) => string }) {
+function OnlineList({ whereIs, here }: { whereIs: (spot: Spot) => string; here: string }) {
   const menu = useMenu();
   const id = useId();
   const now = useWorldNow(true);
-  const online = useQuery(api.presence.online, { now });
+  // Asked again every 5 s: the last answer stays while the next loads, so the list never blinks.
+  const online = useStableQuery(api.presence.online, { now }).data;
   if (!online || online.count === 0) return null;
   return (
     <div className="relative" onKeyDown={menu.onKeyDown} onBlur={menu.onFocusOut}>
@@ -316,7 +319,7 @@ function OnlineList({ whereIs }: { whereIs: (spot: Spot) => string }) {
               <li key={`${p.memberId}:${i}`} className="flex items-baseline justify-between gap-3 border-t border-parchment-deep px-3 py-1.5 text-sm first:border-t-0">
                 <span className="min-w-0 truncate font-semibold">{p.you ? "You" : p.name}</span>
                 <span className="sr-only">, </span>
-                <span className="shrink-0 text-xs text-ink/75">{whereIs(p)}</span>
+                <span className="shrink-0 text-xs text-ink/75">{p.you ? here : whereIs(p)}</span>
               </li>
             ))}
           </ul>
@@ -462,7 +465,7 @@ export function Hud({ places, where, insetRight = 0, whereIs }: { places: Place[
   const simulatorState = useQuery(api.simulator.state, viewer.workspace.isDemo ? {} : "skip");
   const simulator = shownSimulator(simulatorState);
   // Known at once from your workspaces, so a cold load never says Live demo inside the simulator.
-  const inSimulator = viewer.workspaces.some((w) => w.current && isSimulatorWorkspace(w));
+  const inSimulator = inYourSimulator(viewer.workspaces);
   const wide = useWide();
   // Keyed by its workspace: a restarted simulator's clock starts clean.
   const clock = simulator && <SimulatorClock key={viewer.workspace._id} simulator={simulator} />;
@@ -479,7 +482,7 @@ export function Hud({ places, where, insetRight = 0, whereIs }: { places: Place[
             <PlacesMenu places={places} simulator={simulator} />
             <SettingsMenu gameOn={gameOn} simulator={simulatorState} />
           </div>
-          {whereIs && <OnlineList whereIs={whereIs} />}
+          {whereIs && <OnlineList whereIs={whereIs} here={where} />}
           {wide && clock}
         </div>
       </div>

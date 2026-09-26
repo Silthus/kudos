@@ -40,7 +40,8 @@ beforeEach(() => {
   askedWith = {};
   answer = "ok";
   hidden = false;
-  heartbeat.mockClear();
+  heartbeat.mockReset();
+  heartbeat.mockImplementation(async () => answer);
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date", "performance", "requestAnimationFrame", "cancelAnimationFrame"] });
   Object.defineProperty(document, "hidden", { configurable: true, get: () => hidden });
   host = document.createElement("div");
@@ -132,6 +133,21 @@ describe("your hog's heartbeat", () => {
     expect(heartbeat).toHaveBeenCalledTimes(2);
   });
 
+  test("a beat that fails is tried again later, waiting longer each time (review #5)", async () => {
+    heartbeat.mockRejectedValue(new Error("offline"));
+    mount();
+    await wait(300);
+    expect(heartbeat).toHaveBeenCalledTimes(1);
+    await wait(900);
+    expect(heartbeat).toHaveBeenCalledTimes(1);
+    await wait(300);
+    expect(heartbeat).toHaveBeenCalledTimes(2);
+    await wait(1_700);
+    expect(heartbeat).toHaveBeenCalledTimes(2);
+    await wait(500);
+    expect(heartbeat).toHaveBeenCalledTimes(3);
+  });
+
   test("while the demo resets, only the idle pace", async () => {
     answer = "resetting";
     mount();
@@ -169,6 +185,7 @@ function layer(patch: Partial<Parameters<typeof Presence>[0]> = {}) {
       <MemoryRouter initialEntries={["/"]}>
         <Presence
           on
+          beating
           world={world}
           scale={3}
           still={false}
@@ -216,6 +233,13 @@ describe("the other hogs round you", () => {
     expect(hogs()[0].querySelector("canvas[data-hog-accessory]")?.getAttribute("data-accessory")).toBe("party");
   });
 
+  test("one standing level with you stands behind you, never over you (review #3)", async () => {
+    queries["presence:nearby"] = [hog("p1", { x: 4, y: 4 })];
+    layer();
+    await wait(50);
+    expect(Number(hogs()[0].style.zIndex)).toBeLessThan(3000);
+  });
+
   test("the one lower on the screen stands in front", async () => {
     queries["presence:nearby"] = [hog("p1", { x: 20, y: 20 }), hog("p2", { x: 2, y: 2 })];
     layer();
@@ -257,6 +281,13 @@ describe("a hog's card", () => {
     expect(visit.getAttribute("href")).toBe("/garden/m2");
     expect(card()?.textContent).not.toContain("Invite to party");
     expect(card()?.textContent).not.toContain("Visit their home");
+  });
+
+  test("opened, it takes focus, so it's read out and the arrow keys don't walk (review #8)", () => {
+    queries["presence:nearby"] = [hog("p1")];
+    layer();
+    act(() => hogs()[0].querySelector<HTMLElement>("[data-hog-hit]")!.click());
+    expect(document.activeElement).toBe(card());
   });
 
   test("its name tag opens it too", () => {

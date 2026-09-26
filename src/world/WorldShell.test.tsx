@@ -805,6 +805,37 @@ describe("everyone else in the world (#158)", () => {
     expect([...host.querySelectorAll("button")].some((b) => b.textContent === "2 online")).toBe(true);
   });
 
+  test("the world's canvases never catch a click: a hog behind the tree is still clickable (review #1)", () => {
+    open("/");
+    const canvases = [...host.querySelectorAll<HTMLElement>("canvas[data-world], canvas[data-tree], canvas[data-front], [data-ground]")];
+    expect(canvases.length).toBeGreaterThanOrEqual(4);
+    for (const c of canvases) expect(c.className).toContain("pointer-events-none");
+  });
+
+  test("another workspace is another world: where you left it is asked again (review #4)", () => {
+    queries = { "presence:mine": { at: null, look: { color: null, accessory: null } } };
+    open("/");
+    open("/");
+    const before = asked.filter((n) => n === "presence:mine").length;
+    const elsewhere = { ...viewer, workspace: { ...viewer.workspace, _id: "w2" } } as unknown as ReadyViewer;
+    open("/", elsewhere);
+    expect(asked.filter((n) => n === "presence:mine").length).toBeGreaterThan(before);
+  });
+
+  test("the demo's teammates wander the shared demo, never your simulator nor a real workspace (review #9)", () => {
+    const ring = [{ memberId: "m7", name: "Lena Hoffmann", plants: 2, top: { species: "fern", stage: "young" } }];
+    const wanderers = () => host.querySelectorAll("[data-wanderer]").length;
+    const demo = { ...viewer, workspace: { ...viewer.workspace, isDemo: true }, workspaces: [{ current: true, slackTeamId: "T-DEMO", memberId: "m1", name: "Lumen Labs" }] } as unknown as ReadyViewer;
+    queries = { "gardens:neighbours": ring };
+    open("/", demo);
+    expect(wanderers()).toBe(1);
+    const simulator = { ...demo, workspaces: [{ current: true, slackTeamId: "SIM-1", memberId: "m1", name: "Simulator" }] } as unknown as ReadyViewer;
+    open("/", simulator);
+    expect(wanderers()).toBe(0);
+    open("/");
+    expect(wanderers()).toBe(0);
+  });
+
   test("with the game hidden from you, nobody else and no heartbeat", () => {
     const hidden = { ...viewer, member: { ...viewer.member, gameHidden: true } } as unknown as ReadyViewer;
     queries = { "presence:nearby": [other], "presence:online": { count: 2, players: [] } };

@@ -21,7 +21,7 @@ import { behindTree, siteName, spriteFoot, tileOnCanvas, treeBox, treeHeight } f
 import { placeForPath, placesOnMap, routablePlaces, visiblePlaces, type Place } from "./places";
 import { Presence, type PresenceHandle } from "./Presence";
 import { whereIs, type Beat } from "./presence";
-import { isSimulatorWorkspace } from "./simulator";
+import { inYourSimulator } from "./simulator";
 import { Sky } from "./Sky";
 import { mapHeight, mapWidth } from "./pixels";
 import { pushToasts } from "./toastBus";
@@ -121,7 +121,7 @@ function nameOf(world: World, t: Tile, gameShown: boolean): string {
 /** Is focus somewhere keys mean typing or choosing, not walking? */
 function typingIn(target: EventTarget | null) {
   const el = target instanceof HTMLElement ? target : null;
-  return !!el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || !!el.closest("[data-hud-menu]"));
+  return !!el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || !!el.closest("[data-hud-menu], [data-hog-card]"));
 }
 
 export function WorldShell() {
@@ -197,7 +197,7 @@ export function WorldShell() {
   const look = useQuery(api.game.mine, gameShown ? {} : "skip")?.look ?? null;
   const worn = sky.party ? { color: look?.color ?? null, accessory: "party" as const } : look;
   // The shared demo, where the seeded teammates wander (#158): never a real workspace, nor your simulator.
-  const sharedDemo = viewer.workspace.isDemo && !viewer.workspaces.some((w) => w.current && isSimulatorWorkspace(w));
+  const sharedDemo = viewer.workspace.isDemo && !inYourSimulator(viewer.workspaces);
   // `/garden?plot=2`: that plot, if it's one of yours. Its link waits for your garden to load, so
   // it lands on the plot rather than at the gate and then walks.
   const plotAsked = target?.place.id === "garden" && !target.memberId && new URLSearchParams(location.search).has("plot");
@@ -493,6 +493,8 @@ export function WorldShell() {
     cancelAnimationFrame(w.raf);
     Object.assign(w, { raf: 0, step: null, queue: [], arrive: null, tile: BASE_CAMP.spawn });
     place(tileOnCanvas(BASE_CAMP.spawn), true);
+    // …or where you left that one.
+    setPlacedMine(false);
     setWhere(nameHere(BASE_CAMP.spawn));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceId]);
@@ -701,6 +703,7 @@ export function WorldShell() {
         <Presence
           ref={presence}
           on={gameShown && !treePending}
+          beating={placedMine}
           world={world}
           scale={scale}
           still={still}
