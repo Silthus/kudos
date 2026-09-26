@@ -15,6 +15,7 @@ import { fuelForLine, OFFERING_AUTO_CLAIM_DAYS } from "./lib/tree";
 import { fruitIdValidator } from "./schema";
 import { addFuel } from "./tree";
 import { homeFinished } from "./homes";
+import { addFruit, held } from "./inventory";
 
 /**
  * Offerings at the Ancient Tree (#157; design plan #152 S3): the giver's side of the stone's two
@@ -106,25 +107,6 @@ function waitingOfferings(ctx: QueryCtx, memberId: Id<"members">) {
 export async function waiting(ctx: QueryCtx, memberId: Id<"members">) {
   const rows = await waitingOfferings(ctx, memberId).take(WAITING_READ);
   return { ...sum(rows), offerings: rows.length };
-}
-
-// ── The inventory ───────────────────────────────────────────────────────────
-
-async function heldRow(ctx: QueryCtx, memberId: Id<"members">, fruit: FruitId) {
-  return await ctx.db
-    .query("inventory")
-    .withIndex("by_member_fruit", (q) => q.eq("memberId", memberId).eq("fruit", fruit))
-    .unique();
-}
-
-/** Adds (or, negative, takes) fruit of one kind; a kind held at zero has no row. */
-export async function addFruit(ctx: MutationCtx, workspaceId: Id<"workspaces">, memberId: Id<"members">, fruit: FruitId, delta: number) {
-  const row = await heldRow(ctx, memberId, fruit);
-  const count = (row?.count ?? 0) + delta;
-  if (count < 0) throw new ConvexError(`You have no ${FRUITS.find((f) => f.id === fruit)!.name.toLowerCase()} left.`);
-  if (row && count === 0) await ctx.db.delete(row._id);
-  else if (row) await ctx.db.patch(row._id, { count });
-  else if (count > 0) await ctx.db.insert("inventory", { workspaceId, memberId, fruit, count });
 }
 
 // ── Claiming ────────────────────────────────────────────────────────────────
@@ -222,13 +204,10 @@ export const inventory = query({
   handler: async (ctx) => {
     const { workspace, member } = await requireViewer(ctx);
     if (!gameShownTo(workspace, member)) return [];
-    const rows = await ctx.db
-      .query("inventory")
-      .withIndex("by_member_fruit", (q) => q.eq("memberId", member._id))
-      .take(FRUITS.length);
+    const { fruit } = await held(ctx, member._id);
     return FRUITS.flatMap((f) => {
-      const row = rows.find((r) => r.fruit === f.id);
-      return row ? [{ fruit: f.id, name: f.name, about: f.about, count: row.count }] : [];
+      const count = fruit.get(f.id);
+      return count ? [{ fruit: f.id, name: f.name, about: f.about, count }] : [];
     });
   },
 });

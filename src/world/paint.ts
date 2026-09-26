@@ -342,10 +342,10 @@ const TERRACE_SIDES = { left: PALETTE.s, right: PALETTE.b, lip: PALETTE.g };
 
 /**
  * A dry outline: dashes along the edges of the tiles it rings. A closed district's are faint
- * dune-shadow dashes on the sand, a footprint of what will stand there; a ruin's a stone course
- * with a lit lip; a home plot's pegged in parchment.
+ * dune-shadow dashes on the sand, a footprint of what will stand there; a home plot's pegged in
+ * parchment. (A ruin is its entrance's sprite, #162.)
  */
-const OUTLINE_COLOURS = { closed: [PALETTE.D, null], ruin: [PALETTE.M, PALETTE.m], home: [PALETTE.D, PALETTE.P] } as const;
+const OUTLINE_COLOURS = { closed: [PALETTE.D, null], home: [PALETTE.D, PALETTE.P] } as const;
 
 /** How bright the pixel already painted at an art point is (0 to 255), for ink that must show on it. */
 function brightness(img: Pixels, at: ArtRect, x: number, y: number) {
@@ -373,11 +373,6 @@ function paintOutline(img: Pixels, at: ArtRect, world: World, t: Tile) {
     for (let i = 0; i <= 8; i++) {
       const x = a.x + ((b.x - a.x) * i) / 8;
       const y = a.y + ((b.y - a.y) * i) / 8;
-      if (kind === "ruin") {
-        put(img, at, x, y, i % 3 === 0 && gap ? gap : dash);
-        if (gap) put(img, at, x, y - 1, gap);
-        continue;
-      }
       // Dashes, three on and two off, two pixels deep: dune-shadow on light sand, sand-deep where
       // the ground under them is as dark (a dune's lee, the night).
       if ((i + 5 * (t.x + t.y)) % 5 >= 3) continue;
@@ -387,7 +382,7 @@ function paintOutline(img: Pixels, at: ArtRect, world: World, t: Tile) {
     }
   }
   // Cracks in the dry ground inside.
-  if (kind !== "ruin" && hash(t.x, t.y, 73) < 0.3) put(img, at, c.x + Math.round((hash(t.x, t.y, 74) - 0.5) * 8), c.y, PALETTE.D);
+  if (hash(t.x, t.y, 73) < 0.3) put(img, at, c.x + Math.round((hash(t.x, t.y, 74) - 0.5) * 8), c.y, PALETTE.D);
 }
 
 /**

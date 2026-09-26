@@ -1,6 +1,5 @@
 import clsx from "clsx";
 import { useMutation, useQuery } from "convex/react";
-import { ConvexError } from "convex/values";
 import { House, Lamp } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
@@ -16,6 +15,7 @@ import { useClockNow, useHomeRing } from "@/world/homeRing";
 import { Art, FramedAvatar } from "@/components/cosmetics";
 import { cosmeticByKey } from "../../convex/lib/cosmetics";
 import { PixelArt } from "@/world/PixelArt";
+import { errorText } from "@/lib/errors";
 
 /**
  * Homes on the tree (#160, plan #152 S5): the windows of the homes district and the canopy.
@@ -29,7 +29,6 @@ import { PixelArt } from "@/world/PixelArt";
  * - **The canopy** (`/canopy`, at the world tree): the tree seen from above at night, every home lit.
  */
 
-const errorText = (e: unknown) => (e instanceof ConvexError ? String(e.data) : "Something went wrong. Try again.");
 const linkCls = "font-semibold text-ember-deep underline decoration-2 underline-offset-4";
 const days = (n: number) => (n === 1 ? "1 day" : `${n} days`);
 const stageName = (id: HomeStageId) => HOME_STAGE_BY_ID[id].name;

@@ -191,6 +191,12 @@ describe("what a removal deletes", () => {
       const attempt = { workspaceId: team.workspaceId, channelId: "CGENERAL", outcome: "invalid" as const, reason: "no_mention" as const, at: Date.now() };
       await ctx.db.insert("kudosAttempts", { ...attempt, messageTs: "1.1", giverId: xavi });
       await ctx.db.insert("kudosAttempts", { ...attempt, messageTs: "1.2", giverId: team.ben });
+      // An expedition he led into the ruins (#162).
+      await ctx.db.insert("expeditions", {
+        workspaceId: team.workspaceId, leaderId: xavi, ruinId: "ruin:1:0", name: "The Salt Well", tier: 1, seed: 1, rooms: [{ kind: "rest" }],
+        party: [{ memberId: xavi, name: "Xavi", level: 6, scoutHeraldPoints: 0, plantsGrown: 0, equipped: {}, hp: 13 }],
+        room: 0, turn: 0, choices: [], foeHp: 0, wrong: 0, log: [], loot: [], state: "cleared", startedAt: Date.now(),
+      });
     });
     const personal = async () =>
       await t.run(async (ctx) => {
@@ -206,6 +212,7 @@ describe("what a removal deletes", () => {
           dailyQuestCompletions: mine(await ctx.db.query("dailyQuestCompletions").collect()),
           kudosAttempts: (await ctx.db.query("kudosAttempts").collect()).filter((a) => a.giverId === xavi).length,
           balanceAdjustments: mine(await ctx.db.query("balanceAdjustments").collect()),
+          expeditions: (await ctx.db.query("expeditions").collect()).filter((e) => e.leaderId === xavi).length,
           adminRemovedBy: (await ctx.db.query("members").collect()).filter((m) => m.adminRemovedBy === xavi).length,
           users: (await ctx.db.query("users").collect()).filter((u) => u._id === userId).length,
           authSessions: (await ctx.db.query("authSessions").collect()).length,

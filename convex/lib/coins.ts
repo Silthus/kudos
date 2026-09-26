@@ -48,6 +48,8 @@ export type CoinBalance = {
   fromSprees: number;
   /** Paid by the elder hog's chain, 5 a step (`players.tutorialCoins`, part of `players.coins`, #159). */
   fromTutorial: number;
+  /** Found in the ruins (`players.expeditionCoins`, part of `players.coins`, #162). */
+  fromRuins: number;
   fromLevels: number;
   spent: number;
   adjusted: number;
@@ -55,12 +57,12 @@ export type CoinBalance = {
 
 /**
  * A member's coins. `player.coins` is what their events earned (kudos claimed at the tree, fruit,
- * quests and sprees), of which `fruitCoins` came from fruit (garden fruit picked and tree fruit sold),
- * `questCoins` from quests and `spreeCoins` from sprees; and every level above 1 earned 10. `waiting`
+ * quests, sprees and ruins), of which `fruitCoins` came from fruit (garden fruit picked and tree fruit
+ * sold), `questCoins` from quests, `spreeCoins` from sprees and `expeditionCoins` from the ruins; and every level above 1 earned 10. `waiting`
  * is what waits at the tree (convex/offerings.ts `waiting`), shown apart and never spendable.
  */
 export function coinBalance(
-  player: { coins?: number; fruitCoins?: number; questCoins?: number; spreeCoins?: number; tutorialCoins?: number; level: number },
+  player: { coins?: number; fruitCoins?: number; questCoins?: number; spreeCoins?: number; tutorialCoins?: number; expeditionCoins?: number; level: number },
   member: { coinsSpent?: number; coinsAdjusted?: number } = {},
   waiting = 0,
 ): CoinBalance {
@@ -68,18 +70,20 @@ export function coinBalance(
   const fromQuests = player.questCoins ?? 0;
   const fromSprees = player.spreeCoins ?? 0;
   const fromTutorial = player.tutorialCoins ?? 0;
-  const fromKudos = (player.coins ?? 0) - fromFruit - fromQuests - fromSprees - fromTutorial;
+  const fromRuins = player.expeditionCoins ?? 0;
+  const fromKudos = (player.coins ?? 0) - fromFruit - fromQuests - fromSprees - fromTutorial - fromRuins;
   const fromLevels = COINS.levelUp * (player.level - 1);
   const spent = member.coinsSpent ?? 0;
   const adjusted = member.coinsAdjusted ?? 0;
   return {
-    balance: fromKudos + fromFruit + fromQuests + fromSprees + fromTutorial + fromLevels - spent + adjusted,
+    balance: fromKudos + fromFruit + fromQuests + fromSprees + fromTutorial + fromRuins + fromLevels - spent + adjusted,
     waiting,
     fromKudos,
     fromFruit,
     fromQuests,
     fromSprees,
     fromTutorial,
+    fromRuins,
     fromLevels,
     spent,
     adjusted,

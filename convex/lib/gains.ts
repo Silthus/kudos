@@ -155,6 +155,14 @@ function parts(gain: Gain, audience: Audience, link: LinkTo): Parts {
         body: nextHomeStage(gain.stage) ? "Build its next stage when you're ready." : "The last stage: the finest home on the tree.",
         context: links(to("/homes", "Your home")),
       };
+    case "ruin_finds": {
+      const found = [...gain.gear.map((g) => safe(g, audience)), ...gain.lore.map((l) => `the lore card “${safe(l, audience)}”`)];
+      return {
+        title: `Found in ${safe(gain.ruin, audience)}: ${found.join(" and ")}`,
+        body: [gain.gear.length > 0 && "Gear waits in your cabin to be worn.", gain.lore.length > 0 && "Lore cards hang in the gallery."].filter(Boolean).join(" "),
+        context: links(gain.gear.length > 0 ? to("/me", "Your cabin") : null, gain.lore.length > 0 ? to("/discoveries", "The gallery") : null),
+      };
+    }
     case "plant_stage": {
       const name = safe(gain.stage, audience);
       const stage = gain.stage === "Ancient" ? "an Ancient plant" : `${article(gain.stage)} ${name}`;
@@ -216,6 +224,7 @@ export function mergeGains(gains: Gain[], gain: Gain): Gain[] {
 const LABELS: [Gain["kind"], string][] = [
   ["tree_seed", "Ancient Tree"],
   ["offering_claimed", "Offering"],
+  ["ruin_finds", "Expedition"],
   ["level_up", "Level up"],
   ["skill", "New skill"],
   ["spree_tier", "Spree"],

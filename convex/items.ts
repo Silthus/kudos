@@ -1,13 +1,15 @@
 import { ConvexError } from "convex/values";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
-import { BOOSTERS, type BoosterKey, type ItemKey, LUCKY_CHARM } from "./lib/items";
+import { BOOSTERS, type BoosterKey, gearItemKey, type GearItemKey, type ItemKey, LUCKY_CHARM } from "./lib/items";
 import { BOOST_NAME, type BoostKind } from "./lib/boosts";
 import { dayKeyFor } from "./lib/time";
 import { COSMETICS, type CosmeticKey, type CosmeticSlot, EMOJI_VARIANTS, type VariantItemKey } from "./lib/cosmetics";
 import { clearSkillTree, resetBlocker } from "./skills";
 import { boostOn, startBonusDay } from "./boosts";
 import { spreeJoinsInMonth } from "./sprees";
+import { addGear, held } from "./inventory";
+import { STALL_GEAR, type GearId } from "./lib/rpg";
 
 /**
  * What each game item does (the definitions, prices and limits are in `lib/items.ts`). The Store
@@ -93,7 +95,31 @@ function variantEffect(key: VariantItemKey): ItemEffect {
   return { unavailable: (ctx, buyer) => ownedAlready(ctx, buyer, key), apply: async () => {}, undo: async () => {} };
 }
 
+/**
+ * A piece of gear from the stall (#162): into the inventory, worn from the cabin. One of each is
+ * enough (a slot takes one); handing it back in the demo takes it off first.
+ */
+function gearEffect(id: GearId): ItemEffect {
+  return {
+    unavailable: async (ctx, { member }) => ((await held(ctx, member._id)).gear.get(id) ? "It's in your cabin already." : null),
+    apply: async (ctx, { workspace, member }) => await addGear(ctx, workspace._id, member._id, id, 1),
+    undo: async (ctx, purchase) => {
+      const player = await ctx.db
+        .query("players")
+        .withIndex("by_member", (q) => q.eq("memberId", purchase.memberId))
+        .unique();
+      if (!(await held(ctx, purchase.memberId)).gear.get(id)) return false;
+      await addGear(ctx, purchase.workspaceId, purchase.memberId, id, -1);
+      const worn = player?.equipped;
+      if (player && worn && Object.values(worn).includes(id) && !(await held(ctx, purchase.memberId)).gear.get(id)) {
+        await ctx.db.patch(player._id, { equipped: Object.fromEntries(Object.entries(worn).filter(([, g]) => g !== id)) });
+      }
+    },
+  };
+}
+
 export const ITEM_EFFECTS: Record<ItemKey, ItemEffect> = {
+  ...(Object.fromEntries(STALL_GEAR.map(({ id }) => [gearItemKey(id), gearEffect(id)])) as Record<GearItemKey, ItemEffect>),
   ...(Object.fromEntries(COSMETICS.map((c) => [c.key, cosmeticEffect(c.key, c.slot)])) as Record<CosmeticKey, ItemEffect>),
   ...(Object.fromEntries(EMOJI_VARIANTS.flatMap((v) => (v.item ? [[v.item, variantEffect(v.item)]] : []))) as Record<VariantItemKey, ItemEffect>),
   // The purchase row is the join: kudos sprees (sprees.ts `spreeJoinsOf`) add the joins bought in a

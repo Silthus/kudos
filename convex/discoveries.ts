@@ -1,6 +1,9 @@
+import { v } from "convex/values";
 import { query, type QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
+import { gameShownTo, playerOf } from "./game";
 import { requireViewer } from "./lib/access";
+import { LORE } from "./lib/lore";
 import { CATALOG, CATEGORY_LABEL, RARITIES } from "./lib/messages";
 import { rollupsReady } from "./lib/rebuild";
 import { ANY_MESSAGE } from "./lib/rollups";
@@ -80,6 +83,31 @@ export const gallery = query({
         discovered: mine.filter((d) => d.category === id).length,
       })),
       items,
+    };
+  },
+});
+
+/**
+ * The gallery's lore cards (#162): the twelve secrets the ruins keep, in the tree's voice. A card is
+ * found in a ruin's secret room or, rarely, at the end of a cleared run (lib/rpg.ts), once per
+ * member (`players.lore`); unfound cards keep their words hidden. Empty while the game isn't shown.
+ */
+export const lore = query({
+  args: {},
+  returns: v.object({
+    found: v.number(),
+    cards: v.array(v.object({ index: v.number(), title: v.union(v.string(), v.null()), text: v.union(v.string(), v.null()), foundAt: v.union(v.number(), v.null()) })),
+  }),
+  handler: async (ctx) => {
+    const { member, workspace } = await requireViewer(ctx);
+    const player = gameShownTo(workspace, member) ? await playerOf(ctx, member._id) : null;
+    const found = new Map((player?.lore ?? []).map((l) => [l.lore, l.at]));
+    return {
+      found: found.size,
+      cards: LORE.map((card, index) => {
+        const at = found.get(index);
+        return at === undefined ? { index, title: null, text: null, foundAt: null } : { index, title: card.title, text: card.text, foundAt: at };
+      }),
     };
   },
 });

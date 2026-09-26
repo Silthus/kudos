@@ -1,6 +1,5 @@
 import clsx from "clsx";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
-import { ConvexError } from "convex/values";
 import { motion } from "motion/react";
 import {
   ChevronDown,
@@ -34,7 +33,11 @@ import { useWorkspaceToday } from "@/lib/period";
 import { Locked } from "@/components/game";
 import { hasItemArt, ItemArt } from "@/components/cosmetics";
 import { FruitStall } from "@/components/fruit";
+import { GearArt } from "@/components/rpg";
+import { isGearItemKey } from "../../convex/lib/items";
+
 import { HogCoin } from "@/components/HogCoin";
+import { errorText } from "@/lib/errors";
 
 /** The Store's only currency (ADR 0002). */
 export const COIN = "Hog coins";
@@ -137,7 +140,6 @@ type CatalogReward = Catalog["rewards"][number];
 type RedemptionStatus = "pending" | "approved" | "fulfilled" | "declined" | "cancelled";
 type HistoryEntry = { status: RedemptionStatus; at: number; by: { _id: string; name: string } | null; note?: string };
 
-const errorText = (e: unknown, fallback: string) => (e instanceof ConvexError ? String(e.data) : fallback);
 
 const STATUS_META: Record<RedemptionStatus, { label: string; chip: string; dot: string; verb: string }> = {
   pending: { label: "Pending", chip: "bg-lantern/10 text-soil ring-lantern/30", dot: "var(--color-lantern)", verb: "Requested" },
@@ -317,8 +319,16 @@ function OpenStore({ shop }: { shop: OpenShop }) {
       {/* What the tree dropped (#157): the fruit you hold comes first, it's yours already. */}
       <FruitStall />
       <Shelf id="game-items" title="Game items">
-        {items.map((item) => (
-          <ItemCard key={item.key} item={item} balance={balance} onBuy={() => setBuying(item)} usesLeft={held[item.key] ?? 0} />
+        {items
+          .filter((item) => !isGearItemKey(item.key))
+          .map((item) => (
+            <ItemCard key={item.key} item={item} balance={balance} onBuy={() => setBuying(item)} usesLeft={held[item.key] ?? 0} />
+          ))}
+      </Shelf>
+      {/* Gear for the ruins (#162): the common pieces; everything better is found in the ruins. */}
+      <Shelf id="gear" title="Gear for the ruins" intro={<p className="mb-3 text-sm text-ink/75">Worn from your cabin, one piece a slot. Better gear waits in the ruins.</p>}>
+        {items.filter((item) => isGearItemKey(item.key)).map((item) => (
+          <ItemCard key={item.key} item={item} balance={balance} onBuy={() => setBuying(item)} usesLeft={0} />
         ))}
       </Shelf>
       {/* Switching real rewards off leaves open requests with the admins: they stay in view. */}
@@ -401,6 +411,10 @@ function ItemCard({ item, balance, onBuy, usesLeft }: { item: ShopItem; balance:
           <div className="flex items-start justify-between gap-3">
             {hasItemArt(item.key) ? (
               <ItemArt itemKey={item.key} />
+            ) : isGearItemKey(item.key) ? (
+              <span className="grid h-14 w-14 shrink-0 place-items-center bg-parchment-deep ring-1 ring-bark/30" aria-hidden>
+                <GearArt id={item.key.slice("gear:".length)} size={44} />
+              </span>
             ) : (
               <span className="grid h-14 w-14 shrink-0 place-items-center bg-lantern/10 ring-1 ring-lantern/20" aria-hidden>
                 <Icon className="h-7 w-7 text-soil" />

@@ -33,6 +33,8 @@ import { Window } from "./Window";
 import { placeHint } from "../../convex/lib/tutorial";
 import { layout } from "../../convex/lib/tree";
 import { BASE_CAMP, buildWorld, inRect, type Site, type World } from "./world";
+import { ruinNotice, ruinPlaces } from "./ruins";
+import { RUIN_ART } from "./places/ruins";
 import { WorldCanvas, Z, type WorldCanvasHandle } from "./WorldCanvas";
 
 /**
@@ -159,15 +161,20 @@ export function WorldShell() {
       openRequests,
     }),
   );
-  const target = placeForPath(location.pathname, routablePlaces(shown));
-
   // The tree, and the world round it (#156). While your tree is loading the world waits.
   const tree = useQuery(api.tree.state, gameShown ? {} : "skip");
   const trunk = treeInput(gameShown ? tree : null);
   const treePending = trunk === null;
-  // A page open from a link before its place is on your map (the locked store) still has its building.
-  const standing = [...shown.map((p) => p.id), ...(target && !shown.some((p) => p.id === target.place.id) ? [target.place.id] : [])];
   const input = trunk ?? { seed: 0, layout: PENDING_LAYOUT, planted: false };
+  // The ruins' entrances are places too (#162): walk into one and its window opens.
+  // Another world seed stands its ruins elsewhere under other names: the key says where and what.
+  const ruinsKey = `${input.seed}:${input.layout.ruins.map((r) => `${r.id}@${r.at.x},${r.at.y}:${r.name}`).join()}`;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const ruinDoors = useMemo(() => ruinPlaces(input.layout.ruins), [ruinsKey]);
+  const target = placeForPath(location.pathname, [...routablePlaces(shown), ...ruinDoors]);
+  const ruinTarget = !!target && ruinDoors.some((r) => r.id === target.place.id);
+  // A page open from a link before its place is on your map (the locked store) still has its building.
+  const standing = [...shown.map((p) => p.id), ...(target && !ruinTarget && !shown.some((p) => p.id === target.place.id) ? [target.place.id] : [])];
   // What the world is built from, and nothing else: not growth, which rises with every thoughtful kudos in the company.
   const { stage: treeStage, rings, districts, homes: plotTiles, ruins } = input.layout;
   // The homes on the ring (#160): their plots are lit, and each stands on its plot.
@@ -182,10 +189,13 @@ export function WorldShell() {
   // The places standing on your map, where the tree put them, with their links and badges.
   // Where you are in the elder hog's chain (#159): places it hasn't reached stand dim, saying what opens them.
   const tutorial = useTutorial();
-  const onMap = placesOnMap(world.places, routablePlaces(shown)).map((p) => {
-    const hint = placeHint(p.id, tutorial?.step ?? null);
-    return hint ? { ...p, hint } : p;
-  });
+  const onMap = [
+    ...placesOnMap(world.places, routablePlaces(shown)).map((p) => {
+      const hint = placeHint(p.id, tutorial?.step ?? null);
+      return hint ? { ...p, hint } : p;
+    }),
+    ...ruinDoors,
+  ];
   const dimmed = onMap.filter((p) => p.hint).map((p) => p.id);
   const dimKey = dimmed.join();
   const onMapShown = onMap.filter((p) => shown.some((q) => q.id === p.id));
@@ -273,7 +283,7 @@ export function WorldShell() {
   const [where, setWhere] = useState("Base camp");
   const [bubble, setBubble] = useState<Neighbour | null>(null);
   /** A closed district or a ruin you're standing by: what it says. */
-  const [notice, setNotice] = useState<{ tile: Tile; title: string; body: string } | null>(null);
+  const [notice, setNotice] = useState<{ tile: Tile; title: string; body: string; lift?: number } | null>(null);
 
   const walker = useRef({
     tile: BASE_CAMP.spawn as Tile,
@@ -322,7 +332,8 @@ export function WorldShell() {
     const site = world.sites.find((s) => !s.open && (sameTile(s.approach, t) || inRect({ x0: s.outline.x0 - 1, y0: s.outline.y0 - 1, x1: s.outline.x1 + 1, y1: s.outline.y1 + 1 }, t.x, t.y)));
     if (site) return { tile: site.approach, title: siteName(site), body: closedLine(site, peakGrowth) };
     const ruin = world.ruins.find((r) => Math.max(Math.abs(r.at.x - t.x), Math.abs(r.at.y - t.y)) <= 2);
-    if (ruin) return { tile: ruin.at, title: ruin.name, body: "A ruin in the sand. Nobody has gone in yet." };
+    // Over the ruin's entrance, not in front of it.
+    if (ruin) return { tile: ruin.at, title: ruin.name, body: ruinNotice(ruin.tier), lift: mapHeight(RUIN_ART[ruin.tier]) - 22 };
     return null;
   };
 
@@ -730,7 +741,8 @@ export function WorldShell() {
           world={world}
           worldKey={worldKey}
           ready={!treePending}
-          places={treePending ? [] : onMap}
+          places={treePending ? [] : onMap.filter((p) => !ruinDoors.includes(p))}
+          ruins={treePending ? [] : ruinDoors}
           furniture={furniture}
           scale={scale}
           still={still}
@@ -777,7 +789,7 @@ export function WorldShell() {
           <div
             data-site-notice
             className="pixel-note absolute w-max max-w-72 px-3 py-2 text-sm"
-            style={{ zIndex: Z.notes, left: tileOnCanvas(noticeShown.tile).x * scale, top: tileOnCanvas(noticeShown.tile).y * scale - HOG_FEET - 8, transform: "translate(-50%, -100%)" }}
+            style={{ zIndex: Z.notes, left: tileOnCanvas(noticeShown.tile).x * scale, top: (tileOnCanvas(noticeShown.tile).y - (noticeShown.lift ?? 0)) * scale - HOG_FEET - 8, transform: "translate(-50%, -100%)" }}
             onPointerDown={(e) => e.stopPropagation()}
             onPointerUp={(e) => e.stopPropagation()}
           >

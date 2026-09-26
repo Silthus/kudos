@@ -1,6 +1,5 @@
 import clsx from "clsx";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
-import { ConvexError } from "convex/values";
 import { AnimatePresence, motion } from "motion/react";
 import { Archive, BellRing, Check, ChevronDown, CircleAlert, FolderOpen, MessageCircleQuestion, PackageCheck, Pencil, Plus, RotateCcw, ShoppingBag, SlidersHorizontal, TriangleAlert } from "lucide-react";
 import { useId, useState } from "react";
@@ -11,12 +10,12 @@ import { Avatar, BigNumber, Button, Card, CardHeader, Dialog, Empty, Eyebrow, Fi
 import { nf, relativeTime } from "@/lib/format";
 import { useViewer } from "@/lib/viewer";
 import { AdjustmentLine, COIN, RedemptionHistory, RewardCard, signed, StatusChip } from "./Store";
+import { errorText } from "@/lib/errors";
 
 const SECTIONS = ["requests", "catalog", "settings"] as const;
 type Section = (typeof SECTIONS)[number];
 type Reward = NonNullable<ReturnType<typeof useQuery<typeof api.storeAdmin.rewards>>>[number];
 
-const errorText = (e: unknown, fallback: string) => (e instanceof ConvexError ? String(e.data) : fallback);
 
 function DemoNotice({ children }: { children: React.ReactNode }) {
   return <div className="mb-4 border border-bark/60 bg-parchment-deep/50 px-4 py-3 text-sm text-ink/75">{children}</div>;

@@ -102,6 +102,12 @@ describe("the demo plays the game", () => {
     const players = await all(t, "players");
     const alex = (await demo.query(api.game.mine, {})).player!;
     expect(alex.level).toBeGreaterThan(3);
+    // The ruins (#162): three near ruins explored, a secret found, a piece of gear worn, stamina to go again.
+    const camp = (await demo.query(api.rpg.camp, {}))!;
+    expect(camp).toMatchObject({ ruinsCleared: 3, lore: 1, stamina: 3, equipped: { hat: "scout_cap" } });
+    expect(camp.gear).toEqual([expect.objectContaining({ id: "scout_cap", count: 1 })]);
+    expect((await demo.query(api.discoveries.lore, {})).found).toBe(1);
+    expect((await demo.query(api.rpg.current, {}))?.run).toMatchObject({ state: "cleared" });
     const events = await all(t, "gameEvents");
     for (const p of players) expect(p.xp).toBe(events.filter((e) => e.memberId === p.memberId).reduce((s, e) => s + e.xp, 0));
 
@@ -115,7 +121,8 @@ describe("the demo plays the game", () => {
     const wallet = (await demo.query(api.game.mine, {})).wallet!;
     expect(wallet.fromKudos).toBeGreaterThan(0);
     expect(wallet.spent).toBeGreaterThan(0);
-    expect(wallet.balance).toBe(wallet.fromKudos + wallet.fromFruit + wallet.fromQuests + wallet.fromLevels - wallet.spent + wallet.adjusted);
+    expect(wallet.fromRuins).toBeGreaterThan(0);
+    expect(wallet.balance).toBe(wallet.fromKudos + wallet.fromFruit + wallet.fromQuests + wallet.fromRuins + wallet.fromLevels - wallet.spent + wallet.adjusted);
     expect(wallet.balance).toBeGreaterThan(0);
     // The replay pays the quest history the seeding recorded (from level 5): 5 coins a weekly quest.
     const completions = await all(t, "questCompletions");
@@ -141,7 +148,7 @@ describe("the demo plays the game", () => {
     // Only the fresh seeded year is left in the ledger, and every player's XP adds up again.
     const after = await all(t, "gameEvents");
     const seeded = new Set((await all(t, "kudos")).map((k) => k.batchId));
-    expect(after.filter((e) => e.kind !== "quest").every((e) => seeded.has(e.batchId))).toBe(true);
+    expect(after.filter((e) => e.kind !== "quest" && e.kind !== "expedition").every((e) => seeded.has(e.batchId))).toBe(true);
     const recorded = new Set((await all(t, "questCompletions")).map((c) => c._id as string));
     expect(after.filter((e) => e.quest?.scope === "weekly").every((e) => recorded.has(e.completionId!))).toBe(true);
     for (const p of await all(t, "players")) {

@@ -8,10 +8,11 @@ import { paintStanding, standingRect } from "./paint";
 import { tileCentre } from "./iso";
 import { PLACES } from "./places";
 import { buildWorld } from "./world";
+import { DEMO_WORLD_SEED } from "../../convex/lib/settings";
 
 /** Homes on the tree (#160): a pixel sprite per stage, drawn on the ring at the world's plots. */
 
-const DEMO_SEED = 0x4c756d65;
+const DEMO_SEED = DEMO_WORLD_SEED;
 const demoWorld = () => buildWorld({ seed: DEMO_SEED, layout: layout(DEMO_SEED, 3500), planted: true, standing: PLACES.map((p) => p.id) });
 
 describe("a sprite per stage", () => {

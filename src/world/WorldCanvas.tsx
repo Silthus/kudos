@@ -3,7 +3,8 @@ import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "reac
 import { GroundLayer } from "./groundLayer";
 import { HOG_FEET, HOG_SIZE, HogFrame } from "./Hog";
 import { tileCentre } from "./iso";
-import { elderOf, hogsOf, labelsOf, paintStanding, signPoints, standingRect, treeFoot, type ArtRect, type WorldFurniture } from "./paint";
+import { behindTree, elderOf, hogsOf, labelsOf, paintStanding, signPoints, spriteFoot, standingRect, treeFoot, type ArtRect, type WorldFurniture } from "./paint";
+import { PixelArt } from "./PixelArt";
 import type { Place } from "./places";
 import { mapHeight, mapWidth, pixelAt, type PixelMap } from "./pixels";
 import { SEED_FRAMES, SEED_FRAME_MS } from "./tree/sprite";
@@ -104,6 +105,7 @@ export function WorldCanvas({
   onSeedMomentDone,
   onPlace,
   onSite,
+  ruins = [],
   ref,
 }: {
   world: World;
@@ -122,6 +124,8 @@ export function WorldCanvas({
   onSeedMomentDone?: () => void;
   onPlace: (place: Place) => void;
   onSite: (site: Site) => void;
+  /** The ruins' entrances out in the sand (#162): each its own small picture, named only on approach. */
+  ruins?: Place[];
   ref?: Ref<WorldCanvasHandle>;
 }) {
   const groundHost = useRef<HTMLDivElement>(null);
@@ -224,6 +228,22 @@ export function WorldCanvas({
           </span>
         </div>
       )}
+      {ruins.map((r) => {
+        const foot = spriteFoot(r);
+        const w = mapWidth(r.sprite);
+        const h = mapHeight(r.sprite);
+        return (
+          <div
+            key={r.id}
+            aria-hidden
+            data-ruin={r.id}
+            className="pointer-events-none absolute"
+            style={{ zIndex: behindTree(world, r.doors[0]) ? Z.behind : Z.front, left: (foot.x - w / 2) * scale, top: (foot.y - h + 1) * scale }}
+          >
+            <PixelArt map={r.sprite} width={w * scale} height={h * scale} />
+          </div>
+        );
+      })}
       {places.filter((p) => !p.nameTag).map((p) => {
         const at = signs.get(p.id)!;
         return (
