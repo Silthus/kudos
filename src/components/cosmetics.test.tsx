@@ -142,3 +142,15 @@ test("the celebration takes focus and Escape closes it (review #11)", () => {
   act(() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
   expect(mutations["superKudos:seen"]).toHaveBeenCalledWith({ id: "sk2" });
 });
+
+test("the celebration is a pixel window over the world: a bark title bar, the hoggie in its frame, palette-pixel confetti (#134)", () => {
+  results = { "superKudos:celebration": { id: "sk3", from: "Ana", avatarUrl: null, note: "for untangling the release pipeline", at: 0 } };
+  render(<SuperKudosCelebration today="2026-09-23" />);
+  const dialog = document.querySelector("[role=dialog]")!;
+  expect(dialog.querySelector("header.bg-bark h2")?.textContent).toBe("A Super kudos from Ana");
+  expect(dialog.querySelector("[data-npc] [data-art-slot='super-kudos-celebration']")).not.toBeNull();
+  const pieces = [...dialog.querySelectorAll<HTMLElement>("[data-confetti] [data-piece]")];
+  expect(pieces.length).toBeGreaterThanOrEqual(16);
+  expect(dialog.querySelector("[data-confetti]")?.getAttribute("aria-hidden")).toBe("true");
+  expect(copyTells(dialog)).toEqual([]);
+});

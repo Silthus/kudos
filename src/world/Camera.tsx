@@ -1,4 +1,4 @@
-import { useReducedMotion } from "motion/react";
+import { useReducedMotionConfig } from "motion/react";
 import { useEffect, useImperativeHandle, useRef, type ReactNode, type Ref } from "react";
 import type { Point } from "./iso";
 
@@ -63,7 +63,7 @@ export function Camera({
   children: ReactNode;
   ref?: Ref<CameraHandle>;
 }) {
-  const still = useReducedMotion();
+  const still = useReducedMotionConfig();
   const viewport = useRef<HTMLDivElement>(null);
   const stageEl = useRef<HTMLDivElement>(null);
   const cam = useRef<Point>({ x: 0, y: 0 });

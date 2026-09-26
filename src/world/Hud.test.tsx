@@ -6,6 +6,7 @@ import { getFunctionName, type FunctionReference } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { navItems } from "@/lib/nav";
 import { ViewerContext, type ReadyViewer } from "@/lib/viewer";
+import { MOTION_KEY, MotionProvider } from "./motion";
 import { visiblePlaces } from "./places";
 
 let game: unknown;
@@ -73,10 +74,12 @@ function render() {
   act(() =>
     root.render(
       <MemoryRouter initialEntries={["/"]}>
-        <ViewerContext.Provider value={viewer}>
-          <Hud places={places} where="Your garden" />
-          <Probe />
-        </ViewerContext.Provider>
+        <MotionProvider>
+          <ViewerContext.Provider value={viewer}>
+            <Hud places={places} where="Your garden" />
+            <Probe />
+          </ViewerContext.Provider>
+        </MotionProvider>
       </MemoryRouter>,
     ),
   );
@@ -156,5 +159,21 @@ describe("the HUD", () => {
     expect(host.textContent).toContain("Sign out");
     expect(host.querySelector("a[href='/me#door']")?.textContent).toContain("Hide the game");
     expect(host.textContent).toContain("Hedgehog Mode by PostHog (MIT)");
+  });
+
+  test("the settings menu switches motion on or reduced, and remembers it in this browser", () => {
+    localStorage.removeItem(MOTION_KEY);
+    game = mine({});
+    render();
+    act(() => host.querySelector<HTMLButtonElement>("button[aria-label='Settings']")!.click());
+    const group = host.querySelector("[role='radiogroup'][aria-label='Motion']")!;
+    const option = (name: string) => [...group.querySelectorAll<HTMLButtonElement>("[role='radio']")].find((b) => b.textContent === name)!;
+    expect(option("On").getAttribute("aria-checked")).toBe("true");
+    expect(option("Reduced").getAttribute("aria-checked")).toBe("false");
+    act(() => option("Reduced").click());
+    expect(option("Reduced").getAttribute("aria-checked")).toBe("true");
+    expect(localStorage.getItem(MOTION_KEY)).toBe("reduced");
+    act(() => option("On").click());
+    expect(localStorage.getItem(MOTION_KEY)).toBe("on");
   });
 });

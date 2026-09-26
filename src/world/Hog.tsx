@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
-import { FPS, frameAt, loadAtlas, type Animation, type LoadedAtlas, type Rect } from "./atlas";
+import { FPS, frameAt, frameRect, loadAtlas, type Animation, type LoadedAtlas, type Rect } from "./atlas";
 
 /**
  * The player (#126): PostHog's Hedgehog Mode hedgehog, drawn frame by frame from its atlas onto a
@@ -46,10 +46,12 @@ function drawPlaceholder(ctx: CanvasRenderingContext2D, size: number, feet: numb
   ctx.fillRect(size / 2 - 2, feet - 22, 4, 6);
 }
 
-function drawFrame(ctx: CanvasRenderingContext2D, loaded: LoadedAtlas, rect: Rect, crop?: Rect) {
+function drawFrame(ctx: CanvasRenderingContext2D, loaded: LoadedAtlas, rect: Rect, crop?: Rect, over?: Rect | null) {
   const c = crop ?? { x: 0, y: 0, w: rect.w, h: rect.h };
   ctx.clearRect(0, 0, c.w, c.h);
   ctx.drawImage(loaded.image, rect.x + c.x, rect.y + c.y, c.w, c.h, 0, 0, c.w, c.h);
+  // An accessory is a whole frame of its own, drawn over the hedgehog in the same place.
+  if (over) ctx.drawImage(loaded.image, over.x + c.x, over.y + c.y, c.w, c.h, 0, 0, c.w, c.h);
 }
 
 /** One still frame of the hedgehog (the HUD portrait, the splash), optionally cropped. */
@@ -75,8 +77,12 @@ export type HogHandle = {
   face: (left: boolean) => void;
 };
 
-/** The hedgehog in the world, animated by its own frame clock without re-rendering React. */
-export function Hog({ still, ref, className }: { still: boolean; ref?: Ref<HogHandle>; className?: string }) {
+/**
+ * The hedgehog in the world, animated by its own frame clock without re-rendering React. It may
+ * wear one of the atlas's accessories (the party hat on a bonus day, #134). The canvas says what it
+ * is doing (`data-animation`) and wearing (`data-accessory`).
+ */
+export function Hog({ still, accessory, ref, className }: { still: boolean; accessory?: string; ref?: Ref<HogHandle>; className?: string }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const loaded = useAtlas();
   const anim = useRef<{ name: Animation; loop: boolean; then?: Animation; start: number }>({ name: "idle", loop: true, start: 0 });
@@ -84,7 +90,11 @@ export function Hog({ still, ref, className }: { still: boolean; ref?: Ref<HogHa
 
   useImperativeHandle(ref, () => ({
     play: (name, how = {}) => {
+      // Reduced motion: the still idle frame, whatever happened.
       if (still && name !== "idle") name = "idle";
+      if (canvas.current) canvas.current.dataset.animation = name;
+      // The sign says "Hello": mirrored it would read backwards, so it's held up facing right.
+      if (name === "sign" && canvas.current) canvas.current.style.transform = "";
       if (anim.current.name === name && anim.current.loop && (how.loop ?? true)) return;
       anim.current = { name, loop: how.loop ?? true, then: how.then, start: performance.now() };
     },
@@ -100,6 +110,8 @@ export function Hog({ still, ref, className }: { still: boolean; ref?: Ref<HogHa
       drawPlaceholder(ctx, HOG_SIZE, HOG_FEET);
       return;
     }
+    const over = accessory ? frameRect(loaded.atlas, `accessories/${accessory}.png`) : null;
+    shown.current = "";
     let raf = 0;
     const tick = (now: number) => {
       const a = anim.current;
@@ -108,19 +120,20 @@ export function Hog({ still, ref, className }: { still: boolean; ref?: Ref<HogHa
       let i = still ? 0 : frameAt(frames.length, now - a.start, FPS[a.name], a.loop);
       if (!a.loop && a.then && i === frames.length - 1 && now - a.start > (frames.length * 1000) / FPS[a.name]) {
         anim.current = { name: a.then, loop: true, start: now };
+        if (canvas.current) canvas.current.dataset.animation = a.then;
         i = 0;
       }
       const key = `${anim.current.name}:${i}`;
       const rect = loaded.atlas.animations[anim.current.name][Math.max(0, i)];
       if (key !== shown.current && rect) {
         shown.current = key;
-        drawFrame(ctx, loaded, rect);
+        drawFrame(ctx, loaded, rect, undefined, over);
       }
       if (!still) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [loaded, still]);
+  }, [loaded, still, accessory]);
 
-  return <canvas ref={canvas} width={HOG_SIZE} height={HOG_SIZE} aria-hidden data-hog className={clsx("pixels block", className)} style={{ width: HOG_SIZE, height: HOG_SIZE }} />;
+  return <canvas ref={canvas} width={HOG_SIZE} height={HOG_SIZE} aria-hidden data-hog data-animation="idle" data-accessory={accessory} className={clsx("pixels block", className)} style={{ width: HOG_SIZE, height: HOG_SIZE }} />;
 }

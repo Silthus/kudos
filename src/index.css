@@ -139,6 +139,11 @@
   }
 }
 
+/* The Motion switch set to reduced (#134, world/motion.tsx) stills the meter as the system setting does. */
+:root[data-motion="reduced"] .pixel-meter > [data-fill] {
+  transition: none;
+}
+
 /* A parchment note on the dusk ground (the demo and bonus-day notices): a 1 px rule and a pixel step. */
 @utility pixel-note {
   background-color: var(--color-parchment);

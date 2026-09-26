@@ -208,3 +208,8 @@ test("a link to one moment (from a quest) opens the wall on it", () => {
   expect(frames(shown).map((f) => f.dataset.frame)).toEqual(["quest.1"]);
   expect(shown.querySelector("[role=tab][aria-selected=true]")?.textContent).toBe("Quest complete 0 of 1");
 });
+
+test("the reading hoggie sits by the collection in its pixel frame (#134)", () => {
+  const host = render();
+  expect(host.querySelector("[aria-label='Your collection'] [data-npc] [data-art-slot='hoggie-reader'] img")?.getAttribute("src")).toContain("/hoggies/png/reading.png");
+});

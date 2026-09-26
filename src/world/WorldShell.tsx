@@ -1,5 +1,5 @@
 import { useQuery } from "convex/react";
-import { useReducedMotion } from "motion/react";
+import { useReducedMotionConfig } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import { api } from "../../convex/_generated/api";
@@ -14,9 +14,12 @@ import { Camera, worldScale, type CameraHandle } from "./Camera";
 import { gardenPlots, plotCount, plotFrom, plotIndex, PLOTS, ringBeds, useGardenSway, type RingBed } from "./gardenWorld";
 import { Hog, HOG_FEET, HOG_SIZE, type HogHandle } from "./Hog";
 import { Hud } from "./Hud";
+import { Life } from "./Life";
+import { arrivalFor, skyFor, withSprout } from "./life";
 import { findPath, sameTile, stepFor, tileAt, tileCentre, type Point, type Tile } from "./iso";
 import { CANVAS_H, CANVAS_W, ORIGIN, spriteFoot, tileOnCanvas } from "./paint";
 import { placeForPath, routablePlaces, visiblePlaces, type Place } from "./places";
+import { Sky } from "./Sky";
 import { mapHeight, mapWidth } from "./pixels";
 import { GARDEN, WORLD, walkGrid } from "./tiles";
 import { Window } from "./Window";
@@ -31,7 +34,8 @@ import { WorldCanvas } from "./WorldCanvas";
  * Walking runs on refs and requestAnimationFrame: a walk re-renders nothing until it arrives.
  */
 
-type Neighbour = RingBed;
+/** A teammate's bed in the ring; `sprout` on a day they gave a thoughtful kudos (#134). */
+type Neighbour = RingBed & { sprout?: boolean };
 
 /** How long one step takes: brisk for long walks, so no walk takes much over two seconds. */
 const stepMs = (length: number) => Math.max(70, Math.min(180, 2400 / Math.max(1, length)));
@@ -59,7 +63,7 @@ export function WorldShell() {
   const viewer = useViewer();
   const location = useLocation();
   const navigate = useNavigate();
-  const still = !!useReducedMotion();
+  const still = !!useReducedMotionConfig();
   useHashScroll();
   const today = useWorkspaceToday();
   // Store requests waiting on an admin; capped server-side, so 100 reads as "99+".
@@ -82,14 +86,24 @@ export function WorldShell() {
   // Your plants on your key beds, and the neighbours' ring round your garden (#129, gardenWorld.ts).
   const garden = useQuery(api.gardens.mine, gameShown ? { today } : "skip");
   const ring = useQuery(api.gardens.neighbours, gameShown ? {} : "skip");
-  const neighbours = useMemo<Neighbour[]>(() => ringBeds(ring), [ring]);
+  // Which of them gave a thoughtful kudos today: asked for the ring's own teammates, a light read.
+  const ringIds = (ring ?? []).map((n) => n.memberId);
+  const sprouts = useQuery(api.life.sprouts, gameShown && ringIds.length > 0 ? { today, memberIds: ringIds.slice(0, 20) } : "skip");
+  const sproutKey = (sprouts ?? []).join();
+  const neighbours = useMemo<Neighbour[]>(
+    () => ringBeds(ring).map((b) => (sprouts?.includes(b.memberId) ? { ...b, sprite: withSprout(b.sprite), sprout: true } : b)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [ring, sproutKey],
+  );
   const sway = useGardenSway(garden, today, still);
   const furniture = useMemo(() => {
     const plotSprites = gardenPlots(garden, { today, sway });
     // Named by what's drawn, so a new balance or harvest doesn't repaint the world.
-    return { beds: neighbours, plots: plotSprites, key: `${plotSprites.map((p) => p?.rows.join() ?? "").join("|")}|${JSON.stringify(ring ?? null)}` };
-  }, [garden, ring, neighbours, today, sway]);
+    return { beds: neighbours, plots: plotSprites, key: `${plotSprites.map((p) => p?.rows.join() ?? "").join("|")}|${JSON.stringify(ring ?? null)}|${sproutKey}` };
+  }, [garden, ring, neighbours, today, sway, sproutKey]);
   const plots = plotCount(garden);
+  // Golden hour, the lanterns and the party hat on a bonus day or booster (#134; the HUD hangs the lanterns).
+  const sky = skyFor(useQuery(api.boosts.banner, { today }));
   // `/garden?plot=2`: that plot, if it's one of yours. Its link waits for your garden to load, so
   // it lands on the plot rather than at the gate and then walks.
   const plotAsked = target?.place.id === "garden" && !target.memberId && new URLSearchParams(location.search).has("plot");
@@ -161,7 +175,7 @@ export function WorldShell() {
     if (quiet) return;
     const door = onMap.find((p) => p.doors.some((d) => sameTile(d, w.tile)));
     if (door && target?.place.id !== door.id && door.id !== w.from) {
-      hog.current?.play("wave", { loop: false, then: "idle" });
+      hog.current?.play(arrivalFor(door.id), { loop: false, then: "idle" });
       navigate(door.to);
     }
     // One of your key beds opens its plot in the garden window (#129).
@@ -296,7 +310,7 @@ export function WorldShell() {
     }
     setArrived(null);
     walkTo(dest, () => {
-      hog.current?.play("wave", { loop: false, then: "idle" });
+      hog.current?.play(target.memberId ? "wave" : arrivalFor(target.place.id), { loop: false, then: "idle" });
       setArrived(targetKey);
     });
     // Only a new place (or bed) moves the hedgehog; a new query or hash on the same page doesn't.
@@ -375,7 +389,7 @@ export function WorldShell() {
   const goTo = (p: Place) => {
     abandon();
     walkTo(destination({ place: p }), () => {
-      hog.current?.play("wave", { loop: false, then: "idle" });
+      hog.current?.play(arrivalFor(p.id), { loop: false, then: "idle" });
       navigate(p.to);
     });
   };
@@ -420,10 +434,11 @@ export function WorldShell() {
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-dusk">
+      <Sky golden={sky.golden} />
       <Camera ref={camera} stage={{ width: CANVAS_W * scale, height: CANVAS_H * scale }} insetRight={windowOpen ? dockedWidth(vw) : 0} onTap={onTap}>
         <WorldCanvas places={onMap} furniture={furniture} scale={scale} still={still} onPlace={goTo} />
         <div ref={hogEl} className="pointer-events-none absolute left-0 top-0">
-          <Hog ref={hog} still={still} />
+          <Hog ref={hog} still={still} accessory={sky.party ? "party" : undefined} />
         </div>
         {bubbleAt && (
           <div
@@ -435,6 +450,7 @@ export function WorldShell() {
           >
             <p className="font-display text-base font-medium">{bubble!.name}'s bed</p>
             <p className="text-xs text-ink/75">{bubble!.plants === 1 ? "1 plant" : `${bubble!.plants} plants`}</p>
+            {bubble!.sprout && <p className="text-xs font-semibold text-hedge-deep">Gave a thoughtful kudos today</p>}
             <Link to={`/garden/${bubble!.memberId}`} className="font-semibold text-ember-deep underline decoration-2 underline-offset-4">
               Visit garden
             </Link>
@@ -453,6 +469,7 @@ export function WorldShell() {
           <Outlet />
         </ErrorBoundary>
       </Window>
+      <Life hog={hog} hogEl={hogEl} still={still} gameShown={gameShown} windowOpen={windowOpen} />
       {/* A celebration waits for the map: under a window's top layer it couldn't be reached. */}
       {gameShown && !windowOpen && <SuperKudosCelebration today={today} />}
     </div>

@@ -2,6 +2,7 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import clsx from "clsx";
+import { useReducedMotion } from "motion/react";
 import { LogOut, MapPin, Settings } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
@@ -14,6 +15,7 @@ import { nf } from "@/lib/format";
 import { useWorkspaceToday } from "@/lib/period";
 import { useViewer } from "@/lib/viewer";
 import { HogFrame } from "./Hog";
+import { useMotion, type MotionChoice } from "./motion";
 import type { Place } from "./places";
 
 /**
@@ -154,6 +156,35 @@ function WorkspaceSwitcher() {
   );
 }
 
+/**
+ * Motion: on or reduced (#134). Unset, it shows what the system asks for; choosing one keeps it in
+ * this browser (`motion.tsx`). A radio group, so it reads as one setting with two answers.
+ */
+function MotionSwitch() {
+  const { choice, set } = useMotion();
+  const system: MotionChoice = useReducedMotion() ? "reduced" : "on";
+  const current = choice ?? system;
+  return (
+    <div className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+      <span className="font-semibold">Motion</span>
+      <div role="radiogroup" aria-label="Motion" className="flex gap-1">
+        {(["on", "reduced"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            role="radio"
+            aria-checked={current === m}
+            onClick={() => set(m)}
+            className={clsx("pixel-chip px-2 py-0.5 text-xs font-semibold", current === m ? "bg-lantern text-ink" : "bg-parchment text-ink hover:bg-parchment-deep")}
+          >
+            {m === "on" ? "On" : "Reduced"}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SettingsMenu({ gameOn }: { gameOn: boolean }) {
   const menu = useMenu();
   const id = useId();
@@ -183,6 +214,7 @@ function SettingsMenu({ gameOn }: { gameOn: boolean }) {
               <span className="block text-xs text-ink/75">In your cabin: your kudos still earn XP and Hog coins.</span>
             </Link>
           )}
+          <MotionSwitch />
           <button type="button" onClick={leave} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-semibold hover:bg-parchment-deep">
             <LogOut className="h-4 w-4" aria-hidden />
             Sign out
@@ -200,7 +232,7 @@ function SettingsMenu({ gameOn }: { gameOn: boolean }) {
 function You({ game }: { game: ReturnType<typeof hudGame> }) {
   const viewer = useViewer();
   return (
-    <div className="pixel-sign flex items-center gap-3 py-2 pl-2 pr-4">
+    <div data-hud-you className="pixel-sign flex items-center gap-3 py-2 pl-2 pr-4">
       <div className="h-12 w-12 shrink-0 overflow-hidden bg-dusk-deep">
         <HogFrame crop={{ x: 16, y: 18, w: 48, h: 48 }} />
       </div>

@@ -9,6 +9,7 @@ import { BigNumber, Button, PageSkeleton, Progress, RarityBadge, Segmented } fro
 import { relativeTime } from "@/lib/format";
 import { CATEGORY_HINT, RARITY_META, RARITY_ORDER, type Rarity } from "@/lib/rarity";
 import { useViewer } from "@/lib/viewer";
+import { Npc } from "@/world/Npc";
 
 type Filter = "all" | "found" | "hidden";
 
@@ -92,10 +93,14 @@ export function Discoveries() {
   return (
     <div className="space-y-6">
       <section aria-label="Your collection" className="space-y-3">
-        <p className="text-sm text-ink/75">
-          Every bot reply in Slack comes from this collection, and rarer messages show up less often.{" "}
-          {questsOn ? "Give and receive kudos, and complete weekly quests, to find them all." : "Give and receive kudos to find them all."}
-        </p>
+        <div className="flex items-center gap-3">
+          <p className="min-w-0 flex-1 text-sm text-ink/75">
+            Every bot reply in Slack comes from this collection, and rarer messages show up less often.{" "}
+            {questsOn ? "Give and receive kudos, and complete weekly quests, to find them all." : "Give and receive kudos to find them all."}
+          </p>
+          {/* The reading hoggie keeps the gallery (#134). */}
+          <Npc slot="hoggie-reader" size={72} />
+        </div>
         <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
           <p className="flex items-baseline gap-2">
             <BigNumber value={data.discovered} className="text-[40px] leading-none" />

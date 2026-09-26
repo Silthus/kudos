@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { motion, useReducedMotion } from "motion/react";
+import { motion, useReducedMotionConfig } from "motion/react";
 import { ArrowDownRight, ArrowUpRight, Minus, X } from "lucide-react";
 import { useEffect, useId, useRef, type ComponentProps, type CSSProperties, type ReactNode } from "react";
 import { RARITY_META, type Rarity } from "@/lib/rarity";
@@ -339,7 +339,7 @@ export function Dialog({
   variant?: "modal" | "drawer";
 }) {
   const drawer = variant === "drawer";
-  const still = useReducedMotion();
+  const still = useReducedMotionConfig();
   const ref = useRef<HTMLDialogElement>(null);
   const opener = useRef<HTMLElement | null>(null);
   const titleId = useId();
