@@ -6,7 +6,8 @@ import { seedTeam, setupConvex, signInAs, type Team } from "./helpers";
 /**
  * The neighbours' sprouts (#134): a teammate's bed on the map gets a tiny sprout on a day they gave
  * a thoughtful kudos (a qualifying line in their give event, the game's own rule). Asked for the
- * teammates already in your ring, so it reads a few game events each, never the ring again.
+ * teammates already in your ring, so it reads a few game events each, never the ring again; and only
+ * about teammates you've exchanged kudos with (the ring's own people), never anyone else.
  */
 
 const TODAY = "2026-09-25";
@@ -49,11 +50,16 @@ async function gave(memberId: Id<"members">, dayKey: string, qualifying: boolean
     });
   });
 }
+/** Kudos between the two, either way: what puts a teammate in your ring. */
+async function exchanged(a: Id<"members">, b: Id<"members">, workspaceId = team.workspaceId) {
+  await t.run((ctx) => ctx.db.insert("pairStats", { workspaceId, bucket: "all", giverId: a, receiverId: b, amount: 3 }));
+}
 async function received(memberId: Id<"members">, dayKey: string) {
   await t.run((ctx) => ctx.db.insert("gameEvents", { workspaceId: team.workspaceId, memberId, kind: "receive", batchId: `r-${memberId}`, dayKey, at: 1, xp: 5 }));
 }
 
 test("the teammates who gave a thoughtful kudos today, and only them", async () => {
+  for (const m of [team.ben, team.cleo, team.dan]) await exchanged(team.ana, m);
   await gave(team.ben, TODAY, true);
   await gave(team.cleo, TODAY, false); // no note worth the name
   await gave(team.dan, "2026-09-24", true); // yesterday
@@ -63,6 +69,7 @@ test("the teammates who gave a thoughtful kudos today, and only them", async () 
 });
 
 test("a thoughtful kudos after a flood of thanks still counts", async () => {
+  await exchanged(team.ben, team.ana); // they thanked you: the ring goes both ways
   for (let i = 0; i < 30; i++) await received(team.ben, TODAY);
   await gave(team.ben, TODAY, true);
   const ana = await signInAs(t, team.ana);
@@ -71,6 +78,8 @@ test("a thoughtful kudos after a flood of thanks still counts", async () => {
 
 test("never someone who hides the game, has left, or is in another workspace", async () => {
   const other = await seedTeam(t, { gameEnabled: true }, "T2");
+  for (const m of [team.fay, team.gus]) await exchanged(team.ana, m);
+  await exchanged(team.ana, other.ben, other.workspaceId);
   await gave(team.fay, TODAY, true);
   await gave(team.gus, TODAY, true);
   await gave(other.ben, TODAY, true, other.workspaceId);
@@ -78,7 +87,17 @@ test("never someone who hides the game, has left, or is in another workspace", a
   expect(await ana.query(api.life.sprouts, { today: TODAY, memberIds: [team.fay, team.gus, other.ben] })).toEqual([]);
 });
 
+test("never a teammate you've never exchanged kudos with: nobody outside your ring can be looked up", async () => {
+  await gave(team.ben, TODAY, true);
+  await gave(team.cleo, TODAY, true);
+  await exchanged(team.ana, team.cleo);
+  await exchanged(team.ben, team.dan); // between two others: not yours
+  const ana = await signInAs(t, team.ana);
+  expect(await ana.query(api.life.sprouts, { today: TODAY, memberIds: [team.ben, team.cleo] })).toEqual([team.cleo]);
+});
+
 test("nothing for a viewer who hides the game", async () => {
+  await exchanged(team.ana, team.ben);
   await gave(team.ben, TODAY, true);
   await t.run((ctx) => ctx.db.patch(team.ana, { gameHidden: true }));
   const ana = await signInAs(t, team.ana);

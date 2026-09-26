@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
-import { arrivalFor, confetti, lifeEvents, lifeSnapshot, skyFor, toastFor, withSprout, type LifeSnapshot } from "./life";
+import { arrivalFor, confetti, lifeEvents, lifeSnapshot, nextBaseline, skyFor, toastFor, withSprout, type LifeSnapshot } from "./life";
 
-const snap = (patch: Partial<LifeSnapshot> = {}): LifeSnapshot => ({ level: 9, title: "Gardener", coins: 84, discovered: 20, ...patch });
+const snap = (patch: Partial<LifeSnapshot> = {}): LifeSnapshot => ({ member: "m1", level: 9, title: "Gardener", coins: 84, discovered: 20, ...patch });
 
 describe("arriving at a place: the hedgehog answers what the place is for", () => {
   test("a magnifying glass at the gallery, a sign at the notice board, the phone at the sandbox", () => {
@@ -49,6 +49,10 @@ describe("what happened between two looks at your game", () => {
     expect(lifeEvents(snap({ discovered: null }), snap({ discovered: 20 }))).toEqual([]);
   });
 
+  test("another member's game is no event: switching workspace compares nothing", () => {
+    expect(lifeEvents(snap(), snap({ member: "m2", level: 12, title: "Elder", coins: 400, discovered: 50 }))).toEqual([]);
+  });
+
   test("a level-up that paid coins and found a message: the level first", () => {
     const events = lifeEvents(snap(), snap({ level: 10, title: "Grove keeper", coins: 94, discovered: 21 }));
     expect(events.map((e) => e.kind)).toEqual(["level", "coins", "discovery"]);
@@ -56,21 +60,41 @@ describe("what happened between two looks at your game", () => {
 });
 
 describe("reading your game into a snapshot", () => {
-  const mine = { enabled: true, hidden: false, player: { level: 9, title: "Gardener" }, wallet: { balance: 84 } };
+  const wallet = { balance: 90, fromKudos: 60, fromFruit: 11, fromQuests: 20, fromSprees: 3, fromLevels: 1, spent: 5, adjusted: 0 };
+  const mine = { enabled: true, hidden: false, player: { level: 9, title: "Gardener" }, wallet };
 
-  test("level, title, coins and the collection size", () => {
-    expect(lifeSnapshot(mine as never, { discovered: 20 })).toEqual(snap());
+  test("whose it is, level, title, coins earned and the collection size", () => {
+    expect(lifeSnapshot(mine as never, { discovered: 20 }, "m1")).toEqual(snap());
+  });
+
+  test("coins earned leave out fruit (the garden hops its own), spending, refunds and adjustments", () => {
+    const more = { ...wallet, balance: 200, fromFruit: 50, spent: 0, adjusted: 60 };
+    expect(lifeSnapshot({ ...mine, wallet: more } as never, { discovered: 20 }, "m1")?.coins).toBe(84);
   });
 
   test("no coins before the wallet, no count before it loads", () => {
-    expect(lifeSnapshot({ ...mine, wallet: null } as never, undefined)).toEqual(snap({ coins: null, discovered: null }));
+    expect(lifeSnapshot({ ...mine, wallet: null } as never, undefined, "m1")).toEqual(snap({ coins: null, discovered: null }));
   });
 
   test("nothing while the game is off, hidden, not started or loading", () => {
-    expect(lifeSnapshot({ ...mine, enabled: false } as never, { discovered: 20 })).toBeNull();
-    expect(lifeSnapshot({ ...mine, hidden: true } as never, { discovered: 20 })).toBeNull();
-    expect(lifeSnapshot({ ...mine, player: null } as never, { discovered: 20 })).toBeNull();
-    expect(lifeSnapshot(undefined, { discovered: 20 })).toBeNull();
+    expect(lifeSnapshot({ ...mine, enabled: false } as never, { discovered: 20 }, "m1")).toBeNull();
+    expect(lifeSnapshot({ ...mine, hidden: true } as never, { discovered: 20 }, "m1")).toBeNull();
+    expect(lifeSnapshot({ ...mine, player: null } as never, { discovered: 20 }, "m1")).toBeNull();
+    expect(lifeSnapshot(undefined, { discovered: 20 }, "m1")).toBeNull();
+  });
+});
+
+describe("the look the next one is compared with", () => {
+  test("the newest look", () => {
+    expect(nextBaseline(snap(), snap({ level: 10 }), false)).toEqual(snap({ level: 10 }));
+  });
+
+  test("a game still loading keeps the last look", () => {
+    expect(nextBaseline(snap(), null, true)).toEqual(snap());
+  });
+
+  test("a game hidden or switched off forgets it: showing it again is no event", () => {
+    expect(nextBaseline(snap(), null, false)).toBeNull();
   });
 });
 

@@ -62,11 +62,11 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function open(path: string) {
+function open(path: string, as: ReadyViewer = viewer) {
   act(() =>
     root.render(
       <MemoryRouter initialEntries={[path]}>
-        <ViewerContext.Provider value={viewer}>
+        <ViewerContext.Provider value={as}>
           <Routes>
             <Route element={<WorldShell />}>
               <Route index element={null} />
@@ -272,6 +272,9 @@ describe("a teammate's bed", () => {
     open("/garden/m7");
     act(() => openWindow()!.querySelector<HTMLButtonElement>("[data-close]")!.click());
     expect(host.querySelector("[data-neighbour-bubble]")!.textContent).toContain("Gave a thoughtful kudos today");
+    // Text on the parchment bubble is ink (#126).
+    const line = [...host.querySelectorAll("[data-neighbour-bubble] p")].find((p) => p.textContent?.includes("thoughtful"))!;
+    expect([...line.classList].filter((c) => /^text-(?!xs|sm|base)/.test(c))).toEqual(["text-ink"]);
   });
 
   test("on other days, no such line", () => {
@@ -381,6 +384,52 @@ describe("life in the world (#134)", () => {
     queries = { "game:mine": game(9, "Gardener", 90), "me:today": counts(20) };
     open("/garden");
     expect(document.querySelector("[data-coin-hop]")).toBeNull();
+  });
+
+  test("picked fruit hops from the garden's Pick button, so the hedgehog doesn't hop it again", () => {
+    queries = { "game:mine": game(9, "Gardener", 84), "me:today": counts(20) };
+    open("/garden");
+    const picked = game(9, "Gardener", 90);
+    queries = { "game:mine": { ...picked, wallet: { ...picked.wallet, fromKudos: 84, fromFruit: 6 } }, "me:today": counts(20) };
+    open("/garden");
+    expect(document.querySelector("[data-coin-hop]")).toBeNull();
+  });
+
+  test("switching workspace is nothing that happened to you: no level-up, no coins", () => {
+    queries = { "game:mine": game(9, "Gardener", 84), "me:today": counts(20) };
+    open("/");
+    const elsewhere = { ...viewer, member: { ...viewer.member, _id: "m9" } } as ReadyViewer;
+    queries = { "game:mine": game(12, "Elder", 400), "me:today": counts(40) };
+    open("/", elsewhere);
+    expect(toast()).toBeNull();
+    expect(document.querySelector("[data-coin-hop]")).toBeNull();
+    expect(hog().dataset.animation).toBe("idle");
+  });
+
+  test("hiding the game and showing it again later is no flood of what happened meanwhile", () => {
+    queries = { "game:mine": game(9, "Gardener", 84), "me:today": counts(20) };
+    open("/");
+    queries = { "game:mine": { ...game(9, "Gardener", 84), hidden: true } };
+    open("/");
+    queries = { "game:mine": game(11, "Grove keeper", 120), "me:today": counts(25) };
+    open("/");
+    expect(toast()).toBeNull();
+    expect(document.querySelector("[data-coin-hop]")).toBeNull();
+  });
+
+  test("a toast carries on where it was when the window closes: not shown again, its clock not restarted", () => {
+    queries = { "game:mine": game(9, "Gardener"), "me:today": counts(20) };
+    open("/garden");
+    queries = { "game:mine": game(9, "Gardener"), "me:today": counts(21) };
+    open("/garden");
+    const shown = toast();
+    expect(openWindow()!.contains(shown)).toBe(true);
+    walkFor(5000);
+    act(() => openWindow()!.querySelector<HTMLButtonElement>("[data-close]")!.click());
+    expect(openWindow()).toBeNull();
+    expect(toast()).toBe(shown);
+    walkFor(3500);
+    expect(toast()).toBeNull();
   });
 
   test("the toast shows over an open window, where you can still read and dismiss it", () => {

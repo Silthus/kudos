@@ -75,3 +75,23 @@ describe("the Motion switch across the app", () => {
     expect(document.documentElement.dataset.motion).toBe("on");
   });
 });
+
+describe("every reduced-motion read follows the switch", () => {
+  test("components ask MotionConfig (useReducedMotionConfig), not the system; only the switch itself reads the system", async () => {
+    const { readdirSync, readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const src = join(__dirname, "..");
+    const files = (readdirSync(src, { recursive: true }) as string[]).filter((f) => /\.tsx?$/.test(f) && !/\.test\.tsx?$/.test(f));
+    const offenders = files.filter((f) => /useReducedMotion\(\)/.test(readFileSync(join(src, f), "utf8")) && !f.endsWith(join("world", "Hud.tsx")));
+    expect(offenders).toEqual([]);
+  });
+
+  test("CSS follows it too: reduced stills every transition (motion-safe ones included); on keeps the meter's step", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const css = readFileSync(join(__dirname, "..", "index.css"), "utf8").replace(/\s+/g, " ");
+    expect(css).toMatch(/:root\[data-motion="reduced"\] \*, :root\[data-motion="reduced"\] \*::before, :root\[data-motion="reduced"\] \*::after \{ transition: none !important; \}/);
+    // The system's reduce stills the meter unless the switch says on.
+    expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\) \{ :root:not\(\[data-motion="on"\]\) & > \[data-fill\]/);
+  });
+});

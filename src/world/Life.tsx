@@ -4,8 +4,9 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { api } from "../../convex/_generated/api";
 import { useWorkspaceToday } from "@/lib/period";
+import { useViewer } from "@/lib/viewer";
 import type { HogHandle } from "./Hog";
-import { lifeEvents, lifeSnapshot, toastFor, type LifeSnapshot } from "./life";
+import { lifeEvents, lifeSnapshot, nextBaseline, toastFor, type LifeSnapshot } from "./life";
 import { Toasts, type QueuedToast } from "./Toast";
 
 /**
@@ -16,7 +17,9 @@ import { Toasts, type QueuedToast } from "./Toast";
  *
  * A place's window is a modal <dialog> in the top layer, which makes everything outside it inert:
  * while one is open, the toasts and coins are drawn inside it, where they can still be read,
- * dismissed and seen (they're `fixed`, so they stand in the same place either way).
+ * dismissed and seen (they're `fixed`, so they stand in the same place either way). They live in
+ * one layer element that moves between the page and the window, so a toast or a hop in flight
+ * carries on where it was when a window opens or closes, rather than starting again.
  */
 
 /** At most this many coins fly for one gain, however big. */
@@ -76,9 +79,11 @@ function CoinHop({ hop, onDone }: { hop: Hop; onDone: () => void }) {
 
 export function Life({ hog, hogEl, still, gameShown, windowOpen }: { hog: RefObject<HogHandle | null>; hogEl: RefObject<HTMLElement | null>; still: boolean; gameShown: boolean; windowOpen: boolean }) {
   const today = useWorkspaceToday();
+  const member = useViewer().member._id;
   const game = useQuery(api.game.mine, gameShown ? {} : "skip");
   const counts = useQuery(api.me.today, gameShown ? { today } : "skip");
-  const snapshot = gameShown ? lifeSnapshot(game, counts) : null;
+  const snapshot = gameShown ? lifeSnapshot(game, counts, member) : null;
+  const loading = gameShown && game === undefined;
   const key = JSON.stringify(snapshot);
   const last = useRef<LifeSnapshot | null>(null);
   const next = useRef(0);
@@ -89,8 +94,7 @@ export function Life({ hog, hogEl, still, gameShown, windowOpen }: { hog: RefObj
 
   useEffect(() => {
     const events = lifeEvents(last.current, snapshot);
-    // A look that hasn't loaded (or a game gone away) keeps the last one to compare with.
-    if (snapshot) last.current = snapshot;
+    last.current = nextBaseline(last.current, snapshot, loading);
     for (const e of events) {
       if (e.kind === "level") hog.current?.play("jump", { loop: false, then: "idle" });
       if (e.kind === "coins" && !stillNow.current) setHops((h) => [...h, { id: ++next.current, coins: Math.min(MAX_COINS, e.amount), from: hopFrom(hogEl.current), to: hopTo() }]);
@@ -99,13 +103,18 @@ export function Life({ hog, hogEl, still, gameShown, windowOpen }: { hog: RefObj
     }
     // Compared by what they say, not by object identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+  }, [key, loading]);
 
-  // Inside the open window's dialog while there is one (after the window has opened it).
-  const [layer, setLayer] = useState<HTMLElement>(() => document.body);
+  // One layer, inside the open window's dialog while there is one (after the window has opened it).
+  const [layer] = useState(() => {
+    const el = document.createElement("div");
+    el.dataset.lifeLayer = "";
+    return el;
+  });
   useEffect(() => {
-    setLayer((windowOpen && document.querySelector<HTMLElement>("dialog[open]")) || document.body);
-  }, [windowOpen]);
+    ((windowOpen && document.querySelector<HTMLElement>("dialog[open]")) || document.body).append(layer);
+  }, [windowOpen, layer]);
+  useEffect(() => () => layer.remove(), [layer]);
 
   return createPortal(
     <>

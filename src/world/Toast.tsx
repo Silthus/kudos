@@ -34,6 +34,14 @@ function ToastCard({ toast, onDone, still }: { toast: Toast; onDone: () => void;
   // The latest `onDone`, so a parent re-rendering doesn't restart the clock.
   const done = useRef(onDone);
   done.current = onDone;
+  // Where focus came from when it came into the toast: Dismiss puts it back there.
+  const cameFrom = useRef<HTMLElement | null>(null);
+  const card = useRef<HTMLDivElement>(null);
+  const dismiss = () => {
+    const back = cameFrom.current;
+    if (card.current?.contains(document.activeElement) && back?.isConnected) back.focus();
+    onDone();
+  };
   useEffect(() => {
     if (held) return;
     const timer = setTimeout(() => done.current(), TOAST_MS);
@@ -47,12 +55,17 @@ function ToastCard({ toast, onDone, still }: { toast: Toast; onDone: () => void;
       transition={{ duration: 0.12, ease: "easeOut" }}
       onPointerEnter={() => setHeld(true)}
       onPointerLeave={() => setHeld(false)}
-      onFocus={() => setHeld(true)}
+      ref={card}
+      onFocus={(e) => {
+        setHeld(true);
+        const from = e.relatedTarget as HTMLElement | null;
+        if (from && !e.currentTarget.contains(from)) cameFrom.current = from;
+      }}
       onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setHeld(false)}
       className={clsx("pixel-frame pointer-events-auto flex items-start gap-3 p-3", toast.kind === "level" && "shadow-[inset_0_4px_0_0_var(--color-lantern)] pt-4")}
     >
       {toast.kind === "discovery" && <FramedCard />}
-      {toast.kind === "level" && <Npc slot="hoggie-party" size={56} />}
+      {toast.kind === "level" && <Npc slot="hoggie-level-up" size={56} />}
       <div className="min-w-0 flex-1">
         <p className="font-display text-base font-medium leading-6 text-ink">{toast.title}</p>
         <p className="mt-0.5 text-sm text-ink/75">{toast.body}</p>
@@ -60,7 +73,7 @@ function ToastCard({ toast, onDone, still }: { toast: Toast; onDone: () => void;
           {toast.link.label}
         </Link>
       </div>
-      <button type="button" onClick={onDone} aria-label="Dismiss" className="pixel-chip grid h-7 w-7 shrink-0 place-items-center bg-parchment text-ink hover:bg-parchment-deep">
+      <button type="button" onClick={dismiss} aria-label="Dismiss" className="pixel-chip grid h-7 w-7 shrink-0 place-items-center bg-parchment text-ink hover:bg-parchment-deep">
         <X className="h-3.5 w-3.5" strokeWidth={3} aria-hidden />
       </button>
     </motion.div>
@@ -74,7 +87,7 @@ export type QueuedToast = Toast & { id: number };
 export function Toasts({ queue, onDone, still }: { queue: QueuedToast[]; onDone: () => void; still: boolean }) {
   const toast = queue[0];
   return (
-    <div aria-live="polite" className="pointer-events-none fixed left-3 top-[88px] z-30 w-[min(22rem,calc(100vw-24px))] sm:left-4 sm:top-[116px]">
+    <div aria-live="polite" className="pointer-events-none fixed left-3 top-[88px] z-[60] w-[min(22rem,calc(100vw-24px))] sm:left-4 sm:top-[116px]">
       {/* Keyed by its number: the next toast is a new card with its own timer, and one coming in behind doesn't restart it. */}
       {toast && <ToastCard key={toast.id} toast={toast} onDone={onDone} still={still} />}
     </div>

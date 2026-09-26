@@ -158,7 +158,8 @@ function WorkspaceSwitcher() {
 
 /**
  * Motion: on or reduced (#134). Unset, it shows what the system asks for; choosing one keeps it in
- * this browser (`motion.tsx`). A radio group, so it reads as one setting with two answers.
+ * this browser (`motion.tsx`). Two toggle buttons in a labelled group: one setting, two answers,
+ * each a plain Tab stop.
  */
 function MotionSwitch() {
   const { choice, set } = useMotion();
@@ -167,13 +168,12 @@ function MotionSwitch() {
   return (
     <div className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
       <span className="font-semibold">Motion</span>
-      <div role="radiogroup" aria-label="Motion" className="flex gap-1">
+      <div role="group" aria-label="Motion" className="flex gap-1">
         {(["on", "reduced"] as const).map((m) => (
           <button
             key={m}
             type="button"
-            role="radio"
-            aria-checked={current === m}
+            aria-pressed={current === m}
             onClick={() => set(m)}
             className={clsx("pixel-chip px-2 py-0.5 text-xs font-semibold", current === m ? "bg-lantern text-ink" : "bg-parchment text-ink hover:bg-parchment-deep")}
           >

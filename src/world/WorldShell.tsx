@@ -450,7 +450,7 @@ export function WorldShell() {
           >
             <p className="font-display text-base font-medium">{bubble!.name}'s bed</p>
             <p className="text-xs text-ink/75">{bubble!.plants === 1 ? "1 plant" : `${bubble!.plants} plants`}</p>
-            {bubble!.sprout && <p className="text-xs font-semibold text-hedge-deep">Gave a thoughtful kudos today</p>}
+            {bubble!.sprout && <p className="text-xs font-semibold text-ink">Gave a thoughtful kudos today</p>}
             <Link to={`/garden/${bubble!.memberId}`} className="font-semibold text-ember-deep underline decoration-2 underline-offset-4">
               Visit garden
             </Link>

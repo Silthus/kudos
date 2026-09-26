@@ -103,8 +103,26 @@ describe("toasts", () => {
     expect(host.querySelector("[data-toast='discovery']")).not.toBeNull();
   });
 
-  test("a level-up is a celebration: the party hoggie comes along in its frame", () => {
+  test("a level-up is a celebration: the level-up hoggie (the one the cabin shows) comes along in its frame", () => {
     render([level]);
-    expect(host.querySelector("[data-toast='level'] [data-npc] [data-art-slot='hoggie-party']")).not.toBeNull();
+    expect(host.querySelector("[data-toast='level'] [data-npc] [data-art-slot='hoggie-level-up']")).not.toBeNull();
+  });
+
+  test("dismissing with the keyboard puts you back where you were, not on the page's body", () => {
+    const before = document.createElement("button");
+    document.body.append(before);
+    render([level]);
+    before.focus();
+    const dismiss = host.querySelector<HTMLButtonElement>("button[aria-label='Dismiss']")!;
+    act(() => dismiss.focus());
+    act(() => dismiss.click());
+    expect(document.activeElement).toBe(before);
+    before.remove();
+  });
+
+  test("toasts stand above a celebration's overlay, where they can be reached", () => {
+    render([level]);
+    // The Super kudos overlay is z-50 (components/cosmetics.tsx).
+    expect(region().className).toMatch(/\bz-\[60\]/);
   });
 });

@@ -1,7 +1,9 @@
 import { ConvexError, v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 import { query } from "./_generated/server";
 import { gameShownTo } from "./game";
 import { requireViewer } from "./lib/access";
+import { ALL_BUCKET } from "./lib/buckets";
 import { parseToday } from "./lib/time";
 
 /**
@@ -9,7 +11,8 @@ import { parseToday } from "./lib/time";
  * sprout on a day they gave a thoughtful kudos: a give event today with a qualifying line (the
  * game's own rule: a note of a few words, not a thank-you straight back). Asked for the teammates
  * already in the viewer's ring (`gardens.neighbours`), so the ring isn't worked out twice; each is
- * checked to be a playing teammate in the viewer's workspace. It only ever says "gave thoughtfully
+ * checked to be a playing teammate in the viewer's workspace who has exchanged kudos with the viewer
+ * (the ring's own people, so nobody else can be looked up). It only ever says "gave thoughtfully
  * today", never to whom or how much.
  */
 
@@ -30,6 +33,12 @@ export const sprouts = query({
     for (const id of new Set(args.memberIds)) {
       const teammate = await ctx.db.get(id);
       if (!teammate || teammate.workspaceId !== workspace._id || teammate.isBot || teammate.deactivated || !gameShownTo(workspace, teammate)) continue;
+      const pair = (giverId: Id<"members">, receiverId: Id<"members">) =>
+        ctx.db
+          .query("pairStats")
+          .withIndex("by_giver_bucket_receiver", (q) => q.eq("giverId", giverId).eq("bucket", ALL_BUCKET).eq("receiverId", receiverId))
+          .first();
+      if (!(await pair(member._id, id)) && !(await pair(id, member._id))) continue;
       const events = await ctx.db
         .query("gameEvents")
         .withIndex("by_member_day", (q) => q.eq("memberId", id).eq("dayKey", today))

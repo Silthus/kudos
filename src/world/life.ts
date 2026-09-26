@@ -24,12 +24,27 @@ export function arrivalFor(placeId: string): Animation {
   return ARRIVALS[placeId] ?? "wave";
 }
 
-/** The parts of your game that something can happen to. Null while there's no game to show. */
-export type LifeSnapshot = { level: number; title: string; coins: number | null; discovered: number | null };
+/**
+ * The parts of your game that something can happen to, and whose game it is. `coins` counts the
+ * coins you earned from kudos, quests, sprees and levels: not fruit (the garden window hops its own
+ * from the Pick button), nor spending, refunds or an admin's adjustment. Null while there's no game.
+ */
+export type LifeSnapshot = { member: string; level: number; title: string; coins: number | null; discovered: number | null };
 
-export function lifeSnapshot(game: GameMine | undefined, today: { discovered: number } | undefined): LifeSnapshot | null {
+export function lifeSnapshot(game: GameMine | undefined, today: { discovered: number } | undefined, member: string): LifeSnapshot | null {
   if (!game?.enabled || game.hidden || !game.player) return null;
-  return { level: game.player.level, title: game.player.title, coins: game.wallet?.balance ?? null, discovered: today?.discovered ?? null };
+  const w = game.wallet;
+  const coins = w ? w.fromKudos + w.fromQuests + w.fromSprees + w.fromLevels : null;
+  return { member, level: game.player.level, title: game.player.title, coins, discovered: today?.discovered ?? null };
+}
+
+/**
+ * The look the next one is compared with: the newest. While your game is still loading the last one
+ * stays; once it has loaded with nothing to show (hidden, switched off) it's forgotten, so showing
+ * the game again later is not a flood of everything that happened meanwhile.
+ */
+export function nextBaseline(last: LifeSnapshot | null, snapshot: LifeSnapshot | null, loading: boolean): LifeSnapshot | null {
+  return snapshot ?? (loading ? last : null);
 }
 
 export type LifeEvent =
@@ -43,7 +58,8 @@ export type LifeEvent =
  * so the coins saved up until then don't all hop at once.
  */
 export function lifeEvents(prev: LifeSnapshot | null, next: LifeSnapshot | null): LifeEvent[] {
-  if (!prev || !next) return [];
+  // Another member's game (a workspace switch) is nothing that happened to you.
+  if (!prev || !next || prev.member !== next.member) return [];
   const events: LifeEvent[] = [];
   // Every level-up brings a skill point (lib/xp.ts).
   if (next.level > prev.level) events.push({ kind: "level", level: next.level, title: next.title, points: next.level - prev.level });

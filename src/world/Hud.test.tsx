@@ -166,12 +166,13 @@ describe("the HUD", () => {
     game = mine({});
     render();
     act(() => host.querySelector<HTMLButtonElement>("button[aria-label='Settings']")!.click());
-    const group = host.querySelector("[role='radiogroup'][aria-label='Motion']")!;
-    const option = (name: string) => [...group.querySelectorAll<HTMLButtonElement>("[role='radio']")].find((b) => b.textContent === name)!;
-    expect(option("On").getAttribute("aria-checked")).toBe("true");
-    expect(option("Reduced").getAttribute("aria-checked")).toBe("false");
+    // Two toggle buttons in a labelled group: each a plain Tab stop, pressed or not.
+    const group = host.querySelector("[role='group'][aria-label='Motion']")!;
+    const option = (name: string) => [...group.querySelectorAll<HTMLButtonElement>("button[aria-pressed]")].find((b) => b.textContent === name)!;
+    expect(option("On").getAttribute("aria-pressed")).toBe("true");
+    expect(option("Reduced").getAttribute("aria-pressed")).toBe("false");
     act(() => option("Reduced").click());
-    expect(option("Reduced").getAttribute("aria-checked")).toBe("true");
+    expect(option("Reduced").getAttribute("aria-pressed")).toBe("true");
     expect(localStorage.getItem(MOTION_KEY)).toBe("reduced");
     act(() => option("On").click());
     expect(localStorage.getItem(MOTION_KEY)).toBe("on");
