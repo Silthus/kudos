@@ -72,7 +72,7 @@ describe("a simulator", () => {
     const sim = (await t.run((ctx) => ctx.db.get(workspaceId)))!;
     expect(sim.worldSeed).toEqual(expect.any(Number));
 
-    await say("<@UDEMOPRIYA> :taco: thanks for the thorough review");
+    await say("<@UDEMOPRIYA> :seedling: thanks for the thorough review");
     expect((await rows("seeds")).map((s) => s.workspaceId)).toEqual([workspaceId]);
     // Nobody plants Priya's seed: 30 simulated days on, it plants itself (the cron's wall clock never reaches it).
     await visitor().mutation(api.simulator.advance, { days: 29 });
