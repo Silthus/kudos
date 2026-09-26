@@ -52,6 +52,7 @@ export function Wallet({ wallet }: { wallet: CoinBalance }) {
     wallet.fromQuests ? `${wallet.fromQuests} from quests` : null,
     wallet.fromSprees ? `${wallet.fromSprees} from kudos sprees` : null,
     wallet.fromTutorial ? `${wallet.fromTutorial} from the elder hog's steps` : null,
+    wallet.fromRuins ? `${wallet.fromRuins} from the ruins` : null,
     `${wallet.fromLevels} from level-ups`,
   ].filter((s): s is string => s !== null);
   const sentence = [

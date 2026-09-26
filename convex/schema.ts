@@ -73,6 +73,19 @@ export const homeStageValidator = v.union(
 );
 
 /**
+ * The desert RPG (#162, lib/rpg.ts). Gear and creature ids are stored as strings: the rule module's
+ * lists are append-only, and readers resolve them through `isGearId`/`wearable`/`creature`.
+ */
+export const equippedValidator = v.object({ hat: v.optional(v.string()), tool: v.optional(v.string()), charm: v.optional(v.string()) });
+export const roomValidator = v.union(
+  v.object({ kind: v.literal("foe"), foe: v.string() }),
+  v.object({ kind: v.literal("puzzle"), puzzle: v.union(v.literal("who_thanked"), v.literal("most_thanked_by"), v.literal("last_channel")), difficulty: v.number() }),
+  v.object({ kind: v.literal("secret"), lore: v.number() }),
+  v.object({ kind: v.literal("rest") }),
+);
+export const expeditionStateValidator = v.union(v.literal("open"), v.literal("cleared"), v.literal("fallen"), v.literal("retreated"));
+
+/**
  * Something a member discovered or gained, told in a DM (#55 §G13; rendered by `lib/gains.ts`).
  * One DM carries everything one event gained. Never for XP or coins alone.
  */
@@ -109,6 +122,8 @@ export const gainValidator = v.union(
   v.object({ kind: v.literal("offering_claimed"), month: v.string(), coins: v.optional(v.number()), fruits: v.array(fruitIdValidator) }),
   // #160: the member's home finished building `stage` (lib/homes.ts HOME_STAGES).
   v.object({ kind: v.literal("home_stage"), stage: homeStageValidator }),
+  // #162: what an expedition into `ruin` found the member: gear (names) and lore cards (titles) new to them.
+  v.object({ kind: v.literal("ruin_finds"), ruin: v.string(), gear: v.array(v.string()), lore: v.array(v.string()) }),
 );
 
 /** A Super kudos note on a DM (#98): the receiver's celebration, or the giver's "sent" or how-to. */
@@ -552,6 +567,15 @@ export default defineSchema({
     stamina: v.optional(v.number()),
     homeDiscount: v.optional(v.number()), // percent off the next home build stage; undefined = none
     superSeeds: v.optional(v.number()),
+    // The desert RPG (#162, rpg.ts, lib/rpg.ts). `stamina` above: +1 per qualifying kudos message given
+    // (cap 5) and per moon fruit, 1 per expedition; unset counts as 0, so a new player earns their first.
+    equipped: v.optional(equippedValidator), // gear worn, one per slot (lib/rpg.ts `wearable` reads it)
+    expedition: v.optional(v.id("expeditions")), // the run they're in now; unset at camp
+    expeditionCoins: v.optional(v.number()), // Hog coins ruins paid (`expedition` events), part of `coins`
+    ruinsCleared: v.optional(v.array(v.string())), // ruin ids they cleared at least once
+    secretRooms: v.optional(v.array(v.string())), // ruin ids whose secret room's item they found (once per ruin)
+    bestiary: v.optional(v.array(v.string())), // creature ids they have met in a ruin
+    lore: v.optional(v.array(v.object({ lore: v.number(), at: v.number(), ruinId: v.string() }))), // lore cards found, one each
   }).index("by_member", ["memberId"]),
 
   // A plant in a member's garden, grown for one teammate (gardens.ts, lib/garden.ts). Waterings are
@@ -643,6 +667,8 @@ export default defineSchema({
     // expedition, home, crew, party: a member's first of each is a step of the chain (#159): a run into
     // the ruins (#162), a branch plot bought (#160), a crew quest joined (#161), a party expedition (#163).
     // Every kind but give, receive and quest is a member's own doing: rebuilds keep it as it is.
+    // expedition: a ruin cleared (#162, rpg.ts), keyed `expedition:<run>`: its coins (never XP, the ledger
+    // firewall) are part of `players.expeditionCoins`.
     kind: v.union(
       v.literal("give"),
       v.literal("receive"),
@@ -1095,13 +1121,69 @@ export default defineSchema({
 
   // A member's tree fruit (#157, lib/fruits.ts): one row per kind held, deleted at zero. Fruit comes
   // only from claims and goes at the stall (sold or used): state, never replayed.
+  // And gear (#162, lib/rpg.ts): each row holds one `fruit` kind or one `gear` id. Gear comes from the
+  // ruins and the stall and is worn from here (`players.equipped`).
   inventory: defineTable({
     workspaceId: v.id("workspaces"),
     memberId: v.id("members"),
-    fruit: fruitIdValidator,
+    fruit: v.optional(fruitIdValidator),
+    gear: v.optional(v.string()),
     count: v.number(),
   })
     .index("by_member_fruit", ["memberId", "fruit"])
+    .index("by_member_gear", ["memberId", "gear"])
+    .index("by_workspace", ["workspaceId"]),
+
+  // An expedition into a ruin (#162, rpg.ts; lib/rpg.ts has every rule). Its rooms are generated once
+  // and stored, the party's stats are taken as they entered, and every turn draws from
+  // `turnRand(seed, room, turn)`, so a run replays exactly from this row and its choices. `party` is
+  // [the leader] for a solo run; #163 adds members. `puzzle` holds the current puzzle room's question,
+  // built from the team's public kudos, with its answer: never sent to a client.
+  expeditions: defineTable({
+    workspaceId: v.id("workspaces"),
+    leaderId: v.id("members"),
+    ruinId: v.string(),
+    name: v.string(),
+    tier: v.number(),
+    seed: v.number(),
+    rooms: v.array(roomValidator),
+    party: v.array(
+      v.object({
+        memberId: v.id("members"),
+        name: v.string(),
+        level: v.number(),
+        scoutHeraldPoints: v.number(),
+        plantsGrown: v.number(),
+        equipped: equippedValidator,
+        hp: v.number(),
+      }),
+    ),
+    room: v.number(), // the room they're in (index into `rooms`)
+    turn: v.number(), // turns taken in this room
+    // Every choice made, in order, with the turn it was made on (an answer with whether it was right): with the
+    // seed, the rooms and the party as it entered, the run replays exactly (lib/rpg.ts `resolveTurn`, `turnRand`).
+    choices: v.array(
+      v.object({
+        room: v.number(),
+        turn: v.number(),
+        kind: v.union(v.literal("strike"), v.literal("outwit"), v.literal("calm"), v.literal("rally"), v.literal("answer"), v.literal("onward")),
+        correct: v.optional(v.boolean()),
+      }),
+    ),
+    foeHp: v.number(),
+    foeMaxHp: v.optional(v.number()), // the foe's hit points as the room began
+    wrong: v.number(), // wrong puzzle answers in this room
+    // `struck`: wrong options the party's wits rule out; `tried`: wrong answers given.
+    puzzle: v.optional(v.object({ question: v.string(), options: v.array(v.string()), answer: v.number(), struck: v.array(v.number()), tried: v.optional(v.array(v.number())) })),
+    log: v.array(v.object({ room: v.number(), line: v.string() })),
+    loot: v.array(
+      v.object({ memberId: v.id("members"), coins: v.number(), fruits: v.array(fruitIdValidator), gear: v.array(v.string()), lore: v.array(v.number()) }),
+    ),
+    state: expeditionStateValidator,
+    startedAt: v.number(),
+    endedAt: v.optional(v.number()),
+  })
+    .index("by_leader_startedAt", ["leaderId", "startedAt"])
     .index("by_workspace", ["workspaceId"]),
 
   slackEvents: defineTable({

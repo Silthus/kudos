@@ -730,6 +730,19 @@ export async function rememberPlant(ctx: MutationCtx, workspace: Doc<"workspaces
 }
 
 /**
+ * Plants a member has grown to Young or older, memories included (lib/rpg.ts `Adventurer.plantsGrown`,
+ * the source of heart): the stage each was last announced at, or kept as a memory, so no kudos is read.
+ */
+export async function plantsGrown(ctx: QueryCtx, ownerId: Id<"members">) {
+  const plants = await ctx.db
+    .query("plants")
+    .withIndex("by_owner_memory", (q) => q.eq("ownerId", ownerId))
+    .take(4 * MAX_PLANTS);
+  const young = STAGES.findIndex((s) => s.key === "young");
+  return plants.filter((p) => (p.memoryAt !== undefined ? (p.memoryStage ?? 0) : p.announced) >= young).length;
+}
+
+/**
  * App Home and `/kudos level` (lib/gameBlocks.ts): how many plants grow, and how many sleep. Null
  * below level 3 and while nothing grows (an empty garden is no news, and never a nudge).
  */

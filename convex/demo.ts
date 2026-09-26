@@ -29,8 +29,13 @@ import { DEMO_HOMES, DEMO_LANTERNS } from "./lib/demoHomes";
 import { nextHomeStage } from "./lib/homes";
 import { homePlots } from "./lib/tree";
 import { treeOf } from "./tree";
-import { playerOf, thankedBack } from "./game";
+import { playerOf, skillsOf, thankedBack } from "./game";
 import { finishedTutorial } from "./tutorial";
+import { plantsGrown } from "./gardens";
+import { addGear } from "./inventory";
+import { worldSeedOf } from "./tree";
+import { creature, generateRuin, lootRand, runLoot, scoutHeraldPoints, startingHp, type GearId, type Room } from "./lib/rpg";
+import { layout, TREE_STAGE_BY_ID } from "./lib/tree";
 import { joinOf, joinSpree, paySpree, spreeable, spreeJoinsInMonth, spreesOn } from "./sprees";
 import { nextTier, promptText, refusalText } from "./lib/sprees";
 import { coinWallet, grantBalance, requestRedemption, transitionRedemption, undoPurchase, undoRedemption } from "./store";
@@ -440,7 +445,10 @@ export const seedGarden = internalMutation({
       return null;
     }
     const planted = await ctx.db.query("plants").withIndex("by_owner_memory", (q) => q.eq("ownerId", alex._id)).first();
-    if (!planted && !player.skills) await growAlexGame(ctx, workspace, alex, player);
+    if (!planted && !player.skills) {
+      await growAlexGame(ctx, workspace, alex, player);
+      await seedAlexRuins(ctx, workspace, alex);
+    }
     await ctx.scheduler.runAfter(0, internal.demo.seedStore, { workspaceId, resetAt });
     return null;
   },
@@ -668,6 +676,87 @@ async function growAlexGame(ctx: MutationCtx, workspace: Doc<"workspaces">, alex
     });
   }
   if (chosen.length > 0) await ctx.db.patch(alex._id, { coinsSpent: (alex.coinsSpent ?? 0) + PLANT_COST * chosen.length });
+}
+
+/**
+ * Alex's expeditions (#162, plan #152 S10): three near ruins explored in the last three weeks, one
+ * secret found (its lore card in the gallery: from the first run's secret room if it has one, else
+ * the lore card a cleared run can end with), the Scout's cap found in the second and worn, and
+ * stamina for the visitor's own run. Each run is a cleared `expeditions` row with the rooms its ruin
+ * really has, Alex as he is, and the coins its run loot really rolls, paid as `expedition` events.
+ */
+async function seedAlexRuins(ctx: MutationCtx, workspace: Doc<"workspaces">, alex: Doc<"members">) {
+  const player = (await playerOf(ctx, alex._id))!;
+  const now = workspaceNow(workspace);
+  const world = worldSeedOf(workspace);
+  const sites = layout(world, TREE_STAGE_BY_ID.great.growth).ruins.filter((r) => r.tier === 1).slice(0, 3);
+  const found: GearId = "scout_cap";
+  let coins = 0;
+  const bestiary = new Set<string>();
+  const lore: { lore: number; at: number; ruinId: string }[] = [];
+  const secretRooms: string[] = [];
+  const me = {
+    memberId: alex._id,
+    name: alex.name.split(" ")[0],
+    level: player.level,
+    scoutHeraldPoints: scoutHeraldPoints(skillsOf(player)),
+    plantsGrown: await plantsGrown(ctx, alex._id),
+    hp: startingHp(player.level),
+  };
+  for (const [i, site] of sites.entries()) {
+    const at = now - (21 - 7 * i) * DAY_MS;
+    const seed = fnv1a(`demo-run:${world}:${site.id}`);
+    const rooms = generateRuin(world, site.id).rooms;
+    const last = rooms.at(-1) as Extract<Room, { kind: "foe" }>;
+    for (const r of rooms) if (r.kind === "foe") bestiary.add(r.foe);
+    const secret = rooms.find((r): r is Extract<Room, { kind: "secret" }> => r.kind === "secret");
+    const card = i === 0 ? { lore: secret?.lore ?? 0, at, ruinId: site.id } : null;
+    if (card) lore.push(card);
+    if (i === 0 && secret) secretRooms.push(site.id);
+    const paid = runLoot(1, lootRand(seed, alex._id, -1)).coins;
+    coins += paid;
+    const id = await ctx.db.insert("expeditions", {
+      workspaceId: workspace._id,
+      leaderId: alex._id,
+      ruinId: site.id,
+      name: site.name,
+      tier: 1,
+      seed,
+      rooms,
+      party: [{ ...me, equipped: i === 2 ? { hat: found } : {} }],
+      room: rooms.length - 1,
+      turn: 1,
+      choices: [],
+      foeHp: 0,
+      wrong: 0,
+      log: [{ room: rooms.length - 1, line: `The ${creature(last.foe).name} falls.` }],
+      loot: [{ memberId: alex._id, coins: paid, fruits: [], gear: i === 1 ? [found] : [], lore: card ? [card.lore] : [] }],
+      state: "cleared",
+      startedAt: at,
+      endedAt: at + 20 * 60_000,
+    });
+    await ctx.db.insert("gameEvents", {
+      workspaceId: workspace._id,
+      memberId: alex._id,
+      kind: "expedition",
+      batchId: `expedition:${id}`,
+      dayKey: dayKeyFor(at, workspace.timezone),
+      at,
+      xp: 0,
+      coins: paid,
+    });
+  }
+  await addGear(ctx, workspace._id, alex._id, found, 1);
+  await ctx.db.patch(player._id, {
+    coins: (player.coins ?? 0) + coins,
+    expeditionCoins: coins,
+    ruinsCleared: sites.map((s) => s.id),
+    bestiary: [...bestiary],
+    lore,
+    secretRooms,
+    equipped: { hat: found },
+    stamina: 3,
+  });
 }
 
 /** How long `seedStore` waits for the game rebuild to give the story's people their coins. */
@@ -1341,6 +1430,7 @@ const DEMO_TABLES = [
   "inventory",
   "homeLanterns",
   "homes",
+  "expeditions",
   "notifications",
 ] as const;
 
@@ -1406,6 +1496,9 @@ async function demoRows(ctx: MutationCtx, workspaceId: Id<"workspaces">, table: 
       return await ctx.db.query("homeLanterns").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "homes":
       return await ctx.db.query("homes").withIndex("by_workspace_plot", (q) => q.eq("workspaceId", workspaceId)).take(n);
+    case "expeditions":
+      // A run's log makes it the biggest row a wipe deletes: fewer a step.
+      return await ctx.db.query("expeditions").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(Math.min(n, 100));
     case "simulatorRuns":
       return await ctx.db.query("simulatorRuns").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "notifications":

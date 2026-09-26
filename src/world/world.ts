@@ -30,7 +30,7 @@ export type Rect = { x0: number; y0: number; x1: number; y1: number };
 export type PropKind = "tent";
 /** Something standing in base camp that isn't a place. */
 export type Prop = { kind: PropKind; tile: Tile };
-export type OutlineKind = "closed" | "ruin" | "home";
+export type OutlineKind = "closed" | "home";
 /** Small things on the tree's lawn: lantern posts along the paths (in the way), flowers (not). */
 export type Decor = { kind: "lantern" | "flowers"; tile: Tile };
 
@@ -324,15 +324,21 @@ export function buildWorld({ seed, layout, planted, standing, litPlots = [] }: W
   }
   const ruins = layout.ruins;
   for (const r of ruins) {
-    for (let y = r.at.y - 1; y <= r.at.y + 1; y++) for (let x = r.at.x - 1; x <= r.at.x + 1; x++) outlines.set(tileKey(x, y), "ruin");
-    // Out across the sand, a staircase from the entrance back towards the tree, over rock and water alike.
+    // Its entrance stands on the tiles behind the door (#162, places/ruins.ts): nobody walks through it.
+    const stones = ruinStones(r.at);
+    for (const s of stones) blocked.add(tileKey(s.x, s.y));
+    // Out across the sand, a staircase from the entrance back towards the tree, over rock and water
+    // alike, stepping round the ruin's own stones.
     const walk: Tile[] = [];
     let t = { ...r.at };
     while (Math.hypot(t.x, t.y) > TOWN_RADIUS - 2) {
       walk.push(t);
       const ax = Math.abs(t.x);
       const ay = Math.abs(t.y);
-      t = ax >= ay ? { x: t.x - Math.sign(t.x), y: t.y } : { x: t.x, y: t.y - Math.sign(t.y) };
+      const alongX = { x: t.x - Math.sign(t.x), y: t.y };
+      const alongY = { x: t.x, y: t.y - Math.sign(t.y) };
+      const [first, other] = ax >= ay ? [alongX, alongY] : [alongY, alongX];
+      t = stones.some((s) => s.x === first.x && s.y === first.y) && (other.x !== t.x || other.y !== t.y) ? other : first;
     }
     lay(walk);
     lay(findPath(town, spawn, t));
@@ -398,6 +404,16 @@ export function buildWorld({ seed, layout, planted, standing, litPlots = [] }: W
     lawnRadius,
     rings,
   };
+}
+
+/** The tiles a ruin's entrance stands on: the 2 × 2 behind its door (#162, places/ruins.ts). */
+export function ruinStones(door: Tile): Tile[] {
+  return [
+    { x: door.x - 1, y: door.y - 1 },
+    { x: door.x - 2, y: door.y - 1 },
+    { x: door.x - 1, y: door.y - 2 },
+    { x: door.x - 2, y: door.y - 2 },
+  ];
 }
 
 /** A smooth, seeded field in [0, 1) over the town (4-tile cells), for paths to wander by. */

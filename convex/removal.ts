@@ -242,6 +242,13 @@ const PHASES: Phase[] = [
     rows: (ctx, m, n) => ctx.db.query("inventory").withIndex("by_member_fruit", (q) => q.eq("memberId", m._id)).take(n),
     clear: remove,
   },
+  // The expeditions they led into the ruins (#162); their stats, gear and finds were on their player row.
+  {
+    name: "expeditions",
+    batch: 50, // a run's log makes it a big row
+    rows: (ctx, m, n) => ctx.db.query("expeditions").withIndex("by_leader_startedAt", (q) => q.eq("leaderId", m._id)).take(n),
+    clear: remove,
+  },
   // A simulator's fast-forwards (#143) are its visitor's.
   {
     name: "simulatorRuns",

@@ -4,6 +4,7 @@ import { LANTERN, SUNLAMP_DAYS } from "./garden";
 import { type Allocation, rankOf, resetCost } from "./skills";
 import { COSMETICS, type CosmeticKey, EMOJI_VARIANTS, type VariantItemKey } from "./cosmetics";
 import { dayKeyFor } from "./time";
+import { GEAR, STALL_GEAR, type GearId } from "./rpg";
 
 /**
  * The Store's pure rules (#55 §G5, ADR 0002): who may shop, and the built-in **game items** that
@@ -52,7 +53,12 @@ export function monthOf(ts: number, timeZone: string): string {
   return dayKeyFor(ts, timeZone).slice(0, 7);
 }
 
-export type ItemKey = "spreeJoin" | "skillReset" | "luckyCharm" | "sunlamp" | "lantern" | BoosterKey | CosmeticKey | VariantItemKey;
+export type ItemKey = "spreeJoin" | "skillReset" | "luckyCharm" | "sunlamp" | "lantern" | BoosterKey | CosmeticKey | VariantItemKey | GearItemKey;
+
+/** The stall's gear (#162, lib/rpg.ts `STALL_GEAR`): the common pieces, one item each. */
+export type GearItemKey = `gear:${GearId}`;
+export const gearItemKey = (id: GearId): GearItemKey => `gear:${id}`;
+export const isGearItemKey = (key: string): key is GearItemKey => key.startsWith("gear:");
 
 /** The company-wide boosters (#97, §G10): one item per kind of boost (lib/boosts.ts). */
 export type BoosterKey = "boosterDouble" | "boosterNewConnections" | "boosterRekindles" | "boosterUnsung";
@@ -159,6 +165,8 @@ export const ITEMS: readonly ItemDef[] = [
       ? [{ key: item, name, description: `Your own kudos emoji to give with: its name plus “-${suffix}”. It gives the same, and only you can use it.`, price: () => source.price }]
       : [],
   ),
+  // Gear for the ruins (#162): the stall's common pieces, worn from your cabin.
+  ...STALL_GEAR.map(({ id, price }) => ({ key: gearItemKey(id), name: GEAR[id].name, description: `${GEAR[id].about} +${GEAR[id].bonus} ${GEAR[id].stat}, worn as a ${GEAR[id].slot}.`, price: () => price })),
 ];
 
 export function itemByKey(key: string): ItemDef | undefined {

@@ -5,7 +5,7 @@ import { PLACES } from "./places";
 import { BEDS, PLOTS } from "./places/garden";
 import { mapHeight, mapWidth } from "./pixels";
 import { treeSprite } from "./tree/sprite";
-import { CANOPY, buildWorld, inRect, settle, underCanopy, type World } from "./world";
+import { CANOPY, buildWorld, inRect, ruinStones, settle, underCanopy, type World } from "./world";
 
 /**
  * The world on the tree (#156): the desert with the tree at the origin, and the districts the
@@ -206,5 +206,19 @@ describe("your garden on the terrace", () => {
   test("before the terrace opens, or with the game hidden, there are no plots or beds", () => {
     expect(world(11, 10).plots).toEqual([]);
     expect(world(11, 400, true, ALL.filter((id) => id !== "garden")).beds).toEqual([]);
+  });
+});
+
+describe("the ruins' entrances (#162)", () => {
+  test("each stands on stones nobody walks through, its door is sand you can walk to from base camp", () => {
+    for (const seed of [7, 1282764143, 0x4c756d65]) {
+      const w = world(seed, 3500);
+      expect(w.ruins.length).toBeGreaterThan(0);
+      for (const r of w.ruins.filter((r) => r.tier === 1)) {
+        expect(w.walkable(r.at.x, r.at.y)).toBe(true);
+        for (const s of ruinStones(r.at)) expect(w.walkable(s.x, s.y)).toBe(false);
+        expect(findPath(w, w.spawn, r.at), `${seed} ${r.id}`).not.toBeNull();
+      }
+    }
   });
 });

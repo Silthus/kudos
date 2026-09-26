@@ -1,6 +1,5 @@
 import clsx from "clsx";
 import { useMutation, useQuery } from "convex/react";
-import { ConvexError } from "convex/values";
 import { Lamp, Sprout, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
@@ -16,6 +15,7 @@ import { Avatar, Button, Card, CardHeader, Dialog, Empty, PageSkeleton } from "@
 import { useWorkspaceToday } from "@/lib/period";
 import { canPlant, FRUIT_PICKED, plotCount, plotFrom } from "@/world/gardenWorld";
 import { CoinsToWallet } from "@/world/CoinsToWallet";
+import { errorText } from "@/lib/errors";
 
 type Mine = NonNullable<ReturnType<typeof useQuery<typeof api.gardens.mine>>>;
 type OpenGarden = Extract<Mine, { open: true }>;
@@ -25,7 +25,6 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 const coins = (n: number) => plural(n, "Hog coin", "Hog coins");
 /** A memory keeps its stage by name: draw it at that stage (a Seed if the name is unknown). */
 const stageKeyOf = (name: string): StageKey => STAGES.find((s) => s.name === name)?.key ?? "seed";
-const errorText = (e: unknown) => (e instanceof ConvexError ? String(e.data) : "Something went wrong. Try again.");
 const linkCls = "font-semibold text-ember-deep underline decoration-2 underline-offset-4";
 
 /**

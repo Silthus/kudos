@@ -1,5 +1,4 @@
 import { useMutation, useQuery } from "convex/react";
-import { ConvexError } from "convex/values";
 import { motion, useReducedMotionConfig } from "motion/react";
 import { useMemo, useRef, useState, type RefObject } from "react";
 import { api } from "../../convex/_generated/api";
@@ -9,9 +8,10 @@ import { HogCoin } from "@/components/HogCoin";
 import { Button, Card, Empty, PageSkeleton } from "@/components/ui";
 import { CoinsToWallet } from "@/world/CoinsToWallet";
 import { offeringStone } from "@/world/places/offering";
-import { PixelArt as Pixels } from "@/world/PixelArt";
+import { PixelArt } from "@/world/PixelArt";
 import { treeSprite } from "@/world/tree/sprite";
 import { FruitArt } from "@/world/FruitArt";
+import { errorText } from "@/lib/errors";
 
 /**
  * The offering stone's window (#157; plan #152 S3 and its seeds amendment): the tree's two rituals.
@@ -26,7 +26,6 @@ import { FruitArt } from "@/world/FruitArt";
  */
 
 const plural = (n: number, one: string, many: string) => `${n.toLocaleString("en-US")} ${n === 1 ? one : many}`;
-const errorText = (e: unknown) => (e instanceof ConvexError ? String(e.data) : "Something went wrong. Try again.");
 
 type Moment = { id: number; kind: "claim" | "plant"; seeds: number };
 
@@ -39,11 +38,11 @@ function Scene({ stage, worldSeed, rings, planted, moment, canopy }: { stage: Tr
     <div data-offering-scene className="relative h-56 overflow-hidden bg-dusk shadow-[inset_0_-24px_0_0_var(--color-sand-deep)]">
       <div className="absolute inset-x-0 bottom-6 h-10 bg-sand" />
       {tree ? (
-        <Pixels map={tree} className="absolute bottom-6 left-1/2 h-52 max-w-[90%] -translate-x-[60%]" label="The Ancient Tree" />
+        <PixelArt map={tree} className="absolute bottom-6 left-1/2 h-52 max-w-[90%] -translate-x-[60%]" label="The Ancient Tree" />
       ) : (
         <p className="absolute inset-x-0 top-6 text-center text-sm text-cream/80">The desert waits for its first seed.</p>
       )}
-      <Pixels map={stone} className="absolute bottom-2 left-[62%] h-28" label="The offering stone" />
+      <PixelArt map={stone} className="absolute bottom-2 left-[62%] h-28" label="The offering stone" />
       {/* Where the coins fall from: the canopy's middle. */}
       <div ref={canopy} aria-hidden className="absolute left-[40%] top-6 h-28 w-2" />
       {moment && !still && (

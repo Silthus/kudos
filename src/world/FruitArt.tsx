@@ -1,6 +1,6 @@
-import { useMemo } from "react";
 import type { FruitId } from "../../convex/lib/fruits";
-import { pixelRuns, type PixelMap } from "./pixels";
+import { PixelArt } from "./PixelArt";
+import type { PixelMap } from "./pixels";
 
 /**
  * Tree fruit (#157, lib/fruits.ts) in our own pixels, 10 × 10 on a stem: the sun fruit round and gold,
@@ -81,12 +81,9 @@ export const FRUIT_ART: Record<FruitId, PixelMap> = {
 };
 
 export function FruitArt({ fruit, size = 24 }: { fruit: FruitId; size?: number }) {
-  const runs = useMemo(() => pixelRuns(FRUIT_ART[fruit]), [fruit]);
   return (
-    <svg width={size} height={size} viewBox="0 0 10 10" shapeRendering="crispEdges" aria-hidden className="shrink-0" data-fruit-art={fruit}>
-      {runs.map((p) => (
-        <rect key={`${p.x},${p.y}`} x={p.x} y={p.y} width={p.w} height={1} fill={p.fill} />
-      ))}
-    </svg>
+    <span data-fruit-art={fruit} className="inline-flex shrink-0">
+      <PixelArt map={FRUIT_ART[fruit]} width={size} height={size} />
+    </span>
   );
 }

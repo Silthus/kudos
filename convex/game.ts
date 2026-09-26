@@ -30,6 +30,7 @@ import { boostOn, boostsOf } from "./boosts";
 import { leaveWorld } from "./lib/world";
 import { DEFAULT_LOOK, lookValidator } from "./lib/presence";
 import { makeOffering, onOfferingRevoked, waiting } from "./offerings";
+import { staminaAfterKudos } from "./lib/rpg";
 
 /**
  * The game's foundation (#55 §G1, G3, G4): the workspace switch, players, the XP and Hog coin
@@ -278,6 +279,11 @@ export async function onGameGiven(
   await addXp(ctx, player, xp, 0, gains);
   // The coins wait at the tree until the giver claims them at the offering stone (#157).
   await makeOffering(ctx, workspace, giver._id, { batchId, at, lines });
+  // One thoughtful message, however many it thanks, restores one stamina for the ruins (#162). State:
+  // a revoke never takes it back and a rebuild never replays it.
+  const rested = (await ctx.db.get(player._id))!;
+  const stamina = staminaAfterKudos(rested.stamina ?? 0, { qualifyingLines: lines.filter((l) => l.qualifying).length });
+  if (stamina !== (rested.stamina ?? 0)) await ctx.db.patch(player._id, { stamina });
 
   for (const line of lines) {
     const receiver = await playerOf(ctx, line.receiverId as Id<"members">);
@@ -440,7 +446,7 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
   // Only give, receive and quest events follow from the kudos rows and are replayed. Everything else
   // is the member's own doing and kept as it is: fruit picked, what a spree's tiers paid (#94), the
   // level a simulator visitor joined at (#143), a claim at the tree and tree fruit sold (#157), the
-  // tutorial's pay (#159), and whatever a later system records.
+  // tutorial's pay (#159), coins found in the ruins (#162), and whatever a later system records.
   type Written = { at: number; xp: number; coins: number; kind: Doc<"gameEvents">["kind"] };
   const written: Written[] = [];
   for await (const e of ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", member._id))) {
@@ -452,6 +458,7 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
   const fruitCoins = kept("harvest", "sale");
   const spreeCoins = kept("spree");
   const tutorialCoins = kept("tutorial");
+  const expeditionCoins = kept("expedition");
   const unsungOn = workspace.receivedVisibility === "everyone";
   // XP history is the members' own kudos: pooled spree kudos (#94) never count as a thank-back or an earlier kudos.
   const own = (k: Doc<"kudos">) => k.source !== "spree";
@@ -554,7 +561,7 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
   // Coins claimed at the tree stay as they are; the offerings' replay (offerings.ts `replayMember`, its
   // own transaction, scheduled by `rebuildMember`) moves them with the surviving history.
   const coins = written.reduce((s, w) => s + w.coins, 0) + questCoins + (existing?.claimedCoins ?? 0);
-  const ledger = { xp: total, level, since, coins, fruitCoins, questCoins, spreeCoins, tutorialCoins };
+  const ledger = { xp: total, level, since, coins, fruitCoins, questCoins, spreeCoins, tutorialCoins, expeditionCoins };
   if (existing) await ctx.db.patch(existing._id, ledger);
   else await ctx.db.insert("players", { workspaceId: workspace._id, memberId: member._id, ...ledger });
 }
@@ -701,6 +708,7 @@ const walletValidator = v.object({
   fromQuests: v.number(),
   fromSprees: v.number(),
   fromTutorial: v.number(), // the elder hog's chain (#159)
+  fromRuins: v.number(),
   fromLevels: v.number(),
   spent: v.number(),
   adjusted: v.number(),

@@ -8,6 +8,7 @@ import { MessageText } from "@/components/MessageText";
 import { BigNumber, Button, PageSkeleton, Progress, RarityBadge, Segmented } from "@/components/ui";
 import { relativeTime } from "@/lib/format";
 import { CATEGORY_HINT, RARITY_META, RARITY_ORDER, type Rarity } from "@/lib/rarity";
+import { Bestiary, LoreCards } from "@/components/rpg";
 import { useViewer } from "@/lib/viewer";
 import { Npc } from "@/world/Npc";
 
@@ -230,6 +231,13 @@ export function Discoveries() {
           );
         })}
       </ul>
+      {/* The ruins' collections (#162): the tree's secrets and the creatures met. */}
+      {viewer.workspace.gameEnabled === true && !viewer.member.gameHidden && (
+        <>
+          <LoreCards />
+          <Bestiary />
+        </>
+      )}
     </div>
   );
 }
