@@ -88,6 +88,8 @@ export const gainValidator = v.union(
     coins: v.optional(v.number()),
   }),
   v.object({ kind: v.literal("plant_stage"), species: v.string(), stage: v.string(), teammate: personValidator }), // #95
+  // #154: the member's thoughtful kudos to `receiver` was the first seed planted at the tree: the seed moment.
+  v.object({ kind: v.literal("tree_seed"), receiver: personValidator }),
 );
 
 /** A Super kudos note on a DM (#98): the receiver's celebration, or the giver's "sent" or how-to. */
@@ -143,6 +145,19 @@ export const kudosSourceValidator = v.union(
   v.literal("playground"),
   v.literal("seed"),
   v.literal("spree"), // a spree join, paid out to the receivers when a tier was reached (#94)
+);
+
+/** A stage of the Ancient Tree (lib/tree.ts `TreeStageId`). */
+export const treeStageValidator = v.union(
+  v.literal("seed"),
+  v.literal("sprout"),
+  v.literal("sapling"),
+  v.literal("young"),
+  v.literal("grown"),
+  v.literal("great"),
+  v.literal("ancient"),
+  v.literal("elder"),
+  v.literal("world_tree"),
 );
 
 /** How a kudos attempt (a message carrying the kudos emoji) ended. */
@@ -239,6 +254,9 @@ export default defineSchema({
     // The workspace clock (lib/time.ts `workspaceNow`): how far this workspace's "now" is from the wall
     // clock. Only simulators have one (simulator.ts advances it); undefined = 0, the wall clock.
     clockOffsetMs: v.optional(v.number()),
+    // The shared world's seed (#152 S1, lib/tree.ts `layout`): a uint32 drawn at install, fixed in the
+    // demo. Workspaces from before the tree get `fnv1a(workspaceId)` (tree.ts `worldSeedOf`), written by its backfill.
+    worldSeed: v.optional(v.number()),
     // A visitor's private simulator (#143, simulator.ts): the demo sign-in session it belongs to, when it
     // started (wall clock; the cron wipes it 7 days later), the level it started at and whether the
     // visitor is looking at it (their other workspace is the shared demo). Its visitor member has no
@@ -639,6 +657,8 @@ export default defineSchema({
     garden: v.optional(gardenNoticeValidator),
     // A Super kudos (#98): the receiver's celebration, or what the giver's Super kudos emoji did.
     superKudos: v.optional(superKudosNoteValidator),
+    // receiver_success while the game is shown to them (#154): the seeds they had to plant at the tree right after this kudos.
+    seedsToPlant: v.optional(v.number()),
   }).index("by_member", ["memberId"]),
 
   // Rewards Store catalog. Archived, never deleted: redemptions link back to them.
@@ -887,6 +907,65 @@ export default defineSchema({
     .index("by_workspace_seenAt", ["workspaceId", "seenAt"])
     .index("by_workspace_member_session", ["workspaceId", "memberId", "sessionId"])
     .index("by_seenAt", ["seenAt"]),
+
+  // The Ancient Tree (#154, tree.ts, lib/tree.ts): one per workspace, created at the seed moment (its
+  // first planting). `sap` counts its planted seeds (rebuilt from `seeds`), `fuel` what givers claimed
+  // at the offering stone (#157); the stage every system uses is the stage of `peakGrowth`, which
+  // never goes down. `rebuild` is a recount in progress (tree.ts `rebuild`).
+  trees: defineTable({
+    workspaceId: v.id("workspaces"),
+    sap: v.number(),
+    fuel: v.number(),
+    peakGrowth: v.number(),
+    plantedBy: v.optional(v.id("members")), // the giver of the first seed planted; gone when they're removed
+    plantedAt: v.number(),
+    rebuild: v.optional(v.object({ through: v.number(), count: v.number() })),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_plantedBy", ["plantedBy"]),
+
+  // A seed of appreciation (#154): one per kudos row of a qualifying kudos, sown in its give
+  // transaction and deleted with it. Unplanted until its receiver plants it at the tree, or time
+  // does after SEED_AUTO_PLANT_DAYS; a planted seed is one of the tree's sap. Times are workspace clock.
+  seeds: defineTable({
+    workspaceId: v.id("workspaces"),
+    kudosId: v.id("kudos"),
+    giverId: v.id("members"),
+    receiverId: v.id("members"),
+    sownAt: v.number(),
+    plantedAt: v.optional(v.number()),
+    plantedBy: v.optional(v.union(v.literal("receiver"), v.literal("time"))),
+  })
+    .index("by_kudos", ["kudosId"])
+    .index("by_receiver_plantedAt_sownAt", ["receiverId", "plantedAt", "sownAt"])
+    .index("by_workspace_plantedAt_sownAt", ["workspaceId", "plantedAt", "sownAt"])
+    .index("by_plantedAt_sownAt", ["plantedAt", "sownAt"]) // the auto-plant cron, across workspaces
+    .index("by_giver", ["giverId"]) // member removal
+    .index("by_workspace", ["workspaceId"]), // the rebuild's recount, in creation order
+
+  // The tree's log (#154): the seed moment, plantings, stages and rings, for the world's toasts and
+  // the notice board; the last TREE_EVENTS_KEPT per workspace. `memberId` is who it names (the
+  // planter, or who planted seeds), gone when they're removed. A stage's post in the announcement
+  // channel is tracked on it, as a boost's is.
+  treeEvents: defineTable({
+    workspaceId: v.id("workspaces"),
+    kind: v.union(v.literal("seed"), v.literal("growth"), v.literal("stage"), v.literal("ring")),
+    at: v.number(),
+    memberId: v.optional(v.id("members")),
+    seeds: v.optional(v.number()), // growth: how many were planted
+    by: v.optional(v.union(v.literal("receiver"), v.literal("time"))), // growth: who planted them
+    stage: v.optional(treeStageValidator), // stage: the stage reached
+    rings: v.optional(v.number()), // ring: the rings the tree has now
+    announcement: v.optional(
+      v.object({
+        status: v.union(v.literal("pending"), v.literal("sent"), v.literal("skipped"), v.literal("failed")),
+        channelId: v.optional(v.string()),
+        error: v.optional(v.string()),
+      }),
+    ),
+  })
+    .index("by_workspace_at", ["workspaceId", "at"])
+    .index("by_member", ["memberId"]),
 
   slackEvents: defineTable({
     eventId: v.string(),

@@ -4,6 +4,7 @@ import { internal } from "./_generated/api";
 import type { Doc, Id, TableNames } from "./_generated/dataModel";
 import { revokeKudosRow } from "./engine";
 import { rememberPlant } from "./gardens";
+import { unsow } from "./tree";
 import { counts } from "./sprees";
 import { Rollups } from "./lib/rollups";
 import { isOpen } from "./lib/store";
@@ -178,6 +179,32 @@ const PHASES: Phase[] = [
     batch: 500,
     rows: (ctx, m, n) => ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", m._id)).take(n),
     clear: remove,
+  },
+  // The Ancient Tree (#154). Revoking their kudos above took their seeds and the sap they were; this
+  // catches any left over. The tree and its stages stay (the company grew it), without their name.
+  {
+    name: "seedsGiven",
+    batch: 500,
+    rows: (ctx, m, n) => ctx.db.query("seeds").withIndex("by_giver", (q) => q.eq("giverId", m._id)).take(n),
+    clear: (ctx, workspace, row) => unsow(ctx, workspace, row as Doc<"seeds">),
+  },
+  {
+    name: "seedsReceived",
+    batch: 500,
+    rows: (ctx, m, n) => ctx.db.query("seeds").withIndex("by_receiver_plantedAt_sownAt", (q) => q.eq("receiverId", m._id)).take(n),
+    clear: (ctx, workspace, row) => unsow(ctx, workspace, row as Doc<"seeds">),
+  },
+  {
+    name: "treePlantedBy",
+    batch: 10,
+    rows: (ctx, m, n) => ctx.db.query("trees").withIndex("by_plantedBy", (q) => q.eq("plantedBy", m._id)).take(n),
+    clear: (ctx, _workspace, row) => ctx.db.patch(row._id as Id<"trees">, { plantedBy: undefined }),
+  },
+  {
+    name: "treeEvents",
+    batch: 500,
+    rows: (ctx, m, n) => ctx.db.query("treeEvents").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(n),
+    clear: (ctx, _workspace, row) => ctx.db.patch(row._id as Id<"treeEvents">, { memberId: undefined }),
   },
   // A simulator's fast-forwards (#143) are its visitor's.
   {

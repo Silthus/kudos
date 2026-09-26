@@ -8,13 +8,14 @@ import { dayKeyFor, zonedParts } from "./lib/time";
 import { givingProfile, type MemberDayChange, Rollups } from "./lib/rollups";
 import { MIN_NOTE_WORDS } from "./lib/quests";
 import { onKudosGiven, onKudosRevoked, questsOn } from "./quests";
-import { onGameGiven, onGameRevoked } from "./game";
+import { gameShownTo, onGameGiven, onGameRevoked } from "./game";
 import { spendLuckyCharm } from "./items";
 import { onSpreeKudosRevoked } from "./sprees";
 import { onSuperKudos, onSuperKudosRevoked } from "./superKudos";
 import { Gains } from "./gains";
 import { discoveryWorthADm } from "./lib/gains";
 import { onGardenGiven } from "./gardens";
+import { onTreeRevoked, seedsToPlant, sowSeeds } from "./tree";
 import {
   CATALOG,
   type Category,
@@ -160,6 +161,8 @@ export type BotMessageOptions = {
   earnings?: Infer<typeof earningsValidator>;
   /** A Super kudos note (#98): the receiver's celebration, or the giver's "sent" or how-to. */
   superKudos?: Infer<typeof superKudosNoteValidator>;
+  /** receiver_success (#154): the seeds the receiver has to plant at the tree, this kudos' among them. */
+  seedsToPlant?: number;
   /**
    * A message shown only in passing (an ephemeral reply, a slash command): a first discovery of a
    * Rare or rarer message is also a gain of the event, told in the member's gain DM (#55 §G13).
@@ -179,7 +182,7 @@ export async function sendBotMessage(
   category: Category,
   vars: Audience,
   now: number,
-  { rollups, minRarity, skipDelivery, questProgress, earnings, superKudos, discoveries }: BotMessageOptions = {},
+  { rollups, minRarity, skipDelivery, questProgress, earnings, superKudos, discoveries, seedsToPlant }: BotMessageOptions = {},
 ): Promise<Id<"notifications">> {
   const seen = await ctx.db
     .query("discoveries")
@@ -225,6 +228,7 @@ export async function sendBotMessage(
     ...(questProgress ? { questProgress } : {}),
     ...(earnings ? { earnings } : {}),
     ...(superKudos ? { superKudos } : {}),
+    ...(seedsToPlant !== undefined ? { seedsToPlant } : {}),
   });
 }
 
@@ -439,6 +443,8 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
   const batchId = `${input.channelId}:${input.messageTs ?? now}:${giver._id}`;
   const rollups = new Rollups(ctx, workspace);
   const rows = await writeBatch(ctx, workspace, giver, recipients, { ...input, batchId, dayKey, at: now }, rollups);
+  // A thoughtful kudos sows a seed of appreciation for each receiver, to plant at the tree.
+  const sownFor = await sowSeeds(ctx, workspace, rows);
 
   // XP for the giver and the receivers; the giver's share is itemised in their reply. What anyone
   // discovers or gains in this kudos goes out in one DM each, once everything below has run.
@@ -490,6 +496,7 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
           rollups,
           ...(charmed.has(r._id) ? { minRarity: "uncommon" as const } : {}),
           ...(superKudos?.celebration?.receiverId === r._id ? { superKudos: superKudos.celebration.note } : {}),
+          ...(sownFor.has(r._id) && gameShownTo(workspace, r) ? { seedsToPlant: await seedsToPlant(ctx, r._id) } : {}),
         }),
       );
     }
@@ -555,6 +562,7 @@ export async function revokeKudosRow(ctx: MutationCtx, workspace: Doc<"workspace
   await onGameRevoked(ctx, row);
   await onSpreeKudosRevoked(ctx, row);
   await onSuperKudosRevoked(ctx, row);
+  await onTreeRevoked(ctx, workspace, row);
 }
 
 /**

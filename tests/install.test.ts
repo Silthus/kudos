@@ -84,6 +84,8 @@ describe("installing Kudos into a workspace", () => {
       installer: await ctx.db.query("members").filter((q) => q.eq(q.field("slackUserId"), "UINSTALLER")).first(),
     }));
     expect(workspace).toMatchObject({ slackTeamId: "TNEW", name: "Acme", iconUrl: "https://img", status: "active" });
+    // The shared world's seed (#154): a uint32 drawn at install.
+    expect(Number.isInteger(workspace!.worldSeed) && workspace!.worldSeed! >= 0 && workspace!.worldSeed! < 2 ** 32).toBe(true);
     expect(install).toMatchObject({ botToken: "xoxb-new", installedBySlackUserId: "UINSTALLER", scope: "chat:write" });
     expect(installer).toMatchObject({ isAdmin: true, name: "Ina" });
   });

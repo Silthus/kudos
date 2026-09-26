@@ -79,5 +79,5 @@ test("every link into the web app names the Slack workspace it was sent in", asy
   const found = links();
   expect(found.filter((u) => u.searchParams.get("ws") !== "TLUMEN").map(String)).toEqual([]);
   const pages = new Set(found.map((u) => `${u.pathname}${u.searchParams.has("tab") ? `?tab=${u.searchParams.get("tab")}` : ""}${u.hash}`));
-  expect([...pages].sort()).toEqual(["/admin?tab=store", "/discoveries", "/leaderboard", "/me", "/quests", "/store", "/store#my-requests"]);
+  expect([...pages].sort()).toEqual(["/", "/admin?tab=store", "/discoveries", "/leaderboard", "/me", "/quests", "/store", "/store#my-requests"]);
 });

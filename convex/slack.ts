@@ -13,6 +13,7 @@ import { questBlocks } from "./lib/questBlocks";
 import { earningsText } from "./lib/xp";
 import { gainBlocks, gainsText } from "./lib/gains";
 import { gameBlocks } from "./lib/gameBlocks";
+import { seedsToPlantText, stageUpText, treeBlocks } from "./lib/treeView";
 
 type SlackEvent = {
   type: string;
@@ -368,11 +369,14 @@ async function deliver(ctx: ActionCtx, token: string, teamId: string, ids: Id<"n
       // A Super kudos (#98): the receiver's celebration heads their DM; the giver's note follows what it earned.
       const celebration = n.superKudos?.kind === "celebration" ? n.superKudos.slackText : null;
       const superNote = n.superKudos && n.superKudos.kind !== "celebration" ? n.superKudos.slackText : null;
+      // The receiver's seeds to plant at the tree (#154), this kudos' among them.
+      const seeds = n.seedsToPlant ? `🌱 ${seedsToPlantText(n.seedsToPlant)}` : null;
       const context = [
         RARITY_SLACK_BADGE[n.rarity as Rarity],
         n.isNewDiscovery ? `✨ New discovery! (${n.discoveredCount} collected)` : null,
         quest ? `${quest.completed} of ${quest.available} quests this week` : null,
         quest?.sweep ? "🧹 Clean sweep!" : null,
+        seeds,
         quest ? questLog && `<${questLog}|Quest log>` : gallery && `<${gallery}|Message gallery>`,
       ]
         .filter(Boolean)
@@ -386,7 +390,7 @@ async function deliver(ctx: ActionCtx, token: string, teamId: string, ids: Id<"n
         { type: "context", elements: [{ type: "mrkdwn", text: context }] },
         ...(gains.length > 0 ? [{ type: "divider" }, ...gainBlocks(gains, link)] : []),
       ];
-      text = [celebration, n.slackText, earned, superNote, help, gains.length > 0 ? gainsText(gains, "slack") : null].filter(Boolean).join("\n");
+      text = [celebration, n.slackText, earned, superNote, help, seeds, gains.length > 0 ? gainsText(gains, "slack") : null].filter(Boolean).join("\n");
     }
     let res = ephemeral
       ? await slackApi(token, "chat.postEphemeral", { channel, thread_ts, user: n.slackUserId, text, blocks })
@@ -432,6 +436,7 @@ async function publishHome(ctx: ActionCtx, workspaceId: Id<"workspaces">, token:
       { type: "section", fields: fields.map((text) => ({ type: "mrkdwn", text })) },
       ...actions([linkButton("Open dashboard", "open_dashboard", link("/me"), "primary"), linkButton("Message gallery", "open_gallery", link("/discoveries"))]),
       ...(data.game ? [{ type: "divider" }, ...gameBlocks(data.game, link("/me"))] : []),
+      ...(data.tree ? [{ type: "divider" }, ...treeBlocks(data.tree, link("/"))] : []),
       ...(quests.length > 0 ? [{ type: "divider" }, ...quests] : []),
       { type: "divider" },
       { type: "header", text: { type: "plain_text", text: "This week's most generous" } },
@@ -528,6 +533,23 @@ export const postAnnouncement = internalAction({
     if (args.kind === "start") {
       await ctx.runMutation(internal.boosts.announced, res.ok ? { ...outcome, outcome: "sent" } : { ...outcome, outcome: "failed", error: res.error ?? "unknown_error" });
     }
+    return null;
+  },
+});
+
+/** Posts the tree's new stage in the announcement channel (#154, tree.ts `announceStage`), once. */
+export const postTreeStage = internalAction({
+  args: { eventId: v.id("treeEvents") },
+  returns: v.null(),
+  handler: async (ctx, { eventId }) => {
+    const post = await ctx.runQuery(internal.tree.stagePost, { eventId });
+    if (!post) {
+      await ctx.runMutation(internal.tree.stagePosted, { eventId, outcome: "skipped" });
+      return null;
+    }
+    const res = await slackApi(post.token, "chat.postMessage", { channel: post.channelId, text: stageUpText(post.stage), unfurl_links: false });
+    if (!res.ok) console.warn(`Tree stage post in ${post.channelId} failed: ${res.error}`);
+    await ctx.runMutation(internal.tree.stagePosted, res.ok ? { eventId, outcome: "sent" } : { eventId, outcome: "failed", error: res.error ?? "unknown_error" });
     return null;
   },
 });

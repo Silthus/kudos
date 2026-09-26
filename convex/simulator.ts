@@ -19,6 +19,7 @@ import { lookAtGrowth, pickFor, plantFor } from "./gardens";
 import { questsOn } from "./quests";
 import { simulatorSummaryValidator } from "./schema";
 import { lapseDue } from "./sprees";
+import { autoPlantWorkspace, newWorldSeed } from "./tree";
 import { getViewer, simulatorOf } from "./lib/access";
 import { BOOST_EFFECT, BOOST_NAME } from "./lib/boosts";
 import { coinBalance, COINS } from "./lib/coins";
@@ -127,6 +128,7 @@ async function startSimulator(ctx: MutationCtx, userId: Id<"users">, sessionId: 
     spreesEnabled: true,
     reactionsEnabled: true,
     clockOffsetMs: startAt - wallClock,
+    worldSeed: newWorldSeed(),
   });
   const member = { workspaceId, isBot: false, deactivated: false, totalGiven: 0, totalReceived: 0, totalMaxedDays: 0 };
   const [you, ...teammates] = PEOPLE.slice(0, SIMULATOR_TEAMMATES + 1);
@@ -269,6 +271,9 @@ async function advanceClock(ctx: MutationCtx, workspace: Doc<"workspaces">, memb
   if (gameShownTo(moved, member)) {
     for (const g of await lookAtGrowth(ctx, moved, member._id)) changes.push(`Your plant for ${g.teammate} grew: ${g.stage}.`);
   }
+  // Seeds nobody planted in 30 simulated days plant themselves (the cron runs on the wall clock).
+  const planted = await autoPlantWorkspace(ctx, moved);
+  if (planted > 0) changes.push(planted === 1 ? "1 seed planted itself at the Ancient Tree." : `${planted} seeds planted themselves at the Ancient Tree.`);
   return { day, dayIndex: daysBetween(moved.simulator!.startDay, day), changes };
 }
 
