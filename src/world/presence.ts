@@ -75,7 +75,9 @@ const BASE_CAMP_RADIUS = 7;
 export function whereIs(world: World, at: Spot): string {
   const x = Math.round(at.x);
   const y = Math.round(at.y);
-  const site = world.sites.find((s) => s.open && s.id !== "base_camp" && inRect({ x0: s.claim.x0 - 2, y0: s.claim.y0 - 2, x1: s.claim.x1 + 2, y1: s.claim.y1 + 2 }, x, y));
+  const by = (s: World["sites"][number]) => s.open && inRect({ x0: s.claim.x0 - 2, y0: s.claim.y0 - 2, x1: s.claim.x1 + 2, y1: s.claim.y1 + 2 }, x, y);
+  // A district first; base camp (its cabin and sandbox) where no district is.
+  const site = world.sites.find((s) => s.id !== "base_camp" && by(s)) ?? world.sites.find((s) => s.id === "base_camp" && by(s));
   if (site) return site.name;
   const ruin = world.ruins.find((r) => Math.max(Math.abs(r.at.x - x), Math.abs(r.at.y - y)) <= 2);
   if (ruin) return ruin.name;
@@ -100,6 +102,19 @@ export function cardFor(hog: HogWho, viewer: { memberId: string; workspaceName: 
   const actions = [{ label: "Visit their garden", to: `/garden/${hog.memberId}` }];
   if (hog.hasHome) actions.push({ label: "Visit their home", to: `/home/${hog.memberId}` });
   return { name: hog.name, title: hog.title, note: hog.npc ? `${viewer.workspaceName} teammate` : null, actions };
+}
+
+/** A card this close to the screen's edge, or past it, moves in (screen pixels). */
+const CARD_MARGIN = 8;
+
+/**
+ * How far to move a card sideways so it stays whole on a screen `width` wide: a card over a hog near
+ * the edge of a phone's screen would otherwise hang off it. `left` and `right` are its edges now.
+ */
+export function cardNudge(left: number, right: number, width: number): number {
+  if (right > width - CARD_MARGIN) return width - CARD_MARGIN - right;
+  if (left < CARD_MARGIN) return CARD_MARGIN - left;
+  return 0;
 }
 
 // ---------------------------------------------------------------------------------------------

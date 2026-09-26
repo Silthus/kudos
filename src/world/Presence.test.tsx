@@ -259,6 +259,13 @@ describe("a hog's card", () => {
     expect(card()?.textContent).not.toContain("Visit their home");
   });
 
+  test("its name tag opens it too", () => {
+    queries["presence:nearby"] = [hog("p1")];
+    layer();
+    act(() => hogs()[0].querySelector<HTMLElement>("[data-name-tag]")!.click());
+    expect(card()?.querySelector("h2")?.textContent).toBe("Ana Lima");
+  });
+
   test("Escape closes it; so does the hog leaving", () => {
     queries["presence:nearby"] = [hog("p1")];
     layer();

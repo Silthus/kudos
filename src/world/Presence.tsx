@@ -11,7 +11,7 @@ import { useStableQuery } from "@/lib/useStableQuery";
 import { Hog, HOG_FEET, HOG_SIZE, type HogHandle } from "./Hog";
 import { findPath, tileAt, type Tile } from "./iso";
 import { behindTree, tileOnCanvas } from "./paint";
-import { BEAT_MOVING_MS, cardFor, glideAt, glideTo, shouldBeat, wanderRoutes, wandererAt, type Beat, type Glide, type HogWho, type Round, type Spot } from "./presence";
+import { BEAT_MOVING_MS, cardFor, cardNudge, glideAt, glideTo, shouldBeat, wanderRoutes, wandererAt, type Beat, type Glide, type HogWho, type Round, type Spot } from "./presence";
 import type { World } from "./world";
 import { hogZ, Z } from "./WorldCanvas";
 
@@ -241,8 +241,14 @@ export function Presence({
         t.hog.face(facing === "left");
       }
       if (o.id === open && cardEl.current) {
-        cardEl.current.style.left = `${Math.round(p.x * scale)}px`;
-        cardEl.current.style.top = `${Math.round(p.y * scale - HOG_FEET - 4)}px`;
+        const card = cardEl.current;
+        const x = Math.round(p.x * scale);
+        card.style.left = `${x}px`;
+        card.style.top = `${Math.round(p.y * scale - HOG_FEET - 4)}px`;
+        // Over a hog by the screen's edge it moves in, whole.
+        const box = card.getBoundingClientRect();
+        const dx = cardNudge(box.left, box.right, window.innerWidth);
+        if (dx) card.style.left = `${x + dx}px`;
       }
     }
   };
@@ -272,7 +278,7 @@ export function Presence({
     if (!open) return;
     const key = (e: KeyboardEvent) => e.key === "Escape" && setOpen(null);
     const away = (e: PointerEvent) => {
-      if (!(e.target as Element | null)?.closest?.("[data-hog-card], [data-hog-hit]")) setOpen(null);
+      if (!(e.target as Element | null)?.closest?.("[data-hog-card], [data-hog-hit], [data-name-tag]")) setOpen(null);
     };
     document.addEventListener("keydown", key);
     document.addEventListener("pointerdown", away);
@@ -302,7 +308,13 @@ export function Presence({
             still={still}
             look={o.look}
           />
-          <span data-name-tag className="absolute left-1/2 top-3 -translate-x-1/2 -translate-y-full whitespace-nowrap border border-bark bg-parchment px-1 font-sans text-xs font-semibold leading-4 text-ink">
+          <span
+            data-name-tag
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+            onClick={() => setOpen(o.id)}
+            className="pointer-events-auto absolute left-1/2 top-3 -translate-x-1/2 -translate-y-full cursor-pointer whitespace-nowrap border border-bark bg-parchment px-1 font-sans text-xs font-semibold leading-4 text-ink"
+          >
             {o.who.name}
           </span>
           <button

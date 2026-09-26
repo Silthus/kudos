@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { layout } from "../../convex/lib/tree";
 import { findPath, type Tile } from "./iso";
-import { cardFor, glideAt, glideTo, shouldBeat, wanderRoutes, wandererAt, whereIs, type Beat } from "./presence";
+import { cardFor, cardNudge, glideAt, glideTo, shouldBeat, wanderRoutes, wandererAt, whereIs, type Beat } from "./presence";
 import { PLACES } from "./places";
 import { buildWorld } from "./world";
 
@@ -80,8 +80,9 @@ describe("another hog glides between the spots it's seen at", () => {
 describe("where someone is, for the online list", () => {
   const world = buildWorld({ seed: 1, layout: layout(1, 20_000), planted: true, standing: PLACES.map((p) => p.id) });
 
-  test("at the tree's foot, base camp", () => {
+  test("at the tree's foot, base camp, as far as its sandbox and your cabin", () => {
     expect(whereIs(world, world.spawn)).toBe("Base camp");
+    for (const id of ["playground", "me"]) expect(whereIs(world, world.places.find((p) => p.id === id)!.doors[0]), id).toBe("Base camp");
   });
 
   test("in or by an open district, the district's name", () => {
@@ -122,6 +123,12 @@ describe("a hog's card", () => {
     expect(card.note).toBe("Another visitor exploring the demo");
     expect(card.actions).toEqual([{ label: "Visit the garden", to: "/garden" }]);
   });
+});
+
+test("a card near the screen's edge moves in to stay whole, 8 px clear", () => {
+  expect(cardNudge(100, 340, 390)).toBe(0);
+  expect(cardNudge(300, 540, 390)).toBe(-158);
+  expect(cardNudge(-40, 200, 390)).toBe(48);
 });
 
 describe("the demo's wandering teammates", () => {
