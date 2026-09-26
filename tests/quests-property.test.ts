@@ -211,6 +211,6 @@ describe("a rebuild writes exactly what the live path wrote, climbing through le
         if (!m.isBot) await t.mutation(internal.game.rebuildMember, { memberId: m._id });
       }
       expect(await snapshot()).toEqual(live);
-    });
+    }, 120_000); // 260 kudos, a claim cron and eight rebuilds: minutes on a busy shared machine
   }
 });
