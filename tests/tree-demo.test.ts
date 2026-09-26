@@ -48,7 +48,7 @@ describe("the demo", () => {
     const workspaceId = (await t.run((ctx) => ctx.db.query("workspaces").first()))!._id;
     expect(await t.action(internal.tree.verify, { workspaceId })).toMatchObject({ ok: true, unplanted: 0 });
     // The crew (#161, S10): the bell built, with its contributors on the plaque, and the market awnings 60 % funded.
-    const crew = async () => ({ built: await alex.query(api.crew.built, {}), open: await alex.query(api.crew.open, {}) });
+    const crew = async () => ({ built: (await alex.query(api.crew.built, { paginationOpts: { numItems: 5, cursor: null } })).page, open: await alex.query(api.crew.open, {}) });
     const seeded = await crew();
     expect(seeded.built).toEqual([expect.objectContaining({ part: "structure_bell", contributed: 300 })]);
     expect(seeded.built[0].contributors.length).toBeGreaterThanOrEqual(4);
