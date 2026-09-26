@@ -167,6 +167,33 @@ test("a failed kudos can be fixed by editing it, like in Slack", async () => {
   expect(host.querySelector("[aria-label='Kudos bot reacted: Kudos given']")).not.toBeNull();
 });
 
+/** Types into the composer, as the keyboard would. */
+const type = async (text: string) => {
+  const box = host.querySelector<HTMLTextAreaElement>("textarea[aria-label=Message]")!;
+  const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!;
+  await act(async () => {
+    setter.call(box, text);
+    box.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+};
+
+test("a first name only one teammate has mentions them, as a first-time visitor types it (#171)", async () => {
+  replies["demo:simulateMessage"] = { status: "given", attempt: null, messages: [] };
+  render();
+  await type("@priya 🌮 thank you for the review");
+  await click("Send");
+  expect(calls["demo:simulateMessage"]).toHaveBeenCalledWith({ text: "<@UDEMOPRIYA> :taco: thank you for the review", channelName: "general" });
+});
+
+test("a first name two teammates share, or a longer name, is left as typed; full names still mention (#171)", async () => {
+  queries["demo:teammates"] = [...teammates, { name: "Jonas Berg", slackUserId: "UDEMOJBERG", title: "SRE" }];
+  replies["demo:simulateMessage"] = { status: "given", attempt: null, messages: [] };
+  render();
+  await type("@Jonas and @Priyanka 🌮 thanks, @Jonas Berg and @Priya Raman");
+  await click("Send");
+  expect(calls["demo:simulateMessage"]).toHaveBeenCalledWith({ text: "@Jonas and @Priyanka :taco: thanks, <@UDEMOJBERG> and <@UDEMOPRIYA>", channelName: "general" });
+});
+
 test("reacting to a teammate's post and /kudos me both answer as envelopes", async () => {
   replies["demo:simulateReaction"] = { status: "given", messages: [dm({ text: "Thanks for the react." })] };
   replies["demo:simulateAllowanceCheck"] = { messages: [dm({ to: "Alex Rivera", toMe: true, category: "allowance_status", rarity: "common", text: "You have 3 left today." })] };

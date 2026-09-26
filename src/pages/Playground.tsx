@@ -139,6 +139,22 @@ function BotAvatar({ glyph }: { glyph: string }) {
   return <span className="grid h-9 w-9 shrink-0 place-items-center bg-lantern">{glyph}</span>;
 }
 
+/**
+ * The composer's mentions as Slack sends them (`<@U…>`): a teammate's full name, or a first name only
+ * one teammate has, as a first-time visitor types it (#171). A first name two teammates share stays as
+ * typed; the @ picker offers both. Any case; never the start of a longer name.
+ */
+function slackMentions(text: string, teammates: { name: string; slackUserId: string }[]) {
+  const ids = new Map(teammates.map((t) => [t.name.toLowerCase(), t.slackUserId]));
+  const first = (t: { name: string }) => t.name.split(" ")[0].toLowerCase();
+  for (const t of teammates) {
+    if (!ids.has(first(t)) && teammates.filter((o) => first(o) === first(t)).length === 1) ids.set(first(t), t.slackUserId);
+  }
+  if (ids.size === 0) return text;
+  const names = [...ids.keys()].sort((a, b) => b.length - a.length).map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  return text.replace(new RegExp(`@(${names.join("|")})(?![\\p{L}\\p{N}])`, "giu"), (_, name: string) => `<@${ids.get(name.toLowerCase())}>`);
+}
+
 type Tab = "playground" | "simulator";
 
 export function Playground() {
@@ -232,13 +248,7 @@ function Sandbox() {
     setNewDms(dms.length);
   };
 
-  const toSlack = (raw: string) => {
-    let out = raw.replaceAll(glyph, emojiCode);
-    for (const t of [...teammates].sort((a, b) => b.name.length - a.name.length)) {
-      out = out.replaceAll(`@${t.name}`, `<@${t.slackUserId}>`);
-    }
-    return out;
-  };
+  const toSlack = (raw: string) => slackMentions(raw.replaceAll(glyph, emojiCode), teammates);
 
   const submit = async (raw = text) => {
     const trimmed = raw.trim();
