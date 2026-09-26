@@ -2,6 +2,7 @@ import clsx from "clsx";
 import { motion } from "motion/react";
 import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { toastShown } from "./toastBus";
 import { Link } from "react-router";
 import type { Toast } from "./life";
 import { Npc } from "./Npc";
@@ -91,6 +92,10 @@ export type QueuedToast = Toast & { id: number };
 /** The first toast of `queue`; `onDone` is called when it goes, and the next one shows. */
 export function Toasts({ queue, onDone, still }: { queue: QueuedToast[]; onDone: () => void; still: boolean }) {
   const toast = queue[0];
+  // Each toast that comes up turns the crew's windmill once (#161).
+  useEffect(() => {
+    if (toast) toastShown();
+  }, [toast?.id]);
   return (
     <div aria-live="polite" className="pointer-events-none fixed left-3 top-[88px] z-[60] w-[min(22rem,calc(100vw-24px))] sm:left-4 sm:top-[116px]">
       {/* Keyed by its number: the next toast is a new card with its own timer, and one coming in behind doesn't restart it. */}

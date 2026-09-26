@@ -7,6 +7,7 @@ import { useSearchParams } from "react-router";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { kudosEmojiNames } from "../../convex/lib/cosmetics";
+import { CrewSettings } from "./Crew";
 import { Avatar, Button, Card, CardHeader, Eyebrow, Field, inputCls, PageSkeleton, Segmented, TableScroll, Toggle } from "@/components/ui";
 import { nf, relativeTime } from "@/lib/format";
 import { useViewer } from "@/lib/viewer";
@@ -55,6 +56,7 @@ export function Admin() {
         ]}
       />
       {tab === "settings" && <SettingsForm initial={data.settings} isDemo={data.workspace.isDemo} />}
+      {tab === "settings" && data.settings.gameEnabled && <CrewSettings isDemo={data.workspace.isDemo} />}
       {tab === "members" && <Members />}
       {tab === "moderation" && <Moderation />}
       {tab === "store" && <AdminStore isDemo={data.workspace.isDemo} />}

@@ -17,6 +17,7 @@ import { place as offering } from "./places/offering";
 import { place as elder } from "./places/elder";
 import { place as homes } from "./places/homes";
 import { place as canopy } from "./places/canopy";
+import { place as crew } from "./places/crew";
 
 /**
  * The places of the world (#126 "The world"): every page is a place you walk to, and arriving opens
@@ -68,7 +69,7 @@ export type PlaceDef = {
   nameTag?: true;
 };
 
-export const PLACES: PlaceDef[] = [garden, me, offering, elder, quests, leaderboard, compare, discoveries, store, skills, homes, canopy, analytics, admin, playground];
+export const PLACES: PlaceDef[] = [garden, me, offering, elder, quests, leaderboard, compare, discoveries, store, skills, homes, canopy, analytics, admin, playground, crew];
 
 /** A place on this viewer's map: its art plus its page's link, path and badge from the nav. */
 /** `hint`: the elder hog's chain hasn't reached it yet (#159): it stands dim, saying what opens it, and still leads there. */

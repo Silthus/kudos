@@ -28,6 +28,7 @@ import { Sky } from "./Sky";
 import { mapHeight, mapWidth } from "./pixels";
 import { pushToasts } from "./toastBus";
 import { closedLine, treeInput, treeMoments, treeToasts, type TreeState } from "./tree/state";
+import { cosmeticsKey } from "./tree/cosmetics";
 import { useTutorial } from "./Tutorial";
 import { Window } from "./Window";
 import { placeHint } from "../../convex/lib/tutorial";
@@ -181,7 +182,9 @@ export function WorldShell() {
   const homesNow = useClockNow();
   const homeList = useQuery(api.homes.all, gameShown ? { now: homesNow } : "skip");
   const litPlots = (homeList ?? []).map((h) => h.plot);
-  const worldKey = `${input.seed}:${input.planted}:${treeStage}:${rings}:${JSON.stringify(districts)}:${plotTiles.length}:${ruins.length}:${standing.join()}:${litPlots.join()}`;
+  // What the crew built (#161) is drawn in the world too: a part built repaints it.
+  const crewKey = "cosmetics" in input && input.cosmetics ? cosmeticsKey(input.cosmetics) : "";
+  const worldKey = `${input.seed}:${input.planted}:${treeStage}:${rings}:${JSON.stringify(districts)}:${plotTiles.length}:${ruins.length}:${standing.join()}:${litPlots.join()}:${crewKey}`;
   // What a closed district waits on (the peak growth opens districts).
   const peakGrowth = tree?.peakGrowth ?? 0;
   // eslint-disable-next-line react-hooks/exhaustive-deps

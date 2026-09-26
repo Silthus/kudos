@@ -4,6 +4,7 @@ import type { PlaceDef } from "./places";
 import { mapHeight, mapWidth, PALETTE, pixelAt, type PixelMap } from "./pixels";
 import { DECOR_SPRITES, DUSK, GROUND, GROUND_OF, LIFT, NIGHT, WARM, hash } from "./tiles";
 import { treeSprite } from "./tree/sprite";
+import { bannerCloth, CANOPY_COLOURS_PALETTE, DISTRICT_STYLE_GROUND, STATUE_PLINTH_TOP, STRUCTURE_SPRITES, statuePlinth, WINDMILL_HUB } from "./tree/crewParts";
 import { TREE_STAGES, stageIndex } from "../../convex/lib/tree";
 import type { Site, Terrain, World } from "./world";
 
@@ -199,6 +200,90 @@ export function treeBox(world: World): ArtRect | null {
   return world.trunk ? spriteBox(treeSprite(world.stage, world.seed, world.rings), treeFoot(world)) : null;
 }
 
+/** The row of the tree's sprite the crew's banner hangs across (#161): low on the trunk, a hedgehog's height or so above its foot. */
+const bannerRow = (m: PixelMap) => mapHeight(m) - 30;
+
+/** Art pixels a letter of the banner's saying takes: the face is 5 px tall, the saying set to fill it. */
+const BANNER_LETTER = 3;
+
+/**
+ * Where the crew's banner hangs across the trunk, in the tree sprite's own pixels: the trunk's width
+ * at its row and a bit either side, or as wide as its saying needs.
+ */
+function bannerSpan(m: PixelMap, text: string): { x: number; y: number; width: number } {
+  const y = bannerRow(m);
+  const row = m.rows[y] ?? "";
+  const mid = Math.floor(row.length / 2);
+  // The trunk's wood, its dark seams and the sap glowing up it.
+  const wood = (ch: string | undefined) => ch !== undefined && "Bsbkyc".includes(ch);
+  let x0 = mid;
+  let x1 = mid;
+  while (x0 > 0 && wood(row[x0 - 1])) x0--;
+  while (x1 < row.length - 1 && wood(row[x1 + 1])) x1++;
+  const width = Math.max(24, Math.min(row.length - 4, Math.max(x1 - x0 + 1 + 14, [...text].length * BANNER_LETTER + 12)));
+  return { x: Math.round((x0 + x1) / 2 - width / 2), y: y - 6, width };
+}
+
+/**
+ * The tree as the crew made it (#161): the canopy in its colour, and the banner across the trunk.
+ * The saying itself is set over the banner in the page (`crewOverlays`), so it stays crisp.
+ */
+export function crewTreeSprite(world: World): PixelMap {
+  const base = treeSprite(world.stage, world.seed, world.rings);
+  const crew = world.crew;
+  if (!crew?.canopy && !crew?.banner) return base;
+  let rows = base.rows;
+  if (crew.banner) {
+    const span = bannerSpan(base, crew.banner);
+    const cloth = bannerCloth(span.width);
+    rows = rows.map((row, y) => {
+      const cy = y - span.y;
+      if (cy < 0 || cy >= cloth.rows.length) return row;
+      const chars = [...row];
+      [...cloth.rows[cy]].forEach((ch, cx) => {
+        const x = span.x + cx;
+        if (ch !== "." && ch !== " " && x >= 0 && x < chars.length) chars[x] = ch;
+      });
+      return chars.join("");
+    });
+  }
+  return { rows, palette: { ...base.palette, ...(crew.canopy ? CANOPY_COLOURS_PALETTE[crew.canopy] : {}) } };
+}
+
+/**
+ * What the world lays over its canvases for the crew (#161), in art pixels: the banner's face (where
+ * its saying goes), the windmill's hub (its sails turn), and the statue's plinth top (the hoggie on it).
+ */
+export function crewOverlays(world: World): { banner: (ArtRect & { text: string }) | null; sails: Point | null; statue: { at: Point; width: number } | null } {
+  const crew = world.crew;
+  let banner: (ArtRect & { text: string }) | null = null;
+  if (crew?.banner && world.trunk) {
+    const base = treeSprite(world.stage, world.seed, world.rings);
+    const box = spriteBox(base, treeFoot(world));
+    const span = bannerSpan(base, crew.banner);
+    banner = { x: box.x + span.x + 4, y: box.y + span.y + 2, width: span.width - 8, height: 5, text: crew.banner };
+  }
+  const mill = crew?.props.find((p) => p.id === "structure_windmill");
+  let sails: Point | null = null;
+  if (mill) {
+    const box = spriteBox(STRUCTURE_SPRITES.structure_windmill, propFoot(world, mill.tile));
+    sails = { x: box.x + WINDMILL_HUB.x, y: box.y + WINDMILL_HUB.y };
+  }
+  let statue: { at: Point; width: number } | null = null;
+  if (crew?.statue) {
+    const plinth = statuePlinth();
+    const box = spriteBox(plinth, propFoot(world, crew.statue.tile));
+    statue = { at: { x: box.x + STATUE_PLINTH_TOP.x, y: box.y + STATUE_PLINTH_TOP.y }, width: mapWidth(plinth) };
+  }
+  return { banner, sails, statue };
+}
+
+/** Where something standing on a tile has its foot: the tile's front corner, lifted with its ground. */
+function propFoot(world: World, t: Tile): Point {
+  const c = tileCentre(t);
+  return { x: c.x, y: c.y + TILE_H / 2 - 1 - lift(world, t.x, t.y) };
+}
+
 /** How tall the tree stands, in art pixels (0 before the seed is planted). */
 export function treeHeight(world: World) {
   return treeBox(world)?.height ?? 0;
@@ -253,6 +338,8 @@ export const DUSK_FROM = 14;
 export const NIGHT_FROM = 22;
 
 type Pool = { x: number; y: number; r: number };
+type StyleGround = (typeof DISTRICT_STYLE_GROUND)[keyof typeof DISTRICT_STYLE_GROUND];
+const STYLED = new Set<Terrain>(["lawn", "path", "gate", "garden", "plot", "oasis"]);
 
 /**
  * The light on a pixel of ground, in stepped bands (never a gradient): +1 in a pool of warm light
@@ -294,7 +381,7 @@ const lift = (world: World, x: number, y: number) => LIFT[world.terrainAt(x, y)]
  * `edges` are the neighbours (+x, -x, +y, -y) whose ground frays into this tile's (grass into sand
  * and back), a seeded dither along that side.
  */
-function paintTile(img: Pixels, at: ArtRect, t: Tile, ground: PixelMap, h: number, pools: Pool[], lit: boolean, edges: (PixelMap | null)[]) {
+function paintTile(img: Pixels, at: ArtRect, t: Tile, ground: PixelMap, h: number, pools: Pool[], lit: boolean, edges: (PixelMap | null)[], style: StyleGround | null = null) {
   const c = tileCentre(t);
   for (let dy = -TILE_H / 2; dy < TILE_H / 2; dy++)
     for (let dx = -TILE_W / 2; dx < TILE_W / 2; dx++) {
@@ -317,6 +404,16 @@ function paintTile(img: Pixels, at: ArtRect, t: Tile, ground: PixelMap, h: numbe
       if (lit) {
         const level = lightAt(pools, x, y + h);
         if (level) colour = LIGHT_HEX[level][colour] ?? colour;
+      }
+      // A district the crew dressed (#161): its ground in the style's colours, with its accents scattered.
+      if (style) {
+        colour = style.recolour[colour] ?? colour;
+        const r = hash(x, y, 91);
+        let from = 0;
+        for (const sp of style.sprinkle) {
+          if (r >= from && r < from + sp.chance) colour = sp.hex;
+          from += sp.chance;
+        }
       }
       put(img, at, x, y, colour);
     }
@@ -416,7 +513,9 @@ export function paintGround(img: Pixels, at: ArtRect, world: World, tiles: { x0:
       // The terrace and water keep their own colours; everything else takes the dusk's light.
       // A closed district's pad of dry sand keeps its daylight, so its dashed footprint reads even out in the dusk.
       const lit = (h === 0 || terrain === "rock") && world.outlineAt(x, y) !== "closed";
-      paintTile(img, at, { x, y }, groundOf(terrain), h, pools, lit && terrain !== "water", edges);
+      // A style dresses the district's grass and paths; the sand round it stays sand.
+      const styled = STYLED.has(terrain) ? (world.crew?.styleAt(x, y) ?? null) : null;
+      paintTile(img, at, { x, y }, groundOf(terrain), h, pools, lit && terrain !== "water", edges, styled && DISTRICT_STYLE_GROUND[styled]);
       if (h > 0) {
         const drop = { x: lift(world, x + 1, y) < h, y: lift(world, x, y + 1) < h };
         paintSides(img, at, { x, y }, h, drop, SIDES[terrain] ?? TERRACE_SIDES);
@@ -463,7 +562,10 @@ function standing(world: World, furniture: WorldFurniture): Drawable[] {
     const c = tileCentre(t);
     return { x: c.x, y: c.y + TILE_H / 2 - 1 - lift(world, t.x, t.y) + extraY };
   };
-  if (world.trunk) items.push({ depth: treeDepth(world), sprite: treeSprite(world.stage, world.seed, world.rings), foot: treeFoot(world), tree: true });
+  if (world.trunk) items.push({ depth: treeDepth(world), sprite: crewTreeSprite(world), foot: treeFoot(world), tree: true });
+  // What the crew built (#161): its structures by their districts, the statue's plinth at the tree's foot.
+  for (const p of world.crew?.props ?? []) items.push({ depth: p.tile.x + p.tile.y + 0.1, sprite: STRUCTURE_SPRITES[p.id], foot: onTile(p.tile) });
+  if (world.crew?.statue) items.push({ depth: world.crew.statue.tile.x + world.crew.statue.tile.y + 0.1, sprite: statuePlinth(), foot: onTile(world.crew.statue.tile) });
   for (const p of world.props) items.push({ depth: p.tile.x + p.tile.y, sprite: DECOR_SPRITES[p.kind], foot: onTile(p.tile) });
   for (const d of world.decor) {
     const sprite = d.kind === "flowers" ? DECOR_SPRITES.flowers[Math.floor(hash(d.tile.x, d.tile.y, 9) * DECOR_SPRITES.flowers.length)] : DECOR_SPRITES.lantern;

@@ -20,3 +20,16 @@ export function onToasts(listener: Listener): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
 }
+
+/** Something the world shows as a toast just came up (a kudos' level, a discovery, the tree's news): the windmill's sails turn once (#161). */
+type ShownListener = () => void;
+const shownListeners = new Set<ShownListener>();
+
+export function toastShown() {
+  for (const l of shownListeners) l();
+}
+
+export function onToastShown(listener: ShownListener): () => void {
+  shownListeners.add(listener);
+  return () => shownListeners.delete(listener);
+}

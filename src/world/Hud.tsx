@@ -350,6 +350,31 @@ function You({ game }: { game: ReturnType<typeof hudGame> }) {
   );
 }
 
+type CrewQuests = FunctionReturnType<typeof api.crew.open>["quests"];
+
+/**
+ * The crew quest closest to funded, while one is within 10 % of its goal (#161): the HUD's tag says
+ * so, and leads to the crew's plaque. Null otherwise.
+ */
+export function crewTagFor(quests: CrewQuests | undefined): { name: string; percent: number } | null {
+  const near = (quests ?? [])
+    .filter((q) => q.status === "proposed" && !q.awaitingApproval && q.contributed >= q.goal * 0.9)
+    .sort((a, b) => b.contributed / b.goal - a.contributed / a.goal)[0];
+  return near ? { name: near.name, percent: Math.floor((near.contributed / near.goal) * 100) } : null;
+}
+
+/** Under you: a crew quest nearly funded (#161), a nudge to give the last coins. */
+function CrewTag({ on }: { on: boolean }) {
+  const open = useQuery(api.crew.open, on ? {} : "skip");
+  const tag = crewTagFor(open?.enabled ? open.quests : undefined);
+  if (!tag) return null;
+  return (
+    <Link to="/crew" data-hud-crew className="pixel-chip mt-2 inline-flex items-center gap-1.5 bg-parchment px-2 py-0.5 text-xs font-semibold text-ink tabular hover:bg-parchment-deep">
+      {tag.name} is {tag.percent} % funded<span className="sr-only">: give at the crew's plaque</span>
+    </Link>
+  );
+}
+
 type Banner = FunctionReturnType<typeof api.boosts.banner>;
 
 /** A string of lanterns across the top of the world while a bonus day or booster is on. */
@@ -467,8 +492,9 @@ export function Hud({ places, where, insetRight = 0, whereIs }: { places: Place[
       {banner?.current && <LanternString />}
       {/* Above the caption (z-20): on a phone the open Places list reaches down over its notes. */}
       <div className="pointer-events-none fixed inset-x-0 top-0 z-30 flex items-start justify-between gap-3 p-3 sm:p-4">
-        <div className="pointer-events-auto min-w-0">
+        <div className="pointer-events-auto flex min-w-0 flex-col items-start">
           <You game={game} />
+          <CrewTag on={gameOn} />
         </div>
         <div data-hud-top-right className="pointer-events-auto flex flex-col items-end gap-3">
           <div className="flex items-start gap-3">
