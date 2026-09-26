@@ -1,18 +1,30 @@
 # Kudos
 
-Peer recognition for Slack. Mention teammates with the kudos emoji (`@ana @ben :taco::taco: thanks!`), everyone gets a daily allowance, every bot reply is a collectible message with a rarity, and a web dashboard shows personal stats, leaderboards and team analytics.
+Peer recognition for Slack. Mention teammates with the kudos emoji (`@ana @ben :taco::taco: thanks!`), everyone gets a daily allowance, and every bot reply is a collectible message with a rarity. Thoughtful kudos (a few words on why) also earn XP and Hog coins in an optional game: levels, a skill tree, quests, kudos sprees, gardens grown for teammates, boosters and bonus days, and a Store priced in Hog coins.
+
+The web app is a small isometric pixel-art garden at dusk. You walk around it as PostHog's Hedgehog Mode hedgehog (arrow keys, WASD, or click where to go), with your garden of key beds in the middle and your teammates' beds around it. Every page is a place on the map, and walking to its door opens its window:
+
+| Place | What's there | Route |
+| --- | --- | --- |
+| Your garden | your plants, fruit to pick, planting for a teammate, the neighbours' gardens | `/garden`, `/garden/<memberId>` |
+| Your cabin | level, XP, allowance, wallet, activity, your look, sign out | `/me` |
+| Quest signpost | the weekly board, today's quest, the quest log | `/quests` |
+| Notice board | standings by period | `/leaderboard` |
+| Mirror pond | you against past you, a teammate or the team | `/compare` |
+| The gallery | the discovered messages by rarity | `/discoveries` |
+| The store stall | game items, cosmetics, real rewards | `/store` |
+| The elder oak | the skill tree | `/skills` |
+| The observatory | team analytics and the game's success metrics | `/analytics` |
+| The gatehouse | admin: settings, members, moderation, store, bonus days, Slack | `/admin` |
+| The sandbox | a Slack playground (demo only) | `/playground` |
+
+Routes are still locations: a deep link from Slack opens the place's window with the hedgehog at its door, and a link inside a window walks you to its place first. The Places button (top right) lists every place for keyboard and screen-reader users, and the Motion switch in the settings menu (or the system's reduced-motion setting) moves the hedgehog without walking and stills the celebrations. The world, buildings and plants are drawn in code; the hedgehog sprite and PostHog's hoggies and Keyboard garden load at runtime (jsDelivr and posthog.com) and are never committed.
 
 Everything runs on one Convex deployment: the database, Slack's Events API webhooks (plain HTTPS, no Socket Mode), Sign in with Slack, and the static React app (`@convex-dev/static-hosting`).
 
-**Live:** https://valiant-monitor-701.convex.site (click "Explore the live demo" for a seeded sample workspace).
+**Live:** https://valiant-monitor-701.convex.site (click "Explore the live demo" for a seeded sample workspace, played through a year of the game).
 
-| Personal dashboard | Leaderboard |
-| --- | --- |
-| ![My kudos dashboard: daily allowance, rank, giving cadence, weekly quests and discoveries](docs/screenshots/me.png) | ![Leaderboard of givers and receivers](docs/screenshots/leaderboard.png) |
-
-<img src="docs/screenshots/mobile-me.png" alt="The dashboard on a phone" width="260">
-
-More in [`docs/screenshots/`](docs/screenshots/).
+`docs/screenshots/` holds screenshots of the earlier dashboard design, from before the garden world.
 
 ## How it fits together
 
@@ -22,10 +34,12 @@ More in [`docs/screenshots/`](docs/screenshots/).
 | `convex/slack.ts` | Event processing and every Slack Web API call (DMs, ephemeral replies, bot reactions, App Home, member sync) |
 | `convex/engine.ts` | The one place kudos are given or revoked: allowance, rollups, totals, maxed days, rarity-rolled bot messages |
 | `convex/lib/messages.ts` | The 72 discoverable messages and the rarity roll |
-| `convex/me.ts`, `leaderboard.ts`, `analytics.ts`, `discoveries.ts` | Read models for the dashboard |
+| `convex/me.ts`, `leaderboard.ts`, `analytics.ts`, `discoveries.ts`, `compare/` | Read models for the web app |
+| `convex/game.ts`, `gardens.ts`, `items.ts`, `store.ts`, `quests.ts`, `life.ts` | The game: XP and coins, gardens, Store items, quests, the world's sprouts |
 | `convex/admin.ts` | Settings, admins, moderation (revoke) |
 | `convex/demo.ts` | Seeded demo workspace and the Slack playground |
-| `src/` | React app (Vite, Tailwind v4, Motion) |
+| `src/world/` | The garden world: map, places (`places/<id>.ts`), hedgehog, windows, HUD |
+| `src/` | React app (Vite, Tailwind v4, Motion); pages render inside place windows |
 
 Received kudos are private by default (`receivedVisibility`: `hidden` / `self` / `everyone`, set by admins).
 
