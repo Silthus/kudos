@@ -74,7 +74,7 @@ async function growthOf(ctx: QueryCtx, workspace: Doc<"workspaces">, plant: Plan
 
 async function stateOf(ctx: QueryCtx, workspace: Doc<"workspaces">, plant: Plant, skills: Allocation, today: string) {
   const waterings = await growthOf(ctx, workspace, plant);
-  const growth = { plantedDay: plant.plantedDay, waterings, earlyBloom: hasSkill(skills, "early_bloom"), sunlamps: plant.sunlamps };
+  const growth = { plantedDay: plant.plantedDay, waterings, earlyBloom: hasSkill(skills, "early_bloom"), sunlamps: plant.sunlamps, superSeed: plant.superSeed };
   return {
     waterings,
     state: plantState({ ...growth, today }),
@@ -223,6 +223,7 @@ export const mine = query({
       plots: v.number(),
       cost: v.number(),
       balance: v.number(),
+      superSeeds: v.number(), // heart fruit's Super seeds to plant (#157): a plant that starts as a Sapling, no coins
       plants: v.array(v.object({ ...plantView.fields, forId: v.id("members"), forName: v.string(), fruit: fruitView, sunlamp: v.boolean(), plot: v.number() })),
       harvest: v.object({ weekCoins: v.number(), weekXp: v.number(), capCoins: v.number(), capXp: v.number(), hold: v.number() }),
       memories: v.array(v.object({ plantId: v.id("plants"), species: v.string(), speciesName: v.string(), stageName: v.string(), forName: v.string(), memoryDay: v.string(), reason: v.string() })),
@@ -293,6 +294,7 @@ export const mine = query({
       plots: plotsFor(skills),
       cost: PLANT_COST,
       balance: coinBalance(player, member).balance,
+      superSeeds: player.superSeeds ?? 0,
       plants,
       memories: memories.slice(0, MAX_MEMORIES),
       harvest: { ...(await pickedThisWeek(ctx, member._id, today)), capCoins: FRUIT.weeklyCoins, capXp: FRUIT.weeklyXp, hold: holdFor(skills) },
@@ -308,8 +310,9 @@ export const mine = query({
  * plant picker the viewer may choose the species; otherwise it's picked for them.
  */
 export const plant = mutation({
-  // `plot`: the key bed to plant in (#129); the lowest free one if not given.
-  args: { teammateId: v.id("members"), species: v.optional(v.string()), plot: v.optional(v.number()) },
+  // `plot`: the key bed to plant in (#129); the lowest free one if not given. `superSeed`: plant one of
+  // your Super seeds (heart fruit, #157) instead of paying: it starts as a Sapling.
+  args: { teammateId: v.id("members"), species: v.optional(v.string()), plot: v.optional(v.number()), superSeed: v.optional(v.boolean()) },
   returns: v.id("plants"),
   handler: async (ctx, args) => {
     const { workspace, member } = await requireViewer(ctx);
@@ -322,7 +325,7 @@ export async function plantFor(
   ctx: MutationCtx,
   workspace: Doc<"workspaces">,
   member: Doc<"members">,
-  { teammateId, species, plot }: { teammateId: Id<"members">; species?: string; plot?: number },
+  { teammateId, species, plot, superSeed }: { teammateId: Id<"members">; species?: string; plot?: number; superSeed?: boolean },
 ): Promise<Id<"plants">> {
   const player = await requireGardener(ctx, workspace, member);
   const skills = skillsOf(player);
@@ -346,10 +349,14 @@ export async function plantFor(
   if (species !== undefined && !(isSpeciesId(species) && speciesChoices(skills).includes(species))) {
     throw new ConvexError("That species isn't in your plant picker.");
   }
-  const { balance } = coinBalance(player, member);
-  if (!canSpend(balance, PLANT_COST)) throw new ConvexError(`A plant costs ${PLANT_COST} Hog coins; you have ${balance}.`);
-
-  await ctx.db.patch(member._id, { coinsSpent: (member.coinsSpent ?? 0) + PLANT_COST });
+  if (superSeed) {
+    if ((player.superSeeds ?? 0) < 1) throw new ConvexError("You have no Super seed. A heart fruit from the tree gives you one.");
+    await ctx.db.patch(player._id, { superSeeds: player.superSeeds! - 1 });
+  } else {
+    const { balance } = coinBalance(player, member);
+    if (!canSpend(balance, PLANT_COST)) throw new ConvexError(`A plant costs ${PLANT_COST} Hog coins; you have ${balance}.`);
+    await ctx.db.patch(member._id, { coinsSpent: (member.coinsSpent ?? 0) + PLANT_COST });
+  }
   // Seeded by the owner and the moment, never the teammate: others see the species.
   const chosen: SpeciesId = (species as SpeciesId | undefined) ?? defaultSpecies(`${member._id}:${now}`);
   const plantId = await ctx.db.insert("plants", {
@@ -363,6 +370,7 @@ export async function plantFor(
     pickedThrough: plantedDay,
     plot: plot ?? freePlot(taken.map((p) => ({ plot: p }))),
     announced: 0,
+    ...(superSeed ? { superSeed: true as const } : {}),
   });
   await sendingGains(ctx, workspace, async (gains) => announceGrowth(ctx, workspace, (await ctx.db.get(plantId))!, now, gains), now);
   // Only they learn it's for them (§G8): a DM like a received kudos, if receivers get DMs.

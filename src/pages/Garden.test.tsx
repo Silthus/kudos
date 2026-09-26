@@ -152,6 +152,24 @@ test("planting in the plot you opened plants there, not in the first free one (r
   expect(plant).toHaveBeenCalledWith({ teammateId: "m_cleo", plot: 2 });
 });
 
+test("with a Super seed from a heart fruit you can plant one that starts as a Sapling, even without the coins (#157)", () => {
+  mine = { ...empty, balance: 2, superSeeds: 1 };
+  render("/garden?plot=0");
+  click(document.querySelector('[data-candidate="m_ben"]')!);
+  expect(button("Plant for Ben")).toHaveProperty("disabled", true); // 2 coins: not enough for a plant
+  const superSeed = document.querySelector<HTMLInputElement>("input[data-super-seed]")!;
+  expect(superSeed.closest("label")!.textContent).toContain("Plant a Super seed: it starts as a Sapling. You have 1.");
+  click(superSeed);
+  click(button("Plant for Ben")!);
+  expect(plant).toHaveBeenCalledWith({ teammateId: "m_ben", plot: 0, superSeed: true });
+});
+
+test("without a Super seed there's no Super seed choice", () => {
+  mine = empty;
+  render("/garden?plot=0");
+  expect(document.querySelector("input[data-super-seed]")).toBeNull();
+});
+
 test("with every plot in use (more plants than plots after a reset), an empty bed says so and offers no planting (review #3)", () => {
   mine = { ...empty, plots: 1, plants: [growing({ plot: 1 })] };
   const host = render();
@@ -311,7 +329,7 @@ test("fruit waiting: the Pick button says how many, the week's caps show, and pi
   expect(pick).toHaveBeenCalledWith({});
   expect(text()).toContain("Picked 2 fruit: +3 Hog coins, +6 XP.");
   expect(picked).toHaveBeenCalledTimes(1);
-  expect(document.querySelectorAll("[data-fruit-hop]").length).toBe(2);
+  expect(document.querySelectorAll("[data-coin-flight]").length).toBe(2);
   window.removeEventListener("kudos:fruit-picked", picked);
 });
 

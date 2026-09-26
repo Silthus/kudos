@@ -20,4 +20,7 @@ crons.interval("sweep world presence", { minutes: 5 }, internal.presence.sweep, 
 // Seeds of appreciation nobody planted in 30 days plant themselves at the Ancient Tree (#154).
 crons.interval("plant seeds nobody planted", { hours: 1 }, internal.tree.autoPlant, {});
 
+// Offerings nobody claimed at the tree in 30 days claim themselves, with a DM (#157).
+crons.interval("claim offerings nobody claimed", { hours: 1 }, internal.offerings.autoClaim, {});
+
 export default crons;

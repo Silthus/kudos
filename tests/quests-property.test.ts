@@ -129,7 +129,8 @@ async function check(seed: number, revokes: boolean) {
     const kudosXp = mine.filter((e) => e.kind !== "quest").reduce((sum, e) => sum + e.xp, 0);
     expect(p.xp).toBe(START_XP + kudosXp + questXp);
     expect(p.questCoins ?? 0).toBe(5 * w + 2 * d);
-    expect(p.coins).toBe(mine.reduce((sum, e) => sum + (e.coins ?? 0), 0));
+    // A give's coins wait at the tree until claimed (#157), and nobody claims here: the coins are the quests'.
+    expect(p.coins).toBe(mine.filter((e) => e.kind !== "give").reduce((sum, e) => sum + (e.coins ?? 0), 0));
   }
 
   // Daily quests stand only where the day's surviving kudos meet them; without revokes, everywhere they do.
@@ -201,6 +202,9 @@ describe("a rebuild writes exactly what the live path wrote, climbing through le
         events: (await t.run((ctx) => ctx.db.query("gameEvents").collect())).map(norm).sort(),
         players: (await t.run((ctx) => ctx.db.query("players").collect())).map((p) => [p.memberId, p.xp, p.level, p.coins ?? 0, p.questCoins ?? 0]).sort(),
       });
+      // The hourly cron claims offerings nobody claimed in 30 days (#157), as the rebuild counts them.
+      await t.mutation(internal.offerings.autoClaim, {});
+      await t.finishAllScheduledFunctions(vi.runAllTimers);
       const live = await snapshot();
       expect(live.events.filter((e) => e.includes('"quest"')).length).toBeGreaterThan(0);
       for (const m of await t.run((ctx) => ctx.db.query("members").collect())) {

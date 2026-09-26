@@ -23,6 +23,7 @@ describe("which places are on the map", () => {
       analytics: "The observatory",
       admin: "The gatehouse",
       playground: "The sandbox",
+      offering: "The offering stone",
     });
     for (const item of navItems(everything)) expect(names).toHaveProperty(item.id);
   });

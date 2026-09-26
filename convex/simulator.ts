@@ -20,6 +20,7 @@ import { questsOn } from "./quests";
 import { simulatorSummaryValidator } from "./schema";
 import { lapseDue } from "./sprees";
 import { autoPlantWorkspace, newWorldSeed } from "./tree";
+import { autoClaimWorkspace } from "./offerings";
 import { getViewer, simulatorOf } from "./lib/access";
 import { BOOST_EFFECT, BOOST_NAME } from "./lib/boosts";
 import { coinBalance, COINS } from "./lib/coins";
@@ -275,6 +276,8 @@ async function advanceClock(ctx: MutationCtx, workspace: Doc<"workspaces">, memb
   // Seeds nobody planted in 30 simulated days plant themselves (the cron runs on the wall clock).
   const planted = await autoPlantWorkspace(ctx, moved);
   if (planted > 0) changes.push(planted === 1 ? "1 seed planted itself at the Ancient Tree." : `${planted} seeds planted themselves at the Ancient Tree.`);
+  // Offerings nobody claimed in 30 simulated days claim themselves too (#157).
+  if ((await autoClaimWorkspace(ctx, moved)) > 0) changes.push("Appreciation nobody offered for 30 days fed the Ancient Tree.");
   return { day, dayIndex: daysBetween(moved.simulator!.startDay, day), changes };
 }
 

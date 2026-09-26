@@ -17,6 +17,8 @@ export type GameView = {
   fraction: number;
   /** The wallet's balance; null below level 3 (coins collect silently until then). */
   coins: number | null;
+  /** Coins waiting at the tree to be claimed (#157); null below level 3. */
+  waiting?: number | null;
   /** The areas that open at the next level ahead (visible but locked, §G1). */
   locked: { level: number; areas: string[] } | null;
   /** #95 fills it once gardens exist. */
@@ -40,6 +42,7 @@ export function gameBlocks(view: GameView, me: string | null): object[] {
     `*Level ${view.level} · ${view.title}*\n${number(view.xp)} XP`,
     `*Next level*\n${view.toNext === null ? "Top level reached" : `${number(view.toNext)} XP to go`}`,
     ...(view.coins !== null ? [`*Hog coins*\n${number(view.coins)}`] : []),
+    ...(view.waiting ? [`*Waiting at the tree*\n${number(view.waiting)} ${view.waiting === 1 ? "coin" : "coins"}`] : []),
     ...(view.garden
       ? [`*Your garden*\n${[`${view.garden.plants} ${view.garden.plants === 1 ? "plant" : "plants"}`, view.garden.dormant > 0 ? `${view.garden.dormant} dormant` : null].filter(Boolean).join(" · ")}`]
       : []),

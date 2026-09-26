@@ -27,16 +27,19 @@ import {
 import { boostAt, type BoostKind } from "./lib/boosts";
 import { boostOn, boostsOf } from "./boosts";
 import { leaveWorld } from "./lib/world";
+import { makeOffering, onOfferingRevoked, replayOfferings, waiting } from "./offerings";
 
 /**
  * The game's foundation (#55 §G1, G3, G4): the workspace switch, players, the XP and Hog coin
  * ledger and levels.
  *
- * Every XP and coin change is a `gameEvents` row written in the same transaction as the kudos that
- * earned it: one `give` event per batch for the giver (a line per recipient row, with its XP and
- * coins) and one `receive` event per row that earned its receiver XP (receiving never earns coins).
+ * Every XP change is a `gameEvents` row written in the same transaction as the kudos that earned it:
+ * one `give` event per batch for the giver (a line per recipient row, with its XP and the coins it
+ * offers) and one `receive` event per row that earned its receiver XP (receiving never earns coins).
  * A revoke takes back exactly the lines of the rows it removes; later kudos keep what they earned.
- * `players.coins` is the sum of the events' coins; level-up coins follow from the level (lib/coins.ts).
+ * A give's coins don't reach the wallet: they wait at the tree as an offering (offerings.ts, #157)
+ * until claimed. `players.coins` sums the coins claimed and every other event's coins; level-up
+ * coins follow from the level (lib/coins.ts).
  * A later coin source (quests, sprees, fruit) adds its own event kind with `coins`, adds to
  * `players.coins` in the same transaction, and gets a replay step in `rebuildPlayer`. `rebuildPlayer` plays a member's surviving history through the
  * same rules (`lib/xp.ts`): the backfill when the game is switched on, the demo year, and the
@@ -271,7 +274,9 @@ export async function onGameGiven(
   const xp = lines.reduce((s, l) => s + l.xp, 0);
   const coins = lines.reduce((s, l) => s + l.coins, 0);
   await ctx.db.insert("gameEvents", { workspaceId: workspace._id, memberId: giver._id, kind: "give", batchId, dayKey, at, xp, coins, lines });
-  await addXp(ctx, player, xp, coins, gains);
+  await addXp(ctx, player, xp, 0, gains);
+  // The coins wait at the tree until the giver claims them at the offering stone (#157).
+  await makeOffering(ctx, workspace, giver._id, { batchId, at, lines });
 
   for (const line of lines) {
     const receiver = await playerOf(ctx, line.receiverId as Id<"members">);
@@ -321,7 +326,9 @@ export async function onGameRevoked(ctx: MutationCtx, row: Doc<"kudos">) {
       const line = e.lines?.find((l) => l.kudosId === row._id);
       if (!line) continue;
       const lines = e.lines!.filter((l) => l !== line);
-      coins = line.coins ?? 0;
+      // Its offering gives the line back (and a claimed one the coins); a batch from before
+      // offerings had its coins credited straight away, so they come back from the wallet.
+      coins = (await onOfferingRevoked(ctx, e.memberId, e.batchId, line)) ? 0 : (line.coins ?? 0);
       if (lines.length === 0) await ctx.db.delete(e._id);
       else await ctx.db.patch(e._id, { lines, xp: e.xp - line.xp, coins: (e.coins ?? 0) - coins });
       taken = line.xp;
@@ -427,21 +434,24 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
   const since = existing === null ? first : first === undefined ? existing.since : Math.min(existing.since, first);
 
   // Fruit picked is the member's own doing, like their skills, and what a spree's tiers paid (#94)
-  // isn't derived from kudos rows either, nor is the level a simulator visitor joined at (#143): all
-  // are kept as they are, never replayed.
+  // isn't derived from kudos rows either, nor is the level a simulator visitor joined at (#143), nor
+  // a claim at the tree or tree fruit sold (#157): all are kept as they are, never replayed.
   type Written = { at: number; xp: number; coins: number };
   const harvests: Written[] = [];
   const sprees: Written[] = [];
   const seeds: Written[] = [];
+  const sales: Written[] = [];
   for await (const e of ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", member._id))) {
     if (e.kind === "harvest") harvests.push({ at: e.at, xp: e.xp, coins: e.coins ?? 0 });
     else if (e.kind === "spree") sprees.push({ at: e.at, xp: e.xp, coins: e.coins ?? 0 });
     else if (e.kind === "seed") seeds.push({ at: e.at, xp: e.xp, coins: e.coins ?? 0 });
-    else await ctx.db.delete(e._id);
+    else if (e.kind === "sale") sales.push({ at: e.at, xp: e.xp, coins: e.coins ?? 0 });
+    else if (e.kind !== "claim") await ctx.db.delete(e._id);
   }
   if (since === undefined) return;
 
-  const written: Written[] = [...harvests, ...sprees, ...seeds];
+  const written: Written[] = [...harvests, ...sprees, ...seeds, ...sales];
+  const offered: { batchId: string; at: number; lines: { qualifying: boolean; coins?: number }[] }[] = [];
   const unsungOn = workspace.receivedVisibility === "everyone";
   // XP history is the members' own kudos: pooled spree kudos (#94) never count as a thank-back or an earlier kudos.
   const own = (k: Doc<"kudos">) => k.source !== "spree";
@@ -483,7 +493,8 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
       earnedOn.set(dayKey, (earnedOn.get(dayKey) ?? 0) + xp);
       for (const l of lines) if (l.qualifying) qualifyingDays.set(l.receiverId, [...(qualifyingDays.get(l.receiverId) ?? []), dayKey]);
       await ctx.db.insert("gameEvents", { workspaceId: workspace._id, memberId: member._id, kind: "give", batchId, dayKey, at, xp, coins, lines });
-      written.push({ at, xp, coins });
+      written.push({ at, xp, coins: 0 }); // its coins are an offering: the wallet has them once claimed
+      offered.push({ batchId, at, lines });
     }
     if (source !== "spree") for (const row of rows) lastTo.set(row.receiverId, at);
   }
@@ -541,11 +552,16 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
   }
   catchUp(Infinity);
   const level = Math.max(existing?.level ?? 1, levelForXp(peak));
-  const coins = written.reduce((s, w) => s + w.coins, 0) + questCoins;
-  const fruitCoins = harvests.reduce((s, w) => s + w.coins, 0) || undefined;
+  // The offerings of the surviving history, with the claims kept; history past the auto-claim age
+  // counts as claimed, and raises the fruit peak rather than dropping fruit all at once.
+  const claimedCoins = await replayOfferings(ctx, workspace, member._id, offered);
+  const claimedPeak = Math.max(existing?.claimedPeak ?? 0, claimedCoins);
+  const coins = written.reduce((s, w) => s + w.coins, 0) + questCoins + claimedCoins;
+  const fruitCoins = [...harvests, ...sales].reduce((s, w) => s + w.coins, 0) || undefined;
   const spreeCoins = sprees.reduce((s, w) => s + w.coins, 0) || undefined;
-  if (existing) await ctx.db.patch(existing._id, { xp: total, level, since, coins, fruitCoins, questCoins, spreeCoins });
-  else await ctx.db.insert("players", { workspaceId: workspace._id, memberId: member._id, since, xp: total, level, coins, fruitCoins, questCoins, spreeCoins });
+  const ledger = { xp: total, level, since, coins, fruitCoins, questCoins, spreeCoins, claimedCoins, claimedPeak };
+  if (existing) await ctx.db.patch(existing._id, ledger);
+  else await ctx.db.insert("players", { workspaceId: workspace._id, memberId: member._id, ...ledger });
 }
 
 /** Lifetime completions the rebuild pays: at most 3 weekly quests a week and one daily quest a day. */
@@ -644,18 +660,25 @@ export const backfillAll = internalMutation({
   },
 });
 
-/** Compares one member's stored XP and Hog coins with the sums of their events (read-only dry run). */
+/**
+ * Compares one member's stored XP and Hog coins with the sums of their events (read-only dry run):
+ * a give's coins count once its offering is claimed (#157).
+ */
 export const verifyMember = internalQuery({
   args: { memberId: v.id("members") },
   returns: v.object({ stored: v.number(), events: v.number(), coins: v.number(), eventCoins: v.number() }),
   handler: async (ctx, { memberId }) => {
     const player = await playerOf(ctx, memberId);
     const events = await ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", memberId)).take(10_000);
+    const claimed = await ctx.db
+      .query("offerings")
+      .withIndex("by_member_claimedAt_createdAt", (q) => q.eq("memberId", memberId).gt("claimedAt", 0))
+      .take(10_000);
     return {
       stored: player?.xp ?? 0,
       events: events.reduce((s, e) => s + e.xp, 0),
       coins: player?.coins ?? 0,
-      eventCoins: events.reduce((s, e) => s + (e.coins ?? 0), 0),
+      eventCoins: events.reduce((s, e) => s + (e.kind === "give" ? 0 : (e.coins ?? 0)), 0) + claimed.reduce((s, o) => s + o.coins, 0),
     };
   },
 });
@@ -672,6 +695,7 @@ const progressValidator = v.object({
 
 const walletValidator = v.object({
   balance: v.number(),
+  waiting: v.number(), // coins waiting at the tree, not in the balance until claimed (#157)
   fromKudos: v.number(),
   fromFruit: v.number(),
   fromQuests: v.number(),
@@ -705,7 +729,7 @@ export const mine = query({
       enabled,
       hidden: Boolean(member.gameHidden),
       player: player ? levelProgress(player.xp, player.level) : null,
-      wallet: player && player.level >= WALLET_LEVEL && !member.gameHidden ? coinBalance(player, member) : null,
+      wallet: player && player.level >= WALLET_LEVEL && !member.gameHidden ? coinBalance(player, member, (await waiting(ctx, member._id)).coins) : null,
       luckyCharms: player?.luckyCharms ?? 0,
       sunlamps: player?.sunlamps ?? 0,
       lanterns: player?.lanterns ?? 0,
@@ -731,6 +755,7 @@ export async function gameView(ctx: QueryCtx, workspace: Doc<"workspaces">, memb
     toNext: progress.toNext,
     fraction: progress.fraction,
     coins: progress.level >= WALLET_LEVEL ? coinBalance(player, member).balance : null,
+    waiting: progress.level >= WALLET_LEVEL ? (await waiting(ctx, member._id)).coins : null,
     // Read by App Home and `/kudos level`, which run from Slack actions: today is the workspace's.
     garden: await gardenSummary(ctx, workspace, player, dayKeyFor(workspaceNow(workspace), workspace.timezone)),
     locked: locked.length > 0 ? { level: locked[0].level, areas: locked.map((a) => a.title) } : null,

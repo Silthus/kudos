@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { StageKey } from "../../convex/lib/garden";
-import { pixelAt, type PixelMap } from "@/world/pixels";
+import { pixelRuns as runs } from "@/world/pixels";
 import { keyBedSprite, lookOf, plantSprite, PLANT_SIZE } from "@/world/plants";
 
 /**
@@ -9,21 +9,6 @@ import { keyBedSprite, lookOf, plantSprite, PLANT_SIZE } from "@/world/plants";
  * plants turn autumn and stop blossoming; fruit and golden leaves from Super kudos (#98) show on it.
  * Never a hedgehog: PostHog's hoggies load from PostHog's servers (`lib/art.ts`).
  */
-
-/** One rect per run of same-coloured pixels in a row: a few hundred at most, however big it's drawn. */
-function runs(m: PixelMap) {
-  const out: { x: number; y: number; w: number; fill: string }[] = [];
-  m.rows.forEach((row, y) => {
-    for (let x = 0; x < row.length; ) {
-      const fill = pixelAt(m, x, y);
-      let end = x + 1;
-      while (end < row.length && pixelAt(m, end, y) === fill) end++;
-      if (fill) out.push({ x, y, w: end - x, fill });
-      x = end;
-    }
-  });
-  return out;
-}
 
 const TREES: StageKey[] = ["young", "grown", "blossoming", "ancient"];
 
