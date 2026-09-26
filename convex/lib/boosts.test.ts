@@ -45,4 +45,10 @@ describe("the announcement (§G9, G10, G13)", () => {
       "Ana called a bonus day for today: until midnight, every thoughtful kudos earns double XP and Hog coins.",
     );
   });
+
+  test("a beaten blight (#164) calls its bonus day for the whole company", () => {
+    expect(announcementText({ kind: "double", source: "blight", dayKey: "2026-09-24", today: "2026-09-23", who: null })).toBe(
+      "The blight is beaten: bonus day tomorrow, Thursday, 24 September! All day, every thoughtful kudos earns double XP and Hog coins.",
+    );
+  });
 });

@@ -193,3 +193,19 @@ describe("offerings claimed by time (#157)", () => {
     expect(gainText(visibleTo(claimed, 2), "web")).not.toMatch(/Hog coin/);
   });
 });
+
+describe("a blight beaten (#164)", () => {
+  const won: Gain = { kind: "blight_won", damage: 12, coins: 20 };
+
+  test("says the blight is beaten, the damage the member dealt, the crest and the coins", () => {
+    expect(gainText(won, "web")).toBe(
+      "The blight is beaten. You dealt it 12 damage defending the Ancient Tree. A blight crest hangs in your gallery, and 20 Hog coins went into your wallet.",
+    );
+    expect(gainLabel([won])).toBe("Blight");
+  });
+
+  test("keeps the coins silent until the wallet opens", () => {
+    expect(visibleTo(won, 2)).toEqual({ kind: "blight_won", damage: 12 });
+    expect(gainText(visibleTo(won, 2), "web")).toBe("The blight is beaten. You dealt it 12 damage defending the Ancient Tree. A blight crest hangs in your gallery.");
+  });
+});

@@ -126,6 +126,8 @@ export const gainValidator = v.union(
   v.object({ kind: v.literal("ruin_finds"), ruin: v.string(), gear: v.array(v.string()), lore: v.array(v.string()) }),
   // #161: a part the member gave coins to was built on the tree: its name, and how many teammates gave.
   v.object({ kind: v.literal("crew_built"), part: v.string(), contributors: v.number() }),
+  // #164: a blight the member fought was beaten: the damage they dealt, its crest, and (once the wallet is open) the coins.
+  v.object({ kind: v.literal("blight_won"), damage: v.number(), coins: v.optional(v.number()) }),
 );
 
 /** A Super kudos note on a DM (#98): the receiver's celebration, or the giver's "sent" or how-to. */
@@ -148,7 +150,7 @@ export const xpItemKindValidator = v.union(
 /** What a quest payment is for (lib/xp.ts `QUEST_REWARDS`). */
 export const questScopeValidator = v.union(v.literal("weekly"), v.literal("daily"), v.literal("sweep"));
 export const boostKindValidator = v.union(v.literal("double"), v.literal("new_connection"), v.literal("rekindle"), v.literal("unsung"));
-export const boostSourceValidator = v.union(v.literal("schedule"), v.literal("booster"), v.literal("team_garden"), v.literal("capstone"));
+export const boostSourceValidator = v.union(v.literal("schedule"), v.literal("booster"), v.literal("team_garden"), v.literal("capstone"), v.literal("blight"));
 
 /** What a kudos earned its giver, itemised for the earnings reply (lib/xp.ts `earningsText`). */
 export const earningsValidator = v.object({
@@ -183,15 +185,6 @@ export const kudosSourceValidator = v.union(
   v.literal("spree"), // a spree join, paid out to the receivers when a tier was reached (#94)
 );
 
-export const treeEventKindValidator = v.union(
-  v.literal("seed"),
-  v.literal("growth"),
-  v.literal("stage"),
-  v.literal("ring"),
-  v.literal("crew_funded"),
-  v.literal("crew_built"),
-);
-
 /** A stage of the Ancient Tree (lib/tree.ts `TreeStageId`). */
 export const treeStageValidator = v.union(
   v.literal("seed"),
@@ -204,6 +197,25 @@ export const treeStageValidator = v.union(
   v.literal("elder"),
   v.literal("world_tree"),
 );
+
+/** What a tree event (#154, `treeEvents`) tells. */
+export const treeEventKindValidator = v.union(
+  v.literal("seed"),
+  v.literal("growth"),
+  v.literal("stage"),
+  v.literal("ring"),
+  v.literal("crew_funded"), // #161
+  v.literal("crew_built"),
+  // #164: a blight announced, arrived, beaten or lost, or an announced one called off by an admin.
+  v.literal("blight_announced"),
+  v.literal("blight_arrived"),
+  v.literal("blight_won"),
+  v.literal("blight_lost"),
+  v.literal("blight_called_off"),
+);
+
+/** Where a blight stands (#164, blights.ts). */
+export const blightStatusValidator = v.union(v.literal("announced"), v.literal("active"), v.literal("won"), v.literal("lost"), v.literal("called_off"));
 
 /** How a kudos attempt (a message carrying the kudos emoji) ended. */
 export const attemptOutcomeValidator = v.union(v.literal("given"), v.literal("limit"), v.literal("invalid"));
@@ -603,6 +615,7 @@ export default defineSchema({
     equipped: v.optional(equippedValidator), // gear worn, one per slot (lib/rpg.ts `wearable` reads it)
     expedition: v.optional(v.id("expeditions")), // the run they're in now; unset at camp
     expeditionCoins: v.optional(v.number()), // Hog coins ruins paid (`expedition` events), part of `coins`
+    blightCoins: v.optional(v.number()), // Hog coins won blights paid (`blight` events, #164), part of `coins`
     ruinsCleared: v.optional(v.array(v.string())), // ruin ids they cleared at least once
     secretRooms: v.optional(v.array(v.string())), // ruin ids whose secret room's item they found (once per ruin)
     bestiary: v.optional(v.array(v.string())), // creature ids they have met in a ruin
@@ -700,6 +713,8 @@ export default defineSchema({
     // Every kind but give, receive and quest is a member's own doing: rebuilds keep it as it is.
     // expedition: a ruin cleared (#162, rpg.ts), keyed `expedition:<run>`: its coins (never XP, the ledger
     // firewall) are part of `players.expeditionCoins`.
+    // blight: a won blight paid one who fought it (#164, blights.ts), keyed `blight:<blightId>`: 0 XP, its
+    // coins part of `players.blightCoins`.
     kind: v.union(
       v.literal("give"),
       v.literal("receive"),
@@ -714,6 +729,7 @@ export default defineSchema({
       v.literal("home"),
       v.literal("crew"),
       v.literal("party"),
+      v.literal("blight"),
     ),
     batchId: v.string(),
     dayKey: v.string(), // the kudos' workspace day: daily caps and same-day decay
@@ -1084,6 +1100,7 @@ export default defineSchema({
     rebuild: v.optional(v.object({ through: v.number(), count: v.number() })),
     // The parts the crew built on it (#161, crew.ts), one per part id: with the world seed, what makes it unlike any other company's.
     cosmetics: v.optional(v.array(builtPartValidator)),
+    lanternsDimUntil: v.optional(v.number()), // a blight was lost (#164): its lanterns burn low until then (cosmetic)
   })
     .index("by_workspace", ["workspaceId"])
     .index("by_plantedBy", ["plantedBy"]),
@@ -1117,6 +1134,7 @@ export default defineSchema({
     kind: treeEventKindValidator,
     at: v.number(),
     memberId: v.optional(v.id("members")),
+    blightId: v.optional(v.id("blights")), // blight_*: which one (gone once the demo or a call-off wipes it)
     seeds: v.optional(v.number()), // growth: how many were planted
     by: v.optional(v.union(v.literal("receiver"), v.literal("time"))), // growth: who planted them
     stage: v.optional(treeStageValidator), // stage: the stage reached
@@ -1260,6 +1278,46 @@ export default defineSchema({
   })
     .index("by_quest_member", ["questId", "memberId"])
     .index("by_quest_at", ["questId", "at"])
+    .index("by_member", ["memberId"])
+    .index("by_workspace", ["workspaceId"]),
+
+  // Blights (#164, blights.ts; the rules are lib/blight.ts, plan #152 S8): a shared foe at the tree from
+  // the ancient stage. One row per blight, `number` counting them per workspace (the seeded schedule's
+  // `previous`). Announced ahead, active for five days from `arrivesAt` with `hp` set on arrival from the
+  // company's active members, then won (damage reached hp) or lost (`endsAt` passed). An admin may call
+  // off an announced one (`called_off`: the schedule goes on from then). Times are the workspace clock.
+  blights: defineTable({
+    workspaceId: v.id("workspaces"),
+    number: v.number(),
+    status: blightStatusValidator,
+    arrivesAt: v.number(),
+    endsAt: v.number(),
+    announcedAt: v.number(),
+    hp: v.number(), // 0 until it arrives
+    damage: v.number(),
+    contributors: v.number(), // rows in blightContributors (at most blights.ts MAX_CONTRIBUTORS)
+    defeatedBefore: v.boolean(), // the blight before it was lost: this one is smaller (lib/blight.ts shrinkAfterDefeat)
+    tier: v.optional(v.number()), // the raid's tier, from the tree's stage when it arrived (lib/tree.ts raidTier)
+    source: v.union(v.literal("schedule"), v.literal("admin")),
+    by: v.optional(v.id("members")), // an admin who scheduled it
+    endedAt: v.optional(v.number()),
+    bonusDay: v.optional(v.string()), // won: the bonus day it called
+  })
+    .index("by_workspace_number", ["workspaceId", "number"])
+    .index("by_by", ["by"]),
+
+  // Who dealt a blight damage (#164): one row per member per blight, at most MAX_CONTRIBUTORS a blight.
+  // A won blight's rows are its crests (the gallery) and its payroll: `paidAt` once its coins went.
+  blightContributors: defineTable({
+    workspaceId: v.id("workspaces"),
+    blightId: v.id("blights"),
+    memberId: v.id("members"),
+    damage: v.number(),
+    at: v.number(), // their first blow
+    paidAt: v.optional(v.number()),
+  })
+    .index("by_blight_member", ["blightId", "memberId"])
+    .index("by_blight_paidAt", ["blightId", "paidAt"])
     .index("by_member", ["memberId"])
     .index("by_workspace", ["workspaceId"]),
 

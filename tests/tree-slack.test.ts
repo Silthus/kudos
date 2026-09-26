@@ -86,6 +86,31 @@ describe("the receiver's kudos DM", () => {
 });
 
 describe("App Home and /kudos tree", () => {
+  test("say a blight is at the tree while one is (#164): how worn down it is, until when, and your part", async () => {
+    await t.run(async (ctx) => {
+      await ctx.db.insert("trees", { workspaceId: team.workspaceId, sap: 2000, fuel: 0, peakGrowth: 2000, plantings: 1, plantedAt: Date.now() - 1 });
+      const at = Date.now() - 60_000;
+      const blightId = await ctx.db.insert("blights", {
+        workspaceId: team.workspaceId,
+        number: 1,
+        status: "active",
+        arrivesAt: at,
+        endsAt: at + 5 * 86_400_000,
+        announcedAt: at - 2 * 86_400_000,
+        hp: 120,
+        damage: 42,
+        contributors: 2,
+        defeatedBefore: false,
+        tier: 1,
+        source: "schedule",
+      });
+      await ctx.db.insert("blightContributors", { workspaceId: team.workspaceId, blightId, memberId: team.ana, damage: 12, at });
+    });
+    const blocks = textOf(await home("UANA"));
+    expect(blocks).toContain("A blight is at the tree: 42 of 120 worn down, until Monday, 28 September. You dealt it 12.");
+    expect(textOf(await home("UBEN"))).toContain("A blight is at the tree: 42 of 120 worn down, until Monday, 28 September. Every thoughtful kudos strikes it.");
+  });
+
   test("show the desert before the seed moment, with the seeds to plant", async () => {
     await post("<@UBEN> :taco: thanks for the thorough review");
     const blocks = await home("UBEN");

@@ -22,7 +22,7 @@ describe("Hog coins (#55 §G4)", () => {
   });
 
   test("quest coins are their own source in the breakdown, not thoughtful kudos", () => {
-    expect(coinBalance({ coins: 12, questCoins: 7, level: 5 })).toEqual({ balance: 52, waiting: 0, fromKudos: 5, fromFruit: 0, fromQuests: 7, fromSprees: 0, fromTutorial: 0, fromRuins: 0, fromLevels: 40, spent: 0, adjusted: 0 });
+    expect(coinBalance({ coins: 12, questCoins: 7, level: 5 })).toEqual({ balance: 52, waiting: 0, fromKudos: 5, fromFruit: 0, fromQuests: 7, fromSprees: 0, fromTutorial: 0, fromRuins: 0, fromBlights: 0, fromLevels: 40, spent: 0, adjusted: 0 });
     expect(coinBalance({ coins: 3, level: 1 })).toMatchObject({ fromKudos: 3, fromQuests: 0 });
   });
 
@@ -37,6 +37,7 @@ describe("Hog coins (#55 §G4)", () => {
       fromSprees: 0,
       fromTutorial: 0,
       fromRuins: 0,
+      fromBlights: 0,
       fromLevels: 40,
       spent: 0,
       adjusted: 0,
@@ -46,7 +47,7 @@ describe("Hog coins (#55 §G4)", () => {
   test("spree coins are their own source too, and no coin counts twice (#94)", () => {
     // 26 coins from events: 4 fruit, 7 quests, 6 paid by sprees' tiers, so 9 from kudos.
     const wallet = coinBalance({ coins: 26, fruitCoins: 4, questCoins: 7, spreeCoins: 6, level: 5 });
-    expect(wallet).toEqual({ balance: 66, waiting: 0, fromKudos: 9, fromFruit: 4, fromQuests: 7, fromSprees: 6, fromTutorial: 0, fromRuins: 0, fromLevels: 40, spent: 0, adjusted: 0 });
+    expect(wallet).toEqual({ balance: 66, waiting: 0, fromKudos: 9, fromFruit: 4, fromQuests: 7, fromSprees: 6, fromTutorial: 0, fromRuins: 0, fromBlights: 0, fromLevels: 40, spent: 0, adjusted: 0 });
     // The balance is every event coin once, plus the level-ups: never a source added on top.
     expect(wallet.balance).toBe(26 + 40);
   });
@@ -54,6 +55,11 @@ describe("Hog coins (#55 §G4)", () => {
   test("coins from the ruins are their own source (#162), and no coin counts twice", () => {
     const wallet = coinBalance({ coins: 38, fruitCoins: 4, questCoins: 7, spreeCoins: 6, expeditionCoins: 12, level: 5 });
     expect(wallet).toMatchObject({ fromKudos: 9, fromRuins: 12, balance: 38 + 40 });
+  });
+
+  test("coins a beaten blight paid are their own source (#164), and no coin counts twice", () => {
+    const wallet = coinBalance({ coins: 58, fruitCoins: 4, questCoins: 7, spreeCoins: 6, expeditionCoins: 12, blightCoins: 20, level: 5 });
+    expect(wallet).toMatchObject({ fromKudos: 9, fromRuins: 12, fromBlights: 20, balance: 58 + 40 });
   });
 
   test("a revoke can take the balance below zero, which blocks spending until it's positive again", () => {

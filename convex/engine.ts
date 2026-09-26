@@ -16,6 +16,8 @@ import { Gains } from "./gains";
 import { discoveryWorthADm } from "./lib/gains";
 import { onGardenGiven } from "./gardens";
 import { onTreeRevoked, seedsToPlant, sowSeeds } from "./tree";
+import { strikeBlight } from "./blights";
+import { blightDamage } from "./lib/blight";
 import {
   CATALOG,
   type Category,
@@ -446,6 +448,8 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
   const rows = await writeBatch(ctx, workspace, giver, recipients, { ...input, batchId, dayKey, at: now }, rollups);
   // A thoughtful kudos sows a seed of appreciation for each receiver, to plant at the tree.
   const sownFor = await sowSeeds(ctx, workspace, rows);
+  // …and each of those qualifying lines strikes the blight at the tree, if one is there (#164).
+  await strikeBlight(ctx, workspace, [giver._id], sownFor.size * blightDamage({ source: "kudos" }), now);
 
   // XP for the giver and the receivers; the giver's share is itemised in their reply. What anyone
   // discovers or gains in this kudos goes out in one DM each, once everything below has run.

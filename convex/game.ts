@@ -142,7 +142,7 @@ async function eventsBetween(ctx: QueryCtx, memberId: Id<"members">, fromDay: st
  * The wallet's own shares of `players.coins` (lib/coins.ts `coinBalance`): coins from a source that
  * isn't kudos claimed at the tree. What's left of `coins` is from kudos.
  */
-export type CoinShare = "questCoins" | "fruitCoins" | "spreeCoins" | "tutorialCoins";
+export type CoinShare = "questCoins" | "fruitCoins" | "spreeCoins" | "tutorialCoins" | "blightCoins";
 
 /**
  * Adds (or takes back) XP and Hog coins, the coins in their `share` of the wallet when they have one.
@@ -446,7 +446,7 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
   // Only give, receive and quest events follow from the kudos rows and are replayed. Everything else
   // is the member's own doing and kept as it is: fruit picked, what a spree's tiers paid (#94), the
   // level a simulator visitor joined at (#143), a claim at the tree and tree fruit sold (#157), the
-  // tutorial's pay (#159), coins found in the ruins (#162), and whatever a later system records.
+  // tutorial's pay (#159), coins found in the ruins (#162), what beaten blights paid (#164), and whatever a later system records.
   type Written = { at: number; xp: number; coins: number; kind: Doc<"gameEvents">["kind"] };
   const written: Written[] = [];
   for await (const e of ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", member._id))) {
@@ -459,6 +459,7 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
   const spreeCoins = kept("spree");
   const tutorialCoins = kept("tutorial");
   const expeditionCoins = kept("expedition");
+  const blightCoins = kept("blight");
   const unsungOn = workspace.receivedVisibility === "everyone";
   // XP history is the members' own kudos: pooled spree kudos (#94) never count as a thank-back or an earlier kudos.
   const own = (k: Doc<"kudos">) => k.source !== "spree";
@@ -561,7 +562,7 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
   // Coins claimed at the tree stay as they are; the offerings' replay (offerings.ts `replayMember`, its
   // own transaction, scheduled by `rebuildMember`) moves them with the surviving history.
   const coins = written.reduce((s, w) => s + w.coins, 0) + questCoins + (existing?.claimedCoins ?? 0);
-  const ledger = { xp: total, level, since, coins, fruitCoins, questCoins, spreeCoins, tutorialCoins, expeditionCoins };
+  const ledger = { xp: total, level, since, coins, fruitCoins, questCoins, spreeCoins, tutorialCoins, expeditionCoins, blightCoins };
   if (existing) await ctx.db.patch(existing._id, ledger);
   else await ctx.db.insert("players", { workspaceId: workspace._id, memberId: member._id, ...ledger });
 }
@@ -709,6 +710,7 @@ const walletValidator = v.object({
   fromSprees: v.number(),
   fromTutorial: v.number(), // the elder hog's chain (#159)
   fromRuins: v.number(),
+  fromBlights: v.number(), // beaten blights (#164)
   fromLevels: v.number(),
   spent: v.number(),
   adjusted: v.number(),

@@ -262,6 +262,24 @@ const PHASES: Phase[] = [
     rows: (ctx, m, n) => ctx.db.query("crewQuests").withIndex("by_proposedBy", (q) => q.eq("proposedBy", m._id)).take(n),
     clear: (ctx, _workspace, row) => ctx.db.patch(row._id as Id<"crewQuests">, { proposedBy: undefined }),
   },
+  // The blights they fought (#164): off each ledger (the blight keeps the damage, a shared story), and
+  // off the blights they scheduled as an admin.
+  {
+    name: "blightContributors",
+    batch: 200,
+    rows: (ctx, m, n) => ctx.db.query("blightContributors").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(n),
+    clear: async (ctx, _workspace, row) => {
+      const blight = await ctx.db.get((row as Doc<"blightContributors">).blightId);
+      if (blight) await ctx.db.patch(blight._id, { contributors: Math.max(0, blight.contributors - 1) });
+      await ctx.db.delete(row._id);
+    },
+  },
+  {
+    name: "blightsScheduled",
+    batch: 200,
+    rows: (ctx, m, n) => ctx.db.query("blights").withIndex("by_by", (q) => q.eq("by", m._id)).take(n),
+    clear: async (ctx, _workspace, row) => ctx.db.patch(row._id, { by: undefined }),
+  },
   // A simulator's fast-forwards (#143) are its visitor's.
   {
     name: "simulatorRuns",

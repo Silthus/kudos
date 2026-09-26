@@ -7,6 +7,8 @@ import { plantsGrown } from "./gardens";
 import { addFruit, addGear, held } from "./inventory";
 import { buildPuzzle } from "./puzzles";
 import { treeOf, worldSeedOf } from "./tree";
+import { activeBlight, strikeBlight } from "./blights";
+import { blightDamage } from "./lib/blight";
 import { requireViewer } from "./lib/access";
 import { loreCard } from "./lib/lore";
 import { fnv1a, mulberry32 } from "./lib/random";
@@ -42,7 +44,7 @@ import {
   type RuinTier,
 } from "./lib/rpg";
 import { dayKeyFor, workspaceNow } from "./lib/time";
-import { layout, type RuinSite } from "./lib/tree";
+import { isRaidId, layout, type RuinSite } from "./lib/tree";
 import { equippedValidator } from "./schema";
 
 /**
@@ -264,6 +266,42 @@ async function openRun(ctx: QueryCtx, player: Doc<"players">) {
   return run?.state === "open" ? run : null;
 }
 
+const NO_STAMINA = "You have no stamina left. Every thoughtful kudos you give restores one, and so does a moon fruit.";
+
+/**
+ * Walks a member into a ruin (a site in the desert, or the blight raid): the run's row with the
+ * ruin's rooms generated from the world seed, one stamina spent, the first room entered. The caller
+ * has checked what the ruin asks of them.
+ */
+async function enter(ctx: MutationCtx, workspace: Doc<"workspaces">, member: Doc<"members">, player: Doc<"players">, site: Omit<RuinSite, "at">) {
+  if (await openRun(ctx, player)) throw new ConvexError("You're on an expedition already. Finish it, or return to camp first.");
+  const now = workspaceNow(workspace);
+  const world = worldSeedOf(workspace);
+  const party = [await adventurer(ctx, member, player)];
+  const id = await ctx.db.insert("expeditions", {
+    workspaceId: workspace._id,
+    leaderId: member._id,
+    ruinId: site.id,
+    name: site.name,
+    tier: site.tier,
+    seed: fnv1a(`run:${world}:${site.id}:${member._id}:${now}`),
+    rooms: generateRuin(world, site.id).rooms,
+    party,
+    room: 0,
+    turn: 0,
+    choices: [],
+    foeHp: 0,
+    wrong: 0,
+    log: [],
+    loot: [emptyLoot(member._id)],
+    state: "open",
+    startedAt: now,
+  });
+  await ctx.db.patch(player._id, { stamina: (player.stamina ?? 0) - STAMINA.cost, expedition: id });
+  await ctx.db.patch(id, await enterRoom(ctx, workspace, (await ctx.db.get(id))!, 0, party, []));
+  return id;
+}
+
 /**
  * Starts a solo expedition into one of the near ruins the tree has opened: level 6, one stamina,
  * and no run under way. The far and deep ruins come with parties (#163).
@@ -278,38 +316,29 @@ export const start = mutation({
     if (!site) throw new ConvexError("That ruin is not open yet: the tree opens the near ruins when it's a great tree.");
     if (await openRun(ctx, player)) throw new ConvexError("You're on an expedition already. Finish it, or return to camp first.");
     const can = canStartExpedition({ level: player.level, stamina: player.stamina ?? 0 }, site.tier);
-    if (!can.ok) {
-      throw new ConvexError(
-        can.reason === "level"
-          ? `The near ruins open to explorers at level 6. You're level ${player.level}.`
-          : "You have no stamina left. Every thoughtful kudos you give restores one, and so does a moon fruit.",
-      );
-    }
-    const now = workspaceNow(workspace);
-    const world = worldSeedOf(workspace);
-    const party = [await adventurer(ctx, member, player)];
-    const id = await ctx.db.insert("expeditions", {
-      workspaceId: workspace._id,
-      leaderId: member._id,
-      ruinId,
-      name: site.name,
-      tier: site.tier,
-      seed: fnv1a(`run:${world}:${ruinId}:${member._id}:${now}`),
-      rooms: generateRuin(world, ruinId).rooms,
-      party,
-      room: 0,
-      turn: 0,
-      choices: [],
-      foeHp: 0,
-      wrong: 0,
-      log: [],
-      loot: [emptyLoot(member._id)],
-      state: "open",
-      startedAt: now,
-    });
-    await ctx.db.patch(player._id, { stamina: (player.stamina ?? 0) - STAMINA.cost, expedition: id });
-    await ctx.db.patch(id, await enterRoom(ctx, workspace, (await ctx.db.get(id))!, 0, party, []));
-    return id;
+    if (!can.ok) throw new ConvexError(can.reason === "level" ? `The near ruins open to explorers at level 6. You're level ${player.level}.` : NO_STAMINA);
+    return await enter(ctx, workspace, member, player, site);
+  },
+});
+
+/** The blight raid's name, whatever its tier. */
+export const RAID_NAME = "The blight's hollow";
+
+/**
+ * The blight raid (#164): a ruin at the blight stone (`raid:<tier>`, the tier the tree's stage gave
+ * the blight on arrival), open while a blight is at the tree. One stamina and no level: everyone can
+ * help. Each room it clears deals the blight ten.
+ */
+export const startRaid = mutation({
+  args: {},
+  returns: v.id("expeditions"),
+  handler: async (ctx) => {
+    const { workspace, member, player } = await requireExplorer(ctx);
+    const blight = await activeBlight(ctx, workspace, workspaceNow(workspace));
+    if (!blight) throw new ConvexError("No blight is at the tree: the raid opens when one comes.");
+    if ((player.stamina ?? 0) < STAMINA.cost) throw new ConvexError(NO_STAMINA);
+    const tier = (blight.tier ?? 1) as RuinTier;
+    return await enter(ctx, workspace, member, player, { id: `raid:${tier}`, name: RAID_NAME, tier });
   },
 });
 
@@ -349,6 +378,9 @@ export const act = mutation({
     const log = [...run.log, ...named(next.log, run.party).map((line) => ({ room: run.room, line }))];
     // A wrong answer is crossed out, so nobody gives it twice.
     const tried = choice.kind === "answer" && next.wrong > run.wrong && run.puzzle ? { puzzle: { ...run.puzzle, tried: [...(run.puzzle.tried ?? []), choice.option] } } : {};
+    // A room cleared with effort strikes the blight at the tree, once for the whole party (#164).
+    const damage = blightDamage({ source: isRaidId(run.ruinId) ? "raid_room" : "room", room: run.rooms[run.room] as Room, done: next.done });
+    await strikeBlight(ctx, workspace, paidFor(next).map((f) => f.id as Id<"members">), damage, workspaceNow(workspace));
     if (next.done === null) await ctx.db.patch(run._id, { ...turn, ...tried, log });
     else if (next.done !== "cleared") await endRun(ctx, workspace, run, next.done, next, { ...turn, log });
     else {

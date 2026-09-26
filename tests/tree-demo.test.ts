@@ -29,6 +29,12 @@ describe("the demo", () => {
     const tree = await alex.query(api.tree.state, {});
     // Alex has walked the elder hog's chain to its end (#159, S10): nothing dims, nothing waits.
     expect(await alex.query(api.tutorial.state, {})).toMatchObject({ step: 11, due: false });
+    // A blight the company beat three weeks ago (#164, S10): Alex fought it, so its crest is in the gallery.
+    expect(await alex.query(api.blights.history, {})).toEqual([expect.objectContaining({ number: 1, status: "won", mine: expect.any(Number) })]);
+    const [past] = await alex.query(api.blights.history, {});
+    expect(past.damage).toBe(past.hp);
+    expect(past.mine).toBeGreaterThan(0);
+    expect(await alex.query(api.discoveries.crests, {})).toEqual([expect.objectContaining({ number: 1, damage: past.mine })]);
     // On the reference date (2026-09-23) the demo's year (~2,400 kudos rows) makes an ancient tree from sap
     // alone; its givers' offerings older than 30 days count as claimed (#157), and their fuel grows it on.
     expect(tree).toMatchObject({ planted: true, seedsToPlant: 0 });

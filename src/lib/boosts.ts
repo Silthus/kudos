@@ -32,5 +32,7 @@ export function startedBy(source: BoostSource, by: string | null): string {
       return "A team garden milestone";
     case "capstone":
       return `Called by ${by ?? "a former member"} (Block party)`;
+    case "blight":
+      return "The company beat a blight";
   }
 }
