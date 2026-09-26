@@ -26,6 +26,7 @@ import { validateRewardInput } from "./lib/store";
 import { canSpend, coinBalance } from "./lib/coins";
 import { SHOP_LEVEL } from "./lib/items";
 import { playerOf, thankedBack } from "./game";
+import { finishedTutorial } from "./tutorial";
 import { joinOf, joinSpree, paySpree, spreeable, spreeJoinsInMonth, spreesOn } from "./sprees";
 import { nextTier, promptText, refusalText } from "./lib/sprees";
 import { coinWallet, grantBalance, requestRedemption, transitionRedemption, undoPurchase, undoRedemption } from "./store";
@@ -159,6 +160,11 @@ async function demoWorkspace(ctx: MutationCtx) {
     .unique();
 }
 
+/** Alex has walked the elder hog's chain to its end (#159, #152 S10); the teammates never started it. */
+function demoTutorial(slackUserId: string, now: number) {
+  return slackUserId === DEMO_YOU ? { tutorial: finishedTutorial(now) } : {};
+}
+
 /** Creates the demo workspace on first use and returns the shared demo user. */
 export const ensureDemoUser = internalMutation({
   args: {},
@@ -188,6 +194,7 @@ export const ensureDemoUser = internalMutation({
           totalGiven: 0,
           totalReceived: 0,
           totalMaxedDays: 0,
+          ...demoTutorial(p.id, workspaceNow(workspace)),
         });
       }
       await launchDemoGame(ctx, workspace, workspaceNow(workspace));
@@ -198,6 +205,8 @@ export const ensureDemoUser = internalMutation({
       .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id).eq("slackUserId", DEMO_YOU))
       .unique();
     if (!me) throw new ConvexError("Demo workspace is missing its demo member");
+    // A demo seeded before the elder hog's chain (#159): Alex has walked it, as after every reset.
+    if (!me.tutorial) await ctx.db.patch(me._id, demoTutorial(me.slackUserId, workspaceNow(workspace)));
     if (me.userId) return me.userId;
     const userId = await ctx.db.insert("users", { name: me.name, isDemo: true, slackUserId: DEMO_YOU, slackTeamId: DEMO_TEAM });
     await ctx.db.patch(me._id, { userId });
@@ -1444,6 +1453,8 @@ export const resetDemoWorkspace = internalMutation({
         coinsAdjusted: undefined,
         gameHidden: undefined,
         look: undefined, // the cosmetics they wore were bought in the Store, which starts over
+        tutorial: undefined,
+        ...demoTutorial(m.slackUserId, workspaceNow(workspace)),
       });
     }
     await ctx.scheduler.runAfter(0, internal.demo.seedHistory, {

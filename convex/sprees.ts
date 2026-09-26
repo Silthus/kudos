@@ -484,10 +484,7 @@ export const payDueJoins = internalMutation({
  * the coins also in their own total (`players.spreeCoins`, lib/coins.ts), like garden fruit.
  */
 export async function paySpree(ctx: MutationCtx, player: Doc<"players">, xp: number, coins: number, gains?: Gains) {
-  await addXp(ctx, player, xp, coins, gains);
-  if (coins === 0) return;
-  const fresh = (await ctx.db.get(player._id))!;
-  await ctx.db.patch(player._id, { spreeCoins: (fresh.spreeCoins ?? 0) + coins || undefined });
+  await addXp(ctx, player, xp, coins, gains, "spreeCoins");
 }
 
 function channelRef(spree: Doc<"sprees">) {

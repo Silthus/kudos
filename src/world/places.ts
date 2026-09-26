@@ -14,6 +14,7 @@ import { place as analytics } from "./places/analytics";
 import { place as admin } from "./places/admin";
 import { place as playground } from "./places/playground";
 import { place as offering } from "./places/offering";
+import { place as elder } from "./places/elder";
 
 /**
  * The places of the world (#126 "The world"): every page is a place you walk to, and arriving opens
@@ -39,7 +40,8 @@ import { place as offering } from "./places/offering";
  *   reachable from base camp; `signs.test.ts` that no sign covers a door.
  * - `sprite`: a palette-indexed `PixelMap` (see `pixels.ts`), our own art, never a hedgehog. It's
  *   drawn with its bottom centre on the footprint's front corner, or on `spriteAt`'s tile, plus
- *   `spriteOffset` (art pixels). The sign with the place's name hangs above it, or at `signOffset`.
+ *   `spriteOffset` (art pixels). The sign with the place's name hangs above it, or at `signOffset`;
+ *   a place where a hog sits (`nameTag`) is named by the hog's name tag instead.
  *
  * To redraw a place, a place lane edits only its own file. A new place adds its file, one import
  * line below, and its id to its district's `places` in `convex/lib/tree.ts`.
@@ -60,12 +62,15 @@ export type PlaceDef = {
   spriteOffset?: { x: number; y: number };
   /** Where the name sign stands, in art pixels from the sprite's top centre. */
   signOffset?: { x: number; y: number };
+  /** Named by a name tag over the hog who sits there, as every hog is (the elder hog, #159), not by a sign. */
+  nameTag?: true;
 };
 
-export const PLACES: PlaceDef[] = [garden, me, offering, quests, leaderboard, compare, discoveries, store, skills, analytics, admin, playground];
+export const PLACES: PlaceDef[] = [garden, me, offering, elder, quests, leaderboard, compare, discoveries, store, skills, analytics, admin, playground];
 
 /** A place on this viewer's map: its art plus its page's link, path and badge from the nav. */
-export type Place = PlaceDef & { to: string; path: string; badge?: NavBadge; label: string };
+/** `hint`: the elder hog's chain hasn't reached it yet (#159): it stands dim, saying what opens it, and still leads there. */
+export type Place = PlaceDef & { to: string; path: string; badge?: NavBadge; label: string; hint?: string };
 
 /** The places whose pages this viewer has, in nav order. */
 export function visiblePlaces(items: NavItem[]): Place[] {

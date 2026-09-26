@@ -40,7 +40,7 @@ const level2 = { level: 2, title: "Seedling", xp: 40, floor: 30, next: 75, toNex
 
 test("a player sees their level, title and the next-level bar, and only the next areas ahead, locked", () => {
   mine = { enabled: true, hidden: false, player: level2 };
-  const host = render(<GameCard glyph="🌮" />);
+  const host = render(<GameCard />);
   expect(host.textContent).toContain("Level 2");
   expect(host.textContent).toContain("Seedling");
   expect(host.textContent).toContain("35 XP to level 3");
@@ -53,7 +53,7 @@ test("a player sees their level, title and the next-level bar, and only the next
 
 test("the cabin's level number is set in Nunito with tabular figures, the word in Pixelify: Pixelify's 5 reads as an S (#171 review)", () => {
   mine = { enabled: true, hidden: false, player: { ...level2, level: 25, title: "Elder hog", next: null, toNext: null } };
-  const host = render(<GameCard glyph="🌮" />);
+  const host = render(<GameCard />);
   const number = [...host.querySelectorAll("*")].find((el) => el.children.length === 0 && el.textContent === "25")!;
   expect(number.closest(".font-display, .font-sans")?.classList).toContain("font-sans");
   expect(number.closest(".tabular")).not.toBeNull();
@@ -64,7 +64,7 @@ const level3 = { level: 3, title: "Sprout", xp: 87, floor: 75, next: 175, toNext
 
 test("at level 3 the wallet appears with everything collected so far, and the next areas stay locked", () => {
   mine = { enabled: true, hidden: false, player: level3, wallet: { balance: 28, fromKudos: 8, fromFruit: 0, fromQuests: 0, fromLevels: 20, spent: 0, adjusted: 0 } };
-  const host = render(<GameCard glyph="🌮" />);
+  const host = render(<GameCard />);
   const wallet = host.querySelector("[data-wallet]")!;
   expect(wallet.getAttribute("aria-label")).toBe("Hog coins: 28");
   expect(wallet.textContent).toContain("28");
@@ -75,7 +75,7 @@ test("at level 3 the wallet appears with everything collected so far, and the ne
 
 test("the wallet shows the Hog coin: Max on a gold coin, and the plain gold coin if Max can't load (#101)", () => {
   mine = { enabled: true, hidden: false, player: level3, wallet: { balance: 28, fromKudos: 8, fromFruit: 0, fromQuests: 0, fromLevels: 20, spent: 0, adjusted: 0 } };
-  const host = render(<GameCard glyph="🌮" />);
+  const host = render(<GameCard />);
   const coin = host.querySelector("[data-wallet] [data-hog-coin]")!;
   const max = coin.querySelector("[data-art-slot='coin-max'] img")!;
   expect(max.getAttribute("src")).toContain("/ai_max_e80de99727.png");
@@ -110,14 +110,14 @@ test("an older level-up DM without gains still brings the hoggie (review #4)", (
 
 test("fruit picked in the garden is its own line in the wallet, and the garden is a click away (#95)", () => {
   mine = { enabled: true, hidden: false, player: level3, wallet: { balance: 31, fromKudos: 8, fromFruit: 3, fromQuests: 0, fromLevels: 20, spent: 0, adjusted: 0 } };
-  const host = render(<GameCard glyph="🌮" />);
+  const host = render(<GameCard />);
   expect(host.querySelector("[data-wallet]")!.textContent).toContain("8 from thoughtful kudos, 3 from fruit and 20 from level-ups.");
   expect(host.querySelector('a[href="/garden"]')?.textContent).toContain("Your garden");
 });
 
 test("coins waiting at the tree are told apart from the balance, with the way to the stone (#157)", () => {
   mine = { enabled: true, hidden: false, player: level3, wallet: { balance: 28, waiting: 12, fromKudos: 8, fromFruit: 0, fromQuests: 0, fromLevels: 20, spent: 0, adjusted: 0 } };
-  const host = render(<GameCard glyph="🌮" />);
+  const host = render(<GameCard />);
   const wallet = host.querySelector("[data-wallet]")!;
   expect(wallet.textContent).toContain("12 more wait at the tree.");
   expect(wallet.querySelector('a[href="/offering"]')?.textContent).toBe("Offer them at the stone");
@@ -125,42 +125,39 @@ test("coins waiting at the tree are told apart from the balance, with the way to
 
 test("coins from kudos sprees are their own line in the wallet (#94)", () => {
   mine = { enabled: true, hidden: false, player: level3, wallet: { balance: 34, fromKudos: 8, fromFruit: 0, fromQuests: 0, fromSprees: 6, fromLevels: 20, spent: 0, adjusted: 0 } };
-  const host = render(<GameCard glyph="🌮" />);
+  const host = render(<GameCard />);
   expect(host.querySelector("[data-wallet]")!.textContent).toContain("8 from thoughtful kudos, 6 from kudos sprees and 20 from level-ups.");
 });
 
 test("below level 3 there is no wallet, only its locked tile", () => {
   mine = { enabled: true, hidden: false, player: level2, wallet: null };
-  const host = render(<GameCard glyph="🌮" />);
+  const host = render(<GameCard />);
   expect(host.querySelector("[data-wallet]")).toBeNull();
   expect(host.querySelector("[data-locked][aria-label^='Hog coins']")).not.toBeNull();
 });
 
 test("a balance a revoke took below zero says spending waits", () => {
   mine = { enabled: true, hidden: false, player: level3, wallet: { balance: -2, fromKudos: 8, fromFruit: 0, fromQuests: 0, fromLevels: 20, spent: 30, adjusted: 0 } };
-  const host = render(<GameCard glyph="🌮" />);
+  const host = render(<GameCard />);
   expect(host.querySelector("[data-wallet]")!.textContent).toContain("Spending waits until it's above zero again");
 });
 
 test("at the top level there is no next level to show", () => {
   mine = { enabled: true, hidden: false, player: { level: 25, title: "Elder hog", xp: 15_000, floor: 14_850, next: null, toNext: null, fraction: 1 } };
-  const host = render(<GameCard glyph="🌮" />);
+  const host = render(<GameCard />);
   expect(host.textContent).toContain("Top level");
   expect(host.querySelectorAll("[data-locked]")).toHaveLength(0);
 });
 
-test("before their first kudos a member is invited to give, not shown a level", () => {
+test("before their first kudos the cabin shows no game: the elder hog's chain invites them to give (#159)", () => {
   mine = { enabled: true, hidden: false, player: null };
-  const host = render(<GameCard glyph="🌮" />);
-  expect(host.textContent).toContain("You can give seeds of appreciation too");
-  expect(host.textContent).toContain("Give a seed in Slack: @name 🌮 and a few words on why.");
-  expect(host.querySelector("[data-user-text]")?.textContent).toBe("🌮");
-  expect(host.querySelector("[role=progressbar]")).toBeNull();
+  const host = render(<GameCard />);
+  expect(host.textContent).toBe("");
 });
 
 test("spent coins and admin adjustments are their own sentences", () => {
   mine = { enabled: true, hidden: false, player: level3, wallet: { balance: 5, fromKudos: 8, fromFruit: 0, fromQuests: 2, fromLevels: 20, spent: 30, adjusted: 5 } };
-  const host = render(<GameCard glyph="🌮" />);
+  const host = render(<GameCard />);
   expect(host.querySelector("[data-wallet]")!.textContent).toContain("8 from thoughtful kudos, 2 from quests and 20 from level-ups. You spent 30. Admins added 5.");
 });
 
@@ -174,12 +171,12 @@ test("hiding the game is a switch; hidden, the card only says so and where the s
   expect(setHidden).toHaveBeenCalledWith({ hidden: true });
   // The card itself has no hide button any more: the switch is by the cabin door.
   act(() => root?.unmount());
-  host = render(<GameCard glyph="🌮" />);
+  host = render(<GameCard />);
   expect([...host.querySelectorAll("button")].map((b) => b.textContent)).not.toContain("Hide the game");
 
   act(() => root?.unmount());
   mine = { enabled: true, hidden: true, player: level2 };
-  host = render(<GameCard glyph="🌮" />);
+  host = render(<GameCard />);
   expect(host.textContent).not.toContain("Level 2");
   expect(host.textContent).toContain("Your kudos still earn XP and Hog coins.");
   act(() => root?.unmount());
@@ -197,7 +194,7 @@ test("with the game off there is no switch either", () => {
 
 test("with the game off there is nothing to show", () => {
   mine = { enabled: false, hidden: false, player: null };
-  expect(render(<GameCard glyph="🌮" />).textContent).toBe("");
+  expect(render(<GameCard />).textContent).toBe("");
 });
 
 test("the locked primitive: a lock, the name, the level it opens at and one line on how to get there", () => {
@@ -212,7 +209,7 @@ test("the locked primitive: a lock, the name, the level it opens at and one line
 test("a player's card links to their skill tree with the points they have to spend", () => {
   mine = { enabled: true, hidden: false, player: level3, wallet: null };
   tree = { level: 3, skills: { lookout: 1 }, resets: 0, resetCost: 50, balance: 28 };
-  const host = render(<GameCard glyph="🌮" />);
+  const host = render(<GameCard />);
   const link = host.querySelector<HTMLAnchorElement>("a[href='/skills']")!;
   expect(link.textContent).toContain("Skill tree");
   expect(link.textContent).toContain("1 skill point to spend");

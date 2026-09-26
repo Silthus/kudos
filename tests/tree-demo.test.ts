@@ -26,6 +26,8 @@ describe("the demo", () => {
     await settle();
     const alex = t.withIdentity({ subject: `${userId}|s` });
     const tree = await alex.query(api.tree.state, {});
+    // Alex has walked the elder hog's chain to its end (#159, S10): nothing dims, nothing waits.
+    expect(await alex.query(api.tutorial.state, {})).toMatchObject({ step: 11, due: false });
     // On the reference date (2026-09-23) the demo's year (~2,400 kudos rows) makes an ancient tree from sap
     // alone; its givers' offerings older than 30 days count as claimed (#157), and their fuel grows it on.
     expect(tree).toMatchObject({ planted: true, seedsToPlant: 0 });
@@ -49,6 +51,9 @@ describe("the demo", () => {
     await settle();
     const again = await alex.query(api.tree.state, {});
     expect(again).toMatchObject({ stage: tree!.stage, sap: tree!.sap, fuel: tree!.fuel, worldSeed: tree!.worldSeed, plantedBy: tree!.plantedBy });
+    expect(await alex.query(api.tutorial.state, {})).toMatchObject({ step: 11 });
+    // A teammate starts over at the elder hog.
+    expect((await t.run((ctx) => ctx.db.query("members").collect())).filter((m) => m.tutorial).map((m) => m.slackUserId)).toEqual(["UDEMOYOU"]);
     expect(await t.run(async (ctx) => (await ctx.db.query("trees").collect()).length)).toBe(1);
   });
 });

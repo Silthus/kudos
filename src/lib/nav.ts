@@ -1,4 +1,4 @@
-import { ArrowLeftRight, BarChart3, FlaskConical, Gem, Gift, HandCoins, Network, Settings2, Sprout, Target, Trophy, UserRound, type LucideIcon } from "lucide-react";
+import { ArrowLeftRight, BarChart3, FlaskConical, Footprints, Gem, Gift, HandCoins, Network, Settings2, Sprout, Target, Trophy, UserRound, type LucideIcon } from "lucide-react";
 
 /**
  * The app's navigation, built once: the world's places (`src/world/places.ts`) and the Places list
@@ -55,6 +55,7 @@ export function navItems(ctx: NavContext): NavItem[] {
     ...(ctx.questsEnabled ?? true ? [item("quests", "/quests", "Quest log", "Quests", Target, "personal")] : []),
     ...(ctx.gameShown
       ? [
+          item("elder", "/elder", "Your first steps", "Elder", Footprints, "personal"),
           item("offering", "/offering", "Offering stone", "Stone", HandCoins, "personal"),
           item("skills", "/skills", "Skill tree", "Skills", Network, "personal"),
           item("garden", "/garden", "Garden", "Garden", Sprout, "personal"),

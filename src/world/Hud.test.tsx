@@ -10,6 +10,9 @@ import { MOTION_KEY, MotionProvider } from "./motion";
 import { visiblePlaces } from "./places";
 
 let game: unknown;
+/** Where you are in the elder hog's chain (`tutorial:state`, #159). */
+let tutorial: unknown;
+const advance = vi.fn(async (_args: unknown) => ({ completed: [] }));
 /** Who is online (`presence:online`), and what it was last asked with. */
 let online: unknown;
 let onlineArgs: unknown;
@@ -17,9 +20,10 @@ vi.mock("convex/react", () => ({
   useQuery: (fn: FunctionReference<"query">, args: unknown) => {
     const name = getFunctionName(fn);
     if (name === "presence:online" && args !== "skip") onlineArgs = args;
+    if (name === "tutorial:state" && args !== "skip") return tutorial;
     return name === "game:mine" ? game : name === "presence:online" && args !== "skip" ? online : undefined;
   },
-  useMutation: () => vi.fn(),
+  useMutation: (fn: FunctionReference<"mutation">) => (getFunctionName(fn) === "tutorial:advance" ? advance : vi.fn()),
 }));
 vi.mock("@convex-dev/auth/react", () => ({ useAuthActions: () => ({ signOut: vi.fn(async () => undefined) }) }));
 // No atlas in tests: the portrait keeps its placeholder.
@@ -66,6 +70,8 @@ function Probe() {
   return null;
 }
 beforeEach(() => {
+  tutorial = undefined;
+  advance.mockClear();
   host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
@@ -81,8 +87,8 @@ const viewer = {
   workspace: { name: "Lumen Labs", isDemo: false, gameEnabled: true, storeEnabled: true },
 } as unknown as ReadyViewer;
 
-function render({ insetRight, whereIs }: { insetRight?: number; whereIs?: (spot: { x: number; y: number }) => string } = {}) {
-  const places = visiblePlaces(navItems({ isAdmin: true, isDemo: false, storeEnabled: true, gameShown: true, openRequests: 2 }));
+function render({ insetRight, whereIs, hints = {} }: { insetRight?: number; whereIs?: (spot: { x: number; y: number }) => string; hints?: Record<string, string> } = {}) {
+  const places = visiblePlaces(navItems({ isAdmin: true, isDemo: false, storeEnabled: true, gameShown: true, openRequests: 2 })).map((p) => (hints[p.id] ? { ...p, hint: hints[p.id] } : p));
   act(() =>
     root.render(
       <MemoryRouter initialEntries={["/"]}>
@@ -96,6 +102,57 @@ function render({ insetRight, whereIs }: { insetRight?: number; whereIs?: (spot:
     ),
   );
 }
+
+describe("the HUD along the elder hog's chain (#159)", () => {
+  const on = (step: number) => ({ step, due: false });
+
+  test("no wallet before step 3, feeding the tree; then the coins and what waits at the tree", () => {
+    game = mine({ wallet: { ...wallet, waiting: 12 } });
+    tutorial = on(2);
+    render();
+    expect(host.textContent).toContain("Level 9");
+    expect(host.querySelector("[data-hud-coins]")).toBeNull();
+    expect(host.querySelector("[data-hud-waiting]")).toBeNull();
+    tutorial = on(3);
+    render();
+    expect(host.querySelector("[data-hud-coins]")?.textContent).toContain("84");
+    expect(host.querySelector("[data-hud-waiting]")).not.toBeNull();
+  });
+
+  test("the checklist says what's next, over where you are", () => {
+    game = mine({});
+    tutorial = on(3);
+    render();
+    const caption = host.querySelector("[data-hud-caption]")!;
+    expect(caption.querySelector("[data-tutorial-next]")?.textContent).toContain("Next: Feed the tree");
+  });
+
+  test("opening Places on step 4 is looking around; on any other step it's only opening Places", () => {
+    game = mine({});
+    tutorial = on(2);
+    render();
+    const toggle = () => host.querySelector<HTMLButtonElement>("nav[aria-label='Places'] button[aria-expanded]")!;
+    act(() => toggle().click());
+    expect(advance).not.toHaveBeenCalled();
+    act(() => toggle().click());
+    tutorial = on(4);
+    render();
+    act(() => toggle().click());
+    expect(advance).toHaveBeenCalledWith({ did: "look" });
+  });
+
+  test("a place not reached yet is listed dim, with its hint; it still leads there", () => {
+    game = mine({});
+    tutorial = on(2);
+    render({ hints: { me: "Opens after you look around" } });
+    act(() => host.querySelector<HTMLButtonElement>("nav[aria-label='Places'] button[aria-expanded]")!.click());
+    const cabin = host.querySelector<HTMLAnchorElement>("nav[aria-label='Places'] a[href='/me']")!;
+    expect(cabin.hasAttribute("data-dim")).toBe(true);
+    expect(cabin.textContent).toContain("Opens after you look around");
+    const quests = host.querySelector<HTMLAnchorElement>("nav[aria-label='Places'] a[href='/quests']")!;
+    expect(quests.hasAttribute("data-dim")).toBe(false);
+  });
+});
 
 describe("the HUD", () => {
   test("shows your level, XP and coins in the corner", () => {

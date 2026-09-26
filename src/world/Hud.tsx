@@ -4,7 +4,7 @@ import type { FunctionReturnType } from "convex/server";
 import clsx from "clsx";
 import { useReducedMotion } from "motion/react";
 import { LogOut, MapPin, Settings } from "lucide-react";
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -17,12 +17,15 @@ import { useWorkspaceToday } from "@/lib/period";
 import { useStableQuery } from "@/lib/useStableQuery";
 import { useViewer } from "@/lib/viewer";
 import { HogFrame } from "./Hog";
+import { MenuPanel, useMenu } from "./hudMenu";
 import { useMotion, type MotionChoice } from "./motion";
 import type { Place } from "./places";
 import { useWorldNow } from "./worldNow";
 import type { Spot } from "./presence";
 import { dayNumber, inYourSimulator, isSimulatorWorkspace, shownSimulator, type ActiveSimulator, type SimulatorState } from "./simulator";
 import { SimulatorClock } from "./SimulatorClock";
+import { Checklist, useAdvance, useTutorial } from "./Tutorial";
+import { hudShows } from "../../convex/lib/tutorial";
 
 /**
  * The HUD (#126 "Interaction model"): four small things in the corners. Top left, you: your
@@ -60,8 +63,11 @@ type GameMine = FunctionReturnType<typeof api.game.mine>;
 /** The wallet appears at level 3 (§G4). */
 const WALLET_LEVEL = 3;
 
-/** What the corner shows of your game: nothing while it's off, hidden or not started (just your name). */
-export function hudGame(game: GameMine | undefined) {
+/**
+ * What the corner shows of your game: nothing while it's off, hidden or not started (just your name).
+ * `walletShown`: the elder hog's chain has reached the wallet (#159, step 3), or there's no chain.
+ */
+export function hudGame(game: GameMine | undefined, walletShown = true) {
   if (!game?.enabled || game.hidden || !game.player) return null;
   const p = game.player;
   return {
@@ -70,46 +76,10 @@ export function hudGame(game: GameMine | undefined) {
     xp: p.xp,
     into: p.next === null ? 1 : Math.max(0, p.xp - p.floor),
     span: p.next === null ? 1 : p.next - p.floor,
-    coins: p.level >= WALLET_LEVEL && game.wallet ? game.wallet.balance : null,
+    coins: walletShown && p.level >= WALLET_LEVEL && game.wallet ? game.wallet.balance : null,
     /** Coins from kudos waiting at the tree to be claimed (#157): not in the balance yet. */
-    waiting: p.level >= WALLET_LEVEL && game.wallet ? game.wallet.waiting : 0,
+    waiting: walletShown && p.level >= WALLET_LEVEL && game.wallet ? game.wallet.waiting : 0,
   };
-}
-
-/** A small disclosure menu in the top-right corner, closed by Escape or a click elsewhere. */
-function useMenu() {
-  const [open, setOpen] = useState(false);
-  const button = useRef<HTMLButtonElement>(null);
-  const panel = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    panel.current?.querySelector<HTMLElement>("a, button, select")?.focus();
-    const away = (e: PointerEvent) => {
-      if (!panel.current?.contains(e.target as Node) && !button.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("pointerdown", away);
-    return () => document.removeEventListener("pointerdown", away);
-  }, [open]);
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key !== "Escape") return;
-    e.stopPropagation();
-    setOpen(false);
-    button.current?.focus();
-  };
-  /** Tabbing out of the menu closes it. */
-  const onFocusOut = (e: React.FocusEvent) => {
-    const to = e.relatedTarget as Node | null;
-    if (to && !e.currentTarget.contains(to)) setOpen(false);
-  };
-  return { open, setOpen, button, panel, onKeyDown, onFocusOut };
-}
-
-function MenuPanel({ id, panel, children, className }: { id: string; panel: React.RefObject<HTMLDivElement | null>; children: ReactNode; className?: string }) {
-  return (
-    <div ref={panel} id={id} data-hud-menu className={clsx("pixel-frame absolute right-0 top-full z-10 mt-3 max-h-[calc(100dvh-88px)] w-72 max-w-[calc(100vw-24px)] overflow-y-auto p-2", className)}>
-      {children}
-    </div>
-  );
 }
 
 /**
@@ -129,7 +99,7 @@ function arrowKeys(menu: ReturnType<typeof useMenu>) {
   };
 }
 
-function PlacesMenu({ places, simulator }: { places: Place[]; simulator: ActiveSimulator | null }) {
+function PlacesMenu({ places, simulator, onOpen }: { places: Place[]; simulator: ActiveSimulator | null; onOpen: () => void }) {
   const menu = useMenu();
   const id = useId();
   const onArrows = arrowKeys(menu);
@@ -151,7 +121,10 @@ function PlacesMenu({ places, simulator }: { places: Place[]; simulator: ActiveS
         aria-label={waiting ? "Places (something waits for you)" : undefined}
         aria-expanded={menu.open}
         aria-controls={menu.open ? id : undefined}
-        onClick={() => menu.setOpen((o) => !o)}
+        onClick={() => {
+          if (!menu.open) onOpen();
+          menu.setOpen((o) => !o);
+        }}
         className="pixel-btn inline-flex h-10 items-center gap-2 px-3 font-display text-base font-medium"
       >
         <MapPin className="h-4 w-4" aria-hidden />
@@ -167,11 +140,13 @@ function PlacesMenu({ places, simulator }: { places: Place[]; simulator: ActiveS
                 <Link
                   to={p.to}
                   onClick={() => menu.setOpen(false)}
+                  data-dim={p.hint ? "" : undefined}
                   className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-parchment-deep focus-visible:bg-parchment-deep"
                 >
-                  <span>
+                  {/* A place the elder hog's chain hasn't reached is dim, with what opens it (#159); it still leads there. */}
+                  <span className={clsx(p.hint && "opacity-60")}>
                     <span className="block font-display text-base font-medium leading-6">{p.name}</span>
-                    <span className="block text-xs text-ink/75">{p.label}</span>
+                    <span className="block text-xs text-ink/75">{p.hint ?? p.label}</span>
                   </span>
                   {p.badge && (
                     <span className="pixel-chip shrink-0 bg-ember px-1.5 text-xs font-semibold text-ink">
@@ -419,6 +394,7 @@ function Caption({
       style={insetRight > 0 ? { right: insetRight } : undefined}
     >
       {clock && <div className="pointer-events-auto w-full">{clock}</div>}
+      <Checklist />
       {inSimulator ? (
         <p className="pointer-events-auto pixel-note max-w-full px-3 py-1.5 text-sm">
           <span className="mr-1.5 font-semibold text-soil">{simulator ? simulatorWhere(simulator) : "Simulator"}.</span>
@@ -468,7 +444,13 @@ function Caption({
  */
 export function Hud({ places, where, insetRight = 0, whereIs }: { places: Place[]; where: string; insetRight?: number; whereIs?: (spot: Spot) => string }) {
   const viewer = useViewer();
-  const game = hudGame(useQuery(api.game.mine, {}));
+  const tutorial = useTutorial();
+  const game = hudGame(useQuery(api.game.mine, {}), hudShows(tutorial?.step ?? null).wallet);
+  const advance = useAdvance();
+  // Step 4 of the elder hog's chain is looking round the Places list (#159).
+  const looked = () => {
+    if (tutorial?.current?.id === "look") advance("look").catch(() => undefined);
+  };
   const today = useWorkspaceToday();
   const banner = useQuery(api.boosts.banner, { today });
   const gameOn = viewer.workspace.gameEnabled === true && !viewer.member.gameHidden;
@@ -490,7 +472,7 @@ export function Hud({ places, where, insetRight = 0, whereIs }: { places: Place[
         </div>
         <div data-hud-top-right className="pointer-events-auto flex flex-col items-end gap-3">
           <div className="flex items-start gap-3">
-            <PlacesMenu places={places} simulator={simulator} />
+            <PlacesMenu places={places} simulator={simulator} onOpen={looked} />
             <SettingsMenu gameOn={gameOn} simulator={simulatorState} />
           </div>
           {whereIs && <OnlineList whereIs={whereIs} here={where} />}

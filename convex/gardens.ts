@@ -699,8 +699,7 @@ export async function pickFor(ctx: MutationCtx, workspace: Doc<"workspaces">, me
     coins: result.coins,
     fruit: result.fruit,
   });
-  await ctx.db.patch(player._id, { fruitCoins: (player.fruitCoins ?? 0) + result.coins });
-  await sendingGains(ctx, workspace, (gains) => addXp(ctx, player, result.xp, result.coins, gains));
+  await sendingGains(ctx, workspace, (gains) => addXp(ctx, player, result.xp, result.coins, gains, "fruitCoins"));
   return { coins: result.coins, xp: result.xp, fruit: result.fruit };
 }
 
