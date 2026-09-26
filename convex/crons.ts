@@ -14,4 +14,7 @@ crons.daily("reset demo workspace", { hourUTC: 2, minuteUTC: 17 }, internal.demo
 // Visitors' simulators (#143) last 7 days; stalled wipes start again.
 crons.interval("wipe expired simulators", { hours: 1 }, internal.simulator.wipeExpired, {});
 
+// Hogs gone from the shared world for 10 minutes (#155): at most 1,500 rows a run.
+crons.interval("sweep world presence", { minutes: 5 }, internal.presence.sweep, {});
+
 export default crons;

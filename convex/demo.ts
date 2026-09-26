@@ -1171,6 +1171,8 @@ const DEMO_TABLES = [
   "spreeJoins",
   "superKudos",
   "simulatorRuns",
+  "worldPresence",
+  "worldOnline",
   "notifications",
 ] as const;
 
@@ -1218,6 +1220,10 @@ async function demoRows(ctx: MutationCtx, workspaceId: Id<"workspaces">, table: 
       return await ctx.db.query("spreeJoins").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "superKudos":
       return await ctx.db.query("superKudos").withIndex("by_workspace_at", (q) => q.eq("workspaceId", workspaceId)).take(n);
+    case "worldPresence":
+      return await ctx.db.query("worldPresence").withIndex("by_workspace_updatedAt", (q) => q.eq("workspaceId", workspaceId)).take(n);
+    case "worldOnline":
+      return await ctx.db.query("worldOnline").withIndex("by_workspace_seenAt", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "simulatorRuns":
       return await ctx.db.query("simulatorRuns").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "notifications":

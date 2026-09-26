@@ -192,6 +192,21 @@ const PHASES: Phase[] = [
     rows: (ctx, m, n) => ctx.db.query("skillChanges").withIndex("by_member_at", (q) => q.eq("memberId", m._id)).take(n),
     clear: remove,
   },
+  // Their hogs in the shared world (#155), every session.
+  {
+    name: "worldPresence",
+    batch: 500,
+    rows: (ctx, m, n) =>
+      ctx.db.query("worldPresence").withIndex("by_workspace_member_session", (q) => q.eq("workspaceId", m.workspaceId).eq("memberId", m._id)).take(n),
+    clear: remove,
+  },
+  {
+    name: "worldOnline",
+    batch: 500,
+    rows: (ctx, m, n) =>
+      ctx.db.query("worldOnline").withIndex("by_workspace_member_session", (q) => q.eq("workspaceId", m.workspaceId).eq("memberId", m._id)).take(n),
+    clear: remove,
+  },
   {
     name: "players",
     batch: 10,

@@ -1,3 +1,4 @@
+import { getAuthSessionId } from "@convex-dev/auth/server";
 import { v, type Infer } from "convex/values";
 import { internalMutation, internalQuery, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -25,6 +26,7 @@ import {
 } from "./lib/xp";
 import { boostAt, type BoostKind } from "./lib/boosts";
 import { boostOn, boostsOf } from "./boosts";
+import { leaveWorld } from "./lib/world";
 
 /**
  * The game's foundation (#55 §G1, G3, G4): the workspace switch, players, the XP and Hog coin
@@ -755,8 +757,10 @@ export const setHidden = mutation({
   args: { hidden: v.boolean() },
   returns: v.null(),
   handler: async (ctx, { hidden }) => {
-    const { member } = await requireViewer(ctx);
+    const { member, workspace } = await requireViewer(ctx);
     await ctx.db.patch(member._id, { gameHidden: hidden || undefined });
+    // Hidden, they leave the shared world at once, not a minute later (#155).
+    if (hidden) await leaveWorld(ctx, workspace, member._id, (await getAuthSessionId(ctx)) ?? "");
     return null;
   },
 });
