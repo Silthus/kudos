@@ -396,6 +396,9 @@ export async function takeBackQuest(ctx: MutationCtx, event: Doc<"gameEvents">) 
   if (player) await addXp(ctx, player, -event.xp, -(event.coins ?? 0), undefined, -(event.coins ?? 0));
 }
 
+/** The event kinds a rebuild replays from the kudos rows and quest completions; it keeps every other kind. */
+const REPLAYED = new Set<Doc<"gameEvents">["kind"]>(["give", "receive", "quest"]);
+
 /** A member's history the rebuild reads, per direction. Beyond this, the oldest rows are replayed only. */
 const MAX_HISTORY_ROWS = 8000;
 
@@ -434,24 +437,20 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
   const first = given.find((k) => !pausedAt(workspace, k.at))?.at;
   const since = existing === null ? first : first === undefined ? existing.since : Math.min(existing.since, first);
 
-  // Fruit picked is the member's own doing, like their skills, and what a spree's tiers paid (#94)
-  // isn't derived from kudos rows either, nor is the level a simulator visitor joined at (#143), nor
-  // a claim at the tree or tree fruit sold (#157): all are kept as they are, never replayed.
-  type Written = { at: number; xp: number; coins: number };
-  const harvests: Written[] = [];
-  const sprees: Written[] = [];
-  const seeds: Written[] = [];
-  const sales: Written[] = [];
+  // Only give, receive and quest events follow from the kudos rows and are replayed. Everything else
+  // is the member's own doing and kept as it is: fruit picked, what a spree's tiers paid (#94), the
+  // level a simulator visitor joined at (#143), a claim at the tree and tree fruit sold (#157), the
+  // tutorial's pay (#159), and whatever a later system records.
+  type Written = { at: number; xp: number; coins: number; kind: Doc<"gameEvents">["kind"] };
+  const written: Written[] = [];
   for await (const e of ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", member._id))) {
-    if (e.kind === "harvest") harvests.push({ at: e.at, xp: e.xp, coins: e.coins ?? 0 });
-    else if (e.kind === "spree") sprees.push({ at: e.at, xp: e.xp, coins: e.coins ?? 0 });
-    else if (e.kind === "seed") seeds.push({ at: e.at, xp: e.xp, coins: e.coins ?? 0 });
-    else if (e.kind === "sale") sales.push({ at: e.at, xp: e.xp, coins: e.coins ?? 0 });
-    else if (e.kind !== "claim") await ctx.db.delete(e._id);
+    if (REPLAYED.has(e.kind)) await ctx.db.delete(e._id);
+    else written.push({ at: e.at, xp: e.xp, coins: e.coins ?? 0, kind: e.kind });
   }
   if (since === undefined) return;
-
-  const written: Written[] = [...harvests, ...sprees, ...seeds, ...sales];
+  const kept = (...kinds: Doc<"gameEvents">["kind"][]) => written.filter((w) => kinds.includes(w.kind)).reduce((s, w) => s + w.coins, 0) || undefined;
+  const fruitCoins = kept("harvest", "sale");
+  const spreeCoins = kept("spree");
   const unsungOn = workspace.receivedVisibility === "everyone";
   // XP history is the members' own kudos: pooled spree kudos (#94) never count as a thank-back or an earlier kudos.
   const own = (k: Doc<"kudos">) => k.source !== "spree";
@@ -493,7 +492,7 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
       earnedOn.set(dayKey, (earnedOn.get(dayKey) ?? 0) + xp);
       for (const l of lines) if (l.qualifying) qualifyingDays.set(l.receiverId, [...(qualifyingDays.get(l.receiverId) ?? []), dayKey]);
       await ctx.db.insert("gameEvents", { workspaceId: workspace._id, memberId: member._id, kind: "give", batchId, dayKey, at, xp, coins, lines });
-      written.push({ at, xp, coins: 0 }); // its coins are an offering: the wallet has them once claimed
+      written.push({ at, xp, coins: 0, kind: "give" }); // its coins are an offering: the wallet has them once claimed
     }
     if (source !== "spree") for (const row of rows) lastTo.set(row.receiverId, at);
   }
@@ -524,7 +523,7 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
       kudosId: row._id,
       giverId: row.giverId,
     });
-    written.push({ at: row.at, xp, coins: 0 });
+    written.push({ at: row.at, xp, coins: 0, kind: "receive" });
   }
 
   // Quests: the stored completions in time order, each paid where the replay had reached level 5
@@ -554,8 +553,6 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
   // Coins claimed at the tree stay as they are; the offerings' replay (offerings.ts `replayMember`, its
   // own transaction, scheduled by `rebuildMember`) moves them with the surviving history.
   const coins = written.reduce((s, w) => s + w.coins, 0) + questCoins + (existing?.claimedCoins ?? 0);
-  const fruitCoins = [...harvests, ...sales].reduce((s, w) => s + w.coins, 0) || undefined;
-  const spreeCoins = sprees.reduce((s, w) => s + w.coins, 0) || undefined;
   const ledger = { xp: total, level, since, coins, fruitCoins, questCoins, spreeCoins };
   if (existing) await ctx.db.patch(existing._id, ledger);
   else await ctx.db.insert("players", { workspaceId: workspace._id, memberId: member._id, ...ledger });

@@ -338,6 +338,10 @@ export default defineSchema({
     // The cosmetics they wear (#98, lib/cosmetics.ts): a cosmetic item key per slot, each one they bought.
     look: v.optional(v.object({ frame: v.optional(v.string()), banner: v.optional(v.string()), sticker: v.optional(v.string()) })),
     adminRemovedBy: v.optional(v.id("members")), // who last removed this member's admin role (four-eyes rule)
+    // The elder hog's chain (#159, convex/tutorial.ts, lib/tutorial.ts): when each step was done, in
+    // order (the step on is the next one), and how many have paid their 5 Hog coins. On the member,
+    // not the player: the chain starts before the first kudos makes them one. Undefined: step 1.
+    tutorial: v.optional(v.object({ completedAt: v.array(v.number()), paid: v.number() })),
   })
     .index("by_workspace_slackUser", ["workspaceId", "slackUserId"])
     .index("by_workspace_totalGiven", ["workspaceId", "totalGiven"])
@@ -621,6 +625,10 @@ export default defineSchema({
     // claim: offerings claimed at the tree (#157, offerings.ts), by the player or by time; the first one
     // is #159's "fed the tree". Carries no `coins` (its offerings hold them); kept by rebuilds.
     // sale: tree fruit sold at the stall (#157): its coins are part of `players.fruitCoins`; kept by rebuilds.
+    // tutorial: a step of the elder hog's chain paid its 5 coins (#159), keyed `tutorial:<member>:<step>`.
+    // expedition, home, crew, party: a member's first of each is a step of the chain (#159): a run into
+    // the ruins (#162), a branch plot bought (#160), a crew quest joined (#161), a party expedition (#163).
+    // Every kind but give, receive and quest is a member's own doing: rebuilds keep it as it is.
     kind: v.union(
       v.literal("give"),
       v.literal("receive"),
@@ -630,6 +638,11 @@ export default defineSchema({
       v.literal("seed"),
       v.literal("claim"),
       v.literal("sale"),
+      v.literal("tutorial"),
+      v.literal("expedition"),
+      v.literal("home"),
+      v.literal("crew"),
+      v.literal("party"),
     ),
     batchId: v.string(),
     dayKey: v.string(), // the kudos' workspace day: daily caps and same-day decay
