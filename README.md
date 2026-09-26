@@ -16,13 +16,15 @@ The web app is a small isometric pixel-art garden at dusk. You walk around it as
 | The elder oak | the skill tree | `/skills` |
 | The observatory | team analytics and the game's success metrics | `/analytics` |
 | The gatehouse | admin: settings, members, moderation, store, bonus days, Slack | `/admin` |
-| The sandbox | a Slack playground (demo only) | `/playground` |
+| The sandbox | a Slack playground and the simulator (demo only) | `/playground`, `/playground?tab=simulator` |
 
 Routes are still locations: a deep link from Slack opens the place's window with the hedgehog at its door, and a link inside a window walks you to its place first. The Places button (top right) lists every place for keyboard and screen-reader users, and the Motion switch in the settings menu (or the system's reduced-motion setting) moves the hedgehog without walking and stills the celebrations. The world, buildings and plants are drawn in code; the hedgehog sprite and PostHog's hoggies and Keyboard garden load at runtime (jsDelivr and posthog.com) and are never committed.
 
 Everything runs on one Convex deployment: the database, Slack's Events API webhooks (plain HTTPS, no Socket Mode), Sign in with Slack, and the static React app (`@convex-dev/static-hosting`).
 
 **Live:** https://valiant-monitor-701.convex.site (click "Explore the live demo" for a seeded sample workspace, played through a year of the game).
+
+**The simulator** (demo only): the sandbox's Simulator tab gives a demo visitor a private copy of the game, joined at any level from 1 to 25, with twelve teammates, an empty garden and its own clock. Give kudos in the Playground tab as usual, move the days on with Next day and Next week, or let a bot play up to 24 levels through the real engine (Simulate levels) and read the run's summary: days, kudos, quests, coins and days per level. It belongs to the visitor's sign-in session, never posts to Slack or touches the shared demo, and is wiped when they stop it or after 7 days (an hourly cron). Like the demo, it needs `DEMO_MODE=true`.
 
 `docs/screenshots/` holds screenshots of the earlier dashboard design, from before the garden world.
 
@@ -38,6 +40,7 @@ Everything runs on one Convex deployment: the database, Slack's Events API webho
 | `convex/game.ts`, `gardens.ts`, `items.ts`, `store.ts`, `quests.ts`, `life.ts` | The game: XP and coins, gardens, Store items, quests, the world's sprouts |
 | `convex/admin.ts` | Settings, admins, moderation (revoke) |
 | `convex/demo.ts` | Seeded demo workspace and the Slack playground |
+| `convex/simulator.ts`, `lib/time.ts` | The simulator: a visitor's private workspace, its bot, and the workspace clock (`workspaceNow`, used instead of `Date.now()`) |
 | `src/world/` | The garden world: map, places (`places/<id>.ts`), hedgehog, windows, HUD |
 | `src/` | React app (Vite, Tailwind v4, Motion); pages render inside place windows |
 
