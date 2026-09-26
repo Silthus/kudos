@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 import { TREE_STAGES, layout } from "../../../convex/lib/tree";
-import { hogsOf, labelsOf, signPoints } from "../paint";
+import { hogsOf, labelsOf, signPoints, spriteFoot, treeBox, treeDepth } from "../paint";
+import { mapHeight, mapWidth } from "../pixels";
 import { PLACES } from "../places";
 import { tileCentre } from "../iso";
 import { buildWorld } from "../world";
@@ -46,4 +47,22 @@ test.each([3, 2])("no sign or label covers a door or another sign, on any tree, 
       }
     }
   expect([...clashes]).toEqual([]);
+});
+
+test("the tree never hides a place: nothing standing behind the trunk is under the tree's sprite, on any tree at any stage", () => {
+  const hidden: string[] = [];
+  for (const seed of SEEDS)
+    for (const stage of TREE_STAGES) {
+      const w = buildWorld({ seed, layout: layout(seed, stage.growth), planted: true, standing: PLACES.map((p) => p.id) });
+      const tree = treeBox(w)!;
+      for (const p of w.places) {
+        const { x, y, w: fw, h: fh } = p.footprint;
+        const depth = p.spriteAt ? p.spriteAt.x + p.spriteAt.y : x + fw - 1 + y + fh - 1;
+        if (depth >= treeDepth(w)) continue;
+        const foot = spriteFoot(p);
+        const box = { x0: foot.x - mapWidth(p.sprite) / 2, x1: foot.x + mapWidth(p.sprite) / 2, y0: foot.y - mapHeight(p.sprite), y1: foot.y };
+        if (overlaps(box, { x0: tree.x, x1: tree.x + tree.width, y0: tree.y, y1: tree.y + tree.height })) hidden.push(`${seed} ${stage.id}: ${p.name}`);
+      }
+    }
+  expect(hidden).toEqual([]);
 });

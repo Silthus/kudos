@@ -20,6 +20,12 @@ import type { Site, World } from "./world";
  * ground layer for the chunks now in view.
  */
 
+/**
+ * The world's stacking order: the ground, what stands behind the tree, the hedgehog when it's behind
+ * the trunk (`Z.hogBehind`), the tree, what stands in front of it, the hedgehog in front, then names.
+ */
+export const Z = { ground: 0, behind: 10, hogBehind: 15, tree: 20, front: 30, hogFront: 40, labels: 50 } as const;
+
 export type WorldCanvasHandle = {
   /** The camera's view moved: `view` in art pixels. */
   show: (view: ArtRect) => void;
@@ -65,7 +71,7 @@ function SeedMoment({ world, scale, onDone }: { world: World; scale: number; onD
       width={mapWidth(m)}
       height={mapHeight(m)}
       className="pixels pointer-events-none absolute"
-      style={{ left: (foot.x - mapWidth(m) / 2) * scale, top: (foot.y - mapHeight(m) + 1) * scale, width: mapWidth(m) * scale, height: mapHeight(m) * scale }}
+      style={{ zIndex: Z.tree, left: (foot.x - mapWidth(m) / 2) * scale, top: (foot.y - mapHeight(m) + 1) * scale, width: mapWidth(m) * scale, height: mapHeight(m) * scale }}
     />
   );
 }
@@ -106,6 +112,8 @@ export function WorldCanvas({
   const groundHost = useRef<HTMLDivElement>(null);
   const layer = useRef<GroundLayer | null>(null);
   const town = useRef<HTMLCanvasElement>(null);
+  const treeCanvas = useRef<HTMLCanvasElement>(null);
+  const frontCanvas = useRef<HTMLCanvasElement>(null);
   const freshCanvas = useRef<HTMLCanvasElement>(null);
   const lastView = useRef<ArtRect | null>(null);
 
@@ -137,16 +145,19 @@ export function WorldCanvas({
   const rect = standingRect(world, furniture);
   useEffect(() => {
     if (!ready) return;
-    for (const [canvas, what, extra] of [
-      [town.current, settled, { tree: !seedMoment }],
-      [freshCanvas.current, opening, { tree: false }],
+    // Behind the trunk, the tree, in front of it (the hedgehog goes between as it walks), and what just opened.
+    for (const [canvas, what, layer] of [
+      [town.current, settled, "behind"],
+      [treeCanvas.current, settled, seedMoment ? null : "tree"],
+      [frontCanvas.current, settled, "front"],
+      [freshCanvas.current, opening, "all"],
     ] as const) {
       // The terrace's plants belong to the layer the terrace is on.
       const plants = what === settled ? (fresh.includes("terrace") ? { beds: [], plots: [] } : furniture) : fresh.includes("terrace") ? furniture : { beds: [], plots: [] };
       const ctx = canvas?.getContext("2d");
       if (!ctx) continue;
       const img = ctx.createImageData(rect.width, rect.height);
-      paintStanding(img, rect, what as World, plants, extra);
+      if (layer) paintStanding(img, rect, what as World, plants, layer);
       ctx.putImageData(img, 0, 0);
     }
     // Painted from `standKey`: the objects themselves are new on every render.
@@ -161,8 +172,10 @@ export function WorldCanvas({
   const elderAt = elder && tileCentre(elder.tile);
   return (
     <>
-      <div ref={groundHost} aria-hidden data-ground className="absolute left-0 top-0 isolate" />
-      <canvas ref={town} width={rect.width} height={rect.height} aria-hidden data-world className="pixels absolute" style={box} />
+      <div ref={groundHost} aria-hidden data-ground className="absolute left-0 top-0 isolate" style={{ zIndex: Z.ground }} />
+      <canvas ref={town} width={rect.width} height={rect.height} aria-hidden data-world className="pixels absolute" style={{ ...box, zIndex: Z.behind }} />
+      <canvas ref={treeCanvas} width={rect.width} height={rect.height} aria-hidden data-tree className="pixels absolute" style={{ ...box, zIndex: Z.tree }} />
+      <canvas ref={frontCanvas} width={rect.width} height={rect.height} aria-hidden data-front className="pixels absolute" style={{ ...box, zIndex: Z.front }} />
       <canvas
         // A new opening is a new canvas, so it fades in even right after another.
         key={freshKey}
@@ -172,14 +185,14 @@ export function WorldCanvas({
         aria-hidden
         data-fresh={freshKey || undefined}
         className={clsx("pixels absolute", freshKey && !still && "animate-[district-open_900ms_ease-out_both]")}
-        style={box}
+        style={{ ...box, zIndex: Z.front }}
       />
       {seedMoment && <SeedMoment world={world} scale={scale} onDone={() => onSeedMomentDone?.()} />}
       {elderAt && (
         <>
           {/* PostHog's hedgehog, silvered with age: a placeholder until the tutorial lane (#159) gives the elder its words. */}
 
-          <div aria-hidden data-elder className="pointer-events-none absolute" style={{ left: elderAt.x * scale - HOG_SIZE / 2, top: (elderAt.y + 4) * scale - HOG_FEET }}>
+          <div aria-hidden data-elder className="pointer-events-none absolute" style={{ zIndex: Z.front, left: elderAt.x * scale - HOG_SIZE / 2, top: (elderAt.y + 4) * scale - HOG_FEET }}>
             <HogFrame className="-scale-x-100 [filter:grayscale(0.85)_brightness(1.15)]" />
           </div>
 
@@ -196,7 +209,7 @@ export function WorldCanvas({
             onPointerUp={(e) => e.stopPropagation()}
             onClick={() => onPlace(p)}
             className="pixel-sign absolute flex cursor-pointer items-center gap-1.5 whitespace-nowrap px-2 py-0.5 font-display text-sm font-medium leading-5"
-            style={{ left: at.x * scale, top: at.y * scale, transform: "translate(-50%, -100%)" }}
+            style={{ zIndex: Z.labels, left: at.x * scale, top: at.y * scale, transform: "translate(-50%, -100%)" }}
           >
             {p.name}
             {p.badge && <span className="bg-ember px-1 font-sans text-xs font-bold text-ink">{p.badge.count > 99 ? "99+" : p.badge.count}</span>}
@@ -221,7 +234,7 @@ export function WorldCanvas({
               "pixel-sign absolute whitespace-nowrap px-2 py-0.5 font-display text-xs font-medium leading-4",
               closed ? "cursor-pointer opacity-60" : "pointer-events-none",
             )}
-            style={{ left: at.x * scale, top: at.y * scale, transform: "translate(-50%, -100%)" }}
+            style={{ zIndex: Z.labels, left: at.x * scale, top: at.y * scale, transform: "translate(-50%, -100%)" }}
           >
             {l.name}
           </div>

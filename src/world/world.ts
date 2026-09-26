@@ -85,6 +85,8 @@ export type World = Grid & {
   /** The home plots, numbered as the layout numbers them; a gap where a district stands on the plot. */
   homes: (Tile | null)[];
   decor: Decor[];
+  /** Pools of warm light on the ground (tile centres and radii): under the tree, round each lantern and each open place. */
+  lights: { x: number; y: number; r: number }[];
   /** How far the tree's lawn reaches from the trunk. */
   lawnRadius: number;
   /** Rings past the world tree. */
@@ -203,12 +205,15 @@ export function settle(layout: Layout): Settled[] {
 
 /**
  * The tiles the canopy stands over on screen, at its biggest (the world tree with its rings): up and
- * behind the trunk. No district settles there, so the tree never hides a place, and a place never
+ * behind the trunk, and beside it as far forward as the trunk's front, where the lowest tier droops. No district settles there, so the tree never hides a place, and a place never
  * moves as the canopy grows.
  */
 export function underCanopy(x: number, y: number) {
-  return Math.abs(x - y) <= 13 && x + y <= -3 && x + y >= -62;
+  // Down to the trunk's front corner: a tall building beside the trunk would stand behind the low tier's droop.
+  return Math.abs(x - y) <= CANOPY.half && x + y <= CANOPY.front && x + y >= -CANOPY.back;
 }
+/** The canopy's reach at its biggest, in tiles: sideways (|x − y|) and back up the screen (−(x + y)). `world.test.ts` holds the sprite to it. */
+export const CANOPY = { half: 21, back: 64, front: 4 };
 
 const tileKey = (x: number, y: number) => (x + 65536) * 131072 + (y + 65536);
 
@@ -261,17 +266,24 @@ export function buildWorld({ seed, layout, planted, standing }: WorldInput): Wor
   // Place-less districts that are open stand as a marker (the later lanes build them); closed ones are outlines.
   for (const s of sites) {
     if (s.id === "base_camp") continue;
-    if (s.open && !s.places.length) {
-      blocked.add(tileKey(s.at.x, s.at.y));
-      patches.push(grow(s.claim, 1));
-    }
-    if (!s.open) for (let y = s.outline.y0; y <= s.outline.y1; y++) for (let x = s.outline.x0; x <= s.outline.x1; x++) outlines.set(tileKey(x, y), "closed");
+    // A lone marker stands on the sand: no patch of lawn under it.
+    if (s.open && !s.places.length) blocked.add(tileKey(s.at.x, s.at.y));
+    // A closed district is a level pad of dry sand with its footprint dashed round it: something will stand here.
+    if (!s.open)
+      for (let y = s.outline.y0; y <= s.outline.y1; y++)
+        for (let x = s.outline.x0; x <= s.outline.x1; x++) {
+          outlines.set(tileKey(x, y), "closed");
+          if (!overlay.has(tileKey(x, y))) overlay.set(tileKey(x, y), "sand");
+        }
   }
 
   const rings = layout.rings;
   const lawnRadius = planted ? lawnRadiusFor(stage, rings) : 0;
+  // The tree's lawn, and a patch under each place, frayed at its edge: a ring of tiles round each
+  // patch is grass or sand by the seed, and corners mostly sand.
   const lawnAt = (x: number, y: number) =>
-    (planted && Math.hypot(x, y) + (noise(seed, x, y, 51) - 0.5) * 1.6 <= lawnRadius) || patches.some((r) => inRect(r, x, y) && (noise(seed, x, y, 52) > 0.12 || !isCorner(r, x, y)));
+    (planted && Math.hypot(x, y) + (noise(seed, x, y, 51) - 0.5) * 1.6 <= lawnRadius) ||
+    patches.some((r) => (inRect(r, x, y) ? noise(seed, x, y, 52) > (isCorner(r, x, y) ? 0.6 : 0.08) : inRect(grow(r, 1), x, y) && noise(seed, x, y, 54) > 0.62));
   // The ground under the overlay, worked out once a tile: walks and painting ask for it again and again.
   const ground = new Map<number, Terrain>();
   const groundAt = (x: number, y: number): Terrain => {
@@ -295,10 +307,11 @@ export function buildWorld({ seed, layout, planted, standing }: WorldInput): Wor
       const t = baseTerrain(x, y);
       return t !== "fence" && t !== "bed" && t !== "water";
     },
+    // Paths prefer each other, avoid outlines, and wander a little by the seed, so none is a ruled line.
     cost: (x, y) => {
       const t = overlay.get(tileKey(x, y));
       if (t === "path" || t === "gate") return 1;
-      return outlines.has(tileKey(x, y)) ? 6 : 3;
+      return outlines.has(tileKey(x, y)) ? 6 : 3 + Math.floor(valueNoise2(seed, x, y) * 4);
     },
   };
   const lay = (walk: Tile[] | null) => {
@@ -349,6 +362,13 @@ export function buildWorld({ seed, layout, planted, standing }: WorldInput): Wor
       } else if (!byPath && r > 0.86) decor.push({ kind: "flowers", tile: { x, y } });
     }
 
+  // Pools of light: under the tree, round each lantern post, and in front of each open place.
+  const lights = [
+    ...(planted ? [{ x: 0, y: 0, r: Math.max(3, lawnRadius * 0.75) + 1 }] : []),
+    ...decor.filter((d) => d.kind === "lantern").map((d) => ({ x: d.tile.x, y: d.tile.y, r: 2.2 })),
+    ...places.map((p) => ({ x: p.doors[0].x, y: p.doors[0].y, r: 2.6 })),
+  ];
+
   const terrainAt = baseTerrain;
   return {
     seed,
@@ -373,9 +393,22 @@ export function buildWorld({ seed, layout, planted, standing }: WorldInput): Wor
     ruins,
     homes,
     decor,
+    lights,
     lawnRadius,
     rings,
   };
+}
+
+/** A smooth, seeded field in [0, 1) over the town (4-tile cells), for paths to wander by. */
+function valueNoise2(seed: number, x: number, y: number) {
+  const gx = Math.floor(x / 4);
+  const gy = Math.floor(y / 4);
+  const fx = x / 4 - gx;
+  const fy = y / 4 - gy;
+  const n = (i: number, j: number) => noise(seed, gx + i, gy + j, 55);
+  const a = n(0, 0) + (n(1, 0) - n(0, 0)) * fx;
+  const b = n(0, 1) + (n(1, 1) - n(0, 1)) * fx;
+  return a + (b - a) * fy;
 }
 
 const isCorner = (r: Rect, x: number, y: number) => (x === r.x0 || x === r.x1) && (y === r.y0 || y === r.y1);

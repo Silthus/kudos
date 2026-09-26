@@ -751,4 +751,18 @@ describe("the tree's districts (#156)", () => {
     expect(host.querySelector("[data-closed-sign]")).toBeNull();
     expect([...host.querySelectorAll("[data-label]")].map((l) => l.getAttribute("data-label"))).toEqual(["elder"]);
   });
+
+  test("the hedgehog walks behind the trunk: back there the tree is drawn over it, in front the other way round (#156 verdict)", () => {
+    defaults = { "tree:state": treeAt(3000) };
+    open("/");
+    const hogEl = () => host.querySelector<HTMLElement>("canvas[data-hog]")!.closest<HTMLElement>("[data-behind-tree]")!;
+    expect(hogEl().dataset.behindTree).toBe("false");
+    const tree = Number(host.querySelector<HTMLElement>("canvas[data-tree]")!.style.zIndex);
+    expect(Number(hogEl().style.zIndex)).toBeGreaterThan(tree);
+    // Round the trunk to its far side: up (-y) past it, then left (-x) behind it.
+    for (let i = 0; i < 10; i++) press("ArrowUp"), walkFor(200);
+    for (let i = 0; i < 10; i++) press("ArrowLeft"), walkFor(200);
+    expect(hogEl().dataset.behindTree).toBe("true");
+    expect(Number(hogEl().style.zIndex)).toBeLessThan(tree);
+  });
 });

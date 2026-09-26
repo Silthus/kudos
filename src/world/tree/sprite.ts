@@ -1,5 +1,5 @@
 import { fnv1a, mulberry32 } from "../../../convex/lib/random";
-import { stageIndex, type TreeStageId } from "../../../convex/lib/tree";
+import type { TreeStageId } from "../../../convex/lib/tree";
 import { PixelCanvas, type PixelMap } from "../pixels";
 
 /**
@@ -9,25 +9,18 @@ import { PixelCanvas, type PixelMap } from "../pixels";
  * the branches fork, where the lanterns hang.
  *
  * A seed is a glowing kernel half-buried in the sand; a sprout two leaves; a sapling a thin stem with
- * a few tufts. From the young tree on it's a real tree: roots gripping the sand, a trunk lit on its
- * left in bark-light with a seam of sap running up it, branches forking into a canopy of lit and
- * shaded leaf clusters, and lanterns hanging from its lower edge, more at every stage. Past the world
- * tree each ring makes it a little taller and hangs more lanterns.
+ * a few tufts; a young tree one round canopy on a slim trunk. From the grown tree on it is the
+ * Ancient Tree (`ancientTree`): buttress roots, a trunk three tiles wide at elder, a canopy in tiers
+ * over its great limbs, lanterns glowing under every tier. Past the world tree each ring makes it a
+ * little bigger.
  *
  * The sprite stands with its bottom centre on the trunk's front corner.
  */
 
 type Params = { w: number; h: number; trunkH: number; trunkW: number; canopy: number; clusters: number; lanterns: number; sap: number; roots: number };
 
-/** From the young tree up: size, trunk, canopy radius, clusters of leaves, lanterns and sap-lit specks. */
-const TREES: Partial<Record<TreeStageId, Params>> = {
-  young: { w: 74, h: 96, trunkH: 34, trunkW: 9, canopy: 27, clusters: 11, lanterns: 3, sap: 6, roots: 4 },
-  grown: { w: 104, h: 132, trunkH: 46, trunkW: 12, canopy: 38, clusters: 16, lanterns: 5, sap: 10, roots: 6 },
-  great: { w: 128, h: 156, trunkH: 56, trunkW: 14, canopy: 46, clusters: 20, lanterns: 7, sap: 16, roots: 6 },
-  ancient: { w: 152, h: 182, trunkH: 64, trunkW: 17, canopy: 55, clusters: 25, lanterns: 10, sap: 22, roots: 8 },
-  elder: { w: 176, h: 206, trunkH: 72, trunkW: 19, canopy: 63, clusters: 30, lanterns: 12, sap: 28, roots: 8 },
-  world_tree: { w: 210, h: 244, trunkH: 84, trunkW: 23, canopy: 76, clusters: 38, lanterns: 16, sap: 38, roots: 10 },
-};
+/** The young tree: size, trunk, canopy radius, clusters of leaves, lanterns and sap-lit specks. */
+const YOUNG: Params = { w: 74, h: 96, trunkH: 34, trunkW: 9, canopy: 27, clusters: 11, lanterns: 3, sap: 6, roots: 4 };
 
 /** A mound of sand the seed and the sprout sit in, its crest lit, its front in shade. */
 function mound(c: PixelCanvas, cx: number, base: number, rx: number, ry: number) {
@@ -111,7 +104,8 @@ function sapling(rand: () => number): PixelMap {
   return c.outline().map();
 }
 
-function fullTree(p: Params, rand: () => number, rings: number): PixelMap {
+/** The young tree: one round canopy on a slim trunk, a lantern or three. */
+function youngTree(p: Params, rand: () => number, rings: number): PixelMap {
   const grow = 1 + Math.min(4, rings) * 0.06;
   const w = Math.round(p.w * grow);
   const h = Math.round(p.h * grow);
@@ -213,6 +207,165 @@ function fullTree(p: Params, rand: () => number, rings: number): PixelMap {
   return c.outline().map();
 }
 
+/**
+ * The Ancient Tree from the grown stage up: a trunk three tiles wide at elder, flared into buttress
+ * roots that run off into the ground, its bark lit in bark-light down the left and shaded in
+ * dusk-deep down the right, a vein of sap glowing up it and out along the roots. Great limbs fork
+ * from its crown into a canopy of two or three tiers, the limbs showing in the gaps between them;
+ * the lowest tier spreads widest and droops at its flanks over base camp. Lanterns hang under each
+ * tier and light the leaves round them.
+ */
+type Ancient = { trunkW: number; trunkH: number; spread: number; tiers: number; lanterns: number; roots: number; sap: number };
+
+const ANCIENT: Partial<Record<TreeStageId, Ancient>> = {
+  grown: { trunkW: 30, trunkH: 44, spread: 64, tiers: 2, lanterns: 6, roots: 6, sap: 14 },
+  great: { trunkW: 36, trunkH: 50, spread: 80, tiers: 2, lanterns: 9, roots: 8, sap: 20 },
+  ancient: { trunkW: 42, trunkH: 56, spread: 96, tiers: 3, lanterns: 12, roots: 8, sap: 28 },
+  elder: { trunkW: 50, trunkH: 62, spread: 112, tiers: 3, lanterns: 16, roots: 10, sap: 36 },
+  world_tree: { trunkW: 58, trunkH: 70, spread: 128, tiers: 3, lanterns: 20, roots: 12, sap: 46 },
+};
+
+/** A glowing lantern hung on a string from (x, y): its light warms the leaves round it. */
+function lantern(c: PixelCanvas, x: number, y: number, drop: number) {
+  for (let j = -5; j <= 5; j++)
+    for (let i = -5; i <= 5; i++) {
+      const d = Math.hypot(i, j * 1.2);
+      if (d > 5 || (i + j) % 2 !== 0) continue;
+      const under = c.get(x + i, y + drop + 3 + j);
+      if (under === "G" || under === "g" || under === "k") c.set(x + i, y + drop + 3 + j, d < 3 ? "l" : "u");
+    }
+  c.rect(x, y, 1, drop, "b");
+  c.rect(x - 1, y + drop, 3, 1, "b").rect(x - 1, y + drop + 1, 3, 4, "l").rect(x, y + drop + 2, 1, 2, "c").rect(x - 1, y + drop + 5, 3, 1, "E");
+}
+
+function ancientTree(p: Ancient, rand: () => number, rings: number): PixelMap {
+  const grow = 1 + Math.min(4, rings) * 0.06;
+  const spread = Math.round(p.spread * grow);
+  const trunkW = p.trunkW * grow;
+  const trunkH = p.trunkH * grow;
+  const tierGap = 44 * grow;
+  const w = spread * 2 + 24;
+  const h = Math.round(trunkH + (p.tiers - 1) * tierGap + 40 * grow);
+  const c = new PixelCanvas(w, h);
+  const cx = w / 2;
+  const base = h - 6;
+  const top = base - trunkH;
+  const phase = rand() * Math.PI * 2;
+  const lean = (rand() - 0.5) * trunkW * 0.3;
+  const centre = (t: number) => cx + lean * t + Math.sin(t * Math.PI + phase) * trunkW * 0.06;
+  const widthAt = (t: number) => trunkW * (0.62 - 0.12 * t) + trunkW * 0.75 * (1 - t) ** 4;
+
+  // Roots: thick at the trunk, running off along the ground both ways and sinking into it.
+  const sapRoots: { x: number; y: number }[] = [];
+  for (let i = 0; i < p.roots; i++) {
+    const side = i % 2 ? 1 : -1;
+    const reach = trunkW * (0.9 + rand() * 1.0);
+    const x0 = cx + side * trunkW * (0.15 + rand() * 0.3);
+    const y0 = base - 3 - rand() * 4;
+    const drop = 0.35 + rand() * 0.25;
+    for (let s = 0; s <= reach; s++) {
+      const t = s / reach;
+      const th = Math.max(1, Math.round((1 - t) * (4 + trunkW * 0.08)));
+      const x = Math.round(x0 + side * s);
+      const y = Math.round(y0 + s * drop + Math.sin(s * 0.3 + i) * 0.8);
+      for (let j = 0; j < th; j++) c.set(x, y - j, j === th - 1 ? "B" : j === 0 ? "b" : "s");
+      if (i < 4 && s % 3 === 0 && t < 0.8) sapRoots.push({ x, y: y - Math.floor(th / 2) });
+    }
+  }
+
+  // The trunk: flared at its foot, lit in bark-light on the left, dusk-deep in its fissures on the right.
+  for (let y = Math.floor(top - 4); y <= base; y++) {
+    const t = Math.max(0, (base - y) / trunkH);
+    const width = widthAt(Math.min(1, t));
+    const mid = centre(Math.min(1, t));
+    for (let x = Math.floor(mid - width / 2); x <= mid + width / 2; x++) {
+      const rel = (x + 0.5 - mid) / (width / 2);
+      let colour = rel < -0.55 ? "B" : rel < -0.1 ? "s" : rel < 0.55 ? "b" : "k";
+      // Fissures: dark seams running up the bark, wavering.
+      const seam = Math.round((x - mid) / 4 + Math.sin(y * 0.18 + x) * 0.6);
+      if (Math.abs((x - mid) / 4 - seam) < 0.18 && rel > -0.9 && rel < 0.9) colour = colour === "B" ? "s" : "k";
+      c.set(x, y, colour);
+    }
+  }
+  // Knots and a hollow in the flare.
+  const hollow = { x: Math.round(centre(0.15) + trunkW * 0.12), y: Math.round(base - trunkH * 0.18) };
+  c.rect(hollow.x - 2, hollow.y - 4, 5, 6, "k").rect(hollow.x - 1, hollow.y - 5, 3, 1, "k");
+  c.rect(Math.round(centre(0.55) - trunkW * 0.1), Math.round(base - trunkH * 0.55), 3, 3, "k");
+
+  // The tiers: the lowest widest and lowest-hanging, each higher one narrower, with open air between
+  // them where the great limbs show.
+  const tierY = (k: number) => top - 6 - k * tierGap;
+  const halfOf = (k: number) => spread * (1 - k * 0.27);
+  const crown = { x: centre(1), y: top };
+
+  // A leader carries on up the middle to the top tier; great limbs fork out and up to each tier.
+  limb(c, crown.x, crown.y + 2, -Math.PI / 2, top - tierY(p.tiers - 1) + 6, trunkW * 0.42);
+  for (let k = 0; k < p.tiers; k++) {
+    const half = halfOf(k);
+    for (const side of [-1, 1]) {
+      const from = { x: crown.x + side * trunkW * 0.15, y: crown.y + 4 - k * tierGap * 0.55 };
+      const to = { x: crown.x + side * half * (0.55 + rand() * 0.15), y: tierY(k) + 2 };
+      const angle = Math.atan2(to.y - from.y, to.x - from.x);
+      const end = limb(c, from.x, from.y, angle, Math.hypot(to.x - from.x, to.y - from.y), trunkW * (0.34 - k * 0.07));
+      // A fork near the end, and a twig.
+      limb(c, end.x - side * 6, end.y + 2, angle + side * 0.5, half * 0.25, trunkW * 0.12);
+      limb(c, from.x + (end.x - from.x) * 0.55, from.y + (end.y - from.y) * 0.55, angle - side * 0.6, half * 0.18, trunkW * 0.1);
+    }
+  }
+
+  // The sap vein: winding up the lit side of the trunk, out along the roots, sparking here and there.
+  for (let y = Math.floor(top + 4); y <= base - 2; y++) {
+    const t = (base - y) / trunkH;
+    const x = Math.round(centre(t) - widthAt(t) * 0.18 + Math.sin(y * 0.22 + phase) * 2);
+    c.set(x, y, "y");
+    if (y % 9 === 0) c.set(x + 1, y, "c");
+  }
+  for (const r of sapRoots) if (c.get(r.x, r.y) !== ".") c.set(r.x, r.y, "y");
+
+  // Each tier: a flat spread of clumps, the front row drooping at the flanks (most on the lowest
+  // tier, over base camp), a few clumps on top in the middle to round it.
+  for (let k = p.tiers - 1; k >= 0; k--) {
+    const half = halfOf(k);
+    const r = (12 - k * 1.5) * grow;
+    const count = Math.max(4, Math.round((half * 2) / (r * 1.25)));
+    const clumps: { x: number; y: number; r: number }[] = [];
+    for (let i = 0; i <= count; i++) {
+      const u = i / count - 0.5;
+      const droop = (k === 0 ? 22 : 8) * grow * Math.abs(u * 2) ** 1.7;
+      clumps.push({ x: crown.x + u * 2 * (half - r * 0.7) + (rand() - 0.5) * r * 0.4, y: tierY(k) + droop + (rand() - 0.5) * 3, r: r * (0.9 + rand() * 0.25) });
+      if (Math.abs(u) < 0.36) clumps.push({ x: crown.x + u * 2 * (half - r) * 0.9 + (rand() - 0.5) * r, y: tierY(k) - r * 0.75 + (rand() - 0.5) * 3, r: r * (0.8 + rand() * 0.2) });
+    }
+    clumps.sort((a, b) => a.y - b.y);
+    clumps.forEach((q, i) => blob(c, q.x, q.y, q.r, rand, k * 1009 + i * 7919));
+  }
+
+  // Specks of sap among the leaves.
+  for (let i = 0; i < p.sap; i++) {
+    const k = Math.floor(rand() * p.tiers);
+    const x = Math.round(crown.x + (rand() - 0.5) * halfOf(k) * 1.8);
+    const y = Math.round(tierY(k) + (rand() - 0.5) * 14);
+    if (["g", "G", "u"].includes(c.get(x, y))) c.set(x, y, rand() < 0.3 ? "c" : "y");
+  }
+
+  // Lanterns hung under each tier, spread across it, the most under the lowest.
+  let lit = 0;
+  for (let k = 0; k < p.tiers; k++) {
+    const count = k === 0 ? Math.ceil(p.lanterns * 0.5) : Math.floor((p.lanterns * 0.5) / (p.tiers - 1));
+    const half = halfOf(k);
+    for (let i = 0; i < count && lit < p.lanterns; i++) {
+      const x = Math.round(crown.x + ((i + 0.5) / count - 0.5) * 2 * half * 0.86 + (rand() - 0.5) * 4);
+      if (Math.abs(x - crown.x) < trunkW * 0.5) continue;
+      // The tier's underside above the lantern: the lowest leaf in this column near the tier.
+      let y = Math.round(tierY(k) + 34 * grow);
+      while (y > tierY(k) - 10 && !["g", "G", "u", "k"].includes(c.get(x, y))) y--;
+      if (y <= tierY(k) - 10) continue;
+      lantern(c, x, y + 1, 2 + Math.floor(rand() * 4));
+      lit++;
+    }
+  }
+  return c.outline().map();
+}
+
 const cache = new Map<string, PixelMap>();
 
 /** The tree at a stage for a workspace's seed, with its rings past the world tree. */
@@ -221,8 +374,17 @@ export function treeSprite(stage: TreeStageId, worldSeed: number, rings = 0): Pi
   const hit = cache.get(key);
   if (hit) return hit;
   const rand = mulberry32(fnv1a(`tree-art:${worldSeed >>> 0}:${stage}`));
-  const params = TREES[stage];
-  const sprite = stage === "seed" ? seed() : stage === "sprout" ? sprout() : stage === "sapling" ? sapling(rand) : fullTree(params!, rand, stageIndex(stage) === 8 ? rings : 0);
+  const ancient = ANCIENT[stage];
+  const sprite =
+    stage === "seed"
+      ? seed()
+      : stage === "sprout"
+        ? sprout()
+        : stage === "sapling"
+          ? sapling(rand)
+          : ancient
+            ? ancientTree(ancient, rand, stage === "world_tree" ? rings : 0)
+            : youngTree(YOUNG, rand, 0);
   cache.set(key, sprite);
   return sprite;
 }

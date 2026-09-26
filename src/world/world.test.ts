@@ -3,7 +3,9 @@ import { DISTRICT_BY_ID, TREE_STAGES, layout, type Layout } from "../../convex/l
 import { findPath, sameTile, type Tile } from "./iso";
 import { PLACES } from "./places";
 import { BEDS, PLOTS } from "./places/garden";
-import { buildWorld, inRect, settle, underCanopy, type World } from "./world";
+import { mapHeight, mapWidth } from "./pixels";
+import { treeSprite } from "./tree/sprite";
+import { CANOPY, buildWorld, inRect, settle, underCanopy, type World } from "./world";
 
 /**
  * The world on the tree (#156): the desert with the tree at the origin, and the districts the
@@ -149,6 +151,13 @@ describe("the home plots (for #160)", () => {
 });
 
 describe("the tree and base camp", () => {
+  test("the biggest tree there can be (the world tree with four rings) stays inside the canopy's reach that districts keep clear of", () => {
+    const tree = treeSprite("world_tree", 12345, 4);
+    const foot = 24; // the trunk's front corner at the world tree: tile (2, 2)'s bottom
+    expect(mapWidth(tree) / 2).toBeLessThanOrEqual(CANOPY.half * 8 + 8);
+    expect(mapHeight(tree) - foot).toBeLessThanOrEqual(CANOPY.back * 4);
+  });
+
   test("the tree stands at the origin, in the way; before the seed is planted there's no tree, only base camp", () => {
     const w = world(9, 400);
     expect(w.walkable(0, 0)).toBe(false);

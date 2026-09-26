@@ -17,7 +17,7 @@ import { Hud } from "./Hud";
 import { Life } from "./Life";
 import { arrivalFor, skyFor, withSprout } from "./life";
 import { findPath, sameTile, stepFor, tileAt, tileCentre, type Point, type Tile } from "./iso";
-import { siteName, spriteFoot, tileOnCanvas, treeBox, treeHeight } from "./paint";
+import { behindTree, siteName, spriteFoot, tileOnCanvas, treeBox, treeHeight } from "./paint";
 import { placeForPath, placesOnMap, routablePlaces, visiblePlaces, type Place } from "./places";
 import { Sky } from "./Sky";
 import { mapHeight, mapWidth } from "./pixels";
@@ -26,7 +26,7 @@ import { closedLine, treeInput, treeMoments, treeToasts, type TreeState } from "
 import { Window } from "./Window";
 import { layout } from "../../convex/lib/tree";
 import { BASE_CAMP, buildWorld, inRect, type Site, type World } from "./world";
-import { WorldCanvas, type WorldCanvasHandle } from "./WorldCanvas";
+import { WorldCanvas, Z, type WorldCanvasHandle } from "./WorldCanvas";
 
 /**
  * The signed-in app (#126, #128): the world, the hedgehog, the HUD, and one window at a time. The
@@ -255,7 +255,13 @@ export function WorldShell() {
     const w = walker.current;
     w.pos = p;
     const s = live.current.scale;
-    if (hogEl.current) hogEl.current.style.transform = `translate3d(${Math.round(p.x * s - HOG_SIZE / 2)}px, ${Math.round(p.y * s - HOG_FEET)}px, 0)`;
+    if (hogEl.current) {
+      hogEl.current.style.transform = `translate3d(${Math.round(p.x * s - HOG_SIZE / 2)}px, ${Math.round(p.y * s - HOG_FEET)}px, 0)`;
+      // Behind the trunk the tree is drawn over the hedgehog; in front of it, the hedgehog over the tree.
+      const behind = behindTree(live.current.world, tileAt(p));
+      hogEl.current.style.zIndex = String(behind ? Z.hogBehind : Z.hogFront);
+      hogEl.current.dataset.behindTree = String(behind);
+    }
     camera.current?.lookAt({ x: p.x * s, y: p.y * s }, { instant });
   };
 
@@ -654,7 +660,7 @@ export function WorldShell() {
         {bubbleAt && (
           <div
             data-neighbour-bubble
-            className="pixel-note absolute z-10 whitespace-nowrap px-3 py-2 text-sm"
+            className="pixel-note absolute z-[60] whitespace-nowrap px-3 py-2 text-sm"
             style={{ left: bubbleAt.x * scale, top: bubbleAt.y * scale - HOG_FEET - 8, transform: "translate(-50%, -100%)" }}
             onPointerDown={(e) => e.stopPropagation()}
             onPointerUp={(e) => e.stopPropagation()}
@@ -670,7 +676,7 @@ export function WorldShell() {
         {noticeShown && (
           <div
             data-site-notice
-            className="pixel-note absolute z-10 w-max max-w-72 px-3 py-2 text-sm"
+            className="pixel-note absolute z-[60] w-max max-w-72 px-3 py-2 text-sm"
             style={{ left: tileOnCanvas(noticeShown.tile).x * scale, top: tileOnCanvas(noticeShown.tile).y * scale - HOG_FEET - 8, transform: "translate(-50%, -100%)" }}
             onPointerDown={(e) => e.stopPropagation()}
             onPointerUp={(e) => e.stopPropagation()}

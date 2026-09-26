@@ -187,9 +187,13 @@ export const GROUND_OF: Record<Terrain, GroundKind> = {
 /** How high raised ground stands, in art pixels: the terrace, and the desert's rock. */
 export const LIFT: Partial<Record<Terrain, number>> = { garden: 3, fence: 3, gate: 3, plot: 3, rock: 6 };
 
-/** The colour a pixel of sand takes at the edge of the tree's light, and out of it at night (#152 "night-sand"). */
-export const DUSK: Record<string, string> = { a: "A", A: "D", D: "n", n: "b" };
-export const NIGHT: Record<string, string> = { a: "n", A: "n", D: "b", n: "b" };
+/**
+ * The world at dusk (#152 "night-sand"): the colour a pixel of ground takes in a pool of warm light
+ * (by a lantern, under the tree), out past the tree's light (dusk), and far out in the night.
+ */
+export const WARM: Record<string, string> = { a: "P", A: "a", D: "A", n: "D", g: "u", G: "g", m: "P", M: "m", s: "B" };
+export const DUSK: Record<string, string> = { a: "A", A: "D", D: "n", n: "b", P: "A", g: "G", u: "g", m: "M", s: "b", w: "W", p: "P" };
+export const NIGHT: Record<string, string> = { a: "n", A: "n", D: "b", n: "b", P: "n", g: "G", u: "G", m: "M", M: "b", s: "b", w: "W", p: "D" };
 
 /** How long the water holds each of its two frames: a slow shimmer. */
 export const SHIMMER_MS = 1200;

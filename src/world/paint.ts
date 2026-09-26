@@ -2,7 +2,7 @@ import { CHUNK } from "./desert";
 import { TILE_H, TILE_W, tileCentre, type Point, type Tile } from "./iso";
 import type { PlaceDef } from "./places";
 import { mapHeight, mapWidth, PALETTE, pixelAt, type PixelMap } from "./pixels";
-import { DECOR_SPRITES, DUSK, GROUND, GROUND_OF, LIFT, NIGHT, hash } from "./tiles";
+import { DECOR_SPRITES, DUSK, GROUND, GROUND_OF, LIFT, NIGHT, WARM, hash } from "./tiles";
 import { treeSprite } from "./tree/sprite";
 import { TREE_STAGES, stageIndex } from "../../convex/lib/tree";
 import type { Site, Terrain, World } from "./world";
@@ -231,33 +231,76 @@ export function chunksIn(view: ArtRect, margin = 64): { cx: number; cy: number }
   return out.sort((a, b) => a.cx + a.cy - (b.cx + b.cy) || a.cx - b.cx);
 }
 
+/** How far the tree's light reaches before the dusk sets in, and where night begins, in tiles. */
+export const DUSK_FROM = 14;
+export const NIGHT_FROM = 22;
+
+type Pool = { x: number; y: number; r: number };
+
 /**
- * How dark the sand is at a tile: 0 in the tree's light, 1 in the dusk round it, 2 in the night
- * beyond. Hard steps with a ragged tile edge, as light falls off in pixel art; wider as the tree grows.
+ * The light on a pixel of ground, in stepped bands (never a gradient): +1 in a pool of warm light
+ * round a lantern or under the tree, 0 in the tree's light, -1 in the dusk past `DUSK_FROM` tiles
+ * and -2 in the night past `NIGHT_FROM`. Band edges are dithered in 2 × 2 blocks and ragged by tile.
  */
-function nightAt(world: World, x: number, y: number) {
-  const light = world.planted ? 22 + world.lawnRadius * 2 : 18;
-  const d = Math.hypot(x, y) - light + (hash(x, y, 72) - 0.5) * 2.5;
-  return d < 0 ? 0 : d < 8 ? 1 : 2;
+function lightAt(pools: Pool[], X: number, Y: number) {
+  const fx = (X / 8 + Y / 4 - 1) / 2;
+  const fy = (Y / 4 - 1 - X / 8) / 2;
+  const block = hash(Math.floor(X / 2), Math.floor(Y / 2), 71);
+  const ragged = (hash(Math.round(fx), Math.round(fy), 72) - 0.5) * 1.6;
+  const d = Math.hypot(fx, fy) + ragged;
+  let level = d < DUSK_FROM ? 0 : d < DUSK_FROM + 1.5 ? (block < 0.5 ? 0 : -1) : d < NIGHT_FROM ? -1 : d < NIGHT_FROM + 1.5 ? (block < 0.5 ? -1 : -2) : -2;
+  for (const p of pools) {
+    const e = Math.hypot(fx - p.x, fy - p.y) + ragged * 0.5;
+    if (e < p.r || (e < p.r + 1 && block < 0.5)) return 1;
+  }
+  return level;
 }
 
-/** Sand's colours by hex, to their night colours. */
-const NIGHT_HEX: Record<string, string> = Object.fromEntries(Object.entries(NIGHT).map(([day, night]) => [PALETTE[day], PALETTE[night]]));
-const DUSK_HEX: Record<string, string> = Object.fromEntries(Object.entries(DUSK).map(([day, dusk]) => [PALETTE[day], PALETTE[dusk]]));
+/** The pools of warm light that reach into a block of tiles. */
+function poolsNear(world: World, t: { x0: number; y0: number; x1: number; y1: number }): Pool[] {
+  return world.lights.filter((p) => p.x + p.r + 2 >= t.x0 && p.x - p.r - 2 <= t.x1 && p.y + p.r + 2 >= t.y0 && p.y - p.r - 2 <= t.y1);
+}
+
+const byHex = (m: Record<string, string>) => Object.fromEntries(Object.entries(m).map(([from, to]) => [PALETTE[from], PALETTE[to]]));
+/** The ground's colours in each band of light, by hex. */
+const LIGHT_HEX: Record<number, Record<string, string>> = { 1: byHex(WARM), [-1]: byHex(DUSK), [-2]: byHex(NIGHT) };
+
+/** Ground that grass grows into and out of at its ragged edge. */
+const SANDY = new Set<Terrain>(["sand", "dune", "ridge"]);
+const GRASSY = new Set<Terrain>(["lawn", "oasis"]);
+const family = (t: Terrain) => (SANDY.has(t) ? 1 : GRASSY.has(t) ? 2 : 0);
 
 const lift = (world: World, x: number, y: number) => LIFT[world.terrainAt(x, y)] ?? 0;
 
-/** One tile's diamond, lifted by `h`, sampling its ground at map position. */
-function paintTile(img: Pixels, at: ArtRect, t: Tile, ground: PixelMap, h: number, night: number) {
+/**
+ * One tile's diamond, lifted by `h`, sampling its ground at map position, in the light of `pools`.
+ * `edges` are the neighbours (+x, -x, +y, -y) whose ground frays into this tile's (grass into sand
+ * and back), a seeded dither along that side.
+ */
+function paintTile(img: Pixels, at: ArtRect, t: Tile, ground: PixelMap, h: number, pools: Pool[], lit: boolean, edges: (PixelMap | null)[]) {
   const c = tileCentre(t);
   for (let dy = -TILE_H / 2; dy < TILE_H / 2; dy++)
     for (let dx = -TILE_W / 2; dx < TILE_W / 2; dx++) {
       if (Math.abs(dx + 0.5) / (TILE_W / 2) + Math.abs(dy + 0.5) / (TILE_H / 2) > 1) continue;
       const x = c.x + dx;
       const y = c.y + dy - h;
-      let colour = pixelAt(ground, ((x % 16) + 16) % 16, ((((y + h) % 16) + 16) % 16));
+      let from = ground;
+      if (edges.some(Boolean)) {
+        // Where in the diamond: u runs along +x, v along +y, each from -0.5 to 0.5.
+        const u = ((dx + 0.5) / 8 + (dy + 0.5) / 4) / 2;
+        const v = ((dy + 0.5) / 4 - (dx + 0.5) / 8) / 2;
+        const toEdge = [0.5 - u, 0.5 + u, 0.5 - v, 0.5 + v];
+        const r = hash(x, y, 75);
+        edges.forEach((e, i) => {
+          if (e && toEdge[i] < 0.3 && r < (0.3 - toEdge[i]) / 0.3) from = e;
+        });
+      }
+      let colour = pixelAt(from, ((x % 16) + 16) % 16, ((((y + h) % 16) + 16) % 16));
       if (!colour) continue;
-      if (night > 0) colour = (night === 1 ? DUSK_HEX : NIGHT_HEX)[colour] ?? colour;
+      if (lit) {
+        const level = lightAt(pools, x, y + h);
+        if (level) colour = LIGHT_HEX[level][colour] ?? colour;
+      }
       put(img, at, x, y, colour);
     }
 }
@@ -281,10 +324,20 @@ const SIDES: Partial<Record<Terrain, { left: string; right: string; lip: string 
 const TERRACE_SIDES = { left: PALETTE.s, right: PALETTE.b, lip: PALETTE.g };
 
 /**
- * A dry outline: dashes along the edges of the tiles it rings (a stone course for a ruin), each a
- * groove with a lit lip over it, dark enough to read on sand, dune and night alike.
+ * A dry outline: dashes along the edges of the tiles it rings. A closed district's are faint
+ * dune-shadow dashes on the sand, a footprint of what will stand there; a ruin's a stone course
+ * with a lit lip; a home plot's pegged in parchment.
  */
-const OUTLINE_COLOURS = { closed: [PALETTE.b, PALETTE.a], ruin: [PALETTE.M, PALETTE.m], home: [PALETTE.b, PALETTE.P] } as const;
+const OUTLINE_COLOURS = { closed: [PALETTE.D, null], ruin: [PALETTE.M, PALETTE.m], home: [PALETTE.D, PALETTE.P] } as const;
+
+/** How bright the pixel already painted at an art point is (0 to 255), for ink that must show on it. */
+function brightness(img: Pixels, at: ArtRect, x: number, y: number) {
+  const px = Math.round(x - at.x);
+  const py = Math.round(y - at.y);
+  if (px < 0 || py < 0 || px >= img.width || py >= img.height) return 255;
+  const i = (py * img.width + px) * 4;
+  return (img.data[i] * 3 + img.data[i + 1] * 4 + img.data[i + 2]) / 8;
+}
 
 function paintOutline(img: Pixels, at: ArtRect, world: World, t: Tile) {
   const kind = world.outlineAt(t.x, t.y);
@@ -303,10 +356,17 @@ function paintOutline(img: Pixels, at: ArtRect, world: World, t: Tile) {
     for (let i = 0; i <= 8; i++) {
       const x = a.x + ((b.x - a.x) * i) / 8;
       const y = a.y + ((b.y - a.y) * i) / 8;
-      const on = kind === "ruin" || (Math.floor((x + y) / 2) + t.x + t.y) % 3 !== 0;
-      if (!on) continue;
-      put(img, at, x, y, kind === "ruin" && i % 3 === 0 ? gap : dash);
-      put(img, at, x, y - 1, gap);
+      if (kind === "ruin") {
+        put(img, at, x, y, i % 3 === 0 && gap ? gap : dash);
+        if (gap) put(img, at, x, y - 1, gap);
+        continue;
+      }
+      // Dashes, three on and two off, two pixels deep: dune-shadow on light sand, sand-deep where
+      // the ground under them is as dark (a dune's lee, the night).
+      if ((i + 5 * (t.x + t.y)) % 5 >= 3) continue;
+      const ink = brightness(img, at, x, y) > 150 ? dash : PALETTE.A;
+      put(img, at, x, y, ink);
+      put(img, at, x, y + 1, gap ?? ink);
     }
   }
   // Cracks in the dry ground inside.
@@ -318,21 +378,41 @@ function paintOutline(img: Pixels, at: ArtRect, world: World, t: Tile) {
  * back to front, with water's frame `frame`.
  */
 export function paintGround(img: Pixels, at: ArtRect, world: World, tiles: { x0: number; y0: number; x1: number; y1: number }, frame = 0) {
+  const pools = poolsNear(world, tiles);
+  const outlined: Tile[] = [];
+  const groundOf = (t: Terrain) => {
+    const frames = GROUND[GROUND_OF[t]];
+    return frames[frame % frames.length];
+  };
   for (let d = tiles.x0 + tiles.y0; d <= tiles.x1 + tiles.y1; d++)
     for (let x = tiles.x0; x <= tiles.x1; x++) {
       const y = d - x;
       if (y < tiles.y0 || y > tiles.y1) continue;
       const terrain = world.terrainAt(x, y);
-      const frames = GROUND[GROUND_OF[terrain]];
       const h = lift(world, x, y);
-      const night = terrain === "sand" || terrain === "dune" || terrain === "ridge" || terrain === "rock" ? nightAt(world, x, y) : 0;
-      paintTile(img, at, { x, y }, frames[frame % frames.length], h, night);
+      // Grass frays into sand (and sand into grass) along the sides where they meet.
+      const f = family(terrain);
+      const edges = [
+        [x + 1, y],
+        [x - 1, y],
+        [x, y + 1],
+        [x, y - 1],
+      ].map(([nx, ny]) => {
+        const n = world.terrainAt(nx, ny);
+        return f && family(n) && family(n) !== f ? groundOf(n) : null;
+      });
+      // The terrace and water keep their own colours; everything else takes the dusk's light.
+      // A closed district's pad of dry sand keeps its daylight, so its dashed footprint reads even out in the dusk.
+      const lit = (h === 0 || terrain === "rock") && world.outlineAt(x, y) !== "closed";
+      paintTile(img, at, { x, y }, groundOf(terrain), h, pools, lit && terrain !== "water", edges);
       if (h > 0) {
         const drop = { x: lift(world, x + 1, y) < h, y: lift(world, x, y + 1) < h };
         paintSides(img, at, { x, y }, h, drop, SIDES[terrain] ?? TERRACE_SIDES);
       }
-      paintOutline(img, at, world, { x, y });
+      if (world.outlineAt(x, y)) outlined.push({ x, y });
     }
+  // Outlines over all the ground, so no tile in front paints over their dashes.
+  for (const t of outlined) paintOutline(img, at, world, t);
 }
 
 /**
@@ -362,19 +442,16 @@ export function paintShimmer(layer: Pixels, at: ArtRect, world: World, tiles: { 
 // ---------------------------------------------------------------------------------------------
 // Everything standing, round the tree.
 
-type Drawable = { depth: number; sprite: PixelMap; foot: Point };
+type Drawable = { depth: number; sprite: PixelMap; foot: Point; tree?: boolean };
 
 /** What stands in the world, each with its sprite, where it stands and its depth. */
-function standing(world: World, furniture: WorldFurniture, extra: { tree?: boolean } = {}): Drawable[] {
+function standing(world: World, furniture: WorldFurniture): Drawable[] {
   const items: Drawable[] = [];
   const onTile = (t: Tile, extraY = 0) => {
     const c = tileCentre(t);
     return { x: c.x, y: c.y + TILE_H / 2 - 1 - lift(world, t.x, t.y) + extraY };
   };
-  if (world.trunk && extra.tree !== false) {
-    const rings = world.rings;
-    items.push({ depth: world.trunk.x1 + world.trunk.y1 + 0.3, sprite: treeSprite(world.stage, world.seed, rings), foot: treeFoot(world) });
-  }
+  if (world.trunk) items.push({ depth: treeDepth(world), sprite: treeSprite(world.stage, world.seed, world.rings), foot: treeFoot(world), tree: true });
   for (const p of world.props) if (p.kind !== "elder") items.push({ depth: p.tile.x + p.tile.y, sprite: DECOR_SPRITES[p.kind], foot: onTile(p.tile) });
   for (const d of world.decor) {
     const sprite = d.kind === "flowers" ? DECOR_SPRITES.flowers[Math.floor(hash(d.tile.x, d.tile.y, 9) * DECOR_SPRITES.flowers.length)] : DECOR_SPRITES.lantern;
@@ -415,8 +492,23 @@ export function standingRect(world: World, furniture: WorldFurniture): ArtRect {
 }
 
 /** Paints everything standing into an image covering `at`, back to front. `tree: false` leaves the tree out (the seed moment draws its own). */
-export function paintStanding(img: Pixels, at: ArtRect, world: World, furniture: WorldFurniture, extra: { tree?: boolean } = {}) {
-  for (const d of standing(world, furniture, extra)) {
+/**
+ * Which of the standing things to paint: all of them (a still picture), or one of three layers the
+ * world stacks so the hedgehog can pass behind the tree: what stands behind the trunk, the tree
+ * itself, and what stands in front of it.
+ */
+export type Layer = "all" | "behind" | "tree" | "front";
+
+/** The depth the tree stands at (its trunk's front corner): the hedgehog behind it is drawn under it. */
+export const treeDepth = (world: World) => (world.trunk ? world.trunk.x1 + world.trunk.y1 + 0.3 : -Infinity);
+
+/** Is a hedgehog on this tile behind the tree, so the tree is drawn over it? */
+export const behindTree = (world: World, t: Tile) => t.x + t.y < treeDepth(world);
+
+export function paintStanding(img: Pixels, at: ArtRect, world: World, furniture: WorldFurniture, layer: Layer = "all") {
+  const depth = treeDepth(world);
+  const inLayer = (d: Drawable) => layer === "all" || (layer === "tree" ? !!d.tree : !d.tree && (layer === "behind") === d.depth < depth);
+  for (const d of standing(world, furniture).filter(inLayer)) {
     const box = spriteBox(d.sprite, d.foot);
     stamp(img, at, d.sprite, box.x, box.y);
   }
