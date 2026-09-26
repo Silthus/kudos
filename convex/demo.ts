@@ -2,7 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import { allowanceCheck, findMember, giveKudos, revokeKudosRow } from "./engine";
+import { allowanceCheck, findMember, giveKudos, remainingToday, revokeKudosRow } from "./engine";
 import { getViewer, requireViewer } from "./lib/access";
 import { CATALOG, RARITY_WEIGHTS, type Category } from "./lib/messages";
 import { countNoteWords, mentionedUsers, mentionsGroup, previewText } from "./lib/parse";
@@ -20,11 +20,12 @@ import { type Allocation, canTake, type SkillId } from "./lib/skills";
 import { DEMO_SETTINGS } from "./lib/settings";
 import { earningsText, levelForXp } from "./lib/xp";
 import { gainLabel, gainText } from "./lib/gains";
+import { seedsToPlantText } from "./lib/treeView";
 import { fnv1a, mulberry32 } from "./lib/random";
 import { validateRewardInput } from "./lib/store";
 import { canSpend, coinBalance } from "./lib/coins";
 import { SHOP_LEVEL } from "./lib/items";
-import { playerOf } from "./game";
+import { playerOf, thankedBack } from "./game";
 import { joinOf, joinSpree, paySpree, spreeable, spreeJoinsInMonth, spreesOn } from "./sprees";
 import { nextTier, promptText, refusalText } from "./lib/sprees";
 import { coinWallet, grantBalance, requestRedemption, transitionRedemption, undoPurchase, undoRedemption } from "./store";
@@ -886,6 +887,8 @@ export const botMessageValidator = v.object({
   gainLabel: v.optional(v.string()),
   /** A Super kudos (#98): the receiver's celebration, or your note on what your Super kudos emoji did. */
   superKudos: v.optional(v.object({ kind: v.union(v.literal("celebration"), v.literal("sent"), v.literal("howto")), text: v.string() })),
+  /** A receiver's DM for a thoughtful kudos (#154): "2 seeds to plant at the tree", as the Slack DM says. */
+  seeds: v.optional(v.string()),
 });
 
 const playgroundResult = v.object({
@@ -930,6 +933,7 @@ export async function describeNotifications(
       ...(n.questProgress ? { questProgress: n.questProgress } : {}),
       ...(n.earnings ? { earnings: earningsText(n.earnings) } : {}),
       ...(n.superKudos ? { superKudos: { kind: n.superKudos.kind, text: n.superKudos.webText } } : {}),
+      ...(n.seedsToPlant !== undefined && n.seedsToPlant !== 0 ? { seeds: seedsToPlantText(n.seedsToPlant) } : {}),
       ...(n.gains && n.gains.length > 0
         ? { gainLabel: gainLabel(n.gains), ...(n.category === "gains" ? {} : { gains: n.gains.map((g) => gainText(g, "web")) }) }
         : {}),
@@ -1033,7 +1037,7 @@ async function playgroundAttempt(
 async function maybeThankBack(ctx: MutationCtx, workspace: Doc<"workspaces">, member: Doc<"members">, pool: Id<"members">[], channelName: string) {
   const giver = pool[Math.floor(Math.random() * pool.length)];
   if (giver && Math.random() < 0.6) {
-    await ctx.scheduler.runAfter(2500 + Math.random() * 3000, internal.demo.teammateThanks, {
+    await ctx.scheduler.runAfter(2500 + Math.random() * 3000, internal.demo.teammateThanksBack, {
       workspaceId: workspace._id,
       fromMemberId: giver,
       toMemberId: member._id,
@@ -1083,20 +1087,31 @@ export const simulateAllowanceCheck = mutation({
   },
 });
 
-/** Everyone shares the demo user, so anyone can hand back today's playground kudos. */
+/**
+ * Today's playground kudos the visitor gave (`"given"`), or that teammates gave them there
+ * (`"received"`: thank-backs and "A teammate thanks you" alike).
+ */
+async function playgroundToday(ctx: QueryCtx, workspace: Doc<"workspaces">, member: Doc<"members">, side: "given" | "received") {
+  const todayStart = startOfDayUtc(dayKeyFor(workspaceNow(workspace), workspace.timezone), workspace.timezone);
+  const rows = await (side === "given"
+    ? ctx.db.query("kudos").withIndex("by_giver_at", (q) => q.eq("giverId", member._id).gte("at", todayStart))
+    : ctx.db.query("kudos").withIndex("by_receiver_at", (q) => q.eq("receiverId", member._id).gte("at", todayStart))
+  ).take(200);
+  return rows.filter((k) => k.source === "playground");
+}
+
+/**
+ * Everyone shares the demo user, so anyone can start its day over: the playground kudos it gave
+ * today go back, and so do the ones teammates gave it there, which would make its next kudos to
+ * them thank-backs for everyone (and their seeds go with them).
+ */
 export const refillAllowance = mutation({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
     const { workspace, member } = await requireDemoViewer(ctx);
-    const todayStart = startOfDayUtc(dayKeyFor(workspaceNow(workspace), workspace.timezone), workspace.timezone);
-    const given = await ctx.db
-      .query("kudos")
-      .withIndex("by_giver_at", (q) => q.eq("giverId", member._id).gte("at", todayStart))
-      .take(200);
-    for (const row of given.filter((k) => k.source === "playground")) {
-      await revokeKudosRow(ctx, workspace, row);
-    }
+    const rows = [...(await playgroundToday(ctx, workspace, member, "given")), ...(await playgroundToday(ctx, workspace, member, "received"))];
+    for (const row of rows) await revokeKudosRow(ctx, workspace, row);
     return null;
   },
 });
@@ -1129,7 +1144,34 @@ export const handBackRewards = mutation({
   },
 });
 
-export const teammateThanks = internalMutation({
+/** A demo teammate gives the visitor 1 kudos with `note`, in #`channelName`, through the real engine. */
+async function teammateGives(
+  ctx: MutationCtx,
+  workspace: Doc<"workspaces">,
+  from: Doc<"members">,
+  to: Doc<"members">,
+  { note, channelName }: { note: string; channelName: string },
+) {
+  const now = workspaceNow(workspace);
+  const text = `@${to.name.split(" ")[0]} ${workspace.emojiGlyph} ${note}`;
+  const result = await giveKudos(ctx, {
+    workspace,
+    giverSlackId: from.slackUserId,
+    recipientSlackIds: [to.slackUserId],
+    amountEach: 1,
+    channelId: `C_DEMO_${channelName.toUpperCase()}`,
+    channelName,
+    messageTs: uniqueTs(now),
+    text,
+    noteWords: countNoteWords(note, workspace.emojiName, workspace.emojiGlyph),
+    source: "playground",
+    now,
+  });
+  return { text, result };
+}
+
+/** A teammate the visitor just thanked returns the favour: a thank-back, so it sows no seed. */
+export const teammateThanksBack = internalMutation({
   args: {
     workspaceId: v.id("workspaces"),
     fromMemberId: v.id("members"),
@@ -1142,22 +1184,69 @@ export const teammateThanks = internalMutation({
     const from = await ctx.db.get(args.fromMemberId);
     const to = await ctx.db.get(args.toMemberId);
     if (!workspace?.isDemo || !from || !to) return null;
-    const now = workspaceNow(workspace);
-    const note = "right back at you, thank you!";
-    await giveKudos(ctx, {
-      workspace,
-      giverSlackId: from.slackUserId,
-      recipientSlackIds: [to.slackUserId],
-      amountEach: 1,
-      channelId: `C_DEMO_${args.channelName.toUpperCase()}`,
-      channelName: args.channelName,
-      messageTs: `${now / 1000}`,
-      text: `@${to.name.split(" ")[0]} ${workspace.emojiGlyph} ${note}`,
-      noteWords: countNoteWords(note, workspace.emojiName, workspace.emojiGlyph),
-      source: "playground",
-      now,
-    });
+    await teammateGives(ctx, workspace, from, to, { note: "right back at you, thank you!", channelName: args.channelName });
     return null;
+  },
+});
+
+/** "A teammate thanks you" at most this often a day: "Refill my kudos" starts the day over. */
+const THANKS_PER_DAY = 3;
+
+/**
+ * The sandbox's "A teammate thanks you" (#179): a teammate thanks the visitor thoughtfully, so the
+ * kudos qualifies and sows a seed to plant at the offering stone. The giver is one the visitor hasn't
+ * thanked lately (else it's a thank-back) with a kudos left today: of those, the one who thanked the
+ * visitor longest ago (or never), then by name. `capped` after THANKS_PER_DAY thoughtful thanks
+ * today (the ones that sowed a seed); `nobody` when no teammate can.
+ */
+export const beThanked = mutation({
+  args: {},
+  returns: v.union(
+    v.object({ status: v.union(v.literal("capped"), v.literal("nobody")) }),
+    v.object({
+      status: v.literal("thanked"),
+      from: v.object({ name: v.string(), slackUserId: v.string() }),
+      /** The teammate's message in #general, with the kudos emoji's glyph. */
+      text: v.string(),
+      /** The bot's DMs to the visitor. */
+      messages: v.array(botMessageValidator),
+    }),
+  ),
+  handler: async (ctx) => {
+    const { workspace, member } = await requireDemoViewer(ctx);
+    let thoughtful = 0;
+    for (const row of await playgroundToday(ctx, workspace, member, "received")) {
+      const seed = await ctx.db
+        .query("seeds")
+        .withIndex("by_kudos", (q) => q.eq("kudosId", row._id))
+        .first();
+      if (seed) thoughtful++;
+    }
+    if (thoughtful >= THANKS_PER_DAY) return { status: "capped" as const };
+    const now = workspaceNow(workspace);
+    const members = await ctx.db
+      .query("members")
+      .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id))
+      .take(100);
+    const candidates = [];
+    for (const m of members) {
+      if (m.isBot || m.deactivated || m._id === member._id) continue;
+      if (await thankedBack(ctx, m._id, member._id, now)) continue;
+      if ((await remainingToday(ctx, workspace, m._id, now)) < 1) continue;
+      const last = await ctx.db
+        .query("kudos")
+        .withIndex("by_giver_receiver_at", (q) => q.eq("giverId", m._id).eq("receiverId", member._id))
+        .order("desc")
+        .first();
+      candidates.push({ m, lastAt: last?.at ?? -1 });
+    }
+    candidates.sort((a, b) => a.lastAt - b.lastAt || a.m.name.localeCompare(b.m.name));
+    const from = candidates[0]?.m;
+    if (!from) return { status: "nobody" as const };
+    const note = REASONS[Math.floor(Math.random() * REASONS.length)];
+    const { text, result } = await teammateGives(ctx, workspace, from, member, { note, channelName: "general" });
+    const messages = await describeNotifications(ctx, { workspace, member }, result.notificationIds);
+    return { status: "thanked" as const, from: { name: from.name, slackUserId: from.slackUserId }, text, messages: messages.filter((m) => m.toMe) };
   },
 });
 

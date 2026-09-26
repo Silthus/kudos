@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import { useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { ConvexError } from "convex/values";
 import { AnimatePresence, motion } from "motion/react";
 import { AtSign, EyeOff, Hash, Pencil, SendHorizontal, Terminal } from "lucide-react";
@@ -49,6 +50,8 @@ type BotMessage = {
   gainLabel?: string;
   /** A Super kudos (#98): the receiver's celebration, or your note on what your Super kudos emoji did. */
   superKudos?: { kind: "celebration" | "sent" | "howto"; text: string };
+  /** A receiver's DM for a thoughtful kudos: "1 seed to plant at the tree". */
+  seeds?: string;
 };
 type Outcome = "given" | "limit" | "invalid";
 
@@ -396,7 +399,14 @@ function Sandbox() {
         a post, or fix a failed kudos by editing it. The bot's DMs land on the stack of envelopes, and everything flows into the world.
       </p>
 
-      <DemoSigns status={status} inSimulator={inSimulator} onRefilled={() => viewer.workspace.spreesEnabled && void openSpree({})} />
+      <DemoSigns
+        inSimulator={inSimulator}
+        onRefilled={() => viewer.workspace.spreesEnabled && void openSpree({})}
+        onThanked={({ from, text, messages }) => {
+          setFeed((f) => [...f, { id: crypto.randomUUID(), author: from.name, slackUserId: from.slackUserId, text: text.replaceAll(glyph, emojiCode), mine: false, at: workspaceClockNow() }]);
+          pushBot(messages);
+        }}
+      />
       {/* The window covers the HUD's clock: the days move on from here too (#144). */}
       {simulator && <SimulatorClock simulator={simulator} inWindow />}
 
@@ -661,36 +671,63 @@ function Sandbox() {
   );
 }
 
+type Thanked = Extract<FunctionReturnType<typeof api.demo.beThanked>, { status: "thanked" }>;
+
 /**
  * The demo controls, as small wooden signs in the sand: the demo user is shared by every visitor,
- * so anyone can refill today's kudos or hand back what visitors bought; an admin can reset the demo.
+ * so anyone can start its day over or hand back what visitors bought, and have a teammate thank
+ * them thoughtfully, so there's a seed to plant (#179); an admin can reset the demo.
  */
-function DemoSigns({ status, inSimulator, onRefilled }: { status: { remaining: number; limit: number } | undefined; inSimulator: boolean; onRefilled: () => void }) {
+function DemoSigns({
+  inSimulator,
+  onRefilled,
+  onThanked,
+}: {
+  inSimulator: boolean;
+  onRefilled: () => void;
+  onThanked: (thanked: Thanked) => void;
+}) {
   const viewer = useViewer();
   const refill = useMutation(api.demo.refillAllowance);
+  const beThanked = useMutation(api.demo.beThanked);
   const handBack = useMutation(api.demo.handBackRewards);
   const reset = useMutation(api.demo.resetDemo);
-  const [busy, setBusy] = useState<"refill" | "handBack" | "reset" | null>(null);
+  const [busy, setBusy] = useState<"refill" | "thanks" | "handBack" | "reset" | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [note, setNote] = useState<{ text: string; failed: boolean } | null>(null);
-  const run = (what: "refill" | "handBack" | "reset", action: () => Promise<unknown>) => {
+  /** Runs a sign's action; the text it resolves to, if any, is the sign's note. */
+  const run = (what: NonNullable<typeof busy>, action: () => Promise<unknown>) => {
     setBusy(what);
     setNote(null);
     action()
-      // The reset runs on its own for about a minute after it's scheduled.
-      .then(() => what === "reset" && setNote({ text: "The demo is resetting. Reload the page in a minute.", failed: false }))
+      .then((text) => typeof text === "string" && setNote({ text, failed: false }))
       .catch(() => setNote({ text: "That didn't go through. Try again in a moment.", failed: true }))
       .finally(() => setBusy(null));
   };
-  const full = !!status && status.remaining >= status.limit;
   return (
     <div data-demo-signs className="flex flex-wrap items-start gap-x-4 gap-y-3">
       <SignButton
-        disabled={busy !== null || full}
-        title={full ? "You have all of today's kudos." : "The demo user is shared by every visitor: this takes back the kudos given today, so you can give them again."}
+        disabled={busy !== null}
+        title="The demo user is shared by every visitor: this starts its day over. It takes back the kudos given today, so you can give them again, and the ones teammates gave you here, so thanking them isn't a thank-back."
         onClick={() => run("refill", () => refill({}).then(onRefilled))}
       >
         {busy === "refill" ? "Refilling…" : "Refill my kudos"}
+      </SignButton>
+      <SignButton
+        disabled={busy !== null}
+        title="A teammate you haven't thanked lately thanks you with a note, so a seed waits for you at the offering stone."
+        onClick={() =>
+          run("thanks", async () => {
+            const thanked = await beThanked({});
+            if (thanked.status === "capped") return "Three teammates thanked you today already. Refill my kudos to start the day over.";
+            if (thanked.status === "nobody") return "Nobody can thank you right now: you thanked everyone lately, or their kudos for today are spent.";
+            onThanked(thanked);
+            const who = thanked.from.name.split(" ")[0];
+            return thanked.messages.some((m) => m.seeds) ? `${who} thanked you: a seed waits at the offering stone.` : `${who} thanked you.`;
+          })
+        }
+      >
+        {busy === "thanks" ? "Thanking you…" : "A teammate thanks you"}
       </SignButton>
       <SignButton
         disabled={busy !== null}
@@ -708,7 +745,8 @@ function DemoSigns({ status, inSimulator, onRefilled }: { status: { remaining: n
             <SignButton
               onClick={() => {
                 setConfirming(false);
-                run("reset", () => reset({}));
+                // The reset runs on its own for about a minute after it's scheduled.
+                run("reset", () => reset({}).then(() => "The demo is resetting. Reload the page in a minute."));
               }}
             >
               Yes, reset everything
@@ -833,6 +871,7 @@ function Envelopes({ messages, status, ref }: { messages: BotMessage[]; status: 
                       </span>
                     )}
                     {m.questProgress?.sweep && <span className="bg-hedge px-2 py-0.5 text-xs font-semibold whitespace-nowrap text-cream">Clean sweep</span>}
+                    {m.seeds && <span className="text-xs whitespace-nowrap text-ink/75">{m.seeds}</span>}
                   </div>
                 </motion.li>
               );
