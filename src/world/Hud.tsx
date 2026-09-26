@@ -106,17 +106,12 @@ function MenuPanel({ id, panel, children, className }: { id: string; panel: Reac
 }
 
 /**
- * The menu button's keys: ArrowDown on the closed button opens the list at its first place; in the
- * open list the arrows move round it, Home and End jump to its ends.
+ * In the open list the arrows move round it, Home and End jump to its ends. On the closed button the
+ * arrows stay the hedgehog's: closing a window puts focus there, and walking on must just work.
  */
 function arrowKeys(menu: ReturnType<typeof useMenu>) {
   return (e: React.KeyboardEvent) => {
-    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) return;
-    if (!menu.open) {
-      if (e.key !== "ArrowDown" || e.target !== menu.button.current) return;
-      e.preventDefault();
-      return menu.setOpen(true); // opening focuses the first place
-    }
+    if (!menu.open || !["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) return;
     const links = [...(menu.panel.current?.querySelectorAll<HTMLElement>("a") ?? [])];
     if (links.length === 0) return;
     e.preventDefault();

@@ -61,6 +61,12 @@ function VisitedTitle({ memberId }: { memberId: string }) {
   return visited ? `${visited.name}'s garden` : TEAMMATE_GARDEN;
 }
 
+/** Asks for that garden while the hedgehog walks there, so its window opens with their name. */
+function AskAhead({ memberId }: { memberId: string }) {
+  useQuery(api.gardens.of, { memberId });
+  return null;
+}
+
 /** Is focus somewhere keys mean typing or choosing, not walking? */
 function typingIn(target: EventTarget | null) {
   const el = target instanceof HTMLElement ? target : null;
@@ -490,6 +496,11 @@ export function WorldShell() {
           <Outlet />
         </ErrorBoundary>
       </Window>
+      {target?.memberId && !ringName && (
+        <ErrorBoundary resetKey={target.memberId} fallback={null}>
+          <AskAhead memberId={target.memberId} />
+        </ErrorBoundary>
+      )}
       <Life hog={hog} hogEl={hogEl} still={still} gameShown={gameShown} windowOpen={windowOpen} />
       {/* A celebration waits for the map: under a window's top layer it couldn't be reached. */}
       {gameShown && !windowOpen && <SuperKudosCelebration today={today} />}

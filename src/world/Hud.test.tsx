@@ -181,14 +181,15 @@ describe("the HUD", () => {
     expect(document.activeElement).toBe(links[0]);
   });
 
-  test("ArrowDown on the closed Places button opens the list at its first place (#148)", () => {
+  test("on the closed Places button the arrow keys are left to the hedgehog (#148 review)", () => {
     game = mine({});
     render();
     const toggle = host.querySelector<HTMLButtonElement>("nav[aria-label='Places'] button[aria-expanded]")!;
     act(() => toggle.focus());
-    act(() => void toggle.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true })));
-    expect(toggle.getAttribute("aria-expanded")).toBe("true");
-    expect(document.activeElement).toBe(host.querySelector("nav[aria-label='Places'] a"));
+    const e = new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true });
+    act(() => void toggle.dispatchEvent(e));
+    expect(e.defaultPrevented).toBe(false);
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
   });
 
   test("the key hint is for keyboards: hidden on touch screens and on phone-sized screens (#148)", () => {

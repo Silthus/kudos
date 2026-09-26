@@ -49,13 +49,18 @@ vi.mock("convex/react", () => ({
 
 // Every screen is a stub naming itself, so the test sees which page the router chose.
 const page = (name: string) => () => <h1>{name}</h1>;
-// The world stands in as a plain frame round the page it would open as a window.
+// The world stands in as a plain frame round the page it would open as a window; `worldFails`
+// makes it throw while rendering, as a failing query of its own would.
+let worldFails = false;
 vi.mock("./world/WorldShell", () => ({
-  WorldShell: () => (
-    <div data-world>
-      <Outlet />
-    </div>
-  ),
+  WorldShell: () => {
+    if (worldFails) throw new Error("[CONVEX Q(game:mine)] Server Error");
+    return (
+      <div data-world>
+        <Outlet />
+      </div>
+    );
+  },
 }));
 vi.mock("./world/Hog", () => ({ HogFrame: () => null }));
 vi.mock("./pages/Landing", () => ({ Landing: page("Landing") }));
@@ -113,6 +118,16 @@ beforeEach(() => {
 afterEach(() => {
   act(() => root.unmount());
   container.remove();
+  worldFails = false;
+});
+
+test("a world that fails to render says so on the dusk sky, with a reload, instead of a blank page (#148 review)", () => {
+  const quiet = vi.spyOn(console, "error").mockImplementation(() => {}); // React reports the caught error
+  worldFails = true;
+  reload("/");
+  expect(screen()).toBe("Something went wrong");
+  expect([...container.querySelectorAll("button")].map((b) => b.textContent)).toContain("Reload");
+  quiet.mockRestore();
 });
 
 describe("a hard reload of a deep link", () => {
