@@ -26,15 +26,16 @@ export function arrivalFor(placeId: string): Animation {
 
 /**
  * The parts of your game that something can happen to, and whose game it is. `coins` counts the
- * coins you earned from kudos, quests, sprees and levels: not fruit (the garden window hops its own
- * from the Pick button), nor spending, refunds or an admin's adjustment. Null while there's no game.
+ * coins you earned from quests, sprees and levels: not fruit (the garden window hops its own from
+ * the Pick button), nor coins from kudos (they're claimed at the offering stone, whose window drops
+ * its own, #157), nor spending, refunds or an admin's adjustment. Null while there's no game.
  */
 export type LifeSnapshot = { member: string; level: number; title: string; coins: number | null; discovered: number | null };
 
 export function lifeSnapshot(game: GameMine | undefined, today: { discovered: number } | undefined, member: string): LifeSnapshot | null {
   if (!game?.enabled || game.hidden || !game.player) return null;
   const w = game.wallet;
-  const coins = w ? w.fromKudos + w.fromQuests + w.fromSprees + w.fromLevels : null;
+  const coins = w ? w.fromQuests + w.fromSprees + w.fromLevels : null;
   return { member, level: game.player.level, title: game.player.title, coins, discovered: today?.discovered ?? null };
 }
 

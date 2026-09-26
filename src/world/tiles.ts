@@ -4,7 +4,7 @@ import type { Terrain } from "./world";
 /**
  * The world's small pixel art (#126, #156): the ground tiles every terrain is drawn with (the
  * desert's sand, dunes and rock, the tree's lawn, paths, water) and the small things that stand on
- * it (lanterns, flowers, base camp's stone and tents, a district's marker). All ours, drawn in code
+ * it (lanterns, flowers, base camp's tents, a district's marker). All ours, drawn in code
  * in the palette; the places draw their own buildings (`places/`), the tree its own (`tree/`).
  */
 
@@ -226,15 +226,6 @@ function sprout() {
   return c.outline().map();
 }
 
-/** The offering stone at the tree's foot (#157 makes it one): a low slab with a rune of sap. */
-function stone() {
-  const c = new PixelCanvas(22, 18);
-  const box = c.isoBox(1, 1, 7, { left: "m", right: "M", top: "p" }, 17, 3);
-  c.wall(box, "left", 2, 2, 3, 3, "y").wall(box, "left", 3, 3, 1, 1, "c");
-  c.wall(box, "right", 1, 5, 5, 1, "m");
-  return c.outline().map();
-}
-
 /** A traveller's tent: parchment canvas over a pole, an ember stripe, its flap open. */
 function tent() {
   const c = new PixelCanvas(22, 18);
@@ -259,7 +250,6 @@ export const DECOR_SPRITES = {
   lantern: lanternPost(),
   flowers: [0, 1, 2, 3].map(flowers),
   sprout: sprout(),
-  stone: stone(),
   tent: tent(),
   marker: marker(),
 };

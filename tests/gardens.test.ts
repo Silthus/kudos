@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { dayKeyFor } from "../convex/lib/time";
-import { all, seedTeam, setupConvex, signInAs, type Team } from "./helpers";
+import { all, claimAtTree, seedTeam, setupConvex, signInAs, type Team } from "./helpers";
 
 /** Gardens (#55 §G8, G15): plants for teammates, growth, dormancy and fruit. */
 
@@ -53,10 +53,12 @@ async function garden(memberId: Id<"members">) {
 }
 
 /** Ana thanks four new people with a story on two days: level 3, 8 coins from kudos + 20 from level-ups. */
+/** Ana thanks four people thoughtfully on two days (level 3) and offers the 8 coins at the tree (#157). */
 async function anaReachesLevel3() {
   await message("UANA", `<@UBEN> <@UCLEO> <@UDAN> <@UEVE> :taco: ${STORY}`);
   vi.setSystemTime(Date.now() + DAY);
   await message("UANA", `<@UBEN> <@UCLEO> <@UDAN> <@UEVE> :taco: ${STORY}`);
+  await claimAtTree(t, team.ana);
 }
 
 describe("the garden opens at level 3 with one plot", () => {
@@ -293,7 +295,11 @@ async function anaGrowsBensPlant() {
     await thank("UBEN");
   }
 }
-const anaPlayer = () => t.run((ctx) => ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", team.ana)).unique());
+/** Ana's player row, once she has offered what waits for her at the tree (#157). */
+async function anaPlayer() {
+  await claimAtTree(t, team.ana);
+  return await t.run((ctx) => ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", team.ana)).unique());
+}
 
 describe("fruit: Grown plants watered in the last 14 days", () => {
   test("a Grown plant holds up to three fruit, 1 or 2 Hog coins each; picking pays them and 3 XP a fruit", async () => {
@@ -323,7 +329,7 @@ describe("fruit: Grown plants watered in the last 14 days", () => {
     jumpTo("2026-11-12");
     const { coins } = await (await as(team.ana)).mutation(api.gardens.pick, {});
     const reply = await t.mutation(internal.slackData.slashCommand, { teamId: "T1", slackUserId: "UANA", text: "coins" });
-    expect(JSON.stringify(reply)).toContain(`*From garden fruit*\\n${coins}`);
+    expect(JSON.stringify(reply)).toContain(`*From fruit*\\n${coins}`);
   });
 
   test("no fruit two weeks after the last watering", async () => {

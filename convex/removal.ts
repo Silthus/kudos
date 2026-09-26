@@ -206,6 +206,20 @@ const PHASES: Phase[] = [
     rows: (ctx, m, n) => ctx.db.query("treeEvents").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(n),
     clear: (ctx, _workspace, row) => ctx.db.patch(row._id as Id<"treeEvents">, { memberId: undefined }),
   },
+  // Offerings at the tree (#157): revoking their kudos above took the lines out (and claimed coins and
+  // fuel back); this catches any left over. Their tree fruit goes with them.
+  {
+    name: "offerings",
+    batch: 500,
+    rows: (ctx, m, n) => ctx.db.query("offerings").withIndex("by_member_claimedAt_createdAt", (q) => q.eq("memberId", m._id)).take(n),
+    clear: remove,
+  },
+  {
+    name: "inventory",
+    batch: 500,
+    rows: (ctx, m, n) => ctx.db.query("inventory").withIndex("by_member_fruit", (q) => q.eq("memberId", m._id)).take(n),
+    clear: remove,
+  },
   // A simulator's fast-forwards (#143) are its visitor's.
   {
     name: "simulatorRuns",

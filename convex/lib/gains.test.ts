@@ -169,3 +169,17 @@ describe("the rules every emitter gets for free", () => {
     );
   });
 });
+
+describe("offerings claimed by time (#157)", () => {
+  const claimed: Gain = { kind: "offering_claimed", month: "August", coins: 12, fruits: ["sun", "sun", "amber"] };
+
+  test("say whose month fed the tree, the coins and the fruit it dropped, in plain words", () => {
+    expect(gainText(claimed, "web")).toContain("Your appreciation from August fed the tree");
+    expect(gainText(claimed, "web")).toContain("12 Hog coins went into your wallet. The tree dropped 2 Sun fruit and an Amber fruit.");
+  });
+
+  test("keep the coins silent until the wallet opens", () => {
+    expect(visibleTo(claimed, 2)).toEqual({ kind: "offering_claimed", month: "August", fruits: ["sun", "sun", "amber"] });
+    expect(gainText(visibleTo(claimed, 2), "web")).not.toMatch(/Hog coin/);
+  });
+});

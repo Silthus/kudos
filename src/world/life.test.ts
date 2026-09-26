@@ -64,12 +64,12 @@ describe("reading your game into a snapshot", () => {
   const mine = { enabled: true, hidden: false, player: { level: 9, title: "Gardener" }, wallet };
 
   test("whose it is, level, title, coins earned and the collection size", () => {
-    expect(lifeSnapshot(mine as never, { discovered: 20 }, "m1")).toEqual(snap());
+    expect(lifeSnapshot(mine as never, { discovered: 20 }, "m1")).toEqual(snap({ coins: 24 }));
   });
 
-  test("coins earned leave out fruit (the garden hops its own), spending, refunds and adjustments", () => {
-    const more = { ...wallet, balance: 200, fromFruit: 50, spent: 0, adjusted: 60 };
-    expect(lifeSnapshot({ ...mine, wallet: more } as never, { discovered: 20 }, "m1")?.coins).toBe(84);
+  test("coins earned leave out fruit (the garden hops its own), coins claimed at the tree (the stone drops its own), spending, refunds and adjustments", () => {
+    const more = { ...wallet, balance: 200, fromKudos: 90, fromFruit: 50, spent: 0, adjusted: 60 };
+    expect(lifeSnapshot({ ...mine, wallet: more } as never, { discovered: 20 }, "m1")?.coins).toBe(24);
   });
 
   test("no coins before the wallet, no count before it loads", () => {

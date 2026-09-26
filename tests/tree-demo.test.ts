@@ -1,3 +1,4 @@
+import { growthFor, stageForGrowth } from "../convex/lib/tree";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
@@ -26,22 +27,28 @@ describe("the demo", () => {
     const alex = t.withIdentity({ subject: `${userId}|s` });
     const tree = await alex.query(api.tree.state, {});
     // On the reference date (2026-09-23) the demo's year (~2,400 kudos rows) makes an ancient tree from sap
-    // alone; elder (3,000 growth) comes with the fuel the demo story adds in D3 (#165).
-    expect(tree).toMatchObject({ planted: true, stage: "ancient", seedsToPlant: 0 });
+    // alone; its givers' offerings older than 30 days count as claimed (#157), and their fuel grows it on.
+    expect(tree).toMatchObject({ planted: true, seedsToPlant: 0 });
+    const offerings = await t.run((ctx) => ctx.db.query("offerings").collect());
+    const fuel = offerings.filter((o) => o.claimedAt !== undefined).reduce((s, o) => s + o.fuel, 0);
+    expect(fuel).toBeGreaterThan(0);
+    expect(offerings.some((o) => o.claimedAt === undefined)).toBe(true); // the last 30 days wait at the stone
+    expect(tree!.fuel).toBe(fuel);
+    expect(tree!.stage).toBe(stageForGrowth(tree!.peakGrowth));
     // Sap is one per qualifying line: a Note of 3+ words, no thank-back within 72 h, never a spree's.
     const kudos = await t.run((ctx) => ctx.db.query("kudos").collect());
     const thankBack = (k: (typeof kudos)[number]) =>
       kudos.some((b) => b.giverId === k.receiverId && b.receiverId === k.giverId && b.source !== "spree" && b.at < k.at && b.at > k.at - 72 * 3_600_000);
     const qualifying = kudos.filter((k) => (k.noteWords ?? 0) >= 3 && k.source !== "spree" && !thankBack(k)).length;
     expect(tree!.sap).toBe(qualifying);
-    expect(tree!.peakGrowth).toBe(qualifying);
+    expect(tree!.peakGrowth).toBe(growthFor({ sap: qualifying, fuel }));
     const workspaceId = (await t.run((ctx) => ctx.db.query("workspaces").first()))!._id;
     expect(await t.action(internal.tree.verify, { workspaceId })).toMatchObject({ ok: true, unplanted: 0 });
 
     await t.mutation(internal.demo.startDemoReset, {});
     await settle();
     const again = await alex.query(api.tree.state, {});
-    expect(again).toMatchObject({ stage: "ancient", sap: tree!.sap, worldSeed: tree!.worldSeed, plantedBy: tree!.plantedBy });
+    expect(again).toMatchObject({ stage: tree!.stage, sap: tree!.sap, fuel: tree!.fuel, worldSeed: tree!.worldSeed, plantedBy: tree!.plantedBy });
     expect(await t.run(async (ctx) => (await ctx.db.query("trees").collect()).length)).toBe(1);
   });
 });

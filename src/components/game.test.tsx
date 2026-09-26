@@ -111,8 +111,16 @@ test("an older level-up DM without gains still brings the hoggie (review #4)", (
 test("fruit picked in the garden is its own line in the wallet, and the garden is a click away (#95)", () => {
   mine = { enabled: true, hidden: false, player: level3, wallet: { balance: 31, fromKudos: 8, fromFruit: 3, fromQuests: 0, fromLevels: 20, spent: 0, adjusted: 0 } };
   const host = render(<GameCard glyph="🌮" />);
-  expect(host.querySelector("[data-wallet]")!.textContent).toContain("8 from thoughtful kudos, 3 from garden fruit and 20 from level-ups.");
+  expect(host.querySelector("[data-wallet]")!.textContent).toContain("8 from thoughtful kudos, 3 from fruit and 20 from level-ups.");
   expect(host.querySelector('a[href="/garden"]')?.textContent).toContain("Your garden");
+});
+
+test("coins waiting at the tree are told apart from the balance, with the way to the stone (#157)", () => {
+  mine = { enabled: true, hidden: false, player: level3, wallet: { balance: 28, waiting: 12, fromKudos: 8, fromFruit: 0, fromQuests: 0, fromLevels: 20, spent: 0, adjusted: 0 } };
+  const host = render(<GameCard glyph="🌮" />);
+  const wallet = host.querySelector("[data-wallet]")!;
+  expect(wallet.textContent).toContain("12 more wait at the tree.");
+  expect(wallet.querySelector('a[href="/offering"]')?.textContent).toBe("Offer them at the stone");
 });
 
 test("coins from kudos sprees are their own line in the wallet (#94)", () => {
