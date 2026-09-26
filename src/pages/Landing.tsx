@@ -1,6 +1,6 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotionConfig } from "motion/react";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router";
 import { Avatar, Button, RarityBadge } from "@/components/ui";
@@ -44,7 +44,7 @@ const DROPS: { rarity: Rarity; text: string }[] = [
 
 /** A kudos in Slack and the bot's reply, rolling through the rarities. A mock of Slack: it keeps Slack's look and emoji. */
 function SlackMock() {
-  const still = useReducedMotion();
+  const still = useReducedMotionConfig();
   const [i, setI] = useState(0);
   useEffect(() => {
     if (still) return;

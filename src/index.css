@@ -134,9 +134,18 @@
   @supports (width: round(down, 10%, 4px)) {
     & > [data-fill] { width: round(down, var(--fill), 4px); }
   }
+  /* The system's reduce stills it, unless the Motion switch says on (#134, world/motion.tsx). */
   @media (prefers-reduced-motion: reduce) {
-    & > [data-fill] { transition: none; }
+    :root:not([data-motion="on"]) & > [data-fill] { transition: none; }
   }
+}
+
+/* The Motion switch set to reduced (#134, world/motion.tsx): every CSS transition stills, the
+   meter's step and Tailwind's motion-safe fades included, as Motion's own animations do. */
+:root[data-motion="reduced"] *,
+:root[data-motion="reduced"] *::before,
+:root[data-motion="reduced"] *::after {
+  transition: none !important;
 }
 
 /* A parchment note on the dusk ground (the demo and bonus-day notices): a 1 px rule and a pixel step. */

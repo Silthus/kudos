@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import { useMutation, useQuery } from "convex/react";
-import { motion } from "motion/react";
+import { motion, useReducedMotionConfig } from "motion/react";
 import { Sparkles, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Link } from "react-router";
@@ -10,6 +10,8 @@ import { type ArtSlot, COSMETIC_SLOTS, COSMETICS, cosmeticByKey, type CosmeticSl
 import { RemoteArt } from "@/components/RemoteArt";
 import { Room } from "@/components/room";
 import { Avatar } from "@/components/ui";
+import { confetti } from "@/world/life";
+import { Npc } from "@/world/Npc";
 
 /**
  * Cosmetics (#98, #55 §G5, §G12): avatar frames, banners, hoggie stickers and kudos-emoji variants.
@@ -182,9 +184,30 @@ export function LookCard({ memberId, today }: { memberId: Id<"members">; today: 
   );
 }
 
+/** Palette-pixel confetti across the top of a celebration: it bursts from the middle once and comes to rest. */
+function Confetti({ count = 24 }: { count?: number }) {
+  const still = useReducedMotionConfig();
+  return (
+    <div data-confetti aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-20">
+      {confetti(count).map((p, i) => (
+        <motion.span
+          key={i}
+          data-piece
+          className="absolute block"
+          style={{ width: p.size, height: p.size, backgroundColor: p.color, boxShadow: "1px 1px 0 0 var(--color-dusk-deep)" }}
+          initial={still ? false : { left: "50%", top: 0, opacity: 0 }}
+          animate={{ left: `${p.x}%`, top: p.y, opacity: 1 }}
+          transition={{ duration: 0.5, delay: p.delay, ease: "easeOut" }}
+        />
+      ))}
+    </div>
+  );
+}
+
 /**
- * The receiver's Super kudos celebration (§G7): shown once, over whatever page they open, until
- * they close it. Nothing while the game is off or hidden from them.
+ * The receiver's Super kudos celebration (§G7, #134): a pixel window over the world, shown once
+ * until they close it, with the hoggie hugging a heart in its frame and a short burst of
+ * palette-pixel confetti that settles and stays still. Nothing while the game is off or hidden.
  */
 export function SuperKudosCelebration({ today }: { today: string }) {
   const celebration = useQuery(api.superKudos.celebration, { today });
@@ -210,24 +233,35 @@ export function SuperKudosCelebration({ today }: { today: string }) {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.12, ease: "easeOut" }}
-        className="pixel-frame relative w-full max-w-md overflow-hidden p-6 text-center"
+        className="pixel-frame flex w-full max-w-md flex-col"
       >
-        <div aria-hidden className="absolute inset-x-0 top-0 h-24 opacity-60" style={{ background: "var(--color-lantern)" }} />
-        <button ref={closeRef} type="button" onClick={close} aria-label="Close" className="absolute right-3 top-3 z-10 p-1.5 text-ink/75 hover:bg-parchment-deep/50 hover:text-ink">
-          <X className="h-4 w-4" />
-        </button>
-        <div className="relative mt-8 flex justify-center">
-          <span className="relative">
+        <header className="flex items-center justify-between gap-4 bg-bark px-4 py-3 text-cream">
+          <h2 id="super-kudos-title" className="min-w-0 font-display text-xl font-medium leading-7">
+            A Super kudos from {celebration.from}
+          </h2>
+          <button
+            ref={closeRef}
+            type="button"
+            onClick={close}
+            aria-label="Close"
+            className="pixel-chip grid h-8 w-8 shrink-0 place-items-center bg-parchment text-ink hover:bg-lantern focus-visible:outline-lantern"
+          >
+            <X className="h-4 w-4" strokeWidth={3} aria-hidden />
+          </button>
+        </header>
+        <div className="relative px-6 pb-6 pt-8 text-center">
+          <Confetti />
+          <div className="relative flex items-end justify-center gap-3">
             <Avatar name={celebration.from} src={celebration.avatarUrl} size={64} ring="ring-4 ring-lantern" />
-            {/* A hoggie hugging a heart beside the giver, outside the flow so the picture stays centred with or without it. */}
-            <RemoteArt slot="super-kudos-celebration" fit="contain" className="absolute bottom-[-6px] left-full ml-1 h-20 w-20" />
-          </span>
+            <Npc slot="super-kudos-celebration" size={72} />
+          </div>
+          <p className="relative mt-4 text-sm text-ink/75">Each Herald only has one or two a month, and they chose you.</p>
+          {celebration.note && (
+            <blockquote data-user-text className="relative mt-4 bg-parchment-deep/50 px-4 py-3 text-left text-sm italic text-ink">
+              {celebration.note}
+            </blockquote>
+          )}
         </div>
-        <h2 id="super-kudos-title" className="relative mt-4 font-display text-2xl font-semibold text-ink">
-          A Super kudos from {celebration.from}
-        </h2>
-        <p className="mt-1 text-sm text-ink/75">Each Herald only has one or two a month, and they chose you.</p>
-        {celebration.note && <blockquote className="mt-4 bg-parchment-deep/50 px-4 py-3 text-left text-sm italic text-ink">{celebration.note}</blockquote>}
       </motion.div>
     </div>
   );

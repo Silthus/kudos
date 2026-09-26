@@ -12,7 +12,7 @@ vi.mock("convex/react", async () => {
   return { useQuery: (fn: never, args: unknown) => (args === "skip" ? undefined : queries[getFunctionName(fn)]), useMutation: () => vi.fn() };
 });
 let reduced = false;
-vi.mock("motion/react", async (real) => ({ ...(await real<typeof import("motion/react")>()), useReducedMotion: () => reduced }));
+vi.mock("motion/react", async (real) => ({ ...(await real<typeof import("motion/react")>()), useReducedMotion: () => reduced, useReducedMotionConfig: () => reduced }));
 vi.mock("@convex-dev/auth/react", () => ({ useAuthActions: () => ({ signOut: vi.fn(async () => undefined) }) }));
 // The Super kudos celebration: a modal of its own, while one waits.
 let celebrating = false;
@@ -62,11 +62,11 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function open(path: string) {
+function open(path: string, as: ReadyViewer = viewer) {
   act(() =>
     root.render(
       <MemoryRouter initialEntries={[path]}>
-        <ViewerContext.Provider value={viewer}>
+        <ViewerContext.Provider value={as}>
           <Routes>
             <Route element={<WorldShell />}>
               <Route index element={null} />
@@ -266,6 +266,23 @@ describe("a teammate's bed", () => {
     expect(bubble.querySelector("a")!.getAttribute("href")).toBe("/garden/m7");
     expect(bubble.querySelector("a")!.textContent).toBe("Visit garden");
   });
+
+  test("a teammate who gave a thoughtful kudos today has a sprout on their bed, and their bubble says so (#134)", () => {
+    queries = { "gardens:neighbours": ring, "life:sprouts": ["m7"] };
+    open("/garden/m7");
+    act(() => openWindow()!.querySelector<HTMLButtonElement>("[data-close]")!.click());
+    expect(host.querySelector("[data-neighbour-bubble]")!.textContent).toContain("Gave a thoughtful kudos today");
+    // Text on the parchment bubble is ink (#126).
+    const line = [...host.querySelectorAll("[data-neighbour-bubble] p")].find((p) => p.textContent?.includes("thoughtful"))!;
+    expect([...line.classList].filter((c) => /^text-(?!xs|sm|base)/.test(c))).toEqual(["text-ink"]);
+  });
+
+  test("on other days, no such line", () => {
+    queries = { "gardens:neighbours": ring, "life:sprouts": [] };
+    open("/garden/m7");
+    act(() => openWindow()!.querySelector<HTMLButtonElement>("[data-close]")!.click());
+    expect(host.querySelector("[data-neighbour-bubble]")!.textContent).not.toContain("thoughtful");
+  });
 });
 
 describe("your plots", () => {
@@ -316,4 +333,124 @@ test("a teammate's garden from a link names them in the title, even when they're
   queries = { "gardens:of": { name: "Zoe", avatarUrl: null, plants: [] } };
   open("/garden/m9");
   expect(windowTitle()).toBe("Zoe's garden");
+});
+
+describe("life in the world (#134)", () => {
+  const player = (level: number, title: string) => ({ level, title, xp: 1650, floor: 1500, next: 1900, toNext: 250, fraction: 0.4 });
+  const wallet = (balance: number) => ({ balance, fromKudos: balance, fromFruit: 0, fromQuests: 0, fromSprees: 0, fromLevels: 0, spent: 0, adjusted: 0 });
+  const game = (level: number, title: string, coins = 84) => ({ enabled: true, hidden: false, player: player(level, title), wallet: wallet(coins), luckyCharms: 0, sunlamps: 0, lanterns: 0 });
+  const counts = (discovered: number) => ({ used: 0, remaining: 5, limit: 5, discovered, total: 72 });
+  const hog = () => host.querySelector<HTMLCanvasElement>("canvas[data-hog]")!;
+  const toast = () => document.querySelector("[aria-live='polite'] [data-toast]");
+
+  test("arriving at the notice board after a walk, the hedgehog reads it", () => {
+    open("/me");
+    act(() => openWindow()!.querySelector<HTMLButtonElement>("[data-close]")!.click());
+    act(() => host.querySelector<HTMLElement>("[data-sign=leaderboard]")!.click());
+    walkFor(4000);
+    expect(windowTitle()).toBe("Notice board");
+    expect(hog().dataset.animation).toBe("sign");
+  });
+
+  test("a level-up while the app is open: the hedgehog jumps and a toast says what it brought", () => {
+    queries = { "game:mine": game(9, "Gardener"), "me:today": counts(20) };
+    open("/");
+    expect(toast()).toBeNull();
+    queries = { "game:mine": game(10, "Grove keeper"), "me:today": counts(20) };
+    open("/");
+    expect(toast()?.textContent).toContain("Level 10, Grove keeper, +1 skill point");
+    expect(hog().dataset.animation).toBe("jump");
+  });
+
+  test("under reduced motion the level-up still toasts, and the hedgehog keeps its still frame", () => {
+    reduced = true;
+    queries = { "game:mine": game(9, "Gardener"), "me:today": counts(20) };
+    open("/");
+    queries = { "game:mine": game(10, "Grove keeper"), "me:today": counts(20) };
+    open("/");
+    expect(toast()?.textContent).toContain("Level 10");
+    expect(hog().dataset.animation).toBe("idle");
+  });
+
+  test("coins earned hop into the counter, once; not under reduced motion", () => {
+    queries = { "game:mine": game(9, "Gardener", 84), "me:today": counts(20) };
+    open("/garden");
+    queries = { "game:mine": game(9, "Gardener", 87), "me:today": counts(20) };
+    open("/garden");
+    expect(document.querySelectorAll("[data-coin-hop] [data-coin]").length).toBe(3);
+    walkFor(2000);
+    expect(document.querySelector("[data-coin-hop]")).toBeNull();
+    reduced = true;
+    queries = { "game:mine": game(9, "Gardener", 90), "me:today": counts(20) };
+    open("/garden");
+    expect(document.querySelector("[data-coin-hop]")).toBeNull();
+  });
+
+  test("picked fruit hops from the garden's Pick button, so the hedgehog doesn't hop it again", () => {
+    queries = { "game:mine": game(9, "Gardener", 84), "me:today": counts(20) };
+    open("/garden");
+    const picked = game(9, "Gardener", 90);
+    queries = { "game:mine": { ...picked, wallet: { ...picked.wallet, fromKudos: 84, fromFruit: 6 } }, "me:today": counts(20) };
+    open("/garden");
+    expect(document.querySelector("[data-coin-hop]")).toBeNull();
+  });
+
+  test("switching workspace is nothing that happened to you: no level-up, no coins", () => {
+    queries = { "game:mine": game(9, "Gardener", 84), "me:today": counts(20) };
+    open("/");
+    const elsewhere = { ...viewer, member: { ...viewer.member, _id: "m9" } } as ReadyViewer;
+    queries = { "game:mine": game(12, "Elder", 400), "me:today": counts(40) };
+    open("/", elsewhere);
+    expect(toast()).toBeNull();
+    expect(document.querySelector("[data-coin-hop]")).toBeNull();
+    expect(hog().dataset.animation).toBe("idle");
+  });
+
+  test("hiding the game and showing it again later is no flood of what happened meanwhile", () => {
+    queries = { "game:mine": game(9, "Gardener", 84), "me:today": counts(20) };
+    open("/");
+    queries = { "game:mine": { ...game(9, "Gardener", 84), hidden: true } };
+    open("/");
+    queries = { "game:mine": game(11, "Grove keeper", 120), "me:today": counts(25) };
+    open("/");
+    expect(toast()).toBeNull();
+    expect(document.querySelector("[data-coin-hop]")).toBeNull();
+  });
+
+  test("a toast carries on where it was when the window closes: not shown again, its clock not restarted", () => {
+    queries = { "game:mine": game(9, "Gardener"), "me:today": counts(20) };
+    open("/garden");
+    queries = { "game:mine": game(9, "Gardener"), "me:today": counts(21) };
+    open("/garden");
+    const shown = toast();
+    expect(openWindow()!.contains(shown)).toBe(true);
+    walkFor(5000);
+    act(() => openWindow()!.querySelector<HTMLButtonElement>("[data-close]")!.click());
+    expect(openWindow()).toBeNull();
+    expect(toast()).toBe(shown);
+    walkFor(3500);
+    expect(toast()).toBeNull();
+  });
+
+  test("the toast shows over an open window, where you can still read and dismiss it", () => {
+    queries = { "game:mine": game(9, "Gardener"), "me:today": counts(20) };
+    open("/garden");
+    queries = { "game:mine": game(9, "Gardener"), "me:today": counts(21) };
+    open("/garden");
+    expect(openWindow()!.querySelector("[aria-live='polite'] [data-toast='discovery']")?.textContent).toContain("New message discovered");
+  });
+
+  test("a bonus day turns the sky to golden hour and puts the hedgehog in its party hat", () => {
+    queries = { "game:mine": game(9, "Gardener"), "boosts:banner": { current: { kind: "double", text: "Bonus day: double XP" }, upcoming: [] } };
+    open("/");
+    expect(host.querySelector("[data-sky]")?.getAttribute("data-sky")).toBe("golden");
+    expect(hog().dataset.accessory).toBe("party");
+  });
+
+  test("an ordinary day is dusk, bare-headed", () => {
+    queries = { "game:mine": game(9, "Gardener"), "boosts:banner": { current: null, upcoming: [] } };
+    open("/");
+    expect(host.querySelector("[data-sky]")?.getAttribute("data-sky")).toBe("dusk");
+    expect(hog().dataset.accessory).toBeUndefined();
+  });
 });

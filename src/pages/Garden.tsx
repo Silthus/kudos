@@ -2,7 +2,7 @@ import clsx from "clsx";
 import { useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { Lamp, Sprout, X } from "lucide-react";
-import { motion, useReducedMotion } from "motion/react";
+import { motion, useReducedMotionConfig } from "motion/react";
 import { useLayoutEffect, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { api } from "../../convex/_generated/api";
@@ -12,6 +12,7 @@ import { Locked } from "@/components/game";
 import { EmptyBedArt, PlantArt } from "@/components/PlantArt";
 import { HogCoin } from "@/components/HogCoin";
 import { RemoteArt } from "@/components/RemoteArt";
+import { Npc } from "@/world/Npc";
 import { Avatar, Button, Card, CardHeader, Dialog, Empty, PageSkeleton } from "@/components/ui";
 import { useWorkspaceToday } from "@/lib/period";
 import { canPlant, FRUIT_PICKED, plotCount, plotFrom } from "@/world/gardenWorld";
@@ -283,10 +284,12 @@ function EmptyPlot({ garden, plot }: { garden: OpenGarden; plot: number }) {
   const full = garden.plants.length >= garden.plots;
   return (
     <div data-plot className="flex flex-col gap-4 @sm:flex-row @sm:items-start">
-      <div className="relative self-center bg-dusk p-2 @sm:self-start">
-        <EmptyBedArt size={128} />
-        {/* A gardening hoggie waits by the plot: PostHog's art, nothing if it can't load. */}
-        <RemoteArt slot="hoggie-empty-plot" fit="contain" className="absolute bottom-1 right-1 h-12 w-12" />
+      <div className="flex items-end gap-2 self-center @sm:self-start">
+        <div className="bg-dusk p-2">
+          <EmptyBedArt size={128} />
+        </div>
+        {/* A gardening hoggie waits by the plot, in the frame every hoggie in a window has (#134). */}
+        <Npc slot="hoggie-empty-plot" size={56} />
       </div>
       <div className="min-w-0 flex-1">
         <h3 className="mb-2 font-display text-2xl font-medium text-ink">Empty plot</h3>
@@ -430,7 +433,7 @@ const HOP_MS = 900;
  * once, then gone. Nothing under reduced motion.
  */
 function FruitHop({ from, count, onDone }: { from: HTMLElement; count: number; onDone: () => void }) {
-  const still = useReducedMotion();
+  const still = useReducedMotionConfig();
   const layer = useRef<HTMLDivElement>(null);
   const [path, setPath] = useState<{ x: number; y: number; dx: number; dy: number } | null>(null);
   useLayoutEffect(() => {

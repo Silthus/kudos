@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { motion, useReducedMotion } from "motion/react";
+import { motion, useReducedMotionConfig } from "motion/react";
 import { X } from "lucide-react";
 import { useEffect, useId, useRef, type ReactNode } from "react";
 
@@ -27,7 +27,7 @@ export function Window({
   /** Where focus goes on close when nothing opened the window, or its opener is gone. */
   returnFocus?: () => HTMLElement | null;
 }) {
-  const still = useReducedMotion();
+  const still = useReducedMotionConfig();
   const ref = useRef<HTMLDialogElement>(null);
   const body = useRef<HTMLDivElement>(null);
   const opener = useRef<HTMLElement | null>(null);

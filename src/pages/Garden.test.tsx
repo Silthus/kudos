@@ -274,6 +274,8 @@ test("the garden in pixels: PostHog's Keyboard garden up top, our own key beds, 
   expect(host.querySelector("[data-memories]")?.textContent).toContain("Bright sunflower for Dan");
   render("/garden?plot=2");
   expect(document.querySelector("[data-art-slot='hoggie-empty-plot'] img")?.getAttribute("src")).toContain("/hoggies/png/gardener-2.png");
+  // In the same pixel frame as every hoggie inside a window (#134).
+  expect(document.querySelector("[data-npc] [data-art-slot='hoggie-empty-plot']")).not.toBeNull();
 });
 
 test("if the Keyboard garden can't load, the window stands as it was, with our own key beds (#101)", () => {
