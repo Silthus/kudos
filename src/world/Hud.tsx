@@ -8,6 +8,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import { LevelLabel } from "@/components/game";
 import { HogCoin } from "@/components/HogCoin";
 import { Progress } from "@/components/ui";
 import { HEDGEHOG_MODE } from "@/lib/art";
@@ -280,15 +281,6 @@ function SettingsMenu({ gameOn, simulator }: { gameOn: boolean; simulator: Simul
   );
 }
 
-/** "Level 25": the word in Pixelify, the number in Nunito with tabular figures, since Pixelify's 5 reads as an S (#171). */
-function LevelLabel({ level, className }: { level: number; className: string }) {
-  return (
-    <span className={clsx("font-display font-medium text-lantern", className)}>
-      Level <span className="font-sans font-bold tabular">{level}</span>
-    </span>
-  );
-}
-
 /** Top left: you. Your hedgehog, and your level, XP and coins while you play. */
 function You({ game }: { game: ReturnType<typeof hudGame> }) {
   const viewer = useViewer();
@@ -302,7 +294,7 @@ function You({ game }: { game: ReturnType<typeof hudGame> }) {
         {game && (
           <div className="hidden sm:block">
             <div className="flex items-baseline gap-2">
-              <LevelLabel level={game.level} className="text-lg leading-6" />
+              <LevelLabel level={game.level} className="text-lg leading-6 text-lantern" />
               <span className="text-xs text-cream/80">{game.title}</span>
             </div>
             <div className="mt-1 flex items-center gap-3">
@@ -318,7 +310,7 @@ function You({ game }: { game: ReturnType<typeof hudGame> }) {
             </div>
           </div>
         )}
-        {game && <LevelLabel level={game.level} className="block text-sm sm:hidden" />}
+        {game && <LevelLabel level={game.level} className="block text-sm text-lantern sm:hidden" />}
       </div>
     </div>
   );

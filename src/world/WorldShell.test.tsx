@@ -202,6 +202,13 @@ describe("beside an open window (#171)", () => {
     expect(caption()).toBe("Quest signpost");
   });
 
+  test("from a teammate's garden, the sign of your own garden walks you there (review)", () => {
+    open("/garden/m9");
+    signAt("garden", { left: 100, top: 200, width: 120, height: 20 });
+    clickBeside(150, 210);
+    expect(url).toBe("/garden");
+  });
+
   test("the open place's own sign closes its window", () => {
     open("/quests");
     signAt("quests", { left: 100, top: 200, width: 120, height: 20 });

@@ -614,12 +614,14 @@ export const runMessages = query({
     if (!simulator || !run || run.workspaceId !== simulator.workspace._id) return [];
     const sent = await ctx.db
       .query("notifications")
-      .withIndex("by_member", (q) => q.eq("memberId", run.memberId).gte("_creationTime", run.startedAt))
+      .withIndex("by_member", (q) => {
+        const since = q.eq("memberId", run.memberId).gte("_creationTime", run.startedAt);
+        // A run still playing has no end yet: its DMs so far.
+        return run.finishedAt === undefined ? since : since.lte("_creationTime", run.finishedAt + RUN_END_SLACK_MS);
+      })
       .order("desc")
       .take(RUN_DMS_READ);
-    const dms = sent
-      .filter((n) => n.category !== "giver_success" && (run.finishedAt === undefined || n._creationTime <= run.finishedAt + RUN_END_SLACK_MS))
-      .slice(0, RUN_DMS_SHOWN);
+    const dms = sent.filter((n) => n.category !== "giver_success").slice(0, RUN_DMS_SHOWN);
     const described = await describeNotifications(ctx, simulator, dms.map((n) => n._id));
     return described.sort((a, b) => b.at - a.at);
   },

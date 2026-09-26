@@ -867,25 +867,25 @@ async function requireDemoViewer(ctx: MutationCtx) {
 
 /** A bot DM as the sandbox shows it: an envelope, or your reply where you gave. */
 export const botMessageValidator = v.object({
-      _id: v.id("notifications"),
-      /** When it was sent, on the workspace's clock: the sandbox's stack is in this order (#171). */
-      at: v.number(),
-      to: v.string(),
-      toMe: v.boolean(),
-      category: v.string(),
-      rarity: v.string(),
-      text: v.string(),
-      isNewDiscovery: v.boolean(),
-      /** Quest messages: how far the week is, as the Slack DM says. */
-      questProgress: v.optional(questProgressValidator),
-      /** Your reply while the game is on: what the kudos earned ("+20 XP · new connection +10"). */
-      earnings: v.optional(v.string()),
-      /** What its member gained in this kudos, riding along in their kudos DM (lib/gains.ts). */
-      gains: v.optional(v.array(v.string())),
-      /** A DM with gains: what it's about ("Level up", "New discovery", ...). */
-      gainLabel: v.optional(v.string()),
-      /** A Super kudos (#98): the receiver's celebration, or your note on what your Super kudos emoji did. */
-      superKudos: v.optional(v.object({ kind: v.union(v.literal("celebration"), v.literal("sent"), v.literal("howto")), text: v.string() })),
+  _id: v.id("notifications"),
+  /** When it was sent, on the workspace's clock: the sandbox's stack is in this order (#171). */
+  at: v.number(),
+  to: v.string(),
+  toMe: v.boolean(),
+  category: v.string(),
+  rarity: v.string(),
+  text: v.string(),
+  isNewDiscovery: v.boolean(),
+  /** Quest messages: how far the week is, as the Slack DM says. */
+  questProgress: v.optional(questProgressValidator),
+  /** Your reply while the game is on: what the kudos earned ("+20 XP · new connection +10"). */
+  earnings: v.optional(v.string()),
+  /** What its member gained in this kudos, riding along in their kudos DM (lib/gains.ts). */
+  gains: v.optional(v.array(v.string())),
+  /** A DM with gains: what it's about ("Level up", "New discovery", ...). */
+  gainLabel: v.optional(v.string()),
+  /** A Super kudos (#98): the receiver's celebration, or your note on what your Super kudos emoji did. */
+  superKudos: v.optional(v.object({ kind: v.union(v.literal("celebration"), v.literal("sent"), v.literal("howto")), text: v.string() })),
 });
 
 const playgroundResult = v.object({

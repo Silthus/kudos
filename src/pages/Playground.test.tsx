@@ -20,10 +20,16 @@ let queries: Record<string, unknown>;
 let sprees = false;
 const calls: Record<string, ReturnType<typeof vi.fn>> = {};
 const replies: Record<string, unknown> = {};
+/** What each query was asked with, every time ("skip" when it wasn't asked). */
+const asked: Record<string, unknown[]> = {};
 vi.mock("convex/react", async () => {
   const { getFunctionName } = await import("convex/server");
   return {
-    useQuery: (fn: never) => queries[getFunctionName(fn)],
+    useQuery: (fn: never, args: unknown) => {
+      const name = getFunctionName(fn);
+      (asked[name] ??= []).push(args);
+      return queries[name];
+    },
     useMutation: (fn: never) => {
       const name = getFunctionName(fn);
       calls[name] ??= vi.fn(async () => replies[name]);
@@ -54,8 +60,10 @@ const viewer = (isAdmin = false, workspaces: Ws[] = [], simulator = false) =>
     },
   }) as unknown as ReadyViewer;
 
+let sent = 0;
 const dm = (over: Record<string, unknown>) => ({
   _id: crypto.randomUUID(),
+  at: ++sent * 60_000,
   to: "Priya Raman",
   toMe: false,
   category: "receiver_success",
@@ -76,6 +84,7 @@ beforeEach(() => {
   sprees = false;
   for (const k of Object.keys(calls)) delete calls[k];
   for (const k of Object.keys(replies)) delete replies[k];
+  for (const k of Object.keys(asked)) delete asked[k];
 });
 afterEach(() => act(() => root?.unmount()));
 
@@ -194,6 +203,15 @@ test("a first name two teammates share, or a longer name, is left as typed; full
   await type("@Jonas and @Priyanka 🌮 thanks, @Jonas Berg and @Priya Raman");
   await click("Send");
   expect(calls["demo:simulateMessage"]).toHaveBeenCalledWith({ text: "@Jonas and @Priyanka :taco: thanks, <@UDEMOJBERG> and <@UDEMOPRIYA>", channelName: "general" });
+});
+
+test("a first name mentions only after a space or at the start, and never means you (#171 review)", async () => {
+  queries["demo:teammates"] = [...teammates, { name: "Alex Rivera", slackUserId: "UDEMOALEX", title: "Manager" }, { name: "Alex Kim", slackUserId: "UDEMOKIM", title: "SRE" }];
+  replies["demo:simulateMessage"] = { status: "given", attempt: null, messages: [] };
+  render();
+  await type("@alex 🌮 thanks, cc ops@priya");
+  await click("Send");
+  expect(calls["demo:simulateMessage"]).toHaveBeenCalledWith({ text: "<@UDEMOKIM> :taco: thanks, cc ops@priya", channelName: "general" });
 });
 
 test("reacting to a teammate's post and /kudos me both answer as envelopes", async () => {
@@ -426,6 +444,18 @@ test("review: from the shared demo, restarting says it takes you there", async (
   expect(calls["simulator:reset"]).toHaveBeenCalledWith({ level: 7 });
 });
 
+const finishedRun = (summary: Record<string, unknown> = {}, over: Record<string, unknown> = {}) => ({
+  _id: "run1",
+  status: "done",
+  fromLevel: 3,
+  toLevel: 5,
+  stopReason: null,
+  summary: { daysPlayed: 7, kudosGiven: 35, thoughtfulKudos: 35, questsCompleted: { weekly: 1, daily: 3, sweeps: 0 }, coinsEarned: 90, fruitPicked: 0, plantsPlanted: 0, levelsGained: 2, newConnections: 6, ...summary },
+  levelDays: [],
+  ...over,
+});
+const levelUp = (text: string, at: number) => dm({ to: "Alex Rivera", toMe: true, category: "gains", gainLabel: "Level up", text, at });
+
 test("simulator: after a fast-forward the run's DMs top the stack in the simulator's time order, and the bot leaves one note in #general (#171)", async () => {
   replies["demo:simulateAllowanceCheck"] = { messages: [dm({ text: "A DM from day 1", at: 1_000 })] };
   queries["simulator:state"] = simulatorState();
@@ -451,9 +481,40 @@ test("simulator: after a fast-forward the run's DMs top the stack in the simulat
   expect(envelopes[0]).toContain("Level 5, Gardener");
   expect(envelopes[1]).toContain("Level 4, Sprout");
   expect(envelopes[2]).toContain("A DM from day 1");
+  // Asked for this run's DMs only once it was over, and no more once told.
+  expect(asked["simulator:runMessages"][0]).toBe("skip");
+  expect(asked["simulator:runMessages"]).toContainEqual({ runId: "run1" });
+  expect(asked["simulator:runMessages"].at(-1)).toBe("skip");
   const terminal = host.querySelector("[data-slack-terminal]")!.textContent!;
   const note = "The bot played 7 days: 35 kudos, level 3 to 5.";
   expect(terminal.split(note)).toHaveLength(2);
   // After the channel's posts: the feed ends where the clock is.
   expect(terminal.indexOf(note)).toBeGreaterThan(terminal.indexOf("Postmortem doc incoming."));
+});
+
+test("simulator: the note is told at the run's last DM, and a run over before the sandbox opened doesn't count as new DMs (#171 review)", () => {
+  queries["simulator:state"] = simulatorState({ level: 5, lastRun: finishedRun() });
+  const last = new Date(2026, 9, 3, 16, 40).getTime();
+  queries["simulator:runMessages"] = [levelUp("Level 5, Gardener", last), levelUp("Level 4, Sprout", last - 86_400_000)];
+  render(false, inSim, true);
+  const note = [...host.querySelectorAll("[data-slack-terminal] p")].find((p) => p.textContent === "The bot played 7 days: 35 kudos, level 3 to 5.")!;
+  expect(note.previousElementSibling?.textContent).toContain(new Date(last).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+  expect(host.querySelectorAll("[data-envelope]")).toHaveLength(2);
+  expect(host.querySelector("[data-new-dms]")).toBeNull();
+});
+
+test("simulator: a run that finishes while the sandbox is open says how many new DMs it brought (#171 review)", () => {
+  queries["simulator:state"] = simulatorState({ lastRun: finishedRun({}, { status: "running" }) });
+  render(false, inSim, true);
+  queries["simulator:state"] = simulatorState({ level: 5, lastRun: finishedRun() });
+  queries["simulator:runMessages"] = [levelUp("Level 5, Gardener", 9_000), levelUp("Level 4, Sprout", 5_000)];
+  rerender();
+  expect(host.querySelector("[data-new-dms]")?.textContent).toContain("2 new DMs below");
+});
+
+test("simulator: a run stopped before it played a day leaves no note (#171 review)", () => {
+  queries["simulator:state"] = simulatorState({ lastRun: finishedRun({ daysPlayed: 0, kudosGiven: 0, levelsGained: 0 }, { status: "stopped" }) });
+  queries["simulator:runMessages"] = [];
+  render(false, inSim, true);
+  expect(host.querySelector("[data-slack-terminal]")!.textContent).not.toContain("The bot");
 });

@@ -458,7 +458,9 @@ export function WorldShell() {
       return x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
     });
     const place = sign && onMap.find((p) => p.id === sign.dataset.sign);
-    navigate(place && place.id !== target?.place.id ? place.to : "/");
+    // A teammate's garden isn't yours: your garden's sign walks you home.
+    const here = place && place.id === target?.place.id && !target.memberId;
+    navigate(place && !here ? place.to : "/");
   };
   const inset = windowOpen ? dockedWidth(vw) : 0;
   const bubbleAt = bubble && !windowOpen ? tileOnCanvas(bubble.tile) : null;

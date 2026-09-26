@@ -531,7 +531,31 @@ describe("the sandbox after a fast-forward (#171)", () => {
     await visitor("a").mutation(api.simulator.start, { level: 4 });
     const runId = await visitor("a").mutation(api.simulator.fastForward, { levels: 1 });
     await settle();
+    expect((await visitor("a").query(api.simulator.runMessages, { runId })).length).toBeGreaterThan(0);
     await visitor("b").mutation(api.simulator.start, {});
     expect(await visitor("b").query(api.simulator.runMessages, { runId })).toEqual([]);
+  });
+
+  test("each level-up DM carries the time of the kudos that earned it, not the morning of its day (review)", async () => {
+    await visitor("a").mutation(api.simulator.start, { level: 4 });
+    const { memberId } = await simulator();
+    const runId = await visitor("a").mutation(api.simulator.fastForward, { levels: 2 });
+    await settle();
+    const levelUps = (await visitor("a").query(api.simulator.runMessages, { runId })).filter((m) => m.gainLabel === "Level up");
+    expect(levelUps.length).toBeGreaterThan(0);
+    const given = new Set((await t.run((ctx) => ctx.db.query("kudos").collect())).filter((k) => k.giverId === memberId).map((k) => k.at));
+    for (const dm of levelUps) expect(given.has(dm.at)).toBe(true);
+  });
+
+  test("a DM sent in the sandbox after the run isn't one of the run's (review)", async () => {
+    await visitor("a").mutation(api.simulator.start, { level: 4 });
+    const runId = await visitor("a").mutation(api.simulator.fastForward, { levels: 1 });
+    await settle();
+    const before = await visitor("a").query(api.simulator.runMessages, { runId });
+    vi.setSystemTime(Date.now() + 60_000);
+    const later = await visitor("a").mutation(api.demo.simulateAllowanceCheck, {});
+    expect(later.messages.length).toBeGreaterThan(0);
+    const after = await visitor("a").query(api.simulator.runMessages, { runId });
+    expect(after.map((m) => m._id)).toEqual(before.map((m) => m._id));
   });
 });

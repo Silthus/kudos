@@ -358,7 +358,7 @@ async function reachTier(ctx: MutationCtx, workspace: Workspace, spree: Doc<"spr
   });
   if (!final) await ctx.scheduler.runAfter(Math.max(0, deadline - now), internal.sprees.lapse, { spreeId: spree._id, deadline });
 
-  const gains = new Gains(ctx, workspace);
+  const gains = new Gains(ctx, workspace, now);
   const slackWho = await names(ctx, spree.giverId, receivers.map((r) => r._id), "slack");
   const person = (m: Member) => ({ slackUserId: m.slackUserId, name: m.name });
   if (gameOn(workspace) && giver) {

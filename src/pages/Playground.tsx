@@ -150,18 +150,20 @@ function BotAvatar({ glyph }: { glyph: string }) {
 
 /**
  * The composer's mentions as Slack sends them (`<@U…>`): a teammate's full name, or a first name only
- * one teammate has, as a first-time visitor types it (#171). A first name two teammates share stays as
- * typed; the @ picker offers both. Any case; never the start of a longer name.
+ * one other teammate has, as a first-time visitor types it (#171). A first name two teammates share
+ * stays as typed; the @ picker offers both. Your own first name never means you. Any case; only at
+ * the start of a word (not `ops@priya`), and never the start of a longer name.
  */
-function slackMentions(text: string, teammates: { name: string; slackUserId: string }[]) {
+function slackMentions(text: string, teammates: { name: string; slackUserId: string }[], me: string) {
   const ids = new Map(teammates.map((t) => [t.name.toLowerCase(), t.slackUserId]));
   const first = (t: { name: string }) => t.name.split(" ")[0].toLowerCase();
-  for (const t of teammates) {
-    if (!ids.has(first(t)) && teammates.filter((o) => first(o) === first(t)).length === 1) ids.set(first(t), t.slackUserId);
+  const others = teammates.filter((t) => t.slackUserId !== me);
+  for (const t of others) {
+    if (!ids.has(first(t)) && others.filter((o) => first(o) === first(t)).length === 1) ids.set(first(t), t.slackUserId);
   }
   if (ids.size === 0) return text;
   const names = [...ids.keys()].sort((a, b) => b.length - a.length).map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-  return text.replace(new RegExp(`@(${names.join("|")})(?![\\p{L}\\p{N}])`, "giu"), (_, name: string) => `<@${ids.get(name.toLowerCase())}>`);
+  return text.replace(new RegExp(`(?<![\\p{L}\\p{N}])@(${names.join("|")})(?![\\p{L}\\p{N}])`, "giu"), (_, name: string) => `<@${ids.get(name.toLowerCase())}>`);
 }
 
 type Tab = "playground" | "simulator";
@@ -243,7 +245,7 @@ function Sandbox() {
    * Like Slack: your reply to a kudos you gave shows only to you, right where you gave it (with what
    * it earned while the game is on); everything else is a DM, an envelope on the stack.
    */
-  const pushBot = (messages: BotMessage[]) => {
+  const pushBot = (messages: BotMessage[], { announce = true } = {}) => {
     const isReply = (m: BotMessage) => m.toMe && m.category === "giver_success";
     const replies = messages.filter(isReply);
     if (replies.length > 0) {
@@ -254,24 +256,30 @@ function Sandbox() {
     }
     const dms = messages.filter((m) => !isReply(m));
     setBot((prev) => stacked([...dms, ...prev]));
-    setNewDms(dms.length);
+    if (announce) setNewDms(dms.length);
   };
 
   // A fast-forward over (#171): its DMs join the stack at their days, and the bot says in #general
-  // what it played, so the sandbox is where the clock is. Once per run.
+  // what it played, told at its last DM, so the sandbox is where the clock is. Once per run; a run
+  // over before the sandbox opened is told too, but its DMs aren't news.
   const lastRun = inSimulator ? simulator?.lastRun : null;
-  const finishedRun = lastRun && lastRun.status !== "running" ? lastRun : null;
-  const runDms = useQuery(api.simulator.runMessages, finishedRun ? { runId: finishedRun._id } : "skip");
-  const toldRun = useRef<string | null>(null);
+  const finishedRun = lastRun && lastRun.status !== "running" && lastRun.summary.daysPlayed > 0 ? lastRun : null;
+  const [toldRun, setToldRun] = useState<string | null>(null);
+  const runDms = useQuery(api.simulator.runMessages, finishedRun && toldRun !== finishedRun._id ? { runId: finishedRun._id } : "skip");
+  const watchedRun = useRef<string | null>(null);
   useEffect(() => {
-    if (!finishedRun || !runDms || toldRun.current === finishedRun._id) return;
-    toldRun.current = finishedRun._id;
-    setFeed((f) => [...f, { id: `run-${finishedRun._id}`, author: "Kudos", slackUserId: "", text: runNote(finishedRun), mine: false, at: workspaceClockNow(), bot: "channel" }]);
-    pushBot(runDms);
+    if (lastRun?.status === "running") watchedRun.current = lastRun._id;
+  }, [lastRun?._id, lastRun?.status]);
+  useEffect(() => {
+    if (!finishedRun || !runDms || toldRun === finishedRun._id) return;
+    setToldRun(finishedRun._id);
+    const at = runDms.length > 0 ? Math.max(...runDms.map((m) => m.at)) : workspaceClockNow();
+    setFeed((f) => [...f, { id: `run-${finishedRun._id}`, author: "Kudos", slackUserId: "", text: runNote(finishedRun), mine: false, at, bot: "channel" }]);
+    pushBot(runDms, { announce: watchedRun.current === finishedRun._id });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finishedRun?._id, runDms]);
 
-  const toSlack = (raw: string) => slackMentions(raw.replaceAll(glyph, emojiCode), teammates);
+  const toSlack = (raw: string) => slackMentions(raw.replaceAll(glyph, emojiCode), teammates, viewer.member.slackUserId);
 
   const submit = async (raw = text) => {
     const trimmed = raw.trim();
