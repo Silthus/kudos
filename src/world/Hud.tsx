@@ -99,17 +99,48 @@ function useMenu() {
 
 function MenuPanel({ id, panel, children, className }: { id: string; panel: React.RefObject<HTMLDivElement | null>; children: ReactNode; className?: string }) {
   return (
-    <div ref={panel} id={id} data-hud-menu className={clsx("pixel-frame absolute right-0 top-full z-10 mt-3 w-72 max-w-[calc(100vw-24px)] p-2", className)}>
+    <div ref={panel} id={id} data-hud-menu className={clsx("pixel-frame absolute right-0 top-full z-10 mt-3 max-h-[calc(100dvh-88px)] w-72 max-w-[calc(100vw-24px)] overflow-y-auto p-2", className)}>
       {children}
     </div>
   );
 }
 
+/**
+ * The menu button's keys: ArrowDown on the closed button opens the list at its first place; in the
+ * open list the arrows move round it, Home and End jump to its ends.
+ */
+function arrowKeys(menu: ReturnType<typeof useMenu>) {
+  return (e: React.KeyboardEvent) => {
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) return;
+    if (!menu.open) {
+      if (e.key !== "ArrowDown" || e.target !== menu.button.current) return;
+      e.preventDefault();
+      return menu.setOpen(true); // opening focuses the first place
+    }
+    const links = [...(menu.panel.current?.querySelectorAll<HTMLElement>("a") ?? [])];
+    if (links.length === 0) return;
+    e.preventDefault();
+    const at = links.indexOf(document.activeElement as HTMLElement);
+    const step = e.key === "ArrowDown" ? 1 : -1;
+    const next = e.key === "Home" ? 0 : e.key === "End" ? links.length - 1 : at < 0 ? (step > 0 ? 0 : links.length - 1) : (at + step + links.length) % links.length;
+    links[next].focus();
+  };
+}
+
 function PlacesMenu({ places, simulator }: { places: Place[]; simulator: ActiveSimulator | null }) {
   const menu = useMenu();
   const id = useId();
+  const onArrows = arrowKeys(menu);
   return (
-    <nav aria-label="Places" className="relative" onKeyDown={menu.onKeyDown} onBlur={menu.onFocusOut}>
+    <nav
+      aria-label="Places"
+      className="relative"
+      onKeyDown={(e) => {
+        menu.onKeyDown(e);
+        onArrows(e);
+      }}
+      onBlur={menu.onFocusOut}
+    >
       <button
         ref={menu.button}
         type="button"
@@ -350,7 +381,8 @@ function Caption({ where, banner, inSimulator, simulator, clock }: { where: stri
         <span aria-live="polite">
           You're at: <b className="font-semibold text-lantern">{where}</b>
         </span>
-        <span className="ml-3 text-cream/80 pointer-coarse:hidden">Walk with the arrow keys or WASD, or click a place.</span>
+        {/* The key hint is for keyboards: not on touch screens, nor on a phone-sized one (#126, #148). */}
+        <span className="ml-3 text-cream/80 max-sm:hidden pointer-coarse:hidden">Walk with the arrow keys or WASD, or click a place.</span>
       </p>
     </div>
   );
@@ -373,7 +405,8 @@ export function Hud({ places, where }: { places: Place[]; where: string }) {
   return (
     <>
       {banner?.current && <LanternString />}
-      <div className="pointer-events-none fixed inset-x-0 top-0 z-20 flex items-start justify-between gap-3 p-3 sm:p-4">
+      {/* Above the caption (z-20): on a phone the open Places list reaches down over its notes. */}
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-30 flex items-start justify-between gap-3 p-3 sm:p-4">
         <div className="pointer-events-auto min-w-0">
           <You game={game} />
         </div>

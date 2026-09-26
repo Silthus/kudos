@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { EyeOff } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Avatar, Button } from "@/components/ui";
 
 /** The playground's kudos spree (`api.demo.spreePost`, #94). */
@@ -37,6 +37,9 @@ export function SpreePost({ spree, glyph, onJoin }: { spree: Spree; glyph: strin
   const [busy, setBusy] = useState(false);
   const prompt = asking ? spree.prompt : null;
   const note = asking && !spree.prompt ? (spree.note ?? null) : null;
+  // The channel scrolls: the answer opens just under the post, often below the fold, where Join
+  // sat half under the composer (#148). It comes fully into view as it appears.
+  const reveal = useCallback((el: HTMLElement | null) => el?.scrollIntoView({ block: "nearest" }), []);
   const join = async () => {
     setBusy(true);
     try {
@@ -69,7 +72,7 @@ export function SpreePost({ spree, glyph, onJoin }: { spree: Spree; glyph: strin
         </div>
       </div>
       {note && (
-        <div className="flex gap-2.5 bg-ink/5 px-2 py-2 shadow-[inset_3px_0_0_0_var(--color-lantern)]">
+        <div ref={reveal} className="flex gap-2.5 bg-ink/5 px-2 py-2 shadow-[inset_3px_0_0_0_var(--color-lantern)]">
           <span className="grid h-9 w-9 shrink-0 place-items-center bg-lantern">{glyph}</span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1 text-xs text-ink/70">
@@ -80,7 +83,7 @@ export function SpreePost({ spree, glyph, onJoin }: { spree: Spree; glyph: strin
         </div>
       )}
       {prompt && (
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.12, ease: "easeOut" }} className="flex gap-2.5 bg-ink/5 px-2 py-2 shadow-[inset_3px_0_0_0_var(--color-lantern)]">
+        <motion.div ref={reveal} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.12, ease: "easeOut" }} className="flex gap-2.5 bg-ink/5 px-2 py-2 shadow-[inset_3px_0_0_0_var(--color-lantern)]">
           <span className="grid h-9 w-9 shrink-0 place-items-center bg-lantern">{glyph}</span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1 text-xs text-ink/70">
