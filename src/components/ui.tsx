@@ -205,10 +205,14 @@ export function meterFill(value: number, max: number) {
   return `clamp(4px, ${Math.round(pct * 100) / 100}%, 100% - 4px)`;
 }
 
-/** The pixel meter: a stepped bar in 4 px blocks, outlined in bark. */
+/**
+ * The pixel meter: a stepped bar in 4 px blocks, outlined in bark. Full width unless `className`
+ * gives it one: two width utilities would fight, and the stylesheet's order picks the winner.
+ */
 export function Progress({ value, max, color = "var(--color-lantern)", className, height = 8, label }: { value: number; max: number; color?: string; className?: string; height?: number; label?: string }) {
+  const sized = /(^|\s)w-/.test(className ?? "");
   return (
-    <div className={clsx("pixel-meter w-full", className)} style={{ height }} role="progressbar" aria-valuenow={value} aria-valuemax={max} aria-label={label}>
+    <div className={clsx("pixel-meter", !sized && "w-full", className)} style={{ height }} role="progressbar" aria-valuenow={value} aria-valuemax={max} aria-label={label}>
       <div data-fill style={{ "--fill": meterFill(value, max), background: color } as CSSProperties} />
     </div>
   );

@@ -1,6 +1,8 @@
 import { useConvexAuth, useQuery } from "convex/react";
 import { Navigate, Route, Routes } from "react-router";
 import { api } from "../convex/_generated/api";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { Button } from "./components/ui";
 import { useLinkedWorkspace } from "./lib/linkedWorkspace";
 import { appScreen } from "./lib/routing";
 import { ViewerContext } from "./lib/viewer";
@@ -35,6 +37,21 @@ function Splash() {
   );
 }
 
+/** The world itself failed (a page failing shows in its window instead): say so, on the sky. */
+function WorldFailed() {
+  return (
+    <div className="grid min-h-dvh place-items-center bg-dusk p-6 text-center">
+      <div className="max-w-md">
+        <h1 className="font-display text-2xl font-medium text-cream">Something went wrong</h1>
+        <p className="mt-2 text-sm text-cream/80">The garden couldn't load. Reload to try again.</p>
+        <Button className="mt-6" onClick={() => location.reload()}>
+          Reload
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function App() {
   const auth = useConvexAuth();
   // Asked only once the backend holds the session: an earlier answer would read as signed out.
@@ -58,7 +75,13 @@ export function App() {
       <Routes>
         <Route path="/setup" element={<Setup />} />
         {/* The world: `/` is the map, every page opens as a window at its place. */}
-        <Route element={<WorldShell />}>
+        <Route
+          element={
+            <ErrorBoundary fallback={<WorldFailed />}>
+              <WorldShell />
+            </ErrorBoundary>
+          }
+        >
           <Route index element={null} />
           <Route path="/me" element={<Me />} />
           <Route path="/leaderboard" element={<Leaderboard />} />

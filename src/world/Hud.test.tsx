@@ -95,6 +95,15 @@ describe("the HUD", () => {
     expect(host.querySelector("[data-hud-coins]")?.textContent).toContain("84");
   });
 
+  test("the XP meter keeps its small width, so the XP and coins fit inside the card (#148)", () => {
+    // Two width utilities fight, and the stylesheet's order picks the winner: `w-full` stretched the
+    // meter across the card and pushed "2,067 XP" and the coins out over the world.
+    game = mine({});
+    render();
+    const meter = host.querySelector("[data-hud-you] [role='progressbar']")!;
+    expect([...meter.classList].filter((c) => /^w-/.test(c))).toEqual(["w-24"]);
+  });
+
   test("shows just your name while the game is hidden", () => {
     game = mine({ hidden: true });
     render();
@@ -128,6 +137,69 @@ describe("the HUD", () => {
     act(() => stall.click());
     expect(url).toBe("/store");
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  test("the open Places list lies over the caption's notes and scrolls on a short screen, so every place can be tapped (#148)", () => {
+    game = mine({});
+    render();
+    const nav = host.querySelector("nav[aria-label='Places']")!;
+    act(() => nav.querySelector<HTMLButtonElement>("button[aria-expanded]")!.click());
+    // Stacking by class names (happy-dom has no stylesheet): the z-index of the fixed HUD layer round each.
+    const layer = (el: Element) => Number(/(?:^|\s)z-(\d+)/.exec(el.closest(".fixed")!.className)?.[1] ?? 0);
+    const list = nav.querySelector("ul")!;
+    const note = [...host.querySelectorAll("p")].find((p) => p.textContent?.startsWith("You're at"))!;
+    expect(layer(list)).toBeGreaterThan(layer(note));
+    const panel = list.closest("[data-hud-menu]")!;
+    expect(panel.className).toMatch(/(^|\s)max-h-/);
+    expect(panel.className).toMatch(/(^|\s)overflow-y-auto(\s|$)/);
+  });
+
+  test("the arrow keys move through the open Places list, round from the last to the first; Home and End jump (#148)", () => {
+    game = mine({});
+    render();
+    const nav = host.querySelector("nav[aria-label='Places']")!;
+    act(() => nav.querySelector<HTMLButtonElement>("button[aria-expanded]")!.click());
+    const links = [...nav.querySelectorAll("a")];
+    const key = (k: string) => {
+      const e = new KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true });
+      act(() => void document.activeElement!.dispatchEvent(e));
+      return e;
+    };
+    expect(document.activeElement).toBe(links[0]);
+    // Handled here, so the hedgehog doesn't walk as well.
+    expect(key("ArrowDown").defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(links[1]);
+    key("ArrowUp");
+    expect(document.activeElement).toBe(links[0]);
+    key("ArrowUp");
+    expect(document.activeElement).toBe(links.at(-1));
+    key("ArrowDown");
+    expect(document.activeElement).toBe(links[0]);
+    key("End");
+    expect(document.activeElement).toBe(links.at(-1));
+    key("Home");
+    expect(document.activeElement).toBe(links[0]);
+  });
+
+  test("on the closed Places button the arrow keys are left to the hedgehog (#148 review)", () => {
+    game = mine({});
+    render();
+    const toggle = host.querySelector<HTMLButtonElement>("nav[aria-label='Places'] button[aria-expanded]")!;
+    act(() => toggle.focus());
+    const e = new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true });
+    act(() => void toggle.dispatchEvent(e));
+    expect(e.defaultPrevented).toBe(false);
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  test("the key hint is for keyboards: hidden on touch screens and on phone-sized screens (#148)", () => {
+    // Class names only (happy-dom has no media queries). Headless phone emulation doesn't report a
+    // coarse pointer, so the phone width hides it too: a 390 px screen is a phone.
+    game = mine({});
+    render();
+    const hint = [...host.querySelectorAll("span")].find((s) => s.textContent?.startsWith("Walk with the arrow keys"))!;
+    expect(hint.classList).toContain("pointer-coarse:hidden");
+    expect(hint.classList).toContain("max-sm:hidden");
   });
 
   test("Escape closes the Places list and puts focus back on its button", () => {

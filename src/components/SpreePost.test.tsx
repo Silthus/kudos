@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { SpreePost, type Spree } from "./SpreePost";
 
 /** The playground's kudos spree (#94): the bot's reaction is the way in, like in Slack. */
@@ -66,4 +66,35 @@ test("once you joined, or the spree is over, there is nothing to join", () => {
   expect(host.textContent).toContain("Spree of 5 · 5/10 for the next tier");
   act(() => button(host, "Kudos bot reacted")!.click());
   expect(button(host, "Join")).toBeUndefined();
+});
+
+describe("the answer to a click on the reaction comes into view (#148)", () => {
+  // The channel scrolls: an offer that opens below its fold had Join hidden under the example chips.
+  const scrolled = vi.fn();
+  const original = Element.prototype.scrollIntoView;
+  beforeEach(() => {
+    scrolled.mockReset();
+    Element.prototype.scrollIntoView = function (this: Element, how?: boolean | ScrollIntoViewOptions) {
+      scrolled(this, how);
+    };
+  });
+  afterEach(() => {
+    Element.prototype.scrollIntoView = original;
+  });
+
+  test("the offer, Join and all", () => {
+    const { host } = render(waiting);
+    act(() => button(host, "Kudos bot reacted")!.click());
+    expect(scrolled).toHaveBeenCalledTimes(1);
+    const [offer, how] = scrolled.mock.calls[0];
+    expect((offer as Element).contains(button(host, "Join")!)).toBe(true);
+    expect(how).toMatchObject({ block: "nearest" });
+  });
+
+  test("the note saying no spree joins are left", () => {
+    const { host } = render({ ...waiting, prompt: null, note: "You've used all 5 of your spree joins this month." });
+    act(() => button(host, "Kudos bot reacted")!.click());
+    expect(scrolled).toHaveBeenCalledTimes(1);
+    expect((scrolled.mock.calls[0][0] as Element).textContent).toContain("You've used all 5");
+  });
 });

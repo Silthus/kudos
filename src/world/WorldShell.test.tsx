@@ -7,9 +7,18 @@ import { ViewerContext, type ReadyViewer } from "@/lib/viewer";
 import { parchmentTextOnDusk } from "@/testing/layout";
 
 let queries: Record<string, unknown> = {};
+/** The queries asked for (not skipped), in order. */
+let asked: string[] = [];
 vi.mock("convex/react", async () => {
   const { getFunctionName } = await import("convex/server");
-  return { useQuery: (fn: never, args: unknown) => (args === "skip" ? undefined : queries[getFunctionName(fn)]), useMutation: () => vi.fn() };
+  // A query set to an Error fails the way Convex's `useQuery` does: it throws while rendering.
+  const useQuery = (fn: never, args: unknown) => {
+    if (args !== "skip") asked.push(getFunctionName(fn));
+    const result = args === "skip" ? undefined : queries[getFunctionName(fn)];
+    if (result instanceof Error) throw result;
+    return result;
+  };
+  return { useQuery, useMutation: () => vi.fn() };
 });
 let reduced = false;
 vi.mock("motion/react", async (real) => ({ ...(await real<typeof import("motion/react")>()), useReducedMotion: () => reduced, useReducedMotionConfig: () => reduced }));
@@ -23,6 +32,8 @@ vi.mock("@/components/cosmetics", () => ({
 vi.mock("./atlas", async (real) => ({ ...(await real<typeof import("./atlas")>()), loadAtlas: () => new Promise(() => {}) }));
 
 const { WorldShell } = await import("./WorldShell");
+const { useQuery } = await import("convex/react");
+const { api } = await import("../../convex/_generated/api");
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 HTMLCanvasElement.prototype.getContext = (() => null) as never;
 
@@ -38,6 +49,11 @@ function Probe() {
   url = l.pathname + l.search + l.hash;
   return null;
 }
+/** A teammate's garden page, reading their garden as the real one does. */
+function TheirGarden() {
+  useQuery(api.gardens.of, { memberId: "m9" });
+  return page("Their garden");
+}
 const page = (name: string, extra?: React.ReactNode) => (
   <div>
     <h1 className="text-ink">{name}</h1>
@@ -49,6 +65,7 @@ let root: Root;
 let host: HTMLElement;
 beforeEach(() => {
   queries = {};
+  asked = [];
   reduced = false;
   celebrating = false;
   vi.useFakeTimers({ toFake: ["requestAnimationFrame", "cancelAnimationFrame", "performance", "setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date"] });
@@ -70,11 +87,20 @@ function open(path: string, as: ReadyViewer = viewer) {
           <Routes>
             <Route element={<WorldShell />}>
               <Route index element={null} />
-              <Route path="/me" element={page("Me", <Link to="/quests">This week's quests</Link>)} />
+              <Route
+                path="/me"
+                element={page(
+                  "Me",
+                  <>
+                    <Link to="/quests">This week's quests</Link>
+                    <Link to="/garden/m9">Zoe's garden</Link>
+                  </>,
+                )}
+              />
               <Route path="/quests" element={page("Quests")} />
               <Route path="/store" element={page("Store")} />
               <Route path="/garden" element={page("Garden")} />
-              <Route path="/garden/:memberId" element={page("Their garden")} />
+              <Route path="/garden/:memberId" element={<TheirGarden />} />
               <Route path="/leaderboard" element={page("Leaderboard")} />
             </Route>
           </Routes>
@@ -172,6 +198,22 @@ describe("walking with the keys", () => {
     walkFor(400);
     expect(openWindow()).toBeNull();
     expect(url).toBe("/");
+  });
+
+  test("after a window closes, focus is back on Places and every arrow key still walks (#148 review)", () => {
+    open("/me");
+    act(() => openWindow()!.querySelector<HTMLButtonElement>("[data-close]")!.click());
+    const places = host.querySelector<HTMLButtonElement>("nav[aria-label='Places'] button")!;
+    expect(document.activeElement).toBe(places);
+    for (const key of ["ArrowDown", "ArrowDown"]) {
+      act(() => {
+        document.activeElement!.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+        document.activeElement!.dispatchEvent(new KeyboardEvent("keyup", { key, bubbles: true }));
+      });
+      walkFor(400);
+    }
+    expect(places.getAttribute("aria-expanded")).toBe("false");
+    expect(caption()).not.toBe("Your cabin");
   });
 
   test("keys don't walk while a window is open", () => {
@@ -333,6 +375,26 @@ test("a teammate's garden from a link names them in the title, even when they're
   queries = { "gardens:of": { name: "Zoe", avatarUrl: null, plants: [] } };
   open("/garden/m9");
   expect(windowTitle()).toBe("Zoe's garden");
+});
+
+test("a teammate's garden is asked for while the hedgehog walks there, so its window opens with their name (#148 review)", () => {
+  queries = { "gardens:of": { name: "Zoe", avatarUrl: null, plants: [] } };
+  open("/me");
+  asked = [];
+  act(() => openWindow()!.querySelector<HTMLAnchorElement>("a[href='/garden/m9']")!.click());
+  expect(openWindow()).toBeNull(); // on the way
+  expect(asked).toContain("gardens:of");
+});
+
+test("a garden link that fails leaves the world standing: the map, the HUD and a window saying so (#148)", () => {
+  const quiet = vi.spyOn(console, "error").mockImplementation(() => {}); // React reports the caught error
+  queries = { "gardens:of": new Error("[CONVEX Q(gardens:of)] ArgumentValidationError: Value does not match validator.") };
+  open("/garden/doesnotexist");
+  expect(host.querySelector("canvas[data-world]")).not.toBeNull();
+  expect(host.querySelector("nav[aria-label='Places']")).not.toBeNull();
+  expect(windowTitle()).toBe("A teammate's garden");
+  expect(openWindow()!.textContent).toContain("Something went wrong");
+  quiet.mockRestore();
 });
 
 describe("life in the world (#134)", () => {

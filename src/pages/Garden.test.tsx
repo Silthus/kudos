@@ -350,6 +350,15 @@ test("a teammate's garden never says whom the plants are for, except yours", () 
   expect(text()).not.toContain("Ben");
 });
 
+test("a teammate's garden leaves their name to the window's title bar: no heading repeats it (#148)", () => {
+  of = { name: "Emil Novak", avatarUrl: null, plants: [] };
+  mine = empty;
+  render("/garden/m_emil");
+  expect(text()).toContain("Every plant here is for a teammate");
+  expect([...document.querySelectorAll("h1, h2, h3, h4")].map((h) => h.textContent)).not.toContain("Emil Novak's garden");
+  expect(text()).not.toContain("Emil Novak's garden");
+});
+
 describe("the garden boosters (#97)", () => {
   test("a plant waiting on age takes a Sunlamp when you have one", () => {
     game = { enabled: true, hidden: false, sunlamps: 2, lanterns: 0 };

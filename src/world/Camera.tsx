@@ -110,10 +110,16 @@ export function Camera({
   };
   useImperativeHandle(ref, () => ({ lookAt }));
 
-  // A new size or a window docking: keep the hedgehog in what's left of the view.
+  // A new size or a window docking: keep the hedgehog in what's left of the view. A window closing
+  // gives the view back: glide to centre on the hedgehog, or it stays off to the left with the
+  // places on that side out of view (#148).
+  const lastInset = useRef(insetRight);
   useEffect(() => {
     const again = () => lastLook.current && lookAt(lastLook.current, { instant: true });
-    again();
+    const widened = insetRight < lastInset.current;
+    lastInset.current = insetRight;
+    if (widened && lastLook.current) lookAt(lastLook.current, { centre: true });
+    else again();
     window.addEventListener("resize", again);
     return () => window.removeEventListener("resize", again);
     // eslint-disable-next-line react-hooks/exhaustive-deps

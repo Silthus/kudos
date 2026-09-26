@@ -118,7 +118,7 @@ test("a skill whose system hasn't shipped says what it arrives with and can't be
   tree = { level: 6, skills: {}, resets: 0, resetCost: 50, balance: 42 };
   const host = render();
   click(node(host, "Good neighbour"));
-  expect(document.body.textContent).toContain("Good neighbour arrives with the team garden and bonus days.");
+  expect(document.body.textContent).toContain("Good neighbour arrives with the team garden.");
   expect(buttonNamed("Take it")).toBeUndefined();
 });
 
