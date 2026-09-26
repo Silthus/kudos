@@ -91,7 +91,7 @@ describe("the districts on the tree", () => {
 
   test("open districts' places stand; closed ones are dry outlines you can walk over", () => {
     const w = world(5, 30); // a sapling: the stall is closed
-    expect(w.places.map((p) => p.id).sort()).toEqual(["discoveries", "garden", "leaderboard", "me", "offering", "playground", "quests"]);
+    expect(w.places.map((p) => p.id).sort()).toEqual(["discoveries", "elder", "garden", "leaderboard", "me", "offering", "playground", "quests"]);
     const stall = w.sites.find((s) => s.id === "stall")!;
     expect(stall).toMatchObject({ open: false, name: DISTRICT_BY_ID.stall.name, opens: "young" });
     for (let y = stall.claim.y0 + 1; y < stall.claim.y1; y++) for (let x = stall.claim.x0 + 1; x < stall.claim.x1; x++) expect(w.walkable(x, y), `${x},${y}`).toBe(true);
@@ -164,7 +164,7 @@ describe("the tree and base camp", () => {
     expect(w.trunk).toEqual({ x0: -1, y0: -1, x1: 1, y1: 1 });
     const bare = world(9, 0, false);
     expect(bare.trunk).toBeNull();
-    expect(bare.places.map((p) => p.id).sort()).toEqual(["me", "offering", "playground"]);
+    expect(bare.places.map((p) => p.id).sort()).toEqual(["elder", "me", "offering", "playground"]);
     expect(bare.terrainAt(0, 0)).not.toBe("lawn");
   });
 

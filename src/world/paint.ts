@@ -28,9 +28,10 @@ export type ArtRect = { x: number; y: number; width: number; height: number };
 /**
  * What grows on the terrace: the neighbours' beds (each with its plant, a sprout if none is given)
  * and your plot tiles (`world.plots`, in planting order): a key bed with its plant, or null where
- * the lawn is still lawn (#129, `gardenWorld.ts`). `key` names the drawing, so it repaints on a change.
+ * the lawn is still lawn (#129, `gardenWorld.ts`). `dimmed`: the places the viewer's tutorial hasn't
+ * reached yet, drawn dim (#159). `key` names the drawing, so it repaints on a change.
  */
-export type WorldFurniture = { beds: { tile: Tile; sprite?: PixelMap }[]; plots: (PixelMap | null)[]; key?: string };
+export type WorldFurniture = { beds: { tile: Tile; sprite?: PixelMap }[]; plots: (PixelMap | null)[]; dimmed?: string[]; key?: string };
 
 const rgbCache = new Map<string, [number, number, number]>();
 function rgb(hex: string): [number, number, number] {
@@ -41,6 +42,19 @@ function rgb(hex: string): [number, number, number] {
     rgbCache.set(hex, c);
   }
   return c;
+}
+
+const DUSK_RGB = rgb("#241e33");
+/** A colour most of the way to the dusk: a place the tutorial hasn't reached yet (#159). */
+const dimCache = new Map<string, string>();
+function dimmed(hex: string): string {
+  let d = dimCache.get(hex);
+  if (!d) {
+    const c = rgb(hex).map((v, i) => Math.round(v * 0.45 + DUSK_RGB[i] * 0.55));
+    d = `#${c.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+    dimCache.set(hex, d);
+  }
+  return d;
 }
 
 /** Puts a colour at an art point, if it falls in the image. */
@@ -56,11 +70,11 @@ function put(img: Pixels, at: ArtRect, x: number, y: number, hex: string) {
   img.data[i + 3] = 255;
 }
 
-function stamp(img: Pixels, at: ArtRect, m: PixelMap, left: number, top: number) {
+function stamp(img: Pixels, at: ArtRect, m: PixelMap, left: number, top: number, dim = false) {
   for (let y = 0; y < mapHeight(m); y++)
     for (let x = 0; x < mapWidth(m); x++) {
       const c = pixelAt(m, x, y);
-      if (c) put(img, at, left + x, top + y, c);
+      if (c) put(img, at, left + x, top + y, dim ? dimmed(c) : c);
     }
 }
 
@@ -131,7 +145,7 @@ export function signPoints(places: PlaceDef[], labels: Label[] = [], standing: T
     const spots = tries.map((d) => ({ x: home.x + d.x, y: home.y + d.y }));
     const clearOfDoors = (at: Point) => !doors.some((b) => meets(signBox(p.name, at), b));
     // Clear of everything. Failing that, a place's sign at least keeps clear of the doors, where a
-    // hedgehog would hide it; a label (a marker's name, the elder's) is left out rather than crowd one.
+    // hedgehog would hide it; a label (a marker's name) is left out rather than crowd one.
     const clear = spots.find((at) => clearOfDoors(at) && !taken.some((b) => meets(signBox(p.name, at), b)));
     if (!clear && !p.place) continue;
     const spot = clear ?? spots.find(clearOfDoors) ?? home;
@@ -141,21 +155,18 @@ export function signPoints(places: PlaceDef[], labels: Label[] = [], standing: T
   return out;
 }
 
-/** A name hanging over the world that isn't a place's own sign: the elder hog, a district's marker, a closed district. */
+/** A name hanging over the world that isn't a place's own sign: a district's marker, a closed district. */
 export type Label = { id: string; name: string; at: Point };
 
 /** The name a district goes by on the map: its place's, where it has one (the store stall, not the stall). */
 export const siteName = (s: Site) => (s.places.length === 1 ? s.places[0].name : s.name);
 
 /**
- * Every label over the world but the places' signs: the elder hog over its head, an open district
- * without a place over its marker, and the districts the tree's next stage opens, dim, over their
+ * Every label over the world but the places' signs: an open district without a place over its marker, and the districts the tree's next stage opens, dim, over their
  * outlines. The rest of the closed districts wait unnamed. `signPoints` keeps them all clear.
  */
 export function labelsOf(world: World): Label[] {
   const labels: Label[] = [];
-  const elder = world.props.find((p) => p.kind === "elder");
-  if (elder) labels.push({ id: "elder", name: "The elder hog", at: { x: tileCentre(elder.tile).x, y: tileCentre(elder.tile).y + 4 - ELDER_HEIGHT } });
   for (const s of world.sites) {
     if (s.open && !s.places.length && s.id !== "base_camp") labels.push({ id: `district:${s.id}`, name: s.name, at: { x: tileCentre(s.at).x, y: tileCentre(s.at).y - 22 } });
   }
@@ -169,13 +180,17 @@ export function labelsOf(world: World): Label[] {
       }
   return labels;
 }
-/** Where hedgehogs stand in the world besides the doors: you where you arrive, and the elder hog. Signs keep clear of them too. */
+/** Where hedgehogs stand in the world besides the doors: you where you arrive, and the elder hog on its mat. Signs keep clear of them too. */
 export function hogsOf(world: World): Tile[] {
-  return [world.spawn, ...world.props.filter((p) => p.kind === "elder").map((p) => p.tile)];
+  const elder = elderOf(world);
+  return [world.spawn, ...(elder ? [elder] : [])];
 }
 
-/** How high the elder hog's label hangs over its feet, in art pixels: over its head at either scale. */
-const ELDER_HEIGHT = 36;
+/** The tile the elder hog sits on (#159): its place's, where it stands on this viewer's map. */
+export function elderOf(world: World): Tile | null {
+  const place = world.places.find((p) => p.id === "elder");
+  return place ? { x: place.footprint.x, y: place.footprint.y } : null;
+}
 
 /** Where the tree's sprite covers, in art pixels; null before the seed is planted. */
 export function treeBox(world: World): ArtRect | null {
@@ -442,7 +457,7 @@ export function paintShimmer(layer: Pixels, at: ArtRect, world: World, tiles: { 
 // ---------------------------------------------------------------------------------------------
 // Everything standing, round the tree.
 
-type Drawable = { depth: number; sprite: PixelMap; foot: Point; tree?: boolean };
+type Drawable = { depth: number; sprite: PixelMap; foot: Point; tree?: boolean; dim?: boolean };
 
 /** What stands in the world, each with its sprite, where it stands and its depth. */
 function standing(world: World, furniture: WorldFurniture): Drawable[] {
@@ -452,7 +467,7 @@ function standing(world: World, furniture: WorldFurniture): Drawable[] {
     return { x: c.x, y: c.y + TILE_H / 2 - 1 - lift(world, t.x, t.y) + extraY };
   };
   if (world.trunk) items.push({ depth: treeDepth(world), sprite: treeSprite(world.stage, world.seed, world.rings), foot: treeFoot(world), tree: true });
-  for (const p of world.props) if (p.kind !== "elder") items.push({ depth: p.tile.x + p.tile.y, sprite: DECOR_SPRITES[p.kind], foot: onTile(p.tile) });
+  for (const p of world.props) items.push({ depth: p.tile.x + p.tile.y, sprite: DECOR_SPRITES[p.kind], foot: onTile(p.tile) });
   for (const d of world.decor) {
     const sprite = d.kind === "flowers" ? DECOR_SPRITES.flowers[Math.floor(hash(d.tile.x, d.tile.y, 9) * DECOR_SPRITES.flowers.length)] : DECOR_SPRITES.lantern;
     items.push({ depth: d.tile.x + d.tile.y - (d.kind === "flowers" ? 0.5 : 0), sprite, foot: onTile(d.tile, d.kind === "flowers" ? -1 : 0) });
@@ -472,7 +487,7 @@ function standing(world: World, furniture: WorldFurniture): Drawable[] {
   for (const p of world.places) {
     const { x, y, w, h } = p.footprint;
     const depth = p.spriteAt ? p.spriteAt.x + p.spriteAt.y : x + w - 1 + y + h - 1;
-    items.push({ depth: depth + 0.2, sprite: p.sprite, foot: spriteFoot(p) });
+    items.push({ depth: depth + 0.2, sprite: p.sprite, foot: spriteFoot(p), dim: furniture.dimmed?.includes(p.id) });
   }
   return items.sort((a, b) => a.depth - b.depth);
 }
@@ -510,7 +525,7 @@ export function paintStanding(img: Pixels, at: ArtRect, world: World, furniture:
   const inLayer = (d: Drawable) => layer === "all" || (layer === "tree" ? !!d.tree : !d.tree && (layer === "behind") === d.depth < depth);
   for (const d of standing(world, furniture).filter(inLayer)) {
     const box = spriteBox(d.sprite, d.foot);
-    stamp(img, at, d.sprite, box.x, box.y);
+    stamp(img, at, d.sprite, box.x, box.y, d.dim);
   }
 }
 

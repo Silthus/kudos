@@ -14,6 +14,7 @@ import { place as analytics } from "./places/analytics";
 import { place as admin } from "./places/admin";
 import { place as playground } from "./places/playground";
 import { place as offering } from "./places/offering";
+import { place as elder } from "./places/elder";
 
 /**
  * The places of the world (#126 "The world"): every page is a place you walk to, and arriving opens
@@ -62,10 +63,11 @@ export type PlaceDef = {
   signOffset?: { x: number; y: number };
 };
 
-export const PLACES: PlaceDef[] = [garden, me, offering, quests, leaderboard, compare, discoveries, store, skills, analytics, admin, playground];
+export const PLACES: PlaceDef[] = [garden, me, offering, elder, quests, leaderboard, compare, discoveries, store, skills, analytics, admin, playground];
 
 /** A place on this viewer's map: its art plus its page's link, path and badge from the nav. */
-export type Place = PlaceDef & { to: string; path: string; badge?: NavBadge; label: string };
+/** `hint`: the elder hog's chain hasn't reached it yet (#159): it stands dim, saying what opens it, and still leads there. */
+export type Place = PlaceDef & { to: string; path: string; badge?: NavBadge; label: string; hint?: string };
 
 /** The places whose pages this viewer has, in nav order. */
 export function visiblePlaces(items: NavItem[]): Place[] {

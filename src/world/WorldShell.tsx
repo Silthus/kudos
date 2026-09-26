@@ -26,7 +26,9 @@ import { Sky } from "./Sky";
 import { mapHeight, mapWidth } from "./pixels";
 import { pushToasts } from "./toastBus";
 import { closedLine, treeInput, treeMoments, treeToasts, type TreeState } from "./tree/state";
+import { useTutorial } from "./Tutorial";
 import { Window } from "./Window";
+import { placeHint } from "../../convex/lib/tutorial";
 import { layout } from "../../convex/lib/tree";
 import { BASE_CAMP, buildWorld, inRect, type Site, type World } from "./world";
 import { WorldCanvas, Z, type WorldCanvasHandle } from "./WorldCanvas";
@@ -167,7 +169,14 @@ export function WorldShell() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const world = useMemo(() => buildWorld({ ...input, standing }), [worldKey]);
   // The places standing on your map, where the tree put them, with their links and badges.
-  const onMap = placesOnMap(world.places, routablePlaces(shown));
+  // Where you are in the elder hog's chain (#159): places it hasn't reached stand dim, saying what opens them.
+  const tutorial = useTutorial();
+  const onMap = placesOnMap(world.places, routablePlaces(shown)).map((p) => {
+    const hint = placeHint(p.id, tutorial?.step ?? null);
+    return hint ? { ...p, hint } : p;
+  });
+  const dimmed = onMap.filter((p) => p.hint).map((p) => p.id);
+  const dimKey = dimmed.join();
   const onMapShown = onMap.filter((p) => shown.some((q) => q.id === p.id));
   // A link to a place whose district hasn't opened: its outline, and a window saying so.
   const closedTarget = target && !onMap.some((p) => p.id === target.place.id) ? (world.sites.find((s) => s.places.some((p) => p.id === target.place.id)) ?? null) : null;
@@ -188,8 +197,9 @@ export function WorldShell() {
   const furniture = useMemo(() => {
     const plotSprites = gardenPlots(garden, { today, sway });
     // Named by what's drawn, so a new balance or harvest doesn't repaint the world.
-    return { beds: neighbours, plots: plotSprites, key: `${plotSprites.map((p) => p?.rows.join() ?? "").join("|")}|${JSON.stringify(ring ?? null)}|${sproutKey}` };
-  }, [garden, ring, neighbours, today, sway, sproutKey]);
+    return { beds: neighbours, plots: plotSprites, dimmed, key: `${plotSprites.map((p) => p?.rows.join() ?? "").join("|")}|${JSON.stringify(ring ?? null)}|${sproutKey}|${dimKey}` };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [garden, ring, neighbours, today, sway, sproutKey, dimKey]);
   const plots = plotCount(garden);
   // Golden hour, the lanterns and the party hat on a bonus day or booster (#134; the HUD hangs the lanterns).
   const sky = skyFor(useQuery(api.boosts.banner, { today }));

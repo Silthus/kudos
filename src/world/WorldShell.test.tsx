@@ -759,7 +759,9 @@ describe("the tree's districts (#156)", () => {
     open("/", off);
     expect(host.querySelector("[data-sign=leaderboard]")).not.toBeNull();
     expect(host.querySelector("[data-closed-sign]")).toBeNull();
-    expect([...host.querySelectorAll("[data-label]")].map((l) => l.getAttribute("data-label"))).toEqual(["elder"]);
+    expect([...host.querySelectorAll("[data-label]")].map((l) => l.getAttribute("data-label"))).toEqual([]);
+    // The elder hog teaches the game (#159): with it off, nobody sits on the mat.
+    expect(host.querySelector("[data-elder]")).toBeNull();
   });
 
   test("the hedgehog walks behind the trunk: back there the tree is drawn over it, in front the other way round (#156 verdict)", () => {

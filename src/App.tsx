@@ -14,6 +14,7 @@ import { Compare } from "./pages/compare/Compare";
 import { Discoveries } from "./pages/Discoveries";
 import { Quests } from "./pages/Quests";
 import { Offering } from "./pages/Offering";
+import { Elder } from "./pages/Elder";
 import { Skills } from "./pages/Skills";
 import { Garden, GardenOf } from "./pages/Garden";
 import { Store } from "./pages/Store";
@@ -90,6 +91,7 @@ export function App() {
           <Route path="/discoveries" element={<Discoveries />} />
           <Route path="/quests" element={<Quests />} />
           <Route path="/offering" element={<Offering />} />
+          <Route path="/elder" element={<Elder />} />
           <Route path="/skills" element={<Skills />} />
           <Route path="/garden" element={<Garden />} />
           <Route path="/garden/:memberId" element={<GardenOf />} />

@@ -51,6 +51,7 @@ export function Wallet({ wallet }: { wallet: CoinBalance }) {
     wallet.fromFruit ? `${wallet.fromFruit} from fruit` : null,
     wallet.fromQuests ? `${wallet.fromQuests} from quests` : null,
     wallet.fromSprees ? `${wallet.fromSprees} from kudos sprees` : null,
+    wallet.fromTutorial ? `${wallet.fromTutorial} from the elder hog's steps` : null,
     `${wallet.fromLevels} from level-ups`,
   ].filter((s): s is string => s !== null);
   const sentence = [
@@ -128,30 +129,19 @@ function Way({ to, icon, name, line }: { to: string; icon: ReactNode; name: stri
 
 /**
  * The game in your cabin: level, title and the next-level meter, the wallet from level 3, the
- * next areas ahead (locked), and the ways to your garden and skill tree. Before a member's first
- * kudos it only invites them to give; while hidden it says so. Nothing while the workspace doesn't
+ * next areas ahead (locked), and the ways to your garden and skill tree. Nothing before a member's
+ * first kudos (the elder hog's chain invites them to give, #159); while hidden it says so. Nothing while the workspace doesn't
  * play the game. The switch that hides it is `GameSwitch`, by the cabin door.
  */
-export function GameCard({ glyph }: { glyph: string }) {
+export function GameCard() {
   const game = useQuery(api.game.mine, {});
   const tree = useQuery(api.skills.mine, game?.player && !game.hidden ? {} : "skip");
   if (!game?.enabled) return null;
   if (game.hidden) {
     return <p className="text-sm text-ink/75">The game is hidden. Your kudos still earn XP and Hog coins. The switch by the door brings it back.</p>;
   }
-  if (!game.player) {
-    return (
-      <div className="pixel-note px-4 py-3">
-        <h4 className="flex items-center gap-2 font-display text-lg font-medium">
-          <Sprout className="h-4 w-4 text-soil" aria-hidden />
-          You can give seeds of appreciation too
-        </h4>
-        <p className="mt-1 text-sm text-ink/75">
-          Give a seed in Slack: @name <span data-user-text>{glyph}</span> and a few words on why. Your first kudos starts your level, and thoughtful ones earn the most.
-        </p>
-      </div>
-    );
-  }
+  // Before the first kudos the elder hog's chain says how to give one (#159): the cabin has no game yet.
+  if (!game.player) return null;
   const ahead = nextLockedAreas(game.player.level);
   const wallet = game.wallet ?? null;
   const available = tree ? pointsOf(tree.skills as Allocation, tree.level).available : null;

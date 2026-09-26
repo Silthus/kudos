@@ -451,6 +451,7 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
   const kept = (...kinds: Doc<"gameEvents">["kind"][]) => written.filter((w) => kinds.includes(w.kind)).reduce((s, w) => s + w.coins, 0) || undefined;
   const fruitCoins = kept("harvest", "sale");
   const spreeCoins = kept("spree");
+  const tutorialCoins = kept("tutorial");
   const unsungOn = workspace.receivedVisibility === "everyone";
   // XP history is the members' own kudos: pooled spree kudos (#94) never count as a thank-back or an earlier kudos.
   const own = (k: Doc<"kudos">) => k.source !== "spree";
@@ -553,7 +554,7 @@ export async function rebuildPlayer(ctx: MutationCtx, workspace: Doc<"workspaces
   // Coins claimed at the tree stay as they are; the offerings' replay (offerings.ts `replayMember`, its
   // own transaction, scheduled by `rebuildMember`) moves them with the surviving history.
   const coins = written.reduce((s, w) => s + w.coins, 0) + questCoins + (existing?.claimedCoins ?? 0);
-  const ledger = { xp: total, level, since, coins, fruitCoins, questCoins, spreeCoins };
+  const ledger = { xp: total, level, since, coins, fruitCoins, questCoins, spreeCoins, tutorialCoins };
   if (existing) await ctx.db.patch(existing._id, ledger);
   else await ctx.db.insert("players", { workspaceId: workspace._id, memberId: member._id, ...ledger });
 }
@@ -699,6 +700,7 @@ const walletValidator = v.object({
   fromFruit: v.number(),
   fromQuests: v.number(),
   fromSprees: v.number(),
+  fromTutorial: v.number(), // the elder hog's chain (#159)
   fromLevels: v.number(),
   spent: v.number(),
   adjusted: v.number(),

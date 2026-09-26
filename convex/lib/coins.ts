@@ -46,6 +46,8 @@ export type CoinBalance = {
   fromQuests: number;
   /** Paid by kudos sprees' tiers (`players.spreeCoins`, part of `players.coins`). */
   fromSprees: number;
+  /** Paid by the elder hog's chain, 5 a step (`players.tutorialCoins`, part of `players.coins`, #159). */
+  fromTutorial: number;
   fromLevels: number;
   spent: number;
   adjusted: number;
@@ -58,24 +60,26 @@ export type CoinBalance = {
  * is what waits at the tree (convex/offerings.ts `waiting`), shown apart and never spendable.
  */
 export function coinBalance(
-  player: { coins?: number; fruitCoins?: number; questCoins?: number; spreeCoins?: number; level: number },
+  player: { coins?: number; fruitCoins?: number; questCoins?: number; spreeCoins?: number; tutorialCoins?: number; level: number },
   member: { coinsSpent?: number; coinsAdjusted?: number } = {},
   waiting = 0,
 ): CoinBalance {
   const fromFruit = player.fruitCoins ?? 0;
   const fromQuests = player.questCoins ?? 0;
   const fromSprees = player.spreeCoins ?? 0;
-  const fromKudos = (player.coins ?? 0) - fromFruit - fromQuests - fromSprees;
+  const fromTutorial = player.tutorialCoins ?? 0;
+  const fromKudos = (player.coins ?? 0) - fromFruit - fromQuests - fromSprees - fromTutorial;
   const fromLevels = COINS.levelUp * (player.level - 1);
   const spent = member.coinsSpent ?? 0;
   const adjusted = member.coinsAdjusted ?? 0;
   return {
-    balance: fromKudos + fromFruit + fromQuests + fromSprees + fromLevels - spent + adjusted,
+    balance: fromKudos + fromFruit + fromQuests + fromSprees + fromTutorial + fromLevels - spent + adjusted,
     waiting,
     fromKudos,
     fromFruit,
     fromQuests,
     fromSprees,
+    fromTutorial,
     fromLevels,
     spent,
     adjusted,

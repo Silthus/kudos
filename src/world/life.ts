@@ -69,8 +69,8 @@ export function lifeEvents(prev: LifeSnapshot | null, next: LifeSnapshot | null)
   return events;
 }
 
-/** A toast: a level-up, a discovery, or (#144) what a move of the simulator's clock brought, which may lead nowhere. */
-export type Toast = { kind: "level" | "discovery" | "clock" | "tree"; title: string; body: string; link?: { to: string; label: string } };
+/** A toast: a level-up, a discovery, (#144) what a move of the simulator's clock brought, which may lead nowhere, a tree moment (#156) or a step of the elder hog's chain (#159). */
+export type Toast = { kind: "level" | "discovery" | "clock" | "tree" | "tutorial"; title: string; body: string; link?: { to: string; label: string } };
 
 /** The one toast an event shows, if any: coins hop into the counter instead. */
 export function toastFor(event: LifeEvent): Toast | null {

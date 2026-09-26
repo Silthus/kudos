@@ -61,7 +61,7 @@ export function Me() {
 
       <Room title="You">
         <div className="space-y-5">
-          <GameCard glyph={glyph} />
+          <GameCard />
           <FruitShelf />
           <Allowance used={data.today.used} limit={data.today.limit} glyph={glyph} />
           <StoreWay />

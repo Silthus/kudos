@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import type { Toast } from "./life";
 import { Npc } from "./Npc";
+import { ELDER_HOGGIE } from "./Tutorial";
 
 /**
  * The world's toasts (#134): one at a time, under your corner of the HUD, on parchment. A polite
@@ -66,6 +67,7 @@ function ToastCard({ toast, onDone, still }: { toast: Toast; onDone: () => void;
     >
       {toast.kind === "discovery" && <FramedCard />}
       {toast.kind === "level" && <Npc slot="hoggie-level-up" size={56} />}
+      {toast.kind === "tutorial" && <Npc slot={ELDER_HOGGIE} size={56} />}
       <div className="min-w-0 flex-1">
         {/* A clock toast's title is a date: Nunito, as Pixelify's 5 reads as an S. */}
         <p className={clsx("text-base leading-6 text-ink", toast.kind === "clock" ? "font-bold tabular" : "font-display font-medium")}>{toast.title}</p>

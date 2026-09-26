@@ -166,6 +166,15 @@ describe("each step pays 5 Hog coins, once", () => {
     ]);
   });
 
+  test("the wallet counts them as the elder hog's, never as coins from kudos", async () => {
+    await message("UANA", "<@UBEN> :taco: thanks for the thorough review");
+    await atLevel(team.ana, 3);
+    await advance(team.ana, "arrive");
+    expect((await (await as(team.ana)).query(api.game.mine, {})).wallet).toMatchObject({ fromTutorial: 10, fromKudos: 0 });
+    await t.mutation(internal.game.rebuildMember, { memberId: team.ana });
+    expect(await player(team.ana)).toMatchObject({ tutorialCoins: 10 });
+  });
+
   test("a game rebuild keeps the chain and what it paid", async () => {
     await message("UANA", "<@UBEN> :taco: thanks for the thorough review");
     await advance(team.ana, "arrive");

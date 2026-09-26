@@ -524,6 +524,7 @@ export default defineSchema({
     sunlamps: v.optional(v.number()), // Sunlamps bought and not yet used on a plant (#97)
     lanterns: v.optional(v.number()), // Lanterns bought and not yet hung (#97)
     spreeCoins: v.optional(v.number()), // Hog coins kudos sprees paid (#94, sprees.ts), part of `coins`; undefined = 0
+    tutorialCoins: v.optional(v.number()), // Hog coins the elder hog's chain paid (#159, tutorial.ts), part of `coins`; undefined = 0
     // Where they last stood in the shared world (#155, presence.ts): they reappear there. Undefined: the base camp.
     at: v.optional(tileValidator),
     atSavedAt: v.optional(v.number()), // when `at` was last saved (workspace clock): lib/presence.ts `shouldSave`

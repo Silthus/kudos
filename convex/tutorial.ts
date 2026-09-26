@@ -129,5 +129,6 @@ async function pay(ctx: MutationCtx, workspace: Doc<"workspaces">, memberId: Id<
     await ctx.db.insert("gameEvents", { workspaceId: workspace._id, memberId, kind: "tutorial", batchId: `tutorial:${memberId}:${step}`, dayKey, at: now, xp: 0, coins: TUTORIAL_COINS });
   }
   await addXp(ctx, player, 0, TUTORIAL_COINS * (to - from));
+  await ctx.db.patch(player._id, { tutorialCoins: (player.tutorialCoins ?? 0) + TUTORIAL_COINS * (to - from) });
   return { paid: to, shown: player.level >= WALLET_LEVEL };
 }

@@ -3,7 +3,7 @@ import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "reac
 import { GroundLayer } from "./groundLayer";
 import { HOG_FEET, HOG_SIZE, HogFrame } from "./Hog";
 import { tileCentre } from "./iso";
-import { hogsOf, labelsOf, paintStanding, signPoints, standingRect, treeFoot, type ArtRect, type WorldFurniture } from "./paint";
+import { elderOf, hogsOf, labelsOf, paintStanding, signPoints, standingRect, treeFoot, type ArtRect, type WorldFurniture } from "./paint";
 import type { Place } from "./places";
 import { mapHeight, mapWidth, pixelAt, type PixelMap } from "./pixels";
 import { SEED_FRAMES, SEED_FRAME_MS } from "./tree/sprite";
@@ -183,8 +183,8 @@ export function WorldCanvas({
   const labels = ready ? labelsOf(world) : [];
   const signs = signPoints(places, labels, ready ? hogsOf(world) : []);
   const box = { left: rect.x * scale, top: rect.y * scale, width: rect.width * scale, height: rect.height * scale };
-  const elder = world.props.find((p) => p.kind === "elder");
-  const elderAt = elder && tileCentre(elder.tile);
+  const elder = ready ? elderOf(world) : null;
+  const elderAt = elder && tileCentre(elder);
   return (
     <>
       {/* The canvases are pictures: a click goes through them to the camera, or to a hog under the tree (#158). */}
@@ -204,15 +204,11 @@ export function WorldCanvas({
         style={{ ...box, zIndex: Z.front }}
       />
       {seedMoment && <SeedMoment world={world} scale={scale} onDone={() => onSeedMomentDone?.()} />}
+      {/* PostHog's hedgehog, silvered with age, on its mat (#159): its sign and its door open its window. */}
       {elderAt && (
-        <>
-          {/* PostHog's hedgehog, silvered with age: a placeholder until the tutorial lane (#159) gives the elder its words. */}
-
-          <div aria-hidden data-elder className="pointer-events-none absolute" style={{ zIndex: Z.front, left: elderAt.x * scale - HOG_SIZE / 2, top: (elderAt.y + 4) * scale - HOG_FEET }}>
-            <HogFrame className="-scale-x-100 [filter:grayscale(0.85)_brightness(1.15)]" />
-          </div>
-
-        </>
+        <div aria-hidden data-elder className="pointer-events-none absolute" style={{ zIndex: Z.front, left: elderAt.x * scale - HOG_SIZE / 2, top: (elderAt.y + 4) * scale - HOG_FEET }}>
+          <HogFrame className="-scale-x-100 [filter:grayscale(0.85)_brightness(1.15)]" />
+        </div>
       )}
       {places.map((p) => {
         const at = signs.get(p.id)!;
@@ -221,13 +217,19 @@ export function WorldCanvas({
             key={p.id}
             aria-hidden
             data-sign={p.id}
+            data-dim={p.hint ? "" : undefined}
             onPointerDown={(e) => e.stopPropagation()}
             onPointerUp={(e) => e.stopPropagation()}
             onClick={() => onPlace(p)}
-            className="pixel-sign absolute flex cursor-pointer items-center gap-1.5 whitespace-nowrap px-2 py-0.5 font-display text-sm font-medium leading-5"
+            className={clsx(
+              "pixel-sign absolute flex cursor-pointer items-center gap-1.5 whitespace-nowrap px-2 py-0.5 font-display text-sm font-medium leading-5",
+              // Not reached in the elder hog's chain yet (#159): dim, saying what opens it; it still leads there.
+              p.hint && "flex-col !items-start !gap-0 opacity-75",
+            )}
             style={{ zIndex: Z.labels, left: at.x * scale, top: at.y * scale, transform: "translate(-50%, -100%)" }}
           >
             {p.name}
+            {p.hint && <span className="font-sans text-xs font-normal text-cream/80">{p.hint}</span>}
             {p.badge && <span className="bg-ember px-1 font-sans text-xs font-bold text-ink">{p.badge.count > 99 ? "99+" : p.badge.count}</span>}
           </div>
         );

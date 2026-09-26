@@ -24,6 +24,7 @@ describe("which places are on the map", () => {
       admin: "The gatehouse",
       playground: "The sandbox",
       offering: "The offering stone",
+      elder: "The elder hog",
     });
     for (const item of navItems(everything)) expect(names).toHaveProperty(item.id);
   });

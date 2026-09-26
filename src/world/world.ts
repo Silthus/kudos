@@ -27,8 +27,8 @@ import { BEDS, PLOTS } from "./places/garden";
 export type Terrain = DesertGround | "lawn" | "path" | "garden" | "fence" | "gate" | "plot" | "bed";
 /** Tiles from (x0, y0) to (x1, y1), both included. */
 export type Rect = { x0: number; y0: number; x1: number; y1: number };
-export type PropKind = "tent" | "elder";
-/** Something standing in base camp that isn't a place (yet): #159 gives the elder hog its words. */
+export type PropKind = "tent";
+/** Something standing in base camp that isn't a place. */
 export type Prop = { kind: PropKind; tile: Tile };
 export type OutlineKind = "closed" | "ruin" | "home";
 /** Small things on the tree's lawn: lantern posts along the paths (in the way), flowers (not). */
@@ -102,9 +102,8 @@ export const BASE_CAMP = {
   props: [
     { kind: "tent", tile: { x: 6, y: 0 } },
     { kind: "tent", tile: { x: 0, y: 6 } },
-    { kind: "elder", tile: { x: 6, y: 2 } },
   ] satisfies Prop[] as Prop[],
-  places: { me: { x: 8, y: -1 }, playground: { x: -1, y: 8 }, offering: { x: 3, y: 3 } } as Record<string, Tile>,
+  places: { me: { x: 8, y: -1 }, playground: { x: -1, y: 8 }, offering: { x: 3, y: 3 }, elder: { x: 6, y: 2 } } as Record<string, Tile>,
 };
 
 /** How far the trunk reaches from the origin at each stage (a square of 2r + 1 tiles). */
