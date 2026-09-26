@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { api } from "../../convex/_generated/api";
 import { fruitEffect, type FruitId } from "../../convex/lib/fruits";
+import { SHOP_LEVEL } from "../../convex/lib/items";
 import { Button } from "@/components/ui";
 import { CoinsToWallet } from "@/world/CoinsToWallet";
 import { FruitArt } from "@/world/FruitArt";
@@ -36,9 +37,11 @@ function useShown() {
   return !!game?.enabled && !game.hidden;
 }
 
-/** Your fruit on the cabin's shelf: each kind and how many, and the way to the stall. */
+/** Your fruit on the cabin's shelf: each kind and how many, and the way to the stall once it's open. */
 export function FruitShelf() {
-  const shown = useShown();
+  const game = useQuery(api.game.mine);
+  const shown = !!game?.enabled && !game.hidden;
+  const stallOpen = (game?.player?.level ?? 1) >= SHOP_LEVEL;
   const inventory = useQuery(api.offerings.inventory, shown ? {} : "skip");
   if (!shown || inventory === undefined) return null;
   return (
@@ -60,9 +63,13 @@ export function FruitShelf() {
               </li>
             ))}
           </ul>
-          <Link to="/store" className="mt-2 inline-block text-sm font-semibold text-ember-deep underline decoration-2 underline-offset-4">
-            Sell or use them at the stall
-          </Link>
+          {stallOpen ? (
+            <Link to="/store" className="mt-2 inline-block text-sm font-semibold text-ember-deep underline decoration-2 underline-offset-4">
+              Sell or use them at the stall
+            </Link>
+          ) : (
+            <p className="mt-2 text-sm text-ink/75">The stall opens at level {SHOP_LEVEL}. Your fruit keeps here until then.</p>
+          )}
         </>
       )}
     </section>

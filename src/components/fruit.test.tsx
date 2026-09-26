@@ -9,7 +9,7 @@ import { windowPageProblems } from "@/testing/windowPage";
 /** Tree fruit (#157): the shelf in your cabin, and the stall where fruit is sold or used. */
 
 let inventory: unknown;
-let game: unknown = { enabled: true, hidden: false };
+let game: unknown = { enabled: true, hidden: false, player: { level: 9 } };
 const applyFruit = vi.fn();
 vi.mock("convex/react", () => ({
   useQuery: (fn: FunctionReference<"query">) => ({ "offerings:inventory": inventory, "game:mine": game })[getFunctionName(fn)],
@@ -30,7 +30,7 @@ afterEach(() => {
   root = undefined;
   document.body.innerHTML = "";
   applyFruit.mockReset();
-  game = { enabled: true, hidden: false };
+  game = { enabled: true, hidden: false, player: { level: 9 } };
 });
 
 function render(ui: React.ReactNode) {
@@ -61,6 +61,14 @@ describe("the fruit shelf in your cabin", () => {
       ["heart", expect.stringContaining("Heart fruit, 1")],
     ]);
     expect(shelf.querySelector("a[href='/store']")?.textContent).toBe("Sell or use them at the stall");
+  });
+
+  test("before the stall opens (level 5) the shelf says so instead of sending you there", () => {
+    inventory = held;
+    game = { enabled: true, hidden: false, player: { level: 3 } };
+    const shelf = render(<FruitShelf />).querySelector("[data-fruit-shelf]")!;
+    expect(shelf.querySelector("a[href='/store']")).toBeNull();
+    expect(shelf.textContent).toContain("The stall opens at level 5. Your fruit keeps here until then.");
   });
 
   test("an empty shelf says where fruit comes from; nothing while the game isn't shown", () => {

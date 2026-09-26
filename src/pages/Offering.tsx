@@ -100,7 +100,7 @@ function Ledger({ claimed }: { claimed: Claimed }) {
     <ol data-ledger className="mt-3 border-2 border-bark bg-parchment px-3 pt-3 pb-1 text-sm text-ink shadow-[3px_3px_0_0_var(--color-dusk-deep)] [&>li]:overflow-hidden [&>li]:pb-2">
       <motion.li {...reveal(0)} className="flex items-center gap-2 font-semibold">
         <HogCoin size={16} />
-        {claimed.coins === null ? "Your coins went into your wallet." : `${plural(claimed.coins, "Hog coin", "Hog coins")} into your wallet.`}
+        {claimed.coins === null ? "Your coins are in your wallet, which opens at level 3." : `${plural(claimed.coins, "Hog coin", "Hog coins")} into your wallet.`}
       </motion.li>
       <motion.li {...reveal(1)} className="text-ink/75">
         The tree took {plural(claimed.fuel, "fuel", "fuel")} from your offering and grew.
@@ -135,6 +135,11 @@ function Claim({ pending, onMoment, canopy }: { pending: { coins: number | null;
     setError(null);
     try {
       const r = await claim({});
+      // Time may have claimed it a moment before the press (after 30 days): nothing to play.
+      if (r.offerings === 0) {
+        setError("It had already offered itself: 30 days had passed.");
+        return;
+      }
       setClaimed(r);
       onMoment("claim");
       if (r.coins) setDrop({ id: Date.now(), count: Math.min(8, r.coins) });

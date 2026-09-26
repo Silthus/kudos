@@ -13,6 +13,7 @@
  * coins (seeded by plant and day). It holds at most 3 (Good harvest: 4) and then stops growing more;
  * nothing rots. Picking pays at most 14 coins and 21 XP a quest week; fruit over the cap stays.
  */
+import { fruitEffect } from "./fruits";
 import { hasNote, RECIPROCAL_WINDOW_MS, weekKeyOfDay } from "./quests";
 import { fnv1a } from "./random";
 import { hasSkill, rankOf, type Allocation } from "./skills";
@@ -195,8 +196,9 @@ export const SUNLAMP_DAYS = 5;
  */
 type Growth = { plantedDay: string; waterings: string[]; earlyBloom?: boolean; sunlamps?: string[]; superSeed?: boolean };
 
-/** Where a Super seed starts (lib/fruits.ts, heart fruit's `plantStage`). */
-const SUPER_SEED_STAGE = STAGES.find((s) => s.key === "sapling")!;
+/** Where a Super seed starts: the heart fruit's `plantStage` (lib/fruits.ts). */
+const HEART = fruitEffect("heart");
+const SUPER_SEED_STAGE = STAGES.find((s) => HEART.kind === "superSeed" && s.key === HEART.plantStage)!;
 
 /** The age a plant's Sunlamps add by `day`. */
 function lampDays(sunlamps: string[] | undefined, day: string): number {

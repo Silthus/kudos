@@ -152,6 +152,17 @@ describe("offering your appreciation", () => {
     expect(document.querySelector("[data-ledger]")).not.toBeNull();
   });
 
+  test("when time claimed it just before the press, it says so and nothing plays", async () => {
+    pending = { coins: 3, fuel: 1, offerings: 1 };
+    tree = treeState();
+    claim.mockResolvedValue({ coins: 0, fuel: 0, offerings: 0, fruit: [], more: false });
+    render();
+    await act(async () => button("Offer your appreciation")!.click());
+    expect(text()).toContain("It had already offered itself: 30 days had passed.");
+    expect(count("[data-sap-burst]")).toBe(0);
+    expect(document.querySelector("[data-ledger]")).toBeNull();
+  });
+
   test("a claim with no fruit says when the next one drops", async () => {
     pending = { coins: 3, fuel: 1, offerings: 1 };
     tree = treeState();
