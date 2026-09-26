@@ -474,3 +474,20 @@ describe("review fixes", () => {
     expect(await ana.query(api.simulator.lastRun, {})).toBeNull();
   });
 });
+
+describe("the cabin in a simulator (#144)", () => {
+  test("its DMs are timed on the simulator's clock, like the kudos they're about, not the wall clock", async () => {
+    await visitor("a").mutation(api.simulator.start, {});
+    // A day on, the simulator's clock runs a day or more ahead of the wall clock.
+    await visitor("a").mutation(api.simulator.advance, { days: 1 });
+    expect((await say(`<@UDEMOPRIYA> :taco: ${NOTE}`)).status).toBe("given");
+    const state = await visitor("a").query(api.simulator.state, {});
+    if (!state.active) throw new Error("no simulator");
+    expect(state.clockOffsetMs).toBeGreaterThan(DAY_MS / 2);
+    const overview = await visitor("a").query(api.me.overview, { period: "month", today: state.day });
+    const given = overview.activity[0];
+    expect(Math.abs(given.at - (Date.now() + state.clockOffsetMs))).toBeLessThan(60_000);
+    expect(overview.botMessages.length).toBeGreaterThan(0);
+    for (const dm of overview.botMessages) expect(Math.abs(dm.at - given.at)).toBeLessThan(60_000);
+  });
+});

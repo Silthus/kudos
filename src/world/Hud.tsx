@@ -17,13 +17,38 @@ import { useViewer } from "@/lib/viewer";
 import { HogFrame } from "./Hog";
 import { useMotion, type MotionChoice } from "./motion";
 import type { Place } from "./places";
+import { dayNumber, isSimulatorWorkspace, shownSimulator, type ActiveSimulator, type SimulatorState } from "./simulator";
+import { SimulatorClock } from "./SimulatorClock";
 
 /**
  * The HUD (#126 "Interaction model"): four small things in the corners. Top left, you: your
  * hedgehog, level, XP and (from level 3) Hog coins. Top right, the Places list (the navigation
  * landmark and the keyboard's way to every place) and settings. At the bottom, one caption: where
  * you are, how to walk, and the demo and bonus-day lines.
+ *
+ * In your simulator (#144) the clock joins the top right, by the Places button (at the bottom, over
+ * the caption, on a phone, clear of the toasts under your corner), and the Places list, the caption
+ * and the workspace switcher say it's the simulator.
  */
+
+/**
+ * Below this width the simulator's clock sits over the caption: toasts hang under your corner up to
+ * 22rem wide (Toast.tsx), and on a narrower screen they'd cover a clock in the top right.
+ */
+const WIDE = 768;
+
+function useWide() {
+  const [wide, setWide] = useState(() => window.innerWidth >= WIDE);
+  useEffect(() => {
+    const onResize = () => setWide(window.innerWidth >= WIDE);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return wide;
+}
+
+/** "Simulator, day 3": where you are while your simulator is shown. */
+const simulatorWhere = (s: ActiveSimulator) => `Simulator, day ${dayNumber(s)}`;
 
 type GameMine = FunctionReturnType<typeof api.game.mine>;
 
@@ -80,7 +105,7 @@ function MenuPanel({ id, panel, children, className }: { id: string; panel: Reac
   );
 }
 
-function PlacesMenu({ places }: { places: Place[] }) {
+function PlacesMenu({ places, simulator }: { places: Place[]; simulator: ActiveSimulator | null }) {
   const menu = useMenu();
   const id = useId();
   return (
@@ -104,6 +129,7 @@ function PlacesMenu({ places }: { places: Place[] }) {
       </button>
       {menu.open && (
         <MenuPanel id={id} panel={menu.panel}>
+          {simulator && <p className="px-3 pb-1 pt-2 text-sm font-bold text-soil">{simulatorWhere(simulator)}</p>}
           <ul>
             {places.map((p) => (
               <li key={p.id}>
@@ -133,8 +159,10 @@ function PlacesMenu({ places }: { places: Place[] }) {
 }
 
 /** Picks which of your workspaces the world shows; nothing when you're in only one. */
-function WorkspaceSwitcher() {
+function WorkspaceSwitcher({ simulator }: { simulator: SimulatorState | undefined }) {
   const { workspaces } = useViewer();
+  // Your simulator says its level (#144): "Simulator (level 7)".
+  const nameOf = (w: (typeof workspaces)[number]) => (isSimulatorWorkspace(w) && simulator?.active ? `Simulator (level ${simulator.level})` : w.name);
   const switchWorkspace = useMutation(api.session.switchWorkspace);
   if (workspaces.length < 2) return null;
   const current = workspaces.find((w) => w.current)!;
@@ -148,7 +176,7 @@ function WorkspaceSwitcher() {
       >
         {workspaces.map((w) => (
           <option key={w.memberId} value={w.memberId}>
-            {w.name}
+            {nameOf(w)}
           </option>
         ))}
       </select>
@@ -185,7 +213,7 @@ function MotionSwitch() {
   );
 }
 
-function SettingsMenu({ gameOn }: { gameOn: boolean }) {
+function SettingsMenu({ gameOn, simulator }: { gameOn: boolean; simulator: SimulatorState | undefined }) {
   const menu = useMenu();
   const id = useId();
   const { signOut } = useAuthActions();
@@ -207,7 +235,7 @@ function SettingsMenu({ gameOn }: { gameOn: boolean }) {
       </button>
       {menu.open && (
         <MenuPanel id={id} panel={menu.panel}>
-          <WorkspaceSwitcher />
+          <WorkspaceSwitcher simulator={simulator} />
           {gameOn && (
             <Link to="/me#door" onClick={() => menu.setOpen(false)} className="block px-3 py-2 text-sm hover:bg-parchment-deep">
               <span className="font-semibold">Hide the game</span>
@@ -280,12 +308,22 @@ function LanternString() {
 }
 
 /** Bottom: where you are and how to walk, then the demo and bonus-day lines. */
-function Caption({ where, banner }: { where: string; banner: Banner | undefined }) {
+function Caption({ where, banner, inSimulator, simulator, clock }: { where: string; banner: Banner | undefined; inSimulator: boolean; simulator: ActiveSimulator | null; clock?: ReactNode }) {
   const { workspace } = useViewer();
   const next = banner?.upcoming[0];
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex flex-col items-start gap-1.5 p-3 sm:p-4">
-      {workspace.isDemo && (
+    <div data-hud-caption className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex flex-col items-start gap-1.5 p-3 sm:p-4">
+      {clock && <div className="pointer-events-auto w-full">{clock}</div>}
+      {inSimulator ? (
+        <p className="pointer-events-auto pixel-note max-w-full px-3 py-1.5 text-sm">
+          <span className="mr-1.5 font-semibold text-soil">{simulator ? simulatorWhere(simulator) : "Simulator"}.</span>
+          Your own copy of the game. Give kudos in{" "}
+          <Link to="/playground" className="font-semibold text-ember-deep underline decoration-2 underline-offset-4">
+            the sandbox
+          </Link>
+          , or move the days on with the clock.
+        </p>
+      ) : workspace.isDemo && (
         <p className="pointer-events-auto pixel-note max-w-full px-3 py-1.5 text-sm">
           <span className="mr-1.5 font-semibold text-soil">Live demo.</span>
           You're exploring <b className="font-semibold">Lumen Labs</b>, a sample workspace. Give kudos in{" "}
@@ -324,6 +362,14 @@ export function Hud({ places, where }: { places: Place[]; where: string }) {
   const today = useWorkspaceToday();
   const banner = useQuery(api.boosts.banner, { today });
   const gameOn = viewer.workspace.gameEnabled === true && !viewer.member.gameHidden;
+  // Your simulator (#144): asked only in the demo, the one place a simulator can be started.
+  const simulatorState = useQuery(api.simulator.state, viewer.workspace.isDemo ? {} : "skip");
+  const simulator = shownSimulator(simulatorState);
+  // Known at once from your workspaces, so a cold load never says Live demo inside the simulator.
+  const inSimulator = viewer.workspaces.some((w) => w.current && isSimulatorWorkspace(w));
+  const wide = useWide();
+  // Keyed by its workspace: a restarted simulator's clock starts clean.
+  const clock = simulator && <SimulatorClock key={viewer.workspace._id} simulator={simulator} />;
   return (
     <>
       {banner?.current && <LanternString />}
@@ -331,12 +377,15 @@ export function Hud({ places, where }: { places: Place[]; where: string }) {
         <div className="pointer-events-auto min-w-0">
           <You game={game} />
         </div>
-        <div className="pointer-events-auto flex items-start gap-3">
-          <PlacesMenu places={places} />
-          <SettingsMenu gameOn={gameOn} />
+        <div data-hud-top-right className="pointer-events-auto flex flex-col items-end gap-3">
+          <div className="flex items-start gap-3">
+            <PlacesMenu places={places} simulator={simulator} />
+            <SettingsMenu gameOn={gameOn} simulator={simulatorState} />
+          </div>
+          {wide && clock}
         </div>
       </div>
-      <Caption where={where} banner={banner} />
+      <Caption where={where} banner={banner} inSimulator={inSimulator} simulator={simulator} clock={!wide && clock} />
     </>
   );
 }

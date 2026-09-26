@@ -36,11 +36,22 @@ const { Playground } = await import("./Playground");
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 MotionGlobalConfig.skipAnimations = true;
 
-const viewer = (isAdmin = false) =>
+type Ws = { memberId: string; slackTeamId: string; name: string; current: boolean };
+const viewer = (isAdmin = false, workspaces: Ws[] = [], simulator = false) =>
   ({
-    workspaces: [],
+    workspaces,
     member: { _id: "m1", name: "Alex Rivera", slackUserId: "UDEMOALEX", isAdmin, gameHidden: false },
-    workspace: { name: "Lumen Labs", isDemo: true, timezone: "Europe/Berlin", emojiGlyph: "🌮", emojiName: "taco", spreesEnabled: sprees, gameEnabled: true },
+    workspace: {
+      _id: simulator ? "wsim" : "wdemo",
+      name: simulator ? "Simulator" : "Lumen Labs",
+      isDemo: true,
+      timezone: "Europe/Berlin",
+      emojiGlyph: "🌮",
+      emojiName: "taco",
+      spreesEnabled: sprees,
+      gameEnabled: true,
+      clockOffsetMs: 0,
+    },
   }) as unknown as ReadyViewer;
 
 const dm = (over: Record<string, unknown>) => ({
@@ -68,14 +79,14 @@ beforeEach(() => {
 });
 afterEach(() => act(() => root?.unmount()));
 
-function render(admin = false) {
+function render(admin = false, workspaces: Ws[] = [], simulator = false) {
   host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
   act(() =>
     root!.render(
       <MemoryRouter>
-        <ViewerContext.Provider value={viewer(admin)}>
+        <ViewerContext.Provider value={viewer(admin, workspaces, simulator)}>
           <InWindow>
             <Playground />
           </InWindow>
@@ -247,4 +258,121 @@ test("review: the envelope names who gets the DM in plain words", async () => {
   render();
   await click("/kudos me");
   expect(host.querySelector("[data-envelope]")?.textContent).toContain("Lena gets this DM");
+});
+
+// ── The simulator (#144) ─────────────────────────────────────────────────────
+
+const simulatorState = (over: Record<string, unknown> = {}) => ({ active: true, shown: true, level: 7, xp: 900, day: "2026-10-14", dayIndex: 2, clockOffsetMs: 0, lastRun: null, ...over });
+const choose = async (select: HTMLSelectElement, value: string) =>
+  act(async () => {
+    select.value = value;
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+
+test("simulator: the sandbox has two pixel tabs, Playground and Simulator, the Playground first", () => {
+  render();
+  const tabs = [...host.querySelectorAll("[role=tab]")].map((t) => [t.textContent?.trim(), t.getAttribute("aria-selected")]);
+  expect(tabs).toEqual([
+    ["Playground", "true"],
+    ["Simulator", "false"],
+  ]);
+  expect(host.querySelector("[data-slack-terminal]")).not.toBeNull();
+});
+
+test("simulator: the tab explains it, picks a level by its title and XP floor, and starts the simulator there", async () => {
+  queries["simulator:state"] = { active: false };
+  render();
+  await click("Simulator");
+  expect(host.querySelector("[data-slack-terminal]")).toBeNull();
+  const tab = host.querySelector("[data-simulator-tab]")!;
+  expect(tab.textContent).toContain("private");
+  const picker = tab.querySelector<HTMLSelectElement>("select")!;
+  expect(picker.value).toBe("1");
+  expect(picker.options).toHaveLength(25);
+  // Worked by hand from the XP table (lib/xp.ts): L5 350, L6 +250, L7 +300.
+  expect(picker.options[0].textContent).toBe("Level 1, Seedling, from 0 XP");
+  expect(picker.options[6].textContent).toBe("Level 7, Gardener, from 900 XP");
+  await choose(picker, "7");
+  await click("Start the simulator");
+  expect(calls["simulator:start"]).toHaveBeenCalledWith({ level: 7 });
+  expect(windowPageProblems(host)).toEqual([]);
+});
+
+test("simulator: while you're in it, the tab offers a restart at the picked level and a way back to the demo", async () => {
+  queries["simulator:state"] = simulatorState();
+  render();
+  await click("Simulator");
+  const tab = host.querySelector("[data-simulator-tab]")!;
+  expect(tab.textContent).toContain("level 7");
+  expect(tab.textContent).toContain("day 3");
+  const picker = tab.querySelector<HTMLSelectElement>("select")!;
+  expect(picker.value).toBe("7");
+  await choose(picker, "4");
+  await click("Restart at level 4");
+  expect(calls["simulator:reset"]).toHaveBeenCalledWith({ level: 4 });
+  await click("Stop and return to the demo");
+  expect(calls["simulator:stop"]).toHaveBeenCalled();
+  expect(windowPageProblems(host)).toEqual([]);
+});
+
+test("simulator: back in the shared demo with a simulator still there, the tab takes you back to it", async () => {
+  queries["simulator:state"] = simulatorState({ shown: false });
+  render(false, [
+    { memberId: "m1", slackTeamId: "T_DEMO_LUMEN", name: "Lumen Labs", current: true },
+    { memberId: "sim1", slackTeamId: "SIM-1-abc", name: "Simulator", current: false },
+  ]);
+  await click("Simulator");
+  await click("Go back to your simulator");
+  expect(calls["session:switchWorkspace"]).toHaveBeenCalledWith({ memberId: "sim1" });
+});
+
+test("simulator: a refused start says why", async () => {
+  queries["simulator:state"] = { active: false };
+  const { ConvexError } = await import("convex/values");
+  replies["simulator:start"] = Promise.reject(new ConvexError("The simulator is part of the live demo."));
+  (replies["simulator:start"] as Promise<unknown>).catch(() => {});
+  render();
+  await click("Simulator");
+  await click("Start the simulator");
+  expect(host.querySelector("[data-simulator-tab] [role=alert]")?.textContent).toBe("The simulator is part of the live demo.");
+});
+
+const inSim: Ws[] = [
+  { memberId: "m0", slackTeamId: "T_DEMO_LUMEN", name: "Lumen Labs", current: false },
+  { memberId: "m1", slackTeamId: "SIM-1-abc", name: "Simulator", current: true },
+];
+
+test("simulator: inside the simulator the sandbox says so, and the shared demo's reset isn't offered", () => {
+  queries["simulator:state"] = simulatorState();
+  render(true, inSim, true);
+  expect(host.textContent).toContain("your simulator");
+  expect(button("Reset the demo")).toBeUndefined();
+  expect(button("Refill my kudos")).toBeDefined();
+});
+
+test("review: on a cold load inside the simulator, before its state arrives, the sandbox never offers the shared demo's reset", () => {
+  render(true, inSim, true);
+  expect(host.textContent).toContain("your simulator");
+  expect(button("Reset the demo")).toBeUndefined();
+});
+
+test("review: the simulator's clock is in the sandbox too, where the window would cover the HUD's", async () => {
+  queries["simulator:state"] = simulatorState();
+  replies["simulator:advance"] = { day: "2026-10-15", dayIndex: 3, changes: ["Thursday: your 5 kudos for today are back."] };
+  render(false, inSim, true);
+  expect(host.querySelector("[data-simulator-clock]")?.textContent).toContain("Day 3, Wednesday 14 Oct");
+  await click("Next day");
+  expect(calls["simulator:advance"]).toHaveBeenCalledWith({ days: 1 });
+  await click("Simulator");
+  expect(host.querySelector("[data-simulator-tab] [data-simulator-clock]")).not.toBeNull();
+  expect(host.querySelector("[data-simulator-tab]")?.textContent).not.toContain("corner");
+  expect(windowPageProblems(host)).toEqual([]);
+});
+
+test("review: from the shared demo, restarting says it takes you there", async () => {
+  queries["simulator:state"] = simulatorState({ shown: false });
+  render(false, inSim.map((w) => ({ ...w, current: !w.current })));
+  await click("Simulator");
+  await click("Restart at level 7 and go there");
+  expect(calls["simulator:reset"]).toHaveBeenCalledWith({ level: 7 });
 });

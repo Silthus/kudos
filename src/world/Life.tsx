@@ -8,6 +8,7 @@ import { useViewer } from "@/lib/viewer";
 import type { HogHandle } from "./Hog";
 import { lifeEvents, lifeSnapshot, nextBaseline, toastFor, type LifeSnapshot } from "./life";
 import { Toasts, type QueuedToast } from "./Toast";
+import { onToasts } from "./toastBus";
 
 /**
  * What happens to you while the world is open (#134): a level-up makes the hedgehog jump and
@@ -84,6 +85,10 @@ export function Life({ hog, hogEl, still, gameShown, windowOpen }: { hog: RefObj
   const counts = useQuery(api.me.today, gameShown ? { today } : "skip");
   const snapshot = gameShown ? lifeSnapshot(game, counts, member) : null;
   const loading = gameShown && game === undefined;
+  // While the simulator's bot plays days (#144), the world holds its celebrations: the run's end
+  // tells the whole run at once (one level-up, one hop, one discovery), and its summary the rest.
+  const simulator = useQuery(api.simulator.state, useViewer().workspace.isDemo ? {} : "skip");
+  const paused = !!simulator?.active && simulator.shown && simulator.lastRun?.status === "running";
   const key = JSON.stringify(snapshot);
   const last = useRef<LifeSnapshot | null>(null);
   const next = useRef(0);
@@ -93,6 +98,11 @@ export function Life({ hog, hogEl, still, gameShown, windowOpen }: { hog: RefObj
   stillNow.current = still;
 
   useEffect(() => {
+    // Paused: the baseline stays where the run started (or the first look, opening the app mid-run).
+    if (paused) {
+      last.current ??= nextBaseline(null, snapshot, loading);
+      return;
+    }
     const events = lifeEvents(last.current, snapshot);
     last.current = nextBaseline(last.current, snapshot, loading);
     for (const e of events) {
@@ -103,7 +113,18 @@ export function Life({ hog, hogEl, still, gameShown, windowOpen }: { hog: RefObj
     }
     // Compared by what they say, not by object identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, loading]);
+  }, [key, loading, paused]);
+
+  // Toasts from elsewhere in the world (the simulator's clock, #144) join the same queue.
+  // A move of the clock replaces what the last one still had to say (toastBus.ts).
+  useEffect(
+    () =>
+      onToasts((more) => {
+        const clock = more.some((t) => t.kind === "clock");
+        setToasts((q) => [...(clock ? q.filter((t) => t.kind !== "clock") : q), ...more.map((t) => ({ ...t, id: ++next.current }))]);
+      }),
+    [],
+  );
 
   // One layer, inside the open window's dialog while there is one (after the window has opened it).
   const [layer] = useState(() => {

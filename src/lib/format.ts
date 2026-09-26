@@ -1,3 +1,5 @@
+import { workspaceNow } from "../../convex/lib/time";
+
 export const nf = new Intl.NumberFormat("en-US");
 
 export function pct(n: number, digits = 0) {
@@ -20,7 +22,23 @@ export function rangeLabel(start: string, end: string) {
   return `${dayLabel(start, sameYear ? { month: "short", day: "numeric" } : { month: "short", day: "numeric", year: "numeric" })} – ${dayLabel(end, { month: "short", day: "numeric", year: "numeric" })}`;
 }
 
-export function relativeTime(ts: number, now = Date.now()) {
+/**
+ * The workspace clock (#143, convex/lib/time.ts `workspaceNow`): a simulator's runs ahead of the wall
+ * clock by its `clockOffsetMs`; every other workspace's offset is 0. The world shell sets it from
+ * the viewer, so times on the page ("2h ago", the sandbox's clock) read on the workspace's clock.
+ */
+let clockOffsetMs = 0;
+
+export function setWorkspaceClock(offsetMs: number) {
+  clockOffsetMs = offsetMs;
+}
+
+/** Now, on the shown workspace's clock. */
+export function workspaceClockNow() {
+  return workspaceNow({ clockOffsetMs });
+}
+
+export function relativeTime(ts: number, now = workspaceClockNow()) {
   const s = Math.round((now - ts) / 1000);
   if (s < 45) return "just now";
   const m = Math.round(s / 60);
