@@ -56,7 +56,8 @@ type SkillSpec = {
   arrives?: { ticket: number; with: string };
 };
 
-const TEAM = { ticket: 96, with: "the team garden and bonus days" };
+// Bonus days shipped with the game preview (#97): the team garden is what these still wait for.
+const TEAM = { ticket: 96, with: "the team garden" };
 
 const TREE = {
   // Gardener: your garden (live, lib/garden.ts).

@@ -585,7 +585,7 @@ function Memories({ memories }: { memories: OpenGarden["memories"] }) {
 /** A teammate's garden: the plants, never whom they're for, except the one grown for you. */
 export function GardenOf() {
   const { memberId } = useParams();
-  const garden = useQuery(api.gardens.of, memberId ? { memberId: memberId as Id<"members"> } : "skip");
+  const garden = useQuery(api.gardens.of, memberId ? { memberId } : "skip");
   const lanterns = useQuery(api.game.mine, {})?.lanterns ?? 0;
   const takeDown = useMutation(api.gardens.takeDownLantern);
   if (garden === undefined) return <PageSkeleton />;
@@ -601,10 +601,8 @@ export function GardenOf() {
   }
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h3 className="font-display text-2xl font-medium text-ink">{garden.name}'s garden</h3>
-        <p className="text-sm text-ink/75">Every plant here is for a teammate. Only they know which one is theirs.</p>
-      </div>
+      {/* Whose garden it is: the window's title bar says so. */}
+      <p className="text-sm text-ink/75">Every plant here is for a teammate. Only they know which one is theirs.</p>
       {garden.plants.length === 0 ? (
         <Empty icon={<Sprout className="h-7 w-7 text-ink/70" />} title="Nothing planted yet" />
       ) : (

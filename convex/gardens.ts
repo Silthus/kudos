@@ -444,10 +444,12 @@ export const forMe = query({
  * reason it's today's garden only, by the server's clock: asking about other days would date its
  * stages. (It refreshes with any change to the garden or a reload; the plants change slowly.) A plant
  * for a teammate who left stays in view, so its disappearing can't tell whose it was. Null for
- * someone who left or hides the game, or while the game is off or hidden for the viewer.
+ * someone who left or hides the game, or while the game is off or hidden for the viewer. The id
+ * comes from the URL (`/garden/:memberId`), so one that isn't a member's (a typo, a truncated link,
+ * another table's id) is nobody's garden too, not an error (#148).
  */
 export const of = query({
-  args: { memberId: v.id("members") },
+  args: { memberId: v.string() },
   returns: v.union(
     v.null(),
     v.object({
@@ -471,7 +473,8 @@ export const of = query({
   handler: async (ctx, args) => {
     const { workspace, member } = await requireViewer(ctx);
     if (!gameShownTo(workspace, member)) return null;
-    const owner = await ctx.db.get(args.memberId);
+    const ownerId = ctx.db.normalizeId("members", args.memberId);
+    const owner = ownerId ? await ctx.db.get(ownerId) : null;
     if (!owner || owner.workspaceId !== workspace._id || owner.isBot || !gameShownTo(workspace, owner) || owner.deactivated) return null;
     const today = dayKeyFor(workspaceNow(workspace), workspace.timezone);
     const skills = skillsOf(await playerOf(ctx, owner._id));

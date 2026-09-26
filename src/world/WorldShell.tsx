@@ -3,7 +3,6 @@ import { useReducedMotionConfig } from "motion/react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SuperKudosCelebration } from "@/components/cosmetics";
 import { setWorkspaceClock } from "@/lib/format";
@@ -52,6 +51,14 @@ function useViewportWidth() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
   return width;
+}
+
+const TEAMMATE_GARDEN = "A teammate's garden";
+
+/** A teammate's garden from a link, when they aren't in your ring: their name for the title. */
+function VisitedTitle({ memberId }: { memberId: string }) {
+  const visited = useQuery(api.gardens.of, { memberId });
+  return visited ? `${visited.name}'s garden` : TEAMMATE_GARDEN;
 }
 
 /** Is focus somewhere keys mean typing or choosing, not walking? */
@@ -116,9 +123,6 @@ export function WorldShell() {
   const plotAsked = target?.place.id === "garden" && !target.memberId && new URLSearchParams(location.search).has("plot");
   const plotPending = plotAsked && gameShown && garden === undefined;
   const plotParam = plotAsked ? plotFrom(location.search, plots) : null;
-  // A teammate's garden from a link, when they aren't in your ring: their name for the title.
-  const inRing = !!target?.memberId && neighbours.some((b) => b.memberId === target.memberId);
-  const visited = useQuery(api.gardens.of, target?.memberId && !inRing ? { memberId: target.memberId as Id<"members"> } : "skip");
 
   const vw = useViewportWidth();
   const scale = worldScale(vw);
@@ -437,7 +441,17 @@ export function WorldShell() {
 
   const close = () => navigate("/");
   const bubbleAt = bubble && !windowOpen ? tileOnCanvas(bubble.tile) : null;
-  const title = target?.memberId ? `${neighbours.find((b) => b.memberId === target.memberId)?.name ?? visited?.name ?? "A teammate"}'s garden` : target?.place.name;
+  const ringName = target?.memberId ? neighbours.find((b) => b.memberId === target.memberId)?.name : undefined;
+  const title = !target?.memberId ? (
+    target?.place.name
+  ) : ringName ? (
+    `${ringName}'s garden`
+  ) : (
+    // A link's id is only a guess until the server answers: a failing title mustn't take the world down.
+    <ErrorBoundary resetKey={target.memberId} fallback={TEAMMATE_GARDEN}>
+      <VisitedTitle memberId={target.memberId} />
+    </ErrorBoundary>
+  );
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-dusk">

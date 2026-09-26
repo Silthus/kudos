@@ -558,6 +558,15 @@ describe("review fixes", () => {
     await expect((await as(team.ana)).mutation(api.gardens.plant, { teammateId: other.ben })).rejects.toThrow();
     expect(await (await as(other.cleo)).query(api.gardens.of, { memberId: team.ana })).toBeNull();
   });
+
+  test("a garden link whose id isn't a member's is nobody's garden, not an error (#148)", async () => {
+    const cleo = await as(team.cleo);
+    // A typo, a truncated link, an id from another table.
+    const workspaceId = await t.run((ctx) => ctx.db.query("workspaces").first().then((w) => w!._id));
+    for (const memberId of ["doesnotexist", String(team.ana).slice(0, -3), workspaceId]) {
+      expect(await cleo.query(api.gardens.of, { memberId })).toBeNull();
+    }
+  });
 });
 
 describe("plots: each plant keeps its key bed on the map (#129)", () => {
