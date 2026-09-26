@@ -27,6 +27,7 @@ import {
 import { boostAt, type BoostKind } from "./lib/boosts";
 import { boostOn, boostsOf } from "./boosts";
 import { leaveWorld } from "./lib/world";
+import { DEFAULT_LOOK, lookValidator } from "./lib/presence";
 
 /**
  * The game's foundation (#55 §G1, G3, G4): the workspace switch, players, the XP and Hog coin
@@ -696,12 +697,14 @@ export const mine = query({
     luckyCharms: v.number(), // Lucky charm uses left (#97)
     sunlamps: v.number(), // Sunlamps bought, not yet used (#97)
     lanterns: v.number(), // Lanterns bought, not yet hung (#97)
+    look: lookValidator, // your hog's look in the world (#155 setLook, #158)
   }),
   handler: async (ctx) => {
     const { workspace, member } = await requireViewer(ctx);
     const enabled = gameOn(workspace);
     const player = enabled ? await playerOf(ctx, member._id) : null;
     return {
+      look: player?.look ?? DEFAULT_LOOK,
       enabled,
       hidden: Boolean(member.gameHidden),
       player: player ? levelProgress(player.xp, player.level) : null,

@@ -484,7 +484,7 @@ test("a garden link that fails leaves the world standing: the map, the HUD and a
 describe("life in the world (#134)", () => {
   const player = (level: number, title: string) => ({ level, title, xp: 1650, floor: 1500, next: 1900, toNext: 250, fraction: 0.4 });
   const wallet = (balance: number) => ({ balance, fromKudos: balance, fromFruit: 0, fromQuests: 0, fromSprees: 0, fromLevels: 0, spent: 0, adjusted: 0 });
-  const game = (level: number, title: string, coins = 84) => ({ enabled: true, hidden: false, player: player(level, title), wallet: wallet(coins), luckyCharms: 0, sunlamps: 0, lanterns: 0 });
+  const game = (level: number, title: string, coins = 84) => ({ enabled: true, hidden: false, player: player(level, title), wallet: wallet(coins), luckyCharms: 0, sunlamps: 0, lanterns: 0, look: { color: null, accessory: null } });
   const counts = (discovered: number) => ({ used: 0, remaining: 5, limit: 5, discovered, total: 72 });
   const hog = () => host.querySelector<HTMLCanvasElement>("canvas[data-hog]")!;
   const toast = () => document.querySelector("[aria-live='polite'] [data-toast]");
@@ -764,5 +764,53 @@ describe("the tree's districts (#156)", () => {
     for (let i = 0; i < 10; i++) press("ArrowLeft"), walkFor(200);
     expect(hogEl().dataset.behindTree).toBe("true");
     expect(Number(hogEl().style.zIndex)).toBeLessThan(tree);
+  });
+});
+
+describe("everyone else in the world (#158)", () => {
+  const look = (color: string | null, accessory: string | null) => ({ enabled: true, hidden: false, player: null, wallet: null, luckyCharms: 0, sunlamps: 0, lanterns: 0, look: { color, accessory } });
+  const mineHog = () => host.querySelector<HTMLCanvasElement>("canvas[data-hog]")!;
+  const other = { id: "p1", memberId: "m2", name: "Ana Lima", title: "Gardener", x: 6, y: 6, facing: "right", animation: "idle", look: { color: null, accessory: null }, hasHome: false, updatedAt: 0 };
+
+  test("your hedgehog wears the look you chose; on a bonus day, the party hat over it", () => {
+    queries = { "game:mine": look("purple", "tophat") };
+    open("/");
+    expect(mineHog().dataset.color).toBe("purple");
+    expect(mineHog().dataset.accessory).toBe("tophat");
+    queries = { "game:mine": look("purple", "tophat"), "boosts:banner": { current: { kind: "double", text: "Bonus day" }, upcoming: [] } };
+    open("/");
+    expect(mineHog().dataset.color).toBe("purple");
+    expect(mineHog().dataset.accessory).toBe("party");
+  });
+
+  test("you reappear where you left the world", () => {
+    const world = buildWorld({ seed: 1, layout: layout(1, 400), planted: true, standing: ["leaderboard"] });
+    const door = world.places.find((p) => p.id === "leaderboard")!.doors[0];
+    queries = { "presence:mine": { at: door, look: { color: null, accessory: null } } };
+    open("/");
+    expect(caption()).toBe("Notice board");
+    expect(openWindow()).toBeNull();
+  });
+
+  test("a link to a place wins over where you left", () => {
+    queries = { "presence:mine": { at: { x: 30, y: 30 }, look: { color: null, accessory: null } } };
+    open("/quests");
+    expect(caption()).toBe("Quest signpost");
+  });
+
+  test("the others online round you stand on the map, and the HUD says how many are in the world", () => {
+    queries = { "presence:nearby": [other], "presence:online": { count: 2, players: [] } };
+    open("/");
+    expect(host.querySelector("[data-other-hog=p1] [data-name-tag]")?.textContent).toBe("Ana Lima");
+    expect([...host.querySelectorAll("button")].some((b) => b.textContent === "2 online")).toBe(true);
+  });
+
+  test("with the game hidden from you, nobody else and no heartbeat", () => {
+    const hidden = { ...viewer, member: { ...viewer.member, gameHidden: true } } as unknown as ReadyViewer;
+    queries = { "presence:nearby": [other], "presence:online": { count: 2, players: [] } };
+    open("/", hidden);
+    expect(host.querySelector("[data-other-hog]")).toBeNull();
+    expect(asked).not.toContain("presence:nearby");
+    expect(asked).not.toContain("presence:online");
   });
 });

@@ -21,6 +21,7 @@ import { DEFAULT_PERIOD, PERIOD_OPTIONS, useWorkspaceToday, type Period } from "
 import { RARITY_META, type Rarity } from "@/lib/rarity";
 import { useStableQuery } from "@/lib/useStableQuery";
 import { useViewer } from "@/lib/viewer";
+import { HogLookPicker } from "@/world/HogLook";
 
 const linkCls = "font-semibold text-ember-deep underline decoration-2 underline-offset-4";
 
@@ -70,7 +71,9 @@ export function Me() {
         <YourGiving data={data} standing={standing ?? null} period={period} glyph={glyph} />
       </Room>
 
-      <LookCard memberId={viewer.member._id} today={today} />
+      <LookCard memberId={viewer.member._id} today={today}>
+        <HogLookPicker />
+      </LookCard>
 
       <Room title="Lately" subtitle={viewer.canSeeOwnReceived ? "Kudos you gave and received" : "Kudos you gave"}>
         {data.activity.length === 0 ? (

@@ -21,10 +21,23 @@ import type { Site, World } from "./world";
  */
 
 /**
- * The world's stacking order: the ground, what stands behind the tree, the hedgehog when it's behind
- * the trunk (`Z.hogBehind`), the tree, what stands in front of it, the hedgehog in front, then names.
+ * The world's stacking order: the ground, what stands behind the tree, the hedgehogs behind the
+ * trunk (`Z.hogBehind`), the tree, what stands in front of it, the hedgehogs in front, the names,
+ * then the notes and cards that pop up over it all. Each hedgehog band is wide: within it, the
+ * hedgehogs stand in depth order (`hogZ`).
  */
-export const Z = { ground: 0, behind: 10, hogBehind: 15, tree: 20, front: 30, hogFront: 40, labels: 50 } as const;
+export const Z = { ground: 0, behind: 100, hogBehind: 1000, tree: 2000, front: 2100, hogFront: 3000, labels: 4000, notes: 4100 } as const;
+
+/** Hedgehogs this far apart on screen (art pixels) or more simply keep their order. */
+const HOG_DEPTH = 900;
+
+/**
+ * Where a hedgehog stands in the stack: in the band behind the trunk or in front of it, and within
+ * it, `below` art pixels lower on screen than yours (your hedgehog is the band itself) is nearer.
+ */
+export function hogZ(behind: boolean, below: number): number {
+  return (behind ? Z.hogBehind : Z.hogFront) + Math.max(-HOG_DEPTH, Math.min(HOG_DEPTH, Math.round(below)));
+}
 
 export type WorldCanvasHandle = {
   /** The camera's view moved: `view` in art pixels. */

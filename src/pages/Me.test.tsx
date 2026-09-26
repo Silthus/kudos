@@ -97,7 +97,7 @@ const headings = (host: HTMLElement) => [...host.querySelectorAll("h3")].map((h)
 const section = (host: HTMLElement, title: string) => [...host.querySelectorAll("h3")].find((h) => h.textContent === title)?.closest("section") ?? null;
 
 test("the cabin is one window of rooms, in order: you, your giving, your look, lately, found lately, the bot, the quests and the door", () => {
-  game = { enabled: true, hidden: false, player: player(2), wallet: null };
+  game = { enabled: true, hidden: false, player: player(2), wallet: null, look: { color: null, accessory: null } };
   const host = render();
   // "Your look" shows only while you play (its query answers null otherwise, and here nothing).
   expect(headings(host)).toEqual(["You", "Your giving", "Lately", "Found lately", "From the bot", "Quests this week", "The door"]);
@@ -107,7 +107,7 @@ test("the cabin is one window of rooms, in order: you, your giving, your look, l
 
 /** Every room with something in it: the look, Lookout, the store, activity, finds and a bot message with gains. */
 function furnish() {
-  game = { enabled: true, hidden: false, player: player(3), wallet };
+  game = { enabled: true, hidden: false, player: player(3), wallet, look: { color: null, accessory: null } };
   extra = {
     "cosmetics:mine": { look: {}, owned: [], emoji: [{ shortcode: ":taco:", name: "Kudos emoji", source: "workspace", suffix: null }], superKudos: null },
     "cosmetics:profile": { name: "Alex Rivera", avatarUrl: null, level: 3, title: "Sprout", given: 10, look: {} },
@@ -178,7 +178,7 @@ test("switching workspace at the door switches to the one picked", () => {
 });
 
 test("below level 3 the cabin shows no Hog coins at all, only the wallet's locked tile, even with the store open", () => {
-  game = { enabled: true, hidden: false, player: player(2), wallet: null };
+  game = { enabled: true, hidden: false, player: player(2), wallet: null, look: { color: null, accessory: null } };
   extra = { "store:balance": null }; // the server hides the balance below level 3
   const host = render({ storeEnabled: true });
   expect(host.querySelector("a[href='/store']")).toBeNull();
@@ -188,7 +188,7 @@ test("below level 3 the cabin shows no Hog coins at all, only the wallet's locke
 });
 
 test("from level 3 the wallet is in the room called You", () => {
-  game = { enabled: true, hidden: false, player: player(3), wallet };
+  game = { enabled: true, hidden: false, player: player(3), wallet, look: { color: null, accessory: null } };
   const host = render();
   expect(section(host, "You")!.querySelector("[data-wallet]")?.getAttribute("aria-label")).toBe("Hog coins: 28");
 });
@@ -235,7 +235,7 @@ test("with one workspace there is nothing to switch to", () => {
 });
 
 test("the game's switch hangs on the cabin wall, by the door", () => {
-  game = { enabled: true, hidden: false, player: player(2), wallet: null };
+  game = { enabled: true, hidden: false, player: player(2), wallet: null, look: { color: null, accessory: null } };
   const host = render();
   const toggle = section(host, "The door")!.querySelector<HTMLButtonElement>("[role=switch]")!;
   expect(toggle.getAttribute("aria-label")).toBe("Show the game");
