@@ -3,9 +3,9 @@ import { useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { AnimatePresence, motion } from "motion/react";
 import { AtSign, EyeOff, Hash, Pencil, SendHorizontal, Terminal } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ComponentProps, type KeyboardEvent, type ReactNode, type Ref } from "react";
 import { api } from "../../convex/_generated/api";
-import { Avatar, Button, Card, Eyebrow, PageHeader, RarityBadge } from "@/components/ui";
+import { Avatar, Button, RarityBadge } from "@/components/ui";
 import { useWorkspaceToday } from "@/lib/period";
 import { CATEGORY_LABEL, RARITY_META, type Rarity } from "@/lib/rarity";
 import { useViewer } from "@/lib/viewer";
@@ -13,6 +13,14 @@ import { Earnings, GainLines, LevelUpHoggie } from "@/components/game";
 import { SpreePost } from "@/components/SpreePost";
 import type { Id } from "../../convex/_generated/dataModel";
 import { SUPER_SUFFIX, variantBySuffix } from "../../convex/lib/cosmetics";
+
+/**
+ * The sandbox (#133): a Slack terminal standing in the sand, running the real kudos engine against
+ * the shared demo workspace. You post in #general; the Kudos bot reacts on your message, replies
+ * only to you where you gave, and its DMs pile up beside the terminal as a stack of envelopes. The
+ * terminal is a mock of Slack, so it keeps Slack's look and emoji (`data-user-text`); the copy
+ * round it is the world's. The demo controls stand in the sand as small signs.
+ */
 
 type BotMessage = {
   _id: string;
@@ -47,7 +55,7 @@ type FeedItem = {
   outcome?: Outcome;
   /** An ephemeral reply from the Kudos bot, only visible to you. */
   ephemeral?: boolean;
-  /** On the bot's reply to your kudos: what it earned ("+20 XP · new connection +10"). */
+  /** On the bot's reply to your kudos: what it earned ("+20 XP, new connection +10"). */
   earnings?: string;
   /** On the bot's reply to your kudos: what your Super kudos emoji did (#98). */
   superNote?: string;
@@ -107,9 +115,21 @@ function renderSlackText(text: string, glyph: string, emojiName: string): ReactN
   return parts.map((p, i) => {
     if (p === `:${emojiName}:`) return <span key={i}>{glyph}</span>;
     if (p.startsWith(`:${emojiName}-`) && p.endsWith(":")) return variantChip(p, glyph, emojiName, i) ?? <span key={i}>{p}</span>;
-    if (p.startsWith("@")) return <span key={i} className="bg-[#1d9bd1]/20 px-1 text-[#6cc7f5]">{p}</span>;
+    if (p.startsWith("@")) return <span key={i} className="bg-[#1d9bd1]/15 px-0.5 text-[#1264a3]">{p}</span>;
     return <span key={i}>{p}</span>;
   });
+}
+
+const clock = (at: number) => new Date(at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+/** Slack's small grey "APP" tag after a bot's name. */
+function AppTag({ children = "APP" }: { children?: ReactNode }) {
+  return <span className="bg-ink/10 px-1 py-px align-middle text-[10px] font-semibold text-ink/75">{children}</span>;
+}
+
+/** The Kudos bot's square avatar: the workspace's kudos emoji on lantern. */
+function BotAvatar({ glyph }: { glyph: string }) {
+  return <span className="grid h-9 w-9 shrink-0 place-items-center bg-lantern">{glyph}</span>;
 }
 
 export function Playground() {
@@ -125,13 +145,12 @@ export function Playground() {
     if (viewer.workspace.spreesEnabled) void openSpree({});
   }, [openSpree, viewer.workspace.spreesEnabled]);
   const send = useMutation(api.demo.simulateMessage);
-  const cosmetics = useQuery(api.cosmetics.mine, { today: useWorkspaceToday() });
+  const cosmetics = useQuery(api.cosmetics.mine, { today });
   // Your own kudos-emoji variants and the Super kudos emoji (#98), to add like the kudos emoji.
   const extraEmoji = [...(cosmetics?.emoji.filter((e) => e.suffix !== null).map((e) => e.shortcode) ?? []), ...(cosmetics?.superKudos ? [cosmetics.superKudos.shortcode] : [])];
   const edit = useMutation(api.demo.simulateEdit);
   const react = useMutation(api.demo.simulateReaction);
   const allowance = useMutation(api.demo.simulateAllowanceCheck);
-  const refill = useMutation(api.demo.refillAllowance);
   const { emojiGlyph: glyph, emojiName } = viewer.workspace;
   const emojiCode = `:${emojiName}:`;
 
@@ -143,6 +162,19 @@ export function Playground() {
   const [editing, setEditing] = useState<{ id: string; draft: string } | null>(null);
   const [mention, setMention] = useState<{ query: string; index: number } | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const feedRef = useRef<HTMLDivElement>(null);
+  const [newDms, setNewDms] = useState(0);
+  const dmsRef = useRef<HTMLElement>(null);
+
+  // Like Slack, the channel follows the newest message once you've posted; on arrival it starts at
+  // the top, so the teammate's spree above the posts is in view.
+  const shownFeed = useRef(feed.length);
+  useEffect(() => {
+    const el = feedRef.current;
+    if (!el || feed.length === shownFeed.current) return;
+    shownFeed.current = feed.length;
+    el.scrollTop = el.scrollHeight;
+  }, [feed.length]);
 
   const suggestions = useMemo(
     () => (mention ? teammates.filter((t) => t.name.toLowerCase().includes(mention.query.toLowerCase())).slice(0, 6) : []),
@@ -151,7 +183,7 @@ export function Playground() {
 
   /**
    * Like Slack: your reply to a kudos you gave shows only to you, right where you gave it (with what
-   * it earned while the game is on); everything else is a DM on the right.
+   * it earned while the game is on); everything else is a DM, an envelope on the stack.
    */
   const pushBot = (messages: BotMessage[]) => {
     const isReply = (m: BotMessage) => m.toMe && m.category === "giver_success";
@@ -164,6 +196,7 @@ export function Playground() {
     }
     const dms = messages.filter((m) => !isReply(m));
     setBot((prev) => [...dms.map((m) => ({ ...m, at: Date.now() })), ...prev].slice(0, 30));
+    setNewDms(dms.length);
   };
 
   const toSlack = (raw: string) => {
@@ -196,9 +229,7 @@ export function Playground() {
     const superReaction = attempt.reaction === `${emojiName}-${SUPER_SUFFIX}`;
     setFeed((f) => [
       ...f.map((m) => (m.id === id ? { ...m, outcome: attempt.outcome, superReaction } : m)),
-      ...(attempt.guidance
-        ? [{ id: crypto.randomUUID(), author: "Kudos", slackUserId: "", text: attempt.guidance, mine: false, at: Date.now(), ephemeral: true }]
-        : []),
+      ...(attempt.guidance ? [{ id: crypto.randomUUID(), author: "Kudos", slackUserId: "", text: attempt.guidance, mine: false, at: Date.now(), ephemeral: true }] : []),
     ]);
   };
 
@@ -222,7 +253,7 @@ export function Playground() {
     pushBot(res.messages);
   };
 
-  /** Join on the spree's prompt: your reply shows where you joined, the tier's reply in the thread, the DMs on the right. */
+  /** Join on the spree's prompt: your reply shows where you joined, the tier's reply in the thread, the DMs on the stack. */
   const onJoinSpree = async (attemptId: string) => {
     const res = await joinSpree({ attemptId: attemptId as Id<"kudosAttempts"> });
     const now = Date.now();
@@ -252,10 +283,25 @@ export function Playground() {
 
   const onKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (mention && suggestions.length) {
-      if (e.key === "ArrowDown") { e.preventDefault(); setMention({ ...mention, index: (mention.index + 1) % suggestions.length }); return; }
-      if (e.key === "ArrowUp") { e.preventDefault(); setMention({ ...mention, index: (mention.index - 1 + suggestions.length) % suggestions.length }); return; }
-      if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); pick(suggestions[mention.index].name); return; }
-      if (e.key === "Escape") { setMention(null); return; }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setMention({ ...mention, index: (mention.index + 1) % suggestions.length });
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setMention({ ...mention, index: (mention.index - 1 + suggestions.length) % suggestions.length });
+        return;
+      }
+      if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        pick(suggestions[mention.index].name);
+        return;
+      }
+      if (e.key === "Escape") {
+        setMention(null);
+        return;
+      }
     }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -263,278 +309,463 @@ export function Playground() {
     }
   };
 
+  const insert = (piece: string) => {
+    setText((t) => `${t}${piece}`);
+    inputRef.current?.focus();
+  };
+
   return (
-    <div>
-      <PageHeader
-        eyebrow="Demo · runs the real kudos engine"
-        title="Slack playground"
-        subtitle={`Post in #general like you would in Slack. Mention teammates and add ${glyph} to give kudos, or react to a message. The Kudos bot reacts on your message (${glyph} given, ⏳ over the allowance, ❌ not valid), and you can fix a failed one by editing it. Replies show up on the right, and everything flows into your dashboard live.`}
-      />
+    <div className="space-y-5">
+      <p className="text-[15px] leading-relaxed text-ink/80">
+        The sandbox runs the real kudos engine on the demo workspace. Post in #general as you would in Slack: mention teammates and add the kudos emoji to give, react to
+        a post, or fix a failed kudos by editing it. The bot's DMs land on the stack of envelopes, and everything flows into the world.
+      </p>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.35fr_1fr]">
-        <Card className="flex min-h-[640px] flex-col overflow-hidden">
-          <div className="flex items-center justify-between border-b border-parchment-deep px-5 py-3.5">
-            <div className="flex items-center gap-1.5 font-display text-base font-semibold">
-              <Hash className="h-4 w-4 text-ink/75" /> general
-            </div>
-            {status && (
-              <div className="flex items-center gap-2 text-sm text-ink/75">
-                {status.remaining < status.limit && (
-                  <button onClick={() => void refill({}).then(() => viewer.workspace.spreesEnabled && openSpree({}))} className="px-1.5 py-0.5 text-xs text-soil hover:bg-lantern/10" title="The demo user is shared by all visitors">
-                    Refill
-                  </button>
-                )}
-                <span className="hidden sm:inline">Left today</span>
-                <span className="flex gap-0.5">
-                  {Array.from({ length: status.limit }).map((_, i) => (
-                    <motion.span key={i} animate={{ opacity: i < status.remaining ? 1 : 0.2, scale: i < status.remaining ? 1 : 0.85 }} className={clsx(i >= status.remaining && "grayscale")}>
-                      {glyph}
-                    </motion.span>
-                  ))}
+      <DemoSigns status={status} onRefilled={() => viewer.workspace.spreesEnabled && void openSpree({})} />
+
+      <div className="grid grid-cols-1 gap-6 @min-[540px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+        <div data-sand className="min-w-0">
+          <section data-slack-terminal data-user-text aria-label="Slack, #general" className="pixel-frame flex h-[min(580px,78dvh)] flex-col bg-cream [color-scheme:light]">
+            <header className="flex items-center justify-between gap-3 bg-[#3f0e40] px-3 py-2.5 text-cream">
+              <span className="flex min-w-0 items-center gap-1 text-[15px] font-bold">
+                <Hash className="h-4 w-4 shrink-0" aria-hidden /> general
+              </span>
+              {status && (
+                <span className="flex min-w-0 flex-wrap items-center justify-end gap-x-2 text-xs">
+                  Left today
+                  <span className="flex flex-wrap gap-0.5" role="img" aria-label={`${status.remaining} of ${status.limit} kudos left today`}>
+                    {Array.from({ length: status.limit }).map((_, i) => (
+                      <span key={i} className={clsx(i >= status.remaining && "opacity-25 grayscale")}>
+                        {glyph}
+                      </span>
+                    ))}
+                  </span>
                 </span>
-              </div>
-            )}
-          </div>
+              )}
+            </header>
 
-          <div className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-            {spree && <SpreePost spree={spree} glyph={glyph} onJoin={onJoinSpree} />}
-            <AnimatePresence initial={false}>
-              {feed.map((m) => m.ephemeral ? (
-                <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3 bg-parchment-deep/50 px-2 py-2">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center bg-lantern/20">{glyph}</span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1 text-xs text-ink/70">
-                      <EyeOff className="h-3 w-3" /> Only visible to you
-                    </div>
-                    <div className="text-sm">
-                      <b className="font-semibold">Kudos</b>{" "}
-                      <span className="bg-parchment-deep px-1 py-px align-middle text-[10px] font-semibold text-ink/75">APP</span>{" "}
-                      <span className="text-xs text-ink/70">{new Date(m.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                    </div>
-                    <p className="text-[15px] leading-relaxed text-ink">{m.text}</p>
-                    {m.earnings && <Earnings text={m.earnings} />}
-                    {m.superNote && <p className="mt-1 text-sm text-ink">{m.superNote}</p>}
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="group flex gap-3 px-2 py-2 hover:bg-parchment-deep/50">
-                  <Avatar name={m.author} size={36} />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm">
-                      <b className="font-semibold">{m.author}</b>{" "}
-                      {m.threadReply && <span className="bg-parchment-deep px-1 py-px align-middle text-[10px] font-semibold text-ink/75">APP · replied in the thread</span>}{" "}
-                      <span className="text-xs text-ink/70">{new Date(m.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                    </div>
-                    {editing?.id === m.id ? (
-                      <div className="mt-1 border border-lantern/50 bg-parchment-deep/40 p-2">
-                        <textarea
-                          autoFocus
-                          value={editing.draft}
-                          onChange={(e) => setEditing({ id: m.id, draft: e.target.value })}
-                          onKeyDown={(e) => {
-                            if (e.key === "Escape") setEditing(null);
-                            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void saveEdit(m); }
-                          }}
-                          rows={2}
-                          aria-label="Edit message"
-                          className="w-full resize-none bg-transparent px-1 text-[15px]"
-                        />
-                        <div className="mt-1 flex justify-end gap-2">
-                          <Button size="sm" variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
-                          <Button size="sm" variant="primary" onClick={() => void saveEdit(m)} disabled={!editing.draft.trim()}>Save</Button>
+            <div ref={feedRef} className="min-h-0 flex-1 space-y-0.5 overflow-y-auto bg-cream px-1.5 py-3 text-ink">
+              {spree && <SpreePost spree={spree} glyph={glyph} onJoin={onJoinSpree} />}
+              <AnimatePresence initial={false}>
+                {feed.map((m) =>
+                  m.ephemeral ? (
+                    <motion.div
+                      key={m.id}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.12, ease: "easeOut" }}
+                      className="flex gap-2.5 bg-ink/5 px-2 py-2 shadow-[inset_3px_0_0_0_var(--color-lantern)]"
+                    >
+                      <BotAvatar glyph={glyph} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1 text-xs text-ink/70">
+                          <EyeOff className="h-3 w-3" aria-hidden /> Only visible to you
+                        </div>
+                        <div className="text-sm">
+                          <b className="font-bold">Kudos</b> <AppTag /> <span className="text-xs text-ink/70">{clock(m.at)}</span>
+                        </div>
+                        <p className="text-[15px] leading-relaxed text-ink">{m.text}</p>
+                        {m.earnings && <Earnings text={m.earnings} />}
+                        {m.superNote && <p className="mt-1 text-sm text-ink">{m.superNote}</p>}
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div key={m.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.12, ease: "easeOut" }} className="group flex gap-2.5 px-2 py-2 hover:bg-ink/5">
+                      {m.threadReply ? <BotAvatar glyph={glyph} /> : <Avatar name={m.author} size={36} />}
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm">
+                          <b className="font-bold">{m.author}</b> {m.threadReply && <AppTag>APP, replied in the thread</AppTag>} <span className="text-xs text-ink/70">{clock(m.at)}</span>
+                        </div>
+                        {editing?.id === m.id ? (
+                          <div className="mt-1 bg-white p-2 shadow-[inset_0_0_0_2px_#1264a3]">
+                            <textarea
+                              autoFocus
+                              value={editing.draft}
+                              onChange={(e) => setEditing({ id: m.id, draft: e.target.value })}
+                              onKeyDown={(e) => {
+                                if (e.key === "Escape") setEditing(null);
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                  e.preventDefault();
+                                  void saveEdit(m);
+                                }
+                              }}
+                              rows={2}
+                              aria-label="Edit message"
+                              className="w-full resize-none bg-transparent px-1 text-[15px] text-ink"
+                            />
+                            <div className="mt-1 flex justify-end gap-3">
+                              <Button size="sm" variant="ghost" onClick={() => setEditing(null)}>
+                                Cancel
+                              </Button>
+                              <Button size="sm" variant="primary" onClick={() => void saveEdit(m)} disabled={!editing.draft.trim()}>
+                                Save
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-[15px] leading-relaxed break-words text-ink">
+                            {renderSlackText(m.text, glyph, emojiName)}
+                            {m.edited && <span className="ml-1 text-xs text-ink/70">(edited)</span>}
+                          </p>
+                        )}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {m.outcome && (
+                            <motion.span
+                              initial={{ scale: 0.6, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              transition={{ duration: 0.12, ease: "easeOut" }}
+                              role="img"
+                              title={`Kudos bot: ${REACTIONS[m.outcome].label}`}
+                              aria-label={`Kudos bot reacted: ${REACTIONS[m.outcome].label}`}
+                              className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-[#1d9bd1]/60 bg-[#1d9bd1]/10 px-2 py-0.5 text-xs"
+                            >
+                              {m.superReaction ? <EmojiChip glyph={glyph} colors={SUPER_COLORS} label={`:${emojiName}-${SUPER_SUFFIX}:`} /> : (REACTIONS[m.outcome].glyph ?? glyph)}{" "}
+                              <span className="tabular text-ink/75">1</span>
+                            </motion.span>
+                          )}
+                          {m.sent && editing?.id !== m.id && (
+                            // Like Slack, every message can be edited; a failed attempt is fixed that way, so it's always offered.
+                            <button
+                              onClick={() => setEditing({ id: m.id, draft: m.text.replaceAll(emojiCode, glyph) })}
+                              className={clsx(
+                                "mt-1.5 inline-flex items-center gap-1 rounded-full border border-ink/25 px-2 py-0.5 text-xs text-ink/75 hover:text-ink",
+                                m.outcome === "given" && "opacity-60 hover:opacity-100 focus:opacity-100",
+                              )}
+                            >
+                              <Pencil className="h-3 w-3" aria-hidden /> Edit
+                            </button>
+                          )}
+                          {!m.mine && !m.threadReply && (
+                            <button
+                              disabled={reacted.has(m.id)}
+                              aria-label={reacted.has(m.id) ? `You reacted to ${m.author}'s message` : `React to ${m.author}'s message with ${emojiCode}`}
+                              onClick={async () => {
+                                setReacted((s) => new Set(s).add(m.id));
+                                const res = await react({ authorSlackUserId: m.slackUserId, messageText: m.text, messageKey: m.id });
+                                if (res.status === "already_reacted") setHint("You already reacted to that message today.");
+                                pushBot(res.messages);
+                              }}
+                              className={clsx(
+                                "mt-1.5 rounded-full border px-2 py-0.5 text-xs",
+                                reacted.has(m.id) ? "border-[#1d9bd1]/60 bg-[#1d9bd1]/10" : "border-ink/25 text-ink/75 hover:text-ink",
+                              )}
+                            >
+                              {glyph} {reacted.has(m.id) ? "1" : "React"}
+                            </button>
+                          )}
                         </div>
                       </div>
-                    ) : (
-                      <p className="text-[15px] leading-relaxed text-ink">
-                        {renderSlackText(m.text, glyph, emojiName)}
-                        {m.edited && <span className="ml-1 text-xs text-ink/70">(edited)</span>}
-                      </p>
-                    )}
-                    {m.outcome && (
-                      <motion.span
-                        initial={{ scale: 0.6, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ type: "spring", bounce: 0.5 }}
-                        title={`Kudos bot: ${REACTIONS[m.outcome].label}`}
-                        aria-label={`Kudos bot reacted: ${REACTIONS[m.outcome].label}`}
-                        className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-bark/60 bg-parchment-deep/50 px-2 py-0.5 text-xs"
-                      >
-                        {m.superReaction ? <EmojiChip glyph={glyph} colors={SUPER_COLORS} label={`:${emojiName}-${SUPER_SUFFIX}:`} /> : (REACTIONS[m.outcome].glyph ?? glyph)}{" "}
-                        <span className="tabular text-ink/75">1</span>
-                      </motion.span>
-                    )}
-                    {m.sent && editing?.id !== m.id && (
-                      // Like Slack, every message can be edited; a failed attempt is fixed that way, so it's always offered.
-                      <button
-                        onClick={() => setEditing({ id: m.id, draft: m.text.replaceAll(emojiCode, glyph) })}
-                        className={clsx(
-                          "ml-2 inline-flex items-center gap-1 rounded-full border border-bark/60 px-2 py-0.5 text-xs text-ink/75 transition hover:text-ink",
-                          m.outcome === "given" && "opacity-60 hover:opacity-100 focus:opacity-100",
-                        )}
-                      >
-                        <Pencil className="h-3 w-3" /> Edit
-                      </button>
-                    )}
-                    {!m.mine && (
-                      <div className="mt-1.5">
-                        <button
-                          disabled={reacted.has(m.id)}
-                          onClick={async () => {
-                            setReacted((s) => new Set(s).add(m.id));
-                            const res = await react({ authorSlackUserId: m.slackUserId, messageText: m.text, messageKey: m.id });
-                            if (res.status === "already_reacted") setHint("You already reacted to that message today.");
-                            pushBot(res.messages);
-                          }}
-                          className={clsx(
-                            "rounded-full border px-2 py-0.5 text-xs transition",
-                            reacted.has(m.id) ? "border-[#1d9bd1]/60 bg-[#1d9bd1]/15" : "border-bark/60 text-ink/75 group-hover:opacity-100",
-                          )}
-                        >
-                          {glyph} {reacted.has(m.id) ? "1" : "React"}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-
-          <div className="border-t border-parchment-deep p-4">
-            <div className="mb-3 flex flex-wrap gap-2">
-              {EXAMPLES.map((ex) => (
-                <button key={ex.label} onClick={() => { setText(ex.build(glyph)); inputRef.current?.focus(); }} className="rounded-full border border-bark/60 bg-parchment-deep/50 px-3 py-1 text-xs text-ink/75 hover:text-ink">
-                  {ex.label}
-                </button>
-              ))}
-              <button
-                onClick={async () => pushBot((await allowance({})).messages)}
-                className="flex items-center gap-1 rounded-full border border-bark/60 bg-parchment-deep/50 px-3 py-1 tabular text-xs text-ink/75 hover:text-ink"
-              >
-                <Terminal className="h-3 w-3" /> /kudos me
-              </button>
-            </div>
-            <div className="relative">
-              <AnimatePresence>
-                {mention && suggestions.length > 0 && (
-                  <motion.ul initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute bottom-full left-0 z-10 mb-2 w-72 overflow-hidden border border-bark/60 bg-parchment-deep/50 p-1">
-                    {suggestions.map((s, i) => (
-                      <li key={s.slackUserId}>
-                        <button onMouseDown={(e) => { e.preventDefault(); pick(s.name); }} className={clsx("flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm", i === mention.index && "bg-parchment-deep")}>
-                          <Avatar name={s.name} size={24} />
-                          <span className="font-medium">{s.name}</span>
-                          <span className="truncate text-xs text-ink/70">{s.title}</span>
-                        </button>
-                      </li>
-                    ))}
-                  </motion.ul>
+                    </motion.div>
+                  ),
                 )}
               </AnimatePresence>
-              <div className="flex items-end gap-2 border border-bark/60 bg-parchment-deep/40 p-2 focus-within:border-bark">
-                <textarea
-                  ref={inputRef}
-                  value={text}
-                  onChange={(e) => onChange(e.target.value)}
-                  onKeyDown={onKey}
-                  rows={2}
-                  placeholder={`Message #general · try "@Priya Raman ${glyph} thanks!"`}
-                  className="min-h-12 flex-1 resize-none bg-transparent px-2 py-1.5 text-[15px] placeholder:text-ink/70"
-                  aria-label="Message"
-                />
-                <button onClick={() => { setText((t) => `${t}@`); setMention({ query: "", index: 0 }); inputRef.current?.focus(); }} className="p-2 text-ink/70 hover:text-ink" aria-label="Mention someone">
-                  <AtSign className="h-4 w-4" />
-                </button>
-                <button onClick={() => { setText((t) => `${t}${glyph}`); inputRef.current?.focus(); }} className="p-2 text-lg hover:bg-parchment-deep" aria-label={`Add ${emojiName}`}>
-                  {glyph}
-                </button>
-                {extraEmoji.map((code) => (
-                  <button key={code} onClick={() => { setText((t) => `${t} ${code} `); inputRef.current?.focus(); }} className="p-1 hover:bg-parchment-deep" aria-label={`Add ${code}`}>
-                    {variantChip(code, glyph, emojiName, 0)}
+            </div>
+
+            <div className="border-t border-ink/15 bg-cream p-3 text-ink">
+              <div className="mb-2.5 flex flex-wrap gap-1.5">
+                {EXAMPLES.map((ex) => (
+                  <button
+                    key={ex.label}
+                    onClick={() => {
+                      setText(ex.build(glyph));
+                      inputRef.current?.focus();
+                    }}
+                    className="rounded-full border border-ink/25 bg-white px-2.5 py-1 text-xs text-ink/80 hover:text-ink"
+                  >
+                    {ex.label}
                   </button>
                 ))}
-                <Button variant="primary" size="sm" onClick={() => void submit()} disabled={!text.trim()} aria-label="Send">
-                  <SendHorizontal className="h-4 w-4" />
-                </Button>
+                <button
+                  onClick={async () => pushBot((await allowance({})).messages)}
+                  className="flex items-center gap-1 rounded-full border border-ink/25 bg-white px-2.5 py-1 tabular text-xs text-ink/80 hover:text-ink"
+                >
+                  <Terminal className="h-3 w-3" aria-hidden /> /kudos me
+                </button>
               </div>
+              <div className="relative">
+                <AnimatePresence>
+                  {mention && suggestions.length > 0 && (
+                    <motion.ul
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.12, ease: "easeOut" }}
+                      className="absolute bottom-full left-0 z-10 mb-2 w-full max-w-72 bg-white p-1 shadow-[inset_0_0_0_1px_var(--color-ink),3px_3px_0_0_var(--color-dusk-deep)]"
+                    >
+                      {suggestions.map((s, i) => (
+                        <li key={s.slackUserId}>
+                          <button
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              pick(s.name);
+                            }}
+                            className={clsx("flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm", i === mention.index && "bg-[#1264a3] text-white")}
+                          >
+                            <Avatar name={s.name} size={24} />
+                            <span className="font-medium">{s.name}</span>
+                            <span className="truncate text-xs opacity-75">{s.title}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </motion.ul>
+                  )}
+                </AnimatePresence>
+                <div className="bg-white p-1.5 shadow-[inset_0_0_0_1px_var(--color-ink)]">
+                  <textarea
+                    ref={inputRef}
+                    value={text}
+                    onChange={(e) => onChange(e.target.value)}
+                    onKeyDown={onKey}
+                    rows={2}
+                    placeholder={`Message #general, try "@Priya Raman ${glyph} thanks!"`}
+                    className="block min-h-12 w-full resize-none bg-transparent px-2 py-1.5 text-[15px] text-ink placeholder:text-ink/60"
+                    aria-label="Message"
+                  />
+                  <div className="flex flex-wrap items-center gap-1">
+                    <button
+                      onClick={() => {
+                        insert("@");
+                        setMention({ query: "", index: 0 });
+                      }}
+                      className="p-2 text-ink/70 hover:text-ink"
+                      aria-label="Mention someone"
+                    >
+                      <AtSign className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => insert(glyph)} className="p-2 text-lg hover:bg-ink/10" aria-label={`Add ${emojiName}`}>
+                      {glyph}
+                    </button>
+                    {extraEmoji.map((code) => (
+                      <button key={code} onClick={() => insert(` ${code} `)} className="p-1 hover:bg-ink/10" aria-label={`Add ${code}`}>
+                        {variantChip(code, glyph, emojiName, 0)}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => void submit()}
+                      disabled={!text.trim()}
+                      aria-label="Send"
+                      className="ml-auto grid h-8 w-8 shrink-0 place-items-center bg-[#007a5a] text-white disabled:bg-ink/15 disabled:text-ink/50"
+                    >
+                      <SendHorizontal className="h-4 w-4" aria-hidden />
+                    </button>
+                  </div>
+                </div>
+              </div>
+              {/* Always there, so a screen reader announces a new hint. */}
+              <p data-hint role="status" className="text-xs font-semibold text-ember-deep empty:hidden [&:not(:empty)]:mt-2">
+                {hint}
+              </p>
             </div>
-            {hint && <p className="mt-2 text-xs text-soil">{hint}</p>}
+          </section>
+          {newDms > 0 && (
+            // On a narrow window the envelopes stack below the terminal: say they came, and take you there.
+            <button
+              data-new-dms
+              onClick={() => {
+                setNewDms(0);
+                dmsRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+              }}
+              className="pixel-btn mt-4 h-9 w-full px-3 text-sm font-semibold @min-[540px]:hidden"
+            >
+              {newDms === 1 ? "1 new DM below" : `${newDms} new DMs below`}
+            </button>
+          )}
+          {/* The terminal's two legs, standing in a heap of sand. */}
+          <div aria-hidden className="flex justify-around px-10 pt-1">
+            <span className="block h-3 w-2 bg-bark" />
+            <span className="block h-3 w-2 bg-bark" />
           </div>
-        </Card>
+          <div aria-hidden className="h-3 bg-parchment-deep shadow-[inset_0_-2px_0_0_var(--color-soil)]" />
+        </div>
 
-        <Card className="flex min-h-[640px] flex-col overflow-hidden">
-          <div className="flex items-center gap-3 border-b border-parchment-deep px-5 py-3.5">
-            <span className="grid h-8 w-8 place-items-center bg-lantern/20">{glyph}</span>
-            <div>
-              <div className="font-display text-base font-semibold">
-                Kudos <span className="ml-1 bg-parchment-deep px-1 py-px align-middle text-[10px] font-semibold text-ink/75">APP</span>
-              </div>
-              <div className="text-xs text-ink/70">Direct messages & ephemeral replies</div>
-            </div>
-            {status && (
-              <div className="ml-auto text-right">
-                <Eyebrow>Collected</Eyebrow>
-                <div className="font-display text-lg font-semibold tabular">
-                  {status.discovered}<span className="text-sm text-ink/75">/{status.total}</span>
-                </div>
-              </div>
-            )}
-          </div>
-          <div className="flex-1 space-y-3 overflow-y-auto p-4">
-            {bot.length === 0 && (
-              <div className="grid h-full place-items-center text-center text-sm text-ink/75">
-                <div>
-                  <div className="mb-2 text-4xl">🎲</div>
-                  Bot replies appear here. Each one rolls a rarity.
-                </div>
-              </div>
-            )}
-            <AnimatePresence initial={false}>
-              {bot.map((m) => {
-                const meta = RARITY_META[m.rarity as Rarity];
-                return (
-                  <motion.div
-                    key={m._id}
-                    layout
-                    initial={{ opacity: 0, scale: 0.9, y: -12 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{ type: "spring", bounce: m.rarity === "legendary" || m.rarity === "epic" ? 0.55 : 0.25 }}
-                    className={clsx("relative flow-root bg-parchment-deep/40 p-4 ring-1 ring-inset", meta.ring, meta.glow)}
-                  >
-                    {m.isNewDiscovery && (m.rarity === "legendary" || m.rarity === "epic" || m.rarity === "rare") && <Burst color={meta.color} />}
-                    <div className="mb-1.5 text-[11px] text-ink/70">
-                      {m.toMe ? "To you" : `To ${m.to} (they'll get this DM)`} · {gainsOnly(m) ? (m.gainLabel ?? "Level up") : (CATEGORY_LABEL[m.category] ?? m.category)}
-                    </div>
-                    {m.superKudos?.kind === "celebration" && (
-                      <p data-super-kudos className="mb-2 bg-lantern/10 px-3 py-2 text-sm font-medium whitespace-pre-line text-soil ring-1 ring-inset ring-lantern/40">
-                        {m.superKudos.text}
-                      </p>
-                    )}
-                    <LevelUpHoggie label={m.gainLabel} category={m.category} />
-                    <p className="text-[15px] leading-relaxed whitespace-pre-line">{m.text}</p>
-                    <GainLines lines={m.gains} />
-                    <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-                      {!gainsOnly(m) && <RarityBadge rarity={m.rarity as Rarity} size="xs" />}
-                      {m.isNewDiscovery && <span className="text-xs font-medium whitespace-nowrap text-soil">✨ New discovery!</span>}
-                      {m.questProgress && (
-                        <span className="text-xs whitespace-nowrap text-ink/75">
-                          {m.questProgress.completed} of {m.questProgress.available} quests this week
-                        </span>
-                      )}
-                      {m.questProgress?.sweep && (
-                        <span className="rounded-full bg-hedge/15 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-hedge-deep">Clean sweep 🧹</span>
-                      )}
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </div>
-        </Card>
+        <Envelopes ref={dmsRef} messages={bot} status={status} />
       </div>
     </div>
   );
 }
 
+/**
+ * The demo controls, as small wooden signs in the sand: the demo user is shared by every visitor,
+ * so anyone can refill today's kudos or hand back what visitors bought; an admin can reset the demo.
+ */
+function DemoSigns({ status, onRefilled }: { status: { remaining: number; limit: number } | undefined; onRefilled: () => void }) {
+  const viewer = useViewer();
+  const refill = useMutation(api.demo.refillAllowance);
+  const handBack = useMutation(api.demo.handBackRewards);
+  const reset = useMutation(api.demo.resetDemo);
+  const [busy, setBusy] = useState<"refill" | "handBack" | "reset" | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [note, setNote] = useState<{ text: string; failed: boolean } | null>(null);
+  const run = (what: "refill" | "handBack" | "reset", action: () => Promise<unknown>) => {
+    setBusy(what);
+    setNote(null);
+    action()
+      // The reset runs on its own for about a minute after it's scheduled.
+      .then(() => what === "reset" && setNote({ text: "The demo is resetting. Reload the page in a minute.", failed: false }))
+      .catch(() => setNote({ text: "That didn't go through. Try again in a moment.", failed: true }))
+      .finally(() => setBusy(null));
+  };
+  const full = !!status && status.remaining >= status.limit;
+  return (
+    <div data-demo-signs className="flex flex-wrap items-start gap-x-4 gap-y-3">
+      <SignButton
+        disabled={busy !== null || full}
+        title={full ? "You have all of today's kudos." : "The demo user is shared by every visitor: this takes back the kudos given today, so you can give them again."}
+        onClick={() => run("refill", () => refill({}).then(onRefilled))}
+      >
+        {busy === "refill" ? "Refilling…" : "Refill my kudos"}
+      </SignButton>
+      <SignButton
+        disabled={busy !== null}
+        title="The demo user is shared by every visitor: this returns the game items and rewards visitors bought. The seeded history stays."
+        onClick={() => run("handBack", () => handBack({}))}
+      >
+        {busy === "handBack" ? "Handing back…" : "Hand back what I bought"}
+      </SignButton>
+      {viewer.member.isAdmin &&
+        (confirming ? (
+          <span className="flex flex-wrap items-center gap-3 text-sm text-ink">
+            Reset the whole demo for everyone? It takes about a minute.
+            <SignButton
+              onClick={() => {
+                setConfirming(false);
+                run("reset", () => reset({}));
+              }}
+            >
+              Yes, reset everything
+            </SignButton>
+            <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>
+              Keep it
+            </Button>
+          </span>
+        ) : (
+          <SignButton disabled={busy !== null} onClick={() => setConfirming(true)}>
+            {busy === "reset" ? "Resetting the demo…" : "Reset the demo"}
+          </SignButton>
+        ))}
+      {note && (
+        <p role={note.failed ? "alert" : "status"} className={clsx("basis-full text-sm font-semibold", note.failed ? "text-ember-deep" : "text-hedge-deep")}>
+          {note.text}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** A small wooden sign on a post: a bark board with cream letters. */
+function SignButton({ children, ...rest }: ComponentProps<"button">) {
+  return (
+    <span className="inline-flex flex-col items-center">
+      <button
+        {...rest}
+        className="bg-bark px-3 py-1.5 font-display text-sm font-medium text-cream shadow-[inset_0_0_0_2px_var(--color-soil),2px_2px_0_0_var(--color-dusk-deep)] hover:bg-soil disabled:opacity-50"
+      >
+        {children}
+      </button>
+      <span aria-hidden className="block h-2 w-1.5 bg-bark" />
+    </span>
+  );
+}
+
+/** A pixel envelope, its wax seal in the message's rarity colour. */
+function EnvelopeIcon({ seal }: { seal: string }) {
+  return (
+    <svg viewBox="0 0 16 12" width={32} height={24} shapeRendering="crispEdges" aria-hidden className="pixels shrink-0">
+      <rect x="0" y="0" width="16" height="12" fill="#3a2a22" />
+      <rect x="1" y="1" width="14" height="10" fill="#efe3c4" />
+      {[1, 2, 3, 4, 5, 6].map((i) => (
+        <g key={i} fill="#d9c79c">
+          <rect x={i} y={i} width="1" height="1" />
+          <rect x={15 - i} y={i} width="1" height="1" />
+        </g>
+      ))}
+      <rect x="6" y="6" width="4" height="3" fill={seal} />
+      <rect x="6" y="6" width="4" height="1" fill="#161226" fillOpacity="0.3" />
+    </svg>
+  );
+}
+
+/** The bot's DMs, newest on top: a stack of envelopes, each opened to its message. */
+function Envelopes({ messages, status, ref }: { messages: (BotMessage & { at: number })[]; status: { discovered: number; total: number } | undefined; ref?: Ref<HTMLElement> }) {
+  const titleId = useId();
+  return (
+    <section ref={ref} aria-labelledby={titleId} className="min-w-0 scroll-mt-4">
+      <div className="flex flex-wrap items-end justify-between gap-x-3 border-b-2 border-parchment-deep pb-2">
+        <h2 id={titleId} className="font-display text-xl font-medium leading-7 text-ink">
+          Your DMs
+        </h2>
+        {status && (
+          <span className="text-sm text-ink/75">
+            Collected <b className="font-display text-lg font-medium tabular text-ink">{status.discovered}</b> of {status.total}
+          </span>
+        )}
+      </div>
+      {messages.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 px-4 py-10 text-center">
+          <EnvelopeIcon seal="#d9c79c" />
+          <p className="max-w-56 text-sm text-ink/75">The bot's DMs land here as envelopes. Every reply rolls a rarity.</p>
+        </div>
+      ) : (
+        <ol className="mt-4 space-y-3">
+          <AnimatePresence initial={false}>
+            {messages.map((m) => {
+              const rolled = !gainsOnly(m);
+              const meta = RARITY_META[m.rarity as Rarity] ?? RARITY_META.common;
+              const seal = rolled ? meta.color : "var(--color-hedge)";
+              return (
+                <motion.li
+                  key={m._id}
+                  data-envelope
+                  layout
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.12, ease: "easeOut" }}
+                  // Clips the discovery confetti, which would otherwise scroll the window sideways.
+                  className="pixel-note relative flow-root overflow-hidden p-3 pt-4"
+                >
+                  {m.isNewDiscovery && (m.rarity === "legendary" || m.rarity === "epic" || m.rarity === "rare") && <Burst color={meta.color} />}
+                  <span aria-hidden className="absolute inset-x-0 top-0 block h-1" style={{ background: seal }} />
+                  <div className="flex items-center gap-2.5">
+                    <EnvelopeIcon seal={seal} />
+                    <div className="min-w-0 text-xs leading-4 text-ink/75">
+                      <div className="font-semibold text-ink">{m.toMe ? "To you" : `To ${m.to}`}</div>
+                      <div>
+                        {gainsOnly(m) ? (m.gainLabel ?? "Level up") : (CATEGORY_LABEL[m.category] ?? m.category)}
+                        {!m.toMe && `. ${m.to.split(" ")[0]} gets this DM.`}
+                      </div>
+                    </div>
+                  </div>
+                  <div data-user-text className="mt-2.5">
+                    {m.superKudos?.kind === "celebration" && (
+                      <p data-super-kudos className="mb-2 bg-lantern/15 px-3 py-2 text-sm font-medium whitespace-pre-line text-soil shadow-[inset_0_0_0_1px_var(--color-lantern)]">
+                        {m.superKudos.text}
+                      </p>
+                    )}
+                    <LevelUpHoggie label={m.gainLabel} category={m.category} />
+                    <p className="text-[15px] leading-relaxed whitespace-pre-line break-words text-ink">{m.text}</p>
+                    <GainLines lines={m.gains} />
+                  </div>
+                  <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                    {rolled && <RarityBadge rarity={m.rarity as Rarity} size="xs" />}
+                    {m.isNewDiscovery && <span className="text-xs font-semibold whitespace-nowrap text-soil">New discovery</span>}
+                    {m.questProgress && (
+                      <span className="text-xs whitespace-nowrap text-ink/75">
+                        {m.questProgress.completed} of {m.questProgress.available} quests this week
+                      </span>
+                    )}
+                    {m.questProgress?.sweep && <span className="bg-hedge px-2 py-0.5 text-xs font-semibold whitespace-nowrap text-cream">Clean sweep</span>}
+                  </div>
+                </motion.li>
+              );
+            })}
+          </AnimatePresence>
+        </ol>
+      )}
+    </section>
+  );
+}
+
+/** A one-off burst of pixel confetti in the rarity's colour, for a Rare or rarer new discovery. */
 function Burst({ color }: { color: string }) {
   return (
     <div className="pointer-events-none absolute inset-0">
@@ -543,7 +774,7 @@ function Burst({ color }: { color: string }) {
         return (
           <motion.span
             key={i}
-            className="absolute left-1/2 top-1/2 h-1.5 w-1.5 rounded-full"
+            className="absolute left-1/2 top-1/2 h-1.5 w-1.5"
             style={{ background: color }}
             initial={{ x: 0, y: 0, opacity: 1 }}
             animate={{ x: Math.cos(angle) * 140, y: Math.sin(angle) * 70, opacity: 0 }}
