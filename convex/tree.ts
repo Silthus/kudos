@@ -23,8 +23,8 @@ import {
   TREE_STAGES,
   type TreeStageId,
 } from "./lib/tree";
-import { SEEDS_COUNTED, type TreeView } from "./lib/treeView";
-import { treeStageValidator } from "./schema";
+import { crewBuiltText, crewFundedText, crewPartTitle, SEEDS_COUNTED, stageUpText, type TreeView } from "./lib/treeView";
+import { builtPartValidator, treeEventKindValidator, treeStageValidator } from "./schema";
 
 /**
  * The Ancient Tree's backend (#154; design plan #152 S1, S9 and its seeds amendment). The rules are
@@ -203,18 +203,21 @@ async function recordRise(ctx: MutationCtx, workspace: Doc<"workspaces">, from: 
   const after = TREE_STAGE_BY_ID[stageForGrowth(to)].index;
   for (const stage of TREE_STAGES.slice(before + 1, after + 1)) {
     const id = await ctx.db.insert("treeEvents", { workspaceId: workspace._id, kind: "stage", at, stage: stage.id });
-    if (live && stage.index === after) await announceStage(ctx, workspace, id);
+    if (live && stage.index === after) await announceTreeEvent(ctx, workspace, id);
   }
   const rings = ringsForGrowth(to);
   if (rings > ringsForGrowth(from)) await ctx.db.insert("treeEvents", { workspaceId: workspace._id, kind: "ring", at, rings });
 }
 
-/** Posts a stage in the announcement channel (#97's), while the game is on; the demo and simulators have no Slack. */
-async function announceStage(ctx: MutationCtx, workspace: Doc<"workspaces">, eventId: Id<"treeEvents">) {
+/**
+ * Posts a tree event in the announcement channel (#97's), while the game is on: a stage reached, a
+ * crew quest funded or built (#161). The demo and simulators have no Slack.
+ */
+export async function announceTreeEvent(ctx: MutationCtx, workspace: Doc<"workspaces">, eventId: Id<"treeEvents">) {
   const channel = workspace.isDemo || workspace.status !== "active" || !gameOn(workspace) ? undefined : workspace.announceChannel;
   if (!channel) return;
   await ctx.db.patch(eventId, { announcement: { status: "pending", channelId: channel.id } });
-  await ctx.scheduler.runAfter(0, internal.slack.postTreeStage, { eventId });
+  await ctx.scheduler.runAfter(0, internal.slack.postTreeEvent, { eventId });
 }
 
 /**
@@ -467,7 +470,7 @@ const tileValidator = v.object({ x: v.number(), y: v.number() });
 
 const eventValidator = v.object({
   _id: v.id("treeEvents"),
-  kind: v.union(v.literal("seed"), v.literal("growth"), v.literal("stage"), v.literal("ring")),
+  kind: treeEventKindValidator,
   at: v.number(),
   /** seed: the tree's planter; growth: who planted, where the viewer may see their received counts. Null otherwise, or once they left. */
   who: v.union(v.null(), v.string()),
@@ -475,6 +478,7 @@ const eventValidator = v.object({
   by: v.optional(v.union(v.literal("receiver"), v.literal("time"))), // growth
   stage: v.optional(treeStageValidator), // stage: the stage reached
   rings: v.optional(v.number()), // ring: the rings the tree has now
+  part: v.optional(v.string()), // crew_funded, crew_built: the crew's part (lib/crewCatalogue.ts, #161)
 });
 
 async function eventView(ctx: QueryCtx, viewer: Viewer, e: Doc<"treeEvents">) {
@@ -487,6 +491,7 @@ async function eventView(ctx: QueryCtx, viewer: Viewer, e: Doc<"treeEvents">) {
     ...(e.kind === "growth" ? { seeds: e.seeds ?? 0, by: e.by } : {}),
     ...(e.stage ? { stage: e.stage } : {}),
     ...(e.rings !== undefined ? { rings: e.rings } : {}),
+    ...(e.part !== undefined ? { part: e.part } : {}),
   };
 }
 
@@ -524,6 +529,8 @@ export const state = query({
         ruins: v.array(v.object({ id: v.string(), name: v.string(), tier: v.number(), at: tileValidator })),
       }),
       events: v.array(eventValidator),
+      /** The parts the crew built on it (#161), one per part: the world draws them. */
+      cosmetics: v.array(builtPartValidator),
     }),
   ),
   handler: async (ctx) => {
@@ -557,6 +564,7 @@ export const state = query({
       worldSeed,
       layout: layout(worldSeed, peakGrowth),
       events: await Promise.all(events.map((e) => eventView(ctx, viewer, e))),
+      cosmetics: tree?.cosmetics ?? [],
     };
   },
 });
@@ -599,26 +607,38 @@ export async function treeView(ctx: QueryCtx, workspace: Doc<"workspaces">, memb
   };
 }
 
-// ── The stage post ─────────────────────────────────────────────────────────
+// ── The post ───────────────────────────────────────────────────────────────
 
-/** What to post for a stage event: the bot token, the channel and the stage; null when there's no Slack to post to. */
-export const stagePost = internalQuery({
+/** What to post for a tree event: the bot token, the channel and the text; null when there's no Slack to post to (or nothing to say). */
+export const eventPost = internalQuery({
   args: { eventId: v.id("treeEvents") },
-  returns: v.union(v.null(), v.object({ token: v.string(), channelId: v.string(), stage: treeStageValidator })),
+  returns: v.union(v.null(), v.object({ token: v.string(), channelId: v.string(), text: v.string() })),
   handler: async (ctx, { eventId }) => {
     const event = await ctx.db.get(eventId);
     const channelId = event?.announcement?.channelId;
-    if (!event || !channelId || !event.stage) return null;
+    if (!event || !channelId) return null;
+    const text = await postText(ctx, event);
+    if (!text) return null;
     const install = await ctx.db
       .query("slackInstallations")
       .withIndex("by_workspace", (q) => q.eq("workspaceId", event.workspaceId))
       .unique();
-    return install ? { token: install.botToken, channelId, stage: event.stage } : null;
+    return install ? { token: install.botToken, channelId, text } : null;
   },
 });
 
-/** How a stage's post went (kept on its event). */
-export const stagePosted = internalMutation({
+async function postText(ctx: QueryCtx, event: Doc<"treeEvents">): Promise<string | null> {
+  if (event.kind === "stage" && event.stage) return stageUpText(event.stage);
+  const quest = event.questId && (await ctx.db.get(event.questId));
+  if (!quest) return null;
+  const title = crewPartTitle(quest.part, quest.option);
+  if (event.kind === "crew_funded") return crewFundedText(title, quest.contributed, quest.contributors);
+  if (event.kind === "crew_built") return crewBuiltText(title, quest.contributors);
+  return null;
+}
+
+/** How an event's post went (kept on its event). */
+export const eventPosted = internalMutation({
   args: { eventId: v.id("treeEvents"), outcome: v.union(v.literal("sent"), v.literal("failed"), v.literal("skipped")), error: v.optional(v.string()) },
   returns: v.null(),
   handler: async (ctx, { eventId, outcome, error }) => {

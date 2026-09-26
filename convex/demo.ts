@@ -35,7 +35,10 @@ import { plantsGrown } from "./gardens";
 import { addGear } from "./inventory";
 import { worldSeedOf } from "./tree";
 import { creature, generateRuin, lootRand, runLoot, scoutHeraldPoints, startingHp, type GearId, type Room } from "./lib/rpg";
-import { layout, TREE_STAGE_BY_ID } from "./lib/tree";
+import { districtsOpen, layout, stageForGrowth, TREE_STAGE_BY_ID } from "./lib/tree";
+import { seedQuest } from "./crew";
+import { CREW } from "./lib/crewCatalogue";
+import { DEMO_CREW } from "./lib/demoCrew";
 import { joinOf, joinSpree, paySpree, spreeable, spreeJoinsInMonth, spreesOn } from "./sprees";
 import { nextTier, promptText, refusalText } from "./lib/sprees";
 import { coinWallet, grantBalance, requestRedemption, transitionRedemption, undoPurchase, undoRedemption } from "./store";
@@ -452,6 +455,40 @@ export const seedGarden = internalMutation({
   },
 });
 
+/**
+ * The demo's crew quests (#161, `lib/demoCrew.ts`): the bell built a month ago and the market awnings
+ * 60 % funded. Waits for the tree to open the crew's plaque. Once per reset: a demo with quests is done.
+ */
+export const seedCrew = internalMutation({
+  args: { workspaceId: v.id("workspaces"), resetAt: v.optional(v.number()), attempt: v.optional(v.number()) },
+  returns: v.null(),
+  handler: async (ctx, { workspaceId, resetAt, attempt = 0 }) => {
+    const workspace = await ctx.db.get(workspaceId);
+    if (!workspace?.isDemo) return null;
+    if (workspace.resettingSince !== undefined && workspace.resettingSince !== resetAt) return null;
+    if (await ctx.db.query("crewQuests").withIndex("by_workspace_status", (q) => q.eq("workspaceId", workspaceId)).first()) return null;
+    const stage = stageForGrowth((await treeOf(ctx, workspaceId))?.peakGrowth ?? 0);
+    if (!districtsOpen(stage).includes("crew")) {
+      if (attempt < STORE_SEED_WAIT.attempts) await ctx.scheduler.runAfter(STORE_SEED_WAIT.everyMs, internal.demo.seedCrew, { workspaceId, resetAt, attempt: attempt + 1 });
+      else console.warn("Demo crew: the tree never opened the crew's plaque; no crew quests.");
+      return null;
+    }
+    const now = workspaceNow(workspace);
+    for (const q of DEMO_CREW) {
+      const proposer = await findMember(ctx, workspace, q.proposedBy);
+      if (!proposer) continue;
+      const proposedAt = now - q.daysAgo * DAY_MS;
+      const gifts = [];
+      for (const [i, g] of q.gifts.entries()) {
+        const member = await findMember(ctx, workspace, g.who);
+        if (member) gifts.push({ memberId: member._id, coins: g.coins, at: proposedAt + (i + 1) * 0.5 * DAY_MS });
+      }
+      await seedQuest(ctx, workspace, { part: q.part, option: q.option, proposedBy: proposer._id, proposedAt, gifts, builtAt: q.built ? proposedAt + (7 + CREW.buildDays) * DAY_MS : undefined });
+    }
+    return null;
+  },
+});
+
 /** Teammates whose gardens the demo grows round Alex's (#129): the ones Alex exchanges the most kudos with. */
 const DEMO_NEIGHBOURS = 10;
 
@@ -845,6 +882,8 @@ export const seedStore = internalMutation({
     if (alex) await plantNeighbours(ctx, workspace, (await ctx.db.get(alex))!, resetAt);
     // The homes on the tree (#160): scenery, once the tree has opened its homes ring.
     await ctx.scheduler.runAfter(0, internal.demo.seedHomes, { workspaceId, resetAt });
+    // The crew's quests (#161): scenery, once the tree has opened the crew's plaque.
+    await ctx.scheduler.runAfter(0, internal.demo.seedCrew, { workspaceId, resetAt });
     return null;
   },
 });
@@ -1429,6 +1468,8 @@ const DEMO_TABLES = [
   "homeLanterns",
   "homes",
   "expeditions",
+  "crewContributions",
+  "crewQuests",
   "notifications",
 ] as const;
 
@@ -1497,6 +1538,10 @@ async function demoRows(ctx: MutationCtx, workspaceId: Id<"workspaces">, table: 
     case "expeditions":
       // A run's log makes it the biggest row a wipe deletes: fewer a step.
       return await ctx.db.query("expeditions").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(Math.min(n, 100));
+    case "crewContributions":
+      return await ctx.db.query("crewContributions").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(n);
+    case "crewQuests":
+      return await ctx.db.query("crewQuests").withIndex("by_workspace_status", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "simulatorRuns":
       return await ctx.db.query("simulatorRuns").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "notifications":

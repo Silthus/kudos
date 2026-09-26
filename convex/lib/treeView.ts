@@ -1,5 +1,6 @@
 import { number } from "./gameBlocks";
 import { escapeMrkdwn } from "./slack";
+import { CREW, crewPart } from "./crewCatalogue";
 import { DISTRICTS, RING_GROWTH, TREE_STAGE_BY_ID, TREE_STAGES, type TreeStageId } from "./tree";
 
 /**
@@ -37,6 +38,26 @@ export function treeSummaryText(view: TreeView): string {
 /** The announcement channel's post when the tree reaches a new stage (never for rings). */
 export function stageUpText(stage: TreeStageId): string {
   return `The Ancient Tree is now ${TREE_STAGE_BY_ID[stage].name}. Next: ${nextStageText(stage)}.`;
+}
+
+/**
+ * A crew part in a sentence (#161): "the lantern bridge", "the stall style (blossom)", "the canopy
+ * colour (rose)". Capitalise it to start a sentence.
+ */
+export function crewPartTitle(partId: string, option?: string): string {
+  const name = crewPart(partId)?.name ?? "a part of the tree";
+  const the = /^(the|a) /i.test(name) ? name.charAt(0).toLowerCase() + name.slice(1) : `the ${name.charAt(0).toLowerCase()}${name.slice(1)}`;
+  return option ? `${the} (${option})` : the;
+}
+
+/** The announcement channel's post when the crew funds a part (#161). */
+export function crewFundedText(title: string, coins: number, contributors: number): string {
+  return `The crew funded ${title}: ${plural(coins, "Hog coin", "Hog coins")} from ${plural(contributors, "teammate", "teammates")}. It will be built in ${plural(CREW.buildDays, "day", "days")}.`;
+}
+
+/** The announcement channel's post when the crew's part is built (#161). */
+export function crewBuiltText(title: string, contributors: number): string {
+  return `The crew built ${title} at the Ancient Tree. ${capitalise(plural(contributors, "teammate", "teammates"))} made it happen.`;
 }
 
 /** The tree as App Home and `/kudos tree` show it to one member. */

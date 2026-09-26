@@ -146,6 +146,16 @@ describe("one DM for everything an event gained", () => {
     expect(gainLabel([{ kind: "level_up", level: 2, from: 1 }])).toBe("Level up");
     expect(gainLabel([{ kind: "item", name: "x" }, { kind: "level_up", level: 2, from: 1 }])).toBe("Level up");
     expect(gainLabel([{ kind: "item", name: "x" }])).toBe("New item");
+    expect(gainLabel([{ kind: "crew_built", part: "The bell", contributors: 3 }])).toBe("Crew quest");
+  });
+
+  test("a crew's part built names it and the teammates who funded it with you (#161)", () => {
+    expect(gainText({ kind: "crew_built", part: "The lantern bridge", contributors: 3 }, "web")).toBe(
+      "The lantern bridge is built on the Ancient Tree. You and 2 teammates funded it. Your names are on the crew's plaque, for good.",
+    );
+    expect(gainText({ kind: "crew_built", part: "The bell", contributors: 1 }, "slack")).toBe(
+      "🌳 *The bell is built on the Ancient Tree*\nYou funded it on your own. Your name is on the crew's plaque, for good.",
+    );
   });
 });
 
