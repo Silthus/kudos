@@ -38,13 +38,19 @@ import {
   SIMULATOR_TTL_MS,
   simulatorStart,
 } from "./lib/simulator";
-import { dayKeyFor, daysBetween, startOfDayUtc, weekdayOfKey, workspaceNow } from "./lib/time";
+import { dayKeyFor, daysBetween, nextDayStartUtc, startOfDayUtc, weekdayOfKey, workspaceNow } from "./lib/time";
 import { MAX_LEVEL, QUESTS_LEVEL, xpForLevel } from "./lib/xp";
 
 const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const BOT_CHANNELS = ["general", "engineering", "design"];
 /** A detached simulator's wipe that hasn't finished after this long is started again by the cron. */
 const WIPE_STALL_MS = 60 * 60 * 1000;
+/** A running fast-forward that played no day for this long has stopped (a day failed): it's marked so. */
+const RUN_STALL_MS = 2 * 60 * 1000;
+/** Fast-forwards playing at once, across every visitor: each is a chain of mutations. */
+const MAX_RUNNING = 20;
+/** Less of the simulated day left than this, and the bot plays the next morning (its kudos stay on one day). */
+const BOT_DAY_MS = 2 * 60 * 60 * 1000;
 
 type Summary = Infer<typeof simulatorSummaryValidator>;
 const EMPTY_SUMMARY: Summary = {
@@ -111,7 +117,7 @@ async function startSimulator(ctx: MutationCtx, userId: Id<"users">, sessionId: 
   const startAt = simulatorStart(wallClock, DEMO_SETTINGS.timezone);
   const startDay = dayKeyFor(startAt, DEMO_SETTINGS.timezone);
   const workspaceId = await ctx.db.insert("workspaces", {
-    slackTeamId: `SIM-${sessionId}-${wallClock}`, // never a Slack team id: no install, no Slack call
+    slackTeamId: `SIM-${wallClock}-${Math.random().toString(36).slice(2, 10)}`, // never a Slack team id: no install, no Slack call
     name: "Simulator",
     isDemo: true,
     status: "active",
@@ -258,7 +264,7 @@ async function advanceClock(ctx: MutationCtx, workspace: Doc<"workspaces">, memb
   if (questsOpen) changes.push(`Today's quest: ${DAILY_QUEST_BY_KEY[dailyQuestKey(moved._id, day)].title}.`);
   const boost = await boostOn(ctx, moved._id, day);
   if (boost && boost.from <= target) changes.push(`${BOOST_NAME[boost.kind]} today: ${BOOST_EFFECT[boost.kind]}.`);
-  const lapsed = await lapseDue(ctx, moved, target);
+  const lapsed = await lapseDue(ctx, moved, before, target);
   if (lapsed > 0) changes.push(lapsed === 1 ? "A kudos spree ran out of time." : `${lapsed} kudos sprees ran out of time.`);
   if (gameShownTo(moved, member)) {
     for (const g of await lookAtGrowth(ctx, moved, member._id)) changes.push(`Your plant for ${g.teammate} grew: ${g.stage}.`);
@@ -273,7 +279,7 @@ export const advance = mutation({
   handler: async (ctx, { days }) => {
     const { workspace, member } = await requireSimulator(ctx);
     if (!Number.isInteger(days) || days < 1 || days > MAX_ADVANCE_DAYS) throw new ConvexError(`Advance 1 to ${MAX_ADVANCE_DAYS} days.`);
-    if (await runningRun(ctx, workspace._id)) throw new ConvexError("A fast-forward is playing: wait for it or abort it first.");
+    if (await liveRun(ctx, workspace._id)) throw new ConvexError("A fast-forward is playing: wait for it or abort it first.");
     return await advanceClock(ctx, workspace, member, days);
   },
 });
@@ -289,6 +295,16 @@ async function runningRun(ctx: QueryCtx, workspaceId: Id<"workspaces">) {
   return latest?.status === "running" ? latest : null;
 }
 
+/** The simulator's running fast-forward, unless it stopped beating: then it's marked stopped and doesn't count. */
+async function liveRun(ctx: MutationCtx, workspaceId: Id<"workspaces">) {
+  const run = await runningRun(ctx, workspaceId);
+  if (run && Date.now() - run.heartbeatAt > RUN_STALL_MS) {
+    await ctx.db.patch(run._id, { status: "stopped", stopReason: "The fast-forward stopped unexpectedly.", finishedAt: Date.now() });
+    return null;
+  }
+  return run;
+}
+
 /**
  * Lets the bot play the visitor `levels` levels up (to level 25 at most), one simulated day per
  * scheduled mutation. It never takes skills: those are the visitor's to choose. Returns the run to
@@ -300,7 +316,9 @@ export const fastForward = mutation({
   handler: async (ctx, { levels }) => {
     const { workspace, member } = await requireSimulator(ctx);
     if (!Number.isInteger(levels) || levels < 1 || levels > MAX_LEVEL - 1) throw new ConvexError(`Fast-forward 1 to ${MAX_LEVEL - 1} levels.`);
-    if (await runningRun(ctx, workspace._id)) throw new ConvexError("A fast-forward is already playing.");
+    if (await liveRun(ctx, workspace._id)) throw new ConvexError("A fast-forward is already playing.");
+    const playing = await ctx.db.query("simulatorRuns").withIndex("by_status", (q) => q.eq("status", "running")).take(MAX_RUNNING);
+    if (playing.length >= MAX_RUNNING) throw new ConvexError("The simulator is busy right now: try again in a minute.");
     const level = (await playerOf(ctx, member._id))?.level ?? 1;
     if (level >= MAX_LEVEL) throw new ConvexError(`You're at level ${MAX_LEVEL}, the top.`);
     const runId = await ctx.db.insert("simulatorRuns", {
@@ -310,6 +328,7 @@ export const fastForward = mutation({
       fromLevel: level,
       toLevel: Math.min(MAX_LEVEL, level + levels),
       startedAt: Date.now(),
+      heartbeatAt: Date.now(),
       summary: EMPTY_SUMMARY,
       levelDays: [],
     });
@@ -352,7 +371,10 @@ export const playDay = internalMutation({
     if (((await playerOf(ctx, member._id))?.level ?? 1) >= run.toLevel) return await finish("done").then(() => null);
     if (run.summary.daysPlayed >= MAX_RUN_DAYS) return await finish("stopped", `Still short of level ${run.toLevel} after ${MAX_RUN_DAYS} days.`).then(() => null);
 
-    const day = await playBotDay(ctx, workspace, member, run.summary.daysPlayed);
+    // Late in the simulated day, the bot starts on the next morning: a day's kudos stay on that day.
+    const now = workspaceNow(workspace);
+    if (nextDayStartUtc(now, workspace.timezone) - now < BOT_DAY_MS) await advanceClock(ctx, workspace, member, 1);
+    const day = await playBotDay(ctx, (await ctx.db.get(workspace._id))!, member, run.summary.daysPlayed);
     await advanceClock(ctx, (await ctx.db.get(workspace._id))!, member, 1);
 
     const s = run.summary;
@@ -363,6 +385,7 @@ export const playDay = internalMutation({
       levelDays.push({ level, days: daysPlayed - daysSoFar });
     }
     await ctx.db.patch(runId, {
+      heartbeatAt: Date.now(),
       levelDays,
       summary: {
         daysPlayed,
@@ -433,7 +456,6 @@ async function playBotDay(ctx: MutationCtx, workspace: Doc<"workspaces">, member
   const recipients = botRecipients({ day: dayNumber, teammates: teammates.map((m) => m.slackUserId), waterFirst, count: left });
 
   let kudosGiven = 0;
-  const thanked: Id<"members">[] = [];
   for (const [i, slackUserId] of recipients.entries()) {
     const teammate = teammates.find((m) => m.slackUserId === slackUserId)!;
     const note = BOT_NOTES[(dayNumber + i) % BOT_NOTES.length];
@@ -452,17 +474,17 @@ async function playBotDay(ctx: MutationCtx, workspace: Doc<"workspaces">, member
       source: "playground",
       now: at,
     });
-    if (result.status === "given") {
-      kudosGiven++;
-      thanked.push(teammate._id);
-    }
+    if (result.status === "given") kudosGiven++;
   }
 
+  // A plant for a teammate thanked thoughtfully today (a thank-back never qualifies a planting).
+  const todays = () => ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", member._id).eq("dayKey", today)).take(500);
+  const qualified = (await todays()).flatMap((e) => (e.kind === "give" && !earlier.has(e._id) ? (e.lines ?? []) : [])).filter((l) => l.qualifying);
   let plantsPlanted = 0;
   const grower = (await playerOf(ctx, member._id))!;
   if (gameShownTo(workspace, member) && grower.level >= GARDEN_LEVEL && plants.length < plotsFor(skillsOf(grower))) {
     const fresh = (await ctx.db.get(member._id))!;
-    const candidate = thanked.find((id) => !plants.some((p) => p.forId === id));
+    const candidate = qualified.map((l) => l.receiverId).find((id) => !plants.some((p) => p.forId === id));
     if (candidate && coinBalance(grower, fresh).balance >= PLANT_COST) {
       await plantFor(ctx, (await ctx.db.get(workspace._id))!, fresh, { teammateId: candidate });
       plantsPlanted++;
@@ -470,9 +492,7 @@ async function playBotDay(ctx: MutationCtx, workspace: Doc<"workspaces">, member
   }
 
   // What today earned: the events the bot's day wrote, and the coins its level-ups paid.
-  const events = (await ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", member._id).eq("dayKey", today)).take(500)).filter(
-    (e) => !earlier.has(e._id),
-  );
+  const events = (await todays()).filter((e) => !earlier.has(e._id));
   const levelAfter = (await playerOf(ctx, member._id))!.level;
   const lines = events.flatMap((e) => (e.kind === "give" ? (e.lines ?? []) : []));
   const quest = (scope: "weekly" | "daily" | "sweep") => events.filter((e) => e.kind === "quest" && e.quest?.scope === scope).length;

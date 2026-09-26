@@ -634,6 +634,7 @@ export const backfillAll = internalMutation({
   returns: v.null(),
   handler: async (ctx) => {
     for await (const workspace of ctx.db.query("workspaces")) {
+      if (workspace.simulator) continue; // a visitor's simulator (#143) keeps its own ledger, and may be mid-wipe
       if (workspace.resettingSince !== undefined) continue; // the reset rebuilds it
       await ctx.scheduler.runAfter(0, internal.game.rebuildWorkspace, { workspaceId: workspace._id });
     }

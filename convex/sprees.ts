@@ -514,13 +514,14 @@ const LONGEST_SPREE_MS = WINDOW_MS * (TIERS.length + 1);
 
 /**
  * Closes a workspace's sprees whose window ran out by `now`, as their scheduled `lapse` would. A
- * simulator's clock jumps ahead of those (they wait on the wall clock): `advance` calls this.
+ * simulator's clock jumps ahead of those (they wait on the wall clock): `advance` calls this with
+ * the clock before the jump (`since`), so every spree that could still be open then is looked at.
  * Returns how many it closed.
  */
-export async function lapseDue(ctx: MutationCtx, workspace: Workspace, now: number): Promise<number> {
+export async function lapseDue(ctx: MutationCtx, workspace: Workspace, since: number, now: number): Promise<number> {
   const recent = await ctx.db
     .query("sprees")
-    .withIndex("by_workspace_kudosAt", (q) => q.eq("workspaceId", workspace._id).gt("kudosAt", now - LONGEST_SPREE_MS - WINDOW_MS))
+    .withIndex("by_workspace_kudosAt", (q) => q.eq("workspaceId", workspace._id).gt("kudosAt", since - LONGEST_SPREE_MS))
     .take(200);
   let closed = 0;
   for (const spree of recent) {

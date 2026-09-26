@@ -830,6 +830,9 @@ export default defineSchema({
     fromLevel: v.number(),
     toLevel: v.number(),
     startedAt: v.number(), // wall clock
+    // When its last day was played (wall clock): a running run that stops beating (a day that failed)
+    // is stopped by the next control that finds it, so it can never block the simulator.
+    heartbeatAt: v.number(),
     finishedAt: v.optional(v.number()),
     stopReason: v.optional(v.string()), // stopped: why the bot gave up (e.g. the day cap)
     summary: simulatorSummaryValidator,
@@ -837,7 +840,8 @@ export default defineSchema({
     levelDays: v.array(v.object({ level: v.number(), days: v.number() })),
   })
     .index("by_workspace", ["workspaceId"])
-    .index("by_member", ["memberId"]),
+    .index("by_member", ["memberId"])
+    .index("by_status", ["status"]),
 
   slackEvents: defineTable({
     eventId: v.string(),

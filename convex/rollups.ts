@@ -77,6 +77,7 @@ export const backfillAll = internalMutation({
   returns: v.null(),
   handler: async (ctx) => {
     for await (const workspace of ctx.db.query("workspaces")) {
+      if (workspace.simulator) continue; // a visitor's simulator (#143) is exact from its first give, and may be mid-wipe
       if (workspace.resettingSince !== undefined) continue; // the reset rebuilds it
       await ctx.scheduler.runAfter(0, internal.rollups.rebuildWorkspace, { workspaceId: workspace._id });
     }

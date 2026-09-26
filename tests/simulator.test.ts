@@ -4,12 +4,15 @@ import type { Id } from "../convex/_generated/dataModel";
 import { DEMO_SETTINGS } from "../convex/lib/settings";
 import { DAY_MS } from "../convex/lib/time";
 import { xpForLevel } from "../convex/lib/xp";
-import { seedTeam, setupConvex, signInAs } from "./helpers";
+import { DEMO_TIMEOUT, seedTeam, setupConvex, signInAs } from "./helpers";
 
 /**
  * The simulator (#143): a demo visitor's private workspace with its own clock, joined at a level.
  * Everyone shares the demo user, so a simulator belongs to the visitor's sign-in session.
  */
+
+// Fast-forwards play dozens of days through the engine; a loaded machine gets the demo's timeout.
+vi.setConfig({ testTimeout: DEMO_TIMEOUT });
 
 let t: ReturnType<typeof setupConvex>;
 let demoUser: Id<"users">;
@@ -350,5 +353,124 @@ describe("fast-forward", () => {
     await settle();
     expect(await visitor("a").query(api.simulator.lastRun, {})).toBeNull(); // the fresh simulator hasn't run one
     expect(await visitor("a").query(api.simulator.state, {})).toMatchObject({ level: 1, dayIndex: 0 });
+  });
+});
+
+describe("review fixes", () => {
+  test("a fast-forward never plants for a teammate it has no thoughtful kudos to (a thank-back)", async () => {
+    await visitor("a").mutation(api.simulator.start, { level: 3 });
+    const { workspaceId, memberId } = await simulator();
+    // Everyone thanked Alex yesterday, so none of the bot's kudos today qualifies (all thank-backs).
+    await t.run(async (ctx) => {
+      const ws = (await ctx.db.get(workspaceId))!;
+      const at = Date.now() + (ws.clockOffsetMs ?? 0) - 3_600_000;
+      for (const m of await ctx.db.query("members").withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspaceId)).collect()) {
+        if (m._id === memberId) continue;
+        await ctx.db.insert("kudos", { workspaceId, batchId: `b-${m._id}`, giverId: m._id, receiverId: memberId, amount: 1, dayKey: "2026-09-24", source: "playground", channelId: "C", text: "x", at, hour: 9 });
+      }
+    });
+    await visitor("a").mutation(api.simulator.fastForward, { levels: 1 });
+    await settle();
+    const run = await visitor("a").query(api.simulator.lastRun, {});
+    expect(run!.status).toBe("done");
+    expect(run!.summary.daysPlayed).toBeGreaterThan(0);
+  });
+
+  test("a fast-forward whose day failed doesn't block the simulator: a stale run is stopped", async () => {
+    await visitor("a").mutation(api.simulator.start, {});
+    const { workspaceId, memberId } = await simulator();
+    await t.run((ctx) =>
+      ctx.db.insert("simulatorRuns", {
+        workspaceId,
+        memberId,
+        status: "running",
+        fromLevel: 1,
+        toLevel: 2,
+        startedAt: Date.now(),
+        heartbeatAt: Date.now(),
+        summary: { daysPlayed: 0, kudosGiven: 0, thoughtfulKudos: 0, questsCompleted: { weekly: 0, daily: 0, sweeps: 0 }, coinsEarned: 0, fruitPicked: 0, plantsPlanted: 0, levelsGained: 0, newConnections: 0 },
+        levelDays: [],
+      }),
+    );
+    await expect(visitor("a").mutation(api.simulator.advance, { days: 1 })).rejects.toThrow(/fast-forward/);
+    vi.setSystemTime(Date.now() + 10 * 60_000); // no day played for ten minutes: the chain died
+    await visitor("a").mutation(api.simulator.advance, { days: 1 });
+    expect(await visitor("a").query(api.simulator.lastRun, {})).toMatchObject({ status: "stopped" });
+  });
+
+  test("advancing 10 days closes a spree that was open before", async () => {
+    await visitor("a").mutation(api.simulator.start, {});
+    const { workspaceId, memberId } = await simulator();
+    const spreeId = await t.run(async (ctx) => {
+      const ws = (await ctx.db.get(workspaceId))!;
+      const at = Date.now() + (ws.clockOffsetMs ?? 0);
+      return await ctx.db.insert("sprees", {
+        workspaceId,
+        batchId: "b1",
+        channelId: "C_DEMO_GENERAL",
+        messageTs: "1.0",
+        giverId: memberId,
+        receiverIds: [],
+        text: "x",
+        kudosAt: at,
+        status: "open",
+        tier: 0,
+        joiners: 0,
+        deadline: at + DAY_MS,
+        tiers: [],
+      });
+    });
+    const res = await visitor("a").mutation(api.simulator.advance, { days: 10 });
+    expect(res.changes).toContain("A kudos spree ran out of time.");
+    expect((await t.run((ctx) => ctx.db.get(spreeId)))!.status).toBe("lapsed");
+  });
+
+  test("the bot's day never runs past midnight: late in the day, it plays the next morning", async () => {
+    await visitor("a").mutation(api.simulator.start, {});
+    const { memberId } = await simulator();
+    vi.setSystemTime(Date.now() + 14.5 * 3_600_000); // the simulator's clock reads 23:30
+    await visitor("a").mutation(api.simulator.fastForward, { levels: 2 });
+    await settle();
+    const days = (await t.run((ctx) => ctx.db.query("memberDays").collect())).filter((d) => d.memberId === memberId);
+    expect(days.every((d) => d.given === 5)).toBe(true);
+    const run = await visitor("a").query(api.simulator.lastRun, {});
+    expect(run!.summary.thoughtfulKudos).toBe(run!.summary.kudosGiven);
+  });
+
+  test("too many fast-forwards at once: the simulator asks to wait", async () => {
+    for (let i = 0; i < 20; i++) {
+      await visitor(`s${i}`).mutation(api.simulator.start, {});
+      await visitor(`s${i}`).mutation(api.simulator.fastForward, { levels: 1 });
+    }
+    await visitor("late").mutation(api.simulator.start, {});
+    await expect(visitor("late").mutation(api.simulator.fastForward, { levels: 1 })).rejects.toThrow(/busy/);
+  });
+
+  test("advancing across the autumn DST switch lands on each calendar day", async () => {
+    vi.setSystemTime(new Date("2026-10-24T05:00:00Z")); // Saturday 07:00 in Berlin
+    await visitor("a").mutation(api.simulator.start, {});
+    expect((await visitor("a").mutation(api.simulator.advance, { days: 1 })).day).toBe("2026-10-25");
+    expect((await visitor("a").mutation(api.simulator.advance, { days: 1 })).day).toBe("2026-10-26");
+    expect(await visitor("a").query(api.simulator.state, {})).toMatchObject({ dayIndex: 2 });
+  });
+
+  test("wipe never touches a workspace that isn't a detached simulator", async () => {
+    const team = await seedTeam(t);
+    await t.mutation(internal.simulator.wipe, { workspaceId: team.workspaceId });
+    await t.mutation(internal.simulator.wipe, { workspaceId: sharedDemo });
+    await visitor("a").mutation(api.simulator.start, {});
+    const live = (await viewerOf("a")).workspace._id;
+    await t.mutation(internal.simulator.wipe, { workspaceId: live });
+    await settle();
+    expect((await rowsIn(team.workspaceId)).members).toBe(4);
+    expect((await rowsIn(sharedDemo)).members).toBe(2);
+    expect((await rowsIn(live)).members).toBe(13);
+  });
+
+  test("a real Slack user has no simulator to read", async () => {
+    const team = await seedTeam(t);
+    const ana = await signInAs(t, team.ana);
+    expect(await ana.query(api.simulator.state, {})).toEqual({ active: false });
+    expect(await ana.query(api.simulator.lastRun, {})).toBeNull();
   });
 });
