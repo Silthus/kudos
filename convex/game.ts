@@ -25,6 +25,7 @@ import {
 } from "./lib/xp";
 import { boostAt, type BoostKind } from "./lib/boosts";
 import { boostOn, boostsOf } from "./boosts";
+import { leaveWorld } from "./presence";
 
 /**
  * The game's foundation (#55 §G1, G3, G4): the workspace switch, players, the XP and Hog coin
@@ -757,6 +758,8 @@ export const setHidden = mutation({
   handler: async (ctx, { hidden }) => {
     const { member } = await requireViewer(ctx);
     await ctx.db.patch(member._id, { gameHidden: hidden || undefined });
+    // Hidden, they leave the shared world at once, not a minute later (#155).
+    if (hidden) await leaveWorld(ctx, member);
     return null;
   },
 });
