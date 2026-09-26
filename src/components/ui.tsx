@@ -419,13 +419,3 @@ export function Dialog({
     </dialog>
   );
 }
-
-/** The Kudos wordmark: the workspace's emoji on a dusk tile with a lantern rim, and the name. */
-export function Logo({ glyph = "🌮" }: { glyph?: string }) {
-  return (
-    <span className="inline-flex items-center gap-2 font-display text-2xl font-medium">
-      <span className="grid h-9 w-9 place-items-center bg-dusk text-lg shadow-[inset_0_0_0_2px_var(--color-lantern)]">{glyph}</span>
-      kudos
-    </span>
-  );
-}

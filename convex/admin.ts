@@ -80,7 +80,7 @@ export const updateSettings = mutation({
     assertNotDemo(workspace);
     const emojiName = args.emojiName.trim().replace(/^:|:$/g, "").toLowerCase();
     if (!/^[a-z0-9_+'-]{1,64}$/.test(emojiName)) {
-      throw new ConvexError("Use the Slack emoji shortcode, e.g. taco or star-struck.");
+      throw new ConvexError("Use the Slack emoji shortcode, e.g. seedling or star-struck.");
     }
     if (!Number.isInteger(args.dailyLimit) || args.dailyLimit < 1 || args.dailyLimit > 100) {
       throw new ConvexError("Daily allowance must be a whole number between 1 and 100.");

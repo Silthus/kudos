@@ -167,7 +167,7 @@ const CATALOG_SOURCE: Record<Category, Tiered> = {
     ],
     rare: [
       "🧭 Explorer's note: {quest} completed. You found the people others walk past.",
-      "🌱 {quest} complete. Small {emoji}, planted in the right places, grow whole cultures.",
+      "🌿 {quest} complete. Small {emoji}, planted in the right places, grow whole cultures.",
     ],
     epic: ["🗺️ Epic quest log entry: {user} completed {quest}. The map of who-helped-whom just got wider."],
     legendary: [

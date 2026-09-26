@@ -4,6 +4,16 @@ The shared vocabulary of the Kudos codebase. Use these words in code, tests, UI 
 
 Decisions that are hard to reverse live in [`docs/adr/`](docs/adr/).
 
+## Kudos
+
+The act of appreciation itself. Parsing lives in `convex/lib/parse.ts`, giving in the engine (`convex/engine.ts`), each workspace's settings in `workspaces` (new installs start from `DEFAULT_SETTINGS`, `convex/lib/settings.ts`).
+
+| Term | Meaning | Not to be confused with |
+|---|---|---|
+| **Kudos** | One unit of appreciation from a giver to a teammate: the kudos emoji in a Slack message gives one kudos per emoji to every person mentioned, and, where an admin allows it, reacting with it gives the message's author one. Stats count kudos: *kudos given*, *kudos received*, the daily allowance. | a *seed*, which is how the copy talks about giving one |
+| **Kudos emoji** | The workspace's emoji for giving: a Slack shortcode (`emojiName`) and the glyph the web app draws (`emojiGlyph`). New installs, the shared demo (from its next reset) and simulators use Slack's standard 🌱 `seedling` (`taco` before #168); an admin can pick any other, custom ones included, and a workspace keeps what it has. The bot's reaction on a given kudos is the same emoji (see **Bot reaction**). | the game's emoji variants and Super kudos emoji (`seedling-super`), which an admin uploads |
+| **Seed of appreciation** | What the copy calls a kudos as you give it: "Give a seed: @name 🌱 and a few words on why". Only a word for the act, in the copy that explains giving; the kudos stays the unit, and counts keep saying *kudos*. Coming with the Ancient Tree ([#152](https://github.com/Silthus/kudos/issues/152), #154): a qualifying kudos sows one tree seed per person thanked, which its receiver plants at the tree. | the level title *Seedling*, a garden plant's *Seed* stage, the demo's seeded history (`seed` source, `seedHistory`) and the simulator's *seed event* |
+
 ## Rewards Store
 
 Specified in [Spec the Rewards Store](https://github.com/Silthus/kudos/issues/4) and moved to Hog coins in [Store: priced in Hog coins with built-in game items](https://github.com/Silthus/kudos/issues/91) ([ADR 0002](docs/adr/0002-store-currency-is-hog-coins.md)). Who may shop and the game items live in `convex/lib/items.ts`, the real-rewards rules in `convex/lib/store.ts`, what each item does in `convex/items.ts`; every balance, stock, purchase or redemption change goes through `convex/store.ts`.
@@ -65,10 +75,11 @@ Specified in [Slack: bot reactions confirm every kudos attempt](https://github.c
 
 | Term | Meaning | Not to be confused with |
 |---|---|---|
-| **Attempt** | A Slack message (or playground message) that carries the kudos emoji. Recorded once per message (`kudosAttempts`, keyed by workspace + channel + message ts) with who tried and how it ended. Messages without the emoji are never attempts. | *reaction-based giving*, which reacts to someone else's message and has no attempt |
+| **Attempt** | A Slack message (or playground message) that carries the kudos emoji. Recorded once per message (`kudosAttempts`, keyed by workspace + channel + message ts) with who tried and how it ended. Messages without the emoji are never attempts, and neither is an **everyday emoji** with nobody mentioned. | *reaction-based giving*, which reacts to someone else's message and has no attempt |
 | **Outcome** | How an attempt ended: `given` (every mentioned person got the full amount), `limit` (it would have exceeded the giver's remaining allowance: nothing was given) or `invalid` (nobody valid was mentioned: no mention, only group mentions like @here, only yourself, only bots/the app, only deactivated or unknown people, incl. other workspaces' guests). Giving stays all-or-nothing per message. | — |
 | **Bot reaction** | The reaction the Kudos bot puts on the attempt's message: the kudos emoji for `given` (✅ `white_check_mark` if Slack rejects a custom emoji), ⏳ `hourglass_flowing_sand` for `limit`, ❌ `x` for `invalid`. Recorded on the attempt only once Slack shows it. | a member's kudos-emoji reaction, which gives kudos |
-| **Guidance** | The ephemeral note to the giver on a failed attempt: how a valid kudos works, with the multiplication (`2 people × 2 🌮 = 4 🌮`) for `limit` and a one-line example for `invalid`. Not rarity-rolled; it rides along with the rolled "limit reached" / "self kudos" reply when there is one. | a rarity-rolled *bot message* |
+| **Everyday emoji** | A kudos emoji people also type in chat without thanking anyone, like the default 🌱 `seedling` (`everydayEmoji`, `lib/guidance.ts`). A message with it that mentions nobody (not even @here or a user group) is chat: no attempt, no reaction, no guidance. With a mention, every outcome is as usual. A kudos convention like `taco` or a custom emoji is typed on purpose and keeps the ❌ and guidance. | the kudos emoji's *variants* |
+| **Guidance** | The ephemeral note to the giver on a failed attempt: how a valid kudos works, with the multiplication (`2 people × 2 🌱 = 4 🌱`) for `limit` and a one-line example for `invalid`. Not rarity-rolled; it rides along with the rolled "limit reached" / "self kudos" reply when there is one. | a rarity-rolled *bot message* |
 
 ## Game
 

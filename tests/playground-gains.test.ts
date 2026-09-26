@@ -34,7 +34,7 @@ test("a level-up shows as your own DM; a receiver's rides in their kudos DM", as
   const demo = await enterDemo();
   const mine = await justShortOfNextLevel("UDEMOYOU");
   const priyas = await justShortOfNextLevel("UDEMOPRIYA");
-  const res = await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> :taco: thanks for pairing on the onboarding flow", channelName: "general" });
+  const res = await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> :seedling: thanks for pairing on the onboarding flow", channelName: "general" });
 
   const toMe = res.messages.filter((m) => m.toMe && m.category !== "giver_success");
   expect(toMe).toHaveLength(1);

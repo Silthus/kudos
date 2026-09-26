@@ -93,7 +93,7 @@ function picker(weights: number[]) {
 }
 
 /** A day's kudos messages: ~kudosPerYear / 270 rows on a weekday, with no giver over `dailyLimit`. */
-export function planDay(day: string, people: ScalePerson[], kudosPerYear: number, dailyLimit: number): ScaleMessage[] {
+export function planDay(day: string, people: ScalePerson[], kudosPerYear: number, dailyLimit: number, emojiName: string): ScaleMessage[] {
   const rand = mulberry32(fnv1a(`day:${day}`));
   const weekend = weekdayOfKey(day) >= 5;
   const target = Math.round((kudosPerYear / ACTIVE_DAYS_PER_YEAR) * (weekend ? WEEKEND_ACTIVITY : 1) * (0.8 + 0.4 * rand()));
@@ -128,7 +128,7 @@ export function planDay(day: string, people: ScalePerson[], kudosPerYear: number
       source: reaction ? "reaction" : "message",
       channel,
       secondOfDay: (8 + Math.floor(rand() * 10)) * 3600 + Math.floor(rand() * 3600),
-      text: `${mentions} ${":taco:".repeat(amountEach)} ${note}`.trim(),
+      text: `${mentions} ${`:${emojiName}:`.repeat(amountEach)} ${note}`.trim(),
       ...(reaction ? {} : { noteWords: note ? note.split(" ").length : 0 }),
     });
     used[giver] += amountEach * recipients.length;

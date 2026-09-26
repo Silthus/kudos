@@ -699,15 +699,15 @@ describe("quests in the demo", () => {
         .map((m) => m.slackUserId);
     });
     const res = await demo.mutation(api.demo.simulateMessage, {
-      text: `<@${first}> :taco: thanks for untangling the deploy pipeline on friday, saved my whole afternoon`,
+      text: `<@${first}> :seedling: thanks for untangling the deploy pipeline on friday, saved my whole afternoon`,
       channelName: "general",
     });
     expect(res.status).toBe("given");
     expect((await all(t, "kudos")).find((k) => k.source === "playground")?.noteWords).toBe(12);
-    await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOJONAS> :taco:", channelName: "design" });
+    await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOJONAS> :seedling:", channelName: "design" });
     expect((await all(t, "kudos")).find((k) => k.source === "playground" && k.channelName === "design")?.noteWords).toBe(0);
     const last = await demo.mutation(api.demo.simulateMessage, {
-      text: `<@${second}> :taco: your onboarding checklist turned my first week into a genuinely calm one`,
+      text: `<@${second}> :seedling: your onboarding checklist turned my first week into a genuinely calm one`,
       channelName: "design",
     });
     // The playground previews the Quest message DMs, with the week's progress.
@@ -748,7 +748,7 @@ describe("quests in the demo", () => {
     });
     const seeded = await questRows();
     expect(seeded.completions.length).toBeGreaterThan(20);
-    await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> :taco: great work on the release notes", channelName: "general" });
+    await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> :seedling: great work on the release notes", channelName: "general" });
     await t.finishAllScheduledFunctions(vi.runAllTimers, 1000); // a teammate may thank Alex back
     // Whatever that message completed, Alex has also completed a quest in the playground this week.
     const alex = await t.run((ctx) => ctx.db.query("members").filter((q) => q.eq(q.field("slackUserId"), "UDEMOYOU")).unique());

@@ -198,11 +198,11 @@ describe("gains outside a Slack event (a skill picked or an item bought on the w
     await ana.mutation(api.skills.take, { skill: "pathfinder" });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     const [dm] = dmsTo("UANA");
-    expect(dm.text).toMatch(/^🌱 \*New skill: Pathfinder\*\nScout branch\. /);
+    expect(dm.text).toMatch(/^🌿 \*New skill: Pathfinder\*\nScout branch\. /);
     expect(dm.blocks).toContain("https://kudos.example/skills?ws=T1");
     await ana.mutation(api.skills.take, { skill: "pathfinder" });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
-    expect(dmsTo("UANA")[1].text).toMatch(/^🌱 \*New skill: Pathfinder, rank 2\*/);
+    expect(dmsTo("UANA")[1].text).toMatch(/^🌿 \*New skill: Pathfinder, rank 2\*/);
   });
 
   test("coins a spree paid stay silent below level 3, like every coin before the wallet opens", async () => {

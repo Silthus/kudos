@@ -78,7 +78,7 @@ describe("the giver's reply is ephemeral where they gave, with what it earned", 
 
   test("a kudos without a reason is told how to earn more", async () => {
     await post("<@UBEN> :taco:");
-    expect(ephemerals()[0].text).toContain("+2 XP · a kudos with a reason (3+ words) earns more");
+    expect(ephemerals()[0].text).toContain("+2 XP · a seed with a few words on why (3 or more) earns more");
   });
 
   test("with the game off it is still the ephemeral reply, just without XP", async () => {
@@ -115,7 +115,7 @@ describe("Hog coins in the reply and the level-up DM", () => {
   test("once the wallet is open, a kudos without a reason is told that one with a reason earns coins", async () => {
     await anaAt(3, 100, 4);
     await post("<@UBEN> :taco:");
-    expect(ephemerals()[0].text).toContain("+2 XP · a kudos with a reason (3+ words) earns coins");
+    expect(ephemerals()[0].text).toContain("+2 XP · a seed with a few words on why (3 or more) earns coins");
   });
 
   test("reaching level 3 opens the wallet with what was collected so far; later levels say what they paid", async () => {
@@ -149,11 +149,11 @@ describe("App Home", () => {
   }
 
   test("invites a member who hasn't given yet to give; never once they play or while the game is off", async () => {
-    expect(await home("UBEN")).toContain("You can give kudos too");
+    expect(await home("UBEN")).toContain("You can give seeds of appreciation too.* Give a seed: @name :taco: and a few words on why.");
     await post("<@UCLEO> :taco: thanks for the thorough review", "UBEN");
-    expect(await home("UBEN")).not.toContain("You can give kudos too");
+    expect(await home("UBEN")).not.toContain("You can give seeds of appreciation too");
     await t.run((ctx) => ctx.db.patch(team.workspaceId, { gameEnabled: false }));
-    expect(await home("UCLEO")).not.toContain("You can give kudos too");
+    expect(await home("UCLEO")).not.toContain("You can give seeds of appreciation too");
   });
 });
 

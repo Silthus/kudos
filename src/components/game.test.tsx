@@ -135,7 +135,9 @@ test("at the top level there is no next level to show", () => {
 test("before their first kudos a member is invited to give, not shown a level", () => {
   mine = { enabled: true, hidden: false, player: null };
   const host = render(<GameCard glyph="🌮" />);
-  expect(host.textContent).toContain("You can give kudos too");
+  expect(host.textContent).toContain("You can give seeds of appreciation too");
+  expect(host.textContent).toContain("Give a seed in Slack: @name 🌮 and a few words on why.");
+  expect(host.querySelector("[data-user-text]")?.textContent).toBe("🌮");
   expect(host.querySelector("[role=progressbar]")).toBeNull();
 });
 

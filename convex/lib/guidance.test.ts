@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { alreadySent, guidance, reactionFor } from "./guidance";
+import { alreadySent, everydayEmoji, guidance, reactionFor } from "./guidance";
 
 const limit = (people: number, amountEach: number, remaining: number) =>
   guidance({ kind: "limit", people, amountEach, remaining, limit: 5 }, "🌮");
@@ -42,4 +42,10 @@ test("an edit can't change kudos already sent", () => {
 
 test("each outcome has its reaction; given uses the workspace's kudos emoji", () => {
   expect([reactionFor("given", "taco"), reactionFor("limit", "taco"), reactionFor("invalid", "taco")]).toEqual(["taco", "hourglass_flowing_sand", "x"]);
+});
+
+test("everyday emoji are the ones people type in chat without thanking anyone (#168)", () => {
+  expect(["seedling", "heart", "tada", "+1"].filter(everydayEmoji)).toEqual(["seedling", "heart", "tada", "+1"]);
+  // A kudos convention (HeyTaco's taco) or a custom emoji is typed on purpose.
+  expect(["taco", "kudos", "lumen-star"].filter(everydayEmoji)).toEqual([]);
 });

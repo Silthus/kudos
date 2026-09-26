@@ -27,6 +27,9 @@ export async function seedTeam(
       isDemo: false,
       status: "active",
       ...DEFAULT_SETTINGS,
+      // A workspace installed before the seedling became the default (#168): it keeps its taco.
+      emojiName: "taco",
+      emojiGlyph: "🌮",
       // Reaction-giving is off for new installs since #94; these tests' workspace has it on.
       reactionsEnabled: true,
       ...overrides,

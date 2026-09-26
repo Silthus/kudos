@@ -126,10 +126,10 @@ export function GameCard({ glyph }: { glyph: string }) {
       <div className="pixel-note px-4 py-3">
         <h4 className="flex items-center gap-2 font-display text-lg font-medium">
           <Sprout className="h-4 w-4 text-soil" aria-hidden />
-          You can give kudos too
+          You can give seeds of appreciation too
         </h4>
         <p className="mt-1 text-sm text-ink/75">
-          Mention a teammate in Slack with {glyph} and a few words on why. Your first kudos starts your level, and thoughtful ones earn the most.
+          Give a seed in Slack: @name <span data-user-text>{glyph}</span> and a few words on why. Your first kudos starts your level, and thoughtful ones earn the most.
         </p>
       </div>
     );

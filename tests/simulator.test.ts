@@ -59,6 +59,8 @@ describe("starting a simulator", () => {
     await visitor("a").mutation(api.simulator.start, {});
     const v = await viewerOf("a");
     expect(v.workspace).toMatchObject({ name: "Simulator", isDemo: true, gameEnabled: true, questsEnabled: true, spreesEnabled: true });
+    // Seeds of appreciation (#168): the simulator gives with the seedling, like the demo.
+    expect(v.workspace).toMatchObject({ emojiName: "seedling", emojiGlyph: "🌱" });
     expect(v.workspace.clockOffsetMs).toBeGreaterThanOrEqual(0);
     expect(v.member).toMatchObject({ name: "Alex Rivera", isAdmin: true });
     expect(v.workspaces.map((w) => [w.name, w.current])).toEqual([
@@ -188,8 +190,8 @@ describe("advancing the clock", () => {
   test("moves to the next morning: a new day, and the allowance is back", async () => {
     await visitor("a").mutation(api.simulator.start, {});
     const before = await visitor("a").query(api.simulator.state, {});
-    expect((await say(`<@UDEMOPRIYA> :taco::taco::taco::taco::taco: ${NOTE}`)).status).toBe("given");
-    expect((await say(`<@UDEMOJONAS> :taco: ${NOTE}`)).status).toBe("limit");
+    expect((await say(`<@UDEMOPRIYA> :seedling::seedling::seedling::seedling::seedling: ${NOTE}`)).status).toBe("given");
+    expect((await say(`<@UDEMOJONAS> :seedling: ${NOTE}`)).status).toBe("limit");
 
     const res = await visitor("a").mutation(api.simulator.advance, { days: 1 });
     expect(res.dayIndex).toBe(1);
@@ -198,7 +200,7 @@ describe("advancing the clock", () => {
     expect(after).toMatchObject({ dayIndex: 1, day: res.day });
     expect(after.active && after.clockOffsetMs).toBeGreaterThan(before.active ? before.clockOffsetMs : 0);
     expect((await viewerOf("a")).workspace.clockOffsetMs).toBe(after.active && after.clockOffsetMs);
-    expect((await say(`<@UDEMOJONAS> :taco: ${NOTE}`)).status).toBe("given");
+    expect((await say(`<@UDEMOJONAS> :seedling: ${NOTE}`)).status).toBe("given");
     const kudos = await t.run((ctx) => ctx.db.query("kudos").collect());
     expect(kudos.at(-1)!.dayKey).toBe(res.day);
   });
@@ -258,12 +260,12 @@ describe("advancing the clock", () => {
     // and the plant's age alone makes it a Sprout on Wednesday, which the advance reports.
     await visitor("a").mutation(api.simulator.start, { level: 5 });
     expect((await visitor("a").mutation(api.simulator.advance, { days: 3 })).changes[0]).toMatch(/^Sunday/);
-    await say(`<@UDEMOPRIYA> :taco: ${NOTE}`);
+    await say(`<@UDEMOPRIYA> :seedling: ${NOTE}`);
     const { workspaceId } = await simulator();
     const priya = await t.run(async (ctx) => (await ctx.db.query("members").collect()).find((m) => m.slackUserId === "UDEMOPRIYA" && m.workspaceId === workspaceId)!._id);
     await visitor("a").mutation(api.gardens.plant, { teammateId: priya });
     await visitor("a").mutation(api.simulator.advance, { days: 1 });
-    await say(`<@UDEMOPRIYA> :taco: ${NOTE}`); // its first watering
+    await say(`<@UDEMOPRIYA> :seedling: ${NOTE}`); // its first watering
     const res = await visitor("a").mutation(api.simulator.advance, { days: 2 });
     expect(res.changes).toContain("Your plant for Priya Raman grew: Sprout.");
   });
@@ -480,7 +482,7 @@ describe("the cabin in a simulator (#144)", () => {
     await visitor("a").mutation(api.simulator.start, {});
     // A day on, the simulator's clock runs a day or more ahead of the wall clock.
     await visitor("a").mutation(api.simulator.advance, { days: 1 });
-    expect((await say(`<@UDEMOPRIYA> :taco: ${NOTE}`)).status).toBe("given");
+    expect((await say(`<@UDEMOPRIYA> :seedling: ${NOTE}`)).status).toBe("given");
     const state = await visitor("a").query(api.simulator.state, {});
     if (!state.active) throw new Error("no simulator");
     expect(state.clockOffsetMs).toBeGreaterThan(DAY_MS / 2);

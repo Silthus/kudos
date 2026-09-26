@@ -58,7 +58,7 @@ describe("the demo workspace", () => {
 
   test("the playground runs messages through the real engine", async () => {
     const demo = await enterDemo();
-    const res = await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> :taco::taco: great work", channelName: "general" });
+    const res = await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> :seedling::seedling: great work", channelName: "general" });
     expect(res.status).toBe("given");
     expect(res.messages.map((m) => [m.to, m.category])).toEqual([
       ["Alex Rivera", "giver_success"],
@@ -69,11 +69,21 @@ describe("the demo workspace", () => {
 
   test("resetting wipes playground activity and re-seeds a fresh history", async () => {
     const demo = await enterDemo();
-    await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> :taco:", channelName: "general" });
+    await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> :seedling:", channelName: "general" });
+    // The live demo was seeded with tacos before seeds of appreciation (#168): a reset brings the seedling.
+    await t.run(async (ctx) => {
+      const lumen = (await ctx.db.query("workspaces").collect()).find((w) => w.slackTeamId === "T_DEMO_LUMEN")!;
+      await ctx.db.patch(lumen._id, { emojiName: "taco", emojiGlyph: "🌮" });
+    });
     await demo.mutation(api.demo.resetDemo, {});
     await t.finishAllScheduledFunctions(vi.runAllTimers, 1000);
+    expect((await demo.query(api.session.viewer, {})).workspace).toMatchObject({ emojiName: "seedling", emojiGlyph: "🌱" });
     const kudos = await all(t, "kudos");
     expect(kudos.every((k) => k.source === "seed")).toBe(true);
+    // The seeded history thanks people with the demo's own emoji.
+    const texts = kudos.map((k) => k.text);
+    expect(texts.filter((x) => x.includes("🌱")).length).toBeGreaterThan(500);
+    expect(texts.filter((x) => x.includes("🌮"))).toEqual([]);
     expect(await all(t, "notifications")).toHaveLength(0);
     const alex = await t.run((ctx) =>
       ctx.db.query("members").filter((q) => q.eq(q.field("slackUserId"), "UDEMOYOU")).unique(),
@@ -96,7 +106,7 @@ describe("the demo plays the game", () => {
     for (const p of players) expect(p.xp).toBe(events.filter((e) => e.memberId === p.memberId).reduce((s, e) => s + e.xp, 0));
 
     const res = await demo.mutation(api.demo.simulateMessage, {
-      text: "<@UDEMOPRIYA> :taco: thanks for pairing on the onboarding flow",
+      text: "<@UDEMOPRIYA> :seedling: thanks for pairing on the onboarding flow",
       channelName: "general",
     });
     const reply = res.messages.find((m) => m.category === "giver_success");
@@ -156,7 +166,7 @@ describe("boosts in the demo (#97)", () => {
   test("a visitor activates a booster, the playground reply shows it doubled, the admin sees the announcement preview, and a reset wipes it", async () => {
     const demo = await enterDemo();
     await demo.mutation(api.store.buyItem, { item: "boosterDouble", expectedPrice: 40 });
-    const res = await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> :taco: thanks for pairing on the onboarding flow", channelName: "general" });
+    const res = await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> :seedling: thanks for pairing on the onboarding flow", channelName: "general" });
     expect(res.messages.find((m) => m.category === "giver_success")?.earnings).toMatch(/bonus day ×2 \+\d+/);
     // The demo has no Slack: the post is a preview for #general, never sent.
     expect(await demo.query(api.boosts.admin, { today: TODAY })).toMatchObject({
@@ -266,7 +276,7 @@ describe("a year of demo history", () => {
       await runScheduledStep();
     }
     for (const id of ["UDEMOPRIYA", "UDEMOLENA", "UDEMOJONAS", "UDEMOFREYA", "UDEMOSOFIA"]) {
-      expect((await demo.mutation(api.demo.simulateMessage, { text: `<@${id}> :taco: thanks`, channelName: "general" })).status).toBe("given");
+      expect((await demo.mutation(api.demo.simulateMessage, { text: `<@${id}> :seedling: thanks`, channelName: "general" })).status).toBe("given");
     }
     await t.finishAllScheduledFunctions(vi.runAllTimers, 1000);
 
@@ -341,7 +351,7 @@ describe("the demo's quest history", () => {
       board.quests.filter((q) => q.status !== "waived").map(() => ["active", 0]),
     );
     const res = await demo.mutation(api.demo.simulateMessage, {
-      text: "<@UDEMOOSKAR> :taco: thanks for untangling the deploy pipeline on friday, saved my whole afternoon",
+      text: "<@UDEMOOSKAR> :seedling: thanks for untangling the deploy pipeline on friday, saved my whole afternoon",
       channelName: "general",
     });
     expect(res.status).toBe("given");
@@ -402,11 +412,11 @@ describe("the demo's read-model rollups", () => {
     expect(all?.given).toBe((await t.run((ctx) => ctx.db.query("kudos").collect())).reduce((n, k) => n + k.amount, 0));
 
     // Live playground activity on top of the seeded history is maintained transactionally.
-    await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> <@UDEMOJONAS> :taco::taco: great work", channelName: "design" });
+    await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> <@UDEMOJONAS> :seedling::seedling: great work", channelName: "design" });
     await demo.mutation(api.demo.simulateReaction, { authorSlackUserId: "UDEMOLENA", messageText: "shipped!", messageKey: "k1" });
     await t.finishAllScheduledFunctions(vi.runAllTimers, 1000); // teammates thank you back
     await demo.mutation(api.demo.refillAllowance, {});
-    await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOAIKO> :taco: thanks", channelName: "general" });
+    await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOAIKO> :seedling: thanks", channelName: "general" });
     await t.finishAllScheduledFunctions(vi.runAllTimers, 1000);
     const maintained = await rollupLines();
 
@@ -421,7 +431,7 @@ describe("the demo's read-model rollups", () => {
 
   test("a reset wipes every rollup row before the fresh history is seeded", async () => {
     const demo = await enterDemo();
-    await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> :taco:", channelName: "general" });
+    await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> :seedling:", channelName: "general" });
     await demo.mutation(api.demo.resetDemo, {});
     let seeding = false;
     for (let i = 0; i < 50 && !seeding; i++) {
@@ -470,7 +480,7 @@ describe("the demo's message finders (#86)", () => {
     await expectExact("seeded");
     expect(new Set((await all(t, "discoveries")).map((d) => d.category)).has("quest_complete")).toBe(true);
 
-    await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> <@UDEMOJONAS> :taco::taco: great work", channelName: "design" });
+    await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> <@UDEMOJONAS> :seedling::seedling: great work", channelName: "design" });
     await t.finishAllScheduledFunctions(vi.runAllTimers, 1000); // teammates thank you back
     await expectExact("played");
 
@@ -560,7 +570,7 @@ describe("sharing the demo", () => {
   test("visitors can refill the shared allowance; seeded history stays intact", async () => {
     const demo = await enterDemo();
     const seeded = (await all(t, "kudos")).length;
-    await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> :taco::taco::taco::taco::taco:", channelName: "general" });
+    await demo.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> :seedling::seedling::seedling::seedling::seedling:", channelName: "general" });
     expect((await demo.query(api.me.today, { today: TODAY })).remaining).toBe(0);
 
     await demo.mutation(api.demo.refillAllowance, {});
@@ -960,7 +970,7 @@ describe("the demo year played through the game (#100, §G16)", () => {
     );
     const robin = await signInAs(t, fresh);
     for (const id of ["UDEMOPRIYA", "UDEMOJONAS"]) {
-      const res = await robin.mutation(api.demo.simulateMessage, { text: `<@${id}> :taco: thanks for walking me through the release checklist`, channelName: "general" });
+      const res = await robin.mutation(api.demo.simulateMessage, { text: `<@${id}> :seedling: thanks for walking me through the release checklist`, channelName: "general" });
       expect(res.status).toBe("given");
     }
     expect((await robin.query(api.game.mine, {})).player).toMatchObject({ level: 2 });

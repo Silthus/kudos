@@ -470,7 +470,7 @@ export const seedScale = internalMutation({
       });
       for (let i = 0; i < SEED_NOTIFICATIONS_PER_MEMBER; i++) {
         const template = templates[Math.floor(rand() * templates.length)];
-        const text = renderTemplate(template.text, { giver: "Ana", recipients: p.name, amount: 2, emoji: "🌮", remaining: 3, limit: 5 });
+        const text = renderTemplate(template.text, { giver: "Ana", recipients: p.name, amount: 2, emoji: DEFAULT_SETTINGS.emojiGlyph, remaining: 3, limit: 5 });
         await ctx.db.insert("notifications", {
           workspaceId,
           memberId,
@@ -573,7 +573,7 @@ export const seedScaleStep = internalMutation({
         d[field] += amount;
         total(id)[field] += amount;
       };
-      const plan = planDay(day, people, kudosPerYear, workspace.dailyLimit);
+      const plan = planDay(day, people, kudosPerYear, workspace.dailyLimit, workspace.emojiName);
       for (const [i, m] of plan.entries()) {
         const at = dayStart + m.secondOfDay * 1000;
         if (at > now) continue; // later today: hasn't happened yet

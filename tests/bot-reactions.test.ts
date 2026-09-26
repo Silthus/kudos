@@ -138,6 +138,33 @@ describe("the bot reacts to every kudos attempt on the message itself", () => {
     });
   });
 
+  describe("with an everyday emoji like the seedling, chat that mentions nobody isn't an attempt (#168)", () => {
+    beforeEach(() => t.run((ctx) => ctx.db.patch(team.workspaceId, { emojiName: "seedling", emojiGlyph: "🌱" })));
+
+    test("🌱 without a mention: no reaction, no guidance, nothing recorded", async () => {
+      await post("planted the tomatoes this morning :seedling:", "UANA", "5.5");
+      expect(reactions()).toEqual([]);
+      expect(ephemerals()).toEqual([]);
+      expect(await t.run((ctx) => ctx.db.query("kudosAttempts").collect())).toEqual([]);
+    });
+
+    test.each([
+      ["only group mentions", "<!here> :seedling: great job team", "Group mentions like @here"],
+      ["only yourself", "<@UANA> :seedling: I deserve this", "You can't give :seedling: to yourself"],
+      ["only the Kudos app", "<@UBOT> :seedling: good bot", "Bots and apps can't receive :seedling:"],
+    ])("a mention that can't receive still gets ❌ and guidance: %s", async (_case, text, why) => {
+      await post(text, "UANA", "5.6");
+      expect(reactions().map((r) => r.name)).toEqual(["x"]);
+      expect(ephemerals()[0].text).toContain(why);
+    });
+
+    test("over the allowance still gets ⏳ and the math", async () => {
+      await post("<@UBEN> :seedling::seedling::seedling::seedling::seedling::seedling: thanks for the thorough review", "UANA", "5.7");
+      expect(reactions().map((r) => r.name)).toEqual(["hourglass_flowing_sand"]);
+      expect(ephemerals()[0].text).toContain("That's 6 :seedling:, but you have 5 left today.");
+    });
+  });
+
   test("a new teammate Kudos hasn't synced yet is looked up and receives", async () => {
     stubSlackApi({ "users.info": () => ({ ok: true, user: { id: "UDAN", team_id: "T1", name: "dan", real_name: "Dan" } }) });
     await post("<@UDAN> :taco: welcome aboard");

@@ -17,6 +17,14 @@ describe("parsing a kudos message", () => {
     expect(countEmoji(":taco::taco::taco::skin-tone-3:", "taco")).toBe(3);
   });
 
+  test("the seedling, the default kudos emoji (#168), is a standard emoji like any other", () => {
+    const text = "<@U1> :seedling::seedling: thanks for untangling the deploy";
+    expect([countEmoji(text, "seedling"), mentionedUsers(text), countNoteWords(text, "seedling", "🌱")]).toEqual([2, ["U1"], 5]);
+    // Typed as the glyph (the playground's input) it's no word of the note either.
+    expect(countNoteWords("🌱🌱 thanks for untangling the deploy", "seedling", "🌱")).toBe(5);
+    expect(countEmoji("<@U1> :seedlings: :seedling_bed:", "seedling")).toBe(0);
+  });
+
   test("does not match emojis that merely contain the name", () => {
     expect(countEmoji(":taco-party: :tacos:", "taco")).toBe(0);
   });

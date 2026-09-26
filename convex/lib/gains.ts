@@ -96,7 +96,7 @@ function parts(gain: Gain, audience: Audience, link: LinkTo): Parts {
       };
     case "skill":
       return {
-        icon: "🌱",
+        icon: "🌿",
         title: `New skill: ${safe(gain.name, audience)}`,
         body: [`${safe(gain.branch, audience)} branch.`, gain.description && safe(gain.description, audience)].filter(Boolean).join(" "),
         context: links(to("/skills", "Your skill tree")),

@@ -16,7 +16,8 @@ import { STORY_NOTE_WORDS } from "./quests";
  *   a Herald with the skill and a use left this month, to one person, with a 12+ word note, and not
  *   to the same person twice in a quarter; otherwise it's a normal kudos and the giver hears why.
  *
- * Slack apps can't add emoji: an admin uploads `kudosEmojiNames(emojiName)` once (Admin shows them).
+ * Slack apps can't add emoji: an admin uploads the variants and the Super kudos emoji once (Admin lists
+ * them), and the kudos emoji itself only if it's a custom one.
  */
 
 export type CosmeticSlot = "frame" | "banner" | "sticker";
@@ -89,7 +90,7 @@ export function variantShortcode(emojiName: string, suffix: string): string {
   return `:${emojiName}-${suffix}:`;
 }
 
-/** Every emoji an admin uploads to Slack for the game: the kudos emoji, the Super kudos emoji and each variant. */
+/** Every kudos emoji of a workspace: its own, then the Super kudos emoji and each variant (the ones an admin uploads). */
 export function kudosEmojiNames(emojiName: string): string[] {
   return [emojiName, `${emojiName}-${SUPER_SUFFIX}`, ...EMOJI_VARIANTS.map((v) => `${emojiName}-${v.suffix}`)];
 }
