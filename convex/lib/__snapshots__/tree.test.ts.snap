@@ -1,0 +1,76 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`layout > pins a known tree at the top stage, so a change to the layout rules is a deliberate one 1`] = `
+[
+  "base_camp@0,0",
+  "signpost@-1,7",
+  "notice_board@-6,5",
+  "terrace@9,-3",
+  "gallery@-4,-9",
+  "stall@-11,-7",
+  "oak@14,-1",
+  "pool@-12,6",
+  "homes@-9,-14",
+  "observatory@3,16",
+  "gatehouse@14,7",
+  "near_ruins@18,7",
+  "crew@4,-7",
+  "far_ruins@16,11",
+  "blight@-5,0",
+  "deep_ruins@9,17",
+  "overview@-3,21",
+  "canopy@-7,21",
+]
+`;
+
+exports[`layout > pins a known tree at the top stage, so a change to the layout rules is a deliberate one 2`] = `
+[
+  {
+    "x": 26,
+    "y": 5,
+  },
+  {
+    "x": -22,
+    "y": 14,
+  },
+  {
+    "x": 7,
+    "y": -25,
+  },
+  {
+    "x": 12,
+    "y": 23,
+  },
+  {
+    "x": -24,
+    "y": -9,
+  },
+  {
+    "x": 24,
+    "y": -10,
+  },
+]
+`;
+
+exports[`layout > pins a known tree at the top stage, so a change to the layout rules is a deliberate one 3`] = `
+[
+  "ruin:1:0 The Sunken Stair @56,6",
+  "ruin:1:1 The Copper Cistern @29,54",
+  "ruin:1:2 The Copper Orchard @-30,50",
+  "ruin:1:3 The Buried Library @-54,-23",
+  "ruin:1:4 The Salt Archive @-17,-53",
+  "ruin:1:5 The Silent Watchtower @37,-45",
+  "ruin:2:0 The Salt Stair @110,3",
+  "ruin:2:1 The Buried Vault @37,101",
+  "ruin:2:2 The Broken Library @-91,67",
+  "ruin:2:3 The Drowned Observatory @-109,-27",
+  "ruin:2:4 The Copper Stair @-24,-104",
+  "ruin:2:5 The Silent Archive @83,-70",
+  "ruin:3:0 The Broken Archive @182,20",
+  "ruin:3:1 The Gilded Library @4,181",
+  "ruin:3:2 The Broken Archive @-118,139",
+  "ruin:3:3 The Drowned Orchard @-177,-22",
+  "ruin:3:4 The Sunken Well @-46,-174",
+  "ruin:3:5 The Copper Vault @136,-123",
+]
+`;

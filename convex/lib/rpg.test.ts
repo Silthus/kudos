@@ -2,60 +2,88 @@ import { describe, expect, test } from "vitest";
 import { mulberry32 } from "./random";
 import {
   BESTIARY,
-  BLIGHT,
-  blightHp,
-  blightDamage,
   canJoinParty,
+  canStartExpedition,
   characterStats,
+  creature,
+  foeHpFor,
+  foeTargets,
   GEAR,
   generateRuin,
-  lootFor,
+  lootRand,
+  MAX_TURNS,
+  maxHp,
   PARTY,
+  puzzleHint,
+  PUZZLE_TRIES,
   resolveTurn,
+  roomLoot,
+  runLoot,
+  scoutHeraldPoints,
   STAMINA,
   staminaAfterKudos,
+  staminaAfterMoonFruit,
+  startEncounter,
+  startingHp,
   tierForLevel,
+  turnRand,
+  wearable,
   type Choice,
-  type Encounter,
-  type PartyMember,
+  type CreatureId,
+  type Fighter,
   type Room,
 } from "./rpg";
 
-/** The desert RPG's pure rules (#152 S7, S8): stamina, gear, ruins, turns, loot, parties, blights. */
+/** The desert RPG's pure rules (#152 S7): stamina, gear, ruins, turns, loot, parties. */
 
-const hero = (over: Partial<PartyMember> = {}): PartyMember => ({
-  id: "ana",
-  level: 8,
-  scoutHeraldPoints: 2,
-  plantsGrown: 1,
-  gear: [],
-  hp: 10,
-  ...over,
-});
+const hero = (over: Partial<Fighter> = {}): Fighter => ({ id: "ana", level: 8, scoutHeraldPoints: 2, plantsGrown: 1, equipped: {}, hp: 10, ...over });
+const foeRoom = (foe: CreatureId = "sand_scarab"): Room => ({ kind: "foe", foe });
+const fresh = (id: string, level: number, over: Partial<Fighter> = {}): Fighter => hero({ id, level, hp: startingHp(level), ...over });
 
 describe("stamina", () => {
-  test("comes only from thoughtful kudos and moon fruit, capped at 5, and never from time", () => {
-    expect(STAMINA.max).toBe(5);
-    expect(STAMINA.cost).toBe(1);
-    expect(staminaAfterKudos(0, { qualifying: true })).toBe(1);
-    expect(staminaAfterKudos(5, { qualifying: true })).toBe(5);
-    expect(staminaAfterKudos(2, { qualifying: false })).toBe(2);
+  test("comes only from thoughtful kudos (one per act of thanks) and moon fruit, and is capped at 5", () => {
+    expect(STAMINA).toEqual({ max: 5, cost: 1, perKudos: 1, perMoonFruit: 1 });
+    expect(staminaAfterKudos(0, { qualifyingLines: 1 })).toBe(1);
+    expect(staminaAfterKudos(0, { qualifyingLines: 3 })).toBe(1);
+    expect(staminaAfterKudos(5, { qualifyingLines: 1 })).toBe(5);
+    expect(staminaAfterKudos(2, { qualifyingLines: 0 })).toBe(2);
+    expect(staminaAfterKudos(9, { qualifyingLines: 0 })).toBe(5);
+    expect(staminaAfterKudos(NaN, { qualifyingLines: 1 })).toBe(1);
+    expect(staminaAfterMoonFruit(4)).toBe(5);
+    expect(staminaAfterMoonFruit(5)).toBe(5);
+  });
+
+  test("an expedition needs the tier's level and one stamina", () => {
+    expect(canStartExpedition({ level: 6, stamina: 1 }, 1)).toEqual({ ok: true });
+    expect(canStartExpedition({ level: 6, stamina: 0 }, 1)).toEqual({ ok: false, reason: "stamina" });
+    expect(canStartExpedition({ level: 9, stamina: 3 }, 2)).toEqual({ ok: false, reason: "level" });
+    expect([5, 6, 10, 15, 25].map(tierForLevel)).toEqual([0, 1, 2, 3, 3]);
   });
 });
 
-describe("character stats", () => {
-  test("derive from level, breadth skills, plants grown and gear, and are never stored", () => {
-    expect(characterStats(hero())).toEqual({ might: 8, wits: 2, heart: 1, hp: 10 });
-    const geared = hero({ gear: ["dune_hat", "brass_trowel", "amber_charm"] });
-    const s = characterStats(geared);
-    expect(s.might).toBe(8 + GEAR.brass_trowel.bonus);
-    expect(s.wits).toBe(2 + GEAR.dune_hat.bonus);
-    expect(s.heart).toBe(1 + GEAR.amber_charm.bonus);
+describe("character stats and gear", () => {
+  test("derive from level, breadth skills, plants grown (never above level) and worn gear", () => {
+    expect(characterStats(hero())).toEqual({ might: 8, wits: 2, heart: 1 });
+    expect(characterStats(hero({ equipped: { hat: "dune_hat", tool: "brass_trowel", charm: "amber_charm" } }))).toEqual({ might: 9, wits: 3, heart: 2 });
+    expect(characterStats(hero({ level: 0 })).might).toBe(1);
+    expect(characterStats(hero({ level: 6, plantsGrown: 40 })).heart).toBe(6);
+    expect(characterStats(hero({ level: NaN, scoutHeraldPoints: -3, plantsGrown: NaN }))).toEqual({ might: 1, wits: 0, heart: 0 });
+  });
+
+  test("wits come from the Scout and Herald branches of the skill tree", () => {
+    expect(scoutHeraldPoints(undefined)).toBe(0);
+    expect(scoutHeraldPoints({ more_plots: 2 })).toBe(0);
+    expect(scoutHeraldPoints({ lookout: 1 })).toBeGreaterThanOrEqual(1);
+  });
+
+  test("one item per slot: a wrong slot or an unknown id is dropped instead of stacking or crashing", () => {
+    expect(wearable({ hat: "sap_blade", tool: "sap_blade", charm: "nope" })).toEqual({ tool: "sap_blade" });
+    expect(wearable(undefined)).toEqual({});
+    expect(characterStats(hero({ equipped: { tool: "sap_blade", hat: "sap_blade" as never } })).might).toBe(11);
   });
 
   test("gear has three slots, a rarity and a bonus of 1 to 3", () => {
-    const slots = new Set(Object.values(GEAR).map((g) => g.slot));
-    expect([...slots].sort()).toEqual(["charm", "hat", "tool"]);
+    expect([...new Set(Object.values(GEAR).map((g) => g.slot))].sort()).toEqual(["charm", "hat", "tool"]);
     for (const g of Object.values(GEAR)) {
       expect(g.bonus).toBeGreaterThanOrEqual(1);
       expect(g.bonus).toBeLessThanOrEqual(3);
@@ -66,141 +94,163 @@ describe("character stats", () => {
 });
 
 describe("the bestiary and ruins", () => {
-  test("has twelve desert creatures across three tiers, each with a weakness", () => {
+  test("has twelve desert creatures across three tiers, each with a weakness, and rejects unknown ids", () => {
     expect(BESTIARY).toHaveLength(12);
     expect(new Set(BESTIARY.map((b) => b.tier))).toEqual(new Set([1, 2, 3]));
     for (const b of BESTIARY) expect(["might", "wits", "heart"]).toContain(b.weakness);
+    expect(() => creature("constructor" as never)).toThrow(/Unknown creature/);
   });
 
-  test("tiers open by level 6, 10 and 15", () => {
-    expect(tierForLevel(5)).toBe(0);
-    expect(tierForLevel(6)).toBe(1);
-    expect(tierForLevel(10)).toBe(2);
-    expect(tierForLevel(15)).toBe(3);
-    expect(tierForLevel(25)).toBe(3);
+  test("a foe grows with the standing party and hits two thirds of it", () => {
+    expect([1, 2, 4].map((n) => foeHpFor("sand_scarab", n))).toEqual([16, 24, 40]);
+    expect([1, 2, 3, 4].map(foeTargets)).toEqual([1, 2, 2, 3]);
   });
 
-  test("a ruin is 3 to 6 rooms, deterministic from its seed, ending with a foe and holding at most one secret", () => {
-    for (let i = 0; i < 200; i++) {
-      const ruin = generateRuin(i, "ruin:1:2", 1);
-      expect(ruin).toEqual(generateRuin(i, "ruin:1:2", 1));
-      expect(ruin.rooms.length).toBeGreaterThanOrEqual(3);
-      expect(ruin.rooms.length).toBeLessThanOrEqual(6);
-      expect(ruin.rooms[ruin.rooms.length - 1].kind).toBe("foe");
-      expect(ruin.rooms.filter((r) => r.kind === "secret").length).toBeLessThanOrEqual(1);
-      for (const r of ruin.rooms) {
-        if (r.kind === "foe") expect(BESTIARY.find((b) => b.id === r.foe)?.tier).toBe(1);
-        if (r.kind === "puzzle") expect(["who_thanked", "most_thanked_by", "last_channel"]).toContain(r.puzzle);
+  test("every ruin at every tier is 3 to 6 rooms, deterministic from its seed, ending with a foe of its tier, with at most one secret", () => {
+    for (const tier of [1, 2, 3] as const) {
+      const lengths = new Set<number>();
+      for (let i = 0; i < 300; i++) {
+        const id = `ruin:${tier}:${i % 6}`;
+        const ruin = generateRuin(i, id);
+        expect(ruin).toEqual(generateRuin(i, id));
+        expect(ruin.tier).toBe(tier);
+        lengths.add(ruin.rooms.length);
+        expect(ruin.rooms.length).toBeGreaterThanOrEqual(3);
+        expect(ruin.rooms.length).toBeLessThanOrEqual(6);
+        expect(ruin.rooms[ruin.rooms.length - 1].kind).toBe("foe");
+        expect(ruin.rooms.filter((r) => r.kind === "secret").length).toBeLessThanOrEqual(1);
+        for (const r of ruin.rooms) if (r.kind === "foe") expect(creature(r.foe).tier).toBe(tier);
       }
+      expect(lengths.size).toBeGreaterThan(1);
     }
+    expect(() => generateRuin(1, "nope")).toThrow(/Not a ruin id/);
+    expect(() => generateRuin(1, "ruin:1:9")).toThrow(/Not a ruin id/);
   });
 
-  test("higher tiers draw from their own creatures and are longer on average", () => {
-    const avg = (tier: 1 | 2 | 3) => {
-      let n = 0;
-      for (let i = 0; i < 300; i++) n += generateRuin(i, `ruin:${tier}:0`, tier).rooms.length;
-      return n / 300;
-    };
+  test("the blight raid is a ruin that ends on the blight heart at the top tier", () => {
+    const raid = generateRuin(7, "raid:3");
+    expect(raid.tier).toBe(3);
+    expect(raid.rooms[raid.rooms.length - 1]).toEqual({ kind: "foe", foe: "blight_heart" });
+    expect(generateRuin(7, "raid:1").rooms.at(-1)?.kind).toBe("foe");
+  });
+
+  test("deeper tiers run longer on average", () => {
+    const avg = (tier: 1 | 2 | 3) => Array.from({ length: 300 }, (_, i) => generateRuin(i, `ruin:${tier}:0`).rooms.length).reduce((a, b) => a + b) / 300;
     expect(avg(3)).toBeGreaterThan(avg(1));
-    const deep = generateRuin(3, "ruin:3:1", 3);
-    for (const r of deep.rooms) if (r.kind === "foe") expect(BESTIARY.find((b) => b.id === r.foe)?.tier).toBe(3);
+  });
+
+  test("random sources for turns and loot are their own per turn, room and member", () => {
+    expect(turnRand(1, 0, 0)()).toBe(turnRand(1, 0, 0)());
+    expect(turnRand(1, 0, 0)()).not.toBe(turnRand(1, 0, 1)());
+    expect(lootRand(1, "ana", 0)()).not.toBe(lootRand(1, "ben", 0)());
+    expect(lootRand(1, "ana", -1)()).not.toBe(lootRand(1, "ana", 0)());
   });
 });
 
 describe("turns", () => {
-  const foeRoom = (id = "sand_scarab"): Extract<Room, { kind: "foe" }> => ({ kind: "foe", foe: id });
-  const start = (members: PartyMember[], room = foeRoom()): Encounter => {
-    const foe = BESTIARY.find((b) => b.id === room.foe)!;
-    return { room, foeHp: foe.hp, party: members, turn: 0, log: [], done: null };
-  };
-
-  test("a strike hits with might, a weakness doubles it, and the foe strikes back at one member", () => {
-    const e = start([hero()]);
-    const next = resolveTurn(e, { ana: { kind: "strike" } }, mulberry32(1));
-    const foe = BESTIARY.find((b) => b.id === "sand_scarab")!;
-    const expected = foe.weakness === "might" ? 8 * 2 : 8;
-    expect(next.foeHp).toBe(Math.max(0, foe.hp - expected));
-    expect(next.turn).toBe(1);
-    expect(next.log.length).toBeGreaterThanOrEqual(1);
-    if (next.foeHp > 0) expect(next.party[0].hp).toBeLessThan(10);
+  test("never mutate the encounter passed in, and drop a duplicated member", () => {
+    const e = startEncounter(foeRoom(), [hero(), hero()]);
+    expect(e.party).toHaveLength(1);
+    const frozen = JSON.stringify(e);
+    resolveTurn(e, { ana: { kind: "strike" } }, mulberry32(1));
+    expect(JSON.stringify(e)).toBe(frozen);
   });
 
-  test("rally heals the party and never damages the foe; use item spends it", () => {
-    const e = start([hero({ hp: 4 }), hero({ id: "ben", hp: 6 })], foeRoom("dune_wisp"));
-    const next = resolveTurn(e, { ana: { kind: "rally" }, ben: { kind: "strike" } }, mulberry32(2));
-    const ana = next.party.find((m) => m.id === "ana")!;
-    expect(ana.hp).toBeGreaterThanOrEqual(4);
-    expect(next.log.some((l) => /rall/i.test(l))).toBe(true);
-    const withItem = resolveTurn(start([hero({ items: ["moon"] })]), { ana: { kind: "item", item: "moon" } }, mulberry32(3));
-    expect(withItem.party[0].items).toEqual([]);
+  test("an attack uses its stat, a matching weakness doubles it, and the foe hits back", () => {
+    const e = startEncounter(foeRoom("dune_wisp"), [hero({ level: 4, scoutHeraldPoints: 3 })]); // wisp: 12 hp, weak to wits
+    const struck = resolveTurn(e, { ana: { kind: "strike" } }, mulberry32(1));
+    expect(struck.foeHp).toBe(12 - 4);
+    expect(struck.party[0].hp).toBeLessThan(10);
+    expect(struck.turn).toBe(1);
+    expect(struck.done).toBeNull();
+    expect(resolveTurn(e, { ana: { kind: "outwit" } }, mulberry32(1)).foeHp).toBe(12 - 6);
+    expect(resolveTurn(startEncounter(foeRoom("blight_sprout"), [hero({ plantsGrown: 3 })]), { ana: { kind: "calm" } }, mulberry32(1)).foeHp).toBe(13 - 6);
   });
 
-  test("the encounter ends when the foe falls or every member has fallen; a fallen member returns to camp, losing nothing", () => {
-    let e = start([hero({ level: 1, hp: 3 })], foeRoom("sand_scarab"));
+  test("rally heals the standing party up to the cap and never touches the foe", () => {
+    const e = startEncounter(foeRoom("dune_wisp"), [hero({ hp: 4, plantsGrown: 8 }), hero({ id: "ben", hp: maxHp(8) }), hero({ id: "cy", hp: 0 })]);
+    expect(e.foeHp).toBe(foeHpFor("dune_wisp", 2));
+    const next = resolveTurn(e, { ana: { kind: "rally" } }, mulberry32(2));
+    expect(next.foeHp).toBe(e.foeHp);
+    const [ana, ben, cy] = next.party;
+    // Heals 2 + 8/4 = 4; then the wisp hits both standing members for 2 or 3 each.
+    expect(ana.hp + ben.hp).toBeGreaterThanOrEqual(8 + maxHp(8) - 6);
+    expect(ana.hp + ben.hp).toBeLessThanOrEqual(8 + maxHp(8) - 4);
+    expect(cy.hp).toBe(0);
+    expect(next.log.some((l) => /rallies/.test(l))).toBe(true);
+  });
+
+  test("the room ends when the foe falls, when everyone has fallen (returning to camp, losing nothing), or at the turn cap", () => {
+    let weak = startEncounter(foeRoom("sand_scarab"), [hero({ level: 1, hp: 3 })]);
     const rand = mulberry32(4);
-    for (let i = 0; i < 20 && !e.done; i++) e = resolveTurn(e, { ana: { kind: "strike" } }, rand);
-    expect(e.done).not.toBeNull();
-    if (e.done === "fallen") expect(e.party[0].hp).toBe(0);
-    let strong = start([hero({ level: 25 })]);
-    for (let i = 0; i < 20 && !strong.done; i++) strong = resolveTurn(strong, { ana: { kind: "strike" } }, rand);
+    for (let i = 0; i < 40 && !weak.done; i++) weak = resolveTurn(weak, { ana: { kind: "strike" } }, rand);
+    expect(weak.done).toBe("fallen");
+    expect(weak.party[0].hp).toBe(0);
+
+    const strong = resolveTurn(startEncounter(foeRoom("sand_scarab"), [hero({ level: 25 })]), { ana: { kind: "strike" } }, rand);
     expect(strong.done).toBe("cleared");
+    expect(strong.foeHp).toBe(0);
+
+    let stall = startEncounter(foeRoom("sand_scarab"), [hero({ level: 25, plantsGrown: 25, hp: maxHp(25) })]);
+    for (let i = 0; i < 100 && !stall.done; i++) stall = resolveTurn(stall, { ana: { kind: "rally" } }, rand);
+    expect(stall.done).toBe("retreated");
+    expect(stall.turn).toBe(MAX_TURNS);
+    expect(resolveTurn(stall, { ana: { kind: "strike" } }, rand)).toBe(stall);
   });
 
-  test("a member with no choice yet waits; the foe still acts, so nobody stalls the party", () => {
-    const e = start([hero(), hero({ id: "ben" })]);
-    const next = resolveTurn(e, { ana: { kind: "strike" } }, mulberry32(5));
+  test("a member with no choice yet waits; the foe still acts; a broken hp counts as fallen", () => {
+    const next = resolveTurn(startEncounter(foeRoom(), [hero(), hero({ id: "ben" })]), { ana: { kind: "strike" } }, mulberry32(5));
     expect(next.turn).toBe(1);
+    expect(next.party.reduce((n, p) => n + p.hp, 0)).toBeLessThan(20);
+    expect(startEncounter(foeRoom(), [hero({ hp: NaN })]).party[0].hp).toBe(0);
+    expect(resolveTurn(startEncounter(foeRoom(), [hero({ hp: NaN })]), {}, mulberry32(6)).done).toBe("fallen");
   });
 
-  test("puzzle rooms are solved by wits against a threshold and rest rooms heal", () => {
+  test("a puzzle takes one answer per turn about the team, costs a little when wrong, and shuts after three wrong ones", () => {
     const puzzle: Room = { kind: "puzzle", puzzle: "who_thanked", difficulty: 4 };
-    const e: Encounter = { room: puzzle, foeHp: 0, party: [hero({ scoutHeraldPoints: 5 })], turn: 0, log: [], done: null };
-    expect(resolveTurn(e, { ana: { kind: "outwit" } }, mulberry32(6)).done).toBe("cleared");
-    const rest: Room = { kind: "rest" };
-    const r = resolveTurn({ ...e, room: rest, party: [hero({ hp: 2 })] }, { ana: { kind: "rally" } }, mulberry32(7));
-    expect(r.done).toBe("cleared");
-    expect(r.party[0].hp).toBeGreaterThan(2);
+    const e = startEncounter(puzzle, [hero(), hero({ id: "ben" })]);
+    expect(resolveTurn(e, { ana: { kind: "answer", correct: true } }, mulberry32(6)).done).toBe("cleared");
+    const bothWrong = resolveTurn(e, { ana: { kind: "answer", correct: false }, ben: { kind: "answer", correct: false } }, mulberry32(6));
+    expect(bothWrong.wrong).toBe(1);
+    expect(bothWrong.party.map((p) => p.hp)).toEqual([9, 10]);
+    expect(resolveTurn(e, { ana: { kind: "strike" }, ben: { kind: "rally" } }, mulberry32(6)).party.map((p) => p.hp)).toEqual([10, 10]);
+    let shut = e;
+    for (let i = 0; i < PUZZLE_TRIES; i++) shut = resolveTurn(shut, { ana: { kind: "answer", correct: false } }, mulberry32(6));
+    expect(shut.done).toBe("retreated");
+    expect(puzzleHint(4, 4)).toBe(true);
+    expect(puzzleHint(3, 4)).toBe(false);
+    expect(resolveTurn(startEncounter(foeRoom(), [hero()]), { ana: { kind: "answer", correct: true } }, mulberry32(6)).done).toBeNull();
   });
 
-  test("a solo level-appropriate hero clears most near ruins, and is not guaranteed to", () => {
-    let cleared = 0;
-    const runs = 200;
-    for (let s = 0; s < runs; s++) {
-      const ruin = generateRuin(s, "ruin:1:0", 1);
-      const rand = mulberry32(1000 + s);
-      let member = hero({ level: 7, hp: 12 });
-      let ok = true;
-      for (const room of ruin.rooms) {
-        let e: Encounter = { room, foeHp: room.kind === "foe" ? BESTIARY.find((b) => b.id === room.foe)!.hp : 0, party: [member], turn: 0, log: [], done: null };
-        const choice: Choice = room.kind === "puzzle" ? { kind: "outwit" } : room.kind === "rest" ? { kind: "rally" } : { kind: "strike" };
-        for (let i = 0; i < 30 && !e.done; i++) e = resolveTurn(e, { ana: choice }, rand);
-        if (e.done !== "cleared") {
-          ok = false;
-          break;
-        }
-        member = e.party[0];
-      }
-      if (ok) cleared++;
-    }
-    expect(cleared / runs).toBeGreaterThan(0.55);
-    expect(cleared / runs).toBeLessThan(0.98);
+  test("rest rooms heal on entry and clear on the next turn whatever anyone does; secret rooms clear", () => {
+    const rest = startEncounter({ kind: "rest" }, [hero({ hp: 2 })]);
+    expect(rest.party[0].hp).toBe(6);
+    expect(resolveTurn(rest, {}, mulberry32(7)).done).toBe("cleared");
+    expect(resolveTurn(startEncounter({ kind: "secret", lore: 1 }, [hero()]), {}, mulberry32(7)).done).toBe("cleared");
   });
 });
 
 describe("balance", () => {
-  const run = (members: PartyMember[], tier: 1 | 2 | 3, seed: number) => {
-    const ruin = generateRuin(seed, `ruin:${tier}:0`, tier);
+  /** A sensible policy: answer puzzles right three times in four, rally when someone is low, else use the foe's weakness. */
+  const run = (members: Fighter[], tier: 1 | 2 | 3, seed: number) => {
+    const ruin = generateRuin(seed, `ruin:${tier}:0`);
     const rand = mulberry32(9000 + seed);
     let party = members;
     for (const room of ruin.rooms) {
-      let e: Encounter = { room, foeHp: room.kind === "foe" ? BESTIARY.find((b) => b.id === room.foe)!.hp : 0, party, turn: 0, log: [], done: null };
-      for (let i = 0; i < 40 && !e.done; i++) {
+      let e = startEncounter(room, party);
+      for (let i = 0; i < MAX_TURNS && !e.done; i++) {
         const choices: Record<string, Choice> = {};
+        const low = e.party.some((p) => p.hp > 0 && p.hp <= 4);
+        const healer = e.party.find((p) => p.hp > 0);
         for (const m of e.party) {
           if (m.hp <= 0) continue;
-          // The weakest standing member rallies when anyone is low; the rest strike or outwit.
-          const low = e.party.some((p) => p.hp > 0 && p.hp <= 4);
-          choices[m.id] = room.kind === "puzzle" ? { kind: "outwit" } : room.kind === "rest" ? { kind: "rally" } : low && m === e.party.find((p) => p.hp > 0) ? { kind: "rally" } : { kind: "strike" };
+          if (room.kind === "puzzle") choices[m.id] = { kind: "answer", correct: rand() < 0.75 };
+          else if (low && m === healer) choices[m.id] = { kind: "rally" };
+          else {
+            const s = characterStats(m);
+            const weak = room.kind === "foe" ? creature(room.foe).weakness : "might";
+            choices[m.id] = s[weak] * 2 > s.might ? ({ might: { kind: "strike" }, wits: { kind: "outwit" }, heart: { kind: "calm" } } as const)[weak] : { kind: "strike" };
+          }
         }
         e = resolveTurn(e, choices, rand);
       }
@@ -209,73 +259,84 @@ describe("balance", () => {
     }
     return true;
   };
-  const rate = (members: () => PartyMember[], tier: 1 | 2 | 3, runs = 150) => {
-    let ok = 0;
-    for (let s = 0; s < runs; s++) if (run(members(), tier, s)) ok++;
-    return ok / runs;
-  };
+  const rate = (members: () => Fighter[], tier: 1 | 2 | 3, runs = 200) => Array.from({ length: runs }, (_, s) => run(members(), tier, s)).filter(Boolean).length / runs;
+  const deep = (id: string, over: Partial<Fighter> = {}) => fresh(id, 15, { scoutHeraldPoints: 5, plantsGrown: 4, ...over });
 
-  test("the deep ruins want a party: a solo level-15 hero mostly falls, three of them mostly clear", () => {
-    const solo = rate(() => [hero({ id: "a", level: 15, hp: 15 })], 3);
-    const party = rate(() => ["a", "b", "c"].map((id) => hero({ id, level: 15, hp: 15 })), 3);
-    expect(solo).toBeLessThan(0.5);
-    expect(party).toBeGreaterThan(0.6);
-    expect(party).toBeGreaterThan(solo);
+  test("a solo hero at each tier's gate clears the near and far ruins most of the time, and is never guaranteed to", () => {
+    const near = rate(() => [fresh("a", 6)], 1);
+    const far = rate(() => [fresh("a", 10, { scoutHeraldPoints: 4, equipped: { tool: "iron_spade" } })], 2);
+    expect(near).toBeGreaterThan(0.55);
+    expect(near).toBeLessThan(0.98);
+    expect(far).toBeGreaterThan(0.55);
+    expect(far).toBeLessThan(0.98);
   });
 
-  test("the far ruins suit a level-12 hero alone", () => {
-    expect(rate(() => [hero({ id: "a", level: 12, hp: 14 })], 2)).toBeGreaterThan(0.6);
+  test("the deep ruins want a party: a solo level-15 hero mostly falls, even a veteran gardener; three mostly clear; a full party can still fail", () => {
+    expect(rate(() => [deep("a")], 3)).toBeLessThan(0.5);
+    expect(rate(() => [deep("a", { plantsGrown: 30 })], 3)).toBeLessThan(0.5);
+    expect(rate(() => ["a", "b", "c"].map((id) => deep(id)), 3)).toBeGreaterThan(0.6);
+    expect(rate(() => ["a", "b", "c", "d"].map((id) => deep(id)), 3)).toBeLessThan(0.95);
   });
 });
 
 describe("loot", () => {
-  test("stays within bounds and drops a secret about one time in twenty", () => {
-    let coinsMin = Infinity;
-    let coinsMax = 0;
-    let secrets = 0;
-    const rand = mulberry32(11);
-    const n = 4000;
-    for (let i = 0; i < n; i++) {
-      const loot = lootFor({ kind: "foe", foe: "sand_scarab" }, 1, rand);
-      coinsMin = Math.min(coinsMin, loot.coins);
-      coinsMax = Math.max(coinsMax, loot.coins);
-      if (loot.secret) secrets++;
-      for (const g of loot.gear) expect(GEAR[g]).toBeDefined();
+  test("coins and the rare secret come once per run, within the tier's bounds", () => {
+    for (const tier of [1, 2, 3] as const) {
+      const rand = mulberry32(11 + tier);
+      let secrets = 0;
+      const n = 4000;
+      for (let i = 0; i < n; i++) {
+        const l = runLoot(tier, rand);
+        expect(l.coins).toBeGreaterThanOrEqual([5, 12, 20][tier - 1]);
+        expect(l.coins).toBeLessThanOrEqual([15, 28, 40][tier - 1]);
+        if (l.secret) {
+          secrets++;
+          expect(l.secret.lore).toBeGreaterThanOrEqual(0);
+          expect(l.secret.lore).toBeLessThan(12);
+        }
+      }
+      expect(secrets / n).toBeGreaterThan(0.035);
+      expect(secrets / n).toBeLessThan(0.065);
     }
-    expect(coinsMin).toBeGreaterThanOrEqual(5);
-    expect(coinsMax).toBeLessThanOrEqual(40);
-    expect(secrets / n).toBeGreaterThan(0.03);
-    expect(secrets / n).toBeLessThan(0.08);
   });
 
-  test("secret rooms always hold a secret and a rare-or-better item; rest rooms hold nothing", () => {
+  test("rooms add only sun fruit and gear, rarer at deeper tiers; rest rooms hold nothing", () => {
     const rand = mulberry32(12);
-    const s = lootFor({ kind: "secret", lore: 3 }, 2, rand);
-    expect(s.secret).toBe(true);
-    expect(s.gear.length).toBe(1);
-    expect(["rare", "epic", "legendary"]).toContain(GEAR[s.gear[0]].rarity);
-    expect(lootFor({ kind: "rest" }, 1, rand)).toEqual({ coins: 0, fruits: [], gear: [], secret: false });
+    const rarities = (tier: 1 | 2 | 3) => {
+      const seen = new Set<string>();
+      const fruitKinds = new Set<string>();
+      for (let i = 0; i < 3000; i++) {
+        const l = roomLoot({ kind: "foe", foe: "sand_scarab" }, tier, rand);
+        for (const f of l.fruits) fruitKinds.add(f);
+        for (const g of l.gear) seen.add(GEAR[g].rarity);
+      }
+      return { seen, fruitKinds };
+    };
+    expect([...rarities(1).fruitKinds]).toEqual(["sun"]);
+    expect([...rarities(1).seen].sort()).toEqual(["common", "uncommon"]);
+    expect(rarities(3).seen.has("epic")).toBe(true);
+    expect(rarities(3).seen.has("legendary")).toBe(false);
+    expect(roomLoot({ kind: "rest" }, 1, rand)).toEqual({ fruits: [], gear: [], lore: null });
+  });
+
+  test("a secret room gives its lore card and a rare-or-better item once per member, never again", () => {
+    const rand = mulberry32(13);
+    const first = roomLoot({ kind: "secret", lore: 3 }, 1, rand);
+    expect(first.lore).toBe(3);
+    expect(first.gear).toHaveLength(1);
+    expect(GEAR[first.gear[0]].rarity).toBe("rare");
+    expect(["rare", "epic", "legendary"]).toContain(GEAR[roomLoot({ kind: "secret", lore: 3 }, 3, rand).gear[0]].rarity);
+    expect(roomLoot({ kind: "secret", lore: 3 }, 1, rand, { secretFound: true })).toEqual({ fruits: [], gear: [], lore: null });
   });
 });
 
-describe("parties and blights", () => {
-  test("a party is 2 to 4, invited within 8 tiles, and needs the tier's level", () => {
-    expect(PARTY.max).toBe(4);
-    expect(PARTY.inviteRadius).toBe(8);
-    expect(canJoinParty({ level: 6, distance: 3, size: 1 }, 1)).toEqual({ ok: true });
-    expect(canJoinParty({ level: 6, distance: 9, size: 1 }, 1)).toEqual({ ok: false, reason: "too_far" });
-    expect(canJoinParty({ level: 6, distance: 3, size: 4 }, 1)).toEqual({ ok: false, reason: "full" });
-    expect(canJoinParty({ level: 9, distance: 3, size: 1 }, 2)).toEqual({ ok: false, reason: "level" });
-  });
-
-  test("a blight's hp scales with the active company and damage comes from kudos, rooms and raids", () => {
-    expect(blightHp(10)).toBe(400);
-    expect(blightHp(0)).toBe(BLIGHT.minHp);
-    expect(blightDamage("kudos")).toBe(1);
-    expect(blightDamage("room")).toBe(2);
-    expect(blightDamage("raid_room")).toBe(10);
-    expect(BLIGHT.windowDays).toBe(5);
-    expect(BLIGHT.everyDays).toEqual([14, 28]);
-    expect(BLIGHT.rewardCoins).toBe(20);
+describe("parties", () => {
+  test("a party is 1 to 4, invited within 8 tiles, and every member needs the tier's level and a stamina", () => {
+    expect(PARTY).toEqual({ min: 1, max: 4, inviteRadius: 8, decideSeconds: 60 });
+    expect(canJoinParty({ level: 6, stamina: 1, distance: 3, size: 1 }, 1)).toEqual({ ok: true });
+    expect(canJoinParty({ level: 6, stamina: 1, distance: 9, size: 1 }, 1)).toEqual({ ok: false, reason: "too_far" });
+    expect(canJoinParty({ level: 6, stamina: 1, distance: 3, size: 4 }, 1)).toEqual({ ok: false, reason: "full" });
+    expect(canJoinParty({ level: 9, stamina: 1, distance: 3, size: 1 }, 2)).toEqual({ ok: false, reason: "level" });
+    expect(canJoinParty({ level: 6, stamina: 0, distance: 3, size: 1 }, 1)).toEqual({ ok: false, reason: "stamina" });
   });
 });
