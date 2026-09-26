@@ -329,6 +329,15 @@ describe("the demo's wandering teammates", () => {
     expect(card()?.textContent).toContain("Herald");
   });
 
+  test("one with a home on the ring: their card offers a visit (#160)", () => {
+    layer({ viewer: { ...viewer, sharedDemo: true }, wanderers: [{ ...team[0], hasHome: true }, team[1]] });
+    const npcs = hogs().filter((h) => h.dataset.wanderer !== undefined);
+    act(() => npcs[0].querySelector<HTMLElement>("[data-hog-hit]")!.click());
+    expect([...card()!.querySelectorAll("a")].map((a) => [a.textContent, a.getAttribute("href")])).toContainEqual(["Visit their home", "/homes/m7"]);
+    act(() => npcs[1].querySelector<HTMLElement>("[data-hog-hit]")!.click());
+    expect(card()!.textContent).not.toContain("Visit their home");
+  });
+
   test("never in a real workspace", () => {
     layer();
     expect(hogs().filter((h) => h.dataset.wanderer !== undefined)).toEqual([]);

@@ -25,6 +25,10 @@ import { fnv1a, mulberry32 } from "./lib/random";
 import { validateRewardInput } from "./lib/store";
 import { canSpend, coinBalance } from "./lib/coins";
 import { SHOP_LEVEL } from "./lib/items";
+import { DEMO_HOMES, DEMO_LANTERNS } from "./lib/demoHomes";
+import { nextHomeStage } from "./lib/homes";
+import { homePlots } from "./lib/tree";
+import { treeOf } from "./tree";
 import { playerOf, thankedBack } from "./game";
 import { finishedTutorial } from "./tutorial";
 import { joinOf, joinSpree, paySpree, spreeable, spreeJoinsInMonth, spreesOn } from "./sprees";
@@ -538,6 +542,49 @@ export const seedNeighbourGarden = internalMutation({
   },
 });
 
+/**
+ * The demo's homes on the tree (#160, `lib/demoHomes.ts`): each teammate's home at the story's stage,
+ * the next one under way where the story says, then the guestbooks' lanterns from earlier weeks.
+ * Scenery, like the bonus days: the teammates' wallets are left alone, since a canopy manor is 1,000
+ * Hog coins in all, more than the demo's 18 weeks of game earn anyone, and a ring of bedrolls would
+ * show nothing. Waits for the tree to open its homes ring. Once per reset: a demo with homes is done.
+ */
+export const seedHomes = internalMutation({
+  args: { workspaceId: v.id("workspaces"), resetAt: v.optional(v.number()), attempt: v.optional(v.number()) },
+  returns: v.null(),
+  handler: async (ctx, { workspaceId, resetAt, attempt = 0 }) => {
+    const workspace = await ctx.db.get(workspaceId);
+    if (!workspace?.isDemo) return null;
+    if (workspace.resettingSince !== undefined && workspace.resettingSince !== resetAt) return null;
+    if (await ctx.db.query("homes").withIndex("by_workspace_plot", (q) => q.eq("workspaceId", workspaceId)).first()) return null;
+    const plots = homePlots((await treeOf(ctx, workspaceId))?.peakGrowth ?? 0);
+    if (plots === 0) {
+      if (attempt < STORE_SEED_WAIT.attempts) await ctx.scheduler.runAfter(STORE_SEED_WAIT.everyMs, internal.demo.seedHomes, { workspaceId, resetAt, attempt: attempt + 1 });
+      else console.warn("Demo homes: the homes ring never opened; no homes.");
+      return null;
+    }
+    const now = workspaceNow(workspace);
+    const homeOf = new Map<string, Id<"homes">>();
+    for (const h of DEMO_HOMES) {
+      const member = await findMember(ctx, workspace, h.who);
+      if (!member || h.plot >= plots) continue;
+      const building = h.buildingFor !== undefined ? nextHomeStage(h.stage) : null;
+      const startedAt = building ? now - h.buildingFor! * DAY_MS : now - 30 * DAY_MS;
+      const homeId = await ctx.db.insert("homes", { workspaceId, memberId: member._id, name: member.name, plot: h.plot, stage: h.stage, stageStartedAt: startedAt, ...(building ? { buildingTo: building.id } : {}) });
+      // No look scheduled for the stage under way: every read works out when it's done, and the demo sends no DMs.
+      homeOf.set(h.who, homeId);
+    }
+    for (const l of DEMO_LANTERNS) {
+      const homeId = homeOf.get(l.home);
+      const by = await findMember(ctx, workspace, l.by);
+      if (!homeId || !by) continue;
+      const at = now - l.weeksAgo * 7 * DAY_MS;
+      await ctx.db.insert("homeLanterns", { workspaceId, homeId, by: by._id, note: l.note, at, week: weekKeyOfDay(dayKeyFor(at, workspace.timezone)) });
+    }
+    return null;
+  },
+});
+
 async function growAlexGame(ctx: MutationCtx, workspace: Doc<"workspaces">, alex: Doc<"members">, player: Doc<"players">) {
   const now = workspaceNow(workspace);
   const { timezone } = workspace;
@@ -709,6 +756,8 @@ export const seedStore = internalMutation({
     // The neighbours' gardens round Alex's (#129), from what the story left them.
     const alex = ids.get(DEMO_YOU);
     if (alex) await plantNeighbours(ctx, workspace, (await ctx.db.get(alex))!, resetAt);
+    // The homes on the tree (#160): scenery, once the tree has opened its homes ring.
+    await ctx.scheduler.runAfter(0, internal.demo.seedHomes, { workspaceId, resetAt });
     return null;
   },
 });
@@ -1290,6 +1339,8 @@ const DEMO_TABLES = [
   "treeEvents",
   "offerings",
   "inventory",
+  "homeLanterns",
+  "homes",
   "notifications",
 ] as const;
 
@@ -1351,6 +1402,10 @@ async function demoRows(ctx: MutationCtx, workspaceId: Id<"workspaces">, table: 
       return await ctx.db.query("offerings").withIndex("by_workspace_claimedAt_createdAt", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "inventory":
       return await ctx.db.query("inventory").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(n);
+    case "homeLanterns":
+      return await ctx.db.query("homeLanterns").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(n);
+    case "homes":
+      return await ctx.db.query("homes").withIndex("by_workspace_plot", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "simulatorRuns":
       return await ctx.db.query("simulatorRuns").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "notifications":

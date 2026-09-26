@@ -22,9 +22,11 @@ export type TreeInput = Pick<WorldInput, "seed" | "layout" | "planted">;
  * game is there to promise: no homes, ruins, crew or blight, no closed outlines.
  */
 const RESTING_SEED = 20_260_926;
+/** Districts whose only places are the game's own (#160's homes and canopy): not there without the game. */
+const GAME_ONLY: DistrictId[] = ["homes", "canopy"];
 function resting(): Layout {
   const grown = layout(RESTING_SEED, TREE_STAGE_BY_ID.grown.growth);
-  return { ...grown, districts: grown.districts.filter((d) => d.open && DISTRICT_BY_ID[d.id].places.length > 0), homes: [], ruins: [] };
+  return { ...grown, districts: grown.districts.filter((d) => d.open && DISTRICT_BY_ID[d.id].places.length > 0 && !GAME_ONLY.includes(d.id)), homes: [], ruins: [] };
 }
 
 /** The tree the world is built round; null while the state is loading. */

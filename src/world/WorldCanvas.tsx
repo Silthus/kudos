@@ -167,8 +167,9 @@ export function WorldCanvas({
       [frontCanvas.current, settled, "front"],
       [freshCanvas.current, opening, "all"],
     ] as const) {
-      // The terrace's plants belong to the layer the terrace is on.
-      const plants = what === settled ? (fresh.includes("terrace") ? { beds: [], plots: [] } : furniture) : fresh.includes("terrace") ? furniture : { beds: [], plots: [] };
+      // The terrace's plants belong to the layer the terrace is on, the homes to the settled one.
+      const terrace = fresh.includes("terrace") ? what !== settled : what === settled;
+      const plants = { ...furniture, beds: terrace ? furniture.beds : [], plots: terrace ? furniture.plots : [], homes: what === settled ? furniture.homes : [] };
       const ctx = canvas?.getContext("2d");
       if (!ctx) continue;
       const img = ctx.createImageData(rect.width, rect.height);

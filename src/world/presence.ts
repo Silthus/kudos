@@ -95,8 +95,7 @@ export type PresenceViewer = { memberId: string; workspaceName: string; sharedDe
 /**
  * What clicking a hog shows: their name, level title, a line on who they are when that needs
  * saying, and the ways to them. `actions` is the card's slot: parties (#163) add "Invite to party"
- * here once an expedition is forming. "Visit their home" waits for homes (#160: `hasHome`, and the
- * route it owns).
+ * here once an expedition is forming. "Visit their home" opens their home on the ring (#160).
  */
 export function cardFor(hog: HogWho, viewer: PresenceViewer): HogCard {
   if (!hog.npc && hog.memberId === viewer.memberId) {
@@ -105,7 +104,7 @@ export function cardFor(hog: HogWho, viewer: PresenceViewer): HogCard {
     return { name: hog.name, title: hog.title, note: "You, in another window", actions: [{ label: "Visit your garden", to: "/garden" }] };
   }
   const actions = [{ label: "Visit their garden", to: `/garden/${hog.memberId}` }];
-  if (hog.hasHome) actions.push({ label: "Visit their home", to: `/home/${hog.memberId}` });
+  if (hog.hasHome) actions.push({ label: "Visit their home", to: `/homes/${hog.memberId}` });
   return { name: hog.name, title: hog.title, note: hog.npc ? `${viewer.workspaceName} teammate` : null, actions };
 }
 

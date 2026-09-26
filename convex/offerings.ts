@@ -14,6 +14,7 @@ import { dayKeyFor, DAY_MS, workspaceNow } from "./lib/time";
 import { fuelForLine, OFFERING_AUTO_CLAIM_DAYS } from "./lib/tree";
 import { fruitIdValidator } from "./schema";
 import { addFuel } from "./tree";
+import { homeFinished } from "./homes";
 
 /**
  * Offerings at the Ancient Tree (#157; design plan #152 S3): the giver's side of the stone's two
@@ -431,6 +432,7 @@ export const applyFruit = mutation({
         return { said: "A Lucky charm charge: your next thoughtful kudos rolls its message Uncommon or better." };
       case "homeDiscount":
         if (player.homeDiscount !== undefined) throw new ConvexError("A star fruit's discount is already waiting for your home's next stage.");
+        if (await homeFinished(ctx, player.memberId)) throw new ConvexError("Your home has every stage built: keep the star fruit, or sell it at the stall.");
         await ctx.db.patch(player._id, { homeDiscount: effect.percent });
         return { said: `${effect.percent}% off your home's next build stage.` };
       case "superSeed":

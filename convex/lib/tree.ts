@@ -157,7 +157,7 @@ export const DISTRICTS: District[] = [
   { id: "stall", name: "The stall", opens: "young", places: ["store"], promise: "Trade fruit and Hog coins for things.", radius: 13 },
   { id: "oak", name: "The elder oak", opens: "young", places: ["skills"], promise: "Learn what your level lets you.", radius: 13 },
   { id: "pool", name: "The mirror pool", opens: "young", places: ["compare"], promise: "See yourself against past you and the team.", radius: 13 },
-  { id: "homes", name: "The homes", opens: "grown", places: [], promise: "Branch plots to build a home on.", radius: 16 },
+  { id: "homes", name: "The homes", opens: "grown", places: ["homes"], promise: "Branch plots to build a home on.", radius: 16 },
   { id: "observatory", name: "The observatory", opens: "grown", places: ["analytics"], promise: "Where recognition flows, seen from above.", radius: 16 },
   { id: "gatehouse", name: "The gatehouse", opens: "grown", places: ["admin"], promise: "Admins keep the tree's rules here.", radius: 16 },
   { id: "near_ruins", name: "The near ruins", opens: "great", places: [], promise: "The first ruins in the sand: expeditions begin.", radius: 19 },
@@ -166,7 +166,7 @@ export const DISTRICTS: District[] = [
   { id: "blight", name: "The blight stone", opens: "ancient", places: [], promise: "When a blight comes, the company defends the tree here.", radius: 5 },
   { id: "deep_ruins", name: "The deep ruins", opens: "elder", places: [], promise: "The deepest ruins, for the most travelled.", radius: 19 },
   { id: "overview", name: "The overview", opens: "elder", places: [], promise: "The whole tree and its desert, from above.", radius: 21 },
-  { id: "canopy", name: "The canopy", opens: "world_tree", places: [], promise: "Every home on the tree, lit at night.", radius: 21 },
+  { id: "canopy", name: "The canopy", opens: "world_tree", places: ["canopy"], promise: "Every home on the tree, lit at night.", radius: 21 },
 ];
 
 export const DISTRICT_BY_ID = Object.fromEntries(DISTRICTS.map((d) => [d.id, d])) as Record<DistrictId, District>;
