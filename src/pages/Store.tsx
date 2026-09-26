@@ -953,16 +953,3 @@ function MyAdjustments() {
     </Card>
   );
 }
-
-/** "42 Hog coins to spend" in the cabin, once the wallet is open: a link to the stall. */
-export function StoreBalanceChip({ className }: { className?: string }) {
-  const viewer = useViewer();
-  const balance = useQuery(api.store.balance, viewer.workspace.storeEnabled ? {} : "skip");
-  if (balance === undefined || balance === null) return null;
-  return (
-    <Link to="/store" className={clsx("pixel-chip inline-flex items-center gap-1.5 bg-lantern/15 px-2.5 py-1 text-xs font-medium text-soil hover:bg-lantern/30", className)}>
-      <HogCoin size={14} />
-      <span className={clsx("tabular", balance < 0 && "text-ember-deep")}>{nf.format(balance)}</span> {COIN} to spend
-    </Link>
-  );
-}
