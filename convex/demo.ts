@@ -1321,7 +1321,7 @@ export const resetDemoWorkspace = internalMutation({
       return null;
     }
     // Quests come back on with no pause: a pause would keep the seeded kudos out of every board.
-    await ctx.db.patch(workspace._id, { ...DEMO_SETTINGS, worldSeed: DEMO_WORLD_SEED, questsPauses: undefined, gamePauses: undefined, successBaselineBefore: undefined });
+    await ctx.db.patch(workspace._id, { ...DEMO_SETTINGS, worldSeed: DEMO_WORLD_SEED, seedsBackfilledAt: undefined, questsPauses: undefined, gamePauses: undefined, successBaselineBefore: undefined });
     await launchDemoGame(ctx, (await ctx.db.get(workspace._id))!, workspaceNow(workspace));
     for (const m of members) {
       await ctx.db.patch(m._id, {

@@ -57,6 +57,25 @@ describe("the receiver's kudos DM", () => {
     expect(first.blocks).toContain("1 seed to plant at the tree");
   });
 
+  test("never says how many where nobody sees received counts", async () => {
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { receivedVisibility: "hidden" }));
+    await post("<@UBEN> :taco: thanks for the thorough review");
+    expect(dmsTo("UBEN")[0].text).toContain("Seeds to plant at the tree");
+    expect(dmsTo("UBEN")[0].text).not.toMatch(/\d seeds? to plant/);
+    const text = textOf(await home("UBEN"));
+    expect(text).toContain("*Seeds to plant*\\nWaiting at the tree");
+    expect(text).not.toMatch(/Plant your \d/);
+  });
+
+  test("counts to 100 and no further", async () => {
+    await t.run(async (ctx) => {
+      const k = await ctx.db.insert("kudos", { workspaceId: team.workspaceId, batchId: "b", giverId: team.cleo, receiverId: team.ben, amount: 1, dayKey: "2026-09-01", source: "seed", channelId: "C1", text: "x", at: 0 });
+      for (let i = 0; i < 120; i++) await ctx.db.insert("seeds", { workspaceId: team.workspaceId, kudosId: k, giverId: team.cleo, receiverId: team.ben, sownAt: i });
+    });
+    await post("<@UBEN> :taco: thanks for the thorough review");
+    expect(dmsTo("UBEN")[0].text).toContain("100+ seeds to plant at the tree");
+  });
+
   test("says nothing of seeds for a kudos without a reason, or when the game is hidden from them", async () => {
     await post("<@UBEN> :taco:");
     await t.run((ctx) => ctx.db.patch(team.cleo, { gameHidden: true }));

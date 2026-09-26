@@ -161,8 +161,8 @@ export type BotMessageOptions = {
   earnings?: Infer<typeof earningsValidator>;
   /** A Super kudos note (#98): the receiver's celebration, or the giver's "sent" or how-to. */
   superKudos?: Infer<typeof superKudosNoteValidator>;
-  /** receiver_success (#154): the seeds the receiver has to plant at the tree, this kudos' among them. */
-  seedsToPlant?: number;
+  /** receiver_success (#154): the seeds the receiver has to plant at the tree, this kudos' among them (null: some, count hidden). */
+  seedsToPlant?: number | null;
   /**
    * A message shown only in passing (an ephemeral reply, a slash command): a first discovery of a
    * Rare or rarer message is also a gain of the event, told in the member's gain DM (#55 §G13).
@@ -496,7 +496,7 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
           rollups,
           ...(charmed.has(r._id) ? { minRarity: "uncommon" as const } : {}),
           ...(superKudos?.celebration?.receiverId === r._id ? { superKudos: superKudos.celebration.note } : {}),
-          ...(sownFor.has(r._id) && gameShownTo(workspace, r) ? { seedsToPlant: await seedsToPlant(ctx, r._id) } : {}),
+          ...(sownFor.has(r._id) && gameShownTo(workspace, r) ? { seedsToPlant: (await seedsToPlant(ctx, workspace, r._id)).count } : {}),
         }),
       );
     }

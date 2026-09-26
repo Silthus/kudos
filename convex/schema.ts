@@ -257,6 +257,9 @@ export default defineSchema({
     // The shared world's seed (#152 S1, lib/tree.ts `layout`): a uint32 drawn at install, fixed in the
     // demo. Workspaces from before the tree get `fnv1a(workspaceId)` (tree.ts `worldSeedOf`), written by its backfill.
     worldSeed: v.optional(v.number()),
+    // When the tree's backfill (tree.ts `backfillWorkspace`) sowed this workspace's history: it runs once.
+    // New installs and simulators have no history and are marked when created; the demo's reset clears it.
+    seedsBackfilledAt: v.optional(v.number()),
     // A visitor's private simulator (#143, simulator.ts): the demo sign-in session it belongs to, when it
     // started (wall clock; the cron wipes it 7 days later), the level it started at and whether the
     // visitor is looking at it (their other workspace is the shared demo). Its visitor member has no
@@ -657,8 +660,9 @@ export default defineSchema({
     garden: v.optional(gardenNoticeValidator),
     // A Super kudos (#98): the receiver's celebration, or what the giver's Super kudos emoji did.
     superKudos: v.optional(superKudosNoteValidator),
-    // receiver_success while the game is shown to them (#154): the seeds they had to plant at the tree right after this kudos.
-    seedsToPlant: v.optional(v.number()),
+    // receiver_success while the game is shown to them (#154): the seeds they had to plant at the tree
+    // right after this kudos (at most lib/treeView.ts SEEDS_COUNTED); null: some, where received counts are hidden.
+    seedsToPlant: v.optional(v.union(v.number(), v.null())),
   }).index("by_member", ["memberId"]),
 
   // Rewards Store catalog. Archived, never deleted: redemptions link back to them.
@@ -917,8 +921,9 @@ export default defineSchema({
     sap: v.number(),
     fuel: v.number(),
     peakGrowth: v.number(),
+    plantings: v.number(), // growth events in the log (at most tree.ts PLANTINGS_KEPT)
+    plantedAt: v.optional(v.number()), // the seed moment: the first planting (fuel alone can come first, #157)
     plantedBy: v.optional(v.id("members")), // the giver of the first seed planted; gone when they're removed
-    plantedAt: v.number(),
     rebuild: v.optional(v.object({ through: v.number(), count: v.number() })),
   })
     .index("by_workspace", ["workspaceId"])
@@ -944,7 +949,7 @@ export default defineSchema({
     .index("by_workspace", ["workspaceId"]), // the rebuild's recount, in creation order
 
   // The tree's log (#154): the seed moment, plantings, stages and rings, for the world's toasts and
-  // the notice board; the last TREE_EVENTS_KEPT per workspace. `memberId` is who it names (the
+  // the notice board; the last PLANTINGS_KEPT plantings per workspace, and every other event. `memberId` is who it names (the
   // planter, or who planted seeds), gone when they're removed. A stage's post in the announcement
   // channel is tracked on it, as a boost's is.
   treeEvents: defineTable({
@@ -965,6 +970,7 @@ export default defineSchema({
     ),
   })
     .index("by_workspace_at", ["workspaceId", "at"])
+    .index("by_workspace_kind_at", ["workspaceId", "kind", "at"])
     .index("by_member", ["memberId"]),
 
   slackEvents: defineTable({

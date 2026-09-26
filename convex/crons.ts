@@ -18,6 +18,6 @@ crons.interval("wipe expired simulators", { hours: 1 }, internal.simulator.wipeE
 crons.interval("sweep world presence", { minutes: 5 }, internal.presence.sweep, {});
 
 // Seeds of appreciation nobody planted in 30 days plant themselves at the Ancient Tree (#154).
-crons.cron("plant seeds nobody planted", "23 4 * * *", internal.tree.autoPlant, {});
+crons.interval("plant seeds nobody planted", { hours: 1 }, internal.tree.autoPlant, {});
 
 export default crons;

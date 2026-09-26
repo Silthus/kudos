@@ -170,6 +170,7 @@ export const saveInstallation = internalMutation({
         status: "active",
         ...DEFAULT_SETTINGS,
         worldSeed: newWorldSeed(),
+        seedsBackfilledAt: Date.now(), // no history to sow
       });
       workspace = (await ctx.db.get(id))!;
     } else {
@@ -299,7 +300,7 @@ export const notificationsForDelivery = internalQuery({
       earnings: v.optional(earningsValidator),
       gains: v.optional(v.array(gainValidator)),
       superKudos: v.optional(superKudosNoteValidator),
-      seedsToPlant: v.optional(v.number()),
+      seedsToPlant: v.optional(v.union(v.number(), v.null())),
     }),
   ),
   handler: async (ctx, { ids }) => {

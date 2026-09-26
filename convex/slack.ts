@@ -370,7 +370,7 @@ async function deliver(ctx: ActionCtx, token: string, teamId: string, ids: Id<"n
       const celebration = n.superKudos?.kind === "celebration" ? n.superKudos.slackText : null;
       const superNote = n.superKudos && n.superKudos.kind !== "celebration" ? n.superKudos.slackText : null;
       // The receiver's seeds to plant at the tree (#154), this kudos' among them.
-      const seeds = n.seedsToPlant ? `🌱 ${seedsToPlantText(n.seedsToPlant)}` : null;
+      const seeds = n.seedsToPlant !== undefined && n.seedsToPlant !== 0 ? `🌱 ${seedsToPlantText(n.seedsToPlant)}` : null;
       const context = [
         RARITY_SLACK_BADGE[n.rarity as Rarity],
         n.isNewDiscovery ? `✨ New discovery! (${n.discoveredCount} collected)` : null,

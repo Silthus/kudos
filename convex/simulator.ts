@@ -129,6 +129,7 @@ async function startSimulator(ctx: MutationCtx, userId: Id<"users">, sessionId: 
     reactionsEnabled: true,
     clockOffsetMs: startAt - wallClock,
     worldSeed: newWorldSeed(),
+    seedsBackfilledAt: wallClock, // no history to sow
   });
   const member = { workspaceId, isBot: false, deactivated: false, totalGiven: 0, totalReceived: 0, totalMaxedDays: 0 };
   const [you, ...teammates] = PEOPLE.slice(0, SIMULATOR_TEAMMATES + 1);
