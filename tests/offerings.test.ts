@@ -187,7 +187,7 @@ describe("claimed by time", () => {
     expect(await tree()).toMatchObject({ fuel: 1 });
     const dms = await gainDms();
     expect(dms).toHaveLength(1);
-    expect(dms[0].webText).toContain("Your appreciation from September fed the tree");
+    expect(dms[0].webText).toContain("Your appreciation from September fed the tree"); // the workspace's month
     expect(dms[0].webText).toContain("2 Hog coins went into your wallet");
     expect(await claimEvents()).toMatchObject([{ by: "time", claimed: 2 }]);
   });
@@ -213,9 +213,40 @@ describe("the rebuild", () => {
     expect(await claimEvents()).toHaveLength(1);
   });
 
+  test("run twice, the rebuild changes nothing the second time", async () => {
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { offeringsFrom: 0 }));
+    await message("UANA", "<@UBEN> :taco::taco: thanks for the thorough review");
+    await claim(team.ana);
+    vi.setSystemTime(Date.now() + 40 * DAY);
+    await message("UANA", "<@UCLEO> :taco: thanks for the lovely design work");
+    await rebuild();
+    const once = { player: await player(team.ana), tree: await tree(), offerings: shape(await offerings()) };
+    await rebuild();
+    expect({ player: await player(team.ana), tree: await tree(), offerings: shape(await offerings()) }).toEqual(once);
+    expect(once.player).toMatchObject({ coins: 2, claimedCoins: 2 });
+    expect(once.offerings.map((o) => o.claimedAt === undefined)).toEqual(expect.arrayContaining([true, false]));
+  });
+
+  test("in a workspace from before offerings, a recent kudos whose coins were credited straight away stays credited", async () => {
+    // As #90 left a kudos given last week: its coins in the wallet, no offering, and already spent.
+    await message("UANA", "<@UBEN> :taco::taco: thanks for the thorough review");
+    await t.run(async (ctx) => {
+      for (const o of await ctx.db.query("offerings").collect()) await ctx.db.delete(o._id);
+      const p = await ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", team.ana)).unique();
+      await ctx.db.patch(p!._id, { coins: 2 });
+      await ctx.db.patch(team.ana, { coinsSpent: 2 });
+    });
+    vi.setSystemTime(Date.now() + 7 * DAY);
+    await rebuild();
+    expect(await player(team.ana)).toMatchObject({ coins: 2, claimedCoins: 2, claimedPeak: 2 });
+    expect(await pending(team.ana)).toMatchObject({ offerings: 0 });
+    expect(await t.query(internal.game.verifyMember, { memberId: team.ana })).toMatchObject({ coins: 2, eventCoins: 2 });
+  });
+
   test("history older than 30 days counts as claimed, silently and without fruit; the tree takes its fuel", async () => {
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { offeringsFrom: 0 }));
     await message("UANA", "<@UBEN> :taco::taco::taco::taco::taco: thanks for the thorough review");
-    // As history from before #157 left it: no offering.
+    // As the demo's seeded year leaves it: kudos without offerings, played as offerings from the start.
     await t.run(async (ctx) => {
       for (const o of await ctx.db.query("offerings").collect()) await ctx.db.delete(o._id);
     });
@@ -234,8 +265,9 @@ describe("the rebuild", () => {
 describe("tree fruit at the stall", () => {
   const give = (fruit: "sun" | "moon" | "amber" | "star" | "heart", count = 1) =>
     t.run(async (ctx) => {
+      // The stall opens at level 5 (the Store's level).
       if (!(await ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", team.ana)).unique())) {
-        await ctx.db.insert("players", { workspaceId: team.workspaceId, memberId: team.ana, since: Date.now() - 1, xp: 0, level: 1, coins: 0 });
+        await ctx.db.insert("players", { workspaceId: team.workspaceId, memberId: team.ana, since: Date.now() - 1, xp: 400, level: 5, coins: 0 });
       }
       await ctx.db.insert("inventory", { workspaceId: team.workspaceId, memberId: team.ana, fruit, count });
     });
@@ -279,9 +311,20 @@ describe("tree fruit at the stall", () => {
     await expect(apply("heart")).rejects.toThrow(/no heart fruit/);
   });
 
-  test("the rebuild keeps fruit sold, and the coins it paid", async () => {
-    await message("UANA", "<@UBEN> :taco: thanks for the thorough review");
+  test("the stall opens at level 5: before that fruit waits on the shelf, and no coins leave the server", async () => {
     await give("sun");
+    await t.run(async (ctx) => {
+      const p = await ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", team.ana)).unique();
+      await ctx.db.patch(p!._id, { level: 2, xp: 30 });
+    });
+    await expect(apply("sun")).rejects.toThrow(/opens at level 5/);
+    expect(await held()).toEqual([["sun", 1]]);
+    expect(await player(team.ana)).toMatchObject({ coins: 0 });
+  });
+
+  test("the rebuild keeps fruit sold, and the coins it paid", async () => {
+    await give("sun");
+    await message("UANA", "<@UBEN> :taco: thanks for the thorough review");
     await apply("sun");
     await t.mutation(internal.game.rebuildWorkspace, { workspaceId: team.workspaceId });
     await settle();
@@ -292,8 +335,9 @@ describe("tree fruit at the stall", () => {
 describe("a Super seed from a heart fruit", () => {
   test("plants a garden plant that starts as a Sapling, for the seed instead of coins", async () => {
     await message("UANA", "<@UBEN> :taco: thanks for the thorough review");
-    await walletOpen(team.ana);
     await t.run(async (ctx) => {
+      const p = await ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", team.ana)).unique();
+      await ctx.db.patch(p!._id, { level: 5, xp: 400 });
       await ctx.db.insert("inventory", { workspaceId: team.workspaceId, memberId: team.ana, fruit: "heart", count: 1 });
     });
     const ana = await as(team.ana);

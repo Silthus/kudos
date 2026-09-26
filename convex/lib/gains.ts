@@ -138,7 +138,7 @@ function parts(gain: Gain, audience: Audience, link: LinkTo): Parts {
         context: links(to("/", "Visit the tree")),
       };
     case "offering_claimed": {
-      const month = new Date(gain.since).toLocaleString("en-US", { month: "long", timeZone: "UTC" });
+      const month = gain.month;
       const coins = gain.coins !== undefined ? ` ${hogCoins(gain.coins)} went into your wallet.` : "";
       const fruit = gain.fruits.length === 0 ? "" : ` The tree dropped ${fruitWords(gain.fruits)}.`;
       return {

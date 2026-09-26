@@ -93,9 +93,9 @@ export const gainValidator = v.union(
   v.object({ kind: v.literal("plant_stage"), species: v.string(), stage: v.string(), teammate: personValidator }), // #95
   // #154: the member's thoughtful kudos to `receiver` was the first seed planted at the tree: the seed moment.
   v.object({ kind: v.literal("tree_seed"), receiver: personValidator }),
-  // #157: offerings nobody claimed for 30 days claimed themselves: `since` is when the oldest was made,
-  // `coins` only once the wallet is open, and the fruit they dropped.
-  v.object({ kind: v.literal("offering_claimed"), since: v.number(), coins: v.optional(v.number()), fruits: v.array(fruitIdValidator) }),
+  // #157: offerings nobody claimed for 30 days claimed themselves: `month` is the oldest one's (in the
+  // workspace's timezone), `coins` only once the wallet is open, and the fruit they dropped.
+  v.object({ kind: v.literal("offering_claimed"), month: v.string(), coins: v.optional(v.number()), fruits: v.array(fruitIdValidator) }),
 );
 
 /** A Super kudos note on a DM (#98): the receiver's celebration, or the giver's "sent" or how-to. */
@@ -263,6 +263,10 @@ export default defineSchema({
     // The shared world's seed (#152 S1, lib/tree.ts `layout`): a uint32 drawn at install, fixed in the
     // demo. Workspaces from before the tree get `fnv1a(workspaceId)` (tree.ts `worldSeedOf`), written by its backfill.
     worldSeed: v.optional(v.number()),
+    // Gives from this time on wait at the tree as offerings (#157, offerings.ts). Unset: a workspace
+    // from before offerings, whose older kudos credited their coins straight away; a rebuild counts
+    // such a batch as claimed when it was given. The demo and simulators play every kudos as an offering (0).
+    offeringsFrom: v.optional(v.number()),
     // When the tree's backfill (tree.ts `backfillWorkspace`) sowed this workspace's history: it runs once.
     // New installs and simulators have no history and are marked when created; the demo's reset clears it.
     seedsBackfilledAt: v.optional(v.number()),

@@ -22,6 +22,8 @@ export const DEFAULT_SETTINGS = {
 /** The demo workspace plays the game, sprees included, and its playground shows reaction-giving (spec #55 §G1, §G16). */
 export const DEMO_SETTINGS = {
   ...DEFAULT_SETTINGS,
+  // Every kudos of the demo's seeded year is an offering (#157): the last 30 days' still wait at the tree.
+  offeringsFrom: 0,
   gameEnabled: true,
   spreesEnabled: true,
   reactionsEnabled: true,

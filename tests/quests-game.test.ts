@@ -414,6 +414,7 @@ describe("the rebuild pays quests from the stored completions", () => {
     expect(people).toHaveLength(30);
 
     await t.mutation(internal.game.rebuildMember, { memberId: team.ana });
+    await t.finishAllScheduledFunctions(vi.runAllTimers); // the offerings replay (#157)
     const paid = (await questEvents(team.ana)).map((e) => [e.quest?.scope, e.completionId ?? e.quest?.key, e.xp, e.coins]);
     expect(paid.sort()).toEqual(
       [

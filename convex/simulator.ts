@@ -20,7 +20,7 @@ import { questsOn } from "./quests";
 import { simulatorSummaryValidator } from "./schema";
 import { lapseDue } from "./sprees";
 import { autoPlantWorkspace, newWorldSeed } from "./tree";
-import { autoClaimWorkspace } from "./offerings";
+import { autoClaimWorkspace, claimWaiting } from "./offerings";
 import { getViewer, simulatorOf } from "./lib/access";
 import { BOOST_EFFECT, BOOST_NAME } from "./lib/boosts";
 import { coinBalance, COINS } from "./lib/coins";
@@ -485,6 +485,11 @@ async function playBotDay(ctx: MutationCtx, workspace: Doc<"workspaces">, member
     });
     if (result.status === "given") kudosGiven++;
   }
+
+  // Playing the day for you, the bot offers its appreciation at the stone too (#157), so its coins
+  // are there for planting and the run shows the claims and fruit a real day would.
+  const giver = await playerOf(ctx, member._id);
+  if (giver && gameShownTo(workspace, member)) await claimWaiting(ctx, (await ctx.db.get(workspace._id))!, giver, now + recipients.length * 20 * 60_000);
 
   // A plant for a teammate thanked thoughtfully today (a thank-back never qualifies a planting).
   const todays = () => ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", member._id).eq("dayKey", today)).take(500);

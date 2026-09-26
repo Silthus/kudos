@@ -2,11 +2,12 @@ import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import { gameShownTo, playerOf } from "./game";
+import { gameShownTo, playerOf, superseded } from "./game";
 import { Gains } from "./gains";
 import { requireViewer } from "./lib/access";
 import { WALLET_LEVEL } from "./lib/coins";
 import { FRUITS, fruitEffect, fruitsBetween, rollFruits, type FruitId } from "./lib/fruits";
+import { SHOP_LEVEL } from "./lib/items";
 import { STAMINA, staminaAfterMoonFruit } from "./lib/rpg";
 import { fnv1a, mulberry32 } from "./lib/random";
 import { dayKeyFor, DAY_MS, workspaceNow } from "./lib/time";
@@ -29,8 +30,8 @@ import { addFuel } from "./tree";
  *   whenever its clock moves), with a gain DM.
  * - **A revoke** takes its line out of the offering; once claimed, the coins and fuel go back too.
  *   Batches from before offerings (their coins were credited straight away) are taken back as before.
- * - **The rebuild** (game.ts `rebuildPlayer`) replays offerings from the surviving kudos
- *   (`replayOfferings`) and keeps which batches were claimed; claims, fruit and the inventory are state.
+ * - **The rebuild** (game.ts `rebuildMember`, then `replayMember` here) replays offerings from the
+ *   surviving kudos and keeps which batches were claimed; claims, fruit and the inventory are state.
  */
 
 /** Offerings one claim takes (a press claims up to this many; `more` says there are others). */
@@ -175,6 +176,13 @@ const claimedValidator = v.object({
   more: v.boolean(),
 });
 
+/** Claims up to CLAIM_BATCH of what waits for a player (the stone's press; the simulator's bot at the end of its day). */
+export async function claimWaiting(ctx: MutationCtx, workspace: Doc<"workspaces">, player: Doc<"players">, now: number) {
+  const rows = await waitingOfferings(ctx, player.memberId).take(CLAIM_BATCH);
+  const claimed = await claimOfferings(ctx, workspace, player, rows, "player", now);
+  return { ...claimed, more: (await waitingOfferings(ctx, player.memberId).first()) !== null };
+}
+
 /** The ritual at the stone: the viewer offers their appreciation, every offering waiting at once. */
 export const claim = mutation({
   args: {},
@@ -184,10 +192,12 @@ export const claim = mutation({
     if (!gameShownTo(workspace, member)) throw new ConvexError("The tree is part of the game: switch it on (or show it on your Me page) to offer your appreciation.");
     const player = await playerOf(ctx, member._id);
     if (!player) return { coins: 0, fuel: 0, offerings: 0, fruit: [], more: false };
-    const rows = await waitingOfferings(ctx, member._id).take(CLAIM_BATCH);
-    const claimed = await claimOfferings(ctx, workspace, player, rows, "player", workspaceNow(workspace));
-    const more = (await waitingOfferings(ctx, member._id).first()) !== null;
-    return { ...claimed, coins: player.level >= WALLET_LEVEL ? claimed.coins : null, more };
+    const claimed = await claimWaiting(ctx, workspace, player, workspaceNow(workspace));
+    // The App Home shows the wallet and what waits at the tree; keep it current (the demo has no Slack).
+    if (claimed.offerings > 0 && !workspace.isDemo && !member.deactivated) {
+      await ctx.scheduler.runAfter(0, internal.slack.refreshHome, { workspaceId: workspace._id, slackUserId: member.slackUserId });
+    }
+    return { ...claimed, coins: player.level >= WALLET_LEVEL ? claimed.coins : null };
   },
 });
 
@@ -244,33 +254,44 @@ export const autoClaim = internalMutation({
   },
 });
 
-/** One workspace's due offerings, CLAIM_BATCH a step until none is left. */
+/** One workspace's due offerings, MEMBERS_PER_STEP members a step until none is left. */
 export const autoClaimIn = internalMutation({
   args: { workspaceId: v.id("workspaces") },
   returns: v.null(),
   handler: async (ctx, { workspaceId }) => {
     const workspace = await ctx.db.get(workspaceId);
-    if (workspace && (await autoClaimWorkspace(ctx, workspace)) === CLAIM_BATCH) {
+    // More may be due (more members than a step takes): go again while a step claims anything.
+    if (workspace && (await autoClaimWorkspace(ctx, workspace)) > 0) {
       await ctx.scheduler.runAfter(0, internal.offerings.autoClaimIn, { workspaceId });
     }
     return null;
   },
 });
 
+/** Members one auto-claim step claims for (each a few queries and writes, and a DM). */
+const MEMBERS_PER_STEP = 100;
+
 /**
- * Claims, by time, up to CLAIM_BATCH of a workspace's offerings due on its own clock, member by
- * member, each told in a gain DM with what it dropped. Returns how many offerings it claimed.
+ * Claims, by time, the offerings due on a workspace's own clock for up to MEMBERS_PER_STEP of its
+ * members, all of each member's due offerings at once (one DM each, with what they dropped).
+ * Returns how many offerings it claimed.
  */
 export async function autoClaimWorkspace(ctx: MutationCtx, workspace: Doc<"workspaces">): Promise<number> {
   const now = workspaceNow(workspace);
+  const cutoff = now - AUTO_CLAIM_MS;
   const due = await ctx.db
     .query("offerings")
-    .withIndex("by_workspace_claimedAt_createdAt", (q) => q.eq("workspaceId", workspace._id).eq("claimedAt", undefined).lte("createdAt", now - AUTO_CLAIM_MS))
+    .withIndex("by_workspace_claimedAt_createdAt", (q) => q.eq("workspaceId", workspace._id).eq("claimedAt", undefined).lte("createdAt", cutoff))
     .take(CLAIM_BATCH);
   if (due.length === 0) return 0;
   const gains = new Gains(ctx, workspace, now);
-  for (const memberId of new Set(due.map((o) => o.memberId))) {
-    const rows = due.filter((o) => o.memberId === memberId);
+  let claimedRows = 0;
+  for (const memberId of [...new Set(due.map((o) => o.memberId))].slice(0, MEMBERS_PER_STEP)) {
+    const rows = await ctx.db
+      .query("offerings")
+      .withIndex("by_member_claimedAt_createdAt", (q) => q.eq("memberId", memberId).eq("claimedAt", undefined).lte("createdAt", cutoff))
+      .take(CLAIM_BATCH);
+    claimedRows += rows.length;
     const player = await playerOf(ctx, memberId);
     if (!player) {
       // No player to credit (never happens for a live offering): settle them without a wallet.
@@ -280,65 +301,84 @@ export async function autoClaimWorkspace(ctx: MutationCtx, workspace: Doc<"works
     const claimed = await claimOfferings(ctx, workspace, player, rows, "time", now);
     gains.add(memberId, {
       kind: "offering_claimed",
-      since: Math.min(...rows.map((o) => o.createdAt)),
+      month: new Date(Math.min(...rows.map((o) => o.createdAt))).toLocaleString("en-US", { month: "long", timeZone: workspace.timezone }),
       ...(player.level >= WALLET_LEVEL ? { coins: claimed.coins } : {}),
       fruits: claimed.fruit,
     });
   }
   const dms = await gains.flush();
   if (dms.length > 0 && !workspace.isDemo) await ctx.scheduler.runAfter(0, internal.slack.deliverNotifications, { workspaceId: workspace._id, ids: dms });
-  return due.length;
+  return claimedRows;
 }
 
 // ── The rebuild ─────────────────────────────────────────────────────────────
 
-/** Offerings a rebuild reads per member. */
-const MAX_REPLAYED_OFFERINGS = 8000;
+/** Give events and offerings a replay reads per member; past either, it leaves the member's offerings as they are. */
+const MAX_REPLAYED = 8000;
 
 /**
- * The rebuild's offerings for one member (game.ts `rebuildPlayer`): one per replayed batch that
- * offers something, keeping which were claimed; a batch the member's history no longer has loses its
- * offering. Offerings older than OFFERING_AUTO_CLAIM_DAYS that were never claimed count as claimed by
- * time, silently (a rebuild never DMs) and without fruit (the caller raises the peak past them). The
- * tree takes the change in claimed fuel. Returns the coins claimed, for the wallet.
+ * Replays one member's offerings from the give events the game rebuild just wrote (game.ts
+ * `rebuildMember` schedules it, so it has its own transaction): one per batch that offers something,
+ * keeping which were claimed; a batch the history no longer has loses its offering. A batch without
+ * an offering counts as claimed when it was given if it's from before the workspace's offerings
+ * (`offeringsFrom`: its coins went straight into the wallet), else by time once older than
+ * OFFERING_AUTO_CLAIM_DAYS, silently (a rebuild never DMs). Neither drops fruit: the peak rises past
+ * them. The wallet and the tree take the change in claimed coins and fuel.
  */
-export async function replayOfferings(
-  ctx: MutationCtx,
-  workspace: Doc<"workspaces">,
-  memberId: Id<"members">,
-  batches: { batchId: string; at: number; lines: OfferedLine[] }[],
-) {
-  const now = workspaceNow(workspace);
-  const existing = await ctx.db
-    .query("offerings")
-    .withIndex("by_member_claimedAt_createdAt", (q) => q.eq("memberId", memberId))
-    .take(MAX_REPLAYED_OFFERINGS);
-  if (existing.length === MAX_REPLAYED_OFFERINGS) console.warn(`game rebuild: member ${memberId} has more than ${MAX_REPLAYED_OFFERINGS} offerings; later ones were left as they are.`);
-  const byBatch = new Map(existing.map((o) => [o.batchId, o]));
-  const fuelBefore = existing.reduce((s, o) => s + (o.claimedAt !== undefined ? o.fuel : 0), 0);
-  let coins = 0;
-  let fuel = 0;
-  const kept = new Set<Id<"offerings">>();
-  for (const batch of batches) {
-    const offered = offeringOf(batch.lines);
-    if (offered.coins === 0 && offered.fuel === 0) continue;
-    const old = byBatch.get(batch.batchId);
-    const claimedAt = old?.claimedAt ?? (batch.at <= now - AUTO_CLAIM_MS ? now : undefined);
-    if (old) {
-      kept.add(old._id);
-      if (old.coins !== offered.coins || old.fuel !== offered.fuel || old.claimedAt !== claimedAt) await ctx.db.patch(old._id, { ...offered, claimedAt });
-    } else {
-      await ctx.db.insert("offerings", { workspaceId: workspace._id, memberId, batchId: batch.batchId, ...offered, createdAt: batch.at, claimedAt });
+export const replayMember = internalMutation({
+  args: { memberId: v.id("members"), resetAt: v.optional(v.number()) },
+  returns: v.null(),
+  handler: async (ctx, { memberId, resetAt }) => {
+    const member = await ctx.db.get(memberId);
+    const workspace = member && (await ctx.db.get(member.workspaceId));
+    if (!member || !workspace || superseded(workspace, resetAt)) return null;
+    const player = await playerOf(ctx, memberId);
+    if (!player) return null;
+    const gives = [];
+    for await (const e of ctx.db.query("gameEvents").withIndex("by_member_kind", (q) => q.eq("memberId", memberId).eq("kind", "give"))) {
+      gives.push(e);
+      if (gives.length === MAX_REPLAYED) break;
     }
-    if (claimedAt !== undefined) {
-      coins += offered.coins;
-      fuel += offered.fuel;
+    const existing = await ctx.db
+      .query("offerings")
+      .withIndex("by_member_claimedAt_createdAt", (q) => q.eq("memberId", memberId))
+      .take(MAX_REPLAYED);
+    if (gives.length === MAX_REPLAYED || existing.length === MAX_REPLAYED) {
+      console.warn(`offerings replay: member ${memberId} has more than ${MAX_REPLAYED} batches or offerings; their offerings were left as they are.`);
+      return null;
     }
-  }
-  for (const o of existing) if (!kept.has(o._id)) await ctx.db.delete(o._id);
-  if (fuel !== fuelBefore) await addFuel(ctx, workspace, fuel - fuelBefore, now, { live: false });
-  return coins;
-}
+    const now = workspaceNow(workspace);
+    const byBatch = new Map(existing.map((o) => [o.batchId, o]));
+    const before = sum(existing.filter((o) => o.claimedAt !== undefined));
+    const legacyUntil = workspace.offeringsFrom ?? Infinity;
+    const after = { coins: 0, fuel: 0 };
+    const kept = new Set<Id<"offerings">>();
+    for (const give of gives) {
+      const offered = offeringOf(give.lines ?? []);
+      if (offered.coins === 0 && offered.fuel === 0) continue;
+      const old = byBatch.get(give.batchId);
+      const claimedAt = old ? old.claimedAt : give.at < legacyUntil ? give.at : give.at <= now - AUTO_CLAIM_MS ? now : undefined;
+      if (old) {
+        kept.add(old._id);
+        if (old.coins !== offered.coins || old.fuel !== offered.fuel) await ctx.db.patch(old._id, offered);
+      } else {
+        await ctx.db.insert("offerings", { workspaceId: workspace._id, memberId, batchId: give.batchId, ...offered, createdAt: give.at, claimedAt });
+      }
+      if (claimedAt !== undefined) {
+        after.coins += offered.coins;
+        after.fuel += offered.fuel;
+      }
+    }
+    for (const o of existing) if (!kept.has(o._id)) await ctx.db.delete(o._id);
+    const coins = after.coins - before.coins;
+    if (coins !== 0) {
+      const claimedCoins = (player.claimedCoins ?? 0) + coins;
+      await ctx.db.patch(player._id, { coins: (player.coins ?? 0) + coins, claimedCoins, claimedPeak: Math.max(player.claimedPeak ?? 0, claimedCoins) });
+    }
+    if (after.fuel !== before.fuel) await addFuel(ctx, workspace, after.fuel - before.fuel, now, { live: false });
+    return null;
+  },
+});
 
 // ── Fruit at the stall ──────────────────────────────────────────────────────
 
@@ -359,6 +399,8 @@ export const applyFruit = mutation({
     if (!gameShownTo(workspace, member)) throw new ConvexError("Tree fruit is part of the game: switch it on (or show it on your Me page) to use it.");
     const player = await playerOf(ctx, member._id);
     if (!player) throw new ConvexError("You have no tree fruit yet. Offer your appreciation at the stone to earn some.");
+    // Fruit is traded at the stall, which opens with the Store at level 5 (the tutorial's "Trade" step).
+    if (player.level < SHOP_LEVEL) throw new ConvexError(`The stall opens at level ${SHOP_LEVEL}. Your fruit waits on your shelf until then.`);
     await addFruit(ctx, workspace._id, member._id, fruit, -1);
     const effect = fruitEffect(fruit);
     const now = workspaceNow(workspace);
