@@ -67,7 +67,8 @@ function ToastCard({ toast, onDone, still }: { toast: Toast; onDone: () => void;
       {toast.kind === "discovery" && <FramedCard />}
       {toast.kind === "level" && <Npc slot="hoggie-level-up" size={56} />}
       <div className="min-w-0 flex-1">
-        <p className="font-display text-base font-medium leading-6 text-ink">{toast.title}</p>
+        {/* A clock toast's title is a date: Nunito, as Pixelify's 5 reads as an S. */}
+        <p className={clsx("text-base leading-6 text-ink", toast.kind === "clock" ? "font-bold tabular" : "font-display font-medium")}>{toast.title}</p>
         <p className="mt-0.5 text-sm text-ink/75">{toast.body}</p>
         {toast.link && (
           <Link to={toast.link.to} onClick={onDone} className="mt-1 inline-block text-sm font-semibold text-ember-deep underline decoration-2 underline-offset-4">

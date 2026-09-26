@@ -243,6 +243,100 @@ describe("the fast-forward window", () => {
   });
 });
 
+const game = (level: number, xp: number, coins: number) => ({
+  enabled: true,
+  hidden: false,
+  player: { level, title: "Gardener", xp, floor: 0, next: null, toNext: 0, fraction: 1 },
+  wallet: { balance: coins, fromKudos: coins, fromFruit: 0, fromQuests: 0, fromSprees: 0, fromLevels: 0, spent: 0, adjusted: 0 },
+});
+
+describe("review: the fast-forward window, corner cases", () => {
+  test("a stopped run's reason reads as one sentence", async () => {
+    queries["simulator:state"] = state({ level: 9, lastRun: run({ status: "stopped", stopReason: "Still short of level 10 after 500 days." }) });
+    open();
+    await click("Simulate levels");
+    const text = dialog()!.textContent!;
+    expect(text).toContain("Still short of level 10 after 500 days.");
+    expect(text).not.toContain("..");
+  });
+
+  test("a run that starts while the window shows the picker takes over the window", async () => {
+    open();
+    await click("Simulate levels");
+    expect(button("Fast-forward 3 levels", dialog()!)).toBeDefined();
+    queries["simulator:state"] = state({ lastRun: run() });
+    open();
+    expect(dialog()!.textContent).toContain("Level 7 of 10");
+    expect(button("Fast-forward 3 levels", dialog()!)).toBeUndefined();
+  });
+
+  test("the meter follows XP, so a one-level run moves before the level comes", async () => {
+    // Level 7 starts at 900 XP and level 8 at 1,250 (lib/xp.ts, worked by hand).
+    queries["simulator:state"] = state({ level: 7, xp: 1000, lastRun: run({ toLevel: 8 }) });
+    open();
+    await click("Simulate levels");
+    const meter = dialog()!.querySelector("[role=progressbar]")!;
+    expect([meter.getAttribute("aria-valuenow"), meter.getAttribute("aria-valuemax")]).toEqual(["100", "350"]);
+  });
+
+  test("at the top level there's nothing to simulate, and the clock says so in words", () => {
+    queries["simulator:state"] = state({ level: 25 });
+    open();
+    expect(button("Simulate levels", clock()!)).toBeUndefined();
+    expect(clock()!.textContent).toContain("top level");
+  });
+
+  test("a playing run points to Abort, in case it seems stuck", () => {
+    queries["simulator:state"] = state({ lastRun: run() });
+    open();
+    expect(clock()!.textContent).toContain("abort it under Simulate levels");
+  });
+});
+
+describe("review: while the bot plays, the world holds its celebrations", () => {
+  test("no toast per simulated day; one level-up toast for the whole run when it ends", async () => {
+    queries["game:mine"] = game(7, 900, 100);
+    queries["me:today"] = { discovered: 10 };
+    queries["simulator:state"] = state({ lastRun: run() });
+    open();
+    queries["game:mine"] = game(8, 1300, 130);
+    queries["me:today"] = { discovered: 12 };
+    open();
+    queries["game:mine"] = game(9, 1700, 160);
+    open();
+    expect(toast()).toBeNull();
+    queries["simulator:state"] = state({ level: 9, lastRun: run({ status: "done" }) });
+    open();
+    expect(toast()?.textContent).toContain("Level 9");
+    expect(toast()?.textContent).toContain("+2 skill points");
+    await click("Dismiss");
+    expect(toast()?.textContent).toContain("2 new messages discovered");
+    await click("Dismiss");
+    expect(toast()).toBeNull();
+  });
+});
+
+describe("review: signposts before the state arrives, and outside the demo", () => {
+  test("a cold load inside the simulator never says Live demo", () => {
+    delete queries["simulator:state"];
+    open();
+    expect(host.textContent).not.toContain("Live demo.");
+    expect(host.textContent).toContain("Simulator.");
+  });
+
+  test("a real Slack workspace never asks for a simulator, and has no clock", () => {
+    const real = { ...inDemo, workspaces: [], workspace: { ...inDemo.workspace, isDemo: false } } as unknown as ReadyViewer;
+    open(real);
+    expect(clock()).toBeNull();
+  });
+
+  test("between phone and desktop (700 px) the clock stays at the bottom, clear of the toasts", () => {
+    window.innerWidth = 700;
+    open();
+    expect(clock()!.closest("[data-hud-caption]")).not.toBeNull();
+  });
+});
+
 describe("review: clock toasts", () => {
   test("a new move of the clock replaces what the last one still had to say", async () => {
     replies["simulator:advance"] = { day: "2026-10-19", dayIndex: 7, changes: ["Monday: your 5 kudos for today are back.", "A new week: a new quest board."] };

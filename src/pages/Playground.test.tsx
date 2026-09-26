@@ -337,10 +337,42 @@ test("simulator: a refused start says why", async () => {
   expect(host.querySelector("[data-simulator-tab] [role=alert]")?.textContent).toBe("The simulator is part of the live demo.");
 });
 
+const inSim: Ws[] = [
+  { memberId: "m0", slackTeamId: "T_DEMO_LUMEN", name: "Lumen Labs", current: false },
+  { memberId: "m1", slackTeamId: "SIM-1-abc", name: "Simulator", current: true },
+];
+
 test("simulator: inside the simulator the sandbox says so, and the shared demo's reset isn't offered", () => {
   queries["simulator:state"] = simulatorState();
-  render(true, [], true);
+  render(true, inSim, true);
   expect(host.textContent).toContain("your simulator");
   expect(button("Reset the demo")).toBeUndefined();
   expect(button("Refill my kudos")).toBeDefined();
+});
+
+test("review: on a cold load inside the simulator, before its state arrives, the sandbox never offers the shared demo's reset", () => {
+  render(true, inSim, true);
+  expect(host.textContent).toContain("your simulator");
+  expect(button("Reset the demo")).toBeUndefined();
+});
+
+test("review: the simulator's clock is in the sandbox too, where the window would cover the HUD's", async () => {
+  queries["simulator:state"] = simulatorState();
+  replies["simulator:advance"] = { day: "2026-10-15", dayIndex: 3, changes: ["Thursday: your 5 kudos for today are back."] };
+  render(false, inSim, true);
+  expect(host.querySelector("[data-simulator-clock]")?.textContent).toContain("Day 3, Wednesday 14 Oct");
+  await click("Next day");
+  expect(calls["simulator:advance"]).toHaveBeenCalledWith({ days: 1 });
+  await click("Simulator");
+  expect(host.querySelector("[data-simulator-tab] [data-simulator-clock]")).not.toBeNull();
+  expect(host.querySelector("[data-simulator-tab]")?.textContent).not.toContain("corner");
+  expect(windowPageProblems(host)).toEqual([]);
+});
+
+test("review: from the shared demo, restarting says it takes you there", async () => {
+  queries["simulator:state"] = simulatorState({ shown: false });
+  render(false, inSim.map((w) => ({ ...w, current: !w.current })));
+  await click("Simulator");
+  await click("Restart at level 7 and go there");
+  expect(calls["simulator:reset"]).toHaveBeenCalledWith({ level: 7 });
 });

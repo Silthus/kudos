@@ -15,7 +15,8 @@ import { Earnings, GainLines, LevelUpHoggie } from "@/components/game";
 import { SpreePost } from "@/components/SpreePost";
 import type { Id } from "../../convex/_generated/dataModel";
 import { SUPER_SUFFIX, variantBySuffix } from "../../convex/lib/cosmetics";
-import { shownSimulator } from "@/world/simulator";
+import { isSimulatorWorkspace, shownSimulator } from "@/world/simulator";
+import { SimulatorClock } from "@/world/SimulatorClock";
 import { SimulatorTab } from "./SimulatorTab";
 
 /**
@@ -164,7 +165,9 @@ export function Playground() {
 
 function Sandbox() {
   const viewer = useViewer();
-  const inSimulator = !!shownSimulator(useQuery(api.simulator.state, {}));
+  // Known at once from your workspaces (a cold load never offers the shared demo's reset); the clock waits for the state.
+  const inSimulator = viewer.workspaces.some((w) => w.current && isSimulatorWorkspace(w));
+  const simulator = shownSimulator(useQuery(api.simulator.state, {}));
   const teammates = useQuery(api.demo.teammates) ?? [];
   const today = useWorkspaceToday();
   const status = useQuery(api.me.today, { today });
@@ -353,6 +356,8 @@ function Sandbox() {
       </p>
 
       <DemoSigns status={status} inSimulator={inSimulator} onRefilled={() => viewer.workspace.spreesEnabled && void openSpree({})} />
+      {/* The window covers the HUD's clock: the days move on from here too (#144). */}
+      {simulator && <SimulatorClock simulator={simulator} inWindow />}
 
       <div className="grid grid-cols-1 gap-6 @min-[540px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <div data-sand className="min-w-0">

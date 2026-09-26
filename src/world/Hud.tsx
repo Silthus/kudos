@@ -31,8 +31,11 @@ import { SimulatorClock } from "./SimulatorClock";
  * and the workspace switcher say it's the simulator.
  */
 
-/** The phone layout's width (Tailwind's `sm`): below it the simulator's clock sits over the caption. */
-const WIDE = 640;
+/**
+ * Below this width the simulator's clock sits over the caption: toasts hang under your corner up to
+ * 22rem wide (Toast.tsx), and on a narrower screen they'd cover a clock in the top right.
+ */
+const WIDE = 768;
 
 function useWide() {
   const [wide, setWide] = useState(() => window.innerWidth >= WIDE);
@@ -305,15 +308,15 @@ function LanternString() {
 }
 
 /** Bottom: where you are and how to walk, then the demo and bonus-day lines. */
-function Caption({ where, banner, simulator, clock }: { where: string; banner: Banner | undefined; simulator: ActiveSimulator | null; clock?: ReactNode }) {
+function Caption({ where, banner, inSimulator, simulator, clock }: { where: string; banner: Banner | undefined; inSimulator: boolean; simulator: ActiveSimulator | null; clock?: ReactNode }) {
   const { workspace } = useViewer();
   const next = banner?.upcoming[0];
   return (
     <div data-hud-caption className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex flex-col items-start gap-1.5 p-3 sm:p-4">
       {clock && <div className="pointer-events-auto w-full">{clock}</div>}
-      {simulator ? (
+      {inSimulator ? (
         <p className="pointer-events-auto pixel-note max-w-full px-3 py-1.5 text-sm">
-          <span className="mr-1.5 font-semibold text-soil">{simulatorWhere(simulator)}.</span>
+          <span className="mr-1.5 font-semibold text-soil">{simulator ? simulatorWhere(simulator) : "Simulator"}.</span>
           Your own copy of the game. Give kudos in{" "}
           <Link to="/playground" className="font-semibold text-ember-deep underline decoration-2 underline-offset-4">
             the sandbox
@@ -362,8 +365,11 @@ export function Hud({ places, where }: { places: Place[]; where: string }) {
   // Your simulator (#144): asked only in the demo, the one place a simulator can be started.
   const simulatorState = useQuery(api.simulator.state, viewer.workspace.isDemo ? {} : "skip");
   const simulator = shownSimulator(simulatorState);
+  // Known at once from your workspaces, so a cold load never says Live demo inside the simulator.
+  const inSimulator = viewer.workspaces.some((w) => w.current && isSimulatorWorkspace(w));
   const wide = useWide();
-  const clock = simulator && <SimulatorClock simulator={simulator} />;
+  // Keyed by its workspace: a restarted simulator's clock starts clean.
+  const clock = simulator && <SimulatorClock key={viewer.workspace._id} simulator={simulator} />;
   return (
     <>
       {banner?.current && <LanternString />}
@@ -379,7 +385,7 @@ export function Hud({ places, where }: { places: Place[]; where: string }) {
           {wide && clock}
         </div>
       </div>
-      <Caption where={where} banner={banner} simulator={simulator} clock={!wide && clock} />
+      <Caption where={where} banner={banner} inSimulator={inSimulator} simulator={simulator} clock={!wide && clock} />
     </>
   );
 }

@@ -7,7 +7,9 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { Button, inputCls } from "@/components/ui";
 import { useViewer } from "@/lib/viewer";
 import { dayNumber, isSimulatorWorkspace, levelOptions } from "@/world/simulator";
+import { SimulatorClock } from "@/world/SimulatorClock";
 import { GARDEN_LEVEL } from "../../convex/lib/garden";
+import { SHOP_LEVEL } from "../../convex/lib/items";
 import { QUESTS_LEVEL, titleForLevel } from "../../convex/lib/xp";
 
 /**
@@ -50,7 +52,7 @@ export function SimulatorTab() {
     <div data-simulator-tab className="space-y-5">
       <p className="pixel-note max-w-prose px-4 py-3 text-[15px] leading-relaxed text-ink">
         The simulator is your own private copy of the game: twelve teammates, an empty garden and a clock that only moves when you say so. Join at any level, give
-        kudos in the Playground tab, and move the days on or let a bot play levels for you from the clock in the corner.
+        kudos in the Playground tab, and move the days on or let a bot play levels for you with the simulator's clock.
       </p>
 
       {active && (
@@ -58,6 +60,8 @@ export function SimulatorTab() {
           {active.shown ? "You're in your simulator" : "Your simulator is waiting"} at <b className="font-semibold">level {active.level}</b>, <b className="font-semibold">day {dayNumber(active)}</b>.
         </p>
       )}
+      {/* The window covers the HUD's clock: the days move on from here too. */}
+      {active?.shown && <SimulatorClock simulator={active} inWindow />}
 
       <div className="space-y-2">
         <label htmlFor={pickerId} className="block text-sm font-semibold text-ink">
@@ -72,7 +76,7 @@ export function SimulatorTab() {
         </select>
         <p className="text-sm text-ink/75">
           <span className="font-display text-base font-medium text-ink">{titleForLevel(level)}.</span> Your garden opens at level {GARDEN_LEVEL}, the quest signpost at level {QUESTS_LEVEL}, and the
-          store stall sells from level {QUESTS_LEVEL}. Every level brings a skill point for the elder oak.
+          store stall sells from level {SHOP_LEVEL}. Every level brings a skill point for the elder oak.
         </p>
       </div>
 
@@ -90,7 +94,8 @@ export function SimulatorTab() {
         {active && (
           <>
             <Button variant={active.shown ? "primary" : "outline"} disabled={busy} onClick={() => run(() => reset({ level }))}>
-              Restart at level {level}
+              {/* Restarting shows the simulator: from the shared demo, that's a move. */}
+              {active.shown ? `Restart at level ${level}` : `Restart at level ${level} and go there`}
             </Button>
             <Button disabled={busy} onClick={() => run(() => stop({}))}>
               {active.shown ? "Stop and return to the demo" : "Stop the simulator"}

@@ -1,6 +1,6 @@
 import { useQuery } from "convex/react";
 import { useReducedMotionConfig } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -63,8 +63,11 @@ function typingIn(target: EventTarget | null) {
 export function WorldShell() {
   const viewer = useViewer();
   // Times on the page read on the shown workspace's clock: a simulator's runs ahead (#143, #144).
-  // Set while rendering, before the pages inside render, and the same every time for one viewer.
-  setWorkspaceClock(viewer.workspace.clockOffsetMs ?? 0);
+  // Set while rendering, before the pages inside render, and the same every time for one viewer;
+  // set again once committed, so a render React threw away can't leave another viewer's clock.
+  const clockOffsetMs = viewer.workspace.clockOffsetMs ?? 0;
+  setWorkspaceClock(clockOffsetMs);
+  useLayoutEffect(() => setWorkspaceClock(clockOffsetMs), [clockOffsetMs]);
   const location = useLocation();
   const navigate = useNavigate();
   const still = !!useReducedMotionConfig();
