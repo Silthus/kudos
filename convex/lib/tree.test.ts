@@ -31,14 +31,14 @@ import {
 
 /** The Ancient Tree's pure rules (#152 S1): stages by growth, districts by stage, a seeded, stable layout. */
 
-const AT: Record<TreeStageId, number> = { seed: 0, sprout: 5, sapling: 25, young: 100, grown: 300, great: 800, ancient: 2000, elder: 5000, world_tree: 12_000 };
+const AT: Record<TreeStageId, number> = { seed: 0, sprout: 5, sapling: 25, young: 100, grown: 300, great: 800, ancient: 2000, elder: 3000, world_tree: 8000 };
 const gap = (a: Tile, b: Tile) => Math.hypot(a.x - b.x, a.y - b.y);
 const seeds = Array.from({ length: 300 }, (_, i) => (i * 2_654_435_761 + 12_345) >>> 0);
 
 describe("stages by growth", () => {
   test("follow the spec's thresholds and are monotonic", () => {
     expect(TREE_STAGES.map((s) => s.id)).toEqual(["seed", "sprout", "sapling", "young", "grown", "great", "ancient", "elder", "world_tree"]);
-    expect(TREE_STAGES.map((s) => s.growth)).toEqual([0, 5, 25, 100, 300, 800, 2000, 5000, 12000]);
+    expect(TREE_STAGES.map((s) => s.growth)).toEqual([0, 5, 25, 100, 300, 800, 2000, 3000, 8000]);
     for (let i = 1; i < TREE_STAGES.length; i++) expect(TREE_STAGES[i].growth).toBeGreaterThan(TREE_STAGES[i - 1].growth);
     expect(isTreeStageId("elder")).toBe(true);
     expect(isTreeStageId("constructor")).toBe(false);
@@ -49,22 +49,22 @@ describe("stages by growth", () => {
     expect(stageForGrowth(4)).toBe("seed");
     expect(stageForGrowth(5)).toBe("sprout");
     expect(stageForGrowth(2000)).toBe("ancient");
-    expect(stageForGrowth(11_999)).toBe("elder");
-    expect(stageForGrowth(12_000)).toBe("world_tree");
+    expect(stageForGrowth(7999)).toBe("elder");
+    expect(stageForGrowth(8000)).toBe("world_tree");
     expect(stageForGrowth(1_000_000)).toBe("world_tree");
   });
 
   test("growth to the next stage counts down, then to the next ring forever; growth to reach a stage is for the promises", () => {
     expect(growthToNext(0)).toEqual({ next: "sprout", growth: 5 });
     expect(growthToNext(60)).toEqual({ next: "young", growth: 40 });
-    expect(growthToNext(12_000)).toEqual({ next: "ring", growth: 10_000 });
-    expect(growthToNext(21_999)).toEqual({ next: "ring", growth: 1 });
+    expect(growthToNext(8000)).toEqual({ next: "ring", growth: 10_000 });
+    expect(growthToNext(17_999)).toEqual({ next: "ring", growth: 1 });
     expect(growthToReach(38, "young")).toBe(62);
     expect(growthToReach(500, "young")).toBe(0);
   });
 
   test("rings grow forever past the world tree, one per 10,000", () => {
-    expect([0, 11_999, 12_000, 22_000, 52_000].map(ringsForGrowth)).toEqual([0, 0, 0, 1, 4]);
+    expect([0, 7999, 8000, 18_000, 48_000].map(ringsForGrowth)).toEqual([0, 0, 0, 1, 4]);
   });
 
   test("growth is planted seeds plus half a point per fuel claimed; fuel is one per qualifying line, never the coin amount", () => {

@@ -25,8 +25,8 @@ describe("the demo", () => {
     await settle();
     const alex = t.withIdentity({ subject: `${userId}|s` });
     const tree = await alex.query(api.tree.state, {});
-    // On the reference date (2026-09-23) the demo's year (~2,400 kudos rows) makes an ancient tree:
-    // elder needs 5,000 growth, which the seeded year can't reach (a decision for the conductor, #154).
+    // On the reference date (2026-09-23) the demo's year (~2,400 kudos rows) makes an ancient tree from sap
+    // alone; elder (3,000 growth) comes with the fuel the demo story adds in D3 (#165).
     expect(tree).toMatchObject({ planted: true, stage: "ancient", seedsToPlant: 0 });
     // Sap is one per qualifying line: a Note of 3+ words, no thank-back within 72 h, never a spree's.
     const kudos = await t.run((ctx) => ctx.db.query("kudos").collect());

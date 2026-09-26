@@ -37,8 +37,8 @@ const STAGE_LIST: { id: TreeStageId; name: string; growth: number }[] = [
   { id: "grown", name: "a grown tree", growth: 300 },
   { id: "great", name: "a great tree", growth: 800 },
   { id: "ancient", name: "an ancient tree", growth: 2000 },
-  { id: "elder", name: "an elder tree", growth: 5000 },
-  { id: "world_tree", name: "the world tree", growth: 12_000 },
+  { id: "elder", name: "an elder tree", growth: 3000 },
+  { id: "world_tree", name: "the world tree", growth: 8000 },
 ];
 
 export const TREE_STAGES: TreeStage[] = STAGE_LIST.map((s, index) => ({ ...s, index }));
