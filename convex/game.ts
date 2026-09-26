@@ -137,24 +137,23 @@ async function eventsBetween(ctx: QueryCtx, memberId: Id<"members">, fromDay: st
 }
 
 /**
- * Adds (or takes back) XP and Hog coins. A new level is kept even if a revoke later takes the XP
- * back, and is told in the event's gain DM (`gains`, lib/gains.ts): the level, its title and skill
- * point, and from level 3 the coins (reaching 3 opens the wallet with what was collected so far).
+ * The wallet's own shares of `players.coins` (lib/coins.ts `coinBalance`): coins from a source that
+ * isn't kudos claimed at the tree. What's left of `coins` is from kudos.
  */
-export async function addXp(
-  ctx: MutationCtx,
-  player: Doc<"players">,
-  delta: number,
-  coinDelta = 0,
-  gains?: Gains,
-  /** The part of `coinDelta` that quests paid (the wallet's breakdown, `players.questCoins`). */
-  questCoinDelta = 0,
-) {
+export type CoinShare = "questCoins" | "fruitCoins" | "spreeCoins" | "tutorialCoins";
+
+/**
+ * Adds (or takes back) XP and Hog coins, the coins in their `share` of the wallet when they have one.
+ * A new level is kept even if a revoke later takes the XP back, and is told in the event's gain DM
+ * (`gains`, lib/gains.ts): the level, its title and skill point, and from level 3 the coins
+ * (reaching 3 opens the wallet with what was collected so far).
+ */
+export async function addXp(ctx: MutationCtx, player: Doc<"players">, delta: number, coinDelta = 0, gains?: Gains, share?: CoinShare) {
   if (delta === 0 && coinDelta === 0) return;
   const xp = player.xp + delta;
   const level = Math.max(player.level, levelForXp(xp));
   const coins = (player.coins ?? 0) + coinDelta;
-  await ctx.db.patch(player._id, { xp, level, coins, ...(questCoinDelta !== 0 ? { questCoins: (player.questCoins ?? 0) + questCoinDelta } : {}) });
+  await ctx.db.patch(player._id, { xp, level, coins, ...(share && coinDelta !== 0 ? { [share]: (player[share] ?? 0) + coinDelta } : {}) });
   if (level <= player.level || !gains) return;
   const member = await ctx.db.get(player.memberId);
   const wallet = level >= WALLET_LEVEL && member ? { balance: coinBalance({ coins, level }, member).balance } : {};
@@ -378,7 +377,7 @@ export async function payQuest(ctx: MutationCtx, workspace: Doc<"workspaces">, m
   if (!player) return;
   const event = questEvent(workspace, memberId, pay);
   await ctx.db.insert("gameEvents", event);
-  await addXp(ctx, player, event.xp, event.coins, gains, event.coins);
+  await addXp(ctx, player, event.xp, event.coins, gains, "questCoins");
 }
 
 /** The quest payment with this `batchId` (`questBatchId`), if any. */
@@ -393,7 +392,7 @@ export async function questPayment(ctx: QueryCtx, batchId: string) {
 export async function takeBackQuest(ctx: MutationCtx, event: Doc<"gameEvents">) {
   await ctx.db.delete(event._id);
   const player = await playerOf(ctx, event.memberId);
-  if (player) await addXp(ctx, player, -event.xp, -(event.coins ?? 0), undefined, -(event.coins ?? 0));
+  if (player) await addXp(ctx, player, -event.xp, -(event.coins ?? 0), undefined, "questCoins");
 }
 
 /** The event kinds a rebuild replays from the kudos rows and quest completions; it keeps every other kind. */

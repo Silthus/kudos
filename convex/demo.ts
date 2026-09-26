@@ -205,6 +205,8 @@ export const ensureDemoUser = internalMutation({
       .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id).eq("slackUserId", DEMO_YOU))
       .unique();
     if (!me) throw new ConvexError("Demo workspace is missing its demo member");
+    // A demo seeded before the elder hog's chain (#159): Alex has walked it, as after every reset.
+    if (!me.tutorial) await ctx.db.patch(me._id, demoTutorial(me.slackUserId, workspaceNow(workspace)));
     if (me.userId) return me.userId;
     const userId = await ctx.db.insert("users", { name: me.name, isDemo: true, slackUserId: DEMO_YOU, slackTeamId: DEMO_TEAM });
     await ctx.db.patch(me._id, { userId });

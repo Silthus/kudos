@@ -51,6 +51,8 @@ export function Elder() {
   }, [arriving, advance]);
 
   const current = now?.current ?? null;
+  // Nothing to say before the chain has loaded.
+  if (now === undefined) return null;
   return (
     <div className="space-y-4">
       <div className="flex items-start gap-4">

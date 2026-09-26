@@ -32,7 +32,7 @@ const { Checklist, tutorialToast } = await import("./Tutorial");
 
 const progress = (level: number) => ({ level, title: "Seedling", xp: 40, floor: 30, next: 75, toNext: 35, fraction: 0.2 });
 const mine = (level: number) => ({ enabled: true, hidden: false, player: progress(level), wallet: null, luckyCharms: 0, sunlamps: 0, lanterns: 0, look: { color: null, accessory: null } });
-const on = (step: number, met = false) => ({ step, completedAt: Array.from({ length: step - 1 }, () => 1), met });
+const on = (step: number, due = false) => ({ step, due });
 
 describe("the toast a completed step brings", () => {
   test("names the step, the coins from level 3, and what's next", () => {
@@ -156,5 +156,17 @@ describe("the checklist in the HUD", () => {
     expect(advance).toHaveBeenCalledWith({});
     expect(toasts).toEqual([expect.objectContaining({ kind: "tutorial", title: "Say thanks: done" })]);
     stop();
+  });
+
+  test("due again on the same step (coins owed were paid, then the step is met) asks again", async () => {
+    state = on(2, true);
+    render();
+    await act(async () => {});
+    state = on(2, false);
+    render();
+    state = on(2, true);
+    render();
+    await act(async () => {});
+    expect(advance).toHaveBeenCalledTimes(2);
   });
 });

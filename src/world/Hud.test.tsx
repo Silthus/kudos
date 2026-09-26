@@ -104,7 +104,7 @@ function render({ insetRight, whereIs, hints = {} }: { insetRight?: number; wher
 }
 
 describe("the HUD along the elder hog's chain (#159)", () => {
-  const on = (step: number) => ({ step, completedAt: Array.from({ length: step - 1 }, () => 1), met: false });
+  const on = (step: number) => ({ step, due: false });
 
   test("no wallet before step 3, feeding the tree; then the coins and what waits at the tree", () => {
     game = mine({ wallet: { ...wallet, waiting: 12 } });

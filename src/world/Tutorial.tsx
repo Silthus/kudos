@@ -32,7 +32,8 @@ export type TutorialNow = {
   current: TutorialStep | null;
   /** What the step on still waits for (a level, a district the tree hasn't opened), if anything. */
   gate: StepGate | null;
-  met: boolean;
+  /** The server has something to complete or pay: `advance`. */
+  due: boolean;
   /** Your level and how far into it, for a level-gated step's XP bar. */
   level: { level: number; into: number; span: number } | null;
 };
@@ -51,7 +52,7 @@ export function useTutorial(): TutorialNow | null | undefined {
   const level = p ? { level: p.level, into: p.next === null ? 1 : Math.max(0, p.xp - p.floor), span: p.next === null ? 1 : p.next - p.floor } : null;
   const current = tutorialStep(state.step - 1);
   const open = (tree?.layout.districts ?? []).filter((d) => d.open).map((d) => d.id);
-  return { step: state.step, current, gate: current && stepGate(current, { level: level?.level ?? 1, open }), met: state.met, level };
+  return { step: state.step, current, gate: current && stepGate(current, { level: level?.level ?? 1, open }), due: state.due, level };
 }
 
 type Completed = { step: number; coins: number | null }[];
@@ -115,22 +116,27 @@ function LevelBar({ now, className }: { now: NonNullable<TutorialNow["level"]>; 
 /**
  * The HUD's checklist (#152 S4): "Next: Feed the tree" and why, or the level it waits for with the XP
  * bar; it opens the ten steps on parchment, the done ones ticked. Gone once the chain is done.
- * It also completes the step on the moment the server says it's met, once.
+ * It also calls `advance` the moment the server says something is due (a step met, coins owed), once.
  */
 export function Checklist() {
   const now = useTutorial();
   const advance = useAdvance();
   const menu = useMenu();
   const id = useId();
-  // The step already asked about: a new look at the same met step asks nothing more.
+  // The step already asked about: a new look while it's still due asks nothing more; once nothing
+  // is due, the next time something is (on the same step, say) asks again.
   const asked = useRef<number | null>(null);
   const step = now?.step;
-  const met = !!now?.met;
+  const due = !!now?.due;
   useEffect(() => {
-    if (!met || step === undefined || asked.current === step) return;
+    if (!due || step === undefined) {
+      asked.current = null;
+      return;
+    }
+    if (asked.current === step) return;
     asked.current = step;
     advance().catch(() => (asked.current = null));
-  }, [met, step, advance]);
+  }, [due, step, advance]);
   const current = now?.current;
   return (
     <>

@@ -27,7 +27,7 @@ const { Elder } = await import("./Elder");
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const mine = (level: number) => ({ enabled: true, hidden: false, player: { level, title: "Seedling", xp: 40, floor: 30, next: 75, toNext: 35, fraction: 0.2 }, wallet: null, luckyCharms: 0, sunlamps: 0, lanterns: 0, look: { color: null, accessory: null } });
-const on = (step: number) => ({ step, completedAt: Array.from({ length: step - 1 }, () => 1), met: false });
+const on = (step: number) => ({ step, due: false });
 
 let root: Root;
 let host: HTMLElement;

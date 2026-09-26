@@ -56,16 +56,16 @@ const event = (memberId: Id<"members">, kind: Doc<"gameEvents">["kind"]) =>
 
 describe("the chain starts at the elder hog", () => {
   test("a new member is on step 1, arriving, which only the world can tell", async () => {
-    expect(await state(team.ana)).toEqual({ step: 1, completedAt: [], met: false });
+    expect(await state(team.ana)).toEqual({ step: 1, due: false });
   });
 
   test("walking to the elder hog completes it; with no player yet, its coins wait for the first kudos", async () => {
     expect(await advance(team.ana, "arrive")).toEqual({ completed: [{ step: 1, coins: null }] });
-    expect(await state(team.ana)).toMatchObject({ step: 2, completedAt: [Date.now()], met: false });
+    expect(await state(team.ana)).toMatchObject({ step: 2, due: false });
     expect(await tutorialEvents(team.ana)).toEqual([]);
 
     await message("UANA", "<@UBEN> :taco: thanks for the thorough review");
-    expect(await state(team.ana)).toMatchObject({ step: 2, met: true });
+    expect(await state(team.ana)).toMatchObject({ step: 2, due: true });
     // Below level 3 the coins are paid silently: the wallet isn't open yet.
     expect(await advance(team.ana)).toEqual({ completed: [{ step: 2, coins: null }] });
     expect(await tutorialEvents(team.ana)).toHaveLength(2);
@@ -79,17 +79,18 @@ describe("step detection", () => {
     await message("UANA", "<@UBEN> :taco:");
     await message("UBEN", "<@UANA> :taco: thanks for pairing with me");
     await message("UANA", "<@UBEN> :taco: thank you right back Ben");
-    expect(await state(team.ana)).toMatchObject({ step: 2, met: false });
+    // Only step 1's coins, owed since before Ana was a player, are due; "Say thanks" isn't.
     expect(await advance(team.ana)).toEqual({ completed: [] });
+    expect(await state(team.ana)).toMatchObject({ step: 2, due: false });
   });
 
   test("feeding the tree is a claim at the stone, not one time made", async () => {
     await message("UANA", "<@UBEN> :taco: thanks for the thorough review");
     await along(team.ana, 2);
     await t.run((ctx) => ctx.db.insert("gameEvents", { workspaceId: team.workspaceId, memberId: team.ana, kind: "claim", batchId: "claim:time", dayKey: "2026-09-23", at: Date.now(), xp: 0, by: "time" }));
-    expect(await state(team.ana)).toMatchObject({ step: 3, met: false });
+    expect(await state(team.ana)).toMatchObject({ step: 3, due: false });
     await claimAtTree(t, team.ana);
-    expect(await state(team.ana)).toMatchObject({ step: 3, met: true });
+    expect(await state(team.ana)).toMatchObject({ step: 3, due: true });
     expect((await advance(team.ana)).completed.map((c) => c.step)).toEqual([3]);
   });
 
@@ -129,7 +130,7 @@ describe("step detection", () => {
     expect((await advance(team.ana)).completed.map((c) => c.step)).toEqual([8, 9]);
     await event(team.ana, "party");
     expect((await advance(team.ana)).completed.map((c) => c.step)).toEqual([10]);
-    expect(await state(team.ana)).toMatchObject({ step: 11, met: false });
+    expect(await state(team.ana)).toMatchObject({ step: 11, due: false });
     await along(team.ben, 0);
     await message("UBEN", "<@UANA> :taco: thanks for the thorough review");
     await along(team.ben, 9);
@@ -137,16 +138,37 @@ describe("step detection", () => {
     expect((await advance(team.ben)).completed.map((c) => c.step)).toEqual([10]);
   });
 
+  test("a member already past a step only the world sees isn't held there: someone who gave, claimed and planted before the chain", async () => {
+    await message("UANA", "<@UBEN> :taco: thanks for the thorough review");
+    await claimAtTree(t, team.ana);
+    await t.run((ctx) =>
+      ctx.db.insert("plants", { workspaceId: team.workspaceId, ownerId: team.ana, forId: team.ben, species: "oak", plantedAt: Date.now(), plantedDay: "2026-09-23", pickedThrough: "2026-09-23", announced: 0 }),
+    );
+    expect(await state(team.ana)).toMatchObject({ step: 1, due: true });
+    expect((await advance(team.ana)).completed.map((c) => c.step)).toEqual([1, 2, 3, 4, 5]);
+    expect(await state(team.ana)).toMatchObject({ step: 6, due: false });
+  });
+
   test("the chain keeps its order: a step done early completes the moment it's reached", async () => {
     await message("UANA", "<@UBEN> :taco: thanks for the thorough review");
     await event(team.ana, "expedition");
     // Arriving completes step 1, then step 2 (already met) at once; step 3 waits for a claim.
     expect((await advance(team.ana, "arrive")).completed.map((c) => c.step)).toEqual([1, 2]);
-    expect(await state(team.ana)).toMatchObject({ step: 3, met: false });
+    expect(await state(team.ana)).toMatchObject({ step: 3, due: false });
   });
 });
 
 describe("each step pays 5 Hog coins, once", () => {
+  test("coins owed from before the first kudos are paid once there's a player, even if that kudos doesn't count", async () => {
+    await advance(team.ana, "arrive");
+    await message("UANA", "<@UBEN> :taco:");
+    expect(await state(team.ana)).toMatchObject({ step: 2, due: true });
+    expect(await advance(team.ana)).toEqual({ completed: [] });
+    expect(await tutorialEvents(team.ana)).toHaveLength(1);
+    expect(await player(team.ana)).toMatchObject({ tutorialCoins: 5 });
+    expect(await state(team.ana)).toMatchObject({ step: 2, due: false });
+  });
+
   test("the coins show in the result from level 3, where the wallet is open", async () => {
     await message("UANA", "<@UBEN> :taco: thanks for the thorough review");
     await atLevel(team.ana, 3);
@@ -198,6 +220,17 @@ describe("only while the game is shown", () => {
   });
 });
 
+describe("the shared demo", () => {
+  test("an Alex from before the chain has walked it to its end the next time a visitor comes in", async () => {
+    const alex = await t.run(async (ctx) => {
+      const demo = await ctx.db.insert("workspaces", { slackTeamId: "T_DEMO_LUMEN", name: "Lumen Labs", isDemo: true, status: "active", ...DEMO_SETTINGS });
+      return await ctx.db.insert("members", { isBot: false, deactivated: false, totalGiven: 0, totalReceived: 0, totalMaxedDays: 0, workspaceId: demo, slackUserId: "UDEMOYOU", name: "Alex Rivera", isAdmin: true });
+    });
+    await t.mutation(internal.demo.ensureDemoUser, {});
+    expect((await t.run((ctx) => ctx.db.get(alex)))?.tutorial).toMatchObject({ paid: 10, completedAt: expect.arrayContaining([expect.any(Number)]) });
+  });
+});
+
 describe("the simulator", () => {
   test("starts a visitor on step 1, in the desert before the seed", async () => {
     const demoUser = await t.run(async (ctx) => {
@@ -209,7 +242,7 @@ describe("the simulator", () => {
     const visitor = t.withIdentity({ subject: `${demoUser}|a` });
     await visitor.mutation(api.simulator.start, { level: 5 });
     expect(await visitor.query(api.tree.state, {})).toMatchObject({ planted: false, stage: "seed" });
-    expect(await visitor.query(api.tutorial.state, {})).toEqual({ step: 1, completedAt: [], met: false });
+    expect(await visitor.query(api.tutorial.state, {})).toEqual({ step: 1, due: false });
     // Walk to the elder hog, give a kudos in the sandbox, claim at the stone.
     expect((await visitor.mutation(api.tutorial.advance, { did: "arrive" })).completed).toEqual([{ step: 1, coins: 5 }]);
     await visitor.mutation(api.demo.simulateMessage, { text: "<@UDEMOPRIYA> :seedling: thanks for the thorough review", channelName: "general" });

@@ -449,7 +449,7 @@ export function Hud({ places, where, insetRight = 0, whereIs }: { places: Place[
   const advance = useAdvance();
   // Step 4 of the elder hog's chain is looking round the Places list (#159).
   const looked = () => {
-    if (tutorial?.current?.id === "look") void advance("look");
+    if (tutorial?.current?.id === "look") advance("look").catch(() => undefined);
   };
   const today = useWorkspaceToday();
   const banner = useQuery(api.boosts.banner, { today });
