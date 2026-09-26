@@ -100,6 +100,9 @@ describe("gains whose tickets emit them later", () => {
     const joined: Gain = { kind: "spree_tier", tier: 5, role: "joined", giver: ana, receivers: [ben, cleo], xp: 10 };
     expect(gainText(joined, "slack")).toBe("🎉 *A spree you joined reached 5*\n<@UANA>'s kudos for <@UBEN> and <@UCLEO> · +10 XP");
     expect(gainText(joined, "web")).toBe("A spree you joined reached 5. Ana's kudos for Ben and Cleo. +10 XP");
+    // On the web (the cabin's bot messages, #130) the pay reads as words, never joined by middle dots.
+    expect(gainText(started, "web")).toBe("Your kudos for Ben became a spree of 10. +20 XP and +5 Hog coins");
+    expect(gainText({ ...joined, coins: 2 }, "web")).toBe("A spree you joined reached 5. Ana's kudos for Ben and Cleo. +10 XP and +2 Hog coins");
   });
 
   test("a plant reaching a new stage (#95)", () => {

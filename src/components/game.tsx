@@ -1,5 +1,7 @@
+import clsx from "clsx";
 import { useMutation, useQuery } from "convex/react";
-import { ChevronRight, Compass, Lock, Network, Sprout } from "lucide-react";
+import { Compass, Lock, Network, Sprout } from "lucide-react";
+import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { api } from "../../convex/_generated/api";
 import type { CoinBalance } from "../../convex/lib/coins";
@@ -9,7 +11,7 @@ import { daysBetween } from "../../convex/lib/time";
 import { nextLockedAreas, type LevelProgress } from "../../convex/lib/xp";
 import { HogCoin } from "@/components/HogCoin";
 import { RemoteArt } from "@/components/RemoteArt";
-import { Avatar, Card, CardHeader, Progress } from "@/components/ui";
+import { Avatar, Progress, Toggle } from "@/components/ui";
 
 /**
  * A game area the member hasn't reached yet (§G1 progressive disclosure): visible, with a lock,
@@ -21,13 +23,13 @@ export function Locked({ title, level, how }: { title: string; level: number; ho
       data-locked
       role="group"
       aria-label={`${title}, opens at level ${level}`}
-      className="flex items-start gap-3 border border-dashed border-bark/60 bg-parchment-deep px-3.5 py-3 text-sm"
+      className="flex items-start gap-3 border-2 border-dashed border-bark/40 bg-parchment-deep px-3.5 py-3 text-sm"
     >
       <Lock className="mt-0.5 h-4 w-4 shrink-0 text-ink/70" aria-hidden />
       <div className="min-w-0">
-        <div className="flex items-baseline gap-2">
-          <span className="font-medium text-ink">{title}</span>
-          <span className="tabular text-[11px] text-ink/70">Level {level}</span>
+        <div className="flex flex-wrap items-baseline gap-x-2">
+          <span className="font-semibold text-ink">{title}</span>
+          <span className="pixel-chip bg-parchment px-1.5 text-[11px] font-semibold text-ink tabular">Level {level}</span>
         </div>
         <p className="mt-0.5 text-xs text-ink/75">{how}</p>
       </div>
@@ -35,34 +37,37 @@ export function Locked({ title, level, how }: { title: string; level: number; ho
   );
 }
 
+/** "a, b and c". */
+const inWords = (parts: string[]) => (parts.length < 2 ? parts.join("") : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`);
+
 /**
- * The Hog coin wallet (§G4), from level 3: the balance and where it came from. Coins collected
- * silently before level 3 are all in it the first time it appears.
+ * The Hog coin wallet (§G4), from level 3: the balance and where it came from, in a sentence.
+ * Coins collected silently before level 3 are all in it the first time it appears.
  */
 export function Wallet({ wallet }: { wallet: CoinBalance }) {
-  const sources = [
+  const earned = [
     `${wallet.fromKudos} from thoughtful kudos`,
     wallet.fromFruit ? `${wallet.fromFruit} from garden fruit` : null,
     wallet.fromQuests ? `${wallet.fromQuests} from quests` : null,
     wallet.fromSprees ? `${wallet.fromSprees} from kudos sprees` : null,
     `${wallet.fromLevels} from level-ups`,
-    wallet.spent ? `${wallet.spent} spent` : null,
-    wallet.adjusted ? `${wallet.adjusted > 0 ? "+" : ""}${wallet.adjusted} by admins` : null,
-  ].filter(Boolean);
+  ].filter((s): s is string => s !== null);
+  const sentence = [
+    `${inWords(earned)}.`,
+    wallet.spent ? `You spent ${wallet.spent}.` : null,
+    wallet.adjusted ? (wallet.adjusted > 0 ? `Admins added ${wallet.adjusted}.` : `Admins took back ${-wallet.adjusted}.`) : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
   return (
-    <div
-      data-wallet
-      role="group"
-      aria-label={`Hog coins: ${wallet.balance}`}
-      className="flex items-start gap-3 border border-lantern/40 bg-lantern/5 px-3.5 py-3 text-sm"
-    >
+    <div data-wallet role="group" aria-label={`Hog coins: ${wallet.balance}`} className="pixel-chip flex items-start gap-3 bg-lantern/15 px-3.5 py-3 text-sm">
       <HogCoin size={28} className="mt-0.5" />
       <div className="min-w-0">
         <div className="flex items-baseline gap-2">
-          <span className="font-display text-2xl font-semibold text-ink tabular">{wallet.balance}</span>
-          <span className="font-medium text-ink">Hog coins</span>
+          <span className="font-display text-2xl font-medium text-ink tabular">{wallet.balance}</span>
+          <span className="font-semibold text-ink">Hog coins</span>
         </div>
-        <p className="mt-0.5 text-xs text-ink/75">{sources.join(" · ")}</p>
+        <p className="mt-0.5 text-xs text-ink/75">{sentence}</p>
         {wallet.balance < 0 && (
           <p className="mt-1 text-xs text-ink/75">A revoked kudos took back coins it had earned. Spending waits until it's above zero again.</p>
         )}
@@ -71,20 +76,20 @@ export function Wallet({ wallet }: { wallet: CoinBalance }) {
   );
 }
 
-/** Your level, its title and how far it is to the next one. */
+/** Your level, its title and how far it is to the next one, on a pixel meter. */
 export function LevelPanel({ progress }: { progress: LevelProgress }) {
   const span = progress.next === null ? 1 : progress.next - progress.floor;
   const into = progress.next === null ? 1 : Math.max(0, progress.xp - progress.floor);
   return (
     <div>
-      <div className="flex items-baseline justify-between gap-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3">
         <div className="flex items-baseline gap-2">
-          <span className="font-display text-3xl font-semibold text-ink">Level {progress.level}</span>
-          <span className="text-sm text-soil">{progress.title}</span>
+          <span className="font-display text-[28px] font-medium leading-9 text-ink">Level {progress.level}</span>
+          <span className="text-sm font-semibold text-soil">{progress.title}</span>
         </div>
         <span className="text-xs text-ink/75 tabular">{progress.xp} XP</span>
       </div>
-      <Progress value={into} max={span} className="mt-3" height={8} />
+      <Progress value={into} max={span} className="mt-2" height={12} />
       <div className="mt-1.5 text-xs text-ink/75">
         {progress.toNext === null ? "Top level reached" : `${progress.toNext} XP to level ${progress.level + 1}`}
       </div>
@@ -92,85 +97,82 @@ export function LevelPanel({ progress }: { progress: LevelProgress }) {
   );
 }
 
+/** A way from the cabin to another place: a pixel-chip row with its name and one line. */
+function Way({ to, icon, name, line }: { to: string; icon: ReactNode; name: string; line: string }) {
+  return (
+    <Link to={to} className="pixel-chip flex items-center gap-3 bg-parchment px-3.5 py-2.5 text-sm hover:bg-parchment-deep/60">
+      <span className="shrink-0 text-soil">{icon}</span>
+      <span className="font-semibold text-ink">{name}</span>
+      <span className="min-w-0 flex-1 text-xs text-ink/75">{line}</span>
+    </Link>
+  );
+}
+
 /**
- * The game on your profile (Me): level, title and the next-level bar, the wallet from level 3, the
- * next areas ahead (locked), and "Hide the game". Before a member's first kudos it only invites them to give.
- * Nothing at all while the workspace doesn't play the game.
+ * The game in your cabin: level, title and the next-level meter, the wallet from level 3, the
+ * next areas ahead (locked), and the ways to your garden and skill tree. Before a member's first
+ * kudos it only invites them to give; while hidden it says so. Nothing while the workspace doesn't
+ * play the game. The switch that hides it is `GameSwitch`, by the cabin door.
  */
 export function GameCard({ glyph }: { glyph: string }) {
   const game = useQuery(api.game.mine, {});
   const tree = useQuery(api.skills.mine, game?.player && !game.hidden ? {} : "skip");
-  const setHidden = useMutation(api.game.setHidden);
   if (!game?.enabled) return null;
   if (game.hidden) {
-    return (
-      <div className="flex items-center justify-between border border-parchment-deep px-4 py-2.5 text-sm text-ink/75">
-        <span>The game is hidden. Your kudos still earn XP and Hog coins.</span>
-        <button type="button" className="font-medium text-soil underline-offset-4 hover:underline" onClick={() => void setHidden({ hidden: false })}>
-          Show the game
-        </button>
-      </div>
-    );
+    return <p className="text-sm text-ink/75">The game is hidden. Your kudos still earn XP and Hog coins. The switch by the door brings it back.</p>;
   }
-  const hide = (
-    <button type="button" className="text-xs text-ink/70 underline-offset-4 hover:text-ink/75 hover:underline" onClick={() => void setHidden({ hidden: true })}>
-      Hide the game
-    </button>
-  );
   if (!game.player) {
     return (
-      <Card>
-        <CardHeader title="You can give kudos too" icon={<Sprout className="h-4 w-4 text-soil" />} action={hide} />
-        <p className="px-5 pb-5 text-sm text-ink/75">
-          Mention a teammate in Slack with {glyph} and a few words on why. Your first kudos starts your level; thoughtful ones earn the most.
+      <div className="pixel-note px-4 py-3">
+        <h4 className="flex items-center gap-2 font-display text-lg font-medium">
+          <Sprout className="h-4 w-4 text-soil" aria-hidden />
+          You can give kudos too
+        </h4>
+        <p className="mt-1 text-sm text-ink/75">
+          Mention a teammate in Slack with {glyph} and a few words on why. Your first kudos starts your level, and thoughtful ones earn the most.
         </p>
-      </Card>
+      </div>
     );
   }
   const ahead = nextLockedAreas(game.player.level);
   const wallet = game.wallet ?? null;
   const available = tree ? pointsOf(tree.skills as Allocation, tree.level).available : null;
   return (
-    <Card className="p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <LevelPanel progress={game.player} />
-        </div>
-        {hide}
-      </div>
+    <div className="space-y-3">
+      <LevelPanel progress={game.player} />
       {(wallet || ahead.length > 0) && (
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        <div className={clsx("grid gap-2", (wallet ? 1 : 0) + ahead.length > 1 && "@md:grid-cols-2")}>
           {wallet && <Wallet wallet={wallet} />}
           {ahead.map((a) => (
             <Locked key={a.key} title={a.title} level={a.level} how={a.how} />
           ))}
         </div>
       )}
-      {game.player.level >= GARDEN_LEVEL && (
-        <Link
-          to="/garden"
-          className="mt-3 flex items-center gap-3 border border-parchment-deep px-3.5 py-2.5 text-sm transition hover:border-bark/60 hover:bg-parchment-deep/50"
-        >
-          <Sprout className="h-4 w-4 shrink-0 text-soil" aria-hidden />
-          <span className="font-medium text-ink">Your garden</span>
-          <span className="flex-1 text-xs text-ink/75">A plant for each teammate you recognise</span>
-          <ChevronRight className="h-4 w-4 text-ink/70" aria-hidden />
-        </Link>
-      )}
+      {game.player.level >= GARDEN_LEVEL && <Way to="/garden" icon={<Sprout className="h-4 w-4" aria-hidden />} name="Your garden" line="A plant for each teammate you recognise" />}
       {available !== null && (
-        <Link
+        <Way
           to="/skills"
-          className="mt-3 flex items-center gap-3 border border-parchment-deep px-3.5 py-2.5 text-sm transition hover:border-bark/60 hover:bg-parchment-deep/50"
-        >
-          <Network className="h-4 w-4 shrink-0 text-soil" aria-hidden />
-          <span className="font-medium text-ink">Skill tree</span>
-          <span className="flex-1 text-xs text-ink/75">
-            {available > 0 ? `${available} skill ${available === 1 ? "point" : "points"} to spend` : "Every level-up brings a skill point"}
-          </span>
-          <ChevronRight className="h-4 w-4 text-ink/70" aria-hidden />
-        </Link>
+          icon={<Network className="h-4 w-4" aria-hidden />}
+          name="Skill tree"
+          line={available > 0 ? `${available} skill ${available === 1 ? "point" : "points"} to spend` : "Every level-up brings a skill point"}
+        />
       )}
-    </Card>
+    </div>
+  );
+}
+
+/** "Show the game": the small switch on the cabin wall. Hidden, kudos still earn. Nothing while the game is off. */
+export function GameSwitch() {
+  const game = useQuery(api.game.mine, {});
+  const setHidden = useMutation(api.game.setHidden);
+  if (!game?.enabled) return null;
+  return (
+    <Toggle
+      label="Show the game"
+      description="Your level, garden and quests in the world. Hidden, your kudos still earn XP and Hog coins."
+      checked={!game.hidden}
+      onChange={(show) => void setHidden({ hidden: !show })}
+    />
   );
 }
 
@@ -186,22 +188,26 @@ export function ScoutHints({ today }: { today: string }) {
     ...(hints.never ?? []).map((h) => ({ ...h, note: "never thanked yet" })),
   ];
   return (
-    <Card>
-      <CardHeader title="Haven't thanked in a while" subtitle="Only you see this. From your Lookout skill." icon={<Compass className="h-4 w-4 text-soil" />} />
+    <div className="pixel-note px-4 py-3">
+      <h4 className="flex items-center gap-2 font-display text-lg font-medium">
+        <Compass className="h-4 w-4 text-soil" aria-hidden />
+        Haven't thanked in a while
+      </h4>
+      <p className="text-xs text-ink/75">Only you see this. From your Lookout skill.</p>
       {rows.length === 0 ? (
-        <p className="px-5 pb-5 text-sm text-ink/75">Nobody right now: everyone you've thanked before heard from you in the last 30 days.</p>
+        <p className="mt-2 text-sm text-ink/75">Nobody right now: everyone you've thanked before heard from you in the last 30 days.</p>
       ) : (
-        <ul className="px-5 pb-5">
+        <ul className="mt-1">
           {rows.map((h) => (
-            <li key={h.memberId} className="flex items-center gap-3 border-t border-parchment-deep py-2.5 first:border-t-0">
+            <li key={h.memberId} className="flex items-center gap-3 border-t border-parchment-deep py-2 first:border-t-0">
               <Avatar name={h.name} src={h.avatarUrl} size={28} />
-              <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">{h.name}</span>
+              <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{h.name}</span>
               <span className="shrink-0 text-xs text-ink/75">{h.note}</span>
             </li>
           ))}
         </ul>
       )}
-    </Card>
+    </div>
   );
 }
 

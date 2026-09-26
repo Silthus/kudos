@@ -18,7 +18,7 @@ vi.mock("convex/react", () => ({
   useMutation: () => setHidden,
 }));
 
-const { Earnings, GameCard, LevelUpHoggie, Locked, ScoutHints } = await import("./game");
+const { Earnings, GameCard, GameSwitch, LevelUpHoggie, Locked, ScoutHints } = await import("./game");
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 let root: Root | undefined;
@@ -59,7 +59,7 @@ test("at level 3 the wallet appears with everything collected so far, and the ne
   const wallet = host.querySelector("[data-wallet]")!;
   expect(wallet.getAttribute("aria-label")).toBe("Hog coins: 28");
   expect(wallet.textContent).toContain("28");
-  expect(wallet.textContent).toContain("8 from thoughtful kudos · 20 from level-ups");
+  expect(wallet.textContent).toContain("8 from thoughtful kudos and 20 from level-ups.");
   const locked = [...host.querySelectorAll("[data-locked]")].map((el) => el.getAttribute("aria-label"));
   expect(locked).toEqual(["Store, opens at level 5", "Quests, opens at level 5"]);
 });
@@ -102,14 +102,14 @@ test("an older level-up DM without gains still brings the hoggie (review #4)", (
 test("fruit picked in the garden is its own line in the wallet, and the garden is a click away (#95)", () => {
   mine = { enabled: true, hidden: false, player: level3, wallet: { balance: 31, fromKudos: 8, fromFruit: 3, fromQuests: 0, fromLevels: 20, spent: 0, adjusted: 0 } };
   const host = render(<GameCard glyph="🌮" />);
-  expect(host.querySelector("[data-wallet]")!.textContent).toContain("8 from thoughtful kudos · 3 from garden fruit · 20 from level-ups");
+  expect(host.querySelector("[data-wallet]")!.textContent).toContain("8 from thoughtful kudos, 3 from garden fruit and 20 from level-ups.");
   expect(host.querySelector('a[href="/garden"]')?.textContent).toContain("Your garden");
 });
 
 test("coins from kudos sprees are their own line in the wallet (#94)", () => {
   mine = { enabled: true, hidden: false, player: level3, wallet: { balance: 34, fromKudos: 8, fromFruit: 0, fromQuests: 0, fromSprees: 6, fromLevels: 20, spent: 0, adjusted: 0 } };
   const host = render(<GameCard glyph="🌮" />);
-  expect(host.querySelector("[data-wallet]")!.textContent).toContain("8 from thoughtful kudos · 6 from kudos sprees · 20 from level-ups");
+  expect(host.querySelector("[data-wallet]")!.textContent).toContain("8 from thoughtful kudos, 6 from kudos sprees and 20 from level-ups.");
 });
 
 test("below level 3 there is no wallet, only its locked tile", () => {
@@ -139,21 +139,41 @@ test("before their first kudos a member is invited to give, not shown a level", 
   expect(host.querySelector("[role=progressbar]")).toBeNull();
 });
 
-test("hiding the game leaves only the way back", () => {
+test("spent coins and admin adjustments are their own sentences", () => {
+  mine = { enabled: true, hidden: false, player: level3, wallet: { balance: 5, fromKudos: 8, fromFruit: 0, fromQuests: 2, fromLevels: 20, spent: 30, adjusted: 5 } };
+  const host = render(<GameCard glyph="🌮" />);
+  expect(host.querySelector("[data-wallet]")!.textContent).toContain("8 from thoughtful kudos, 2 from quests and 20 from level-ups. You spent 30. Admins added 5.");
+});
+
+test("hiding the game is a switch; hidden, the card only says so and where the switch is", () => {
   mine = { enabled: true, hidden: false, player: level2 };
-  let host = render(<GameCard glyph="🌮" />);
-  const hide = [...host.querySelectorAll("button")].find((b) => b.textContent === "Hide the game")!;
-  act(() => hide.click());
+  let host = render(<GameSwitch />);
+  const toggle = host.querySelector<HTMLButtonElement>("[role=switch]")!;
+  expect(toggle.getAttribute("aria-label")).toBe("Show the game");
+  expect(toggle.getAttribute("aria-checked")).toBe("true");
+  act(() => toggle.click());
   expect(setHidden).toHaveBeenCalledWith({ hidden: true });
+  // The card itself has no hide button any more: the switch is by the cabin door.
+  act(() => root?.unmount());
+  host = render(<GameCard glyph="🌮" />);
+  expect([...host.querySelectorAll("button")].map((b) => b.textContent)).not.toContain("Hide the game");
 
   act(() => root?.unmount());
   mine = { enabled: true, hidden: true, player: level2 };
   host = render(<GameCard glyph="🌮" />);
   expect(host.textContent).not.toContain("Level 2");
   expect(host.textContent).toContain("Your kudos still earn XP and Hog coins.");
-  const show = [...host.querySelectorAll("button")].find((b) => b.textContent === "Show the game")!;
-  act(() => show.click());
+  act(() => root?.unmount());
+  host = render(<GameSwitch />);
+  const off = host.querySelector<HTMLButtonElement>("[role=switch]")!;
+  expect(off.getAttribute("aria-checked")).toBe("false");
+  act(() => off.click());
   expect(setHidden).toHaveBeenCalledWith({ hidden: false });
+});
+
+test("with the game off there is no switch either", () => {
+  mine = { enabled: false, hidden: false, player: null };
+  expect(render(<GameSwitch />).textContent).toBe("");
 });
 
 test("with the game off there is nothing to show", () => {

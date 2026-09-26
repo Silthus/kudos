@@ -10,7 +10,7 @@ export function waivedCopy(key: string, reason: WaivedReason) {
     case "too_new":
       return "needs more history";
     case "no_candidates":
-      return key === "spread" ? "needs at least 3 teammates" : "you've already recognized everyone 🎉";
+      return key === "spread" ? "needs at least 3 teammates" : "you've already recognized everyone";
     default:
       return null;
   }

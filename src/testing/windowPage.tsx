@@ -15,11 +15,34 @@ import { escapesFromScrollers, parchmentTextOnDusk, widensSideways, describeElem
  */
 const VIEWPORT_VARIANT = /(^|:)(sm|md|lg|xl|2xl|max-sm|max-md|max-lg|max-xl|max-2xl|min-\[[^\]]+\]|max-\[[^\]]+\]):/;
 
+/** Elements laid out by the viewport's width instead of the window's. */
+export function viewportLayout(root: ParentNode): Element[] {
+  return [...root.querySelectorAll("*")].filter((el) => [...el.classList].some((c) => VIEWPORT_VARIANT.test(c)));
+}
+
+// #126 "Words are signposts": no middle-dot joins, no arrows on links, no emoji in UI copy.
+const TELLS = /[·•→←↑↓↗↘⟶›»]|\p{Extended_Pictographic}/u;
+
+/**
+ * Text nodes with a middle dot, an arrow or an emoji, one by one. `allow` lists strings that are
+ * data, not copy (the workspace's kudos emoji), removed before the check.
+ */
+export function copyTells(root: Node, allow: string[] = []): string[] {
+  const walker = document.createTreeWalker(root, 4 /* NodeFilter.SHOW_TEXT */);
+  const found: string[] = [];
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    let text = n.textContent ?? "";
+    for (const a of allow) text = text.split(a).join("");
+    if (TELLS.test(text)) found.push(n.textContent!.trim());
+  }
+  return found;
+}
+
 export function windowPageProblems(root: HTMLElement): string[] {
   const problems: string[] = [];
-  for (const el of root.querySelectorAll("*")) {
+  for (const el of viewportLayout(root)) {
     const bad = [...el.classList].filter((c) => VIEWPORT_VARIANT.test(c));
-    if (bad.length) problems.push(`viewport breakpoint ${bad.join(" ")} on ${describeElement(el)}`);
+    problems.push(`viewport breakpoint ${bad.join(" ")} on ${describeElement(el)}`);
   }
   for (const el of escapesFromScrollers(root)) problems.push(`escapes its scroller: ${describeElement(el)}`);
   for (const el of widensSideways(root)) problems.push(`widens sideways: ${describeElement(el)}`);

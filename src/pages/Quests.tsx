@@ -1,10 +1,11 @@
 import clsx from "clsx";
 import { useQuery } from "convex/react";
-import { Check, Minus, ScrollText, Target } from "lucide-react";
+import { Check, Minus, Target } from "lucide-react";
 import { Link } from "react-router";
 import { api } from "../../convex/_generated/api";
 import { QUEST_ICON, QUEST_RULES, QuestBoardBody, type QuestBoard } from "@/components/quests";
-import { BigNumber, Card, CardHeader, Empty, PageHeader, PageSkeleton } from "@/components/ui";
+import { Room } from "@/components/room";
+import { BigNumber, Empty, PageSkeleton } from "@/components/ui";
 import { dayLabel, rangeLabel } from "@/lib/format";
 import { useWorkspaceToday } from "@/lib/period";
 import { stampLabel, weekLabel } from "@/lib/quests";
@@ -12,7 +13,13 @@ import { useViewer } from "@/lib/viewer";
 
 type QuestLog = NonNullable<ReturnType<typeof useQuery<typeof api.quests.history>>>;
 
-/** The member's private quest log: this week's board, lifetime totals and a stamp per quest of the past weeks. */
+const linkCls = "font-semibold text-ember-deep underline decoration-2 underline-offset-4";
+
+/**
+ * The quest signpost (#126, #130), the member's private quest log: this week's quests pinned to
+ * the post as papers, today's quest as a small note, lifetime totals, how quests count, and a row
+ * of stamps for every past week. It lays out by the window's width.
+ */
 export function Quests() {
   const today = useWorkspaceToday();
   const board = useQuery(api.quests.mine, { today });
@@ -20,32 +27,35 @@ export function Quests() {
   if (board === undefined || log === undefined) return <PageSkeleton />;
 
   return (
-    <div>
-      <PageHeader
-        eyebrow="Only you can see this page"
-        title="Quest log"
-        subtitle="Weekly goals for thoughtful, spread-out recognition. They only count what you give, never what you receive, and nobody else sees how you're doing."
-      />
+    <div className="space-y-8">
+      <p className="text-[15px] leading-6 text-ink/75">
+        Only you see this signpost. Weekly goals for thoughtful, spread-out recognition: they count the kudos you give, never the ones you receive, and nobody else sees how you're doing.
+      </p>
       {!board.enabled ? (
-        <Card>
+        <div className="pixel-note px-4 py-3">
           {board.hidden ? (
-            <Empty icon={<Target className="h-7 w-7 text-ink/70" />} title="Quests are part of the game you've hidden">
-              They still count and pay while it's hidden. Show the game again on your Me page to see them.
-            </Empty>
+            <>
+              <p className="font-display text-lg font-medium">Quests are part of the game you've hidden</p>
+              <p className="mt-1 text-sm text-ink/75">They still count and pay while it's hidden. Show the game again with the switch by your cabin door.</p>
+              <Link to="/me" className={clsx(linkCls, "mt-2 inline-block text-sm")}>
+                Go to your cabin
+              </Link>
+            </>
           ) : (
-            <Empty icon={<Target className="h-7 w-7 text-ink/70" />} title="Quests are off in this workspace">
-              An admin can turn weekly quests on in the settings. Your log is kept.
-            </Empty>
+            <>
+              <p className="font-display text-lg font-medium">Quests are off in this workspace</p>
+              <p className="mt-1 text-sm text-ink/75">An admin can turn weekly quests on in the settings. Your log is kept.</p>
+            </>
           )}
-        </Card>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+        <>
           <ThisWeek board={board} />
-          <div className="flex flex-col gap-4 xl:col-span-5">
+          <div className="grid grid-cols-1 gap-8 @lg:grid-cols-2">
             <Lifetime totals={log.totals} />
             <HowQuestsCount />
           </div>
-        </div>
+        </>
       )}
       <PastWeeks weeks={log.weeks} today={today} />
     </div>
@@ -53,37 +63,22 @@ export function Quests() {
 }
 
 function ThisWeek({ board }: { board: QuestBoard }) {
+  const status = board.locked
+    ? `opens at level ${board.locked.level}`
+    : board.available > 0
+      ? `${board.completed} of ${board.available} done`
+      : "nothing to do this week";
   return (
-    <Card className="xl:col-span-7 xl:self-start">
-      <CardHeader
-        title="This week"
-        subtitle={`${rangeLabel(board.weekStart, board.weekEnd)} · ${
-          board.locked
-            ? `opens at level ${board.locked.level}`
-            : board.available > 0
-              ? `${board.completed} of ${board.available} complete`
-              : "nothing to do this week"
-        } · resets Monday`}
-        icon={<Target className="h-4 w-4 text-soil" />}
-        action={board.sweep && <SweepPill />}
-      />
-      <div className="px-5 pb-5">
-        <QuestBoardBody board={board} size="lg" />
-      </div>
-    </Card>
+    <Room title="This week" subtitle={`${rangeLabel(board.weekStart, board.weekEnd)}, ${status}. A new board on Monday.`} action={board.sweep && <SweepChip />}>
+      <QuestBoardBody board={board} size="lg" />
+    </Room>
   );
 }
 
-function SweepPill({ compact }: { compact?: boolean }) {
+function SweepChip() {
   return (
-    <span className="whitespace-nowrap bg-hedge/15 px-2.5 py-1 text-xs font-medium text-hedge-deep" title="Clean sweep: every quest that week">
-      {compact ? (
-        <>
-          <span className="hidden sm:inline">Clean sweep </span>🧹<span className="sr-only sm:hidden">Clean sweep</span>
-        </>
-      ) : (
-        "Clean sweep 🧹"
-      )}
+    <span className="pixel-chip inline-block whitespace-nowrap bg-hedge-deep px-2 py-0.5 text-xs font-semibold text-cream" title="Clean sweep: every quest that week">
+      Clean sweep
     </span>
   );
 }
@@ -95,11 +90,10 @@ function Lifetime({ totals }: { totals: QuestLog["totals"] }) {
     { label: "Weeks with a quest done", value: totals.weeksWithCompletion },
   ];
   return (
-    <Card>
-      <CardHeader title="Lifetime" subtitle="Everything you've completed so far" />
-      <dl className="grid grid-cols-3 gap-2 px-5 pb-5">
+    <Room title="Lifetime" subtitle="Everything you've completed so far">
+      <dl className="grid grid-cols-3 gap-2">
         {stats.map((s) => (
-          <div key={s.label} className="border border-parchment-deep bg-parchment-deep/40 p-3">
+          <div key={s.label} className="pixel-chip min-w-0 bg-parchment-deep/40 p-3">
             <dd>
               <BigNumber value={s.value} className="text-3xl" />
             </dd>
@@ -107,15 +101,14 @@ function Lifetime({ totals }: { totals: QuestLog["totals"] }) {
           </div>
         ))}
       </dl>
-    </Card>
+    </Room>
   );
 }
 
 function HowQuestsCount() {
   return (
-    <Card>
-      <CardHeader title="How quests count" />
-      <ul className="list-disc space-y-1.5 px-5 pb-5 pl-10 text-sm leading-relaxed text-ink/75 marker:text-ink/70">
+    <Room title="How quests count">
+      <ul className="list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-ink/75 marker:text-ink/70">
         {QUEST_RULES.map((rule, i) => (
           <li key={i}>{rule}</li>
         ))}
@@ -123,44 +116,40 @@ function HowQuestsCount() {
         <li>Unfinished quests simply expire on Monday: no streaks to keep, nothing to lose.</li>
         <li>
           Every completed weekly quest earns a collectible{" "}
-          <Link to="/discoveries?category=quest_complete" className="font-medium text-soil underline-offset-4 hover:underline">
+          <Link to="/discoveries?category=quest_complete" className={linkCls}>
             Quest message
           </Link>
           , Rare or better for a clean sweep.
         </li>
       </ul>
-    </Card>
+    </Room>
   );
 }
 
 type PastQuest = QuestLog["weeks"][number]["board"][number];
 
-/** One stamp: filled when done, outlined when not, dimmed when it wasn't available. Titles show from `sm` up. */
+/** One pixel stamp: inked in hedge when done, an empty outline when not, a faded dashed one when it wasn't available. Titles show on wide windows. */
 function Stamp({ quest: q, timeZone }: { quest: PastQuest; timeZone: string }) {
   const Icon = QUEST_ICON[q.key] ?? Target;
   const label = stampLabel(q, timeZone);
+  const kind = q.done ? "done" : q.waived ? "waived" : "open";
   return (
     <li
+      data-stamp={kind}
       title={label}
       className={clsx(
-        "relative flex h-9 w-9 items-center justify-center gap-1.5 border text-xs font-medium sm:w-auto sm:justify-start sm:px-3",
-        q.done && "border-hedge/40 bg-hedge/15 text-hedge-deep",
-        !q.done && !q.waived && "border-bark/60 text-ink/75",
-        q.waived && "border-dashed border-bark/60 text-ink/70 opacity-60",
+        "relative flex h-9 min-w-9 items-center justify-center gap-1.5 text-xs font-semibold @md:justify-start @md:px-2.5",
+        kind === "done" && "pixel-chip bg-hedge-deep text-cream",
+        kind === "open" && "border-2 border-bark/50 text-ink/75",
+        kind === "waived" && "border-2 border-dashed border-bark/40 text-ink/70 opacity-60",
       )}
     >
       <Icon className="h-4 w-4 shrink-0" aria-hidden />
-      <span className="hidden truncate sm:inline">{q.title}</span>
-      {q.done && (
-        <>
-          <Check className="hidden h-3.5 w-3.5 shrink-0 sm:inline" strokeWidth={3} aria-hidden />
-          {/* Icon-only on phones: a check, so done doesn't rely on colour alone. */}
-          <span className="absolute -right-1 -bottom-1 grid h-4 w-4 place-items-center bg-hedge text-ink sm:hidden" aria-hidden>
-            <Check className="h-2.5 w-2.5" strokeWidth={3.5} />
-          </span>
-        </>
-      )}
-      {q.waived && <Minus className="hidden h-3.5 w-3.5 shrink-0 sm:inline" strokeWidth={3} aria-hidden />}
+      <span className="hidden truncate @md:inline" aria-hidden>
+        {q.title}
+      </span>
+      {q.done && <Check className="h-3.5 w-3.5 shrink-0" strokeWidth={3} aria-hidden />}
+      {q.waived && <Minus className="hidden h-3.5 w-3.5 shrink-0 @md:inline" strokeWidth={3} aria-hidden />}
       <span className="sr-only">{label}</span>
     </li>
   );
@@ -169,24 +158,16 @@ function Stamp({ quest: q, timeZone }: { quest: PastQuest; timeZone: string }) {
 function PastWeeks({ weeks, today }: { weeks: QuestLog["weeks"]; today: string }) {
   const { timezone } = useViewer().workspace;
   return (
-    <Card className="mt-4">
-      <CardHeader
-        title="Past weeks"
-        subtitle="A stamp for every quest you completed; open ones just expired."
-        icon={<ScrollText className="h-4 w-4 text-soil" />}
-        action={<Legend />}
-      />
+    <Room title="Past weeks" subtitle="A stamp for every quest you completed. Open ones just expired." action={<StampLegend />}>
       {weeks.length === 0 ? (
-        <Empty icon={<ScrollText className="h-7 w-7 text-ink/70" />} title="Nothing in your log yet">
-          The Monday after a week you gave kudos in, that week's board lands here with a stamp for every quest you completed.
-        </Empty>
+        <Empty title="Nothing in your log yet">The Monday after a week you gave kudos in, that week's board lands here with a stamp for every quest you completed.</Empty>
       ) : (
-        <ol className="divide-y divide-parchment-deep px-5 pb-3">
+        <ol>
           {weeks.map((w) => (
-            <li key={w.weekKey} className="flex items-center gap-3 py-2.5 sm:gap-4">
-              <div className="w-16 shrink-0 sm:w-28">
-                <div className="text-sm font-medium tabular">{weekLabel(w.weekKey, today)}</div>
-                <div className="hidden text-xs text-ink/70 sm:block">
+            <li key={w.weekKey} className="flex items-center gap-3 border-t border-parchment-deep py-2.5 first:border-t-0 @md:gap-4">
+              <div className="w-16 shrink-0 @md:w-28">
+                <div className="text-sm font-semibold tabular">{weekLabel(w.weekKey, today)}</div>
+                <div className="hidden text-xs text-ink/70 @md:block">
                   {w.board.filter((q) => q.done).length} of {w.board.filter((q) => q.done || !q.waived).length} done
                 </div>
               </div>
@@ -195,26 +176,26 @@ function PastWeeks({ weeks, today }: { weeks: QuestLog["weeks"]; today: string }
                   <Stamp key={q.key} quest={q} timeZone={timezone} />
                 ))}
               </ul>
-              {w.sweep && <SweepPill compact />}
+              {w.sweep && <SweepChip />}
             </li>
           ))}
         </ol>
       )}
-    </Card>
+    </Room>
   );
 }
 
-function Legend() {
+function StampLegend() {
   const items = [
-    { label: "Completed", cls: "border-hedge/40 bg-hedge/15" },
-    { label: "Not completed", cls: "border-bark/60" },
-    { label: "Not available", cls: "border-dashed border-bark/60 opacity-60" },
+    { label: "Completed", cls: "pixel-chip bg-hedge-deep" },
+    { label: "Not completed", cls: "border-2 border-bark/50" },
+    { label: "Not available", cls: "border-2 border-dashed border-bark/40 opacity-60" },
   ];
   return (
     <ul className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink/75">
       {items.map((i) => (
         <li key={i.label} className="flex items-center gap-1.5">
-          <span className={clsx("h-3 w-3 border", i.cls)} aria-hidden />
+          <span className={clsx("h-3 w-3", i.cls)} aria-hidden />
           {i.label}
         </li>
       ))}

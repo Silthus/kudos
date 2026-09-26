@@ -154,7 +154,7 @@ describe("the HUD", () => {
     render();
     act(() => host.querySelector<HTMLButtonElement>("button[aria-label='Settings']")!.click());
     expect(host.textContent).toContain("Sign out");
-    expect(host.querySelector("a[href='/me']")?.textContent).toContain("Hide the game");
+    expect(host.querySelector("a[href='/me#door']")?.textContent).toContain("Hide the game");
     expect(host.textContent).toContain("Hedgehog Mode by PostHog (MIT)");
   });
 });

@@ -1,14 +1,15 @@
 import clsx from "clsx";
 import { useMutation, useQuery } from "convex/react";
 import { motion } from "motion/react";
-import { Palette, Sparkles, X } from "lucide-react";
+import { Sparkles, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Link } from "react-router";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { type ArtSlot, COSMETIC_SLOTS, COSMETICS, cosmeticByKey, type CosmeticSlot, EMOJI_VARIANTS, type Look } from "../../convex/lib/cosmetics";
 import { RemoteArt } from "@/components/RemoteArt";
-import { Avatar, Card, CardHeader } from "@/components/ui";
+import { Room } from "@/components/room";
+import { Avatar } from "@/components/ui";
 
 /**
  * Cosmetics (#98, #55 §G5, §G12): avatar frames, banners, hoggie stickers and kudos-emoji variants.
@@ -86,10 +87,9 @@ export function LookCard({ memberId, today }: { memberId: Id<"members">; today: 
   const banner = mine.look.banner ? cosmeticByKey(mine.look.banner) : undefined;
   const owned = COSMETICS.filter((c) => mine.owned.includes(c.key));
   return (
-    <Card>
-      <CardHeader title="Your look" subtitle="What teammates see next to your name." icon={<Palette className="h-4 w-4 text-soil" />} />
-      <div className="px-5 pb-5">
-        <div className="relative overflow-hidden border border-parchment-deep">
+    <Room title="Your look" subtitle="What teammates see next to your name.">
+      <div>
+        <div className="pixel-chip relative overflow-hidden">
           {banner ? <Art art={banner.art} className="h-20 w-full" /> : <div className="h-20 w-full bg-parchment-deep/50" />}
           <div className="relative -mt-8 flex items-end gap-3 px-4 pb-3">
             <FramedAvatar name={profile.name} src={profile.avatarUrl} size={56} look={mine.look} />
@@ -99,7 +99,7 @@ export function LookCard({ memberId, today }: { memberId: Id<"members">; today: 
               <div className="text-xs text-ink/75">
                 {profile.level !== null && (
                   <>
-                    Level {profile.level} · <span className="text-soil">{profile.title}</span> ·{" "}
+                    Level {profile.level} <span className="text-soil">{profile.title}</span>,{" "}
                   </>
                 )}
                 {profile.given} given
@@ -110,9 +110,9 @@ export function LookCard({ memberId, today }: { memberId: Id<"members">; today: 
 
         {owned.length === 0 ? (
           <p className="mt-4 text-sm text-ink/75">
-            Frames, banners and hoggie stickers are in the{" "}
-            <Link to="/store" className="text-soil hover:underline">
-              Store
+            Frames, banners and hoggie stickers are at the{" "}
+            <Link to="/store" className="font-semibold text-ember-deep underline decoration-2 underline-offset-4">
+              store stall
             </Link>
             .
           </p>
@@ -132,8 +132,8 @@ export function LookCard({ memberId, today }: { memberId: Id<"members">; today: 
                       aria-label={`Wear ${c.name}`}
                       onClick={() => void wear({ slot, key: c.key })}
                       className={clsx(
-                        "flex items-center gap-2 border px-2.5 py-1.5 text-sm transition",
-                        mine.look[slot] === c.key ? "border-lantern/60 bg-lantern/10 text-ink" : "border-parchment-deep text-ink/75 hover:border-bark/60",
+                        "pixel-chip flex items-center gap-2 px-2.5 py-1.5 text-sm",
+                        mine.look[slot] === c.key ? "bg-lantern text-ink" : "bg-parchment text-ink/75 hover:bg-parchment-deep/60",
                       )}
                     >
                       <Art art={c.art} round={slot !== "banner"} className={slot === "banner" ? "h-4 w-7" : "h-4 w-4"} />
@@ -155,7 +155,7 @@ export function LookCard({ memberId, today }: { memberId: Id<"members">; today: 
           <div className="text-xs text-ink/75">Your kudos emoji in Slack</div>
           <ul className="mt-2 flex flex-wrap gap-2">
             {mine.emoji.map((e) => (
-              <li key={e.shortcode} className="border border-parchment-deep px-2 py-1 tabular text-xs text-ink" title={e.name}>
+              <li key={e.shortcode} className="pixel-chip bg-parchment px-2 py-1 tabular text-xs text-ink" title={e.name}>
                 {e.shortcode}
               </li>
             ))}
@@ -164,7 +164,7 @@ export function LookCard({ memberId, today }: { memberId: Id<"members">; today: 
         </div>
 
         {mine.superKudos && (
-          <div className="mt-3 flex items-start gap-2.5 border border-lantern/40 bg-lantern/5 px-3.5 py-3 text-sm">
+          <div className="pixel-chip mt-3 flex items-start gap-2.5 bg-lantern/15 px-3.5 py-3 text-sm">
             <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-soil" aria-hidden />
             <div>
               <div className="font-medium text-ink">
@@ -178,7 +178,7 @@ export function LookCard({ memberId, today }: { memberId: Id<"members">; today: 
           </div>
         )}
       </div>
-    </Card>
+    </Room>
   );
 }
 

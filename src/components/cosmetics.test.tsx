@@ -4,6 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { getFunctionName, type FunctionReference } from "convex/server";
 import { MemoryRouter } from "react-router";
 import { afterEach, expect, test, vi } from "vitest";
+import { copyTells } from "@/testing/windowPage";
 
 /** Cosmetics on the web (#98): your look on Me, the Store's previews and the Super kudos celebration. */
 
@@ -67,10 +68,19 @@ test("wearing another frame, or taking one off", () => {
   expect(mutations["cosmetics:wear"]).toHaveBeenLastCalledWith({ slot: "frame", key: null });
 });
 
-test("nothing owned yet: the Store is where they come from", () => {
+test("your look is a room of the cabin, in plain words: no middle dots between level, title and kudos given", () => {
+  results = { "cosmetics:mine": mine, "cosmetics:profile": profile };
+  const host = render(<LookCard memberId={"m1" as never} today="2026-09-23" />);
+  expect(host.querySelector("section > header h3")?.textContent).toBe("Your look");
+  expect(copyTells(host)).toEqual([]);
+  expect(host.textContent).toContain("Level 6 Gardener, 42 given");
+});
+
+test("nothing owned yet: the store stall is where they come from", () => {
   results = { "cosmetics:mine": { ...mine, look: {}, owned: [], superKudos: null }, "cosmetics:profile": { ...profile, look: {} } };
   const host = render(<LookCard memberId={"m1" as never} today="2026-09-23" />);
-  expect(host.textContent).toContain("Frames, banners and hoggie stickers are in the Store");
+  expect(host.textContent).toContain("Frames, banners and hoggie stickers are at the store stall");
+  expect(host.querySelector("a[href='/store']")).not.toBeNull();
   expect(host.textContent).not.toContain("Super kudos left");
 });
 
