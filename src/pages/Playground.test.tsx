@@ -240,10 +240,22 @@ test("review: the hint lives in a status region that is always there, so it's an
   render();
   const region = host.querySelector("[data-hint][role=status]");
   expect(region).not.toBeNull();
-  await click("Forget the mention");
+  await click("Try yourself");
   await click("Send");
   expect(host.querySelector("[data-hint][role=status]")).toBe(region);
   expect(region?.textContent).toContain("No kudos in that one.");
+});
+
+test("an everyday kudos emoji without a mention is only chat, so the bot stays quiet and the sandbox says how to give (#168)", async () => {
+  // Every example fails or gives in a way the bot answers: none sends the emoji to nobody.
+  render();
+  const chips = [...host.querySelectorAll("button")].map((b) => b.textContent);
+  expect(chips).not.toContain("Forget the mention");
+  expect(chips).toEqual(expect.arrayContaining(["Thank two people", "One for Lena", "Try yourself", "Over the limit"]));
+  replies["demo:simulateMessage"] = { status: "invalid", attempt: null, messages: [] };
+  await click("One for Lena");
+  await click("Send");
+  expect(host.querySelector("[data-hint][role=status]")?.textContent).toContain("No kudos in that one.");
 });
 
 test("review: on a narrow window the DMs stack under the terminal, so the terminal says when they arrive", async () => {

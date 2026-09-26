@@ -5,6 +5,7 @@ import { findMember, giveKudos, type GiveInput, type GiveResult } from "./engine
 import {
   alreadySent,
   type AttemptOutcome,
+  everydayEmoji,
   guidance,
   INVALID_REACTION,
   type InvalidReason,
@@ -44,6 +45,8 @@ function judge(result: GiveResult, input: AttemptInput): { outcome: AttemptOutco
     case "invalid": {
       const named = result.status === "self" ? "self" : result.reason;
       const reason = named === "no_mention" && input.groupMention ? "group" : named;
+      // An everyday emoji (🌱) with nobody mentioned is chat, not a kudos attempt.
+      if (reason === "no_mention" && everydayEmoji(input.workspace.emojiName)) return null;
       return { outcome: "invalid", reason, problem: { kind: reason } };
     }
     case "ignored":

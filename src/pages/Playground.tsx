@@ -96,7 +96,6 @@ const EXAMPLES = [
   { label: "One for Lena", build: (e: string) => `@Lena Hoffmann ${e} thanks for organising the offsite!` },
   { label: "Try yourself", build: (e: string) => `@Alex Rivera ${e} I deserve this` },
   { label: "Over the limit", build: (e: string) => `@Samir Haddad @Aiko Tanaka ${e.repeat(3)} heroes of the week` },
-  { label: "Forget the mention", build: (e: string) => `${e} great job on the launch everyone` },
 ];
 
 /** The kudos emoji with a colour ring: a variant (#98) or the Super kudos emoji, as its art slot's colours. */
@@ -250,7 +249,8 @@ function Sandbox() {
     setText("");
     setMention(null);
     const res = await send({ text: slackText, channelName: "general" });
-    if (res.status === "no_kudos") setHint(`No kudos in that one. Mention someone and add ${glyph} (or ${emojiCode}).`);
+    // Nothing given and nothing for the bot to answer: the emoji alone was chat (#168).
+    if (res.status === "no_kudos" || (res.status === "invalid" && !res.attempt)) setHint(`No kudos in that one. Mention someone and add ${glyph} (or ${emojiCode}).`);
     else setHint(null);
     if (res.attempt) setFeed((f) => f.map((m) => (m.id === id ? { ...m, sent: { messageTs: res.attempt!.messageTs, slackText } } : m)));
     showAttempt(id, res.attempt);

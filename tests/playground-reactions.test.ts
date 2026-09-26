@@ -40,17 +40,19 @@ test("the playground shows the bot's reaction and guidance for every attempt, li
   const times = await say("<@UDEMOSAMIR> <@UDEMOAIKO> :seedling::seedling::seedling: heroes of the week");
   expect(times.attempt?.guidance).toContain("2 people × 3 🌱 = 6 🌱, but you have 5 left today.");
 
+  // The demo's 🌱 is an everyday emoji: without a mention it's chat, not an attempt (#168).
   const nobody = await say(":seedling: great job everyone");
-  expect(nobody.attempt).toMatchObject({ outcome: "invalid", reaction: "x" });
-  expect(nobody.attempt?.guidance).toContain("“@alex 🌱 thanks for the review!”");
-  expect((await say("<@UDEMOYOU> :seedling: I deserve this")).attempt?.outcome).toBe("invalid");
+  expect(nobody).toEqual({ status: "invalid", messages: [], attempt: null });
+  const self = await say("<@UDEMOYOU> :seedling: I deserve this");
+  expect(self.attempt).toMatchObject({ outcome: "invalid", reaction: "x" });
+  expect(self.attempt?.guidance).toContain("“@alex 🌱 thanks for the review!”");
 
   expect(await say("lunch anyone?")).toEqual({ status: "no_kudos", messages: [], attempt: null });
 
-  // Each simulated message is its own attempt, even within the same millisecond.
+  // Each simulated message is its own attempt, even within the same millisecond; the chat isn't one.
   const attempts = await t.run((ctx) => ctx.db.query("kudosAttempts").collect());
-  expect(attempts.map((a) => a.outcome)).toEqual(["given", "given", "limit", "limit", "invalid", "invalid"]);
-  expect(new Set(attempts.map((a) => a.messageTs)).size).toBe(6);
+  expect(attempts.map((a) => a.outcome)).toEqual(["given", "given", "limit", "limit", "invalid"]);
+  expect(new Set(attempts.map((a) => a.messageTs)).size).toBe(5);
 });
 
 test("a failed playground message can be fixed by editing it, like in Slack", async () => {

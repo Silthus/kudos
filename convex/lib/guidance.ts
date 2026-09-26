@@ -15,6 +15,17 @@ export const INVALID_REACTION = "x";
 /** Used when Slack rejects the kudos emoji as a reaction, e.g. a custom emoji the workspace lacks. */
 export const FALLBACK_REACTION = "white_check_mark";
 
+/**
+ * Everyday emoji people type in chat without thanking anyone (#168): with one of them as the kudos
+ * emoji, a message that mentions nobody is chat, not a kudos attempt. A kudos convention like
+ * HeyTaco's taco, or a custom emoji, is typed on purpose, so it keeps the ❌ and the how-to.
+ */
+const EVERYDAY_EMOJI = new Set(["seedling", "herb", "sunflower", "heart", "sparkles", "star", "tada", "clap", "raised_hands", "pray", "fire", "100", "+1", "thumbsup"]);
+
+export function everydayEmoji(emojiName: string): boolean {
+  return EVERYDAY_EMOJI.has(emojiName);
+}
+
 export function reactionFor(outcome: AttemptOutcome, emojiName: string) {
   return outcome === "given" ? emojiName : outcome === "limit" ? LIMIT_REACTION : INVALID_REACTION;
 }
