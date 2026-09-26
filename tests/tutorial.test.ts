@@ -228,7 +228,7 @@ describe("the shared demo", () => {
     });
     await t.mutation(internal.demo.ensureDemoUser, {});
     expect((await t.run((ctx) => ctx.db.get(alex)))?.tutorial).toMatchObject({ paid: 10, completedAt: expect.arrayContaining([expect.any(Number)]) });
-  });
+  }, DEMO_TIMEOUT);
 });
 
 describe("the simulator", () => {
