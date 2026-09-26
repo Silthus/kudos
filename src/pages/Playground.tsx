@@ -4,8 +4,10 @@ import { ConvexError } from "convex/values";
 import { AnimatePresence, motion } from "motion/react";
 import { AtSign, EyeOff, Hash, Pencil, SendHorizontal, Terminal } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState, type ComponentProps, type KeyboardEvent, type ReactNode, type Ref } from "react";
+import { useSearchParams } from "react-router";
 import { api } from "../../convex/_generated/api";
-import { Avatar, Button, RarityBadge } from "@/components/ui";
+import { Avatar, Button, RarityBadge, Segmented } from "@/components/ui";
+import { workspaceClockNow } from "@/lib/format";
 import { useWorkspaceToday } from "@/lib/period";
 import { CATEGORY_LABEL, RARITY_META, type Rarity } from "@/lib/rarity";
 import { useViewer } from "@/lib/viewer";
@@ -13,6 +15,8 @@ import { Earnings, GainLines, LevelUpHoggie } from "@/components/game";
 import { SpreePost } from "@/components/SpreePost";
 import type { Id } from "../../convex/_generated/dataModel";
 import { SUPER_SUFFIX, variantBySuffix } from "../../convex/lib/cosmetics";
+import { shownSimulator } from "@/world/simulator";
+import { SimulatorTab } from "./SimulatorTab";
 
 /**
  * The sandbox (#133): a Slack terminal standing in the sand, running the real kudos engine against
@@ -20,6 +24,9 @@ import { SUPER_SUFFIX, variantBySuffix } from "../../convex/lib/cosmetics";
  * only to you where you gave, and its DMs pile up beside the terminal as a stack of envelopes. The
  * terminal is a mock of Slack, so it keeps Slack's look and emoji (`data-user-text`); the copy
  * round it is the world's. The demo controls stand in the sand as small signs.
+ *
+ * Two pixel tabs (#144): the Playground, and the Simulator (`?tab=simulator`), where you start your
+ * own private simulator. Inside a simulator the Playground gives there, as it does in the demo.
  */
 
 type BotMessage = {
@@ -132,8 +139,32 @@ function BotAvatar({ glyph }: { glyph: string }) {
   return <span className="grid h-9 w-9 shrink-0 place-items-center bg-lantern">{glyph}</span>;
 }
 
+type Tab = "playground" | "simulator";
+
 export function Playground() {
   const viewer = useViewer();
+  const [params, setParams] = useSearchParams();
+  const tab: Tab = params.get("tab") === "simulator" ? "simulator" : "playground";
+  return (
+    <div className="space-y-5">
+      <Segmented<Tab>
+        label="Sandbox"
+        value={tab}
+        onChange={(t) => setParams(t === "simulator" ? { tab: t } : {}, { replace: true })}
+        options={[
+          { value: "playground", label: "Playground" },
+          { value: "simulator", label: "Simulator" },
+        ]}
+      />
+      {/* A new workspace (the simulator started or stopped) is a new channel: its feed starts again. */}
+      {tab === "simulator" ? <SimulatorTab /> : <Sandbox key={viewer.workspace._id} />}
+    </div>
+  );
+}
+
+function Sandbox() {
+  const viewer = useViewer();
+  const inSimulator = !!shownSimulator(useQuery(api.simulator.state, {}));
   const teammates = useQuery(api.demo.teammates) ?? [];
   const today = useWorkspaceToday();
   const status = useQuery(api.me.today, { today });
@@ -155,7 +186,7 @@ export function Playground() {
   const emojiCode = `:${emojiName}:`;
 
   const [text, setText] = useState("");
-  const [feed, setFeed] = useState<FeedItem[]>(() => CHANNEL_POSTS.map((p, i) => ({ ...p, mine: false, at: Date.now() - (3 - i) * 600_000 })));
+  const [feed, setFeed] = useState<FeedItem[]>(() => CHANNEL_POSTS.map((p, i) => ({ ...p, mine: false, at: workspaceClockNow() - (3 - i) * 600_000 })));
   const [bot, setBot] = useState<(BotMessage & { at: number })[]>([]);
   const [reacted, setReacted] = useState<Set<string>>(new Set());
   const [hint, setHint] = useState<string | null>(null);
@@ -191,11 +222,11 @@ export function Playground() {
     if (replies.length > 0) {
       setFeed((f) => [
         ...f,
-        ...replies.map((m) => ({ id: m._id, author: "Kudos", slackUserId: "", text: m.text, mine: false, at: Date.now(), ephemeral: true, earnings: m.earnings, superNote: m.superKudos?.text })),
+        ...replies.map((m) => ({ id: m._id, author: "Kudos", slackUserId: "", text: m.text, mine: false, at: workspaceClockNow(), ephemeral: true, earnings: m.earnings, superNote: m.superKudos?.text })),
       ]);
     }
     const dms = messages.filter((m) => !isReply(m));
-    setBot((prev) => [...dms.map((m) => ({ ...m, at: Date.now() })), ...prev].slice(0, 30));
+    setBot((prev) => [...dms.map((m) => ({ ...m, at: workspaceClockNow() })), ...prev].slice(0, 30));
     setNewDms(dms.length);
   };
 
@@ -212,7 +243,7 @@ export function Playground() {
     if (!trimmed) return;
     const slackText = toSlack(trimmed);
     const id = crypto.randomUUID();
-    setFeed((f) => [...f, { id, author: viewer.member.name, slackUserId: viewer.member.slackUserId, text: trimmed.replaceAll(glyph, emojiCode), mine: true, at: Date.now() }]);
+    setFeed((f) => [...f, { id, author: viewer.member.name, slackUserId: viewer.member.slackUserId, text: trimmed.replaceAll(glyph, emojiCode), mine: true, at: workspaceClockNow() }]);
     setText("");
     setMention(null);
     const res = await send({ text: slackText, channelName: "general" });
@@ -229,7 +260,7 @@ export function Playground() {
     const superReaction = attempt.reaction === `${emojiName}-${SUPER_SUFFIX}`;
     setFeed((f) => [
       ...f.map((m) => (m.id === id ? { ...m, outcome: attempt.outcome, superReaction } : m)),
-      ...(attempt.guidance ? [{ id: crypto.randomUUID(), author: "Kudos", slackUserId: "", text: attempt.guidance, mine: false, at: Date.now(), ephemeral: true }] : []),
+      ...(attempt.guidance ? [{ id: crypto.randomUUID(), author: "Kudos", slackUserId: "", text: attempt.guidance, mine: false, at: workspaceClockNow(), ephemeral: true }] : []),
     ]);
   };
 
@@ -256,7 +287,7 @@ export function Playground() {
   /** Join on the spree's prompt: your reply shows where you joined, the tier's reply in the thread, the DMs on the stack. */
   const onJoinSpree = async (attemptId: string) => {
     const res = await joinSpree({ attemptId: attemptId as Id<"kudosAttempts"> });
-    const now = Date.now();
+    const now = workspaceClockNow();
     setFeed((f) => [
       ...f,
       { id: crypto.randomUUID(), author: "Kudos", slackUserId: "", text: res.text, mine: false, at: now, ephemeral: true },
@@ -317,11 +348,11 @@ export function Playground() {
   return (
     <div className="space-y-5">
       <p className="text-[15px] leading-relaxed text-ink/80">
-        The sandbox runs the real kudos engine on the demo workspace. Post in #general as you would in Slack: mention teammates and add the kudos emoji to give, react to
+        The sandbox runs the real kudos engine on {inSimulator ? "your simulator" : "the demo workspace"}. Post in #general as you would in Slack: mention teammates and add the kudos emoji to give, react to
         a post, or fix a failed kudos by editing it. The bot's DMs land on the stack of envelopes, and everything flows into the world.
       </p>
 
-      <DemoSigns status={status} onRefilled={() => viewer.workspace.spreesEnabled && void openSpree({})} />
+      <DemoSigns status={status} inSimulator={inSimulator} onRefilled={() => viewer.workspace.spreesEnabled && void openSpree({})} />
 
       <div className="grid grid-cols-1 gap-6 @min-[540px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <div data-sand className="min-w-0">
@@ -588,7 +619,7 @@ export function Playground() {
  * The demo controls, as small wooden signs in the sand: the demo user is shared by every visitor,
  * so anyone can refill today's kudos or hand back what visitors bought; an admin can reset the demo.
  */
-function DemoSigns({ status, onRefilled }: { status: { remaining: number; limit: number } | undefined; onRefilled: () => void }) {
+function DemoSigns({ status, inSimulator, onRefilled }: { status: { remaining: number; limit: number } | undefined; inSimulator: boolean; onRefilled: () => void }) {
   const viewer = useViewer();
   const refill = useMutation(api.demo.refillAllowance);
   const handBack = useMutation(api.demo.handBackRewards);
@@ -622,7 +653,9 @@ function DemoSigns({ status, onRefilled }: { status: { remaining: number; limit:
       >
         {busy === "handBack" ? "Handing back…" : "Hand back what I bought"}
       </SignButton>
+      {/* The shared demo's reset: refused inside a simulator (the Simulator tab restarts yours). */}
       {viewer.member.isAdmin &&
+        !inSimulator &&
         (confirming ? (
           <span className="flex flex-wrap items-center gap-3 text-sm text-ink">
             Reset the whole demo for everyone? It takes about a minute.

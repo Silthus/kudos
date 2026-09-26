@@ -8,6 +8,7 @@ import { useViewer } from "@/lib/viewer";
 import type { HogHandle } from "./Hog";
 import { lifeEvents, lifeSnapshot, nextBaseline, toastFor, type LifeSnapshot } from "./life";
 import { Toasts, type QueuedToast } from "./Toast";
+import { onToasts } from "./toastBus";
 
 /**
  * What happens to you while the world is open (#134): a level-up makes the hedgehog jump and
@@ -104,6 +105,17 @@ export function Life({ hog, hogEl, still, gameShown, windowOpen }: { hog: RefObj
     // Compared by what they say, not by object identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, loading]);
+
+  // Toasts from elsewhere in the world (the simulator's clock, #144) join the same queue.
+  // A move of the clock replaces what the last one still had to say (toastBus.ts).
+  useEffect(
+    () =>
+      onToasts((more) => {
+        const clock = more.some((t) => t.kind === "clock");
+        setToasts((q) => [...(clock ? q.filter((t) => t.kind !== "clock") : q), ...more.map((t) => ({ ...t, id: ++next.current }))]);
+      }),
+    [],
+  );
 
   // One layer, inside the open window's dialog while there is one (after the window has opened it).
   const [layer] = useState(() => {

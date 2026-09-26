@@ -69,9 +69,11 @@ function ToastCard({ toast, onDone, still }: { toast: Toast; onDone: () => void;
       <div className="min-w-0 flex-1">
         <p className="font-display text-base font-medium leading-6 text-ink">{toast.title}</p>
         <p className="mt-0.5 text-sm text-ink/75">{toast.body}</p>
-        <Link to={toast.link.to} onClick={onDone} className="mt-1 inline-block text-sm font-semibold text-ember-deep underline decoration-2 underline-offset-4">
-          {toast.link.label}
-        </Link>
+        {toast.link && (
+          <Link to={toast.link.to} onClick={onDone} className="mt-1 inline-block text-sm font-semibold text-ember-deep underline decoration-2 underline-offset-4">
+            {toast.link.label}
+          </Link>
+        )}
       </div>
       <button type="button" onClick={dismiss} aria-label="Dismiss" className="pixel-chip grid h-7 w-7 shrink-0 place-items-center bg-parchment text-ink hover:bg-parchment-deep">
         <X className="h-3.5 w-3.5" strokeWidth={3} aria-hidden />

@@ -6,6 +6,7 @@ import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SuperKudosCelebration } from "@/components/cosmetics";
+import { setWorkspaceClock } from "@/lib/format";
 import { useHashScroll } from "@/lib/hashScroll";
 import { navItems } from "@/lib/nav";
 import { useWorkspaceToday } from "@/lib/period";
@@ -61,6 +62,9 @@ function typingIn(target: EventTarget | null) {
 
 export function WorldShell() {
   const viewer = useViewer();
+  // Times on the page read on the shown workspace's clock: a simulator's runs ahead (#143, #144).
+  // Set while rendering, before the pages inside render, and the same every time for one viewer.
+  setWorkspaceClock(viewer.workspace.clockOffsetMs ?? 0);
   const location = useLocation();
   const navigate = useNavigate();
   const still = !!useReducedMotionConfig();
