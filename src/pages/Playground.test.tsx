@@ -230,11 +230,38 @@ test("reacting to a teammate's post and /kudos me both answer as envelopes", asy
 test("the demo controls stand as small signs: refill your kudos and hand back what you bought", async () => {
   render();
   const signs = host.querySelector("[data-demo-signs]")!;
-  expect([...signs.querySelectorAll("button")].map((b) => b.textContent?.trim())).toEqual(["Refill my kudos", "Hand back what I bought"]);
+  expect([...signs.querySelectorAll("button")].map((b) => b.textContent?.trim())).toEqual(["Refill my kudos", "A teammate thanks you", "Hand back what I bought"]);
   await click("Refill my kudos");
   expect(calls["demo:refillAllowance"]).toHaveBeenCalled();
   await click("Hand back what I bought");
   expect(calls["demo:handBackRewards"]).toHaveBeenCalled();
+});
+
+test("a teammate thanks you thoughtfully (#179): their message lands in #general, the DM with your seed on the stack, and the sign says a seed waits", async () => {
+  replies["demo:beThanked"] = {
+    from: { name: "Priya Raman", slackUserId: "UDEMOPRIYA" },
+    text: "@Alex 🌮 thanks for reviewing my launch doc so carefully",
+    messages: [dm({ to: "Alex Rivera", toMe: true, text: "Alex, Priya Raman sent you a taco.", seeds: "1 seed to plant at the tree" })],
+  };
+  render();
+  await click("A teammate thanks you");
+  expect(calls["demo:beThanked"]).toHaveBeenCalledWith({});
+  expect(host.querySelector("[data-demo-signs] [role=status]")?.textContent).toBe("Priya thanked you: a seed waits at the offering stone.");
+  const terminal = host.querySelector("[data-slack-terminal]")!;
+  expect(terminal.textContent).toContain("Priya Raman");
+  expect(terminal.textContent).toContain("thanks for reviewing my launch doc so carefully");
+  const envelopes = [...host.querySelectorAll("[data-envelope]")];
+  expect(envelopes).toHaveLength(1);
+  expect(envelopes[0].textContent).toContain("To you");
+  expect(envelopes[0].textContent).toContain("1 seed to plant at the tree");
+});
+
+test("a teammate thanks you: when nobody can, the sign says why", async () => {
+  replies["demo:beThanked"] = null;
+  render();
+  await click("A teammate thanks you");
+  expect(host.querySelector("[data-demo-signs] [role=status]")?.textContent).toMatch(/^Nobody can thank you right now/);
+  expect(host.querySelectorAll("[data-envelope]")).toHaveLength(0);
 });
 
 test("an admin can also reset the demo from the sandbox, after saying yes", async () => {
@@ -409,12 +436,13 @@ const inSim: Ws[] = [
   { memberId: "m1", slackTeamId: "SIM-1-abc", name: "Simulator", current: true },
 ];
 
-test("simulator: inside the simulator the sandbox says so, and the shared demo's reset isn't offered", () => {
+test("simulator: inside the simulator the sandbox says so, a teammate can still thank you, and the shared demo's reset isn't offered", () => {
   queries["simulator:state"] = simulatorState();
   render(true, inSim, true);
   expect(host.textContent).toContain("your simulator");
   expect(button("Reset the demo")).toBeUndefined();
   expect(button("Refill my kudos")).toBeDefined();
+  expect(button("A teammate thanks you")).toBeDefined();
 });
 
 test("review: on a cold load inside the simulator, before its state arrives, the sandbox never offers the shared demo's reset", () => {
