@@ -5,17 +5,28 @@ import type { World } from "./world";
 
 /**
  * The ground on screen (#156): one canvas per 32 × 32 chunk, added as the camera comes near and
- * dropped as it leaves, painted a few at a time off React's render path. The camera calls `show`
- * with what it sees; nothing re-renders. A chunk with water gets a second canvas for the water's
- * other frame, and all of those blink together, slowly (not under reduced motion).
+ * dropped as it leaves, painted off React's render path. The camera calls `show` with what it sees
+ * on every move; nothing happens until the chunks in view change. The first paint of a world
+ * paints what's on screen at once; after that, chunks coming into view are painted a few a frame.
+ * A chunk with water gets a second canvas for the water's other frame, and those blink together,
+ * slowly (not under reduced motion).
  */
 
+type Tiles = { x0: number; y0: number; x1: number; y1: number };
 type Painted = { base: HTMLCanvasElement; shimmer: HTMLCanvasElement | null };
 
-/** Chunks painted and kept for a walk back: about four screens' worth. */
-const KEEP = 48;
+/** Chunks painted and kept for a walk back: a couple of screens' worth (each is about 0.5 MB). */
+const KEEP = 24;
 /** Chunks painted per frame while catching up, so a fast pan never stalls a frame for long. */
 const PER_FRAME = 3;
+
+const tilesOf = (cx: number, cy: number): Tiles => ({ x0: cx * CHUNK, y0: cy * CHUNK, x1: cx * CHUNK + CHUNK - 1, y1: cy * CHUNK + CHUNK - 1 });
+const meets = (a: ArtRect, b: ArtRect) => a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+
+function hasWater(world: World, t: Tiles) {
+  for (let y = t.y0; y <= t.y1; y++) for (let x = t.x0; x <= t.x1; x++) if (world.terrainAt(x, y) === "water") return true;
+  return false;
+}
 
 export class GroundLayer {
   private world: World | null = null;
@@ -23,8 +34,12 @@ export class GroundLayer {
   private scale = 1;
   private still = false;
   private view: ArtRect | null = null;
+  /** Painted chunks, least recently shown first. */
   private readonly painted = new Map<string, Painted>();
+  private shownKey = "";
   private queue: { cx: number; cy: number }[] = [];
+  /** The next chunks in view are the world's first: paint the ones on screen at once. */
+  private firstPaint = true;
   private raf = 0;
   private blink = 0;
   private on = false;
@@ -38,6 +53,8 @@ export class GroundLayer {
     this.key = key;
     for (const p of this.painted.values()) (p.base.remove(), p.shimmer?.remove());
     this.painted.clear();
+    this.shownKey = "";
+    this.firstPaint = true;
     this.refresh();
   }
 
@@ -65,11 +82,6 @@ export class GroundLayer {
     this.refresh();
   }
 
-  /** How many chunk canvases are in the page (for tests). */
-  get count() {
-    return this.host.querySelectorAll("canvas[data-chunk]").length;
-  }
-
   destroy() {
     cancelAnimationFrame(this.raf);
     clearInterval(this.blink);
@@ -82,73 +94,80 @@ export class GroundLayer {
   }
 
   private refresh() {
-    if (!this.world || !this.view) return;
-    const wanted = chunksIn(this.view);
-    const ids = new Set(wanted.map((c) => `${c.cx},${c.cy}`));
-    // Out of view: off the page, kept for a while in case you walk back.
-    for (const [id, p] of this.painted) {
-      if (ids.has(id)) continue;
-      p.base.remove();
-      p.shimmer?.remove();
-    }
-    while (this.painted.size > KEEP) {
-      const oldest = [...this.painted.keys()].find((id) => !ids.has(id));
-      if (!oldest) break;
-      this.painted.delete(oldest);
+    const view = this.view;
+    if (!this.world || !view) return;
+    const wanted = chunksIn(view);
+    const ids = wanted.map((c) => `${c.cx},${c.cy}`);
+    const key = ids.join(";");
+    // The same chunks as the last look: nothing to do (the camera moves every frame of a walk).
+    if (key === this.shownKey) return;
+    this.shownKey = key;
+    const inView = new Set(ids);
+    // Out of view: off the page, kept a while in case you walk back; the least recently shown go first.
+    for (const [id, p] of this.painted) if (!inView.has(id)) (p.base.remove(), p.shimmer?.remove());
+    for (const id of [...this.painted.keys()]) {
+      if (this.painted.size <= KEEP) break;
+      if (!inView.has(id)) this.painted.delete(id);
     }
     this.queue = [];
     for (const c of wanted) {
       const id = `${c.cx},${c.cy}`;
       const p = this.painted.get(id);
-      if (p) this.attach(id, p);
-      else this.queue.push(c);
+      if (!p) {
+        this.queue.push(c);
+        continue;
+      }
+      // Most recently shown last.
+      this.painted.delete(id);
+      this.painted.set(id, p);
+      this.attach(id, p);
     }
     // Nearest the middle of the view first.
-    const mid = { x: this.view.x + this.view.width / 2, y: this.view.y + this.view.height / 2 };
+    const mid = { x: view.x + view.width / 2, y: view.y + view.height / 2 };
     const far = (c: { cx: number; cy: number }) => {
       const r = chunkRect(c.cx, c.cy);
       return Math.hypot(r.x + r.width / 2 - mid.x, r.y + r.height / 2 - mid.y);
     };
     this.queue.sort((a, b) => far(a) - far(b));
-    // What's on screen now is painted at once, so the first paint has ground; the margin follows.
-    this.work(Infinity, true);
+    if (this.firstPaint) {
+      this.firstPaint = false;
+      // The first look at a world has ground at once: the chunks on screen, before the next frame.
+      const onScreen = this.queue.filter((c) => meets(chunkRect(c.cx, c.cy), view));
+      this.queue = this.queue.filter((c) => !onScreen.includes(c));
+      for (const c of onScreen) this.paint(c.cx, c.cy);
+    }
+    if (this.queue.length && !this.raf) this.raf = requestAnimationFrame(() => this.work());
   }
 
-  private work(budget: number, onScreenOnly = false) {
-    cancelAnimationFrame(this.raf);
-    const view = this.view!;
-    let done = 0;
-    while (this.queue.length && done < budget) {
-      const c = this.queue[0];
-      const r = chunkRect(c.cx, c.cy);
-      const visible = r.x < view.x + view.width && r.x + r.width > view.x && r.y < view.y + view.height && r.y + r.height > view.y;
-      if (onScreenOnly && !visible) break;
-      this.queue.shift();
+  private work() {
+    this.raf = 0;
+    for (let i = 0; i < PER_FRAME && this.queue.length; i++) {
+      const c = this.queue.shift()!;
       this.paint(c.cx, c.cy);
-      done++;
     }
-    if (this.queue.length) this.raf = requestAnimationFrame(() => this.work(PER_FRAME));
+    if (this.queue.length) this.raf = requestAnimationFrame(() => this.work());
   }
 
   private paint(cx: number, cy: number) {
     const world = this.world!;
     const at = chunkRect(cx, cy);
-    const tiles = { x0: cx * CHUNK, y0: cy * CHUNK, x1: cx * CHUNK + CHUNK - 1, y1: cy * CHUNK + CHUNK - 1 };
-    const base = canvas(at, cx, cy);
+    const tiles = tilesOf(cx, cy);
+    const base = canvas(at);
+    base.dataset.chunk = `${cx},${cy}`;
     const ctx = base.getContext("2d");
     let shimmer: HTMLCanvasElement | null = null;
     if (ctx) {
       const img = ctx.createImageData(at.width, at.height);
       paintGround(img, at, world, tiles);
       ctx.putImageData(img, 0, 0);
-      const layer = canvas(at, cx, cy);
-      const lctx = layer.getContext("2d")!;
-      const glints = lctx.createImageData(at.width, at.height);
-      if (paintShimmer(glints, at, world, tiles)) {
+      // Only a chunk with water has water's other frame.
+      if (hasWater(world, tiles)) {
+        shimmer = canvas(at);
+        const lctx = shimmer.getContext("2d")!;
+        const glints = lctx.createImageData(at.width, at.height);
+        paintShimmer(glints, at, world, tiles);
         lctx.putImageData(glints, 0, 0);
-        layer.removeAttribute("data-chunk");
-        layer.style.visibility = this.on && !this.still ? "visible" : "hidden";
-        shimmer = layer;
+        shimmer.style.visibility = this.on && !this.still ? "visible" : "hidden";
       }
     }
     const id = `${cx},${cy}`;
@@ -161,10 +180,9 @@ export class GroundLayer {
     this.place(id, p);
     // Back to front: a chunk further forward (a bigger cx + cy) lies over the rock of the one behind.
     const [cx, cy] = id.split(",").map(Number);
-    const depth = cx + cy;
     for (const el of [p.base, p.shimmer]) {
       if (!el) continue;
-      el.style.zIndex = String(depth * 2 + (el === p.shimmer ? 1 : 0) + 1000);
+      el.style.zIndex = String((cx + cy) * 2 + (el === p.shimmer ? 1 : 0) + 1000);
       if (!el.isConnected) this.host.append(el);
     }
   }
@@ -182,12 +200,11 @@ export class GroundLayer {
   }
 }
 
-function canvas(at: ArtRect, cx: number, cy: number) {
+function canvas(at: ArtRect) {
   const el = document.createElement("canvas");
   el.width = at.width;
   el.height = at.height;
   el.className = "pixels absolute";
   el.setAttribute("aria-hidden", "true");
-  el.dataset.chunk = `${cx},${cy}`;
   return el;
 }

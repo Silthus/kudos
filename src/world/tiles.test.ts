@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { PALETTE } from "./pixels";
-import { GROUND, GROUND_OF, NIGHT, groundFrame } from "./tiles";
+import { GROUND, GROUND_OF, NIGHT, SHIMMER_MS } from "./tiles";
 
 /** The map itself (connectivity, doors, districts) is `world.test.ts`'s; these are the ground's tiles. */
 describe("ground tiles", () => {
@@ -26,10 +26,7 @@ describe("ground tiles", () => {
   test("water shimmers in two frames, slowly; everything else holds still", () => {
     expect(GROUND.water).toHaveLength(2);
     expect(GROUND.water[0].rows).not.toEqual(GROUND.water[1].rows);
-    expect(groundFrame(0)).toBe(0);
-    expect(groundFrame(900)).toBe(0);
-    expect(groundFrame(1300)).toBe(1);
-    expect(groundFrame(2600)).toBe(0);
+    expect(SHIMMER_MS).toBeGreaterThanOrEqual(1000);
     for (const t of ["sand", "dune", "lawn", "path", "garden"] as const) expect(GROUND[t], t).toHaveLength(1);
   });
 });

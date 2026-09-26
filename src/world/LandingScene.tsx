@@ -47,7 +47,7 @@ const NEIGHBOURS: [StageKey, SpeciesId][] = [
 ];
 
 export function landingWorld(): World {
-  return buildWorld({ seed: SEED, layout: layout(SEED, GROWTH), peakGrowth: GROWTH, planted: true, standing: PLACES.map((p) => p.id) });
+  return buildWorld({ seed: SEED, layout: layout(SEED, GROWTH), planted: true, standing: PLACES.map((p) => p.id) });
 }
 
 export function landingFurniture(world: World): WorldFurniture {
@@ -70,26 +70,33 @@ function sceneRect(world: World, furniture: WorldFurniture): ArtRect {
   return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
 }
 
-const SCENE = landingWorld();
-const FURNITURE = landingFurniture(SCENE);
-const RECT = sceneRect(SCENE, FURNITURE);
-/** The picture's rectangle of art space. */
-export const LANDING_RECT = RECT;
+/** The picture, worked out the first time a landing page shows it (not on every app load). */
+let scene: { world: World; furniture: WorldFurniture; rect: ArtRect } | null = null;
+export function landingScene() {
+  if (!scene) {
+    const world = landingWorld();
+    const furniture = landingFurniture(world);
+    scene = { world, furniture, rect: sceneRect(world, furniture) };
+  }
+  return scene;
+}
 
 export function LandingScene({ className }: { className?: string }) {
   const canvas = useRef<HTMLCanvasElement>(null);
+  const { world, furniture, rect } = landingScene();
   useEffect(() => {
     const ctx = canvas.current?.getContext("2d");
     if (!ctx) return;
-    const img = ctx.createImageData(RECT.width, RECT.height);
-    paintGround(img, RECT, SCENE, { x0: -REACH, y0: -REACH, x1: REACH, y1: REACH });
-    paintStanding(img, RECT, SCENE, FURNITURE);
+    const img = ctx.createImageData(rect.width, rect.height);
+    paintGround(img, rect, world, { x0: -REACH, y0: -REACH, x1: REACH, y1: REACH });
+    paintStanding(img, rect, world, furniture);
     ctx.putImageData(img, 0, 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Centred a little above the tree's foot, so its canopy and base camp share the frame.
-  const foot = treeFoot(SCENE);
-  const centre = { x: foot.x - RECT.x, y: foot.y - 60 - RECT.y };
+  const foot = treeFoot(world);
+  const centre = { x: foot.x - rect.x, y: foot.y - 60 - rect.y };
   const spot = tileOnCanvas(LANDING_SPOT);
   return (
     // The stage is the whole picture at `--s`, its centre on the tree's: the box cuts it.
@@ -97,17 +104,17 @@ export function LandingScene({ className }: { className?: string }) {
       <div
         className="absolute"
         style={{
-          width: `calc(${RECT.width}px * var(--s))`,
-          height: `calc(${RECT.height}px * var(--s))`,
+          width: `calc(${rect.width}px * var(--s))`,
+          height: `calc(${rect.height}px * var(--s))`,
           left: `calc(50% - ${centre.x}px * var(--s))`,
           top: `calc(50% - ${centre.y}px * var(--s))`,
         }}
       >
-        <canvas ref={canvas} width={RECT.width} height={RECT.height} aria-hidden data-landing-world className="pixels absolute inset-0 h-full w-full" />
+        <canvas ref={canvas} width={rect.width} height={rect.height} aria-hidden data-landing-world className="pixels absolute inset-0 h-full w-full" />
         <div
           data-landing-hog
           className="absolute"
-          style={{ left: `calc(${spot.x - RECT.x}px * var(--s) - ${HOG_SIZE / 2}px)`, top: `calc(${spot.y - RECT.y}px * var(--s) - ${HOG_FEET}px)` }}
+          style={{ left: `calc(${spot.x - rect.x}px * var(--s) - ${HOG_SIZE / 2}px)`, top: `calc(${spot.y - rect.y}px * var(--s) - ${HOG_FEET}px)` }}
         >
           <HogFrame />
         </div>

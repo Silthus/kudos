@@ -36,8 +36,10 @@ vi.mock("./atlas", async (real) => ({ ...(await real<typeof import("./atlas")>()
 
 const { WorldShell } = await import("./WorldShell");
 const { layout } = await import("../../convex/lib/tree");
+const { buildWorld } = await import("./world");
+const { tileCentre } = await import("./iso");
 /** The workspace's tree at a growth, as `api.tree.state` answers. */
-const treeAt = (growth: number, planted = growth > 0) => ({
+const treeAt = (growth: number, planted = growth > 0, worldSeed = 1) => ({
   planted,
   stage: layout(1, growth).stage,
   growth,
@@ -50,8 +52,8 @@ const treeAt = (growth: number, planted = growth > 0) => ({
   plantedAt: planted ? 1 : null,
   seedsToPlant: 0,
   hasSeedsToPlant: false,
-  worldSeed: 1,
-  layout: layout(1, growth),
+  worldSeed,
+  layout: layout(worldSeed, growth),
   events: [],
 });
 const { useQuery } = await import("convex/react");
@@ -616,7 +618,7 @@ describe("the tree's districts (#156)", () => {
     defaults = { "tree:state": treeAt(30) };
     open("/store");
     expect(windowTitle()).toBe("The store stall");
-    expect(caption()).toBe("The stall, not open yet");
+    expect(caption()).toBe("The store stall, not open yet");
     expect(openWindow()!.querySelector("[data-not-open]")?.textContent).toContain("Opens when the tree is a young tree: 70 more thoughtful kudos.");
     expect(openWindow()!.textContent).not.toContain("Store");
   });
@@ -625,12 +627,13 @@ describe("the tree's districts (#156)", () => {
     defaults = { "tree:state": treeAt(30) };
     open("/");
     const sign = host.querySelector<HTMLElement>("[data-closed-sign=stall]")!;
-    expect(sign.textContent).toBe("The stall");
+    // Named as its place is, as in the Places list once it opens.
+    expect(sign.textContent).toBe("The store stall");
     // The grown tree's districts wait unnamed.
     expect(host.querySelector("[data-closed-sign=observatory]")).toBeNull();
     act(() => sign.click());
     walkFor(9000);
-    expect(host.querySelector("[data-site-notice]")?.textContent).toContain("The stall");
+    expect(host.querySelector("[data-site-notice]")?.textContent).toContain("The store stall");
     expect(host.querySelector("[data-site-notice]")?.textContent).toContain("Opens when the tree is a young tree: 70 more thoughtful kudos.");
   });
 
@@ -681,12 +684,71 @@ describe("the tree's districts (#156)", () => {
     expect(host.querySelector("[data-sign=store]")).not.toBeNull();
   });
 
-  test("while your tree loads, a deep link waits instead of landing somewhere else", () => {
+  test("while your tree loads, a deep link waits instead of landing somewhere else, and no other world is shown first", () => {
     defaults = {};
     open("/quests");
     expect(openWindow()).toBeNull();
+    expect(host.querySelector("[data-sign]")).toBeNull();
+    expect(host.querySelector("[data-label]")).toBeNull();
+    act(() => host.querySelector<HTMLButtonElement>("nav[aria-label='Places'] button")!.click());
+    expect(host.querySelectorAll("nav[aria-label='Places'] li")).toHaveLength(0);
     defaults = { "tree:state": treeAt(400) };
     open("/quests");
     expect(windowTitle()).toBe("Quest signpost");
+  });
+
+  test("switching workspace is no moment of the tree, and puts you in the new world's base camp (review)", () => {
+    defaults = { "tree:state": treeAt(0, false, 2) };
+    open("/");
+    press("ArrowRight");
+    walkFor(400);
+    expect(caption()).not.toBe("Your cabin");
+    const other = { ...viewer, workspace: { ...viewer.workspace, _id: "w2", name: "Other Co" } } as unknown as ReadyViewer;
+    defaults = { "tree:state": treeAt(3000, true, 5) };
+    open("/", other);
+    expect(host.querySelector("[data-seed-moment]")).toBeNull();
+    expect(document.querySelector("[data-toast=tree]")).toBeNull();
+    expect(host.querySelector("canvas[data-fresh]")).toBeNull();
+    expect(caption()).toBe("Base camp");
+  });
+
+  test("a tap on sand walled in by rock leaves the hedgehog where it is: no freeze, no teleport into the rock (review)", () => {
+    defaults = { "tree:state": treeAt(3000, true, 12345) };
+    open("/");
+    // Find a pocket of sand out in the desert that rock closes off.
+    const w = buildWorld({ seed: 12345, layout: layout(12345, 3000), planted: true, standing: [] });
+    let pocket: { x: number; y: number } | null = null;
+    for (let y = -90; y <= 90 && !pocket; y++)
+      for (let x = -90; x <= 90 && !pocket; x++) {
+        if (Math.hypot(x, y) < 40 || !w.walkable(x, y)) continue;
+        const seen = new Set([`${x},${y}`]);
+        const queue = [{ x, y }];
+        for (let i = 0; i < queue.length && queue.length < 40; i++)
+          for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+            const n = { x: queue[i].x + dx, y: queue[i].y + dy };
+            if (!seen.has(`${n.x},${n.y}`) && w.walkable(n.x, n.y)) (seen.add(`${n.x},${n.y}`), queue.push(n));
+          }
+        if (queue.length < 40) pocket = { x, y };
+      }
+    expect(pocket).not.toBeNull();
+    const stage = host.querySelector<HTMLElement>(".will-change-transform")!;
+    const [, cx, cy] = /translate3d\((-?\d+)px, (-?\d+)px/.exec(stage.style.transform)!;
+    const scale = window.innerWidth < 640 ? 2 : 3;
+    const c = tileCentre(pocket!);
+    const at = { clientX: c.x * scale + Number(cx), clientY: c.y * scale + Number(cy), button: 0, pointerId: 1, bubbles: true };
+    act(() => {
+      stage.parentElement!.dispatchEvent(new PointerEvent("pointerdown", at));
+      stage.parentElement!.dispatchEvent(new PointerEvent("pointerup", at));
+    });
+    walkFor(9000);
+    expect(caption()).toBe("Base camp");
+  });
+
+  test("with the game off, the pages stand round a resting tree and nothing of the game is promised", () => {
+    const off = { ...viewer, workspace: { ...viewer.workspace, gameEnabled: false } } as unknown as ReadyViewer;
+    open("/", off);
+    expect(host.querySelector("[data-sign=leaderboard]")).not.toBeNull();
+    expect(host.querySelector("[data-closed-sign]")).toBeNull();
+    expect([...host.querySelectorAll("[data-label]")].map((l) => l.getAttribute("data-label"))).toEqual(["elder"]);
   });
 });

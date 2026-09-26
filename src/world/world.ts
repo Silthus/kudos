@@ -1,5 +1,5 @@
-import { DISTRICTS, growthToReach, ringsForGrowth, stageIndex, type DistrictId, type Layout, type RuinSite, type TreeStageId } from "../../convex/lib/tree";
-import { TOWN_RADIUS, desertAt, noise, type DesertGround } from "./desert";
+import { DISTRICTS, stageIndex, type DistrictId, type Layout, type RuinSite, type TreeStageId } from "../../convex/lib/tree";
+import { TOWN_RADIUS, desertAt, desertWalkable, noise, type DesertGround } from "./desert";
 import { findPath, type Grid, type Tile } from "./iso";
 import { PLACES, placeAt, type PlaceDef } from "./places";
 import { BEDS, PLOTS } from "./places/garden";
@@ -52,15 +52,12 @@ export type Site = {
   outline: Rect;
   /** Where you stand to read it: its first door, or beside its marker. */
   approach: Tile;
-  /** Growth the tree still needs for it to open (0 once open). */
-  toOpen: number;
 };
 
 export type WorldInput = {
   seed: number;
+  /** The server's layout at the tree's peak growth (stage, rings, districts, homes, ruins). */
   layout: Layout;
-  /** The tree's peak growth: what `layout` was worked out for, and what a closed district waits on. */
-  peakGrowth: number;
   /** Has anyone planted the seed yet? Before that there's no tree, only base camp in the sand. */
   planted: boolean;
   /** The places whose pages this viewer has: only these stand, where their district is open. */
@@ -85,7 +82,8 @@ export type World = Grid & {
   plots: Tile[];
   beds: Tile[];
   ruins: RuinSite[];
-  homes: Tile[];
+  /** The home plots, numbered as the layout numbers them; a gap where a district stands on the plot. */
+  homes: (Tile | null)[];
   decor: Decor[];
   /** How far the tree's lawn reaches from the trunk. */
   lawnRadius: number;
@@ -140,7 +138,7 @@ const move = (t: Tile, by: Tile) => ({ x: t.x + by.x, y: t.y + by.y });
 /** Offsets to try round an anchor, nearest first, in a fixed order. */
 const OFFSETS: Tile[] = (() => {
   const out: Tile[] = [];
-  for (let y = -16; y <= 16; y++) for (let x = -16; x <= 16; x++) if (x * x + y * y <= 256) out.push({ x, y });
+  for (let y = -24; y <= 24; y++) for (let x = -24; x <= 24; x++) if (x * x + y * y <= 576) out.push({ x, y });
   return out.sort((a, b) => a.x * a.x + a.y * a.y - (b.x * b.x + b.y * b.y) || a.y - b.y || a.x - b.x);
 })();
 
@@ -149,12 +147,12 @@ function districtAt(id: DistrictId, at: Tile) {
   const defs = DISTRICTS.find((d) => d.id === id)!.places.flatMap((pid) => PLACES.filter((p) => p.id === pid));
   const places = defs.map((d) => placeAt(d, at));
   const claims = places.length
-    ? places.map((p) => grow(rectOf([...footprintTiles(p), ...p.doors, ...(p.id === "garden" ? BEDS.map((b) => move(b, at)) : [])]), 0))
+    ? places.map((p) => rectOf([...footprintTiles(p), ...p.doors, ...(p.id === "garden" ? BEDS.map((b) => move(b, at)) : [])]))
     : [{ x0: at.x, y0: at.y, x1: at.x + 1, y1: at.y }];
   return { places, claims };
 }
 
-type Settled = Omit<Site, "open" | "toOpen" | "approach" | "outline">;
+type Settled = Omit<Site, "open" | "approach" | "outline">;
 
 /**
  * Where every district stands: base camp round the trunk, then each other district at its anchor,
@@ -214,7 +212,7 @@ export function underCanopy(x: number, y: number) {
 
 const tileKey = (x: number, y: number) => (x + 65536) * 131072 + (y + 65536);
 
-export function buildWorld({ seed, layout, peakGrowth, planted, standing }: WorldInput): World {
+export function buildWorld({ seed, layout, planted, standing }: WorldInput): World {
   const stage = layout.stage;
   const open = new Map(layout.districts.map((d) => [d.id, d.open]));
   const sites: Site[] = settle(layout).map((s) => {
@@ -223,7 +221,6 @@ export function buildWorld({ seed, layout, peakGrowth, planted, standing }: Worl
     return {
       ...s,
       open: isOpen,
-      toOpen: isOpen ? 0 : growthToReach(peakGrowth, s.opens),
       outline,
       approach: s.places[0]?.doors[0] ?? { x: s.at.x + 2, y: s.at.y },
     };
@@ -271,14 +268,14 @@ export function buildWorld({ seed, layout, peakGrowth, planted, standing }: Worl
     if (!s.open) for (let y = s.outline.y0; y <= s.outline.y1; y++) for (let x = s.outline.x0; x <= s.outline.x1; x++) outlines.set(tileKey(x, y), "closed");
   }
 
-  const rings = ringsForGrowth(peakGrowth);
+  const rings = layout.rings;
   const lawnRadius = planted ? lawnRadiusFor(stage, rings) : 0;
   const lawnAt = (x: number, y: number) =>
     (planted && Math.hypot(x, y) + (noise(seed, x, y, 51) - 0.5) * 1.6 <= lawnRadius) || patches.some((r) => inRect(r, x, y) && (noise(seed, x, y, 52) > 0.12 || !isCorner(r, x, y)));
   // The ground under the overlay, worked out once a tile: walks and painting ask for it again and again.
   const ground = new Map<number, Terrain>();
   const groundAt = (x: number, y: number): Terrain => {
-    const k = (x + 65536) * 131072 + (y + 65536);
+    const k = tileKey(x, y);
     let t = ground.get(k);
     if (t === undefined) {
       t = lawnAt(x, y) ? "lawn" : desertAt(seed, x, y);
@@ -327,8 +324,14 @@ export function buildWorld({ seed, layout, peakGrowth, planted, standing }: Worl
     lay(walk);
     lay(findPath(town, spawn, t));
   }
-  const homes = layout.homes.filter((h) => !sites.some((s) => inRect(s.claim, h.x, h.y)));
-  for (const h of homes) if (!outlines.has(tileKey(h.x, h.y))) outlines.set(tileKey(h.x, h.y), "home");
+  // Home plots keep the layout's numbers (#160 builds on plot i); one a district stands on is a gap.
+  const homes = layout.homes.map((h) => (sites.some((s) => s.claims.some((c) => inRect(c, h.x, h.y))) ? null : h));
+  for (const h of homes) {
+    if (!h) continue;
+    // A plot is flat sand, even out where the desert has rock or water.
+    if (!overlay.has(tileKey(h.x, h.y))) overlay.set(tileKey(h.x, h.y), "sand");
+    if (!outlines.has(tileKey(h.x, h.y))) outlines.set(tileKey(h.x, h.y), "home");
+  }
 
   // Lantern posts along the paths on the tree's lawn, flowers here and there; never on a district's tiles or by a door.
   const decor: Decor[] = [];
@@ -356,7 +359,7 @@ export function buildWorld({ seed, layout, peakGrowth, planted, standing }: Worl
     walkable: (x, y) => {
       if (Math.abs(x) > WORLD_EDGE || Math.abs(y) > WORLD_EDGE || blocked.has(tileKey(x, y))) return false;
       const t = terrainAt(x, y);
-      return t !== "fence" && t !== "water" && t !== "rock";
+      return t !== "fence" && desertWalkable(t);
     },
     cost: (x, y) => (["path", "gate"].includes(terrainAt(x, y)) ? 1 : 3),
     bounds: { x0: -WORLD_EDGE, y0: -WORLD_EDGE, x1: WORLD_EDGE, y1: WORLD_EDGE },

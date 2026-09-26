@@ -4,7 +4,8 @@ import type { PlaceDef } from "./places";
 import { mapHeight, mapWidth, PALETTE, pixelAt, type PixelMap } from "./pixels";
 import { DECOR_SPRITES, DUSK, GROUND, GROUND_OF, LIFT, NIGHT, hash } from "./tiles";
 import { treeSprite } from "./tree/sprite";
-import type { Terrain, World } from "./world";
+import { TREE_STAGES, stageIndex } from "../../convex/lib/tree";
+import type { Site, Terrain, World } from "./world";
 
 /**
  * Paints the world into RGBA buffers (`ImageData`), pixel by pixel at art scale; the canvases then
@@ -107,31 +108,83 @@ const hogBox = (door: Tile): Box => {
 };
 
 /**
- * Where every place's name sign hangs: above its sprite, or, where that would sit behind a
- * hedgehog at a door (the tree's layout packs districts close) or over another sign, the nearest
- * spot to the side, or at its foot. In the places' order, so it's the same every time.
+ * Where every place's name sign and every label hangs: above its sprite (or its point), or, where
+ * that would sit behind a hedgehog at a door (the tree's layout packs districts close) or over
+ * another sign, the nearest spot to the side, above, or at its foot. In a fixed order, so it's the
+ * same every time. A label with no clear spot is left out (missing from the map).
  */
-export function signPoints(places: PlaceDef[], labels: { id: string; name: string; at: Point }[] = []): Map<string, Point> {
-  const doors = places.flatMap((p) => p.doors.map(hogBox));
+export function signPoints(places: PlaceDef[], labels: Label[] = [], standing: Tile[] = []): Map<string, Point> {
+  // Where a hedgehog stands: at every door, and wherever else one waits (you arriving, the elder hog).
+  const doors = [...places.flatMap((p) => p.doors), ...standing].map(hogBox);
   const taken: Box[] = [];
   const out = new Map<string, Point>();
   const signs = [
-    ...places.map((p) => ({ id: p.id, name: p.name, home: signPoint(p), below: mapHeight(p.sprite) - emptyTop(p.sprite) + 16 })),
-    ...labels.map((l) => ({ id: l.id, name: l.name, home: l.at, below: 16 })),
+    ...places.map((p) => ({ id: p.id, name: p.name, home: signPoint(p), below: mapHeight(p.sprite) - emptyTop(p.sprite) + 16, place: true })),
+    ...labels.map((l) => ({ id: l.id, name: l.name, home: l.at, below: 16, place: false })),
   ];
   for (const p of signs) {
     const { home, below } = p;
-    const tries = [0, -14, below, -28].flatMap((dy) => [0, -12, 12, -24, 24, -36, 36, -48, 48].map((dx) => ({ x: dx, y: dy })));
-    const spot = tries.map((d) => ({ x: home.x + d.x, y: home.y + d.y })).find((at) => !doors.some((b) => meets(signBox(p.name, at), b)) && !taken.some((b) => meets(signBox(p.name, at), b))) ?? home;
+    // A place's sign may move well aside; a label stays by what it names, or it would name something else.
+    const tries = p.place
+      ? [0, -14, below, -28, below + 14, -42].flatMap((dy) => [0, -12, 12, -24, 24, -36, 36, -48, 48, -60, 60, -72, 72].map((dx) => ({ x: dx, y: dy })))
+      : [0, -14, -28].flatMap((dy) => [0, -12, 12].map((dx) => ({ x: dx, y: dy })));
+    const spots = tries.map((d) => ({ x: home.x + d.x, y: home.y + d.y }));
+    const clearOfDoors = (at: Point) => !doors.some((b) => meets(signBox(p.name, at), b));
+    // Clear of everything. Failing that, a place's sign at least keeps clear of the doors, where a
+    // hedgehog would hide it; a label (a marker's name, the elder's) is left out rather than crowd one.
+    const clear = spots.find((at) => clearOfDoors(at) && !taken.some((b) => meets(signBox(p.name, at), b)));
+    if (!clear && !p.place) continue;
+    const spot = clear ?? spots.find(clearOfDoors) ?? home;
     taken.push(signBox(p.name, spot));
     out.set(p.id, spot);
   }
   return out;
 }
 
+/** A name hanging over the world that isn't a place's own sign: the elder hog, a district's marker, a closed district. */
+export type Label = { id: string; name: string; at: Point };
+
+/** The name a district goes by on the map: its place's, where it has one (the store stall, not the stall). */
+export const siteName = (s: Site) => (s.places.length === 1 ? s.places[0].name : s.name);
+
+/**
+ * Every label over the world but the places' signs: the elder hog over its head, an open district
+ * without a place over its marker, and the districts the tree's next stage opens, dim, over their
+ * outlines. The rest of the closed districts wait unnamed. `signPoints` keeps them all clear.
+ */
+export function labelsOf(world: World): Label[] {
+  const labels: Label[] = [];
+  const elder = world.props.find((p) => p.kind === "elder");
+  if (elder) labels.push({ id: "elder", name: "The elder hog", at: { x: tileCentre(elder.tile).x, y: tileCentre(elder.tile).y + 4 - ELDER_HEIGHT } });
+  for (const s of world.sites) {
+    if (s.open && !s.places.length && s.id !== "base_camp") labels.push({ id: `district:${s.id}`, name: s.name, at: { x: tileCentre(s.at).x, y: tileCentre(s.at).y - 22 } });
+  }
+  const next = TREE_STAGES[stageIndex(world.stage) + 1]?.id;
+  if (world.planted)
+    for (const s of world.sites)
+      if (!s.open && s.opens === next) {
+        const back = tileCentre({ x: s.outline.x0, y: s.outline.y0 });
+        const front = tileCentre({ x: s.outline.x1, y: s.outline.y1 });
+        labels.push({ id: `closed:${s.id}`, name: siteName(s), at: { x: (back.x + front.x) / 2, y: (back.y + front.y) / 2 - 6 } });
+      }
+  return labels;
+}
+/** Where hedgehogs stand in the world besides the doors: you where you arrive, and the elder hog. Signs keep clear of them too. */
+export function hogsOf(world: World): Tile[] {
+  return [world.spawn, ...world.props.filter((p) => p.kind === "elder").map((p) => p.tile)];
+}
+
+/** How high the elder hog's label hangs over its feet, in art pixels: over its head at either scale. */
+const ELDER_HEIGHT = 36;
+
+/** Where the tree's sprite covers, in art pixels; null before the seed is planted. */
+export function treeBox(world: World): ArtRect | null {
+  return world.trunk ? spriteBox(treeSprite(world.stage, world.seed, world.rings), treeFoot(world)) : null;
+}
+
 /** How tall the tree stands, in art pixels (0 before the seed is planted). */
 export function treeHeight(world: World) {
-  return world.trunk ? mapHeight(treeSprite(world.stage, world.seed, world.rings)) : 0;
+  return treeBox(world)?.height ?? 0;
 }
 
 /** Where the tree's sprite stands: the front corner of its trunk. */
@@ -227,8 +280,10 @@ const SIDES: Partial<Record<Terrain, { left: string; right: string; lip: string 
 };
 const TERRACE_SIDES = { left: PALETTE.s, right: PALETTE.b, lip: PALETTE.g };
 
-/** A dry outline: dashes along the edges of the tiles it rings, a stone course for a ruin. */
-/** Each outline's groove and the lit lip over it: dark enough to read on sand, dune and night alike. */
+/**
+ * A dry outline: dashes along the edges of the tiles it rings (a stone course for a ruin), each a
+ * groove with a lit lip over it, dark enough to read on sand, dune and night alike.
+ */
 const OUTLINE_COLOURS = { closed: [PALETTE.b, PALETTE.a], ruin: [PALETTE.M, PALETTE.m], home: [PALETTE.b, PALETTE.P] } as const;
 
 function paintOutline(img: Pixels, at: ArtRect, world: World, t: Tile) {

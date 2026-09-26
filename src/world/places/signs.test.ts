@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { TREE_STAGES, layout } from "../../../convex/lib/tree";
-import { signPoints } from "../paint";
+import { hogsOf, labelsOf, signPoints } from "../paint";
 import { PLACES } from "../places";
 import { tileCentre } from "../iso";
 import { buildWorld } from "../world";
@@ -27,16 +27,22 @@ function hogBox(door: { x: number; y: number }, scale: number): Box {
 
 const SEEDS = Array.from({ length: 40 }, (_, i) => (i * 2_654_435_761 + 17) >>> 0);
 
-test.each([3, 2])("no place's sign covers a door or another sign, on any tree, at any stage (at %i×)", (scale) => {
+test.each([3, 2])("no sign or label covers a door or another sign, on any tree, at any stage (at %i×)", (scale) => {
   const clashes = new Set<string>();
   for (const seed of SEEDS)
     for (const stage of TREE_STAGES) {
-      const w = buildWorld({ seed, layout: layout(seed, stage.growth), peakGrowth: stage.growth, planted: true, standing: PLACES.map((p) => p.id) });
-      const signs = signPoints(w.places);
-      for (const p of w.places) {
+      const w = buildWorld({ seed, layout: layout(seed, stage.growth), planted: true, standing: PLACES.map((p) => p.id) });
+      // Every name over the world: the places' signs, the elder hog's, the districts' markers and the dim signs of what opens next.
+      const labels = labelsOf(w);
+      const signs = signPoints(w.places, labels, hogsOf(w));
+      // Every place has its sign; a label may be left out where it can't hang clear.
+      for (const p of w.places) expect(signs.has(p.id), p.id).toBe(true);
+      const all = [...w.places.map((p) => ({ id: p.id, name: p.name })), ...labels.filter((l) => signs.has(l.id))];
+      for (const p of all) {
         const sign = signBox(p.name, signs.get(p.id)!, scale);
         for (const q of w.places) for (const door of q.doors) if (overlaps(sign, hogBox(door, scale))) clashes.add(`${seed}: ${p.name}'s sign over ${q.name}'s door`);
-        for (const q of w.places) if (q.id > p.id && overlaps(sign, signBox(q.name, signs.get(q.id)!, scale))) clashes.add(`${seed}: ${p.name}'s sign over ${q.name}'s sign`);
+        for (const hog of hogsOf(w)) if (overlaps(sign, hogBox(hog, scale))) clashes.add(`${seed}: ${p.name}'s sign over the hedgehog at ${hog.x},${hog.y}`);
+        for (const q of all) if (q.id > p.id && overlaps(sign, signBox(q.name, signs.get(q.id)!, scale))) clashes.add(`${seed}: ${p.name}'s sign over ${q.name}'s sign`);
       }
     }
   expect([...clashes]).toEqual([]);

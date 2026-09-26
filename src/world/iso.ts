@@ -76,9 +76,9 @@ export const SEARCH_LIMIT = 150_000;
  * a bucket queue (costs are small whole numbers, at least 1, so the straight-line grid distance
  * never overestimates), so the hedgehog keeps to the paths and a walk across the endless desert
  * only looks where it's heading. The start is left out, so `[]` means you're there; null when
- * there's no way (or none within `SEARCH_LIMIT` tiles looked at).
+ * there's no way (or none within `limit` tiles looked at).
  */
-export function findPath(grid: Grid, from: Tile, to: Tile): Tile[] | null {
+export function findPath(grid: Grid, from: Tile, to: Tile, limit = SEARCH_LIMIT): Tile[] | null {
   if (sameTile(from, to)) return [];
   if (!inside(grid, to) || !grid.walkable(to.x, to.y)) return null;
   const cost = grid.cost ?? (() => 1);
@@ -100,7 +100,7 @@ export function findPath(grid: Grid, from: Tile, to: Tile): Tile[] | null {
         for (let t: Tile | undefined = here; t && !sameTile(t, from); t = came.get(tileKey(t))) path.push(t);
         return path.reverse();
       }
-      if (++looked > SEARCH_LIMIT) return null;
+      if (++looked > limit) return null;
       for (const n of NEIGHBOURS) {
         const next = { x: here.x + n.x, y: here.y + n.y };
         if (!inside(grid, next) || !grid.walkable(next.x, next.y)) continue;

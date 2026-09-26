@@ -194,11 +194,6 @@ export const NIGHT: Record<string, string> = { a: "n", A: "n", D: "b", n: "b" };
 /** How long the water holds each of its two frames: a slow shimmer. */
 export const SHIMMER_MS = 1200;
 
-/** The water frame showing at a time. */
-export function groundFrame(ms: number) {
-  return Math.floor(ms / SHIMMER_MS) % 2;
-}
-
 // ---------------------------------------------------------------------------------------------
 // Small things that stand on the ground.
 

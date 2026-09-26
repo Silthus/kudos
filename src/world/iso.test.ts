@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { TILE_H, TILE_W, findPath, stepFor, tileAt, tileCentre, type Grid } from "./iso";
+import { SEARCH_LIMIT, TILE_H, TILE_W, findPath, stepFor, tileAt, tileCentre, type Grid } from "./iso";
 
 /** A grid from rows of text: `.` walkable, `#` blocked. */
 const grid = (rows: string[]): Grid => ({
@@ -104,10 +104,15 @@ describe("path finding", () => {
   });
 
   test("gives up on a tile walled in far away instead of searching the endless desert", () => {
-    const walled: Grid = { walkable: (x, y) => !(Math.max(Math.abs(x - 500), Math.abs(y)) === 1) };
-    const t0 = performance.now();
+    let asked = 0;
+    const walled: Grid = { walkable: (x, y) => (asked++, Math.max(Math.abs(x - 500), Math.abs(y)) !== 1) };
     expect(findPath(walled, { x: 0, y: 0 }, { x: 500, y: 0 })).toBeNull();
-    expect(performance.now() - t0).toBeLessThan(2000);
+    // Each tile looked at asks after its four neighbours.
+    expect(asked).toBeLessThanOrEqual(4 * SEARCH_LIMIT + 8);
+    // A click asks for less: a walk it can't find quickly isn't one worth freezing the page for.
+    asked = 0;
+    expect(findPath(walled, { x: 0, y: 0 }, { x: 500, y: 0 }, 2000)).toBeNull();
+    expect(asked).toBeLessThanOrEqual(4 * 2000 + 8);
   });
 
   test("keeps within a grid's bounds when it has them", () => {

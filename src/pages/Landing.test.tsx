@@ -6,7 +6,7 @@ import { MotionGlobalConfig } from "motion/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { describeElement, escapesFromScrollers, parchmentTextOnDusk, widensSideways } from "@/testing/layout";
 import { copyProblems } from "@/testing/windowPage";
-import { LANDING_RECT } from "@/world/LandingScene";
+import { landingScene } from "@/world/LandingScene";
 import { tileOnCanvas } from "@/world/paint";
 import { HOG_FEET, HOG_SIZE } from "@/world/Hog";
 
@@ -71,6 +71,7 @@ test("the desert lies below at dusk, the Ancient Tree in its middle, with a hedg
   const hog = host.querySelector<HTMLElement>("[data-landing-hog]")!;
   // The hedgehog's feet in base camp, in front of the offering stone, at the world's scale (the picture starts at its corner).
   const spot = tileOnCanvas({ x: 4, y: 4 });
+  const LANDING_RECT = landingScene().rect;
   expect(hog.style.left).toBe(`calc(${spot.x - LANDING_RECT.x}px * var(--s) - ${HOG_SIZE / 2}px)`);
   expect(hog.style.top).toBe(`calc(${spot.y - LANDING_RECT.y}px * var(--s) - ${HOG_FEET}px)`);
   expect(hog.querySelector("canvas")).not.toBeNull();

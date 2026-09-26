@@ -19,7 +19,8 @@ export const TOWN_RADIUS = 34;
 export const DESERT_GROUNDS = ["sand", "dune", "ridge", "rock", "water", "oasis"] as const;
 export type DesertGround = (typeof DESERT_GROUNDS)[number];
 
-export function desertWalkable(ground: DesertGround) {
+/** Whether you can stand on a tile of the desert (any other ground passes too). */
+export function desertWalkable(ground: string) {
   return ground !== "rock" && ground !== "water";
 }
 

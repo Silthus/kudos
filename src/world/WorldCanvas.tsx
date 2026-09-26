@@ -1,10 +1,9 @@
 import clsx from "clsx";
 import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
-import { TREE_STAGES, stageIndex } from "../../convex/lib/tree";
 import { GroundLayer } from "./groundLayer";
 import { HOG_FEET, HOG_SIZE, HogFrame } from "./Hog";
 import { tileCentre } from "./iso";
-import { paintStanding, signPoints, standingRect, treeFoot, type ArtRect, type WorldFurniture } from "./paint";
+import { hogsOf, labelsOf, paintStanding, signPoints, standingRect, treeFoot, type ArtRect, type WorldFurniture } from "./paint";
 import type { Place } from "./places";
 import { mapHeight, mapWidth, pixelAt, type PixelMap } from "./pixels";
 import { SEED_FRAMES, SEED_FRAME_MS } from "./tree/sprite";
@@ -71,16 +70,10 @@ function SeedMoment({ world, scale, onDone }: { world: World; scale: number; onD
   );
 }
 
-/** The middle of a closed district's outline, for its dim sign. */
-function outlineTop(s: Site) {
-  const back = tileCentre({ x: s.outline.x0, y: s.outline.y0 });
-  const front = tileCentre({ x: s.outline.x1, y: s.outline.y1 });
-  return { x: (back.x + front.x) / 2, y: (back.y + front.y) / 2 - 6 };
-}
-
 export function WorldCanvas({
   world,
   worldKey,
+  ready = true,
   places,
   furniture,
   scale,
@@ -95,6 +88,8 @@ export function WorldCanvas({
   world: World;
   /** Names the world's ground: a new key repaints it. */
   worldKey: string;
+  /** False while the tree is loading: nothing is painted yet, so no other world flashes first. */
+  ready?: boolean;
   /** The places standing on your map, with their links and badges. */
   places: Place[];
   furniture: WorldFurniture;
@@ -120,9 +115,10 @@ export function WorldCanvas({
     return () => l.destroy();
   }, []);
   useEffect(() => {
+    if (!ready) return;
     layer.current?.setWorld(world, worldKey);
     if (lastView.current) layer.current?.show(lastView.current);
-  }, [world, worldKey]);
+  }, [world, worldKey, ready]);
   useEffect(() => layer.current?.setScale(scale), [scale]);
   useEffect(() => layer.current?.setStill(still), [still]);
   useImperativeHandle(ref, () => ({
@@ -140,6 +136,7 @@ export function WorldCanvas({
   const standKey = `${worldKey}|${furniture.key ?? furniture.plots.map((p) => p?.rows.join() ?? "").join("|")}|${furniture.beds.map((b) => `${b.tile.x},${b.tile.y}:${b.sprite?.rows.join() ?? ""}`).join()}|${freshKey}|${seedMoment}`;
   const rect = standingRect(world, furniture);
   useEffect(() => {
+    if (!ready) return;
     for (const [canvas, what, extra] of [
       [town.current, settled, { tree: !seedMoment }],
       [freshCanvas.current, opening, { tree: false }],
@@ -154,12 +151,11 @@ export function WorldCanvas({
     }
     // Painted from `standKey`: the objects themselves are new on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [standKey, rect.x, rect.y, rect.width, rect.height]);
+  }, [standKey, ready, rect.x, rect.y, rect.width, rect.height]);
 
-  // Closed districts are dry outlines; the ones the tree's next stage opens carry a dim sign, the rest wait unnamed.
-  const next = TREE_STAGES[stageIndex(world.stage) + 1]?.id;
-  const coming = world.planted ? world.sites.filter((s) => !s.open && s.opens === next) : [];
-  const signs = signPoints(places, coming.map((s) => ({ id: `closed:${s.id}`, name: s.name, at: outlineTop(s) })));
+  // Every name over the world, kept clear of the doors and of each other.
+  const labels = ready ? labelsOf(world) : [];
+  const signs = signPoints(places, labels, ready ? hogsOf(world) : []);
   const box = { left: rect.x * scale, top: rect.y * scale, width: rect.width * scale, height: rect.height * scale };
   const elder = world.props.find((p) => p.kind === "elder");
   const elderAt = elder && tileCentre(elder.tile);
@@ -168,6 +164,8 @@ export function WorldCanvas({
       <div ref={groundHost} aria-hidden data-ground className="absolute left-0 top-0 isolate" />
       <canvas ref={town} width={rect.width} height={rect.height} aria-hidden data-world className="pixels absolute" style={box} />
       <canvas
+        // A new opening is a new canvas, so it fades in even right after another.
+        key={freshKey}
         ref={freshCanvas}
         width={rect.width}
         height={rect.height}
@@ -180,16 +178,11 @@ export function WorldCanvas({
       {elderAt && (
         <>
           {/* PostHog's hedgehog, silvered with age: a placeholder until the tutorial lane (#159) gives the elder its words. */}
+
           <div aria-hidden data-elder className="pointer-events-none absolute" style={{ left: elderAt.x * scale - HOG_SIZE / 2, top: (elderAt.y + 4) * scale - HOG_FEET }}>
             <HogFrame className="-scale-x-100 [filter:grayscale(0.85)_brightness(1.15)]" />
           </div>
-          <div
-            aria-hidden
-            className="pixel-sign pointer-events-none absolute whitespace-nowrap px-2 py-0.5 font-display text-xs font-medium leading-4"
-            style={{ left: elderAt.x * scale, top: (elderAt.y + 4) * scale - HOG_FEET + 6, transform: "translate(-50%, -100%)" }}
-          >
-            The elder hog
-          </div>
+
         </>
       )}
       {places.map((p) => {
@@ -210,39 +203,30 @@ export function WorldCanvas({
           </div>
         );
       })}
-      {world.sites
-        .filter((s) => s.open && !s.places.length && s.id !== "base_camp")
-        .map((s) => {
-          const at = tileCentre(s.at);
-          return (
-            <div
-              key={s.id}
-              aria-hidden
-              data-district-sign={s.id}
-              className="pixel-sign pointer-events-none absolute whitespace-nowrap px-2 py-0.5 font-display text-xs font-medium leading-4"
-              style={{ left: at.x * scale, top: (at.y - 22) * scale, transform: "translate(-50%, -100%)" }}
-            >
-              {s.name}
-            </div>
-          );
-        })}
-      {coming.map((s) => {
-          const at = signs.get(`closed:${s.id}`)!;
-          return (
-            <div
-              key={s.id}
-              aria-hidden
-              data-closed-sign={s.id}
-              onPointerDown={(e) => e.stopPropagation()}
-              onPointerUp={(e) => e.stopPropagation()}
-              onClick={() => onSite(s)}
-              className="pixel-sign absolute cursor-pointer whitespace-nowrap px-2 py-0.5 font-display text-xs font-medium leading-4 opacity-60"
-              style={{ left: at.x * scale, top: at.y * scale, transform: "translate(-50%, -100%)" }}
-            >
-              {s.name}
-            </div>
-          );
-        })}
+      {labels.map((l) => {
+        const at = signs.get(l.id);
+        if (!at) return null;
+        // A closed district's sign walks you up to its outline; the others are names only.
+        const closed = l.id.startsWith("closed:") ? world.sites.find((s) => `closed:${s.id}` === l.id) : undefined;
+        return (
+          <div
+            key={l.id}
+            aria-hidden
+            data-label={l.id}
+            data-closed-sign={closed?.id}
+            onPointerDown={closed && ((e) => e.stopPropagation())}
+            onPointerUp={closed && ((e) => e.stopPropagation())}
+            onClick={closed && (() => onSite(closed))}
+            className={clsx(
+              "pixel-sign absolute whitespace-nowrap px-2 py-0.5 font-display text-xs font-medium leading-4",
+              closed ? "cursor-pointer opacity-60" : "pointer-events-none",
+            )}
+            style={{ left: at.x * scale, top: at.y * scale, transform: "translate(-50%, -100%)" }}
+          >
+            {l.name}
+          </div>
+        );
+      })}
     </>
   );
 }

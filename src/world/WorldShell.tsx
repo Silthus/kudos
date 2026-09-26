@@ -17,12 +17,12 @@ import { Hud } from "./Hud";
 import { Life } from "./Life";
 import { arrivalFor, skyFor, withSprout } from "./life";
 import { findPath, sameTile, stepFor, tileAt, tileCentre, type Point, type Tile } from "./iso";
-import { spriteFoot, tileOnCanvas, treeHeight } from "./paint";
+import { siteName, spriteFoot, tileOnCanvas, treeBox, treeHeight } from "./paint";
 import { placeForPath, placesOnMap, routablePlaces, visiblePlaces, type Place } from "./places";
 import { Sky } from "./Sky";
 import { mapHeight, mapWidth } from "./pixels";
 import { pushToasts } from "./toastBus";
-import { closedLine, treeInput, treeMoments, treeToasts, type TreeState } from "./tree/moments";
+import { closedLine, treeInput, treeMoments, treeToasts, type TreeState } from "./tree/state";
 import { Window } from "./Window";
 import { layout } from "../../convex/lib/tree";
 import { BASE_CAMP, buildWorld, inRect, type Site, type World } from "./world";
@@ -46,8 +46,11 @@ import { WorldCanvas, type WorldCanvasHandle } from "./WorldCanvas";
 /** A teammate's bed in the ring; `sprout` on a day they gave a thoughtful kudos (#134). */
 type Neighbour = RingBed & { sprout?: boolean };
 
-/** How long one step takes: brisk for long walks, so no walk takes much over two seconds. */
-const stepMs = (length: number) => Math.max(70, Math.min(180, 2400 / Math.max(1, length)));
+/** How long one step takes: brisk for long walks, so a walk across town takes a few seconds, not ten. */
+const stepMs = (length: number) => Math.max(45, Math.min(180, 2400 / Math.max(1, length)));
+
+/** How far a tap's walk may search: plenty for any walk there is, too little to freeze the page on sand walled in by rock. */
+const tapLimit = (from: Tile, to: Tile) => 4000 + 300 * (Math.abs(to.x - from.x) + Math.abs(to.y - from.y));
 
 /** The docked window's width on a desktop, with its frame's room (Window.tsx's `sm:` width). */
 const dockedWidth = (vw: number) => (vw < 640 ? 0 : Math.min(720, Math.max(420, vw / 2)) + 24);
@@ -82,12 +85,12 @@ const PENDING_LAYOUT = layout(0, 0);
 const FRESH_MS = 1000;
 
 /** A closed district from a link: where it will stand, and when. */
-function NotOpen({ site }: { site: Site }) {
+function NotOpen({ site, peakGrowth }: { site: Site; peakGrowth: number }) {
   return (
     <div data-not-open className="space-y-2">
       <p className="font-display text-xl font-medium text-ink">Not open yet</p>
       <p className="text-ink">{site.promise}</p>
-      <p className="text-ink/75">{closedLine(site)}</p>
+      <p className="text-ink/75">{closedLine(site, peakGrowth)}</p>
     </div>
   );
 }
@@ -96,11 +99,12 @@ function NotOpen({ site }: { site: Site }) {
 function nameOf(world: World, t: Tile, gameShown: boolean): string {
   const terrain = world.terrainAt(t.x, t.y);
   const site = world.sites.find((s) => !s.open && (sameTile(s.approach, t) || inRect(s.outline, t.x, t.y)));
-  if (site) return `${site.name}, not open yet`;
+  if (site) return `${siteName(site)}, not open yet`;
   const ruin = world.ruins.find((r) => Math.max(Math.abs(r.at.x - t.x), Math.abs(r.at.y - t.y)) <= 1);
   if (ruin) return ruin.name;
   const garden = world.places.find((p) => p.id === "garden");
-  if (garden && inRect({ x0: garden.footprint.x, y0: garden.footprint.y, x1: garden.footprint.x + 6, y1: garden.footprint.y + 6 }, t.x, t.y)) return gameShown ? "Your garden" : "The green";
+  const f = garden?.footprint;
+  if (f && inRect({ x0: f.x, y0: f.y, x1: f.x + f.w - 1, y1: f.y + f.h - 1 }, t.x, t.y)) return gameShown ? "Your garden" : "The green";
   if (Math.hypot(t.x, t.y) <= 7) return "Base camp";
   if (terrain === "path" || terrain === "gate") return "The path";
   if (terrain === "lawn") return "Under the tree";
@@ -148,8 +152,12 @@ export function WorldShell() {
   const treePending = trunk === null;
   // A page open from a link before its place is on your map (the locked store) still has its building.
   const standing = [...shown.map((p) => p.id), ...(target && !shown.some((p) => p.id === target.place.id) ? [target.place.id] : [])];
-  const input = trunk ?? { seed: 0, layout: PENDING_LAYOUT, peakGrowth: 0, planted: false };
-  const worldKey = `${input.seed}:${input.peakGrowth}:${input.planted}:${JSON.stringify(input.layout.districts)}:${standing.join()}`;
+  const input = trunk ?? { seed: 0, layout: PENDING_LAYOUT, planted: false };
+  // What the world is built from, and nothing else: not growth, which rises with every thoughtful kudos in the company.
+  const { stage: treeStage, rings, districts, homes, ruins } = input.layout;
+  const worldKey = `${input.seed}:${input.planted}:${treeStage}:${rings}:${JSON.stringify(districts)}:${homes.length}:${ruins.length}:${standing.join()}`;
+  // What a closed district waits on (the peak growth opens districts).
+  const peakGrowth = tree?.peakGrowth ?? 0;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const world = useMemo(() => buildWorld({ ...input, standing }), [worldKey]);
   // The places standing on your map, where the tree put them, with their links and badges.
@@ -218,8 +226,8 @@ export function WorldShell() {
   const shell = useRef<HTMLDivElement>(null);
 
   // Everything the walk loop and key handlers read, fresh each render without restarting them.
-  const live = useRef({ onMap, target, closedTarget, neighbours, scale, still, gameShown, navigate, world, plots, plotParam });
-  live.current = { onMap, target, closedTarget, neighbours, scale, still, gameShown, navigate, world, plots, plotParam };
+  const live = useRef({ onMap, target, closedTarget, neighbours, scale, still, gameShown, navigate, world, plots, plotParam, peakGrowth });
+  live.current = { onMap, target, closedTarget, neighbours, scale, still, gameShown, navigate, world, plots, plotParam, peakGrowth };
 
   const [arrived, setArrived] = useState<string | null>(null);
   const [where, setWhere] = useState("Base camp");
@@ -262,9 +270,9 @@ export function WorldShell() {
 
   /** What a closed district or a ruin says when you stop by it. */
   const noticeAt = (t: Tile) => {
-    const { world } = live.current;
+    const { world, peakGrowth } = live.current;
     const site = world.sites.find((s) => !s.open && (sameTile(s.approach, t) || inRect({ x0: s.outline.x0 - 1, y0: s.outline.y0 - 1, x1: s.outline.x1 + 1, y1: s.outline.y1 + 1 }, t.x, t.y)));
-    if (site) return { tile: site.approach, title: site.name, body: closedLine(site) };
+    if (site) return { tile: site.approach, title: siteName(site), body: closedLine(site, peakGrowth) };
     const ruin = world.ruins.find((r) => Math.max(Math.abs(r.at.x - t.x), Math.abs(r.at.y - t.y)) <= 2);
     if (ruin) return { tile: ruin.at, title: ruin.name, body: "A ruin in the sand. Nobody has gone in yet." };
     return null;
@@ -299,7 +307,12 @@ export function WorldShell() {
     if (!w.step) {
       // Keys let go while the page wasn't looking never send a keyup: without focus, stop.
       if (!document.hasFocus()) w.held = [];
-      const next = w.queue.shift() ?? (w.held.length || w.tapped ? heldStep() : null);
+      let next = w.queue.shift() ?? (w.held.length || w.tapped ? heldStep() : null);
+      // The world changed under the walk (a district opened on the way): stop short of it.
+      if (next && !live.current.world.walkable(next.x, next.y)) {
+        w.queue = [];
+        next = null;
+      }
       if (!next) {
         w.raf = 0;
         return rest();
@@ -356,11 +369,16 @@ export function WorldShell() {
     if (live.current.target) live.current.navigate("/");
   };
 
-  /** Walks to a tile (or appears there, under reduced motion); `arrive` runs on getting there. */
+  /**
+   * Walks to a tile (or appears there, under reduced motion); `arrive` runs on getting there. A walk
+   * to a place always gets there, if need be by appearing at its door; a tap on sand with no way
+   * to it (walled in by rock) goes nowhere.
+   */
   const walkTo = (dest: Tile, arrive?: () => void) => {
     const w = walker.current;
     const from = w.step?.to ?? w.tile;
-    const path = findPath(live.current.world, from, dest);
+    const path = findPath(live.current.world, from, dest, arrive ? undefined : tapLimit(from, dest));
+    if (!path && !arrive) return;
     if (!path || live.current.still) {
       cancelAnimationFrame(w.raf);
       w.raf = 0;
@@ -385,10 +403,8 @@ export function WorldShell() {
       if (bed) return bed.tile;
     }
     if (plot !== null && world.plots[plot]) return world.plots[plot];
-    const standing = onMap.find((p) => p.id === t.place.id);
-    if (!standing && closedTarget) return closedTarget.approach;
     const w = walker.current;
-    const doors = (standing ?? t.place).doors;
+    const doors = onMap.find((p) => p.id === t.place.id)?.doors ?? [closedTarget?.approach ?? BASE_CAMP.spawn];
     return doors.reduce((a, b) => (Math.abs(b.x - w.tile.x) + Math.abs(b.y - w.tile.y) < Math.abs(a.x - w.tile.x) + Math.abs(a.y - w.tile.y) ? b : a));
   };
 
@@ -448,6 +464,20 @@ export function WorldShell() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [neighbours]);
+
+  // Another workspace is another world: start again in its base camp.
+  const workspaceId = viewer.workspace._id;
+  const lastWorkspace = useRef(workspaceId);
+  useEffect(() => {
+    if (lastWorkspace.current === workspaceId) return;
+    lastWorkspace.current = workspaceId;
+    const w = walker.current;
+    cancelAnimationFrame(w.raf);
+    Object.assign(w, { raf: 0, step: null, queue: [], arrive: null, tile: BASE_CAMP.spawn });
+    place(tileOnCanvas(BASE_CAMP.spawn), true);
+    setWhere(nameHere(BASE_CAMP.spawn));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceId]);
 
   // Re-seat the hedgehog when the scale changes.
   useEffect(() => place(walker.current.pos, true), [scale]);
@@ -516,8 +546,10 @@ export function WorldShell() {
 
   const onTap = (stagePoint: Point) => {
     const art = { x: stagePoint.x / scale, y: stagePoint.y / scale };
-    // A building's sprite, front-most first.
+    // A building's sprite, front-most (deepest) first.
+    const depth = (p: Place) => (p.spriteAt ? p.spriteAt.x + p.spriteAt.y : p.footprint.x + p.footprint.w + p.footprint.y + p.footprint.h);
     const hit = [...onMap]
+      .sort((a, b) => depth(a) - depth(b))
       .filter((p) => !p.walkable)
       .reverse()
       .find((p) => {
@@ -526,6 +558,12 @@ export function WorldShell() {
         return art.x >= foot.x - w / 2 && art.x <= foot.x + w / 2 && art.y >= foot.y - mapHeight(p.sprite) && art.y <= foot.y;
       });
     if (hit) return goTo(hit);
+    // The tree: whatever lies behind its canopy, a tap on it takes you to its foot, base camp.
+    const tree = treeBox(world);
+    if (tree && art.x >= tree.x && art.x <= tree.x + tree.width && art.y >= tree.y && art.y <= tree.y + tree.height) {
+      abandon();
+      return walkTo(world.spawn);
+    }
     // One of your plants, by its crown as well as its bed: front-most first (the painter's key bed
     // stands 5 px below the tile's centre line, and a plant is at most 16 px wide and 30 px tall).
     const plant = world.plots
@@ -599,7 +637,8 @@ export function WorldShell() {
           ref={canvas}
           world={world}
           worldKey={worldKey}
-          places={onMap}
+          ready={!treePending}
+          places={treePending ? [] : onMap}
           furniture={furniture}
           scale={scale}
           still={still}
@@ -641,7 +680,7 @@ export function WorldShell() {
           </div>
         )}
       </Camera>
-      <Hud places={onMapShown} where={where} insetRight={inset} />
+      <Hud places={treePending ? [] : onMapShown} where={where} insetRight={inset} />
       <Window
         open={windowOpen}
         title={title ?? ""}
@@ -650,7 +689,7 @@ export function WorldShell() {
         scrollKey={location.pathname}
         returnFocus={() => document.querySelector<HTMLElement>("nav[aria-label='Places'] button")}
       >
-        <ErrorBoundary resetKey={location.pathname}>{closedTarget ? <NotOpen site={closedTarget} /> : <Outlet />}</ErrorBoundary>
+        <ErrorBoundary resetKey={location.pathname}>{closedTarget ? <NotOpen site={closedTarget} peakGrowth={peakGrowth} /> : <Outlet />}</ErrorBoundary>
       </Window>
       {target?.memberId && !ringName && (
         <ErrorBoundary resetKey={target.memberId} fallback={null}>
