@@ -133,7 +133,7 @@ export function signPoints(places: PlaceDef[], labels: Label[] = [], standing: T
   const taken: Box[] = [];
   const out = new Map<string, Point>();
   const signs = [
-    ...places.map((p) => ({ id: p.id, name: p.name, home: signPoint(p), below: mapHeight(p.sprite) - emptyTop(p.sprite) + 16, place: true })),
+    ...places.filter((p) => !p.nameTag).map((p) => ({ id: p.id, name: p.name, home: signPoint(p), below: mapHeight(p.sprite) - emptyTop(p.sprite) + 16, place: true })),
     ...labels.map((l) => ({ id: l.id, name: l.name, home: l.at, below: 16, place: false })),
   ];
   for (const p of signs) {
@@ -187,7 +187,7 @@ export function hogsOf(world: World): Tile[] {
 }
 
 /** The tile the elder hog sits on (#159): its place's, where it stands on this viewer's map. */
-export function elderOf(world: World): Tile | null {
+export function elderOf(world: Pick<World, "places">): Tile | null {
   const place = world.places.find((p) => p.id === "elder");
   return place ? { x: place.footprint.x, y: place.footprint.y } : null;
 }

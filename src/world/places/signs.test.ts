@@ -33,12 +33,13 @@ test.each([3, 2])("no sign or label covers a door or another sign, on any tree, 
   for (const seed of SEEDS)
     for (const stage of TREE_STAGES) {
       const w = buildWorld({ seed, layout: layout(seed, stage.growth), planted: true, standing: PLACES.map((p) => p.id) });
-      // Every name over the world: the places' signs, the elder hog's, the districts' markers and the dim signs of what opens next.
+      // Every name over the world: the places' signs, the districts' markers and the dim signs of what opens next.
       const labels = labelsOf(w);
       const signs = signPoints(w.places, labels, hogsOf(w));
-      // Every place has its sign; a label may be left out where it can't hang clear.
-      for (const p of w.places) expect(signs.has(p.id), p.id).toBe(true);
-      const all = [...w.places.map((p) => ({ id: p.id, name: p.name })), ...labels.filter((l) => signs.has(l.id))];
+      // Every place has its sign (the elder hog's has its name tag); a label may be left out where it can't hang clear.
+      const signed = w.places.filter((p) => !p.nameTag);
+      for (const p of signed) expect(signs.has(p.id), p.id).toBe(true);
+      const all = [...signed.map((p) => ({ id: p.id, name: p.name })), ...labels.filter((l) => signs.has(l.id))];
       for (const p of all) {
         const sign = signBox(p.name, signs.get(p.id)!, scale);
         for (const q of w.places) for (const door of q.doors) if (overlaps(sign, hogBox(door, scale))) clashes.add(`${seed}: ${p.name}'s sign over ${q.name}'s door`);

@@ -28,6 +28,6 @@ export const place: PlaceDef = {
   footprint: { x: 0, y: 0, w: 1, h: 1 },
   doors: [{ x: 0, y: 1 }],
   sprite: elderMat(),
-  // The mat lies on the tile the elder sits on; its sign hangs over the elder's head.
-  signOffset: { x: 0, y: -14 },
+  // The mat lies on the tile the elder sits on, and the elder's name tag over its head names the place.
+  nameTag: true,
 };

@@ -40,7 +40,8 @@ import { place as elder } from "./places/elder";
  *   reachable from base camp; `signs.test.ts` that no sign covers a door.
  * - `sprite`: a palette-indexed `PixelMap` (see `pixels.ts`), our own art, never a hedgehog. It's
  *   drawn with its bottom centre on the footprint's front corner, or on `spriteAt`'s tile, plus
- *   `spriteOffset` (art pixels). The sign with the place's name hangs above it, or at `signOffset`.
+ *   `spriteOffset` (art pixels). The sign with the place's name hangs above it, or at `signOffset`;
+ *   a place where a hog sits (`nameTag`) is named by the hog's name tag instead.
  *
  * To redraw a place, a place lane edits only its own file. A new place adds its file, one import
  * line below, and its id to its district's `places` in `convex/lib/tree.ts`.
@@ -61,6 +62,8 @@ export type PlaceDef = {
   spriteOffset?: { x: number; y: number };
   /** Where the name sign stands, in art pixels from the sprite's top centre. */
   signOffset?: { x: number; y: number };
+  /** Named by a name tag over the hog who sits there, as every hog is (the elder hog, #159), not by a sign. */
+  nameTag?: true;
 };
 
 export const PLACES: PlaceDef[] = [garden, me, offering, elder, quests, leaderboard, compare, discoveries, store, skills, analytics, admin, playground];

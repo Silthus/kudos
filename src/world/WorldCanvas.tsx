@@ -183,7 +183,9 @@ export function WorldCanvas({
   const labels = ready ? labelsOf(world) : [];
   const signs = signPoints(places, labels, ready ? hogsOf(world) : []);
   const box = { left: rect.x * scale, top: rect.y * scale, width: rect.width * scale, height: rect.height * scale };
-  const elder = ready ? elderOf(world) : null;
+  // The elder hog sits on its mat where its place stands on your map (#159).
+  const elderPlace = places.find((p) => p.id === "elder");
+  const elder = elderPlace ? elderOf({ places: [elderPlace] }) : null;
   const elderAt = elder && tileCentre(elder);
   return (
     <>
@@ -205,12 +207,23 @@ export function WorldCanvas({
       />
       {seedMoment && <SeedMoment world={world} scale={scale} onDone={() => onSeedMomentDone?.()} />}
       {/* PostHog's hedgehog, silvered with age, on its mat (#159): its sign and its door open its window. */}
-      {elderAt && (
+      {elderAt && elderPlace && (
         <div aria-hidden data-elder className="pointer-events-none absolute" style={{ zIndex: Z.front, left: elderAt.x * scale - HOG_SIZE / 2, top: (elderAt.y + 4) * scale - HOG_FEET }}>
           <HogFrame className="-scale-x-100 [filter:grayscale(0.85)_brightness(1.15)]" />
+          {/* Its name tag, as every hog has (#158), names the place: a click walks you to it. */}
+          <span
+            data-name-tag
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+            onClick={() => onPlace(elderPlace)}
+            className="pointer-events-auto absolute left-1/2 top-3 -translate-x-1/2 -translate-y-full cursor-pointer whitespace-nowrap border border-bark bg-parchment px-1 font-sans text-xs font-semibold leading-4 text-ink"
+            style={{ zIndex: Z.labels }}
+          >
+            {elderPlace.name}
+          </span>
         </div>
       )}
-      {places.map((p) => {
+      {places.filter((p) => !p.nameTag).map((p) => {
         const at = signs.get(p.id)!;
         return (
           <div
