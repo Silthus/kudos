@@ -1,4 +1,4 @@
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { getAuthSessionId, getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
@@ -26,10 +26,30 @@ export async function memberships(ctx: QueryCtx, userId: Id<"users">): Promise<V
     if (workspace?.status === "active") usable.push({ member, workspace });
   }
   const recency = ({ member }: Viewer) => [member.activeAt ?? 0, member.lastGivenAt ?? 0, member._creationTime];
-  return usable.sort((a, b) => {
+  usable.sort((a, b) => {
     const [ra, rb] = [recency(a), recency(b)];
     return rb[0] - ra[0] || rb[1] - ra[1] || rb[2] - ra[2];
   });
+  const simulator = await simulatorOf(ctx, userId);
+  if (simulator) usable.splice(simulator.workspace.simulator!.shown ? 0 : usable.length, 0, simulator);
+  return usable;
+}
+
+/**
+ * The signed-in visitor's own simulator (#143, simulator.ts), if they have one. Everyone in the demo
+ * shares one user, so a simulator belongs to the sign-in session that started it; its visitor member
+ * has no `userId`, so no other session lists it.
+ */
+export async function simulatorOf(ctx: QueryCtx, userId: Id<"users">): Promise<Viewer | null> {
+  const sessionId = await getAuthSessionId(ctx);
+  if (!sessionId) return null;
+  const workspace = await ctx.db
+    .query("workspaces")
+    .withIndex("by_simulator_session", (q) => q.eq("simulator.sessionId", sessionId))
+    .first();
+  if (!workspace?.simulator || workspace.simulator.userId !== userId || workspace.status !== "active") return null;
+  const member = await ctx.db.get(workspace.simulator.memberId);
+  return member && !member.deactivated ? { member, workspace } : null;
 }
 
 /** The signed-in user's workspace membership, or null when signed out / not linked. */

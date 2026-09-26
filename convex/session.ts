@@ -44,6 +44,8 @@ export const viewer = query({
         name: workspace.name,
         iconUrl: workspace.iconUrl,
         isDemo: workspace.isDemo,
+        // The workspace clock (lib/time.ts workspaceNow): the web client adds it to compute today (src/lib/period.ts).
+        clockOffsetMs: workspace.clockOffsetMs ?? 0,
         ...publicSettings(workspace),
         // The Store is the place to spend Hog coins, so it appears with the wallet (level 3),
         // visible but locked until level 5 (§G1); never while the game is off or hidden.
@@ -64,8 +66,12 @@ export const switchWorkspace = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new ConvexError("Sign in with Slack to continue.");
     const usable = await memberships(ctx, userId);
-    if (!usable.some((m) => m.member._id === memberId)) throw new ConvexError("You can't switch to that workspace.");
-    await ctx.db.patch(memberId, { activeAt: Date.now() });
+    const chosen = usable.find((m) => m.member._id === memberId);
+    if (!chosen) throw new ConvexError("You can't switch to that workspace.");
+    // A simulator is shown or not per visitor (lib/access.ts simulatorOf); other workspaces go by recency.
+    const simulator = usable.find((m) => m.workspace.simulator);
+    if (simulator) await ctx.db.patch(simulator.workspace._id, { simulator: { ...simulator.workspace.simulator!, shown: chosen === simulator } });
+    if (chosen !== simulator) await ctx.db.patch(memberId, { activeAt: Date.now() });
     return null;
   },
 });

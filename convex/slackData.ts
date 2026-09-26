@@ -11,7 +11,7 @@ import { activeRewards, coinWallet, openRedemptionCount, ownDecisionBlocker, pri
 import { openRequestCount } from "./storeAdmin";
 import { earningsValidator, gainValidator, questProgressValidator, redemptionStatusValidator, superKudosNoteValidator } from "./schema";
 import { escapeMrkdwn, rewardLine, webLink } from "./lib/slack";
-import { addDays, dayKeyFor, weekdayOfKey } from "./lib/time";
+import { addDays, dayKeyFor, weekdayOfKey, workspaceNow } from "./lib/time";
 import { weekBucket } from "./lib/buckets";
 import { backfilledRollups, memberBucket } from "./lib/stats";
 import { markBackfilled, mirrorBackfillMarker } from "./lib/rebuild";
@@ -424,7 +424,7 @@ export const homeData = internalQuery({
       .query("members")
       .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspaceId).eq("slackUserId", slackUserId))
       .unique();
-    const now = Date.now();
+    const now = workspaceNow(workspace);
     const standing = await weekStanding(ctx, workspace, now, member?._id ?? null, 5);
     const top = [];
     for (const { memberId, given } of standing.top) {
@@ -510,7 +510,7 @@ async function storeReply(ctx: QueryCtx, workspace: Doc<"workspaces">, member: D
   }
   const { balance } = coins;
   if (!player) return { response_type: "ephemeral", text: `The Store opens at level ${SHOP_LEVEL}.` };
-  const today = dayKeyFor(Date.now(), workspace.timezone);
+  const today = dayKeyFor(workspaceNow(workspace), workspace.timezone);
   const items = (await shopItems(ctx, { workspace, member, player, today }, today.slice(0, 7), balance)).map(
     (item) => `${escapeMrkdwn(item.name)} · ${formatCoins(item.price)}${item.blocked ? `  _${escapeMrkdwn(item.blocked)}_` : ""}`,
   );
@@ -602,7 +602,7 @@ async function levelReply(ctx: QueryCtx, workspace: Doc<"workspaces">, member: D
   if (!gameShownTo(workspace, member)) {
     return { response_type: "ephemeral", text: "You've hidden the game. Show it again on your Me page to see your level." };
   }
-  const game = await gameView(ctx, workspace, member, Date.now());
+  const game = await gameView(ctx, workspace, member, workspaceNow(workspace));
   if (!game) {
     return { response_type: "ephemeral", text: "You don't have a level yet. Give your first kudos with a few words on why to start one." };
   }
@@ -633,7 +633,7 @@ export const slashCommand = internalMutation({
     const e = `:${workspace.emojiName}:`;
     const sub = text.trim().toLowerCase();
     if (sub === "top" || sub === "leaderboard") {
-      const { top } = await weekStanding(ctx, workspace, Date.now(), null, 10);
+      const { top } = await weekStanding(ctx, workspace, workspaceNow(workspace), null, 10);
       const lines = [];
       for (const [i, { memberId, given }] of top.entries()) {
         const m = await ctx.db.get(memberId);
@@ -650,7 +650,7 @@ export const slashCommand = internalMutation({
     }
     if (sub === "" || sub === "me" || sub === "stats" || sub === "left") {
       const member = await ensureMember(ctx, workspace, slackUserId);
-      const { notificationId, remaining, gainIds } = await allowanceCheck(ctx, workspace, member, Date.now());
+      const { notificationId, remaining, gainIds } = await allowanceCheck(ctx, workspace, member, workspaceNow(workspace));
       // The slash command response *is* the delivery; a message it discovered is a DM of its own.
       await ctx.db.patch(notificationId, { delivery: "sent" });
       if (gainIds.length > 0) await ctx.scheduler.runAfter(0, internal.slack.deliverNotifications, { workspaceId: workspace._id, ids: gainIds });
@@ -681,7 +681,7 @@ export const slashCommand = internalMutation({
     if (sub === "quests" || sub === "quest") {
       if (!quests) return { response_type: "ephemeral", text: "Weekly quests aren't on in this workspace." };
       const member = await ensureMember(ctx, workspace, slackUserId);
-      const board = await questBoard(ctx, workspace, member, dayKeyFor(Date.now(), workspace.timezone));
+      const board = await questBoard(ctx, workspace, member, dayKeyFor(workspaceNow(workspace), workspace.timezone));
       if (!board.enabled && board.hidden) {
         return { response_type: "ephemeral", text: "Quests are part of the game, which you've hidden. Show it again on your Me page to see them." };
       }
@@ -911,7 +911,7 @@ export const storeInteraction = internalMutation({
     if (!redemption || redemption.workspaceId !== workspace._id) return "Request not found.";
     try {
       // Every check runs before the first write, so a refusal leaves nothing behind.
-      await transitionRedemption(ctx, { workspace, redemption, actor: member, action: args.action, now: Date.now() });
+      await transitionRedemption(ctx, { workspace, redemption, actor: member, action: args.action, now: workspaceNow(workspace) });
       return null;
     } catch (error) {
       if (error instanceof ConvexError && typeof error.data === "string") return error.data;

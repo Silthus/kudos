@@ -10,7 +10,7 @@ import { kudosEmojiReader } from "./cosmetics";
 import { attemptKudos, type AttemptInput, findAttempt, reattemptKudos, recordReaction } from "./attempts";
 import { reactionFor } from "./lib/guidance";
 import { attemptOutcomeValidator, questProgressValidator } from "./schema";
-import { addDays, dayKeyFor, daysBetween, startOfDayUtc, weekdayOfKey, zonedParts } from "./lib/time";
+import { addDays, dayKeyFor, daysBetween, startOfDayUtc, weekdayOfKey, zonedParts, workspaceNow } from "./lib/time";
 import { demoActivity } from "./lib/demoCalendar";
 import { demoBonusDays, demoLaunchDay, demoSeedStart } from "./lib/demoGame";
 import { DEMO_ADJUSTMENTS, DEMO_REDEMPTIONS, DEMO_REWARDS, type DemoRedemption, LIVE_FULFIL_NOTES } from "./lib/demoStore";
@@ -83,7 +83,7 @@ async function launchDemoGame(ctx: MutationCtx, workspace: Doc<"workspaces">, no
   }
 }
 
-const PEOPLE: { id: string; name: string; realName: string; title: string; generosity: number }[] = [
+export const PEOPLE: { id: string; name: string; realName: string; title: string; generosity: number }[] = [
   { id: DEMO_YOU, name: "Alex Rivera", realName: "Alex Rivera", title: "Engineering Manager", generosity: 0.75 },
   { id: "UDEMOPRIYA", name: "Priya Raman", realName: "Priya Raman", title: "Staff Engineer", generosity: 0.8 },
   { id: "UDEMOJONAS", name: "Jonas Weber", realName: "Jonas Weber", title: "Product Designer", generosity: 0.7 },
@@ -186,7 +186,7 @@ export const ensureDemoUser = internalMutation({
           totalMaxedDays: 0,
         });
       }
-      await launchDemoGame(ctx, workspace, Date.now());
+      await launchDemoGame(ctx, workspace, workspaceNow(workspace));
       await ctx.scheduler.runAfter(0, internal.demo.seedHistory, { workspaceId: id, ...seedWindow(workspace.timezone) });
     }
     const me = await ctx.db
@@ -231,7 +231,7 @@ export const seedHistory = internalMutation({
       discoveryHits.set(id, byCat);
     };
 
-    const now = Date.now();
+    const now = workspaceNow(workspace);
     const today = dayKeyFor(now, workspace.timezone);
     // This week's quests are left for visitors to complete in the playground: Alex's kudos this week
     // come without a Note, so they count for nothing (the log shows every week before it).
@@ -408,7 +408,7 @@ export const seedGarden = internalMutation({
     const alex = await findMember(ctx, workspace, DEMO_YOU);
     const player = alex && (await playerOf(ctx, alex._id));
     // A visitor's kudos during the reset makes Alex a player too: only the replay writes the days before today.
-    const today = dayKeyFor(Date.now(), workspace.timezone);
+    const today = dayKeyFor(workspaceNow(workspace), workspace.timezone);
     const replayed =
       alex && (await ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", alex._id).lt("dayKey", today)).first());
     if (!alex || !player || !replayed) {
@@ -435,7 +435,7 @@ const DEMO_NEIGHBOURS = 10;
  * Store story is told, so the plants only spend the Hog coins the story left.
  */
 async function plantNeighbours(ctx: MutationCtx, workspace: Doc<"workspaces">, alex: Doc<"members">, resetAt: number | undefined) {
-  const since = Date.now() - 90 * DAY_MS;
+  const since = workspaceNow(workspace) - 90 * DAY_MS;
   const given = await ctx.db.query("kudos").withIndex("by_giver_at", (q) => q.eq("giverId", alex._id).gte("at", since)).take(2000);
   const received = await ctx.db.query("kudos").withIndex("by_receiver_at", (q) => q.eq("receiverId", alex._id).gte("at", since)).take(2000);
   const exchanged = new Map<Id<"members">, number>();
@@ -478,7 +478,7 @@ export const seedNeighbourGarden = internalMutation({
     if (!player || player.level < GARDEN_LEVEL) return null;
     if (await ctx.db.query("plants").withIndex("by_owner_memory", (q) => q.eq("ownerId", member._id)).first()) return null;
 
-    const now = Date.now();
+    const now = workspaceNow(workspace);
     const today = dayKeyFor(now, workspace.timezone);
     const since = now - 90 * DAY_MS;
     const given = await ctx.db.query("kudos").withIndex("by_giver_at", (q) => q.eq("giverId", member._id).gte("at", since)).take(1500);
@@ -524,7 +524,7 @@ export const seedNeighbourGarden = internalMutation({
 });
 
 async function growAlexGame(ctx: MutationCtx, workspace: Doc<"workspaces">, alex: Doc<"members">, player: Doc<"players">) {
-  const now = Date.now();
+  const now = workspaceNow(workspace);
   const { timezone } = workspace;
   const today = dayKeyFor(now, timezone);
 
@@ -655,7 +655,7 @@ export const seedStore = internalMutation({
       await ctx.db.patch(lena._id, { userId });
     }
 
-    const now = Date.now();
+    const now = workspaceNow(workspace);
     const { timezone } = workspace;
     // The story spans the game's time: Hog coins only exist from its launch up to today.
     const today = dayKeyFor(now, timezone);
@@ -755,7 +755,7 @@ export const storeTeammateDecision = internalMutation({
     const lena = await findMember(ctx, workspace, DEMO_LENA);
     if (!lena?.isAdmin || lena.deactivated || lena._id === redemption.memberId) return null;
     const note = action === "fulfill" ? (LIVE_FULFIL_NOTES[redemption.rewardName] ?? "Enjoy!") : undefined;
-    await transitionRedemption(ctx, { workspace, redemption, actor: lena, action, note, now: Date.now() });
+    await transitionRedemption(ctx, { workspace, redemption, actor: lena, action, note, now: workspaceNow(workspace) });
     if (action === "approve") {
       await ctx.scheduler.runAfter(4_000 + Math.random() * 4_000, internal.demo.storeTeammateDecision, { redemptionId, action: "fulfill" });
     }
@@ -931,7 +931,7 @@ export const simulateMessage = mutation({
   handler: async (ctx, { text, channelName }) => {
     const { workspace, member } = await requireDemoViewer(ctx);
     if (text.length > 1000 || channelName.length > 40) throw new ConvexError("Message is too long.");
-    const now = Date.now();
+    const now = workspaceNow(workspace);
     const messageTs = uniqueTs(now); // every simulated message is its own attempt
     const input = await playgroundAttempt(ctx, workspace, member, { text, channelName, messageTs, now });
     if (input.amountEach === 0) return { status: "no_kudos", messages: [], attempt: null }; // e.g. a variant you don't own
@@ -958,7 +958,7 @@ export const simulateEdit = mutation({
   handler: async (ctx, { messageTs, previousText, text, channelName }) => {
     const { workspace, member } = await requireDemoViewer(ctx);
     if (text.length > 1000 || previousText.length > 1000 || channelName.length > 40) throw new ConvexError("Message is too long.");
-    const now = Date.now();
+    const now = workspaceNow(workspace);
     const input = await playgroundAttempt(ctx, workspace, member, { text, channelName, messageTs, now });
     const reattempt = await reattemptKudos(ctx, input, { ts: uniqueTs(now), text, previousText }); // every edit is new
     if (!reattempt) return { status: "no_change", messages: [], attempt: null };
@@ -1037,7 +1037,7 @@ export const simulateReaction = mutation({
     if (!author || author.isBot) throw new ConvexError("You can only react to messages from demo teammates.");
     if (!workspace.reactionsEnabled) return { status: "reactions_disabled", messages: [] };
     const channelId = "C_DEMO_GENERAL";
-    const messageTs = `demo-${messageKey.slice(0, 40)}-${dayKeyFor(Date.now(), workspace.timezone)}`;
+    const messageTs = `demo-${messageKey.slice(0, 40)}-${dayKeyFor(workspaceNow(workspace), workspace.timezone)}`;
     const onMessage = await ctx.db
       .query("kudos")
       .withIndex("by_message", (q) => q.eq("workspaceId", workspace._id).eq("channelId", channelId).eq("messageTs", messageTs))
@@ -1053,7 +1053,7 @@ export const simulateReaction = mutation({
       messageTs,
       text: `Reacted with :${workspace.emojiName}: to “${messageText.slice(0, 160)}”`,
       source: "playground",
-      now: Date.now(),
+      now: workspaceNow(workspace),
     });
     return { status: result.status, messages: await describeNotifications(ctx, member._id, result.notificationIds) };
   },
@@ -1064,7 +1064,7 @@ export const simulateAllowanceCheck = mutation({
   returns: playgroundResult,
   handler: async (ctx) => {
     const { workspace, member } = await requireDemoViewer(ctx);
-    const { notificationId, gainIds } = await allowanceCheck(ctx, workspace, member, Date.now());
+    const { notificationId, gainIds } = await allowanceCheck(ctx, workspace, member, workspaceNow(workspace));
     return { status: "ok", messages: await describeNotifications(ctx, member._id, [notificationId, ...gainIds]) };
   },
 });
@@ -1075,7 +1075,7 @@ export const refillAllowance = mutation({
   returns: v.null(),
   handler: async (ctx) => {
     const { workspace, member } = await requireDemoViewer(ctx);
-    const todayStart = startOfDayUtc(dayKeyFor(Date.now(), workspace.timezone), workspace.timezone);
+    const todayStart = startOfDayUtc(dayKeyFor(workspaceNow(workspace), workspace.timezone), workspace.timezone);
     const given = await ctx.db
       .query("kudos")
       .withIndex("by_giver_at", (q) => q.eq("giverId", member._id).gte("at", todayStart))
@@ -1128,7 +1128,7 @@ export const teammateThanks = internalMutation({
     const from = await ctx.db.get(args.fromMemberId);
     const to = await ctx.db.get(args.toMemberId);
     if (!workspace?.isDemo || !from || !to) return null;
-    const now = Date.now();
+    const now = workspaceNow(workspace);
     const note = "right back at you, thank you!";
     await giveKudos(ctx, {
       workspace,
@@ -1170,6 +1170,7 @@ const DEMO_TABLES = [
   "sprees",
   "spreeJoins",
   "superKudos",
+  "simulatorRuns",
   "notifications",
 ] as const;
 
@@ -1217,6 +1218,8 @@ async function demoRows(ctx: MutationCtx, workspaceId: Id<"workspaces">, table: 
       return await ctx.db.query("spreeJoins").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "superKudos":
       return await ctx.db.query("superKudos").withIndex("by_workspace_at", (q) => q.eq("workspaceId", workspaceId)).take(n);
+    case "simulatorRuns":
+      return await ctx.db.query("simulatorRuns").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "notifications":
       return [];
   }
@@ -1228,6 +1231,38 @@ const RESET_LOCK_MS = 15 * 60 * 1000;
  * transaction; a step that wiped ~3,800 rows came close enough to warn, so steps stay far below.
  */
 const WIPE_PER_STEP = 1500;
+
+/**
+ * One step of wiping a demo workspace's activity (the shared demo's reset; a simulator's wipe,
+ * simulator.ts): deletes up to WIPE_PER_STEP of its rows, workspace tables first, then each member's
+ * own rows, and returns how many it deleted. Zero: nothing is left but the members.
+ */
+export async function wipeActivity(ctx: MutationCtx, workspaceId: Id<"workspaces">, members: Doc<"members">[]): Promise<number> {
+  let deleted = 0;
+  const left = () => WIPE_PER_STEP - deleted;
+  for (const table of DEMO_TABLES) {
+    if (left() <= 0) break;
+    const rows = await demoRows(ctx, workspaceId, table, left());
+    for (const r of rows) await ctx.db.delete(r._id);
+    deleted += rows.length;
+  }
+  const memberRows = [
+    (m: Doc<"members">, n: number) => ctx.db.query("notifications").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(n),
+    (m: Doc<"members">, n: number) => ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", m._id)).take(n),
+    (m: Doc<"members">, n: number) => ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(n),
+    (m: Doc<"members">, n: number) => ctx.db.query("skillChanges").withIndex("by_member_at", (q) => q.eq("memberId", m._id)).take(n),
+    (m: Doc<"members">, n: number) => ctx.db.query("plants").withIndex("by_owner_memory", (q) => q.eq("ownerId", m._id)).take(n),
+  ];
+  for (const m of members) {
+    for (const rowsOf of memberRows) {
+      if (left() <= 0) break;
+      const rows = await rowsOf(m, left());
+      for (const row of rows) await ctx.db.delete(row._id);
+      deleted += rows.length;
+    }
+  }
+  return deleted;
+}
 
 /** Starts a reset unless one is already running (visitors and the nightly cron can overlap). */
 export const startDemoReset = internalMutation({
@@ -1256,40 +1291,18 @@ export const resetDemoWorkspace = internalMutation({
     if (workspace.rollupsBackfilledAt !== undefined || workspace.successBackfilledAt !== undefined) {
       await ctx.db.patch(workspace._id, { rollupsBackfilledAt: undefined, successBackfilledAt: undefined });
     }
-    let deleted = 0;
-    const left = () => WIPE_PER_STEP - deleted;
-    for (const table of DEMO_TABLES) {
-      if (left() <= 0) break;
-      const rows = await demoRows(ctx, workspace._id, table, left());
-      for (const r of rows) await ctx.db.delete(r._id);
-      deleted += rows.length;
-    }
     const members = await ctx.db
       .query("members")
       .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id))
       .take(100);
-    const memberRows = [
-      (m: Doc<"members">, n: number) => ctx.db.query("notifications").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(n),
-      (m: Doc<"members">, n: number) => ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", m._id)).take(n),
-      (m: Doc<"members">, n: number) => ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(n),
-      (m: Doc<"members">, n: number) => ctx.db.query("skillChanges").withIndex("by_member_at", (q) => q.eq("memberId", m._id)).take(n),
-      (m: Doc<"members">, n: number) => ctx.db.query("plants").withIndex("by_owner_memory", (q) => q.eq("ownerId", m._id)).take(n),
-    ];
-    for (const m of members) {
-      for (const rowsOf of memberRows) {
-        if (left() <= 0) break;
-        const rows = await rowsOf(m, left());
-        for (const row of rows) await ctx.db.delete(row._id);
-        deleted += rows.length;
-      }
-    }
+    const deleted = await wipeActivity(ctx, workspace._id, members);
     if (deleted > 0) {
       await ctx.scheduler.runAfter(0, internal.demo.resetDemoWorkspace, {});
       return null;
     }
     // Quests come back on with no pause: a pause would keep the seeded kudos out of every board.
     await ctx.db.patch(workspace._id, { ...DEMO_SETTINGS, questsPauses: undefined, gamePauses: undefined, successBaselineBefore: undefined });
-    await launchDemoGame(ctx, (await ctx.db.get(workspace._id))!, Date.now());
+    await launchDemoGame(ctx, (await ctx.db.get(workspace._id))!, workspaceNow(workspace));
     for (const m of members) {
       await ctx.db.patch(m._id, {
         totalGiven: 0,
@@ -1322,7 +1335,8 @@ export const resetDemo = mutation({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
-    const { member } = await requireDemoViewer(ctx);
+    const { workspace, member } = await requireDemoViewer(ctx);
+    if (workspace.simulator) throw new ConvexError("This is your simulator: reset it from the simulator instead.");
     if (!member.isAdmin) throw new ConvexError("Only admins can reset the demo.");
     await ctx.scheduler.runAfter(0, internal.demo.startDemoReset, {});
     return null;
@@ -1451,7 +1465,7 @@ export const openSpree = mutation({
   handler: async (ctx) => {
     const { workspace, member } = await requireDemoViewer(ctx);
     if (!spreesOn(workspace)) return null;
-    const now = Date.now();
+    const now = workspaceNow(workspace);
     const latest = await latestSpree(ctx, workspace._id);
     if (latest) {
       const mine = await joinOf(ctx, latest._id, member._id);
@@ -1530,7 +1544,7 @@ export const simulateSpreeJoin = mutation({
   returns: playgroundResult.extend({ text: v.string(), thread: v.union(v.string(), v.null()) }),
   handler: async (ctx, { attemptId }) => {
     const { workspace, member } = await requireDemoViewer(ctx);
-    const res = await joinSpree(ctx, workspace, member, attemptId, Date.now(), "web");
+    const res = await joinSpree(ctx, workspace, member, attemptId, workspaceNow(workspace), "web");
     return {
       status: res.status,
       text: res.text,

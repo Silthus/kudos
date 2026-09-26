@@ -12,7 +12,7 @@ import { assertNotDemo, canSeeReceived, publicSettings, requireAdmin } from "./l
 import { siteUrl } from "./lib/slack";
 import { coinBalance } from "./lib/coins";
 import { receivedVisibilityValidator } from "./schema";
-import { dayKeyFor } from "./lib/time";
+import { dayKeyFor, workspaceNow } from "./lib/time";
 
 /** Workspace settings plus Slack connection health for the admin page. */
 export const overview = query({
@@ -87,7 +87,7 @@ export const updateSettings = mutation({
     }
     if (!validTimezone(args.timezone)) throw new ConvexError("Unknown timezone.");
     // Scheduled bonus days start at the start of their day in the workspace's timezone.
-    if (args.timezone !== workspace.timezone) await retimeBoosts(ctx, workspace, args.timezone, Date.now());
+    if (args.timezone !== workspace.timezone) await retimeBoosts(ctx, workspace, args.timezone, workspaceNow(workspace));
     const glyph = args.emojiGlyph.trim();
     if (glyph.length === 0 || glyph.length > 16) throw new ConvexError("Pick an emoji to show in the web app.");
     const unitSingular = args.unitSingular.trim();
@@ -101,14 +101,14 @@ export const updateSettings = mutation({
       emojiGlyph: glyph,
       unitSingular,
       unitPlural,
-      ...(questsEnabled === undefined ? {} : switchQuests(workspace, questsEnabled, Date.now())),
-      ...(gameEnabled === undefined ? {} : switchGame(workspace, gameEnabled, Date.now())),
+      ...(questsEnabled === undefined ? {} : switchQuests(workspace, questsEnabled, workspaceNow(workspace))),
+      ...(gameEnabled === undefined ? {} : switchGame(workspace, gameEnabled, workspaceNow(workspace))),
     });
     // Switched on: play the history through the rules (paused stretches excluded), in the background.
     if (gameEnabled && !gameOn(workspace)) {
       await ctx.scheduler.runAfter(0, internal.game.rebuildWorkspace, { workspaceId: workspace._id });
       // The first launch pins the success metrics' baseline to the months before it.
-      await anchorSuccessBaseline(ctx, workspace, dayKeyFor(Date.now(), args.timezone));
+      await anchorSuccessBaseline(ctx, workspace, dayKeyFor(workspaceNow(workspace), args.timezone));
     }
     return null;
   },

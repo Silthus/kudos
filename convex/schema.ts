@@ -172,6 +172,19 @@ export const settingsFields = {
   spreesEnabled: v.optional(v.boolean()), // kudos sprees (#94), with or without the game; undefined = off
 };
 
+/** What a simulator fast-forward did (simulator.ts), summed over the days it played. */
+export const simulatorSummaryValidator = v.object({
+  daysPlayed: v.number(),
+  kudosGiven: v.number(),
+  thoughtfulKudos: v.number(), // qualifying kudos: a reason, not a thank-back
+  questsCompleted: v.object({ weekly: v.number(), daily: v.number(), sweeps: v.number() }),
+  coinsEarned: v.number(), // from kudos, quests, fruit and level-ups
+  fruitPicked: v.number(),
+  plantsPlanted: v.number(),
+  levelsGained: v.number(),
+  newConnections: v.number(),
+});
+
 export default defineSchema({
   ...authTables,
 
@@ -222,8 +235,33 @@ export default defineSchema({
     successBaselineBefore: v.optional(v.string()),
     // Where bonus days and company-wide boosters are announced (#55 §G14; boosts.ts). Unset: only the in-app banner.
     announceChannel: v.optional(v.object({ id: v.string(), name: v.string() })),
+    // The workspace clock (lib/time.ts `workspaceNow`): how far this workspace's "now" is from the wall
+    // clock. Only simulators have one (simulator.ts advances it); undefined = 0, the wall clock.
+    clockOffsetMs: v.optional(v.number()),
+    // A visitor's private simulator (#143, simulator.ts): the demo sign-in session it belongs to, when it
+    // started (wall clock; the cron wipes it 7 days later), the level it started at and whether the
+    // visitor is looking at it (their other workspace is the shared demo). Its visitor member has no
+    // `userId`: the shared demo user would otherwise list every visitor's simulator.
+    simulator: v.optional(
+      v.object({
+        sessionId: v.string(), // "" once detached (reset, stopped, expired): it is being wiped
+        userId: v.id("users"),
+        memberId: v.id("members"), // the visitor
+        startedAt: v.number(),
+        startLevel: v.number(),
+        shown: v.boolean(),
+        // The simulated day it started on (workspace-local): `state.dayIndex` counts from it.
+        startDay: v.string(),
+        day: v.string(), // the simulated day the clock was last moved to (start, advance, a fast-forward day)
+      }),
+    ),
+    // Detached simulators (reset, stopped, expired) are wiped in steps; this marks one on its way out.
+    wipingSince: v.optional(v.number()),
     ...settingsFields,
-  }).index("by_team", ["slackTeamId"]),
+  })
+    .index("by_team", ["slackTeamId"])
+    .index("by_simulator_session", ["simulator.sessionId"])
+    .index("by_simulator_startedAt", ["simulator.startedAt"]),
 
   // Secrets live apart from `workspaces` so no public query can leak them by accident.
   slackInstallations: defineTable({
@@ -531,7 +569,9 @@ export default defineSchema({
     // quest: a weekly or daily quest or a clean sweep, paid from level 5 (quests.ts). Its `batchId`
     // is `quest:<completion>` or `sweep:<member>:<week>`, so a kudos revoke never matches it directly.
     // spree: what one tier of a kudos spree paid one member (#94), keyed `spree:<spreeId>`; rebuilds keep it
-    kind: v.union(v.literal("give"), v.literal("receive"), v.literal("harvest"), v.literal("quest"), v.literal("spree")),
+    // seed: a simulator visitor joining at a level (#143, simulator.ts): that level's XP floor, keyed
+    // `seed:<memberId>`. Not derived from kudos, so rebuilds keep it; never a kudos, never earnings.
+    kind: v.union(v.literal("give"), v.literal("receive"), v.literal("harvest"), v.literal("quest"), v.literal("spree"), v.literal("seed")),
     batchId: v.string(),
     dayKey: v.string(), // the kudos' workspace day: daily caps and same-day decay
     at: v.number(),
@@ -779,6 +819,29 @@ export default defineSchema({
     .index("by_member_day", ["memberId", "dayKey"])
     .index("by_member_month", ["memberId", "month"])
     .index("by_workspace", ["workspaceId"]),
+
+  // A simulator's fast-forward (#143, simulator.ts): a bot plays the visitor day by day, one scheduled
+  // mutation per simulated day, until the target level. The visitor's client subscribes to it; `abort`
+  // stops it between days. The summary grows with every day played.
+  simulatorRuns: defineTable({
+    workspaceId: v.id("workspaces"),
+    memberId: v.id("members"),
+    status: v.union(v.literal("running"), v.literal("done"), v.literal("aborted"), v.literal("stopped")),
+    fromLevel: v.number(),
+    toLevel: v.number(),
+    startedAt: v.number(), // wall clock
+    // When its last day was played (wall clock): a running run that stops beating (a day that failed)
+    // is stopped by the next control that finds it, so it can never block the simulator.
+    heartbeatAt: v.number(),
+    finishedAt: v.optional(v.number()),
+    stopReason: v.optional(v.string()), // stopped: why the bot gave up (e.g. the day cap)
+    summary: simulatorSummaryValidator,
+    // Simulated days each level took, in order: the level reached and the days played since the last one.
+    levelDays: v.array(v.object({ level: v.number(), days: v.number() })),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_member", ["memberId"])
+    .index("by_status", ["status"]),
 
   slackEvents: defineTable({
     eventId: v.string(),

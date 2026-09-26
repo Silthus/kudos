@@ -179,6 +179,13 @@ const PHASES: Phase[] = [
     rows: (ctx, m, n) => ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", m._id)).take(n),
     clear: remove,
   },
+  // A simulator's fast-forwards (#143) are its visitor's.
+  {
+    name: "simulatorRuns",
+    batch: 500,
+    rows: (ctx, m, n) => ctx.db.query("simulatorRuns").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(n),
+    clear: remove,
+  },
   {
     name: "skillChanges",
     batch: 500,

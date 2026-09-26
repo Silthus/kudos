@@ -5,7 +5,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { assertNotDemo, getViewer, requireAdmin } from "./lib/access";
 import { slackApi } from "./lib/slack";
 import { announcementText, type BoostKind, type BoostSource, cancellationText, MAX_SCHEDULED, SCHEDULE_AHEAD_DAYS } from "./lib/boosts";
-import { addDays, dayKeyFor, parseToday, startOfDayUtc } from "./lib/time";
+import { addDays, dayKeyFor, parseToday, startOfDayUtc, workspaceNow } from "./lib/time";
 import { boostKindValidator, boostSourceValidator } from "./schema";
 
 /**
@@ -67,7 +67,7 @@ export async function startBonusDay(
   workspace: Doc<"workspaces">,
   day: string,
   source: BoostSource,
-  { by, kind = "double", purchaseId, now = Date.now() }: { by?: Id<"members">; kind?: BoostKind; purchaseId?: Id<"itemPurchases">; now?: number } = {},
+  { by, kind = "double", purchaseId, now = workspaceNow(workspace) }: { by?: Id<"members">; kind?: BoostKind; purchaseId?: Id<"itemPurchases">; now?: number } = {},
 ): Promise<Id<"boosts"> | null> {
   const today = dayKeyFor(now, workspace.timezone);
   if (source === "booster" ? day !== today : day <= today) return null;
@@ -256,7 +256,7 @@ export const schedule = mutation({
     const { workspace, member } = await requireAdmin(ctx);
     if (workspace.gameEnabled !== true) throw new ConvexError("Bonus days double XP and Hog coins, so they need the game on (Settings).");
     const day = parseToday(args.day);
-    const now = Date.now();
+    const now = workspaceNow(workspace);
     const today = dayKeyFor(now, workspace.timezone);
     if (day <= today) throw new ConvexError("Bonus days are announced in advance: pick tomorrow or a later day.");
     if (day > addDays(today, SCHEDULE_AHEAD_DAYS)) throw new ConvexError(`Pick a day within the next ${SCHEDULE_AHEAD_DAYS} days.`);
@@ -282,7 +282,7 @@ export const cancel = mutation({
   handler: async (ctx, { boostId }) => {
     const { workspace, boost } = await adminBoost(ctx, boostId);
     // Kudos given during a boost earned double: it's history now, and a rebuild must replay it.
-    const now = Date.now();
+    const now = workspaceNow(workspace);
     if (boost.from <= now || boost.dayKey <= dayKeyFor(now, workspace.timezone)) throw new ConvexError("That boost has started, so it runs until midnight.");
     if (boost.source !== "schedule") throw new ConvexError("Only scheduled bonus days can be called off.");
     await ctx.db.delete(boostId);
@@ -300,7 +300,7 @@ export const repost = mutation({
   returns: v.null(),
   handler: async (ctx, { boostId }) => {
     const { workspace, boost } = await adminBoost(ctx, boostId);
-    if (boost.dayKey < dayKeyFor(Date.now(), workspace.timezone)) throw new ConvexError("That boost is over.");
+    if (boost.dayKey < dayKeyFor(workspaceNow(workspace), workspace.timezone)) throw new ConvexError("That boost is over.");
     const status = boost.announcement?.status;
     if (status === "sent" || status === "pending") throw new ConvexError("It's announced already.");
     if (workspace.isDemo || !workspace.announceChannel) throw new ConvexError("Pick an announcement channel first.");

@@ -286,7 +286,8 @@ export async function joinSpree(ctx: MutationCtx, workspace: Workspace, member: 
       deadline,
       tiers: [],
     });
-    await ctx.scheduler.runAt(deadline, internal.sprees.lapse, { spreeId: id, deadline });
+    // `deadline` is on the workspace clock (lib/time.ts workspaceNow): wait for it from `now`.
+    await ctx.scheduler.runAfter(Math.max(0, deadline - now), internal.sprees.lapse, { spreeId: id, deadline });
     spree = (await ctx.db.get(id))!;
   }
 
@@ -355,7 +356,7 @@ async function reachTier(ctx: MutationCtx, workspace: Workspace, spree: Doc<"spr
     tiers: [...spree.tiers, { tier, at: now, joiners: spree.joiners }],
     ...(final ? { status: "complete" as const } : { deadline }),
   });
-  if (!final) await ctx.scheduler.runAt(deadline, internal.sprees.lapse, { spreeId: spree._id, deadline });
+  if (!final) await ctx.scheduler.runAfter(Math.max(0, deadline - now), internal.sprees.lapse, { spreeId: spree._id, deadline });
 
   const gains = new Gains(ctx, workspace);
   const slackWho = await names(ctx, spree.giverId, receivers.map((r) => r._id), "slack");
@@ -506,6 +507,30 @@ export async function withdrawSpreeJoin(ctx: MutationCtx, workspace: Workspace, 
   await ctx.db.patch(join._id, { status: "withdrawn" });
   await ctx.db.patch(spree._id, { joiners: spree.joiners - 1 });
   return leftText(await names(ctx, spree.giverId, spree.receiverIds, audience));
+}
+
+/** The longest a spree stays open: its first window and one more after each of its tiers. */
+const LONGEST_SPREE_MS = WINDOW_MS * (TIERS.length + 1);
+
+/**
+ * Closes a workspace's sprees whose window ran out by `now`, as their scheduled `lapse` would. A
+ * simulator's clock jumps ahead of those (they wait on the wall clock): `advance` calls this with
+ * the clock before the jump (`since`), so every spree that could still be open then is looked at.
+ * Returns how many it closed.
+ */
+export async function lapseDue(ctx: MutationCtx, workspace: Workspace, since: number, now: number): Promise<number> {
+  const recent = await ctx.db
+    .query("sprees")
+    .withIndex("by_workspace_kudosAt", (q) => q.eq("workspaceId", workspace._id).gt("kudosAt", since - LONGEST_SPREE_MS))
+    .take(200);
+  let closed = 0;
+  for (const spree of recent) {
+    if (spree.status === "open" && now >= spree.deadline) {
+      await closeSpree(ctx, spree);
+      closed++;
+    }
+  }
+  return closed;
 }
 
 /** A spree's window ran out (scheduled at its deadline; a later tier moved the deadline: no-op). */

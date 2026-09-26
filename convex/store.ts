@@ -16,7 +16,7 @@ import {
   type RedemptionStatus,
   validateAdjustment,
 } from "./lib/store";
-import { dayKeyFor, parseToday } from "./lib/time";
+import { dayKeyFor, parseToday, workspaceNow } from "./lib/time";
 import { GAME_AREAS } from "./lib/xp";
 import { playerOf } from "./game";
 import { type Buyer, ITEM_EFFECTS, itemsBought } from "./items";
@@ -560,7 +560,7 @@ export const buyItem = mutation({
   returns: v.object({ balance: v.number() }),
   handler: async (ctx, { item, expectedPrice }) => {
     const { workspace, member } = await requireViewer(ctx);
-    return await purchaseItem(ctx, { workspace, member, item, expectedPrice, now: Date.now() });
+    return await purchaseItem(ctx, { workspace, member, item, expectedPrice, now: workspaceNow(workspace) });
   },
 });
 
@@ -702,7 +702,7 @@ export const redeem = mutation({
   returns: v.object({ redemptionId: v.id("redemptions"), balance: v.number() }),
   handler: async (ctx, { rewardId, expectedCost, answer }) => {
     const { workspace, member } = await requireViewer(ctx);
-    const result = await requestRedemption(ctx, { workspace, member, rewardId, expectedCost, answer, now: Date.now() });
+    const result = await requestRedemption(ctx, { workspace, member, rewardId, expectedCost, answer, now: workspaceNow(workspace) });
     // The demo has no Slack and nobody else at the desk: teammate admin Lena decides, live.
     if (workspace.isDemo) {
       await ctx.scheduler.runAfter(3_000 + Math.random() * 3_000, internal.demo.storeTeammateDecision, { redemptionId: result.redemptionId, action: "approve" });
@@ -720,7 +720,7 @@ export const cancel = mutation({
     const redemption = await redemptionInWorkspace(ctx, workspace, redemptionId);
     // Someone else's request is "not found", so ids can't be probed.
     if (redemption.memberId !== member._id) throw new ConvexError("Request not found.");
-    await transitionRedemption(ctx, { workspace, redemption, actor: member, action: "cancel", now: Date.now() });
+    await transitionRedemption(ctx, { workspace, redemption, actor: member, action: "cancel", now: workspaceNow(workspace) });
     return null;
   },
 });

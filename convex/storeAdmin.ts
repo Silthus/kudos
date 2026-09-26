@@ -4,7 +4,7 @@ import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/s
 import type { Doc, Id } from "./_generated/dataModel";
 import { assertNotDemo, requireAdmin } from "./lib/access";
 import { median, workspaceMembers } from "./lib/stats";
-import { DAY_MS, dayKeyFor } from "./lib/time";
+import { DAY_MS, dayKeyFor, workspaceNow } from "./lib/time";
 import { coinBalance } from "./lib/coins";
 import {
   assertValidStock,
@@ -157,7 +157,7 @@ export const createReward = mutation({
       unit: "coins",
       status: "active",
       createdBy: member._id,
-      updatedAt: Date.now(),
+      updatedAt: workspaceNow(workspace),
     });
   },
 });
@@ -183,7 +183,7 @@ export const updateReward = mutation({
     const reward = await rewardInWorkspace(ctx, workspace, rewardId);
     const { stock: _unused, ...fields } = validateRewardInput(args);
     // Saving a price is what prices a reward from the received-kudos Store in Hog coins.
-    const patch: Partial<Doc<"rewards">> = { ...fields, unit: "coins", updatedAt: Date.now() };
+    const patch: Partial<Doc<"rewards">> = { ...fields, unit: "coins", updatedAt: workspaceNow(workspace) };
     if (stock) {
       if (fromStockValue(stock.from) !== reward.stock) {
         throw new ConvexError(`Stock changed while you were editing (now ${reward.stock ?? "unlimited"}). Take another look.`);
@@ -206,7 +206,7 @@ export const setRewardStatus = mutation({
     const reward = await rewardInWorkspace(ctx, workspace, rewardId);
     if (reward.status === status) return null;
     if (status === "active") await assertRoomForActive(ctx, workspace._id);
-    await ctx.db.patch(rewardId, { status, updatedAt: Date.now() });
+    await ctx.db.patch(rewardId, { status, updatedAt: workspaceNow(workspace) });
     return null;
   },
 });
@@ -355,7 +355,7 @@ export const adjustBalance = mutation({
     if (!gameOn(workspace)) throw new ConvexError("Hog coins only exist while the game is on. Switch it on first.");
     const member = await memberInWorkspace(ctx, workspace, memberId);
     if (member._id === me._id) throw new ConvexError("You can't adjust your own balance. Ask another admin.");
-    const { balance } = await grantBalance(ctx, { workspace, member, amount, reason, source: "admin", by: me, now: Date.now() });
+    const { balance } = await grantBalance(ctx, { workspace, member, amount, reason, source: "admin", by: me, now: workspaceNow(workspace) });
     return { balance };
   },
 });
@@ -508,7 +508,7 @@ export const decide = mutation({
   handler: async (ctx, { redemptionId, action, note }) => {
     const { workspace, member } = await requireAdmin(ctx);
     const redemption = await redemptionInWorkspace(ctx, workspace, redemptionId);
-    await transitionRedemption(ctx, { workspace, redemption, actor: member, action, note, now: Date.now() });
+    await transitionRedemption(ctx, { workspace, redemption, actor: member, action, note, now: workspaceNow(workspace) });
     return null;
   },
 });
