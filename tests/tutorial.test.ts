@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 import { DEMO_SETTINGS } from "../convex/lib/settings";
-import { claimAtTree, seedTeam, setupConvex, signInAs, type Team } from "./helpers";
+import { claimAtTree, DEMO_TIMEOUT, seedTeam, setupConvex, signInAs, type Team } from "./helpers";
 
 /**
  * The tutorial (#159, design plan #152 S4): the elder hog's chain of ten first steps. The server
