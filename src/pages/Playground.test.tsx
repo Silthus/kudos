@@ -239,6 +239,7 @@ test("the demo controls stand as small signs: refill your kudos and hand back wh
 
 test("a teammate thanks you thoughtfully (#179): their message lands in #general, the DM with your seed on the stack, and the sign says a seed waits", async () => {
   replies["demo:beThanked"] = {
+    status: "thanked",
     from: { name: "Priya Raman", slackUserId: "UDEMOPRIYA" },
     text: "@Alex 🌮 thanks for reviewing my launch doc so carefully",
     messages: [dm({ to: "Alex Rivera", toMe: true, text: "Alex, Priya Raman sent you a taco.", seeds: "1 seed to plant at the tree" })],
@@ -256,9 +257,19 @@ test("a teammate thanks you thoughtfully (#179): their message lands in #general
   expect(envelopes[0].textContent).toContain("1 seed to plant at the tree");
 });
 
-test("a teammate thanks you: when nobody can, the sign says why", async () => {
-  replies["demo:beThanked"] = null;
+test("a teammate thanks you: the sign mentions a seed only when the DM brings one", async () => {
+  replies["demo:beThanked"] = { status: "thanked", from: { name: "Priya Raman", slackUserId: "UDEMOPRIYA" }, text: "@Alex 🌮 thanks for the review", messages: [dm({ toMe: true })] };
   render();
+  await click("A teammate thanks you");
+  expect(host.querySelector("[data-demo-signs] [role=status]")?.textContent).toBe("Priya thanked you.");
+});
+
+test("a teammate thanks you: three times a day at most, and when nobody can, the sign says why", async () => {
+  replies["demo:beThanked"] = { status: "capped" };
+  render();
+  await click("A teammate thanks you");
+  expect(host.querySelector("[data-demo-signs] [role=status]")?.textContent).toBe("Three teammates thanked you today already. Refill my kudos to start the day over.");
+  replies["demo:beThanked"] = { status: "nobody" };
   await click("A teammate thanks you");
   expect(host.querySelector("[data-demo-signs] [role=status]")?.textContent).toMatch(/^Nobody can thank you right now/);
   expect(host.querySelectorAll("[data-envelope]")).toHaveLength(0);
@@ -272,7 +283,7 @@ test("an admin can also reset the demo from the sandbox, after saying yes", asyn
   expect(calls["demo:resetDemo"]).toHaveBeenCalled();
 });
 
-test("review: with sprees on, refilling your kudos opens the teammate's spree again; with all your kudos it can't be pressed", async () => {
+test("review: with sprees on, refilling your kudos opens the teammate's spree again; with all your kudos it still starts the day over (#179)", async () => {
   sprees = true;
   render();
   expect(calls["demo:openSpree"]).toHaveBeenCalledTimes(1);
@@ -282,7 +293,8 @@ test("review: with sprees on, refilling your kudos opens the teammate's spree ag
   act(() => root?.unmount());
   queries["me:today"] = { remaining: 5, limit: 5, discovered: 12, total: 72 };
   render();
-  expect(button("Refill my kudos")?.disabled).toBe(true);
+  expect(button("Refill my kudos")?.disabled).toBe(false);
+  expect(button("Refill my kudos")?.title).toMatch(/teammates gave you here/);
 });
 
 test("review: joining the teammate's spree from its reaction runs the join and shows the tier's reply in the thread", async () => {

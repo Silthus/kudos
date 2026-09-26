@@ -400,7 +400,6 @@ function Sandbox() {
       </p>
 
       <DemoSigns
-        status={status}
         inSimulator={inSimulator}
         onRefilled={() => viewer.workspace.spreesEnabled && void openSpree({})}
         onThanked={({ from, text, messages }) => {
@@ -672,20 +671,18 @@ function Sandbox() {
   );
 }
 
-type Thanked = NonNullable<FunctionReturnType<typeof api.demo.beThanked>>;
+type Thanked = Extract<FunctionReturnType<typeof api.demo.beThanked>, { status: "thanked" }>;
 
 /**
  * The demo controls, as small wooden signs in the sand: the demo user is shared by every visitor,
- * so anyone can refill today's kudos or hand back what visitors bought, and have a teammate thank
+ * so anyone can start its day over or hand back what visitors bought, and have a teammate thank
  * them thoughtfully, so there's a seed to plant (#179); an admin can reset the demo.
  */
 function DemoSigns({
-  status,
   inSimulator,
   onRefilled,
   onThanked,
 }: {
-  status: { remaining: number; limit: number } | undefined;
   inSimulator: boolean;
   onRefilled: () => void;
   onThanked: (thanked: Thanked) => void;
@@ -707,12 +704,11 @@ function DemoSigns({
       .catch(() => setNote({ text: "That didn't go through. Try again in a moment.", failed: true }))
       .finally(() => setBusy(null));
   };
-  const full = !!status && status.remaining >= status.limit;
   return (
     <div data-demo-signs className="flex flex-wrap items-start gap-x-4 gap-y-3">
       <SignButton
-        disabled={busy !== null || full}
-        title={full ? "You have all of today's kudos." : "The demo user is shared by every visitor: this takes back the kudos given today, so you can give them again."}
+        disabled={busy !== null}
+        title="The demo user is shared by every visitor: this starts its day over. It takes back the kudos given today, so you can give them again, and the ones teammates gave you here, so thanking them isn't a thank-back."
         onClick={() => run("refill", () => refill({}).then(onRefilled))}
       >
         {busy === "refill" ? "Refilling…" : "Refill my kudos"}
@@ -723,9 +719,11 @@ function DemoSigns({
         onClick={() =>
           run("thanks", async () => {
             const thanked = await beThanked({});
-            if (!thanked) return "Nobody can thank you right now: you thanked everyone lately, or their kudos for today are spent.";
+            if (thanked.status === "capped") return "Three teammates thanked you today already. Refill my kudos to start the day over.";
+            if (thanked.status === "nobody") return "Nobody can thank you right now: you thanked everyone lately, or their kudos for today are spent.";
             onThanked(thanked);
-            return `${thanked.from.name.split(" ")[0]} thanked you: a seed waits at the offering stone.`;
+            const who = thanked.from.name.split(" ")[0];
+            return thanked.messages.some((m) => m.seeds) ? `${who} thanked you: a seed waits at the offering stone.` : `${who} thanked you.`;
           })
         }
       >

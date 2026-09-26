@@ -1087,20 +1087,31 @@ export const simulateAllowanceCheck = mutation({
   },
 });
 
-/** Everyone shares the demo user, so anyone can hand back today's playground kudos. */
+/**
+ * Today's playground kudos the visitor gave (`"given"`), or that teammates gave them there
+ * (`"received"`: thank-backs and "A teammate thanks you" alike).
+ */
+async function playgroundToday(ctx: QueryCtx, workspace: Doc<"workspaces">, member: Doc<"members">, side: "given" | "received") {
+  const todayStart = startOfDayUtc(dayKeyFor(workspaceNow(workspace), workspace.timezone), workspace.timezone);
+  const rows = await (side === "given"
+    ? ctx.db.query("kudos").withIndex("by_giver_at", (q) => q.eq("giverId", member._id).gte("at", todayStart))
+    : ctx.db.query("kudos").withIndex("by_receiver_at", (q) => q.eq("receiverId", member._id).gte("at", todayStart))
+  ).take(200);
+  return rows.filter((k) => k.source === "playground");
+}
+
+/**
+ * Everyone shares the demo user, so anyone can start its day over: the playground kudos it gave
+ * today go back, and so do the ones teammates gave it there, which would make its next kudos to
+ * them thank-backs for everyone (and their seeds go with them).
+ */
 export const refillAllowance = mutation({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
     const { workspace, member } = await requireDemoViewer(ctx);
-    const todayStart = startOfDayUtc(dayKeyFor(workspaceNow(workspace), workspace.timezone), workspace.timezone);
-    const given = await ctx.db
-      .query("kudos")
-      .withIndex("by_giver_at", (q) => q.eq("giverId", member._id).gte("at", todayStart))
-      .take(200);
-    for (const row of given.filter((k) => k.source === "playground")) {
-      await revokeKudosRow(ctx, workspace, row);
-    }
+    const rows = [...(await playgroundToday(ctx, workspace, member, "given")), ...(await playgroundToday(ctx, workspace, member, "received"))];
+    for (const row of rows) await revokeKudosRow(ctx, workspace, row);
     return null;
   },
 });
@@ -1178,17 +1189,22 @@ export const teammateThanksBack = internalMutation({
   },
 });
 
+/** "A teammate thanks you" at most this often a day: "Refill my kudos" starts the day over. */
+const THANKS_PER_DAY = 3;
+
 /**
  * The sandbox's "A teammate thanks you" (#179): a teammate thanks the visitor thoughtfully, so the
  * kudos qualifies and sows a seed to plant at the offering stone. The giver is one the visitor hasn't
  * thanked lately (else it's a thank-back) with a kudos left today: of those, the one who thanked the
- * visitor longest ago (or never), then by name. Null when nobody can.
+ * visitor longest ago (or never), then by name. `capped` after THANKS_PER_DAY thoughtful thanks
+ * today (the ones that sowed a seed); `nobody` when no teammate can.
  */
 export const beThanked = mutation({
   args: {},
   returns: v.union(
-    v.null(),
+    v.object({ status: v.union(v.literal("capped"), v.literal("nobody")) }),
     v.object({
+      status: v.literal("thanked"),
       from: v.object({ name: v.string(), slackUserId: v.string() }),
       /** The teammate's message in #general, with the kudos emoji's glyph. */
       text: v.string(),
@@ -1198,6 +1214,15 @@ export const beThanked = mutation({
   ),
   handler: async (ctx) => {
     const { workspace, member } = await requireDemoViewer(ctx);
+    let thoughtful = 0;
+    for (const row of await playgroundToday(ctx, workspace, member, "received")) {
+      const seed = await ctx.db
+        .query("seeds")
+        .withIndex("by_kudos", (q) => q.eq("kudosId", row._id))
+        .first();
+      if (seed) thoughtful++;
+    }
+    if (thoughtful >= THANKS_PER_DAY) return { status: "capped" as const };
     const now = workspaceNow(workspace);
     const members = await ctx.db
       .query("members")
@@ -1217,11 +1242,11 @@ export const beThanked = mutation({
     }
     candidates.sort((a, b) => a.lastAt - b.lastAt || a.m.name.localeCompare(b.m.name));
     const from = candidates[0]?.m;
-    if (!from) return null;
+    if (!from) return { status: "nobody" as const };
     const note = REASONS[Math.floor(Math.random() * REASONS.length)];
     const { text, result } = await teammateGives(ctx, workspace, from, member, { note, channelName: "general" });
     const messages = await describeNotifications(ctx, { workspace, member }, result.notificationIds);
-    return { from: { name: from.name, slackUserId: from.slackUserId }, text, messages: messages.filter((m) => m.toMe) };
+    return { status: "thanked" as const, from: { name: from.name, slackUserId: from.slackUserId }, text, messages: messages.filter((m) => m.toMe) };
   },
 });
 
