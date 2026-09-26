@@ -8,7 +8,7 @@ const noise = (x: number, y: number, salt: number) => {
 };
 
 /**
- * The mirror pond: the water is the map's own (the footprint floods), this sprite makes it round.
+ * The mirror pond: the water is the world's own (the footprint floods), this sprite makes it round.
  * Lawn fills the footprint's corners, a ring of rim stones holds the water, shallows light its
  * front edge, and it mirrors what stands over it: the moon broken into ripples, and the reeds on
  * its far bank hanging upside down in the water.
@@ -75,8 +75,8 @@ function mirrorPond() {
 export const place: PlaceDef = {
   id: "compare",
   name: "Mirror pond",
-  footprint: { x: 31, y: 8, w: 4, h: 3 },
-  doors: [{ x: 32, y: 11 }],
+  footprint: { x: -2, y: -1, w: 4, h: 3 },
+  doors: [{ x: -1, y: 2 }],
   terrain: "water",
   sprite: mirrorPond(),
 };

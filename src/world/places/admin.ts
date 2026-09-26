@@ -35,7 +35,7 @@ function gatehouse() {
 export const place: PlaceDef = {
   id: "admin",
   name: "The gatehouse",
-  footprint: { x: 22, y: 1, w: 3, h: 2 },
-  doors: [{ x: 24, y: 3 }],
+  footprint: { x: -1, y: -1, w: 3, h: 2 },
+  doors: [{ x: 1, y: 1 }],
   sprite: gatehouse(),
 };

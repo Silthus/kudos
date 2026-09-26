@@ -9,7 +9,6 @@ import { Camera, type CameraHandle } from "./Camera";
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const VIEW = { width: 1280, height: 900 };
-const STAGE = { width: 3000, height: 2000 };
 const DOCKED = 744; // Window.tsx's docked width at 1280, with its frame
 
 let root: Root;
@@ -30,10 +29,11 @@ afterEach(() => {
 });
 
 const camera = createRef<CameraHandle>();
+let views: { x: number; y: number; width: number; height: number }[] = [];
 function show(insetRight: number) {
   act(() =>
     root.render(
-      <Camera ref={camera} stage={STAGE} insetRight={insetRight} onTap={() => {}}>
+      <Camera ref={camera} insetRight={insetRight} onTap={() => {}} onView={(v) => views.push(v)}>
         <div />
       </Camera>,
     ),
@@ -65,4 +65,11 @@ test("a window docking keeps the hedgehog in what's left of the view", () => {
   const x = hog.x - looking().x;
   expect(x).toBeGreaterThanOrEqual(0);
   expect(x).toBeLessThanOrEqual(VIEW.width - DOCKED);
+});
+
+test("tells the world what it sees whenever it moves, so the desert's chunks come and go without a render (#156)", () => {
+  views = [];
+  show(0);
+  act(() => camera.current!.lookAt({ x: -2000, y: -1500 }, { instant: true, centre: true }));
+  expect(views.at(-1)).toEqual({ x: -2000 - VIEW.width / 2, y: -1500 - VIEW.height / 2, width: VIEW.width, height: VIEW.height });
 });

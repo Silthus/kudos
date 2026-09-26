@@ -1,7 +1,8 @@
 import { describe, expect, test } from "vitest";
 import { navItems, type NavContext } from "@/lib/nav";
 import { mapHeight, mapWidth } from "./pixels";
-import { PLACES, placeForPath, routablePlaces, visiblePlaces } from "./places";
+import { placeDistrict } from "../../convex/lib/tree";
+import { PLACES, placeAt, placeForPath, routablePlaces, visiblePlaces } from "./places";
 
 const member: NavContext = { isAdmin: false, isDemo: false, storeEnabled: false, openRequests: 0 };
 const everything: NavContext = { isAdmin: true, isDemo: true, storeEnabled: true, gameShown: true, openRequests: 3 };
@@ -99,14 +100,28 @@ describe("every place file", () => {
     }
   });
 
-  test("ids are unique and footprints don't overlap", () => {
+  test("ids are unique, and each is a place of one of the tree's districts (#156)", () => {
     expect(new Set(PLACES.map((p) => p.id)).size).toBe(PLACES.length);
-    const taken = new Map<string, string>();
-    for (const p of PLACES)
-      for (let x = p.footprint.x; x < p.footprint.x + p.footprint.w; x++)
-        for (let y = p.footprint.y; y < p.footprint.y + p.footprint.h; y++) {
-          expect(taken.get(`${x},${y}`), `${p.id} overlaps at ${x},${y}`).toBeUndefined();
-          taken.set(`${x},${y}`, p.id);
-        }
+    for (const p of PLACES) expect(placeDistrict(p.id), p.id).not.toBeNull();
+  });
+
+  test("doors are on the building's front (+x or +y side), so the hedgehog stands in front of it", () => {
+    // Flat places (the pond, the garden) have no front to hide behind.
+    for (const p of PLACES.filter((p) => !p.walkable && p.terrain !== "water")) {
+      const { x, y, w, h } = p.footprint;
+      for (const d of p.doors) {
+        const front = (d.x === x + w && d.y >= y && d.y < y + h) || (d.y === y + h && d.x >= x && d.x < x + w);
+        expect(front, `${p.id} door ${d.x},${d.y}`).toBe(true);
+      }
+    }
+  });
+
+  test("a place settles where its district stands: footprint, doors and ground move with it", () => {
+    const garden = PLACES.find((p) => p.id === "garden")!;
+    const at = placeAt(garden, { x: -12, y: 7 });
+    expect(at.footprint).toMatchObject({ x: garden.footprint.x - 12, y: garden.footprint.y + 7 });
+    expect(at.doors).toEqual([{ x: -12, y: 7 }]);
+    expect(at.ground!(-12, 7)).toBe(garden.ground!(0, 0));
+    expect(at.ground!(-9, 7)).toBe("gate");
   });
 });

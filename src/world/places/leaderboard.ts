@@ -36,7 +36,7 @@ function noticeBoard() {
 export const place: PlaceDef = {
   id: "leaderboard",
   name: "Notice board",
-  footprint: { x: 24, y: 24, w: 2, h: 1 },
-  doors: [{ x: 26, y: 24 }],
+  footprint: { x: -1, y: 0, w: 2, h: 1 },
+  doors: [{ x: 1, y: 0 }],
   sprite: noticeBoard(),
 };

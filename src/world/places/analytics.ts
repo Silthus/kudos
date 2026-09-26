@@ -33,7 +33,7 @@ function observatory() {
 export const place: PlaceDef = {
   id: "analytics",
   name: "The observatory",
-  footprint: { x: 14, y: 1, w: 2, h: 2 },
-  doors: [{ x: 15, y: 3 }],
+  footprint: { x: -1, y: -1, w: 2, h: 2 },
+  doors: [{ x: 0, y: 1 }],
   sprite: observatory(),
 };

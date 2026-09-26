@@ -25,6 +25,14 @@ export const PALETTE: Record<string, string> = {
   m: "#b3ada4", // stone (the neutral benchmark grey)
   M: "#7d776f", // stone in shade
   v: "#8567ff", // violet (epic)
+  // The desert and the tree (#152 "Tokens").
+  a: "#d8b97a", // sand
+  A: "#b8955a", // sand-deep
+  D: "#8a6a3e", // dune-shadow
+  n: "#6e5a3b", // night-sand
+  B: "#7a5a3e", // bark-light: the tree's living wood
+  y: "#8fe07a", // sap: the tree's glow
+  x: "#7a3e8a", // blight
 };
 
 /** A sprite: equal-length rows of palette characters. `palette` adds or overrides colours. */

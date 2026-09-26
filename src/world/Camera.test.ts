@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { centreOn, clampCamera, follow, worldScale } from "./Camera";
+import { centreOn, follow, worldScale } from "./Camera";
 
 describe("the world's scale", () => {
   test("is a whole number: 2× on a phone, 3× on anything wider", () => {
@@ -13,7 +13,6 @@ describe("the world's scale", () => {
 
 describe("the camera", () => {
   const view = { width: 1000, height: 600 };
-  const stage = { width: 3000, height: 2000 };
 
   test("centres on a point", () => {
     expect(centreOn({ x: 1500, y: 1000 }, view)).toEqual({ x: 1000, y: 700 });
@@ -31,12 +30,8 @@ describe("the camera", () => {
     expect(follow(cam, { x: 1500, y: 800 }, view)).toEqual({ x: 1000, y: 620 });
   });
 
-  test("never shows more than a little sky past the world's edge", () => {
-    expect(clampCamera({ x: -500, y: -500 }, view, stage)).toEqual({ x: -48, y: -48 });
-    expect(clampCamera({ x: 5000, y: 5000 }, view, stage)).toEqual({ x: 2048, y: 1448 });
-  });
-
-  test("a world smaller than the view sits in its middle", () => {
-    expect(clampCamera({ x: 0, y: 0 }, { width: 4000, height: 3000 }, stage)).toEqual({ x: -500, y: -500 });
+  test("goes anywhere on the plane: the desert has no edge, left of and above the tree too (#156)", () => {
+    expect(centreOn({ x: -4000, y: -2500 }, view)).toEqual({ x: -4500, y: -2800 });
+    expect(follow({ x: 0, y: 0 }, { x: -9000, y: 300 }, view)).toEqual({ x: -9300, y: 0 });
   });
 });

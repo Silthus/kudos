@@ -34,9 +34,7 @@ function sandbox() {
 export const place: PlaceDef = {
   id: "playground",
   name: "The sandbox",
-  footprint: { x: 31, y: 15, w: 2, h: 2 },
-  doors: [{ x: 32, y: 17 }],
+  footprint: { x: -1, y: -1, w: 2, h: 2 },
+  doors: [{ x: 0, y: 1 }],
   sprite: sandbox(),
-  // Nudged left, clear of the mirror pond's doorstep up the path on a phone.
-  signOffset: { x: -8, y: 0 },
 };
