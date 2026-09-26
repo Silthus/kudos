@@ -5,7 +5,7 @@ import { all, seedTeam, setupConvex, type Team } from "./helpers";
 
 /**
  * Seeds of appreciation (#168): the kudos emoji is Slack's standard 🌱 `seedling` for new installs,
- * the demo and the simulator. A standard emoji needs no upload, so it works the moment Kudos is in.
+ * the demo and the simulator, and a workspace keeps the emoji it has.
  */
 
 type SlackCall = { method: string; params: Record<string, string> };

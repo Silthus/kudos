@@ -573,7 +573,7 @@ export const seedScaleStep = internalMutation({
         d[field] += amount;
         total(id)[field] += amount;
       };
-      const plan = planDay(day, people, kudosPerYear, workspace.dailyLimit);
+      const plan = planDay(day, people, kudosPerYear, workspace.dailyLimit, workspace.emojiName);
       for (const [i, m] of plan.entries()) {
         const at = dayStart + m.secondOfDay * 1000;
         if (at > now) continue; // later today: hasn't happened yet

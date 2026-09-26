@@ -158,7 +158,7 @@ export const invalidReasonValidator = v.union(
 );
 
 export const settingsFields = {
-  emojiName: v.string(), // Slack shortcode without colons, e.g. "seedling" (the default) or a custom "taco"
+  emojiName: v.string(), // Slack shortcode without colons, e.g. "seedling" (the default) or "taco"
   emojiGlyph: v.string(), // What the web app renders, e.g. "🌱"
   unitSingular: v.string(),
   unitPlural: v.string(),

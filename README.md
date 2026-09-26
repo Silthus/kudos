@@ -1,6 +1,6 @@
 # Kudos
 
-Peer recognition for Slack. Give seeds of appreciation: mention teammates with the kudos emoji, 🌱 `seedling` by default (`@ana @ben :seedling::seedling: thanks for the release!`), everyone gets a daily allowance, and every bot reply is a collectible message with a rarity. Thoughtful kudos (a few words on why) also earn XP and Hog coins in an optional game: levels, a skill tree, quests, kudos sprees, gardens grown for teammates, boosters and bonus days, and a Store priced in Hog coins.
+Peer recognition for Slack. Give seeds of appreciation: mention teammates with the kudos emoji, 🌱 `seedling` by default (`@ana @ben :seedling::seedling: thanks for the release!`). Everyone gets a daily allowance, and every bot reply is a collectible message with a rarity. Thoughtful kudos (a few words on why) also earn XP and Hog coins in an optional game: levels, a skill tree, quests, kudos sprees, gardens grown for teammates, boosters and bonus days, and a Store priced in Hog coins.
 
 The web app is a small isometric pixel-art garden at dusk. You walk around it as PostHog's Hedgehog Mode hedgehog (arrow keys, WASD, or click where to go), with your garden of key beds in the middle and your teammates' beds around it. Every page is a place on the map, and walking to its door opens its window:
 

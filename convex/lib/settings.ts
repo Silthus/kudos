@@ -1,6 +1,6 @@
 /** Settings every newly installed workspace starts with. */
 export const DEFAULT_SETTINGS = {
-  // Kudos are seeds of appreciation (#168): Slack's standard seedling, so a new install needs no upload.
+  // Kudos are seeds of appreciation (#168): Slack's standard seedling. It was taco before.
   emojiName: "seedling",
   emojiGlyph: "🌱",
   unitSingular: "kudos",

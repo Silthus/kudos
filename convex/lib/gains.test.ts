@@ -73,7 +73,7 @@ describe("gains whose tickets emit them later", () => {
   test("a skill (#92)", () => {
     const skill: Gain = { kind: "skill", name: "Lucky charm", branch: "Herald", description: "Your next kudos rolls rarer messages." };
     expect(gainBlocks([skill], link)).toEqual([
-      section("🌱 *New skill: Lucky charm*\nHerald branch. Your next kudos rolls rarer messages."),
+      section("🌿 *New skill: Lucky charm*\nHerald branch. Your next kudos rolls rarer messages."),
       context("<https://kudos.example/skills?ws=T1|Your skill tree>"),
     ]);
     expect(gainText(skill, "web")).toBe("New skill: Lucky charm. Herald branch. Your next kudos rolls rarer messages.");
@@ -162,7 +162,7 @@ describe("the rules every emitter gets for free", () => {
 
   test("names a system emits can't ping or link in Slack", () => {
     expect(gainText({ kind: "skill", name: "<!here>", branch: "A & B", description: "<https://x.test|y>" }, "slack")).toBe(
-      "🌱 *New skill: &lt;!here&gt;*\nA &amp; B branch. &lt;https://x.test|y&gt;",
+      "🌿 *New skill: &lt;!here&gt;*\nA &amp; B branch. &lt;https://x.test|y&gt;",
     );
     expect(gainText({ kind: "plant_stage", species: "<!channel>", stage: "Sprout", teammate: ben }, "slack")).toBe(
       "🌿 *Your &lt;!channel&gt; for <@UBEN> is now a Sprout*",

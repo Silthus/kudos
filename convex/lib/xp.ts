@@ -264,7 +264,7 @@ export function earningsText(e: {
     e.capped ? "daily XP cap reached" : null,
     repeat ? "you've thanked them twice today already" : null,
     e.noReason
-      ? `a seed with a few words on why (3+) earns ${wallet ? "coins" : "more"}`
+      ? `a seed with a few words on why (3 or more) earns ${wallet ? "coins" : "more"}`
       : e.thankBack
         ? "thanking back within 72 h earns less"
         : null,

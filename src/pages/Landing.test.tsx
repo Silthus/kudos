@@ -104,8 +104,7 @@ test("three short signs say what you do, then the Slack mock and the drop rates"
   const give = host.querySelector("[data-landing-feature] p")!;
   expect(give.textContent).toBe("Thank a teammate in Slack: @name 🌱 and a few words on why. Everyone has a few to give each day, so each one counts.");
   expect(give.querySelector("[data-user-text]")?.textContent).toBe("🌱");
-  expect(host.querySelector("[data-slack-mock]")!.textContent).not.toContain("🌮");
-  expect(host.querySelector("[data-slack-mock]")).not.toBeNull();
+  expect(host.querySelector("[data-slack-mock]")?.textContent).toContain("@Priya @Jonas 🌱🌱 the release went out");
   expect(host.textContent).toContain("Every reply is a roll of the dice");
   expect(host.querySelectorAll("[data-drop-rate]")).toHaveLength(5);
 });

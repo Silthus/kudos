@@ -78,7 +78,7 @@ describe("the giver's reply is ephemeral where they gave, with what it earned", 
 
   test("a kudos without a reason is told how to earn more", async () => {
     await post("<@UBEN> :taco:");
-    expect(ephemerals()[0].text).toContain("+2 XP · a seed with a few words on why (3+) earns more");
+    expect(ephemerals()[0].text).toContain("+2 XP · a seed with a few words on why (3 or more) earns more");
   });
 
   test("with the game off it is still the ephemeral reply, just without XP", async () => {
@@ -115,7 +115,7 @@ describe("Hog coins in the reply and the level-up DM", () => {
   test("once the wallet is open, a kudos without a reason is told that one with a reason earns coins", async () => {
     await anaAt(3, 100, 4);
     await post("<@UBEN> :taco:");
-    expect(ephemerals()[0].text).toContain("+2 XP · a seed with a few words on why (3+) earns coins");
+    expect(ephemerals()[0].text).toContain("+2 XP · a seed with a few words on why (3 or more) earns coins");
   });
 
   test("reaching level 3 opens the wallet with what was collected so far; later levels say what they paid", async () => {

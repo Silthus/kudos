@@ -351,7 +351,7 @@ async function deliver(ctx: ActionCtx, token: string, teamId: string, ids: Id<"n
       // A plant grown for them (gardens.ts): no rarity, no gallery; a link to their garden.
       const garden = link("/garden");
       blocks = [
-        { type: "section", text: { type: "mrkdwn", text: `🌱 ${n.slackText}` } },
+        { type: "section", text: { type: "mrkdwn", text: `🌿 ${n.slackText}` } },
         ...(garden ? [{ type: "context", elements: [{ type: "mrkdwn", text: `<${garden}|Your garden>` }] }] : []),
       ];
       text = n.slackText;
