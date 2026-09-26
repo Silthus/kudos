@@ -497,7 +497,7 @@ describe("the cabin in a simulator (#144)", () => {
 describe("the sandbox after a fast-forward (#171)", () => {
   test("a DM keeps the simulator's time it was sent at: one from before a move of the clock reads older", async () => {
     await visitor("a").mutation(api.simulator.start, {});
-    expect((await say(`<@UDEMOPRIYA> :taco: ${NOTE}`)).status).toBe("given");
+    expect((await say(`<@UDEMOPRIYA> :seedling: ${NOTE}`)).status).toBe("given");
     const started = await visitor("a").query(api.simulator.state, {});
     if (!started.active) throw new Error("no simulator");
     const sentAt = Date.now() + started.clockOffsetMs;
