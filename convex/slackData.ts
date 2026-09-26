@@ -18,6 +18,8 @@ import { markBackfilled, mirrorBackfillMarker } from "./lib/rebuild";
 import { questBoard, questsOn } from "./quests";
 import { gameOn, gameShownTo, gameView, playerOf } from "./game";
 import { gameBlocks, number } from "./lib/gameBlocks";
+import { newWorldSeed, treeView } from "./tree";
+import { treeBlocks, treeSummaryText } from "./lib/treeView";
 import { coinBalance, formatCoins, WALLET_LEVEL } from "./lib/coins";
 import { questBlocks } from "./lib/questBlocks";
 
@@ -167,6 +169,8 @@ export const saveInstallation = internalMutation({
         isDemo: false,
         status: "active",
         ...DEFAULT_SETTINGS,
+        worldSeed: newWorldSeed(),
+        seedsBackfilledAt: Date.now(), // no history to sow
       });
       workspace = (await ctx.db.get(id))!;
     } else {
@@ -296,6 +300,7 @@ export const notificationsForDelivery = internalQuery({
       earnings: v.optional(earningsValidator),
       gains: v.optional(v.array(gainValidator)),
       superKudos: v.optional(superKudosNoteValidator),
+      seedsToPlant: v.optional(v.union(v.number(), v.null())),
     }),
   ),
   handler: async (ctx, { ids }) => {
@@ -329,6 +334,7 @@ export const notificationsForDelivery = internalQuery({
         ...(n.earnings ? { earnings: n.earnings } : {}),
         ...(n.gains ? { gains: n.gains } : {}),
         ...(n.superKudos ? { superKudos: n.superKudos } : {}),
+        ...(n.seedsToPlant !== undefined ? { seedsToPlant: n.seedsToPlant } : {}),
       });
     }
     return out;
@@ -456,6 +462,7 @@ export const homeData = internalQuery({
       // The game's invitation (§G1): shown until the member gives their first kudos, never as a DM.
       invite: gameShownTo(workspace, member ?? {}) && !(member && (await playerOf(ctx, member._id))),
       game: member ? await gameView(ctx, workspace, member, now) : null,
+      tree: member ? await treeView(ctx, workspace, member) : null,
     };
   },
 });
@@ -614,7 +621,15 @@ async function levelReply(ctx: QueryCtx, workspace: Doc<"workspaces">, member: D
   };
 }
 
-/** `/kudos [me|top|quests|level|coins|store|help]` — returns an ephemeral Slack response body. */
+/** `/kudos tree` (#154): the Ancient Tree, the same blocks as on App Home. Nothing while the game is off or hidden. */
+async function treeReply(ctx: QueryCtx, workspace: Doc<"workspaces">, member: Doc<"members">) {
+  if (!gameOn(workspace)) return { response_type: "ephemeral", text: "The game isn't on in this workspace." };
+  const tree = await treeView(ctx, workspace, member);
+  if (!tree) return { response_type: "ephemeral", text: "You've hidden the game. Show it again on your Me page to see the Ancient Tree." };
+  return { response_type: "ephemeral", text: treeSummaryText(tree), blocks: treeBlocks(tree, webLink(workspace.slackTeamId, "/")) };
+}
+
+/** `/kudos [me|top|quests|level|coins|tree|store|help]` — returns an ephemeral Slack response body. */
 export const slashCommand = internalMutation({
   args: { teamId: v.string(), slackUserId: v.string(), text: v.string() },
   returns: v.any(),
@@ -690,6 +705,7 @@ export const slashCommand = internalMutation({
     if (sub === "level" || sub === "lvl" || sub === "xp") {
       return await levelReply(ctx, workspace, await ensureMember(ctx, workspace, slackUserId));
     }
+    if (sub === "tree") return await treeReply(ctx, workspace, await ensureMember(ctx, workspace, slackUserId));
     if (sub === "coins" || sub === "coin" || sub === "wallet") {
       return await coinsReply(ctx, workspace, await ensureMember(ctx, workspace, slackUserId), link);
     }
@@ -707,7 +723,7 @@ export const slashCommand = internalMutation({
         "",
         "`/kudos me` what you can give today · `/kudos top` weekly leaderboard",
         quests ? "`/kudos quests` your weekly quests" : "",
-        (await gameShownToSlackUser(ctx, workspace, slackUserId)) ? "`/kudos level` your level · `/kudos coins` your Hog coins" : "",
+        (await gameShownToSlackUser(ctx, workspace, slackUserId)) ? "`/kudos level` your level · `/kudos coins` your Hog coins · `/kudos tree` the Ancient Tree" : "",
         (await gameShownToSlackUser(ctx, workspace, slackUserId)) ? "`/kudos store` what your Hog coins can buy" : "",
         link("/me", "Open the Kudos dashboard"),
       ]

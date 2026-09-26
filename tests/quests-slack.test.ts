@@ -157,6 +157,7 @@ describe("App Home", () => {
     expect(home.filter((b) => b.type === "header").map((b) => b.text!.text)).toEqual([
       "Your kudos",
       "Your game",
+      "The Ancient Tree",
       "This week's quests",
       "This week's most generous",
       "Rewards store",

@@ -165,7 +165,7 @@ export async function ensurePlayer(ctx: MutationCtx, workspace: Doc<"workspaces"
 }
 
 /** Their kudos to the giver in the 72 h before `at`: a thank-back (the Qualifying kudos rule). */
-async function thankedBack(ctx: QueryCtx, giverId: Id<"members">, receiverId: Id<"members">, at: number) {
+export async function thankedBack(ctx: QueryCtx, giverId: Id<"members">, receiverId: Id<"members">, at: number) {
   const back = await ctx.db
     .query("kudos")
     .withIndex("by_giver_receiver_at", (q) => q.eq("giverId", receiverId).eq("receiverId", giverId).gt("at", at - RECIPROCAL_WINDOW_MS).lt("at", at))
@@ -588,7 +588,7 @@ const MEMBERS_PER_STEP = 25;
  * another reset is under way. A finished reset (no reset running) doesn't stop it: rebuilding the
  * fresh history is always right.
  */
-function superseded(workspace: Doc<"workspaces">, resetAt: number | undefined) {
+export function superseded(workspace: Doc<"workspaces">, resetAt: number | undefined) {
   return workspace.resettingSince !== undefined && workspace.resettingSince !== resetAt;
 }
 

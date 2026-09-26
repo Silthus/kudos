@@ -120,6 +120,13 @@ function parts(gain: Gain, audience: Audience, link: LinkTo): Parts {
             context: links(to("/me", "Your level")),
           };
     }
+    case "tree_seed":
+      return {
+        icon: "🌱",
+        title: "You planted the Ancient Seed",
+        body: `Your thoughtful kudos for ${person(gain.receiver, audience)} was the first seed planted at the tree. The desert has its tree now, and every thoughtful kudos helps it grow.`,
+        context: links(to("/", "Visit the tree")),
+      };
     case "plant_stage": {
       const name = safe(gain.stage, audience);
       const stage = gain.stage === "Ancient" ? "an Ancient plant" : `${article(gain.stage)} ${name}`;
@@ -179,6 +186,7 @@ export function mergeGains(gains: Gain[], gain: Gain): Gain[] {
 }
 
 const LABELS: [Gain["kind"], string][] = [
+  ["tree_seed", "Ancient Tree"],
   ["level_up", "Level up"],
   ["skill", "New skill"],
   ["spree_tier", "Spree"],

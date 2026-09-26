@@ -30,6 +30,8 @@ import { nextTier, promptText, refusalText } from "./lib/sprees";
 import { coinWallet, grantBalance, requestRedemption, transitionRedemption, undoPurchase, undoRedemption } from "./store";
 
 const DEMO_TEAM = "T_DEMO_LUMEN";
+/** The demo's world seed (lib/tree.ts `layout`): Lumen Labs' tree stands the same way after every reset. */
+const DEMO_WORLD_SEED = 0x4c756d65; // "Lume"
 export const DEMO_YOU = "UDEMOYOU";
 /** The demo's other admin: she decides on the visitor's own store requests (four eyes). */
 const DEMO_LENA = "UDEMOLENA";
@@ -169,6 +171,7 @@ export const ensureDemoUser = internalMutation({
         isDemo: true,
         status: "active",
         ...DEMO_SETTINGS,
+        worldSeed: DEMO_WORLD_SEED,
       });
       workspace = (await ctx.db.get(id))!;
       for (const p of PEOPLE) {
@@ -365,6 +368,8 @@ export const seedHistory = internalMutation({
       // the quest seeding schedules that once the completions it pays are recorded.
       // Alex's garden and skills follow the replay, and the Store story follows them (balances are Hog coins).
       await ctx.scheduler.runAfter(0, internal.quests.seedDemoHistory, { workspaceId, resetAt });
+      // The year's thoughtful kudos grow the Ancient Tree, their seeds planted by time (#154).
+      await ctx.scheduler.runAfter(0, internal.tree.backfillWorkspace, { workspaceId, resetAt });
     }
     return null;
   },
@@ -1173,6 +1178,9 @@ const DEMO_TABLES = [
   "simulatorRuns",
   "worldPresence",
   "worldOnline",
+  "seeds",
+  "trees",
+  "treeEvents",
   "notifications",
 ] as const;
 
@@ -1224,6 +1232,12 @@ async function demoRows(ctx: MutationCtx, workspaceId: Id<"workspaces">, table: 
       return await ctx.db.query("worldPresence").withIndex("by_workspace_updatedAt", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "worldOnline":
       return await ctx.db.query("worldOnline").withIndex("by_workspace_seenAt", (q) => q.eq("workspaceId", workspaceId)).take(n);
+    case "seeds":
+      return await ctx.db.query("seeds").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(n);
+    case "trees":
+      return await ctx.db.query("trees").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(n);
+    case "treeEvents":
+      return await ctx.db.query("treeEvents").withIndex("by_workspace_at", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "simulatorRuns":
       return await ctx.db.query("simulatorRuns").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "notifications":
@@ -1307,7 +1321,7 @@ export const resetDemoWorkspace = internalMutation({
       return null;
     }
     // Quests come back on with no pause: a pause would keep the seeded kudos out of every board.
-    await ctx.db.patch(workspace._id, { ...DEMO_SETTINGS, questsPauses: undefined, gamePauses: undefined, successBaselineBefore: undefined });
+    await ctx.db.patch(workspace._id, { ...DEMO_SETTINGS, worldSeed: DEMO_WORLD_SEED, seedsBackfilledAt: undefined, questsPauses: undefined, gamePauses: undefined, successBaselineBefore: undefined });
     await launchDemoGame(ctx, (await ctx.db.get(workspace._id))!, workspaceNow(workspace));
     for (const m of members) {
       await ctx.db.patch(m._id, {
