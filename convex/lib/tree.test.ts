@@ -112,7 +112,7 @@ describe("districts", () => {
   });
 
   test("every existing place has a home district, and the sandbox stays in the base camp", () => {
-    for (const place of ["me", "quests", "leaderboard", "garden", "discoveries", "store", "skills", "compare", "analytics", "admin", "playground"]) {
+    for (const place of ["me", "offering", "quests", "leaderboard", "garden", "discoveries", "store", "skills", "compare", "analytics", "admin", "playground"]) {
       expect(placeDistrict(place), place).not.toBeNull();
     }
     expect(placeDistrict("playground")).toBe("base_camp");

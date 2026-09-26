@@ -1,4 +1,5 @@
 import { ConvexError, v } from "convex/values";
+import { waiting } from "./offerings";
 import { internalMutation, internalQuery, type QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -574,11 +575,12 @@ async function coinsReply(ctx: QueryCtx, workspace: Doc<"workspaces">, member: D
       text: `Your Hog coin wallet opens at level ${WALLET_LEVEL}. Thoughtful kudos are already collecting coins for it.`,
     };
   }
-  const coins = coinBalance(player, member);
+  const coins = coinBalance(player, member, (await waiting(ctx, member._id)).coins);
   const fields = [
     `*Balance*\n${coins.balance} Hog ${coins.balance === 1 ? "coin" : "coins"}`,
+    ...(coins.waiting ? [`*Waiting at the tree*\n${coins.waiting}`] : []),
     `*From thoughtful kudos*\n${coins.fromKudos}`,
-    ...(coins.fromFruit ? [`*From garden fruit*\n${coins.fromFruit}`] : []),
+    ...(coins.fromFruit ? [`*From fruit*\n${coins.fromFruit}`] : []),
     ...(coins.fromQuests ? [`*From quests*\n${coins.fromQuests}`] : []),
     ...(coins.fromSprees ? [`*From kudos sprees*\n${coins.fromSprees}`] : []),
     `*From level-ups*\n${coins.fromLevels}`,
@@ -588,7 +590,7 @@ async function coinsReply(ctx: QueryCtx, workspace: Doc<"workspaces">, member: D
   const note =
     coins.balance < 0
       ? "A revoked kudos took back coins it had earned. Spending waits until your balance is above zero again."
-      : `A thoughtful kudos earns you 1 Hog coin per kudos given, and every level 10${coins.fromQuests ? ". Quests pay more on top" : ""}.`;
+      : `A thoughtful kudos earns you 1 Hog coin per kudos given, waiting at the tree until you offer it at the stone, and every level 10${coins.fromQuests ? ". Quests pay more on top" : ""}.`;
   return {
     response_type: "ephemeral",
     text: `You have ${coins.balance} Hog ${coins.balance === 1 ? "coin" : "coins"}.`,

@@ -67,6 +67,8 @@ export function hudGame(game: GameMine | undefined) {
     into: p.next === null ? 1 : Math.max(0, p.xp - p.floor),
     span: p.next === null ? 1 : p.next - p.floor,
     coins: p.level >= WALLET_LEVEL && game.wallet ? game.wallet.balance : null,
+    /** Coins from kudos waiting at the tree to be claimed (#157): not in the balance yet. */
+    waiting: p.level >= WALLET_LEVEL && game.wallet ? game.wallet.waiting : 0,
   };
 }
 
@@ -311,6 +313,15 @@ function You({ game }: { game: ReturnType<typeof hudGame> }) {
           </div>
         )}
         {game && <LevelLabel level={game.level} className="block text-sm text-lantern sm:hidden" />}
+        {game && game.waiting > 0 && (
+          <Link
+            to="/offering"
+            data-hud-waiting
+            className="pixel-chip mt-1 inline-flex items-center gap-1 bg-parchment px-1.5 text-xs font-semibold text-ink tabular hover:bg-parchment-deep"
+          >
+            {nf.format(game.waiting)} waiting<span className="sr-only"> at the tree</span>
+          </Link>
+        )}
       </div>
     </div>
   );

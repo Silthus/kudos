@@ -76,6 +76,7 @@ import type * as lib_world from "../lib/world.js";
 import type * as lib_xp from "../lib/xp.js";
 import type * as life from "../life.js";
 import type * as me from "../me.js";
+import type * as offerings from "../offerings.js";
 import type * as presence from "../presence.js";
 import type * as quests from "../quests.js";
 import type * as removal from "../removal.js";
@@ -166,6 +167,7 @@ declare const fullApi: ApiFromModules<{
   "lib/xp": typeof lib_xp;
   life: typeof life;
   me: typeof me;
+  offerings: typeof offerings;
   presence: typeof presence;
   quests: typeof quests;
   removal: typeof removal;

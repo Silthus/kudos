@@ -11,6 +11,7 @@ import { HogCoin } from "@/components/HogCoin";
 import { MessageText } from "@/components/MessageText";
 import { QUEST_RULES, QuestBoardBody } from "@/components/quests";
 import { GainLines, GameCard, GameSwitch, LevelUpHoggie, ScoutHints } from "@/components/game";
+import { FruitShelf } from "@/components/fruit";
 import { LookCard } from "@/components/cosmetics";
 import { Room } from "@/components/room";
 import { Avatar, BigNumber, Empty, meterFill, PageSkeleton, RarityBadge, Segmented, Trend } from "@/components/ui";
@@ -60,6 +61,7 @@ export function Me() {
       <Room title="You">
         <div className="space-y-5">
           <GameCard glyph={glyph} />
+          <FruitShelf />
           <Allowance used={data.today.used} limit={data.today.limit} glyph={glyph} />
           <StoreWay />
           <ScoutHints today={today} />

@@ -33,6 +33,7 @@ import { useViewer } from "@/lib/viewer";
 import { useWorkspaceToday } from "@/lib/period";
 import { Locked } from "@/components/game";
 import { hasItemArt, ItemArt } from "@/components/cosmetics";
+import { FruitStall } from "@/components/fruit";
 import { HogCoin } from "@/components/HogCoin";
 
 /** The Store's only currency (ADR 0002). */
@@ -300,7 +301,7 @@ function OpenStore({ shop }: { shop: OpenShop }) {
             </span>{" "}
             {COIN} to spend
           </p>
-          <p className="mt-1 text-sm text-ink/75">Thoughtful kudos earn Hog coins. Game items are yours the moment you buy them.</p>
+          <p className="mt-1 text-sm text-ink/75">Thoughtful kudos earn Hog coins, yours once you offer them at the tree. Game items are yours the moment you buy them.</p>
         </div>
         {viewer.workspace.isDemo && <HandBackRewards />}
       </div>
@@ -313,6 +314,8 @@ function OpenStore({ shop }: { shop: OpenShop }) {
           </span>
         </p>
       )}
+      {/* What the tree dropped (#157): the fruit you hold comes first, it's yours already. */}
+      <FruitStall />
       <Shelf id="game-items" title="Game items">
         {items.map((item) => (
           <ItemCard key={item.key} item={item} balance={balance} onBuy={() => setBuying(item)} usesLeft={held[item.key] ?? 0} />

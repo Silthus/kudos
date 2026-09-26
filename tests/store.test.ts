@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { grantBalance, requestRedemption, transitionRedemption } from "../convex/store";
-import { all, DEMO_TIMEOUT, NOW, seedTeam, setupConvex, signInAs, type Team } from "./helpers";
+import { all, claimAtTree, DEMO_TIMEOUT, NOW, seedTeam, setupConvex, signInAs, type Team } from "./helpers";
 
 /** The real-rewards part of the Store, priced in Hog coins (#91, ADR 0002; game items: shop.test.ts). */
 
@@ -25,8 +25,13 @@ const settings = {
 const coffee = { name: "Coffee on us", emoji: "☕", cost: 3 };
 
 /** A thoughtful kudos (a 3+ word note) earns its giver 1 Hog coin per kudos given. */
-const give = (text: string, giverSlackId = "UANA") =>
-  t.mutation(internal.kudos.ingestMessage, { workspaceId: team.workspaceId, botUserId: "UBOT", giverSlackId, text, channelId: "C1", messageTs: `${Math.random()}` });
+/** A Slack message; its giver then offers their appreciation at the tree (#157), so its coins are theirs to spend. */
+async function give(text: string, giverSlackId = "UANA") {
+  const result = await t.mutation(internal.kudos.ingestMessage, { workspaceId: team.workspaceId, botUserId: "UBOT", giverSlackId, text, channelId: "C1", messageTs: `${Math.random()}` });
+  const giver = await t.run((ctx) => ctx.db.query("members").withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", team.workspaceId).eq("slackUserId", giverSlackId)).unique());
+  if (giver) await claimAtTree(t, giver._id);
+  return result;
+}
 
 const setWorkspace = (patch: { realRewardsEnabled?: boolean; gameEnabled?: boolean; receivedVisibility?: "hidden" | "self" | "everyone" }) =>
   t.run((ctx) => ctx.db.patch(team.workspaceId, patch));

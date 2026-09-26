@@ -23,12 +23,17 @@ const { Hud, hudGame } = await import("./Hud");
 HTMLCanvasElement.prototype.getContext = (() => null) as never;
 
 const player = (level: number) => ({ level, title: level >= 9 ? "Gardener" : "Seedling", xp: 1650, floor: 1500, next: 1900, toNext: 250, fraction: 0.4 });
-const wallet = { balance: 84, fromKudos: 84, fromFruit: 0, fromQuests: 0, fromSprees: 0, fromLevels: 0, spent: 0, adjusted: 0 };
+const wallet = { balance: 84, waiting: 0, fromKudos: 84, fromFruit: 0, fromQuests: 0, fromSprees: 0, fromLevels: 0, spent: 0, adjusted: 0 };
 const mine = (patch: Record<string, unknown>) => ({ enabled: true, hidden: false, player: player(9), wallet, luckyCharms: 0, sunlamps: 0, lanterns: 0, ...patch });
 
 describe("what the HUD shows of your game", () => {
   test("level, title, XP and coins from level 3", () => {
     expect(hudGame(mine({}) as never)).toMatchObject({ level: 9, title: "Gardener", xp: 1650, coins: 84 });
+  });
+
+  test("coins waiting at the tree, apart from the balance (#157)", () => {
+    expect(hudGame(mine({ wallet: { ...wallet, waiting: 12 } }) as never)).toMatchObject({ coins: 84, waiting: 12 });
+    expect(hudGame(mine({}) as never)).toMatchObject({ waiting: 0 });
   });
 
   test("below level 3 no coins, not even a zero", () => {
@@ -116,6 +121,17 @@ describe("the HUD", () => {
       expect(n.closest(".tabular")).not.toBeNull();
       expect(n.closest(".font-display, .font-sans")?.parentElement?.closest(".font-display")?.textContent).toMatch(/^Level/);
     }
+  });
+
+  test("coins waiting at the tree show as a small tag by the wallet, a link to the offering stone (#157)", () => {
+    game = mine({ wallet: { ...wallet, waiting: 12 } });
+    render();
+    const tag = host.querySelector<HTMLAnchorElement>("[data-hud-waiting]")!;
+    expect(tag.textContent).toBe("12 waiting at the tree");
+    expect(tag.getAttribute("href")).toBe("/offering");
+    game = mine({});
+    render();
+    expect(host.querySelector("[data-hud-waiting]")).toBeNull();
   });
 
   test("shows just your name while the game is hidden", () => {

@@ -1,6 +1,7 @@
 import type { Infer } from "convex/values";
 import type { gainValidator } from "../schema";
 import { COINS, WALLET_LEVEL } from "./coins";
+import { FRUITS, type FruitId } from "./fruits";
 import { joinNames, RARITIES, RARITY_SLACK_BADGE, type Rarity } from "./messages";
 import { escapeMrkdwn } from "./slack";
 import { titleForLevel } from "./xp";
@@ -36,7 +37,7 @@ export function discoveryWorthADm(rarity: Rarity) {
  * system that paid them wrote.
  */
 export function visibleTo(gain: Gain, level: number): Gain {
-  if (gain.kind === "spree_tier" && gain.coins !== undefined && level < WALLET_LEVEL) {
+  if ((gain.kind === "spree_tier" || gain.kind === "offering_claimed") && gain.coins !== undefined && level < WALLET_LEVEL) {
     const { coins: _silent, ...rest } = gain;
     return rest;
   }
@@ -55,6 +56,15 @@ const people = (ps: Person[], audience: Audience) => joinNames(ps.map((p) => per
 /** Every name a system emits is escaped in Slack, so none can ping or link. */
 const safe = (text: string, audience: Audience) => (audience === "slack" ? escapeMrkdwn(text) : text);
 const article = (word: string) => (/^[aeiou]/i.test(word) ? "an" : "a");
+/** "a Sun fruit", "2 Sun fruit and a Moon fruit". */
+function fruitWords(fruits: FruitId[]) {
+  return joinNames(
+    FRUITS.filter((f) => fruits.includes(f.id)).map((f) => {
+      const n = fruits.filter((id) => id === f.id).length;
+      return n === 1 ? `${article(f.name)} ${f.name}` : `${n} ${f.name}`;
+    }),
+  );
+}
 
 type Parts = {
   /** Bold in Slack, the first sentence on the web. */
@@ -127,6 +137,16 @@ function parts(gain: Gain, audience: Audience, link: LinkTo): Parts {
         body: `Your thoughtful kudos for ${person(gain.receiver, audience)} was the first seed planted at the tree. The desert has its tree now, and every thoughtful kudos helps it grow.`,
         context: links(to("/", "Visit the tree")),
       };
+    case "offering_claimed": {
+      const month = gain.month;
+      const coins = gain.coins !== undefined ? ` ${hogCoins(gain.coins)} went into your wallet.` : "";
+      const fruit = gain.fruits.length === 0 ? "" : ` The tree dropped ${fruitWords(gain.fruits)}.`;
+      return {
+        title: `Your appreciation from ${month} fed the tree`,
+        body: `Nobody offered it at the stone for 30 days, so it offered itself.${coins}${fruit}`,
+        context: links(to("/offering", "Visit the offering stone")),
+      };
+    }
     case "plant_stage": {
       const name = safe(gain.stage, audience);
       const stage = gain.stage === "Ancient" ? "an Ancient plant" : `${article(gain.stage)} ${name}`;
@@ -187,6 +207,7 @@ export function mergeGains(gains: Gain[], gain: Gain): Gain[] {
 
 const LABELS: [Gain["kind"], string][] = [
   ["tree_seed", "Ancient Tree"],
+  ["offering_claimed", "Offering"],
   ["level_up", "Level up"],
   ["skill", "New skill"],
   ["spree_tier", "Spree"],

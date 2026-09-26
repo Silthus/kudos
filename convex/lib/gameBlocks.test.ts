@@ -30,6 +30,13 @@ describe("gameBlocks", () => {
     expect(section).toEqual(fields("*Level 4 · Sprout*\n120 XP", "*Next level*\n55 XP to go", "*Hog coins*\n26"));
   });
 
+  test("coins waiting at the tree show next to the wallet, only while some wait (#157)", () => {
+    const level4 = { ...newcomer, level: 4, title: "Sprout", xp: 120, next: 175, toNext: 55, fraction: 0.45, coins: 26, locked: null };
+    expect(gameBlocks({ ...level4, waiting: 12 }, ME)[1]).toEqual(fields("*Level 4 · Sprout*\n120 XP", "*Next level*\n55 XP to go", "*Hog coins*\n26", "*Waiting at the tree*\n12 coins"));
+    expect(gameBlocks({ ...level4, waiting: 1 }, ME)[1]).toEqual(fields("*Level 4 · Sprout*\n120 XP", "*Next level*\n55 XP to go", "*Hog coins*\n26", "*Waiting at the tree*\n1 coin"));
+    expect(gameBlocks({ ...level4, waiting: 0 }, ME)[1]).toEqual(fields("*Level 4 · Sprout*\n120 XP", "*Next level*\n55 XP to go", "*Hog coins*\n26"));
+  });
+
   test("the garden summary and today's daily quest show once their areas exist (#95, #93)", () => {
     const [, section] = gameBlocks(
       { ...newcomer, level: 9, title: "Gardener", coins: 1, garden: { plants: 3, dormant: 1 }, dailyQuest: { title: "Say why", done: false } },

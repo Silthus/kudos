@@ -1190,6 +1190,8 @@ const DEMO_TABLES = [
   "seeds",
   "trees",
   "treeEvents",
+  "offerings",
+  "inventory",
   "notifications",
 ] as const;
 
@@ -1247,6 +1249,10 @@ async function demoRows(ctx: MutationCtx, workspaceId: Id<"workspaces">, table: 
       return await ctx.db.query("trees").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "treeEvents":
       return await ctx.db.query("treeEvents").withIndex("by_workspace_at", (q) => q.eq("workspaceId", workspaceId)).take(n);
+    case "offerings":
+      return await ctx.db.query("offerings").withIndex("by_workspace_claimedAt_createdAt", (q) => q.eq("workspaceId", workspaceId)).take(n);
+    case "inventory":
+      return await ctx.db.query("inventory").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "simulatorRuns":
       return await ctx.db.query("simulatorRuns").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "notifications":

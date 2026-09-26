@@ -109,7 +109,7 @@ describe("Hog coins in the reply and the level-up DM", () => {
   test("once the wallet is open, the reply shows the coins a kudos earned", async () => {
     await anaAt(3, 100, 4);
     await post("<@UBEN> :taco::taco: thanks for the thorough review");
-    expect(ephemerals()[0].text).toContain("+20 XP · +2 Hog coins · new connection +10");
+    expect(ephemerals()[0].text).toContain("+20 XP · +2 Hog coins waiting at the tree · new connection +10");
   });
 
   test("once the wallet is open, a kudos without a reason is told that one with a reason earns coins", async () => {
@@ -120,8 +120,9 @@ describe("Hog coins in the reply and the level-up DM", () => {
 
   test("reaching level 3 opens the wallet with what was collected so far; later levels say what they paid", async () => {
     await anaAt(2, 70, 5);
-    await post("<@UBEN> :taco: thanks for the thorough review"); // +20 XP: level 3, 6 coins + 2 levels × 10
-    expect(dms().find((d) => d.channel === "UANA")?.text).toContain("Your Hog coin wallet is open: 26 Hog coins collected so far.");
+    // +20 XP: level 3, 5 coins + 2 levels × 10; this kudos' coin waits at the tree (#157).
+    await post("<@UBEN> :taco: thanks for the thorough review");
+    expect(dms().find((d) => d.channel === "UANA")?.text).toContain("Your Hog coin wallet is open: 25 Hog coins collected so far.");
     calls = [];
     await t.run(async (ctx) => {
       const p = (await ctx.db.query("players").collect()).find((x) => x.memberId === team.ana)!;

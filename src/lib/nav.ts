@@ -1,4 +1,4 @@
-import { ArrowLeftRight, BarChart3, FlaskConical, Gem, Gift, Network, Settings2, Sprout, Target, Trophy, UserRound, type LucideIcon } from "lucide-react";
+import { ArrowLeftRight, BarChart3, FlaskConical, Gem, Gift, HandCoins, Network, Settings2, Sprout, Target, Trophy, UserRound, type LucideIcon } from "lucide-react";
 
 /**
  * The app's navigation, built once: the world's places (`src/world/places.ts`) and the Places list
@@ -53,7 +53,13 @@ export function navItems(ctx: NavContext): NavItem[] {
     item("me", "/me", "My kudos", "Me", UserRound, "personal"),
     item("discoveries", "/discoveries", "Discoveries", "Gallery", Gem, "personal"),
     ...(ctx.questsEnabled ?? true ? [item("quests", "/quests", "Quest log", "Quests", Target, "personal")] : []),
-    ...(ctx.gameShown ? [item("skills", "/skills", "Skill tree", "Skills", Network, "personal"), item("garden", "/garden", "Garden", "Garden", Sprout, "personal")] : []),
+    ...(ctx.gameShown
+      ? [
+          item("offering", "/offering", "Offering stone", "Stone", HandCoins, "personal"),
+          item("skills", "/skills", "Skill tree", "Skills", Network, "personal"),
+          item("garden", "/garden", "Garden", "Garden", Sprout, "personal"),
+        ]
+      : []),
     ...(ctx.storeEnabled ? [item("store", "/store", "Store", "Store", Gift, "personal")] : []),
     item("leaderboard", "/leaderboard", "Leaderboard", "Ranks", Trophy, "team"),
     item("compare", "/compare", "Compare", "Compare", ArrowLeftRight, "team"),

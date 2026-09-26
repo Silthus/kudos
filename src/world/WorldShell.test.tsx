@@ -483,7 +483,8 @@ test("a garden link that fails leaves the world standing: the map, the HUD and a
 
 describe("life in the world (#134)", () => {
   const player = (level: number, title: string) => ({ level, title, xp: 1650, floor: 1500, next: 1900, toNext: 250, fraction: 0.4 });
-  const wallet = (balance: number) => ({ balance, fromKudos: balance, fromFruit: 0, fromQuests: 0, fromSprees: 0, fromLevels: 0, spent: 0, adjusted: 0 });
+  // Coins that come to you in the world, not through a window: quests, sprees and levels.
+  const wallet = (balance: number) => ({ balance, waiting: 0, fromKudos: 0, fromFruit: 0, fromQuests: balance, fromSprees: 0, fromLevels: 0, spent: 0, adjusted: 0 });
   const game = (level: number, title: string, coins = 84) => ({ enabled: true, hidden: false, player: player(level, title), wallet: wallet(coins), luckyCharms: 0, sunlamps: 0, lanterns: 0 });
   const counts = (discovered: number) => ({ used: 0, remaining: 5, limit: 5, discovered, total: 72 });
   const hog = () => host.querySelector<HTMLCanvasElement>("canvas[data-hog]")!;
@@ -536,8 +537,17 @@ describe("life in the world (#134)", () => {
     queries = { "game:mine": game(9, "Gardener", 84), "me:today": counts(20) };
     open("/garden");
     const picked = game(9, "Gardener", 90);
-    queries = { "game:mine": { ...picked, wallet: { ...picked.wallet, fromKudos: 84, fromFruit: 6 } }, "me:today": counts(20) };
+    queries = { "game:mine": { ...picked, wallet: { ...picked.wallet, fromQuests: 84, fromFruit: 6 } }, "me:today": counts(20) };
     open("/garden");
+    expect(document.querySelector("[data-coin-hop]")).toBeNull();
+  });
+
+  test("coins offered at the tree drop from the stone's window, so the hedgehog doesn't hop them again (#157)", () => {
+    queries = { "game:mine": game(9, "Gardener", 84), "me:today": counts(20) };
+    open("/offering");
+    const claimed = game(9, "Gardener", 96);
+    queries = { "game:mine": { ...claimed, wallet: { ...claimed.wallet, fromQuests: 84, fromKudos: 12 } }, "me:today": counts(20) };
+    open("/offering");
     expect(document.querySelector("[data-coin-hop]")).toBeNull();
   });
 

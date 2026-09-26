@@ -6,7 +6,9 @@
  * into coins.
  *
  * The ledger (convex/game.ts): coins from kudos ride the per-batch `gameEvents` (a `coins` field on
- * each give line), summed into `players.coins`, so a revoke takes back exactly what its kudos earned.
+ * each give line) and wait at the tree as the batch's offering (convex/offerings.ts, #157) until the
+ * giver claims it; only claimed coins are in `players.coins` (and the balance), so a revoke takes back
+ * exactly what its kudos earned, from the offering or, once claimed, from the wallet.
  * Fruit (`harvest` events) and quest pay (`quest` events) go into the same sum; `players.fruitCoins`
  * and `players.questCoins` keep their shares apart, and `fromKudos` is what's left.
  * Level-up coins follow from `players.level`, which never goes down, so they are never taken back.
@@ -34,6 +36,9 @@ export function lineCoins(line: { qualifying: boolean; amount: number; boosted?:
 export type CoinBalance = {
   /** What can be spent: earned − spent ± adjustments. Below zero after a revoke, which blocks spending. */
   balance: number;
+  /** Coins from kudos waiting at the tree: not in the balance until claimed at the offering stone. */
+  waiting: number;
+  /** Claimed at the tree (or credited straight away, before #157). */
   fromKudos: number;
   /** Picked in the garden (`players.fruitCoins`, part of `players.coins`). */
   fromFruit: number;
@@ -47,12 +52,15 @@ export type CoinBalance = {
 };
 
 /**
- * A member's coins. `player.coins` is what their events earned (kudos, garden fruit; later quests
- * and sprees), of which `fruitCoins` came from fruit and `spreeCoins` from sprees; and every level above 1 earned 10.
+ * A member's coins. `player.coins` is what their events earned (kudos claimed at the tree, fruit,
+ * quests and sprees), of which `fruitCoins` came from fruit (garden fruit picked and tree fruit sold),
+ * `questCoins` from quests and `spreeCoins` from sprees; and every level above 1 earned 10. `waiting`
+ * is what waits at the tree (convex/offerings.ts `waiting`), shown apart and never spendable.
  */
 export function coinBalance(
   player: { coins?: number; fruitCoins?: number; questCoins?: number; spreeCoins?: number; level: number },
   member: { coinsSpent?: number; coinsAdjusted?: number } = {},
+  waiting = 0,
 ): CoinBalance {
   const fromFruit = player.fruitCoins ?? 0;
   const fromQuests = player.questCoins ?? 0;
@@ -63,6 +71,7 @@ export function coinBalance(
   const adjusted = member.coinsAdjusted ?? 0;
   return {
     balance: fromKudos + fromFruit + fromQuests + fromSprees + fromLevels - spent + adjusted,
+    waiting,
     fromKudos,
     fromFruit,
     fromQuests,
