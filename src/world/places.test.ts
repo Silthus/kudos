@@ -25,8 +25,18 @@ describe("which places are on the map", () => {
       playground: "The sandbox",
       offering: "The offering stone",
       elder: "The elder hog",
+      homes: "The homes",
+      canopy: "The canopy",
     });
     for (const item of navItems(everything)) expect(names).toHaveProperty(item.id);
+  });
+
+  test("a teammate's garden or home is its place with whose it is (#160)", () => {
+    const routable = routablePlaces(visiblePlaces(navItems({ ...member, gameShown: true })));
+    expect(placeForPath("/homes/m7", routable)).toMatchObject({ place: { id: "homes" }, memberId: "m7" });
+    expect(placeForPath("/homes", routable)).toEqual({ place: expect.objectContaining({ id: "homes" }) });
+    expect(placeForPath("/garden/m8", routable)).toMatchObject({ place: { id: "garden" }, memberId: "m8" });
+    expect(placeForPath("/canopy", routable)?.place.id).toBe("canopy");
   });
 
   test("a plain member sees the places of the always-on pages", () => {

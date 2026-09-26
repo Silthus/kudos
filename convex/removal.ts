@@ -69,6 +69,28 @@ const PHASES: Phase[] = [
     rows: (ctx, m, n) => ctx.db.query("dailyQuestCompletions").withIndex("by_member_day", (q) => q.eq("memberId", m._id)).take(n),
     clear: remove,
   },
+  // Their home on the tree (#160): the lanterns they left in others' guestbooks, their own guestbook, then the home.
+  {
+    name: "homeLanternsLeft",
+    batch: 500,
+    rows: (ctx, m, n) => ctx.db.query("homeLanterns").withIndex("by_by", (q) => q.eq("by", m._id)).take(n),
+    clear: remove,
+  },
+  {
+    name: "homeGuestbook",
+    batch: 500,
+    rows: async (ctx, m, n) => {
+      const home = await ctx.db.query("homes").withIndex("by_member", (q) => q.eq("memberId", m._id)).first();
+      return home ? await ctx.db.query("homeLanterns").withIndex("by_home_at", (q) => q.eq("homeId", home._id)).take(n) : [];
+    },
+    clear: remove,
+  },
+  {
+    name: "homes",
+    batch: 10,
+    rows: (ctx, m, n) => ctx.db.query("homes").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(n),
+    clear: remove,
+  },
   {
     name: "kudosGiven",
     batch: 10,

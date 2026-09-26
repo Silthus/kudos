@@ -5,7 +5,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { addXp, gameOn, gameShownTo, playerOf, skillsOf } from "./game";
 import { Gains } from "./gains";
 import { requireViewer } from "./lib/access";
-import { canSpend, coinBalance } from "./lib/coins";
+import { coinBalance } from "./lib/coins";
 import {
   assignPlots,
   defaultSpecies,
@@ -34,6 +34,7 @@ import { hasNote, RECIPROCAL_WINDOW_MS, weekKeyOfDay } from "./lib/quests";
 import { hasSkill, type Allocation } from "./lib/skills";
 import { addDays, dayKeyFor, parseToday, startOfDayUtc, workspaceNow } from "./lib/time";
 import { goldenLeaves } from "./superKudos";
+import { spendCoins } from "./wallet";
 import { ALL_BUCKET } from "./lib/buckets";
 
 /**
@@ -353,9 +354,7 @@ export async function plantFor(
     if ((player.superSeeds ?? 0) < 1) throw new ConvexError("You have no Super seed. A heart fruit from the tree gives you one.");
     await ctx.db.patch(player._id, { superSeeds: player.superSeeds! - 1 });
   } else {
-    const { balance } = coinBalance(player, member);
-    if (!canSpend(balance, PLANT_COST)) throw new ConvexError(`A plant costs ${PLANT_COST} Hog coins; you have ${balance}.`);
-    await ctx.db.patch(member._id, { coinsSpent: (member.coinsSpent ?? 0) + PLANT_COST });
+    await spendCoins(ctx, member, player, PLANT_COST, "A plant");
   }
   // Seeded by the owner and the moment, never the teammate: others see the species.
   const chosen: SpeciesId = (species as SpeciesId | undefined) ?? defaultSpecies(`${member._id}:${now}`);

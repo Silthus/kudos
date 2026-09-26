@@ -4,10 +4,11 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { gameOn, gameShownTo, playerOf, skillsOf } from "./game";
 import { requireViewer } from "./lib/access";
 import { ALL_BUCKET } from "./lib/buckets";
-import { canSpend, coinBalance, WALLET_LEVEL } from "./lib/coins";
+import { coinBalance, WALLET_LEVEL } from "./lib/coins";
 import { fnv1a } from "./lib/random";
 import { BRANCHES, canTake, hasSkill, isSkillId, pointsOf, resetCost, SCOUT, SKILLS, takeBlockText } from "./lib/skills";
 import { sendGains } from "./gains";
+import { spendCoins } from "./wallet";
 import { addDays, parseToday, workspaceNow } from "./lib/time";
 
 /**
@@ -46,9 +47,7 @@ export async function resetSkills(ctx: MutationCtx, memberId: Id<"members">, exp
   if (blocker) throw new ConvexError(blocker);
   if (player.level < WALLET_LEVEL) throw new ConvexError("A reset costs Hog coins; your wallet opens at level 3.");
   if (expectedCost !== cost) throw new ConvexError(`The reset price is now ${cost} Hog coins. Check it and try again.`);
-  const { balance } = coinBalance(player, member);
-  if (!canSpend(balance, cost)) throw new ConvexError(`A reset costs ${cost} Hog coins; you have ${balance}.`);
-  await ctx.db.patch(member._id, { coinsSpent: (member.coinsSpent ?? 0) + cost });
+  await spendCoins(ctx, member, player, cost, "A reset");
   await clearSkillTree(ctx, player, cost, workspaceNow(workspace));
   return { cost };
 }

@@ -22,13 +22,14 @@ import { gameOn, gameShownTo, playerOf, skillsOf } from "./game";
 import { itemsBought } from "./items";
 import { findMember } from "./engine";
 import { superKudosUsed } from "./superKudos";
+import { cosmeticLookValidator } from "./schema";
 
 /**
  * Cosmetics (#98, #55 §G5, §G12): what a member owns and wears, their kudos emoji, and the profile
  * others see. Buying goes through the Store (`lib/items.ts`); wearing is free and instant.
  */
 
-export const lookValidator = v.object({ frame: v.optional(v.string()), banner: v.optional(v.string()), sticker: v.optional(v.string()) });
+export const lookValidator = cosmeticLookValidator;
 
 /**
  * What a member wears, as others see it: only while the game is on and neither they nor the viewer

@@ -21,6 +21,8 @@ import { simulatorSummaryValidator } from "./schema";
 import { lapseDue } from "./sprees";
 import { autoPlantWorkspace, newWorldSeed } from "./tree";
 import { autoClaimWorkspace, claimWaiting } from "./offerings";
+import { settleHomes } from "./homes";
+import { HOME_STAGE_BY_ID } from "./lib/homes";
 import { getViewer, simulatorOf } from "./lib/access";
 import { BOOST_EFFECT, BOOST_NAME } from "./lib/boosts";
 import { coinBalance, COINS } from "./lib/coins";
@@ -250,7 +252,7 @@ export const wipeExpired = internalMutation({
 /**
  * Moves a simulator's clock to the morning `days` later and runs what those days would have: the
  * allowance is back (it's per workspace day), sprees whose window ran out close, plants that grew
- * say so, a new quest week and today's daily quest are there, a bonus day starts. What changed, as
+ * say so, homes finish their stage, a new quest week and today's daily quest are there, a bonus day starts. What changed, as
  * lines for the visitor.
  */
 async function advanceClock(ctx: MutationCtx, workspace: Doc<"workspaces">, member: Doc<"members">, days: number) {
@@ -273,6 +275,9 @@ async function advanceClock(ctx: MutationCtx, workspace: Doc<"workspaces">, memb
   if (gameShownTo(moved, member)) {
     for (const g of await lookAtGrowth(ctx, moved, member._id)) changes.push(`Your plant for ${g.teammate} grew: ${g.stage}.`);
   }
+  // Homes whose stage's days went by are built (the scheduled look waits on the wall clock, #160).
+  const built = (await settleHomes(ctx, moved)).get(member._id);
+  if (built) changes.push(`Your home is built: ${HOME_STAGE_BY_ID[built].name}.`);
   // Seeds nobody planted in 30 simulated days plant themselves (the cron runs on the wall clock).
   const planted = await autoPlantWorkspace(ctx, moved);
   if (planted > 0) changes.push(planted === 1 ? "1 seed planted itself at the Ancient Tree." : `${planted} seeds planted themselves at the Ancient Tree.`);

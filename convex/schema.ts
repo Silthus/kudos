@@ -60,6 +60,17 @@ const personValidator = v.object({ slackUserId: v.string(), name: v.string() });
 
 /** A tree fruit's kind (lib/fruits.ts `FruitId`). */
 export const fruitIdValidator = v.union(v.literal("sun"), v.literal("moon"), v.literal("amber"), v.literal("star"), v.literal("heart"));
+/** What a member wears from the Store (#98, cosmetics.ts): a frame, a banner, a hoggie sticker (lib/cosmetics.ts keys). */
+export const cosmeticLookValidator = v.object({ frame: v.optional(v.string()), banner: v.optional(v.string()), sticker: v.optional(v.string()) });
+/** A home's build stage (#160, lib/homes.ts `HomeStageId`). */
+export const homeStageValidator = v.union(
+  v.literal("sky"),
+  v.literal("planks"),
+  v.literal("leaf_hut"),
+  v.literal("timber_house"),
+  v.literal("lantern_lodge"),
+  v.literal("canopy_manor"),
+);
 
 /**
  * Something a member discovered or gained, told in a DM (#55 §G13; rendered by `lib/gains.ts`).
@@ -96,6 +107,8 @@ export const gainValidator = v.union(
   // #157: offerings nobody claimed for 30 days claimed themselves: `month` is the oldest one's (in the
   // workspace's timezone), `coins` only once the wallet is open, and the fruit they dropped.
   v.object({ kind: v.literal("offering_claimed"), month: v.string(), coins: v.optional(v.number()), fruits: v.array(fruitIdValidator) }),
+  // #160: the member's home finished building `stage` (lib/homes.ts HOME_STAGES).
+  v.object({ kind: v.literal("home_stage"), stage: homeStageValidator }),
 );
 
 /** A Super kudos note on a DM (#98): the receiver's celebration, or the giver's "sent" or how-to. */
@@ -336,7 +349,7 @@ export default defineSchema({
     coinsAdjusted: v.optional(v.number()), // Σ ± balance adjustments in Hog coins; undefined = 0
     gameHidden: v.optional(v.boolean()), // "Hide the game": no game UI or DMs for them; XP keeps accruing
     // The cosmetics they wear (#98, lib/cosmetics.ts): a cosmetic item key per slot, each one they bought.
-    look: v.optional(v.object({ frame: v.optional(v.string()), banner: v.optional(v.string()), sticker: v.optional(v.string()) })),
+    look: v.optional(cosmeticLookValidator),
     adminRemovedBy: v.optional(v.id("members")), // who last removed this member's admin role (four-eyes rule)
     // The elder hog's chain (#159, convex/tutorial.ts, lib/tutorial.ts): when each step was done, in
     // order (the step on is the next one), and how many have paid their 5 Hog coins. On the member,
@@ -964,6 +977,40 @@ export default defineSchema({
     .index("by_workspace_seenAt", ["workspaceId", "seenAt"])
     .index("by_workspace_member_session", ["workspaceId", "memberId", "sessionId"])
     .index("by_seenAt", ["seenAt"]),
+
+  // A member's home on the tree (#160, homes.ts, lib/homes.ts): one branch plot (`plot`, numbered as
+  // lib/tree.ts `layout().homes`) per member and one member per plot. `stage` is the last stage
+  // finished; `buildingTo` the one under way since `stageStartedAt` (workspace clock), finished once its
+  // days have passed (read lazily; `homes.ts settle` writes it and tells the owner, once). State, never replayed.
+  homes: defineTable({
+    workspaceId: v.id("workspaces"),
+    memberId: v.id("members"),
+    // The owner's name and whether they're out of view (deactivated, a bot, hiding the game), kept in
+    // step by homes.ts `syncHomeOwner`, so drawing the ring reads no members.
+    name: v.string(),
+    hidden: v.optional(v.literal(true)),
+    plot: v.number(),
+    stage: homeStageValidator,
+    stageStartedAt: v.number(),
+    buildingTo: v.optional(homeStageValidator),
+  })
+    .index("by_member", ["memberId"])
+    .index("by_workspace_plot", ["workspaceId", "plot"]),
+
+  // A lantern a visitor left in a home's guestbook (#160): a plain-text note, one per visitor per home
+  // per workspace week (`week`: lib/quests.ts weekKeyOfDay); the latest GUESTBOOK_MAX are kept.
+  homeLanterns: defineTable({
+    workspaceId: v.id("workspaces"),
+    homeId: v.id("homes"),
+    by: v.id("members"),
+    note: v.string(),
+    at: v.number(),
+    week: v.string(),
+  })
+    .index("by_home_at", ["homeId", "at"])
+    .index("by_home_by_at", ["homeId", "by", "at"])
+    .index("by_by", ["by"])
+    .index("by_workspace", ["workspaceId"]),
 
   // The Ancient Tree (#154, tree.ts, lib/tree.ts): one per workspace, created at the seed moment (its
   // first planting). `sap` counts its planted seeds (rebuilt from `seeds`), `fuel` what givers claimed

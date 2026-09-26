@@ -62,6 +62,8 @@ export type WorldInput = {
   planted: boolean;
   /** The places whose pages this viewer has: only these stand, where their district is open. */
   standing: string[];
+  /** Home plots with a home on them (#160): each glows in a pool of warm light. */
+  litPlots?: number[];
 };
 
 export type World = Grid & {
@@ -215,7 +217,7 @@ export const CANOPY = { half: 21, back: 64, front: 4 };
 
 const tileKey = (x: number, y: number) => (x + 65536) * 131072 + (y + 65536);
 
-export function buildWorld({ seed, layout, planted, standing }: WorldInput): World {
+export function buildWorld({ seed, layout, planted, standing, litPlots = [] }: WorldInput): World {
   const stage = layout.stage;
   const open = new Map(layout.districts.map((d) => [d.id, d.open]));
   const sites: Site[] = settle(layout).map((s) => {
@@ -360,8 +362,9 @@ export function buildWorld({ seed, layout, planted, standing }: WorldInput): Wor
       } else if (!byPath && r > 0.86) decor.push({ kind: "flowers", tile: { x, y } });
     }
 
-  // Pools of light: under the tree, round each lantern post, and in front of each open place.
+  // Pools of light: under the tree, round each lantern post, in front of each open place, and round every home.
   const lights = [
+    ...litPlots.flatMap((p) => (homes[p] ? [{ x: homes[p]!.x, y: homes[p]!.y, r: 2.4 }] : [])),
     ...(planted ? [{ x: 0, y: 0, r: Math.max(3, lawnRadius * 0.75) + 1 }] : []),
     ...decor.filter((d) => d.kind === "lantern").map((d) => ({ x: d.tile.x, y: d.tile.y, r: 2.2 })),
     ...places.map((p) => ({ x: p.doors[0].x, y: p.doors[0].y, r: 2.6 })),

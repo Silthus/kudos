@@ -3,6 +3,7 @@ import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query, type QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { gameShownTo, playerOf } from "./game";
+import { hasHome } from "./homes";
 import { requireViewer, type Viewer } from "./lib/access";
 import {
   chunkKey,
@@ -92,11 +93,13 @@ const hogValidator = v.object({
   facing: facingValidator,
   animation: hogAnimationValidator,
   look: lookValidator,
-  hasHome: v.boolean(), // "Visit their home": homes arrive with #160
+  hasHome: v.boolean(), // "Visit their home" (#160)
   updatedAt: v.number(),
 });
 
-function hogOf(row: Doc<"worldPresence">) {
+async function hogOf(ctx: QueryCtx, row: Doc<"worldPresence">, homes = new Map<Id<"members">, Promise<boolean>>()) {
+  // One read per member, however many of their sessions are in view.
+  if (!homes.has(row.memberId)) homes.set(row.memberId, hasHome(ctx, row.memberId));
   return {
     id: row._id,
     memberId: row.memberId,
@@ -107,7 +110,7 @@ function hogOf(row: Doc<"worldPresence">) {
     facing: row.facing,
     animation: row.animation,
     look: row.look,
-    hasHome: false,
+    hasHome: await homes.get(row.memberId)!,
     updatedAt: row.updatedAt,
   };
 }
@@ -254,13 +257,14 @@ export const nearby = query({
     const since = onlineSince(viewer.workspace, args.now);
     const sessionId = await sessionOf(ctx);
     const hogs = [];
+    const homes = new Map<Id<"members">, Promise<boolean>>();
     for (const chunk of new Set(args.chunks)) {
       const rows = await ctx.db
         .query("worldPresence")
         .withIndex("by_workspace_chunk_updatedAt", (q) => q.eq("workspaceId", viewer.workspace._id).eq("chunk", chunk).gte("updatedAt", since))
         .order("desc")
         .take(PER_CHUNK);
-      for (const row of rows) if (!(row.memberId === viewer.member._id && row.sessionId === sessionId)) hogs.push(hogOf(row));
+      for (const row of rows) if (!(row.memberId === viewer.member._id && row.sessionId === sessionId)) hogs.push(await hogOf(ctx, row, homes));
     }
     return hogs;
   },

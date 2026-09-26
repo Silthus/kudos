@@ -18,6 +18,7 @@ import { backfilledRollups, memberBucket } from "./lib/stats";
 import { markBackfilled, mirrorBackfillMarker } from "./lib/rebuild";
 import { questBoard, questsOn } from "./quests";
 import { gameOn, gameShownTo, gameView, playerOf } from "./game";
+import { syncHomeOwner } from "./homes";
 import { gameBlocks, number } from "./lib/gameBlocks";
 import { newWorldSeed, treeView } from "./tree";
 import { treeBlocks, treeSummaryText } from "./lib/treeView";
@@ -250,6 +251,9 @@ export const upsertSlackUsers = internalMutation({
       };
       if (existing) {
         await ctx.db.patch(existing._id, profile);
+        // Their home on the tree shows their name, and goes out of view when they leave (#160).
+        const workspace = await ctx.db.get(workspaceId);
+        if (workspace) await syncHomeOwner(ctx, workspace, (await ctx.db.get(existing._id))!);
       } else {
         await ctx.db.insert("members", {
           workspaceId,

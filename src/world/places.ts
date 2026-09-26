@@ -15,6 +15,8 @@ import { place as admin } from "./places/admin";
 import { place as playground } from "./places/playground";
 import { place as offering } from "./places/offering";
 import { place as elder } from "./places/elder";
+import { place as homes } from "./places/homes";
+import { place as canopy } from "./places/canopy";
 
 /**
  * The places of the world (#126 "The world"): every page is a place you walk to, and arriving opens
@@ -66,7 +68,7 @@ export type PlaceDef = {
   nameTag?: true;
 };
 
-export const PLACES: PlaceDef[] = [garden, me, offering, elder, quests, leaderboard, compare, discoveries, store, skills, analytics, admin, playground];
+export const PLACES: PlaceDef[] = [garden, me, offering, elder, quests, leaderboard, compare, discoveries, store, skills, homes, canopy, analytics, admin, playground];
 
 /** A place on this viewer's map: its art plus its page's link, path and badge from the nav. */
 /** `hint`: the elder hog's chain hasn't reached it yet (#159): it stands dim, saying what opens it, and still leads there. */
@@ -100,11 +102,14 @@ export function placesOnMap(standing: PlaceDef[], routable: Place[]): Place[] {
   });
 }
 
-/** Where a URL takes you: its place, and for `/garden/:memberId` whose bed. Null for the map itself. */
+/** The places a teammate has one of, at `/<place>/:memberId`: their garden bed (#129), their home (#160). */
+const VISITABLE = ["garden", "homes"];
+
+/** Where a URL takes you: its place, and for `/garden/:memberId` or `/homes/:memberId` whose. Null for the map itself. */
 export function placeForPath(pathname: string, places: Place[]): { place: Place; memberId?: string } | null {
   const place = places.find((p) => isActive({ path: p.path } as NavItem, pathname));
   if (!place) return null;
-  const member = place.id === "garden" ? /^\/garden\/([^/]+)/i.exec(pathname)?.[1] : undefined;
+  const member = VISITABLE.includes(place.id) ? new RegExp(`^/${place.id}/([^/]+)`, "i").exec(pathname)?.[1] : undefined;
   return member ? { place, memberId: decodeURIComponent(member) } : { place };
 }
 

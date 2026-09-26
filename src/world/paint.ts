@@ -26,12 +26,13 @@ export type Pixels = { width: number; height: number; data: Uint8ClampedArray };
 export type ArtRect = { x: number; y: number; width: number; height: number };
 
 /**
- * What grows on the terrace: the neighbours' beds (each with its plant, a sprout if none is given)
- * and your plot tiles (`world.plots`, in planting order): a key bed with its plant, or null where
- * the lawn is still lawn (#129, `gardenWorld.ts`). `dimmed`: the places the viewer's tutorial hasn't
+ * What members made stand in the world: on the terrace, the neighbours' beds (each with its plant, a
+ * sprout if none is given) and your plot tiles (`world.plots`, in planting order): a key bed with its
+ * plant, or null where the lawn is still lawn (#129, `gardenWorld.ts`); on the homes ring, each home
+ * on its plot's tile (#160, `homes.ts ringHomes`). `dimmed`: the places the viewer's tutorial hasn't
  * reached yet, drawn dim (#159). `key` names the drawing, so it repaints on a change.
  */
-export type WorldFurniture = { beds: { tile: Tile; sprite?: PixelMap }[]; plots: (PixelMap | null)[]; dimmed?: string[]; key?: string };
+export type WorldFurniture = { beds: { tile: Tile; sprite?: PixelMap }[]; plots: (PixelMap | null)[]; homes?: { tile: Tile; sprite: PixelMap }[]; dimmed?: string[]; key?: string };
 
 const rgbCache = new Map<string, [number, number, number]>();
 function rgb(hex: string): [number, number, number] {
@@ -485,6 +486,7 @@ function standing(world: World, furniture: WorldFurniture): Drawable[] {
   furniture.plots.slice(0, world.plots.length).forEach((m, i) => {
     if (m) items.push({ depth: world.plots[i].x + world.plots[i].y, sprite: m, foot: onTile(world.plots[i], 5) });
   });
+  for (const home of furniture.homes ?? []) items.push({ depth: home.tile.x + home.tile.y, sprite: home.sprite, foot: onTile(home.tile) });
   for (const p of world.places) {
     const { x, y, w, h } = p.footprint;
     const depth = p.spriteAt ? p.spriteAt.x + p.spriteAt.y : x + w - 1 + y + h - 1;

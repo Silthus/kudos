@@ -136,7 +136,8 @@ export function Presence({
   /** Your hog now: where it stands (a tile), which way it faces and what it's doing. */
   read: () => Beat | null;
   /** The teammates who may wander the shared demo (the neighbours' ring, closest first). */
-  wanderers: { memberId: string; name: string }[];
+  /** `hasHome`: they have a home on the ring (#160), so their card offers a visit. */
+  wanderers: { memberId: string; name: string; hasHome?: boolean }[];
   /** The workspace's day: the wanderers' rounds are the day's. */
   today: string;
   /** A bonus day: everyone wears the party hat (#134). */
@@ -176,7 +177,7 @@ export function Presence({
       look: wearing(row.look),
       row,
     })),
-    ...rounds.map((round) => ({ id: `npc:${round.memberId}`, who: { memberId: round.memberId, name: round.name, title: null, hasHome: false, npc: true }, look: wearing(round.look), round })),
+    ...rounds.map((round) => ({ id: `npc:${round.memberId}`, who: { memberId: round.memberId, name: round.name, title: null, hasHome: !!team.find((t) => t.memberId === round.memberId)?.hasHome, npc: true }, look: wearing(round.look), round })),
   ];
 
   // Each hog's element, handle and glide, by id.

@@ -1,4 +1,5 @@
 import { getAuthSessionId } from "@convex-dev/auth/server";
+import { syncHomeOwner } from "./homes";
 import { v, type Infer } from "convex/values";
 import { internalMutation, internalQuery, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -786,6 +787,8 @@ export const setHidden = mutation({
   handler: async (ctx, { hidden }) => {
     const { member, workspace } = await requireViewer(ctx);
     await ctx.db.patch(member._id, { gameHidden: hidden || undefined });
+    // Their home on the ring goes out of view with the game, and comes back with it (#160).
+    await syncHomeOwner(ctx, workspace, (await ctx.db.get(member._id))!);
     // Hidden, they leave the shared world at once, not a minute later (#155).
     if (hidden) await leaveWorld(ctx, workspace, member._id, (await getAuthSessionId(ctx)) ?? "");
     return null;

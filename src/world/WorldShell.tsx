@@ -14,6 +14,8 @@ import { Camera, worldScale, type CameraHandle } from "./Camera";
 import { gardenPlots, plotCount, plotFrom, plotIndex, ringBeds, useGardenSway, type RingBed } from "./gardenWorld";
 import { Hog, HOG_FEET, HOG_SIZE, type HogHandle } from "./Hog";
 import { Hud } from "./Hud";
+import { HomeRingContext, useClockNow } from "./homeRing";
+import { homeDoor, onHomeSprite, ringHomes } from "./homes";
 import { Life } from "./Life";
 import { arrivalFor, skyFor, withSprout } from "./life";
 import { findPath, sameTile, stepFor, tileAt, tileCentre, type Point, type Tile } from "./iso";
@@ -45,6 +47,9 @@ import { WorldCanvas, Z, type WorldCanvasHandle } from "./WorldCanvas";
  * The seed planted and districts opening while you're here are moments: a toast, the seed sprouting,
  * a district fading in.
  *
+ * Members' homes stand on the homes ring (#160, `homes.ts`): a click on one walks you to its door and
+ * opens it (`/homes/:memberId`).
+ *
  * Everyone else in the world walks it too (#158, `Presence.tsx`): your hedgehog's heartbeat tells
  * them where you are, and theirs show round you. You reappear where you left (`api.presence.mine`).
  *
@@ -74,6 +79,8 @@ function useViewportWidth() {
 }
 
 const TEAMMATE_GARDEN = "A teammate's garden";
+const TEAMMATE_HOME = "A teammate's home";
+
 
 /** A teammate's garden from a link, when they aren't in your ring: their name for the title. */
 function VisitedTitle({ memberId }: { memberId: string }) {
@@ -162,12 +169,16 @@ export function WorldShell() {
   const standing = [...shown.map((p) => p.id), ...(target && !shown.some((p) => p.id === target.place.id) ? [target.place.id] : [])];
   const input = trunk ?? { seed: 0, layout: PENDING_LAYOUT, planted: false };
   // What the world is built from, and nothing else: not growth, which rises with every thoughtful kudos in the company.
-  const { stage: treeStage, rings, districts, homes, ruins } = input.layout;
-  const worldKey = `${input.seed}:${input.planted}:${treeStage}:${rings}:${JSON.stringify(districts)}:${homes.length}:${ruins.length}:${standing.join()}`;
+  const { stage: treeStage, rings, districts, homes: plotTiles, ruins } = input.layout;
+  // The homes on the ring (#160): their plots are lit, and each stands on its plot.
+  const homesNow = useClockNow();
+  const homeList = useQuery(api.homes.all, gameShown ? { now: homesNow } : "skip");
+  const litPlots = (homeList ?? []).map((h) => h.plot);
+  const worldKey = `${input.seed}:${input.planted}:${treeStage}:${rings}:${JSON.stringify(districts)}:${plotTiles.length}:${ruins.length}:${standing.join()}:${litPlots.join()}`;
   // What a closed district waits on (the peak growth opens districts).
   const peakGrowth = tree?.peakGrowth ?? 0;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const world = useMemo(() => buildWorld({ ...input, standing }), [worldKey]);
+  const world = useMemo(() => buildWorld({ ...input, standing, litPlots }), [worldKey]);
   // The places standing on your map, where the tree put them, with their links and badges.
   // Where you are in the elder hog's chain (#159): places it hasn't reached stand dim, saying what opens them.
   const tutorial = useTutorial();
@@ -194,12 +205,17 @@ export function WorldShell() {
     [ring, sproutKey, world.beds],
   );
   const sway = useGardenSway(garden, today, still);
+  const homes = useMemo(() => ringHomes(world.homes, homeList ?? []), [world.homes, homeList]);
+  // The demo's wandering teammates (#158): their cards offer their home when they have one.
+  const wanderers = useMemo(() => (ring ?? []).map((n) => ({ ...n, hasHome: homes.some((h) => h.memberId === n.memberId) })), [ring, homes]);
+  const homesKey = homes.map((h) => `${h.plot}:${h.stage}:${h.building}`).join();
+  const homeRing = useMemo(() => ({ plots: world.homes, seed: world.seed }), [world.homes, world.seed]);
   const furniture = useMemo(() => {
     const plotSprites = gardenPlots(garden, { today, sway });
     // Named by what's drawn, so a new balance or harvest doesn't repaint the world.
-    return { beds: neighbours, plots: plotSprites, dimmed, key: `${plotSprites.map((p) => p?.rows.join() ?? "").join("|")}|${JSON.stringify(ring ?? null)}|${sproutKey}|${dimKey}` };
+    return { beds: neighbours, plots: plotSprites, dimmed, homes, key: `${plotSprites.map((p) => p?.rows.join() ?? "").join("|")}|${JSON.stringify(ring ?? null)}|${sproutKey}|${dimKey}|${homesKey}` };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [garden, ring, neighbours, today, sway, sproutKey, dimKey]);
+  }, [garden, ring, neighbours, today, sway, sproutKey, dimKey, homesKey]);
   const plots = plotCount(garden);
   // Golden hour, the lanterns and the party hat on a bonus day or booster (#134; the HUD hangs the lanterns).
   const sky = skyFor(useQuery(api.boosts.banner, { today }));
@@ -211,7 +227,9 @@ export function WorldShell() {
   // `/garden?plot=2`: that plot, if it's one of yours. Its link waits for your garden to load, so
   // it lands on the plot rather than at the gate and then walks.
   const plotAsked = target?.place.id === "garden" && !target.memberId && new URLSearchParams(location.search).has("plot");
-  const plotPending = (plotAsked && gameShown && garden === undefined) || treePending;
+  // `/homes/:memberId`: their home's door is known once the ring has loaded.
+  const homePending = target?.place.id === "homes" && !!target.memberId && gameShown && homeList === undefined;
+  const plotPending = (plotAsked && gameShown && garden === undefined) || homePending || treePending;
   const plotParam = plotAsked ? plotFrom(location.search, plots) : null;
 
   // The tree's moments while you're here (#156): the seed planted, districts opening. Arriving,
@@ -248,8 +266,8 @@ export function WorldShell() {
   const presence = useRef<PresenceHandle>(null);
 
   // Everything the walk loop and key handlers read, fresh each render without restarting them.
-  const live = useRef({ onMap, target, closedTarget, neighbours, scale, still, gameShown, navigate, world, plots, plotParam, peakGrowth });
-  live.current = { onMap, target, closedTarget, neighbours, scale, still, gameShown, navigate, world, plots, plotParam, peakGrowth };
+  const live = useRef({ onMap, target, closedTarget, neighbours, homes, scale, still, gameShown, navigate, world, plots, plotParam, peakGrowth });
+  live.current = { onMap, target, closedTarget, neighbours, homes, scale, still, gameShown, navigate, world, plots, plotParam, peakGrowth };
 
   const [arrived, setArrived] = useState<string | null>(null);
   const [where, setWhere] = useState("Base camp");
@@ -293,6 +311,8 @@ export function WorldShell() {
     if (door) return door.name;
     const bed = neighbours.find((b) => sameTile(b.tile, t));
     if (bed) return `${bed.name}'s bed`;
+    const home = live.current.homes.find((h) => Math.max(Math.abs(h.tile.x - t.x), Math.abs(h.tile.y - t.y)) <= 1);
+    if (home) return home.memberId === viewer.member._id ? "Your home" : `${home.name}'s home`;
     return nameOf(world, t, gameShown);
   };
 
@@ -425,8 +445,11 @@ export function WorldShell() {
 
   /** Where a URL's place is: its door nearest the hedgehog, a teammate's bed, one of your plots, or a closed district's outline. */
   const destination = (t: NonNullable<typeof target>, plot: number | null = null): Tile => {
-    const { neighbours, world, onMap, closedTarget } = live.current;
-    if (t.memberId) {
+    const { neighbours, homes, world, onMap, closedTarget } = live.current;
+    if (t.memberId && t.place.id === "homes") {
+      const home = homes.find((h) => h.memberId === t.memberId);
+      if (home) return homeDoor(home, world.walkable);
+    } else if (t.memberId) {
       const bed = neighbours.find((b) => b.memberId === t.memberId);
       if (bed) return bed.tile;
     }
@@ -612,6 +635,12 @@ export function WorldShell() {
         const w = mapWidth(p.sprite);
         return art.x >= foot.x - w / 2 && art.x <= foot.x + w / 2 && art.y >= foot.y - mapHeight(p.sprite) && art.y <= foot.y;
       });
+    // A home on the ring (#160), front-most first: its door, and in. The nearer of it and a building wins.
+    const home = [...homes].sort((a, b) => b.tile.x + b.tile.y - (a.tile.x + a.tile.y)).find((h) => onHomeSprite(h, art, tileCentre));
+    if (home && (!hit || home.tile.x + home.tile.y >= depth(hit) - 1)) {
+      abandon();
+      return navigate(`/homes/${home.memberId}`);
+    }
     if (hit) return goTo(hit);
     // The tree: whatever lies behind its canopy, a tap on it takes you to its foot, base camp.
     const tree = treeBox(world);
@@ -667,9 +696,13 @@ export function WorldShell() {
   const inset = windowOpen ? dockedWidth(vw) : 0;
   const bubbleAt = bubble && !windowOpen ? tileOnCanvas(bubble.tile) : null;
   const noticeShown = !bubble && !windowOpen ? notice : null;
-  const ringName = target?.memberId ? neighbours.find((b) => b.memberId === target.memberId)?.name : undefined;
+  const visitingGarden = !!target?.memberId && target.place.id === "garden";
+  const ringName = visitingGarden ? neighbours.find((b) => b.memberId === target!.memberId)?.name : undefined;
+  const homeOwner = target?.place.id === "homes" && target.memberId ? homes.find((h) => h.memberId === target.memberId) : undefined;
   const title = !target?.memberId ? (
     target?.place.name
+  ) : target.place.id === "homes" ? (
+    target.memberId === viewer.member._id ? "Your home" : homeOwner ? `${homeOwner.name}'s home` : TEAMMATE_HOME
   ) : ringName ? (
     `${ringName}'s garden`
   ) : (
@@ -719,7 +752,7 @@ export function WorldShell() {
           still={still}
           viewer={{ memberId: viewer.member._id, workspaceName: viewer.workspace.name, sharedDemo }}
           read={readHog}
-          wanderers={ring ?? []}
+          wanderers={wanderers}
           today={today}
           party={sky.party}
           windowOpen={windowOpen}
@@ -762,9 +795,11 @@ export function WorldShell() {
         scrollKey={location.pathname}
         returnFocus={() => document.querySelector<HTMLElement>("nav[aria-label='Places'] button")}
       >
-        <ErrorBoundary resetKey={location.pathname}>{closedTarget ? <NotOpen site={closedTarget} peakGrowth={peakGrowth} /> : <Outlet />}</ErrorBoundary>
+        <ErrorBoundary resetKey={location.pathname}>
+          <HomeRingContext.Provider value={homeRing}>{closedTarget ? <NotOpen site={closedTarget} peakGrowth={peakGrowth} /> : <Outlet />}</HomeRingContext.Provider>
+        </ErrorBoundary>
       </Window>
-      {target?.memberId && !ringName && (
+      {visitingGarden && target?.memberId && !ringName && (
         <ErrorBoundary resetKey={target.memberId} fallback={null}>
           <AskAhead memberId={target.memberId} />
         </ErrorBoundary>

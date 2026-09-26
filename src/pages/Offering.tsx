@@ -9,7 +9,7 @@ import { HogCoin } from "@/components/HogCoin";
 import { Button, Card, Empty, PageSkeleton } from "@/components/ui";
 import { CoinsToWallet } from "@/world/CoinsToWallet";
 import { offeringStone } from "@/world/places/offering";
-import { pixelRuns, type PixelMap } from "@/world/pixels";
+import { PixelArt as Pixels } from "@/world/PixelArt";
 import { treeSprite } from "@/world/tree/sprite";
 import { FruitArt } from "@/world/FruitArt";
 
@@ -27,19 +27,6 @@ import { FruitArt } from "@/world/FruitArt";
 
 const plural = (n: number, one: string, many: string) => `${n.toLocaleString("en-US")} ${n === 1 ? one : many}`;
 const errorText = (e: unknown) => (e instanceof ConvexError ? String(e.data) : "Something went wrong. Try again.");
-
-/** A pixel map as crisp SVG, scaled to fit its box. */
-function Pixels({ map, className, label }: { map: PixelMap; className?: string; label?: string }) {
-  const runs = useMemo(() => pixelRuns(map), [map]);
-  const w = map.rows[0]?.length ?? 0;
-  return (
-    <svg viewBox={`0 0 ${w} ${map.rows.length}`} shapeRendering="crispEdges" className={className} role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : true}>
-      {runs.map((p) => (
-        <rect key={`${p.x},${p.y}`} x={p.x} y={p.y} width={p.w} height={1} fill={p.fill} />
-      ))}
-    </svg>
-  );
-}
 
 type Moment = { id: number; kind: "claim" | "plant"; seeds: number };
 

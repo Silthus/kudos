@@ -2,6 +2,7 @@ import type { Infer } from "convex/values";
 import type { gainValidator } from "../schema";
 import { COINS, WALLET_LEVEL } from "./coins";
 import { FRUITS, type FruitId } from "./fruits";
+import { HOME_STAGE_BY_ID, nextHomeStage } from "./homes";
 import { joinNames, RARITIES, RARITY_SLACK_BADGE, type Rarity } from "./messages";
 import { escapeMrkdwn } from "./slack";
 import { titleForLevel } from "./xp";
@@ -147,6 +148,13 @@ function parts(gain: Gain, audience: Audience, link: LinkTo): Parts {
         context: links(to("/offering", "Visit the offering stone")),
       };
     }
+    case "home_stage":
+      return {
+        icon: "🏡",
+        title: `Your home is built: ${HOME_STAGE_BY_ID[gain.stage].name}`,
+        body: nextHomeStage(gain.stage) ? "Build its next stage when you're ready." : "The last stage: the finest home on the tree.",
+        context: links(to("/homes", "Your home")),
+      };
     case "plant_stage": {
       const name = safe(gain.stage, audience);
       const stage = gain.stage === "Ancient" ? "an Ancient plant" : `${article(gain.stage)} ${name}`;
@@ -212,6 +220,7 @@ const LABELS: [Gain["kind"], string][] = [
   ["skill", "New skill"],
   ["spree_tier", "Spree"],
   ["plant_stage", "Garden"],
+  ["home_stage", "Home"],
   ["item", "New item"],
   ["discovery", "New discovery"],
 ];

@@ -25,6 +25,7 @@ import type * as engine from "../engine.js";
 import type * as gains from "../gains.js";
 import type * as game from "../game.js";
 import type * as gardens from "../gardens.js";
+import type * as homes from "../homes.js";
 import type * as http from "../http.js";
 import type * as items from "../items.js";
 import type * as kudos from "../kudos.js";
@@ -40,6 +41,7 @@ import type * as lib_cosmetics from "../lib/cosmetics.js";
 import type * as lib_crewCatalogue from "../lib/crewCatalogue.js";
 import type * as lib_demoCalendar from "../lib/demoCalendar.js";
 import type * as lib_demoGame from "../lib/demoGame.js";
+import type * as lib_demoHomes from "../lib/demoHomes.js";
 import type * as lib_demoStore from "../lib/demoStore.js";
 import type * as lib_fruits from "../lib/fruits.js";
 import type * as lib_gains from "../lib/gains.js";
@@ -93,6 +95,7 @@ import type * as storeAdmin from "../storeAdmin.js";
 import type * as superKudos from "../superKudos.js";
 import type * as tree from "../tree.js";
 import type * as tutorial from "../tutorial.js";
+import type * as wallet from "../wallet.js";
 
 import type {
   ApiFromModules,
@@ -118,6 +121,7 @@ declare const fullApi: ApiFromModules<{
   gains: typeof gains;
   game: typeof game;
   gardens: typeof gardens;
+  homes: typeof homes;
   http: typeof http;
   items: typeof items;
   kudos: typeof kudos;
@@ -133,6 +137,7 @@ declare const fullApi: ApiFromModules<{
   "lib/crewCatalogue": typeof lib_crewCatalogue;
   "lib/demoCalendar": typeof lib_demoCalendar;
   "lib/demoGame": typeof lib_demoGame;
+  "lib/demoHomes": typeof lib_demoHomes;
   "lib/demoStore": typeof lib_demoStore;
   "lib/fruits": typeof lib_fruits;
   "lib/gains": typeof lib_gains;
@@ -186,6 +191,7 @@ declare const fullApi: ApiFromModules<{
   superKudos: typeof superKudos;
   tree: typeof tree;
   tutorial: typeof tutorial;
+  wallet: typeof wallet;
 }>;
 
 /**

@@ -116,7 +116,7 @@ describe("a hog's card", () => {
   test("with a home, a way to it too", () => {
     expect(cardFor({ ...ana, hasHome: true }, viewer).actions).toEqual([
       { label: "Visit their garden", to: "/garden/m2" },
-      { label: "Visit their home", to: "/home/m2" },
+      { label: "Visit their home", to: "/homes/m2" },
     ]);
   });
 
