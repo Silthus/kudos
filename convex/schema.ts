@@ -646,6 +646,8 @@ export default defineSchema({
       v.literal("failed"),
     ),
     error: v.optional(v.string()),
+    // When it was sent on its workspace's clock (a simulator's runs ahead, #171); absent on older rows.
+    at: v.optional(v.number()),
     // Messages the member had collected right after this one (absent on older rows).
     collected: v.optional(v.number()),
     // Quest messages only: the quest week as it stood right after this completion, for the DM.

@@ -364,10 +364,10 @@ export async function plantFor(
     plot: plot ?? freePlot(taken.map((p) => ({ plot: p }))),
     announced: 0,
   });
-  await sendingGains(ctx, workspace, async (gains) => announceGrowth(ctx, workspace, (await ctx.db.get(plantId))!, now, gains));
+  await sendingGains(ctx, workspace, async (gains) => announceGrowth(ctx, workspace, (await ctx.db.get(plantId))!, now, gains), now);
   // Only they learn it's for them (§G8): a DM like a received kudos, if receivers get DMs.
   if (workspace.notifyReceiver && gameShownTo(workspace, teammate)) {
-    const id = await plantedNotice(ctx, workspace, member, teammateId, chosen);
+    const id = await plantedNotice(ctx, workspace, member, teammateId, chosen, now);
     if (!workspace.isDemo) await ctx.scheduler.runAfter(0, internal.slack.deliverNotifications, { workspaceId: workspace._id, ids: [id] });
   }
   return plantId;
@@ -567,7 +567,7 @@ function speciesName(plant: Plant) {
  * The DM that tells a teammate a plant is grown for them (a `garden` notification, not a gain: it
  * reaches receivers who don't play yet too). Skipped in the demo, which has no Slack.
  */
-async function plantedNotice(ctx: MutationCtx, workspace: Doc<"workspaces">, owner: Doc<"members">, teammateId: Id<"members">, species: SpeciesId) {
+async function plantedNotice(ctx: MutationCtx, workspace: Doc<"workspaces">, owner: Doc<"members">, teammateId: Id<"members">, species: SpeciesId, now: number) {
   const name = SPECIES[species].name;
   const text = (who: string) => `${who} is growing a ${name} for you. It grows each week ${owner.name} thanks you thoughtfully, and only you can see it's yours.`;
   return await ctx.db.insert("notifications", {
@@ -580,6 +580,7 @@ async function plantedNotice(ctx: MutationCtx, workspace: Doc<"workspaces">, own
     slackText: text(`<@${owner.slackUserId}>`),
     webText: text(owner.name),
     delivery: workspace.isDemo ? "skipped" : "pending",
+    at: now,
     garden: { kind: "planted", species, owner: owner.name },
   });
 }
@@ -643,8 +644,8 @@ export const checkGrowth = internalMutation({
 });
 
 /** Runs a web action or a scheduled look that may gain something, and sends its one DM (lib/gains.ts). */
-async function sendingGains(ctx: MutationCtx, workspace: Doc<"workspaces">, run: (gains: Gains) => Promise<unknown>) {
-  const gains = new Gains(ctx, workspace);
+async function sendingGains(ctx: MutationCtx, workspace: Doc<"workspaces">, run: (gains: Gains) => Promise<unknown>, now = workspaceNow(workspace)) {
+  const gains = new Gains(ctx, workspace, now);
   await run(gains);
   const ids = await gains.flush();
   if (ids.length > 0 && !workspace.isDemo) await ctx.scheduler.runAfter(0, internal.slack.deliverNotifications, { workspaceId: workspace._id, ids });
@@ -766,7 +767,7 @@ export const useSunlamp = mutation({
     await ctx.db.patch(player._id, { sunlamps: player.sunlamps! - 1 });
     await ctx.db.patch(plantId, { sunlamps: [...(plant.sunlamps ?? []), today] });
     // It may have reached its next stage right away: tell the owner, as a watering would.
-    await sendingGains(ctx, workspace, async (gains) => announceGrowth(ctx, workspace, (await ctx.db.get(plantId))!, now, gains));
+    await sendingGains(ctx, workspace, async (gains) => announceGrowth(ctx, workspace, (await ctx.db.get(plantId))!, now, gains), now);
     return null;
   },
 });

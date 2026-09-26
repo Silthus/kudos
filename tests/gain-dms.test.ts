@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
+import { giveKudos } from "../convex/engine";
 import { Gains, sendGains } from "../convex/gains";
 import type { Gain } from "../convex/lib/gains";
 import { CATALOG, type Category } from "../convex/lib/messages";
@@ -340,5 +341,34 @@ describe("one DM per member per kudos event", () => {
     await playing(team.ana, 100, 3);
     await post("<@UBEN> :taco::taco: thanks for the thorough review"); // +20 XP, +2 coins, no level
     expect(dmsTo("UANA")).toEqual([]);
+  });
+});
+
+describe("a gain DM is timed like the kudos that earned it (#171 review)", () => {
+  test("a level-up in a kudos given at a set time carries that time, not the moment it was written", async () => {
+    await playing(team.ana, 29, 1);
+    const at = Date.now() + 3 * 60 * 60 * 1000;
+    const dm = await t.run(async (ctx) => {
+      const workspace = (await ctx.db.get(team.workspaceId))!;
+      await giveKudos(ctx, {
+        workspace,
+        giverSlackId: "UANA",
+        recipientSlackIds: ["UBEN"],
+        amountEach: 1,
+        channelId: "C1",
+        channelName: "general",
+        messageTs: "1.0001",
+        text: "<@UBEN> :taco: thanks for the thorough review",
+        noteWords: 4,
+        source: "message",
+        now: at,
+      });
+      const mine = await ctx.db
+        .query("notifications")
+        .withIndex("by_member", (q) => q.eq("memberId", team.ana))
+        .collect();
+      return mine.find((n) => n.category === "gains" && n.gains?.some((g) => g.kind === "level_up"));
+    });
+    expect(dm?.at).toBe(at);
   });
 });

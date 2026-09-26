@@ -17,9 +17,9 @@ import {
   eachDay,
   parseToday,
   periodValidator,
+  sentAt,
   startOfDayUtc,
   weekdayOfKey,
-  workspaceNow,
   type DayRange,
 } from "./lib/time";
 
@@ -299,9 +299,8 @@ export const overview = query({
           category: n.category,
           text: gameOnly(n) && gains.length > 0 ? gainsText(gains, "web") : n.webText,
           isNewDiscovery: n.isNewDiscovery,
-          // Sent at its creation, told on the workspace's clock like the kudos it's about (a
-          // simulator's runs ahead, #143): the offset now, so a DM from before a move of the clock reads newer.
-          at: workspaceNow(workspace, n._creationTime),
+          // Told on the workspace's clock like the kudos it's about (a simulator's runs ahead, #143, #171).
+          at: sentAt(n, workspace),
           ...(gains.length > 0 ? { gainLabel: gainLabel(gains), ...(gameOnly(n) ? {} : { gains: gains.map((g) => gainText(g, "web")) }) } : {}),
           ...(n.category === "garden" ? { gainLabel: "Garden" } : {}),
         };

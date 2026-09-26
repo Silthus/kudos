@@ -426,7 +426,7 @@ function Pattern({ icon, label, value, hint }: { icon: React.ReactNode; label: s
       </span>
       <span className="min-w-0 flex-1 text-sm text-ink/75">{label}</span>
       <span className="text-right">
-        <span className="block font-display text-base font-medium tabular">{value}</span>
+        <span className="block text-base font-sans font-bold tabular">{value}</span>
         {hint && <span className="block text-[11px] text-ink/70">{hint}</span>}
       </span>
     </li>

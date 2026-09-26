@@ -135,6 +135,7 @@ export function WorldShell() {
   const camera = useRef<CameraHandle>(null);
   const hog = useRef<HogHandle>(null);
   const hogEl = useRef<HTMLDivElement>(null);
+  const world = useRef<HTMLDivElement>(null);
 
   // Everything the walk loop and key handlers read, fresh each render without restarting them.
   const grid = walkGrid(onMap);
@@ -446,6 +447,22 @@ export function WorldShell() {
   };
 
   const close = () => navigate("/");
+  /**
+   * A click on the dimmed world beside the window: on a place's sign it walks there, closing the
+   * window on the way, as a link inside the window does (a sign is a door, #171). Anywhere else, and
+   * on the open place's own sign, it closes the window.
+   */
+  const clickBeside = ({ x, y }: Point) => {
+    const sign = [...(world.current?.querySelectorAll<HTMLElement>("[data-sign]") ?? [])].find((el) => {
+      const box = el.getBoundingClientRect();
+      return x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
+    });
+    const place = sign && onMap.find((p) => p.id === sign.dataset.sign);
+    // A teammate's garden isn't yours: your garden's sign walks you home.
+    const here = place && place.id === target?.place.id && !target.memberId;
+    navigate(place && !here ? place.to : "/");
+  };
+  const inset = windowOpen ? dockedWidth(vw) : 0;
   const bubbleAt = bubble && !windowOpen ? tileOnCanvas(bubble.tile) : null;
   const ringName = target?.memberId ? neighbours.find((b) => b.memberId === target.memberId)?.name : undefined;
   const title = !target?.memberId ? (
@@ -460,9 +477,9 @@ export function WorldShell() {
   );
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-dusk">
+    <div ref={world} className="fixed inset-0 overflow-hidden bg-dusk">
       <Sky golden={sky.golden} />
-      <Camera ref={camera} stage={{ width: CANVAS_W * scale, height: CANVAS_H * scale }} insetRight={windowOpen ? dockedWidth(vw) : 0} onTap={onTap}>
+      <Camera ref={camera} stage={{ width: CANVAS_W * scale, height: CANVAS_H * scale }} insetRight={inset} onTap={onTap}>
         <WorldCanvas places={onMap} furniture={furniture} scale={scale} still={still} onPlace={goTo} />
         <div ref={hogEl} className="pointer-events-none absolute left-0 top-0">
           <Hog ref={hog} still={still} accessory={sky.party ? "party" : undefined} />
@@ -484,11 +501,12 @@ export function WorldShell() {
           </div>
         )}
       </Camera>
-      <Hud places={shown} where={where} />
+      <Hud places={shown} where={where} insetRight={inset} />
       <Window
         open={windowOpen}
         title={title ?? ""}
         onClose={close}
+        onBackdropClick={clickBeside}
         scrollKey={location.pathname}
         returnFocus={() => document.querySelector<HTMLElement>("nav[aria-label='Places'] button")}
       >

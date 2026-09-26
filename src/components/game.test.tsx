@@ -51,6 +51,15 @@ test("a player sees their level, title and the next-level bar, and only the next
   expect(host.textContent).not.toContain("Store");
 });
 
+test("the cabin's level number is set in Nunito with tabular figures, the word in Pixelify: Pixelify's 5 reads as an S (#171 review)", () => {
+  mine = { enabled: true, hidden: false, player: { ...level2, level: 25, title: "Elder hog", next: null, toNext: null } };
+  const host = render(<GameCard glyph="🌮" />);
+  const number = [...host.querySelectorAll("*")].find((el) => el.children.length === 0 && el.textContent === "25")!;
+  expect(number.closest(".font-display, .font-sans")?.classList).toContain("font-sans");
+  expect(number.closest(".tabular")).not.toBeNull();
+  expect(number.parentElement?.closest(".font-display")?.textContent).toBe("Level 25");
+});
+
 const level3 = { level: 3, title: "Sprout", xp: 87, floor: 75, next: 175, toNext: 88, fraction: 12 / 100 };
 
 test("at level 3 the wallet appears with everything collected so far, and the next areas stay locked", () => {

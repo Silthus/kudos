@@ -77,7 +77,7 @@ export function Leaderboard() {
                 <FramedAvatar name={r.member.name} src={r.member.avatarUrl} size={idx === 0 ? 64 : 48} look={r.member.look} />
                 <div className="mt-2 w-full truncate font-display text-base font-medium">{r.member.name}</div>
                 {r.member.title && <div className="w-full truncate text-xs text-ink/75">{r.member.title}</div>}
-                <div className="font-display text-xl font-medium tabular">
+                <div className="text-xl font-sans font-bold tabular">
                   {nf.format(r.value)} <span className="text-base">{glyph}</span>
                 </div>
                 <div className={clsx("pixel-chip mt-2 flex w-full items-start justify-center pt-1.5 font-display text-sm font-medium", step.face, step.height)}>{step.label}</div>
@@ -111,7 +111,7 @@ export function Leaderboard() {
                 {data.rows.map((r) => (
                   <tr key={r.member._id} className={clsx("border-t-2 border-parchment-deep", r.isMe && "bg-lantern/20")}>
                     <td className="px-2 py-2.5">
-                      <span className={clsx("pixel-chip grid h-7 w-7 place-items-center font-display text-sm tabular", r.rank <= 3 ? "bg-lantern text-ink" : "bg-parchment text-ink/75")}>{r.rank}</span>
+                      <span className={clsx("pixel-chip grid h-7 w-7 place-items-center text-sm font-sans font-bold tabular", r.rank <= 3 ? "bg-lantern text-ink" : "bg-parchment text-ink/75")}>{r.rank}</span>
                     </td>
                     <td className="px-2 py-2.5">
                       <div className="flex items-center gap-3">
@@ -127,7 +127,7 @@ export function Leaderboard() {
                     </td>
                     <td className="px-2 py-2.5">
                       <div className="flex items-center gap-3">
-                        <span className="w-8 text-right font-display text-base font-medium tabular">{nf.format(r.value)}</span>
+                        <span className="w-8 text-right text-base font-sans font-bold tabular">{nf.format(r.value)}</span>
                         <div className="pixel-meter h-2.5 min-w-0 flex-1">
                           <div data-fill style={{ "--fill": meterFill(r.value, max), background: "var(--color-soil)" } as React.CSSProperties} />
                         </div>
@@ -176,7 +176,7 @@ export function Leaderboard() {
           </div>
           <div className="pixel-chip flex items-center gap-4 bg-parchment-deep/40 p-4">
             <Ring value={data.highlights.participation} color="var(--color-pond)">
-              <span className="font-display text-lg font-medium tabular">{pct(data.highlights.participation)}</span>
+              <span className="text-lg font-sans font-bold tabular">{pct(data.highlights.participation)}</span>
             </Ring>
             <div className="min-w-0">
               <div className="text-xs font-semibold text-ink/75">Participation</div>

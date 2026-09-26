@@ -224,6 +224,7 @@ export async function sendBotMessage(
     slackText,
     webText,
     delivery: workspace.isDemo || skipDelivery ? "skipped" : "pending",
+    at: now,
     collected,
     ...(questProgress ? { questProgress } : {}),
     ...(earnings ? { earnings } : {}),
@@ -402,7 +403,7 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
       const reason = input.recipientSlackIds.length === 0 ? "no_mention" : input.recipientSlackIds.some((id) => unknown.has(id)) ? "inactive" : "bots";
       return { status: "invalid", reason, notificationIds: [] };
     }
-    const gains = new Gains(ctx, workspace);
+    const gains = new Gains(ctx, workspace, now);
     const id = await sendBotMessage(ctx, workspace, giver, "self_kudos", {
       slack: { emoji: emoji.slack, user: `<@${giver.slackUserId}>` },
       web: { emoji: emoji.web, user: giver.name },
@@ -424,7 +425,7 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
   const requested = input.amountEach * eligibleIds.length;
 
   if (requested > remaining) {
-    const gains = new Gains(ctx, workspace);
+    const gains = new Gains(ctx, workspace, now);
     const id = await sendBotMessage(ctx, workspace, giver, "limit_reached", {
       slack: { emoji: emoji.slack, remaining, limit: workspace.dailyLimit, requested },
       web: { emoji: emoji.web, remaining, limit: workspace.dailyLimit, requested },
@@ -448,7 +449,7 @@ export async function giveKudos(ctx: MutationCtx, input: GiveInput): Promise<Giv
 
   // XP for the giver and the receivers; the giver's share is itemised in their reply. What anyone
   // discovers or gains in this kudos goes out in one DM each, once everything below has run.
-  const gains = new Gains(ctx, workspace);
+  const gains = new Gains(ctx, workspace, now);
   const game = await onGameGiven(ctx, workspace, giver, rows, input.noteWords, gains);
   // A kudos to someone the giver grows a plant for may have watered it: its stage gains.
   await onGardenGiven(ctx, workspace, giver, rows, gains);
@@ -577,7 +578,7 @@ export async function allowanceCheck(
 ) {
   const remaining = await remainingToday(ctx, workspace, member._id, now);
   const emoji = emojiVars(workspace);
-  const gains = new Gains(ctx, workspace);
+  const gains = new Gains(ctx, workspace, now);
   const id = await sendBotMessage(ctx, workspace, member, "allowance_status", {
     slack: { emoji: emoji.slack, remaining, limit: workspace.dailyLimit, user: `<@${member.slackUserId}>` },
     web: { emoji: emoji.web, remaining, limit: workspace.dailyLimit, user: member.name },

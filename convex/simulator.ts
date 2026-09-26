@@ -12,7 +12,7 @@ import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } fr
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { boostOn } from "./boosts";
-import { PEOPLE, wipeActivity } from "./demo";
+import { botMessageValidator, describeNotifications, PEOPLE, wipeActivity } from "./demo";
 import { giveKudos } from "./engine";
 import { addXp, ensurePlayer, gameShownTo, playerOf, skillsOf } from "./game";
 import { lookAtGrowth, pickFor, plantFor } from "./gardens";
@@ -586,5 +586,43 @@ export const lastRun = query({
     const userId = await getAuthUserId(ctx);
     const simulator = userId && (await simulatorOf(ctx, userId));
     return simulator ? await lastRunOf(ctx, simulator.workspace._id) : null;
+  },
+});
+
+/** How many of the visitor's latest DMs a run's read looks through: most are the replies to each kudos. */
+const RUN_DMS_READ = 300;
+/** The sandbox's stack holds this many envelopes. */
+const RUN_DMS_SHOWN = 30;
+/**
+ * A run's last day writes its DMs in the mutation that marks it finished, created a moment after
+ * that mutation's `Date.now()`: they still count as the run's.
+ */
+const RUN_END_SLACK_MS = 5_000;
+
+/**
+ * A fast-forward's DMs to the visitor, newest first on the simulator's clock, for the sandbox's stack
+ * (#171): the level-ups, quests and garden news, not the reply to each of the bot's kudos (the run's
+ * summary counts those). Nothing for a run that isn't this visitor's simulator's.
+ */
+export const runMessages = query({
+  args: { runId: v.id("simulatorRuns") },
+  returns: v.array(botMessageValidator),
+  handler: async (ctx, { runId }) => {
+    const userId = await getAuthUserId(ctx);
+    const simulator = userId && (await simulatorOf(ctx, userId));
+    const run = await ctx.db.get(runId);
+    if (!simulator || !run || run.workspaceId !== simulator.workspace._id) return [];
+    const sent = await ctx.db
+      .query("notifications")
+      .withIndex("by_member", (q) => {
+        const since = q.eq("memberId", run.memberId).gte("_creationTime", run.startedAt);
+        // A run still playing has no end yet: its DMs so far.
+        return run.finishedAt === undefined ? since : since.lte("_creationTime", run.finishedAt + RUN_END_SLACK_MS);
+      })
+      .order("desc")
+      .take(RUN_DMS_READ);
+    const dms = sent.filter((n) => n.category !== "giver_success").slice(0, RUN_DMS_SHOWN);
+    const described = await describeNotifications(ctx, simulator, dms.map((n) => n._id));
+    return described.sort((a, b) => b.at - a.at);
   },
 });

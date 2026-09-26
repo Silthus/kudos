@@ -3,7 +3,7 @@ import { MotionGlobalConfig } from "motion/react";
 import { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, test } from "vitest";
-import { Button, Card, CardHeader, Dialog, Empty, PageHeader, Progress, RarityBadge, Segmented, Skeleton } from "./ui";
+import { BigNumber, Button, Card, CardHeader, Dialog, Empty, PageHeader, Progress, RarityBadge, Segmented, Skeleton } from "./ui";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 MotionGlobalConfig.skipAnimations = true;
@@ -149,4 +149,22 @@ test("empty states, tabs and skeletons draw no soft shapes and never loop", () =
   const all = [...el.querySelectorAll("*")].flatMap(classes);
   expect(all.filter((c) => SOFT.test(c) || c.startsWith("animate-"))).toEqual([]);
   expect(el.querySelector('[aria-selected="true"]')!.textContent).toBe("Week");
+});
+
+test("a stat's number is set in Nunito bold with tabular figures, never Pixelify: its 5 reads as an S, its 3 as an 8 (#171)", () => {
+  const n = render(<BigNumber value={83} className="text-3xl" />).querySelector("span")!;
+  expect(n.textContent).toBe("83");
+  expect(classes(n)).not.toContain("font-display");
+  expect(classes(n)).toEqual(expect.arrayContaining(["font-sans", "font-bold", "tabular"]));
+});
+
+test("no number anywhere is set in Pixelify: a class list with tabular figures never has the pixel font (#126, #171)", () => {
+  const sources = import.meta.glob(["../**/*.tsx", "!../**/*.test.tsx"], { query: "?raw", import: "default", eager: true }) as Record<string, string>;
+  const offenders = Object.entries(sources).flatMap(([file, text]) =>
+    [...text.matchAll(/(?:className=|clsx\()[^>]*?"([^"]*)"/g)]
+      .map((m) => m[1])
+      .filter((cls) => /(^|\s)font-display(\s|$)/.test(cls) && /(^|\s)tabular(\s|$)/.test(cls))
+      .map((cls) => `${file}: ${cls}`),
+  );
+  expect(offenders).toEqual([]);
 });

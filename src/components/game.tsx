@@ -64,7 +64,7 @@ export function Wallet({ wallet }: { wallet: CoinBalance }) {
       <HogCoin size={28} className="mt-0.5" />
       <div className="min-w-0">
         <div className="flex items-baseline gap-2">
-          <span className="font-display text-2xl font-medium text-ink tabular">{wallet.balance}</span>
+          <span className="text-2xl font-sans font-bold text-ink tabular">{wallet.balance}</span>
           <span className="font-semibold text-ink">Hog coins</span>
         </div>
         <p className="mt-0.5 text-xs text-ink/75">{sentence}</p>
@@ -76,6 +76,15 @@ export function Wallet({ wallet }: { wallet: CoinBalance }) {
   );
 }
 
+/** "Level 25": the word in Pixelify, the number in Nunito with tabular figures, since Pixelify's 5 reads as an S (#171). */
+export function LevelLabel({ level, className }: { level: number; className?: string }) {
+  return (
+    <span className={clsx("font-display font-medium", className)}>
+      Level <span className="font-sans font-bold tabular">{level}</span>
+    </span>
+  );
+}
+
 /** Your level, its title and how far it is to the next one, on a pixel meter. */
 export function LevelPanel({ progress }: { progress: LevelProgress }) {
   const span = progress.next === null ? 1 : progress.next - progress.floor;
@@ -84,7 +93,7 @@ export function LevelPanel({ progress }: { progress: LevelProgress }) {
     <div>
       <div className="flex flex-wrap items-baseline justify-between gap-x-3">
         <div className="flex items-baseline gap-2">
-          <span className="font-display text-[28px] font-medium leading-9 text-ink">Level {progress.level}</span>
+          <LevelLabel level={progress.level} className="text-[28px] leading-9 text-ink" />
           <span className="text-sm font-semibold text-soil">{progress.title}</span>
         </div>
         <span className="text-xs text-ink/75 tabular">{progress.xp} XP</span>

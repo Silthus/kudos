@@ -3,6 +3,7 @@ import type { MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { gameShownTo, playerOf } from "./game";
 import { DM_CATEGORIES, type Gain, gainsText, mergeGains, visibleTo } from "./lib/gains";
+import { workspaceNow } from "./lib/time";
 
 /**
  * The one pipeline for game DMs (#55 §G13): whatever a member discovers or gains is `add`ed while
@@ -16,9 +17,11 @@ export class Gains {
   private pending = new Map<Id<"members">, Gain[]>();
   private flushed = false;
 
+  /** `now`: when the event happened on the workspace's clock, the time its DMs are told at (#171). */
   constructor(
     private ctx: MutationCtx,
     private workspace: Doc<"workspaces">,
+    private now: number = workspaceNow(workspace),
   ) {}
 
   add(memberId: Id<"members">, gain: Gain) {
@@ -32,7 +35,7 @@ export class Gains {
    * member's gains join their DM among them. Returns the new DMs, to deliver with the event's.
    */
   async flush(eventDms: Id<"notifications">[] = []): Promise<Id<"notifications">[]> {
-    const { ctx, workspace } = this;
+    const { ctx, workspace, now } = this;
     const written: Id<"notifications">[] = [];
     // DMs that will actually go out (the demo sends nothing, but its playground shows them all).
     const queued = [];
@@ -64,6 +67,7 @@ export class Gains {
           slackText: gainsText(gains, "slack"),
           webText: gainsText(gains, "web"),
           delivery: workspace.isDemo ? "skipped" : "pending",
+          at: now,
           gains,
         }),
       );
