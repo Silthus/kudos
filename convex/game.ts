@@ -86,7 +86,8 @@ export function switchGame(workspace: Doc<"workspaces">, on: boolean, now: numbe
   return { gameEnabled: false, gamePauses: [...pauses, { from: now }].slice(-MAX_PAUSES) };
 }
 
-function pausedAt(workspace: Doc<"workspaces">, at: number): boolean {
+/** Whether the game was switched off at `at` (a pause): nothing given then earns. */
+export function pausedAt(workspace: Doc<"workspaces">, at: number): boolean {
   return (workspace.gamePauses ?? []).some((p) => p.from <= at && (p.until === undefined || at < p.until));
 }
 

@@ -2,7 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import { gameShownTo, playerOf, superseded } from "./game";
+import { gameShownTo, pausedAt, playerOf, superseded } from "./game";
 import { Gains } from "./gains";
 import { requireViewer } from "./lib/access";
 import { WALLET_LEVEL } from "./lib/coins";
@@ -303,7 +303,9 @@ const MAX_REPLAYED = 8000;
  * an offering counts as claimed when it was given if it's from before the workspace's offerings
  * (`offeringsFrom`: its coins went straight into the wallet), else by time once older than
  * OFFERING_AUTO_CLAIM_DAYS, silently (a rebuild never DMs). Neither drops fruit: the peak rises past
- * them. The wallet and the tree take the change in claimed coins and fuel.
+ * them. The wallet and the tree take the change in claimed coins and fuel. An offering from a game
+ * pause has no give event behind it by the rules (nothing given then earns): only a story seeds one
+ * (the demo's year before its launch, demo.ts `seedTreeFuel`), so the replay leaves it as it is.
  */
 export const replayMember = internalMutation({
   args: { memberId: v.id("members"), resetAt: v.optional(v.number()) },
@@ -319,15 +321,16 @@ export const replayMember = internalMutation({
       gives.push(e);
       if (gives.length === MAX_REPLAYED) break;
     }
-    const existing = await ctx.db
+    const stored = await ctx.db
       .query("offerings")
       .withIndex("by_member_claimedAt_createdAt", (q) => q.eq("memberId", memberId))
       .take(MAX_REPLAYED);
-    if (gives.length === MAX_REPLAYED || existing.length === MAX_REPLAYED) {
+    if (gives.length === MAX_REPLAYED || stored.length === MAX_REPLAYED) {
       console.warn(`offerings replay: member ${memberId} has more than ${MAX_REPLAYED} batches or offerings; their offerings were left as they are.`);
       return null;
     }
     const now = workspaceNow(workspace);
+    const existing = stored.filter((o) => !pausedAt(workspace, o.createdAt));
     const byBatch = new Map(existing.map((o) => [o.batchId, o]));
     const before = sum(existing.filter((o) => o.claimedAt !== undefined));
     const legacyUntil = workspace.offeringsFrom ?? Infinity;

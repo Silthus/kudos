@@ -115,7 +115,7 @@ async function ruinsOpen(ctx: QueryCtx, workspace: Doc<"workspaces">): Promise<R
 const firstName = (name: string) => name.split(" ")[0] || name;
 
 /** A member as they enter a ruin: their stats' sources now, their hit points full. */
-async function adventurer(ctx: QueryCtx, member: Doc<"members">, player: Doc<"players">): Promise<Member> {
+export async function adventurer(ctx: QueryCtx, member: Doc<"members">, player: Doc<"players">): Promise<Member> {
   return {
     memberId: member._id,
     name: firstName(member.name),

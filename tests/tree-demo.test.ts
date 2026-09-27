@@ -36,8 +36,9 @@ describe("the demo", () => {
     expect(past.mine).toBeGreaterThan(0);
     expect(await alex.query(api.discoveries.crests, {})).toEqual([expect.objectContaining({ number: 1, damage: past.mine })]);
     // On the reference date (2026-09-23) the demo's year (~2,400 kudos rows) makes an ancient tree from sap
-    // alone; its givers' offerings older than 30 days count as claimed (#157), and their fuel grows it on.
-    expect(tree).toMatchObject({ planted: true, seedsToPlant: 0 });
+    // alone; its givers' offerings count as claimed (#157): since the launch once older than 30 days, and the
+    // year before the launch as the company fed the tree then (#165). Their fuel grows it on to an elder tree.
+    expect(tree).toMatchObject({ planted: true, seedsToPlant: 0, stage: "elder" });
     const offerings = await t.run((ctx) => ctx.db.query("offerings").collect());
     const fuel = offerings.filter((o) => o.claimedAt !== undefined).reduce((s, o) => s + o.fuel, 0);
     expect(fuel).toBeGreaterThan(0);
@@ -53,6 +54,10 @@ describe("the demo", () => {
     expect(tree!.peakGrowth).toBe(growthFor({ sap: qualifying, fuel }));
     const workspaceId = (await t.run((ctx) => ctx.db.query("workspaces").first()))!._id;
     expect(await t.action(internal.tree.verify, { workspaceId })).toMatchObject({ ok: true, unplanted: 0 });
+    // A game rebuild (the release's backfill) replays the offerings since the launch and keeps the year's before it.
+    await t.mutation(internal.game.rebuildWorkspace, { workspaceId });
+    await settle();
+    expect(await alex.query(api.tree.state, {})).toMatchObject({ stage: "elder", fuel: tree!.fuel, growth: tree!.growth });
     // The crew (#161, S10): the bell built, with its contributors on the plaque, and the market awnings 60 % funded.
     const crew = async () => ({ built: (await alex.query(api.crew.built, { paginationOpts: { numItems: 5, cursor: null } })).page, open: await alex.query(api.crew.open, {}) });
     const seeded = await crew();
@@ -60,6 +65,25 @@ describe("the demo", () => {
     expect(seeded.built[0].contributors.length).toBeGreaterThanOrEqual(4);
     expect(seeded.open.quests).toEqual([expect.objectContaining({ part: "structure_market_awnings", goal: 500, contributed: 300, status: "proposed" })]);
     expect((await alex.query(api.tree.state, {}))!.cosmetics).toEqual([expect.objectContaining({ part: "structure_bell" })]);
+    // Alex's expeditions (#162, #163, S10): three near ruins explored, one secret found, the Scout's cap worn,
+    // and the latest run a party with the two teammates Alex thanks most who can go into the ruins.
+    expect(await alex.query(api.rpg.camp, {})).toMatchObject({ ruinsCleared: 3, lore: 1, equipped: { hat: "scout_cap" } });
+    const party = (await alex.query(api.rpg.current, {}))!.run!;
+    expect(party).toMatchObject({ state: "cleared", tier: 1 });
+    expect(party.party.map((p) => p.you)).toEqual([true, false, false]);
+    expect(party.loot.coins).toBeGreaterThan(0);
+    for (const { memberId } of party.party) {
+      const { player, events } = await t.run(async (ctx) => ({
+        player: await ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", memberId)).unique(),
+        events: await ctx.db.query("gameEvents").withIndex("by_member_kind", (q) => q.eq("memberId", memberId)).collect(),
+      }));
+      expect(player).toMatchObject({ lastExpedition: party.id, ruinsCleared: expect.arrayContaining([party.ruinId]) });
+      expect(player!.level).toBeGreaterThanOrEqual(6);
+      expect(events.filter((e) => e.kind === "party")).toHaveLength(1);
+      expect(events.filter((e) => e.kind === "expedition" && e.batchId === `expedition:${party.id}`)).toEqual([expect.objectContaining({ xp: 0, coins: expect.any(Number) })]);
+    }
+    // …and a few fruits from the stone to use at the stall (#157, S10).
+    expect((await alex.query(api.offerings.inventory, {})).map((f) => [f.fruit, f.count])).toEqual([["sun", 3], ["moon", 1], ["star", 1]]);
 
     await t.mutation(internal.demo.startDemoReset, {});
     await settle();

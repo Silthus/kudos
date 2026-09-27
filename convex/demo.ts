@@ -32,10 +32,12 @@ import { blightHp } from "./lib/blight";
 import { playerOf, skillsOf, thankedBack } from "./game";
 import { finishedTutorial } from "./tutorial";
 import { plantsGrown } from "./gardens";
-import { addGear } from "./inventory";
-import { treeOf, worldSeedOf } from "./tree";
-import { creature, generateRuin, lootRand, runLoot, scoutHeraldPoints, startingHp, type GearId, type Room } from "./lib/rpg";
-import { districtsOpen, homePlots, layout, stageForGrowth, TREE_STAGE_BY_ID } from "./lib/tree";
+import { addFruit, addGear } from "./inventory";
+import { adventurer } from "./rpg";
+import type { FruitId } from "./lib/fruits";
+import { addFuel, treeOf, worldSeedOf } from "./tree";
+import { creature, generateRuin, lootRand, runLoot, tierForLevel, type Equipped, type GearId, type Room } from "./lib/rpg";
+import { districtsOpen, fuelForLine, homePlots, layout, stageForGrowth, TREE_STAGE_BY_ID, type RuinSite } from "./lib/tree";
 import { seedQuest } from "./crew";
 import { CREW } from "./lib/crewCatalogue";
 import { DEMO_CREW } from "./lib/demoCrew";
@@ -388,9 +390,66 @@ export const seedHistory = internalMutation({
       // the quest seeding schedules that once the completions it pays are recorded.
       // Alex's garden and skills follow the replay, and the Store story follows them (balances are Hog coins).
       await ctx.scheduler.runAfter(0, internal.quests.seedDemoHistory, { workspaceId, resetAt });
-      // The year's thoughtful kudos grow the Ancient Tree, their seeds planted by time (#154).
+      // The year's thoughtful kudos grow the Ancient Tree, their seeds planted by time (#154), and the
+      // year before the launch feeds it too (#165).
       await ctx.scheduler.runAfter(0, internal.tree.backfillWorkspace, { workspaceId, resetAt });
+      await ctx.scheduler.runAfter(0, internal.demo.seedTreeFuel, { workspaceId, resetAt });
     }
+    return null;
+  },
+});
+
+/** Kudos rows one `seedTreeFuel` step reads, each with its seed. */
+const FUEL_PAGE = 400;
+
+/**
+ * The year before the demo's launch fed the tree (#165, plan #152 S10: Lumen Labs' tree is an elder
+ * tree). By the rules, kudos given while the game was off earn nothing, so the replay writes no
+ * offerings for them; the story says the team came to the stone then too. Each batch of the pause
+ * becomes a claimed offering of its givers' qualifying lines (lib/tree.ts `fuelForLine`, one per seed
+ * the line sowed) and no coins, claimed when it was given, and the tree takes the fuel. Since the
+ * launch, the replay's offerings are the story (the last 30 days' wait at the stone). The replay
+ * leaves offerings from a pause alone (offerings.ts), so a later rebuild keeps this fuel.
+ * Waits for the tree's backfill to sow the year's seeds; then FUEL_PAGE kudos rows a step. Once per reset.
+ */
+export const seedTreeFuel = internalMutation({
+  args: { workspaceId: v.id("workspaces"), resetAt: v.optional(v.number()), cursor: v.optional(v.string()), attempt: v.optional(v.number()) },
+  returns: v.null(),
+  handler: async (ctx, { workspaceId, resetAt, cursor, attempt = 0 }) => {
+    const workspace = await ctx.db.get(workspaceId);
+    if (!workspace?.isDemo) return null;
+    if (workspace.resettingSince !== undefined && workspace.resettingSince !== resetAt) return null;
+    const launch = (workspace.gamePauses ?? [])[0];
+    if (!launch?.until) return null;
+    if (workspace.seedsBackfilledAt === undefined) {
+      if (attempt < STORE_SEED_WAIT.attempts) await ctx.scheduler.runAfter(STORE_SEED_WAIT.everyMs, internal.demo.seedTreeFuel, { workspaceId, resetAt, attempt: attempt + 1 });
+      else console.warn("Demo tree: its seeds were never sown; no fuel from before the launch.");
+      return null;
+    }
+    const page = await ctx.db
+      .query("kudos")
+      .withIndex("by_workspace_at", (q) => q.eq("workspaceId", workspaceId).gte("at", launch.from).lt("at", launch.until!))
+      .paginate({ numItems: FUEL_PAGE, cursor: cursor ?? null });
+    const batches = new Map<string, { memberId: Id<"members">; batchId: string; at: number; fuel: number }>();
+    for (const row of page.page) {
+      const seed = await ctx.db.query("seeds").withIndex("by_kudos", (q) => q.eq("kudosId", row._id)).first();
+      const fuel = fuelForLine({ qualifying: seed !== null });
+      if (fuel === 0) continue;
+      const key = `${row.batchId}>${row.giverId}`;
+      const batch = batches.get(key) ?? { memberId: row.giverId, batchId: row.batchId, at: row.at, fuel: 0 };
+      batch.fuel += fuel;
+      batches.set(key, batch);
+    }
+    let fuel = 0;
+    for (const b of batches.values()) {
+      // A batch the last page ended in the middle of already has its offering.
+      const offered = (await ctx.db.query("offerings").withIndex("by_batch", (q) => q.eq("batchId", b.batchId)).take(10)).find((o) => o.memberId === b.memberId);
+      if (offered) await ctx.db.patch(offered._id, { fuel: offered.fuel + b.fuel });
+      else await ctx.db.insert("offerings", { workspaceId, memberId: b.memberId, batchId: b.batchId, coins: 0, fuel: b.fuel, createdAt: b.at, claimedAt: b.at });
+      fuel += b.fuel;
+    }
+    await addFuel(ctx, workspace, fuel, page.page.at(-1)?.at ?? launch.until, { live: false });
+    if (!page.isDone) await ctx.scheduler.runAfter(0, internal.demo.seedTreeFuel, { workspaceId, resetAt, cursor: page.continueCursor });
     return null;
   },
 });
@@ -717,86 +776,150 @@ async function growAlexGame(ctx: MutationCtx, workspace: Doc<"workspaces">, alex
   if (chosen.length > 0) await ctx.db.patch(alex._id, { coinsSpent: (alex.coinsSpent ?? 0) + PLANT_COST * chosen.length });
 }
 
-/**
- * Alex's expeditions (#162, plan #152 S10): three near ruins explored in the last three weeks, one
- * secret found (its lore card in the gallery: from the first run's secret room if it has one, else
- * the lore card a cleared run can end with), the Scout's cap found in the second and worn, and
- * stamina for the visitor's own run. Each run is a cleared `expeditions` row with the rooms its ruin
- * really has, Alex as he is, and the coins its run loot really rolls, paid as `expedition` events.
- */
-async function seedAlexRuins(ctx: MutationCtx, workspace: Doc<"workspaces">, alex: Doc<"members">) {
-  const player = (await playerOf(ctx, alex._id))!;
-  const now = workspaceNow(workspace);
+/** The ruins Alex explored (#162, #163, plan #152 S10): the first three near ruins of the demo's world. */
+function demoRuins(workspace: Doc<"workspaces">) {
   const world = worldSeedOf(workspace);
-  const sites = layout(world, TREE_STAGE_BY_ID.great.growth).ruins.filter((r) => r.tier === 1).slice(0, 3);
-  const found: GearId = "scout_cap";
-  let coins = 0;
-  const bestiary = new Set<string>();
-  const lore: { lore: number; at: number; ruinId: string }[] = [];
-  const secretRooms: string[] = [];
-  const me = {
-    memberId: alex._id,
-    name: alex.name.split(" ")[0],
-    level: player.level,
-    scoutHeraldPoints: scoutHeraldPoints(skillsOf(player)),
-    plantsGrown: await plantsGrown(ctx, alex._id),
-    hp: startingHp(player.level),
-  };
-  for (const [i, site] of sites.entries()) {
-    const at = now - (21 - 7 * i) * DAY_MS;
-    const seed = fnv1a(`demo-run:${world}:${site.id}`);
-    const rooms = generateRuin(world, site.id).rooms;
-    const last = rooms.at(-1) as Extract<Room, { kind: "foe" }>;
-    for (const r of rooms) if (r.kind === "foe") bestiary.add(r.foe);
-    const secret = rooms.find((r): r is Extract<Room, { kind: "secret" }> => r.kind === "secret");
-    const card = i === 0 ? { lore: secret?.lore ?? 0, at, ruinId: site.id } : null;
-    if (card) lore.push(card);
-    if (i === 0 && secret) secretRooms.push(site.id);
-    const paid = runLoot(1, lootRand(seed, alex._id, -1)).coins;
-    coins += paid;
-    const id = await ctx.db.insert("expeditions", {
-      workspaceId: workspace._id,
-      leaderId: alex._id,
-      ruinId: site.id,
-      name: site.name,
-      tier: 1,
-      seed,
-      rooms,
-      party: [{ ...me, equipped: i === 2 ? { hat: found } : {} }],
-      room: rooms.length - 1,
-      turn: 1,
-      choices: [],
-      foeHp: 0,
-      wrong: 0,
-      log: [{ room: rooms.length - 1, line: `The ${creature(last.foe).name} falls.` }],
-      loot: [{ memberId: alex._id, coins: paid, fruits: [], gear: i === 1 ? [found] : [], lore: card ? [card.lore] : [] }],
-      state: "cleared",
-      startedAt: at,
-      endedAt: at + 20 * 60_000,
-    });
-    await ctx.db.insert("gameEvents", {
-      workspaceId: workspace._id,
-      memberId: alex._id,
-      kind: "expedition",
-      batchId: `expedition:${id}`,
-      dayKey: dayKeyFor(at, workspace.timezone),
-      at,
-      xp: 0,
-      coins: paid,
+  return { world, sites: layout(world, TREE_STAGE_BY_ID.great.growth).ruins.filter((r) => r.tier === 1).slice(0, 3) };
+}
+
+/** The gear Alex found in the second ruin and has worn since. */
+const DEMO_GEAR: GearId = "scout_cap";
+/** The fruit Alex kept from the stone (#157): some to sell, stamina for a run, a discount for a home. */
+const DEMO_FRUIT: [FruitId, number][] = [
+  ["sun", 3],
+  ["moon", 1],
+  ["star", 1],
+];
+
+type Explorer = { member: Doc<"members">; player: Doc<"players">; equipped?: Equipped };
+
+/**
+ * One cleared run into a near ruin, `daysAgo`, for its party (the first leads): the rooms its ruin
+ * really has, each member as they are and the coins the run's loot really rolls for them, paid as
+ * `expedition` events (0 XP). A party of two or more is each member's `party` event (their first).
+ * Each member's last run, ruins cleared and bestiary follow it.
+ */
+async function seedRun(
+  ctx: MutationCtx,
+  workspace: Doc<"workspaces">,
+  run: { site: RuinSite; daysAgo: number; explorers: Explorer[]; gear?: GearId; lore?: number },
+) {
+  const { world } = demoRuins(workspace);
+  const { site, explorers } = run;
+  const at = workspaceNow(workspace) - run.daysAgo * DAY_MS;
+  const dayKey = dayKeyFor(at, workspace.timezone);
+  const seed = fnv1a(`demo-run:${world}:${site.id}`);
+  const rooms = generateRuin(world, site.id).rooms;
+  const last = rooms.at(-1) as Extract<Room, { kind: "foe" }>;
+  const party = [];
+  for (const e of explorers) party.push({ ...(await adventurer(ctx, e.member, e.player)), equipped: e.equipped ?? {} });
+  const leader = explorers[0].member._id;
+  const paid = new Map(explorers.map((e) => [e.member._id, runLoot(1, lootRand(seed, e.member._id, -1)).coins]));
+  const id = await ctx.db.insert("expeditions", {
+    workspaceId: workspace._id,
+    leaderId: leader,
+    ruinId: site.id,
+    name: site.name,
+    tier: 1,
+    seed,
+    rooms,
+    party,
+    room: rooms.length - 1,
+    turn: 1,
+    choices: explorers.map((e) => ({ room: rooms.length - 1, turn: 1, memberId: e.member._id, kind: "strike" as const })),
+    foeHp: 0,
+    wrong: 0,
+    log: [{ room: rooms.length - 1, turn: 1, line: `The ${creature(last.foe).name} falls.` }],
+    loot: explorers.map((e) => ({
+      memberId: e.member._id,
+      coins: paid.get(e.member._id)!,
+      fruits: [],
+      gear: e.member._id === leader && run.gear ? [run.gear] : [],
+      lore: e.member._id === leader && run.lore !== undefined ? [run.lore] : [],
+    })),
+    state: "cleared",
+    startedAt: at,
+    endedAt: at + 20 * 60_000,
+  });
+  const foes = rooms.flatMap((r) => (r.kind === "foe" ? [r.foe] : []));
+  for (const e of explorers) {
+    const memberId = e.member._id;
+    const coins = paid.get(memberId)!;
+    await ctx.db.insert("gameEvents", { workspaceId: workspace._id, memberId, kind: "expedition", batchId: `expedition:${id}`, dayKey, at, xp: 0, coins });
+    const partied = await ctx.db.query("gameEvents").withIndex("by_member_kind", (q) => q.eq("memberId", memberId).eq("kind", "party")).first();
+    if (explorers.length > 1 && !partied) {
+      await ctx.db.insert("gameEvents", { workspaceId: workspace._id, memberId, kind: "party", batchId: `party:${memberId}`, dayKey, at, xp: 0 });
+    }
+    const player = (await ctx.db.get(e.player._id))!;
+    await ctx.db.patch(player._id, {
+      coins: (player.coins ?? 0) + coins,
+      expeditionCoins: (player.expeditionCoins ?? 0) + coins,
+      ruinsCleared: [...new Set([...(player.ruinsCleared ?? []), site.id])],
+      bestiary: [...new Set([...(player.bestiary ?? []), ...foes])],
+      lastExpedition: id,
     });
   }
-  await addGear(ctx, workspace._id, alex._id, found, 1);
-  await ctx.db.patch(player._id, {
-    coins: (player.coins ?? 0) + coins,
-    expeditionCoins: coins,
-    ruinsCleared: sites.map((s) => s.id),
-    bestiary: [...bestiary],
-    lore,
-    secretRooms,
-    equipped: { hat: found },
+  return { id, at };
+}
+
+/**
+ * Alex's first expeditions (#162, plan #152 S10), alone, three and two weeks ago: the first ruin's
+ * secret room (its lore card in the gallery; else the lore card a cleared run can end with), the
+ * Scout's cap found in the second and worn since, stamina for the visitor's own run, and a few fruit.
+ * The third ruin Alex explored with teammates, last week (`seedParty`).
+ */
+async function seedAlexRuins(ctx: MutationCtx, workspace: Doc<"workspaces">, alex: Doc<"members">) {
+  const { world, sites } = demoRuins(workspace);
+  const player = async () => (await playerOf(ctx, alex._id))!;
+  const secret = generateRuin(world, sites[0].id).rooms.find((r): r is Extract<Room, { kind: "secret" }> => r.kind === "secret");
+  const lore = secret?.lore ?? 0;
+  const first = await seedRun(ctx, workspace, { site: sites[0], daysAgo: 21, explorers: [{ member: alex, player: await player() }], lore });
+  await seedRun(ctx, workspace, { site: sites[1], daysAgo: 14, explorers: [{ member: alex, player: await player() }], gear: DEMO_GEAR });
+  await addGear(ctx, workspace._id, alex._id, DEMO_GEAR, 1);
+  for (const [fruit, n] of DEMO_FRUIT) await addFruit(ctx, workspace._id, alex._id, fruit, n);
+  await ctx.db.patch((await player())._id, {
+    lore: [{ lore, at: first.at, ruinId: sites[0].id }],
+    secretRooms: secret ? [sites[0].id] : [],
+    equipped: { hat: DEMO_GEAR },
     stamina: 3,
   });
 }
+
+/** How many teammates went into the ruins with Alex last week. */
+const DEMO_PARTY = 2;
+
+/**
+ * Alex's party run (#163, plan #152 S10): last week, into the third near ruin, Alex leading in the
+ * Scout's cap, with the two teammates Alex exchanges the most kudos with who can go into the near
+ * ruins. Runs after the Store story, when the teammates' replays have made them players. Once per reset.
+ */
+export const seedParty = internalMutation({
+  args: { workspaceId: v.id("workspaces"), resetAt: v.optional(v.number()), attempt: v.optional(v.number()) },
+  returns: v.null(),
+  handler: async (ctx, { workspaceId, resetAt, attempt = 0 }) => {
+    const workspace = await ctx.db.get(workspaceId);
+    if (!workspace?.isDemo) return null;
+    if (workspace.resettingSince !== undefined && workspace.resettingSince !== resetAt) return null;
+    const alex = await findMember(ctx, workspace, DEMO_YOU);
+    const leader = alex && (await playerOf(ctx, alex._id));
+    if (!alex || !leader?.lastExpedition) {
+      // Alex's own runs come first (`seedGarden`).
+      if (attempt < STORE_SEED_WAIT.attempts) await ctx.scheduler.runAfter(STORE_SEED_WAIT.everyMs, internal.demo.seedParty, { workspaceId, resetAt, attempt: attempt + 1 });
+      else console.warn("Demo party: Alex never went into the ruins; no party run.");
+      return null;
+    }
+    const { sites } = demoRuins(workspace);
+    if ((leader.ruinsCleared ?? []).includes(sites[2].id)) return null;
+    const explorers: Explorer[] = [{ member: alex, player: leader, equipped: { hat: DEMO_GEAR } }];
+    for (const id of await closestTeammates(ctx, workspace, alex._id)) {
+      if (explorers.length > DEMO_PARTY) break;
+      const [member, player] = [await ctx.db.get(id), await playerOf(ctx, id)];
+      if (member && !member.deactivated && player && tierForLevel(player.level) >= 1) explorers.push({ member, player });
+    }
+    await seedRun(ctx, workspace, { site: sites[2], daysAgo: 7, explorers });
+    return null;
+  },
+});
 
 /** How long `seedStore` waits for the game rebuild to give the story's people their coins. */
 const STORE_SEED_WAIT = { attempts: 90, everyMs: 2_000 };
@@ -890,6 +1013,8 @@ export const seedStore = internalMutation({
     await ctx.scheduler.runAfter(0, internal.demo.seedCrew, { workspaceId, resetAt });
     // A blight the company beat three weeks ago (#164), with Alex among those who fought it.
     await ctx.scheduler.runAfter(0, internal.demo.seedBlight, { workspaceId, resetAt });
+    // Alex's party run last week (#163), with teammates the replay has made players by now.
+    await ctx.scheduler.runAfter(0, internal.demo.seedParty, { workspaceId, resetAt });
     return null;
   },
 });
