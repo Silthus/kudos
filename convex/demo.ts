@@ -33,7 +33,7 @@ import { playerOf, thankedBack } from "./game";
 import { finishedTutorial } from "./tutorial";
 import { addFruit, addGear } from "./inventory";
 import { adventurer } from "./rpg";
-import { setOut as countSetOut } from "./gameSuccess";
+import { claimed as countClaim, offeringChanged, setOut as countSetOut } from "./gameSuccess";
 import type { FruitId } from "./lib/fruits";
 import { addFuel, treeOf, worldSeedOf } from "./tree";
 import { creature, generateRuin, lootRand, runLoot, tierForLevel, type Equipped, type GearId, type Room } from "./lib/rpg";
@@ -548,6 +548,70 @@ export const seedCrew = internalMutation({
   },
 });
 
+/**
+ * The team at the offering stone since the launch (#157, #165): the replay claims the demo's offerings
+ * older than 30 days by time (the story has no clock to claim them by), so each member's are moved
+ * onto claims they made at the stone, every few days (their own rhythm, from their Slack id), each
+ * one a `claim` event by the player; an offering made after their last claim day claimed itself 30
+ * days on. The last 30 days' still wait at the stone. Coins, fuel and fruit are the replay's: only
+ * when and by whom they were claimed changes. The success metrics count the claims (gameSuccess.ts).
+ * Waits for the member's replay. Once per reset (a member with claims at the stone is done).
+ */
+export const seedClaims = internalMutation({
+  args: { workspaceId: v.id("workspaces"), memberId: v.id("members"), resetAt: v.optional(v.number()), attempt: v.optional(v.number()) },
+  returns: v.null(),
+  handler: async (ctx, { workspaceId, memberId, resetAt, attempt = 0 }) => {
+    const workspace = await ctx.db.get(workspaceId);
+    if (!workspace?.isDemo) return null;
+    if (workspace.resettingSince !== undefined && workspace.resettingSince !== resetAt) return null;
+    const launch = (workspace.gamePauses ?? [])[0]?.until;
+    if (launch === undefined) return null;
+    if (await ctx.db.query("gameEvents").withIndex("by_member_kind", (q) => q.eq("memberId", memberId).eq("kind", "claim")).first()) return null;
+    const offerings = await ctx.db
+      .query("offerings")
+      .withIndex("by_member_claimedAt_createdAt", (q) => q.eq("memberId", memberId))
+      .take(2000);
+    const gave = await ctx.db.query("gameEvents").withIndex("by_member_kind", (q) => q.eq("memberId", memberId).eq("kind", "give")).first();
+    if (gave && !offerings.some((o) => o.createdAt >= launch)) {
+      // Their replay hasn't written their offerings yet.
+      if (attempt < STORE_SEED_WAIT.attempts) await ctx.scheduler.runAfter(STORE_SEED_WAIT.everyMs, internal.demo.seedClaims, { workspaceId, memberId, resetAt, attempt: attempt + 1 });
+      return null;
+    }
+    const member = await ctx.db.get(memberId);
+    if (!member) return null;
+    const now = workspaceNow(workspace);
+    const gap = (2 + (fnv1a(`claims:${member.slackUserId}`) % 6)) * DAY_MS;
+    const lastDay = now - 30 * DAY_MS;
+    const claims = new Map<number, Doc<"offerings">[]>();
+    for (const o of offerings) {
+      // Only the replay's claims by time: not the year before the launch, nor what still waits.
+      if (o.claimedAt === undefined || o.claimedAt === o.createdAt || o.createdAt < launch) continue;
+      const day = launch + Math.ceil((o.createdAt - launch + 1) / gap) * gap + 2 * HOUR_MS;
+      const claimedAt = day <= lastDay ? day : o.createdAt + 30 * DAY_MS;
+      await ctx.db.patch(o._id, { claimedAt });
+      await offeringChanged(ctx, workspace, o, { ...o, claimedAt });
+      if (day <= lastDay) claims.set(day, [...(claims.get(day) ?? []), o]);
+    }
+    for (const [at, rows] of claims) {
+      await ctx.db.insert("gameEvents", {
+        workspaceId,
+        memberId,
+        kind: "claim",
+        batchId: `claim:${memberId}:${at}`,
+        dayKey: dayKeyFor(at, workspace.timezone),
+        at,
+        xp: 0,
+        claimed: rows.reduce((s, o) => s + o.coins, 0),
+        fuel: rows.reduce((s, o) => s + o.fuel, 0),
+        by: "player",
+        fruits: [],
+      });
+      await countClaim(ctx, workspace, at);
+    }
+    return null;
+  },
+});
+
 /** Teammates whose gardens the demo grows round Alex's (#129): the ones Alex exchanges the most kudos with. */
 const DEMO_NEIGHBOURS = 10;
 
@@ -1016,6 +1080,8 @@ export const seedStore = internalMutation({
     await ctx.scheduler.runAfter(0, internal.demo.seedBlight, { workspaceId, resetAt });
     // Alex's party run last week (#163), with teammates the replay has made players by now.
     await ctx.scheduler.runAfter(0, internal.demo.seedParty, { workspaceId, resetAt });
+    // The team's claims at the offering stone since the launch (#165).
+    for (const m of members) if (!m.isBot) await ctx.scheduler.runAfter(0, internal.demo.seedClaims, { workspaceId, memberId: m._id, resetAt });
     return null;
   },
 });

@@ -5,7 +5,7 @@ import { api, internal } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { DEMO_SETTINGS, DEMO_WORLD_SEED } from "../convex/lib/settings";
 import { DAY_MS } from "../convex/lib/time";
-import { DEMO_TIMEOUT, setupConvex } from "./helpers";
+import { DEMO_TIMEOUT, setupConvex, TODAY } from "./helpers";
 
 /** The Ancient Tree in the demo and the simulator (#154, design plan #152 S10). */
 
@@ -82,6 +82,13 @@ describe("the demo", () => {
       expect(events.filter((e) => e.kind === "party")).toHaveLength(1);
       expect(events.filter((e) => e.kind === "expedition" && e.batchId === `expedition:${party.id}`)).toEqual([expect.objectContaining({ xp: 0, coins: expect.any(Number) })]);
     }
+    // The team came to the stone and into the ruins: the admin's game success metrics have something to show (#165, S11).
+    const months = (await alex.query(api.analytics.successMetrics, { today: TODAY })).months;
+    const august = months.find((m) => m.month === "2026-08")!;
+    expect(august.claimsPerPlayerWeek).toBeGreaterThan(0.5);
+    expect(august.claimedSoonShare).toBeGreaterThan(0.5);
+    expect(months.find((m) => m.month === "2026-09")!.expeditionsPerPlayer).toBeGreaterThan(0);
+    expect((await t.query(internal.rollups.verify, { workspaceId, buckets: ["m:2026-08", "m:2026-09"] })).mismatches).toEqual([]);
     // …and a few fruits from the stone to use at the stall (#157, S10).
     expect((await alex.query(api.offerings.inventory, {})).map((f) => [f.fruit, f.count])).toEqual([["sun", 3], ["moon", 1], ["star", 1]]);
 
