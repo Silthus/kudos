@@ -27,8 +27,8 @@ import { canSpend, coinBalance } from "./lib/coins";
 import { SHOP_LEVEL } from "./lib/items";
 import { DEMO_HOMES, DEMO_LANTERNS } from "./lib/demoHomes";
 import { nextHomeStage } from "./lib/homes";
-import { seedPastVictory } from "./blights";
-import { BLIGHT, blightHp } from "./lib/blight";
+import { activeMembers, seedPastVictory } from "./blights";
+import { blightHp } from "./lib/blight";
 import { playerOf, skillsOf, thankedBack } from "./game";
 import { finishedTutorial } from "./tutorial";
 import { plantsGrown } from "./gardens";
@@ -912,11 +912,7 @@ export const seedBlight = internalMutation({
     if (!alex) return null;
     const now = workspaceNow(workspace);
     const arrivesAt = startOfDayUtc(addDays(dayKeyFor(now, workspace.timezone), -26), workspace.timezone);
-    const active = await ctx.db
-      .query("memberDays")
-      .withIndex("by_workspace_day", (q) => q.eq("workspaceId", workspaceId).gte("dayKey", addDays(dayKeyFor(arrivesAt, workspace.timezone), -BLIGHT.activeDays)).lt("dayKey", dayKeyFor(arrivesAt, workspace.timezone)))
-      .take(20_000);
-    const hp = blightHp(new Set(active.map((d) => d.memberId)).size);
+    const hp = blightHp(await activeMembers(ctx, workspaceId, dayKeyFor(arrivesAt, workspace.timezone)));
     const teammates = (await closestTeammates(ctx, workspace, alex._id)).slice(0, 7);
     const alexShare = 40;
     const each = Math.floor((hp - alexShare) / Math.max(1, teammates.length));

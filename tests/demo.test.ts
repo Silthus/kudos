@@ -122,7 +122,9 @@ describe("the demo plays the game", () => {
     expect(wallet.fromKudos).toBeGreaterThan(0);
     expect(wallet.spent).toBeGreaterThan(0);
     expect(wallet.fromRuins).toBeGreaterThan(0);
-    expect(wallet.balance).toBe(wallet.fromKudos + wallet.fromFruit + wallet.fromQuests + wallet.fromRuins + wallet.fromLevels - wallet.spent + wallet.adjusted);
+    expect(wallet.balance).toBe(wallet.fromKudos + wallet.fromFruit + wallet.fromQuests + wallet.fromRuins + wallet.fromBlights + wallet.fromLevels - wallet.spent + wallet.adjusted);
+    // Alex fought the demo's past blight (#164): its 20 coins are its own share.
+    expect(wallet.fromBlights).toBe(20);
     expect(wallet.balance).toBeGreaterThan(0);
     // The replay pays the quest history the seeding recorded (from level 5): 5 coins a weekly quest.
     const completions = await all(t, "questCompletions");
@@ -148,7 +150,9 @@ describe("the demo plays the game", () => {
     // Only the fresh seeded year is left in the ledger, and every player's XP adds up again.
     const after = await all(t, "gameEvents");
     const seeded = new Set((await all(t, "kudos")).map((k) => k.batchId));
-    expect(after.filter((e) => e.kind !== "quest" && e.kind !== "expedition").every((e) => seeded.has(e.batchId))).toBe(true);
+    // Kudos events come from the seeded kudos; the story's runs and its past blight are their own.
+    const blights = new Set((await t.run((ctx) => ctx.db.query("blights").collect())).map((b) => `blight:${b._id}`));
+    expect(after.filter((e) => e.kind !== "quest" && e.kind !== "expedition").every((e) => seeded.has(e.batchId) || blights.has(e.batchId))).toBe(true);
     const recorded = new Set((await all(t, "questCompletions")).map((c) => c._id as string));
     expect(after.filter((e) => e.quest?.scope === "weekly").every((e) => recorded.has(e.completionId!))).toBe(true);
     for (const p of await all(t, "players")) {

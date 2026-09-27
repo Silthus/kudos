@@ -46,6 +46,12 @@ const blights = () => t.run((ctx) => ctx.db.query("blights").collect());
 const events = (kind: Doc<"treeEvents">["kind"]) => t.run((ctx) => ctx.db.query("treeEvents").filter((q) => q.eq(q.field("kind"), kind)).collect());
 /** When the first blight after the ancient stage at NOW arrives: the start of its day, in the workspace's timezone. */
 const firstArrival = () => startOfDayUtc(dayKeyFor(nextBlightAt(SEED, NOW.getTime(), 0), TZ), TZ);
+/** The first blight announced on time (the hourly look at its announcement), then the wall clock at `at`. */
+async function announcedThenAt(at: number) {
+  vi.setSystemTime(firstArrival() - BLIGHT.announceAheadDays * DAY_MS + 60_000);
+  await settle();
+  vi.setSystemTime(at);
+}
 
 describe("the schedule", () => {
   test("nothing comes before the ancient stage", async () => {
@@ -79,6 +85,8 @@ describe("the schedule", () => {
     await activeOn(addDays(day, -29), team.cleo);
     await activeOn(addDays(day, -40), team.bot); // too long ago
     // A simulator's clock runs ahead of the wall clock: its blight comes on its own clock.
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { clockOffsetMs: arrives - BLIGHT.announceAheadDays * DAY_MS + 60_000 - NOW.getTime() }));
+    await settle();
     await t.run((ctx) => ctx.db.patch(team.workspaceId, { clockOffsetMs: arrives + 60_000 - NOW.getTime() }));
     await settle();
     const [b] = await blights();
@@ -89,10 +97,141 @@ describe("the schedule", () => {
 
   test("the cron settles every workspace whose tree is ancient", async () => {
     await ancientTree();
-    vi.setSystemTime(firstArrival() + 60_000);
+    await announcedThenAt(firstArrival() + 60_000);
     await t.mutation(internal.blights.tick, {});
     await t.finishAllScheduledFunctions(vi.runAllTimers);
-    expect((await blights()).map((b) => b.status)).toEqual(["active"]);
+    expect(await events("blight_arrived")).toHaveLength(1);
+  });
+
+  test("a planned day that went by unseen steps the seeded chain on from itself: the plan never drifts, and it comes", async () => {
+    // The tree became ancient long before blights were deployed (or the game was off for months).
+    const since = NOW.getTime() - 200 * DAY_MS;
+    await ancientTree(since);
+    const planned: number[] = [];
+    for (let hour = 0; hour < 24 * 40; hour += 6) {
+      vi.setSystemTime(NOW.getTime() + hour * 3_600_000);
+      await settle();
+      const [b] = await blights();
+      if (b) planned.push(b.arrivesAt);
+    }
+    expect(planned.length).toBeGreaterThan(0);
+    const [b] = await blights();
+    expect(b.status).not.toBe("announced"); // it came
+    expect(new Set(planned).size).toBe(1); // and where it was planned stayed put
+  });
+
+  test("never arrives with less than two days' warning, even when its plan is late", async () => {
+    await ancientTree();
+    const arrives = firstArrival();
+    // The first look comes hours after the planned announcement (a late cron, a deploy).
+    vi.setSystemTime(arrives - BLIGHT.announceAheadDays * DAY_MS + 20 * 3_600_000);
+    await settle();
+    const [b] = await blights();
+    expect(b.arrivesAt - b.announcedAt).toBeGreaterThanOrEqual(BLIGHT.announceAheadDays * DAY_MS - 20 * 3_600_000);
+    expect(b.arrivesAt).toBeGreaterThanOrEqual(startOfDayUtc(addDays(dayKeyFor(Date.now(), TZ), BLIGHT.announceAheadDays), TZ));
+    expect(b.endsAt).toBe(startOfDayUtc(addDays(dayKeyFor(b.arrivesAt, TZ), BLIGHT.windowDays), TZ));
+  });
+
+  test("a blight the game was off for is never lost: it lapses, the lanterns stay lit, the next isn't shrunk", async () => {
+    await blightHere();
+    const b = await blight();
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { gameEnabled: false, gamePauses: [{ from: Date.now() }] }));
+    vi.setSystemTime(b.endsAt + 3 * DAY_MS);
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { gameEnabled: true, gamePauses: [{ from: b.arrivesAt + 60_000, until: Date.now() }] }));
+    await settle();
+    expect(await blight()).toMatchObject({ status: "called_off" });
+    expect(await events("blight_lost")).toEqual([]);
+    expect((await t.run((ctx) => ctx.db.query("trees").first()))?.lanternsDimUntil).toBeUndefined();
+  });
+
+  test("the start of its day and its end are settled on time, not at the next hourly look", async () => {
+    await ancientTree();
+    await announcedThenAt(firstArrival() - DAY_MS);
+    await settle();
+    // What was scheduled at its announcement runs at its arrival, and the arrival's at its end.
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    expect((await blights())[0]).toMatchObject({ status: "lost" });
+    expect(await events("blight_arrived")).toHaveLength(1);
+  });
+
+  test("an announcement, a victory and a defeat are posted in the announcement channel; the demo posts nothing", async () => {
+    const posts: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init?: RequestInit) => {
+        posts.push(String(new URLSearchParams(String(init?.body ?? "")).get("text")));
+        return Response.json({ ok: true });
+      }),
+    );
+    await t.run((ctx) => ctx.db.patch(team.workspaceId, { announceChannel: { id: "CANN", name: "announcements" } }));
+    await ancientTree();
+    await announcedThenAt(firstArrival() - DAY_MS);
+    await settle();
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    // Nobody fought it: it came, and it outlasted the company.
+    expect(posts).toEqual([expect.stringMatching(/^A blight is coming to the Ancient Tree\. It arrives on /), expect.stringMatching(/^The blight outlasted us this time\. Nothing is lost/)]);
+    vi.unstubAllGlobals();
+  });
+});
+
+describe("the fight's edges", () => {
+  test("past 500 on the ledger, damage still counts but no new line (or crest) is written", async () => {
+    const id = await blightHere(100_000);
+    await t.run(async (ctx) => {
+      await ctx.db.patch(id, { contributors: 500 });
+    });
+    await message("UANA", "<@UBEN> :taco: thanks for the careful review today");
+    expect(await blight()).toMatchObject({ damage: 1, contributors: 500 });
+    expect(await contributor(team.ana)).toBeNull();
+  });
+
+  test("a revoke never takes damage back", async () => {
+    await blightHere();
+    await message("UANA", "<@UBEN> :taco: thanks for the careful review today");
+    const k = await t.run((ctx) => ctx.db.query("kudos").first());
+    await t.run(async (ctx) => {
+      const { revokeKudosRow } = await import("../convex/engine");
+      await revokeKudosRow(ctx, (await ctx.db.get(team.workspaceId))!, k!);
+    });
+    expect(await blight()).toMatchObject({ damage: 1 });
+  });
+
+  test("its bonus day is the next day without one", async () => {
+    await blightHere(1);
+    const tomorrow = addDays(dayKeyFor(Date.now(), TZ), 1);
+    await t.run((ctx) => ctx.db.insert("boosts", { workspaceId: team.workspaceId, dayKey: tomorrow, from: startOfDayUtc(tomorrow, TZ), kind: "double", source: "schedule", createdAt: Date.now() }));
+    await message("UANA", "<@UBEN> :taco: thanks for the careful review today");
+    expect(await blight()).toMatchObject({ status: "won", bonusDay: addDays(tomorrow, 1) });
+  });
+
+  test("the payout pays more than one step's worth, each once", async () => {
+    const id = await blightHere(100_000);
+    await t.run(async (ctx) => {
+      for (let i = 0; i < 60; i++) {
+        const memberId = await ctx.db.insert("members", { workspaceId: team.workspaceId, slackUserId: `UX${i}`, name: `X${i}`, isAdmin: false, isBot: false, deactivated: false, totalGiven: 0, totalReceived: 0, totalMaxedDays: 0 });
+        await ctx.db.insert("players", { workspaceId: team.workspaceId, memberId, since: 0, xp: 0, level: 1, coins: 0 });
+        await ctx.db.insert("blightContributors", { workspaceId: team.workspaceId, blightId: id, memberId, damage: 1, at: Date.now() });
+      }
+      await ctx.db.patch(id, { status: "won", contributors: 60 });
+    });
+    await t.mutation(internal.blights.payOut, { blightId: id });
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    const paid = await t.run((ctx) => ctx.db.query("gameEvents").withIndex("by_batch", (q) => q.eq("batchId", `blight:${id}`)).collect());
+    expect(paid).toHaveLength(60);
+    expect(new Set(paid.map((e) => e.memberId)).size).toBe(60);
+  });
+});
+
+describe("in a simulator", () => {
+  test("its clock moving on brings the blight, on the simulated days", async () => {
+    await ancientTree();
+    // The wall clock doesn't move: only the workspace's does, a day at a time.
+    for (let day = 1; day <= 40; day++) {
+      await t.run((ctx) => ctx.db.patch(team.workspaceId, { clockOffsetMs: day * DAY_MS }));
+      await settle();
+      if ((await blights())[0]?.status === "active") break;
+    }
+    expect((await blights())[0]).toMatchObject({ status: "active" });
   });
 });
 
@@ -116,7 +255,7 @@ async function message(giver: string, text: string) {
 /** A blight at the tree, arrived a minute ago, with `hp` hit points (set, so a test can finish it). */
 async function blightHere(hp?: number) {
   await ancientTree();
-  vi.setSystemTime(firstArrival() + 60_000);
+  await announcedThenAt(firstArrival() + 60_000);
   await settle();
   const [b] = await blights();
   if (hp !== undefined) await t.run((ctx) => ctx.db.patch(b._id, { hp }));
@@ -130,7 +269,7 @@ const player = (memberId: Id<"members">) => t.run((ctx) => ctx.db.query("players
 describe("damage from thoughtful kudos", () => {
   test("each thoughtful line deals one, credited to its giver; nothing before the blight arrives", async () => {
     await ancientTree();
-    vi.setSystemTime(firstArrival() - DAY_MS);
+    await announcedThenAt(firstArrival() - DAY_MS);
     await settle();
     await message("UANA", "<@UBEN> :taco: thanks for the careful review today");
     expect(await blight()).toMatchObject({ status: "announced", damage: 0 });
@@ -157,9 +296,9 @@ describe("victory", () => {
     await blightHere(3);
     await message("UANA", "<@UBEN> <@UCLEO> :taco: thanks for the thorough reviews");
     await message("UBEN", "<@UCLEO> :taco: thanks for the new dashboard");
+    const today = dayKeyFor(Date.now(), TZ);
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     const won = await blight();
-    const today = dayKeyFor(Date.now(), TZ);
     expect(won).toMatchObject({ status: "won", damage: 3, bonusDay: addDays(today, 1) });
     const boost = await t.run((ctx) => ctx.db.query("boosts").collect());
     expect(boost).toEqual([expect.objectContaining({ source: "blight", kind: "double", dayKey: addDays(today, 1) })]);
@@ -212,6 +351,8 @@ describe("defeat", () => {
     expect(await events("blight_lost")).toHaveLength(1);
 
     const next = startOfDayUtc(dayKeyFor(nextBlightAt(SEED, lost.endsAt, 1), TZ), TZ);
+    vi.setSystemTime(next - BLIGHT.announceAheadDays * DAY_MS + 60_000);
+    await settle();
     vi.setSystemTime(next + 60_000);
     await settle();
     const second = (await blights()).find((b) => b.number === 2)!;
@@ -256,7 +397,7 @@ describe("rooms and the blight raid", () => {
     await ancientTree();
     const ana = await explorer(1, 2);
     await expect(ana.mutation(api.rpg.startRaid, {})).rejects.toThrow(/No blight is at the tree/);
-    vi.setSystemTime(firstArrival() + 60_000);
+    await announcedThenAt(firstArrival() + 60_000);
     await settle();
     await t.run(async (ctx) => ctx.db.patch((await ctx.db.query("blights").first())!._id, { hp: 10_000 }));
     await ana.mutation(api.rpg.startRaid, {});

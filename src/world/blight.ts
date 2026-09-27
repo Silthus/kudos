@@ -57,13 +57,13 @@ export function blightTag(state: BlightState, now: number): { text: string; left
 }
 
 const TOASTS: Record<string, Omit<Toast, "kind">> = {
-  blight_announced: { title: "A blight is coming", body: "It reaches the tree in two days. Every thoughtful kudos will wear it down.", link: { to: "/blight", label: "The blight stone" } },
+  blight_announced: { title: "A blight is coming", body: "It reaches the tree soon. Every thoughtful kudos will wear it down.", link: { to: "/blight", label: "The blight stone" } },
   blight_arrived: {
     title: "A blight has come to the tree",
     body: "Wear it down together: thoughtful kudos, rooms cleared in the ruins, and the raid at the blight stone.",
     link: { to: "/blight", label: "Join the raid" },
   },
-  blight_won: { title: "The blight is beaten", body: "Everyone who fought it gets a crest and 20 Hog coins, and a bonus day is called.", link: { to: "/blight", label: "The blight stone" } },
+  blight_won: { title: "The blight is beaten", body: "Everyone who fought it gets a blight crest for the gallery.", link: { to: "/blight", label: "The blight stone" } },
   blight_lost: { title: "The blight outlasted us", body: "Nothing is lost. The lanterns burn low for a week, and the next blight will be smaller." },
 };
 

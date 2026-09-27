@@ -61,6 +61,22 @@ export function crewBuiltText(title: string, contributors: number): string {
   return `The crew built ${title} at the Ancient Tree. ${capitalise(plural(contributors, "teammate", "teammates"))} made it happen.`;
 }
 
+/** The announcement channel's post when a blight is on its way (#164). */
+export function blightComingText(dayKey: string): string {
+  return `A blight is coming to the Ancient Tree. It arrives on ${dayLabel(dayKey)} and stays five days: every thoughtful kudos wears it down, and so does every room cleared in the ruins and the raid at the blight stone.`;
+}
+
+/** The announcement channel's post when the company beats a blight (#164). */
+export function blightWonText(contributors: number, bonusDay: string | null): string {
+  const bonus = bonusDay ? ` A bonus day is called for ${dayLabel(bonusDay)}.` : "";
+  return `The blight is beaten: ${capitalise(plural(contributors, "teammate", "teammates"))} wore it down together, and each gets a blight crest and Hog coins.${bonus}`;
+}
+
+/** The announcement channel's post when a blight outlasts the company (#164): nothing is lost. */
+export function blightLostText(): string {
+  return "The blight outlasted us this time. Nothing is lost: the tree's lanterns burn low for a week, and the next blight will be smaller.";
+}
+
 /** A blight at the tree (#164), as App Home tells it: how worn down, its last day, the member's part. */
 export type BlightLine = { hp: number; damage: number; lastDay: string; mine: number };
 

@@ -5,7 +5,7 @@ import { api } from "../../convex/_generated/api";
 import { BLIGHT } from "../../convex/lib/blight";
 import { dayLabel } from "../../convex/lib/boosts";
 import { STAMINA } from "../../convex/lib/rpg";
-import { dayKeyFor } from "../../convex/lib/time";
+import { DAY_MS, dayKeyFor } from "../../convex/lib/time";
 import { isRaidId } from "../../convex/lib/tree";
 import { BlightCrest, BlightMeter } from "@/components/blight";
 import { StaminaPips } from "@/components/rpg";
@@ -39,6 +39,8 @@ function useDay() {
 /** What the stone says, by where the latest blight stands. */
 function Headline({ blight, lanternsDimUntil, now }: { blight: Blight | null; lanternsDimUntil: number | null; now: number }) {
   const day = useDay();
+  // How the last one ended is news for a week; after that the stone waits for the next.
+  const recent = !!blight?.endedAt && now - blight.endedAt < 7 * DAY_MS;
   let title = "No blight is at the tree";
   let body = "From the ancient stage a blight comes every two to four weeks, and you hear of it two days ahead. The whole company wears it down together; nothing anyone owns is ever lost to one.";
   if (blight && atTheTree(blight, now)) {
@@ -47,7 +49,7 @@ function Headline({ blight, lanternsDimUntil, now }: { blight: Blight | null; la
   } else if (blight?.status === "announced") {
     title = "A blight is coming";
     body = `It reaches the tree on ${day(blight.arrivesAt)}. Rest up: every thoughtful kudos you give restores a stamina for the raid.`;
-  } else if (blight?.status === "won") {
+  } else if (blight?.status === "won" && recent) {
     title = "The blight is beaten";
     body = [
       blight.bonusDay ? `A bonus day is called for ${dayLabel(blight.bonusDay)}.` : null,
@@ -55,7 +57,7 @@ function Headline({ blight, lanternsDimUntil, now }: { blight: Blight | null; la
     ]
       .filter(Boolean)
       .join(" ");
-  } else if (blight?.status === "lost") {
+  } else if (blight?.status === "lost" && recent) {
     title = "The blight outlasted us";
     body = `Nothing is lost.${lanternsDimUntil && lanternsDimUntil > now ? ` The lanterns burn low until ${day(lanternsDimUntil)},` : ""} and the next blight will be smaller.`;
   }
@@ -161,7 +163,9 @@ function History({ blights }: { blights: Blight[] }) {
                 Blight {b.number}: {b.status === "won" ? "beaten" : "outlasted us"} on {day(b.endedAt ?? b.endsAt)}
               </p>
               <p className="text-ink/75">
-                {Math.min(b.damage, b.hp)} of {b.hp} worn down by {teammates(b.contributors)}. {b.mine > 0 ? `You dealt it ${b.mine}.` : "You weren't in this one."}
+                {b.contributors === 0
+                  ? "Nobody struck it."
+                  : `${Math.min(b.damage, b.hp)} of ${b.hp} worn down by ${teammates(b.contributors)}. ${b.mine > 0 ? `You dealt it ${b.mine}.` : "You weren't in this one."}`}
               </p>
             </div>
           </li>

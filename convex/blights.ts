@@ -5,7 +5,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { addXp, gameOn, gameShownTo, playerOf } from "./game";
 import { sendGains } from "./gains";
 import { startBonusDay } from "./boosts";
-import { treeOf, worldSeedOf } from "./tree";
+import { announceTreeEvent, treeOf, worldSeedOf } from "./tree";
 import { requireAdmin, requireViewer } from "./lib/access";
 import { BLIGHT, blightHp, nextBlightAt } from "./lib/blight";
 import { addDays, DAY_MS, dayKeyFor, parseToday, startOfDayUtc, workspaceNow } from "./lib/time";
@@ -17,13 +17,15 @@ import { blightStatusValidator } from "./schema";
  * Blights (#164; design plan #152 S8, the rules are `lib/blight.ts`): a shared foe at the Ancient
  * Tree from its ancient stage. This module keeps the state; every number is the rules'.
  *
- * - **The schedule** runs on the workspace clock (`settleBlight`: hourly from the cron, and whenever
- *   a simulator's clock moves). The next blight after the last one ended (or after the tree became
- *   ancient) arrives `nextBlightAt(worldSeed, after, count)`, at the start of that workspace day. It
- *   is announced `announceAheadDays` before (a tree event, posted in the announcement channel), and on
- *   arrival takes its hit points from the members who gave or received a kudos in the `activeDays`
- *   before (`blightHp`, smaller after a defeat). An admin may schedule one for a day of their own
- *   (the gatehouse) or call off one that hasn't arrived.
+ * - **The schedule** runs on the workspace clock (`settleBlight`: hourly from the cron, at each
+ *   planned arrival and end, and whenever a simulator's clock moves). The next blight after the last
+ *   one ended (or after the tree became ancient) arrives `nextBlightAt(worldSeed, after, count)`, at the
+ *   start of that workspace day; a planned day that went by unseen (the game off, a deploy) steps the
+ *   seeded chain on from itself, never from now, so the plan can't drift away. It is announced
+ *   `announceAheadDays` before, and never with less warning (a tree event, posted in the announcement
+ *   channel). On arrival it takes its hit points from the members who gave or received a kudos in the
+ *   `activeDays` before (`blightHp`, smaller after a defeat), and stays `windowDays` workspace days. An
+ *   admin may send one for a day of their own (the gatehouse) or call off one that hasn't arrived.
  * - **Damage** is dealt in the transaction of its cause (`strikeBlight`): each qualifying kudos line
  *   of a give (the giver's), each room an expedition clears (once for the whole party, each member
  *   standing credited), ten a room in the **blight raid** (`rpg.startRaid`). A revoke never takes it
@@ -35,7 +37,8 @@ import { blightStatusValidator } from "./schema";
  * - **Defeat** (`endsAt` passes): nothing owned is lost; the tree's lanterns burn low for a week
  *   (`trees.lanternsDimUntil`) and the next blight is smaller.
  *
- * While the game is off nothing moves: a blight waits, and none is planned.
+ * While the game is off nothing is planned and nothing strikes. A blight the game was off for any part
+ * of never counts as lost: it ends `called_off` (nobody could fight it), and the schedule goes on.
  */
 
 /** Rows in a blight's ledger of who fought it: bounded so the payout, the crests and removal stay small. */
@@ -45,24 +48,28 @@ const HISTORY = 12;
 /** A lost blight's lanterns stay dim this long. */
 const DIM_MS = 7 * DAY_MS;
 /** Contributors one payout step pays (each a player patch, a game event and a DM). */
-const PAY_BATCH = 50;
+export const PAY_BATCH = 50;
 /** Workspaces the cron reads a step. */
 const WORKSPACES_PAGE = 100;
-/** memberDays rows read to count the active company (30 days × 500 members fits under it). */
+/** memberDays rows read to count the active company, newest first (30 days × 660 members). */
 const ACTIVE_SCAN = 20_000;
 /** Admins schedule at most this far ahead. */
 const SCHEDULE_AHEAD_DAYS = 90;
 /** A beaten blight's bonus day is the first free day in this many after the victory. */
 const BONUS_DAY_SEARCH = 7;
+/** Seeded plans a settle steps through to catch up (a year of blights or more). */
+const CATCH_UP = 40;
 
 type Blight = Doc<"blights">;
 type Workspace = Doc<"workspaces">;
 
-/** Over: fought to an end, or called off before it came. */
+/** Over: fought to an end, or called off before (or while) nobody could fight it. */
 const over = (b: Blight) => b.status === "won" || b.status === "lost" || b.status === "called_off";
 /** Fought to an end: the history's blights. */
 const fought = (b: Blight) => b.status === "won" || b.status === "lost";
 const dayStart = (at: number, timezone: string) => startOfDayUtc(dayKeyFor(at, timezone), timezone);
+/** A blight's end: the start of the workspace day `windowDays` after it arrived (a DST change never shifts it). */
+const endOf = (arrivesAt: number, timezone: string) => startOfDayUtc(addDays(dayKeyFor(arrivesAt, timezone), BLIGHT.windowDays), timezone);
 
 async function latestBlight(ctx: QueryCtx, workspaceId: Id<"workspaces">) {
   return await ctx.db
@@ -76,6 +83,14 @@ async function latestBlight(ctx: QueryCtx, workspaceId: Id<"workspaces">) {
 export async function activeBlight(ctx: QueryCtx, workspace: Workspace, now: number) {
   const b = await latestBlight(ctx, workspace._id);
   return b && b.status === "active" && now >= b.arrivesAt && now < b.endsAt ? b : null;
+}
+
+/** A member's line in a blight's ledger, if they struck it. */
+async function contributorOf(ctx: QueryCtx, blightId: Id<"blights">, memberId: Id<"members">) {
+  return await ctx.db
+    .query("blightContributors")
+    .withIndex("by_blight_member", (q) => q.eq("blightId", blightId).eq("memberId", memberId))
+    .unique();
 }
 
 /** Whether the tree is ancient or older: blights come from then on. */
@@ -94,12 +109,23 @@ async function ancientSince(ctx: QueryCtx, workspace: Workspace, tree: Doc<"tree
   return stages.find((e) => e.stage === "ancient")?.at ?? tree.plantedAt ?? now;
 }
 
-/** A tree event about a blight. */
-async function logBlight(ctx: MutationCtx, workspace: Workspace, kind: Doc<"treeEvents">["kind"], blightId: Id<"blights">, at: number) {
-  return await ctx.db.insert("treeEvents", { workspaceId: workspace._id, kind, at, blightId });
+/** Whether the game was off (paused) at any time from `from` to `to`. */
+function pausedBetween(workspace: Workspace, from: number, to: number) {
+  return (workspace.gamePauses ?? []).some((p) => p.from < to && (p.until ?? Infinity) > from);
 }
 
-/** A blight announced for `arrivesAt`: the tree's log says so. */
+/** A tree event about a blight; announced, won and lost ones are posted in the announcement channel. */
+async function logBlight(ctx: MutationCtx, workspace: Workspace, kind: Doc<"treeEvents">["kind"], blightId: Id<"blights">, at: number) {
+  const id = await ctx.db.insert("treeEvents", { workspaceId: workspace._id, kind, at, blightId });
+  if (kind === "blight_announced" || kind === "blight_won" || kind === "blight_lost") await announceTreeEvent(ctx, workspace, id);
+}
+
+/** Settles the workspace's blights again at `at` on its clock (a simulator's clock runs ahead of the wall's). */
+async function settleAt(ctx: MutationCtx, workspace: Workspace, at: number) {
+  await ctx.scheduler.runAt(Math.max(Date.now(), at - (workspace.clockOffsetMs ?? 0)), internal.blights.settleIn, { workspaceId: workspace._id });
+}
+
+/** A blight announced for `arrivesAt`: the tree's log says so, and it's settled again when it comes. */
 async function announce(
   ctx: MutationCtx,
   workspace: Workspace,
@@ -113,7 +139,7 @@ async function announce(
     number: (previous?.number ?? 0) + 1,
     status: "announced",
     arrivesAt,
-    endsAt: arrivesAt + BLIGHT.windowDays * DAY_MS,
+    endsAt: endOf(arrivesAt, workspace.timezone),
     announcedAt: now,
     hp: 0,
     damage: 0,
@@ -124,23 +150,26 @@ async function announce(
     ...(by ? { by } : {}),
   });
   await logBlight(ctx, workspace, "blight_announced", id, now);
+  await settleAt(ctx, workspace, arrivesAt);
   return (await ctx.db.get(id))!;
 }
 
-/** Members who gave or received a kudos in the `activeDays` before `day`. */
-async function activeMembers(ctx: QueryCtx, workspace: Workspace, day: string) {
+/** Members who gave or received a kudos in the `activeDays` before `day` (the latest days first). */
+export async function activeMembers(ctx: QueryCtx, workspaceId: Id<"workspaces">, day: string) {
   const rows = await ctx.db
     .query("memberDays")
-    .withIndex("by_workspace_day", (q) => q.eq("workspaceId", workspace._id).gte("dayKey", addDays(day, -BLIGHT.activeDays)).lt("dayKey", day))
+    .withIndex("by_workspace_day", (q) => q.eq("workspaceId", workspaceId).gte("dayKey", addDays(day, -BLIGHT.activeDays)).lt("dayKey", day))
+    .order("desc")
     .take(ACTIVE_SCAN);
   return new Set(rows.map((r) => r.memberId)).size;
 }
 
 /** The blight arrives: its hit points from the active company, its raid's tier from the tree's stage. */
 async function arrive(ctx: MutationCtx, workspace: Workspace, b: Blight, tree: Doc<"trees">, now: number): Promise<Blight> {
-  const active = await activeMembers(ctx, workspace, dayKeyFor(b.arrivesAt, workspace.timezone));
+  const active = await activeMembers(ctx, workspace._id, dayKeyFor(b.arrivesAt, workspace.timezone));
   await ctx.db.patch(b._id, { status: "active", hp: blightHp(active, b.defeatedBefore), tier: raidTier(stageForGrowth(tree.peakGrowth)) });
   await logBlight(ctx, workspace, "blight_arrived", b._id, Math.max(now, b.arrivesAt));
+  await settleAt(ctx, workspace, b.endsAt);
   return (await ctx.db.get(b._id))!;
 }
 
@@ -149,6 +178,32 @@ async function lose(ctx: MutationCtx, workspace: Workspace, b: Blight, tree: Doc
   await ctx.db.patch(b._id, { status: "lost", endedAt: b.endsAt });
   await ctx.db.patch(tree._id, { lanternsDimUntil: b.endsAt + DIM_MS });
   await logBlight(ctx, workspace, "blight_lost", b._id, b.endsAt);
+}
+
+/** Nobody could fight it (the game was off for some of its days): it ends without a result. */
+async function lapse(ctx: MutationCtx, workspace: Workspace, b: Blight) {
+  await ctx.db.patch(b._id, { status: "called_off", endedAt: b.endsAt });
+  await logBlight(ctx, workspace, "blight_called_off", b._id, b.endsAt);
+}
+
+/**
+ * When the next blight after `previous` arrives: the seeded chain from the last one's end (or the
+ * ancient stage), stepped on from each missed plan's own end (never from now, so it can't drift), and
+ * never announced with less than `announceAheadDays` warning.
+ */
+function nextArrival(workspace: Workspace, previous: Blight | null, since: number, now: number) {
+  const seed = worldSeedOf(workspace);
+  const count = previous?.number ?? 0;
+  const ahead = BLIGHT.announceAheadDays * DAY_MS;
+  let after = previous ? (previous.endedAt ?? previous.endsAt) : since;
+  let arrivesAt = dayStart(nextBlightAt(seed, after, count), workspace.timezone);
+  // A plan whose announcement is more than a day gone went by unseen: the chain steps on from it.
+  for (let i = 0; i < CATCH_UP && now > arrivesAt - ahead + DAY_MS; i++) {
+    after = endOf(arrivesAt, workspace.timezone);
+    arrivesAt = dayStart(nextBlightAt(seed, after, count), workspace.timezone);
+  }
+  if (now < arrivesAt - ahead) return null; // not time to announce it yet
+  return Math.max(arrivesAt, startOfDayUtc(addDays(dayKeyFor(now, workspace.timezone), BLIGHT.announceAheadDays), workspace.timezone));
 }
 
 /** What moving a workspace's blights along did, in order. */
@@ -166,14 +221,14 @@ export async function settleBlight(ctx: MutationCtx, workspace: Workspace): Prom
   if (!tree) return changes;
   const now = workspaceNow(workspace);
   let b = await latestBlight(ctx, workspace._id);
+  // One the game was off for: it never counts, and the schedule goes on after it.
+  if (b && !over(b) && now >= b.endsAt && (b.status === "announced" || pausedBetween(workspace, b.arrivesAt, b.endsAt))) {
+    await lapse(ctx, workspace, b);
+    b = (await ctx.db.get(b._id))!;
+  }
   if (!b || over(b)) {
-    const seed = worldSeedOf(workspace);
-    const count = b?.number ?? 0;
-    const after = b ? (b.endedAt ?? b.endsAt) : await ancientSince(ctx, workspace, tree, now);
-    let arrivesAt = dayStart(nextBlightAt(seed, after, count), workspace.timezone);
-    // Its days went by unseen (the game was off): the next one is planned from now instead.
-    if (now >= arrivesAt + BLIGHT.windowDays * DAY_MS) arrivesAt = dayStart(nextBlightAt(seed, now, count), workspace.timezone);
-    if (now < arrivesAt - BLIGHT.announceAheadDays * DAY_MS) return changes;
+    const arrivesAt = nextArrival(workspace, b, b ? 0 : await ancientSince(ctx, workspace, tree, now), now);
+    if (arrivesAt === null) return changes;
     b = await announce(ctx, workspace, b, arrivesAt, now);
     changes.push("announced");
   }
@@ -188,6 +243,9 @@ export async function settleBlight(ctx: MutationCtx, workspace: Workspace): Prom
   return changes;
 }
 
+/** Workspaces a blight is never moved in: uninstalled, or a demo being reset or a simulator being wiped. */
+const resting = (w: Workspace) => !gameOn(w) || w.status !== "active" || w.resettingSince !== undefined || w.wipingSince !== undefined;
+
 /** The cron (hourly): settles each workspace whose game is on, in its own transaction. */
 export const tick = internalMutation({
   args: { cursor: v.optional(v.string()) },
@@ -195,8 +253,7 @@ export const tick = internalMutation({
   handler: async (ctx, { cursor }) => {
     const page = await ctx.db.query("workspaces").paginate({ numItems: WORKSPACES_PAGE, cursor: cursor ?? null });
     for (const workspace of page.page) {
-      if (!gameOn(workspace) || workspace.status !== "active" || workspace.resettingSince !== undefined || workspace.wipingSince !== undefined) continue;
-      if (await ancientTree(ctx, workspace)) await ctx.scheduler.runAfter(0, internal.blights.settleIn, { workspaceId: workspace._id });
+      if (!resting(workspace) && (await ancientTree(ctx, workspace))) await ctx.scheduler.runAfter(0, internal.blights.settleIn, { workspaceId: workspace._id });
     }
     if (!page.isDone) await ctx.scheduler.runAfter(0, internal.blights.tick, { cursor: page.continueCursor });
     return null;
@@ -208,7 +265,7 @@ export const settleIn = internalMutation({
   returns: v.null(),
   handler: async (ctx, { workspaceId }) => {
     const workspace = await ctx.db.get(workspaceId);
-    if (workspace) await settleBlight(ctx, workspace);
+    if (workspace && !resting(workspace)) await settleBlight(ctx, workspace);
     return null;
   },
 });
@@ -226,10 +283,7 @@ export async function strikeBlight(ctx: MutationCtx, workspace: Workspace, membe
   if (!b) return;
   let contributors = b.contributors;
   for (const memberId of new Set(memberIds)) {
-    const row = await ctx.db
-      .query("blightContributors")
-      .withIndex("by_blight_member", (q) => q.eq("blightId", b._id).eq("memberId", memberId))
-      .unique();
+    const row = await contributorOf(ctx, b._id, memberId);
     if (row) await ctx.db.patch(row._id, { damage: row.damage + damage });
     else if (contributors < MAX_CONTRIBUTORS) {
       await ctx.db.insert("blightContributors", { workspaceId: workspace._id, blightId: b._id, memberId, damage, at: now });
@@ -254,10 +308,28 @@ async function win(ctx: MutationCtx, workspace: Workspace, b: Blight, now: numbe
   await ctx.scheduler.runAfter(0, internal.blights.payOut, { blightId: b._id });
 }
 
+/** A beaten blight's 20 Hog coins to one who fought it, if they play: a `blight` event (0 XP) and their wallet. */
+async function payContributor(ctx: MutationCtx, workspace: Workspace, blightId: Id<"blights">, memberId: Id<"members">, at: number) {
+  const player = await playerOf(ctx, memberId);
+  if (!player) return null;
+  const coins = BLIGHT.rewardCoins;
+  await ctx.db.insert("gameEvents", {
+    workspaceId: workspace._id,
+    memberId,
+    kind: "blight",
+    batchId: `blight:${blightId}`,
+    dayKey: dayKeyFor(at, workspace.timezone),
+    at,
+    xp: 0,
+    coins,
+  });
+  await addXp(ctx, player, 0, coins, undefined, "blightCoins");
+  return coins;
+}
+
 /**
- * Pays a beaten blight's contributors, PAY_BATCH a step: to each player 20 Hog coins as a `blight`
- * event (0 XP) and one gain DM with their damage and crest. Each row is paid once (`paidAt`), so a
- * step run twice pays nobody twice.
+ * Pays a beaten blight's contributors, PAY_BATCH a step: to each player 20 Hog coins and one gain DM
+ * with their damage and crest. Each row is paid once (`paidAt`), so a step run twice pays nobody twice.
  */
 export const payOut = internalMutation({
   args: { blightId: v.id("blights") },
@@ -273,21 +345,8 @@ export const payOut = internalMutation({
       .take(PAY_BATCH);
     for (const row of due) {
       await ctx.db.patch(row._id, { paidAt: now });
-      const player = await playerOf(ctx, row.memberId);
-      if (!player) continue;
-      const coins = BLIGHT.rewardCoins;
-      await ctx.db.insert("gameEvents", {
-        workspaceId: workspace._id,
-        memberId: row.memberId,
-        kind: "blight",
-        batchId: `blight:${blightId}`,
-        dayKey: dayKeyFor(now, workspace.timezone),
-        at: now,
-        xp: 0,
-        coins,
-      });
-      await addXp(ctx, player, 0, coins, undefined, "blightCoins");
-      await sendGains(ctx, workspace, row.memberId, [{ kind: "blight_won", damage: row.damage, coins }]);
+      const coins = await payContributor(ctx, workspace, blightId, row.memberId, now);
+      if (coins !== null) await sendGains(ctx, workspace, row.memberId, [{ kind: "blight_won", damage: row.damage, coins }]);
     }
     if (due.length === PAY_BATCH) await ctx.scheduler.runAfter(0, internal.blights.payOut, { blightId });
     return null;
@@ -297,43 +356,33 @@ export const payOut = internalMutation({
 /**
  * A blight the company beat in the past, as history (the demo's story, #164 S10): it arrived at
  * `arrivesAt` and was beaten at `wonAt`, worn down exactly by `fighters`' damage. Each fighter who
- * plays was paid as a victory pays (a `blight` event, the coins), with no DM, no post and no bonus day.
+ * plays was paid as a victory pays, with no DM, no post and no bonus day.
  */
 export async function seedPastVictory(ctx: MutationCtx, workspace: Workspace, story: { arrivesAt: number; wonAt: number; fighters: { memberId: Id<"members">; damage: number }[] }) {
-  const hp = story.fighters.reduce((s, f) => s + f.damage, 0);
+  const fighters = story.fighters.slice(0, MAX_CONTRIBUTORS);
+  const hp = fighters.reduce((s, f) => s + f.damage, 0);
+  const announcedAt = story.arrivesAt - BLIGHT.announceAheadDays * DAY_MS;
   const blightId = await ctx.db.insert("blights", {
     workspaceId: workspace._id,
     number: ((await latestBlight(ctx, workspace._id))?.number ?? 0) + 1,
     status: "won",
     arrivesAt: story.arrivesAt,
-    endsAt: story.arrivesAt + BLIGHT.windowDays * DAY_MS,
-    announcedAt: story.arrivesAt - BLIGHT.announceAheadDays * DAY_MS,
+    endsAt: endOf(story.arrivesAt, workspace.timezone),
+    announcedAt,
     hp,
     damage: hp,
-    contributors: story.fighters.length,
+    contributors: fighters.length,
     defeatedBefore: false,
     tier: 1,
     source: "schedule",
     endedAt: story.wonAt,
   });
-  for (const [kind, at] of [["blight_announced", story.arrivesAt - BLIGHT.announceAheadDays * DAY_MS], ["blight_arrived", story.arrivesAt], ["blight_won", story.wonAt]] as const) {
-    await logBlight(ctx, workspace, kind, blightId, at);
+  for (const [kind, at] of [["blight_announced", announcedAt], ["blight_arrived", story.arrivesAt], ["blight_won", story.wonAt]] as const) {
+    await ctx.db.insert("treeEvents", { workspaceId: workspace._id, kind, at, blightId });
   }
-  for (const f of story.fighters.slice(0, MAX_CONTRIBUTORS)) {
+  for (const f of fighters) {
     await ctx.db.insert("blightContributors", { workspaceId: workspace._id, blightId, memberId: f.memberId, damage: f.damage, at: story.arrivesAt, paidAt: story.wonAt });
-    const player = await playerOf(ctx, f.memberId);
-    if (!player) continue;
-    await ctx.db.insert("gameEvents", {
-      workspaceId: workspace._id,
-      memberId: f.memberId,
-      kind: "blight",
-      batchId: `blight:${blightId}`,
-      dayKey: dayKeyFor(story.wonAt, workspace.timezone),
-      at: story.wonAt,
-      xp: 0,
-      coins: BLIGHT.rewardCoins,
-    });
-    await addXp(ctx, player, 0, BLIGHT.rewardCoins, undefined, "blightCoins");
+    await payContributor(ctx, workspace, blightId, f.memberId, story.wonAt);
   }
   return blightId;
 }
@@ -344,10 +393,7 @@ export async function seedPastVictory(ctx: MutationCtx, workspace: Workspace, st
 export async function blightLine(ctx: QueryCtx, workspace: Workspace, memberId: Id<"members">): Promise<BlightLine | null> {
   const b = await latestBlight(ctx, workspace._id);
   if (!b || b.status !== "active") return null;
-  const row = await ctx.db
-    .query("blightContributors")
-    .withIndex("by_blight_member", (q) => q.eq("blightId", b._id).eq("memberId", memberId))
-    .unique();
+  const row = await contributorOf(ctx, b._id, memberId);
   return { hp: b.hp, damage: b.damage, lastDay: dayKeyFor(b.endsAt - 1, workspace.timezone), mine: row?.damage ?? 0 };
 }
 
@@ -368,10 +414,7 @@ const blightView = v.object({
 });
 
 async function viewOf(ctx: QueryCtx, b: Blight, memberId: Id<"members">) {
-  const row = await ctx.db
-    .query("blightContributors")
-    .withIndex("by_blight_member", (q) => q.eq("blightId", b._id).eq("memberId", memberId))
-    .unique();
+  const row = await contributorOf(ctx, b._id, memberId);
   return {
     _id: b._id,
     number: b.number,
@@ -424,8 +467,8 @@ export const history = query({
 
 /**
  * An admin sends a blight for a day of their choosing (tomorrow at the earliest, so it's announced
- * first; within 90 days): only while the game is on, from the ancient stage, and with no blight
- * announced or at the tree already.
+ * before it comes; within 90 days): only while the game is on, from the ancient stage, and with no
+ * blight announced or at the tree already.
  */
 export const schedule = mutation({
   args: { dayKey: v.string() },

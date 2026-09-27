@@ -56,7 +56,7 @@ const blight = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 const past = [
-  { ...blight({ _id: "b0", number: 1, status: "won", damage: 80, hp: 80, contributors: 7, mine: 9, endedAt: Date.parse("2026-09-01T12:00:00Z"), bonusDay: "2026-09-02" }) },
+  { ...blight({ _id: "b0", number: 1, status: "won", damage: 80, hp: 80, contributors: 7, mine: 9, endedAt: Date.parse("2026-09-21T12:00:00Z"), bonusDay: "2026-09-22" }) },
 ];
 
 let tree: () => React.ReactNode = () => null;
@@ -169,11 +169,27 @@ describe("before and after", () => {
     queries = { "blights:current": { blight: past[0], lanternsDimUntil: null }, "blights:history": past, "rpg:current": null };
     const host = render();
     expect(host.textContent).toContain("The blight is beaten");
-    expect(host.textContent).toContain("A bonus day is called for Wednesday, 2 September.");
+    expect(host.textContent).toContain("A bonus day is called for Tuesday, 22 September.");
     const history = host.querySelector("[data-blight-history]")!;
-    expect(history.textContent).toContain("Blight 1: beaten on Tuesday, 1 September");
+    expect(history.textContent).toContain("Blight 1: beaten on Monday, 21 September");
     expect(history.textContent).toContain("80 of 80 worn down by 7 teammates. You dealt it 9.");
     expect(history.querySelector("[data-crest]")).not.toBeNull();
+  });
+
+  test("a blight nobody struck says so in the history", () => {
+    const lost = blight({ _id: "b3", number: 3, status: "lost", damage: 0, contributors: 0, mine: 0, endedAt: NOW - DAY });
+    queries = { "blights:current": { blight: lost, lanternsDimUntil: NOW + 6 * DAY }, "blights:history": [lost], "rpg:current": null };
+    const host = render();
+    expect(host.textContent).toContain("The blight outlasted us");
+    expect(host.querySelector("[data-blight-history]")?.textContent).toContain("Blight 3: outlasted us on Tuesday, 22 September");
+    expect(host.querySelector("[data-blight-history]")?.textContent).toContain("Nobody struck it.");
+  });
+
+  test("how the last one ended is news for a week; then the stone waits for the next", () => {
+    queries = { "blights:current": { blight: { ...past[0], endedAt: Date.parse("2026-09-10T12:00:00Z") }, lanternsDimUntil: null }, "blights:history": past, "rpg:current": null };
+    const host = render();
+    expect(host.textContent).toContain("No blight is at the tree");
+    expect(host.textContent).not.toContain("The blight is beaten");
   });
 
   test("with no blight yet, it says how they come", () => {

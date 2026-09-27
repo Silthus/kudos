@@ -232,7 +232,8 @@ async function endRun(ctx: MutationCtx, workspace: Doc<"workspaces">, run: Run, 
       await ctx.db.patch(player._id, {
         coins: (fresh.coins ?? 0) + coins,
         expeditionCoins: (fresh.expeditionCoins ?? 0) + coins,
-        ruinsCleared: (fresh.ruinsCleared ?? []).includes(run.ruinId) ? fresh.ruinsCleared : [...(fresh.ruinsCleared ?? []), run.ruinId],
+        // The blight raid is no ruin of the desert: it isn't counted among those explored.
+        ruinsCleared: isRaidId(run.ruinId) || (fresh.ruinsCleared ?? []).includes(run.ruinId) ? fresh.ruinsCleared : [...(fresh.ruinsCleared ?? []), run.ruinId],
       });
       await ctx.db.insert("gameEvents", {
         workspaceId: workspace._id,
@@ -314,7 +315,6 @@ export const start = mutation({
     const site = (await ruinsOpen(ctx, workspace)).find((r) => r.id === ruinId);
     if (site && site.tier !== 1) throw new ConvexError("Only the near ruins can be explored for now: the deeper ones are for parties.");
     if (!site) throw new ConvexError("That ruin is not open yet: the tree opens the near ruins when it's a great tree.");
-    if (await openRun(ctx, player)) throw new ConvexError("You're on an expedition already. Finish it, or return to camp first.");
     const can = canStartExpedition({ level: player.level, stamina: player.stamina ?? 0 }, site.tier);
     if (!can.ok) throw new ConvexError(can.reason === "level" ? `The near ruins open to explorers at level 6. You're level ${player.level}.` : NO_STAMINA);
     return await enter(ctx, workspace, member, player, site);

@@ -10,6 +10,7 @@ import { errorText } from "@/lib/errors";
 import { useWorkspaceToday } from "@/lib/period";
 import { useViewer } from "@/lib/viewer";
 import { hpLeft } from "@/world/blight";
+import { useClockNow } from "@/world/homeRing";
 
 /**
  * Admin → Blights (#164, plan #152 S8): the blight coming or at the tree, sending one for a day of
@@ -18,6 +19,7 @@ import { hpLeft } from "@/world/blight";
  */
 export function AdminBlights() {
   const current = useQuery(api.blights.current);
+  const clockNow = useClockNow(60_000);
   const { workspace } = useViewer();
   const today = useWorkspaceToday();
   const tomorrow = addDays(today, 1);
@@ -38,7 +40,7 @@ export function AdminBlights() {
       setState({ kind: "error", message: errorText(e) });
     }
   };
-  const now = Date.now();
+  const now = clockNow;
   const status =
     b?.status === "announced"
       ? `A blight comes on ${dayLabel(dayKeyFor(b.arrivesAt, workspace.timezone))}.`

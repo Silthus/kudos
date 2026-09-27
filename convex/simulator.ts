@@ -252,7 +252,7 @@ export const wipeExpired = internalMutation({
 // ── The clock ───────────────────────────────────────────────────────────────
 
 const BLIGHT_CHANGE: Record<BlightChange, string> = {
-  announced: "A blight is coming to the Ancient Tree: the company has two days to get ready.",
+  announced: "A blight is coming to the Ancient Tree: get ready to wear it down together.",
   arrived: "A blight has come to the Ancient Tree. Every thoughtful kudos wears it down.",
   lost: "The blight outlasted the company: the tree's lanterns burn low for a week.",
 };
