@@ -47,12 +47,22 @@ describe("the demo", () => {
     expect(tree!.peakGrowth).toBe(growthFor({ sap: qualifying, fuel }));
     const workspaceId = (await t.run((ctx) => ctx.db.query("workspaces").first()))!._id;
     expect(await t.action(internal.tree.verify, { workspaceId })).toMatchObject({ ok: true, unplanted: 0 });
+    // The crew (#161, S10): the bell built, with its contributors on the plaque, and the market awnings 60 % funded.
+    const crew = async () => ({ built: (await alex.query(api.crew.built, { paginationOpts: { numItems: 5, cursor: null } })).page, open: await alex.query(api.crew.open, {}) });
+    const seeded = await crew();
+    expect(seeded.built).toEqual([expect.objectContaining({ part: "structure_bell", contributed: 300 })]);
+    expect(seeded.built[0].contributors.length).toBeGreaterThanOrEqual(4);
+    expect(seeded.open.quests).toEqual([expect.objectContaining({ part: "structure_market_awnings", goal: 500, contributed: 300, status: "proposed" })]);
+    expect((await alex.query(api.tree.state, {}))!.cosmetics).toEqual([expect.objectContaining({ part: "structure_bell" })]);
 
     await t.mutation(internal.demo.startDemoReset, {});
     await settle();
     const again = await alex.query(api.tree.state, {});
     expect(again).toMatchObject({ stage: tree!.stage, sap: tree!.sap, fuel: tree!.fuel, worldSeed: tree!.worldSeed, plantedBy: tree!.plantedBy });
     expect(await alex.query(api.tutorial.state, {})).toMatchObject({ step: 11 });
+    const reseeded = await crew();
+    expect(reseeded.built.map((b) => b.part)).toEqual(["structure_bell"]);
+    expect(reseeded.open.quests.map((q) => [q.part, q.contributed])).toEqual([["structure_market_awnings", 300]]);
     // A teammate starts over at the elder hog.
     expect((await t.run((ctx) => ctx.db.query("members").collect())).filter((m) => m.tutorial).map((m) => m.slackUserId)).toEqual(["UDEMOYOU"]);
     expect(await t.run(async (ctx) => (await ctx.db.query("trees").collect()).length)).toBe(1);

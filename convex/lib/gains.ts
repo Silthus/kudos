@@ -163,6 +163,16 @@ function parts(gain: Gain, audience: Audience, link: LinkTo): Parts {
         context: links(gain.gear.length > 0 ? to("/me", "Your cabin") : null, gain.lore.length > 0 ? to("/discoveries", "The gallery") : null),
       };
     }
+    case "crew_built":
+      return {
+        icon: "🌳",
+        title: `${safe(gain.part, audience)} is built on the Ancient Tree`,
+        body:
+          gain.contributors === 1
+            ? "You funded it on your own. Your name is on the crew's plaque, for good."
+            : `You and ${plural(gain.contributors - 1, "teammate", "teammates")} funded it. Your names are on the crew's plaque, for good.`,
+        context: links(to("/crew", "The crew's plaque")),
+      };
     case "plant_stage": {
       const name = safe(gain.stage, audience);
       const stage = gain.stage === "Ancient" ? "an Ancient plant" : `${article(gain.stage)} ${name}`;
@@ -225,6 +235,7 @@ const LABELS: [Gain["kind"], string][] = [
   ["tree_seed", "Ancient Tree"],
   ["offering_claimed", "Offering"],
   ["ruin_finds", "Expedition"],
+  ["crew_built", "Crew quest"],
   ["level_up", "Level up"],
   ["skill", "New skill"],
   ["spree_tier", "Spree"],

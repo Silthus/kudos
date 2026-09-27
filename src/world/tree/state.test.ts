@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { layout } from "../../../convex/lib/tree";
+import { treeCosmetics } from "./cosmetics";
 import { closedLine, treeInput, treeMoments, treeToasts, type TreeState } from "./state";
 
 /**
@@ -21,7 +22,8 @@ const state = (growth: number, extra: Partial<NonNullable<TreeState>> = {}): Tre
 
 describe("the world's tree", () => {
   test("comes from the server's state: its seed, its layout at peak growth, whether it's planted", () => {
-    expect(treeInput(state(40))).toEqual({ seed: 7, layout: layout(7, 40), planted: true });
+    expect(treeInput(state(40))).toEqual({ seed: 7, layout: layout(7, 40), planted: true, cosmetics: treeCosmetics([]) });
+    expect(treeInput(state(40, { cosmetics: [{ part: "canopy_colour", option: "rose" }] as never }))?.cosmetics).toMatchObject({ canopy: "rose" });
     expect(treeInput(state(0))).toMatchObject({ planted: false });
   });
 
@@ -77,12 +79,32 @@ describe("moments of the tree", () => {
 
   test("another workspace's tree is no moment: switching workspace plants nothing and opens nothing", () => {
     const other = { ...state(5000), worldSeed: 8 };
-    expect(treeMoments(state(0), other)).toEqual({ seeded: false, opened: [] });
+    expect(treeMoments(state(0), other)).toEqual({ seeded: false, opened: [], crew: [] });
   });
 
   test("nothing opens on arrival, on a reload, or when the game is switched off", () => {
     expect(treeMoments(undefined, state(500)).opened).toEqual([]);
     expect(treeMoments(state(500), null).opened).toEqual([]);
     expect(treeMoments(null, state(500)).opened).toEqual([]);
+  });
+});
+
+describe("the crew's moments (#161)", () => {
+  const event = (id: string, kind: string, part: string) => ({ _id: id, kind, part, at: 1, who: null }) as never;
+  test("a crew quest funded, and a part built, while you're here: a toast each, once", () => {
+    const before = state(3000, { events: [event("e1", "stage", "")] });
+    const funded = state(3000, { events: [event("e2", "crew_funded", "structure_lantern_bridge"), event("e1", "stage", "")] });
+    const m = treeMoments(before, funded);
+    expect(m.crew).toEqual([{ kind: "crew_funded", part: "structure_lantern_bridge" }]);
+    expect(treeToasts(m, funded)).toEqual([
+      expect.objectContaining({ kind: "tree", title: "The crew funded the lantern bridge", body: "It will be built in 3 days, and everyone who gave is on the plaque." }),
+    ]);
+    const built = state(3000, { events: [{ ...(event("e3", "crew_built", "style_stall") as object), option: "blossom" } as never, ...funded.events!] });
+    expect(treeToasts(treeMoments(funded, built), built)).toEqual([
+      expect.objectContaining({ title: "The crew built the stall style (blossom)", link: { to: "/crew", label: "See the plaque" } }),
+    ]);
+    // Arriving is no moment, nor the same events again.
+    expect(treeMoments(undefined, built).crew).toEqual([]);
+    expect(treeMoments(built, built).crew).toEqual([]);
   });
 });

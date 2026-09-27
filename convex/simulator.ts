@@ -23,6 +23,7 @@ import { autoPlantWorkspace, newWorldSeed } from "./tree";
 import { autoClaimWorkspace, claimWaiting } from "./offerings";
 import { settleHomes } from "./homes";
 import { HOME_STAGE_BY_ID } from "./lib/homes";
+import { settleCrew } from "./crew";
 import { getViewer, simulatorOf } from "./lib/access";
 import { BOOST_EFFECT, BOOST_NAME } from "./lib/boosts";
 import { coinBalance, COINS } from "./lib/coins";
@@ -283,6 +284,9 @@ async function advanceClock(ctx: MutationCtx, workspace: Doc<"workspaces">, memb
   if (planted > 0) changes.push(planted === 1 ? "1 seed planted itself at the Ancient Tree." : `${planted} seeds planted themselves at the Ancient Tree.`);
   // Offerings nobody claimed in 30 simulated days claim themselves too (#157).
   if ((await autoClaimWorkspace(ctx, moved)) > 0) changes.push("Appreciation nobody offered for 30 days fed the Ancient Tree.");
+  // Crew quests funded 3 simulated days ago are built (#161; the scheduled build waits on the wall clock). The
+  // world tells it with its own toast, from the tree's events.
+  await settleCrew(ctx, moved);
   return { day, dayIndex: daysBetween(moved.simulator!.startDay, day), changes };
 }
 

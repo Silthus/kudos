@@ -29,7 +29,7 @@ vi.mock("@convex-dev/auth/react", () => ({ useAuthActions: () => ({ signOut: vi.
 // No atlas in tests: the portrait keeps its placeholder.
 vi.mock("./atlas", async (real) => ({ ...(await real<typeof import("./atlas")>()), loadAtlas: () => new Promise(() => {}) }));
 
-const { Hud, hudGame } = await import("./Hud");
+const { Hud, hudGame, crewTagFor } = await import("./Hud");
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 HTMLCanvasElement.prototype.getContext = (() => null) as never;
 
@@ -58,6 +58,20 @@ describe("what the HUD shows of your game", () => {
     expect(hudGame(mine({ hidden: true }) as never)).toBeNull();
     expect(hudGame(mine({ player: null, wallet: null }) as never)).toBeNull();
     expect(hudGame(undefined)).toBeNull();
+  });
+});
+
+describe("the crew's tag (#161)", () => {
+  const quest = (patch: Record<string, unknown>) => ({ name: "Lantern bridge", goal: 400, contributed: 0, status: "proposed", awaitingApproval: false, ...patch }) as never;
+  test("shows while a quest is within 10 % of its goal: the nearest one", () => {
+    expect(crewTagFor([quest({ contributed: 359 })])).toBeNull();
+    expect(crewTagFor([quest({ contributed: 360 })])).toEqual({ name: "Lantern bridge", percent: 90 });
+    expect(crewTagFor([quest({ contributed: 370 }), quest({ name: "The bell", goal: 300, contributed: 297 })])).toEqual({ name: "The bell", percent: 99 });
+  });
+  test("not for a funded quest, a banner waiting for approval, or none", () => {
+    expect(crewTagFor([quest({ contributed: 400, status: "funded" })])).toBeNull();
+    expect(crewTagFor([quest({ contributed: 390, awaitingApproval: true })])).toBeNull();
+    expect(crewTagFor(undefined)).toBeNull();
   });
 });
 

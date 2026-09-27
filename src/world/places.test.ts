@@ -27,6 +27,7 @@ describe("which places are on the map", () => {
       elder: "The elder hog",
       homes: "The homes",
       canopy: "The canopy",
+      crew: "The crew's plaque",
     });
     for (const item of navItems(everything)) expect(names).toHaveProperty(item.id);
   });

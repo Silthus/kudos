@@ -55,6 +55,8 @@ export const ART = {
   "hoggie-gardener": hoggie("gardener-1"),
   "hoggie-reader": hoggie("reading"),
   "hoggie-party": hoggie("party"),
+  /** The crew's statue (#161): the fourth hoggie a crew can raise at the tree's foot. */
+  "hoggie-explorer": hoggie("explorer"),
   /** The gardener waiting by an empty plot. */
   "hoggie-empty-plot": hoggie("gardener-2"),
   /** A level-up DM (#99) on the web. */

@@ -1,4 +1,4 @@
-import { ArrowLeftRight, BarChart3, FlaskConical, Footprints, Gem, Gift, HandCoins, House, Network, Settings2, Sprout, Target, Trees, Trophy, UserRound, type LucideIcon } from "lucide-react";
+import { ArrowLeftRight, BarChart3, FlaskConical, Footprints, Gem, Gift, Hammer, HandCoins, House, Network, Settings2, Sprout, Target, Trees, Trophy, UserRound, type LucideIcon } from "lucide-react";
 
 /**
  * The app's navigation, built once: the world's places (`src/world/places.ts`) and the Places list
@@ -60,6 +60,7 @@ export function navItems(ctx: NavContext): NavItem[] {
           item("skills", "/skills", "Skill tree", "Skills", Network, "personal"),
           item("garden", "/garden", "Garden", "Garden", Sprout, "personal"),
           item("homes", "/homes", "Your home", "Home", House, "personal"),
+          item("crew", "/crew", "Crew quests", "Crew", Hammer, "team"),
         ]
       : []),
     ...(ctx.storeEnabled ? [item("store", "/store", "Store", "Store", Gift, "personal")] : []),

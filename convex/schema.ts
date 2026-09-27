@@ -124,6 +124,8 @@ export const gainValidator = v.union(
   v.object({ kind: v.literal("home_stage"), stage: homeStageValidator }),
   // #162: what an expedition into `ruin` found the member: gear (names) and lore cards (titles) new to them.
   v.object({ kind: v.literal("ruin_finds"), ruin: v.string(), gear: v.array(v.string()), lore: v.array(v.string()) }),
+  // #161: a part the member gave coins to was built on the tree: its name, and how many teammates gave.
+  v.object({ kind: v.literal("crew_built"), part: v.string(), contributors: v.number() }),
 );
 
 /** A Super kudos note on a DM (#98): the receiver's celebration, or the giver's "sent" or how-to. */
@@ -181,6 +183,15 @@ export const kudosSourceValidator = v.union(
   v.literal("spree"), // a spree join, paid out to the receivers when a tier was reached (#94)
 );
 
+export const treeEventKindValidator = v.union(
+  v.literal("seed"),
+  v.literal("growth"),
+  v.literal("stage"),
+  v.literal("ring"),
+  v.literal("crew_funded"),
+  v.literal("crew_built"),
+);
+
 /** A stage of the Ancient Tree (lib/tree.ts `TreeStageId`). */
 export const treeStageValidator = v.union(
   v.literal("seed"),
@@ -221,6 +232,22 @@ export const settingsFields = {
   gameEnabled: v.optional(v.boolean()), // the game (XP, levels, ...); undefined = off, on in the demo
   spreesEnabled: v.optional(v.boolean()), // kudos sprees (#94), with or without the game; undefined = off
 };
+
+/** Who may propose a crew quest (#161): admins only, or also players from lib/crewCatalogue.ts CREW.proposeLevel. */
+export const crewProposersValidator = v.union(v.literal("admins"), v.literal("level"));
+
+/**
+ * A part the crew built on the tree (#161, crew.ts; lib/crewCatalogue.ts): its catalogue id, the
+ * option chosen (a style, a colour, a statue) or the banner's saying, and the quest that built it.
+ * One per part: a style, the canopy colour or the banner built again replaces the one before.
+ */
+export const builtPartValidator = v.object({
+  part: v.string(),
+  option: v.optional(v.string()),
+  text: v.optional(v.string()),
+  questId: v.id("crewQuests"),
+  builtAt: v.number(),
+});
 
 /** What a simulator fast-forward did (simulator.ts), summed over the days it played. */
 export const simulatorSummaryValidator = v.object({
@@ -317,6 +344,10 @@ export default defineSchema({
     ),
     // Detached simulators (reset, stopped, expired) are wiped in steps; this marks one on its way out.
     wipingSince: v.optional(v.number()),
+    // Crew quests (#161, crew.ts): who may propose (undefined = "level"), and whether a banner's saying
+    // waits for an admin's approval before it takes coins (undefined = off).
+    crewProposers: v.optional(crewProposersValidator),
+    crewBannerModeration: v.optional(v.boolean()),
     ...settingsFields,
   })
     .index("by_team", ["slackTeamId"])
@@ -360,7 +391,7 @@ export default defineSchema({
     // The received-kudos Store balance (ADR 0001), reset, not converted (ADR 0002): never read since #91.
     storeSpent: v.optional(v.number()),
     storeGranted: v.optional(v.number()),
-    coinsSpent: v.optional(v.number()), // Hog coins spent in the Store: items + non-refunded redemptions; undefined = 0
+    coinsSpent: v.optional(v.number()), // Hog coins spent: Store items + non-refunded redemptions, and outside the Store (wallet.ts spendCoins); undefined = 0
     coinsAdjusted: v.optional(v.number()), // Σ ± balance adjustments in Hog coins; undefined = 0
     gameHidden: v.optional(v.boolean()), // "Hide the game": no game UI or DMs for them; XP keeps accruing
     // The cosmetics they wear (#98, lib/cosmetics.ts): a cosmetic item key per slot, each one they bought.
@@ -1051,6 +1082,8 @@ export default defineSchema({
     plantedAt: v.optional(v.number()), // the seed moment: the first planting (fuel alone can come first, #157)
     plantedBy: v.optional(v.id("members")), // the giver of the first seed planted; gone when they're removed
     rebuild: v.optional(v.object({ through: v.number(), count: v.number() })),
+    // The parts the crew built on it (#161, crew.ts), one per part id: with the world seed, what makes it unlike any other company's.
+    cosmetics: v.optional(v.array(builtPartValidator)),
   })
     .index("by_workspace", ["workspaceId"])
     .index("by_plantedBy", ["plantedBy"]),
@@ -1080,13 +1113,17 @@ export default defineSchema({
   // channel is tracked on it, as a boost's is.
   treeEvents: defineTable({
     workspaceId: v.id("workspaces"),
-    kind: v.union(v.literal("seed"), v.literal("growth"), v.literal("stage"), v.literal("ring")),
+    // crew_funded, crew_built: a crew quest reached its goal, and its part was built (#161): `questId`, `part`.
+    kind: treeEventKindValidator,
     at: v.number(),
     memberId: v.optional(v.id("members")),
     seeds: v.optional(v.number()), // growth: how many were planted
     by: v.optional(v.union(v.literal("receiver"), v.literal("time"))), // growth: who planted them
     stage: v.optional(treeStageValidator), // stage: the stage reached
     rings: v.optional(v.number()), // ring: the rings the tree has now
+    questId: v.optional(v.id("crewQuests")), // crew_*: the quest
+    part: v.optional(v.string()), // crew_*: its part (lib/crewCatalogue.ts)
+    option: v.optional(v.string()), // crew_*: the part's option (a style, a colour, a statue)
     announcement: v.optional(
       v.object({
         status: v.union(v.literal("pending"), v.literal("sent"), v.literal("skipped"), v.literal("failed")),
@@ -1184,6 +1221,46 @@ export default defineSchema({
     endedAt: v.optional(v.number()),
   })
     .index("by_leader_startedAt", ["leaderId", "startedAt"])
+    .index("by_workspace", ["workspaceId"]),
+
+  // A crew quest (#161, crew.ts; plan #152 S6): a part of the tree from the catalogue
+  // (lib/crewCatalogue.ts) the crew pools Hog coins on. Proposed, funded when `contributed` reaches
+  // `goal` (the part's cost), built CREW.buildDays later on the workspace clock. `contributors` counts
+  // its ledger lines. `proposedBy` is gone once they're removed (the plaque says "a former teammate").
+  crewQuests: defineTable({
+    workspaceId: v.id("workspaces"),
+    part: v.string(),
+    option: v.optional(v.string()),
+    text: v.optional(v.string()), // a banner's saying (lib/crewCatalogue.ts bannerText)
+    proposedBy: v.optional(v.id("members")),
+    proposedAt: v.number(),
+    goal: v.number(),
+    contributed: v.number(),
+    contributors: v.number(),
+    status: v.union(v.literal("proposed"), v.literal("funded"), v.literal("built")),
+    // A banner proposed while banner moderation is on waits for an admin's approval before it takes coins.
+    awaitingApproval: v.optional(v.literal(true)),
+    fundedAt: v.optional(v.number()),
+    builtAt: v.optional(v.number()),
+  })
+    .index("by_workspace_status", ["workspaceId", "status"])
+    .index("by_workspace_status_builtAt", ["workspaceId", "status", "builtAt"]) // the plaque, newest built first
+    .index("by_proposedBy", ["proposedBy"]),
+
+  // A crew quest's ledger (#161): one line per member per quest, their coins added up (spent, never
+  // refunded). At most crew.ts CONTRIBUTORS_MAX lines a quest. A removed member's line stays without
+  // `memberId`: their coins still built it.
+  crewContributions: defineTable({
+    workspaceId: v.id("workspaces"),
+    questId: v.id("crewQuests"),
+    memberId: v.optional(v.id("members")),
+    amount: v.number(),
+    at: v.number(), // the first contribution
+    lastAt: v.number(),
+  })
+    .index("by_quest_member", ["questId", "memberId"])
+    .index("by_quest_at", ["questId", "at"])
+    .index("by_member", ["memberId"])
     .index("by_workspace", ["workspaceId"]),
 
   slackEvents: defineTable({

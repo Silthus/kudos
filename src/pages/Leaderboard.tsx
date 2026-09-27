@@ -12,6 +12,7 @@ import { nf, pct, rangeLabel } from "@/lib/format";
 import { DEFAULT_PERIOD, PERIOD_OPTIONS, useWorkspaceToday, type Period } from "@/lib/period";
 import { useStableQuery } from "@/lib/useStableQuery";
 import { useViewer } from "@/lib/viewer";
+import { CrewNotice } from "./Crew";
 
 /** The podium's three steps: gold lantern, parchment silver, soil bronze. */
 const STEPS = [
@@ -39,6 +40,7 @@ export function Leaderboard() {
 
   return (
     <div className={clsx("space-y-8", isStale && "[&_section>*]:opacity-60")} aria-busy={isStale}>
+      {viewer.workspace.gameEnabled && <CrewNotice />}
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <Segmented wrap value={period} onChange={setPeriod} options={PERIOD_OPTIONS} />

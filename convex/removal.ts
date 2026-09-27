@@ -249,6 +249,19 @@ const PHASES: Phase[] = [
     rows: (ctx, m, n) => ctx.db.query("expeditions").withIndex("by_leader_startedAt", (q) => q.eq("leaderId", m._id)).take(n),
     clear: remove,
   },
+  // Crew quests (#161): what they gave and proposed stays (their coins built it), under "a former teammate".
+  {
+    name: "crewContributions",
+    batch: 500,
+    rows: (ctx, m, n) => ctx.db.query("crewContributions").withIndex("by_member", (q) => q.eq("memberId", m._id)).take(n),
+    clear: (ctx, _workspace, row) => ctx.db.patch(row._id as Id<"crewContributions">, { memberId: undefined }),
+  },
+  {
+    name: "crewQuestsProposed",
+    batch: 500,
+    rows: (ctx, m, n) => ctx.db.query("crewQuests").withIndex("by_proposedBy", (q) => q.eq("proposedBy", m._id)).take(n),
+    clear: (ctx, _workspace, row) => ctx.db.patch(row._id as Id<"crewQuests">, { proposedBy: undefined }),
+  },
   // A simulator's fast-forwards (#143) are its visitor's.
   {
     name: "simulatorRuns",

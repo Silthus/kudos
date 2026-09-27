@@ -13,7 +13,7 @@ import { questBlocks } from "./lib/questBlocks";
 import { earningsText } from "./lib/xp";
 import { gainBlocks, gainsText } from "./lib/gains";
 import { gameBlocks } from "./lib/gameBlocks";
-import { seedsToPlantText, stageUpText, treeBlocks } from "./lib/treeView";
+import { seedsToPlantText, treeBlocks } from "./lib/treeView";
 
 type SlackEvent = {
   type: string;
@@ -537,19 +537,19 @@ export const postAnnouncement = internalAction({
   },
 });
 
-/** Posts the tree's new stage in the announcement channel (#154, tree.ts `announceStage`), once. */
-export const postTreeStage = internalAction({
+/** Posts a tree event in the announcement channel once: a stage reached (#154), a crew quest funded or built (#161). */
+export const postTreeEvent = internalAction({
   args: { eventId: v.id("treeEvents") },
   returns: v.null(),
   handler: async (ctx, { eventId }) => {
-    const post = await ctx.runQuery(internal.tree.stagePost, { eventId });
+    const post = await ctx.runQuery(internal.tree.eventPost, { eventId });
     if (!post) {
-      await ctx.runMutation(internal.tree.stagePosted, { eventId, outcome: "skipped" });
+      await ctx.runMutation(internal.tree.eventPosted, { eventId, outcome: "skipped" });
       return null;
     }
-    const res = await slackApi(post.token, "chat.postMessage", { channel: post.channelId, text: stageUpText(post.stage), unfurl_links: false });
-    if (!res.ok) console.warn(`Tree stage post in ${post.channelId} failed: ${res.error}`);
-    await ctx.runMutation(internal.tree.stagePosted, res.ok ? { eventId, outcome: "sent" } : { eventId, outcome: "failed", error: res.error ?? "unknown_error" });
+    const res = await slackApi(post.token, "chat.postMessage", { channel: post.channelId, text: post.text, unfurl_links: false });
+    if (!res.ok) console.warn(`Tree post in ${post.channelId} failed: ${res.error}`);
+    await ctx.runMutation(internal.tree.eventPosted, res.ok ? { eventId, outcome: "sent" } : { eventId, outcome: "failed", error: res.error ?? "unknown_error" });
     return null;
   },
 });

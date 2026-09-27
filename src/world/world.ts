@@ -3,6 +3,8 @@ import { TOWN_RADIUS, desertAt, desertWalkable, noise, type DesertGround } from 
 import { findPath, type Grid, type Tile } from "./iso";
 import { PLACES, placeAt, type PlaceDef } from "./places";
 import { BEDS, PLOTS } from "./places/garden";
+import type { DistrictStyle } from "../../convex/lib/crewCatalogue";
+import { NO_COSMETICS, type CanopyColour, type Statue, type StructureId, type TreeCosmetics } from "./tree/cosmetics";
 
 /**
  * The world on the tree (#152 §S1, #156): the endless desert (`desert.ts`) with the Ancient Tree at
@@ -64,6 +66,21 @@ export type WorldInput = {
   standing: string[];
   /** Home plots with a home on them (#160): each glows in a pool of warm light. */
   litPlots?: number[];
+  /** What the crew built on the tree (#161); none by default. */
+  cosmetics?: TreeCosmetics;
+};
+
+/**
+ * What the crew built, where it stands (#161): each structure on a tile by its open district, the
+ * statue at the tree's foot, each styled district's ground, the canopy's colour and the banner.
+ */
+export type CrewWorld = {
+  props: { id: StructureId; district: DistrictId; tile: Tile }[];
+  statue: { statue: Statue; tile: Tile } | null;
+  canopy: CanopyColour | null;
+  banner: string | null;
+  /** The style a tile's ground is dressed in, or null. */
+  styleAt: (x: number, y: number) => DistrictStyle | null;
 };
 
 export type World = Grid & {
@@ -93,6 +110,7 @@ export type World = Grid & {
   lawnRadius: number;
   /** Rings past the world tree. */
   rings: number;
+  crew: CrewWorld;
 };
 
 /** Walks keep within this many tiles of the tree: far past the deepest ruins, never an edge you meet. */
@@ -106,6 +124,11 @@ export const BASE_CAMP = {
     { kind: "tent", tile: { x: 0, y: 6 } },
   ] satisfies Prop[] as Prop[],
   places: { me: { x: 8, y: -1 }, playground: { x: -1, y: 8 }, offering: { x: 3, y: 3 }, elder: { x: 6, y: 2 } } as Record<string, Tile>,
+  /** Where the crew's bell hangs and the statue stands (#161): the first of these that's clear, in front of the trunk. */
+  crew: {
+    bell: [{ x: 11, y: 3 }, { x: 10, y: 4 }, { x: 9, y: 5 }],
+    statue: [{ x: 3, y: 7 }, { x: 2, y: 7 }, { x: 1, y: 6 }],
+  } as { bell: Tile[]; statue: Tile[] },
 };
 
 /** How far the trunk reaches from the origin at each stage (a square of 2r + 1 tiles). */
@@ -217,7 +240,7 @@ export const CANOPY = { half: 21, back: 64, front: 4 };
 
 const tileKey = (x: number, y: number) => (x + 65536) * 131072 + (y + 65536);
 
-export function buildWorld({ seed, layout, planted, standing, litPlots = [] }: WorldInput): World {
+export function buildWorld({ seed, layout, planted, standing, litPlots = [], cosmetics = NO_COSMETICS }: WorldInput): World {
   const stage = layout.stage;
   const open = new Map(layout.districts.map((d) => [d.id, d.open]));
   const sites: Site[] = settle(layout).map((s) => {
@@ -276,6 +299,31 @@ export function buildWorld({ seed, layout, planted, standing, litPlots = [] }: W
           if (!overlay.has(tileKey(x, y))) overlay.set(tileKey(x, y), "sand");
         }
   }
+
+  // What the crew built (#161): each structure on a free tile by its open district, in the way, so the paths go round it.
+  const crewProps: CrewWorld["props"] = [];
+  const doorTiles = new Set(places.flatMap((p) => p.doors).map((t) => tileKey(t.x, t.y)));
+  const claimed = (x: number, y: number) => sites.some((s) => s.claims.some((c) => inRect(c, x, y)));
+  const clearFor = (x: number, y: number) =>
+    !blocked.has(tileKey(x, y)) &&
+    !claimed(x, y) &&
+    !underCanopy(x, y) &&
+    ![[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => doorTiles.has(tileKey(x + dx, y + dy))) &&
+    !overlay.has(tileKey(x, y));
+  // Base camp's own spots first, then beside the district's places.
+  const standAt = (site: Site, spots: Tile[] = []) => spots.find((t) => clearFor(t.x, t.y)) ?? besideSite(site, clearFor);
+  const baseCamp = sites.find((x) => x.id === "base_camp")!;
+  for (const s of cosmetics.structures) {
+    const site = sites.find((x) => x.id === s.district);
+    if (!site?.open) continue;
+    const tile = standAt(site, s.district === "base_camp" ? BASE_CAMP.crew.bell : []);
+    if (!tile) continue;
+    blocked.add(tileKey(tile.x, tile.y));
+    crewProps.push({ id: s.id, district: s.district, tile });
+  }
+  const statueTile = planted && cosmetics.statue ? standAt(baseCamp, BASE_CAMP.crew.statue) : null;
+  const statue = cosmetics.statue && statueTile ? { statue: cosmetics.statue, tile: statueTile } : null;
+  if (statue) blocked.add(tileKey(statue.tile.x, statue.tile.y));
 
   const rings = layout.rings;
   const lawnRadius = planted ? lawnRadiusFor(stage, rings) : 0;
@@ -376,6 +424,28 @@ export function buildWorld({ seed, layout, planted, standing, litPlots = [] }: W
     ...places.map((p) => ({ x: p.doors[0].x, y: p.doors[0].y, r: 2.6 })),
   ];
 
+  // Styled districts dress the ground round their places (or, for the homes, round every plot): a
+  // patch round the district as ragged as the tree's lawn, never a box.
+  const styleZones = cosmetics.styles.flatMap(({ district, style }) => {
+    const site = sites.find((x) => x.id === district);
+    if (!site?.open) return [];
+    if (district === "homes") {
+      const plotTiles = new Set(homes.flatMap((h) => (h ? [tileKey(h.x, h.y)] : [])));
+      return [{ style, at: (x: number, y: number) => [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => plotTiles.has(tileKey(x + dx, y + dy))) }];
+    }
+    const c = site.claim;
+    const [cx, cy] = [(c.x0 + c.x1) / 2, (c.y0 + c.y1) / 2];
+    const r = district === "base_camp" ? lawnRadius + 1 : Math.max(c.x1 - c.x0, c.y1 - c.y0) / 2 + 2.5;
+    return [{ style, at: (x: number, y: number) => Math.hypot(x - cx, y - cy) + (noise(seed, x, y, 56) - 0.5) * 1.6 <= r }];
+  });
+  const crew: CrewWorld = {
+    props: crewProps,
+    statue,
+    canopy: cosmetics.canopy,
+    banner: cosmetics.banner,
+    styleAt: (x, y) => styleZones.find((z) => z.at(x, y))?.style ?? null,
+  };
+
   const terrainAt = baseTerrain;
   return {
     seed,
@@ -403,6 +473,7 @@ export function buildWorld({ seed, layout, planted, standing, litPlots = [] }: W
     lights,
     lawnRadius,
     rings,
+    crew,
   };
 }
 
@@ -414,6 +485,27 @@ export function ruinStones(door: Tile): Tile[] {
     { x: door.x - 1, y: door.y - 2 },
     { x: door.x - 2, y: door.y - 2 },
   ];
+}
+
+/**
+ * The nearest clear tile round a district's tiles (two rings out, then three, then four), in a fixed order:
+ * where its crew structure stands. Beside the district first (level with its middle on screen), so the
+ * structure stands next to its place rather than in front of it, on its side away from the trunk.
+ */
+function besideSite(site: Site, clear: (x: number, y: number) => boolean): Tile | null {
+  const c = site.claim;
+  const depth = (c.x0 + c.x1 + c.y0 + c.y1) / 2;
+  // Two tiles out at least: a structure is as wide as a place, and a tile's step aside would stand it on the place.
+  for (const d of [2, 3, 4]) {
+    const r = grow(c, d);
+    const ring: Tile[] = [];
+    for (let y = r.y0; y <= r.y1; y++) for (let x = r.x0; x <= r.x1; x++) if (x === r.x0 || x === r.x1 || y === r.y0 || y === r.y1) ring.push({ x, y });
+    // Of two sides, the one away from the trunk, where less of the town stands.
+    ring.sort((a, b) => Math.abs(a.x + a.y - depth) - Math.abs(b.x + b.y - depth) || Math.hypot(b.x, b.y) - Math.hypot(a.x, a.y) || a.x - b.x || a.y - b.y);
+    const found = ring.find((t) => clear(t.x, t.y));
+    if (found) return found;
+  }
+  return null;
 }
 
 /** A smooth, seeded field in [0, 1) over the town (4-tile cells), for paths to wander by. */

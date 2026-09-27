@@ -1,8 +1,11 @@
 import type { FunctionReturnType } from "convex/server";
 import type { api } from "../../../convex/_generated/api";
 import { DISTRICT_BY_ID, TREE_STAGE_BY_ID, growthToReach, layout, type DistrictId, type Layout, type TreeStageId } from "../../../convex/lib/tree";
+import { crewPartTitle } from "../../../convex/lib/treeView";
+import { CREW } from "../../../convex/lib/crewCatalogue";
 import type { Toast } from "../life";
 import type { WorldInput } from "../world";
+import { treeCosmetics } from "./cosmetics";
 
 /**
  * What the tree's state (`api.tree.state`, #154) means for the world (#156): the tree the world is
@@ -12,9 +15,14 @@ import type { WorldInput } from "../world";
 
 type Full = NonNullable<FunctionReturnType<typeof api.tree.state>>;
 /** The parts of `api.tree.state` the world reads; null while the game isn't shown to you. */
-export type TreeState = Pick<Full, "planted" | "stage" | "growth" | "peakGrowth" | "plantedBy" | "worldSeed" | "rings"> & { layout: Full["layout"] | Layout };
+export type TreeState = Pick<Full, "planted" | "stage" | "growth" | "peakGrowth" | "plantedBy" | "worldSeed" | "rings"> & {
+  layout: Full["layout"] | Layout;
+  /** The latest events (the crew's funded and built toasts) and what the crew built (#161). */
+  events?: Pick<Full["events"][number], "_id" | "kind" | "part" | "option">[];
+  cosmetics?: Full["cosmetics"];
+};
 
-export type TreeInput = Pick<WorldInput, "seed" | "layout" | "planted">;
+export type TreeInput = Pick<WorldInput, "seed" | "layout" | "planted" | "cosmetics">;
 
 /**
  * With the game off or hidden there is no tree to grow, but the pages are still places: they stand
@@ -32,9 +40,9 @@ function resting(): Layout {
 /** The tree the world is built round; null while the state is loading. */
 export function treeInput(state: TreeState | null | undefined): TreeInput | null {
   if (state === undefined) return null;
-  if (state === null) return { seed: RESTING_SEED, layout: resting(), planted: true };
+  if (state === null) return { seed: RESTING_SEED, layout: resting(), planted: true, cosmetics: treeCosmetics([]) };
   // The layout is the server's (`lib/tree.ts` `layout`), worked out there so every browser agrees.
-  return { seed: state.worldSeed, layout: state.layout as Layout, planted: state.planted };
+  return { seed: state.worldSeed, layout: state.layout as Layout, planted: state.planted, cosmetics: treeCosmetics(state.cosmetics) };
 }
 
 /** What a closed district says as you come up to it, from the tree's peak growth (what opens districts). */
@@ -42,7 +50,8 @@ export function closedLine(site: { opens: TreeStageId }, peakGrowth: number) {
   return `Opens when the tree is ${TREE_STAGE_BY_ID[site.opens].name}: ${growthToReach(peakGrowth, site.opens)} more thoughtful kudos.`;
 }
 
-export type TreeMoments = { seeded: boolean; opened: DistrictId[] };
+export type CrewMoment = { kind: "crew_funded" | "crew_built"; part: string; option?: string };
+export type TreeMoments = { seeded: boolean; opened: DistrictId[]; crew: CrewMoment[] };
 
 /** The districts open on a tree that this client knows (a newer server may know more). */
 const openIds = (s: TreeState) => s.layout.districts.filter((d) => d.open && Object.hasOwn(DISTRICT_BY_ID, d.id)).map((d) => d.id as DistrictId);
@@ -53,9 +62,14 @@ const openIds = (s: TreeState) => s.layout.districts.filter((d) => d.open && Obj
  */
 export function treeMoments(prev: TreeState | null | undefined, next: TreeState | null | undefined): TreeMoments {
   // Another workspace's tree (a workspace switch) is nothing that happened to this one.
-  if (!prev || !next || prev.worldSeed !== next.worldSeed) return { seeded: false, opened: [] };
+  if (!prev || !next || prev.worldSeed !== next.worldSeed) return { seeded: false, opened: [], crew: [] };
   const was = new Set(openIds(prev));
-  return { seeded: !prev.planted && next.planted, opened: openIds(next).filter((id) => !was.has(id)) };
+  const seen = new Set((prev.events ?? []).map((e) => e._id));
+  const crew = (next.events ?? [])
+    .filter((e): e is typeof e & { kind: CrewMoment["kind"]; part: string } => !seen.has(e._id) && (e.kind === "crew_funded" || e.kind === "crew_built") && !!e.part)
+    .reverse()
+    .map((e) => ({ kind: e.kind, part: e.part, ...(e.option ? { option: e.option } : {}) }));
+  return { seeded: !prev.planted && next.planted, opened: openIds(next).filter((id) => !was.has(id)), crew };
 }
 
 /** "The stall, the elder oak and the mirror pool": names in a sentence. */
@@ -81,5 +95,11 @@ export function treeToasts(m: TreeMoments, next: TreeState): Toast[] {
       title: `The tree is now ${TREE_STAGE_BY_ID[next.stage].name}`,
       body: `${listed(opened)} ${opened.length === 1 ? "is" : "are"} open.`,
     });
+  for (const c of m.crew)
+    toasts.push(
+      c.kind === "crew_funded"
+        ? { kind: "tree", title: `The crew funded ${crewPartTitle(c.part, c.option)}`, body: `It will be built in ${CREW.buildDays} days, and everyone who gave is on the plaque.` }
+        : { kind: "tree", title: `The crew built ${crewPartTitle(c.part, c.option)}`, body: "It stands on the tree now, for good.", link: { to: "/crew", label: "See the plaque" } },
+    );
   return toasts;
 }
