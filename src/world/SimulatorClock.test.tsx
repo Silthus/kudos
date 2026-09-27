@@ -66,6 +66,7 @@ const summary = {
   plantsPlanted: 1,
   levelsGained: 2,
   newConnections: 12,
+  tree: { from: "sprout", stage: "young", growth: 142 },
 };
 const run = (over: Record<string, unknown> = {}) => ({ _id: "run1", status: "running", fromLevel: 7, toLevel: 10, stopReason: null, summary, levelDays: [], ...over });
 const state = (over: Record<string, unknown> = {}) => ({ active: true, shown: true, level: 7, xp: 900, day: "2026-10-14", dayIndex: 2, clockOffsetMs: 3 * DAY, lastRun: null, ...over });
@@ -215,6 +216,7 @@ describe("the fast-forward window", () => {
         ["Fruit picked", "4"],
         ["Plants planted", "1"],
         ["New connections", "12"],
+        ["Ancient Tree", "A sprout to a young tree, 142 growth"],
         ["Level 8", "3 days"],
         ["Level 9", "2 days"],
         ["Level 10", "2 days"],

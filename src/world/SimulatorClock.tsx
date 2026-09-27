@@ -8,6 +8,7 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { Button, Dialog, inputCls, Progress } from "@/components/ui";
 import { nf } from "@/lib/format";
 import { xpForLevel } from "../../convex/lib/xp";
+import { TREE_STAGE_BY_ID } from "../../convex/lib/tree";
 import { advanceToasts, clockLabel, levelsLeft, type ActiveSimulator, type SimulatorRun } from "./simulator";
 import { pushToasts } from "./toastBus";
 
@@ -201,6 +202,13 @@ function Progressing({ run, simulator, busy, heading, onAbort }: { run: Simulato
 
 const plural = (n: number, one: string, many: string) => `${nf.format(n)} ${n === 1 ? one : many}`;
 
+/** The tree in the ledger (#165): "A sprout to a young tree, 142 growth", or just where it stands when it didn't change stage. */
+function treeRow(tree: NonNullable<SimulatorRun["summary"]["tree"]>): string {
+  const [from, to] = [TREE_STAGE_BY_ID[tree.from].name, TREE_STAGE_BY_ID[tree.stage].name];
+  const grew = tree.from === tree.stage ? to : `${from} to ${to}`;
+  return `${grew.charAt(0).toUpperCase()}${grew.slice(1)}, ${nf.format(tree.growth)} growth`;
+}
+
 /** The run's summary, a parchment ledger: what the days brought, then a row per level gained. */
 function Summary({ run, heading, onLeave }: { run: SimulatorRun; heading: HeadingRef; onLeave: () => void }) {
   const s = run.summary;
@@ -215,6 +223,7 @@ function Summary({ run, heading, onLeave }: { run: SimulatorRun; heading: Headin
     ["Fruit picked", nf.format(s.fruitPicked)],
     ["Plants planted", nf.format(s.plantsPlanted)],
     ["New connections", nf.format(s.newConnections)],
+    ...(s.tree ? [["Ancient Tree", treeRow(s.tree)] as [string, string]] : []),
   ];
   return (
     <div className="space-y-3">

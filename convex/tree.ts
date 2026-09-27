@@ -240,8 +240,18 @@ async function plant(ctx: MutationCtx, workspace: Doc<"workspaces">, seeds: Doc<
 }
 
 /**
- * The ritual at the tree: the viewer plants the seeds they have, up to PLANT_BATCH at once (`more`:
- * press again). `planted` is null where the workspace hides received counts even from the member.
+ * A member plants the seeds they have at the tree, up to PLANT_BATCH at once: the viewer at the stone,
+ * or the simulator's bot and teammates at the end of their day. Returns how many, and whether more wait.
+ */
+export async function plantWaiting(ctx: MutationCtx, workspace: Doc<"workspaces">, memberId: Id<"members">, at: number) {
+  const seeds = await unplanted(ctx, memberId).take(PLANT_BATCH);
+  await plant(ctx, workspace, seeds, "receiver", at);
+  return { planted: seeds.length, more: (await unplanted(ctx, memberId).first()) !== null };
+}
+
+/**
+ * The ritual at the tree: the viewer plants the seeds they have (`plantWaiting`; `more`: press
+ * again). `planted` is null where the workspace hides received counts even from the member.
  */
 export const plantSeeds = mutation({
   args: {},
@@ -249,10 +259,8 @@ export const plantSeeds = mutation({
   handler: async (ctx) => {
     const { workspace, member } = await requireViewer(ctx);
     if (!gameShownTo(workspace, member)) throw new ConvexError("The tree is part of the game: switch it on (or show it on your Me page) to plant seeds.");
-    const seeds = await unplanted(ctx, member._id).take(PLANT_BATCH);
-    await plant(ctx, workspace, seeds, "receiver", workspaceNow(workspace));
-    const more = (await unplanted(ctx, member._id).first()) !== null;
-    return { planted: workspace.receivedVisibility === "hidden" ? null : seeds.length, more };
+    const { planted, more } = await plantWaiting(ctx, workspace, member._id, workspaceNow(workspace));
+    return { planted: workspace.receivedVisibility === "hidden" ? null : planted, more };
   },
 });
 

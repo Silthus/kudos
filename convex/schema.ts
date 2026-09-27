@@ -275,6 +275,8 @@ export const simulatorSummaryValidator = v.object({
   plantsPlanted: v.number(),
   levelsGained: v.number(),
   newConnections: v.number(),
+  // The Ancient Tree (#165): the stage it started from, the stage it reached and its growth now.
+  tree: v.optional(v.object({ from: treeStageValidator, stage: treeStageValidator, growth: v.number() })),
 });
 
 export default defineSchema({

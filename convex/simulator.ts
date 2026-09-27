@@ -19,7 +19,7 @@ import { lookAtGrowth, pickFor, plantFor } from "./gardens";
 import { questsOn } from "./quests";
 import { simulatorSummaryValidator } from "./schema";
 import { lapseDue } from "./sprees";
-import { autoPlantWorkspace, newWorldSeed } from "./tree";
+import { autoPlantWorkspace, newWorldSeed, plantWaiting, treeOf } from "./tree";
 import { autoClaimWorkspace, claimWaiting } from "./offerings";
 import { settleHomes } from "./homes";
 import { settleBlight, type BlightChange } from "./blights";
@@ -43,7 +43,9 @@ import {
   SIMULATOR_TEAMMATES,
   SIMULATOR_TTL_MS,
   simulatorStart,
+  teammateKudos,
 } from "./lib/simulator";
+import { growthFor, stageForGrowth, type TreeStageId } from "./lib/tree";
 import { dayKeyFor, daysBetween, nextDayStartUtc, startOfDayUtc, weekdayOfKey, workspaceNow } from "./lib/time";
 import { MAX_LEVEL, QUESTS_LEVEL, xpForLevel } from "./lib/xp";
 
@@ -356,7 +358,7 @@ export const fastForward = mutation({
       toLevel: Math.min(MAX_LEVEL, level + levels),
       startedAt: Date.now(),
       heartbeatAt: Date.now(),
-      summary: EMPTY_SUMMARY,
+      summary: { ...EMPTY_SUMMARY, tree: await treeSummary(ctx, workspace._id) },
       levelDays: [],
     });
     await ctx.scheduler.runAfter(0, internal.simulator.playDay, { runId });
@@ -402,6 +404,8 @@ export const playDay = internalMutation({
     const now = workspaceNow(workspace);
     if (nextDayStartUtc(now, workspace.timezone) - now < BOT_DAY_MS) await advanceClock(ctx, workspace, member, 1);
     const day = await playBotDay(ctx, (await ctx.db.get(workspace._id))!, member, run.summary.daysPlayed);
+    await playTeammatesDay(ctx, (await ctx.db.get(workspace._id))!, member, run.summary.daysPlayed, day.endsAt);
+    const tree = await treeSummary(ctx, workspace._id, run.summary.tree?.from);
     await advanceClock(ctx, (await ctx.db.get(workspace._id))!, member, 1);
 
     const s = run.summary;
@@ -428,6 +432,7 @@ export const playDay = internalMutation({
         plantsPlanted: s.plantsPlanted + day.plantsPlanted,
         levelsGained: s.levelsGained + (day.levelAfter - day.levelBefore),
         newConnections: s.newConnections + day.newConnections,
+        tree,
       },
     });
     if (day.levelAfter >= run.toLevel) await finish("done");
@@ -504,10 +509,15 @@ async function playBotDay(ctx: MutationCtx, workspace: Doc<"workspaces">, member
     if (result.status === "given") kudosGiven++;
   }
 
-  // Playing the day for you, the bot offers its appreciation at the stone too (#157), so its coins
-  // are there for planting and the run shows the claims and fruit a real day would.
+  // Playing the day for you, the bot does both rituals at the stone (#157, #165): it offers your
+  // appreciation, so its coins are there for planting and the run shows the claims and fruit a real
+  // day would, and it plants the seeds teammates gave you.
+  const endsAt = now + recipients.length * 20 * 60_000;
   const giver = await playerOf(ctx, member._id);
-  if (giver && gameShownTo(workspace, member)) await claimWaiting(ctx, (await ctx.db.get(workspace._id))!, giver, now + recipients.length * 20 * 60_000);
+  if (giver && gameShownTo(workspace, member)) {
+    await claimWaiting(ctx, (await ctx.db.get(workspace._id))!, giver, endsAt);
+    await plantWaiting(ctx, (await ctx.db.get(workspace._id))!, member._id, endsAt);
+  }
 
   // A plant for a teammate thanked thoughtfully today (a thank-back never qualifies a planting).
   const todays = () => ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", member._id).eq("dayKey", today)).take(500);
@@ -538,7 +548,57 @@ async function playBotDay(ctx: MutationCtx, workspace: Doc<"workspaces">, member
     plantsPlanted,
     levelBefore,
     levelAfter,
+    endsAt,
   };
+}
+
+/**
+ * The rest of the company's day while the bot plays yours (#165, plan #152 S10): the teammates give a
+ * few thoughtful kudos among themselves (lib/simulator.ts `teammateKudos`) after the bot's, and then,
+ * as players who come to the tree, each plants the seeds they were given and offers their
+ * appreciation at the stone. So the tree grows, and its districts open, as a company's would.
+ */
+async function playTeammatesDay(ctx: MutationCtx, workspace: Doc<"workspaces">, you: Doc<"members">, dayNumber: number, from: number) {
+  const teammates = (
+    await ctx.db
+      .query("members")
+      .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspace._id))
+      .take(100)
+  ).filter((m) => m._id !== you._id && !m.isBot && !m.deactivated);
+  const bySlack = new Map(teammates.map((m) => [m.slackUserId, m]));
+  const kudos = teammateKudos({ day: dayNumber, teammates: teammates.map((m) => m.slackUserId) });
+  for (const [i, { from: giver, to }] of kudos.entries()) {
+    const note = BOT_NOTES[(dayNumber + i + 3) % BOT_NOTES.length];
+    const channel = BOT_CHANNELS[(dayNumber + i + 1) % BOT_CHANNELS.length];
+    const at = from + (i + 1) * 20 * 60_000;
+    await giveKudos(ctx, {
+      workspace: (await ctx.db.get(workspace._id))!,
+      giverSlackId: giver,
+      recipientSlackIds: [to],
+      amountEach: 1,
+      channelId: `C_DEMO_${channel.toUpperCase()}`,
+      channelName: channel,
+      messageTs: `sim-${at}-t${i}`,
+      text: `@${bySlack.get(to)!.name.split(" ")[0]} ${workspace.emojiGlyph} ${note}`,
+      noteWords: countNoteWords(note, workspace.emojiName, workspace.emojiGlyph),
+      source: "playground",
+      now: at,
+    });
+  }
+  const at = from + (kudos.length + 1) * 20 * 60_000;
+  for (const m of teammates) {
+    const fresh = (await ctx.db.get(workspace._id))!;
+    await plantWaiting(ctx, fresh, m._id, at);
+    const player = await playerOf(ctx, m._id);
+    if (player && gameShownTo(fresh, m)) await claimWaiting(ctx, fresh, player, at);
+  }
+}
+
+/** The tree for a fast-forward's summary: the stage it started from, the stage it's at and its growth now. */
+async function treeSummary(ctx: QueryCtx, workspaceId: Id<"workspaces">, from?: TreeStageId): Promise<Summary["tree"]> {
+  const tree = await treeOf(ctx, workspaceId);
+  const stage = stageForGrowth(tree?.peakGrowth ?? 0);
+  return { from: from ?? stage, stage, growth: tree ? growthFor(tree) : 0 };
 }
 
 // ── Reading it ──────────────────────────────────────────────────────────────

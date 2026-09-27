@@ -119,6 +119,37 @@ describe("a simulator", () => {
   const say = (text: string) => visitor().mutation(api.demo.simulateMessage, { text, channelName: "general" });
   const rows = (table: "seeds" | "trees" | "treeEvents") => t.run((ctx) => ctx.db.query(table).collect());
 
+  test("a fast-forward grows the company's tree: the bot's kudos and the teammates' few a day, planted and offered as they go; the summary tells the tree", async () => {
+    const { memberId: alexId } = await visitor().mutation(api.simulator.start, {});
+    // A teammate thanks the visitor in the sandbox (#180): the bot plants that seed when it plays.
+    expect(await visitor().mutation(api.demo.beThanked, {})).toMatchObject({ status: "thanked" });
+    expect(await visitor().query(api.tree.state, {})).toMatchObject({ planted: false, seedsToPlant: 1 });
+
+    await visitor().mutation(api.simulator.fastForward, { levels: 7 });
+    await settle();
+    const run = (await visitor().query(api.simulator.lastRun, {}))!;
+    expect(run).toMatchObject({ status: "done", toLevel: 8 });
+    const tree = (await visitor().query(api.tree.state, {}))!;
+    expect(tree).toMatchObject({ planted: true, seedsToPlant: 0 });
+    // Districts opened as a company's would: at least the young tree's (the stall, the oak, the pool).
+    expect(TREE_STAGE_BY_ID[tree.stage].index).toBeGreaterThanOrEqual(TREE_STAGE_BY_ID.young.index);
+    expect(run.summary.tree).toEqual({ from: "seed", stage: tree.stage, growth: tree.growth });
+
+    // The teammates gave a few thoughtful kudos a day among themselves, never a thank-back of each other.
+    const kudos = await t.run((ctx) => ctx.db.query("kudos").collect());
+    const theirs = kudos.filter((k) => k.giverId !== alexId && k.receiverId !== alexId);
+    expect(theirs.length).toBe(3 * run.summary.daysPlayed);
+    expect(theirs.every((k) => (k.noteWords ?? 0) >= 3)).toBe(true);
+    const pairs = new Set(theirs.map((k) => `${k.giverId}>${k.receiverId}`));
+    expect(theirs.some((k) => pairs.has(`${k.receiverId}>${k.giverId}`))).toBe(false);
+    // Every seed is planted, and what the givers offered is claimed: the tree is all of it.
+    const seeds = await rows("seeds");
+    expect(seeds.every((s) => s.plantedAt !== undefined)).toBe(true);
+    const offerings = await t.run((ctx) => ctx.db.query("offerings").collect());
+    expect(offerings.every((o) => o.claimedAt !== undefined)).toBe(true);
+    expect(tree).toMatchObject({ sap: seeds.length, fuel: offerings.reduce((s, o) => s + o.fuel, 0) });
+  });
+
   test("starts as a desert with its own world seed, grows its own tree as its clock moves, and is wiped with it", async () => {
     const { workspaceId } = await visitor().mutation(api.simulator.start, {});
     expect(await visitor().query(api.tree.state, {})).toMatchObject({ planted: false, stage: "seed", sap: 0 });

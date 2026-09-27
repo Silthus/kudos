@@ -59,6 +59,25 @@ export const BOT_NOTES = [
   "you stayed calm while everything was on fire and walked the whole team through the fix",
 ];
 
+/** Thoughtful kudos the simulator's teammates give among themselves each day a fast-forward plays (#165, plan #152 S10). */
+export const TEAMMATE_KUDOS_PER_DAY = 3;
+
+/**
+ * The teammates' kudos on simulated day `day`: `count` of them, each from the next teammate in a
+ * rotation to one a few places after them. Never a thank-back: a teammate only ever thanks the one to
+ * five after them, so nobody thanks back anyone who thanked them (12 teammates). The visitor isn't
+ * among them: the bot thanks everyone every few days, so a kudos to the visitor would be a thank-back.
+ */
+export function teammateKudos({ day, teammates, count = TEAMMATE_KUDOS_PER_DAY }: { day: number; teammates: string[]; count?: number }): { from: string; to: string }[] {
+  const n = teammates.length;
+  if (n < 2) return [];
+  return Array.from({ length: count }, (_, j) => {
+    const giver = (day * count + j) % n;
+    const ahead = 1 + ((day + j) % Math.min(5, Math.floor((n - 1) / 2) || 1));
+    return { from: teammates[giver], to: teammates[(giver + ahead) % n] };
+  });
+}
+
 /**
  * Who the bot thanks on simulated day `day`: the teammates it grows plants for first (their weekly
  * watering), then the next teammates in a rotation through everyone, `count` of them (the allowance
