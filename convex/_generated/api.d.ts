@@ -26,6 +26,7 @@ import type * as discoveries from "../discoveries.js";
 import type * as engine from "../engine.js";
 import type * as gains from "../gains.js";
 import type * as game from "../game.js";
+import type * as gameSuccess from "../gameSuccess.js";
 import type * as gardens from "../gardens.js";
 import type * as homes from "../homes.js";
 import type * as http from "../http.js";
@@ -130,6 +131,7 @@ declare const fullApi: ApiFromModules<{
   engine: typeof engine;
   gains: typeof gains;
   game: typeof game;
+  gameSuccess: typeof gameSuccess;
   gardens: typeof gardens;
   homes: typeof homes;
   http: typeof http;
