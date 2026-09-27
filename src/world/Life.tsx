@@ -9,6 +9,7 @@ import type { HogHandle } from "./Hog";
 import { lifeEvents, lifeSnapshot, nextBaseline, toastFor, type LifeSnapshot } from "./life";
 import { Toasts, type QueuedToast } from "./Toast";
 import { onToasts } from "./toastBus";
+import { PartyInvites } from "./PartyInvites";
 
 /**
  * What happens to you while the world is open (#134): a level-up makes the hedgehog jump and
@@ -139,7 +140,9 @@ export function Life({ hog, hogEl, still, gameShown, windowOpen }: { hog: RefObj
 
   return createPortal(
     <>
-      <Toasts queue={toasts} onDone={() => setToasts((q) => q.slice(1))} still={still} />
+      <Toasts queue={toasts} onDone={() => setToasts((q) => q.slice(1))} still={still}>
+        {gameShown && <PartyInvites />}
+      </Toasts>
       {hops.map((h) => (
         <CoinHop key={h.id} hop={h} onDone={() => setHops((all) => all.filter((x) => x.id !== h.id))} />
       ))}

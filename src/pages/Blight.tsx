@@ -16,7 +16,7 @@ import { atTheTree, daysLeftText, hpLeft } from "@/world/blight";
 import { useClockNow } from "@/world/homeRing";
 import { PixelArt } from "@/world/PixelArt";
 import { blightStone } from "@/world/places/blight";
-import { ElsewhereRun, OpenRun, RunResults } from "./Expedition";
+import { activeRun, ElsewhereRun, OpenRun, RunResults } from "./Expedition";
 
 /**
  * The blight stone's window (#164, plan #152 S8; `api.blights.*`): while a blight is at the tree,
@@ -104,9 +104,10 @@ function Raid({ rpg, results }: { rpg: Rpg | undefined; results: boolean }) {
   const [error, setError] = useState<string | null>(null);
   if (rpg === undefined) return null;
   if (rpg === null) return <p className="text-sm text-ink">Give your first thoughtful kudos to join the raid.</p>;
-  const run = rpg.run;
+  // A run you fell out of or left isn't yours to play any more (#163): only one you stand in is.
+  const run = activeRun(rpg.run);
   if (run?.open && isRaidId(run.ruinId)) return <OpenRun run={run} />;
-  if (run?.open) return <ElsewhereRun run={run} />;
+  if (run) return <ElsewhereRun run={run} />;
   const noStamina = rpg.stamina < STAMINA.cost;
   const join = async () => {
     setBusy(true);
@@ -140,7 +141,7 @@ function Raid({ rpg, results }: { rpg: Rpg | undefined; results: boolean }) {
           {error}
         </p>
       )}
-      {results && run && isRaidId(run.ruinId) && run.state !== "open" && <RunResults run={run} />}
+      {results && rpg.run && isRaidId(rpg.run.ruinId) && rpg.run.state !== "open" && rpg.run.state !== "forming" && <RunResults run={rpg.run} />}
     </section>
   );
 }
@@ -185,7 +186,7 @@ export function Blight() {
   if (current === null) return <p className="text-ink">The blight stone is part of the game. Show the game in your cabin to defend the tree.</p>;
   const here = !!current.blight && atTheTree(current.blight, now);
   // A raid under way goes on to its end, even once the blight it fought is gone.
-  const raiding = !!rpg?.run?.open && isRaidId(rpg.run.ruinId);
+  const raiding = !!activeRun(rpg?.run)?.open && isRaidId(rpg!.run!.ruinId);
   // How a raid went shows once it ends while you're here: an older one's results would belong to another blight.
   if (raiding) raided.current = true;
   return (

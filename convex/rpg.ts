@@ -1,19 +1,24 @@
 import { ConvexError, v, type Infer } from "convex/values";
-import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
+import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
+import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { gameShownTo, playerOf, skillsOf } from "./game";
 import { sendGains } from "./gains";
 import { plantsGrown } from "./gardens";
 import { addFruit, addGear, held } from "./inventory";
+import { memberAt, membersWithin } from "./presence";
 import { buildPuzzle } from "./puzzles";
 import { treeOf, worldSeedOf } from "./tree";
 import { activeBlight, strikeBlight } from "./blights";
 import { blightDamage } from "./lib/blight";
 import { requireViewer } from "./lib/access";
 import { loreCard } from "./lib/lore";
+import { tilesApart } from "./lib/presence";
+import { refusal, startBlock, TIER_WORD } from "./lib/ruinWords";
 import { fnv1a, mulberry32 } from "./lib/random";
 import {
   BESTIARY,
+  canJoinParty,
   canStartExpedition,
   characterStats,
   creature,
@@ -24,6 +29,7 @@ import {
   lootRand,
   maxHp,
   paidFor,
+  PARTY,
   PUZZLE_OPTIONS,
   PUZZLE_TRIES,
   puzzleHint,
@@ -44,21 +50,28 @@ import {
   type RuinTier,
 } from "./lib/rpg";
 import { dayKeyFor, workspaceNow } from "./lib/time";
-import { isRaidId, layout, type RuinSite } from "./lib/tree";
+import { DISTRICT_BY_ID, isRaidId, layout, ruinTier, TREE_STAGE_BY_ID, type RuinSite } from "./lib/tree";
 import { equippedValidator } from "./schema";
 
 /**
- * Expeditions into the ruins (#162, plan #152 S7). Every rule is `lib/rpg.ts`'s; this module keeps
- * the state and pays what the rules say.
+ * Expeditions into the ruins (#162, #163, plan #152 S7). Every rule is `lib/rpg.ts`'s; this module
+ * keeps the state and pays what the rules say.
  *
  * - **A run** is an `expeditions` row: the ruin's rooms generated once from the world seed and
- *   stored, a run seed, the party as it entered (stats taken then, so gear changed mid-run never
+ *   stored, a run seed, the party as it set out (stats taken then, so gear changed mid-run never
  *   alters it), and where it stands (room, turn, the foe's hit points, wrong answers, the log).
- *   Each `act` resolves one turn with `turnRand(seed, room, turn)`, so a run replays exactly from
- *   its row and its choices.
- * - **Solo runs from the near ruins** for now: `start` costs one stamina and needs level 6. For
- *   #163 (parties) the run already holds a `party` array and a turn is one `resolveTurn` over every
- *   member's choice; each member's `players.expedition` points at the run.
+ *   Each turn resolves with `turnRand(seed, room, turn)`, so a run replays exactly from its row
+ *   and its choices. Every member's `players.expedition` points at the run while they're in it.
+ * - **A party** (#163) forms at a ruin's entrance (`form`, state `forming`): its leader invites
+ *   players standing within `PARTY.inviteRadius` tiles (by presence) who could start the ruin
+ *   themselves (`canJoinParty`); an invite is good for `PARTY.decideSeconds`. The leader sets out
+ *   with 1–4 (`setOut`): every member spends a stamina then, and each one's first party run is a
+ *   `party` game event (#159's "Together"). Going alone (`start`) is forming and setting out at once.
+ * - **A turn** collects each member's choice (`pending`, never shown to the others) and resolves
+ *   once, with every choice, when everyone standing has chosen, or `PARTY.decideSeconds` after the
+ *   first choice (`decide`, scheduled): a member without a choice waits, as the rules say. A puzzle
+ *   is the party's one answer: it resolves on the first. A member who returns to camp mid-run
+ *   leaves the party; one who falls returns to camp; the others go on.
  * - **Loot**: a cleared room pays each member standing (`paidFor`) its `roomLoot` at once, into the
  *   inventory, a secret room's item once per member and ruin; a cleared run pays each its
  *   `runLoot`: Hog coins as an `expedition` game event with no XP (the ledger firewall: ruins never
@@ -114,7 +127,8 @@ async function adventurer(ctx: QueryCtx, member: Doc<"members">, player: Doc<"pl
   };
 }
 
-const fighters = (party: Member[]): Fighter[] => party.map((p) => ({ ...p, id: p.memberId, equipped: wearable(p.equipped) }));
+/** The party as the rules see it: everyone still in it (not gone back to camp), by id. */
+const fighters = (party: Member[]): Fighter[] => party.filter((p) => !p.left).map((p) => ({ ...p, id: p.memberId, equipped: wearable(p.equipped) }));
 
 /**
  * The rules' log names members by id and puzzles by kind: the stored log says their names, and that
@@ -159,7 +173,7 @@ async function enterRoom(ctx: MutationCtx, workspace: Doc<"workspaces">, run: Ru
     puzzle = { ...built, struck: struck.sort((a, b) => a - b) };
   }
   if (room.kind === "foe") {
-    for (const player of (await playersOf(ctx, party)).values()) {
+    for (const player of (await playersOf(ctx, party.filter(standing))).values()) {
       if (!(player.bestiary ?? []).includes(room.foe)) await ctx.db.patch(player._id, { bestiary: [...(player.bestiary ?? []), room.foe] });
     }
   }
@@ -213,11 +227,26 @@ async function payRoom(ctx: MutationCtx, workspace: Doc<"workspaces">, run: Run,
   return loot;
 }
 
+
+/** A member of the run still in it: not gone back to camp. Fallen members stay, at no hit points. */
+const inParty = (p: Member) => !p.left;
+/** A member who can still act in the room. */
+const standing = (p: Member) => inParty(p) && p.hp > 0;
+
+/**
+ * Frees a member still in `run` (they fell, left, or it ended), remembering it for its results. A
+ * member released earlier has moved on: their camp and their last run stay their own.
+ */
+async function release(ctx: MutationCtx, run: Run, memberId: Id<"members">) {
+  const player = await playerOf(ctx, memberId);
+  if (player?.expedition === run._id) await ctx.db.patch(player._id, { expedition: undefined, lastExpedition: run._id });
+}
+
 /**
  * The run ends: a cleared run pays each member standing its run loot (coins as an `expedition`
  * event with no XP, and maybe a lore card); everyone returns to camp; gear and new lore are told.
  */
-async function endRun(ctx: MutationCtx, workspace: Doc<"workspaces">, run: Run, state: Exclude<Run["state"], "open">, e: Encounter | null, patch: Partial<Run>) {
+async function endRun(ctx: MutationCtx, workspace: Doc<"workspaces">, run: Run, state: "cleared" | "fallen" | "retreated", e: Encounter | null, patch: Partial<Run>) {
   const now = workspaceNow(workspace);
   const loot = (patch.loot ?? run.loot).map((l) => ({ ...l, lore: [...l.lore] }));
   const players = await playersOf(ctx, run.party);
@@ -248,10 +277,9 @@ async function endRun(ctx: MutationCtx, workspace: Doc<"workspaces">, run: Run, 
       if (secret && (await findLore(ctx, player._id, secret.lore, run.ruinId, now))) entry.lore.push(secret.lore);
     }
   }
-  await ctx.db.patch(run._id, { ...patch, loot, state, puzzle: undefined, endedAt: now });
+  await ctx.db.patch(run._id, { ...patch, loot, state, puzzle: undefined, pending: undefined, pendingSince: undefined, endedAt: now });
   for (const p of run.party) {
-    const player = players.get(p.memberId);
-    if (player) await ctx.db.patch(player._id, { expedition: undefined });
+    await release(ctx, run, p.memberId);
     const found = loot.find((l) => l.memberId === p.memberId);
     if (found && (found.gear.length > 0 || found.lore.length > 0)) {
       await sendGains(ctx, workspace, p.memberId, [
@@ -261,24 +289,39 @@ async function endRun(ctx: MutationCtx, workspace: Doc<"workspaces">, run: Run, 
   }
 }
 
-/** The run a member is in now, if any. */
-async function openRun(ctx: QueryCtx, player: Doc<"players">) {
+/** The run a member is in now, forming or under way, if any. */
+async function activeRun(ctx: QueryCtx, player: Doc<"players">) {
   const run = player.expedition ? await ctx.db.get(player.expedition) : null;
+  return run?.state === "open" || run?.state === "forming" ? run : null;
+}
+
+/** The run a member is exploring now, if any. */
+async function openRun(ctx: QueryCtx, player: Doc<"players">) {
+  const run = await activeRun(ctx, player);
   return run?.state === "open" ? run : null;
 }
 
-const NO_STAMINA = "You have no stamina left. Every thoughtful kudos you give restores one, and so does a moon fruit.";
+const decideMs = PARTY.decideSeconds * 1000;
 
 /**
- * Walks a member into a ruin (a site in the desert, or the blight raid): the run's row with the
- * ruin's rooms generated from the world seed, one stamina spent, the first room entered. The caller
- * has checked what the ruin asks of them.
+ * The ruin `ruinId` if the viewer may lead a run into it: the tree has opened it, they're in no
+ * run, and they have its level and a stamina.
  */
-async function enter(ctx: MutationCtx, workspace: Doc<"workspaces">, member: Doc<"members">, player: Doc<"players">, site: Omit<RuinSite, "at">) {
-  if (await openRun(ctx, player)) throw new ConvexError("You're on an expedition already. Finish it, or return to camp first.");
+async function enterable(ctx: QueryCtx, workspace: Doc<"workspaces">, player: Doc<"players">, ruinId: string): Promise<RuinSite> {
+  const tier = ruinTier(ruinId);
+  const site = (await ruinsOpen(ctx, workspace)).find((r) => r.id === ruinId);
+  if (!tier) throw new ConvexError("There's no such ruin.");
+  if (!site) throw new ConvexError(`The ${TIER_WORD[tier]} ruins are not open yet: they open when the tree is ${TREE_STAGE_BY_ID[DISTRICT_BY_ID[`${TIER_WORD[tier]}_ruins`].opens].name}.`);
+  if (await activeRun(ctx, player)) throw new ConvexError(refusal("busy", site.tier, { name: "", level: player.level, you: true }));
+  const block = startBlock({ level: player.level, stamina: player.stamina ?? 0 }, site.tier);
+  if (block) throw new ConvexError(block);
+  return site;
+}
+
+/** A run at `site` led by the viewer, forming at its entrance: the ruin's rooms and the run's seed drawn now. */
+async function createRun(ctx: MutationCtx, workspace: Doc<"workspaces">, member: Doc<"members">, player: Doc<"players">, site: Omit<RuinSite, "at">) {
   const now = workspaceNow(workspace);
   const world = worldSeedOf(workspace);
-  const party = [await adventurer(ctx, member, player)];
   const id = await ctx.db.insert("expeditions", {
     workspaceId: workspace._id,
     leaderId: member._id,
@@ -287,37 +330,94 @@ async function enter(ctx: MutationCtx, workspace: Doc<"workspaces">, member: Doc
     tier: site.tier,
     seed: fnv1a(`run:${world}:${site.id}:${member._id}:${now}`),
     rooms: generateRuin(world, site.id).rooms,
-    party,
+    party: [await adventurer(ctx, member, player)],
+    invites: [],
     room: 0,
     turn: 0,
     choices: [],
     foeHp: 0,
     wrong: 0,
     log: [],
-    loot: [emptyLoot(member._id)],
-    state: "open",
+    loot: [],
+    state: "forming",
     startedAt: now,
   });
-  await ctx.db.patch(player._id, { stamina: (player.stamina ?? 0) - STAMINA.cost, expedition: id });
-  await ctx.db.patch(id, await enterRoom(ctx, workspace, (await ctx.db.get(id))!, 0, party, []));
+  await ctx.db.patch(player._id, { expedition: id });
   return id;
 }
 
+/** Takes a party's invites back: out of each invitee's list. */
+async function withdrawInvites(ctx: MutationCtx, run: Run) {
+  for (const invite of run.invites ?? []) {
+    const player = await playerOf(ctx, invite.memberId);
+    if (player?.partyInvites?.some((i) => i.runId === run._id)) await ctx.db.patch(player._id, { partyInvites: player.partyInvites.filter((i) => i.runId !== run._id) });
+  }
+}
+
 /**
- * Starts a solo expedition into one of the near ruins the tree has opened: level 6, one stamina,
- * and no run under way. The far and deep ruins come with parties (#163).
+ * The party sets out: every member who can still go (the tier's level, a stamina) is taken as they
+ * are now and spends a stamina, once; a party of two or more is each member's `party` event the
+ * first time; invites still out are withdrawn; the first room begins.
+ */
+async function setOutRun(ctx: MutationCtx, workspace: Doc<"workspaces">, run: Run) {
+  const tier = run.tier as RuinTier;
+  const going: { member: Doc<"members">; player: Doc<"players"> }[] = [];
+  for (const p of run.party) {
+    const [member, player] = [await ctx.db.get(p.memberId), await playerOf(ctx, p.memberId)];
+    if (!member || !player || player.expedition !== run._id) continue;
+    // The blight raid asks no level (#164): everyone can help defend the tree.
+    const can = canStartExpedition({ level: isRaidId(run.ruinId) ? 25 : player.level, stamina: player.stamina ?? 0 }, tier);
+    if (!can.ok) throw new ConvexError(refusal(can.reason, tier, { name: p.name, level: player.level, you: member._id === run.leaderId }));
+    going.push({ member, player });
+  }
+  const now = workspaceNow(workspace);
+  const party: Member[] = [];
+  for (const { member, player } of going) {
+    party.push(await adventurer(ctx, member, player));
+    await ctx.db.patch(player._id, { stamina: (player.stamina ?? 0) - STAMINA.cost });
+    const before = going.length > 1 && (await ctx.db.query("gameEvents").withIndex("by_member_kind", (q) => q.eq("memberId", member._id).eq("kind", "party")).first());
+    if (going.length > 1 && !before) {
+      await ctx.db.insert("gameEvents", { workspaceId: workspace._id, memberId: member._id, kind: "party", batchId: `party:${member._id}`, dayKey: dayKeyFor(now, workspace.timezone), at: now, xp: 0 });
+    }
+  }
+  await withdrawInvites(ctx, run);
+  const fresh = { ...run, party, invites: [], loot: party.map((p) => emptyLoot(p.memberId)), state: "open" as const, startedAt: now };
+  await ctx.db.patch(run._id, { party, invites: [], loot: fresh.loot, state: "open", startedAt: now, ...(await enterRoom(ctx, workspace, fresh, 0, party, [])) });
+}
+
+/** A forming party the viewer leads, or why not. */
+async function ledParty(ctx: QueryCtx, player: Doc<"players">, doing: "invites" | "sets out") {
+  const run = await activeRun(ctx, player);
+  if (!run || run.state !== "forming") throw new ConvexError("Form a party at a ruin's entrance first.");
+  if (run.leaderId !== player.memberId) throw new ConvexError(`Only the party's leader ${doing}.`);
+  return run;
+}
+
+/**
+ * Forms a party at a ruin's entrance, led by the viewer: the ruin must be open to them as for going
+ * alone. Players within reach can then be invited; nothing is spent until the party sets out.
+ */
+export const form = mutation({
+  args: { ruinId: v.string() },
+  returns: v.id("expeditions"),
+  handler: async (ctx, { ruinId }) => {
+    const { workspace, member, player } = await requireExplorer(ctx);
+    return await createRun(ctx, workspace, member, player, await enterable(ctx, workspace, player, ruinId));
+  },
+});
+
+/**
+ * Goes alone into a ruin the tree has opened: its level (near 6, far 10, deep 15), one stamina, and
+ * no run under way. A party of one, formed and set out at once.
  */
 export const start = mutation({
   args: { ruinId: v.string() },
   returns: v.id("expeditions"),
   handler: async (ctx, { ruinId }) => {
     const { workspace, member, player } = await requireExplorer(ctx);
-    const site = (await ruinsOpen(ctx, workspace)).find((r) => r.id === ruinId);
-    if (site && site.tier !== 1) throw new ConvexError("Only the near ruins can be explored for now: the deeper ones are for parties.");
-    if (!site) throw new ConvexError("That ruin is not open yet: the tree opens the near ruins when it's a great tree.");
-    const can = canStartExpedition({ level: player.level, stamina: player.stamina ?? 0 }, site.tier);
-    if (!can.ok) throw new ConvexError(can.reason === "level" ? `The near ruins open to explorers at level 6. You're level ${player.level}.` : NO_STAMINA);
-    return await enter(ctx, workspace, member, player, site);
+    const id = await createRun(ctx, workspace, member, player, await enterable(ctx, workspace, player, ruinId));
+    await setOutRun(ctx, workspace, (await ctx.db.get(id))!);
+    return id;
   },
 });
 
@@ -327,7 +427,7 @@ export const RAID_NAME = "The blight's hollow";
 /**
  * The blight raid (#164): a ruin at the blight stone (`raid:<tier>`, the tier the tree's stage gave
  * the blight on arrival), open while a blight is at the tree. One stamina and no level: everyone can
- * help. Each room it clears deals the blight ten.
+ * help. Each room it clears deals the blight ten. Gone into alone, as a party of one.
  */
 export const startRaid = mutation({
   args: {},
@@ -336,19 +436,114 @@ export const startRaid = mutation({
     const { workspace, member, player } = await requireExplorer(ctx);
     const blight = await activeBlight(ctx, workspace, workspaceNow(workspace));
     if (!blight) throw new ConvexError("No blight is at the tree: the raid opens when one comes.");
-    if ((player.stamina ?? 0) < STAMINA.cost) throw new ConvexError(NO_STAMINA);
     const tier = (blight.tier ?? 1) as RuinTier;
-    return await enter(ctx, workspace, member, player, { id: `raid:${tier}`, name: RAID_NAME, tier });
+    if (await activeRun(ctx, player)) throw new ConvexError(refusal("busy", tier, { name: "", level: player.level, you: true }));
+    if ((player.stamina ?? 0) < STAMINA.cost) throw new ConvexError(refusal("stamina", tier, { name: "", level: player.level, you: true }));
+    const id = await createRun(ctx, workspace, member, player, { id: `raid:${tier}`, name: RAID_NAME, tier });
+    await setOutRun(ctx, workspace, (await ctx.db.get(id))!);
+    return id;
+  },
+});
+
+/**
+ * The leader of a forming party invites a teammate standing within `PARTY.inviteRadius` tiles of
+ * the entrance now (by presence), who plays, is in no run, and could start the ruin themselves.
+ * The invite shows on their screen for `PARTY.decideSeconds`; inviting again renews it.
+ */
+export const invite = mutation({
+  args: { memberId: v.id("members") },
+  returns: v.null(),
+  handler: async (ctx, { memberId }) => {
+    const { workspace, member, player } = await requireExplorer(ctx);
+    const run = await ledParty(ctx, player, "invites");
+    if (memberId === member._id) throw new ConvexError("You can't invite yourself: you're leading this party.");
+    const target = await ctx.db.get(memberId);
+    const them = target && target.workspaceId === workspace._id && !target.isBot && !target.deactivated && gameShownTo(workspace, target) ? await playerOf(ctx, memberId) : null;
+    if (!target || target.workspaceId !== workspace._id) throw new ConvexError("There's nobody like that in your workspace.");
+    if (!them) throw new ConvexError(`${firstName(target.name)} isn't playing the game.`);
+    const who = { name: firstName(target.name), level: them.level };
+    if (run.party.some((p) => p.memberId === memberId)) throw new ConvexError(`${who.name} is in your party already.`);
+    if (await activeRun(ctx, them)) throw new ConvexError(refusal("busy", run.tier as RuinTier, who));
+    const now = workspaceNow(workspace);
+    const site = (await ruinsOpen(ctx, workspace)).find((r) => r.id === run.ruinId);
+    const at = await memberAt(ctx, workspace, memberId, now);
+    const distance = at && site ? tilesApart(at, site.at) : Infinity;
+    const can = canJoinParty({ level: them.level, stamina: them.stamina ?? 0, distance, size: run.party.length }, run.tier as RuinTier);
+    if (!can.ok) throw new ConvexError(refusal(can.reason, run.tier as RuinTier, who));
+    const live = (at: number) => now - at < decideMs;
+    await ctx.db.patch(run._id, { invites: [...(run.invites ?? []).filter((i) => i.memberId !== memberId && live(i.at)), { memberId, name: who.name, at: now }] });
+    await ctx.db.patch(them._id, { partyInvites: [...(them.partyInvites ?? []).filter((i) => i.runId !== run._id && live(i.at)), { runId: run._id, at: now }] });
+    return null;
+  },
+});
+
+/** Drops the invite to `memberId` from a run, and from their list. */
+async function dropInvite(ctx: MutationCtx, run: Run | null, player: Doc<"players">, runId: Id<"expeditions">) {
+  if (run && (run.invites ?? []).some((i) => i.memberId === player.memberId)) await ctx.db.patch(run._id, { invites: (run.invites ?? []).filter((i) => i.memberId !== player.memberId) });
+  if (player.partyInvites?.some((i) => i.runId === runId)) await ctx.db.patch(player._id, { partyInvites: player.partyInvites.filter((i) => i.runId !== runId) });
+}
+
+/**
+ * Joins a forming party the viewer was invited to, within `PARTY.decideSeconds` of the invite, if
+ * they still could: in no run, within reach of the entrance, the party not full, the ruin's level
+ * and a stamina. The stamina is spent when the party sets out.
+ */
+export const accept = mutation({
+  args: { runId: v.id("expeditions") },
+  returns: v.null(),
+  handler: async (ctx, { runId }) => {
+    const { workspace, member, player } = await requireExplorer(ctx);
+    const run = await ctx.db.get(runId);
+    const invite = run && run.workspaceId === workspace._id && run.state === "forming" ? (run.invites ?? []).find((i) => i.memberId === member._id) : undefined;
+    if (!run || !invite) throw new ConvexError("There's no invite from that party for you any more.");
+    const now = workspaceNow(workspace);
+    if (now - invite.at >= decideMs) throw new ConvexError("That invite has expired: ask the leader for another.");
+    if (await activeRun(ctx, player)) throw new ConvexError(refusal("busy", run.tier as RuinTier, { name: "", level: player.level, you: true }));
+    const site = (await ruinsOpen(ctx, workspace)).find((r) => r.id === run.ruinId);
+    const at = await memberAt(ctx, workspace, member._id, now);
+    const can = canJoinParty(
+      { level: player.level, stamina: player.stamina ?? 0, distance: at && site ? tilesApart(at, site.at) : Infinity, size: run.party.length },
+      run.tier as RuinTier,
+    );
+    if (!can.ok) throw new ConvexError(refusal(can.reason, run.tier as RuinTier, { name: member.name, level: player.level, you: true }));
+    await ctx.db.patch(run._id, { party: [...run.party, await adventurer(ctx, member, player)], invites: (run.invites ?? []).filter((i) => i.memberId !== member._id) });
+    await ctx.db.patch(player._id, { expedition: run._id, partyInvites: (player.partyInvites ?? []).filter((i) => i.runId !== run._id) });
+    return null;
+  },
+});
+
+/** Says no to a party's invite (nothing happens if there's none). */
+export const decline = mutation({
+  args: { runId: v.id("expeditions") },
+  returns: v.null(),
+  handler: async (ctx, { runId }) => {
+    const { workspace, player } = await requireExplorer(ctx);
+    const run = await ctx.db.get(runId);
+    await dropInvite(ctx, run && run.workspaceId === workspace._id && run.state === "forming" ? run : null, player, runId);
+    return null;
+  },
+});
+
+/** The leader sets out with the party as it stands: 1 to 4, each spending a stamina. */
+export const setOut = mutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const { workspace, player } = await requireExplorer(ctx);
+    await setOutRun(ctx, workspace, await ledParty(ctx, player, "sets out"));
+    return null;
   },
 });
 
 /** A player's choice as the rules take it; an answer is right only if it's the stored one. */
 function choiceFor(run: Run, chosen: Chosen): Choice | null {
   const room = run.rooms[run.room] as Room;
-  if (chosen.kind === "onward") {
-    if (room.kind !== "rest" && room.kind !== "secret") throw new ConvexError("There's no going on until this room is settled.");
+  if (room.kind === "rest" || room.kind === "secret") {
+    if (chosen.kind !== "onward") throw new ConvexError("Nothing to do here but move on.");
     return null;
   }
+  if (chosen.kind === "onward") throw new ConvexError("There's no going on until this room is settled.");
+  if (room.kind === "puzzle" && chosen.kind !== "answer") throw new ConvexError("The tablet waits for an answer.");
   if (chosen.kind === "answer") {
     if (room.kind !== "puzzle" || !run.puzzle) throw new ConvexError("There's no puzzle to answer here.");
     if (!Number.isInteger(chosen.option) || chosen.option < 0 || chosen.option >= run.puzzle.options.length) throw new ConvexError("That isn't one of the options.");
@@ -359,48 +554,134 @@ function choiceFor(run: Run, chosen: Chosen): Choice | null {
   return chosen;
 }
 
+type Pending = NonNullable<Run["pending"]>;
+
+/** Whether a turn can resolve now: everyone standing has chosen, or (a puzzle) someone has answered for the party. */
+function ready(run: Run, pending: Pending): boolean {
+  if ((run.rooms[run.room] as Room).kind === "puzzle" && pending.some((c) => c.kind === "answer")) return true;
+  return run.party.filter(standing).every((p) => pending.some((c) => c.memberId === p.memberId));
+}
+
 /**
- * One turn of the viewer's expedition: their choice (a solo party's only one), the foe's reply, and
- * whatever follows: the next room with its loot paid, or the end of the run.
+ * Resolves the run's turn with the choices made: one `resolveTurn` over every member's choice, the
+ * foe's reply, and whatever follows: the next room with its loot paid, or the end of the run.
+ * Members who fell return to camp; the rest go on.
+ */
+async function resolve(ctx: MutationCtx, workspace: Doc<"workspaces">, run: Run, pending: Pending) {
+  const choices: Record<string, Choice> = {};
+  for (const c of pending) if (c.kind !== "onward") choices[c.memberId] = c.kind === "answer" ? { kind: "answer", correct: !!c.correct } : { kind: c.kind };
+  const before = encounterOf(run);
+  const next = resolveTurn(before, choices, turnRand(run.seed, run.room, run.turn));
+  // Every choice is kept with its turn and who made it (an answer with whether it was right), so the row replays.
+  const chose = run.party.flatMap((p) => pending.filter((c) => c.memberId === p.memberId)).map((c) => ({
+    room: run.room,
+    turn: run.turn,
+    memberId: c.memberId,
+    kind: c.kind,
+    ...(c.kind === "answer" ? { correct: !!c.correct } : {}),
+  }));
+  const party = partyAfter(next, run.party);
+  const turn = { foeHp: next.foeHp, turn: next.turn, wrong: next.wrong, party, choices: [...run.choices, ...chose], pending: undefined, pendingSince: undefined };
+  const log = [...run.log, ...named(next.log, run.party).map((line) => ({ room: run.room, turn: run.turn, line }))];
+  // The answer the rules took (the first standing member's) is crossed out when wrong, so nobody gives it twice.
+  const answerer = next.wrong > run.wrong ? before.party.find((f) => f.hp > 0 && choices[f.id]?.kind === "answer") : undefined;
+  const option = answerer && pending.find((c) => c.memberId === answerer.id)?.option;
+  const tried = option !== undefined && run.puzzle ? { puzzle: { ...run.puzzle, tried: [...(run.puzzle.tried ?? []), option] } } : {};
+  // A room cleared with effort strikes the blight at the tree, once for the whole party (#164).
+  const damage = blightDamage({ source: isRaidId(run.ruinId) ? "raid_room" : "room", room: run.rooms[run.room] as Room, done: next.done });
+  await strikeBlight(ctx, workspace, paidFor(next).map((f) => f.id as Id<"members">), damage, workspaceNow(workspace));
+  if (next.done === "fallen" || next.done === "retreated") return await endRun(ctx, workspace, run, next.done, next, { ...turn, log });
+  if (next.done === "cleared") {
+    const loot = await payRoom(ctx, workspace, run, run.room, next);
+    if (run.room + 1 >= run.rooms.length) return await endRun(ctx, workspace, run, "cleared", next, { ...turn, log, loot });
+    await ctx.db.patch(run._id, { loot, choices: turn.choices, pending: undefined, pendingSince: undefined, ...(await enterRoom(ctx, workspace, run, run.room + 1, party, log)) });
+  } else await ctx.db.patch(run._id, { ...turn, ...tried, log });
+  // Whoever fell this turn returns to camp; the party goes on without them.
+  for (const p of party) if (p.hp <= 0 && (run.party.find((b) => b.memberId === p.memberId)?.hp ?? 0) > 0) await release(ctx, run, p.memberId);
+}
+
+/**
+ * The viewer's choice for this turn of their expedition (`at`: the room and turn they saw, so a
+ * choice made as the turn moved on is refused). Alone, the turn resolves at once; in a party it
+ * waits for everyone standing, or for `PARTY.decideSeconds` after the first choice. Choosing again
+ * before it resolves changes your choice.
  */
 export const act = mutation({
-  args: { choice: choiceValidator },
+  args: { choice: choiceValidator, at: v.optional(v.object({ room: v.number(), turn: v.number() })) },
   returns: v.null(),
-  handler: async (ctx, { choice }) => {
+  handler: async (ctx, { choice, at }) => {
     const { workspace, member, player } = await requireExplorer(ctx);
     const run = await openRun(ctx, player);
-    if (!run) throw new ConvexError("You're not on an expedition. Walk to a ruin's entrance to start one.");
+    const me = run?.party.find((p) => p.memberId === member._id);
+    if (!run || !me || !inParty(me)) throw new ConvexError("You're not on an expedition. Walk to a ruin's entrance to start one.");
+    if (at && (at.room !== run.room || at.turn !== run.turn)) throw new ConvexError("The party moved on while you chose: choose again.");
     const rules = choiceFor(run, choice);
-    const next = resolveTurn(encounterOf(run), rules ? { [member._id]: rules } : {}, turnRand(run.seed, run.room, run.turn));
-    // Every choice is kept with its turn (and an answer with whether it was right), so the row replays.
-    const chose = { room: run.room, turn: run.turn, kind: choice.kind, ...(rules?.kind === "answer" ? { correct: rules.correct } : {}) };
-    const turn = { foeHp: next.foeHp, turn: next.turn, wrong: next.wrong, party: partyAfter(next, run.party), choices: [...run.choices, chose] };
-    const log = [...run.log, ...named(next.log, run.party).map((line) => ({ room: run.room, line }))];
-    // A wrong answer is crossed out, so nobody gives it twice.
-    const tried = choice.kind === "answer" && next.wrong > run.wrong && run.puzzle ? { puzzle: { ...run.puzzle, tried: [...(run.puzzle.tried ?? []), choice.option] } } : {};
-    // A room cleared with effort strikes the blight at the tree, once for the whole party (#164).
-    const damage = blightDamage({ source: isRaidId(run.ruinId) ? "raid_room" : "room", room: run.rooms[run.room] as Room, done: next.done });
-    await strikeBlight(ctx, workspace, paidFor(next).map((f) => f.id as Id<"members">), damage, workspaceNow(workspace));
-    if (next.done === null) await ctx.db.patch(run._id, { ...turn, ...tried, log });
-    else if (next.done !== "cleared") await endRun(ctx, workspace, run, next.done, next, { ...turn, log });
+    const mine = { memberId: member._id, kind: choice.kind, ...(choice.kind === "answer" && rules?.kind === "answer" ? { option: choice.option, correct: rules.correct } : {}) };
+    const pending = [...(run.pending ?? []).filter((c) => c.memberId !== member._id), mine];
+    if (ready(run, pending)) await resolve(ctx, workspace, run, pending);
     else {
-      const loot = await payRoom(ctx, workspace, run, run.room, next);
-      if (run.room + 1 >= run.rooms.length) await endRun(ctx, workspace, run, "cleared", next, { ...turn, log, loot });
-      else await ctx.db.patch(run._id, { loot, ...(await enterRoom(ctx, workspace, run, run.room + 1, turn.party, log)) });
+      // The first choice waiting starts the minute (again, if everyone who had chosen left).
+      const first = !run.pending?.length;
+      await ctx.db.patch(run._id, { pending, pendingSince: first ? workspaceNow(workspace) : run.pendingSince });
+      if (first) await ctx.scheduler.runAfter(decideMs, internal.rpg.decide, { runId: run._id, room: run.room, turn: run.turn, since: workspaceNow(workspace) });
     }
     return null;
   },
 });
 
-/** Back to camp: the run ends as a retreat, keeping what earlier rooms gave and nothing from this one. */
+/** The minute for a turn is up (scheduled by its first choice): it resolves with the choices made, unless it already has. */
+export const decide = internalMutation({
+  args: { runId: v.id("expeditions"), room: v.number(), turn: v.number(), since: v.optional(v.number()) },
+  returns: v.null(),
+  handler: async (ctx, { runId, room, turn, since }) => {
+    const run = await ctx.db.get(runId);
+    // A minute started again (everyone who had chosen left, then someone chose) has its own job.
+    if (!run || run.state !== "open" || run.room !== room || run.turn !== turn || !run.pending?.length || (since !== undefined && run.pendingSince !== since)) return null;
+    const workspace = await ctx.db.get(run.workspaceId);
+    if (workspace) await resolve(ctx, workspace, run, run.pending);
+    return null;
+  },
+});
+
+/**
+ * Back to camp. From a forming party: a member leaves it; its leader disbands it (nothing was spent).
+ * From a run: alone, the run ends as a retreat, keeping what earlier rooms gave and nothing from this
+ * one; in a party, you leave it and the others go on (the turn resolves if it was only waiting on you).
+ */
 export const abandon = mutation({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
-    const { workspace, player } = await requireExplorer(ctx);
-    const run = await openRun(ctx, player);
+    const { workspace, member, player } = await requireExplorer(ctx);
+    const run = await activeRun(ctx, player);
     if (!run) throw new ConvexError("You're not on an expedition.");
-    await endRun(ctx, workspace, run, "retreated", null, { log: [...run.log, { room: run.room, line: "The party returns to camp." }] });
+    if (run.state === "forming") {
+      if (run.leaderId !== member._id) {
+        await ctx.db.patch(run._id, { party: run.party.filter((p) => p.memberId !== member._id) });
+        await ctx.db.patch(player._id, { expedition: undefined });
+        return null;
+      }
+      await withdrawInvites(ctx, run);
+      for (const p of run.party) {
+        const them = await playerOf(ctx, p.memberId);
+        if (them?.expedition === run._id) await ctx.db.patch(them._id, { expedition: undefined });
+      }
+      await ctx.db.delete(run._id);
+      return null;
+    }
+    const me = run.party.find((p) => p.memberId === member._id)!;
+    const log = [...run.log, { room: run.room, line: run.party.filter(standing).length > 1 ? `${me.name} returns to camp.` : "The party returns to camp." }];
+    if (!run.party.some((p) => p.memberId !== member._id && standing(p))) {
+      await endRun(ctx, workspace, run, "retreated", null, { log });
+      return null;
+    }
+    const pending = (run.pending ?? []).filter((c) => c.memberId !== member._id);
+    const party = run.party.map((p) => (p.memberId === member._id ? { ...p, left: true as const } : p));
+    // Nobody left waiting: the minute stops, and starts again with the next choice.
+    await ctx.db.patch(run._id, { party, pending, log, ...(pending.length === 0 ? { pendingSince: undefined } : {}) });
+    await release(ctx, run, member._id);
+    const after = (await ctx.db.get(run._id))!;
+    if (pending.length > 0 && ready(after, pending)) await resolve(ctx, workspace, after, pending);
     return null;
   },
 });
@@ -413,12 +694,21 @@ const runView = v.object({
   name: v.string(),
   tier: v.number(),
   open: v.boolean(),
-  state: v.union(v.literal("open"), v.literal("cleared"), v.literal("fallen"), v.literal("retreated")),
+  state: v.union(v.literal("forming"), v.literal("open"), v.literal("cleared"), v.literal("fallen"), v.literal("retreated")),
+  /** The viewer leads it: they invite, and set out. */
+  leader: v.boolean(),
   room: v.number(),
   rooms: v.array(v.object({ kind: v.union(v.literal("foe"), v.literal("puzzle"), v.literal("secret"), v.literal("rest"), v.literal("unknown")), foe: v.optional(v.string()) })),
   turn: v.number(),
   foe: v.union(v.null(), v.object({ id: v.string(), name: v.string(), about: v.string(), hp: v.number(), maxHp: v.number(), weakness: v.string() })),
-  party: v.array(v.object({ memberId: v.id("members"), name: v.string(), hp: v.number(), maxHp: v.number(), stats: statsValidator })),
+  // `chosen`: they've chosen this turn (never what); `left`: returned to camp; `you`: the viewer.
+  party: v.array(
+    v.object({ memberId: v.id("members"), name: v.string(), level: v.number(), hp: v.number(), maxHp: v.number(), stats: statsValidator, chosen: v.boolean(), left: v.boolean(), you: v.boolean() }),
+  ),
+  /** While forming: who's been asked and when the invite runs out (workspace clock). */
+  invited: v.array(v.object({ memberId: v.id("members"), name: v.string(), expiresAt: v.number() })),
+  /** When this turn resolves without the ones who haven't chosen (workspace clock); null before anyone has. */
+  decideBy: v.union(v.null(), v.number()),
   puzzle: v.union(
     v.null(),
     v.object({ question: v.string(), options: v.array(v.object({ label: v.string(), struck: v.boolean(), tried: v.boolean() })), triesLeft: v.number(), hint: v.boolean() }),
@@ -427,25 +717,46 @@ const runView = v.object({
   loot: v.object({ coins: v.number(), fruits: v.array(v.string()), gear: v.array(v.object({ id: v.string(), name: v.string() })), lore: v.array(v.object({ lore: v.number(), title: v.string() })) }),
 });
 
-/** A run as a player sees it: a puzzle never with its answer, and only rooms reached show their foe. */
+/** The lines of a room's last turn (each member's move and the foe's reply); a log from before turns were kept gives its last line. */
+function lastTurn(lines: Run["log"]): Run["log"] {
+  const turn = lines.at(-1)?.turn;
+  return turn === undefined ? lines.slice(-1) : lines.filter((l) => l.turn === turn);
+}
+
+/** A run as a player sees it: a puzzle never with its answer, nobody's choice, and only rooms reached show their foe. */
 function viewOf(run: Run, viewer: Id<"members">): Infer<typeof runView> {
   const room = run.rooms[run.room] as Room;
-  const foe = room.kind === "foe" ? creature(room.foe) : null;
+  const open = run.state === "open";
+  const foe = open && room.kind === "foe" ? creature(room.foe) : null;
   const mine = run.loot.find((l) => l.memberId === viewer) ?? emptyLoot(viewer);
-  const puzzle = run.state === "open" && room.kind === "puzzle" ? run.puzzle : undefined;
+  const puzzle = open && room.kind === "puzzle" ? run.puzzle : undefined;
+  const pending = run.pending ?? [];
   return {
     id: run._id,
     ruinId: run.ruinId,
     name: run.name,
     tier: run.tier,
-    open: run.state === "open",
+    open,
     state: run.state,
+    leader: run.leaderId === viewer,
     room: run.room,
-    // Rooms ahead of an open run keep what they hold to themselves; a finished run shows them all.
-    rooms: run.rooms.map((r, i) => (run.state === "open" && i > run.room ? { kind: "unknown" as const } : { kind: r.kind, ...(r.kind === "foe" ? { foe: r.foe } : {}) })),
+    // Rooms ahead keep what they hold to themselves (all of them while the party forms); a finished run shows them all.
+    rooms: run.rooms.map((r, i) => (run.state === "forming" || (open && i > run.room) ? { kind: "unknown" as const } : { kind: r.kind, ...(r.kind === "foe" ? { foe: r.foe } : {}) })),
     turn: run.turn,
     foe: foe && { id: foe.id, name: foe.name, about: foe.about, hp: run.foeHp, maxHp: run.foeMaxHp ?? run.foeHp, weakness: foe.weakness },
-    party: fighters(run.party).map((f, i) => ({ memberId: run.party[i].memberId, name: run.party[i].name, hp: f.hp, maxHp: maxHp(f.level), stats: characterStats(f) })),
+    party: run.party.map((p) => ({
+      memberId: p.memberId,
+      name: p.name,
+      level: p.level,
+      hp: p.hp,
+      maxHp: maxHp(p.level),
+      stats: characterStats({ ...p, id: p.memberId, equipped: wearable(p.equipped) }),
+      chosen: pending.some((c) => c.memberId === p.memberId),
+      left: !!p.left,
+      you: p.memberId === viewer,
+    })),
+    invited: run.state === "forming" ? (run.invites ?? []).map((i) => ({ memberId: i.memberId, name: i.name, expiresAt: i.at + decideMs })) : [],
+    decideBy: open && run.pendingSince !== undefined ? run.pendingSince + decideMs : null,
     puzzle: puzzle
       ? {
           question: puzzle.question,
@@ -454,8 +765,8 @@ function viewOf(run: Run, viewer: Id<"members">): Infer<typeof runView> {
           hint: puzzle.struck.length > 0,
         }
       : null,
-    // The room's log, after how the room before it ended.
-    log: [...run.log.filter((l) => l.room === run.room - 1).slice(-1), ...run.log.filter((l) => l.room === run.room)].slice(-LOG_SHOWN),
+    // The room's log, after the whole turn that ended the room before it (or its last line, for older runs).
+    log: [...lastTurn(run.log.filter((l) => l.room === run.room - 1)), ...run.log.filter((l) => l.room === run.room)].slice(-LOG_SHOWN).map(({ room, line }) => ({ room, line })),
     loot: {
       coins: mine.coins,
       fruits: mine.fruits,
@@ -466,8 +777,8 @@ function viewOf(run: Run, viewer: Id<"members">): Infer<typeof runView> {
 }
 
 /**
- * The viewer's expedition: the one they're in, else the last one they led (for its results), with
- * their stamina. Null while the game isn't shown to them or before they play.
+ * The viewer's expedition: the one they're in (forming or under way), else the last one they were
+ * in (for its results), with their stamina. Null while the game isn't shown to them or before they play.
  */
 export const current = query({
   args: {},
@@ -478,13 +789,75 @@ export const current = query({
     const player = await playerOf(ctx, member._id);
     if (!player) return null;
     const run =
-      (await openRun(ctx, player)) ??
+      (await activeRun(ctx, player)) ??
+      (player.lastExpedition ? await ctx.db.get(player.lastExpedition) : null) ??
       (await ctx.db
         .query("expeditions")
         .withIndex("by_leader_startedAt", (q) => q.eq("leaderId", member._id))
         .order("desc")
         .first());
     return { stamina: player.stamina ?? 0, level: player.level, run: run && viewOf(run, member._id) };
+  },
+});
+
+/**
+ * The party invites waiting for the viewer, with when each runs out (workspace clock: the client
+ * hides the ones past it; `accept` refuses them). Empty while the game isn't shown to them.
+ */
+export const invites = query({
+  args: {},
+  returns: v.array(v.object({ runId: v.id("expeditions"), ruinId: v.string(), ruinName: v.string(), tier: v.number(), from: v.string(), size: v.number(), expiresAt: v.number() })),
+  handler: async (ctx) => {
+    const { workspace, member } = await requireViewer(ctx);
+    const player = gameShownTo(workspace, member) ? await playerOf(ctx, member._id) : null;
+    const out = [];
+    for (const { runId } of player?.partyInvites ?? []) {
+      const run = await ctx.db.get(runId);
+      const invite = run?.state === "forming" ? (run.invites ?? []).find((i) => i.memberId === member._id) : undefined;
+      if (!run || !invite) continue;
+      const leader = run.party.find((p) => p.memberId === run.leaderId);
+      out.push({ runId, ruinId: run.ruinId, ruinName: run.name, tier: run.tier, from: leader?.name ?? "A teammate", size: run.party.length, expiresAt: invite.at + decideMs });
+    }
+    return out;
+  },
+});
+
+/**
+ * Who the leader of a forming party could invite: the players standing within reach of its entrance
+ * now (`now`: the client's workspace-clock time, as for presence), with whether each could join and
+ * why not, and whether they've been asked. Empty unless the viewer leads a forming party.
+ */
+export const reach = query({
+  args: { now: v.number() },
+  returns: v.array(
+    v.object({
+      memberId: v.id("members"),
+      name: v.string(),
+      level: v.number(),
+      canJoin: v.boolean(),
+      reason: v.optional(v.union(v.literal("level"), v.literal("stamina"), v.literal("too_far"), v.literal("full"), v.literal("busy"))),
+      invited: v.boolean(),
+    }),
+  ),
+  handler: async (ctx, { now }) => {
+    const { workspace, member } = await requireViewer(ctx);
+    const player = gameShownTo(workspace, member) ? await playerOf(ctx, member._id) : null;
+    const run = player && (await activeRun(ctx, player));
+    if (!run || run.state !== "forming" || run.leaderId !== member._id) return [];
+    const site = (await ruinsOpen(ctx, workspace)).find((r) => r.id === run.ruinId);
+    if (!site) return [];
+    const out = [];
+    for (const near of await membersWithin(ctx, workspace, site.at, PARTY.inviteRadius, now)) {
+      if (near.memberId === member._id || run.party.some((p) => p.memberId === near.memberId)) continue;
+      const who = await ctx.db.get(near.memberId);
+      const them = who && !who.isBot && gameShownTo(workspace, who) ? await playerOf(ctx, near.memberId) : null;
+      if (!who || !them) continue;
+      const busy = (await activeRun(ctx, them)) !== null;
+      const can = canJoinParty({ level: them.level, stamina: them.stamina ?? 0, distance: tilesApart(near.at, site.at), size: run.party.length }, run.tier as RuinTier);
+      const reason = busy ? ("busy" as const) : can.ok ? undefined : can.reason;
+      out.push({ memberId: near.memberId, name: who.name, level: them.level, canJoin: !reason, ...(reason ? { reason } : {}), invited: (run.invites ?? []).some((i) => i.memberId === near.memberId && now - i.at < decideMs) });
+    }
+    return out;
   },
 });
 

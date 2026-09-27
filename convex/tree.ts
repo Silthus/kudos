@@ -3,15 +3,17 @@ import { paginationOptsValidator, paginationResultValidator } from "convex/serve
 import { internalAction, internalMutation, internalQuery, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import { gameOn, gameShownTo, superseded, thankedBack } from "./game";
+import { gameOn, gameShownTo, playerOf, superseded, thankedBack } from "./game";
 import { sendGains } from "./gains";
 import { canSeeReceived, requireViewer, type Viewer } from "./lib/access";
 import { hasNote } from "./lib/quests";
 import { fnv1a } from "./lib/random";
 import { DAY_MS, dayKeyFor, workspaceNow } from "./lib/time";
 import {
+  DISTRICT_BY_ID,
   districtsOpen,
   growthFor,
+  MAX_HOME_PLOTS,
   growthToReach,
   layout,
   RING_GROWTH,
@@ -567,6 +569,66 @@ export const state = query({
       layout: layout(worldSeed, peakGrowth),
       events: await Promise.all(events.map((e) => eventView(ctx, viewer, e))),
       cosmetics: tree?.cosmetics ?? [],
+    };
+  },
+});
+
+/**
+ * The overview map (#163, plan #152 S1; the `overview` district, open from the elder stage): the
+ * whole tree from above for the viewer: its stage and growth, every district with where it stands
+ * and whether it's open, the ruins with the ones the viewer has cleared lit, and how many homes
+ * stand on the ring. `blight` is the tree's blight now (#164 fills it in; none until then). Null
+ * while the game isn't shown to the viewer or before the tree opens the overview. Bounded: one tree,
+ * one player, and at most a full ring of homes.
+ */
+export const overview = query({
+  args: {},
+  returns: v.union(
+    v.null(),
+    v.object({
+      stage: treeStageValidator,
+      stageName: v.string(),
+      growth: v.number(),
+      rings: v.number(),
+      next: v.object({ stage: v.union(treeStageValidator, v.literal("ring")), growth: v.number() }),
+      tree: tileValidator,
+      districts: v.array(v.object({ id: v.string(), name: v.string(), at: tileValidator, open: v.boolean(), opensAt: v.string() })),
+      ruins: v.array(v.object({ id: v.string(), name: v.string(), tier: v.number(), at: tileValidator, explored: v.boolean() })),
+      homes: v.number(),
+      plots: v.number(),
+      blight: v.null(),
+    }),
+  ),
+  handler: async (ctx) => {
+    const { workspace, member } = await requireViewer(ctx);
+    if (!gameShownTo(workspace, member)) return null;
+    const tree = await treeOf(ctx, workspace._id);
+    const peakGrowth = tree?.peakGrowth ?? 0;
+    const stage = stageForGrowth(peakGrowth);
+    if (!tree || !districtsOpen(stage).includes("overview")) return null;
+    const map = layout(worldSeedOf(workspace), peakGrowth);
+    const player = await playerOf(ctx, member._id);
+    const cleared = new Set(player?.ruinsCleared ?? []);
+    const homes = await ctx.db
+      .query("homes")
+      .withIndex("by_workspace_plot", (q) => q.eq("workspaceId", workspace._id))
+      .take(MAX_HOME_PLOTS);
+    const growth = growthFor(tree);
+    return {
+      stage,
+      stageName: TREE_STAGE_BY_ID[stage].name,
+      growth,
+      rings: map.rings,
+      next: meter(growth, peakGrowth),
+      tree: map.tree,
+      districts: map.districts.map((d) => {
+        const def = DISTRICT_BY_ID[d.id];
+        return { id: d.id, name: def.name, at: d.at, open: d.open, opensAt: TREE_STAGE_BY_ID[def.opens].name };
+      }),
+      ruins: map.ruins.map((r) => ({ ...r, explored: cleared.has(r.id) })),
+      homes: homes.filter((h) => !h.hidden).length,
+      plots: map.homes.length,
+      blight: null,
     };
   },
 });

@@ -120,6 +120,16 @@ describe("a hog's card", () => {
     ]);
   });
 
+  test("while you lead a party forming at a ruin, a teammate's card invites them (#163)", () => {
+    expect(cardFor(ana, viewer, { leadingParty: true }).actions).toEqual([
+      { label: "Invite to party", invite: "m2" },
+      { label: "Visit their garden", to: "/garden/m2" },
+    ]);
+    // Never yourself in another window, and never a wandering teammate: they aren't really there.
+    expect(cardFor({ ...ana, memberId: "m1" }, viewer, { leadingParty: true }).actions.some((a) => "invite" in a)).toBe(false);
+    expect(cardFor({ ...ana, npc: true }, viewer, { leadingParty: true }).actions.some((a) => "invite" in a)).toBe(false);
+  });
+
   test("a wandering teammate in the demo says so", () => {
     expect(cardFor({ ...ana, npc: true }, { ...viewer, sharedDemo: true }).note).toBe("Lumen Labs teammate");
   });

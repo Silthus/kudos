@@ -21,6 +21,7 @@ import { Blight } from "./pages/Blight";
 import { Skills } from "./pages/Skills";
 import { Garden, GardenOf } from "./pages/Garden";
 import { Canopy, HomeOf, Homes } from "./pages/Homes";
+import { Overview } from "./pages/Overview";
 import { Store } from "./pages/Store";
 import { Analytics } from "./pages/Analytics";
 import { Admin } from "./pages/Admin";
@@ -105,6 +106,7 @@ export function App() {
           <Route path="/canopy" element={<Canopy />} />
           <Route path="/crew" element={<Crew />} />
           <Route path="/blight" element={<Blight />} />
+          <Route path="/overview" element={<Overview />} />
           {/* The menu shows the Store from level 3; the page exists while the game is on and shows its own locked state. */}
           {(viewer.workspace.storeEnabled || viewer.workspace.gameEnabled) && <Route path="/store" element={<Store />} />}
           <Route path="/analytics" element={<Analytics />} />

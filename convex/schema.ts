@@ -83,7 +83,10 @@ export const roomValidator = v.union(
   v.object({ kind: v.literal("secret"), lore: v.number() }),
   v.object({ kind: v.literal("rest") }),
 );
-export const expeditionStateValidator = v.union(v.literal("open"), v.literal("cleared"), v.literal("fallen"), v.literal("retreated"));
+/** `forming`: a party gathering at the entrance (#163); `open`: under way; the rest: how it ended. */
+export const expeditionStateValidator = v.union(v.literal("forming"), v.literal("open"), v.literal("cleared"), v.literal("fallen"), v.literal("retreated"));
+/** What a member chose in a turn (`answer` with the option and whether it was right). */
+export const choiceKindValidator = v.union(v.literal("strike"), v.literal("outwit"), v.literal("calm"), v.literal("rally"), v.literal("answer"), v.literal("onward"));
 
 /**
  * Something a member discovered or gained, told in a DM (#55 §G13; rendered by `lib/gains.ts`).
@@ -613,7 +616,11 @@ export default defineSchema({
     // The desert RPG (#162, rpg.ts, lib/rpg.ts). `stamina` above: +1 per qualifying kudos message given
     // (cap 5) and per moon fruit, 1 per expedition; unset counts as 0, so a new player earns their first.
     equipped: v.optional(equippedValidator), // gear worn, one per slot (lib/rpg.ts `wearable` reads it)
-    expedition: v.optional(v.id("expeditions")), // the run they're in now; unset at camp
+    expedition: v.optional(v.id("expeditions")), // the run they're in now (or the party forming they joined); unset at camp
+    lastExpedition: v.optional(v.id("expeditions")), // the last run they were in, for its results (#163: led or not)
+    // Party invites waiting for them (#163): the forming runs that asked, and when. The run's `invites`
+    // is the truth; this is only where to look, pruned as it's written.
+    partyInvites: v.optional(v.array(v.object({ runId: v.id("expeditions"), at: v.number() }))),
     expeditionCoins: v.optional(v.number()), // Hog coins ruins paid (`expedition` events), part of `coins`
     blightCoins: v.optional(v.number()), // Hog coins won blights paid (`blight` events, #164), part of `coins`
     ruinsCleared: v.optional(v.array(v.string())), // ruin ids they cleared at least once
@@ -1192,8 +1199,10 @@ export default defineSchema({
   // An expedition into a ruin (#162, rpg.ts; lib/rpg.ts has every rule). Its rooms are generated once
   // and stored, the party's stats are taken as they entered, and every turn draws from
   // `turnRand(seed, room, turn)`, so a run replays exactly from this row and its choices. `party` is
-  // [the leader] for a solo run; #163 adds members. `puzzle` holds the current puzzle room's question,
-  // built from the team's public kudos, with its answer: never sent to a client.
+  // [the leader] for a solo run, up to four with a party (#163): a party forms at the entrance
+  // (`state: "forming"`, `invites` out) and its stats are taken again as it sets out. `puzzle` holds the
+  // current puzzle room's question, built from the team's public kudos, with its answer: never sent to
+  // a client. `pending`: this turn's choices so far, resolved together (lib/rpg.ts `PARTY`).
   expeditions: defineTable({
     workspaceId: v.id("workspaces"),
     leaderId: v.id("members"),
@@ -1211,8 +1220,17 @@ export default defineSchema({
         plantsGrown: v.number(),
         equipped: equippedValidator,
         hp: v.number(),
+        left: v.optional(v.literal(true)), // returned to camp mid-run: out of the party from then on
       }),
     ),
+    // Invites out while the party forms (#163): each good for PARTY.decideSeconds from `at`.
+    invites: v.optional(v.array(v.object({ memberId: v.id("members"), name: v.string(), at: v.number() }))),
+    // This turn's choices so far (#163) and when the first came: the turn resolves when everyone standing
+    // has chosen, or PARTY.decideSeconds after the first. Never sent to a client: nobody sees another's.
+    pending: v.optional(
+      v.array(v.object({ memberId: v.id("members"), kind: choiceKindValidator, option: v.optional(v.number()), correct: v.optional(v.boolean()) })),
+    ),
+    pendingSince: v.optional(v.number()),
     room: v.number(), // the room they're in (index into `rooms`)
     turn: v.number(), // turns taken in this room
     // Every choice made, in order, with the turn it was made on (an answer with whether it was right): with the
@@ -1221,7 +1239,8 @@ export default defineSchema({
       v.object({
         room: v.number(),
         turn: v.number(),
-        kind: v.union(v.literal("strike"), v.literal("outwit"), v.literal("calm"), v.literal("rally"), v.literal("answer"), v.literal("onward")),
+        memberId: v.optional(v.id("members")), // who chose (#163); unset on solo runs from before parties
+        kind: choiceKindValidator,
         correct: v.optional(v.boolean()),
       }),
     ),
@@ -1230,7 +1249,8 @@ export default defineSchema({
     wrong: v.number(), // wrong puzzle answers in this room
     // `struck`: wrong options the party's wits rule out; `tried`: wrong answers given.
     puzzle: v.optional(v.object({ question: v.string(), options: v.array(v.string()), answer: v.number(), struck: v.array(v.number()), tried: v.optional(v.array(v.number())) })),
-    log: v.array(v.object({ room: v.number(), line: v.string() })),
+    // `turn`: the turn a line came from (#163), so the next room can open with the whole turn that ended this one.
+    log: v.array(v.object({ room: v.number(), line: v.string(), turn: v.optional(v.number()) })),
     loot: v.array(
       v.object({ memberId: v.id("members"), coins: v.number(), fruits: v.array(fruitIdValidator), gear: v.array(v.string()), lore: v.array(v.number()) }),
     ),

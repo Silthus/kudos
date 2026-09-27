@@ -29,6 +29,7 @@ describe("which places are on the map", () => {
       canopy: "The canopy",
       crew: "The crew's plaque",
       blight: "The blight stone",
+      overview: "The overview",
     });
     for (const item of navItems(everything)) expect(names).toHaveProperty(item.id);
   });
@@ -39,6 +40,7 @@ describe("which places are on the map", () => {
     expect(placeForPath("/homes", routable)).toEqual({ place: expect.objectContaining({ id: "homes" }) });
     expect(placeForPath("/garden/m8", routable)).toMatchObject({ place: { id: "garden" }, memberId: "m8" });
     expect(placeForPath("/canopy", routable)?.place.id).toBe("canopy");
+    expect(placeForPath("/overview", routable)?.place.id).toBe("overview");
   });
 
   test("a plain member sees the places of the always-on pages", () => {

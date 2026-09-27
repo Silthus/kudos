@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { motion } from "motion/react";
 import { X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import type { Toast } from "./life";
 import { Npc } from "./Npc";
@@ -88,11 +88,16 @@ function ToastCard({ toast, onDone, still }: { toast: Toast; onDone: () => void;
 /** A toast waiting its turn, numbered as it came. */
 export type QueuedToast = Toast & { id: number };
 
-/** The first toast of `queue`; `onDone` is called when it goes, and the next one shows. */
-export function Toasts({ queue, onDone, still }: { queue: QueuedToast[]; onDone: () => void; still: boolean }) {
+/**
+ * The first toast of `queue`; `onDone` is called when it goes, and the next one shows. `children`
+ * stand above it in the same corner: what waits for an answer (a party invite, #163) rather than
+ * going by itself.
+ */
+export function Toasts({ queue, onDone, still, children }: { queue: QueuedToast[]; onDone: () => void; still: boolean; children?: ReactNode }) {
   const toast = queue[0];
   return (
-    <div aria-live="polite" className="pointer-events-none fixed left-3 top-[88px] z-[60] w-[min(22rem,calc(100vw-24px))] sm:left-4 sm:top-[116px]">
+    <div aria-live="polite" className="pointer-events-none fixed left-3 top-[88px] z-[60] flex w-[min(22rem,calc(100vw-24px))] flex-col gap-2 sm:left-4 sm:top-[116px]">
+      {children}
       {/* Keyed by its number: the next toast is a new card with its own timer, and one coming in behind doesn't restart it. */}
       {toast && <ToastCard key={toast.id} toast={toast} onDone={onDone} still={still} />}
     </div>

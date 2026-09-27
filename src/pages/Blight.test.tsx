@@ -130,7 +130,7 @@ describe("a raid under way", () => {
       rooms: [{ kind: "puzzle" }, { kind: "puzzle" }, { kind: "foe", foe: "blight_sprout" }],
       turn: 0,
       foe: { id: "blight_sprout", name: "Blight sprout", about: "A shoot of the blight.", hp: 9, maxHp: 9, weakness: "heart" },
-      party: [{ memberId: "m_alex", name: "Alex", hp: 14, maxHp: 18, stats: { might: 9, wits: 5, heart: 3 } }],
+      party: [{ memberId: "m_alex", name: "Alex", level: 9, hp: 14, maxHp: 18, stats: { might: 9, wits: 5, heart: 3 }, chosen: false, left: false, you: true }], leader: true, invited: [], decideBy: null,
       puzzle: null,
       log: [],
       loot: { coins: 0, fruits: [], gear: [], lore: [] },
@@ -147,7 +147,7 @@ describe("a raid under way", () => {
     queries = { "blights:current": { blight: past[0], lanternsDimUntil: null }, "blights:history": past, "rpg:current": { stamina: 1, level: 9, run: done } };
     const host = render();
     expect(host.querySelector("[data-room-strip]")).toBeNull();
-    queries = { ...queries, "rpg:current": { stamina: 1, level: 9, run: { ...done, open: true, state: "open", foe: { id: "blight_sprout", name: "Blight sprout", about: "", hp: 1, maxHp: 9, weakness: "heart" }, party: [{ memberId: "m_alex", name: "Alex", hp: 14, maxHp: 18, stats: { might: 9, wits: 5, heart: 3 } }] } } };
+    queries = { ...queries, "rpg:current": { stamina: 1, level: 9, run: { ...done, open: true, state: "open", foe: { id: "blight_sprout", name: "Blight sprout", about: "", hp: 1, maxHp: 9, weakness: "heart" }, party: [{ memberId: "m_alex", name: "Alex", level: 9, hp: 14, maxHp: 18, stats: { might: 9, wits: 5, heart: 3 }, chosen: false, left: false, you: true }], leader: true, invited: [], decideBy: null } } };
     rerender();
     queries = { ...queries, "rpg:current": { stamina: 1, level: 9, run: done } };
     rerender();

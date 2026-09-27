@@ -67,6 +67,7 @@ import type * as lib_random from "../lib/random.js";
 import type * as lib_rebuild from "../lib/rebuild.js";
 import type * as lib_rollups from "../lib/rollups.js";
 import type * as lib_rpg from "../lib/rpg.js";
+import type * as lib_ruinWords from "../lib/ruinWords.js";
 import type * as lib_scaleSeed from "../lib/scaleSeed.js";
 import type * as lib_settings from "../lib/settings.js";
 import type * as lib_simulator from "../lib/simulator.js";
@@ -170,6 +171,7 @@ declare const fullApi: ApiFromModules<{
   "lib/rebuild": typeof lib_rebuild;
   "lib/rollups": typeof lib_rollups;
   "lib/rpg": typeof lib_rpg;
+  "lib/ruinWords": typeof lib_ruinWords;
   "lib/scaleSeed": typeof lib_scaleSeed;
   "lib/settings": typeof lib_settings;
   "lib/simulator": typeof lib_simulator;

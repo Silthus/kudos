@@ -87,23 +87,26 @@ export function whereIs(world: World, at: Spot): string {
 
 /** Who a hog on the map is: someone online (`api.presence.nearby`), or one of the demo's wandering teammates (`npc`). */
 export type HogWho = { memberId: string; name: string; title: string | null; hasHome: boolean; npc?: boolean };
-export type CardAction = { label: string; to: string };
+/** A way to someone from their card: a link, or (`invite`) asking them into the party you're forming. */
+export type CardAction = { label: string; to: string } | { label: string; invite: string };
 export type HogCard = { name: string; title: string | null; note: string | null; actions: CardAction[] };
 /** Who is looking: the member, their workspace's name, and whether it's the shared demo (every visitor one member). */
 export type PresenceViewer = { memberId: string; workspaceName: string; sharedDemo: boolean };
 
 /**
  * What clicking a hog shows: their name, level title, a line on who they are when that needs
- * saying, and the ways to them. `actions` is the card's slot: parties (#163) add "Invite to party"
- * here once an expedition is forming. "Visit their home" opens their home on the ring (#160).
+ * saying, and the ways to them. While you lead a party forming at a ruin (`leadingParty`, #163),
+ * a teammate's card asks them in first ("Invite to party"; the server checks they stand within
+ * reach). "Visit their home" opens their home on the ring (#160).
  */
-export function cardFor(hog: HogWho, viewer: PresenceViewer): HogCard {
+export function cardFor(hog: HogWho, viewer: PresenceViewer, { leadingParty = false } = {}): HogCard {
   if (!hog.npc && hog.memberId === viewer.memberId) {
     // Every visitor to the shared demo is its one member: another visitor's garden is the one you have.
     if (viewer.sharedDemo) return { name: hog.name, title: hog.title, note: "Another visitor exploring the demo", actions: [{ label: "Visit the garden", to: "/garden" }] };
     return { name: hog.name, title: hog.title, note: "You, in another window", actions: [{ label: "Visit your garden", to: "/garden" }] };
   }
-  const actions = [{ label: "Visit their garden", to: `/garden/${hog.memberId}` }];
+  const actions: CardAction[] = leadingParty && !hog.npc ? [{ label: "Invite to party", invite: hog.memberId }] : [];
+  actions.push({ label: "Visit their garden", to: `/garden/${hog.memberId}` });
   if (hog.hasHome) actions.push({ label: "Visit their home", to: `/homes/${hog.memberId}` });
   return { name: hog.name, title: hog.title, note: hog.npc ? `${viewer.workspaceName} teammate` : null, actions };
 }

@@ -1,5 +1,7 @@
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
+import clsx from "clsx";
+import { errorText } from "@/lib/errors";
 import { X } from "lucide-react";
 import { useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type Ref } from "react";
 import { Link } from "react-router";
@@ -342,7 +344,17 @@ export function Presence({
 function HogCardView({ other, viewer, onClose, ref }: { other: Other; viewer: PresenceViewer; onClose: () => void; ref?: Ref<HTMLDivElement> }) {
   // A wandering teammate's title comes from their profile; someone online brings theirs.
   const profile = useQuery(api.cosmetics.profile, other.round ? { memberId: other.who.memberId as Id<"members"> } : "skip");
-  const card = cardFor({ ...other.who, title: other.who.title ?? profile?.title ?? null }, viewer);
+  // Leading a party forming at a ruin (#163), you can ask someone in from their card.
+  const run = useQuery(api.rpg.current)?.run;
+  const leadingParty = run?.state === "forming" && run.leader;
+  const card = cardFor({ ...other.who, title: other.who.title ?? profile?.title ?? null }, viewer, { leadingParty });
+  const invite = useMutation(api.rpg.invite);
+  const [asked, setAsked] = useState<{ ok: boolean; text: string } | null>(null);
+  const ask = (memberId: string) =>
+    invite({ memberId: memberId as Id<"members"> }).then(
+      () => setAsked({ ok: true, text: `Invited: ${card.name.split(" ")[0]} has a minute to answer.` }),
+      (e: unknown) => setAsked({ ok: false, text: errorText(e) }),
+    );
   // Opened, it takes focus, so a screen reader reads it out; the arrow keys don't walk while it has it.
   const self = useRef<HTMLDivElement>(null);
   useImperativeHandle(ref, () => self.current!);
@@ -366,12 +378,23 @@ function HogCardView({ other, viewer, onClose, ref }: { other: Other; viewer: Pr
       {card.title && <p className="text-sm font-semibold text-soil">{card.title}</p>}
       {card.note && <p className="text-xs text-ink/75">{card.note}</p>}
       <div className="mt-3 flex flex-col items-start gap-2">
-        {card.actions.map((a) => (
-          <Link key={a.label} to={a.to} onClick={onClose} className="pixel-btn inline-flex h-9 items-center px-3 text-sm font-semibold">
-            {a.label}
-          </Link>
-        ))}
+        {card.actions.map((a) =>
+          "invite" in a ? (
+            <button key={a.label} type="button" data-invite-to-party onClick={() => void ask(a.invite)} className="pixel-btn inline-flex h-9 items-center px-3 text-sm font-semibold">
+              {a.label}
+            </button>
+          ) : (
+            <Link key={a.label} to={a.to} onClick={onClose} className="pixel-btn inline-flex h-9 items-center px-3 text-sm font-semibold">
+              {a.label}
+            </Link>
+          ),
+        )}
       </div>
+      {asked && (
+        <p role={asked.ok ? "status" : "alert"} className={clsx("mt-2 text-xs font-semibold", asked.ok ? "text-ink" : "text-ember-deep")}>
+          {asked.text}
+        </p>
+      )}
     </div>
   );
 }
