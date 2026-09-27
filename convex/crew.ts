@@ -10,7 +10,7 @@ import { coinBalance, WALLET_LEVEL } from "./lib/coins";
 import { bannerText, BANNER_TEXT, CREW, crewPart, partsAvailable, validOption, type CrewPart } from "./lib/crewCatalogue";
 import { DAY_MS, dayKeyFor, workspaceNow } from "./lib/time";
 import { districtsOpen, stageForGrowth, TREE_STAGE_BY_ID, type TreeStageId } from "./lib/tree";
-import { crewPartTitle } from "./lib/treeView";
+import { crewPartTitle, type CrewLine } from "./lib/treeView";
 import { crewProposersValidator } from "./schema";
 import { announceTreeEvent, treeOf } from "./tree";
 import { spendCoins } from "./wallet";
@@ -63,6 +63,13 @@ async function openQuests(ctx: QueryCtx, workspaceId: Id<"workspaces">): Promise
     .withIndex("by_workspace_status", (q) => q.eq("workspaceId", workspaceId).eq("status", "funded"))
     .take(OPEN_READ);
   return [...proposed, ...funded].sort((a, b) => a.proposedAt - b.proposedAt);
+}
+
+/** The crew's current quest for App Home and `/kudos tree` (lib/treeView.ts): the oldest one open. */
+export async function crewLine(ctx: QueryCtx, workspaceId: Id<"workspaces">): Promise<CrewLine | null> {
+  const [quest] = await openQuests(ctx, workspaceId);
+  if (!quest) return null;
+  return { part: quest.part, ...(quest.option !== undefined ? { option: quest.option } : {}), contributed: quest.contributed, goal: quest.goal, funded: quest.status === "funded" };
 }
 
 /** The tree's stage (from its peak) and the parts built on it, one per part id (a style built again replaced the one before). */

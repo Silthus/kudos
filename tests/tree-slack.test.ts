@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
 import { seedTeam, setupConvex, signInAs, type Team } from "./helpers";
+import { xpForLevel } from "../convex/lib/xp";
 
 /** The Ancient Tree in Slack (#154, design plan #152 S9): the receiver's DM, App Home and `/kudos tree`. */
 
@@ -85,6 +86,27 @@ describe("the receiver's kudos DM", () => {
   });
 });
 
+describe("a stage reached", () => {
+  test("is a DM to every player who sees the game, once (#165, S9); never to someone who hid it", async () => {
+    for (let i = 0; i < 5; i++) await post(`<@UBEN> :taco: thanks for the thorough review number ${i}`);
+    await post("<@UCLEO> :taco: thanks for pairing on the flaky test", "UBEN");
+    await t.run((ctx) => ctx.db.patch(team.cleo, { gameHidden: true }));
+    await (await signInAs(t, team.ben)).mutation(api.tree.plantSeeds, {});
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    const stageDm = (user: string) => dmsTo(user).filter((dm) => dm.text.includes("The Ancient Tree is now a sprout"));
+    expect(stageDm("UANA")).toHaveLength(1);
+    expect(stageDm("UBEN")).toHaveLength(1);
+    expect(stageDm("UANA")[0].text).toContain("New on the tree: the signpost and the notice board.");
+    expect(stageDm("UCLEO")).toEqual([]);
+    // The next day's planting grows it on, but it's still a sprout: nothing more to tell.
+    vi.setSystemTime(Date.now() + 86_400_000);
+    await post("<@UBEN> :taco: thanks for the thorough review again");
+    await (await signInAs(t, team.ben)).mutation(api.tree.plantSeeds, {});
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    expect(stageDm("UANA")).toHaveLength(1);
+  });
+});
+
 describe("App Home and /kudos tree", () => {
   test("say a blight is at the tree while one is (#164): how worn down it is, until when, and your part", async () => {
     await t.run(async (ctx) => {
@@ -130,6 +152,24 @@ describe("App Home and /kudos tree", () => {
     expect(text).toContain("*Districts open*\\n1 of 18");
     expect(text).toContain("*Seeds to plant*\\n0");
     expect(textOf(await home("UANA"))).toContain("*Districts open*\\n1 of 18");
+  });
+
+  test("say what the crew is pooling for and how far it got, or that it is being built (#165, S9)", async () => {
+    await t.run((ctx) => ctx.db.insert("trees", { workspaceId: team.workspaceId, sap: 900, fuel: 0, peakGrowth: 900, plantings: 1, plantedAt: Date.now() - 1 }));
+    const questId = await t.mutation(internal.crew.seedStory, { workspaceId: team.workspaceId, part: "structure_market_awnings", built: false, share: 0.6 });
+    const line = "The crew is pooling Hog coins for the market awnings: 300 of 500.";
+    expect(textOf(await home("UANA"))).toContain(line);
+    expect(textOf((await slash("tree", "UBEN")).blocks)).toContain(line);
+    await t.run((ctx) => ctx.db.patch(questId, { status: "funded", contributed: 500, fundedAt: Date.now() }));
+    expect(textOf(await home("UANA"))).toContain("The crew funded the market awnings, and building has begun.");
+  });
+
+  test("App Home's game shows the stamina for the ruins from level 6 (#165, S9)", async () => {
+    await post("<@UBEN> :taco: thanks for the thorough review");
+    const player = await t.run((ctx) => ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", team.ana)).unique());
+    expect(textOf(await home("UANA"))).not.toContain("Stamina");
+    await t.run((ctx) => ctx.db.patch(player!._id, { level: 6, xp: xpForLevel(6), stamina: 2 }));
+    expect(textOf(await home("UANA"))).toContain("*Stamina*\\n2 of 5");
   });
 
   test("/kudos tree says so when the game is off or hidden", async () => {

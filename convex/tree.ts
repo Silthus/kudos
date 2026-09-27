@@ -4,7 +4,7 @@ import { internalAction, internalMutation, internalQuery, mutation, query, type 
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { gameOn, gameShownTo, playerOf, superseded, thankedBack } from "./game";
-import { sendGains } from "./gains";
+import { Gains, sendGains } from "./gains";
 import { canSeeReceived, requireViewer, type Viewer } from "./lib/access";
 import { hasNote } from "./lib/quests";
 import { fnv1a } from "./lib/random";
@@ -205,7 +205,10 @@ async function recordRise(ctx: MutationCtx, workspace: Doc<"workspaces">, from: 
   const after = TREE_STAGE_BY_ID[stageForGrowth(to)].index;
   for (const stage of TREE_STAGES.slice(before + 1, after + 1)) {
     const id = await ctx.db.insert("treeEvents", { workspaceId: workspace._id, kind: "stage", at, stage: stage.id });
-    if (live && stage.index === after) await announceTreeEvent(ctx, workspace, id);
+    if (live && stage.index === after) {
+      await announceTreeEvent(ctx, workspace, id);
+      await ctx.scheduler.runAfter(0, internal.tree.tellStage, { workspaceId: workspace._id, stage: stage.id });
+    }
   }
   const rings = ringsForGrowth(to);
   if (rings > ringsForGrowth(from)) await ctx.db.insert("treeEvents", { workspaceId: workspace._id, kind: "ring", at, rings });
@@ -221,6 +224,33 @@ export async function announceTreeEvent(ctx: MutationCtx, workspace: Doc<"worksp
   await ctx.db.patch(eventId, { announcement: { status: "pending", channelId: channel.id } });
   await ctx.scheduler.runAfter(0, internal.slack.postTreeEvent, { eventId });
 }
+
+/** Members one `tellStage` step tells. */
+const TELL_PAGE = 50;
+
+/**
+ * A stage reached live is a gain DM to every player who sees the game (#165, plan #152 S9), through
+ * the gains pipeline (players only, never while the game is off or hidden from them), TELL_PAGE
+ * members a step. The peak never falls, so each stage is reached, and told, once.
+ */
+export const tellStage = internalMutation({
+  args: { workspaceId: v.id("workspaces"), stage: treeStageValidator, cursor: v.optional(v.string()) },
+  returns: v.null(),
+  handler: async (ctx, { workspaceId, stage, cursor }) => {
+    const workspace = await ctx.db.get(workspaceId);
+    if (!workspace || workspace.status !== "active") return null;
+    const page = await ctx.db
+      .query("members")
+      .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspaceId))
+      .paginate({ numItems: TELL_PAGE, cursor: cursor ?? null });
+    const gains = new Gains(ctx, workspace);
+    for (const m of page.page) if (!m.isBot && !m.deactivated) gains.add(m._id, { kind: "tree_stage", stage });
+    const dms = await gains.flush();
+    if (dms.length > 0 && !workspace.isDemo) await ctx.scheduler.runAfter(0, internal.slack.deliverNotifications, { workspaceId, ids: dms });
+    if (!page.isDone) await ctx.scheduler.runAfter(0, internal.tree.tellStage, { workspaceId, stage, cursor: page.continueCursor });
+    return null;
+  },
+});
 
 /**
  * Fuel claimed at the offering stone (#157): half a point of growth each (`growthFor`); negative to

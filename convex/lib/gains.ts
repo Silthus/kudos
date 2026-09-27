@@ -3,6 +3,7 @@ import type { gainValidator } from "../schema";
 import { COINS, WALLET_LEVEL } from "./coins";
 import { FRUITS, type FruitId } from "./fruits";
 import { HOME_STAGE_BY_ID, nextHomeStage } from "./homes";
+import { DISTRICTS, TREE_STAGE_BY_ID } from "./tree";
 import { joinNames, RARITIES, RARITY_SLACK_BADGE, type Rarity } from "./messages";
 import { escapeMrkdwn } from "./slack";
 import { titleForLevel } from "./xp";
@@ -138,6 +139,15 @@ function parts(gain: Gain, audience: Audience, link: LinkTo): Parts {
         body: `Your thoughtful kudos for ${person(gain.receiver, audience)} was the first seed planted at the tree. The desert has its tree now, and every thoughtful kudos helps it grow.`,
         context: links(to("/", "Visit the tree")),
       };
+    case "tree_stage": {
+      const opened = DISTRICTS.filter((d) => d.opens === gain.stage).map((d) => d.name.charAt(0).toLowerCase() + d.name.slice(1));
+      return {
+        icon: "🌳",
+        title: `The Ancient Tree is now ${TREE_STAGE_BY_ID[gain.stage].name}`,
+        body: opened.length > 0 ? `New on the tree: ${joinNames(opened)}.` : "The whole company's thoughtful kudos grew it.",
+        context: links(to("/", "Visit the tree")),
+      };
+    }
     case "offering_claimed": {
       const month = gain.month;
       const coins = gain.coins !== undefined ? ` ${hogCoins(gain.coins)} went into your wallet.` : "";
@@ -239,6 +249,7 @@ export function mergeGains(gains: Gain[], gain: Gain): Gain[] {
 
 const LABELS: [Gain["kind"], string][] = [
   ["tree_seed", "Ancient Tree"],
+  ["tree_stage", "Ancient Tree"],
   ["blight_won", "Blight"],
   ["offering_claimed", "Offering"],
   ["ruin_finds", "Expedition"],

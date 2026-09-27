@@ -37,6 +37,13 @@ describe("gameBlocks", () => {
     expect(gameBlocks({ ...level4, waiting: 0 }, ME)[1]).toEqual(fields("*Level 4 · Sprout*\n120 XP", "*Next level*\n55 XP to go", "*Hog coins*\n26"));
   });
 
+  test("stamina for the ruins shows once the near ruins are open to them (#165, plan #152 S9)", () => {
+    const level6 = { ...newcomer, level: 6, title: "Sapling", xp: 400, next: 500, toNext: 100, fraction: 0.2, coins: 40, locked: null };
+    expect(gameBlocks({ ...level6, stamina: { now: 3, max: 5 } }, ME)[1]).toEqual(fields("*Level 6 · Sapling*\n400 XP", "*Next level*\n100 XP to go", "*Hog coins*\n40", "*Stamina*\n3 of 5"));
+    expect(gameBlocks({ ...level6, stamina: { now: 0, max: 5 } }, ME)[1]).toEqual(fields("*Level 6 · Sapling*\n400 XP", "*Next level*\n100 XP to go", "*Hog coins*\n40", "*Stamina*\n0 of 5"));
+    expect(gameBlocks({ ...level6, stamina: null }, ME)[1]).toEqual(fields("*Level 6 · Sapling*\n400 XP", "*Next level*\n100 XP to go", "*Hog coins*\n40"));
+  });
+
   test("the garden summary and today's daily quest show once their areas exist (#95, #93)", () => {
     const [, section] = gameBlocks(
       { ...newcomer, level: 9, title: "Gardener", coins: 1, garden: { plants: 3, dormant: 1 }, dailyQuest: { title: "Say why", done: false } },

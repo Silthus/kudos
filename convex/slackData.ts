@@ -22,6 +22,7 @@ import { syncHomeOwner } from "./homes";
 import { gameBlocks, number } from "./lib/gameBlocks";
 import { newWorldSeed, treeView } from "./tree";
 import { blightLine } from "./blights";
+import { crewLine } from "./crew";
 import { treeBlocks, treeSummaryText } from "./lib/treeView";
 import { coinBalance, formatCoins, WALLET_LEVEL } from "./lib/coins";
 import { questBlocks } from "./lib/questBlocks";
@@ -468,7 +469,7 @@ export const homeData = internalQuery({
       // The game's invitation (§G1): shown until the member gives their first kudos, never as a DM.
       invite: gameShownTo(workspace, member ?? {}) && !(member && (await playerOf(ctx, member._id))),
       game: member ? await gameView(ctx, workspace, member, now) : null,
-      tree: member ? await treeWithBlight(ctx, workspace, member) : null,
+      tree: member ? await treeForSlack(ctx, workspace, member) : null,
     };
   },
 });
@@ -631,16 +632,16 @@ async function levelReply(ctx: QueryCtx, workspace: Doc<"workspaces">, member: D
   };
 }
 
-/** The tree as App Home and `/kudos tree` show it, with the blight at it (#164) while one is. */
-async function treeWithBlight(ctx: QueryCtx, workspace: Doc<"workspaces">, member: Doc<"members">) {
+/** The tree as App Home and `/kudos tree` show it: with the blight at it (#164) and the crew's quest (#165) while there is one. */
+async function treeForSlack(ctx: QueryCtx, workspace: Doc<"workspaces">, member: Doc<"members">) {
   const tree = await treeView(ctx, workspace, member);
-  return tree && { ...tree, blight: await blightLine(ctx, workspace, member._id) };
+  return tree && { ...tree, blight: await blightLine(ctx, workspace, member._id), crew: await crewLine(ctx, workspace._id) };
 }
 
 /** `/kudos tree` (#154): the Ancient Tree, the same blocks as on App Home. Nothing while the game is off or hidden. */
 async function treeReply(ctx: QueryCtx, workspace: Doc<"workspaces">, member: Doc<"members">) {
   if (!gameOn(workspace)) return { response_type: "ephemeral", text: "The game isn't on in this workspace." };
-  const tree = await treeWithBlight(ctx, workspace, member);
+  const tree = await treeForSlack(ctx, workspace, member);
   if (!tree) return { response_type: "ephemeral", text: "You've hidden the game. Show it again on your Me page to see the Ancient Tree." };
   return { response_type: "ephemeral", text: treeSummaryText(tree), blocks: treeBlocks(tree, webLink(workspace.slackTeamId, "/")) };
 }

@@ -86,6 +86,16 @@ export function blightLineText(b: BlightLine): string {
   return `A blight is at the tree: ${number(Math.min(b.damage, b.hp))} of ${number(b.hp)} worn down, until ${dayLabel(b.lastDay)}. ${part}`;
 }
 
+/** The crew's quest App Home tells of (#165): the oldest open one, pooling coins or being built. */
+export type CrewLine = { part: string; option?: string; contributed: number; goal: number; funded: boolean };
+
+/** "The crew is pooling Hog coins for the lantern bridge: 120 of 400." or "The crew funded the lantern bridge, and building has begun." */
+export function crewLineText(c: CrewLine): string {
+  const title = crewPartTitle(c.part, c.option);
+  if (c.funded) return `The crew funded ${title}, and building has begun.`;
+  return `The crew is pooling Hog coins for ${title}: ${number(c.contributed)} of ${number(c.goal)}.`;
+}
+
 /** The tree as App Home and `/kudos tree` show it to one member. */
 export type TreeView = {
   /** False while the workspace is still a desert: no seed has been planted yet. */
@@ -103,6 +113,8 @@ export type TreeView = {
   hasSeedsToPlant: boolean;
   /** A blight at the tree now (#164), if one is. */
   blight?: BlightLine | null;
+  /** The crew's current quest (#161, #165), if one is open. */
+  crew?: CrewLine | null;
 };
 
 const nextName = (next: TreeStageId | "ring") => (next === "ring" ? "its next ring" : TREE_STAGE_BY_ID[next].name);
@@ -128,6 +140,7 @@ export function treeBlocks(view: TreeView, world: string | null): object[] {
     { type: "section", fields: fields.map((text) => ({ type: "mrkdwn", text })) },
     { type: "context", elements: [{ type: "mrkdwn", text: escapeMrkdwn(hint) }] },
     ...(view.blight ? [{ type: "context", elements: [{ type: "mrkdwn", text: blightLineText(view.blight) }] }] : []),
+    ...(view.crew ? [{ type: "context", elements: [{ type: "mrkdwn", text: escapeMrkdwn(crewLineText(view.crew)) }] }] : []),
     ...(world ? [{ type: "actions", elements: [{ type: "button", text: { type: "plain_text", text: "Visit the tree" }, url: world, action_id: "open_tree" }] }] : []),
   ];
 }

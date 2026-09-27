@@ -30,7 +30,7 @@ import { boostOn, boostsOf } from "./boosts";
 import { leaveWorld } from "./lib/world";
 import { DEFAULT_LOOK, lookValidator } from "./lib/presence";
 import { makeOffering, onOfferingRevoked, waiting } from "./offerings";
-import { staminaAfterKudos } from "./lib/rpg";
+import { STAMINA, staminaAfterKudos, tierForLevel } from "./lib/rpg";
 
 /**
  * The game's foundation (#55 §G1, G3, G4): the workspace switch, players, the XP and Hog coin
@@ -774,6 +774,7 @@ export async function gameView(ctx: QueryCtx, workspace: Doc<"workspaces">, memb
     garden: await gardenSummary(ctx, workspace, player, dayKeyFor(workspaceNow(workspace), workspace.timezone)),
     locked: locked.length > 0 ? { level: locked[0].level, areas: locked.map((a) => a.title) } : null,
     dailyQuest: await dailyQuestView(ctx, workspace, member, progress.level, dayKeyFor(now, workspace.timezone)),
+    stamina: tierForLevel(progress.level) >= 1 ? { now: player.stamina ?? 0, max: STAMINA.max } : null,
   };
 }
 

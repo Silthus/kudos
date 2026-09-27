@@ -1,7 +1,7 @@
 import { escapeMrkdwn } from "./slack";
 
 /**
- * "Your game" in Slack (#55 §G13): your level, Hog coins, garden summary and today's daily quest,
+ * "Your game" in Slack (#55 §G13): your level, Hog coins, garden summary, today's daily quest and stamina,
  * the same blocks on App Home and in `/kudos level`. Private to the member; levels are never ranked
  * (§G12). Pure, pinned by block JSON fixtures.
  */
@@ -25,6 +25,8 @@ export type GameView = {
   garden?: { plants: number; dormant: number } | null;
   /** #93 fills it once daily quests exist. */
   dailyQuest?: { title: string; done: boolean } | null;
+  /** Stamina for the ruins (#162), once the near ruins are open to them (#165); null before. */
+  stamina?: { now: number; max: number } | null;
 };
 
 const BAR_CELLS = 10;
@@ -47,6 +49,7 @@ export function gameBlocks(view: GameView, me: string | null): object[] {
       ? [`*Your garden*\n${[`${view.garden.plants} ${view.garden.plants === 1 ? "plant" : "plants"}`, view.garden.dormant > 0 ? `${view.garden.dormant} dormant` : null].filter(Boolean).join(" · ")}`]
       : []),
     ...(view.dailyQuest ? [`*Today's quest*\n${view.dailyQuest.done ? "✅" : "▫️"} ${escapeMrkdwn(view.dailyQuest.title)}`] : []),
+    ...(view.stamina ? [`*Stamina*\n${view.stamina.now} of ${view.stamina.max}`] : []),
   ];
   const progress =
     view.next === null ? `${bar(1)} Top level` : `${bar(view.fraction)} ${Math.round(view.fraction * 100)}% of the way to level ${view.level + 1}`;

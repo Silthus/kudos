@@ -88,6 +88,19 @@ export const expeditionStateValidator = v.union(v.literal("forming"), v.literal(
 /** What a member chose in a turn (`answer` with the option and whether it was right). */
 export const choiceKindValidator = v.union(v.literal("strike"), v.literal("outwit"), v.literal("calm"), v.literal("rally"), v.literal("answer"), v.literal("onward"));
 
+/** A stage of the Ancient Tree (lib/tree.ts `TreeStageId`). */
+export const treeStageValidator = v.union(
+  v.literal("seed"),
+  v.literal("sprout"),
+  v.literal("sapling"),
+  v.literal("young"),
+  v.literal("grown"),
+  v.literal("great"),
+  v.literal("ancient"),
+  v.literal("elder"),
+  v.literal("world_tree"),
+);
+
 /**
  * Something a member discovered or gained, told in a DM (#55 §G13; rendered by `lib/gains.ts`).
  * One DM carries everything one event gained. Never for XP or coins alone.
@@ -120,6 +133,8 @@ export const gainValidator = v.union(
   v.object({ kind: v.literal("plant_stage"), species: v.string(), stage: v.string(), teammate: personValidator }), // #95
   // #154: the member's thoughtful kudos to `receiver` was the first seed planted at the tree: the seed moment.
   v.object({ kind: v.literal("tree_seed"), receiver: personValidator }),
+  // #165: the company's tree reached `stage` (told once to every player who sees the game, plan #152 S9).
+  v.object({ kind: v.literal("tree_stage"), stage: treeStageValidator }),
   // #157: offerings nobody claimed for 30 days claimed themselves: `month` is the oldest one's (in the
   // workspace's timezone), `coins` only once the wallet is open, and the fruit they dropped.
   v.object({ kind: v.literal("offering_claimed"), month: v.string(), coins: v.optional(v.number()), fruits: v.array(fruitIdValidator) }),
@@ -186,19 +201,6 @@ export const kudosSourceValidator = v.union(
   v.literal("playground"),
   v.literal("seed"),
   v.literal("spree"), // a spree join, paid out to the receivers when a tier was reached (#94)
-);
-
-/** A stage of the Ancient Tree (lib/tree.ts `TreeStageId`). */
-export const treeStageValidator = v.union(
-  v.literal("seed"),
-  v.literal("sprout"),
-  v.literal("sapling"),
-  v.literal("young"),
-  v.literal("grown"),
-  v.literal("great"),
-  v.literal("ancient"),
-  v.literal("elder"),
-  v.literal("world_tree"),
 );
 
 /** What a tree event (#154, `treeEvents`) tells. */
