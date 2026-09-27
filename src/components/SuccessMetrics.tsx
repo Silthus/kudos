@@ -123,7 +123,8 @@ export function SuccessMetrics({ today }: { today: string }) {
             <p className="mt-3 text-xs text-ink/70">
               Dashed line: the baseline. Hollow point: this month so far. A kudos counts once per person recognised, whatever its
               amount; reactions count as kudos without a note, and thank-backs follow the Quests' 72-hour rule. Participation is
-              measured against today's team plus anyone who has left since giving that month.
+              measured against today's team plus anyone who has left since giving that month. The game's own metrics start in its
+              launch month and have no baseline; active players are the month's givers.
             </p>
             {showTable && (
               <div className="relative mt-4 overflow-x-auto">

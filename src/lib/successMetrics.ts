@@ -4,26 +4,45 @@ import { pct } from "./format";
 
 export type SuccessResult = FunctionReturnType<typeof api.analytics.successMetrics>;
 export type SuccessMonth = SuccessResult["months"][number];
-export type MetricKey = "recipientsPerGiver" | "storyShare" | "reciprocalShare" | "participation";
+export type MetricKey =
+  | "recipientsPerGiver"
+  | "storyShare"
+  | "reciprocalShare"
+  | "participation"
+  | "claimsPerPlayerWeek"
+  | "claimedSoonShare"
+  | "expeditionsPerPlayer"
+  | "crewContributors";
 
 /** Which way the game should move a metric (spec #55 G18): up, not up, or just keep an eye on it. */
 export type Goal = "rise" | "hold" | "watch";
 
-export type SuccessMetric = { key: MetricKey; label: string; hint: string; goal: Goal; share: boolean };
+/** How a metric reads: a share ("33%"), a ratio ("2.5") or a count ("4"). */
+type Shape = "share" | "ratio" | "count";
 
-/** The success metrics in the spec's order, participation last ("also watch"). */
+export type SuccessMetric = { key: MetricKey; label: string; hint: string; goal: Goal; shape: Shape };
+
+/**
+ * The success metrics in the spec's order, participation last ("also watch"), then the game's own
+ * (#165, plan #152 S11): watched, since they have no time before the game to compare with.
+ */
 export const SUCCESS_METRICS: SuccessMetric[] = [
-  { key: "recipientsPerGiver", label: "Reach", hint: "different people each giver recognized", goal: "rise", share: false },
-  { key: "storyShare", label: "Says why", hint: "of kudos with a 12+ word note", goal: "rise", share: true },
-  { key: "reciprocalShare", label: "Thank-backs", hint: "of kudos return one from the last 72 h", goal: "hold", share: true },
-  { key: "participation", label: "Participation", hint: "of the team gave kudos", goal: "watch", share: true },
+  { key: "recipientsPerGiver", label: "Reach", hint: "different people each giver recognized", goal: "rise", shape: "ratio" },
+  { key: "storyShare", label: "Says why", hint: "of kudos with a 12+ word note", goal: "rise", shape: "share" },
+  { key: "reciprocalShare", label: "Thank-backs", hint: "of kudos return one from the last 72 h", goal: "hold", shape: "share" },
+  { key: "participation", label: "Participation", hint: "of the team gave kudos", goal: "watch", shape: "share" },
+  { key: "claimsPerPlayerWeek", label: "Claims at the stone", hint: "per active player a week", goal: "watch", shape: "ratio" },
+  { key: "claimedSoonShare", label: "Claimed within a week", hint: "of Hog coins offered, claimed by their giver within 7 days", goal: "watch", shape: "share" },
+  { key: "expeditionsPerPlayer", label: "Expeditions", hint: "into the ruins per active player", goal: "watch", shape: "ratio" },
+  { key: "crewContributors", label: "Crew contributors", hint: "teammates who first gave to a crew quest", goal: "watch", shape: "count" },
 ];
 
 export const GOAL_LABEL: Record<Goal, string> = { rise: "should rise", hold: "must not rise", watch: "watch" };
 
 export function formatMetric(key: MetricKey, value: number | null) {
   if (value === null) return "–";
-  return SUCCESS_METRICS.find((m) => m.key === key)!.share ? pct(value) : value.toFixed(1);
+  const shape = SUCCESS_METRICS.find((m) => m.key === key)!.shape;
+  return shape === "share" ? pct(value) : shape === "count" ? String(value) : value.toFixed(1);
 }
 
 /** This month against the baseline, in the direction that counts; null when either is missing. */
@@ -44,6 +63,10 @@ const CSV_COLUMNS: [string, (m: SuccessMonth) => string | number | boolean | nul
   ["recipients_per_giver", (m) => m.recipientsPerGiver],
   ["story_share", (m) => m.storyShare],
   ["reciprocal_share", (m) => m.reciprocalShare],
+  ["claims_per_player_week", (m) => m.claimsPerPlayerWeek],
+  ["claimed_within_7_days_share", (m) => m.claimedSoonShare],
+  ["expeditions_per_player", (m) => m.expeditionsPerPlayer],
+  ["crew_contributors", (m) => m.crewContributors],
 ];
 
 /** The months as CSV with raw values, for keeping the baseline outside the app. */

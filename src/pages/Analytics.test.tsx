@@ -33,10 +33,10 @@ const overview = {
 const launched = {
   ready: true,
   months: [
-    { month: "2026-08", toDate: false, givers: 4, teamSize: 12, kudos: 40, participation: 1 / 3, recipientsPerGiver: 3, storyShare: 0.45, reciprocalShare: 0.15 },
-    { month: "2026-09", toDate: true, givers: 2, teamSize: 12, kudos: 5, participation: 1 / 6, recipientsPerGiver: 1.2, storyShare: 0.1, reciprocalShare: 0.3 },
+    { month: "2026-08", toDate: false, givers: 4, teamSize: 12, kudos: 40, participation: 1 / 3, recipientsPerGiver: 3, storyShare: 0.45, reciprocalShare: 0.15, claimsPerPlayerWeek: 1.5, claimedSoonShare: 0.75, expeditionsPerPlayer: 0.5, crewContributors: 3 },
+    { month: "2026-09", toDate: true, givers: 2, teamSize: 12, kudos: 5, participation: 1 / 6, recipientsPerGiver: 1.2, storyShare: 0.1, reciprocalShare: 0.3, claimsPerPlayerWeek: 1, claimedSoonShare: null, expeditionsPerPlayer: 0, crewContributors: 0 },
   ],
-  baseline: { from: "2026-04", to: "2026-06", months: 3, anchored: true, participation: 0.5, recipientsPerGiver: 2.5, storyShare: 0.3, reciprocalShare: 0.1 },
+  baseline: { from: "2026-04", to: "2026-06", months: 3, anchored: true, participation: 0.5, recipientsPerGiver: 2.5, storyShare: 0.3, reciprocalShare: 0.1, claimsPerPlayerWeek: null, claimedSoonShare: null, expeditionsPerPlayer: null, crewContributors: null },
 };
 let success: unknown = launched;
 const asked: string[] = [];
@@ -151,6 +151,13 @@ test("admins see the last complete month against the baseline from before the la
   expect(card.querySelector("[data-metric='reciprocalShare'] [data-verdict]")!.getAttribute("data-verdict")).toBe("worse");
   expect(card.querySelector("[data-metric='storyShare'] [data-verdict]")!.getAttribute("data-verdict")).toBe("better");
   expect(card.querySelector("[data-metric='participation'] [data-verdict]")).toBeNull(); // only watched
+  // The game's own metrics (#165): watched from its launch, with no baseline to judge by.
+  expect(tile("claimsPerPlayerWeek")).toContain("1.5");
+  expect(tile("claimedSoonShare")).toContain("75%");
+  expect(tile("expeditionsPerPlayer")).toContain("0.5");
+  expect(tile("crewContributors")).toContain("3");
+  expect(tile("crewContributors")).toContain("Baseline –");
+  expect(card.querySelector("[data-metric='claimedSoonShare'] [data-verdict]")).toBeNull();
   // The sparkline's time span is labelled.
   expect(tile("storyShare")).toContain("Aug 2026");
   expect(tile("participation")).toContain("33%");
