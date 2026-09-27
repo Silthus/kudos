@@ -100,7 +100,7 @@ describe("the wallet", () => {
     expect(await wallet(team.ana)).toBeNull(); // not even the amount leaves the server
     vi.setSystemTime(Date.now() + DAY);
     await message("UANA", `<@UBEN> <@UCLEO> <@UDAN> <@UEVE> :taco: ${STORY}`);
-    expect(await wallet(team.ana)).toEqual({ balance: 8 + 20, waiting: 0, fromKudos: 8, fromFruit: 0, fromQuests: 0, fromSprees: 0, fromTutorial: 0, fromRuins: 0, fromLevels: 20, spent: 0, adjusted: 0 });
+    expect(await wallet(team.ana)).toEqual({ balance: 8 + 20, waiting: 0, fromKudos: 8, fromFruit: 0, fromQuests: 0, fromSprees: 0, fromTutorial: 0, fromRuins: 0, fromBlights: 0, fromLevels: 20, spent: 0, adjusted: 0 });
   });
 
   test("is part of the game: nothing while the game is hidden", async () => {

@@ -8,7 +8,7 @@ import { sendGains } from "./gains";
 import { canSeeReceived, requireViewer, type Viewer } from "./lib/access";
 import { hasNote } from "./lib/quests";
 import { fnv1a } from "./lib/random";
-import { DAY_MS, workspaceNow } from "./lib/time";
+import { DAY_MS, dayKeyFor, workspaceNow } from "./lib/time";
 import {
   districtsOpen,
   growthFor,
@@ -23,7 +23,7 @@ import {
   TREE_STAGES,
   type TreeStageId,
 } from "./lib/tree";
-import { crewBuiltText, crewFundedText, crewPartTitle, SEEDS_COUNTED, stageUpText, type TreeView } from "./lib/treeView";
+import { blightComingText, blightLostText, blightWonText, crewBuiltText, crewFundedText, crewPartTitle, SEEDS_COUNTED, stageUpText, type TreeView } from "./lib/treeView";
 import { builtPartValidator, treeEventKindValidator, treeStageValidator } from "./schema";
 
 /**
@@ -631,6 +631,14 @@ export const eventPost = internalQuery({
 
 async function postText(ctx: QueryCtx, event: Doc<"treeEvents">): Promise<string | null> {
   if (event.kind === "stage" && event.stage) return stageUpText(event.stage);
+  if (event.kind === "blight_announced" || event.kind === "blight_won" || event.kind === "blight_lost") {
+    const blight = event.blightId && (await ctx.db.get(event.blightId));
+    const workspace = blight && (await ctx.db.get(blight.workspaceId));
+    if (!blight || !workspace) return null;
+    if (event.kind === "blight_announced") return blight.status === "called_off" ? null : blightComingText(dayKeyFor(blight.arrivesAt, workspace.timezone));
+    if (event.kind === "blight_won") return blightWonText(blight.contributors, blight.bonusDay ?? null);
+    return blightLostText();
+  }
   const quest = event.questId && (await ctx.db.get(event.questId));
   if (!quest) return null;
   const title = crewPartTitle(quest.part, quest.option);

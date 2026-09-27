@@ -12,6 +12,7 @@ import type * as admin from "../admin.js";
 import type * as analytics from "../analytics.js";
 import type * as attempts from "../attempts.js";
 import type * as auth from "../auth.js";
+import type * as blights from "../blights.js";
 import type * as boosts from "../boosts.js";
 import type * as compare_candidates from "../compare/candidates.js";
 import type * as compare_past from "../compare/past.js";
@@ -114,6 +115,7 @@ declare const fullApi: ApiFromModules<{
   analytics: typeof analytics;
   attempts: typeof attempts;
   auth: typeof auth;
+  blights: typeof blights;
   boosts: typeof boosts;
   "compare/candidates": typeof compare_candidates;
   "compare/past": typeof compare_past;

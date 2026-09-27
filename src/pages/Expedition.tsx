@@ -5,7 +5,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
 import { api } from "../../convex/_generated/api";
 import { canStartExpedition, type CreatureId } from "../../convex/lib/rpg";
-import type { RuinTier } from "../../convex/lib/tree";
+import { isRaidId, type RuinTier } from "../../convex/lib/tree";
 import { ResultsLedger, StaminaPips } from "@/components/rpg";
 import { errorText } from "@/lib/errors";
 import { Button, PageSkeleton, Progress } from "@/components/ui";
@@ -254,20 +254,16 @@ function Entrance({ ruinId, name, tier, current, children }: { ruinId: string; n
   );
 }
 
-export function Expedition() {
-  const { ruinId: param } = useParams();
-  const ruinId = ruinIdOf(`/ruins/${param ?? ""}`);
-  const current = useCurrent();
-  const tree = useQuery(api.tree.state);
+/** Where a run is played: its ruin's window, or the blight stone's for the blight raid (#164). */
+export const runPath = (ruinId: string) => (isRaidId(ruinId) ? "/blight" : ruinPath(ruinId));
+
+/** A run under way: the room strip, the way back to camp, the room with its choices. */
+export function OpenRun({ run }: { run: Run }) {
   const act = useMutation(api.rpg.act);
   const abandon = useMutation(api.rpg.abandon);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [leaving, setLeaving] = useState(false);
-  if (current === undefined || tree === undefined) return <PageSkeleton />;
-  const site = tree?.layout.ruins.find((r) => r.id === ruinId);
-  if (!ruinId || !site || current === null) return <p className="text-ink">This ruin isn't open to you.</p>;
-  const run = current.run;
   const run_ = async (f: () => Promise<unknown>) => {
     setBusy(true);
     setError(null);
@@ -279,61 +275,76 @@ export function Expedition() {
       setBusy(false);
     }
   };
-  const alert = error && (
-    <p role="alert" className="text-sm font-semibold text-ember-deep">
-      {error}
-    </p>
-  );
-
-  if (run?.open && run.ruinId !== ruinId) {
-    return (
-      <p className="text-ink">
-        You're exploring {run.name}.{" "}
-        <Link to={ruinPath(run.ruinId)} className="font-semibold text-ember-deep underline decoration-2 underline-offset-4">
-          Go back to it
-        </Link>{" "}
-        or return to camp there first.
-      </p>
-    );
-  }
-  if (run?.open) {
-    return (
-      <div data-expedition className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <RoomStrip run={run} />
-          {leaving ? (
-            <span className="flex flex-wrap items-center gap-2 text-sm text-ink">
-              Leave? You keep what earlier rooms gave.
-              <Button size="sm" variant="danger" onClick={() => void run_(() => abandon({})).then(() => setLeaving(false))} disabled={busy}>
-                Return to camp
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setLeaving(false)}>
-                Stay
-              </Button>
-            </span>
-          ) : (
-            <Button size="sm" onClick={() => setLeaving(true)} disabled={busy}>
+  return (
+    <div data-expedition className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <RoomStrip run={run} />
+        {leaving ? (
+          <span className="flex flex-wrap items-center gap-2 text-sm text-ink">
+            Leave? You keep what earlier rooms gave.
+            <Button size="sm" variant="danger" onClick={() => void run_(() => abandon({})).then(() => setLeaving(false))} disabled={busy}>
               Return to camp
             </Button>
-          )}
-        </div>
-        <Room run={run} busy={busy} send={(choice) => void run_(() => act({ choice }))} />
-        {alert}
+            <Button size="sm" variant="ghost" onClick={() => setLeaving(false)}>
+              Stay
+            </Button>
+          </span>
+        ) : (
+          <Button size="sm" onClick={() => setLeaving(true)} disabled={busy}>
+            Return to camp
+          </Button>
+        )}
       </div>
-    );
-  }
+      <Room run={run} busy={busy} send={(choice) => void run_(() => act({ choice }))} />
+      {error && (
+        <p role="alert" className="text-sm font-semibold text-ember-deep">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** How a run you just finished went: its rooms and the results ledger. */
+export function RunResults({ run }: { run: Run }) {
+  return (
+    <>
+      <RoomStrip run={run} />
+      <ResultsLedger state={run.state as "cleared" | "fallen" | "retreated"} loot={run.loot} />
+    </>
+  );
+}
+
+/** You're in a run somewhere else: the way back to it. */
+export function ElsewhereRun({ run }: { run: Run }) {
+  return (
+    <p className="text-ink">
+      You're exploring {run.name}.{" "}
+      <Link to={runPath(run.ruinId)} className="font-semibold text-ember-deep underline decoration-2 underline-offset-4">
+        Go back to it
+      </Link>{" "}
+      or return to camp there first.
+    </p>
+  );
+}
+
+export function Expedition() {
+  const { ruinId: param } = useParams();
+  const ruinId = ruinIdOf(`/ruins/${param ?? ""}`);
+  const current = useCurrent();
+  const tree = useQuery(api.tree.state);
+  if (current === undefined || tree === undefined) return <PageSkeleton />;
+  const site = tree?.layout.ruins.find((r) => r.id === ruinId);
+  if (!ruinId || !site || current === null) return <p className="text-ink">This ruin isn't open to you.</p>;
+  const run = current.run;
+  if (run?.open && run.ruinId !== ruinId) return <ElsewhereRun run={run} />;
+  if (run?.open) return <OpenRun run={run} />;
   const ended = run && run.ruinId === ruinId && run.state !== "open" ? run : null;
   return (
     <div data-expedition className="space-y-4">
       <Entrance ruinId={ruinId} name={site.name} tier={site.tier as RuinTier} current={current}>
-        {ended && (
-          <>
-            <RoomStrip run={ended} />
-            <ResultsLedger state={ended.state as "cleared" | "fallen" | "retreated"} loot={ended.loot} />
-          </>
-        )}
+        {ended && <RunResults run={ended} />}
       </Entrance>
-      {alert}
     </div>
   );
 }

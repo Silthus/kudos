@@ -9,6 +9,7 @@ import { BigNumber, Button, PageSkeleton, Progress, RarityBadge, Segmented } fro
 import { relativeTime } from "@/lib/format";
 import { CATEGORY_HINT, RARITY_META, RARITY_ORDER, type Rarity } from "@/lib/rarity";
 import { Bestiary, LoreCards } from "@/components/rpg";
+import { BlightCrests } from "@/components/blight";
 import { useViewer } from "@/lib/viewer";
 import { Npc } from "@/world/Npc";
 
@@ -236,6 +237,7 @@ export function Discoveries() {
         <>
           <LoreCards />
           <Bestiary />
+          <BlightCrests />
         </>
       )}
     </div>

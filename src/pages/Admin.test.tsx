@@ -242,7 +242,7 @@ function inWindow(url: string) {
 test("the gatehouse's rooms are pixel tabs kept in ?tab=, settings first", () => {
   inWindow("/admin");
   const tabs = [...host.querySelectorAll("[role=tablist][aria-label='Gatehouse'] [role=tab]")] as HTMLButtonElement[];
-  expect(tabs.map((t) => t.textContent)).toEqual(["Settings", "Members", "Moderation", "Store", "Bonus days", "Slack"]);
+  expect(tabs.map((t) => t.textContent)).toEqual(["Settings", "Members", "Moderation", "Store", "Bonus days", "Blights", "Slack"]);
   act(() => tabs[3].click());
   expect(location).toBe("?tab=store");
   expect([...host.querySelectorAll("[role=tablist]")].map((t) => t.getAttribute("aria-label"))).toEqual(["Gatehouse", "Store section", "Requests"]);

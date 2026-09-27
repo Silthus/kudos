@@ -16,8 +16,8 @@
 
 export type BoostKind = "double" | "new_connection" | "rekindle" | "unsung";
 
-/** What started a boost: the admin schedule, a booster bought in the Store, or (later) the team garden (#96) and the Block party capstone. */
-export type BoostSource = "schedule" | "booster" | "team_garden" | "capstone";
+/** What started a boost: the admin schedule, a booster bought in the Store, a blight beaten (#164), or (later) the team garden (#96) and the Block party capstone. */
+export type BoostSource = "schedule" | "booster" | "team_garden" | "capstone" | "blight";
 
 export const BOOST_KINDS: readonly BoostKind[] = ["double", "new_connection", "rekindle", "unsung"];
 
@@ -98,6 +98,8 @@ export function announcementText(b: { kind: BoostKind; source: BoostSource; dayK
       return `The team garden reached a milestone: bonus day ${on}! ${capitalize(when)}, ${effect}.`;
     case "capstone":
       return `${b.who ?? "A neighbour"} called a bonus day for ${day}: ${when}, ${effect}.`;
+    case "blight":
+      return `The blight is beaten: bonus day ${on}! ${capitalize(when)}, ${effect}.`;
   }
 }
 

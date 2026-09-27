@@ -23,4 +23,7 @@ crons.interval("plant seeds nobody planted", { hours: 1 }, internal.tree.autoPla
 // Offerings nobody claimed at the tree in 30 days claim themselves, with a DM (#157).
 crons.interval("claim offerings nobody claimed", { hours: 1 }, internal.offerings.autoClaim, {});
 
+// Blights (#164): planned, announced, arriving and ending on each workspace's clock, from the ancient stage.
+crons.interval("move blights along", { hours: 1 }, internal.blights.tick, {});
+
 export default crons;

@@ -38,7 +38,7 @@ export function discoveryWorthADm(rarity: Rarity) {
  * system that paid them wrote.
  */
 export function visibleTo(gain: Gain, level: number): Gain {
-  if ((gain.kind === "spree_tier" || gain.kind === "offering_claimed") && gain.coins !== undefined && level < WALLET_LEVEL) {
+  if ((gain.kind === "spree_tier" || gain.kind === "offering_claimed" || gain.kind === "blight_won") && gain.coins !== undefined && level < WALLET_LEVEL) {
     const { coins: _silent, ...rest } = gain;
     return rest;
   }
@@ -173,6 +173,12 @@ function parts(gain: Gain, audience: Audience, link: LinkTo): Parts {
             : `You and ${plural(gain.contributors - 1, "teammate", "teammates")} funded it. Your names are on the crew's plaque, for good.`,
         context: links(to("/crew", "The crew's plaque")),
       };
+    case "blight_won":
+      return {
+        title: "The blight is beaten",
+        body: `You dealt it ${gain.damage} damage defending the Ancient Tree. A blight crest hangs in your gallery${gain.coins !== undefined ? `, and ${hogCoins(gain.coins)} went into your wallet` : ""}.`,
+        context: links(to("/blight", "The blight stone"), to("/discoveries", "The gallery")),
+      };
     case "plant_stage": {
       const name = safe(gain.stage, audience);
       const stage = gain.stage === "Ancient" ? "an Ancient plant" : `${article(gain.stage)} ${name}`;
@@ -233,6 +239,7 @@ export function mergeGains(gains: Gain[], gain: Gain): Gain[] {
 
 const LABELS: [Gain["kind"], string][] = [
   ["tree_seed", "Ancient Tree"],
+  ["blight_won", "Blight"],
   ["offering_claimed", "Offering"],
   ["ruin_finds", "Expedition"],
   ["crew_built", "Crew quest"],

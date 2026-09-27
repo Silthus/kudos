@@ -88,6 +88,33 @@ export const gallery = query({
 });
 
 /**
+ * The gallery's blight crests (#164): one for each blight the viewer helped beat, newest first, with
+ * the damage they dealt it. Our own pixel heraldry, drawn on the page. Empty while the game isn't shown.
+ */
+export const crests = query({
+  args: {},
+  returns: v.array(v.object({ number: v.number(), damage: v.number(), wonAt: v.number() })),
+  handler: async (ctx) => {
+    const { member, workspace } = await requireViewer(ctx);
+    if (!gameShownTo(workspace, member)) return [];
+    const fought = await ctx.db
+      .query("blightContributors")
+      .withIndex("by_member", (q) => q.eq("memberId", member._id))
+      .order("desc")
+      .take(CRESTS_SHOWN);
+    const crests = [];
+    for (const row of fought) {
+      const blight = await ctx.db.get(row.blightId);
+      if (blight?.status === "won") crests.push({ number: blight.number, damage: row.damage, wonAt: blight.endedAt ?? blight.endsAt });
+    }
+    return crests;
+  },
+});
+
+/** Blights a member fought that the gallery reads: a blight comes every 2–4 weeks, so years of them. */
+const CRESTS_SHOWN = 200;
+
+/**
  * The gallery's lore cards (#162): the twelve secrets the ruins keep, in the tree's voice. A card is
  * found in a ruin's secret room or, rarely, at the end of a cleared run (lib/rpg.ts), once per
  * member (`players.lore`); unfound cards keep their words hidden. Empty while the game isn't shown.

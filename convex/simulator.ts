@@ -22,6 +22,7 @@ import { lapseDue } from "./sprees";
 import { autoPlantWorkspace, newWorldSeed } from "./tree";
 import { autoClaimWorkspace, claimWaiting } from "./offerings";
 import { settleHomes } from "./homes";
+import { settleBlight, type BlightChange } from "./blights";
 import { HOME_STAGE_BY_ID } from "./lib/homes";
 import { settleCrew } from "./crew";
 import { getViewer, simulatorOf } from "./lib/access";
@@ -250,6 +251,12 @@ export const wipeExpired = internalMutation({
 
 // ── The clock ───────────────────────────────────────────────────────────────
 
+const BLIGHT_CHANGE: Record<BlightChange, string> = {
+  announced: "A blight is coming to the Ancient Tree: get ready to wear it down together.",
+  arrived: "A blight has come to the Ancient Tree. Every thoughtful kudos wears it down.",
+  lost: "The blight outlasted the company: the tree's lanterns burn low for a week.",
+};
+
 /**
  * Moves a simulator's clock to the morning `days` later and runs what those days would have: the
  * allowance is back (it's per workspace day), sprees whose window ran out close, plants that grew
@@ -287,6 +294,8 @@ async function advanceClock(ctx: MutationCtx, workspace: Doc<"workspaces">, memb
   // Crew quests funded 3 simulated days ago are built (#161; the scheduled build waits on the wall clock). The
   // world tells it with its own toast, from the tree's events.
   await settleCrew(ctx, moved);
+  // Blights come, and go, on the simulated clock too (#164).
+  for (const change of await settleBlight(ctx, moved)) changes.push(BLIGHT_CHANGE[change]);
   return { day, dayIndex: daysBetween(moved.simulator!.startDay, day), changes };
 }
 

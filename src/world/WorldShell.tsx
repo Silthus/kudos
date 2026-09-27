@@ -24,7 +24,8 @@ import { placeForPath, placesOnMap, routablePlaces, visiblePlaces, type Place } 
 import { Presence, type PresenceHandle } from "./Presence";
 import { whereIs, type Beat } from "./presence";
 import { inYourSimulator } from "./simulator";
-import { Sky } from "./Sky";
+import { BlightHaze, Sky } from "./Sky";
+import { blightMood, blightToasts } from "./blight";
 import { mapHeight, mapWidth } from "./pixels";
 import { pushToasts } from "./toastBus";
 import { closedLine, treeInput, treeMoments, treeToasts, type TreeState } from "./tree/state";
@@ -184,11 +185,15 @@ export function WorldShell() {
   const litPlots = (homeList ?? []).map((h) => h.plot);
   // What the crew built (#161) is drawn in the world too: a part built repaints it.
   const crewKey = "cosmetics" in input && input.cosmetics ? cosmeticsKey(input.cosmetics) : "";
-  const worldKey = `${input.seed}:${input.planted}:${treeStage}:${rings}:${JSON.stringify(districts)}:${plotTiles.length}:${ruins.length}:${standing.join()}:${litPlots.join()}:${crewKey}`;
+  // A blight at the tree (#164): the sky tinged, the canopy spotted; after a defeat, the lanterns low.
+  const blight = useQuery(api.blights.current, gameShown ? {} : "skip");
+  const blightNow = blightMood(blight, homesNow);
+  const mood = useMemo(() => ({ blighted: blightNow.blighted, dim: blightNow.dim }), [blightNow.blighted, blightNow.dim]);
+  const worldKey = `${input.seed}:${input.planted}:${treeStage}:${rings}:${JSON.stringify(districts)}:${plotTiles.length}:${ruins.length}:${standing.join()}:${litPlots.join()}:${crewKey}:${mood.blighted}:${mood.dim}`;
   // What a closed district waits on (the peak growth opens districts).
   const peakGrowth = tree?.peakGrowth ?? 0;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const world = useMemo(() => buildWorld({ ...input, standing, litPlots }), [worldKey]);
+  const world = useMemo(() => buildWorld({ ...input, standing, litPlots, mood }), [worldKey]);
   // The places standing on your map, where the tree put them, with their links and badges.
   // Where you are in the elder hog's chain (#159): places it hasn't reached stand dim, saying what opens them.
   const tutorial = useTutorial();
@@ -250,16 +255,21 @@ export function WorldShell() {
   const [seedMoment, setSeedMoment] = useState(false);
   const [fresh, setFresh] = useState<string[]>([]);
   const lastTree = useRef<TreeState | null | undefined>(undefined);
+  const lastEvents = useRef<{ _id: string; kind: string }[] | undefined>(undefined);
   useEffect(() => {
     if (!gameShown) {
       lastTree.current = undefined;
+      lastEvents.current = undefined;
       return;
     }
     if (tree === undefined) return;
     const moments = treeMoments(lastTree.current, tree);
     lastTree.current = tree;
     if (!tree) return;
-    pushToasts(treeToasts(moments, tree));
+    // A blight coming, arriving, beaten or lost while you're here (#164): the tree's log tells it.
+    const blightMoments = blightToasts(lastEvents.current, tree.events);
+    lastEvents.current = tree.events;
+    pushToasts([...treeToasts(moments, tree), ...blightMoments]);
     if (moments.seeded && !still) setSeedMoment(true);
     if (moments.opened.length && !still) setFresh(moments.opened);
   }, [tree, gameShown, still]);
@@ -728,7 +738,7 @@ export function WorldShell() {
 
   return (
     <div ref={shell} className="fixed inset-0 overflow-hidden bg-dusk">
-      <Sky golden={sky.golden} />
+      <Sky mood={blightNow.sky ? "blight" : sky.golden ? "golden" : "dusk"} />
       <Camera
         ref={camera}
         insetRight={inset}
@@ -802,6 +812,7 @@ export function WorldShell() {
           </div>
         )}
       </Camera>
+      {blightNow.sky && <BlightHaze />}
       <Hud places={treePending ? [] : onMapShown} where={where} insetRight={inset} whereIs={gameShown && !treePending ? (spot) => whereIs(world, spot) : undefined} />
       <Window
         open={windowOpen}

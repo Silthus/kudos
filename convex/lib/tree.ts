@@ -163,7 +163,7 @@ export const DISTRICTS: District[] = [
   { id: "near_ruins", name: "The near ruins", opens: "great", places: [], promise: "The first ruins in the sand: expeditions begin.", radius: 19 },
   { id: "crew", name: "The crew's plaque", opens: "great", places: ["crew"], promise: "Pool coins to shape the tree together.", radius: 8 },
   { id: "far_ruins", name: "The far ruins", opens: "ancient", places: [], promise: "Deeper ruins, and the blights that come with them.", radius: 19 },
-  { id: "blight", name: "The blight stone", opens: "ancient", places: [], promise: "When a blight comes, the company defends the tree here.", radius: 5 },
+  { id: "blight", name: "The blight stone", opens: "ancient", places: ["blight"], promise: "When a blight comes, the company defends the tree here.", radius: 5 },
   { id: "deep_ruins", name: "The deep ruins", opens: "elder", places: [], promise: "The deepest ruins, for the most travelled.", radius: 19 },
   { id: "overview", name: "The overview", opens: "elder", places: [], promise: "The whole tree and its desert, from above.", radius: 21 },
   { id: "canopy", name: "The canopy", opens: "world_tree", places: ["canopy"], promise: "Every home on the tree, lit at night.", radius: 21 },

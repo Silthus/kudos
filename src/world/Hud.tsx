@@ -25,6 +25,9 @@ import type { Spot } from "./presence";
 import { dayNumber, inYourSimulator, isSimulatorWorkspace, shownSimulator, type ActiveSimulator, type SimulatorState } from "./simulator";
 import { SimulatorClock } from "./SimulatorClock";
 import { Checklist, useAdvance, useTutorial } from "./Tutorial";
+import { blightTag } from "./blight";
+import { useClockNow } from "./homeRing";
+import { BlightMeter } from "@/components/blight";
 import { hudShows } from "../../convex/lib/tutorial";
 
 /**
@@ -375,6 +378,19 @@ function CrewTag({ on }: { on: boolean }) {
   );
 }
 
+/** Under you: the blight at the tree (#164), its meter and days, or one on its way; leads to the blight stone. */
+function BlightTag({ on }: { on: boolean }) {
+  const now = useClockNow(60_000);
+  const tag = blightTag(useQuery(api.blights.current, on ? {} : "skip"), now);
+  if (!tag) return null;
+  return (
+    <Link to="/blight" data-hud-blight className="pixel-chip mt-2 inline-flex items-center gap-2 bg-parchment px-2 py-0.5 text-xs font-semibold text-ink tabular hover:bg-parchment-deep">
+      {tag.text}
+      {tag.left !== null && tag.hp !== null && <BlightMeter left={tag.left} hp={tag.hp} height={8} className="w-16" />}
+    </Link>
+  );
+}
+
 type Banner = FunctionReturnType<typeof api.boosts.banner>;
 
 /** A string of lanterns across the top of the world while a bonus day or booster is on. */
@@ -495,6 +511,7 @@ export function Hud({ places, where, insetRight = 0, whereIs }: { places: Place[
         <div className="pointer-events-auto flex min-w-0 flex-col items-start">
           <You game={game} />
           <CrewTag on={gameOn} />
+          <BlightTag on={gameOn} />
         </div>
         <div data-hud-top-right className="pointer-events-auto flex flex-col items-end gap-3">
           <div className="flex items-start gap-3">

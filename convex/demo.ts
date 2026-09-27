@@ -27,6 +27,8 @@ import { canSpend, coinBalance } from "./lib/coins";
 import { SHOP_LEVEL } from "./lib/items";
 import { DEMO_HOMES, DEMO_LANTERNS } from "./lib/demoHomes";
 import { nextHomeStage } from "./lib/homes";
+import { activeMembers, seedPastVictory } from "./blights";
+import { blightHp } from "./lib/blight";
 import { playerOf, skillsOf, thankedBack } from "./game";
 import { finishedTutorial } from "./tutorial";
 import { plantsGrown } from "./gardens";
@@ -495,23 +497,27 @@ const DEMO_NEIGHBOURS = 10;
  * Store story is told, so the plants only spend the Hog coins the story left.
  */
 async function plantNeighbours(ctx: MutationCtx, workspace: Doc<"workspaces">, alex: Doc<"members">, resetAt: number | undefined) {
+  for (const id of (await closestTeammates(ctx, workspace, alex._id)).slice(0, DEMO_NEIGHBOURS)) {
+    await ctx.scheduler.runAfter(0, internal.demo.seedNeighbourGarden, { workspaceId: workspace._id, memberId: id, resetAt });
+  }
+}
+
+/** Alex's teammates by the kudos they exchanged in the last 90 days, most first. */
+async function closestTeammates(ctx: QueryCtx, workspace: Doc<"workspaces">, alexId: Id<"members">): Promise<Id<"members">[]> {
   const since = workspaceNow(workspace) - 90 * DAY_MS;
-  const given = await ctx.db.query("kudos").withIndex("by_giver_at", (q) => q.eq("giverId", alex._id).gte("at", since)).take(2000);
-  const received = await ctx.db.query("kudos").withIndex("by_receiver_at", (q) => q.eq("receiverId", alex._id).gte("at", since)).take(2000);
+  const given = await ctx.db.query("kudos").withIndex("by_giver_at", (q) => q.eq("giverId", alexId).gte("at", since)).take(2000);
+  const received = await ctx.db.query("kudos").withIndex("by_receiver_at", (q) => q.eq("receiverId", alexId).gte("at", since)).take(2000);
   const exchanged = new Map<Id<"members">, number>();
   for (const k of given) exchanged.set(k.receiverId, (exchanged.get(k.receiverId) ?? 0) + 1);
   for (const k of received) exchanged.set(k.giverId, (exchanged.get(k.giverId) ?? 0) + 1);
-  exchanged.delete(alex._id);
+  exchanged.delete(alexId);
   // Ties by Slack id: document ids change with every reset, the cast doesn't.
   const ranked = [];
   for (const [id, count] of exchanged) {
     const member = await ctx.db.get(id);
     if (member) ranked.push({ id, count, slackUserId: member.slackUserId });
   }
-  ranked.sort((a, b) => b.count - a.count || a.slackUserId.localeCompare(b.slackUserId));
-  for (const { id } of ranked.slice(0, DEMO_NEIGHBOURS)) {
-    await ctx.scheduler.runAfter(0, internal.demo.seedNeighbourGarden, { workspaceId: workspace._id, memberId: id, resetAt });
-  }
+  return ranked.sort((a, b) => b.count - a.count || a.slackUserId.localeCompare(b.slackUserId)).map((r) => r.id);
 }
 
 /**
@@ -882,6 +888,39 @@ export const seedStore = internalMutation({
     await ctx.scheduler.runAfter(0, internal.demo.seedHomes, { workspaceId, resetAt });
     // The crew's quests (#161): scenery, once the tree has opened the crew's plaque.
     await ctx.scheduler.runAfter(0, internal.demo.seedCrew, { workspaceId, resetAt });
+    // A blight the company beat three weeks ago (#164), with Alex among those who fought it.
+    await ctx.scheduler.runAfter(0, internal.demo.seedBlight, { workspaceId, resetAt });
+    return null;
+  },
+});
+
+/**
+ * The demo's past blight (#164, plan #152 S10): it came 26 days ago and the company beat it on its
+ * fourth day. Its hit points are what the rules would have given it (the members active in the 30
+ * days before), worn down by Alex and the teammates Alex exchanges the most kudos with, Alex's
+ * share a raid's worth. They were paid as a victory pays. Once per reset.
+ */
+export const seedBlight = internalMutation({
+  args: { workspaceId: v.id("workspaces"), resetAt: v.optional(v.number()) },
+  returns: v.null(),
+  handler: async (ctx, { workspaceId, resetAt }) => {
+    const workspace = await ctx.db.get(workspaceId);
+    if (!workspace?.isDemo) return null;
+    if (workspace.resettingSince !== undefined && workspace.resettingSince !== resetAt) return null;
+    if (await ctx.db.query("blights").withIndex("by_workspace_number", (q) => q.eq("workspaceId", workspaceId)).first()) return null;
+    const alex = await findMember(ctx, workspace, DEMO_YOU);
+    if (!alex) return null;
+    const now = workspaceNow(workspace);
+    const arrivesAt = startOfDayUtc(addDays(dayKeyFor(now, workspace.timezone), -26), workspace.timezone);
+    const hp = blightHp(await activeMembers(ctx, workspaceId, dayKeyFor(arrivesAt, workspace.timezone)));
+    const teammates = (await closestTeammates(ctx, workspace, alex._id)).slice(0, 7);
+    const alexShare = 40;
+    const each = Math.floor((hp - alexShare) / Math.max(1, teammates.length));
+    const fighters = [
+      { memberId: alex._id, damage: hp - each * teammates.length },
+      ...teammates.map((memberId) => ({ memberId, damage: each })),
+    ];
+    await seedPastVictory(ctx, workspace, { arrivesAt, wonAt: arrivesAt + 3 * DAY_MS + 15 * HOUR_MS, fighters });
     return null;
   },
 });
@@ -1468,6 +1507,8 @@ const DEMO_TABLES = [
   "expeditions",
   "crewContributions",
   "crewQuests",
+  "blightContributors",
+  "blights",
   "notifications",
 ] as const;
 
@@ -1540,6 +1581,10 @@ async function demoRows(ctx: MutationCtx, workspaceId: Id<"workspaces">, table: 
       return await ctx.db.query("crewContributions").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "crewQuests":
       return await ctx.db.query("crewQuests").withIndex("by_workspace_status", (q) => q.eq("workspaceId", workspaceId)).take(n);
+    case "blightContributors":
+      return await ctx.db.query("blightContributors").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(n);
+    case "blights":
+      return await ctx.db.query("blights").withIndex("by_workspace_number", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "simulatorRuns":
       return await ctx.db.query("simulatorRuns").withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId)).take(n);
     case "notifications":

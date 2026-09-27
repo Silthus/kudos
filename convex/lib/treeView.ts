@@ -1,4 +1,5 @@
 import { number } from "./gameBlocks";
+import { dayLabel } from "./boosts";
 import { escapeMrkdwn } from "./slack";
 import { CREW, crewPart } from "./crewCatalogue";
 import { DISTRICTS, RING_GROWTH, TREE_STAGE_BY_ID, TREE_STAGES, type TreeStageId } from "./tree";
@@ -60,6 +61,31 @@ export function crewBuiltText(title: string, contributors: number): string {
   return `The crew built ${title} at the Ancient Tree. ${capitalise(plural(contributors, "teammate", "teammates"))} made it happen.`;
 }
 
+/** The announcement channel's post when a blight is on its way (#164). */
+export function blightComingText(dayKey: string): string {
+  return `A blight is coming to the Ancient Tree. It arrives on ${dayLabel(dayKey)} and stays five days: every thoughtful kudos wears it down, and so does every room cleared in the ruins and the raid at the blight stone.`;
+}
+
+/** The announcement channel's post when the company beats a blight (#164). */
+export function blightWonText(contributors: number, bonusDay: string | null): string {
+  const bonus = bonusDay ? ` A bonus day is called for ${dayLabel(bonusDay)}.` : "";
+  return `The blight is beaten: ${capitalise(plural(contributors, "teammate", "teammates"))} wore it down together, and each gets a blight crest and Hog coins.${bonus}`;
+}
+
+/** The announcement channel's post when a blight outlasts the company (#164): nothing is lost. */
+export function blightLostText(): string {
+  return "The blight outlasted us this time. Nothing is lost: the tree's lanterns burn low for a week, and the next blight will be smaller.";
+}
+
+/** A blight at the tree (#164), as App Home tells it: how worn down, its last day, the member's part. */
+export type BlightLine = { hp: number; damage: number; lastDay: string; mine: number };
+
+/** "A blight is at the tree: 42 of 120 worn down, until Monday, 28 September. You dealt it 12." */
+export function blightLineText(b: BlightLine): string {
+  const part = b.mine > 0 ? `You dealt it ${number(b.mine)}.` : "Every thoughtful kudos strikes it.";
+  return `A blight is at the tree: ${number(Math.min(b.damage, b.hp))} of ${number(b.hp)} worn down, until ${dayLabel(b.lastDay)}. ${part}`;
+}
+
 /** The tree as App Home and `/kudos tree` show it to one member. */
 export type TreeView = {
   /** False while the workspace is still a desert: no seed has been planted yet. */
@@ -75,6 +101,8 @@ export type TreeView = {
   /** Null where the workspace hides received counts even from the member. */
   seedsToPlant: number | null;
   hasSeedsToPlant: boolean;
+  /** A blight at the tree now (#164), if one is. */
+  blight?: BlightLine | null;
 };
 
 const nextName = (next: TreeStageId | "ring") => (next === "ring" ? "its next ring" : TREE_STAGE_BY_ID[next].name);
@@ -99,6 +127,7 @@ export function treeBlocks(view: TreeView, world: string | null): object[] {
     { type: "header", text: { type: "plain_text", text: "The Ancient Tree" } },
     { type: "section", fields: fields.map((text) => ({ type: "mrkdwn", text })) },
     { type: "context", elements: [{ type: "mrkdwn", text: escapeMrkdwn(hint) }] },
+    ...(view.blight ? [{ type: "context", elements: [{ type: "mrkdwn", text: blightLineText(view.blight) }] }] : []),
     ...(world ? [{ type: "actions", elements: [{ type: "button", text: { type: "plain_text", text: "Visit the tree" }, url: world, action_id: "open_tree" }] }] : []),
   ];
 }
