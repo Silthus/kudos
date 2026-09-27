@@ -6,7 +6,8 @@ import { ALL_BUCKET, bucketDays, dayBucket, monthBucket, periodBucketsBetween, w
 import { CATALOG, pickTemplate, RARITIES, renderTemplate, TEMPLATE_BY_KEY, type Category } from "./lib/messages";
 import { ANY_MESSAGE, channelKey, WORKSPACE_COUNTERS } from "./lib/rollups";
 import { RECIPROCAL_WINDOW_MS } from "./lib/quests";
-import { successCounts } from "./lib/success";
+import { GAME_COUNTERS, SUCCESS_COUNTERS, successCounts } from "./lib/success";
+import { gameCounts } from "./gameSuccess";
 import { kudosInRange, totalsByMember, workspaceDays } from "./lib/stats";
 import {
   markBackfilled,
@@ -375,10 +376,12 @@ async function verifyBucket(ctx: QueryCtx, workspace: Doc<"workspaces">, bucket:
       out.push({ bucket, table: "successStats", key: bucket, field: "rows", expected: 1, actual: rows.length });
     } else {
       const [row] = rows;
+      const game = await gameCounts(ctx, workspace, start, end);
+      const stored = row ? Object.fromEntries([...SUCCESS_COUNTERS, ...GAME_COUNTERS].map((c) => [c, row[c] ?? 0])) : null;
       compare(
         "successStats",
-        new Map([[bucket, { ...counts }]]),
-        new Map<string, Record<string, number>>(row ? [[bucket, { pairs: row.pairs, storyRows: row.storyRows, reciprocalRows: row.reciprocalRows }]] : []),
+        new Map([[bucket, { ...counts, ...game }]]),
+        new Map<string, Record<string, number>>(stored ? [[bucket, stored]] : []),
       );
     }
   }

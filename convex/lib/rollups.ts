@@ -3,7 +3,7 @@ import type { MutationCtx } from "../_generated/server";
 import { RARITIES, type Rarity } from "./messages";
 import { dayBucket, heatIndex, heatSize, memberBuckets, monthBucket, pairBuckets, workspaceBuckets, ALL_BUCKET } from "./buckets";
 import { RECIPROCAL_WINDOW_MS, thanksBack } from "./quests";
-import { isStory, SUCCESS_COUNTERS, zeroSuccess, type SuccessCounts } from "./success";
+import { GAME_COUNTERS, isStory, SUCCESS_COUNTERS, zeroSuccess, type SuccessCounts } from "./success";
 import { daysBetween, weekdayOfKey, zonedParts } from "./time";
 
 /**
@@ -379,7 +379,8 @@ export class Rollups {
         .unique();
       const counts = zeroSuccess();
       for (const c of SUCCESS_COUNTERS) counts[c] = clamp((row?.[c] ?? 0) + delta[c]);
-      const empty = SUCCESS_COUNTERS.every((c) => counts[c] === 0);
+      // The row also holds the game's counters (convex/gameSuccess.ts): it goes only once they're nothing too.
+      const empty = SUCCESS_COUNTERS.every((c) => counts[c] === 0) && GAME_COUNTERS.every((c) => !row?.[c]);
       if (row) {
         if (empty) await db.delete(row._id);
         else await db.patch(row._id, counts);

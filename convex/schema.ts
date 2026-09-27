@@ -518,6 +518,12 @@ export default defineSchema({
     pairs: v.number(), // distinct giver → receiver pairs: Σ over givers of distinct recipients
     storyRows: v.number(), // kudos rows whose Note has 12+ words (a real "why")
     reciprocalRows: v.number(), // Reciprocal kudos rows: thanking someone back within 72 h
+    // The game's (#165, lib/success.ts GAME_COUNTERS, convex/gameSuccess.ts); unset on rows from before them is 0.
+    claims: v.optional(v.number()), // offerings claimed at the stone by their giver (not by time)
+    offeredCoins: v.optional(v.number()), // the Hog coins of the month's offerings…
+    claimedSoonCoins: v.optional(v.number()), // …and those their giver claimed within 7 days
+    expeditions: v.optional(v.number()), // party members who set out into a ruin or the raid
+    crewJoins: v.optional(v.number()), // members who first gave to a crew quest in the month
   }).index("by_workspace_bucket", ["workspaceId", "bucket"]),
 
   // Per-member w/m/q/y buckets. The day bucket is memberDays, all time is members.total*.
@@ -775,7 +781,8 @@ export default defineSchema({
   })
     .index("by_member_kind", ["memberId", "kind"])
     .index("by_member_day", ["memberId", "dayKey"])
-    .index("by_batch", ["batchId"]),
+    .index("by_batch", ["batchId"])
+    .index("by_workspace_kind_at", ["workspaceId", "kind", "at"]), // the success metrics' claims a month (#165)
 
   // Every message the bot sends (or would send, in the demo workspace).
   notifications: defineTable({
@@ -1183,6 +1190,7 @@ export default defineSchema({
     .index("by_batch", ["batchId"])
     .index("by_member_claimedAt_createdAt", ["memberId", "claimedAt", "createdAt"])
     .index("by_workspace_claimedAt_createdAt", ["workspaceId", "claimedAt", "createdAt"])
+    .index("by_workspace_createdAt", ["workspaceId", "createdAt"]) // the success metrics' offerings a month (#165)
     .index("by_claimedAt_createdAt", ["claimedAt", "createdAt"]), // the auto-claim cron, across workspaces
 
   // A member's tree fruit (#157, lib/fruits.ts): one row per kind held, deleted at zero. Fruit comes
@@ -1263,7 +1271,8 @@ export default defineSchema({
     endedAt: v.optional(v.number()),
   })
     .index("by_leader_startedAt", ["leaderId", "startedAt"])
-    .index("by_workspace", ["workspaceId"]),
+    .index("by_workspace", ["workspaceId"])
+    .index("by_workspace_startedAt", ["workspaceId", "startedAt"]), // the success metrics' expeditions a month (#165)
 
   // A crew quest (#161, crew.ts; plan #152 S6): a part of the tree from the catalogue
   // (lib/crewCatalogue.ts) the crew pools Hog coins on. Proposed, funded when `contributed` reaches

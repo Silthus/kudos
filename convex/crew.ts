@@ -1,4 +1,5 @@
 import { ConvexError, v } from "convex/values";
+import { crewLineChanged } from "./gameSuccess";
 import { paginationOptsValidator, paginationResultValidator } from "convex/server";
 import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -203,6 +204,7 @@ export const withdraw = mutation({
       const giver = line.memberId && (await ctx.db.get(line.memberId));
       if (giver) await ctx.db.patch(giver._id, { coinsSpent: (giver.coinsSpent ?? 0) - line.amount });
       await ctx.db.delete(line._id);
+      if (line.memberId) await crewLineChanged(ctx, workspace, line.memberId, line.at, -1);
     }
     await ctx.db.delete(quest._id);
     return null;
@@ -232,7 +234,10 @@ export const contribute = mutation({
     await spendCoins(ctx, member, player, added, "This contribution");
     const now = workspaceNow(workspace);
     if (line) await ctx.db.patch(line._id, { amount: line.amount + added, lastAt: now });
-    else await ctx.db.insert("crewContributions", { workspaceId: workspace._id, questId: quest._id, memberId: member._id, amount: added, at: now, lastAt: now });
+    else {
+      await ctx.db.insert("crewContributions", { workspaceId: workspace._id, questId: quest._id, memberId: member._id, amount: added, at: now, lastAt: now });
+      await crewLineChanged(ctx, workspace, member._id, now, 1);
+    }
     const contributed = quest.contributed + added;
     const funded = contributed >= quest.goal;
     await ctx.db.patch(quest._id, { contributed, contributors: quest.contributors + (line ? 0 : 1), ...(funded ? { status: "funded" as const, fundedAt: now } : {}) });
@@ -361,7 +366,10 @@ export async function seedQuest(ctx: MutationCtx, workspace: Doc<"workspaces">, 
     const l = lines.get(g.memberId);
     lines.set(g.memberId, l ? { ...l, amount: l.amount + g.coins, lastAt: g.at } : { amount: g.coins, at: g.at, lastAt: g.at });
   }
-  for (const [memberId, l] of lines) await ctx.db.insert("crewContributions", { workspaceId: workspace._id, questId, memberId, ...l });
+  for (const [memberId, l] of lines) {
+    await ctx.db.insert("crewContributions", { workspaceId: workspace._id, questId, memberId, ...l });
+    await crewLineChanged(ctx, workspace, memberId, l.at, 1);
+  }
   if (funded) {
     const option = story.option !== undefined ? { option: story.option } : {};
     await ctx.db.insert("treeEvents", { workspaceId: workspace._id, kind: "crew_funded", at: fundedAt!, questId, part: part.id, ...option });

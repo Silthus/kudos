@@ -14,7 +14,8 @@ import {
 } from "./rollups";
 import { backfilledRollups } from "./stats";
 import { RECIPROCAL_WINDOW_MS } from "./quests";
-import { SUCCESS_COUNTERS, successCounts, type SuccessCounts } from "./success";
+import { GAME_COUNTERS, gameFields, SUCCESS_COUNTERS, successCounts, type GameCounts, type SuccessCounts } from "./success";
+import { gameCounts } from "../gameSuccess";
 import { addDays, DAY_MS, startOfDayUtc, weekdayOfKey, zonedParts } from "./time";
 
 /**
@@ -396,7 +397,7 @@ export async function rebuildWorkspacePeriod(ctx: MutationCtx, workspace: Worksp
       batches.add(k.batchId);
     }
     values.messages = batches.size;
-    if (month) await writeSuccessRow(ctx, workspace._id, bucket, successCounts(kudos, read));
+    if (month) await writeSuccessRow(ctx, workspace._id, bucket, { ...successCounts(kudos, read), ...(await gameCounts(ctx, workspace, start, end)) });
   } else {
     const months = await channelRows(ctx, workspace._id, `m:${start.slice(0, 7)}`, `m:${end.slice(0, 7)}` + END);
     for (const c of months) add(channels, c.channel, c.amount);
@@ -413,15 +414,17 @@ export function reciprocalContextStart(start: string) {
   return addDays(start, -Math.ceil(RECIPROCAL_WINDOW_MS / DAY_MS) - 2);
 }
 
-async function writeSuccessRow(ctx: MutationCtx, workspaceId: Id<"workspaces">, bucket: string, counts: SuccessCounts) {
+async function writeSuccessRow(ctx: MutationCtx, workspaceId: Id<"workspaces">, bucket: string, counts: SuccessCounts & GameCounts) {
   const existing = await ctx.db
     .query("successStats")
     .withIndex("by_workspace_bucket", (q) => q.eq("workspaceId", workspaceId).eq("bucket", bucket))
     .collect();
-  const desired = new Map(SUCCESS_COUNTERS.some((c) => counts[c] !== 0) ? [[bucket, counts]] : []);
+  const counters = [...SUCCESS_COUNTERS, ...GAME_COUNTERS];
+  const desired = new Map(counters.some((c) => counts[c] !== 0) ? [[bucket, counts]] : []);
   await syncRows(ctx, existing, (r) => r.bucket, desired, async (row, key, value) => {
-    if (!row) await ctx.db.insert("successStats", { workspaceId, bucket: key, ...value });
-    else if (SUCCESS_COUNTERS.some((c) => row[c] !== value[c])) await ctx.db.patch(row._id, value);
+    const fields = { pairs: value.pairs, storyRows: value.storyRows, reciprocalRows: value.reciprocalRows, ...gameFields(value) };
+    if (!row) await ctx.db.insert("successStats", { workspaceId, bucket: key, ...fields });
+    else if (counters.some((c) => (row[c] ?? 0) !== value[c])) await ctx.db.patch(row._id, fields);
   });
 }
 

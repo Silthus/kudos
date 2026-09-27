@@ -69,6 +69,11 @@ describe("success metrics per month (game spec G18)", () => {
       recipientsPerGiver: 4 / 3, // Ana → Ben, Cleo; Ben → Ana; Cleo → Ana
       storyShare: 3 / 5, // Ana's first message (2 people) and Cleo's
       reciprocalShare: 1 / 5, // Ben's thank-back
+      // The game never launched here: its own metrics (#165) measure nothing.
+      claimsPerPlayerWeek: null,
+      claimedSoonShare: null,
+      expeditionsPerPlayer: null,
+      crewContributors: null,
     });
   });
 
@@ -185,6 +190,11 @@ describe("success metrics per month (game spec G18)", () => {
       recipientsPerGiver: 6 / 5,
       storyShare: 3 / 6,
       reciprocalShare: 1 / 6,
+      // The game never launched here: its own metrics (#165) measure nothing.
+      claimsPerPlayerWeek: null,
+      claimedSoonShare: null,
+      expeditionsPerPlayer: null,
+      crewContributors: null,
     });
 
     // Someone gave a year ago: every month of the window shows, the quiet ones too.

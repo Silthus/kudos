@@ -33,6 +33,7 @@ import { playerOf, thankedBack } from "./game";
 import { finishedTutorial } from "./tutorial";
 import { addFruit, addGear } from "./inventory";
 import { adventurer } from "./rpg";
+import { setOut as countSetOut } from "./gameSuccess";
 import type { FruitId } from "./lib/fruits";
 import { addFuel, treeOf, worldSeedOf } from "./tree";
 import { creature, generateRuin, lootRand, runLoot, tierForLevel, type Equipped, type GearId, type Room } from "./lib/rpg";
@@ -840,6 +841,7 @@ async function seedRun(
     startedAt: at,
     endedAt: at + 20 * 60_000,
   });
+  await countSetOut(ctx, workspace, at, explorers.length);
   const foes = rooms.flatMap((r) => (r.kind === "foe" ? [r.foe] : []));
   for (const e of explorers) {
     const memberId = e.member._id;

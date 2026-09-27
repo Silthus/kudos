@@ -1,4 +1,5 @@
 import { ConvexError, v, type Infer } from "convex/values";
+import { setOut as countSetOut } from "./gameSuccess";
 import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -381,6 +382,7 @@ async function setOutRun(ctx: MutationCtx, workspace: Doc<"workspaces">, run: Ru
     }
   }
   await withdrawInvites(ctx, run);
+  await countSetOut(ctx, workspace, now, party.length);
   const fresh = { ...run, party, invites: [], loot: party.map((p) => emptyLoot(p.memberId)), state: "open" as const, startedAt: now };
   await ctx.db.patch(run._id, { party, invites: [], loot: fresh.loot, state: "open", startedAt: now, ...(await enterRoom(ctx, workspace, fresh, 0, party, [])) });
 }

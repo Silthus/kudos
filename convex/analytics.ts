@@ -99,7 +99,7 @@ export async function successMetricsFor(ctx: QueryCtx, workspace: Doc<"workspace
   // Months before anyone ever gave aren't quiet months, they're before the workspace used kudos.
   const firstMonth = (await firstGivingDay(ctx, workspace._id, today))?.slice(0, 7) ?? null;
   const used = (m: MonthFacts) => firstMonth !== null && m.month >= firstMonth;
-  const window = await monthFacts(ctx, workspace, members, addMonths(current, 1 - SUCCESS_MONTHS), current);
+  const window = await monthFacts(ctx, workspace, members, addMonths(current, 1 - SUCCESS_MONTHS), current, today);
   const months = window.filter((m) => m.month === current.slice(0, 7) || used(m));
 
   const anchored = workspace.successBaselineBefore !== undefined;
@@ -107,7 +107,7 @@ export async function successMetricsFor(ctx: QueryCtx, workspace: Doc<"workspace
   const [baseFrom, baseTo] = [addMonths(before, -BASELINE_MONTHS), addMonths(before, -1)];
   const inWindow = window.filter((m) => m.month >= baseFrom.slice(0, 7) && m.month <= baseTo.slice(0, 7));
   const baseMonths = (
-    inWindow.length === BASELINE_MONTHS ? inWindow : await monthFacts(ctx, workspace, members, baseFrom, baseTo)
+    inWindow.length === BASELINE_MONTHS ? inWindow : await monthFacts(ctx, workspace, members, baseFrom, baseTo, today)
   ).filter(used);
   return {
     ready: true as const,
@@ -125,8 +125,13 @@ export async function successMetricsFor(ctx: QueryCtx, workspace: Doc<"workspace
   };
 }
 
-/** Each month's facts from its rollup rows, from `first` to `last` (first days of months). */
-async function monthFacts(ctx: QueryCtx, workspace: Doc<"workspaces">, members: Doc<"members">[], first: string, last: string) {
+/**
+ * Each month's facts from its rollup rows, from `first` to `last` (first days of months), with the
+ * days each has had up to `today` and whether the game was on: from the launch month an admin's
+ * first switch-on pinned (`successBaselineBefore`); a workspace that never launched it has no game months.
+ */
+async function monthFacts(ctx: QueryCtx, workspace: Doc<"workspaces">, members: Doc<"members">[], first: string, last: string, today: string) {
+  const launch = workspace.successBaselineBefore;
   const wsId = workspace._id;
   const [from, to] = [monthBucket(first), monthBucket(last)];
   const stats = new Map((await workspaceStatsBetween(ctx, wsId, from, to)).map((r) => [r.bucket, r]));
@@ -153,11 +158,14 @@ async function monthFacts(ctx: QueryCtx, workspace: Doc<"workspaces">, members: 
     const bucket = monthBucket(day);
     const ws = stats.get(bucket);
     const givers = ws?.givers ?? 0;
+    const lastDay = addDays(addMonths(day, 1), -1);
     return {
       month: day.slice(0, 7),
       givers,
       kudos: ws?.kudosRows ?? 0,
       teamSize: teamSize(members, givers, departedGivers.get(bucket) ?? 0),
+      days: daysBetween(day, lastDay < today ? lastDay : today) + 1,
+      game: launch !== undefined && day.slice(0, 7) >= launch,
       ...pickSuccess(success.get(bucket)),
     };
   });
@@ -167,6 +175,11 @@ const pickSuccess = (row: Doc<"successStats"> | undefined) => ({
   pairs: row?.pairs ?? 0,
   storyRows: row?.storyRows ?? 0,
   reciprocalRows: row?.reciprocalRows ?? 0,
+  claims: row?.claims ?? 0,
+  offeredCoins: row?.offeredCoins ?? 0,
+  claimedSoonCoins: row?.claimedSoonCoins ?? 0,
+  expeditions: row?.expeditions ?? 0,
+  crewJoins: row?.crewJoins ?? 0,
 });
 
 /** The first day of the month `n` months after `monthDay`'s. */

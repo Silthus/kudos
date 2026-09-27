@@ -16,6 +16,7 @@ import { fruitIdValidator } from "./schema";
 import { addFuel } from "./tree";
 import { homeFinished } from "./homes";
 import { addFruit, held } from "./inventory";
+import { claimed as countClaim, offeringChanged } from "./gameSuccess";
 
 /**
  * Offerings at the Ancient Tree (#157; design plan #152 S3): the giver's side of the stone's two
@@ -66,6 +67,7 @@ export async function makeOffering(
   const { coins, fuel } = offeringOf(batch.lines);
   if (coins === 0 && fuel === 0) return;
   await ctx.db.insert("offerings", { workspaceId: workspace._id, memberId, batchId: batch.batchId, coins, fuel, createdAt: batch.at });
+  await offeringChanged(ctx, workspace, null, { coins, createdAt: batch.at });
 }
 
 /** A batch's offering to its giver (a batch has one giver; a few rows at most share its id). */
@@ -88,12 +90,14 @@ export async function onOfferingRevoked(ctx: MutationCtx, memberId: Id<"members"
   const { coins, fuel } = offeringOf([line]);
   if (coins === 0 && fuel === 0) return true;
   const left = { coins: offering.coins - coins, fuel: offering.fuel - fuel };
-  if (left.coins <= 0 && left.fuel <= 0) await ctx.db.delete(offering._id);
+  const gone = left.coins <= 0 && left.fuel <= 0;
+  if (gone) await ctx.db.delete(offering._id);
   else await ctx.db.patch(offering._id, left);
+  const workspace = await ctx.db.get(offering.workspaceId);
+  if (workspace) await offeringChanged(ctx, workspace, offering, gone ? null : { ...offering, ...left });
   if (offering.claimedAt === undefined) return true;
   const player = await playerOf(ctx, memberId);
   if (player) await ctx.db.patch(player._id, { coins: (player.coins ?? 0) - coins, claimedCoins: (player.claimedCoins ?? 0) - coins });
-  const workspace = await ctx.db.get(offering.workspaceId);
   if (workspace) await addFuel(ctx, workspace, -fuel, workspaceNow(workspace));
   return true;
 }
@@ -127,7 +131,11 @@ export async function claimOfferings(
   now: number,
 ): Promise<Claimed> {
   if (rows.length === 0) return { coins: 0, fuel: 0, offerings: 0, fruit: [] };
-  for (const o of rows) await ctx.db.patch(o._id, { claimedAt: now });
+  for (const o of rows) {
+    await ctx.db.patch(o._id, { claimedAt: now });
+    await offeringChanged(ctx, workspace, o, { ...o, claimedAt: now });
+  }
+  if (by === "player") await countClaim(ctx, workspace, now);
   const { coins, fuel } = sum(rows);
   const claimedCoins = (player.claimedCoins ?? 0) + coins;
   const peak = player.claimedPeak ?? 0;
@@ -275,7 +283,10 @@ export async function autoClaimWorkspace(ctx: MutationCtx, workspace: Doc<"works
     const player = await playerOf(ctx, memberId);
     if (!player) {
       // No player to credit (never happens for a live offering): settle them without a wallet.
-      for (const o of rows) await ctx.db.patch(o._id, { claimedAt: now });
+      for (const o of rows) {
+        await ctx.db.patch(o._id, { claimedAt: now });
+        await offeringChanged(ctx, workspace, o, { ...o, claimedAt: now });
+      }
       continue;
     }
     const claimed = await claimOfferings(ctx, workspace, player, rows, "time", now);
@@ -343,16 +354,24 @@ export const replayMember = internalMutation({
       const claimedAt = old ? old.claimedAt : give.at < legacyUntil ? give.at : give.at <= now - AUTO_CLAIM_MS ? now : undefined;
       if (old) {
         kept.add(old._id);
-        if (old.coins !== offered.coins || old.fuel !== offered.fuel) await ctx.db.patch(old._id, offered);
+        if (old.coins !== offered.coins || old.fuel !== offered.fuel) {
+          await ctx.db.patch(old._id, offered);
+          await offeringChanged(ctx, workspace, old, { ...old, ...offered });
+        }
       } else {
         await ctx.db.insert("offerings", { workspaceId: workspace._id, memberId, batchId: give.batchId, ...offered, createdAt: give.at, claimedAt });
+        await offeringChanged(ctx, workspace, null, { coins: offered.coins, createdAt: give.at, claimedAt });
       }
       if (claimedAt !== undefined) {
         after.coins += offered.coins;
         after.fuel += offered.fuel;
       }
     }
-    for (const o of existing) if (!kept.has(o._id)) await ctx.db.delete(o._id);
+    for (const o of existing) {
+      if (kept.has(o._id)) continue;
+      await ctx.db.delete(o._id);
+      await offeringChanged(ctx, workspace, o, null);
+    }
     const coins = after.coins - before.coins;
     if (coins !== 0) {
       const claimedCoins = (player.claimedCoins ?? 0) + coins;
