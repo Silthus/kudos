@@ -129,8 +129,9 @@ describe("starting an expedition", () => {
       const p = await ctx.db.query("players").withIndex("by_member", (q) => q.eq("memberId", team.ana)).unique();
       await ctx.db.patch(p!._id, { stamina: 2 });
     });
-    await expect(ana.mutation(api.rpg.start, { ruinId: "ruin:2:0" })).rejects.toThrow(/near ruins/);
-    await expect(ana.mutation(api.rpg.start, { ruinId: "ruin:9:9" })).rejects.toThrow(/near ruins/);
+    // A great tree hasn't opened the far ruins (#163 opens them to anyone at level 10, alone or in a party).
+    await expect(ana.mutation(api.rpg.start, { ruinId: "ruin:2:0" })).rejects.toThrow(/far ruins are not open yet/);
+    await expect(ana.mutation(api.rpg.start, { ruinId: "ruin:9:9" })).rejects.toThrow(/no such ruin/);
     await ana.mutation(api.rpg.start, { ruinId: "ruin:1:0" });
     await expect(ana.mutation(api.rpg.start, { ruinId: "ruin:1:1" })).rejects.toThrow(/already/);
     expect(await player(team.ana)).toMatchObject({ stamina: 1 });

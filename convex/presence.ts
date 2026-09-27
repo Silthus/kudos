@@ -7,6 +7,7 @@ import { hasHome } from "./homes";
 import { requireViewer, type Viewer } from "./lib/access";
 import {
   chunkKey,
+  chunksAround,
   DEFAULT_LOOK,
   facingValidator,
   hogAnimationValidator,
@@ -16,6 +17,7 @@ import {
   MAX_AHEAD_MS,
   MAX_BEHIND_MS,
   MAX_CHUNKS,
+  MAX_SESSIONS,
   MIN_BEAT_MS,
   ONLINE_BEAT_MS,
   ONLINE_LIMIT,
@@ -24,7 +26,9 @@ import {
   shouldSave,
   SWEEP_AFTER_MS,
   SWEEP_BATCH,
+  tilesApart,
   tileValidator,
+  type Tile,
 } from "./lib/presence";
 import { workspaceNow } from "./lib/time";
 import { isSharedDemo, leaveWorld } from "./lib/world";
@@ -269,6 +273,41 @@ export const nearby = query({
     return hogs;
   },
 });
+
+/**
+ * Who stands within `radius` tiles of `at` in the world now (seen in the last minute before the
+ * workspace's `now`), each member once at their freshest sighting: for a party forming at a ruin's
+ * entrance (#163). Reads the chunks round `at` only, so a radius up to a chunk wide is exact.
+ */
+export async function membersWithin(ctx: QueryCtx, workspace: Doc<"workspaces">, at: Tile, radius: number, now: number) {
+  const since = onlineSince(workspace, now);
+  const found = new Map<Id<"members">, { memberId: Id<"members">; name: string; at: Tile; seenAt: number }>();
+  for (const chunk of chunksAround(at.x, at.y)) {
+    const rows = await ctx.db
+      .query("worldPresence")
+      .withIndex("by_workspace_chunk_updatedAt", (q) => q.eq("workspaceId", workspace._id).eq("chunk", chunk).gte("updatedAt", since))
+      .order("desc")
+      .take(PER_CHUNK);
+    for (const row of rows) {
+      const spot = { x: row.x, y: row.y };
+      if (tilesApart(spot, at) > radius) continue;
+      const seen = found.get(row.memberId);
+      if (!seen || row.updatedAt > seen.seenAt) found.set(row.memberId, { memberId: row.memberId, name: row.name, at: spot, seenAt: row.updatedAt });
+    }
+  }
+  return [...found.values()];
+}
+
+/** Where a member's hog stands now (the freshest of their sessions seen in the last minute), or null when they aren't in the world. */
+export async function memberAt(ctx: QueryCtx, workspace: Doc<"workspaces">, memberId: Id<"members">, now: number): Promise<Tile | null> {
+  const since = onlineSince(workspace, now);
+  const rows = await ctx.db
+    .query("worldPresence")
+    .withIndex("by_workspace_member_session", (q) => q.eq("workspaceId", workspace._id).eq("memberId", memberId))
+    .take(MAX_SESSIONS);
+  const freshest = rows.filter((r) => r.updatedAt >= since).sort((a, b) => b.updatedAt - a.updatedAt)[0];
+  return freshest ? { x: freshest.x, y: freshest.y } : null;
+}
 
 /**
  * The cron (crons.ts): deletes hogs not seen for ten minutes, at most 1,500 rows a run, and returns

@@ -102,6 +102,11 @@ export function chunksAround(x: number, y: number): string[] {
   return out;
 }
 
+/** Tiles between two spots, as a hog walks them in any of eight directions: the larger of the two steps. */
+export function tilesApart(a: Tile, b: Tile): number {
+  return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+}
+
 const CHUNK_KEY = /^-?\d{1,6}:-?\d{1,6}$/;
 export function isChunkKey(key: string): boolean {
   return CHUNK_KEY.test(key) && !key.split(":").some((n) => n === "-0");

@@ -7,13 +7,15 @@ import type { Beat } from "./presence";
 /** What the heartbeat mutation answers next. */
 let answer: "ok" | "notShown" | "resetting" = "ok";
 const heartbeat = vi.fn(async (_: Beat) => answer);
+/** A party invite from a hog's card (#163). */
+const invite = vi.fn(async (_: { memberId: string }) => null);
 /** What each query answers, by name; the arguments each was last asked with. */
 let queries: Record<string, unknown> = {};
 let askedWith: Record<string, unknown> = {};
 vi.mock("convex/react", async () => {
   const { getFunctionName } = await import("convex/server");
   return {
-    useMutation: () => heartbeat,
+    useMutation: (fn: never) => (getFunctionName(fn) === "rpg:invite" ? invite : heartbeat),
     useQuery: (fn: never, args: unknown) => {
       if (args === "skip") return undefined;
       askedWith[getFunctionName(fn)] = args;
@@ -281,6 +283,18 @@ describe("a hog's card", () => {
     expect(visit.getAttribute("href")).toBe("/garden/m2");
     expect(card()?.textContent).not.toContain("Invite to party");
     expect(card()?.textContent).not.toContain("Visit their home");
+  });
+
+  test("while you lead a party forming at a ruin, the card invites them (#163)", async () => {
+    queries["presence:nearby"] = [hog("p1")];
+    queries["rpg:current"] = { stamina: 2, level: 12, run: { state: "forming", leader: true } };
+    layer();
+    act(() => hogs()[0].querySelector<HTMLElement>("[data-hog-hit]")!.click());
+    const button = card()!.querySelector<HTMLButtonElement>("[data-invite-to-party]")!;
+    expect(button.textContent).toBe("Invite to party");
+    await act(async () => button.click());
+    expect(invite).toHaveBeenCalledWith({ memberId: "m2" });
+    expect(card()!.textContent).toContain("Invited: Ana has a minute to answer.");
   });
 
   test("opened, it takes focus, so it's read out and the arrow keys don't walk (review #8)", () => {

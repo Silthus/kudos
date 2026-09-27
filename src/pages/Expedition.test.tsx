@@ -20,9 +20,14 @@ const tree = { layout: { ruins: [{ id: "ruin:1:2", name: "The Salt Well", tier: 
 const start = vi.fn();
 const actOn = vi.fn();
 const abandon = vi.fn();
+const form = vi.fn();
+const invite = vi.fn();
+const setOut = vi.fn();
+let reach: unknown = [];
 vi.mock("convex/react", () => ({
-  useQuery: (fn: FunctionReference<"query">) => ({ "rpg:current": current, "tree:state": tree })[getFunctionName(fn)],
-  useMutation: (fn: FunctionReference<"mutation">) => ({ "rpg:start": start, "rpg:act": actOn, "rpg:abandon": abandon })[getFunctionName(fn)],
+  useQuery: (fn: FunctionReference<"query">) => ({ "rpg:current": current, "tree:state": tree, "rpg:reach": reach })[getFunctionName(fn)],
+  useMutation: (fn: FunctionReference<"mutation">) =>
+    ({ "rpg:start": start, "rpg:act": actOn, "rpg:abandon": abandon, "rpg:form": form, "rpg:invite": invite, "rpg:setOut": setOut })[getFunctionName(fn)],
 }));
 
 // No atlas in tests: your hedgehog in the scene keeps its placeholder.
@@ -37,9 +42,8 @@ afterEach(() => {
   act(() => root?.unmount());
   root = undefined;
   document.body.innerHTML = "";
-  start.mockReset();
-  actOn.mockReset();
-  abandon.mockReset();
+  for (const f of [start, actOn, abandon, form, invite, setOut]) f.mockReset();
+  reach = [];
 });
 
 const viewer = { member: { _id: "m_ana", name: "Ana" }, workspace: { timezone: "Europe/Berlin" } } as unknown as ReadyViewer;
@@ -69,7 +73,9 @@ function render(path = "/ruins/1-2") {
 const text = () => document.body.textContent ?? "";
 const button = (name: RegExp) => [...document.querySelectorAll("button")].find((b) => name.test(b.textContent ?? ""));
 
-const party = [{ memberId: "m_ana", name: "Ana", hp: 9, maxHp: 18, stats: { might: 9, wits: 4, heart: 2 } }];
+const ana = { memberId: "m_ana", name: "Ana", level: 9, hp: 9, maxHp: 18, stats: { might: 9, wits: 4, heart: 2 }, chosen: false, left: false, you: true };
+const ben = { ...ana, memberId: "m_ben", name: "Ben", level: 12, hp: 14, maxHp: 20, you: false };
+const party = [ana];
 const run = (patch: Record<string, unknown> = {}) => ({
   id: "e1",
   ruinId: "ruin:1:2",
@@ -82,6 +88,9 @@ const run = (patch: Record<string, unknown> = {}) => ({
   turn: 1,
   foe: { id: "sand_scarab", name: "Sand scarab", about: "Armoured, slow, and everywhere.", hp: 7, maxHp: 16, weakness: "might" },
   party,
+  leader: true,
+  invited: [],
+  decideBy: null,
   puzzle: null,
   log: [{ room: 0, line: "Ana strikes the Sand scarab for 9." }, { room: 0, line: "The Sand scarab hits Ana for 2." }],
   loot: { coins: 0, fruits: [], gear: [], lore: [] },
@@ -89,31 +98,37 @@ const run = (patch: Record<string, unknown> = {}) => ({
 });
 
 describe("at the entrance", () => {
-  test("says the ruin's name and goes in for one stamina", () => {
+  test("says the ruin's name, and goes in alone or forms a party, for one stamina each", async () => {
     current = { stamina: 2, level: 9, run: null };
     render();
     expect(text()).toContain("The Salt Well");
     expect(document.querySelector("[data-stamina='2']")).not.toBeNull();
-    act(() => button(/Enter the ruin/)!.click());
+    await act(async () => button(/Go alone/)!.click());
     expect(start).toHaveBeenCalledWith({ ruinId: "ruin:1:2" });
+    await act(async () => button(/Form a party/)!.click());
+    expect(form).toHaveBeenCalledWith({ ruinId: "ruin:1:2" });
   });
 
   test("without stamina, or below level 6, says how to get there instead", () => {
     current = { stamina: 0, level: 9, run: null };
     render();
-    expect(button(/Enter the ruin/)?.disabled).toBe(true);
+    expect(button(/Go alone/)?.disabled).toBe(true);
     expect(text()).toMatch(/thoughtful kudos you give restores one/);
     current = { stamina: 3, level: 5, run: null };
     render();
-    expect(button(/Enter the ruin/)?.disabled).toBe(true);
+    expect(button(/Go alone/)?.disabled).toBe(true);
     expect(text()).toMatch(/level 6/);
   });
 
-  test("a far ruin waits for parties", () => {
+  test("a far ruin opens at level 10, alone or with a party", () => {
+    current = { stamina: 3, level: 9, run: null };
+    render("/ruins/2-0");
+    expect(button(/Form a party/)?.disabled).toBe(true);
+    expect(text()).toMatch(/far ruins open to explorers at level 10/);
     current = { stamina: 3, level: 12, run: null };
     render("/ruins/2-0");
-    expect(button(/Enter the ruin/)).toBeUndefined();
-    expect(text()).toMatch(/parties/);
+    expect(button(/Form a party/)?.disabled).toBe(false);
+    expect(button(/Go alone/)?.disabled).toBe(false);
   });
 });
 
@@ -131,7 +146,7 @@ describe("in a room", () => {
     expect(button(/Outwit/)!.textContent).toMatch(/wits 4/);
     expect(button(/Calm/)!.textContent).toMatch(/heart 2/);
     await act(async () => button(/Strike/)!.click());
-    expect(actOn).toHaveBeenCalledWith({ choice: { kind: "strike" } });
+    expect(actOn).toHaveBeenCalledWith({ choice: { kind: "strike" }, at: { room: 0, turn: 1 } });
     // Leaving asks once: the run ends, and what earlier rooms gave is kept.
     await act(async () => button(/Return to camp/)!.click());
     expect(abandon).not.toHaveBeenCalled();
@@ -159,7 +174,7 @@ describe("in a room", () => {
     expect(button(/^Eve/)!.disabled).toBe(true);
     expect(button(/^Finn/)!.disabled).toBe(true); // answered wrong already
     act(() => button(/^Ben$/)!.click());
-    expect(actOn).toHaveBeenCalledWith({ choice: { kind: "answer", option: 1 } });
+    expect(actOn).toHaveBeenCalledWith({ choice: { kind: "answer", option: 1 }, at: { room: 1, turn: 1 } });
   });
 
   test("a rest heals, and the party moves on", () => {
@@ -167,7 +182,7 @@ describe("in a room", () => {
     render();
     expect(text()).toContain("The party rests.");
     act(() => button(/Move on/)!.click());
-    expect(actOn).toHaveBeenCalledWith({ choice: { kind: "onward" } });
+    expect(actOn).toHaveBeenCalledWith({ choice: { kind: "onward" }, at: { room: 2, turn: 1 } });
   });
 });
 
@@ -183,6 +198,74 @@ describe("the end of a run", () => {
     expect(text()).toContain("12 Hog coins");
     expect(text()).toContain("Scout's cap");
     expect(text()).toContain("The first thank-you");
-    expect(button(/Enter the ruin again/)).toBeDefined();
+    expect(button(/Go alone again/)).toBeDefined();
+  });
+});
+
+describe("forming a party (#163)", () => {
+  const forming = (patch: Record<string, unknown> = {}) =>
+    run({ ruinId: "ruin:2:0", name: "The Amber Vault", tier: 2, open: false, state: "forming", foe: null, log: [], rooms: [{ kind: "unknown" }, { kind: "unknown" }], ...patch });
+
+  test("the leader sees the party with levels, who's within reach with Invite, and sets out", async () => {
+    current = { stamina: 2, level: 12, run: forming({ party: [{ ...ana, level: 12 }], invited: [{ memberId: "m_dan", name: "Dan", expiresAt: Date.now() + 42_000 }] }) };
+    reach = [
+      { memberId: "m_ben", name: "Ben", level: 12, canJoin: true, invited: false },
+      { memberId: "m_cleo", name: "Cleo", level: 8, canJoin: false, reason: "level", invited: false },
+    ];
+    render("/ruins/2-0");
+    expect(document.querySelector("[data-party-member='Ana']")?.textContent).toMatch(/Level 12.*Leader/);
+    expect(document.querySelector("[data-invited='Dan']")?.textContent).toMatch(/4[12] s/);
+    const row = (name: string) => document.querySelector(`[data-reach-member='${name}']`)!;
+    expect(row("Cleo").textContent).toContain("Level 8: needs 10");
+    expect(row("Cleo").querySelector("button")!.disabled).toBe(true);
+    await act(async () => row("Ben").querySelector("button")!.click());
+    expect(invite).toHaveBeenCalledWith({ memberId: "m_ben" });
+    await act(async () => button(/Set out alone/)!.click());
+    expect(setOut).toHaveBeenCalled();
+  });
+
+  test("with nobody near, the leader is told who shows up there", () => {
+    current = { stamina: 2, level: 12, run: forming() };
+    render("/ruins/2-0");
+    expect(document.querySelector("[data-nobody]")).not.toBeNull();
+  });
+
+  test("a member waits for the leader, or leaves", async () => {
+    current = { stamina: 2, level: 12, run: forming({ leader: false, party: [{ ...ben, you: false }, { ...ana, you: true }] }) };
+    render("/ruins/2-0");
+    expect(text()).toContain("Waiting for Ben to set out.");
+    expect(button(/Set out/)).toBeUndefined();
+    await act(async () => button(/Leave the party/)!.click());
+    expect(abandon).toHaveBeenCalled();
+  });
+});
+
+describe("a room with a party (#163)", () => {
+  test("everyone's meter and whether they've chosen; once you have, who the room waits for and how long", () => {
+    current = { stamina: 1, level: 9, run: run({ party: [{ ...ana, chosen: true }, ben], decideBy: Date.now() + 42_000 }) };
+    render();
+    expect(document.querySelector("[role='progressbar'][aria-label='Ben: 14 of 20']")).not.toBeNull();
+    expect(document.querySelector("[data-member-state='chosen']")).not.toBeNull();
+    expect(document.querySelector("[data-member-state='choosing']")).not.toBeNull();
+    expect(document.querySelector("[data-waiting]")?.textContent).toMatch(/Waiting for Ben… The room goes on without them in 4[12] seconds/);
+    expect(document.querySelectorAll("[data-scene-hog]")).toHaveLength(2);
+  });
+
+  test("before you've chosen, it says who has", () => {
+    current = { stamina: 1, level: 9, run: run({ party: [ana, { ...ben, chosen: true }], decideBy: Date.now() + 30_000 }) };
+    render();
+    expect(document.querySelector("[data-waiting]")?.textContent).toMatch(/Ben has chosen. Choose within 30 seconds/);
+  });
+
+  test("fallen or gone back to camp, you are at the entrance again: the party goes on, and you may go in alone (review #8)", async () => {
+    current = { stamina: 1, level: 9, run: run({ party: [{ ...ana, hp: 0 }, ben] }) };
+    render();
+    expect(text()).toContain("You fell and woke at camp. Ben goes on without you.");
+    expect(button(/Strike/)).toBeUndefined();
+    await act(async () => button(/Go alone/)!.click());
+    expect(start).toHaveBeenCalledWith({ ruinId: "ruin:1:2" });
+    current = { stamina: 1, level: 9, run: run({ party: [{ ...ana, left: true }, ben] }) };
+    render();
+    expect(text()).toContain("You returned to camp. Ben goes on without you.");
   });
 });

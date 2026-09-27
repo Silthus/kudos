@@ -1,4 +1,4 @@
-import { ArrowLeftRight, BarChart3, FlaskConical, Footprints, Gem, Gift, Hammer, HandCoins, House, Network, Settings2, Shield, Sprout, Target, Trees, Trophy, UserRound, type LucideIcon } from "lucide-react";
+import { ArrowLeftRight, BarChart3, FlaskConical, Footprints, Gem, Gift, Hammer, HandCoins, House, Map as MapIcon, Network, Settings2, Shield, Sprout, Target, Trees, Trophy, UserRound, type LucideIcon } from "lucide-react";
 
 /**
  * The app's navigation, built once: the world's places (`src/world/places.ts`) and the Places list
@@ -66,7 +66,13 @@ export function navItems(ctx: NavContext): NavItem[] {
     ...(ctx.storeEnabled ? [item("store", "/store", "Store", "Store", Gift, "personal")] : []),
     item("leaderboard", "/leaderboard", "Leaderboard", "Ranks", Trophy, "team"),
     item("compare", "/compare", "Compare", "Compare", ArrowLeftRight, "team"),
-    ...(ctx.gameShown ? [item("canopy", "/canopy", "The canopy", "Canopy", Trees, "team"), item("blight", "/blight", "The blight stone", "Blight", Shield, "team")] : []),
+    ...(ctx.gameShown
+      ? [
+          item("canopy", "/canopy", "The canopy", "Canopy", Trees, "team"),
+          item("blight", "/blight", "The blight stone", "Blight", Shield, "team"),
+          item("overview", "/overview", "The overview", "Map", MapIcon, "team"),
+        ]
+      : []),
     item("analytics", "/analytics", "Analytics", "Stats", BarChart3, "team"),
     ...(ctx.isDemo ? [item("playground", "/playground", "Playground", "Try", FlaskConical, "workspace")] : []),
     ...(ctx.isAdmin

@@ -23,15 +23,16 @@ describe("navItems", () => {
     expect(ids(navItems({ ...member, questsEnabled: undefined }))).toContain("quests");
   });
 
-  test("the elder hog, the offering stone, the skill tree, the garden, your home, the crew's plaque and the canopy are there while the game is shown to you", () => {
+  test("the elder hog, the offering stone, the skill tree, the garden, your home, the crew's plaque, the canopy and the overview are there while the game is shown to you", () => {
     expect(ids(navItems(member))).not.toContain("skills");
     expect(ids(navItems(member))).not.toContain("garden");
     expect(ids(navItems(member))).not.toContain("elder");
     expect(ids(navItems(member))).not.toContain("homes");
     expect(ids(navItems(member))).not.toContain("crew");
-    expect(ids(navItems({ ...member, gameShown: true }))).toEqual(["me", "discoveries", "quests", "elder", "offering", "skills", "garden", "homes", "crew", "leaderboard", "compare", "canopy", "blight", "analytics"]);
+    expect(ids(navItems({ ...member, gameShown: true }))).toEqual(["me", "discoveries", "quests", "elder", "offering", "skills", "garden", "homes", "crew", "leaderboard", "compare", "canopy", "blight", "overview", "analytics"]);
     // The blight stone (#164): where the company defends the tree.
     expect(navItems({ ...member, gameShown: true }).find((i) => i.id === "blight")).toMatchObject({ to: "/blight", label: "The blight stone", short: "Blight", group: "team" });
+    expect(navItems({ ...member, gameShown: true }).find((i) => i.id === "overview")).toMatchObject({ to: "/overview", label: "The overview", short: "Map" });
     expect(navItems({ ...member, gameShown: true }).find((i) => i.id === "homes")).toMatchObject({ to: "/homes", label: "Your home", short: "Home" });
     expect(navItems({ ...member, gameShown: true }).find((i) => i.id === "crew")).toMatchObject({ to: "/crew", label: "Crew quests", group: "team" });
     expect(navItems({ ...member, gameShown: true }).find((i) => i.id === "garden")).toMatchObject({ to: "/garden", label: "Garden", short: "Garden" });
