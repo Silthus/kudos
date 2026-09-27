@@ -17,6 +17,7 @@ import { Offering } from "./pages/Offering";
 import { Crew } from "./pages/Crew";
 import { Elder } from "./pages/Elder";
 import { Expedition } from "./pages/Expedition";
+import { Blight } from "./pages/Blight";
 import { Skills } from "./pages/Skills";
 import { Garden, GardenOf } from "./pages/Garden";
 import { Canopy, HomeOf, Homes } from "./pages/Homes";
@@ -103,6 +104,7 @@ export function App() {
           <Route path="/homes/:memberId" element={<HomeOf />} />
           <Route path="/canopy" element={<Canopy />} />
           <Route path="/crew" element={<Crew />} />
+          <Route path="/blight" element={<Blight />} />
           {/* The menu shows the Store from level 3; the page exists while the game is on and shows its own locked state. */}
           {(viewer.workspace.storeEnabled || viewer.workspace.gameEnabled) && <Route path="/store" element={<Store />} />}
           <Route path="/analytics" element={<Analytics />} />

@@ -16,11 +16,14 @@ const advance = vi.fn(async (_args: unknown) => ({ completed: [] }));
 /** Who is online (`presence:online`), and what it was last asked with. */
 let online: unknown;
 let onlineArgs: unknown;
+/** The blight at the tree (`blights:current`, #164). */
+let blight: unknown;
 vi.mock("convex/react", () => ({
   useQuery: (fn: FunctionReference<"query">, args: unknown) => {
     const name = getFunctionName(fn);
     if (name === "presence:online" && args !== "skip") onlineArgs = args;
     if (name === "tutorial:state" && args !== "skip") return tutorial;
+    if (name === "blights:current" && args !== "skip") return blight;
     return name === "game:mine" ? game : name === "presence:online" && args !== "skip" ? online : undefined;
   },
   useMutation: (fn: FunctionReference<"mutation">) => (getFunctionName(fn) === "tutorial:advance" ? advance : vi.fn()),
@@ -116,6 +119,23 @@ function render({ insetRight, whereIs, hints = {} }: { insetRight?: number; wher
     ),
   );
 }
+
+describe("the blight's tag (#164)", () => {
+  test("while a blight is at the tree: its meter and days, leading to the blight stone; nothing otherwise", () => {
+    game = mine({});
+    const now = Date.now();
+    blight = { blight: { status: "active", arrivesAt: now - 3_600_000, endsAt: now + 2 * 86_400_000 - 60_000, hp: 120, damage: 42 }, lanternsDimUntil: null };
+    render();
+    const tag = host.querySelector<HTMLAnchorElement>("[data-hud-blight]")!;
+    expect(tag.getAttribute("href")).toBe("/blight");
+    expect(tag.textContent).toContain("Blight: 78 of 120 left, 2 days left");
+    expect(tag.querySelector("[role='progressbar']")?.getAttribute("aria-valuenow")).toBe("78");
+    blight = { blight: null, lanternsDimUntil: null };
+    render();
+    expect(host.querySelector("[data-hud-blight]")).toBeNull();
+    blight = undefined;
+  });
+});
 
 describe("the HUD along the elder hog's chain (#159)", () => {
   const on = (step: number) => ({ step, due: false });

@@ -1,4 +1,5 @@
 import { DISTRICTS, stageIndex, type DistrictId, type Layout, type RuinSite, type TreeStageId } from "../../convex/lib/tree";
+import type { TreeMood } from "./tree/sprite";
 import { TOWN_RADIUS, desertAt, desertWalkable, noise, type DesertGround } from "./desert";
 import { findPath, type Grid, type Tile } from "./iso";
 import { PLACES, placeAt, type PlaceDef } from "./places";
@@ -68,6 +69,8 @@ export type WorldInput = {
   litPlots?: number[];
   /** What the crew built on the tree (#161); none by default. */
   cosmetics?: TreeCosmetics;
+  /** The tree under a blight (#164): its canopy spotted while one is here, its lanterns low after a defeat. */
+  mood?: TreeMood;
 };
 
 /**
@@ -111,6 +114,8 @@ export type World = Grid & {
   /** Rings past the world tree. */
   rings: number;
   crew: CrewWorld;
+  /** How the tree looks under a blight (#164). */
+  mood: TreeMood;
 };
 
 /** Walks keep within this many tiles of the tree: far past the deepest ruins, never an edge you meet. */
@@ -240,7 +245,7 @@ export const CANOPY = { half: 21, back: 64, front: 4 };
 
 const tileKey = (x: number, y: number) => (x + 65536) * 131072 + (y + 65536);
 
-export function buildWorld({ seed, layout, planted, standing, litPlots = [], cosmetics = NO_COSMETICS }: WorldInput): World {
+export function buildWorld({ seed, layout, planted, standing, litPlots = [], cosmetics = NO_COSMETICS, mood = { blighted: false, dim: false } }: WorldInput): World {
   const stage = layout.stage;
   const open = new Map(layout.districts.map((d) => [d.id, d.open]));
   const sites: Site[] = settle(layout).map((s) => {
@@ -474,6 +479,7 @@ export function buildWorld({ seed, layout, planted, standing, litPlots = [], cos
     lawnRadius,
     rings,
     crew,
+    mood,
   };
 }
 

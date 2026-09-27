@@ -389,6 +389,51 @@ export function treeSprite(stage: TreeStageId, worldSeed: number, rings = 0): Pi
   return sprite;
 }
 
+/** How the tree looks under a blight (#164): spotted while one is at it, its lanterns low after a defeat. */
+export type TreeMood = { blighted: boolean; dim: boolean };
+
+/** Lanterns burning low: amber gone brown, their cores dull. */
+const DIM_LANTERNS = { l: "#9a6a1c", c: "#c9b58f" };
+/** The blight's deeper purple, for the heart of each patch. */
+const BLIGHT_DEEP = "#4d2658";
+const moodCache = new Map<string, PixelMap>();
+
+/**
+ * The tree in a mood: while a blight is at it, a few seeded patches of its canopy turn blight purple
+ * (their hearts deeper); after a defeat, its lanterns burn low (the same pixels in a darker light).
+ * An untroubled tree is its own sprite.
+ */
+export function moodTree(sprite: PixelMap, mood: TreeMood, worldSeed: number): PixelMap {
+  if (!mood.blighted && !mood.dim) return sprite;
+  const key = `${sprite.rows.length}:${sprite.rows[0]?.length}:${worldSeed}:${mood.blighted}:${mood.dim}:${fnv1a(sprite.rows.join(""))}`;
+  const hit = moodCache.get(key);
+  if (hit) return hit;
+  let rows = sprite.rows;
+  if (mood.blighted) {
+    const leaf = new Set(["g", "G", "u"]);
+    const leaves: [number, number][] = [];
+    rows.forEach((r, y) => [...r].forEach((ch, x) => leaf.has(ch) && leaves.push([x, y])));
+    const rand = mulberry32(fnv1a(`blight-patches:${worldSeed >>> 0}`));
+    const grid = rows.map((r) => [...r]);
+    const patches = Math.max(4, Math.min(8, Math.round(leaves.length / 500)));
+    for (let p = 0; p < patches && leaves.length > 0; p++) {
+      const [cx, cy] = leaves[Math.floor(rand() * leaves.length)];
+      const r = 6 + rand() * 4;
+      for (let y = Math.floor(cy - r); y <= cy + r; y++)
+        for (let x = Math.floor(cx - r); x <= cx + r; x++) {
+          const d = Math.hypot(x - cx, (y - cy) * 1.3);
+          // A ragged edge: the blight eats in, pixel by pixel.
+          if (d > r || !leaf.has(grid[y]?.[x] ?? "") || (d > r - 1.5 && (x * 7 + y * 3) % 3 === 0)) continue;
+          grid[y][x] = d < r * 0.45 ? "X" : "x";
+        }
+    }
+    rows = grid.map((r) => r.join(""));
+  }
+  const moody: PixelMap = { rows, palette: { ...sprite.palette, ...(mood.blighted ? { X: BLIGHT_DEEP } : {}), ...(mood.dim ? DIM_LANTERNS : {}) } };
+  moodCache.set(key, moody);
+  return moody;
+}
+
 /**
  * The seed moment (#156): six frames of the Ancient Seed sprouting, played once when the first
  * thoughtful kudos plants it. It glows on the sand, sinks in, cracks with light, a shoot comes up and

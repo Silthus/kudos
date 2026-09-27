@@ -14,9 +14,10 @@ import { useViewer } from "@/lib/viewer";
 import { CopyButton } from "./Setup";
 import { SlackMark } from "./Landing";
 import { AdminBoosts } from "./AdminBoosts";
+import { AdminBlights } from "./AdminBlights";
 import { AdminStore, LedgerDrawer } from "./AdminStore";
 
-const TABS = ["settings", "members", "moderation", "store", "boosts", "slack"] as const;
+const TABS = ["settings", "members", "moderation", "store", "boosts", "blights", "slack"] as const;
 type Tab = (typeof TABS)[number];
 
 export function Admin() {
@@ -52,6 +53,7 @@ export function Admin() {
           { value: "moderation", label: "Moderation" },
           { value: "store", label: "Store" },
           { value: "boosts", label: "Bonus days" },
+          { value: "blights", label: "Blights" },
           { value: "slack", label: "Slack" },
         ]}
       />
@@ -61,6 +63,7 @@ export function Admin() {
       {tab === "moderation" && <Moderation />}
       {tab === "store" && <AdminStore isDemo={data.workspace.isDemo} />}
       {tab === "boosts" && <AdminBoosts gameEnabled={data.settings.gameEnabled} />}
+      {tab === "blights" && <AdminBlights />}
       {tab === "slack" && <SlackPanel slack={data.slack} isDemo={data.workspace.isDemo} teamId={data.workspace.slackTeamId} />}
     </div>
   );

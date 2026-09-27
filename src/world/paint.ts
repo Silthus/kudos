@@ -3,7 +3,7 @@ import { TILE_H, TILE_W, tileCentre, type Point, type Tile } from "./iso";
 import type { PlaceDef } from "./places";
 import { mapHeight, mapWidth, PALETTE, pixelAt, type PixelMap } from "./pixels";
 import { DECOR_SPRITES, DUSK, GROUND, GROUND_OF, LIFT, NIGHT, WARM, hash } from "./tiles";
-import { treeSprite } from "./tree/sprite";
+import { moodTree, treeSprite } from "./tree/sprite";
 import { bannerCloth, CANOPY_COLOURS_PALETTE, DISTRICT_STYLE_GROUND, STATUE_PLINTH_TOP, STRUCTURE_SPRITES, statuePlinth, WINDMILL_HUB } from "./tree/crewParts";
 import { TREE_STAGES, stageIndex } from "../../convex/lib/tree";
 import type { Site, Terrain, World } from "./world";
@@ -284,6 +284,11 @@ function footOn(world: World, t: Tile, extraY = 0): Point {
   return { x: c.x, y: c.y + TILE_H / 2 - 1 - lift(world, t.x, t.y) + extraY };
 }
 
+/** The tree as it stands now: as the crew made it (#161), in the blight's mood (#164). */
+function treeNow(world: World) {
+  return moodTree(crewTreeSprite(world), world.mood, world.seed);
+}
+
 /** How tall the tree stands, in art pixels (0 before the seed is planted). */
 export function treeHeight(world: World) {
   return treeBox(world)?.height ?? 0;
@@ -559,7 +564,7 @@ type Drawable = { depth: number; sprite: PixelMap; foot: Point; tree?: boolean; 
 function standing(world: World, furniture: WorldFurniture): Drawable[] {
   const items: Drawable[] = [];
   const onTile = (t: Tile, extraY = 0) => footOn(world, t, extraY);
-  if (world.trunk) items.push({ depth: treeDepth(world), sprite: crewTreeSprite(world), foot: treeFoot(world), tree: true });
+  if (world.trunk) items.push({ depth: treeDepth(world), sprite: treeNow(world), foot: treeFoot(world), tree: true });
   // What the crew built (#161): its structures by their districts, the statue's plinth at the tree's foot.
   for (const p of world.crew?.props ?? []) items.push({ depth: p.tile.x + p.tile.y + 0.1, sprite: STRUCTURE_SPRITES[p.id], foot: onTile(p.tile) });
   if (world.crew?.statue) items.push({ depth: world.crew.statue.tile.x + world.crew.statue.tile.y + 0.1, sprite: statuePlinth(), foot: onTile(world.crew.statue.tile) });
