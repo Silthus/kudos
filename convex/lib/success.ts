@@ -22,7 +22,7 @@ export const zeroSuccess = (): SuccessCounts => ({ pairs: 0, storyRows: 0, recip
  * - `claims`: offerings claimed at the stone by the player (not by time), in the month of the claim;
  * - `offeredCoins`: the Hog coins of the month's offerings, and `claimedSoonCoins` those of them their
  *   giver claimed within CLAIMED_SOON_MS (both in the month the offering was made);
- * - `expeditions`: party members who set out into a ruin or the blight raid;
+ * - `expeditions`: members paid for a cleared run, in a ruin or the blight raid (their `expedition` events);
  * - `crewJoins`: members who first gave to a crew quest in the month (each counted once a month).
  */
 export const GAME_COUNTERS = ["claims", "offeredCoins", "claimedSoonCoins", "expeditions", "crewJoins"] as const;

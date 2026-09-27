@@ -150,9 +150,10 @@ describe("the demo plays the game", () => {
     // Only the fresh seeded year is left in the ledger, and every player's XP adds up again.
     const after = await all(t, "gameEvents");
     const seeded = new Set((await all(t, "kudos")).map((k) => k.batchId));
-    // Kudos events come from the seeded kudos; the story's runs and its past blight are their own.
+    // Kudos events come from the seeded kudos; the story's runs, its party, its claims at the stone (#165) and its past blight are their own.
     const blights = new Set((await t.run((ctx) => ctx.db.query("blights").collect())).map((b) => `blight:${b._id}`));
-    expect(after.filter((e) => e.kind !== "quest" && e.kind !== "expedition").every((e) => seeded.has(e.batchId) || blights.has(e.batchId))).toBe(true);
+    const story = new Set(["quest", "expedition", "party", "claim"]);
+    expect(after.filter((e) => !story.has(e.kind)).every((e) => seeded.has(e.batchId) || blights.has(e.batchId))).toBe(true);
     const recorded = new Set((await all(t, "questCompletions")).map((c) => c._id as string));
     expect(after.filter((e) => e.quest?.scope === "weekly").every((e) => recorded.has(e.completionId!))).toBe(true);
     for (const p of await all(t, "players")) {
@@ -209,12 +210,12 @@ function daysFrom(from: string, to: string) {
 }
 
 describe("a year of demo history", () => {
-  test("covers 1 January up to now, with kudos on every workday and nothing in the future", async () => {
+  test("covers the whole year up to now, with kudos on every workday and nothing in the future", async () => {
     await enterDemo();
     const kudos = await all(t, "kudos");
     const days = new Set(kudos.map((k) => k.dayKey));
-    expect([...days].sort()[0]).toBe("2026-01-01");
-    const quietWorkdays = daysFrom("2026-01-01", addDays(TODAY, -1)).filter((d) => weekdayOfKey(d) < 5 && !days.has(d));
+    expect([...days].sort()[0]).toBe("2025-09-24");
+    const quietWorkdays = daysFrom("2025-09-24", addDays(TODAY, -1)).filter((d) => weekdayOfKey(d) < 5 && !days.has(d));
     expect(quietWorkdays).toEqual([]);
     expect(kudos.filter((k) => k.at > NOW.getTime())).toEqual([]);
     expect(days.has(TODAY)).toBe(true);

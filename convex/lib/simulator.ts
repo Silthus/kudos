@@ -70,7 +70,7 @@ export const TEAMMATE_KUDOS_PER_DAY = 3;
  */
 export function teammateKudos({ day, teammates, count = TEAMMATE_KUDOS_PER_DAY }: { day: number; teammates: string[]; count?: number }): { from: string; to: string }[] {
   const n = teammates.length;
-  if (n < 2) return [];
+  if (n < 3) return []; // two would only ever thank each other back
   return Array.from({ length: count }, (_, j) => {
     const giver = (day * count + j) % n;
     const ahead = 1 + ((day + j) % Math.min(5, Math.floor((n - 1) / 2) || 1));

@@ -135,6 +135,8 @@ async function startSimulator(ctx: MutationCtx, userId: Id<"users">, sessionId: 
     spreesEnabled: true,
     reactionsEnabled: true,
     clockOffsetMs: startAt - wallClock,
+    // The game launches with it: its success metrics count from this month (#165).
+    successBaselineBefore: startDay.slice(0, 7),
     worldSeed: newWorldSeed(),
     seedsBackfilledAt: wallClock, // no history to sow
   });
@@ -490,29 +492,14 @@ async function playBotDay(ctx: MutationCtx, workspace: Doc<"workspaces">, member
   let kudosGiven = 0;
   for (const [i, slackUserId] of recipients.entries()) {
     const teammate = teammates.find((m) => m.slackUserId === slackUserId)!;
-    const note = BOT_NOTES[(dayNumber + i) % BOT_NOTES.length];
-    const channel = BOT_CHANNELS[(dayNumber + i) % BOT_CHANNELS.length];
-    const at = now + i * 20 * 60_000; // through the morning, a kudos every 20 minutes
-    const result = await giveKudos(ctx, {
-      workspace: (await ctx.db.get(workspace._id))!,
-      giverSlackId: member.slackUserId,
-      recipientSlackIds: [slackUserId],
-      amountEach: 1,
-      channelId: `C_DEMO_${channel.toUpperCase()}`,
-      channelName: channel,
-      messageTs: `sim-${at}-${i}`,
-      text: `@${teammate.name.split(" ")[0]} ${workspace.emojiGlyph} ${note}`,
-      noteWords: countNoteWords(note, workspace.emojiName, workspace.emojiGlyph),
-      source: "playground",
-      now: at,
-    });
-    if (result.status === "given") kudosGiven++;
+    // Through the morning, a kudos every 20 minutes.
+    if ((await simulatedKudos(ctx, workspace._id, member.slackUserId, teammate, dayNumber + i, now + i * KUDOS_EVERY_MS)) === "given") kudosGiven++;
   }
 
   // Playing the day for you, the bot does both rituals at the stone (#157, #165): it offers your
   // appreciation, so its coins are there for planting and the run shows the claims and fruit a real
   // day would, and it plants the seeds teammates gave you.
-  const endsAt = now + recipients.length * 20 * 60_000;
+  const endsAt = now + recipients.length * KUDOS_EVERY_MS;
   const giver = await playerOf(ctx, member._id);
   if (giver && gameShownTo(workspace, member)) {
     await claimWaiting(ctx, (await ctx.db.get(workspace._id))!, giver, endsAt);
@@ -552,6 +539,33 @@ async function playBotDay(ctx: MutationCtx, workspace: Doc<"workspaces">, member
   };
 }
 
+/** The simulated day's kudos come this far apart. */
+const KUDOS_EVERY_MS = 20 * 60_000;
+
+/**
+ * One thoughtful kudos a fast-forward gives through the real engine (the bot's or a teammate's): one
+ * teammate thanked once, with the `n`th of the bot's notes, in a rotating channel, at `at`.
+ */
+async function simulatedKudos(ctx: MutationCtx, workspaceId: Id<"workspaces">, giverSlackId: string, to: Doc<"members">, n: number, at: number) {
+  const workspace = (await ctx.db.get(workspaceId))!;
+  const note = BOT_NOTES[n % BOT_NOTES.length];
+  const channel = BOT_CHANNELS[n % BOT_CHANNELS.length];
+  const result = await giveKudos(ctx, {
+    workspace,
+    giverSlackId,
+    recipientSlackIds: [to.slackUserId],
+    amountEach: 1,
+    channelId: `C_DEMO_${channel.toUpperCase()}`,
+    channelName: channel,
+    messageTs: `sim-${at}-${giverSlackId}`,
+    text: `@${to.name.split(" ")[0]} ${workspace.emojiGlyph} ${note}`,
+    noteWords: countNoteWords(note, workspace.emojiName, workspace.emojiGlyph),
+    source: "playground",
+    now: at,
+  });
+  return result.status;
+}
+
 /**
  * The rest of the company's day while the bot plays yours (#165, plan #152 S10): the teammates give a
  * few thoughtful kudos among themselves (lib/simulator.ts `teammateKudos`) after the bot's, and then,
@@ -568,24 +582,9 @@ async function playTeammatesDay(ctx: MutationCtx, workspace: Doc<"workspaces">, 
   const bySlack = new Map(teammates.map((m) => [m.slackUserId, m]));
   const kudos = teammateKudos({ day: dayNumber, teammates: teammates.map((m) => m.slackUserId) });
   for (const [i, { from: giver, to }] of kudos.entries()) {
-    const note = BOT_NOTES[(dayNumber + i + 3) % BOT_NOTES.length];
-    const channel = BOT_CHANNELS[(dayNumber + i + 1) % BOT_CHANNELS.length];
-    const at = from + (i + 1) * 20 * 60_000;
-    await giveKudos(ctx, {
-      workspace: (await ctx.db.get(workspace._id))!,
-      giverSlackId: giver,
-      recipientSlackIds: [to],
-      amountEach: 1,
-      channelId: `C_DEMO_${channel.toUpperCase()}`,
-      channelName: channel,
-      messageTs: `sim-${at}-t${i}`,
-      text: `@${bySlack.get(to)!.name.split(" ")[0]} ${workspace.emojiGlyph} ${note}`,
-      noteWords: countNoteWords(note, workspace.emojiName, workspace.emojiGlyph),
-      source: "playground",
-      now: at,
-    });
+    await simulatedKudos(ctx, workspace._id, giver, bySlack.get(to)!, dayNumber + i + 3, from + (i + 1) * KUDOS_EVERY_MS);
   }
-  const at = from + (kudos.length + 1) * 20 * 60_000;
+  const at = from + (kudos.length + 1) * KUDOS_EVERY_MS;
   for (const m of teammates) {
     const fresh = (await ctx.db.get(workspace._id))!;
     await plantWaiting(ctx, fresh, m._id, at);

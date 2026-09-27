@@ -15,7 +15,7 @@ import {
 import { backfilledRollups } from "./stats";
 import { RECIPROCAL_WINDOW_MS } from "./quests";
 import { GAME_COUNTERS, gameFields, SUCCESS_COUNTERS, successCounts, type GameCounts, type SuccessCounts } from "./success";
-import { gameCounts } from "../gameSuccess";
+import { gameCounts } from "./gameSuccess";
 import { addDays, DAY_MS, startOfDayUtc, weekdayOfKey, zonedParts } from "./time";
 
 /**

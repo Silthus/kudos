@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
 import { giveKudos, revokeKudosRow, type GiveInput } from "../convex/engine";
 import { xpForLevel } from "../convex/lib/xp";
+import { generateRuin, type Room } from "../convex/lib/rpg";
 import { NOW, seedTeam, setupConvex, signInAs, TODAY, type Team } from "./helpers";
 
 /**
@@ -57,13 +58,23 @@ const makePlayer = (memberId: typeof team.ana, patch: { level: number; coins?: n
     await ctx.db.patch(player._id, { level: patch.level, xp: xpForLevel(patch.level), coins: (player.coins ?? 0) + (patch.coins ?? 0), stamina: patch.stamina ?? 0 });
   });
 
+/** A world seed and near ruin whose generated rooms satisfy `fits`. */
+function nearRuin(fits: (rooms: Room[]) => boolean) {
+  for (let seed = 1; seed < 5000; seed++)
+    for (let i = 0; i < 6; i++) {
+      const ruinId = `ruin:1:${i}`;
+      if (fits(generateRuin(seed, ruinId).rooms)) return { seed, ruinId };
+    }
+  throw new Error("no such ruin");
+}
+
 async function september() {
   const ana = await signInAs(t, team.ana);
   return (await ana.query(api.analytics.successMetrics, { today: TODAY })).months.find((m) => m.month === "2026-09")!;
 }
 
 describe("the game's success metrics (#165, S11)", () => {
-  test("count claims, coins claimed within a week, expeditions and crew-quest contributors live, and a rebuild recounts the same", async () => {
+  test("count claims, coins claimed within a week, cleared expeditions and crew-quest contributors live, and a rebuild recounts the same", async () => {
     await rebuild();
     // Two active players: Ana thanks Ben, Ben thanks Cleo. Each offering waits at the stone.
     await giveAt("2026-09-01T09:00:00Z", { giverSlackId: "UANA", recipientSlackIds: ["UBEN"] });
@@ -72,16 +83,22 @@ describe("the game's success metrics (#165, S11)", () => {
     vi.setSystemTime(new Date("2026-09-03T09:00:00Z"));
     await (await signInAs(t, team.ana)).mutation(api.offerings.claim, {});
 
-    // Ana goes into a near ruin once the tree has opened them.
+    // Ana clears a near ruin (all foes) once the tree has opened them.
+    const { seed, ruinId } = nearRuin((rooms) => rooms.every((r) => r.kind === "foe"));
     await t.run(async (ctx) => {
+      await ctx.db.patch(team.workspaceId, { worldSeed: seed });
       const tree = (await ctx.db.query("trees").withIndex("by_workspace", (q) => q.eq("workspaceId", team.workspaceId)).unique())!;
       await ctx.db.patch(tree._id, { peakGrowth: 900, plantedAt: Date.now() });
     });
-    await makePlayer(team.ana, { level: 6, stamina: 1, coins: 50 });
+    await makePlayer(team.ana, { level: 20, stamina: 1, coins: 50 });
     const ana = await signInAs(t, team.ana);
-    const ruin = (await ana.query(api.tree.state, {}))!.layout.ruins.find((r) => r.tier === 1)!;
     vi.setSystemTime(new Date("2026-09-10T09:00:00Z"));
-    await ana.mutation(api.rpg.start, { ruinId: ruin.id });
+    await ana.mutation(api.rpg.start, { ruinId });
+    for (let guard = 0; (await ana.query(api.rpg.current, {}))!.run!.open; guard++) {
+      if (guard > 100) throw new Error("the run never ended");
+      await ana.mutation(api.rpg.act, { choice: { kind: "strike" } });
+    }
+    expect((await ana.query(api.rpg.current, {}))!.run).toMatchObject({ state: "cleared" });
 
     // Ana gives to a crew quest twice and Ben once: two contributors this month.
     const questId = await t.run((ctx) =>

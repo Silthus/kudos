@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { botRecipients, BOT_NOTES, morningOf, simulatorStart } from "./simulator";
+import { botRecipients, BOT_NOTES, morningOf, simulatorStart, teammateKudos } from "./simulator";
 import { countNoteWords } from "./parse";
 import { dayKeyFor, zonedParts } from "./time";
 
@@ -56,5 +56,25 @@ describe("the fast-forward bot", () => {
 
   test("writes a detailed note (12+ words) every time", () => {
     for (const note of BOT_NOTES) expect(countNoteWords(note, "taco", "🌮")).toBeGreaterThanOrEqual(12);
+  });
+});
+
+describe("the teammates' kudos (#165)", () => {
+  const team = Array.from({ length: 12 }, (_, i) => `U${i}`);
+
+  test("a few a day among the teammates, never a thank-back of each other and never oneself", () => {
+    const days = Array.from({ length: 60 }, (_, day) => teammateKudos({ day, teammates: team }));
+    expect(days.every((d) => d.length === 3)).toBe(true);
+    const all = days.flat();
+    expect(all.every((k) => k.from !== k.to && team.includes(k.to))).toBe(true);
+    const pairs = new Set(all.map((k) => `${k.from}>${k.to}`));
+    expect(all.some((k) => pairs.has(`${k.to}>${k.from}`))).toBe(false);
+    // Everyone gives in turn.
+    expect(new Set(days.slice(0, 4).flat().map((k) => k.from)).size).toBe(12);
+  });
+
+  test("a team too small to thank without thanking back gives nothing", () => {
+    expect(teammateKudos({ day: 0, teammates: ["U0", "U1"] })).toEqual([]);
+    expect(teammateKudos({ day: 0, teammates: ["U0", "U1", "U2"] }).every((k) => k.from !== k.to)).toBe(true);
   });
 });

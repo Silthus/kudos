@@ -7,7 +7,7 @@ import { CATALOG, pickTemplate, RARITIES, renderTemplate, TEMPLATE_BY_KEY, type 
 import { ANY_MESSAGE, channelKey, WORKSPACE_COUNTERS } from "./lib/rollups";
 import { RECIPROCAL_WINDOW_MS } from "./lib/quests";
 import { GAME_COUNTERS, SUCCESS_COUNTERS, successCounts } from "./lib/success";
-import { gameCounts } from "./gameSuccess";
+import { gameCounts } from "./lib/gameSuccess";
 import { kudosInRange, totalsByMember, workspaceDays } from "./lib/stats";
 import {
   markBackfilled,

@@ -32,8 +32,8 @@ export const SUCCESS_METRICS: SuccessMetric[] = [
   { key: "reciprocalShare", label: "Thank-backs", hint: "of kudos return one from the last 72 h", goal: "hold", shape: "share" },
   { key: "participation", label: "Participation", hint: "of the team gave kudos", goal: "watch", shape: "share" },
   { key: "claimsPerPlayerWeek", label: "Claims at the stone", hint: "per active player a week", goal: "watch", shape: "ratio" },
-  { key: "claimedSoonShare", label: "Claimed within a week", hint: "of Hog coins offered, claimed by their giver within 7 days", goal: "watch", shape: "share" },
-  { key: "expeditionsPerPlayer", label: "Expeditions", hint: "into the ruins per active player", goal: "watch", shape: "ratio" },
+  { key: "claimedSoonShare", label: "Claimed within a week", hint: "of Hog coins offered, claimed by their giver within 7 days (a month settles a week after it ends)", goal: "watch", shape: "share" },
+  { key: "expeditionsPerPlayer", label: "Expeditions", hint: "cleared per active player, the blight raid included", goal: "watch", shape: "ratio" },
   { key: "crewContributors", label: "Crew contributors", hint: "teammates who first gave to a crew quest", goal: "watch", shape: "count" },
 ];
 

@@ -25,14 +25,18 @@ export function shiftMonth(month: string, n: number): string {
   return `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, "0")}`;
 }
 
+/** Days of history the demo seeds up to today: a whole year (#49's "a full year of history"). */
+export const HISTORY_DAYS = 365;
+
 /**
- * The first day the demo seeds: 1 January of this year (#49), or earlier when the launch and the
- * baseline months before it need more history.
+ * The first day the demo seeds: a whole year before today, whatever the date (#165: a year of the
+ * team's kudos makes Lumen Labs' tree an elder tree on any day; from 1 January only, it wasn't until
+ * the autumn), or earlier if the launch and the baseline months before it ever needed more.
  */
 export function demoSeedStart(today: string): string {
-  const newYear = `${today.slice(0, 4)}-01-01`;
+  const yearAgo = addDays(today, 1 - HISTORY_DAYS);
   const baseline = `${shiftMonth(demoLaunchDay(today).slice(0, 7), -BASELINE_MONTHS)}-01`;
-  return baseline < newYear ? baseline : newYear;
+  return baseline < yearAgo ? baseline : yearAgo;
 }
 
 /**

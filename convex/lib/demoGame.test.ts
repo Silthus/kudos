@@ -10,11 +10,11 @@ describe("the demo's game timeline", () => {
     expect(weekdayOfKey(demoLaunchDay("2027-01-01"))).toBe(0);
   });
 
-  test("seeds from 1 January, or earlier to hold the launch and the three baseline months before it", () => {
-    expect(demoSeedStart("2026-09-23")).toBe("2026-01-01"); // launch in May: baseline February to April
+  test("seeds a whole year up to today (the tree is an elder tree on any date, #165), which holds the launch and the three baseline months before it", () => {
+    expect(demoSeedStart("2026-09-23")).toBe("2025-09-24");
     expect(demoSeedStart("2026-12-31")).toBe("2026-01-01");
-    expect(demoSeedStart("2027-01-01")).toBe("2026-05-01"); // launch 24 August 2026: baseline May to July
-    expect(demoSeedStart("2026-06-15")).toBe("2025-11-01"); // launch 9 February: baseline November to January
+    expect(demoSeedStart("2027-01-01")).toBe("2026-01-02");
+    expect(demoSeedStart("2026-06-15")).toBe("2025-06-16");
     for (const today of ["2026-01-01", "2026-03-31", "2026-07-04", "2026-11-11"]) {
       expect(daysBetween(demoSeedStart(today), demoLaunchDay(today))).toBeGreaterThanOrEqual(89);
     }

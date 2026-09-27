@@ -522,7 +522,7 @@ export default defineSchema({
     claims: v.optional(v.number()), // offerings claimed at the stone by their giver (not by time)
     offeredCoins: v.optional(v.number()), // the Hog coins of the month's offerings…
     claimedSoonCoins: v.optional(v.number()), // …and those their giver claimed within 7 days
-    expeditions: v.optional(v.number()), // party members who set out into a ruin or the raid
+    expeditions: v.optional(v.number()), // members paid for a cleared run (ruin or raid): its `expedition` events
     crewJoins: v.optional(v.number()), // members who first gave to a crew quest in the month
   }).index("by_workspace_bucket", ["workspaceId", "bucket"]),
 
@@ -782,7 +782,7 @@ export default defineSchema({
     .index("by_member_kind", ["memberId", "kind"])
     .index("by_member_day", ["memberId", "dayKey"])
     .index("by_batch", ["batchId"])
-    .index("by_workspace_kind_at", ["workspaceId", "kind", "at"]), // the success metrics' claims a month (#165)
+    .index("by_workspace_kind_at", ["workspaceId", "kind", "at"]), // the success metrics' claims and cleared runs a month (#165)
 
   // Every message the bot sends (or would send, in the demo workspace).
   notifications: defineTable({
@@ -1271,8 +1271,7 @@ export default defineSchema({
     endedAt: v.optional(v.number()),
   })
     .index("by_leader_startedAt", ["leaderId", "startedAt"])
-    .index("by_workspace", ["workspaceId"])
-    .index("by_workspace_startedAt", ["workspaceId", "startedAt"]), // the success metrics' expeditions a month (#165)
+    .index("by_workspace", ["workspaceId"]),
 
   // A crew quest (#161, crew.ts; plan #152 S6): a part of the tree from the catalogue
   // (lib/crewCatalogue.ts) the crew pools Hog coins on. Proposed, funded when `contributed` reaches
@@ -1312,7 +1311,8 @@ export default defineSchema({
     .index("by_quest_member", ["questId", "memberId"])
     .index("by_quest_at", ["questId", "at"])
     .index("by_member", ["memberId"])
-    .index("by_workspace", ["workspaceId"]),
+    .index("by_workspace", ["workspaceId"])
+    .index("by_workspace_at", ["workspaceId", "at"]), // the success metrics' crew contributors a month (#165)
 
   // Blights (#164, blights.ts; the rules are lib/blight.ts, plan #152 S8): a shared foe at the tree from
   // the ancient stage. One row per blight, `number` counting them per workspace (the seeded schedule's

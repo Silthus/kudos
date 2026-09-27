@@ -33,7 +33,7 @@ import { playerOf, thankedBack } from "./game";
 import { finishedTutorial } from "./tutorial";
 import { addFruit, addGear } from "./inventory";
 import { adventurer } from "./rpg";
-import { claimed as countClaim, offeringChanged, setOut as countSetOut } from "./gameSuccess";
+import { claimed as countClaim, expeditionCleared, offeringChanged } from "./lib/gameSuccess";
 import type { FruitId } from "./lib/fruits";
 import { addFuel, treeOf, worldSeedOf } from "./tree";
 import { creature, generateRuin, lootRand, runLoot, tierForLevel, type Equipped, type GearId, type Room } from "./lib/rpg";
@@ -58,9 +58,9 @@ const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
 
 /**
- * The demo shows the current year so far, from 1 January of the workspace-local year up to today, and
- * reaches further back when that's needed to hold the game's launch and the three months before it
- * (lib/demoGame.ts), so early January doesn't open on an empty workspace either.
+ * The demo shows a whole year up to today (lib/demoGame.ts `demoSeedStart`): the game's launch and the
+ * three months before it always fit, and a year of the team's kudos makes its tree an elder tree on
+ * any date (#165).
  */
 function seedWindow(timezone: string) {
   const today = dayKeyFor(Date.now(), timezone);
@@ -422,7 +422,7 @@ export const seedTreeFuel = internalMutation({
     const launch = (workspace.gamePauses ?? [])[0];
     if (!launch?.until) return null;
     if (workspace.seedsBackfilledAt === undefined) {
-      if (attempt < STORE_SEED_WAIT.attempts) await ctx.scheduler.runAfter(STORE_SEED_WAIT.everyMs, internal.demo.seedTreeFuel, { workspaceId, resetAt, attempt: attempt + 1 });
+      if (attempt < SEED_WAIT.attempts) await ctx.scheduler.runAfter(SEED_WAIT.everyMs, internal.demo.seedTreeFuel, { workspaceId, resetAt, attempt: attempt + 1 });
       else console.warn("Demo tree: its seeds were never sown; no fuel from before the launch.");
       return null;
     }
@@ -496,8 +496,8 @@ export const seedGarden = internalMutation({
     const replayed =
       alex && (await ctx.db.query("gameEvents").withIndex("by_member_day", (q) => q.eq("memberId", alex._id).lt("dayKey", today)).first());
     if (!alex || !player || !replayed) {
-      if (attempt < STORE_SEED_WAIT.attempts) {
-        await ctx.scheduler.runAfter(STORE_SEED_WAIT.everyMs, internal.demo.seedGarden, { workspaceId, resetAt, attempt: attempt + 1 });
+      if (attempt < SEED_WAIT.attempts) {
+        await ctx.scheduler.runAfter(SEED_WAIT.everyMs, internal.demo.seedGarden, { workspaceId, resetAt, attempt: attempt + 1 });
       } else {
         console.warn("Demo garden: the demo user's history was never replayed; no garden.");
         await ctx.scheduler.runAfter(0, internal.demo.seedStore, { workspaceId, resetAt });
@@ -528,7 +528,7 @@ export const seedCrew = internalMutation({
     if (await ctx.db.query("crewQuests").withIndex("by_workspace_status", (q) => q.eq("workspaceId", workspaceId)).first()) return null;
     const stage = stageForGrowth((await treeOf(ctx, workspaceId))?.peakGrowth ?? 0);
     if (!districtsOpen(stage).includes("crew")) {
-      if (attempt < STORE_SEED_WAIT.attempts) await ctx.scheduler.runAfter(STORE_SEED_WAIT.everyMs, internal.demo.seedCrew, { workspaceId, resetAt, attempt: attempt + 1 });
+      if (attempt < SEED_WAIT.attempts) await ctx.scheduler.runAfter(SEED_WAIT.everyMs, internal.demo.seedCrew, { workspaceId, resetAt, attempt: attempt + 1 });
       else console.warn("Demo crew: the tree never opened the crew's plaque; no crew quests.");
       return null;
     }
@@ -571,10 +571,11 @@ export const seedClaims = internalMutation({
       .query("offerings")
       .withIndex("by_member_claimedAt_createdAt", (q) => q.eq("memberId", memberId))
       .take(2000);
-    const gave = await ctx.db.query("gameEvents").withIndex("by_member_kind", (q) => q.eq("memberId", memberId).eq("kind", "give")).first();
-    if (gave && !offerings.some((o) => o.createdAt >= launch)) {
+    // A thoughtful kudos given since the launch offers something: until its offering is there, the replay hasn't run.
+    const given = await ctx.db.query("kudos").withIndex("by_giver_at", (q) => q.eq("giverId", memberId).gte("at", launch)).take(200);
+    if (given.some((k) => hasNote(k.noteWords)) && !offerings.some((o) => o.createdAt >= launch)) {
       // Their replay hasn't written their offerings yet.
-      if (attempt < STORE_SEED_WAIT.attempts) await ctx.scheduler.runAfter(STORE_SEED_WAIT.everyMs, internal.demo.seedClaims, { workspaceId, memberId, resetAt, attempt: attempt + 1 });
+      if (attempt < SEED_WAIT.attempts) await ctx.scheduler.runAfter(SEED_WAIT.everyMs, internal.demo.seedClaims, { workspaceId, memberId, resetAt, attempt: attempt + 1 });
       return null;
     }
     const member = await ctx.db.get(memberId);
@@ -660,8 +661,8 @@ export const seedNeighbourGarden = internalMutation({
     if (!member || member.isBot || member.deactivated || member.slackUserId === DEMO_YOU) return null;
     const player = await playerOf(ctx, member._id);
     // Their history may still be replaying: wait for it like the Store story does.
-    if (!player && attempt < STORE_SEED_WAIT.attempts) {
-      await ctx.scheduler.runAfter(STORE_SEED_WAIT.everyMs, internal.demo.seedNeighbourGarden, { workspaceId, memberId, resetAt, attempt: attempt + 1 });
+    if (!player && attempt < SEED_WAIT.attempts) {
+      await ctx.scheduler.runAfter(SEED_WAIT.everyMs, internal.demo.seedNeighbourGarden, { workspaceId, memberId, resetAt, attempt: attempt + 1 });
       return null;
     }
     if (!player || player.level < GARDEN_LEVEL) return null;
@@ -729,7 +730,7 @@ export const seedHomes = internalMutation({
     if (await ctx.db.query("homes").withIndex("by_workspace_plot", (q) => q.eq("workspaceId", workspaceId)).first()) return null;
     const plots = homePlots((await treeOf(ctx, workspaceId))?.peakGrowth ?? 0);
     if (plots === 0) {
-      if (attempt < STORE_SEED_WAIT.attempts) await ctx.scheduler.runAfter(STORE_SEED_WAIT.everyMs, internal.demo.seedHomes, { workspaceId, resetAt, attempt: attempt + 1 });
+      if (attempt < SEED_WAIT.attempts) await ctx.scheduler.runAfter(SEED_WAIT.everyMs, internal.demo.seedHomes, { workspaceId, resetAt, attempt: attempt + 1 });
       else console.warn("Demo homes: the homes ring never opened; no homes.");
       return null;
     }
@@ -905,12 +906,12 @@ async function seedRun(
     startedAt: at,
     endedAt: at + 20 * 60_000,
   });
-  await countSetOut(ctx, workspace, at, explorers.length);
   const foes = rooms.flatMap((r) => (r.kind === "foe" ? [r.foe] : []));
   for (const e of explorers) {
     const memberId = e.member._id;
     const coins = paid.get(memberId)!;
     await ctx.db.insert("gameEvents", { workspaceId: workspace._id, memberId, kind: "expedition", batchId: `expedition:${id}`, dayKey, at, xp: 0, coins });
+    await expeditionCleared(ctx, workspace, at);
     const partied = await ctx.db.query("gameEvents").withIndex("by_member_kind", (q) => q.eq("memberId", memberId).eq("kind", "party")).first();
     if (explorers.length > 1 && !partied) {
       await ctx.db.insert("gameEvents", { workspaceId: workspace._id, memberId, kind: "party", batchId: `party:${memberId}`, dayKey, at, xp: 0 });
@@ -969,7 +970,7 @@ export const seedParty = internalMutation({
     const leader = alex && (await playerOf(ctx, alex._id));
     if (!alex || !leader?.lastExpedition) {
       // Alex's own runs come first (`seedGarden`).
-      if (attempt < STORE_SEED_WAIT.attempts) await ctx.scheduler.runAfter(STORE_SEED_WAIT.everyMs, internal.demo.seedParty, { workspaceId, resetAt, attempt: attempt + 1 });
+      if (attempt < SEED_WAIT.attempts) await ctx.scheduler.runAfter(SEED_WAIT.everyMs, internal.demo.seedParty, { workspaceId, resetAt, attempt: attempt + 1 });
       else console.warn("Demo party: Alex never went into the ruins; no party run.");
       return null;
     }
@@ -986,8 +987,8 @@ export const seedParty = internalMutation({
   },
 });
 
-/** How long `seedStore` waits for the game rebuild to give the story's people their coins. */
-const STORE_SEED_WAIT = { attempts: 90, everyMs: 2_000 };
+/** How long a story step waits for the game rebuild (players, their coins, their offerings) or an earlier step. */
+const SEED_WAIT = { attempts: 90, everyMs: 2_000 };
 
 /**
  * Opens the demo's Store with real rewards on (#17, #91): the catalog, then the team spending Hog
@@ -1018,8 +1019,8 @@ export const seedStore = internalMutation({
       const id = ids.get(slackUserId);
       if (id && !(await playerOf(ctx, id))) waiting.push(slackUserId);
     }
-    if (waiting.length > 0 && attempt < STORE_SEED_WAIT.attempts) {
-      await ctx.scheduler.runAfter(STORE_SEED_WAIT.everyMs, internal.demo.seedStore, { workspaceId, resetAt, attempt: attempt + 1 });
+    if (waiting.length > 0 && attempt < SEED_WAIT.attempts) {
+      await ctx.scheduler.runAfter(SEED_WAIT.everyMs, internal.demo.seedStore, { workspaceId, resetAt, attempt: attempt + 1 });
       return null;
     }
     if (waiting.length > 0) console.warn(`Demo Store story: still no player for ${waiting.join(", ")}; their steps are left out.`);

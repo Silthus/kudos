@@ -16,7 +16,7 @@ import { fruitIdValidator } from "./schema";
 import { addFuel } from "./tree";
 import { homeFinished } from "./homes";
 import { addFruit, held } from "./inventory";
-import { claimed as countClaim, offeringChanged } from "./gameSuccess";
+import { claimed as countClaim, offeringChanged } from "./lib/gameSuccess";
 
 /**
  * Offerings at the Ancient Tree (#157; design plan #152 S3): the giver's side of the stone's two
@@ -304,6 +304,14 @@ export async function autoClaimWorkspace(ctx: MutationCtx, workspace: Doc<"works
 
 // ── The rebuild ─────────────────────────────────────────────────────────────
 
+/**
+ * An offering no give event can stand behind: claimed the moment it was made, while the game was off
+ * (nothing given then earns). Only a story writes one: the demo's year before its launch (demo.ts `seedTreeFuel`).
+ */
+function storyFuel(workspace: Doc<"workspaces">, o: Doc<"offerings">) {
+  return o.claimedAt === o.createdAt && pausedAt(workspace, o.createdAt);
+}
+
 /** Give events and offerings a replay reads per member; past either, it leaves the member's offerings as they are. */
 const MAX_REPLAYED = 8000;
 
@@ -341,7 +349,7 @@ export const replayMember = internalMutation({
       return null;
     }
     const now = workspaceNow(workspace);
-    const existing = stored.filter((o) => !pausedAt(workspace, o.createdAt));
+    const existing = stored.filter((o) => !storyFuel(workspace, o));
     const byBatch = new Map(existing.map((o) => [o.batchId, o]));
     const before = sum(existing.filter((o) => o.claimedAt !== undefined));
     const legacyUntil = workspace.offeringsFrom ?? Infinity;

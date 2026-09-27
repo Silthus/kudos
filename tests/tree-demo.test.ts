@@ -100,6 +100,9 @@ describe("the demo", () => {
     const reseeded = await crew();
     expect(reseeded.built.map((b) => b.part)).toEqual(["structure_bell"]);
     expect(reseeded.open.quests.map((q) => [q.part, q.contributed])).toEqual([["structure_market_awnings", 300]]);
+    // Neither the seeding nor the reset tells anyone the tree grew: stage DMs are for stages reached live.
+    const told = await t.run(async (ctx) => (await ctx.db.query("notifications").collect()).filter((n) => n.gains?.some((g) => g.kind === "tree_stage")));
+    expect(told).toEqual([]);
     // A teammate starts over at the elder hog.
     expect((await t.run((ctx) => ctx.db.query("members").collect())).filter((m) => m.tutorial).map((m) => m.slackUserId)).toEqual(["UDEMOYOU"]);
     expect(await t.run(async (ctx) => (await ctx.db.query("trees").collect()).length)).toBe(1);

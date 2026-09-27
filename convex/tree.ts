@@ -238,7 +238,8 @@ export const tellStage = internalMutation({
   returns: v.null(),
   handler: async (ctx, { workspaceId, stage, cursor }) => {
     const workspace = await ctx.db.get(workspaceId);
-    if (!workspace || workspace.status !== "active") return null;
+    // A demo reset under way wipes the old tree: its stages are nobody's news.
+    if (!workspace || workspace.status !== "active" || workspace.resettingSince !== undefined) return null;
     const page = await ctx.db
       .query("members")
       .withIndex("by_workspace_slackUser", (q) => q.eq("workspaceId", workspaceId))

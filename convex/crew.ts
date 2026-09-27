@@ -1,5 +1,5 @@
 import { ConvexError, v } from "convex/values";
-import { crewLineChanged } from "./gameSuccess";
+import { crewLineChanged } from "./lib/gameSuccess";
 import { paginationOptsValidator, paginationResultValidator } from "convex/server";
 import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
