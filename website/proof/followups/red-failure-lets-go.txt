@@ -1,0 +1,32 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/followups/website
+
+ ❯ |website| src/liveShell.test.tsx (10 tests | 1 failed) 413ms
+   ❯ WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait (5)
+     × lets the failure go once auth settles, so a later signed-out answer shows the plain sign-in page 23ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/liveShell.test.tsx > WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait > lets the failure go once auth settles, so a later signed-out answer shows the plain sign-in page
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  /^Sign in$/[39m
+Received:
+[31m  Sign-in didn't finish[39m
+ ❯ src/liveShell.test.tsx:166:25
+    164|     rerender(<Root convexUrl="https://happy-hog-123.convex.cloud" />);
+    165|
+    166|     expect(pageTitle()).toHaveTextContent(/^Sign in$/);
+       |                         ^
+    167|   });
+    168|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 9 passed (10)
+   Start at  22:56:05
+   Duration  2.25s (import 46%, environment 20%, tests 19%, transform 10%, setup 5%)
+

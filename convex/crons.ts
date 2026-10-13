@@ -9,6 +9,7 @@ crons.daily("clean up the analytics outbox", { hourUTC: 3, minuteUTC: 15 }, inte
 crons.interval("sweep failed scheduled functions", { minutes: 15 }, internal.analytics.sweep.sweep);
 crons.interval("make features that shipped ready", { hours: 1 }, internal.unlocks.sweep.sweep, {});
 crons.interval("tick the website clock", { minutes: 15 }, internal.website.clock.tick);
+crons.daily("delete abandoned sign-in handshakes", { hourUTC: 3, minuteUTC: 30 }, internal.website.abandonedHandshakes.deleteAbandoned);
 crons.daily("read the company profiles from posthog.com", { hourUTC: 4, minuteUTC: 0 }, internal.companyProfiles.sync.syncCompanyProfiles);
 
 export default crons;

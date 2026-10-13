@@ -1,5 +1,5 @@
 # A run started by hand deploys the chosen branch to the sandbox Convex deployment, which every lane shares.
-# The deploy key is scoped to that one deployment and reaches only the steps that deploy, upload the website and prepare its flag.
+# The deploy key is scoped to that one deployment and reaches only the steps that deploy, upload the website, prepare its flag and read the faces.
 name: Deploy sandbox
 
 on:
@@ -61,5 +61,12 @@ jobs:
       - name: Prepare the website flag's workspace key
         if: steps.tip.outputs.current == 'true'
         run: pnpm exec convex run website/flag:prepareWebsiteFlag
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_SANDBOX }}
+
+      # The faces come from the company profiles, which the daily cron reads only at 04:00 UTC, so every deploy reads them once.
+      - name: Read the company profiles once
+        if: steps.tip.outputs.current == 'true'
+        run: pnpm exec convex run companyProfiles/sync:syncCompanyProfiles
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_SANDBOX }}

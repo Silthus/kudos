@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { Frame } from "./Frame";
 import { ClosedPage } from "./pages/ClosedPage";
+import { ConnectingPage } from "./pages/ConnectingPage";
 import { ErrorPage } from "./pages/ErrorPage";
 import { HomePage } from "./pages/HomePage";
 import { NotAMemberPage } from "./pages/NotAMemberPage";
@@ -37,6 +38,7 @@ type PageProps = { state: ShellState; atHome: boolean; onSignIn: () => void; onS
 function Page({ state, atHome, onSignIn, onSignOut }: PageProps) {
   if (state.kind === "broken") throw new Error("This page failed to render.");
   if (state.kind === "loading") return null;
+  if (state.kind === "connecting") return <ConnectingPage />;
   if (state.kind === "closed") return <ClosedPage />;
   if (!atHome) return <NotFoundPage />;
   switch (state.kind) {
