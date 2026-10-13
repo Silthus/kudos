@@ -136,6 +136,9 @@ async function earlierAward(t: Backend, giverUser: string, kudosTo: Record<strin
     kudosEmoji: "hedgehog",
     annotations: {},
     allowance: { dailyOpening: 5, dailyLeft: 0 },
+    skippedMentions: 0,
+    retry: false,
+    inThread: false,
     day,
     at: Date.now(),
   };

@@ -1,7 +1,8 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import { type ActionCtx, internalAction } from "../_generated/server";
+import type { ActionCtx } from "../_generated/server";
+import { observedAction } from "../analytics/boundary";
 import { messageRefValidator, type Mention, type MessageRef } from "../engine/messageEvent";
 import type { Indicator } from "../feedback/indicator";
 import type { Line, Segment } from "../feedback/replies";
@@ -18,7 +19,7 @@ type Attempt = { kind: "delivered" } | { kind: "gone" } | { kind: "held"; until:
 type Retry = { at: number; attempt: number } | null;
 type Send = (attempt: number) => Promise<Retry>;
 
-export const deliverIndicator = internalAction({
+export const deliverIndicator = observedAction({
   args: { ...messageRefValidator.fields, ...attemptArgs },
   handler: async (ctx, { attempt = 1, ...ref }) => {
     const retry = await retryOnAnyError(attempt, () => reconcileIndicator(ctx, ref, attempt));
@@ -26,7 +27,7 @@ export const deliverIndicator = internalAction({
   },
 });
 
-export const deliverPrivateReply = internalAction({
+export const deliverPrivateReply = observedAction({
   args: { reply: v.id("privateReplies"), ...attemptArgs },
   handler: async (ctx, { reply, attempt = 1 }) => {
     await tryAtMostThreeTimes(

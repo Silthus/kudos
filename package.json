@@ -23,6 +23,7 @@
     "yaml": "^2.9.1"
   },
   "dependencies": {
+    "@posthog/convex": "^2.1.5",
     "convex": "^1.46.0"
   }
 }

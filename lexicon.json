@@ -3,7 +3,7 @@
   "concepts": [
     {
       "name": "kudos",
-      "definition": "The unit of recognition a giver gives a recipient. The word is the same in the singular and the plural: 1 kudos, 3 kudos. Not a point, credit or currency, and not a taco: :taco: is only the default kudos emoji.",
+      "definition": "The unit of recognition a giver gives a recipient. The word is the same in the singular and the plural: 1 kudos, 3 kudos. Not a point, credit or currency, and not a taco: :taco: is only the fallback default kudos emoji, used when the deployment sets none.",
       "rejected": [
         {
           "alternative": "karma",
@@ -29,7 +29,7 @@
     },
     {
       "name": "kudos emoji",
-      "definition": "An emoji that gives kudos for a giver: the workspace's emoji, :taco: unless changed, plus any the giver has unlocked. Each occurrence in a kudos message is one kudos for every recipient."
+      "definition": "An emoji that gives kudos for a giver: the workspace's emoji, which is the deployment's default unless the workspace changes it (:taco: when the deployment sets none), plus any the giver has unlocked. Each occurrence in a kudos message is one kudos for every recipient."
     },
     {
       "name": "kudos message",
@@ -298,6 +298,82 @@
     {
       "name": "app home tab",
       "definition": "One page of App Home, picked from the tab bar at its top: Profile (the member's kudos and allowance), Leaderboard (the boards for one period), and Settings (the member's own switches); App Home remembers the tab and period each member last picked (G24, G42)."
+    },
+    {
+      "name": "product event",
+      "definition": "A fact of the domain sent to PostHog under a name from the lexicon, written <object> <past-tense verb> in lowercase words (kudos given, kudos received), with only the properties its projection lists by name. Not a domain event: a domain event drives the domain, a product event only reports it."
+    },
+    {
+      "name": "analytics ID",
+      "definition": "A member's opaque identity in PostHog: a random UUID the analytics module creates the first time it records a product event for the member and keeps while the member's data exists. Sent as distinct_id; never derived from, or sent with, a Slack ID, a name, an email or a Convex document ID."
+    },
+    {
+      "name": "workspace key",
+      "definition": "A workspace's opaque identity in PostHog: a random UUID the analytics module creates the first time it records a product event for the workspace, sent as workspace_key on every product event. Never the Slack team ID."
+    },
+    {
+      "name": "outbox",
+      "definition": "The analytics module's table of product events recorded and not yet delivered to PostHog. An event is written there in the transaction that makes its fact true, or in the subscriber transaction its domain event schedules, and leaves it when PostHog accepts its batch."
+    },
+    {
+      "name": "drain",
+      "definition": "The one analytics action that sends the outbox's due product events to PostHog's batch endpoint, at most 100 per request, and settles each batch by PostHog's answer. Only one drain runs at a time; recording starts it when none is scheduled or running."
+    },
+    {
+      "name": "capture",
+      "definition": "Whether a deployment records and sends product events: on only when it has both the PostHog project token and a valid KUDOS_ENVIRONMENT (sandbox or production). With capture off nothing is recorded and nothing is sent."
+    },
+    {
+      "name": "exhausted",
+      "definition": "An outbox event the drain has given up and will never send: rejected by PostHog (400 or 413), out of retries after its sixth failure, or expired after 7 days pending. It is logged once with its name and reason, never its properties, and deleted 7 days later. Its reason exhausted names the second case."
+    },
+    {
+      "name": "usage fact",
+      "definition": "A platform-neutral fact a chat adapter reports to the analytics module when a member uses the app outside a kudos message: App Home opened, or a command typed with its result. It is recorded in the mutation that handles it and becomes a product event; it drives nothing in the domain."
+    },
+    {
+      "name": "error boundary",
+      "definition": "The wrapper every HTTP route and action outside the analytics module runs inside. When the function throws an error nobody caught, it records one exception for PostHog Error Tracking in its own transaction and rethrows an error marked [reported], so Convex and Slack still see the failure and no outer boundary or the failed-job sweep reports it again. If recording fails, it logs a fixed code and rethrows the original error."
+    },
+    {
+      "name": "reportable error",
+      "definition": "An error this codebase throws on purpose with a message written only from fixed text and Slack error codes, such as a Slack call that answered not_authed. It is the only error whose message is sent to PostHog; every other error is sent as unexpected error with its type name."
+    },
+    {
+      "name": "failed-job sweep",
+      "definition": "The analytics mutation a cron runs every 15 minutes that finds scheduled functions which failed without an error boundary reporting them, and records each once as an exception. It pages through new scheduled functions from a cursor, keeps every unfinished one on a watch list until it finishes, and never reports the analytics module's own functions."
+    },
+    {
+      "name": "flag",
+      "definition": "A switch declared once in code with its key, its subject (a member or the workspace), its values and a safe default, whose value PostHog decides per subject; a new member-facing slice ships behind one whose safe default is off"
+    },
+    {
+      "name": "exposure",
+      "definition": "The $feature_flag_called event sent once per member, flag and value, from the mutation in which the member first enters the flagged path"
+    },
+    {
+      "name": "moment",
+      "definition": "A full-screen celebration on the website of one thing that happened to the member: a level up, an achievement, kudos received, a new hedgehog, or a crate opened. It plays in full the first time it is seen, then opens on its end state with a replay."
+    },
+    {
+      "name": "crate",
+      "definition": "What a member opens on the website to claim a reward already earned or a feature their level made ready. Its label shows what is inside before it opens: opening is the celebration and never decides the reward."
+    },
+    {
+      "name": "medal",
+      "definition": "How the website draws an achievement's tier: a neutral metal rosette (bronze, silver, gold or diamond) with one to four pips and the tier's word beside it. A medal is never a rarity colour."
+    },
+    {
+      "name": "team",
+      "definition": "A team on the company's website, such as posthog.com/teams/workflows, with its crest and team photo. A group maps to at most one team by name, and the website shows the team's crest and photo for it. Kudos never count for a team: they count for groups."
+    },
+    {
+      "name": "company profile",
+      "definition": "A person's public profile on the company's website, with their photo and colour. The website shows a member by their company profile when the member's Slack name matches exactly one, and otherwise falls back to the Slack photo, then initials."
+    },
+    {
+      "name": "Quill",
+      "definition": "PostHog's design system (@posthog/quill): the components and colour tokens the website is built from (ADR-0005). The website's colours come only from its tokens, apart from the moment bands, the medal metals and a company profile's colour behind that person's face."
     }
   ]
 }

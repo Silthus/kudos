@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { internalAction, internalMutation } from "../_generated/server";
+import { internalMutation } from "../_generated/server";
+import { observedAction } from "../analytics/boundary";
 import { givenMessagesInAwardOrder } from "../engine/awards";
 import { countGiven } from "./totals";
 
@@ -10,7 +11,7 @@ type Page = { cursor: string; isDone: boolean; messages: number };
 
 const defaultPageSize = 100;
 
-export const countEarlierKudos = internalAction({
+export const countEarlierKudos = observedAction({
   args: { pageSize: v.optional(v.number()) },
   handler: async (ctx, { pageSize = defaultPageSize }): Promise<Progress> => {
     const progress = { pages: 0, messages: 0 };

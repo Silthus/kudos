@@ -1,15 +1,29 @@
-import { v } from "convex/values";
+import { v, type ObjectType } from "convex/values";
 import { internal } from "../_generated/api";
-import { httpAction, internalAction, type ActionCtx } from "../_generated/server";
+import { internalMutation, type ActionCtx } from "../_generated/server";
+import { observedAction, observedHttpAction } from "../analytics/boundary";
+import { ReportableError } from "../analytics/exceptions";
+import { recordUsage, recordUsageWithoutBlocking } from "../analytics/usage";
 import { type KudosCommandResult, renderKudosCommandReply } from "../feedback/kudosCommand";
 import { renderEveryoneBoard, renderLeaderboardUsage } from "../feedback/leaderboard";
 import type { Line } from "../feedback/replies";
 import type { Period } from "../leaderboard/periods";
-import { slackTextOf } from "./delivery";
+import { lookup } from "../workspace/directory";
+import { attemptArgs, failedAttempt, slackTextOf, tryAtMostThreeTimes } from "./delivery";
+import { lookUpUser, type LookUp } from "./directory";
 import { readSignedBody } from "./signature";
 import { callSlack, type SlackAnswer } from "./webApi";
 
-export const slackCommands = httpAction(async (ctx, request) => {
+const commandArgs = { workspace: v.string(), user: v.string(), alias: v.boolean(), arrivedAt: v.number() };
+
+const kudosCommandResultValidator = v.union(v.literal("joined"), v.literal("already-in"), v.literal("private-channel"), v.literal("direct-message"));
+
+const commandUsedArgs = { ...commandArgs, result: kudosCommandResultValidator };
+
+type CommandUsed = ObjectType<typeof commandUsedArgs>;
+
+export const slackCommands = observedHttpAction(async (ctx, request) => {
+  const arrivedAt = Date.now();
   const body = await readSignedBody(request);
   if (body === null) return new Response(null, { status: 401 });
 
@@ -18,6 +32,10 @@ export const slackCommands = httpAction(async (ctx, request) => {
   if (argument === "leaderboard") return replyPrivately(await leaderboardReply(ctx, command, rest));
 
   await ctx.scheduler.runAfter(0, internal.slack.commands.addToChannel, {
+    workspace: field(command, "team_id"),
+    user: field(command, "user_id"),
+    alias: field(command, "command") === "/kudos",
+    arrivedAt,
     channel: field(command, "channel_id"),
     inDirectMessage: isDirectMessage(command),
     responseUrl: field(command, "response_url"),
@@ -25,11 +43,41 @@ export const slackCommands = httpAction(async (ctx, request) => {
   return new Response(null, { status: 200 });
 });
 
-export const addToChannel = internalAction({
-  args: { channel: v.string(), inDirectMessage: v.boolean(), responseUrl: v.string() },
-  handler: async (_ctx, { channel, inDirectMessage, responseUrl }) => {
-    const answer = await callSlack("conversations.join", { channel });
-    await answerCommand(responseUrl, renderKudosCommandReply(resultOfJoining(answer, inDirectMessage)));
+export const addToChannel = observedAction({
+  args: { ...commandArgs, channel: v.string(), inDirectMessage: v.boolean(), responseUrl: v.string() },
+  handler: async (ctx, { channel, inDirectMessage, responseUrl, ...used }) => {
+    const result = resultOfJoining(await callSlack("conversations.join", { channel }), inDirectMessage);
+    await ctx.scheduler.runAfter(0, internal.slack.commands.reportCommandUsed, { ...used, result });
+    await answerCommand(responseUrl, renderKudosCommandReply(result));
+  },
+});
+
+export const reportCommandUsed = observedAction({
+  args: { ...commandUsedArgs, ...attemptArgs },
+  handler: async (ctx, { attempt = 1, ...used }) => {
+    await tryAtMostThreeTimes(
+      attempt,
+      async (attempt) => {
+        const person = await knownOrLookedUp(ctx, used);
+        if (person.kind === "failed") return failedAttempt(attempt, person.retryAfterMs);
+        await recordUsageWithoutBlocking(() => ctx.runMutation(internal.slack.commands.recordCommandUsed, used));
+        return null;
+      },
+      (retry) => ctx.scheduler.runAt(retry.at, internal.slack.commands.reportCommandUsed, { ...used, attempt: retry.attempt }),
+    );
+  },
+});
+
+async function knownOrLookedUp(ctx: ActionCtx, { workspace, user }: CommandUsed): Promise<LookUp> {
+  if (await ctx.runQuery(internal.slack.directory.knows, { workspace, user })) return { kind: "found" };
+  return lookUpUser(ctx, workspace, user);
+}
+
+export const recordCommandUsed = internalMutation({
+  args: commandUsedArgs,
+  handler: async (ctx, { workspace, user, alias, arrivedAt, result }) => {
+    const person = await lookup(ctx, workspace, user);
+    if (person?.kind === "member") await recordUsage(ctx, { kind: "commandUsed", workspace, member: person.member, alias, result, at: arrivedAt });
   },
 });
 
@@ -67,7 +115,7 @@ function resultOfJoining(answer: SlackAnswer, inDirectMessage: boolean): KudosCo
   if (answer.ok) return answer.warning === "already_in_channel" ? "already-in" : "joined";
   if (inDirectMessage) return "direct-message";
   if (unjoinableChannelErrors.has(answer.error)) return "private-channel";
-  throw new Error(`Slack conversations.join failed: ${answer.error}`);
+  throw new ReportableError(`Slack conversations.join failed: ${answer.error}`);
 }
 
 async function answerCommand(responseUrl: string, text: string) {
@@ -76,11 +124,11 @@ async function answerCommand(responseUrl: string, text: string) {
     headers: { "content-type": "application/json; charset=utf-8" },
     body: JSON.stringify({ response_type: "ephemeral", text }),
   });
-  if (!response.ok) throw new Error(`Slack response_url answered HTTP ${response.status}`);
+  if (!response.ok) throw new ReportableError(`Slack response_url answered HTTP ${response.status}`);
 }
 
 function field(command: URLSearchParams, name: string) {
   const value = command.get(name);
-  if (value === null) throw new Error(`the slash command has no ${name}`);
+  if (value === null) throw new ReportableError(`the slash command has no ${name}`);
   return value;
 }

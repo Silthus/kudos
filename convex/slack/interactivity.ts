@@ -1,5 +1,5 @@
 import { internal } from "../_generated/api";
-import { httpAction } from "../_generated/server";
+import { observedHttpAction } from "../analytics/boundary";
 import type { Command } from "../commands/commands";
 import { readSignedBody } from "./signature";
 
@@ -12,7 +12,7 @@ type HomeClick = {
   actions: Array<{ value: string }>;
 };
 
-export const slackInteractivity = httpAction(async (ctx, request) => {
+export const slackInteractivity = observedHttpAction(async (ctx, request) => {
   const body = await readSignedBody(request);
   if (body === null) return new Response(null, { status: 401 });
 

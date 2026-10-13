@@ -1,11 +1,11 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { internalAction } from "../_generated/server";
+import { observedAction } from "../analytics/boundary";
 import type { WelcomeMessage } from "../feedback/welcome";
 import { appHomeLink } from "./appHome";
 import { attemptArgs, sendOnce, tryAtMostThreeTimes } from "./delivery";
 
-export const deliverWelcome = internalAction({
+export const deliverWelcome = observedAction({
   args: { workspace: v.string(), user: v.string(), ...attemptArgs },
   handler: async (ctx, { attempt = 1, ...welcome }) => {
     await tryAtMostThreeTimes(
