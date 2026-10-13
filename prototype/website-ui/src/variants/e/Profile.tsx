@@ -1,4 +1,4 @@
-// Variant E home: a lean page that grows with level. Level 1 is the hero with kudos left today, the public card and one nudge to give a first kudos; the quest card, where you stand and the gear panel join only once they open, and nothing locked shows here.
+// Variant E home: the hero and the gear panel on the left; the public card, quests and where you stand on the right. A feature not yet opened shows as a locked card.
 import { IconChevronDown, IconMessage } from "@posthog/icons";
 import { Button } from "@posthog/quill";
 import { me } from "../../data/mock";
@@ -6,6 +6,7 @@ import { GearPanel } from "./gear-character";
 import { useGearAtLevel } from "./gear-level";
 import { CountUp, LevelRing, Panel, SkillPointGlyph, levelProgress, useHud, useMounted } from "./hud";
 import { ProfileCardPanel } from "./profile-card";
+import { LockedCard } from "./profile-locked";
 import { Standing } from "./profile-standing";
 import { QuestCard } from "./quests-card";
 
@@ -18,12 +19,13 @@ export function Profile({ param }: { param?: string }) {
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
       <div className="flex min-w-0 flex-col gap-6">
         <Hero />
-        {questsOpen ? <QuestCard /> : <FirstKudosNudge />}
-        {inventoryOpen && <GearPanel key={param} initialSide={param === "inventory" ? "inventory" : "character"} />}
+        {!questsOpen && <FirstKudosNudge />}
+        {inventoryOpen ? <GearPanel key={param} initialSide={param === "inventory" ? "inventory" : "character"} /> : <LockedCard feature="inventory" />}
       </div>
       <div className="flex min-w-0 flex-col gap-6">
         <ProfileCardPanel />
-        {standingOpen && <Standing />}
+        {questsOpen ? <QuestCard /> : <LockedCard feature="quests" />}
+        {standingOpen ? <Standing /> : <LockedCard feature="leaderboard" />}
       </div>
     </div>
   );
