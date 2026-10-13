@@ -205,7 +205,7 @@ test("R29: a message whose author or recipients the directory doesn't know waits
 
   const observation = await t.run((ctx) => observe(ctx, kudosMessage("U_ALICE", [person("U_BOB"), person("U_CAROL")], ["taco"])));
 
-  expect(observation).toEqual({ kind: "awaiting-directory", users: ["U_BOB", "U_CAROL"], retryInMs: 0 });
+  expect(observation).toEqual({ kind: "awaiting-directory", users: ["U_BOB", "U_CAROL"], retryInMs: 0, attempt: BigInt(now.getTime()) * 1000n });
   expect(await awardsOf(t)).toEqual([]);
 });
 

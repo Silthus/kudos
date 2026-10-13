@@ -38,7 +38,7 @@ export default defineSchema({
       v.literal("invalid"),
       v.literal("withdrawn"),
     ),
-    fingerprint: v.string(),
+    attempt: v.int64(),
     content: v.object({ mentions: v.array(mentionValidator), emoji: v.array(v.string()) }),
     annotations: annotationsValidator,
     spendsAt: v.number(),

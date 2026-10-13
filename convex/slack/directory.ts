@@ -10,10 +10,10 @@ type SlackUser = { id: string; team_id?: string; deleted?: boolean; is_bot?: boo
 const slackbot = "USLACKBOT";
 
 export const lookUpUsers = internalAction({
-  args: { ref: messageRefValidator, users: v.array(v.string()) },
-  handler: async (ctx, { ref, users }) => {
+  args: { ref: messageRefValidator, users: v.array(v.string()), attempt: v.int64() },
+  handler: async (ctx, { ref, users, attempt }) => {
     for (const user of users) await lookUpUser(ctx, ref.workspace, user);
-    await ctx.runMutation(internal.engine.engine.recheck, ref);
+    await ctx.runMutation(internal.engine.engine.recheck, { ref, attempt });
   },
 });
 

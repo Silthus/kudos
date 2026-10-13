@@ -9,7 +9,7 @@ export async function processEvent(ctx: MutationCtx, _receipt: Receipt, event: M
   if (event === null) return null;
   const observation = await observe(ctx, event);
   if (observation.kind === "awaiting-directory") {
-    await ctx.scheduler.runAfter(observation.retryInMs, internal.slack.directory.lookUpUsers, { ref: event.ref, users: observation.users });
+    await ctx.scheduler.runAfter(observation.retryInMs, internal.slack.directory.lookUpUsers, { ref: event.ref, users: observation.users, attempt: observation.attempt });
   }
   return observation;
 }

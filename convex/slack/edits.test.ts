@@ -83,6 +83,21 @@ describe("R23 R25: editing a message that gave nothing retries it", () => {
     expect(slack.ephemeralsTo("U_ALICE").map((reply) => reply.text)).toEqual([overAllowanceReply]);
   });
 
+  test("R31: a retry made while the original waits on the directory still gives after the original's lookup finishes", async () => {
+    const t = testBackend();
+
+    slack.holdingBack("users.info", "U_BOB", async () => {
+      await edit(t, [section(mention("U_CAROL"), emoji("taco"))], { ts: postedTs });
+    });
+
+    await post(t, [section(mention("U_BOB"), emoji("taco"))], { ts: postedTs });
+    await settle(t);
+
+    expect(await kudosReceived(t, "U_BOB")).toBe(0);
+    expect(await kudosReceived(t, "U_CAROL")).toBe(1);
+    expect(slack.reactionsOn("C1", postedTs)).toEqual(["taco"]);
+  });
+
   test("the retry's reply goes into the thread of a thread reply", async () => {
     const t = testBackend();
     await post(t, overAllowance, { ts: postedTs, threadTs: threadRoot });
@@ -171,6 +186,24 @@ describe("R22: edits that change nothing", () => {
 
     expect(slack.calls.slice(callsBefore)).toEqual([]);
     expect(slack.reactionsOn("C1", postedTs)).toEqual(["hourglass_flowing_sand"]);
+  });
+
+  test.each<[string, RichElement[]]>([
+    ["Over allowance", [section(text("thanks "), mention("U_BOB"), mention("U_CAROL"), emoji("taco"), emoji("taco"), emoji("pizza"))]],
+    ["Given", [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("pizza"))]],
+  ])("R16: a prose-only edit to a message that was %s under the old workspace emoji changes nothing", async (_, blocks) => {
+    const t = testBackend();
+    await post(t, blocks, { ts: postedTs });
+    await settle(t);
+    await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "pizza" }));
+    const callsBefore = slack.calls.length;
+    const receivedBefore = await kudosReceived(t, "U_BOB");
+
+    await edit(t, [{ ...blocks[0]!, elements: [text("thank you so much "), ...(blocks[0] as { elements: RichElement[] }).elements.slice(1)] } as RichElement], { ts: postedTs });
+    await settle(t);
+
+    expect(slack.calls.slice(callsBefore)).toEqual([]);
+    expect(await kudosReceived(t, "U_BOB")).toBe(receivedBefore);
   });
 
   test("a message_changed without an edited block, such as a thread's reply metadata, makes no Slack call and stores nothing", async () => {
