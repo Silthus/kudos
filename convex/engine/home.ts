@@ -1,14 +1,14 @@
 import { v } from "convex/values";
 import { internalQuery, type QueryCtx } from "../_generated/server";
-import { lookup } from "../workspace/directory";
+import { lookup, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { allowanceDay, allowanceLeft, weekOf } from "./allowance";
 import { weekTotals, type WeekTotals } from "./awards";
 import { lifetimeTotals, type LifetimeTotals } from "./totals";
 
-export type HomeFacts =
-  | ({ kind: "member"; left: number; base: number; kudosEmoji: string } & WeekTotals & LifetimeTotals)
-  | { kind: "not-a-member" };
+export type KudosHome = { left: number; base: number; kudosEmoji: string } & WeekTotals & LifetimeTotals;
+
+export type HomeFacts = ({ kind: "member" } & KudosHome) | { kind: "not-a-member" };
 
 export const homeOf = internalQuery({
   args: { workspace: v.string(), user: v.string() },
@@ -19,15 +19,17 @@ export async function homeFacts(ctx: QueryCtx, workspace: string, user: string):
   const person = await lookup(ctx, workspace, user);
   if (person === undefined) return null;
   if (person.kind !== "member") return { kind: "not-a-member" };
+  return { kind: "member", ...(await kudosHomeOf(ctx, workspace, person.member, person.timeZone)) };
+}
 
+export async function kudosHomeOf(ctx: QueryCtx, workspace: string, member: MemberId, timeZone: string | undefined): Promise<KudosHome> {
   const { baseAllowance, kudosEmoji } = await settingsOf(ctx, workspace);
-  const today = allowanceDay(Date.now(), person.timeZone);
+  const today = allowanceDay(Date.now(), timeZone);
   return {
-    kind: "member",
-    left: await allowanceLeft(ctx, person.member, today, baseAllowance),
+    left: await allowanceLeft(ctx, member, today, baseAllowance),
     base: baseAllowance,
     kudosEmoji,
-    ...(await weekTotals(ctx, person.member, weekOf(today))),
-    ...(await lifetimeTotals(ctx, person.member)),
+    ...(await weekTotals(ctx, member, weekOf(today))),
+    ...(await lifetimeTotals(ctx, member)),
   };
 }

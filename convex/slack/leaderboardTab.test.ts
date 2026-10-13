@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { internal } from "../_generated/api";
-import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
+import { type FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { everyone, stubSandboxWithFlags, testBackendServing } from "../../testing/flags";
+import { onForEveryone, postHogDeciding, testBackendServing } from "../../testing/flags";
 import { blockActions, buttonIn, publishedHome, publishedHomeBlocks } from "../../testing/slackInteractions";
 import { everythingStored, settle, type Backend } from "../../testing/slackBackend";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
@@ -23,8 +23,7 @@ beforeEach(() => {
     .withMember("U_ANN", { profile: { display_name: "Ann" } })
     .withMember("U_BOB", { profile: { display_name: "Bob" } })
     .withMember("U_CY", { profile: { display_name: "Cy" } });
-  stubSandboxWithFlags();
-  postHog = new FakePostHog();
+  postHog = postHogDeciding();
   vi.stubGlobal("fetch", routedFetch(postHog, slack.fetch));
 });
 
@@ -42,7 +41,7 @@ const periodButtons = (selected: "This week" | "This month" | "All time") =>
 
 describe("G23 G24: the Leaderboard tab", () => {
   test("App Home opens on the Profile tab, with the tab bar above it", async () => {
-    const t = await testBackendServing(postHog, everyone("everyone-board"));
+    const t = await testBackendServing(postHog, onForEveryone("everyone-board"));
 
     await openHome(t, "U_CY");
 
@@ -50,7 +49,7 @@ describe("G23 G24: the Leaderboard tab", () => {
   });
 
   test("clicking Leaderboard shows this week's Everyone board, and each period button republishes the tab for that period", async () => {
-    const t = await testBackendServing(postHog, everyone("everyone-board"));
+    const t = await testBackendServing(postHog, onForEveryone("everyone-board"));
     await everyoneGives(t);
     await openHome(t, "U_CY");
 
@@ -86,7 +85,7 @@ describe("G23 G24: the Leaderboard tab", () => {
     { button: "This month", text: "leaderboard month" },
     { button: "All time", text: "leaderboard all" },
   ])("$button in the tab shows the same rows as `/hedgehug $text`", async ({ button, text }) => {
-    const t = await testBackendServing(postHog, everyone("everyone-board"));
+    const t = await testBackendServing(postHog, onForEveryone("everyone-board"));
     await everyoneGives(t);
     await openHome(t, "U_BOB");
     await click(t, "U_BOB", "Leaderboard");
@@ -97,7 +96,7 @@ describe("G23 G24: the Leaderboard tab", () => {
   });
 
   test("App Home remembers the tab and period, so opening it again shows the same view from the current totals", async () => {
-    const t = await testBackendServing(postHog, everyone("everyone-board"));
+    const t = await testBackendServing(postHog, onForEveryone("everyone-board"));
     await everyoneGives(t);
     await openHome(t, "U_BOB");
     await click(t, "U_BOB", "Leaderboard");
@@ -113,7 +112,7 @@ describe("G23 G24: the Leaderboard tab", () => {
   });
 
   test("giving kudos never publishes App Home: the board is read when it is viewed", async () => {
-    const t = await testBackendServing(postHog, everyone("everyone-board"));
+    const t = await testBackendServing(postHog, onForEveryone("everyone-board"));
     await openHome(t, "U_ANN");
     await click(t, "U_ANN", "Leaderboard");
     const publishes = slack.callsTo("views.publish").length;
@@ -124,7 +123,7 @@ describe("G23 G24: the Leaderboard tab", () => {
   });
 
   test("the Profile tab button brings the member's kudos back", async () => {
-    const t = await testBackendServing(postHog, everyone("everyone-board"));
+    const t = await testBackendServing(postHog, onForEveryone("everyone-board"));
     await openHome(t, "U_ANN");
     await click(t, "U_ANN", "Leaderboard");
 
@@ -140,7 +139,7 @@ describe("G23 G24: the Leaderboard tab", () => {
 
 describe("G22: the Settings tab's leaderboard switch", () => {
   test("the Settings tab shows `Show me on the leaderboards`, on by default", async () => {
-    const t = await testBackendServing(postHog, everyone("everyone-board"));
+    const t = await testBackendServing(postHog, onForEveryone("everyone-board"));
     await openHome(t, "U_ANN");
 
     await click(t, "U_ANN", "Settings");
@@ -158,7 +157,7 @@ describe("G22: the Settings tab's leaderboard switch", () => {
 
 describe("G22: a member who left the boards is on nobody's board, their own included", () => {
   test("turned off, the member leaves every viewer's board for every period, and sees why in place of their rows", async () => {
-    const t = await testBackendServing(postHog, everyone("everyone-board"));
+    const t = await testBackendServing(postHog, onForEveryone("everyone-board"));
     await everyoneGives(t);
     await openHome(t, "U_ANN");
     await click(t, "U_ANN", "Settings");
@@ -184,7 +183,7 @@ describe("G22: a member who left the boards is on nobody's board, their own incl
   });
 
   test("a member who left keeps their gain line, without the places they climbed", async () => {
-    const t = await testBackendServing(postHog, everyone("everyone-board"));
+    const t = await testBackendServing(postHog, onForEveryone("everyone-board"));
     await giveKudosOn(t, "2026-10-06T10:00:00Z", "U_BOB", 2);
     await giveKudosOn(t, "2026-10-06T10:00:00Z", "U_ANN", 1);
     await giveKudos(t, "U_BOB", 1);
@@ -204,7 +203,7 @@ describe("G22: a member who left the boards is on nobody's board, their own incl
 
 describe("G22: rejoining the boards, and repeating a click", () => {
   test("turned on again, the member is back on the boards", async () => {
-    const t = await testBackendServing(postHog, everyone("everyone-board"));
+    const t = await testBackendServing(postHog, onForEveryone("everyone-board"));
     await everyoneGives(t);
     const before = await command(t, "U_BOB", "leaderboard all");
     await openHome(t, "U_ANN");
@@ -218,7 +217,7 @@ describe("G22: rejoining the boards, and repeating a click", () => {
   });
 
   test("repeating a click changes nothing", async () => {
-    const t = await testBackendServing(postHog, everyone("everyone-board"));
+    const t = await testBackendServing(postHog, onForEveryone("everyone-board"));
     await everyoneGives(t);
     await openHome(t, "U_ANN");
     await click(t, "U_ANN", "Settings");
@@ -232,7 +231,7 @@ describe("G22: rejoining the boards, and repeating a click", () => {
   });
 
   test("a click Slack delivers again after a newer one changes nothing", async () => {
-    const t = await testBackendServing(postHog, everyone("everyone-board"));
+    const t = await testBackendServing(postHog, onForEveryone("everyone-board"));
     await everyoneGives(t);
     await openHome(t, "U_ANN");
     await click(t, "U_ANN", "Settings");
@@ -254,7 +253,7 @@ describe("R48: a click Slack did not sign gets 401 and does nothing", () => {
     ["a click signed with another secret", (body: string) => signedRequest(body, { secret: "not-the-secret", contentType: "application/x-www-form-urlencoded" })],
     ["a click signed more than 5 minutes ago", (body: string) => signedRequest(body, { signedAt: new Date(tuesday.getTime() - 6 * 60_000), contentType: "application/x-www-form-urlencoded" })],
   ])("%s gets 401 and does nothing", async (_, request) => {
-    const t = await testBackendServing(postHog, everyone("everyone-board"));
+    const t = await testBackendServing(postHog, onForEveryone("everyone-board"));
     await openHome(t, "U_ANN");
     const leaderboard = blockActions("U_ANN", buttonIn(publishedHomeBlocks(slack, "U_ANN"), "Leaderboard"));
     const stored = await everythingStored(t);
@@ -272,7 +271,7 @@ describe("R48: a click Slack did not sign gets 401 and does nothing", () => {
 
 describe("handling a click", () => {
   test("a click is acknowledged before its command runs or App Home is published again", async () => {
-    const t = await testBackendServing(postHog, everyone("everyone-board"));
+    const t = await testBackendServing(postHog, onForEveryone("everyone-board"));
     await openHome(t, "U_ANN");
     const publishes = slack.callsTo("views.publish").length;
     const stored = await storedSettings(t);
@@ -287,7 +286,7 @@ describe("handling a click", () => {
   });
 
   test("a publish that lands after a newer click's publish is followed by the view the member picked last", async () => {
-    const t = await testBackendServing(postHog, everyone("everyone-board"));
+    const t = await testBackendServing(postHog, onForEveryone("everyone-board"));
     await everyoneGives(t);
     await openHome(t, "U_ANN");
     await click(t, "U_ANN", "Leaderboard");
@@ -305,7 +304,7 @@ describe("handling a click", () => {
   });
 
   test("a click from someone who isn't a member changes no setting and publishes nothing", async () => {
-    const t = await testBackendServing(postHog, everyone("everyone-board"));
+    const t = await testBackendServing(postHog, onForEveryone("everyone-board"));
     slack.withMember("U_GONE", { deleted: true });
     await openHome(t, "U_ANN");
     await openHome(t, "U_GONE");

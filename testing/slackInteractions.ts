@@ -2,9 +2,13 @@ import { expect } from "vitest";
 import type { FakeSlack } from "./fakeSlack";
 
 export type TextObject = { type: string; text: string };
-export type Button = { type: "button"; action_id: string; value: string; text: TextObject; style?: string };
-export type Block = { type: string; block_id?: string; text?: TextObject; fields?: TextObject[]; elements?: Array<TextObject | Button> };
+type Element = { type: string; text?: TextObject; style?: string; initial_channel?: string; action_id?: string; value?: string };
+export type Block = { type: string; block_id?: string; text?: TextObject; fields?: TextObject[]; elements?: Array<TextObject | Element>; accessory?: Element };
 type HomeView = { type: string; blocks: Block[] };
+
+export type BlockAction =
+  | { type: "button"; action_id: string; value?: string; block_id?: string }
+  | { type: "channels_select"; action_id: string; selected_channel: string | null; block_id?: string };
 
 export function publishedHomeBlocks(slack: FakeSlack, user: string): Block[] {
   const view = slack.homeShownTo(user) as HomeView | undefined;
@@ -16,44 +20,74 @@ export function publishedHome(slack: FakeSlack, user: string) {
   return publishedHomeBlocks(slack, user).map(readBlock);
 }
 
-export function buttonIn(blocks: Block[], label: string): { block: Block; button: Button } {
+export function publishedViews(slack: FakeSlack, user: string) {
+  return slack
+    .callsTo("views.publish")
+    .filter((args) => args.user_id === user)
+    .map((args) => args.view as HomeView);
+}
+
+export function buttonIn(blocks: Block[], label: string): BlockAction {
   for (const block of blocks) {
-    const button = (block.elements ?? []).find((element): element is Button => element.type === "button" && (element as Button).text.text === label);
-    if (button) return { block, button };
+    const button = elementsOf(block).find((element) => element.type === "button" && element.text?.text === label);
+    if (button) return { type: "button", action_id: button.action_id!, ...(button.value !== undefined && { value: button.value }), ...(block.block_id && { block_id: block.block_id }) };
   }
   throw new Error(`App Home shows no ${label} button`);
 }
 
+export function buttonInHome(slack: FakeSlack, user: string, label: string): BlockAction {
+  return buttonIn(publishedHomeBlocks(slack, user), label);
+}
+
+export function channelPickerInHome(slack: FakeSlack, user: string, channel: string | null): BlockAction {
+  const picker = publishedHomeBlocks(slack, user)
+    .flatMap(elementsOf)
+    .find((element) => element.type === "channels_select");
+  expect(picker, `a channel picker in ${user}'s App Home`).toBeDefined();
+  return { type: "channels_select", action_id: picker!.action_id!, selected_channel: channel };
+}
+
 let interactions = 0;
 
-export function blockActions(user: string, { block, button }: { block: Block; button: Button }, options: { team?: string } = {}) {
+export function blockActions(user: string, action: BlockAction, options: { team?: string } = {}) {
   const team = options.team ?? "T1";
   interactions += 1;
   const payload = {
     type: "block_actions",
-    team: { id: team },
+    team: { id: team, domain: "kudos" },
     user: { id: user, team_id: team },
     api_app_id: "A_KUDOS",
     trigger_id: `${interactions}.1760349600.trigger`,
-    container: { type: "view", view_id: "V1" },
-    view: { id: "V1", type: "home" },
-    actions: [{ type: "button", block_id: block.block_id, action_id: button.action_id, value: button.value, text: button.text, action_ts: "1760349600.000300" }],
+    container: { type: "view", view_id: "V_HOME" },
+    view: { id: "V_HOME", type: "home" },
+    actions: [{ block_id: "b1", ...action, action_ts: "1760349600.000300" }],
   };
   return new URLSearchParams({ payload: JSON.stringify(payload) }).toString();
+}
+
+function elementsOf(block: Block): Element[] {
+  const elements = block.type === "actions" ? (block.elements as Element[]) : [];
+  return [...elements, ...(block.accessory ? [block.accessory] : [])];
 }
 
 function readBlock(block: Block) {
   if (block.type === "divider") return "divider";
   if (block.type === "header") return `header: ${plainText(block.text)}`;
-  if (block.type === "actions") return `actions: ${(block.elements as Button[]).map(readButton).join(" | ")}`;
+  if (block.type === "actions") return `actions: ${(block.elements as Element[]).map(readButton).join(" | ")}`;
   if (block.type === "context") return `context: ${(block.elements as TextObject[]).map(mrkdwn).join(" ")}`;
   if (block.fields) return `${block.type} fields: ${block.fields.map(mrkdwn).join(" | ")}`;
-  return `${block.type}: ${mrkdwn(block.text)}`;
+  const accessory = block.accessory ? ` ${readAccessory(block.accessory)}` : "";
+  return `${block.type}: ${mrkdwn(block.text)}${accessory}`;
 }
 
-function readButton(button: Button) {
+function readButton(button: Element) {
   const label = plainText(button.text);
   return button.style === "primary" ? `[${label}]` : label;
+}
+
+function readAccessory(element: Element) {
+  if (element.type === "button") return `[button: ${plainText(element.text)}]`;
+  return `[${element.type}: ${element.initial_channel ?? "none"}]`;
 }
 
 function plainText(text: TextObject | undefined) {

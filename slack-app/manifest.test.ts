@@ -8,7 +8,7 @@ describe.each(["sandbox", "real"] as const)("the %s manifest", (environment) => 
 
   test("asks for every spec 1 bot scope up front", () => {
     expect(manifest.oauth_config.scopes.bot.toSorted()).toEqual(
-      ["channels:history", "channels:join", "chat:write", "commands", "groups:history", "reactions:write", "users:read"],
+      ["channels:history", "channels:join", "chat:write", "chat:write.public", "commands", "groups:history", "reactions:write", "users:read"],
     );
   });
 
@@ -39,7 +39,7 @@ describe.each(["sandbox", "real"] as const)("the %s manifest", (environment) => 
     ]);
   });
 
-  test("sends App Home's button clicks to the deployment's interactivity route", () => {
+  test("sends App Home clicks to the deployment's interactivity route", () => {
     expect(manifest.settings.interactivity).toEqual({ is_enabled: true, request_url: "https://example-deployment.convex.site/slack/interactivity" });
   });
 

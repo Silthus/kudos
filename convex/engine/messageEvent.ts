@@ -6,7 +6,9 @@ export const mentionValidator = v.union(
   v.object({ kind: v.literal("broadcast"), range: v.string() }),
 );
 
-export const annotationsValidator = v.record(v.string(), v.union(v.string(), v.number(), v.boolean()));
+const annotationValueValidator = v.union(v.string(), v.number(), v.boolean());
+
+export const annotationsValidator = v.record(v.string(), v.union(annotationValueValidator, v.record(v.string(), annotationValueValidator)));
 
 export const messageRefValidator = v.object({ workspace: v.string(), conversation: v.string(), message: v.string() });
 

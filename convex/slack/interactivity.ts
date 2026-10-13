@@ -1,7 +1,9 @@
 import { internal } from "../_generated/api";
 import { observedHttpAction } from "../analytics/boundary";
-import type { Command } from "../commands/commands";
+import { commandOf, type Command } from "../commands/commands";
 import { readSignedBody } from "./signature";
+
+type Action = { type: string; action_id: string; value?: string; selected_channel?: string | null };
 
 type HomeClick = {
   type: "block_actions";
@@ -9,7 +11,7 @@ type HomeClick = {
   user: { id: string };
   trigger_id: string;
   view: { type: "home" };
-  actions: Array<{ value: string }>;
+  actions: Action[];
 };
 
 export const slackInteractivity = observedHttpAction(async (ctx, request) => {
@@ -22,7 +24,7 @@ export const slackInteractivity = observedHttpAction(async (ctx, request) => {
     workspace: payload.team.id,
     eventId: payload.trigger_id,
     user: payload.user.id,
-    commands: payload.actions.map((action) => decodeHomeAction(action.value)),
+    commands: payload.actions.flatMap(commandsOf),
   });
   return new Response(null, { status: 200 });
 });
@@ -31,8 +33,18 @@ export function encodeHomeAction(command: Command) {
   return JSON.stringify(command);
 }
 
-function decodeHomeAction(value: string) {
-  return JSON.parse(value) as Command;
+function commandsOf(action: Action): Command[] {
+  const command = commandOf(action.type === "channels_select" ? { type: action.action_id, channel: action.selected_channel ?? null } : buttonCommandOf(action));
+  return command === null ? [] : [command];
+}
+
+function buttonCommandOf({ type, value }: Action): unknown {
+  if (type !== "button" || value === undefined) return null;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
 }
 
 function payloadOf(body: Uint8Array<ArrayBuffer>): unknown {

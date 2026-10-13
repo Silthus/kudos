@@ -15,8 +15,13 @@ const goneErrors = new Set(["message_not_found", "channel_not_found", "not_in_ch
 const reactionShown = new Set(["already_reacted"]);
 const reactionNotShown = new Set(["no_reaction"]);
 
-type Attempt = { kind: "delivered" } | { kind: "gone" } | { kind: "held"; until: number } | { kind: "failed"; retryAt?: number };
-type Retry = { at: number; attempt: number } | null;
+export type Attempt<Data = object> =
+  | { kind: "delivered"; answer: SlackAnswer<Data> }
+  | { kind: "gone" }
+  | { kind: "held"; until: number }
+  | { kind: "failed"; retryAt?: number }
+  | { kind: "unknown" };
+export type Retry = { at: number; attempt: number } | null;
 type Send = (attempt: number) => Promise<Retry>;
 
 export const deliverIndicator = observedAction({
@@ -38,9 +43,11 @@ export const deliverPrivateReply = observedAction({
   },
 });
 
-export async function tryAtMostThreeTimes(attempt: number, send: Send, tryAgain: (retry: NonNullable<Retry>) => Promise<unknown>) {
+export async function tryAtMostThreeTimes(attempt: number, send: Send, tryAgain: (retry: NonNullable<Retry>) => Promise<unknown>, giveUp: () => Promise<unknown> = async () => {}) {
   const retry = await retryOnAnyError(attempt, () => send(attempt));
-  if (retry !== null && retry.attempt <= atMostAttempts) await tryAgain(retry);
+  if (retry === null) return;
+  if (retry.attempt <= atMostAttempts) await tryAgain(retry);
+  else await giveUp();
 }
 
 export async function sendOnce(ctx: ActionCtx, workspace: string, method: string, args: Record<string, unknown>, attempt: number): Promise<Retry> {
@@ -101,12 +108,18 @@ function reactionArgs(ref: MessageRef, emoji: string) {
   return { channel: ref.conversation, timestamp: ref.message, name: emoji };
 }
 
-async function attemptCall(ctx: ActionCtx, workspace: string, method: string, args: Record<string, unknown>, alsoDelivered = new Set<string>()): Promise<Attempt> {
+export async function attemptCall<Data = object>(
+  ctx: ActionCtx,
+  workspace: string,
+  method: string,
+  args: Record<string, unknown>,
+  alsoDelivered = new Set<string>(),
+): Promise<Attempt<Data>> {
   const until = await ctx.runQuery(internal.slack.rateLimits.heldUntil, { workspace, method });
   if (until > Date.now()) return { kind: "held", until };
-  const answer = await answerOrUnknown(method, args);
-  if (answer === "unknown") return { kind: "failed" };
-  if (answer.ok || alsoDelivered.has(answer.error)) return { kind: "delivered" };
+  const answer = await answerOrUnknown<Data>(method, args);
+  if (answer === "unknown") return { kind: "unknown" };
+  if (answer.ok || alsoDelivered.has(answer.error)) return { kind: "delivered", answer };
   if (goneErrors.has(answer.error)) return { kind: "gone" };
   console.warn(`${method} failed: ${answer.error}`);
   if (answer.retryAfterMs === undefined) return { kind: "failed" };
@@ -115,18 +128,19 @@ async function attemptCall(ctx: ActionCtx, workspace: string, method: string, ar
   return { kind: "failed", retryAt };
 }
 
-async function answerOrUnknown(method: string, args: Record<string, unknown>): Promise<SlackAnswer | "unknown"> {
+async function answerOrUnknown<Data>(method: string, args: Record<string, unknown>): Promise<SlackAnswer<Data> | "unknown"> {
   try {
-    return await callSlack(method, args);
+    return await callSlack<Data>(method, args);
   } catch (error) {
     console.warn(`${method} has no known result: ${String(error)}`);
     return "unknown";
   }
 }
 
-function retryAfter(result: { kind: "held"; until: number } | { kind: "failed"; retryAt?: number }, attempt: number): Retry {
+export function retryAfter(result: Exclude<Attempt, { kind: "delivered" | "gone" }>, attempt: number): Retry {
   if (result.kind === "held") return { at: result.until, attempt };
-  return { at: result.retryAt ?? Date.now() + Math.min(1000 * 2 ** attempt, longestRetryDelayMs), attempt: attempt + 1 };
+  const retryAt = result.kind === "failed" ? result.retryAt : undefined;
+  return { at: retryAt ?? Date.now() + Math.min(1000 * 2 ** attempt, longestRetryDelayMs), attempt: attempt + 1 };
 }
 
 export function slackTextOf(lines: Line[]) {

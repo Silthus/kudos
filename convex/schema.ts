@@ -3,9 +3,11 @@ import { v } from "convex/values";
 import { exceptionValidator } from "./analytics/exceptions";
 import { propertiesValidator } from "./analytics/projections";
 import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
-import { homeTabValidator } from "./feedback/homeTabs";
+import { homeTabValidator } from "./feedback/homes";
+import { publicSectionValidator, shownValidator } from "./feedback/publicReplies";
 import { segmentValidator } from "./feedback/replies";
 import { periodValidator } from "./leaderboard/periods";
+import { effectsRecordValidator } from "./progression/progress";
 
 export default defineSchema({
   slackReceipts: defineTable({
@@ -17,6 +19,7 @@ export default defineSchema({
     workspace: v.string(),
     baseAllowance: v.optional(v.number()),
     kudosEmoji: v.optional(v.string()),
+    announcementChannel: v.optional(v.string()),
   }).index("by_workspace", ["workspace"]),
 
   members: defineTable({
@@ -25,8 +28,11 @@ export default defineSchema({
     kind: v.union(v.literal("member"), v.literal("bot"), v.literal("not-a-member")),
     name: v.optional(v.string()),
     timeZone: v.optional(v.string()),
+    admin: v.optional(v.boolean()),
     asOf: v.optional(v.number()),
-  }).index("by_user", ["workspace", "user"]),
+  })
+    .index("by_user", ["workspace", "user"])
+    .index("by_admin", ["workspace", "admin"]),
 
   kudosMessages: defineTable({
     workspace: v.string(),
@@ -99,12 +105,49 @@ export default defineSchema({
     lines: v.array(v.array(segmentValidator)),
   }),
 
+  publicReplies: defineTable({
+    workspace: v.string(),
+    conversation: v.string(),
+    message: v.string(),
+    channel: v.string(),
+    threadTs: v.optional(v.string()),
+    sections: v.array(publicSectionValidator),
+    version: v.number(),
+    shown: shownValidator,
+  }).index("by_destination", ["workspace", "conversation", "message", "channel", "threadTs"]),
+
   placedReactions: defineTable({
     workspace: v.string(),
     conversation: v.string(),
     message: v.string(),
     emoji: v.array(v.string()),
   }).index("by_message", ["workspace", "conversation", "message"]),
+
+  effectsRecords: defineTable(effectsRecordValidator).index("by_award", ["award", "side"]),
+
+  effectsBackfill: defineTable({
+    before: v.number(),
+    cursor: v.union(v.string(), v.null()),
+    isDone: v.boolean(),
+  }),
+
+  memberProgress: defineTable({
+    member: v.id("members"),
+    xp: v.number(),
+    pointsSpent: v.number(),
+  }).index("by_member", ["member"]),
+
+  progressSettings: defineTable({
+    member: v.id("members"),
+    dms: v.optional(v.boolean()),
+    muteNotices: v.optional(v.boolean()),
+  }).index("by_member", ["member"]),
+
+  homes: defineTable({
+    member: v.id("members"),
+    tab: v.union(v.literal("profile"), v.literal("settings"), v.literal("admin")),
+    version: v.number(),
+  }).index("by_member", ["member"]),
 
   countedKudosGiven: defineTable({
     workspace: v.string(),
