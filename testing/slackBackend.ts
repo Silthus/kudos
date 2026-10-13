@@ -23,8 +23,8 @@ export async function deleteMessage(t: Backend, options: Parameters<typeof messa
   return t.fetch("/slack/events", await signedRequest(messageDeletedEvent(options)));
 }
 
-export async function memberChanged(t: Backend, type: Parameters<typeof memberEvent>[0], user: Parameters<typeof memberEvent>[1]) {
-  return t.fetch("/slack/events", await signedRequest(memberEvent(type, user)));
+export async function memberChanged(t: Backend, ...event: Parameters<typeof memberEvent>) {
+  return t.fetch("/slack/events", await signedRequest(memberEvent(...event)));
 }
 
 export async function settle(t: Backend) {

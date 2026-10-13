@@ -120,13 +120,13 @@ export function appHomeOpened(user: string, options: { team?: string; tab?: "hom
   });
 }
 
-export function memberEvent(type: "team_join" | "user_change", user: Record<string, unknown>, options: { team?: string } = {}) {
+export function memberEvent(type: "team_join" | "user_change", user: Record<string, unknown>, options: { team?: string; eventTs?: string } = {}) {
   eventCounter += 1;
   const team = options.team ?? "T1";
   return JSON.stringify({
     type: "event_callback",
     team_id: team,
     event_id: `Ev${eventCounter}`,
-    event: { type, user: { team_id: team, ...user }, cache_ts: 1760349600, event_ts: "1760349600.000300" },
+    event: { type, user: { team_id: team, ...user }, cache_ts: 1760349600, event_ts: options.eventTs ?? `${Date.now() / 1000}` },
   });
 }

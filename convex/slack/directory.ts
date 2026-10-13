@@ -8,7 +8,7 @@ import { readSlack } from "./webApi";
 
 type SlackUser = { id: string; team_id?: string; deleted?: boolean; is_bot?: boolean; tz?: string; updated?: number };
 
-export type MemberChanged = { type: "team_join" | "user_change"; user: SlackUser };
+export type MemberChanged = { type: "team_join" | "user_change"; user: SlackUser; event_ts: string };
 
 const slackbot = "USLACKBOT";
 
@@ -16,7 +16,11 @@ export function isMemberChanged(event: { type: string }): event is MemberChanged
   return event.type === "team_join" || event.type === "user_change";
 }
 
-export function directoryRecordOf(workspace: string, user: SlackUser): DirectoryRecord {
+export function directoryRecordOfEvent(workspace: string, event: MemberChanged): DirectoryRecord {
+  return { ...directoryRecordOf(workspace, event.user), asOf: Number(event.event_ts) * 1000 };
+}
+
+function directoryRecordOf(workspace: string, user: SlackUser): DirectoryRecord {
   return {
     workspace,
     user: user.id,
@@ -55,7 +59,7 @@ export const recheckMessage = internalMutation({
 export async function lookUpUser(ctx: ActionCtx, workspace: string, user: string) {
   const answer = await usersInfo(user);
   if (!answer?.ok) return;
-  await ctx.runMutation(internal.workspace.directory.recordEntry, directoryRecordOf(workspace, answer.user));
+  await ctx.runMutation(internal.workspace.directory.fillEntry, directoryRecordOf(workspace, answer.user));
 }
 
 async function usersInfo(user: string) {

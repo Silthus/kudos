@@ -1,7 +1,7 @@
 import { internal } from "../_generated/api";
 import { httpAction } from "../_generated/server";
 import { isHomeTabOpened } from "./appHome";
-import { directoryRecordOf, isMemberChanged } from "./directory";
+import { directoryRecordOfEvent, isMemberChanged } from "./directory";
 import { isMessage, mayGiveKudos, messageEventOf, type EventCallback } from "./normalize";
 import { readSignedBody } from "./signature";
 
@@ -16,7 +16,7 @@ export const slackEvents = httpAction(async (ctx, request) => {
   if (envelope.type === "event_callback" && isHomeTabOpened(envelope.event)) {
     await ctx.runMutation(internal.slack.receipts.receiveHomeOpened, { workspace: envelope.team_id, eventId: envelope.event_id, user: envelope.event.user });
   } else if (envelope.type === "event_callback" && isMemberChanged(envelope.event)) {
-    await ctx.runMutation(internal.slack.receipts.receiveMemberChanged, { eventId: envelope.event_id, ...directoryRecordOf(envelope.team_id, envelope.event.user) });
+    await ctx.runMutation(internal.slack.receipts.receiveMemberChanged, { eventId: envelope.event_id, ...directoryRecordOfEvent(envelope.team_id, envelope.event) });
   } else if (envelope.type === "event_callback") {
     const event = messageEventOf(envelope);
     if (isMessage(envelope.event) && !mayGiveKudos(event)) return new Response(null, { status: 200 });

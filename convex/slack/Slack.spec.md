@@ -1,6 +1,6 @@
 # Slack
 
-The Slack adapter, the only code that knows Slack: it verifies and acknowledges Slack's requests, normalizes posted and edited messages into countable content for the engine, keeps the directory from users.info, team_join and user_change, never replacing a person's entry with an older one, delivers the indicator as a reaction, each private reply as an ephemeral to the giver and the welcome message as a DM, retrying the indicator and the replies within Slack's per-method rate limits, publishes App Home when a member opens it, and adds the app to a channel with `/kudos`.
+The Slack adapter, the only code that knows Slack: it verifies and acknowledges Slack's requests, normalizes posted and edited messages into countable content for the engine, keeps the directory from team_join and user_change in the order Slack sent them and fills a person it doesn't know from users.info, delivers the indicator as a reaction, each private reply as an ephemeral to the giver and the welcome message as a DM, retrying the indicator and the replies within Slack's per-method rate limits, publishes App Home when a member opens it, and adds the app to a channel with `/kudos`.
 
 ## entrances
 - route POST /slack/events: Slack delivers an Events API request, an event callback (a message or a member opening App Home) or the URL verification challenge

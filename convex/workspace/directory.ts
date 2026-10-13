@@ -35,9 +35,11 @@ const directoryRecordArgs = { workspace: v.string(), user: v.string(), entry: di
 
 export type DirectoryRecord = ObjectType<typeof directoryRecordArgs>;
 
-export const recordEntry = internalMutation({
+export const fillEntry = internalMutation({
   args: directoryRecordArgs,
-  handler: (ctx, directoryRecord) => record(ctx, directoryRecord),
+  handler: async (ctx, directoryRecord) => {
+    if ((await memberRow(ctx, directoryRecord.workspace, directoryRecord.user)) === null) await record(ctx, directoryRecord);
+  },
 });
 
 export async function record(ctx: MutationCtx, { workspace, user, entry, asOf }: DirectoryRecord) {
