@@ -1,0 +1,111 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/deploy
+
+ ❯ |convex| .github/workflows/deploy.test.ts (16 tests | 8 failed) 10ms
+   ❯ deploying the sandbox deployment (8)
+     × WS27: the deploy key comes from its GitHub secret and reaches only the deploy, the website upload and prepareWebsiteFlag 4ms
+     × WS27: after convex deploy, the website is built against this deployment and uploaded to its static hosting 0ms
+     × WS2 WS27: every deploy runs prepareWebsiteFlag on this deployment once the website is uploaded 0ms
+     × a run the branch has already moved past deploys nothing, so a rerun never rolls the deployment back 1ms
+   ❯ deploying the production deployment (8)
+     × WS27: the deploy key comes from its GitHub secret and reaches only the deploy, the website upload and prepareWebsiteFlag 0ms
+     × WS27: after convex deploy, the website is built against this deployment and uploaded to its static hosting 0ms
+     × WS2 WS27: every deploy runs prepareWebsiteFlag on this deployment once the website is uploaded 0ms
+     × a run the branch has already moved past deploys nothing, so a rerun never rolls the deployment back 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| .github/workflows/deploy.test.ts > deploying the sandbox deployment > WS27: the deploy key comes from its GitHub secret and reaches only the deploy, the website upload and prepareWebsiteFlag
+AssertionError: expected undefined to deeply equal { Object (CONVEX_DEPLOY_KEY) }
+
+- Expected:
+{
+  "CONVEX_DEPLOY_KEY": "${{ secrets.CONVEX_DEPLOY_KEY_SANDBOX }}",
+}
+
++ Received:
+undefined
+
+ ❯ .github/workflows/deploy.test.ts:34:54
+     32|
+     33|   test("WS27: the deploy key comes from its GitHub secret and reaches …
+     34|     for (const step of keyedSteps) expect(step?.env).toEqual({ CONVEX_…
+       |                                                      ^
+     35|     const elsewhere = [workflow.env, ...Object.values(workflow.jobs).m…
+     36|     expect(JSON.stringify(elsewhere)).not.toContain("secrets.");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  |convex| .github/workflows/deploy.test.ts > deploying the sandbox deployment > WS27: after convex deploy, the website is built against this deployment and uploaded to its static hosting
+ FAIL  |convex| .github/workflows/deploy.test.ts > deploying the production deployment > WS27: after convex deploy, the website is built against this deployment and uploaded to its static hosting
+AssertionError: expected -1 to be greater than 6
+ ❯ .github/workflows/deploy.test.ts:40:40
+     38|
+     39|   test("WS27: after convex deploy, the website is built against this d…
+     40|     expect(steps.indexOf(uploadStep!)).toBeGreaterThan(steps.indexOf(d…
+       |                                        ^
+     41|     expect(uploadStep?.run).toBe('pnpm exec static-hosting upload --pr…
+     42|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  |convex| .github/workflows/deploy.test.ts > deploying the sandbox deployment > WS2 WS27: every deploy runs prepareWebsiteFlag on this deployment once the website is uploaded
+ FAIL  |convex| .github/workflows/deploy.test.ts > deploying the production deployment > WS2 WS27: every deploy runs prepareWebsiteFlag on this deployment once the website is uploaded
+AssertionError: expected -1 to be greater than -1
+ ❯ .github/workflows/deploy.test.ts:45:41
+     43|
+     44|   test("WS2 WS27: every deploy runs prepareWebsiteFlag on this deploym…
+     45|     expect(steps.indexOf(prepareStep!)).toBeGreaterThan(steps.indexOf(…
+       |                                         ^
+     46|     expect(prepareStep?.run).toBe("pnpm exec convex run --prod website…
+     47|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  |convex| .github/workflows/deploy.test.ts > deploying the sandbox deployment > a run the branch has already moved past deploys nothing, so a rerun never rolls the deployment back
+ FAIL  |convex| .github/workflows/deploy.test.ts > deploying the production deployment > a run the branch has already moved past deploys nothing, so a rerun never rolls the deployment back
+AssertionError: expected undefined to be 'steps.tip.outputs.current == \'true\'' // Object.is equality
+
+- Expected:
+"steps.tip.outputs.current == 'true'"
+
++ Received:
+undefined
+
+ ❯ .github/workflows/deploy.test.ts:68:53
+     66|     const tipCheck = steps[steps.indexOf(deployStep!) - 1];
+     67|     expect(tipCheck?.run).toContain('git ls-remote origin "$GITHUB_REF…
+     68|     for (const step of keyedSteps) expect(step?.if).toBe(`steps.${tipC…
+       |                                                     ^
+     69|   });
+     70| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  |convex| .github/workflows/deploy.test.ts > deploying the production deployment > WS27: the deploy key comes from its GitHub secret and reaches only the deploy, the website upload and prepareWebsiteFlag
+AssertionError: expected undefined to deeply equal { Object (CONVEX_DEPLOY_KEY) }
+
+- Expected:
+{
+  "CONVEX_DEPLOY_KEY": "${{ secrets.CONVEX_DEPLOY_KEY_PRODUCTION }}",
+}
+
++ Received:
+undefined
+
+ ❯ .github/workflows/deploy.test.ts:34:54
+     32|
+     33|   test("WS27: the deploy key comes from its GitHub secret and reaches …
+     34|     for (const step of keyedSteps) expect(step?.env).toEqual({ CONVEX_…
+       |                                                      ^
+     35|     const elsewhere = [workflow.env, ...Object.values(workflow.jobs).m…
+     36|     expect(JSON.stringify(elsewhere)).not.toContain("secrets.");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  8 failed | 8 passed (16)
+   Start at  21:18:29
+   Duration  182ms (import 51%, transform 28%, tests 16%, worker 5%)
+
