@@ -19,6 +19,7 @@ export default defineSchema({
     workspace: v.string(),
     user: v.string(),
     kind: v.union(v.literal("member"), v.literal("bot"), v.literal("not-a-member")),
+    name: v.optional(v.string()),
     timeZone: v.optional(v.string()),
     asOf: v.optional(v.number()),
   }).index("by_user", ["workspace", "user"]),
@@ -98,6 +99,28 @@ export default defineSchema({
     message: v.string(),
     emoji: v.array(v.string()),
   }).index("by_message", ["workspace", "conversation", "message"]),
+
+  countedKudosGiven: defineTable({
+    workspace: v.string(),
+    conversation: v.string(),
+    message: v.string(),
+  }).index("by_message", ["workspace", "conversation", "message"]),
+
+  givenByDay: defineTable({
+    workspace: v.string(),
+    member: v.id("members"),
+    day: v.string(),
+    kudos: v.number(),
+  }).index("by_member_day", ["member", "day"]),
+
+  givenTotals: defineTable({
+    workspace: v.string(),
+    member: v.id("members"),
+    period: v.string(),
+    kudos: v.number(),
+  })
+    .index("by_period", ["workspace", "period"])
+    .index("by_member_period", ["member", "period"]),
 
   slackRateLimits: defineTable({
     workspace: v.string(),

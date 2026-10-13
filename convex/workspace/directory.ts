@@ -11,7 +11,7 @@ export type MemberFacts =
   | { kind: "not-a-member" };
 
 export const directoryEntryValidator = v.union(
-  v.object({ kind: v.literal("member"), timeZone: v.optional(v.string()) }),
+  v.object({ kind: v.literal("member"), name: v.optional(v.string()), timeZone: v.optional(v.string()) }),
   v.object({ kind: v.literal("bot") }),
   v.object({ kind: v.literal("not-a-member") }),
 );
