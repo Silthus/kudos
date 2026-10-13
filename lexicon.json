@@ -402,6 +402,10 @@
     {
       "name": "Quill",
       "definition": "PostHog's design system (@posthog/quill): the components and colour tokens the website is built from (ADR-0005). The website's colours come only from its tokens, apart from the moment bands, the medal metals and a company profile's colour behind that person's face."
+    },
+    {
+      "name": "ship sweep",
+      "definition": "Unlocks' hourly scheduled mutation that turns a feature's flag turning on into readiness: it stores readiness, publishes unlockReady and sends one DM per member for every member at or past the level of a shipped feature who has none stored (P78)."
     }
   ]
 }

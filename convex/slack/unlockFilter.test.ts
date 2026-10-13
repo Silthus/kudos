@@ -90,7 +90,7 @@ describe("P76: a feature's lines wait for its opening", () => {
 function dmsTo(user: string) {
   return slack
     .callsTo("chat.postMessage")
-    .filter(({ channel, text }) => channel === user && String(text).startsWith("🎉 You reached level"))
+    .filter(({ channel, text }) => channel === user && !String(text).startsWith("👋 Welcome"))
     .map((dm) => (dm.blocks === undefined ? String(dm.text).split("\n") : readBlocks(dm.blocks as Block[])));
 }
 
