@@ -3,7 +3,7 @@ import { internal } from "../_generated/api";
 import { httpAction, internalAction } from "../_generated/server";
 import { type KudosCommandResult, renderKudosCommandReply } from "../feedback/kudosCommand";
 import { readSignedBody } from "./signature";
-import { callSlack } from "./webApi";
+import { callSlack, type SlackAnswer } from "./webApi";
 
 export const slackCommands = httpAction(async (ctx, request) => {
   const body = await readSignedBody(request);
@@ -21,20 +21,22 @@ export const slackCommands = httpAction(async (ctx, request) => {
 export const addToChannel = internalAction({
   args: { channel: v.string(), inDirectMessage: v.boolean(), responseUrl: v.string() },
   handler: async (_ctx, { channel, inDirectMessage, responseUrl }) => {
-    const result = inDirectMessage ? "direct-message" : await join(channel);
-    await replyPrivately(responseUrl, renderKudosCommandReply(result));
+    const answer = await callSlack("conversations.join", { channel });
+    await replyPrivately(responseUrl, renderKudosCommandReply(resultOfJoining(answer, inDirectMessage)));
   },
 });
+
+const unjoinableChannelErrors = new Set(["channel_not_found", "method_not_supported_for_channel_type"]);
 
 function isDirectMessage(command: URLSearchParams) {
   const name = field(command, "channel_name");
   return name === "directmessage" || name.startsWith("mpdm-");
 }
 
-async function join(channel: string): Promise<KudosCommandResult> {
-  const answer = await callSlack("conversations.join", { channel });
+function resultOfJoining(answer: SlackAnswer, inDirectMessage: boolean): KudosCommandResult {
   if (answer.ok) return answer.warning === "already_in_channel" ? "already-in" : "joined";
-  if (answer.error === "method_not_supported_for_channel_type") return "private-channel";
+  if (inDirectMessage) return "direct-message";
+  if (unjoinableChannelErrors.has(answer.error)) return "private-channel";
   throw new Error(`Slack conversations.join failed: ${answer.error}`);
 }
 

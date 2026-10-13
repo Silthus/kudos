@@ -60,25 +60,37 @@ describe("POST /slack/commands", () => {
     expect(slack.privateReplies()).toEqual(["I'm already in this channel. Mention teammates with a kudos emoji to give kudos."]);
   });
 
-  test("R40: in a private channel the app isn't in, it explains /invite", async () => {
-    const t = convexTest(schema, modules);
-    slack.answerJoin({ ok: false, error: "method_not_supported_for_channel_type" });
+  test.each(["channel_not_found", "method_not_supported_for_channel_type"])(
+    "R40: in a private channel the app isn't in, where joining answers %s, it explains /invite",
+    async (error) => {
+      const t = convexTest(schema, modules);
+      slack.answerJoin({ ok: false, error });
 
-    await runCommand(t, kudosCommand({ channel_id: "C2", channel_name: "privategroup" }));
+      await runCommand(t, kudosCommand({ channel_id: "C2", channel_name: "privategroup" }));
 
-    expect(slack.privateReplies()).toEqual(["I can't join private channels by myself. Type `/invite @Kudos` here and I'll start counting kudos."]);
-  });
+      expect(slack.privateReplies()).toEqual(["I can't join private channels by myself. Type `/invite @Kudos` here and I'll start counting kudos."]);
+    },
+  );
 
   test.each([
     ["a DM", { channel_id: "D1", channel_name: "directmessage" }],
     ["a group DM", { channel_id: "C3", channel_name: "mpdm-ann--bob--cy-1" }],
-  ])("R41: in %s, it points to channels without trying to join", async (_, conversation) => {
+  ])("R41: in %s, which the app can't join, it points to channels", async (_, conversation) => {
     const t = convexTest(schema, modules);
+    slack.answerJoin({ ok: false, error: "method_not_supported_for_channel_type" });
 
     await runCommand(t, kudosCommand(conversation));
 
-    expect(slack.calls.map((call) => call.url)).toEqual([responseUrl]);
     expect(slack.privateReplies()).toEqual(["I only count kudos in channels. Run /kudos in the channel you want me in."]);
+  });
+
+  test.each(["directmessage", "mpdm-roadmap"])("R39: a public channel named %s is still joined", async (channel_name) => {
+    const t = convexTest(schema, modules);
+    slack.answerJoin({ ok: true, channel: { id: "C4" } });
+
+    await runCommand(t, kudosCommand({ channel_id: "C4", channel_name }));
+
+    expect(slack.privateReplies()).toEqual(["I'm in now. Mention teammates with a kudos emoji here and I'll pass the kudos on."]);
   });
 
   describe("R48: a command Slack did not sign gets 401 and does nothing", () => {
