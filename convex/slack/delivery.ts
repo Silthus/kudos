@@ -10,7 +10,7 @@ import { callSlack, type SlackAnswer } from "./webApi";
 export const attemptArgs = { attempt: v.optional(v.number()) };
 const atMostAttempts = 3;
 const longestRetryDelayMs = 60 * 60 * 1000;
-const goneErrors = new Set(["message_not_found", "channel_not_found", "not_in_channel"]);
+const goneErrors = new Set(["message_not_found", "channel_not_found", "not_in_channel", "is_archived", "not_reactable", "invalid_name"]);
 const reactionShown = new Set(["already_reacted"]);
 const reactionNotShown = new Set(["no_reaction"]);
 

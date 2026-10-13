@@ -70,8 +70,8 @@ The Slack adapter, the only code that knows Slack: it verifies and acknowledges 
   checklist: keyed-ordering dismissed: one reply per evaluation, with no ordering promised between messages
   checklist: acknowledgment-barrier dismissed: nothing retires work on a delivery's acknowledgment; awards and spending commit before any delivery runs
   checklist: retry-classification declared as a gone delivery stops for good
-- a gone delivery stops for good: A delivery whose message or channel is gone (message_not_found, channel_not_found, not_in_channel) is not tried again, and the awards and spending of its message stay.
-  over: reactions.add and chat.postEphemeral answering message_not_found, channel_not_found and not_in_channel
+- a gone delivery stops for good: A delivery whose message or channel is gone (message_not_found, channel_not_found, not_in_channel, is_archived), or whose reaction can never show (not_reactable, invalid_name), is not tried again, and the awards and spending of its message stay.
+  over: reactions.add and chat.postEphemeral answering message_not_found, channel_not_found and not_in_channel, and reactions.add answering is_archived, not_reactable and invalid_name
   via: R35: a delivery whose message or channel is gone stops for good
   because: retrying a deleted message or a channel the app left can never succeed and only burns Slack's rate limit for the deliveries that can; the kudos were given when the message was evaluated, so feedback failing must not take them back (R34, R35)
   refuted: attemptCall in convex/slack/delivery.ts no longer classified message_not_found, channel_not_found and not_in_channel as gone -> all 6 cases retried and failed on their one-call assertion (2026-10-13)

@@ -194,6 +194,17 @@ describe("R35: a delivery whose message or channel is gone stops for good", () =
     expect(await kudosReceived(t, "U_BOB")).toBe(1);
     expect(await kudosSpent(t)).toBe(1);
   });
+
+  test.each(["is_archived", "not_reactable", "invalid_name"])("reactions.add answering %s, a reaction that can never show, is not retried", async (error) => {
+    const t = testBackend();
+    slack.answering("reactions.add", ...repeated(10, slackError(error)));
+
+    await giveKudos(t, firstTs);
+    await settle(t);
+
+    expect(slack.callsTo("reactions.add")).toHaveLength(1);
+    expect(await kudosReceived(t, "U_BOB")).toBe(1);
+  });
 });
 
 function setIndicator(t: Backend, ts: string, indicator: Indicator) {
