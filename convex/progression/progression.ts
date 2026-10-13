@@ -3,21 +3,36 @@ import { kudosGivenEventValidator, membersNamedIn } from "../bus/events";
 import { publish } from "../bus/publish";
 import type { MemberId } from "../workspace/directory";
 import { catalogue } from "./catalogue";
-import { anyRecorded, insertEffects } from "./effects";
-import { progress, standing, xpToNextLevel, type MemberProgress, type Standing } from "./progress";
+import type { AwardWithId } from "../engine/awards";
+import { insertEffects, isRecorded } from "./effects";
+import { progress, sideOf, standing, xpToNextLevel, type MemberProgress, type Progressed, type Standing } from "./progress";
 
 export const recordEffects = internalMutation({
   args: { event: kudosGivenEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
     for (const member of membersNamedIn(event)) {
-      const { state, effects, events } = progress(await progressOf(ctx, member), event, catalogue);
-      if (await anyRecorded(ctx, effects)) continue;
-      await insertEffects(ctx, effects);
-      await saveProgress(ctx, state);
+      const awards = await unrecordedAwardsOf(ctx, member, event.awards);
+      if (awards.length === 0) continue;
+      const { state, effects, events } = progress(await progressOf(ctx, member), { ...event, awards }, catalogue);
+      await record(ctx, { state, effects });
       for (const levelReached of events) await publish(ctx, levelReached);
     }
   },
 });
+
+export async function unrecordedAwardsOf<A extends AwardWithId>(ctx: QueryCtx, member: MemberId, awards: A[]): Promise<A[]> {
+  const unrecorded: A[] = [];
+  for (const award of awards) {
+    const side = sideOf(member, award);
+    if (side !== null && !(await isRecorded(ctx, award.award, side))) unrecorded.push(award);
+  }
+  return unrecorded;
+}
+
+export async function record(ctx: MutationCtx, { state, effects }: Pick<Progressed, "state" | "effects">) {
+  await insertEffects(ctx, effects);
+  await saveProgress(ctx, state);
+}
 
 export async function standingOf(ctx: QueryCtx, member: MemberId): Promise<Standing> {
   return standing(await progressOf(ctx, member));
@@ -30,7 +45,7 @@ export async function progressionHomeOf(ctx: QueryCtx, member: MemberId): Promis
   return { ...memberStanding, xpToNextLevel: xpToNextLevel(memberStanding) };
 }
 
-async function progressOf(ctx: QueryCtx, member: MemberId): Promise<MemberProgress> {
+export async function progressOf(ctx: QueryCtx, member: MemberId): Promise<MemberProgress> {
   const row = await progressRow(ctx, member);
   return { member, xp: row?.xp ?? 0, pointsSpent: row?.pointsSpent ?? 0 };
 }
