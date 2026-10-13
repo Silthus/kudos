@@ -13,16 +13,17 @@ export type HomeLine =
   | { kind: "fields"; fields: string[] }
   | { kind: "hint"; text: string }
   | { kind: "choices"; choices: Choice[] }
-  | { kind: "lines"; lines: Line[] };
+  | { kind: "lines"; lines: Line[] }
+  | { kind: "link"; label: string; url: string };
 
 export type Choice = { label: string; command: Command; selected: boolean };
 
-export function renderHome(facts: HomeFacts, shown: ShownTab | null): HomeView {
+export function renderHome(facts: HomeFacts, shown: ShownTab | null, website: string | null): HomeView {
   if (facts.kind === "not-a-member") {
     return { title: productName, groups: [[{ kind: "text", text: `${productName} is for active members of this workspace.` }]] };
   }
-  if (shown === null) return profileOf(facts);
-  return { tabBar: tabBar(shown.tab), ...tabOf(facts, shown) };
+  if (shown === null) return profileOf(facts, website);
+  return { tabBar: tabBar(shown.tab), ...tabOf(facts, shown, website) };
 }
 
 type MemberHome = Extract<HomeFacts, { kind: "member" }>;
@@ -43,10 +44,10 @@ function tabBar(selected: HomeTab): Choice[] {
   return tabs.map(({ tab, label }) => ({ label, command: { type: "showHomeTab", tab }, selected: tab === selected }));
 }
 
-function tabOf(facts: MemberHome, shown: ShownTab): Omit<HomeView, "tabBar"> {
+function tabOf(facts: MemberHome, shown: ShownTab, website: string | null): Omit<HomeView, "tabBar"> {
   switch (shown.tab) {
     case "profile":
-      return profileOf(facts);
+      return profileOf(facts, website);
     case "leaderboard":
       return { title: "Leaderboard", groups: [[periodChoices(shown.period), { kind: "lines", lines: renderEveryoneBoard(shown.board, shown.period) }]] };
     case "settings":
@@ -54,8 +55,13 @@ function tabOf(facts: MemberHome, shown: ShownTab): Omit<HomeView, "tabBar"> {
   }
 }
 
-function profileOf(facts: MemberHome): HomeView {
-  return { title: "Your kudos", groups: [[allowanceOf(facts)], [totalsOf(facts)], howToGive(facts.kudosEmoji)] };
+function profileOf(facts: MemberHome, website: string | null): HomeView {
+  const websiteLink = website === null ? [] : [[openOnTheWeb(website)]];
+  return { title: "Your kudos", groups: [[allowanceOf(facts)], [totalsOf(facts)], ...websiteLink, howToGive(facts.kudosEmoji)] };
+}
+
+function openOnTheWeb(url: string): HomeLine {
+  return { kind: "link", label: `Open ${productName} on the web`, url };
 }
 
 function periodChoices(selected: Period): HomeLine {

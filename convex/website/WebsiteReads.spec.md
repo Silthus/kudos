@@ -1,6 +1,6 @@
 # Website reads
 
-The website's signed-in reads and the sign-in callback: every website query is built on memberQuery, which answers closed while the website flag is off, signed-out without a live session of the deployment's workspace, and verifying, unverified or not-a-member until the directory knows the person as a member, and calls its handler only with a verified member taken from the session, never from arguments; the sign-in callback refuses while the flag is off and links an account only by the Slack pair.
+The website's signed-in reads, the sign-in callback, and the link App Home shows, `${SITE_URL}/` with no identity, only while the website flag is on, SITE_URL is set and the App Home is the deployment's workspace: every website query is built on memberQuery, which answers closed while the website flag is off, signed-out without a live session of the deployment's workspace, and verifying, unverified or not-a-member until the directory knows the person as a member, and calls its handler only with a verified member taken from the session, never from arguments; the sign-in callback refuses while the flag is off and links an account only by the Slack pair.
 
 ## entrances
 - query getMyProfile: a browser asks for the signed-in person's own website answer, with no arguments

@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { internal } from "../_generated/api";
+import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack, httpStatus, rateLimitedFor } from "../../testing/fakeSlack";
+import { everyone, serveFlags, stubSandboxWithFlags } from "../../testing/flags";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { publishedHome as publishedHomeOf } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
@@ -132,6 +135,87 @@ describe("R47: someone who isn't a member opens App Home", () => {
     await openHome(t, user);
 
     expect(publishedHome(user)).toEqual(["header: HedgeHug", "section: HedgeHug is for active members of this workspace."]);
+  });
+});
+
+describe("WS28: App Home links to the website while it is open", () => {
+  const siteUrl = "https://kudos-site.test";
+  const websiteLink = "section: <https://kudos-site.test/|Open HedgeHug on the web>";
+  const homeWithoutLink = [
+    "header: Your kudos",
+    "section: You have *3* kudos left today. You get *3* more at midnight.",
+    "divider",
+    "section fields: *Given this week*\n*0* | *Received this week*\n*0* | *Given in total*\n*0* | *Received in total*\n*0*",
+    "divider",
+    "context: To give kudos, mention a teammate and add :taco: to your message. Each :taco: gives everyone you mention 1 kudos.",
+    "context: To add me to a channel, type `/hedgehug` there.",
+  ];
+  let postHog: FakePostHog;
+
+  beforeEach(() => {
+    stubSandboxWithFlags();
+    vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
+    vi.stubEnv("SITE_URL", siteUrl);
+    postHog = new FakePostHog();
+    vi.stubGlobal("fetch", routedFetch(postHog, slack.fetch));
+  });
+
+  async function backendWithWebsite(...flagKeys: string[]) {
+    const t = testBackend();
+    await serveFlags(t, postHog, ...flagKeys.map(everyone));
+    await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
+    return t;
+  }
+
+  test("while the website flag is on and SITE_URL is set, a member's Home links to the site's root, carrying no identity", async () => {
+    const t = await backendWithWebsite("website");
+
+    await openHome(t, "U_BOB");
+
+    expect(publishedHome("U_BOB")).toEqual([
+      "header: Your kudos",
+      "section: You have *3* kudos left today. You get *3* more at midnight.",
+      "divider",
+      "section fields: *Given this week*\n*0* | *Received this week*\n*0* | *Given in total*\n*0* | *Received in total*\n*0*",
+      "divider",
+      websiteLink,
+      "divider",
+      "context: To give kudos, mention a teammate and add :taco: to your message. Each :taco: gives everyone you mention 1 kudos.",
+      "context: To add me to a channel, type `/hedgehug` there.",
+    ]);
+  });
+
+  test("a SITE_URL ending in a slash still links to one root", async () => {
+    vi.stubEnv("SITE_URL", `${siteUrl}/`);
+    const t = await backendWithWebsite("website");
+
+    await openHome(t, "U_BOB");
+
+    expect(publishedHome("U_BOB")).toContain(websiteLink);
+  });
+
+  const closed: Array<{ condition: string; flags: string[]; env?: Record<string, string> }> = [
+    { condition: "while PostHog has no website flag", flags: ["another-flag"] },
+    { condition: "while SITE_URL is unset", flags: ["website"], env: { SITE_URL: "" } },
+    { condition: "while the website is open for another workspace only", flags: ["website"], env: { SLACK_WORKSPACE_ID: "T_OTHER" } },
+  ];
+
+  test.each(closed)("$condition, a member's Home is unchanged", async ({ flags, env = {} }) => {
+    for (const [name, value] of Object.entries(env)) vi.stubEnv(name, value);
+    const t = await backendWithWebsite(...flags);
+
+    await openHome(t, "U_BOB");
+
+    expect(publishedHome("U_BOB")).toEqual(homeWithoutLink);
+  });
+
+  test("someone who isn't a member sees only the members-only line", async () => {
+    slack.withMember("U_GONE", { deleted: true });
+    const t = await backendWithWebsite("website");
+
+    await openHome(t, "U_GONE");
+
+    expect(publishedHome("U_GONE")).toEqual(["header: HedgeHug", "section: HedgeHug is for active members of this workspace."]);
   });
 });
 

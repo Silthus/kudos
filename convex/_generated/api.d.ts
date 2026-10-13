@@ -65,6 +65,7 @@ import type * as slack_webApi from "../slack/webApi.js";
 import type * as slack_welcome from "../slack/welcome.js";
 import type * as website_flag from "../website/flag.js";
 import type * as website_hosting from "../website/hosting.js";
+import type * as website_link from "../website/link.js";
 import type * as website_memberQuery from "../website/memberQuery.js";
 import type * as website_profile from "../website/profile.js";
 import type * as website_signIn from "../website/signIn.js";
@@ -136,6 +137,7 @@ declare const fullApi: ApiFromModules<{
   "slack/welcome": typeof slack_welcome;
   "website/flag": typeof website_flag;
   "website/hosting": typeof website_hosting;
+  "website/link": typeof website_link;
   "website/memberQuery": typeof website_memberQuery;
   "website/profile": typeof website_profile;
   "website/signIn": typeof website_signIn;
