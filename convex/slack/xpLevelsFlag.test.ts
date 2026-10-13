@@ -2,10 +2,10 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { routedFetch, type FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack, rateLimitedFor } from "../../testing/fakeSlack";
 import { flagsFromPostHog, offForEveryone, onForEveryone, onInTheSandboxOnly, postHogDeciding } from "../../testing/flags";
-import { buttonInHome, publishedHome } from "../../testing/homeView";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { appHomeOpened, blockActions, emoji, mention, messageEvent, section, type BlockAction } from "../../testing/slackMessages";
+import { type BlockAction, blockActions, buttonInHome, publishedHome } from "../../testing/slackInteractions";
+import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 import type { FlagDefinition } from "../../testing/fakePostHog";
 import { standingOf } from "../progression/progression";
 import { progressSettingsOf } from "../progression/settings";
@@ -160,7 +160,7 @@ async function workspace() {
 }
 
 function exposures() {
-  const sent = postHog.events().filter(({ event }) => event === "$feature_flag_called");
+  const sent = postHog.events().filter(({ event, properties }) => event === "$feature_flag_called" && properties.$feature_flag === xpLevels);
   const once = [...new Map(sent.map((event) => [event.uuid, event])).values()];
   return once.map(({ properties }) => [properties.$feature_flag, properties.$feature_flag_response, properties.locally_evaluated]);
 }

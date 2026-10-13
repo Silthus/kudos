@@ -1,10 +1,10 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type QueryCtx } from "../_generated/server";
+import { commandValidator, runCommand } from "../commands/commands";
 import { messageEventValidator } from "../engine/messageEvent";
-import { dispatch, intentValidator } from "../bus/commands";
 import { republish } from "../feedback/homes";
-import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
+import { xpLevelsShownIn } from "../progression/xpLevels";
 import { directoryEntryValidator, lookup } from "../workspace/directory";
 import { recordPerson } from "./directory";
 import { reportHomeOpened } from "./appHome";
@@ -40,16 +40,14 @@ export const receiveHomeOpened = internalMutation({
   },
 });
 
-export const receiveInteraction = internalMutation({
-  args: { workspace: v.string(), eventId: v.string(), user: v.string(), intents: v.array(intentValidator) },
-  handler: async (ctx, { user, intents, ...receipt }) => {
+export const receiveHomeClick = internalMutation({
+  args: { workspace: v.string(), eventId: v.string(), user: v.string(), commands: v.array(commandValidator) },
+  handler: async (ctx, { user, commands, ...receipt }) => {
     if (await isRedelivered(ctx, receipt)) return;
     await ctx.db.insert("slackReceipts", receipt);
     const person = await lookup(ctx, receipt.workspace, user);
     if (person?.kind !== "member") return;
-    if (await xpLevelsShownTo(ctx, person.member)) {
-      for (const intent of intents) await dispatch(ctx, { ...intent, member: person.member });
-    }
+    for (const command of commands) await runCommand(ctx, receipt.workspace, person, command);
     await republish(ctx, person.member);
   },
 });

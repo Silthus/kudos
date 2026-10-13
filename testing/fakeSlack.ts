@@ -6,6 +6,8 @@ export type SlackUser = {
   is_admin?: boolean;
   is_owner?: boolean;
   tz?: string;
+  real_name?: string;
+  profile?: { display_name?: string; real_name?: string };
 };
 
 export type SlackArgs = Record<string, unknown>;
@@ -130,6 +132,7 @@ export class FakeSlack {
       const hasJoined = Date.now() >= (this.joinTimes.get(field("user")) ?? 0);
       return user && hasJoined ? { ok: true, user } : { ok: false, error: "user_not_found" };
     }
+    if (method === "users.list") return { ok: true, members: [...this.users.values()], response_metadata: { next_cursor: "" } };
     if (method === "reactions.add") {
       const reactions = this.reactionsOn(field("channel"), field("timestamp"));
       if (reactions.includes(field("name"))) return { ok: false, error: "already_reacted" };

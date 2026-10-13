@@ -1,39 +1,58 @@
 import { internal } from "../_generated/api";
 import { observedHttpAction } from "../analytics/boundary";
-import { knownIntent, type Intent } from "../bus/commands";
+import { commandOf, type Command } from "../commands/commands";
 import { readSignedBody } from "./signature";
 
 type Action = { type: string; action_id: string; value?: string; selected_channel?: string | null };
-type BlockActions = { type: "block_actions"; team: { id: string }; user: { id: string }; trigger_id: string; actions: Action[] };
+
+type HomeClick = {
+  type: "block_actions";
+  team: { id: string };
+  user: { id: string };
+  trigger_id: string;
+  view: { type: "home" };
+  actions: Action[];
+};
 
 export const slackInteractivity = observedHttpAction(async (ctx, request) => {
   const body = await readSignedBody(request);
   if (body === null) return new Response(null, { status: 401 });
 
-  const interaction = blockActionsOf(body);
-  if (interaction !== null) {
-    await ctx.runMutation(internal.slack.receipts.receiveInteraction, {
-      workspace: interaction.team.id,
-      eventId: interaction.trigger_id,
-      user: interaction.user.id,
-      intents: interaction.actions.flatMap(intentOf),
-    });
-  }
+  const payload = payloadOf(body);
+  if (!isHomeClick(payload)) return new Response(null, { status: 200 });
+  await ctx.scheduler.runAfter(0, internal.slack.receipts.receiveHomeClick, {
+    workspace: payload.team.id,
+    eventId: payload.trigger_id,
+    user: payload.user.id,
+    commands: payload.actions.flatMap(commandsOf),
+  });
   return new Response(null, { status: 200 });
 });
 
-function blockActionsOf(body: Uint8Array): BlockActions | null {
+export function encodeHomeAction(command: Command) {
+  return JSON.stringify(command);
+}
+
+function commandsOf(action: Action): Command[] {
+  const command = commandOf(action.type === "channels_select" ? { type: action.action_id, channel: action.selected_channel ?? null } : buttonCommandOf(action));
+  return command === null ? [] : [command];
+}
+
+function buttonCommandOf({ type, value }: Action): unknown {
+  if (type !== "button" || value === undefined) return null;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+function payloadOf(body: Uint8Array<ArrayBuffer>): unknown {
   const payload = new URLSearchParams(new TextDecoder().decode(body)).get("payload");
-  const interaction = payload === null ? null : (JSON.parse(payload) as { type: string });
-  return interaction?.type === "block_actions" ? (interaction as BlockActions) : null;
+  return payload === null ? null : JSON.parse(payload);
 }
 
-function intentOf(action: Action): Intent[] {
-  const candidate = action.type === "channels_select" ? { type: action.action_id, channel: action.selected_channel ?? null } : parsedValue(action);
-  const intent = candidate === null ? null : knownIntent(candidate);
-  return intent === null ? [] : [intent];
-}
-
-function parsedValue({ type, value }: Action): { type: string } | null {
-  return type === "button" && value !== undefined ? (JSON.parse(value) as { type: string }) : null;
+function isHomeClick(payload: unknown): payload is HomeClick {
+  const click = payload as Partial<HomeClick> | null;
+  return click?.type === "block_actions" && click.view?.type === "home";
 }

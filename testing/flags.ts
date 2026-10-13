@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 import { components } from "../convex/_generated/api";
 import { FakePostHog, flagsKey, postHogHost, projectToken, routedFetch, type FlagDefinition } from "./fakePostHog";
-import type { Backend } from "./slackBackend";
+import { testBackend, type Backend } from "./slackBackend";
 
 export const onForEveryone = (key: string): FlagDefinition => ({ key, filters: { groups: [{ properties: [], rollout_percentage: 100 }] } });
 
@@ -23,6 +23,10 @@ export function postHogDeciding(environment: "sandbox" | "production" = "sandbox
 export async function flagsFromPostHog(t: Backend, postHog: FakePostHog, ...definitions: FlagDefinition[]) {
   postHog.withFlags(...definitions);
   return flagsLoaded(t);
+}
+
+export function testBackendServing(postHog: FakePostHog, ...definitions: FlagDefinition[]) {
+  return flagsFromPostHog(testBackend(), postHog, ...definitions);
 }
 
 export function flagsOnForEveryone(chatFetch: typeof fetch, ...keys: string[]) {
