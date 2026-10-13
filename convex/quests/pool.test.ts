@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { feasibility, questPool, type DrawFacts, type Quest } from "./pool";
+import { feasibility, questPool, type DrawFacts, type PoolQuest } from "./pool";
 
 const lastDayWithOneTeammateAlreadyThanked: DrawFacts = { daysLeft: 1, kudosLeftToday: 3, dailyAllowance: 3, peopleLeft: { anyone: 1, "someone-new": 0, "someone-not-thanked-in-30-days": 0 } };
 
@@ -31,13 +31,13 @@ describe("P83: the guardrails catch a quest that breaks them", () => {
     ["calls a kudos thoughtful", { goal: "Thank someone with a thoughtful kudos and say why." }],
     ["asks to resend", { goal: "Thank someone and say why, then send it again." }],
   ] as const)("a quest that %s breaks them", (_, change) => {
-    expect(breachesOf({ ...questPool.quests[0], ...change } as Quest)).not.toEqual([]);
+    expect(breachesOf({ ...questPool.quests[0], ...change } as PoolQuest)).not.toEqual([]);
   });
 });
 
 describe("P80: a quest is feasible only when the member can finish it alone that week", () => {
   const plenty: DrawFacts = { daysLeft: 7, kudosLeftToday: 3, dailyAllowance: 3, peopleLeft: { anyone: 5, "someone-new": 5, "someone-not-thanked-in-30-days": 5 } };
-  const thanking = (to: Quest["progress"]["given"]["to"], counts: Quest["progress"]["counts"], target: number) => questWith({ given: { saysWhy: false, to }, counts, target });
+  const thanking = (to: PoolQuest["progress"]["given"]["to"], counts: PoolQuest["progress"]["counts"], target: number) => questWith({ given: { saysWhy: false, to }, counts, target });
 
   test("a goal over different days needs that many days left in the week, counting today", () => {
     const threeDays = questWith({ given: { saysWhy: true, to: "anyone" }, counts: "days", target: 3 });
@@ -75,7 +75,7 @@ const kinds = ["breadth", "thoughtfulness", "participation"];
 const countable = ["recognitions", "people", "days"];
 const unshippedNeeds = ["groups", "chime-ins", "recent-joiners"];
 
-function breachesOf({ kind, goal, progress, needs }: Quest): string[] {
+function breachesOf({ kind, goal, progress, needs }: PoolQuest): string[] {
   const breaches: string[] = [];
   if (!kinds.includes(kind)) breaches.push(`rewards ${kind}, not breadth, thoughtfulness or participation`);
   if (kind === "breadth" && progress.given.to === "anyone") breaches.push("is breadth but counts anyone");
@@ -92,6 +92,6 @@ function breachesOf({ kind, goal, progress, needs }: Quest): string[] {
   return breaches;
 }
 
-function questWith(progress: Quest["progress"]): Quest {
+function questWith(progress: PoolQuest["progress"]): PoolQuest {
   return { quest: "say-why", kind: "thoughtfulness", goal: "Thank someone and say why.", progress, needs: [], reward: { xp: 20, coins: 0, item: null } };
 }

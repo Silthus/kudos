@@ -3,7 +3,7 @@ import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } fro
 import { FakeSlack } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, buttonIn, buttonInHome, publishedHome, readBlocks, type Block, type BlockAction } from "../../testing/slackInteractions";
+import { blockActions, buttonIn, buttonInHome, publishedHome, publishedHomeBlocks, readBlocks, type Block, type BlockAction } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { publish } from "../bus/publish";
 import { standingOf } from "../progression/progression";
@@ -125,7 +125,7 @@ describe("P63 P85: a finished Journey step's crate opens from its DM or App Home
     const t = await workspace();
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
 
-    await click(t, "U_ALICE", buttonInHome(slack, "U_ALICE", "Open"));
+    await click(t, "U_ALICE", journeyOpenButtonInHome("U_ALICE"));
 
     expect(await crateOpenings(t)).toEqual([{ user: "U_ALICE", key: "journey:first-thanks", at: expect.any(Number) }]);
     expect(questOpenedEvents()).toHaveLength(1);
@@ -201,6 +201,10 @@ async function giveKudos(t: Backend, giver: string, recipient: string, words: st
 async function openHome(t: Backend, user: string) {
   await t.fetch("/slack/events", await signedRequest(appHomeOpened(user)));
   await settle(t);
+}
+
+function journeyOpenButtonInHome(user: string) {
+  return buttonIn(publishedHomeBlocks(slack, user).filter((block) => block.text?.text.includes("*Journey:*")), "Open");
 }
 
 function journeyIn(home: string[]) {

@@ -8,7 +8,7 @@ import { chatUserOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { questsApplyIn } from "./flag";
 import { rewardValidator } from "./journey";
-import { feasibility, feasibleBecauseValidator, questIdValidator, questOf, questPool, type DrawFacts, type Quest } from "./pool";
+import { feasibility, feasibleBecauseValidator, questIdValidator, questOf, questPool, type DrawFacts, type PoolQuest } from "./pool";
 import { daysLeftInWeek, weekKeyOf, type WeekKey } from "./week";
 
 const questsPerWeek = 3;
@@ -86,7 +86,7 @@ function drawFrom(member: MemberId, week: WeekKey, facts: DrawFacts): Slot[] {
   }));
 }
 
-function rankOf(member: MemberId, week: WeekKey, { quest }: Quest) {
+function rankOf(member: MemberId, week: WeekKey, { quest }: PoolQuest) {
   let hash = 0x811c9dc5;
   for (const character of `${member}:${week}:${quest}`) hash = Math.imul(hash ^ character.charCodeAt(0), 0x01000193) >>> 0;
   return hash;

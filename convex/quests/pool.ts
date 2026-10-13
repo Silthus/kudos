@@ -16,7 +16,7 @@ export type QuestId = Infer<typeof questIdValidator>;
 
 export type Recipient = "anyone" | "someone-new" | "someone-not-thanked-in-30-days";
 
-export type Quest = {
+export type PoolQuest = {
   quest: QuestId;
   kind: "breadth" | "thoughtfulness" | "participation";
   goal: string;
@@ -45,13 +45,13 @@ export const questPool = {
     thanking("two-new", "Thank 2 people you haven't thanked before.", "someone-new", 2),
     thanking("not-in-30-days", "Thank someone you haven't thanked in the last 30 days.", "someone-not-thanked-in-30-days", 1),
   ],
-} as const satisfies { version: string; quests: readonly Quest[] };
+} as const satisfies { version: string; quests: readonly PoolQuest[] };
 
-export function questOf(quest: QuestId): Quest {
+export function questOf(quest: QuestId): PoolQuest {
   return questPool.quests.find((entry) => entry.quest === quest)!;
 }
 
-export function feasibility({ progress }: Quest, facts: DrawFacts): FeasibleBecause | null {
+export function feasibility({ progress }: PoolQuest, facts: DrawFacts): FeasibleBecause | null {
   const people = facts.peopleLeft[progress.given.to];
   const recognitionsLeft = facts.kudosLeftToday + facts.dailyAllowance * (facts.daysLeft - 1);
   if (people < (progress.counts === "people" ? progress.target : 1) || recognitionsLeft < progress.target) return null;
@@ -60,10 +60,10 @@ export function feasibility({ progress }: Quest, facts: DrawFacts): FeasibleBeca
   return daysLeft < progress.target ? null : { peopleLeft: people, recognitionsLeft, daysLeft };
 }
 
-function sayingWhy(quest: QuestId, goal: string, counts: "recognitions" | "days", target: number): Quest {
+function sayingWhy(quest: QuestId, goal: string, counts: "recognitions" | "days", target: number): PoolQuest {
   return { quest, kind: "thoughtfulness", goal, progress: { counts, target, given: { saysWhy: true, to: "anyone" } }, needs: [], reward: personalReward };
 }
 
-function thanking(quest: QuestId, goal: string, to: Exclude<Recipient, "anyone">, target: number): Quest {
+function thanking(quest: QuestId, goal: string, to: Exclude<Recipient, "anyone">, target: number): PoolQuest {
   return { quest, kind: "breadth", goal, progress: { counts: "people", target, given: { saysWhy: false, to } }, needs: [], reward: personalReward };
 }
