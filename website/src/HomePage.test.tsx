@@ -160,14 +160,15 @@ describe("WS47 WS48 WS49 WS50 WS51: level and XP on the home, only while progres
   });
 
   it.each([
-    ["at level 1", shellFixtures.memberAtLevel1, "Level 1 · 20 XP to level 2", { min: "0", max: "20", now: "0" }],
-    ["past level 5", shellFixtures.memberAtLevel7, "Level 7 · 500 XP to level 8", { min: "1500", max: "2100", now: "1600" }],
-  ])("says the level and the XP to the next one %s in one quiet line with a bar from the level's start to the next", (_, member, line, { min, max, now }) => {
+    ["at level 1", shellFixtures.memberAtLevel1, "Level 1 · 20 XP to level 2", { min: "0", max: "20", now: "0", filled: "0%" }],
+    ["past level 5", shellFixtures.memberAtLevel7, "Level 7 · 500 XP to level 8", { min: "1500", max: "2100", now: "1600", filled: `${(100 / 600) * 100}%` }],
+  ])("says the level and the XP to the next one %s in one quiet line with a bar from the level's start to the next", (_, member, line, { min, max, now, filled }) => {
     renderApp(member);
     const bar = within(hero()).getByRole("progressbar", { name: line });
     expect(bar).toHaveAttribute("aria-valuemin", min);
     expect(bar).toHaveAttribute("aria-valuemax", max);
     expect(bar).toHaveAttribute("aria-valuenow", now);
+    expect(bar.firstElementChild).toHaveStyle({ width: filled });
     expect(within(hero()).getByText(line).tagName).toBe("P");
   });
 

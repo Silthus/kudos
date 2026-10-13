@@ -16,6 +16,10 @@ WS47–WS51, from a disposable local backend on `127.0.0.1:4010`/`4011` and the 
 
 The XP was seeded with `convex import` into `memberProgress` on that backend. The open page followed each change through its subscription, without a reload.
 
+## Review
+
+One read-only GPT-6.1 Sol (high) review: [review-gpt-6.1-sol.txt](review-gpt-6.1-sol.txt). Both findings held and were fixed: the track's contrast (now an outline in the muted foreground token) and the bar's visible fill (the tests assert its width at level 1 and level 7).
+
 ## Tests
 
 - [red-convex.txt](red-convex.txt) and [green-convex.txt](green-convex.txt): `convex/website/profile.test.ts`, `progression` off and on at level 1, on a threshold and past level 5.
@@ -28,4 +32,4 @@ The XP was seeded with `convex import` into `memberProgress` on that backend. Th
 - **Focus visibility:** not changed by this ticket. The avatar menu's trigger keeps its own focus style; the ring sits inside it.
 - **Reduced motion:** nothing moves. The ring and the bar render at their values (V8, V9).
 - **Screen-reader wording:** the hero's ring reads `Level 7`, the avatar menu reads `Account menu for Juno Whitlock` described as `Level 7`, and the bar reads `Level 7 · 500 XP to level 8` as a progressbar from 1500 to 2100 at 1600.
-- **Contrast:** the ring uses the muted foreground token (text contrast). The first bar track (`bg-muted`) was invisible in dark at 0 XP, so the track is `foreground/15` now, as level-1-dark.png shows.
+- **Contrast:** the ring, the bar's outline and its fill use the muted foreground token, which meets text contrast (4.5:1), so they clear V24's 3:1 for rings and borders in both modes. The first track was a filled `bg-muted` and then `foreground/15`; the review measured both under 3:1, so the track is an outline now, visible empty at level 1 in level-1-dark.png.

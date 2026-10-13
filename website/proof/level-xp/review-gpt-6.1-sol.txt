@@ -1,0 +1,12 @@
+1. **major — [website/src/home/LevelLine.tsx:18](/home/coder/dev/kudos-wt/level-xp/website/src/home/LevelLine.tsx:18):** The progress track has insufficient contrast: committed screenshots measure **1.40:1 in light** and **1.50:1 in dark**, below V24’s 3:1 requirement (WS54). At level 1 or a level boundary, the empty fill leaves only this low-contrast track. **Fix:** use a neutral track or outline meeting 3:1 in both modes, preserve fill-to-track contrast, and verify rendered colours.
+
+2. **minor — [website/src/HomePage.test.tsx:165](/home/coder/dev/kudos-wt/level-xp/website/src/HomePage.test.tsx:165):** The bar tests assert its label and ARIA values but never its visible fill. Removing the fill or fixing its width at 100% would leave these assertions green despite breaking WS49’s progress display. **Fix:** assert the rendered fill is empty at level 1 and one-sixth of the track for the level-7 fixture.
+
+Verdict: changes required for contrast and meaningful bar coverage.
+tokens used
+64,311
+1. **major — [website/src/home/LevelLine.tsx:18](/home/coder/dev/kudos-wt/level-xp/website/src/home/LevelLine.tsx:18):** The progress track has insufficient contrast: committed screenshots measure **1.40:1 in light** and **1.50:1 in dark**, below V24’s 3:1 requirement (WS54). At level 1 or a level boundary, the empty fill leaves only this low-contrast track. **Fix:** use a neutral track or outline meeting 3:1 in both modes, preserve fill-to-track contrast, and verify rendered colours.
+
+2. **minor — [website/src/HomePage.test.tsx:165](/home/coder/dev/kudos-wt/level-xp/website/src/HomePage.test.tsx:165):** The bar tests assert its label and ARIA values but never its visible fill. Removing the fill or fixing its width at 100% would leave these assertions green despite breaking WS49’s progress display. **Fix:** assert the rendered fill is empty at level 1 and one-sixth of the track for the level-7 fixture.
+
+Verdict: changes required for contrast and meaningful bar coverage.

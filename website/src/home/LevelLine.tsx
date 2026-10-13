@@ -15,7 +15,7 @@ export function LevelLine({ progression: { level, xp, levelStartsAt, nextLevelAt
         aria-valuemin={levelStartsAt}
         aria-valuemax={nextLevelAt}
         aria-valuenow={xp}
-        className="h-1.5 w-full overflow-hidden rounded-full bg-foreground/15"
+        className="h-2 w-full overflow-hidden rounded-full border border-muted-foreground p-px"
       >
         <div className="h-full rounded-full bg-muted-foreground" style={{ width: `${share}%` }} />
       </div>
