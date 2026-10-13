@@ -12,7 +12,7 @@ export const deliverPublicReply = internalAction({
       attempt,
       (attempt) => reconcilePublicReply(ctx, reply, attempt),
       (retry) => ctx.scheduler.runAt(retry.at, internal.slack.publicReplies.deliverPublicReply, { reply, attempt: retry.attempt }),
-      () => ctx.runMutation(internal.feedback.publicReplies.stopPosting, { reply }),
+      () => ctx.runMutation(internal.feedback.publicReplies.stopPosting, { reply, mayHaveLanded: false }),
     );
   },
 });
@@ -20,26 +20,32 @@ export const deliverPublicReply = internalAction({
 async function reconcilePublicReply(ctx: ActionCtx, reply: Id<"publicReplies">, attempt: number): Promise<Retry> {
   const row = await ctx.runQuery(internal.feedback.publicReplies.desired, { reply });
   if (row === null) return null;
-  const sent = row.postedTs === undefined ? await post(ctx, row) : await update(ctx, row, row.postedTs);
-  if (sent.kind === "gone") {
-    await ctx.runMutation(internal.feedback.publicReplies.stopPosting, { reply });
-    return null;
-  }
-  if (sent.kind !== "delivered") return retryAfter(sent, attempt);
-  return sent.latestVersion === row.version ? null : { at: Date.now(), attempt: 1 };
+  if (row.shown.state === "posting") return post(ctx, row, attempt);
+  if (row.shown.state === "posted") return update(ctx, row, row.shown.ts, attempt);
+  return null;
 }
 
-async function post(ctx: ActionCtx, row: Doc<"publicReplies">) {
+async function post(ctx: ActionCtx, row: Doc<"publicReplies">, attempt: number): Promise<Retry> {
   const message = { channel: row.channel, text: slackTextOf(linesOf(row)), ...(row.threadTs && { thread_ts: row.threadTs }) };
   const result = await attemptCall(ctx, row.workspace, "chat.postMessage", message);
-  if (result.kind !== "delivered") return result;
+  if (result.kind === "gone" || result.kind === "unknown") {
+    await ctx.runMutation(internal.feedback.publicReplies.stopPosting, { reply: row._id, mayHaveLanded: result.kind === "unknown" });
+    return null;
+  }
+  if (result.kind !== "delivered") return retryAfter(result, attempt);
   if (result.ts === undefined) throw new Error("chat.postMessage answered without the message's ts");
-  return { kind: result.kind, latestVersion: await ctx.runMutation(internal.feedback.publicReplies.recordPosted, { reply: row._id, ts: result.ts }) };
+  const latestVersion = await ctx.runMutation(internal.feedback.publicReplies.recordPosted, { reply: row._id, ts: result.ts });
+  return againIfChanged(row, latestVersion);
 }
 
-async function update(ctx: ActionCtx, row: Doc<"publicReplies">, ts: string) {
+async function update(ctx: ActionCtx, row: Doc<"publicReplies">, ts: string, attempt: number): Promise<Retry> {
   const result = await attemptCall(ctx, row.workspace, "chat.update", { channel: row.channel, ts, text: slackTextOf(linesOf(row)) });
-  if (result.kind !== "delivered") return result;
+  if (result.kind === "gone") return null;
+  if (result.kind !== "delivered") return retryAfter(result, attempt);
   const latest = await ctx.runQuery(internal.feedback.publicReplies.desired, { reply: row._id });
-  return { kind: result.kind, latestVersion: latest?.version ?? row.version };
+  return againIfChanged(row, latest?.version ?? row.version);
+}
+
+function againIfChanged(delivered: Doc<"publicReplies">, latestVersion: number): Retry {
+  return latestVersion === delivered.version ? null : { at: Date.now(), attempt: 1 };
 }

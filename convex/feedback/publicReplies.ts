@@ -11,6 +11,13 @@ import { segmentValidator, type Line } from "./replies";
 
 export const publicSectionValidator = v.object({ key: v.string(), line: v.array(segmentValidator) });
 
+export const shownValidator = v.union(
+  v.object({ state: v.literal("unposted") }),
+  v.object({ state: v.literal("posting") }),
+  v.object({ state: v.literal("posted"), ts: v.string() }),
+  v.object({ state: v.literal("maybe-posted") }),
+);
+
 export type PublicSection = Infer<typeof publicSectionValidator>;
 
 type Destination = { channel: string; threadTs?: string };
@@ -28,13 +35,16 @@ export async function setPublicSection(ctx: MutationCtx, ref: MessageRef, sectio
   const destination = await destinationOf(ctx, ref);
   const existing = await publicReplyRow(ctx, ref, destination);
   if (existing === null) {
-    const reply = await ctx.db.insert("publicReplies", { ...ref, ...destination, sections: [section], version: 1, posting: true });
+    const reply = await ctx.db.insert("publicReplies", { ...ref, ...destination, sections: [section], version: 1, shown: { state: "posting" } });
     await deliver(ctx, reply);
     return;
   }
-  const isPosted = existing.postedTs !== undefined;
-  await ctx.db.patch(existing._id, { sections: withSection(existing.sections, section), version: existing.version + 1, posting: true });
-  if (isPosted || !existing.posting) await deliver(ctx, existing._id);
+  await ctx.db.patch(existing._id, { sections: withSection(existing.sections, section), version: existing.version + 1 });
+  if (existing.shown.state === "posted") await deliver(ctx, existing._id);
+  if (existing.shown.state === "unposted") {
+    await ctx.db.patch(existing._id, { shown: { state: "posting" } });
+    await deliver(ctx, existing._id);
+  }
 }
 
 export const desired = internalQuery({
@@ -47,16 +57,17 @@ export const recordPosted = internalMutation({
   handler: async (ctx, { reply, ts }): Promise<number> => {
     const row = await ctx.db.get(reply);
     if (row === null) return 0;
-    await ctx.db.patch(reply, { postedTs: ts });
+    await ctx.db.patch(reply, { shown: { state: "posted", ts } });
     return row.version;
   },
 });
 
 export const stopPosting = internalMutation({
-  args: { reply: v.id("publicReplies") },
-  handler: async (ctx, { reply }) => {
+  args: { reply: v.id("publicReplies"), mayHaveLanded: v.boolean() },
+  handler: async (ctx, { reply, mayHaveLanded }) => {
     const row = await ctx.db.get(reply);
-    if (row !== null && row.postedTs === undefined) await ctx.db.patch(reply, { posting: false });
+    if (row?.shown.state !== "posting") return;
+    await ctx.db.patch(reply, { shown: { state: mayHaveLanded ? "maybe-posted" : "unposted" } });
   },
 });
 

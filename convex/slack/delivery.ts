@@ -14,7 +14,7 @@ const goneErrors = new Set(["message_not_found", "channel_not_found", "not_in_ch
 const reactionShown = new Set(["already_reacted"]);
 const reactionNotShown = new Set(["no_reaction"]);
 
-export type Attempt = { kind: "delivered"; ts?: string } | { kind: "gone" } | { kind: "held"; until: number } | { kind: "failed"; retryAt?: number };
+export type Attempt = { kind: "delivered"; ts?: string } | { kind: "gone" } | { kind: "held"; until: number } | { kind: "failed"; retryAt?: number } | { kind: "unknown" };
 export type Retry = { at: number; attempt: number } | null;
 type Send = (attempt: number) => Promise<Retry>;
 
@@ -106,7 +106,7 @@ export async function attemptCall(ctx: ActionCtx, workspace: string, method: str
   const until = await ctx.runQuery(internal.slack.rateLimits.heldUntil, { workspace, method });
   if (until > Date.now()) return { kind: "held", until };
   const answer = await answerOrUnknown(method, args);
-  if (answer === "unknown") return { kind: "failed" };
+  if (answer === "unknown") return { kind: "unknown" };
   if (answer.ok) return { kind: "delivered", ...(answer.ts !== undefined && { ts: answer.ts }) };
   if (alsoDelivered.has(answer.error)) return { kind: "delivered" };
   if (goneErrors.has(answer.error)) return { kind: "gone" };
@@ -126,9 +126,10 @@ async function answerOrUnknown(method: string, args: Record<string, unknown>): P
   }
 }
 
-export function retryAfter(result: { kind: "held"; until: number } | { kind: "failed"; retryAt?: number }, attempt: number): Retry {
+export function retryAfter(result: Exclude<Attempt, { kind: "delivered" | "gone" }>, attempt: number): Retry {
   if (result.kind === "held") return { at: result.until, attempt };
-  return { at: result.retryAt ?? Date.now() + Math.min(1000 * 2 ** attempt, longestRetryDelayMs), attempt: attempt + 1 };
+  const retryAt = result.kind === "failed" ? result.retryAt : undefined;
+  return { at: retryAt ?? Date.now() + Math.min(1000 * 2 ** attempt, longestRetryDelayMs), attempt: attempt + 1 };
 }
 
 export function slackTextOf(lines: Line[]) {
