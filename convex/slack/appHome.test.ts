@@ -131,6 +131,18 @@ describe("R47: someone who isn't a member opens App Home", () => {
   });
 });
 
+test("R49: a redelivered App Home event is acknowledged and publishes once", async () => {
+  const t = testBackend();
+  const opened = appHomeOpened("U_BOB");
+
+  const first = await t.fetch("/slack/events", await signedRequest(opened));
+  const redelivered = await t.fetch("/slack/events", await signedRequest(opened));
+  await settle(t);
+
+  expect([first.status, redelivered.status]).toEqual([200, 200]);
+  expect(slack.callsTo("views.publish")).toHaveLength(1);
+});
+
 test("opening the app's Messages tab publishes nothing", async () => {
   const t = testBackend();
 

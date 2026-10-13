@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { emoji, mention, messageEvent, section, type MessageOptions } from "../../testing/slackMessages";
+import { internal } from "../_generated/api";
 import schema from "../schema";
 import { modules } from "../test.setup";
 
@@ -76,12 +77,13 @@ describe("R44 R34: delivering the welcome message", () => {
     const failures = [networkFailure, serverError, slackError, networkFailure, serverError, slackError];
     slack.answering("chat.postMessage", ...failures);
 
-    await giveKudos(t, "U_ALICE", "U_BOB", { ts: "1760349600.000100" });
-    await giveKudos(t, "U_ALICE", "U_CAROL", { ts: "1760349601.000100" }, ["taco", "taco"]);
+    await giveKudos(t, "U_ALICE", "U_BOB", { ts: slackTs(now) });
+    await giveKudos(t, "U_ALICE", "U_CAROL", { ts: slackTs(now, 1) }, ["taco", "taco"]);
 
     expect(attemptsPerUser()).toEqual({ U_ALICE: 3, U_BOB: 3, U_CAROL: 1 });
-    expect(slack.reactionsOn("C1", "1760349600.000100")).toEqual(["taco"]);
-    expect(slack.reactionsOn("C1", "1760349601.000100")).toEqual(["taco"]);
+    expect(await homeFacts(t, "U_ALICE")).toMatchObject({ left: 0, given: 3, received: 0 });
+    expect(await homeFacts(t, "U_BOB")).toMatchObject({ given: 0, received: 1 });
+    expect(await homeFacts(t, "U_CAROL")).toMatchObject({ given: 0, received: 2 });
   });
 
   test("a rate-limited welcome is tried again after Slack's Retry-After, and then not again once it arrived", async () => {
@@ -117,6 +119,10 @@ async function giveKudos(t: Backend, giver: string, recipient: string, options: 
   await settle(t);
 }
 
+function homeFacts(t: Backend, user: string) {
+  return t.query(internal.engine.home.homeOf, { workspace: "T1", user });
+}
+
 function attemptsPerUser() {
   const attempts: Record<string, number> = {};
   for (const { channel } of slack.callsTo("chat.postMessage")) attempts[channel!] = (attempts[channel!] ?? 0) + 1;
@@ -125,4 +131,8 @@ function attemptsPerUser() {
 
 async function settle(t: Backend) {
   await t.finishAllScheduledFunctions(vi.runAllTimers);
+}
+
+function slackTs(at: Date, secondsLater = 0) {
+  return `${Math.floor(at.getTime() / 1000) + secondsLater}.000100`;
 }

@@ -16,6 +16,7 @@ import type * as engine_awards from "../engine/awards.js";
 import type * as engine_engine from "../engine/engine.js";
 import type * as engine_home from "../engine/home.js";
 import type * as engine_messageEvent from "../engine/messageEvent.js";
+import type * as engine_totals from "../engine/totals.js";
 import type * as feedback_home from "../feedback/home.js";
 import type * as feedback_indicator from "../feedback/indicator.js";
 import type * as feedback_kudosCommand from "../feedback/kudosCommand.js";
@@ -53,6 +54,7 @@ declare const fullApi: ApiFromModules<{
   "engine/engine": typeof engine_engine;
   "engine/home": typeof engine_home;
   "engine/messageEvent": typeof engine_messageEvent;
+  "engine/totals": typeof engine_totals;
   "feedback/home": typeof feedback_home;
   "feedback/indicator": typeof feedback_indicator;
   "feedback/kudosCommand": typeof feedback_kudosCommand;

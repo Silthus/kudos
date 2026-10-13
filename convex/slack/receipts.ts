@@ -1,8 +1,8 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { internalMutation } from "../_generated/server";
+import { internalMutation, type QueryCtx } from "../_generated/server";
 import { messageEventValidator } from "../engine/messageEvent";
-import { processEvent } from "./processEvent";
+import { processEvent, type Receipt } from "./processEvent";
 
 const keptForMs = 7 * 24 * 60 * 60 * 1000;
 const deletionBatchSize = 500;
@@ -10,13 +10,18 @@ const deletionBatchSize = 500;
 export const receive = internalMutation({
   args: { workspace: v.string(), eventId: v.string(), event: v.union(messageEventValidator, v.null()) },
   handler: async (ctx, { event, ...receipt }) => {
-    const redelivered = await ctx.db
-      .query("slackReceipts")
-      .withIndex("by_event", (q) => q.eq("workspace", receipt.workspace).eq("eventId", receipt.eventId))
-      .unique();
-    if (redelivered !== null) return;
+    if (await isRedelivered(ctx, receipt)) return;
     const observation = await processEvent(ctx, receipt, event);
     if (observation?.kind !== "ignored") await ctx.db.insert("slackReceipts", receipt);
+  },
+});
+
+export const receiveHomeOpened = internalMutation({
+  args: { workspace: v.string(), eventId: v.string(), user: v.string() },
+  handler: async (ctx, { user, ...receipt }) => {
+    if (await isRedelivered(ctx, receipt)) return;
+    await ctx.db.insert("slackReceipts", receipt);
+    await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, { workspace: receipt.workspace, user });
   },
 });
 
@@ -31,3 +36,11 @@ export const deleteExpired = internalMutation({
     if (expired.length === deletionBatchSize) await ctx.scheduler.runAfter(0, internal.slack.receipts.deleteExpired, {});
   },
 });
+
+async function isRedelivered(ctx: QueryCtx, receipt: Receipt) {
+  const existing = await ctx.db
+    .query("slackReceipts")
+    .withIndex("by_event", (q) => q.eq("workspace", receipt.workspace).eq("eventId", receipt.eventId))
+    .unique();
+  return existing !== null;
+}

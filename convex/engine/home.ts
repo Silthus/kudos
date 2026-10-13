@@ -3,10 +3,11 @@ import { internalQuery } from "../_generated/server";
 import { lookup } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { allowanceDay, allowanceLeft, weekOf } from "./allowance";
-import { kudosTotals, type KudosTotals } from "./awards";
+import { weekTotals, type WeekTotals } from "./awards";
+import { lifetimeTotals, type LifetimeTotals } from "./totals";
 
 export type HomeFacts =
-  | ({ kind: "member"; left: number; base: number; kudosEmoji: string } & KudosTotals)
+  | ({ kind: "member"; left: number; base: number; kudosEmoji: string } & WeekTotals & LifetimeTotals)
   | { kind: "not-a-member" };
 
 export const homeOf = internalQuery({
@@ -23,7 +24,8 @@ export const homeOf = internalQuery({
       left: await allowanceLeft(ctx, person.member, today, baseAllowance),
       base: baseAllowance,
       kudosEmoji,
-      ...(await kudosTotals(ctx, person.member, weekOf(today))),
+      ...(await weekTotals(ctx, person.member, weekOf(today))),
+      ...(await lifetimeTotals(ctx, person.member)),
     };
   },
 });

@@ -13,7 +13,7 @@ export const slackEvents = httpAction(async (ctx, request) => {
   const envelope = JSON.parse(new TextDecoder().decode(body)) as Envelope;
   if (envelope.type === "url_verification") return Response.json({ challenge: envelope.challenge });
   if (envelope.type === "event_callback" && isHomeTabOpened(envelope.event)) {
-    await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, { workspace: envelope.team_id, user: envelope.event.user });
+    await ctx.runMutation(internal.slack.receipts.receiveHomeOpened, { workspace: envelope.team_id, eventId: envelope.event_id, user: envelope.event.user });
   } else if (envelope.type === "event_callback") {
     const event = messageEventOf(envelope);
     if (isMessage(envelope.event) && !mayGiveKudos(event)) return new Response(null, { status: 200 });
