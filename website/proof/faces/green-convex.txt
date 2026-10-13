@@ -3,7 +3,7 @@
 
 
  Test Files  2 passed (2)
-      Tests  39 passed (39)
-   Start at  21:26:16
-   Duration  710ms (transform 36%, tests 33%, import 24%, environment 7%, worker 1%)
+      Tests  42 passed (42)
+   Start at  21:32:30
+   Duration  765ms (transform 38%, tests 32%, import 23%, environment 6%)
 

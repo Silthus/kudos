@@ -29,7 +29,7 @@ const companyProfile = v.object({
   firstName: v.string(),
   lastName: v.string(),
   normalisedName: v.string(),
-  image: v.string(),
+  image: v.optional(v.string()),
   colour: v.string(),
   team: v.optional(v.string()),
 });
@@ -61,13 +61,14 @@ export const replaceCompanyProfiles = internalMutation({
 
 async function readTeamPages(): Promise<Read> {
   const teams: Team[] = [];
-  for (let page = 1; ; page++) {
+  let pageCount = 1;
+  for (let page = 1; page <= pageCount; page++) {
     const response = await pageOf(page);
     if (response === undefined) return { kind: "failed", reason: "unreachable" };
     const parsed = teamsPage(await response.json().catch(() => undefined));
-    if (parsed === undefined || parsed.pageCount > mostPages) return { kind: "failed", reason: "malformed" };
+    if (parsed === undefined || !isConsistent(parsed, page, pageCount)) return { kind: "failed", reason: "malformed" };
+    pageCount = parsed.pageCount;
     teams.push(...parsed.teams);
-    if (page >= parsed.pageCount) break;
   }
   const profiles = profilesOf(teams);
   return profiles.length === 0 ? { kind: "failed", reason: "empty" } : { kind: "read", profiles };
@@ -93,12 +94,21 @@ async function pageOf(page: number): Promise<Response | undefined> {
 type TeamProfile = { id: number; firstName: string; lastName: string; colour: unknown; cutout: unknown };
 type Team = { slug?: string; profiles: TeamProfile[] };
 
-function teamsPage(body: unknown): { teams: Team[]; pageCount: number } | undefined {
+type TeamsPage = { teams: Team[]; page: number; pageCount: number };
+
+function teamsPage(body: unknown): TeamsPage | undefined {
+  const page = at(body, "meta", "pagination", "page");
   const pageCount = at(body, "meta", "pagination", "pageCount");
   const data = at(body, "data");
-  if (typeof pageCount !== "number" || !Array.isArray(data)) return undefined;
+  if (typeof page !== "number" || typeof pageCount !== "number" || !Array.isArray(data)) return undefined;
   const teams = data.map(teamOf);
-  return teams.every((team) => team !== undefined) ? { teams, pageCount } : undefined;
+  return teams.every((team) => team !== undefined) ? { teams, page, pageCount } : undefined;
+}
+
+function isConsistent(parsed: TeamsPage, page: number, pageCountSoFar: number) {
+  const firstPage = page === 1;
+  const pageCountHolds = firstPage ? Number.isInteger(parsed.pageCount) && parsed.pageCount >= 1 && parsed.pageCount <= mostPages : parsed.pageCount === pageCountSoFar;
+  return parsed.page === page && pageCountHolds;
 }
 
 function teamOf(team: unknown): Team | undefined {
@@ -125,13 +135,13 @@ function profilesOf(teams: Team[]): CompanyProfile[] {
     for (const profile of team.profiles) {
       const image = sizedCutout(profile.cutout);
       const name = normalisedName(`${profile.firstName} ${profile.lastName}`);
-      if (seen.has(profile.id) || image === undefined || name === "") continue;
+      if (seen.has(profile.id) || name === "") continue;
       seen.add(profile.id);
       profiles.push({
         firstName: profile.firstName,
         lastName: profile.lastName,
         normalisedName: name,
-        image,
+        ...(image !== undefined && { image }),
         colour: colourOf(profile.colour),
         ...(team.slug !== undefined && { team: team.slug }),
       });

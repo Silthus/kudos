@@ -36,7 +36,7 @@ export default defineSchema({
     firstName: v.string(),
     lastName: v.string(),
     normalisedName: v.string(),
-    image: v.string(),
+    image: v.optional(v.string()),
     colour: v.string(),
     team: v.optional(v.string()),
   }).index("by_normalised_name", ["normalisedName"]),

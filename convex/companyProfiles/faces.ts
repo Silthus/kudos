@@ -20,6 +20,6 @@ export async function companyFaceOf(ctx: QueryCtx, realName: string): Promise<Co
     .withIndex("by_normalised_name", (q) => q.eq("normalisedName", name))
     .take(2);
   const [only] = matches;
-  if (only === undefined || matches.length !== 1) return undefined;
+  if (only?.image === undefined || matches.length !== 1) return undefined;
   return { image: only.image, colour: only.colour };
 }
