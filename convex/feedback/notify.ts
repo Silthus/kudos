@@ -30,9 +30,8 @@ export type NotificationLine = string | { text: string; action: HomeAction };
 
 export async function notifyLevelReached(ctx: MutationCtx, { member, level, skillPoints, xpToNextLevel }: LevelReachedEvent, ready: ScheduledFeature[]) {
   if (!(await xpLevelsShownTo(ctx, member))) return;
-  if (!(await unlocksShownTo(ctx, member))) return notify(ctx, member, { kind: "level-reached", level, skillPoints, xpToNextLevel, ready: [] });
-  const toldSkillPoints = await whenOpened(ctx, member, "skillTree", skillPoints);
-  await notify(ctx, member, { kind: "level-reached", level, skillPoints: toldSkillPoints, xpToNextLevel, ready: featuresOf(ready) });
+  const unlocksShown = await unlocksShownTo(ctx, member);
+  await notify(ctx, member, { kind: "level-reached", level, skillPoints, xpToNextLevel, ready: unlocksShown ? featuresOf(ready) : [] });
 }
 
 export async function notifyFeaturesShipped(ctx: MutationCtx, member: MemberId, ready: ScheduledFeature[]) {

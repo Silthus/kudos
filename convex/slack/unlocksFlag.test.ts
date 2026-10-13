@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { routedFetch, type FakePostHog, type FlagDefinition } from "../../testing/fakePostHog";
-import { FakeSlack } from "../../testing/fakeSlack";
+import { FakeSlack, rateLimitedFor } from "../../testing/fakeSlack";
 import { flagsFromPostHog, offForEveryone, onForEveryone, onInTheSandboxOnly, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
@@ -83,6 +83,21 @@ describe("the unlocks slice is dark while unlocks is off", () => {
     expect(dmsTo("U_ALICE").map(readDm).at(-1)).toEqual(["🎉 You reached level 5! You have 1 skill point saved for the skill tree.", "Level 6 is 400 XP away."]);
     expect(publishedHome(slack, "U_ALICE")).toContain("section: You have *1 skill point* saved for the skill tree.");
     expect(publishedHome(slack, "U_ALICE").filter(namesAnUnlock)).toEqual([]);
+  });
+
+  test("a level-up DM Slack held back while unlocks was on is told as #80 tells it once unlocks is off: the saved skill points, and no crate", async () => {
+    const t = await workspaceDeciding("sandbox", onForEveryone("xp-levels"), onForEveryone("skill-tree"), onForEveryone(unlocks));
+    await unlocksShippedBeforeAnyoneJoined(t);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    await xpOf(t, "U_ALICE", 590);
+    slack.holdingBack("chat.postMessage", "U_ALICE", async () => {
+      await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("skill-tree"), offForEveryone(unlocks));
+      slack.answering("chat.postMessage", rateLimitedFor(30));
+    });
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(dmsTo("U_ALICE").map(readDm).at(-1)).toEqual(["🎉 You reached level 5! You have 1 skill point saved for the skill tree.", "Level 6 is 400 XP away."]);
   });
 
   test("a stale Open from the level-up DM, clicked while unlocks is off, opens nothing, and the readiness already stored survives", async () => {
@@ -250,6 +265,15 @@ describe("O36: unlocks exposure", () => {
       [unlocks, true],
       [unlocks, false],
     ]);
+  });
+
+  test("is sent for a /hedgehug leaderboard caller the directory doesn't know yet, with the value their reply was decided by", async () => {
+    const t = await workspaceShippedBeforeAnyoneJoined();
+
+    const reply = await leaderboardCommand(t, "U_CAROL");
+
+    expect(reply).toEqual({ response_type: "ephemeral", text: "Leaderboard opens at level 3." });
+    expect(exposures()).toEqual([[unlocks, true]]);
   });
 });
 

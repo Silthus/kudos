@@ -16,15 +16,17 @@ export async function isOpened(ctx: QueryCtx, member: MemberId, feature: Feature
   return (await stateOf(ctx, member, feature)) === "open";
 }
 
+export type UnopenedReply = { lines: Line[] | null; shownToUnknownViewer: boolean | null };
+
 export const unopenedReplyOf = internalMutation({
   args: { workspace: v.string(), user: v.string(), feature: featureValidator },
-  handler: async (ctx, { workspace, user, feature }): Promise<Line[] | null> => {
+  handler: async (ctx, { workspace, user, feature }): Promise<UnopenedReply> => {
     const person = await lookup(ctx, workspace, user);
-    const member = person?.kind === "member" ? person.member : undefined;
-    if (!(await unlocksShownToViewer(ctx, workspace, member))) return null;
-    const state = member === undefined ? await strangerStateOf(ctx, workspace, feature) : await stateOf(ctx, member, feature);
-    if (state === "ready" || state === "locked") return renderUnopenedReply(scheduled(feature), state);
-    return null;
+    if (person?.kind === "member") return { lines: await memberReplyOf(ctx, person.member, feature), shownToUnknownViewer: null };
+    if (!(await xpLevelsShownIn(ctx, workspace))) return { lines: null, shownToUnknownViewer: null };
+    const shown = await unlocksLiveIn(ctx, workspace);
+    const lines = shown ? replyOf(feature, await strangerStateOf(ctx, workspace, feature)) : null;
+    return { lines, shownToUnknownViewer: person === undefined ? shown : null };
   },
 });
 
@@ -33,9 +35,12 @@ export function renderUnopenedReply({ name, level }: ScheduledFeature, state: "r
   return [[{ text }]];
 }
 
-async function unlocksShownToViewer(ctx: MutationCtx, workspace: string, member: MemberId | undefined) {
-  if (member !== undefined) return unlocksShownTo(ctx, member);
-  return (await xpLevelsShownIn(ctx, workspace)) && (await unlocksLiveIn(ctx, workspace));
+async function memberReplyOf(ctx: MutationCtx, member: MemberId, feature: Feature) {
+  return (await unlocksShownTo(ctx, member)) ? replyOf(feature, await stateOf(ctx, member, feature)) : null;
+}
+
+function replyOf(feature: Feature, state: UnlockState): Line[] | null {
+  return state === "ready" || state === "locked" ? renderUnopenedReply(scheduled(feature), state) : null;
 }
 
 async function strangerStateOf(ctx: QueryCtx, workspace: string, feature: Feature): Promise<UnlockState> {

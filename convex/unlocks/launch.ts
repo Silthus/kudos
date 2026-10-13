@@ -1,7 +1,8 @@
-import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { v } from "convex/values";
+import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { exposed, flag, type Flag } from "../analytics/flags";
-import { xpLevelsShownTo } from "../progression/xpLevels";
-import { chatUserOf, type MemberId } from "../workspace/directory";
+import { xpLevels, xpLevelsShownTo } from "../progression/xpLevels";
+import { chatUserOf, lookup, type MemberId } from "../workspace/directory";
 import { shippedIn } from "./schedule";
 import { keepOpen } from "./unlocks";
 
@@ -14,6 +15,16 @@ export async function unlocksShownTo(ctx: MutationCtx, member: MemberId): Promis
   await exposed(ctx, unlocksFlag, member, live);
   return live;
 }
+
+export const exposeUnlocks = internalMutation({
+  args: { workspace: v.string(), user: v.string(), shown: v.boolean() },
+  handler: async (ctx, { workspace, user, shown }) => {
+    const person = await lookup(ctx, workspace, user);
+    if (person?.kind !== "member") return;
+    await exposed(ctx, xpLevels, person.member, true);
+    await exposed(ctx, unlocksFlag, person.member, shown);
+  },
+});
 
 export async function unlocksLiveIn(ctx: MutationCtx, workspace: string): Promise<boolean> {
   if (!(await flag(ctx, unlocksFlag, { workspace }))) return false;
