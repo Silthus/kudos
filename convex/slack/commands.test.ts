@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { signedRequest as signedSlackRequest, signingSecret, type SigningOptions } from "../../testing/signedSlack";
+import { slashCommand, slashCommandResponseUrl, type Conversation } from "../../testing/slackMessages";
 
 const botToken = "xoxb-test-token";
-const responseUrl = "https://hooks.slack.com/commands/T1/1/abc";
+const responseUrl = slashCommandResponseUrl;
 const now = new Date("2026-10-13T10:00:00Z");
 
 let slack: FakeSlack;
@@ -95,7 +96,7 @@ describe("POST /slack/commands", () => {
     const t = testBackend();
     slack.answerJoin({ ok: true, channel: { id: "C1" } });
 
-    await runCommand(t, slashCommand(publicChannel, "/kudos"));
+    await runCommand(t, slashCommand(publicChannel, { command: "/kudos" }));
 
     expect(slack.privateReplies()).toEqual(["I'm in now. Mention teammates with a kudos emoji here and I'll pass the kudos on."]);
   });
@@ -118,28 +119,10 @@ describe("POST /slack/commands", () => {
   });
 });
 
-type Conversation = { channel_id: string; channel_name: string };
-
 const publicChannel: Conversation = { channel_id: "C1", channel_name: "general" };
 
 function hedgehugCommand(conversation: Conversation) {
-  return slashCommand(conversation, "/hedgehug");
-}
-
-function slashCommand(conversation: Conversation, command: string) {
-  return new URLSearchParams({
-    token: "legacy-verification-token",
-    team_id: "T1",
-    team_domain: "acme",
-    ...conversation,
-    user_id: "U1",
-    user_name: "ann",
-    command,
-    text: "",
-    api_app_id: "A1",
-    response_url: responseUrl,
-    trigger_id: "1.2.3",
-  }).toString();
+  return slashCommand(conversation);
 }
 
 async function runCommand(t: Backend, body: string) {

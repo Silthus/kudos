@@ -310,6 +310,30 @@
     {
       "name": "exhausted",
       "definition": "An outbox event the drain has given up and will never send: rejected by PostHog (400 or 413), out of retries after its sixth failure, or expired after 7 days pending. It is logged once with its name and reason, never its properties, and deleted 7 days later. Its reason exhausted names the second case."
+    },
+    {
+      "name": "usage fact",
+      "definition": "A platform-neutral fact a chat adapter reports to the analytics module when a member uses the app outside a kudos message: App Home opened, or a command typed with its result. It is recorded in the mutation that handles it and becomes a product event; it drives nothing in the domain."
+    },
+    {
+      "name": "error boundary",
+      "definition": "The wrapper every HTTP route and action outside the analytics module runs inside. When the function throws an error nobody caught, it records one exception for PostHog Error Tracking in its own transaction and rethrows an error marked [reported], so Convex and Slack still see the failure and no outer boundary or the failed-job sweep reports it again. If recording fails, it logs a fixed code and rethrows the original error."
+    },
+    {
+      "name": "reportable error",
+      "definition": "An error this codebase throws on purpose with a message written only from fixed text and Slack error codes, such as a Slack call that answered not_authed. It is the only error whose message is sent to PostHog; every other error is sent as unexpected error with its type name."
+    },
+    {
+      "name": "failed-job sweep",
+      "definition": "The analytics mutation a cron runs every 15 minutes that finds scheduled functions which failed without an error boundary reporting them, and records each once as an exception. It pages through new scheduled functions from a cursor, keeps every unfinished one on a watch list until it finishes, and never reports the analytics module's own functions."
+    },
+    {
+      "name": "flag",
+      "definition": "A switch declared once in code with its key, its subject (a member or the workspace), its values and a safe default, whose value PostHog decides per subject; a new member-facing slice ships behind one whose safe default is off"
+    },
+    {
+      "name": "exposure",
+      "definition": "The $feature_flag_called event sent once per member, flag and value, from the mutation in which the member first enters the flagged path"
     }
   ]
 }

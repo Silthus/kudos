@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
-import type { KudosGivenEvent } from "../bus/events";
+import type { AttemptFailedEvent, KudosGivenEvent } from "../bus/events";
 import type { MemberId } from "../workspace/directory";
-import { projectKudosGiven } from "./projections";
+import { projectAttemptFailed, projectKudosGiven, projectMemberWelcomed, projectUsage } from "./projections";
 
 const alice = "alice" as MemberId;
 const bob = "bob" as MemberId;
@@ -62,5 +62,73 @@ describe("O3: kudos received", () => {
       { event: "kudos received", subject: { member: bob }, at, properties: { kudos: 2, retry: true } },
       { event: "kudos received", subject: { member: carol }, at, properties: { kudos: 2, retry: true } },
     ]);
+  });
+});
+
+function attemptFailed(overrides: Partial<AttemptFailedEvent> = {}): AttemptFailedEvent {
+  return {
+    type: "attemptFailed",
+    workspace: "T1",
+    message: { workspace: "T1", conversation: "C1", message: "1760349600.000100" },
+    giver: alice,
+    outcome: "over-allowance",
+    recipients: 2,
+    perRecipient: 2,
+    cost: 4,
+    skippedMentions: 1,
+    retry: true,
+    inThread: true,
+    allowance: { dailyLeft: 3 },
+    day: "2026-10-13",
+    at,
+    ...overrides,
+  };
+}
+
+describe("O3: attempt failed", () => {
+  test.each<[string, Partial<AttemptFailedEvent>, Record<string, unknown>]>([
+    [
+      "Over allowance",
+      {},
+      { outcome: "over allowance", recipients: 2, kudos_per_recipient: 2, kudos_total: 4, skipped_mentions: 1, retry: true, in_thread: true, daily_allowance_left: 3 },
+    ],
+    [
+      "Invalid",
+      { outcome: "invalid", recipients: 0, perRecipient: 1, cost: 0, retry: false, inThread: false },
+      { outcome: "invalid", recipients: 0, kudos_per_recipient: 1, kudos_total: 0, skipped_mentions: 1, retry: false, in_thread: false, daily_allowance_left: 3 },
+    ],
+  ])("%s lists exactly O3's properties, on the giver at the spend instant", (_, overrides, properties) => {
+    expect(projectAttemptFailed(attemptFailed(overrides))).toEqual({ event: "attempt failed", subject: { member: alice }, at, properties });
+  });
+});
+
+describe("O3: member welcomed", () => {
+  test.each(["giver", "recipient"] as const)("as %s", (as) => {
+    expect(projectMemberWelcomed({ type: "memberWelcomed", workspace: "T1", member: bob, as, at })).toEqual({
+      event: "member welcomed",
+      subject: { member: bob },
+      at,
+      properties: { as },
+    });
+  });
+});
+
+describe("O3: usage facts", () => {
+  test("app home opened carries no properties of its own", () => {
+    expect(projectUsage({ kind: "appHomeOpened", workspace: "T1", member: bob, at })).toEqual({ event: "app home opened", subject: { member: bob }, at, properties: {} });
+  });
+
+  test.each([
+    ["joined", false, "joined"],
+    ["already-in", true, "already in"],
+    ["private-channel", false, "private channel"],
+    ["direct-message", true, "direct message"],
+  ] as const)("command used that ended %s, alias %s", (result, alias, name) => {
+    expect(projectUsage({ kind: "commandUsed", workspace: "T1", member: bob, alias, result, at })).toEqual({
+      event: "command used",
+      subject: { member: bob },
+      at,
+      properties: { command: "hedgehug", alias, result: name },
+    });
   });
 });

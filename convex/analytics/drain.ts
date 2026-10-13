@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalAction, internalMutation, type MutationCtx } from "../_generated/server";
 import { captureSettings, type Capture } from "./capture";
+import { postHogExceptionList } from "./exceptions";
 
 const batchSize = 100;
 const answerTimeoutMs = 10_000;
@@ -202,7 +203,13 @@ function batchBody(capture: Capture, batch: OutboxRow[]) {
       distinct_id: row.distinctId,
       uuid: row.uuid,
       timestamp: new Date(row.timestamp).toISOString(),
-      properties: row.properties,
+      properties: { ...withPostHogNames(row.properties), ...(row.exception && { $exception_list: postHogExceptionList(row.exception) }) },
     })),
   };
+}
+
+const postHogNames: Record<string, string> = { feature_flag: "$feature_flag", feature_flag_response: "$feature_flag_response" };
+
+function withPostHogNames(properties: OutboxRow["properties"]) {
+  return Object.fromEntries(Object.entries(properties).map(([name, value]) => [postHogNames[name] ?? name, value]));
 }

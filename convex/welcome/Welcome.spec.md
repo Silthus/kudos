@@ -1,6 +1,6 @@
 # Welcome
 
-Welcome: the first kudosGiven subscriber. It records each member it welcomes and asks feedback for the welcome message the first time a Given award names them, as giver or recipient.
+Welcome: the first kudosGiven subscriber. It records each member it welcomes and asks feedback for the welcome message the first time a Given award names them, as giver or recipient, and publishes memberWelcomed for each member it welcomes.
 
 ## invariants
 - welcomed at most once: A member gets the welcome message at most once, ever, whatever Slack redelivers and whichever Given awards name them later.

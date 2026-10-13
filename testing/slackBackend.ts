@@ -1,3 +1,4 @@
+import postHogComponent from "@posthog/convex/test";
 import { convexTest } from "convex-test";
 import { vi } from "vitest";
 import schema from "../convex/schema";
@@ -11,7 +12,9 @@ const realSetTimeout = globalThis.setTimeout;
 const idleAfterMs = 200;
 
 export function testBackend() {
-  return convexTest(schema, modules);
+  const t = convexTest(schema, modules);
+  postHogComponent.register(t);
+  return t;
 }
 
 export async function post(t: Backend, blocks: RichElement[], options: MessageOptions = {}) {
