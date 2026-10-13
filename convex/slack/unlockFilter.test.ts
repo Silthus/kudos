@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsLoaded, flagsOnForEveryone } from "../../testing/flags";
-import { buttonInHome, publishedHome, readBlocks, type Block } from "../../testing/homeView";
+import { blockActions, buttonInHome, publishedHome, readBlocks, type Block } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { appHomeOpened, blockActions, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
+import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 import { standingOf } from "../progression/progression";
 
 const now = new Date("2026-10-13T10:00:00Z");
@@ -90,7 +90,7 @@ describe("P76: a feature's lines wait for its opening", () => {
 function dmsTo(user: string) {
   return slack
     .callsTo("chat.postMessage")
-    .filter(({ channel }) => channel === `D_${user}`)
+    .filter(({ channel, text }) => channel === user && String(text).startsWith("🎉 You reached level"))
     .map((dm) => (dm.blocks === undefined ? String(dm.text).split("\n") : readBlocks(dm.blocks as Block[])));
 }
 

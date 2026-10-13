@@ -1,6 +1,4 @@
-import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { setAnnouncementChannelCommand, type CommandResult } from "../bus/commands";
-import { chatUserOf, isAdmin } from "./directory";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 
 export type WorkspaceSettings = { baseAllowance: number; kudosEmoji: string; announcementChannel: string | null };
 
@@ -16,15 +14,11 @@ export async function settingsOf(ctx: QueryCtx, workspace: string): Promise<Work
   };
 }
 
-export const setAnnouncementChannel = internalMutation({
-  args: { command: setAnnouncementChannelCommand },
-  handler: async (ctx, { command: { member, channel } }): Promise<CommandResult> => {
-    if (!(await isAdmin(ctx, member))) return "refused";
-    const { workspace } = await chatUserOf(ctx, member);
-    await saveAnnouncementChannel(ctx, workspace, channel ?? undefined);
-    return "done";
-  },
-});
+export async function setAnnouncementChannel(ctx: MutationCtx, workspace: string, person: { admin: boolean }, channel: string | null): Promise<boolean> {
+  if (!person.admin) return false;
+  await saveAnnouncementChannel(ctx, workspace, channel ?? undefined);
+  return true;
+}
 
 async function saveAnnouncementChannel(ctx: MutationCtx, workspace: string, announcementChannel: string | undefined) {
   const row = await workspaceRow(ctx, workspace);

@@ -92,7 +92,15 @@ export const stopPosting = internalMutation({
   args: { reply: v.id("publicReplies") },
   handler: async (ctx, { reply }) => {
     const row = await ctx.db.get(reply);
-    if (row?.shown.state === "posting" || row?.shown.state === "sending") await ctx.db.patch(reply, { shown: { state: "unposted" } });
+    if (row?.shown.state === "posting") await ctx.db.patch(reply, { shown: { state: "unposted" } });
+  },
+});
+
+export const stopSending = internalMutation({
+  args: { reply: v.id("publicReplies") },
+  handler: async (ctx, { reply }) => {
+    const row = await ctx.db.get(reply);
+    if (row?.shown.state === "sending") await ctx.db.patch(reply, { shown: { state: "unposted" } });
   },
 });
 

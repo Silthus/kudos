@@ -12,7 +12,7 @@ export type MemberFacts =
   | { kind: "not-a-member" };
 
 export const directoryEntryValidator = v.union(
-  v.object({ kind: v.literal("member"), timeZone: v.optional(v.string()), admin: v.optional(v.boolean()) }),
+  v.object({ kind: v.literal("member"), name: v.optional(v.string()), timeZone: v.optional(v.string()), admin: v.optional(v.boolean()) }),
   v.object({ kind: v.literal("bot") }),
   v.object({ kind: v.literal("not-a-member") }),
 );
@@ -26,15 +26,18 @@ export async function lookup(ctx: QueryCtx, workspace: string, user: ChatUserId)
   return { kind: row.kind };
 }
 
-export async function isAdmin(ctx: QueryCtx, member: MemberId) {
-  const row = await ctx.db.get(member);
-  return row?.kind === "member" && (row.admin ?? false);
-}
-
 export async function chatUserOf(ctx: QueryCtx, member: MemberId): Promise<{ workspace: string; user: ChatUserId }> {
   const row = await ctx.db.get(member);
   if (row === null) throw new ReportableError("no such member in the directory");
   return { workspace: row.workspace, user: row.user };
+}
+
+export async function adminsIn(ctx: QueryCtx, workspace: string): Promise<ChatUserId[]> {
+  const members = await ctx.db
+    .query("members")
+    .withIndex("by_admin", (q) => q.eq("workspace", workspace).eq("admin", true))
+    .collect();
+  return members.filter(({ kind }) => kind === "member").map(({ user }) => user);
 }
 
 export const directoryRecordArgs = { workspace: v.string(), user: v.string(), entry: directoryEntryValidator, asOf: v.number() };
@@ -45,6 +48,16 @@ export const fillEntry = internalMutation({
   args: directoryRecordArgs,
   handler: async (ctx, directoryRecord) => {
     if ((await memberRow(ctx, directoryRecord.workspace, directoryRecord.user)) === null) await record(ctx, directoryRecord);
+  },
+});
+
+export const nameMembersWithoutName = internalMutation({
+  args: { names: v.array(v.object({ workspace: v.string(), user: v.string(), name: v.string() })) },
+  handler: async (ctx, { names }) => {
+    for (const { workspace, user, name } of names) {
+      const row = await memberRow(ctx, workspace, user);
+      if (row?.kind === "member" && row.name === undefined) await ctx.db.patch(row._id, { name });
+    }
   },
 });
 

@@ -39,7 +39,7 @@ async function post(ctx: ActionCtx, row: Doc<"publicReplies">, attempt: number):
   const result = await attemptCall<{ ts: string }>(ctx, row.workspace, "chat.postMessage", message);
   if (result.kind === "unknown") return null;
   if (result.kind === "gone") {
-    await ctx.runMutation(internal.feedback.publicReplies.stopPosting, { reply: row._id });
+    await ctx.runMutation(internal.feedback.publicReplies.stopSending, { reply: row._id });
     return null;
   }
   if (result.kind !== "delivered") {

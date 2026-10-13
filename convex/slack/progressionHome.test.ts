@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { flagsLoaded, flagsOnForEveryone } from "../../testing/flags";
 import { FakeSlack, httpStatus } from "../../testing/fakeSlack";
-import { buttonInHome, channelPickerInHome, publishedHome, publishedViews } from "../../testing/homeView";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { memberChanged, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { kudosGivenEventWithAward } from "../../testing/busEvents";
 import { internal } from "../_generated/api";
-import { appHomeOpened, blockActions, emoji, mention, messageEvent, section, type BlockAction } from "../../testing/slackMessages";
+import type { QueryCtx } from "../_generated/server";
+import { type BlockAction, blockActions, buttonInHome, channelPickerInHome, publishedHome, publishedViews } from "../../testing/slackInteractions";
+import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const form = { contentType: "application/x-www-form-urlencoded" };
@@ -37,8 +39,8 @@ describe("P67: the Profile tab", () => {
     await openHome(t, "U_ALICE");
 
     expect(publishedHome(slack, "U_ALICE")).toEqual([
-      "header: Your kudos",
       "actions: [Profile] | Settings",
+      "header: Your kudos",
       "section: You have *8* kudos left today. You get *10* more at midnight.",
       "divider",
       "section fields: *Level*\n*2* | *XP to level 3*\n*80*",
@@ -71,8 +73,8 @@ describe("P67: the Settings tab", () => {
     expect(response.status).toBe(200);
     expect(await response.text()).toBe("");
     expect(publishedHome(slack, "U_ALICE")).toEqual([
-      "header: Your kudos",
       "actions: Profile | [Settings]",
+      "header: Settings",
       "section: I celebrate your level ups in public. [button: Mute notices]",
       "section: I send you a DM when you reach a level. [button: Turn off DMs]",
     ]);
@@ -150,6 +152,28 @@ describe("P68: App Home is republished after a change, the latest version wins, 
     expect(publishedHome(slack, "U_ALICE")).toContain("section fields: *Level*\n*2* | *XP to level 3*\n*80*");
   });
 
+  test("an award that changes XP without a level up republishes both members' App Home with the new XP and totals", async () => {
+    const t = await workspaceWithAllowance(10);
+    await openHome(t, "U_ALICE");
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(publishedHome(slack, "U_ALICE")).toContain("section fields: *Level*\n*1* | *XP to level 2*\n*10*");
+    expect(publishedHome(slack, "U_ALICE")).toContain("section fields: *Given this week*\n*1* | *Received this week*\n*0* | *Given in total*\n*1* | *Received in total*\n*0*");
+    expect(publishedHome(slack, "U_BOB")).toContain("section fields: *Level*\n*1* | *XP to level 2*\n*15*");
+  });
+
+  test("App Home is republished from the transaction that records the XP, so it never shows XP from before it", async () => {
+    const t = await workspaceWithAllowance(10);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    const event = await t.run(async (ctx) => kudosGivenEventWithAward(ctx, await memberId(ctx, "U_ALICE"), await memberId(ctx, "U_BOB")));
+
+    await t.mutation(internal.progression.progression.recordEffects, { event });
+    await settle(t);
+
+    expect(publishedHome(slack, "U_BOB")).toContain("section fields: *Level*\n*1* | *XP to level 2*\n*10*");
+  });
+
   test("a republish that fails is tried again until the new level shows", async () => {
     const t = await workspaceWithAllowance(10);
     await openHome(t, "U_ALICE");
@@ -188,8 +212,8 @@ describe("P69: the Admin tab", () => {
     await click(t, "U_ALICE", "Admin");
 
     expect(publishedHome(slack, "U_ALICE")).toEqual([
-      "header: Your kudos",
       "actions: Profile | Settings | [Admin]",
+      "header: Admin",
       "section: I celebrate level ups in a thread under each kudos message. Pick a channel to post them there instead. [channels_select: none]",
       "divider",
       "context: Only workspace admins and owners see this tab.",
@@ -201,7 +225,7 @@ describe("P69: the Admin tab", () => {
 
     await openHome(t, "U_BOB");
 
-    expect(publishedHome(slack, "U_BOB")[1]).toBe("actions: [Profile] | Settings");
+    expect(publishedHome(slack, "U_BOB")[0]).toBe("actions: [Profile] | Settings");
   });
 
   test("a member made an admin in Slack sees the Admin tab the next time they open App Home", async () => {
@@ -211,7 +235,7 @@ describe("P69: the Admin tab", () => {
 
     await openHome(t, "U_ALICE");
 
-    expect(publishedHome(slack, "U_ALICE")[1]).toBe("actions: [Profile] | Settings | Admin");
+    expect(publishedHome(slack, "U_ALICE")[0]).toBe("actions: [Profile] | Settings | Admin");
   });
 
   test("picking a channel sends the next level-up notice there and shows it picked with a way back to threads", async () => {
@@ -223,13 +247,24 @@ describe("P69: the Admin tab", () => {
     expect(slack.messagesIn("C_NEWS").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
     expect(slack.messagesIn("C1")).toEqual([]);
     expect(publishedHome(slack, "U_ALICE")).toEqual([
-      "header: Your kudos",
       "actions: Profile | Settings | [Admin]",
+      "header: Admin",
       "section: I celebrate level ups in this channel. [channels_select: C_NEWS]",
       "section: Or celebrate them in a thread under each kudos message again. [button: Use threads]",
       "divider",
       "context: Only workspace admins and owners see this tab.",
     ]);
+  });
+
+  test("picking a channel republishes every other admin's Admin tab with the channel picked", async () => {
+    const t = await adminTabOpen("U_ALICE");
+    slack.withMember("U_CAROL", { is_admin: true });
+    await openHome(t, "U_CAROL");
+    await click(t, "U_CAROL", "Admin");
+
+    await interact(t, "U_ALICE", channelPickerInHome(slack, "U_ALICE", "C_NEWS"));
+
+    expect(publishedHome(slack, "U_CAROL")).toContain("section: I celebrate level ups in this channel. [channels_select: C_NEWS]");
   });
 
   test("going back to threads sends the next level-up notice under its kudos message again", async () => {
@@ -255,7 +290,7 @@ describe("P69: the Admin tab", () => {
     await stalePublish;
     await settle(t);
 
-    expect(publishedHome(slack, "U_ALICE")[1]).toBe("actions: [Profile] | Settings");
+    expect(publishedHome(slack, "U_ALICE")[0]).toBe("actions: [Profile] | Settings");
   });
 });
 
@@ -281,7 +316,7 @@ describe("P69: only workspace admins and owners set the announcement channel", (
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
     expect(slack.messagesIn("C_NEWS")).toEqual([]);
-    expect(publishedHome(slack, "U_ALICE")[1]).toBe("actions: [Profile] | Settings");
+    expect(publishedHome(slack, "U_ALICE")[0]).toBe("actions: [Profile] | Settings");
   });
 });
 
@@ -297,7 +332,7 @@ describe("P68: App Home follows a member leaving and coming back", () => {
     await settle(t);
 
     expect(whileDeactivated).toEqual(["header: HedgeHug", "section: HedgeHug is for active members of this workspace."]);
-    expect(publishedHome(slack, "U_BOB")[0]).toBe("header: Your kudos");
+    expect(publishedHome(slack, "U_BOB")[1]).toBe("header: Your kudos");
   });
 
   test("a members-only publish that lands after the member came back is followed by their App Home", async () => {
@@ -315,7 +350,7 @@ describe("P68: App Home follows a member leaving and coming back", () => {
     await stalePublish;
     await settle(t);
 
-    expect(publishedHome(slack, "U_BOB")[0]).toBe("header: Your kudos");
+    expect(publishedHome(slack, "U_BOB")[1]).toBe("header: Your kudos");
   });
 });
 
@@ -348,6 +383,14 @@ async function settingsOpen(user: string) {
   return t;
 }
 
+async function memberId(ctx: QueryCtx, user: string) {
+  const member = await ctx.db
+    .query("members")
+    .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", user))
+    .unique();
+  return member!._id;
+}
+
 async function withXp(t: Backend, user: string, xp: number) {
   await t.run(async (ctx) => {
     const member = await ctx.db
@@ -377,7 +420,7 @@ function progressionOf(home: string[]) {
 }
 
 function dmsTo(user: string) {
-  return slack.callsTo("chat.postMessage").filter(({ channel }) => channel === `D_${user}`).map(({ text }) => text);
+  return slack.messagesIn(user).map(({ text }) => String(text)).filter((text) => text.startsWith("🎉 You reached level"));
 }
 
 async function workspaceWithAllowance(baseAllowance: number) {

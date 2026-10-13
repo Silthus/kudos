@@ -2,10 +2,10 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { routedFetch, type FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack, rateLimitedFor } from "../../testing/fakeSlack";
 import { flagsFromPostHog, offForEveryone, onForEveryone, onInTheSandboxOnly, postHogDeciding } from "../../testing/flags";
-import { buttonInHome, publishedHome } from "../../testing/homeView";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { appHomeOpened, blockActions, emoji, mention, messageEvent, section, type BlockAction } from "../../testing/slackMessages";
+import { type BlockAction, blockActions, buttonInHome, publishedHome } from "../../testing/slackInteractions";
+import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 import type { FlagDefinition } from "../../testing/fakePostHog";
 import { standingOf } from "../progression/progression";
 import { progressSettingsOf } from "../progression/settings";
@@ -49,14 +49,14 @@ describe("the xp-levels flag hides the slice while it is off", () => {
     ["not created in PostHog", () => workspaceDeciding("sandbox")],
     ["on in the sandbox only, read in production", () => workspaceDeciding("production", onInTheSandboxOnly(xpLevels))],
     ["unreadable because the flags key is missing", () => workspaceWithoutFlagsKey()],
-  ])("%s: a level reached sends no DM and no public notice, and App Home shows only the core loop", async (_, workspace) => {
+  ])("%s: a level reached sends no DM and no public notice, a recipient's App Home isn't published, and App Home shows only the core loop", async (_, workspace) => {
     const t = await workspace();
 
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
     const lookUpsBeforeOpening = slack.callsTo("users.info").length;
     await openHome(t, "U_ALICE");
 
-    expect(slack.callsTo("conversations.open")).toEqual([]);
+    expect(slack.callsTo("views.publish").filter(({ user_id }) => user_id === "U_BOB")).toEqual([]);
     expect(slack.callsTo("chat.postMessage").map(({ channel }) => channel)).toEqual(["U_ALICE", "U_BOB"]);
     expect(slack.callsTo("users.info")).toHaveLength(lookUpsBeforeOpening);
     expect(publishedHome(slack, "U_ALICE")).toEqual(coreHome);
@@ -98,6 +98,19 @@ describe("the xp-levels flag hides the slice while it is off", () => {
     expect(slack.messagesIn("C1")).toEqual([]);
   });
 
+  test("a level-up DM Slack held back while the flag was on is not sent once it is off", async () => {
+    const t = await workspaceDeciding("sandbox", onForEveryone(xpLevels));
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    slack.holdingBack("chat.postMessage", "U_ALICE", async () => {
+      await flagsFromPostHog(t, postHog, offForEveryone(xpLevels));
+      slack.answering("chat.postMessage", rateLimitedFor(30));
+    });
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(slack.messagesIn("U_ALICE").filter(({ text }) => String(text).startsWith("🎉 You reached level"))).toEqual([]);
+  });
+
   test("a click on a button from an App Home published while the flag was on changes nothing once it is off", async () => {
     const t = await workspaceDeciding("sandbox", onForEveryone(xpLevels));
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
@@ -115,7 +128,7 @@ describe("the xp-levels flag hides the slice while it is off", () => {
 });
 
 describe("O36: exposure", () => {
-  test("is sent once per member and value, from the mutations a member enters the slice through", async () => {
+  test("is sent once per member and value, from the mutations a member enters the slice through, a recipient's refreshed App Home included", async () => {
     const t = await workspaceDeciding("sandbox", onForEveryone(xpLevels));
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
     await openHome(t, "U_ALICE");
@@ -126,6 +139,7 @@ describe("O36: exposure", () => {
     await openHome(t, "U_ALICE");
 
     expect(exposures()).toEqual([
+      [xpLevels, true, true],
       [xpLevels, true, true],
       [xpLevels, false, true],
     ]);
@@ -160,7 +174,7 @@ async function workspace() {
 }
 
 function exposures() {
-  const sent = postHog.events().filter(({ event }) => event === "$feature_flag_called");
+  const sent = postHog.events().filter(({ event, properties }) => event === "$feature_flag_called" && properties.$feature_flag === xpLevels);
   const once = [...new Map(sent.map((event) => [event.uuid, event])).values()];
   return once.map(({ properties }) => [properties.$feature_flag, properties.$feature_flag_response, properties.locally_evaluated]);
 }

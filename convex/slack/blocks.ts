@@ -1,9 +1,9 @@
-import type { Intent } from "../bus/commands";
+import type { HomeAction } from "../feedback/home";
+import { encodeHomeAction } from "./interactivity";
 
-export type Button = { label: string; intent: Intent };
-
-export function buttonOf({ label, intent }: Button) {
-  return { type: "button", action_id: actionIdOf(intent), text: plainText(label), value: JSON.stringify(intent) };
+export function buttonOf({ label, command }: HomeAction) {
+  const action = encodeHomeAction(command);
+  return { type: "button", text: plainText(label), action_id: action, value: action };
 }
 
 export function mrkdwn(text: string) {
@@ -12,10 +12,4 @@ export function mrkdwn(text: string) {
 
 export function plainText(text: string) {
   return { type: "plain_text", text };
-}
-
-function actionIdOf(intent: Intent) {
-  return Object.entries(intent)
-    .map(([key, value]) => `${key}=${value}`)
-    .join("&");
 }

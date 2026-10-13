@@ -2,10 +2,10 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone } from "../../testing/flags";
-import { buttonInHome, publishedHome } from "../../testing/homeView";
+import { blockActions, buttonInHome, publishedHome } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { appHomeOpened, blockActions, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
+import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import type { LevelReachedEvent } from "../bus/events";
 
@@ -42,8 +42,8 @@ describe("P74 P73: App Home's Profile tab lists each ready feature with Open", (
     await openHome(t, "U_ALICE");
 
     expect(publishedHome(slack, "U_ALICE")).toEqual([
+      "actions: [Profile] | Leaderboard | Settings",
       "header: Your kudos",
-      "actions: [Profile] | Settings",
       "section: You've used all your kudos for today. You get *10* more at midnight.",
       "divider",
       "section fields: *Level*\n*3* | *XP to level 4*\n*200*",
@@ -95,13 +95,13 @@ describe("P74 P73: App Home's Profile tab lists each ready feature with Open", (
 });
 
 describe("P74: App Home republishes once readiness commits", () => {
-  test("when the level refresh publishes App Home before the Leaderboard's readiness commits, readiness republishes it with Open, without the member reopening it", async () => {
+  test("when the XP refresh publishes App Home before the Leaderboard's readiness commits, readiness republishes it with Open, without the member reopening it", async () => {
     const t = await workspace();
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
     await openHome(t, "U_ALICE");
     const reached = await levelThreeReachedBy(t, "U_ALICE");
 
-    await t.mutation(internal.feedback.homes.refreshHomeOnLevel, { event: reached });
+    await t.mutation(internal.feedback.homes.refreshHomeOnXp, { event: { type: "xpRecorded", workspace: "T1", member: reached.member, at: reached.at } });
     await settle(t);
     expect(unlockLinesOf(publishedHome(slack, "U_ALICE"))).toEqual(["section: Next: Leaderboard at level 3."]);
     await t.mutation(internal.unlocks.unlocks.makeReady, { event: reached });

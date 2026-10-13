@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { FakePostHog } from "../../testing/fakePostHog";
-import { FakeSlack } from "../../testing/fakeSlack";
+import { FakeSlack, rateLimitedFor } from "../../testing/fakeSlack";
 import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone } from "../../testing/flags";
-import { buttonInBlocks, publishedHome, readBlocks, type Block } from "../../testing/homeView";
+import { blockActions, buttonIn, publishedHome, readBlocks, type Block } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
+import { emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import type { LevelReachedEvent } from "../bus/events";
 import type { MemberId } from "../workspace/directory";
@@ -16,10 +16,7 @@ const form = { contentType: "application/x-www-form-urlencoded" };
 const leaderboardReady = "section: *Leaderboard* is ready. It opens the boards. [button: Open]";
 const levelThreeDm = ["section: 🎉 You reached level 3!", "section: Level 4 is 200 XP away.", leaderboardReady];
 
-type LevelReachedSubscriber =
-  | typeof internal.feedback.publicReplies.celebrateLevel
-  | typeof internal.feedback.homes.refreshHomeOnLevel
-  | typeof internal.unlocks.unlocks.makeReady;
+type LevelReachedSubscriber = typeof internal.feedback.publicReplies.celebrateLevel | typeof internal.unlocks.unlocks.makeReady;
 
 let slack: FakeSlack;
 let postHog: FakePostHog;
@@ -55,15 +52,15 @@ describe("P74 P73: the level-up DM names what the level made ready, each with Op
   test("clicking Open in the DM opens the Leaderboard for good and republishes App Home without its line; clicking it again changes nothing", async () => {
     const t = await workspace();
     await giveKudos(t, "U_ALICE", "U_BOB", 10);
-    const openButton = buttonInBlocks(blocksOf(dmsTo("U_ALICE")[0]!), "Open");
-    const inDm = { channel: "D_U_ALICE", ts: "1760349700.000100" };
+    const openButton = buttonIn(blocksOf(dmsTo("U_ALICE")[0]!), "Open");
+    const inDm = { channel: "U_ALICE", ts: "1760349700.000100" };
 
     const response = await send(t, blockActions("U_ALICE", openButton, { inMessage: inDm }));
 
     expect(response.status).toBe(200);
     const opened = await unlockRows(t);
     expect(opened).toEqual([{ feature: "leaderboard", readyAt: firstMessageAt, openedAt: expect.any(Number) }]);
-    expect(publishedHome(slack, "U_ALICE").filter((line) => line.includes("Leaderboard"))).toEqual([]);
+    expect(publishedHome(slack, "U_ALICE").filter((line) => line.includes("is ready."))).toEqual([]);
 
     vi.setSystemTime(now.getTime() + 60_000);
     await send(t, blockActions("U_ALICE", openButton, { inMessage: inDm }));
@@ -77,7 +74,7 @@ describe("P74 P73: the level-up DM names what the level made ready, each with Op
 
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
 
-    expect(dmsTo("U_ALICE")).toEqual([{ channel: "D_U_ALICE", text: "🎉 You reached level 2!\nLevel 3 is 80 XP away." }]);
+    expect(dmsTo("U_ALICE")).toEqual([{ channel: "U_ALICE", text: "🎉 You reached level 2!\nLevel 3 is 80 XP away." }]);
   });
 
   test("with everyone-board off, reaching level 3 sends the level-up DM without naming any feature", async () => {
@@ -86,7 +83,22 @@ describe("P74 P73: the level-up DM names what the level made ready, each with Op
 
     await giveKudos(t, "U_ALICE", "U_BOB", 10);
 
-    expect(dmsTo("U_ALICE")).toEqual([{ channel: "D_U_ALICE", text: "🎉 You reached level 3!\nLevel 4 is 200 XP away." }]);
+    expect(dmsTo("U_ALICE")).toEqual([{ channel: "U_ALICE", text: "🎉 You reached level 3!\nLevel 4 is 200 XP away." }]);
+  });
+});
+
+describe("R34: a level-up DM rechecks what it names before each try", () => {
+  test("a level-up DM Slack held back leaves out the Leaderboard once everyone-board went off, and still tells the level", async () => {
+    const t = await workspace();
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+    slack.holdingBack("chat.postMessage", "U_ALICE", async () => {
+      await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), offForEveryone("everyone-board"));
+      slack.answering("chat.postMessage", rateLimitedFor(30));
+    });
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 8);
+
+    expect(dmsTo("U_ALICE").map(readDm).slice(1)).toEqual([levelThreeDm, ["🎉 You reached level 3!", "Level 4 is 200 XP away."]]);
   });
 });
 
@@ -102,8 +114,8 @@ describe("P6: several levels at once", () => {
 
 describe("P74: one owner for readiness and the level-up DM", () => {
   test.each<[string, LevelReachedSubscriber[]]>([
-    ["readiness first", [internal.unlocks.unlocks.makeReady, internal.feedback.homes.refreshHomeOnLevel, internal.feedback.publicReplies.celebrateLevel]],
-    ["readiness last", [internal.feedback.publicReplies.celebrateLevel, internal.feedback.homes.refreshHomeOnLevel, internal.unlocks.unlocks.makeReady]],
+    ["readiness first", [internal.unlocks.unlocks.makeReady, internal.feedback.publicReplies.celebrateLevel]],
+    ["readiness last", [internal.feedback.publicReplies.celebrateLevel, internal.unlocks.unlocks.makeReady]],
   ])("the DM names exactly what was made ready, with %s", async (_, subscribers) => {
     const t = await workspace();
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
@@ -181,7 +193,7 @@ describe("P63 P74: with DMs off", () => {
 type PostedDm = Record<string, unknown>;
 
 function dmsTo(user: string): PostedDm[] {
-  return slack.callsTo("chat.postMessage").filter(({ channel }) => channel === `D_${user}`);
+  return slack.callsTo("chat.postMessage").filter(({ channel, text }) => channel === user && String(text).startsWith("🎉 You reached level"));
 }
 
 function blocksOf(dm: PostedDm) {

@@ -15,6 +15,7 @@ export const recordEffects = internalMutation({
       if (awards.length === 0) continue;
       const { state, effects, events } = progress(await progressOf(ctx, member), { ...event, awards }, catalogue);
       await record(ctx, { state, effects });
+      await publish(ctx, { type: "xpRecorded", workspace: event.workspace, member, at: event.at });
       for (const levelReached of events) await publish(ctx, levelReached);
     }
   },

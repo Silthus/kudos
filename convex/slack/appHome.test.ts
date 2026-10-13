@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack, httpStatus, rateLimitedFor } from "../../testing/fakeSlack";
-import { publishedHome } from "../../testing/homeView";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { publishedHome } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 

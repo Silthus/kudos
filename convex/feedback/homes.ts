@@ -1,80 +1,81 @@
-import { v } from "convex/values";
+import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
-import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { showHomeTabCommand, type CommandResult } from "../bus/commands";
-import { levelReachedEventValidator } from "../bus/events";
-import { kudosHomeOf, type KudosHome } from "../engine/home";
+import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
+import { xpRecordedEventValidator } from "../bus/events";
+import { isEveryoneBoardShownTo } from "../leaderboard/flag";
+import type { Period } from "../leaderboard/periods";
+import { everyoneBoardOf, type EveryoneBoardView } from "../leaderboard/totals";
+import { isOnTheBoards } from "../leaderboard/visibility";
 import { progressionHomeOf, type ProgressionHome } from "../progression/progression";
 import { progressSettingsOf, type ProgressSettings } from "../progression/settings";
-import { xpLevelsShownIn } from "../progression/xpLevels";
+import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { unlocksHomeOf, type UnlocksHome } from "../unlocks/unlocks";
-import { chatUserOf, lookup, type MemberFacts, type MemberId } from "../workspace/directory";
+import { adminsIn, chatUserOf, lookup, type MemberFacts, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
-import type { HomeTab } from "./home";
 import { whenOpened } from "./unlockFilter";
 
-export type HomeFacts =
-  | {
-      kind: "member";
-      member: MemberId;
-      version: number;
-      tab: HomeTab;
-      kudos: KudosHome;
-      progression: ToldProgression;
-      unlocks: UnlocksHome;
-      settings: ProgressSettings;
-      admin: AdminHome | null;
-    }
-  | { kind: "kudos-only"; version: number; kudos: KudosHome }
-  | { kind: "not-a-member" };
+export const homeTabValidator = v.union(v.literal("profile"), v.literal("leaderboard"), v.literal("settings"), v.literal("admin"));
 
-export type AdminHome = { announcementChannel: string | null };
+export type HomeTab = Infer<typeof homeTabValidator>;
+
+export type ShownTab =
+  | { tab: "profile"; progression: ToldProgression | null; unlocks: UnlocksHome | null }
+  | { tab: "leaderboard"; period: Period; board: EveryoneBoardView }
+  | { tab: "settings"; onTheBoards: boolean | null; progress: ProgressSettings | null }
+  | { tab: "admin"; announcementChannel: string | null };
+
+export type ShownHome = { tabs: HomeTab[]; shown: ShownTab };
 
 export type ToldProgression = Omit<ProgressionHome, "skillPoints"> & { skillPoints: number | null };
 
-export const homeOf = internalQuery({
+export type HomeMember = Extract<MemberFacts, { kind: "member" }>;
+
+type Slices = { board: boolean; xp: boolean; admin: boolean };
+
+type HomeSelection = { tab: HomeTab; period: Period };
+
+const opensOn: HomeSelection = { tab: "profile", period: "week" };
+
+const tabsBesideProfile: Array<{ tab: HomeTab; shownWith: (slices: Slices) => boolean }> = [
+  { tab: "leaderboard", shownWith: ({ board }) => board },
+  { tab: "settings", shownWith: ({ board, xp }) => board || xp },
+  { tab: "admin", shownWith: ({ xp, admin }) => xp && admin },
+];
+
+export const shownHomeOf = internalMutation({
   args: { workspace: v.string(), user: v.string() },
-  handler: async (ctx, { workspace, user }): Promise<HomeFacts | null> => {
+  handler: async (ctx, { workspace, user }): Promise<ShownHome | null> => {
     const person = await lookup(ctx, workspace, user);
-    if (person === undefined) return null;
-    if (person.kind !== "member") return { kind: "not-a-member" };
-    const home = await homeRow(ctx, person.member);
-    const version = home?.version ?? 0;
-    const kudos = await kudosHomeOf(ctx, workspace, person.member, person.timeZone);
-    if (!(await xpLevelsShownIn(ctx, workspace))) return { kind: "kudos-only", version, kudos };
-    return {
-      kind: "member",
-      member: person.member,
-      version,
-      tab: home?.tab ?? "profile",
-      kudos,
-      progression: await toldProgressionOf(ctx, person.member),
-      unlocks: await unlocksHomeOf(ctx, person.member),
-      settings: await progressSettingsOf(ctx, person.member),
-      admin: person.admin ? { announcementChannel: (await settingsOf(ctx, workspace)).announcementChannel } : null,
-    };
+    if (person?.kind !== "member") return null;
+    const slices = await slicesShownTo(ctx, workspace, person);
+    const tabs = tabsOf(slices);
+    if (tabs.length === 0) return null;
+    const { tab, period } = await selectionOf(ctx, person.member);
+    const viewer = { workspace, user, member: person.member };
+    return { tabs, shown: await shownTabOf(ctx, viewer, slices, { tab: tabs.includes(tab) ? tab : "profile", period }) };
   },
 });
 
-export function stampOf(facts: HomeFacts | null) {
-  if (facts === null) return "unknown";
-  return facts.kind === "not-a-member" ? facts.kind : `${facts.kind}@${facts.version}`;
+export async function showHomeTab(ctx: MutationCtx, workspace: string, person: HomeMember, tab: HomeTab) {
+  if (!tabsOf(await slicesShownTo(ctx, workspace, person)).includes(tab)) return;
+  await select(ctx, person.member, { ...(await selectionOf(ctx, person.member)), tab });
 }
 
-export const showHomeTab = internalMutation({
-  args: { command: showHomeTabCommand },
-  handler: async (ctx, { command: { member, tab } }): Promise<CommandResult> => {
-    const home = await homeRow(ctx, member);
-    if (home === null) await ctx.db.insert("homes", { member, tab, version: 0 });
-    else await ctx.db.patch(home._id, { tab });
-    return "done";
+export async function selectLeaderboardPeriod(ctx: MutationCtx, member: MemberId, period: Period) {
+  await select(ctx, member, { tab: "leaderboard", period });
+}
+
+export const refreshHomeOnXp = internalMutation({
+  args: { event: xpRecordedEventValidator },
+  handler: async (ctx, { event }): Promise<void> => {
+    if (await xpLevelsShownIn(ctx, event.workspace)) await republish(ctx, event.member);
   },
 });
 
-export const refreshHomeOnLevel = internalMutation({
-  args: { event: levelReachedEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
-    if (await xpLevelsShownIn(ctx, event.workspace)) await republish(ctx, event.member);
+export const republishAdminsIn = internalMutation({
+  args: { workspace: v.string() },
+  handler: async (ctx, { workspace }): Promise<void> => {
+    for (const user of await adminsIn(ctx, workspace)) await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, { workspace, user });
   },
 });
 
@@ -86,6 +87,43 @@ export async function republishOnRoleChange(ctx: MutationCtx, before: MemberFact
   if (await xpLevelsShownIn(ctx, workspace)) await republish(ctx, member);
 }
 
+export async function republish(ctx: MutationCtx, member: MemberId) {
+  await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, await chatUserOf(ctx, member));
+}
+
+async function slicesShownTo(ctx: MutationCtx, workspace: string, person: HomeMember): Promise<Slices> {
+  return {
+    board: await isEveryoneBoardShownTo(ctx, workspace, person.member),
+    xp: await xpLevelsShownTo(ctx, person.member),
+    admin: person.admin,
+  };
+}
+
+function tabsOf(slices: Slices): HomeTab[] {
+  const besideProfile = tabsBesideProfile.filter(({ shownWith }) => shownWith(slices)).map(({ tab }) => tab);
+  return besideProfile.length === 0 ? [] : ["profile", ...besideProfile];
+}
+
+type Viewer = { workspace: string; user: string; member: MemberId };
+
+async function shownTabOf(ctx: QueryCtx, viewer: Viewer, slices: Slices, { tab, period }: HomeSelection): Promise<ShownTab> {
+  switch (tab) {
+    case "profile":
+      if (!slices.xp) return { tab, progression: null, unlocks: null };
+      return { tab, progression: await toldProgressionOf(ctx, viewer.member), unlocks: await unlocksHomeOf(ctx, viewer.member) };
+    case "leaderboard":
+      return { tab, period, board: await everyoneBoardOf(ctx, viewer.workspace, viewer.user, period) };
+    case "settings":
+      return {
+        tab,
+        onTheBoards: slices.board ? await isOnTheBoards(ctx, viewer.member) : null,
+        progress: slices.xp ? await progressSettingsOf(ctx, viewer.member) : null,
+      };
+    case "admin":
+      return { tab, announcementChannel: (await settingsOf(ctx, viewer.workspace)).announcementChannel };
+  }
+}
+
 async function toldProgressionOf(ctx: QueryCtx, member: MemberId): Promise<ToldProgression> {
   const progression = await progressionHomeOf(ctx, member);
   return { ...progression, skillPoints: await whenOpened(ctx, member, "skillTree", progression.skillPoints) };
@@ -95,16 +133,20 @@ function roleOf(person: MemberFacts) {
   return person.kind === "member" && person.admin ? "admin" : person.kind;
 }
 
-export async function republish(ctx: MutationCtx, member: MemberId) {
-  const home = await homeRow(ctx, member);
-  if (home === null) await ctx.db.insert("homes", { member, tab: "profile", version: 1 });
-  else await ctx.db.patch(home._id, { version: home.version + 1 });
-  await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, await chatUserOf(ctx, member));
+async function selectionOf(ctx: QueryCtx, member: MemberId): Promise<HomeSelection> {
+  const row = await selectionRow(ctx, member);
+  return row === null ? opensOn : { tab: row.tab, period: row.period };
 }
 
-function homeRow(ctx: QueryCtx, member: MemberId) {
+async function select(ctx: MutationCtx, member: MemberId, selection: HomeSelection) {
+  const row = await selectionRow(ctx, member);
+  if (row === null) await ctx.db.insert("homeSelections", { member, ...selection });
+  else if (row.tab !== selection.tab || row.period !== selection.period) await ctx.db.patch(row._id, selection);
+}
+
+function selectionRow(ctx: QueryCtx, member: MemberId) {
   return ctx.db
-    .query("homes")
+    .query("homeSelections")
     .withIndex("by_member", (q) => q.eq("member", member))
     .unique();
 }

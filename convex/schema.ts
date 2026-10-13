@@ -3,9 +3,10 @@ import { v } from "convex/values";
 import { exceptionValidator } from "./analytics/exceptions";
 import { propertiesValidator } from "./analytics/projections";
 import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
+import { homeTabValidator } from "./feedback/homes";
 import { publicSectionValidator, shownValidator } from "./feedback/publicReplies";
 import { segmentValidator } from "./feedback/replies";
-import { homeTabValidator } from "./feedback/home";
+import { periodValidator } from "./leaderboard/periods";
 import { effectsRecordValidator } from "./progression/progress";
 import { featureValidator } from "./unlocks/feature";
 
@@ -26,10 +27,13 @@ export default defineSchema({
     workspace: v.string(),
     user: v.string(),
     kind: v.union(v.literal("member"), v.literal("bot"), v.literal("not-a-member")),
+    name: v.optional(v.string()),
     timeZone: v.optional(v.string()),
     admin: v.optional(v.boolean()),
     asOf: v.optional(v.number()),
-  }).index("by_user", ["workspace", "user"]),
+  })
+    .index("by_user", ["workspace", "user"])
+    .index("by_admin", ["workspace", "admin"]),
 
   kudosMessages: defineTable({
     workspace: v.string(),
@@ -66,7 +70,8 @@ export default defineSchema({
     at: v.number(),
   })
     .index("by_giver", ["giver", "day"])
-    .index("by_recipient", ["recipient", "day"]),
+    .index("by_recipient", ["recipient", "day"])
+    .index("by_message", ["workspace", "conversation", "message"]),
 
   kudosTotals: defineTable({
     member: v.id("members"),
@@ -155,8 +160,43 @@ export default defineSchema({
 
   homes: defineTable({
     member: v.id("members"),
-    tab: homeTabValidator,
+    tab: v.union(v.literal("profile"), v.literal("settings"), v.literal("admin")),
     version: v.number(),
+  }).index("by_member", ["member"]),
+
+  countedKudosGiven: defineTable({
+    workspace: v.string(),
+    conversation: v.string(),
+    message: v.string(),
+  }).index("by_message", ["workspace", "conversation", "message"]),
+
+  givenByDay: defineTable({
+    workspace: v.string(),
+    member: v.id("members"),
+    day: v.string(),
+    kudos: v.number(),
+  })
+    .index("by_member_day", ["member", "day"])
+    .index("by_workspace_day", ["workspace", "day"]),
+
+  givenTotals: defineTable({
+    workspace: v.string(),
+    member: v.id("members"),
+    period: v.string(),
+    kudos: v.number(),
+  })
+    .index("by_period", ["workspace", "period"])
+    .index("by_member_period", ["member", "period"]),
+
+  leaderboardSettings: defineTable({
+    member: v.id("members"),
+    visible: v.boolean(),
+  }).index("by_member", ["member"]),
+
+  homeSelections: defineTable({
+    member: v.id("members"),
+    tab: homeTabValidator,
+    period: periodValidator,
   }).index("by_member", ["member"]),
 
   slackRateLimits: defineTable({

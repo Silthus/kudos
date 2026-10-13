@@ -22,7 +22,6 @@ export type Attempt<Data = object> =
   | { kind: "failed"; retryAt?: number }
   | { kind: "unknown" };
 export type Retry = { at: number; attempt: number } | null;
-type Called<Data> = { answered: Data } | { retry: Retry };
 type Send = (attempt: number) => Promise<Retry>;
 
 export const deliverIndicator = observedAction({
@@ -52,15 +51,9 @@ export async function tryAtMostThreeTimes(attempt: number, send: Send, tryAgain:
 }
 
 export async function sendOnce(ctx: ActionCtx, workspace: string, method: string, args: Record<string, unknown>, attempt: number): Promise<Retry> {
-  const called = await callOnce(ctx, workspace, method, args, attempt);
-  return "retry" in called ? called.retry : null;
-}
-
-export async function callOnce<Data>(ctx: ActionCtx, workspace: string, method: string, args: Record<string, unknown>, attempt: number): Promise<Called<Data>> {
-  const result = await attemptCall<Data>(ctx, workspace, method, args);
-  if (result.kind === "delivered" && result.answer.ok) return { answered: result.answer };
-  if (result.kind === "held" || result.kind === "failed" || result.kind === "unknown") return { retry: retryAfter(result, attempt) };
-  return { retry: null };
+  const result = await attemptCall(ctx, workspace, method, args);
+  if (result.kind === "delivered" || result.kind === "gone") return null;
+  return retryAfter(result, attempt);
 }
 
 export function failedAttempt(attempt: number, retryAfterMs?: number): Retry {

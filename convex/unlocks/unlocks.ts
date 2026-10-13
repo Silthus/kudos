@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { openUnlockCommand, type CommandResult } from "../bus/commands";
 import { levelReachedEventValidator } from "../bus/events";
 import { publish } from "../bus/publish";
 import { republish } from "../feedback/homes";
@@ -33,23 +32,20 @@ export const makeReady = internalMutation({
       madeReady.push(entry);
     }
     await ctx.db.insert("levelUps", { member, level, ready: madeReady.map(({ feature }) => feature), at });
-    await notifyLevelReached(ctx, event, madeReady);
+    await notifyLevelReached(ctx, event, madeReady.map(({ feature }) => feature));
     if (madeReady.length > 0 && (await xpLevelsShownIn(ctx, workspace))) await republish(ctx, member);
   },
 });
 
-export const openUnlock = internalMutation({
-  args: { command: openUnlockCommand },
-  handler: async (ctx, { command: { member, feature } }): Promise<CommandResult> => {
-    const { workspace } = await chatUserOf(ctx, member);
-    const row = await unlockRow(ctx, member, feature);
-    if (stateFrom(row) !== "ready" || !(await isShipped(ctx, workspace, feature))) return "refused";
-    const at = Date.now();
-    await ctx.db.patch(row!._id, { openedAt: at });
-    await publish(ctx, { type: "unlockOpened", workspace, member, feature, at });
-    return "done";
-  },
-});
+export async function openUnlock(ctx: MutationCtx, member: MemberId, feature: Feature): Promise<"done" | "refused"> {
+  const { workspace } = await chatUserOf(ctx, member);
+  const row = await unlockRow(ctx, member, feature);
+  if (stateFrom(row) !== "ready" || !(await isShipped(ctx, workspace, feature))) return "refused";
+  const at = Date.now();
+  await ctx.db.patch(row!._id, { openedAt: at });
+  await publish(ctx, { type: "unlockOpened", workspace, member, feature, at });
+  return "done";
+}
 
 export const memberUnlocks = internalQuery({
   args: { member: v.id("members") },

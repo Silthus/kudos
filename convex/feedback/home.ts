@@ -1,67 +1,91 @@
-import { v, type Infer } from "convex/values";
-import type { Intent } from "../bus/commands";
-import type { KudosHome } from "../engine/home";
+import type { Command } from "../commands/commands";
+import type { HomeFacts, KudosHome } from "../engine/home";
+import type { Period } from "../leaderboard/periods";
 import { skillTreeLevel } from "../progression/levels";
 import type { ProgressSettings } from "../progression/settings";
 import type { ScheduledFeature } from "../unlocks/schedule";
 import type { UnlocksHome } from "../unlocks/unlocks";
-import type { AdminHome, HomeFacts, ToldProgression } from "./homes";
+import type { HomeTab, ShownHome, ShownTab, ToldProgression } from "./homes";
+import { renderEveryoneBoard } from "./leaderboard";
 import { productName, skillPointsOf, slashCommand } from "./naming";
+import type { Line } from "./replies";
 
-export const homeTabValidator = v.union(v.literal("profile"), v.literal("settings"), v.literal("admin"));
+export type HomeView = { tabBar?: Choice[]; title: string; groups: HomeLine[][] };
 
-export type HomeTab = Infer<typeof homeTabValidator>;
+export type Choice = { label: string; command: Command; selected: boolean };
 
-export type HomeAction = { label: string; intent: Intent };
-
-export type HomeView = { title: string; tabs: Array<HomeAction & { current: boolean }>; groups: HomeLine[][] };
+export type HomeAction = { label: string; command: Command };
 
 export type HomeLine =
   | { kind: "text"; text: string }
   | { kind: "fields"; fields: string[] }
   | { kind: "hint"; text: string }
+  | { kind: "choices"; choices: Choice[] }
+  | { kind: "lines"; lines: Line[] }
   | { kind: "action"; text: string; action: HomeAction }
-  | { kind: "pick-channel"; text: string; picked: string | null; picks: Extract<Intent, { channel: unknown }>["type"] };
+  | { kind: "pick-channel"; text: string; picked: string | null; picks: Extract<Command, { channel: unknown }>["type"] };
 
 type MemberHome = Extract<HomeFacts, { kind: "member" }>;
 
-const tabLabels: Record<HomeTab, string> = { profile: "Profile", settings: "Settings", admin: "Admin" };
+const tabLabels: Record<HomeTab, string> = { profile: "Profile", leaderboard: "Leaderboard", settings: "Settings", admin: "Admin" };
 
-export function renderHome(facts: HomeFacts): HomeView {
+const periods: Array<{ period: Period; label: string }> = [
+  { period: "week", label: "This week" },
+  { period: "month", label: "This month" },
+  { period: "all", label: "All time" },
+];
+
+export function renderHome(facts: HomeFacts, home: ShownHome | null): HomeView {
   if (facts.kind === "not-a-member") {
-    return { title: productName, tabs: [], groups: [[{ kind: "text", text: `${productName} is for active members of this workspace.` }]] };
+    return { title: productName, groups: [[{ kind: "text", text: `${productName} is for active members of this workspace.` }]] };
   }
-  if (facts.kind === "kudos-only") return { title: "Your kudos", tabs: [], groups: kudosOnlyTab(facts.kudos) };
-  const tabs = tabsOf(facts);
-  const current = tabs.includes(facts.tab) ? facts.tab : "profile";
-  return { title: "Your kudos", tabs: tabs.map((tab) => tabButton(tab, current)), groups: tabContent(facts, current) };
+  if (home === null) return profileOf(facts, null, null);
+  return { tabBar: tabBar(home.tabs, home.shown.tab), ...tabOf(facts, home.shown) };
 }
 
-function tabsOf({ admin }: MemberHome): HomeTab[] {
-  return admin === null ? ["profile", "settings"] : ["profile", "settings", "admin"];
+function tabBar(tabs: HomeTab[], selected: HomeTab): Choice[] {
+  return tabs.map((tab) => ({ label: tabLabels[tab], command: { type: "showHomeTab", tab }, selected: tab === selected }));
 }
 
-function tabButton(tab: HomeTab, current: HomeTab) {
-  return { label: tabLabels[tab], intent: { type: "showHomeTab" as const, tab }, current: tab === current };
+function tabOf(facts: MemberHome, shown: ShownTab): HomeView {
+  switch (shown.tab) {
+    case "profile":
+      return profileOf(facts, shown.progression, shown.unlocks);
+    case "leaderboard":
+      return { title: "Leaderboard", groups: [[periodChoices(shown.period), { kind: "lines", lines: renderEveryoneBoard(shown.board, shown.period) }]] };
+    case "settings":
+      return { title: "Settings", groups: settingsGroups(shown) };
+    case "admin":
+      return { title: "Admin", groups: adminGroups(shown.announcementChannel) };
+  }
 }
 
-function tabContent(facts: MemberHome, tab: HomeTab): HomeLine[][] {
-  if (tab === "settings") return settingsTab(facts.settings);
-  if (tab === "admin" && facts.admin !== null) return adminTab(facts.admin);
-  return profileTab(facts);
+function profileOf(kudos: KudosHome, progression: ToldProgression | null, unlocks: UnlocksHome | null): HomeView {
+  const progress = progression === null ? [] : [[...progressOf(progression), ...(unlocks === null ? [] : unlockLinesOf(unlocks))]];
+  return { title: "Your kudos", groups: [[allowanceOf(kudos)], ...progress, [totalsOf(kudos)], howToGive(kudos.kudosEmoji)] };
 }
 
-function profileTab({ kudos, progression, unlocks }: MemberHome): HomeLine[][] {
-  return [[allowanceOf(kudos)], [...progressOf(progression), ...unlockLinesOf(unlocks)], [totalsOf(kudos)], howToGive(kudos.kudosEmoji)];
+function periodChoices(selected: Period): HomeLine {
+  return { kind: "choices", choices: periods.map(({ period, label }) => ({ label, command: { type: "showLeaderboard", period }, selected: period === selected })) };
 }
 
-function kudosOnlyTab(kudos: KudosHome): HomeLine[][] {
-  return [[allowanceOf(kudos)], [totalsOf(kudos)], howToGive(kudos.kudosEmoji)];
+function settingsGroups({ onTheBoards, progress }: Extract<ShownTab, { tab: "settings" }>): HomeLine[][] {
+  const leaderboard = onTheBoards === null ? [] : [leaderboardSwitch(onTheBoards)];
+  const progression = progress === null ? [] : [[setting(progress, "muteNotices"), setting(progress, "dms")]];
+  return [...leaderboard, ...progression];
 }
 
-function settingsTab(settings: ProgressSettings): HomeLine[][] {
+function leaderboardSwitch(onTheBoards: boolean): HomeLine[] {
   return [
-    [setting(settings, "muteNotices"), setting(settings, "dms")],
+    { kind: "text", text: bold("Show me on the leaderboards") },
+    {
+      kind: "choices",
+      choices: [
+        { label: "On", command: { type: "setLeaderboardVisibility", visible: true }, selected: onTheBoards },
+        { label: "Off", command: { type: "setLeaderboardVisibility", visible: false }, selected: !onTheBoards },
+      ],
+    },
+    { kind: "hint", text: "When it's off, nobody sees you on the leaderboards, you included." },
   ];
 }
 
@@ -81,14 +105,14 @@ const settingCopy: Record<keyof ProgressSettings, SettingCopy> = {
 function setting(settings: ProgressSettings, key: keyof ProgressSettings): HomeLine {
   const on = settings[key];
   const { text, label } = settingCopy[key][on ? "whenOn" : "whenOff"];
-  return { kind: "action", text, action: { label, intent: { type: "setProgressSettings", ...changeOf(key, !on) } } };
+  return { kind: "action", text, action: { label, command: { type: "setProgressSettings", ...changeOf(key, !on) } } };
 }
 
 function changeOf(key: keyof ProgressSettings, value: boolean): Partial<ProgressSettings> {
   return { [key]: value };
 }
 
-function adminTab({ announcementChannel }: AdminHome): HomeLine[][] {
+function adminGroups(announcementChannel: string | null): HomeLine[][] {
   const channelLines = announcementChannel === null ? threadLines() : announcementChannelLines(announcementChannel);
   return [channelLines, [{ kind: "hint", text: "Only workspace admins and owners see this tab." }]];
 }
@@ -104,7 +128,7 @@ function announcementChannelLines(channel: string): HomeLine[] {
     {
       kind: "action",
       text: "Or celebrate them in a thread under each kudos message again.",
-      action: { label: "Use threads", intent: { type: "setAnnouncementChannel", channel: null } },
+      action: { label: "Use threads", command: { type: "setAnnouncementChannel", channel: null } },
     },
   ];
 }
@@ -128,7 +152,7 @@ function unlockLinesOf({ ready, next }: UnlocksHome): HomeLine[] {
 }
 
 export function readyCrateOf({ feature, name, opens }: ScheduledFeature): { text: string; action: HomeAction } {
-  return { text: `${bold(name)} is ready. It opens ${opens}.`, action: { label: "Open", intent: { type: "openUnlock", feature } } };
+  return { text: `${bold(name)} is ready. It opens ${opens}.`, action: { label: "Open", command: { type: "openUnlock", feature } } };
 }
 
 function totalsOf(kudos: KudosHome): HomeLine {

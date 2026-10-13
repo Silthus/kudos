@@ -9,7 +9,7 @@ import { publish } from "../bus/publish";
 import schema from "../schema";
 import type { MemberId } from "../workspace/directory";
 import type { Feature } from "./feature";
-import { stateOf } from "./unlocks";
+import { openUnlock, stateOf } from "./unlocks";
 
 vi.mock("../bus/publish", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../bus/publish")>();
@@ -221,7 +221,7 @@ function levelReached(t: Backend, member: MemberId, level: number) {
 }
 
 function open(t: Backend, member: MemberId, feature: Feature) {
-  return t.mutation(internal.unlocks.unlocks.openUnlock, { command: { type: "openUnlock", member, feature } });
+  return t.run((ctx) => openUnlock(ctx, member, feature));
 }
 
 function unlocksOf(t: Backend, member: MemberId) {

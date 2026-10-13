@@ -1,6 +1,6 @@
 import type { PaginationOptions, PaginationResult } from "convex/server";
 import { v } from "convex/values";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
 import type { DayKey, Week } from "./allowance";
@@ -18,6 +18,12 @@ export type AwardWithId = Award & { award: AwardId };
 export type GivenAward = AwardWithId & { day: DayKey };
 
 export type WeekTotals = { givenWeek: number; receivedWeek: number };
+
+export type GivenMessage = { workspace: string; message: MessageRef; giver: MemberId; awards: Award[]; day: DayKey };
+
+export type GivenMessagesPage = { messages: GivenMessage[]; cursor: string; isDone: boolean };
+
+type AwardRow = Doc<"awards">;
 
 export async function insertAwards(ctx: MutationCtx, message: MessageRef, awards: Award[], day: DayKey, at: number): Promise<AwardWithId[]> {
   const inserted: AwardWithId[] = [];
@@ -50,4 +56,35 @@ export async function awardsGivenBefore(ctx: QueryCtx, before: number, page: Pag
 
 function sumOf(awards: Array<{ kudos: number }>) {
   return awards.reduce((sum, award) => sum + award.kudos, 0);
+}
+
+export async function givenMessagesInAwardOrder(ctx: QueryCtx, cursor: string | null, pageSize: number): Promise<GivenMessagesPage> {
+  const page = await ctx.db.query("awards").paginate({ cursor, numItems: pageSize });
+  const messages: GivenMessage[] = [];
+  for (const award of firstAwardOfEachMessage(page.page)) messages.push(await givenMessageOf(ctx, award));
+  return { messages, cursor: page.continueCursor, isDone: page.isDone };
+}
+
+function firstAwardOfEachMessage(awards: AwardRow[]) {
+  const seen = new Set<string>();
+  return awards.filter((award) => {
+    const key = messageKey(award);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+async function givenMessageOf(ctx: QueryCtx, first: AwardRow): Promise<GivenMessage> {
+  const { workspace, conversation, message, giver, day } = first;
+  const awardsOfMessage = await ctx.db
+    .query("awards")
+    .withIndex("by_message", (q) => q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message))
+    .collect();
+  const awards = awardsOfMessage.map(({ recipient, kudos }) => ({ giver, recipient, kudos }));
+  return { workspace, message: { workspace, conversation, message }, giver, awards, day };
+}
+
+function messageKey({ workspace, conversation, message }: AwardRow) {
+  return JSON.stringify([workspace, conversation, message]);
 }
