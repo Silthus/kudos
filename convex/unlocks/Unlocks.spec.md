@@ -32,6 +32,7 @@ Unlocks: owns each member's ready and opened features (P72 to P79, P92, ADR-0006
 - each ready feature is named in one level-up DM: A level up is told in one DM, once per level reached, and that DM names exactly the features the same mutation made ready, whichever subscriber of levelReached runs first: a replayed levelReached sends no second DM, and a feature that something else made ready first is never named again.
   over: the level-up DMs the app asks Slack to send and the stored readiness, for levelReached run before and after the other subscribers, replayed, and arriving after the Leaderboard was made ready by something else
   via: P74: one owner for readiness and the level-up DM
+  refuted: notifyLevelReached no longer checked for a stored level-up DM of that member and level before sending -> the replay test failed, a replayed levelReached sending a second DM (2026-10-13)
   because: one level-up notice names every feature its levels made ready (P6, P74), and nothing nudges a member to open a ready feature again (P74); the bus schedules each levelReached subscriber on its own, so a DM sent beside readiness could run before it and name nothing, and a replay or a later sweep (P78) could name a feature twice
   kinds: message, state
   checklist: revalidated-permission dismissed: no permission is involved; whether a member wants DMs is their setting, read in the same mutation that writes the DM's intent
