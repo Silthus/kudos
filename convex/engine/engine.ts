@@ -8,7 +8,7 @@ import { settingsOf } from "../workspace/settings";
 import { allowanceDay, dailyAllowance } from "./allowance";
 import { insertAwards, type Award } from "./awards";
 import type { ChatUserId, Mention, MessageEvent, MessageRef } from "./messageEvent";
-import { annotationsOf, fingerprintOf, kudosMessageOf, type KudosMessage } from "../parser/parser";
+import { annotationsOf, fingerprintOf, kudosMessageOf, type KudosMessage, type ParseContext } from "../parser/parser";
 
 export type Outcome =
   | ({ kind: "given"; awards: Award[]; kudosEmoji: string } & Given)
@@ -41,11 +41,15 @@ export async function observe(ctx: MutationCtx, event: MessageEvent): Promise<Ob
     content: { mentions: event.content.mentions, emoji: event.content.emoji },
     annotations: annotationsOf(event.content, context),
   };
-  if (author !== undefined && author.kind !== "member") return existing === null ? notAMember() : supersedeForNonMember(ctx, existing, revision);
+  if (author !== undefined && author.kind !== "member") return observeFromNonMember(ctx, existing, event, revision, context);
   const kudos = await kudosMessageOf(ctx, event.content, context);
   if (existing === null) return observeFirstRevision(ctx, event, revision, kudos !== null);
-  const changesKudos = (await fingerprintOf(ctx, event.content, context)) !== (await fingerprintOf(ctx, existing.content, context));
+  const changesKudos = await changesKudosOf(ctx, event, existing, context);
   return observeEdit(ctx, existing, event, revision, { isKudosMessage: kudos !== null, changesKudos });
+}
+
+async function changesKudosOf(ctx: QueryCtx, event: MessageEvent, row: KudosMessageRow, context: ParseContext) {
+  return (await fingerprintOf(ctx, event.content, context)) !== (await fingerprintOf(ctx, row.content, context));
 }
 
 type Revision = Pick<KudosMessageRow, "revision" | "content" | "annotations">;
@@ -74,13 +78,15 @@ async function observeEdit(ctx: MutationCtx, row: KudosMessageRow, event: Messag
   return observation;
 }
 
-function notAMember(): Observation {
-  return { kind: "ignored", why: "not-a-member" };
-}
-
-async function supersedeForNonMember(ctx: MutationCtx, row: KudosMessageRow, revision: Revision): Promise<Observation> {
+async function observeFromNonMember(ctx: MutationCtx, row: KudosMessageRow | null, event: MessageEvent, revision: Revision, context: ParseContext): Promise<Observation> {
+  const notAMember: Observation = { kind: "ignored", why: "not-a-member" };
+  if (row === null) {
+    if (event.kind === "edited") await insertRow(ctx, event, revision, "watermark");
+    return notAMember;
+  }
+  const changesKudos = await changesKudosOf(ctx, event, row, context);
   await ctx.db.patch(row._id, revision);
-  return hasOpenAttempt(row) ? withdraw(ctx, row) : notAMember();
+  return changesKudos && hasOpenAttempt(row) ? withdraw(ctx, row) : notAMember;
 }
 
 async function withdraw(ctx: MutationCtx, row: KudosMessageRow): Promise<Observation> {

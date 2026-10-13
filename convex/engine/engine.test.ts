@@ -244,6 +244,35 @@ test("R21 R24 R31: an edit seen while its author is deactivated still supersedes
   expect(await awardsOf(t)).toEqual([]);
 });
 
+test("R21: an edit seen before its original while the author is deactivated keeps the late original from giving", async () => {
+  const t = await withDirectory({ U_ALICE: "UTC", U_BOB: "UTC" });
+  const message = kudosMessage("U_ALICE", [person("U_BOB")], ["taco"]);
+  const withdrawal = { ...editOf(message, now.getTime() + 60_000), content: { mentions: [person("U_BOB")], emoji: [], text: "thanks" } };
+
+  await setDirectoryKind(t, "U_ALICE", "not-a-member");
+  await t.run((ctx) => observe(ctx, withdrawal));
+  await setDirectoryKind(t, "U_ALICE", "member");
+  const late = await t.run((ctx) => observe(ctx, message));
+
+  expect(late).toEqual({ kind: "ignored", why: "stale-revision" });
+  expect(await awardsOf(t)).toEqual([]);
+});
+
+test("R22 R29: a prose-only edit while the author is deactivated leaves the waiting attempt standing", async () => {
+  const t = await withDirectory({ U_ALICE: "UTC" });
+  const message = kudosMessage("U_ALICE", [person("U_BOB")], ["taco"]);
+  const typoFix = { ...editOf(message, now.getTime() + 60_000), content: { ...message.content, text: "thanks!" } };
+
+  await t.run((ctx) => observe(ctx, message));
+  await setDirectoryKind(t, "U_ALICE", "not-a-member");
+  await t.run((ctx) => observe(ctx, typoFix));
+  await setDirectoryKind(t, "U_ALICE", "member");
+  await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: "U_BOB", kind: "member", timeZone: "UTC" }));
+  await t.run((ctx) => recheck(ctx, message.ref, message.revision));
+
+  expect(await awardsOf(t)).toEqual([{ giver: "U_ALICE", recipient: "U_BOB", kudos: 1, day: "2026-10-13" }]);
+});
+
 test("R19: a message gives at most once", async () => {
   const t = await withDirectory({ U_ALICE: "UTC", U_BOB: "UTC" });
   const message = kudosMessage("U_ALICE", [person("U_BOB")], ["taco"]);
