@@ -1,6 +1,7 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { flag, type Flag } from "../analytics/flags";
 import { everyoneBoardFlag } from "../leaderboard/flag";
+import { questsFlag } from "../quests/questsFlag";
 import type { Feature } from "./feature";
 
 type ShipFlag = Flag<boolean, "workspace">;
@@ -12,7 +13,7 @@ export const skillTree = { key: "skill-tree", subject: "workspace", safeDefault:
 export const schedule = {
   version: "1",
   features: [
-    { feature: "quests", level: 2, name: "Quests", opens: "weekly quests and the group quest", shipsWith: null },
+    { feature: "quests", level: 2, name: "Quests", opens: "your weekly quests", shipsWith: questsFlag },
     { feature: "leaderboard", level: 3, name: "Leaderboard", opens: "the boards", shipsWith: everyoneBoardFlag },
     { feature: "book", level: 4, name: "Book", opens: "the sticker book, its albums and achievements", shipsWith: null },
     { feature: "skillTree", level: 5, name: "Skill tree", opens: "the tree and your first skill point", shipsWith: skillTree },

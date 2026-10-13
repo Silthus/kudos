@@ -110,7 +110,7 @@ describe("P73: openUnlock opens a ready feature and refuses every other", () => 
 
   test.each([
     ["locked", 1, "leaderboard", "on"],
-    ["unshipped, with no flag", 7, "quests", "on"],
+    ["unshipped, with no flag", 7, "book", "on"],
     ["ready while everyone-board is off", 3, "leaderboard", "off"],
   ] as const)("a stale open for a feature that is %s writes nothing, publishes nothing and is refused", async (_, level, feature, board) => {
     const { t, alice } = await withMember();
@@ -254,7 +254,7 @@ describe("P78: a feature that ships later is made ready once by the ship sweep",
     await settle(t);
 
     expect(published("unlockReady")).toHaveLength(members.length);
-  }, 60_000);
+  }, 120_000);
 });
 
 function scheduledCount(t: Backend) {

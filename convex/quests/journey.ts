@@ -9,7 +9,7 @@ import type { MemberId } from "../workspace/directory";
 import { questsApplyIn } from "./flag";
 import { journeyStepValidator, type JourneyStep } from "./step";
 
-const rewardValidator = v.object({ xp: v.number(), coins: v.number(), item: v.null() });
+export const rewardValidator = v.object({ xp: v.number(), coins: v.number(), item: v.null() });
 
 export type Reward = Infer<typeof rewardValidator>;
 

@@ -10,6 +10,7 @@ import { periodValidator } from "./leaderboard/periods";
 import { effectsRecordValidator } from "./progression/progress";
 import { rewardRecordValidator } from "./progression/rewards";
 import { journeyActivationValidator } from "./quests/journey";
+import { questDrawValidator } from "./quests/weekly";
 import { featureValidator } from "./unlocks/feature";
 
 export default defineSchema({
@@ -131,6 +132,8 @@ export default defineSchema({
   rewardRecords: defineTable(rewardRecordValidator).index("by_member_key", ["member", "key"]),
 
   journeySteps: defineTable(journeyActivationValidator).index("by_member_step", ["member", "step"]),
+
+  questDraws: defineTable(questDrawValidator).index("by_member_week", ["member", "week"]),
 
   effectsBackfill: defineTable({
     before: v.number(),

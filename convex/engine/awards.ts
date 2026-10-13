@@ -54,6 +54,18 @@ export async function awardsGivenBefore(ctx: QueryCtx, before: number, page: Pag
   return { ...result, page: result.page.map(({ _id, giver, recipient, kudos, day }) => ({ award: _id, giver, recipient, kudos, day })) };
 }
 
+export async function lastThankedBy(ctx: QueryCtx, giver: MemberId, atOrBefore: number): Promise<Map<MemberId, number>> {
+  const awards = await ctx.db
+    .query("awards")
+    .withIndex("by_giver", (q) => q.eq("giver", giver))
+    .collect();
+  const lastThanked = new Map<MemberId, number>();
+  for (const { recipient, at } of awards) {
+    if (at <= atOrBefore && at > (lastThanked.get(recipient) ?? -Infinity)) lastThanked.set(recipient, at);
+  }
+  return lastThanked;
+}
+
 function sumOf(awards: Array<{ kudos: number }>) {
   return awards.reduce((sum, award) => sum + award.kudos, 0);
 }

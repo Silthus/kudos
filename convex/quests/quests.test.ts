@@ -90,15 +90,15 @@ describe("P86: the reward is the one promised when the step became active", () =
 describe("P79: questsOf gives the website each Journey step's facts", () => {
   test("no step before the member is seen, the active step with its promise, then its finish", async () => {
     const { t, alice, bob } = await withMembers();
-    expect(await questsOf(t, alice)).toEqual({ journey: [] });
+    expect(await questsOf(t, alice)).toEqual({ journey: [], week: null });
 
     await advance(t, await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob, { annotations: doesNotSayWhy })));
     const active = { step: "first-thanks", activatedAt: now.getTime(), reward: { xp: 10, coins: 0, item: null }, catalogueVersion: "1" };
-    expect(await questsOf(t, alice)).toEqual({ journey: [{ ...active, finishedAt: null }] });
+    expect(await questsOf(t, alice)).toEqual({ journey: [{ ...active, finishedAt: null }], week: null });
 
     vi.setSystemTime(now.getTime() + 60_000);
     await advance(t, await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob, { annotations: saysWhy, at: Date.now() })));
-    expect(await questsOf(t, alice)).toEqual({ journey: [{ ...active, finishedAt: now.getTime() + 60_000 }] });
+    expect(await questsOf(t, alice)).toEqual({ journey: [{ ...active, finishedAt: now.getTime() + 60_000 }], week: null });
   });
 });
 
@@ -129,7 +129,7 @@ describe("the slice applies only where quests, xp-levels and unlocks all apply",
 
     await unlocksShippedBeforeAnyoneJoined(t);
 
-    expect(await questsOf(t, alice)).toEqual({ journey: [] });
+    expect(await questsOf(t, alice)).toEqual({ journey: [], week: null });
   });
 });
 

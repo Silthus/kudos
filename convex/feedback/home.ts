@@ -4,6 +4,8 @@ import type { Period } from "../leaderboard/periods";
 import { skillTreeLevel } from "../progression/levels";
 import type { ProgressSettings } from "../progression/settings";
 import type { JourneyStepFacts } from "../quests/journey";
+import { questOf } from "../quests/pool";
+import type { WeeklyQuests } from "../quests/weekly";
 import type { JourneyStep } from "../quests/step";
 import type { ScheduledFeature } from "../unlocks/schedule";
 import type { UnlocksHome } from "../unlocks/unlocks";
@@ -41,7 +43,7 @@ export function renderHome(facts: HomeFacts, home: ShownHome | null): HomeView {
   if (facts.kind === "not-a-member") {
     return { title: productName, groups: [[{ kind: "text", text: `${productName} is for active members of this workspace.` }]] };
   }
-  if (home === null) return profileOf(facts, null, null, null);
+  if (home === null) return profileOf(facts, { progression: null, unlocks: null, quests: null, journey: null });
   return { tabBar: tabBar(home.tabs, home.shown.tab), ...tabOf(facts, home.shown) };
 }
 
@@ -52,7 +54,7 @@ function tabBar(tabs: HomeTab[], selected: HomeTab): Choice[] {
 function tabOf(facts: MemberHome, shown: ShownTab): HomeView {
   switch (shown.tab) {
     case "profile":
-      return profileOf(facts, shown.progression, shown.unlocks, shown.journey);
+      return profileOf(facts, shown);
     case "leaderboard":
       return { title: "Leaderboard", groups: [[periodChoices(shown.period), { kind: "lines", lines: renderEveryoneBoard(shown.board, shown.period) }]] };
     case "settings":
@@ -62,10 +64,13 @@ function tabOf(facts: MemberHome, shown: ShownTab): HomeView {
   }
 }
 
-function profileOf(kudos: KudosHome, progression: ToldProgression | null, unlocks: UnlocksHome | null, journey: JourneyStepFacts[] | null): HomeView {
+type ProfileFacts = Omit<Extract<ShownTab, { tab: "profile" }>, "tab">;
+
+function profileOf(kudos: KudosHome, { progression, unlocks, quests, journey }: ProfileFacts): HomeView {
   const progress = progression === null ? [] : [[...progressOf(progression), ...(unlocks === null ? [] : unlockLinesOf(unlocks))]];
+  const weekly = quests === null || quests.slots.length === 0 ? [] : [weeklyQuestLines(quests)];
   const steps = journey === null || journey.length === 0 ? [] : [journey.flatMap(journeyStepLines)];
-  return { title: "Your kudos", groups: [[allowanceOf(kudos)], ...progress, ...steps, [totalsOf(kudos)], howToGive(kudos.kudosEmoji)] };
+  return { title: "Your kudos", groups: [[allowanceOf(kudos)], ...progress, ...weekly, ...steps, [totalsOf(kudos)], howToGive(kudos.kudosEmoji)] };
 }
 
 function periodChoices(selected: Period): HomeLine {
@@ -152,6 +157,13 @@ function unlockLinesOf({ ready, next }: UnlocksHome): HomeLine[] {
   const readyLines = ready.map((feature): HomeLine => ({ kind: "action", ...readyCrateOf(feature) }));
   const nextLine: HomeLine[] = next === null ? [] : [{ kind: "text", text: `Next: ${next.name} at level ${next.level}.` }];
   return [...readyLines, ...nextLine];
+}
+
+function weeklyQuestLines({ slots }: WeeklyQuests): HomeLine[] {
+  const quests = slots.map(({ quest, goal, reward }) => ({ goal, reward, progress: questOf(quest).progress }));
+  const goals = quests.map(({ goal, reward, progress }): HomeLine => ({ kind: "text", text: `${goal} ${bold(`0/${progress.target}`)} · ${bold(`${reward.xp} XP`)}` }));
+  const condition: HomeLine[] = quests.some(({ progress }) => progress.given.saysWhy) ? [{ kind: "hint", text: "Saying why counts when your message has 5 or more words besides mentions and emoji." }] : [];
+  return [{ kind: "text", text: bold("Quests this week") }, ...goals, ...condition];
 }
 
 const journeyGoals: Record<JourneyStep, { goal: string; condition: string }> = {

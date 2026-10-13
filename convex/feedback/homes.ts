@@ -9,6 +9,7 @@ import { isOnTheBoards } from "../leaderboard/visibility";
 import { progressionHomeOf, type ProgressionHome } from "../progression/progression";
 import { questsApplyIn } from "../quests/flag";
 import { activeJourneyOf, type JourneyStepFacts } from "../quests/journey";
+import { weeklyQuestsOf, type WeeklyQuests } from "../quests/weekly";
 import { progressSettingsOf, type ProgressSettings } from "../progression/settings";
 import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { unlocksShownTo } from "../unlocks/launch";
@@ -22,7 +23,7 @@ export const homeTabValidator = v.union(v.literal("profile"), v.literal("leaderb
 export type HomeTab = Infer<typeof homeTabValidator>;
 
 export type ShownTab =
-  | { tab: "profile"; progression: ToldProgression | null; unlocks: UnlocksHome | null; journey: JourneyStepFacts[] | null }
+  | { tab: "profile"; progression: ToldProgression | null; unlocks: UnlocksHome | null; quests: WeeklyQuests | null; journey: JourneyStepFacts[] | null }
   | { tab: "leaderboard"; period: Period; board: EveryoneBoardView }
   | { tab: "settings"; onTheBoards: boolean | null; progress: ProgressSettings | null }
   | { tab: "admin"; announcementChannel: string | null };
@@ -120,12 +121,13 @@ type Viewer = { workspace: string; user: string; member: MemberId };
 async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { tab, period }: HomeSelection): Promise<ShownTab> {
   switch (tab) {
     case "profile":
-      if (!slices.xp) return { tab, progression: null, unlocks: null, journey: null };
-      if (!slices.unlocks) return { tab, progression: await progressionHomeOf(ctx, viewer.member), unlocks: null, journey: null };
+      if (!slices.xp) return { tab, progression: null, unlocks: null, quests: null, journey: null };
+      if (!slices.unlocks) return { tab, progression: await progressionHomeOf(ctx, viewer.member), unlocks: null, quests: null, journey: null };
       return {
         tab,
         progression: await toldProgressionOf(ctx, viewer.member),
         unlocks: await unlocksHomeOf(ctx, viewer.member),
+        quests: slices.quests ? await openedQuestsOf(ctx, viewer.member) : null,
         journey: slices.quests ? await activeJourneyOf(ctx, viewer.member) : null,
       };
     case "leaderboard":
@@ -139,6 +141,10 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
     case "admin":
       return { tab, announcementChannel: (await settingsOf(ctx, viewer.workspace)).announcementChannel };
   }
+}
+
+async function openedQuestsOf(ctx: QueryCtx, member: MemberId) {
+  return (await isOpened(ctx, member, "quests")) ? weeklyQuestsOf(ctx, member, Date.now()) : null;
 }
 
 async function toldProgressionOf(ctx: QueryCtx, member: MemberId): Promise<ToldProgression> {

@@ -30,13 +30,13 @@ afterEach(() => {
 });
 
 describe("P90: a first kudos that says why finishes the Journey's first step", () => {
-  test("a level 1 member's first kudos that says why pays 10 XP on top of its 10 base XP, reaches level 2 and sends one level-up DM", async () => {
+  test("a level 1 member's first kudos that says why pays 10 XP on top of its 10 base XP, reaches level 2 and sends one level-up DM naming Quests", async () => {
     const t = await workspace();
 
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
 
     expect(await standing(t, "U_ALICE")).toEqual({ xp: 20, level: 2, skillPoints: 0 });
-    expect(levelUpDmsTo("U_ALICE")).toEqual(["🎉 You reached level 2!\nLevel 3 is 80 XP away."]);
+    expect(levelUpDmsTo("U_ALICE")).toEqual(["🎉 You reached level 2!\nLevel 3 is 80 XP away.\n*Quests* is ready. It opens your weekly quests."]);
   });
 
   test("P64: the level the reward record crosses posts no public notice under the kudos message, since no kudos message reached it", async () => {
