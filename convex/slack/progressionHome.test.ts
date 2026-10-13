@@ -50,16 +50,17 @@ describe("P67: the Profile tab", () => {
   });
 
   test.each([
-    ["level 4 still leaves skill points out", 300, "section fields: *Level*\n*4* | *XP to level 5*\n*300*"],
-    ["level 5 shows the member's saved skill points", 600, "section fields: *Level*\n*5* | *XP to level 6*\n*400* | *Skill points saved*\n*4*"],
-  ])("%s", async (_, xp, progress) => {
+    ["level 4 still leaves skill points out", 300, ["section fields: *Level*\n*4* | *XP to level 5*\n*300*"]],
+    ["level 5 shows the first skill point, saved for the skill tree", 600, ["section fields: *Level*\n*5* | *XP to level 6*\n*400*", "section: You have *1 skill point* saved for the skill tree."]],
+    ["level 7 shows every saved skill point", 1500, ["section fields: *Level*\n*7* | *XP to level 8*\n*600*", "section: You have *3 skill points* saved for the skill tree."]],
+  ])("P4: %s", async (_, xp, progress) => {
     const t = await workspaceWithAllowance(10);
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
     await withXp(t, "U_ALICE", xp);
 
     await openHome(t, "U_ALICE");
 
-    expect(publishedHome(slack, "U_ALICE")).toContain(progress);
+    expect(progressionOf(publishedHome(slack, "U_ALICE"))).toEqual(progress);
   });
 });
 
@@ -91,7 +92,7 @@ describe("P63 P65: a setting takes effect on the next notice or DM, and repeatin
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
     expect(slack.messagesIn("C1")).toEqual([]);
-    expect(dmsTo("U_ALICE")).toEqual(["🎉 You reached level 2! You have 1 skill point saved for perks.\nLevel 3 is 80 XP away."]);
+    expect(dmsTo("U_ALICE")).toEqual(["🎉 You reached level 2!\nLevel 3 is 80 XP away."]);
     expect(publishedHome(slack, "U_ALICE")).toContain("section: I don't post public notices about you. [button: Unmute notices]");
   });
 
@@ -353,6 +354,11 @@ async function adminTabOpen(user: string) {
   await openHome(t, user);
   await click(t, user, "Admin");
   return t;
+}
+
+function progressionOf(home: string[]) {
+  const start = home.indexOf("divider") + 1;
+  return home.slice(start, home.indexOf("divider", start));
 }
 
 function dmsTo(user: string) {

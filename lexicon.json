@@ -67,11 +67,11 @@
     },
     {
       "name": "level",
-      "definition": "A member's rank in progression, from 1 upward with no cap, reached through XP: level 2 at 20 XP, level 3 at 100 XP, and from level L the next level needs 100 × (L − 1) more. Every level up from level 2 gives one skill point."
+      "definition": "A member's rank in progression, from 1 upward with no cap, reached through XP: level 2 at 20 XP, level 3 at 100 XP, and from level L the next level needs 100 × (L − 1) more. Every level from level 5 gives one skill point, and levels 2 to 7 each unlock a feature."
     },
     {
       "name": "skill point",
-      "definition": "What a level up gives, spent on perks. Unspent skill points never expire, and a spent one is never refunded (ADR-0002). It is not kudos and not a coin."
+      "definition": "What each level from level 5 gives, spent on perks in the skill tree; levels 2 to 4 give none. Unspent skill points never expire, and a spent one is never refunded (ADR-0002). It is not kudos and not a coin."
     },
     {
       "name": "perk",
@@ -237,7 +237,7 @@
     },
     {
       "name": "profile card",
-      "definition": "What any member sees of another member: name, equipped title and card, primary group, and level and achievement tiers. Never coins, perks, streaks, XP or kudos received."
+      "definition": "What any member sees of another member: name, hedgehog avatar, primary group, level and achievement tiers. Never coins, perks, XP or kudos received."
     },
     {
       "name": "sandbox",

@@ -1,8 +1,10 @@
 import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { levelReachedEventValidator } from "../bus/events";
+import { skillTreeLevel } from "../progression/levels";
 import { progressSettingsOf } from "../progression/settings";
 import { chatUserOf, type MemberId } from "../workspace/directory";
+import { skillPointsOf } from "./naming";
 
 export type Notification = { kind: "level-reached"; level: number; skillPoints: number; xpToNextLevel: number };
 
@@ -20,13 +22,11 @@ export async function notify(ctx: MutationCtx, member: MemberId, notification: N
 }
 
 export function renderNotification({ level, skillPoints, xpToNextLevel }: Notification): string[] {
-  return [`🎉 You reached level ${level}! You have ${skillPointsOf(skillPoints)} saved for perks.`, `Level ${level + 1} is ${xpToNextLevel} XP away.`];
+  const reached = `🎉 You reached level ${level}!`;
+  const headline = level >= skillTreeLevel ? `${reached} You have ${skillPointsOf(skillPoints)} saved for the skill tree.` : reached;
+  return [headline, `Level ${level + 1} is ${xpToNextLevel} XP away.`];
 }
 
 async function wantsDms(ctx: QueryCtx, member: MemberId) {
   return (await progressSettingsOf(ctx, member)).dms;
-}
-
-function skillPointsOf(count: number) {
-  return count === 1 ? "1 skill point" : `${count} skill points`;
 }

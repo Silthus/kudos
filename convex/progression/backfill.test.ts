@@ -49,8 +49,8 @@ test("P10: every earlier award gets one record per side with base XP only, and n
     { member: "U_CAROL", side: "recipient", baseXp: 5, gate: null, catalogueVersion: "1", day: "2026-09-02" },
   ]);
   expect(await standings(t, "U_ALICE", "U_BOB", "U_CAROL")).toEqual({
-    U_ALICE: { xp: 40, level: 2, skillPoints: 1 },
-    U_BOB: { xp: 45, level: 2, skillPoints: 1 },
+    U_ALICE: { xp: 40, level: 2, skillPoints: 0 },
+    U_BOB: { xp: 45, level: 2, skillPoints: 0 },
     U_CAROL: { xp: 5, level: 1, skillPoints: 0 },
   });
   expect(vi.mocked(publish)).not.toHaveBeenCalled();
@@ -67,7 +67,7 @@ test("P8: running the backfill again records nothing more", async () => {
   expect(await backfill(t)).toEqual({ awards: 0, recorded: 0 });
 
   expect(await effectsRecords(t)).toEqual(records);
-  expect(await standings(t, "U_ALICE", "U_BOB")).toEqual({ U_ALICE: { xp: 20, level: 2, skillPoints: 1 }, U_BOB: { xp: 10, level: 1, skillPoints: 0 } });
+  expect(await standings(t, "U_ALICE", "U_BOB")).toEqual({ U_ALICE: { xp: 20, level: 2, skillPoints: 0 }, U_BOB: { xp: 10, level: 1, skillPoints: 0 } });
 });
 
 test("P8: a backfill interrupted after its first batch resumes where it stopped", async () => {
@@ -79,7 +79,7 @@ test("P8: a backfill interrupted after its first batch resumes where it stopped"
   expect(await backfill(t)).toEqual({ awards: 50, recorded: 100 });
 
   expect(await effectsRecords(t)).toHaveLength(300);
-  expect(await standings(t, "U_ALICE", "U_BOB")).toEqual({ U_ALICE: { xp: 1500, level: 7, skillPoints: 6 }, U_BOB: { xp: 750, level: 5, skillPoints: 4 } });
+  expect(await standings(t, "U_ALICE", "U_BOB")).toEqual({ U_ALICE: { xp: 1500, level: 7, skillPoints: 3 }, U_BOB: { xp: 750, level: 5, skillPoints: 1 } });
 });
 
 describe("P8: an award given around the backfill is counted once", () => {
@@ -94,7 +94,7 @@ describe("P8: an award given around the backfill is counted once", () => {
     expect(await backfill(t)).toEqual({ awards: 2, recorded: 2 });
 
     expect(await effectsRecords(t)).toHaveLength(4);
-    expect(await standings(t, "U_ALICE", "U_BOB")).toEqual({ U_ALICE: { xp: 20, level: 2, skillPoints: 1 }, U_BOB: { xp: 10, level: 1, skillPoints: 0 } });
+    expect(await standings(t, "U_ALICE", "U_BOB")).toEqual({ U_ALICE: { xp: 20, level: 2, skillPoints: 0 }, U_BOB: { xp: 10, level: 1, skillPoints: 0 } });
   });
 
   test("when it is given after the backfill started, it is left to its subscriber with its gate decision and level up", async () => {
@@ -113,7 +113,7 @@ describe("P8: an award given around the backfill is counted once", () => {
       { member: "U_ALICE", side: "giver", baseXp: 10, gate: { version: 1, thoughtful: true }, catalogueVersion: "1", day: "2026-10-13" },
       { member: "U_BOB", side: "recipient", baseXp: 5, gate: { version: 1, thoughtful: true }, catalogueVersion: "1", day: "2026-10-13" },
     ]);
-    expect(await standings(t, "U_ALICE", "U_BOB")).toEqual({ U_ALICE: { xp: 605, level: 5, skillPoints: 4 }, U_BOB: { xp: 1195, level: 6, skillPoints: 5 } });
+    expect(await standings(t, "U_ALICE", "U_BOB")).toEqual({ U_ALICE: { xp: 605, level: 5, skillPoints: 1 }, U_BOB: { xp: 1195, level: 6, skillPoints: 2 } });
     expect(publishedEvents("levelReached").map(({ level }) => level)).toEqual([5]);
   });
 
@@ -130,8 +130,8 @@ describe("P8: an award given around the backfill is counted once", () => {
 
     expect(await effectsRecords(t)).toHaveLength(202);
     expect(await standings(t, "U_ALICE", "U_BOB", "U_CAROL")).toEqual({
-      U_ALICE: { xp: 1010, level: 6, skillPoints: 5 },
-      U_BOB: { xp: 500, level: 4, skillPoints: 3 },
+      U_ALICE: { xp: 1010, level: 6, skillPoints: 2 },
+      U_BOB: { xp: 500, level: 4, skillPoints: 0 },
       U_CAROL: { xp: 5, level: 1, skillPoints: 0 },
     });
   });

@@ -4,7 +4,7 @@ import { awardIdValidator, type Award, type AwardWithId, type GivenAward } from 
 import type { MemberId } from "../workspace/directory";
 import type { Catalogue } from "./catalogue";
 import { gateDecisionOf, gateDecisionValidator } from "./gate";
-import { levelOf, xpToReach } from "./levels";
+import { levelOf, skillPointsEarnedAt, xpToReach } from "./levels";
 
 export const effectsRecordValidator = v.object({
   award: awardIdValidator,
@@ -44,7 +44,7 @@ export function sideOf(member: MemberId, { giver, recipient }: Award): Side | nu
 
 export function standing({ xp, pointsSpent }: MemberProgress): Standing {
   const level = levelOf(xp);
-  return { xp, level, skillPoints: level - 1 - pointsSpent };
+  return { xp, level, skillPoints: skillPointsEarnedAt(level) - pointsSpent };
 }
 
 export function xpToNextLevel({ xp, level }: Standing): number {
@@ -74,7 +74,7 @@ function levelsReached(before: MemberProgress, after: MemberProgress, event: Kud
       workspace: event.workspace,
       member: after.member,
       level,
-      skillPointsGained: level - from,
+      skillPointsGained: skillPointsEarnedAt(level) - skillPointsEarnedAt(from),
       skillPoints,
       xpToNextLevel: xpToNextLevel(reached),
       message: event.message,

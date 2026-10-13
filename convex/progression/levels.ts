@@ -9,3 +9,9 @@ export function xpToReach(level: number): number {
   if (level === 2) return 20;
   return 50 * (level - 1) * (level - 2);
 }
+
+export const skillTreeLevel = 5;
+
+export function skillPointsEarnedAt(level: number): number {
+  return Math.max(0, level - skillTreeLevel + 1);
+}

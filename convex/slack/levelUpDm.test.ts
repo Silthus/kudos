@@ -27,14 +27,14 @@ afterEach(() => {
 });
 
 describe("P63: the level-up DM", () => {
-  test("reaching a level sends that member, and only them, a DM with their saved skill points and the XP to the next level", async () => {
+  test("reaching a level sends that member, and only them, a DM with the XP to the next level", async () => {
     const t = await workspaceWithAllowance(10);
 
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
 
     expect(slack.callsTo("conversations.open")).toEqual([{ users: "U_ALICE" }]);
     expect(levelUpDms()).toEqual([
-      { channel: "D_U_ALICE", text: "🎉 You reached level 2! You have 1 skill point saved for perks.\nLevel 3 is 80 XP away." },
+      { channel: "D_U_ALICE", text: "🎉 You reached level 2!\nLevel 3 is 80 XP away." },
     ]);
   });
 
@@ -44,8 +44,22 @@ describe("P63: the level-up DM", () => {
     await giveKudos(t, "U_ALICE", "U_BOB", 10);
 
     expect(levelUpDms().filter(({ channel }) => channel === "D_U_ALICE")).toEqual([
-      { channel: "D_U_ALICE", text: "🎉 You reached level 3! You have 2 skill points saved for perks.\nLevel 4 is 200 XP away." },
+      { channel: "D_U_ALICE", text: "🎉 You reached level 3!\nLevel 4 is 200 XP away." },
     ]);
+  });
+
+  test.each([
+    ["level 4 names no skill points", 290, "🎉 You reached level 4!\nLevel 5 is 300 XP away."],
+    ["level 5 names the first skill point, saved for the skill tree", 590, "🎉 You reached level 5! You have 1 skill point saved for the skill tree.\nLevel 6 is 400 XP away."],
+    ["level 6 names every saved skill point", 990, "🎉 You reached level 6! You have 2 skill points saved for the skill tree.\nLevel 7 is 500 XP away."],
+  ])("P4: %s", async (_, xp, text) => {
+    const t = await workspaceWithAllowance(10);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    await withXp(t, "U_ALICE", xp);
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(levelUpDms().filter(({ channel }) => channel === "D_U_ALICE").map((dm) => dm.text)).toEqual([text]);
   });
 
   test("a recipient who reaches a level gets the DM, and a giver who stays on their level gets none", async () => {
@@ -55,7 +69,7 @@ describe("P63: the level-up DM", () => {
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
 
     expect(levelUpDms().map(({ channel }) => channel)).toEqual(["D_U_ALICE", "D_U_BOB"]);
-    expect(levelUpDms()[1]?.text).toBe("🎉 You reached level 2! You have 1 skill point saved for perks.\nLevel 3 is 80 XP away.");
+    expect(levelUpDms()[1]?.text).toBe("🎉 You reached level 2!\nLevel 3 is 80 XP away.");
   });
 
   test("a member whose DM setting is off gets no DM while the other side of the same award gets theirs, and their XP, level and welcome stay as they were", async () => {
@@ -67,7 +81,7 @@ describe("P63: the level-up DM", () => {
 
     expect(slack.callsTo("conversations.open")).toEqual([{ users: "U_BOB" }]);
     expect(levelUpDms().map(({ channel }) => channel)).toEqual(["D_U_BOB"]);
-    expect(await standing(t, "U_ALICE")).toEqual({ xp: 40, level: 2, skillPoints: 1 });
+    expect(await standing(t, "U_ALICE")).toEqual({ xp: 40, level: 2, skillPoints: 0 });
     expect(slack.callsTo("chat.postMessage").map(({ channel }) => channel)).toEqual(["U_ALICE", "U_BOB", "D_U_BOB", "C1"]);
   });
 });
@@ -81,7 +95,7 @@ describe("R34 R35: a level-up DM is tried at most 3 times", () => {
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
     expect(levelUpDms()).toHaveLength(3);
-    expect(await standing(t, "U_ALICE")).toEqual({ xp: 20, level: 2, skillPoints: 1 });
+    expect(await standing(t, "U_ALICE")).toEqual({ xp: 20, level: 2, skillPoints: 0 });
   });
 
   test("a DM whose conversation can't be opened is tried 3 times, and the XP and level stand", async () => {
@@ -92,7 +106,7 @@ describe("R34 R35: a level-up DM is tried at most 3 times", () => {
 
     expect(slack.callsTo("conversations.open")).toHaveLength(3);
     expect(levelUpDms()).toEqual([]);
-    expect(await standing(t, "U_ALICE")).toEqual({ xp: 20, level: 2, skillPoints: 1 });
+    expect(await standing(t, "U_ALICE")).toEqual({ xp: 20, level: 2, skillPoints: 0 });
   });
 
   test("a rate-limited DM is tried again after Slack's Retry-After, and then not again once it arrived", async () => {
@@ -142,6 +156,17 @@ async function memberOf(t: Backend, user: string) {
       .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", user))
       .unique();
     return member!._id;
+  });
+}
+
+async function withXp(t: Backend, user: string, xp: number) {
+  const member = await memberOf(t, user);
+  await t.run(async (ctx) => {
+    const progress = await ctx.db
+      .query("memberProgress")
+      .withIndex("by_member", (q) => q.eq("member", member))
+      .unique();
+    await ctx.db.patch(progress!._id, { xp });
   });
 }
 

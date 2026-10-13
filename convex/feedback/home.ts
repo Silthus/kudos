@@ -1,10 +1,11 @@
 import { v, type Infer } from "convex/values";
 import type { Intent } from "../bus/commands";
 import type { KudosHome } from "../engine/home";
+import { skillTreeLevel } from "../progression/levels";
 import type { ProgressionHome } from "../progression/progression";
 import type { ProgressSettings } from "../progression/settings";
 import type { AdminHome, HomeFacts } from "./homes";
-import { productName, slashCommand } from "./naming";
+import { productName, skillPointsOf, slashCommand } from "./naming";
 
 export const homeTabValidator = v.union(v.literal("profile"), v.literal("settings"), v.literal("admin"));
 
@@ -49,7 +50,7 @@ function tabContent(facts: MemberHome, tab: HomeTab): HomeLine[][] {
 }
 
 function profileTab({ kudos, progression }: MemberHome): HomeLine[][] {
-  return [[allowanceOf(kudos)], [progressOf(progression)], [totalsOf(kudos)], howToGive(kudos.kudosEmoji)];
+  return [[allowanceOf(kudos)], progressOf(progression), [totalsOf(kudos)], howToGive(kudos.kudosEmoji)];
 }
 
 function settingsTab(settings: ProgressSettings): HomeLine[][] {
@@ -108,12 +109,10 @@ function allowanceOf({ left, base }: KudosHome): HomeLine {
   return { kind: "text", text };
 }
 
-const skillPointsShownFromLevel = 5;
-
-function progressOf({ level, xpToNextLevel, skillPoints }: ProgressionHome): HomeLine {
-  const levelFigures = [figure("Level", level), figure(`XP to level ${level + 1}`, xpToNextLevel)];
-  const pointsFigure = level >= skillPointsShownFromLevel ? [figure("Skill points saved", skillPoints)] : [];
-  return { kind: "fields", fields: [...levelFigures, ...pointsFigure] };
+function progressOf({ level, xpToNextLevel, skillPoints }: ProgressionHome): HomeLine[] {
+  const levelFigures: HomeLine = { kind: "fields", fields: [figure("Level", level), figure(`XP to level ${level + 1}`, xpToNextLevel)] };
+  if (level < skillTreeLevel) return [levelFigures];
+  return [levelFigures, { kind: "text", text: `You have ${bold(skillPointsOf(skillPoints))} saved for the skill tree.` }];
 }
 
 function totalsOf(kudos: KudosHome): HomeLine {
