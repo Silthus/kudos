@@ -25,6 +25,7 @@ import type * as feedback_replies from "../feedback/replies.js";
 import type * as feedback_welcome from "../feedback/welcome.js";
 import type * as http from "../http.js";
 import type * as parser_parser from "../parser/parser.js";
+import type * as progression_backfill from "../progression/backfill.js";
 import type * as progression_catalogue from "../progression/catalogue.js";
 import type * as progression_effects from "../progression/effects.js";
 import type * as progression_gate from "../progression/gate.js";
@@ -72,6 +73,7 @@ declare const fullApi: ApiFromModules<{
   "feedback/welcome": typeof feedback_welcome;
   http: typeof http;
   "parser/parser": typeof parser_parser;
+  "progression/backfill": typeof progression_backfill;
   "progression/catalogue": typeof progression_catalogue;
   "progression/effects": typeof progression_effects;
   "progression/gate": typeof progression_gate;

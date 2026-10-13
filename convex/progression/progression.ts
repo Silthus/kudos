@@ -4,26 +4,31 @@ import { publish } from "../bus/publish";
 import type { MemberId } from "../workspace/directory";
 import { catalogue } from "./catalogue";
 import { anyRecorded, insertEffects } from "./effects";
-import { progress, standing, type MemberProgress, type Standing } from "./progress";
+import { progress, standing, type MemberProgress, type Progressed, type Standing } from "./progress";
 
 export const recordEffects = internalMutation({
   args: { event: kudosGivenEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
     for (const member of membersNamedIn(event)) {
-      const { state, effects, events } = progress(await progressOf(ctx, member), event, catalogue);
-      if (await anyRecorded(ctx, effects)) continue;
-      await insertEffects(ctx, effects);
-      await saveProgress(ctx, state);
-      for (const levelReached of events) await publish(ctx, levelReached);
+      const progressed = progress(await progressOf(ctx, member), event, catalogue);
+      if (!(await recordOnce(ctx, progressed))) continue;
+      for (const levelReached of progressed.events) await publish(ctx, levelReached);
     }
   },
 });
+
+export async function recordOnce(ctx: MutationCtx, { state, effects }: Progressed): Promise<boolean> {
+  if (await anyRecorded(ctx, effects)) return false;
+  await insertEffects(ctx, effects);
+  await saveProgress(ctx, state);
+  return true;
+}
 
 export async function standingOf(ctx: QueryCtx, member: MemberId): Promise<Standing> {
   return standing(await progressOf(ctx, member));
 }
 
-async function progressOf(ctx: QueryCtx, member: MemberId): Promise<MemberProgress> {
+export async function progressOf(ctx: QueryCtx, member: MemberId): Promise<MemberProgress> {
   const row = await progressRow(ctx, member);
   return { member, xp: row?.xp ?? 0, pointsSpent: row?.pointsSpent ?? 0 };
 }

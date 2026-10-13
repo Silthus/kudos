@@ -1,3 +1,4 @@
+import type { PaginationOptions, PaginationResult } from "convex/server";
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
@@ -13,6 +14,8 @@ export const awardIdValidator = v.id("awards");
 export type AwardId = Id<"awards">;
 
 export type AwardWithId = Award & { award: AwardId };
+
+export type GivenAward = AwardWithId & { day: DayKey };
 
 export type WeekTotals = { givenWeek: number; receivedWeek: number };
 
@@ -35,6 +38,11 @@ export async function weekTotals(ctx: QueryCtx, member: MemberId, week: Week): P
     .withIndex("by_recipient", (q) => q.eq("recipient", member).gte("day", week.monday).lte("day", week.sunday))
     .collect();
   return { givenWeek: sumOf(given), receivedWeek: sumOf(received) };
+}
+
+export async function awardsInAwardOrder(ctx: QueryCtx, page: PaginationOptions): Promise<PaginationResult<GivenAward>> {
+  const result = await ctx.db.query("awards").order("asc").paginate(page);
+  return { ...result, page: result.page.map(({ _id, giver, recipient, kudos, day }) => ({ award: _id, giver, recipient, kudos, day })) };
 }
 
 function sumOf(awards: Array<{ kudos: number }>) {
