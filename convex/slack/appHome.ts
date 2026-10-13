@@ -3,8 +3,8 @@ import { internal } from "../_generated/api";
 import { internalAction, type ActionCtx } from "../_generated/server";
 import type { HomeFacts } from "../engine/home";
 import { renderHome, type HomeLine, type HomeView } from "../feedback/home";
+import { attemptArgs, failedAttempt, sendOnce, tryAtMostThreeTimes } from "./delivery";
 import { lookUpUser } from "./directory";
-import { callSlack } from "./webApi";
 
 export type HomeOpened = { type: "app_home_opened"; user: string; tab: "home" | "messages" };
 
@@ -13,12 +13,17 @@ export function isHomeTabOpened(event: { type: string }): event is HomeOpened {
 }
 
 export const publishHome = internalAction({
-  args: { workspace: v.string(), user: v.string() },
-  handler: async (ctx, { workspace, user }) => {
-    const facts = await homeFactsOf(ctx, workspace, user);
-    if (facts === null) return;
-    const answer = await callSlack("views.publish", { user_id: user, view: homeView(renderHome(facts)) });
-    if (!answer.ok) console.warn(`views.publish failed: ${answer.error}`);
+  args: { workspace: v.string(), user: v.string(), ...attemptArgs },
+  handler: async (ctx, { attempt = 1, ...opened }) => {
+    await tryAtMostThreeTimes(
+      attempt,
+      async (attempt) => {
+        const facts = await homeFactsOf(ctx, opened.workspace, opened.user);
+        if (facts === null) return failedAttempt(attempt);
+        return sendOnce(ctx, opened.workspace, "views.publish", { user_id: opened.user, view: homeView(renderHome(facts)) }, attempt);
+      },
+      (retry) => ctx.scheduler.runAt(retry.at, internal.slack.appHome.publishHome, { ...opened, attempt: retry.attempt }),
+    );
   },
 });
 

@@ -1,6 +1,7 @@
 import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack } from "../../testing/fakeSlack";
+import { post, settleUntil } from "../../testing/slackBackend";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { emoji, mention, messageEvent, section, type MessageOptions } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
@@ -97,6 +98,29 @@ describe("R44 R34: delivering the welcome message", () => {
       const [first, retry] = slack.timesOf("chat.postMessage", (args) => args.channel === user);
       expect(retry! - first!).toBeGreaterThanOrEqual(30_000);
     }
+  });
+
+  test("R35: a rate limit on one welcome holds the next welcome until Slack's Retry-After", async () => {
+    const t = testBackend();
+    slack.answering("chat.postMessage", rateLimited(30));
+    await post(t, [section(mention("U_BOB"), emoji("taco"))], { user: "U_ALICE", ts: slackTs(now) });
+    await settleUntil(t, new Date(now.getTime() + 10_000));
+
+    await post(t, [section(mention("U_ALICE"), emoji("taco"))], { user: "U_CAROL", ts: slackTs(now, 10) });
+    await settleUntil(t, new Date(now.getTime() + 60_000));
+
+    const [rateLimitedAt] = slack.timesOf("chat.postMessage");
+    const [carolWelcomedAt] = slack.timesOf("chat.postMessage", (args) => args.channel === "U_CAROL");
+    expect(carolWelcomedAt! - rateLimitedAt!).toBeGreaterThanOrEqual(30_000);
+  });
+
+  test("R35: a welcome Slack can't deliver to that person stops for good", async () => {
+    const t = testBackend();
+    slack.answering("chat.postMessage", () => Response.json({ ok: false, error: "channel_not_found" }));
+
+    await giveKudos(t, "U_ALICE", "U_BOB");
+
+    expect(attemptsPerUser()).toEqual({ U_ALICE: 1, U_BOB: 1 });
   });
 });
 

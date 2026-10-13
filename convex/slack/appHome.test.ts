@@ -1,6 +1,6 @@
 import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { FakeSlack } from "../../testing/fakeSlack";
+import { FakeSlack, httpStatus, rateLimitedFor } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 import schema from "../schema";
@@ -146,6 +146,38 @@ test("R49: a redelivered App Home event is acknowledged and publishes once", asy
 
   expect([first.status, redelivered.status]).toEqual([200, 200]);
   expect(slack.callsTo("views.publish")).toHaveLength(1);
+});
+
+describe("R45: publishing App Home through Slack's failures", () => {
+  test("a rate-limited publish is tried again after Slack's Retry-After", async () => {
+    const t = testBackend();
+    slack.answering("views.publish", rateLimitedFor(30));
+
+    await openHome(t, "U_BOB");
+
+    const [rateLimitedAt, publishedAt] = slack.timesOf("views.publish");
+    expect(publishedAt! - rateLimitedAt!).toBeGreaterThanOrEqual(30_000);
+    expect(publishedHome("U_BOB")[0]).toBe("header: Your kudos");
+  });
+
+  test("a person whose lookup fails is looked up again, then sees their Home", async () => {
+    const t = testBackend();
+    slack.answering("users.info", httpStatus(500));
+
+    await openHome(t, "U_BOB");
+
+    expect(slack.callsTo("users.info")).toHaveLength(2);
+    expect(publishedHome("U_BOB")[0]).toBe("header: Your kudos");
+  });
+
+  test("a publish that keeps failing is tried 3 times and never again", async () => {
+    const t = testBackend();
+    slack.answering("views.publish", httpStatus(500), httpStatus(500), httpStatus(500), httpStatus(500));
+
+    await openHome(t, "U_BOB");
+
+    expect(slack.callsTo("views.publish")).toHaveLength(3);
+  });
 });
 
 test("opening the app's Messages tab publishes nothing", async () => {

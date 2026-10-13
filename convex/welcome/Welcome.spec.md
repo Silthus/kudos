@@ -23,4 +23,4 @@ Welcome: the first kudosGiven subscriber. It records each member it welcomes and
   checklist: acknowledgment-barrier dismissed: nothing acknowledges the welcome; the Slack event is acknowledged after the mutation that records its award commits
   checklist: commit-ordered-effects dismissed: the DM is scheduled from the subscriber's mutation, and Convex runs a scheduled action only after that mutation commits
   checklist: resumption-coverage dismissed: no batch resumes from a checkpoint
-  checklist: retry-classification dismissed: R44 retries every failure, an unknown result included, until 3 tries; no failure is classified terminal before the bound
+  checklist: retry-classification dismissed: the Slack adapter's delivery path classifies the DM's failures, retrying every failure, an unknown result included, until 3 tries (R44) and stopping on a gone answer, by its invariant a gone delivery stops for good

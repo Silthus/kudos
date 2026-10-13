@@ -19,6 +19,7 @@ beforeEach(() => {
   vi.useFakeTimers({ now });
   vi.stubEnv("SLACK_SIGNING_SECRET", signingSecret);
   vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
+  vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
   slack = new FakeSlack().withMember("U_ALICE").withMember("U_BOB").withMember("U_CAROL");
   vi.stubGlobal("fetch", slack.fetch);
 });

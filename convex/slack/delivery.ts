@@ -7,8 +7,8 @@ import type { Indicator } from "../feedback/indicator";
 import type { Line, Segment } from "../feedback/replies";
 import { callSlack, type SlackAnswer } from "./webApi";
 
-const attemptArgs = { attempt: v.optional(v.number()) };
-const privateReplyAttempts = 3;
+export const attemptArgs = { attempt: v.optional(v.number()) };
+const atMostAttempts = 3;
 const longestRetryDelayMs = 60 * 60 * 1000;
 const goneErrors = new Set(["message_not_found", "channel_not_found", "not_in_channel"]);
 const reactionShown = new Set(["already_reacted"]);
@@ -16,6 +16,7 @@ const reactionNotShown = new Set(["no_reaction"]);
 
 type Attempt = { kind: "delivered" } | { kind: "gone" } | { kind: "held"; until: number } | { kind: "failed"; retryAt?: number };
 type Retry = { at: number; attempt: number } | null;
+type Send = (attempt: number) => Promise<Retry>;
 
 export const deliverIndicator = internalAction({
   args: { ...messageRefValidator.fields, ...attemptArgs },
@@ -28,12 +29,28 @@ export const deliverIndicator = internalAction({
 export const deliverPrivateReply = internalAction({
   args: { reply: v.id("privateReplies"), ...attemptArgs },
   handler: async (ctx, { reply, attempt = 1 }) => {
-    const retry = await retryOnAnyError(attempt, () => sendPrivateReply(ctx, reply, attempt));
-    if (retry !== null && retry.attempt <= privateReplyAttempts) {
-      await ctx.scheduler.runAt(retry.at, internal.slack.delivery.deliverPrivateReply, { reply, attempt: retry.attempt });
-    }
+    await tryAtMostThreeTimes(
+      attempt,
+      (attempt) => sendPrivateReply(ctx, reply, attempt),
+      (retry) => ctx.scheduler.runAt(retry.at, internal.slack.delivery.deliverPrivateReply, { reply, attempt: retry.attempt }),
+    );
   },
 });
+
+export async function tryAtMostThreeTimes(attempt: number, send: Send, tryAgain: (retry: NonNullable<Retry>) => Promise<unknown>) {
+  const retry = await retryOnAnyError(attempt, () => send(attempt));
+  if (retry !== null && retry.attempt <= atMostAttempts) await tryAgain(retry);
+}
+
+export async function sendOnce(ctx: ActionCtx, workspace: string, method: string, args: Record<string, unknown>, attempt: number): Promise<Retry> {
+  const result = await attemptCall(ctx, workspace, method, args);
+  if (result.kind === "delivered" || result.kind === "gone") return null;
+  return retryAfter(result, attempt);
+}
+
+export function failedAttempt(attempt: number): Retry {
+  return retryAfter({ kind: "failed" }, attempt);
+}
 
 async function reconcileIndicator(ctx: ActionCtx, ref: MessageRef, attempt: number): Promise<Retry> {
   const { indicator, version } = await ctx.runQuery(internal.feedback.indicator.desired, ref);
@@ -54,14 +71,13 @@ async function reconcileIndicator(ctx: ActionCtx, ref: MessageRef, attempt: numb
 async function sendPrivateReply(ctx: ActionCtx, reply: Id<"privateReplies">, attempt: number): Promise<Retry> {
   const row = await ctx.runQuery(internal.feedback.replies.privateReply, { reply });
   if (row === null) return null;
-  const result = await attemptCall(ctx, row.workspace, "chat.postEphemeral", {
+  const message = {
     channel: row.conversation,
     user: row.to,
     text: slackTextOf(row.lines),
     ...(row.threadRoot && { thread_ts: row.threadRoot }),
-  });
-  if (result.kind === "delivered" || result.kind === "gone") return null;
-  return retryAfter(result, attempt);
+  };
+  return sendOnce(ctx, row.workspace, "chat.postEphemeral", message, attempt);
 }
 
 async function retryOnAnyError(attempt: number, deliver: () => Promise<Retry>): Promise<Retry> {
@@ -69,7 +85,7 @@ async function retryOnAnyError(attempt: number, deliver: () => Promise<Retry>): 
     return await deliver();
   } catch (error) {
     console.warn(`delivery attempt ${attempt} failed: ${String(error)}`);
-    return retryAfter({ kind: "failed" }, attempt);
+    return failedAttempt(attempt);
   }
 }
 

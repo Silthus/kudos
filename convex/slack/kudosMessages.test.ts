@@ -16,6 +16,7 @@ beforeEach(() => {
   vi.useFakeTimers({ now });
   vi.stubEnv("SLACK_SIGNING_SECRET", signingSecret);
   vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
+  vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
   slack = new FakeSlack().withMember("U_ALICE").withMember("U_BOB").withMember("U_CAROL");
   vi.stubGlobal("fetch", slack.fetch);
 });
@@ -83,7 +84,7 @@ describe("R33: the private reply", () => {
     expect(slack.callsTo("chat.postEphemeral")).toEqual([
       { channel: "C1", user: "U_ALICE", thread_ts: threadRoot, text: "<@U_BOB> and <@U_CAROL> got 1 kudos from you. You have 1 kudos left today." },
     ]);
-    expect(slack.calls.map((call) => call.method).filter((method) => method !== "users.info").sort()).toEqual(["chat.postEphemeral", "reactions.add"]);
+    expect(callsIn("C1").map((call) => call.method).sort()).toEqual(["chat.postEphemeral", "reactions.add"]);
   });
 
   test("R37: the giver's last kudos says how many come at midnight", async () => {
@@ -111,7 +112,7 @@ describe("R33: the private reply", () => {
       await post(t, blocks, options);
       await settle(t);
 
-      const messagesSent = slack.calls.filter((call) => call.method.startsWith("chat."));
+      const messagesSent = callsIn("C1").filter((call) => call.method.startsWith("chat."));
       expect(messagesSent).toEqual([
         { method: "chat.postEphemeral", args: expect.objectContaining({ channel: "C1", user: "U_ALICE", ...(options.threadTs && { thread_ts: options.threadTs }) }) },
       ]);
@@ -362,4 +363,8 @@ function slackTs(at: Date) {
 
 function stringify(value: unknown) {
   return JSON.stringify(value, (_, item) => (typeof item === "bigint" ? item.toString() : item));
+}
+
+function callsIn(conversation: string) {
+  return slack.calls.filter((call) => call.args.channel === conversation);
 }
