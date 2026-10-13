@@ -1,0 +1,35 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/ship-website
+
+ ❯ |convex| convex/companyProfiles/faces.test.ts (25 tests | 1 failed | 24 skipped) 65ms
+   ❯ WS21 V19 V21: a member's face is their company profile cutout on its colour (9)
+     × a profile whose colour names no posthog.com colour, even an inherited one like constructor, sits on the neutral tan 63ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/companyProfiles/faces.test.ts > WS21 V19 V21: a member's face is their company profile cutout on its colour > a profile whose colour names no posthog.com colour, even an inherited one like constructor, sits on the neutral tan
+Error: [reported] Error
+ ❯ reported convex/analytics/boundary.ts:71:23
+     69|       job: scheduledFunctionId as Id<"_scheduled_functions"> | null,
+     70|     });
+     71|     return recorded ? new Error(`${reportedMarker} ${typeOf(error)}`) …
+       |                       ^
+     72|   } catch {
+     73|     console.error("analytics.exception_not_recorded");
+ ❯ observed convex/analytics/boundary.ts:57:11
+ ❯ invokeFunction node_modules/.pnpm/convex@1.46.0_react@19.3.0/node_modules/convex/src/server/impl/registration_impl.ts:90:14
+ ❯ invokeAction node_modules/.pnpm/convex@1.46.0_react@19.3.0/node_modules/convex/src/server/impl/registration_impl.ts:513:18
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2140:35
+ ❯ runActionWithHandler node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2138:16
+ ❯ Object.actionFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2219:28
+ ❯ action node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2259:20
+ ❯ convex/companyProfiles/faces.test.ts:86:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 24 skipped (25)
+   Start at  21:55:42
+   Duration  589ms (transform 48%, import 31%, tests 13%, environment 8%, worker 1%)
+

@@ -1,0 +1,7 @@
+PostHog project 662840, created through the fleet-posthog MCP on 2026-10-13 (#111)
+id: 957148
+key: website
+active: true
+evaluation_runtime: server
+filters.groups[0]: person property `environment` exact ["sandbox"], rollout_percentage 100
+tags: hedgehug, dark-launch

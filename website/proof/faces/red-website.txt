@@ -1,0 +1,34 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/faces/website
+
+ ❯ |website| src/HomePage.test.tsx (10 tests | 1 failed) 1343ms
+   ❯ WS21 V19: the member's face (1)
+     × shows the member's company profile cutout on its own colour in the hero, the profile card and the avatar menu 92ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS21 V19: the member's face > shows the member's company profile cutout on its own colour in the hero, the profile card and the avatar menu
+AssertionError: expected  to have a length of 3 but got +0
+
+- Expected
++ Received
+
+- 3
++ 0
+
+ ❯ src/HomePage.test.tsx:72:19
+     70|     renderApp({ ...shellFixtures.member, face: { kind: "company-profil…
+     71|     const faces = document.querySelectorAll(`img[src="${cutout}"]`);
+     72|     expect(faces).toHaveLength(3);
+       |                   ^
+     73|     for (const face of faces) {
+     74|       expect(face).toHaveAttribute("alt", "");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 9 passed (10)
+   Start at  21:19:38
+   Duration  3.08s (tests 45%, import 31%, environment 14%, transform 6%, setup 3%)
+

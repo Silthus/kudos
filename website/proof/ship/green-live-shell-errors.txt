@@ -1,0 +1,17 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/ship-website
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+ Test Files  8 passed (8)
+      Tests  74 passed (74)
+   Start at  21:55:04
+   Duration  9.88s (tests 54%, import 26%, environment 13%, transform 5%, setup 3%)
+

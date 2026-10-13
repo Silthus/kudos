@@ -1,0 +1,19 @@
+codex exec -m gpt-6.1-sol -c model_reasoning_effort=high --sandbox read-only (round 1, #111)
+
+Prompt:
+You are reviewing ticket #111 of the Silthus/kudos repo (public), working tree at the current directory, branch spec/website/deploy. Read-only review; do not edit files.
+
+The oracle is the spec: `git show origin/docs/spec-website:spec/website.md`, rules WS2, WS3, WS27 and WS28 especially.
+
+Review exactly these two changes:
+1. Commit 88632f9 (`git show 88632f9`): the deploy workflows `.github/workflows/deploy-sandbox.yml` and `deploy-production.yml` now build the website against their own Convex deployment and upload it with the `@convex-dev/static-hosting` CLI after `convex deploy`, then run `prepareWebsiteFlag`, and `.github/workflows/deploy.test.ts` covers it. Check against WS27/WS2: ordering, that the deploy key reaches only those steps, that the upload targets the same deployment as the deploy key (read node_modules/@convex-dev/static-hosting/dist/cli/upload.js for how `--prod` and `--build` resolve the URL), that CI's install provides the website package's dependencies (pnpm-workspace.yaml), and whether `convex run --prod` with CONVEX_DEPLOY_KEY is correct. Check the tests are outside-in and would fail for the real mistakes.
+2. Merge commit a907d25 (merging origin/main into spec/website). Only the conflict resolutions matter: `git diff origin/main a907d25 -- convex/engine/home.ts convex/feedback/home.ts convex/slack/appHome.ts convex/slack/appHome.test.ts convex/feedback/Feedback.spec.md convex/slack/Slack.spec.md`, compared with what spec/website had at 3ad15a6 (`git diff $(git merge-base 3ad15a6 origin/main) 3ad15a6 -- <same files>`). Check nothing from either side was lost: WS28's App Home website link on every member view including main's new tabs (Admin, progression settings), `refillsAt` in homeFacts (used by convex/website/profile.ts), and the spec text.
+
+Report findings as a numbered list, each with severity (high/medium/low), file:line, the concrete failure scenario, and the fix. Say "no findings" if none hold. Be concise.
+
+Verdict:
+The merge retained the XP behavior, `refillsAt`, and both specs. The link is appended after rendering each member view, which includes Admin and progression Settings. The workflow assertions cover ordering, key scoping, and command arguments; I couldn't run them because the read-only sandbox blocked Vitest's temporary-directory creation.
+
+no findings.
+
+Test execution was blocked by the read-only sandbox preventing Vitest from creating its temporary directory.

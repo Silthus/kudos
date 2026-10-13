@@ -1,0 +1,40 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/ship-website
+
+ ❯ |convex| convex/companyProfiles/faces.test.ts (25 tests | 1 failed | 24 skipped) 102ms
+   ❯ WS22: a failed posthog.com read keeps the previous profiles (11)
+     × a later page that answers no teams keeps the previous profiles as malformed 101ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/companyProfiles/faces.test.ts > WS22: a failed posthog.com read keeps the previous profiles > a later page that answers no teams keeps the previous profiles as malformed
+AssertionError: expected { …(2) } to deeply equal { kind: 'company-profile', …(3) }
+
+- Expected
++ Received
+
+  {
+-   "colour": "#8567FF",
+-   "image": "https://res.cloudinary.com/posthog-test/image/upload/c_limit,w_160,f_auto,q_auto/v1/wren.png",
+-   "initials": "WH",
+-   "kind": "company-profile",
++   "image": "https://avatars.slack-edge.com/wren.png",
++   "kind": "slack",
+  }
+
+ ❯ convex/companyProfiles/faces.test.ts:193:32
+    191|     await syncCompanyProfiles();
+    192|
+    193|     expect(await faceOf(wren)).toEqual(wrensFace);
+       |                                ^
+    194|     expect(warn).toHaveBeenCalledWith("companyProfiles.read_failed", {…
+    195|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 24 skipped (25)
+   Start at  21:55:43
+   Duration  637ms (transform 46%, import 28%, tests 18%, environment 7%, worker 1%)
+

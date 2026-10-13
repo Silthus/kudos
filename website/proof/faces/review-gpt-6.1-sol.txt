@@ -1,0 +1,17 @@
+# GPT-6.1 Sol review of #110 (codex exec -m gpt-6.1-sol -c model_reasoning_effort=high --sandbox read-only), over the diff against spec/website at 7e3fed9
+
+1. **Major — [sync.ts:99](/home/coder/dev/kudos-wt/faces/convex/companyProfiles/sync.ts:99): incomplete pagination replaces the previous profiles.** The parser accepts any numeric `pageCount`, ignores the returned page number, and allows pagination metadata to change between pages. Reproduced: page 1 declares three pages, page 2 declares one, and the sync replaces the cache without reading page 3 or logging a failure. Repeated page 1 responses also replace the cache with an incomplete result. Breaks **WS22** and the Coherence invariant requiring a complete, validated read. Tests omit these malformed-pagination cases.
+
+2. **Major — [sync.ts:128](/home/coder/dev/kudos-wt/faces/convex/companyProfiles/sync.ts:128): filtering cutouts hides ambiguous names.** When two distinct profiles share a normalised name but only one has a usable cutout, the sync drops the other profile. The matcher then returns the remaining person’s face instead of falling back. Reproduced with synthetic profiles. Breaks **WS21 and V21**: two matching profiles must fall back. The ambiguity test gives both profiles valid cutouts, leaving this failure uncovered.
+
+3. **Minor — [faces.test.ts:9](/home/coder/dev/kudos-wt/faces/convex/companyProfiles/faces.test.ts:9): fixtures contain real people’s names.** The new tests use Ada Lovelace and Grace Hopper. Although the image URLs are fictional, those names violate the ticket’s explicit requirement that **no real people’s names or photos enter the repository**. Use invented names.
+
+No blocker, additional security/CSP, or Coherence declaration findings.
+
+**Verdict: request changes.**
+
+## Responses
+
+1. Fixed: every later page must report its own page number and the first page's pageCount, or the read is malformed (tests: a later page that declares fewer pages than the first / answers as the first page again).
+2. Fixed: every distinct person is kept, image is optional, and a face needs exactly one name match that has a cutout (test: two people with the member's name fall back even when only one of them has a cutout; refuted and witnessed).
+3. Fixed: the fixtures and the running-app proof use invented names (Wren Halloway, Oriel Pemberton). The mock issuer's default name from #107 is untouched; the proof signs in under the invented name.

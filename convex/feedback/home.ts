@@ -23,7 +23,8 @@ export type HomeLine =
   | { kind: "choices"; choices: Choice[] }
   | { kind: "lines"; lines: Line[] }
   | { kind: "action"; text: string; action: HomeAction }
-  | { kind: "pick-channel"; text: string; picked: string | null; picks: Extract<Command, { channel: unknown }>["type"] };
+  | { kind: "pick-channel"; text: string; picked: string | null; picks: Extract<Command, { channel: unknown }>["type"] }
+  | { kind: "link"; label: string; url: string };
 
 type MemberHome = Extract<HomeFacts, { kind: "member" }>;
 
@@ -35,12 +36,21 @@ const periods: Array<{ period: Period; label: string }> = [
   { period: "all", label: "All time" },
 ];
 
-export function renderHome(facts: HomeFacts, home: ShownHome | null): HomeView {
+export function renderHome(facts: HomeFacts, home: ShownHome | null, website: string | null): HomeView {
   if (facts.kind === "not-a-member") {
     return { title: productName, groups: [[{ kind: "text", text: `${productName} is for active members of this workspace.` }]] };
   }
+  return withWebsiteLink(memberViewOf(facts, home), website);
+}
+
+function memberViewOf(facts: MemberHome, home: ShownHome | null): HomeView {
   if (home === null) return profileOf(facts, null, null);
   return { tabBar: tabBar(home.tabs, home.shown.tab), ...tabOf(facts, home.shown) };
+}
+
+function withWebsiteLink(view: HomeView, website: string | null): HomeView {
+  if (website === null) return view;
+  return { ...view, groups: [...view.groups, [{ kind: "link", label: `Open ${productName} on the web`, url: website }]] };
 }
 
 function tabBar(tabs: HomeTab[], selected: HomeTab): Choice[] {

@@ -1,0 +1,154 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/sign-in
+
+ ❯ |website| src/pageFocus.test.tsx (5 tests | 5 failed) 24ms
+   ❯ WS24: focus lands on the page title after a state change, never on first load (5)
+     × leaves focus alone on the first page shown 16ms
+     × leaves focus alone when the first answer arrives after loading 2ms
+     × moves focus to the home's title when the membership check turns into a member 2ms
+     × moves focus to the closed page's title when the site closes under an open page 2ms
+     × moves focus to the sign-in page's title after signing out 2ms
+ ❯ |website| src/theme.test.tsx (5 tests | 5 failed) 24ms
+   ❯ V6: the theme control follows the system first, overrides it per browser, and returns to it (5)
+     × follows the system on a first visit, including a later system change 16ms
+     × overrides the system and keeps the choice for the next visit in this browser 2ms
+     × returns to the system when Use system setting is chosen 2ms
+     × still renders and switches theme when the browser refuses storage 2ms
+     × marks the selected option with a visible check, not colour alone 2ms
+ ❯ |website| src/signIn.test.tsx (11 tests | 11 failed) 31ms
+   ❯ WS6 WS24: signing in with Slack from the keyboard (7)
+     × starts Slack's sign-in once when Enter is pressed on Sign in with Slack 15ms
+     × shows Sign-in didn't finish when a sign-in started in this browser comes back signed out 2ms
+     × shows the plain sign-in page to a signed-out visitor who never started a sign-in here 2ms
+     × tells about an unfinished sign-in only once 2ms
+     × forgets a sign-in that finished, so signing out later shows the plain sign-in page 2ms
+     × starts Slack's sign-in again from Try again on the didn't-finish page 1ms
+     × starts a fresh membership check by signing in again from the unverified page 1ms
+   ❯ WS9 WS16 WS24: signing out (4)
+     × signs out from the avatar menu with the keyboard: Enter opens it on Sign out, Enter signs out 1ms
+     × opens the avatar menu with ArrowDown and closes it with Escape, returning focus to the avatar 1ms
+     × closes the avatar menu when Tab moves focus out of it 1ms
+     × signs out from the pages of a signed-in person who isn't a member 1ms
+ ❯ |website| src/App.test.tsx (12 tests | 12 failed) 32ms
+   ❯ WS1 WS3 WS16 WS20: the shell renders each page from its visitor state (8)
+     × shows the closed page on every path while the site is closed, with no sign-in button 16ms
+     × shows the signed-out page at the root with Sign in with Slack as its one primary action 2ms
+     × shows the not-found page with a link home on any other path 2ms
+     × shows the error page when a page fails to render 2ms
+     × frames a member's home with the wordmark, Home as the only nav item, the theme control and the avatar menu 2ms
+     × greets a member whose name Slack didn't share without inventing one 1ms
+     × keeps the nav and the avatar off the pages of a visitor who isn't a member 1ms
+     × stays quiet and busy while the answer is loading, never flashing the closed page 1ms
+   ❯ WS6 WS8 WS20: the sign-in pages carry one hedgehog, one sentence from Max and their actions (4)
+     × shows Checking your membership while the directory verifies a signed-in person, with a way to sign out 1ms
+     × tells an unverified person Max couldn't check their membership, and lets them sign in again or sign out 1ms
+     × tells a signed-in person outside the workspace that HedgeHug is for its members only, and offers sign-out 1ms
+     × tells a visitor whose sign-in didn't finish, with Try again as the one primary action 1ms
+ ❯ |website| src/accessibility.test.tsx (22 tests | 22 failed) 39ms
+   ❯ WS24: every page passes axe in light and dark (22)
+     × loading in light 15ms
+     × closed in light 2ms
+     × signed out in light 2ms
+     × sign-in didn't finish in light 2ms
+     × checking membership in light 2ms
+     × membership not checked in light 1ms
+     × not a member in light 1ms
+     × home in light 1ms
+     × not found in light 1ms
+     × error in light 1ms
+     × the open avatar menu in light 1ms
+     × loading in dark 1ms
+     × closed in dark 1ms
+     × signed out in dark 1ms
+     × sign-in didn't finish in dark 1ms
+     × checking membership in dark 1ms
+     × membership not checked in dark 1ms
+     × not a member in dark 1ms
+     × home in dark 1ms
+     × not found in dark 1ms
+     × error in dark 1ms
+     × the open avatar menu in dark 1ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 55 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/App.test.tsx > WS1 WS3 WS16 WS20: the shell renders each page from its visitor state > shows the closed page on every path while the site is closed, with no sign-in button
+ FAIL  |website| src/App.test.tsx > WS1 WS3 WS16 WS20: the shell renders each page from its visitor state > shows the signed-out page at the root with Sign in with Slack as its one primary action
+ FAIL  |website| src/App.test.tsx > WS1 WS3 WS16 WS20: the shell renders each page from its visitor state > shows the not-found page with a link home on any other path
+ FAIL  |website| src/App.test.tsx > WS1 WS3 WS16 WS20: the shell renders each page from its visitor state > shows the error page when a page fails to render
+ FAIL  |website| src/App.test.tsx > WS1 WS3 WS16 WS20: the shell renders each page from its visitor state > frames a member's home with the wordmark, Home as the only nav item, the theme control and the avatar menu
+ FAIL  |website| src/App.test.tsx > WS1 WS3 WS16 WS20: the shell renders each page from its visitor state > greets a member whose name Slack didn't share without inventing one
+ FAIL  |website| src/App.test.tsx > WS1 WS3 WS16 WS20: the shell renders each page from its visitor state > keeps the nav and the avatar off the pages of a visitor who isn't a member
+ FAIL  |website| src/App.test.tsx > WS1 WS3 WS16 WS20: the shell renders each page from its visitor state > stays quiet and busy while the answer is loading, never flashing the closed page
+ FAIL  |website| src/App.test.tsx > WS6 WS8 WS20: the sign-in pages carry one hedgehog, one sentence from Max and their actions > shows Checking your membership while the directory verifies a signed-in person, with a way to sign out
+ FAIL  |website| src/App.test.tsx > WS6 WS8 WS20: the sign-in pages carry one hedgehog, one sentence from Max and their actions > tells an unverified person Max couldn't check their membership, and lets them sign in again or sign out
+ FAIL  |website| src/App.test.tsx > WS6 WS8 WS20: the sign-in pages carry one hedgehog, one sentence from Max and their actions > tells a signed-in person outside the workspace that HedgeHug is for its members only, and offers sign-out
+ FAIL  |website| src/App.test.tsx > WS6 WS8 WS20: the sign-in pages carry one hedgehog, one sentence from Max and their actions > tells a visitor whose sign-in didn't finish, with Try again as the one primary action
+ FAIL  |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > loading in light
+ FAIL  |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > closed in light
+ FAIL  |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > signed out in light
+ FAIL  |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > sign-in didn't finish in light
+ FAIL  |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > checking membership in light
+ FAIL  |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > membership not checked in light
+ FAIL  |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not a member in light
+ FAIL  |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in light
+ FAIL  |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not found in light
+ FAIL  |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > error in light
+ FAIL  |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the open avatar menu in light
+ FAIL  |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > loading in dark
+ FAIL  |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > closed in dark
+ FAIL  |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > signed out in dark
+ FAIL  |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > sign-in didn't finish in dark
+ FAIL  |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > checking membership in dark
+ FAIL  |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > membership not checked in dark
+ FAIL  |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not a member in dark
+ FAIL  |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in dark
+ FAIL  |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not found in dark
+ FAIL  |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > error in dark
+ FAIL  |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the open avatar menu in dark
+ FAIL  |website| src/pageFocus.test.tsx > WS24: focus lands on the page title after a state change, never on first load > leaves focus alone on the first page shown
+ FAIL  |website| src/pageFocus.test.tsx > WS24: focus lands on the page title after a state change, never on first load > leaves focus alone when the first answer arrives after loading
+ FAIL  |website| src/pageFocus.test.tsx > WS24: focus lands on the page title after a state change, never on first load > moves focus to the home's title when the membership check turns into a member
+ FAIL  |website| src/pageFocus.test.tsx > WS24: focus lands on the page title after a state change, never on first load > moves focus to the closed page's title when the site closes under an open page
+ FAIL  |website| src/pageFocus.test.tsx > WS24: focus lands on the page title after a state change, never on first load > moves focus to the sign-in page's title after signing out
+ FAIL  |website| src/signIn.test.tsx > WS6 WS24: signing in with Slack from the keyboard > starts Slack's sign-in once when Enter is pressed on Sign in with Slack
+ FAIL  |website| src/signIn.test.tsx > WS6 WS24: signing in with Slack from the keyboard > shows Sign-in didn't finish when a sign-in started in this browser comes back signed out
+ FAIL  |website| src/signIn.test.tsx > WS6 WS24: signing in with Slack from the keyboard > shows the plain sign-in page to a signed-out visitor who never started a sign-in here
+ FAIL  |website| src/signIn.test.tsx > WS6 WS24: signing in with Slack from the keyboard > tells about an unfinished sign-in only once
+ FAIL  |website| src/signIn.test.tsx > WS6 WS24: signing in with Slack from the keyboard > forgets a sign-in that finished, so signing out later shows the plain sign-in page
+ FAIL  |website| src/signIn.test.tsx > WS6 WS24: signing in with Slack from the keyboard > starts Slack's sign-in again from Try again on the didn't-finish page
+ FAIL  |website| src/signIn.test.tsx > WS6 WS24: signing in with Slack from the keyboard > starts a fresh membership check by signing in again from the unverified page
+ FAIL  |website| src/signIn.test.tsx > WS9 WS16 WS24: signing out > signs out from the avatar menu with the keyboard: Enter opens it on Sign out, Enter signs out
+ FAIL  |website| src/signIn.test.tsx > WS9 WS16 WS24: signing out > opens the avatar menu with ArrowDown and closes it with Escape, returning focus to the avatar
+ FAIL  |website| src/signIn.test.tsx > WS9 WS16 WS24: signing out > closes the avatar menu when Tab moves focus out of it
+ FAIL  |website| src/signIn.test.tsx > WS9 WS16 WS24: signing out > signs out from the pages of a signed-in person who isn't a member
+ FAIL  |website| src/theme.test.tsx > V6: the theme control follows the system first, overrides it per browser, and returns to it > follows the system on a first visit, including a later system change
+ FAIL  |website| src/theme.test.tsx > V6: the theme control follows the system first, overrides it per browser, and returns to it > overrides the system and keeps the choice for the next visit in this browser
+ FAIL  |website| src/theme.test.tsx > V6: the theme control follows the system first, overrides it per browser, and returns to it > returns to the system when Use system setting is chosen
+ FAIL  |website| src/theme.test.tsx > V6: the theme control follows the system first, overrides it per browser, and returns to it > still renders and switches theme when the browser refuses storage
+ FAIL  |website| src/theme.test.tsx > V6: the theme control follows the system first, overrides it per browser, and returns to it > marks the selected option with a visible check, not colour alone
+TypeError: Cannot read properties of undefined (reading 'kind')
+ ❯ App src/App.tsx:12:24
+     10| export function App({ shell }: { shell: ShellFixture }) {
+     11|   const atHome = window.location.pathname === "/";
+     12|   const member = shell.kind === "member" ? shell.member : undefined;
+       |                        ^
+     13|   return (
+     14|     <Frame member={member} atHome={atHome}>
+ ❯ Object.react_stack_bottom_frame ../node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:28571:20
+ ❯ renderWithHooks ../node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:8030:22
+ ❯ updateFunctionComponent ../node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:10569:19
+ ❯ beginWork ../node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:12205:18
+ ❯ runWithFiberInDEV ../node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:1048:13
+ ❯ performUnitOfWork ../node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:19176:22
+ ❯ workLoopSync ../node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:19004:41
+ ❯ renderRootSync ../node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:18985:11
+ ❯ performWorkOnRoot ../node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:18094:35
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/55]⎯
+
+
+ Test Files  5 failed (5)
+      Tests  55 failed (55)
+   Start at  20:14:09
+   Duration  3.59s (import 56%, environment 26%, transform 9%, setup 6%, tests 2%)
+
