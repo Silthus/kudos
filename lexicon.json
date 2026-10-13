@@ -306,6 +306,10 @@
     {
       "name": "capture",
       "definition": "Whether a deployment records and sends product events: on only when it has both the PostHog project token and a valid KUDOS_ENVIRONMENT (sandbox or production). With capture off nothing is recorded and nothing is sent."
+    },
+    {
+      "name": "exhausted",
+      "definition": "An outbox event the drain has given up and will never send: rejected by PostHog (400 or 413), out of retries after its sixth failure, or expired after 7 days pending. It is logged once with its name and reason, never its properties, and deleted 7 days later. Its reason exhausted names the second case."
     }
   ]
 }

@@ -50,6 +50,7 @@ Analytics: the only module that knows PostHog. It projects each kudosGiven domai
   over: every request the drain sends for one recorded kudos given and kudos received, through each failure PostHog can give short of rejection (429, 503, 401, a network error, no answer within 10 seconds) to the attempt it accepts, checked against the outbox rows as recorded
   via: O14: every retry sends the same UUID, name, distinct_id and timestamp as the first attempt
   because: PostHog drops a repeated delivery only when its UUID, name, distinct_id and timestamp match (O14), so a retry after an unknown result, which may have landed, would count the fact twice if any of them changed; and a timestamp moved to the retry would place the fact at the wrong time
+  refuted: a retried row was given a fresh UUID when settle rescheduled it -> the test failed on its assertion that every attempt's UUIDs equal the recorded rows' (2026-10-13)
   kinds: message, state
   checklist: revalidated-permission dismissed: the drain acts for the deployment, never for a member, and PostHog checks the project token on every request
   checklist: destination-confinement dismissed: the destination is the configured POSTHOG_HOST's batch endpoint whatever the attempt; an identity is never a destination
