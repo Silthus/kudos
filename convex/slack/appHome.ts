@@ -19,15 +19,31 @@ export const publishHome = internalAction({
     await tryAtMostThreeTimes(
       attempt,
       async (attempt) => {
-        const facts = await homeFactsOf(ctx, opened.workspace, opened.user);
-        if (facts.kind === "unavailable") return failedAttempt(attempt, facts.retryAfterMs);
-        const shown = await ctx.runQuery(internal.feedback.homeTabs.shownTabOf, opened);
-        return sendOnce(ctx, opened.workspace, "views.publish", { user_id: opened.user, view: homeView(renderHome(facts, shown)) }, attempt);
+        const desired = await desiredHomeOf(ctx, opened.workspace, opened.user);
+        if (desired.kind === "unavailable") return failedAttempt(attempt, desired.retryAfterMs);
+        const { view } = desired;
+        const retry = await sendOnce(ctx, opened.workspace, "views.publish", { user_id: opened.user, view }, attempt);
+        if (retry === null && (await changedWhileSent(ctx, opened.workspace, opened.user, view))) {
+          await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, opened);
+        }
+        return retry;
       },
       (retry) => ctx.scheduler.runAt(retry.at, internal.slack.appHome.publishHome, { ...opened, attempt: retry.attempt }),
     );
   },
 });
+
+async function desiredHomeOf(ctx: ActionCtx, workspace: string, user: string): Promise<{ kind: "view"; view: SlackHomeView } | Unavailable> {
+  const facts = await homeFactsOf(ctx, workspace, user);
+  if (facts.kind === "unavailable") return facts;
+  const shown = await ctx.runQuery(internal.feedback.homeTabs.shownTabOf, { workspace, user });
+  return { kind: "view", view: homeView(renderHome(facts, shown)) };
+}
+
+async function changedWhileSent(ctx: ActionCtx, workspace: string, user: string, sent: SlackHomeView) {
+  const desired = await desiredHomeOf(ctx, workspace, user);
+  return desired.kind === "view" && JSON.stringify(desired.view) !== JSON.stringify(sent);
+}
 
 export function appHomeLink(workspace: string, label: string) {
   const query = new URLSearchParams({ team: workspace, id: appId(), tab: "home" });
@@ -43,6 +59,8 @@ async function homeFactsOf(ctx: ActionCtx, workspace: string, user: string): Pro
   if (lookUp.kind === "failed") return { kind: "unavailable", ...(lookUp.retryAfterMs !== undefined && { retryAfterMs: lookUp.retryAfterMs }) };
   return (await ctx.runQuery(internal.engine.home.homeOf, { workspace, user })) ?? { kind: "unavailable" };
 }
+
+type SlackHomeView = ReturnType<typeof homeView>;
 
 function homeView({ tabBar, title, groups }: HomeView) {
   const tabs = tabBar === undefined ? [] : [buttonsOf(tabBar)];

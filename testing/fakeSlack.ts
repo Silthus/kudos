@@ -37,6 +37,7 @@ export class FakeSlack {
   private readonly scripted = new Map<string, ScriptedAnswer[]>();
   private readonly callTimes = new Map<SlackCall, number>();
   private readonly holds: Array<{ method: string; about: string; meanwhile: () => Promise<void> }> = [];
+  private readonly homesShown = new Map<string, unknown>();
 
   withMember(id: string, options: Partial<SlackUser> = {}) {
     this.users.set(id, { id, team_id: "T1", ...options });
@@ -77,6 +78,10 @@ export class FakeSlack {
 
   reactionsOn(channel: string, ts: string) {
     return this.reactionsByMessage.get(`${channel}/${ts}`) ?? [];
+  }
+
+  homeShownTo(user: string) {
+    return this.homesShown.get(user);
   }
 
   ephemeralsTo(user: string) {
@@ -132,7 +137,10 @@ export class FakeSlack {
       return { ok: true };
     }
     if (method === "chat.postEphemeral") return { ok: true, message_ts: "1760349700.000100" };
-    if (method === "views.publish") return { ok: true };
+    if (method === "views.publish") {
+      this.homesShown.set(field("user_id"), args.view);
+      return { ok: true };
+    }
     if (method === "chat.postMessage") return { ok: true, channel: args.channel, ts: "1760349700.000100" };
     return { ok: false, error: "unknown_method" };
   }

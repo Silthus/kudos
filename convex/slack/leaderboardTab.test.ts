@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { internal } from "../_generated/api";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { blockActions, buttonIn, publishedHome, publishedHomeBlocks } from "../../testing/slackInteractions";
 import { everythingStored, settle, testBackend, type Backend } from "../../testing/slackBackend";
@@ -218,11 +219,27 @@ describe("G22: rejoining the boards, and repeating a click", () => {
     await click(t, "U_ANN", "Settings");
     const offButton = buttonIn(publishedHomeBlocks(slack, "U_ANN"), "Off");
     await interact(t, blockActions("U_ANN", offButton));
-    const once = { stored: await everythingStored(t), home: publishedHome(slack, "U_ANN"), board: await command(t, "U_BOB", "leaderboard") };
+    const once = { stored: await storedSettings(t), home: publishedHome(slack, "U_ANN"), board: await command(t, "U_BOB", "leaderboard") };
 
     await interact(t, blockActions("U_ANN", offButton));
 
-    expect({ stored: await everythingStored(t), home: publishedHome(slack, "U_ANN"), board: await command(t, "U_BOB", "leaderboard") }).toEqual(once);
+    expect({ stored: await storedSettings(t), home: publishedHome(slack, "U_ANN"), board: await command(t, "U_BOB", "leaderboard") }).toEqual(once);
+  });
+
+  test("a click Slack delivers again after a newer one changes nothing", async () => {
+    const t = testBackend();
+    await everyoneGives(t);
+    await openHome(t, "U_ANN");
+    await click(t, "U_ANN", "Settings");
+    const on = blockActions("U_ANN", buttonIn(publishedHomeBlocks(slack, "U_ANN"), "On"));
+    await interact(t, on);
+    await click(t, "U_ANN", "Off");
+    const publishes = slack.callsTo("views.publish").length;
+
+    await interact(t, on);
+
+    expect((await command(t, "U_BOB", "leaderboard")).text).not.toContain("U_ANN");
+    expect(slack.callsTo("views.publish")).toHaveLength(publishes);
   });
 });
 
@@ -249,31 +266,51 @@ describe("R48: a click Slack did not sign gets 401 and does nothing", () => {
 });
 
 describe("handling a click", () => {
-  test("a click is acknowledged before App Home is published again", async () => {
+  test("a click is acknowledged before its command runs or App Home is published again", async () => {
     const t = testBackend();
     await openHome(t, "U_ANN");
     const publishes = slack.callsTo("views.publish").length;
+    const stored = await storedSettings(t);
 
     const response = await t.fetch("/slack/interactivity", await signed(blockActions("U_ANN", buttonIn(publishedHomeBlocks(slack, "U_ANN"), "Leaderboard"))));
 
     expect(response.status).toBe(200);
+    expect(await storedSettings(t)).toEqual(stored);
     expect(slack.callsTo("views.publish")).toHaveLength(publishes);
     await settle(t);
-    expect(slack.callsTo("views.publish")).toHaveLength(publishes + 1);
+    expect(publishedHome(slack, "U_ANN")[0]).toBe(tabBar("Leaderboard"));
   });
 
-  test("a click from someone who isn't a member changes nothing and publishes nothing", async () => {
+  test("a publish that lands after a newer click's publish is followed by the view the member picked last", async () => {
+    const t = testBackend();
+    await everyoneGives(t);
+    await openHome(t, "U_ANN");
+    await click(t, "U_ANN", "Leaderboard");
+    const thisMonth = blockActions("U_ANN", buttonIn(publishedHomeBlocks(slack, "U_ANN"), "This month"));
+    const stalePublish = slack.holdNext("views.publish");
+    const staleWeek = t.action(internal.slack.appHome.publishHome, { workspace: "T1", user: "U_ANN" });
+    await stalePublish.reached;
+
+    await interact(t, thisMonth);
+    stalePublish.release();
+    await staleWeek;
+    await settle(t);
+
+    expect(publishedHome(slack, "U_ANN")[2]).toBe(periodButtons("This month"));
+  });
+
+  test("a click from someone who isn't a member changes no setting and publishes nothing", async () => {
     const t = testBackend();
     slack.withMember("U_GONE", { deleted: true });
     await openHome(t, "U_ANN");
     await openHome(t, "U_GONE");
     const leaderboard = buttonIn(publishedHomeBlocks(slack, "U_ANN"), "Leaderboard");
-    const stored = await everythingStored(t);
+    const stored = await storedSettings(t);
     const publishes = slack.callsTo("views.publish").length;
 
     await interact(t, blockActions("U_GONE", leaderboard));
 
-    expect(await everythingStored(t)).toEqual(stored);
+    expect(await storedSettings(t)).toEqual(stored);
     expect(slack.callsTo("views.publish")).toHaveLength(publishes);
   });
 });
@@ -313,6 +350,10 @@ async function interact(t: Backend, body: string) {
   const response = await t.fetch("/slack/interactivity", await signed(body));
   expect(response.status).toBe(200);
   await settle(t);
+}
+
+function storedSettings(t: Backend) {
+  return t.run(async (ctx) => ({ homeSelections: await ctx.db.query("homeSelections").collect(), leaderboardSettings: await ctx.db.query("leaderboardSettings").collect() }));
 }
 
 function signed(body: string) {

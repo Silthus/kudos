@@ -3,7 +3,14 @@ import { httpAction } from "../_generated/server";
 import type { Command } from "../commands/commands";
 import { readSignedBody } from "./signature";
 
-type HomeClick = { type: "block_actions"; team: { id: string }; user: { id: string }; view: { type: "home" }; actions: Array<{ value: string }> };
+type HomeClick = {
+  type: "block_actions";
+  team: { id: string };
+  user: { id: string };
+  trigger_id: string;
+  view: { type: "home" };
+  actions: Array<{ value: string }>;
+};
 
 export const slackInteractivity = httpAction(async (ctx, request) => {
   const body = await readSignedBody(request);
@@ -11,12 +18,12 @@ export const slackInteractivity = httpAction(async (ctx, request) => {
 
   const payload = payloadOf(body);
   if (!isHomeClick(payload)) return new Response(null, { status: 200 });
-  const clicked = { workspace: payload.team.id, user: payload.user.id };
-  const runs = [];
-  for (const action of payload.actions) {
-    runs.push(await ctx.runMutation(internal.commands.commands.run, { ...clicked, command: decodeHomeAction(action.value) }));
-  }
-  if (runs.some(({ ran }) => ran)) await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, clicked);
+  await ctx.scheduler.runAfter(0, internal.slack.receipts.receiveHomeClick, {
+    workspace: payload.team.id,
+    eventId: payload.trigger_id,
+    user: payload.user.id,
+    commands: payload.actions.map((action) => decodeHomeAction(action.value)),
+  });
   return new Response(null, { status: 200 });
 });
 

@@ -7,8 +7,7 @@ export type Block = { type: string; block_id?: string; text?: TextObject; fields
 type HomeView = { type: string; blocks: Block[] };
 
 export function publishedHomeBlocks(slack: FakeSlack, user: string): Block[] {
-  const published = slack.callsTo("views.publish").filter((args) => args.user_id === user);
-  const view = published.at(-1)?.view as HomeView | undefined;
+  const view = slack.homeShownTo(user) as HomeView | undefined;
   expect(view?.type).toBe("home");
   return view?.blocks ?? [];
 }
@@ -25,14 +24,17 @@ export function buttonIn(blocks: Block[], label: string): { block: Block; button
   throw new Error(`App Home shows no ${label} button`);
 }
 
+let interactions = 0;
+
 export function blockActions(user: string, { block, button }: { block: Block; button: Button }, options: { team?: string } = {}) {
   const team = options.team ?? "T1";
+  interactions += 1;
   const payload = {
     type: "block_actions",
     team: { id: team },
     user: { id: user, team_id: team },
     api_app_id: "A_KUDOS",
-    trigger_id: "1.2.3",
+    trigger_id: `${interactions}.1760349600.trigger`,
     container: { type: "view", view_id: "V1" },
     view: { id: "V1", type: "home" },
     actions: [{ type: "button", block_id: block.block_id, action_id: button.action_id, value: button.value, text: button.text, action_ts: "1760349600.000300" }],

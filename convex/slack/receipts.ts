@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type QueryCtx } from "../_generated/server";
+import { commandValidator, runCommand } from "../commands/commands";
 import { messageEventValidator } from "../engine/messageEvent";
 import { directoryEntryValidator, record } from "../workspace/directory";
 import { processEvent } from "./processEvent";
@@ -25,6 +26,17 @@ export const receiveHomeOpened = internalMutation({
     if (await isRedelivered(ctx, receipt)) return;
     await ctx.db.insert("slackReceipts", receipt);
     await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, { workspace: receipt.workspace, user });
+  },
+});
+
+export const receiveHomeClick = internalMutation({
+  args: { workspace: v.string(), eventId: v.string(), user: v.string(), commands: v.array(commandValidator) },
+  handler: async (ctx, { user, commands, ...receipt }) => {
+    if (await isRedelivered(ctx, receipt)) return;
+    await ctx.db.insert("slackReceipts", receipt);
+    const ran = [];
+    for (const command of commands) ran.push(await runCommand(ctx, receipt.workspace, user, command));
+    if (ran.includes(true)) await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, { workspace: receipt.workspace, user });
   },
 });
 
