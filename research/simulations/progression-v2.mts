@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 // tier rewards in coins, kudos emoji and hedgehogs, and a store of hedgehogs and kudos emoji.
 // Synthetic archetypes only: the nine from the balance research, unchanged.
 
-type Archetype = {id: string; days: number[]; join: number; giveProbability: number; demand: number; received: number; breadth: number; thoughtful: number; pauses: number[][]; questSkill: number};
+type Archetype = {id: string; days: number[]; join: number; giveProbability: number; demand: number; received: number; breadth: number; thoughtful: number; pauses: number[][]; questSkill: number; givers?: number};
 const archetypes: Archetype[] = [
   {id: 'steady', days: [1, 2, 3, 4, 5], join: 0, giveProbability: .94, demand: 3, received: 2, breadth: 16, thoughtful: .9, pauses: [], questSkill: .8},
   {id: 'burst', days: [1, 2, 3, 4, 5], join: 0, giveProbability: .45, demand: 8, received: 1, breadth: 12, thoughtful: .8, pauses: [], questSkill: .55},
@@ -17,7 +17,10 @@ const archetypes: Archetype[] = [
   {id: 'holiday', days: [1, 2, 3, 4, 5], join: 0, giveProbability: .94, demand: 3, received: 2, breadth: 16, thoughtful: .9, pauses: [[70, 84], [182, 203], [343, 357], [455, 476]], questSkill: .8},
   {id: 'swapper', days: [1, 2, 3, 4, 5], join: 0, giveProbability: 1, demand: 8, received: 3, breadth: 1, thoughtful: .15, pauses: [], questSkill: .05},
   {id: 'minmax', days: [1, 2, 3, 4, 5], join: 0, giveProbability: 1, demand: 8, received: 3, breadth: 30, thoughtful: .65, pauses: [], questSkill: .95},
-  {id: 'quiet', days: [1, 2, 3, 4, 5], join: 0, giveProbability: .35, demand: 1, received: 1, breadth: 6, thoughtful: .95, pauses: [], questSkill: .3}
+  {id: 'quiet', days: [1, 2, 3, 4, 5], join: 0, giveProbability: .35, demand: 1, received: 1, breadth: 6, thoughtful: .95, pauses: [], questSkill: .3},
+  // Two colleagues who thank only each other, every workday, with every message thoughtful: the collusion case.
+  // Breadth quests can't be done with one partner, so only the thoughtfulness quests get finished.
+  {id: 'pair', days: [1, 2, 3, 4, 5], join: 0, giveProbability: 1, demand: 3, received: 3, breadth: 1, thoughtful: 1, pauses: [], questSkill: .35, givers: 1}
 ];
 
 const start = Date.UTC(2027, 0, 4);
@@ -204,6 +207,8 @@ export function simulate(a: Archetype, buildId: string, seed: number, eco: Econo
     let thoughtfulToday = false;
     let newPersonToday = false;
     const recipientsToday = new Set<number>();
+    const qualifiedToday = new Set<number>();
+    focusCharges = 0;
     if (gives) {
       let wanted = a.demand;
       const thoughtful = random() < a.thoughtful;
@@ -218,8 +223,9 @@ export function simulate(a: Archetype, buildId: string, seed: number, eco: Econo
         if (!everThanked.has(recipient)) {counts.connections++; newPersonToday = true;}
         else if (day - everThanked.get(recipient)! >= 30) counts.oldFriends++;
         everThanked.set(recipient, day);
-        if (!isThoughtful || recipientsToday.has(recipient)) {recipientsToday.add(recipient); continue;}
         recipientsToday.add(recipient);
+        if (!isThoughtful || qualifiedToday.has(recipient)) continue;
+        qualifiedToday.add(recipient);
         thoughtfulToday = true;
         qualifying++;
         addCoins('giving', eco.givingCoins);
@@ -243,8 +249,8 @@ export function simulate(a: Archetype, buildId: string, seed: number, eco: Econo
     for (let k = 0; k < received; k++) {
       addXp('baseXp', 5, day);
       counts.recognition++;
-      const giver = Math.floor(random() * Math.max(4, a.breadth));
-      const thoughtful = random() < .8;
+      const giver = Math.floor(random() * (a.givers ?? Math.max(4, a.breadth)));
+      const thoughtful = random() < (a.givers ? a.thoughtful : .8);
       if (!thoughtful || weekGivers.has(giver)) continue;
       weekGivers.add(giver);
       if (weekReceivingCoins < eco.receivingCap) {
