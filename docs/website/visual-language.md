@@ -8,20 +8,25 @@ The parts: components and tokens from `@posthog/quill`, icons from `@posthog/ico
 
 - **V1. The HUD frame.** Every signed-in screen has the same top bar: the HedgeHug wordmark, the screen nav, skill points and coins once unlocked, the ready pill, and the member's hedgehog avatar with its level ring.
 - **V2. Corner marks frame game objects only.** These are the home hero, the character and inventory panel, skill tree nodes, quest cards, crates and moments: things the member owns or can act on. Reading surfaces stay plain Quill cards and tables: the leaderboard list, achievement pages, albums, sign-in, errors and empty states. The small uppercase label is used only as a panel's label.
-- **V3. Colour comes from Quill's tokens.** There are two named exceptions, each defined once as tokens with light and dark values: the moment bands (V12) and the medal metals (V16). There are no rarity colours.
+- **V3. Colour comes from Quill's tokens.** There are three named exceptions:
+  - the moment bands (V12)
+  - the medal metals (V16)
+  - a company profile's own colour, used only as the background behind that person's face (V19)
+
+  The bands and the metals are each defined once as tokens with light and dark values. There are no rarity colours.
 - **V4. Primary marks one thing:** the next action, the selection, or "you". Progress bars, owned items and counters are neutral.
 - **V5. RoundHog is for display only.** That covers the wordmark, page titles, the level number, moment headlines, and the one big stat on a hero or moment. Everything else is Inter, and numbers in tables use tabular figures.
 
 ## Light and dark
 
 - **V6.** The first visit follows the system setting. The header toggle overrides it and persists per browser, and the command palette offers "Use system setting".
-- **V7.** Every surface comes from theme tokens, except the moment bands, which keep their brand colour in both modes (V12).
+- **V7.** Every surface comes from theme tokens, except the moment bands, which keep their brand colour in both modes (V12), and a company profile's colour behind a face (V19).
 
 ## Motion
 
 - **V8. No infinite animation**, anywhere: no shimmer, pulse, glow or wobble. A closed crate nudges once after a beat.
 - **V9. Pages are static.** Ordinary page visits render numbers, bars and rings at their values, without count-ups or fills.
-- **V10. A moment plays in full the first time it is seen.** After that it opens on its end state with a short fade and a Replay button. Any tap, click or Esc skips a crate or moment to its end.
+- **V10. A moment plays in full the first time it is seen.** "Seen" is kept per browser and per event (one level up, one achievement, one crate), and an event counts as seen once its moment finishes or is skipped. After that the moment opens on its end state with a short fade and a Replay button. Any tap, click or Esc skips a crate or moment to its end.
 - **V11. Reduced motion** shows the end state at once, with an opacity fade of at most 200 ms.
 
 ## Moments, crates and live events
@@ -35,7 +40,7 @@ The parts: components and tokens from `@posthog/quill`, icons from `@posthog/ico
   | blue `#106fb2` | `#ffffff` | 5.33:1 |
   | night `#141414` | `#ffffff` | 18.4:1 |
 
-- **V13. Crates show their reward.** Unlocks and quest rewards open as a crate in a full-screen reveal. The label shows what is inside before it opens ("Quest reward · 40 XP · 10 coins", "Unlocks: Leaderboard"). Opening reveals what the member has already earned and never decides it.
+- **V13. Crates show their reward.** A feature the member's level has made ready, and a quest reward, each open as a crate in a full-screen reveal. Buying a perk or a hedgehog is not a crate. The label shows what is inside before it opens ("Quest reward · 40 XP · 10 coins", "Unlocks: Leaderboard"). Opening reveals what the member has already earned and never decides it.
 - **V14. Kudos received is quiet.** It leads with the giver's face, name and message. XP and the new sticker count follow quietly below, with no crate or chest.
 - **V15. Nothing interrupts a visit.** An event that happens while the member is on the site, such as a level up, joins the HUD's ready pill, and the member opens it when they want.
 
@@ -58,8 +63,13 @@ The parts: components and tokens from `@posthog/quill`, icons from `@posthog/ico
 
 - **V19. Faces.** Lists and albums show each person's face. A face is the person's company profile cutout on its own colour, in a circle. Without a company profile it falls back to the Slack photo, and then to initials on a muted tile.
 - **V20. The game avatar.** The equipped hedgehog is the member's avatar on the HUD, on the home hero and on profile cards, where the face sits small beside the name. "You" is marked in lists by the primary ring plus a "You" label.
-- **V21. Matching.** A member uses a company profile when their Slack real name matches the profile's first plus last name exactly and uniquely, normalised for case, accents and spacing. A group maps to a team when its handle or name, without a `team-` prefix, matches the team's slug or name, normalised.
-- **V22. Team photos.** A group that maps to a team shows the team's crest and its team photo, in a 16:10 cover crop credited "Photo from posthog.com", with no caption. Otherwise it shows a hedgehog crest and "No team photo yet". Members don't upload team photos.
+- **V21. Matching.** Names are normalised for case, accents and spacing.
+  - **Members:** a member uses a company profile when their Slack real name matches exactly one profile's first plus last name.
+  - **Groups:** a group maps to a team when its handle and its name, each without a `team-` prefix, match the slug or name of exactly one team between them. When they match two different teams, or none, the group is unmapped.
+- **V22. Team photos.** Members don't upload team photos.
+  - **Mapped, with a photo:** a group that maps to a team with a team photo shows the team's crest and the photo, in a 16:10 cover crop credited "Photo from posthog.com", with no caption.
+  - **Mapped, without a photo:** the team's crest and "No team photo yet".
+  - **Unmapped:** a hedgehog crest and "No team photo yet".
 
 ## Locked and empty states
 
@@ -76,6 +86,9 @@ The parts: components and tokens from `@posthog/quill`, icons from `@posthog/ico
     - "you" is a ring plus a label
     - a tier is a metal plus pips plus its word
     - a locked state is a lock plus text
-    - a selection is a primary border plus `aria-current` or `aria-pressed`
+    - a selection is a primary border plus a visible check mark or "Selected" label, plus `aria-current` or `aria-pressed`
   - **Keyboard:** crates and moments work with the keyboard (Enter or Space opens, Esc skips) and announce what happened in a live region, such as "You opened Quests".
-  - **Proof:** each page is checked with axe in both modes.
+  - **Proof:**
+    - Automated: each page is checked with axe in both modes.
+    - Interaction: tests drive the keyboard path and the live-region announcement of crates and moments.
+    - Manual: each slice gets a manual pass of the criteria axe can't judge: focus order, focus visibility, reduced motion, and screen-reader wording.
