@@ -5,7 +5,7 @@ import type { ScreenId } from "./nav";
 import type { Variant } from "./variants/types";
 
 export function useVariant(variants: Variant[]): [Variant, (key: string) => void] {
-  const [key, setKey] = useState(() => new URLSearchParams(location.search).get("v") ?? variants[1]?.key ?? "0");
+  const [key, setKey] = useState(() => new URLSearchParams(location.search).get("v") ?? variants[0]?.key ?? "0");
   const set = (k: string) => {
     const url = new URL(location.href);
     url.searchParams.set("v", k);
