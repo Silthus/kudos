@@ -1,12 +1,12 @@
 # Spec: the website's first slice, sign in with Slack and the home page
 
-> **Accepted on 2026-10-13 under Michael's autonomous directive** (map [#57](https://github.com/Silthus/kudos/issues/57) Notes: "ship as much as you can of this autonomously proofing each step and deploying dark and safely behind feature flags"), with every open call at its recommendation (listed under "Further Notes"). Ticket [#65](https://github.com/Silthus/kudos/issues/65). This file lives on the branch `docs/spec-website` and is never merged. It is the target design of the first slice; its implementation tickets are listed under "Slices".
+> **Accepted on 2026-10-13 under the product owner's autonomous directive** (map [#57](https://github.com/Silthus/kudos/issues/57) Notes: "ship as much as you can of this autonomously proofing each step and deploying dark and safely behind feature flags"), with every open call at its recommendation (listed under "Further Notes"). Ticket [#65](https://github.com/Silthus/kudos/issues/65). This file lives on the branch `docs/spec-website` and is never merged. It is the target design of the first slice; its implementation tickets are listed under "Slices".
 >
 > Sources: the architecture prototype [#64](https://github.com/Silthus/kudos/issues/64) ([brief](https://github.com/Silthus/kudos/blob/6b9e312/prototype/website-architecture.md), cards W1–W11 and L-W1–L-W6, contracts in its §3), the visual language [#63](https://github.com/Silthus/kudos/issues/63) ([`docs/website/visual-language.md`](https://github.com/Silthus/kudos/blob/main/docs/website/visual-language.md), rules V1–V24, ADR-0005, and its "Follow-ups for #65"), the UI prototype [#62](https://github.com/Silthus/kudos/issues/62) (variant E, `prototype/website-ui` at `3409ade`), the name [#58](https://github.com/Silthus/kudos/issues/58), the auth research [#60](https://github.com/Silthus/kudos/issues/60), the hosting research [#61](https://github.com/Silthus/kudos/issues/61), the Octalysis research [#85](https://github.com/Silthus/kudos/issues/85) ([report](https://github.com/Silthus/kudos/blob/research/octalysis/research/octalysis.md), section 2 of its resolution), the flag seam [#78](https://github.com/Silthus/kudos/issues/78) (rules O31 and O33–O36 of [`spec/posthog.md`](https://github.com/Silthus/kudos/blob/docs/spec-posthog/spec/posthog.md)), map #1's support lane [#90](https://github.com/Silthus/kudos/issues/90) (#87, #88, #89), and the code on `main` at `87ee387`.
 
 ## Problem Statement
 
-A member's kudos live in Slack: a reaction, a private reply, an App Home tab. App Home is compact and Block Kit can't carry the PostHog brand, the hedgehogs, or the game screens #62 designed. The game that map #1 is building (XP, levels, quests, the leaderboard, the Book) needs a place where a member can see their own progress in full, and every later screen needs the same foundation first: a website that knows who the member is, shows only them their own facts, and can be kept dark in production until Michael switches it on.
+A member's kudos live in Slack: a reaction, a private reply, an App Home tab. App Home is compact and Block Kit can't carry the PostHog brand, the hedgehogs, or the game screens #62 designed. The game that map #1 is building (XP, levels, quests, the leaderboard, the sticker book) needs a place where a member can see their own progress in full, and every later screen needs the same foundation first: a website that knows who the member is, shows only them their own facts, and can be kept dark in production until Michael switches it on.
 
 ## Solution
 
@@ -23,8 +23,8 @@ The site is a game HUD on PostHog's design system in light and dark mode (V1–V
 2. As a member, I want Slack to open my own workspace when I sign in, so that I don't pick the wrong one.
 3. As a member who just joined, I want my sign-in to work even if HedgeHug hasn't seen me yet, so that I'm not locked out on day one.
 4. As a member, I want to sign out from the site, so that a shared machine doesn't stay signed in.
-5. As Michael, I want only members of the deployment's own workspace to sign in, so that nobody else reads a member's kudos.
-6. As Michael, I want a person who left the workspace to lose access at once, so that a valid session can't outlive membership.
+5. As the product owner, I want only members of the deployment's own workspace to sign in, so that nobody else reads a member's kudos.
+6. As the product owner, I want a person who left the workspace to lose access at once, so that a valid session can't outlive membership.
 
 **The home page**
 7. As a member, I want to see how many kudos I have left today and when they refill, so that I know whether I can thank someone now.
@@ -36,9 +36,9 @@ The site is a game HUD on PostHog's design system in light and dark mode (V1–V
 13. As a member, I want the site in light or dark mode, following my system first, so that it fits how I work.
 
 **Running it**
-14. As Michael, I want the whole site dark in production until I switch on one flag, so that nothing reaches members before I decide.
-15. As Michael, I want App Home to link to the site only while it's open, so that members never land on a closed page from Slack.
-16. As Michael, I want the sandbox to prove a real Slack sign-in before production gets anything, so that the unsupported provider is checked live.
+14. As the product owner, I want the whole site dark in production until I switch on one flag, so that nothing reaches members before I decide.
+15. As the product owner, I want App Home to link to the site only while it's open, so that members never land on a closed page from Slack.
+16. As the product owner, I want the sandbox to prove a real Slack sign-in before production gets anything, so that the unsupported provider is checked live.
 17. As a developer, I want every public function on an exact list and every read to check the live session, so that a new entrance is always a reviewed change.
 
 ## Rules
@@ -180,14 +180,14 @@ No migration: every table is new. Deleting a member's data later includes their 
 | Variable | Holds | Unset means | Set by |
 |---|---|---|---|
 | `SLACK_WORKSPACE_ID` | the one workspace that may sign in (W3) | nobody signs in, and the flag answers off | map #1's #88 |
-| `AUTH_SLACK_ID`, `AUTH_SLACK_SECRET` | the Slack app's client ID and secret (W10) | sign-in fails | **Michael** (parks) |
+| `AUTH_SLACK_ID`, `AUTH_SLACK_SECRET` | the Slack app's client ID and secret (W10) | sign-in fails | **the product owner** (parks) |
 | `SITE_URL` | the deployment's `https://<deployment>.convex.site` | Convex Auth refuses redirects; App Home shows no link | the deploy ticket |
 | `JWT_PRIVATE_KEY`, `JWKS` | Convex Auth's signing keys, generated per deployment | sign-in fails | the deploy ticket |
 | `POSTHOG_PERSONAL_API_KEY` | the flags key (O31, secret) | every flag answers off | the deploy ticket on the sandbox, from the devbox file, never printed |
 
 ### The flag
 
-| Flag | Project | Release condition | Evaluation | Created by | Michael's switch |
+| Flag | Project | Release condition | Evaluation | Created by | The owner's switch |
 |---|---|---|---|---|---|
 | `website` | 662840 ("HedgeHug") | person property `environment` exact `sandbox`, 100% | `server` | the deploy ticket, through the fleet-posthog MCP (`switch-project 662840`, `create-feature-flag`) | add a production condition when he wants the site open |
 
@@ -209,7 +209,7 @@ The site reads the flag only on the server, through the seam, so `server` is eno
 
 ## Testing Decisions
 
-- **A good test enters at a seam and checks what a member or Michael could observe**: what `getMyProfile` answers, where the browser lands after a sign-in, what the rendered page says, what App Home publishes. It never asserts on private helpers.
+- **A good test enters at a seam and checks what a member or the product owner could observe**: what `getMyProfile` answers, where the browser lands after a sign-in, what the rendered page says, what App Home publishes. It never asserts on private helpers.
 - **Seams, highest first:**
   1. **The signed-in query** with `convex-test`: `getMyProfile` for no session, an expired or signed-out session, an unknown person, a deactivated member, another workspace's identity, the flag off and on, and a member with kudos given and received this week and before. Covers WS2–WS4, WS9–WS15, WS18.
   2. **The sign-in handshake** against a mock Slack issuer (#64's `mock-slack.ts`, ported as a fixture): the happy path landing on `/`, the eight refusals, the flag off, and an unknown person turning from verifying to member. Runs as an integration test on a disposable local backend on its own ports (never the shared `3210`). Covers WS5–WS8.
@@ -230,15 +230,15 @@ Each ticket is a sub-issue of map #57, sized to one agent session. Numbers are f
 3. **The home** — `getMyProfile`'s member answer from `homeFacts` (with `refillsAt`), the hero, the counters, the profile card panel and the empty state. WS13, WS15, WS17–WS21. Blocked by 2. Needs `homeFacts` on `main` (#87, shipped by #90).
 4. **App Home links to the website** — WS28. Blocked by 2.
 5. **Faces from posthog.com** — the sync, its table and the matcher. WS21–WS22. Blocked by 3. Not on the first deploy's path.
-6. **Deploy to the sandbox, then production, dark** — the workflows, the env, the flag, the live sign-in, then production dark. WS27. Blocked by 3 and 4. The live check parks on Michael's manifests and Slack credentials.
+6. **Deploy to the sandbox, then production, dark** — the workflows, the env, the flag, the live sign-in, then production dark. WS27. Blocked by 3 and 4. The live check parks on the owner's manifest step and Slack credentials.
 
 ## Cross-map needs on map #1
 
 From #57's "Asked of map #1 tonight" and map #1's answer. This spec edits nothing on map #1.
 
 1. **`engine.homeFacts`** — #87, on `spec/website-support`, shipped by #90. Blocks ticket 3.
-2. **Manifests and `SLACK_WORKSPACE_ID`** — #88, shipped by #90. Applying the manifests to the live apps needs Michael: the live sign-in check in ticket 6 parks on it.
-3. **`AUTH_SLACK_ID` and `AUTH_SLACK_SECRET`** — Michael sets them on both deployments. Ticket 6's live check parks on them.
+2. **Manifests and `SLACK_WORKSPACE_ID`** — #88, shipped by #90. Applying the manifests to the live apps needs the product owner: the live sign-in check in ticket 6 parks on it.
+3. **`AUTH_SLACK_ID` and `AUTH_SLACK_SECRET`** — the product owner sets them on both deployments. Ticket 6's live check parks on them.
 4. **The flag seam on `main`** — #78, shipping with #75 (PR #84). Blocks ticket 2.
 5. **The default emoji setting** — #89. Not blocking: the home shows whatever `kudosEmoji` the settings hold.
 6. **The L1/R50 exception** — ticket 2 replaces R50's test with WS10's exact list, using #64's rule text. Map #1's conductor records the rule amendment.
@@ -252,7 +252,7 @@ From #57's "Asked of map #1 tonight" and map #1's answer. This spec edits nothin
 - Any page beyond the home, any command (W7), crates, moments and band pages (V10–V15).
 - Other members' faces and names, the leaderboard, the Book, quests, the skill tree, coins and hedgehogs.
 - Vercel, a custom domain, preview deploys.
-- Opening production: Michael switches the flag.
+- Opening production: the product owner switches the flag.
 - The written brand-licence confirmation and Max art (open on #63).
 
 ## Further Notes
@@ -271,4 +271,4 @@ Calls taken at recommendation under the AFK directive:
 10. **App Home's link is its own small ticket**, gated by the same flag.
 11. **The deploy is an implementation ticket**; the conductor may fold it into the `ship` ticket.
 
-The `to-spec` and `to-tickets` skills can only be started by Michael, so this spec follows map #1's spec layout (`spec/posthog.md`) instead.
+The `to-spec` and `to-tickets` skills can only be started by a human, so this spec follows map #1's spec layout (`spec/posthog.md`) instead.
