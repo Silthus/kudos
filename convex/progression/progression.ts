@@ -3,25 +3,35 @@ import { kudosGivenEventValidator, membersNamedIn } from "../bus/events";
 import { publish } from "../bus/publish";
 import type { MemberId } from "../workspace/directory";
 import { catalogue } from "./catalogue";
-import { anyRecorded, insertEffects } from "./effects";
-import { progress, standing, type MemberProgress, type Progressed, type Standing } from "./progress";
+import type { AwardWithId } from "../engine/awards";
+import { insertEffects, isRecorded } from "./effects";
+import { progress, sideOf, standing, type MemberProgress, type Progressed, type Standing } from "./progress";
 
 export const recordEffects = internalMutation({
   args: { event: kudosGivenEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
     for (const member of membersNamedIn(event)) {
-      const progressed = progress(await progressOf(ctx, member), event, catalogue);
-      if (!(await recordOnce(ctx, progressed))) continue;
-      for (const levelReached of progressed.events) await publish(ctx, levelReached);
+      const awards = await unrecordedAwardsOf(ctx, member, event.awards);
+      if (awards.length === 0) continue;
+      const { state, effects, events } = progress(await progressOf(ctx, member), { ...event, awards }, catalogue);
+      await record(ctx, { state, effects });
+      for (const levelReached of events) await publish(ctx, levelReached);
     }
   },
 });
 
-export async function recordOnce(ctx: MutationCtx, { state, effects }: Progressed): Promise<boolean> {
-  if (await anyRecorded(ctx, effects)) return false;
+export async function unrecordedAwardsOf<A extends AwardWithId>(ctx: QueryCtx, member: MemberId, awards: A[]): Promise<A[]> {
+  const unrecorded: A[] = [];
+  for (const award of awards) {
+    const side = sideOf(member, award);
+    if (side !== null && !(await isRecorded(ctx, award.award, side))) unrecorded.push(award);
+  }
+  return unrecorded;
+}
+
+export async function record(ctx: MutationCtx, { state, effects }: Pick<Progressed, "state" | "effects">) {
   await insertEffects(ctx, effects);
   await saveProgress(ctx, state);
-  return true;
 }
 
 export async function standingOf(ctx: QueryCtx, member: MemberId): Promise<Standing> {

@@ -40,8 +40,11 @@ export async function weekTotals(ctx: QueryCtx, member: MemberId, week: Week): P
   return { givenWeek: sumOf(given), receivedWeek: sumOf(received) };
 }
 
-export async function awardsInAwardOrder(ctx: QueryCtx, page: PaginationOptions): Promise<PaginationResult<GivenAward>> {
-  const result = await ctx.db.query("awards").order("asc").paginate(page);
+export async function awardsGivenBefore(ctx: QueryCtx, before: number, page: PaginationOptions): Promise<PaginationResult<GivenAward>> {
+  const result = await ctx.db
+    .query("awards")
+    .withIndex("by_creation_time", (q) => q.lt("_creationTime", before))
+    .paginate(page);
   return { ...result, page: result.page.map(({ _id, giver, recipient, kudos, day }) => ({ award: _id, giver, recipient, kudos, day })) };
 }
 

@@ -102,6 +102,12 @@ export default defineSchema({
 
   effectsRecords: defineTable(effectsRecordValidator).index("by_award", ["award", "side"]),
 
+  effectsBackfill: defineTable({
+    before: v.number(),
+    cursor: v.union(v.string(), v.null()),
+    isDone: v.boolean(),
+  }),
+
   memberProgress: defineTable({
     member: v.id("members"),
     xp: v.number(),

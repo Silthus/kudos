@@ -1,42 +1,53 @@
-import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { internalAction, internalMutation } from "../_generated/server";
-import { awardsInAwardOrder } from "../engine/awards";
+import type { Doc } from "../_generated/dataModel";
+import { internalAction, internalMutation, type MutationCtx } from "../_generated/server";
+import { awardsGivenBefore } from "../engine/awards";
 import { catalogue } from "./catalogue";
 import { replay } from "./progress";
-import { progressOf, recordOnce } from "./progression";
+import { progressOf, record, unrecordedAwardsOf } from "./progression";
 
 const awardsPerBatch = 100;
 
 export type Backfilled = { awards: number; recorded: number };
 
-type ReplayedBatch = Backfilled & { isDone: boolean; continueCursor: string };
+type ReplayedBatch = Backfilled & { isDone: boolean };
 
 export const backfillEffects = internalAction({
   args: {},
   handler: async (ctx): Promise<Backfilled> => {
     const totals: Backfilled = { awards: 0, recorded: 0 };
-    let cursor: string | null = null;
     while (true) {
-      const batch: ReplayedBatch = await ctx.runMutation(internal.progression.backfill.replayAwards, { cursor });
+      const batch: ReplayedBatch = await ctx.runMutation(internal.progression.backfill.replayAwards, {});
       totals.awards += batch.awards;
       totals.recorded += batch.recorded;
       if (batch.isDone) return totals;
-      cursor = batch.continueCursor;
     }
   },
 });
 
 export const replayAwards = internalMutation({
-  args: { cursor: v.union(v.string(), v.null()) },
-  handler: async (ctx, { cursor }): Promise<ReplayedBatch> => {
-    const { page, isDone, continueCursor } = await awardsInAwardOrder(ctx, { cursor, numItems: awardsPerBatch });
+  args: {},
+  handler: async (ctx): Promise<ReplayedBatch> => {
+    const run = await currentRun(ctx);
+    if (run.isDone) return { awards: 0, recorded: 0, isDone: true };
+    const { page, isDone, continueCursor } = await awardsGivenBefore(ctx, run.before, { cursor: run.cursor, numItems: awardsPerBatch });
     let recorded = 0;
     for (const award of page) {
-      for (const member of new Set([award.giver, award.recipient])) {
-        if (await recordOnce(ctx, replay(await progressOf(ctx, member), award, catalogue))) recorded += 1;
+      for (const member of [award.giver, award.recipient]) {
+        if ((await unrecordedAwardsOf(ctx, member, [award])).length === 0) continue;
+        const { state, effects } = replay(await progressOf(ctx, member), award, catalogue);
+        await record(ctx, { state, effects });
+        recorded += effects.length;
       }
     }
-    return { awards: page.length, recorded, isDone, continueCursor };
+    await ctx.db.patch(run._id, { cursor: continueCursor, isDone });
+    return { awards: page.length, recorded, isDone };
   },
 });
+
+async function currentRun(ctx: MutationCtx): Promise<Doc<"effectsBackfill">> {
+  const run = await ctx.db.query("effectsBackfill").first();
+  if (run !== null) return run;
+  const started = await ctx.db.insert("effectsBackfill", { before: Date.now(), cursor: null, isDone: false });
+  return (await ctx.db.get(started))!;
+}

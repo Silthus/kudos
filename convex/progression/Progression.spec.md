@@ -1,6 +1,6 @@
 # Progression
 
-Progression: subscribes to kudosGiven, writes one insert-only effects record per side of every award with its base XP, gate decision and catalogue version, derives XP, levels and skill points, and publishes levelReached; a one-off backfill replays the awards given before it shipped into base XP records and tells nobody; it also contributes the thoughtful kudos parse hook.
+Progression: subscribes to kudosGiven, writes one insert-only effects record per side of every award with its base XP, gate decision and catalogue version, derives XP, levels and skill points, and publishes levelReached; a one-off backfill replays the awards given before its first run into base XP records and tells nobody; it also contributes the thoughtful kudos parse hook.
 
 ## invariants
 - effects records are insert-only: An effects record, once written, is never changed or deleted, whatever later happens to its award's message, the member's progress or the catalogue.

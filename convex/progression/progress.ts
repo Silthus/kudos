@@ -1,6 +1,6 @@
 import { v, type Infer } from "convex/values";
 import type { KudosGivenEvent, LevelReachedEvent } from "../bus/events";
-import { awardIdValidator, type AwardWithId, type GivenAward } from "../engine/awards";
+import { awardIdValidator, type Award, type AwardWithId, type GivenAward } from "../engine/awards";
 import type { MemberId } from "../workspace/directory";
 import type { Catalogue } from "./catalogue";
 import { gateDecisionOf, gateDecisionValidator } from "./gate";
@@ -36,17 +36,22 @@ export function replay(state: MemberProgress, award: GivenAward, catalogue: Cata
   return { state: withXpOf(state, effects), effects, events: [] };
 }
 
+export function sideOf(member: MemberId, { giver, recipient }: Award): Side | null {
+  if (member === giver) return "giver";
+  if (member === recipient) return "recipient";
+  return null;
+}
+
 export function standing({ xp, pointsSpent }: MemberProgress): Standing {
   const level = levelOf(xp);
   return { xp, level, skillPoints: level - 1 - pointsSpent };
 }
 
 function effectsFor(member: MemberId, awards: AwardWithId[], { day, gate }: Pick<EffectsRecord, "day" | "gate">, catalogue: Catalogue): EffectsRecord[] {
-  return awards.flatMap(({ award, giver, recipient, kudos }) => {
-    const sides: Array<[Side, MemberId]> = [["giver", giver], ["recipient", recipient]];
-    return sides
-      .filter(([, sideMember]) => sideMember === member)
-      .map(([side]) => ({ award, side, member, day, baseXp: catalogue.baseXp[side] * kudos, gate, catalogueVersion: catalogue.version }));
+  return awards.flatMap((award) => {
+    const side = sideOf(member, award);
+    if (side === null) return [];
+    return [{ award: award.award, side, member, day, baseXp: catalogue.baseXp[side] * award.kudos, gate, catalogueVersion: catalogue.version }];
   });
 }
 

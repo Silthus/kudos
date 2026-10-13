@@ -21,7 +21,7 @@ beforeEach(() => {
   vi.useFakeTimers({ now });
   vi.mocked(publish).mockClear();
   vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
-  slack = new FakeSlack().withMember("U_ALICE").withMember("U_BOB");
+  slack = new FakeSlack().withMember("U_ALICE").withMember("U_BOB").withMember("U_CAROL");
   vi.stubGlobal("fetch", slack.fetch);
 });
 
@@ -35,6 +35,7 @@ test("P10: every earlier award gets one record per side with base XP only, and n
   const t = await withMembers("U_ALICE", "U_BOB", "U_CAROL");
   await givenEarlier(t, "2026-09-01", ["U_ALICE", "U_BOB", 3]);
   await givenEarlier(t, "2026-09-02", ["U_BOB", "U_CAROL", 1], ["U_BOB", "U_ALICE", 2]);
+  progressionShips();
 
   await backfill(t);
   await settle(t);
@@ -59,32 +60,36 @@ test("P10: every earlier award gets one record per side with base XP only, and n
 test("P8: running the backfill again records nothing more", async () => {
   const t = await withMembers("U_ALICE", "U_BOB");
   await givenEarlier(t, "2026-09-01", ["U_ALICE", "U_BOB", 2]);
+  progressionShips();
   expect(await backfill(t)).toEqual({ awards: 1, recorded: 2 });
   const records = await effectsRecords(t);
 
-  expect(await backfill(t)).toEqual({ awards: 1, recorded: 0 });
+  expect(await backfill(t)).toEqual({ awards: 0, recorded: 0 });
 
   expect(await effectsRecords(t)).toEqual(records);
   expect(await standings(t, "U_ALICE", "U_BOB")).toEqual({ U_ALICE: { xp: 20, level: 2, skillPoints: 1 }, U_BOB: { xp: 10, level: 1, skillPoints: 0 } });
 });
 
-test("P8: a backfill interrupted after its first batch resumes to the same standings as one that ran through", async () => {
+test("P8: a backfill interrupted after its first batch resumes where it stopped", async () => {
   const t = await withMembers("U_ALICE", "U_BOB");
-  for (let award = 1; award <= 150; award += 1) await givenEarlier(t, "2026-09-01", ["U_ALICE", "U_BOB", 1]);
-  await t.mutation(internal.progression.backfill.replayAwards, { cursor: null });
+  await givenEarlier(t, "2026-09-01", ...Array.from({ length: 150 }, (): EarlierAward => ["U_ALICE", "U_BOB", 1]));
+  progressionShips();
+  await t.mutation(internal.progression.backfill.replayAwards, {});
 
-  expect(await backfill(t)).toEqual({ awards: 150, recorded: 100 });
+  expect(await backfill(t)).toEqual({ awards: 50, recorded: 100 });
 
   expect(await effectsRecords(t)).toHaveLength(300);
   expect(await standings(t, "U_ALICE", "U_BOB")).toEqual({ U_ALICE: { xp: 1500, level: 7, skillPoints: 6 }, U_BOB: { xp: 750, level: 5, skillPoints: 4 } });
 });
 
-describe("P8: an award given while the backfill runs is counted once", () => {
-  test("when its subscriber records it before the backfill reaches it", async () => {
+describe("P8: an award given around the backfill is counted once", () => {
+  test("when its subscriber recorded it before the backfill started", async () => {
     const t = await withMembers("U_ALICE", "U_BOB");
     await givenEarlier(t, "2026-09-01", ["U_ALICE", "U_BOB", 1]);
-    await t.run((ctx) => observe(ctx, kudosMessage("U_ALICE", "U_BOB", "thanks for reviewing the backfill plan")));
+    progressionShips();
+    await t.run((ctx) => observe(ctx, kudosMessage("U_ALICE", ["U_BOB"], "thanks for reviewing the backfill plan")));
     await settle(t);
+    later(1000);
 
     expect(await backfill(t)).toEqual({ awards: 2, recorded: 2 });
 
@@ -92,17 +97,43 @@ describe("P8: an award given while the backfill runs is counted once", () => {
     expect(await standings(t, "U_ALICE", "U_BOB")).toEqual({ U_ALICE: { xp: 20, level: 2, skillPoints: 1 }, U_BOB: { xp: 10, level: 1, skillPoints: 0 } });
   });
 
-  test("when the backfill reaches it before its subscriber runs", async () => {
+  test("when it is given after the backfill started, it is left to its subscriber with its gate decision and level up", async () => {
     const t = await withMembers("U_ALICE", "U_BOB");
-    await givenEarlier(t, "2026-09-01", ["U_ALICE", "U_BOB", 1]);
-    await t.run((ctx) => observe(ctx, kudosMessage("U_ALICE", "U_BOB", "thanks for reviewing the backfill plan")));
+    await givenEarlier(t, "2026-09-01", ...Array.from({ length: 119 }, (): EarlierAward => ["U_BOB", "U_ALICE", 1]));
+    progressionShips();
+    await t.mutation(internal.progression.backfill.replayAwards, {});
+    later(1000);
+    await t.run((ctx) => observe(ctx, kudosMessage("U_ALICE", ["U_BOB"], "thanks for reviewing the backfill plan")));
 
-    expect(await backfill(t)).toEqual({ awards: 2, recorded: 4 });
+    expect(await backfill(t)).toEqual({ awards: 19, recorded: 38 });
     await settle(t);
 
-    expect(await effectsRecords(t)).toHaveLength(4);
-    expect(await standings(t, "U_ALICE", "U_BOB")).toEqual({ U_ALICE: { xp: 20, level: 2, skillPoints: 1 }, U_BOB: { xp: 10, level: 1, skillPoints: 0 } });
-    expect(publishedEvents("levelReached")).toEqual([]);
+    const live = (await effectsRecords(t)).filter(({ gate }) => gate !== null);
+    expect(live).toEqual([
+      { member: "U_ALICE", side: "giver", baseXp: 10, gate: { version: 1, thoughtful: true }, catalogueVersion: "1", day: "2026-10-13" },
+      { member: "U_BOB", side: "recipient", baseXp: 5, gate: { version: 1, thoughtful: true }, catalogueVersion: "1", day: "2026-10-13" },
+    ]);
+    expect(await standings(t, "U_ALICE", "U_BOB")).toEqual({ U_ALICE: { xp: 605, level: 5, skillPoints: 4 }, U_BOB: { xp: 1195, level: 6, skillPoints: 5 } });
+    expect(publishedEvents("levelReached").map(({ level }) => level)).toEqual([5]);
+  });
+
+  test("when the backfill records one of its message's awards before the subscriber runs, the subscriber still records the other", async () => {
+    const t = await withMembers("U_ALICE", "U_BOB", "U_CAROL");
+    await givenEarlier(t, "2026-09-01", ...Array.from({ length: 99 }, (): EarlierAward => ["U_ALICE", "U_BOB", 1]));
+    progressionShips();
+    await t.run((ctx) => observe(ctx, kudosMessage("U_ALICE", ["U_BOB", "U_CAROL"], "thanks for reviewing the backfill plan")));
+    later(1000);
+    await t.mutation(internal.progression.backfill.replayAwards, {});
+
+    await settle(t);
+    expect(await backfill(t)).toEqual({ awards: 1, recorded: 0 });
+
+    expect(await effectsRecords(t)).toHaveLength(202);
+    expect(await standings(t, "U_ALICE", "U_BOB", "U_CAROL")).toEqual({
+      U_ALICE: { xp: 1010, level: 6, skillPoints: 5 },
+      U_BOB: { xp: 500, level: 4, skillPoints: 3 },
+      U_CAROL: { xp: 5, level: 1, skillPoints: 0 },
+    });
   });
 });
 
@@ -128,14 +159,22 @@ async function givenEarlier(t: Backend, day: string, ...awards: EarlierAward[]) 
   });
 }
 
-function kudosMessage(author: string, recipient: string, text: string): MessageEvent {
+function progressionShips() {
+  later(60 * 60 * 1000);
+}
+
+function later(byMs: number) {
+  vi.setSystemTime(Date.now() + byMs);
+}
+
+function kudosMessage(author: string, recipients: string[], text: string): MessageEvent {
   return {
     kind: "posted",
     ref: { workspace: "T1", conversation: "C1", message: "live" },
     author,
-    revision: BigInt(now.getTime()) * 1000n,
-    at: now.getTime(),
-    content: { mentions: [{ kind: "person", user: recipient }], emoji: ["taco"], text },
+    revision: BigInt(Date.now()) * 1000n,
+    at: Date.now(),
+    content: { mentions: recipients.map((user) => ({ kind: "person", user })), emoji: ["taco"], text },
   };
 }
 
