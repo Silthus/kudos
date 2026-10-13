@@ -14,6 +14,8 @@ export type Exception = Infer<typeof exceptionValidator>;
 
 export const reportedMarker = "[reported]";
 
+const markedFirstLine = /^(?:Uncaught Error: )?\[reported\] [A-Za-z_$][\w$]*$/;
+
 const unexpectedError = "unexpected error";
 const typeName = /^[A-Za-z_$][\w$]*$/;
 const stackFrame = /^\s*at (?:(.+?) \()?(.+?):(\d+):\d+\)?$/;
@@ -22,7 +24,7 @@ const uncaughtError = /^Uncaught ([A-Za-z_$][\w$]*): (.*)$/;
 export function exceptionOf(error: unknown): Exception {
   const type = typeOf(error);
   const value = error instanceof ReportableError ? error.message : unexpectedError;
-  return { type, value, frames: error instanceof Error ? framesOf(error.stack ?? "") : [] };
+  return { type, value, frames: error instanceof Error ? framesOf(error) : [] };
 }
 
 export function exceptionOfJobError(error: string | undefined): Exception {
@@ -36,7 +38,7 @@ export function typeOf(error: unknown) {
 
 export function carriesReportedMarker(error: unknown) {
   const message = error instanceof Error ? error.message : String(error ?? "");
-  return message.includes(reportedMarker);
+  return markedFirstLine.test(message.split("\n")[0]!);
 }
 
 export function postHogExceptionList({ type, value, frames }: Exception) {
@@ -50,15 +52,19 @@ export function postHogExceptionList({ type, value, frames }: Exception) {
   ];
 }
 
-function framesOf(stack: string): Exception["frames"] {
-  return stack
-    .split("\n")
+function framesOf(error: Error): Exception["frames"] {
+  return stackLinesAfterTheMessage(error)
     .flatMap((line) => {
       const [, name, filename, lineno] = stackFrame.exec(line) ?? [];
       if (filename === undefined) return [];
       return [{ filename: filename.replace(/^file:\/\//, "").replace(/\?.*$/, ""), function: functionName(name), lineno: Number(lineno) }];
     })
     .reverse();
+}
+
+function stackLinesAfterTheMessage(error: Error) {
+  const headerLines = error.message.split("\n").length;
+  return (error.stack ?? "").split("\n").slice(headerLines);
 }
 
 function functionName(name: string | undefined) {

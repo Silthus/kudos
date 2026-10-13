@@ -106,6 +106,17 @@ describe("O22: an HTTP route whose mutation throws", () => {
   });
 });
 
+describe("O22: an error whose message quotes the marker", () => {
+  test("is recorded like any other, because only the boundary's own rethrow carries the marker", async () => {
+    const t = testBackend();
+
+    await postSigned(t, "/slack/events", "[reported] SyntaxError").catch(() => {});
+    await settle(t);
+
+    expect(exceptions().map((exception) => exceptionEntry(exception).type)).toEqual(["SyntaxError"]);
+  });
+});
+
 describe("O10 O23: only a reportable error sends its message", () => {
   test.each<[string, (t: Backend) => Promise<unknown>, string]>([
     ["malformed JSON", (t) => postSigned(t, "/slack/events", `{"type":"event_callback","team_id":"T0QUOKKAWS" Marmalade Zephyrine quokka`), "SyntaxError"],
@@ -114,6 +125,14 @@ describe("O10 O23: only a reportable error sends its message", () => {
       "a dependency error whose input holds distinctive text and Slack IDs",
       async (t) => {
         slack.answering("conversations.join", throwing(new TypeError("request to C0MARMALADE for U0ZEPHYRINE failed: Marmalade quokka artichokeparty")));
+        await hedgehug(t);
+      },
+      "TypeError",
+    ],
+    [
+      "a dependency error whose message spans lines that look like stack frames",
+      async (t) => {
+        slack.answering("conversations.join", throwing(new TypeError("dependency rejected:\n    at U0ZEPHYRINE (C0MARMALADE:12:3)\n    at Marmalade (quokka/artichokeparty.ts:1:1)")));
         await hedgehug(t);
       },
       "TypeError",

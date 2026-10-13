@@ -3,7 +3,7 @@ import { FakePostHog, postHogHost, projectToken } from "../../testing/fakePostHo
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { internal } from "../_generated/api";
 import type { KudosGivenEvent } from "../bus/events";
-import { exceptionOfJobError } from "./exceptions";
+import { carriesReportedMarker, exceptionOfJobError } from "./exceptions";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const minutes = (count: number) => count * 60 * 1000;
@@ -84,6 +84,51 @@ describe("O22: the failed-job sweep", () => {
   });
 });
 
+describe("O22: the failed-job sweep keeps up", () => {
+  test("checks every watched job in turn, however many stay pending", async () => {
+    const t = testBackend();
+    await t.run(async (ctx) => {
+      for (let job = 0; job < 1000; job += 1) await ctx.scheduler.runAfter(minutes(24 * 60), internal.slack.receipts.deleteExpired, {});
+    });
+    await sweepWithoutRunningJobsAfter(t, minutes(15));
+    await scheduleWelcomeOfAGoneMember(t, minutes(25));
+    await sweepWithoutRunningJobsAfter(t, minutes(15));
+
+    await sweepWithoutRunningJobsAfter(t, minutes(15));
+    await sweepWithoutRunningJobsAfter(t, minutes(15));
+
+    expect(exceptions().map((exception) => exception.properties.function_path)).toEqual(["welcome/welcome:welcomeNewMembers"]);
+  });
+
+  test("O20: a sweep that fails logs a fixed code and records nothing", async () => {
+    const t = testBackend();
+    await scheduleWelcomeOfAGoneMember(t, 0);
+    await settle(t);
+    vi.advanceTimersByTime(minutes(15));
+    vi.spyOn(crypto, "randomUUID").mockImplementation(() => {
+      throw new Error("no randomness today");
+    });
+
+    await expect(t.mutation(internal.analytics.sweep.sweep, {})).rejects.toThrow("no randomness today");
+
+    expect(console.error).toHaveBeenCalledWith("analytics.sweep_failed");
+    expect(await recordedExceptions(t)).toEqual([]);
+  });
+});
+
+describe("O22: the [reported] marker", () => {
+  test.each<[string, string, boolean]>([
+    ["the boundary's own rethrow", "[reported] ReportableError", true],
+    ["the rethrow as an outer action or a failed job sees it", "Uncaught Error: [reported] TypeError\n    at reported (../../convex/analytics/boundary.ts:71:10)", true],
+    ["a parse error that quotes the marker from its input", `Unexpected token 'r', "[reported] SyntaxError" is not valid JSON`, false],
+    ["a validation error whose arguments hold the marker", "ArgumentValidationError: Value does not match validator.\nPath: .event\nValue: {\"text\":\"[reported] Error\"}", false],
+    ["a message whose second line is the marker", "dependency rejected\n[reported] TypeError", false],
+  ])("%s: %s", (_, message, marked) => {
+    expect(carriesReportedMarker(new Error(message))).toBe(marked);
+    expect(carriesReportedMarker(message)).toBe(marked);
+  });
+});
+
 describe("O23: what the sweep reads from Convex's error string", () => {
   test.each<[string, string | undefined, { type: string; value: string }]>([
     ["a reportable error sends its message", "Uncaught ReportableError: Slack conversations.join failed: not_authed\n    at resultOfJoining (../convex/slack/commands.ts:40:9)", { type: "ReportableError", value: "Slack conversations.join failed: not_authed" }],
@@ -127,6 +172,16 @@ async function sweepAfter(t: Backend, delayMs: number) {
   vi.advanceTimersByTime(delayMs);
   await t.mutation(internal.analytics.sweep.sweep, {});
   await settle(t);
+}
+
+async function sweepWithoutRunningJobsAfter(t: Backend, delayMs: number) {
+  vi.advanceTimersByTime(delayMs);
+  await t.finishInProgressScheduledFunctions();
+  await t.mutation(internal.analytics.sweep.sweep, {});
+}
+
+async function recordedExceptions(t: Backend) {
+  return t.run(async (ctx) => (await ctx.db.query("analyticsOutbox").collect()).filter((row) => row.event === "$exception"));
 }
 
 function exceptions() {

@@ -132,6 +132,7 @@ export default defineSchema({
 
   errorSweep: defineTable({
     cursor: v.number(),
+    watchCursor: v.number(),
   }),
 
   watchedJobs: defineTable({

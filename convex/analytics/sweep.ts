@@ -16,24 +16,43 @@ const analyticsModule = "analytics/";
 export const sweep = internalMutation({
   args: {},
   handler: async (ctx): Promise<void> => {
-    await recheckWatchedJobs(ctx);
-    await discoverNewJobs(ctx);
-    await forgetOldReports(ctx);
+    try {
+      await recheckWatchedJobs(ctx);
+      await discoverNewJobs(ctx);
+      await forgetOldReports(ctx);
+    } catch (error) {
+      console.error("analytics.sweep_failed");
+      throw error;
+    }
   },
 });
 
 async function recheckWatchedJobs(ctx: MutationCtx) {
-  for (const watched of await ctx.db.query("watchedJobs").take(watchedPerSweep)) {
+  const sweepState = await stateOf(ctx);
+  const watchedList = await ctx.db
+    .query("watchedJobs")
+    .withIndex("by_creation_time", (q) => q.gt("_creationTime", sweepState.watchCursor))
+    .take(watchedPerSweep);
+  for (const watched of watchedList) {
     const job = await ctx.db.system.get(watched.job);
     if (job !== null && !isFinished(job)) continue;
     if (job !== null) await reportIfFailed(ctx, job);
     await ctx.db.delete(watched._id);
   }
+  const watchCursor = watchedList.length < watchedPerSweep ? 0 : watchedList.at(-1)!._creationTime;
+  await ctx.db.patch(sweepState._id, { watchCursor });
+}
+
+async function stateOf(ctx: MutationCtx) {
+  const existing = await ctx.db.query("errorSweep").first();
+  if (existing !== null) return existing;
+  const id = await ctx.db.insert("errorSweep", { cursor: 0, watchCursor: 0 });
+  return (await ctx.db.get(id))!;
 }
 
 async function discoverNewJobs(ctx: MutationCtx) {
-  const sweepState = await ctx.db.query("errorSweep").first();
-  let cursor = sweepState?.cursor ?? 0;
+  const sweepState = await stateOf(ctx);
+  let cursor = sweepState.cursor;
   const settledBefore = Date.now() - settledAfterMs;
   for (let page = 0; page < pagesPerSweep; page += 1) {
     const jobs = await ctx.db.system
@@ -47,8 +66,7 @@ async function discoverNewJobs(ctx: MutationCtx) {
     cursor = jobs.at(-1)?._creationTime ?? cursor;
     if (jobs.length < pageSize) break;
   }
-  if (sweepState === null) await ctx.db.insert("errorSweep", { cursor });
-  else await ctx.db.patch(sweepState._id, { cursor });
+  await ctx.db.patch(sweepState._id, { cursor });
 }
 
 async function reportIfFailed(ctx: MutationCtx, job: Job) {
