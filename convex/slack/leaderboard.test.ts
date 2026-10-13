@@ -48,6 +48,7 @@ describe("G23: /hedgehug leaderboard", () => {
         "7. <@U7> · 1 kudos",
         "7. <@U8> · 1 kudos",
         "7. <@U9> · 1 kudos",
+        "▲ 1 more kudos than this time last week",
       ].join("\n"),
     });
     expect(slack.callsTo("conversations.join")).toEqual([]);
@@ -74,7 +75,7 @@ describe("G23: /hedgehug leaderboard", () => {
 
     const reply = await leaderboardCommand(t, "U_ANN");
 
-    expect(reply.text).toBe(["🥇 <@U_BOB> · 1 kudos", "🥇 <@U_ANN> · 1 kudos"].join("\n"));
+    expect(reply.text).toBe(["🥇 <@U_BOB> · 1 kudos", "🥇 <@U_ANN> · 1 kudos", "▲ 1 more kudos than this time last week"].join("\n"));
   });
 
   test("G16: members the directory knew before it kept names get them from users.list, and a name it has stays", async () => {
@@ -86,7 +87,7 @@ describe("G23: /hedgehug leaderboard", () => {
 
     await t.action(internal.slack.directory.fillMissingNames, {});
 
-    expect((await leaderboardCommand(t, "U_ANN")).text).toBe(["🥇 <@U_BOB> · 1 kudos", "🥇 <@U_CY> · 1 kudos", "🥇 <@U_ANN> · 1 kudos"].join("\n"));
+    expect((await leaderboardCommand(t, "U_ANN")).text).toBe(["🥇 <@U_BOB> · 1 kudos", "🥇 <@U_CY> · 1 kudos", "🥇 <@U_ANN> · 1 kudos", "▲ 1 more kudos than this time last week"].join("\n"));
   });
 
   test("an award counts in the week of its giver's allowance day, in each giver's time zone", async () => {
@@ -97,11 +98,52 @@ describe("G23: /hedgehug leaderboard", () => {
     await giveKudos(t, "U_LA", "U_REC", 2, 0);
     await giveKudos(t, "U_BERLIN", "U_REC", 1, 1);
 
-    expect((await leaderboardCommand(t, "U_BERLIN")).text).toBe("🥇 <@U_BERLIN> · 1 kudos");
-    expect((await leaderboardCommand(t, "U_LA")).text).toBe("🥇 <@U_LA> · 2 kudos");
+    expect((await leaderboardCommand(t, "U_BERLIN")).text).toBe(["🥇 <@U_BERLIN> · 1 kudos", "▲ 1 more kudos than this time last week"].join("\n"));
+    expect((await leaderboardCommand(t, "U_LA")).text).toBe(["🥇 <@U_LA> · 2 kudos", "▲ 2 more kudos than this time last week"].join("\n"));
   });
 
-  test.each(["leaderboard yesterday", "leaderboard of everyone"])("an unknown argument after leaderboard, as in `%s`, gets the usage line", async (text) => {
+  test.each([
+    { text: "leaderboard", period: "week", rows: ["🥇 <@U3> · 1 kudos", "Give kudos this week to join the board."] },
+    { text: "leaderboard week", period: "week", rows: ["🥇 <@U3> · 1 kudos", "Give kudos this week to join the board."] },
+    { text: "leaderboard month", period: "month", rows: ["🥇 <@U1> · 2 kudos", "🥈 <@U3> · 1 kudos", "Give kudos this month to join the board."] },
+    { text: "leaderboard all", period: "all time", rows: ["🥇 <@U1> · 2 kudos", "🥈 <@U2> · 1 kudos", "🥈 <@U3> · 1 kudos", "Give kudos to join the board."] },
+  ])("`$text` privately shows the Everyone board of $period", async ({ text, rows }) => {
+    const t = testBackend();
+    slack.withMember("U1", { profile: { display_name: "Ann" } }).withMember("U2", { profile: { display_name: "Bob" } }).withMember("U3", { profile: { display_name: "Cy" } });
+    await giveKudosOn(t, "2026-09-20T10:00:00Z", "U2", 1);
+    await giveKudosOn(t, "2026-10-01T10:00:00Z", "U1", 2);
+    await giveKudosOn(t, "2026-10-13T10:00:00Z", "U3", 1);
+
+    expect(await command(t, "U_REC", text)).toEqual({ response_type: "ephemeral", text: rows.join("\n") });
+  });
+
+  test("G18: under this week's board the viewer sees how many more kudos they gave than this time last week, and the places they climbed", async () => {
+    const t = testBackend();
+    slack.withMember("U1", { profile: { display_name: "Ann" } }).withMember("U2", { profile: { display_name: "Bob" } });
+    await giveKudosOn(t, "2026-10-05T10:00:00Z", "U1", 1);
+    await giveKudosOn(t, "2026-10-06T10:00:00Z", "U2", 2);
+    await giveKudosOn(t, "2026-10-07T10:00:00Z", "U1", 4);
+    await giveKudosOn(t, "2026-10-12T10:00:00Z", "U1", 3);
+    await giveKudosOn(t, "2026-10-13T09:00:00Z", "U2", 1);
+
+    expect((await command(t, "U1", "leaderboard")).text).toBe(
+      ["🥇 <@U1> · 3 kudos", "🥈 <@U2> · 1 kudos", "▲ 2 more kudos than this time last week · ▲ 1 places"].join("\n"),
+    );
+  });
+
+  test("G18: without a gain the viewer sees their best completed month, and all time has no line", async () => {
+    const t = testBackend();
+    slack.withMember("U1", { profile: { display_name: "Ann" } });
+    await giveKudosOn(t, "2026-08-03T10:00:00Z", "U1", 2);
+    await giveKudosOn(t, "2026-08-04T10:00:00Z", "U1", 2);
+    await giveKudosOn(t, "2026-09-02T10:00:00Z", "U1", 3);
+    await giveKudosOn(t, "2026-10-02T10:00:00Z", "U1", 3);
+
+    expect((await command(t, "U1", "leaderboard month")).text).toBe(["🥇 <@U1> · 3 kudos", "Your best month so far: 4 kudos."].join("\n"));
+    expect((await command(t, "U1", "leaderboard all")).text).toBe("🥇 <@U1> · 10 kudos");
+  });
+
+  test.each(["leaderboard yesterday", "leaderboard of everyone", "leaderboard month all"])("an unknown argument after leaderboard, as in `%s`, gets the usage line", async (text) => {
     const t = testBackend();
 
     const reply = await command(t, "U_REC", text);
@@ -119,6 +161,14 @@ async function giveKudos(t: Backend, giver: string, recipient: string, kudos: nu
   const ts = `${Math.floor(Date.now() / 1000) + messageIndex}.000100`;
   await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts })));
   await settle(t);
+}
+
+let messagesGiven = 0;
+
+async function giveKudosOn(t: Backend, at: string, giver: string, kudos: number) {
+  vi.setSystemTime(new Date(at));
+  await giveKudos(t, giver, "U_REC", kudos, messagesGiven++);
+  vi.setSystemTime(tuesday);
 }
 
 async function knownWithoutName(t: Backend, ...users: string[]) {

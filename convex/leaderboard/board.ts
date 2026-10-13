@@ -23,6 +23,11 @@ export function board(entries: Entry[], viewer: string | null): BoardView {
   return { rows: [...ranked.slice(0, topPositions), ...(skipsPositions ? [{ gap: true as const }] : []), ...aroundViewer] };
 }
 
+export function positionOf(entries: Entry[], viewer: string): number | null {
+  const position = rankedRows(entries, viewer).findIndex((row) => row.viewer) + 1;
+  return position === 0 ? null : position;
+}
+
 function rankedRows(entries: Entry[], viewer: string | null): BoardRow[] {
   const ordered = entries.filter((entry) => entry.value > 0).toSorted(byValueThenName);
   return ordered.map((entry) => ({

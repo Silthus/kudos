@@ -1,6 +1,6 @@
 # Leaderboard
 
-Leaderboard: totals of kudos given per member by day, week, month and all time, fed by the kudosGiven subscriber once per message and by a one-off backfill of the awards given before it shipped, and the Everyone board for this week, ranked and windowed by a pure board function.
+Leaderboard: totals of kudos given per member by day, week, month and all time, fed by the kudosGiven subscriber once per message and by a one-off backfill of the awards given before it shipped, and the Everyone board for this week, this month or all time, ranked and windowed by a pure board function, with the viewer's improvement line against the previous period up to the same day.
 
 ## invariants
 - the leaderboard counts kudos given, never kudos received: A board ranks members by the kudos they gave in the period, and kudos a member received never add to their total or put them on a board.
@@ -15,7 +15,19 @@ Leaderboard: totals of kudos given per member by day, week, month and all time, 
   checklist: supersession-safety dismissed: every count adds to a total and nothing displaces a later value; Convex serializes the mutations that touch one total row
   checklist: worker-fencing dismissed: each subscriber run is one serialized mutation; no lease or ownership applies
   checklist: commit-ordered-effects dismissed: counting issues no external effect; the board is read when a member asks for it
-  checklist: resumption-coverage dismissed: this invariant is about which kudos count, not about a batch; the backfill's resumption is the next invariant's
+  checklist: resumption-coverage dismissed: this invariant is about which kudos count, not about a batch; the backfill's resumption is covered by every award counts once, live or backfilled
+- the improvement line never states a loss: The viewer's line under a board reports kudos gained and places climbed, never kudos or places lost; without a gain it names their best completed period, or nothing.
+  over: the improvement line of a viewer who gave fewer kudos than last period up to the same day, or kept a gain while falling in position
+  via: G18: the improvement line
+  because: the line is there to encourage (G18); a line that told a member they gave less, or dropped places, would turn a private nudge into a reproach
+  kinds: state
+  checklist: revalidated-permission dismissed: the line is computed for the viewer from totals when they ask; no permission applies
+  checklist: separation-of-duties dismissed: no approval policy applies to showing a member their own progress
+  checklist: legal-state-succession dismissed: the line is derived on every read and holds no state of its own
+  checklist: supersession-safety dismissed: the line is derived on every read; nothing is written that a later value could displace
+  checklist: worker-fencing dismissed: one read-only query computes the line; no lease or ownership applies
+  checklist: commit-ordered-effects dismissed: computing the line issues no external effect
+  checklist: resumption-coverage dismissed: no batch resumes from a checkpoint; the line is computed in one query
 - every award counts once, live or backfilled: The totals count each Given message's awards exactly once, whether the kudosGiven subscriber or the backfill of earlier kudos reaches the message first, and however often either runs.
   over: the totals after the backfill counts one earlier award, is interrupted, a member gives kudos while it is stopped and the subscriber counts them, and the backfill runs again over every award
   via: G44: an award given while the backfill runs counts once

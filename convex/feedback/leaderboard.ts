@@ -1,12 +1,23 @@
-import type { BoardRow, BoardView } from "../leaderboard/board";
+import type { BoardRow } from "../leaderboard/board";
+import type { Improvement } from "../leaderboard/improvement";
+import type { Period } from "../leaderboard/periods";
+import type { EveryoneBoardView } from "../leaderboard/totals";
 import { slashCommand } from "./naming";
 import type { Line } from "./replies";
 
 const medals = ["🥇", "🥈", "🥉"];
 
-export function renderEveryoneBoard(view: BoardView): Line[] {
+const joinTheBoard: Record<Period, string> = {
+  week: "Give kudos this week to join the board.",
+  month: "Give kudos this month to join the board.",
+  all: "Give kudos to join the board.",
+};
+
+export function renderEveryoneBoard(view: EveryoneBoardView, period: Period): Line[] {
   const rows = view.rows.map((row) => ("gap" in row ? [{ text: "…" }] : boardRow(row)));
-  return view.viewerAbsent === "not-ranked" ? [...rows, [{ text: "Give kudos this week to join the board." }]] : rows;
+  const nudge = view.viewerAbsent === "not-ranked" ? [[{ text: joinTheBoard[period] }]] : [];
+  const improvement = view.improvement === null ? [] : [improvementLine(view.improvement, period)];
+  return [...rows, ...nudge, ...improvement];
 }
 
 export function renderLeaderboardUsage(): Line[] {
@@ -20,4 +31,10 @@ function boardRow({ rank, id, value }: BoardRow): Line {
 
 function medalOf(rank: number) {
   return medals[rank - 1] ?? `${rank}.`;
+}
+
+function improvementLine(improvement: Improvement, period: Period): Line {
+  if ("best" in improvement) return [{ text: `Your best ${period} so far: ${improvement.best} kudos.` }];
+  const places = improvement.places === undefined ? "" : ` · ▲ ${improvement.places} places`;
+  return [{ text: `▲ ${improvement.gain} more kudos than this time last ${period}${places}` }];
 }

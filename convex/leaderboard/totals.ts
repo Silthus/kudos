@@ -1,13 +1,15 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { kudosGivenEventValidator } from "../bus/events";
-import { allowanceDay, weekOf, type DayKey } from "../engine/allowance";
+import { allowanceDay, type DayKey } from "../engine/allowance";
 import type { GivenMessage } from "../engine/awards";
 import type { MessageRef } from "../engine/messageEvent";
 import { lookup, type MemberId } from "../workspace/directory";
 import { board, type BoardView, type Entry } from "./board";
+import { improvement, type Improvement } from "./improvement";
+import { keyOf, keysOf, lastPeriodUpToTheSameDay, periodValidator, type ComparedPeriod, type Days, type PeriodKey } from "./periods";
 
-type Period = string;
+export type EveryoneBoardView = BoardView & { improvement: Improvement | null };
 
 export const countKudosGiven = internalMutation({
   args: { event: kudosGivenEventValidator },
@@ -21,38 +23,62 @@ export async function countGiven(ctx: MutationCtx, given: GivenMessage) {
   await ctx.db.insert("countedKudosGiven", given.message);
   const kudos = kudosGivenIn(given);
   await addToDay(ctx, given, kudos);
-  for (const period of periodsOf(given.day)) await addToPeriod(ctx, given, period, kudos);
+  for (const period of keysOf(given.day)) await addToPeriod(ctx, given, period, kudos);
   return true;
 }
 
 export const everyoneBoard = internalQuery({
-  args: { workspace: v.string(), viewer: v.string() },
-  handler: async (ctx, { workspace, viewer }): Promise<BoardView> => {
+  args: { workspace: v.string(), viewer: v.string(), period: v.optional(periodValidator) },
+  handler: async (ctx, { workspace, viewer, period = "week" }): Promise<EveryoneBoardView> => {
     const facts = await lookup(ctx, workspace, viewer);
     const today = allowanceDay(Date.now(), facts?.kind === "member" ? facts.timeZone : undefined);
-    return board(await entriesOf(ctx, workspace, weekPeriodOf(today)), viewer);
+    const now = await entriesOf(ctx, workspace, keyOf(period, today));
+    const member = facts?.kind === "member" ? facts.member : undefined;
+    const line = period === "all" || member === undefined ? null : await improvementOf(ctx, { workspace, viewer, member, period, today, now });
+    return { ...board(now, viewer), improvement: line };
   },
 });
+
+type Comparison = { workspace: string; viewer: string; member: MemberId; period: ComparedPeriod; today: DayKey; now: Entry[] };
+
+async function improvementOf(ctx: QueryCtx, { workspace, viewer, member, period, today, now }: Comparison) {
+  const before = await entriesOn(ctx, workspace, lastPeriodUpToTheSameDay(period, today));
+  return improvement(now, before, viewer, await bestCompletedPeriod(ctx, member, period, today));
+}
 
 function kudosGivenIn(given: GivenMessage) {
   return given.awards.reduce((sum, award) => sum + award.kudos, 0);
 }
 
-function periodsOf(day: DayKey): Period[] {
-  return [weekPeriodOf(day), `month:${day.slice(0, 7)}`, "all"];
-}
-
-function weekPeriodOf(day: DayKey): Period {
-  return `week:${weekOf(day).monday}`;
-}
-
-async function entriesOf(ctx: QueryCtx, workspace: string, period: Period): Promise<Entry[]> {
+async function entriesOf(ctx: QueryCtx, workspace: string, period: PeriodKey): Promise<Entry[]> {
   const totals = await ctx.db
     .query("givenTotals")
     .withIndex("by_period", (q) => q.eq("workspace", workspace).eq("period", period))
     .collect();
-  const entries = await Promise.all(totals.map((total) => entryOf(ctx, total.member, total.kudos)));
+  return entriesOfMembers(ctx, new Map(totals.map((total) => [total.member, total.kudos])));
+}
+
+async function entriesOn(ctx: QueryCtx, workspace: string, { first, last }: Days): Promise<Entry[]> {
+  const days = await ctx.db
+    .query("givenByDay")
+    .withIndex("by_workspace_day", (q) => q.eq("workspace", workspace).gte("day", first).lte("day", last))
+    .collect();
+  const kudosByMember = new Map<MemberId, number>();
+  for (const { member, kudos } of days) kudosByMember.set(member, (kudosByMember.get(member) ?? 0) + kudos);
+  return entriesOfMembers(ctx, kudosByMember);
+}
+
+async function entriesOfMembers(ctx: QueryCtx, kudosByMember: Map<MemberId, number>): Promise<Entry[]> {
+  const entries = await Promise.all([...kudosByMember].map(([member, kudos]) => entryOf(ctx, member, kudos)));
   return entries.filter((entry) => entry !== null);
+}
+
+async function bestCompletedPeriod(ctx: QueryCtx, member: MemberId, period: ComparedPeriod, today: DayKey) {
+  const completed = await ctx.db
+    .query("givenTotals")
+    .withIndex("by_member_period", (q) => q.eq("member", member).gt("period", `${period}:`).lt("period", keyOf(period, today)))
+    .collect();
+  return completed.length === 0 ? null : Math.max(...completed.map((total) => total.kudos));
 }
 
 async function entryOf(ctx: QueryCtx, member: MemberId, kudos: number): Promise<Entry | null> {
@@ -78,7 +104,7 @@ async function addToDay(ctx: MutationCtx, { workspace, giver, day }: GivenMessag
   else await ctx.db.patch(row._id, { kudos: row.kudos + kudos });
 }
 
-async function addToPeriod(ctx: MutationCtx, { workspace, giver }: GivenMessage, period: Period, kudos: number) {
+async function addToPeriod(ctx: MutationCtx, { workspace, giver }: GivenMessage, period: PeriodKey, kudos: number) {
   const row = await ctx.db
     .query("givenTotals")
     .withIndex("by_member_period", (q) => q.eq("member", giver).eq("period", period))
