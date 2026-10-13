@@ -30,7 +30,6 @@ export function Book({ param }: { param?: string }) {
   const route = useHashRoute();
   const page = pageFor(route.screen, param);
   const [photos, setPhotos] = useTeamPhotos();
-  const [hidden, setHidden] = useState(me.privacy.hideAchievements);
   const key = pageKey(page);
 
   return (
@@ -39,8 +38,8 @@ export function Book({ param }: { param?: string }) {
       <MobileIndex current={page} />
       <div key={key} className="hud-rise min-w-0">
         {page.kind === "album" && <AlbumSpread album={page.album} photo={photos[page.album.group.id]} onPhoto={(photo) => setPhotos(page.album.group.id, photo)} />}
-        {page.kind === "category" && <CategoryPage category={page.category} hidden={hidden} />}
-        {page.kind === "overview" && <Overview hidden={hidden} onHidden={setHidden} />}
+        {page.kind === "category" && <CategoryPage category={page.category} />}
+        {page.kind === "overview" && <Overview />}
       </div>
     </div>
   );

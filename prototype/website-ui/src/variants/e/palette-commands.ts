@@ -1,9 +1,10 @@
-// Variant E command registry for the Cmd/Ctrl-K palette, adapted from D: commands navigate, a few are witty traps.
+// Variant E command registry for the Cmd/Ctrl-K palette, adapted from D: commands navigate, a few are witty traps, and a locked screen answers with its unlock level.
 import type { ComponentType } from "react";
 import { IconBook, IconBox, IconDay, IconLeave, IconListTree, IconPalette, IconQuestion, IconRibbon, IconStar, IconUser } from "@posthog/icons";
 import type { ScreenId } from "../../nav";
+import { unlockOf, unlockedAt, type Feature } from "./unlocks";
 
-export type Shell = { go: (screen: ScreenId, param?: string) => void; dark: boolean; toggleTheme: () => void; openHelp: () => void; signOut: () => void };
+export type Shell = { go: (screen: ScreenId, param?: string) => void; dark: boolean; level: number; toggleTheme: () => void; openHelp: () => void; signOut: () => void };
 
 export type Output = { tone: "ok" | "error"; text: string };
 
@@ -16,6 +17,7 @@ export type Command = {
   blurb: string;
   Icon?: ComponentType<{ className?: string }>;
   hidden?: boolean;
+  feature?: Feature;
   run: (args: string[], shell: Shell, invokedAs: string) => Outcome;
 };
 
@@ -33,8 +35,8 @@ const goTo = (shell: Shell, screen: ScreenId, param?: string): Outcome => {
 
 export const commands: Command[] = [
   { name: "profile", aliases: ["whoami", "me", "home", "gear", "loadout", "equip"], usage: "profile", blurb: "Your character sheet and gear", Icon: IconUser, run: (_args, shell) => goTo(shell, "profile") },
-  { name: "inventory", aliases: ["bag", "titles", "quips", "emoji", "cosmetics"], usage: "inventory", blurb: "Titles, quips and emoji, owned and not yet", Icon: IconBox, run: (_args, shell) => goTo(shell, "profile", "inventory") },
-  { name: "skills", aliases: ["perks", "tree"], usage: "skills [perk]", blurb: "21 perks, 9 branches, zero refunds", Icon: IconListTree, run: (args, shell) => goTo(shell, "skills", wordsOf(args)[0]?.toLowerCase()) },
+  { name: "inventory", aliases: ["bag", "titles", "quips", "emoji", "cosmetics"], usage: "inventory", blurb: "Titles, quips and emoji, owned and not yet", Icon: IconBox, feature: "gear", run: (_args, shell) => goTo(shell, "profile", "inventory") },
+  { name: "skills", aliases: ["perks", "tree"], usage: "skills [perk]", blurb: "21 perks, 9 branches, zero refunds", Icon: IconListTree, feature: "skills", run: (args, shell) => goTo(shell, "skills", wordsOf(args)[0]?.toLowerCase()) },
   {
     name: "lb",
     aliases: ["leaderboard", "top"],
@@ -47,9 +49,9 @@ export const commands: Command[] = [
       return goTo(shell, "leaderboard", parts.length > 0 ? parts.join(".") : undefined);
     },
   },
-  { name: "stickers", aliases: ["album"], usage: "stickers", blurb: "The faces you've thanked", Icon: IconBook, run: (_args, shell) => goTo(shell, "stickers") },
-  { name: "achievements", aliases: ["ladders"], usage: "achievements", blurb: "12 ladders, 4 tiers. Tiers are not rarities", Icon: IconRibbon, run: (_args, shell) => goTo(shell, "achievements") },
-  { name: "collection", aliases: ["hogs", "hedgehogs", "shelf", "store"], usage: "collection", blurb: "Every hedgehog, owned or not", Icon: IconPalette, run: (_args, shell) => goTo(shell, "collection") },
+  { name: "stickers", aliases: ["album"], usage: "stickers", blurb: "The faces you've thanked", Icon: IconBook, feature: "book", run: (_args, shell) => goTo(shell, "stickers") },
+  { name: "achievements", aliases: ["ladders"], usage: "achievements", blurb: "12 ladders, 4 tiers. Tiers are not rarities", Icon: IconRibbon, feature: "book", run: (_args, shell) => goTo(shell, "achievements") },
+  { name: "collection", aliases: ["hogs", "hedgehogs", "shelf", "store"], usage: "collection", blurb: "Every hedgehog, owned or not", Icon: IconPalette, feature: "collection", run: (_args, shell) => goTo(shell, "collection") },
   {
     name: "theme",
     aliases: ["dark", "light"],
@@ -86,6 +88,13 @@ export const commands: Command[] = [
   { name: "vim", aliases: ["vi", "emacs", "nano"], usage: "vim", blurb: "Not an editor", hidden: true, run: (_args, _shell, invokedAs) => ok(`${invokedAs}: this is a hedgehog, not an editor. :q works in your head only.`) },
 ];
 
+export const isLocked = (command: Command, level: number) => command.feature !== undefined && !unlockedAt(command.feature, level);
+
+const lockedAnswer = (command: Command, level: number): Outcome => {
+  const unlock = unlockOf(command.feature!);
+  return error(`${command.name}: locked. ${unlock.name} unlocks at level ${unlock.level}, and you're level ${level}.`);
+};
+
 export const visibleCommands = commands.filter((c) => !c.hidden);
 export const hiddenCommands = commands.filter((c) => c.hidden);
 
@@ -108,6 +117,7 @@ export function run(line: string, shell: Shell): Outcome {
   const exact = find(typed);
   const command = exact ?? onlyMatch(typed);
   if (!command) return error(`Nothing called '${name}'. Try help.`);
+  if (isLocked(command, shell.level)) return lockedAnswer(command, shell.level);
   return command.run(args, shell, exact ? typed : command.name);
 }
 

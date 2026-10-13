@@ -1,4 +1,4 @@
-// PROTOTYPE: hedgehogs as a collectable avatar, and the one in-memory gear store every E screen shares: hedgehog, title, quips, kudos emoji and coins.
+// PROTOTYPE: hedgehogs as a collectable avatar, and the one in-memory gear store every E screen shares: hedgehog, title, quips, kudos emoji and coins, with the slot a new quip or emoji lands in.
 import { useSyncExternalStore, type ComponentType } from "react";
 import {
   HedgehogAngel,
@@ -17,6 +17,7 @@ import {
 import { me } from "../../data/mock";
 import type { Rarity } from "../../data/types";
 import { gear, gearById, gearIdFor, slotCount, type GearKind } from "./gear-items";
+import { useUnlocked } from "./unlocks";
 
 export type HogSource =
   | { kind: "starter" }
@@ -75,7 +76,11 @@ const state = {
   coins: me.coins,
   owned: new Set([...hedgehogs.filter((h) => h.owned).map((h) => h.id), ...gear.filter((g) => g.owned).map((g) => g.id)]),
   slots: { title: filled("title", [me.loadout.title]), quip: filled("quip", me.loadout.quips), emoji: filled("emoji", me.loadout.emoji) } as Record<GearKind, (string | null)[]>,
+  equippedAt: { title: [0], quip: [0, 1, 2], emoji: [0, 1, 2] } as Record<GearKind, number[]>,
+  clock: 3,
 };
+
+export const starterHog = hedgehogs.find((h) => h.source.kind === "starter")!;
 
 const listeners = new Set<() => void>();
 let version = 0;
@@ -103,6 +108,7 @@ function equipGear(kind: GearKind, index: number, id: string) {
   if (from >= 0) slots[from] = slots[index];
   slots[index] = id;
   state.slots = { ...state.slots, [kind]: slots };
+  state.equippedAt = { ...state.equippedAt, [kind]: state.equippedAt[kind].map((at, i) => (i === index ? ++state.clock : at)) };
   emit();
 }
 
@@ -110,6 +116,13 @@ function unequip(kind: GearKind, index: number) {
   if (kind === "title") return;
   state.slots = { ...state.slots, [kind]: state.slots[kind].map((id, i) => (i === index ? null : id)) };
   emit();
+}
+
+function slotForNew(kind: GearKind) {
+  const empty = state.slots[kind].indexOf(null);
+  if (empty >= 0) return empty;
+  const at = state.equippedAt[kind];
+  return at.indexOf(Math.min(...at));
 }
 
 const priceOf = (id: string) => {
@@ -135,6 +148,8 @@ export function useGear() {
     isOwned: (id: string) => state.owned.has(id),
     isEquipped: (id: string) => state.hogId === id || Object.values(state.slots).some((s) => s.includes(id)),
     itemIn: (kind: GearKind, index: number) => gearById(state.slots[kind][index] ?? ""),
+    slotOf: (kind: GearKind, id: string) => state.slots[kind].indexOf(id),
+    slotForNew,
     equipHog,
     equipGear,
     unequip,
@@ -144,5 +159,6 @@ export function useGear() {
 
 export function useHogs() {
   const g = useGear();
-  return { equipped: g.hog, isOwned: g.isOwned, equip: g.equipHog, buy: g.buy, coins: g.coins };
+  const collectionOpen = useUnlocked("collection");
+  return { equipped: collectionOpen ? g.hog : starterHog, isOwned: g.isOwned, equip: g.equipHog, buy: g.buy, coins: g.coins };
 }

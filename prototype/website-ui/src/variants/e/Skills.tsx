@@ -1,4 +1,4 @@
-// Variant E skill tree: three WoW-style perk trees with neutral owned nodes, primary only for what you can buy and your selection, upgrades shown as "this became that", and a one-entry-per-chain perk ledger.
+// Variant E skill tree: three WoW-style perk trees that open at level 4, with neutral owned nodes, primary only for what you can buy and your selection, upgrades shown as "this became that", and a one-entry-per-chain perk ledger.
 import { useEffect, useState } from "react";
 import { IconArrowRightDown, IconCheck, IconLock, IconPeople, IconSparkles } from "@posthog/icons";
 import { Button, Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, Tabs, TabsContent, TabsList, TabsTrigger } from "@posthog/quill";
@@ -8,7 +8,8 @@ import { blockedReason, costText, perkName, shortState } from "../../screens/ski
 import { baseOf, effectOf, mockStateOf, upgradeOf } from "./skills-chains";
 import { CoinGlyph, Panel, ResourceChip, SkillPointGlyph, Tag, useHud } from "./hud";
 import { PerkIcon, TreeIcon } from "./skills-icons";
-import { layouts, treeColumns, treeOf, trees, type PlacedPerk, type TreeId, type TreeLayout } from "./skills-trees";
+import { layouts, treeColumns, treeLevelOf, treeOf, trees, type PlacedPerk, type TreeId, type TreeLayout } from "./skills-trees";
+import { unlockOf, usePreviewLevel, useUnlocked } from "./unlocks";
 
 type StateOf = (perk: Perk) => PerkState;
 
@@ -51,6 +52,8 @@ export function Skills({ param }: { param?: string }) {
   const [activeTree, setActiveTree] = useState<TreeId>(() => (selected ? treeOf(selected).id : trees[0].id));
   const stateOf: StateOf = (perk) => (bought.has(perk.id) ? { kind: "owned" } : mockStateOf(perk));
   const owned = perks.filter((p) => stateOf(p).kind === "owned");
+  const level = usePreviewLevel();
+  const coinsOpen = useUnlocked("coins");
 
   const select = (id: string) => {
     setSelectedId(id);
@@ -77,11 +80,13 @@ export function Skills({ param }: { param?: string }) {
           <ResourceChip icon={<SkillPointGlyph />} title="Skill points to spend">
             {plural(me.skillPointsUnspent, "skill point")}
           </ResourceChip>
-          <ResourceChip icon={<CoinGlyph />} title="Coins">
-            {me.coins} coins
-          </ResourceChip>
+          {coinsOpen && (
+            <ResourceChip icon={<CoinGlyph />} title={`Coins. ${unlockOf("coins").how}`}>
+              {me.coins} coins
+            </ResourceChip>
+          )}
           <ResourceChip icon={<span className="hud-display text-xs font-bold text-muted-foreground">LV</span>} title="Your level">
-            {me.level}
+            {level}
           </ResourceChip>
         </div>
       </header>
@@ -446,7 +451,10 @@ function StateTag({ perk, stateOf }: { perk: Perk; stateOf: StateOf }) {
 
 function PerkFacts({ perk }: { perk: Perk }) {
   const base = baseOf(perk);
+  const coins = unlockOf("coins");
+  const coinsOpen = useUnlocked("coins");
   const notes = [
+    perk.coins && !coinsOpen && `Its coins come later: coins unlock at level ${coins.level}.`,
     base && `An upgrade: it replaces ${base.name}'s effect rather than adding to it.`,
     perk.group && `A group aura for ${me.primaryGroup.name}, your primary group.`,
     !perk.skillPoints && "Coins only, no skill points.",
@@ -456,7 +464,7 @@ function PerkFacts({ perk }: { perk: Perk }) {
       <p className="text-sm">{effectOf(perk)}</p>
       <dl className="grid grid-cols-[3.5rem_1fr] gap-x-3 gap-y-1.5 text-sm">
         <dt className="text-muted-foreground">Level</dt>
-        <dd>{perk.minLevel} or higher</dd>
+        <dd>{treeLevelOf(perk)} or higher</dd>
         <dt className="text-muted-foreground">Cost</dt>
         <dd>
           <Cost perk={perk} className="text-sm" />

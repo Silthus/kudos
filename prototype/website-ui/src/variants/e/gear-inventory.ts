@@ -3,7 +3,7 @@ import type { ComponentType } from "react";
 import { IconEmoji, IconQuote, IconRibbon, IconUser } from "@posthog/icons";
 import type { CosmeticSource, Rarity } from "../../data/types";
 import { gear, slotCount, type GearItem, type GearKind } from "./gear-items";
-import { hedgehogs, type Hog, type HogSource, type SlotKind } from "./hedgehogs";
+import { hedgehogs, type Hog, type HogSource, type SlotKind, type SlotRef } from "./hedgehogs";
 
 type Common = { id: string; name: string; rarity: Rarity; price?: number; howToGet: string };
 
@@ -16,6 +16,10 @@ export const kindHeading: Record<SlotKind, string> = { hedgehog: "Hedgehogs", ti
 export const kindIcon: Record<SlotKind, ComponentType<{ className?: string }>> = { hedgehog: IconUser, title: IconRibbon, quip: IconQuote, emoji: IconEmoji };
 
 export const slotsFor = (kind: SlotKind) => (kind === "hedgehog" ? 1 : slotCount[kind]);
+
+export const slotName = (slot: SlotRef) => `${kindHeading[slot.kind].replace(/s$/, "")}${slotsFor(slot.kind) > 1 ? ` ${slot.index + 1}` : ""}`;
+
+export const itemLabel = (item: InventoryItem) => (item.kind === "quip" ? `“${item.name}”` : item.name);
 
 const hogHowToGet = (source: HogSource) => {
   switch (source.kind) {

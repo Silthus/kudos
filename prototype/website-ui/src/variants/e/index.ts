@@ -6,11 +6,14 @@ import { Leaderboard } from "./Leaderboard";
 import { Moments } from "./Moments";
 import { Profile } from "./Profile";
 import { Skills } from "./Skills";
+import { gated } from "./unlock-gate";
+
+const GatedBook = gated("book", Book);
 
 export const variant: Variant = {
   key: "E",
   name: "Combined",
-  tagline: "Round 6: one gear panel, calmer colour, the whole board",
+  tagline: "Round 7: progressive unlocks, preview any level",
   Layout: Frame,
-  screens: { profile: Profile, skills: Skills, stickers: Book, achievements: Book, leaderboard: Leaderboard, collection: Collection, landing: Moments },
+  screens: { profile: Profile, skills: gated("skills", Skills), stickers: GatedBook, achievements: GatedBook, leaderboard: Leaderboard, collection: gated("collection", Collection), landing: Moments },
 };

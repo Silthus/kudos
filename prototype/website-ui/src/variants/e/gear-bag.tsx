@@ -1,15 +1,20 @@
-// Variant E inventory side of the gear panel: one section per kind with what you own first, then a quiet row of what is not yours yet, bought with your coins.
+// Variant E inventory side of the gear panel: one section per kind with what you own first, equipped in place without leaving the inventory, then a quiet row of what is not yours yet.
 import { useState } from "react";
-import { IconArrowRight, IconCheck } from "@posthog/icons";
+import { IconArrowRight, IconCheck, IconLock } from "@posthog/icons";
 import { Button, ToggleGroup, ToggleGroupItem } from "@posthog/quill";
 import { rarityLabels } from "../../ui";
-import { dropOdds, explainer, type GearKind } from "./gear-items";
-import { inventoryKinds, itemsOf, kindHeading, kindIcon, slotsFor, type InventoryItem } from "./gear-inventory";
-import { useGear, type SlotKind, type SlotRef } from "./hedgehogs";
+import { dropOdds, explainer } from "./gear-items";
+import { inventoryKinds, itemLabel, itemsOf, kindHeading, kindIcon, slotName, slotsFor, type InventoryItem } from "./gear-inventory";
+import { useGearAtLevel } from "./gear-level";
+import { MoreHogsLine } from "./gear-picker";
+import type { SlotKind } from "./hedgehogs";
 import { CoinGlyph } from "./hud";
 import { RarityName } from "./rarity";
+import { unlockOf } from "./unlocks";
 
 export type Filter = SlotKind | "all";
+
+type Change = { text: string; id: string; n: number };
 
 const filters: Filter[] = ["all", ...inventoryKinds];
 
@@ -22,14 +27,42 @@ const tileGrid: Record<SlotKind, string> = {
   quip: "grid-cols-1 sm:grid-cols-2",
 };
 
-const slotName = (slot: SlotRef) => `${kindHeading[slot.kind].replace(/s$/, "")}${slotsFor(slot.kind) > 1 ? ` ${slot.index + 1}` : ""}`;
+function useEquipInPlace() {
+  const g = useGearAtLevel();
+  const [change, setChange] = useState<Change>();
+  const say = (text: string, id: string) => setChange((c) => ({ text, id, n: (c?.n ?? 0) + 1 }));
 
-export function InventorySide({ filter, onFilter, target, onEquip }: { filter: Filter; onFilter: (f: Filter) => void; target?: SlotRef; onEquip: (item: InventoryItem) => void }) {
-  const g = useGear();
+  const toggle = (item: InventoryItem) => {
+    if (item.kind === "hedgehog") {
+      if (g.isEquipped(item.id)) return;
+      g.equipHog(item.id);
+      return say(`${item.name} is your hedgehog now.`, item.id);
+    }
+    if (item.kind === "title") {
+      if (g.isEquipped(item.id)) return;
+      g.equipGear("title", 0, item.id);
+      return say(`${item.name} is your title now.`, item.id);
+    }
+    const worn = g.slotOf(item.kind, item.id);
+    if (worn >= 0) {
+      g.unequip(item.kind, worn);
+      return say(`${itemLabel(item)} came off ${slotName({ kind: item.kind, index: worn })}.`, item.id);
+    }
+    const index = g.slotForNew(item.kind);
+    const replaced = g.itemIn(item.kind, index);
+    g.equipGear(item.kind, index, item.id);
+    const into = slotName({ kind: item.kind, index });
+    say(replaced ? `${itemLabel(item)} went into ${into}, replacing ${item.kind === "quip" ? `“${replaced.name}”` : replaced.name}.` : `${itemLabel(item)} went into ${into}.`, item.id);
+  };
+
+  return { change, toggle };
+}
+
+export function InventorySide({ filter, onFilter }: { filter: Filter; onFilter: (f: Filter) => void }) {
+  const g = useGearAtLevel();
+  const { change, toggle } = useEquipInPlace();
   const [justBought, setJustBought] = useState<string>();
   const kinds = filter === "all" ? inventoryKinds : [filter];
-  const aimed = target && target.kind === filter ? target : undefined;
-  const removable = aimed && aimed.kind !== "hedgehog" && aimed.kind !== "title" && g.slots[aimed.kind][aimed.index] ? aimed : undefined;
 
   const buy = (id: string) => {
     g.buy(id);
@@ -46,46 +79,50 @@ export function InventorySide({ filter, onFilter, target, onEquip }: { filter: F
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
-        <span className="inline-flex items-center gap-1.5 text-sm font-medium tabular-nums" title="Your coins">
-          <CoinGlyph />
-          {g.coins.toLocaleString()} coins
-        </span>
-      </div>
-      {aimed && (
-        <div className="flex min-h-9 items-center justify-between gap-3 rounded-md bg-muted px-3 py-1.5 text-sm">
-          <span>
-            Choosing for <span className="font-semibold">{slotName(aimed)}</span>
+        {g.coinsOpen && (
+          <span className="inline-flex items-center gap-1.5 text-sm font-medium tabular-nums" title="Your coins">
+            <CoinGlyph />
+            {g.coins.toLocaleString()} coins
           </span>
-          {removable && (
-            <Button variant="outline" size="xs" onClick={() => g.unequip(removable.kind as GearKind, removable.index)}>
-              Take off
-            </Button>
-          )}
-        </div>
-      )}
+        )}
+      </div>
+      <p aria-live="polite" className="-my-2 min-h-5 text-sm text-muted-foreground">
+        {change ? (
+          <span key={change.n} className="hud-fade flex items-center gap-1.5">
+            <IconCheck className="size-3.5 shrink-0 text-foreground" />
+            {change.text}
+          </span>
+        ) : (
+          "Pick something you own to wear it. Pick a worn quip or emoji to take it off."
+        )}
+      </p>
       <div className="flex flex-col divide-y">
         {kinds.map((kind) => (
-          <KindSection key={kind} kind={kind} justBought={justBought} onEquip={onEquip} onBuy={buy} />
+          <KindSection key={kind} kind={kind} changed={change} justBought={justBought} onToggle={toggle} onBuy={buy} />
         ))}
       </div>
       <div className="flex flex-col gap-2 border-t pt-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <span>Drops: a thoughtful kudos you give can find one. {dropOdds.map((d) => `${rarityLabels[d.rarity]} ${d.chance}`).join(" · ")}.</span>
-        <a href="#/collection" className="group inline-flex shrink-0 items-center gap-1 font-medium underline-offset-4 hover:text-foreground hover:underline">
-          Every hedgehog on the shelf
-          <IconArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
-        </a>
+        {g.hogsOpen && (
+          <a href="#/collection" className="group inline-flex shrink-0 items-center gap-1 font-medium underline-offset-4 hover:text-foreground hover:underline">
+            Every hedgehog on the shelf
+            <IconArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+          </a>
+        )}
       </div>
     </div>
   );
 }
 
-function KindSection({ kind, justBought, onEquip, onBuy }: { kind: SlotKind; justBought?: string; onEquip: (item: InventoryItem) => void; onBuy: (id: string) => void }) {
-  const g = useGear();
+function KindSection({ kind, changed, justBought, onToggle, onBuy }: { kind: SlotKind; changed?: Change; justBought?: string; onToggle: (item: InventoryItem) => void; onBuy: (id: string) => void }) {
+  const g = useGearAtLevel();
   const Icon = kindIcon[kind];
   const items = itemsOf(kind);
-  const owned = items.filter((i) => g.isOwned(i.id));
-  const notYet = items.filter((i) => !g.isOwned(i.id));
+  const hogsLocked = kind === "hedgehog" && !g.hogsOpen;
+  const owned = items.filter((i) => g.canWear(i.id));
+  const notYet = hogsLocked ? [] : items.filter((i) => !g.isOwned(i.id));
   const equipped = owned.filter((i) => g.isEquipped(i.id)).length;
+  const wornIn = (item: InventoryItem) => (item.kind === "quip" || item.kind === "emoji" ? g.slotOf(item.kind, item.id) : -1);
   return (
     <section className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0" aria-labelledby={`inventory-${kind}`}>
       <header className="flex flex-col gap-0.5">
@@ -103,16 +140,17 @@ function KindSection({ kind, justBought, onEquip, onBuy }: { kind: SlotKind; jus
       <ul className={`grid gap-2 ${tileGrid[kind]}`}>
         {owned.map((item) => (
           <li key={item.id} className="flex">
-            <OwnedTile item={item} equipped={g.isEquipped(item.id)} fresh={justBought === item.id} onEquip={() => onEquip(item)} />
+            <OwnedTile item={item} equipped={g.isEquipped(item.id)} wornIn={wornIn(item)} justBought={justBought === item.id} beat={changed?.id === item.id ? changed.n : 0} onToggle={() => onToggle(item)} />
           </li>
         ))}
       </ul>
+      {hogsLocked && <MoreHogsLine />}
       {notYet.length > 0 && (
         <div className="flex flex-col gap-1.5">
           <span className="hud-label">Not yours yet</span>
           <ul className="grid gap-1.5 sm:grid-cols-2">
             {notYet.map((item) => (
-              <NotYetRow key={item.id} item={item} coins={g.coins} onBuy={() => onBuy(item.id)} />
+              <NotYetRow key={item.id} item={item} coins={g.coinsOpen ? g.coins : undefined} onBuy={() => onBuy(item.id)} />
             ))}
           </ul>
         </div>
@@ -121,45 +159,54 @@ function KindSection({ kind, justBought, onEquip, onBuy }: { kind: SlotKind; jus
   );
 }
 
-function OwnedTile({ item, equipped, fresh, onEquip }: { item: InventoryItem; equipped: boolean; fresh: boolean; onEquip: () => void }) {
+function OwnedTile({ item, equipped, wornIn, justBought, beat, onToggle }: { item: InventoryItem; equipped: boolean; wornIn: number; justBought: boolean; beat: number; onToggle: () => void }) {
   const wide = item.kind === "title" || item.kind === "quip";
+  const removable = wornIn >= 0;
+  const where = removable ? slotName({ kind: item.kind, index: wornIn }) : "Equipped";
   return (
     <button
       type="button"
-      onClick={onEquip}
-      aria-label={`Equip ${kindHeading[item.kind].toLowerCase().replace(/s$/, "")} ${item.name}${equipped ? ", equipped" : ""}`}
-      className={`hud-lift relative flex w-full gap-2 rounded-md border p-2.5 hover:bg-fill-hover ${equipped ? "bg-fill-selected" : "bg-card"} ${wide ? "min-h-14 items-center text-left" : "h-28 flex-col items-center justify-between text-center"} ${fresh ? "hud-pop" : ""}`}
+      onClick={onToggle}
+      aria-pressed={equipped}
+      aria-label={`${removable ? "Take off" : equipped ? "Wearing" : "Wear"} ${item.name}${equipped ? `, in ${where}` : ""}`}
+      className={`hud-lift relative flex w-full rounded-md border p-2.5 hover:bg-fill-hover ${equipped ? "bg-fill-selected" : "bg-card"} ${wide ? "min-h-14" : "h-28"} ${justBought ? "hud-pop" : ""}`}
     >
-      {!wide && (
-        <span className="flex flex-1 items-center justify-center">
-          <Preview item={item} size={52} />
-        </span>
-      )}
-      <RarityName rarity={item.rarity} className={wide ? `min-w-0 flex-1 ${item.kind === "title" ? "hud-display text-base" : "text-sm leading-snug"}` : "w-full truncate text-xs"}>
-        {item.kind === "quip" ? `“${item.name}”` : item.name}
-      </RarityName>
+      <span key={beat} className={`flex w-full gap-2 ${wide ? "items-center text-left" : "flex-col items-center justify-between text-center"} ${beat ? "hud-pop" : ""}`}>
+        {!wide && (
+          <span className="flex flex-1 items-center justify-center">
+            <Preview item={item} size={52} />
+          </span>
+        )}
+        <RarityName rarity={item.rarity} className={wide ? `min-w-0 flex-1 ${item.kind === "title" ? "hud-display text-base" : "text-sm leading-snug"}` : "w-full truncate text-xs"}>
+          {itemLabel(item)}
+        </RarityName>
+      </span>
       {equipped && (
-        <span className={`flex items-center gap-1 text-[11px] text-muted-foreground ${wide ? "shrink-0" : "absolute right-1.5 top-1.5"}`}>
+        <span className={`flex items-center gap-1 text-[11px] text-muted-foreground tabular-nums ${wide ? "shrink-0 self-center" : "absolute right-1.5 top-1.5"}`}>
           <IconCheck className="size-3.5 text-foreground" />
-          {wide && "Equipped"}
+          {wide ? where : removable && wornIn + 1}
         </span>
       )}
     </button>
   );
 }
 
-function NotYetRow({ item, coins, onBuy }: { item: InventoryItem; coins: number; onBuy: () => void }) {
-  const short = item.price !== undefined ? item.price - coins : 0;
+function NotYetRow({ item, coins, onBuy }: { item: InventoryItem; coins?: number; onBuy: () => void }) {
+  const short = item.price !== undefined && coins !== undefined ? item.price - coins : 0;
   return (
     <li className="flex min-h-11 items-center gap-2.5 rounded-md border border-dashed px-2.5 py-1.5">
       <span className="flex size-7 shrink-0 items-center justify-center opacity-60" aria-hidden>
         <Preview item={item} size={28} />
       </span>
       <RarityName rarity={item.rarity} className="min-w-0 flex-1 truncate text-sm font-medium">
-        {item.kind === "quip" ? `“${item.name}”` : item.name}
+        {itemLabel(item)}
       </RarityName>
       {item.price === undefined ? (
         <span className="shrink-0 text-xs text-muted-foreground">{item.howToGet}</span>
+      ) : coins === undefined ? (
+        <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+          <IconLock className="size-3" /> Coins at level {unlockOf("coins").level}
+        </span>
       ) : (
         <Button size="xs" variant="outline" disabled={short > 0} onClick={onBuy} title={short > 0 ? `${short.toLocaleString()} more coins to go` : `Buy ${item.name}`} className="shrink-0 tabular-nums">
           <CoinGlyph className="size-3" />

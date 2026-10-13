@@ -1,4 +1,4 @@
-// Variant E workday streak: a quiet contribution-graph calendar of twenty workweeks in neutral steps, with only the live streak in the accent colour.
+// Variant E workday streak in the profile rail: a quiet contribution-graph calendar of the last thirteen workweeks in neutral steps, with only the live streak in the accent colour.
 import type { CSSProperties } from "react";
 import { IconLock } from "@posthog/icons";
 import { me } from "../../data/mock";
@@ -7,11 +7,11 @@ import { Panel } from "./hud";
 type DayState = "gave" | "missed" | "freeze" | "future";
 type Day = { date: Date; kudos: number; state: DayState; inStreak: boolean; today: boolean };
 
-const weekCount = 20;
+const weekCount = 13;
 const today = new Date(2026, 9, 13);
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const weekdayNames = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-const freezeDays = new Set([23, 61]);
+const freezeDays = new Set([17, 44]);
 const longestEarlierRun = me.streak.best - 1;
 
 const addDays = (date: Date, days: number) => new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
@@ -89,12 +89,12 @@ export function StreakPanel() {
 
 function StreakFacts() {
   return (
-    <div className="flex items-end gap-5">
+    <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
       <div className="flex items-baseline gap-2">
         <span className="hud-display text-4xl font-bold leading-none tabular-nums">{me.streak.days}</span>
         <span className="text-sm text-muted-foreground">workdays in a row</span>
       </div>
-      <div className="ml-auto flex gap-5 sm:ml-0">
+      <div className="ml-auto flex gap-5">
         <Fact value={me.streak.best} label="Best" />
         <Fact value={me.streak.freezesHeld} label={me.streak.freezesHeld === 1 ? "Freeze held" : "Freezes held"} />
       </div>
@@ -116,7 +116,7 @@ function Calendar() {
     <div
       role="img"
       aria-label={`Workdays over the last ${weekCount} weeks. Current streak ${me.streak.days} workdays.`}
-      className="grid w-full max-w-[30rem] gap-[3px]"
+      className="grid w-full gap-[3px]"
       style={{ gridTemplateColumns: `auto repeat(${weekCount}, minmax(0, 1fr))` }}
     >
       {weeks.map((_, w) => {
@@ -148,7 +148,7 @@ function Cell({ day, column, row }: { day: Day; column: number; row: number }) {
 
 function Legend() {
   return (
-    <div className="flex max-w-[30rem] flex-wrap items-center justify-between gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground">
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground">
       <div className="flex items-center gap-3">
         <span className="flex items-center gap-1.5">
           <span className="size-2.5 rounded-[3px]" style={fill(3, true)} /> This streak

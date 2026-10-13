@@ -1,9 +1,10 @@
-// Variant E active effects beside the gear: boosters running or ready to switch on, and one line on the perks already working for you.
+// Variant E active effects at the top of the profile rail: boosters running or ready to switch on, and, once the skill tree opens, one line on the perks already working for you.
 import { useState, type ComponentType } from "react";
 import { IconArrowRight, IconBolt, IconLightBulb } from "@posthog/icons";
 import { Button } from "@posthog/quill";
 import { me, perks } from "../../data/mock";
 import { Panel, Tag } from "./hud";
+import { useUnlocked } from "./unlocks";
 
 const ownedPerks = perks.filter((p) => p.state.kind === "owned").map((p) => p.name);
 
@@ -13,6 +14,7 @@ const boosterIcon = (name: string): ComponentType<{ className?: string }> => (na
 
 export function ActiveEffects() {
   const [switchedOn, setSwitchedOn] = useState<string[]>([]);
+  const skillsOpen = useUnlocked("skills");
   return (
     <Panel label="Active effects">
       <ul className="flex flex-col divide-y">
@@ -39,12 +41,14 @@ export function ActiveEffects() {
           );
         })}
       </ul>
-      <a href="#/skills" className="group mt-1 flex items-center justify-between gap-2 border-t pt-3 text-xs text-muted-foreground hover:text-foreground">
-        <span>
-          <span className="font-medium text-foreground">{ownedPerks.length} perks</span> always on: {perkLine(ownedPerks)}.
-        </span>
-        <IconArrowRight className="size-3 shrink-0 transition-transform group-hover:translate-x-0.5" />
-      </a>
+      {skillsOpen && (
+        <a href="#/skills" className="group mt-1 flex items-center justify-between gap-2 border-t pt-3 text-xs text-muted-foreground hover:text-foreground">
+          <span>
+            <span className="font-medium text-foreground">{ownedPerks.length} perks</span> always on: {perkLine(ownedPerks)}.
+          </span>
+          <IconArrowRight className="size-3 shrink-0 transition-transform group-hover:translate-x-0.5" />
+        </a>
+      )}
     </Panel>
   );
 }

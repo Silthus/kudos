@@ -1,9 +1,10 @@
-// Variant E command palette: a Cmd/Ctrl-K overlay in E's HUD look that navigates and answers D's trap commands.
+// Variant E command palette: a Cmd/Ctrl-K overlay in E's HUD look that navigates, answers D's trap commands and shows locked screens with their unlock level.
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
-import { IconChevronRight, IconSparkles, IconWarning } from "@posthog/icons";
+import { IconChevronRight, IconLock, IconSparkles, IconWarning } from "@posthog/icons";
 import { Kbd } from "@posthog/quill";
 import { HedgehogCodeBubble } from "@posthog/brand/hoggies";
-import { hiddenCommands, run, suggest, tokensOf, visibleCommands, type Command, type Output, type Shell } from "./palette-commands";
+import { hiddenCommands, isLocked, run, suggest, tokensOf, visibleCommands, type Command, type Output, type Shell } from "./palette-commands";
+import { unlockOf, usePreviewLevel } from "./unlocks";
 
 export const isMac = () => /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 
@@ -24,13 +25,14 @@ export function usePaletteHotkey(onToggle: () => void) {
 
 type View = "suggest" | "help";
 
-export function CommandPalette({ open, onClose, shell }: { open: boolean; onClose: () => void; shell: Omit<Shell, "openHelp"> }) {
+export function CommandPalette({ open, onClose, shell }: { open: boolean; onClose: () => void; shell: Omit<Shell, "openHelp" | "level"> }) {
   if (!open) return null;
   return <PaletteOverlay onClose={onClose} shell={shell} />;
 }
 
-function PaletteOverlay({ onClose, shell }: { onClose: () => void; shell: Omit<Shell, "openHelp"> }) {
+function PaletteOverlay({ onClose, shell }: { onClose: () => void; shell: Omit<Shell, "openHelp" | "level"> }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const level = usePreviewLevel();
   const [input, setInput] = useState("");
   const [highlight, setHighlight] = useState(-1);
   const [output, setOutput] = useState<(Output & { line: string }) | null>(null);
@@ -44,7 +46,7 @@ function PaletteOverlay({ onClose, shell }: { onClose: () => void; shell: Omit<S
   }, []);
 
   const execute = (line: string) => {
-    const outcome = run(line, { ...shell, openHelp: () => setView("help") });
+    const outcome = run(line, { ...shell, level, openHelp: () => setView("help") });
     setInput("");
     setHighlight(-1);
     if (outcome.kind === "close") return onClose();
@@ -116,13 +118,13 @@ function PaletteOverlay({ onClose, shell }: { onClose: () => void; shell: Omit<S
 
         <div className="relative max-h-[min(24rem,55vh)] overflow-y-auto p-1.5">
           {view === "help" ? (
-            <HelpList highlight={highlight} onPick={(c) => execute(c.name)} />
+            <HelpList highlight={highlight} level={level} onPick={(c) => execute(c.name)} />
           ) : suggestions.length === 0 ? (
             <Empty input={input} />
           ) : (
             <ul id="hud-palette-list" role="listbox" aria-label="Commands">
               {suggestions.map((c, i) => (
-                <CommandRow key={c.name} command={c} active={i === highlight} onPick={() => execute(c.name)} onHover={() => setHighlight(i)} />
+                <CommandRow key={c.name} command={c} locked={isLocked(c, level)} active={i === highlight} onPick={() => execute(c.name)} onHover={() => setHighlight(i)} />
               ))}
             </ul>
           )}
@@ -150,8 +152,9 @@ function PaletteOverlay({ onClose, shell }: { onClose: () => void; shell: Omit<S
   );
 }
 
-function CommandRow({ command, active, onPick, onHover }: { command: Command; active: boolean; onPick: () => void; onHover: () => void }) {
-  const Icon = command.Icon;
+function CommandRow({ command, locked, active, onPick, onHover }: { command: Command; locked: boolean; active: boolean; onPick: () => void; onHover: () => void }) {
+  const Icon = locked ? IconLock : command.Icon;
+  const blurb = locked ? `Locked · unlocks at level ${unlockOf(command.feature!).level}` : command.blurb;
   return (
     <li id={`hud-cmd-${command.name}`} role="option" aria-selected={active}>
       <button
@@ -162,27 +165,27 @@ function CommandRow({ command, active, onPick, onHover }: { command: Command; ac
         onClick={onPick}
         className={`group flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors ${active ? "bg-primary/10 text-foreground ring-1 ring-inset ring-primary/40" : "hover:bg-fill-hover"}`}
       >
-        <span className={`flex size-8 shrink-0 items-center justify-center rounded-md ring-1 ring-inset ${active ? "bg-primary text-primary-foreground ring-primary" : "bg-muted text-muted-foreground ring-border"}`}>
+        <span className={`flex size-8 shrink-0 items-center justify-center rounded-md ring-1 ring-inset ${active && !locked ? "bg-primary text-primary-foreground ring-primary" : "bg-muted text-muted-foreground ring-border"}`}>
           {Icon ? <Icon className="size-4" /> : <IconSparkles className="size-4" />}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-mono text-[13px] font-semibold">{command.usage}</span>
-          <span className="block truncate text-xs text-muted-foreground">{command.blurb}</span>
+          <span className={`block truncate font-mono text-[13px] font-semibold ${locked ? "text-muted-foreground" : ""}`}>{command.usage}</span>
+          <span className="block truncate text-xs text-muted-foreground">{blurb}</span>
         </span>
-        {command.aliases.length > 0 && <span className="hidden shrink-0 font-mono text-[11px] text-muted-foreground sm:inline">{command.aliases.slice(0, 2).join(" · ")}</span>}
+        {!locked && command.aliases.length > 0 && <span className="hidden shrink-0 font-mono text-[11px] text-muted-foreground sm:inline">{command.aliases.slice(0, 2).join(" · ")}</span>}
         <IconChevronRight className={`size-4 shrink-0 ${active ? "text-primary" : "text-transparent"}`} />
       </button>
     </li>
   );
 }
 
-function HelpList({ highlight, onPick }: { highlight: number; onPick: (c: Command) => void }) {
+function HelpList({ highlight, level, onPick }: { highlight: number; level: number; onPick: (c: Command) => void }) {
   return (
     <div id="hud-palette-list" role="listbox" aria-label="Every command">
       <div className="hud-label px-2.5 pb-1 pt-1.5">Commands</div>
       <ul>
         {visibleCommands.map((c, i) => (
-          <CommandRow key={c.name} command={c} active={i === highlight} onPick={() => onPick(c)} onHover={() => {}} />
+          <CommandRow key={c.name} command={c} locked={isLocked(c, level)} active={i === highlight} onPick={() => onPick(c)} onHover={() => {}} />
         ))}
       </ul>
       <div className="hud-label px-2.5 pb-1 pt-3">Not commands, but people keep trying</div>

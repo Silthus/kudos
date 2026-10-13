@@ -1,6 +1,7 @@
-// Variant E perk trees: the 21 mock perks regrouped into three themed trees, each placed on a four-column grid.
+// Variant E perk trees: the 21 mock perks regrouped into three themed trees on a four-column grid, no row earlier than the level the tree unlocks.
 import { perks } from "../../data/mock";
 import type { Perk } from "../../data/types";
+import { unlockOf } from "./unlocks";
 
 export type TreeId = "generosity" | "fortune" | "fellowship";
 
@@ -44,12 +45,14 @@ export type PlacedPerk = { perk: Perk; row: number; column: number };
 
 export type TreeLayout = { tree: Tree; levels: number[]; nodes: PlacedPerk[] };
 
+export const treeLevelOf = (perk: Perk) => Math.max(perk.minLevel, unlockOf("skills").level);
+
 export const treeOf = (perk: Perk) => trees.find((t) => t.id === placements[perk.id]?.tree) ?? trees[0];
 
 export function layoutOf(tree: Tree): TreeLayout {
   const members = perks.filter((p) => placements[p.id]?.tree === tree.id);
-  const levels = [...new Set(members.map((p) => p.minLevel))].sort((a, b) => a - b);
-  const nodes = members.map((perk) => ({ perk, row: levels.indexOf(perk.minLevel), column: placements[perk.id].column }));
+  const levels = [...new Set(members.map(treeLevelOf))].sort((a, b) => a - b);
+  const nodes = members.map((perk) => ({ perk, row: levels.indexOf(treeLevelOf(perk)), column: placements[perk.id].column }));
   return { tree, levels, nodes };
 }
 

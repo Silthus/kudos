@@ -51,7 +51,6 @@
 .dark .bk-stamp { mix-blend-mode: screen; }
 
 .bk-bar-fill { background: color-mix(in oklab, var(--foreground) 22%, var(--card)); }
-.bk-bar-focus { background: color-mix(in oklab, var(--primary) 70%, var(--card)); }
 .dark .bk-bar-fill { background: color-mix(in oklab, var(--foreground) 26%, var(--card)); }
 
 .bk-photo-sky { background: linear-gradient(to bottom, #cfe5f4, #f3f1e6 70%); }

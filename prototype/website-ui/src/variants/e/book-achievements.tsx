@@ -1,13 +1,13 @@
-// Variant E book achievements: an overview with the next tier to earn, a trophy shelf and hedgehog category tiles, and category pages with one emblem row per ladder; primary marks only the next tier.
+// Variant E book achievements, public to teammates: an overview with the closest next tier, a trophy shelf and hedgehog category tiles, and category pages where every unfinished ladder marks its next tier in primary and its bar says in plain words what earns it.
 import type { ReactNode } from "react";
 import { HedgehogSelfie } from "@posthog/brand/hoggies";
-import { IconArrowRight, IconEmoji, IconLock, IconQuote, IconRibbon } from "@posthog/icons";
-import { Switch } from "@posthog/quill";
+import { IconArrowRight, IconCheck, IconEmoji, IconQuote, IconRibbon } from "@posthog/icons";
 import { ladders } from "../../data/mock";
 import type { Ladder, LadderTier } from "../../data/types";
 import { TierMedal, tierLabel } from "../../ui";
 import { albumsMineFirst, categories, closestNext, earnedDate, emojiOf, formatDate, laddersIn, nextTierOf, recentlyEarned, rewardOf, tierCount, type Category, type Earned, type NextUp } from "./book-data";
 import { artOfCategory, BookArt, LadderEmblem } from "./book-emblems";
+import { requirementOf } from "./book-requirements";
 import { RarityName } from "./rarity";
 
 const sentenceCase = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
@@ -21,26 +21,25 @@ const rewardIcon: Record<string, ReactNode> = {
   Emoji: <IconEmoji className="size-3.5 shrink-0" />,
 };
 
-export function BookBar({ value, max, label, focus = false, className = "" }: { value: number; max: number; label: ReactNode; focus?: boolean; className?: string }) {
+export function BookBar({ value, max, label, count, className = "" }: { value: number; max: number; label: ReactNode; count?: ReactNode; className?: string }) {
   const percent = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   return (
-    <div className={`relative h-5 overflow-hidden rounded-md bg-muted ring-1 ring-inset ring-border ${className}`} role="img" aria-label={`${value} of ${max}`}>
-      <div className={`${focus ? "bk-bar-focus" : "bk-bar-fill"} hud-fill absolute inset-y-0 left-0 rounded-md`} style={{ width: `${percent}%` }} />
-      <span className="relative flex h-full items-center justify-center px-2 text-[11px] font-semibold tabular-nums">{label}</span>
+    <div className={`relative overflow-hidden rounded-md bg-muted ring-1 ring-inset ring-border ${count ? "min-h-6" : "h-5"} ${className}`} role={count ? undefined : "img"} aria-label={count ? undefined : `${value} of ${max}`}>
+      <div className={`bk-bar-fill hud-fill absolute inset-y-0 left-0 rounded-md`} style={{ width: `${percent}%` }} />
+      {count ? (
+        <span className="relative flex min-h-6 items-center justify-between gap-3 px-2 py-0.5">
+          <span className="min-w-0 text-xs font-semibold leading-tight">{label}</span>
+          <span className="shrink-0 text-[10px] font-medium tabular-nums text-muted-foreground">{count}</span>
+        </span>
+      ) : (
+        <span className="relative flex h-full items-center justify-center px-2 text-[11px] font-semibold tabular-nums">{label}</span>
+      )}
     </div>
   );
 }
 
-export function PrivacySwitch({ hidden, onHidden }: { hidden: boolean; onHidden: (hidden: boolean) => void }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <label className="flex items-center justify-between gap-3 text-sm">
-        Hide my achievements from teammates
-        <Switch size="sm" checked={hidden} onCheckedChange={onHidden} />
-      </label>
-      <p className="text-xs text-muted-foreground">{hidden ? "Hidden. Teammates won't see these, now or later. You still do. Prototype: nothing was saved." : "Teammates see the tiers you've earned on your profile card."}</p>
-    </div>
-  );
+export function NextMark({ className = "" }: { className?: string }) {
+  return <span className={`hud-label rounded-full bg-primary px-1.5 py-0.5 !text-[9px] !text-primary-foreground ${className}`}>Next</span>;
 }
 
 function RewardLine({ tier, muted = false }: { tier: LadderTier; muted?: boolean }) {
@@ -61,7 +60,7 @@ function RewardLine({ tier, muted = false }: { tier: LadderTier; muted?: boolean
 
 const categoryOf = (ladder: Ladder) => categories.find((c) => c.ladderIds.includes(ladder.id));
 
-export function Overview({ hidden, onHidden }: { hidden: boolean; onHidden: (hidden: boolean) => void }) {
+export function Overview() {
   const all = tierCount(ladders);
   const next = closestNext(ladders);
   return (
@@ -79,7 +78,6 @@ export function Overview({ hidden, onHidden }: { hidden: boolean; onHidden: (hid
             </p>
           </div>
           <BookBar value={all.earned} max={all.total} label={`${all.earned} / ${all.total}`} />
-          <PrivacySwitch hidden={hidden} onHidden={onHidden} />
         </div>
       </section>
 
@@ -111,20 +109,16 @@ function NextUpCard({ next }: { next: NextUp }) {
     <a href={category ? `#/achievements/${category.id}` : "#/achievements"} className="group hud-lift flex items-center gap-4 rounded-xl border bg-card p-3 sm:p-4">
       <LadderEmblem ladder={ladder} size={60} />
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-          <span className="hud-label">Closest next tier</span>
-          <span className="text-xs text-muted-foreground">
-            {tier.threshold - ladder.count} more {ladder.counts}
-          </span>
-        </div>
+        <span className="hud-label">Closest next tier</span>
         <div className="flex flex-wrap items-center gap-x-2">
+          <NextMark />
           <TierMedal tier={tier.tier} earned={false} size={18} />
           <span className="hud-display text-lg font-bold leading-tight">{tier.name}</span>
           <span className="text-sm text-muted-foreground">
             {tierLabel[tier.tier]} {ladder.name}
           </span>
         </div>
-        <BookBar value={ladder.count} max={tier.threshold} label={`${ladder.count} / ${tier.threshold}`} focus />
+        <BookBar value={ladder.count} max={tier.threshold} label={requirementOf(ladder, tier)} count={`${ladder.count.toLocaleString()} / ${tier.threshold.toLocaleString()}`} />
         <RewardLine tier={tier} />
       </div>
       <IconArrowRight className="hidden size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 sm:block" />
@@ -227,10 +221,9 @@ function AlbumsTile() {
   );
 }
 
-export function CategoryPage({ category, hidden }: { category: Category; hidden: boolean }) {
+export function CategoryPage({ category }: { category: Category }) {
   const shown = laddersIn(category);
   const count = tierCount(shown);
-  const focus = closestNext(shown)?.ladder.id;
   const Hog = artOfCategory(category.id);
   return (
     <div className="bk-paper bk-book flex flex-col gap-5 p-4 sm:p-7">
@@ -243,26 +236,18 @@ export function CategoryPage({ category, hidden }: { category: Category; hidden:
             <p className="text-sm text-muted-foreground">{category.blurb}</p>
           </div>
           <BookBar value={count.earned} max={count.total} label={`${count.earned} / ${count.total} tiers`} />
-          {hidden && (
-            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <IconLock className="size-3.5" /> Hidden from teammates.{" "}
-              <a href="#/achievements" className="text-foreground underline underline-offset-2">
-                Change
-              </a>
-            </p>
-          )}
         </div>
       </header>
       <ol className="flex flex-col gap-3">
         {shown.map((ladder) => (
-          <LadderRow key={ladder.id} ladder={ladder} focus={ladder.id === focus} />
+          <LadderRow key={ladder.id} ladder={ladder} />
         ))}
       </ol>
     </div>
   );
 }
 
-function LadderRow({ ladder, focus }: { ladder: Ladder; focus: boolean }) {
+function LadderRow({ ladder }: { ladder: Ladder }) {
   const next = nextTierOf(ladder);
   const bestIndex = (next ? ladder.tiers.indexOf(next) : ladder.tiers.length) - 1;
   const best = ladder.tiers[bestIndex];
@@ -277,39 +262,38 @@ function LadderRow({ ladder, focus }: { ladder: Ladder; focus: boolean }) {
             <span className="text-xs tabular-nums text-muted-foreground">{latest && best ? `${tierLabel[best.tier]} earned ${formatDate(latest)}` : "Not started"}</span>
           </div>
           <p className="-mt-1.5 text-sm text-muted-foreground">{sentenceCase(ladder.counts)}</p>
-          <BookBar
-            value={next ? ladder.count : 1}
-            max={next ? next.threshold : 1}
-            focus={focus}
-            label={next ? `${ladder.count} / ${next.threshold} · next: ${next.name}` : `All four tiers · ${ladder.count} ${ladder.counts}`}
-          />
+          {next ? (
+            <BookBar value={ladder.count} max={next.threshold} label={requirementOf(ladder, next)} count={`${ladder.count.toLocaleString()} / ${next.threshold.toLocaleString()}`} />
+          ) : (
+            <BookBar value={1} max={1} label={<span className="flex items-center gap-1"><IconCheck className="size-3.5" /> Complete</span>} count={`All four tiers · ${ladder.count.toLocaleString()} ${ladder.counts}`} />
+          )}
         </div>
       </div>
       <ol className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
         {ladder.tiers.map((tier, i) => (
-          <TierCell key={tier.tier} tier={tier} date={earnedDate(ladder, i)} counts={ladder.counts} focus={focus && tier === next} />
+          <TierCell key={tier.tier} tier={tier} date={earnedDate(ladder, i)} counts={ladder.counts} next={tier === next} />
         ))}
       </ol>
     </li>
   );
 }
 
-function TierCell({ tier, date, counts, focus }: { tier: LadderTier; date?: string; counts: string; focus: boolean }) {
-  const look = tier.earned ? "bg-muted/70" : focus ? "bg-card ring-2 ring-primary" : "bk-slot";
+function TierCell({ tier, date, counts, next }: { tier: LadderTier; date?: string; counts: string; next: boolean }) {
+  const look = tier.earned ? "bg-muted/70" : next ? "bg-card ring-2 ring-primary" : "bk-slot";
   return (
     <li className={`relative flex flex-col gap-1.5 rounded-lg p-2.5 ${look}`}>
-      {focus && <span className="hud-label absolute -top-2 right-2 rounded-full bg-foreground px-1.5 py-0.5 !text-[9px] !text-background">Next</span>}
+      {next && <NextMark className="absolute -top-2 right-2" />}
       <div className="flex items-center gap-2">
         <TierMedal tier={tier.tier} earned={tier.earned} size={24} />
         <div className="min-w-0">
           <div className="hud-label">{tierLabel[tier.tier]}</div>
-          <div className={`text-sm font-medium leading-tight ${tier.earned || focus ? "" : "text-muted-foreground"}`}>{tier.name}</div>
+          <div className={`text-sm font-medium leading-tight ${tier.earned || next ? "" : "text-muted-foreground"}`}>{tier.name}</div>
         </div>
       </div>
       <div className="text-xs tabular-nums text-muted-foreground" title={`${tier.threshold} ${counts}`}>
         {tier.earned && date ? `Earned ${formatDate(date)}` : `At ${tier.threshold.toLocaleString()}`}
       </div>
-      <RewardLine tier={tier} muted={!tier.earned && !focus} />
+      <RewardLine tier={tier} muted={!tier.earned && !next} />
     </li>
   );
 }

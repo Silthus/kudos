@@ -1,15 +1,17 @@
-// Variant E deep-link landings: one celebratory moment per Slack link, a cover band over a HUD panel.
-import { useState, type ComponentType, type CSSProperties, type ReactNode } from "react";
+// Variant E deep-link landings: one celebratory moment per Slack link, a cover band over a HUD panel, including the moment a feature unlocks; locked features stay locked in every moment.
+import { useEffect, useState, type ComponentType, type CSSProperties, type ReactNode } from "react";
 import { Button } from "@posthog/quill";
 import { HedgehogHeart, HedgehogLevelUp, HedgehogMagnifyingGlass, HedgehogReading, HedgehogStampApproved } from "@posthog/brand/hoggies";
-import { IconArrowRight, IconCheck, IconLock, IconRefresh } from "@posthog/icons";
+import { IconArrowRight, IconCheck, IconLock, IconRefresh, IconUnlock } from "@posthog/icons";
 import { useNav, type ScreenId } from "../../nav";
 import { Rarity, TierMedal, tierLabel } from "../../ui";
 import type { Rarity as RarityKind } from "../../data/types";
 import { CoinGlyph, ResourceChip, SkillPointGlyph, useHud } from "../b/hud";
 import { hedgehogs, sourceLabel, useHogs } from "./hedgehogs";
 import { Chest, Egg, useBeat, useOpenable } from "./moments-chest";
-import { achievement, asMomentKind, discovery, kudos, levelUp, momentKinds, newHogId, tour, type MomentKind } from "./moments-data";
+import { achievement, asMomentKind, asUnlockFeature, discovery, kudos, levelUp, momentKinds, newHogId, tour, unlockMoments, type MomentKind, type TourStop } from "./moments-data";
+import { featureLook, nextUnlock, unlocksAtLevel } from "./unlock-features";
+import { setPreviewLevel, unlockOf, unlocks, usePreviewLevel, useUnlocked, type Feature, type Unlock } from "./unlocks";
 import "./moments.css";
 
 type Ink = "tangerine" | "lemon" | "blue";
@@ -24,10 +26,11 @@ export function Moments({ param }: { param?: string }) {
   const [run, setRun] = useState(0);
   const replay = () => setRun((r) => r + 1);
   const Moment = moments[kind];
+  const feature = kind === "unlock" ? unlockSegment() : undefined;
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
-      <Picker current={kind} />
-      <Moment key={`${kind}-${run}`} onReplay={replay} />
+      <Picker current={kind} feature={feature} />
+      <Moment key={`${kind}-${feature}-${run}`} onReplay={replay} />
     </div>
   );
 }
@@ -36,6 +39,7 @@ type MomentProps = { onReplay: () => void };
 
 const moments: Record<MomentKind, ComponentType<MomentProps>> = {
   "level-up": LevelUpMoment,
+  unlock: UnlockMoment,
   achievement: AchievementMoment,
   discovery: DiscoveryMoment,
   hedgehog: HedgehogMoment,
@@ -43,7 +47,9 @@ const moments: Record<MomentKind, ComponentType<MomentProps>> = {
   "app-home": AppHomeMoment,
 };
 
-function Picker({ current }: { current: MomentKind }) {
+const unlockSegment = () => asUnlockFeature(location.hash.replace(/^#\/?/, "").split("/")[2]);
+
+function Picker({ current, feature }: { current: MomentKind; feature?: Feature }) {
   return (
     <nav aria-label="Prototype moments" className="flex flex-col gap-1 text-xs text-muted-foreground">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -54,6 +60,16 @@ function Picker({ current }: { current: MomentKind }) {
           </a>
         ))}
       </div>
+      {feature && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span>Unlock:</span>
+          {unlocks.map((u) => (
+            <a key={u.feature} href={`#/landing/unlock/${u.feature}`} aria-current={u.feature === feature ? "page" : undefined} className={u.feature === feature ? "font-semibold text-foreground underline underline-offset-4" : "hover:text-foreground hover:underline hover:underline-offset-4"}>
+              {u.name} · {u.level}
+            </a>
+          ))}
+        </div>
+      )}
       <p>A signed-out member first sees Sign in with Slack, then lands here.</p>
     </nav>
   );
@@ -110,7 +126,7 @@ function Actions({ primary, onReplay }: { primary: Primary; onReplay: () => void
 
 function useGo() {
   const { go } = useNav();
-  return (screen: ScreenId) => () => go(screen);
+  return (screen: ScreenId, param?: string) => () => go(screen, param);
 }
 
 function Count({ to, at }: { to: number; at: number }) {
@@ -140,24 +156,35 @@ function LevelTicker({ from, to }: { from: number; to: number }) {
 
 function LevelUpMoment({ onReplay }: MomentProps) {
   const to = useGo();
-  const next = levelUp.to + 1;
+  const reached = Math.max(2, usePreviewLevel());
+  const next = reached + 1;
+  const skills = unlockOf("skills");
+  const treeOpen = reached >= skills.level;
+  const opened = unlocksAtLevel(reached);
+  const pointsLine = !treeOpen
+    ? `Skill points wait for you until the skill tree opens at level ${skills.level}.`
+    : reached === skills.level
+      ? "The skill tree is open, and every skill point you banked is ready to spend."
+      : reached === levelUp.to
+      ? `You have ${levelUp.pointsToSpend} skill points to spend.`
+      : "Your new skill point is ready to spend.";
   return (
     <MomentShell
       ink="tangerine"
       kicker="Level up"
       headline={
         <>
-          You reached level <LevelTicker from={levelUp.from} to={levelUp.to} />
+          You reached level <LevelTicker from={reached - 1} to={reached} />
         </>
       }
       hog={HedgehogLevelUp}
-      primary={{ label: "Spend skill points", onClick: to("skills") }}
+      primary={treeOpen ? { label: "Spend skill points", onClick: to("skills") } : { label: "Go to my profile", onClick: to("profile") }}
       onReplay={onReplay}
       stage={
         <div className="w-full max-w-xl">
           <div className="flex items-baseline justify-between gap-4 text-sm">
             <span className="mo-in font-semibold uppercase tracking-[0.18em]" style={delay(1.1)}>
-              Level {levelUp.to}
+              Level {reached}
             </span>
             <span className="mo-in" style={delay(1.7)}>
               <span className="font-semibold tabular-nums">{levelUp.xpToNext} XP</span> to level {next}
@@ -172,14 +199,110 @@ function LevelUpMoment({ onReplay }: MomentProps) {
     >
       <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:text-left">
         <span className="mo-fly inline-flex" style={{ ...delay(1.55), "--fy": "-110px" } as CSSProperties}>
-          <ResourceChip icon={<SkillPointGlyph />} title="Skill point gained">
-            +{levelUp.pointsGained} skill point
+          <ResourceChip icon={<SkillPointGlyph />} title={treeOpen ? "Skill point gained" : "Skill point banked"}>
+            +{levelUp.pointsGained} skill point{treeOpen ? "" : ", banked"}
           </ResourceChip>
         </span>
         <p className="mo-in text-sm md:text-base" style={delay(2.1)}>
-          You have <span className="font-semibold">{levelUp.pointsToSpend} skill points</span> to spend. Level {next} is <span className="tabular-nums">{levelUp.xpToNext}</span> XP away.
+          {pointsLine} Level {next} is <span className="tabular-nums">{levelUp.xpToNext}</span> XP away.
         </p>
       </div>
+      {opened.length > 0 && <OpenedAtLevel level={reached} opened={opened} />}
+    </MomentShell>
+  );
+}
+
+function OpenedAtLevel({ level, opened }: { level: number; opened: Unlock[] }) {
+  return (
+    <section className="mo-in flex flex-col gap-2" style={delay(2.4)} aria-label={`Level ${level} unlocks`}>
+      <span className="hud-label">Level {level} unlocks</span>
+      <ul className="flex flex-col gap-2">
+        {opened.map((u) => {
+          const { Icon } = featureLook[u.feature];
+          return (
+            <li key={u.feature}>
+              <a href={`#/landing/unlock/${u.feature}`} className="hud-lift flex items-center gap-3 rounded-lg border bg-card p-3 hover:bg-fill-hover">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-foreground text-background">
+                  <Icon className="size-4" />
+                </span>
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="text-sm font-semibold">{u.name}</span>
+                  <span className="text-xs text-muted-foreground">{u.teaser}</span>
+                </span>
+                <IconArrowRight className="size-4 shrink-0 text-muted-foreground" />
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+const unlockInk: Record<Feature, Ink> = { book: "lemon", gear: "blue", skills: "tangerine", coins: "lemon", collection: "blue" };
+
+function UnlockMoment({ onReplay }: MomentProps) {
+  const to = useGo();
+  const feature = unlockSegment();
+  const unlock = unlockOf(feature);
+  const facts = unlockMoments[feature];
+  const { Icon, Hog, screen, param } = featureLook[feature];
+  const open = useBeat(1100);
+  const level = usePreviewLevel();
+  const after = nextUnlock(unlock.level);
+  useEffect(() => {
+    if (level < unlock.level) setPreviewLevel(unlock.level);
+  }, [level, unlock.level]);
+  return (
+    <MomentShell
+      ink={unlockInk[feature]}
+      kicker={`Unlocked at level ${unlock.level}`}
+      headline={facts.headline}
+      hog={Hog}
+      primary={{ label: facts.cta, onClick: to(screen, param) }}
+      onReplay={onReplay}
+      stage={
+        <Chest
+          open={open}
+          width={168}
+          label={`Unlocked: ${unlock.name}`}
+          item={
+            <div className="mb-1 flex w-[min(19rem,80vw)] items-start gap-3 rounded-2xl bg-card p-4 text-left text-card-foreground shadow-xl">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-foreground text-background">
+                <Icon className="size-5" />
+              </span>
+              <span className="flex min-w-0 flex-col gap-1">
+                <span className="flex items-center gap-1.5 text-sm font-semibold">
+                  <IconUnlock className="size-3.5 shrink-0" />
+                  {unlock.name}
+                </span>
+                <span className="text-xs leading-snug text-muted-foreground">{unlock.teaser}</span>
+              </span>
+            </div>
+          }
+        />
+      }
+    >
+      <section className="flex flex-col gap-2.5" aria-label="Waiting for you">
+        <span className="hud-label">Waiting for you</span>
+        <ul className="flex flex-col gap-2">
+          {facts.waiting.map((line, i) => (
+            <li key={line} className="mo-in flex items-start gap-2.5 text-sm md:text-base" style={delay(1.2 + i * 0.15)}>
+              <IconCheck className="mt-1 size-4 shrink-0 text-muted-foreground" />
+              {line}
+            </li>
+          ))}
+        </ul>
+        <p className="mo-in text-sm text-muted-foreground" style={delay(1.6)}>
+          {unlock.how}
+        </p>
+      </section>
+      {after && (
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <IconLock className="size-3.5 shrink-0" />
+          Next: {after.name} at level {after.level}
+        </p>
+      )}
     </MomentShell>
   );
 }
@@ -200,6 +323,7 @@ function FoundCard({ preview, name, kind, rarity }: { preview: string; name: str
 
 function AchievementMoment({ onReplay }: MomentProps) {
   const to = useGo();
+  const bookOpen = useUnlocked("book");
   const open = useBeat(1250);
   const { reward } = achievement;
   return (
@@ -208,7 +332,7 @@ function AchievementMoment({ onReplay }: MomentProps) {
       kicker={`Achievement · ${achievement.ladder}`}
       headline={`You earned ${achievement.name}`}
       hog={HedgehogStampApproved}
-      primary={{ label: "See achievements", onClick: to("achievements") }}
+      primary={bookOpen ? { label: "See achievements", onClick: to("achievements") } : { label: "Go to my profile", onClick: to("profile") }}
       onReplay={onReplay}
       stage={
         <div className="flex flex-wrap items-end justify-center gap-x-8 gap-y-6 sm:gap-x-14">
@@ -230,7 +354,7 @@ function AchievementMoment({ onReplay }: MomentProps) {
       }
     >
       <p className="mo-in text-sm md:text-base" style={delay(2)}>
-        {achievement.counts}. The <span className="font-semibold">{reward.name}</span> {reward.kind.toLowerCase()} is in your collection.
+        {achievement.counts}. The <span className="font-semibold">{reward.name}</span> {reward.kind.toLowerCase()} is in your inventory.
       </p>
     </MomentShell>
   );
@@ -238,6 +362,8 @@ function AchievementMoment({ onReplay }: MomentProps) {
 
 function DiscoveryMoment({ onReplay }: MomentProps) {
   const to = useGo();
+  const gear = unlockOf("gear");
+  const gearOpen = useUnlocked("gear");
   const { open, openNow } = useOpenable(1600);
   return (
     <MomentShell
@@ -245,7 +371,7 @@ function DiscoveryMoment({ onReplay }: MomentProps) {
       kicker={`Drop · ${discovery.foundWhile}`}
       headline={`You found a new ${discovery.kind.toLowerCase()}`}
       hog={HedgehogMagnifyingGlass}
-      primary={{ label: "Equip it", onClick: to("collection") }}
+      primary={gearOpen ? { label: "Equip it", onClick: to("profile", "inventory") } : { label: "Go to my profile", onClick: to("profile") }}
       onReplay={onReplay}
       stage={
         <Chest
@@ -268,7 +394,7 @@ function DiscoveryMoment({ onReplay }: MomentProps) {
     >
       {open ? (
         <p className="mo-in text-sm md:text-base" style={delay(0.9)}>
-          A new quip for your collection. Equip it and it can ride along on the kudos you give.
+          {gearOpen ? "A new quip for your inventory. Equip it and it can ride along on the kudos you give." : `A new quip. It waits for you until your inventory opens at level ${gear.level}.`}
         </p>
       ) : (
         <p className="text-sm text-muted-foreground md:text-base">Something dropped while you gave kudos.</p>
@@ -306,6 +432,9 @@ function HedgehogMoment({ onReplay }: MomentProps) {
 
 function KudosMoment({ onReplay }: MomentProps) {
   const to = useGo();
+  const book = unlockOf("book");
+  const bookOpen = useUnlocked("book");
+  const coinsOpen = useUnlocked("coins");
   const open = useBeat(1850);
   return (
     <MomentShell
@@ -319,7 +448,7 @@ function KudosMoment({ onReplay }: MomentProps) {
       }
       headline={`${kudos.first} thanked you`}
       hog={HedgehogHeart}
-      primary={{ label: "Open sticker book", onClick: to("stickers") }}
+      primary={bookOpen ? { label: "Open sticker book", onClick: to("stickers") } : { label: "Go to my profile", onClick: to("profile") }}
       onReplay={onReplay}
       stage={
         <figure className="mo-in flex w-full flex-col gap-3" style={delay(0.4)}>
@@ -340,19 +469,29 @@ function KudosMoment({ onReplay }: MomentProps) {
               </span>
             </ResourceChip>
           </li>
-          <li className="mo-chip-pop flex items-center gap-3" style={delay(1.1)}>
-            <ResourceChip icon={<CoinGlyph />} title="Coins gained">
-              <span>
-                +<Count to={kudos.coins} at={1.1} /> coins
-              </span>
-            </ResourceChip>
-          </li>
+          {coinsOpen && (
+            <li className="mo-chip-pop flex items-center gap-3" style={delay(1.1)}>
+              <ResourceChip icon={<CoinGlyph />} title="Coins gained">
+                <span>
+                  +<Count to={kudos.coins} at={1.1} /> coins
+                </span>
+              </ResourceChip>
+            </li>
+          )}
           <li className="flex items-center gap-3">
             <span className="mo-sticker inline-flex size-10 items-center justify-center rounded-full border-2 border-white text-xs font-bold text-white shadow-md ring-1 ring-black/10" style={{ background: `hsl(${kudos.hue} 70% 48%)`, ...delay(1.35) }} aria-hidden>
               {kudos.initials}
             </span>
             <span className="mo-in text-sm" style={delay(1.45)}>
-              New sticker: <span className="font-semibold">{kudos.first}</span>
+              {bookOpen ? (
+                <>
+                  New sticker: <span className="font-semibold">{kudos.first}</span>
+                </>
+              ) : (
+                <>
+                  <span className="font-semibold">{kudos.first}</span>'s sticker waits for the Book, which opens at level {book.level}
+                </>
+              )}
             </span>
           </li>
         </ul>
@@ -367,26 +506,46 @@ function KudosMoment({ onReplay }: MomentProps) {
 
 function AppHomeMoment({ onReplay }: MomentProps) {
   const to = useGo();
+  const level = usePreviewLevel();
   return (
     <MomentShell ink="blue" kicker="From App Home" headline="There's more here than App Home" hog={HedgehogReading} primary={{ label: "Go to my profile", onClick: to("profile") }} onReplay={onReplay}>
       <div className="flex flex-col gap-3">
         <span className="hud-label">What's here</span>
         <ul className="grid gap-1 sm:grid-cols-2">
-          {tour.map(({ href, label, blurb, Icon }, i) => (
-            <li key={href} className="mo-in" style={delay(0.3 + i * 0.08)}>
-              <a href={href} className="hud-lift flex items-start gap-3 rounded-lg p-2.5 hover:bg-fill-hover">
-                <span className="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-md border bg-card">
-                  <Icon className="size-4" />
-                </span>
-                <span className="flex min-w-0 flex-col">
-                  <span className="text-sm font-semibold">{label}</span>
-                  <span className="text-xs text-muted-foreground">{blurb}</span>
-                </span>
-              </a>
+          {tour.map((stop, i) => (
+            <li key={stop.href} className="mo-in" style={delay(0.3 + i * 0.08)}>
+              <TourEntry {...stop} level={level} />
             </li>
           ))}
         </ul>
       </div>
     </MomentShell>
+  );
+}
+
+function TourEntry({ href, label, blurb, Icon, feature, level }: TourStop & { level: number }) {
+  const unlock = feature && unlockOf(feature);
+  if (unlock && level < unlock.level)
+    return (
+      <span role="link" aria-disabled="true" className="flex items-start gap-3 rounded-lg p-2.5 text-muted-foreground">
+        <span className="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-dashed bg-muted">
+          <IconLock className="size-4" />
+        </span>
+        <span className="flex min-w-0 flex-col">
+          <span className="text-sm font-semibold">{label}</span>
+          <span className="text-xs">Unlocks at level {unlock.level}</span>
+        </span>
+      </span>
+    );
+  return (
+    <a href={href} className="hud-lift flex items-start gap-3 rounded-lg p-2.5 hover:bg-fill-hover">
+      <span className="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-md border bg-card">
+        <Icon className="size-4" />
+      </span>
+      <span className="flex min-w-0 flex-col">
+        <span className="text-sm font-semibold">{label}</span>
+        <span className="text-xs text-muted-foreground">{blurb}</span>
+      </span>
+    </a>
   );
 }
