@@ -7,11 +7,11 @@ type Mode = 'candidate' | 'bounded';
 type Perk = { id: string; level: number; points: number; coins: number; requires?: string };
 type Reward = { xp: number; coins: number; item?: string };
 type Quest = { id: string; target: number; reward: Reward; feasible: (p: Persona, s: State) => boolean; progress: (w: Week) => number };
-type Persona = { id: string; peers: number; groups: number; groupSize: number; givenPerDay: number; receivedPerWeek: number; genuine: boolean; pair: boolean; recentJoiner: boolean; buyOrder: string[]; groupAllParticipate: boolean };
-type Week = { given: number; received: number; thoughtful: number; qualifying: number; distinct: Set<number>; newPeople: Set<number>; days: Set<number>; outside: Set<number>; groups: Set<number>; detail: boolean; chimes: number; otherChimes: number; gotChime: number; applause: number; oldFriends: number; receivedNew: number; equippedEmoji: boolean; equippedHog: boolean; spentPoint: boolean; contribution: boolean };
+type Persona = { id: string; peers: number; groups: number; givenPerDay: number; receivedPerWeek: number; genuine: boolean; pair: boolean; recentJoiner: boolean; buyOrder: string[]; groupAllParticipate: boolean };
+type Week = { given: number; received: number; thoughtful: number; qualifying: number; distinct: Set<number>; newPeople: Set<number>; days: Set<number>; outside: Set<number>; groups: Set<number>; detail: boolean; newcomerThanks: number; chimes: number; otherChimes: number; gotChime: number; applause: number; oldFriends: number; receivedNew: number; equippedEmoji: boolean; equippedHog: boolean; contribution: boolean };
 type Row = { week: number; level: number; xp: number; baseXp: number; bonusXp: number; questXp: number; coins: number; earnedCoins: number; given: number; received: number; thoughtful: number; qualifying: number; points: number; perks: string; quests: string; journey: string; ready: string; opened: string };
 type Event = { week: number; trigger: string; action: string; reward: string; drives: string };
-type State = { xp: number; level: number; coins: number; earnedCoins: number; spentPoints: number; given: number; received: number; days: Set<number>; months: Set<string>; thanked: Set<number>; stickers: Set<number>; owned: Set<string>; opened: Set<string>; achievements: Set<string>; items: Set<string>; featureClaims: Set<string>; journeyClaims: Set<string>; events: Event[]; rows: Row[]; firstLevels: Map<number, number>; albums: Set<number>; lastThanks: Map<number, number>; oldFriends: number; applause: number; chimes: number; groupQuestBlocked: number; infeasibleOffers: number; maxExpiredCompleteXp: number; baseXp: number; bonusXp: number; questXp: number; coinSource: Record<string, number> };
+type State = { xp: number; level: number; coins: number; earnedCoins: number; spentPoints: number; given: number; received: number; days: Set<number>; months: Set<string>; thanked: Set<number>; stickers: Set<number>; owned: Set<string>; opened: Set<string>; achievements: Set<string>; items: Set<string>; featureClaims: Set<string>; journeyClaims: Set<string>; events: Event[]; rows: Row[]; firstLevels: Map<number, number>; albums: Set<number>; lastThanks: Map<number, number>; oldFriends: number; applause: number; chimes: number; groupQuestBlocked: number; infeasibleOffers: number; baseXp: number; bonusXp: number; questXp: number; coinSource: Record<string, number> };
 
 const weeks = 104;
 const features = [ ['quests', 2], ['leaderboard', 3], ['book', 4], ['skills', 5], ['coins', 6], ['inventory', 6], ['collection', 7] ] as const;
@@ -24,12 +24,12 @@ const perks: Perk[] = [
 const giverBuild = ['spark', 'circle', 'rhythm', 'treasurer', 'flame', 'bridge', 'cadence', 'banker', 'focus', 'reserve', 'echo', 'spotlight', 'reservoir', 'resonance'];
 const receiverBuild = ['echo', 'resonance'];
 const personas: Persona[] = [
-  { id: 'new-member', peers: 18, groups: 4, groupSize: 6, givenPerDay: 1, receivedPerWeek: 2, genuine: true, pair: false, recentJoiner: true, buyOrder: giverBuild, groupAllParticipate: true },
-  { id: 'thoughtful-giver', peers: 18, groups: 4, groupSize: 6, givenPerDay: 2, receivedPerWeek: 3, genuine: true, pair: false, recentJoiner: false, buyOrder: giverBuild, groupAllParticipate: true },
-  { id: 'quiet-receiver', peers: 18, groups: 4, groupSize: 6, givenPerDay: 0, receivedPerWeek: 6, genuine: true, pair: false, recentJoiner: false, buyOrder: receiverBuild, groupAllParticipate: false },
-  { id: 'optimiser', peers: 18, groups: 4, groupSize: 6, givenPerDay: 3, receivedPerWeek: 15, genuine: false, pair: true, recentJoiner: false, buyOrder: ['rhythm', 'treasurer', 'cadence', 'banker', 'spark', 'flame', 'circle', 'bridge', 'focus', 'reserve', 'echo', 'spotlight', 'reservoir', 'resonance'], groupAllParticipate: false },
-  { id: 'small-group', peers: 2, groups: 1, groupSize: 3, givenPerDay: 1, receivedPerWeek: 3, genuine: true, pair: false, recentJoiner: false, buyOrder: giverBuild, groupAllParticipate: false },
-  { id: 'no-groups', peers: 8, groups: 0, groupSize: 0, givenPerDay: 2, receivedPerWeek: 3, genuine: true, pair: false, recentJoiner: false, buyOrder: giverBuild, groupAllParticipate: false },
+  { id: 'new-member', peers: 18, groups: 4, givenPerDay: 1, receivedPerWeek: 2, genuine: true, pair: false, recentJoiner: true, buyOrder: giverBuild, groupAllParticipate: true },
+  { id: 'thoughtful-giver', peers: 18, groups: 4, givenPerDay: 2, receivedPerWeek: 3, genuine: true, pair: false, recentJoiner: false, buyOrder: giverBuild, groupAllParticipate: true },
+  { id: 'quiet-receiver', peers: 18, groups: 4, givenPerDay: 0, receivedPerWeek: 6, genuine: true, pair: false, recentJoiner: false, buyOrder: receiverBuild, groupAllParticipate: false },
+  { id: 'optimiser', peers: 18, groups: 4, givenPerDay: 3, receivedPerWeek: 15, genuine: false, pair: true, recentJoiner: false, buyOrder: ['rhythm', 'treasurer', 'cadence', 'banker', 'spark', 'flame', 'circle', 'bridge', 'focus', 'reserve', 'echo', 'spotlight', 'reservoir', 'resonance'], groupAllParticipate: false },
+  { id: 'small-group', peers: 2, groups: 1, givenPerDay: 1, receivedPerWeek: 3, genuine: true, pair: false, recentJoiner: false, buyOrder: giverBuild, groupAllParticipate: false },
+  { id: 'no-groups', peers: 8, groups: 0, givenPerDay: 2, receivedPerWeek: 3, genuine: true, pair: false, recentJoiner: false, buyOrder: giverBuild, groupAllParticipate: false },
 ];
 const reward = (xp: number, coins = 0, item?: string): Reward => ({ xp, coins, ...(item ? { item } : {}) });
 const yes = () => true;
@@ -37,7 +37,7 @@ const personal: Quest[] = [
   { id: 'new-face', target: 1, reward: reward(60, 15), feasible: (p, s) => s.thanked.size < p.peers, progress: w => w.newPeople.size },
   { id: 'two-groups', target: 2, reward: reward(80, 20), feasible: p => p.groups >= 2, progress: w => w.groups.size },
   { id: 'outside', target: 1, reward: reward(50, 10, 'emoji-sunflower'), feasible: p => p.groups >= 2, progress: w => w.outside.size },
-  { id: 'newcomer', target: 1, reward: reward(60, 15), feasible: p => p.recentJoiner, progress: w => [...w.distinct].filter(n => n === 0).length },
+  { id: 'newcomer', target: 1, reward: reward(60, 15), feasible: (p, s) => p.recentJoiner && s.rows.length < 13, progress: w => w.newcomerThanks },
   { id: 'long-time', target: 1, reward: reward(50, 10), feasible: (p, s) => [...s.lastThanks.values()].some(d => (s.rows.length * 7 - d) >= 30), progress: w => w.oldFriends },
   { id: 'say-why', target: 3, reward: reward(90, 25), feasible: yes, progress: w => w.thoughtful },
   { id: 'three-days', target: 3, reward: reward(90, 20, 'hog-party'), feasible: yes, progress: w => w.days.size },
@@ -53,7 +53,7 @@ const tiers = ['bronze', 'silver', 'gold', 'diamond'] as const;
 const thresholds = (level: number) => level === 1 ? 0 : level === 2 ? 20 : 50 * (level - 1) * (level - 2);
 const levelOf = (xp: number) => { let level = 1; while (xp >= thresholds(level + 1)) level++; return level; };
 const points = (s: State) => Math.max(0, s.level - 4) - s.spentPoints;
-const initial = (): State => ({ xp: 0, level: 1, coins: 0, earnedCoins: 0, spentPoints: 0, given: 0, received: 0, days: new Set(), months: new Set(), thanked: new Set(), stickers: new Set(), owned: new Set(), opened: new Set(), achievements: new Set(), items: new Set(['hog-sunday', 'emoji-hog']), featureClaims: new Set(), journeyClaims: new Set(), events: [], rows: [], firstLevels: new Map([[1, 0]]), albums: new Set(), lastThanks: new Map(), oldFriends: 0, applause: 0, chimes: 0, groupQuestBlocked: 0, infeasibleOffers: 0, maxExpiredCompleteXp: 0, baseXp: 0, bonusXp: 0, questXp: 0, coinSource: {} });
+const initial = (): State => ({ xp: 0, level: 1, coins: 0, earnedCoins: 0, spentPoints: 0, given: 0, received: 0, days: new Set(), months: new Set(), thanked: new Set(), stickers: new Set(), owned: new Set(), opened: new Set(), achievements: new Set(), items: new Set(['hog-sunday', 'emoji-hog']), featureClaims: new Set(), journeyClaims: new Set(), events: [], rows: [], firstLevels: new Map([[1, 0]]), albums: new Set(), lastThanks: new Map(), oldFriends: 0, applause: 0, chimes: 0, groupQuestBlocked: 0, infeasibleOffers: 0, baseXp: 0, bonusXp: 0, questXp: 0, coinSource: {} });
 const event = (s: State, week: number, trigger: string, action: string, result: string, drives: string) => s.events.push({ week, trigger, action, reward: result, drives });
 function creditCoins(s: State, amount: number, source: string) { s.coins += amount; s.earnedCoins += amount; s.coinSource[source] = (s.coinSource[source] ?? 0) + amount; }
 function addXp(s: State, xp: number, week: number, source: 'baseXp' | 'bonusXp' | 'questXp') {
@@ -82,9 +82,8 @@ function buyPerks(p: Persona, s: State, week: number) {
     event(s, week, `L${s.level}; affordable ${id}`, 'choose disclosed permanent perk', `${id}; -${perk.points} points; -${perk.coins} coins; future effects only`, 'CD2/3/4; W/M; L/R; CD6 gate');
   }
 }
-function actions(p: Persona, s: State, week: number, mode: Mode): Week {
-  const w: Week = { given: 0, received: 0, thoughtful: 0, qualifying: 0, distinct: new Set(), newPeople: new Set(), days: new Set(), outside: new Set(), groups: new Set(), detail: false, chimes: 0, otherChimes: 0, gotChime: 0, applause: 0, oldFriends: 0, receivedNew: 0, equippedEmoji: s.opened.has('inventory'), equippedHog: s.opened.has('collection'), spentPoint: false, contribution: false };
-  const reserve = s.owned.has('reservoir') ? 4 : s.owned.has('reserve') ? 2 : 0;
+function actions(p: Persona, s: State, week: number, mode: Mode, reserve: number): Week {
+  const w: Week = { given: 0, received: 0, thoughtful: 0, qualifying: 0, distinct: new Set(), newPeople: new Set(), days: new Set(), outside: new Set(), groups: new Set(), detail: false, newcomerThanks: 0, chimes: 0, otherChimes: 0, gotChime: 0, applause: 0, oldFriends: 0, receivedNew: 0, equippedEmoji: s.opened.has('inventory'), equippedHog: s.opened.has('collection'), contribution: false };
   const dailySeen = new Set<string>(); const weeklySeen = new Set<number>(); const receivedSeen = new Set<number>();
   let receivedCoins = 0;
   for (let day = 0; day < 5; day++) {
@@ -104,6 +103,7 @@ function actions(p: Persona, s: State, week: number, mode: Mode): Week {
       if (p.groups) w.groups.add(group);
       if (group > 0) w.outside.add(recipient);
       if (p.genuine) w.detail = true;
+      if (p.recentJoiner && week <= 13 && recipient === 0) w.newcomerThanks++;
       const prior = s.lastThanks.get(recipient);
       if (prior !== undefined && dayKey - prior >= 30) w.oldFriends++;
       s.lastThanks.set(recipient, dayKey); s.thanked.add(recipient); s.stickers.add(recipient); s.days.add(dayKey); s.months.add(date.toISOString().slice(0, 7));
@@ -210,21 +210,21 @@ function selectQuests(p: Persona, s: State, week: number, mode: Mode) {
 function simulate(p: Persona, mode: Mode): State {
   const s = initial(); event(s, 0, 'discover a colleague thanking real work', 'read recognition; open explanation', 'meaning before game counters; starter avatar', 'CD1/5; W/M; R');
   for (let week = 1; week <= weeks; week++) {
+    const reserve = s.owned.has('reservoir') ? 4 : s.owned.has('reserve') ? 2 : 0;
     openReady(s, week); buyPerks(p, s, week);
     const assigned = selectQuests(p, s, week, mode);
     const before = { base: s.baseXp, bonus: s.bonusXp, quest: s.questXp, points: s.spentPoints };
-    const w = actions(p, s, week, mode);
+    const w = actions(p, s, week, mode, reserve);
     openReady(s, week);
     const claimed: string[] = [];
     if (s.opened.has('quests')) for (const q of assigned) {
       if (q.progress(w) >= q.target) {
         award(s, q.reward, week, `personal/${q.id}`); claimed.push(q.id);
-        s.maxExpiredCompleteXp += q.reward.xp;
       }
     }
     if (s.opened.has('quests') && p.groups) {
       const groupId = groupQuestIds[(week - 1) % 3]!;
-      const done = groupId === 'group-everyone' ? p.groupAllParticipate && w.contribution : groupId === 'group-reach' ? p.groups >= 5 && w.outside.size >= 4 : p.groupAllParticipate && w.chimes > 0;
+      const done = groupId === 'group-everyone' ? p.groupAllParticipate && w.contribution : groupId === 'group-reach' ? p.groups >= 5 && [...w.groups].filter(g => g > 0).length >= 4 : p.groupAllParticipate && w.chimes > 0;
       if (done) { award(s, reward(groupId === 'group-chime' ? 100 : 120, groupId === 'group-chime' ? 25 : 30, groupId === 'group-everyone' ? 'hog-surfer' : undefined), week, `group/${groupId}`); claimed.push(groupId); }
       else s.groupQuestBlocked++;
     }
@@ -270,6 +270,10 @@ function boundaryScenarios() {
   assert.equal(roster.every(n => stickerSet.has(n)), false);
   assert.equal(roster.filter(n => n !== 1).every(n => stickerSet.has(n)), true);
   event(s, 2, 'unthanked member leaves two-page album', 'G34 reevaluates current roster', 'album completes without new thanks; retain historical completion but do not describe it as new thoughtful work', 'CD2/4/5; W/M; L/R');
+  const groupScore = (total: number, members: number) => Math.round(total / members * 10) / 10;
+  assert.equal(groupScore(9, 3), 3); assert.equal(groupScore(9, 4), 2.3);
+  event(s, 2, 'group totals 9; current primary roster changes 3 to 4', 'view G20 score and participation, not recipient totals', 'score changes 3.0 to 2.3 without new awards; board must explain denominator; groups under 3 do not rank', 'CD2/5; W/M; L/R; comparison risk');
+  event(s, 2, 'weekly giver totals 15 padded vs 10 specific', 'rank kudos units given under G13', 'padded giver ranks higher; no XP/coins rewarded by rank; volume trade-off is explicit', 'CD2/5; W/M; L/R; possible CD8 status anxiety');
   const claimLedger = new Set<string>(); let claimCoins = 0;
   const claim = (id: string) => { if (claimLedger.has(id)) return; claimLedger.add(id); claimCoins += 15; };
   claim('week-1/new-face'); claim('week-1/new-face');
@@ -297,6 +301,11 @@ checks();
 if (!process.argv.includes('--check')) {
   const runs = personas.flatMap(p => (['candidate', 'bounded'] as const).map(mode => ({ p, mode, s: simulate(p, mode) })));
   for (const { p, mode, s } of runs) {
+    for (let week = 0; week < s.rows.length; week++) {
+      const priorOwned = new Set((s.rows[week - 1]?.perks ?? '').split(','));
+      const refill = priorOwned.has('reservoir') ? 4 : priorOwned.has('reserve') ? 2 : 0;
+      assert.equal(s.rows[week]!.given, p.givenPerDay * 5 + refill);
+    }
     assert.equal(s.xp, s.baseXp + s.bonusXp + s.questXp);
     assert.equal(s.level, levelOf(s.xp)); assert(s.firstLevels.has(8), `${p.id}/${mode} reaches L8`);
     assert.equal(s.earnedCoins, Object.values(s.coinSource).reduce((a, b) => a + b, 0));
@@ -308,7 +317,7 @@ if (!process.argv.includes('--check')) {
   const boundary = boundaryScenarios();
   const boundaryTable = `## Controlled boundary scenarios\n\n| Week | Trigger | Action | Reward | Drives |\n|---:|---|---|---|---|\n${boundary.map(e => `| ${e.week} | ${esc(e.trigger)} | ${esc(e.action)} | ${esc(e.reward)} | ${esc(e.drives)} |`).join('\n')}`;
   const traces = runs.map(({ p, mode, s }) => `## ${p.id} / ${mode}\n\n| Week | Trigger | Action | Reward | Drives |\n|---:|---|---|---|---|\n${s.events.map(e => `| ${e.week} | ${esc(e.trigger)} | ${esc(e.action)} | ${esc(e.reward)} | ${esc(e.drives)} |`).join('\n')}`).join('\n\n');
-  const summary = `# Synthetic simulation results\n\nGenerated with \`bun research/octalysis-simulation.ts\`. Candidate = literal per-award Rhythm/Treasurer, one reroll; bounded = P16 bonus limits and feasibility filtering. Both still use the five-word gate and unchanged base XP. All numbers are synthetic, not product analytics. The proposed Journey gives no additional numerical rewards.\n\n| Persona | Mode | L2/L3/L4/L5/L6/L7/L8 weeks | Final level | XP (base / perks / quests) | Coins earned / balance | Impossible initial offers | Unfinished group weeks |\n|---|---|---|---:|---|---|---:|---:|\n${runs.map(({ p, mode, s }) => `| ${p.id} | ${mode} | ${[2,3,4,5,6,7,8].map(l => s.firstLevels.get(l)).join('/')} | ${s.level} | ${s.xp} (${s.baseXp}/${s.bonusXp}/${s.questXp}) | ${s.earnedCoins}/${s.coins} | ${s.infeasibleOffers} | ${s.groupQuestBlocked} |`).join('\n')}\n\nCandidate and bounded both permit padding and reciprocal base-XP farming. These interventions contain bonus extraction, not sincerity. Quiet receivers reach L8 on received XP while the proposed giving Journey remains incomplete. Every run reaches L8; later levels, limited skill points and permanent builds appear in the trace. No baseline chime-ins are generated; their full controlled boundary scenarios are in the report.\n\n[Weekly state for every run](octalysis-weekly.tsv) · [Every milestone/claim/purchase/Journey step](octalysis-trace.md)\n`;
+  const summary = `# Synthetic simulation results\n\nGenerated with \`bun research/octalysis-simulation.ts\`. Candidate = literal per-award Rhythm/Treasurer/Focus, one reroll; bounded = P16 bonus limits and feasibility filtering. Both still use the five-word gate and unchanged base XP. All numbers are synthetic, not product analytics. The proposed Journey gives no additional numerical rewards.\n\n| Persona | Mode | L2/L3/L4/L5/L6/L7/L8 weeks | Final level | XP (base / perks / quests) | Coins earned / balance | Impossible initial offers | Unfinished group weeks |\n|---|---|---|---:|---|---|---:|---:|\n${runs.map(({ p, mode, s }) => `| ${p.id} | ${mode} | ${[2,3,4,5,6,7,8].map(l => s.firstLevels.get(l)).join('/')} | ${s.level} | ${s.xp} (${s.baseXp}/${s.bonusXp}/${s.questXp}) | ${s.earnedCoins}/${s.coins} | ${s.infeasibleOffers} | ${s.groupQuestBlocked} |`).join('\n')}\n\nCandidate and bounded both permit padding and reciprocal base-XP farming. These interventions contain bonus extraction, not sincerity. Quiet receivers reach L8 on received XP while the proposed giving Journey remains incomplete. Every run reaches L8; later levels, limited skill points and permanent builds appear in the trace. No baseline chime-ins are generated; their controlled boundary scenarios are in the trace and report.\n\n[Weekly state for every run](octalysis-weekly.tsv) · [Every milestone/claim/purchase/Journey step](octalysis-trace.md)\n`;
   const target = dirname(fileURLToPath(import.meta.url));
   writeFileSync(join(target, 'octalysis-weekly.tsv'), csv); writeFileSync(join(target, 'octalysis-trace.md'), `# Trigger/action/reward traces\n\nSynthetic data only. W=white hat, B=black hat, M=middle/contextual; L/R are symbolic Octalysis categories. Source rules and assumptions are in [the report](octalysis.md). Weekly core actions are in [the state ledger](octalysis-weekly.tsv).\n\n${traces}\n\n${boundaryTable}\n`); writeFileSync(join(target, 'octalysis-results.md'), summary);
   console.log(summary);
