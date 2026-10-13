@@ -4,6 +4,7 @@ import { httpAction, internalAction, type ActionCtx } from "../_generated/server
 import { type KudosCommandResult, renderKudosCommandReply } from "../feedback/kudosCommand";
 import { renderEveryoneBoard, renderLeaderboardUsage } from "../feedback/leaderboard";
 import type { Line } from "../feedback/replies";
+import type { Period } from "../leaderboard/periods";
 import { slackTextOf } from "./delivery";
 import { readSignedBody } from "./signature";
 import { callSlack, type SlackAnswer } from "./webApi";
@@ -33,9 +34,18 @@ export const addToChannel = internalAction({
 });
 
 async function leaderboardReply(ctx: ActionCtx, command: URLSearchParams, rest: string[]): Promise<Line[]> {
-  if (rest.length > 0) return renderLeaderboardUsage();
-  const view = await ctx.runQuery(internal.leaderboard.totals.everyoneBoard, { workspace: field(command, "team_id"), viewer: field(command, "user_id") });
-  return renderEveryoneBoard(view);
+  const period = periodOf(rest);
+  if (period === null) return renderLeaderboardUsage();
+  const view = await ctx.runQuery(internal.leaderboard.totals.everyoneBoard, { workspace: field(command, "team_id"), viewer: field(command, "user_id"), period });
+  return renderEveryoneBoard(view, period);
+}
+
+const periods: readonly Period[] = ["week", "month", "all"];
+
+function periodOf(rest: string[]): Period | null {
+  if (rest.length === 0) return "week";
+  const [argument] = rest;
+  return rest.length === 1 && periods.includes(argument as Period) ? (argument as Period) : null;
 }
 
 function replyPrivately(lines: Line[]) {
