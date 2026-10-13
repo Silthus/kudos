@@ -6,7 +6,7 @@ import { levelReachedEventValidator } from "../bus/events";
 import { kudosHomeOf, type KudosHome } from "../engine/home";
 import { progressionHomeOf, type ProgressionHome } from "../progression/progression";
 import { progressSettingsOf, type ProgressSettings } from "../progression/settings";
-import { chatUserOf, lookup, type MemberId } from "../workspace/directory";
+import { chatUserOf, lookup, type MemberFacts, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import type { HomeTab } from "./home";
 
@@ -73,6 +73,12 @@ export const refreshHome = internalMutation({
     await republish(ctx, member);
   },
 });
+
+export async function republishOnRoleChange(ctx: MutationCtx, before: MemberFacts | undefined, after: MemberFacts | undefined) {
+  if (before?.kind !== "member") return;
+  if (after?.kind === "member" && after.admin === before.admin) return;
+  await republish(ctx, before.member);
+}
 
 export async function republish(ctx: MutationCtx, member: MemberId) {
   const home = await homeRow(ctx, member);

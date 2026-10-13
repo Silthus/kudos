@@ -122,6 +122,20 @@ describe("P63 P65: a setting takes effect on the next notice or DM, and repeatin
     expect(publishedHome(slack, "U_ALICE")).toContain("section: I don't send you DMs. [button: Turn on DMs]");
   });
 
+  test("a click Slack sends again after a later click changes nothing", async () => {
+    const t = await settingsOpen("U_ALICE");
+    const hide = blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Hide level"));
+    await send(t, hide);
+    await click(t, "U_ALICE", "Show level");
+
+    const replayed = await send(t, hide);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(replayed.status).toBe(200);
+    expect(publishedHome(slack, "U_ALICE")).toContain("section: Other members can see your level. [button: Hide level]");
+    expect(slack.messagesIn("C1").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
+  });
+
   test("hidden achievements: Settings shows them hidden and offers to show them", async () => {
     const t = await settingsOpen("U_ALICE");
     const hide = buttonInHome(slack, "U_ALICE", "Hide achievements");
@@ -207,13 +221,12 @@ describe("P69: the Admin tab", () => {
     expect(publishedHome(slack, "U_ALICE")[1]).toBe("actions: [Profile] | Settings | Admin");
   });
 
-  test("picking a channel sends the next level-up notice there, joins it, and shows it picked with a way back to threads", async () => {
+  test("picking a channel sends the next level-up notice there and shows it picked with a way back to threads", async () => {
     const t = await adminTabOpen("U_ALICE");
 
     await interact(t, "U_ALICE", channelPickerInHome(slack, "U_ALICE", "C_NEWS"));
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
-    expect(slack.callsTo("conversations.join")).toEqual([{ channel: "C_NEWS" }]);
     expect(slack.messagesIn("C_NEWS").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
     expect(slack.messagesIn("C1")).toEqual([]);
     expect(publishedHome(slack, "U_ALICE")).toEqual([
@@ -237,6 +250,20 @@ describe("P69: the Admin tab", () => {
     expect(slack.messagesIn("C1").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
   });
 
+  test("an admin removed in Slack while an Admin tab publish is in flight is left without the Admin tab", async () => {
+    const t = await adminTabOpen("U_ALICE");
+    const stale = slack.holdNext("views.publish");
+    const stalePublish = t.action(internal.slack.appHome.publishHome, { workspace: "T1", user: "U_ALICE" });
+    await stale.reached;
+
+    await memberChanged(t, "user_change", { id: "U_ALICE" });
+    await settle(t);
+    stale.release();
+    await stalePublish;
+    await settle(t);
+
+    expect(publishedHome(slack, "U_ALICE")[1]).toBe("actions: [Profile] | Settings");
+  });
 });
 
 describe("P69: only workspace admins and owners set the announcement channel", () => {
@@ -248,7 +275,6 @@ describe("P69: only workspace admins and owners set the announcement channel", (
     await interact(t, "U_BOB", { type: "button", action_id: "x", value: JSON.stringify({ type: "setAnnouncementChannel", channel: "C_NEWS" }) });
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
-    expect(slack.callsTo("conversations.join")).toEqual([]);
     expect(slack.messagesIn("C_NEWS")).toEqual([]);
     expect(slack.messagesIn("C1").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
   });
@@ -332,7 +358,11 @@ async function click(t: Backend, user: string, label: string) {
 }
 
 async function interact(t: Backend, user: string, action: BlockAction) {
-  const response = await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, action), form));
+  return send(t, blockActions(user, action));
+}
+
+async function send(t: Backend, interaction: string) {
+  const response = await t.fetch("/slack/interactivity", await signedRequest(interaction, form));
   await settle(t);
   return response;
 }

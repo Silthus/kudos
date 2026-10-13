@@ -3,7 +3,8 @@ import { internal } from "../_generated/api";
 import { internalAction, internalMutation, internalQuery, type ActionCtx, type MutationCtx } from "../_generated/server";
 import { awaitedUsers, recheck, type Observation } from "../engine/engine";
 import { messageRefValidator, type MessageRef } from "../engine/messageEvent";
-import type { DirectoryEntry, DirectoryRecord } from "../workspace/directory";
+import { republishOnRoleChange } from "../feedback/homes";
+import { directoryRecordArgs, lookup, record, type DirectoryEntry, type DirectoryRecord } from "../workspace/directory";
 import { readSlack } from "./webApi";
 
 type SlackUser = { id: string; team_id?: string; deleted?: boolean; is_bot?: boolean; is_admin?: boolean; is_owner?: boolean; tz?: string };
@@ -51,6 +52,17 @@ export const recheckMessage = internalMutation({
   },
 });
 
+export const refreshPerson = internalMutation({
+  args: directoryRecordArgs,
+  handler: (ctx, directoryRecord) => recordPerson(ctx, directoryRecord),
+});
+
+export async function recordPerson(ctx: MutationCtx, directoryRecord: DirectoryRecord) {
+  const before = await lookup(ctx, directoryRecord.workspace, directoryRecord.user);
+  await record(ctx, directoryRecord);
+  await republishOnRoleChange(ctx, before, await lookup(ctx, directoryRecord.workspace, directoryRecord.user));
+}
+
 export type LookUp = { kind: "found" } | { kind: "failed"; retryAfterMs?: number };
 
 export function lookUpUser(ctx: ActionCtx, workspace: string, user: string): Promise<LookUp> {
@@ -58,10 +70,10 @@ export function lookUpUser(ctx: ActionCtx, workspace: string, user: string): Pro
 }
 
 export function refreshUser(ctx: ActionCtx, workspace: string, user: string): Promise<LookUp> {
-  return askSlackAbout(ctx, workspace, user, internal.workspace.directory.refreshEntry);
+  return askSlackAbout(ctx, workspace, user, internal.slack.directory.refreshPerson);
 }
 
-type Keep = typeof internal.workspace.directory.fillEntry | typeof internal.workspace.directory.refreshEntry;
+type Keep = typeof internal.workspace.directory.fillEntry | typeof internal.slack.directory.refreshPerson;
 
 async function askSlackAbout(ctx: ActionCtx, workspace: string, user: string, keep: Keep): Promise<LookUp> {
   const askedAt = Date.now();

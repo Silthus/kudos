@@ -44,7 +44,7 @@ export async function chatUserOf(ctx: QueryCtx, member: MemberId): Promise<{ wor
   return { workspace: row.workspace, user: row.user };
 }
 
-const directoryRecordArgs = { workspace: v.string(), user: v.string(), entry: directoryEntryValidator, asOf: v.number() };
+export const directoryRecordArgs = { workspace: v.string(), user: v.string(), entry: directoryEntryValidator, asOf: v.number() };
 
 export type DirectoryRecord = ObjectType<typeof directoryRecordArgs>;
 
@@ -53,11 +53,6 @@ export const fillEntry = internalMutation({
   handler: async (ctx, directoryRecord) => {
     if ((await memberRow(ctx, directoryRecord.workspace, directoryRecord.user)) === null) await record(ctx, directoryRecord);
   },
-});
-
-export const refreshEntry = internalMutation({
-  args: directoryRecordArgs,
-  handler: (ctx, directoryRecord) => record(ctx, directoryRecord),
 });
 
 export async function record(ctx: MutationCtx, { workspace, user, entry, asOf }: DirectoryRecord) {
