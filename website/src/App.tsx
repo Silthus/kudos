@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { NavigateProvider } from "./AppLink";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { Frame } from "./Frame";
@@ -24,7 +24,8 @@ export function App({ visitor, actions, useLeaderboard }: AppProps) {
   const { route, navigate, choosePeriod } = useRoute();
   const shown = useSignInOutcome(visitor);
   const member = shown.kind === "member" ? shown : undefined;
-  const board = useLeaderboard(member !== undefined && route.page === "leaderboard" ? route.period : undefined);
+  const onTheBoard = member !== undefined && route.page === "leaderboard";
+  const board = useBoardWhileTheNextLoads(useLeaderboard(onTheBoard ? route.period : undefined), onTheBoard);
   useTitleFocusAfterChange(shown.kind);
   const expectArrival = useTitleFocusOnArrival();
   const arriveAt = useCallback(
@@ -49,6 +50,13 @@ export function App({ visitor, actions, useLeaderboard }: AppProps) {
   );
 }
 
+function useBoardWhileTheNextLoads(board: MyLeaderboard | undefined, onTheBoard: boolean) {
+  const lastShown = useRef<MyLeaderboard | undefined>(undefined);
+  if (!onTheBoard) lastShown.current = undefined;
+  else if (board !== undefined) lastShown.current = board;
+  return board ?? lastShown.current;
+}
+
 type PageProps = {
   state: ShellState;
   route: Route;
@@ -68,7 +76,7 @@ function Page({ state, route, board, onChoosePeriod, ...actions }: PageProps) {
   if (board === undefined) return null;
   if (board.kind === "not-found") return <NotFoundPage />;
   if (board.kind !== "board") return <VisitorPage state={board} {...actions} />;
-  return <LeaderboardPage board={board} onChoosePeriod={onChoosePeriod} />;
+  return <LeaderboardPage board={board} period={route.period} onChoosePeriod={onChoosePeriod} />;
 }
 
 type Visitor = Exclude<ShellState, { kind: "member" | "broken" | "loading" }>;

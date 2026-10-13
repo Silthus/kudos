@@ -12,14 +12,16 @@ import type { Leaderboard } from "../leaderboardFixtures";
 import { PageTitle } from "../PageTitle";
 import type { Period } from "../shell";
 
-export function LeaderboardPage({ board, onChoosePeriod }: { board: Leaderboard; onChoosePeriod: (period: Period) => void }) {
+type LeaderboardPageProps = { board: Leaderboard; period: Period; onChoosePeriod: (period: Period) => void };
+
+export function LeaderboardPage({ board, period, onChoosePeriod }: LeaderboardPageProps) {
   const story = storyOf(board);
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <span className="hud-label">Leaderboard · kudos given</span>
-          <PeriodSwitch period={board.period} onChoose={onChoosePeriod} />
+          <PeriodSwitch period={period} onChoose={onChoosePeriod} />
         </div>
         <BoardCard board={board} />
       </div>

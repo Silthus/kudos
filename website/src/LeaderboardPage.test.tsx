@@ -161,6 +161,24 @@ describe("WS39: the board card and the periods", () => {
     expect(window.location.pathname + window.location.search).toBe("/leaderboard");
   });
 
+  it("keeps the board and focus on the switch while the next period's board loads", async () => {
+    const loaded = new Set<Period | undefined>(["week"]);
+    const read: LeaderboardRead = (period) => (loaded.has(period) ? { ...leaderboardFixtures.midBoard, period: period! } : undefined);
+    visit("/leaderboard");
+    const { user, showVisitor } = renderApp(withTheBoard, read);
+    await user.click(within(main()).getByRole("button", { name: "This month" }));
+
+    expect(pageTitle()).toHaveTextContent("Ada Lindqvist leads the week.");
+    expect(within(main()).getByRole("button", { name: "This month" })).toHaveFocus();
+    expect(within(main()).getByRole("button", { name: "This month" })).toHaveAttribute("aria-pressed", "true");
+
+    loaded.add("month");
+    showVisitor(withTheBoard);
+    expect(pageTitle()).toHaveTextContent("Ada Lindqvist leads the month.");
+    expect(within(main()).getByRole("button", { name: "This month" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(main()).getByRole("button", { name: "This month" })).toHaveFocus();
+  });
+
   it("keeps the selected period when it is chosen again", async () => {
     const { user } = showBoard(leaderboardFixtures.midBoard);
     await user.click(within(main()).getByRole("button", { name: "This week" }));
