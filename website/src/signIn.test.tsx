@@ -66,6 +66,18 @@ describe("WS6 WS24: signing in with Slack from the keyboard", () => {
     expect(pageTitle()).toHaveTextContent(/^Sign in$/);
   });
 
+  it("forgets an unfinished sign-in once a later one finishes, so signing out shows the plain sign-in page", async () => {
+    (await startSignInFromKeyboard()).unmount();
+    const { showVisitor } = returnFromSlack();
+    showVisitor(shellFixtures.signedOut);
+    expect(pageTitle()).toHaveTextContent("Sign-in didn't finish");
+
+    showVisitor(shellFixtures.member);
+    showVisitor(shellFixtures.signedOut);
+
+    expect(pageTitle()).toHaveTextContent(/^Sign in$/);
+  });
+
   it("forgets a sign-in that finished, so signing out later shows the plain sign-in page", async () => {
     (await startSignInFromKeyboard()).unmount();
     const { showVisitor } = returnFromSlack();

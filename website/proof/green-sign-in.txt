@@ -1,15 +1,135 @@
 
  RUN  v5.0.3 /home/coder/dev/kudos-wt/sign-in
 
+ ✓ |website| src/pageFocus.test.tsx > WS24: focus lands on the page title after a state change, never on first load > leaves focus alone on the first page shown 122ms
+ ✓ |website| src/pageFocus.test.tsx > WS24: focus lands on the page title after a state change, never on first load > leaves focus alone when the first answer arrives after loading 27ms
+ ✓ |website| src/pageFocus.test.tsx > WS24: focus lands on the page title after a state change, never on first load > moves focus to the home's title when the membership check turns into a member 43ms
+ ✓ |website| src/theme.test.tsx > V6: the theme control follows the system first, overrides it per browser, and returns to it > follows the system on a first visit, including a later system change 135ms
+ ✓ |website| src/theme.test.tsx > V6: the theme control follows the system first, overrides it per browser, and returns to it > overrides the system and keeps the choice for the next visit in this browser 97ms
+ ✓ |website| src/pageFocus.test.tsx > WS24: focus lands on the page title after a state change, never on first load > moves focus to the closed page's title when the site closes under an open page 36ms
+ ✓ |website| src/pageFocus.test.tsx > WS24: focus lands on the page title after a state change, never on first load > moves focus to the sign-in page's title after signing out 43ms
+stderr | src/App.test.tsx > WS1 WS3 WS16 WS20: the shell renders each page from its visitor state > shows the error page when a page fails to render
+Error: This page failed to render.
+    at Page (/home/coder/dev/kudos-wt/sign-in/website/src/App.tsx:38:38)
+    at Object.react_stack_bottom_frame (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:28571:20)
+    at renderWithHooks (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:8030:22)
+    at updateFunctionComponent (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:10569:19)
+    at beginWork (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:12205:18)
+    at runWithFiberInDEV (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:1048:13)
+    at performUnitOfWork (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:19176:22)
+    at workLoopSync (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:19004:41)
+    at renderRootSync (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:18985:11)
+    at performWorkOnRoot (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:18094:35) {
+  [stack]: [Getter/Setter],
+  [message]: 'This page failed to render.'
+}
+
+The above error occurred in the <Page> component.
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+
+
+ ✓ |website| src/App.test.tsx > WS1 WS3 WS16 WS20: the shell renders each page from its visitor state > shows the closed page on every path while the site is closed, with no sign-in button 185ms
+ ✓ |website| src/App.test.tsx > WS1 WS3 WS16 WS20: the shell renders each page from its visitor state > shows the signed-out page at the root with Sign in with Slack as its one primary action 38ms
+ ✓ |website| src/App.test.tsx > WS1 WS3 WS16 WS20: the shell renders each page from its visitor state > shows the not-found page with a link home on any other path 55ms
+ ✓ |website| src/signIn.test.tsx > WS6 WS24: signing in with Slack from the keyboard > starts Slack's sign-in once when Enter is pressed on Sign in with Slack 232ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > loading in light 139ms
+ ✓ |website| src/theme.test.tsx > V6: the theme control follows the system first, overrides it per browser, and returns to it > returns to the system when Use system setting is chosen 69ms
+ ✓ |website| src/theme.test.tsx > V6: the theme control follows the system first, overrides it per browser, and returns to it > still renders and switches theme when the browser refuses storage 49ms
+ ✓ |website| src/theme.test.tsx > V6: the theme control follows the system first, overrides it per browser, and returns to it > marks the selected option with a visible check, not colour alone 47ms
+ ✓ |website| src/App.test.tsx > WS1 WS3 WS16 WS20: the shell renders each page from its visitor state > shows the error page when a page fails to render 46ms
+ ✓ |website| src/App.test.tsx > WS1 WS3 WS16 WS20: the shell renders each page from its visitor state > frames a member's home with the wordmark, Home as the only nav item, the theme control and the avatar menu 29ms
+ ✓ |website| src/App.test.tsx > WS1 WS3 WS16 WS20: the shell renders each page from its visitor state > greets a member whose name Slack didn't share without inventing one 26ms
+ ✓ |website| src/signIn.test.tsx > WS6 WS24: signing in with Slack from the keyboard > keeps the sign-in page while the browser leaves for Slack 121ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > closed in light 210ms
+ ✓ |website| src/App.test.tsx > WS1 WS3 WS16 WS20: the shell renders each page from its visitor state > keeps the nav and the avatar off the pages of a visitor who isn't a member 68ms
+ ✓ |website| src/App.test.tsx > WS1 WS3 WS16 WS20: the shell renders each page from its visitor state > stays quiet and busy while the answer is loading, never flashing the closed page 7ms
+ ✓ |website| src/App.test.tsx > WS6 WS8 WS20: the sign-in pages carry one hedgehog, one sentence from Max and their actions > shows Checking your membership while the directory verifies a signed-in person, with a way to sign out 39ms
+ ✓ |website| src/App.test.tsx > WS6 WS8 WS20: the sign-in pages carry one hedgehog, one sentence from Max and their actions > tells an unverified person Max couldn't check their membership, and lets them sign in again or sign out 34ms
+ ✓ |website| src/signIn.test.tsx > WS6 WS24: signing in with Slack from the keyboard > shows Sign-in didn't finish when a sign-in started in this browser comes back signed out 127ms
+ ✓ |website| src/signIn.test.tsx > WS6 WS24: signing in with Slack from the keyboard > shows the plain sign-in page to a signed-out visitor who never started a sign-in here 22ms
+ ✓ |website| src/App.test.tsx > WS6 WS8 WS20: the sign-in pages carry one hedgehog, one sentence from Max and their actions > tells a signed-in person outside the workspace that HedgeHug is for its members only, and offers sign-out 46ms
+ ✓ |website| src/App.test.tsx > WS6 WS8 WS20: the sign-in pages carry one hedgehog, one sentence from Max and their actions > tells a visitor whose sign-in didn't finish, with Try again as the one primary action 23ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > signed out in light 179ms
+ ✓ |website| src/signIn.test.tsx > WS6 WS24: signing in with Slack from the keyboard > tells about an unfinished sign-in only once 143ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > sign-in didn't finish in light 160ms
+ ✓ |website| src/signIn.test.tsx > WS6 WS24: signing in with Slack from the keyboard > forgets an unfinished sign-in once a later one finishes, so signing out shows the plain sign-in page 156ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > checking membership in light 157ms
+ ✓ |website| src/signIn.test.tsx > WS6 WS24: signing in with Slack from the keyboard > forgets a sign-in that finished, so signing out later shows the plain sign-in page 129ms
+ ✓ |website| src/signIn.test.tsx > WS6 WS24: signing in with Slack from the keyboard > starts Slack's sign-in again from Try again on the didn't-finish page 92ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > membership not checked in light 158ms
+ ✓ |website| src/signIn.test.tsx > WS6 WS24: signing in with Slack from the keyboard > starts a fresh membership check by signing in again from the unverified page 31ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/signIn.test.tsx > WS9 WS16 WS24: signing out > signs out from the avatar menu with the keyboard: Enter opens it on Sign out, Enter signs out 173ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not a member in light 152ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in light 62ms
+stderr | src/accessibility.test.tsx > WS24: every page passes axe in light and dark > error in light
+Error: This page failed to render.
+    at Page (/home/coder/dev/kudos-wt/sign-in/website/src/App.tsx:38:38)
+    at Object.react_stack_bottom_frame (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:28571:20)
+    at renderWithHooks (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:8030:22)
+    at updateFunctionComponent (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:10569:19)
+    at beginWork (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:12205:18)
+    at runWithFiberInDEV (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:1048:13)
+    at performUnitOfWork (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:19176:22)
+    at workLoopSync (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:19004:41)
+    at renderRootSync (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:18985:11)
+    at performWorkOnRoot (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:18094:35) {
+  [stack]: [Getter/Setter],
+  [message]: 'This page failed to render.'
+}
+
+The above error occurred in the <Page> component.
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+
+
+ ✓ |website| src/signIn.test.tsx > WS9 WS16 WS24: signing out > opens the avatar menu with ArrowDown and closes it with Escape, returning focus to the avatar 142ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not found in light 173ms
+ ✓ |website| src/signIn.test.tsx > WS9 WS16 WS24: signing out > closes the avatar menu when Tab moves focus out of it 165ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > error in light 175ms
+ ✓ |website| src/signIn.test.tsx > WS9 WS16 WS24: signing out > signs out from the pages of a signed-in person who isn't a member 269ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the open avatar menu, portaled outside the landmarks, meets WCAG 2.2 AA in light 186ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > loading in dark 30ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > closed in dark 163ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > signed out in dark 163ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > sign-in didn't finish in dark 157ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > checking membership in dark 156ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > membership not checked in dark 158ms
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not a member in dark 155ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in dark 37ms
+stderr | src/accessibility.test.tsx > WS24: every page passes axe in light and dark > error in dark
+Error: This page failed to render.
+    at Page (/home/coder/dev/kudos-wt/sign-in/website/src/App.tsx:38:38)
+    at Object.react_stack_bottom_frame (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:28571:20)
+    at renderWithHooks (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:8030:22)
+    at updateFunctionComponent (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:10569:19)
+    at beginWork (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:12205:18)
+    at runWithFiberInDEV (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:1048:13)
+    at performUnitOfWork (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:19176:22)
+    at workLoopSync (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:19004:41)
+    at renderRootSync (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:18985:11)
+    at performWorkOnRoot (/home/coder/dev/kudos-wt/sign-in/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:18094:35) {
+  [stack]: [Getter/Setter],
+  [message]: 'This page failed to render.'
+}
+
+The above error occurred in the <Page> component.
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+
+
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not found in dark 166ms
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > error in dark 169ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the open avatar menu, portaled outside the landmarks, meets WCAG 2.2 AA in dark 134ms
 
  Test Files  5 passed (5)
-      Tests  55 passed (55)
-   Start at  20:17:42
-   Duration  5.04s (tests 42%, import 34%, environment 15%, transform 6%, setup 3%)
+      Tests  57 passed (57)
+   Start at  20:32:31
+   Duration  5.00s (tests 43%, import 33%, environment 15%, transform 6%, setup 3%)
 
