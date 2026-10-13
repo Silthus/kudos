@@ -13,10 +13,8 @@ export type Notification = { kind: "level-reached"; level: number; skillPoints: 
 
 export type NotificationLine = string | { text: string; action: HomeAction };
 
-export async function notifyLevelReached(ctx: MutationCtx, { member, level, skillPoints, xpToNextLevel, at }: LevelReachedEvent, ready: ScheduledFeature[]) {
+export async function notifyLevelReached(ctx: MutationCtx, { member, level, skillPoints, xpToNextLevel }: LevelReachedEvent, ready: ScheduledFeature[]) {
   if (!(await xpLevelsShownTo(ctx, member))) return;
-  if ((await levelUpDmOf(ctx, member, level)) !== null) return;
-  await ctx.db.insert("levelUpDms", { member, level, ready: ready.map(({ feature }) => feature), at });
   await notify(ctx, member, { kind: "level-reached", level, skillPoints, xpToNextLevel, ready });
 }
 
@@ -34,11 +32,4 @@ export function renderNotification({ level, skillPoints, xpToNextLevel, ready }:
 
 async function wantsDms(ctx: QueryCtx, member: MemberId) {
   return (await progressSettingsOf(ctx, member)).dms;
-}
-
-function levelUpDmOf(ctx: QueryCtx, member: MemberId, level: number) {
-  return ctx.db
-    .query("levelUpDms")
-    .withIndex("by_member_level", (q) => q.eq("member", member).eq("level", level))
-    .unique();
 }

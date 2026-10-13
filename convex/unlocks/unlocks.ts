@@ -23,6 +23,7 @@ export const makeReady = internalMutation({
   args: { event: levelReachedEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
     const { workspace, member, level, at } = event;
+    if ((await levelUpOf(ctx, member, level)) !== null) return;
     const reached = (await shippedIn(ctx, workspace)).filter((entry) => entry.level <= level);
     const madeReady: ScheduledFeature[] = [];
     for (const entry of reached) {
@@ -31,6 +32,7 @@ export const makeReady = internalMutation({
       await publish(ctx, { type: "unlockReady", workspace, member, feature: entry.feature, at });
       madeReady.push(entry);
     }
+    await ctx.db.insert("levelUps", { member, level, ready: madeReady.map(({ feature }) => feature), at });
     await notifyLevelReached(ctx, event, madeReady);
     if (madeReady.length > 0 && (await xpLevelsShownIn(ctx, workspace))) await republish(ctx, member);
   },
@@ -83,6 +85,13 @@ async function isShipped(ctx: QueryCtx | MutationCtx, workspace: string, feature
 function stateFrom(row: UnlockRow | null): MemberUnlock["state"] {
   if (row === null) return "locked";
   return row.openedAt === undefined ? "ready" : "open";
+}
+
+function levelUpOf(ctx: QueryCtx, member: MemberId, level: number) {
+  return ctx.db
+    .query("levelUps")
+    .withIndex("by_member_level", (q) => q.eq("member", member).eq("level", level))
+    .unique();
 }
 
 function unlockRow(ctx: QueryCtx, member: MemberId, feature: Feature) {

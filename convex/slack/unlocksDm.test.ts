@@ -132,6 +132,22 @@ describe("P74: one owner for readiness and the level-up DM", () => {
     expect(await unlockRows(t)).toEqual([{ feature: "leaderboard", readyAt: reached.at }]);
   });
 
+  test("a levelReached replayed after everyone-board went on makes nothing ready and sends nothing, leaving that readiness to the ship sweep", async () => {
+    const t = await workspace();
+    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), offForEveryone("everyone-board"));
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+    const reached = await levelThreeReachedBy(t, "U_ALICE");
+    await t.mutation(internal.unlocks.unlocks.makeReady, { event: reached });
+    await settle(t);
+    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("everyone-board"));
+
+    await t.mutation(internal.unlocks.unlocks.makeReady, { event: reached });
+    await settle(t);
+
+    expect(dmsTo("U_ALICE").map(readDm).slice(1)).toEqual([["🎉 You reached level 3!", "Level 4 is 200 XP away."]]);
+    expect(await unlockRows(t)).toEqual([]);
+  });
+
   test("a feature something else made ready first is not named again by the level-up DM, and App Home still lists it", async () => {
     const t = await workspace();
     await giveKudos(t, "U_ALICE", "U_BOB", 2);

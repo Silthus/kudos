@@ -146,7 +146,7 @@ export default defineSchema({
     openedAt: v.optional(v.number()),
   }).index("by_member_feature", ["member", "feature"]),
 
-  levelUpDms: defineTable({
+  levelUps: defineTable({
     member: v.id("members"),
     level: v.number(),
     ready: v.array(featureValidator),
