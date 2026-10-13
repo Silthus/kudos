@@ -29,8 +29,8 @@ describe.each(["sandbox", "real"] as const)("the %s manifest", (environment) => 
     ]);
   });
 
-  test("names the bot hedgehug", () => {
-    expect(manifest.features.bot_user.display_name).toBe("hedgehug");
+  test("names the bot HedgeHug, capitalized like the product", () => {
+    expect(manifest.features.bot_user.display_name).toBe("HedgeHug");
   });
 
   test("turns the Home tab on", () => {

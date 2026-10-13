@@ -68,7 +68,7 @@ describe("POST /slack/commands", () => {
 
       await runCommand(t, hedgehugCommand({ channel_id: "C2", channel_name: "privategroup" }));
 
-      expect(slack.privateReplies()).toEqual(["I can't join private channels by myself. Type `/invite @hedgehug` here and I'll start counting kudos."]);
+      expect(slack.privateReplies()).toEqual(["I can't join private channels by myself. Type `/invite @HedgeHug` here and I'll start counting kudos."]);
     },
   );
 
