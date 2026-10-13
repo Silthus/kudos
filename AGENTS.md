@@ -33,4 +33,4 @@ The five default triage labels, each string equal to its role. See `docs/agents/
 
 ### Domain docs
 
-Single-context: one `GLOSSARY.md` and `docs/adr/` at the root, created when the first term or decision settles. See `docs/agents/domain.md`.
+Coherence is the source of truth. The domain vocabulary is Coherence's `lexicon.json` at the root (`coherence query lexicon <term>`); there is no `GLOSSARY.md`. Architecture decisions are ADRs in `docs/adr/`, and each one is recorded by a `coherence decide` record that names its path while the ADR names the record's id. See `docs/agents/domain.md`.
