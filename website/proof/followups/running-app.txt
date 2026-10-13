@@ -18,3 +18,9 @@ Stuck socket: a build whose VITE_CONVEX_URL points at a closed port (127.0.0.1:3
   set by the head script before the module ran; first-paint@16ms, first-contentful-paint@100ms.
 
 Sign-in handshake on its own disposable backend: pnpm test:handshake, 17/17 (green-handshake-own-backend.txt), and the backend process and its temp directory are gone afterwards.
+
+After review round 1 (Convex Auth redeems Slack's code again):
+  The same local backend pointed at the mock Slack issuer (testing/handshake/serveMockSlack.ts on 127.0.0.1:3412), the website flag on through the mock only.
+  In a fresh incognito tab on http://127.0.0.1:3811/, "Sign in with Slack" -> the mock issuer -> /api/auth/callback/slack -> /?code=... -> the member's home,
+  "Thank someone for work you noticed", about 1.6 s after the click (sign-in-lands-home.mp4, sign-in-lands-home.png). The member is the synthetic U_JUNO.
+  The stuck-socket screenshots were retaken for the one-sentence copy.
