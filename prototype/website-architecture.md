@@ -8,10 +8,14 @@ How is the website shaped, before its first spec (#65)? Members of one workspace
 
 **The riskiest claim is proven on a disposable local backend.** Convex Auth with the Auth.js Slack provider runs the real OIDC handshake end to end against a mock Slack issuer: **26 of 26 checks pass** ([proof](website-architecture/proof-2026-10-13.txt)). A live Slack round trip still needs a Slack app with a redirect URL (card W11).
 
+### Rounds
+
+- **Round 1 (Michael, 2026-10-13): "yes to all".** W1–W11 are locked to their recommendations. No card is open, so the brief now waits for your explicit acceptance.
+
 ### How to read this brief
 
 - §2 is the change map, §3 the contracts at each seam, and §4 the flows.
-- §7 holds the decision cards: open cards first, then locked cards with their reasons.
+- §7 holds the decision cards: W1–W11, locked in round 1, then L-W1–L-W6, locked with a reason.
 - §9 lists what map #1 must change, and §10 proposes the first-slice spec's tickets.
 - The stub code is real and runs. `pnpm test` passes (200 tests), and §11 says how to rerun the live proof.
 
@@ -271,67 +275,69 @@ users: defineTable({              // Convex Auth's table, narrowed to what the w
 
 ## 7. Decision cards
 
-### Open: round 1
+### Locked in round 1: every recommendation taken
+
+Michael, 2026-10-13: "yes to all". Each card below is locked to its recommendation, marked **Locked**.
 
 **W1. Where does the website live in the repo?**
 - **A. A `website/` pnpm workspace package beside `convex/`, which stays at the root.** It has its own `package.json` (React, Vite, Tailwind) and `tsconfig` with the DOM types, and imports `../convex/_generated/api`. `pnpm gate` runs its typecheck and tests through Vitest projects, and Coherence gets a `website/Website.spec.md` component spec. Map #1's paths never move.
 - B. `apps/website` plus `packages/backend`, moving `convex/` into a package. It is the shape of your starter template, but it moves every map #1 path while that map is mid-flight.
 - C. One package: React and Vite in the root `package.json`. It is the fewest files, but browser and backend dependencies and their tsconfigs mix.
-- **Recommendation: A.** It keeps map #1 untouched and still separates browser and Convex dependencies. `static-hosting deploy --build-command "pnpm --filter website build" --dist website/dist`.
+- **Locked: A** (recommendation, round 1). It keeps map #1 untouched and still separates browser and Convex dependencies. `static-hosting deploy --build-command "pnpm --filter website build" --dist website/dist`.
 
 **W2. What shape is the public surface?**
 - **A. Signed-in public Convex functions in `convex/website/`, guarded by an exact allowlist test.** Each one is built on `memberQuery` / `memberMutation`, which resolve the signed-in member before the handler runs, so a website function can't forget the check. Reads are reactive, and types flow to the browser. The allowlist and the per-read check are proven as stubs; the wrapper is the proposed shape.
 - B. An authenticated HTTP API (`GET /website/me`) with internal functions behind it. R50 still changes, because Convex Auth's `signIn` and `signOut` must be public, and we lose reactivity, typed references and free caching, and gain CORS and polling.
-- **Recommendation: A**, with the rule text in §3.1 going to map #1 as the L1/R50 exception.
+- **Locked: A** (recommendation, round 1), with the rule text in §3.1 going to map #1 as the L1/R50 exception.
 
 **W3. Which workspace may sign in to a deployment?**
 - **A. One explicit `SLACK_WORKSPACE_ID` per deployment** (D9: one workspace per deployment). It is checked against the returned `team_id` claim, and it also pins `team=` so Slack opens the right workspace. Unset means no one signs in.
 - B. Any workspace the directory has seen. There's no new setting, but the rule depends on data that a bug could widen.
-- **Recommendation: A.** It fails closed and is one line in each deployment's setup.
+- **Locked: A** (recommendation, round 1). It fails closed and is one line in each deployment's setup.
 
 **W4. Someone signs in whom the directory doesn't know yet.** For example, they joined before the app ran and never posted.
 - **A. Sign-in succeeds, and the Slack adapter verifies them in the background** (`verifyMember` → users.info → directory). The page shows "Checking your membership…" and flips to the profile reactively, as App Home already does on a miss. This is proven ("verifying" → "member").
 - B. Sign-in writes the member straight from the OIDC claims. It is faster, but it adds a second writer to the directory and skips the bot and deleted checks users.info gives.
 - C. Refuse sign-in until the directory knows them. It is simplest, but a legitimate member gets a dead end.
-- **Recommendation: A.**
+- **Locked: A** (recommendation, round 1).
 
 **W5. How long does a website session last?**
 - **A. Convex Auth's defaults:** a 1-hour JWT, 30 days total and 30 days of inactivity, tokens in `localStorage`. Every read rechecks the session and membership, so sign-out and leaving the workspace take effect at once.
 - B. Shorter, for example 7 days. Members sign in with Slack more often.
-- **Recommendation: A** for an internal tool. Pair it with a strict Content Security Policy on the shell, because `localStorage` tokens make XSS the main risk.
+- **Locked: A** (recommendation, round 1), for an internal tool. Pair it with a strict Content Security Policy on the shell, because `localStorage` tokens make XSS the main risk.
 
 **W6. How are reads cut?**
 - **A. One query per page** (`getMyProfile`, later `getMySkills`, `getLeaderboard`), each composed from the owning modules' facts functions. One subscription per page, and each page ships with its stopping point.
 - B. One query per module (`getMyProgression`, `getMyKudos`), composed in the browser. There's more reuse across pages, but more subscriptions, and the browser assembles the page.
-- **Recommendation: A.** Split a query only when two pages really share it.
+- **Locked: A** (recommendation, round 1). Split a query only when two pages really share it.
 
 **W7. How do website actions reach the modules (D17)?**
 - **A. One public mutation per command in `convex/website/`** (`buyPerk`, `equip`, …), built on `memberMutation`. Each sends the same platform-neutral command through D17's registry, with an idempotency key from a browser-generated request ID. Each is typed and appears by name in the allowlist.
 - B. One generic `website.run(command)` with a union validator. One entrance, but the allowlist says nothing about what it can do, and every new command widens it silently.
-- **Recommendation: A.** The first slice has no command, so this shapes the first action-bearing slice.
+- **Locked: A** (recommendation, round 1). The first slice has no command, so this shapes the first action-bearing slice.
 
 **W8. Display names and avatars.**
 - **A. Now: the signed-in member's own name and picture come from the sign-in claims** (stored on `users`, refreshed per sign-in, proven). **Before any page shows other members** (leaderboard, profile cards, sticker book), the directory stores a display name and an avatar from users.info, `team_join` and `user_change`. That is a map #1 change, and `users:read` already covers it.
 - B. Directory fields first, before the first slice. A cross-map dependency then blocks the first slice.
 - C. The website asks Slack for names live. That means an action per page, and Slack rate limits.
-- **Recommendation: A.**
+- **Locked: A** (recommendation, round 1).
 
 **W9. What URL scheme do deep links use?**
 - **A. Real paths on the deployment's site:** `/profile`, `/skills`, `/stickers`, `/achievements`, `/collection`, `/leaderboard`, `/members/<memberId>`, matching the UI prototype's screens. A link carries no identity. A signed-out visitor signs in and returns to the same path (`redirectTo`, proven landing on `/profile`). App Home and messages build links as `${SITE_URL}/<path>`.
 - B. Hash routes (`/#/profile`), as in the UI prototype. They need no SPA fallback, but Convex Auth appends `?code=` to the URL, which tangles with hashes, and links read worse in Slack.
-- **Recommendation: A.** `<memberId>` is the domain member ID, not a Slack ID, so links stay platform-neutral.
+- **Locked: A** (recommendation, round 1). `<memberId>` is the domain member ID, not a Slack ID, so links stay platform-neutral.
 
 **W10. Which Slack app signs members in?**
 - **A. The same D9 app per environment**: the sandbox app for the sandbox deployment, the real app for production. Its manifest adds the redirect URL `<site>/api/auth/callback/slack` and the user scopes `openid` and `profile`. Sign-in is a separate grant from the bot install, and it shows the HedgeHug name members already know.
 - B. A separate "HedgeHug sign-in" app per environment. It isolates credentials, but means two more apps to install and keep in sync.
-- **Recommendation: A.**
+- **Locked: A** (recommendation, round 1).
 
 **W11. The live Slack proof.** The mock proves Convex Auth's handshake. Still unverified with real Slack: Slack's discovery document, its token endpoint's client authentication method, the `team` parameter, and the real claim names in a live ID token.
 - A. You create a throwaway Slack app in the sandbox workspace from a manifest I provide, pointed at a disposable Convex dev deployment, and I run `prove-sign-in.ts` against real Slack before #65 is written.
 - **B. Make it the first slice's acceptance check on the sandbox deployment,** once map #1's manifest carries the redirect URL (W10). If real Slack disagrees, the fallback is a custom OIDC flow in the same Slack adapter seam, behind the same `signedInMember` and public surface, so no contract in this brief changes.
-- **Recommendation: B.** The seam contains the risk. Pick A if you want certainty before the spec.
+- **Locked: B** (recommendation, round 1). The seam contains the risk.
 
-### Locked (reopen any of them)
+### Locked with a reason (reopen any of them)
 
 - **L-W1. Convex Auth with the Auth.js Slack provider, `checks: ["state", "nonce"]`.** Reason: the auth research (#60) recommends it, and this prototype proves the handshake and all eight refusal cases end to end.
 - **L-W2. Sign-in code lives in the Slack adapter; the website module sees only a chat identity.** Reason: "only its adapter knows about Slack" (CLAUDE.md, architecture §2).
