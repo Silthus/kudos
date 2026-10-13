@@ -35,3 +35,23 @@ function hexToBytes(hex: string): Uint8Array<ArrayBuffer> | null {
 function hmacKey(secret: string) {
   return crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["verify"]);
 }
+
+export async function readSignedBody(request: Request): Promise<Uint8Array<ArrayBuffer> | null> {
+  const body = new Uint8Array(await request.arrayBuffer());
+  const signed = await isSignedBySlack(
+    {
+      timestamp: request.headers.get("x-slack-request-timestamp"),
+      signature: request.headers.get("x-slack-signature"),
+      body,
+    },
+    signingSecret(),
+    Date.now(),
+  );
+  return signed ? body : null;
+}
+
+function signingSecret() {
+  const secret = process.env.SLACK_SIGNING_SECRET;
+  if (!secret) throw new Error("SLACK_SIGNING_SECRET is not set");
+  return secret;
+}
