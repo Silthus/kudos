@@ -1,0 +1,456 @@
+{
+  "passed": true,
+  "runRows": 11664,
+  "monthlyRows": 8964,
+  "checks": [
+    "XP award decomposition",
+    "wallet conservation",
+    "sink accounting",
+    "allowance conservation",
+    "skill-point budget",
+    "level curve",
+    "permanent monotone progression",
+    "duplicate-free finite drop pools",
+    "deterministic replay",
+    "gate preserves baseline XP",
+    "no coin-funded XP in final revision",
+    "coin spending does not change XP/SP/allowance at fixed perk choices",
+    "team owner stacking saturation",
+    "PRD analytic target",
+    "10 million empirical PRD draws",
+    "PRD rate changes preserve accumulated charge",
+    "different search-order winners"
+  ],
+  "empirical": [
+    {
+      "rarity": "common",
+      "attempts": 2000000,
+      "hits": 120048,
+      "observed": 0.060024,
+      "target": 0.06,
+      "longestMisses": 73
+    },
+    {
+      "rarity": "uncommon",
+      "attempts": 2000000,
+      "hits": 50053,
+      "observed": 0.0250265,
+      "target": 0.025,
+      "longestMisses": 157
+    },
+    {
+      "rarity": "rare",
+      "attempts": 2000000,
+      "hits": 16121,
+      "observed": 0.0080605,
+      "target": 0.008,
+      "longestMisses": 414
+    },
+    {
+      "rarity": "epic",
+      "attempts": 2000000,
+      "hits": 4026,
+      "observed": 0.002013,
+      "target": 0.002,
+      "longestMisses": 1623
+    },
+    {
+      "rarity": "legendary",
+      "attempts": 2000000,
+      "hits": 796,
+      "observed": 0.000398,
+      "target": 0.0004,
+      "longestMisses": 9390
+    }
+  ],
+  "searchWinners": [
+    {
+      "gate": false,
+      "winners": [
+        {
+          "gate": false,
+          "archetype": "steady",
+          "candidate": 80,
+          "order": [
+            "circle",
+            "rhythm",
+            "spark",
+            "bridge",
+            "flame",
+            "focus",
+            "spotlight",
+            "cadence",
+            "echo",
+            "resonance",
+            "reserve",
+            "reservoir"
+          ],
+          "xp": 30583,
+          "level": 25.75
+        },
+        {
+          "gate": false,
+          "archetype": "burst",
+          "candidate": 38,
+          "order": [
+            "focus",
+            "reserve",
+            "spotlight",
+            "spark",
+            "circle",
+            "reservoir",
+            "flame",
+            "bridge",
+            "echo",
+            "rhythm",
+            "resonance",
+            "cadence"
+          ],
+          "xp": 17123.25,
+          "level": 19.5
+        },
+        {
+          "gate": false,
+          "archetype": "popular",
+          "candidate": 42,
+          "order": [
+            "echo",
+            "resonance",
+            "spark",
+            "flame",
+            "circle",
+            "rhythm",
+            "focus",
+            "bridge",
+            "spotlight",
+            "cadence",
+            "reserve",
+            "reservoir"
+          ],
+          "xp": 34283,
+          "level": 27
+        },
+        {
+          "gate": false,
+          "archetype": "parttime",
+          "candidate": 8,
+          "order": [
+            "focus",
+            "circle",
+            "rhythm",
+            "spotlight",
+            "echo",
+            "spark",
+            "cadence",
+            "flame",
+            "bridge",
+            "reserve",
+            "reservoir",
+            "resonance"
+          ],
+          "xp": 13843,
+          "level": 17.75
+        },
+        {
+          "gate": false,
+          "archetype": "newhire",
+          "candidate": 78,
+          "order": [
+            "spark",
+            "circle",
+            "flame",
+            "echo",
+            "resonance",
+            "focus",
+            "rhythm",
+            "cadence",
+            "reserve",
+            "reservoir",
+            "bridge",
+            "spotlight"
+          ],
+          "xp": 14228.5,
+          "level": 18
+        },
+        {
+          "gate": false,
+          "archetype": "holiday",
+          "candidate": 80,
+          "order": [
+            "circle",
+            "rhythm",
+            "spark",
+            "bridge",
+            "flame",
+            "focus",
+            "spotlight",
+            "cadence",
+            "echo",
+            "resonance",
+            "reserve",
+            "reservoir"
+          ],
+          "xp": 26079.5,
+          "level": 23.75
+        },
+        {
+          "gate": false,
+          "archetype": "swapper",
+          "candidate": 73,
+          "order": [
+            "rhythm",
+            "spark",
+            "reserve",
+            "flame",
+            "cadence",
+            "focus",
+            "echo",
+            "reservoir",
+            "spotlight",
+            "circle",
+            "resonance",
+            "bridge"
+          ],
+          "xp": 30086,
+          "level": 26
+        },
+        {
+          "gate": false,
+          "archetype": "minmax",
+          "candidate": 41,
+          "order": [
+            "circle",
+            "echo",
+            "rhythm",
+            "spark",
+            "focus",
+            "flame",
+            "resonance",
+            "reserve",
+            "cadence",
+            "spotlight",
+            "reservoir",
+            "bridge"
+          ],
+          "xp": 39420,
+          "level": 29
+        },
+        {
+          "gate": false,
+          "archetype": "quiet",
+          "candidate": 93,
+          "order": [
+            "focus",
+            "spark",
+            "circle",
+            "flame",
+            "spotlight",
+            "bridge",
+            "echo",
+            "resonance",
+            "rhythm",
+            "reserve",
+            "reservoir",
+            "cadence"
+          ],
+          "xp": 5501.75,
+          "level": 11.25
+        }
+      ]
+    },
+    {
+      "gate": true,
+      "winners": [
+        {
+          "gate": true,
+          "archetype": "steady",
+          "candidate": 80,
+          "order": [
+            "circle",
+            "rhythm",
+            "spark",
+            "bridge",
+            "flame",
+            "focus",
+            "spotlight",
+            "cadence",
+            "echo",
+            "resonance",
+            "reserve",
+            "reservoir"
+          ],
+          "xp": 29710,
+          "level": 25.5
+        },
+        {
+          "gate": true,
+          "archetype": "burst",
+          "candidate": 38,
+          "order": [
+            "focus",
+            "reserve",
+            "spotlight",
+            "spark",
+            "circle",
+            "reservoir",
+            "flame",
+            "bridge",
+            "echo",
+            "rhythm",
+            "resonance",
+            "cadence"
+          ],
+          "xp": 16777.25,
+          "level": 19.25
+        },
+        {
+          "gate": true,
+          "archetype": "popular",
+          "candidate": 42,
+          "order": [
+            "echo",
+            "resonance",
+            "spark",
+            "flame",
+            "circle",
+            "rhythm",
+            "focus",
+            "bridge",
+            "spotlight",
+            "cadence",
+            "reserve",
+            "reservoir"
+          ],
+          "xp": 33371.75,
+          "level": 27
+        },
+        {
+          "gate": true,
+          "archetype": "parttime",
+          "candidate": 4,
+          "order": [
+            "focus",
+            "rhythm",
+            "circle",
+            "spark",
+            "bridge",
+            "flame",
+            "spotlight",
+            "cadence",
+            "reserve",
+            "reservoir",
+            "echo",
+            "resonance"
+          ],
+          "xp": 13227.25,
+          "level": 17
+        },
+        {
+          "gate": true,
+          "archetype": "newhire",
+          "candidate": 78,
+          "order": [
+            "spark",
+            "circle",
+            "flame",
+            "echo",
+            "resonance",
+            "focus",
+            "rhythm",
+            "cadence",
+            "reserve",
+            "reservoir",
+            "bridge",
+            "spotlight"
+          ],
+          "xp": 13469,
+          "level": 17
+        },
+        {
+          "gate": true,
+          "archetype": "holiday",
+          "candidate": 80,
+          "order": [
+            "circle",
+            "rhythm",
+            "spark",
+            "bridge",
+            "flame",
+            "focus",
+            "spotlight",
+            "cadence",
+            "echo",
+            "resonance",
+            "reserve",
+            "reservoir"
+          ],
+          "xp": 25419.75,
+          "level": 23.5
+        },
+        {
+          "gate": true,
+          "archetype": "swapper",
+          "candidate": 32,
+          "order": [
+            "spark",
+            "focus",
+            "flame",
+            "reserve",
+            "echo",
+            "rhythm",
+            "reservoir",
+            "spotlight",
+            "resonance",
+            "cadence",
+            "circle",
+            "bridge"
+          ],
+          "xp": 22843,
+          "level": 22
+        },
+        {
+          "gate": true,
+          "archetype": "minmax",
+          "candidate": 83,
+          "order": [
+            "circle",
+            "rhythm",
+            "reserve",
+            "spark",
+            "focus",
+            "spotlight",
+            "echo",
+            "cadence",
+            "flame",
+            "reservoir",
+            "resonance",
+            "bridge"
+          ],
+          "xp": 35622.5,
+          "level": 28
+        },
+        {
+          "gate": true,
+          "archetype": "quiet",
+          "candidate": 33,
+          "order": [
+            "focus",
+            "echo",
+            "spark",
+            "resonance",
+            "rhythm",
+            "flame",
+            "reserve",
+            "circle",
+            "reservoir",
+            "cadence",
+            "bridge",
+            "spotlight"
+          ],
+          "xp": 5350.75,
+          "level": 11.25
+        }
+      ]
+    }
+  ]
+}

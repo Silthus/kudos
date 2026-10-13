@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "byteIdentical": true,
+  "elapsedMs": 36524,
+  "sha256": {
+    "summary.json": "41a890afa320ff0b9c5b17b2a13003a99c101a31d9a25319363a96acbdfa1ace",
+    "runs.jsonl": "052dfc882a199e39e549ee32e34d3121549e71c2d21271955b40fee59432c79e",
+    "monthly.jsonl": "2f905218e0631c7189d04083e87c43633ada88cc98f1441f951c80169225343b",
+    "monthly-summary.json": "32d58d23503f0019337058dc6a0e00f21cf3337e4967a6bb8ffbf84254fc8289",
+    "order-search.json": "8bc0e60ff311a5aeae728544147ab18850fc9c549952b0297ef04ac20f2983e8",
+    "run-output.json": "21d0036548771ececc4cfd0a64b4c98d953c0a1a5e32770743079655dffc12de",
+    "analysis-tables.md": "6eed175dde64c14fdb5c9c0cb76821233cac26daf178579cd597eefdbb63ee01",
+    "validation-output.json": "b18c64c08f8d8a9d13f72e84c5f01551f76424a06ff154a298646094104fabfd",
+    "validation-log.json": "70faf753ea947e1ce295212eefd86d1b48a52d1c44f66ea2dc6cfbeb12101ded"
+  },
+  "reportCheck": "All nine final gate-on named-build winning XP values appear in report"
+}

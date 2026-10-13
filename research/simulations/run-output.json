@@ -1,0 +1,47 @@
+{
+  "runs": 11664,
+  "monthlyRows": 8964,
+  "searchRuns": 6912,
+  "prd": [
+    {
+      "rarity": "common",
+      "probability": 0.06,
+      "constant": 0.005440108614899363,
+      "meanInterval": 16.666666666666664,
+      "guaranteeAt": 184,
+      "pool": 60
+    },
+    {
+      "rarity": "uncommon",
+      "probability": 0.025,
+      "constant": 0.0009657415844939051,
+      "meanInterval": 40.00000000000001,
+      "guaranteeAt": 1036,
+      "pool": 40
+    },
+    {
+      "rarity": "rare",
+      "probability": 0.008,
+      "constant": 0.00009999859870731505,
+      "meanInterval": 124.99999999999997,
+      "guaranteeAt": 10001,
+      "pool": 24
+    },
+    {
+      "rarity": "epic",
+      "probability": 0.002,
+      "constant": 0.0000062748226544762865,
+      "meanInterval": 499.9999999999998,
+      "guaranteeAt": 159368,
+      "pool": 12
+    },
+    {
+      "rarity": "legendary",
+      "probability": 0.0004,
+      "constant": 2.5126041556612147e-7,
+      "meanInterval": 2500,
+      "guaranteeAt": 3979935,
+      "pool": 6
+    }
+  ]
+}
