@@ -306,6 +306,10 @@
     {
       "name": "capture",
       "definition": "Whether a deployment records and sends product events: on only when it has both the PostHog project token and a valid KUDOS_ENVIRONMENT (sandbox or production). With capture off nothing is recorded and nothing is sent."
+    },
+    {
+      "name": "usage fact",
+      "definition": "A platform-neutral fact a chat adapter reports to the analytics module when a member uses the app outside a kudos message: App Home opened, or a command typed with its result. It is recorded in the mutation that handles it and becomes a product event; it drives nothing in the domain."
     }
   ]
 }

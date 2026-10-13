@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import type { DomainEvent } from "../bus/events";
 import { publish } from "../bus/publish";
 import { testBackend, type Backend } from "../../testing/slackBackend";
 import { observe, recheck } from "./engine";
@@ -160,8 +161,8 @@ describe("R20: kudosGiven", () => {
 
     await t.run((ctx) => observe(ctx, kudosMessage("U_ALICE", [person("U_BOB"), person("U_CAROL")], ["taco"], { at })));
 
-    expect(publish).toHaveBeenCalledOnce();
-    const [, event] = vi.mocked(publish).mock.calls[0]!;
+    expect(published("kudosGiven")).toHaveLength(1);
+    const [event] = published("kudosGiven");
     const ids = await memberIds(t);
     expect(event).toEqual({
       type: "kudosGiven",
@@ -207,8 +208,8 @@ describe("R20: kudosGiven", () => {
         await t.run((ctx) => observe(ctx, index === 0 ? posted : editOf(posted, later(index))));
       }
 
-      expect(publish).toHaveBeenCalledOnce();
-      expect(vi.mocked(publish).mock.calls[0]![1]).toMatchObject({ retry });
+      expect(published("kudosGiven")).toHaveLength(1);
+      expect(published("kudosGiven")[0]).toMatchObject({ retry });
     });
 
     test("a retry that waits on the directory is still a retry when it gives", async () => {
@@ -220,7 +221,7 @@ describe("R20: kudosGiven", () => {
       await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: "U_DAVE", kind: "member" }));
       await t.run((ctx) => recheck(ctx, edited.ref, edited.revision));
 
-      expect(vi.mocked(publish).mock.calls[0]![1]).toMatchObject({ retry: true });
+      expect(published("kudosGiven")[0]).toMatchObject({ retry: true });
     });
 
     test("skippedMentions counts the mentions that receive nothing, and inThread a thread reply", async () => {
@@ -229,7 +230,7 @@ describe("R20: kudosGiven", () => {
 
       await t.run((ctx) => observe(ctx, reply));
 
-      expect(vi.mocked(publish).mock.calls[0]![1]).toMatchObject({ skippedMentions: 2, inThread: true });
+      expect(published("kudosGiven")[0]).toMatchObject({ skippedMentions: 2, inThread: true });
     });
   });
 
@@ -238,7 +239,33 @@ describe("R20: kudosGiven", () => {
 
     await t.run((ctx) => observe(ctx, kudosMessage("U_ALICE", [person("U_BOB")], ["taco", "taco", "taco", "taco"])));
 
-    expect(publish).not.toHaveBeenCalled();
+    expect(published("kudosGiven")).toEqual([]);
+  });
+
+  test.each([
+    ["Over allowance", [person("U_BOB"), person("U_CAROL")], ["taco", "taco"], { outcome: "over-allowance", recipients: 2, perRecipient: 2, cost: 4, skippedMentions: 0 }],
+    ["Invalid", [person("U_ALICE"), { kind: "broadcast", range: "here" }], ["taco"], { outcome: "invalid", recipients: 0, perRecipient: 1, cost: 0, skippedMentions: 2 }],
+  ] as const)("an %s attempt publishes attemptFailed with its outcome and the allowance left", async (_, mentions, emoji, failure) => {
+    const t = await withDirectory({ U_ALICE: "Asia/Tokyo", U_BOB: "UTC", U_CAROL: "UTC" });
+    const at = Date.parse("2026-10-13T15:30:00Z");
+
+    await t.run((ctx) => observe(ctx, { ...kudosMessage("U_ALICE", [...mentions], [...emoji], { at }), threadRoot: "1760349000.000100" }));
+
+    const ids = await memberIds(t);
+    expect(vi.mocked(publish).mock.calls.map(([, event]) => event)).toEqual([
+      {
+        type: "attemptFailed",
+        workspace: "T1",
+        message: { workspace: "T1", conversation: "C1", message: "1" },
+        giver: ids.U_ALICE,
+        ...failure,
+        retry: false,
+        inThread: true,
+        allowance: { dailyLeft: 3 },
+        day: "2026-10-14",
+        at,
+      },
+    ]);
   });
 
   test("kudosGiven is published in the awards' transaction", async () => {
@@ -379,6 +406,13 @@ test("R26: an edit to a message that gave kudos changes no award and spends noth
     { giver: "U_ALICE", recipient: "U_CAROL", kudos: 2, day: "2026-10-13" },
   ]);
 });
+
+function published<T extends DomainEvent["type"]>(type: T) {
+  return vi
+    .mocked(publish)
+    .mock.calls.map(([, event]) => event)
+    .filter((event): event is Extract<DomainEvent, { type: T }> => event.type === type);
+}
 
 async function withDirectory(people: Record<string, string | undefined>) {
   const t = testBackend();

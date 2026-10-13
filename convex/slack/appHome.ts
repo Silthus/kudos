@@ -1,8 +1,10 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { internalAction, type ActionCtx } from "../_generated/server";
+import { internalAction, type ActionCtx, type MutationCtx } from "../_generated/server";
+import { recordUsage } from "../analytics/usage";
 import type { HomeFacts } from "../engine/home";
 import { renderHome, type HomeLine, type HomeView } from "../feedback/home";
+import { lookup } from "../workspace/directory";
 import { attemptArgs, failedAttempt, sendOnce, tryAtMostThreeTimes } from "./delivery";
 import { lookUpUser } from "./directory";
 
@@ -10,6 +12,11 @@ export type HomeOpened = { type: "app_home_opened"; user: string; tab: "home" | 
 
 export function isHomeTabOpened(event: { type: string }): event is HomeOpened {
   return event.type === "app_home_opened" && (event as HomeOpened).tab === "home";
+}
+
+export async function reportHomeOpened(ctx: MutationCtx, workspace: string, user: string, at: number) {
+  const person = await lookup(ctx, workspace, user);
+  if (person?.kind === "member") await recordUsage(ctx, { kind: "appHomeOpened", workspace, member: person.member, at });
 }
 
 export const publishHome = internalAction({

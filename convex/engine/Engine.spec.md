@@ -1,6 +1,6 @@
 # Engine
 
-Kudos engine: observes message events, checks the directory and rechecks a message that waits on it 1, 6, 36, 156 and 516 minutes after the first miss before abandoning it, decides each attempt's outcome against the daily allowance, writes awards and publishes kudosGiven, and answers App Home with a member's facts: the daily allowance left and the kudos given and received.
+Kudos engine: observes message events, checks the directory and rechecks a message that waits on it 1, 6, 36, 156 and 516 minutes after the first miss before abandoning it, decides each attempt's outcome against the daily allowance, writes awards and publishes kudosGiven for a Given attempt and attemptFailed for an Over allowance or Invalid one, and answers App Home with a member's facts: the daily allowance left and the kudos given and received.
 
 ## invariants
 - awards are insert-only: An award, once written, is never changed or deleted, whatever later happens to its message, its giver's allowance or its delivery.
