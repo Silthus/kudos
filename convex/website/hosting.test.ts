@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { signingSecret } from "../../testing/signedSlack";
-import { testBackend } from "../../testing/slackBackend";
+import { testBackend, type Backend } from "../../testing/slackBackend";
 
 const deploymentUrl = "https://happy-hog-123.convex.cloud";
 
@@ -11,7 +11,20 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
 });
+
+type ComponentRunner = { runInComponent: (componentPath: string, handler: (ctx: ComponentCtx) => Promise<void>) => Promise<void> };
+type ComponentCtx = { storage: { store: (blob: Blob) => Promise<string> }; db: { insert: (table: string, document: Record<string, unknown>) => Promise<unknown> } };
+
+async function aPublishedSite(t: Backend) {
+  const indexHtml = "<!doctype html><title>HedgeHug</title>";
+  await (t as unknown as ComponentRunner).runInComponent("staticHosting", async (ctx) => {
+    const storageId = await ctx.storage.store(new Blob([indexHtml], { type: "text/html" }));
+    await ctx.db.insert("staticAssets", { path: "/index.html", storageId, contentType: "text/html; charset=utf-8", deploymentId: "build-1" });
+  });
+  vi.stubGlobal("fetch", async () => new Response(indexHtml));
+}
 
 function cspOf(response: Response) {
   const header = response.headers.get("Content-Security-Policy") ?? "";
@@ -59,6 +72,20 @@ describe("WS25: every HTML response carries the strict Content Security Policy h
     expect(csp.get("object-src")).toEqual(["'none'"]);
     expect(csp.get("base-uri")).toEqual(["'none'"]);
     expect(csp.get("frame-ancestors")).toEqual(["'none'"]);
+  });
+
+  test("a deep SPA path like /profile answers the published index.html with the same policy as /", async () => {
+    const t = testBackend();
+    await aPublishedSite(t);
+
+    const root = await t.fetch("/", { method: "GET" });
+    const deepPath = await t.fetch("/profile", { method: "GET" });
+
+    expect(deepPath.status).toBe(200);
+    expect(deepPath.headers.get("Content-Type")).toMatch(/^text\/html/);
+    expect(await deepPath.text()).toContain("<title>HedgeHug</title>");
+    expect(cspOf(deepPath).get("default-src")).toEqual(["'self'"]);
+    expect(deepPath.headers.get("Content-Security-Policy")).toBe(root.headers.get("Content-Security-Policy"));
   });
 
   test("a response that isn't HTML gets no policy", async () => {
