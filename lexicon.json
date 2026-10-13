@@ -63,7 +63,7 @@
     },
     {
       "name": "xp",
-      "definition": "Experience a member earns: 10 for each kudos given and 5 for each kudos received on Given awards, bonus XP from perks the member owns and from chime-in thresholds on kudos they received, and quest and Journey rewards. XP decides the member's level and never goes down (ADR-0002). It is not kudos and not coins."
+      "definition": "Experience a member earns: 10 for each kudos given and 5 for each kudos received on Given awards, bonus XP from perks the member owns, and personal quest and Journey rewards. XP decides the member's level and never goes down (ADR-0002). It is not kudos and not coins."
     },
     {
       "name": "level",
@@ -175,7 +175,7 @@
     },
     {
       "name": "thoughtful kudos",
-      "definition": "A kudos message that says why its recipients earned it: for now, at least five words besides the mentions and kudos emoji. Only thoughtful kudos trigger bonus XP, perk effects and coins, and spend the weekly reserve; every Given award still earns base XP."
+      "definition": "A kudos message that says why its recipients earned it: for now, at least five words besides the mentions and kudos emoji. The rule counts words and does not judge them, so member copy says 'say why', never 'thoughtful'. Only thoughtful kudos trigger bonus XP, perk effects and coins, and spend the weekly reserve; every Given award still earns base XP."
     },
     {
       "name": "chime-in",
@@ -189,7 +189,7 @@
     },
     {
       "name": "chime-in threshold",
-      "definition": "A number of chime-ins on one kudos message (3, 5, 10, 20, 50 or 100). Reaching one gives the message's recipients bonus XP."
+      "definition": "A number of chime-ins on one kudos message (3, 5, 10, 20, 50 or 100). Reaching one updates the message's public line with the count; it gives no XP."
     },
     {
       "name": "sticker book",
@@ -285,15 +285,15 @@
     },
     {
       "name": "quest",
-      "definition": "A goal a member finishes for a reward they claim by opening its crate: three personal quests each week (one can be rerolled), a group quest shared by a primary group, and the steps of the Journey. A quest rewards breadth, thoughtfulness or participation, never a number of kudos, never a named person, never receiving."
+      "definition": "A goal a member finishes for a reward that is recorded the moment it finishes and revealed by opening its crate: three personal quests each week (one can be rerolled), a group quest shared by a primary group, and the steps of the Journey. A quest is drawn only when the member can finish it, and rewards breadth, thoughtfulness or participation, never a number of kudos, never a named person, never receiving, never everyone in a group."
     },
     {
       "name": "Journey",
-      "definition": "The onboarding quest chain: seven fixed steps, one for each feature a level unlocks, each active once its feature is opened and claimed like a quest. It runs beside the weekly quests, never expires and never restarts; finishing it gives the Journey's own hedgehog."
+      "definition": "The onboarding quest chain: five fixed steps, one for each feature whose first lesson is a way to thank (the basics, quests, the leaderboard, the Book, coins and the inventory), each active once its feature is opened. It runs beside the weekly quests, never expires, never restarts and never blocks a level or a feature; finishing it gives the Journey's own hedgehog."
     },
     {
       "name": "crate",
-      "definition": "How a member takes something the game has ready for them: a feature their level made ready, or a finished quest or Journey step. Opening it is one action; its content is always known before it is opened, so a crate is a moment, never a random draw."
+      "definition": "How a member takes something the game has ready for them: a feature their level made ready, or a finished quest or Journey step. Opening it is one action that reveals what is already recorded and never grants anything; its content is always known before it is opened, so a crate is a moment, never a random draw."
     },
     {
       "name": "hedgehog",
@@ -306,6 +306,10 @@
     {
       "name": "Michael",
       "definition": "HedgeHug's product owner. Specs, ADRs and journal records quote his rulings, and only he decides what the game is."
+    },
+    {
+      "name": "Octalysis",
+      "definition": "Yu-kai Chou's gamification framework of eight core drives, which research #85 used to audit the game's loops; its findings amended the progression spec on #97. A research lens, not a game feature."
     }
   ]
 }

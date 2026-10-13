@@ -2,6 +2,8 @@ import {writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 
 // Revision 4 of the progression economy: the game after Michael's scope cut (decision 12, #86).
+// Revision 5 (#97) takes the Octalysis findings (#85): personal quests pay 20 XP, the group quest pays no XP,
+// and the Journey drops its two steps that paid for spending a skill point and equipping a hedgehog.
 // Gone: boosters, group auras, drops, rarities, titles, quips, cards, streaks and freezes.
 // New: skill points from level 5, one tree of 14 perks, weekly quests and the Journey, achievement
 // tier rewards in coins, kudos emoji and hedgehogs, and a store of hedgehogs and kudos emoji.
@@ -76,7 +78,7 @@ export type Economy = {
 };
 export const economy: Economy = {
   givingCoins: 4, receivingCoins: 2, receivingCap: 20,
-  quest: {xp: 25, coins: 10}, groupQuest: {xp: 30, coins: 15}, questsPerWeek: 3,
+  quest: {xp: 20, coins: 10}, groupQuest: {xp: 0, coins: 15}, questsPerWeek: 3,
   tierCoins: {bronze: 10, diamond: 100},
   hedgehogPrices: [120, 300, 700, 1500, 3000], emojiPrice: 100, emojiInStore: 6,
   perk: {spark: 5, flame: 8, rhythm: 2, cadence: 3, circle: 5, bridgeOutside: 8, echo: 2, resonance: 5, focus: 12, spotlight: 24, treasurer: 2, banker: 4}
@@ -87,9 +89,7 @@ const journey = [
   {level: 2, xp: 20, coins: 0},
   {level: 3, xp: 30, coins: 0},
   {level: 4, xp: 30, coins: 0},
-  {level: 5, xp: 40, coins: 0},
-  {level: 6, xp: 40, coins: 20},
-  {level: 7, xp: 50, coins: 20}
+  {level: 6, xp: 40, coins: 20}
 ];
 
 const ladders: Record<string, number[]> = {
@@ -315,16 +315,24 @@ function comparePerks() {
 }
 
 function sweepQuestXp() {
-  return [15, 25, 40, 60].map(xp => {
-    const eco = {...economy, quest: {...economy.quest, xp}, groupQuest: {...economy.groupQuest, xp: xp + 5}};
+  return [15, 20, 25, 40, 60].map(xp => {
+    const eco = {...economy, quest: {...economy.quest, xp}};
     return {questXp: xp, questShare: Object.fromEntries(summarise(eco).map(s => [s.archetype, s.xpShare.quests]))};
   });
 }
 
+function compareQuestBudgets() {
+  return ([[25, 30], [20, 30], [25, 0], [20, 0]] as const).map(([personal, group]) => {
+    const eco = {...economy, quest: {...economy.quest, xp: personal}, groupQuest: {...economy.groupQuest, xp: group}};
+    return {personalXp: personal, groupXp: group, results: Object.fromEntries(summarise(eco).map(s => [s.archetype, {base: s.xpShare.base, quests: s.xpShare.quests, level: s.level, daysToLevel5: s.daysToLevel[5]}]))};
+  });
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const output = {economy, journey, tree, results: summarise(), questXpSweep: sweepQuestXp(), perkComparison: comparePerks()};
+  const output = {economy, journey, tree, results: summarise(), questXpSweep: sweepQuestXp(), questBudgets: compareQuestBudgets(), perkComparison: comparePerks()};
   writeFileSync(new URL('./progression-v2-output.json', import.meta.url), JSON.stringify(output, null, 2) + '\n');
   for (const s of output.results) console.log(JSON.stringify(s));
   for (const s of output.questXpSweep) console.log(JSON.stringify(s));
+  for (const s of output.questBudgets) console.log(JSON.stringify(s));
   for (const s of output.perkComparison) console.log(JSON.stringify(s));
 }

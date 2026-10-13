@@ -4,6 +4,8 @@
 >
 > **Why it changed.** Michael cut the game to its core loop while prototyping the website (map #1, decision 12; [#62 round 9](https://github.com/Silthus/kudos/issues/62#issuecomment-6152588034)): "I agree with cutting more of the complex stuff like boosters, etc. and leaving only the core parts that truly feed the gameplay loop. things I would cut: boosters, group auras, drops, rarities, titles, quips, streaks, freezes, journey", "can we reduce the skill tree to just a single tree?", "Let's lock that design in." He corrected it in map #1's conductor thread: "the onboarding journey is not cut, the rest is as stated".
 >
+> **Amended on [#97](https://github.com/Silthus/kudos/issues/97) (2026-10-13)** with the Octalysis walk-through's findings ([#85](https://github.com/Silthus/kudos/issues/85), [report](https://github.com/Silthus/kudos/blob/f0b786fd22b1693b46f8f9011f0cac0a72d3f111/research/octalysis.md) on `research/octalysis` at `f0b786f`), accepted under the same authority. It changes P2, P5, P6, P7, P11, P13, P29, P38, P51, P53, P61, P63, P64 and P80–P93, and adds P94 and P95; "Amended on #97" in Further Notes lists every finding and whether it was taken.
+>
 > **Rule numbers are stable.** Shipped code and tests cite `P1`–`P13` and `P63`–`P69`. A rule that survives keeps its number; a cut rule keeps its number as a one-line stub; new rules start at `P72`. Groups rules are cited as `G17`, core loop rules as `R36`.
 >
 > Sources: the cut above; the accepted website prototype ([#62 handoff](https://github.com/Silthus/kudos/issues/62#issuecomment-6152903919), branch `prototype/website-ui` at `3409ade`); the first spec and its stopping points #21, #29–#42; the groups spec (#14, `spec/groups.md` on `docs/spec-groups`); what is built on `spec/xp-levels` (#22–#26) and `spec/everyone-board` (#48–#51); the flag rule (decision 11); the PostHog spec (#69); ADR-0001 to ADR-0005; the Coherence lexicon; and the [economy rerun](../research/progression-v2.md) on this branch, which sets every number below.
@@ -17,7 +19,7 @@ The first progression spec designed a big game: three kinds of booster, group au
 Every member still earns XP from every kudos, levels without a cap, and never loses anything. What changes is what levels lead to, and when:
 
 - **Progressive unlocks.** Each level up to 7 makes one feature ready: quests at 2, the leaderboard at 3, the Book at 4, the skill tree at 5, coins and the inventory at 6, hedgehogs at 7. The member opens it with one click. Unlocks change what a member sees, never what they earn (ADR-0005).
-- **Quests.** Three personal quests a week, one reroll, and a group quest. They ask for breadth, thoughtfulness and participation, never volume, and never name a person. The **Journey** is the first quest chain: one step per unlock that shows a member around what they just opened.
+- **Quests.** Three personal quests a week, one reroll, and a group quest. They ask for breadth, thoughtfulness and participation, never volume, never name a person, and are only drawn when the member can finish them. The **Journey** is the first quest chain: five steps that teach how to thank with each feature as it opens.
 - **One skill tree** of 14 perks in 7 chains, with skill points from level 5.
 - **Coins** from thoughtful giving, from being thanked by many people, from quests and from achievements. They buy perk upgrades, kudos emoji and hedgehogs, all shown with their exact price.
 - **The Book**: the sticker book (groups spec) and 11 achievement ladders whose tiers give coins, kudos emoji and hedgehogs.
@@ -46,10 +48,10 @@ Everything keeps living in Slack until the website exists: App Home for the prof
 **Quests and the Journey**
 13. As a member, I want three quests a week that nudge me to thank someone new or say why, so that I have a small goal each week.
 14. As a member, I want to swap one quest a week, so that a quest that doesn't fit my week isn't wasted.
-15. As a member of a group, I want a quest my group works on together that shows who joined in, never how much, so that it feels like a team effort without a scoreboard.
-16. As a member, I want quests never to ask for a number of kudos or tell me whom to thank, so that thanks stay genuine.
+15. As a member of a group, I want a quest my group works on together that shows how many of us joined in, never who or how much, so that it feels like a team effort without a scoreboard or a list of who's missing.
+16. As a member, I want quests never to ask for a number of kudos or tell me whom to thank, and never to hand me one I can't finish, so that thanks stay genuine.
 17. As a new member, I want the Journey to walk me through each feature as I open it, so that I learn the game by playing it.
-18. As a member, I want to claim a finished quest by opening its crate, so that the reward feels like a moment.
+18. As a member, I want a finished quest's reward to be mine the moment I finish it, and to open its crate whenever I like, so that the reward feels like a moment without a click standing between me and it.
 
 **Perks**
 19. As a member, I want one skill tree whose rows open by level, so that my choices are easy to see.
@@ -86,24 +88,24 @@ Each rule is a testable statement; tests cite it (`P7`). "The giver's day" is th
 ### XP and levels
 
 - **P1. Base XP.** Every Given award gives its giver 10 XP and its recipient 5 XP per kudos, whether it came from a kudos message or a chime-in. Base XP is never gated (P13).
-- **P2. Where XP comes from.** XP comes only from base XP (P1), bonus XP from perks the member owns (P18, P20), chime-in thresholds on kudos the member received (P53), and quest and Journey rewards (P86, P90). Level ups, achievements, coins, purchases, opening unlocks and opening the app give no XP.
+- **P2. Where XP comes from.** XP comes only from base XP (P1), bonus XP from perks the member owns (P18, P20), and personal quest and Journey rewards (P86, P89). Level ups, achievements, coins, purchases, spending a skill point, equipping an item, opening unlocks or crates, group quests and chime-in thresholds give no XP (amended on #97).
 - **P3. Levels.** Level 1 at 0 XP, level 2 at 20 XP, and from level 3 the total is `50 × (L − 1) × (L − 2)`: level 3 at 100, level 4 at 300, level 5 at 600, level 7 at 1,500, level 10 at 3,600, level 12 at 5,500, level 20 at 17,100. There is no cap.
 - **P4. Skill points.** Every level reached from level 5 on gives one skill point; levels 2 to 4 give none, and nothing is paid out for them later. A member's unspent points are `max(0, level − 4) − spent`. They never expire; a spent point is never refunded (ADR-0002).
-- **P5. Permanent.** XP, levels, skill points, perks, kudos emoji, hedgehogs, achievements, opened unlocks, claimed quest rewards and coins earned never go down, reset or expire. There is no respec. A perk or item retired from the catalogue stays with its owners and keeps working.
-- **P6. Several levels at once.** An award or a claim that crosses several levels gives one skill point per level from 5, and one level-up notice for the highest level reached, naming every feature those levels made ready (P74).
+- **P5. Permanent.** XP, levels, skill points, perks, kudos emoji, hedgehogs, achievements, opened unlocks, quest rewards and coins earned never go down, reset or expire. There is no respec. A perk or item retired from the catalogue stays with its owners and keeps working.
+- **P6. Several levels at once.** An award or a reward record (P87) that crosses several levels gives one skill point per level from 5, and one level-up notice for the highest level reached, naming every feature those levels made ready (P74).
 
 ### Effects are stored with their award (ADR-0004)
 
-- **P7. Effects records.** Progression writes one effects record per side of every award (giver, recipient). It holds the base XP, every bonus XP line with its source (perk ID and tier, or chime-in threshold), coins earned with their source, the gate decision (P12) and the catalogue version in force. Levels, skill points, coin balances and achievements are derived from effects records, reward records (P87) and purchases.
+- **P7. Effects records.** Progression writes one effects record per side of every award (giver, recipient). It holds the base XP, every bonus XP line with its source (perk ID and tier), coins earned with their source, the gate decision (P12) and the catalogue version in force. Levels, skill points, coin balances and achievements are derived from effects records, reward records (P87) and purchases.
 - **P8. Exactly once.** An award's effects records are written once. Redeliveries, retried subscribers and replays never write a second record or change one. Records are insert-only.
 - **P9. No recomputation.** Effects use the member's perks and the catalogue in force when the record is written. A later purchase, price change, retired item or opened unlock never rewrites an earlier record.
 - **P10. Backfill.** When progression first ships, it replays every existing award in award order into effects records with base XP only: no bonus, coins or level-up notices from before it shipped. Achievement replay follows P62.
 
 ### Thoughtful kudos
 
-- **P11. The rule (version 1).** A kudos message is thoughtful when its countable content (R1) has at least 5 words besides mentions, emoji, channel links and URLs. A word is a run of characters with at least one letter or digit, separated by whitespace.
+- **P11. The rule (version 1).** A kudos message is thoughtful when its countable content (R1) has at least 5 words besides mentions, emoji, channel links and URLs. A word is a run of characters with at least one letter or digit, separated by whitespace. **The rule counts words; it doesn't judge them** (amended on #97): `Thank you for your help today` passes without naming any work, and padding passes too. It is a cheap prompt to say why, not proof of a sincere or specific reason, and P95 keeps the copy honest about that.
 - **P12. Decided once.** A parse hook decides it from the text in memory and annotates the kudos message with `{ version, thoughtful, words }`. The engine stores the annotation with the evaluated revision before anything is spent. A recheck (R29) reuses it; a retry (R23) is a new revision and decides again before it spends. Every effects record copies the decision.
-- **P13. What the gate governs.** Only thoughtful kudos trigger bonus XP, perk effects, coins, quest progress that asks for thoughtful kudos, and spending the weekly reserve. Base XP, the daily allowance, the award itself and achievement counts never depend on it.
+- **P13. What the gate governs.** Only thoughtful kudos trigger bonus XP, perk effects, coins, quest progress that asks for thoughtful kudos, and spending the weekly reserve. Base XP, the daily allowance, the award itself and achievement counts never depend on it. **Trading is bounded, not prevented** (amended on #97): two members who thank each other every workday earn base XP like anyone else (a pair spending the whole allowance of 3 on each other gets 225 XP a week each, against 150 for giving the same and receiving nothing). That's accepted: brief and mutual thanks are valid, XP ranks nobody (P66), the daily allowance bounds the rate, and every bonus and coin pays once per qualifying recognition (P16).
 - **P14. Chime-ins inherit.** A chime-in uses the stored decision of the kudos message it joins.
 - **P15. The hint.** When a Given message isn't thoughtful and the giver could have earned something from it (they own a perk, or coins have shipped), the success reply adds `Add why they earned it to earn more.` as its extras line (P71). Otherwise nothing is added.
 
@@ -155,7 +157,7 @@ Each rule is a testable statement; tests cite it (`P7`). "The giver's day" is th
   - quest and Journey rewards (P86, P90);
   - achievement tiers: bronze 10 coins, diamond 100 coins (P58).
 
-  Nothing else earns coins: not levels, receiving more from the same giver, opening unlocks or opening the app. Coins are earned from level 1, whether or not Coins is opened (P75). Coins have no history before they ship: awards and claims before then earned none (P10, P86), and achievement tiers earned before then get their coins once when coins ship, as reward records (P62, P87).
+  Nothing else earns coins: not levels, receiving more from the same giver, opening unlocks or opening the app. Coins are earned from level 1, whether or not Coins is opened (P75). Coins have no history before they ship: awards and quests finished before then earned none (P10, P86), and achievement tiers earned before then get their coins once when coins ship, as reward records (P62, P87).
 - **P30. The wallet.** A member's balance is coins earned minus coins spent, never below 0. Coins never expire, can't be transferred, and never turn into kudos or allowance. A purchase debits and grants in one step.
 
 ### The store
@@ -176,7 +178,7 @@ Each rule is a testable statement; tests cite it (`P7`). "The giver's day" is th
 - **P35. Cut** (rarity, decision 12).
 - **P36. Collection and loadout.** The collection lists every kudos emoji and hedgehog a member owns. The loadout holds one hedgehog as avatar and up to 3 kudos emoji. Equipping and previewing are free and instant, and items earned before the inventory or hedgehogs are opened wait in the collection.
 - **P37. Cut** (quips, decision 12).
-- **P38. Kudos emoji.** A kudos emoji in a member's loadout is worth 1 kudos for its owner, through a parse hook (D15: the highest value wins). The workspace's own kudos emoji always works for everyone. Unlockable emoji are a curated Unicode list plus custom emoji a workspace admin picks. A chime-in counts even when the clicker hasn't unlocked the message's emoji. The starter set gives every member 🦔, waiting in the collection until they open the inventory.
+- **P38. Kudos emoji.** A kudos emoji in a member's loadout is worth 1 kudos for its owner, through a parse hook (D15: the highest value wins). The workspace's own kudos emoji always works for everyone. Unlockable emoji are a curated Unicode list plus custom emoji a workspace admin picks. A chime-in counts even when the clicker hasn't unlocked the message's emoji. The starter set gives every member 🦔, waiting in the collection until they open the inventory, and in the first loadout slot from then (amended on #97, so the Journey's last step needs no equipping).
 - **P39. Hedgehogs.** A hedgehog is an avatar: it shows on the member's profile card, App Home and, later, the website. Every member starts with the starter hedgehog as avatar. More hedgehogs come from levels 7, 10, 15, 20 and 30, gold and diamond tiers (P58), quests (P86), finishing the Journey (P90) and the store (P31). Art is the official PostHog hedgehogs, stored in Convex storage and served from it, within Slack's image limits; no member uploads.
 
 ### Cut systems
@@ -191,9 +193,9 @@ Each rule is a testable statement; tests cite it (`P7`). "The giver's day" is th
 - **P48. Members only.** A clicker who isn't a member (R5) is ignored; an unknown clicker waits for the directory like an unknown author (R29).
 - **P49. Replies.** The clicker gets an ephemeral beside the message: `You chimed in: {recipients} got 1 kudos from you. You have {left} left today.` When they can't afford it: `You need {cost} kudos to chime in ({people}), but you have {left} left today.` Nothing else changes on an unaffordable chime-in.
 - **P50. Published.** A chime-in publishes `kudosGiven` with `via: "chime-in"` and the message's chime-in count after it.
-- **P51. Thresholds.** When a chime-in brings a message to 3, 5, 10, 20, 50 or 100 chime-ins, each recipient gets that threshold's bonus XP (P53). Nobody gets a booster.
+- **P51. Thresholds.** When a chime-in brings a message to 3, 5, 10, 20, 50 or 100 chime-ins, the message's public line (P52) shows the count. A threshold gives no XP and no booster (amended on #97).
 - **P52. The public line.** Reaching a threshold sets the chime-in section of the message's one public reply (D18) to `🔥 {count} people chimed in.`
-- **P53. Strengths.** Recipient bonus XP per threshold reached: 5, 10, 20, 40, 80, 160, recorded on the effects record of the chime-in that crossed it. This is the one bonus XP nobody chooses.
+- **P53. Cut** (threshold XP, #97): it was the last half of the cut crowd booster and the one bonus XP that paid for being popular.
 
 ### Cut: streaks
 
@@ -219,13 +221,13 @@ Each rule is a testable statement; tests cite it (`P7`). "The giver's day" is th
 
 - **P59. Counting.** Counts use Given awards as giver or recipient (chime-ins included), on the giver's day and calendar month; "kudos" counts units. A day counts once per member.
 - **P60. Stable IDs.** Every ladder, tier and tier reward has a stable ID; the names above are copy.
-- **P61. Earned once.** A tier is earned when its count is reached, once, and is never taken back. Its earned date is stored.
+- **P61. Earned once.** A tier is earned when its count is reached, once, and is never taken back. Its earned date is stored. Tiers are milestones, never assigned goals: copy celebrates a tier earned and may show the next count, but never promises that every tier can be reached in every workspace, and never suggests whom to thank or ask to fill one.
 - **P62. Retroactive.** When a ladder ships or a tier is added, achievements evaluates it against full history. A member who earns tiers that way gets one DM summary and one public notice for the batch, not one per tier. A tier earned before its reward's kind has shipped (coins, kudos emoji, hedgehogs) gets that reward when the kind ships, once, with one DM summary.
 
 ### Notices, DMs and privacy
 
-- **P63. DMs.** Level ups, unlocks made ready, achievements and quests ready to claim send the member a DM. DMs are on by default and can be turned off in App Home; the DM thread is the member's history.
-- **P64. Public notices.** Level ups and achievements post a public notice in the kudos message's one public reply (D18), or in the announcement channel if a workspace admin picked one. A level reached by claiming a reward has no kudos message, so its notice goes only to the announcement channel when one is set. A notice states only the progress, never the thank-you text or the giver.
+- **P63. DMs.** Level ups, unlocks made ready, achievements and finished quests send the member a DM. DMs are on by default and can be turned off in App Home; the DM thread is the member's history.
+- **P64. Public notices.** Level ups and achievements post a public notice in the kudos message's one public reply (D18), or in the announcement channel if a workspace admin picked one. A level reached through a reward record (P87) has no kudos message, so its notice goes only to the announcement channel when one is set. A notice states only the progress, never the thank-you text or the giver.
 - **P65. Privacy.** Levels, achievement tiers and the hedgehog avatar are public by default: there is no switch to hide them. A member can mute public notices about them (P64) and turn progression DMs off (P63); leaving the leaderboards is the groups spec's (G22). Muted notices are not posted. Their own App Home and DMs still show everything.
 - **P66. Not a performance measure.** Nothing ranks members by XP, level, coins or achievements. The leaderboard (groups spec) counts kudos given, never XP or bonuses.
 
@@ -264,44 +266,76 @@ Each rule is a testable statement; tests cite it (`P7`). "The giver's day" is th
 
 ### Quests
 
-- **P80. Weekly quests.** From the moment a member opens Quests, they have 3 personal quests each week, drawn from the quest pool on Monday 00:00 in the member's time zone (on opening, for the current week). The pool is catalogue data: each quest has a stable ID, its goal, its progress predicate and what it needs (groups, chime-ins). A draw takes 3 different quests whose needs have shipped and apply to the member; with fewer eligible, it draws fewer. The draw is deterministic per member and week, and stored. Unfinished quests end with the week, with no penalty and no carry-over.
-- **P81. Reroll.** Once per member's week, a member can swap one unfinished personal quest for an eligible quest not already in that week's draw. The swap is stored and can't be undone; with no such quest, there is no reroll.
-- **P82. The group quest.** Each group has one group quest a week. A member takes part in the quest of the primary group (G6) they have when their week starts, and only that one: a later change of primary group counts from the next week. The quest finishes when that week's participants reach its goal together, counting only their awards attributed to the group (G10); every participant who contributed can claim it once. It shows who helped, never how much anyone gave. It is hidden when groups aren't available (G4), and a member without a primary group at the start of their week has none that week.
+- **P80. Weekly quests.** From the moment a member opens Quests, they have 3 personal quests each week, drawn from the quest pool on Monday 00:00 in the member's time zone (on opening, for the current week). The pool is catalogue data: each quest has a stable ID, its goal, its progress predicate and what it needs (groups, chime-ins). A draw takes 3 different quests that are **feasible** for the member that week; with fewer feasible, it draws fewer. The draw is deterministic per member and week, and stored.
+  - **Feasible** (amended on #97) means the member can finish the quest alone that week, checked against stored facts at the draw: its needs have shipped (groups, chime-ins); a breadth goal has at least as many people left to meet it (someone the member hasn't thanked, someone last thanked 30+ days ago, someone outside their primary group, a group other than theirs); a goal about recent joiners has one. A quest that isn't feasible is never drawn, never offered by a reroll, and never shown as locked.
+  - The pool always holds thoughtfulness quests that need nothing but the member, so every member who opened Quests gets 3. A workspace without groups gets personal quests only, never a locked group one. Unfinished quests end with the week, with no penalty and no carry-over.
+- **P81. Reroll.** Once per member's week, a member can swap one unfinished personal quest for a feasible quest not already in that week's draw. The swap is stored and can't be undone; with no such quest, there is no reroll.
+- **P82. The group quest.** Each group has one group quest a week. A member takes part in the quest of the primary group (G6) they have when their week starts, and only that one: a later change of primary group counts from the next week. The quest finishes when that week's participants reach its goal together, counting only their awards attributed to the group (G10); every participant who contributed gets its reward once. Amended on #97:
+  - **Fixed at the start of the week.** Its goal is drawn against the group's roster when the week starts, and only when that roster can meet it. Members who join or leave during the week change neither the goal nor who can finish it.
+  - **Never everyone.** A goal never needs every member of the group, or every member to do anything; it counts participants up to a number the roster can reach.
+  - **Counts, never names.** It shows how many took part against the goal, never who did, who didn't or how much anyone gave.
+
+  It is hidden when groups aren't available (G4), and a member without a primary group at the start of their week has none that week.
 - **P83. Guardrails.** Every quest goal rewards **breadth** (someone new, someone not thanked in 30 days, someone in another group), **thoughtfulness** (thoughtful kudos, on different days) or **participation** (chiming in, the group taking part). A goal never:
   - counts more than 3 of anything in a week;
   - counts kudos units instead of qualifying recognitions, people or days;
   - names, suggests or ranks a person to thank;
-  - depends on receiving kudos or chime-ins, which a member can't do alone and could trade.
+  - depends on receiving kudos or chime-ins, which a member can't do alone and could trade;
+  - needs every member of a group (P82);
+  - is drawn when the member can't finish it (P80).
 - **P84. Progress.** Progress counts Given awards and chime-ins after the quest was drawn, with each award's stored gate decision (P12); an edit or a retry never changes progress already counted. Progress is recorded once per award and quest.
-- **P85. Claiming.** A finished quest waits in its crate until the member claims it by opening it (P92), from the DM, App Home or the website. A finished quest stays claimable for good, even after its week ends. Claiming is idempotent.
-- **P86. Rewards.** A personal quest gives 25 XP and 10 coins; a group quest 30 XP and 15 coins. A quest may name a kudos emoji or hedgehog from the quest pool instead of its coins, shown on the quest before it starts. A reward is fixed with its catalogue version when the quest is drawn (a Journey step: when it becomes active), and a claim pays exactly that. Coins and items wait for their features like every other earning (P75); a reward fixed before coins shipped holds no coins.
-- **P87. Reward records.** A claim writes one insert-only reward record, with its XP, coins, item and the catalogue version fixed by P86. It is keyed by what it pays for: a weekly quest by member, week and slot (a reroll replaces the slot's quest, not the slot); a group quest by member, group and week; a Journey step by member and step; a tier reward by member and tier. Like effects records, they count toward XP, levels and the wallet; a level crossed by a claim publishes `levelReached` without a kudos message (P64).
+- **P85. Finishing and opening.** A quest's reward is recorded the moment the quest finishes (P87): the XP counts and the coins and items wait like any earning (P75), whether or not the member ever opens its crate (amended on #97; it was a claim). Its crate then waits for the member to open it (P92), from the DM, App Home or the website. Opening only shows what was recorded and stores when it was opened; it grants nothing, so it is idempotent by construction. A finished quest's crate stays openable for good, even after its week ends.
+- **P86. Rewards.** A personal quest gives 20 XP and 10 coins; a group quest 15 coins and no XP (amended on #97: 25 XP and 30 XP before). A quest may name a kudos emoji or hedgehog from the quest pool instead of its coins, shown on the quest before it starts; a draw never names an item the member owns or another open quest already names, and if the member owns it anyway when the quest finishes, the reward is the quest's coins instead. A reward is fixed with its catalogue version when the quest is drawn (a Journey step: when it becomes active), and finishing records exactly that. Coins and items wait for their features like every other earning (P75); a reward fixed before coins shipped holds no coins.
+- **P87. Reward records.** Finishing a quest or Journey step writes one insert-only reward record, with its XP, coins, item and the catalogue version fixed by P86. It is keyed by what it pays for: a weekly quest by member, week and slot (a reroll replaces the slot's quest, not the slot); a group quest by member, group and week; a Journey step by member and step; a tier reward by member and tier. Like effects records, they count toward XP, levels and the wallet; a level crossed by a reward record publishes `levelReached` without a kudos message (P64).
 
 ### The Journey
 
-- **P88. The first quest chain.** The Journey is a fixed chain of 7 onboarding steps, one per row of P72. Its first step is active from the start; every other step becomes active when its feature is opened. Steps run beside the weekly quests, never count toward their 3, never expire and never restart, and are claimed like quests (P85, P87).
+- **P88. The first quest chain.** The Journey is a fixed chain of 5 onboarding steps, one for each row of P72 whose first lesson is a way to thank: the basics, quests, the leaderboard, the Book, and coins and the inventory (amended on #97: 7 steps before). The skill tree and hedgehogs get no step, because their only first action is spending a point or equipping an avatar, and those never pay (P2). Its first step is active from the start; every other step becomes active when its feature is opened. Steps run beside the weekly quests, never count toward their 3, never expire, never restart and never block a level or a feature; their rewards are recorded on finishing like quests (P85, P87).
 - **P89. Steps.**
 
-| # | Active when | Goal | Reward |
-|---:|---|---|---|
-| 1 | from the start | Give a thoughtful kudos | 10 XP |
-| 2 | Quests opened | Finish a weekly quest | 20 XP |
-| 3 | Leaderboard opened | Thank someone you haven't thanked before | 30 XP |
-| 4 | Book opened | Give thoughtful kudos on 2 different days | 30 XP |
-| 5 | Skill tree opened | Own a perk | 40 XP |
-| 6 | Coins and inventory opened | Give a thoughtful kudos with a kudos emoji from your loadout | 40 XP and 20 🪙 |
-| 7 | Hedgehogs opened | Have a hedgehog other than the starter as your avatar | 50 XP and 20 🪙 |
+| # | ID | Active when | Goal | Reward |
+|---:|---|---|---|---|
+| 1 | `first-thanks` | from the start | Give a thoughtful kudos | 10 XP |
+| 2 | `first-quest` | Quests opened | Finish a weekly quest | 20 XP |
+| 3 | `someone-new` | Leaderboard opened | Thank someone you haven't thanked before | 30 XP |
+| 4 | `two-days` | Book opened | Give thoughtful kudos on 2 different days | 30 XP |
+| 5 | `your-emoji` | Coins and inventory opened | Give a thoughtful kudos with a kudos emoji from your loadout | 40 XP and 20 🪙 |
 
-- **P90. Finishing.** Steps 1, 5 and 7 are states: they are finished as soon as they are active and true, counting what the member already did. Steps 2, 3, 4 and 6 count only after they become active. Claiming all seven steps gives the Journey's own hedgehog. A new member's first thoughtful kudos finishes step 1, and its 10 XP plus that kudos's 10 base XP reach level 2.
-- **P91. Members already playing.** When the Journey ships, every step whose feature a member has opened becomes active for them. Steps whose state is already true (P90) are finished at once and claimable, with their rewards as usual; the others count from then.
+  Steps are keyed by their ID, never their number.
+
+- **P90. Finishing.** `first-thanks` is a state: it is finished as soon as it is true, counting what the member already did. The other steps count only after they become active. `someone-new` is finished at once when it becomes active if there is nobody left the member hasn't thanked, so a small workspace never strands the chain. Finishing all five steps gives the Journey's own hedgehog. A new member's first thoughtful kudos finishes `first-thanks`, and its 10 XP plus that kudos's 10 base XP reach level 2.
+- **P91. Members already playing.** When the Journey ships, every step whose feature a member has opened becomes active for them. Steps whose state is already true (P90) are finished at once, with their rewards as usual; the others count from then.
 
 ### Crates
 
-- **P92. Crates.** A crate is how a member takes something the game has ready for them: a ready feature (P73) or a finished quest or Journey step (P85). Opening it is one action. Its content is always known before it is opened; a crate is a moment, never a draw. In Slack a crate is an `Open` button; the reveal animation is the website's.
+- **P92. Crates.** A crate is how a member takes something the game has ready for them: a ready feature (P73) or a finished quest or Journey step (P85). Opening it is one action. Its content is always known before it is opened; a crate is a moment, never a draw. Opening never grants: a reward is recorded when it is earned, and opening or replaying a crate reads that record and never changes it (amended on #97). In Slack a crate is an `Open` button; the reveal animation is the website's.
 
 ### Events
 
-- **P93. Derived events.** Progression publishes `levelReached`, `unlockReady`, `unlockOpened`, `questFinished`, `questClaimed`, `perkBought`, `itemBought` and `achievementEarned`, each additive and keyed by stable IDs, so groups, the website and the PostHog events spec (#79) build on them without reading progression's tables.
+- **P93. Derived events.** Progression publishes `levelReached`, `unlockReady`, `unlockOpened`, `questFinished`, `questOpened` (was `questClaimed`, #97), `perkBought`, `itemBought` and `achievementEarned`, each additive and keyed by stable IDs, so groups, the website and the PostHog events spec (#79) build on them without reading progression's tables.
+
+### Copy members and the website can quote (amended on #97)
+
+- **P94. Perk copy.** Every surface describes a perk with these words, so no description promises more than P16 and P18 pay. "Say why" means P11's reason of 5 or more words.
+
+| ID | Copy |
+|---|---|
+| `spark` | +5 XP the first time each day you thank someone and say why. |
+| `rhythm` | +2 XP each time you thank someone and say why, once per person a day. |
+| `circle` | +5 XP the first time each week you thank a person and say why. |
+| `flame` | Spark gives +8 XP instead of +5. |
+| `cadence` | Rhythm gives +3 XP instead of +2. |
+| `bridge` | Circle gives +8 XP instead of +5 when the person isn't in your primary group. Without a primary group, everyone counts. |
+| `treasurer` | +2 🪙 each time you thank someone and say why, once per person a day. |
+| `focus` | Once a week, switch it on for a day: your next 3 thanks that say why, to different people, give +12 XP each. |
+| `echo` | +2 XP the first time each week someone thanks you and says why, once per person. |
+| `reserve` | +2 bonus kudos a week, used after your daily kudos and only on thanks that say why. |
+| `banker` | Treasurer gives +4 🪙 instead of +2. |
+| `spotlight` | Focus gives +24 XP instead of +12. |
+| `resonance` | Echo gives +5 XP instead of +2. |
+| `reservoir` | Reserve gives +4 bonus kudos instead of +2. |
+
+- **P95. Honest gate copy.** Member-facing copy calls P11's gate "saying why" and states it as what it is: a reason of 5 or more words. It never says the app checked that a reason is true, specific or sincere, never calls a member's kudos "thoughtful" or "not thoughtful", and never tells a member to resend or pad a message to earn something. "Thoughtful kudos" is the spec's name for the rule, not copy.
 
 ## Changes to the groups spec (#14)
 
@@ -325,7 +359,7 @@ Every domain function is internal (L1); only the adapter knows Slack.
 
 - **Progression**: subscribes to `kudosGiven`; owns effects records, XP, levels, skill points, the tree and its purchases, the weekly-reserve contribution to the perks hook; publishes `levelReached` and `perkBought`. Built as a pure reducer (D21).
 - **Unlocks**: owns each member's ready and opened features (P72–P79). It subscribes to `levelReached` and to a feature's ship, publishes `unlockReady` and `unlockOpened`, and answers `isOpen(member, feature)` for feedback and the website. The schedule is versioned catalogue data.
-- **Quests**: owns the quest pool, each member's weekly draw, rerolls, group quests, Journey steps, progress and reward records (P80–P91). It subscribes to `kudosGiven`, `unlockOpened` and `perkBought`, and publishes `questFinished` and `questClaimed`.
+- **Quests**: owns the quest pool and its feasibility predicates, each member's weekly draw, rerolls, group quests, Journey steps, progress and reward records (P80–P91). It subscribes to `kudosGiven` and `unlockOpened`, and publishes `questFinished` and `questOpened`. It reads the directory and award history to check feasibility at the draw (P80).
 - **Wallet and store**: coin earnings come from effects and reward records; the store owns its catalogue, the purchase ledger, the collection and the loadout. A purchase is one mutation that debits and grants.
 - **Achievements**: subscribes to `kudosGiven` and to derived events (L10), keeps ladder counts and earned dates, grants tier rewards through the wallet and store, and publishes `achievementEarned`.
 - **Kudos engine (extended)**: chime-ins (a new entry), the gate annotation stored per revision, and the reserve gated by it through the perks hook.
@@ -352,14 +386,14 @@ type Progress = (state: MemberProgress, event: DomainEvent, catalogue: Catalogue
   => { state: MemberProgress; effects: EffectsRecord[]; events: DomainEvent[] };
 type EffectsRecord = {
   award: AwardId; side: "giver" | "recipient"; member: MemberId; day: DayKey;
-  baseXp: number; bonus: Array<{ source: PerkId | ChimeInThreshold; xp: number }>;
+  baseXp: number; bonus: Array<{ source: PerkId; xp: number }>;
   coins: Array<{ source: "giving" | "receiving" | PerkId; coins: number }>;
   gate: GateDecision | null; catalogueVersion: string;
 };
 type RewardRecord = {
   member: MemberId;
-  source: { quest: QuestId; week: WeekKey; slot: number } | { groupQuest: QuestId; group: GroupId; week: WeekKey } | { journeyStep: number } | { tier: TierId };
-  xp: number; coins: number; item: ItemId | null; catalogueVersion: string; at: number;
+  source: { quest: QuestId; week: WeekKey; slot: number } | { groupQuest: QuestId; group: GroupId; week: WeekKey } | { journeyStep: JourneyStepId } | { tier: TierId };
+  xp: number; coins: number; item: ItemId | null; catalogueVersion: string; at: number; openedAt: number | null;
 };
 ```
 
@@ -384,7 +418,7 @@ type Command =
   | { type: "setProgressSettings"; member: MemberId; muteNotices?: boolean; dms?: boolean }
   | { type: "setAnnouncementChannel"; admin: MemberId; channel: ConversationId | null }
   | { type: "openUnlock"; member: MemberId; feature: Feature }
-  | { type: "rerollQuest"; member: MemberId; quest: QuestId } | { type: "claimQuest"; member: MemberId; quest: QuestId }
+  | { type: "rerollQuest"; member: MemberId; quest: QuestId } | { type: "openQuestCrate"; member: MemberId; reward: RewardKey }
   | { type: "buyPerk"; member: MemberId; perk: PerkId } | { type: "switchOnFocus"; member: MemberId }
   | { type: "buyItem"; member: MemberId; item: ItemId } | { type: "equip"; member: MemberId; slot: LoadoutSlot; item: ItemId | null };
 ```
@@ -397,16 +431,16 @@ The website calls the same commands through its own entrance (map #57); the modu
 
 ### Data (sketch)
 
-`effectsRecords` and `rewardRecords` (insert-only), `memberProgress` (a cache of the records), `perksOwned`, `coinLedger` (spends; earnings come from records), `collection`, `loadouts`, `unlocks` (member, feature, readyAt, openedAt), `questDraws` (member, week, quests, reroll), `questProgress`, `groupQuests`, `journeySteps`, `chimeIns`, `achievementCounts`, `achievementsEarned` (with dates), `progressSettings` (mute, DMs), `homes`, `notifications`, `publicReplies`. The tree, the store, the items, the quest pool, the Journey, the ladders and the unlock schedule are versioned code with stable IDs, not tables.
+`effectsRecords` and `rewardRecords` (insert-only), `memberProgress` (a cache of the records), `perksOwned`, `coinLedger` (spends; earnings come from records), `collection`, `loadouts`, `unlocks` (member, feature, readyAt, openedAt), `questDraws` (member, week, quests, reroll, the facts that made each quest feasible), `questProgress`, `groupQuests`, `journeySteps`, `chimeIns`, `achievementCounts`, `achievementsEarned` (with dates), `progressSettings` (mute, DMs), `homes`, `notifications`, `publicReplies`. The tree, the store, the items, the quest pool, the Journey, the ladders and the unlock schedule are versioned code with stable IDs, not tables.
 
 ## Testing Decisions
 
 - **A good test enters at a seam and checks what a member or another module can observe**: the Slack calls made, the events published, the records written, the rows another module reads. Never private helpers.
 - **Seams, highest first:**
-  1. **The Slack boundary**: signed `reaction_added`, `app_home_opened` and interactivity payloads through the HTTP router with `convex-test`, Slack stubbed at `fetch`. Covers DMs, App Home, crates (`Open`, `Claim`), and P76's silence before a feature is opened.
+  1. **The Slack boundary**: signed `reaction_added`, `app_home_opened` and interactivity payloads through the HTTP router with `convex-test`, Slack stubbed at `fetch`. Covers DMs, App Home, crates (`Open`), and P76's silence before a feature is opened.
   2. **The engine's and modules' internal functions**: chime-ins, the gated reserve, unlock state, quest draws and progress, purchases, with a seeded directory.
   3. **The pure functions**: the progression reducer and the quest progress function, with every rule table (P1–P22, P29, P58–P62, P80–P91) as table-driven tests.
-- **Exactly-once (P8, P87)** is tested by delivering the same `kudosGiven` twice and repeating a claim: one record each.
+- **Exactly-once (P8, P87)** is tested by delivering the same `kudosGiven` twice and opening a quest crate twice: one record each, and opening changes no record.
 - **Time** uses fake timers and two time zones, with a Monday boundary for quests, the reserve and `circle`.
 - **The rerun is the balance check**, not a test: `research/simulations/progression-v2.mts` stays the reference until a later ticket points it at the real reducer.
 - **The gate** (`pnpm gate`) is green on every ticket; each stopping point adds its Coherence component spec and invariants (records are insert-only; a feature's lines wait for its opening; coins never change allowance).
@@ -428,11 +462,11 @@ The website calls the same commands through its own entrance (map #57); the modu
 4. **Features that shipped before unlocks stay open** for existing members (P77), so the Everyone board needs no change now.
 5. **Unshipped features don't exist** for unlocks, DMs and `Next:` lines (P78), so the XP slice never promises quests or a skill tree that aren't built.
 6. **Perk strengths are tuned down from the prototype's** (`flame` +8, `cadence` +3, `bridge` +8, `echo` +2, `resonance` +5): at the prototype's values perks made 41% of a steady giver's XP; tuned, 36%, with four builds winning.
-7. **Quest rewards are small:** 25 XP and 10 coins personal, 30 and 15 group. At 60 XP, quests made 24–53% of members' XP; at 25, 12–35%.
+7. **Quest rewards are small:** 25 XP and 10 coins personal, 30 and 15 group. At 60 XP, quests made 24–53% of members' XP; at 25, 12–35%. *Amended on #97: 20 XP personal, no XP for the group quest.*
 8. **Quests never depend on receiving** (P83), dropping two prototype quests ("Get a chime-in on a kudos you gave", "Get thanked by 2 people"): a member can't do them alone, and they invite trading.
 9. **Coins are earned from level 1** and wait for level 6: a steady giver opens Coins with about 360 coins, enough for the first emoji and hedgehog.
 10. **Receiving coins keep the cap of 20 a week** from the first spec.
-11. **Chime-ins stay**, without the crowd booster: the recipient's threshold XP and the public line remain; the chime-in ladders need them.
+11. **Chime-ins stay**, without the crowd booster: the recipient's threshold XP and the public line remain; the chime-in ladders need them. *Amended on #97: the threshold XP goes, the public line and the ladders stay.*
 12. **Mute notices and DMs stay as settings**; only the hide switches go.
 13. **Bridge counts every recipient as outside** for a giver without a primary group, so it works before groups ship.
 14. **Achievement rewards wait for their kind** (P62): a tier earned before coins, kudos emoji or hedgehogs ship gets its reward when they do.
@@ -442,16 +476,34 @@ The website calls the same commands through its own entrance (map #57); the modu
 18. **The gate hint says `Add why they earned it to earn more.`** instead of "to activate your perks", which was wrong for a member with coins and no perks (P15, G32).
 19. **Achievement tiers store their earned date** (P61), which the website's Book shows.
 20. **Quests and Journey steps are goals, not earnings** (P75): they start once their feature is open, the one exception to "unlocks never gate earning".
-21. **Quest rewards are fixed when drawn** (P86) and keyed by what they pay for (P87), so a catalogue change never alters a promised crate and a retry never pays twice.
-22. **A member takes part in one group quest a week**, their primary group's at the start of their week (P82).
-23. **Journey steps 1, 5 and 7 are states**, so members already playing finish them at once (P90, P91).
+21. **Quest rewards are fixed when drawn** (P86) and keyed by what they pay for (P87), so a catalogue change never alters a promised crate and a retry never pays twice. *Amended on #97: they are recorded on finishing, not on a claim.*
+22. **A member takes part in one group quest a week**, their primary group's at the start of their week (P82). *Amended on #97: it shows how many took part, not who.*
+23. **Journey steps 1, 5 and 7 are states**, so members already playing finish them at once (P90, P91). *Amended on #97: five steps, and only `first-thanks` is a state.*
 
 **Findings from the rerun** ([report](../research/progression-v2.md))
 
-- **Coins pile up at the top.** After 18 months a steady giver who bought every perk and store item holds about 2,300 coins. Accepted for now: coins can't be traded or turned into kudos, so a pile harms nothing. New hedgehogs are the planned sink.
-- **Quests are about a third of a quiet member's XP and half their coins.** Accepted: quests ask for the behaviour the game exists for, and quiet members level slower anyway.
-- **Abuse stays slow.** A swapper trading quick kudos earns 31 coins a week and waits 28 days for an upgrade. A colluding pair who thank only each other, always thoughtfully, earns 52 coins a week against 120 for a steady giver, because coins and most perks pay once per recipient a day.
+- **Coins pile up at the top.** After 18 months a steady giver who bought every perk and store item holds about 2,260 coins (revision 5). Accepted for now: coins can't be traded or turned into kudos, so a pile harms nothing. New hedgehogs are the planned sink.
+- **Quests are about a fifth of a quiet member's XP and half their coins** (revision 5; a third of their XP before #97). Base XP is now the largest source of XP for every archetype.
+- **Abuse stays slow.** A swapper trading quick kudos earns 31 coins a week and waits 18 days for an upgrade. A colluding pair who thank only each other, always thoughtfully, earns 52 coins a week against 119 for a steady giver, because coins and most perks pay once per recipient a day.
 
-**The Octalysis walk-through (#85) can still change** the quest reward sizes and the share of coins from quests, the leaderboard opening at level 3, coins waiting before level 6, levels and achievements being public with no hide switch, the group quest showing who helped, and whether achievement rewards in coins crowd out the achievement itself. Its findings come in as an amendment.
+**Amended on #97: the Octalysis findings (#85)**
+
+Each finding is recorded with `coherence decide` on this branch. Where a finding met a call #86 took, the winner is named.
+
+| # | Finding | Taken? | What changed, and why | Record |
+|---:|---|---|---|---|
+| 1 | The five-word gate checks length, not sincerity; a padded reciprocal pair farms XP. | **Partly.** | Accepted: the spec and copy now say it counts words and doesn't judge them (P11, P95), and trading is named as bounded, not prevented (P13). Rejected: gating base XP or achievement counts, and any claim of a sincerity check. Brief and mutual thanks are valid, XP ranks nobody, and the allowance and P16 already bound the extraction. A real assessor stays parked (the AI judge). | `d-17770dd5` |
+| 2 | One qualifying unit for Rhythm/Cadence, Treasurer/Banker and Focus/Spotlight, shared by direct kudos and chime-ins. | **Already in #86.** | P16 and P18 already count every per-recognition bonus once per qualifying recognition, message or chime-in. P94 adds copy that says so in words the website quotes. #85's neutral `bridge` without groups loses to #86's call 13: an upgrade that does nothing for a member without a primary group would be a 150-coin trap; P94 discloses the rule instead. | `d-1b04cde0` |
+| 3 | Filter infeasible quests before assigning them; replace "get thanked", "get endorsed" and group unanimity. | **Yes.** | P80 defines feasibility and checks it at the draw and the reroll, and the pool always holds quests that need only the member. "Get thanked" and "get endorsed" were already gone (P83, #86 call 8). Unanimity is now forbidden (P82, P83). | `d-e482f0ae` |
+| 4 | Rebalance quest, perk and achievement income against the level curve. | **Yes, for quests.** | Personal quests pay 20 XP, the group quest none (P86); revision 5 of the rerun makes base XP the largest source for every archetype. Perk strengths keep #86's tuning. Achievement coins stay: they are once per tier and finite, so they can't be farmed faster than the counts they follow. | `d-2d2784d2` |
+| 5 | Bank pre-unlock rewards, keep unclaimed entitlements across a reset, keep opening separate from granting. | **Yes.** | The first two were already in #86 (ADR-0005, P75, P85). New: a reward is recorded when it is earned and a crate only reveals it (P85, P87, P92), which wins over #86's claim-on-open, because a click must never gate earning any more than an unlock does. Duplicate items fall back to coins (P86). | `d-b2698829` |
+| 6 | The Journey: a non-expiring four-step teaching chain with no extra XP or coins. | **Partly.** | Accepted: no step pays for spending a skill point or equipping an item, a step never strands a small workspace, and the chain never expires or blocks anything (P88–P90). It keeps five of #86's steps and their small rewards: #86's call 1 wins on the structure, because the Journey is the accepted prototype's bonus quest per feature and Michael kept it, and each remaining step pays for a way to thank, once per member ever. #85 marked its own four steps as unverified. | `d-1422631b` |
+| 7 | Group quests: no collective blame, a fixed cohort, settled payout scope. | **Yes.** | P82: goal fixed at the start of the week, never everyone, counts not names, every contributor gets the reward. This wins over #86's "shows who helped". | `d-a08e1888` |
+| 8 | Crowd threshold XP is a leftover of the cut crowd booster. | **Yes.** | P51 keeps the public line, P53 is cut. This wins over #86's call 11: it was the one bonus that paid for being popular. | `d-9cb29a2c` |
+| 9 | Achievements: volume-counted tier coins, graph-dependent diamonds. | **Partly.** | Accepted: tiers are milestones, never goals, and copy never promises every tier (P61). Rejected: counting only qualifying recognitions. P13 keeps achievement counts ungated so a member's history counts, and tier coins are finite. | `d-ee6a16ab` |
+| 10 | Keep leaderboard opt-out and notice controls apart from the cut hide switches. | **Already in #86.** | P65 and G22, unchanged. | `d-ed42e960` |
+| 11 | Unify the catalogue's item names and IDs. | **Yes, in the catalogue.** | P34 already requires one stable ID and one source per item. The prototype's conflicting hedgehog names are #27's to settle. | `d-ed42e960` |
+
+**What this means for shipped code.** Nothing built on `main` or `spec/xp-levels` changes behaviour: the gate is a parse hook with no member-facing "thoughtful" copy, and no bonus XP, quest, Journey, crate or chime-in exists yet. The XP ship #80 doesn't wait on #97 (`d-c6dd6397`).
 
 **Vocabulary** (settled in the lexicon with this spec): quest, Journey, crate, hedgehog and Book are declared; unlock (ready, opened), skill point, level, xp, perk, coin, store, cosmetic, loadout, collection, kudos emoji, achievement, profile card, chime-in threshold, thoughtful kudos, primary group and sticker are redefined. The cut concepts (booster, XP booster, Discovery Lantern, crowd booster, group aura, drop, rarity, title, quip, card, streak, workday, pause, freeze) stay in the lexicon with definitions that say they were cut, rather than retired, because retiring rejects their names and ordinary words such as an issue title or a dropdown would fail the check (`d-f596ec02`).
