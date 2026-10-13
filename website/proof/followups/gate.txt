@@ -13,10 +13,10 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 
- Test Files  58 passed (58)
-      Tests  792 passed (792)
-   Start at  22:58:32
-   Duration  13.40s (tests 54%, import 23%, transform 10%, environment 10%, setup 1%)
+ Test Files  63 passed (63)
+      Tests  861 passed (861)
+   Start at  23:00:55
+   Duration  13.63s (tests 62%, import 20%, environment 9%, transform 8%, setup 1%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
@@ -80,6 +80,11 @@ Feedback  convex/feedback/Feedback.spec.md
       totality oracle "D18: the one public reply" over every public reply the app asks Slack to post or edit for a kudos message: one member and two members levelling up through it, a level reached after the reply was posted, one reached while the post is in flight, a post whose answer is lost and one that failed after Slack accepted it: verified 2026-10-13
       refuted 2026-10-13: setPublicSection also scheduled a delivery while the reply was still posting
       kinds message, output: 12 shapes apply, 2 declared, 10 dismissed
+  a feature's lines wait for its opening  invariant
+      totality oracle "P76: a feature's lines wait for its opening" over the level-up DMs and App Home views the app asks Slack to send to a member reaching levels 5 and 6, with the skill tree unshipped, shipped and ready, and opened, and the member's stored skill points; and the App Home tab bar, the Leaderboard tab and the `/hedgehug leaderboard` reply for a member at level 1, at level 3 before opening and after opening the Leaderboard, with everyone-board on and off, and the board another member sees: verified 2026-10-13
+      refuted 2026-10-13: whenOpened passed every line through whatever the member's unlock state
+      refuted 2026-10-13: isLeaderboardOpenTo returned true whatever the member's unlock state
+      kinds output: 5 shapes apply, 0 declared, 5 dismissed
 Leaderboard  convex/leaderboard/Leaderboard.spec.md
   the leaderboard counts kudos given, never kudos received  invariant
       totality oracle "G13: the board counts kudos given, never kudos received" over the totals and this week's Everyone board after one member gives kudos to two others in one message and one of them gives kudos back, seen by the member who only received: verified 2026-10-13
@@ -146,6 +151,31 @@ Slack  convex/slack/Slack.spec.md
       totality oracle "R35: a delivery whose message or channel is gone stops for good" over reactions.add and chat.postEphemeral answering message_not_found, channel_not_found and not_in_channel, and reactions.add answering is_archived, not_reactable and invalid_name: verified 2026-10-13
       refuted 2026-10-13: attemptCall in convex/slack/delivery.ts no longer classified message_not_found, channel_not_found and not_in_channel as gone
       kinds message: 8 shapes apply, 1 declared, 7 dismissed
+Unlocks  convex/unlocks/Unlocks.spec.md
+  opening grants nothing  invariant
+      totality oracle "P92: opening grants nothing" over every table of the schema, read before and after openUnlock opens a ready Leaderboard for a member with an effects record, XP and a level, and every event published by the open: verified 2026-10-13
+      refuted 2026-10-13: openUnlock also added 10 XP to the member's progress when it opened a feature
+      kinds state: 7 shapes apply, 1 declared, 6 dismissed
+  a ready or opened feature is kept for good  invariant
+      totality oracle "P5: a ready or opened feature is kept for good" over every table of the schema and every published event, across a week passing, later levelReached events, a replayed levelReached, a second open and everyone-board turned off and on again, for a ready Leaderboard and for an opened one: verified 2026-10-13
+      refuted 2026-10-13: makeReady replaced an existing unlock row with a fresh ready one at the new event's time
+      kinds state: 7 shapes apply, 1 declared, 6 dismissed
+  each ready feature is named in one level-up DM  invariant
+      totality oracle "P74: one owner for readiness and the level-up DM" over the level-up DMs the app asks Slack to send and the stored readiness, for levelReached run before and after the other subscribers, replayed, replayed after everyone-board went on, and arriving after the Leaderboard was made ready by something else: verified 2026-10-13
+      refuted 2026-10-13: makeReady no longer returned early when the member's level up was already recorded
+      kinds message, state: 15 shapes apply, 2 declared, 13 dismissed
+  the ship sweep makes a feature ready once  invariant
+      totality oracle "P78: a feature that ships later becomes ready for members past its level" over the DMs the app asks Slack to send, the stored readiness and App Home, for a level 4 member who reached level 3 while everyone-board was off, across a second sweep and the flag going off and on, for a member below level 3, a member with DMs off, and a level up and a sweep run in either order: verified 2026-10-13
+      refuted 2026-10-13: storeReadiness no longer skipped a feature whose unlock row was already stored
+      kinds message, state: 15 shapes apply, 2 declared, 13 dismissed
+  unlocks are dark while the unlocks flag is off  invariant
+      totality oracle "the unlocks slice is dark while unlocks is off" over every Slack call, command reply and App Home view the app makes for a level reached, an App Home opening, /hedgehug leaderboard a stale Open from a level-up DM and a level-up DM Slack held back while the flag turned off, with unlocks turned off in PostHog, not created there, on in the sandbox only and read in production, and unreadable for a missing flags key, and across the flag going off and on again for a ready and an opened Leaderboard: verified 2026-10-13
+      refuted 2026-10-13: unlocksShownTo answered true whenever xp-levels was on, ignoring the unlocks flag
+      kinds output: 5 shapes apply, 0 declared, 5 dismissed
+  unlocks launch once per workspace  invariant
+      totality oracle "P77: unlocks launch once per workspace, opening what had shipped for every member who existed then" over the stored unlocks and the DMs the app asks Slack to send, for a level 1 and a level 3 member when the flag first turns on, a member who joins afterwards, the flag going off and on again with a member joining in between, a feature that ships after the moment, and the ship sweep and a level up each running first at the first on: verified 2026-10-13
+      refuted 2026-10-13: the launch skipped every member, storing the moment but opening nothing for the members who existed then
+      kinds state: 7 shapes apply, 1 declared, 6 dismissed
 Website reads  convex/website/WebsiteReads.spec.md
   the public surface is exact  invariant
       totality oracle "WS10: the public surface is exact" over every Convex function every module of the deployment exports, outside convex/_generated: verified 2026-10-13
@@ -185,9 +215,9 @@ Workspace  convex/workspace/Workspace.spec.md
       kinds identity, state: 10 shapes apply, 1 declared, 9 dismissed
 Website  website/Website.spec.md
   (no invariants)
-15 components, 34 bullets: 34 invariants, 0 requirements
-lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-13T21:31:31.583Z (217 runs)
-defects: 2 recorded, 2 closed (0 guarded, 2 decided, 0 with neither); 0 guard failures
+16 components, 41 bullets: 41 invariants, 0 requirements
+lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-13T22:10:25.451Z (258 runs)
+defects: 5 recorded, 5 closed (0 guarded, 5 decided, 0 with neither); 0 guard failures
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "karma"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:13  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
@@ -205,5 +235,5 @@ RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:68 
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:2  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:17  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
-ADVISORY       96 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): receipt 26, gate 24, zone 10, contract 8, authority 7; reported, never failing, since inside the project its sense wins (--json lists each)
-0 rejected names, 0 unknown nouns (296 files), 17 in records
+ADVISORY       115 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 39, receipt 28, zone 10, authority 8, contract 8; reported, never failing, since inside the project its sense wins (--json lists each)
+0 rejected names, 0 unknown nouns (317 files), 17 in records
