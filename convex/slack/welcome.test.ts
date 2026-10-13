@@ -47,7 +47,7 @@ describe("R42 R43: the welcome message", () => {
     await giveKudos(t, "U_ALICE", "U_CAROL", { ts: "1760349602.000100" });
     await giveKudos(t, "U_CAROL", "U_BOB", { ts: "1760349603.000100" });
 
-    expect(attemptsPerUser()).toEqual({ U_ALICE: 1, U_BOB: 1, U_CAROL: 1 });
+    expect(welcomeAttemptsPerUser()).toEqual({ U_ALICE: 1, U_BOB: 1, U_CAROL: 1 });
   });
 
   test("R46: the welcome names the workspace emoji and base in force", async () => {
@@ -78,7 +78,7 @@ describe("R44 R34: delivering the welcome message", () => {
     await giveKudos(t, "U_ALICE", "U_BOB", { ts: slackTs(now) });
     await giveKudos(t, "U_ALICE", "U_CAROL", { ts: slackTs(now, 1) }, ["taco", "taco"]);
 
-    expect(attemptsPerUser()).toEqual({ U_ALICE: 3, U_BOB: 3, U_CAROL: 1 });
+    expect(welcomeAttemptsPerUser()).toEqual({ U_ALICE: 3, U_BOB: 3, U_CAROL: 1 });
     expect(await homeFacts(t, "U_ALICE")).toMatchObject({ left: 0, given: 3, received: 0 });
     expect(await homeFacts(t, "U_BOB")).toMatchObject({ given: 0, received: 1 });
     expect(await homeFacts(t, "U_CAROL")).toMatchObject({ given: 0, received: 2 });
@@ -90,7 +90,7 @@ describe("R44 R34: delivering the welcome message", () => {
 
     await giveKudos(t, "U_ALICE", "U_BOB");
 
-    expect(attemptsPerUser()).toEqual({ U_ALICE: 2, U_BOB: 2 });
+    expect(welcomeAttemptsPerUser()).toEqual({ U_ALICE: 2, U_BOB: 2 });
     for (const user of ["U_ALICE", "U_BOB"]) {
       const [first, retry] = slack.timesOf("chat.postMessage", (args) => args.channel === user);
       expect(retry! - first!).toBeGreaterThanOrEqual(30_000);
@@ -117,7 +117,7 @@ describe("R44 R34: delivering the welcome message", () => {
 
     await giveKudos(t, "U_ALICE", "U_BOB");
 
-    expect(attemptsPerUser()).toEqual({ U_ALICE: 1, U_BOB: 1 });
+    expect(welcomeAttemptsPerUser()).toEqual({ U_ALICE: 1, U_BOB: 1 });
   });
 });
 
@@ -132,9 +132,10 @@ function homeFacts(t: Backend, user: string) {
   return t.query(internal.engine.home.homeOf, { workspace: "T1", user });
 }
 
-function attemptsPerUser() {
+function welcomeAttemptsPerUser() {
   const attempts: Record<string, number> = {};
-  for (const { channel } of slack.callsTo("chat.postMessage")) attempts[String(channel)] = (attempts[String(channel)] ?? 0) + 1;
+  const welcomes = slack.callsTo("chat.postMessage").filter(({ text }) => String(text).startsWith("👋 Welcome to HedgeHug!"));
+  for (const { channel } of welcomes) attempts[String(channel)] = (attempts[String(channel)] ?? 0) + 1;
   return attempts;
 }
 

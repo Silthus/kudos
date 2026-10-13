@@ -108,6 +108,11 @@ export default defineSchema({
     pointsSpent: v.number(),
   }).index("by_member", ["member"]),
 
+  progressSettings: defineTable({
+    member: v.id("members"),
+    dms: v.optional(v.boolean()),
+  }).index("by_member", ["member"]),
+
   slackRateLimits: defineTable({
     workspace: v.string(),
     method: v.string(),

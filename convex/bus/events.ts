@@ -25,6 +25,8 @@ export const levelReachedEventValidator = v.object({
   member: v.id("members"),
   level: v.number(),
   skillPointsGained: v.number(),
+  skillPoints: v.number(),
+  xpToNextLevel: v.number(),
   message: messageRefValidator,
   at: v.number(),
 });

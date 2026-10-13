@@ -131,6 +131,7 @@ export class FakeSlack {
     if (method === "chat.postEphemeral") return { ok: true, message_ts: "1760349700.000100" };
     if (method === "views.publish") return { ok: true };
     if (method === "chat.postMessage") return { ok: true, channel: args.channel, ts: "1760349700.000100" };
+    if (method === "conversations.open") return { ok: true, channel: { id: `D_${field("users")}` } };
     return { ok: false, error: "unknown_method" };
   }
 

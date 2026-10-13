@@ -60,18 +60,18 @@ test.each([
   expect(progress(starting(bob), event, catalogue).state.xp).toBe(10);
 });
 
-describe("P3 P4 P6: levels and skill points", () => {
+describe("P3 P4 P6 P63: levels, skill points and what the level-up DM needs", () => {
   test.each([
     [0, 0, 1, []],
     [10, 10, 1, []],
-    [10, 20, 2, [{ level: 2, skillPointsGained: 1 }]],
-    [90, 100, 3, [{ level: 3, skillPointsGained: 1 }]],
-    [290, 300, 4, [{ level: 4, skillPointsGained: 1 }]],
-    [3590, 3600, 10, [{ level: 10, skillPointsGained: 1 }]],
-    [17090, 17100, 20, [{ level: 20, skillPointsGained: 1 }]],
-    [0, 100, 3, [{ level: 3, skillPointsGained: 2 }]],
-    [290, 600, 5, [{ level: 5, skillPointsGained: 2 }]],
-    [10, 310, 4, [{ level: 4, skillPointsGained: 3 }]],
+    [10, 20, 2, [{ level: 2, skillPointsGained: 1, skillPoints: 1, xpToNextLevel: 80 }]],
+    [90, 100, 3, [{ level: 3, skillPointsGained: 1, skillPoints: 2, xpToNextLevel: 200 }]],
+    [290, 300, 4, [{ level: 4, skillPointsGained: 1, skillPoints: 3, xpToNextLevel: 300 }]],
+    [3590, 3600, 10, [{ level: 10, skillPointsGained: 1, skillPoints: 9, xpToNextLevel: 900 }]],
+    [17090, 17100, 20, [{ level: 20, skillPointsGained: 1, skillPoints: 19, xpToNextLevel: 1900 }]],
+    [0, 100, 3, [{ level: 3, skillPointsGained: 2, skillPoints: 2, xpToNextLevel: 200 }]],
+    [290, 600, 5, [{ level: 5, skillPointsGained: 2, skillPoints: 4, xpToNextLevel: 400 }]],
+    [10, 310, 4, [{ level: 4, skillPointsGained: 3, skillPoints: 3, xpToNextLevel: 290 }]],
   ])("from %i XP to %i XP reaches level %i", (xpBefore, xpAfter, level, reached) => {
     const kudos = (xpAfter - xpBefore) / 10;
     const event = kudosGiven([[bob, kudos]]);
