@@ -34,7 +34,9 @@ export function Wordmark() {
   );
 }
 
-export function Layout({ current, dark, toggle, children }: { current: ScreenId; dark: boolean; toggle: () => void; children: ReactNode }) {
+export type LayoutProps = { current: ScreenId; dark: boolean; toggle: () => void; children: ReactNode };
+
+export function Layout({ current, dark, toggle, children }: LayoutProps) {
   const { setSignedIn } = useNav();
   const nav = screens.filter((s) => s.inNav);
   return (
