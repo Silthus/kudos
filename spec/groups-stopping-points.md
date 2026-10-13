@@ -2,6 +2,8 @@
 
 > **Accepted on [#14](https://github.com/Silthus/kudos/issues/14) (2026-10-13)** under the map's autonomous build-and-ship authority. The [groups spec](groups.md) is the destination; it ships as the stopping-point specs below, each a `wayfinder:spec` sub-issue of #14, shipped and deployed to production on its own (map decision 8). Rule numbers (`G17`) refer to the spec. The placement follows `d-1c7a971d` (where the groups grilling's pieces land) inside the cross-spec slice order `d-1e03b988`.
 
+**Published (sub-issues of #14):** 1 the Everyone board #47 (tickets #48–#51) · 2 the profile card #53 · 3 groups and the group boards #52 · 4 sticker book, albums and Team Spirit #54 · 5 group auras #55. Stopping points 2–5 are blocked by #47, and 4 and 5 also by #52.
+
 Every stopping point leaves something a member can use, and nothing empty: no group screen appears before groups exist, and no card part appears before the thing it shows.
 
 ```mermaid

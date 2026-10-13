@@ -2,6 +2,8 @@
 
 > **Accepted on [#14](https://github.com/Silthus/kudos/issues/14) (2026-10-13).** Stopping point 1 is a `wayfinder:spec` sub-issue of #14 and each ticket below a `wayfinder:implement` sub-issue of #14 with native blocking edges. Rule numbers (`G17`, `R36`) refer to the [groups spec](groups.md) and the [core loop spec](https://github.com/Silthus/kudos/blob/docs/spec-core-loop/spec/core-loop.md).
 
+**Published:** stopping point 1 is #47; the tickets are #48, #49, #50 and #51.
+
 **What stopping point 1 ships:** `/kudos leaderboard` and an App Home Leaderboard tab with the Everyone board: kudos given, never received, for this week, this month and all time; the top 3 and you with three people above and below; how much more you gave than at this point last week or month, or your best week so far; a Settings switch to leave the boards; every kudos given since the core loop went live counts. No groups yet.
 
 Every ticket is a reviewed pull request, tested outside-in at the spec's seams, with `pnpm gate` green. The conductor's `ship` ticket deploys stopping point 1 to production and runs the backfill there.
@@ -19,7 +21,7 @@ flowchart LR
 
 ---
 
-## 1. This week's board in `/kudos leaderboard`
+## 1. This week's board in `/kudos leaderboard` (#48)
 
 **Blocked by:** the core loop's `ship` ticket (#46: production publishes `kudosGiven` and runs `/kudos`). The conductor wires that edge.
 
@@ -38,7 +40,7 @@ flowchart LR
 
 **Context:** spec G13–G17, G23, G44, "Contracts" (the pure board function, totals); brief §6 (totals table over an aggregate); core loop R12, R39–R41, `kudosGiven`.
 
-## 2. Periods and the improvement line
+## 2. Periods and the improvement line (#49)
 
 **Blocked by:** 1.
 
@@ -52,7 +54,7 @@ flowchart LR
 
 **Context:** spec G14, G18, G23, copy.
 
-## 3. The Leaderboard tab and leaving the boards
+## 3. The Leaderboard tab and leaving the boards (#50)
 
 **Blocked by:** 2 (the tab renders every period). Can run beside 4.
 
@@ -68,7 +70,7 @@ flowchart LR
 
 **Context:** spec G22–G24, G42; progression P67–P68 (App Home as desired state) and its ticket #25; brief D17.
 
-## 4. Earlier kudos count on the board
+## 4. Earlier kudos count on the board (#51)
 
 **Blocked by:** 1. Can run beside 2 and 3.
 
