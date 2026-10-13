@@ -9,6 +9,7 @@ Workspace: the settings with their defaults and the directory of the workspace's
   because: the announcement channel decides where every member's level-up notice is posted for the whole workspace (P64, P69, d-c98c9372); if any member could set it, one person could move everyone's celebrations into a channel of their choosing, and a removed admin must lose that power at once
   crossing: slack-request -> domain
   entrances: route POST /slack/interactivity
+  refuted: setAnnouncementChannel no longer checked that the member is an admin -> both cases failed: the member who isn't an admin moved the next level-up notice to their channel and made the app join it, and so did the removed admin (2026-10-13)
   kinds: identity, state
   checklist: capability-authorization dismissed: no credential carrying bounded permission is accepted; the acting member is the one Slack names in the signed payload, and the role is read from the directory
   checklist: revalidated-permission declared as only admins set the announcement channel
