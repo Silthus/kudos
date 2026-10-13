@@ -37,9 +37,11 @@ describe("R35: Retry-After", () => {
     await settleUntil(t, new Date(now.getTime() + 60_000));
 
     const [limited, ...later] = slack.timesOfCallsTo("reactions.add");
+    const replies = slack.timesOfCallsTo("chat.postEphemeral");
     expect(later).toHaveLength(2);
     expect(later.every((at) => at >= limited! + 30_000)).toBe(true);
-    expect(slack.timesOfCallsTo("chat.postEphemeral").every((at) => at < limited! + 30_000)).toBe(true);
+    expect(replies).toHaveLength(2);
+    expect(replies.every((at) => at < limited! + 30_000)).toBe(true);
     expect(slack.reactionsOn("C1", firstTs)).toEqual(["taco"]);
     expect(slack.reactionsOn("C1", secondTs)).toEqual(["taco"]);
   });
@@ -86,6 +88,23 @@ describe("R32 R35: the indicator is retried until the message shows it", () => {
     expect(slack.reactionsOn("C1", firstTs)).toEqual([]);
   });
 
+  test("a stale add that lands after a newer delivery finished is taken off again", async () => {
+    const t = testBackend();
+    const ref = { workspace: "T1", conversation: "C1", message: firstTs };
+    await setIndicator(t, firstTs, { emoji: "taco" });
+    const staleAdd = slack.holdNext("reactions.add");
+    const staleDelivery = t.action(internal.slack.delivery.deliverIndicator, ref);
+    await staleAdd.reached;
+
+    await setIndicator(t, firstTs, { emoji: "x" });
+    await t.action(internal.slack.delivery.deliverIndicator, ref);
+    staleAdd.release();
+    await staleDelivery;
+    await settle(t);
+
+    expect(slack.reactionsOn("C1", firstTs)).toEqual(["x"]);
+  });
+
   test("no_reaction counts as removed and already_reacted as added", async () => {
     const t = testBackend();
     await giveKudos(t, firstTs);
@@ -98,7 +117,7 @@ describe("R32 R35: the indicator is retried until the message shows it", () => {
     await settle(t);
 
     expect(slack.reactionsOn("C1", firstTs)).toEqual(["x"]);
-    expect(slack.callsTo("reactions.remove")).toEqual([{ channel: "C1", timestamp: firstTs, name: "taco" }]);
+    expect(slack.callsTo("reactions.remove").map((args) => args.name)).toEqual(["taco", "taco"]);
     expect(slack.callsTo("reactions.add").filter((args) => args.name === "x")).toHaveLength(2);
   });
 });

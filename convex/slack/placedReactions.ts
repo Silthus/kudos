@@ -16,14 +16,6 @@ export const remember = internalMutation({
   },
 });
 
-export const forget = internalMutation({
-  args: { ref: messageRefValidator, emoji: v.string() },
-  handler: async (ctx, { ref, emoji }) => {
-    const existing = await placedOn(ctx, ref);
-    if (existing !== null) await ctx.db.patch(existing._id, { emoji: existing.emoji.filter((placed) => placed !== emoji) });
-  },
-});
-
 function placedOn(ctx: QueryCtx, ref: MessageRef) {
   return ctx.db
     .query("placedReactions")

@@ -13,7 +13,8 @@ export type SlackFailure =
   | { rateLimitedForSeconds: number }
   | { httpStatus: number }
   | { timeout: true }
-  | { timeoutAfterApplying: true };
+  | { timeoutAfterApplying: true }
+  | { heldUntil: Promise<void> };
 
 export class FakeSlack {
   readonly calls: SlackCall[] = [];
@@ -21,6 +22,7 @@ export class FakeSlack {
   private readonly users = new Map<string, SlackUser>();
   private readonly reactionsByMessage = new Map<string, string[]>();
   private readonly failuresByMethod = new Map<string, SlackFailure[]>();
+  private readonly onHold = new Map<string, () => void>();
 
   withMember(id: string, options: Partial<SlackUser> = {}) {
     this.users.set(id, { id, team_id: "T1", ...options });
@@ -31,6 +33,16 @@ export class FakeSlack {
     const failures = this.failuresByMethod.get(method) ?? [];
     this.failuresByMethod.set(method, [...failures, ...Array.from({ length: times }, () => failure)]);
     return this;
+  }
+
+  holdNext(method: string) {
+    let release = () => {};
+    const released = new Promise<void>((resolve) => (release = resolve));
+    let signalReached = () => {};
+    const reached = new Promise<void>((resolve) => (signalReached = resolve));
+    this.failNext(method, { heldUntil: released.then(() => undefined) });
+    this.onHold.set(method, signalReached);
+    return { reached, release };
   }
 
   removeReaction(channel: string, ts: string, name: string) {
@@ -64,7 +76,12 @@ export class FakeSlack {
     return this.fail(failure, method, args);
   };
 
-  private fail(failure: SlackFailure, method: string, args: Record<string, string>) {
+  private async fail(failure: SlackFailure, method: string, args: Record<string, string>) {
+    if ("heldUntil" in failure) {
+      this.onHold.get(method)?.();
+      await failure.heldUntil;
+      return Response.json(this.answer(method, args));
+    }
     if ("error" in failure) return Response.json({ ok: false, error: failure.error });
     if ("rateLimitedForSeconds" in failure) {
       return Response.json({ ok: false, error: "ratelimited" }, { status: 429, headers: { "retry-after": String(failure.rateLimitedForSeconds) } });
