@@ -8,7 +8,7 @@ on:
 permissions:
   contents: read
 
-# One deploy at a time; a newer push waits for the running deploy, then the newest one wins.
+# One deploy at a time; a newer run waits for the running deploy, then the newest one wins.
 concurrency:
   group: deploy-sandbox
   cancel-in-progress: false
@@ -37,8 +37,8 @@ jobs:
 
       - run: pnpm gate
 
-      # A rerun of an older push must not roll the sandbox back past the branch's tip.
-      - name: Check this push is still the branch's tip
+      # A run for a commit the branch has moved past must not roll the sandbox back past the branch's tip.
+      - name: Check this commit is still the branch's tip
         id: tip
         run: |
           tip=$(git ls-remote origin "$GITHUB_REF" | cut -f1)
