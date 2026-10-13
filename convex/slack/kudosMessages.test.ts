@@ -83,7 +83,7 @@ describe("R33: the private reply", () => {
     expect(slack.callsTo("chat.postEphemeral")).toEqual([
       { channel: "C1", user: "U_ALICE", thread_ts: threadRoot, text: "<@U_BOB> and <@U_CAROL> got 1 kudos from you. You have 1 kudos left today." },
     ]);
-    expect(slack.calls.map((call) => call.method).filter((method) => method !== "users.info")).toEqual(["reactions.add", "chat.postEphemeral"]);
+    expect(slack.calls.map((call) => call.method).filter((method) => method !== "users.info").sort()).toEqual(["chat.postEphemeral", "reactions.add"]);
   });
 
   test("R37: the giver's last kudos says how many come at midnight", async () => {
