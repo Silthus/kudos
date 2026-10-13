@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { kudosGivenEvent } from "../../testing/busEvents";
 import { FakePostHog, answersWith, failsToConnect, neverAnswers, postHogHost, projectToken, stallsUntilReleased, type BatchRequest } from "../../testing/fakePostHog";
 import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { internal } from "../_generated/api";
@@ -364,21 +365,7 @@ async function kudosGiven(t: Backend): Promise<KudosGivenEvent> {
     await ctx.db.insert("members", { workspace: "T1", user: "U_ALICE", kind: "member" }),
     await ctx.db.insert("members", { workspace: "T1", user: "U_BOB", kind: "member" }),
   ]);
-  return {
-    type: "kudosGiven",
-    workspace: "T1",
-    message: { workspace: "T1", conversation: "C1", message: "1760349600.000100" },
-    giver: giver!,
-    awards: [{ giver: giver!, recipient: recipient!, kudos: 1 }],
-    kudosEmoji: "taco",
-    annotations: {},
-    allowance: { dailyOpening: 3, dailyLeft: 2 },
-    skippedMentions: 0,
-    retry: false,
-    inThread: false,
-    day: "2026-10-13",
-    at: now.getTime(),
-  };
+  return kudosGivenEvent(giver!, recipient!, { at: now.getTime() });
 }
 
 async function outbox(t: Backend) {

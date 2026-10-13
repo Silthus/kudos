@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { kudosGivenEvent } from "../../testing/busEvents";
 import type { AttemptFailedEvent, KudosGivenEvent } from "../bus/events";
 import type { MemberId } from "../workspace/directory";
 import { projectAttemptFailed, projectKudosGiven, projectMemberWelcomed, projectUsage } from "./projections";
@@ -9,22 +10,7 @@ const carol = "carol" as MemberId;
 const at = Date.parse("2026-10-13T10:00:00Z");
 
 function kudosGiven(overrides: Partial<KudosGivenEvent> = {}): KudosGivenEvent {
-  return {
-    type: "kudosGiven",
-    workspace: "T1",
-    message: { workspace: "T1", conversation: "C1", message: "1760349600.000100" },
-    giver: alice,
-    awards: [{ giver: alice, recipient: bob, kudos: 1 }],
-    kudosEmoji: "taco",
-    annotations: { note: "thanks for the quokka migration" },
-    allowance: { dailyOpening: 3, dailyLeft: 2 },
-    skippedMentions: 0,
-    retry: false,
-    inThread: false,
-    day: "2026-10-13",
-    at,
-    ...overrides,
-  };
+  return kudosGivenEvent(alice, bob, { annotations: { note: "thanks for the quokka migration" }, at, ...overrides });
 }
 
 describe("O3: kudos given", () => {

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, postHogHost, projectToken, routedFetch, type CapturedEvent } from "../../testing/fakePostHog";
 import { FakeSlack, httpStatus, slackError, type ScriptedAnswer } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
@@ -8,7 +8,7 @@ import { recordUsage } from "./usage";
 
 vi.mock("./usage", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./usage")>();
-  return { recordUsage: vi.fn(actual.recordUsage) };
+  return { ...actual, recordUsage: vi.fn(actual.recordUsage) };
 });
 
 const now = new Date("2026-10-13T10:00:00Z");
@@ -18,6 +18,11 @@ const shared = { environment: "sandbox", workspace_key: expect.stringMatching(uu
 
 let slack: FakeSlack;
 let postHog: FakePostHog;
+let actualRecordUsage: typeof recordUsage;
+
+beforeAll(async () => {
+  actualRecordUsage = (await vi.importActual<typeof import("./usage")>("./usage")).recordUsage;
+});
 
 beforeEach(() => {
   vi.useFakeTimers({ now });
@@ -33,6 +38,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.mocked(recordUsage).mockImplementation(actualRecordUsage);
+  vi.restoreAllMocks();
   vi.useRealTimers();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
@@ -213,6 +220,19 @@ describe("O3 R45: app home opened", () => {
     expect(postHog.events().map(shapeOf)).toEqual([{ event: "app home opened", timestamp: openedAt.toISOString(), properties: shared }]);
   });
 
+  test("O15 O20: an opening whose recording fails still publishes App Home, logs a fixed code and reports no exception", async () => {
+    const t = testBackend();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(recordUsage).mockRejectedValue(new Error("recording failed"));
+
+    await t.fetch("/slack/events", await signedRequest(appHomeOpened("U_BOB")));
+    await settle(t);
+
+    expect(slack.callsTo("views.publish")).toHaveLength(1);
+    expect(console.error).toHaveBeenCalledWith("analytics.usage_not_recorded", { error: "Error" });
+    expect(postHog.events()).toEqual([]);
+  });
+
   test("R47: someone the directory doesn't know, who turns out not to be a member, sends nothing", async () => {
     const t = testBackend();
     slack.withMember("U_GONE", { deleted: true });
@@ -239,6 +259,7 @@ describe("O3 R45: app home opened", () => {
 
 describe("O3 O5: command used", () => {
   const publicChannel: Conversation = { channel_id: "C1", channel_name: "general" };
+  const responseUrlMethod = new URL(slashCommandResponseUrl).pathname.split("/").pop()!;
 
   test.each<[string, Conversation, ScriptedAnswer, string]>([
     ["joined", publicChannel, () => Response.json({ ok: true, channel: { id: "C1" } }), "joined"],
@@ -281,17 +302,43 @@ describe("O3 O5: command used", () => {
     ]);
   });
 
-  test("O15: a command whose recording fails still gets its reply", async () => {
+  test("a member the directory doesn't know yet sends command used once Slack's lookup recovers", async () => {
     const t = testBackend();
-    slack.answering("conversations.join", () => Response.json({ ok: true }));
+    slack.answering("conversations.join", () => Response.json({ ok: true })).answering("users.info", httpStatus(500));
+
+    await runCommand(t, slashCommand(publicChannel, { user: "U_ALICE" }));
+
+    expect(postHog.events().map(shapeOf)).toEqual([
+      { event: "command used", timestamp: now.toISOString(), properties: { ...shared, command: "hedgehug", alias: false, result: "joined" } },
+    ]);
+  });
+
+  test("a command whose reply Slack refuses still sends command used", async () => {
+    const t = testBackend();
+    slack.answering("conversations.join", () => Response.json({ ok: true })).answering(responseUrlMethod, httpStatus(503));
     await memberChanged(t, "team_join", { id: "U1" });
-    vi.mocked(recordUsage).mockRejectedValueOnce(new Error("recording failed"));
 
     await runCommand(t, slashCommand(publicChannel));
 
-    expect(slack.calls.filter((call) => call.method === new URL(slashCommandResponseUrl).pathname.split("/").pop()).map((call) => call.args)).toEqual([
+    expect(postHog.events().filter((event) => event.event !== "$exception").map(shapeOf)).toEqual([
+      { event: "command used", timestamp: now.toISOString(), properties: { ...shared, command: "hedgehug", alias: false, result: "joined" } },
+    ]);
+  });
+
+  test("O15 O20: a command whose recording fails still gets its reply, logs a fixed code and reports no exception", async () => {
+    const t = testBackend();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    slack.answering("conversations.join", () => Response.json({ ok: true }));
+    await memberChanged(t, "team_join", { id: "U1" });
+    vi.mocked(recordUsage).mockRejectedValue(new Error("recording failed"));
+
+    await runCommand(t, slashCommand(publicChannel));
+
+    expect(slack.callsTo(responseUrlMethod)).toEqual([
       { response_type: "ephemeral", text: "I'm in now. Mention teammates with a kudos emoji here and I'll pass the kudos on." },
     ]);
+    expect(console.error).toHaveBeenCalledWith("analytics.usage_not_recorded", { error: "Error" });
+    expect(postHog.events()).toEqual([]);
   });
 
   test("a non-member's command sends nothing", async () => {

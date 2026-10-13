@@ -146,7 +146,7 @@ export default defineSchema({
 
   watchedJobs: defineTable({
     job: v.id("_scheduled_functions"),
-  }),
+  }).index("by_job", ["job"]),
 
   reportedJobs: defineTable({
     job: v.id("_scheduled_functions"),

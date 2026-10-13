@@ -57,16 +57,24 @@ async function discoverNewJobs(ctx: MutationCtx) {
   for (let page = 0; page < pagesPerSweep; page += 1) {
     const jobs = await ctx.db.system
       .query("_scheduled_functions")
-      .withIndex("by_creation_time", (q) => q.gt("_creationTime", cursor).lt("_creationTime", settledBefore))
+      .withIndex("by_creation_time", (q) => q.gte("_creationTime", cursor).lt("_creationTime", settledBefore))
       .take(pageSize);
     for (const job of jobs) {
       if (isFinished(job)) await reportIfFailed(ctx, job);
-      else await ctx.db.insert("watchedJobs", { job: job._id });
+      else await watch(ctx, job);
     }
     cursor = jobs.at(-1)?._creationTime ?? cursor;
     if (jobs.length < pageSize) break;
   }
   await ctx.db.patch(sweepState._id, { cursor });
+}
+
+async function watch(ctx: MutationCtx, job: Job) {
+  const watched = await ctx.db
+    .query("watchedJobs")
+    .withIndex("by_job", (q) => q.eq("job", job._id))
+    .first();
+  if (watched === null) await ctx.db.insert("watchedJobs", { job: job._id });
 }
 
 async function reportIfFailed(ctx: MutationCtx, job: Job) {

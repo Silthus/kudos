@@ -26,7 +26,7 @@ export async function flag<V extends FlagValue, S extends SubjectKind>(ctx: Quer
     const value = await postHog.getFeatureFlag(ctx, { key: read.key, distinctId, personProperties: personProperties() });
     return declaredValue(read, value);
   } catch {
-    console.warn(`flag ${read.key} could not be evaluated; it answers its safe default`);
+    console.warn("analytics.flag_not_evaluated", { flag: read.key });
     return read.safeDefault;
   }
 }

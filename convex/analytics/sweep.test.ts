@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { kudosGivenEvent } from "../../testing/busEvents";
 import { FakePostHog, postHogHost, projectToken } from "../../testing/fakePostHog";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { internal } from "../_generated/api";
@@ -65,6 +66,29 @@ describe("O22: the failed-job sweep", () => {
     expect(await t.run((ctx) => ctx.db.query("watchedJobs").collect())).toEqual([]);
   });
 
+  test("records a failed job created at the same instant as the last job the previous sweep read", async () => {
+    const t = testBackend();
+    await scheduleWelcomeOfAGoneMember(t, 0);
+    await settle(t);
+    const [job] = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+    await t.run((ctx) => ctx.db.insert("errorSweep", { cursor: job!._creationTime, watchCursor: 0 }));
+
+    await sweepAfter(t, minutes(15));
+
+    expect(exceptions().map((exception) => exception.properties.function_path)).toEqual(["welcome/welcome:welcomeNewMembers"]);
+  });
+
+  test("watches a job still pending at the cursor once, however often it sweeps", async () => {
+    const t = testBackend();
+    await scheduleWelcomeOfAGoneMember(t, minutes(24 * 60));
+
+    await sweepWithoutRunningJobsAfter(t, minutes(15));
+    await sweepWithoutRunningJobsAfter(t, minutes(15));
+    await sweepWithoutRunningJobsAfter(t, minutes(15));
+
+    expect(await t.run((ctx) => ctx.db.query("watchedJobs").collect())).toHaveLength(1);
+  });
+
   test("O20: never records the analytics module's own functions", async () => {
     const t = testBackend();
     vi.spyOn(crypto, "randomUUID").mockImplementation(() => {
@@ -81,6 +105,7 @@ describe("O22: the failed-job sweep", () => {
 
     expect(await jobStates(t)).toContain("failed");
     expect(exceptions()).toEqual([]);
+    expect(console.error).toHaveBeenCalledWith("analytics.recording_failed", { event: "kudosGiven", error: "Error" });
   });
 });
 
@@ -151,21 +176,7 @@ async function scheduleWelcomeOfAGoneMember(t: Backend, delayMs: number) {
 }
 
 function kudosGivenTo(giver: KudosGivenEvent["giver"]): KudosGivenEvent {
-  return {
-    type: "kudosGiven",
-    workspace: "T1",
-    message: { workspace: "T1", conversation: "C1", message: "1760349600.000100" },
-    giver,
-    awards: [{ giver, recipient: giver, kudos: 1 }],
-    kudosEmoji: "taco",
-    annotations: {},
-    allowance: { dailyOpening: 3, dailyLeft: 2 },
-    skippedMentions: 0,
-    retry: false,
-    inThread: false,
-    day: "2026-10-13",
-    at: now.getTime(),
-  };
+  return kudosGivenEvent(giver, giver, { at: now.getTime() });
 }
 
 async function sweepAfter(t: Backend, delayMs: number) {

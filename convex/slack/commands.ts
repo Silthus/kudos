@@ -3,10 +3,11 @@ import { internal } from "../_generated/api";
 import { internalMutation, type ActionCtx } from "../_generated/server";
 import { observedAction, observedHttpAction } from "../analytics/boundary";
 import { ReportableError } from "../analytics/exceptions";
-import { recordUsage } from "../analytics/usage";
+import { recordUsage, recordUsageWithoutBlocking } from "../analytics/usage";
 import { type KudosCommandResult, renderKudosCommandReply } from "../feedback/kudosCommand";
 import { lookup } from "../workspace/directory";
-import { lookUpUser } from "./directory";
+import { attemptArgs, failedAttempt, tryAtMostThreeTimes } from "./delivery";
+import { lookUpUser, type LookUp } from "./directory";
 import { readSignedBody } from "./signature";
 import { callSlack, type SlackAnswer } from "./webApi";
 
@@ -39,17 +40,31 @@ export const slackCommands = observedHttpAction(async (ctx, request) => {
 export const addToChannel = observedAction({
   args: { ...commandArgs, channel: v.string(), inDirectMessage: v.boolean(), responseUrl: v.string() },
   handler: async (ctx, { channel, inDirectMessage, responseUrl, ...used }) => {
-    const answer = await callSlack("conversations.join", { channel });
-    const result = resultOfJoining(answer, inDirectMessage);
+    const result = resultOfJoining(await callSlack("conversations.join", { channel }), inDirectMessage);
+    await ctx.scheduler.runAfter(0, internal.slack.commands.reportCommandUsed, { ...used, result });
     await answerCommand(responseUrl, renderKudosCommandReply(result));
-    await reportCommandUsed(ctx, { ...used, result });
   },
 });
 
-async function reportCommandUsed(ctx: ActionCtx, used: CommandUsed) {
-  const person = { workspace: used.workspace, user: used.user };
-  if (!(await ctx.runQuery(internal.slack.directory.knows, person))) await lookUpUser(ctx, person.workspace, person.user);
-  await ctx.runMutation(internal.slack.commands.recordCommandUsed, used);
+export const reportCommandUsed = observedAction({
+  args: { ...commandUsedArgs, ...attemptArgs },
+  handler: async (ctx, { attempt = 1, ...used }) => {
+    await tryAtMostThreeTimes(
+      attempt,
+      async (attempt) => {
+        const person = await knownOrLookedUp(ctx, used);
+        if (person.kind === "failed") return failedAttempt(attempt, person.retryAfterMs);
+        await recordUsageWithoutBlocking(() => ctx.runMutation(internal.slack.commands.recordCommandUsed, used));
+        return null;
+      },
+      (retry) => ctx.scheduler.runAt(retry.at, internal.slack.commands.reportCommandUsed, { ...used, attempt: retry.attempt }),
+    );
+  },
+});
+
+async function knownOrLookedUp(ctx: ActionCtx, { workspace, user }: CommandUsed): Promise<LookUp> {
+  if (await ctx.runQuery(internal.slack.directory.knows, { workspace, user })) return { kind: "found" };
+  return lookUpUser(ctx, workspace, user);
 }
 
 export const recordCommandUsed = internalMutation({

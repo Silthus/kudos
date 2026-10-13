@@ -3,7 +3,7 @@ import { internal } from "../_generated/api";
 import { internalMutation, type ActionCtx, type MutationCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
 import { ReportableError } from "../analytics/exceptions";
-import { recordUsage } from "../analytics/usage";
+import { recordUsage, recordUsageWithoutBlocking } from "../analytics/usage";
 import type { HomeFacts } from "../engine/home";
 import { renderHome, type HomeLine, type HomeView } from "../feedback/home";
 import { lookup } from "../workspace/directory";
@@ -42,7 +42,8 @@ export const publishHome = observedAction({
         const facts = await homeFactsOf(ctx, opened.workspace, opened.user);
         if (facts.kind === "unavailable") return failedAttempt(attempt, facts.retryAfterMs);
         if (unreported !== undefined) {
-          await ctx.runMutation(internal.slack.appHome.reportLookedUpHomeOpening, { ...opened, at: unreported });
+          const at = unreported;
+          await recordUsageWithoutBlocking(() => ctx.runMutation(internal.slack.appHome.reportLookedUpHomeOpening, { ...opened, at }));
           unreported = undefined;
         }
         return sendOnce(ctx, opened.workspace, "views.publish", { user_id: opened.user, view: homeView(renderHome(facts)) }, attempt);

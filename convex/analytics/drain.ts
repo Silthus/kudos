@@ -4,6 +4,7 @@ import type { Doc } from "../_generated/dataModel";
 import { internalAction, internalMutation, type MutationCtx } from "../_generated/server";
 import { captureSettings, type Capture } from "./capture";
 import { postHogExceptionList } from "./exceptions";
+import { failuresLogged } from "./failures";
 
 const batchSize = 100;
 const answerTimeoutMs = 10_000;
@@ -134,15 +135,6 @@ async function scheduleDrain(ctx: MutationCtx, { replacingARunningDrain }: { rep
   const scheduled = await ctx.scheduler.runAt(at, internal.analytics.drain.drain, { generation });
   if (current === null) await ctx.db.insert("analyticsDrain", { job: scheduled, generation });
   else await ctx.db.patch(current._id, { job: scheduled, generation });
-}
-
-async function failuresLogged<T>(code: string, run: () => Promise<T>): Promise<T> {
-  try {
-    return await run();
-  } catch (error) {
-    console.error(code, { error: error instanceof Error ? error.name : typeof error });
-    throw error;
-  }
 }
 
 function dueRows(ctx: MutationCtx) {

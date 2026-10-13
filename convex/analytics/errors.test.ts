@@ -3,11 +3,10 @@ import { FakePostHog, answersWith, postHogHost, projectToken, routedFetch, type 
 import { FakeSlack, rateLimitedFor, slackError, type ScriptedAnswer } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { post, settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
+import { emoji, mention, messageEvent, section, slashCommand, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 
 const now = new Date("2026-10-13T10:00:00Z");
-const responseUrl = "https://hooks.slack.com/commands/T1/1/abc";
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 let slack: FakeSlack;
@@ -228,8 +227,7 @@ function throwing(error: Error): ScriptedAnswer {
 }
 
 async function hedgehug(t: Backend) {
-  const body = new URLSearchParams({ team_id: "T1", channel_id: "C1", channel_name: "general", user_id: "U_ALICE", command: "/hedgehug", text: "", response_url: responseUrl }).toString();
-  return postSigned(t, "/slack/commands", body, "application/x-www-form-urlencoded");
+  return postSigned(t, "/slack/commands", slashCommand({ channel_id: "C1", channel_name: "general" }, { user: "U_ALICE" }), "application/x-www-form-urlencoded");
 }
 
 async function postSigned(t: Backend, path: string, body: string, contentType?: string) {

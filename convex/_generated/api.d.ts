@@ -12,6 +12,7 @@ import type * as analytics_boundary from "../analytics/boundary.js";
 import type * as analytics_capture from "../analytics/capture.js";
 import type * as analytics_drain from "../analytics/drain.js";
 import type * as analytics_exceptions from "../analytics/exceptions.js";
+import type * as analytics_failures from "../analytics/failures.js";
 import type * as analytics_flags from "../analytics/flags.js";
 import type * as analytics_outbox from "../analytics/outbox.js";
 import type * as analytics_projections from "../analytics/projections.js";
@@ -63,6 +64,7 @@ declare const fullApi: ApiFromModules<{
   "analytics/capture": typeof analytics_capture;
   "analytics/drain": typeof analytics_drain;
   "analytics/exceptions": typeof analytics_exceptions;
+  "analytics/failures": typeof analytics_failures;
   "analytics/flags": typeof analytics_flags;
   "analytics/outbox": typeof analytics_outbox;
   "analytics/projections": typeof analytics_projections;
