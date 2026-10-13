@@ -11,6 +11,7 @@ import { unlocksHomeOf, type UnlocksHome } from "../unlocks/unlocks";
 import { chatUserOf, lookup, type MemberFacts, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import type { HomeTab } from "./home";
+import { whenOpened } from "./unlockFilter";
 
 export type HomeFacts =
   | {
@@ -19,7 +20,7 @@ export type HomeFacts =
       version: number;
       tab: HomeTab;
       kudos: KudosHome;
-      progression: ProgressionHome;
+      progression: ToldProgression;
       unlocks: UnlocksHome;
       settings: ProgressSettings;
       admin: AdminHome | null;
@@ -28,6 +29,8 @@ export type HomeFacts =
   | { kind: "not-a-member" };
 
 export type AdminHome = { announcementChannel: string | null };
+
+export type ToldProgression = Omit<ProgressionHome, "skillPoints"> & { skillPoints: number | null };
 
 export const homeOf = internalQuery({
   args: { workspace: v.string(), user: v.string() },
@@ -45,7 +48,7 @@ export const homeOf = internalQuery({
       version,
       tab: home?.tab ?? "profile",
       kudos,
-      progression: await progressionHomeOf(ctx, person.member),
+      progression: await toldProgressionOf(ctx, person.member),
       unlocks: await unlocksHomeOf(ctx, person.member),
       settings: await progressSettingsOf(ctx, person.member),
       admin: person.admin ? { announcementChannel: (await settingsOf(ctx, workspace)).announcementChannel } : null,
@@ -81,6 +84,11 @@ export async function republishOnRoleChange(ctx: MutationCtx, before: MemberFact
   if (member === null) return;
   const { workspace } = await chatUserOf(ctx, member);
   if (await xpLevelsShownIn(ctx, workspace)) await republish(ctx, member);
+}
+
+async function toldProgressionOf(ctx: QueryCtx, member: MemberId): Promise<ToldProgression> {
+  const progression = await progressionHomeOf(ctx, member);
+  return { ...progression, skillPoints: await whenOpened(ctx, member, "skillTree", progression.skillPoints) };
 }
 
 function roleOf(person: MemberFacts) {
