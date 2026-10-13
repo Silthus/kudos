@@ -25,6 +25,7 @@ import type * as feedback_naming from "../feedback/naming.js";
 import type * as feedback_replies from "../feedback/replies.js";
 import type * as feedback_welcome from "../feedback/welcome.js";
 import type * as http from "../http.js";
+import type * as leaderboard_backfill from "../leaderboard/backfill.js";
 import type * as leaderboard_board from "../leaderboard/board.js";
 import type * as leaderboard_totals from "../leaderboard/totals.js";
 import type * as parser_parser from "../parser/parser.js";
@@ -69,6 +70,7 @@ declare const fullApi: ApiFromModules<{
   "feedback/replies": typeof feedback_replies;
   "feedback/welcome": typeof feedback_welcome;
   http: typeof http;
+  "leaderboard/backfill": typeof leaderboard_backfill;
   "leaderboard/board": typeof leaderboard_board;
   "leaderboard/totals": typeof leaderboard_totals;
   "parser/parser": typeof parser_parser;

@@ -1,3 +1,4 @@
+import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
 import type { DayKey, Week } from "./allowance";
@@ -7,6 +8,12 @@ import { addToTotals } from "./totals";
 export type Award = { giver: MemberId; recipient: MemberId; kudos: number };
 
 export type WeekTotals = { givenWeek: number; receivedWeek: number };
+
+export type GivenMessage = { workspace: string; message: MessageRef; giver: MemberId; awards: Award[]; day: DayKey };
+
+export type GivenMessagesPage = { messages: GivenMessage[]; cursor: string; isDone: boolean };
+
+type AwardRow = Doc<"awards">;
 
 export async function insertAwards(ctx: MutationCtx, message: MessageRef, awards: Award[], day: DayKey, at: number) {
   for (const award of awards) {
@@ -29,4 +36,37 @@ export async function weekTotals(ctx: QueryCtx, member: MemberId, week: Week): P
 
 function sumOf(awards: Array<{ kudos: number }>) {
   return awards.reduce((sum, award) => sum + award.kudos, 0);
+}
+
+export async function givenMessagesInAwardOrder(ctx: QueryCtx, cursor: string | null, pageSize: number): Promise<GivenMessagesPage> {
+  const page = await ctx.db.query("awards").paginate({ cursor, numItems: pageSize });
+  const messages: GivenMessage[] = [];
+  for (const award of firstAwardOfEachMessage(page.page)) messages.push(await givenMessageOf(ctx, award));
+  return { messages, cursor: page.continueCursor, isDone: page.isDone };
+}
+
+function firstAwardOfEachMessage(awards: AwardRow[]) {
+  const seen = new Set<string>();
+  return awards.filter((award) => {
+    const key = messageKey(award);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+async function givenMessageOf(ctx: QueryCtx, first: AwardRow): Promise<GivenMessage> {
+  const { workspace, conversation, message, giver, day } = first;
+  const sameGiverAndDay = await ctx.db
+    .query("awards")
+    .withIndex("by_giver", (q) => q.eq("giver", giver).eq("day", day))
+    .collect();
+  const awards = sameGiverAndDay
+    .filter((award) => messageKey(award) === messageKey(first))
+    .map(({ recipient, kudos }) => ({ giver, recipient, kudos }));
+  return { workspace, message: { workspace, conversation, message }, giver, awards, day };
+}
+
+function messageKey({ workspace, conversation, message }: AwardRow) {
+  return JSON.stringify([workspace, conversation, message]);
 }

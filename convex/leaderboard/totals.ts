@@ -1,7 +1,8 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
+import { kudosGivenEventValidator } from "../bus/events";
 import { allowanceDay, weekOf, type DayKey } from "../engine/allowance";
+import type { GivenMessage } from "../engine/awards";
 import type { MessageRef } from "../engine/messageEvent";
 import { lookup, type MemberId } from "../workspace/directory";
 import { board, type BoardView, type Entry } from "./board";
@@ -11,13 +12,18 @@ type Period = string;
 export const countKudosGiven = internalMutation({
   args: { event: kudosGivenEventValidator },
   handler: async (ctx, { event }) => {
-    if (await wasCounted(ctx, event.message)) return;
-    await ctx.db.insert("countedKudosGiven", event.message);
-    const kudos = kudosGivenIn(event);
-    await addToDay(ctx, event, kudos);
-    for (const period of periodsOf(event.day)) await addToPeriod(ctx, event, period, kudos);
+    await countGiven(ctx, event);
   },
 });
+
+export async function countGiven(ctx: MutationCtx, given: GivenMessage) {
+  if (await wasCounted(ctx, given.message)) return false;
+  await ctx.db.insert("countedKudosGiven", given.message);
+  const kudos = kudosGivenIn(given);
+  await addToDay(ctx, given, kudos);
+  for (const period of periodsOf(given.day)) await addToPeriod(ctx, given, period, kudos);
+  return true;
+}
 
 export const everyoneBoard = internalQuery({
   args: { workspace: v.string(), viewer: v.string() },
@@ -28,8 +34,8 @@ export const everyoneBoard = internalQuery({
   },
 });
 
-function kudosGivenIn(event: KudosGivenEvent) {
-  return event.awards.reduce((sum, award) => sum + award.kudos, 0);
+function kudosGivenIn(given: GivenMessage) {
+  return given.awards.reduce((sum, award) => sum + award.kudos, 0);
 }
 
 function periodsOf(day: DayKey): Period[] {
@@ -63,7 +69,7 @@ async function wasCounted(ctx: QueryCtx, message: MessageRef) {
   return counted !== null;
 }
 
-async function addToDay(ctx: MutationCtx, { workspace, giver, day }: KudosGivenEvent, kudos: number) {
+async function addToDay(ctx: MutationCtx, { workspace, giver, day }: GivenMessage, kudos: number) {
   const row = await ctx.db
     .query("givenByDay")
     .withIndex("by_member_day", (q) => q.eq("member", giver).eq("day", day))
@@ -72,7 +78,7 @@ async function addToDay(ctx: MutationCtx, { workspace, giver, day }: KudosGivenE
   else await ctx.db.patch(row._id, { kudos: row.kudos + kudos });
 }
 
-async function addToPeriod(ctx: MutationCtx, { workspace, giver }: KudosGivenEvent, period: Period, kudos: number) {
+async function addToPeriod(ctx: MutationCtx, { workspace, giver }: GivenMessage, period: Period, kudos: number) {
   const row = await ctx.db
     .query("givenTotals")
     .withIndex("by_member_period", (q) => q.eq("member", giver).eq("period", period))
