@@ -25,7 +25,7 @@
     },
     {
       "name": "daily allowance",
-      "definition": "How many kudos a giver can still give today: the workspace's base plus the bonus the giver has unlocked, minus what they have given today, and never below zero. It starts fresh at midnight in the giver's time zone, and nothing carries over."
+      "definition": "How many kudos a giver can still give today from the workspace's base, minus what they have given today, and never below zero. It starts fresh at midnight in the giver's time zone, and nothing carries over. Bonus capacity from perks is the weekly reserve, spent only after the daily allowance is used up."
     },
     {
       "name": "kudos emoji",
@@ -45,7 +45,7 @@
     },
     {
       "name": "award",
-      "definition": "The kudos one giver gave one recipient through one kudos message. An award is permanent: neither editing nor deleting the message changes it (ADR-0001). Not a grant or gift.",
+      "definition": "The kudos one giver gave one recipient through one kudos message or one chime-in. An award is permanent: neither editing nor deleting the message, nor removing a reaction, changes it (ADR-0001). Not a grant or gift.",
       "rejected": [
         {
           "alternative": "gift",
@@ -60,6 +60,142 @@
     {
       "name": "skipped mention",
       "definition": "A mention in a kudos message that cannot receive kudos: the giver, a bot, a group or broadcast, or someone who is not a member. The other recipients still receive."
+    },
+    {
+      "name": "xp",
+      "definition": "Experience a member earns from Given awards: 10 for each kudos given and 5 for each kudos received, plus bonus XP from perks, boosters and team auras the member chose. XP decides the member's level and never goes down (ADR-0002). It is not kudos and not coins."
+    },
+    {
+      "name": "level",
+      "definition": "A member's rank in progression, from 1 upward with no cap, reached through XP: level 2 at 20 XP, level 3 at 100 XP, and from level L the next level needs 100 × (L − 1) more. Every level up from level 2 gives one skill point."
+    },
+    {
+      "name": "skill point",
+      "definition": "What a level up gives, spent on perks. Unspent skill points never expire, and a spent one is never refunded (ADR-0002). It is not kudos and not a coin."
+    },
+    {
+      "name": "perk",
+      "definition": "A permanent effect a member chooses from the perk list: the first tier of a branch costs skill points, an upgrade costs skill points and coins, and some need a minimum level. An active perk is one the member switches on for a limited time."
+    },
+    {
+      "name": "team aura",
+      "definition": "The effect of a team perk: one member buys it and every teammate who opts in benefits. Only the strongest aura of each kind counts, however many teammates own it."
+    },
+    {
+      "name": "booster",
+      "definition": "A temporary effect that raises a member's bonus XP or chance of drops for a set time: an XP booster or a Discovery Lantern bought with coins, or a Crowd booster from a chime-in threshold. Only one of each kind is active at a time."
+    },
+    {
+      "name": "weekly reserve",
+      "definition": "Bonus kudos from perks for one week, spent only after the daily allowance is used up. It refills on Monday at midnight in the giver's time zone, and nothing carries over."
+    },
+    {
+      "name": "coin",
+      "definition": "The currency a member earns from thoughtful giving and from being thanked by many different people, and spends in the store and on perk upgrades (ADR-0003). Coins never turn into kudos, and kudos never turn into coins."
+    },
+    {
+      "name": "store",
+      "definition": "Where members spend coins on items they see before buying: cosmetics, XP boosters, the Discovery Lantern and streak freezes. Nothing in it is a random draw."
+    },
+    {
+      "name": "cosmetic",
+      "definition": "An unlock that changes how a member's kudos look, never what they are worth: a quip, a card, a title or a kudos emoji. Every cosmetic has a rarity."
+    },
+    {
+      "name": "quip",
+      "definition": "An unlocked flavour line the app posts under a kudos message when its giver uses one, so everyone in the channel can see it."
+    },
+    {
+      "name": "card",
+      "definition": "An unlocked image the app shows with a quip, in a celebration or in the collection. A card is not a sticker: a sticker is a person in the sticker book."
+    },
+    {
+      "name": "title",
+      "definition": "An unlocked name a member can show next to their own, such as Bridge Builder."
+    },
+    {
+      "name": "loadout",
+      "definition": "The cosmetics a member has chosen to show: a title, a card, quips and kudos emoji."
+    },
+    {
+      "name": "collection",
+      "definition": "Every cosmetic a member has unlocked, shown privately in App Home."
+    },
+    {
+      "name": "rarity",
+      "definition": "How rare a cosmetic is: common, uncommon, rare, epic or legendary, each with its World of Warcraft colour. Rarity says nothing about the recognition behind it."
+    },
+    {
+      "name": "drop",
+      "definition": "A cosmetic a member finds by chance through a thoughtful kudos they gave. The chance rises after every miss and starts over after a find, and the same cosmetic never drops twice."
+    },
+    {
+      "name": "unlock",
+      "definition": "Something a member gains for good through progression: a cosmetic or a perk (ADR-0002)."
+    },
+    {
+      "name": "achievement",
+      "definition": "One tier of a ladder, earned once by doing something, such as thanking ten different people. It gives an exclusive cosmetic, never XP, skill points or coins, and it is never taken back.",
+      "rejected": [
+        {
+          "alternative": "badge",
+          "because": "use achievement or tier, never badge"
+        }
+      ]
+    },
+    {
+      "name": "ladder",
+      "definition": "A series of four achievements for the same kind of action, each harder than the one before."
+    },
+    {
+      "name": "tier",
+      "definition": "An achievement's place on its ladder: bronze, silver, gold or diamond. A tier is not a rarity."
+    },
+    {
+      "name": "streak",
+      "definition": "A run of a member's workdays on which they gave at least one kudos. Days off and paused days neither add to it nor break it."
+    },
+    {
+      "name": "workday",
+      "definition": "A day of the week a member works, Monday to Friday unless they change it. Only workdays count for streaks."
+    },
+    {
+      "name": "pause",
+      "definition": "A future date a member marks as away, such as a holiday. It never breaks a streak and costs nothing."
+    },
+    {
+      "name": "freeze",
+      "definition": "A store item that covers one missed workday so a streak survives, at most two missed workdays in a row. It adds no day to the streak."
+    },
+    {
+      "name": "thoughtful kudos",
+      "definition": "A kudos message that says why its recipients earned it. Only thoughtful kudos trigger bonus XP, perk effects, drops and coins, and spend the weekly reserve; every kudos message still gives base XP."
+    },
+    {
+      "name": "chime-in",
+      "definition": "A member's click on the app's kudos reaction under someone else's given kudos message within a day of it. It gives each recipient one more kudos from the clicker's allowance, and counts toward the message's chime-in thresholds.",
+      "rejected": [
+        {
+          "alternative": "super kudos",
+          "because": "the owner's later-feature name became the chime-in"
+        }
+      ]
+    },
+    {
+      "name": "chime-in threshold",
+      "definition": "A number of chime-ins on one kudos message (3, 5, 10, 20, 50 or 100) that gives everyone who chimed in, and the giver, a Crowd booster, and gives the recipients bonus XP."
+    },
+    {
+      "name": "sticker book",
+      "definition": "A member's private album of the people they have thanked and the people who have thanked them, one sticker each, with team albums to complete."
+    },
+    {
+      "name": "sticker",
+      "definition": "A person in a member's sticker book. A sticker is not a cosmetic image, which is a card."
+    },
+    {
+      "name": "announcement channel",
+      "definition": "A public channel a workspace admin picks for level-up and achievement notices, instead of the thread under the kudos message."
     }
   ]
 }
