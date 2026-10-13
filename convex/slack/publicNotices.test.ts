@@ -312,7 +312,7 @@ function publicNotices() {
   return slack
     .callsTo("chat.postMessage")
     .filter(({ channel, text }) => !String(channel).startsWith("U") && String(text).includes("reached level"))
-    .map(({ channel, text }) => ({ channel, text }));
+    .map(({ channel, text, thread_ts }) => ({ channel, text, ...(thread_ts !== undefined && { thread_ts }) }));
 }
 
 async function memberOf(t: Backend, user: string) {
