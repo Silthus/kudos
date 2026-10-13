@@ -306,6 +306,18 @@
     {
       "name": "capture",
       "definition": "Whether a deployment records and sends product events: on only when it has both the PostHog project token and a valid KUDOS_ENVIRONMENT (sandbox or production). With capture off nothing is recorded and nothing is sent."
+    },
+    {
+      "name": "error boundary",
+      "definition": "The wrapper every HTTP route and action outside the analytics module runs inside. When the function throws an error nobody caught, it records one exception for PostHog Error Tracking in its own transaction and rethrows an error marked [reported], so Convex and Slack still see the failure and no outer boundary or the failed-job sweep reports it again. If recording fails, it logs a fixed code and rethrows the original error."
+    },
+    {
+      "name": "reportable error",
+      "definition": "An error this codebase throws on purpose with a message written only from fixed text and Slack error codes, such as a Slack call that answered not_authed. It is the only error whose message is sent to PostHog; every other error is sent as unexpected error with its type name."
+    },
+    {
+      "name": "failed-job sweep",
+      "definition": "The analytics mutation a cron runs every 15 minutes that finds scheduled functions which failed without an error boundary reporting them, and records each once as an exception. It pages through new scheduled functions from a cursor, keeps every unfinished one on a watch list until it finishes, and never reports the analytics module's own functions."
     }
   ]
 }

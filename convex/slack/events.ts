@@ -1,5 +1,5 @@
 import { internal } from "../_generated/api";
-import { httpAction } from "../_generated/server";
+import { observedHttpAction } from "../analytics/boundary";
 import { isHomeTabOpened } from "./appHome";
 import { directoryRecordOfEvent, isMemberChanged } from "./directory";
 import { isMessage, mayGiveKudos, messageEventOf, type EventCallback } from "./normalize";
@@ -7,7 +7,7 @@ import { readSignedBody } from "./signature";
 
 type Envelope = { type: "url_verification"; challenge: string } | EventCallback | { type: "app_rate_limited" };
 
-export const slackEvents = httpAction(async (ctx, request) => {
+export const slackEvents = observedHttpAction(async (ctx, request) => {
   const body = await readSignedBody(request);
   if (body === null) return new Response(null, { status: 401 });
 

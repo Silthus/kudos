@@ -12,6 +12,10 @@ export function captureSettings(): Capture | null {
   return { token, environment, host: process.env.POSTHOG_HOST || defaultHost };
 }
 
+export function nativeErrorReportingOn() {
+  return process.env.POSTHOG_NATIVE_ERRORS === "on";
+}
+
 function isEnvironment(value: string | undefined): value is Environment {
   return value !== undefined && environments.includes(value);
 }

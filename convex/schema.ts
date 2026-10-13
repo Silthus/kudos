@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { exceptionValidator } from "./analytics/exceptions";
 import { propertiesValidator } from "./analytics/projections";
 import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
 import { segmentValidator } from "./feedback/replies";
@@ -123,8 +124,21 @@ export default defineSchema({
     distinctId: v.string(),
     timestamp: v.number(),
     properties: propertiesValidator,
+    exception: v.optional(exceptionValidator),
     state: v.union(v.literal("pending"), v.literal("sending")),
   }).index("by_state", ["state"]),
 
   analyticsDrain: defineTable({}),
+
+  errorSweep: defineTable({
+    cursor: v.number(),
+  }),
+
+  watchedJobs: defineTable({
+    job: v.id("_scheduled_functions"),
+  }),
+
+  reportedJobs: defineTable({
+    job: v.id("_scheduled_functions"),
+  }).index("by_job", ["job"]),
 });

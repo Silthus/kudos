@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { internalAction, type ActionCtx } from "../_generated/server";
+import type { ActionCtx } from "../_generated/server";
+import { observedAction } from "../analytics/boundary";
+import { ReportableError } from "../analytics/exceptions";
 import type { HomeFacts } from "../engine/home";
 import { renderHome, type HomeLine, type HomeView } from "../feedback/home";
 import { attemptArgs, failedAttempt, sendOnce, tryAtMostThreeTimes } from "./delivery";
@@ -12,7 +14,7 @@ export function isHomeTabOpened(event: { type: string }): event is HomeOpened {
   return event.type === "app_home_opened" && (event as HomeOpened).tab === "home";
 }
 
-export const publishHome = internalAction({
+export const publishHome = observedAction({
   args: { workspace: v.string(), user: v.string(), ...attemptArgs },
   handler: async (ctx, { attempt = 1, ...opened }) => {
     await tryAtMostThreeTimes(
@@ -62,6 +64,6 @@ function mrkdwn(text: string) {
 
 function appId() {
   const id = process.env.SLACK_APP_ID;
-  if (!id) throw new Error("SLACK_APP_ID is not set");
+  if (!id) throw new ReportableError("SLACK_APP_ID is not set");
   return id;
 }

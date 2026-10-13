@@ -1,11 +1,12 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { httpAction, internalAction } from "../_generated/server";
+import { observedAction, observedHttpAction } from "../analytics/boundary";
+import { ReportableError } from "../analytics/exceptions";
 import { type KudosCommandResult, renderKudosCommandReply } from "../feedback/kudosCommand";
 import { readSignedBody } from "./signature";
 import { callSlack, type SlackAnswer } from "./webApi";
 
-export const slackCommands = httpAction(async (ctx, request) => {
+export const slackCommands = observedHttpAction(async (ctx, request) => {
   const body = await readSignedBody(request);
   if (body === null) return new Response(null, { status: 401 });
 
@@ -18,7 +19,7 @@ export const slackCommands = httpAction(async (ctx, request) => {
   return new Response(null, { status: 200 });
 });
 
-export const addToChannel = internalAction({
+export const addToChannel = observedAction({
   args: { channel: v.string(), inDirectMessage: v.boolean(), responseUrl: v.string() },
   handler: async (_ctx, { channel, inDirectMessage, responseUrl }) => {
     const answer = await callSlack("conversations.join", { channel });
@@ -37,7 +38,7 @@ function resultOfJoining(answer: SlackAnswer, inDirectMessage: boolean): KudosCo
   if (answer.ok) return answer.warning === "already_in_channel" ? "already-in" : "joined";
   if (inDirectMessage) return "direct-message";
   if (unjoinableChannelErrors.has(answer.error)) return "private-channel";
-  throw new Error(`Slack conversations.join failed: ${answer.error}`);
+  throw new ReportableError(`Slack conversations.join failed: ${answer.error}`);
 }
 
 async function answerCommand(responseUrl: string, text: string) {
@@ -46,11 +47,11 @@ async function answerCommand(responseUrl: string, text: string) {
     headers: { "content-type": "application/json; charset=utf-8" },
     body: JSON.stringify({ response_type: "ephemeral", text }),
   });
-  if (!response.ok) throw new Error(`Slack response_url answered HTTP ${response.status}`);
+  if (!response.ok) throw new ReportableError(`Slack response_url answered HTTP ${response.status}`);
 }
 
 function field(command: URLSearchParams, name: string) {
   const value = command.get(name);
-  if (value === null) throw new Error(`the slash command has no ${name}`);
+  if (value === null) throw new ReportableError(`the slash command has no ${name}`);
   return value;
 }

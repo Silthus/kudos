@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { internalAction, internalMutation, internalQuery, type ActionCtx, type MutationCtx } from "../_generated/server";
+import { internalMutation, internalQuery, type ActionCtx, type MutationCtx } from "../_generated/server";
+import { observedAction } from "../analytics/boundary";
 import { awaitedUsers, recheck, type Observation } from "../engine/engine";
 import { messageRefValidator, type MessageRef } from "../engine/messageEvent";
 import type { DirectoryEntry, DirectoryRecord } from "../workspace/directory";
@@ -29,7 +30,7 @@ export async function checkDirectoryLater(ctx: MutationCtx, ref: MessageRef, obs
   await ctx.scheduler.runAfter(observation.retryInMs, internal.slack.directory.checkDirectory, { ref, attempt: observation.attempt });
 }
 
-export const checkDirectory = internalAction({
+export const checkDirectory = observedAction({
   args: { ref: messageRefValidator, attempt: v.int64() },
   handler: async (ctx, { ref, attempt }) => {
     const users = await ctx.runQuery(internal.slack.directory.usersAwaited, { ref, attempt });

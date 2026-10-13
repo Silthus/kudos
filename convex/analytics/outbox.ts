@@ -1,7 +1,8 @@
 import { internal } from "../_generated/api";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
-import { captureSettings } from "./capture";
+import { captureSettings, nativeErrorReportingOn } from "./capture";
+import type { Exception } from "./exceptions";
 import type { ProductEvent } from "./projections";
 
 const taxonomyVersion = 1;
@@ -21,6 +22,36 @@ export async function record(ctx: MutationCtx, workspace: string, events: Produc
     });
   }
   await startDrain(ctx);
+}
+
+export type FailedFunction = { path: string; kind: "http" | "action" | "mutation" };
+
+export async function recordException(ctx: MutationCtx, failed: FailedFunction, exception: Exception, at: number): Promise<boolean> {
+  const capture = captureSettings();
+  if (capture === null || nativeErrorReportingOn()) return false;
+  const workspaceKey = await deploymentWorkspaceKey(ctx);
+  await ctx.db.insert("analyticsOutbox", {
+    uuid: crypto.randomUUID(),
+    event: "$exception",
+    distinctId: `deployment:${capture.environment}`,
+    timestamp: at,
+    properties: {
+      environment: capture.environment,
+      ...(workspaceKey !== null && { workspace_key: workspaceKey }),
+      taxonomy_version: taxonomyVersion,
+      function_path: failed.path,
+      function_kind: failed.kind,
+    },
+    exception,
+    state: "pending",
+  });
+  await startDrain(ctx);
+  return true;
+}
+
+async function deploymentWorkspaceKey(ctx: QueryCtx) {
+  const keys = await ctx.db.query("workspaceKeys").take(2);
+  return keys.length === 1 ? keys[0]!.workspaceKey : null;
 }
 
 async function startDrain(ctx: MutationCtx) {

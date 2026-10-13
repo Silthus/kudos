@@ -1,6 +1,6 @@
 # Analytics
 
-Analytics: the only module that knows PostHog. It projects each kudosGiven domain event into the product events kudos given and kudos received, records them in the outbox in the subscriber's transaction while capture is on, under an opaque analytics ID per member and a workspace key per workspace, and one drain at a time sends due events to PostHog's batch endpoint, at most 100 per request, deleting them when PostHog answers 2xx. Every function is internal; the PostHog spec is issue #69.
+Analytics: the only module that knows PostHog. It projects each kudosGiven domain event into the product events kudos given and kudos received, records them in the outbox in the subscriber's transaction while capture is on, under an opaque analytics ID per member and a workspace key per workspace, and one drain at a time sends due events to PostHog's batch endpoint, at most 100 per request, deleting them when PostHog answers 2xx. Its error boundary wraps every HTTP route and action outside the module and records an error nobody caught as one exception event before rethrowing it marked [reported]; its failed-job sweep, every 15 minutes, records each scheduled function that failed without a boundary reporting it. Only a reportable error sends its message. With native error reporting switched on, neither records anything. Every function is internal; the PostHog spec is issue #69.
 
 ## invariants
 - only allowlisted properties leave the deployment: Only the properties a projection lists by name for its event leave the deployment for PostHog; message text, names, time zones, emoji names, Slack IDs and Convex document IDs never do.
@@ -46,3 +46,31 @@ Analytics: the only module that knows PostHog. It projects each kudosGiven domai
   checklist: commit-ordered-effects dismissed: the subscriber runs after the engine's transaction commits, and the drain after the subscriber's
   checklist: resumption-coverage dismissed: the drain resumes by claiming whatever is pending; it keeps no checkpoint
   checklist: retry-classification dismissed: a failed batch never reaches the domain; how it retries belongs to ticket #72
+- an error is reported once: An error nobody caught in an HTTP route, an action or a scheduled function becomes at most one exception event: the error boundary it left first records it and rethrows it marked [reported], so no outer boundary records it again, and the failed-job sweep records a failed job only when no boundary did, at most once per job.
+  over: a scheduled action reached from a signed /hedgehug whose Slack call answers not_authed, followed by two failed-job sweeps, the PostHog requests the drain sends for it and the job's final state
+  via: O22 O23: an action that throws
+  because: issue counts in Error Tracking must be honest (O22, user story 20); a failure that passes through a nested action, a scheduled job and the sweep would otherwise be one issue counted up to three times
+  refuted: recordBoundaryException no longer wrote the reportedJobs row for the scheduled function it reported -> the sweep recorded the action's failure a second time and the test failed on its assertion of one exception (2026-10-13)
+  kinds: message
+  checklist: destination-confinement dismissed: an exception event goes only through the outbox to the configured POSTHOG_HOST's batch endpoint, like every product event
+  checklist: message-authenticity dismissed: a boundary records what its own function threw and the sweep reads Convex's own _scheduled_functions table; no outside input claims an error happened
+  checklist: input-validation dismissed: the recording mutation's arguments are checked by the exception validator, scalars and a list of frames only
+  checklist: retry-recognition dismissed: Convex doesn't retry an action or a scheduled function that failed, and a redelivered Slack request that fails again is a new failure, which Error Tracking groups into the same issue
+  checklist: duplicate-suppression declared as an error is reported once
+  checklist: keyed-ordering dismissed: PostHog orders exception events by their timestamp, the failure's time
+  checklist: acknowledgment-barrier dismissed: the boundary's recording mutation commits before it rethrows, so a failed HTTP route answers Slack only after its exception is recorded; nothing acknowledges an exception to its source
+  checklist: retry-classification dismissed: expected outcomes never throw (O21): the delivery path classifies every Slack answer and the drain every PostHog answer, so neither reaches a boundary
+- only a reportable error sends its message: Only a reportable error's message leaves the deployment for PostHog; every other error, including malformed JSON, a Convex argument validation error and a dependency error, is sent as unexpected error with its type name and none of its text.
+  over: every PostHog request body the drain sends after a signed events request with malformed JSON, a signed events request whose arguments fail Convex's validation, and a /hedgehug whose Slack call throws a dependency error, each full of distinctive words, an emoji name and Slack-shaped IDs
+  via: O10 O23: only a reportable error sends its message
+  because: an error message can embed the input that caused it (O10, O23); a JSON parse error quotes the body and a validation error prints the arguments, which hold a kudos message's content and Slack IDs
+  refuted: exceptionOf sent every Error's message, not only a ReportableError's -> all 3 cases failed on their assertion that the value is unexpected error (2026-10-13)
+  kinds: message
+  checklist: destination-confinement dismissed: an exception event goes only through the outbox to the configured POSTHOG_HOST's batch endpoint
+  checklist: message-authenticity dismissed: the classification reads the error object the boundary caught or the error string Convex stored for a failed job, never outside input that claims to be a reportable error
+  checklist: input-validation declared as only a reportable error sends its message
+  checklist: retry-recognition dismissed: a retried failure is recorded with the same rules as its first
+  checklist: duplicate-suppression dismissed: covered by an error is reported once
+  checklist: keyed-ordering dismissed: no ordered transport is relied on
+  checklist: acknowledgment-barrier dismissed: nothing acknowledges an exception to its source
+  checklist: retry-classification dismissed: the rule classifies an error's content, not whether it is retried
