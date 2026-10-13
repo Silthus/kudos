@@ -81,13 +81,18 @@ async function backendBinary() {
   if (existsSync(binary)) return binary;
   await mkdir(directory, { recursive: true });
   const archive = join(directory, "backend.zip");
-  const download = await fetch(`https://github.com/get-convex/convex-backend/releases/download/${backendVersion}/convex-local-backend-x86_64-unknown-linux-gnu.zip`);
+  const download = await fetch(`https://github.com/get-convex/convex-backend/releases/download/${backendVersion}/convex-local-backend-${targetTriple()}.zip`);
   if (!download.ok) throw new Error(`the local backend ${backendVersion} didn't download: ${download.status}`);
   await writeFile(archive, Buffer.from(await download.arrayBuffer()));
   await run("unzip", ["-o", archive, "-d", directory]);
   await rm(archive);
   await chmod(binary, 0o755);
   return binary;
+}
+
+function targetTriple() {
+  const cpu = process.arch === "arm64" ? "aarch64" : "x86_64";
+  return process.platform === "darwin" ? `${cpu}-apple-darwin` : `${cpu}-unknown-linux-gnu`;
 }
 
 async function adminKey(binary: string, instanceSecret: string) {
