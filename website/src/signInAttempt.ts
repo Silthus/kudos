@@ -32,7 +32,7 @@ export function useSignInOutcome(state: ShellState): ShellState {
   const [unfinished, setUnfinished] = useState(false);
 
   useEffect(() => {
-    if (state.kind === "loading") return;
+    if (state.kind === "loading" || state.kind === "connecting") return;
     if (state.kind !== "signed-out") setUnfinished(false);
     if (!returnedFromSignIn) return;
     forgetSignInStarted();

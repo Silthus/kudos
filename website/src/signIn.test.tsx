@@ -49,6 +49,15 @@ describe("WS6 WS24: signing in with Slack from the keyboard", () => {
     expect(pageTitle()).toHaveTextContent("Sign-in didn't finish");
   });
 
+  it("still shows Sign-in didn't finish when the socket took too long and the answer came after Can't reach HedgeHug", async () => {
+    const { unmount } = await startSignInFromKeyboard();
+    unmount();
+    const { showVisitor } = returnFromSlack();
+    showVisitor(shellFixtures.connecting);
+    showVisitor(shellFixtures.signedOut);
+    expect(pageTitle()).toHaveTextContent("Sign-in didn't finish");
+  });
+
   it("shows the plain sign-in page to a signed-out visitor who never started a sign-in here", () => {
     const { showVisitor } = returnFromSlack();
     showVisitor(shellFixtures.signedOut);
