@@ -4,7 +4,7 @@ export type BoardRow = { rank: number; id: string; name: string; value: number; 
 
 export type BoardView = {
   rows: Array<BoardRow | { gap: true }>;
-  viewerAbsent?: "not-ranked";
+  viewerAbsent?: "not-ranked" | "left";
 };
 
 const topPositions = 3;

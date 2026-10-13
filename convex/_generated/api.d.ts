@@ -10,6 +10,7 @@
 
 import type * as bus_events from "../bus/events.js";
 import type * as bus_publish from "../bus/publish.js";
+import type * as commands_commands from "../commands/commands.js";
 import type * as crons from "../crons.js";
 import type * as engine_allowance from "../engine/allowance.js";
 import type * as engine_awards from "../engine/awards.js";
@@ -18,6 +19,7 @@ import type * as engine_home from "../engine/home.js";
 import type * as engine_messageEvent from "../engine/messageEvent.js";
 import type * as engine_totals from "../engine/totals.js";
 import type * as feedback_home from "../feedback/home.js";
+import type * as feedback_homeTabs from "../feedback/homeTabs.js";
 import type * as feedback_indicator from "../feedback/indicator.js";
 import type * as feedback_kudosCommand from "../feedback/kudosCommand.js";
 import type * as feedback_leaderboard from "../feedback/leaderboard.js";
@@ -30,12 +32,14 @@ import type * as leaderboard_board from "../leaderboard/board.js";
 import type * as leaderboard_improvement from "../leaderboard/improvement.js";
 import type * as leaderboard_periods from "../leaderboard/periods.js";
 import type * as leaderboard_totals from "../leaderboard/totals.js";
+import type * as leaderboard_visibility from "../leaderboard/visibility.js";
 import type * as parser_parser from "../parser/parser.js";
 import type * as slack_appHome from "../slack/appHome.js";
 import type * as slack_commands from "../slack/commands.js";
 import type * as slack_delivery from "../slack/delivery.js";
 import type * as slack_directory from "../slack/directory.js";
 import type * as slack_events from "../slack/events.js";
+import type * as slack_interactivity from "../slack/interactivity.js";
 import type * as slack_normalize from "../slack/normalize.js";
 import type * as slack_placedReactions from "../slack/placedReactions.js";
 import type * as slack_processEvent from "../slack/processEvent.js";
@@ -57,6 +61,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   "bus/events": typeof bus_events;
   "bus/publish": typeof bus_publish;
+  "commands/commands": typeof commands_commands;
   crons: typeof crons;
   "engine/allowance": typeof engine_allowance;
   "engine/awards": typeof engine_awards;
@@ -65,6 +70,7 @@ declare const fullApi: ApiFromModules<{
   "engine/messageEvent": typeof engine_messageEvent;
   "engine/totals": typeof engine_totals;
   "feedback/home": typeof feedback_home;
+  "feedback/homeTabs": typeof feedback_homeTabs;
   "feedback/indicator": typeof feedback_indicator;
   "feedback/kudosCommand": typeof feedback_kudosCommand;
   "feedback/leaderboard": typeof feedback_leaderboard;
@@ -77,12 +83,14 @@ declare const fullApi: ApiFromModules<{
   "leaderboard/improvement": typeof leaderboard_improvement;
   "leaderboard/periods": typeof leaderboard_periods;
   "leaderboard/totals": typeof leaderboard_totals;
+  "leaderboard/visibility": typeof leaderboard_visibility;
   "parser/parser": typeof parser_parser;
   "slack/appHome": typeof slack_appHome;
   "slack/commands": typeof slack_commands;
   "slack/delivery": typeof slack_delivery;
   "slack/directory": typeof slack_directory;
   "slack/events": typeof slack_events;
+  "slack/interactivity": typeof slack_interactivity;
   "slack/normalize": typeof slack_normalize;
   "slack/placedReactions": typeof slack_placedReactions;
   "slack/processEvent": typeof slack_processEvent;

@@ -15,7 +15,7 @@ const joinTheBoard: Record<Period, string> = {
 
 export function renderEveryoneBoard(view: EveryoneBoardView, period: Period): Line[] {
   const rows = view.rows.map((row) => ("gap" in row ? [{ text: "…" }] : boardRow(row)));
-  const nudge = view.viewerAbsent === "not-ranked" ? [[{ text: joinTheBoard[period] }]] : [];
+  const nudge = nudgeFor(view, period);
   const improvement = view.improvement === null ? [] : [improvementLine(view.improvement, period)];
   return [...rows, ...nudge, ...improvement];
 }
@@ -23,6 +23,12 @@ export function renderEveryoneBoard(view: EveryoneBoardView, period: Period): Li
 export function renderLeaderboardUsage(): Line[] {
   const forms = ["", " month", " all"].map((period) => `\`${slashCommand} leaderboard${period}\``);
   return [[{ text: `Try ${forms[0]}, ${forms[1]} or ${forms[2]}.` }]];
+}
+
+function nudgeFor({ viewerAbsent }: EveryoneBoardView, period: Period): Line[] {
+  if (viewerAbsent === "left") return [[{ text: "You're not on the leaderboards. You can change that in Settings." }]];
+  if (viewerAbsent === "not-ranked") return [[{ text: joinTheBoard[period] }]];
+  return [];
 }
 
 function boardRow({ rank, id, value }: BoardRow): Line {

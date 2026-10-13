@@ -1,7 +1,9 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
+import { homeTabValidator } from "./feedback/homeTabs";
 import { segmentValidator } from "./feedback/replies";
+import { periodValidator } from "./leaderboard/periods";
 
 export default defineSchema({
   slackReceipts: defineTable({
@@ -124,6 +126,17 @@ export default defineSchema({
   })
     .index("by_period", ["workspace", "period"])
     .index("by_member_period", ["member", "period"]),
+
+  leaderboardSettings: defineTable({
+    member: v.id("members"),
+    visible: v.boolean(),
+  }).index("by_member", ["member"]),
+
+  homeSelections: defineTable({
+    member: v.id("members"),
+    tab: homeTabValidator,
+    period: periodValidator,
+  }).index("by_member", ["member"]),
 
   slackRateLimits: defineTable({
     workspace: v.string(),

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack, httpStatus, rateLimitedFor } from "../../testing/fakeSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { publishedHome as publishedHomeOf } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 
@@ -31,6 +32,7 @@ describe("R45 R46: a member opens App Home", () => {
 
     expect(response.status).toBe(200);
     expect(publishedHome("U_BOB")).toEqual([
+      "actions: [Profile] | Leaderboard | Settings",
       "header: Your kudos",
       "section: You have *3* kudos left today. You get *3* more at midnight.",
       "divider",
@@ -155,7 +157,7 @@ describe("R45: publishing App Home through Slack's failures", () => {
 
     const [rateLimitedAt, publishedAt] = slack.timesOf("views.publish");
     expect(publishedAt! - rateLimitedAt!).toBeGreaterThanOrEqual(30_000);
-    expect(publishedHome("U_BOB")[0]).toBe("header: Your kudos");
+    expect(titleOf(publishedHome("U_BOB"))).toBe("header: Your kudos");
   });
 
   test("a person whose lookup fails is looked up again, then sees their Home", async () => {
@@ -165,7 +167,7 @@ describe("R45: publishing App Home through Slack's failures", () => {
     await openHome(t, "U_BOB");
 
     expect(slack.callsTo("users.info")).toHaveLength(2);
-    expect(publishedHome("U_BOB")[0]).toBe("header: Your kudos");
+    expect(titleOf(publishedHome("U_BOB"))).toBe("header: Your kudos");
   });
 
   test("a rate-limited lookup is tried again after Slack's Retry-After", async () => {
@@ -176,7 +178,7 @@ describe("R45: publishing App Home through Slack's failures", () => {
 
     const [rateLimitedAt, lookedUpAt] = slack.timesOf("users.info");
     expect(lookedUpAt! - rateLimitedAt!).toBeGreaterThanOrEqual(30_000);
-    expect(publishedHome("U_BOB")[0]).toBe("header: Your kudos");
+    expect(titleOf(publishedHome("U_BOB"))).toBe("header: Your kudos");
   });
 
   test("a publish that keeps failing is tried 3 times and never again", async () => {
@@ -210,37 +212,16 @@ async function giveKudos(t: Backend, giver: string, recipient: string, ts: strin
   await settle(t);
 }
 
-type TextObject = { type: string; text: string };
-type Block = { type: string; text?: TextObject; fields?: TextObject[]; elements?: TextObject[] };
-type HomeView = { type: string; blocks: Block[] };
-
 function publishedHome(user: string) {
-  const published = slack.callsTo("views.publish").filter((args) => args.user_id === user);
-  const view = published.at(-1)?.view as HomeView | undefined;
-  expect(view?.type).toBe("home");
-  return (view?.blocks ?? []).map(readBlock);
-}
-
-function readBlock(block: Block) {
-  if (block.type === "divider") return "divider";
-  if (block.type === "header") return `header: ${plainText(block.text)}`;
-  if (block.type === "context") return `context: ${block.elements?.map(mrkdwn).join(" ")}`;
-  if (block.fields) return `${block.type} fields: ${block.fields.map(mrkdwn).join(" | ")}`;
-  return `${block.type}: ${mrkdwn(block.text)}`;
-}
-
-function plainText(text: TextObject | undefined) {
-  expect(text?.type).toBe("plain_text");
-  return text?.text;
-}
-
-function mrkdwn(text: TextObject | undefined) {
-  expect(text?.type).toBe("mrkdwn");
-  return text?.text;
+  return publishedHomeOf(slack, user);
 }
 
 function allowanceIn(home: string[]) {
-  return home[1];
+  return home[2];
+}
+
+function titleOf(home: string[]) {
+  return home.find((line) => line.startsWith("header: "));
 }
 
 function totalsIn(home: string[]) {

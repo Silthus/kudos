@@ -2,9 +2,10 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalAction, type ActionCtx } from "../_generated/server";
 import type { HomeFacts } from "../engine/home";
-import { renderHome, type HomeLine, type HomeView } from "../feedback/home";
-import { attemptArgs, failedAttempt, sendOnce, tryAtMostThreeTimes } from "./delivery";
+import { renderHome, type Choice, type HomeLine, type HomeView } from "../feedback/home";
+import { attemptArgs, failedAttempt, sendOnce, slackTextOf, tryAtMostThreeTimes } from "./delivery";
 import { lookUpUser } from "./directory";
+import { encodeHomeAction } from "./interactivity";
 
 export type HomeOpened = { type: "app_home_opened"; user: string; tab: "home" | "messages" };
 
@@ -20,7 +21,8 @@ export const publishHome = internalAction({
       async (attempt) => {
         const facts = await homeFactsOf(ctx, opened.workspace, opened.user);
         if (facts.kind === "unavailable") return failedAttempt(attempt, facts.retryAfterMs);
-        return sendOnce(ctx, opened.workspace, "views.publish", { user_id: opened.user, view: homeView(renderHome(facts)) }, attempt);
+        const shown = await ctx.runQuery(internal.feedback.homeTabs.shownTabOf, opened);
+        return sendOnce(ctx, opened.workspace, "views.publish", { user_id: opened.user, view: homeView(renderHome(facts, shown)) }, attempt);
       },
       (retry) => ctx.scheduler.runAt(retry.at, internal.slack.appHome.publishHome, { ...opened, attempt: retry.attempt }),
     );
@@ -42,18 +44,30 @@ async function homeFactsOf(ctx: ActionCtx, workspace: string, user: string): Pro
   return (await ctx.runQuery(internal.engine.home.homeOf, { workspace, user })) ?? { kind: "unavailable" };
 }
 
-function homeView({ title, groups }: HomeView) {
+function homeView({ tabBar, title, groups }: HomeView) {
+  const tabs = tabBar === undefined ? [] : [buttonsOf(tabBar)];
   const header = { type: "header", text: { type: "plain_text", text: title } };
   const body = groups.flatMap((group, index) => [...(index > 0 ? [divider] : []), ...group.map(blockOf)]);
-  return { type: "home", blocks: [header, ...body] };
+  return { type: "home", blocks: [...tabs, header, ...body] };
 }
 
 const divider = { type: "divider" };
 
 function blockOf(line: HomeLine) {
   if (line.kind === "fields") return { type: "section", fields: line.fields.map(mrkdwn) };
+  if (line.kind === "choices") return buttonsOf(line.choices);
+  if (line.kind === "lines") return { type: "section", text: mrkdwn(slackTextOf(line.lines)) };
   if (line.kind === "hint") return { type: "context", elements: [mrkdwn(line.text)] };
   return { type: "section", text: mrkdwn(line.text) };
+}
+
+function buttonsOf(choices: Choice[]) {
+  return { type: "actions", elements: choices.map(buttonOf) };
+}
+
+function buttonOf({ label, command, selected }: Choice) {
+  const action = encodeHomeAction(command);
+  return { type: "button", text: { type: "plain_text", text: label }, action_id: action, value: action, ...(selected && { style: "primary" }) };
 }
 
 function mrkdwn(text: string) {
