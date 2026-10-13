@@ -54,23 +54,13 @@ function profileTab({ kudos, progression }: MemberHome): HomeLine[][] {
 
 function settingsTab(settings: ProgressSettings): HomeLine[][] {
   return [
-    [setting(settings, "hideLevel"), setting(settings, "hideAchievements")],
     [setting(settings, "muteNotices"), setting(settings, "dms")],
-    [{ kind: "hint", text: "Your App Home and your DMs always show you everything." }],
   ];
 }
 
 type SettingCopy = Record<"whenOn" | "whenOff", { text: string; label: string }>;
 
 const settingCopy: Record<keyof ProgressSettings, SettingCopy> = {
-  hideLevel: {
-    whenOn: { text: "Your level is hidden from other members.", label: "Show level" },
-    whenOff: { text: "Other members can see your level.", label: "Hide level" },
-  },
-  hideAchievements: {
-    whenOn: { text: "Your achievements are hidden from other members.", label: "Show achievements" },
-    whenOff: { text: "Other members can see your achievements.", label: "Hide achievements" },
-  },
   muteNotices: {
     whenOn: { text: "I don't post public notices about you.", label: "Unmute notices" },
     whenOff: { text: "I celebrate your level ups in public.", label: "Mute notices" },
@@ -118,11 +108,12 @@ function allowanceOf({ left, base }: KudosHome): HomeLine {
   return { kind: "text", text };
 }
 
+const skillPointsShownFromLevel = 5;
+
 function progressOf({ level, xpToNextLevel, skillPoints }: ProgressionHome): HomeLine {
-  return {
-    kind: "fields",
-    fields: [figure("Level", level), figure(`XP to level ${level + 1}`, xpToNextLevel), figure("Skill points saved", skillPoints)],
-  };
+  const levelFigures = [figure("Level", level), figure(`XP to level ${level + 1}`, xpToNextLevel)];
+  const pointsFigure = level >= skillPointsShownFromLevel ? [figure("Skill points saved", skillPoints)] : [];
+  return { kind: "fields", fields: [...levelFigures, ...pointsFigure] };
 }
 
 function totalsOf(kudos: KudosHome): HomeLine {

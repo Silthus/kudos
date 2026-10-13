@@ -29,7 +29,7 @@ afterEach(() => {
 });
 
 describe("P67: the Profile tab", () => {
-  test("shows the member's level, the XP to the next level and their saved skill points beside the core loop's contents", async () => {
+  test("shows the member's level and the XP to the next level beside the core loop's contents, and no skill points below level 5", async () => {
     const t = await workspaceWithAllowance(10);
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
 
@@ -40,13 +40,23 @@ describe("P67: the Profile tab", () => {
       "actions: [Profile] | Settings",
       "section: You have *8* kudos left today. You get *10* more at midnight.",
       "divider",
-      "section fields: *Level*\n*2* | *XP to level 3*\n*80* | *Skill points saved*\n*1*",
+      "section fields: *Level*\n*2* | *XP to level 3*\n*80*",
       "divider",
       "section fields: *Given this week*\n*2* | *Received this week*\n*0* | *Given in total*\n*2* | *Received in total*\n*0*",
       "divider",
       "context: To give kudos, mention a teammate and add :taco: to your message. Each :taco: gives everyone you mention 1 kudos.",
       "context: To add me to a channel, type `/hedgehug` there.",
     ]);
+  });
+
+  test("from level 5 it also shows the member's saved skill points", async () => {
+    const t = await workspaceWithAllowance(10);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    await withXp(t, "U_ALICE", 600);
+
+    await openHome(t, "U_ALICE");
+
+    expect(publishedHome(slack, "U_ALICE")).toContain("section fields: *Level*\n*5* | *XP to level 6*\n*400* | *Skill points saved*\n*4*");
   });
 });
 
@@ -62,13 +72,8 @@ describe("P67: the Settings tab", () => {
     expect(publishedHome(slack, "U_ALICE")).toEqual([
       "header: Your kudos",
       "actions: Profile | [Settings]",
-      "section: Other members can see your level. [button: Hide level]",
-      "section: Other members can see your achievements. [button: Hide achievements]",
-      "divider",
       "section: I celebrate your level ups in public. [button: Mute notices]",
       "section: I send you a DM when you reach a level. [button: Turn off DMs]",
-      "divider",
-      "context: Your App Home and your DMs always show you everything.",
     ]);
   });
 });
@@ -87,28 +92,6 @@ describe("P63 P65: a setting takes effect on the next notice or DM, and repeatin
     expect(publishedHome(slack, "U_ALICE")).toContain("section: I don't post public notices about you. [button: Unmute notices]");
   });
 
-  test("a hidden level: the next level up posts no public notice, and Settings offers to show it", async () => {
-    const t = await settingsOpen("U_ALICE");
-    const hide = buttonInHome(slack, "U_ALICE", "Hide level");
-
-    await interact(t, "U_ALICE", hide);
-    await interact(t, "U_ALICE", hide);
-    await giveKudos(t, "U_ALICE", "U_BOB", 1);
-
-    expect(slack.messagesIn("C1")).toEqual([]);
-    expect(publishedHome(slack, "U_ALICE")).toContain("section: Your level is hidden from other members. [button: Show level]");
-  });
-
-  test("a level shown again: the next level up is celebrated in public again", async () => {
-    const t = await settingsOpen("U_ALICE");
-    await click(t, "U_ALICE", "Hide level");
-
-    await click(t, "U_ALICE", "Show level");
-    await giveKudos(t, "U_ALICE", "U_BOB", 1);
-
-    expect(slack.messagesIn("C1").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
-  });
-
   test("DMs turned off: the next level up sends no DM, the public notice still goes out, and Settings offers to turn them on", async () => {
     const t = await settingsOpen("U_ALICE");
     const turnOff = buttonInHome(slack, "U_ALICE", "Turn off DMs");
@@ -124,27 +107,18 @@ describe("P63 P65: a setting takes effect on the next notice or DM, and repeatin
 
   test("a click Slack sends again after a later click changes nothing", async () => {
     const t = await settingsOpen("U_ALICE");
-    const hide = blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Hide level"));
-    await send(t, hide);
-    await click(t, "U_ALICE", "Show level");
+    const mute = blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Mute notices"));
+    await send(t, mute);
+    await click(t, "U_ALICE", "Unmute notices");
 
-    const replayed = await send(t, hide);
+    const replayed = await send(t, mute);
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
     expect(replayed.status).toBe(200);
-    expect(publishedHome(slack, "U_ALICE")).toContain("section: Other members can see your level. [button: Hide level]");
+    expect(publishedHome(slack, "U_ALICE")).toContain("section: I celebrate your level ups in public. [button: Mute notices]");
     expect(slack.messagesIn("C1").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
   });
 
-  test("hidden achievements: Settings shows them hidden and offers to show them", async () => {
-    const t = await settingsOpen("U_ALICE");
-    const hide = buttonInHome(slack, "U_ALICE", "Hide achievements");
-
-    await interact(t, "U_ALICE", hide);
-    await interact(t, "U_ALICE", hide);
-
-    expect(publishedHome(slack, "U_ALICE")).toContain("section: Your achievements are hidden from other members. [button: Show achievements]");
-  });
 });
 
 describe("P68: App Home is republished after a change, the latest version wins, and a failed publish is retried", () => {
@@ -154,7 +128,7 @@ describe("P68: App Home is republished after a change, the latest version wins, 
 
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
 
-    expect(publishedHome(slack, "U_ALICE")).toContain("section fields: *Level*\n*2* | *XP to level 3*\n*80* | *Skill points saved*\n*1*");
+    expect(publishedHome(slack, "U_ALICE")).toContain("section fields: *Level*\n*2* | *XP to level 3*\n*80*");
   });
 
   test("a republish that fails is tried again until the new level shows", async () => {
@@ -165,7 +139,7 @@ describe("P68: App Home is republished after a change, the latest version wins, 
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
 
     expect(publishedViews(slack, "U_ALICE")).toHaveLength(3);
-    expect(publishedHome(slack, "U_ALICE")).toContain("section fields: *Level*\n*2* | *XP to level 3*\n*80* | *Skill points saved*\n*1*");
+    expect(publishedHome(slack, "U_ALICE")).toContain("section fields: *Level*\n*2* | *XP to level 3*\n*80*");
   });
 
   test("a publish that lands after a newer change is followed by the latest App Home", async () => {
@@ -330,7 +304,7 @@ describe("R42: an interaction Slack did not sign gets 401 and does nothing", () 
   test.each([
     ["signed with another secret", (body: string) => signedRequest(body, { ...form, secret: "someone-elses-secret" })],
     ["unsigned", async (body: string) => ({ method: "POST", headers: { "content-type": form.contentType }, body })],
-    ["with a body changed after signing", async (body: string) => ({ ...(await signedRequest(body, form)), body: body.replace("muteNotices", "hideLevel") })],
+    ["with a body changed after signing", async (body: string) => ({ ...(await signedRequest(body, form)), body: body.replace("muteNotices", "dms") })],
     ["signed more than 5 minutes ago", (body: string) => signedRequest(body, { ...form, signedAt: new Date(now.getTime() - 6 * 60 * 1000) })],
   ])("%s", async (_, request) => {
     const t = await settingsOpen("U_ALICE");
@@ -353,6 +327,20 @@ async function settingsOpen(user: string) {
   await openHome(t, user);
   await click(t, user, "Settings");
   return t;
+}
+
+async function withXp(t: Backend, user: string, xp: number) {
+  await t.run(async (ctx) => {
+    const member = await ctx.db
+      .query("members")
+      .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", user))
+      .unique();
+    const progress = await ctx.db
+      .query("memberProgress")
+      .withIndex("by_member", (q) => q.eq("member", member!._id))
+      .unique();
+    await ctx.db.patch(progress!._id, { xp });
+  });
 }
 
 async function adminTabOpen(user: string) {

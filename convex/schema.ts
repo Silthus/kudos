@@ -132,8 +132,6 @@ export default defineSchema({
   progressSettings: defineTable({
     member: v.id("members"),
     dms: v.optional(v.boolean()),
-    hideLevel: v.optional(v.boolean()),
-    hideAchievements: v.optional(v.boolean()),
     muteNotices: v.optional(v.boolean()),
   }).index("by_member", ["member"]),
 

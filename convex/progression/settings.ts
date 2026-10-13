@@ -2,7 +2,7 @@ import { internalMutation, type QueryCtx } from "../_generated/server";
 import { setProgressSettingsCommand, type CommandResult } from "../bus/commands";
 import type { MemberId } from "../workspace/directory";
 
-export type ProgressSettings = { hideLevel: boolean; hideAchievements: boolean; muteNotices: boolean; dms: boolean };
+export type ProgressSettings = { muteNotices: boolean; dms: boolean };
 
 export const setProgressSettings = internalMutation({
   args: { command: setProgressSettingsCommand },
@@ -17,8 +17,6 @@ export const setProgressSettings = internalMutation({
 export async function progressSettingsOf(ctx: QueryCtx, member: MemberId): Promise<ProgressSettings> {
   const row = await settingsRow(ctx, member);
   return {
-    hideLevel: row?.hideLevel ?? false,
-    hideAchievements: row?.hideAchievements ?? false,
     muteNotices: row?.muteNotices ?? false,
     dms: row?.dms ?? true,
   };

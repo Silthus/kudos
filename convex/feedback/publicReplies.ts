@@ -97,9 +97,8 @@ export function linesOf(reply: Pick<Doc<"publicReplies">, "sections">): Line[] {
   return reply.sections.map(({ line }) => line);
 }
 
-async function isShownPublicly(ctx: QueryCtx, { member, about }: PublicSection) {
-  const { hideLevel, muteNotices } = await progressSettingsOf(ctx, member);
-  return !(about === "level" && hideLevel) && !muteNotices;
+async function isShownPublicly(ctx: QueryCtx, { member }: PublicSection) {
+  return !(await progressSettingsOf(ctx, member)).muteNotices;
 }
 
 function levelSection(member: MemberId, user: string, level: number): PublicSection {

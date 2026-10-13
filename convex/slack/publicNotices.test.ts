@@ -171,7 +171,6 @@ describe("R35: delivering the public reply", () => {
 
 describe("P65: privacy", () => {
   test.each([
-    ["hid their level", { hideLevel: true }],
     ["muted public notices", { muteNotices: true }],
   ])("a member who %s gets no public notice, while the other member's is posted", async (_, settings) => {
     const t = testBackend();
@@ -185,7 +184,6 @@ describe("P65: privacy", () => {
   });
 
   test.each([
-    ["hides their level", { hideLevel: true }],
     ["mutes public notices", { muteNotices: true }],
   ])("a member who %s after reaching a level, before the reply is posted, is left out of it", async (_, settings) => {
     const t = testBackend();
@@ -198,10 +196,10 @@ describe("P65: privacy", () => {
     expect(slack.messagesIn("C1").map((message) => message.text)).toEqual(["🎉 <@U_BOB> reached level 2."]);
   });
 
-  test("a reply whose only member hid their level before it was posted is never posted, and a later level under that message is", async () => {
+  test("a reply whose only member muted notices before it was posted is never posted, and a later level under that message is", async () => {
     const t = testBackend();
     await t.mutation(internal.feedback.publicReplies.celebrateLevel, { event: await levelReached(t, "U_ALICE", 2) });
-    await withSettings(t, "U_ALICE", { hideLevel: true });
+    await withSettings(t, "U_ALICE", { muteNotices: true });
     await settle(t);
     expect(slack.messagesIn("C1")).toEqual([]);
 
@@ -211,9 +209,9 @@ describe("P65: privacy", () => {
     expect(slack.messagesIn("C1").map((message) => message.text)).toEqual(["🎉 <@U_BOB> reached level 2."]);
   });
 
-  test("a member who hid their level and is the only one levelling up leaves the thread empty", async () => {
+  test("a member who muted notices and is the only one levelling up leaves the thread empty", async () => {
     const t = testBackend();
-    await withSettings(t, "U_ALICE", { hideLevel: true });
+    await withSettings(t, "U_ALICE", { muteNotices: true });
 
     await post(t, [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("taco"))]);
     await settle(t);
@@ -252,7 +250,7 @@ async function onlyPublicRepliesPosted(t: Backend, ...users: string[]) {
   }
 }
 
-async function withSettings(t: Backend, user: string, settings: { hideLevel?: boolean; muteNotices?: boolean }) {
+async function withSettings(t: Backend, user: string, settings: { muteNotices?: boolean }) {
   const member = await memberOf(t, user);
   await t.run((ctx) => ctx.db.insert("progressSettings", { member, ...settings }));
 }

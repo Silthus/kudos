@@ -9,8 +9,6 @@ export const showHomeTabCommand = v.object({ type: v.literal("showHomeTab"), mem
 export const setProgressSettingsCommand = v.object({
   type: v.literal("setProgressSettings"),
   member: v.id("members"),
-  hideLevel: v.optional(v.boolean()),
-  hideAchievements: v.optional(v.boolean()),
   muteNotices: v.optional(v.boolean()),
   dms: v.optional(v.boolean()),
 });
