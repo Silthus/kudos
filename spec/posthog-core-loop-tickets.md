@@ -2,7 +2,7 @@
 
 > **Accepted on [#69](https://github.com/Silthus/kudos/issues/69) (2026-10-13).** Each ticket below is a `wayfinder:implement` sub-issue of #69 with native blocking edges, and the ship ticket a `wayfinder:ship` sub-issue blocked by all of them. Rule numbers (`O17`, `R35`) refer to the [PostHog spec](posthog.md) and the [core loop spec](https://github.com/Silthus/kudos/blob/docs/spec-core-loop/spec/core-loop.md).
 
-**Published:** PUBLISHED_LINE
+**Published:** tickets #71, #72, #73 and #74; ship #75. #72–#74 are blocked by #71, and #75 by all four.
 
 **What stopping point 1 ships:** every core loop fact as a product event in PostHog within a minute, under an opaque analytics ID, with nothing a member wrote and no Slack ID; uncaught errors in PostHog Error Tracking; an outbox that retries failed deliveries on a fixed schedule and gives up visibly; capture off wherever the token or the environment isn't set.
 
@@ -21,7 +21,7 @@ flowchart LR
 
 ---
 
-## 1. Kudos given shows up in PostHog
+## 1. Kudos given shows up in PostHog (#71)
 
 **Blocked by:** #46 (core loop ship). The conductor wires that edge.
 
@@ -40,7 +40,7 @@ flowchart LR
 
 **Context:** spec O1–O5, O7–O8, O10–O17, O26–O28, O32, "Contracts" (projections, outbox, drain), "Why an outbox, not the Workpool"; research #68 (`captureImmediate()` resolves on a 503; edge entrypoint only).
 
-## 2. Failed deliveries retry and give up visibly
+## 2. Failed deliveries retry and give up visibly (#72)
 
 **Blocked by:** 1.
 
@@ -58,7 +58,7 @@ flowchart LR
 
 **Context:** spec O14, O16–O20, O25, "Contracts" (the outbox and the drain); core loop R29 (the schedule) and R49 (the 7-day cleanup).
 
-## 3. Every core loop fact in PostHog
+## 3. Every core loop fact in PostHog (#73)
 
 **Blocked by:** 1. Can run beside 2 and 4.
 
@@ -76,7 +76,7 @@ flowchart LR
 
 **Context:** spec O3–O5, O10–O11, "Contracts" (domain events, usage facts); core loop R10, R15, R23, R42, R45, R47, `/hedgehug` (R39–R41).
 
-## 4. Errors in PostHog Error Tracking
+## 4. Errors in PostHog Error Tracking (#74)
 
 **Blocked by:** 1. Can run beside 2 and 3.
 
@@ -96,7 +96,7 @@ flowchart LR
 
 **Context:** spec O20–O24, O29, "Contracts" (the error boundary); research #68 (rethrowing from a mutation rolls back a scheduled report; native reporting needs Convex Professional).
 
-## Ship: the core loop in PostHog
+## Ship: the core loop in PostHog (#75)
 
 **Blocked by:** 1, 2, 3 and 4.
 

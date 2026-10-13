@@ -2,7 +2,7 @@
 
 > **Accepted on [#69](https://github.com/Silthus/kudos/issues/69) (2026-10-13)** under the map's autonomous build-and-ship authority. The [PostHog spec](posthog.md) is the destination; it ships as the stopping points below, each deployed to production on its own (map decision 8). Rule numbers (`O17`) refer to the spec. Stopping point 1 is published as `wayfinder:implement` sub-issues of #69 with a `wayfinder:ship` sub-issue; stopping points 2–5 are `wayfinder:spec` sub-issues of #69.
 
-**Published (sub-issues of #69):** PUBLISHED_LINE
+**Published (sub-issues of #69):** 1 the core loop in PostHog: tickets #71–#74 and ship #75 · 2 dashboards and alerts #76 · 3 logs in PostHog #77 · 4 the feature flag seam #78 · 5 events for progression and groups #79. Stopping points 2–5 are blocked by #75.
 
 Every stopping point leaves something Michael can see in PostHog, and every one ships with every switch at its no-cost position.
 
