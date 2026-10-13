@@ -114,14 +114,14 @@ describe("O18: a batch PostHog doesn't accept is retried", () => {
 
   test("O14: every retry sends the same UUID, name, distinct_id and timestamp as the first attempt", async () => {
     const t = testBackend();
-    postHog.answering(answersWith(503), failsToConnect, neverAnswers, answersWith(200));
+    postHog.answering(answersWith(429), answersWith(503), answersWith(401), failsToConnect, neverAnswers, answersWith(200));
     await recordKudosGiven(t);
     const recorded = await outbox(t);
 
     await settle(t);
 
     const identities = postHog.requests.map((request) => request.events.map(identity));
-    expect(identities).toHaveLength(4);
+    expect(identities).toHaveLength(6);
     for (const attempt of identities) {
       expect(attempt).toEqual(recorded.map((row) => ({ uuid: row.uuid, event: row.event, distinct_id: row.distinctId, timestamp: new Date(row.timestamp).toISOString() })));
     }
