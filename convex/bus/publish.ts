@@ -22,6 +22,7 @@ export const subscribers: Registry = {
   unlockReady: [],
   unlockOpened: [{ subscriber: internal.quests.weekly.drawWeeklyQuests, only: ({ feature }) => feature === "quests" }],
   questFinished: [],
+  questOpened: [],
 };
 
 export async function publish(ctx: MutationCtx, event: DomainEvent) {

@@ -9,6 +9,7 @@ import { segmentValidator } from "./feedback/replies";
 import { periodValidator } from "./leaderboard/periods";
 import { effectsRecordValidator } from "./progression/progress";
 import { rewardRecordValidator } from "./progression/rewards";
+import { crateOpeningValidator } from "./quests/crates";
 import { journeyActivationValidator } from "./quests/journey";
 import { questDrawValidator } from "./quests/weekly";
 import { featureValidator } from "./unlocks/feature";
@@ -127,6 +128,8 @@ export default defineSchema({
   journeySteps: defineTable(journeyActivationValidator).index("by_member_step", ["member", "step"]),
 
   questDraws: defineTable(questDrawValidator).index("by_member_week", ["member", "week"]),
+
+  crateOpenings: defineTable(crateOpeningValidator).index("by_member_key", ["member", "key"]),
 
   effectsBackfill: defineTable({
     before: v.number(),

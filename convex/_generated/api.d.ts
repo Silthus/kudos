@@ -59,6 +59,7 @@ import type * as progression_progression from "../progression/progression.js";
 import type * as progression_rewards from "../progression/rewards.js";
 import type * as progression_settings from "../progression/settings.js";
 import type * as progression_xpLevels from "../progression/xpLevels.js";
+import type * as quests_crates from "../quests/crates.js";
 import type * as quests_flag from "../quests/flag.js";
 import type * as quests_journey from "../quests/journey.js";
 import type * as quests_pool from "../quests/pool.js";
@@ -151,6 +152,7 @@ declare const fullApi: ApiFromModules<{
   "progression/rewards": typeof progression_rewards;
   "progression/settings": typeof progression_settings;
   "progression/xpLevels": typeof progression_xpLevels;
+  "quests/crates": typeof quests_crates;
   "quests/flag": typeof quests_flag;
   "quests/journey": typeof quests_journey;
   "quests/pool": typeof quests_pool;

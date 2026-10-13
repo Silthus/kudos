@@ -2,12 +2,14 @@ import { v, type Infer } from "convex/values";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
 import { publish } from "../bus/publish";
+import { notifyQuestFinished } from "../feedback/notify";
 import { gateDecisionOf } from "../progression/gate";
 import { recordReward } from "../progression/progression";
 import { rewardOf } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
+import { crateOpeningOf, rewardKeyOf } from "./crates";
 import { questsApplyIn } from "./flag";
-import { journeyStepValidator, type JourneyStep } from "./step";
+import { journeyStepValidator, type JourneyStep, type Quest } from "./step";
 
 export const rewardValidator = v.object({ xp: v.number(), coins: v.number(), item: v.null() });
 
@@ -42,7 +44,7 @@ export async function advanceJourney(ctx: MutationCtx, event: KudosGivenEvent, c
   await finish(ctx, event.workspace, firstThanks, event.at);
 }
 
-export type JourneyStepFacts = Omit<JourneyActivation, "member"> & { finishedAt: number | null };
+export type JourneyStepFacts = Omit<JourneyActivation, "member"> & { finishedAt: number | null; openedAt: number | null };
 
 export async function journeyOf(ctx: QueryCtx, member: MemberId): Promise<JourneyStepFacts[]> {
   const facts: JourneyStepFacts[] = [];
@@ -50,8 +52,10 @@ export async function journeyOf(ctx: QueryCtx, member: MemberId): Promise<Journe
     const activation = await activationOf(ctx, member, step);
     if (activation === null) continue;
     const { activatedAt, reward, catalogueVersion } = activation;
-    const finish = await rewardOf(ctx, member, journeyRewardKey(step));
-    facts.push({ step, activatedAt, reward, catalogueVersion, finishedAt: finish?.at ?? null });
+    const key = rewardKeyOf({ kind: "journey", step });
+    const finish = await rewardOf(ctx, member, key);
+    const opening = await crateOpeningOf(ctx, member, key);
+    facts.push({ step, activatedAt, reward, catalogueVersion, finishedAt: finish?.at ?? null, openedAt: opening?.at ?? null });
   }
   return facts;
 }
@@ -59,10 +63,6 @@ export async function journeyOf(ctx: QueryCtx, member: MemberId): Promise<Journe
 export async function activeJourneyOf(ctx: MutationCtx, member: MemberId): Promise<JourneyStepFacts[]> {
   await activated(ctx, member, "first-thanks", Date.now(), journey);
   return journeyOf(ctx, member);
-}
-
-export function journeyRewardKey(step: JourneyStep) {
-  return `journey:${step}`;
 }
 
 async function activated(ctx: MutationCtx, member: MemberId, step: JourneyStep, at: number, catalogue: JourneyCatalogue): Promise<JourneyActivation> {
@@ -75,8 +75,11 @@ async function activated(ctx: MutationCtx, member: MemberId, step: JourneyStep, 
 }
 
 async function finish(ctx: MutationCtx, workspace: string, { member, step, reward, catalogueVersion }: JourneyActivation, at: number) {
-  const recorded = await recordReward(ctx, workspace, { member, key: journeyRewardKey(step), ...reward, catalogueVersion, at });
-  if (recorded === "recorded") await publish(ctx, { type: "questFinished", workspace, member, quest: { kind: "journey", step }, at });
+  const quest: Quest = { kind: "journey", step };
+  const recorded = await recordReward(ctx, workspace, { member, key: rewardKeyOf(quest), ...reward, catalogueVersion, at });
+  if (recorded !== "recorded") return;
+  await publish(ctx, { type: "questFinished", workspace, member, quest, at });
+  await notifyQuestFinished(ctx, member, quest, reward.xp);
 }
 
 function activationOf(ctx: QueryCtx, member: MemberId, step: JourneyStep) {

@@ -5,11 +5,13 @@ import type { LevelReachedEvent } from "../bus/events";
 import { skillTreeLevel } from "../progression/levels";
 import { progressSettingsOf } from "../progression/settings";
 import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
+import { questsApplyIn } from "../quests/flag";
+import { questValidator, type Quest } from "../quests/step";
 import { featureValidator } from "../unlocks/feature";
 import { unlocksAppliedIn, unlocksShownTo } from "../unlocks/launch";
 import { scheduled, shippedIn, type ScheduledFeature } from "../unlocks/schedule";
 import { chatUserOf, type MemberId } from "../workspace/directory";
-import { readyCrateOf, type HomeAction } from "./home";
+import { finishedQuestCrateOf, readyCrateOf, type HomeAction } from "./home";
 import { skillPointsOf } from "./naming";
 import { whenOpened } from "./unlockFilter";
 
@@ -22,6 +24,7 @@ export const notificationValidator = v.union(
     ready: v.array(featureValidator),
   }),
   v.object({ kind: v.literal("features-shipped"), ready: v.array(featureValidator) }),
+  v.object({ kind: v.literal("quest-finished"), quest: questValidator, xp: v.number() }),
 );
 
 export type Notification = Infer<typeof notificationValidator>;
@@ -39,6 +42,10 @@ export async function notifyFeaturesShipped(ctx: MutationCtx, member: MemberId, 
   await notify(ctx, member, { kind: "features-shipped", ready: featuresOf(ready) });
 }
 
+export async function notifyQuestFinished(ctx: MutationCtx, member: MemberId, quest: Quest, xp: number) {
+  await notify(ctx, member, { kind: "quest-finished", quest, xp });
+}
+
 export async function notify(ctx: MutationCtx, member: MemberId, notification: Notification) {
   if (!(await wantsDms(ctx, member))) return;
   const { workspace, user } = await chatUserOf(ctx, member);
@@ -50,12 +57,14 @@ export const linesStillWanted = internalQuery({
   handler: async (ctx, { member, notification }): Promise<NotificationLine[] | null> => {
     const { workspace } = await chatUserOf(ctx, member);
     if (!(await xpLevelsShownIn(ctx, workspace)) || !(await wantsDms(ctx, member))) return null;
+    if (notification.kind === "quest-finished" && !(await questsApplyIn(ctx, workspace))) return null;
     const lines = renderNotification(await stillToldOf(ctx, workspace, member, notification));
     return lines.length === 0 ? null : lines;
   },
 });
 
 export function renderNotification(notification: Notification): NotificationLine[] {
+  if (notification.kind === "quest-finished") return [finishedQuestCrateOf(notification.quest, notification.xp)];
   const crates = notification.ready.map((feature) => readyCrateOf(scheduled(feature)));
   return notification.kind === "level-reached" ? [...levelReachedLines(notification), ...crates] : crates;
 }
@@ -67,6 +76,7 @@ function levelReachedLines({ level, skillPoints, xpToNextLevel }: Extract<Notifi
 }
 
 async function stillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: Notification): Promise<Notification> {
+  if (notification.kind === "quest-finished") return notification;
   if (!(await unlocksAppliedIn(ctx, workspace))) return { ...notification, ready: [] };
   const shipped = (await shippedIn(ctx, workspace)).map(({ feature }) => feature);
   const ready = notification.ready.filter((feature) => shipped.includes(feature));
