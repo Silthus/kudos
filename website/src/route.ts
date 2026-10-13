@@ -22,11 +22,6 @@ function periodIn(search: string): Period {
   return periods.find((period) => period === asked) ?? "week";
 }
 
-function hrefOf(route: Route) {
-  if (route.page === "leaderboard") return leaderboardHref(route.period);
-  return route.page === "home" ? "/" : undefined;
-}
-
 function currentRoute() {
   return routeOf(window.location);
 }
@@ -35,8 +30,9 @@ export function useRoute() {
   const [route, setRoute] = useState(currentRoute);
 
   useEffect(() => {
-    const canonical = hrefOf(route);
-    if (canonical !== undefined && canonical !== window.location.pathname + window.location.search) window.history.replaceState(null, "", canonical);
+    if (route.page !== "leaderboard") return;
+    const canonical = leaderboardHref(route.period);
+    if (canonical !== window.location.pathname + window.location.search) window.history.replaceState(null, "", canonical);
   }, [route]);
 
   useEffect(() => {

@@ -88,6 +88,12 @@ describe("WS37 WS1: the leaderboard lives at /leaderboard, with the period in th
     expect(window.location.pathname + window.location.search).toBe("/leaderboard");
   });
 
+  it("leaves the home's query string alone, so the sign-in code reaches Convex Auth", () => {
+    visit("/?code=18437459");
+    renderApp(shellFixtures.signedOut);
+    expect(window.location.pathname + window.location.search).toBe("/?code=18437459");
+  });
+
   it("follows the nav to the leaderboard and back without a reload, moving focus to the page title", async () => {
     const { user } = renderApp(withTheBoard, fixedLeaderboard(leaderboardFixtures.midBoard));
     await user.click(within(screens()).getByRole("link", { name: "Leaderboard" }));
