@@ -29,7 +29,7 @@
     },
     {
       "name": "kudos emoji",
-      "definition": "An emoji that gives kudos for a giver: the workspace's emoji, :taco: unless changed, plus any the giver has unlocked. Each occurrence in a kudos message is one kudos for every recipient."
+      "definition": "An emoji that gives kudos for a giver: the workspace's emoji, :taco: unless changed, plus up to three from the giver's loadout. Each occurrence in a kudos message is one kudos for every recipient."
     },
     {
       "name": "kudos message",
@@ -63,23 +63,23 @@
     },
     {
       "name": "xp",
-      "definition": "Experience a member earns from Given awards: 10 for each kudos given and 5 for each kudos received, plus bonus XP from perks, boosters and group auras the member chose, and from chime-in thresholds on kudos they received. XP decides the member's level and never goes down (ADR-0002). It is not kudos and not coins."
+      "definition": "Experience a member earns: 10 for each kudos given and 5 for each kudos received on Given awards, bonus XP from perks the member owns and from chime-in thresholds on kudos they received, and quest and Journey rewards. XP decides the member's level and never goes down (ADR-0002). It is not kudos and not coins."
     },
     {
       "name": "level",
-      "definition": "A member's rank in progression, from 1 upward with no cap, reached through XP: level 2 at 20 XP, level 3 at 100 XP, and from level L the next level needs 100 × (L − 1) more. Every level up from level 2 gives one skill point."
+      "definition": "A member's rank in progression, from 1 upward with no cap, reached through XP: level 2 at 20 XP, level 3 at 100 XP, and from level L the next level needs 100 × (L − 1) more. Every level from level 5 gives one skill point, and levels 2 to 7 each unlock a feature."
     },
     {
       "name": "skill point",
-      "definition": "What a level up gives, spent on perks. Unspent skill points never expire, and a spent one is never refunded (ADR-0002). It is not kudos and not a coin."
+      "definition": "What each level from level 5 gives, spent on perks in the skill tree; levels 2 to 4 give none. Unspent skill points never expire, and a spent one is never refunded (ADR-0002). It is not kudos and not a coin."
     },
     {
       "name": "perk",
-      "definition": "Something a member owns for good from the perk list. An effect perk's first step costs skill points and its upgrade costs skill points and coins; an expression perk is bought with coins. Some need a minimum level. An active perk works only for a limited time after the member switches it on."
+      "definition": "Something a member owns for good from the skill tree's 14 perks: a first step costs skill points and its upgrade costs skill points and coins, and each row needs a minimum level. An active perk works only for a limited time after the member switches it on."
     },
     {
       "name": "group aura",
-      "definition": "The effect of a group perk: one member buys it, and every member who opted in and has the same primary group as its owner benefits. It follows its owner when they change primary group. Only the strongest aura of each kind counts, however many members own it.",
+      "definition": "Cut from the game (map #1 decision 12): the effect of a group perk that reached every opted-in member with its owner's primary group. Nothing in HedgeHug has one.",
       "rejected": [
         {
           "alternative": "team aura",
@@ -89,7 +89,7 @@
     },
     {
       "name": "booster",
-      "definition": "A temporary effect that raises a member's bonus XP or chance of drops for a set time: an XP booster, a Discovery Lantern or a Crowd booster. Only one of each kind is active at a time."
+      "definition": "Cut from the game (map #1 decision 12): a temporary effect that raised bonus XP or drop chances (the XP booster, the Discovery Lantern, the Crowd booster). Nothing in HedgeHug boosts anything."
     },
     {
       "name": "weekly reserve",
@@ -97,51 +97,51 @@
     },
     {
       "name": "coin",
-      "definition": "The currency a member earns from thoughtful giving and from being thanked by many different people, and spends in the store and on perk upgrades (ADR-0003). Coins never turn into kudos, and kudos never turn into coins."
+      "definition": "The currency a member earns from thoughtful giving, from being thanked by many different people, from quests and from achievement tiers, and spends on perk upgrades, kudos emoji and hedgehogs (ADR-0003). Coins never turn into kudos, and kudos never turn into coins."
     },
     {
       "name": "store",
-      "definition": "Where members spend coins on items they see before buying: cosmetics, XP boosters, the Discovery Lantern and streak freezes. Nothing in it is a random draw."
+      "definition": "Where members spend coins on kudos emoji and hedgehogs they see before buying, each at its exact price. Nothing in it is a random draw."
     },
     {
       "name": "cosmetic",
-      "definition": "An unlock that changes how a member's kudos look, never what they are worth: a quip, a card, a title or a kudos emoji. Every cosmetic has a rarity."
+      "definition": "An item that changes how a member looks or thanks, never what a kudos is worth: a kudos emoji or a hedgehog."
     },
     {
       "name": "quip",
-      "definition": "An unlocked flavour line the app posts under a kudos message when its giver uses one, so everyone in the channel can see it."
+      "definition": "Cut from the game (map #1 decision 12): a flavour line the app posted under a kudos message."
     },
     {
       "name": "card",
-      "definition": "An unlocked image the app shows with a quip, in a celebration or in the collection. A card is not a sticker: a sticker is a person in the sticker book."
+      "definition": "Cut from the game (map #1 decision 12): an image shown with a quip or in the collection. The profile card is its own concept."
     },
     {
       "name": "title",
-      "definition": "An unlocked name a member can show next to their own, such as Bridge Builder."
+      "definition": "Cut from the game (map #1 decision 12): a name a member could show next to their own. Ordinary uses of the word, such as an issue title, are not this concept."
     },
     {
       "name": "loadout",
-      "definition": "The cosmetics a member has chosen to show: a title, a card, quips and kudos emoji."
+      "definition": "What a member has chosen to use: one hedgehog as avatar and up to three kudos emoji."
     },
     {
       "name": "collection",
-      "definition": "Every cosmetic a member has unlocked, shown privately in App Home."
+      "definition": "Every kudos emoji and hedgehog a member owns."
     },
     {
       "name": "rarity",
-      "definition": "How rare a cosmetic is: common, uncommon, rare, epic or legendary, each with its World of Warcraft colour. Rarity says nothing about the recognition behind it."
+      "definition": "Cut from the game (map #1 decision 12): how rare a cosmetic was, common to legendary. Items have no rarity; store prices are fixed per item."
     },
     {
       "name": "drop",
-      "definition": "A cosmetic a member finds by chance through a thoughtful kudos they gave. The chance rises after every miss and starts over after a find, and the same cosmetic never drops twice."
+      "definition": "Cut from the game (map #1 decision 12): a cosmetic found by chance through a thoughtful kudos. Nothing in HedgeHug is random; every item comes from a known source."
     },
     {
       "name": "unlock",
-      "definition": "Something a member gains for good through progression: a cosmetic or a perk (ADR-0002)."
+      "definition": "A feature of the game that a level makes ready for a member: quests at 2, the leaderboard at 3, the Book at 4, the skill tree at 5, coins and the inventory at 6, hedgehogs at 7. The member opens a ready unlock with one action, and it stays open for good. Unlocks gate what a member sees, never what they earn (ADR-0005)."
     },
     {
       "name": "achievement",
-      "definition": "One tier of a ladder, earned once by doing something, such as thanking ten different people. It gives an exclusive cosmetic, never XP, skill points or coins, and it is never taken back.",
+      "definition": "One tier of a ladder, earned once by doing something, such as thanking ten different people. Its reward is coins, a kudos emoji or a hedgehog, never XP or skill points, and it is never taken back.",
       "rejected": [
         {
           "alternative": "badge",
@@ -159,23 +159,23 @@
     },
     {
       "name": "streak",
-      "definition": "A run of a member's workdays on which they gave at least one kudos. Days off and paused days neither add to it nor break it."
+      "definition": "Cut from the game (map #1 decision 12): a run of workdays with a kudos given."
     },
     {
       "name": "workday",
-      "definition": "A day of the week a member works, Monday to Friday unless they change it. Only workdays count for streaks."
+      "definition": "Cut from the game (map #1 decision 12): a day a member works, which only streaks used."
     },
     {
       "name": "pause",
-      "definition": "A future date a member marks as away, such as a holiday. It never breaks a streak and costs nothing."
+      "definition": "Cut from the game (map #1 decision 12): a date a member marked as away so a streak survived."
     },
     {
       "name": "freeze",
-      "definition": "A store item that covers one missed workday so a streak survives, at most two missed workdays in a row. It adds no day to the streak."
+      "definition": "Cut from the game (map #1 decision 12): a store item that covered a missed workday in a streak."
     },
     {
       "name": "thoughtful kudos",
-      "definition": "A kudos message that says why its recipients earned it: for now, at least five words besides the mentions and kudos emoji. Only thoughtful kudos trigger bonus XP, perk effects, drops and coins, and spend the weekly reserve; every Given award still earns base XP."
+      "definition": "A kudos message that says why its recipients earned it: for now, at least five words besides the mentions and kudos emoji. Only thoughtful kudos trigger bonus XP, perk effects and coins, and spend the weekly reserve; every Given award still earns base XP."
     },
     {
       "name": "chime-in",
@@ -189,7 +189,7 @@
     },
     {
       "name": "chime-in threshold",
-      "definition": "A number of chime-ins on one kudos message (3, 5, 10, 20, 50 or 100). Reaching one gives everyone who chimed in, and the giver, a stronger Crowd booster, and gives the recipients bonus XP."
+      "definition": "A number of chime-ins on one kudos message (3, 5, 10, 20, 50 or 100). Reaching one gives the message's recipients bonus XP."
     },
     {
       "name": "sticker book",
@@ -197,7 +197,7 @@
     },
     {
       "name": "sticker",
-      "definition": "A person in a member's sticker book. A sticker is not a cosmetic image, which is a card."
+      "definition": "A person in a member's sticker book."
     },
     {
       "name": "announcement channel",
@@ -205,15 +205,15 @@
     },
     {
       "name": "xp booster",
-      "definition": "A store item that, once switched on, adds a quarter to the base XP of the kudos a member gives for seven days. It never boosts received XP, and it adds to perk bonuses without compounding."
+      "definition": "Cut from the game (map #1 decision 12): a store item that added a quarter to base giver XP for seven days."
     },
     {
       "name": "discovery lantern",
-      "definition": "A store item that, once switched on, raises a member's chance of drops by a quarter for seven days. It never gives extra draws."
+      "definition": "Cut from the game (map #1 decision 12): a store item that raised drop chances for seven days."
     },
     {
       "name": "crowd booster",
-      "definition": "A booster for 24 hours that a chime-in threshold gives everyone who chimed in on a kudos message and its giver, stronger at each higher threshold. Only the strongest Crowd booster a member holds counts."
+      "definition": "Cut from the game (map #1 decision 12): the booster a chime-in threshold gave. Thresholds now give only the recipients' bonus XP."
     },
     {
       "name": "group",
@@ -221,7 +221,7 @@
     },
     {
       "name": "primary group",
-      "definition": "The one group a member's kudos count for on the leaderboard, and whose group auras they can receive. A member in one group has it automatically; a member in several picks one in the welcome message or App Home, and until then it is the smallest. The primary group is stored with each award when it is given, so history never moves."
+      "definition": "The one group a member's kudos count for on the leaderboard, and whose group quest they share. A member in one group has it automatically; a member in several picks one in the welcome message or App Home, and until then it is the smallest. The primary group is stored with each award when it is given, so history never moves."
     },
     {
       "name": "leaderboard",
@@ -237,7 +237,7 @@
     },
     {
       "name": "profile card",
-      "definition": "What any member sees of another member: name, equipped title and card, primary group, and level and achievement tiers unless hidden. Never coins, perks, streaks, XP or kudos received."
+      "definition": "What any member sees of another member: name, hedgehog avatar, primary group, level and achievement tiers. Never coins, perks, XP or kudos received."
     },
     {
       "name": "sandbox",
@@ -282,6 +282,30 @@
     {
       "name": "website",
       "definition": "The signed-in browser surface where a member sees and manages their Kudos. It sits beside App Home and never replaces it."
+    },
+    {
+      "name": "quest",
+      "definition": "A goal a member finishes for a reward they claim by opening its crate: three personal quests each week (one can be rerolled), a group quest shared by a primary group, and the steps of the Journey. A quest rewards breadth, thoughtfulness or participation, never a number of kudos, never a named person, never receiving."
+    },
+    {
+      "name": "Journey",
+      "definition": "The onboarding quest chain: seven fixed steps, one for each feature a level unlocks, each active once its feature is opened and claimed like a quest. It runs beside the weekly quests, never expires and never restarts; finishing it gives the Journey's own hedgehog."
+    },
+    {
+      "name": "crate",
+      "definition": "How a member takes something the game has ready for them: a feature their level made ready, or a finished quest or Journey step. Opening it is one action; its content is always known before it is opened, so a crate is a moment, never a random draw."
+    },
+    {
+      "name": "hedgehog",
+      "definition": "A collectable avatar shown on a member's profile card, App Home and the website. Every member starts with one; more come from levels, achievement tiers, quests, the Journey and the store, each hedgehog from exactly one source. Owned for good, never twice, and free to swap."
+    },
+    {
+      "name": "Book",
+      "definition": "The part of HedgeHug a member opens at level 4: their sticker book and albums, and their achievements on every ladder."
+    },
+    {
+      "name": "Michael",
+      "definition": "HedgeHug's product owner. Specs, ADRs and journal records quote his rulings, and only he decides what the game is."
     }
   ]
 }
