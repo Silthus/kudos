@@ -79,6 +79,7 @@ export default defineSchema({
     message: v.string(),
     emoji: v.union(v.string(), v.null()),
     replaced: v.array(v.string()),
+    version: v.number(),
   }).index("by_message", ["workspace", "conversation", "message"]),
 
   privateReplies: defineTable({

@@ -5,13 +5,13 @@ import { messageRefValidator, type MessageRef } from "../engine/messageEvent";
 
 export type Indicator = { emoji: string } | null;
 
-export type IndicatorState = { desired: Indicator; replaced: string[] };
+export type IndicatorState = { desired: Indicator; replaced: string[]; version: number };
 
 export async function setIndicator(ctx: MutationCtx, ref: MessageRef, indicator: Indicator) {
   const emoji = indicator?.emoji ?? null;
   const existing = await indicatorRow(ctx, ref);
-  if (existing === null) await ctx.db.insert("indicators", { ...ref, emoji, replaced: [] });
-  else await ctx.db.patch(existing._id, { emoji, replaced: replacedBy(existing, emoji) });
+  if (existing === null) await ctx.db.insert("indicators", { ...ref, emoji, replaced: [], version: 1 });
+  else await ctx.db.patch(existing._id, { emoji, replaced: replacedBy(existing, emoji), version: existing.version + 1 });
   await ctx.scheduler.runAfter(0, internal.slack.delivery.deliverIndicator, ref);
 }
 
@@ -19,7 +19,7 @@ export const desired = internalQuery({
   args: messageRefValidator,
   handler: async (ctx, ref): Promise<IndicatorState> => {
     const row = await indicatorRow(ctx, ref);
-    return { desired: row?.emoji ? { emoji: row.emoji } : null, replaced: row?.replaced ?? [] };
+    return { desired: row?.emoji ? { emoji: row.emoji } : null, replaced: row?.replaced ?? [], version: row?.version ?? 0 };
   },
 });
 

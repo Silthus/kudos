@@ -21,8 +21,7 @@ const workspaceEmoji: ParseHook = {
 export const parseHooks: ParseHook[] = [workspaceEmoji];
 
 export async function kudosMessageOf(ctx: QueryCtx, content: CountableContent, context: ParseContext): Promise<KudosMessage | null> {
-  const giversEmoji = new Set(await kudosEmojiOf(ctx, context));
-  const kudosEmoji = content.emoji.filter((name) => giversEmoji.has(name));
+  const kudosEmoji = await kudosEmojiIn(ctx, content, context);
   if (content.mentions.length === 0 || kudosEmoji.length === 0) return null;
   return { mentions: content.mentions, kudosEmoji, perRecipient: kudosEmoji.length };
 }
@@ -31,13 +30,18 @@ export function annotationsOf(content: MessageContent, context: ParseContext): A
   return Object.assign({}, ...parseHooks.map((hook) => hook.annotate?.(content, context) ?? {}));
 }
 
+export async function fingerprintOf(ctx: QueryCtx, content: CountableContent, context: ParseContext): Promise<string> {
+  const mentions = [...new Set(content.mentions.map((mention) => JSON.stringify(mention)))].sort();
+  const kudosEmoji = (await kudosEmojiIn(ctx, content, context)).sort();
+  return JSON.stringify({ mentions, kudosEmoji });
+}
+
+async function kudosEmojiIn(ctx: QueryCtx, content: CountableContent, context: ParseContext) {
+  const giversEmoji = new Set(await kudosEmojiOf(ctx, context));
+  return content.emoji.filter((name) => giversEmoji.has(name));
+}
+
 async function kudosEmojiOf(ctx: QueryCtx, context: ParseContext) {
   const claims = await Promise.all(parseHooks.map((hook) => hook.kudosEmoji?.(ctx, context) ?? []));
   return claims.flat();
-}
-
-export function fingerprintOf(kudos: KudosMessage | null): string {
-  if (kudos === null) return "";
-  const mentions = [...new Set(kudos.mentions.map((mention) => JSON.stringify(mention)))].sort();
-  return JSON.stringify({ mentions, kudosEmoji: [...kudos.kudosEmoji].sort() });
 }

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack } from "../../testing/fakeSlack";
+import { internal } from "../_generated/api";
 import { signingSecret } from "../../testing/signedSlack";
 import { deleteMessage, edit, everythingStored, kudosReceived, post, settle, testBackend } from "../../testing/slackBackend";
 import { broadcast, emoji, mention, section, text, type RichElement } from "../../testing/slackMessages";
@@ -8,6 +9,7 @@ const now = new Date("2026-10-13T10:00:00Z");
 const postedTs = "1760349600.000100";
 const threadRoot = "1760349000.000100";
 const overAllowance = [section(mention("U_BOB"), mention("U_CAROL"), emoji("taco"), emoji("taco"))];
+const acceptedReply = "This message already gave kudos, so your edit doesn't change them. To give more, send a new message.";
 const overAllowanceReply =
   "This needs 4 kudos (2 people × 2 kudos emoji), but you have 3 left today. Edit the message to give fewer and I'll try again, or edit it after midnight when you have 3 again.";
 
@@ -69,6 +71,18 @@ describe("R23 R25: editing a message that gave nothing retries it", () => {
     expect(slack.reactionsOn("C1", postedTs)).toEqual(["taco"]);
   });
 
+  test("R30 R32: a retry that waits on the directory clears the hourglass, and one that is abandoned shows nothing", async () => {
+    const t = testBackend();
+    await post(t, overAllowance, { ts: postedTs });
+    await settle(t);
+
+    await edit(t, [section(mention("U_GHOST"), emoji("taco"))], { ts: postedTs });
+    await settle(t);
+
+    expect(slack.reactionsOn("C1", postedTs)).toEqual([]);
+    expect(slack.ephemeralsTo("U_ALICE").map((reply) => reply.text)).toEqual([overAllowanceReply]);
+  });
+
   test("the retry's reply goes into the thread of a thread reply", async () => {
     const t = testBackend();
     await post(t, overAllowance, { ts: postedTs, threadTs: threadRoot });
@@ -86,6 +100,22 @@ describe("R23 R25: editing a message that gave nothing retries it", () => {
   });
 });
 
+test("R32: a late hourglass delivery that lands after the retry's delivery still leaves only the kudos reaction", async () => {
+  const t = testBackend();
+  const message = { workspace: "T1", conversation: "C1", message: postedTs };
+  await post(t, overAllowance, { ts: postedTs });
+  await settle(t);
+  slack.holdingBack("reactions.add", "hourglass_flowing_sand", async () => {
+    await edit(t, [section(mention("U_BOB"), emoji("taco"), emoji("taco"))], { ts: postedTs });
+    await settle(t);
+  });
+
+  await t.action(internal.slack.delivery.deliverIndicator, message);
+
+  expect(await kudosReceived(t, "U_BOB")).toBe(2);
+  expect(slack.reactionsOn("C1", postedTs)).toEqual(["taco"]);
+});
+
 describe("R24: an edit that leaves no kudos message withdraws the attempt", () => {
   test.each<[string, RichElement[]]>([
     ["every kudos emoji removed", [section(text("thanks "), mention("U_BOB"), mention("U_CAROL"))]],
@@ -96,6 +126,19 @@ describe("R24: an edit that leaves no kudos message withdraws the attempt", () =
     await settle(t);
 
     await edit(t, blocks, { ts: postedTs });
+    await settle(t);
+
+    expect(slack.reactionsOn("C1", postedTs)).toEqual([]);
+    expect(slack.ephemeralsTo("U_ALICE").map((reply) => reply.text)).toEqual([overAllowanceReply]);
+  });
+
+  test("a retry waiting on the directory shows no indicator, and withdrawing it leaves none", async () => {
+    const t = testBackend();
+    await post(t, overAllowance, { ts: postedTs });
+    await settle(t);
+
+    await edit(t, [section(mention("U_BOB"), mention("U_GHOST"), emoji("taco"))], { ts: postedTs, editedTs: "1760349660.000100" });
+    await edit(t, [section(mention("U_BOB"), mention("U_GHOST"))], { ts: postedTs, editedTs: "1760349720.000100" });
     await settle(t);
 
     expect(slack.reactionsOn("C1", postedTs)).toEqual([]);
@@ -205,6 +248,22 @@ describe("R26: editing a message that gave kudos", () => {
         thread_ts: threadRoot,
         text: "This message already gave kudos, so your edit doesn't change them. To give more, send a new message.",
       },
+    ]);
+  });
+
+  test("changing its mentions after its kudos emoji were removed tells the giver again", async () => {
+    const t = testBackend();
+    await post(t, [section(mention("U_BOB"), emoji("taco"))], { ts: postedTs });
+    await settle(t);
+
+    await edit(t, [section(text("thanks "), mention("U_BOB"))], { ts: postedTs, editedTs: "1760349660.000100" });
+    await edit(t, [section(text("thanks "), mention("U_CAROL"))], { ts: postedTs, editedTs: "1760349720.000100" });
+    await settle(t);
+
+    expect(slack.ephemeralsTo("U_ALICE").map((reply) => reply.text)).toEqual([
+      "<@U_BOB> got 1 kudos from you. You have 2 kudos left today.",
+      acceptedReply,
+      acceptedReply,
     ]);
   });
 

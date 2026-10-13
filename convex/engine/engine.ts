@@ -38,7 +38,7 @@ export async function observe(ctx: MutationCtx, event: MessageEvent): Promise<Ob
   const kudos = await kudosMessageOf(ctx, event.content, context);
   const revision = {
     revision: event.revision,
-    fingerprint: fingerprintOf(kudos),
+    fingerprint: await fingerprintOf(ctx, event.content, context),
     content: { mentions: event.content.mentions, emoji: event.content.emoji },
     annotations: annotationsOf(event.content, context),
   };
@@ -67,17 +67,23 @@ async function observeEdit(ctx: MutationCtx, row: KudosMessageRow, event: Messag
   if (!isKudosMessage) return hasOpenAttempt(row) ? withdraw(ctx, row) : ignore(ctx, row, "ordinary-chat");
 
   await ctx.db.patch(row._id, { state: "awaiting-directory", spendsAt: event.at });
-  return evaluate(ctx, (await ctx.db.get(row._id))!, { lastCheck: false });
+  const observation = await evaluate(ctx, (await ctx.db.get(row._id))!, { lastCheck: false });
+  if (observation.kind === "awaiting-directory" && showsIndicator(row)) await setIndicator(ctx, refOf(row), null);
+  return observation;
 }
 
 async function withdraw(ctx: MutationCtx, row: KudosMessageRow): Promise<Observation> {
   await ctx.db.patch(row._id, { state: "withdrawn" });
-  if (row.state !== "awaiting-directory") await setIndicator(ctx, refOf(row), null);
+  if (showsIndicator(row)) await setIndicator(ctx, refOf(row), null);
   return { kind: "withdrawn" };
 }
 
 function hasOpenAttempt(row: KudosMessageRow) {
-  return row.state === "awaiting-directory" || row.state === "over-allowance" || row.state === "invalid";
+  return row.state === "awaiting-directory" || showsIndicator(row);
+}
+
+function showsIndicator(row: KudosMessageRow) {
+  return row.state === "over-allowance" || row.state === "invalid";
 }
 
 async function insertRow(ctx: MutationCtx, event: MessageEvent, revision: Revision, state: "watermark" | "awaiting-directory") {

@@ -3,17 +3,27 @@ import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 import type { Mention } from "../engine/messageEvent";
 import { messageRefValidator, type MessageRef } from "../engine/messageEvent";
+import type { IndicatorState } from "../feedback/indicator";
 import type { Line, Segment } from "../feedback/replies";
 import { callSlack } from "./webApi";
 
 export const deliverIndicator = internalAction({
   args: messageRefValidator,
   handler: async (ctx, ref) => {
-    const { desired, replaced } = await ctx.runQuery(internal.feedback.indicator.desired, ref);
-    for (const name of replaced) await react("reactions.remove", ref, name, "no_reaction");
-    if (desired !== null) await react("reactions.add", ref, desired.emoji, "already_reacted");
+    let applied: IndicatorState;
+    let latest = await ctx.runQuery(internal.feedback.indicator.desired, ref);
+    do {
+      applied = latest;
+      await showOnly(ref, applied);
+      latest = await ctx.runQuery(internal.feedback.indicator.desired, ref);
+    } while (latest.version !== applied.version);
   },
 });
+
+async function showOnly(ref: MessageRef, { desired, replaced }: IndicatorState) {
+  for (const name of replaced) await react("reactions.remove", ref, name, "no_reaction");
+  if (desired !== null) await react("reactions.add", ref, desired.emoji, "already_reacted");
+}
 
 async function react(method: "reactions.add" | "reactions.remove", ref: MessageRef, name: string, alreadyDone: string) {
   const answer = await callSlack(method, { channel: ref.conversation, timestamp: ref.message, name });

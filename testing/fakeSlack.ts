@@ -16,6 +16,7 @@ export class FakeSlack {
   private readonly reactionsByMessage = new Map<string, string[]>();
   private readonly scripted = new Map<string, ScriptedAnswer[]>();
   private readonly callTimes = new Map<SlackCall, number>();
+  private readonly holds: Array<{ method: string; name: string; meanwhile: () => Promise<void> }> = [];
 
   withMember(id: string, options: Partial<SlackUser> = {}) {
     this.users.set(id, { id, team_id: "T1", ...options });
@@ -24,6 +25,11 @@ export class FakeSlack {
 
   answering(method: string, ...answers: ScriptedAnswer[]) {
     this.scripted.set(method, answers);
+    return this;
+  }
+
+  holdingBack(method: string, name: string, meanwhile: () => Promise<void>) {
+    this.holds.push({ method, name, meanwhile });
     return this;
   }
 
@@ -47,12 +53,20 @@ export class FakeSlack {
     const url = new URL(input instanceof Request ? input.url : input);
     const method = url.pathname.split("/").pop() ?? "";
     const args = init?.body ? (JSON.parse(String(init.body)) as Record<string, string>) : Object.fromEntries(url.searchParams);
+    await this.releaseHold(method, args);
     const call = { method, args };
     this.calls.push(call);
     this.callTimes.set(call, Date.now());
     const scripted = this.scripted.get(method)?.shift();
     return scripted ? scripted() : Response.json(this.answer(method, args));
   };
+
+  private async releaseHold(method: string, args: Record<string, string>) {
+    const index = this.holds.findIndex((hold) => hold.method === method && hold.name === args.name);
+    if (index === -1) return;
+    const [hold] = this.holds.splice(index, 1);
+    await hold!.meanwhile();
+  }
 
   private answer(method: string, args: Record<string, string>) {
     if (method === "users.info") {
