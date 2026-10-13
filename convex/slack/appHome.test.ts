@@ -33,10 +33,13 @@ describe("R45 R46: a member opens App Home", () => {
 
     expect(response.status).toBe(200);
     expect(publishedHome("U_BOB")).toEqual([
-      "You have 3 kudos left today. You get 3 more at midnight.",
-      "This week you've given 0 kudos and received 0. In total you've given 0 and received 0.",
-      "To give kudos, mention a teammate and add :taco: to your message. Each :taco: gives everyone you mention 1 kudos.",
-      "To add me to a channel, type `/kudos` there.",
+      "header: Your kudos",
+      "section: You have *3* kudos left today. You get *3* more at midnight.",
+      "divider",
+      "section fields: *Given this week*\n*0* | *Received this week*\n*0* | *Given in total*\n*0* | *Received in total*\n*0*",
+      "divider",
+      "context: To give kudos, mention a teammate and add :taco: to your message. Each :taco: gives everyone you mention 1 kudos.",
+      "context: To add me to a channel, type `/kudos` there.",
     ]);
   });
 
@@ -47,10 +50,10 @@ describe("R45 R46: a member opens App Home", () => {
 
     await openHome(t, "U_BOB");
 
-    expect(publishedHome("U_BOB")?.slice(0, 2)).toEqual([
-      "You have 2 kudos left today. You get 3 more at midnight.",
-      "This week you've given 1 kudos and received 2. In total you've given 1 and received 2.",
-    ]);
+    expect(allowanceIn(publishedHome("U_BOB"))).toBe("section: You have *2* kudos left today. You get *3* more at midnight.");
+    expect(totalsIn(publishedHome("U_BOB"))).toBe(
+      "section fields: *Given this week*\n*1* | *Received this week*\n*2* | *Given in total*\n*1* | *Received in total*\n*2*",
+    );
   });
 
   test("with nothing left it says the member has used all their kudos for today", async () => {
@@ -59,7 +62,7 @@ describe("R45 R46: a member opens App Home", () => {
 
     await openHome(t, "U_ALICE");
 
-    expect(publishedHome("U_ALICE")?.[0]).toBe("You've used all your kudos for today. You get 3 more at midnight.");
+    expect(allowanceIn(publishedHome("U_ALICE"))).toBe("section: You've used all your kudos for today. You get *3* more at midnight.");
   });
 
   test("{left} turns at the member's local midnight, just as the next kudos message sees it", async () => {
@@ -71,14 +74,14 @@ describe("R45 R46: a member opens App Home", () => {
     await giveKudos(t, "U_ALICE", "U_BOB", slackTs(beforeMidnight), ["taco", "taco", "taco"]);
 
     await openHome(t, "U_ALICE");
-    const beforeMidnightHome = publishedHome("U_ALICE")?.[0];
+    const beforeMidnightHome = allowanceIn(publishedHome("U_ALICE"));
     vi.setSystemTime(afterMidnight);
     await openHome(t, "U_ALICE");
-    const afterMidnightHome = publishedHome("U_ALICE")?.[0];
+    const afterMidnightHome = allowanceIn(publishedHome("U_ALICE"));
     await giveKudos(t, "U_ALICE", "U_BOB", slackTs(afterMidnight), ["taco", "taco", "taco"]);
 
-    expect(beforeMidnightHome).toBe("You've used all your kudos for today. You get 3 more at midnight.");
-    expect(afterMidnightHome).toBe("You have 3 kudos left today. You get 3 more at midnight.");
+    expect(beforeMidnightHome).toBe("section: You've used all your kudos for today. You get *3* more at midnight.");
+    expect(afterMidnightHome).toBe("section: You have *3* kudos left today. You get *3* more at midnight.");
     expect(slack.reactionsOn("C1", slackTs(afterMidnight))).toEqual(["taco"]);
   });
 
@@ -97,8 +100,12 @@ describe("R45 R46: a member opens App Home", () => {
     await openHome(t, "U_ALICE");
     await openHome(t, "U_BOB");
 
-    expect(publishedHome("U_ALICE")?.[1]).toBe("This week you've given 2 kudos and received 0. In total you've given 3 and received 0.");
-    expect(publishedHome("U_BOB")?.[1]).toBe("This week you've given 0 kudos and received 0. In total you've given 0 and received 3.");
+    expect(totalsIn(publishedHome("U_ALICE"))).toBe(
+      "section fields: *Given this week*\n*2* | *Received this week*\n*0* | *Given in total*\n*3* | *Received in total*\n*0*",
+    );
+    expect(totalsIn(publishedHome("U_BOB"))).toBe(
+      "section fields: *Given this week*\n*0* | *Received this week*\n*0* | *Given in total*\n*0* | *Received in total*\n*3*",
+    );
   });
 
   test("it names the workspace emoji and base in force", async () => {
@@ -107,12 +114,10 @@ describe("R45 R46: a member opens App Home", () => {
 
     await openHome(t, "U_BOB");
 
-    expect(publishedHome("U_BOB")).toEqual([
-      "You have 5 kudos left today. You get 5 more at midnight.",
-      "This week you've given 0 kudos and received 0. In total you've given 0 and received 0.",
-      "To give kudos, mention a teammate and add :pizza: to your message. Each :pizza: gives everyone you mention 1 kudos.",
-      "To add me to a channel, type `/kudos` there.",
-    ]);
+    expect(allowanceIn(publishedHome("U_BOB"))).toBe("section: You have *5* kudos left today. You get *5* more at midnight.");
+    expect(publishedHome("U_BOB")).toContain(
+      "context: To give kudos, mention a teammate and add :pizza: to your message. Each :pizza: gives everyone you mention 1 kudos.",
+    );
   });
 });
 
@@ -127,7 +132,7 @@ describe("R47: someone who isn't a member opens App Home", () => {
 
     await openHome(t, user);
 
-    expect(publishedHome(user)).toEqual(["Kudos is for active members of this workspace."]);
+    expect(publishedHome(user)).toEqual(["header: Kudos", "section: Kudos is for active members of this workspace."]);
   });
 });
 
@@ -174,13 +179,41 @@ async function settle(t: Backend) {
   await t.finishAllScheduledFunctions(vi.runAllTimers);
 }
 
-type HomeView = { type: string; blocks: Array<{ type: string; text: { type: string; text: string } }> };
+type TextObject = { type: string; text: string };
+type Block = { type: string; text?: TextObject; fields?: TextObject[]; elements?: TextObject[] };
+type HomeView = { type: string; blocks: Block[] };
 
 function publishedHome(user: string) {
   const published = slack.callsTo("views.publish").filter((args) => args.user_id === user);
   const view = published.at(-1)?.view as unknown as HomeView | undefined;
   expect(view?.type).toBe("home");
-  return view?.blocks.map((block) => block.text.text);
+  return (view?.blocks ?? []).map(readBlock);
+}
+
+function readBlock(block: Block) {
+  if (block.type === "divider") return "divider";
+  if (block.type === "header") return `header: ${plainText(block.text)}`;
+  if (block.type === "context") return `context: ${block.elements?.map(mrkdwn).join(" ")}`;
+  if (block.fields) return `${block.type} fields: ${block.fields.map(mrkdwn).join(" | ")}`;
+  return `${block.type}: ${mrkdwn(block.text)}`;
+}
+
+function plainText(text: TextObject | undefined) {
+  expect(text?.type).toBe("plain_text");
+  return text?.text;
+}
+
+function mrkdwn(text: TextObject | undefined) {
+  expect(text?.type).toBe("mrkdwn");
+  return text?.text;
+}
+
+function allowanceIn(home: string[]) {
+  return home[1];
+}
+
+function totalsIn(home: string[]) {
+  return home.find((line) => line.startsWith("section fields: "));
 }
 
 function slackTs(at: Date, secondsLater = 0) {
