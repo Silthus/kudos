@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { flagsLoaded, flagsOnForEveryone } from "../../testing/flags";
+import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
@@ -93,7 +93,7 @@ describe("the slice applies only where quests, xp-levels and unlocks all apply",
 });
 
 async function workspace() {
-  const t = await flagsLoaded(testBackend());
+  const t = await unlocksShippedBeforeAnyoneJoined(await flagsLoaded(testBackend()));
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
   return t;
 }

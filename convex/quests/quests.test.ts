@@ -90,7 +90,6 @@ describe("P86: the reward is the one promised when the step became active", () =
 describe("P79: questsOf gives the website each Journey step's facts", () => {
   test("no step before the member is seen, the active step with its promise, then its finish", async () => {
     const { t, alice, bob } = await withMembers();
-    await unlocksShippedBeforeAnyoneJoined(t);
     expect(await questsOf(t, alice)).toEqual({ journey: [] });
 
     await advance(t, await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob, { annotations: doesNotSayWhy })));
@@ -119,9 +118,13 @@ describe("the slice applies only where quests, xp-levels and unlocks all apply",
     expect(await questsOf(t, alice)).toBeNull();
   });
 
-  test("while unlocks is on but hasn't launched in the workspace yet, questsOf shows nothing, and it shows the Journey once a mutation launched it", async () => {
-    const t = await flagsLoaded(testBackend());
-    const alice = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: "U_ALICE", kind: "member" }));
+  test("while unlocks is on but hasn't launched in the workspace, a kudos that says why records nothing and questsOf shows nothing, until Unlocks launches", async () => {
+    const { t, alice, bob } = await withMembersBeforeUnlocksLaunched();
+
+    await advance(t, await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob, { annotations: saysWhy })));
+
+    expect(await stored(t)).toEqual({ journeySteps: [], rewardRecords: [] });
+    expect(await t.run((ctx) => standingOf(ctx, alice))).toEqual({ xp: 0, level: 1, skillPoints: 0 });
     expect(await questsOf(t, alice)).toBeNull();
 
     await unlocksShippedBeforeAnyoneJoined(t);
@@ -131,6 +134,12 @@ describe("the slice applies only where quests, xp-levels and unlocks all apply",
 });
 
 async function withMembers() {
+  const members = await withMembersBeforeUnlocksLaunched();
+  await unlocksShippedBeforeAnyoneJoined(members.t);
+  return members;
+}
+
+async function withMembersBeforeUnlocksLaunched() {
   const t = await flagsLoaded(testBackend());
   const [alice, bob] = await t.run(async (ctx) => [
     await ctx.db.insert("members", { workspace: "T1", user: "U_ALICE", kind: "member" }),

@@ -6,7 +6,7 @@ import { gateDecisionOf } from "../progression/gate";
 import { recordReward } from "../progression/progression";
 import { rewardOf } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
-import { questsLiveIn } from "./flag";
+import { questsApplyIn } from "./flag";
 import { journeyStepValidator, type JourneyStep } from "./step";
 
 const rewardValidator = v.object({ xp: v.number(), coins: v.number(), item: v.null() });
@@ -36,7 +36,7 @@ export const followJourney = internalMutation({
 });
 
 export async function advanceJourney(ctx: MutationCtx, event: KudosGivenEvent, catalogue: JourneyCatalogue): Promise<void> {
-  if (!(await questsLiveIn(ctx, event.workspace))) return;
+  if (!(await questsApplyIn(ctx, event.workspace))) return;
   const firstThanks = await activated(ctx, event.giver, "first-thanks", event.at, catalogue);
   if (gateDecisionOf(event.annotations)?.thoughtful !== true) return;
   await finish(ctx, event.workspace, firstThanks, event.at);
