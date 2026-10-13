@@ -282,6 +282,30 @@
     {
       "name": "website",
       "definition": "The signed-in browser surface where a member sees and manages their Kudos. It sits beside App Home and never replaces it."
+    },
+    {
+      "name": "product event",
+      "definition": "A fact of the domain sent to PostHog under a name from the lexicon, written <object> <past-tense verb> in lowercase words (kudos given, kudos received), with only the properties its projection lists by name. Not a domain event: a domain event drives the domain, a product event only reports it."
+    },
+    {
+      "name": "analytics ID",
+      "definition": "A member's opaque identity in PostHog: a random UUID the analytics module creates the first time it records a product event for the member and keeps while the member's data exists. Sent as distinct_id; never derived from, or sent with, a Slack ID, a name, an email or a Convex document ID."
+    },
+    {
+      "name": "workspace key",
+      "definition": "A workspace's opaque identity in PostHog: a random UUID the analytics module creates the first time it records a product event for the workspace, sent as workspace_key on every product event. Never the Slack team ID."
+    },
+    {
+      "name": "outbox",
+      "definition": "The analytics module's table of product events recorded and not yet delivered to PostHog. An event is written there in the transaction that makes its fact true, or in the subscriber transaction its domain event schedules, and leaves it when PostHog accepts its batch."
+    },
+    {
+      "name": "drain",
+      "definition": "The one analytics action that sends the outbox's due product events to PostHog's batch endpoint, at most 100 per request, and settles each batch by PostHog's answer. Only one drain runs at a time; recording starts it when none is scheduled or running."
+    },
+    {
+      "name": "capture",
+      "definition": "Whether a deployment records and sends product events: on only when it has both the PostHog project token and a valid KUDOS_ENVIRONMENT (sandbox or production). With capture off nothing is recorded and nothing is sent."
     }
   ]
 }

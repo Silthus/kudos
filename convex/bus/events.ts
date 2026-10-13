@@ -12,6 +12,9 @@ export const kudosGivenEventValidator = v.object({
   kudosEmoji: v.string(),
   annotations: annotationsValidator,
   allowance: v.object({ dailyOpening: v.number(), dailyLeft: v.number() }),
+  skippedMentions: v.number(),
+  retry: v.boolean(),
+  inThread: v.boolean(),
   day: v.string(),
   at: v.number(),
 });

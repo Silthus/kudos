@@ -175,8 +175,56 @@ describe("R20: kudosGiven", () => {
       kudosEmoji: "taco",
       annotations: {},
       allowance: { dailyOpening: 3, dailyLeft: 1 },
+      skippedMentions: 0,
+      retry: false,
+      inThread: false,
       day: "2026-10-14",
       at,
+    });
+  });
+
+  describe("O3: retry, skipped mentions and thread", () => {
+    const minute = 60_000;
+    const later = (minutes: number) => now.getTime() + minutes * minute;
+    const tooMany = [person("U_BOB")];
+    const tacos = (count: number) => Array.from({ length: count }, () => "taco");
+
+    test.each<[string, Array<{ mentions: Mention[]; emoji: string[] }>, boolean]>([
+      ["a first attempt that gives", [{ mentions: tooMany, emoji: tacos(1) }], false],
+      ["an Over allowance message edited to give", [{ mentions: tooMany, emoji: tacos(4) }, { mentions: tooMany, emoji: tacos(1) }], true],
+      ["an Invalid message edited to give", [{ mentions: [person("U_ALICE")], emoji: tacos(1) }, { mentions: tooMany, emoji: tacos(1) }], true],
+      ["a withdrawn attempt edited back into a kudos message", [{ mentions: tooMany, emoji: tacos(4) }, { mentions: tooMany, emoji: [] }, { mentions: tooMany, emoji: tacos(1) }], true],
+    ])("retry for %s", async (_, revisions, retry) => {
+      const t = await withDirectory({ U_ALICE: "UTC", U_BOB: "UTC" });
+
+      for (const [index, { mentions, emoji }] of revisions.entries()) {
+        const posted = kudosMessage("U_ALICE", mentions, emoji);
+        await t.run((ctx) => observe(ctx, index === 0 ? posted : editOf(posted, later(index))));
+      }
+
+      expect(publish).toHaveBeenCalledOnce();
+      expect(vi.mocked(publish).mock.calls[0]![1]).toMatchObject({ retry });
+    });
+
+    test("a retry that waits on the directory is still a retry when it gives", async () => {
+      const t = await withDirectory({ U_ALICE: "UTC", U_BOB: "UTC" });
+      await t.run((ctx) => observe(ctx, kudosMessage("U_ALICE", tooMany, tacos(4))));
+      const edited = editOf(kudosMessage("U_ALICE", [person("U_BOB"), person("U_DAVE")], tacos(1)), later(1));
+      await t.run((ctx) => observe(ctx, edited));
+
+      await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: "U_DAVE", kind: "member" }));
+      await t.run((ctx) => recheck(ctx, edited.ref, edited.revision));
+
+      expect(vi.mocked(publish).mock.calls[0]![1]).toMatchObject({ retry: true });
+    });
+
+    test("skippedMentions counts the mentions that receive nothing, and inThread a thread reply", async () => {
+      const t = await withDirectory({ U_ALICE: "UTC", U_BOB: "UTC" });
+      const reply = { ...kudosMessage("U_ALICE", [person("U_BOB"), person("U_ALICE"), { kind: "broadcast", range: "here" }], tacos(1)), threadRoot: "1760349000.000100" };
+
+      await t.run((ctx) => observe(ctx, reply));
+
+      expect(vi.mocked(publish).mock.calls[0]![1]).toMatchObject({ skippedMentions: 2, inThread: true });
     });
   });
 

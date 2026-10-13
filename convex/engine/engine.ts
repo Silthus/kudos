@@ -72,7 +72,7 @@ async function observeEdit(ctx: MutationCtx, row: KudosMessageRow, event: Messag
   if (!changesKudos) return { kind: "ignored", why: "unchanged" };
   if (!isKudosMessage) return hasOpenAttempt(row) ? withdraw(ctx, row) : ignore(ctx, row, "ordinary-chat");
 
-  await ctx.db.patch(row._id, { state: "awaiting-directory", attempt: event.revision, spendsAt: event.at, checks: 0 });
+  await ctx.db.patch(row._id, { state: "awaiting-directory", attempt: event.revision, spendsAt: event.at, checks: 0, retry: isRetry(row) });
   const observation = await evaluate(ctx, (await ctx.db.get(row._id))!);
   if (observation.kind === "awaiting-directory" && showsIndicator(row)) await setIndicator(ctx, refOf(row), null);
   return observation;
@@ -93,6 +93,10 @@ async function withdraw(ctx: MutationCtx, row: KudosMessageRow): Promise<Observa
   await ctx.db.patch(row._id, { state: "withdrawn" });
   if (showsIndicator(row)) await setIndicator(ctx, refOf(row), null);
   return { kind: "withdrawn" };
+}
+
+function isRetry(row: KudosMessageRow) {
+  return row.retry === true || showsIndicator(row) || row.state === "withdrawn";
 }
 
 function hasOpenAttempt(row: KudosMessageRow) {
@@ -202,6 +206,9 @@ async function decide(ctx: MutationCtx, row: KudosMessageRow, giver: Member, kud
     kudosEmoji,
     annotations: row.annotations,
     allowance: { dailyOpening: allowance.opening, dailyLeft: left },
+    skippedMentions: skipped.length,
+    retry: row.retry === true,
+    inThread: row.threadRoot !== undefined,
     day,
     at: row.spendsAt,
   });

@@ -8,6 +8,11 @@
  * @module
  */
 
+import type * as analytics_capture from "../analytics/capture.js";
+import type * as analytics_drain from "../analytics/drain.js";
+import type * as analytics_outbox from "../analytics/outbox.js";
+import type * as analytics_projections from "../analytics/projections.js";
+import type * as analytics_subscribers from "../analytics/subscribers.js";
 import type * as bus_events from "../bus/events.js";
 import type * as bus_publish from "../bus/publish.js";
 import type * as crons from "../crons.js";
@@ -49,6 +54,11 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "analytics/capture": typeof analytics_capture;
+  "analytics/drain": typeof analytics_drain;
+  "analytics/outbox": typeof analytics_outbox;
+  "analytics/projections": typeof analytics_projections;
+  "analytics/subscribers": typeof analytics_subscribers;
   "bus/events": typeof bus_events;
   "bus/publish": typeof bus_publish;
   crons: typeof crons;

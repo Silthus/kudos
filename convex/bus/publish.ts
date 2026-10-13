@@ -6,7 +6,9 @@ import type { DomainEvent } from "./events";
 type Subscriber<E extends DomainEvent> = FunctionReference<"mutation" | "action", "internal", { event: E }>;
 type Registry = { [T in DomainEvent["type"]]: Array<Subscriber<Extract<DomainEvent, { type: T }>>> };
 
-export const subscribers: Registry = { kudosGiven: [internal.welcome.welcome.welcomeNewMembers] };
+export const subscribers: Registry = {
+  kudosGiven: [internal.welcome.welcome.welcomeNewMembers, internal.analytics.subscribers.recordKudosGiven],
+};
 
 export async function publish(ctx: MutationCtx, event: DomainEvent) {
   for (const subscriber of subscribers[event.type]) {

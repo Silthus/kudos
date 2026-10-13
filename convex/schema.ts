@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { propertiesValidator } from "./analytics/projections";
 import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
 import { segmentValidator } from "./feedback/replies";
 
@@ -40,6 +41,7 @@ export default defineSchema({
       v.literal("withdrawn"),
     ),
     attempt: v.int64(),
+    retry: v.optional(v.boolean()),
     content: v.object({ mentions: v.array(mentionValidator), emoji: v.array(v.string()) }),
     annotations: annotationsValidator,
     spendsAt: v.number(),
@@ -104,4 +106,25 @@ export default defineSchema({
     method: v.string(),
     until: v.number(),
   }).index("by_method", ["workspace", "method"]),
+
+  analyticsIds: defineTable({
+    member: v.id("members"),
+    analyticsId: v.string(),
+  }).index("by_member", ["member"]),
+
+  workspaceKeys: defineTable({
+    workspace: v.string(),
+    workspaceKey: v.string(),
+  }).index("by_workspace", ["workspace"]),
+
+  analyticsOutbox: defineTable({
+    uuid: v.string(),
+    event: v.string(),
+    distinctId: v.string(),
+    timestamp: v.number(),
+    properties: propertiesValidator,
+    state: v.union(v.literal("pending"), v.literal("sending")),
+  }).index("by_state", ["state"]),
+
+  analyticsDrain: defineTable({}),
 });
