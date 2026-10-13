@@ -35,14 +35,14 @@ export async function observe(ctx: MutationCtx, event: MessageEvent): Promise<Ob
   }
 
   const author = await lookup(ctx, event.ref.workspace, event.author);
-  if (author !== undefined && author.kind !== "member") return { kind: "ignored", why: "not-a-member" };
-  const context = { workspace: event.ref.workspace, giver: author?.member };
-  const kudos = await kudosMessageOf(ctx, event.content, context);
+  const context = { workspace: event.ref.workspace, giver: author?.kind === "member" ? author.member : undefined };
   const revision = {
     revision: event.revision,
     content: { mentions: event.content.mentions, emoji: event.content.emoji },
     annotations: annotationsOf(event.content, context),
   };
+  if (author !== undefined && author.kind !== "member") return existing === null ? notAMember() : supersedeForNonMember(ctx, existing, revision);
+  const kudos = await kudosMessageOf(ctx, event.content, context);
   if (existing === null) return observeFirstRevision(ctx, event, revision, kudos !== null);
   const changesKudos = (await fingerprintOf(ctx, event.content, context)) !== (await fingerprintOf(ctx, existing.content, context));
   return observeEdit(ctx, existing, event, revision, { isKudosMessage: kudos !== null, changesKudos });
@@ -72,6 +72,15 @@ async function observeEdit(ctx: MutationCtx, row: KudosMessageRow, event: Messag
   const observation = await evaluate(ctx, (await ctx.db.get(row._id))!);
   if (observation.kind === "awaiting-directory" && showsIndicator(row)) await setIndicator(ctx, refOf(row), null);
   return observation;
+}
+
+function notAMember(): Observation {
+  return { kind: "ignored", why: "not-a-member" };
+}
+
+async function supersedeForNonMember(ctx: MutationCtx, row: KudosMessageRow, revision: Revision): Promise<Observation> {
+  await ctx.db.patch(row._id, revision);
+  return hasOpenAttempt(row) ? withdraw(ctx, row) : notAMember();
 }
 
 async function withdraw(ctx: MutationCtx, row: KudosMessageRow): Promise<Observation> {

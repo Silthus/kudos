@@ -229,6 +229,21 @@ test("R29 R30: each failed check waits 1, 5, 30, 120 and 360 minutes for the nex
   expect(await awardsOf(t)).toEqual([]);
 });
 
+test("R21 R24 R31: an edit seen while its author is deactivated still supersedes the waiting attempt", async () => {
+  const t = await withDirectory({ U_ALICE: "UTC" });
+  const message = kudosMessage("U_ALICE", [person("U_BOB")], ["taco"]);
+  const withdrawal = { ...editOf(message, now.getTime() + 60_000), content: { mentions: [person("U_BOB")], emoji: [], text: "thanks" } };
+
+  await t.run((ctx) => observe(ctx, message));
+  await setDirectoryKind(t, "U_ALICE", "not-a-member");
+  await t.run((ctx) => observe(ctx, withdrawal));
+  await setDirectoryKind(t, "U_ALICE", "member");
+  await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: "U_BOB", kind: "member", timeZone: "UTC" }));
+  await t.run((ctx) => recheck(ctx, message.ref, message.revision));
+
+  expect(await awardsOf(t)).toEqual([]);
+});
+
 test("R19: a message gives at most once", async () => {
   const t = await withDirectory({ U_ALICE: "UTC", U_BOB: "UTC" });
   const message = kudosMessage("U_ALICE", [person("U_BOB")], ["taco"]);
@@ -299,6 +314,16 @@ async function withDirectory(people: Record<string, string | undefined>) {
     }
   });
   return t;
+}
+
+async function setDirectoryKind(t: Backend, user: string, kind: "member" | "not-a-member") {
+  await t.run(async (ctx) => {
+    const row = await ctx.db
+      .query("members")
+      .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", user))
+      .unique();
+    await ctx.db.patch(row!._id, { kind });
+  });
 }
 
 function person(user: string): Mention {
