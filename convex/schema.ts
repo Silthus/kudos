@@ -49,7 +49,9 @@ export default defineSchema({
     kudos: v.number(),
     day: v.string(),
     at: v.number(),
-  }).index("by_recipient", ["recipient"]),
+  })
+    .index("by_giver", ["giver", "day"])
+    .index("by_recipient", ["recipient", "day"]),
 
   allowanceSpending: defineTable({
     giver: v.id("members"),

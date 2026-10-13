@@ -55,6 +55,7 @@ export class FakeSlack {
       this.reactionsByMessage.set(key, [...reactions, args.name ?? ""]);
       return { ok: true };
     }
+    if (method === "views.publish") return { ok: true };
     if (method === "chat.postMessage") return { ok: true, channel: args.channel, ts: "1760349700.000100" };
     return { ok: false, error: "unknown_method" };
   }
