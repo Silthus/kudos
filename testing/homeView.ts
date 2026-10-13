@@ -4,13 +4,17 @@ import type { BlockAction } from "./slackMessages";
 
 type TextObject = { type: string; text: string };
 type Element = { type: string; text?: TextObject; style?: string; initial_channel?: string; action_id?: string; value?: string };
-type Block = { type: string; text?: TextObject; fields?: TextObject[]; elements?: unknown[]; accessory?: Element };
+export type Block = { type: string; text?: TextObject; fields?: TextObject[]; elements?: unknown[]; accessory?: Element };
 type HomeView = { type: string; blocks: Block[] };
 
 export function publishedHome(slack: FakeSlack, user: string) {
   const view = slack.homeShownTo(user) as HomeView | undefined;
   expect(view?.type).toBe("home");
-  return (view?.blocks ?? []).map(readBlock);
+  return readBlocks(view?.blocks ?? []);
+}
+
+export function readBlocks(blocks: Block[]) {
+  return blocks.map(readBlock);
 }
 
 export function publishedViews(slack: FakeSlack, user: string) {
@@ -51,8 +55,16 @@ function mrkdwn(text: TextObject | undefined) {
 }
 
 export function buttonInHome(slack: FakeSlack, user: string, label: string): BlockAction {
-  const button = elementsInHome(slack, user).find((element) => element.type === "button" && element.text?.text === label);
-  expect(button, `a ${label} button in ${user}'s App Home`).toBeDefined();
+  return buttonAmong(elementsInHome(slack, user), label, `${user}'s App Home`);
+}
+
+export function buttonInBlocks(blocks: Block[], label: string): BlockAction {
+  return buttonAmong(elementsOf(blocks), label, "the message");
+}
+
+function buttonAmong(elements: Element[], label: string, place: string): BlockAction {
+  const button = elements.find((element) => element.type === "button" && element.text?.text === label);
+  expect(button, `a ${label} button in ${place}`).toBeDefined();
   return { type: "button", action_id: button!.action_id!, ...(button!.value !== undefined && { value: button!.value }) };
 }
 
@@ -63,6 +75,9 @@ export function channelPickerInHome(slack: FakeSlack, user: string, channel: str
 }
 
 function elementsInHome(slack: FakeSlack, user: string) {
-  const blocks = (slack.homeShownTo(user) as HomeView | undefined)?.blocks ?? [];
+  return elementsOf((slack.homeShownTo(user) as HomeView | undefined)?.blocks ?? []);
+}
+
+function elementsOf(blocks: Block[]) {
   return blocks.flatMap((block) => [...(block.type === "actions" ? (block.elements as Element[]) : []), ...(block.accessory ? [block.accessory] : [])]);
 }

@@ -4,10 +4,11 @@ import { internalMutation, type ActionCtx, type MutationCtx } from "../_generate
 import { observedAction } from "../analytics/boundary";
 import { ReportableError } from "../analytics/exceptions";
 import { recordUsage, recordUsageWithoutBlocking } from "../analytics/usage";
-import { renderHome, type HomeAction, type HomeLine, type HomeView } from "../feedback/home";
+import { renderHome, type HomeLine, type HomeView } from "../feedback/home";
 import { stampOf, type HomeFacts } from "../feedback/homes";
 import { xpLevelsShownTo } from "../progression/xpLevels";
 import { lookup } from "../workspace/directory";
+import { buttonOf, mrkdwn, plainText } from "./blocks";
 import { attemptArgs, failedAttempt, sendOnce, tryAtMostThreeTimes } from "./delivery";
 import { lookUpUser, refreshUser } from "./directory";
 
@@ -96,18 +97,8 @@ function tabBarOf(tabs: HomeView["tabs"]) {
   return { type: "actions", elements: tabs.map((tab) => ({ ...buttonOf(tab), ...(tab.current && { style: "primary" }) })) };
 }
 
-function buttonOf({ label, intent }: HomeAction) {
-  return { type: "button", action_id: actionIdOf(intent), text: plainText(label), value: JSON.stringify(intent) };
-}
-
 function channelPickerOf({ picks, picked }: Extract<HomeLine, { kind: "pick-channel" }>) {
   return { type: "channels_select", action_id: picks, placeholder: plainText("Pick a channel"), ...(picked !== null && { initial_channel: picked }) };
-}
-
-function actionIdOf(intent: HomeAction["intent"]) {
-  return Object.entries(intent)
-    .map(([key, value]) => `${key}=${value}`)
-    .join("&");
 }
 
 const divider = { type: "divider" };
@@ -118,14 +109,6 @@ function blockOf(line: HomeLine) {
   if (line.kind === "action") return { type: "section", text: mrkdwn(line.text), accessory: buttonOf(line.action) };
   if (line.kind === "pick-channel") return { type: "section", text: mrkdwn(line.text), accessory: channelPickerOf(line) };
   return { type: "section", text: mrkdwn(line.text) };
-}
-
-function mrkdwn(text: string) {
-  return { type: "mrkdwn", text };
-}
-
-function plainText(text: string) {
-  return { type: "plain_text", text };
 }
 
 function appId() {

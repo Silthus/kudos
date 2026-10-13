@@ -10,7 +10,7 @@ export const subscribers: Registry = {
   kudosGiven: [internal.welcome.welcome.welcomeNewMembers, internal.progression.progression.recordEffects, internal.analytics.subscribers.recordKudosGiven],
   attemptFailed: [internal.analytics.subscribers.recordAttemptFailed],
   memberWelcomed: [internal.analytics.subscribers.recordMemberWelcomed],
-  levelReached: [internal.feedback.notify.notifyLevelReached, internal.feedback.publicReplies.celebrateLevel, internal.feedback.homes.refreshHomeOnLevel, internal.unlocks.unlocks.makeReady],
+  levelReached: [internal.unlocks.unlocks.makeReady, internal.feedback.publicReplies.celebrateLevel, internal.feedback.homes.refreshHomeOnLevel],
   unlockReady: [],
   unlockOpened: [],
 };

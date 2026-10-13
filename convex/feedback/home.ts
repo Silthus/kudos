@@ -4,6 +4,7 @@ import type { KudosHome } from "../engine/home";
 import { skillTreeLevel } from "../progression/levels";
 import type { ProgressionHome } from "../progression/progression";
 import type { ProgressSettings } from "../progression/settings";
+import type { ScheduledFeature } from "../unlocks/schedule";
 import type { UnlocksHome } from "../unlocks/unlocks";
 import type { AdminHome, HomeFacts } from "./homes";
 import { productName, skillPointsOf, slashCommand } from "./naming";
@@ -122,13 +123,13 @@ function progressOf({ level, xpToNextLevel, skillPoints }: ProgressionHome): Hom
 }
 
 function unlockLinesOf({ ready, next }: UnlocksHome): HomeLine[] {
-  const readyLines = ready.map(({ feature, name, opens }): HomeLine => ({
-    kind: "action",
-    text: `${bold(name)} is ready. It opens ${opens}.`,
-    action: { label: "Open", intent: { type: "openUnlock", feature } },
-  }));
+  const readyLines = ready.map((feature): HomeLine => ({ kind: "action", ...readyCrateOf(feature) }));
   const nextLine: HomeLine[] = next === null ? [] : [{ kind: "text", text: `Next: ${next.name} at level ${next.level}.` }];
   return [...readyLines, ...nextLine];
+}
+
+export function readyCrateOf({ feature, name, opens }: ScheduledFeature): { text: string; action: HomeAction } {
+  return { text: `${bold(name)} is ready. It opens ${opens}.`, action: { label: "Open", intent: { type: "openUnlock", feature } } };
 }
 
 function totalsOf(kudos: KudosHome): HomeLine {

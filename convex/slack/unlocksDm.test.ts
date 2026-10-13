@@ -1,0 +1,229 @@
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import type { FakePostHog } from "../../testing/fakePostHog";
+import { FakeSlack } from "../../testing/fakeSlack";
+import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone } from "../../testing/flags";
+import { buttonInBlocks, publishedHome, readBlocks, type Block } from "../../testing/homeView";
+import { signedRequest, signingSecret } from "../../testing/signedSlack";
+import { settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { blockActions, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
+import { internal } from "../_generated/api";
+import type { LevelReachedEvent } from "../bus/events";
+import type { MemberId } from "../workspace/directory";
+
+const now = new Date("2026-10-13T10:00:00Z");
+const firstMessageAt = now.getTime() + 1000;
+const form = { contentType: "application/x-www-form-urlencoded" };
+const leaderboardReady = "section: *Leaderboard* is ready. It opens the boards. [button: Open]";
+const levelThreeDm = ["section: 🎉 You reached level 3!", "section: Level 4 is 200 XP away.", leaderboardReady];
+
+type LevelReachedSubscriber =
+  | typeof internal.feedback.publicReplies.celebrateLevel
+  | typeof internal.feedback.homes.refreshHomeOnLevel
+  | typeof internal.unlocks.unlocks.makeReady;
+
+let slack: FakeSlack;
+let postHog: FakePostHog;
+let sentMessages = 0;
+
+beforeEach(() => {
+  vi.useFakeTimers({ now });
+  vi.stubEnv("SLACK_SIGNING_SECRET", signingSecret);
+  vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
+  vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
+  slack = new FakeSlack().withMember("U_ALICE").withMember("U_BOB");
+  postHog = flagsOnForEveryone(slack.fetch, "xp-levels", "everyone-board");
+  sentMessages = 0;
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
+
+describe("P74 P73: the level-up DM names what the level made ready, each with Open", () => {
+  test("reaching level 3 sends one DM that names the Leaderboard with Open, and its text says the same", async () => {
+    const t = await workspace();
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 8);
+
+    expect(dmsTo("U_ALICE").map(readDm)).toEqual([["🎉 You reached level 2!", "Level 3 is 80 XP away."], levelThreeDm]);
+    expect(dmsTo("U_ALICE")[1]?.text).toBe("🎉 You reached level 3!\nLevel 4 is 200 XP away.\n*Leaderboard* is ready. It opens the boards.");
+  });
+
+  test("clicking Open in the DM opens the Leaderboard for good and republishes App Home without its line; clicking it again changes nothing", async () => {
+    const t = await workspace();
+    await giveKudos(t, "U_ALICE", "U_BOB", 10);
+    const openButton = buttonInBlocks(blocksOf(dmsTo("U_ALICE")[0]!), "Open");
+    const inDm = { channel: "D_U_ALICE", ts: "1760349700.000100" };
+
+    const response = await send(t, blockActions("U_ALICE", openButton, { inMessage: inDm }));
+
+    expect(response.status).toBe(200);
+    const opened = await unlockRows(t);
+    expect(opened).toEqual([{ feature: "leaderboard", readyAt: firstMessageAt, openedAt: expect.any(Number) }]);
+    expect(publishedHome(slack, "U_ALICE").filter((line) => line.includes("Leaderboard"))).toEqual([]);
+
+    vi.setSystemTime(now.getTime() + 60_000);
+    await send(t, blockActions("U_ALICE", openButton, { inMessage: inDm }));
+
+    expect(await unlockRows(t)).toEqual(opened);
+    expect(dmsTo("U_ALICE")).toHaveLength(1);
+  });
+
+  test("a level up that makes no shipped feature ready sends the level-up DM as before, without an Open button", async () => {
+    const t = await workspace();
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+
+    expect(dmsTo("U_ALICE")).toEqual([{ channel: "D_U_ALICE", text: "🎉 You reached level 2!\nLevel 3 is 80 XP away." }]);
+  });
+
+  test("with everyone-board off, reaching level 3 sends the level-up DM without naming any feature", async () => {
+    const t = await workspace();
+    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), offForEveryone("everyone-board"));
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 10);
+
+    expect(dmsTo("U_ALICE")).toEqual([{ channel: "D_U_ALICE", text: "🎉 You reached level 3!\nLevel 4 is 200 XP away." }]);
+  });
+});
+
+describe("P6: several levels at once", () => {
+  test("an award that crosses levels 2 and 3 sends one DM, for level 3, naming the Leaderboard", async () => {
+    const t = await workspace();
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 10);
+
+    expect(dmsTo("U_ALICE").map(readDm)).toEqual([levelThreeDm]);
+  });
+});
+
+describe("P74: one owner for readiness and the level-up DM", () => {
+  test.each<[string, LevelReachedSubscriber[]]>([
+    ["readiness first", [internal.unlocks.unlocks.makeReady, internal.feedback.homes.refreshHomeOnLevel, internal.feedback.publicReplies.celebrateLevel]],
+    ["readiness last", [internal.feedback.publicReplies.celebrateLevel, internal.feedback.homes.refreshHomeOnLevel, internal.unlocks.unlocks.makeReady]],
+  ])("the DM names exactly what was made ready, with %s", async (_, subscribers) => {
+    const t = await workspace();
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+    const reached = await levelThreeReachedBy(t, "U_ALICE");
+
+    for (const subscriber of subscribers) {
+      await t.mutation(subscriber, { event: reached });
+      await settle(t);
+    }
+
+    expect(dmsTo("U_ALICE").map(readDm).slice(1)).toEqual([levelThreeDm]);
+    expect(await unlockRows(t)).toEqual([{ feature: "leaderboard", readyAt: reached.at }]);
+  });
+
+  test("a replayed levelReached sends no second DM and makes nothing ready again", async () => {
+    const t = await workspace();
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+    const reached = await levelThreeReachedBy(t, "U_ALICE");
+    await t.mutation(internal.unlocks.unlocks.makeReady, { event: reached });
+    await settle(t);
+
+    await t.mutation(internal.unlocks.unlocks.makeReady, { event: { ...reached, at: reached.at + 1000 } });
+    await settle(t);
+
+    expect(dmsTo("U_ALICE").map(readDm).slice(1)).toEqual([levelThreeDm]);
+    expect(await unlockRows(t)).toEqual([{ feature: "leaderboard", readyAt: reached.at }]);
+  });
+
+  test("a feature something else made ready first is not named again by the level-up DM, and App Home still lists it", async () => {
+    const t = await workspace();
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+    const member = await memberOf(t, "U_ALICE");
+    const readyEarlier = now.getTime() + 500;
+    await t.run((ctx) => ctx.db.insert("unlocks", { member, feature: "leaderboard", readyAt: readyEarlier }));
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 8);
+
+    expect(dmsTo("U_ALICE").map(readDm)[1]).toEqual(["🎉 You reached level 3!", "Level 4 is 200 XP away."]);
+    expect(await unlockRows(t)).toEqual([{ feature: "leaderboard", readyAt: readyEarlier }]);
+    await publishHome(t, "U_ALICE");
+    expect(publishedHome(slack, "U_ALICE")).toContain(leaderboardReady);
+  });
+});
+
+describe("P63 P74: with DMs off", () => {
+  test("a member who turned DMs off gets no DM at level 3, and App Home still lists the Leaderboard ready", async () => {
+    const t = await workspace();
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+    const member = await memberOf(t, "U_ALICE");
+    await t.run((ctx) => ctx.db.insert("progressSettings", { member, dms: false }));
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 8);
+
+    expect(dmsTo("U_ALICE")).toHaveLength(1);
+    expect(publishedHome(slack, "U_ALICE")).toContain(leaderboardReady);
+  });
+});
+
+type PostedDm = Record<string, unknown>;
+
+function dmsTo(user: string): PostedDm[] {
+  return slack.callsTo("chat.postMessage").filter(({ channel }) => channel === `D_${user}`);
+}
+
+function blocksOf(dm: PostedDm) {
+  expect(dm.blocks, "the DM's blocks").toBeDefined();
+  return dm.blocks as Block[];
+}
+
+function readDm(dm: PostedDm) {
+  return dm.blocks === undefined ? String(dm.text).split("\n") : readBlocks(blocksOf(dm));
+}
+
+async function unlockRows(t: Backend) {
+  return t.run(async (ctx) => (await ctx.db.query("unlocks").collect()).map(({ feature, readyAt, openedAt }) => ({ feature, readyAt, ...(openedAt !== undefined && { openedAt }) })));
+}
+
+async function memberOf(t: Backend, user: string): Promise<MemberId> {
+  return t.run(async (ctx) => {
+    const row = await ctx.db
+      .query("members")
+      .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", user))
+      .unique();
+    return row!._id;
+  });
+}
+
+async function levelThreeReachedBy(t: Backend, user: string): Promise<LevelReachedEvent> {
+  const member = await memberOf(t, user);
+  await t.run(async (ctx) => {
+    const progress = await ctx.db
+      .query("memberProgress")
+      .withIndex("by_member", (q) => q.eq("member", member))
+      .unique();
+    await ctx.db.patch(progress!._id, { xp: 100 });
+  });
+  const message = { workspace: "T1", conversation: "C1", message: "1760349600.000100" };
+  return { type: "levelReached", workspace: "T1", member, level: 3, skillPointsGained: 0, skillPoints: 0, xpToNextLevel: 200, message, at: Date.now() };
+}
+
+async function publishHome(t: Backend, user: string) {
+  await t.run((ctx) => ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, { workspace: "T1", user }));
+  await settle(t);
+}
+
+async function workspace() {
+  const t = await flagsLoaded(testBackend());
+  await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
+  return t;
+}
+
+async function giveKudos(t: Backend, giver: string, recipient: string, kudos: number) {
+  sentMessages += 1;
+  const blocks = [section(mention(recipient), ...Array.from({ length: kudos }, () => emoji("taco")))];
+  await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts: `${now.getTime() / 1000 + sentMessages}.000100` })));
+  await settle(t);
+}
+
+async function send(t: Backend, interaction: string) {
+  const response = await t.fetch("/slack/interactivity", await signedRequest(interaction, form));
+  await settle(t);
+  return response;
+}

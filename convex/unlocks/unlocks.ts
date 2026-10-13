@@ -5,6 +5,7 @@ import { openUnlockCommand, type CommandResult } from "../bus/commands";
 import { levelReachedEventValidator } from "../bus/events";
 import { publish } from "../bus/publish";
 import { republish } from "../feedback/homes";
+import { notifyLevelReached } from "../feedback/notify";
 import { xpLevelsShownIn } from "../progression/xpLevels";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import type { Feature } from "./feature";
@@ -20,16 +21,18 @@ type UnlockRow = Doc<"unlocks">;
 
 export const makeReady = internalMutation({
   args: { event: levelReachedEventValidator },
-  handler: async (ctx, { event: { workspace, member, level, at } }): Promise<void> => {
+  handler: async (ctx, { event }): Promise<void> => {
+    const { workspace, member, level, at } = event;
     const reached = (await shippedIn(ctx, workspace)).filter((entry) => entry.level <= level);
-    let madeReady = false;
-    for (const { feature } of reached) {
-      if ((await unlockRow(ctx, member, feature)) !== null) continue;
-      await ctx.db.insert("unlocks", { member, feature, readyAt: at });
-      await publish(ctx, { type: "unlockReady", workspace, member, feature, at });
-      madeReady = true;
+    const madeReady: ScheduledFeature[] = [];
+    for (const entry of reached) {
+      if ((await unlockRow(ctx, member, entry.feature)) !== null) continue;
+      await ctx.db.insert("unlocks", { member, feature: entry.feature, readyAt: at });
+      await publish(ctx, { type: "unlockReady", workspace, member, feature: entry.feature, at });
+      madeReady.push(entry);
     }
-    if (madeReady && (await xpLevelsShownIn(ctx, workspace))) await republish(ctx, member);
+    await notifyLevelReached(ctx, event, madeReady);
+    if (madeReady.length > 0 && (await xpLevelsShownIn(ctx, workspace))) await republish(ctx, member);
   },
 });
 
