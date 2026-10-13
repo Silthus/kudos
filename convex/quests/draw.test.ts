@@ -162,6 +162,21 @@ describe("P75: quests are drawn only once Quests is open, and only where the sli
     expect(await t.run((ctx) => ctx.db.query("questDraws").collect())).toEqual([]);
   });
 
+  test("a member opened into Quests before any teammate is in the directory has no draw stored, and draws 3 once one is", async () => {
+    const t = await flagsLoaded(testBackend());
+    await unlocksShippedBeforeAnyoneJoined(t);
+    const alice = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: "U_ALICE", kind: "member" }));
+
+    await openQuests(t, alice, tuesday);
+    expect(await t.run((ctx) => ctx.db.query("questDraws").collect())).toEqual([]);
+    expect((await questsOf(t, alice))!.week).toBeNull();
+
+    await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: "U_BOB", kind: "member" }));
+    await openQuests(t, alice, tuesday + dayMs);
+
+    expect(await drawnOn(t, alice, tuesday + dayMs)).toHaveLength(3);
+  });
+
   test("questsOf shows no week before the member opened Quests this week", async () => {
     const { t, alice } = await workspace();
     await openQuests(t, alice, tuesday);

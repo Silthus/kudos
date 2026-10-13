@@ -55,10 +55,11 @@ export async function drawFactsOf(ctx: QueryCtx, member: MemberId, at: number): 
   };
 }
 
-async function drawFor(ctx: MutationCtx, member: MemberId, at: number): Promise<"drawn" | "kept"> {
+async function drawFor(ctx: MutationCtx, member: MemberId, at: number): Promise<"drawn" | "nothing to draw"> {
   const week = weekKeyOf(at, await timeZoneOf(ctx, member));
-  if ((await drawOf(ctx, member, week)) !== null) return "kept";
+  if ((await drawOf(ctx, member, week)) !== null) return "nothing to draw";
   const slots = drawFrom(member, week, await drawFactsOf(ctx, member, at));
+  if (slots.length === 0) return "nothing to draw";
   await ctx.db.insert("questDraws", { member, week, drawnAt: at, slots });
   return "drawn";
 }
