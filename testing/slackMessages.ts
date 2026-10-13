@@ -137,26 +137,6 @@ export function memberEvent(type: "team_join" | "user_change", user: Record<stri
   });
 }
 
-export type BlockAction =
-  | { type: "button"; action_id: string; value?: string }
-  | { type: "channels_select"; action_id: string; selected_channel: string | null };
-
-export function blockActions(user: string, action: BlockAction, options: { team?: string } = {}) {
-  eventCounter += 1;
-  const team = options.team ?? "T1";
-  const payload = {
-    type: "block_actions",
-    team: { id: team, domain: "kudos" },
-    user: { id: user, team_id: team },
-    api_app_id: "A_KUDOS",
-    trigger_id: `trigger.${eventCounter}`,
-    container: { type: "view", view_id: "V_HOME" },
-    view: { id: "V_HOME", type: "home" },
-    actions: [{ ...action, block_id: "b1", action_ts: `${Date.now() / 1000}` }],
-  };
-  return new URLSearchParams({ payload: JSON.stringify(payload) }).toString();
-}
-
 export type Conversation = { channel_id: string; channel_name: string };
 
 export type SlashCommandOptions = { command?: "/hedgehug" | "/kudos"; team?: string; user?: string; responseUrl?: string };

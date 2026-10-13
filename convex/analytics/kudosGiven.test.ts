@@ -161,7 +161,7 @@ describe("O10: never sent", () => {
 
     const bodies = postHog.requests.map((request) => request.body).join("\n");
     expect(new Set(postHog.events().map((event) => event.event))).toEqual(
-      new Set(["kudos given", "kudos received", "member welcomed", "attempt failed", "app home opened", "command used", "$feature_flag_called"]),
+      new Set(["kudos given", "kudos received", "member welcomed", "attempt failed", "app home opened", "command used"]),
     );
     const stored = await everythingStored(t);
     const forbidden = [

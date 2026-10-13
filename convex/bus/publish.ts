@@ -7,7 +7,12 @@ type Subscriber<E extends DomainEvent> = FunctionReference<"mutation" | "action"
 type Registry = { [T in DomainEvent["type"]]: Array<Subscriber<Extract<DomainEvent, { type: T }>>> };
 
 export const subscribers: Registry = {
-  kudosGiven: [internal.welcome.welcome.welcomeNewMembers, internal.progression.progression.recordEffects, internal.analytics.subscribers.recordKudosGiven],
+  kudosGiven: [
+    internal.welcome.welcome.welcomeNewMembers,
+    internal.progression.progression.recordEffects,
+    internal.leaderboard.totals.countKudosGiven,
+    internal.analytics.subscribers.recordKudosGiven,
+  ],
   attemptFailed: [internal.analytics.subscribers.recordAttemptFailed],
   memberWelcomed: [internal.analytics.subscribers.recordMemberWelcomed],
   levelReached: [internal.feedback.notify.notifyLevelReached, internal.feedback.publicReplies.celebrateLevel, internal.feedback.homes.refreshHomeOnLevel],
