@@ -1,6 +1,6 @@
 # Feedback
 
-Feedback: the indicator on each kudos message as desired state and the private reply to its giver, both written with the outcome and delivered by the adapter afterwards, and the copy every reply is rendered from: the private replies, the welcome message, App Home and the `/hedgehug` replies, all naming the product HedgeHug.
+Feedback: the indicator on each kudos message as desired state and the private reply to its giver, both written with the outcome and delivered by the adapter afterwards, and the copy every reply is rendered from: the private replies, the welcome message, App Home with its Profile, Leaderboard and Settings tabs and the tab and leaderboard period each member last selected, or only the member's own kudos, without tabs, while the `everyone-board` flag is off, the `/hedgehug` replies, and the rows of a board with its improvement line, all naming the product HedgeHug.
 
 ## invariants
 - private replies reach only the giver: A private reply about a kudos message reaches only its giver: an ephemeral to the message's author beside the message, in the thread for a thread reply and in the channel otherwise, and nobody else, recipients included, is sent anything about it.
