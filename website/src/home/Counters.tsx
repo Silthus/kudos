@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@posthog/quill";
-import type { SignedInMember } from "../shell";
+import type { MemberProfile } from "../shell";
 
-export function Counters({ member: { thisWeek, lifetime } }: { member: SignedInMember }) {
+export function Counters({ member: { thisWeek, lifetime } }: { member: MemberProfile }) {
   return (
     <Card size="sm">
       <CardContent>

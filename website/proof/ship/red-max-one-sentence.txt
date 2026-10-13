@@ -1,0 +1,1366 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/ship-website
+
+stderr | src/App.test.tsx > WS3 WS20: Max says one sentence on the closed, not-a-member, unverified, not-found and error pages > the error page
+Error: This page failed to render.
+    at Page (/home/coder/dev/kudos-wt/ship-website/website/src/App.tsx:34:38)
+    at Object.react_stack_bottom_frame (/home/coder/dev/kudos-wt/ship-website/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:28571:20)
+    at renderWithHooks (/home/coder/dev/kudos-wt/ship-website/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:8030:22)
+    at updateFunctionComponent (/home/coder/dev/kudos-wt/ship-website/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:10569:19)
+    at beginWork (/home/coder/dev/kudos-wt/ship-website/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:12205:18)
+    at runWithFiberInDEV (/home/coder/dev/kudos-wt/ship-website/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:1048:13)
+    at performUnitOfWork (/home/coder/dev/kudos-wt/ship-website/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:19176:22)
+    at workLoopSync (/home/coder/dev/kudos-wt/ship-website/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:19004:41)
+    at renderRootSync (/home/coder/dev/kudos-wt/ship-website/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:18985:11)
+    at performWorkOnRoot (/home/coder/dev/kudos-wt/ship-website/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:18094:35) {
+  [stack]: [Getter/Setter],
+  [message]: 'This page failed to render.'
+}
+
+The above error occurred in the <Page> component.
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+
+
+ ❯ |website| src/App.test.tsx (17 tests | 3 failed) 937ms
+   ❯ WS3 WS20: Max says one sentence on the closed, not-a-member, unverified, not-found and error pages (5)
+     × the closed page 117ms
+     × the not-found page 24ms
+     × the error page 42ms
+ ❯ |website| src/HomePage.test.tsx (10 tests | 4 failed) 2849ms
+   ❯ WS17: the home leads with thanking, then the allowance and the counters (5)
+     × offers one action, thanking someone in Slack, which opens the member's workspace 670ms
+     × puts the kudos left out of the base and the refill in one quiet line after the action 627ms
+     × follows with the counters, this week and in total, given and received, in tabular figures 625ms
+   ❯ WS20: a quiet week (1)
+     × has Max point back to thanking someone in Slack, with the one action and no reward 145ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/App.test.tsx > WS3 WS20: Max says one sentence on the closed, not-a-member, unverified, not-found and error pages > the closed page
+ FAIL  |website| src/App.test.tsx > WS3 WS20: Max says one sentence on the closed, not-a-member, unverified, not-found and error pages > the not-found page
+ FAIL  |website| src/App.test.tsx > WS3 WS20: Max says one sentence on the closed, not-a-member, unverified, not-found and error pages > the error page
+AssertionError: expected [ '. ', '.' ] to have a length of 1 but got 2
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ src/App.test.tsx:30:43
+     28|     renderApp(visitor);
+     29|     const maxSays = pageTitle().nextElementSibling?.textContent ?? "";
+     30|     expect(maxSays.match(/[.!?](\s|$)/g)).toHaveLength(1);
+       |                                           ^
+     31|   });
+     32| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS17: the home leads with thanking, then the allowance and the counters > offers one action, thanking someone in Slack, which opens the member's workspace
+TestingLibraryElementError: Unable to find an accessible element with the role "link" and name "Thank someone in Slack (opens in a new tab)"
+
+Here are the accessible roles:
+
+  region:
+
+  Name "Thank someone for work you noticed":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"home-title"[39m
+    [33mclass[39m=[32m"hud-panel relative flex flex-col gap-5 rounded-xl border bg-card p-6"[39m
+  [36m/>[39m
+
+  Name "Your profile card":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"profile-card-title"[39m
+  [36m/>[39m
+
+  Name "Still locked":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"still-locked-title"[39m
+    [33mclass[39m=[32m"flex flex-col gap-3"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "Thank someone for work you noticed":
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display text-2xl font-bold tracking-tight outline-none"[39m
+    [33mid[39m=[32m"home-title"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Your profile card":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"profile-card-title"[39m
+  [36m/>[39m
+
+  Name "Still locked":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"still-locked-title"[39m
+  [36m/>[39m
+
+  Name "Quests":
+  [36m<h3[39m
+    [33mclass[39m=[32m"text-sm font-medium"[39m
+  [36m/>[39m
+
+  Name "Leaderboard":
+  [36m<h3[39m
+    [33mclass[39m=[32m"text-sm font-medium"[39m
+  [36m/>[39m
+
+  Name "Sticker book and achievements":
+  [36m<h3[39m
+    [33mclass[39m=[32m"text-sm font-medium"[39m
+  [36m/>[39m
+
+  Name "Skill tree":
+  [36m<h3[39m
+    [33mclass[39m=[32m"text-sm font-medium"[39m
+  [36m/>[39m
+
+  Name "Coins":
+  [36m<h3[39m
+    [33mclass[39m=[32m"text-sm font-medium"[39m
+  [36m/>[39m
+
+  Name "Hedgehogs":
+  [36m<h3[39m
+    [33mclass[39m=[32m"text-sm font-medium"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-sm text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-sm text-muted-foreground tabular-nums"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"flex items-center gap-3 text-sm"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  link:
+
+  Name "Thank someone in Slack":
+  [36m<a[39m
+    [33mclass[39m=[32m"quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-lg"[39m
+    [33mhref[39m=[32m"https://app.slack.com/client/T1"[39m
+    [33mrel[39m=[32m"noreferrer"[39m
+    [33mtarget[39m=[32m"_blank"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  time:
+
+  Name "":
+  [36m<time[39m
+    [33mdatetime[39m=[32m"2026-10-14T00:00:00.000Z"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  table:
+
+  Name "Your kudos":
+  [36m<table[39m
+    [33mclass[39m=[32m"w-full text-sm tabular-nums"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  caption:
+
+  Name "Your kudos":
+  [36m<caption[39m
+    [33mclass[39m=[32m"hud-label pb-2 text-left"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  rowgroup:
+
+  Name "":
+  [36m<thead />[39m
+
+  Name "":
+  [36m<tbody />[39m
+
+  --------------------------------------------------
+  row:
+
+  Name "This week In total":
+  [36m<tr[39m
+    [33mclass[39m=[32m"text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "Given 2 14":
+  [36m<tr[39m
+    [33mclass[39m=[32m"border-t"[39m
+  [36m/>[39m
+
+  Name "Received 1 9":
+  [36m<tr[39m
+    [33mclass[39m=[32m"border-t"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  cell:
+
+  Name "":
+  [36m<td />[39m
+
+  Name "2":
+  [36m<td[39m
+    [33mclass[39m=[32m"py-2 text-right"[39m
+  [36m/>[39m
+
+  Name "14":
+  [36m<td[39m
+    [33mclass[39m=[32m"py-2 text-right"[39m
+  [36m/>[39m
+
+  Name "1":
+  [36m<td[39m
+    [33mclass[39m=[32m"py-2 text-right"[39m
+  [36m/>[39m
+
+  Name "9":
+  [36m<td[39m
+    [33mclass[39m=[32m"py-2 text-right"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  columnheader:
+
+  Name "This week":
+  [36m<th[39m
+    [33mclass[39m=[32m"pb-1 text-right font-medium"[39m
+    [33mscope[39m=[32m"col"[39m
+  [36m/>[39m
+
+  Name "In total":
+  [36m<th[39m
+    [33mclass[39m=[32m"pb-1 text-right font-medium"[39m
+    [33mscope[39m=[32m"col"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  rowheader:
+
+  Name "Given":
+  [36m<th[39m
+    [33mclass[39m=[32m"py-2 text-left font-medium"[39m
+    [33mscope[39m=[32m"row"[39m
+  [36m/>[39m
+
+  Name "Received":
+  [36m<th[39m
+    [33mclass[39m=[32m"py-2 text-left font-medium"[39m
+    [33mscope[39m=[32m"row"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  article:
+
+  Name "":
+  [36m<article />[39m
+
+  Name "":
+  [36m<article />[39m
+
+  Name "":
+  [36m<article />[39m
+
+  Name "":
+  [36m<article />[39m
+
+  Name "":
+  [36m<article />[39m
+
+  Name "":
+  [36m<article />[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<div[39m
+    [33mclass[39m=[32m"flex flex-col gap-6"[39m
+  [36m>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-w-0 flex-col gap-6"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-labelledby[39m=[32m"home-title"[39m
+          [33mclass[39m=[32m"hud-panel relative flex flex-col gap-5 rounded-xl border bg-card p-6"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-3"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"inline-flex shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground size-12"[39m
+            [36m>[39m
+              [0mSE[0m
+            [36m</span>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"font-medium"[39m
+            [36m>[39m
+              [0mSam Example[0m
+            [36m</span>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex flex-col gap-2"[39m
+          [36m>[39m
+            [36m<h1[39m
+              [33mclass[39m=[32m"hud-display text-2xl font-bold tracking-tight outline-none"[39m
+              [33mid[39m=[32m"home-title"[39m
+              [33mtabindex[39m=[32m"-1"[39m
+            [36m>[39m
+              [0mThank someone for work you noticed[0m
+            [36m</h1>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-sm text-muted-foreground"[39m
+            [36m>[39m
+              [0mMention them in a Slack message with :[0m
+              [0mtaco[0m
+              [0m: and say what they did.[0m
+            [36m</p>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex flex-col items-start gap-2"[39m
+          [36m>[39m
+            [36m<a[39m
+              [33mclass[39m=[32m"quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-lg"[39m
+              [33mhref[39m=[32m"https://app.slack.com/client/T1"[39m
+              [33mrel[39m=[32m"noreferrer"[39m
+              [33mtarget[39m=[32m"_blank"[39m
+            [36m>[39m
+              [0mThank someone in Slack[0m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"LemonIcon size-4"[39m
+                [33mfill[39m=[32m"currentColor"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"100%"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33mclip-rule[39m=[32m"evenodd"[39m
+                  [33md[39m=[32m"M13 3.75a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 .75.75v6.5a.75.75 0 0 1-1.5 0V5.56l-7.97 7.97a.75.75 0 1 1-1.06-1.06l7.97-7.97h-4.69a.75.75 0 0 1-.75-.75ZM5.324 5H9.25a.75.75 0 1 1 0 1.5h-3.9c-.292 0-.467 0-.596.011a.628.628 0 0 0-.12.018.25.25 0 0 0-.105.104.626.626 0 0 0-.018.121c-.01.13-.011.304-.011.596v11.3c0 .292 0 .467.011.596a.625.625 0 0 0 .018.12.25.25 0 0 0 .104.105.638.638 0 0 0 .121.018c.13.01.304.011.596.011h11.3c.292 0 .467 0 .596-.011a.636.636 0 0 0 .12-.018.25.25 0 0 0 .105-.105.636.636 0 0 0 .018-.12c.01-.13.011-.304.011-.596V14a.75.75 0 0 1 1.5 0v4.676c0 .258 0 .494-.016.692a1.775 1.775 0 0 1-.175.677 1.75 1.75 0 0 1-.765.764c-.23.118-.463.157-.676.175-.198.016-.434.016-.692.016H5.324c-.258 0-.494 0-.692-.016a1.775 1.775 0 0 1-.676-.175 1.75 1.75 0 0 1-.765-.765 1.774 1.774 0 0 1-.175-.676A9.053 9.053 0 0 1 3 18.676V7.324c0-.258 0-.494.016-.692.018-.213.057-.446.175-.676a1.75 1.75 0 0 1 .765-.765c.23-.118.463-.157.676-.175C4.83 5 5.066 5 5.324 5ZM17.47 19.37v-.002Zm-.1.1h-.003Zm-12.74 0h.002Zm-.1-.102a.02.02 0 0 1 0 .001Zm0-12.737v.001Zm.102-.102h-.001Z"[39m
+                  [33mfill-rule[39m=[32m"evenodd"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</a>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-sm text-muted-foreground tabular-nums"[39m
+            [36m>[39m
+              [0m1[0m
+              [0m of [0m
+              [0m3[0m
+              [0m kudos left today · Refills at [0m
+              [36m<time[39m
+                [33mdatetime[39m=[32m"2026-10-14T00:00:00.000Z"[39m
+              [36m>[39m
+                [0m12:00 AM[0m
+              [36m</time>[39m
+            [36m</p>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"border-t pt-4"[39m
+          [36m>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"flex items-center gap-3 text-sm"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"shrink-0"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mviewBox[39m=[32m"0 0 1000 1000"[39m
+                [33mwidth[39m=[32m"40"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M727.4 890.65v-.16q0-.13-.03-.24l.02.24v.43c0-.14 0-.27.02-.29zm8.68 1.12c0 3.55-1.32 6.97-2.97 9.93-2.1 3.72-5.23 6.63-8.34 9.25a64 64 0 0 1-8.3 5.6c-3 1.8-6.16 3.28-9.3 4.75a161 161 0 0 1-9.65 4.01 217 217 0 0 1-19.56 6.39 440 440 0 0 1-40.07 9.12c-26.2 4.8-52.64 7.98-79.11 10.2q-40.7 3.4-81.5 4.22-17.27.35-34.55.36-23.89.02-47.75-.81c-27.41-.98-54.8-2.49-82.15-4.9-27.01-2.4-54-5.5-80.82-9.9a807 807 0 0 1-40.5-7.6 461 461 0 0 1-38.1-9.73q-10.03-3.08-19.92-6.76-4.81-1.78-9.54-3.91c-3.04-1.4-6.08-2.76-9.04-4.34-3.28-1.76-6.5-3.62-9.63-5.68a64 64 0 0 1-8.22-6.55 30 30 0 0 1-6.24-8.07c-1.6-3.08-2.7-6.67-2.58-10.27.12-3.04.87-5.82 2.13-8.5a28 28 0 0 1 3.8-5.7c2.12-2.57 4.72-4.66 7.3-6.63 1.43-1.08 2.94-2.02 4.44-2.96a71 71 0 0 1 4.46-2.58c6.2-3.28 12.6-5.98 19.14-8.35 12.48-4.55 25.35-7.94 38.24-10.76a585 585 0 0 1 32.17-6.09h.1l1.24-.22q.12 0 .23-.03a796 796 0 0 1 35.31-4.78l.9-.1.22-.03.54-.05a970 970 0 0 1 35.55-3.35c27.42-2.08 54.87-3.28 82.34-3.7l3.63-.05c14.15-.24 28.32-.15 42.48.03q19.93.25 39.86 1.11 41.18 1.73 82.23 5.65 20.37 1.97 40.67 4.7a954 954 0 0 1 40.84 6.3 700 700 0 0 1 41.08 8.55 374 374 0 0 1 38.96 11.44 222 222 0 0 1 19.68 8.14c2.97 1.4 5.87 3 8.74 4.65 1.38.8 2.75 1.69 4.1 2.57 1.45.97 2.92 1.93 4.28 3.05a100 100 0 0 1 4.33 3.74 35 35 0 0 1 3.43 3.78 25.5 25.5 0 0 1 4.96 9.91c.33 1.65.46 3.25.46 4.93z"[39m
+                  [33mfill[39m=[32m"#320601"[39m
+                  [33mfill-opa...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ thankInSlack src/HomePage.test.tsx:18:25
+     16|
+     17| function thankInSlack() {
+     18|   return within(main()).getByRole("link", { name: "Thank someone in Sl…
+       |                         ^
+     19| }
+     20|
+ ❯ src/HomePage.test.tsx:37:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS17: the home leads with thanking, then the allowance and the counters > puts the kudos left out of the base and the refill in one quiet line after the action
+TestingLibraryElementError: Unable to find an accessible element with the role "link" and name "Thank someone in Slack (opens in a new tab)"
+
+Here are the accessible roles:
+
+  region:
+
+  Name "Thank someone for work you noticed":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"home-title"[39m
+    [33mclass[39m=[32m"hud-panel relative flex flex-col gap-5 rounded-xl border bg-card p-6"[39m
+  [36m/>[39m
+
+  Name "Your profile card":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"profile-card-title"[39m
+  [36m/>[39m
+
+  Name "Still locked":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"still-locked-title"[39m
+    [33mclass[39m=[32m"flex flex-col gap-3"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "Thank someone for work you noticed":
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display text-2xl font-bold tracking-tight outline-none"[39m
+    [33mid[39m=[32m"home-title"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Your profile card":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"profile-card-title"[39m
+  [36m/>[39m
+
+  Name "Still locked":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"still-locked-title"[39m
+  [36m/>[39m
+
+  Name "Quests":
+  [36m<h3[39m
+    [33mclass[39m=[32m"text-sm font-medium"[39m
+  [36m/>[39m
+
+  Name "Leaderboard":
+  [36m<h3[39m
+    [33mclass[39m=[32m"text-sm font-medium"[39m
+  [36m/>[39m
+
+  Name "Sticker book and achievements":
+  [36m<h3[39m
+    [33mclass[39m=[32m"text-sm font-medium"[39m
+  [36m/>[39m
+
+  Name "Skill tree":
+  [36m<h3[39m
+    [33mclass[39m=[32m"text-sm font-medium"[39m
+  [36m/>[39m
+
+  Name "Coins":
+  [36m<h3[39m
+    [33mclass[39m=[32m"text-sm font-medium"[39m
+  [36m/>[39m
+
+  Name "Hedgehogs":
+  [36m<h3[39m
+    [33mclass[39m=[32m"text-sm font-medium"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-sm text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-sm text-muted-foreground tabular-nums"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"flex items-center gap-3 text-sm"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  link:
+
+  Name "Thank someone in Slack":
+  [36m<a[39m
+    [33mclass[39m=[32m"quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-lg"[39m
+    [33mhref[39m=[32m"https://app.slack.com/client/T1"[39m
+    [33mrel[39m=[32m"noreferrer"[39m
+    [33mtarget[39m=[32m"_blank"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  time:
+
+  Name "":
+  [36m<time[39m
+    [33mdatetime[39m=[32m"2026-10-14T00:00:00.000Z"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  table:
+
+  Name "Your kudos":
+  [36m<table[39m
+    [33mclass[39m=[32m"w-full text-sm tabular-nums"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  caption:
+
+  Name "Your kudos":
+  [36m<caption[39m
+    [33mclass[39m=[32m"hud-label pb-2 text-left"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  rowgroup:
+
+  Name "":
+  [36m<thead />[39m
+
+  Name "":
+  [36m<tbody />[39m
+
+  --------------------------------------------------
+  row:
+
+  Name "This week In total":
+  [36m<tr[39m
+    [33mclass[39m=[32m"text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "Given 2 14":
+  [36m<tr[39m
+    [33mclass[39m=[32m"border-t"[39m
+  [36m/>[39m
+
+  Name "Received 1 9":
+  [36m<tr[39m
+    [33mclass[39m=[32m"border-t"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  cell:
+
+  Name "":
+  [36m<td />[39m
+
+  Name "2":
+  [36m<td[39m
+    [33mclass[39m=[32m"py-2 text-right"[39m
+  [36m/>[39m
+
+  Name "14":
+  [36m<td[39m
+    [33mclass[39m=[32m"py-2 text-right"[39m
+  [36m/>[39m
+
+  Name "1":
+  [36m<td[39m
+    [33mclass[39m=[32m"py-2 text-right"[39m
+  [36m/>[39m
+
+  Name "9":
+  [36m<td[39m
+    [33mclass[39m=[32m"py-2 text-right"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  columnheader:
+
+  Name "This week":
+  [36m<th[39m
+    [33mclass[39m=[32m"pb-1 text-right font-medium"[39m
+    [33mscope[39m=[32m"col"[39m
+  [36m/>[39m
+
+  Name "In total":
+  [36m<th[39m
+    [33mclass[39m=[32m"pb-1 text-right font-medium"[39m
+    [33mscope[39m=[32m"col"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  rowheader:
+
+  Name "Given":
+  [36m<th[39m
+    [33mclass[39m=[32m"py-2 text-left font-medium"[39m
+    [33mscope[39m=[32m"row"[39m
+  [36m/>[39m
+
+  Name "Received":
+  [36m<th[39m
+    [33mclass[39m=[32m"py-2 text-left font-medium"[39m
+    [33mscope[39m=[32m"row"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  article:
+
+  Name "":
+  [36m<article />[39m
+
+  Name "":
+  [36m<article />[39m
+
+  Name "":
+  [36m<article />[39m
+
+  Name "":
+  [36m<article />[39m
+
+  Name "":
+  [36m<article />[39m
+
+  Name "":
+  [36m<article />[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<div[39m
+    [33mclass[39m=[32m"flex flex-col gap-6"[39m
+  [36m>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-w-0 flex-col gap-6"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-labelledby[39m=[32m"home-title"[39m
+          [33mclass[39m=[32m"hud-panel relative flex flex-col gap-5 rounded-xl border bg-card p-6"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-3"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"inline-flex shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground size-12"[39m
+            [36m>[39m
+              [0mSE[0m
+            [36m</span>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"font-medium"[39m
+            [36m>[39m
+              [0mSam Example[0m
+            [36m</span>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex flex-col gap-2"[39m
+          [36m>[39m
+            [36m<h1[39m
+              [33mclass[39m=[32m"hud-display text-2xl font-bold tracking-tight outline-none"[39m
+              [33mid[39m=[32m"home-title"[39m
+              [33mtabindex[39m=[32m"-1"[39m
+            [36m>[39m
+              [0mThank someone for work you noticed[0m
+            [36m</h1>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-sm text-muted-foreground"[39m
+            [36m>[39m
+              [0mMention them in a Slack message with :[0m
+              [0mtaco[0m
+              [0m: and say what they did.[0m
+            [36m</p>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex flex-col items-start gap-2"[39m
+          [36m>[39m
+            [36m<a[39m
+              [33mclass[39m=[32m"quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-lg"[39m
+              [33mhref[39m=[32m"https://app.slack.com/client/T1"[39m
+              [33mrel[39m=[32m"noreferrer"[39m
+              [33mtarget[39m=[32m"_blank"[39m
+            [36m>[39m
+              [0mThank someone in Slack[0m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"LemonIcon size-4"[39m
+                [33mfill[39m=[32m"currentColor"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"100%"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33mclip-rule[39m=[32m"evenodd"[39m
+                  [33md[39m=[32m"M13 3.75a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 .75.75v6.5a.75.75 0 0 1-1.5 0V5.56l-7.97 7.97a.75.75 0 1 1-1.06-1.06l7.97-7.97h-4.69a.75.75 0 0 1-.75-.75ZM5.324 5H9.25a.75.75 0 1 1 0 1.5h-3.9c-.292 0-.467 0-.596.011a.628.628 0 0 0-.12.018.25.25 0 0 0-.105.104.626.626 0 0 0-.018.121c-.01.13-.011.304-.011.596v11.3c0 .292 0 .467.011.596a.625.625 0 0 0 .018.12.25.25 0 0 0 .104.105.638.638 0 0 0 .121.018c.13.01.304.011.596.011h11.3c.292 0 .467 0 .596-.011a.636.636 0 0 0 .12-.018.25.25 0 0 0 .105-.105.636.636 0 0 0 .018-.12c.01-.13.011-.304.011-.596V14a.75.75 0 0 1 1.5 0v4.676c0 .258 0 .494-.016.692a1.775 1.775 0 0 1-.175.677 1.75 1.75 0 0 1-.765.764c-.23.118-.463.157-.676.175-.198.016-.434.016-.692.016H5.324c-.258 0-.494 0-.692-.016a1.775 1.775 0 0 1-.676-.175 1.75 1.75 0 0 1-.765-.765 1.774 1.774 0 0 1-.175-.676A9.053 9.053 0 0 1 3 18.676V7.324c0-.258 0-.494.016-.692.018-.213.057-.446.175-.676a1.75 1.75 0 0 1 .765-.765c.23-.118.463-.157.676-.175C4.83 5 5.066 5 5.324 5ZM17.47 19.37v-.002Zm-.1.1h-.003Zm-12.74 0h.002Zm-.1-.102a.02.02 0 0 1 0 .001Zm0-12.737v.001Zm.102-.102h-.001Z"[39m
+                  [33mfill-rule[39m=[32m"evenodd"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</a>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-sm text-muted-foreground tabular-nums"[39m
+            [36m>[39m
+              [0m1[0m
+              [0m of [0m
+              [0m3[0m
+              [0m kudos left today · Refills at [0m
+              [36m<time[39m
+                [33mdatetime[39m=[32m"2026-10-14T00:00:00.000Z"[39m
+              [36m>[39m
+                [0m12:00 AM[0m
+              [36m</time>[39m
+            [36m</p>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"border-t pt-4"[39m
+          [36m>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"flex items-center gap-3 text-sm"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"shrink-0"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mviewBox[39m=[32m"0 0 1000 1000"[39m
+                [33mwidth[39m=[32m"40"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M727.4 890.65v-.16q0-.13-.03-.24l.02.24v.43c0-.14 0-.27.02-.29zm8.68 1.12c0 3.55-1.32 6.97-2.97 9.93-2.1 3.72-5.23 6.63-8.34 9.25a64 64 0 0 1-8.3 5.6c-3 1.8-6.16 3.28-9.3 4.75a161 161 0 0 1-9.65 4.01 217 217 0 0 1-19.56 6.39 440 440 0 0 1-40.07 9.12c-26.2 4.8-52.64 7.98-79.11 10.2q-40.7 3.4-81.5 4.22-17.27.35-34.55.36-23.89.02-47.75-.81c-27.41-.98-54.8-2.49-82.15-4.9-27.01-2.4-54-5.5-80.82-9.9a807 807 0 0 1-40.5-7.6 461 461 0 0 1-38.1-9.73q-10.03-3.08-19.92-6.76-4.81-1.78-9.54-3.91c-3.04-1.4-6.08-2.76-9.04-4.34-3.28-1.76-6.5-3.62-9.63-5.68a64 64 0 0 1-8.22-6.55 30 30 0 0 1-6.24-8.07c-1.6-3.08-2.7-6.67-2.58-10.27.12-3.04.87-5.82 2.13-8.5a28 28 0 0 1 3.8-5.7c2.12-2.57 4.72-4.66 7.3-6.63 1.43-1.08 2.94-2.02 4.44-2.96a71 71 0 0 1 4.46-2.58c6.2-3.28 12.6-5.98 19.14-8.35 12.48-4.55 25.35-7.94 38.24-10.76a585 585 0 0 1 32.17-6.09h.1l1.24-.22q.12 0 .23-.03a796 796 0 0 1 35.31-4.78l.9-.1.22-.03.54-.05a970 970 0 0 1 35.55-3.35c27.42-2.08 54.87-3.28 82.34-3.7l3.63-.05c14.15-.24 28.32-.15 42.48.03q19.93.25 39.86 1.11 41.18 1.73 82.23 5.65 20.37 1.97 40.67 4.7a954 954 0 0 1 40.84 6.3 700 700 0 0 1 41.08 8.55 374 374 0 0 1 38.96 11.44 222 222 0 0 1 19.68 8.14c2.97 1.4 5.87 3 8.74 4.65 1.38.8 2.75 1.69 4.1 2.57 1.45.97 2.92 1.93 4.28 3.05a100 100 0 0 1 4.33 3.74 35 35 0 0 1 3.43 3.78 25.5 25.5 0 0 1 4.96 9.91c.33 1.65.46 3.25.46 4.93z"[39m
+                  [33mfill[39m=[32m"#320601"[39m
+                  [33mfill-opa...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ thankInSlack src/HomePage.test.tsx:18:25
+     16|
+     17| function thankInSlack() {
+     18|   return within(main()).getByRole("link", { name: "Thank someone in Sl…
+       |                         ^
+     19| }
+     20|
+ ❯ src/HomePage.test.tsx:48:24
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS17: the home leads with thanking, then the allowance and the counters > follows with the counters, this week and in total, given and received, in tabular figures
+TestingLibraryElementError: Unable to find an accessible element with the role "link" and name "Thank someone in Slack (opens in a new tab)"
+
+Here are the accessible roles:
+
+  region:
+
+  Name "Thank someone for work you noticed":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"home-title"[39m
+    [33mclass[39m=[32m"hud-panel relative flex flex-col gap-5 rounded-xl border bg-card p-6"[39m
+  [36m/>[39m
+
+  Name "Your profile card":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"profile-card-title"[39m
+  [36m/>[39m
+
+  Name "Still locked":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"still-locked-title"[39m
+    [33mclass[39m=[32m"flex flex-col gap-3"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "Thank someone for work you noticed":
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display text-2xl font-bold tracking-tight outline-none"[39m
+    [33mid[39m=[32m"home-title"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Your profile card":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"profile-card-title"[39m
+  [36m/>[39m
+
+  Name "Still locked":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"still-locked-title"[39m
+  [36m/>[39m
+
+  Name "Quests":
+  [36m<h3[39m
+    [33mclass[39m=[32m"text-sm font-medium"[39m
+  [36m/>[39m
+
+  Name "Leaderboard":
+  [36m<h3[39m
+    [33mclass[39m=[32m"text-sm font-medium"[39m
+  [36m/>[39m
+
+  Name "Sticker book and achievements":
+  [36m<h3[39m
+    [33mclass[39m=[32m"text-sm font-medium"[39m
+  [36m/>[39m
+
+  Name "Skill tree":
+  [36m<h3[39m
+    [33mclass[39m=[32m"text-sm font-medium"[39m
+  [36m/>[39m
+
+  Name "Coins":
+  [36m<h3[39m
+    [33mclass[39m=[32m"text-sm font-medium"[39m
+  [36m/>[39m
+
+  Name "Hedgehogs":
+  [36m<h3[39m
+    [33mclass[39m=[32m"text-sm font-medium"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-sm text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-sm text-muted-foreground tabular-nums"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"flex items-center gap-3 text-sm"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  link:
+
+  Name "Thank someone in Slack":
+  [36m<a[39m
+    [33mclass[39m=[32m"quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-lg"[39m
+    [33mhref[39m=[32m"https://app.slack.com/client/T1"[39m
+    [33mrel[39m=[32m"noreferrer"[39m
+    [33mtarget[39m=[32m"_blank"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  time:
+
+  Name "":
+  [36m<time[39m
+    [33mdatetime[39m=[32m"2026-10-14T00:00:00.000Z"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  table:
+
+  Name "Your kudos":
+  [36m<table[39m
+    [33mclass[39m=[32m"w-full text-sm tabular-nums"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  caption:
+
+  Name "Your kudos":
+  [36m<caption[39m
+    [33mclass[39m=[32m"hud-label pb-2 text-left"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  rowgroup:
+
+  Name "":
+  [36m<thead />[39m
+
+  Name "":
+  [36m<tbody />[39m
+
+  --------------------------------------------------
+  row:
+
+  Name "This week In total":
+  [36m<tr[39m
+    [33mclass[39m=[32m"text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "Given 2 14":
+  [36m<tr[39m
+    [33mclass[39m=[32m"border-t"[39m
+  [36m/>[39m
+
+  Name "Received 1 9":
+  [36m<tr[39m
+    [33mclass[39m=[32m"border-t"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  cell:
+
+  Name "":
+  [36m<td />[39m
+
+  Name "2":
+  [36m<td[39m
+    [33mclass[39m=[32m"py-2 text-right"[39m
+  [36m/>[39m
+
+  Name "14":
+  [36m<td[39m
+    [33mclass[39m=[32m"py-2 text-right"[39m
+  [36m/>[39m
+
+  Name "1":
+  [36m<td[39m
+    [33mclass[39m=[32m"py-2 text-right"[39m
+  [36m/>[39m
+
+  Name "9":
+  [36m<td[39m
+    [33mclass[39m=[32m"py-2 text-right"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  columnheader:
+
+  Name "This week":
+  [36m<th[39m
+    [33mclass[39m=[32m"pb-1 text-right font-medium"[39m
+    [33mscope[39m=[32m"col"[39m
+  [36m/>[39m
+
+  Name "In total":
+  [36m<th[39m
+    [33mclass[39m=[32m"pb-1 text-right font-medium"[39m
+    [33mscope[39m=[32m"col"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  rowheader:
+
+  Name "Given":
+  [36m<th[39m
+    [33mclass[39m=[32m"py-2 text-left font-medium"[39m
+    [33mscope[39m=[32m"row"[39m
+  [36m/>[39m
+
+  Name "Received":
+  [36m<th[39m
+    [33mclass[39m=[32m"py-2 text-left font-medium"[39m
+    [33mscope[39m=[32m"row"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  article:
+
+  Name "":
+  [36m<article />[39m
+
+  Name "":
+  [36m<article />[39m
+
+  Name "":
+  [36m<article />[39m
+
+  Name "":
+  [36m<article />[39m
+
+  Name "":
+  [36m<article />[39m
+
+  Name "":
+  [36m<article />[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<div[39m
+    [33mclass[39m=[32m"flex flex-col gap-6"[39m
+  [36m>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-w-0 flex-col gap-6"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-labelledby[39m=[32m"home-title"[39m
+          [33mclass[39m=[32m"hud-panel relative flex flex-col gap-5 rounded-xl border bg-card p-6"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-3"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"inline-flex shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground size-12"[39m
+            [36m>[39m
+              [0mSE[0m
+            [36m</span>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"font-medium"[39m
+            [36m>[39m
+              [0mSam Example[0m
+            [36m</span>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex flex-col gap-2"[39m
+          [36m>[39m
+            [36m<h1[39m
+              [33mclass[39m=[32m"hud-display text-2xl font-bold tracking-tight outline-none"[39m
+              [33mid[39m=[32m"home-title"[39m
+              [33mtabindex[39m=[32m"-1"[39m
+            [36m>[39m
+              [0mThank someone for work you noticed[0m
+            [36m</h1>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-sm text-muted-foreground"[39m
+            [36m>[39m
+              [0mMention them in a Slack message with :[0m
+              [0mtaco[0m
+              [0m: and say what they did.[0m
+            [36m</p>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex flex-col items-start gap-2"[39m
+          [36m>[39m
+            [36m<a[39m
+              [33mclass[39m=[32m"quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-lg"[39m
+              [33mhref[39m=[32m"https://app.slack.com/client/T1"[39m
+              [33mrel[39m=[32m"noreferrer"[39m
+              [33mtarget[39m=[32m"_blank"[39m
+            [36m>[39m
+              [0mThank someone in Slack[0m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"LemonIcon size-4"[39m
+                [33mfill[39m=[32m"currentColor"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"100%"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33mclip-rule[39m=[32m"evenodd"[39m
+                  [33md[39m=[32m"M13 3.75a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 .75.75v6.5a.75.75 0 0 1-1.5 0V5.56l-7.97 7.97a.75.75 0 1 1-1.06-1.06l7.97-7.97h-4.69a.75.75 0 0 1-.75-.75ZM5.324 5H9.25a.75.75 0 1 1 0 1.5h-3.9c-.292 0-.467 0-.596.011a.628.628 0 0 0-.12.018.25.25 0 0 0-.105.104.626.626 0 0 0-.018.121c-.01.13-.011.304-.011.596v11.3c0 .292 0 .467.011.596a.625.625 0 0 0 .018.12.25.25 0 0 0 .104.105.638.638 0 0 0 .121.018c.13.01.304.011.596.011h11.3c.292 0 .467 0 .596-.011a.636.636 0 0 0 .12-.018.25.25 0 0 0 .105-.105.636.636 0 0 0 .018-.12c.01-.13.011-.304.011-.596V14a.75.75 0 0 1 1.5 0v4.676c0 .258 0 .494-.016.692a1.775 1.775 0 0 1-.175.677 1.75 1.75 0 0 1-.765.764c-.23.118-.463.157-.676.175-.198.016-.434.016-.692.016H5.324c-.258 0-.494 0-.692-.016a1.775 1.775 0 0 1-.676-.175 1.75 1.75 0 0 1-.765-.765 1.774 1.774 0 0 1-.175-.676A9.053 9.053 0 0 1 3 18.676V7.324c0-.258 0-.494.016-.692.018-.213.057-.446.175-.676a1.75 1.75 0 0 1 .765-.765c.23-.118.463-.157.676-.175C4.83 5 5.066 5 5.324 5ZM17.47 19.37v-.002Zm-.1.1h-.003Zm-12.74 0h.002Zm-.1-.102a.02.02 0 0 1 0 .001Zm0-12.737v.001Zm.102-.102h-.001Z"[39m
+                  [33mfill-rule[39m=[32m"evenodd"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</a>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-sm text-muted-foreground tabular-nums"[39m
+            [36m>[39m
+              [0m1[0m
+              [0m of [0m
+              [0m3[0m
+              [0m kudos left today · Refills at [0m
+              [36m<time[39m
+                [33mdatetime[39m=[32m"2026-10-14T00:00:00.000Z"[39m
+              [36m>[39m
+                [0m12:00 AM[0m
+              [36m</time>[39m
+            [36m</p>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"border-t pt-4"[39m
+          [36m>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"flex items-center gap-3 text-sm"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"shrink-0"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mviewBox[39m=[32m"0 0 1000 1000"[39m
+                [33mwidth[39m=[32m"40"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M727.4 890.65v-.16q0-.13-.03-.24l.02.24v.43c0-.14 0-.27.02-.29zm8.68 1.12c0 3.55-1.32 6.97-2.97 9.93-2.1 3.72-5.23 6.63-8.34 9.25a64 64 0 0 1-8.3 5.6c-3 1.8-6.16 3.28-9.3 4.75a161 161 0 0 1-9.65 4.01 217 217 0 0 1-19.56 6.39 440 440 0 0 1-40.07 9.12c-26.2 4.8-52.64 7.98-79.11 10.2q-40.7 3.4-81.5 4.22-17.27.35-34.55.36-23.89.02-47.75-.81c-27.41-.98-54.8-2.49-82.15-4.9-27.01-2.4-54-5.5-80.82-9.9a807 807 0 0 1-40.5-7.6 461 461 0 0 1-38.1-9.73q-10.03-3.08-19.92-6.76-4.81-1.78-9.54-3.91c-3.04-1.4-6.08-2.76-9.04-4.34-3.28-1.76-6.5-3.62-9.63-5.68a64 64 0 0 1-8.22-6.55 30 30 0 0 1-6.24-8.07c-1.6-3.08-2.7-6.67-2.58-10.27.12-3.04.87-5.82 2.13-8.5a28 28 0 0 1 3.8-5.7c2.12-2.57 4.72-4.66 7.3-6.63 1.43-1.08 2.94-2.02 4.44-2.96a71 71 0 0 1 4.46-2.58c6.2-3.28 12.6-5.98 19.14-8.35 12.48-4.55 25.35-7.94 38.24-10.76a585 585 0 0 1 32.17-6.09h.1l1.24-.22q.12 0 .23-.03a796 796 0 0 1 35.31-4.78l.9-.1.22-.03.54-.05a970 970 0 0 1 35.55-3.35c27.42-2.08 54.87-3.28 82.34-3.7l3.63-.05c14.15-.24 28.32-.15 42.48.03q19.93.25 39.86 1.11 41.18 1.73 82.23 5.65 20.37 1.97 40.67 4.7a954 954 0 0 1 40.84 6.3 700 700 0 0 1 41.08 8.55 374 374 0 0 1 38.96 11.44 222 222 0 0 1 19.68 8.14c2.97 1.4 5.87 3 8.74 4.65 1.38.8 2.75 1.69 4.1 2.57 1.45.97 2.92 1.93 4.28 3.05a100 100 0 0 1 4.33 3.74 35 35 0 0 1 3.43 3.78 25.5 25.5 0 0 1 4.96 9.91c.33 1.65.46 3.25.46 4.93z"[39m
+                  [33mfill[39m=[32m"#320601"[39m
+                  [33mfill-opa...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ thankInSlack src/HomePage.test.tsx:18:25
+     16|
+     17| function thankInSlack() {
+     18|   return within(main()).getByRole("link", { name: "Thank someone in Sl…
+       |                         ^
+     19| }
+     20|
+ ❯ src/HomePage.test.tsx:62:24
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS20: a quiet week > has Max point back to thanking someone in Slack, with the one action and no reward
+TestingLibraryElementError: Unable to find an element with the text: No kudos yet this week, so thank someone in Slack for something they did.. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<div[39m
+    [33mclass[39m=[32m"flex flex-col gap-6"[39m
+  [36m>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-w-0 flex-col gap-6"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-labelledby[39m=[32m"home-title"[39m
+          [33mclass[39m=[32m"hud-panel relative flex flex-col gap-5 rounded-xl border bg-card p-6"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-3"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"inline-flex shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground size-12"[39m
+            [36m>[39m
+              [0mSE[0m
+            [36m</span>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"font-medium"[39m
+            [36m>[39m
+              [0mSam Example[0m
+            [36m</span>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex flex-col gap-2"[39m
+          [36m>[39m
+            [36m<h1[39m
+              [33mclass[39m=[32m"hud-display text-2xl font-bold tracking-tight outline-none"[39m
+              [33mid[39m=[32m"home-title"[39m
+              [33mtabindex[39m=[32m"-1"[39m
+            [36m>[39m
+              [0mThank someone for work you noticed[0m
+            [36m</h1>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-sm text-muted-foreground"[39m
+            [36m>[39m
+              [0mMention them in a Slack message with :[0m
+              [0mtaco[0m
+              [0m: and say what they did.[0m
+            [36m</p>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex flex-col items-start gap-2"[39m
+          [36m>[39m
+            [36m<a[39m
+              [33mclass[39m=[32m"quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-lg"[39m
+              [33mhref[39m=[32m"https://app.slack.com/client/T1"[39m
+              [33mrel[39m=[32m"noreferrer"[39m
+              [33mtarget[39m=[32m"_blank"[39m
+            [36m>[39m
+              [0mThank someone in Slack[0m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"LemonIcon size-4"[39m
+                [33mfill[39m=[32m"currentColor"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"100%"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33mclip-rule[39m=[32m"evenodd"[39m
+                  [33md[39m=[32m"M13 3.75a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 .75.75v6.5a.75.75 0 0 1-1.5 0V5.56l-7.97 7.97a.75.75 0 1 1-1.06-1.06l7.97-7.97h-4.69a.75.75 0 0 1-.75-.75ZM5.324 5H9.25a.75.75 0 1 1 0 1.5h-3.9c-.292 0-.467 0-.596.011a.628.628 0 0 0-.12.018.25.25 0 0 0-.105.104.626.626 0 0 0-.018.121c-.01.13-.011.304-.011.596v11.3c0 .292 0 .467.011.596a.625.625 0 0 0 .018.12.25.25 0 0 0 .104.105.638.638 0 0 0 .121.018c.13.01.304.011.596.011h11.3c.292 0 .467 0 .596-.011a.636.636 0 0 0 .12-.018.25.25 0 0 0 .105-.105.636.636 0 0 0 .018-.12c.01-.13.011-.304.011-.596V14a.75.75 0 0 1 1.5 0v4.676c0 .258 0 .494-.016.692a1.775 1.775 0 0 1-.175.677 1.75 1.75 0 0 1-.765.764c-.23.118-.463.157-.676.175-.198.016-.434.016-.692.016H5.324c-.258 0-.494 0-.692-.016a1.775 1.775 0 0 1-.676-.175 1.75 1.75 0 0 1-.765-.765 1.774 1.774 0 0 1-.175-.676A9.053 9.053 0 0 1 3 18.676V7.324c0-.258 0-.494.016-.692.018-.213.057-.446.175-.676a1.75 1.75 0 0 1 .765-.765c.23-.118.463-.157.676-.175C4.83 5 5.066 5 5.324 5ZM17.47 19.37v-.002Zm-.1.1h-.003Zm-12.74 0h.002Zm-.1-.102a.02.02 0 0 1 0 .001Zm0-12.737v.001Zm.102-.102h-.001Z"[39m
+                  [33mfill-rule[39m=[32m"evenodd"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</a>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-sm text-muted-foreground tabular-nums"[39m
+            [36m>[39m
+              [0m1[0m
+              [0m of [0m
+              [0m3[0m
+              [0m kudos left today · Refills at [0m
+              [36m<time[39m
+                [33mdatetime[39m=[32m"2026-10-14T00:00:00.000Z"[39m
+              [36m>[39m
+                [0m12:00 AM[0m
+              [36m</time>[39m
+            [36m</p>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"border-t pt-4"[39m
+          [36m>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"flex items-center gap-3 text-sm"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"shrink-0"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mviewBox[39m=[32m"0 0 1000 1000"[39m
+                [33mwidth[39m=[32m"40"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M727.4 890.65v-.16q0-.13-.03-.24l.02.24v.43c0-.14 0-.27.02-.29zm8.68 1.12c0 3.55-1.32 6.97-2.97 9.93-2.1 3.72-5.23 6.63-8.34 9.25a64 64 0 0 1-8.3 5.6c-3 1.8-6.16 3.28-9.3 4.75a161 161 0 0 1-9.65 4.01 217 217 0 0 1-19.56 6.39 440 440 0 0 1-40.07 9.12c-26.2 4.8-52.64 7.98-79.11 10.2q-40.7 3.4-81.5 4.22-17.27.35-34.55.36-23.89.02-47.75-.81c-27.41-.98-54.8-2.49-82.15-4.9-27.01-2.4-54-5.5-80.82-9.9a807 807 0 0 1-40.5-7.6 461 461 0 0 1-38.1-9.73q-10.03-3.08-19.92-6.76-4.81-1.78-9.54-3.91c-3.04-1.4-6.08-2.76-9.04-4.34-3.28-1.76-6.5-3.62-9.63-5.68a64 64 0 0 1-8.22-6.55 30 30 0 0 1-6.24-8.07c-1.6-3.08-2.7-6.67-2.58-10.27.12-3.04.87-5.82 2.13-8.5a28 28 0 0 1 3.8-5.7c2.12-2.57 4.72-4.66 7.3-6.63 1.43-1.08 2.94-2.02 4.44-2.96a71 71 0 0 1 4.46-2.58c6.2-3.28 12.6-5.98 19.14-8.35 12.48-4.55 25.35-7.94 38.24-10.76a585 585 0 0 1 32.17-6.09h.1l1.24-.22q.12 0 .23-.03a796 796 0 0 1 35.31-4.78l.9-.1.22-.03.54-.05a970 970 0 0 1 35.55-3.35c27.42-2.08 54.87-3.28 82.34-3.7l3.63-.05c14.15-.24 28.32-.15 42.48.03q19.93.25 39.86 1.11 41.18 1.73 82.23 5.65 20.37 1.97 40.67 4.7a954 954 0 0 1 40.84 6.3 700 700 0 0 1 41.08 8.55 374 374 0 0 1 38.96 11.44 222 222 0 0 1 19.68 8.14c2.97 1.4 5.87 3 8.74 4.65 1.38.8 2.75 1.69 4.1 2.57 1.45.97 2.92 1.93 4.28 3.05a100 100 0 0 1 4.33 3.74 35 35 0 0 1 3.43 3.78 25.5 25.5 0 0 1 4.96 9.91c.33 1.65.46 3.25.46 4.93z"[39m
+                  [33mfill[39m=[32m"#320601"[39m
+                  [33mfill-opa...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/HomePage.test.tsx:115:27
+    113|   it("has Max point back to thanking someone in Slack, with the one ac…
+    114|     renderApp(shellFixtures.memberWithAQuietWeek);
+    115|     expect(within(main()).getByText("No kudos yet this week, so thank …
+       |                           ^
+    116|     expect(within(main()).queryByText(/This week you gave/)).not.toBeI…
+    117|     expect(within(main()).getAllByRole("link")).toEqual([thankInSlack(…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  7 failed | 20 passed (27)
+   Start at  21:55:43
+   Duration  4.65s (tests 52%, import 27%, environment 12%, transform 5%, setup 3%)
+

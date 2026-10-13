@@ -1,8 +1,8 @@
 import { Card, CardContent } from "@posthog/quill";
 import { MemberFace } from "../Face";
-import type { SignedInMember } from "../shell";
+import type { MemberProfile } from "../shell";
 
-export function ProfileCardPanel({ member }: { member: SignedInMember }) {
+export function ProfileCardPanel({ member }: { member: MemberProfile }) {
   return (
     <section aria-labelledby="profile-card-title">
       <Card size="sm">

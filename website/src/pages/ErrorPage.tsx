@@ -12,7 +12,7 @@ export function ErrorPage() {
         </Button>
       }
     >
-      Something broke on our side. Try again in a moment.
+      Something broke on our side, so try again in a moment.
     </MaxSays>
   );
 }

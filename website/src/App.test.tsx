@@ -16,6 +16,21 @@ function pageTitle() {
   return screen.getByRole("heading", { level: 1 });
 }
 
+describe("WS3 WS20: Max says one sentence on the closed, not-a-member, unverified, not-found and error pages", () => {
+  it.each([
+    { page: "closed", path: "/", visitor: shellFixtures.closed },
+    { page: "not-a-member", path: "/", visitor: shellFixtures.notAMember },
+    { page: "unverified", path: "/", visitor: shellFixtures.unverified },
+    { page: "not-found", path: "/missing", visitor: shellFixtures.signedOut },
+    { page: "error", path: "/", visitor: shellFixtures.error },
+  ])("the $page page", ({ path, visitor }) => {
+    visit(path);
+    renderApp(visitor);
+    const maxSays = pageTitle().nextElementSibling?.textContent ?? "";
+    expect(maxSays.match(/[.!?](\s|$)/g)).toHaveLength(1);
+  });
+});
+
 describe("WS1 WS3 WS16 WS20: the shell renders each page from its visitor state", () => {
   it("shows the closed page on every path while the site is closed, with no sign-in button", () => {
     for (const path of ["/", "/anything"]) {

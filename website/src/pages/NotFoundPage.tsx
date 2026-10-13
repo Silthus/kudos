@@ -11,7 +11,7 @@ export function NotFoundPage() {
         </a>
       }
     >
-      There's nothing here. Let's head back home.
+      There's nothing here, so let's head back home.
     </MaxSays>
   );
 }

@@ -1,8 +1,6 @@
 import type { MemberProfile, MyProfile } from "../../convex/website/profile";
 
-export type { Face } from "../../convex/website/profile";
-
-export type SignedInMember = MemberProfile;
+export type { Face, MemberProfile } from "../../convex/website/profile";
 
 export type Visitor = MyProfile | { kind: "loading" } | { kind: "sign-in-unfinished" };
 
@@ -10,7 +8,7 @@ export type ShellState = Visitor | { kind: "broken" };
 
 export type ShellActions = { signIn(): void; signOut(): void };
 
-const member: SignedInMember = {
+const member: MemberProfile = {
   kind: "member",
   name: "Sam Example",
   face: { kind: "initials", initials: "SE" },
@@ -21,7 +19,7 @@ const member: SignedInMember = {
   chatUrl: "https://app.slack.com/client/T1",
 };
 
-const memberWithAQuietWeek: SignedInMember = { ...member, thisWeek: { given: 0, received: 0 } };
+const memberWithAQuietWeek: MemberProfile = { ...member, thisWeek: { given: 0, received: 0 } };
 
 export const shellFixtures = {
   loading: { kind: "loading" },

@@ -12,7 +12,7 @@ export function SignInUnfinishedPage({ onSignIn }: { onSignIn: () => void }) {
         </Button>
       }
     >
-      Slack sent you back before you were signed in, so let's give it another go.
+      You came back from Slack without being signed in, and only members of this Slack workspace can sign in.
     </MaxSays>
   );
 }

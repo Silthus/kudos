@@ -1,8 +1,8 @@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@posthog/quill";
 import { MemberFace } from "./Face";
-import type { SignedInMember } from "./shell";
+import type { MemberProfile } from "./shell";
 
-export function AccountMenu({ member, onSignOut }: { member: SignedInMember; onSignOut: () => void }) {
+export function AccountMenu({ member, onSignOut }: { member: MemberProfile; onSignOut: () => void }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger aria-label={`Account menu for ${member.name ?? "you"}`} className="rounded-full">

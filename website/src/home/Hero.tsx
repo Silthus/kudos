@@ -3,9 +3,9 @@ import { buttonVariants } from "@posthog/quill";
 import { MemberFace } from "../Face";
 import { MaxLine } from "../Max";
 import { PageTitle } from "../PageTitle";
-import type { SignedInMember } from "../shell";
+import type { MemberProfile } from "../shell";
 
-export function Hero({ member }: { member: SignedInMember }) {
+export function Hero({ member }: { member: MemberProfile }) {
   return (
     <section aria-labelledby="home-title" className="hud-panel relative flex flex-col gap-5 rounded-xl border bg-card p-6">
       <div className="flex items-center gap-3">
@@ -20,7 +20,8 @@ export function Hero({ member }: { member: SignedInMember }) {
       </div>
       <div className="flex flex-col items-start gap-2">
         <a href={member.chatUrl} target="_blank" rel="noreferrer" className={buttonVariants({ variant: "primary", size: "lg" })}>
-          Thank someone in Slack
+          Thank someone in Slack{" "}
+          <span className="sr-only">(opens in a new tab)</span>
           <IconExternal aria-hidden="true" className="size-4" />
         </a>
         <AllowanceLine allowance={member.allowance} />
@@ -32,7 +33,7 @@ export function Hero({ member }: { member: SignedInMember }) {
   );
 }
 
-function AllowanceLine({ allowance: { left, base, refillsAt } }: { allowance: SignedInMember["allowance"] }) {
+function AllowanceLine({ allowance: { left, base, refillsAt } }: { allowance: MemberProfile["allowance"] }) {
   const refill = new Date(refillsAt);
   return (
     <p className="text-sm text-muted-foreground tabular-nums">
@@ -41,7 +42,7 @@ function AllowanceLine({ allowance: { left, base, refillsAt } }: { allowance: Si
   );
 }
 
-function weekInWords({ given, received }: SignedInMember["thisWeek"]) {
-  if (given === 0 && received === 0) return "No kudos yet this week. Thank someone in Slack for something they did.";
+function weekInWords({ given, received }: MemberProfile["thisWeek"]) {
+  if (given === 0 && received === 0) return "No kudos yet this week, so thank someone in Slack for something they did.";
   return `This week you gave ${given} kudos and received ${received}.`;
 }
