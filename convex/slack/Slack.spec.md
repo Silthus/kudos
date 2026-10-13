@@ -46,6 +46,7 @@ The Slack adapter, the only code that knows Slack: it verifies and acknowledges 
   over: indicator deliveries whose reactions.add or reactions.remove answers an error, an HTTP 5xx or a timeout, a timed-out add that landed, a removal Slack already made, and a desired indicator that changes while a delivery is retrying
   via: R32 R35: the indicator is retried until the message shows it
   because: the indicator is desired state (R32): a giver reads the reaction as the outcome, so a lost or stale reaction would say Given for a message that is Over allowance, or say nothing at all
+  refuted: reconcileIndicator in convex/slack/delivery.ts never removes the app's earlier reactions -> 3 of 6 cases failed: the landed timed-out add, the latest indicator after a failed removal, and no_reaction counting as removed (2026-10-13)
   kinds: message
   checklist: destination-confinement dismissed: every delivery goes to the Slack Web API at one configured base URL, with no redirect followed and no destination taken from input
   checklist: message-authenticity dismissed: deliveries are outbound; the inbound message they answer is verified by signed Slack requests only
@@ -59,6 +60,7 @@ The Slack adapter, the only code that knows Slack: it verifies and acknowledges 
   over: chat.postEphemeral answering an error, an HTTP 5xx, a 429 with Retry-After or a timeout after the reply landed, every time and twice before a success
   via: R35: a private reply is tried at most 3 times
   because: an ephemeral cannot be read back or deleted, so every retry risks a duplicate the giver sees; 3 tries bounds that worst case while a passing Slack failure still reaches the giver (R35, D3)
+  refuted: deliverPrivateReply in convex/slack/delivery.ts allowed 4 attempts instead of 3 -> the 4 always-failing cases sent 4 replies (2026-10-13)
   kinds: message
   checklist: destination-confinement dismissed: every delivery goes to the Slack Web API at one configured base URL, with no redirect followed and no destination taken from input
   checklist: message-authenticity dismissed: deliveries are outbound; the inbound message they answer is verified by signed Slack requests only
@@ -72,6 +74,7 @@ The Slack adapter, the only code that knows Slack: it verifies and acknowledges 
   over: reactions.add and chat.postEphemeral answering message_not_found, channel_not_found and not_in_channel
   via: R35: a delivery whose message or channel is gone stops for good
   because: retrying a deleted message or a channel the app left can never succeed and only burns Slack's rate limit for the deliveries that can; the kudos were given when the message was evaluated, so feedback failing must not take them back (R34, R35)
+  refuted: attemptCall in convex/slack/delivery.ts no longer classified message_not_found, channel_not_found and not_in_channel as gone -> all 6 cases retried and failed on their one-call assertion (2026-10-13)
   kinds: message
   checklist: destination-confinement dismissed: every delivery goes to the Slack Web API at one configured base URL, with no redirect followed and no destination taken from input
   checklist: message-authenticity dismissed: deliveries are outbound; the inbound message they answer is verified by signed Slack requests only
