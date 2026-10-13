@@ -1,5 +1,4 @@
-// PROTOTYPE: hedgehogs as a collectable avatar (an idea from round 4, not in the progression spec yet).
-// Facts are mocked; the equipped hedgehog lives in a tiny in-memory store shared by every E screen.
+// PROTOTYPE: hedgehogs as a collectable avatar, and the one in-memory gear store every E screen shares: hedgehog, title, quips, kudos emoji and coins.
 import { useSyncExternalStore, type ComponentType } from "react";
 import {
   HedgehogAngel,
@@ -15,7 +14,9 @@ import {
   HedgehogSuperhero,
   HedgehogWizard,
 } from "@posthog/brand/hoggies";
+import { me } from "../../data/mock";
 import type { Rarity } from "../../data/types";
+import { gear, gearById, gearIdFor, slotCount, type GearKind } from "./gear-items";
 
 export type HogSource =
   | { kind: "starter" }
@@ -63,8 +64,19 @@ export function sourceLabel(source: HogSource): string {
   }
 }
 
-let equippedId = "hog-superhero";
-const owned = new Set(hedgehogs.filter((h) => h.owned).map((h) => h.id));
+export type SlotKind = GearKind | "hedgehog";
+
+export type SlotRef = { kind: SlotKind; index: number };
+
+const filled = (kind: GearKind, seeds: string[]) => Array.from({ length: slotCount[kind] }, (_, i) => (seeds[i] ? (gearIdFor(kind, seeds[i]) ?? null) : null));
+
+const state = {
+  hogId: "hog-superhero",
+  coins: me.coins,
+  owned: new Set([...hedgehogs.filter((h) => h.owned).map((h) => h.id), ...gear.filter((g) => g.owned).map((g) => g.id)]),
+  slots: { title: filled("title", [me.loadout.title]), quip: filled("quip", me.loadout.quips), emoji: filled("emoji", me.loadout.emoji) } as Record<GearKind, (string | null)[]>,
+};
+
 const listeners = new Set<() => void>();
 let version = 0;
 const emit = () => {
@@ -76,20 +88,61 @@ const subscribe = (l: () => void) => {
   return () => listeners.delete(l);
 };
 
-export function useHogs() {
+const hogById = (id: string) => hedgehogs.find((h) => h.id === id);
+
+function equipHog(id: string) {
+  if (!state.owned.has(id) || !hogById(id)) return;
+  state.hogId = id;
+  emit();
+}
+
+function equipGear(kind: GearKind, index: number, id: string) {
+  if (!state.owned.has(id) || gearById(id)?.kind !== kind) return;
+  const slots = [...state.slots[kind]];
+  const from = slots.indexOf(id);
+  if (from >= 0) slots[from] = slots[index];
+  slots[index] = id;
+  state.slots = { ...state.slots, [kind]: slots };
+  emit();
+}
+
+function unequip(kind: GearKind, index: number) {
+  if (kind === "title") return;
+  state.slots = { ...state.slots, [kind]: state.slots[kind].map((id, i) => (i === index ? null : id)) };
+  emit();
+}
+
+const priceOf = (id: string) => {
+  const hog = hogById(id);
+  if (hog) return hog.source.kind === "store" ? hog.source.price : undefined;
+  return gearById(id)?.price;
+};
+
+function buy(id: string) {
+  const price = priceOf(id);
+  if (price === undefined || state.owned.has(id) || price > state.coins) return;
+  state.coins -= price;
+  state.owned.add(id);
+  emit();
+}
+
+export function useGear() {
   useSyncExternalStore(subscribe, () => version);
-  const equipped = hedgehogs.find((h) => h.id === equippedId) ?? hedgehogs[0];
   return {
-    equipped,
-    isOwned: (id: string) => owned.has(id),
-    equip: (id: string) => {
-      if (!owned.has(id)) return;
-      equippedId = id;
-      emit();
-    },
-    buy: (id: string) => {
-      owned.add(id);
-      emit();
-    },
+    hog: hogById(state.hogId) ?? hedgehogs[0],
+    coins: state.coins,
+    slots: state.slots,
+    isOwned: (id: string) => state.owned.has(id),
+    isEquipped: (id: string) => state.hogId === id || Object.values(state.slots).some((s) => s.includes(id)),
+    itemIn: (kind: GearKind, index: number) => gearById(state.slots[kind][index] ?? ""),
+    equipHog,
+    equipGear,
+    unequip,
+    buy,
   };
+}
+
+export function useHogs() {
+  const g = useGear();
+  return { equipped: g.hog, isOwned: g.isOwned, equip: g.equipHog, buy: g.buy, coins: g.coins };
 }

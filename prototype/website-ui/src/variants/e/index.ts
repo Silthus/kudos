@@ -1,4 +1,5 @@
 import type { Variant } from "../types";
+import { Book } from "./Book";
 import { Collection } from "./Collection";
 import { Frame } from "./Frame";
 import { Leaderboard } from "./Leaderboard";
@@ -9,7 +10,7 @@ import { Skills } from "./Skills";
 export const variant: Variant = {
   key: "E",
   name: "Combined",
-  tagline: "Round 4: the locked-in mix",
+  tagline: "Round 5: three deep trees, one book, gear on the profile",
   Layout: Frame,
-  screens: { profile: Profile, skills: Skills, leaderboard: Leaderboard, collection: Collection, landing: Moments },
+  screens: { profile: Profile, skills: Skills, stickers: Book, achievements: Book, leaderboard: Leaderboard, collection: Collection, landing: Moments },
 };

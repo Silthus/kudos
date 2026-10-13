@@ -32,7 +32,7 @@ const goTo = (shell: Shell, screen: ScreenId, param?: string): Outcome => {
 };
 
 export const commands: Command[] = [
-  { name: "profile", aliases: ["whoami", "me", "home"], usage: "profile", blurb: "Your character sheet", Icon: IconUser, run: (_args, shell) => goTo(shell, "profile") },
+  { name: "profile", aliases: ["whoami", "me", "home", "gear", "loadout", "equip", "inventory"], usage: "profile", blurb: "Your character sheet and gear", Icon: IconUser, run: (_args, shell) => goTo(shell, "profile") },
   { name: "skills", aliases: ["perks", "tree"], usage: "skills [perk]", blurb: "21 perks, 9 branches, zero refunds", Icon: IconListTree, run: (args, shell) => goTo(shell, "skills", wordsOf(args)[0]?.toLowerCase()) },
   {
     name: "lb",
@@ -48,7 +48,7 @@ export const commands: Command[] = [
   },
   { name: "stickers", aliases: ["album"], usage: "stickers", blurb: "The faces you've thanked", Icon: IconBook, run: (_args, shell) => goTo(shell, "stickers") },
   { name: "achievements", aliases: ["ladders"], usage: "achievements", blurb: "12 ladders, 4 tiers. Tiers are not rarities", Icon: IconRibbon, run: (_args, shell) => goTo(shell, "achievements") },
-  { name: "collection", aliases: ["hogs", "hedgehogs", "cosmetics", "loadout"], usage: "collection", blurb: "Hedgehogs, cards, titles, quips and emoji", Icon: IconPalette, run: (_args, shell) => goTo(shell, "collection") },
+  { name: "collection", aliases: ["hogs", "hedgehogs", "cosmetics", "store"], usage: "collection", blurb: "Hedgehogs, titles, quips and emoji", Icon: IconPalette, run: (_args, shell) => goTo(shell, "collection") },
   {
     name: "theme",
     aliases: ["dark", "light"],

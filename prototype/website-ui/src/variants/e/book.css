@@ -1,0 +1,58 @@
+/* Variant E book: warm album paper, a spine on wide screens, die-cut stickers, printed empty slots, photo corners and the rubber stamp. */
+.bk-paper {
+  position: relative;
+  background-color: color-mix(in oklab, var(--card) 93%, var(--warning-foreground) 7%);
+  background-image: radial-gradient(circle at 1px 1px, color-mix(in oklab, var(--foreground) 5%, transparent) 1px, transparent 1.3px);
+  background-size: 7px 7px;
+}
+.dark .bk-paper { background-color: color-mix(in oklab, var(--card) 94%, var(--warning-foreground) 6%); }
+
+.bk-book {
+  border-radius: 14px;
+  box-shadow:
+    0 1px 0 var(--border),
+    0 3px 0 -1px color-mix(in oklab, var(--card) 96%, var(--foreground) 4%),
+    0 4px 0 -1px var(--border),
+    0 6px 0 -2px color-mix(in oklab, var(--card) 94%, var(--foreground) 6%),
+    0 7px 0 -2px var(--border),
+    0 22px 40px -24px color-mix(in oklab, var(--foreground) 40%, transparent);
+  outline: 1px solid var(--border);
+}
+.dark .bk-book { box-shadow: 0 1px 0 var(--border), 0 4px 0 -1px var(--border), 0 7px 0 -2px var(--border), 0 22px 40px -24px color-mix(in oklab, black 80%, transparent); }
+
+@media (min-width: 1024px) {
+  .bk-page-left { box-shadow: inset -28px 0 28px -26px color-mix(in oklab, var(--foreground) 30%, transparent); }
+  .bk-page-right { box-shadow: inset 28px 0 28px -26px color-mix(in oklab, var(--foreground) 30%, transparent); }
+  .bk-page-right::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 1px; background: color-mix(in oklab, var(--foreground) 14%, transparent); }
+  .dark .bk-page-left { box-shadow: inset -28px 0 28px -24px color-mix(in oklab, black 70%, transparent); }
+  .dark .bk-page-right { box-shadow: inset 28px 0 28px -24px color-mix(in oklab, black 70%, transparent); }
+  .dark .bk-page-right::before { background: color-mix(in oklab, black 60%, transparent); }
+}
+
+.bk-crest { clip-path: polygon(50% 0, 100% 13%, 100% 58%, 50% 100%, 0 58%, 0 13%); }
+
+.bk-print { background: white; box-shadow: 0 1px 2px color-mix(in oklab, var(--foreground) 22%, transparent), 0 10px 22px -14px color-mix(in oklab, var(--foreground) 45%, transparent); }
+.bk-corner { position: absolute; width: 18px; height: 18px; background: color-mix(in oklab, var(--foreground) 78%, var(--card)); }
+.bk-corner-tl { top: -4px; left: -4px; clip-path: polygon(0 0, 100% 0, 0 100%); }
+.bk-corner-tr { top: -4px; right: -4px; clip-path: polygon(0 0, 100% 0, 100% 100%); }
+.bk-corner-bl { bottom: -4px; left: -4px; clip-path: polygon(0 0, 0 100%, 100% 100%); }
+.bk-corner-br { bottom: -4px; right: -4px; clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+
+.bk-sticker { background: white; border-radius: 10px; padding: 5px; box-shadow: 0 1px 1.5px color-mix(in oklab, var(--foreground) 28%, transparent), 0 8px 16px -10px color-mix(in oklab, var(--foreground) 50%, transparent); transition: transform .18s ease, box-shadow .18s ease; }
+.bk-sheen::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(125deg, transparent 28%, color-mix(in oklab, white 42%, transparent) 42%, transparent 54%, transparent 70%, color-mix(in oklab, white 18%, transparent) 78%, transparent 86%); background-size: 220% 220%; background-position: 70% 0; transition: background-position .6s ease; }
+@media (hover: hover) {
+  .bk-sticker:hover { transform: translateY(-2px) rotate(0deg) !important; }
+  .bk-sticker:hover .bk-sheen::after { background-position: 10% 0; }
+}
+
+.bk-slot { border: 1.5px dashed color-mix(in oklab, var(--foreground) 26%, transparent); border-radius: 10px; background: color-mix(in oklab, var(--foreground) 3%, transparent); }
+
+.bk-stamp { color: var(--success-foreground); border: 3px double currentColor; border-radius: 8px; transform: rotate(-11deg); opacity: .88; mix-blend-mode: multiply; }
+.dark .bk-stamp { mix-blend-mode: screen; }
+
+.bk-bar-fill { background: color-mix(in oklab, var(--primary) 62%, var(--card)); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .bk-stamp-in { animation: bk-stamp .42s cubic-bezier(.2, .8, .2, 1.1) .25s both; }
+}
+@keyframes bk-stamp { from { opacity: 0; transform: rotate(-11deg) scale(1.7); } to { opacity: .88; transform: rotate(-11deg) scale(1); } }

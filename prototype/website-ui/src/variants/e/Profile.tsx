@@ -1,13 +1,13 @@
-// Variant E profile, from B: the character sheet with the equipped hedgehog, a Max line of facts, A's streak heatmap, loadout, effects and the public card.
-import { useState, type ReactNode } from "react";
-import type { ComponentType } from "react";
-import { IconArrowRight, IconBolt, IconLetter, IconLightBulb, IconLock, IconQuote, IconRibbon, IconEmoji } from "@posthog/icons";
+// Variant E profile, from B: the character sheet with the equipped hedgehog, a Max line of facts, the RPG gear panel with its inventory, A's streak heatmap, effects and the public card.
+import { useState, type ComponentType, type ReactNode } from "react";
+import { IconChevronDown, IconBolt, IconLightBulb, IconLock } from "@posthog/icons";
 import { Button, Switch } from "@posthog/quill";
-import { cosmetics, ladders, me, perks } from "../../data/mock";
-import type { CosmeticKind, Tier } from "../../data/types";
+import { ladders, me, perks } from "../../data/mock";
+import type { Tier } from "../../data/types";
 import { Rarity, TierMedal } from "../../ui";
 import { MaxLine } from "../a/insight";
-import { useHogs } from "./hedgehogs";
+import { CharacterPanel } from "./gear-character";
+import { useGear } from "./hedgehogs";
 import { CoinGlyph, CountUp, LevelRing, Panel, Pips, SkillPointGlyph, Tag, levelProgress, useHud, useMounted } from "./hud";
 import { StreakPanel } from "./profile-streak";
 
@@ -19,22 +19,9 @@ const bestTiers = ladders
   .sort((a, b) => tierOrder.indexOf(b) - tierOrder.indexOf(a))
   .slice(0, 4);
 
-const cosmeticNamed = (kind: CosmeticKind, name: string) => cosmetics.find((c) => c.kind === kind && (c.name === name || c.preview === name));
-
-type Slot = { kind: CosmeticKind; label: string; name: string };
-
-const slotIcon: Record<CosmeticKind, ComponentType<{ className?: string }>> = { title: IconRibbon, card: IconLetter, quip: IconQuote, emoji: IconEmoji };
-
 const readyPerk = perks.find((p) => p.id === "rhythm" && p.state.kind === "available");
 
 const maxFacts = [`${(me.xpNextLevel - me.xp).toLocaleString()} XP to level ${me.level + 1}.`, readyPerk && `${readyPerk.name} is ready to buy and pays off on full weeks.`].filter(Boolean).join(" ");
-
-const slots: Slot[] = [
-  { kind: "title", label: "Title", name: me.loadout.title },
-  { kind: "card", label: "Card", name: me.loadout.card },
-  ...me.loadout.quips.map((q) => ({ kind: "quip" as const, label: "Quip", name: q })),
-  ...me.loadout.emoji.map((e) => ({ kind: "emoji" as const, label: "Emoji", name: e })),
-];
 
 export function Profile(_props: { param?: string }) {
   useHud();
@@ -80,13 +67,7 @@ export function Profile(_props: { param?: string }) {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
         <div className="flex flex-col gap-6">
-          <Panel label={`Loadout · ${slots.length} slots`} action={<span className="text-xs text-muted-foreground">What your kudos wear</span>}>
-            <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4">
-              {slots.map((slot, i) => (
-                <InventorySlot key={`${slot.kind}-${i}`} slot={slot} />
-              ))}
-            </ul>
-          </Panel>
+          <CharacterPanel />
           {!me.streak.hidden && <StreakPanel />}
           <Panel label="Active effects">
             <ul className="flex flex-col divide-y">
@@ -124,9 +105,9 @@ export function Profile(_props: { param?: string }) {
 }
 
 function Hero({ progress }: { progress: number }) {
-  const title = cosmeticNamed("title", me.loadout.title);
   const xpToNext = me.xpNextLevel - me.xp;
-  const { equipped } = useHogs();
+  const { hog: equipped, itemIn } = useGear();
+  const title = itemIn("title", 0);
   return (
     <section className="hud-rise flex flex-col items-center gap-6 text-center sm:flex-row sm:items-center sm:gap-8 sm:text-left">
       <div className="flex shrink-0 flex-col items-center gap-1.5">
@@ -138,20 +119,22 @@ function Hero({ progress }: { progress: number }) {
           <span className="font-medium">{equipped.name}</span>
           <Rarity rarity={equipped.rarity} className="text-muted-foreground" />
         </span>
-        <a href="#/collection" className="group inline-flex items-center gap-1 text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-          Change hedgehog
-          <IconArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
-        </a>
+        <button type="button" onClick={() => document.getElementById("gear")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="group inline-flex items-center gap-1 text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+          Change gear
+          <IconChevronDown className="size-3 transition-transform group-hover:translate-y-0.5" />
+        </button>
       </div>
       <LevelRing level={me.level} progress={progress} size={128} stroke={9} />
       <div className="min-w-0 flex-1">
         <div className="hud-label">Character</div>
         <h1 className="hud-display mt-1 text-4xl font-bold leading-none">{me.name}</h1>
         <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-          <span className="inline-flex items-center gap-2 rounded-md border bg-card px-2.5 py-1 text-sm font-semibold">
-            {me.loadout.title}
-            {title && <Rarity rarity={title.rarity} className="text-muted-foreground" />}
-          </span>
+          {title && (
+            <span key={title.id} className="hud-fade inline-flex items-center gap-2 rounded-md border bg-card px-2.5 py-1 text-sm font-semibold">
+              {title.name}
+              <Rarity rarity={title.rarity} className="text-muted-foreground" />
+            </span>
+          )}
           <span className="text-sm text-muted-foreground">{me.primaryGroup.name}</span>
         </div>
         <XpBar progress={progress} />
@@ -192,41 +175,6 @@ function StatBlock({ label, hint, children }: { label: ReactNode; hint: string; 
   );
 }
 
-function InventorySlot({ slot }: { slot: Slot }) {
-  const cosmetic = cosmeticNamed(slot.kind, slot.name);
-  const Icon = slotIcon[slot.kind];
-  return (
-    <li className="hud-lift flex min-h-28 flex-col rounded-lg border bg-background p-2.5 dark:bg-muted/40">
-      <span className="hud-label flex items-center gap-1">
-        <Icon className="size-3" />
-        {slot.label}
-      </span>
-      <span className="my-auto flex justify-center py-1 text-center leading-none" aria-hidden>
-        <SlotPreview slot={slot} />
-      </span>
-      <span className="flex items-end justify-between gap-2">
-        <span className="min-w-0 truncate text-xs font-medium">{slot.kind === "title" ? "Equipped title" : slot.kind === "emoji" ? (cosmetic?.name ?? "Emoji") : slot.name}</span>
-        {cosmetic && <Rarity rarity={cosmetic.rarity} className="shrink-0 text-[11px] text-muted-foreground" />}
-      </span>
-    </li>
-  );
-}
-
-function SlotPreview({ slot }: { slot: Slot }) {
-  if (slot.kind === "title") return <span className="hud-display block text-base font-bold leading-tight">{slot.name}</span>;
-  if (slot.kind === "emoji") return <span className="text-3xl">{slot.name}</span>;
-  if (slot.kind === "quip") return <IconQuote className="size-7 text-primary" />;
-  return <CardThumb />;
-}
-
-function CardThumb() {
-  return (
-    <span className="relative flex h-9 w-12 items-center justify-center rounded-md border bg-gradient-to-br from-primary/25 to-card shadow-sm">
-      <IconLetter className="size-4 text-primary" />
-    </span>
-  );
-}
-
 function Effect({ Icon, running, name, detail, action }: { Icon: ComponentType<{ className?: string }>; running: boolean; name: string; detail: string; action?: ReactNode }) {
   return (
     <li className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
@@ -243,8 +191,8 @@ function Effect({ Icon, running, name, detail, action }: { Icon: ComponentType<{
 }
 
 function PublicCard({ hideLevel, hideAchievements }: { hideLevel: boolean; hideAchievements: boolean }) {
-  const card = cosmeticNamed("card", me.loadout.card);
-  const { equipped } = useHogs();
+  const { hog: equipped, itemIn } = useGear();
+  const title = itemIn("title", 0);
   return (
     <div className="hud-lift relative mx-auto w-full max-w-xs overflow-hidden rounded-xl border bg-gradient-to-b from-card to-muted p-4 shadow-md">
       <div className="absolute -right-8 -top-8 size-28 rounded-full bg-primary/15 blur-2xl" aria-hidden />
@@ -252,10 +200,16 @@ function PublicCard({ hideLevel, hideAchievements }: { hideLevel: boolean; hideA
         <span className="hud-label">Profile card</span>
         {!hideLevel && <span className="hud-display text-lg font-bold leading-none">Lv {me.level}</span>}
       </div>
-      <equipped.Art size={96} className="mx-auto my-2" title={equipped.name} />
+      <span key={equipped.id} className="hud-pop mx-auto my-2 flex w-fit">
+        <equipped.Art size={96} title={equipped.name} />
+      </span>
       <div className="text-center">
         <div className="hud-display text-xl font-bold leading-tight">{me.name}</div>
-        <div className="text-sm font-medium">{me.loadout.title}</div>
+        {title && (
+          <div key={title.id} className="hud-fade text-sm font-medium">
+            {title.name}
+          </div>
+        )}
         <div className="text-xs text-muted-foreground">{me.primaryGroup.name}</div>
       </div>
       {!hideAchievements && (
@@ -265,13 +219,6 @@ function PublicCard({ hideLevel, hideAchievements }: { hideLevel: boolean; hideA
           ))}
         </div>
       )}
-      <div className="mt-4 flex items-center justify-between gap-2 rounded-md border bg-card px-2.5 py-1.5 text-xs">
-        <span className="flex items-center gap-1.5">
-          <IconLetter className="size-3.5 text-primary" />
-          <span className="font-medium">{me.loadout.card}</span>
-        </span>
-        {card && <Rarity rarity={card.rarity} className="text-muted-foreground" />}
-      </div>
     </div>
   );
 }

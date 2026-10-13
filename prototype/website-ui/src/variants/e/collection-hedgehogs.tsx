@@ -2,9 +2,8 @@
 import { useState } from "react";
 import { IconCheck, IconLock } from "@posthog/icons";
 import { Button } from "@posthog/quill";
-import { me } from "../../data/mock";
 import { Rarity } from "../../ui";
-import { CoinGlyph, Panel, ResourceChip } from "../b/hud";
+import { CoinGlyph, Panel, ResourceChip } from "./hud";
 import { hedgehogs, sourceLabel, useHogs, type Hog } from "./hedgehogs";
 
 const css = `
@@ -20,14 +19,12 @@ const css = `
 
 export function HedgehogShelf() {
   const hogs = useHogs();
-  const [spent, setSpent] = useState(0);
   const [revealed, setRevealed] = useState<string>();
-  const coins = me.coins - spent;
+  const { coins } = hogs;
   const ownedCount = hedgehogs.filter((h) => hogs.isOwned(h.id)).length;
 
-  const buy = (hog: Hog, price: number) => {
+  const buy = (hog: Hog) => {
     hogs.buy(hog.id);
-    setSpent((s) => s + price);
     setRevealed(hog.id);
   };
 
@@ -51,7 +48,7 @@ export function HedgehogShelf() {
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {hedgehogs.map((hog) => (
           <li key={hog.id} className="flex">
-            <HogCard hog={hog} owned={hogs.isOwned(hog.id)} equipped={hogs.equipped.id === hog.id} coins={coins} revealed={revealed === hog.id} onEquip={() => hogs.equip(hog.id)} onBuy={(price) => buy(hog, price)} />
+            <HogCard hog={hog} owned={hogs.isOwned(hog.id)} equipped={hogs.equipped.id === hog.id} coins={coins} revealed={revealed === hog.id} onEquip={() => hogs.equip(hog.id)} onBuy={() => buy(hog)} />
           </li>
         ))}
       </ul>
@@ -59,7 +56,7 @@ export function HedgehogShelf() {
   );
 }
 
-function HogCard({ hog, owned, equipped, coins, revealed, onEquip, onBuy }: { hog: Hog; owned: boolean; equipped: boolean; coins: number; revealed: boolean; onEquip: () => void; onBuy: (price: number) => void }) {
+function HogCard({ hog, owned, equipped, coins, revealed, onEquip, onBuy }: { hog: Hog; owned: boolean; equipped: boolean; coins: number; revealed: boolean; onEquip: () => void; onBuy: () => void }) {
   const locked = !owned && hog.source.kind !== "store";
   return (
     <Panel className={`hud-lift w-full ${equipped ? "ring-2 ring-primary" : ""} ${revealed ? "collection-reveal" : ""}`} bodyClassName="flex h-full flex-col gap-2">
@@ -83,7 +80,7 @@ function HogCard({ hog, owned, equipped, coins, revealed, onEquip, onBuy }: { ho
   );
 }
 
-function HogAction({ hog, owned, equipped, coins, onEquip, onBuy }: { hog: Hog; owned: boolean; equipped: boolean; coins: number; onEquip: () => void; onBuy: (price: number) => void }) {
+function HogAction({ hog, owned, equipped, coins, onEquip, onBuy }: { hog: Hog; owned: boolean; equipped: boolean; coins: number; onEquip: () => void; onBuy: () => void }) {
   if (equipped)
     return (
       <Button size="sm" variant="secondary" disabled className="w-full">
@@ -101,7 +98,7 @@ function HogAction({ hog, owned, equipped, coins, onEquip, onBuy }: { hog: Hog; 
   const short = price - coins;
   return (
     <div className="flex flex-col gap-1">
-      <Button size="sm" variant={short > 0 ? "outline" : "primary"} disabled={short > 0} className="w-full" onClick={() => onBuy(price)}>
+      <Button size="sm" variant={short > 0 ? "outline" : "primary"} disabled={short > 0} className="w-full" onClick={onBuy}>
         Buy for {price.toLocaleString()} coins
       </Button>
       {short > 0 && <span className="text-center text-[11px] text-muted-foreground">{short.toLocaleString()} more coins to go</span>}

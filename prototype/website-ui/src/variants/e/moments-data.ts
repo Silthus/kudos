@@ -38,16 +38,16 @@ export const kudos = {
   text: "thanks for pairing on the flaky test all afternoon, you found the race in ten minutes",
   xp: 5,
   coins: 2,
-  drop: { kind: "Card", name: "Paper High-Five", preview: "🙌", rarity: "uncommon" as Rarity },
+  drop: { kind: "Quip", name: "Hedgehog-approved work.", preview: "💬", rarity: "uncommon" as Rarity },
 };
 
 export type TourStop = { href: string; label: string; blurb: string; Icon: ComponentType<{ className?: string }> };
 
 export const tour: TourStop[] = [
-  { href: "#/profile", label: "Profile", blurb: "Your level, XP, streak and the card teammates see", Icon: IconHome },
+  { href: "#/profile", label: "Profile", blurb: "Your level, gear, streak and the profile card teammates see", Icon: IconHome },
   { href: "#/skills", label: "Skill tree", blurb: "Spend skill points on perks", Icon: IconListTree },
-  { href: "#/collection", label: "Collection", blurb: "Quips, cards, titles and hedgehogs", Icon: IconPalette },
-  { href: "#/stickers", label: "Sticker book", blurb: "One sticker for each teammate who thanks you", Icon: IconBook },
+  { href: "#/collection", label: "Collection", blurb: "Hedgehogs, titles, quips and emoji", Icon: IconPalette },
+  { href: "#/stickers", label: "Book", blurb: "Team sticker albums and your achievements", Icon: IconBook },
   { href: "#/achievements", label: "Achievements", blurb: "Twelve ladders, four tiers each", Icon: IconRibbon },
   { href: "#/leaderboard", label: "Leaderboard", blurb: "Who gave the most kudos this week", Icon: IconList },
 ];
