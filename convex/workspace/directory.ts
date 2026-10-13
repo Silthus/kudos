@@ -25,6 +25,12 @@ export async function lookup(ctx: QueryCtx, workspace: string, user: ChatUserId)
   return { kind: row.kind };
 }
 
+export async function chatUserOf(ctx: QueryCtx, member: MemberId): Promise<{ workspace: string; user: ChatUserId }> {
+  const row = await ctx.db.get(member);
+  if (row === null) throw new Error(`no member ${member} in the directory`);
+  return { workspace: row.workspace, user: row.user };
+}
+
 export const record = internalMutation({
   args: { workspace: v.string(), user: v.string(), entry: directoryEntryValidator },
   handler: async (ctx, { workspace, user, entry }) => {

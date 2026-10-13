@@ -109,3 +109,13 @@ export function messageDeletedEvent(options: Pick<MessageOptions, "team" | "chan
     },
   });
 }
+
+export function appHomeOpened(user: string, options: { team?: string; tab?: "home" | "messages" } = {}) {
+  eventCounter += 1;
+  return JSON.stringify({
+    type: "event_callback",
+    team_id: options.team ?? "T1",
+    event_id: `Ev${eventCounter}`,
+    event: { type: "app_home_opened", user, channel: "D_KUDOS", tab: options.tab ?? "home", event_ts: "1760349600.000200" },
+  });
+}

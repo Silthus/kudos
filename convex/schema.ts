@@ -53,13 +53,25 @@ export default defineSchema({
     kudos: v.number(),
     day: v.string(),
     at: v.number(),
-  }).index("by_recipient", ["recipient"]),
+  })
+    .index("by_giver", ["giver", "day"])
+    .index("by_recipient", ["recipient", "day"]),
+
+  kudosTotals: defineTable({
+    member: v.id("members"),
+    given: v.number(),
+    received: v.number(),
+  }).index("by_member", ["member"]),
 
   allowanceSpending: defineTable({
     giver: v.id("members"),
     day: v.string(),
     spent: v.number(),
   }).index("by_giver_day", ["giver", "day"]),
+
+  welcomes: defineTable({
+    member: v.id("members"),
+  }).index("by_member", ["member"]),
 
   indicators: defineTable({
     workspace: v.string(),

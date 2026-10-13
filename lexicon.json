@@ -270,6 +270,10 @@
     {
       "name": "revision",
       "definition": "One version of a chat message as the app saw it: the post, then each edit. Revisions are ordered (in Slack, by the edit's time, else the message's own), and a revision at or below the newest the app has seen for that message is ignored, so an original that arrives after its edit or a late older edit changes nothing (R21). A kudos message keeps only its newest revision, never its text."
+    },
+    {
+      "name": "app home",
+      "definition": "A member's private page of Kudos in Slack, the app's Home tab. It shows how to give kudos, the daily allowance left today and when it refills, and the kudos the member gave and received this week and in total; later specs add their sections."
     }
   ]
 }
