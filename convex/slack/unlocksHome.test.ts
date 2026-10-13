@@ -6,6 +6,8 @@ import { buttonInHome, publishedHome } from "../../testing/homeView";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, blockActions, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
+import { internal } from "../_generated/api";
+import type { LevelReachedEvent } from "../bus/events";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const firstMessageAt = now.getTime() + 1000;
@@ -92,6 +94,23 @@ describe("P74 P73: App Home's Profile tab lists each ready feature with Open", (
   });
 });
 
+describe("P74: App Home republishes once readiness commits", () => {
+  test("when the level refresh publishes App Home before the Leaderboard's readiness commits, readiness republishes it with Open, without the member reopening it", async () => {
+    const t = await workspace();
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+    await openHome(t, "U_ALICE");
+    const reached = await levelThreeReachedBy(t, "U_ALICE");
+
+    await t.mutation(internal.feedback.homes.refreshHomeOnLevel, { event: reached });
+    await settle(t);
+    expect(unlockLinesOf(publishedHome(slack, "U_ALICE"))).toEqual(["section: Next: Leaderboard at level 3."]);
+    await t.mutation(internal.unlocks.unlocks.makeReady, { event: reached });
+    await settle(t);
+
+    expect(unlockLinesOf(publishedHome(slack, "U_ALICE"))).toEqual([leaderboardReady]);
+  });
+});
+
 describe("P74 P78: the Next line names the lowest shipped feature still locked", () => {
   test("a member at level 2 sees `Next: Leaderboard at level 3.`", async () => {
     const t = await workspace();
@@ -119,6 +138,23 @@ function unlockLinesOf(home: string[]) {
 
 async function unlockRows(t: Backend) {
   return t.run(async (ctx) => (await ctx.db.query("unlocks").collect()).map(({ feature, readyAt, openedAt }) => ({ feature, readyAt, ...(openedAt !== undefined && { openedAt }) })));
+}
+
+async function levelThreeReachedBy(t: Backend, user: string): Promise<LevelReachedEvent> {
+  const member = await t.run(async (ctx) => {
+    const row = await ctx.db
+      .query("members")
+      .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", user))
+      .unique();
+    const progress = await ctx.db
+      .query("memberProgress")
+      .withIndex("by_member", (q) => q.eq("member", row!._id))
+      .unique();
+    await ctx.db.patch(progress!._id, { xp: 100 });
+    return row!._id;
+  });
+  const message = { workspace: "T1", conversation: "C1", message: "1760349600.000100" };
+  return { type: "levelReached", workspace: "T1", member, level: 3, skillPointsGained: 0, skillPoints: 0, xpToNextLevel: 200, message, at: Date.now() };
 }
 
 async function workspace() {
