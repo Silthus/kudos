@@ -1,6 +1,7 @@
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
-import { internalAction, internalMutation, type MutationCtx } from "../_generated/server";
+import { internalMutation, type MutationCtx } from "../_generated/server";
+import { observedAction } from "../analytics/boundary";
 import { awardsGivenBefore } from "../engine/awards";
 import { catalogue } from "./catalogue";
 import { replay } from "./progress";
@@ -12,7 +13,7 @@ export type Backfilled = { awards: number; recorded: number };
 
 type ReplayedBatch = Backfilled & { isDone: boolean };
 
-export const backfillEffects = internalAction({
+export const backfillEffects = observedAction({
   args: {},
   handler: async (ctx): Promise<Backfilled> => {
     const totals: Backfilled = { awards: 0, recorded: 0 };

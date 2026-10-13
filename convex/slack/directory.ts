@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { internalAction, internalMutation, internalQuery, type ActionCtx, type MutationCtx } from "../_generated/server";
+import { internalMutation, internalQuery, type ActionCtx, type MutationCtx } from "../_generated/server";
+import { observedAction } from "../analytics/boundary";
 import { awaitedUsers, recheck, type Observation } from "../engine/engine";
 import { messageRefValidator, type MessageRef } from "../engine/messageEvent";
 import { republishOnRoleChange } from "../feedback/homes";
@@ -30,7 +31,7 @@ export async function checkDirectoryLater(ctx: MutationCtx, ref: MessageRef, obs
   await ctx.scheduler.runAfter(observation.retryInMs, internal.slack.directory.checkDirectory, { ref, attempt: observation.attempt });
 }
 
-export const checkDirectory = internalAction({
+export const checkDirectory = observedAction({
   args: { ref: messageRefValidator, attempt: v.int64() },
   handler: async (ctx, { ref, attempt }) => {
     const users = await ctx.runQuery(internal.slack.directory.usersAwaited, { ref, attempt });
@@ -38,6 +39,11 @@ export const checkDirectory = internalAction({
     for (const user of users) await lookUpUser(ctx, ref.workspace, user);
     await ctx.runMutation(internal.slack.directory.recheckMessage, { ref, attempt });
   },
+});
+
+export const knows = internalQuery({
+  args: { workspace: v.string(), user: v.string() },
+  handler: async (ctx, { workspace, user }) => (await lookup(ctx, workspace, user)) !== undefined,
 });
 
 export const usersAwaited = internalQuery({

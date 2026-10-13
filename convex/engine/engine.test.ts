@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import type { DomainEvent } from "../bus/events";
 import { publish } from "../bus/publish";
 import { testBackend, type Backend } from "../../testing/slackBackend";
 import { observe, recheck } from "./engine";
@@ -160,8 +161,8 @@ describe("R20: kudosGiven", () => {
 
     await t.run((ctx) => observe(ctx, kudosMessage("U_ALICE", [person("U_BOB"), person("U_CAROL")], ["taco"], { at })));
 
-    expect(publish).toHaveBeenCalledOnce();
-    const [, event] = vi.mocked(publish).mock.calls[0]!;
+    expect(published("kudosGiven")).toHaveLength(1);
+    const [event] = published("kudosGiven");
     const ids = await memberIds(t);
     const [toBob, toCarol] = await t.run((ctx) => ctx.db.query("awards").collect());
     expect(event).toEqual({
@@ -177,8 +178,61 @@ describe("R20: kudosGiven", () => {
       kudosEmoji: "taco",
       annotations: { gate: { version: 1, thoughtful: false, words: 1 } },
       allowance: { dailyOpening: 3, dailyLeft: 1 },
+      skippedMentions: 0,
+      retry: false,
+      inThread: false,
       day: "2026-10-14",
       at,
+    });
+  });
+
+  describe("O3: retry, skipped mentions and thread", () => {
+    const minute = 60_000;
+    const later = (minutes: number) => now.getTime() + minutes * minute;
+    const tooMany = [person("U_BOB")];
+    const tacos = (count: number) => Array.from({ length: count }, () => "taco");
+
+    test.each<[string, Array<{ mentions: Mention[]; emoji: string[] }>, boolean]>([
+      ["a first attempt that gives", [{ mentions: tooMany, emoji: tacos(1) }], false],
+      ["an Over allowance message edited to give", [{ mentions: tooMany, emoji: tacos(4) }, { mentions: tooMany, emoji: tacos(1) }], true],
+      ["an Invalid message edited to give", [{ mentions: [person("U_ALICE")], emoji: tacos(1) }, { mentions: tooMany, emoji: tacos(1) }], true],
+      ["a withdrawn attempt edited back into a kudos message", [{ mentions: tooMany, emoji: tacos(4) }, { mentions: tooMany, emoji: [] }, { mentions: tooMany, emoji: tacos(1) }], true],
+      [
+        "a withdrawn attempt edited again before it gives",
+        [{ mentions: tooMany, emoji: tacos(4) }, { mentions: tooMany, emoji: [] }, { mentions: [person("U_ALICE")], emoji: [] }, { mentions: tooMany, emoji: tacos(1) }],
+        true,
+      ],
+    ])("retry for %s", async (_, revisions, retry) => {
+      const t = await withDirectory({ U_ALICE: "UTC", U_BOB: "UTC" });
+
+      for (const [index, { mentions, emoji }] of revisions.entries()) {
+        const posted = kudosMessage("U_ALICE", mentions, emoji);
+        await t.run((ctx) => observe(ctx, index === 0 ? posted : editOf(posted, later(index))));
+      }
+
+      expect(published("kudosGiven")).toHaveLength(1);
+      expect(published("kudosGiven")[0]).toMatchObject({ retry });
+    });
+
+    test("a retry that waits on the directory is still a retry when it gives", async () => {
+      const t = await withDirectory({ U_ALICE: "UTC", U_BOB: "UTC" });
+      await t.run((ctx) => observe(ctx, kudosMessage("U_ALICE", tooMany, tacos(4))));
+      const edited = editOf(kudosMessage("U_ALICE", [person("U_BOB"), person("U_DAVE")], tacos(1)), later(1));
+      await t.run((ctx) => observe(ctx, edited));
+
+      await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: "U_DAVE", kind: "member" }));
+      await t.run((ctx) => recheck(ctx, edited.ref, edited.revision));
+
+      expect(published("kudosGiven")[0]).toMatchObject({ retry: true });
+    });
+
+    test("skippedMentions counts the mentions that receive nothing, and inThread a thread reply", async () => {
+      const t = await withDirectory({ U_ALICE: "UTC", U_BOB: "UTC" });
+      const reply = { ...kudosMessage("U_ALICE", [person("U_BOB"), person("U_ALICE"), { kind: "broadcast", range: "here" }], tacos(1)), threadRoot: "1760349000.000100" };
+
+      await t.run((ctx) => observe(ctx, reply));
+
+      expect(published("kudosGiven")[0]).toMatchObject({ skippedMentions: 2, inThread: true });
     });
   });
 
@@ -187,7 +241,33 @@ describe("R20: kudosGiven", () => {
 
     await t.run((ctx) => observe(ctx, kudosMessage("U_ALICE", [person("U_BOB")], ["taco", "taco", "taco", "taco"])));
 
-    expect(publish).not.toHaveBeenCalled();
+    expect(published("kudosGiven")).toEqual([]);
+  });
+
+  test.each([
+    ["Over allowance", [person("U_BOB"), person("U_CAROL")], ["taco", "taco"], { outcome: "over-allowance", recipients: 2, perRecipient: 2, cost: 4, skippedMentions: 0 }],
+    ["Invalid", [person("U_ALICE"), { kind: "broadcast", range: "here" }], ["taco"], { outcome: "invalid", recipients: 0, perRecipient: 1, cost: 0, skippedMentions: 2 }],
+  ] as const)("an %s attempt publishes attemptFailed with its outcome and the allowance left", async (_, mentions, emoji, failure) => {
+    const t = await withDirectory({ U_ALICE: "Asia/Tokyo", U_BOB: "UTC", U_CAROL: "UTC" });
+    const at = Date.parse("2026-10-13T15:30:00Z");
+
+    await t.run((ctx) => observe(ctx, { ...kudosMessage("U_ALICE", [...mentions], [...emoji], { at }), threadRoot: "1760349000.000100" }));
+
+    const ids = await memberIds(t);
+    expect(vi.mocked(publish).mock.calls.map(([, event]) => event)).toEqual([
+      {
+        type: "attemptFailed",
+        workspace: "T1",
+        message: { workspace: "T1", conversation: "C1", message: "1" },
+        giver: ids.U_ALICE,
+        ...failure,
+        retry: false,
+        inThread: true,
+        allowance: { dailyLeft: 3 },
+        day: "2026-10-14",
+        at,
+      },
+    ]);
   });
 
   test("kudosGiven is published in the awards' transaction", async () => {
@@ -328,6 +408,13 @@ test("R26: an edit to a message that gave kudos changes no award and spends noth
     { giver: "U_ALICE", recipient: "U_CAROL", kudos: 2, day: "2026-10-13" },
   ]);
 });
+
+function published<T extends DomainEvent["type"]>(type: T) {
+  return vi
+    .mocked(publish)
+    .mock.calls.map(([, event]) => event)
+    .filter((event): event is Extract<DomainEvent, { type: T }> => event.type === type);
+}
 
 async function withDirectory(people: Record<string, string | undefined>) {
   const t = testBackend();

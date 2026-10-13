@@ -1,6 +1,7 @@
 import { v, type ObjectType } from "convex/values";
 import { internal } from "../_generated/api";
-import { type ActionCtx, internalAction } from "../_generated/server";
+import type { ActionCtx } from "../_generated/server";
+import { observedAction } from "../analytics/boundary";
 import { attemptArgs, callOnce, sendOnce, tryAtMostThreeTimes } from "./delivery";
 
 const directMessageArgs = { workspace: v.string(), user: v.string(), lines: v.array(v.string()), conversation: v.optional(v.string()) };
@@ -8,7 +9,7 @@ const directMessageArgs = { workspace: v.string(), user: v.string(), lines: v.ar
 type DirectMessage = ObjectType<typeof directMessageArgs>;
 type OpenedConversation = { channel: { id: string } };
 
-export const deliverDirectMessage = internalAction({
+export const deliverDirectMessage = observedAction({
   args: { ...directMessageArgs, ...attemptArgs },
   handler: async (ctx, { attempt = 1, ...message }) => {
     let delivery = message;

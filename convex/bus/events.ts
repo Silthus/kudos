@@ -15,6 +15,9 @@ export const kudosGivenEventValidator = v.object({
   kudosEmoji: v.string(),
   annotations: annotationsValidator,
   allowance: v.object({ dailyOpening: v.number(), dailyLeft: v.number() }),
+  skippedMentions: v.number(),
+  retry: v.boolean(),
+  inThread: v.boolean(),
   day: v.string(),
   at: v.number(),
 });
@@ -32,9 +35,39 @@ export const levelReachedEventValidator = v.object({
 });
 
 export type KudosGivenEvent = Infer<typeof kudosGivenEventValidator>;
+
+export const attemptFailedEventValidator = v.object({
+  type: v.literal("attemptFailed"),
+  workspace: v.string(),
+  message: messageRefValidator,
+  giver: v.id("members"),
+  outcome: v.union(v.literal("over-allowance"), v.literal("invalid")),
+  recipients: v.number(),
+  perRecipient: v.number(),
+  cost: v.number(),
+  skippedMentions: v.number(),
+  retry: v.boolean(),
+  inThread: v.boolean(),
+  allowance: v.object({ dailyLeft: v.number() }),
+  day: v.string(),
+  at: v.number(),
+});
+
+export type AttemptFailedEvent = Infer<typeof attemptFailedEventValidator>;
+
+export const memberWelcomedEventValidator = v.object({
+  type: v.literal("memberWelcomed"),
+  workspace: v.string(),
+  member: v.id("members"),
+  as: v.union(v.literal("giver"), v.literal("recipient")),
+  at: v.number(),
+});
+
+export type MemberWelcomedEvent = Infer<typeof memberWelcomedEventValidator>;
+
 export type LevelReachedEvent = Infer<typeof levelReachedEventValidator>;
 
-export type DomainEvent = KudosGivenEvent | LevelReachedEvent;
+export type DomainEvent = KudosGivenEvent | AttemptFailedEvent | MemberWelcomedEvent | LevelReachedEvent;
 
 export function membersNamedIn(event: KudosGivenEvent): MemberId[] {
   return [...new Set([event.giver, ...event.awards.map((award) => award.recipient)])];

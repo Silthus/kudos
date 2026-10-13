@@ -1,11 +1,12 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
+import type { AttemptFailedEvent } from "../bus/events";
 import { publish } from "../bus/publish";
 import { setIndicator, type Indicator } from "../feedback/indicator";
 import { replyPrivately, type Given, type Invalid, type OverAllowance, type Reply, type SkipReason, type SkippedMention } from "../feedback/replies";
 import { lookup, type MemberFacts, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
-import { allowanceDay, dailyAllowance } from "./allowance";
+import { allowanceDay, dailyAllowance, type DayKey } from "./allowance";
 import { insertAwards, type Award } from "./awards";
 import type { ChatUserId, Mention, MessageEvent, MessageRef } from "./messageEvent";
 import { annotationsOf, fingerprintOf, kudosMessageOf, type KudosMessage, type ParseContext } from "../parser/parser";
@@ -72,7 +73,7 @@ async function observeEdit(ctx: MutationCtx, row: KudosMessageRow, event: Messag
   if (!changesKudos) return { kind: "ignored", why: "unchanged" };
   if (!isKudosMessage) return hasOpenAttempt(row) ? withdraw(ctx, row) : ignore(ctx, row, "ordinary-chat");
 
-  await ctx.db.patch(row._id, { state: "awaiting-directory", attempt: event.revision, spendsAt: event.at, checks: 0, annotations: revision.annotations });
+  await ctx.db.patch(row._id, { state: "awaiting-directory", attempt: event.revision, spendsAt: event.at, checks: 0, retry: isRetry(row), annotations: revision.annotations });
   const observation = await evaluate(ctx, (await ctx.db.get(row._id))!);
   if (observation.kind === "awaiting-directory" && showsIndicator(row)) await setIndicator(ctx, refOf(row), null);
   return observation;
@@ -90,13 +91,17 @@ async function observeFromNonMember(ctx: MutationCtx, row: KudosMessageRow | nul
 }
 
 async function withdraw(ctx: MutationCtx, row: KudosMessageRow): Promise<Observation> {
-  await ctx.db.patch(row._id, { state: "withdrawn" });
+  await ctx.db.patch(row._id, { state: "withdrawn", retry: true });
   if (showsIndicator(row)) await setIndicator(ctx, refOf(row), null);
   return { kind: "withdrawn" };
 }
 
 function withoutAnnotations({ revision, content }: Revision) {
   return { revision, content };
+}
+
+function isRetry(row: KudosMessageRow) {
+  return row.retry === true || showsIndicator(row) || row.state === "withdrawn";
 }
 
 function hasOpenAttempt(row: KudosMessageRow) {
@@ -189,13 +194,20 @@ function indicatorOf(outcome: Outcome): Indicator {
 
 async function decide(ctx: MutationCtx, row: KudosMessageRow, giver: Member, kudos: KudosMessage, baseAllowance: number): Promise<Outcome> {
   const { recipients, skipped } = await sortMentions(ctx, row.workspace, kudos.mentions, giver.member);
-  if (recipients.length === 0) return { kind: "invalid", skipped };
-
   const day = allowanceDay(row.spendsAt, giver.timeZone);
   const allowance = await dailyAllowance(ctx, giver.member, day, baseAllowance);
   const { perRecipient } = kudos;
   const cost = recipients.length * perRecipient;
-  if (cost > allowance.left) return { kind: "over-allowance", cost, recipients: recipients.length, perRecipient, left: allowance.left };
+  const attempt = attemptFacts(row, giver, skipped, day);
+
+  if (recipients.length === 0) {
+    await publishFailure(ctx, attempt, { outcome: "invalid", recipients: 0, perRecipient, cost, allowance: { dailyLeft: allowance.left } });
+    return { kind: "invalid", skipped };
+  }
+  if (cost > allowance.left) {
+    await publishFailure(ctx, attempt, { outcome: "over-allowance", recipients: recipients.length, perRecipient, cost, allowance: { dailyLeft: allowance.left } });
+    return { kind: "over-allowance", cost, recipients: recipients.length, perRecipient, left: allowance.left };
+  }
 
   const awards = recipients.map(({ member }) => ({ giver: giver.member, recipient: member, kudos: perRecipient }));
   const kudosEmoji = kudos.kudosEmoji[0]!;
@@ -203,18 +215,34 @@ async function decide(ctx: MutationCtx, row: KudosMessageRow, giver: Member, kud
   await allowance.spend(cost);
   await publish(ctx, {
     type: "kudosGiven",
-    workspace: row.workspace,
-    message: refOf(row),
-    giver: giver.member,
+    ...attempt,
     awards: await insertAwards(ctx, refOf(row), awards, day, row.spendsAt),
     via: "message",
     kudosEmoji,
     annotations: row.annotations,
     allowance: { dailyOpening: allowance.opening, dailyLeft: left },
-    day,
-    at: row.spendsAt,
   });
   return { kind: "given", awards, kudosEmoji, recipients: recipients.map(({ user }) => user), perRecipient, left, skipped };
+}
+
+type AttemptFacts = Pick<AttemptFailedEvent, "workspace" | "message" | "giver" | "skippedMentions" | "retry" | "inThread" | "day" | "at">;
+type Failure = Pick<AttemptFailedEvent, "outcome" | "recipients" | "perRecipient" | "cost" | "allowance">;
+
+function attemptFacts(row: KudosMessageRow, giver: Member, skipped: SkippedMention[], day: DayKey): AttemptFacts {
+  return {
+    workspace: row.workspace,
+    message: refOf(row),
+    giver: giver.member,
+    skippedMentions: skipped.length,
+    retry: row.retry === true,
+    inThread: row.threadRoot !== undefined,
+    day,
+    at: row.spendsAt,
+  };
+}
+
+async function publishFailure(ctx: MutationCtx, attempt: AttemptFacts, failure: Failure) {
+  await publish(ctx, { type: "attemptFailed", ...attempt, ...failure });
 }
 
 type Recipient = { member: MemberId; user: ChatUserId };

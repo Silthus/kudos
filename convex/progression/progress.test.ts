@@ -114,6 +114,9 @@ function kudosGiven(awards: ReadonlyArray<readonly [Id<"members">, number]>, ann
     kudosEmoji: "taco",
     annotations,
     allowance: { dailyOpening: 3, dailyLeft: 0 },
+    skippedMentions: 0,
+    retry: false,
+    inThread: false,
     day: "2026-10-13",
     at: Date.parse("2026-10-13T10:00:00Z"),
   };

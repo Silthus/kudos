@@ -1,3 +1,5 @@
+import { ReportableError } from "../analytics/exceptions";
+
 export type SlackFailure = { ok: false; error: string; retryAfterMs?: number };
 
 export type SlackAnswer<Data = object> = ({ ok: true; warning?: string } & Data) | SlackFailure;
@@ -25,7 +27,7 @@ export async function readSlack<Data>(method: string, args: Record<string, strin
 
 async function answerOf<Answer>(method: string, response: Response): Promise<Answer | SlackFailure> {
   if (response.status === tooManyRequests) return { ok: false, error: "ratelimited", retryAfterMs: retryAfterMsOf(response) };
-  if (!response.ok) throw new Error(`Slack ${method} answered HTTP ${response.status}`);
+  if (!response.ok) throw new ReportableError(`Slack ${method} answered HTTP ${response.status}`);
   return (await response.json()) as Answer;
 }
 
@@ -40,6 +42,6 @@ function slackApiUrl() {
 
 function botToken() {
   const token = process.env.SLACK_BOT_TOKEN;
-  if (!token) throw new Error("SLACK_BOT_TOKEN is not set");
+  if (!token) throw new ReportableError("SLACK_BOT_TOKEN is not set");
   return token;
 }

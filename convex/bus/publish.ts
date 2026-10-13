@@ -3,18 +3,18 @@ import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
 import type { DomainEvent } from "./events";
 
-type EventOf<T extends DomainEvent["type"]> = Extract<DomainEvent, { type: T }>;
-type Subscriber<T extends DomainEvent["type"]> = FunctionReference<"mutation" | "action", "internal", { event: EventOf<T> }>;
-type Registry = { [T in DomainEvent["type"]]: Array<Subscriber<T>> };
+type Subscriber<E extends DomainEvent> = FunctionReference<"mutation" | "action", "internal", { event: E }>;
+type Registry = { [T in DomainEvent["type"]]: Array<Subscriber<Extract<DomainEvent, { type: T }>>> };
 
 export const subscribers: Registry = {
-  kudosGiven: [internal.welcome.welcome.welcomeNewMembers, internal.progression.progression.recordEffects],
+  kudosGiven: [internal.welcome.welcome.welcomeNewMembers, internal.progression.progression.recordEffects, internal.analytics.subscribers.recordKudosGiven],
+  attemptFailed: [internal.analytics.subscribers.recordAttemptFailed],
+  memberWelcomed: [internal.analytics.subscribers.recordMemberWelcomed],
   levelReached: [internal.feedback.notify.notifyLevelReached, internal.feedback.publicReplies.celebrateLevel, internal.feedback.homes.refreshHomeOnLevel],
 };
 
-export async function publish<T extends DomainEvent["type"]>(ctx: MutationCtx, event: EventOf<T> & { type: T }) {
-  const subscribersOfEvent: Array<Subscriber<T>> = subscribers[event.type];
-  for (const subscriber of subscribersOfEvent) {
+export async function publish(ctx: MutationCtx, event: DomainEvent) {
+  for (const subscriber of subscribers[event.type] as Array<Subscriber<DomainEvent>>) {
     await ctx.scheduler.runAfter(0, subscriber, { event });
   }
 }

@@ -4,14 +4,15 @@ import { chatUserOf, isAdmin } from "./directory";
 
 export type WorkspaceSettings = { baseAllowance: number; kudosEmoji: string; announcementChannel: string | null };
 
-const defaults: WorkspaceSettings = { baseAllowance: 3, kudosEmoji: "taco", announcementChannel: null };
+const defaultBaseAllowance = 3;
+const fallbackKudosEmoji = "taco";
 
 export async function settingsOf(ctx: QueryCtx, workspace: string): Promise<WorkspaceSettings> {
   const row = await workspaceRow(ctx, workspace);
   return {
-    baseAllowance: row?.baseAllowance ?? defaults.baseAllowance,
-    kudosEmoji: row?.kudosEmoji ?? defaults.kudosEmoji,
-    announcementChannel: row?.announcementChannel ?? defaults.announcementChannel,
+    baseAllowance: row?.baseAllowance ?? defaultBaseAllowance,
+    kudosEmoji: row?.kudosEmoji ?? defaultKudosEmoji(),
+    announcementChannel: row?.announcementChannel ?? null,
   };
 }
 
@@ -36,4 +37,9 @@ function workspaceRow(ctx: QueryCtx, workspace: string) {
     .query("workspaces")
     .withIndex("by_workspace", (q) => q.eq("workspace", workspace))
     .unique();
+}
+
+export function defaultKudosEmoji() {
+  const configured = process.env.KUDOS_EMOJI?.trim().toLowerCase().replace(/^:|:$/g, "");
+  return configured || fallbackKudosEmoji;
 }

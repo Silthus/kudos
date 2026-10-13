@@ -115,12 +115,13 @@ export function messageDeletedEvent(options: Pick<MessageOptions, "team" | "chan
   });
 }
 
-export function appHomeOpened(user: string, options: { team?: string; tab?: "home" | "messages" } = {}) {
+export function appHomeOpened(user: string, options: { team?: string; tab?: "home" | "messages"; eventTime?: Date } = {}) {
   eventCounter += 1;
   return JSON.stringify({
     type: "event_callback",
     team_id: options.team ?? "T1",
     event_id: `Ev${eventCounter}`,
+    event_time: Math.floor((options.eventTime ?? new Date()).getTime() / 1000),
     event: { type: "app_home_opened", user, channel: "D_KUDOS", tab: options.tab ?? "home", event_ts: "1760349600.000200" },
   });
 }
@@ -154,4 +155,26 @@ export function blockActions(user: string, action: BlockAction, options: { team?
     actions: [{ ...action, block_id: "b1", action_ts: `${Date.now() / 1000}` }],
   };
   return new URLSearchParams({ payload: JSON.stringify(payload) }).toString();
+}
+
+export type Conversation = { channel_id: string; channel_name: string };
+
+export type SlashCommandOptions = { command?: "/hedgehug" | "/kudos"; team?: string; user?: string; responseUrl?: string };
+
+export const slashCommandResponseUrl = "https://hooks.slack.com/commands/T1/1/abc";
+
+export function slashCommand(conversation: Conversation, options: SlashCommandOptions = {}) {
+  return new URLSearchParams({
+    token: "legacy-verification-token",
+    team_id: options.team ?? "T1",
+    team_domain: "acme",
+    ...conversation,
+    user_id: options.user ?? "U1",
+    user_name: "ann",
+    command: options.command ?? "/hedgehug",
+    text: "",
+    api_app_id: "A1",
+    response_url: options.responseUrl ?? slashCommandResponseUrl,
+    trigger_id: "1.2.3",
+  }).toString();
 }

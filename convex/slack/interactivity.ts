@@ -1,12 +1,12 @@
 import { internal } from "../_generated/api";
-import { httpAction } from "../_generated/server";
+import { observedHttpAction } from "../analytics/boundary";
 import { knownIntent, type Intent } from "../bus/commands";
 import { readSignedBody } from "./signature";
 
 type Action = { type: string; action_id: string; value?: string; selected_channel?: string | null };
 type BlockActions = { type: "block_actions"; team: { id: string }; user: { id: string }; trigger_id: string; actions: Action[] };
 
-export const slackInteractivity = httpAction(async (ctx, request) => {
+export const slackInteractivity = observedHttpAction(async (ctx, request) => {
   const body = await readSignedBody(request);
   if (body === null) return new Response(null, { status: 401 });
 

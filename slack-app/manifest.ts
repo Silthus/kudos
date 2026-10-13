@@ -26,8 +26,10 @@ export function renderManifest(environment: Environment, siteUrl: string) {
       ],
     },
     oauth_config: {
+      redirect_urls: [route("/api/auth/callback/slack")],
       scopes: {
         bot: ["channels:history", "groups:history", "reactions:write", "chat:write", "users:read", "channels:join", "commands", "im:write", "chat:write.public"],
+        user: ["openid", "profile"],
       },
     },
     settings: {

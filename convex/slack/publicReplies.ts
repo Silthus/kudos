@@ -1,11 +1,13 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
-import { type ActionCtx, internalAction } from "../_generated/server";
+import type { ActionCtx } from "../_generated/server";
+import { observedAction } from "../analytics/boundary";
+import { ReportableError } from "../analytics/exceptions";
 import { linesOf } from "../feedback/publicReplies";
 import { attemptArgs, attemptCall, retryAfter, slackTextOf, tryAtMostThreeTimes, type Retry } from "./delivery";
 
-export const deliverPublicReply = internalAction({
+export const deliverPublicReply = observedAction({
   args: { reply: v.id("publicReplies"), ...attemptArgs },
   handler: async (ctx, { reply, attempt = 1 }) => {
     await tryAtMostThreeTimes(
@@ -45,7 +47,7 @@ async function post(ctx: ActionCtx, row: Doc<"publicReplies">, attempt: number):
     return retryAfter(result, attempt);
   }
   const ts = result.answer.ok ? result.answer.ts : undefined;
-  if (ts === undefined) throw new Error("chat.postMessage answered without the message's ts");
+  if (ts === undefined) throw new ReportableError("chat.postMessage answered without the message's ts");
   const latestVersion = await ctx.runMutation(internal.feedback.publicReplies.recordPosted, { reply: row._id, ts });
   return againIfChanged(row, latestVersion);
 }

@@ -1,3 +1,5 @@
+import { ReportableError } from "../analytics/exceptions";
+
 const maxAgeSeconds = 5 * 60;
 
 export type SignedRequest = { timestamp: string | null; signature: string | null; body: Uint8Array<ArrayBuffer> };
@@ -52,6 +54,6 @@ export async function readSignedBody(request: Request): Promise<Uint8Array<Array
 
 function signingSecret() {
   const secret = process.env.SLACK_SIGNING_SECRET;
-  if (!secret) throw new Error("SLACK_SIGNING_SECRET is not set");
+  if (!secret) throw new ReportableError("SLACK_SIGNING_SECRET is not set");
   return secret;
 }

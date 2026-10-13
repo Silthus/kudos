@@ -30,7 +30,7 @@ export type SlackMessage = ChatMessage & {
   message?: ChatMessage;
 };
 
-export type EventCallback = { type: "event_callback"; team_id: string; event_id: string; event: { type: string } };
+export type EventCallback = { type: "event_callback"; team_id: string; event_id: string; event_time: number; event: { type: string } };
 
 const countedSubtypes = new Set([undefined, "thread_broadcast", "file_share"]);
 const channelTypes = new Set(["channel", "group"]);

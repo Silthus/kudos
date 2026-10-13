@@ -6,6 +6,7 @@ import { dispatch, intentValidator } from "../bus/commands";
 import { republish } from "../feedback/homes";
 import { directoryEntryValidator, lookup } from "../workspace/directory";
 import { recordPerson } from "./directory";
+import { reportHomeOpened } from "./appHome";
 import { processEvent } from "./processEvent";
 
 type Receipt = { workspace: string; eventId: string };
@@ -23,11 +24,18 @@ export const receive = internalMutation({
 });
 
 export const receiveHomeOpened = internalMutation({
-  args: { workspace: v.string(), eventId: v.string(), user: v.string() },
-  handler: async (ctx, { user, ...receipt }) => {
+  args: { workspace: v.string(), eventId: v.string(), user: v.string(), at: v.number() },
+  handler: async (ctx, { user, at, ...receipt }) => {
     if (await isRedelivered(ctx, receipt)) return;
     await ctx.db.insert("slackReceipts", receipt);
-    await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, { workspace: receipt.workspace, user, opened: true });
+    const opening = { workspace: receipt.workspace, user, at };
+    const reported = await reportHomeOpened(ctx, opening);
+    await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, {
+      workspace: receipt.workspace,
+      user,
+      opened: true,
+      ...(reported === "unknown-person" && { unreportedOpeningAt: at }),
+    });
   },
 });
 

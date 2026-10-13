@@ -2,6 +2,7 @@ import { v, type Infer, type ObjectType } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import type { ChatUserId } from "../engine/messageEvent";
+import { ReportableError } from "../analytics/exceptions";
 
 export type MemberId = Id<"members">;
 
@@ -32,7 +33,7 @@ export async function isAdmin(ctx: QueryCtx, member: MemberId) {
 
 export async function chatUserOf(ctx: QueryCtx, member: MemberId): Promise<{ workspace: string; user: ChatUserId }> {
   const row = await ctx.db.get(member);
-  if (row === null) throw new Error(`no member ${member} in the directory`);
+  if (row === null) throw new ReportableError("no such member in the directory");
   return { workspace: row.workspace, user: row.user };
 }
 

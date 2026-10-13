@@ -12,6 +12,16 @@ describe.each(["sandbox", "real"] as const)("the %s manifest", (environment) => 
     );
   });
 
+  test("asks only the user scopes Sign in with Slack needs", () => {
+    expect(manifest.oauth_config.scopes.user.toSorted()).toEqual(["openid", "profile"]);
+  });
+
+  test("lets Sign in with Slack return to the deployment's auth callback", () => {
+    expect(manifest.oauth_config.redirect_urls).toEqual([
+      "https://example-deployment.convex.site/api/auth/callback/slack",
+    ]);
+  });
+
   test("subscribes to every spec 1 bot event at the deployment's events route", () => {
     expect(manifest.settings.event_subscriptions).toEqual({
       request_url: "https://example-deployment.convex.site/slack/events",
