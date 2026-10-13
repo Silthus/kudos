@@ -266,6 +266,10 @@
     {
       "name": "annotation",
       "definition": "A fact about a kudos message that a parse hook adds while the text is in memory, such as whether it says why, carried on kudosGiven in place of the text, which is never stored."
+    },
+    {
+      "name": "app home",
+      "definition": "A member's private page of Kudos in Slack, the app's Home tab. It shows how to give kudos, the daily allowance left today and when it refills, and the kudos the member gave and received this week and in total; later specs add their sections."
     }
   ]
 }

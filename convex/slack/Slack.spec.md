@@ -1,9 +1,9 @@
 # Slack
 
-The Slack adapter, the only code that knows Slack: it verifies and acknowledges Slack's requests, normalizes posted messages into countable content for the engine, fills the directory from users.info, delivers the indicator as a reaction, and adds the app to a channel with `/kudos`.
+The Slack adapter, the only code that knows Slack: it verifies and acknowledges Slack's requests, normalizes posted messages into countable content for the engine, fills the directory from users.info, delivers the indicator as a reaction and the welcome message as a DM, publishes App Home when a member opens it, and adds the app to a channel with `/kudos`.
 
 ## entrances
-- route POST /slack/events: Slack delivers an Events API request, an event callback or the URL verification challenge
+- route POST /slack/events: Slack delivers an Events API request, an event callback (a message or a member opening App Home) or the URL verification challenge
   handler: slackEvents in convex/slack/events.ts
   trust: slack-request
 - route POST /slack/commands: Slack delivers a slash command a member typed, `/kudos` to add the app to a channel
