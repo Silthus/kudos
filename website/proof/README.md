@@ -9,3 +9,4 @@ Each ticket of the website's first slice left its proof here.
 - [`faces/`](faces/): #110, posthog.com cutouts as faces.
 - [`deploy/`](deploy/): #111, the sandbox deploy and the production preparation.
 - [`ship/`](ship/): #112, the ship: the CSP fix and the production proof.
+- [`leaderboard-read/`](leaderboard-read/): #133, the leaderboard read (second slice), backend only.

@@ -1,0 +1,11 @@
+# GPT-6.1 Sol (high) review of #133, read-only codex exec over the diff against spec/website-2 at 05d07ea, with spec/website-2.md as the oracle
+
+- **P2 — [convex/website/leaderboard.test.ts:354](/home/coder/dev/kudos-wt/leaderboard-read/convex/website/leaderboard.test.ts:354)** — **WS36; Testing seam 1.** Both rollover tests issue fresh queries after advancing time. Removing `followTheClock(ctx)` would leave them green while an open subscription could retain the previous period’s board. Verify one persistent subscription updates after the clock tick, without re-querying or new kudos.
+
+- **P2 — [convex/leaderboard/totals.test.ts:146](/home/coder/dev/kudos-wt/leaderboard-read/convex/leaderboard/totals.test.ts:146)** — **Coherence’s G18 witness requirement; WS35; Testing seam 2.** Tests through `rankedBoardOf` cover positive gains but never the best-completed-period fallback. A regression dropping `{ best }` when the viewer gives less would pass, although Slack still shows that line. Exercise the fallback and a gain while falling in position through `rankedBoardOf`, and include those assertions in G18’s witness.
+tokens used
+
+## Responses
+
+1. Rejected. convex-test has no subscriptions, so no test at this seam can hold a query open across a tick; the first slice's getMyProfile clock tests use the same fresh-query pattern. The mechanism is the shared followTheClock read the cron's tick invalidates, proven live on an open page in #108 (website/proof/home/clock.txt). Follow-up: #134's or #136's browser proof shows an open /leaderboard turning over on a tick.
+2. Fixed. Every G18 case in totals.test.ts (the gain, the best completed week and month, no line, all time, and places without former members) now also asserts rankedBoardOf's line.

@@ -126,6 +126,7 @@ describe("G18: the improvement line compares with the previous period up to the 
     for (const [index, [day, kudos]] of Object.entries(given).entries()) await countKudosGiven(t, kudosGiven("U1", { "U2": kudos }, { message: `${index}`, day }));
 
     expect((await everyoneBoard(t, "U1", period)).improvement).toEqual(line);
+    expect((await rankedBoard(t, "U1", period)).improvement).toEqual(line);
   });
 
   test("G15 G18: places compare with last week's board without the people who are no longer members", async () => {
@@ -140,6 +141,7 @@ describe("G18: the improvement line compares with the previous period up to the 
     await recordInDirectory(t, "U3", { kind: "not-a-member" }, Date.now());
 
     expect((await everyoneBoard(t, "U1")).improvement).toEqual({ gain: 3, places: 1 });
+    expect((await rankedBoard(t, "U1")).improvement).toEqual({ gain: 3, places: 1 });
   });
 });
 
