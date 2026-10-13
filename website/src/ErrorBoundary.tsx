@@ -1,13 +1,22 @@
 import { Component, type ReactNode } from "react";
 
-export class ErrorBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
-  state = { failed: false };
+export type Failure = { focusWasOnPage: boolean };
+
+type Props = { fallback: (failure: Failure) => ReactNode; children: ReactNode };
+
+export class ErrorBoundary extends Component<Props, { failure: Failure | null }> {
+  state: { failure: Failure | null } = { failure: null };
 
   static getDerivedStateFromError() {
-    return { failed: true };
+    return { failure: { focusWasOnPage: focusIsOnPage() } };
   }
 
   render() {
-    return this.state.failed ? this.props.fallback : this.props.children;
+    return this.state.failure ? this.props.fallback(this.state.failure) : this.props.children;
   }
+}
+
+function focusIsOnPage() {
+  const focused = document.activeElement;
+  return focused !== null && focused !== document.body;
 }

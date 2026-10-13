@@ -194,6 +194,21 @@ describe("WS22: a failed posthog.com read keeps the previous profiles", () => {
     expect(warn).toHaveBeenCalledWith("companyProfiles.read_failed", { reason: "malformed" });
   });
 
+  test("a first page that answers no teams but declares more pages keeps the previous profiles as malformed", async () => {
+    postHogCom.withTeams({ slug: "analytics", profiles: [wrenOnTheTeamPage] });
+    await syncCompanyProfiles();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    postHogCom
+      .pagedBy(1)
+      .withTeams({ slug: "analytics", profiles: [wrenOnTheTeamPage] }, { slug: "growth", profiles: [oriel] })
+      .answersPage(1, () => Response.json({ data: [], meta: { pagination: { page: 1, pageCount: 2 } } }));
+
+    await syncCompanyProfiles();
+
+    expect(await faceOf(wren)).toEqual(wrensFace);
+    expect(warn).toHaveBeenCalledWith("companyProfiles.read_failed", { reason: "malformed" });
+  });
+
   test("a read that fails on a later page keeps the previous profiles", async () => {
     postHogCom.withTeams({ slug: "analytics", profiles: [wrenOnTheTeamPage] });
     await syncCompanyProfiles();

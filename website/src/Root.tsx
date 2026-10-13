@@ -1,7 +1,7 @@
 import { ConvexReactClient } from "convex/react";
 import type { ReactNode } from "react";
 import { App } from "./App";
-import { ErrorBoundary } from "./ErrorBoundary";
+import { ErrorBoundary, type Failure } from "./ErrorBoundary";
 import { Frame } from "./Frame";
 import { LiveShell } from "./LiveApp";
 import { ErrorPage } from "./pages/ErrorPage";
@@ -12,13 +12,13 @@ export function Root({ fixture, convexUrl }: { fixture?: string; convexUrl?: str
 }
 
 export function ShellBoundary({ children }: { children: ReactNode }) {
-  return <ErrorBoundary fallback={<FailedShell />}>{children}</ErrorBoundary>;
+  return <ErrorBoundary fallback={(failure) => <FailedShell {...failure} />}>{children}</ErrorBoundary>;
 }
 
-function FailedShell() {
+function FailedShell(failure: Failure) {
   return (
     <Frame atHome={false} busy={false}>
-      <ErrorPage />
+      <ErrorPage {...failure} />
     </Frame>
   );
 }

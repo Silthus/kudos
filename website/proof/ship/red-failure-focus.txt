@@ -1,0 +1,66 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/ship-website
+
+ ❯ |website| src/liveShell.test.tsx (2 tests | 1 failed) 247ms
+   ❯ WS20 WS24: the live site shows the error page when a call fails, with focus on its title after a state change (2)
+     × a sign-in that can't start shows the error page, focuses its title and forgets the attempt 95ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/liveShell.test.tsx > WS20 WS24: the live site shows the error page when a call fails, with focus on its title after a state change > a sign-in that can't start shows the error page, focuses its title and forgets the attempt
+Error: [2mexpect([22m[31melement[39m[2m).toHaveFocus()[22m
+
+Expected element with focus:
+  [32m<h1
+  class="hud-display text-2xl font-bold tracking-tight outline-none"
+  tabindex="-1"
+>
+  Something went wrong
+</h1>[39m
+Received element with focus:
+  [31m<body>
+  <div>
+    <div
+      class="hud-root flex min-h-screen flex-col"
+    >
+      <header
+        class="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"
+      >
+        <div
+          class="mx-auto flex h-14 w-full max-w-6xl items-center gap-3 px-4 md:px-6"
+        >
+          <a … />
+          <div … />
+        </div>
+      </header>
+      <main
+        class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+      >
+        <section
+          class="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center"
+        >
+          <svg … />
+          <h1 … />
+          <p … />
+          <button … />
+        </section>
+      </main>
+    </div>
+  </div>
+</body>[39m
+ ❯ src/liveShell.test.tsx:65:31
+     63|     await user.click(screen.getByRole("button", { name: "Sign in with …
+     64|
+     65|     expect(await errorPage()).toHaveFocus();
+       |                               ^
+     66|     expect(sessionStorage.length).toBe(0);
+     67|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  22:15:35
+   Duration  2.06s (import 51%, environment 22%, tests 13%, transform 10%, setup 5%)
+

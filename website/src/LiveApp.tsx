@@ -16,11 +16,11 @@ export function LiveShell({ client }: { client: ConvexReactClient }) {
 }
 
 function LiveApp() {
-  const [actionFailed, setActionFailed] = useState(false);
+  const [signInFailed, setSignInFailed] = useState(false);
   const { isLoading } = useConvexAuth();
   const profile = useQuery(api.website.profile.getMyProfile, {});
-  const actions = useLiveActions(setActionFailed);
-  if (actionFailed) throw new Error("A sign-in or sign-out didn't go through.");
+  const actions = useLiveActions(() => setSignInFailed(true));
+  if (signInFailed) throw new Error("The sign-in didn't start.");
   return <App visitor={visitorOf(isLoading, profile)} actions={actions} />;
 }
 
@@ -28,17 +28,17 @@ function visitorOf(authLoading: boolean, profile: MyProfile | undefined): Visito
   return authLoading || profile === undefined ? { kind: "loading" } : profile;
 }
 
-function useLiveActions(failed: (actionFailed: true) => void): ShellActions {
+function useLiveActions(onSignInFailure: () => void): ShellActions {
   const { signIn, signOut } = useAuthActions();
   return useMemo(
     () => ({
       signIn: () =>
         void signIn("slack", { redirectTo: "/" }).catch(() => {
           forgetSignInStarted();
-          failed(true);
+          onSignInFailure();
         }),
-      signOut: () => void signOut().catch(() => failed(true)),
+      signOut: () => void signOut(),
     }),
-    [signIn, signOut, failed],
+    [signIn, signOut, onSignInFailure],
   );
 }

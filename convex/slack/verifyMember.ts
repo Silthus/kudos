@@ -37,8 +37,8 @@ async function lookUpOrFail(ctx: ActionCtx, workspace: string, user: string): Pr
   try {
     return await lookUpUser(ctx, workspace, user);
   } catch (error) {
-    console.warn(`verifying ${user} failed: ${error}`);
-    return { kind: "failed" };
+    await ctx.runMutation(internal.slack.verifyMember.recordAttempt, { workspace, user, found: false });
+    throw error;
   }
 }
 

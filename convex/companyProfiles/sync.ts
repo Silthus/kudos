@@ -108,7 +108,7 @@ function teamsPage(body: unknown): TeamsPage | undefined {
 function isConsistent(parsed: TeamsPage, page: number, pageCountSoFar: number) {
   const firstPage = page === 1;
   const pageCountHolds = firstPage ? Number.isInteger(parsed.pageCount) && parsed.pageCount >= 1 && parsed.pageCount <= mostPages : parsed.pageCount === pageCountSoFar;
-  const teamsHold = firstPage || parsed.teams.length > 0;
+  const teamsHold = parsed.teams.length > 0 || (firstPage && parsed.pageCount === 1);
   return parsed.page === page && pageCountHolds && teamsHold;
 }
 

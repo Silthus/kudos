@@ -42,8 +42,8 @@ afterEach(() => {
   authActions.signOut.mockReset();
 });
 
-describe("WS20: the live site shows the error page when a call fails", () => {
-  it("a profile read that fails on the server shows the error page, not a blank page", async () => {
+describe("WS20 WS24: the live site shows the error page when a call fails, with focus on its title after a state change", () => {
+  it("a profile read that fails on the first load shows the error page, not a blank page, and leaves focus alone", async () => {
     profileRead.mockImplementation(() => {
       throw new Error("Server Error");
     });
@@ -52,27 +52,17 @@ describe("WS20: the live site shows the error page when a call fails", () => {
 
     expect(await errorPage()).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+    expect(await errorPage()).not.toHaveFocus();
   });
 
-  it("a sign-in that can't start shows the error page and forgets the attempt", async () => {
+  it("a sign-in that can't start shows the error page, focuses its title and forgets the attempt", async () => {
     profileRead.mockReturnValue(shellFixtures.signedOut);
     authActions.signIn.mockRejectedValue(new Error("Server Error"));
     const { user } = renderLiveSite();
 
     await user.click(screen.getByRole("button", { name: "Sign in with Slack" }));
 
-    expect(await errorPage()).toBeInTheDocument();
+    expect(await errorPage()).toHaveFocus();
     expect(sessionStorage.length).toBe(0);
-  });
-
-  it("a sign-out that fails shows the error page", async () => {
-    profileRead.mockReturnValue(shellFixtures.member);
-    authActions.signOut.mockRejectedValue(new Error("Server Error"));
-    const { user } = renderLiveSite();
-
-    await user.click(screen.getByRole("button", { name: /Account menu/ }));
-    await user.click(await screen.findByRole("menuitem", { name: "Sign out" }));
-
-    expect(await errorPage()).toBeInTheDocument();
   });
 });

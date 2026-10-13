@@ -1,7 +1,13 @@
 import { Button } from "@posthog/quill";
+import { useEffect } from "react";
+import type { Failure } from "../ErrorBoundary";
 import { MaxSays } from "../Max";
+import { focusPageTitle } from "../pageFocus";
 
-export function ErrorPage() {
+export function ErrorPage({ focusWasOnPage }: Failure) {
+  useEffect(() => {
+    if (focusWasOnPage) focusPageTitle();
+  }, [focusWasOnPage]);
   return (
     <MaxSays
       title="Something went wrong"

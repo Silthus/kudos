@@ -13,6 +13,6 @@ export function useTitleFocusAfterChange(kind: PageKind) {
   }, [kind]);
 }
 
-function focusPageTitle() {
+export function focusPageTitle() {
   document.querySelector<HTMLElement>("main h1")?.focus();
 }

@@ -1,6 +1,8 @@
 import { useCallback } from "react";
+import { ErrorBoundary } from "./ErrorBoundary";
 import { Frame } from "./Frame";
 import { ClosedPage } from "./pages/ClosedPage";
+import { ErrorPage } from "./pages/ErrorPage";
 import { HomePage } from "./pages/HomePage";
 import { NotAMemberPage } from "./pages/NotAMemberPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
@@ -23,7 +25,9 @@ export function App({ visitor, actions }: { visitor: ShellState; actions: ShellA
   const member = shown.kind === "member" ? shown : undefined;
   return (
     <Frame member={member} atHome={atHome} busy={shown.kind === "loading"} onSignOut={actions.signOut}>
-      <Page state={shown} atHome={atHome} onSignIn={signIn} onSignOut={actions.signOut} />
+      <ErrorBoundary fallback={(failure) => <ErrorPage {...failure} />}>
+        <Page state={shown} atHome={atHome} onSignIn={signIn} onSignOut={actions.signOut} />
+      </ErrorBoundary>
     </Frame>
   );
 }
