@@ -9,6 +9,7 @@ import { standingOf } from "../progression/progression";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const form = { contentType: "application/x-www-form-urlencoded" };
+const leaderboardReady = "section: *Leaderboard* is ready. It opens the boards. [button: Open]";
 const skillTreeReady = "section: *Skill tree* is ready. It opens the tree and your first skill point. [button: Open]";
 
 let slack: FakeSlack;
@@ -85,6 +86,63 @@ describe("P76: a feature's lines wait for its opening", () => {
     expect(dmsTo("U_ALICE").at(-1)).toEqual(["🎉 You reached level 6! You have 2 skill points saved for the skill tree.", "Level 7 is 500 XP away."]);
     expect(progressionOf(publishedHome(slack, "U_ALICE"))).toEqual(["section fields: *Level*\n*6* | *XP to level 7*\n*500*", "section: You have *2 skill points* saved for the skill tree."]);
   });
+
+  test("with everyone-board on, a level 1 member is told the Leaderboard opens at level 3, by /hedgehug leaderboard, and App Home has no Leaderboard tab", async () => {
+    flagsOnForEveryone(slack.fetch, "xp-levels", "everyone-board");
+    const t = await workspaceWithAllowance(10);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    const reply = await leaderboardCommand(t, "U_ALICE");
+    await openHome(t, "U_ALICE");
+
+    expect(reply).toEqual({ response_type: "ephemeral", text: "Leaderboard opens at level 3." });
+    expect(publishedHome(slack, "U_ALICE")[0]).toBe("actions: [Profile] | Settings");
+    expect(publishedHome(slack, "U_ALICE")).toContain("section: Next: Leaderboard at level 3.");
+  });
+
+  test("at level 3, before opening, /hedgehug leaderboard says the Leaderboard is ready, and App Home shows its crate but no Leaderboard tab", async () => {
+    flagsOnForEveryone(slack.fetch, "xp-levels", "everyone-board");
+    const t = await workspaceWithAllowance(10);
+    await giveKudos(t, "U_ALICE", "U_BOB", 10);
+
+    const reply = await leaderboardCommand(t, "U_ALICE");
+    await openHome(t, "U_ALICE");
+
+    expect(reply).toEqual({ response_type: "ephemeral", text: "Leaderboard is ready for you. Open it in App Home." });
+    expect(publishedHome(slack, "U_ALICE")[0]).toBe("actions: [Profile] | Settings");
+    expect(publishedHome(slack, "U_ALICE")).toContain(leaderboardReady);
+  });
+
+  test("once the member opens the Leaderboard, its tab and /hedgehug leaderboard show the board, with members who haven't opened it on it", async () => {
+    flagsOnForEveryone(slack.fetch, "xp-levels", "everyone-board");
+    const t = await workspaceWithAllowance(10);
+    await giveKudos(t, "U_BOB", "U_ALICE", 1);
+    await giveKudos(t, "U_ALICE", "U_BOB", 10);
+    await openHome(t, "U_ALICE");
+
+    await click(t, "U_ALICE", "Open");
+    const tabBar = publishedHome(slack, "U_ALICE")[0];
+    await click(t, "U_ALICE", "Leaderboard");
+    const reply = await leaderboardCommand(t, "U_ALICE");
+
+    expect(tabBar).toBe("actions: [Profile] | Leaderboard | Settings");
+    const boardRows = ["🥇 <@U_ALICE> · 10 kudos", "🥈 <@U_BOB> · 1 kudos"];
+    expect(rowsOf(publishedHome(slack, "U_ALICE").find((line) => line.startsWith("section: 🥇"))?.slice("section: ".length))).toEqual(boardRows);
+    expect(rowsOf(reply.text)).toEqual(boardRows);
+  });
+
+  test("with everyone-board off, a level 3 member's /hedgehug leaderboard answers as /hedgehug, and nothing names the Leaderboard", async () => {
+    flagsOnForEveryone(slack.fetch, "xp-levels");
+    const t = await workspaceWithAllowance(10);
+    await giveKudos(t, "U_ALICE", "U_BOB", 10);
+
+    const reply = await leaderboardCommand(t, "U_ALICE");
+    await openHome(t, "U_ALICE");
+
+    expect(reply).toBeNull();
+    expect(slack.callsTo("conversations.join")).toEqual([{ channel: "C1" }]);
+    expect(everythingToldTo("U_ALICE")).not.toMatch(/leaderboard/i);
+  });
 });
 
 function dmsTo(user: string) {
@@ -125,6 +183,27 @@ async function openHome(t: Backend, user: string) {
 async function click(t: Backend, user: string, label: string) {
   await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, buttonInHome(slack, user, label)), form));
   await settle(t);
+}
+
+function rowsOf(board: string | undefined) {
+  return (board ?? "").split("\n").filter((line) => line.includes("<@"));
+}
+
+async function leaderboardCommand(t: Backend, user: string) {
+  const body = new URLSearchParams({
+    team_id: "T1",
+    channel_id: "C1",
+    channel_name: "general",
+    user_id: user,
+    command: "/hedgehug",
+    text: "leaderboard",
+    response_url: "https://hooks.slack.com/commands/T1/1/abc",
+    trigger_id: "1.2.3",
+  }).toString();
+  const response = await t.fetch("/slack/commands", await signedRequest(body, form));
+  await settle(t);
+  const text = await response.text();
+  return text === "" ? null : JSON.parse(text);
 }
 
 async function memberOf(t: Backend, user: string) {

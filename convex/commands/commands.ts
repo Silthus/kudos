@@ -1,7 +1,7 @@
 import { v, type GenericValidator, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
-import { homeTabValidator, selectLeaderboardPeriod, showHomeTab, type HomeMember } from "../feedback/homes";
+import { homeTabValidator, isLeaderboardShownTo, selectLeaderboardPeriod, showHomeTab, type HomeMember } from "../feedback/homes";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import { periodValidator } from "../leaderboard/periods";
 import { setLeaderboardVisibility } from "../leaderboard/visibility";
@@ -32,7 +32,7 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
     case "showHomeTab":
       return showHomeTab(ctx, workspace, person, command.tab);
     case "showLeaderboard":
-      if (await isEveryoneBoardShownTo(ctx, workspace, member)) await selectLeaderboardPeriod(ctx, member, command.period);
+      if (await isLeaderboardShownTo(ctx, workspace, member)) await selectLeaderboardPeriod(ctx, member, command.period);
       return;
     case "setLeaderboardVisibility":
       if (await isEveryoneBoardShownTo(ctx, workspace, member)) await setLeaderboardVisibility(ctx, member, command.visible);

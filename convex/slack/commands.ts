@@ -105,6 +105,9 @@ export const exposeBoardOnceKnown = observedAction({
 });
 
 async function leaderboardReply(ctx: ActionCtx, command: URLSearchParams, rest: string[]): Promise<Line[]> {
+  const viewer = { workspace: field(command, "team_id"), user: field(command, "user_id") };
+  const unopened = await ctx.runQuery(internal.feedback.unlockFilter.unopenedReplyOf, { ...viewer, feature: "leaderboard" });
+  if (unopened !== null) return unopened;
   const period = periodOf(rest);
   if (period === null) return renderLeaderboardUsage();
   const view = await ctx.runQuery(internal.leaderboard.totals.everyoneBoard, { workspace: field(command, "team_id"), viewer: field(command, "user_id"), period });

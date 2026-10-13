@@ -42,7 +42,7 @@ describe("P74 P73: App Home's Profile tab lists each ready feature with Open", (
     await openHome(t, "U_ALICE");
 
     expect(publishedHome(slack, "U_ALICE")).toEqual([
-      "actions: [Profile] | Leaderboard | Settings",
+      "actions: [Profile] | Settings",
       "header: Your kudos",
       "section: You've used all your kudos for today. You get *10* more at midnight.",
       "divider",
