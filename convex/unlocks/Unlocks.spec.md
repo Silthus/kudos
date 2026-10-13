@@ -32,10 +32,11 @@ Unlocks: owns each member's ready and opened features (P72 to P79, P92, ADR-0006
 - each ready feature is named in one level-up DM: A level up is told in one DM, once per level reached, and that DM names exactly the features the same mutation made ready, whichever subscriber of levelReached runs first: a replayed levelReached writes and sends nothing, even after the feature's flag went on, and a feature that something else made ready first is never named again.
   over: the level-up DMs the app asks Slack to send and the stored readiness, for levelReached run before and after the other subscribers, replayed, replayed after everyone-board went on, and arriving after the Leaderboard was made ready by something else
   via: P74: one owner for readiness and the level-up DM
+  refuted: makeReady no longer returned early when the member's level up was already recorded -> both replay tests failed: the plain replay sent a second DM, and the replay after everyone-board went on made the Leaderboard ready unnamed (2026-10-13)
   because: one level-up notice names every feature its levels made ready (P6, P74), and nothing nudges a member to open a ready feature again (P74); the bus schedules each levelReached subscriber on its own, so a DM sent beside readiness could run before it and name nothing, and a replay or a later sweep (P78) could name a feature twice
   kinds: message, state
   checklist: revalidated-permission dismissed: no permission is involved; whether a member wants DMs is their setting, read in the same mutation that records the level up
-  checklist: destination-confinement dismissed: the DM goes to the Slack Web API at one configured base URL, to the member's own DM conversation, with no destination taken from input
+  checklist: destination-confinement dismissed: the DM goes to Slack's API at one configured base URL, to the member's own DM conversation, with no destination taken from input
   checklist: message-authenticity dismissed: the DM is outbound; levelReached comes from progression's own transaction, and an Open click is verified by the Slack adapter's signed Slack requests only
   checklist: input-validation dismissed: levelReached is checked by its event validator at the subscriber's boundary, and only progression publishes it
   checklist: separation-of-duties dismissed: no approval policy applies
