@@ -282,6 +282,14 @@
     {
       "name": "website",
       "definition": "The signed-in browser surface where a member sees and manages their Kudos. It sits beside App Home and never replaces it."
+    },
+    {
+      "name": "board",
+      "definition": "One ranking of the leaderboard for one period, as one viewer sees it: the Everyone board ranks members across the workspace by kudos given, the My group board the members of the viewer's primary group, and the Groups board the groups by kudos given per member. Its rows are cut to the window."
+    },
+    {
+      "name": "window",
+      "definition": "The rows a board shows one viewer: positions 1-3, then the viewer's position with up to three above and three below, or the first ten positions when the viewer is 7th or better, never more than ten rows, with one gap line where positions are skipped; a viewer who gave nothing sees positions 1-3 and how to join (G17)."
     }
   ]
 }

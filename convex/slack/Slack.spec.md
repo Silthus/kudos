@@ -1,12 +1,12 @@
 # Slack
 
-The Slack adapter, the only code that knows Slack: it verifies and acknowledges Slack's requests, normalizes posted and edited messages into countable content for the engine, keeps the directory from team_join and user_change in the order Slack sent them and fills a person it doesn't know from users.info, delivers the indicator as a reaction, each private reply as an ephemeral to the giver, the welcome message as a DM and App Home as a published view when a member opens it, through one delivery path that retries the indicator until it shows and tries every other send at most 3 times, within Slack's per-method rate limits, and adds the app to a channel with `/hedgehug`, or with `/kudos`, its alias once the manifest registers it.
+The Slack adapter, the only code that knows Slack: it verifies and acknowledges Slack's requests, normalizes posted and edited messages into countable content for the engine, keeps the directory from team_join and user_change in the order Slack sent them and fills a person it doesn't know from users.info, delivers the indicator as a reaction, each private reply as an ephemeral to the giver, the welcome message as a DM and App Home as a published view when a member opens it, through one delivery path that retries the indicator until it shows and tries every other send at most 3 times, within Slack's per-method rate limits, adds the app to a channel with `/hedgehug`, or with `/kudos`, its alias once the manifest registers it, and answers `/hedgehug leaderboard` privately with this week's Everyone board.
 
 ## entrances
 - route POST /slack/events: Slack delivers an Events API request, an event callback (a message or a member opening App Home) or the URL verification challenge
   handler: slackEvents in convex/slack/events.ts
   trust: slack-request
-- route POST /slack/commands: Slack delivers a slash command a member typed, `/hedgehug` or its alias `/kudos` to add the app to a channel
+- route POST /slack/commands: Slack delivers a slash command a member typed, `/hedgehug` or its alias `/kudos` to add the app to a channel, or with `leaderboard` to see this week's Everyone board
   handler: slackCommands in convex/slack/commands.ts
   trust: slack-request
 
