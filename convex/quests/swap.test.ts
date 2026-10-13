@@ -8,6 +8,7 @@ import { blockActions, buttonIn, buttonInHome, publishedHome, publishedHomeBlock
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import type { MemberId } from "../workspace/directory";
+import type { PromisedReward } from "./finish";
 import type { QuestId } from "./pool";
 
 const dayMs = 24 * 60 * 60 * 1000;
@@ -101,9 +102,26 @@ describe("P81: once a week, a member swaps one unfinished quest for a feasible q
     vi.setSystemTime(sunday);
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
 
-    expect(await rewardRecordsOf(t)).toEqual(expect.arrayContaining([{ key: "weekly:2026-10-12:1", xp: 20 }]));
+    expect(await rewardRecordsOf(t)).toEqual(expect.arrayContaining([{ key: "weekly:2026-10-12:1", xp: 20, catalogueVersion: "1" }]));
     expect(questDmsTo("U_ALICE").map(({ text }) => text)).toContain(`✅ You finished a quest: ${twoDays} You earned *20 XP*.`);
     expect(questsIn(publishedHome(slack, "U_ALICE"))[2]).toBe(`section: ✅ ${twoDays} You earned *20 XP*. [button: Open]`);
+  });
+
+  test("the swapped-in quest pays the reward and catalogue version fixed at the swap, while a drawn quest keeps the draw's", async () => {
+    const t = await openedQuests(sayingWhyThreeWays, { reward: { xp: 25, coins: 0, item: null }, catalogueVersion: "0" });
+    vi.setSystemTime(saturday);
+    await send(t, blockActions("U_ALICE", swapIn(publishedHomeBlocks(slack, "U_ALICE"), twice)));
+
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+    vi.setSystemTime(sunday);
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+
+    expect(await rewardRecordsOf(t)).toEqual(
+      expect.arrayContaining([
+        { key: "weekly:2026-10-12:0", xp: 25, catalogueVersion: "0" },
+        { key: "weekly:2026-10-12:1", xp: 20, catalogueVersion: "1" },
+      ]),
+    );
   });
 
   test("a kudos made before the swap and delivered after it doesn't count toward the new quest", async () => {
@@ -127,6 +145,20 @@ describe("P81: once a week, a member swaps one unfinished quest for a feasible q
 
     expect(questsIn(publishedHome(slack, "U_ALICE")).slice(1, 4)).toEqual([`section: ${sayWhy} *0/1* · *20 XP*`, `section: ${twice} *0/2* · *20 XP*`, `section: ${threeTimes} *0/3* · *20 XP*`]);
     expect((await questsOf(t))?.week).toMatchObject({ swap: null, swapAvailable: false });
+  });
+
+  test("a Swap left from a day a quest outside the draw was feasible writes nothing once none is", async () => {
+    const t = await openedQuests(sayingWhyThreeWays);
+    vi.setSystemTime(saturday);
+    await openHome(t, "U_ALICE");
+    const saturdays = publishedHomeBlocks(slack, "U_ALICE");
+    vi.setSystemTime(sunday);
+    const before = await questState(t);
+
+    await send(t, blockActions("U_ALICE", swapIn(saturdays, twice)));
+
+    expect(await questState(t)).toEqual(before);
+    expect(before.questSwaps).toEqual([]);
   });
 
   test("a finished quest never shows Swap, while the unfinished ones still do", async () => {
@@ -194,17 +226,17 @@ describe("P81: a week swaps one unfinished quest at most", () => {
   });
 });
 
-async function openedQuests(quests: QuestId[]) {
+async function openedQuests(quests: QuestId[], promised: PromisedReward = { reward: { xp: 20, coins: 0, item: null }, catalogueVersion: "1" }) {
   const t = await workspace();
   await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
   await openHome(t, "U_ALICE");
-  await drawFor(t, "U_ALICE", quests);
+  await drawFor(t, "U_ALICE", quests, promised);
   await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Open")));
   return t;
 }
 
-async function drawFor(t: Backend, user: string, quests: QuestId[]) {
-  const slots = quests.map((quest, slot) => ({ slot, quest, reward: { xp: 20, coins: 0, item: null }, catalogueVersion: "1", feasibleBecause: { peopleLeft: 1, recognitionsLeft: 18 } }));
+async function drawFor(t: Backend, user: string, quests: QuestId[], promised: PromisedReward) {
+  const slots = quests.map((quest, slot) => ({ slot, quest, ...promised, feasibleBecause: { peopleLeft: 1, recognitionsLeft: 18 } }));
   const [member] = await membersOf(t, user);
   await t.run((ctx) => ctx.db.insert("questDraws", { member: member!, week: "2026-10-12", drawnAt: Date.now(), slots }));
 }
@@ -236,7 +268,7 @@ async function questState(t: Backend) {
 }
 
 async function rewardRecordsOf(t: Backend) {
-  return t.run(async (ctx) => (await ctx.db.query("rewardRecords").collect()).filter(({ key }) => key.startsWith("weekly:")).map(({ key, xp }) => ({ key, xp })));
+  return t.run(async (ctx) => (await ctx.db.query("rewardRecords").collect()).filter(({ key }) => key.startsWith("weekly:")).map(({ key, xp, catalogueVersion }) => ({ key, xp, catalogueVersion })));
 }
 
 function questDmsTo(user: string): Array<{ text?: unknown }> {
