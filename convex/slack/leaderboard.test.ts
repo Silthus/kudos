@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { internal } from "../_generated/api";
+import { record } from "../workspace/directory";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
@@ -75,6 +77,18 @@ describe("G23: /hedgehug leaderboard", () => {
     expect(reply.text).toBe(["🥇 <@U_BOB> · 1 kudos", "🥇 <@U_ANN> · 1 kudos"].join("\n"));
   });
 
+  test("G16: members the directory knew before it kept names get them from users.list, and a name it has stays", async () => {
+    const t = testBackend();
+    await knownWithoutName(t, "U_ANN", "U_BOB", "U_CY");
+    slack.withMember("U_ANN", { profile: { display_name: "Zora" } }).withMember("U_BOB", { profile: { display_name: "Ava" } }).withMember("U_CY", { profile: { display_name: "Abe" } });
+    await t.run((ctx) => record(ctx, { workspace: "T1", user: "U_CY", entry: { kind: "member", name: "Zed" }, asOf: Date.now() }));
+    for (const [index, giver] of ["U_ANN", "U_BOB", "U_CY"].entries()) await giveKudos(t, giver, "U_REC", 1, index);
+
+    await t.action(internal.slack.directory.fillMissingNames, {});
+
+    expect((await leaderboardCommand(t, "U_ANN")).text).toBe(["🥇 <@U_BOB> · 1 kudos", "🥇 <@U_CY> · 1 kudos", "🥇 <@U_ANN> · 1 kudos"].join("\n"));
+  });
+
   test("an award counts in the week of its giver's allowance day, in each giver's time zone", async () => {
     const mondayMorningInBerlin = new Date("2026-10-12T05:00:00Z");
     vi.setSystemTime(mondayMorningInBerlin);
@@ -105,6 +119,10 @@ async function giveKudos(t: Backend, giver: string, recipient: string, kudos: nu
   const ts = `${Math.floor(Date.now() / 1000) + messageIndex}.000100`;
   await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts })));
   await settle(t);
+}
+
+async function knownWithoutName(t: Backend, ...users: string[]) {
+  for (const user of users) await t.run((ctx) => record(ctx, { workspace: "T1", user, entry: { kind: "member" }, asOf: 0 }));
 }
 
 function leaderboardCommand(t: Backend, user: string) {

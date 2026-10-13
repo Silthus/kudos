@@ -42,6 +42,16 @@ export const fillEntry = internalMutation({
   },
 });
 
+export const nameMembersWithoutName = internalMutation({
+  args: { names: v.array(v.object({ workspace: v.string(), user: v.string(), name: v.string() })) },
+  handler: async (ctx, { names }) => {
+    for (const { workspace, user, name } of names) {
+      const row = await memberRow(ctx, workspace, user);
+      if (row?.kind === "member" && row.name === undefined) await ctx.db.patch(row._id, { name });
+    }
+  },
+});
+
 export async function record(ctx: MutationCtx, { workspace, user, entry, asOf }: DirectoryRecord) {
   const row = { workspace, user, timeZone: undefined, asOf, ...entry };
   const existing = await memberRow(ctx, workspace, user);

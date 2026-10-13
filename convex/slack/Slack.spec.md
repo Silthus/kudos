@@ -1,6 +1,6 @@
 # Slack
 
-The Slack adapter, the only code that knows Slack: it verifies and acknowledges Slack's requests, normalizes posted and edited messages into countable content for the engine, keeps the directory from team_join and user_change in the order Slack sent them and fills a person it doesn't know from users.info, delivers the indicator as a reaction, each private reply as an ephemeral to the giver, the welcome message as a DM and App Home as a published view when a member opens it, through one delivery path that retries the indicator until it shows and tries every other send at most 3 times, within Slack's per-method rate limits, adds the app to a channel with `/hedgehug`, or with `/kudos`, its alias once the manifest registers it, and answers `/hedgehug leaderboard` privately with this week's Everyone board.
+The Slack adapter, the only code that knows Slack: it verifies and acknowledges Slack's requests, normalizes posted and edited messages into countable content for the engine, keeps the directory from team_join and user_change in the order Slack sent them and fills a person it doesn't know from users.info and, when a maintainer asks, the names it lacks from users.list, delivers the indicator as a reaction, each private reply as an ephemeral to the giver, the welcome message as a DM and App Home as a published view when a member opens it, through one delivery path that retries the indicator until it shows and tries every other send at most 3 times, within Slack's per-method rate limits, adds the app to a channel with `/hedgehug`, or with `/kudos`, its alias once the manifest registers it, and answers `/hedgehug leaderboard` privately with this week's Everyone board.
 
 ## entrances
 - route POST /slack/events: Slack delivers an Events API request, an event callback (a message or a member opening App Home) or the URL verification challenge
@@ -9,6 +9,10 @@ The Slack adapter, the only code that knows Slack: it verifies and acknowledges 
 - route POST /slack/commands: Slack delivers a slash command a member typed, `/hedgehug` or its alias `/kudos` to add the app to a channel, or with `leaderboard` to see this week's Everyone board
   handler: slackCommands in convex/slack/commands.ts
   trust: slack-request
+- fill missing names: a maintainer runs fillMissingNames once against a deployment, so members the directory recorded before it kept names get the Slack name a board lists ties by
+  handler: fillMissingNames in convex/slack/directory.ts
+  trust: operator
+  control: none — it reads only Slack's users.list with the deployment's own token and only adds a name to a member row that has none, never overwriting a name or any other field
 
 ## invariants
 - signed Slack requests only: A request to the Slack events route that Slack did not sign records nothing and reaches no domain function.

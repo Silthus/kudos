@@ -60,6 +60,27 @@ export const recheckMessage = internalMutation({
   },
 });
 
+type UsersPage = { members: SlackUser[]; response_metadata?: { next_cursor?: string } };
+
+export const fillMissingNames = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    let cursor = "";
+    do {
+      const page = await readSlack<UsersPage>("users.list", { limit: "200", ...(cursor && { cursor }) });
+      if (!page.ok) throw new Error(`Slack users.list failed: ${page.error}`);
+      await ctx.runMutation(internal.workspace.directory.nameMembersWithoutName, { names: page.members.flatMap(memberNameOf) });
+      cursor = page.response_metadata?.next_cursor ?? "";
+    } while (cursor !== "");
+  },
+});
+
+function memberNameOf(user: SlackUser) {
+  const workspace = user.team_id ?? "";
+  const entry = directoryEntryOf(user, workspace);
+  return entry.kind === "member" && entry.name ? [{ workspace, user: user.id, name: entry.name }] : [];
+}
+
 export type LookUp = { kind: "found" } | { kind: "failed"; retryAfterMs?: number };
 
 export async function lookUpUser(ctx: ActionCtx, workspace: string, user: string): Promise<LookUp> {
