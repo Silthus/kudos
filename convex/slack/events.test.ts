@@ -37,6 +37,7 @@ describe("POST /slack/events", () => {
       ["signed with another secret", () => signedRequest(eventCallback("T1", "Ev1"), { secret: "someone-elses-secret" })],
       ["unsigned", async () => ({ method: "POST", body: eventCallback("T1", "Ev1") })],
       ["with a body changed after signing", async () => ({ ...(await signedRequest(eventCallback("T1", "Ev1"))), body: eventCallback("T1", "Ev2") })],
+      ["with a byte order mark added after signing", async () => ({ ...(await signedRequest(eventCallback("T1", "Ev1"))), body: withByteOrderMark(eventCallback("T1", "Ev1")) })],
       ["signed more than 5 minutes ago", () => signedRequest(eventCallback("T1", "Ev1"), { signedAt: minutesBefore(now, 6) })],
       ["signed more than 5 minutes ahead", () => signedRequest(eventCallback("T1", "Ev1"), { signedAt: minutesBefore(now, -6) })],
       ["unsigned url_verification", async () => ({ method: "POST", body: JSON.stringify({ type: "url_verification", challenge: "c-123" }) })],
@@ -93,6 +94,16 @@ describe("POST /slack/events", () => {
     expect(await receiptsIn(t)).toEqual([]);
   });
 
+  test("an envelope of another type, such as app_rate_limited, is acknowledged and records nothing", async () => {
+    const t = convexTest(schema, modules);
+
+    const response = await postSigned(t, JSON.stringify({ type: "app_rate_limited", team_id: "T1", minute_rate_limited: 1760349600 }));
+
+    expect(response.status).toBe(200);
+    expect(await receiptsIn(t)).toEqual([]);
+    expect(processEvent).not.toHaveBeenCalled();
+  });
+
   test("url_verification returns the challenge", async () => {
     const t = convexTest(schema, modules);
 
@@ -133,6 +144,10 @@ async function signedRequest(body: string, options: SigningOptions = {}): Promis
     },
     body,
   };
+}
+
+function withByteOrderMark(body: string) {
+  return new Uint8Array([0xef, 0xbb, 0xbf, ...new TextEncoder().encode(body)]);
 }
 
 function minutesBefore(date: Date, minutes: number) {

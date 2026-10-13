@@ -1,6 +1,6 @@
 const maxAgeSeconds = 5 * 60;
 
-export type SignedRequest = { timestamp: string | null; signature: string | null; body: string };
+export type SignedRequest = { timestamp: string | null; signature: string | null; body: Uint8Array<ArrayBuffer> };
 
 export async function isSignedBySlack(request: SignedRequest, signingSecret: string, nowMs: number): Promise<boolean> {
   const { timestamp, signature, body } = request;
@@ -9,12 +9,20 @@ export async function isSignedBySlack(request: SignedRequest, signingSecret: str
   const mac = hexToBytes(signature.replace(/^v0=/, ""));
   if (mac === null) return false;
   const key = await hmacKey(signingSecret);
-  return crypto.subtle.verify("HMAC", key, mac, new TextEncoder().encode(`v0:${timestamp}:${body}`));
+  return crypto.subtle.verify("HMAC", key, mac, signedBase(timestamp, body));
 }
 
 function isFresh(timestamp: string, nowMs: number) {
   const signedAtSeconds = Number(timestamp);
   return Number.isInteger(signedAtSeconds) && Math.abs(nowMs / 1000 - signedAtSeconds) <= maxAgeSeconds;
+}
+
+function signedBase(timestamp: string, body: Uint8Array<ArrayBuffer>) {
+  const prefix = new TextEncoder().encode(`v0:${timestamp}:`);
+  const base = new Uint8Array(prefix.length + body.length);
+  base.set(prefix);
+  base.set(body, prefix.length);
+  return base;
 }
 
 function hexToBytes(hex: string): Uint8Array<ArrayBuffer> | null {

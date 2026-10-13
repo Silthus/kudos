@@ -9,7 +9,7 @@ The Slack adapter, the only code that knows Slack: it verifies and acknowledges 
 
 ## invariants
 - signed Slack requests only: A request to the Slack events route that Slack did not sign records nothing and reaches no domain function.
-  over: the requests slackEvents receives unsigned, signed with another secret, with a body changed after signing, signed more than 5 minutes before or after now, and an unsigned URL verification
+  over: the requests slackEvents receives unsigned, signed with another secret, with a body changed after signing or a byte order mark added in front of it, signed more than 5 minutes before or after now, and an unsigned URL verification
   via: R48: a request Slack did not sign gets 401 and records nothing
   because: the route is public, so a forged request must not record a receipt or reach the domain; anyone could otherwise forge kudos (R48)
   crossing: slack-request -> domain
