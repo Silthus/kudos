@@ -24,14 +24,7 @@ export const makeReady = internalMutation({
   handler: async (ctx, { event }): Promise<void> => {
     const { workspace, member, level, at } = event;
     if ((await levelUpOf(ctx, member, level)) !== null) return;
-    const reached = (await shippedIn(ctx, workspace)).filter((entry) => entry.level <= level);
-    const madeReady: ScheduledFeature[] = [];
-    for (const entry of reached) {
-      if ((await unlockRow(ctx, member, entry.feature)) !== null) continue;
-      await ctx.db.insert("unlocks", { member, feature: entry.feature, readyAt: at });
-      await publish(ctx, { type: "unlockReady", workspace, member, feature: entry.feature, at });
-      madeReady.push(entry);
-    }
+    const madeReady = await storeReadiness(ctx, { workspace, member, at }, reachedAt(await shippedIn(ctx, workspace), level));
     await ctx.db.insert("levelUps", { member, level, ready: madeReady.map(({ feature }) => feature), at });
     await notifyLevelReached(ctx, event, madeReady);
     if (madeReady.length > 0 && (await xpLevelsShownIn(ctx, workspace))) await republish(ctx, member);
@@ -76,6 +69,21 @@ export async function unlocksHomeOf(ctx: QueryCtx, member: MemberId): Promise<Un
   const unlocks = await unlocksOf(ctx, member);
   const withState = (state: MemberUnlock["state"]) => unlocks.filter((unlock) => unlock.state === state).map(({ feature }) => scheduled(feature));
   return { ready: withState("ready"), next: withState("locked")[0] ?? null };
+}
+
+export function reachedAt(features: ScheduledFeature[], level: number) {
+  return features.filter((entry) => entry.level <= level);
+}
+
+export async function storeReadiness(ctx: MutationCtx, { workspace, member, at }: { workspace: string; member: MemberId; at: number }, reached: ScheduledFeature[]) {
+  const madeReady: ScheduledFeature[] = [];
+  for (const entry of reached) {
+    if ((await unlockRow(ctx, member, entry.feature)) !== null) continue;
+    await ctx.db.insert("unlocks", { member, feature: entry.feature, readyAt: at });
+    await publish(ctx, { type: "unlockReady", workspace, member, feature: entry.feature, at });
+    madeReady.push(entry);
+  }
+  return madeReady;
 }
 
 async function isShipped(ctx: QueryCtx | MutationCtx, workspace: string, feature: Feature) {

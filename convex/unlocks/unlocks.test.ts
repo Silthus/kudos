@@ -184,6 +184,63 @@ describe("P5: a ready or opened feature is kept for good", () => {
   });
 });
 
+describe("P78: a feature that ships later is made ready once by the ship sweep", () => {
+  test("a level 4 member's Leaderboard is made ready by the first sweep after everyone-board turns on; later sweeps and the flag going off and on write and publish nothing", async () => {
+    const { t, alice } = await withMember();
+    await withEarnings(t, alice, 300);
+    await boardTurned(t, "off");
+    await sweep(t);
+    expect(await unlocksOf(t, alice)).toEqual([]);
+
+    await boardTurned(t, "on");
+    await sweep(t);
+    expect(await unlocksOf(t, alice)).toEqual([{ feature: "leaderboard", state: "ready", readyAt: now.getTime(), openedAt: null }]);
+    expect(published("unlockReady")).toEqual([{ type: "unlockReady", workspace: "T1", member: alice, feature: "leaderboard", at: now.getTime() }]);
+    const before = await everyTable(t);
+    vi.mocked(publish).mockClear();
+
+    vi.setSystemTime(now.getTime() + weekMs);
+    await sweep(t);
+    await boardTurned(t, "off");
+    await sweep(t);
+    await boardTurned(t, "on");
+    await sweep(t);
+
+    expect(await everyTable(t)).toEqual(before);
+    expect(vi.mocked(publish)).not.toHaveBeenCalled();
+  });
+
+  test("an opened Leaderboard stays open with its first times through sweeps and its flag going off and on", async () => {
+    const { t, alice } = await withMember();
+    await withEarnings(t, alice, 300);
+    await sweep(t);
+    await open(t, alice, "leaderboard");
+    const before = await everyTable(t);
+
+    await boardTurned(t, "off");
+    await sweep(t);
+    await boardTurned(t, "on");
+    await sweep(t);
+
+    expect(await everyTable(t)).toEqual(before);
+    expect(await state(t, alice, "leaderboard")).toBe("open");
+  });
+
+  test("a member below the Leaderboard's level gets nothing from the sweep", async () => {
+    const { t, alice } = await withMember();
+    await withEarnings(t, alice, 99);
+
+    await sweep(t);
+
+    expect(await unlocksOf(t, alice)).toEqual([{ feature: "leaderboard", state: "locked", readyAt: null, openedAt: null }]);
+    expect(published("unlockReady")).toEqual([]);
+  });
+});
+
+function sweep(t: Backend) {
+  return t.mutation(internal.unlocks.sweep.sweep, {});
+}
+
 function boardTurned(t: Backend, value: "on" | "off") {
   return flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), (value === "on" ? onForEveryone : offForEveryone)("everyone-board"));
 }

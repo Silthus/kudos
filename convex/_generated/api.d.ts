@@ -68,6 +68,7 @@ import type * as slack_webApi from "../slack/webApi.js";
 import type * as slack_welcome from "../slack/welcome.js";
 import type * as unlocks_feature from "../unlocks/feature.js";
 import type * as unlocks_schedule from "../unlocks/schedule.js";
+import type * as unlocks_sweep from "../unlocks/sweep.js";
 import type * as unlocks_unlocks from "../unlocks/unlocks.js";
 import type * as welcome_welcome from "../welcome/welcome.js";
 import type * as workspace_directory from "../workspace/directory.js";
@@ -140,6 +141,7 @@ declare const fullApi: ApiFromModules<{
   "slack/welcome": typeof slack_welcome;
   "unlocks/feature": typeof unlocks_feature;
   "unlocks/schedule": typeof unlocks_schedule;
+  "unlocks/sweep": typeof unlocks_sweep;
   "unlocks/unlocks": typeof unlocks_unlocks;
   "welcome/welcome": typeof welcome_welcome;
   "workspace/directory": typeof workspace_directory;

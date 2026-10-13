@@ -9,7 +9,9 @@ import { chatUserOf, type MemberId } from "../workspace/directory";
 import { readyCrateOf, type HomeAction } from "./home";
 import { skillPointsOf } from "./naming";
 
-export type Notification = { kind: "level-reached"; level: number; skillPoints: number; xpToNextLevel: number; ready: ScheduledFeature[] };
+export type Notification =
+  | { kind: "level-reached"; level: number; skillPoints: number; xpToNextLevel: number; ready: ScheduledFeature[] }
+  | { kind: "features-shipped"; ready: ScheduledFeature[] };
 
 export type NotificationLine = string | { text: string; action: HomeAction };
 
@@ -18,16 +20,26 @@ export async function notifyLevelReached(ctx: MutationCtx, { member, level, skil
   await notify(ctx, member, { kind: "level-reached", level, skillPoints, xpToNextLevel, ready });
 }
 
+export async function notifyFeaturesShipped(ctx: MutationCtx, member: MemberId, ready: ScheduledFeature[]) {
+  if (!(await xpLevelsShownTo(ctx, member))) return;
+  await notify(ctx, member, { kind: "features-shipped", ready });
+}
+
 export async function notify(ctx: MutationCtx, member: MemberId, notification: Notification) {
   if (!(await wantsDms(ctx, member))) return;
   const { workspace, user } = await chatUserOf(ctx, member);
   await ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverDirectMessage, { workspace, user, lines: renderNotification(notification) });
 }
 
-export function renderNotification({ level, skillPoints, xpToNextLevel, ready }: Notification): NotificationLine[] {
+export function renderNotification(notification: Notification): NotificationLine[] {
+  const crates = notification.ready.map(readyCrateOf);
+  return notification.kind === "level-reached" ? [...levelReachedLines(notification), ...crates] : crates;
+}
+
+function levelReachedLines({ level, skillPoints, xpToNextLevel }: Extract<Notification, { kind: "level-reached" }>) {
   const reached = `🎉 You reached level ${level}!`;
   const headline = level >= skillTreeLevel ? `${reached} You have ${skillPointsOf(skillPoints)} saved for the skill tree.` : reached;
-  return [headline, `Level ${level + 1} is ${xpToNextLevel} XP away.`, ...ready.map(readyCrateOf)];
+  return [headline, `Level ${level + 1} is ${xpToNextLevel} XP away.`];
 }
 
 async function wantsDms(ctx: QueryCtx, member: MemberId) {

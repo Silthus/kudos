@@ -178,7 +178,111 @@ describe("P63 P74: with DMs off", () => {
   });
 });
 
+describe("P78: a feature that ships later becomes ready for members past its level", () => {
+  test("a level 4 member who reached level 3 while everyone-board was off gets one DM naming the Leaderboard with Open at the next sweep, and App Home lists it", async () => {
+    const t = await workspace();
+    await boardTurned(t, "off");
+    await giveKudos(t, "U_ALICE", "U_BOB", 10);
+    await xpOf(t, "U_ALICE", 300);
+    await boardTurned(t, "on");
+
+    await sweep(t);
+
+    expect(dmsTo("U_ALICE").map(readDm)).toEqual([["🎉 You reached level 3!", "Level 4 is 200 XP away."], [leaderboardReady]]);
+    expect(dmsTo("U_ALICE")[1]?.text).toBe("*Leaderboard* is ready. It opens the boards.");
+    expect(await unlockRows(t)).toEqual([{ feature: "leaderboard", readyAt: Date.now() }]);
+    expect(publishedHome(slack, "U_ALICE")).toContain(leaderboardReady);
+  });
+
+  test("a second sweep, and everyone-board going off and on again, send nothing more and leave the Leaderboard ready with its first readyAt", async () => {
+    const t = await workspace();
+    await boardTurned(t, "off");
+    await giveKudos(t, "U_ALICE", "U_BOB", 10);
+    await boardTurned(t, "on");
+    await sweep(t);
+    const ready = await unlockRows(t);
+
+    vi.setSystemTime(now.getTime() + 60 * 60 * 1000);
+    await sweep(t);
+    await boardTurned(t, "off");
+    await sweep(t);
+    await boardTurned(t, "on");
+    await sweep(t);
+
+    expect(dmsTo("U_ALICE")).toHaveLength(2);
+    expect(await unlockRows(t)).toEqual(ready);
+  });
+
+  test("a member below the Leaderboard's level gets nothing from the sweep, and App Home names it in their Next line", async () => {
+    const t = await workspace();
+    await boardTurned(t, "off");
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+    await boardTurned(t, "on");
+
+    await sweep(t);
+
+    expect(dmsTo("U_ALICE")).toHaveLength(1);
+    expect(await unlockRows(t)).toEqual([]);
+    await publishHome(t, "U_ALICE");
+    expect(publishedHome(slack, "U_ALICE")).toContain("section: Next: Leaderboard at level 3.");
+  });
+
+  test("a member who turned DMs off gets no DM from the sweep, and App Home lists the Leaderboard ready", async () => {
+    const t = await workspace();
+    await boardTurned(t, "off");
+    await giveKudos(t, "U_ALICE", "U_BOB", 10);
+    const member = await memberOf(t, "U_ALICE");
+    await t.run((ctx) => ctx.db.insert("progressSettings", { member, dms: false }));
+    await boardTurned(t, "on");
+
+    await sweep(t);
+
+    expect(dmsTo("U_ALICE")).toHaveLength(1);
+    expect(publishedHome(slack, "U_ALICE")).toContain(leaderboardReady);
+  });
+
+  test.each([
+    ["the sweep first", ["sweep", "level up"]],
+    ["the level up first", ["level up", "sweep"]],
+  ] as const)("a level up and the sweep racing for the Leaderboard, with %s, name it in exactly one DM", async (_, order) => {
+    const t = await workspace();
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+    const reached = await levelThreeReachedBy(t, "U_ALICE");
+
+    for (const step of order) {
+      if (step === "sweep") await sweep(t);
+      else await t.mutation(internal.unlocks.unlocks.makeReady, { event: reached });
+      await settle(t);
+    }
+
+    const dms = dmsTo("U_ALICE").map(readDm);
+    expect(dms.filter((lines) => lines.includes(leaderboardReady))).toHaveLength(1);
+    expect(dms.filter((lines) => lines.includes("section: 🎉 You reached level 3!") || lines.includes("🎉 You reached level 3!"))).toHaveLength(1);
+    expect(await unlockRows(t)).toEqual([{ feature: "leaderboard", readyAt: expect.any(Number) }]);
+  });
+});
+
 type PostedDm = Record<string, unknown>;
+
+function boardTurned(t: Backend, value: "on" | "off") {
+  return flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), (value === "on" ? onForEveryone : offForEveryone)("everyone-board"));
+}
+
+async function sweep(t: Backend) {
+  await t.mutation(internal.unlocks.sweep.sweep, {});
+  await settle(t);
+}
+
+async function xpOf(t: Backend, user: string, xp: number) {
+  const member = await memberOf(t, user);
+  await t.run(async (ctx) => {
+    const progress = await ctx.db
+      .query("memberProgress")
+      .withIndex("by_member", (q) => q.eq("member", member))
+      .unique();
+    await ctx.db.patch(progress!._id, { xp });
+  });
+}
 
 function dmsTo(user: string): PostedDm[] {
   return slack.callsTo("chat.postMessage").filter(({ channel }) => channel === `D_${user}`);
