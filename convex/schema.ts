@@ -30,7 +30,9 @@ export default defineSchema({
     timeZone: v.optional(v.string()),
     admin: v.optional(v.boolean()),
     asOf: v.optional(v.number()),
-  }).index("by_user", ["workspace", "user"]),
+  })
+    .index("by_user", ["workspace", "user"])
+    .index("by_admin", ["workspace", "admin"]),
 
   kudosMessages: defineTable({
     workspace: v.string(),

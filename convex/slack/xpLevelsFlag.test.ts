@@ -49,14 +49,14 @@ describe("the xp-levels flag hides the slice while it is off", () => {
     ["not created in PostHog", () => workspaceDeciding("sandbox")],
     ["on in the sandbox only, read in production", () => workspaceDeciding("production", onInTheSandboxOnly(xpLevels))],
     ["unreadable because the flags key is missing", () => workspaceWithoutFlagsKey()],
-  ])("%s: a level reached sends no DM and no public notice, and App Home shows only the core loop", async (_, workspace) => {
+  ])("%s: a level reached sends no DM and no public notice, a recipient's App Home isn't published, and App Home shows only the core loop", async (_, workspace) => {
     const t = await workspace();
 
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
     const lookUpsBeforeOpening = slack.callsTo("users.info").length;
     await openHome(t, "U_ALICE");
 
-    expect(slack.callsTo("conversations.open")).toEqual([]);
+    expect(slack.callsTo("views.publish").filter(({ user_id }) => user_id === "U_BOB")).toEqual([]);
     expect(slack.callsTo("chat.postMessage").map(({ channel }) => channel)).toEqual(["U_ALICE", "U_BOB"]);
     expect(slack.callsTo("users.info")).toHaveLength(lookUpsBeforeOpening);
     expect(publishedHome(slack, "U_ALICE")).toEqual(coreHome);

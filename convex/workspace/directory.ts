@@ -35,10 +35,9 @@ export async function chatUserOf(ctx: QueryCtx, member: MemberId): Promise<{ wor
 export async function adminsIn(ctx: QueryCtx, workspace: string): Promise<ChatUserId[]> {
   const members = await ctx.db
     .query("members")
-    .withIndex("by_user", (q) => q.eq("workspace", workspace))
-    .filter((q) => q.and(q.eq(q.field("kind"), "member"), q.eq(q.field("admin"), true)))
+    .withIndex("by_admin", (q) => q.eq("workspace", workspace).eq("admin", true))
     .collect();
-  return members.map(({ user }) => user);
+  return members.filter(({ kind }) => kind === "member").map(({ user }) => user);
 }
 
 export const directoryRecordArgs = { workspace: v.string(), user: v.string(), entry: directoryEntryValidator, asOf: v.number() };
