@@ -7,7 +7,7 @@ import { republish } from "../feedback/homes";
 import { notifyWeeklyQuestFinished } from "../feedback/notify";
 import { gateDecisionOf } from "../progression/gate";
 import { rewardOf } from "../progression/rewards";
-import { chatUserOf, type MemberId } from "../workspace/directory";
+import { chatUserOf, teammatesOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { crateOpeningOf, rewardKeyOf } from "./crates";
 import { finishQuest } from "./finish";
@@ -175,14 +175,6 @@ function rankOf(member: MemberId, week: WeekKey, { quest }: PoolQuest) {
   let hash = 0x811c9dc5;
   for (const character of `${member}:${week}:${quest}`) hash = Math.imul(hash ^ character.charCodeAt(0), 0x01000193) >>> 0;
   return hash;
-}
-
-async function teammatesOf(ctx: QueryCtx, workspace: string, member: MemberId): Promise<MemberId[]> {
-  const everyone = await ctx.db
-    .query("members")
-    .withIndex("by_user", (q) => q.eq("workspace", workspace))
-    .collect();
-  return everyone.filter(({ _id, kind }) => kind === "member" && _id !== member).map(({ _id }) => _id);
 }
 
 async function timeZoneOf(ctx: QueryCtx, member: MemberId) {

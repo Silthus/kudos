@@ -171,8 +171,10 @@ function weeklyQuestLine(week: string, { slot, goal, reward, progress, target, f
   return openedAt === null ? { kind: "action", text, action: openCrate({ kind: "weekly", week, slot }) } : { kind: "text", text };
 }
 
-const journeyGoals: Record<JourneyStep, { goal: string; condition: string }> = {
+const journeyGoals: Record<JourneyStep, { goal: string; condition?: string }> = {
   "first-thanks": { goal: "Give a kudos that says why.", condition: "It counts when your message has 5 or more words besides mentions and emoji." },
+  "first-quest": { goal: "Finish a weekly quest." },
+  "someone-new": { goal: "Thank someone you haven't thanked before." },
 };
 
 function journeyStepLines({ step, reward, finishedAt, openedAt }: JourneyStepFacts): HomeLine[] {
@@ -181,10 +183,8 @@ function journeyStepLines({ step, reward, finishedAt, openedAt }: JourneyStepFac
     const text = `${bold("Journey:")} ✅ ${goal} ${earned(reward.xp)}`;
     return [openedAt === null ? { kind: "action", text, action: openCrate({ kind: "journey", step }) } : { kind: "text", text }];
   }
-  return [
-    { kind: "text", text: `${bold("Journey:")} ${goal} It pays ${bold(`${reward.xp} XP`)}.` },
-    { kind: "hint", text: condition },
-  ];
+  const active: HomeLine = { kind: "text", text: `${bold("Journey:")} ${goal} It pays ${bold(`${reward.xp} XP`)}.` };
+  return condition === undefined ? [active] : [active, { kind: "hint", text: condition }];
 }
 
 export function finishedQuestCrateOf(quest: JourneyQuest, xp: number): { text: string; action: HomeAction } {

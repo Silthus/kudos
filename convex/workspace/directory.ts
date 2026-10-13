@@ -1,8 +1,10 @@
 import { v, type Infer, type ObjectType } from "convex/values";
-import type { Id } from "../_generated/dataModel";
+import type { WithoutSystemFields } from "convex/server";
+import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import type { ChatUserId } from "../engine/messageEvent";
 import { ReportableError } from "../analytics/exceptions";
+import { publish } from "../bus/publish";
 
 export type MemberId = Id<"members">;
 
@@ -65,7 +67,24 @@ export async function record(ctx: MutationCtx, { workspace, user, entry, asOf }:
   const row = { workspace, user, timeZone: undefined, asOf, ...entry };
   const existing = await memberRow(ctx, workspace, user);
   if (existing === null) await ctx.db.insert("members", row);
-  else if (!isOlder(asOf, existing.asOf)) await ctx.db.replace(existing._id, row);
+  else if (!isOlder(asOf, existing.asOf)) await replace(ctx, existing, row);
+}
+
+export async function currentMembersOf(ctx: QueryCtx, workspace: string): Promise<MemberId[]> {
+  const people = await ctx.db
+    .query("members")
+    .withIndex("by_user", (q) => q.eq("workspace", workspace))
+    .collect();
+  return people.filter(({ kind }) => kind === "member").map(({ _id }) => _id);
+}
+
+export async function teammatesOf(ctx: QueryCtx, workspace: string, member: MemberId): Promise<MemberId[]> {
+  return (await currentMembersOf(ctx, workspace)).filter((teammate) => teammate !== member);
+}
+
+async function replace(ctx: MutationCtx, existing: Doc<"members">, row: WithoutSystemFields<Doc<"members">>) {
+  await ctx.db.replace(existing._id, row);
+  if (existing.kind === "member" && row.kind !== "member") await publish(ctx, { type: "memberLeft", workspace: row.workspace, member: existing._id, at: Date.now() });
 }
 
 function isOlder(asOf: number, known: number | undefined) {

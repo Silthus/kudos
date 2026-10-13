@@ -82,7 +82,7 @@ const unlockFields = { workspace: v.string(), member: v.id("members"), feature: 
 
 export const unlockReadyEventValidator = v.object({ type: v.literal("unlockReady"), ...unlockFields });
 
-export const unlockOpenedEventValidator = v.object({ type: v.literal("unlockOpened"), ...unlockFields });
+export const unlockOpenedEventValidator = v.object({ type: v.literal("unlockOpened"), ...unlockFields, byLaunch: v.optional(v.literal(true)) });
 
 export type UnlockReadyEvent = Infer<typeof unlockReadyEventValidator>;
 
@@ -93,6 +93,10 @@ const questFields = { workspace: v.string(), member: v.id("members"), quest: que
 export const questFinishedEventValidator = v.object({ type: v.literal("questFinished"), ...questFields });
 
 export const questOpenedEventValidator = v.object({ type: v.literal("questOpened"), ...questFields });
+
+export const memberLeftEventValidator = v.object({ type: v.literal("memberLeft"), workspace: v.string(), member: v.id("members"), at: v.number() });
+
+export type MemberLeftEvent = Infer<typeof memberLeftEventValidator>;
 
 export type QuestFinishedEvent = Infer<typeof questFinishedEventValidator>;
 
@@ -107,7 +111,8 @@ export type DomainEvent =
   | UnlockReadyEvent
   | UnlockOpenedEvent
   | QuestFinishedEvent
-  | QuestOpenedEvent;
+  | QuestOpenedEvent
+  | MemberLeftEvent;
 
 export function membersNamedIn(event: KudosGivenEvent): MemberId[] {
   return [...new Set([event.giver, ...event.awards.map((award) => award.recipient)])];

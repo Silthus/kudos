@@ -1,6 +1,6 @@
 # Workspace
 
-Workspace: the settings with their defaults and the directory of the workspace's people, with the name each one goes by and whether each member is a workspace admin or owner, which the engine reads directly; setting or clearing the announcement channel, which the setAnnouncementChannel command does for admins only.
+Workspace: the settings with their defaults and the directory of the workspace's people, with the name each one goes by and whether each member is a workspace admin or owner, which the engine reads directly, publishing memberLeft when a later directory record says a member no longer is one; setting or clearing the announcement channel, which the setAnnouncementChannel command does for admins only.
 
 ## invariants
 - only admins set the announcement channel: Only a member the directory knows as a workspace admin or owner can set or clear the announcement channel; a command from anyone else, or from an admin Slack has since removed, changes nothing.

@@ -158,7 +158,7 @@ describe("P63 P85: a finished Journey step's crate opens from its DM or App Home
   });
 
   test.each([
-    ["an unknown step", { type: "openQuestCrate", quest: { kind: "journey", step: "first-quest" } }],
+    ["an unknown step", { type: "openQuestCrate", quest: { kind: "journey", step: "two-days" } }],
     ["a reward key with a member in it", { type: "openQuestCrate", quest: { kind: "journey", step: "first-thanks", member: "U_ALICE" } }],
     ["a bare string for a reward key", { type: "openQuestCrate", quest: "journey:first-thanks" }],
   ])("a click carrying %s opens nothing", async (_, command) => {

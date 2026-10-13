@@ -40,12 +40,14 @@ export async function openUnlock(ctx: MutationCtx, member: MemberId, feature: Fe
   return "done";
 }
 
-export async function keepOpen(ctx: MutationCtx, { workspace, member, at }: { workspace: string; member: MemberId; at: number }, feature: Feature) {
+export type Opening = { workspace: string; member: MemberId; at: number; byLaunch?: true };
+
+export async function keepOpen(ctx: MutationCtx, { workspace, member, at, byLaunch }: Opening, feature: Feature) {
   const row = await unlockRow(ctx, member, feature);
   if (row?.openedAt !== undefined) return;
   if (row === null) await ctx.db.insert("unlocks", { member, feature, readyAt: at, openedAt: at });
   else await ctx.db.patch(row._id, { openedAt: at });
-  await publish(ctx, { type: "unlockOpened", workspace, member, feature, at });
+  await publish(ctx, { type: "unlockOpened", workspace, member, feature, at, ...(byLaunch && { byLaunch }) });
 }
 
 export const memberUnlocks = internalQuery({

@@ -1,8 +1,15 @@
 import { v, type Infer } from "convex/values";
+import type { Feature } from "../unlocks/feature";
 
-export const journeyStepValidator = v.literal("first-thanks");
+export const journeyStepValidator = v.union(v.literal("first-thanks"), v.literal("first-quest"), v.literal("someone-new"));
 
 export type JourneyStep = Infer<typeof journeyStepValidator>;
+
+const journeyStepsOpenedBy: Partial<Record<Feature, JourneyStep>> = { quests: "first-quest", leaderboard: "someone-new" };
+
+export function journeyStepOpenedBy(feature: Feature): JourneyStep | null {
+  return journeyStepsOpenedBy[feature] ?? null;
+}
 
 export const journeyQuestValidator = v.object({ kind: v.literal("journey"), step: journeyStepValidator });
 

@@ -1,6 +1,7 @@
 import type { FunctionReference } from "convex/server";
 import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
+import { journeyStepOpenedBy } from "../quests/step";
 import type { DomainEvent } from "./events";
 
 type Subscriber<E extends DomainEvent> = FunctionReference<"mutation" | "action", "internal", { event: E }>;
@@ -21,9 +22,13 @@ export const subscribers: Registry = {
   levelReached: [internal.unlocks.unlocks.makeReady, internal.feedback.publicReplies.celebrateLevel],
   xpRecorded: [internal.feedback.homes.refreshHomeOnXp],
   unlockReady: [],
-  unlockOpened: [{ subscriber: internal.quests.weekly.drawWeeklyQuests, only: ({ feature }) => feature === "quests" }],
-  questFinished: [],
+  unlockOpened: [
+    { subscriber: internal.quests.weekly.drawWeeklyQuests, only: ({ feature }) => feature === "quests" },
+    { subscriber: internal.quests.journey.activateJourney, only: ({ feature, byLaunch }) => byLaunch !== true && journeyStepOpenedBy(feature) !== null },
+  ],
+  questFinished: [{ subscriber: internal.quests.journey.finishFirstQuest, only: ({ quest }) => quest.kind === "weekly" }],
   questOpened: [],
+  memberLeft: [internal.quests.journey.recheckSomeoneNew],
 };
 
 export async function publish(ctx: MutationCtx, event: DomainEvent) {
