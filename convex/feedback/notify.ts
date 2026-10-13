@@ -49,8 +49,7 @@ export const linesStillWanted = internalQuery({
   handler: async (ctx, { member, notification }): Promise<NotificationLine[] | null> => {
     const { workspace } = await chatUserOf(ctx, member);
     if (!(await xpLevelsShownIn(ctx, workspace)) || !(await wantsDms(ctx, member))) return null;
-    const shipped = (await shippedIn(ctx, workspace)).map(({ feature }) => feature);
-    const lines = renderNotification({ ...notification, ready: notification.ready.filter((feature) => shipped.includes(feature)) });
+    const lines = renderNotification(await stillToldOf(ctx, workspace, member, notification));
     return lines.length === 0 ? null : lines;
   },
 });
@@ -64,6 +63,13 @@ function levelReachedLines({ level, skillPoints, xpToNextLevel }: Extract<Notifi
   const reached = `🎉 You reached level ${level}!`;
   const headline = skillPoints !== null && level >= skillTreeLevel ? `${reached} You have ${skillPointsOf(skillPoints)} saved for the skill tree.` : reached;
   return [headline, `Level ${level + 1} is ${xpToNextLevel} XP away.`];
+}
+
+async function stillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: Notification): Promise<Notification> {
+  const shipped = (await shippedIn(ctx, workspace)).map(({ feature }) => feature);
+  const ready = notification.ready.filter((feature) => shipped.includes(feature));
+  if (notification.kind !== "level-reached" || notification.skillPoints === null) return { ...notification, ready };
+  return { ...notification, ready, skillPoints: await whenOpened(ctx, member, "skillTree", notification.skillPoints) };
 }
 
 function featuresOf(ready: ScheduledFeature[]) {
