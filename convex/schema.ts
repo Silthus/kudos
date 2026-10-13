@@ -74,6 +74,7 @@ export default defineSchema({
     at: v.number(),
   })
     .index("by_giver", ["giver", "day"])
+    .index("by_giver_recipient", ["giver", "recipient"])
     .index("by_recipient", ["recipient", "day"])
     .index("by_message", ["workspace", "conversation", "message"]),
 

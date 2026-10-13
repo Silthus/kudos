@@ -15,7 +15,8 @@ export function counts({ progress: { given } }: PoolQuest, award: QuestAward): b
 
 export function questProgress({ progress: { counts, target } }: PoolQuest, counted: CountedAward[]): number {
   const distinct = (key: (award: CountedAward) => string) => new Set(counted.map(key)).size;
-  const progress = counts === "recognitions" ? counted.length : counts === "people" ? distinct(({ recipient }) => recipient) : distinct(({ day }) => day);
+  const qualifyingRecognitions = () => distinct(({ recipient, day }) => `${recipient}:${day}`);
+  const progress = counts === "recognitions" ? qualifyingRecognitions() : counts === "people" ? distinct(({ recipient }) => recipient) : distinct(({ day }) => day);
   return Math.min(progress, target);
 }
 

@@ -62,15 +62,27 @@ describe("P84 P87: a weekly quest's progress and finish are recorded once", () =
   });
 
   test("a finished quest doesn't finish again, and a later kudos counts only toward the quests still open", async () => {
-    const { t, alice, bob } = await workspace();
+    const { t, alice, bob, carol } = await workspace();
     await drawn(t, alice, ["say-why", "say-why-twice", "say-why-three-times"]);
 
     await t.mutation(advance, { event: await given(t, alice, bob, { annotations: saysWhy }) });
-    await t.mutation(advance, { event: await given(t, alice, bob, { annotations: saysWhy, message: messageAt(2) }) });
+    await t.mutation(advance, { event: await given(t, alice, carol, { annotations: saysWhy, message: messageAt(2) }) });
 
     expect((await rewardRecords(t)).map(({ key }) => key)).toEqual(["weekly:2026-10-12:0", "weekly:2026-10-12:1"]);
     expect(published("questFinished")).toHaveLength(2);
     expect((await progressOf(t, alice)).map(({ progress }) => progress)).toEqual([1, 2, 2]);
+  });
+
+  test("P16: a second kudos that says why to the same person on the same day is no second recognition, while one on another day is", async () => {
+    const { t, alice, bob } = await workspace();
+    await drawn(t, alice, ["say-why-twice", "say-why-two-days", "say-why-three-times"]);
+
+    await t.mutation(advance, { event: await given(t, alice, bob, { annotations: saysWhy }) });
+    await t.mutation(advance, { event: await given(t, alice, bob, { annotations: saysWhy, message: messageAt(2) }) });
+    expect((await progressOf(t, alice)).map(({ progress }) => progress)).toEqual([1, 1, 1]);
+
+    await t.mutation(advance, { event: await given(t, alice, bob, { annotations: saysWhy, message: messageAt(3), at: tuesday + dayMs, day: "2026-10-14" }) });
+    expect((await progressOf(t, alice)).map(({ progress }) => progress)).toEqual([2, 2, 2]);
   });
 
   test("a kudos that doesn't say why moves only the goals that don't ask for it, and records nothing for the others", async () => {
@@ -154,11 +166,12 @@ describe("P87 P6: a level crossed by a weekly quest's reward record", () => {
 async function workspace() {
   const t = await flagsLoaded(testBackend());
   await unlocksShippedBeforeAnyoneJoined(t);
-  const [alice, bob] = await t.run(async (ctx) => [
+  const [alice, bob, carol] = await t.run(async (ctx) => [
     await ctx.db.insert("members", { workspace: "T1", user: "U_ALICE", kind: "member" }),
     await ctx.db.insert("members", { workspace: "T1", user: "U_BOB", kind: "member" }),
+    await ctx.db.insert("members", { workspace: "T1", user: "U_CAROL", kind: "member" }),
   ]);
-  return { t, alice: alice!, bob: bob! };
+  return { t, alice: alice!, bob: bob!, carol: carol! };
 }
 
 async function drawn(t: Backend, member: MemberId, quests: QuestId[]) {

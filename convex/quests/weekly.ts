@@ -63,9 +63,11 @@ export const advanceWeeklyQuests = internalMutation({
     if (!(await questsApplyIn(ctx, event.workspace))) return;
     const draw = await drawOf(ctx, event.giver, weekKeyOfDay(event.day));
     if (draw === null || event.at < draw.drawnAt) return;
+    const open = await unfinishedSlotsOf(ctx, draw);
+    if (open.length === 0) return;
     const awards = await questAwardsOf(ctx, event);
     let shownChanged = false;
-    for (const slot of draw.slots) shownChanged = (await advanceSlot(ctx, event, draw, slot, awards)) || shownChanged;
+    for (const slot of open) shownChanged = (await advanceSlot(ctx, event, draw, slot, awards)) || shownChanged;
     if (shownChanged) await republish(ctx, event.giver);
   },
 });
@@ -88,9 +90,14 @@ async function weeklySlotOf(ctx: QueryCtx, { member, week }: Draw, slot: Slot): 
   return { ...slot, goal: pooled.goal, progress, target: pooled.progress.target, finishedAt: finish?.at ?? null, openedAt: opening?.at ?? null };
 }
 
+async function unfinishedSlotsOf(ctx: QueryCtx, { member, week, slots }: Draw): Promise<Slot[]> {
+  const open: Slot[] = [];
+  for (const slot of slots) if ((await rewardOf(ctx, member, rewardKeyOf(weeklyQuest(week, slot)))) === null) open.push(slot);
+  return open;
+}
+
 async function advanceSlot(ctx: MutationCtx, event: KudosGivenEvent, { member, week }: Draw, slot: Slot, awards: QuestAward[]): Promise<boolean> {
   const quest = weeklyQuest(week, slot);
-  if ((await rewardOf(ctx, member, rewardKeyOf(quest))) !== null) return false;
   const pooled = questOf(slot.quest);
   const counted = await countedFor(ctx, member, week, slot);
   const fresh = awards.filter((award) => counts(pooled, award) && !counted.some((earlier) => earlier.award === award.award));
@@ -104,9 +111,9 @@ async function advanceSlot(ctx: MutationCtx, event: KudosGivenEvent, { member, w
   return after !== before;
 }
 
-async function questAwardsOf(ctx: QueryCtx, { giver, awards, annotations, day, at }: KudosGivenEvent): Promise<QuestAward[]> {
+async function questAwardsOf(ctx: QueryCtx, { awards, annotations, day, at }: KudosGivenEvent): Promise<QuestAward[]> {
   const saysWhy = gateDecisionOf(annotations)?.thoughtful === true;
-  const lastThanked = await lastThankedBefore(ctx, giver, awards.map(({ award }) => award));
+  const lastThanked = await lastThankedBefore(ctx, awards);
   return awards.flatMap(({ award, recipient }) => {
     const before = lastThanked.get(award);
     return before === undefined ? [] : [{ award, recipient, day, at, saysWhy, lastThankedBefore: before }];
