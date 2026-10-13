@@ -4,7 +4,7 @@ import { awardIdValidator, type Award, type AwardWithId, type GivenAward } from 
 import type { MemberId } from "../workspace/directory";
 import type { Catalogue } from "./catalogue";
 import { gateDecisionOf, gateDecisionValidator } from "./gate";
-import { levelOf } from "./levels";
+import { levelOf, xpToReach } from "./levels";
 
 export const effectsRecordValidator = v.object({
   award: awardIdValidator,
@@ -61,7 +61,19 @@ function withXpOf(state: MemberProgress, effects: EffectsRecord[]): MemberProgre
 
 function levelsReached(before: MemberProgress, after: MemberProgress, event: KudosGivenEvent): LevelReachedEvent[] {
   const from = levelOf(before.xp);
-  const level = levelOf(after.xp);
+  const { xp, level, skillPoints } = standing(after);
   if (level === from) return [];
-  return [{ type: "levelReached", workspace: event.workspace, member: after.member, level, skillPointsGained: level - from, message: event.message, at: event.at }];
+  return [
+    {
+      type: "levelReached",
+      workspace: event.workspace,
+      member: after.member,
+      level,
+      skillPointsGained: level - from,
+      skillPoints,
+      xpToNextLevel: xpToReach(level + 1) - xp,
+      message: event.message,
+      at: event.at,
+    },
+  ];
 }

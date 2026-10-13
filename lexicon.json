@@ -294,6 +294,18 @@
     {
       "name": "levelReached",
       "definition": "The domain event progression publishes when a kudosGiven brings a member to a higher level: one per member and event, naming the highest level reached and the skill points it gave, with the kudos message that caused it (P6). Level-up DMs and public notices react to it."
+    },
+    {
+      "name": "level-up DM",
+      "definition": "The direct message feedback sends a member, and only them, for each levelReached: the level reached, their saved skill points and the XP to the next level (P63, copy table). It is a notification, delivered by the Slack adapter at most 3 times, and not sent when the member's DM setting is off."
+    },
+    {
+      "name": "DM setting",
+      "definition": "A member's choice whether progression sends them DMs (P63). On unless they turn it off; read with that default until App Home lets them change it. It silences progression DMs only, never the welcome message, and changes no XP or level."
+    },
+    {
+      "name": "public reply",
+      "definition": "The one public message under a kudos message, or in the announcement channel when a workspace admin picked one, that celebrates the progress members reached through it; posted once, then edited in place as sections from many modules (level notices, later achievements, quips and chime-in lines) arrive. It states only progress, never the kudos text or the giver (P64, D18)."
     }
   ]
 }

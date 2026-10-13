@@ -1,6 +1,6 @@
 # Slack
 
-The Slack adapter, the only code that knows Slack: it verifies and acknowledges Slack's requests, normalizes posted and edited messages into countable content for the engine, keeps the directory from team_join and user_change in the order Slack sent them and fills a person it doesn't know from users.info, delivers the indicator as a reaction, each private reply as an ephemeral to the giver, the welcome message as a DM and App Home as a published view when a member opens it, through one delivery path that retries the indicator until it shows and tries every other send at most 3 times, within Slack's per-method rate limits, and adds the app to a channel with `/hedgehug`, or with `/kudos`, its alias once the manifest registers it.
+The Slack adapter, the only code that knows Slack: it verifies and acknowledges Slack's requests, normalizes posted and edited messages into countable content for the engine, keeps the directory from team_join and user_change in the order Slack sent them and fills a person it doesn't know from users.info, delivers the indicator as a reaction, each private reply as an ephemeral to the giver, the welcome message as a DM, a level-up DM by opening the member's DM conversation and posting to it, and App Home as a published view when a member opens it, through one delivery path that retries the indicator until it shows and tries every other send at most 3 times, within Slack's per-method rate limits, and adds the app to a channel with `/hedgehug`, or with `/kudos`, its alias once the manifest registers it.
 
 ## entrances
 - route POST /slack/events: Slack delivers an Events API request, an event callback (a message or a member opening App Home) or the URL verification challenge
@@ -69,6 +69,20 @@ The Slack adapter, the only code that knows Slack: it verifies and acknowledges 
   checklist: duplicate-suppression declared as a private reply is tried at most 3 times
   checklist: keyed-ordering dismissed: one reply per evaluation, with no ordering promised between messages
   checklist: acknowledgment-barrier dismissed: nothing retires work on a delivery's acknowledgment; awards and spending commit before any delivery runs
+  checklist: retry-classification declared as a gone delivery stops for good
+- a level-up DM is tried at most 3 times: A level-up DM is tried at most 3 times on any failure of opening the member's DM conversation or posting to it, an unknown result included, each retry waits at least the Retry-After Slack asked for and posts to the conversation already opened, and no attempt changes the member's XP or level.
+  over: conversations.open and chat.postMessage answering an error, an HTTP 5xx or a network failure every time, chat.postMessage answering a 429 with Retry-After once, and a post held by a 429 and then failing
+  via: R34 R35: a level-up DM is tried at most 3 times
+  because: a posted DM cannot be told apart from a lost one after an unknown result, so every retry risks a duplicate the member sees; 3 tries bounds that while a passing Slack failure still reaches them, and the level was earned when the award was recorded, so delivery must never take it back (R34, R35, P63)
+  refuted: deliverDirectMessage rescheduled every retry as attempt 1, so the 3-attempt bound never applied -> 2 of 3 cases failed: the always-failing post and the always-failing open each tried 5 times (2026-10-13); witnessed again after retries began carrying the opened conversation: the same break failed 2 of 4 cases the same way (2026-10-13)
+  kinds: message
+  checklist: destination-confinement dismissed: every delivery goes to Slack's API at one configured base URL, with no redirect followed and no destination taken from input
+  checklist: message-authenticity dismissed: deliveries are outbound; the kudos message that earned the level is verified by signed Slack requests only
+  checklist: input-validation dismissed: what is delivered is the feedback module's rendered notification for a member from the directory, never outside input
+  checklist: retry-recognition dismissed: chat.postMessage is not idempotent and its result can be unknown, so a retry cannot tell whether the first landed; R35 accepts a duplicate only the member sees and bounds it with this invariant
+  checklist: duplicate-suppression declared as a level-up DM is tried at most 3 times
+  checklist: keyed-ordering dismissed: one DM per level reached, with no ordering promised between DMs
+  checklist: acknowledgment-barrier dismissed: nothing retires work on a delivery's acknowledgment; effects records and progress commit before any delivery runs
   checklist: retry-classification declared as a gone delivery stops for good
 - a gone delivery stops for good: A delivery whose message or channel is gone (message_not_found, channel_not_found, not_in_channel, is_archived), or whose reaction can never show (not_reactable, invalid_name), is not tried again, and the awards and spending of its message stay.
   over: reactions.add and chat.postEphemeral answering message_not_found, channel_not_found and not_in_channel, and reactions.add answering is_archived, not_reactable and invalid_name

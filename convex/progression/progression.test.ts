@@ -60,8 +60,19 @@ test("P8 P6: delivering the same kudosGiven twice, or retrying the subscriber, l
     { member: "U_ALICE", side: "giver", baseXp: 20 },
     { member: "U_BOB", side: "recipient", baseXp: 10 },
   ]);
-  expect(await standings(t, "U_ALICE", "U_BOB")).toEqual({ U_ALICE: { xp: 20, level: 2, skillPoints: 1 }, U_BOB: { xp: 10, level: 1, skillPoints: 0 } });  expect(publishedEvents("levelReached")).toEqual([
-    { type: "levelReached", workspace: "T1", member: kudosGiven!.giver, level: 2, skillPointsGained: 1, message: kudosGiven!.message, at: kudosGiven!.at },
+  expect(await standings(t, "U_ALICE", "U_BOB")).toEqual({ U_ALICE: { xp: 20, level: 2, skillPoints: 1 }, U_BOB: { xp: 10, level: 1, skillPoints: 0 } });
+  expect(publishedEvents("levelReached")).toEqual([
+    {
+      type: "levelReached",
+      workspace: "T1",
+      member: kudosGiven!.giver,
+      level: 2,
+      skillPointsGained: 1,
+      skillPoints: 1,
+      xpToNextLevel: 80,
+      message: kudosGiven!.message,
+      at: kudosGiven!.at,
+    },
   ]);
 });
 

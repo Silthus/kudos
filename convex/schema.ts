@@ -1,6 +1,7 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
+import { publicSectionValidator, shownValidator } from "./feedback/publicReplies";
 import { segmentValidator } from "./feedback/replies";
 import { effectsRecordValidator } from "./progression/progress";
 
@@ -14,6 +15,7 @@ export default defineSchema({
     workspace: v.string(),
     baseAllowance: v.optional(v.number()),
     kudosEmoji: v.optional(v.string()),
+    announcementChannel: v.optional(v.string()),
   }).index("by_workspace", ["workspace"]),
 
   members: defineTable({
@@ -93,6 +95,17 @@ export default defineSchema({
     lines: v.array(v.array(segmentValidator)),
   }),
 
+  publicReplies: defineTable({
+    workspace: v.string(),
+    conversation: v.string(),
+    message: v.string(),
+    channel: v.string(),
+    threadTs: v.optional(v.string()),
+    sections: v.array(publicSectionValidator),
+    version: v.number(),
+    shown: shownValidator,
+  }).index("by_destination", ["workspace", "conversation", "message", "channel", "threadTs"]),
+
   placedReactions: defineTable({
     workspace: v.string(),
     conversation: v.string(),
@@ -112,6 +125,13 @@ export default defineSchema({
     member: v.id("members"),
     xp: v.number(),
     pointsSpent: v.number(),
+  }).index("by_member", ["member"]),
+
+  progressSettings: defineTable({
+    member: v.id("members"),
+    dms: v.optional(v.boolean()),
+    hideLevel: v.optional(v.boolean()),
+    muteNotices: v.optional(v.boolean()),
   }).index("by_member", ["member"]),
 
   slackRateLimits: defineTable({
