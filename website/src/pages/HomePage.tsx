@@ -14,7 +14,7 @@ export function HomePage({ member }: { member: MemberProfile }) {
         </div>
         <ProfileCardPanel member={member} />
       </div>
-      <LockedFeatures />
+      <LockedFeatures leaderboardOpen={member.leaderboard === "open"} />
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { MemberFace } from "./Face";
 import type { MemberProfile } from "./shell";
 
 export function LeveledFace({ member, className }: { member: MemberProfile; className: string }) {
-  const face = <MemberFace member={member} className={className} />;
+  const face = <MemberFace face={member.face} className={className} />;
   if (member.progression === null) return face;
   return (
     <span role="img" aria-label={`Level ${member.progression.level}`} className="relative inline-flex shrink-0 rounded-full p-0.5 ring-2 ring-muted-foreground">

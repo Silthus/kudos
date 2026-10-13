@@ -5,10 +5,13 @@ import { ErrorBoundary, type Failure } from "./ErrorBoundary";
 import { Frame } from "./Frame";
 import { LiveShell } from "./LiveApp";
 import { ErrorPage } from "./pages/ErrorPage";
+import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
 import { builtShell, fixtureActions } from "./shell";
 
+const fixtureLeaderboard = fixedLeaderboard(leaderboardFixtures.midBoard);
+
 export function Root({ fixture, convexUrl }: { fixture?: string; convexUrl?: string }) {
-  return <ShellBoundary>{fixture || !convexUrl ? <App visitor={builtShell(fixture)} actions={fixtureActions} /> : <LiveShell client={new ConvexReactClient(convexUrl)} />}</ShellBoundary>;
+  return <ShellBoundary>{fixture || !convexUrl ? <App visitor={builtShell(fixture)} actions={fixtureActions} useLeaderboard={fixtureLeaderboard} /> : <LiveShell client={new ConvexReactClient(convexUrl)} />}</ShellBoundary>;
 }
 
 export function ShellBoundary({ children }: { children: ReactNode }) {
@@ -17,7 +20,7 @@ export function ShellBoundary({ children }: { children: ReactNode }) {
 
 function FailedShell(failure: Failure) {
   return (
-    <Frame atHome={false} busy={false}>
+    <Frame busy={false}>
       <ErrorPage {...failure} />
     </Frame>
   );

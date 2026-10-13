@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { api } from "../../convex/_generated/api";
 import type { MyProfile } from "../../convex/website/profile";
 import { App } from "./App";
-import type { ShellActions, Visitor } from "./shell";
+import type { Period, ShellActions, Visitor } from "./shell";
 import { forgetSignInStarted } from "./signInAttempt";
 
 export function LiveShell({ client }: { client: ConvexReactClient }) {
@@ -21,7 +21,11 @@ function LiveApp() {
   const profile = useQuery(api.website.profile.getMyProfile, {});
   const actions = useLiveActions(() => setSignInFailed(true));
   if (signInFailed) throw new Error("The sign-in didn't start.");
-  return <App visitor={visitorOf(isLoading, profile)} actions={actions} />;
+  return <App visitor={visitorOf(isLoading, profile)} actions={actions} useLeaderboard={useLiveLeaderboard} />;
+}
+
+function useLiveLeaderboard(period: Period | undefined) {
+  return useQuery(api.website.leaderboard.getLeaderboard, period === undefined ? "skip" : { period });
 }
 
 function visitorOf(authLoading: boolean, profile: MyProfile | undefined): Visitor {

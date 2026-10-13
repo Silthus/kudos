@@ -1,18 +1,20 @@
-import type { ReactNode } from "react";
-import { IconHome } from "@posthog/icons";
+import type { ComponentType, ReactNode } from "react";
+import { IconHome, IconStar } from "@posthog/icons";
 import { AccountMenu } from "./AccountMenu";
+import { AppLink } from "./AppLink";
+import type { Screen } from "./route";
 import type { MemberProfile } from "./shell";
 import { ThemeControl } from "./ThemeControl";
 
-type FrameProps = { member?: MemberProfile; atHome: boolean; busy: boolean; onSignOut?: () => void; children: ReactNode };
+type FrameProps = { member?: MemberProfile; current?: Screen; busy: boolean; onSignOut?: () => void; children: ReactNode };
 
-export function Frame({ member, atHome, busy, onSignOut, children }: FrameProps) {
+export function Frame({ member, current, busy, onSignOut, children }: FrameProps) {
   return (
     <div className="hud-root flex min-h-screen flex-col">
       <header className="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md">
         <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-3 px-4 md:px-6">
           <Wordmark />
-          {member && <ScreenNav atHome={atHome} />}
+          {member && <ScreenNav current={current} leaderboard={member.leaderboard === "open"} />}
           <div className="ml-auto flex items-center gap-2">
             <ThemeControl />
             {member && onSignOut && <AccountMenu member={member} onSignOut={onSignOut} />}
@@ -35,17 +37,32 @@ function Wordmark() {
   );
 }
 
-function ScreenNav({ atHome }: { atHome: boolean }) {
+function ScreenNav({ current, leaderboard }: { current?: Screen; leaderboard: boolean }) {
   return (
     <nav aria-label="Screens" className="mx-auto flex items-center gap-0.5">
-      <a
-        href="/"
-        aria-current={atHome ? "page" : undefined}
-        className={`relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium ${atHome ? "text-foreground after:absolute after:inset-x-2 after:-bottom-[12px] after:h-0.5 after:rounded-full after:bg-primary" : "text-muted-foreground hover:bg-fill-hover hover:text-foreground"}`}
-      >
-        <IconHome className="size-4" />
+      <ScreenLink href="/" current={current === "home"} Icon={IconHome}>
         Home
-      </a>
+      </ScreenLink>
+      {leaderboard && (
+        <ScreenLink href="/leaderboard" current={current === "leaderboard"} Icon={IconStar}>
+          Leaderboard
+        </ScreenLink>
+      )}
     </nav>
+  );
+}
+
+type ScreenLinkProps = { href: string; current: boolean; Icon: ComponentType<{ className?: string }>; children: ReactNode };
+
+function ScreenLink({ href, current, Icon, children }: ScreenLinkProps) {
+  return (
+    <AppLink
+      href={href}
+      aria-current={current ? "page" : undefined}
+      className={`relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium ${current ? "text-foreground after:absolute after:inset-x-2 after:-bottom-[12px] after:h-0.5 after:rounded-full after:bg-primary" : "text-muted-foreground hover:bg-fill-hover hover:text-foreground"}`}
+    >
+      <Icon className="size-4" />
+      {children}
+    </AppLink>
   );
 }

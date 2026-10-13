@@ -11,7 +11,7 @@ export function ProfileCardPanel({ member }: { member: MemberProfile }) {
             Your profile card
           </h2>
           <div className="flex items-center gap-3 rounded-lg border bg-muted/40 p-3">
-            <MemberFace member={member} className="size-10" />
+            <MemberFace face={member.face} className="size-10" />
             <span className="font-medium">{member.name ?? "You"}</span>
             {member.progression !== null && <span className="ml-auto text-xs text-muted-foreground tabular-nums">{`Level ${member.progression.level}`}</span>}
           </div>
