@@ -15,8 +15,8 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 
  Test Files  58 passed (58)
       Tests  792 passed (792)
-   Start at  22:56:39
-   Duration  12.99s (tests 55%, import 23%, transform 10%, environment 10%, setup 1%)
+   Start at  22:58:32
+   Duration  13.40s (tests 54%, import 23%, transform 10%, environment 10%, setup 1%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
@@ -205,5 +205,5 @@ RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:68 
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:2  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:17  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
-ADVISORY       95 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): receipt 26, gate 23, zone 10, contract 8, authority 7; reported, never failing, since inside the project its sense wins (--json lists each)
-0 rejected names, 0 unknown nouns (295 files), 17 in records
+ADVISORY       96 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): receipt 26, gate 24, zone 10, contract 8, authority 7; reported, never failing, since inside the project its sense wins (--json lists each)
+0 rejected names, 0 unknown nouns (296 files), 17 in records
