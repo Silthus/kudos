@@ -17,7 +17,7 @@
     },
     {
       "name": "giver",
-      "definition": "The member who wrote a kudos message and spends their daily allowance on it."
+      "definition": "The member who gives kudos, by writing a kudos message or by chiming in on one, and spends their own daily allowance, then weekly reserve, on it."
     },
     {
       "name": "recipient",
@@ -41,7 +41,7 @@
     },
     {
       "name": "outcome",
-      "definition": "How an attempt ended: Given (its recipients received kudos), Over allowance (it cost more than the daily allowance left, so nothing was given) or Invalid (no mention could receive kudos)."
+      "definition": "How an attempt ended: Given (its recipients received kudos), Over allowance (it cost more than the daily allowance and weekly reserve left, so nothing was given) or Invalid (no mention could receive kudos)."
     },
     {
       "name": "award",
@@ -55,7 +55,7 @@
     },
     {
       "name": "retry",
-      "definition": "An edit to a message that has not given kudos which changes its mentions or kudos emoji, so it is evaluated again as if it were new. A retry that gives kudos spends the daily allowance of the day of the edit; removing every kudos emoji instead withdraws the attempt."
+      "definition": "An edit to a message that has not given kudos which changes its mentions or kudos emoji, so it is evaluated again as if it were new. A retry that gives kudos spends the daily allowance of the day of the edit, then the weekly reserve; removing every kudos emoji instead withdraws the attempt."
     },
     {
       "name": "skipped mention",
@@ -63,7 +63,7 @@
     },
     {
       "name": "xp",
-      "definition": "Experience a member earns from Given awards: 10 for each kudos given and 5 for each kudos received, plus bonus XP from perks, boosters and team auras the member chose. XP decides the member's level and never goes down (ADR-0002). It is not kudos and not coins."
+      "definition": "Experience a member earns from Given awards: 10 for each kudos given and 5 for each kudos received, plus bonus XP from perks, boosters and team auras the member chose, and from chime-in thresholds on kudos they received. XP decides the member's level and never goes down (ADR-0002). It is not kudos and not coins."
     },
     {
       "name": "level",
@@ -75,7 +75,7 @@
     },
     {
       "name": "perk",
-      "definition": "A permanent effect a member chooses from the perk list: the first tier of a branch costs skill points, an upgrade costs skill points and coins, and some need a minimum level. An active perk is one the member switches on for a limited time."
+      "definition": "Something a member owns for good from the perk list. An effect perk's first step costs skill points and its upgrade costs skill points and coins; an expression perk is bought with coins. Some need a minimum level. An active perk works only for a limited time after the member switches it on."
     },
     {
       "name": "team aura",
@@ -83,7 +83,7 @@
     },
     {
       "name": "booster",
-      "definition": "A temporary effect that raises a member's bonus XP or chance of drops for a set time: an XP booster or a Discovery Lantern bought with coins, or a Crowd booster from a chime-in threshold. Only one of each kind is active at a time."
+      "definition": "A temporary effect that raises a member's bonus XP or chance of drops for a set time: an XP booster, a Discovery Lantern or a Crowd booster. Only one of each kind is active at a time."
     },
     {
       "name": "weekly reserve",
@@ -169,11 +169,11 @@
     },
     {
       "name": "thoughtful kudos",
-      "definition": "A kudos message that says why its recipients earned it. Only thoughtful kudos trigger bonus XP, perk effects, drops and coins, and spend the weekly reserve; every kudos message still gives base XP."
+      "definition": "A kudos message that says why its recipients earned it: for now, at least five words besides the mentions and kudos emoji. Only thoughtful kudos trigger bonus XP, perk effects, drops and coins, and spend the weekly reserve; every Given award still earns base XP."
     },
     {
       "name": "chime-in",
-      "definition": "A member's click on the app's kudos reaction under someone else's given kudos message within a day of it. It gives each recipient one more kudos from the clicker's allowance, and counts toward the message's chime-in thresholds.",
+      "definition": "A member's click on the app's kudos reaction under a given kudos message within a day of it, once per member and message; the message's giver and recipients cannot chime in. It gives each recipient one more kudos from the clicker's daily allowance, then weekly reserve, is thoughtful when the message was, and counts toward the message's chime-in thresholds.",
       "rejected": [
         {
           "alternative": "super kudos",
@@ -183,7 +183,7 @@
     },
     {
       "name": "chime-in threshold",
-      "definition": "A number of chime-ins on one kudos message (3, 5, 10, 20, 50 or 100) that gives everyone who chimed in, and the giver, a Crowd booster, and gives the recipients bonus XP."
+      "definition": "A number of chime-ins on one kudos message (3, 5, 10, 20, 50 or 100). Reaching one gives everyone who chimed in, and the giver, a stronger Crowd booster, and gives the recipients bonus XP."
     },
     {
       "name": "sticker book",
@@ -196,6 +196,18 @@
     {
       "name": "announcement channel",
       "definition": "A public channel a workspace admin picks for level-up and achievement notices, instead of the thread under the kudos message."
+    },
+    {
+      "name": "xp booster",
+      "definition": "A store item that, once switched on, adds a quarter to the base XP of the kudos a member gives for seven days. It never boosts received XP, and it adds to perk bonuses without compounding."
+    },
+    {
+      "name": "discovery lantern",
+      "definition": "A store item that, once switched on, raises a member's chance of drops by a quarter for seven days. It never gives extra draws."
+    },
+    {
+      "name": "crowd booster",
+      "definition": "A booster for 24 hours that a chime-in threshold gives everyone who chimed in on a kudos message and its giver, stronger at each higher threshold. Only the strongest Crowd booster a member holds counts."
     }
   ]
 }
