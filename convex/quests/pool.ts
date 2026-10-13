@@ -25,9 +25,9 @@ export type Quest = {
   reward: Reward;
 };
 
-export type DrawFacts = { daysLeft: number; peopleLeft: Record<Recipient, number> };
+export type DrawFacts = { daysLeft: number; kudosLeftToday: number; dailyAllowance: number; peopleLeft: Record<Recipient, number> };
 
-export const feasibleBecauseValidator = v.object({ peopleLeft: v.number(), daysLeft: v.optional(v.number()) });
+export const feasibleBecauseValidator = v.object({ peopleLeft: v.number(), recognitionsLeft: v.number(), daysLeft: v.optional(v.number()) });
 
 export type FeasibleBecause = Infer<typeof feasibleBecauseValidator>;
 
@@ -51,11 +51,13 @@ export function questOf(quest: QuestId): Quest {
   return questPool.quests.find((entry) => entry.quest === quest)!;
 }
 
-export function feasibility({ progress }: Quest, { daysLeft, peopleLeft }: DrawFacts): FeasibleBecause | null {
-  const people = peopleLeft[progress.given.to];
-  if (people < (progress.counts === "people" ? progress.target : 1)) return null;
-  if (progress.counts !== "days") return { peopleLeft: people };
-  return daysLeft < progress.target ? null : { peopleLeft: people, daysLeft };
+export function feasibility({ progress }: Quest, facts: DrawFacts): FeasibleBecause | null {
+  const people = facts.peopleLeft[progress.given.to];
+  const recognitionsLeft = facts.kudosLeftToday + facts.dailyAllowance * (facts.daysLeft - 1);
+  if (people < (progress.counts === "people" ? progress.target : 1) || recognitionsLeft < progress.target) return null;
+  if (progress.counts !== "days") return { peopleLeft: people, recognitionsLeft };
+  const daysLeft = facts.kudosLeftToday > 0 ? facts.daysLeft : facts.daysLeft - 1;
+  return daysLeft < progress.target ? null : { peopleLeft: people, recognitionsLeft, daysLeft };
 }
 
 function sayingWhy(quest: QuestId, goal: string, counts: "recognitions" | "days", target: number): Quest {

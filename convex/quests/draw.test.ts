@@ -43,7 +43,7 @@ describe("P80: opening Quests draws 3 different quests the member can finish thi
         goal: expect.stringMatching(/^Thank /),
         reward: { xp: 20, coins: 0, item: null },
         catalogueVersion: "1",
-        feasibleBecause: { peopleLeft: expect.any(Number), ...(overDays.includes(slot.quest) && { daysLeft: 6 }) },
+        feasibleBecause: { peopleLeft: expect.any(Number), recognitionsLeft: 18, ...(overDays.includes(slot.quest) && { daysLeft: 6 }) },
       });
     }
     expect(new Set(week.slots.map(({ quest }) => quest)).size).toBe(3);
@@ -57,6 +57,34 @@ describe("P80: opening Quests draws 3 different quests the member can finish thi
       const slots = await drawnOn(t, alice, sunday + week * weekMs);
       expect(slots).toHaveLength(3);
       expect(slots.filter((quest) => overDays.includes(quest))).toEqual([]);
+    }
+  });
+
+  test("on a Sunday, a member who already spent 1 of 3 kudos today never gets a goal that needs 3 recognitions, and one with none left gets nothing drawn", async () => {
+    const { t, alice, bob } = await workspace();
+    await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", baseAllowance: 3 }));
+
+    for (const week of weeks(12)) {
+      const at = sunday + week * weekMs;
+      await spent(t, alice, at, 1);
+      await openQuests(t, alice, at);
+      expect((await drawnOn(t, alice, at)).filter((quest) => quest === "say-why-three-times")).toEqual([]);
+    }
+    await spent(t, bob, sunday, 3);
+    await openQuests(t, bob, sunday);
+    expect(await drawnOn(t, bob, sunday)).toEqual([]);
+  });
+
+  test("a draw that runs after the opening checks the facts at the draw: an opening late on Saturday drawn on Sunday holds no goal over 2 days", async () => {
+    const { t, alice } = await workspace();
+
+    for (const week of weeks(12)) {
+      const drawnAt = sunday + week * weekMs;
+      vi.setSystemTime(drawnAt);
+      await t.mutation(internal.quests.weekly.drawWeeklyQuests, { event: { type: "unlockOpened", workspace: "T1", member: alice, feature: "quests", at: drawnAt - 11 * 60 * 60 * 1000 } });
+      const drawn = (await questsOf(t, alice))!.week!;
+      expect(drawn.drawnAt).toBe(drawnAt);
+      expect(drawn.slots.filter(({ quest }) => overDays.includes(quest))).toEqual([]);
     }
   });
 
@@ -86,7 +114,7 @@ describe("P80: opening Quests draws 3 different quests the member can finish thi
     await openQuests(t, alice, tuesday);
 
     const slots = (await questsOf(t, alice))!.week!.slots;
-    for (const slot of slots.filter(({ quest }) => quest === "not-in-30-days")) expect(slot.feasibleBecause).toEqual({ peopleLeft: 1 });
+    for (const slot of slots.filter(({ quest }) => quest === "not-in-30-days")) expect(slot.feasibleBecause).toEqual({ peopleLeft: 1, recognitionsLeft: 18 });
     expect(await peopleLeftAt(t, alice, tuesday)).toEqual({ anyone: 1, "someone-new": 0, "someone-not-thanked-in-30-days": 1 });
     expect(await peopleLeftAt(t, alice, tuesday - dayMs)).toEqual({ anyone: 1, "someone-new": 0, "someone-not-thanked-in-30-days": 0 });
   });
@@ -231,6 +259,10 @@ async function opened(t: Backend, member: MemberId, feature: Feature, at: number
 
 async function thanks(t: Backend, giver: MemberId, recipient: MemberId, at: number) {
   await t.run((ctx) => kudosGivenEventWithAward(ctx, giver, recipient, { at, day: new Date(at).toISOString().slice(0, 10) }));
+}
+
+async function spent(t: Backend, giver: MemberId, at: number, kudos: number) {
+  await t.run((ctx) => ctx.db.insert("allowanceSpending", { giver, day: new Date(at).toISOString().slice(0, 10), spent: kudos }));
 }
 
 async function questsOf(t: Backend, member: MemberId) {

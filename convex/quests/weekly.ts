@@ -1,9 +1,11 @@
 import { v, type Infer } from "convex/values";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { unlockOpenedEventValidator } from "../bus/events";
+import { allowanceDay, allowanceLeft } from "../engine/allowance";
 import { lastThankedBy } from "../engine/awards";
 import { republish } from "../feedback/homes";
-import type { MemberId } from "../workspace/directory";
+import { chatUserOf, type MemberId } from "../workspace/directory";
+import { settingsOf } from "../workspace/settings";
 import { questsApplyIn } from "./flag";
 import { rewardValidator } from "./journey";
 import { feasibility, feasibleBecauseValidator, questIdValidator, questOf, questPool, type DrawFacts, type Quest } from "./pool";
@@ -30,7 +32,7 @@ export const drawWeeklyQuests = internalMutation({
   args: { event: unlockOpenedEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
     if (event.feature !== "quests" || !(await questsApplyIn(ctx, event.workspace))) return;
-    if ((await drawFor(ctx, event.member, event.at)) === "drawn") await republish(ctx, event.member);
+    if ((await drawFor(ctx, event.member, Date.now())) === "drawn") await republish(ctx, event.member);
   },
 });
 
@@ -42,11 +44,16 @@ export async function weeklyQuestsOf(ctx: QueryCtx, member: MemberId, at: number
 }
 
 export async function drawFactsOf(ctx: QueryCtx, member: MemberId, at: number): Promise<DrawFacts> {
-  const teammates = await teammatesOf(ctx, member);
+  const { workspace } = await chatUserOf(ctx, member);
+  const timeZone = await timeZoneOf(ctx, member);
+  const { baseAllowance } = await settingsOf(ctx, workspace);
+  const teammates = await teammatesOf(ctx, workspace, member);
   const lastThanked = await lastThankedBy(ctx, member, at);
   const notThankedSince = (since: number) => teammates.filter((teammate) => (lastThanked.get(teammate) ?? -Infinity) <= since).length;
   return {
-    daysLeft: daysLeftInWeek(at, await timeZoneOf(ctx, member)),
+    daysLeft: daysLeftInWeek(at, timeZone),
+    kudosLeftToday: await allowanceLeft(ctx, member, allowanceDay(at, timeZone), baseAllowance),
+    dailyAllowance: baseAllowance,
     peopleLeft: {
       anyone: teammates.length,
       "someone-new": teammates.filter((teammate) => !lastThanked.has(teammate)).length,
@@ -85,11 +92,10 @@ function rankOf(member: MemberId, week: WeekKey, { quest }: Quest) {
   return hash;
 }
 
-async function teammatesOf(ctx: QueryCtx, member: MemberId): Promise<MemberId[]> {
-  const row = await ctx.db.get(member);
+async function teammatesOf(ctx: QueryCtx, workspace: string, member: MemberId): Promise<MemberId[]> {
   const everyone = await ctx.db
     .query("members")
-    .withIndex("by_user", (q) => q.eq("workspace", row!.workspace))
+    .withIndex("by_user", (q) => q.eq("workspace", workspace))
     .collect();
   return everyone.filter(({ _id, kind }) => kind === "member" && _id !== member).map(({ _id }) => _id);
 }
