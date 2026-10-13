@@ -36,7 +36,7 @@ describe("R45 R46: a member opens App Home", () => {
       "header: Your kudos",
       "section: You have *3* kudos left today. You get *3* more at midnight.",
       "divider",
-      "fields: *Given this week*\n*0* | *Received this week*\n*0* | *Given in total*\n*0* | *Received in total*\n*0*",
+      "section fields: *Given this week*\n*0* | *Received this week*\n*0* | *Given in total*\n*0* | *Received in total*\n*0*",
       "divider",
       "context: To give kudos, mention a teammate and add :taco: to your message. Each :taco: gives everyone you mention 1 kudos.",
       "context: To add me to a channel, type `/kudos` there.",
@@ -52,7 +52,7 @@ describe("R45 R46: a member opens App Home", () => {
 
     expect(allowanceIn(publishedHome("U_BOB"))).toBe("section: You have *2* kudos left today. You get *3* more at midnight.");
     expect(totalsIn(publishedHome("U_BOB"))).toBe(
-      "fields: *Given this week*\n*1* | *Received this week*\n*2* | *Given in total*\n*1* | *Received in total*\n*2*",
+      "section fields: *Given this week*\n*1* | *Received this week*\n*2* | *Given in total*\n*1* | *Received in total*\n*2*",
     );
   });
 
@@ -101,10 +101,10 @@ describe("R45 R46: a member opens App Home", () => {
     await openHome(t, "U_BOB");
 
     expect(totalsIn(publishedHome("U_ALICE"))).toBe(
-      "fields: *Given this week*\n*2* | *Received this week*\n*0* | *Given in total*\n*3* | *Received in total*\n*0*",
+      "section fields: *Given this week*\n*2* | *Received this week*\n*0* | *Given in total*\n*3* | *Received in total*\n*0*",
     );
     expect(totalsIn(publishedHome("U_BOB"))).toBe(
-      "fields: *Given this week*\n*0* | *Received this week*\n*0* | *Given in total*\n*0* | *Received in total*\n*3*",
+      "section fields: *Given this week*\n*0* | *Received this week*\n*0* | *Given in total*\n*0* | *Received in total*\n*3*",
     );
   });
 
@@ -194,7 +194,7 @@ function readBlock(block: Block) {
   if (block.type === "divider") return "divider";
   if (block.type === "header") return `header: ${plainText(block.text)}`;
   if (block.type === "context") return `context: ${block.elements?.map(mrkdwn).join(" ")}`;
-  if (block.fields) return `fields: ${block.fields.map(mrkdwn).join(" | ")}`;
+  if (block.fields) return `${block.type} fields: ${block.fields.map(mrkdwn).join(" | ")}`;
   return `${block.type}: ${mrkdwn(block.text)}`;
 }
 
@@ -213,7 +213,7 @@ function allowanceIn(home: string[]) {
 }
 
 function totalsIn(home: string[]) {
-  return home.find((line) => line.startsWith("fields: "));
+  return home.find((line) => line.startsWith("section fields: "));
 }
 
 function slackTs(at: Date, secondsLater = 0) {
