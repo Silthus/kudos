@@ -7,7 +7,7 @@ Feedback: the indicator on each kudos message as desired state and the private r
   over: every message the app asks Slack to send for a Given, an Over allowance and an Invalid kudos message, posted in a channel and in a thread
   via: R33: replies reach only the giver
   because: R33 keeps feedback private: the giver alone learns what was spent, who was skipped and why, and a recipient or a channel must never get a message the giver did not write; a reply sent to the wrong person or posted publicly would leak allowance and skipped-mention reasons
-  refuted: deliverPrivateReply posted the reply with chat.postMessage instead of chat.postEphemeral -> all 6 cases failed on their only-an-ephemeral-to-the-giver assertion (2026-10-13)
+  refuted: sendPrivateReply posted the reply with chat.postMessage instead of chat.postEphemeral -> all 6 cases failed on their only-an-ephemeral-to-the-giver assertion, with every welcome DM named (2026-10-13)
   kinds: output, message
   checklist: destination-confinement dismissed: the reply goes to the Slack Web API at one configured base URL, with no redirect followed and no destination taken from input
   checklist: message-authenticity dismissed: the reply is outbound; the inbound message it answers is verified by the Slack adapter's signed Slack requests only
