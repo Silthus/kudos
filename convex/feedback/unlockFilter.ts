@@ -23,10 +23,10 @@ export const unopenedReplyOf = internalMutation({
   handler: async (ctx, { workspace, user, feature }): Promise<UnopenedReply> => {
     const person = await lookup(ctx, workspace, user);
     if (person?.kind === "member") return { lines: await memberReplyOf(ctx, person.member, feature), shownToUnknownViewer: null };
-    if (!(await xpLevelsShownIn(ctx, workspace))) return { lines: null, shownToUnknownViewer: null };
+    if (person !== undefined || !(await xpLevelsShownIn(ctx, workspace))) return { lines: null, shownToUnknownViewer: null };
     const shown = await unlocksLiveIn(ctx, workspace);
     const lines = shown ? replyOf(feature, await strangerStateOf(ctx, workspace, feature)) : null;
-    return { lines, shownToUnknownViewer: person === undefined ? shown : null };
+    return { lines, shownToUnknownViewer: shown };
   },
 });
 
