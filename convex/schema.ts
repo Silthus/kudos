@@ -134,5 +134,6 @@ export default defineSchema({
 
   analyticsDrain: defineTable({
     job: v.id("_scheduled_functions"),
+    generation: v.string(),
   }),
 });

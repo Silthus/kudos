@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { FakePostHog, answersWith, failsToConnect, neverAnswers, postHogHost, projectToken, type BatchRequest } from "../../testing/fakePostHog";
+import { FakePostHog, answersWith, failsToConnect, neverAnswers, postHogHost, projectToken, stallsUntilReleased, type BatchRequest } from "../../testing/fakePostHog";
 import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { internal } from "../_generated/api";
 import type { KudosGivenEvent } from "../bus/events";
@@ -176,21 +176,47 @@ describe("O16 O17: leases", () => {
     expect(await outbox(t)).toEqual([]);
   });
 
-  test("a drain that resumes after its lease expired changes nothing it no longer holds", async () => {
+  test("a drain whose lease expired changes nothing, before the recovery check and after another drain claimed its rows", async () => {
     const t = testBackend();
     await recordKudosGiven(t);
-    const late = await t.mutation(internal.analytics.drain.claim, {});
+    const late = await claimAsTheDrain(t);
+    const settleLate = (answer: "delivered" | "rejected" | "failed") =>
+      t.mutation(internal.analytics.drain.settle, { token: late!.token, rows: late!.rows.map((row) => row._id), answer });
 
     vi.setSystemTime(Date.now() + minutes(2));
-    await t.mutation(internal.analytics.drain.recover, {});
-    const current = await t.mutation(internal.analytics.drain.claim, {});
-    const heldByCurrent = await outbox(t);
+    const heldByLate = await outbox(t);
+    await settleLate("delivered");
+    expect(await outbox(t)).toEqual(heldByLate);
 
-    await t.mutation(internal.analytics.drain.settle, { token: late!.token, rows: late!.rows.map((row) => row._id), answer: "delivered" });
-    await t.mutation(internal.analytics.drain.settle, { token: late!.token, rows: late!.rows.map((row) => row._id), answer: "rejected" });
+    await t.mutation(internal.analytics.drain.recover, {});
+    const current = await claimAsTheDrain(t);
+    const heldByCurrent = await outbox(t);
+    await settleLate("delivered");
+    await settleLate("rejected");
+    await settleLate("failed");
 
     expect(current!.token).not.toBe(late!.token);
     expect(await outbox(t)).toEqual(heldByCurrent);
+  });
+
+  test("a drain stalled past its lease is replaced at the lease's expiry, and changes nothing when it resumes", async () => {
+    const t = testBackend();
+    const stall = stallsUntilReleased();
+    postHog.answering(stall.answer);
+    await recordKudosGiven(t);
+    const recordedAt = Date.now();
+
+    await settleInTimeOrder(t, { until: recordedAt + minutes(3) });
+    expect(postHog.requests).toHaveLength(2);
+    expect(postHog.requests[1]!.startedAt - recordedAt).toBeLessThanOrEqual(minutes(3));
+
+    stall.release();
+    await settleInTimeOrder(t);
+    await recordKudosGiven(t);
+    await settleInTimeOrder(t);
+
+    expect(postHog.requests.map((request) => request.events.length)).toEqual([2, 2, 2]);
+    expect(await outbox(t)).toEqual([]);
   });
 
   test("an event recorded while a dead drain holds its batch is still sent, and so is the batch", async () => {
@@ -239,6 +265,23 @@ describe("O26: capture switched off pauses the outbox", () => {
     expect(await outbox(t)).toEqual([]);
   });
 
+  test.each([503, 400])("capture switched off while PostHog answers %i neither counts a failure nor gives the batch up", async (status) => {
+    const t = testBackend();
+    postHog.answering(() => {
+      vi.stubEnv("POSTHOG_PROJECT_TOKEN", "");
+      return new Response(null, { status });
+    });
+    await recordKudosGiven(t);
+
+    await settleInTimeOrder(t);
+
+    expect((await outbox(t)).map(({ state, failures }) => ({ state, failures }))).toEqual([
+      { state: "pending", failures: 0 },
+      { state: "pending", failures: 0 },
+    ]);
+    expect(warnings).not.toHaveBeenCalled();
+  });
+
   test("an event still pending 7 days after it was recorded is given up as expired", async () => {
     const t = testBackend();
     await recordKudosGiven(t);
@@ -270,11 +313,24 @@ describe("O20: the analytics module's own failures", () => {
 
     await settle(t);
 
-    expect(errors.mock.calls).toEqual([["analytics.drain_failed", { error: "Error" }]]);
+    expect(errors.mock.calls).toContainEqual(["analytics.drain_failed", { error: "Error" }]);
     expect((await outbox(t)).map(({ event, state }) => [event, state])).toEqual([
       ["kudos given", "pending"],
       ["kudos received", "pending"],
     ]);
+  });
+
+  test("a failing recovery check is logged with a fixed code", async () => {
+    const t = testBackend();
+    await recordKudosGiven(t);
+    await drainDies(t);
+    vi.spyOn(crypto, "randomUUID").mockImplementationOnce(() => {
+      throw new Error("no generation");
+    });
+
+    await expect(t.mutation(internal.analytics.drain.recover, {})).rejects.toThrow();
+
+    expect(errors.mock.calls).toEqual([["analytics.recovery_failed", { error: "Error" }]]);
   });
 });
 
@@ -289,8 +345,13 @@ async function drainDies(t: Backend) {
   });
 }
 
+async function claimAsTheDrain(t: Backend) {
+  const drain = await t.run((ctx) => ctx.db.query("analyticsDrain").first());
+  return t.mutation(internal.analytics.drain.claim, { generation: drain!.generation });
+}
+
 async function drainDiesHoldingItsBatch(t: Backend) {
-  await t.mutation(internal.analytics.drain.claim, {});
+  await claimAsTheDrain(t);
   await drainDies(t);
 }
 

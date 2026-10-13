@@ -29,6 +29,12 @@ export const failsToConnect: Answer = () => {
 export const neverAnswers: Answer = (signal) =>
   new Promise((_, reject) => signal?.addEventListener("abort", () => reject(signal.reason)));
 
+export function stallsUntilReleased() {
+  let release: (response: Response) => void = () => {};
+  const answer: Answer = () => new Promise<Response>((resolve) => (release = resolve));
+  return { answer, release: () => release(new Response(null, { status: 200 })) };
+}
+
 export class FakePostHog {
   readonly requests: BatchRequest[] = [];
   private readonly scripted: Answer[] = [];

@@ -1,6 +1,6 @@
 # Analytics
 
-Analytics: the only module that knows PostHog. It projects each kudosGiven domain event into the product events kudos given and kudos received, records them in the outbox in the subscriber's transaction while capture is on, under an opaque analytics ID per member and a workspace key per workspace, and one drain at a time sends due events to PostHog's batch endpoint, at most 100 per request, deleting them when PostHog answers 2xx. A batch PostHog doesn't accept is retried with the same identity after successive delays of 1, 5, 30, 120 and 360 minutes; a rejected batch, an event that fails a sixth time and one still pending 7 days after it was recorded are exhausted, logged and deleted 7 days later. Claims carry a lease token, and a recovery check at each lease's expiry releases a dead drain's batch. Every function is internal; the PostHog spec is issue #69.
+Analytics: the only module that knows PostHog. It projects each kudosGiven domain event into the product events kudos given and kudos received, records them in the outbox in the subscriber's transaction while capture is on, under an opaque analytics ID per member and a workspace key per workspace, and one drain at a time sends due events to PostHog's batch endpoint, at most 100 per request, deleting them when PostHog answers 2xx. A batch PostHog doesn't accept is retried with the same identity after successive delays of 1, 5, 30, 120 and 360 minutes; a rejected batch, an event that fails a sixth time and one still pending 7 days after it was recorded are exhausted, logged and deleted 7 days later. Claims carry a lease token, and a recovery check at each lease's expiry releases a dead or stalled drain's batch and replaces that drain, whose generation then claims nothing. Every function is internal; the PostHog spec is issue #69.
 
 ## invariants
 - only allowlisted properties leave the deployment: Only the properties a projection lists by name for its event leave the deployment for PostHog; message text, names, time zones, emoji names, Slack IDs and Convex document IDs never do.
@@ -41,7 +41,7 @@ Analytics: the only module that knows PostHog. It projects each kudosGiven domai
   checklist: retry-recognition dismissed: a failed batch goes back to pending with its identity unchanged and is sent by a later drain
   checklist: duplicate-suppression dismissed: covered by the engine's a message gives kudos at most once and the bus scheduling each subscriber once
   checklist: keyed-ordering dismissed: no ordered transport is relied on
-  checklist: worker-fencing dismissed: fencing a drain whose lease expired guards the outbox, never the domain; settle touches only rows still holding the claim's lease token, witnessed by "a drain that resumes after its lease expired changes nothing it no longer holds"
+  checklist: worker-fencing dismissed: fencing a drain whose lease expired guards the outbox, never the domain; settle touches only rows still holding the claim's unexpired lease token, witnessed by "a drain whose lease expired changes nothing, before the recovery check and after another drain claimed its rows"
   checklist: acknowledgment-barrier dismissed: the Slack event is acknowledged after the engine's mutation commits, which records no analytics itself
   checklist: commit-ordered-effects dismissed: the subscriber runs after the engine's transaction commits, and the drain after the subscriber's
   checklist: resumption-coverage dismissed: the drain resumes by claiming whatever is pending; it keeps no checkpoint
@@ -62,7 +62,7 @@ Analytics: the only module that knows PostHog. It projects each kudosGiven domai
   checklist: retry-recognition dismissed: this invariant is the recognition: PostHog recognises a retry whose earlier delivery landed by the unchanged identity
   checklist: duplicate-suppression dismissed: PostHog suppresses a repeated delivery on the identity this invariant keeps; one fact being one event rests on O4, witnessed by the redelivery test
   checklist: keyed-ordering dismissed: PostHog orders events by their timestamp, which this invariant keeps, not by delivery order
-  checklist: worker-fencing dismissed: settle touches only rows still holding the claim's lease token, witnessed by "a drain that resumes after its lease expired changes nothing it no longer holds"; a fenced drain cannot change an identity either
+  checklist: worker-fencing dismissed: settle touches only rows still holding the claim's unexpired lease token, witnessed by "a drain whose lease expired changes nothing, before the recovery check and after another drain claimed its rows"; a fenced drain cannot change an identity either
   checklist: acknowledgment-barrier dismissed: an event leaves the outbox only when PostHog answered its batch with 2xx
   checklist: commit-ordered-effects dismissed: the drain is scheduled from the recording mutation and runs only after it commits
   checklist: resumption-coverage dismissed: a released lease returns the whole batch to pending with its identity; the drain keeps no checkpoint
