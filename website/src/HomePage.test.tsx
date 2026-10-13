@@ -131,3 +131,71 @@ describe("WS20: a quiet week", () => {
     expect(hero.textContent).not.toMatch(/reward|earn|coin|xp/i);
   });
 });
+
+describe("WS47 WS48 WS49 WS50 WS51: level and XP on the home, only while progression is present", () => {
+  function hero() {
+    return within(main()).getByRole("region", { name: "Thank someone for work you noticed" });
+  }
+
+  it("keeps the first slice's home, with no ring, level line or bar, while progression is null", () => {
+    renderApp(shellFixtures.member);
+    expect(screen.queryByRole("img", { name: /^Level/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Account menu for Sam Example" })).not.toHaveAccessibleDescription();
+    expect(document.body.textContent).not.toMatch(/\blevel\b|\bXP\b/i);
+  });
+
+  it("rings the member's face in the hero with their level, named Level n, the number in RoundHog", () => {
+    renderApp(shellFixtures.memberAtLevel7);
+    const ring = within(hero()).getByRole("img", { name: "Level 7" });
+    expect(within(ring).getByText("SE")).toBeInTheDocument();
+    expect(within(ring).getByText("7")).toHaveClass("hud-display");
+  });
+
+  it("rings the avatar in the HUD with the level, which the account menu button reads as its description", () => {
+    renderApp(shellFixtures.memberAtLevel7);
+    const avatar = screen.getByRole("button", { name: "Account menu for Sam Example" });
+    expect(avatar).toHaveAccessibleDescription("Level 7");
+    expect(within(avatar).getByText("7")).toHaveClass("hud-display");
+  });
+
+  it.each([
+    ["at level 1", shellFixtures.memberAtLevel1, "Level 1 · 20 XP to level 2", { min: "0", max: "20", now: "0" }],
+    ["past level 5", shellFixtures.memberAtLevel7, "Level 7 · 500 XP to level 8", { min: "1500", max: "2100", now: "1600" }],
+  ])("says the level and the XP to the next one %s in one quiet line with a bar from the level's start to the next", (_, member, line, { min, max, now }) => {
+    renderApp(member);
+    const bar = within(hero()).getByRole("progressbar", { name: line });
+    expect(bar).toHaveAttribute("aria-valuemin", min);
+    expect(bar).toHaveAttribute("aria-valuemax", max);
+    expect(bar).toHaveAttribute("aria-valuenow", now);
+    expect(within(hero()).getByText(line).tagName).toBe("P");
+  });
+
+  it("puts the level line after thanking and the allowance, before Max, and never as the hero's heading", () => {
+    renderApp(shellFixtures.memberAtLevel7);
+    const line = within(hero()).getByText("Level 7 · 500 XP to level 8");
+    const allowance = within(hero()).getByText(/1 of 3 kudos left today/);
+    const max = within(hero()).getByText("This week you gave 2 kudos and received 1.");
+    expect(comesBefore(thankInSlack(), allowance)).toBe(true);
+    expect(comesBefore(allowance, line)).toBe(true);
+    expect(comesBefore(line, max)).toBe(true);
+    expect(within(hero()).getByRole("heading", { level: 1 })).toHaveTextContent("Thank someone for work you noticed");
+    expect(line).not.toHaveClass("hud-display");
+  });
+
+  it("shows Level n on the profile card beside the name, and still no received count", () => {
+    renderApp(shellFixtures.memberAtLevel7);
+    const card = within(main()).getByRole("region", { name: "Your profile card" });
+    expect(within(card).getByText("Level 7")).toBeInTheDocument();
+    expect(within(card).getByText("Sam Example")).toBeInTheDocument();
+    expect(card.textContent!.replace("Level 7", "")).not.toMatch(/\d/);
+  });
+
+  it("shows no skill points, coins, ready pill or crates past level 5", () => {
+    renderApp(shellFixtures.memberAtLevel7);
+    const banner = screen.getByRole("banner");
+    expect(banner.textContent).not.toMatch(/skill|coin|ready|crate/i);
+    expect(hero().textContent).not.toMatch(/skill|coin|ready|crate/i);
+    expect(within(main()).getByRole("region", { name: "Your profile card" }).textContent).not.toMatch(/skill|coin|ready|crate/i);
+  });
+});

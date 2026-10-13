@@ -1,6 +1,6 @@
 import type { MemberProfile, MyProfile } from "../../convex/website/profile";
 
-export type { Face, MemberProfile } from "../../convex/website/profile";
+export type { Face, MemberProfile, Progression } from "../../convex/website/profile";
 
 export type Visitor = MyProfile | { kind: "loading" } | { kind: "sign-in-unfinished" };
 
@@ -17,9 +17,14 @@ const member: MemberProfile = {
   thisWeek: { given: 2, received: 1 },
   lifetime: { given: 14, received: 9 },
   chatUrl: "https://app.slack.com/client/T1",
+  progression: null,
 };
 
 const memberWithAQuietWeek: MemberProfile = { ...member, thisWeek: { given: 0, received: 0 } };
+
+const memberAtLevel1: MemberProfile = { ...member, progression: { level: 1, xp: 0, levelStartsAt: 0, nextLevelAt: 20, xpToNextLevel: 20 } };
+
+const memberAtLevel7: MemberProfile = { ...member, progression: { level: 7, xp: 1600, levelStartsAt: 1500, nextLevelAt: 2100, xpToNextLevel: 500 } };
 
 export const shellFixtures = {
   loading: { kind: "loading" },
@@ -31,6 +36,8 @@ export const shellFixtures = {
   notAMember: { kind: "not-a-member" },
   member,
   memberWithAQuietWeek,
+  memberAtLevel1,
+  memberAtLevel7,
   error: { kind: "broken" },
 } as const satisfies Record<string, ShellState>;
 
@@ -44,6 +51,8 @@ const fixturesByName: Record<string, ShellState> = {
   "not-a-member": shellFixtures.notAMember,
   member: shellFixtures.member,
   "member-quiet-week": shellFixtures.memberWithAQuietWeek,
+  "member-level-1": shellFixtures.memberAtLevel1,
+  "member-level-7": shellFixtures.memberAtLevel7,
   error: shellFixtures.error,
 };
 

@@ -14,6 +14,8 @@ const pages: { name: string; path: string; visitor: ShellState }[] = [
   { name: "not a member", path: "/", visitor: shellFixtures.notAMember },
   { name: "home", path: "/", visitor: shellFixtures.member },
   { name: "home in a quiet week", path: "/", visitor: shellFixtures.memberWithAQuietWeek },
+  { name: "home at level 1", path: "/", visitor: shellFixtures.memberAtLevel1 },
+  { name: "home past level 5", path: "/", visitor: shellFixtures.memberAtLevel7 },
   { name: "not found", path: "/nowhere", visitor: shellFixtures.member },
   { name: "error", path: "/", visitor: shellFixtures.error },
 ];
