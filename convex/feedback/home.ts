@@ -30,6 +30,7 @@ export function renderHome(facts: HomeFacts): HomeView {
   if (facts.kind === "not-a-member") {
     return { title: productName, tabs: [], groups: [[{ kind: "text", text: `${productName} is for active members of this workspace.` }]] };
   }
+  if (facts.kind === "kudos-only") return { title: "Your kudos", tabs: [], groups: kudosOnlyTab(facts.kudos) };
   const tabs = tabsOf(facts);
   const current = tabs.includes(facts.tab) ? facts.tab : "profile";
   return { title: "Your kudos", tabs: tabs.map((tab) => tabButton(tab, current)), groups: tabContent(facts, current) };
@@ -51,6 +52,10 @@ function tabContent(facts: MemberHome, tab: HomeTab): HomeLine[][] {
 
 function profileTab({ kudos, progression }: MemberHome): HomeLine[][] {
   return [[allowanceOf(kudos)], progressOf(progression), [totalsOf(kudos)], howToGive(kudos.kudosEmoji)];
+}
+
+function kudosOnlyTab(kudos: KudosHome): HomeLine[][] {
+  return [[allowanceOf(kudos)], [totalsOf(kudos)], howToGive(kudos.kudosEmoji)];
 }
 
 function settingsTab(settings: ProgressSettings): HomeLine[][] {

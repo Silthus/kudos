@@ -6,6 +6,7 @@ import { levelReachedEventValidator } from "../bus/events";
 import { kudosHomeOf, type KudosHome } from "../engine/home";
 import { progressionHomeOf, type ProgressionHome } from "../progression/progression";
 import { progressSettingsOf, type ProgressSettings } from "../progression/settings";
+import { xpLevelsShownIn } from "../progression/xpLevels";
 import { chatUserOf, lookup, type MemberFacts, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import type { HomeTab } from "./home";
@@ -21,6 +22,7 @@ export type HomeFacts =
       settings: ProgressSettings;
       admin: AdminHome | null;
     }
+  | { kind: "kudos-only"; version: number; kudos: KudosHome }
   | { kind: "not-a-member" };
 
 export type AdminHome = { announcementChannel: string | null };
@@ -32,12 +34,15 @@ export const homeOf = internalQuery({
     if (person === undefined) return null;
     if (person.kind !== "member") return { kind: "not-a-member" };
     const home = await homeRow(ctx, person.member);
+    const version = home?.version ?? 0;
+    const kudos = await kudosHomeOf(ctx, workspace, person.member, person.timeZone);
+    if (!(await xpLevelsShownIn(ctx, workspace))) return { kind: "kudos-only", version, kudos };
     return {
       kind: "member",
       member: person.member,
-      version: home?.version ?? 0,
+      version,
       tab: home?.tab ?? "profile",
-      kudos: await kudosHomeOf(ctx, workspace, person.member, person.timeZone),
+      kudos,
       progression: await progressionHomeOf(ctx, person.member),
       settings: await progressSettingsOf(ctx, person.member),
       admin: person.admin ? { announcementChannel: (await settingsOf(ctx, workspace)).announcementChannel } : null,
@@ -47,7 +52,7 @@ export const homeOf = internalQuery({
 
 export function stampOf(facts: HomeFacts | null) {
   if (facts === null) return "unknown";
-  return facts.kind === "member" ? `member@${facts.version}` : facts.kind;
+  return facts.kind === "not-a-member" ? facts.kind : `${facts.kind}@${facts.version}`;
 }
 
 export const showHomeTab = internalMutation({
@@ -63,14 +68,16 @@ export const showHomeTab = internalMutation({
 export const refreshHomeOnLevel = internalMutation({
   args: { event: levelReachedEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
-    await republish(ctx, event.member);
+    if (await xpLevelsShownIn(ctx, event.workspace)) await republish(ctx, event.member);
   },
 });
 
 export async function republishOnRoleChange(ctx: MutationCtx, before: MemberFacts | undefined, after: MemberFacts | undefined) {
   if (before === undefined || after === undefined || roleOf(before) === roleOf(after)) return;
   const member = before.kind === "member" ? before.member : after.kind === "member" ? after.member : null;
-  if (member !== null) await republish(ctx, member);
+  if (member === null) return;
+  const { workspace } = await chatUserOf(ctx, member);
+  if (await xpLevelsShownIn(ctx, workspace)) await republish(ctx, member);
 }
 
 function roleOf(person: MemberFacts) {

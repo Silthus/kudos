@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { flagsLoaded, flagsOnForEveryone } from "../../testing/flags";
 import { FakeSlack, httpStatus } from "../../testing/fakeSlack";
 import { buttonInHome, channelPickerInHome, publishedHome, publishedViews } from "../../testing/homeView";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
@@ -18,7 +19,7 @@ beforeEach(() => {
   vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
   vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
   slack = new FakeSlack().withMember("U_ALICE").withMember("U_BOB");
-  vi.stubGlobal("fetch", slack.fetch);
+  flagsOnForEveryone(slack.fetch, "xp-levels");
   sentMessages = 0;
 });
 
@@ -384,7 +385,7 @@ function dmsTo(user: string) {
 }
 
 async function workspaceWithAllowance(baseAllowance: number) {
-  const t = testBackend();
+  const t = await flagsLoaded(testBackend());
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance }));
   return t;
 }

@@ -33,10 +33,7 @@ describe("R45 R46: a member opens App Home", () => {
     expect(response.status).toBe(200);
     expect(publishedHome(slack, "U_BOB")).toEqual([
       "header: Your kudos",
-      "actions: [Profile] | Settings",
       "section: You have *3* kudos left today. You get *3* more at midnight.",
-      "divider",
-      "section fields: *Level*\n*1* | *XP to level 2*\n*20*",
       "divider",
       "section fields: *Given this week*\n*0* | *Received this week*\n*0* | *Given in total*\n*0* | *Received in total*\n*0*",
       "divider",

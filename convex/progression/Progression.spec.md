@@ -1,6 +1,6 @@
 # Progression
 
-Progression: subscribes to kudosGiven, writes one insert-only effects record per side of every award with its base XP, gate decision and catalogue version, derives XP, levels and skill points (one per level from level 5, none for levels 2 to 4), and publishes levelReached with the member's saved skill points and the XP to the next level; a one-off backfill replays the awards given before its first run into base XP records and tells nobody; it also contributes the thoughtful kudos parse hook, App Home's level, XP to the next level and skill points, and owns a member's progression settings (mute notices, DMs), which the setProgressSettings command sets.
+Progression: subscribes to kudosGiven, writes one insert-only effects record per side of every award with its base XP, gate decision and catalogue version, derives XP, levels and skill points (one per level from level 5, none for levels 2 to 4), and publishes levelReached with the member's saved skill points and the XP to the next level; a one-off backfill replays the awards given before its first run into base XP records and tells nobody; it also contributes the thoughtful kudos parse hook, App Home's level, XP to the next level and skill points, and owns a member's progression settings (mute notices, DMs), which the setProgressSettings command sets; and it declares the xp-levels flag (workspace subject, off by default), which every member-facing XP and levels surface reads before it shows anything, while progression keeps recording XP dark.
 
 ## invariants
 - effects records are insert-only: An effects record, once written, is never changed or deleted, whatever later happens to its award's message, the member's progress or the catalogue.
@@ -32,3 +32,14 @@ Progression: subscribes to kudosGiven, writes one insert-only effects record per
   checklist: keyed-ordering dismissed: XP is a sum, so the order in which kudosGiven events are recorded doesn't change a member's total; Convex serializes the mutations that touch one member's progress
   checklist: acknowledgment-barrier dismissed: nothing acknowledges kudosGiven; the subscriber's mutation commits its records and progress together
   checklist: retry-classification dismissed: the subscriber calls no external system
+- the slice is dark while xp-levels is off: While the xp-levels flag is off, unset or unreadable, no member sees anything of XP and levels: no level-up DM, public level notice, App Home section, tab or setting, and a click on an App Home button published while it was on changes no setting; XP is still recorded, so turning the flag on shows what was earned and turning it off again rewrites nothing.
+  over: every Slack call and App Home view the app makes for a level reached, an App Home opening and a click on a stale App Home button, with xp-levels turned off in PostHog, not created there, on in the sandbox only and read in production, and unreadable for a missing flags key
+  via: the xp-levels flag hides the slice while it is off
+  because: every new member-facing slice reaches production dark behind a flag whose safe default is off (the owner, 2026-10-13; O33); XP is recorded dark rather than not at all, so the flag only decides what members see and never what they earned (O35), and a flag change can neither take XP back nor leave a gap the backfill would have to fill
+  refuted: removed the xp-levels check in notifyLevelReached -> all 4 off cases failed on the level-up DM's conversations.open for U_ALICE (2026-10-13)
+  kinds: output
+  checklist: destination-confinement dismissed: the gate only withholds sends; where a level-up DM, a notice or App Home goes is unchanged and covered by feedback's and the adapter's own invariants
+  checklist: redaction dismissed: the gate removes whole surfaces rather than scrubbing content inside one
+  checklist: commit-ordered-effects dismissed: each gate reads the flag in the mutation that schedules the send, so a withheld send is never scheduled and a shown one goes out only after that mutation commits
+  checklist: circuit-breaker-policy dismissed: the flag is read from the PostHog component's cached definitions, never by calling PostHog per read, so there is no failure history to divert on
+  checklist: declared-target-coverage dismissed: the surfaces are the level-up DM, the public level notice, App Home and its clicks, each gated in its own mutation or query and each covered by a case of the oracle; there is no fan-out registry

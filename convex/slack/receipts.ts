@@ -1,9 +1,10 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { internalMutation, type QueryCtx } from "../_generated/server";
+import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { messageEventValidator } from "../engine/messageEvent";
 import { dispatch, intentValidator } from "../bus/commands";
 import { republish } from "../feedback/homes";
+import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { directoryEntryValidator, lookup } from "../workspace/directory";
 import { recordPerson } from "./directory";
 import { reportHomeOpened } from "./appHome";
@@ -33,7 +34,7 @@ export const receiveHomeOpened = internalMutation({
     await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, {
       workspace: receipt.workspace,
       user,
-      opened: true,
+      opened: await refreshesRoleOnOpening(ctx, receipt.workspace, user),
       ...(reported === "unknown-person" && { unreportedOpeningAt: at }),
     });
   },
@@ -46,10 +47,17 @@ export const receiveInteraction = internalMutation({
     await ctx.db.insert("slackReceipts", receipt);
     const person = await lookup(ctx, receipt.workspace, user);
     if (person?.kind !== "member") return;
-    for (const intent of intents) await dispatch(ctx, { ...intent, member: person.member });
+    if (await xpLevelsShownTo(ctx, person.member)) {
+      for (const intent of intents) await dispatch(ctx, { ...intent, member: person.member });
+    }
     await republish(ctx, person.member);
   },
 });
+
+async function refreshesRoleOnOpening(ctx: MutationCtx, workspace: string, user: string) {
+  const person = await lookup(ctx, workspace, user);
+  return person?.kind === "member" ? xpLevelsShownTo(ctx, person.member) : xpLevelsShownIn(ctx, workspace);
+}
 
 export const receiveMemberChanged = internalMutation({
   args: { workspace: v.string(), eventId: v.string(), user: v.string(), entry: directoryEntryValidator, asOf: v.number() },

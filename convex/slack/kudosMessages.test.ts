@@ -82,9 +82,8 @@ describe("R33: the private reply", () => {
     expect(slack.callsTo("chat.postEphemeral")).toEqual([
       { channel: "C1", user: "U_ALICE", thread_ts: threadRoot, text: "<@U_BOB> and <@U_CAROL> got 1 kudos from you. You have 1 kudos left today." },
     ]);
-    expect(callsBesideDmsNoticesAndHomes().map((call) => call.method).sort()).toEqual(["chat.postEphemeral", "reactions.add"]);
+    expect(callsBesideWelcomes().map((call) => call.method).sort()).toEqual(["chat.postEphemeral", "reactions.add"]);
     expect(welcomedPeople()).toEqual(["U_ALICE", "U_BOB", "U_CAROL"]);
-    expect(levelledUpPeople()).toEqual(["U_ALICE"]);
   });
 
   test("R37: the giver's last kudos says how many come at midnight", async () => {
@@ -114,7 +113,7 @@ describe("R33: the private reply", () => {
       await settle(t);
 
       expect(welcomedPeople()).toEqual(welcomed);
-      const messagesSent = callsBesideDmsNoticesAndHomes().filter((call) => call.method.startsWith("chat."));
+      const messagesSent = callsBesideWelcomes().filter((call) => call.method.startsWith("chat."));
       expect(messagesSent).toEqual([
         { method: "chat.postEphemeral", args: expect.objectContaining({ channel: "C1", user: "U_ALICE", ...(options.threadTs && { thread_ts: options.threadTs }) }) },
       ]);
@@ -331,24 +330,12 @@ function stringify(value: unknown) {
   return JSON.stringify(value, (_, item) => (typeof item === "bigint" ? item.toString() : item));
 }
 
-function callsBesideDmsNoticesAndHomes() {
-  return slack.calls.filter((call) => call.method !== "users.info" && call.method !== "views.publish" && !isWelcome(call) && !isLevelUpDm(call) && !isLevelNotice(call));
+function callsBesideWelcomes() {
+  return slack.calls.filter((call) => call.method !== "users.info" && !isWelcome(call));
 }
 
 function welcomedPeople() {
   return slack.calls.filter(isWelcome).map((call) => String(call.args.channel)).sort();
-}
-
-function levelledUpPeople() {
-  return slack.callsTo("conversations.open").map((args) => String(args.users)).sort();
-}
-
-function isLevelUpDm(call: SlackCall) {
-  return call.method === "conversations.open" || (call.method === "chat.postMessage" && String(call.args.text).startsWith("🎉 You reached level"));
-}
-
-function isLevelNotice(call: SlackCall) {
-  return call.method === "chat.postMessage" && / reached level \d+\.$/.test(String(call.args.text));
 }
 
 function isWelcome(call: SlackCall) {

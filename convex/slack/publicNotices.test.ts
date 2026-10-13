@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { flagsLoaded, flagsOnForEveryone } from "../../testing/flags";
 import { FakeSlack, landsButTimesOut, slackError, type ScriptedAnswer } from "../../testing/fakeSlack";
 import { signingSecret } from "../../testing/signedSlack";
 import { everythingStored, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
@@ -17,7 +18,7 @@ beforeEach(() => {
   vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
   vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
   slack = new FakeSlack().withMember("U_ALICE").withMember("U_BOB").withMember("U_CAROL");
-  vi.stubGlobal("fetch", slack.fetch);
+  flagsOnForEveryone(slack.fetch, "xp-levels");
 });
 
 afterEach(() => {
@@ -28,7 +29,7 @@ afterEach(() => {
 
 describe("P64: the public level notice", () => {
   test("a level reached through a kudos message is celebrated in that message's thread", async () => {
-    const t = testBackend();
+    const t = await flagsLoaded(testBackend());
 
     await post(t, [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("taco"))]);
     await settle(t);
@@ -37,7 +38,7 @@ describe("P64: the public level notice", () => {
   });
 
   test("R45: a recipient's notice states only their progress, never the giver or the thank-you, and no text is stored", async () => {
-    const t = testBackend();
+    const t = await flagsLoaded(testBackend());
     await withXp(t, "U_BOB", 15);
 
     await post(t, [section(text("thanks for rescuing the deploy "), mention("U_BOB"), emoji("taco"))]);
@@ -51,7 +52,7 @@ describe("P64: the public level notice", () => {
 
 describe("D18: the one public reply", () => {
   test("two members levelling up from one message share the one reply", async () => {
-    const t = testBackend();
+    const t = await flagsLoaded(testBackend());
     await withXp(t, "U_BOB", 15);
 
     await post(t, [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("taco"))]);
@@ -62,7 +63,7 @@ describe("D18: the one public reply", () => {
   });
 
   test("a second level-up under the same message edits the one reply in place", async () => {
-    const t = testBackend();
+    const t = await flagsLoaded(testBackend());
     await post(t, [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("taco"))]);
     await settle(t);
     const [notice] = slack.messagesIn("C1");
@@ -75,7 +76,7 @@ describe("D18: the one public reply", () => {
   });
 
   test("a level reached while the reply is being posted is added by an edit, never by a second post", async () => {
-    const t = testBackend();
+    const t = await flagsLoaded(testBackend());
     await memberOf(t, "U_BOB");
     slack.holdingBack("chat.postMessage", "C1", async () => {
       await t.mutation(internal.feedback.publicReplies.celebrateLevel, { event: await levelReached(t, "U_BOB", 2) });
@@ -89,7 +90,7 @@ describe("D18: the one public reply", () => {
   });
 
   test("a post whose answer is lost is never posted again", async () => {
-    const t = testBackend();
+    const t = await flagsLoaded(testBackend());
     await onlyPublicRepliesPosted(t, "U_ALICE", "U_BOB");
     slack.answering("chat.postMessage", landsButTimesOut);
 
@@ -102,7 +103,7 @@ describe("D18: the one public reply", () => {
   });
 
   test("a post that fails after Slack accepted it is never posted again", async () => {
-    const t = testBackend();
+    const t = await flagsLoaded(testBackend());
     await onlyPublicRepliesPosted(t, "U_ALICE", "U_BOB");
     slack.answering("chat.postMessage", acceptedButAnsweredWithoutTs);
 
@@ -115,7 +116,7 @@ describe("D18: the one public reply", () => {
 
 describe("P64: routing", () => {
   test("a kudos message posted in a thread gets its notice in that thread", async () => {
-    const t = testBackend();
+    const t = await flagsLoaded(testBackend());
     const threadRoot = "1760349000.000100";
 
     await post(t, [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("taco"))], { threadTs: threadRoot });
@@ -125,7 +126,7 @@ describe("P64: routing", () => {
   });
 
   test("with an announcement channel set, the notice goes there instead and the thread gets nothing", async () => {
-    const t = testBackend();
+    const t = await flagsLoaded(testBackend());
     await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", announcementChannel: "C_NEWS" }));
 
     await post(t, [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("taco"))]);
@@ -138,7 +139,7 @@ describe("P64: routing", () => {
 
 describe("P64: a change of route", () => {
   test("picking the kudos message's own channel as the announcement channel posts the next notice there, top level, and leaves the thread reply alone", async () => {
-    const t = testBackend();
+    const t = await flagsLoaded(testBackend());
     await post(t, [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("taco"))]);
     await settle(t);
     const [threadReply] = slack.messagesIn("C1");
@@ -153,7 +154,7 @@ describe("P64: a change of route", () => {
 
 describe("R35: delivering the public reply", () => {
   test("a notice that keeps failing is tried 3 times, and the next level under that message posts the reply afresh", async () => {
-    const t = testBackend();
+    const t = await flagsLoaded(testBackend());
     await onlyPublicRepliesPosted(t, "U_ALICE", "U_BOB");
     slack.answering("chat.postMessage", slackError("internal_error"), slackError("internal_error"), slackError("internal_error"));
 
@@ -173,7 +174,7 @@ describe("P65: privacy", () => {
   test.each([
     ["muted public notices", { muteNotices: true }],
   ])("a member who %s gets no public notice, while the other member's is posted", async (_, settings) => {
-    const t = testBackend();
+    const t = await flagsLoaded(testBackend());
     await withSettings(t, "U_ALICE", settings);
     await withXp(t, "U_BOB", 15);
 
@@ -186,7 +187,7 @@ describe("P65: privacy", () => {
   test.each([
     ["mutes public notices", { muteNotices: true }],
   ])("a member who %s after reaching a level, before the reply is posted, is left out of it", async (_, settings) => {
-    const t = testBackend();
+    const t = await flagsLoaded(testBackend());
     await t.mutation(internal.feedback.publicReplies.celebrateLevel, { event: await levelReached(t, "U_ALICE", 2) });
     await t.mutation(internal.feedback.publicReplies.celebrateLevel, { event: await levelReached(t, "U_BOB", 2) });
     await withSettings(t, "U_ALICE", settings);
@@ -197,7 +198,7 @@ describe("P65: privacy", () => {
   });
 
   test("a reply whose only member muted notices before it was posted is never posted, and a later level under that message is", async () => {
-    const t = testBackend();
+    const t = await flagsLoaded(testBackend());
     await t.mutation(internal.feedback.publicReplies.celebrateLevel, { event: await levelReached(t, "U_ALICE", 2) });
     await withSettings(t, "U_ALICE", { muteNotices: true });
     await settle(t);
@@ -210,7 +211,7 @@ describe("P65: privacy", () => {
   });
 
   test("a member who muted notices and is the only one levelling up leaves the thread empty", async () => {
-    const t = testBackend();
+    const t = await flagsLoaded(testBackend());
     await withSettings(t, "U_ALICE", { muteNotices: true });
 
     await post(t, [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("taco"))]);

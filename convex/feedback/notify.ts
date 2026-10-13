@@ -3,6 +3,7 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { levelReachedEventValidator } from "../bus/events";
 import { skillTreeLevel } from "../progression/levels";
 import { progressSettingsOf } from "../progression/settings";
+import { xpLevelsShownTo } from "../progression/xpLevels";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { skillPointsOf } from "./naming";
 
@@ -11,6 +12,7 @@ export type Notification = { kind: "level-reached"; level: number; skillPoints: 
 export const notifyLevelReached = internalMutation({
   args: { event: levelReachedEventValidator },
   handler: async (ctx, { event: { member, level, skillPoints, xpToNextLevel } }): Promise<void> => {
+    if (!(await xpLevelsShownTo(ctx, member))) return;
     await notify(ctx, member, { kind: "level-reached", level, skillPoints, xpToNextLevel });
   },
 });
