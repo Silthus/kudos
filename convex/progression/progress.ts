@@ -37,6 +37,10 @@ export function standing({ xp, pointsSpent }: MemberProgress): Standing {
   return { xp, level, skillPoints: level - 1 - pointsSpent };
 }
 
+export function xpToNextLevel({ xp, level }: Standing): number {
+  return xpToReach(level + 1) - xp;
+}
+
 function effectsFor(member: MemberId, event: KudosGivenEvent, catalogue: Catalogue): EffectsRecord[] {
   const gate = gateDecisionOf(event.annotations);
   return event.awards.flatMap(({ award, giver, recipient, kudos }) => {
@@ -49,7 +53,8 @@ function effectsFor(member: MemberId, event: KudosGivenEvent, catalogue: Catalog
 
 function levelsReached(before: MemberProgress, after: MemberProgress, event: KudosGivenEvent): LevelReachedEvent[] {
   const from = levelOf(before.xp);
-  const { xp, level, skillPoints } = standing(after);
+  const reached = standing(after);
+  const { level, skillPoints } = reached;
   if (level === from) return [];
   return [
     {
@@ -59,7 +64,7 @@ function levelsReached(before: MemberProgress, after: MemberProgress, event: Kud
       level,
       skillPointsGained: level - from,
       skillPoints,
-      xpToNextLevel: xpToReach(level + 1) - xp,
+      xpToNextLevel: xpToNextLevel(reached),
       message: event.message,
       at: event.at,
     },

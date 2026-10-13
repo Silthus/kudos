@@ -79,9 +79,9 @@ describe("R44 R34: delivering the welcome message", () => {
     await giveKudos(t, "U_ALICE", "U_CAROL", { ts: slackTs(now, 1) }, ["taco", "taco"]);
 
     expect(welcomeAttemptsPerUser()).toEqual({ U_ALICE: 3, U_BOB: 3, U_CAROL: 1 });
-    expect(await homeFacts(t, "U_ALICE")).toMatchObject({ left: 0, given: 3, received: 0 });
-    expect(await homeFacts(t, "U_BOB")).toMatchObject({ given: 0, received: 1 });
-    expect(await homeFacts(t, "U_CAROL")).toMatchObject({ given: 0, received: 2 });
+    expect(await homeFacts(t, "U_ALICE")).toMatchObject({ kudos: { left: 0, given: 3, received: 0 } });
+    expect(await homeFacts(t, "U_BOB")).toMatchObject({ kudos: { given: 0, received: 1 } });
+    expect(await homeFacts(t, "U_CAROL")).toMatchObject({ kudos: { given: 0, received: 2 } });
   });
 
   test("a rate-limited welcome is tried again after Slack's Retry-After, and then not again once it arrived", async () => {
@@ -129,7 +129,7 @@ async function giveKudos(t: Backend, giver: string, recipient: string, options: 
 }
 
 function homeFacts(t: Backend, user: string) {
-  return t.query(internal.engine.home.homeOf, { workspace: "T1", user });
+  return t.query(internal.feedback.homes.homeOf, { workspace: "T1", user });
 }
 
 function welcomeAttemptsPerUser() {

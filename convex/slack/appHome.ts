@@ -1,8 +1,8 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalAction, type ActionCtx } from "../_generated/server";
-import type { HomeFacts } from "../engine/home";
 import { renderHome, type HomeLine, type HomeView } from "../feedback/home";
+import type { HomeFacts } from "../feedback/homes";
 import { attemptArgs, failedAttempt, sendOnce, tryAtMostThreeTimes } from "./delivery";
 import { lookUpUser } from "./directory";
 
@@ -35,17 +35,30 @@ export function appHomeLink(workspace: string, label: string) {
 type Unavailable = { kind: "unavailable"; retryAfterMs?: number };
 
 async function homeFactsOf(ctx: ActionCtx, workspace: string, user: string): Promise<HomeFacts | Unavailable> {
-  const known = await ctx.runQuery(internal.engine.home.homeOf, { workspace, user });
+  const known = await ctx.runQuery(internal.feedback.homes.homeOf, { workspace, user });
   if (known !== null) return known;
   const lookUp = await lookUpUser(ctx, workspace, user);
   if (lookUp.kind === "failed") return { kind: "unavailable", ...(lookUp.retryAfterMs !== undefined && { retryAfterMs: lookUp.retryAfterMs }) };
-  return (await ctx.runQuery(internal.engine.home.homeOf, { workspace, user })) ?? { kind: "unavailable" };
+  return (await ctx.runQuery(internal.feedback.homes.homeOf, { workspace, user })) ?? { kind: "unavailable" };
 }
 
-function homeView({ title, groups }: HomeView) {
-  const header = { type: "header", text: { type: "plain_text", text: title } };
+function homeView({ title, tabs, groups }: HomeView) {
+  const header = { type: "header", text: plainText(title) };
+  const tabBar = tabs.length > 0 ? [tabBarOf(tabs)] : [];
   const body = groups.flatMap((group, index) => [...(index > 0 ? [divider] : []), ...group.map(blockOf)]);
-  return { type: "home", blocks: [header, ...body] };
+  return { type: "home", blocks: [header, ...tabBar, ...body] };
+}
+
+function tabBarOf(tabs: HomeView["tabs"]) {
+  return {
+    type: "actions",
+    elements: tabs.map(({ tab, label, current }) => ({
+      type: "button",
+      action_id: `tab:${tab}`,
+      text: plainText(label),
+      ...(current && { style: "primary" }),
+    })),
+  };
 }
 
 const divider = { type: "divider" };
@@ -58,6 +71,10 @@ function blockOf(line: HomeLine) {
 
 function mrkdwn(text: string) {
   return { type: "mrkdwn", text };
+}
+
+function plainText(text: string) {
+  return { type: "plain_text", text };
 }
 
 function appId() {

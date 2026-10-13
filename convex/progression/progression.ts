@@ -4,7 +4,7 @@ import { publish } from "../bus/publish";
 import type { MemberId } from "../workspace/directory";
 import { catalogue } from "./catalogue";
 import { anyRecorded, insertEffects } from "./effects";
-import { progress, standing, type MemberProgress, type Standing } from "./progress";
+import { progress, standing, xpToNextLevel, type MemberProgress, type Standing } from "./progress";
 
 export const recordEffects = internalMutation({
   args: { event: kudosGivenEventValidator },
@@ -21,6 +21,13 @@ export const recordEffects = internalMutation({
 
 export async function standingOf(ctx: QueryCtx, member: MemberId): Promise<Standing> {
   return standing(await progressOf(ctx, member));
+}
+
+export type ProgressionHome = Standing & { xpToNextLevel: number };
+
+export async function progressionHomeOf(ctx: QueryCtx, member: MemberId): Promise<ProgressionHome> {
+  const memberStanding = await standingOf(ctx, member);
+  return { ...memberStanding, xpToNextLevel: xpToNextLevel(memberStanding) };
 }
 
 async function progressOf(ctx: QueryCtx, member: MemberId): Promise<MemberProgress> {
