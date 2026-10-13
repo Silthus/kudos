@@ -1,8 +1,8 @@
-// Variant E deep-link landings: one celebratory moment per Slack link, a cover band over a HUD panel, including the moment a feature unlocks; locked features stay locked in every moment.
+// Variant E deep-link landings: one celebratory moment per Slack link, a cover band over a HUD panel; a level-up ends with the unlocks it made ready, and an unlock moment is a loot crate the member opens.
 import { useEffect, useState, type ComponentType, type CSSProperties, type ReactNode } from "react";
 import { Button } from "@posthog/quill";
 import { HedgehogHeart, HedgehogLevelUp, HedgehogMagnifyingGlass, HedgehogReading, HedgehogStampApproved } from "@posthog/brand/hoggies";
-import { IconArrowRight, IconCheck, IconLock, IconRefresh, IconUnlock } from "@posthog/icons";
+import { IconArrowRight, IconCheck, IconLock, IconRefresh } from "@posthog/icons";
 import { useNav, type ScreenId } from "../../nav";
 import { Rarity, TierMedal, tierLabel } from "../../ui";
 import type { Rarity as RarityKind } from "../../data/types";
@@ -10,11 +10,12 @@ import { CoinGlyph, ResourceChip, SkillPointGlyph, useHud } from "../b/hud";
 import { hedgehogs, sourceLabel, useHogs } from "./hedgehogs";
 import { Chest, Egg, useBeat, useOpenable } from "./moments-chest";
 import { achievement, asMomentKind, asUnlockFeature, discovery, kudos, levelUp, momentKinds, newHogId, tour, unlockMoments, type MomentKind, type TourStop } from "./moments-data";
+import { CrateGlyph, CrateStage, isOpened, useCrateOpening } from "./unlock-crate";
 import { featureLook, nextUnlock, unlocksAtLevel } from "./unlock-features";
-import { setPreviewLevel, unlockOf, unlocks, usePreviewLevel, useUnlocked, type Feature, type Unlock } from "./unlocks";
+import { markReady, setPreviewLevel, showCrate, unlockOf, unlocks, usePreviewLevel, useReadyFeatures, useUnlocked, type Feature } from "./unlocks";
 import "./moments.css";
 
-type Ink = "tangerine" | "lemon" | "blue";
+type Ink = "tangerine" | "lemon" | "blue" | "night";
 type HogArt = ComponentType<{ size?: number; className?: string; title?: string }>;
 type Primary = { label: string; onClick: () => void; done?: boolean };
 
@@ -154,20 +155,36 @@ function LevelTicker({ from, to }: { from: number; to: number }) {
   );
 }
 
+function useReachedLevel(level: number) {
+  const current = usePreviewLevel();
+  useEffect(() => {
+    if (current < level) setPreviewLevel(level);
+  }, [current, level]);
+}
+
 function LevelUpMoment({ onReplay }: MomentProps) {
   const to = useGo();
   const reached = Math.max(2, usePreviewLevel());
   const next = reached + 1;
   const skills = unlockOf("skills");
-  const treeOpen = reached >= skills.level;
-  const opened = unlocksAtLevel(reached);
-  const pointsLine = !treeOpen
+  const treeReached = reached >= skills.level;
+  const treeOpen = useUnlocked("skills");
+  const ready = useReadyFeatures();
+  useReachedLevel(reached);
+  useEffect(() => markReady(unlocksAtLevel(reached).map((u) => u.feature)), [reached]);
+  const pointsLine = !treeReached
     ? `Skill points wait for you until the skill tree opens at level ${skills.level}.`
-    : reached === skills.level
-      ? "The skill tree is open, and every skill point you banked is ready to spend."
+    : !treeOpen
+      ? "Your skill points wait inside the skill tree's crate."
       : reached === levelUp.to
-      ? `You have ${levelUp.pointsToSpend} skill points to spend.`
-      : "Your new skill point is ready to spend.";
+        ? `You have ${levelUp.pointsToSpend} skill points to spend.`
+        : "Your new skill point is ready to spend.";
+  const primary: Primary =
+    ready.length > 0
+      ? { label: ready.length === 1 ? "Open it" : "Open the first one", onClick: () => showCrate(ready[0]) }
+      : treeOpen
+        ? { label: "Spend skill points", onClick: to("skills") }
+        : { label: "Go to my profile", onClick: to("profile") };
   return (
     <MomentShell
       ink="tangerine"
@@ -178,7 +195,7 @@ function LevelUpMoment({ onReplay }: MomentProps) {
         </>
       }
       hog={HedgehogLevelUp}
-      primary={treeOpen ? { label: "Spend skill points", onClick: to("skills") } : { label: "Go to my profile", onClick: to("profile") }}
+      primary={primary}
       onReplay={onReplay}
       stage={
         <div className="w-full max-w-xl">
@@ -207,30 +224,30 @@ function LevelUpMoment({ onReplay }: MomentProps) {
           {pointsLine} Level {next} is <span className="tabular-nums">{levelUp.xpToNext}</span> XP away.
         </p>
       </div>
-      {opened.length > 0 && <OpenedAtLevel level={reached} opened={opened} />}
+      {ready.length > 0 && <ReadyCrates ready={ready} />}
     </MomentShell>
   );
 }
 
-function OpenedAtLevel({ level, opened }: { level: number; opened: Unlock[] }) {
+function ReadyCrates({ ready }: { ready: Feature[] }) {
   return (
-    <section className="mo-in flex flex-col gap-2" style={delay(2.4)} aria-label={`Level ${level} unlocks`}>
-      <span className="hud-label">Level {level} unlocks</span>
+    <section className="mo-in flex flex-col gap-2" style={delay(2.4)} aria-label="Unlocks ready">
+      <span className="hud-label">{ready.length === 1 ? "1 unlock ready" : `${ready.length} unlocks ready`}</span>
       <ul className="flex flex-col gap-2">
-        {opened.map((u) => {
-          const { Icon } = featureLook[u.feature];
+        {ready.map((feature) => {
+          const unlock = unlockOf(feature);
           return (
-            <li key={u.feature}>
-              <a href={`#/landing/unlock/${u.feature}`} className="hud-lift flex items-center gap-3 rounded-lg border bg-card p-3 hover:bg-fill-hover">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-foreground text-background">
-                  <Icon className="size-4" />
+            <li key={feature}>
+              <button type="button" onClick={() => showCrate(feature)} className="hud-lift flex w-full items-center gap-3 rounded-lg border bg-card p-3 text-left hover:bg-fill-hover">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted">
+                  <CrateGlyph className="size-6" />
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="text-sm font-semibold">{u.name}</span>
-                  <span className="text-xs text-muted-foreground">{u.teaser}</span>
+                  <span className="text-sm font-semibold">{unlock.name}</span>
+                  <span className="text-xs text-muted-foreground">Ready to open · level {unlock.level}</span>
                 </span>
                 <IconArrowRight className="size-4 shrink-0 text-muted-foreground" />
-              </a>
+              </button>
             </li>
           );
         })}
@@ -239,64 +256,45 @@ function OpenedAtLevel({ level, opened }: { level: number; opened: Unlock[] }) {
   );
 }
 
-const unlockInk: Record<Feature, Ink> = { book: "lemon", gear: "blue", skills: "tangerine", coins: "lemon", collection: "blue" };
-
 function UnlockMoment({ onReplay }: MomentProps) {
   const to = useGo();
   const feature = unlockSegment();
   const unlock = unlockOf(feature);
   const facts = unlockMoments[feature];
-  const { Icon, Hog, screen, param } = featureLook[feature];
-  const open = useBeat(1100);
-  const level = usePreviewLevel();
+  const { screen, param } = featureLook[feature];
+  const { phase, open } = useCrateOpening(feature);
+  const opened = isOpened(phase);
   const after = nextUnlock(unlock.level);
-  useEffect(() => {
-    if (level < unlock.level) setPreviewLevel(unlock.level);
-  }, [level, unlock.level]);
+  useReachedLevel(unlock.level);
+  useEffect(() => markReady([feature]), [feature]);
   return (
     <MomentShell
-      ink={unlockInk[feature]}
-      kicker={`Unlocked at level ${unlock.level}`}
-      headline={facts.headline}
-      hog={Hog}
-      primary={{ label: facts.cta, onClick: to(screen, param) }}
+      ink="night"
+      kicker={`Level ${unlock.level} unlock`}
+      headline={opened ? facts.headline : "Something's inside"}
+      primary={opened ? { label: facts.cta, onClick: to(screen, param) } : { label: "Open it", onClick: open }}
       onReplay={onReplay}
-      stage={
-        <Chest
-          open={open}
-          width={168}
-          label={`Unlocked: ${unlock.name}`}
-          item={
-            <div className="mb-1 flex w-[min(19rem,80vw)] items-start gap-3 rounded-2xl bg-card p-4 text-left text-card-foreground shadow-xl">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-foreground text-background">
-                <Icon className="size-5" />
-              </span>
-              <span className="flex min-w-0 flex-col gap-1">
-                <span className="flex items-center gap-1.5 text-sm font-semibold">
-                  <IconUnlock className="size-3.5 shrink-0" />
-                  {unlock.name}
-                </span>
-                <span className="text-xs leading-snug text-muted-foreground">{unlock.teaser}</span>
-              </span>
-            </div>
-          }
-        />
-      }
+      stage={<CrateStage feature={feature} phase={phase} onOpen={open} width={220} />}
     >
-      <section className="flex flex-col gap-2.5" aria-label="Waiting for you">
-        <span className="hud-label">Waiting for you</span>
-        <ul className="flex flex-col gap-2">
-          {facts.waiting.map((line, i) => (
-            <li key={line} className="mo-in flex items-start gap-2.5 text-sm md:text-base" style={delay(1.2 + i * 0.15)}>
-              <IconCheck className="mt-1 size-4 shrink-0 text-muted-foreground" />
-              {line}
-            </li>
-          ))}
-        </ul>
-        <p className="mo-in text-sm text-muted-foreground" style={delay(1.6)}>
-          {unlock.how}
-        </p>
-      </section>
+      {phase === "open" ? (
+        <section className="flex flex-col gap-2.5" aria-label="Waiting for you">
+          <span className="hud-label">{unlock.name} · waiting for you</span>
+          <p className="mo-in text-base">{unlock.teaser}</p>
+          <ul className="flex flex-col gap-2">
+            {facts.waiting.map((line, i) => (
+              <li key={line} className="mo-in flex items-start gap-2.5 text-sm md:text-base" style={delay(0.15 + i * 0.12)}>
+                <IconCheck className="mt-1 size-4 shrink-0 text-muted-foreground" />
+                {line}
+              </li>
+            ))}
+          </ul>
+          <p className="mo-in text-sm text-muted-foreground" style={delay(0.45)}>
+            {unlock.how}
+          </p>
+        </section>
+      ) : (
+        <p className="text-sm text-muted-foreground md:text-base">You reached level {unlock.level}, and a crate dropped. Tap it to see what it unlocks.</p>
+      )}
       {after && (
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <IconLock className="size-3.5 shrink-0" />

@@ -1,4 +1,4 @@
-// Variant E unlock gate: a locked screen opened by URL shows a blurred ghost of what waits, its hedgehog, the unlock level and the climb toward it.
+// Variant E unlock gate: a locked screen opened by URL shows a blurred ghost of what waits, its hedgehog and the climb toward it; a ready screen shows its closed crate to open.
 import type { ComponentType } from "react";
 import { IconLock } from "@posthog/icons";
 import { Button } from "@posthog/quill";
@@ -6,14 +6,41 @@ import { useNav } from "../../nav";
 import type { ScreenComponent } from "../types";
 import { hedgehogs } from "./hedgehogs";
 import { Panel, useHud } from "./hud";
+import { CrateStage } from "./unlock-crate";
 import { featureLook, levelsToGoText } from "./unlock-features";
-import { unlockOf, usePreviewLevel, useUnlocked, type Feature } from "./unlocks";
+import { showCrate, unlockOf, useFeatureState, usePreviewLevel, type Feature } from "./unlocks";
 
 export function gated(feature: Feature, Screen: ScreenComponent): ScreenComponent {
   return function GatedScreen(props) {
-    const open = useUnlocked(feature);
-    return open ? <Screen {...props} /> : <LockedScreen feature={feature} />;
+    const state = useFeatureState(feature);
+    if (state === "unlocked") return <Screen {...props} />;
+    return state === "ready" ? <ReadyScreen feature={feature} /> : <LockedScreen feature={feature} />;
   };
+}
+
+export function ReadyScreen({ feature }: { feature: Feature }) {
+  useHud();
+  const unlock = unlockOf(feature);
+  const open = () => showCrate(feature);
+  return (
+    <div className="hud-rise mx-auto flex w-full max-w-3xl flex-col">
+      <section className="hud-panel overflow-hidden rounded-xl border shadow-sm">
+        <div className="mo-band mo-band-night flex flex-col items-center gap-3 px-4 pb-10 pt-8 text-center md:pb-12">
+          <span className="hud-label" style={{ color: "rgba(255,255,255,.65)" }}>
+            Ready · {unlock.name}
+          </span>
+          <h1 className="mo-headline text-[clamp(2.25rem,8vw,3.75rem)]">Your level {unlock.level} unlock is here</h1>
+          <p className="max-w-md text-balance text-base text-white/75">{unlock.teaser}</p>
+          <div className="mt-6">
+            <CrateStage feature={feature} phase="closed" onOpen={open} width={200} hint="Tap the crate" headroom={false} />
+          </div>
+          <Button variant="primary" size="lg" className="mt-2" onClick={open}>
+            Open it
+          </Button>
+        </div>
+      </section>
+    </div>
+  );
 }
 
 export function LockedScreen({ feature }: { feature: Feature }) {

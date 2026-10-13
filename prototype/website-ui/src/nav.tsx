@@ -1,7 +1,7 @@
 // PROTOTYPE hash router and app state. No persistence beyond the theme and shell choice.
 import { createContext, useContext, useEffect, useState } from "react";
 
-export type ScreenId = "profile" | "skills" | "stickers" | "achievements" | "collection" | "leaderboard" | "landing";
+export type ScreenId = "profile" | "quests" | "skills" | "stickers" | "achievements" | "collection" | "leaderboard" | "landing";
 
 export type Route = { screen: ScreenId; param?: string } | { screen: "signin"; next?: string };
 
@@ -9,7 +9,7 @@ export function parseHash(hash: string): Route {
   const [path, query] = hash.replace(/^#\/?/, "").split("?");
   const [screen, param] = path.split("/");
   if (screen === "signin") return { screen: "signin", next: new URLSearchParams(query).get("next") ?? undefined };
-  const known: ScreenId[] = ["profile", "skills", "stickers", "achievements", "collection", "leaderboard", "landing"];
+  const known: ScreenId[] = ["profile", "quests", "skills", "stickers", "achievements", "collection", "leaderboard", "landing"];
   return known.includes(screen as ScreenId) ? { screen: screen as ScreenId, param } : { screen: "profile" };
 }
 

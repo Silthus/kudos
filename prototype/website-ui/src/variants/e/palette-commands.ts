@@ -1,8 +1,8 @@
-// Variant E command registry for the Cmd/Ctrl-K palette, adapted from D: commands navigate, a few are witty traps, and a locked screen answers with its unlock level.
+// Variant E command registry for the Cmd/Ctrl-K palette, adapted from D: commands navigate, a few are witty traps, a locked screen answers with its unlock level and a ready one opens its crate.
 import type { ComponentType } from "react";
 import { IconBook, IconBox, IconDay, IconLeave, IconListTree, IconPalette, IconQuestion, IconRibbon, IconStar, IconUser } from "@posthog/icons";
 import type { ScreenId } from "../../nav";
-import { unlockOf, unlockedAt, type Feature } from "./unlocks";
+import { featureStateAt, showCrate, unlockOf, type Feature, type FeatureState } from "./unlocks";
 
 export type Shell = { go: (screen: ScreenId, param?: string) => void; dark: boolean; level: number; toggleTheme: () => void; openHelp: () => void; signOut: () => void };
 
@@ -88,7 +88,7 @@ export const commands: Command[] = [
   { name: "vim", aliases: ["vi", "emacs", "nano"], usage: "vim", blurb: "Not an editor", hidden: true, run: (_args, _shell, invokedAs) => ok(`${invokedAs}: this is a hedgehog, not an editor. :q works in your head only.`) },
 ];
 
-export const isLocked = (command: Command, level: number) => command.feature !== undefined && !unlockedAt(command.feature, level);
+export const stateOf = (command: Command, level: number): FeatureState => (command.feature ? featureStateAt(command.feature, level) : "unlocked");
 
 const lockedAnswer = (command: Command, level: number): Outcome => {
   const unlock = unlockOf(command.feature!);
@@ -117,7 +117,9 @@ export function run(line: string, shell: Shell): Outcome {
   const exact = find(typed);
   const command = exact ?? onlyMatch(typed);
   if (!command) return error(`Nothing called '${name}'. Try help.`);
-  if (isLocked(command, shell.level)) return lockedAnswer(command, shell.level);
+  const state = stateOf(command, shell.level);
+  if (state === "locked") return lockedAnswer(command, shell.level);
+  if (state === "ready") return (showCrate(command.feature!), close);
   return command.run(args, shell, exact ? typed : command.name);
 }
 

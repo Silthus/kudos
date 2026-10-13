@@ -1,5 +1,5 @@
-// Variant E frame, from B: a sticky game HUD bar whose screens and resource chips appear as the previewed level unlocks them, the equipped hedgehog as avatar, a Cmd/Ctrl-K palette and a prototype level scrubber.
-import { useCallback, useState, type ComponentType } from "react";
+// Variant E frame, from B: a sticky game HUD bar whose screens turn into glowing crates when ready and into real screens once the member opens them, an unlocks-ready pill by the hedgehog avatar, a Cmd/Ctrl-K palette and a prototype level scrubber.
+import { Fragment, useCallback, useState, type ComponentType, type ReactNode } from "react";
 import { HedgehogHeart } from "@posthog/brand/hoggies";
 import { IconBook, IconLeave, IconLock } from "@posthog/icons";
 import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@posthog/quill";
@@ -9,9 +9,11 @@ import { useNav, type ScreenId } from "../../nav";
 import { screens } from "../../screens";
 import { CoinGlyph, HogAvatar, ResourceChip, SkillPointGlyph, levelProgress, useHud } from "./hud";
 import { CommandPalette, paletteKey, usePaletteHotkey } from "./palette";
+import { CrateGlyph } from "./unlock-crate";
 import { nextUnlock, screenFeature } from "./unlock-features";
+import { UnlockOverlay } from "./unlock-overlay";
 import { PreviewLevelBar } from "./unlock-preview";
-import { unlockOf, unlockedAt, usePreviewLevel, type Feature } from "./unlocks";
+import { featureStateAt, justOpened, showCrate, unlockOf, unlockedAt, useOpenings, usePreviewLevel, useReadyFeatures, type Feature, type FeatureState } from "./unlocks";
 
 const bookScreens: ScreenId[] = ["stickers", "achievements"];
 
@@ -25,12 +27,14 @@ const navFeatures = navEntries.flatMap((e) => (e.feature ? [e.feature] : []));
 
 const isCurrent = (id: ScreenId, current: ScreenId) => id === current || (id === "stickers" && bookScreens.includes(current));
 
-type NavState = { entry: NavEntry; current: boolean; locked: boolean; next: boolean };
+type NavState = { entry: NavEntry; current: boolean; state: FeatureState; next: boolean };
 
 export function Frame({ current, dark, toggle, children }: LayoutProps) {
   useHud();
   const { go, setSignedIn } = useNav();
   const level = usePreviewLevel();
+  const ready = useReadyFeatures();
+  const openings = useOpenings();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const togglePalette = useCallback(() => setPaletteOpen((o) => !o), []);
   usePaletteHotkey(togglePalette);
@@ -39,7 +43,7 @@ export function Frame({ current, dark, toggle, children }: LayoutProps) {
   const nav: NavState[] = navEntries.map((entry) => ({
     entry,
     current: isCurrent(entry.id, current),
-    locked: entry.feature !== undefined && !unlockedAt(entry.feature, level),
+    state: entry.feature ? featureStateAt(entry.feature, level) : "unlocked",
     next: entry.feature !== undefined && entry.feature === upcoming,
   }));
 
@@ -55,7 +59,10 @@ export function Frame({ current, dark, toggle, children }: LayoutProps) {
             </span>
           </a>
           <nav className="mx-auto hidden items-center gap-0.5 lg:flex" aria-label="Screens">
-            {nav.map((item) => (item.locked ? <LockedDesktopItem key={item.entry.id} {...item} /> : <DesktopItem key={item.entry.id} {...item} />))}
+            {nav.map((item) => {
+              const Item = desktopItems[item.state];
+              return <Item key={item.entry.id} {...item} />;
+            })}
           </nav>
           <div className="ml-auto flex items-center gap-2 lg:ml-0">
             <button
@@ -68,15 +75,20 @@ export function Frame({ current, dark, toggle, children }: LayoutProps) {
               {paletteKey()}
             </button>
             {unlockedAt("skills", level) && (
-              <ResourceChip icon={<SkillPointGlyph />} title="Skill points to spend" href="#/skills">
-                {me.skillPointsUnspent}
-              </ResourceChip>
+              <PopIn feature="skills">
+                <ResourceChip icon={<SkillPointGlyph />} title="Skill points to spend" href="#/skills">
+                  {me.skillPointsUnspent}
+                </ResourceChip>
+              </PopIn>
             )}
             {unlockedAt("coins", level) && (
-              <ResourceChip icon={<CoinGlyph />} title={`${me.coins} coins. ${unlockOf("coins").how}`}>
-                {me.coins}
-              </ResourceChip>
+              <PopIn feature="coins">
+                <ResourceChip icon={<CoinGlyph />} title={`${me.coins} coins. ${unlockOf("coins").how}`}>
+                  {me.coins}
+                </ResourceChip>
+              </PopIn>
             )}
+            {ready.length > 0 && <ReadyPill ready={ready} />}
             <a href="#/profile" title={`${me.name}, level ${level}`} className="rounded-full">
               <HogAvatar level={level} progress={progress} size={36} />
             </a>
@@ -87,23 +99,57 @@ export function Frame({ current, dark, toggle, children }: LayoutProps) {
           </div>
         </div>
         <nav className="flex gap-1 overflow-x-auto px-3 pb-2 lg:hidden" aria-label="Screens">
-          {nav.map((item) => (item.locked ? <LockedMobileItem key={item.entry.id} {...item} /> : <MobileItem key={item.entry.id} {...item} />))}
+          {nav.map((item) => {
+            const Item = mobileItems[item.state];
+            return <Item key={item.entry.id} {...item} />;
+          })}
         </nav>
       </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-32 pt-6 md:px-6 md:pt-8">{children}</main>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-32 pt-6 md:px-6 md:pt-8">
+        <Fragment key={current === "landing" ? "landing" : openings}>{children}</Fragment>
+      </main>
+      <UnlockOverlay />
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} shell={{ go, dark, toggleTheme: toggle, signOut: () => setSignedIn(false) }} />
       <PreviewLevelBar />
     </div>
   );
 }
 
-function DesktopItem({ entry: { id, label, Icon }, current }: NavState) {
+function ReadyPill({ ready }: { ready: Feature[] }) {
+  const text = ready.length === 1 ? "1 unlock ready" : `${ready.length} unlocks ready`;
+  return (
+    <button
+      type="button"
+      onClick={() => showCrate(ready[0])}
+      title={`${text}: open it`}
+      aria-label={`${text}. Open the crate`}
+      className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full border bg-card px-2.5 text-sm font-medium hover:bg-fill-hover"
+    >
+      <CrateGlyph className="size-4" />
+      <span className="tabular-nums sm:hidden">{ready.length}</span>
+      <span className="hidden sm:inline">{text}</span>
+    </button>
+  );
+}
+
+function PopIn({ feature, children }: { feature: Feature; children: ReactNode }) {
+  const fresh = useFresh(feature);
+  return <span className={`inline-flex ${fresh ? "uc-pop" : ""}`}>{children}</span>;
+}
+
+function useFresh(feature?: Feature) {
+  const [fresh] = useState(() => feature !== undefined && justOpened(feature));
+  return fresh;
+}
+
+function DesktopItem({ entry: { id, label, Icon, feature }, current }: NavState) {
+  const fresh = useFresh(feature);
   return (
     <a
       href={`#/${id}`}
       aria-current={current ? "page" : undefined}
       title={label}
-      className={`relative flex items-center gap-1 whitespace-nowrap rounded-md px-2 py-1.5 text-[13px] font-medium transition-colors ${current ? "text-foreground after:absolute after:inset-x-2 after:-bottom-[12px] after:h-0.5 after:rounded-full after:bg-primary" : "text-muted-foreground hover:bg-fill-hover hover:text-foreground"}`}
+      className={`relative flex items-center gap-1 whitespace-nowrap rounded-md px-2 py-1.5 text-[13px] font-medium transition-colors ${fresh ? "uc-pop" : ""} ${current ? "text-foreground after:absolute after:inset-x-2 after:-bottom-[12px] after:h-0.5 after:rounded-full after:bg-primary" : "text-muted-foreground hover:bg-fill-hover hover:text-foreground"}`}
     >
       <Icon className="size-4" />
       <span className="sr-only xl:not-sr-only xl:whitespace-nowrap">{label}</span>
@@ -141,9 +187,49 @@ function LockedDesktopItem({ entry: { label, feature }, next }: NavState) {
   );
 }
 
-function MobileItem({ entry: { id, label, Icon }, current }: NavState) {
+function ReadyDesktopItem({ entry: { label, feature } }: NavState) {
+  const unlock = unlockOf(feature!);
   return (
-    <a href={`#/${id}`} aria-current={current ? "page" : undefined} className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-sm ${current ? "bg-primary font-medium text-primary-foreground" : "text-muted-foreground hover:bg-fill-hover hover:text-foreground"}`}>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <button
+            type="button"
+            onClick={() => showCrate(feature!)}
+            aria-label={`${label}: unlock ready. Open its crate`}
+            className="uc-token flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-[13px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        }
+      >
+        <CrateGlyph className="size-4" />
+        <span className="sr-only xl:not-sr-only xl:whitespace-nowrap">{label}</span>
+      </TooltipTrigger>
+      <TooltipContent>
+        <div className="font-medium">{unlock.name} is ready</div>
+        <div>Open its crate to unlock it</div>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function ReadyMobileItem({ entry: { label, feature } }: NavState) {
+  return (
+    <button
+      type="button"
+      onClick={() => showCrate(feature!)}
+      aria-label={`${label}: unlock ready. Open its crate`}
+      className="uc-token flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-sm font-semibold"
+    >
+      <CrateGlyph className="size-4" />
+      {label}
+    </button>
+  );
+}
+
+function MobileItem({ entry: { id, label, Icon, feature }, current }: NavState) {
+  const fresh = useFresh(feature);
+  return (
+    <a href={`#/${id}`} aria-current={current ? "page" : undefined} className={`${fresh ? "uc-pop" : ""} flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-sm ${current ? "bg-primary font-medium text-primary-foreground" : "text-muted-foreground hover:bg-fill-hover hover:text-foreground"}`}>
       <Icon className="size-3.5" />
       {label}
     </a>
@@ -165,3 +251,7 @@ function LockedMobileItem({ entry: { label, feature }, next }: NavState) {
     </span>
   );
 }
+
+const desktopItems: Record<FeatureState, ComponentType<NavState>> = { locked: LockedDesktopItem, ready: ReadyDesktopItem, unlocked: DesktopItem };
+
+const mobileItems: Record<FeatureState, ComponentType<NavState>> = { locked: LockedMobileItem, ready: ReadyMobileItem, unlocked: MobileItem };

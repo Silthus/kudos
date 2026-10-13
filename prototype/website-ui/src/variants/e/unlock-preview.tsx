@@ -1,4 +1,4 @@
-// Variant E preview level bar: prototype-only chrome beside the variant switcher that scrubs the previewed level from 1 to 10 and names what each level opens.
+// Variant E preview level bar: prototype-only chrome beside the variant switcher that scrubs the previewed level from 1 to 10; scrubbing up makes crates ready, scrubbing down closes them again.
 import { IconMinus, IconPlus } from "@posthog/icons";
 import { me } from "../../data/mock";
 import { unlocksAtLevel } from "./unlock-features";

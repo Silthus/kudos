@@ -9,9 +9,9 @@ export type Command = { name: string; aliases: string[]; usage: string; blurb: s
 
 export const redesigned: ScreenId[] = ["profile", "skills", "leaderboard"];
 
-export const windows: Record<ScreenId, string> = { profile: "profile", skills: "perks", stickers: "stickers", achievements: "achievements", collection: "collection", leaderboard: "leaderboard", landing: "motd" };
+export const windows: Record<ScreenId, string> = { profile: "profile", quests: "quests", skills: "perks", stickers: "stickers", achievements: "achievements", collection: "collection", leaderboard: "leaderboard", landing: "motd" };
 
-export const screenCommand = (screen: ScreenId) => ({ profile: "hedgehug profile", skills: "hedgehug perks --tree", leaderboard: "hedgehug leaderboard --week --everyone", stickers: "hedgehug stickers", achievements: "hedgehug achievements", collection: "hedgehug collection", landing: "hedgehug motd" })[screen];
+export const screenCommand = (screen: ScreenId) => ({ profile: "hedgehug profile", quests: "hedgehug quests", skills: "hedgehug perks --tree", leaderboard: "hedgehug leaderboard --week --everyone", stickers: "hedgehug stickers", achievements: "hedgehug achievements", collection: "hedgehug collection", landing: "hedgehug motd" })[screen];
 
 const flagsOf = (args: string[]) => args.filter((a) => a.startsWith("--")).map((a) => a.slice(2));
 const wordsOf = (args: string[]) => args.filter((a) => !a.startsWith("--"));

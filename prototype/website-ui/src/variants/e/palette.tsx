@@ -1,10 +1,11 @@
-// Variant E command palette: a Cmd/Ctrl-K overlay in E's HUD look that navigates, answers D's trap commands and shows locked screens with their unlock level.
+// Variant E command palette: a Cmd/Ctrl-K overlay in E's HUD look that navigates, answers D's trap commands, shows locked screens with their unlock level and opens ready crates.
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { IconChevronRight, IconLock, IconSparkles, IconWarning } from "@posthog/icons";
 import { Kbd } from "@posthog/quill";
 import { HedgehogCodeBubble } from "@posthog/brand/hoggies";
-import { hiddenCommands, isLocked, run, suggest, tokensOf, visibleCommands, type Command, type Output, type Shell } from "./palette-commands";
-import { unlockOf, usePreviewLevel } from "./unlocks";
+import { hiddenCommands, run, stateOf, suggest, tokensOf, visibleCommands, type Command, type Output, type Shell } from "./palette-commands";
+import { CrateGlyph } from "./unlock-crate";
+import { unlockOf, usePreviewLevel, type FeatureState } from "./unlocks";
 
 export const isMac = () => /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 
@@ -124,7 +125,7 @@ function PaletteOverlay({ onClose, shell }: { onClose: () => void; shell: Omit<S
           ) : (
             <ul id="hud-palette-list" role="listbox" aria-label="Commands">
               {suggestions.map((c, i) => (
-                <CommandRow key={c.name} command={c} locked={isLocked(c, level)} active={i === highlight} onPick={() => execute(c.name)} onHover={() => setHighlight(i)} />
+                <CommandRow key={c.name} command={c} state={stateOf(c, level)} active={i === highlight} onPick={() => execute(c.name)} onHover={() => setHighlight(i)} />
               ))}
             </ul>
           )}
@@ -152,9 +153,13 @@ function PaletteOverlay({ onClose, shell }: { onClose: () => void; shell: Omit<S
   );
 }
 
-function CommandRow({ command, locked, active, onPick, onHover }: { command: Command; locked: boolean; active: boolean; onPick: () => void; onHover: () => void }) {
-  const Icon = locked ? IconLock : command.Icon;
-  const blurb = locked ? `Locked · unlocks at level ${unlockOf(command.feature!).level}` : command.blurb;
+const stateBlurb = (command: Command, state: FeatureState) =>
+  state === "locked" ? `Locked · unlocks at level ${unlockOf(command.feature!).level}` : state === "ready" ? "Ready · run it to open its crate" : command.blurb;
+
+function CommandRow({ command, state, active, onPick, onHover }: { command: Command; state: FeatureState; active: boolean; onPick: () => void; onHover: () => void }) {
+  const locked = state !== "unlocked";
+  const Icon = state === "ready" ? CrateGlyph : locked ? IconLock : command.Icon;
+  const blurb = stateBlurb(command, state);
   return (
     <li id={`hud-cmd-${command.name}`} role="option" aria-selected={active}>
       <button
@@ -185,7 +190,7 @@ function HelpList({ highlight, level, onPick }: { highlight: number; level: numb
       <div className="hud-label px-2.5 pb-1 pt-1.5">Commands</div>
       <ul>
         {visibleCommands.map((c, i) => (
-          <CommandRow key={c.name} command={c} locked={isLocked(c, level)} active={i === highlight} onPick={() => onPick(c)} onHover={() => {}} />
+          <CommandRow key={c.name} command={c} state={stateOf(c, level)} active={i === highlight} onPick={() => onPick(c)} onHover={() => {}} />
         ))}
       </ul>
       <div className="hud-label px-2.5 pb-1 pt-3">Not commands, but people keep trying</div>
