@@ -6,7 +6,7 @@ import { messageRefValidator, type MessageRef } from "../engine/messageEvent";
 import type { DirectoryEntry, DirectoryRecord } from "../workspace/directory";
 import { readSlack } from "./webApi";
 
-type SlackUser = { id: string; team_id?: string; deleted?: boolean; is_bot?: boolean; tz?: string; updated?: number };
+type SlackUser = { id: string; team_id?: string; deleted?: boolean; is_bot?: boolean; tz?: string };
 
 export type MemberChanged = { type: "team_join" | "user_change"; user: SlackUser; event_ts: string };
 
@@ -17,16 +17,11 @@ export function isMemberChanged(event: { type: string }): event is MemberChanged
 }
 
 export function directoryRecordOfEvent(workspace: string, event: MemberChanged): DirectoryRecord {
-  return { ...directoryRecordOf(workspace, event.user), asOf: Number(event.event_ts) * 1000 };
+  return directoryRecordOf(workspace, event.user, Number(event.event_ts) * 1000);
 }
 
-function directoryRecordOf(workspace: string, user: SlackUser): DirectoryRecord {
-  return {
-    workspace,
-    user: user.id,
-    entry: directoryEntryOf(user, workspace),
-    ...(user.updated !== undefined && { asOf: user.updated * 1000 }),
-  };
+function directoryRecordOf(workspace: string, user: SlackUser, asOf: number): DirectoryRecord {
+  return { workspace, user: user.id, entry: directoryEntryOf(user, workspace), asOf };
 }
 
 export async function checkDirectoryLater(ctx: MutationCtx, ref: MessageRef, observation: Observation) {
@@ -57,9 +52,10 @@ export const recheckMessage = internalMutation({
 });
 
 export async function lookUpUser(ctx: ActionCtx, workspace: string, user: string) {
+  const askedAt = Date.now();
   const answer = await usersInfo(user);
   if (!answer?.ok) return;
-  await ctx.runMutation(internal.workspace.directory.fillEntry, directoryRecordOf(workspace, answer.user));
+  await ctx.runMutation(internal.workspace.directory.fillEntry, directoryRecordOf(workspace, answer.user, askedAt));
 }
 
 async function usersInfo(user: string) {

@@ -4,7 +4,6 @@ export type SlackUser = {
   deleted?: boolean;
   is_bot?: boolean;
   tz?: string;
-  updated?: number;
 };
 
 export type SlackCall = { method: string; args: Record<string, string> };

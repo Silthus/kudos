@@ -215,10 +215,10 @@ describe("R28: team_join and user_change keep the directory fresh", () => {
 
   test("R49: a redelivered team_join doesn't bring back a member deactivated in the same second", async () => {
     const t = testBackend();
-    const join = await signedRequest(memberEvent("team_join", { id: "U_DAVE", updated: 1760349600 }));
+    const join = await signedRequest(memberEvent("team_join", { id: "U_DAVE" }));
     await t.fetch("/slack/events", join);
 
-    await memberChanged(t, "user_change", { id: "U_DAVE", deleted: true, updated: 1760349600 });
+    await memberChanged(t, "user_change", { id: "U_DAVE", deleted: true });
     await t.fetch("/slack/events", await signedRequest(String(join.body)));
     await post(t, [section(mention("U_DAVE"), emoji("taco"))], { ts: postedTs });
     await settle(t);
@@ -229,9 +229,23 @@ describe("R28: team_join and user_change keep the directory fresh", () => {
   test("a member event that happened before the one the directory holds changes nothing, even within the same second", async () => {
     const t = testBackend();
 
-    await memberChanged(t, "user_change", { id: "U_DAVE", deleted: true, updated: 1760349600 }, { eventTs: "1760349600.000200" });
-    await memberChanged(t, "team_join", { id: "U_DAVE", updated: 1760349600 }, { eventTs: "1760349600.000100" });
+    await memberChanged(t, "user_change", { id: "U_DAVE", deleted: true }, { eventTs: "1760349600.000200" });
+    await memberChanged(t, "team_join", { id: "U_DAVE" }, { eventTs: "1760349600.000100" });
     await post(t, [section(mention("U_DAVE"), emoji("taco"))], { ts: postedTs });
+    await settle(t);
+
+    expect(await kudosReceived(t, "U_DAVE")).toBe(0);
+  });
+
+  test("a member event older than a users.info answer changes nothing, even within the same second", async () => {
+    const t = testBackend();
+    slack.withMember("U_DAVE", { deleted: true });
+    vi.setSystemTime(new Date(now.getTime() + 500));
+    await post(t, [section(mention("U_DAVE"), emoji("taco"))], { ts: postedTs });
+    await settle(t);
+
+    await memberChanged(t, "team_join", { id: "U_DAVE" }, { eventTs: "1760349600.000100" });
+    await post(t, [section(mention("U_DAVE"), emoji("taco"))], { ts: slackTs(at(1)) });
     await settle(t);
 
     expect(await kudosReceived(t, "U_DAVE")).toBe(0);
@@ -239,9 +253,9 @@ describe("R28: team_join and user_change keep the directory fresh", () => {
 
   test("a users.info answer still in flight when a user_change deactivates the person doesn't bring them back", async () => {
     const t = testBackend();
-    slack.withMember("U_DAVE", { updated: 1760349600 });
+    slack.withMember("U_DAVE");
     slack.holdingBack("users.info", "U_DAVE", async () => {
-      await memberChanged(t, "user_change", { id: "U_DAVE", deleted: true, updated: 1760349600 });
+      await memberChanged(t, "user_change", { id: "U_DAVE", deleted: true });
     });
 
     await post(t, [section(mention("U_DAVE"), emoji("taco"))], { ts: postedTs });

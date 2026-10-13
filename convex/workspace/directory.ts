@@ -31,7 +31,7 @@ export async function chatUserOf(ctx: QueryCtx, member: MemberId): Promise<{ wor
   return { workspace: row.workspace, user: row.user };
 }
 
-const directoryRecordArgs = { workspace: v.string(), user: v.string(), entry: directoryEntryValidator, asOf: v.optional(v.number()) };
+const directoryRecordArgs = { workspace: v.string(), user: v.string(), entry: directoryEntryValidator, asOf: v.number() };
 
 export type DirectoryRecord = ObjectType<typeof directoryRecordArgs>;
 
@@ -49,8 +49,8 @@ export async function record(ctx: MutationCtx, { workspace, user, entry, asOf }:
   else if (!isOlder(asOf, existing.asOf)) await ctx.db.replace(existing._id, row);
 }
 
-function isOlder(asOf: number | undefined, known: number | undefined) {
-  return asOf !== undefined && known !== undefined && asOf < known;
+function isOlder(asOf: number, known: number | undefined) {
+  return known !== undefined && asOf < known;
 }
 
 function memberRow(ctx: QueryCtx, workspace: string, user: ChatUserId) {

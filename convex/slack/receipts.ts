@@ -27,7 +27,7 @@ export const receiveHomeOpened = internalMutation({
 });
 
 export const receiveMemberChanged = internalMutation({
-  args: { workspace: v.string(), eventId: v.string(), user: v.string(), entry: directoryEntryValidator, asOf: v.optional(v.number()) },
+  args: { workspace: v.string(), eventId: v.string(), user: v.string(), entry: directoryEntryValidator, asOf: v.number() },
   handler: async (ctx, { eventId, ...directoryRecord }) => {
     const receipt = { workspace: directoryRecord.workspace, eventId };
     if (await isRedelivered(ctx, receipt)) return;
