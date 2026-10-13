@@ -45,10 +45,10 @@
 }
 
 @theme {
-  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Nunito", "IBM Plex Sans", ui-sans-serif, sans-serif;
-  --font-hand: "Caveat", "Comic Sans MS", cursive;
-  --font-mono: "Source Code Pro", ui-monospace, monospace;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif, "Noto Color Emoji";
+  --font-display: "Nunito", "IBM Plex Sans", ui-sans-serif, sans-serif, "Noto Color Emoji";
+  --font-hand: "Caveat", "Comic Sans MS", cursive, "Noto Color Emoji";
+  --font-mono: "Source Code Pro", ui-monospace, monospace, "Noto Color Emoji";
   --color-bg: var(--bg);
   --color-desk: var(--desk);
   --color-surface: var(--surface);

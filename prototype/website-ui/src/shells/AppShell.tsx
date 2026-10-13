@@ -47,7 +47,7 @@ export function AppShell({ current, dark, toggle, children }: ShellProps) {
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-line bg-bg/90 px-6 py-2.5 backdrop-blur">
-          <span className="text-sm text-muted">Kudos</span>
+          <span className="text-sm text-muted">HedgeHug</span>
           <span className="text-faint">/</span>
           <span className="text-sm font-bold">{screen?.label}</span>
           <div className="ml-auto flex items-center gap-2">

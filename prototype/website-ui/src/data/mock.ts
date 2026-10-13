@@ -292,9 +292,3 @@ export const deepLinks: Record<string, DeepLink> = {
   achievement: { from: "achievement", tierName: "Social Butterfly", ladder: "Connections", tier: "gold", reward: "Emoji: 🦋" },
 };
 
-export const recentActivity = [
-  { when: "Today", what: "You thanked Ada Lindqvist", detail: "+10 XP · +5 Spark · +4 🪙" },
-  { when: "Today", what: "Bo Okafor thanked you", detail: "+5 XP" },
-  { when: "Yesterday", what: "You chimed in on a kudos for Cleo Marchetti", detail: "+10 XP" },
-  { when: "Mon", what: "You reached level 8", detail: "+1 skill point" },
-];

@@ -159,7 +159,7 @@ export function Hog({ size = 96, mood = "happy", className = "", hat }: { size?:
       </>
     );
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" className={className} role="img" aria-label="Hedgehog (placeholder art)">
+    <svg width={size} height={size} viewBox="0 0 100 100" className={`shrink-0 ${className}`} role="img" aria-label="Hedgehog (placeholder art)">
       <ellipse cx="50" cy="90" rx="34" ry="4" fill="#000" opacity="0.08" />
       <path d={spikes} fill="#7a5233" stroke="#4d321e" strokeWidth="1.6" strokeLinejoin="round" />
       <ellipse cx="46" cy="62" rx="33" ry="25" fill="#9b6b43" stroke="#4d321e" strokeWidth="2" />

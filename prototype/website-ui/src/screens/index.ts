@@ -17,5 +17,5 @@ export const screens: ScreenDef[] = [
   { id: "achievements", label: "Achievements", icon: "🏅", Component: Achievements, inNav: true },
   { id: "collection", label: "Collection", icon: "🎒", Component: Collection, inNav: true },
   { id: "leaderboard", label: "Leaderboard", icon: "🏆", Component: Leaderboard, inNav: true },
-  { id: "landing", label: "Deep link", icon: "🔗", Component: Landing, inNav: false },
+  { id: "landing", label: "Welcome back", icon: "🔗", Component: Landing, inNav: false },
 ];

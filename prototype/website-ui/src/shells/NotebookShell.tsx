@@ -8,7 +8,10 @@ import type { ShellProps } from "./types";
 
 export function NotebookShell({ current, dark, toggle, children }: ShellProps) {
   useEffect(() => {
-    if (current === "landing") return scrollTo({ top: 0 });
+    if (current === "landing") {
+      scrollTo({ top: 0 });
+      return;
+    }
     document.getElementById(`chapter-${current}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [current]);
   const chapters = screens.filter((s) => s.inNav);

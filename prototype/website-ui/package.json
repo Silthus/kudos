@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "deploy": "static-hosting deploy"
+    "deploy": "convex deploy -y && static-hosting upload --prod --build-command \"pnpm build\""
   },
   "dependencies": {
     "@convex-dev/static-hosting": "^0.2.1",

@@ -23,6 +23,14 @@ export function DesktopShell({ current, dark, toggle, children }: ShellProps) {
           <UserChip />
         </div>
       </header>
+      <nav className="mx-2 mt-2 flex gap-1 overflow-x-auto rounded-lg border border-line bg-surface/80 p-1 md:hidden">
+        {screens.filter((s) => s.inNav).map((s) => (
+          <a key={s.id} href={`#/${s.id}`} className={`flex shrink-0 flex-col items-center rounded-md px-2.5 py-1 text-[11px] font-semibold ${s.id === current ? "bg-orange text-white" : ""}`}>
+            <span className="text-lg">{s.icon}</span>
+            {s.label}
+          </a>
+        ))}
+      </nav>
       <div className="relative flex gap-4 px-2 pb-24 pt-4">
         <aside className="hidden w-24 shrink-0 flex-col items-center gap-4 pt-2 md:flex">
           {screens.filter((s) => s.inNav).map((s) => (
@@ -33,6 +41,10 @@ export function DesktopShell({ current, dark, toggle, children }: ShellProps) {
               <span className={`rounded px-1 text-xs font-semibold ${s.id === current ? "bg-orange text-white" : "text-ink"}`}>{s.label}</span>
             </a>
           ))}
+          <div className="mt-6 flex flex-col items-center text-center">
+            <Hog size={76} mood="happy" hat="glasses" />
+            <Hand className="-rotate-6 text-base">Max says hi (placeholder)</Hand>
+          </div>
         </aside>
         <main className="relative z-10 mx-auto w-full max-w-6xl">
           <div className="overflow-hidden rounded-xl border border-line-strong bg-bg shadow-2xl">
@@ -47,13 +59,9 @@ export function DesktopShell({ current, dark, toggle, children }: ShellProps) {
               </span>
               <span className="w-12" />
             </div>
-            <div className="p-4 md:p-6">{children}</div>
+            <div className="p-2 sm:p-4 md:p-6">{children}</div>
           </div>
         </main>
-        <div className="pointer-events-none fixed bottom-6 right-6 hidden flex-col items-end xl:flex">
-          <Hand className="mb-1 -rotate-6">hi, I'm Max (placeholder)</Hand>
-          <Hog size={110} mood="happy" hat="glasses" />
-        </div>
       </div>
     </div>
   );

@@ -30,11 +30,12 @@ export function BrandMark({ compact }: { compact?: boolean }) {
   return (
     <a href="#/profile" className="flex items-center gap-1.5">
       <Hog size={compact ? 30 : 36} />
-      {!compact && (
-        <span className="font-display text-xl font-black tracking-tight">
-          Kudos<span className="text-orange">.</span>
+      <span className={`flex flex-col leading-none ${compact ? "max-sm:hidden" : ""}`}>
+        <span className={`font-display font-black tracking-tight ${compact ? "text-base" : "text-xl"}`}>
+          Hedge<span className="text-orange">Hug</span>
         </span>
-      )}
+        <span className="font-hand text-sm leading-none text-muted">Thanks a Hog</span>
+      </span>
     </a>
   );
 }

@@ -1,6 +1,6 @@
-// PROTOTYPE: three shells for the Kudos website, switchable via ?shell= and the floating bar.
+// PROTOTYPE: three shells for the Kudos website (product name HedgeHug), switchable via ?shell= and the floating bar.
 // Screens are shared across shells; each shell owns layout and navigation only.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Switcher, useTheme, type Variant } from "./chrome";
 import { NavContext, go, useHashRoute } from "./nav";
 import { screens } from "./screens";
@@ -40,6 +40,10 @@ export function App() {
   const needsSignIn = route.screen === "signin" || !signedIn;
   const current = route.screen === "signin" ? undefined : screens.find((s) => s.id === route.screen);
   const param = route.screen === "signin" ? undefined : route.param;
+  const pageName = needsSignIn ? "Sign in" : (current?.label ?? "Profile");
+  useEffect(() => {
+    document.title = `HedgeHug · ${pageName}`;
+  }, [pageName]);
 
   return (
     <NavContext.Provider value={{ go, signedIn, setSignedIn: setSigned }}>

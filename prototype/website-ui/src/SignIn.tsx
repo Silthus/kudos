@@ -18,9 +18,10 @@ export function SignIn({ dark, toggle, next }: { dark: boolean; toggle: () => vo
         <Bubble className="mb-4 animate-pop">Psst. Your kudos are waiting for you in here.</Bubble>
         <Hog size={140} mood="wave" className="animate-wiggle" />
         <h1 className="mt-4 font-display text-4xl font-black tracking-tight">
-          Kudos<span className="text-orange">.</span>
+          Hedge<span className="text-orange">Hug</span>
         </h1>
-        <p className="mt-2 text-muted">
+        <p className="font-hand text-2xl text-muted">Thanks a Hog</p>
+        <p className="mt-3 text-muted">
           See your <span className="marker">level, perks, stickers and achievements</span>. Only people in your Slack workspace can sign in.
         </p>
         <div className="mt-6">
