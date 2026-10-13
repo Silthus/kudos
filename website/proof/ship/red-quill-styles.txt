@@ -1,0 +1,40 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/ship-website
+
+ ❯ |website| src/quillStyles.test.tsx (2 tests | 2 failed) 626ms
+   ❯ WS25: Quill's scroll shadows load as the site's own stylesheet, never an inline style (2)
+     × the page links them under Quill's id before Quill loads, so Quill injects no style element 623ms
+     × the shipped stylesheet is Quill's scroll shadows, unchanged 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/quillStyles.test.tsx > WS25: Quill's scroll shadows load as the site's own stylesheet, never an inline style > the page links them under Quill's id before Quill loads, so Quill injects no style element
+AssertionError: expected <style …(1)></style> to be an instance of HTMLLinkElement
+ ❯ src/quillStyles.test.tsx:16:20
+     14|
+     15|     const linked = document.getElementById(SCROLL_SHADOWS_STYLE_ID);
+     16|     expect(linked).toBeInstanceOf(HTMLLinkElement);
+       |                    ^
+     17|     expect(linked).toHaveAttribute("rel", "stylesheet");
+     18|     expect(linked).toHaveAttribute("href", "/quill-scroll-area-shadows…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |website| src/quillStyles.test.tsx > WS25: Quill's scroll shadows load as the site's own stylesheet, never an inline style > the shipped stylesheet is Quill's scroll shadows, unchanged
+AssertionError: expected '' to be '\n[data-component="scroll-area"][data…' // Object.is equality
+
+- Expected
++ Received
+
+-
+- [data-component="scroll-area"][data-scroll-shadows="true"] {
+-     --shadow-x-start: 0 0 0 0 transparent;
+-     --shadow-x-end: 0 0 0 0 transparent;
+-     --shadow-y-start: 0 0 0 0 transparent;
+-     --shadow-y-end: 0 0 0 0 transparent;
+- }
+- [data-component="scroll-area"][data-scroll-shadows="true"][data-overflow-x-start] {
+-     --shadow-x-start: 16px 0 16px -16px rgb(0 0 0 / 25%);
+- }
+- [data-component="scroll-area"][data-scroll-shadows="true"][data-overflow-x-end] {
+-     --shadow-x-end: -16px 0 16px -16px rgb(0 0 0 / 25%);
