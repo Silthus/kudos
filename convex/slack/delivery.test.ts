@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack, httpStatus, landsButTimesOut, rateLimitedFor, slackError, timesOut, type ScriptedAnswer } from "../../testing/fakeSlack";
-import { kudosReceived, kudosSpent, postMessage, settle, settleUntil, testBackend, type Backend } from "../../testing/kudosBackend";
+import { kudosReceived, kudosSpent, post, settle, settleUntil, testBackend, type Backend } from "../../testing/slackBackend";
 import { signingSecret } from "../../testing/signedSlack";
 import { emoji, mention, section } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
@@ -204,5 +204,5 @@ function repeated(times: number, answer: ScriptedAnswer) {
 }
 
 function giveKudos(t: Backend, ts: string) {
-  return postMessage(t, [section(mention("U_BOB"), emoji("taco"))], { ts });
+  return post(t, [section(mention("U_BOB"), emoji("taco"))], { ts });
 }
