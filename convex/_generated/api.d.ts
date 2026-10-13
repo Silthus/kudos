@@ -76,6 +76,7 @@ import type * as slack_signature from "../slack/signature.js";
 import type * as slack_webApi from "../slack/webApi.js";
 import type * as slack_welcome from "../slack/welcome.js";
 import type * as unlocks_feature from "../unlocks/feature.js";
+import type * as unlocks_launch from "../unlocks/launch.js";
 import type * as unlocks_schedule from "../unlocks/schedule.js";
 import type * as unlocks_sweep from "../unlocks/sweep.js";
 import type * as unlocks_unlocks from "../unlocks/unlocks.js";
@@ -158,6 +159,7 @@ declare const fullApi: ApiFromModules<{
   "slack/webApi": typeof slack_webApi;
   "slack/welcome": typeof slack_welcome;
   "unlocks/feature": typeof unlocks_feature;
+  "unlocks/launch": typeof unlocks_launch;
   "unlocks/schedule": typeof unlocks_schedule;
   "unlocks/sweep": typeof unlocks_sweep;
   "unlocks/unlocks": typeof unlocks_unlocks;
