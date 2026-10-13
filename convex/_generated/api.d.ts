@@ -50,6 +50,7 @@ import type * as progression_progression from "../progression/progression.js";
 import type * as progression_settings from "../progression/settings.js";
 import type * as progression_xpLevels from "../progression/xpLevels.js";
 import type * as slack_appHome from "../slack/appHome.js";
+import type * as slack_blocks from "../slack/blocks.js";
 import type * as slack_commands from "../slack/commands.js";
 import type * as slack_delivery from "../slack/delivery.js";
 import type * as slack_directMessages from "../slack/directMessages.js";
@@ -121,6 +122,7 @@ declare const fullApi: ApiFromModules<{
   "progression/settings": typeof progression_settings;
   "progression/xpLevels": typeof progression_xpLevels;
   "slack/appHome": typeof slack_appHome;
+  "slack/blocks": typeof slack_blocks;
   "slack/commands": typeof slack_commands;
   "slack/delivery": typeof slack_delivery;
   "slack/directMessages": typeof slack_directMessages;
