@@ -35,7 +35,21 @@ describe("P64: the public level notice", () => {
     expect(slack.messagesIn("C1")).toEqual([{ channel: "C1", ts: expect.any(String), threadTs: postedTs, text: "🎉 <@U_ALICE> reached level 2." }]);
   });
 
-  test("D18: two members levelling up from one message share the one reply", async () => {
+  test("R45: a recipient's notice states only their progress, never the giver or the thank-you, and no text is stored", async () => {
+    const t = testBackend();
+    await withXp(t, "U_BOB", 15);
+
+    await post(t, [section(text("thanks for rescuing the deploy "), mention("U_BOB"), emoji("taco"))]);
+    await settle(t);
+
+    expect(slack.messagesIn("C1").map((message) => message.text)).toEqual(["🎉 <@U_BOB> reached level 2."]);
+    const stored = JSON.stringify(await everythingStored(t), (_, value) => (typeof value === "bigint" ? String(value) : value));
+    expect(stored).not.toContain("rescuing");
+  });
+});
+
+describe("D18: the one public reply", () => {
+  test("two members levelling up from one message share the one reply", async () => {
     const t = testBackend();
     await withXp(t, "U_BOB", 15);
 
@@ -46,7 +60,7 @@ describe("P64: the public level notice", () => {
     expect(slack.messagesIn("C1").map((message) => message.text)).toEqual(["🎉 <@U_ALICE> reached level 2.\n🎉 <@U_BOB> reached level 2."]);
   });
 
-  test("D18: a second level-up under the same message edits the one reply in place", async () => {
+  test("a second level-up under the same message edits the one reply in place", async () => {
     const t = testBackend();
     await post(t, [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("taco"))]);
     await settle(t);
@@ -59,7 +73,7 @@ describe("P64: the public level notice", () => {
     expect(slack.callsTo("chat.update")).toEqual([{ channel: "C1", ts: notice!.ts, text: "🎉 <@U_ALICE> reached level 3." }]);
   });
 
-  test("D18: a level reached while the reply is being posted is added by an edit, never by a second post", async () => {
+  test("a level reached while the reply is being posted is added by an edit, never by a second post", async () => {
     const t = testBackend();
     await memberOf(t, "U_BOB");
     slack.holdingBack("chat.postMessage", "C1", async () => {
@@ -73,16 +87,17 @@ describe("P64: the public level notice", () => {
     expect(slack.messagesIn("C1").map((message) => message.text)).toEqual(["🎉 <@U_ALICE> reached level 2.\n🎉 <@U_BOB> reached level 2."]);
   });
 
-  test("R45: a recipient's notice states only their progress, never the giver or the thank-you, and no text is stored", async () => {
+  test("a post whose answer is lost is never posted again", async () => {
     const t = testBackend();
-    await withXp(t, "U_BOB", 15);
+    await welcomed(t, "U_ALICE", "U_BOB");
+    slack.answering("chat.postMessage", landsButTimesOut);
 
-    await post(t, [section(text("thanks for rescuing the deploy "), mention("U_BOB"), emoji("taco"))]);
+    await post(t, [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("taco"))]);
+    await settle(t);
+    await t.mutation(internal.feedback.publicReplies.celebrateLevel, { event: await levelReached(t, "U_BOB", 2) });
     await settle(t);
 
-    expect(slack.messagesIn("C1").map((message) => message.text)).toEqual(["🎉 <@U_BOB> reached level 2."]);
-    const stored = JSON.stringify(await everythingStored(t), (_, value) => (typeof value === "bigint" ? String(value) : value));
-    expect(stored).not.toContain("rescuing");
+    expect(slack.messagesIn("C1").map((message) => message.text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
   });
 });
 
@@ -124,21 +139,6 @@ describe("R35: delivering the public reply", () => {
     await settle(t);
 
     expect(slack.messagesIn("C1").map((message) => message.text)).toEqual(["🎉 <@U_ALICE> reached level 3."]);
-  });
-});
-
-describe("D18: a post whose answer is lost", () => {
-  test("is never posted again, so the thread never shows two replies", async () => {
-    const t = testBackend();
-    await welcomed(t, "U_ALICE", "U_BOB");
-    slack.answering("chat.postMessage", landsButTimesOut);
-
-    await post(t, [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("taco"))]);
-    await settle(t);
-    await t.mutation(internal.feedback.publicReplies.celebrateLevel, { event: await levelReached(t, "U_BOB", 2) });
-    await settle(t);
-
-    expect(slack.messagesIn("C1").map((message) => message.text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
   });
 });
 
