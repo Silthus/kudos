@@ -7,14 +7,22 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "manifest": "node slack-app/render-manifest.ts",
     "coherence": "coherence spec --check && coherence lexicon --check",
     "gate": "pnpm typecheck && pnpm test && pnpm coherence"
   },
   "packageManager": "pnpm@12.11.2",
   "devDependencies": {
+    "@edge-runtime/vm": "^5.0.0",
     "@posthog/coherence": "^1.7.2",
     "@types/node": "^26.6.5",
+    "convex-test": "^0.0.61",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.3"
+    "vite": "^8.3.4",
+    "vitest": "^5.0.3",
+    "yaml": "^2.9.1"
+  },
+  "dependencies": {
+    "convex": "^1.46.0"
   }
 }
