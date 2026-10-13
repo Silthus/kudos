@@ -1,0 +1,7 @@
+Reviewer: GPT-6.1 Sol (high), codex exec --sandbox read-only, over 'git diff 3aa4036 c746e42' and the merge resolution in 3aa4036, with spec/website.md (WS28, WS3, WS4, W9) as the oracle.
+
+1. **Medium — Website link disappears on remembered tabs.** [convex/feedback/home.ts:51](/home/coder/dev/kudos-wt/app-home-link/convex/feedback/home.ts:51): with `website` and `everyone-board` enabled and `SITE_URL` set, selecting Leaderboard or Settings removes the link. Because the selection persists, reopening App Home still shows no link. WS28 requires one whenever the website is open; it has no tab exception. Executing the renderer confirmed zero links on both tabs. **Fix:** render the link once in the shared member view. Add publication tests with both flags enabled, covering tab switching and reopening; the new tests currently exercise only the layout without tabs.
+
+No other findings hold, including in the manual merge resolution. No files were edited.
+
+Response: held. Fixed in 3fb0d12: the link ends every member view on every tab; covered by 'with the Everyone board's tabs, every tab ends with the link, the tab App Home reopens on included' (red before the fix: red-tabs.txt).

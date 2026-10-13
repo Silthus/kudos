@@ -1,0 +1,56 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/app-home-link
+
+ ❯ |convex| convex/slack/appHome.test.ts (21 tests | 2 failed | 15 skipped) 204ms
+   ❯ WS28: App Home links to the website while it is open (6)
+     × while the website flag is on and SITE_URL is set, a member's Home links to the site's root, carrying no identity 161ms
+     × a SITE_URL ending in a slash still links to one root 12ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/slack/appHome.test.ts > WS28: App Home links to the website while it is open > while the website flag is on and SITE_URL is set, a member's Home links to the site's root, carrying no identity
+AssertionError: expected [ 'header: Your kudos', …(6) ] to deeply equal [ 'header: Your kudos', …(8) ]
+
+- Expected
++ Received
+
+@@ -6,10 +6,8 @@
+  *0* | *Received this week*
+  *0* | *Given in total*
+  *0* | *Received in total*
+  *0*",
+    "divider",
+-   "section: <https://kudos-site.test/|Open HedgeHug on the web>",
+-   "divider",
+    "context: To give kudos, mention a teammate and add :taco: to your message. Each :taco: gives everyone you mention 1 kudos.",
+    "context: To add me to a channel, type `/hedgehug` there.",
+  ]
+
+ ❯ convex/slack/appHome.test.ts:166:36
+    164|     await openHome(t, "U_BOB");
+    165|
+    166|     expect(publishedHome("U_BOB")).toEqual([
+       |                                    ^
+    167|       "header: Your kudos",
+    168|       "section: You have *3* kudos left today. You get *3* more at mid…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |convex| convex/slack/appHome.test.ts > WS28: App Home links to the website while it is open > a SITE_URL ending in a slash still links to one root
+AssertionError: expected [ 'header: Your kudos', …(6) ] to include 'section: <https://kudos-site.test/|Op…'
+ ❯ convex/slack/appHome.test.ts:185:36
+    183|     await openHome(t, "U_BOB");
+    184|
+    185|     expect(publishedHome("U_BOB")).toContain(websiteLink);
+       |                                    ^
+    186|   });
+    187|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 4 passed | 15 skipped (21)
+   Start at  20:37:36
+   Duration  679ms (tests 34%, transform 34%, import 24%, environment 7%, worker 1%)
+

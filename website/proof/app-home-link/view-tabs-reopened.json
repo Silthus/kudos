@@ -1,0 +1,95 @@
+{
+  "type": "home",
+  "blocks": [
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Profile"
+          },
+          "action_id": "{\"type\":\"showHomeTab\",\"tab\":\"profile\"}",
+          "value": "{\"type\":\"showHomeTab\",\"tab\":\"profile\"}"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Leaderboard"
+          },
+          "action_id": "{\"type\":\"showHomeTab\",\"tab\":\"leaderboard\"}",
+          "value": "{\"type\":\"showHomeTab\",\"tab\":\"leaderboard\"}",
+          "style": "primary"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Settings"
+          },
+          "action_id": "{\"type\":\"showHomeTab\",\"tab\":\"settings\"}",
+          "value": "{\"type\":\"showHomeTab\",\"tab\":\"settings\"}"
+        }
+      ]
+    },
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "Leaderboard"
+      }
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "This week"
+          },
+          "action_id": "{\"type\":\"showLeaderboard\",\"period\":\"week\"}",
+          "value": "{\"type\":\"showLeaderboard\",\"period\":\"week\"}",
+          "style": "primary"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "This month"
+          },
+          "action_id": "{\"type\":\"showLeaderboard\",\"period\":\"month\"}",
+          "value": "{\"type\":\"showLeaderboard\",\"period\":\"month\"}"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "All time"
+          },
+          "action_id": "{\"type\":\"showLeaderboard\",\"period\":\"all\"}",
+          "value": "{\"type\":\"showLeaderboard\",\"period\":\"all\"}"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Give kudos this week to join the board."
+      }
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "<http://127.0.0.1:3621/|Open HedgeHug on the web>"
+      }
+    }
+  ]
+}
