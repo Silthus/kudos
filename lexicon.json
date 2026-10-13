@@ -238,6 +238,10 @@
     {
       "name": "profile card",
       "definition": "What any member sees of another member: name, equipped title and card, primary group, and level and achievement tiers unless hidden. Never coins, perks, streaks, XP or kudos received."
+    },
+    {
+      "name": "sandbox",
+      "definition": "The Slack workspace and its own Convex deployment where a new Kudos app is installed and proven before the real install. It runs a separate Slack app from the same manifest, with its own bot token and signing secret."
     }
   ]
 }
