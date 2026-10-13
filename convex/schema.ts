@@ -4,7 +4,7 @@ import { exceptionValidator } from "./analytics/exceptions";
 import { propertiesValidator } from "./analytics/projections";
 import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
 import { homeTabValidator } from "./feedback/homes";
-import { publicSectionValidator, shownValidator } from "./feedback/publicReplies";
+import { publicReplyValidator } from "./feedback/publicReplies";
 import { segmentValidator } from "./feedback/replies";
 import { periodValidator } from "./leaderboard/periods";
 import { effectsRecordValidator } from "./progression/progress";
@@ -109,16 +109,9 @@ export default defineSchema({
     lines: v.array(v.array(segmentValidator)),
   }),
 
-  publicReplies: defineTable({
-    workspace: v.string(),
-    conversation: v.string(),
-    message: v.string(),
-    channel: v.string(),
-    threadTs: v.optional(v.string()),
-    sections: v.array(publicSectionValidator),
-    version: v.number(),
-    shown: shownValidator,
-  }).index("by_destination", ["workspace", "conversation", "message", "channel", "threadTs"]),
+  publicReplies: defineTable(publicReplyValidator)
+    .index("by_destination", ["workspace", "conversation", "message", "channel", "threadTs"])
+    .index("by_level_reached", ["reached.member", "reached.level"]),
 
   placedReactions: defineTable({
     workspace: v.string(),
