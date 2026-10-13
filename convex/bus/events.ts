@@ -1,6 +1,7 @@
 import { v, type Infer } from "convex/values";
 import { awardIdValidator } from "../engine/awards";
 import { annotationsValidator, messageRefValidator } from "../engine/messageEvent";
+import { featureValidator } from "../unlocks/feature";
 import type { MemberId } from "../workspace/directory";
 
 export const awardValidator = v.object({ award: awardIdValidator, giver: v.id("members"), recipient: v.id("members"), kudos: v.number() });
@@ -76,7 +77,17 @@ export type LevelReachedEvent = Infer<typeof levelReachedEventValidator>;
 
 export type XpRecordedEvent = Infer<typeof xpRecordedEventValidator>;
 
-export type DomainEvent = KudosGivenEvent | AttemptFailedEvent | MemberWelcomedEvent | LevelReachedEvent | XpRecordedEvent;
+const unlockFields = { workspace: v.string(), member: v.id("members"), feature: featureValidator, at: v.number() };
+
+export const unlockReadyEventValidator = v.object({ type: v.literal("unlockReady"), ...unlockFields });
+
+export const unlockOpenedEventValidator = v.object({ type: v.literal("unlockOpened"), ...unlockFields });
+
+export type UnlockReadyEvent = Infer<typeof unlockReadyEventValidator>;
+
+export type UnlockOpenedEvent = Infer<typeof unlockOpenedEventValidator>;
+
+export type DomainEvent = KudosGivenEvent | AttemptFailedEvent | MemberWelcomedEvent | LevelReachedEvent | XpRecordedEvent | UnlockReadyEvent | UnlockOpenedEvent;
 
 export function membersNamedIn(event: KudosGivenEvent): MemberId[] {
   return [...new Set([event.giver, ...event.awards.map((award) => award.recipient)])];
