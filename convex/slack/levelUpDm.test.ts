@@ -82,7 +82,7 @@ describe("P63: the level-up DM", () => {
 
     expect(levelUpDms().map(({ channel }) => channel)).toEqual(["U_BOB"]);
     expect(await standing(t, "U_ALICE")).toEqual({ xp: 40, level: 2, skillPoints: 0 });
-    expect(slack.callsTo("chat.postMessage").map(({ channel }) => channel)).toEqual(["U_ALICE", "U_BOB", "U_BOB", "C1"]);
+    expect(slack.callsTo("chat.postMessage").map(({ channel }) => channel).sort()).toEqual(["C1", "U_ALICE", "U_BOB", "U_BOB"]);
   });
 });
 

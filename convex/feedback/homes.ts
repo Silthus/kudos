@@ -1,7 +1,7 @@
 import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { levelReachedEventValidator } from "../bus/events";
+import { kudosGivenEventValidator, membersNamedIn } from "../bus/events";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import type { Period } from "../leaderboard/periods";
 import { everyoneBoardOf, type EveryoneBoardView } from "../leaderboard/totals";
@@ -9,7 +9,7 @@ import { isOnTheBoards } from "../leaderboard/visibility";
 import { progressionHomeOf, type ProgressionHome } from "../progression/progression";
 import { progressSettingsOf, type ProgressSettings } from "../progression/settings";
 import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
-import { chatUserOf, lookup, type MemberFacts, type MemberId } from "../workspace/directory";
+import { adminsIn, chatUserOf, lookup, type MemberFacts, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 
 export const homeTabValidator = v.union(v.literal("profile"), v.literal("leaderboard"), v.literal("settings"), v.literal("admin"));
@@ -61,12 +61,17 @@ export async function selectLeaderboardPeriod(ctx: MutationCtx, member: MemberId
   await select(ctx, member, { tab: "leaderboard", period });
 }
 
-export const refreshHomeOnLevel = internalMutation({
-  args: { event: levelReachedEventValidator },
+export const refreshHomesOnKudos = internalMutation({
+  args: { event: kudosGivenEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
-    if (await xpLevelsShownIn(ctx, event.workspace)) await republish(ctx, event.member);
+    if (!(await xpLevelsShownIn(ctx, event.workspace))) return;
+    for (const member of membersNamedIn(event)) await republish(ctx, member);
   },
 });
+
+export async function republishAdminsIn(ctx: MutationCtx, workspace: string) {
+  for (const user of await adminsIn(ctx, workspace)) await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, { workspace, user });
+}
 
 export async function republishOnRoleChange(ctx: MutationCtx, before: MemberFacts | undefined, after: MemberFacts | undefined) {
   if (before === undefined || after === undefined || roleOf(before) === roleOf(after)) return;

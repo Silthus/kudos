@@ -154,6 +154,17 @@ describe("P68: App Home is republished after a change, the latest version wins, 
     expect(publishedHome(slack, "U_ALICE")).toContain("section fields: *Level*\n*2* | *XP to level 3*\n*80*");
   });
 
+  test("an award that changes XP without a level up republishes both members' App Home with the new XP and totals", async () => {
+    const t = await workspaceWithAllowance(10);
+    await openHome(t, "U_ALICE");
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(publishedHome(slack, "U_ALICE")).toContain("section fields: *Level*\n*1* | *XP to level 2*\n*10*");
+    expect(publishedHome(slack, "U_ALICE")).toContain("section fields: *Given this week*\n*1* | *Received this week*\n*0* | *Given in total*\n*1* | *Received in total*\n*0*");
+    expect(publishedHome(slack, "U_BOB")).toContain("section fields: *Level*\n*1* | *XP to level 2*\n*15*");
+  });
+
   test("a republish that fails is tried again until the new level shows", async () => {
     const t = await workspaceWithAllowance(10);
     await openHome(t, "U_ALICE");
@@ -234,6 +245,17 @@ describe("P69: the Admin tab", () => {
       "divider",
       "context: Only workspace admins and owners see this tab.",
     ]);
+  });
+
+  test("picking a channel republishes every other admin's Admin tab with the channel picked", async () => {
+    const t = await adminTabOpen("U_ALICE");
+    slack.withMember("U_CAROL", { is_admin: true });
+    await openHome(t, "U_CAROL");
+    await click(t, "U_CAROL", "Admin");
+
+    await interact(t, "U_ALICE", channelPickerInHome(slack, "U_ALICE", "C_NEWS"));
+
+    expect(publishedHome(slack, "U_CAROL")).toContain("section: I celebrate level ups in this channel. [channels_select: C_NEWS]");
   });
 
   test("going back to threads sends the next level-up notice under its kudos message again", async () => {

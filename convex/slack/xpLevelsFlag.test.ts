@@ -128,7 +128,7 @@ describe("the xp-levels flag hides the slice while it is off", () => {
 });
 
 describe("O36: exposure", () => {
-  test("is sent once per member and value, from the mutations a member enters the slice through", async () => {
+  test("is sent once per member and value, from the mutations a member enters the slice through, a recipient's refreshed App Home included", async () => {
     const t = await workspaceDeciding("sandbox", onForEveryone(xpLevels));
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
     await openHome(t, "U_ALICE");
@@ -139,6 +139,7 @@ describe("O36: exposure", () => {
     await openHome(t, "U_ALICE");
 
     expect(exposures()).toEqual([
+      [xpLevels, true, true],
       [xpLevels, true, true],
       [xpLevels, false, true],
     ]);

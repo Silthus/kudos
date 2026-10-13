@@ -32,6 +32,15 @@ export async function chatUserOf(ctx: QueryCtx, member: MemberId): Promise<{ wor
   return { workspace: row.workspace, user: row.user };
 }
 
+export async function adminsIn(ctx: QueryCtx, workspace: string): Promise<ChatUserId[]> {
+  const members = await ctx.db
+    .query("members")
+    .withIndex("by_user", (q) => q.eq("workspace", workspace))
+    .filter((q) => q.and(q.eq(q.field("kind"), "member"), q.eq(q.field("admin"), true)))
+    .collect();
+  return members.map(({ user }) => user);
+}
+
 export const directoryRecordArgs = { workspace: v.string(), user: v.string(), entry: directoryEntryValidator, asOf: v.number() };
 
 export type DirectoryRecord = ObjectType<typeof directoryRecordArgs>;

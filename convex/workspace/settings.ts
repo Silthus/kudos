@@ -14,8 +14,10 @@ export async function settingsOf(ctx: QueryCtx, workspace: string): Promise<Work
   };
 }
 
-export async function setAnnouncementChannel(ctx: MutationCtx, workspace: string, person: { admin: boolean }, channel: string | null) {
-  if (person.admin) await saveAnnouncementChannel(ctx, workspace, channel ?? undefined);
+export async function setAnnouncementChannel(ctx: MutationCtx, workspace: string, person: { admin: boolean }, channel: string | null): Promise<boolean> {
+  if (!person.admin) return false;
+  await saveAnnouncementChannel(ctx, workspace, channel ?? undefined);
+  return true;
 }
 
 async function saveAnnouncementChannel(ctx: MutationCtx, workspace: string, announcementChannel: string | undefined) {
