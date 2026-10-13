@@ -14,6 +14,7 @@ This brief answers it greenfield: there is no backend code on `main` yet. Its gr
 - **Round 1 feedback (Michael):** make it event-driven. The engine issues events, and other modules subscribe or hook in, so the engine never knows who listens. Now locked as L8. It adds the event bus and hook points (§2, §3.3, `events.ts`), scenarios 13 and 14, and three new cards: D12 (how the bus delivers), D13 (where a plug-in may shape a decision) and D14 (which events spec 1 publishes).
 - **Round 1 feedback (Michael), second message:** add a parser that turns the message into a kudos message before the engine processes it, with parse hooks that add-ons can register (for example special unlocked emoji), so a later Jev decision engine that judges how mindful a kudos message is can add XP without tight coupling. Now locked as L9. It adds the kudos parser (§3.2, `parser.ts`), scenarios 14 and 15, and two new cards: D15 (two hooks claim the same emoji) and D16 (how a later mindfulness assessor reads the note). L4 and L6 changed with it.
 - **Round 2 (Michael): battle-test it against the game ideas** from the progression grilling (#9 thread, rounds 1–4, and its Octalysis research). Verdict: the design holds, with six extensions (§13). It adds allowance pools (daily plus weekly, in `engine.ts`), allowance facts on `kudosGiven`, a progression reducer sketch (`progression-sketch.ts`), a simulation (`simulate.ts`), cards D17–D21, lock L10, and a new lean on D16.
+- **Round 3 (Michael): "all rec".** Every open card is locked to its recommendation: D2–D9, D12–D15 and D17–D21. D10, D11 and D16 belong to other tickets (§7). The brief now waits for your explicit acceptance.
 
 ## 2. Module map
 
@@ -357,9 +358,9 @@ slackReceipts: defineTable({ key: v.string(), receivedAt: v.number() }).index("b
 
 ## 7. Decision cards
 
-### Open: round 1
+### Locked in round 3: every recommendation taken (Michael, "all rec")
 
-Every card below is independent of the others. Answer with the card's id and an option, or "rec" to take the recommendation. D1 is locked as L8 after round 1 feedback.
+Each card below is locked to its **recommended** option. D1 became L8 in round 1.
 
 **D12. How does the bus deliver an event?** (new in round 1)
 - **A. Fan-out on publish.** `publish` reads the registry and schedules each handler in the publisher's transaction. No table. A failed run shows in Convex's scheduled-functions table and is re-run by hand. *Battle test:* a subscriber that calls the network (the Jev assessor, a Slack read) is an action, and Convex runs a scheduled action at most once. So under A, action subscribers run through a retrying runner (the Workpool component), and mutation subscribers stay plain.
@@ -428,7 +429,9 @@ Every card below is independent of the others. Answer with the card's id and an 
 - B. One distributed app with an OAuth install per workspace, one Events URL and an installations table holding a token per workspace, on one production deployment. Real multi-tenancy, but sandbox traffic and data share production.
 - **Recommendation: A.** It is the smallest setup that keeps sandbox data out of production. B becomes a later ticket only if more workspaces should install Kudos.
 
-### Open: round 2 (from the battle test, §13)
+### Locked in round 3, from the battle test (§13)
+
+Locked to the recommended option as well. **D19 changes #8:** the daily allowance is no longer the only budget. A weekly pool is spent after it, and the copy has to show both. The core loop spec (#12) has to carry that change.
 
 **D17. How do button clicks and commands reach a module?** Perk purchases, active perks, quip choices, settings and later the store are all Slack interactions, but only the adapter may know Slack.
 - **A. A command registry, mirroring the event registry.** The adapter verifies the request (`/slack/interactivity`, `/slack/commands`), turns it into a platform-neutral command such as `{ type: "buyPerk", member, perk }`, adds an idempotency key from the request, and the registry routes it to the owning module's internal mutation. The module returns a result, and the adapter renders it (update the DM, an ephemeral, or refresh App Home).
@@ -456,7 +459,11 @@ Every card below is independent of the others. Answer with the card's id and an 
 - B. Rules written directly inside Convex mutations. Less structure, but simulation and replay need a second implementation.
 - **Recommendation: A.** Your "simulate it to balance it" request in #9 gets production code instead of a spreadsheet.
 
-### Open: waits on the progression grilling (#9)
+### Still open, owned by other tickets
+
+These three can't be settled here. They move to the tickets named below as follow-ups.
+
+#### Waits on the progression grilling (#9) and the progression spec (#13)
 
 **D10. How does an unlockable message (quip) reach people?** #9 round 2 made quips public, as a thread reply under the kudos message.
 - A. A success-line hook inside the award's mutation that puts the quip into the giver's private reply. This was the round 1 idea, and #9 overtook it.
@@ -465,7 +472,7 @@ Every card below is independent of the others. Answer with the card's id and an 
 
 **D11. Which annotations does spec 2 need?** The mechanism is settled (parse hooks annotate, and `kudosGiven` carries the annotations). Only the content depends on whether XP rewards the note (word count, story length).
 
-### Open: waits on the mindfulness assessor (a later feature)
+#### Waits on the mindfulness assessor (not on the map yet)
 
 **D16. How does the Jev decision engine read the note?** The text is never stored (L4), but a model needs it.
 - A. `kudosGiven` carries the text. It sits only in the queued job's arguments, which Convex keeps for a while after the run. Simplest, but every subscriber receives the text.
