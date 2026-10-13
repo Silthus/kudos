@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { routedFetch, type FakePostHog } from "../../testing/fakePostHog";
-import { FakeSlack } from "../../testing/fakeSlack";
+import { FakeSlack, rateLimitedFor } from "../../testing/fakeSlack";
 import { flagsFromPostHog, offForEveryone, onForEveryone, onInTheSandboxOnly, postHogDeciding } from "../../testing/flags";
 import { buttonInHome, publishedHome } from "../../testing/homeView";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
@@ -85,6 +85,19 @@ describe("the xp-levels flag hides the slice while it is off", () => {
     expect(await standing(t, "U_ALICE")).toEqual(earned);
   });
 
+  test("a public level notice Slack held back while the flag was on is not posted once it is off", async () => {
+    const t = await workspaceDeciding("sandbox", onForEveryone(xpLevels));
+    slack.holdingBack("chat.postMessage", "C1", async () => {
+      await flagsFromPostHog(t, postHog, offForEveryone(xpLevels));
+      slack.answering("chat.postMessage", rateLimitedFor(30));
+    });
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+
+    expect(slack.callsTo("chat.postMessage").filter(({ channel }) => channel === "C1")).toHaveLength(1);
+    expect(slack.messagesIn("C1")).toEqual([]);
+  });
+
   test("a click on a button from an App Home published while the flag was on changes nothing once it is off", async () => {
     const t = await workspaceDeciding("sandbox", onForEveryone(xpLevels));
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
@@ -116,6 +129,15 @@ describe("O36: exposure", () => {
       [xpLevels, true, true],
       [xpLevels, false, true],
     ]);
+  });
+
+  test("is sent for a member's first App Home opening, before the directory knows them", async () => {
+    const t = await workspaceDeciding("sandbox", onForEveryone(xpLevels));
+
+    await openHome(t, "U_ALICE");
+
+    expect(publishedHome(slack, "U_ALICE")).toContain("actions: [Profile] | Settings");
+    expect(exposures()).toEqual([[xpLevels, true, true]]);
   });
 });
 

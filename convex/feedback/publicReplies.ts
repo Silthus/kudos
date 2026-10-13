@@ -6,7 +6,7 @@ import { levelReachedEventValidator } from "../bus/events";
 import { threadOf } from "../engine/engine";
 import type { MessageRef } from "../engine/messageEvent";
 import { progressSettingsOf } from "../progression/settings";
-import { xpLevelsShownTo } from "../progression/xpLevels";
+import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { segmentValidator, type Line } from "./replies";
@@ -54,6 +54,7 @@ export const desired = internalQuery({
   handler: async (ctx, { reply }) => {
     const row = await ctx.db.get(reply);
     if (row === null) return null;
+    if (!(await xpLevelsShownIn(ctx, row.workspace))) return { ...row, sections: [] };
     const shown = await Promise.all(row.sections.map((section) => isShownPublicly(ctx, section)));
     return { ...row, sections: row.sections.filter((_, index) => shown[index]) };
   },

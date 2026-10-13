@@ -6,6 +6,7 @@ import { ReportableError } from "../analytics/exceptions";
 import { recordUsage, recordUsageWithoutBlocking } from "../analytics/usage";
 import { renderHome, type HomeAction, type HomeLine, type HomeView } from "../feedback/home";
 import { stampOf, type HomeFacts } from "../feedback/homes";
+import { xpLevelsShownTo } from "../progression/xpLevels";
 import { lookup } from "../workspace/directory";
 import { attemptArgs, failedAttempt, sendOnce, tryAtMostThreeTimes } from "./delivery";
 import { lookUpUser, refreshUser } from "./directory";
@@ -21,7 +22,9 @@ type Opening = { workspace: string; user: string; at: number };
 export async function reportHomeOpened(ctx: MutationCtx, { workspace, user, at }: Opening): Promise<"reported" | "unknown-person"> {
   const person = await lookup(ctx, workspace, user);
   if (person === undefined) return "unknown-person";
-  if (person.kind === "member") await recordUsage(ctx, { kind: "appHomeOpened", workspace, member: person.member, at });
+  if (person.kind !== "member") return "reported";
+  await recordUsage(ctx, { kind: "appHomeOpened", workspace, member: person.member, at });
+  await xpLevelsShownTo(ctx, person.member);
   return "reported";
 }
 
