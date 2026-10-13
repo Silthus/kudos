@@ -238,6 +238,14 @@
     {
       "name": "profile card",
       "definition": "What any member sees of another member: name, equipped title and card, primary group, and level and achievement tiers unless hidden. Never coins, perks, streaks, XP or kudos received."
+    },
+    {
+      "name": "HedgeHug",
+      "definition": "The product's name as members see it: the Slack app, the bot, the slash command and the website. Code, classes and docs keep calling the product Kudos. Hug is flavour only, never the unit: the unit stays kudos."
+    },
+    {
+      "name": "website",
+      "definition": "The signed-in browser surface where a member sees and manages their Kudos. It sits beside App Home and never replaces it."
     }
   ]
 }
