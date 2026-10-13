@@ -137,7 +137,7 @@
     },
     {
       "name": "unlock",
-      "definition": "Something a member gains for good through progression: a cosmetic or a perk (ADR-0002)."
+      "definition": "A feature of the game that a level makes ready for a member: quests at 2, the leaderboard at 3, the Book at 4, the skill tree at 5, coins and the inventory at 6, hedgehogs at 7. The member opens a ready unlock with one action, and it stays open for good. Unlocks gate what a member sees, never what they earn (ADR-0006)."
     },
     {
       "name": "achievement",
@@ -369,7 +369,7 @@
     },
     {
       "name": "crate",
-      "definition": "What a member opens on the website to claim a reward already earned or a feature their level made ready. Its label shows what is inside before it opens: opening is the celebration and never decides the reward."
+      "definition": "How a member takes something the game has ready for them: a feature their level made ready, or a finished quest or Journey step. Opening it is one action that reveals what is already recorded and never grants anything; its content is always known before it is opened, so a crate is a moment, never a random draw."
     },
     {
       "name": "medal",

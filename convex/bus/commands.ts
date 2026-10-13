@@ -3,6 +3,7 @@ import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
 import { homeTabValidator } from "../feedback/home";
+import { featureValidator } from "../unlocks/feature";
 
 export const showHomeTabCommand = v.object({ type: v.literal("showHomeTab"), member: v.id("members"), tab: homeTabValidator });
 
@@ -15,12 +16,15 @@ export const setProgressSettingsCommand = v.object({
 
 export const setAnnouncementChannelCommand = v.object({ type: v.literal("setAnnouncementChannel"), member: v.id("members"), channel: v.union(v.string(), v.null()) });
 
-export const commandValidator = v.union(showHomeTabCommand, setProgressSettingsCommand, setAnnouncementChannelCommand);
+export const openUnlockCommand = v.object({ type: v.literal("openUnlock"), member: v.id("members"), feature: featureValidator });
+
+export const commandValidator = v.union(showHomeTabCommand, setProgressSettingsCommand, setAnnouncementChannelCommand, openUnlockCommand);
 
 export const intentValidator = v.union(
   showHomeTabCommand.omit("member"),
   setProgressSettingsCommand.omit("member"),
   setAnnouncementChannelCommand.omit("member"),
+  openUnlockCommand.omit("member"),
 );
 
 export type Command = Infer<typeof commandValidator>;
@@ -35,6 +39,7 @@ export const handlers: Registry = {
   showHomeTab: internal.feedback.homes.showHomeTab,
   setProgressSettings: internal.progression.settings.setProgressSettings,
   setAnnouncementChannel: internal.workspace.settings.setAnnouncementChannel,
+  openUnlock: internal.unlocks.unlocks.openUnlock,
 };
 
 export function dispatch<T extends Command["type"]>(ctx: MutationCtx, command: CommandOf<T> & { type: T }): Promise<CommandResult> {

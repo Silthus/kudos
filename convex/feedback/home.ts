@@ -4,6 +4,7 @@ import type { KudosHome } from "../engine/home";
 import { skillTreeLevel } from "../progression/levels";
 import type { ProgressionHome } from "../progression/progression";
 import type { ProgressSettings } from "../progression/settings";
+import type { UnlocksHome } from "../unlocks/unlocks";
 import type { AdminHome, HomeFacts } from "./homes";
 import { productName, skillPointsOf, slashCommand } from "./naming";
 
@@ -50,8 +51,8 @@ function tabContent(facts: MemberHome, tab: HomeTab): HomeLine[][] {
   return profileTab(facts);
 }
 
-function profileTab({ kudos, progression }: MemberHome): HomeLine[][] {
-  return [[allowanceOf(kudos)], progressOf(progression), [totalsOf(kudos)], howToGive(kudos.kudosEmoji)];
+function profileTab({ kudos, progression, unlocks }: MemberHome): HomeLine[][] {
+  return [[allowanceOf(kudos)], [...progressOf(progression), ...unlockLinesOf(unlocks)], [totalsOf(kudos)], howToGive(kudos.kudosEmoji)];
 }
 
 function kudosOnlyTab(kudos: KudosHome): HomeLine[][] {
@@ -118,6 +119,16 @@ function progressOf({ level, xpToNextLevel, skillPoints }: ProgressionHome): Hom
   const levelFigures: HomeLine = { kind: "fields", fields: [figure("Level", level), figure(`XP to level ${level + 1}`, xpToNextLevel)] };
   if (level < skillTreeLevel) return [levelFigures];
   return [levelFigures, { kind: "text", text: `You have ${bold(skillPointsOf(skillPoints))} saved for the skill tree.` }];
+}
+
+function unlockLinesOf({ ready, next }: UnlocksHome): HomeLine[] {
+  const readyLines = ready.map(({ feature, name, opens }): HomeLine => ({
+    kind: "action",
+    text: `${bold(name)} is ready. It opens ${opens}.`,
+    action: { label: "Open", intent: { type: "openUnlock", feature } },
+  }));
+  const nextLine: HomeLine[] = next === null ? [] : [{ kind: "text", text: `Next: ${next.name} at level ${next.level}.` }];
+  return [...readyLines, ...nextLine];
 }
 
 function totalsOf(kudos: KudosHome): HomeLine {

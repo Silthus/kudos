@@ -7,6 +7,7 @@ import { publicSectionValidator, shownValidator } from "./feedback/publicReplies
 import { segmentValidator } from "./feedback/replies";
 import { homeTabValidator } from "./feedback/home";
 import { effectsRecordValidator } from "./progression/progress";
+import { featureValidator } from "./unlocks/feature";
 
 export default defineSchema({
   slackReceipts: defineTable({
@@ -137,6 +138,13 @@ export default defineSchema({
     dms: v.optional(v.boolean()),
     muteNotices: v.optional(v.boolean()),
   }).index("by_member", ["member"]),
+
+  unlocks: defineTable({
+    member: v.id("members"),
+    feature: featureValidator,
+    readyAt: v.number(),
+    openedAt: v.optional(v.number()),
+  }).index("by_member_feature", ["member", "feature"]),
 
   homes: defineTable({
     member: v.id("members"),

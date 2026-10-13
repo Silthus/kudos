@@ -7,6 +7,7 @@ import { kudosHomeOf, type KudosHome } from "../engine/home";
 import { progressionHomeOf, type ProgressionHome } from "../progression/progression";
 import { progressSettingsOf, type ProgressSettings } from "../progression/settings";
 import { xpLevelsShownIn } from "../progression/xpLevels";
+import { unlocksHomeOf, type UnlocksHome } from "../unlocks/unlocks";
 import { chatUserOf, lookup, type MemberFacts, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import type { HomeTab } from "./home";
@@ -19,6 +20,7 @@ export type HomeFacts =
       tab: HomeTab;
       kudos: KudosHome;
       progression: ProgressionHome;
+      unlocks: UnlocksHome;
       settings: ProgressSettings;
       admin: AdminHome | null;
     }
@@ -44,6 +46,7 @@ export const homeOf = internalQuery({
       tab: home?.tab ?? "profile",
       kudos,
       progression: await progressionHomeOf(ctx, person.member),
+      unlocks: await unlocksHomeOf(ctx, person.member),
       settings: await progressSettingsOf(ctx, person.member),
       admin: person.admin ? { announcementChannel: (await settingsOf(ctx, workspace)).announcementChannel } : null,
     };
