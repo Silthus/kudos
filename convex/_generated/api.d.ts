@@ -63,6 +63,7 @@ import type * as quests_crates from "../quests/crates.js";
 import type * as quests_finish from "../quests/finish.js";
 import type * as quests_flag from "../quests/flag.js";
 import type * as quests_journey from "../quests/journey.js";
+import type * as quests_newWeek from "../quests/newWeek.js";
 import type * as quests_pool from "../quests/pool.js";
 import type * as quests_progress from "../quests/progress.js";
 import type * as quests_quests from "../quests/quests.js";
@@ -158,6 +159,7 @@ declare const fullApi: ApiFromModules<{
   "quests/finish": typeof quests_finish;
   "quests/flag": typeof quests_flag;
   "quests/journey": typeof quests_journey;
+  "quests/newWeek": typeof quests_newWeek;
   "quests/pool": typeof quests_pool;
   "quests/progress": typeof quests_progress;
   "quests/quests": typeof quests_quests;

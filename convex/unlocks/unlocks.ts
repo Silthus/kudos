@@ -59,6 +59,10 @@ export async function stateOf(ctx: QueryCtx, member: MemberId, feature: Feature)
   return stateFrom(await unlockRow(ctx, member, feature));
 }
 
+export async function openedAtOf(ctx: QueryCtx, member: MemberId, feature: Feature): Promise<number | null> {
+  return (await unlockRow(ctx, member, feature))?.openedAt ?? null;
+}
+
 export async function unlocksOf(ctx: QueryCtx, member: MemberId): Promise<MemberUnlock[]> {
   const { workspace } = await chatUserOf(ctx, member);
   const unlocks: MemberUnlock[] = [];
