@@ -30,6 +30,15 @@ export default defineSchema({
     tick: v.number(),
   }),
 
+  companyProfiles: defineTable({
+    firstName: v.string(),
+    lastName: v.string(),
+    normalisedName: v.string(),
+    image: v.string(),
+    colour: v.string(),
+    team: v.optional(v.string()),
+  }).index("by_normalised_name", ["normalisedName"]),
+
   slackReceipts: defineTable({
     workspace: v.string(),
     eventId: v.string(),

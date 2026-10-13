@@ -2,6 +2,9 @@ import type { SignedInMember } from "./shell";
 
 export function MemberFace({ member, className }: { member: SignedInMember; className: string }) {
   const { face } = member;
+  if (face.kind === "company-profile") {
+    return <img src={face.image} alt="" style={{ backgroundColor: face.colour }} className={`shrink-0 rounded-full object-cover object-top ${className}`} />;
+  }
   if (face.kind === "slack") {
     return <img src={face.image} alt="" className={`shrink-0 rounded-full bg-muted object-cover ${className}`} />;
   }

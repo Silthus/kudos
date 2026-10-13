@@ -23,6 +23,8 @@ import type * as auth from "../auth.js";
 import type * as bus_events from "../bus/events.js";
 import type * as bus_publish from "../bus/publish.js";
 import type * as commands_commands from "../commands/commands.js";
+import type * as companyProfiles_faces from "../companyProfiles/faces.js";
+import type * as companyProfiles_sync from "../companyProfiles/sync.js";
 import type * as crons from "../crons.js";
 import type * as engine_allowance from "../engine/allowance.js";
 import type * as engine_awards from "../engine/awards.js";
@@ -97,6 +99,8 @@ declare const fullApi: ApiFromModules<{
   "bus/events": typeof bus_events;
   "bus/publish": typeof bus_publish;
   "commands/commands": typeof commands_commands;
+  "companyProfiles/faces": typeof companyProfiles_faces;
+  "companyProfiles/sync": typeof companyProfiles_sync;
   crons: typeof crons;
   "engine/allowance": typeof engine_allowance;
   "engine/awards": typeof engine_awards;

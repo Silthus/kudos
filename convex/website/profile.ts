@@ -1,9 +1,14 @@
+import { companyFaceOf } from "../companyProfiles/faces";
+import type { QueryCtx } from "../_generated/server";
 import { homeFacts } from "../engine/home";
 import { workspaceLink } from "../slack/workspaceLink";
 import { followTheClock } from "./clock";
 import { memberQuery, type Denial, type VerifiedMember } from "./memberQuery";
 
-export type Face = { kind: "slack"; image: string } | { kind: "initials"; initials: string };
+export type Face =
+  | { kind: "company-profile"; image: string; colour: string }
+  | { kind: "slack"; image: string }
+  | { kind: "initials"; initials: string };
 
 export type Kudos = { given: number; received: number };
 
@@ -27,7 +32,7 @@ export const getMyProfile = memberQuery(async (ctx, me): Promise<MemberProfile |
   return {
     kind: "member",
     ...(me.name !== undefined && { name: me.name }),
-    face: faceOf(me),
+    face: await faceOf(ctx, me),
     kudosEmoji: facts.kudosEmoji,
     allowance: { left: facts.left, base: facts.base, refillsAt: facts.refillsAt },
     thisWeek: { given: facts.givenWeek, received: facts.receivedWeek },
@@ -36,9 +41,15 @@ export const getMyProfile = memberQuery(async (ctx, me): Promise<MemberProfile |
   };
 });
 
-function faceOf(me: VerifiedMember): Face {
+async function faceOf(ctx: QueryCtx, me: VerifiedMember): Promise<Face> {
+  const companyFace = await companyFaceOf(ctx, realNameOf(me));
+  if (companyFace !== undefined) return { kind: "company-profile", ...companyFace };
   if (me.image !== undefined) return { kind: "slack", image: me.image };
   return { kind: "initials", initials: initialsOf(me) };
+}
+
+function realNameOf({ name, givenName, familyName }: VerifiedMember) {
+  return name ?? [givenName, familyName].filter((part) => part !== undefined).join(" ");
 }
 
 function initialsOf({ name, givenName, familyName }: VerifiedMember) {

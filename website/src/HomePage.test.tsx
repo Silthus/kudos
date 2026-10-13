@@ -63,6 +63,21 @@ describe("WS17: the home leads with thanking, then the allowance and the counter
   });
 });
 
+describe("WS21 V19: the member's face", () => {
+  const cutout = "https://res.cloudinary.com/posthog-test/image/upload/c_limit,w_160,f_auto,q_auto/v1/sam.png";
+
+  it("shows the member's company profile cutout on its own colour in the hero, the profile card and the avatar menu", () => {
+    renderApp({ ...shellFixtures.member, face: { kind: "company-profile", image: cutout, colour: "#8567FF" } });
+    const faces = document.querySelectorAll(`img[src="${cutout}"]`);
+    expect(faces).toHaveLength(3);
+    for (const face of faces) {
+      expect(face).toHaveAttribute("alt", "");
+      expect(face).toHaveStyle({ backgroundColor: "#8567FF" });
+    }
+    expect(screen.queryByText("SE")).not.toBeInTheDocument();
+  });
+});
+
 describe("WS18: what teammates see, and received kudos staying private", () => {
   it("shows the member's profile card as their face and name, saying the kudos they receive stay private", () => {
     renderApp(shellFixtures.member);

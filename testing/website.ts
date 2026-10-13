@@ -29,12 +29,10 @@ export async function switchWebsite(t: Backend, postHog: FakePostHog, open: bool
   await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
 }
 
-export type SignInIdentity = { workspace?: string; user: string; name?: string; image?: string };
+export type SignInIdentity = { workspace?: string; user: string; name?: string; givenName?: string; familyName?: string; image?: string };
 
-export async function aSession(t: Backend, { workspace = allowedWorkspace, user, name, image }: SignInIdentity, { endsIn = hour } = {}) {
-  const userId = await t.run((ctx) =>
-    ctx.db.insert("users", { ...(name && { name }), ...(image && { image }), chatIdentity: { workspace, user } }),
-  );
+export async function aSession(t: Backend, { workspace = allowedWorkspace, user, ...claims }: SignInIdentity, { endsIn = hour } = {}) {
+  const userId = await t.run((ctx) => ctx.db.insert("users", { ...claims, chatIdentity: { workspace, user } }));
   const sessionId: Id<"authSessions"> = await t.run((ctx) => ctx.db.insert("authSessions", { userId, expirationTime: Date.now() + endsIn }));
   return { sessionId, asSignedIn: t.withIdentity({ subject: `${userId}|${sessionId}` }) };
 }

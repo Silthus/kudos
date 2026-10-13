@@ -5,6 +5,7 @@ Peer recognition for Slack on one Convex deployment per workspace; the product r
 ## trust levels
 - slack-request (outside): what anyone on the internet sends to the deployment's Slack routes, claiming to be Slack
 - browser (outside): what anyone on the internet sends to the website's public functions, the sign-in routes and the static pages
+- posthog-com (outside): what posthog.com's public team API returns to the daily company profiles sync
 - session: a browser presenting a live Convex Auth session for an identity of the deployment's workspace, not yet known to be a member
 - domain: the deployment's internal functions and the rows they keep
 - operator: a maintainer running the project's scripts on their own machine

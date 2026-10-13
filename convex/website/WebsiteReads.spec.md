@@ -1,6 +1,6 @@
 # Website reads
 
-The website's signed-in reads, the sign-in callback, and the link App Home shows, `${SITE_URL}/` with no identity, only while the website flag is on, SITE_URL is set and the App Home is the deployment's workspace: every website query is built on memberQuery, which answers closed while the website flag is off, signed-out without a live session of the deployment's workspace, and verifying, unverified or not-a-member until the directory knows the person as a member, and calls its handler only with a verified member taken from the session, never from arguments; getMyProfile answers that member with their own homeFacts (kudos left, when they refill, given and received this week and in total) beside their sign-in name and picture, and reads the website clock, a row a cron ticks every 15 minutes, so an open home turns to the new day and the new week without another kudos; the sign-in callback refuses while the flag is off and links an account only by the Slack pair.
+The website's signed-in reads, the sign-in callback, and the link App Home shows, `${SITE_URL}/` with no identity, only while the website flag is on, SITE_URL is set and the App Home is the deployment's workspace: every website query is built on memberQuery, which answers closed while the website flag is off, signed-out without a live session of the deployment's workspace, and verifying, unverified or not-a-member until the directory knows the person as a member, and calls its handler only with a verified member taken from the session, never from arguments; getMyProfile answers that member with their own homeFacts (kudos left, when they refill, given and received this week and in total) beside their sign-in name and their face (their company profile cutout on its colour when exactly one company profile matches their Slack real name, else their sign-in picture, else initials), and reads the website clock, a row a cron ticks every 15 minutes, so an open home turns to the new day and the new week without another kudos; the sign-in callback refuses while the flag is off and links an account only by the Slack pair.
 
 ## entrances
 - query getMyProfile: a browser asks for the signed-in person's own website answer, with no arguments
@@ -43,7 +43,7 @@ The website's signed-in reads, the sign-in callback, and the link App Home shows
   refuted: getMyProfile read homeFacts for another member of the workspace -> the answer carried that member's counts (2026-10-13)
   kinds: read
   checklist: scoped-reads declared as website reads pass one guard
-  checklist: redaction dismissed: the answer carries only the member's own counts, emoji, refill time, name and picture, and a link to the workspace in Slack; it never names another member
+  checklist: redaction dismissed: the answer carries only the member's own counts, emoji, refill time, name and face, and a link to the workspace in Slack; it never names another member
 - only the allowed workspace signs in, and only while open: A sign-in creates or updates an account only for a profile of the deployment's SLACK_WORKSPACE_ID with a non-empty Slack user, and only while the website flag is on.
   over: the sign-in callback for a profile from another workspace, an empty Slack user, an unset SLACK_WORKSPACE_ID, and the flag off
   via: WS3 WS6: only the allowed workspace signs in, and only while open
