@@ -1,6 +1,6 @@
 import { internal } from "../_generated/api";
 import { httpAction } from "../_generated/server";
-import { isCommandType, type Intent } from "../bus/commands";
+import { knownIntent, type Intent } from "../bus/commands";
 import { readSignedBody } from "./signature";
 
 type Action = { type: string; action_id: string; value?: string; selected_channel?: string | null };
@@ -29,8 +29,9 @@ function blockActionsOf(body: Uint8Array): BlockActions | null {
 }
 
 function intentOf(action: Action): Intent[] {
-  const intent = action.type === "channels_select" ? { type: action.action_id, channel: action.selected_channel ?? null } : parsedValue(action);
-  return intent !== null && isCommandType(intent.type) ? [intent as Intent] : [];
+  const candidate = action.type === "channels_select" ? { type: action.action_id, channel: action.selected_channel ?? null } : parsedValue(action);
+  const intent = candidate === null ? null : knownIntent(candidate);
+  return intent === null ? [] : [intent];
 }
 
 function parsedValue({ type, value }: Action): { type: string } | null {

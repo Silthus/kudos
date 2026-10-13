@@ -122,7 +122,25 @@ describe("P63 P65: a setting takes effect on the next notice or DM, and repeatin
     expect(publishedHome(slack, "U_ALICE")).toContain("section: I celebrate your level ups in public. [button: Mute notices]");
     expect(slack.messagesIn("C1").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
   });
+});
 
+describe("P65: levels are public, so a Hide level click from an App Home published before the switch was removed changes nothing", () => {
+  test.each([
+    ["Hide level", { hideLevel: true }],
+    ["Hide achievements", { hideAchievements: true }],
+  ])("%s is acknowledged, Settings still shows mute and DMs only, and the next level notice posts", async (_, removedSetting) => {
+    const t = await settingsOpen("U_ALICE");
+
+    const response = await interact(t, "U_ALICE", { type: "button", action_id: "x", value: JSON.stringify({ type: "setProgressSettings", ...removedSetting }) });
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(response.status).toBe(200);
+    expect(publishedHome(slack, "U_ALICE").slice(2)).toEqual([
+      "section: I celebrate your level ups in public. [button: Mute notices]",
+      "section: I send you a DM when you reach a level. [button: Turn off DMs]",
+    ]);
+    expect(slack.messagesIn("C1").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
+  });
 });
 
 describe("P68: App Home is republished after a change, the latest version wins, and a failed publish is retried", () => {

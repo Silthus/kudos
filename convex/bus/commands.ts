@@ -42,6 +42,9 @@ export function dispatch<T extends Command["type"]>(ctx: MutationCtx, command: C
   return ctx.runMutation(handler, { command });
 }
 
-export function isCommandType(type: string): type is Command["type"] {
-  return Object.hasOwn(handlers, type);
+const intentFields = new Map<string, string[]>(intentValidator.members.map((intent) => [intent.fields.type.value, Object.keys(intent.fields)]));
+
+export function knownIntent(candidate: { type: string }): Intent | null {
+  const fields = intentFields.get(candidate.type);
+  return fields !== undefined && Object.keys(candidate).every((key) => fields.includes(key)) ? (candidate as Intent) : null;
 }
