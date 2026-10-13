@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { FakeSlack } from "../../testing/fakeSlack";
+import { FakeSlack, httpStatus } from "../../testing/fakeSlack";
 import { signingSecret } from "../../testing/signedSlack";
-import { post, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { everythingStored, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 
@@ -72,6 +72,85 @@ describe("P64: the public level notice", () => {
     expect(slack.callsTo("chat.postMessage").filter(({ channel }) => channel === "C1")).toHaveLength(1);
     expect(slack.messagesIn("C1").map((message) => message.text)).toEqual(["🎉 <@U_ALICE> reached level 2.\n🎉 <@U_BOB> reached level 2."]);
   });
+
+  test("R45: a recipient's notice states only their progress, never the giver or the thank-you, and no text is stored", async () => {
+    const t = testBackend();
+    await withXp(t, "U_BOB", 15);
+
+    await post(t, [section(text("thanks for rescuing the deploy "), mention("U_BOB"), emoji("taco"))]);
+    await settle(t);
+
+    expect(slack.messagesIn("C1").map((message) => message.text)).toEqual(["🎉 <@U_BOB> reached level 2."]);
+    const stored = JSON.stringify(await everythingStored(t), (_, value) => (typeof value === "bigint" ? String(value) : value));
+    expect(stored).not.toContain("rescuing");
+  });
+});
+
+describe("P64: routing", () => {
+  test("a kudos message posted in a thread gets its notice in that thread", async () => {
+    const t = testBackend();
+    const threadRoot = "1760349000.000100";
+
+    await post(t, [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("taco"))], { threadTs: threadRoot });
+    await settle(t);
+
+    expect(slack.messagesIn("C1")).toEqual([{ channel: "C1", ts: expect.any(String), threadTs: threadRoot, text: "🎉 <@U_ALICE> reached level 2." }]);
+  });
+
+  test("with an announcement channel set, the notice goes there instead and the thread gets nothing", async () => {
+    const t = testBackend();
+    await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", announcementChannel: "C_NEWS" }));
+
+    await post(t, [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("taco"))]);
+    await settle(t);
+
+    expect(slack.messagesIn("C_NEWS")).toEqual([{ channel: "C_NEWS", ts: expect.any(String), text: "🎉 <@U_ALICE> reached level 2." }]);
+    expect(slack.messagesIn("C1")).toEqual([]);
+  });
+});
+
+describe("R35: delivering the public reply", () => {
+  test("a notice that keeps failing is tried 3 times, and the next level under that message posts the reply afresh", async () => {
+    const t = testBackend();
+    await welcomed(t, "U_ALICE", "U_BOB");
+    slack.answering("chat.postMessage", httpStatus(500), httpStatus(500), httpStatus(500));
+
+    await post(t, [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("taco"))]);
+    await settle(t);
+    expect(slack.callsTo("chat.postMessage")).toHaveLength(3);
+    expect(slack.messagesIn("C1")).toEqual([]);
+
+    await t.mutation(internal.feedback.publicReplies.celebrateLevel, { event: await levelReached(t, "U_ALICE", 3) });
+    await settle(t);
+
+    expect(slack.messagesIn("C1").map((message) => message.text)).toEqual(["🎉 <@U_ALICE> reached level 3."]);
+  });
+});
+
+describe("P65: privacy", () => {
+  test.each([
+    ["hid their level", { hideLevel: true }],
+    ["muted public notices", { muteNotices: true }],
+  ])("a member who %s gets no public notice, while the other member's is posted", async (_, settings) => {
+    const t = testBackend();
+    await withSettings(t, "U_ALICE", settings);
+    await withXp(t, "U_BOB", 15);
+
+    await post(t, [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("taco"))]);
+    await settle(t);
+
+    expect(slack.messagesIn("C1").map((message) => message.text)).toEqual(["🎉 <@U_BOB> reached level 2."]);
+  });
+
+  test("a member who hid their level and is the only one levelling up leaves the thread empty", async () => {
+    const t = testBackend();
+    await withSettings(t, "U_ALICE", { hideLevel: true });
+
+    await post(t, [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("taco"))]);
+    await settle(t);
+
+    expect(slack.messagesIn("C1")).toEqual([]);
+  });
 });
 
 async function memberOf(t: Backend, user: string) {
@@ -87,6 +166,18 @@ async function memberOf(t: Backend, user: string) {
 async function withXp(t: Backend, user: string, xp: number) {
   const member = await memberOf(t, user);
   await t.run((ctx) => ctx.db.insert("memberProgress", { member, xp, pointsSpent: 0 }));
+}
+
+async function welcomed(t: Backend, ...users: string[]) {
+  for (const user of users) {
+    const member = await memberOf(t, user);
+    await t.run((ctx) => ctx.db.insert("welcomes", { member }));
+  }
+}
+
+async function withSettings(t: Backend, user: string, settings: { hideLevel?: boolean; muteNotices?: boolean }) {
+  const member = await memberOf(t, user);
+  await t.run((ctx) => ctx.db.insert("progressSettings", { member, ...settings }));
 }
 
 async function levelReached(t: Backend, user: string, level: number) {

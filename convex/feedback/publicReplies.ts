@@ -5,7 +5,8 @@ import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from
 import { levelReachedEventValidator } from "../bus/events";
 import { threadOf } from "../engine/engine";
 import type { MessageRef } from "../engine/messageEvent";
-import { chatUserOf } from "../workspace/directory";
+import { chatUserOf, type MemberId } from "../workspace/directory";
+import { settingsOf } from "../workspace/settings";
 import { segmentValidator, type Line } from "./replies";
 
 export const publicSectionValidator = v.object({ key: v.string(), line: v.array(segmentValidator) });
@@ -17,6 +18,7 @@ type Destination = { channel: string; threadTs?: string };
 export const celebrateLevel = internalMutation({
   args: { event: levelReachedEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
+    if (!(await showsLevelPublicly(ctx, event.member))) return;
     const { user } = await chatUserOf(ctx, event.member);
     await setPublicSection(ctx, event.message, levelSection(user, event.level));
   },
@@ -62,6 +64,14 @@ export function linesOf(reply: Doc<"publicReplies">): Line[] {
   return reply.sections.map(({ line }) => line);
 }
 
+async function showsLevelPublicly(ctx: QueryCtx, member: MemberId) {
+  const settings = await ctx.db
+    .query("progressSettings")
+    .withIndex("by_member", (q) => q.eq("member", member))
+    .unique();
+  return !(settings?.hideLevel ?? false) && !(settings?.muteNotices ?? false);
+}
+
 function levelSection(user: string, level: number): PublicSection {
   return { key: `level:${user}`, line: [{ text: "🎉 " }, { mention: { kind: "person", user } }, { text: ` reached level ${level}.` }] };
 }
@@ -72,6 +82,8 @@ function withSection(sections: PublicSection[], section: PublicSection) {
 }
 
 async function destinationOf(ctx: QueryCtx, ref: MessageRef): Promise<Destination> {
+  const { announcementChannel } = await settingsOf(ctx, ref.workspace);
+  if (announcementChannel !== null) return { channel: announcementChannel };
   return { channel: ref.conversation, threadTs: await threadOf(ctx, ref) };
 }
 

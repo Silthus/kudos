@@ -15,6 +15,7 @@ export default defineSchema({
     workspace: v.string(),
     baseAllowance: v.optional(v.number()),
     kudosEmoji: v.optional(v.string()),
+    announcementChannel: v.optional(v.string()),
   }).index("by_workspace", ["workspace"]),
 
   members: defineTable({
@@ -119,6 +120,12 @@ export default defineSchema({
     member: v.id("members"),
     xp: v.number(),
     pointsSpent: v.number(),
+  }).index("by_member", ["member"]),
+
+  progressSettings: defineTable({
+    member: v.id("members"),
+    hideLevel: v.optional(v.boolean()),
+    muteNotices: v.optional(v.boolean()),
   }).index("by_member", ["member"]),
 
   slackRateLimits: defineTable({
