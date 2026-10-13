@@ -1,3 +1,4 @@
+import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { exceptionValidator } from "./analytics/exceptions";
@@ -6,6 +7,23 @@ import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
 import { segmentValidator } from "./feedback/replies";
 
 export default defineSchema({
+  ...authTables,
+
+  users: defineTable({
+    name: v.optional(v.string()),
+    givenName: v.optional(v.string()),
+    familyName: v.optional(v.string()),
+    image: v.optional(v.string()),
+    chatIdentity: v.optional(v.object({ workspace: v.string(), user: v.string() })),
+  }),
+
+  memberVerifications: defineTable({
+    workspace: v.string(),
+    user: v.string(),
+    attempts: v.number(),
+    state: v.union(v.literal("pending"), v.literal("failed")),
+  }).index("by_user", ["workspace", "user"]),
+
   slackReceipts: defineTable({
     workspace: v.string(),
     eventId: v.string(),
