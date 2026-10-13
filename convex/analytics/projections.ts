@@ -10,7 +10,7 @@ export const propertiesValidator = v.record(v.string(), v.union(v.string(), v.nu
 export type Properties = Infer<typeof propertiesValidator>;
 
 export type ProductEvent = {
-  event: "kudos given" | "kudos received" | "attempt failed" | "member welcomed" | "app home opened" | "command used";
+  event: "kudos given" | "kudos received" | "attempt failed" | "member welcomed" | "app home opened" | "command used" | "$feature_flag_called";
   subject: { member: MemberId };
   at: number;
   properties: Properties;

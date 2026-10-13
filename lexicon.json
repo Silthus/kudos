@@ -322,6 +322,14 @@
     {
       "name": "failed-job sweep",
       "definition": "The analytics mutation a cron runs every 15 minutes that finds scheduled functions which failed without an error boundary reporting them, and records each once as an exception. It pages through new scheduled functions from a cursor, keeps every unfinished one on a watch list until it finishes, and never reports the analytics module's own functions."
+    },
+    {
+      "name": "flag",
+      "definition": "A switch declared once in code with its key, its subject (a member or the workspace), its values and a safe default, whose value PostHog decides per subject; a new member-facing slice ships behind one whose safe default is off"
+    },
+    {
+      "name": "exposure",
+      "definition": "The $feature_flag_called event sent once per member, flag and value, from the mutation in which the member first enters the flagged path"
     }
   ]
 }

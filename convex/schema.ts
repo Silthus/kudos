@@ -142,4 +142,10 @@ export default defineSchema({
   reportedJobs: defineTable({
     job: v.id("_scheduled_functions"),
   }).index("by_job", ["job"]),
+
+  flagExposures: defineTable({
+    member: v.id("members"),
+    flag: v.string(),
+    value: v.union(v.string(), v.boolean()),
+  }).index("by_member_flag_value", ["member", "flag", "value"]),
 });

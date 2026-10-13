@@ -12,6 +12,7 @@ import type * as analytics_boundary from "../analytics/boundary.js";
 import type * as analytics_capture from "../analytics/capture.js";
 import type * as analytics_drain from "../analytics/drain.js";
 import type * as analytics_exceptions from "../analytics/exceptions.js";
+import type * as analytics_flags from "../analytics/flags.js";
 import type * as analytics_outbox from "../analytics/outbox.js";
 import type * as analytics_projections from "../analytics/projections.js";
 import type * as analytics_subscribers from "../analytics/subscribers.js";
@@ -62,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   "analytics/capture": typeof analytics_capture;
   "analytics/drain": typeof analytics_drain;
   "analytics/exceptions": typeof analytics_exceptions;
+  "analytics/flags": typeof analytics_flags;
   "analytics/outbox": typeof analytics_outbox;
   "analytics/projections": typeof analytics_projections;
   "analytics/subscribers": typeof analytics_subscribers;
@@ -128,4 +130,6 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  posthog: import("@posthog/convex/_generated/component.js").ComponentApi<"posthog">;
+};
