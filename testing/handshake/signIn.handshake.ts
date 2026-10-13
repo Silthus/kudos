@@ -53,7 +53,7 @@ describe("WS5 L-W1: a member signs in with Slack", () => {
     expect(landing.origin + landing.pathname).toBe(`${site}/`);
     const session = await redeem(landing, verifier);
 
-    expect(await eventuallyReads(session.client, "member")).toEqual({ kind: "member", name: "Ada Lovelace", face: { kind: "initials", initials: "AL" } });
+    expect(await eventuallyReads(session.client, "member")).toMatchObject({ kind: "member", name: "Ada Lovelace", face: { kind: "initials", initials: "AL" } });
   });
 });
 

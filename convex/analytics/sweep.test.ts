@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { kudosGivenEvent } from "../../testing/busEvents";
+import { kudosGivenEventWithAward } from "../../testing/busEvents";
 import { FakePostHog, postHogHost, projectToken } from "../../testing/fakePostHog";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { internal } from "../_generated/api";
+import type { MutationCtx } from "../_generated/server";
 import type { KudosGivenEvent } from "../bus/events";
 import { carriesReportedMarker, exceptionOfJobError } from "./exceptions";
 
@@ -96,7 +97,7 @@ describe("O22: the failed-job sweep", () => {
     });
     await t.run(async (ctx) => {
       const member = await ctx.db.insert("members", memberRow);
-      await ctx.scheduler.runAfter(0, internal.analytics.subscribers.recordKudosGiven, { event: kudosGivenTo(member) });
+      await ctx.scheduler.runAfter(0, internal.analytics.subscribers.recordKudosGiven, { event: await kudosGivenTo(ctx, member) });
     });
     await settle(t);
     vi.mocked(crypto.randomUUID).mockRestore();
@@ -171,12 +172,12 @@ async function scheduleWelcomeOfAGoneMember(t: Backend, delayMs: number) {
   await t.run(async (ctx) => {
     const gone = await ctx.db.insert("members", memberRow);
     await ctx.db.delete(gone);
-    await ctx.scheduler.runAfter(delayMs, internal.welcome.welcome.welcomeNewMembers, { event: kudosGivenTo(gone) });
+    await ctx.scheduler.runAfter(delayMs, internal.welcome.welcome.welcomeNewMembers, { event: await kudosGivenTo(ctx, gone) });
   });
 }
 
-function kudosGivenTo(giver: KudosGivenEvent["giver"]): KudosGivenEvent {
-  return kudosGivenEvent(giver, giver, { at: now.getTime() });
+function kudosGivenTo(ctx: MutationCtx, giver: KudosGivenEvent["giver"]): Promise<KudosGivenEvent> {
+  return kudosGivenEventWithAward(ctx, giver, giver, { at: now.getTime() });
 }
 
 async function sweepAfter(t: Backend, delayMs: number) {

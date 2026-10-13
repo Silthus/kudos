@@ -7,12 +7,12 @@ import { ReportableError } from "../analytics/exceptions";
 export type MemberId = Id<"members">;
 
 export type MemberFacts =
-  | { kind: "member"; member: MemberId; timeZone: string | undefined }
+  | { kind: "member"; member: MemberId; timeZone: string | undefined; admin: boolean }
   | { kind: "bot" }
   | { kind: "not-a-member" };
 
 export const directoryEntryValidator = v.union(
-  v.object({ kind: v.literal("member"), name: v.optional(v.string()), timeZone: v.optional(v.string()) }),
+  v.object({ kind: v.literal("member"), name: v.optional(v.string()), timeZone: v.optional(v.string()), admin: v.optional(v.boolean()) }),
   v.object({ kind: v.literal("bot") }),
   v.object({ kind: v.literal("not-a-member") }),
 );
@@ -22,7 +22,7 @@ export type DirectoryEntry = Infer<typeof directoryEntryValidator>;
 export async function lookup(ctx: QueryCtx, workspace: string, user: ChatUserId): Promise<MemberFacts | undefined> {
   const row = await memberRow(ctx, workspace, user);
   if (row === null) return undefined;
-  if (row.kind === "member") return { kind: "member", member: row._id, timeZone: row.timeZone };
+  if (row.kind === "member") return { kind: "member", member: row._id, timeZone: row.timeZone, admin: row.admin ?? false };
   return { kind: row.kind };
 }
 
@@ -32,7 +32,15 @@ export async function chatUserOf(ctx: QueryCtx, member: MemberId): Promise<{ wor
   return { workspace: row.workspace, user: row.user };
 }
 
-const directoryRecordArgs = { workspace: v.string(), user: v.string(), entry: directoryEntryValidator, asOf: v.number() };
+export async function adminsIn(ctx: QueryCtx, workspace: string): Promise<ChatUserId[]> {
+  const members = await ctx.db
+    .query("members")
+    .withIndex("by_admin", (q) => q.eq("workspace", workspace).eq("admin", true))
+    .collect();
+  return members.filter(({ kind }) => kind === "member").map(({ user }) => user);
+}
+
+export const directoryRecordArgs = { workspace: v.string(), user: v.string(), entry: directoryEntryValidator, asOf: v.number() };
 
 export type DirectoryRecord = ObjectType<typeof directoryRecordArgs>;
 

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
+import { type FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { everyone, inTheSandboxOnly, serveFlags, stubSandboxWithFlags } from "../../testing/flags";
+import { flagsFromPostHog, onForEveryone, onInTheSandboxOnly, postHogDeciding } from "../../testing/flags";
 import { blockActions, buttonIn, publishedHome, publishedHomeBlocks } from "../../testing/slackInteractions";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
@@ -18,9 +18,8 @@ beforeEach(() => {
   vi.stubEnv("SLACK_SIGNING_SECRET", signingSecret);
   vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
   vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
-  stubSandboxWithFlags();
   slack = new FakeSlack().withMember("U_ANN", { profile: { display_name: "Ann" } }).withMember("U_REC");
-  postHog = new FakePostHog();
+  postHog = postHogDeciding();
   vi.stubGlobal("fetch", routedFetch(postHog, slack.fetch));
 });
 
@@ -42,21 +41,21 @@ const plainHome = [
   "context: To add me to a channel, type `/hedgehug` there.",
 ];
 
-type BoardOff = { condition: string; turnOff: (t: Backend) => Promise<void> };
+type BoardOff = { condition: string; turnOff: (t: Backend) => Promise<unknown> };
 
 const boardOff: BoardOff[] = [
   {
     condition: "without the flags key, even when PostHog turned the flag on",
     turnOff: async (t) => {
-      await serveFlags(t, postHog, everyone(boardFlag));
+      await flagsFromPostHog(t, postHog, onForEveryone(boardFlag));
       vi.stubEnv("POSTHOG_PERSONAL_API_KEY", "");
     },
   },
-  { condition: "while PostHog has no everyone-board flag", turnOff: (t) => serveFlags(t, postHog, everyone("another-flag")) },
+  { condition: "while PostHog has no everyone-board flag", turnOff: (t) => flagsFromPostHog(t, postHog, onForEveryone("another-flag")) },
   {
     condition: "in production, while the flag is on in the sandbox only",
     turnOff: async (t) => {
-      await serveFlags(t, postHog, inTheSandboxOnly(boardFlag));
+      await flagsFromPostHog(t, postHog, onInTheSandboxOnly(boardFlag));
       vi.stubEnv("KUDOS_ENVIRONMENT", "production");
     },
   },
@@ -88,11 +87,11 @@ describe("#83: the Everyone board is invisible while everyone-board is off", () 
 
   test("a Leaderboard button left from while the flag was on stores nothing and republishes App Home without tabs", async () => {
     const t = testBackend();
-    await serveFlags(t, postHog, everyone(boardFlag));
+    await flagsFromPostHog(t, postHog, onForEveryone(boardFlag));
     await openHome(t, "U_ANN");
     const leaderboard = buttonIn(publishedHomeBlocks(slack, "U_ANN"), "Leaderboard");
     const settings = buttonIn(publishedHomeBlocks(slack, "U_ANN"), "Settings");
-    await serveFlags(t, postHog, everyone("another-flag"));
+    await flagsFromPostHog(t, postHog, onForEveryone("another-flag"));
 
     await interact(t, blockActions("U_ANN", leaderboard));
     await interact(t, blockActions("U_ANN", settings));
@@ -105,7 +104,7 @@ describe("#83: the Everyone board is invisible while everyone-board is off", () 
 describe("#83: the Everyone board while everyone-board is on", () => {
   test("App Home opens on the Profile tab, with the tab bar above it", async () => {
     const t = testBackend();
-    await serveFlags(t, postHog, inTheSandboxOnly(boardFlag));
+    await flagsFromPostHog(t, postHog, onInTheSandboxOnly(boardFlag));
 
     await openHome(t, "U_ANN");
 
@@ -114,15 +113,15 @@ describe("#83: the Everyone board while everyone-board is on", () => {
 
   test("O35: kudos given while it was off count on the board once it is on, and turning it off and on again rewrites nothing", async () => {
     const t = testBackend();
-    await serveFlags(t, postHog, everyone("another-flag"));
+    await flagsFromPostHog(t, postHog, onForEveryone("another-flag"));
     await giveKudos(t, "U_ANN", 2);
     const countedWhileOff = await storedTotals(t);
 
-    await serveFlags(t, postHog, everyone(boardFlag));
+    await flagsFromPostHog(t, postHog, onForEveryone(boardFlag));
     const shown = await replyText(t, "U_ANN");
-    await serveFlags(t, postHog, everyone("another-flag"));
+    await flagsFromPostHog(t, postHog, onForEveryone("another-flag"));
     await openHome(t, "U_ANN");
-    await serveFlags(t, postHog, everyone(boardFlag));
+    await flagsFromPostHog(t, postHog, onForEveryone(boardFlag));
 
     expect(shown).toBe(["🥇 <@U_ANN> · 2 kudos", "▲ 2 more kudos than this time last week"].join("\n"));
     expect(await replyText(t, "U_ANN")).toBe(shown);
@@ -131,13 +130,13 @@ describe("#83: the Everyone board while everyone-board is on", () => {
 
   test("O36: an exposure is sent once per member and value, wherever the member meets the board", async () => {
     const t = testBackend();
-    await serveFlags(t, postHog, everyone(boardFlag));
+    await flagsFromPostHog(t, postHog, onForEveryone(boardFlag));
     await openHome(t, "U_ANN");
     await openHome(t, "U_ANN");
     await replyText(t, "U_ANN");
     await click(t, "U_ANN", "Leaderboard");
 
-    await serveFlags(t, postHog, everyone("another-flag"));
+    await flagsFromPostHog(t, postHog, onForEveryone("another-flag"));
     await openHome(t, "U_ANN");
     await command(t, "U_ANN", "leaderboard");
     await settle(t);
@@ -151,7 +150,7 @@ describe("#83: the Everyone board while everyone-board is on", () => {
 
   test("O36: a teammate the directory doesn't know yet is looked up after their first /hedgehug leaderboard, and exposed once", async () => {
     const t = testBackend();
-    await serveFlags(t, postHog, everyone(boardFlag));
+    await flagsFromPostHog(t, postHog, onForEveryone(boardFlag));
 
     await replyText(t, "U_ANN");
     await settle(t);
@@ -166,7 +165,7 @@ describe("#83: the Everyone board while everyone-board is on", () => {
 function exposures() {
   return postHog
     .events()
-    .filter(({ event }) => event === "$feature_flag_called")
+    .filter(({ event, properties }) => event === "$feature_flag_called" && properties.$feature_flag === boardFlag)
     .map(({ distinct_id, properties }) => ({
       distinct_id,
       $feature_flag: properties.$feature_flag,

@@ -126,13 +126,14 @@ async function earlierAward(t: Backend, giverUser: string, kudosTo: Record<strin
   const awards: Award[] = [];
   for (const [user, kudos] of Object.entries(kudosTo)) awards.push({ giver, recipient: await memberId(t, user), kudos });
   const ref = { workspace: "T1", conversation: "C1", message };
-  await t.run((ctx) => insertAwards(ctx, ref, awards, day, Date.now()));
+  const inserted = await t.run((ctx) => insertAwards(ctx, ref, awards, day, Date.now()));
   return {
     type: "kudosGiven",
     workspace: "T1",
     message: ref,
     giver,
-    awards,
+    awards: inserted,
+    via: "message",
     kudosEmoji: "hedgehog",
     annotations: {},
     allowance: { dailyOpening: 5, dailyLeft: 0 },

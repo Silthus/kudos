@@ -3,7 +3,10 @@ import { internal } from "../_generated/api";
 import { internalMutation, type QueryCtx } from "../_generated/server";
 import { commandValidator, runCommand } from "../commands/commands";
 import { messageEventValidator } from "../engine/messageEvent";
-import { directoryEntryValidator, record } from "../workspace/directory";
+import { republish } from "../feedback/homes";
+import { xpLevelsShownIn } from "../progression/xpLevels";
+import { directoryEntryValidator, lookup } from "../workspace/directory";
+import { recordPerson } from "./directory";
 import { reportHomeOpened } from "./appHome";
 import { processEvent } from "./processEvent";
 
@@ -31,6 +34,7 @@ export const receiveHomeOpened = internalMutation({
     await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, {
       workspace: receipt.workspace,
       user,
+      opened: await xpLevelsShownIn(ctx, receipt.workspace),
       ...(reported === "unknown-person" && { unreportedOpeningAt: at }),
     });
   },
@@ -41,9 +45,10 @@ export const receiveHomeClick = internalMutation({
   handler: async (ctx, { user, commands, ...receipt }) => {
     if (await isRedelivered(ctx, receipt)) return;
     await ctx.db.insert("slackReceipts", receipt);
-    const ran = [];
-    for (const command of commands) ran.push(await runCommand(ctx, receipt.workspace, user, command));
-    if (ran.includes(true)) await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, { workspace: receipt.workspace, user });
+    const person = await lookup(ctx, receipt.workspace, user);
+    if (person?.kind !== "member") return;
+    for (const command of commands) await runCommand(ctx, receipt.workspace, person, command);
+    await republish(ctx, person.member);
   },
 });
 
@@ -53,7 +58,7 @@ export const receiveMemberChanged = internalMutation({
     const receipt = { workspace: directoryRecord.workspace, eventId };
     if (await isRedelivered(ctx, receipt)) return;
     await ctx.db.insert("slackReceipts", receipt);
-    await record(ctx, directoryRecord);
+    await recordPerson(ctx, directoryRecord);
   },
 });
 

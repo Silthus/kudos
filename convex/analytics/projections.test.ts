@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { kudosGivenEvent } from "../../testing/busEvents";
+import { awardId, kudosGivenEvent } from "../../testing/busEvents";
 import type { AttemptFailedEvent, KudosGivenEvent } from "../bus/events";
 import type { MemberId } from "../workspace/directory";
 import { projectAttemptFailed, projectKudosGiven, projectMemberWelcomed, projectUsage } from "./projections";
@@ -18,7 +18,7 @@ describe("O3: kudos given", () => {
     ["one recipient, one kudos", {}, { recipients: 1, kudos_per_recipient: 1, kudos_total: 1, daily_allowance_left: 2 }],
     [
       "two recipients, two kudos each",
-      { awards: [{ giver: alice, recipient: bob, kudos: 2 }, { giver: alice, recipient: carol, kudos: 2 }], allowance: { dailyOpening: 5, dailyLeft: 1 } },
+      { awards: [{ award: awardId(bob), giver: alice, recipient: bob, kudos: 2 }, { award: awardId(carol), giver: alice, recipient: carol, kudos: 2 }], allowance: { dailyOpening: 5, dailyLeft: 1 } },
       { recipients: 2, kudos_per_recipient: 2, kudos_total: 4, daily_allowance_opening: 5, daily_allowance_left: 1 },
     ],
     ["skipped mentions", { skippedMentions: 3 }, { skipped_mentions: 3 }],
@@ -42,7 +42,7 @@ describe("O3: kudos given", () => {
 
 describe("O3: kudos received", () => {
   test("one per award, on the recipient, with its kudos and whether the attempt was a retry", () => {
-    const event = kudosGiven({ awards: [{ giver: alice, recipient: bob, kudos: 2 }, { giver: alice, recipient: carol, kudos: 2 }], retry: true });
+    const event = kudosGiven({ awards: [{ award: awardId(bob), giver: alice, recipient: bob, kudos: 2 }, { award: awardId(carol), giver: alice, recipient: carol, kudos: 2 }], retry: true });
 
     expect(projectKudosGiven(event).slice(1)).toEqual([
       { event: "kudos received", subject: { member: bob }, at, properties: { kudos: 2, retry: true } },

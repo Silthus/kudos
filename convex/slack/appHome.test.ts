@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { internal } from "../_generated/api";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack, httpStatus, rateLimitedFor } from "../../testing/fakeSlack";
-import { everyone, serveFlags, stubSandboxWithFlags } from "../../testing/flags";
+import { flagsFromPostHog, onForEveryone, postHogDeciding } from "../../testing/flags";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, buttonIn, publishedHome as publishedHomeOf, publishedHomeBlocks } from "../../testing/slackInteractions";
+import { blockActions, buttonInHome, publishedHome } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 
@@ -34,7 +34,7 @@ describe("R45 R46: a member opens App Home", () => {
     const response = await openHome(t, "U_BOB");
 
     expect(response.status).toBe(200);
-    expect(publishedHome("U_BOB")).toEqual([
+    expect(publishedHome(slack, "U_BOB")).toEqual([
       "header: Your kudos",
       "section: You have *3* kudos left today. You get *3* more at midnight.",
       "divider",
@@ -52,8 +52,8 @@ describe("R45 R46: a member opens App Home", () => {
 
     await openHome(t, "U_BOB");
 
-    expect(allowanceIn(publishedHome("U_BOB"))).toBe("section: You have *2* kudos left today. You get *3* more at midnight.");
-    expect(totalsIn(publishedHome("U_BOB"))).toBe(
+    expect(allowanceIn(publishedHome(slack, "U_BOB"))).toBe("section: You have *2* kudos left today. You get *3* more at midnight.");
+    expect(totalsIn(publishedHome(slack, "U_BOB"))).toBe(
       "section fields: *Given this week*\n*1* | *Received this week*\n*2* | *Given in total*\n*1* | *Received in total*\n*2*",
     );
   });
@@ -64,7 +64,7 @@ describe("R45 R46: a member opens App Home", () => {
 
     await openHome(t, "U_ALICE");
 
-    expect(allowanceIn(publishedHome("U_ALICE"))).toBe("section: You've used all your kudos for today. You get *3* more at midnight.");
+    expect(allowanceIn(publishedHome(slack, "U_ALICE"))).toBe("section: You've used all your kudos for today. You get *3* more at midnight.");
   });
 
   test("{left} turns at the member's local midnight, just as the next kudos message sees it", async () => {
@@ -76,10 +76,10 @@ describe("R45 R46: a member opens App Home", () => {
     await giveKudos(t, "U_ALICE", "U_BOB", slackTs(beforeMidnight), ["taco", "taco", "taco"]);
 
     await openHome(t, "U_ALICE");
-    const beforeMidnightHome = allowanceIn(publishedHome("U_ALICE"));
+    const beforeMidnightHome = allowanceIn(publishedHome(slack, "U_ALICE"));
     vi.setSystemTime(afterMidnight);
     await openHome(t, "U_ALICE");
-    const afterMidnightHome = allowanceIn(publishedHome("U_ALICE"));
+    const afterMidnightHome = allowanceIn(publishedHome(slack, "U_ALICE"));
     await giveKudos(t, "U_ALICE", "U_BOB", slackTs(afterMidnight), ["taco", "taco", "taco"]);
 
     expect(beforeMidnightHome).toBe("section: You've used all your kudos for today. You get *3* more at midnight.");
@@ -102,10 +102,10 @@ describe("R45 R46: a member opens App Home", () => {
     await openHome(t, "U_ALICE");
     await openHome(t, "U_BOB");
 
-    expect(totalsIn(publishedHome("U_ALICE"))).toBe(
+    expect(totalsIn(publishedHome(slack, "U_ALICE"))).toBe(
       "section fields: *Given this week*\n*2* | *Received this week*\n*0* | *Given in total*\n*3* | *Received in total*\n*0*",
     );
-    expect(totalsIn(publishedHome("U_BOB"))).toBe(
+    expect(totalsIn(publishedHome(slack, "U_BOB"))).toBe(
       "section fields: *Given this week*\n*0* | *Received this week*\n*0* | *Given in total*\n*0* | *Received in total*\n*3*",
     );
   });
@@ -116,8 +116,8 @@ describe("R45 R46: a member opens App Home", () => {
 
     await openHome(t, "U_BOB");
 
-    expect(allowanceIn(publishedHome("U_BOB"))).toBe("section: You have *5* kudos left today. You get *5* more at midnight.");
-    expect(publishedHome("U_BOB")).toContain(
+    expect(allowanceIn(publishedHome(slack, "U_BOB"))).toBe("section: You have *5* kudos left today. You get *5* more at midnight.");
+    expect(publishedHome(slack, "U_BOB")).toContain(
       "context: To give kudos, mention a teammate and add :pizza: to your message. Each :pizza: gives everyone you mention 1 kudos.",
     );
   });
@@ -134,7 +134,7 @@ describe("R47: someone who isn't a member opens App Home", () => {
 
     await openHome(t, user);
 
-    expect(publishedHome(user)).toEqual(["header: HedgeHug", "section: HedgeHug is for active members of this workspace."]);
+    expect(publishedHome(slack, user)).toEqual(["header: HedgeHug", "section: HedgeHug is for active members of this workspace."]);
   });
 });
 
@@ -153,16 +153,15 @@ describe("WS28: App Home links to the website while it is open", () => {
   let postHog: FakePostHog;
 
   beforeEach(() => {
-    stubSandboxWithFlags();
+    postHog = postHogDeciding();
     vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
     vi.stubEnv("SITE_URL", siteUrl);
-    postHog = new FakePostHog();
     vi.stubGlobal("fetch", routedFetch(postHog, slack.fetch));
   });
 
   async function backendWithWebsite(...flagKeys: string[]) {
     const t = testBackend();
-    await serveFlags(t, postHog, ...flagKeys.map(everyone));
+    await flagsFromPostHog(t, postHog, ...flagKeys.map(onForEveryone));
     await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
     return t;
   }
@@ -172,7 +171,7 @@ describe("WS28: App Home links to the website while it is open", () => {
 
     await openHome(t, "U_BOB");
 
-    expect(publishedHome("U_BOB")).toEqual([
+    expect(publishedHome(slack, "U_BOB")).toEqual([
       "header: Your kudos",
       "section: You have *3* kudos left today. You get *3* more at midnight.",
       "divider",
@@ -188,14 +187,14 @@ describe("WS28: App Home links to the website while it is open", () => {
   test("with the Everyone board's tabs, every tab ends with the link, the tab App Home reopens on included", async () => {
     const t = await backendWithWebsite("website", "everyone-board");
     await openHome(t, "U_BOB");
-    const profileTab = publishedHome("U_BOB");
+    const profileTab = publishedHome(slack, "U_BOB");
 
     await click(t, "U_BOB", "Leaderboard");
-    const leaderboardTab = publishedHome("U_BOB");
+    const leaderboardTab = publishedHome(slack, "U_BOB");
     await click(t, "U_BOB", "Settings");
-    const settingsTab = publishedHome("U_BOB");
+    const settingsTab = publishedHome(slack, "U_BOB");
     await openHome(t, "U_BOB");
-    const reopened = publishedHome("U_BOB");
+    const reopened = publishedHome(slack, "U_BOB");
 
     expect([profileTab, leaderboardTab, settingsTab, reopened].map((home) => [home[1], home.slice(-2)])).toEqual([
       ["header: Your kudos", ["divider", websiteLink]],
@@ -212,7 +211,7 @@ describe("WS28: App Home links to the website while it is open", () => {
 
     await openHome(t, "U_BOB");
 
-    expect(publishedHome("U_BOB")).toContain(websiteLink);
+    expect(publishedHome(slack, "U_BOB")).toContain(websiteLink);
   });
 
   const closed: Array<{ condition: string; flags: string[]; env?: Record<string, string> }> = [
@@ -227,7 +226,7 @@ describe("WS28: App Home links to the website while it is open", () => {
 
     await openHome(t, "U_BOB");
 
-    expect(publishedHome("U_BOB")).toEqual(homeWithoutLink);
+    expect(publishedHome(slack, "U_BOB")).toEqual(homeWithoutLink);
   });
 
   test("someone who isn't a member sees only the members-only line", async () => {
@@ -236,7 +235,7 @@ describe("WS28: App Home links to the website while it is open", () => {
 
     await openHome(t, "U_GONE");
 
-    expect(publishedHome("U_GONE")).toEqual(["header: HedgeHug", "section: HedgeHug is for active members of this workspace."]);
+    expect(publishedHome(slack, "U_GONE")).toEqual(["header: HedgeHug", "section: HedgeHug is for active members of this workspace."]);
   });
 });
 
@@ -261,7 +260,7 @@ describe("R45: publishing App Home through Slack's failures", () => {
 
     const [rateLimitedAt, publishedAt] = slack.timesOf("views.publish");
     expect(publishedAt! - rateLimitedAt!).toBeGreaterThanOrEqual(30_000);
-    expect(publishedHome("U_BOB")[0]).toBe("header: Your kudos");
+    expect(publishedHome(slack, "U_BOB")[0]).toBe("header: Your kudos");
   });
 
   test("a person whose lookup fails is looked up again, then sees their Home", async () => {
@@ -271,7 +270,7 @@ describe("R45: publishing App Home through Slack's failures", () => {
     await openHome(t, "U_BOB");
 
     expect(slack.callsTo("users.info")).toHaveLength(2);
-    expect(publishedHome("U_BOB")[0]).toBe("header: Your kudos");
+    expect(publishedHome(slack, "U_BOB")[0]).toBe("header: Your kudos");
   });
 
   test("a rate-limited lookup is tried again after Slack's Retry-After", async () => {
@@ -282,7 +281,7 @@ describe("R45: publishing App Home through Slack's failures", () => {
 
     const [rateLimitedAt, lookedUpAt] = slack.timesOf("users.info");
     expect(lookedUpAt! - rateLimitedAt!).toBeGreaterThanOrEqual(30_000);
-    expect(publishedHome("U_BOB")[0]).toBe("header: Your kudos");
+    expect(publishedHome(slack, "U_BOB")[0]).toBe("header: Your kudos");
   });
 
   test("a publish that keeps failing is tried 3 times and never again", async () => {
@@ -311,7 +310,7 @@ async function openHome(t: Backend, user: string, options: Parameters<typeof app
 }
 
 async function click(t: Backend, user: string, label: string) {
-  const body = blockActions(user, buttonIn(publishedHomeBlocks(slack, user), label));
+  const body = blockActions(user, buttonInHome(slack, user, label));
   await t.fetch("/slack/interactivity", await signedRequest(body, { contentType: "application/x-www-form-urlencoded" }));
   await settle(t);
 }
@@ -322,16 +321,12 @@ async function giveKudos(t: Backend, giver: string, recipient: string, ts: strin
   await settle(t);
 }
 
-function publishedHome(user: string) {
-  return publishedHomeOf(slack, user);
-}
-
 function allowanceIn(home: string[]) {
-  return home[1];
+  return home.find((line) => line.startsWith("section: You"));
 }
 
 function totalsIn(home: string[]) {
-  return home.find((line) => line.startsWith("section fields: "));
+  return home.find((line) => line.startsWith("section fields: *Given this week*"));
 }
 
 function slackTs(at: Date, secondsLater = 0) {

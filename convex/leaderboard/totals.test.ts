@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import type { KudosGivenEvent } from "../bus/events";
 import { record, type DirectoryEntry } from "../workspace/directory";
 import { testBackend, type Backend } from "../../testing/slackBackend";
@@ -164,13 +165,17 @@ function kudosGiven(giverUser: string, kudosTo: Record<string, number>, { messag
   return async (t: Backend): Promise<KudosGivenEvent> => {
     const giver = await memberId(t, giverUser);
     const awards = [];
-    for (const [user, kudos] of Object.entries(kudosTo)) awards.push({ giver, recipient: await memberId(t, user), kudos });
+    for (const [user, kudos] of Object.entries(kudosTo)) {
+      const recipient = await memberId(t, user);
+      awards.push({ award: await awardRow(t, { message, giver, recipient, kudos, day }), giver, recipient, kudos });
+    }
     return {
       type: "kudosGiven",
       workspace: "T1",
       message: { workspace: "T1", conversation: "C1", message },
       giver,
       awards,
+      via: "message",
       kudosEmoji: "hedgehog",
       annotations: {},
       skippedMentions: 0,
@@ -193,4 +198,10 @@ function everyoneBoard(t: Backend, viewer: string, period?: Period) {
 
 function shown(view: BoardView) {
   return view.rows.map((row) => ("gap" in row ? "…" : `${row.rank} ${row.name}${row.viewer ? " (you)" : ""} ${row.value}`));
+}
+
+type AwardRow = { message: string; giver: Id<"members">; recipient: Id<"members">; kudos: number; day: string };
+
+function awardRow(t: Backend, award: AwardRow) {
+  return t.run((ctx) => ctx.db.insert("awards", { workspace: "T1", conversation: "C1", ...award, at: Date.now() }));
 }

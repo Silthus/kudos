@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { FakePostHog, flagsKey, routedFetch, type FlagDefinition } from "../../testing/fakePostHog";
-import { everyone, inTheSandboxOnly, serveFlags, stubSandboxWithFlags } from "../../testing/flags";
+import { type FakePostHog, flagsKey, routedFetch, type FlagDefinition } from "../../testing/fakePostHog";
+import { flagsFromPostHog, onForEveryone, onInTheSandboxOnly, postHogDeciding } from "../../testing/flags";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { internal } from "../_generated/api";
 import type { MemberId } from "../workspace/directory";
@@ -29,8 +29,7 @@ let postHog: FakePostHog;
 
 beforeEach(() => {
   vi.useFakeTimers({ now });
-  stubSandboxWithFlags();
-  postHog = new FakePostHog();
+  postHog = postHogDeciding();
   vi.stubGlobal("fetch", routedFetch(postHog, () => Promise.reject(new Error("no network in tests"))));
 });
 
@@ -59,7 +58,7 @@ async function rolloutHash(key: string, id: string) {
 }
 
 function definitionsFromPostHog(t: Backend, ...definitions: FlagDefinition[]) {
-  return serveFlags(t, postHog, ...definitions);
+  return flagsFromPostHog(t, postHog, ...definitions);
 }
 
 function readInMutation<V extends string | boolean, S extends "member" | "workspace">(t: Backend, read: Flag<V, S>, subject: SubjectOf<S>) {
@@ -70,7 +69,7 @@ describe("O33: a flag answers its value for the subject", () => {
   test("a flag rolled out to everyone answers on for a member", async () => {
     const t = testBackend();
     const alice = await aMember(t);
-    await definitionsFromPostHog(t, everyone("everyone-board"));
+    await definitionsFromPostHog(t, onForEveryone("everyone-board"));
 
     expect(await readInMutation(t, boardFlag, { member: alice })).toBe(true);
   });
@@ -85,7 +84,7 @@ describe("O33: a flag answers its value for the subject", () => {
   test("O34: a flag on in the sandbox only is on in the sandbox and answers its safe default in production", async () => {
     const t = testBackend();
     const alice = await aMember(t);
-    await definitionsFromPostHog(t, inTheSandboxOnly("everyone-board"));
+    await definitionsFromPostHog(t, onInTheSandboxOnly("everyone-board"));
 
     expect(await readInMutation(t, boardFlag, { member: alice })).toBe(true);
     vi.stubEnv("KUDOS_ENVIRONMENT", "production");
@@ -99,7 +98,7 @@ const cannotBeEvaluated: CannotBeEvaluated[] = [
   {
     condition: "without the flags key, even when PostHog turned the flag on",
     reads: async (t, alice) => {
-      await definitionsFromPostHog(t, everyone("everyone-board"), variantForEveryone("board-layout", "compact"));
+      await definitionsFromPostHog(t, onForEveryone("everyone-board"), variantForEveryone("board-layout", "compact"));
       vi.stubEnv("POSTHOG_PERSONAL_API_KEY", "");
       return [
         [await readInMutation(t, boardFlag, { member: alice }), false],
@@ -114,7 +113,7 @@ const cannotBeEvaluated: CannotBeEvaluated[] = [
   {
     condition: "for a flag PostHog doesn't have",
     reads: async (t, alice) => {
-      await definitionsFromPostHog(t, everyone("another-flag"));
+      await definitionsFromPostHog(t, onForEveryone("another-flag"));
       return [[await readInMutation(t, boardFlag, { member: alice }), false]];
     },
   },
@@ -138,7 +137,7 @@ const cannotBeEvaluated: CannotBeEvaluated[] = [
   {
     condition: "O34: when the environment isn't set, for a flag that targets it",
     reads: async (t, alice) => {
-      await definitionsFromPostHog(t, inTheSandboxOnly("everyone-board"));
+      await definitionsFromPostHog(t, onInTheSandboxOnly("everyone-board"));
       vi.stubEnv("KUDOS_ENVIRONMENT", "");
       return [[await readInMutation(t, boardFlag, { member: alice }), false]];
     },
@@ -146,7 +145,7 @@ const cannotBeEvaluated: CannotBeEvaluated[] = [
   {
     condition: "in a query, for a member who has no analytics ID yet, and the query creates none",
     reads: async (t, alice) => {
-      await definitionsFromPostHog(t, everyone(flagSeamCheck.key));
+      await definitionsFromPostHog(t, onForEveryone(flagSeamCheck.key));
       return [
         [await t.query(internal.analytics.flags.seamCheck, { member: alice }), false],
         [await t.run((ctx) => ctx.db.query("analyticsIds").collect()), []],
@@ -169,7 +168,7 @@ describe("O31 O33 O34", () => {
   test("in a query, a flag answers for a member once a mutation gave them an analytics ID", async () => {
     const t = testBackend();
     const alice = await aMember(t);
-    await definitionsFromPostHog(t, everyone(flagSeamCheck.key));
+    await definitionsFromPostHog(t, onForEveryone(flagSeamCheck.key));
 
     await readInMutation(t, flagSeamCheck, { member: alice });
 

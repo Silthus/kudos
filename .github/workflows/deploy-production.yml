@@ -1,5 +1,5 @@
 # Every push to main deploys it to the production Convex deployment.
-# The deploy key is scoped to that one deployment and reaches only the deploy step.
+# The deploy key is scoped to that one deployment and reaches only the steps that deploy, upload the website and prepare its flag.
 name: Deploy production
 
 on:
@@ -48,5 +48,19 @@ jobs:
       - name: Deploy to the production deployment
         if: steps.tip.outputs.current == 'true'
         run: pnpm exec convex deploy
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_PRODUCTION }}
+
+      # The website is built against this deployment's own URL, then served by its static hosting.
+      - name: Build the website and upload it to the production deployment
+        if: steps.tip.outputs.current == 'true'
+        run: pnpm exec static-hosting upload --build --build-command "pnpm website:build" --dist website/dist
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_PRODUCTION }}
+
+      # The website flag's query path finds only an existing workspace key, so every deploy makes sure it exists.
+      - name: Prepare the website flag's workspace key
+        if: steps.tip.outputs.current == 'true'
+        run: pnpm exec convex run website/flag:prepareWebsiteFlag
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_PRODUCTION }}

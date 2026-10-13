@@ -1,29 +1,41 @@
 import { vi } from "vitest";
 import { components } from "../convex/_generated/api";
-import { flagsKey, postHogHost, projectToken, type FakePostHog, type FlagDefinition } from "./fakePostHog";
+import { FakePostHog, flagsKey, postHogHost, projectToken, routedFetch, type FlagDefinition } from "./fakePostHog";
 import { testBackend, type Backend } from "./slackBackend";
 
-export const everyone = (key: string): FlagDefinition => ({ key, filters: { groups: [{ properties: [], rollout_percentage: 100 }] } });
+export const onForEveryone = (key: string): FlagDefinition => ({ key, filters: { groups: [{ properties: [], rollout_percentage: 100 }] } });
 
-export const inTheSandboxOnly = (key: string): FlagDefinition => ({
+export const offForEveryone = (key: string): FlagDefinition => ({ key, filters: { groups: [{ properties: [], rollout_percentage: 0 }] } });
+
+export const onInTheSandboxOnly = (key: string): FlagDefinition => ({
   key,
   filters: { groups: [{ properties: [{ key: "environment", type: "person", value: ["sandbox"], operator: "exact" }], rollout_percentage: 100 }] },
 });
 
-export function stubSandboxWithFlags() {
+export function postHogDeciding(environment: "sandbox" | "production" = "sandbox") {
   vi.stubEnv("POSTHOG_PROJECT_TOKEN", projectToken);
   vi.stubEnv("POSTHOG_PERSONAL_API_KEY", flagsKey);
-  vi.stubEnv("KUDOS_ENVIRONMENT", "sandbox");
+  vi.stubEnv("KUDOS_ENVIRONMENT", environment);
   vi.stubEnv("POSTHOG_HOST", postHogHost);
+  return new FakePostHog();
 }
 
-export async function serveFlags(t: Backend, postHog: FakePostHog, ...definitions: FlagDefinition[]) {
+export async function flagsFromPostHog(t: Backend, postHog: FakePostHog, ...definitions: FlagDefinition[]) {
   postHog.withFlags(...definitions);
-  await t.action(components.posthog.lib.refreshFlagDefinitions, {});
+  return flagsLoaded(t);
 }
 
-export async function testBackendServing(postHog: FakePostHog, ...definitions: FlagDefinition[]) {
-  const t = testBackend();
-  await serveFlags(t, postHog, ...definitions);
+export function testBackendServing(postHog: FakePostHog, ...definitions: FlagDefinition[]) {
+  return flagsFromPostHog(testBackend(), postHog, ...definitions);
+}
+
+export function flagsOnForEveryone(chatFetch: typeof fetch, ...keys: string[]) {
+  const postHog = postHogDeciding("sandbox").withFlags(...keys.map(onForEveryone));
+  vi.stubGlobal("fetch", routedFetch(postHog, chatFetch));
+  return postHog;
+}
+
+export async function flagsLoaded(t: Backend) {
+  await t.action(components.posthog.lib.refreshFlagDefinitions, {});
   return t;
 }

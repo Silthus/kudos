@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { kudosGivenEvent } from "../../testing/busEvents";
+import { kudosGivenEventWithAward } from "../../testing/busEvents";
 import { FakePostHog, answersWith, failsToConnect, neverAnswers, postHogHost, projectToken, stallsUntilReleased, type BatchRequest } from "../../testing/fakePostHog";
 import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { internal } from "../_generated/api";
@@ -361,11 +361,11 @@ function identity({ uuid, event, distinct_id, timestamp }: BatchRequest["events"
 }
 
 async function kudosGiven(t: Backend): Promise<KudosGivenEvent> {
-  const [giver, recipient] = await t.run(async (ctx) => [
-    await ctx.db.insert("members", { workspace: "T1", user: "U_ALICE", kind: "member" }),
-    await ctx.db.insert("members", { workspace: "T1", user: "U_BOB", kind: "member" }),
-  ]);
-  return kudosGivenEvent(giver!, recipient!, { at: now.getTime() });
+  return t.run(async (ctx) => {
+    const giver = await ctx.db.insert("members", { workspace: "T1", user: "U_ALICE", kind: "member" });
+    const recipient = await ctx.db.insert("members", { workspace: "T1", user: "U_BOB", kind: "member" });
+    return kudosGivenEventWithAward(ctx, giver, recipient, { at: now.getTime() });
+  });
 }
 
 async function outbox(t: Backend) {
