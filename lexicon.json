@@ -79,7 +79,7 @@
     },
     {
       "name": "group aura",
-      "definition": "The effect of a group perk: one member buys it and every member of their primary group who opts in benefits. It follows its owner when they change primary group. Only the strongest aura of each kind counts, however many members own it.",
+      "definition": "The effect of a group perk: one member buys it, and every member who opted in and has the same primary group as its owner benefits. It follows its owner when they change primary group. Only the strongest aura of each kind counts, however many members own it.",
       "rejected": [
         {
           "alternative": "team aura",
@@ -193,7 +193,7 @@
     },
     {
       "name": "sticker book",
-      "definition": "A member's private album of the people they have thanked and the people who have thanked them, one sticker each, with an album for every group to complete: an album is complete once the member has thanked or been thanked by every current member, and it stays complete."
+      "definition": "A member's private album of the people they have thanked and the people who have thanked them, one sticker each, with an album for every group to complete: an album is complete once the member has thanked or been thanked by every other current member of the group, and it stays complete."
     },
     {
       "name": "sticker",
