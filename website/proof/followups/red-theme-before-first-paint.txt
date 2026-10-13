@@ -1,0 +1,82 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/followups/website
+
+ ❯ |website| src/themeBeforeFirstPaint.test.tsx (8 tests | 8 failed) 120ms
+   ❯ V6: the page paints in the member's theme from the first frame (8)
+     × the head runs one blocking script before any stylesheet or module, so it runs before the first paint 8ms
+     × the script's file is named after its content, since the edge caches a public file for a year 1ms
+     × for a first visit on a dark system, the script sets the same theme the theme control settles on 46ms
+     × for a first visit on a light system, the script sets the same theme the theme control settles on 18ms
+     × for dark chosen on a light system, the script sets the same theme the theme control settles on 16ms
+     × for light chosen on a dark system, the script sets the same theme the theme control settles on 15ms
+     × for an unknown stored choice on a dark syst…, the script sets the same theme the theme control settles on 15ms
+     × a browser that refuses storage still gets the system's theme 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/themeBeforeFirstPaint.test.tsx > V6: the page paints in the member's theme from the first frame > the head runs one blocking script before any stylesheet or module, so it runs before the first paint
+Error: the page's head starts with no script
+ ❯ headScript src/themeBeforeFirstPaint.test.tsx:15:52
+     13| function headScript() {
+     14|   const first = indexHtml.head.querySelector("script, link[rel=stylesh…
+     15|   if (!(first instanceof HTMLScriptElement)) throw new Error("the page…
+       |                                                    ^
+     16|   return first;
+     17| }
+ ❯ src/themeBeforeFirstPaint.test.tsx:44:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  |website| src/themeBeforeFirstPaint.test.tsx > V6: the page paints in the member's theme from the first frame > the script's file is named after its content, since the edge caches a public file for a year
+Error: the page's head starts with no script
+ ❯ headScript src/themeBeforeFirstPaint.test.tsx:15:52
+     13| function headScript() {
+     14|   const first = indexHtml.head.querySelector("script, link[rel=stylesh…
+     15|   if (!(first instanceof HTMLScriptElement)) throw new Error("the page…
+       |                                                    ^
+     16|   return first;
+     17| }
+ ❯ scriptSource src/themeBeforeFirstPaint.test.tsx:20:20
+ ❯ src/themeBeforeFirstPaint.test.tsx:51:34
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  |website| src/themeBeforeFirstPaint.test.tsx > V6: the page paints in the member's theme from the first frame > for a first visit on a dark system, the script sets the same theme the theme control settles on
+ FAIL  |website| src/themeBeforeFirstPaint.test.tsx > V6: the page paints in the member's theme from the first frame > for a first visit on a light system, the script sets the same theme the theme control settles on
+ FAIL  |website| src/themeBeforeFirstPaint.test.tsx > V6: the page paints in the member's theme from the first frame > for dark chosen on a light system, the script sets the same theme the theme control settles on
+ FAIL  |website| src/themeBeforeFirstPaint.test.tsx > V6: the page paints in the member's theme from the first frame > for light chosen on a dark system, the script sets the same theme the theme control settles on
+ FAIL  |website| src/themeBeforeFirstPaint.test.tsx > V6: the page paints in the member's theme from the first frame > for an unknown stored choice on a dark syst…, the script sets the same theme the theme control settles on
+Error: the page's head starts with no script
+ ❯ headScript src/themeBeforeFirstPaint.test.tsx:15:52
+     13| function headScript() {
+     14|   const first = indexHtml.head.querySelector("script, link[rel=stylesh…
+     15|   if (!(first instanceof HTMLScriptElement)) throw new Error("the page…
+       |                                                    ^
+     16|   return first;
+     17| }
+ ❯ scriptSource src/themeBeforeFirstPaint.test.tsx:20:20
+ ❯ themeBeforeReact src/themeBeforeFirstPaint.test.tsx:27:16
+ ❯ src/themeBeforeFirstPaint.test.tsx:67:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  |website| src/themeBeforeFirstPaint.test.tsx > V6: the page paints in the member's theme from the first frame > a browser that refuses storage still gets the system's theme
+Error: the page's head starts with no script
+ ❯ headScript src/themeBeforeFirstPaint.test.tsx:15:52
+     13| function headScript() {
+     14|   const first = indexHtml.head.querySelector("script, link[rel=stylesh…
+     15|   if (!(first instanceof HTMLScriptElement)) throw new Error("the page…
+       |                                                    ^
+     16|   return first;
+     17| }
+ ❯ scriptSource src/themeBeforeFirstPaint.test.tsx:20:20
+ ❯ src/themeBeforeFirstPaint.test.tsx:80:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  8 failed (8)
+   Start at  22:30:57
+   Duration  1.93s (import 54%, environment 23%, transform 11%, tests 7%, setup 5%)
+
