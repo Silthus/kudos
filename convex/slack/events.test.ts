@@ -91,10 +91,9 @@ describe("POST /slack/events", () => {
 
   test("R49: the receipt and the processing step share one transaction", async () => {
     const t = testBackend();
-    await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: "U1", kind: "member" }));
-    await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: "U1", kind: "member" }));
+    await withAuthorTwiceInTheDirectory(t);
 
-    await expect(postSigned(t, eventCallback("T1", "Ev1"))).rejects.toThrow();
+    await expect(postSigned(t, eventCallback("T1", "Ev1"))).rejects.toThrow("unique() query returned more than one result from table members");
 
     expect(await receiptsIn(t)).toEqual([]);
   });
@@ -163,6 +162,10 @@ function withByteOrderMark(body: string) {
 
 function minutesBefore(date: Date, minutes: number) {
   return new Date(date.getTime() - minutes * 60 * 1000);
+}
+
+async function withAuthorTwiceInTheDirectory(t: Backend) {
+  for (let copy = 0; copy < 2; copy += 1) await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: "U1", kind: "member" }));
 }
 
 async function receiptsIn(t: Backend) {

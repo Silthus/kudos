@@ -1,8 +1,6 @@
-import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { publish } from "../bus/publish";
-import schema from "../schema";
-import { modules } from "../test.setup";
+import { testBackend, type Backend } from "../../testing/slackBackend";
 import { observe, recheck } from "./engine";
 import type { Mention, MessageEvent } from "./messageEvent";
 
@@ -328,12 +326,6 @@ test("R26: an edit to a message that gave kudos changes no award and spends noth
     { giver: "U_ALICE", recipient: "U_CAROL", kudos: 2, day: "2026-10-13" },
   ]);
 });
-
-type Backend = ReturnType<typeof testBackend>;
-
-function testBackend() {
-  return convexTest(schema, modules);
-}
 
 async function withDirectory(people: Record<string, string | undefined>) {
   const t = testBackend();

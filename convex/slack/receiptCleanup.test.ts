@@ -1,9 +1,7 @@
-import { convexTest } from "convex-test";
 import { makeFunctionReference } from "convex/server";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import crons from "../crons";
-import schema from "../schema";
-import { modules } from "../test.setup";
+import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 
 const day = 24 * 60 * 60 * 1000;
 const start = new Date("2026-10-01T09:00:00Z");
@@ -17,7 +15,7 @@ afterEach(() => {
 });
 
 test("R49: the daily job deletes receipts older than 7 days and keeps the rest", async () => {
-  const t = convexTest(schema, modules);
+  const t = testBackend();
   await receiveAt(t, "Ev-8-days-old", new Date(start.getTime()));
   await receiveAt(t, "Ev-6-days-old", new Date(start.getTime() + 2 * day));
   vi.setSystemTime(start.getTime() + 8 * day);
@@ -28,14 +26,14 @@ test("R49: the daily job deletes receipts older than 7 days and keeps the rest",
 });
 
 test("R49: the daily job deletes every expired receipt, however many there are", async () => {
-  const t = convexTest(schema, modules);
+  const t = testBackend();
   await t.run(async (ctx) => {
     for (let i = 0; i < 1201; i++) await ctx.db.insert("slackReceipts", { workspace: "T1", eventId: `Ev${i}` });
   });
   vi.setSystemTime(start.getTime() + 8 * day);
 
   await t.mutation(dailyJob("delete expired Slack receipts"), {});
-  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  await settle(t);
 
   expect(await eventIdsIn(t)).toEqual([]);
 });
@@ -44,7 +42,6 @@ test("R49: the receipt cleanup runs every day", () => {
   expect(crons.crons["delete expired Slack receipts"]?.schedule).toMatchObject({ type: "daily" });
 });
 
-type Backend = ReturnType<typeof convexTest>;
 
 function dailyJob(name: string) {
   const job = crons.crons[name];

@@ -16,6 +16,9 @@ export const slackError = (error: string): ScriptedAnswer => () => Response.json
 export const httpStatus = (status: number): ScriptedAnswer => () => new Response("upstream trouble", { status });
 export const rateLimitedFor = (seconds: number): ScriptedAnswer => () =>
   Response.json({ ok: false, error: "ratelimited" }, { status: 429, headers: { "retry-after": String(seconds) } });
+export const networkFailure: ScriptedAnswer = () => {
+  throw new TypeError("fetch failed");
+};
 export const timesOut: ScriptedAnswer = () => {
   throw new DOMException("The operation timed out.", "TimeoutError");
 };

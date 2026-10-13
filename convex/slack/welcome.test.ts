@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { FakeSlack } from "../../testing/fakeSlack";
+import { FakeSlack, httpStatus, networkFailure, rateLimitedFor, slackError } from "../../testing/fakeSlack";
 import { post, settle, settleUntil, testBackend, type Backend } from "../../testing/slackBackend";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { emoji, mention, messageEvent, section, type MessageOptions } from "../../testing/slackMessages";
@@ -72,7 +72,7 @@ function welcomeText({ emoji, base }: { emoji: string; base: number }) {
 describe("R44 R34: delivering the welcome message", () => {
   test("a welcome that keeps failing is tried 3 times and never again, and the award and the allowance stand", async () => {
     const t = testBackend();
-    const failures = [networkFailure, serverError, slackError, networkFailure, serverError, slackError];
+    const failures = [networkFailure, httpStatus(500), slackError("internal_error"), networkFailure, httpStatus(500), slackError("internal_error")];
     slack.answering("chat.postMessage", ...failures);
 
     await giveKudos(t, "U_ALICE", "U_BOB", { ts: slackTs(now) });
@@ -86,7 +86,7 @@ describe("R44 R34: delivering the welcome message", () => {
 
   test("a rate-limited welcome is tried again after Slack's Retry-After, and then not again once it arrived", async () => {
     const t = testBackend();
-    slack.answering("chat.postMessage", rateLimited(30), rateLimited(30));
+    slack.answering("chat.postMessage", rateLimitedFor(30), rateLimitedFor(30));
 
     await giveKudos(t, "U_ALICE", "U_BOB");
 
@@ -99,7 +99,7 @@ describe("R44 R34: delivering the welcome message", () => {
 
   test("R35: a rate limit on one welcome holds the next welcome until Slack's Retry-After", async () => {
     const t = testBackend();
-    slack.answering("chat.postMessage", rateLimited(30));
+    slack.answering("chat.postMessage", rateLimitedFor(30));
     await post(t, [section(mention("U_BOB"), emoji("taco"))], { user: "U_ALICE", ts: slackTs(now) });
     await settleUntil(t, new Date(now.getTime() + 10_000));
 
@@ -113,7 +113,7 @@ describe("R44 R34: delivering the welcome message", () => {
 
   test("R35: a welcome Slack can't deliver to that person stops for good", async () => {
     const t = testBackend();
-    slack.answering("chat.postMessage", () => Response.json({ ok: false, error: "channel_not_found" }));
+    slack.answering("chat.postMessage", slackError("channel_not_found"));
 
     await giveKudos(t, "U_ALICE", "U_BOB");
 
@@ -121,12 +121,6 @@ describe("R44 R34: delivering the welcome message", () => {
   });
 });
 
-const networkFailure = () => {
-  throw new TypeError("fetch failed");
-};
-const serverError = () => new Response("upstream error", { status: 500 });
-const slackError = () => Response.json({ ok: false, error: "internal_error" });
-const rateLimited = (seconds: number) => () => new Response(null, { status: 429, headers: { "retry-after": String(seconds) } });
 
 async function giveKudos(t: Backend, giver: string, recipient: string, options: MessageOptions = {}, kudosEmoji = ["taco"]) {
   const blocks = [section(mention(recipient), ...kudosEmoji.map((name) => emoji(name)))];
