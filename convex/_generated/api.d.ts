@@ -26,6 +26,8 @@ import type * as feedback_replies from "../feedback/replies.js";
 import type * as feedback_welcome from "../feedback/welcome.js";
 import type * as http from "../http.js";
 import type * as leaderboard_board from "../leaderboard/board.js";
+import type * as leaderboard_improvement from "../leaderboard/improvement.js";
+import type * as leaderboard_periods from "../leaderboard/periods.js";
 import type * as leaderboard_totals from "../leaderboard/totals.js";
 import type * as parser_parser from "../parser/parser.js";
 import type * as slack_appHome from "../slack/appHome.js";
@@ -70,6 +72,8 @@ declare const fullApi: ApiFromModules<{
   "feedback/welcome": typeof feedback_welcome;
   http: typeof http;
   "leaderboard/board": typeof leaderboard_board;
+  "leaderboard/improvement": typeof leaderboard_improvement;
+  "leaderboard/periods": typeof leaderboard_periods;
   "leaderboard/totals": typeof leaderboard_totals;
   "parser/parser": typeof parser_parser;
   "slack/appHome": typeof slack_appHome;
