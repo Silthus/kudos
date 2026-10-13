@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalAction, type ActionCtx } from "../_generated/server";
 import { renderHome, type HomeAction, type HomeLine, type HomeView } from "../feedback/home";
-import type { HomeFacts } from "../feedback/homes";
+import { stampOf, type HomeFacts } from "../feedback/homes";
 import { attemptArgs, failedAttempt, sendOnce, tryAtMostThreeTimes } from "./delivery";
 import { lookUpUser, refreshUser } from "./directory";
 
@@ -21,8 +21,8 @@ export const publishHome = internalAction({
         const facts = await homeFactsOf(ctx, home);
         if (facts.kind === "unavailable") return failedAttempt(attempt, facts.retryAfterMs);
         const retry = await sendOnce(ctx, home.workspace, "views.publish", { user_id: home.user, view: homeView(renderHome(facts)) }, attempt);
-        if (retry !== null || facts.kind !== "member") return retry;
-        return (await isLatest(ctx, facts)) ? null : { at: Date.now(), attempt: 1 };
+        if (retry !== null) return retry;
+        return (await isLatest(ctx, home, facts)) ? null : { at: Date.now(), attempt: 1 };
       },
       (retry) => ctx.scheduler.runAt(retry.at, internal.slack.appHome.publishHome, { ...home, attempt: retry.attempt }),
     );
@@ -36,8 +36,8 @@ export function appHomeLink(workspace: string, label: string) {
 
 type Unavailable = { kind: "unavailable"; retryAfterMs?: number };
 
-async function isLatest(ctx: ActionCtx, { member, version }: Extract<HomeFacts, { kind: "member" }>) {
-  return (await ctx.runQuery(internal.feedback.homes.versionOf, { member })) === version;
+async function isLatest(ctx: ActionCtx, { workspace, user }: Home, published: HomeFacts) {
+  return stampOf(await ctx.runQuery(internal.feedback.homes.homeOf, { workspace, user })) === stampOf(published);
 }
 
 type Home = { workspace: string; user: string; opened?: boolean };

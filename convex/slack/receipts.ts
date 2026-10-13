@@ -2,7 +2,9 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type QueryCtx } from "../_generated/server";
 import { messageEventValidator } from "../engine/messageEvent";
-import { directoryEntryValidator } from "../workspace/directory";
+import { dispatch, intentValidator } from "../bus/commands";
+import { republish } from "../feedback/homes";
+import { directoryEntryValidator, lookup } from "../workspace/directory";
 import { recordPerson } from "./directory";
 import { processEvent } from "./processEvent";
 
@@ -30,11 +32,14 @@ export const receiveHomeOpened = internalMutation({
 });
 
 export const receiveInteraction = internalMutation({
-  args: { workspace: v.string(), eventId: v.string() },
-  handler: async (ctx, receipt): Promise<boolean> => {
-    if (await isRedelivered(ctx, receipt)) return false;
+  args: { workspace: v.string(), eventId: v.string(), user: v.string(), intents: v.array(intentValidator) },
+  handler: async (ctx, { user, intents, ...receipt }) => {
+    if (await isRedelivered(ctx, receipt)) return;
     await ctx.db.insert("slackReceipts", receipt);
-    return true;
+    const person = await lookup(ctx, receipt.workspace, user);
+    if (person?.kind !== "member") return;
+    for (const intent of intents) await dispatch(ctx, { ...intent, member: person.member });
+    await republish(ctx, person.member);
   },
 });
 

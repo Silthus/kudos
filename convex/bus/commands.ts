@@ -1,7 +1,7 @@
 import type { FunctionReference } from "convex/server";
 import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
-import type { ActionCtx } from "../_generated/server";
+import type { MutationCtx } from "../_generated/server";
 import { homeTabValidator } from "../feedback/home";
 
 export const showHomeTabCommand = v.object({ type: v.literal("showHomeTab"), member: v.id("members"), tab: homeTabValidator });
@@ -19,9 +19,14 @@ export const setAnnouncementChannelCommand = v.object({ type: v.literal("setAnno
 
 export const commandValidator = v.union(showHomeTabCommand, setProgressSettingsCommand, setAnnouncementChannelCommand);
 
+export const intentValidator = v.union(
+  showHomeTabCommand.omit("member"),
+  setProgressSettingsCommand.omit("member"),
+  setAnnouncementChannelCommand.omit("member"),
+);
+
 export type Command = Infer<typeof commandValidator>;
-type WithoutMember<C> = C extends unknown ? Omit<C, "member"> : never;
-export type Intent = WithoutMember<Command>;
+export type Intent = Infer<typeof intentValidator>;
 
 type CommandOf<T extends Command["type"]> = Extract<Command, { type: T }>;
 export type CommandResult = "done" | "refused";
@@ -34,7 +39,7 @@ export const handlers: Registry = {
   setAnnouncementChannel: internal.workspace.settings.setAnnouncementChannel,
 };
 
-export function dispatch<T extends Command["type"]>(ctx: ActionCtx, command: CommandOf<T> & { type: T }): Promise<CommandResult> {
+export function dispatch<T extends Command["type"]>(ctx: MutationCtx, command: CommandOf<T> & { type: T }): Promise<CommandResult> {
   const handler: Handler<T> = handlers[command.type];
   return ctx.runMutation(handler, { command });
 }

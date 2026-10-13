@@ -292,6 +292,40 @@ describe("P69: only workspace admins and owners set the announcement channel", (
   });
 });
 
+describe("P68: App Home follows a member leaving and coming back", () => {
+  test("a member deactivated and then reactivated in Slack sees the members-only line, then their App Home again", async () => {
+    const t = await workspaceWithAllowance(10);
+    await openHome(t, "U_BOB");
+
+    await memberChanged(t, "user_change", { id: "U_BOB", deleted: true });
+    await settle(t);
+    const whileDeactivated = publishedHome(slack, "U_BOB");
+    await memberChanged(t, "user_change", { id: "U_BOB" });
+    await settle(t);
+
+    expect(whileDeactivated).toEqual(["header: HedgeHug", "section: HedgeHug is for active members of this workspace."]);
+    expect(publishedHome(slack, "U_BOB")[0]).toBe("header: Your kudos");
+  });
+
+  test("a members-only publish that lands after the member came back is followed by their App Home", async () => {
+    const t = await workspaceWithAllowance(10);
+    await openHome(t, "U_BOB");
+    await memberChanged(t, "user_change", { id: "U_BOB", deleted: true });
+    await settle(t);
+    const stale = slack.holdNext("views.publish");
+    const stalePublish = t.action(internal.slack.appHome.publishHome, { workspace: "T1", user: "U_BOB" });
+    await stale.reached;
+
+    await memberChanged(t, "user_change", { id: "U_BOB" });
+    await settle(t);
+    stale.release();
+    await stalePublish;
+    await settle(t);
+
+    expect(publishedHome(slack, "U_BOB")[0]).toBe("header: Your kudos");
+  });
+});
+
 describe("R42: an interaction Slack did not sign gets 401 and does nothing", () => {
   test.each([
     ["signed with another secret", (body: string) => signedRequest(body, { ...form, secret: "someone-elses-secret" })],

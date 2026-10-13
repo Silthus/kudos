@@ -45,6 +45,11 @@ export const homeOf = internalQuery({
   },
 });
 
+export function stampOf(facts: HomeFacts | null) {
+  if (facts === null) return "unknown";
+  return facts.kind === "member" ? `member@${facts.version}` : facts.kind;
+}
+
 export const showHomeTab = internalMutation({
   args: { command: showHomeTabCommand },
   handler: async (ctx, { command: { member, tab } }): Promise<CommandResult> => {
@@ -55,11 +60,6 @@ export const showHomeTab = internalMutation({
   },
 });
 
-export const versionOf = internalQuery({
-  args: { member: v.id("members") },
-  handler: async (ctx, { member }): Promise<number> => (await homeRow(ctx, member))?.version ?? 0,
-});
-
 export const refreshHomeOnLevel = internalMutation({
   args: { event: levelReachedEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
@@ -67,17 +67,14 @@ export const refreshHomeOnLevel = internalMutation({
   },
 });
 
-export const refreshHome = internalMutation({
-  args: { member: v.id("members") },
-  handler: async (ctx, { member }): Promise<void> => {
-    await republish(ctx, member);
-  },
-});
-
 export async function republishOnRoleChange(ctx: MutationCtx, before: MemberFacts | undefined, after: MemberFacts | undefined) {
-  if (before?.kind !== "member") return;
-  if (after?.kind === "member" && after.admin === before.admin) return;
-  await republish(ctx, before.member);
+  if (before === undefined || after === undefined || roleOf(before) === roleOf(after)) return;
+  const member = before.kind === "member" ? before.member : after.kind === "member" ? after.member : null;
+  if (member !== null) await republish(ctx, member);
+}
+
+function roleOf(person: MemberFacts) {
+  return person.kind === "member" && person.admin ? "admin" : person.kind;
 }
 
 export async function republish(ctx: MutationCtx, member: MemberId) {
