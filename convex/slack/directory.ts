@@ -2,12 +2,22 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, internalQuery, type ActionCtx, type MutationCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
+import { ReportableError } from "../analytics/exceptions";
 import { awaitedUsers, recheck, type Observation } from "../engine/engine";
 import { messageRefValidator, type MessageRef } from "../engine/messageEvent";
 import { lookup, type DirectoryEntry, type DirectoryRecord } from "../workspace/directory";
 import { readSlack } from "./webApi";
 
-type SlackUser = { id: string; team_id?: string; deleted?: boolean; is_bot?: boolean; tz?: string };
+type SlackUser = {
+  id: string;
+  team_id?: string;
+  deleted?: boolean;
+  is_bot?: boolean;
+  tz?: string;
+  name?: string;
+  real_name?: string;
+  profile?: { display_name?: string; real_name?: string };
+};
 
 export type MemberChanged = { type: "team_join" | "user_change"; user: SlackUser; event_ts: string };
 
@@ -57,6 +67,27 @@ export const recheckMessage = internalMutation({
   },
 });
 
+type UsersPage = { members: SlackUser[]; response_metadata?: { next_cursor?: string } };
+
+export const fillMissingNames = observedAction({
+  args: {},
+  handler: async (ctx) => {
+    let cursor = "";
+    do {
+      const page = await readSlack<UsersPage>("users.list", { limit: "200", ...(cursor && { cursor }) });
+      if (!page.ok) throw new ReportableError(`Slack users.list failed: ${page.error}`);
+      await ctx.runMutation(internal.workspace.directory.nameMembersWithoutName, { names: page.members.flatMap(memberNameOf) });
+      cursor = page.response_metadata?.next_cursor ?? "";
+    } while (cursor !== "");
+  },
+});
+
+function memberNameOf(user: SlackUser) {
+  const workspace = user.team_id ?? "";
+  const entry = directoryEntryOf(user, workspace);
+  return entry.kind === "member" && entry.name ? [{ workspace, user: user.id, name: entry.name }] : [];
+}
+
 export type LookUp = { kind: "found" } | { kind: "failed"; retryAfterMs?: number };
 
 export async function lookUpUser(ctx: ActionCtx, workspace: string, user: string): Promise<LookUp> {
@@ -79,5 +110,10 @@ async function usersInfo(user: string) {
 function directoryEntryOf(user: SlackUser, workspace: string): DirectoryEntry {
   if (user.is_bot || user.id === slackbot) return { kind: "bot" };
   if (user.deleted || user.team_id !== workspace) return { kind: "not-a-member" };
-  return { kind: "member", ...(user.tz && { timeZone: user.tz }) };
+  const name = displayNameOf(user);
+  return { kind: "member", ...(name && { name }), ...(user.tz && { timeZone: user.tz }) };
+}
+
+function displayNameOf(user: SlackUser) {
+  return user.profile?.display_name || user.profile?.real_name || user.real_name || user.name;
 }

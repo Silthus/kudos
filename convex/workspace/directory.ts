@@ -12,7 +12,7 @@ export type MemberFacts =
   | { kind: "not-a-member" };
 
 export const directoryEntryValidator = v.union(
-  v.object({ kind: v.literal("member"), timeZone: v.optional(v.string()) }),
+  v.object({ kind: v.literal("member"), name: v.optional(v.string()), timeZone: v.optional(v.string()) }),
   v.object({ kind: v.literal("bot") }),
   v.object({ kind: v.literal("not-a-member") }),
 );
@@ -40,6 +40,16 @@ export const fillEntry = internalMutation({
   args: directoryRecordArgs,
   handler: async (ctx, directoryRecord) => {
     if ((await memberRow(ctx, directoryRecord.workspace, directoryRecord.user)) === null) await record(ctx, directoryRecord);
+  },
+});
+
+export const nameMembersWithoutName = internalMutation({
+  args: { names: v.array(v.object({ workspace: v.string(), user: v.string(), name: v.string() })) },
+  handler: async (ctx, { names }) => {
+    for (const { workspace, user, name } of names) {
+      const row = await memberRow(ctx, workspace, user);
+      if (row?.kind === "member" && row.name === undefined) await ctx.db.patch(row._id, { name });
+    }
   },
 });
 

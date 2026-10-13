@@ -1,14 +1,21 @@
 # Slack
 
-The Slack adapter, the only code that knows Slack: it verifies and acknowledges Slack's requests, normalizes posted and edited messages into countable content for the engine, keeps the directory from team_join and user_change in the order Slack sent them and fills a person it doesn't know from users.info, delivers the indicator as a reaction, each private reply as an ephemeral to the giver, the welcome message as a DM and App Home as a published view when a member opens it, through one delivery path that retries the indicator until it shows and tries every other send at most 3 times, within Slack's per-method rate limits, and adds the app to a channel with `/hedgehug`, or with `/kudos`, its alias once the manifest registers it. It reports a member's App Home opening, in the mutation that records the event's receipt or, for a person the directory doesn't know yet, once after publishing App Home looks them up, and each command's result, whether or not its reply reaches Slack, looking up a person the directory doesn't know at most 3 times, to the analytics module as usage facts. A usage fact an action records, after looking a person up or for a command, that fails to record is logged with a fixed code and changes nothing the member sees; an opening recorded in the receipt's mutation shares that transaction.
+The Slack adapter, the only code that knows Slack: it verifies and acknowledges Slack's requests, normalizes posted and edited messages into countable content for the engine, keeps the directory from team_join and user_change in the order Slack sent them and fills a person it doesn't know from users.info and, when a maintainer asks, the names it lacks from users.list, delivers the indicator as a reaction, each private reply as an ephemeral to the giver, the welcome message as a DM and App Home as a published view of the member's selected tab when they open it or click one of its buttons, published again when the view changed while it was sent, through one delivery path that retries the indicator until it shows and tries every other send at most 3 times, within Slack's per-method rate limits, adds the app to a channel with `/hedgehug`, or with `/kudos`, its alias once the manifest registers it, answers `/hedgehug leaderboard`, optionally followed by `week`, `month` or `all`, privately with that period's Everyone board while the `everyone-board` flag is on, and as `/hedgehug` while it is off, looking a viewer the directory doesn't know up afterwards, at most 3 times, so the board's exposure reaches them, and turns each App Home button click into the platform-neutral command the button carries, run once per click by its trigger_id. It reports a member's App Home opening, in the mutation that records the event's receipt or, for a person the directory doesn't know yet, once after publishing App Home looks them up, and each command's result, whether or not its reply reaches Slack, looking up a person the directory doesn't know at most 3 times, to the analytics module as usage facts. A usage fact an action records, after looking a person up or for a command, that fails to record is logged with a fixed code and changes nothing the member sees; an opening recorded in the receipt's mutation shares that transaction.
 
 ## entrances
 - route POST /slack/events: Slack delivers an Events API request, an event callback (a message or a member opening App Home) or the URL verification challenge
   handler: slackEvents in convex/slack/events.ts
   trust: slack-request
-- route POST /slack/commands: Slack delivers a slash command a member typed, `/hedgehug` or its alias `/kudos` to add the app to a channel
+- route POST /slack/commands: Slack delivers a slash command a member typed, `/hedgehug` or its alias `/kudos` to add the app to a channel, or with `leaderboard` and an optional `week`, `month` or `all` to see that period's Everyone board
   handler: slackCommands in convex/slack/commands.ts
   trust: slack-request
+- route POST /slack/interactivity: Slack delivers a member's click on an App Home button: a tab, a leaderboard period, or the `Show me on the leaderboards` switch
+  handler: slackInteractivity in convex/slack/interactivity.ts
+  trust: slack-request
+- fill missing names: a maintainer runs fillMissingNames once against a deployment, so members the directory recorded before it kept names get the Slack name a board lists ties by
+  handler: fillMissingNames in convex/slack/directory.ts
+  trust: operator
+  control: none — it reads only Slack's users.list with the deployment's own token and only adds a name to a member row that has none, never overwriting a name or any other field
 
 ## invariants
 - signed Slack requests only: A request to the Slack events route that Slack did not sign records nothing and reaches no domain function.
@@ -42,6 +49,22 @@ The Slack adapter, the only code that knows Slack: it verifies and acknowledges 
   checklist: canonical-encoding dismissed: the signature is checked over the raw form body as received, never over a re-encoding
   checklist: identity-continuity dismissed: the route carries no member identity across a succession
   checklist: separation-of-duties dismissed: no approval policy applies to adding the app to a channel
+- signed Slack interactions only: A click Slack did not sign gets 401, runs no command, stores nothing and makes no Slack call.
+  over: the App Home clicks slackInteractivity receives unsigned, signed with another secret, and signed more than 5 minutes ago
+  via: R48: a click Slack did not sign gets 401 and does nothing
+  because: the route is public, so a forged click must not change a member's settings, take them off the leaderboards or publish anyone's App Home (R48, G22)
+  crossing: slack-request -> domain
+  entrances: route POST /slack/interactivity
+  refuted: slackInteractivity read the body without checking readSignedBody's verdict -> all 3 cases failed, answering 200 instead of 401 (2026-10-13)
+  kinds: identity, credential
+  checklist: capability-authorization dismissed: the signing secret proves only that Slack sent the click; the command always acts on the clicking member, never on a member the payload names
+  checklist: revalidated-permission dismissed: the receipt, the directory lookup of the clicking member and the command run in one mutation scheduled after the acknowledgment
+  checklist: message-authenticity declared as signed Slack interactions only
+  checklist: encrypted-storage dismissed: the signing secret lives only in the deployment's environment variables, never in a row
+  checklist: key-rotation-compatibility dismissed: nothing is encrypted; a rotated signing secret replaces the environment variable at once
+  checklist: canonical-encoding dismissed: the signature is checked over the raw form body as received, never over a re-encoding
+  checklist: identity-continuity dismissed: the route carries no member identity across a succession
+  checklist: separation-of-duties dismissed: no approval policy applies to a member changing their own App Home view or leaderboard setting
 - the indicator converges: After any number of failed, timed-out, rate-limited, repeated or late deliveries, a kudos message shows exactly the latest indicator the app wants on it, and none of the app's earlier ones.
   over: indicator deliveries whose reactions.add or reactions.remove answers an error, an HTTP 5xx or a timeout, a timed-out add that landed, a removal Slack already made, and a desired indicator that changes while a delivery is retrying
   via: R32 R35: the indicator is retried until the message shows it

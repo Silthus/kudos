@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack, httpStatus, rateLimitedFor } from "../../testing/fakeSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { publishedHome as publishedHomeOf } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 
@@ -210,33 +211,8 @@ async function giveKudos(t: Backend, giver: string, recipient: string, ts: strin
   await settle(t);
 }
 
-type TextObject = { type: string; text: string };
-type Block = { type: string; text?: TextObject; fields?: TextObject[]; elements?: TextObject[] };
-type HomeView = { type: string; blocks: Block[] };
-
 function publishedHome(user: string) {
-  const published = slack.callsTo("views.publish").filter((args) => args.user_id === user);
-  const view = published.at(-1)?.view as HomeView | undefined;
-  expect(view?.type).toBe("home");
-  return (view?.blocks ?? []).map(readBlock);
-}
-
-function readBlock(block: Block) {
-  if (block.type === "divider") return "divider";
-  if (block.type === "header") return `header: ${plainText(block.text)}`;
-  if (block.type === "context") return `context: ${block.elements?.map(mrkdwn).join(" ")}`;
-  if (block.fields) return `${block.type} fields: ${block.fields.map(mrkdwn).join(" | ")}`;
-  return `${block.type}: ${mrkdwn(block.text)}`;
-}
-
-function plainText(text: TextObject | undefined) {
-  expect(text?.type).toBe("plain_text");
-  return text?.text;
-}
-
-function mrkdwn(text: TextObject | undefined) {
-  expect(text?.type).toBe("mrkdwn");
-  return text?.text;
+  return publishedHomeOf(slack, user);
 }
 
 function allowanceIn(home: string[]) {

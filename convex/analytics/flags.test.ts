@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { FakePostHog, flagsKey, postHogHost, projectToken, routedFetch, type FlagDefinition } from "../../testing/fakePostHog";
+import { FakePostHog, flagsKey, routedFetch, type FlagDefinition } from "../../testing/fakePostHog";
+import { everyone, inTheSandboxOnly, serveFlags, stubSandboxWithFlags } from "../../testing/flags";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { components, internal } from "../_generated/api";
+import { internal } from "../_generated/api";
 import type { MemberId } from "../workspace/directory";
 import { exposed, flag, flagSeamCheck, type Flag, type SubjectOf } from "./flags";
 
@@ -15,11 +16,6 @@ const layoutFlag = {
   values: ["control", "compact"],
 } as const satisfies Flag<"control" | "compact">;
 
-const everyone = (key: string): FlagDefinition => ({ key, filters: { groups: [{ properties: [], rollout_percentage: 100 }] } });
-const inTheSandboxOnly = (key: string): FlagDefinition => ({
-  key,
-  filters: { groups: [{ properties: [{ key: "environment", type: "person", value: ["sandbox"], operator: "exact" }], rollout_percentage: 100 }] },
-});
 const variantForEveryone = (key: string, variant: string): FlagDefinition => ({
   key,
   filters: { groups: [{ properties: [], rollout_percentage: 100 }], multivariate: { variants: [{ key: variant, rollout_percentage: 100 }] } },
@@ -33,10 +29,7 @@ let postHog: FakePostHog;
 
 beforeEach(() => {
   vi.useFakeTimers({ now });
-  vi.stubEnv("POSTHOG_PROJECT_TOKEN", projectToken);
-  vi.stubEnv("POSTHOG_PERSONAL_API_KEY", flagsKey);
-  vi.stubEnv("KUDOS_ENVIRONMENT", "sandbox");
-  vi.stubEnv("POSTHOG_HOST", postHogHost);
+  stubSandboxWithFlags();
   postHog = new FakePostHog();
   vi.stubGlobal("fetch", routedFetch(postHog, () => Promise.reject(new Error("no network in tests"))));
 });
@@ -65,9 +58,8 @@ async function rolloutHash(key: string, id: string) {
   return parseInt(hex.slice(0, 15), 16) / 0xfffffffffffffff;
 }
 
-async function definitionsFromPostHog(t: Backend, ...definitions: FlagDefinition[]) {
-  postHog.withFlags(...definitions);
-  await t.action(components.posthog.lib.refreshFlagDefinitions, {});
+function definitionsFromPostHog(t: Backend, ...definitions: FlagDefinition[]) {
+  return serveFlags(t, postHog, ...definitions);
 }
 
 function readInMutation<V extends string | boolean, S extends "member" | "workspace">(t: Backend, read: Flag<V, S>, subject: SubjectOf<S>) {
@@ -229,6 +221,17 @@ describe("O36: exposure", () => {
       [inside.id, true],
       [outside.id, false],
     ]);
+  });
+
+  test("without the flags key nothing is evaluated, so nothing is sent", async () => {
+    const t = testBackend();
+    const alice = await aMember(t);
+    vi.stubEnv("POSTHOG_PERSONAL_API_KEY", "");
+
+    await t.run(async (ctx) => exposed(ctx, boardFlag, alice, await flag(ctx, boardFlag, { member: alice })));
+    await settle(t);
+
+    expect(postHog.events()).toEqual([]);
   });
 
   test("with capture off nothing is sent, and the first exposure after capture comes on still is", async () => {

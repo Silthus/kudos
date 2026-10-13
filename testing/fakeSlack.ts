@@ -4,6 +4,8 @@ export type SlackUser = {
   deleted?: boolean;
   is_bot?: boolean;
   tz?: string;
+  real_name?: string;
+  profile?: { display_name?: string; real_name?: string };
 };
 
 export type SlackArgs = Record<string, unknown>;
@@ -35,6 +37,7 @@ export class FakeSlack {
   private readonly scripted = new Map<string, ScriptedAnswer[]>();
   private readonly callTimes = new Map<SlackCall, number>();
   private readonly holds: Array<{ method: string; about: string; meanwhile: () => Promise<void> }> = [];
+  private readonly homesShown = new Map<string, unknown>();
 
   withMember(id: string, options: Partial<SlackUser> = {}) {
     this.users.set(id, { id, team_id: "T1", ...options });
@@ -77,6 +80,10 @@ export class FakeSlack {
     return this.reactionsByMessage.get(`${channel}/${ts}`) ?? [];
   }
 
+  homeShownTo(user: string) {
+    return this.homesShown.get(user);
+  }
+
   ephemeralsTo(user: string) {
     return this.callsTo("chat.postEphemeral").filter((args) => args.user === user);
   }
@@ -116,6 +123,7 @@ export class FakeSlack {
       const hasJoined = Date.now() >= (this.joinTimes.get(field("user")) ?? 0);
       return user && hasJoined ? { ok: true, user } : { ok: false, error: "user_not_found" };
     }
+    if (method === "users.list") return { ok: true, members: [...this.users.values()], response_metadata: { next_cursor: "" } };
     if (method === "reactions.add") {
       const reactions = this.reactionsOn(field("channel"), field("timestamp"));
       if (reactions.includes(field("name"))) return { ok: false, error: "already_reacted" };
@@ -129,7 +137,10 @@ export class FakeSlack {
       return { ok: true };
     }
     if (method === "chat.postEphemeral") return { ok: true, message_ts: "1760349700.000100" };
-    if (method === "views.publish") return { ok: true };
+    if (method === "views.publish") {
+      this.homesShown.set(field("user_id"), args.view);
+      return { ok: true };
+    }
     if (method === "chat.postMessage") return { ok: true, channel: args.channel, ts: "1760349700.000100" };
     return { ok: false, error: "unknown_method" };
   }
