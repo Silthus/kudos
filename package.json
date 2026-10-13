@@ -12,9 +12,15 @@
   },
   "packageManager": "pnpm@12.11.2",
   "devDependencies": {
+    "@edge-runtime/vm": "^5.0.0",
     "@posthog/coherence": "^1.7.2",
     "@types/node": "^26.6.5",
+    "convex-test": "^0.0.61",
     "typescript": "^7.0.2",
+    "vite": "^8.3.4",
     "vitest": "^5.0.3"
+  },
+  "dependencies": {
+    "convex": "^1.46.0"
   }
 }
