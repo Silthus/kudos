@@ -386,20 +386,20 @@ These are proposed declarations. Each ticket writes its part and makes `coherenc
 Each ticket is a sub-issue of map #57, sized to one agent session. Each merges into the conductor's integration branch for this slice (`spec/website-3`), never into `main` (WS27). The branch starts from `spec/website-2` once #137 has landed there, or from `main` if the second slice has shipped by then, and merges `main` as it moves.
 
 Blocking edges (native on GitHub):
-- #137 → 1
-- 1 → 2
-- 1 and 2 → 3
-- 3 → 4
-- 1 → 5
-- 5 → 6
-- 3 and 6 → 7
-- 7 → 8
+- #137 → #143
+- #143 → #144
+- #143 and #144 → #145
+- #145 → #146
+- #143 → #147
+- #147 → #148
+- #145 and #148 → #149
+- #149 → #150
 
 **Part A, the unlock path**
-1. **The home's feature cards read their unlock state.** `getMyProfile.features`, `leaderboard` derived from it, the three card groups, and the nav of open pages. Coherence: *the website shows only shipped features*, *the website's feature states are Unlocks' facts*. WS55–WS60. Blocked by #137.
-2. **The website's first command: open a ready feature.** `memberMutation` with its read-only flag read, `openFeature` behind WS55's gate and through D17 with App Home's republish, WS10's list, the Commands spec's summary, and the Coherence entrance and invariants (*website commands pass one guard*, *a website command never launches unlocks*, *a website command is a D17 command*, *opening on the website grants nothing*). WS61–WS64. Blocked by 1.
-3. **The crate moment.** The crate on the home, the reveal dialog, seen state and Replay, the ready pill, and the ready page in place on `/leaderboard`. WS65–WS68, WS75. Blocked by 1 and 2.
-4. **Prove the unlock path on the sandbox.** Merge `origin/main`, deploy the integration branch to `different-dog-467` (the first slice's rules 1 and 2 for the shared sandbox), and check there:
+1. [#143](https://github.com/Silthus/kudos/issues/143) **The home's feature cards read their unlock state.** `getMyProfile.features`, `leaderboard` derived from it, the three card groups, and the nav of open pages. Coherence: *the website shows only shipped features*, *the website's feature states are Unlocks' facts*. WS55–WS60. Blocked by #137.
+2. [#144](https://github.com/Silthus/kudos/issues/144) **The website's first command: open a ready feature.** `memberMutation` with its read-only flag read, `openFeature` behind WS55's gate and through D17 with App Home's republish, WS10's list, the Commands spec's summary, and the Coherence entrance and invariants (*website commands pass one guard*, *a website command never launches unlocks*, *a website command is a D17 command*, *opening on the website grants nothing*). WS61–WS64. Blocked by 1.
+3. [#145](https://github.com/Silthus/kudos/issues/145) **The crate moment.** The crate on the home, the reveal dialog, seen state and Replay, the ready pill, and the ready page in place on `/leaderboard`. WS65–WS68, WS75. Blocked by 1 and 2.
+4. [#146](https://github.com/Silthus/kudos/issues/146) **Prove the unlock path on the sandbox.** Merge `origin/main`, deploy the integration branch to `different-dog-467` (the first slice's rules 1 and 2 for the shared sandbox), and check there:
    - a member below level 3 sees `Unlocks at level 3`;
    - a ready member opens the Leaderboard on the website, and App Home drops its crate;
    - a grandfathered member sees it open;
@@ -409,10 +409,10 @@ Blocking edges (native on GitHub):
 
 **Part B, quests** (each starts only once map #1's #129 has merged to `main`)
 
-5. **The quests read.** `getQuests` with `waiting`, `getMyProfile.journey` with the website-first projection, the `seen` keys, and any additive export `convex/quests/` needs for WS70–WS71 (cross-map need 1). Coherence: entrance `query getQuests`, invariant *quests are invisible where they don't apply*. WS69–WS71. Blocked by 1, and by #129 cross-map.
-6. **The Journey panel and the quests page.** The home's Journey panel, the Quests card's link, `/quests` with its cards, empty state and `How quests work`, and the nav item. WS72–WS73, WS75. Blocked by 5.
-7. **Open a quest crate on the website.** `openQuestCrate` through D17, quest and Journey crates in the reveal, and the ready pill counting them. WS74–WS75. Blocked by 3 and 6.
-8. **Prove quests on the sandbox.** As ticket 4, checking:
+5. [#147](https://github.com/Silthus/kudos/issues/147) **The quests read.** `getQuests` with `waiting`, `getMyProfile.journey` with the website-first projection, the `seen` keys, and any additive export `convex/quests/` needs for WS70–WS71 (cross-map need 1). Coherence: entrance `query getQuests`, invariant *quests are invisible where they don't apply*. WS69–WS71. Blocked by 1, and by #129 cross-map.
+6. [#148](https://github.com/Silthus/kudos/issues/148) **The Journey panel and the quests page.** The home's Journey panel, the Quests card's link, `/quests` with its cards, empty state and `How quests work`, and the nav item. WS72–WS73, WS75. Blocked by 5.
+7. [#149](https://github.com/Silthus/kudos/issues/149) **Open a quest crate on the website.** `openQuestCrate` through D17, quest and Journey crates in the reveal, and the ready pill counting them. WS74–WS75. Blocked by 3 and 6.
+8. [#150](https://github.com/Silthus/kudos/issues/150) **Prove quests on the sandbox.** As ticket 4, checking:
    - the Journey's first step, finished by a kudos that says why;
    - its crate opened on the website;
    - the week's quests with progress;
