@@ -10,7 +10,7 @@ Every ticket is a reviewed pull request, tested outside-in at the spec's seams, 
 flowchart LR
   CORE["Core loop shipped (#46)"] --> T1["1 This week's board in /kudos leaderboard"]
   T1 --> T2["2 Periods and the improvement line"]
-  T1 --> T3["3 The Leaderboard tab and leaving the boards"]
+  T2 --> T3["3 The Leaderboard tab and leaving the boards"]
   T1 --> T4["4 Earlier kudos count on the board"]
   T2 --> SHIP["ship (conductor)"]
   T3 --> SHIP
@@ -28,7 +28,7 @@ flowchart LR
 **Acceptance criteria**
 - [ ] `/kudos leaderboard` replies privately, in any conversation, with this week's Everyone board: rows `{medal} {name} · {n} kudos`, ranked by kudos given this week by allowance day, chime-ins included once they exist (G13, G23, copy).
 - [ ] Received kudos never change the board (G13).
-- [ ] The window follows G17: ranks 1–3 plus the viewer with three above and three below, the first ten rows when the viewer is 7th or better, one `…` at a gap; a viewer who gave nothing sees the top 3 and `Give kudos this week to join the board.`
+- [ ] The window follows G17 on positions: positions 1–3 plus the viewer with three above and three below, the first ten positions when the viewer is 7th or better, one `…` at a gap, never more than ten rows even when many people tie; a viewer who gave nothing sees the top 3 and `Give kudos this week to join the board.` Tested at positions 1, 7, 8 and with eleven people tied at rank 1.
 - [ ] Equal totals share a rank and list by name (G16); people who aren't members (R5) are never on it (G15).
 - [ ] Delivering the same `kudosGiven` twice, or retrying the subscriber, counts the award once (G44).
 - [ ] A week boundary is tested in two time zones: an award counts in its giver's allowance day's week (G14 periods).
@@ -46,7 +46,7 @@ flowchart LR
 
 **Acceptance criteria**
 - [ ] `/kudos leaderboard month` and `/kudos leaderboard all` show those periods; `week` and no argument show this week (G23).
-- [ ] With a gain above 0 the viewer sees `▲ {gain} more kudos than this time last week`, plus ` · ▲ {places} places` when their rank is better than on last week's board up to the same weekday; the month compares up to the same day of last month, or its last day (G18).
+- [ ] With a gain above 0 the viewer sees `▲ {gain} more kudos than this time last week` under the Everyone board, plus ` · ▲ {places} places` when they were on last week's board up to the same weekday and their position is better now; a first-time giver with no position last week gets the gain without places; the month compares up to the same day of last month, or its last day (G18).
 - [ ] Without a gain, the viewer with a completed period behind them sees `Your best week so far: {n} kudos.` (or month); otherwise no line. No line ever states a loss; all time has no line (G18).
 - [ ] Tested with fake timers across a Monday, a month end, and a 31-day month against a 30-day one, in two time zones.
 
@@ -54,7 +54,7 @@ flowchart LR
 
 ## 3. The Leaderboard tab and leaving the boards
 
-**Blocked by:** 1. Can run beside 2 and 4.
+**Blocked by:** 2 (the tab renders every period). Can run beside 4.
 
 **What to build:** the board in App Home and a way to step off it. It adds the Leaderboard tab with `This week`, `This month` and `All time` buttons rendering the same board view as `/kudos leaderboard`, and `Show me on the leaderboards` in Settings. Unless progression stopping point 1 (#25) built them first, it also builds the App Home tab bar (the minimal App Home's contents become the Profile tab), the `/slack/interactivity` route with signature checks, the command registry (D17) and the manifest's interactivity URL.
 
@@ -88,5 +88,6 @@ flowchart LR
 ## Calls for this plan (accepted)
 
 - **The backfill is its own ticket (4)**, as in progression, so ticket 1 stays a pure tracer bullet.
+- **Ticket 3 waits for ticket 2** so the tab renders every period from the start; ticket 4 runs beside both.
 - **The tab bar and interactivity go to ticket 3, conditionally**: whichever of ticket 3 and progression's #25 lands first builds them, and the other only adds its tab.
 - **No groups, no peer line, no profile card here**: they are stopping points 2 and 3.
