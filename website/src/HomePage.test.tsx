@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { shellFixtures } from "./shell";
 import { renderApp } from "./test/renderApp";
@@ -15,7 +15,7 @@ function main() {
 }
 
 function thankInSlack() {
-  return within(main()).getByRole("link", { name: "Thank someone in Slack" });
+  return within(main()).getByRole("link", { name: "Thank someone in Slack (opens in a new tab)" });
 }
 
 function comesBefore(first: Element, second: Element) {
@@ -67,7 +67,7 @@ describe("WS21 V19: the member's face", () => {
   const cutout = "https://res.cloudinary.com/posthog-test/image/upload/c_limit,w_160,f_auto,q_auto/v1/sam.png";
 
   it("shows the member's company profile cutout on its own colour in the hero, the profile card and the avatar menu", () => {
-    renderApp({ ...shellFixtures.member, face: { kind: "company-profile", image: cutout, colour: "#8567FF" } });
+    renderApp({ ...shellFixtures.member, face: { kind: "company-profile", image: cutout, colour: "#8567FF", initials: "SE" } });
     const faces = document.querySelectorAll(`img[src="${cutout}"]`);
     expect(faces).toHaveLength(3);
     for (const face of faces) {
@@ -75,6 +75,18 @@ describe("WS21 V19: the member's face", () => {
       expect(face).toHaveStyle({ backgroundColor: "#8567FF" });
     }
     expect(screen.queryByText("SE")).not.toBeInTheDocument();
+  });
+
+  it.each([
+    { kind: "a Slack picture", face: { kind: "slack", image: "https://secure.gravatar.com/avatar/sam.png", initials: "SE" } as const },
+    { kind: "a company profile cutout", face: { kind: "company-profile", image: cutout, colour: "#8567FF", initials: "SE" } as const },
+  ])("falls back to the member's initials wherever $kind fails to load", ({ face }) => {
+    renderApp({ ...shellFixtures.member, face });
+
+    for (const image of document.querySelectorAll(`img[src="${face.image}"]`)) fireEvent.error(image);
+
+    expect(document.querySelectorAll("img[src]")).toHaveLength(0);
+    expect(screen.getAllByText("SE")).toHaveLength(3);
   });
 });
 
@@ -112,7 +124,7 @@ describe("WS19: the later features are plain locked cards", () => {
 describe("WS20: a quiet week", () => {
   it("has Max point back to thanking someone in Slack, with the one action and no reward", () => {
     renderApp(shellFixtures.memberWithAQuietWeek);
-    expect(within(main()).getByText("No kudos yet this week. Thank someone in Slack for something they did.")).toBeInTheDocument();
+    expect(within(main()).getByText("No kudos yet this week, so thank someone in Slack for something they did.")).toBeInTheDocument();
     expect(within(main()).queryByText(/This week you gave/)).not.toBeInTheDocument();
     expect(within(main()).getAllByRole("link")).toEqual([thankInSlack()]);
     const hero = within(main()).getByRole("region", { name: "Thank someone for work you noticed" });

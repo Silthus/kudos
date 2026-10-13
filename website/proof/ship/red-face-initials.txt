@@ -1,0 +1,66 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/ship-website
+
+ ❯ |convex| convex/companyProfiles/faces.test.ts (25 tests | 1 failed | 24 skipped) 90ms
+   ❯ WS21 V19 V21: a member's face is their company profile cutout on its colour (9)
+     × a member's company profile face carries their initials for when its cutout fails to load 88ms
+ ❯ |convex| convex/website/profile.test.ts (21 tests | 1 failed | 20 skipped) 87ms
+   ❯ website reads pass one guard (16)
+     ❯ WS9 WS11 WS14: every read checks the live session, the workspace and the directory, in that order (10)
+       × a member's Slack picture carries their initials for when it fails to load 86ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/companyProfiles/faces.test.ts > WS21 V19 V21: a member's face is their company profile cutout on its colour > a member's company profile face carries their initials for when its cutout fails to load
+AssertionError: expected { colour: '#8567FF', …(2) } to match object { kind: 'company-profile', …(1) }
+(2 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "initials": "WH",
+    "kind": "company-profile",
+  }
+
+ ❯ convex/companyProfiles/faces.test.ts:95:32
+     93|     await syncCompanyProfiles();
+     94|
+     95|     expect(await faceOf(wren)).toMatchObject({ kind: "company-profile"…
+       |                                ^
+     96|   });
+     97|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |convex| convex/website/profile.test.ts > website reads pass one guard > WS9 WS11 WS14: every read checks the live session, the workspace and the directory, in that order > a member's Slack picture carries their initials for when it fails to load
+AssertionError: expected { allowance: { base: 3, …(2) }, …(7) } to match object { face: { kind: 'slack', …(2) } }
+(14 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "face": {
+      "image": "https://avatars.slack-edge.com/juno.png",
+-     "initials": "JW",
+      "kind": "slack",
+    },
+  }
+
+ ❯ convex/website/profile.test.ts:159:43
+    157|       const { asSignedIn } = await aSession(t, juno);
+    158|
+    159|       expect(await myProfile(asSignedIn)).toMatchObject({ face: { kind…
+       |                                           ^
+    160|     });
+    161|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  2 failed | 44 skipped (46)
+   Start at  21:55:48
+   Duration  634ms (transform 47%, import 28%, tests 16%, environment 8%, worker 1%)
+

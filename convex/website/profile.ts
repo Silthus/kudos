@@ -6,8 +6,8 @@ import { followTheClock } from "./clock";
 import { memberQuery, type Denial, type VerifiedMember } from "./memberQuery";
 
 export type Face =
-  | { kind: "company-profile"; image: string; colour: string }
-  | { kind: "slack"; image: string }
+  | { kind: "company-profile"; image: string; colour: string; initials: string }
+  | { kind: "slack"; image: string; initials: string }
   | { kind: "initials"; initials: string };
 
 export type Kudos = { given: number; received: number };
@@ -42,10 +42,11 @@ export const getMyProfile = memberQuery(async (ctx, me): Promise<MemberProfile |
 });
 
 async function faceOf(ctx: QueryCtx, me: VerifiedMember): Promise<Face> {
+  const initials = initialsOf(me);
   const companyFace = await companyFaceOf(ctx, realNameOf(me));
-  if (companyFace !== undefined) return { kind: "company-profile", ...companyFace };
-  if (me.image !== undefined) return { kind: "slack", image: me.image };
-  return { kind: "initials", initials: initialsOf(me) };
+  if (companyFace !== undefined) return { kind: "company-profile", ...companyFace, initials };
+  if (me.image !== undefined) return { kind: "slack", image: me.image, initials };
+  return { kind: "initials", initials };
 }
 
 function realNameOf({ name, givenName, familyName }: VerifiedMember) {

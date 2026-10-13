@@ -152,6 +152,13 @@ describe("website reads pass one guard", () => {
       expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", name: "Juno Whitlock", face: { kind: "slack", image: juno.image } });
     });
 
+    test("a member's Slack picture carries their initials for when it fails to load", async () => {
+      await aMember(t, juno.user);
+      const { asSignedIn } = await aSession(t, juno);
+
+      expect(await myProfile(asSignedIn)).toMatchObject({ face: { kind: "slack", image: juno.image, initials: "JW" } });
+    });
+
     test("a member without a Slack picture reads their initials", async () => {
       await aMember(t, juno.user);
       const { asSignedIn } = await aSession(t, { user: juno.user, name: "Juno Whitlock" });
@@ -176,7 +183,7 @@ describe("WS13 WS15 WS18: a member's home answer projects their own homeFacts", 
     expect(await myProfile(asSignedIn)).toEqual({
       kind: "member",
       name: "Juno Whitlock",
-      face: { kind: "slack", image: juno.image },
+      face: { kind: "slack", image: juno.image, initials: "JW" },
       kudosEmoji: "taco",
       allowance: { left: 1, base: 3, refillsAt: Date.parse("2026-10-14T00:00:00Z") },
       thisWeek: { given: 2, received: 0 },

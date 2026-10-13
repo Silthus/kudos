@@ -9,7 +9,7 @@ import { api, internal } from "../_generated/api";
 const wren = { user: "U_WREN", name: "Wren Halloway", image: "https://avatars.slack-edge.com/wren.png" };
 const wrenOnTheTeamPage = { id: 1, firstName: "Wren", lastName: "Halloway", colour: "lilac", cutout: aCutout("wren") };
 const oriel = { id: 2, firstName: "Oriel", lastName: "Pemberton", colour: "teal", cutout: aCutout("oriel") };
-const wrensFace = { kind: "company-profile", image: "https://res.cloudinary.com/posthog-test/image/upload/c_limit,w_160,f_auto,q_auto/v1/wren.png", colour: "#8567FF" };
+const wrensFace = { kind: "company-profile", image: "https://res.cloudinary.com/posthog-test/image/upload/c_limit,w_160,f_auto,q_auto/v1/wren.png", colour: "#8567FF", initials: "WH" };
 
 let postHogCom: FakePostHogCom;
 let t: Backend;
@@ -81,6 +81,20 @@ describe("WS21 V19 V21: a member's face is their company profile cutout on its c
     expect(await faceOf(wren)).toEqual({ ...wrensFace, colour: "#EEEFE9" });
   });
 
+  test("a profile whose colour names no posthog.com colour, even an inherited one like constructor, sits on the neutral tan", async () => {
+    postHogCom.withTeams({ slug: "analytics", profiles: [{ ...wrenOnTheTeamPage, colour: "constructor" }] });
+    await syncCompanyProfiles();
+
+    expect(await faceOf(wren)).toEqual({ ...wrensFace, colour: "#EEEFE9" });
+  });
+
+  test("a member's company profile face carries their initials for when its cutout fails to load", async () => {
+    postHogCom.withTeams({ slug: "analytics", profiles: [wrenOnTheTeamPage] });
+    await syncCompanyProfiles();
+
+    expect(await faceOf(wren)).toMatchObject({ kind: "company-profile", initials: "WH" });
+  });
+
   test("a profile on a team without a slug is still a face", async () => {
     postHogCom.withTeams({ slug: null, profiles: [wrenOnTheTeamPage] });
     await syncCompanyProfiles();
@@ -101,14 +115,14 @@ describe("WS21 V19 V21: without exactly one company profile the face falls back"
     postHogCom.withTeams({ slug: "analytics", profiles: [wrenOnTheTeamPage, { ...wrenOnTheTeamPage, id: 2, cutout: aCutout("another-wren") }] });
     await syncCompanyProfiles();
 
-    expect(await faceOf(wren)).toEqual({ kind: "slack", image: wren.image });
+    expect(await faceOf(wren)).toEqual({ kind: "slack", image: wren.image, initials: "WH" });
   });
 
   test("no company profile with the member's name falls back to the Slack picture, then initials", async () => {
     postHogCom.withTeams({ slug: "analytics", profiles: [oriel] });
     await syncCompanyProfiles();
 
-    expect(await faceOf(wren)).toEqual({ kind: "slack", image: wren.image });
+    expect(await faceOf(wren)).toEqual({ kind: "slack", image: wren.image, initials: "WH" });
     expect(await faceOf({ user: "U_WREN_TOO", name: "Wren Halloway" })).toEqual({ kind: "initials", initials: "WH" });
   });
 
@@ -116,14 +130,14 @@ describe("WS21 V19 V21: without exactly one company profile the face falls back"
     postHogCom.withTeams({ slug: "analytics", profiles: [wrenOnTheTeamPage, { ...wrenOnTheTeamPage, id: 2, cutout: null }] });
     await syncCompanyProfiles();
 
-    expect(await faceOf(wren)).toEqual({ kind: "slack", image: wren.image });
+    expect(await faceOf(wren)).toEqual({ kind: "slack", image: wren.image, initials: "WH" });
   });
 
   test("a profile whose cutout isn't a Cloudinary PNG is no face", async () => {
     postHogCom.withTeams({ slug: "analytics", profiles: [{ ...wrenOnTheTeamPage, cutout: "https://elsewhere.example/wren.png" }, { ...oriel, cutout: null }] });
     await syncCompanyProfiles();
 
-    expect(await faceOf(wren)).toEqual({ kind: "slack", image: wren.image });
+    expect(await faceOf(wren)).toEqual({ kind: "slack", image: wren.image, initials: "WH" });
   });
 
   test("a profile gone from posthog.com no longer matches after the next good read", async () => {
@@ -132,7 +146,7 @@ describe("WS21 V19 V21: without exactly one company profile the face falls back"
     postHogCom.withTeams({ slug: "analytics", profiles: [oriel] });
     await syncCompanyProfiles();
 
-    expect(await faceOf(wren)).toEqual({ kind: "slack", image: wren.image });
+    expect(await faceOf(wren)).toEqual({ kind: "slack", image: wren.image, initials: "WH" });
   });
 });
 
@@ -165,6 +179,7 @@ describe("WS22: a failed posthog.com read keeps the previous profiles", () => {
   const inconsistentLaterPages = {
     "declares fewer pages than the first": (asPostHogComWould: () => Response) => withPagination(asPostHogComWould, { page: 2, pageCount: 2 }),
     "answers as the first page again": (asPostHogComWould: () => Response) => withPagination(asPostHogComWould, { page: 1, pageCount: 3 }),
+    "answers no teams": () => Response.json({ data: [], meta: { pagination: { page: 2, pageCount: 3 } } }),
   } satisfies Record<string, ScriptedAnswer>;
 
   test.each(Object.entries(inconsistentLaterPages))("a later page that %s keeps the previous profiles as malformed", async (_, answer) => {
