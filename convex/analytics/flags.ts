@@ -8,16 +8,20 @@ import { analyticsIdOf, existingAnalyticsId, existingWorkspaceKey, record, works
 
 type FlagValue = string | boolean;
 
-export type Flag<V extends FlagValue> = { key: string; subject: "member" | "workspace"; safeDefault: V; values: readonly V[] };
+type SubjectKind = "member" | "workspace";
+
+export type Flag<V extends FlagValue, S extends SubjectKind = SubjectKind> = { key: string; subject: S; safeDefault: V; values: readonly V[] };
+
+export type SubjectOf<S extends SubjectKind> = S extends "member" ? { member: MemberId } : { workspace: string };
 
 export const flagSeamCheck = { key: "kudos-flag-seam-check", subject: "member", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
 
 const postHog = new PostHog(components.posthog);
 
-export async function flag<V extends FlagValue>(ctx: QueryCtx | MutationCtx, read: Flag<V>, subject: MemberId | string): Promise<V> {
+export async function flag<V extends FlagValue, S extends SubjectKind>(ctx: QueryCtx | MutationCtx, read: Flag<V, S>, subject: SubjectOf<S>): Promise<V> {
   if (!flagsKeySet()) return read.safeDefault;
   try {
-    const distinctId = await distinctIdOf(ctx, read, subject);
+    const distinctId = await distinctIdOf(ctx, subject);
     if (distinctId === null) return read.safeDefault;
     const value = await postHog.getFeatureFlag(ctx, { key: read.key, distinctId, personProperties: personProperties() });
     return declaredValue(read, value);
@@ -27,7 +31,7 @@ export async function flag<V extends FlagValue>(ctx: QueryCtx | MutationCtx, rea
   }
 }
 
-export async function exposed<V extends FlagValue>(ctx: MutationCtx, read: Flag<V>, member: MemberId, value: V): Promise<void> {
+export async function exposed<V extends FlagValue>(ctx: MutationCtx, read: Flag<V>, member: MemberId, value: NoInfer<V>): Promise<void> {
   if (captureSettings() === null) return;
   const exposure = { member, flag: read.key, value };
   const earlier = await ctx.db
@@ -50,19 +54,16 @@ export async function exposed<V extends FlagValue>(ctx: MutationCtx, read: Flag<
 export const seamCheck = internalQuery({
   args: { member: v.id("members") },
   returns: v.boolean(),
-  handler: (ctx, { member }) => flag(ctx, flagSeamCheck, member),
+  handler: (ctx, { member }) => flag(ctx, flagSeamCheck, { member }),
 });
 
 function flagsKeySet() {
   return (process.env.POSTHOG_PERSONAL_API_KEY ?? "").trim() !== "";
 }
 
-async function distinctIdOf(ctx: QueryCtx | MutationCtx, read: Flag<FlagValue>, subject: MemberId | string) {
-  if (read.subject === "member") {
-    const member = subject as MemberId;
-    return canWrite(ctx) ? analyticsIdOf(ctx, member) : existingAnalyticsId(ctx, member);
-  }
-  return canWrite(ctx) ? workspaceKeyOf(ctx, subject) : existingWorkspaceKey(ctx, subject);
+async function distinctIdOf(ctx: QueryCtx | MutationCtx, subject: SubjectOf<SubjectKind>) {
+  if ("member" in subject) return canWrite(ctx) ? analyticsIdOf(ctx, subject.member) : existingAnalyticsId(ctx, subject.member);
+  return canWrite(ctx) ? workspaceKeyOf(ctx, subject.workspace) : existingWorkspaceKey(ctx, subject.workspace);
 }
 
 function canWrite(ctx: QueryCtx | MutationCtx): ctx is MutationCtx {

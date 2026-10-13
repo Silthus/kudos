@@ -3,7 +3,7 @@ import { FakePostHog, flagsKey, postHogHost, projectToken, routedFetch, type Fla
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { components, internal } from "../_generated/api";
 import type { MemberId } from "../workspace/directory";
-import { exposed, flag, flagSeamCheck, type Flag } from "./flags";
+import { exposed, flag, flagSeamCheck, type Flag, type SubjectOf } from "./flags";
 
 const now = new Date("2026-10-13T10:00:00Z");
 
@@ -51,12 +51,26 @@ async function aMember(t: Backend, user = "U_ALICE") {
   return t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user, kind: "member" }));
 }
 
+type Hashed = { id: string; hash: number };
+
+async function sortedByRolloutHash(key: string, [first, second]: [string, string]): Promise<[Hashed, Hashed]> {
+  const a = { id: first, hash: await rolloutHash(key, first) };
+  const b = { id: second, hash: await rolloutHash(key, second) };
+  return a.hash < b.hash ? [a, b] : [b, a];
+}
+
+async function rolloutHash(key: string, id: string) {
+  const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(`${key}.${id}`));
+  const hex = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return parseInt(hex.slice(0, 15), 16) / 0xfffffffffffffff;
+}
+
 async function definitionsFromPostHog(t: Backend, ...definitions: FlagDefinition[]) {
   postHog.withFlags(...definitions);
   await t.action(components.posthog.lib.refreshFlagDefinitions, {});
 }
 
-function readInMutation<V extends string | boolean>(t: Backend, read: Flag<V>, subject: MemberId | string) {
+function readInMutation<V extends string | boolean, S extends "member" | "workspace">(t: Backend, read: Flag<V, S>, subject: SubjectOf<S>) {
   return t.run((ctx) => flag(ctx, read, subject));
 }
 
@@ -66,14 +80,14 @@ describe("O33: a flag answers its value for the subject", () => {
     const alice = await aMember(t);
     await definitionsFromPostHog(t, everyone("everyone-board"));
 
-    expect(await readInMutation(t, boardFlag, alice)).toBe(true);
+    expect(await readInMutation(t, boardFlag, { member: alice })).toBe(true);
   });
 
   test("a variant flag answers its variant for the workspace", async () => {
     const t = testBackend();
     await definitionsFromPostHog(t, variantForEveryone("board-layout", "compact"));
 
-    expect(await readInMutation(t, layoutFlag, "T1")).toBe("compact");
+    expect(await readInMutation(t, layoutFlag, { workspace: "T1" })).toBe("compact");
   });
 
   test("O34: a flag on in the sandbox only is on in the sandbox and answers its safe default in production", async () => {
@@ -81,9 +95,9 @@ describe("O33: a flag answers its value for the subject", () => {
     const alice = await aMember(t);
     await definitionsFromPostHog(t, inTheSandboxOnly("everyone-board"));
 
-    expect(await readInMutation(t, boardFlag, alice)).toBe(true);
+    expect(await readInMutation(t, boardFlag, { member: alice })).toBe(true);
     vi.stubEnv("KUDOS_ENVIRONMENT", "production");
-    expect(await readInMutation(t, boardFlag, alice)).toBe(false);
+    expect(await readInMutation(t, boardFlag, { member: alice })).toBe(false);
   });
 });
 
@@ -96,20 +110,20 @@ const cannotBeEvaluated: CannotBeEvaluated[] = [
       await definitionsFromPostHog(t, everyone("everyone-board"), variantForEveryone("board-layout", "compact"));
       vi.stubEnv("POSTHOG_PERSONAL_API_KEY", "");
       return [
-        [await readInMutation(t, boardFlag, alice), false],
-        [await readInMutation(t, layoutFlag, "T1"), "control"],
+        [await readInMutation(t, boardFlag, { member: alice }), false],
+        [await readInMutation(t, layoutFlag, { workspace: "T1" }), "control"],
       ];
     },
   },
   {
     condition: "before any definitions are cached",
-    reads: async (t, alice) => [[await readInMutation(t, boardFlag, alice), false]],
+    reads: async (t, alice) => [[await readInMutation(t, boardFlag, { member: alice }), false]],
   },
   {
     condition: "for a flag PostHog doesn't have",
     reads: async (t, alice) => {
       await definitionsFromPostHog(t, everyone("another-flag"));
-      return [[await readInMutation(t, boardFlag, alice), false]];
+      return [[await readInMutation(t, boardFlag, { member: alice }), false]];
     },
   },
   {
@@ -117,8 +131,8 @@ const cannotBeEvaluated: CannotBeEvaluated[] = [
     reads: async (t, alice) => {
       await definitionsFromPostHog(t, variantForEveryone("board-layout", "purple"), variantForEveryone("everyone-board", "on"));
       return [
-        [await readInMutation(t, layoutFlag, "T1"), "control"],
-        [await readInMutation(t, boardFlag, alice), false],
+        [await readInMutation(t, layoutFlag, { workspace: "T1" }), "control"],
+        [await readInMutation(t, boardFlag, { member: alice }), false],
       ];
     },
   },
@@ -126,7 +140,7 @@ const cannotBeEvaluated: CannotBeEvaluated[] = [
     condition: "O34: for a cohort condition local evaluation can't answer",
     reads: async (t, alice) => {
       await definitionsFromPostHog(t, inACohort("everyone-board"));
-      return [[await readInMutation(t, boardFlag, alice), false]];
+      return [[await readInMutation(t, boardFlag, { member: alice }), false]];
     },
   },
   {
@@ -134,7 +148,7 @@ const cannotBeEvaluated: CannotBeEvaluated[] = [
     reads: async (t, alice) => {
       await definitionsFromPostHog(t, inTheSandboxOnly("everyone-board"));
       vi.stubEnv("KUDOS_ENVIRONMENT", "");
-      return [[await readInMutation(t, boardFlag, alice), false]];
+      return [[await readInMutation(t, boardFlag, { member: alice }), false]];
     },
   },
   {
@@ -165,7 +179,7 @@ describe("O31 O33 O34", () => {
     const alice = await aMember(t);
     await definitionsFromPostHog(t, everyone(flagSeamCheck.key));
 
-    await readInMutation(t, flagSeamCheck, alice);
+    await readInMutation(t, flagSeamCheck, { member: alice });
 
     expect(await t.query(internal.analytics.flags.seamCheck, { member: alice })).toBe(true);
   });
@@ -194,17 +208,27 @@ describe("O36: exposure", () => {
     ]);
   });
 
-  test("a flag is evaluated on the same analytics ID its exposure is sent under", async () => {
+  test("a member's flag is evaluated on their analytics ID, the one its exposure is sent under", async () => {
     const t = testBackend();
+    const [inside, outside] = await sortedByRolloutHash(boardFlag.key, ["11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"]);
     const alice = await aMember(t);
-    await definitionsFromPostHog(t, everyone("everyone-board"));
+    const bob = await aMember(t, "U_BOB");
+    await t.run(async (ctx) => {
+      await ctx.db.insert("analyticsIds", { member: alice, analyticsId: inside.id });
+      await ctx.db.insert("analyticsIds", { member: bob, analyticsId: outside.id });
+    });
+    const between = ((inside.hash + outside.hash) / 2) * 100;
+    await definitionsFromPostHog(t, { key: boardFlag.key, filters: { groups: [{ properties: [], rollout_percentage: between }] } });
 
-    await t.run(async (ctx) => exposed(ctx, boardFlag, alice, await flag(ctx, boardFlag, alice)));
+    for (const member of [alice, bob]) {
+      await t.run(async (ctx) => exposed(ctx, boardFlag, member, await flag(ctx, boardFlag, { member })));
+    }
     await settle(t);
 
-    const analyticsIds = await t.run((ctx) => ctx.db.query("analyticsIds").collect());
-    expect(analyticsIds).toHaveLength(1);
-    expect(postHog.events().map((event) => event.distinct_id)).toEqual([analyticsIds[0]?.analyticsId]);
+    expect(postHog.events().map((event) => [event.distinct_id, event.properties.$feature_flag_response])).toEqual([
+      [inside.id, true],
+      [outside.id, false],
+    ]);
   });
 
   test("with capture off nothing is sent, and the first exposure after capture comes on still is", async () => {
