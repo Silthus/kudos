@@ -1,13 +1,13 @@
 import { Button } from "@posthog/quill";
 import { MaxSays } from "../Max";
 
-export function SignedOutPage() {
+export function SignedOutPage({ onSignIn }: { onSignIn: () => void }) {
   return (
     <MaxSays
       title="Sign in"
       tab="Sign in"
       action={
-        <Button variant="primary" size="lg" disabled>
+        <Button variant="primary" size="lg" onClick={onSignIn}>
           <SlackGlyph /> Sign in with Slack
         </Button>
       }

@@ -15,7 +15,10 @@ const keys = await generateKeyPair("RS256");
 const jwk = { ...(await exportJWK(keys.publicKey)), kid: "mock", alg: "RS256", use: "sig" };
 
 export class MockSlackIssuer {
-  private readonly directory = new Map<string, { team_id: string; deleted?: boolean; tz?: string }>([["U_ADA", { team_id: allowedWorkspace, tz: "Europe/Berlin" }]]);
+  private readonly directory = new Map<string, { team_id: string; deleted?: boolean; tz?: string }>([
+    ["U_ADA", { team_id: allowedWorkspace, tz: "Europe/Berlin" }],
+    ["U_GONE", { team_id: allowedWorkspace, deleted: true }],
+  ]);
   private readonly grants = new Map<string, Grant>();
   private next: NextSignIn = { team: allowedWorkspace, user: "U_ADA", name: "Ada Lovelace" };
   private websiteOpen = true;
@@ -38,6 +41,8 @@ export class MockSlackIssuer {
 
   private async route(request: IncomingMessage, response: ServerResponse) {
     const url = new URL(request.url ?? "/", issuer);
+    if (url.pathname === "/control/next") return json(response, this.signsInNext(JSON.parse(await body(request))));
+    if (url.pathname === "/control/website") return json(response, this.switchWebsite(JSON.parse(await body(request)).open));
     if (url.pathname === "/.well-known/openid-configuration") return json(response, discovery());
     if (url.pathname === "/openid/connect/authorize") return this.authorize(url, response);
     if (url.pathname === "/api/openid.connect.token") return this.token(new URLSearchParams(await body(request)), request, response);

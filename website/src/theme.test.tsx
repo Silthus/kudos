@@ -1,8 +1,7 @@
-import { act, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { act, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { App } from "./App";
 import { shellFixtures } from "./shell";
+import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
 
 afterEach(() => {
@@ -12,8 +11,7 @@ afterEach(() => {
 const isDark = () => document.documentElement.classList.contains("dark");
 
 function renderShell() {
-  const { unmount } = render(<App shell={shellFixtures.signedOut} />);
-  return { user: userEvent.setup(), unmount };
+  return renderApp(shellFixtures.signedOut);
 }
 
 describe("V6: the theme control follows the system first, overrides it per browser, and returns to it", () => {

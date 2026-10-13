@@ -1,17 +1,28 @@
-import { render } from "@testing-library/react";
 import axe from "axe-core";
 import { describe, expect, it } from "vitest";
-import { App } from "./App";
-import { shellFixtures, type ShellFixture } from "./shell";
+import { shellFixtures, type ShellState } from "./shell";
+import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
 
-const pages: { name: string; path: string; shell: ShellFixture }[] = [
-  { name: "closed", path: "/", shell: shellFixtures.closed },
-  { name: "signed out", path: "/", shell: shellFixtures.signedOut },
-  { name: "home", path: "/", shell: shellFixtures.member },
-  { name: "not found", path: "/nowhere", shell: shellFixtures.member },
-  { name: "error", path: "/", shell: shellFixtures.error },
+const pages: { name: string; path: string; visitor: ShellState }[] = [
+  { name: "loading", path: "/", visitor: shellFixtures.loading },
+  { name: "closed", path: "/", visitor: shellFixtures.closed },
+  { name: "signed out", path: "/", visitor: shellFixtures.signedOut },
+  { name: "sign-in didn't finish", path: "/", visitor: shellFixtures.signInUnfinished },
+  { name: "checking membership", path: "/", visitor: shellFixtures.verifying },
+  { name: "membership not checked", path: "/", visitor: shellFixtures.unverified },
+  { name: "not a member", path: "/", visitor: shellFixtures.notAMember },
+  { name: "home", path: "/", visitor: shellFixtures.member },
+  { name: "not found", path: "/nowhere", visitor: shellFixtures.member },
+  { name: "error", path: "/", visitor: shellFixtures.error },
 ];
+
+const wcag22AA = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
+
+async function violationsIn(container: Element, options: axe.RunOptions = {}) {
+  const results = await axe.run(container, { ...options, rules: { "color-contrast": { enabled: false } } });
+  return results.violations.map((v) => `${v.id}: ${v.help}`);
+}
 
 describe("WS24: every page passes axe in light and dark", () => {
   for (const dark of [false, true]) {
@@ -19,10 +30,17 @@ describe("WS24: every page passes axe in light and dark", () => {
       it(`${page.name} in ${dark ? "dark" : "light"}`, async () => {
         fakeSystemTheme(dark);
         window.history.replaceState(null, "", page.path);
-        const { container } = render(<App shell={page.shell} />);
-        const results = await axe.run(container, { rules: { "color-contrast": { enabled: false } } });
-        expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+        const { container } = renderApp(page.visitor);
+        expect(await violationsIn(container)).toEqual([]);
       });
     }
+
+    it(`the open avatar menu, portaled outside the landmarks, meets WCAG 2.2 AA in ${dark ? "dark" : "light"}`, async () => {
+      fakeSystemTheme(dark);
+      const { user, getByRole, findByRole } = renderApp(shellFixtures.member);
+      await user.click(getByRole("button", { name: "Account menu for Sam Example" }));
+      await findByRole("menuitem", { name: "Sign out" });
+      expect(await violationsIn(document.body, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
+    });
   }
 });

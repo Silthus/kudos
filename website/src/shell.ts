@@ -1,27 +1,43 @@
-export type Face = { kind: "slack"; image: string } | { kind: "initials"; initials: string };
+import type { MemberProfile, MyProfile } from "../../convex/website/profile";
 
-export type SignedInMember = { name: string; face: Face };
+export type { Face } from "../../convex/website/profile";
 
-export type Visitor = { kind: "closed" } | { kind: "signed-out" } | { kind: "member"; member: SignedInMember };
+export type SignedInMember = MemberProfile;
 
-export type ShellFixture = Visitor | { kind: "broken" };
+export type Visitor = MyProfile | { kind: "loading" } | { kind: "sign-in-unfinished" };
 
-const member: SignedInMember = { name: "Sam Example", face: { kind: "initials", initials: "SE" } };
+export type ShellState = Visitor | { kind: "broken" };
+
+export type ShellActions = { signIn(): void; signOut(): void };
+
+const member: SignedInMember = { kind: "member", name: "Sam Example", face: { kind: "initials", initials: "SE" } };
 
 export const shellFixtures = {
+  loading: { kind: "loading" },
   closed: { kind: "closed" },
   signedOut: { kind: "signed-out" },
-  member: { kind: "member", member },
+  signInUnfinished: { kind: "sign-in-unfinished" },
+  verifying: { kind: "verifying" },
+  unverified: { kind: "unverified" },
+  notAMember: { kind: "not-a-member" },
+  member,
   error: { kind: "broken" },
-} as const satisfies Record<string, ShellFixture>;
+} as const satisfies Record<string, ShellState>;
 
-const fixtureNames: Record<string, ShellFixture> = {
+const fixturesByName: Record<string, ShellState> = {
+  loading: shellFixtures.loading,
   closed: shellFixtures.closed,
   "signed-out": shellFixtures.signedOut,
+  "sign-in-unfinished": shellFixtures.signInUnfinished,
+  verifying: shellFixtures.verifying,
+  unverified: shellFixtures.unverified,
+  "not-a-member": shellFixtures.notAMember,
   member: shellFixtures.member,
   error: shellFixtures.error,
 };
 
-export function builtShell(name: string | undefined): ShellFixture {
-  return fixtureNames[name ?? ""] ?? shellFixtures.closed;
+export function builtShell(name: string | undefined): ShellState {
+  return fixturesByName[name ?? ""] ?? shellFixtures.closed;
 }
+
+export const fixtureActions: ShellActions = { signIn() {}, signOut() {} };

@@ -14,6 +14,7 @@ The website's signed-in reads and the sign-in callback: every website query is b
   because: a public function is an entrance anyone on the internet can call; a new one must fail until a reviewed change adds it, so no domain function is reachable without the session check (WS10, replacing R50)
   crossing: browser -> domain
   entrances: none
+  refuted: made prepareWebsiteFlag a public mutation instead of an internal one -> the surface test failed listing it (2026-10-13)
   kinds: read, identity
   checklist: scoped-reads declared as website reads pass one guard
   checklist: capability-authorization dismissed: no public function accepts a credential carrying bounded permission; the session is checked by website reads pass one guard
@@ -26,6 +27,7 @@ The website's signed-in reads and the sign-in callback: every website query is b
   because: the shell is public and a JWT outlives sign-out and membership, so every read must recheck the flag, the live session, the workspace and the directory in that order, or a closed site, a signed-out browser or a former member would read a member's kudos (WS3, WS9, WS11, WS14)
   crossing: browser -> domain
   entrances: query getMyProfile
+  refuted: memberQuery dropped the check that the session's workspace is the current SLACK_WORKSPACE_ID -> the leftover session after SLACK_WORKSPACE_ID changes read member instead of signed-out (2026-10-13)
   kinds: read, identity
   checklist: scoped-reads declared as website reads pass one guard
   checklist: capability-authorization dismissed: the session token authorizes only reading the signed-in person's own answer, and the guard rechecks its live session row on every read rather than trusting the token
@@ -38,6 +40,7 @@ The website's signed-in reads and the sign-in callback: every website query is b
   because: anyone on the internet can start a Slack sign-in, so a person from another workspace, or anybody while the site is dark, must get no account (WS3, WS6)
   crossing: browser -> session
   entrances: route GET /api/auth/callback/slack, route POST /api/auth/callback/slack, action signIn
+  refuted: rememberSignedInMember no longer refused while the website flag is off -> the flag-off sign-in created an account (2026-10-13)
   kinds: identity, credential
   checklist: capability-authorization dismissed: the Slack ID token's audience, nonce and state are checked by Auth.js before the callback runs, proven by the handshake test against the mock issuer
   checklist: revalidated-permission declared as website reads pass one guard
@@ -53,6 +56,7 @@ The website's signed-in reads and the sign-in callback: every website query is b
   because: Slack can't vouch for an email a member types elsewhere; linking by email would let another identity take over a member's account (WS7)
   crossing: browser -> session
   entrances: route GET /api/auth/callback/slack
+  refuted: a later sign-in of the same Slack pair inserted a new user instead of updating the linked one -> the same-pair sign-in returned another user (2026-10-13)
   kinds: identity
   checklist: capability-authorization dismissed: the account key is Slack's workspace and user from a verified ID token; no credential with bounded permission is accepted
   checklist: canonical-encoding dismissed: the account key is `<workspace>/<user>` exactly as Slack's claims carry them, with no normalisation to disagree on
