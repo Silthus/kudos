@@ -9,13 +9,13 @@ import { chatUserOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { segmentValidator, type Line } from "./replies";
 
-export const publicSectionValidator = v.object({ key: v.string(), line: v.array(segmentValidator) });
+export const publicSectionValidator = v.object({ key: v.string(), member: v.id("members"), about: v.literal("level"), line: v.array(segmentValidator) });
 
 export const shownValidator = v.union(
   v.object({ state: v.literal("unposted") }),
   v.object({ state: v.literal("posting") }),
+  v.object({ state: v.literal("sending") }),
   v.object({ state: v.literal("posted"), ts: v.string() }),
-  v.object({ state: v.literal("maybe-posted") }),
 );
 
 export type PublicSection = Infer<typeof publicSectionValidator>;
@@ -25,9 +25,8 @@ type Destination = { channel: string; threadTs?: string };
 export const celebrateLevel = internalMutation({
   args: { event: levelReachedEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
-    if (!(await showsLevelPublicly(ctx, event.member))) return;
     const { user } = await chatUserOf(ctx, event.member);
-    await setPublicSection(ctx, event.message, levelSection(user, event.level));
+    await setPublicSection(ctx, event.message, levelSection(event.member, user, event.level));
   },
 });
 
@@ -49,7 +48,12 @@ export async function setPublicSection(ctx: MutationCtx, ref: MessageRef, sectio
 
 export const desired = internalQuery({
   args: { reply: v.id("publicReplies") },
-  handler: async (ctx, { reply }) => ctx.db.get(reply),
+  handler: async (ctx, { reply }) => {
+    const row = await ctx.db.get(reply);
+    if (row === null) return null;
+    const shown = await Promise.all(row.sections.map((section) => isShownPublicly(ctx, section)));
+    return { ...row, sections: row.sections.filter((_, index) => shown[index]) };
+  },
 });
 
 export const recordPosted = internalMutation({
@@ -62,29 +66,47 @@ export const recordPosted = internalMutation({
   },
 });
 
-export const stopPosting = internalMutation({
-  args: { reply: v.id("publicReplies"), mayHaveLanded: v.boolean() },
-  handler: async (ctx, { reply, mayHaveLanded }) => {
+export const startSending = internalMutation({
+  args: { reply: v.id("publicReplies") },
+  handler: async (ctx, { reply }): Promise<boolean> => {
     const row = await ctx.db.get(reply);
-    if (row?.shown.state !== "posting") return;
-    await ctx.db.patch(reply, { shown: { state: mayHaveLanded ? "maybe-posted" : "unposted" } });
+    if (row?.shown.state !== "posting") return false;
+    await ctx.db.patch(reply, { shown: { state: "sending" } });
+    return true;
   },
 });
 
-export function linesOf(reply: Doc<"publicReplies">): Line[] {
+export const sendingFailed = internalMutation({
+  args: { reply: v.id("publicReplies") },
+  handler: async (ctx, { reply }) => {
+    const row = await ctx.db.get(reply);
+    if (row?.shown.state === "sending") await ctx.db.patch(reply, { shown: { state: "posting" } });
+  },
+});
+
+export const stopPosting = internalMutation({
+  args: { reply: v.id("publicReplies") },
+  handler: async (ctx, { reply }) => {
+    const row = await ctx.db.get(reply);
+    if (row?.shown.state === "posting" || row?.shown.state === "sending") await ctx.db.patch(reply, { shown: { state: "unposted" } });
+  },
+});
+
+export function linesOf(reply: Pick<Doc<"publicReplies">, "sections">): Line[] {
   return reply.sections.map(({ line }) => line);
 }
 
-async function showsLevelPublicly(ctx: QueryCtx, member: MemberId) {
+async function isShownPublicly(ctx: QueryCtx, { member, about }: PublicSection) {
   const settings = await ctx.db
     .query("progressSettings")
     .withIndex("by_member", (q) => q.eq("member", member))
     .unique();
-  return !(settings?.hideLevel ?? false) && !(settings?.muteNotices ?? false);
+  const hidden = about === "level" && (settings?.hideLevel ?? false);
+  return !hidden && !(settings?.muteNotices ?? false);
 }
 
-function levelSection(user: string, level: number): PublicSection {
-  return { key: `level:${user}`, line: [{ text: "🎉 " }, { mention: { kind: "person", user } }, { text: ` reached level ${level}.` }] };
+function levelSection(member: MemberId, user: string, level: number): PublicSection {
+  return { key: `level:${user}`, member, about: "level", line: [{ text: "🎉 " }, { mention: { kind: "person", user } }, { text: ` reached level ${level}.` }] };
 }
 
 function withSection(sections: PublicSection[], section: PublicSection) {
@@ -102,9 +124,11 @@ async function deliver(ctx: MutationCtx, reply: Id<"publicReplies">) {
   await ctx.scheduler.runAfter(0, internal.slack.publicReplies.deliverPublicReply, { reply });
 }
 
-function publicReplyRow(ctx: QueryCtx, ref: MessageRef, { channel }: Destination) {
+function publicReplyRow(ctx: QueryCtx, ref: MessageRef, { channel, threadTs }: Destination) {
   return ctx.db
     .query("publicReplies")
-    .withIndex("by_destination", (q) => q.eq("workspace", ref.workspace).eq("conversation", ref.conversation).eq("message", ref.message).eq("channel", channel))
+    .withIndex("by_destination", (q) =>
+      q.eq("workspace", ref.workspace).eq("conversation", ref.conversation).eq("message", ref.message).eq("channel", channel).eq("threadTs", threadTs),
+    )
     .unique();
 }

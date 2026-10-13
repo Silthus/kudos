@@ -21,8 +21,8 @@ Feedback: the indicator on each kudos message as desired state and the private r
   checklist: retry-classification dismissed: the Slack adapter's delivery classifies failures, by its invariants a private reply is tried at most 3 times and a gone delivery stops for good
   checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
   checklist: declared-target-coverage dismissed: a reply has exactly one target, the giver
-- one public reply per kudos message: A kudos message gets at most one public reply in each place it is celebrated, its thread or the announcement channel: the reply is posted once and then edited in place as sections arrive, however many members level up through the message and whenever their sections arrive, and a post whose answer is lost is never posted again.
-  over: every public reply the app asks Slack to post or edit for a kudos message: one member and two members levelling up through it, a level reached after the reply was posted, one reached while the post is in flight, and a post whose answer is lost
+- one public reply per kudos message: A kudos message gets at most one public reply in each place it is celebrated, its thread or the announcement channel: the reply is posted once and then edited in place as sections arrive, however many members level up through the message and whenever their sections arrive, and a post whose outcome is unknown, or that failed after Slack accepted it, is never posted again.
+  over: every public reply the app asks Slack to post or edit for a kudos message: one member and two members levelling up through it, a level reached after the reply was posted, one reached while the post is in flight, a post whose answer is lost and one that failed after Slack accepted it
   via: D18: the one public reply
   refuted: setPublicSection also scheduled a delivery while the reply was still posting -> the two-members test found 2 posts in the thread where 1 belongs (2026-10-13)
   because: D18 keeps the channel calm: progress from one kudos message is celebrated in one reply that grows, and a second reply in the thread, from two subscribers racing to post or from a retried post that had landed, would repeat the celebration for everyone in the channel
@@ -34,7 +34,7 @@ Feedback: the indicator on each kudos message as desired state and the private r
   checklist: retry-recognition declared as one public reply per kudos message
   checklist: duplicate-suppression declared as one public reply per kudos message
   checklist: keyed-ordering dismissed: sections are keyed by member and replaced in place, and every delivery re-reads the latest version after it lands and edits again when it changed, so the last edit Slack shows is the latest desired reply
-  checklist: acknowledgment-barrier dismissed: nothing retires work on Slack's answer except recording the posted ts, which only ever moves a reply from posting to posted
+  checklist: acknowledgment-barrier dismissed: a reply is claimed as sending before chat.postMessage and leaves that state only on Slack's known answer: posted with its ts, or back to posting on a known failure; anything else leaves it sending, never posted again
   checklist: commit-ordered-effects dismissed: the reply row and its delivery are scheduled in the subscriber's transaction, and the delivery runs only after it commits
   checklist: retry-classification dismissed: the Slack adapter's delivery classifies failures; a known failure of the post or an edit is retried at most 3 times, a gone destination stops, and a post with no known result stops for good
   checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery

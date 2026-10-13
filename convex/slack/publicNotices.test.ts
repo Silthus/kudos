@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { FakeSlack, landsButTimesOut, slackError } from "../../testing/fakeSlack";
+import { FakeSlack, landsButTimesOut, slackError, type ScriptedAnswer } from "../../testing/fakeSlack";
 import { signingSecret } from "../../testing/signedSlack";
 import { everythingStored, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
@@ -99,6 +99,17 @@ describe("D18: the one public reply", () => {
 
     expect(slack.messagesIn("C1").map((message) => message.text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
   });
+
+  test("a post that fails after Slack accepted it is never posted again", async () => {
+    const t = testBackend();
+    await welcomed(t, "U_ALICE", "U_BOB");
+    slack.answering("chat.postMessage", acceptedButAnsweredWithoutTs);
+
+    await post(t, [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("taco"))]);
+    await settle(t);
+
+    expect(slack.messagesIn("C1").map((message) => message.text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
+  });
 });
 
 describe("P64: routing", () => {
@@ -121,6 +132,21 @@ describe("P64: routing", () => {
 
     expect(slack.messagesIn("C_NEWS")).toEqual([{ channel: "C_NEWS", ts: expect.any(String), text: "🎉 <@U_ALICE> reached level 2." }]);
     expect(slack.messagesIn("C1")).toEqual([]);
+  });
+});
+
+describe("P64: a change of route", () => {
+  test("picking the kudos message's own channel as the announcement channel posts the next notice there, top level, and leaves the thread reply alone", async () => {
+    const t = testBackend();
+    await post(t, [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("taco"))]);
+    await settle(t);
+    const [threadReply] = slack.messagesIn("C1");
+    await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", announcementChannel: "C1" }));
+
+    await t.mutation(internal.feedback.publicReplies.celebrateLevel, { event: await levelReached(t, "U_BOB", 2) });
+    await settle(t);
+
+    expect(slack.messagesIn("C1")).toEqual([threadReply, { channel: "C1", ts: expect.any(String), text: "🎉 <@U_BOB> reached level 2." }]);
   });
 });
 
@@ -157,6 +183,33 @@ describe("P65: privacy", () => {
     expect(slack.messagesIn("C1").map((message) => message.text)).toEqual(["🎉 <@U_BOB> reached level 2."]);
   });
 
+  test.each([
+    ["hides their level", { hideLevel: true }],
+    ["mutes public notices", { muteNotices: true }],
+  ])("a member who %s after reaching a level, before the reply is posted, is left out of it", async (_, settings) => {
+    const t = testBackend();
+    await t.mutation(internal.feedback.publicReplies.celebrateLevel, { event: await levelReached(t, "U_ALICE", 2) });
+    await t.mutation(internal.feedback.publicReplies.celebrateLevel, { event: await levelReached(t, "U_BOB", 2) });
+    await withSettings(t, "U_ALICE", settings);
+
+    await settle(t);
+
+    expect(slack.messagesIn("C1").map((message) => message.text)).toEqual(["🎉 <@U_BOB> reached level 2."]);
+  });
+
+  test("a reply whose only member hid their level before it was posted is never posted, and a later level under that message is", async () => {
+    const t = testBackend();
+    await t.mutation(internal.feedback.publicReplies.celebrateLevel, { event: await levelReached(t, "U_ALICE", 2) });
+    await withSettings(t, "U_ALICE", { hideLevel: true });
+    await settle(t);
+    expect(slack.messagesIn("C1")).toEqual([]);
+
+    await t.mutation(internal.feedback.publicReplies.celebrateLevel, { event: await levelReached(t, "U_BOB", 2) });
+    await settle(t);
+
+    expect(slack.messagesIn("C1").map((message) => message.text)).toEqual(["🎉 <@U_BOB> reached level 2."]);
+  });
+
   test("a member who hid their level and is the only one levelling up leaves the thread empty", async () => {
     const t = testBackend();
     await withSettings(t, "U_ALICE", { hideLevel: true });
@@ -167,6 +220,11 @@ describe("P65: privacy", () => {
     expect(slack.messagesIn("C1")).toEqual([]);
   });
 });
+
+const acceptedButAnsweredWithoutTs: ScriptedAnswer = async (answerAsSlackWould) => {
+  const { ts: _, ...withoutTs } = await answerAsSlackWould().json();
+  return Response.json(withoutTs);
+};
 
 async function memberOf(t: Backend, user: string) {
   return t.run(async (ctx) => {

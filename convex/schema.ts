@@ -104,7 +104,7 @@ export default defineSchema({
     sections: v.array(publicSectionValidator),
     version: v.number(),
     shown: shownValidator,
-  }).index("by_destination", ["workspace", "conversation", "message", "channel"]),
+  }).index("by_destination", ["workspace", "conversation", "message", "channel", "threadTs"]),
 
   placedReactions: defineTable({
     workspace: v.string(),
