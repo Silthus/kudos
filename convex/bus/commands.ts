@@ -15,23 +15,27 @@ export const setProgressSettingsCommand = v.object({
   dms: v.optional(v.boolean()),
 });
 
-export const commandValidator = v.union(showHomeTabCommand, setProgressSettingsCommand);
+export const setAnnouncementChannelCommand = v.object({ type: v.literal("setAnnouncementChannel"), member: v.id("members"), channel: v.union(v.string(), v.null()) });
+
+export const commandValidator = v.union(showHomeTabCommand, setProgressSettingsCommand, setAnnouncementChannelCommand);
 
 export type Command = Infer<typeof commandValidator>;
 export type Intent = Command extends infer C ? (C extends Command ? Omit<C, "member"> : never) : never;
 
 type CommandOf<T extends Command["type"]> = Extract<Command, { type: T }>;
-type Handler<T extends Command["type"]> = FunctionReference<"mutation", "internal", { command: CommandOf<T> }>;
+export type CommandResult = "done" | "refused";
+type Handler<T extends Command["type"]> = FunctionReference<"mutation", "internal", { command: CommandOf<T> }, CommandResult>;
 type Registry = { [T in Command["type"]]: Handler<T> };
 
 export const handlers: Registry = {
   showHomeTab: internal.feedback.homes.showHomeTab,
   setProgressSettings: internal.progression.settings.setProgressSettings,
+  setAnnouncementChannel: internal.workspace.settings.setAnnouncementChannel,
 };
 
-export async function dispatch<T extends Command["type"]>(ctx: ActionCtx, command: CommandOf<T> & { type: T }) {
+export function dispatch<T extends Command["type"]>(ctx: ActionCtx, command: CommandOf<T> & { type: T }): Promise<CommandResult> {
   const handler: Handler<T> = handlers[command.type];
-  await ctx.runMutation(handler, { command });
+  return ctx.runMutation(handler, { command });
 }
 
 export function isCommandType(type: string): type is Command["type"] {

@@ -24,6 +24,7 @@ export default defineSchema({
     user: v.string(),
     kind: v.union(v.literal("member"), v.literal("bot"), v.literal("not-a-member")),
     timeZone: v.optional(v.string()),
+    admin: v.optional(v.boolean()),
     asOf: v.optional(v.number()),
   }).index("by_user", ["workspace", "user"]),
 

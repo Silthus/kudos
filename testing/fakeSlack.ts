@@ -3,6 +3,8 @@ export type SlackUser = {
   team_id: string;
   deleted?: boolean;
   is_bot?: boolean;
+  is_admin?: boolean;
+  is_owner?: boolean;
   tz?: string;
 };
 
@@ -147,6 +149,7 @@ export class FakeSlack {
     }
     if (method === "chat.postMessage") return this.postMessage(args);
     if (method === "chat.update") return this.updateMessage(args);
+    if (method === "conversations.join") return { ok: true, channel: { id: field("channel") } };
     if (method === "conversations.open") return { ok: true, channel: { id: `D_${field("users")}` } };
     return { ok: false, error: "unknown_method" };
   }

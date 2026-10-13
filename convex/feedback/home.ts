@@ -3,10 +3,10 @@ import type { Intent } from "../bus/commands";
 import type { KudosHome } from "../engine/home";
 import type { ProgressionHome } from "../progression/progression";
 import type { ProgressSettings } from "../progression/settings";
-import type { HomeFacts } from "./homes";
+import type { AdminHome, HomeFacts } from "./homes";
 import { productName, slashCommand } from "./naming";
 
-export const homeTabValidator = v.union(v.literal("profile"), v.literal("settings"));
+export const homeTabValidator = v.union(v.literal("profile"), v.literal("settings"), v.literal("admin"));
 
 export type HomeTab = Infer<typeof homeTabValidator>;
 
@@ -18,25 +18,34 @@ export type HomeLine =
   | { kind: "text"; text: string }
   | { kind: "fields"; fields: string[] }
   | { kind: "hint"; text: string }
-  | { kind: "action"; text: string; action: HomeAction };
+  | { kind: "action"; text: string; action: HomeAction }
+  | { kind: "pick-channel"; text: string; picked: string | null; picks: Extract<Intent, { channel: unknown }>["type"] };
 
 type MemberHome = Extract<HomeFacts, { kind: "member" }>;
 
-const tabLabels: Record<HomeTab, string> = { profile: "Profile", settings: "Settings" };
+const tabLabels: Record<HomeTab, string> = { profile: "Profile", settings: "Settings", admin: "Admin" };
 
 export function renderHome(facts: HomeFacts): HomeView {
   if (facts.kind === "not-a-member") {
     return { title: productName, tabs: [], groups: [[{ kind: "text", text: `${productName} is for active members of this workspace.` }]] };
   }
-  return { title: "Your kudos", tabs: tabsOf(facts.tab), groups: facts.tab === "settings" ? settingsTab(facts.settings) : profileTab(facts) };
+  const tabs = tabsOf(facts);
+  const current = tabs.includes(facts.tab) ? facts.tab : "profile";
+  return { title: "Your kudos", tabs: tabs.map((tab) => tabButton(tab, current)), groups: tabContent(facts, current) };
 }
 
-function tabsOf(current: HomeTab) {
-  return (Object.keys(tabLabels) as HomeTab[]).map((tab) => ({
-    label: tabLabels[tab],
-    intent: { type: "showHomeTab" as const, tab },
-    current: tab === current,
-  }));
+function tabsOf({ admin }: MemberHome): HomeTab[] {
+  return admin === null ? ["profile", "settings"] : ["profile", "settings", "admin"];
+}
+
+function tabButton(tab: HomeTab, current: HomeTab) {
+  return { label: tabLabels[tab], intent: { type: "showHomeTab" as const, tab }, current: tab === current };
+}
+
+function tabContent(facts: MemberHome, tab: HomeTab): HomeLine[][] {
+  if (tab === "settings") return settingsTab(facts.settings);
+  if (tab === "admin" && facts.admin !== null) return adminTab(facts.admin);
+  return profileTab(facts);
 }
 
 function profileTab({ kudos, progression }: MemberHome): HomeLine[][] {
@@ -60,6 +69,22 @@ function settingsTab({ hideLevel, hideAchievements, muteNotices, dms }: Progress
     ],
     [{ kind: "hint", text: "Your App Home and your DMs always show you everything." }],
   ];
+}
+
+function adminTab({ announcementChannel }: AdminHome): HomeLine[][] {
+  const picks = "setAnnouncementChannel";
+  const channelLines: HomeLine[] =
+    announcementChannel === null
+      ? [{ kind: "pick-channel", text: "I celebrate level ups in a thread under each kudos message. Pick a channel to post them there instead.", picked: null, picks }]
+      : [
+          { kind: "pick-channel", text: `I celebrate level ups in <#${announcementChannel}>.`, picked: announcementChannel, picks },
+          {
+            kind: "action",
+            text: "Or celebrate them in a thread under each kudos message again.",
+            action: { label: "Use threads", intent: { type: picks, channel: null } },
+          },
+        ];
+  return [channelLines, [{ kind: "hint", text: "Only workspace admins and owners see this tab." }]];
 }
 
 type SettingCopy = { text: string; label: string };

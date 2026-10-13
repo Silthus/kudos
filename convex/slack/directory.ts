@@ -6,7 +6,7 @@ import { messageRefValidator, type MessageRef } from "../engine/messageEvent";
 import type { DirectoryEntry, DirectoryRecord } from "../workspace/directory";
 import { readSlack } from "./webApi";
 
-type SlackUser = { id: string; team_id?: string; deleted?: boolean; is_bot?: boolean; tz?: string };
+type SlackUser = { id: string; team_id?: string; deleted?: boolean; is_bot?: boolean; is_admin?: boolean; is_owner?: boolean; tz?: string };
 
 export type MemberChanged = { type: "team_join" | "user_change"; user: SlackUser; event_ts: string };
 
@@ -53,11 +53,21 @@ export const recheckMessage = internalMutation({
 
 export type LookUp = { kind: "found" } | { kind: "failed"; retryAfterMs?: number };
 
-export async function lookUpUser(ctx: ActionCtx, workspace: string, user: string): Promise<LookUp> {
+export function lookUpUser(ctx: ActionCtx, workspace: string, user: string): Promise<LookUp> {
+  return askSlackAbout(ctx, workspace, user, internal.workspace.directory.fillEntry);
+}
+
+export function refreshUser(ctx: ActionCtx, workspace: string, user: string): Promise<LookUp> {
+  return askSlackAbout(ctx, workspace, user, internal.workspace.directory.refreshEntry);
+}
+
+type Keep = typeof internal.workspace.directory.fillEntry | typeof internal.workspace.directory.refreshEntry;
+
+async function askSlackAbout(ctx: ActionCtx, workspace: string, user: string, keep: Keep): Promise<LookUp> {
   const askedAt = Date.now();
   const answer = await usersInfo(user);
   if (!answer?.ok) return { kind: "failed", ...(answer?.retryAfterMs !== undefined && { retryAfterMs: answer.retryAfterMs }) };
-  await ctx.runMutation(internal.workspace.directory.fillEntry, directoryRecordOf(workspace, answer.user, askedAt));
+  await ctx.runMutation(keep, directoryRecordOf(workspace, answer.user, askedAt));
   return { kind: "found" };
 }
 
@@ -73,5 +83,5 @@ async function usersInfo(user: string) {
 function directoryEntryOf(user: SlackUser, workspace: string): DirectoryEntry {
   if (user.is_bot || user.id === slackbot) return { kind: "bot" };
   if (user.deleted || user.team_id !== workspace) return { kind: "not-a-member" };
-  return { kind: "member", ...(user.tz && { timeZone: user.tz }) };
+  return { kind: "member", ...(user.tz && { timeZone: user.tz }), ...((user.is_admin || user.is_owner) && { admin: true }) };
 }

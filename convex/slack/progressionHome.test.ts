@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack, httpStatus } from "../../testing/fakeSlack";
-import { buttonInHome, publishedHome, publishedViews } from "../../testing/homeView";
+import { buttonInHome, channelPickerInHome, publishedHome, publishedViews } from "../../testing/homeView";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
-import { settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { memberChanged, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { internal } from "../_generated/api";
 import { appHomeOpened, blockActions, emoji, mention, messageEvent, section, type BlockAction } from "../../testing/slackMessages";
 
@@ -169,6 +169,100 @@ describe("P68: App Home is republished after a change, the latest version wins, 
   });
 });
 
+describe("P69: the Admin tab", () => {
+  test.each([
+    ["a workspace admin", { is_admin: true }],
+    ["a workspace owner", { is_owner: true }],
+  ])("%s sees the Admin tab with the announcement channel picker", async (_, role) => {
+    const t = await workspaceWithAllowance(10);
+    slack.withMember("U_ALICE", role);
+    await openHome(t, "U_ALICE");
+
+    await click(t, "U_ALICE", "Admin");
+
+    expect(publishedHome(slack, "U_ALICE")).toEqual([
+      "header: Your kudos",
+      "actions: Profile | Settings | [Admin]",
+      "section: I celebrate level ups in a thread under each kudos message. Pick a channel to post them there instead. [channels_select: none]",
+      "divider",
+      "context: Only workspace admins and owners see this tab.",
+    ]);
+  });
+
+  test("a member who isn't an admin sees no Admin tab", async () => {
+    const t = await workspaceWithAllowance(10);
+
+    await openHome(t, "U_BOB");
+
+    expect(publishedHome(slack, "U_BOB")[1]).toBe("actions: [Profile] | Settings");
+  });
+
+  test("a member made an admin in Slack sees the Admin tab the next time they open App Home", async () => {
+    const t = await workspaceWithAllowance(10);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    slack.withMember("U_ALICE", { is_admin: true });
+
+    await openHome(t, "U_ALICE");
+
+    expect(publishedHome(slack, "U_ALICE")[1]).toBe("actions: [Profile] | Settings | Admin");
+  });
+
+  test("picking a channel sends the next level-up notice there, joins it, and shows it picked with a way back to threads", async () => {
+    const t = await adminTabOpen("U_ALICE");
+
+    await interact(t, "U_ALICE", channelPickerInHome(slack, "U_ALICE", "C_NEWS"));
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(slack.callsTo("conversations.join")).toEqual([{ channel: "C_NEWS" }]);
+    expect(slack.messagesIn("C_NEWS").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
+    expect(slack.messagesIn("C1")).toEqual([]);
+    expect(publishedHome(slack, "U_ALICE")).toEqual([
+      "header: Your kudos",
+      "actions: Profile | Settings | [Admin]",
+      "section: I celebrate level ups in <#C_NEWS>. [channels_select: C_NEWS]",
+      "section: Or celebrate them in a thread under each kudos message again. [button: Use threads]",
+      "divider",
+      "context: Only workspace admins and owners see this tab.",
+    ]);
+  });
+
+  test("going back to threads sends the next level-up notice under its kudos message again", async () => {
+    const t = await adminTabOpen("U_ALICE");
+    await interact(t, "U_ALICE", channelPickerInHome(slack, "U_ALICE", "C_NEWS"));
+
+    await click(t, "U_ALICE", "Use threads");
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(slack.messagesIn("C_NEWS")).toEqual([]);
+    expect(slack.messagesIn("C1").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
+  });
+
+  test("a member who isn't an admin can't set the announcement channel, even with a crafted click", async () => {
+    const t = await adminTabOpen("U_ALICE");
+    await openHome(t, "U_BOB");
+
+    await interact(t, "U_BOB", { type: "channels_select", action_id: "setAnnouncementChannel", selected_channel: "C_NEWS" });
+    await interact(t, "U_BOB", { type: "button", action_id: "x", value: JSON.stringify({ type: "setAnnouncementChannel", channel: "C_NEWS" }) });
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(slack.callsTo("conversations.join")).toEqual([]);
+    expect(slack.messagesIn("C_NEWS")).toEqual([]);
+    expect(slack.messagesIn("C1").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
+  });
+
+  test("an admin removed in Slack can no longer set the announcement channel", async () => {
+    const t = await adminTabOpen("U_ALICE");
+    const picker = channelPickerInHome(slack, "U_ALICE", "C_NEWS");
+    await memberChanged(t, "user_change", { id: "U_ALICE" });
+
+    await interact(t, "U_ALICE", picker);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(slack.messagesIn("C_NEWS")).toEqual([]);
+    expect(publishedHome(slack, "U_ALICE")[1]).toBe("actions: [Profile] | Settings");
+  });
+});
+
 describe("R42: an interaction Slack did not sign gets 401 and does nothing", () => {
   test.each([
     ["signed with another secret", (body: string) => signedRequest(body, { ...form, secret: "someone-elses-secret" })],
@@ -195,6 +289,15 @@ async function settingsOpen(user: string) {
   await giveKudos(t, user, "U_BOB", 1);
   await openHome(t, user);
   await click(t, user, "Settings");
+  return t;
+}
+
+async function adminTabOpen(user: string) {
+  const t = await workspaceWithAllowance(10);
+  slack.withMember(user, { is_admin: true });
+  await giveKudos(t, user, "U_BOB", 1);
+  await openHome(t, user);
+  await click(t, user, "Admin");
   return t;
 }
 

@@ -6,12 +6,12 @@ import type { ChatUserId } from "../engine/messageEvent";
 export type MemberId = Id<"members">;
 
 export type MemberFacts =
-  | { kind: "member"; member: MemberId; timeZone: string | undefined }
+  | { kind: "member"; member: MemberId; timeZone: string | undefined; admin: boolean }
   | { kind: "bot" }
   | { kind: "not-a-member" };
 
 export const directoryEntryValidator = v.union(
-  v.object({ kind: v.literal("member"), timeZone: v.optional(v.string()) }),
+  v.object({ kind: v.literal("member"), timeZone: v.optional(v.string()), admin: v.optional(v.boolean()) }),
   v.object({ kind: v.literal("bot") }),
   v.object({ kind: v.literal("not-a-member") }),
 );
@@ -21,7 +21,7 @@ export type DirectoryEntry = Infer<typeof directoryEntryValidator>;
 export async function lookup(ctx: QueryCtx, workspace: string, user: ChatUserId): Promise<MemberFacts | undefined> {
   const row = await memberRow(ctx, workspace, user);
   if (row === null) return undefined;
-  if (row.kind === "member") return { kind: "member", member: row._id, timeZone: row.timeZone };
+  if (row.kind === "member") return { kind: "member", member: row._id, timeZone: row.timeZone, admin: row.admin ?? false };
   return { kind: row.kind };
 }
 
@@ -32,6 +32,11 @@ export const memberOf = internalQuery({
     return person?.kind === "member" ? person.member : null;
   },
 });
+
+export async function isAdmin(ctx: QueryCtx, member: MemberId) {
+  const row = await ctx.db.get(member);
+  return row?.kind === "member" && (row.admin ?? false);
+}
 
 export async function chatUserOf(ctx: QueryCtx, member: MemberId): Promise<{ workspace: string; user: ChatUserId }> {
   const row = await ctx.db.get(member);
@@ -48,6 +53,11 @@ export const fillEntry = internalMutation({
   handler: async (ctx, directoryRecord) => {
     if ((await memberRow(ctx, directoryRecord.workspace, directoryRecord.user)) === null) await record(ctx, directoryRecord);
   },
+});
+
+export const refreshEntry = internalMutation({
+  args: directoryRecordArgs,
+  handler: (ctx, directoryRecord) => record(ctx, directoryRecord),
 });
 
 export async function record(ctx: MutationCtx, { workspace, user, entry, asOf }: DirectoryRecord) {

@@ -1,17 +1,29 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { showHomeTabCommand } from "../bus/commands";
+import { showHomeTabCommand, type CommandResult } from "../bus/commands";
 import { levelReachedEventValidator } from "../bus/events";
 import { kudosHomeOf, type KudosHome } from "../engine/home";
 import { progressionHomeOf, type ProgressionHome } from "../progression/progression";
 import { progressSettingsOf, type ProgressSettings } from "../progression/settings";
 import { chatUserOf, lookup, type MemberId } from "../workspace/directory";
+import { settingsOf } from "../workspace/settings";
 import type { HomeTab } from "./home";
 
 export type HomeFacts =
-  | { kind: "member"; member: MemberId; version: number; tab: HomeTab; kudos: KudosHome; progression: ProgressionHome; settings: ProgressSettings }
+  | {
+      kind: "member";
+      member: MemberId;
+      version: number;
+      tab: HomeTab;
+      kudos: KudosHome;
+      progression: ProgressionHome;
+      settings: ProgressSettings;
+      admin: AdminHome | null;
+    }
   | { kind: "not-a-member" };
+
+export type AdminHome = { announcementChannel: string | null };
 
 export const homeOf = internalQuery({
   args: { workspace: v.string(), user: v.string() },
@@ -28,16 +40,18 @@ export const homeOf = internalQuery({
       kudos: await kudosHomeOf(ctx, workspace, person.member, person.timeZone),
       progression: await progressionHomeOf(ctx, person.member),
       settings: await progressSettingsOf(ctx, person.member),
+      admin: person.admin ? { announcementChannel: (await settingsOf(ctx, workspace)).announcementChannel } : null,
     };
   },
 });
 
 export const showHomeTab = internalMutation({
   args: { command: showHomeTabCommand },
-  handler: async (ctx, { command: { member, tab } }): Promise<void> => {
+  handler: async (ctx, { command: { member, tab } }): Promise<CommandResult> => {
     const home = await homeRow(ctx, member);
     if (home === null) await ctx.db.insert("homes", { member, tab, version: 0 });
     else await ctx.db.patch(home._id, { tab });
+    return "done";
   },
 });
 

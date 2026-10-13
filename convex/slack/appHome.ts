@@ -4,7 +4,7 @@ import { internalAction, type ActionCtx } from "../_generated/server";
 import { renderHome, type HomeAction, type HomeLine, type HomeView } from "../feedback/home";
 import type { HomeFacts } from "../feedback/homes";
 import { attemptArgs, failedAttempt, sendOnce, tryAtMostThreeTimes } from "./delivery";
-import { lookUpUser } from "./directory";
+import { lookUpUser, refreshUser } from "./directory";
 
 export type HomeOpened = { type: "app_home_opened"; user: string; tab: "home" | "messages" };
 
@@ -13,18 +13,18 @@ export function isHomeTabOpened(event: { type: string }): event is HomeOpened {
 }
 
 export const publishHome = internalAction({
-  args: { workspace: v.string(), user: v.string(), ...attemptArgs },
-  handler: async (ctx, { attempt = 1, ...opened }) => {
+  args: { workspace: v.string(), user: v.string(), opened: v.optional(v.boolean()), ...attemptArgs },
+  handler: async (ctx, { attempt = 1, ...home }) => {
     await tryAtMostThreeTimes(
       attempt,
       async (attempt) => {
-        const facts = await homeFactsOf(ctx, opened.workspace, opened.user);
+        const facts = await homeFactsOf(ctx, home);
         if (facts.kind === "unavailable") return failedAttempt(attempt, facts.retryAfterMs);
-        const retry = await sendOnce(ctx, opened.workspace, "views.publish", { user_id: opened.user, view: homeView(renderHome(facts)) }, attempt);
+        const retry = await sendOnce(ctx, home.workspace, "views.publish", { user_id: home.user, view: homeView(renderHome(facts)) }, attempt);
         if (retry !== null || facts.kind !== "member") return retry;
         return (await isLatest(ctx, facts)) ? null : { at: Date.now(), attempt: 1 };
       },
-      (retry) => ctx.scheduler.runAt(retry.at, internal.slack.appHome.publishHome, { ...opened, attempt: retry.attempt }),
+      (retry) => ctx.scheduler.runAt(retry.at, internal.slack.appHome.publishHome, { ...home, attempt: retry.attempt }),
     );
   },
 });
@@ -40,10 +40,13 @@ async function isLatest(ctx: ActionCtx, { member, version }: Extract<HomeFacts, 
   return (await ctx.runQuery(internal.feedback.homes.versionOf, { member })) === version;
 }
 
-async function homeFactsOf(ctx: ActionCtx, workspace: string, user: string): Promise<HomeFacts | Unavailable> {
+type Home = { workspace: string; user: string; opened?: boolean };
+
+async function homeFactsOf(ctx: ActionCtx, { workspace, user, opened }: Home): Promise<HomeFacts | Unavailable> {
+  const refreshed = opened ? await refreshUser(ctx, workspace, user) : undefined;
   const known = await ctx.runQuery(internal.feedback.homes.homeOf, { workspace, user });
   if (known !== null) return known;
-  const lookUp = await lookUpUser(ctx, workspace, user);
+  const lookUp = refreshed ?? (await lookUpUser(ctx, workspace, user));
   if (lookUp.kind === "failed") return { kind: "unavailable", ...(lookUp.retryAfterMs !== undefined && { retryAfterMs: lookUp.retryAfterMs }) };
   return (await ctx.runQuery(internal.feedback.homes.homeOf, { workspace, user })) ?? { kind: "unavailable" };
 }
@@ -63,6 +66,10 @@ function buttonOf({ label, intent }: HomeAction) {
   return { type: "button", action_id: actionIdOf(intent), text: plainText(label), value: JSON.stringify(intent) };
 }
 
+function channelPickerOf({ picks, picked }: Extract<HomeLine, { kind: "pick-channel" }>) {
+  return { type: "channels_select", action_id: picks, placeholder: plainText("Pick a channel"), ...(picked !== null && { initial_channel: picked }) };
+}
+
 function actionIdOf(intent: HomeAction["intent"]) {
   return Object.entries(intent)
     .map(([key, value]) => `${key}=${value}`)
@@ -75,6 +82,7 @@ function blockOf(line: HomeLine) {
   if (line.kind === "fields") return { type: "section", fields: line.fields.map(mrkdwn) };
   if (line.kind === "hint") return { type: "context", elements: [mrkdwn(line.text)] };
   if (line.kind === "action") return { type: "section", text: mrkdwn(line.text), accessory: buttonOf(line.action) };
+  if (line.kind === "pick-channel") return { type: "section", text: mrkdwn(line.text), accessory: channelPickerOf(line) };
   return { type: "section", text: mrkdwn(line.text) };
 }
 
