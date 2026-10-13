@@ -6,15 +6,23 @@ export type SlackUser = {
   tz?: string;
 };
 
-export type SlackCall = { method: string; args: Record<string, string> };
+export type SlackCall = { method: string; args: Record<string, string>; at: number };
+
+export type ScriptedAnswer = () => Response;
 
 export class FakeSlack {
   readonly calls: SlackCall[] = [];
   private readonly users = new Map<string, SlackUser>();
   private readonly reactionsByMessage = new Map<string, string[]>();
+  private readonly scripted = new Map<string, ScriptedAnswer[]>();
 
   withMember(id: string, options: Partial<SlackUser> = {}) {
     this.users.set(id, { id, team_id: "T1", ...options });
+    return this;
+  }
+
+  answering(method: string, ...answers: ScriptedAnswer[]) {
+    this.scripted.set(method, answers);
     return this;
   }
 
@@ -30,8 +38,9 @@ export class FakeSlack {
     const url = new URL(input instanceof Request ? input.url : input);
     const method = url.pathname.split("/").pop() ?? "";
     const args = init?.body ? (JSON.parse(String(init.body)) as Record<string, string>) : Object.fromEntries(url.searchParams);
-    this.calls.push({ method, args });
-    return Response.json(this.answer(method, args));
+    this.calls.push({ method, args, at: Date.now() });
+    const scripted = this.scripted.get(method)?.shift();
+    return scripted ? scripted() : Response.json(this.answer(method, args));
   };
 
   private answer(method: string, args: Record<string, string>) {
@@ -46,6 +55,7 @@ export class FakeSlack {
       this.reactionsByMessage.set(key, [...reactions, args.name ?? ""]);
       return { ok: true };
     }
+    if (method === "chat.postMessage") return { ok: true, channel: args.channel, ts: "1760349700.000100" };
     return { ok: false, error: "unknown_method" };
   }
 }

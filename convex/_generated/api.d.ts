@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as bus_events from "../bus/events.js";
 import type * as bus_publish from "../bus/publish.js";
 import type * as crons from "../crons.js";
 import type * as engine_allowance from "../engine/allowance.js";
@@ -16,8 +17,10 @@ import type * as engine_engine from "../engine/engine.js";
 import type * as engine_messageEvent from "../engine/messageEvent.js";
 import type * as feedback_indicator from "../feedback/indicator.js";
 import type * as feedback_kudosCommand from "../feedback/kudosCommand.js";
+import type * as feedback_welcome from "../feedback/welcome.js";
 import type * as http from "../http.js";
 import type * as parser_parser from "../parser/parser.js";
+import type * as slack_appHome from "../slack/appHome.js";
 import type * as slack_commands from "../slack/commands.js";
 import type * as slack_delivery from "../slack/delivery.js";
 import type * as slack_directory from "../slack/directory.js";
@@ -27,6 +30,8 @@ import type * as slack_processEvent from "../slack/processEvent.js";
 import type * as slack_receipts from "../slack/receipts.js";
 import type * as slack_signature from "../slack/signature.js";
 import type * as slack_webApi from "../slack/webApi.js";
+import type * as slack_welcome from "../slack/welcome.js";
+import type * as welcome_welcome from "../welcome/welcome.js";
 import type * as workspace_directory from "../workspace/directory.js";
 import type * as workspace_settings from "../workspace/settings.js";
 
@@ -37,6 +42,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "bus/events": typeof bus_events;
   "bus/publish": typeof bus_publish;
   crons: typeof crons;
   "engine/allowance": typeof engine_allowance;
@@ -45,8 +51,10 @@ declare const fullApi: ApiFromModules<{
   "engine/messageEvent": typeof engine_messageEvent;
   "feedback/indicator": typeof feedback_indicator;
   "feedback/kudosCommand": typeof feedback_kudosCommand;
+  "feedback/welcome": typeof feedback_welcome;
   http: typeof http;
   "parser/parser": typeof parser_parser;
+  "slack/appHome": typeof slack_appHome;
   "slack/commands": typeof slack_commands;
   "slack/delivery": typeof slack_delivery;
   "slack/directory": typeof slack_directory;
@@ -56,6 +64,8 @@ declare const fullApi: ApiFromModules<{
   "slack/receipts": typeof slack_receipts;
   "slack/signature": typeof slack_signature;
   "slack/webApi": typeof slack_webApi;
+  "slack/welcome": typeof slack_welcome;
+  "welcome/welcome": typeof welcome_welcome;
   "workspace/directory": typeof workspace_directory;
   "workspace/settings": typeof workspace_settings;
 }>;

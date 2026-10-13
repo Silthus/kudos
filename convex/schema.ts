@@ -57,6 +57,10 @@ export default defineSchema({
     spent: v.number(),
   }).index("by_giver_day", ["giver", "day"]),
 
+  welcomes: defineTable({
+    member: v.id("members"),
+  }).index("by_member", ["member"]),
+
   indicators: defineTable({
     workspace: v.string(),
     conversation: v.string(),
