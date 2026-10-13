@@ -15,8 +15,8 @@ export const receive = internalMutation({
       .withIndex("by_event", (q) => q.eq("workspace", receipt.workspace).eq("eventId", receipt.eventId))
       .unique();
     if (redelivered !== null) return;
-    await ctx.db.insert("slackReceipts", receipt);
-    await processEvent(ctx, receipt, event);
+    const observation = await processEvent(ctx, receipt, event);
+    if (observation?.kind !== "ignored") await ctx.db.insert("slackReceipts", receipt);
   },
 });
 

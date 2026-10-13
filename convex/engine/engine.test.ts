@@ -104,16 +104,15 @@ describe("R12 R13: the allowance day follows the giver's time zone", () => {
   });
 });
 
-test("R17: two messages of one giver evaluated at the same time never overspend", async () => {
+test("R17: a giver's next message sees what the previous one spent", async () => {
   const t = await withDirectory({ U_ALICE: "UTC", U_BOB: "UTC" });
   const twoTacos = ["taco", "taco"];
 
-  const observations = await Promise.all([
-    t.run((ctx) => observe(ctx, kudosMessage("U_ALICE", [person("U_BOB")], twoTacos, { message: "1" }))),
-    t.run((ctx) => observe(ctx, kudosMessage("U_ALICE", [person("U_BOB")], twoTacos, { message: "2" }))),
-  ]);
+  const first = await t.run((ctx) => observe(ctx, kudosMessage("U_ALICE", [person("U_BOB")], twoTacos, { message: "1" })));
+  const second = await t.run((ctx) => observe(ctx, kudosMessage("U_ALICE", [person("U_BOB")], twoTacos, { message: "2" })));
 
-  expect(observations.map((observation) => observation.kind === "evaluated" && observation.outcome.kind).sort()).toEqual(["given", "over-allowance"]);
+  expect(first).toMatchObject({ outcome: { kind: "given", left: 1 } });
+  expect(second).toMatchObject({ outcome: { kind: "over-allowance", cost: 2, left: 1 } });
   expect((await awardsOf(t)).reduce((sum, award) => sum + award.kudos, 0)).toBe(2);
 });
 

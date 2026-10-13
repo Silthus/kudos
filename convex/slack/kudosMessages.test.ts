@@ -84,7 +84,7 @@ describe("R1 R2: only countable content makes a kudos message", () => {
     ["no mention", [section(text("thanks "), emoji("taco"))]],
     ["no emoji", [section(text("thanks "), mention("U_BOB"))]],
     ["an emoji that is not a kudos emoji", [section(mention("U_BOB"), emoji("pizza"))]],
-  ])("%s is ordinary chat: no reaction, no kudos, no lookup", async (_, blocks, options) => {
+  ])("%s is ordinary chat: no reaction, no lookup, nothing stored", async (_, blocks, options) => {
     const t = testBackend();
 
     const response = await post(t, blocks, options);
@@ -92,7 +92,7 @@ describe("R1 R2: only countable content makes a kudos message", () => {
 
     expect(response.status).toBe(200);
     expect(slack.calls).toEqual([]);
-    expect(await kudosReceived(t, "U_BOB")).toBe(0);
+    expect(await everythingStored(t)).toEqual([]);
   });
 
   test("R3: after the workspace emoji changes, the old one is ordinary chat", async () => {
@@ -195,11 +195,7 @@ test("R51: no message text in any table or in any scheduled function's arguments
   await settle(t);
 
   expect(await kudosReceived(t, "U_BOB")).toBe(1);
-  const everything = await t.run(async (ctx) => {
-    const tables = await Promise.all(Object.keys(schema.tables).map((table) => ctx.db.query(table as keyof typeof schema.tables).collect()));
-    const scheduled = await ctx.db.system.query("_scheduled_functions").collect();
-    return [...tables.flat(), ...scheduled];
-  });
+  const everything = [...(await everythingStored(t)), ...(await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect()))];
   expect(stringify(everything)).not.toContain(secretNote);
   expect(stringify(everything)).not.toContain("thanks for the help");
 });
@@ -234,6 +230,13 @@ async function kudosReceived(t: Backend, user: string) {
       .withIndex("by_recipient", (q) => q.eq("recipient", member._id))
       .collect();
     return awards.reduce((sum, award) => sum + award.kudos, 0);
+  });
+}
+
+async function everythingStored(t: Backend) {
+  return t.run(async (ctx) => {
+    const tables = await Promise.all(Object.keys(schema.tables).map((table) => ctx.db.query(table as keyof typeof schema.tables).collect()));
+    return tables.flat();
   });
 }
 

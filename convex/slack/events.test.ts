@@ -4,7 +4,7 @@ import schema from "../schema";
 import { modules } from "../test.setup";
 import { processEvent } from "./processEvent";
 
-vi.mock("./processEvent", () => ({ processEvent: vi.fn(async () => {}) }));
+vi.mock("./processEvent", () => ({ processEvent: vi.fn(async () => null) }));
 
 const signingSecret = "test-signing-secret";
 const now = new Date("2026-10-13T10:00:00Z");
