@@ -18,7 +18,8 @@ export type Invalid = { skipped: SkippedMention[] };
 export type Reply =
   | { kind: "given"; outcome: Given; base: number; extras?: Line }
   | { kind: "over-allowance"; outcome: OverAllowance; base: number }
-  | { kind: "invalid"; outcome: Invalid };
+  | { kind: "invalid"; outcome: Invalid }
+  | { kind: "accepted-message-edited" };
 
 export async function replyPrivately(ctx: MutationCtx, ref: MessageRef, threadRoot: string | undefined, to: ChatUserId, reply: Reply) {
   const id = await ctx.db.insert("privateReplies", { ...ref, ...(threadRoot && { threadRoot }), to, lines: renderReply(reply) });
@@ -38,6 +39,8 @@ export function renderReply(reply: Reply): Line[] {
       return [overAllowanceLine(reply.outcome, reply.base)];
     case "invalid":
       return [invalidLine(reply.outcome)];
+    case "accepted-message-edited":
+      return [[{ text: "This message already gave kudos, so your edit doesn't change them. To give more, send a new message." }]];
   }
 }
 

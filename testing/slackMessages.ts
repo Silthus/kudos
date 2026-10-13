@@ -54,3 +54,58 @@ export function messageEvent(blocks: RichElement[], options: MessageOptions = {}
     },
   });
 }
+
+export type EditOptions = Omit<MessageOptions, "subtype" | "botId"> & { editedTs?: string | null };
+
+export function messageChangedEvent(blocks: RichElement[], options: EditOptions = {}) {
+  eventCounter += 1;
+  const team = options.team ?? "T1";
+  const ts = options.ts ?? "1760349600.000100";
+  const editedTs = options.editedTs === undefined ? "1760349660.000100" : options.editedTs;
+  return JSON.stringify({
+    type: "event_callback",
+    team_id: team,
+    event_id: `Ev${eventCounter}`,
+    event: {
+      type: "message",
+      subtype: "message_changed",
+      hidden: true,
+      channel: options.channel ?? "C1",
+      channel_type: options.channelType ?? "channel",
+      ts: editedTs ?? "1760349900.000200",
+      message: {
+        type: "message",
+        user: options.user ?? "U_ALICE",
+        ts,
+        text: "thanks for the help, edited",
+        team,
+        blocks: [{ type: "rich_text", block_id: "b1", elements: blocks }],
+        ...(editedTs && { edited: { user: options.user ?? "U_ALICE", ts: editedTs } }),
+        ...(options.threadTs && { thread_ts: options.threadTs }),
+        ...options.extra,
+      },
+      previous_message: { type: "message", user: options.user ?? "U_ALICE", ts, text: "thanks for the help" },
+    },
+  });
+}
+
+export function messageDeletedEvent(options: Pick<MessageOptions, "team" | "channel" | "ts"> = {}) {
+  eventCounter += 1;
+  const team = options.team ?? "T1";
+  const ts = options.ts ?? "1760349600.000100";
+  return JSON.stringify({
+    type: "event_callback",
+    team_id: team,
+    event_id: `Ev${eventCounter}`,
+    event: {
+      type: "message",
+      subtype: "message_deleted",
+      hidden: true,
+      channel: options.channel ?? "C1",
+      channel_type: "channel",
+      ts: "1760349999.000300",
+      deleted_ts: ts,
+      previous_message: { type: "message", user: "U_ALICE", ts, text: "thanks for the help" },
+    },
+  });
+}

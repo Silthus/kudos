@@ -35,3 +35,9 @@ async function kudosEmojiOf(ctx: QueryCtx, context: ParseContext) {
   const claims = await Promise.all(parseHooks.map((hook) => hook.kudosEmoji?.(ctx, context) ?? []));
   return claims.flat();
 }
+
+export function fingerprintOf(kudos: KudosMessage | null): string {
+  if (kudos === null) return "";
+  const mentions = [...new Set(kudos.mentions.map((mention) => JSON.stringify(mention)))].sort();
+  return JSON.stringify({ mentions, kudosEmoji: [...kudos.kudosEmoji].sort() });
+}

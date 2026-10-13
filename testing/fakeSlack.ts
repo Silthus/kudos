@@ -50,6 +50,13 @@ export class FakeSlack {
       this.reactionsByMessage.set(key, [...reactions, args.name ?? ""]);
       return { ok: true };
     }
+    if (method === "reactions.remove") {
+      const key = `${args.channel}/${args.timestamp}`;
+      const reactions = this.reactionsByMessage.get(key) ?? [];
+      if (!reactions.includes(args.name ?? "")) return { ok: false, error: "no_reaction" };
+      this.reactionsByMessage.set(key, reactions.filter((name) => name !== args.name));
+      return { ok: true };
+    }
     if (method === "chat.postEphemeral") return { ok: true, message_ts: "1760349700.000100" };
     return { ok: false, error: "unknown_method" };
   }

@@ -2,21 +2,23 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 import type { Mention } from "../engine/messageEvent";
-import { messageRefValidator } from "../engine/messageEvent";
+import { messageRefValidator, type MessageRef } from "../engine/messageEvent";
 import type { Line, Segment } from "../feedback/replies";
 import { callSlack } from "./webApi";
-
-const reactionAlreadyShown = "already_reacted";
 
 export const deliverIndicator = internalAction({
   args: messageRefValidator,
   handler: async (ctx, ref) => {
-    const indicator = await ctx.runQuery(internal.feedback.indicator.desired, ref);
-    if (indicator === null) return;
-    const answer = await callSlack("reactions.add", { channel: ref.conversation, timestamp: ref.message, name: indicator.emoji });
-    if (!answer.ok && answer.error !== reactionAlreadyShown) console.warn(`reactions.add failed: ${answer.error}`);
+    const { desired, replaced } = await ctx.runQuery(internal.feedback.indicator.desired, ref);
+    for (const name of replaced) await react("reactions.remove", ref, name, "no_reaction");
+    if (desired !== null) await react("reactions.add", ref, desired.emoji, "already_reacted");
   },
 });
+
+async function react(method: "reactions.add" | "reactions.remove", ref: MessageRef, name: string, alreadyDone: string) {
+  const answer = await callSlack(method, { channel: ref.conversation, timestamp: ref.message, name });
+  if (!answer.ok && answer.error !== alreadyDone) console.warn(`${method} failed: ${answer.error}`);
+}
 
 export const deliverPrivateReply = internalAction({
   args: { reply: v.id("privateReplies") },

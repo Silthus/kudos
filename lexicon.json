@@ -266,6 +266,10 @@
     {
       "name": "annotation",
       "definition": "A fact about a kudos message that a parse hook adds while the text is in memory, such as whether it says why, carried on kudosGiven in place of the text, which is never stored."
+    },
+    {
+      "name": "revision",
+      "definition": "One version of a chat message as the app saw it: the post, then each edit. Revisions are ordered (in Slack, by the edit's time, else the message's own), and a revision at or below the newest the app has seen for that message is ignored, so an original that arrives after its edit or a late older edit changes nothing (R21). A kudos message keeps only its newest revision, never its text."
     }
   ]
 }

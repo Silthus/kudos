@@ -220,6 +220,51 @@ test("R19: a message gives at most once", async () => {
   expect(await awardsOf(t)).toHaveLength(1);
 });
 
+describe("R13 R23: a retry spends from the day of its edit", () => {
+  const threeTacos = ["taco", "taco", "taco"];
+
+  test("a message Over allowance yesterday, edited after midnight, spends from the new day, whatever its age", async () => {
+    const t = await withDirectory({ U_ALICE: "Asia/Tokyo", U_BOB: "UTC", U_CAROL: "UTC" });
+    const yesterday = Date.parse("2026-10-13T14:00:00Z");
+    await t.run((ctx) => observe(ctx, kudosMessage("U_ALICE", [person("U_BOB")], threeTacos, { message: "1", at: yesterday })));
+    const overAllowance = await t.run((ctx) => observe(ctx, kudosMessage("U_ALICE", [person("U_BOB"), person("U_CAROL")], ["taco"], { message: "2", at: yesterday })));
+
+    const tenDaysLater = Date.parse("2026-10-23T15:30:00Z");
+    const retry = await t.run((ctx) => observe(ctx, editOf(kudosMessage("U_ALICE", [person("U_CAROL")], threeTacos, { message: "2", at: yesterday }), tenDaysLater)));
+
+    expect(overAllowance).toMatchObject({ outcome: { kind: "over-allowance", left: 0 } });
+    expect(retry).toMatchObject({ kind: "evaluated", outcome: { kind: "given", left: 0 } });
+    expect((await awardsOf(t)).map((award) => award.day)).toEqual(["2026-10-13", "2026-10-24"]);
+    expect(vi.mocked(publish).mock.calls.at(-1)?.[1]).toMatchObject({ day: "2026-10-24", at: tenDaysLater });
+  });
+
+  test("an edit seen before anything else of its message spends from its own day", async () => {
+    const t = await withDirectory({ U_ALICE: "America/Los_Angeles", U_BOB: "UTC" });
+    const postedBeforeMidnight = Date.parse("2026-10-14T06:50:00Z");
+    const editedAfterMidnight = Date.parse("2026-10-14T07:10:00Z");
+
+    await t.run((ctx) => observe(ctx, editOf(kudosMessage("U_ALICE", [person("U_BOB")], ["taco"], { at: postedBeforeMidnight }), editedAfterMidnight)));
+
+    expect((await awardsOf(t)).map((award) => award.day)).toEqual(["2026-10-14"]);
+  });
+});
+
+test("R26: an edit to a message that gave kudos changes no award and spends nothing", async () => {
+  const t = await withDirectory({ U_ALICE: "UTC", U_BOB: "UTC", U_CAROL: "UTC" });
+  const posted = kudosMessage("U_ALICE", [person("U_BOB")], ["taco"]);
+  await t.run((ctx) => observe(ctx, posted));
+
+  const edited = await t.run((ctx) => observe(ctx, editOf(kudosMessage("U_ALICE", [person("U_BOB"), person("U_CAROL")], ["taco", "taco"]), now.getTime() + 60_000)));
+  const next = await t.run((ctx) => observe(ctx, kudosMessage("U_ALICE", [person("U_CAROL")], ["taco", "taco"], { message: "2" })));
+
+  expect(edited).toEqual({ kind: "already-given", toldGiver: true });
+  expect(next).toMatchObject({ outcome: { kind: "given", left: 0 } });
+  expect(await awardsOf(t)).toEqual([
+    { giver: "U_ALICE", recipient: "U_BOB", kudos: 1, day: "2026-10-13" },
+    { giver: "U_ALICE", recipient: "U_CAROL", kudos: 2, day: "2026-10-13" },
+  ]);
+});
+
 type Backend = ReturnType<typeof testBackend>;
 
 function testBackend() {
@@ -250,6 +295,10 @@ function kudosMessage(author: string, mentions: Mention[], emoji: string[], opti
     at,
     content: { mentions, emoji, text: "thanks" },
   };
+}
+
+function editOf(event: MessageEvent, at: number): MessageEvent {
+  return { ...event, kind: "edited", revision: BigInt(at) * 1000n, at };
 }
 
 async function memberIds(t: Backend) {

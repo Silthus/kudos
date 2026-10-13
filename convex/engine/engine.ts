@@ -8,7 +8,7 @@ import { settingsOf } from "../workspace/settings";
 import { allowanceDay, dailyAllowance } from "./allowance";
 import { insertAwards, type Award } from "./awards";
 import { messageRefValidator, type ChatUserId, type Mention, type MessageEvent, type MessageRef } from "./messageEvent";
-import { annotationsOf, kudosMessageOf, type KudosMessage } from "../parser/parser";
+import { annotationsOf, fingerprintOf, kudosMessageOf, type KudosMessage } from "../parser/parser";
 
 export type Outcome =
   | ({ kind: "given"; awards: Award[]; kudosEmoji: string } & Given)
@@ -19,6 +19,8 @@ export type Observation =
   | { kind: "ignored"; why: "not-a-member" | "ordinary-chat" | "stale-revision" | "unchanged" }
   | { kind: "awaiting-directory"; users: ChatUserId[]; retryInMs: number }
   | { kind: "abandoned" }
+  | { kind: "withdrawn" }
+  | { kind: "already-given"; toldGiver: boolean }
   | { kind: "evaluated"; outcome: Outcome };
 
 type KudosMessageRow = Doc<"kudosMessages">;
@@ -26,24 +28,68 @@ type Member = Extract<MemberFacts, { kind: "member" }>;
 
 export async function observe(ctx: MutationCtx, event: MessageEvent): Promise<Observation> {
   const existing = await kudosMessageRow(ctx, event.ref);
-  if (existing !== null) return { kind: "ignored", why: event.revision === existing.revision ? "unchanged" : "stale-revision" };
+  if (existing !== null && event.revision <= existing.revision) {
+    return { kind: "ignored", why: event.revision === existing.revision ? "unchanged" : "stale-revision" };
+  }
 
   const author = await lookup(ctx, event.ref.workspace, event.author);
   if (author !== undefined && author.kind !== "member") return { kind: "ignored", why: "not-a-member" };
   const context = { workspace: event.ref.workspace, giver: author?.member };
-  if ((await kudosMessageOf(ctx, event.content, context)) === null) return { kind: "ignored", why: "ordinary-chat" };
+  const kudos = await kudosMessageOf(ctx, event.content, context);
+  const revision = {
+    revision: event.revision,
+    fingerprint: fingerprintOf(kudos),
+    content: { mentions: event.content.mentions, emoji: event.content.emoji },
+    annotations: annotationsOf(event.content, context),
+  };
+  if (existing === null) return observeFirstRevision(ctx, event, revision, kudos !== null);
+  return observeEdit(ctx, existing, event, revision, kudos !== null);
+}
 
+type Revision = Pick<KudosMessageRow, "revision" | "fingerprint" | "content" | "annotations">;
+
+async function observeFirstRevision(ctx: MutationCtx, event: MessageEvent, revision: Revision, isKudosMessage: boolean): Promise<Observation> {
+  if (!isKudosMessage) {
+    if (event.kind === "edited") await insertRow(ctx, event, revision, "watermark");
+    return { kind: "ignored", why: "ordinary-chat" };
+  }
+  return evaluate(ctx, await insertRow(ctx, event, revision, "awaiting-directory"), { lastCheck: false });
+}
+
+async function observeEdit(ctx: MutationCtx, row: KudosMessageRow, event: MessageEvent, revision: Revision, isKudosMessage: boolean): Promise<Observation> {
+  await ctx.db.patch(row._id, revision);
+  const changed = revision.fingerprint !== row.fingerprint;
+  if (row.state === "given") {
+    if (changed) await replyPrivately(ctx, refOf(row), row.threadRoot, row.author, { kind: "accepted-message-edited" });
+    return { kind: "already-given", toldGiver: changed };
+  }
+  if (!changed) return { kind: "ignored", why: "unchanged" };
+  if (!isKudosMessage) return hasOpenAttempt(row) ? withdraw(ctx, row) : ignore(ctx, row, "ordinary-chat");
+
+  await ctx.db.patch(row._id, { state: "awaiting-directory", spendsAt: event.at });
+  return evaluate(ctx, (await ctx.db.get(row._id))!, { lastCheck: false });
+}
+
+async function withdraw(ctx: MutationCtx, row: KudosMessageRow): Promise<Observation> {
+  await ctx.db.patch(row._id, { state: "withdrawn" });
+  if (row.state !== "awaiting-directory") await setIndicator(ctx, refOf(row), null);
+  return { kind: "withdrawn" };
+}
+
+function hasOpenAttempt(row: KudosMessageRow) {
+  return row.state === "awaiting-directory" || row.state === "over-allowance" || row.state === "invalid";
+}
+
+async function insertRow(ctx: MutationCtx, event: MessageEvent, revision: Revision, state: "watermark" | "awaiting-directory") {
   const id = await ctx.db.insert("kudosMessages", {
     ...event.ref,
     ...(event.threadRoot && { threadRoot: event.threadRoot }),
     author: event.author,
-    revision: event.revision,
-    state: "awaiting-directory",
-    content: { mentions: event.content.mentions, emoji: event.content.emoji },
-    annotations: annotationsOf(event.content, context),
+    ...revision,
+    state,
     spendsAt: event.at,
   });
-  return evaluate(ctx, (await ctx.db.get(id))!, { lastCheck: false });
+  return (await ctx.db.get(id))!;
 }
 
 export const recheck = internalMutation({

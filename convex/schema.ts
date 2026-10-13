@@ -36,7 +36,9 @@ export default defineSchema({
       v.literal("given"),
       v.literal("over-allowance"),
       v.literal("invalid"),
+      v.literal("withdrawn"),
     ),
+    fingerprint: v.string(),
     content: v.object({ mentions: v.array(mentionValidator), emoji: v.array(v.string()) }),
     annotations: annotationsValidator,
     spendsAt: v.number(),
@@ -64,6 +66,7 @@ export default defineSchema({
     conversation: v.string(),
     message: v.string(),
     emoji: v.union(v.string(), v.null()),
+    replaced: v.array(v.string()),
   }).index("by_message", ["workspace", "conversation", "message"]),
 
   privateReplies: defineTable({
