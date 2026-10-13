@@ -1,6 +1,7 @@
 import { v, type GenericValidator, type Infer } from "convex/values";
+import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
-import { homeTabValidator, republishAdminsIn, selectLeaderboardPeriod, showHomeTab, type HomeMember } from "../feedback/homes";
+import { homeTabValidator, selectLeaderboardPeriod, showHomeTab, type HomeMember } from "../feedback/homes";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import { periodValidator } from "../leaderboard/periods";
 import { setLeaderboardVisibility } from "../leaderboard/visibility";
@@ -39,7 +40,7 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       return;
     }
     case "setAnnouncementChannel":
-      if ((await xpLevelsShownTo(ctx, member)) && (await setAnnouncementChannel(ctx, workspace, person, command.channel))) await republishAdminsIn(ctx, workspace);
+      if ((await xpLevelsShownTo(ctx, member)) && (await setAnnouncementChannel(ctx, workspace, person, command.channel))) await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
       return;
   }
 }

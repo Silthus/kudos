@@ -68,9 +68,12 @@ export const refreshHomeOnXp = internalMutation({
   },
 });
 
-export async function republishAdminsIn(ctx: MutationCtx, workspace: string) {
-  for (const user of await adminsIn(ctx, workspace)) await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, { workspace, user });
-}
+export const republishAdminsIn = internalMutation({
+  args: { workspace: v.string() },
+  handler: async (ctx, { workspace }): Promise<void> => {
+    for (const user of await adminsIn(ctx, workspace)) await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, { workspace, user });
+  },
+});
 
 export async function republishOnRoleChange(ctx: MutationCtx, before: MemberFacts | undefined, after: MemberFacts | undefined) {
   if (before === undefined || after === undefined || roleOf(before) === roleOf(after)) return;
