@@ -34,9 +34,10 @@ export class MockSlackIssuer {
 
   start() {
     const server = createServer((request, response) => void this.route(request, response));
-    return new Promise<() => Promise<void>>((resolve) =>
-      server.listen(mockPort, "127.0.0.1", () => resolve(() => new Promise((closed) => server.close(() => closed())))),
-    );
+    return new Promise<() => Promise<void>>((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(mockPort, "127.0.0.1", () => resolve(() => new Promise((closed) => server.close(() => closed()))));
+    });
   }
 
   private async route(request: IncomingMessage, response: ServerResponse) {

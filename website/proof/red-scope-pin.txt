@@ -1,0 +1,97 @@
+# Red: the scope pin removed from slackSignIn (authorization params keep only team). Unit test, then the handshake against the mock issuer.
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/sign-in
+
+ ❯ |convex| convex/slack/signIn.test.ts (7 tests | 2 failed) 10ms
+   ❯ WS5 L-W1: the Slack provider asks for exactly what the manifests declare (2)
+     × it checks state and nonce, asks only for openid profile, and opens the deployment's workspace 6ms
+     × with no SLACK_WORKSPACE_ID it still asks only for openid profile and pins no workspace 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/slack/signIn.test.ts > WS5 L-W1: the Slack provider asks for exactly what the manifests declare > it checks state and nonce, asks only for openid profile, and opens the deployment's workspace
+AssertionError: expected { params: { team: 'T1' } } to deeply equal { params: { …(2) } }
+
+- Expected
++ Received
+
+  {
+    "params": {
+-     "scope": "openid profile",
+      "team": "T1",
+    },
+  }
+
+ ❯ convex/slack/signIn.test.ts:21:36
+     19|
+     20|     expect(options?.checks).toEqual(["state", "nonce"]);
+     21|     expect(options?.authorization).toEqual({ params: { scope: "openid …
+       |                                    ^
+     22|   });
+     23|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |convex| convex/slack/signIn.test.ts > WS5 L-W1: the Slack provider asks for exactly what the manifests declare > with no SLACK_WORKSPACE_ID it still asks only for openid profile and pins no workspace
+AssertionError: expected { params: {} } to deeply equal { params: { scope: 'openid profile' } }
+
+- Expected
++ Received
+
+  {
+-   "params": {
+-     "scope": "openid profile",
+-   },
++   "params": {},
+  }
+
+ ❯ convex/slack/signIn.test.ts:27:50
+     25|     vi.stubEnv("SLACK_WORKSPACE_ID", "");
+     26|
+     27|     expect(slackSignIn().options?.authorization).toEqual({ params: { s…
+       |                                                  ^
+     28|   });
+     29| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 5 passed (7)
+   Start at  20:22:55
+   Duration  174ms (environment 47%, transform 26%, tests 12%, import 11%, worker 4%)
+
+
+
+# The handshake against the mock issuer, same break:
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/sign-in
+
+ ❯ |handshake| testing/handshake/signIn.handshake.ts (17 tests | 1 failed | 16 skipped) 1164ms
+   ❯ WS5 L-W1: a member signs in with Slack (1)
+     × Slack is asked for openid profile in the deployment's workspace, with state and nonce, and the member lands home 632ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |handshake| testing/handshake/signIn.handshake.ts > WS5 L-W1: a member signs in with Slack > Slack is asked for openid profile in the deployment's workspace, with state and nonce, and the member lands home
+AssertionError: expected 'openid profile email' to be 'openid profile' // Object.is equality
+
+Expected: "openid profile"
+Received: "openid profile email"
+
+ ❯ testing/handshake/signIn.handshake.ts:45:49
+     43|
+     44|     expect(authorize.origin + authorize.pathname).toBe(`${issuer}/open…
+     45|     expect(authorize.searchParams.get("scope")).toBe("openid profile");
+       |                                                 ^
+     46|     expect(authorize.searchParams.get("team")).toBe(allowedWorkspace);
+     47|     expect(authorize.searchParams.get("state")?.length).toBeGreaterTha…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 16 skipped (17)
+   Start at  20:25:29
+   Duration  1.37s (tests 90%, import 7%, transform 2%)
+
