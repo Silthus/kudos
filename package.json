@@ -1,0 +1,20 @@
+{
+  "name": "kudos",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Peer recognition for Slack, built on Convex.",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "coherence": "coherence spec --check && coherence lexicon --check",
+    "gate": "pnpm typecheck && pnpm test && pnpm coherence"
+  },
+  "packageManager": "pnpm@12.11.2",
+  "devDependencies": {
+    "@posthog/coherence": "^1.7.2",
+    "@types/node": "^26.6.5",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}
