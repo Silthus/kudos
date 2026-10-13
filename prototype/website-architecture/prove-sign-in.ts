@@ -2,12 +2,11 @@
 // playing the browser by hand, against mock-slack.ts in place of Slack.
 // Run: node prototype/website-architecture/prove-sign-in.ts (backend on 127.0.0.1:3310/3311, see the brief).
 import { ConvexHttpClient } from "convex/browser";
-import { anyApi } from "convex/server";
+import { api } from "../../convex/_generated/api.js";
 import { issuer, startMockSlack, type NextSignIn } from "./mock-slack.ts";
 
 const cloud = "http://127.0.0.1:3310";
 const site = "http://127.0.0.1:3311";
-const api = anyApi;
 const results: string[] = [];
 
 const stopMock = await startMockSlack();
@@ -59,12 +58,12 @@ async function happyPath() {
   const client = new ConvexHttpClient(cloud);
   const tokens = await client.action(api.auth.signIn, { provider: "slack", params: { code }, verifier });
   check("the code and the browser's verifier become a session token", typeof tokens?.tokens?.token === "string", "");
-  client.setAuth(tokens.tokens.token);
+  client.setAuth(tokens.tokens!.token);
   const first = await client.query(api.website.profile.getMyProfile, {});
   check("right after a first sign-in the directory is being verified, or already knows the member", ["verifying", "member"].includes(first.kind), first.kind);
   const profile = await eventually(() => client.query(api.website.profile.getMyProfile, {}), (p) => p.kind === "member");
   check("once users.info answers, the member sees their own profile", profile.kind === "member" && profile.name === "Ada", JSON.stringify(profile));
-  return { code: code!, verifier, tokens: tokens.tokens };
+  return { code: code!, verifier, tokens: tokens.tokens! };
 }
 
 async function codeCannotBeReplayed(code: string, verifier: string) {
@@ -97,7 +96,7 @@ async function refreshThenSignOut(tokens: { token: string; refreshToken: string 
   const client = new ConvexHttpClient(cloud);
   const refreshed = await client.action(api.auth.signIn, { refreshToken: tokens.refreshToken });
   check("the refresh token renews the session", typeof refreshed?.tokens?.token === "string", "");
-  client.setAuth(refreshed.tokens.token);
+  client.setAuth(refreshed.tokens!.token);
   await client.action(api.auth.signOut, {});
   const after = await client.query(api.website.profile.getMyProfile, {});
   check("after sign-out, a still-unexpired token reads signed-out", after.kind === "signed-out", after.kind);
@@ -106,7 +105,7 @@ async function refreshThenSignOut(tokens: { token: string; refreshToken: string 
 async function startSignIn(redirectTo: string) {
   const client = new ConvexHttpClient(cloud);
   const started = await client.action(api.auth.signIn, { provider: "slack", params: { redirectTo } });
-  const response = await fetch(started.redirect, { redirect: "manual" });
+  const response = await fetch(started.redirect!, { redirect: "manual" });
   const cookies = response.headers.getSetCookie().map(parseCookie);
   return { authorize: new URL(response.headers.get("location")!), cookies, verifier: started.verifier as string };
 }
