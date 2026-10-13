@@ -4,7 +4,7 @@ import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack, httpStatus, rateLimitedFor } from "../../testing/fakeSlack";
 import { everyone, serveFlags, stubSandboxWithFlags } from "../../testing/flags";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { publishedHome as publishedHomeOf } from "../../testing/slackInteractions";
+import { blockActions, buttonIn, publishedHome as publishedHomeOf, publishedHomeBlocks } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 
@@ -178,11 +178,32 @@ describe("WS28: App Home links to the website while it is open", () => {
       "divider",
       "section fields: *Given this week*\n*0* | *Received this week*\n*0* | *Given in total*\n*0* | *Received in total*\n*0*",
       "divider",
-      websiteLink,
-      "divider",
       "context: To give kudos, mention a teammate and add :taco: to your message. Each :taco: gives everyone you mention 1 kudos.",
       "context: To add me to a channel, type `/hedgehug` there.",
+      "divider",
+      websiteLink,
     ]);
+  });
+
+  test("with the Everyone board's tabs, every tab ends with the link, the tab App Home reopens on included", async () => {
+    const t = await backendWithWebsite("website", "everyone-board");
+    await openHome(t, "U_BOB");
+    const profileTab = publishedHome("U_BOB");
+
+    await click(t, "U_BOB", "Leaderboard");
+    const leaderboardTab = publishedHome("U_BOB");
+    await click(t, "U_BOB", "Settings");
+    const settingsTab = publishedHome("U_BOB");
+    await openHome(t, "U_BOB");
+    const reopened = publishedHome("U_BOB");
+
+    expect([profileTab, leaderboardTab, settingsTab, reopened].map((home) => [home[1], home.slice(-2)])).toEqual([
+      ["header: Your kudos", ["divider", websiteLink]],
+      ["header: Leaderboard", ["divider", websiteLink]],
+      ["header: Settings", ["divider", websiteLink]],
+      ["header: Settings", ["divider", websiteLink]],
+    ]);
+    expect(reopened.filter((line) => line === websiteLink)).toHaveLength(1);
   });
 
   test("a SITE_URL ending in a slash still links to one root", async () => {
@@ -287,6 +308,12 @@ async function openHome(t: Backend, user: string, options: Parameters<typeof app
   const response = await t.fetch("/slack/events", await signedRequest(appHomeOpened(user, options)));
   await settle(t);
   return response;
+}
+
+async function click(t: Backend, user: string, label: string) {
+  const body = blockActions(user, buttonIn(publishedHomeBlocks(slack, user), label));
+  await t.fetch("/slack/interactivity", await signedRequest(body, { contentType: "application/x-www-form-urlencoded" }));
+  await settle(t);
 }
 
 async function giveKudos(t: Backend, giver: string, recipient: string, ts: string, kudosEmoji = ["taco"]) {
