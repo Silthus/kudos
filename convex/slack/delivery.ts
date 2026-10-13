@@ -14,8 +14,14 @@ const goneErrors = new Set(["message_not_found", "channel_not_found", "not_in_ch
 const reactionShown = new Set(["already_reacted"]);
 const reactionNotShown = new Set(["no_reaction"]);
 
-export type Attempt = { kind: "delivered"; ts?: string } | { kind: "gone" } | { kind: "held"; until: number } | { kind: "failed"; retryAt?: number } | { kind: "unknown" };
+export type Attempt<Data = object> =
+  | { kind: "delivered"; answer: SlackAnswer<Data> }
+  | { kind: "gone" }
+  | { kind: "held"; until: number }
+  | { kind: "failed"; retryAt?: number }
+  | { kind: "unknown" };
 export type Retry = { at: number; attempt: number } | null;
+type Called<Data> = { answered: Data } | { retry: Retry };
 type Send = (attempt: number) => Promise<Retry>;
 
 export const deliverIndicator = internalAction({
@@ -45,9 +51,15 @@ export async function tryAtMostThreeTimes(attempt: number, send: Send, tryAgain:
 }
 
 export async function sendOnce(ctx: ActionCtx, workspace: string, method: string, args: Record<string, unknown>, attempt: number): Promise<Retry> {
-  const result = await attemptCall(ctx, workspace, method, args);
-  if (result.kind === "delivered" || result.kind === "gone") return null;
-  return retryAfter(result, attempt);
+  const called = await callOnce(ctx, workspace, method, args, attempt);
+  return "retry" in called ? called.retry : null;
+}
+
+export async function callOnce<Data>(ctx: ActionCtx, workspace: string, method: string, args: Record<string, unknown>, attempt: number): Promise<Called<Data>> {
+  const result = await attemptCall<Data>(ctx, workspace, method, args);
+  if (result.kind === "delivered" && result.answer.ok) return { answered: result.answer };
+  if (result.kind === "held" || result.kind === "failed" || result.kind === "unknown") return { retry: retryAfter(result, attempt) };
+  return { retry: null };
 }
 
 export function failedAttempt(attempt: number, retryAfterMs?: number): Retry {
@@ -102,13 +114,18 @@ function reactionArgs(ref: MessageRef, emoji: string) {
   return { channel: ref.conversation, timestamp: ref.message, name: emoji };
 }
 
-export async function attemptCall(ctx: ActionCtx, workspace: string, method: string, args: Record<string, unknown>, alsoDelivered = new Set<string>()): Promise<Attempt> {
+export async function attemptCall<Data = object>(
+  ctx: ActionCtx,
+  workspace: string,
+  method: string,
+  args: Record<string, unknown>,
+  alsoDelivered = new Set<string>(),
+): Promise<Attempt<Data>> {
   const until = await ctx.runQuery(internal.slack.rateLimits.heldUntil, { workspace, method });
   if (until > Date.now()) return { kind: "held", until };
-  const answer = await answerOrUnknown(method, args);
+  const answer = await answerOrUnknown<Data>(method, args);
   if (answer === "unknown") return { kind: "unknown" };
-  if (answer.ok) return { kind: "delivered", ...(answer.ts !== undefined && { ts: answer.ts }) };
-  if (alsoDelivered.has(answer.error)) return { kind: "delivered" };
+  if (answer.ok || alsoDelivered.has(answer.error)) return { kind: "delivered", answer };
   if (goneErrors.has(answer.error)) return { kind: "gone" };
   console.warn(`${method} failed: ${answer.error}`);
   if (answer.retryAfterMs === undefined) return { kind: "failed" };
@@ -117,9 +134,9 @@ export async function attemptCall(ctx: ActionCtx, workspace: string, method: str
   return { kind: "failed", retryAt };
 }
 
-async function answerOrUnknown(method: string, args: Record<string, unknown>): Promise<SlackAnswer | "unknown"> {
+async function answerOrUnknown<Data>(method: string, args: Record<string, unknown>): Promise<SlackAnswer<Data> | "unknown"> {
   try {
-    return await callSlack(method, args);
+    return await callSlack<Data>(method, args);
   } catch (error) {
     console.warn(`${method} has no known result: ${String(error)}`);
     return "unknown";

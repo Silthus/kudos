@@ -1,11 +1,11 @@
 export type SlackFailure = { ok: false; error: string; retryAfterMs?: number };
 
-export type SlackAnswer = { ok: true; warning?: string; ts?: string } | SlackFailure;
+export type SlackAnswer<Data = object> = ({ ok: true; warning?: string } & Data) | SlackFailure;
 
 const tooManyRequests = 429;
 const answerTimeoutMs = 10_000;
 
-export async function callSlack(method: string, args: Record<string, unknown>): Promise<SlackAnswer> {
+export async function callSlack<Data = object>(method: string, args: Record<string, unknown>): Promise<SlackAnswer<Data>> {
   const response = await fetch(`${slackApiUrl()}/${method}`, {
     method: "POST",
     headers: { authorization: `Bearer ${botToken()}`, "content-type": "application/json; charset=utf-8" },

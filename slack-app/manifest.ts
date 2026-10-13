@@ -27,7 +27,7 @@ export function renderManifest(environment: Environment, siteUrl: string) {
     },
     oauth_config: {
       scopes: {
-        bot: ["channels:history", "groups:history", "reactions:write", "chat:write", "users:read", "channels:join", "commands"],
+        bot: ["channels:history", "groups:history", "reactions:write", "chat:write", "users:read", "channels:join", "commands", "im:write"],
       },
     },
     settings: {

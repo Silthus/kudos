@@ -34,7 +34,7 @@ async function nothingToShow(ctx: ActionCtx, row: Doc<"publicReplies">): Promise
 async function post(ctx: ActionCtx, row: Doc<"publicReplies">, attempt: number): Promise<Retry> {
   if (!(await ctx.runMutation(internal.feedback.publicReplies.startSending, { reply: row._id }))) return null;
   const message = { channel: row.channel, text: slackTextOf(linesOf(row)), ...(row.threadTs && { thread_ts: row.threadTs }) };
-  const result = await attemptCall(ctx, row.workspace, "chat.postMessage", message);
+  const result = await attemptCall<{ ts: string }>(ctx, row.workspace, "chat.postMessage", message);
   if (result.kind === "unknown") return null;
   if (result.kind === "gone") {
     await ctx.runMutation(internal.feedback.publicReplies.stopPosting, { reply: row._id });
@@ -44,8 +44,9 @@ async function post(ctx: ActionCtx, row: Doc<"publicReplies">, attempt: number):
     await ctx.runMutation(internal.feedback.publicReplies.sendingFailed, { reply: row._id });
     return retryAfter(result, attempt);
   }
-  if (result.ts === undefined) throw new Error("chat.postMessage answered without the message's ts");
-  const latestVersion = await ctx.runMutation(internal.feedback.publicReplies.recordPosted, { reply: row._id, ts: result.ts });
+  const ts = result.answer.ok ? result.answer.ts : undefined;
+  if (ts === undefined) throw new Error("chat.postMessage answered without the message's ts");
+  const latestVersion = await ctx.runMutation(internal.feedback.publicReplies.recordPosted, { reply: row._id, ts });
   return againIfChanged(row, latestVersion);
 }
 

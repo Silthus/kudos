@@ -4,6 +4,7 @@ import { signingSecret } from "../../testing/signedSlack";
 import { everythingStored, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
+import type { LevelReachedEvent } from "../bus/events";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const postedTs = "1760349600.000100";
@@ -89,7 +90,7 @@ describe("D18: the one public reply", () => {
 
   test("a post whose answer is lost is never posted again", async () => {
     const t = testBackend();
-    await welcomed(t, "U_ALICE", "U_BOB");
+    await onlyPublicRepliesPosted(t, "U_ALICE", "U_BOB");
     slack.answering("chat.postMessage", landsButTimesOut);
 
     await post(t, [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("taco"))]);
@@ -102,7 +103,7 @@ describe("D18: the one public reply", () => {
 
   test("a post that fails after Slack accepted it is never posted again", async () => {
     const t = testBackend();
-    await welcomed(t, "U_ALICE", "U_BOB");
+    await onlyPublicRepliesPosted(t, "U_ALICE", "U_BOB");
     slack.answering("chat.postMessage", acceptedButAnsweredWithoutTs);
 
     await post(t, [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("taco"))]);
@@ -153,7 +154,7 @@ describe("P64: a change of route", () => {
 describe("R35: delivering the public reply", () => {
   test("a notice that keeps failing is tried 3 times, and the next level under that message posts the reply afresh", async () => {
     const t = testBackend();
-    await welcomed(t, "U_ALICE", "U_BOB");
+    await onlyPublicRepliesPosted(t, "U_ALICE", "U_BOB");
     slack.answering("chat.postMessage", slackError("internal_error"), slackError("internal_error"), slackError("internal_error"));
 
     await post(t, [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("taco"))]);
@@ -241,10 +242,13 @@ async function withXp(t: Backend, user: string, xp: number) {
   await t.run((ctx) => ctx.db.insert("memberProgress", { member, xp, pointsSpent: 0 }));
 }
 
-async function welcomed(t: Backend, ...users: string[]) {
+async function onlyPublicRepliesPosted(t: Backend, ...users: string[]) {
   for (const user of users) {
     const member = await memberOf(t, user);
-    await t.run((ctx) => ctx.db.insert("welcomes", { member }));
+    await t.run(async (ctx) => {
+      await ctx.db.insert("welcomes", { member });
+      await ctx.db.insert("progressSettings", { member, dms: false });
+    });
   }
 }
 
@@ -253,13 +257,15 @@ async function withSettings(t: Backend, user: string, settings: { hideLevel?: bo
   await t.run((ctx) => ctx.db.insert("progressSettings", { member, ...settings }));
 }
 
-async function levelReached(t: Backend, user: string, level: number) {
+async function levelReached(t: Backend, user: string, level: number): Promise<LevelReachedEvent> {
   return {
-    type: "levelReached" as const,
+    type: "levelReached",
     workspace: "T1",
     member: await memberOf(t, user),
     level,
     skillPointsGained: 1,
+    skillPoints: level - 1,
+    xpToNextLevel: 80,
     message: { workspace: "T1", conversation: "C1", message: postedTs },
     at: now.getTime(),
   };
