@@ -1,10 +1,8 @@
-import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack, httpStatus, rateLimitedFor } from "../../testing/fakeSlack";
+import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
-import schema from "../schema";
-import { modules } from "../test.setup";
 
 const now = new Date("2026-10-13T10:00:00Z");
 
@@ -189,12 +187,6 @@ test("opening the app's Messages tab publishes nothing", async () => {
   expect(slack.calls).toEqual([]);
 });
 
-type Backend = ReturnType<typeof testBackend>;
-
-function testBackend() {
-  return convexTest(schema, modules);
-}
-
 async function openHome(t: Backend, user: string, options: Parameters<typeof appHomeOpened>[1] = {}) {
   const response = await t.fetch("/slack/events", await signedRequest(appHomeOpened(user, options)));
   await settle(t);
@@ -207,17 +199,13 @@ async function giveKudos(t: Backend, giver: string, recipient: string, ts: strin
   await settle(t);
 }
 
-async function settle(t: Backend) {
-  await t.finishAllScheduledFunctions(vi.runAllTimers);
-}
-
 type TextObject = { type: string; text: string };
 type Block = { type: string; text?: TextObject; fields?: TextObject[]; elements?: TextObject[] };
 type HomeView = { type: string; blocks: Block[] };
 
 function publishedHome(user: string) {
   const published = slack.callsTo("views.publish").filter((args) => args.user_id === user);
-  const view = published.at(-1)?.view as unknown as HomeView | undefined;
+  const view = published.at(-1)?.view as HomeView | undefined;
   expect(view?.type).toBe("home");
   return (view?.blocks ?? []).map(readBlock);
 }

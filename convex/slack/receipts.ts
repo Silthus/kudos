@@ -3,7 +3,9 @@ import { internal } from "../_generated/api";
 import { internalMutation, type QueryCtx } from "../_generated/server";
 import { messageEventValidator } from "../engine/messageEvent";
 import { directoryEntryValidator, record } from "../workspace/directory";
-import { processEvent, type Receipt } from "./processEvent";
+import { processEvent } from "./processEvent";
+
+type Receipt = { workspace: string; eventId: string };
 
 const keptForMs = 7 * 24 * 60 * 60 * 1000;
 const deletionBatchSize = 500;
@@ -12,7 +14,7 @@ export const receive = internalMutation({
   args: { workspace: v.string(), eventId: v.string(), event: v.union(messageEventValidator, v.null()) },
   handler: async (ctx, { event, ...receipt }) => {
     if (await isRedelivered(ctx, receipt)) return;
-    const observation = await processEvent(ctx, receipt, event);
+    const observation = await processEvent(ctx, event);
     if (observation?.kind !== "ignored") await ctx.db.insert("slackReceipts", receipt);
   },
 });

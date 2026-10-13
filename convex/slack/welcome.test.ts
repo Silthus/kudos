@@ -1,12 +1,9 @@
-import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { post, settleUntil } from "../../testing/slackBackend";
+import { post, settle, settleUntil, testBackend, type Backend } from "../../testing/slackBackend";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { emoji, mention, messageEvent, section, type MessageOptions } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
-import schema from "../schema";
-import { modules } from "../test.setup";
 
 const now = new Date("2026-10-13T10:00:00Z");
 
@@ -131,12 +128,6 @@ const serverError = () => new Response("upstream error", { status: 500 });
 const slackError = () => Response.json({ ok: false, error: "internal_error" });
 const rateLimited = (seconds: number) => () => new Response(null, { status: 429, headers: { "retry-after": String(seconds) } });
 
-type Backend = ReturnType<typeof testBackend>;
-
-function testBackend() {
-  return convexTest(schema, modules);
-}
-
 async function giveKudos(t: Backend, giver: string, recipient: string, options: MessageOptions = {}, kudosEmoji = ["taco"]) {
   const blocks = [section(mention(recipient), ...kudosEmoji.map((name) => emoji(name)))];
   await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ...options })));
@@ -149,12 +140,8 @@ function homeFacts(t: Backend, user: string) {
 
 function attemptsPerUser() {
   const attempts: Record<string, number> = {};
-  for (const { channel } of slack.callsTo("chat.postMessage")) attempts[channel!] = (attempts[channel!] ?? 0) + 1;
+  for (const { channel } of slack.callsTo("chat.postMessage")) attempts[String(channel)] = (attempts[String(channel)] ?? 0) + 1;
   return attempts;
-}
-
-async function settle(t: Backend) {
-  await t.finishAllScheduledFunctions(vi.runAllTimers);
 }
 
 function slackTs(at: Date, secondsLater = 0) {

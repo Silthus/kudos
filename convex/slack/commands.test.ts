@@ -1,9 +1,9 @@
 import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { signedRequest as signedSlackRequest, signingSecret, type SigningOptions } from "../../testing/signedSlack";
 import schema from "../schema";
 import { modules } from "../test.setup";
 
-const signingSecret = "test-signing-secret";
 const botToken = "xoxb-test-token";
 const responseUrl = "https://hooks.slack.com/commands/T1/1/abc";
 const now = new Date("2026-10-13T10:00:00Z");
@@ -155,31 +155,12 @@ async function postSigned(t: Backend, body: string) {
   return t.fetch("/slack/commands", await signedRequest(body));
 }
 
-type SigningOptions = { secret?: string; signedAt?: Date };
-
-async function signedRequest(body: string, options: SigningOptions = {}): Promise<RequestInit> {
-  const timestamp = Math.floor((options.signedAt ?? now).getTime() / 1000).toString();
-  const signature = await sign(options.secret ?? signingSecret, `v0:${timestamp}:${body}`);
-  return {
-    method: "POST",
-    headers: {
-      "content-type": "application/x-www-form-urlencoded",
-      "x-slack-request-timestamp": timestamp,
-      "x-slack-signature": `v0=${signature}`,
-    },
-    body,
-  };
+function signedRequest(body: string, options: SigningOptions = {}) {
+  return signedSlackRequest(body, { contentType: "application/x-www-form-urlencoded", ...options });
 }
 
 function minutesBefore(date: Date, minutes: number) {
   return new Date(date.getTime() - minutes * 60 * 1000);
-}
-
-async function sign(secret: string, payload: string) {
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const mac = await crypto.subtle.sign("HMAC", key, encoder.encode(payload));
-  return Buffer.from(mac).toString("hex");
 }
 
 type SlackCall = { url: string; authorization: string | null; body: Record<string, unknown> };

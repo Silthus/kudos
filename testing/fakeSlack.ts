@@ -6,7 +6,9 @@ export type SlackUser = {
   tz?: string;
 };
 
-export type SlackCall = { method: string; args: Record<string, string> };
+export type SlackArgs = Record<string, unknown>;
+
+export type SlackCall = { method: string; args: SlackArgs };
 
 export type ScriptedAnswer = (answerAsSlackWould: () => Response) => Response | Promise<Response>;
 
@@ -80,14 +82,14 @@ export class FakeSlack {
     return this.calls.filter((call) => call.method === method).map((call) => call.args);
   }
 
-  timesOf(method: string, matching: (args: Record<string, string>) => boolean = () => true) {
+  timesOf(method: string, matching: (args: SlackArgs) => boolean = () => true) {
     return this.calls.filter((call) => call.method === method && matching(call.args)).map((call) => this.callTimes.get(call)!);
   }
 
   readonly fetch = async (input: string | URL | Request, init?: RequestInit) => {
     const url = new URL(input instanceof Request ? input.url : input);
     const method = url.pathname.split("/").pop() ?? "";
-    const args = init?.body ? (JSON.parse(String(init.body)) as Record<string, string>) : Object.fromEntries(url.searchParams);
+    const args: SlackArgs = init?.body ? JSON.parse(String(init.body)) : Object.fromEntries(url.searchParams);
     await this.releaseHold(method, args);
     const call = { method, args };
     this.calls.push(call);
@@ -97,29 +99,30 @@ export class FakeSlack {
     return scripted ? scripted(answerAsSlackWould) : answerAsSlackWould();
   };
 
-  private async releaseHold(method: string, args: Record<string, string>) {
+  private async releaseHold(method: string, args: SlackArgs) {
     const index = this.holds.findIndex((hold) => hold.method === method && (args.name ?? args.user) === hold.about);
     if (index === -1) return;
     const [hold] = this.holds.splice(index, 1);
     await hold!.meanwhile();
   }
 
-  private answer(method: string, args: Record<string, string>) {
+  private answer(method: string, args: SlackArgs) {
+    const field = (name: string) => String(args[name] ?? "");
     if (method === "users.info") {
-      const user = this.users.get(args.user ?? "");
-      const hasJoined = Date.now() >= (this.joinTimes.get(args.user ?? "") ?? 0);
+      const user = this.users.get(field("user"));
+      const hasJoined = Date.now() >= (this.joinTimes.get(field("user")) ?? 0);
       return user && hasJoined ? { ok: true, user } : { ok: false, error: "user_not_found" };
     }
     if (method === "reactions.add") {
-      const reactions = this.reactionsOn(args.channel ?? "", args.timestamp ?? "");
-      if (reactions.includes(args.name ?? "")) return { ok: false, error: "already_reacted" };
-      this.setReactions(args.channel ?? "", args.timestamp ?? "", [...reactions, args.name ?? ""]);
+      const reactions = this.reactionsOn(field("channel"), field("timestamp"));
+      if (reactions.includes(field("name"))) return { ok: false, error: "already_reacted" };
+      this.setReactions(field("channel"), field("timestamp"), [...reactions, field("name")]);
       return { ok: true };
     }
     if (method === "reactions.remove") {
-      const reactions = this.reactionsOn(args.channel ?? "", args.timestamp ?? "");
-      if (!reactions.includes(args.name ?? "")) return { ok: false, error: "no_reaction" };
-      this.removeReaction(args.channel ?? "", args.timestamp ?? "", args.name ?? "");
+      const reactions = this.reactionsOn(field("channel"), field("timestamp"));
+      if (!reactions.includes(field("name"))) return { ok: false, error: "no_reaction" };
+      this.removeReaction(field("channel"), field("timestamp"), field("name"));
       return { ok: true };
     }
     if (method === "chat.postEphemeral") return { ok: true, message_ts: "1760349700.000100" };

@@ -22,7 +22,7 @@ export const addToChannel = internalAction({
   args: { channel: v.string(), inDirectMessage: v.boolean(), responseUrl: v.string() },
   handler: async (_ctx, { channel, inDirectMessage, responseUrl }) => {
     const answer = await callSlack("conversations.join", { channel });
-    await replyPrivately(responseUrl, renderKudosCommandReply(resultOfJoining(answer, inDirectMessage)));
+    await answerCommand(responseUrl, renderKudosCommandReply(resultOfJoining(answer, inDirectMessage)));
   },
 });
 
@@ -40,7 +40,7 @@ function resultOfJoining(answer: SlackAnswer, inDirectMessage: boolean): KudosCo
   throw new Error(`Slack conversations.join failed: ${answer.error}`);
 }
 
-async function replyPrivately(responseUrl: string, text: string) {
+async function answerCommand(responseUrl: string, text: string) {
   const response = await fetch(responseUrl, {
     method: "POST",
     headers: { "content-type": "application/json; charset=utf-8" },

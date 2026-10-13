@@ -1,11 +1,9 @@
-import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { signedRequest, signingSecret } from "../../testing/signedSlack";
-import { broadcast, codeBlock, emoji, mention, messageEvent, quote, section, text, userGroup, type MessageOptions, type RichElement } from "../../testing/slackMessages";
+import { everythingStored, kudosReceived, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { signingSecret } from "../../testing/signedSlack";
+import { broadcast, codeBlock, emoji, mention, quote, section, text, userGroup, type MessageOptions, type RichElement } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
-import schema from "../schema";
-import { modules } from "../test.setup";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const postedTs = "1760349600.000100";
@@ -163,7 +161,7 @@ describe("saying no", () => {
 
     expect(await kudosReceived(t, "U_BOB")).toBe(1);
     expect(slack.reactionsOn("C1", postedTs)).toEqual(["taco"]);
-    expect(slack.ephemeralsTo("U_ALICE").map((reply) => reply.text?.split("\n"))).toEqual([
+    expect(slack.ephemeralsTo("U_ALICE").map((reply) => String(reply.text).split("\n"))).toEqual([
       [
         "<@U_BOB> got 1 kudos from you. You have 2 kudos left today.",
         "I skipped <@U_ALICE>: you can't give kudos to yourself.",
@@ -317,44 +315,8 @@ test("R51: no message text in any table or in any scheduled function's arguments
   expect(stringify(everything)).not.toContain("thanks for the help");
 });
 
-type Backend = ReturnType<typeof testBackend>;
-
-function testBackend() {
-  return convexTest(schema, modules);
-}
-
-async function post(t: Backend, blocks: RichElement[], options: MessageOptions = {}) {
-  return t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { ts: postedTs, ...options })));
-}
-
-async function settle(t: Backend) {
-  await t.finishAllScheduledFunctions(vi.runAllTimers);
-}
-
 async function setWorkspaceEmoji(t: Backend, kudosEmoji: string) {
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji }));
-}
-
-async function kudosReceived(t: Backend, user: string) {
-  return t.run(async (ctx) => {
-    const member = await ctx.db
-      .query("members")
-      .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", user))
-      .unique();
-    if (member === null) return 0;
-    const awards = await ctx.db
-      .query("awards")
-      .withIndex("by_recipient", (q) => q.eq("recipient", member._id))
-      .collect();
-    return awards.reduce((sum, award) => sum + award.kudos, 0);
-  });
-}
-
-async function everythingStored(t: Backend) {
-  return t.run(async (ctx) => {
-    const tables = await Promise.all(Object.keys(schema.tables).map((table) => ctx.db.query(table as keyof typeof schema.tables).collect()));
-    return tables.flat();
-  });
 }
 
 function slackTs(at: Date) {

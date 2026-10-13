@@ -18,15 +18,15 @@ export function renderHome(facts: HomeFacts): HomeView {
   };
 }
 
-type MemberFacts = Extract<HomeFacts, { kind: "member" }>;
+type MemberHome = Extract<HomeFacts, { kind: "member" }>;
 
-function allowanceOf({ left, base }: MemberFacts): HomeLine {
+function allowanceOf({ left, base }: MemberHome): HomeLine {
   const refill = `You get ${bold(base)} more at midnight.`;
   const text = left > 0 ? `You have ${bold(left)} kudos left today. ${refill}` : `You've used all your kudos for today. ${refill}`;
   return { kind: "text", text };
 }
 
-function totalsOf(facts: MemberFacts): HomeLine {
+function totalsOf(facts: MemberHome): HomeLine {
   return {
     kind: "fields",
     fields: [

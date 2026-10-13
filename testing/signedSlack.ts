@@ -1,6 +1,6 @@
 export const signingSecret = "test-signing-secret";
 
-export type SigningOptions = { secret?: string; signedAt?: Date };
+export type SigningOptions = { secret?: string; signedAt?: Date; contentType?: string };
 
 export async function signedRequest(body: string, options: SigningOptions = {}): Promise<RequestInit> {
   const timestamp = Math.floor((options.signedAt ?? new Date()).getTime() / 1000).toString();
@@ -8,7 +8,7 @@ export async function signedRequest(body: string, options: SigningOptions = {}):
   return {
     method: "POST",
     headers: {
-      "content-type": "application/json",
+      "content-type": options.contentType ?? "application/json",
       "x-slack-request-timestamp": timestamp,
       "x-slack-signature": `v0=${signature}`,
     },
