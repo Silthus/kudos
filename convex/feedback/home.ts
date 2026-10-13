@@ -5,8 +5,8 @@ import { skillTreeLevel } from "../progression/levels";
 import type { ProgressSettings } from "../progression/settings";
 import type { JourneyStepFacts } from "../quests/journey";
 import { questOf } from "../quests/pool";
-import type { WeeklyQuests } from "../quests/weekly";
-import type { JourneyStep, Quest } from "../quests/step";
+import type { WeeklyQuests, WeeklySlot } from "../quests/weekly";
+import type { JourneyQuest, JourneyStep, Quest, WeeklyQuest } from "../quests/step";
 import type { ScheduledFeature } from "../unlocks/schedule";
 import type { UnlocksHome } from "../unlocks/unlocks";
 import type { HomeTab, ShownHome, ShownTab, ToldProgression } from "./homes";
@@ -159,11 +159,16 @@ function unlockLinesOf({ ready, next }: UnlocksHome): HomeLine[] {
   return [...readyLines, ...nextLine];
 }
 
-function weeklyQuestLines({ slots }: WeeklyQuests): HomeLine[] {
-  const quests = slots.map(({ quest, goal, reward }) => ({ goal, reward, progress: questOf(quest).progress }));
-  const goals = quests.map(({ goal, reward, progress }): HomeLine => ({ kind: "text", text: `${goal} ${bold(`0/${progress.target}`)} · ${bold(`${reward.xp} XP`)}` }));
-  const condition: HomeLine[] = quests.some(({ progress }) => progress.given.saysWhy) ? [{ kind: "hint", text: "Saying why counts when your message has 5 or more words besides mentions and emoji." }] : [];
-  return [{ kind: "text", text: bold("Quests this week") }, ...goals, ...condition];
+function weeklyQuestLines({ week, slots }: WeeklyQuests): HomeLine[] {
+  const asksToSayWhy = slots.some(({ quest, finishedAt }) => finishedAt === null && questOf(quest).progress.given.saysWhy);
+  const condition: HomeLine[] = asksToSayWhy ? [{ kind: "hint", text: "Saying why counts when your message has 5 or more words besides mentions and emoji." }] : [];
+  return [{ kind: "text", text: bold("Quests this week") }, ...slots.map((slot) => weeklyQuestLine(week, slot)), ...condition];
+}
+
+function weeklyQuestLine(week: string, { slot, goal, reward, progress, target, finishedAt, openedAt }: WeeklySlot): HomeLine {
+  if (finishedAt === null) return { kind: "text", text: `${goal} ${bold(`${progress}/${target}`)} · ${bold(`${reward.xp} XP`)}` };
+  const text = `✅ ${goal} ${earned(reward.xp)}`;
+  return openedAt === null ? { kind: "action", text, action: openCrate({ kind: "weekly", week, slot }) } : { kind: "text", text };
 }
 
 const journeyGoals: Record<JourneyStep, { goal: string; condition: string }> = {
@@ -182,8 +187,12 @@ function journeyStepLines({ step, reward, finishedAt, openedAt }: JourneyStepFac
   ];
 }
 
-export function finishedQuestCrateOf(quest: Quest, xp: number): { text: string; action: HomeAction } {
+export function finishedQuestCrateOf(quest: JourneyQuest, xp: number): { text: string; action: HomeAction } {
   return { text: `✅ You finished a Journey step: ${journeyGoals[quest.step].goal} ${earned(xp)}`, action: openCrate(quest) };
+}
+
+export function finishedWeeklyQuestCrateOf(quest: WeeklyQuest, goal: string, xp: number): { text: string; action: HomeAction } {
+  return { text: `✅ You finished a quest: ${goal} ${earned(xp)}`, action: openCrate(quest) };
 }
 
 function openCrate(quest: Quest): HomeAction {

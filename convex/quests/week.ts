@@ -5,7 +5,11 @@ export type WeekKey = DayKey;
 const dayMs = 24 * 60 * 60 * 1000;
 
 export function weekKeyOf(at: number, timeZone: string | undefined): WeekKey {
-  return weekOf(allowanceDay(at, timeZone)).monday;
+  return weekKeyOfDay(allowanceDay(at, timeZone));
+}
+
+export function weekKeyOfDay(day: DayKey): WeekKey {
+  return weekOf(day).monday;
 }
 
 export function daysLeftInWeek(at: number, timeZone: string | undefined): number {

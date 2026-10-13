@@ -69,6 +69,8 @@ function conforms(validator: GenericValidator, value: unknown): boolean {
       return typeof value === "boolean";
     case "string":
       return typeof value === "string";
+    case "float64":
+      return typeof value === "number";
     case "null":
       return value === null;
     default:

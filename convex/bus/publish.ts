@@ -12,6 +12,7 @@ export const subscribers: Registry = {
     internal.welcome.welcome.welcomeNewMembers,
     internal.progression.progression.recordEffects,
     internal.quests.journey.followJourney,
+    internal.quests.weekly.advanceWeeklyQuests,
     internal.leaderboard.totals.countKudosGiven,
     internal.analytics.subscribers.recordKudosGiven,
   ],

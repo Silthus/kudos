@@ -3,8 +3,9 @@ import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, buttonInHome, publishedHome } from "../../testing/slackInteractions";
+import { blockActions, buttonIn, buttonInHome, publishedHome, readBlocks, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
+import type { QuestId } from "./pool";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const saysWhy = "thanks for untangling the release notes today";
@@ -79,16 +80,88 @@ describe("P80 P76: a member who opens Quests gets 3 quests for this week on App 
   });
 });
 
+describe("P84 P85 P63: a member's kudos finish a weekly quest, recorded at once with its crate", () => {
+  const twoDays = "Thank someone and say why on 2 different days.";
+  const threeTimes = "Thank someone and say why, 3 times.";
+  const notIn30Days = "Thank someone you haven't thanked in the last 30 days.";
+  const finishedDm = `✅ You finished a quest: ${twoDays} You earned *20 XP*.`;
+  const wednesday = now.getTime() + 24 * 60 * 60 * 1000;
+
+  test("two kudos that say why on two different days finish it with one 20 XP reward record, one DM with Open and App Home updated, and a kudos that doesn't say why doesn't count", async () => {
+    const t = await openedQuests(["say-why-two-days", "say-why-three-times", "not-in-30-days"]);
+
+    await giveKudos(t, "U_ALICE", "U_BOB", "thanks");
+    expect(questsIn(publishedHome(slack, "U_ALICE")).slice(1, 4)).toEqual([
+      `section: ${twoDays} *0/2* · *20 XP*`,
+      `section: ${threeTimes} *0/3* · *20 XP*`,
+      `section: ${notIn30Days} *0/1* · *20 XP*`,
+    ]);
+
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+    expect(questsIn(publishedHome(slack, "U_ALICE")).slice(1, 3)).toEqual([`section: ${twoDays} *1/2* · *20 XP*`, `section: ${threeTimes} *1/3* · *20 XP*`]);
+
+    vi.setSystemTime(wednesday);
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy, wednesday);
+
+    expect(await rewardRecordsOf(t)).toEqual([{ key: "weekly:2026-10-12:0", xp: 20 }]);
+    expect(questDmsTo("U_ALICE").map(({ text }) => text)).toEqual([finishedDm]);
+    expect(readBlocks(questDmsTo("U_ALICE")[0]!.blocks as Block[])).toEqual([`section: ${finishedDm} [button: Open]`]);
+    expect(questsIn(publishedHome(slack, "U_ALICE")).slice(1, 3)).toEqual([
+      `section: ✅ ${twoDays} You earned *20 XP*. [button: Open]`,
+      `section: ${threeTimes} *2/3* · *20 XP*`,
+    ]);
+  });
+
+  test("clicking Open in the finished DM opens the quest's crate, and App Home shows it opened", async () => {
+    const t = await openedQuests(["say-why-two-days", "say-why-three-times", "not-in-30-days"]);
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+    vi.setSystemTime(wednesday);
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy, wednesday);
+
+    await send(t, blockActions("U_ALICE", buttonIn(questDmsTo("U_ALICE")[0]!.blocks as Block[], "Open"), { inMessage: { channel: "U_ALICE", ts: "1760436000.000100" } }));
+
+    expect(await t.run(async (ctx) => (await ctx.db.query("crateOpenings").collect()).map(({ key, at }) => ({ key, at })))).toEqual([
+      { key: "weekly:2026-10-12:0", at: expect.any(Number) },
+    ]);
+    expect(questsIn(publishedHome(slack, "U_ALICE"))[1]).toBe(`section: ✅ ${twoDays} You earned *20 XP*.`);
+  });
+
+  async function openedQuests(quests: QuestId[]) {
+    const t = await workspace();
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+    await openHome(t, "U_ALICE");
+    await drawFor(t, "U_ALICE", quests);
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Open")));
+    return t;
+  }
+});
+
+async function drawFor(t: Backend, user: string, quests: QuestId[]) {
+  const slots = quests.map((quest, slot) => ({ slot, quest, reward: { xp: 20, coins: 0, item: null }, catalogueVersion: "1", feasibleBecause: { peopleLeft: 1, recognitionsLeft: 18 } }));
+  await t.run(async (ctx) => {
+    const member = (await ctx.db.query("members").collect()).find((row) => row.user === user)!._id;
+    await ctx.db.insert("questDraws", { member, week: "2026-10-12", drawnAt: now.getTime(), slots });
+  });
+}
+
+async function rewardRecordsOf(t: Backend) {
+  return t.run(async (ctx) => (await ctx.db.query("rewardRecords").collect()).filter(({ key }) => key.startsWith("weekly:")).map(({ key, xp }) => ({ key, xp })));
+}
+
+function questDmsTo(user: string): Array<{ text?: unknown; blocks?: unknown }> {
+  return slack.callsTo("chat.postMessage").filter(({ channel, text }) => channel === user && String(text).startsWith("✅ You finished a quest"));
+}
+
 async function workspace() {
   const t = await unlocksShippedBeforeAnyoneJoined(await flagsLoaded(testBackend()));
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
   return t;
 }
 
-async function giveKudos(t: Backend, giver: string, recipient: string, words: string) {
+async function giveKudos(t: Backend, giver: string, recipient: string, words: string, at = now.getTime()) {
   sentMessages += 1;
   const blocks = [section(mention(recipient), text(` ${words} `), emoji("taco"))];
-  await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts: `${now.getTime() / 1000 + sentMessages}.000100` })));
+  await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts: `${at / 1000 + sentMessages}.000100` })));
   await settle(t);
 }
 

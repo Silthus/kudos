@@ -66,6 +66,19 @@ export async function lastThankedBy(ctx: QueryCtx, giver: MemberId, atOrBefore: 
   return lastThanked;
 }
 
+export async function lastThankedBefore(ctx: QueryCtx, giver: MemberId, awards: AwardId[]): Promise<Map<AwardId, number | null>> {
+  const given = await ctx.db
+    .query("awards")
+    .withIndex("by_giver", (q) => q.eq("giver", giver))
+    .collect();
+  const lastThanked = new Map<AwardId, number | null>();
+  for (const award of given.filter(({ _id }) => awards.includes(_id))) {
+    const earlier = given.filter(({ recipient, _creationTime }) => recipient === award.recipient && _creationTime < award._creationTime);
+    lastThanked.set(award._id, earlier.length === 0 ? null : Math.max(...earlier.map(({ at }) => at)));
+  }
+  return lastThanked;
+}
+
 function sumOf(awards: Array<{ kudos: number }>) {
   return awards.reduce((sum, award) => sum + award.kudos, 0);
 }

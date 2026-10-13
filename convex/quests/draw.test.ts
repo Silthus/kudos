@@ -44,6 +44,10 @@ describe("P80: opening Quests draws 3 different quests the member can finish thi
         reward: { xp: 20, coins: 0, item: null },
         catalogueVersion: "1",
         feasibleBecause: { peopleLeft: expect.any(Number), recognitionsLeft: 18, ...(overDays.includes(slot.quest) && { daysLeft: 6 }) },
+        progress: 0,
+        target: expect.any(Number),
+        finishedAt: null,
+        openedAt: null,
       });
     }
     expect(new Set(week.slots.map(({ quest }) => quest)).size).toBe(3);

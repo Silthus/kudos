@@ -1,18 +1,24 @@
 import { v, type Infer } from "convex/values";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { unlockOpenedEventValidator } from "../bus/events";
+import { kudosGivenEventValidator, unlockOpenedEventValidator, type KudosGivenEvent } from "../bus/events";
 import { allowanceDay, allowanceLeft } from "../engine/allowance";
-import { lastThankedBy } from "../engine/awards";
+import { awardIdValidator, lastThankedBefore, lastThankedBy } from "../engine/awards";
 import { republish } from "../feedback/homes";
+import { notifyWeeklyQuestFinished } from "../feedback/notify";
+import { gateDecisionOf } from "../progression/gate";
+import { rewardOf } from "../progression/rewards";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
+import { crateOpeningOf, rewardKeyOf } from "./crates";
+import { finishQuest } from "./finish";
 import { questsApplyIn } from "./flag";
 import { rewardValidator } from "./journey";
-import { feasibility, feasibleBecauseValidator, questIdValidator, questOf, questPool, type DrawFacts, type PoolQuest } from "./pool";
-import { daysLeftInWeek, weekKeyOf, type WeekKey } from "./week";
+import { feasibility, feasibleBecauseValidator, questIdValidator, questOf, questPool, type DrawFacts, type PoolQuest, type Recipient } from "./pool";
+import { counts, isRecipient, questProgress, type CountedAward, type QuestAward } from "./progress";
+import type { WeeklyQuest } from "./step";
+import { daysLeftInWeek, weekKeyOf, weekKeyOfDay, type WeekKey } from "./week";
 
 const questsPerWeek = 3;
-const notThankedForMs = 30 * 24 * 60 * 60 * 1000;
 
 const slotValidator = v.object({
   slot: v.number(),
@@ -24,9 +30,24 @@ const slotValidator = v.object({
 
 export const questDrawValidator = v.object({ member: v.id("members"), week: v.string(), drawnAt: v.number(), slots: v.array(slotValidator) });
 
+export const questProgressValidator = v.object({
+  member: v.id("members"),
+  week: v.string(),
+  slot: v.number(),
+  quest: questIdValidator,
+  award: awardIdValidator,
+  recipient: v.id("members"),
+  day: v.string(),
+  at: v.number(),
+});
+
 type Slot = Infer<typeof slotValidator>;
 
-export type WeeklyQuests = { week: WeekKey; drawnAt: number; slots: Array<Slot & { goal: string }> };
+type Draw = Infer<typeof questDrawValidator>;
+
+export type WeeklySlot = Slot & { goal: string; progress: number; target: number; finishedAt: number | null; openedAt: number | null };
+
+export type WeeklyQuests = { week: WeekKey; drawnAt: number; slots: WeeklySlot[] };
 
 export const drawWeeklyQuests = internalMutation({
   args: { event: unlockOpenedEventValidator },
@@ -36,11 +57,72 @@ export const drawWeeklyQuests = internalMutation({
   },
 });
 
+export const advanceWeeklyQuests = internalMutation({
+  args: { event: kudosGivenEventValidator },
+  handler: async (ctx, { event }): Promise<void> => {
+    if (!(await questsApplyIn(ctx, event.workspace))) return;
+    const draw = await drawOf(ctx, event.giver, weekKeyOfDay(event.day));
+    if (draw === null || event.at < draw.drawnAt) return;
+    const awards = await questAwardsOf(ctx, event);
+    let shownChanged = false;
+    for (const slot of draw.slots) shownChanged = (await advanceSlot(ctx, event, draw, slot, awards)) || shownChanged;
+    if (shownChanged) await republish(ctx, event.giver);
+  },
+});
+
 export async function weeklyQuestsOf(ctx: QueryCtx, member: MemberId, at: number): Promise<WeeklyQuests | null> {
   const draw = await drawOf(ctx, member, weekKeyOf(at, await timeZoneOf(ctx, member)));
   if (draw === null) return null;
-  const { week, drawnAt, slots } = draw;
-  return { week, drawnAt, slots: slots.map((slot) => ({ ...slot, goal: questOf(slot.quest).goal })) };
+  const { week, drawnAt } = draw;
+  const slots: WeeklySlot[] = [];
+  for (const slot of draw.slots) slots.push(await weeklySlotOf(ctx, draw, slot));
+  return { week, drawnAt, slots };
+}
+
+async function weeklySlotOf(ctx: QueryCtx, { member, week }: Draw, slot: Slot): Promise<WeeklySlot> {
+  const pooled = questOf(slot.quest);
+  const key = rewardKeyOf(weeklyQuest(week, slot));
+  const finish = await rewardOf(ctx, member, key);
+  const opening = await crateOpeningOf(ctx, member, key);
+  const progress = questProgress(pooled, await countedFor(ctx, member, week, slot));
+  return { ...slot, goal: pooled.goal, progress, target: pooled.progress.target, finishedAt: finish?.at ?? null, openedAt: opening?.at ?? null };
+}
+
+async function advanceSlot(ctx: MutationCtx, event: KudosGivenEvent, { member, week }: Draw, slot: Slot, awards: QuestAward[]): Promise<boolean> {
+  const quest = weeklyQuest(week, slot);
+  if ((await rewardOf(ctx, member, rewardKeyOf(quest))) !== null) return false;
+  const pooled = questOf(slot.quest);
+  const counted = await countedFor(ctx, member, week, slot);
+  const fresh = awards.filter((award) => counts(pooled, award) && !counted.some((earlier) => earlier.award === award.award));
+  if (fresh.length === 0) return false;
+  for (const { award, recipient, day, at } of fresh) await ctx.db.insert("questProgress", { member, week, slot: slot.slot, quest: slot.quest, award, recipient, day, at });
+  const before = questProgress(pooled, counted);
+  const after = questProgress(pooled, [...counted, ...fresh]);
+  if (after === pooled.progress.target && (await finishQuest(ctx, event.workspace, member, quest, slot, event.at))) {
+    await notifyWeeklyQuestFinished(ctx, member, quest, pooled.goal, slot.reward.xp);
+  }
+  return after !== before;
+}
+
+async function questAwardsOf(ctx: QueryCtx, { giver, awards, annotations, day, at }: KudosGivenEvent): Promise<QuestAward[]> {
+  const saysWhy = gateDecisionOf(annotations)?.thoughtful === true;
+  const lastThanked = await lastThankedBefore(ctx, giver, awards.map(({ award }) => award));
+  return awards.flatMap(({ award, recipient }) => {
+    const before = lastThanked.get(award);
+    return before === undefined ? [] : [{ award, recipient, day, at, saysWhy, lastThankedBefore: before }];
+  });
+}
+
+async function countedFor(ctx: QueryCtx, member: MemberId, week: WeekKey, { slot, quest }: Slot): Promise<CountedAward[]> {
+  const rows = await ctx.db
+    .query("questProgress")
+    .withIndex("by_member_week_slot", (q) => q.eq("member", member).eq("week", week).eq("slot", slot))
+    .collect();
+  return rows.filter((row) => row.quest === quest);
+}
+
+function weeklyQuest(week: WeekKey, { slot }: Slot): WeeklyQuest {
+  return { kind: "weekly", week, slot };
 }
 
 export async function drawFactsOf(ctx: QueryCtx, member: MemberId, at: number): Promise<DrawFacts> {
@@ -49,16 +131,12 @@ export async function drawFactsOf(ctx: QueryCtx, member: MemberId, at: number): 
   const { baseAllowance } = await settingsOf(ctx, workspace);
   const teammates = await teammatesOf(ctx, workspace, member);
   const lastThanked = await lastThankedBy(ctx, member, at);
-  const notThankedSince = (since: number) => teammates.filter((teammate) => (lastThanked.get(teammate) ?? -Infinity) <= since).length;
+  const left = (to: Recipient) => teammates.filter((teammate) => isRecipient(to, lastThanked.get(teammate) ?? null, at)).length;
   return {
     daysLeft: daysLeftInWeek(at, timeZone),
     kudosLeftToday: await allowanceLeft(ctx, member, allowanceDay(at, timeZone), baseAllowance),
     dailyAllowance: baseAllowance,
-    peopleLeft: {
-      anyone: teammates.length,
-      "someone-new": teammates.filter((teammate) => !lastThanked.has(teammate)).length,
-      "someone-not-thanked-in-30-days": notThankedSince(at - notThankedForMs),
-    },
+    peopleLeft: { anyone: left("anyone"), "someone-new": left("someone-new"), "someone-not-thanked-in-30-days": left("someone-not-thanked-in-30-days") },
   };
 }
 

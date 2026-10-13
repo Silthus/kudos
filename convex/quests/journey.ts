@@ -1,15 +1,14 @@
 import { v, type Infer } from "convex/values";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
-import { publish } from "../bus/publish";
 import { notifyQuestFinished } from "../feedback/notify";
 import { gateDecisionOf } from "../progression/gate";
-import { recordReward } from "../progression/progression";
 import { rewardOf } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
 import { crateOpeningOf, rewardKeyOf } from "./crates";
+import { finishQuest } from "./finish";
 import { questsApplyIn } from "./flag";
-import { journeyStepValidator, type JourneyStep, type Quest } from "./step";
+import { journeyStepValidator, type JourneyQuest, type JourneyStep } from "./step";
 
 export const rewardValidator = v.object({ xp: v.number(), coins: v.number(), item: v.null() });
 
@@ -75,11 +74,8 @@ async function activated(ctx: MutationCtx, member: MemberId, step: JourneyStep, 
 }
 
 async function finish(ctx: MutationCtx, workspace: string, { member, step, reward, catalogueVersion }: JourneyActivation, at: number) {
-  const quest: Quest = { kind: "journey", step };
-  const recorded = await recordReward(ctx, workspace, { member, key: rewardKeyOf(quest), ...reward, catalogueVersion, at });
-  if (recorded !== "recorded") return;
-  await publish(ctx, { type: "questFinished", workspace, member, quest, at });
-  await notifyQuestFinished(ctx, member, quest, reward.xp);
+  const quest: JourneyQuest = { kind: "journey", step };
+  if (await finishQuest(ctx, workspace, member, quest, { reward, catalogueVersion }, at)) await notifyQuestFinished(ctx, member, quest, reward.xp);
 }
 
 function activationOf(ctx: QueryCtx, member: MemberId, step: JourneyStep) {

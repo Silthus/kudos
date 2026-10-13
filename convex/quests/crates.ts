@@ -20,8 +20,8 @@ export async function openQuestCrate(ctx: MutationCtx, member: MemberId, quest: 
   return "done";
 }
 
-export function rewardKeyOf({ kind, step }: Quest) {
-  return `${kind}:${step}`;
+export function rewardKeyOf(quest: Quest) {
+  return quest.kind === "journey" ? `journey:${quest.step}` : `weekly:${quest.week}:${quest.slot}`;
 }
 
 export function crateOpeningOf(ctx: QueryCtx, member: MemberId, key: string) {
