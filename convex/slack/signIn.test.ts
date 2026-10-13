@@ -3,11 +3,11 @@ import { signedInProfile, slackSignIn } from "./signIn";
 
 const claims = {
   "https://slack.com/team_id": "T1",
-  "https://slack.com/user_id": "U_ADA",
-  name: "Ada Lovelace",
-  given_name: "Ada",
-  family_name: "Lovelace",
-  picture: "https://avatars.slack-edge.com/ada.png",
+  "https://slack.com/user_id": "U_JUNO",
+  name: "Juno Whitlock",
+  given_name: "Juno",
+  family_name: "Whitlock",
+  picture: "https://avatars.slack-edge.com/juno.png",
 };
 
 afterEach(() => vi.unstubAllEnvs());
@@ -31,13 +31,13 @@ describe("WS5 L-W1: the Slack provider asks for exactly what the manifests decla
 describe("WS6 WS7: a sign-in becomes the chat identity the directory is keyed by, or nothing", () => {
   test("a sign-in from the deployment's workspace is keyed by the Slack pair and keeps the display claims", () => {
     expect(signedInProfile(claims, "T1")).toEqual({
-      id: "T1/U_ADA",
+      id: "T1/U_JUNO",
       chatWorkspace: "T1",
-      chatUser: "U_ADA",
-      name: "Ada Lovelace",
-      givenName: "Ada",
-      familyName: "Lovelace",
-      image: "https://avatars.slack-edge.com/ada.png",
+      chatUser: "U_JUNO",
+      name: "Juno Whitlock",
+      givenName: "Juno",
+      familyName: "Whitlock",
+      image: "https://avatars.slack-edge.com/juno.png",
     });
   });
 

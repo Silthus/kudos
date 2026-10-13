@@ -9,14 +9,14 @@ import type { SignedInProfile } from "../slack/signIn";
 import { rememberSignedInMember } from "./signIn";
 
 const now = new Date("2026-10-13T10:00:00Z");
-const ada: SignedInProfile = {
-  id: `${allowedWorkspace}/U_ADA`,
+const juno: SignedInProfile = {
+  id: `${allowedWorkspace}/U_JUNO`,
   chatWorkspace: allowedWorkspace,
-  chatUser: "U_ADA",
-  name: "Ada Lovelace",
-  givenName: "Ada",
-  familyName: "Lovelace",
-  image: "https://avatars.slack-edge.com/ada.png",
+  chatUser: "U_JUNO",
+  name: "Juno Whitlock",
+  givenName: "Juno",
+  familyName: "Whitlock",
+  image: "https://avatars.slack-edge.com/juno.png",
 };
 
 let postHog: FakePostHog;
@@ -56,74 +56,74 @@ describe("WS3 WS6: only the allowed workspace signs in, and only while open", ()
   test("while the flag is off the callback refuses and no account appears", async () => {
     await switchWebsite(t, postHog, false);
 
-    await expect(signIn(ada)).rejects.toThrow(/closed/);
+    await expect(signIn(juno)).rejects.toThrow(/closed/);
     expect(await users()).toEqual([]);
   });
 
   test("a profile from another workspace is refused", async () => {
-    await expect(signIn({ ...ada, id: "T_OTHER/U_ADA", chatWorkspace: "T_OTHER" })).rejects.toThrow(/another workspace/);
+    await expect(signIn({ ...juno, id: "T_OTHER/U_JUNO", chatWorkspace: "T_OTHER" })).rejects.toThrow(/another workspace/);
     expect(await users()).toEqual([]);
   });
 
   test("a profile with an empty Slack user is refused", async () => {
-    await expect(signIn({ ...ada, id: `${allowedWorkspace}/`, chatUser: "" })).rejects.toThrow(/user_id/);
+    await expect(signIn({ ...juno, id: `${allowedWorkspace}/`, chatUser: "" })).rejects.toThrow(/user_id/);
     expect(await users()).toEqual([]);
   });
 
   test("an unset SLACK_WORKSPACE_ID refuses every sign-in", async () => {
     vi.stubEnv("SLACK_WORKSPACE_ID", "");
 
-    await expect(signIn(ada)).rejects.toThrow();
+    await expect(signIn(juno)).rejects.toThrow();
     expect(await users()).toEqual([]);
   });
 });
 
 describe("WS7: accounts link only by the Slack pair", () => {
   test("a first sign-in keeps the Slack pair and the display claims, and no email", async () => {
-    await aMember(t, "U_ADA");
-    await signIn(ada);
+    await aMember(t, "U_JUNO");
+    await signIn(juno);
 
     expect(await users()).toEqual([
       expect.objectContaining({
-        name: "Ada Lovelace",
-        givenName: "Ada",
-        familyName: "Lovelace",
-        image: ada.image,
-        chatIdentity: { workspace: allowedWorkspace, user: "U_ADA" },
+        name: "Juno Whitlock",
+        givenName: "Juno",
+        familyName: "Whitlock",
+        image: juno.image,
+        chatIdentity: { workspace: allowedWorkspace, user: "U_JUNO" },
       }),
     ]);
     expect(Object.keys((await users())[0]!)).not.toContain("email");
   });
 
   test("signing in again refreshes the display claims on the same user, and drops one Slack no longer sends", async () => {
-    await aMember(t, "U_ADA");
-    const first = await signIn(ada);
-    const { image: _dropped, ...withoutPicture } = ada;
+    await aMember(t, "U_JUNO");
+    const first = await signIn(juno);
+    const { image: _dropped, ...withoutPicture } = juno;
 
-    const second = await signIn({ ...withoutPicture, name: "Ada King" }, first);
+    const second = await signIn({ ...withoutPicture, name: "Juno Ashby" }, first);
 
     expect(second).toBe(first);
     const [user] = await users();
-    expect(user).toMatchObject({ name: "Ada King", chatIdentity: { workspace: allowedWorkspace, user: "U_ADA" } });
+    expect(user).toMatchObject({ name: "Juno Ashby", chatIdentity: { workspace: allowedWorkspace, user: "U_JUNO" } });
     expect(user!.image).toBeUndefined();
   });
 });
 
 describe("WS8: a person the directory doesn't know yet is verified with users.info", () => {
   test("they read verifying, then member once users.info answers, with the directory filled", async () => {
-    slack.withMember("U_ADA", { tz: "Europe/London" });
-    const userId = await signIn(ada);
+    slack.withMember("U_JUNO", { tz: "Europe/London" });
+    const userId = await signIn(juno);
     expect(await profileOf(userId)).toEqual({ kind: "verifying" });
 
     await settle(t);
 
     expect((await profileOf(userId)).kind).toBe("member");
-    expect(slack.callsTo("users.info")).toEqual([{ user: "U_ADA" }]);
+    expect(slack.callsTo("users.info")).toEqual([{ user: "U_JUNO" }]);
   });
 
   test("a person users.info knows as deleted reads not-a-member", async () => {
-    slack.withMember("U_ADA", { deleted: true });
-    const userId = await signIn(ada);
+    slack.withMember("U_JUNO", { deleted: true });
+    const userId = await signIn(juno);
 
     await settle(t);
 
@@ -131,8 +131,8 @@ describe("WS8: a person the directory doesn't know yet is verified with users.in
   });
 
   test("after 3 failed lookups, each waiting the Retry-After Slack asked for, they read unverified and the directory stays empty", async () => {
-    slack.withMember("U_ADA").answering("users.info", rateLimitedFor(30), rateLimitedFor(30), httpStatus(500));
-    const userId = await signIn(ada);
+    slack.withMember("U_JUNO").answering("users.info", rateLimitedFor(30), rateLimitedFor(30), httpStatus(500));
+    const userId = await signIn(juno);
 
     await settleInTimeOrder(t);
 
@@ -143,12 +143,12 @@ describe("WS8: a person the directory doesn't know yet is verified with users.in
   });
 
   test("signing in again after a failed verification starts a fresh check", async () => {
-    slack.withMember("U_ADA").answering("users.info", httpStatus(500), httpStatus(500), httpStatus(500));
-    const userId = await signIn(ada);
+    slack.withMember("U_JUNO").answering("users.info", httpStatus(500), httpStatus(500), httpStatus(500));
+    const userId = await signIn(juno);
     await settleInTimeOrder(t);
     expect(await profileOf(userId)).toEqual({ kind: "unverified" });
 
-    await signIn(ada, userId);
+    await signIn(juno, userId);
     expect(await profileOf(userId)).toEqual({ kind: "verifying" });
     await settle(t);
 
@@ -157,8 +157,8 @@ describe("WS8: a person the directory doesn't know yet is verified with users.in
   });
 
   test("a member the directory already knows is not looked up", async () => {
-    await aMember(t, "U_ADA");
-    await signIn(ada);
+    await aMember(t, "U_JUNO");
+    await signIn(juno);
     await settle(t);
 
     expect(slack.callsTo("users.info")).toEqual([]);

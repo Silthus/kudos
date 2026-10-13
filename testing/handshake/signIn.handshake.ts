@@ -10,7 +10,7 @@ import { allowedWorkspace, issuer, MockSlackIssuer, type NextSignIn } from "./mo
 const envFile = required("HANDSHAKE_ENV_FILE");
 const cloud = /^CONVEX_SELF_HOSTED_URL=(.+)$/m.exec(readFileSync(envFile, "utf8"))?.[1]?.trim() ?? "";
 const site = required("HANDSHAKE_SITE_URL");
-const ada: NextSignIn = { team: allowedWorkspace, user: "U_ADA", name: "Ada Lovelace" };
+const juno: NextSignIn = { team: allowedWorkspace, user: "U_JUNO", name: "Juno Whitlock" };
 
 const slack = new MockSlackIssuer();
 let stopSlack: () => Promise<void>;
@@ -38,7 +38,7 @@ describe("WS26: the routes coexist", () => {
 
 describe("WS5 L-W1: a member signs in with Slack", () => {
   test("Slack is asked for openid profile in the deployment's workspace, with state and nonce, and the member lands home", async () => {
-    slack.signsInNext(ada);
+    slack.signsInNext(juno);
     const { authorize, cookies, verifier } = await startSignIn();
 
     expect(authorize.origin + authorize.pathname).toBe(`${issuer}/openid/connect/authorize`);
@@ -53,18 +53,18 @@ describe("WS5 L-W1: a member signs in with Slack", () => {
     expect(landing.origin + landing.pathname).toBe(`${site}/`);
     const session = await redeem(landing, verifier);
 
-    expect(await eventuallyReads(session.client, "member")).toMatchObject({ kind: "member", name: "Ada Lovelace", face: { kind: "initials", initials: "AL" } });
+    expect(await eventuallyReads(session.client, "member")).toMatchObject({ kind: "member", name: "Juno Whitlock", face: { kind: "initials", initials: "JW" } });
   });
 });
 
 describe("WS6: eight refusals create no session", () => {
   test.each<[string, NextSignIn, Tampering]>([
-    ["a foreign workspace", { ...ada, team: "TOTHER" }, {}],
-    ["a wrong nonce", { ...ada, wrongNonce: true }, {}],
-    ["another client's token", { ...ada, wrongAudience: true }, {}],
-    ["a tampered state", ada, { tamperState: true }],
-    ["a missing state cookie", ada, { dropCookies: true }],
-    ["login CSRF, with neither state nor cookies", ada, { dropCookies: true, dropState: true }],
+    ["a foreign workspace", { ...juno, team: "TOTHER" }, {}],
+    ["a wrong nonce", { ...juno, wrongNonce: true }, {}],
+    ["another client's token", { ...juno, wrongAudience: true }, {}],
+    ["a tampered state", juno, { tamperState: true }],
+    ["a missing state cookie", juno, { dropCookies: true }],
+    ["login CSRF, with neither state nor cookies", juno, { dropCookies: true, dropState: true }],
   ])("sign-in with %s gets no code", async (_label, who, tampering) => {
     slack.signsInNext(who);
     const { authorize, cookies } = await startSignIn();
@@ -74,7 +74,7 @@ describe("WS6: eight refusals create no session", () => {
   });
 
   test("a one-time code can't be redeemed twice", async () => {
-    slack.signsInNext(ada);
+    slack.signsInNext(juno);
     const { authorize, cookies, verifier } = await startSignIn();
     const landing = await finishAtSlack(authorize, cookies);
     await redeem(landing, verifier);
@@ -83,7 +83,7 @@ describe("WS6: eight refusals create no session", () => {
   });
 
   test("a code stolen from the redirect is useless without the browser's verifier", async () => {
-    slack.signsInNext(ada);
+    slack.signsInNext(juno);
     const { authorize, cookies } = await startSignIn();
     const landing = await finishAtSlack(authorize, cookies);
 
@@ -94,14 +94,14 @@ describe("WS6: eight refusals create no session", () => {
 describe("WS3: while the website is closed, nobody signs in and every session reads closed", () => {
   test("the callback refuses while the flag is off", async () => {
     await switchWebsite(false);
-    slack.signsInNext(ada);
+    slack.signsInNext(juno);
     const { authorize, cookies } = await startSignIn();
 
     expect((await finishAtSlack(authorize, cookies)).searchParams.get("code")).toBeNull();
   });
 
   test("switched off between initiation and the callback, the callback refuses", async () => {
-    slack.signsInNext(ada);
+    slack.signsInNext(juno);
     const { authorize, cookies } = await startSignIn();
     await switchWebsite(false);
 
@@ -109,7 +109,7 @@ describe("WS3: while the website is closed, nobody signs in and every session re
   });
 
   test("switched off between the callback and redeeming the code, the session reads closed", async () => {
-    slack.signsInNext(ada);
+    slack.signsInNext(juno);
     const { authorize, cookies, verifier } = await startSignIn();
     const landing = await finishAtSlack(authorize, cookies);
     await switchWebsite(false);
@@ -120,7 +120,7 @@ describe("WS3: while the website is closed, nobody signs in and every session re
   });
 
   test("switched off after sign-in, an existing session and one refreshed later both read closed", async () => {
-    const session = await signedIn(ada);
+    const session = await signedIn(juno);
     await eventuallyReads(session.client, "member");
     await switchWebsite(false);
 
@@ -131,7 +131,7 @@ describe("WS3: while the website is closed, nobody signs in and every session re
 
 describe("WS8: a person the directory doesn't know yet is verified", () => {
   test("after three failed lookups the person reads unverified, never a member", async () => {
-    const session = await signedIn({ ...ada, user: "U_NEWCOMER", name: "Newcomer" });
+    const session = await signedIn({ ...juno, user: "U_NEWCOMER", name: "Newcomer" });
 
     expect(await profileOf(session.client)).toEqual({ kind: "verifying" });
     expect(await eventuallyReads(session.client, "unverified", 15_000)).toEqual({ kind: "unverified" });
@@ -141,7 +141,7 @@ describe("WS8: a person the directory doesn't know yet is verified", () => {
 
 describe("WS9: sessions", () => {
   test("a refreshed session reads the member, and after sign-out a still-unexpired token reads signed out", async () => {
-    const session = await signedIn(ada);
+    const session = await signedIn(juno);
     const renewed = await refreshed(session.refreshToken);
     expect((await eventuallyReads(renewed, "member")).kind).toBe("member");
 

@@ -16,11 +16,11 @@ const jwk = { ...(await exportJWK(keys.publicKey)), kid: "mock", alg: "RS256", u
 
 export class MockSlackIssuer {
   private readonly directory = new Map<string, { team_id: string; deleted?: boolean; tz?: string }>([
-    ["U_ADA", { team_id: allowedWorkspace, tz: "Europe/Berlin" }],
+    ["U_JUNO", { team_id: allowedWorkspace, tz: "Europe/Berlin" }],
     ["U_GONE", { team_id: allowedWorkspace, deleted: true }],
   ]);
   private readonly grants = new Map<string, Grant>();
-  private next: NextSignIn = { team: allowedWorkspace, user: "U_ADA", name: "Ada Lovelace" };
+  private next: NextSignIn = { team: allowedWorkspace, user: "U_JUNO", name: "Juno Whitlock" };
   private websiteOpen = true;
   readonly usersInfoCalls: string[] = [];
 
