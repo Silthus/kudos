@@ -261,7 +261,7 @@
     },
     {
       "name": "parse hook",
-      "definition": "A hook into the kudos parser: it names extra kudos emoji for a giver, or adds annotations about a message while its text is in memory. Spec 1 registers only the workspace emoji hook."
+      "definition": "A hook into the kudos parser: it names extra kudos emoji for a giver, or adds annotations about a message while its text is in memory. The workspace emoji hook names the workspace's kudos emoji; the thoughtful kudos hook adds the gate decision."
     },
     {
       "name": "annotation",
@@ -282,6 +282,18 @@
     {
       "name": "website",
       "definition": "The signed-in browser surface where a member sees and manages their Kudos. It sits beside App Home and never replaces it."
+    },
+    {
+      "name": "effects record",
+      "definition": "What progression writes once for one side of one award, the giver's or the recipient's: the base XP with the gate decision and the catalogue version in force, and in later stopping points the bonus XP, coins and drops. Effects records are insert-only and never recomputed (ADR-0004); a member's XP, level and skill points are derived from them."
+    },
+    {
+      "name": "gate decision",
+      "definition": "Whether a kudos message is thoughtful kudos, decided once per revision by the thoughtful kudos parse hook from the text in memory and stored as an annotation: the rule version, thoughtful or not, and the word count. A recheck reuses it, a retry decides again, and every effects record copies the version and the verdict (P12)."
+    },
+    {
+      "name": "levelReached",
+      "definition": "The domain event progression publishes when a kudosGiven brings a member to a higher level: one per member and event, naming the highest level reached and the skill points it gave, with the kudos message that caused it (P6). Level-up DMs and public notices react to it."
     }
   ]
 }
