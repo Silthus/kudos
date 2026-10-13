@@ -1,7 +1,10 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { httpAction, internalAction } from "../_generated/server";
+import { httpAction, internalAction, type ActionCtx } from "../_generated/server";
 import { type KudosCommandResult, renderKudosCommandReply } from "../feedback/kudosCommand";
+import { renderEveryoneBoard, renderLeaderboardUsage } from "../feedback/leaderboard";
+import type { Line } from "../feedback/replies";
+import { slackTextOf } from "./delivery";
 import { readSignedBody } from "./signature";
 import { callSlack, type SlackAnswer } from "./webApi";
 
@@ -10,6 +13,9 @@ export const slackCommands = httpAction(async (ctx, request) => {
   if (body === null) return new Response(null, { status: 401 });
 
   const command = new URLSearchParams(new TextDecoder().decode(body));
+  const [argument, ...rest] = argumentsOf(command);
+  if (argument === "leaderboard") return replyPrivately(await leaderboardReply(ctx, command, rest));
+
   await ctx.scheduler.runAfter(0, internal.slack.commands.addToChannel, {
     channel: field(command, "channel_id"),
     inDirectMessage: isDirectMessage(command),
@@ -25,6 +31,20 @@ export const addToChannel = internalAction({
     await answerCommand(responseUrl, renderKudosCommandReply(resultOfJoining(answer, inDirectMessage)));
   },
 });
+
+async function leaderboardReply(ctx: ActionCtx, command: URLSearchParams, rest: string[]): Promise<Line[]> {
+  if (rest.length > 0) return renderLeaderboardUsage();
+  const view = await ctx.runQuery(internal.leaderboard.totals.everyoneBoard, { workspace: field(command, "team_id"), viewer: field(command, "user_id") });
+  return renderEveryoneBoard(view);
+}
+
+function replyPrivately(lines: Line[]) {
+  return Response.json({ response_type: "ephemeral", text: slackTextOf(lines) });
+}
+
+function argumentsOf(command: URLSearchParams) {
+  return (command.get("text") ?? "").trim().split(/\s+/).filter((word) => word !== "");
+}
 
 const unjoinableChannelErrors = new Set(["channel_not_found", "method_not_supported_for_channel_type"]);
 

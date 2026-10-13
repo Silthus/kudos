@@ -6,7 +6,16 @@ import { messageRefValidator, type MessageRef } from "../engine/messageEvent";
 import type { DirectoryEntry, DirectoryRecord } from "../workspace/directory";
 import { readSlack } from "./webApi";
 
-type SlackUser = { id: string; team_id?: string; deleted?: boolean; is_bot?: boolean; tz?: string };
+type SlackUser = {
+  id: string;
+  team_id?: string;
+  deleted?: boolean;
+  is_bot?: boolean;
+  tz?: string;
+  name?: string;
+  real_name?: string;
+  profile?: { display_name?: string; real_name?: string };
+};
 
 export type MemberChanged = { type: "team_join" | "user_change"; user: SlackUser; event_ts: string };
 
@@ -73,5 +82,10 @@ async function usersInfo(user: string) {
 function directoryEntryOf(user: SlackUser, workspace: string): DirectoryEntry {
   if (user.is_bot || user.id === slackbot) return { kind: "bot" };
   if (user.deleted || user.team_id !== workspace) return { kind: "not-a-member" };
-  return { kind: "member", ...(user.tz && { timeZone: user.tz }) };
+  const name = displayNameOf(user);
+  return { kind: "member", ...(name && { name }), ...(user.tz && { timeZone: user.tz }) };
+}
+
+function displayNameOf(user: SlackUser) {
+  return user.profile?.display_name || user.profile?.real_name || user.real_name || user.name;
 }

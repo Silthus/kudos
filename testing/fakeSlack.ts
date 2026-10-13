@@ -4,6 +4,8 @@ export type SlackUser = {
   deleted?: boolean;
   is_bot?: boolean;
   tz?: string;
+  real_name?: string;
+  profile?: { display_name?: string; real_name?: string };
 };
 
 export type SlackArgs = Record<string, unknown>;
