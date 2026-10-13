@@ -57,13 +57,11 @@ function firstAwardOfEachMessage(awards: AwardRow[]) {
 
 async function givenMessageOf(ctx: QueryCtx, first: AwardRow): Promise<GivenMessage> {
   const { workspace, conversation, message, giver, day } = first;
-  const sameGiverAndDay = await ctx.db
+  const awardsOfMessage = await ctx.db
     .query("awards")
-    .withIndex("by_giver", (q) => q.eq("giver", giver).eq("day", day))
+    .withIndex("by_message", (q) => q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message))
     .collect();
-  const awards = sameGiverAndDay
-    .filter((award) => messageKey(award) === messageKey(first))
-    .map(({ recipient, kudos }) => ({ giver, recipient, kudos }));
+  const awards = awardsOfMessage.map(({ recipient, kudos }) => ({ giver, recipient, kudos }));
   return { workspace, message: { workspace, conversation, message }, giver, awards, day };
 }
 

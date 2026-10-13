@@ -3,6 +3,9 @@ import { internal } from "../_generated/api";
 import type { KudosGivenEvent } from "../bus/events";
 import { insertAwards, type Award } from "../engine/awards";
 import { record } from "../workspace/directory";
+import { convexTest } from "convex-test";
+import schema from "../schema";
+import { modules } from "../test.setup";
 import { testBackend, type Backend } from "../../testing/slackBackend";
 import type { BoardView } from "./board";
 
@@ -56,6 +59,21 @@ describe("G14: earlier kudos count on the board", () => {
     expect(await countEarlierKudos(t, { pageSize: 2 })).toMatchObject({ messages: 1 });
 
     expect(await totalsOf(t, "U1")).toEqual({ "week:2026-10-12": 3, "month:2026-10": 3, all: 3 });
+  });
+
+  test("a giver's many messages on one day stay within Convex's transaction limits", async () => {
+    const t = convexTest({ schema, modules, transactionLimits: true });
+    await members(t, ["U1", "Ann"], ["U2", "Bob"]);
+    const [ann, bob] = [await memberId(t, "U1"), await memberId(t, "U2")];
+    await t.run(async (ctx) => {
+      for (let message = 1; message <= 400; message++) {
+        await insertAwards(ctx, { workspace: "T1", conversation: "C1", message: `${message}` }, [{ giver: ann, recipient: bob, kudos: 1 }], "2026-10-13", Date.now());
+      }
+    });
+
+    expect(await countEarlierKudos(t)).toMatchObject({ messages: 400 });
+
+    expect(await totalsOf(t, "U1")).toEqual({ "week:2026-10-12": 400, "month:2026-10": 400, all: 400 });
   });
 
   test("G44: an award given while the backfill runs counts once", async () => {

@@ -58,7 +58,8 @@ export default defineSchema({
     at: v.number(),
   })
     .index("by_giver", ["giver", "day"])
-    .index("by_recipient", ["recipient", "day"]),
+    .index("by_recipient", ["recipient", "day"])
+    .index("by_message", ["workspace", "conversation", "message"]),
 
   kudosTotals: defineTable({
     member: v.id("members"),
