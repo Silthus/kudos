@@ -5,9 +5,10 @@ import type { LevelReachedEvent } from "../bus/events";
 import { skillTreeLevel } from "../progression/levels";
 import { progressSettingsOf } from "../progression/settings";
 import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
-import { featureValidator } from "../unlocks/feature";
+import { featureValidator, type Feature } from "../unlocks/feature";
 import { unlocksAppliedIn, unlocksShownTo } from "../unlocks/launch";
-import { scheduled, shippedIn, type ScheduledFeature } from "../unlocks/schedule";
+import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
+import { stateOf } from "../unlocks/unlocks";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { readyCrateOf, type HomeAction } from "./home";
 import { skillPointsOf } from "./naming";
@@ -68,10 +69,15 @@ function levelReachedLines({ level, skillPoints, xpToNextLevel }: Extract<Notifi
 
 async function stillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: Notification): Promise<Notification> {
   if (!(await unlocksAppliedIn(ctx, workspace))) return { ...notification, ready: [] };
-  const shipped = (await shippedIn(ctx, workspace)).map(({ feature }) => feature);
-  const ready = notification.ready.filter((feature) => shipped.includes(feature));
+  const ready = await stillReady(ctx, member, notification.ready);
   if (notification.kind !== "level-reached" || notification.skillPoints === null) return { ...notification, ready };
   return { ...notification, ready, skillPoints: await whenOpened(ctx, member, "skillTree", notification.skillPoints) };
+}
+
+async function stillReady(ctx: QueryCtx, member: MemberId, features: Feature[]) {
+  const ready: Feature[] = [];
+  for (const feature of features) if ((await stateOf(ctx, member, feature)) === "ready") ready.push(feature);
+  return ready;
 }
 
 function featuresOf(ready: ScheduledFeature[]) {

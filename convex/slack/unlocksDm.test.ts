@@ -14,6 +14,8 @@ const now = new Date("2026-10-13T10:00:00Z");
 const firstMessageAt = now.getTime() + 1000;
 const form = { contentType: "application/x-www-form-urlencoded" };
 const leaderboardReady = "section: *Leaderboard* is ready. It opens the boards. [button: Open]";
+const openLeaderboardCommand = JSON.stringify({ type: "openUnlock", feature: "leaderboard" });
+const openLeaderboard = { type: "button", action_id: openLeaderboardCommand, value: openLeaderboardCommand } as const;
 const levelThreeDm = ["section: 🎉 You reached level 3!", "section: Level 4 is 200 XP away.", leaderboardReady];
 
 type LevelReachedSubscriber = typeof internal.feedback.publicReplies.celebrateLevel | typeof internal.unlocks.unlocks.makeReady;
@@ -99,6 +101,36 @@ describe("R34: a level-up DM rechecks what it names before each try", () => {
     await giveKudos(t, "U_ALICE", "U_BOB", 8);
 
     expect(dmsTo("U_ALICE").map(readDm).slice(1)).toEqual([levelThreeDm, ["🎉 You reached level 3!", "Level 4 is 200 XP away."]]);
+  });
+
+  test("a level-up DM Slack held back leaves out the Leaderboard once the member opened it from App Home, and still tells the level", async () => {
+    const t = await workspace();
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+    slack.holdingBack("chat.postMessage", "U_ALICE", async () => {
+      await click(t, blockActions("U_ALICE", openLeaderboard));
+      slack.answering("chat.postMessage", rateLimitedFor(30));
+    });
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 8);
+
+    expect(await unlockRows(t)).toEqual([{ feature: "leaderboard", readyAt: expect.any(Number), openedAt: expect.any(Number) }]);
+    expect(dmsTo("U_ALICE").map(readDm).slice(1)).toEqual([levelThreeDm, ["🎉 You reached level 3!", "Level 4 is 200 XP away."]]);
+  });
+
+  test("a ship sweep DM Slack held back is not sent once the member opened the feature it names from App Home", async () => {
+    const t = await workspace();
+    await boardTurned(t, "off");
+    await giveKudos(t, "U_ALICE", "U_BOB", 10);
+    await boardTurned(t, "on");
+    slack.holdingBack("chat.postMessage", "U_ALICE", async () => {
+      await click(t, blockActions("U_ALICE", openLeaderboard));
+      slack.answering("chat.postMessage", rateLimitedFor(30));
+    });
+
+    await sweep(t);
+
+    expect(await unlockRows(t)).toEqual([{ feature: "leaderboard", readyAt: expect.any(Number), openedAt: expect.any(Number) }]);
+    expect(dmsTo("U_ALICE").map(readDm).slice(1)).toEqual([[leaderboardReady]]);
   });
 });
 
@@ -356,7 +388,11 @@ async function giveKudos(t: Backend, giver: string, recipient: string, kudos: nu
 }
 
 async function send(t: Backend, interaction: string) {
-  const response = await t.fetch("/slack/interactivity", await signedRequest(interaction, form));
+  const response = await click(t, interaction);
   await settle(t);
   return response;
+}
+
+async function click(t: Backend, interaction: string) {
+  return t.fetch("/slack/interactivity", await signedRequest(interaction, form));
 }
