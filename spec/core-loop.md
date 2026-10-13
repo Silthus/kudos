@@ -1,18 +1,20 @@
 # Spec: the core kudos loop on Slack
 
-> **Draft for approval on [#12](https://github.com/Silthus/kudos/issues/12), map [#1](https://github.com/Silthus/kudos/issues/1).** This file lives on the branch `docs/spec-core-loop` and is never merged. Once Michael approves it, it is published as a `wayfinder:spec` issue under #12, and the rules reach the repository through Coherence with the implementation slices (see "Where the spec lives").
+> **Approved by Michael on 2026-10-13**, with every open call at its recommendation, for map [#1](https://github.com/Silthus/kudos/issues/1) and ticket [#12](https://github.com/Silthus/kudos/issues/12). The rule numbers (`R7`) are what the implementation tickets and their tests cite. The rules reach the repository through Coherence with the slices (see "Where the spec lives").
 >
-> Sources: the rules from the core loop grilling ([#8 handoff](https://github.com/Silthus/kudos/issues/8)), the accepted architecture ([#11 handoff](https://github.com/Silthus/kudos/issues/11), [brief](https://github.com/Silthus/kudos/blob/prototype/architecture/prototype/architecture.md) §3 and §12), the progression grilling's changes to the core loop ([#9 handoff](https://github.com/Silthus/kudos/issues/9)), the research reports linked from the map, ADR-0001 to ADR-0004 and the Coherence lexicon.
+> Sources: the rules from the core loop grilling ([#8 handoff](https://github.com/Silthus/kudos/issues/8)), the accepted architecture ([#11 handoff](https://github.com/Silthus/kudos/issues/11), [brief](https://github.com/Silthus/kudos/blob/prototype/architecture/prototype/architecture.md) §3 and §12), the progression grilling's changes to the core loop ([#9 handoff](https://github.com/Silthus/kudos/issues/9)), the research reports linked from the map, the groups, leaderboard and profile grilling ([#10 handoff](https://github.com/Silthus/kudos/issues/10)), ADR-0001 to ADR-0004 and the Coherence lexicon.
 >
 > **Revision 2** follows #9: the daily allowance is the workspace base only and perks fill a weekly reserve (`d-9d708d3d`); the success reply gets a seam for one extras line and quips a later public thread reply (`d-fe8e7f4a`); the app's kudos reaction becomes the one reaction chime-ins click (`d-31933802`); and the slice order starts with the core loop plus a minimal App Home (`d-1e03b988`).
+>
+> **Revision 3** follows #10: a welcome message by DM on a member's first Given award (`d-0321797e`, `d-131a9d2c`, `d-f8ad338b`), the minimal App Home's contents (`d-766ac71d`), and "group" for a Kudos group, with Slack's API "team" called the workspace.
 
 ## Problem Statement
 
-A team on Slack wants to thank each other often and lightly, inside the conversation where the help happened. Today there is no Kudos app running: the old deployment is shut down, and nothing on `main` turns a thank-you into recognition. A teammate who writes "thanks `@Alice` :taco:" gets nothing back, nobody keeps a record, and there is no budget that keeps kudos meaningful.
+Colleagues on Slack want to thank each other often and lightly, inside the conversation where the help happened. Today there is no Kudos app running: the old deployment is shut down, and nothing on `main` turns a thank-you into recognition. A teammate who writes "thanks `@Alice` :taco:" gets nothing back, nobody keeps a record, and there is no budget that keeps kudos meaningful.
 
 ## Solution
 
-A member writes a normal Slack message in a channel the app is in, mentions one or more teammates and adds the kudos emoji (`:taco:` by default). Every recipient gets one kudos per kudos emoji, paid from the giver's daily allowance (3 a day by default, reset at the giver's local midnight). The app answers right beside the message: the kudos emoji as a reaction when kudos were given, an hourglass when the giver doesn't have enough left, a red X when nobody in the message can receive kudos, and a private line that says what happened and how many kudos are left. A message that didn't give kudos can be fixed by editing it. Awards are permanent. Kudos' App Home shows a member how many kudos they have left today, what they've given and received, and how to give. It runs on a Convex deployment connected to a new Slack app, first in a sandbox workspace and then in the real one.
+A member writes a normal Slack message in a channel the app is in, mentions one or more teammates and adds the kudos emoji (`:taco:` by default). Every recipient gets one kudos per kudos emoji, paid from the giver's daily allowance (3 a day by default, reset at the giver's local midnight). The app answers right beside the message: the kudos emoji as a reaction when kudos were given, an hourglass when the giver doesn't have enough left, a red X when nobody in the message can receive kudos, and a private line that says what happened and how many kudos are left. A message that didn't give kudos can be fixed by editing it. Awards are permanent. The first time someone gives or receives kudos, the app sends them a short welcome message by DM. Kudos' App Home shows a member how to give, how many kudos they have left today, and what they've given and received this week and in total. It runs on a Convex deployment connected to a new Slack app, first in a sandbox workspace and then in the real one.
 
 ## User Stories
 
@@ -56,7 +58,7 @@ A member writes a normal Slack message in a channel the app is in, mentions one 
 31. As a giver, I want a failed feedback delivery never to change my kudos, so that a Slack outage can't double-spend or double-award.
 
 **Channels**
-32. As a member, I want to add the app to a public channel by typing `/kudos` there, so that my team can give kudos in it.
+32. As a member, I want to add the app to a public channel by typing `/kudos` there, so that my colleagues can give kudos in it.
 33. As a member in a private channel, I want `/kudos` to tell me how to invite the app, so that I know what to do.
 34. As a member, I want kudos in DMs and group DMs to be ignored, so that private conversations stay private.
 35. As a member of a shared channel, I want only people of my own workspace to give and receive, so that external guests don't use our allowance.
@@ -73,8 +75,13 @@ A member writes a normal Slack message in a channel the app is in, mentions one 
 
 **App Home**
 44. As a member, I want to open Kudos in Slack and see how many kudos I have left today and when they refill, so that I can plan my day.
-45. As a member, I want App Home to show how many kudos I've given and received, so that I can see my recognition at a glance.
+45. As a member, I want App Home to show how many kudos I've given and received this week and in total, so that I can see my recognition at a glance.
 46. As a new member, I want App Home to explain how to give kudos and how to add Kudos to a channel, so that I can start without asking anyone.
+
+**Welcome message**
+47. As someone who just received my first kudos, I want a short DM explaining what kudos are and how to give them back, so that I understand what happened and can join in.
+48. As a giver whose first kudos just went through, I want the same welcome, so that I learn the allowance and where to find App Home.
+49. As a member, I want the welcome only once, so that it never turns into noise.
 
 ## Rules
 
@@ -110,7 +117,7 @@ Each rule is a testable statement. The tests name the rule (`R7`). "Spec 1" mean
 
 - **R18. Awards.** A Given outcome writes one award per recipient with `n` kudos, the allowance day and the spend instant. Awards are only ever inserted, never changed or deleted (ADR-0001).
 - **R19. At most once.** A message gives kudos at most once, whatever Slack redelivers, however often the giver edits it, and however often feedback delivery is retried.
-- **R20. `kudosGiven`.** Every Given outcome publishes exactly one `kudosGiven` event in the same transaction as its awards, carrying the awards, the first kudos emoji in the message, the annotations, the allowance facts after the award (opening daily, daily left), the allowance day and the spend instant. Spec 1 registers no subscribers.
+- **R20. `kudosGiven`.** Every Given outcome publishes exactly one `kudosGiven` event in the same transaction as its awards, carrying the awards, the first kudos emoji in the message, the annotations, the allowance facts after the award (opening daily, daily left), the allowance day and the spend instant. Spec 1 registers one subscriber: the welcome message (R42).
 
 ### Edits and deletions
 
@@ -132,7 +139,7 @@ Each rule is a testable statement. The tests name the rule (`R7`). "Spec 1" mean
 ### Feedback
 
 - **R32. Indicator.** A message carries at most one of the app's indicator reactions: the first kudos emoji the giver used for Given (never a check mark; it is the reaction chime-ins will click in spec 2, so the app adds it as itself), `:hourglass_flowing_sand:` for Over allowance, `:x:` for Invalid, and none while waiting, after a withdrawal or after abandonment. The indicator is desired state: after any number of retried or late deliveries, the message shows exactly the latest one.
-- **R33. Private replies.** Every reply is an ephemeral to the giver beside the message: in the thread for a thread reply, in the channel otherwise. There is no DM fallback. Spec 1 posts nothing public besides the indicator, and recipients get nothing extra. The one public thread reply under a kudos message (D18: quips and chime-in thresholds) and progression DMs belong to spec 2 (#9).
+- **R33. Private replies.** Every reply is an ephemeral to the giver beside the message: in the thread for a thread reply, in the channel otherwise. There is no DM fallback. Spec 1 posts nothing public besides the indicator, and recipients get nothing in the channel; the only other message is the one-time welcome DM (R42). The one public thread reply under a kudos message (D18: quips and chime-in thresholds) and progression DMs belong to spec 2 (#9).
 - **R34. Feedback is separate from awards.** A delivery that fails or repeats never re-runs an evaluation and never changes awards or allowance.
 - **R35. Delivery retries.** Reactions are retried until the message shows the desired indicator, honouring `Retry-After`. A private reply is tried at most 3 times on any failure, including an unknown result, honouring `Retry-After` (D3); the worst case is a duplicate ephemeral only the giver sees. A delivery whose message or channel is gone (`message_not_found`, `channel_not_found`, the app removed from the channel) stops for good; awards and spending stay.
 
@@ -165,22 +172,32 @@ Each rule is a testable statement. The tests name the rule (`R7`). "Spec 1" mean
 - **R40. `/kudos` in a private channel the app isn't in.** It replies privately: ``I can't join private channels by myself. Type `/invite @Kudos` here and I'll start counting kudos.``
 - **R41. `/kudos` in a DM or group DM.** It replies privately: `I only count kudos in channels. Run /kudos in the channel you want me in.`
 
+### Welcome message
+
+- **R42. Once per member.** The first Given award in which a member is the giver or a recipient sends that member one welcome message by DM. A member gets it at most once, ever, whatever kudos follow, and it can't be turned off (`d-0321797e`, `d-f8ad338b`). This changes #8, where a first-time recipient got nothing extra.
+- **R43. The welcome copy.** Plain and short, the app speaking as "I"; #10's baseline without the group block, which the groups slice adds later (`d-f6186e52`):
+  - `👋 Welcome to Kudos! Thank a teammate by mentioning them and adding {emoji} to your message in any channel I'm in. Each {emoji} gives everyone you mention 1 kudos.`
+  - `You can give {base} kudos a day, and they refill at midnight in your time zone.`
+  - ``To add me to a channel, type `/kudos` there.``
+  - `<Open App Home>` as a link to the app's Home tab.
+- **R44. Decided with the award, delivered after it.** Whether a member is welcomed is decided exactly once, with the `kudosGiven` event that first names them, so a retried delivery or a redelivered Slack event never sends a second welcome. Delivery is tried at most 3 times like a private reply (R35), and a member who can't be reached by DM is not retried later.
+
 ### App Home
 
-- **R42. A minimal App Home.** When a member opens Kudos' App Home, the app publishes a view for that member with:
+- **R45. A minimal App Home.** When a member opens Kudos' App Home, the app publishes a view for that member with:
   - `You have {left} kudos left today. You get {base} more at midnight.` (or `You've used all your kudos for today. You get {base} more at midnight.` when none are left)
-  - `You've given {given} kudos and received {received} kudos.`
+  - `This week you've given {givenWeek} kudos and received {receivedWeek}. In total you've given {given} and received {received}.`
   - `To give kudos, mention a teammate and add {emoji} to your message. Each {emoji} gives everyone you mention 1 kudos.`
   - ``To add me to a channel, type `/kudos` there.``
-- **R43. Home reads facts, never recomputes them.** `{left}` uses the same allowance day as giving (R12), so App Home and the next kudos message never disagree. `{given}` and `{received}` are the sums of the member's awards. `{emoji}` is the workspace emoji in force. Opening App Home before ever giving shows 0 given and 0 received.
-- **R44. Not a member.** A person who isn't a member (R5) gets a view that says `Kudos is for active members of this workspace.`
+- **R46. Home reads facts, never recomputes them.** `{left}` uses the same allowance day as giving (R12), so App Home and the next kudos message never disagree. `{given}` and `{received}` are the sums of the member's awards; the week totals count the awards whose allowance day falls in the member's current week, Monday to Sunday in their time zone (#10's period rule). `{emoji}` is the workspace emoji in force. Opening App Home before ever giving shows 0 given and 0 received.
+- **R47. Not a member.** A person who isn't a member (R5) gets a view that says `Kudos is for active members of this workspace.`
 
 ### Ingress and data
 
-- **R45. Signed requests only.** Every Slack request is verified with the signing secret (HMAC-SHA256 over the raw body, timestamp within 5 minutes) before anything is parsed or stored. A request that fails gets 401 and records nothing.
-- **R46. Acknowledge fast, once.** A verified event is acknowledged within 3 s. A redelivery of the same event (`team_id` + `event_id`) is acknowledged and does nothing. Receipts are kept for 7 days and then deleted daily; the revision check (R19, R21), not the receipt, prevents a second award.
-- **R47. Internal domain.** Only HTTP routes are public. Every domain function is internal (L1).
-- **R48. No text at rest.** Message text is never stored, neither in a table nor in a scheduled job's arguments. It reaches the parser in memory and is dropped (L4).
+- **R48. Signed requests only.** Every Slack request is verified with the signing secret (HMAC-SHA256 over the raw body, timestamp within 5 minutes) before anything is parsed or stored. A request that fails gets 401 and records nothing.
+- **R49. Acknowledge fast, once.** A verified event is acknowledged within 3 s. A redelivery of the same event (`team_id` + `event_id`) is acknowledged and does nothing. Receipts are kept for 7 days and then deleted daily; the revision check (R19, R21), not the receipt, prevents a second award.
+- **R50. Internal domain.** Only HTTP routes are public. Every domain function is internal (L1).
+- **R51. No text at rest.** Message text is never stored, neither in a table nor in a scheduled job's arguments. It reaches the parser in memory and is dropped (L4).
 
 ## Implementation Decisions
 
@@ -190,6 +207,7 @@ Each rule is a testable statement. The tests name the rule (`R7`). "Spec 1" mean
 - **Workspace**: settings with defaults and the members directory.
 - **Kudos parser** with parse hooks; spec 1 registers the workspace emoji hook.
 - **Kudos engine**: observe, recheck, the daily allowance, awards, publishing `kudosGiven`, and the member facts App Home reads (allowance left, kudos given and received).
+- **Welcome**: the first `kudosGiven` subscriber. It records who has been welcomed and asks feedback for the DM.
 - **Feedback**: the indicator as desired state, private replies as intents, and the copy (D4), App Home's included.
 - **Event bus and hooks**: `publish`, the registry (empty subscriber list), the parse hook list. The perks hook (L6) arrives with the weekly reserve, its first contributor (R14).
 
@@ -305,7 +323,7 @@ Written in the engine's mutation, delivered by an action afterwards. The feedbac
 
 ```ts
 type HomeFacts =
-  | { kind: "member"; left: number; base: number; given: number; received: number; kudosEmoji: string }
+  | { kind: "member"; left: number; base: number; givenWeek: number; receivedWeek: number; given: number; received: number; kudosEmoji: string }
   | { kind: "not-a-member" };
 function homeOf(workspace: WorkspaceId, user: ChatUserId): HomeFacts; // internal query
 ```
@@ -319,9 +337,9 @@ type Normalized = { receiptKey: string; event: MessageEvent | null };
 function normalize(envelope: SlackEnvelope): Normalized;
 ```
 
-The receipt key is `team_id/event_id`; message identity is `(team, channel, message ts)`. `message_changed` reads the nested message. Bot-authored messages, DMs and deletions normalize to `null`. The HTTP action drops a new message with no mention or no emoji before any mutation, but always passes `message_changed`, because an edit can withdraw.
+The receipt key is `team_id/event_id`; message identity is `(workspace, channel, message ts)`; Slack's `team_id` is the workspace. `message_changed` reads the nested message. Bot-authored messages, DMs and deletions normalize to `null`. The HTTP action drops a new message with no mention or no emoji before any mutation, but always passes `message_changed`, because an edit can withdraw.
 
-The HTTP action calls one mutation that records the receipt and runs `observe` in the same transaction, then acknowledges. That keeps the text out of every scheduled job's arguments (R48) and makes the receipt and the evaluation atomic. The mutation never calls the network, so the acknowledgment stays well inside 3 s; directory lookups and delivery are scheduled from it with text-free arguments. (The brief's map draws this as a direct call in the same mutation; its §4.1 sequence scheduled a separate step, which would have put the text into a job's arguments.)
+The HTTP action calls one mutation that records the receipt and runs `observe` in the same transaction, then acknowledges. That keeps the text out of every scheduled job's arguments (R51) and makes the receipt and the evaluation atomic. The mutation never calls the network, so the acknowledgment stays well inside 3 s; directory lookups and delivery are scheduled from it with text-free arguments. (The brief's map draws this as a direct call in the same mutation; its §4.1 sequence scheduled a separate step, which would have put the text into a job's arguments.)
 
 ### Data (sketch from the prototype)
 
@@ -330,15 +348,15 @@ The HTTP action calls one mutation that records the receipt and runs `observe` i
 ### The Slack app
 
 - **Two single-workspace apps from one manifest template (D9)**: sandbox and real, each pointed at its own Convex deployment. The bot token and signing secret live only in that deployment's environment variables. No OAuth install flow, no installations table.
-- **The manifest asks for every spec 1 scope up front** so the sandbox install never needs reauthorization: `channels:history`, `groups:history`, `reactions:write`, `chat:write`, `users:read`, `channels:join`, `commands`. Bot events: `message.channels`, `message.groups`, `team_join`, `user_change`, `app_home_opened`, with the Home tab on. One slash command, `/kudos`, with escaping on. Routes: `/slack/events` and `/slack/commands`. Chime-ins (`reactions:read`, `reaction_added`), DMs and interactivity come with spec 2 and need one reinstall of each app then.
+- **The manifest asks for every spec 1 scope up front** so the sandbox install never needs reauthorization: `channels:history`, `groups:history`, `reactions:write`, `chat:write`, `users:read`, `channels:join`, `commands`. Bot events: `message.channels`, `message.groups`, `team_join`, `user_change`, `app_home_opened`, with the Home tab on. One slash command, `/kudos`, with escaping on. The welcome DM uses `chat.postMessage` with the member's user id as the channel, which `chat:write` covers. Routes: `/slack/events` and `/slack/commands`. Chime-ins (`reactions:read`, `reaction_added`), interactive DMs and other interactivity come with spec 2 and need one reinstall of each app then.
 - **Sign in with Slack is not wired (D8).** Members are keyed by workspace and Slack user id, the OIDC `team_id` and `user_id` claims.
 - **`/kudos` stays in the adapter.** Joining a channel is a platform capability, not a domain decision, so spec 1 doesn't build the D17 command registry yet; it arrives with the first domain command (spec 2). The `/kudos` copy is rendered by the feedback module like every other reply (D4).
 
 ### Deployments and pipeline
 
-- The core loop lands slice by slice on an integration branch (proposed: `integration/core-loop`), each slice as a reviewed pull request with the gate green. The conductor's `ship` ticket merges it to `main`.
+- The core loop lands slice by slice on the integration branch `spec/core-loop`: each implementation ticket lands its commits there as a fast-forward after the full local gate is green, as the wayfinder SHIP procedure describes. The conductor's `ship` ticket turns the branch into one reviewed pull request to `main`.
 - The integration branch deploys itself to the sandbox deployment from GitHub Actions with a scoped deploy key on every push. `main` deploys to the real deployment the same way, wired by the `ship` ticket.
-- Proposed reading of D9 against #15: two Convex projects, each with its own production deployment. #15 provisions the sandbox one; the `ship` ticket or #16 provisions the real one.
+- Reading of D9 against #15 (approved): two Convex projects, each with its own production deployment. #15 provisions the sandbox one; the `ship` ticket or #16 provisions the real one.
 
 ### Where the spec lives
 
@@ -352,10 +370,10 @@ This spec is the product spec: it becomes the `wayfinder:spec` issue under #12, 
 
 - **A good test enters at a seam and checks what a member or a later module could observe**: the HTTP response, the Slack Web API calls made, the rows another module reads, the events published. It never reaches into private helpers or asserts on internal table layouts beyond the module's own interface.
 - **Seams (L7), highest first:**
-  1. **The Slack boundary.** Signed requests through the HTTP router with `convex-test`, and the Slack Web API stubbed at the global `fetch`. Covers R1, R5–R7, R22 (the `edited` block), R32–R35, R39–R48 (App Home as published views), and one end-to-end path per outcome.
-  2. **The engine's internal functions** with a seeded directory and settings, entering with `MessageEvent` and reading `Observation`, the feedback intents, the awards and the published events. Covers the rule tables: R2–R4, R8–R31, R36–R38, R42–R44 (as `HomeFacts` and rendered copy). The copy is tested here as rendered segments, without Slack.
+  1. **The Slack boundary.** Signed requests through the HTTP router with `convex-test`, and the Slack Web API stubbed at the global `fetch`. Covers R1, R5–R7, R22 (the `edited` block), R32–R35, R39–R51 (the welcome DM and App Home as Slack calls), and one end-to-end path per outcome.
+  2. **The engine's internal functions** with a seeded directory and settings, entering with `MessageEvent` and reading `Observation`, the feedback intents, the awards and the published events. Covers the rule tables: R2–R4, R8–R31, R36–R38, R42–R47 (who is welcomed and when, `HomeFacts`, rendered copy). The copy is tested here as rendered segments, without Slack.
 - **Time is controlled** with fake timers; time zone cases include a giver east and west of UTC, a message just before local midnight, and a retry after midnight.
-- **No text at rest (R48)** is checked against the application tables and the scheduled functions' arguments.
+- **No text at rest (R51)** is checked against the application tables and the scheduled functions' arguments.
 - **The extras line (R38)** is tested at the rendering seam with a hand-built `Reply`; nothing in spec 1 fills it.
 - **Prior art:** none on `main` yet. The prototype's 15 scenarios (`prototype/architecture/scenarios.ts`) are the model for the edit, revision and delivery cases and should be ported as tests, not copied as code.
 - **Sandbox checks are acceptance criteria**, run against the sandbox deployment and recorded on the slice's pull request:
@@ -369,7 +387,7 @@ This spec is the product spec: it becomes the `wayfinder:spec` issue under #12, 
 ## Out of Scope
 
 - Progression (XP, levels, skill points, perks, the weekly reserve, the thoughtful-kudos gate, coins, the store, cosmetics, quips, drops, achievements, streaks, the sticker book), chime-ins and the D10/D11 questions: the progression spec (#13), in #9's slice order. Chime-ins will make the app's kudos reaction the one reaction that gives kudos; until then no reaction gives kudos. Spec 1 builds only the seams they plug into. The locked rules spec 2 and 3 inherit from #11 stay in force: a module needing another's derived state subscribes to its events (L10), one public reply per kudos message as desired state (D18), progression uses the `day` on `kudosGiven` (D20), effects are stored with their award (ADR-0004), and is a pure reducer over domain events (D21), and interactions route through a command registry (D17).
-- The team leaderboard, teams and the profile beyond the minimal App Home: later specs.
+- Groups (and the welcome message's group block), the leaderboards and `/kudos leaderboard`, the profile card and the full App Home with tabs: the groups spec (#14) and the progression spec (#13), placed by `d-1c7a971d`.
 - The go-live in the real workspace: #16 and the conductor's `ship` ticket.
 - An admin surface for the base allowance and the workspace emoji, an admin reversal of awards, observability, and data deletion when someone leaves.
 - Giving by any reaction in spec 1, auto-joining every public channel, DMs, a web UI, Sign in with Slack, a second chat platform, a multi-workspace distributed app, migrating kudos-garden data.
@@ -377,5 +395,5 @@ This spec is the product spec: it becomes the `wayfinder:spec` issue under #12, 
 ## Further Notes
 
 - **Changes to #8 and #11 carried here:** #9 made the daily allowance the workspace base only and moved perk capacity into a weekly reserve that spec 1 doesn't build yet (R11, R14, R15); the copy is #8's exactly, plus the extras-line seam (R38); "recipients get nothing extra" holds in spec 1 and relaxes with quips (R33); every kudos emoji is worth 1 (R3); D19's "spec 1 builds the pool with zero bonuses" is replaced by R14 (open call).
-- **Calls this spec makes (each open to Michael's veto):** the `/kudos` copy (R39–R41, not grilled); withdrawal also when the last mention is removed (R24; #8 named only the emoji); no weekly reserve in spec 1 (R14); a minimal App Home in spec 1 (R42–R44); the D17 registry deferred to spec 2; receipt and evaluation in one mutation so text never sits in a job (R48); the deployment and pipeline reading above.
+- **Calls approved by Michael on 2026-10-13, all at the recommendation:** the `/kudos` copy (R39–R41, not grilled); withdrawal also when the last mention is removed (R24; #8 named only the emoji); no weekly reserve in spec 1 (R14); a minimal App Home in spec 1 (R45–R47); the D17 registry deferred to spec 2; receipt and evaluation in one mutation so text never sits in a job (R51); the welcome message and the minimal App Home as the slice right after the first kudos, because both need awards (#10 put them in "slice 1", which `d-1e03b988` uses for this whole spec); the deployment and pipeline reading above.
 - **Follow-ups outside this spec:** #15 should be blocked by slice 1, because it installs the app from the manifest slice 1 writes, and its first deployment of slice 1 is a manual deploy (slice 2 automates it). The `ship` ticket owns the real deployment, the `main` deploy workflow and the merge of the integration branch.

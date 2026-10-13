@@ -1,8 +1,8 @@
 # Planned implementation tickets: the core kudos loop
 
-> **Draft for approval on [#12](https://github.com/Silthus/kudos/issues/12), revision 2 (after #9).** Not published yet. On approval each ticket becomes a sub-issue of #12 labelled `wayfinder:implement`, with native blocking edges. Rule numbers (`R7`) refer to [the spec](core-loop.md).
+> **Draft for approval on [#12](https://github.com/Silthus/kudos/issues/12), approved by Michael on 2026-10-13, revision 3 (after #9 and #10).** Each ticket becomes a sub-issue of #12 labelled `wayfinder:implement`, with native blocking edges. Rule numbers (`R7`) refer to [the spec](core-loop.md).
 
-Every slice is a reviewed pull request into the integration branch (proposed `integration/core-loop`), tested outside-in at the spec's seams, with `pnpm gate` green. None of them is the `ship` ticket: the conductor creates it, and it merges the integration branch to `main`.
+Every slice lands on the integration branch `spec/core-loop`, which the conductor creates from `main`, following the wayfinder SHIP procedure: a ticket branch `spec/core-loop/<ticket>` from the integration tip, built test-first, the full local gate green, then a fast-forward push to `spec/core-loop`, with the proof bundle (red, green, gate, and a screenshot for user-facing surfaces) linked on the ticket. Each slice is tested outside-in at the spec's seams. None of them is the `ship` ticket: the conductor creates it, and it turns the integration branch into one reviewed pull request to `main`.
 
 ```mermaid
 flowchart LR
@@ -10,21 +10,20 @@ flowchart LR
   S1 --> S2["2 Live in the sandbox"]
   P15 --> S2
   S2 --> S3["3 The first kudos"]
-  S2 --> S8["8 /kudos"]
-  S3 --> S9["9 Minimal App Home"]
-  S3 --> S4["4 Saying no"]
-  S4 --> S5["5 Edit-to-retry"]
-  S5 --> S6["6 People the app can't check"]
-  S4 --> S7["7 Delivery you can trust"]
-  S5 --> SHIP["ship (conductor)"]
-  S6 --> SHIP
+  S2 --> S9["9 /kudos"]
+  S3 --> S4["4 Welcome and App Home"]
+  S3 --> S5["5 Saying no"]
+  S5 --> S6["6 Edit-to-retry"]
+  S6 --> S7["7 People the app can't check"]
+  S5 --> S8["8 Delivery you can trust"]
+  S4 --> SHIP["ship (conductor)"]
   S7 --> SHIP
   S8 --> SHIP
   S9 --> SHIP
   SHIP --> P16["#16 Go live"]
 ```
 
-The first slice that needs the sandbox deployment is **slice 2**; it is the only one blocked by #15 directly. #15 itself needs slice 1's manifest and deploys slice 1 by hand to prove a sandbox message arrives; slice 2 then automates the deploy. Both are recommendations for the conductor, since this worker doesn't edit #15.
+The first slice that needs the sandbox deployment is **slice 2**; it is the only one blocked by #15 directly. #15 is blocked by slice 1: it installs the app from slice 1's manifest and deploys slice 1 by hand to prove a sandbox message arrives; slice 2 then automates the deploy. Slice 4 delivers the welcome message and the minimal App Home that `d-1c7a971d` puts in the first slice; it comes right after the first kudos because both read awards.
 
 ---
 
@@ -35,12 +34,12 @@ The first slice that needs the sandbox deployment is **slice 2**; it is the only
 **What to build:** Convex and `convex-test` in the repo; the `/slack/events` HTTP route that verifies the Slack signature with Web Crypto, answers `url_verification`, calls one mutation that records the receipt and runs a processing step that does nothing yet, and acknowledges; the daily receipt cleanup. The Slack app manifest template, rendered per environment (sandbox, real), with every spec 1 scope, event, route and the `/kudos` command, so #15 can install the app once. The Coherence bootstrap follow-ups.
 
 **Acceptance criteria**
-- [ ] A correctly signed event gets 200, one receipt and one run of the processing step in the receipt's transaction (R45, R46).
-- [ ] A bad signature or a timestamp older than 5 minutes gets 401 and records nothing (R45).
-- [ ] A redelivery with the same `team_id`/`event_id` gets 200 and runs nothing (R46).
+- [ ] A correctly signed event gets 200, one receipt and one run of the processing step in the receipt's transaction (R48, R49).
+- [ ] A bad signature or a timestamp older than 5 minutes gets 401 and records nothing (R48).
+- [ ] A redelivery with the same `team_id`/`event_id` gets 200 and runs nothing (R49).
 - [ ] `url_verification` returns the challenge.
-- [ ] Receipts older than 7 days are deleted by a daily job (R46).
-- [ ] Only HTTP routes are public; the processing step is internal (R47).
+- [ ] Receipts older than 7 days are deleted by a daily job (R49).
+- [ ] Only HTTP routes are public; the processing step is internal (R50).
 - [ ] The manifest renders for sandbox and real with the scopes, events, routes and command listed in the spec, and no secret in the repo.
 - [ ] Coherence: the lexicon declares or maps the nouns this slice brings in (Convex, sandbox), so `pnpm gate` stays green.
 - [ ] Coherence: the entry spec (`Kudos.spec.md` with trust levels) exists, the `/slack/events` entrance is declared by hand, `convex/_generated` is in `ignore`, a `coherence decide` names the spec issue as the source of the core loop rules, and the first invariant (an unsigned request records nothing) is declared and its refutation witnessed.
@@ -54,7 +53,7 @@ The first slice that needs the sandbox deployment is **slice 2**; it is the only
 **What to build:** a GitHub Actions workflow that deploys the integration branch to the sandbox deployment with a scoped deploy key on every push, and the first live proof that a sandbox Slack event reaches the deployed route and is acknowledged in time.
 
 **Acceptance criteria**
-- [ ] A push to the integration branch deploys to the sandbox deployment; the deploy key lives only in GitHub secrets.
+- [ ] A push to `spec/core-loop` deploys to the sandbox deployment; the deploy key lives only in GitHub secrets.
 - [ ] Sandbox check: Web Crypto HMAC verifies in the deployed HTTP action, and the acknowledgment stays under 3 s, measured over several real events and recorded on the pull request.
 - [ ] A redelivered sandbox event leaves one receipt.
 
@@ -74,15 +73,35 @@ The first slice that needs the sandbox deployment is **slice 2**; it is the only
 - [ ] Concurrent messages of one giver never overspend (R17).
 - [ ] Exactly one `kudosGiven` per Given outcome, with the allowance facts, in the awards' transaction (R20).
 - [ ] The `:taco:` (first kudos emoji used) reaction appears and stays correct after a repeated delivery (R32).
-- [ ] No message text in any table or in any scheduled function's arguments (R48).
+- [ ] No message text in any table or in any scheduled function's arguments (R51).
 - [ ] Sandbox checks: a `thread_broadcast` arrives as one event; struck-through and code-styled emoji carry `style` flags.
 - [ ] Lexicon: directory, indicator, domain event, hook, parse hook and annotation are settled; the Coherence component specs for the adapter, workspace, parser, engine, feedback and bus exist, with the awards-are-insert-only invariant declared.
 
 **Context:** spec R1–R20, R32, "Interfaces", "Data"; brief §3.1–§3.4, §5; prototype scenarios 1, 8, 12, 14; ADR-0001; Hey Taco research ([#6](https://github.com/Silthus/kudos/issues/6)) for parity.
 
-## 4. Saying no, and saying how many are left
+## 4. Welcome message and a minimal App Home
 
 **Blocked by:** 3.
+
+**What to build:** the two surfaces `d-1c7a971d` puts in the first slice. The first time a member gives or receives a Given award, they get one welcome DM explaining how Kudos works, with no group block yet. When a member opens Kudos in Slack, the Home tab shows how to give, how many kudos they have left today and when more come, and their kudos given and received this week and in total. It covers the welcome subscriber (the first entry in the event registry), the DM through the feedback module, `app_home_opened`, the `homeOf` query, and publishing the view with `views.publish`. Progression's and groups' sections come later through their own specs.
+
+**Acceptance criteria**
+- [ ] A member's first Given award, as giver or recipient, sends them exactly one welcome DM with the R43 copy; later awards send none (R42, R43).
+- [ ] A redelivered Slack event, a retry by edit, or a retried delivery never sends a second welcome (R44).
+- [ ] A failed welcome DM is tried at most 3 times and never touches awards or allowance (R44, R34).
+- [ ] Opening App Home publishes a view with the R45 lines for that member; with nothing left it shows the "used all your kudos" line (R45).
+- [ ] `{left}` matches what the next kudos message would see, across the member's local midnight (R46).
+- [ ] Week and total given and received are the sums of the member's awards, 0 before any award; the week runs Monday to Sunday in the member's time zone (R46).
+- [ ] The view and the welcome name the workspace emoji in force (R43, R46).
+- [ ] A person who isn't a member sees the members-only line (R47).
+- [ ] Sandbox checks: the welcome DM arrives for a first-time recipient, and the Home tab renders in the sandbox app.
+- [ ] Coherence: the welcome component's spec exists, with the invariant that a member is welcomed at most once.
+
+**Context:** spec R34, R42–R47, the "App Home" interface; #10 handoff (welcome message and profile), decisions `d-0321797e`, `d-f8ad338b`, `d-766ac71d`, `d-1c7a971d`, `d-f6186e52`; Slack research ([#5](https://github.com/Silthus/kudos/issues/5)) on App Home, `views.publish` and app-user DMs.
+
+## 5. Saying no, and saying how many are left
+
+**Blocked by:** 3. Can run beside 4.
 
 **What to build:** the rest of the outcomes and every private reply. Over allowance (hourglass, nothing spent), Invalid (red X), skipped mentions with their reasons, and the ephemeral beside the message for Given, Over allowance and Invalid with the #8 copy, placed in the thread or the channel. The extras-line seam in the Given reply, left empty. Settings changed mid-day.
 
@@ -98,9 +117,9 @@ The first slice that needs the sandbox deployment is **slice 2**; it is the only
 
 **Context:** spec R9–R16, R33, R36–R38; #8 handoff ("Feedback" and the copy); #9 handoff ("Copy baseline" for the extras line); brief card D4; prototype scenarios 1 and 12.
 
-## 5. Edit-to-retry
+## 6. Edit-to-retry
 
-**Blocked by:** 4.
+**Blocked by:** 5.
 
 **What to build:** editing a message that gave nothing fixes it. It covers `message_changed` normalization, revisions and watermarks, the fingerprint, the retry evaluated as new and spending from the edit's day, withdrawal, the indicator swap, the accepted-message reply, stale revisions, metadata-only edits and dropped deletions.
 
@@ -117,9 +136,9 @@ The first slice that needs the sandbox deployment is **slice 2**; it is the only
 
 **Context:** spec R19, R21–R27; brief §4.2, cards D5 and L2; prototype scenarios 2–7; Slack research on `message_changed`; kudos-garden lessons ([#4](https://github.com/Silthus/kudos/issues/4)) on edit ordering.
 
-## 6. People the app can't check
+## 7. People the app can't check
 
-**Blocked by:** 5. Can run beside 7.
+**Blocked by:** 6. Can run beside 8.
 
 **What to build:** a message whose author or recipients Slack can't confirm waits, is rechecked on the D6 ladder, and gives on its posted day when the lookup succeeds, or is abandoned silently. The directory stays fresh from `team_join` and `user_change`.
 
@@ -134,9 +153,9 @@ The first slice that needs the sandbox deployment is **slice 2**; it is the only
 
 **Context:** spec R27–R31; brief §4.3, cards D2 and D6; prototype scenarios 9 and 10; kudos-garden lessons on unknown members.
 
-## 7. Delivery you can trust
+## 8. Delivery you can trust
 
-**Blocked by:** 4. Can run beside 5 and 6.
+**Blocked by:** 5. Can run beside 6 and 7.
 
 **What to build:** feedback delivery that survives Slack's rate limits and failures without ever touching awards: per-method `Retry-After`, reaction reconciliation retried until it matches, private replies tried at most 3 times.
 
@@ -149,34 +168,18 @@ The first slice that needs the sandbox deployment is **slice 2**; it is the only
 
 **Context:** spec R32–R35; brief §3.4, §6, card D3; prototype scenario 11 and `reconcile-indicator.ts`; Slack research §8 on rate limits.
 
-## 8. Getting into channels with `/kudos`
+## 9. Getting into channels with `/kudos`
 
 **Blocked by:** 2. Can run beside 3 onwards.
 
 **What to build:** the `/slack/commands` route with signature verification, and `/kudos`: it joins a public channel, explains `/invite` in a private one, and points to channels from a DM. The replies are rendered by the feedback module.
 
 **Acceptance criteria**
-- [ ] An unsigned or stale command request gets 401 and does nothing (R45).
+- [ ] An unsigned or stale command request gets 401 and does nothing (R48).
 - [ ] `/kudos` in a public channel the app isn't in joins it and replies privately with the R39 text; in a channel it's already in, the "already in" text (R39).
 - [ ] `/kudos` in a private channel the app isn't in replies with the `/invite` guidance (R40); in a DM or group DM, the channels guidance (R41).
 - [ ] The command is acknowledged within 3 s.
 - [ ] Sandbox check: `/kudos` in a sandbox public channel joins it, and the app then receives that channel's message events.
 - [ ] Coherence: the `/slack/commands` entrance is declared.
 
-**Context:** spec R39–R41, R45, "The Slack app" (`/kudos` stays in the adapter); brief card D7; Slack research §6 on slash commands.
-
-## 9. A minimal App Home
-
-**Blocked by:** 3. Can run beside 4 onwards.
-
-**What to build:** a member opens Kudos in Slack and its Home tab shows how many kudos they have left today and when more come, how many they've given and received, how to give kudos and how to add Kudos to a channel. It covers `app_home_opened`, the `homeOf` query, the copy in the feedback module, and publishing the view with `views.publish`. Progression's sections come later through the progression spec.
-
-**Acceptance criteria**
-- [ ] Opening App Home publishes a view with the R42 lines for that member; with nothing left it shows the "used all your kudos" line (R42).
-- [ ] `{left}` matches what the next kudos message would see, across the giver's local midnight (R43).
-- [ ] Given and received totals are the sums of the member's awards, 0 before any award (R43).
-- [ ] The view names the workspace emoji in force (R43).
-- [ ] A person who isn't a member sees the members-only line (R44).
-- [ ] Sandbox check: the Home tab renders in the sandbox app.
-
-**Context:** spec R42–R44, "App Home" interface; #9 decision `d-1e03b988` (core loop plus a minimal App Home first); Slack research ([#5](https://github.com/Silthus/kudos/issues/5)) on App Home and `views.publish`.
+**Context:** spec R39–R41, R48, "The Slack app" (`/kudos` stays in the adapter); brief card D7; Slack research §6 on slash commands.
