@@ -81,9 +81,15 @@ const left: Leaderboard = {
   onTheBoards: false,
 };
 
+const leftALongBoard: Leaderboard = {
+  ...left,
+  rows: midBoard.rows.filter((row) => !row.you).map((row, i) => ({ ...row, position: i + 1, rank: row.rank > 9 ? row.rank - 1 : row.rank })),
+  window: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+};
+
 const empty: Leaderboard = { ...board, period: "all", rows: [], window: [], standing: { kind: "not-ranked" }, improvement: null };
 
-export const leaderboardFixtures = { midBoard, viewerLeads, sharedLead, tiedBelowTheLead, notRanked, left, empty } as const satisfies Record<string, Leaderboard>;
+export const leaderboardFixtures = { midBoard, viewerLeads, sharedLead, tiedBelowTheLead, notRanked, left, leftALongBoard, empty } as const satisfies Record<string, Leaderboard>;
 
 export function fixedLeaderboard(answer: Leaderboard): LeaderboardRead {
   return (period) => (period === undefined ? undefined : { ...answer, period });

@@ -4,6 +4,7 @@ import { fixedLeaderboard, leaderboardFixtures, type Leaderboard, type Leaderboa
 import { shellFixtures, type Period } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
+import { watchTheViewerRow } from "./test/viewerRow";
 
 const withTheBoard = shellFixtures.memberWithTheBoard;
 
@@ -312,6 +313,96 @@ describe("WS42: the list shows the rest of G17's window below the podium", () =>
     showBoard(leaderboardFixtures.left);
     expect(within(main()).getByText("You're not on the leaderboards. You can change that in Settings in Slack.")).toBeInTheDocument();
     expect(within(main()).queryByText("You")).not.toBeInTheDocument();
+  });
+});
+
+function wholeBoard() {
+  return within(main()).getByRole("region", { name: "The whole board" });
+}
+
+describe("WS43: the whole board and Jump to me", () => {
+  let scrolls: ScrollToOptions[];
+
+  beforeEach(() => {
+    scrolls = [];
+    Element.prototype.scrollTo = function (options?: ScrollToOptions | number) {
+      scrolls.push(options as ScrollToOptions);
+    } as typeof Element.prototype.scrollTo;
+  });
+
+  it("says which positions the list shows, and opens the whole board centred on the viewer by keyboard", async () => {
+    watchTheViewerRow();
+    const { user } = showBoard(leaderboardFixtures.midBoard);
+    expect(within(main()).getByText("No. 6–12 of 13")).toBeInTheDocument();
+    within(main()).getByRole("button", { name: "Show the whole board" }).focus();
+    await user.keyboard("{Enter}");
+
+    expect(within(main()).queryByRole("list", { name: "No. · member, kudos given" })).not.toBeInTheDocument();
+    expect(within(wholeBoard()).getAllByRole("listitem")).toHaveLength(13);
+    expect(wholeBoard()).toHaveAttribute("tabindex", "0");
+    expect(new Set(scrolls.map((scroll) => scroll.behavior))).toEqual(new Set(["instant"]));
+    expect(within(main()).getByRole("button", { name: "Back to my spot" })).toHaveFocus();
+
+    await user.tab({ shift: true });
+    expect(wholeBoard()).toHaveFocus();
+  });
+
+  it("pins a copy of the viewer's row with Jump to me while it is scrolled away, which brings it back and focuses it", async () => {
+    const viewerRow = watchTheViewerRow();
+    const { user } = showBoard(leaderboardFixtures.midBoard);
+    await user.click(within(main()).getByRole("button", { name: "Show the whole board" }));
+    expect(within(main()).queryByRole("button", { name: "Jump to me" })).not.toBeInTheDocument();
+
+    viewerRow.see({ visible: false, edge: "bottom" });
+    const jump = within(main()).getByRole("button", { name: "Jump to me" });
+    expect(jump.closest("[data-pinned]")).toHaveTextContent("Sam Example");
+    expect(jump.closest("[data-pinned]")).toHaveAttribute("data-pinned", "bottom");
+    jump.focus();
+    await user.keyboard("{Enter}");
+
+    expect(scrolls.at(-1)).toEqual(expect.objectContaining({ behavior: "smooth" }));
+    const mine = within(wholeBoard()).getAllByRole("listitem").find((line) => line.hasAttribute("data-you"))!;
+    expect(mine).toHaveFocus();
+    viewerRow.see({ visible: true });
+    expect(within(main()).queryByRole("button", { name: "Jump to me" })).not.toBeInTheDocument();
+  });
+
+  it("pins the copy to the top edge when the viewer's row is scrolled above, and jumps instantly under reduced motion", async () => {
+    const viewerRow = watchTheViewerRow();
+    const matchMedia = window.matchMedia;
+    window.matchMedia = ((query: string) => ({ ...matchMedia(query), matches: query === "(prefers-reduced-motion: reduce)" })) as typeof window.matchMedia;
+    const { user } = showBoard(leaderboardFixtures.midBoard);
+    await user.click(within(main()).getByRole("button", { name: "Show the whole board" }));
+    viewerRow.see({ visible: false, edge: "top" });
+    expect(within(main()).getByRole("button", { name: "Jump to me" }).closest("[data-pinned]")).toHaveAttribute("data-pinned", "top");
+    await user.click(within(main()).getByRole("button", { name: "Jump to me" }));
+    expect(scrolls.at(-1)).toEqual(expect.objectContaining({ behavior: "instant" }));
+  });
+
+  it("goes back to the window from Back to my spot, keeping focus on the footer's button", async () => {
+    watchTheViewerRow();
+    const { user } = showBoard(leaderboardFixtures.midBoard);
+    await user.click(within(main()).getByRole("button", { name: "Show the whole board" }));
+    within(main()).getByRole("button", { name: "Back to my spot" }).focus();
+    await user.keyboard("{Enter}");
+    expect(linesOf(boardList())).toHaveLength(8);
+    expect(within(main()).getByRole("button", { name: "Show the whole board" })).toHaveFocus();
+  });
+
+  it("offers Show fewer, and never Jump to me, to a viewer who isn't on the board", async () => {
+    watchTheViewerRow();
+    const { user } = showBoard(leaderboardFixtures.leftALongBoard);
+    expect(within(main()).getByText("No. 4–10 of 12")).toBeInTheDocument();
+    await user.click(within(main()).getByRole("button", { name: "Show the whole board" }));
+    expect(within(wholeBoard()).getAllByRole("listitem")).toHaveLength(12);
+    expect(within(main()).queryByRole("button", { name: "Jump to me" })).not.toBeInTheDocument();
+    await user.click(within(main()).getByRole("button", { name: "Show fewer" }));
+    expect(linesOf(boardList())).toHaveLength(7);
+  });
+
+  it("offers no whole board when the window already shows every row", () => {
+    showBoard(leaderboardFixtures.left);
+    expect(within(main()).queryByRole("button", { name: "Show the whole board" })).not.toBeInTheDocument();
   });
 });
 

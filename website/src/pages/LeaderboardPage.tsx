@@ -33,7 +33,7 @@ export function LeaderboardPage({ board, onChoosePeriod }: { board: Leaderboard;
               </CardContent>
             </Card>
           </section>
-          {story !== undefined && <BoardList board={board} after={viewerLineOf(board)} />}
+          {story !== undefined && <BoardList key={board.period} board={board} after={viewerLineOf(board)} />}
         </div>
         <SidePanels board={board} />
       </div>
