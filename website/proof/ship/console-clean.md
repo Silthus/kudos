@@ -14,8 +14,6 @@
 
 `console-clean-member-dark.png` shows the member page in that state.
 
-**Sandbox.** After deploying af67e1c to the sandbox by hand (`convex deploy`, `static-hosting upload`, `prepareWebsiteFlag`), the signed-out page on the live sandbox, with the flag on and a live Convex socket, logged no console entries, before and after switching to dark (`sandbox-signed-out-dark.png`, `sandbox-curl.txt`). Signing in there redirects to Slack with no client ID until #115's credentials are set.
+**Sandbox.** The sandbox is shared, and another lane deployed its own code there at 22:11 UTC. This ship then redeployed 6518213 by hand at 22:17 UTC (`convex deploy`, `static-hosting upload`, `prepareWebsiteFlag`). The signed-out page there, with the flag on and a live Convex socket, logged no console entries. It holds no `<style>` element, and the versioned stylesheet carries its 12 rules (`sandbox-signed-out-dark.png`, `sandbox-curl.txt`). Signing in there redirects to Slack with no client ID until #115's credentials are set.
 
-**Caching.** The edge serves every non-HTML file with `max-age=31536000`, and the component reads the hyphenated name as content-hashed. So the file name carries Quill's version, and the test fails on a Quill upgrade until the stylesheet is regenerated under the new name (`red-quill-styles-versioned.txt`, `green-quill-styles-versioned.txt`).
-
-The sandbox is shared. At 22:11:41 UTC another lane deployed its own code there, and the open page's `getMyProfile` then answered "Could not find public function". The clean-console capture above (22:09 UTC) comes from this ship's own deploy, before that.
+**Caching.** The edge served the first, unversioned name with `max-age=31536000`, and the component reads a hyphenated name as content-hashed. So the file name carries Quill's version, and the test fails on a Quill upgrade until the stylesheet is regenerated under the new name (`red-quill-styles-versioned.txt`, `green-quill-styles-versioned.txt`).
