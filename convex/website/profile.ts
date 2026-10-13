@@ -1,6 +1,9 @@
 import { companyFaceOf } from "../companyProfiles/faces";
 import type { QueryCtx } from "../_generated/server";
 import { homeFacts } from "../engine/home";
+import { xpToReach } from "../progression/levels";
+import { progressionHomeOf } from "../progression/progression";
+import { xpLevelsShownIn } from "../progression/xpLevels";
 import { workspaceLink } from "../slack/workspaceLink";
 import { followTheClock } from "./clock";
 import { memberQuery, type Denial, type VerifiedMember } from "./memberQuery";
@@ -12,6 +15,8 @@ export type Face =
 
 export type Kudos = { given: number; received: number };
 
+export type Progression = { level: number; xp: number; levelStartsAt: number; nextLevelAt: number; xpToNextLevel: number };
+
 export type MemberProfile = {
   kind: "member";
   name?: string;
@@ -21,6 +26,7 @@ export type MemberProfile = {
   thisWeek: Kudos;
   lifetime: Kudos;
   chatUrl: string;
+  progression: Progression | null;
 };
 
 export type MyProfile = Denial | MemberProfile;
@@ -38,8 +44,15 @@ export const getMyProfile = memberQuery(async (ctx, me): Promise<MemberProfile |
     thisWeek: { given: facts.givenWeek, received: facts.receivedWeek },
     lifetime: { given: facts.given, received: facts.received },
     chatUrl: workspaceLink(me.workspace),
+    progression: await progressionOf(ctx, me),
   };
 });
+
+async function progressionOf(ctx: QueryCtx, me: VerifiedMember): Promise<Progression | null> {
+  if (!(await xpLevelsShownIn(ctx, me.workspace))) return null;
+  const { level, xp, xpToNextLevel } = await progressionHomeOf(ctx, me.member);
+  return { level, xp, levelStartsAt: xpToReach(level), nextLevelAt: xpToReach(level + 1), xpToNextLevel };
+}
 
 async function faceOf(ctx: QueryCtx, me: VerifiedMember): Promise<Face> {
   const initials = initialsOf(me);

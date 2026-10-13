@@ -6,6 +6,7 @@ import { aDeploymentForWorkspace, aMember, aSession, switchWebsite } from "../..
 import { api, components, internal } from "../_generated/api";
 import { observe } from "../engine/engine";
 import { homeFacts } from "../engine/home";
+import { progressionHomeOf } from "../progression/progression";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const week = 7 * 24 * 60 * 60 * 1000;
@@ -189,6 +190,7 @@ describe("WS13 WS15 WS18: a member's home answer projects their own homeFacts", 
       thisWeek: { given: 2, received: 0 },
       lifetime: { given: 2, received: 1 },
       chatUrl: "https://app.slack.com/client/T1",
+      progression: null,
     });
   });
 
@@ -245,6 +247,56 @@ describe("WS13 WS15 WS18: a member's home answer projects their own homeFacts", 
     expect(await myProfile(asSignedIn)).toMatchObject({ thisWeek: { given: 0, received: 0 }, lifetime: { given: 2, received: 0 } });
   });
 });
+
+describe("level and XP are invisible while xp-levels is off", () => {
+  test("WS47: while xp-levels is off, a member with XP reads no progression", async () => {
+    await switchWebsite(t, postHog, true);
+    const { asSignedIn } = await aMemberWithXp(1600);
+
+    expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", progression: null });
+  });
+
+  test.each([
+    ["at level 1 with no XP yet", 0, { level: 1, xp: 0, levelStartsAt: 0, nextLevelAt: 20, xpToNextLevel: 20 }],
+    ["exactly on a level's threshold", 100, { level: 3, xp: 100, levelStartsAt: 100, nextLevelAt: 300, xpToNextLevel: 200 }],
+    ["past level 5, still without skill points", 1600, { level: 7, xp: 1600, levelStartsAt: 1500, nextLevelAt: 2100, xpToNextLevel: 500 }],
+  ])("WS47 WS51: while xp-levels is on, a member %s reads their level and the XP to the next one", async (_, xp, progression) => {
+    await switchWebsite(t, postHog, true, "xp-levels");
+    const { asSignedIn } = await aMemberWithXp(xp);
+
+    const profile = await myProfile(asSignedIn);
+
+    expect(profile).toMatchObject({ kind: "member" });
+    expect(profile.kind === "member" && profile.progression).toEqual(progression);
+  });
+
+  test("WS47: the progression is progression's own read of the member, never another member's", async () => {
+    await switchWebsite(t, postHog, true, "xp-levels");
+    const bob = await aMember(t, "U_BOB");
+    await t.run((ctx) => ctx.db.insert("memberProgress", { member: bob, xp: 600, pointsSpent: 0 }));
+    const { asSignedIn, member } = await aMemberWithXp(300);
+    const home = await t.run((ctx) => progressionHomeOf(ctx, member));
+
+    expect(await myProfile(asSignedIn)).toMatchObject({ progression: { level: home.level, xp: home.xp, xpToNextLevel: home.xpToNextLevel } });
+  });
+
+  test("WS47: switching xp-levels off hides the progression of a session that was reading it", async () => {
+    await switchWebsite(t, postHog, true, "xp-levels");
+    const { asSignedIn } = await aMemberWithXp(300);
+    expect(await myProfile(asSignedIn)).toMatchObject({ progression: { level: 4 } });
+
+    await switchWebsite(t, postHog, true);
+
+    expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", progression: null });
+  });
+});
+
+async function aMemberWithXp(xp: number) {
+  const member = await aMember(t, juno.user);
+  if (xp > 0) await t.run((ctx) => ctx.db.insert("memberProgress", { member, xp, pointsSpent: 0 }));
+  const { asSignedIn } = await aSession(t, juno);
+  return { asSignedIn, member };
+}
 
 async function give(t: Backend, giver: string, recipient: string, kudos: number, at = new Date()) {
   await t.run((ctx) =>
