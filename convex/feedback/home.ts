@@ -159,14 +159,17 @@ function unlockLinesOf({ ready, next }: UnlocksHome): HomeLine[] {
   return [...readyLines, ...nextLine];
 }
 
-function weeklyQuestLines({ week, slots }: WeeklyQuests): HomeLine[] {
+function weeklyQuestLines({ week, slots, swapAvailable }: WeeklyQuests): HomeLine[] {
   const asksToSayWhy = slots.some(({ quest, finishedAt }) => finishedAt === null && questOf(quest).progress.given.saysWhy);
   const condition: HomeLine[] = asksToSayWhy ? [{ kind: "hint", text: "Saying why counts when your message has 5 or more words besides mentions and emoji." }] : [];
-  return [{ kind: "text", text: bold("Quests this week") }, ...slots.map((slot) => weeklyQuestLine(week, slot)), ...condition];
+  return [{ kind: "text", text: bold("Quests this week") }, ...slots.map((slot) => weeklyQuestLine(week, slot, swapAvailable)), ...condition];
 }
 
-function weeklyQuestLine(week: string, { slot, goal, reward, progress, target, finishedAt, openedAt }: WeeklySlot): HomeLine {
-  if (finishedAt === null) return { kind: "text", text: `${goal} ${bold(`${progress}/${target}`)} · ${bold(`${reward.xp} XP`)}` };
+function weeklyQuestLine(week: string, { slot, goal, reward, progress, target, finishedAt, openedAt }: WeeklySlot, swapAvailable: boolean): HomeLine {
+  if (finishedAt === null) {
+    const text = `${goal} ${bold(`${progress}/${target}`)} · ${bold(`${reward.xp} XP`)}`;
+    return swapAvailable ? { kind: "action", text, action: swapQuest({ kind: "weekly", week, slot }) } : { kind: "text", text };
+  }
   const text = `✅ ${goal} ${earned(reward.xp)}`;
   return openedAt === null ? { kind: "action", text, action: openCrate({ kind: "weekly", week, slot }) } : { kind: "text", text };
 }
@@ -193,6 +196,10 @@ export function finishedQuestCrateOf(quest: JourneyQuest, xp: number): { text: s
 
 export function finishedWeeklyQuestCrateOf(quest: WeeklyQuest, goal: string, xp: number): { text: string; action: HomeAction } {
   return { text: `✅ You finished a quest: ${goal} ${earned(xp)}`, action: openCrate(quest) };
+}
+
+function swapQuest(quest: WeeklyQuest): HomeAction {
+  return { label: "Swap", command: { type: "rerollQuest", quest } };
 }
 
 function openCrate(quest: Quest): HomeAction {

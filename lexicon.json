@@ -422,6 +422,10 @@
     {
       "name": "quest pool",
       "definition": "The versioned catalogue of personal quests a weekly draw picks from: each quest has a stable ID, a kind (breadth, thoughtfulness or participation), its goal copy, its progress predicate over what the member gives, its needs and its reward. It holds only quests whose needs have shipped, and always at least 3 a member can finish alone on the last day of a week."
+    },
+    {
+      "name": "swap",
+      "definition": "A member's once-a-week replacement of one unfinished weekly quest with a feasible quest not in that week's draw, stored for good with the replaced quest, the new quest and the facts that made it feasible (P81, the spec's reroll)."
     }
   ]
 }
