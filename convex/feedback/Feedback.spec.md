@@ -13,11 +13,11 @@ Feedback: the indicator on each kudos message as desired state and the private r
   checklist: message-authenticity dismissed: the reply is outbound; the inbound message it answers is verified by the Slack adapter's signed Slack requests only
   checklist: redaction dismissed: a reply holds only the app's copy and mentions, never the message's text, so there is nothing designated sensitive to scrub
   checklist: input-validation dismissed: the reply is rendered from the engine's outcome, never from outside input
-  checklist: retry-recognition dismissed: spec 1 tries a private reply once; the retries of R35 arrive with their own slice, which owns this shape
+  checklist: retry-recognition dismissed: retrying a reply is the Slack adapter's delivery, which bounds it by its invariant a private reply is tried at most 3 times; a retry resends the same stored reply to the same giver, so it cannot widen who is told
   checklist: duplicate-suppression dismissed: the reply is written once in the evaluation's transaction, and a redelivered event never re-runs the evaluation (R19)
   checklist: keyed-ordering dismissed: one reply per evaluation, with no ordering promised between messages
   checklist: acknowledgment-barrier dismissed: nothing retires work on the reply's acknowledgment
   checklist: commit-ordered-effects dismissed: the reply row and its delivery are scheduled in the evaluation's transaction, and the delivery runs only after it commits
-  checklist: retry-classification dismissed: spec 1 makes one attempt and logs a failure; classifying retries belongs to R35's slice
+  checklist: retry-classification dismissed: the Slack adapter's delivery classifies failures, by its invariants a private reply is tried at most 3 times and a gone delivery stops for good
   checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
   checklist: declared-target-coverage dismissed: a reply has exactly one target, the giver

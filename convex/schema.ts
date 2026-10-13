@@ -78,7 +78,6 @@ export default defineSchema({
     conversation: v.string(),
     message: v.string(),
     emoji: v.union(v.string(), v.null()),
-    replaced: v.array(v.string()),
     version: v.number(),
   }).index("by_message", ["workspace", "conversation", "message"]),
 
@@ -90,4 +89,17 @@ export default defineSchema({
     to: v.string(),
     lines: v.array(v.array(segmentValidator)),
   }),
+
+  placedReactions: defineTable({
+    workspace: v.string(),
+    conversation: v.string(),
+    message: v.string(),
+    emoji: v.array(v.string()),
+  }).index("by_message", ["workspace", "conversation", "message"]),
+
+  slackRateLimits: defineTable({
+    workspace: v.string(),
+    method: v.string(),
+    until: v.number(),
+  }).index("by_method", ["workspace", "method"]),
 });

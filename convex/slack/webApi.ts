@@ -3,12 +3,14 @@ export type SlackFailure = { ok: false; error: string; retryAfterMs?: number };
 export type SlackAnswer = { ok: true; warning?: string } | SlackFailure;
 
 const tooManyRequests = 429;
+const answerTimeoutMs = 10_000;
 
 export async function callSlack(method: string, args: Record<string, unknown>): Promise<SlackAnswer> {
   const response = await fetch(`${slackApiUrl()}/${method}`, {
     method: "POST",
     headers: { authorization: `Bearer ${botToken()}`, "content-type": "application/json; charset=utf-8" },
     body: JSON.stringify(args),
+    signal: AbortSignal.timeout(answerTimeoutMs),
   });
   return answerOf(method, response);
 }
@@ -16,6 +18,7 @@ export async function callSlack(method: string, args: Record<string, unknown>): 
 export async function readSlack<Data>(method: string, args: Record<string, string>): Promise<({ ok: true } & Data) | SlackFailure> {
   const response = await fetch(`${slackApiUrl()}/${method}?${new URLSearchParams(args)}`, {
     headers: { authorization: `Bearer ${botToken()}` },
+    signal: AbortSignal.timeout(answerTimeoutMs),
   });
   return answerOf(method, response);
 }
@@ -27,7 +30,8 @@ async function answerOf<Answer>(method: string, response: Response): Promise<Ans
 }
 
 function retryAfterMsOf(response: Response) {
-  return Number(response.headers.get("retry-after") ?? 1) * 1000;
+  const seconds = Number(response.headers.get("retry-after") ?? 1);
+  return (Number.isFinite(seconds) ? seconds : 1) * 1000;
 }
 
 function slackApiUrl() {

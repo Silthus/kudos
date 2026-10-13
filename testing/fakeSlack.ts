@@ -8,7 +8,19 @@ export type SlackUser = {
 
 export type SlackCall = { method: string; args: Record<string, string> };
 
-export type ScriptedAnswer = () => Response;
+export type ScriptedAnswer = (answerAsSlackWould: () => Response) => Response | Promise<Response>;
+
+export const slackError = (error: string): ScriptedAnswer => () => Response.json({ ok: false, error });
+export const httpStatus = (status: number): ScriptedAnswer => () => new Response("upstream trouble", { status });
+export const rateLimitedFor = (seconds: number): ScriptedAnswer => () =>
+  Response.json({ ok: false, error: "ratelimited" }, { status: 429, headers: { "retry-after": String(seconds) } });
+export const timesOut: ScriptedAnswer = () => {
+  throw new DOMException("The operation timed out.", "TimeoutError");
+};
+export const landsButTimesOut: ScriptedAnswer = (answerAsSlackWould) => {
+  answerAsSlackWould();
+  return timesOut(answerAsSlackWould);
+};
 
 export class FakeSlack {
   readonly calls: SlackCall[] = [];
@@ -24,13 +36,30 @@ export class FakeSlack {
   }
 
   answering(method: string, ...answers: ScriptedAnswer[]) {
-    this.scripted.set(method, answers);
+    this.scripted.set(method, [...(this.scripted.get(method) ?? []), ...answers]);
     return this;
   }
 
   holdingBack(method: string, about: string, meanwhile: () => Promise<void>) {
     this.holds.push({ method, about, meanwhile });
     return this;
+  }
+
+  holdNext(method: string) {
+    let release = () => {};
+    const released = new Promise<void>((resolve) => (release = resolve));
+    let signalReached = () => {};
+    const reached = new Promise<void>((resolve) => (signalReached = resolve));
+    this.answering(method, async (answerAsSlackWould) => {
+      signalReached();
+      await released;
+      return answerAsSlackWould();
+    });
+    return { reached, release };
+  }
+
+  removeReaction(channel: string, ts: string, name: string) {
+    this.setReactions(channel, ts, this.reactionsOn(channel, ts).filter((reaction) => reaction !== name));
   }
 
   reactionsOn(channel: string, ts: string) {
@@ -45,7 +74,7 @@ export class FakeSlack {
     return this.calls.filter((call) => call.method === method).map((call) => call.args);
   }
 
-  timesOf(method: string, matching: (args: Record<string, string>) => boolean) {
+  timesOf(method: string, matching: (args: Record<string, string>) => boolean = () => true) {
     return this.calls.filter((call) => call.method === method && matching(call.args)).map((call) => this.callTimes.get(call)!);
   }
 
@@ -57,8 +86,9 @@ export class FakeSlack {
     const call = { method, args };
     this.calls.push(call);
     this.callTimes.set(call, Date.now());
+    const answerAsSlackWould = () => Response.json(this.answer(method, args));
     const scripted = this.scripted.get(method)?.shift();
-    return scripted ? scripted() : Response.json(this.answer(method, args));
+    return scripted ? scripted(answerAsSlackWould) : answerAsSlackWould();
   };
 
   private async releaseHold(method: string, args: Record<string, string>) {
@@ -74,22 +104,24 @@ export class FakeSlack {
       return user ? { ok: true, user } : { ok: false, error: "user_not_found" };
     }
     if (method === "reactions.add") {
-      const key = `${args.channel}/${args.timestamp}`;
-      const reactions = this.reactionsByMessage.get(key) ?? [];
+      const reactions = this.reactionsOn(args.channel ?? "", args.timestamp ?? "");
       if (reactions.includes(args.name ?? "")) return { ok: false, error: "already_reacted" };
-      this.reactionsByMessage.set(key, [...reactions, args.name ?? ""]);
+      this.setReactions(args.channel ?? "", args.timestamp ?? "", [...reactions, args.name ?? ""]);
       return { ok: true };
     }
     if (method === "reactions.remove") {
-      const key = `${args.channel}/${args.timestamp}`;
-      const reactions = this.reactionsByMessage.get(key) ?? [];
+      const reactions = this.reactionsOn(args.channel ?? "", args.timestamp ?? "");
       if (!reactions.includes(args.name ?? "")) return { ok: false, error: "no_reaction" };
-      this.reactionsByMessage.set(key, reactions.filter((name) => name !== args.name));
+      this.removeReaction(args.channel ?? "", args.timestamp ?? "", args.name ?? "");
       return { ok: true };
     }
     if (method === "chat.postEphemeral") return { ok: true, message_ts: "1760349700.000100" };
     if (method === "views.publish") return { ok: true };
     if (method === "chat.postMessage") return { ok: true, channel: args.channel, ts: "1760349700.000100" };
     return { ok: false, error: "unknown_method" };
+  }
+
+  private setReactions(channel: string, ts: string, reactions: string[]) {
+    this.reactionsByMessage.set(`${channel}/${ts}`, reactions);
   }
 }

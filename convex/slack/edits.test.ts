@@ -126,6 +126,7 @@ test("R32: a late hourglass delivery that lands after the retry's delivery still
   });
 
   await t.action(internal.slack.delivery.deliverIndicator, message);
+  await settle(t);
 
   expect(await kudosReceived(t, "U_BOB")).toBe(2);
   expect(slack.reactionsOn("C1", postedTs)).toEqual(["taco"]);
