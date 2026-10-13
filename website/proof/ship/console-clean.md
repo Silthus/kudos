@@ -13,3 +13,5 @@
 - `document.querySelectorAll("style").length` is 0, and the linked sheet carries its 12 rules.
 
 `console-clean-member-dark.png` shows the member page in that state.
+
+**Sandbox.** After deploying af67e1c to the sandbox by hand (`convex deploy`, `static-hosting upload`, `prepareWebsiteFlag`), the signed-out page on the live sandbox, with the flag on and a live Convex socket, logged no console entries, before and after switching to dark (`sandbox-signed-out-dark.png`, `sandbox-curl.txt`). Signing in there redirects to Slack with no client ID until #115's credentials are set.
