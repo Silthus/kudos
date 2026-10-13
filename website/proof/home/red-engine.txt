@@ -1,0 +1,121 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/home
+
+ ❯ |convex| convex/engine/home.test.ts (7 tests | 5 failed) 42ms
+   ❯ R45 R46: homeFacts reads what App Home shows (3)
+     × a member's facts are the allowance left of the base, the kudos emoji, and the kudos given and received this week and in total 33ms
+   ❯ WS13: homeFacts carries when the member's allowance refills (4)
+     × the allowance refills at the member's next local midnight 2ms
+     × a member without a time zone refills at midnight UTC 1ms
+     × a member whose local midnight has just passed refills at the midnight after 1ms
+     × the night the clocks go back, the allowance refills at local midnight, not 24 hours after the last one 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/engine/home.test.ts > R45 R46: homeFacts reads what App Home shows > a member's facts are the allowance left of the base, the kudos emoji, and the kudos given and received this week and in total
+AssertionError: expected { base: 3, given: 1, …(6) } to deeply equal { kind: 'member', left: 2, …(7) }
+
+- Expected
++ Received
+
+@@ -5,7 +5,6 @@
+    "kind": "member",
+    "kudosEmoji": "taco",
+    "left": 2,
+    "received": 2,
+    "receivedWeek": 2,
+-   "refillsAt": 1791936000000,
+  }
+
+ ❯ convex/engine/home.test.ts:22:39
+     20|     await give(t, "U_BOB", "U_CAROL", 1, "2");
+     21|
+     22|     expect(await factsOf(t, "U_BOB")).toEqual({
+       |                                       ^
+     23|       kind: "member",
+     24|       left: 2,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  |convex| convex/engine/home.test.ts > WS13: homeFacts carries when the member's allowance refills > the allowance refills at the member's next local midnight
+AssertionError: expected undefined to be 1791950400000 // Object.is equality
+
+- Expected:
+1791950400000
+
++ Received:
+undefined
+
+ ❯ convex/engine/home.test.ts:52:42
+     50|     const t = await withDirectory({ U_ALICE: { kind: "member", timeZon…
+     51|
+     52|     expect(await refillOf(t, "U_ALICE")).toBe(Date.parse("2026-10-14T0…
+       |                                          ^
+     53|   });
+     54|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  |convex| convex/engine/home.test.ts > WS13: homeFacts carries when the member's allowance refills > a member without a time zone refills at midnight UTC
+AssertionError: expected undefined to be 1791936000000 // Object.is equality
+
+- Expected:
+1791936000000
+
++ Received:
+undefined
+
+ ❯ convex/engine/home.test.ts:58:42
+     56|     const t = await withDirectory({ U_ALICE: "member" });
+     57|
+     58|     expect(await refillOf(t, "U_ALICE")).toBe(Date.parse("2026-10-14T0…
+       |                                          ^
+     59|   });
+     60|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  |convex| convex/engine/home.test.ts > WS13: homeFacts carries when the member's allowance refills > a member whose local midnight has just passed refills at the midnight after
+AssertionError: expected undefined to be 1792015200000 // Object.is equality
+
+- Expected:
+1792015200000
+
++ Received:
+undefined
+
+ ❯ convex/engine/home.test.ts:65:42
+     63|     const t = await withDirectory({ U_ALICE: { kind: "member", timeZon…
+     64|
+     65|     expect(await refillOf(t, "U_ALICE")).toBe(Date.parse("2026-10-14T2…
+       |                                          ^
+     66|   });
+     67|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  |convex| convex/engine/home.test.ts > WS13: homeFacts carries when the member's allowance refills > the night the clocks go back, the allowance refills at local midnight, not 24 hours after the last one
+AssertionError: expected undefined to be 1792969200000 // Object.is equality
+
+- Expected:
+1792969200000
+
++ Received:
+undefined
+
+ ❯ convex/engine/home.test.ts:72:42
+     70|     const t = await withDirectory({ U_ALICE: { kind: "member", timeZon…
+     71|
+     72|     expect(await refillOf(t, "U_ALICE")).toBe(Date.parse("2026-10-25T2…
+       |                                          ^
+     73|   });
+     74| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 2 passed (7)
+   Start at  20:38:56
+   Duration  452ms (transform 42%, import 34%, tests 12%, environment 11%, worker 1%)
+

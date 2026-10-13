@@ -4,8 +4,11 @@ import { FakeSlack } from "../../testing/fakeSlack";
 import { memberChanged, testBackend, type Backend } from "../../testing/slackBackend";
 import { aDeploymentForWorkspace, aMember, aSession, switchWebsite } from "../../testing/website";
 import { api, components, internal } from "../_generated/api";
+import { observe } from "../engine/engine";
+import { homeFacts } from "../engine/home";
 
 const now = new Date("2026-10-13T10:00:00Z");
+const week = 7 * 24 * 60 * 60 * 1000;
 const ada = { user: "U_ADA", name: "Ada Lovelace", image: "https://avatars.slack-edge.com/ada.png" };
 
 let postHog: FakePostHog;
@@ -146,14 +149,105 @@ describe("website reads pass one guard", () => {
       await aSession(t, { user: "U_BOB", name: "Bob" });
       const { asSignedIn } = await aSession(t, ada);
 
-      expect(await myProfile(asSignedIn)).toEqual({ kind: "member", name: "Ada Lovelace", face: { kind: "slack", image: ada.image } });
+      expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", name: "Ada Lovelace", face: { kind: "slack", image: ada.image } });
     });
 
     test("a member without a Slack picture reads their initials", async () => {
       await aMember(t, ada.user);
       const { asSignedIn } = await aSession(t, { user: ada.user, name: "Ada Lovelace" });
 
-      expect(await myProfile(asSignedIn)).toEqual({ kind: "member", name: "Ada Lovelace", face: { kind: "initials", initials: "AL" } });
+      expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", name: "Ada Lovelace", face: { kind: "initials", initials: "AL" } });
     });
   });
 });
+
+describe("WS13 WS15 WS18: a member's home answer projects their own homeFacts", () => {
+  beforeEach(() => switchWebsite(t, postHog, true));
+
+  test("a member reads their own kudos left, refill, this week and in total, with where to thank someone in Slack", async () => {
+    await aMember(t, ada.user);
+    await aMember(t, "U_BOB");
+    await aMember(t, "U_CAROL");
+    await give(t, "U_BOB", ada.user, 1, new Date("2026-10-06T10:00:00Z"));
+    await give(t, ada.user, "U_BOB", 2);
+    await give(t, "U_CAROL", "U_BOB", 3);
+    const { asSignedIn } = await aSession(t, ada);
+
+    expect(await myProfile(asSignedIn)).toEqual({
+      kind: "member",
+      name: "Ada Lovelace",
+      face: { kind: "slack", image: ada.image },
+      kudosEmoji: "taco",
+      allowance: { left: 1, base: 3, refillsAt: Date.parse("2026-10-14T00:00:00Z") },
+      thisWeek: { given: 2, received: 0 },
+      lifetime: { given: 2, received: 1 },
+      chatUrl: "https://app.slack.com/client/T1",
+    });
+  });
+
+  test("the answer is the member's homeFacts, never another member's", async () => {
+    await aMember(t, ada.user);
+    await aMember(t, "U_BOB");
+    await give(t, "U_BOB", ada.user, 3);
+    const { asSignedIn } = await aSession(t, ada);
+    const facts = await t.run((ctx) => homeFacts(ctx, "T1", ada.user));
+
+    const profile = await myProfile(asSignedIn);
+
+    expect([facts?.kind, profile.kind]).toEqual(["member", "member"]);
+    if (facts?.kind !== "member" || profile.kind !== "member") return;
+    expect(profile.allowance).toEqual({ left: facts.left, base: facts.base, refillsAt: facts.refillsAt });
+    expect(profile.thisWeek).toEqual({ given: facts.givenWeek, received: facts.receivedWeek });
+    expect(profile.lifetime).toEqual({ given: facts.given, received: facts.received });
+    expect(profile).toMatchObject({ allowance: { left: 3 }, thisWeek: { given: 0, received: 3 } });
+  });
+
+  test("the answer updates after a kudos lands", async () => {
+    await aMember(t, ada.user);
+    await aMember(t, "U_BOB");
+    const { asSignedIn } = await aSession(t, ada);
+    expect(await myProfile(asSignedIn)).toMatchObject({ allowance: { left: 3 }, thisWeek: { given: 0 } });
+
+    await give(t, ada.user, "U_BOB", 1);
+
+    expect(await myProfile(asSignedIn)).toMatchObject({ allowance: { left: 2 }, thisWeek: { given: 1 }, lifetime: { given: 1 } });
+  });
+
+  test("an open page turns to the new day on the clock tick after the member's midnight, without another kudos", async () => {
+    await aMember(t, ada.user, "member", "T1", "Europe/Berlin");
+    await aMember(t, "U_BOB");
+    await give(t, ada.user, "U_BOB", 3);
+    const { asSignedIn } = await aSession(t, ada, { endsIn: week });
+    expect(await myProfile(asSignedIn)).toMatchObject({ allowance: { left: 0, refillsAt: Date.parse("2026-10-13T22:00:00Z") } });
+
+    vi.setSystemTime(new Date("2026-10-13T22:05:00Z"));
+    await t.mutation(internal.website.clock.tick, {});
+
+    expect(await myProfile(asSignedIn)).toMatchObject({ allowance: { left: 3, refillsAt: Date.parse("2026-10-14T22:00:00Z") } });
+  });
+
+  test("an open page starts a new week on the clock tick after the week turns, keeping the totals", async () => {
+    await aMember(t, ada.user);
+    await aMember(t, "U_BOB");
+    await give(t, ada.user, "U_BOB", 2);
+    const { asSignedIn } = await aSession(t, ada, { endsIn: week });
+
+    vi.setSystemTime(new Date("2026-10-19T00:05:00Z"));
+    await t.mutation(internal.website.clock.tick, {});
+
+    expect(await myProfile(asSignedIn)).toMatchObject({ thisWeek: { given: 0, received: 0 }, lifetime: { given: 2, received: 0 } });
+  });
+});
+
+async function give(t: Backend, giver: string, recipient: string, kudos: number, at = new Date()) {
+  await t.run((ctx) =>
+    observe(ctx, {
+      kind: "posted",
+      ref: { workspace: "T1", conversation: "C1", message: `${giver}-${recipient}-${at.getTime()}` },
+      author: giver,
+      revision: BigInt(at.getTime()) * 1000n,
+      at: at.getTime(),
+      content: { mentions: [{ kind: "person", user: recipient }], emoji: Array(kudos).fill("taco"), text: "thanks for the review" },
+    }),
+  );
+}

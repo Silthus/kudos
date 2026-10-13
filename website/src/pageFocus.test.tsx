@@ -28,7 +28,7 @@ describe("WS24: focus lands on the page title after a state change, never on fir
   it("moves focus to the home's title when the membership check turns into a member", () => {
     const { showVisitor } = renderApp(shellFixtures.verifying);
     showVisitor(shellFixtures.member);
-    expect(pageTitle()).toHaveTextContent("Welcome, Sam Example");
+    expect(pageTitle()).toHaveTextContent("Thank someone for work you noticed");
     expect(pageTitle()).toHaveFocus();
   });
 

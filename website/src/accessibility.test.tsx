@@ -13,6 +13,7 @@ const pages: { name: string; path: string; visitor: ShellState }[] = [
   { name: "membership not checked", path: "/", visitor: shellFixtures.unverified },
   { name: "not a member", path: "/", visitor: shellFixtures.notAMember },
   { name: "home", path: "/", visitor: shellFixtures.member },
+  { name: "home in a quiet week", path: "/", visitor: shellFixtures.memberWithAQuietWeek },
   { name: "not found", path: "/nowhere", visitor: shellFixtures.member },
   { name: "error", path: "/", visitor: shellFixtures.error },
 ];

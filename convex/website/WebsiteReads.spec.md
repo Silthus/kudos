@@ -1,6 +1,6 @@
 # Website reads
 
-The website's signed-in reads and the sign-in callback: every website query is built on memberQuery, which answers closed while the website flag is off, signed-out without a live session of the deployment's workspace, and verifying, unverified or not-a-member until the directory knows the person as a member, and calls its handler only with a verified member taken from the session, never from arguments; the sign-in callback refuses while the flag is off and links an account only by the Slack pair.
+The website's signed-in reads and the sign-in callback: every website query is built on memberQuery, which answers closed while the website flag is off, signed-out without a live session of the deployment's workspace, and verifying, unverified or not-a-member until the directory knows the person as a member, and calls its handler only with a verified member taken from the session, never from arguments; getMyProfile answers that member with their own homeFacts (kudos left, when they refill, given and received this week and in total) beside their sign-in name and picture, and reads the website clock, a row a cron ticks every 15 minutes, so an open home turns to the new day and the new week without another kudos; the sign-in callback refuses while the flag is off and links an account only by the Slack pair.
 
 ## entrances
 - query getMyProfile: a browser asks for the signed-in person's own website answer, with no arguments
@@ -34,6 +34,16 @@ The website's signed-in reads and the sign-in callback: every website query is b
   checklist: redaction dismissed: a denial carries only its kind, never a profile of zeros or another member's facts
   checklist: canonical-encoding dismissed: the directory is keyed by Slack's workspace and user ids exactly as the sign-in claims carry them
   checklist: identity-continuity dismissed: a session belongs to one Slack pair for its whole life; a changed workspace reads signed-out rather than carrying over
+- a member's home shows only their own facts: getMyProfile's member answer is the signed-in member's own homeFacts with their own sign-in name and picture, never another member's facts.
+  over: getMyProfile for a member beside members who gave and received kudos, before and after a kudos lands, and across the member's midnight and the week's turn on a clock tick
+  via: WS13 WS15 WS18: a member's home answer projects their own homeFacts
+  because: the kudos a member receives stay private (WS18, P65), so the home must read the facts of the session's own Slack pair and nobody else's
+  crossing: browser -> domain
+  entrances: query getMyProfile
+  refuted: getMyProfile read homeFacts for another member of the workspace -> the answer carried that member's counts (2026-10-13)
+  kinds: read
+  checklist: scoped-reads declared as website reads pass one guard
+  checklist: redaction dismissed: the answer carries only the member's own counts, emoji, refill time, name and picture, and a link to the workspace in Slack; it never names another member
 - only the allowed workspace signs in, and only while open: A sign-in creates or updates an account only for a profile of the deployment's SLACK_WORKSPACE_ID with a non-empty Slack user, and only while the website flag is on.
   over: the sign-in callback for a profile from another workspace, an empty Slack user, an unset SLACK_WORKSPACE_ID, and the flag off
   via: WS3 WS6: only the allowed workspace signs in, and only while open

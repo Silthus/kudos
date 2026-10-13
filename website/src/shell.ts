@@ -10,7 +10,18 @@ export type ShellState = Visitor | { kind: "broken" };
 
 export type ShellActions = { signIn(): void; signOut(): void };
 
-const member: SignedInMember = { kind: "member", name: "Sam Example", face: { kind: "initials", initials: "SE" } };
+const member: SignedInMember = {
+  kind: "member",
+  name: "Sam Example",
+  face: { kind: "initials", initials: "SE" },
+  kudosEmoji: "taco",
+  allowance: { left: 1, base: 3, refillsAt: Date.parse("2026-10-14T00:00:00Z") },
+  thisWeek: { given: 2, received: 1 },
+  lifetime: { given: 14, received: 9 },
+  chatUrl: "https://app.slack.com/client/T1",
+};
+
+const memberWithAQuietWeek: SignedInMember = { ...member, thisWeek: { given: 0, received: 0 } };
 
 export const shellFixtures = {
   loading: { kind: "loading" },
@@ -21,6 +32,7 @@ export const shellFixtures = {
   unverified: { kind: "unverified" },
   notAMember: { kind: "not-a-member" },
   member,
+  memberWithAQuietWeek,
   error: { kind: "broken" },
 } as const satisfies Record<string, ShellState>;
 
@@ -33,6 +45,7 @@ const fixturesByName: Record<string, ShellState> = {
   unverified: shellFixtures.unverified,
   "not-a-member": shellFixtures.notAMember,
   member: shellFixtures.member,
+  "member-quiet-week": shellFixtures.memberWithAQuietWeek,
   error: shellFixtures.error,
 };
 

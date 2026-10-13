@@ -40,3 +40,38 @@ body {
     radial-gradient(70rem 30rem at 50% -10rem, color-mix(in oklab, var(--primary) 14%, transparent), transparent 70%),
     radial-gradient(40rem 40rem at 100% 100%, color-mix(in oklab, var(--completed-foreground) 10%, transparent), transparent 70%);
 }
+
+.hud-label {
+  font-size: 10px;
+  line-height: 1.2;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+
+.hud-panel::before,
+.hud-panel::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: 0 solid color-mix(in oklab, var(--foreground) 28%, transparent);
+  pointer-events: none;
+}
+
+.hud-panel::before {
+  top: 5px;
+  left: 5px;
+  border-top-width: 1.5px;
+  border-left-width: 1.5px;
+  border-top-left-radius: 4px;
+}
+
+.hud-panel::after {
+  bottom: 5px;
+  right: 5px;
+  border-bottom-width: 1.5px;
+  border-right-width: 1.5px;
+  border-bottom-right-radius: 4px;
+}

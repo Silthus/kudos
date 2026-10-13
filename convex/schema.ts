@@ -24,6 +24,10 @@ export default defineSchema({
     state: v.union(v.literal("pending"), v.literal("failed")),
   }).index("by_user", ["workspace", "user"]),
 
+  websiteClock: defineTable({
+    tick: v.number(),
+  }),
+
   slackReceipts: defineTable({
     workspace: v.string(),
     eventId: v.string(),

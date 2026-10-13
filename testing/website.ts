@@ -39,6 +39,6 @@ export async function aSession(t: Backend, { workspace = allowedWorkspace, user,
   return { sessionId, asSignedIn: t.withIdentity({ subject: `${userId}|${sessionId}` }) };
 }
 
-export function aMember(t: Backend, user: string, kind: "member" | "not-a-member" = "member", workspace = allowedWorkspace) {
-  return t.run((ctx) => ctx.db.insert("members", { workspace, user, kind, asOf: 0 }));
+export function aMember(t: Backend, user: string, kind: "member" | "not-a-member" = "member", workspace = allowedWorkspace, timeZone?: string) {
+  return t.run((ctx) => ctx.db.insert("members", { workspace, user, kind, asOf: 0, ...(timeZone && { timeZone }) }));
 }

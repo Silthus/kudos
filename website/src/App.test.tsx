@@ -64,13 +64,14 @@ describe("WS1 WS3 WS16 WS20: the shell renders each page from its visitor state"
     expect(items[0]).toHaveAttribute("aria-current", "page");
     expect(within(banner).getByRole("group", { name: "Theme" })).toBeInTheDocument();
     expect(within(banner).getByRole("button", { name: "Account menu for Sam Example" })).toHaveTextContent("SE");
-    expect(pageTitle()).toHaveTextContent("Welcome, Sam Example");
+    expect(pageTitle()).toHaveTextContent("Thank someone for work you noticed");
     expect(document.title).toBe("HedgeHug · Home");
   });
 
   it("greets a member whose name Slack didn't share without inventing one", () => {
-    renderApp({ kind: "member", face: { kind: "initials", initials: "?" } });
-    expect(pageTitle()).toHaveTextContent(/^Welcome$/);
+    const { name: _, ...withoutName } = shellFixtures.member;
+    renderApp({ ...withoutName, face: { kind: "initials", initials: "?" } });
+    expect(screen.queryByText("Sam Example")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Account menu for you" })).toBeInTheDocument();
   });
 

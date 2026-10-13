@@ -12,3 +12,12 @@ export function MaxSays({ title, tab, children, action }: { title: string; tab: 
     </section>
   );
 }
+
+export function MaxLine({ children }: { children: ReactNode }) {
+  return (
+    <p className="flex items-center gap-3 text-sm">
+      <HedgehogTownCrier size={40} title="" className="shrink-0" />
+      <span>{children}</span>
+    </p>
+  );
+}

@@ -1,16 +1,40 @@
+import { homeFacts } from "../engine/home";
+import { workspaceLink } from "../slack/workspaceLink";
+import { followTheClock } from "./clock";
 import { memberQuery, type Denial, type VerifiedMember } from "./memberQuery";
 
 export type Face = { kind: "slack"; image: string } | { kind: "initials"; initials: string };
 
-export type MemberProfile = { kind: "member"; name?: string; face: Face };
+export type Kudos = { given: number; received: number };
+
+export type MemberProfile = {
+  kind: "member";
+  name?: string;
+  face: Face;
+  kudosEmoji: string;
+  allowance: { left: number; base: number; refillsAt: number };
+  thisWeek: Kudos;
+  lifetime: Kudos;
+  chatUrl: string;
+};
 
 export type MyProfile = Denial | MemberProfile;
 
-export const getMyProfile = memberQuery(async (_ctx, me): Promise<MemberProfile> => ({
-  kind: "member",
-  ...(me.name !== undefined && { name: me.name }),
-  face: faceOf(me),
-}));
+export const getMyProfile = memberQuery(async (ctx, me): Promise<MemberProfile | Denial> => {
+  await followTheClock(ctx);
+  const facts = await homeFacts(ctx, me.workspace, me.user);
+  if (facts?.kind !== "member") return { kind: "not-a-member" };
+  return {
+    kind: "member",
+    ...(me.name !== undefined && { name: me.name }),
+    face: faceOf(me),
+    kudosEmoji: facts.kudosEmoji,
+    allowance: { left: facts.left, base: facts.base, refillsAt: facts.refillsAt },
+    thisWeek: { given: facts.givenWeek, received: facts.receivedWeek },
+    lifetime: { given: facts.given, received: facts.received },
+    chatUrl: workspaceLink(me.workspace),
+  };
+});
 
 function faceOf(me: VerifiedMember): Face {
   if (me.image !== undefined) return { kind: "slack", image: me.image };
