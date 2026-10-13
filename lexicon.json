@@ -242,6 +242,30 @@
     {
       "name": "sandbox",
       "definition": "The Slack workspace and its own Convex deployment where a new Kudos app is installed and proven before the real install. It runs a separate Slack app from the same manifest, with its own bot token and signing secret."
+    },
+    {
+      "name": "directory",
+      "definition": "The app's record of a workspace's people: whether each is a member, a bot or not a member, and their time zone. Slack keeps it fresh, eligibility and the allowance day are read from it when a kudos message is evaluated, and a person it doesn't know makes the message wait."
+    },
+    {
+      "name": "indicator",
+      "definition": "The one reaction the app shows on a kudos message for its outcome: the first kudos emoji the giver used for Given, an hourglass for Over allowance, a red X for Invalid, and none otherwise. It is desired state, so every delivery leaves the message showing the latest one."
+    },
+    {
+      "name": "domain event",
+      "definition": "A fact a module publishes when something happened in the domain, such as kudosGiven, so that later modules react to it without the publisher knowing them. It is published in the transaction that made it true, and its shape only grows by adding fields."
+    },
+    {
+      "name": "hook",
+      "definition": "A named point where a later module contributes to a decision another module makes without that module knowing it, such as the parse hooks of the kudos parser and, with the weekly reserve, the perks hook. Not the agent-host hooks that deliver Coherence."
+    },
+    {
+      "name": "parse hook",
+      "definition": "A hook into the kudos parser: it names extra kudos emoji for a giver, or adds annotations about a message while its text is in memory. Spec 1 registers only the workspace emoji hook."
+    },
+    {
+      "name": "annotation",
+      "definition": "A fact about a kudos message that a parse hook adds while the text is in memory, such as whether it says why, carried on kudosGiven in place of the text, which is never stored."
     }
   ]
 }

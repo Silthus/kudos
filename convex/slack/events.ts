@@ -1,11 +1,9 @@
 import { internal } from "../_generated/api";
 import { httpAction } from "../_generated/server";
+import { isMessage, mayGiveKudos, messageEventOf, type EventCallback } from "./normalize";
 import { isSignedBySlack } from "./signature";
 
-type Envelope =
-  | { type: "url_verification"; challenge: string }
-  | { type: "event_callback"; team_id: string; event_id: string }
-  | { type: "app_rate_limited" };
+type Envelope = { type: "url_verification"; challenge: string } | EventCallback | { type: "app_rate_limited" };
 
 export const slackEvents = httpAction(async (ctx, request) => {
   const body = new Uint8Array(await request.arrayBuffer());
@@ -23,7 +21,9 @@ export const slackEvents = httpAction(async (ctx, request) => {
   const envelope = JSON.parse(new TextDecoder().decode(body)) as Envelope;
   if (envelope.type === "url_verification") return Response.json({ challenge: envelope.challenge });
   if (envelope.type === "event_callback") {
-    await ctx.runMutation(internal.slack.receipts.receive, { workspace: envelope.team_id, eventId: envelope.event_id });
+    const event = messageEventOf(envelope);
+    if (isMessage(envelope.event) && !mayGiveKudos(event)) return new Response(null, { status: 200 });
+    await ctx.runMutation(internal.slack.receipts.receive, { workspace: envelope.team_id, eventId: envelope.event_id, event });
   }
   return new Response(null, { status: 200 });
 });

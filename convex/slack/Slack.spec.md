@@ -1,6 +1,6 @@
 # Slack
 
-The Slack adapter, the only code that knows Slack: it verifies and acknowledges Slack's requests and hands them to the domain.
+The Slack adapter, the only code that knows Slack: it verifies and acknowledges Slack's requests, normalizes posted messages into countable content for the engine, fills the directory from users.info and delivers the indicator as a reaction.
 
 ## entrances
 - route POST /slack/events: Slack delivers an Events API request, an event callback or the URL verification challenge

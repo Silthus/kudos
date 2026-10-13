@@ -1,21 +1,22 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation } from "../_generated/server";
+import { messageEventValidator } from "../engine/messageEvent";
 import { processEvent } from "./processEvent";
 
 const keptForMs = 7 * 24 * 60 * 60 * 1000;
 const deletionBatchSize = 500;
 
 export const receive = internalMutation({
-  args: { workspace: v.string(), eventId: v.string() },
-  handler: async (ctx, receipt) => {
+  args: { workspace: v.string(), eventId: v.string(), event: v.union(messageEventValidator, v.null()) },
+  handler: async (ctx, { event, ...receipt }) => {
     const redelivered = await ctx.db
       .query("slackReceipts")
       .withIndex("by_event", (q) => q.eq("workspace", receipt.workspace).eq("eventId", receipt.eventId))
       .unique();
     if (redelivered !== null) return;
     await ctx.db.insert("slackReceipts", receipt);
-    await processEvent(ctx, receipt);
+    await processEvent(ctx, receipt, event);
   },
 });
 

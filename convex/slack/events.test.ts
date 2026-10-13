@@ -29,7 +29,7 @@ describe("POST /slack/events", () => {
     expect(response.status).toBe(200);
     expect(await receiptsIn(t)).toEqual([{ workspace: "T1", eventId: "Ev1" }]);
     expect(processEvent).toHaveBeenCalledOnce();
-    expect(processEvent).toHaveBeenCalledWith(expect.anything(), { workspace: "T1", eventId: "Ev1" });
+    expect(processEvent).toHaveBeenCalledWith(expect.anything(), { workspace: "T1", eventId: "Ev1" }, expect.objectContaining({ kind: "posted", author: "U1" }));
   });
 
   describe("R48: a request Slack did not sign gets 401 and records nothing", () => {
@@ -104,6 +104,22 @@ describe("POST /slack/events", () => {
     expect(processEvent).not.toHaveBeenCalled();
   });
 
+  test("R2: a new message without a mention or an emoji is acknowledged before any mutation and records nothing", async () => {
+    const t = convexTest(schema, modules);
+    const chat = JSON.stringify({
+      type: "event_callback",
+      team_id: "T1",
+      event_id: "Ev1",
+      event: { type: "message", channel: "C1", channel_type: "channel", user: "U1", ts: "1760349600.000100", text: "lunch?", blocks: [] },
+    });
+
+    const response = await postSigned(t, chat);
+
+    expect(response.status).toBe(200);
+    expect(await receiptsIn(t)).toEqual([]);
+    expect(processEvent).not.toHaveBeenCalled();
+  });
+
   test("url_verification returns the challenge", async () => {
     const t = convexTest(schema, modules);
 
@@ -122,7 +138,15 @@ function eventCallback(teamId: string, eventId: string) {
     type: "event_callback",
     team_id: teamId,
     event_id: eventId,
-    event: { type: "message", channel: "C1", user: "U1", ts: "1760349600.000100", text: "thanks" },
+    event: {
+      type: "message",
+      channel: "C1",
+      channel_type: "channel",
+      user: "U1",
+      ts: "1760349600.000100",
+      text: "thanks <@U2> :taco:",
+      blocks: [{ type: "rich_text", elements: [{ type: "rich_text_section", elements: [{ type: "user", user_id: "U2" }, { type: "emoji", name: "taco" }] }] }],
+    },
   });
 }
 

@@ -8,12 +8,25 @@
  * @module
  */
 
+import type * as bus_publish from "../bus/publish.js";
 import type * as crons from "../crons.js";
+import type * as engine_allowance from "../engine/allowance.js";
+import type * as engine_awards from "../engine/awards.js";
+import type * as engine_engine from "../engine/engine.js";
+import type * as engine_messageEvent from "../engine/messageEvent.js";
+import type * as feedback_indicator from "../feedback/indicator.js";
 import type * as http from "../http.js";
+import type * as parser_parser from "../parser/parser.js";
+import type * as slack_delivery from "../slack/delivery.js";
+import type * as slack_directory from "../slack/directory.js";
 import type * as slack_events from "../slack/events.js";
+import type * as slack_normalize from "../slack/normalize.js";
 import type * as slack_processEvent from "../slack/processEvent.js";
 import type * as slack_receipts from "../slack/receipts.js";
 import type * as slack_signature from "../slack/signature.js";
+import type * as slack_web from "../slack/web.js";
+import type * as workspace_directory from "../workspace/directory.js";
+import type * as workspace_settings from "../workspace/settings.js";
 
 import type {
   ApiFromModules,
@@ -22,12 +35,25 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "bus/publish": typeof bus_publish;
   crons: typeof crons;
+  "engine/allowance": typeof engine_allowance;
+  "engine/awards": typeof engine_awards;
+  "engine/engine": typeof engine_engine;
+  "engine/messageEvent": typeof engine_messageEvent;
+  "feedback/indicator": typeof feedback_indicator;
   http: typeof http;
+  "parser/parser": typeof parser_parser;
+  "slack/delivery": typeof slack_delivery;
+  "slack/directory": typeof slack_directory;
   "slack/events": typeof slack_events;
+  "slack/normalize": typeof slack_normalize;
   "slack/processEvent": typeof slack_processEvent;
   "slack/receipts": typeof slack_receipts;
   "slack/signature": typeof slack_signature;
+  "slack/web": typeof slack_web;
+  "workspace/directory": typeof workspace_directory;
+  "workspace/settings": typeof workspace_settings;
 }>;
 
 /**
