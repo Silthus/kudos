@@ -294,6 +294,10 @@
     {
       "name": "improvement line",
       "definition": "The one private line under a viewer's Everyone board for this week or month: how many more kudos they gave than in the previous period up to the same day, with the places climbed, or else their best completed period; it never states a loss, and all time has none (G18)."
+    },
+    {
+      "name": "app home tab",
+      "definition": "One page of App Home, picked from the tab bar at its top: Profile (the member's kudos and allowance), Leaderboard (the boards for one period), and Settings (the member's own switches); App Home remembers the tab and period each member last picked (G24, G42)."
     }
   ]
 }

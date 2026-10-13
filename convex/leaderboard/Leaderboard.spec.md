@@ -1,6 +1,6 @@
 # Leaderboard
 
-Leaderboard: totals of kudos given per member by day, week, month and all time, fed by the kudosGiven subscriber once per message and by a one-off backfill of the awards given before it shipped, and the Everyone board for this week, this month or all time, ranked and windowed by a pure board function, with the viewer's improvement line against the previous period up to the same day.
+Leaderboard: totals of kudos given per member by day, week, month and all time, fed by the kudosGiven subscriber once per message and by a one-off backfill of the awards given before it shipped, and the Everyone board for this week, this month or all time, ranked and windowed by a pure board function, with the viewer's improvement line against the previous period up to the same day, and each member's `Show me on the leaderboards` setting, which leaves them off every board.
 
 ## invariants
 - the leaderboard counts kudos given, never kudos received: A board ranks members by the kudos they gave in the period, and kudos a member received never add to their total or put them on a board.
@@ -28,6 +28,19 @@ Leaderboard: totals of kudos given per member by day, week, month and all time, 
   checklist: worker-fencing dismissed: one read-only query computes the line; no lease or ownership applies
   checklist: commit-ordered-effects dismissed: computing the line issues no external effect
   checklist: resumption-coverage dismissed: no batch resumes from a checkpoint; the line is computed in one query
+- a member who left the boards is on nobody's board: A member whose `Show me on the leaderboards` setting is off is on no viewer's Everyone board for any period, their own included, which says `You're not on the leaderboards. You can change that in Settings.` in place of their rows and keeps their gain line without places; turned on again, they are back.
+  over: this week's, this month's and all time's Everyone board seen by the member who turned the setting off and by another member, through `/hedgehug leaderboard` and the Leaderboard tab
+  via: G22: a member who left the boards is on nobody's board, their own included
+  because: leaving the boards is the member's own choice (G22); a board that still listed them, to anyone, would show the standing they asked to keep private
+  refuted: entryOf no longer left out the members whose setting is off -> the test failed on the other member's board, with the member who left ranked 1st with 3 (2026-10-13)
+  kinds: state
+  checklist: revalidated-permission dismissed: the setting is read on every board, in the query that renders it
+  checklist: separation-of-duties dismissed: no approval policy applies to a member leaving or rejoining the boards
+  checklist: legal-state-succession dismissed: the setting is on or off; the command sets it to the value the clicked button carries, so a repeated click changes nothing
+  checklist: supersession-safety dismissed: the latest click wins; Convex serializes the mutations that write one member's setting row
+  checklist: worker-fencing dismissed: one serialized mutation writes the setting; no lease or ownership applies
+  checklist: commit-ordered-effects dismissed: the board is read when it is viewed; App Home is published after the setting commits
+  checklist: resumption-coverage dismissed: no batch resumes from a checkpoint; the setting is one row per member
 - every award counts once, live or backfilled: The totals count each Given message's awards exactly once, whether the kudosGiven subscriber or the backfill of earlier kudos reaches the message first, and however often either runs.
   over: the totals after the backfill counts one earlier award, is interrupted, a member gives kudos while it is stopped and the subscriber counts them, and the backfill runs again over every award
   via: G44: an award given while the backfill runs counts once
