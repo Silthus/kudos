@@ -10,6 +10,7 @@ export const subscribers: Registry = {
   kudosGiven: [
     internal.welcome.welcome.welcomeNewMembers,
     internal.progression.progression.recordEffects,
+    internal.quests.journey.followJourney,
     internal.leaderboard.totals.countKudosGiven,
     internal.analytics.subscribers.recordKudosGiven,
   ],
@@ -19,6 +20,7 @@ export const subscribers: Registry = {
   xpRecorded: [internal.feedback.homes.refreshHomeOnXp],
   unlockReady: [],
   unlockOpened: [],
+  questFinished: [],
 };
 
 export async function publish(ctx: MutationCtx, event: DomainEvent) {

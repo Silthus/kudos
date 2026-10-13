@@ -8,6 +8,8 @@ import { publicSectionValidator, shownValidator } from "./feedback/publicReplies
 import { segmentValidator } from "./feedback/replies";
 import { periodValidator } from "./leaderboard/periods";
 import { effectsRecordValidator } from "./progression/progress";
+import { rewardRecordValidator } from "./progression/rewards";
+import { journeyActivationValidator } from "./quests/journey";
 import { featureValidator } from "./unlocks/feature";
 
 export default defineSchema({
@@ -125,6 +127,10 @@ export default defineSchema({
   }).index("by_message", ["workspace", "conversation", "message"]),
 
   effectsRecords: defineTable(effectsRecordValidator).index("by_award", ["award", "side"]),
+
+  rewardRecords: defineTable(rewardRecordValidator).index("by_member_key", ["member", "key"]),
+
+  journeySteps: defineTable(journeyActivationValidator).index("by_member_step", ["member", "step"]),
 
   effectsBackfill: defineTable({
     before: v.number(),

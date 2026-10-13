@@ -27,7 +27,7 @@ type Destination = { channel: string; threadTs?: string };
 export const celebrateLevel = internalMutation({
   args: { event: levelReachedEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
-    if (!(await xpLevelsShownTo(ctx, event.member))) return;
+    if (event.message === undefined || !(await xpLevelsShownTo(ctx, event.member))) return;
     const { user } = await chatUserOf(ctx, event.member);
     await setPublicSection(ctx, event.message, levelSection(event.member, user, event.level));
   },
