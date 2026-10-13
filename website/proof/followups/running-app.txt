@@ -1,0 +1,20 @@
+Running-app proof for #116, on a disposable local backend (127.0.0.1:3810, site 127.0.0.1:3811), never a cloud deployment.
+
+The deploy workflows' steps, run by hand in the same order against the local backend:
+  pnpm exec convex deploy                                     -> Deployed Convex functions to http://127.0.0.1:3810
+  pnpm exec static-hosting upload --build ... --dist website/dist -> Upload complete
+  pnpm exec convex run website/flag:prepareWebsiteFlag        -> exit 0
+  pnpm exec convex run companyProfiles/sync:syncCompanyProfiles -> exit 0; companyProfiles now holds rows (names not recorded here)
+
+GET http://127.0.0.1:3811/ (static hosting, the app's own header wrapper):
+  content-type: text/html; charset=utf-8
+  content-security-policy: default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' http://127.0.0.1:3810 ws://127.0.0.1:3810; img-src 'self' https://avatars.slack-edge.com https://res.cloudinary.com; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
+  head scripts, in order: <script src="/theme-eb6b27e0.js"> (classic, blocking), <script type="module" crossorigin src="/assets/index-...js">
+  GET /theme-eb6b27e0.js -> 200 application/javascript; the browser console shows no CSP violation, and the closed page renders.
+
+Stuck socket: a build whose VITE_CONVEX_URL points at a closed port (127.0.0.1:3899), served by vite preview on 127.0.0.1:3812.
+  After five seconds the page shows "Can't reach HedgeHug" (connecting-light.png, connecting-dark.png); the tab reads "HedgeHug · Can't reach HedgeHug".
+  Dark was chosen in the theme control, then the page reloaded: at DOMContentLoaded the html element already has the dark class (stored "dark"),
+  set by the head script before the module ran; first-paint@16ms, first-contentful-paint@100ms.
+
+Sign-in handshake on its own disposable backend: pnpm test:handshake, 17/17 (green-handshake-own-backend.txt), and the backend process and its temp directory are gone afterwards.
