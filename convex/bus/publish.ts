@@ -9,7 +9,7 @@ type Registry = { [T in DomainEvent["type"]]: Array<Subscriber<T>> };
 
 export const subscribers: Registry = {
   kudosGiven: [internal.welcome.welcome.welcomeNewMembers, internal.progression.progression.recordEffects],
-  levelReached: [internal.feedback.notify.notifyLevelReached, internal.feedback.publicReplies.celebrateLevel],
+  levelReached: [internal.feedback.notify.notifyLevelReached, internal.feedback.publicReplies.celebrateLevel, internal.feedback.homes.refreshHomeOnLevel],
 };
 
 export async function publish<T extends DomainEvent["type"]>(ctx: MutationCtx, event: EventOf<T> & { type: T }) {

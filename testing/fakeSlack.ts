@@ -35,6 +35,7 @@ export class FakeSlack {
   private readonly joinTimes = new Map<string, number>();
   private readonly reactionsByMessage = new Map<string, string[]>();
   private readonly posted: PostedMessage[] = [];
+  private readonly homes = new Map<string, unknown>();
   private readonly scripted = new Map<string, ScriptedAnswer[]>();
   private readonly callTimes = new Map<SlackCall, number>();
   private readonly holds: Array<{ method: string; about: string; meanwhile: () => Promise<void> }> = [];
@@ -82,6 +83,10 @@ export class FakeSlack {
 
   messagesIn(channel: string) {
     return this.posted.filter((message) => message.channel === channel);
+  }
+
+  homeShownTo(user: string) {
+    return this.homes.get(user);
   }
 
   ephemeralsTo(user: string) {
@@ -136,7 +141,10 @@ export class FakeSlack {
       return { ok: true };
     }
     if (method === "chat.postEphemeral") return { ok: true, message_ts: "1760349700.000100" };
-    if (method === "views.publish") return { ok: true };
+    if (method === "views.publish") {
+      this.homes.set(field("user_id"), args.view);
+      return { ok: true };
+    }
     if (method === "chat.postMessage") return this.postMessage(args);
     if (method === "chat.update") return this.updateMessage(args);
     if (method === "conversations.open") return { ok: true, channel: { id: `D_${field("users")}` } };

@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { showHomeTabCommand } from "../bus/commands";
+import { levelReachedEventValidator } from "../bus/events";
 import { kudosHomeOf, type KudosHome } from "../engine/home";
 import { progressionHomeOf, type ProgressionHome } from "../progression/progression";
 import { progressSettingsOf, type ProgressSettings } from "../progression/settings";
@@ -9,7 +10,7 @@ import { chatUserOf, lookup, type MemberId } from "../workspace/directory";
 import type { HomeTab } from "./home";
 
 export type HomeFacts =
-  | { kind: "member"; tab: HomeTab; kudos: KudosHome; progression: ProgressionHome; settings: ProgressSettings }
+  | { kind: "member"; member: MemberId; version: number; tab: HomeTab; kudos: KudosHome; progression: ProgressionHome; settings: ProgressSettings }
   | { kind: "not-a-member" };
 
 export const homeOf = internalQuery({
@@ -21,6 +22,8 @@ export const homeOf = internalQuery({
     const home = await homeRow(ctx, person.member);
     return {
       kind: "member",
+      member: person.member,
+      version: home?.version ?? 0,
       tab: home?.tab ?? "profile",
       kudos: await kudosHomeOf(ctx, workspace, person.member, person.timeZone),
       progression: await progressionHomeOf(ctx, person.member),
@@ -35,6 +38,18 @@ export const showHomeTab = internalMutation({
     const home = await homeRow(ctx, member);
     if (home === null) await ctx.db.insert("homes", { member, tab, version: 0 });
     else await ctx.db.patch(home._id, { tab });
+  },
+});
+
+export const versionOf = internalQuery({
+  args: { member: v.id("members") },
+  handler: async (ctx, { member }): Promise<number> => (await homeRow(ctx, member))?.version ?? 0,
+});
+
+export const refreshHomeOnLevel = internalMutation({
+  args: { event: levelReachedEventValidator },
+  handler: async (ctx, { event }): Promise<void> => {
+    await republish(ctx, event.member);
   },
 });
 

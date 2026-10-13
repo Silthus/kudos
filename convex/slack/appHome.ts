@@ -20,7 +20,9 @@ export const publishHome = internalAction({
       async (attempt) => {
         const facts = await homeFactsOf(ctx, opened.workspace, opened.user);
         if (facts.kind === "unavailable") return failedAttempt(attempt, facts.retryAfterMs);
-        return sendOnce(ctx, opened.workspace, "views.publish", { user_id: opened.user, view: homeView(renderHome(facts)) }, attempt);
+        const retry = await sendOnce(ctx, opened.workspace, "views.publish", { user_id: opened.user, view: homeView(renderHome(facts)) }, attempt);
+        if (retry !== null || facts.kind !== "member") return retry;
+        return (await isLatest(ctx, facts)) ? null : { at: Date.now(), attempt: 1 };
       },
       (retry) => ctx.scheduler.runAt(retry.at, internal.slack.appHome.publishHome, { ...opened, attempt: retry.attempt }),
     );
@@ -33,6 +35,10 @@ export function appHomeLink(workspace: string, label: string) {
 }
 
 type Unavailable = { kind: "unavailable"; retryAfterMs?: number };
+
+async function isLatest(ctx: ActionCtx, { member, version }: Extract<HomeFacts, { kind: "member" }>) {
+  return (await ctx.runQuery(internal.feedback.homes.versionOf, { member })) === version;
+}
 
 async function homeFactsOf(ctx: ActionCtx, workspace: string, user: string): Promise<HomeFacts | Unavailable> {
   const known = await ctx.runQuery(internal.feedback.homes.homeOf, { workspace, user });

@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { FakeSlack } from "../../testing/fakeSlack";
-import { buttonInHome, publishedHome } from "../../testing/homeView";
+import { FakeSlack, httpStatus } from "../../testing/fakeSlack";
+import { buttonInHome, publishedHome, publishedViews } from "../../testing/homeView";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { internal } from "../_generated/api";
 import { appHomeOpened, blockActions, emoji, mention, messageEvent, section, type BlockAction } from "../../testing/slackMessages";
 
 const now = new Date("2026-10-13T10:00:00Z");
@@ -129,6 +130,42 @@ describe("P63 P65: a setting takes effect on the next notice or DM, and repeatin
     await interact(t, "U_ALICE", hide);
 
     expect(publishedHome(slack, "U_ALICE")).toContain("section: Your achievements are hidden from other members. [button: Show achievements]");
+  });
+});
+
+describe("P68: App Home is republished after a change, the latest version wins, and a failed publish is retried", () => {
+  test("a level up republishes the member's App Home with the new level, without them opening it again", async () => {
+    const t = await workspaceWithAllowance(10);
+    await openHome(t, "U_ALICE");
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+
+    expect(publishedHome(slack, "U_ALICE")).toContain("section fields: *Level*\n*2* | *XP to level 3*\n*80* | *Skill points saved*\n*1*");
+  });
+
+  test("a republish that fails is tried again until the new level shows", async () => {
+    const t = await workspaceWithAllowance(10);
+    await openHome(t, "U_ALICE");
+    slack.answering("views.publish", httpStatus(500));
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+
+    expect(publishedViews(slack, "U_ALICE")).toHaveLength(3);
+    expect(publishedHome(slack, "U_ALICE")).toContain("section fields: *Level*\n*2* | *XP to level 3*\n*80* | *Skill points saved*\n*1*");
+  });
+
+  test("a publish that lands after a newer change is followed by the latest App Home", async () => {
+    const t = await settingsOpen("U_ALICE");
+    const stale = slack.holdNext("views.publish");
+    const stalePublish = t.action(internal.slack.appHome.publishHome, { workspace: "T1", user: "U_ALICE" });
+    await stale.reached;
+
+    await click(t, "U_ALICE", "Mute notices");
+    stale.release();
+    await stalePublish;
+    await settle(t);
+
+    expect(publishedHome(slack, "U_ALICE")).toContain("section: I don't post public notices about you. [button: Unmute notices]");
   });
 });
 

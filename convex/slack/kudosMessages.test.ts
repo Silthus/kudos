@@ -82,7 +82,7 @@ describe("R33: the private reply", () => {
     expect(slack.callsTo("chat.postEphemeral")).toEqual([
       { channel: "C1", user: "U_ALICE", thread_ts: threadRoot, text: "<@U_BOB> and <@U_CAROL> got 1 kudos from you. You have 1 kudos left today." },
     ]);
-    expect(callsBesideDmsAndNotices().map((call) => call.method).sort()).toEqual(["chat.postEphemeral", "reactions.add"]);
+    expect(callsBesideDmsNoticesAndHomes().map((call) => call.method).sort()).toEqual(["chat.postEphemeral", "reactions.add"]);
     expect(welcomedPeople()).toEqual(["U_ALICE", "U_BOB", "U_CAROL"]);
     expect(levelledUpPeople()).toEqual(["U_ALICE"]);
   });
@@ -114,7 +114,7 @@ describe("R33: the private reply", () => {
       await settle(t);
 
       expect(welcomedPeople()).toEqual(welcomed);
-      const messagesSent = callsBesideDmsAndNotices().filter((call) => call.method.startsWith("chat."));
+      const messagesSent = callsBesideDmsNoticesAndHomes().filter((call) => call.method.startsWith("chat."));
       expect(messagesSent).toEqual([
         { method: "chat.postEphemeral", args: expect.objectContaining({ channel: "C1", user: "U_ALICE", ...(options.threadTs && { thread_ts: options.threadTs }) }) },
       ]);
@@ -331,8 +331,8 @@ function stringify(value: unknown) {
   return JSON.stringify(value, (_, item) => (typeof item === "bigint" ? item.toString() : item));
 }
 
-function callsBesideDmsAndNotices() {
-  return slack.calls.filter((call) => call.method !== "users.info" && !isWelcome(call) && !isLevelUpDm(call) && !isLevelNotice(call));
+function callsBesideDmsNoticesAndHomes() {
+  return slack.calls.filter((call) => call.method !== "users.info" && call.method !== "views.publish" && !isWelcome(call) && !isLevelUpDm(call) && !isLevelNotice(call));
 }
 
 function welcomedPeople() {

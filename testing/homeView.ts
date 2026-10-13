@@ -8,7 +8,7 @@ type Block = { type: string; text?: TextObject; fields?: TextObject[]; elements?
 type HomeView = { type: string; blocks: Block[] };
 
 export function publishedHome(slack: FakeSlack, user: string) {
-  const view = publishedViews(slack, user).at(-1);
+  const view = slack.homeShownTo(user) as HomeView | undefined;
   expect(view?.type).toBe("home");
   return (view?.blocks ?? []).map(readBlock);
 }
@@ -63,6 +63,6 @@ export function channelPickerInHome(slack: FakeSlack, user: string, channel: str
 }
 
 function elementsInHome(slack: FakeSlack, user: string) {
-  const blocks = publishedViews(slack, user).at(-1)?.blocks ?? [];
+  const blocks = (slack.homeShownTo(user) as HomeView | undefined)?.blocks ?? [];
   return blocks.flatMap((block) => [...(block.type === "actions" ? (block.elements as Element[]) : []), ...(block.accessory ? [block.accessory] : [])]);
 }
