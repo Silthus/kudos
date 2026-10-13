@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { publish } from "../bus/publish";
 import schema from "../schema";
 import { modules } from "../test.setup";
-import { observe } from "./engine";
+import { observe, recheck } from "./engine";
 import type { Mention, MessageEvent } from "./messageEvent";
 
 vi.mock("../bus/publish", () => ({ publish: vi.fn(async () => {}) }));
@@ -206,6 +206,26 @@ test("R29: a message whose author or recipients the directory doesn't know waits
   const observation = await t.run((ctx) => observe(ctx, kudosMessage("U_ALICE", [person("U_BOB"), person("U_CAROL")], ["taco"])));
 
   expect(observation).toEqual({ kind: "awaiting-directory", users: ["U_BOB", "U_CAROL"], retryInMs: 0, attempt: BigInt(now.getTime()) * 1000n });
+  expect(await awardsOf(t)).toEqual([]);
+});
+
+test("R29 R30: each failed check waits 1, 5, 30, 120 and 360 minutes for the next, and the last abandons the message", async () => {
+  const t = await withDirectory({ U_ALICE: "UTC" });
+  const message = kudosMessage("U_ALICE", [person("U_DAVE")], ["taco"]);
+
+  const first = await t.run((ctx) => observe(ctx, message));
+  const rechecks = [];
+  for (let check = 0; check < 6; check += 1) rechecks.push(await t.run((ctx) => recheck(ctx, message.ref, message.revision)));
+
+  expect(first).toMatchObject({ kind: "awaiting-directory", users: ["U_DAVE"], retryInMs: 0 });
+  expect(rechecks.map((observation) => (observation.kind === "awaiting-directory" ? observation.retryInMs / 60_000 : observation.kind))).toEqual([
+    1,
+    5,
+    30,
+    120,
+    360,
+    "abandoned",
+  ]);
   expect(await awardsOf(t)).toEqual([]);
 });
 

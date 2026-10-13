@@ -1,5 +1,4 @@
-import { v } from "convex/values";
-import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
 import { publish } from "../bus/publish";
 import { setIndicator, type Indicator } from "../feedback/indicator";
@@ -8,7 +7,7 @@ import { lookup, type MemberFacts, type MemberId } from "../workspace/directory"
 import { settingsOf } from "../workspace/settings";
 import { allowanceDay, dailyAllowance } from "./allowance";
 import { insertAwards, type Award } from "./awards";
-import { messageRefValidator, type ChatUserId, type Mention, type MessageEvent, type MessageRef } from "./messageEvent";
+import type { ChatUserId, Mention, MessageEvent, MessageRef } from "./messageEvent";
 import { annotationsOf, fingerprintOf, kudosMessageOf, type KudosMessage } from "../parser/parser";
 
 export type Outcome =
@@ -26,6 +25,8 @@ export type Observation =
 
 type KudosMessageRow = Doc<"kudosMessages">;
 type Member = Extract<MemberFacts, { kind: "member" }>;
+
+const directoryCheckDelaysMs = [0, 1, 5, 30, 120, 360].map((minutes) => minutes * 60_000);
 
 export async function observe(ctx: MutationCtx, event: MessageEvent): Promise<Observation> {
   const existing = await kudosMessageRow(ctx, event.ref);
@@ -55,7 +56,7 @@ async function observeFirstRevision(ctx: MutationCtx, event: MessageEvent, revis
     if (event.kind === "edited") await insertRow(ctx, event, revision, "watermark");
     return { kind: "ignored", why: "ordinary-chat" };
   }
-  return evaluate(ctx, await insertRow(ctx, event, revision, "awaiting-directory"), { lastCheck: false });
+  return evaluate(ctx, await insertRow(ctx, event, revision, "awaiting-directory"));
 }
 
 async function observeEdit(ctx: MutationCtx, row: KudosMessageRow, event: MessageEvent, revision: Revision, { isKudosMessage, changesKudos }: Edit): Promise<Observation> {
@@ -67,8 +68,8 @@ async function observeEdit(ctx: MutationCtx, row: KudosMessageRow, event: Messag
   if (!changesKudos) return { kind: "ignored", why: "unchanged" };
   if (!isKudosMessage) return hasOpenAttempt(row) ? withdraw(ctx, row) : ignore(ctx, row, "ordinary-chat");
 
-  await ctx.db.patch(row._id, { state: "awaiting-directory", attempt: event.revision, spendsAt: event.at });
-  const observation = await evaluate(ctx, (await ctx.db.get(row._id))!, { lastCheck: false });
+  await ctx.db.patch(row._id, { state: "awaiting-directory", attempt: event.revision, spendsAt: event.at, checks: 0 });
+  const observation = await evaluate(ctx, (await ctx.db.get(row._id))!);
   if (observation.kind === "awaiting-directory" && showsIndicator(row)) await setIndicator(ctx, refOf(row), null);
   return observation;
 }
@@ -96,27 +97,27 @@ async function insertRow(ctx: MutationCtx, event: MessageEvent, revision: Revisi
     state,
     attempt: event.revision,
     spendsAt: event.at,
+    checks: 0,
   });
   return (await ctx.db.get(id))!;
 }
 
-export const recheck = internalMutation({
-  args: { ref: messageRefValidator, attempt: v.int64() },
-  handler: async (ctx, { ref, attempt }): Promise<Observation> => {
-    const row = await kudosMessageRow(ctx, ref);
-    if (row === null || row.state !== "awaiting-directory") return { kind: "ignored", why: "unchanged" };
-    if (row.attempt !== attempt) return { kind: "ignored", why: "stale-revision" };
-    return evaluate(ctx, row, { lastCheck: true });
-  },
-});
+export async function awaitedUsers(ctx: QueryCtx, ref: MessageRef, attempt: bigint): Promise<ChatUserId[] | null> {
+  const row = await kudosMessageRow(ctx, ref);
+  if (row?.state !== "awaiting-directory" || row.attempt !== attempt) return null;
+  return unknownUsers(ctx, row);
+}
 
-async function evaluate(ctx: MutationCtx, row: KudosMessageRow, { lastCheck }: { lastCheck: boolean }): Promise<Observation> {
+export async function recheck(ctx: MutationCtx, ref: MessageRef, attempt: bigint): Promise<Observation> {
+  const row = await kudosMessageRow(ctx, ref);
+  if (row === null || row.state !== "awaiting-directory") return { kind: "ignored", why: "unchanged" };
+  if (row.attempt !== attempt) return { kind: "ignored", why: "stale-revision" };
+  return evaluate(ctx, row);
+}
+
+async function evaluate(ctx: MutationCtx, row: KudosMessageRow): Promise<Observation> {
   const unknown = await unknownUsers(ctx, row);
-  if (unknown.length > 0) {
-    if (!lastCheck) return { kind: "awaiting-directory", users: unknown, retryInMs: 0, attempt: row.attempt };
-    await ctx.db.patch(row._id, { state: "abandoned" });
-    return { kind: "abandoned" };
-  }
+  if (unknown.length > 0) return awaitDirectory(ctx, row, unknown);
 
   const giver = await lookup(ctx, row.workspace, row.author);
   if (giver?.kind !== "member") return ignore(ctx, row, "not-a-member");
@@ -128,6 +129,16 @@ async function evaluate(ctx: MutationCtx, row: KudosMessageRow, { lastCheck }: {
   await ctx.db.patch(row._id, { state: outcome.kind });
   await tellGiver(ctx, row, outcome, settings.baseAllowance);
   return { kind: "evaluated", outcome };
+}
+
+async function awaitDirectory(ctx: MutationCtx, row: KudosMessageRow, users: ChatUserId[]): Promise<Observation> {
+  const retryInMs = directoryCheckDelaysMs[row.checks];
+  if (retryInMs === undefined) {
+    await ctx.db.patch(row._id, { state: "abandoned" });
+    return { kind: "abandoned" };
+  }
+  await ctx.db.patch(row._id, { checks: row.checks + 1 });
+  return { kind: "awaiting-directory", users, retryInMs, attempt: row.attempt };
 }
 
 async function tellGiver(ctx: MutationCtx, row: KudosMessageRow, outcome: Outcome, base: number) {

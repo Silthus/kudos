@@ -32,14 +32,18 @@ export async function chatUserOf(ctx: QueryCtx, member: MemberId): Promise<{ wor
 }
 
 export const record = internalMutation({
-  args: { workspace: v.string(), user: v.string(), entry: directoryEntryValidator },
-  handler: async (ctx, { workspace, user, entry }) => {
-    const row = { workspace, user, timeZone: undefined, ...entry };
+  args: { workspace: v.string(), user: v.string(), entry: directoryEntryValidator, asOf: v.optional(v.number()) },
+  handler: async (ctx, { workspace, user, entry, asOf }) => {
+    const row = { workspace, user, timeZone: undefined, asOf, ...entry };
     const existing = await memberRow(ctx, workspace, user);
     if (existing === null) await ctx.db.insert("members", row);
-    else await ctx.db.replace(existing._id, row);
+    else if (!isOlder(asOf, existing.asOf)) await ctx.db.replace(existing._id, row);
   },
 });
+
+function isOlder(asOf: number | undefined, known: number | undefined) {
+  return asOf !== undefined && known !== undefined && asOf < known;
+}
 
 function memberRow(ctx: QueryCtx, workspace: string, user: ChatUserId) {
   return ctx.db

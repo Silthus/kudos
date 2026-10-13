@@ -20,6 +20,7 @@ export default defineSchema({
     user: v.string(),
     kind: v.union(v.literal("member"), v.literal("bot"), v.literal("not-a-member")),
     timeZone: v.optional(v.string()),
+    asOf: v.optional(v.number()),
   }).index("by_user", ["workspace", "user"]),
 
   kudosMessages: defineTable({
@@ -42,6 +43,7 @@ export default defineSchema({
     content: v.object({ mentions: v.array(mentionValidator), emoji: v.array(v.string()) }),
     annotations: annotationsValidator,
     spendsAt: v.number(),
+    checks: v.number(),
   }).index("by_message", ["workspace", "conversation", "message"]),
 
   awards: defineTable({

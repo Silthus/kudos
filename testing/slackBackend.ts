@@ -3,7 +3,7 @@ import { vi } from "vitest";
 import schema from "../convex/schema";
 import { modules } from "../convex/test.setup";
 import { signedRequest } from "./signedSlack";
-import { messageChangedEvent, messageDeletedEvent, messageEvent, type EditOptions, type MessageOptions, type RichElement } from "./slackMessages";
+import { memberEvent, messageChangedEvent, messageDeletedEvent, messageEvent, type EditOptions, type MessageOptions, type RichElement } from "./slackMessages";
 
 export type Backend = ReturnType<typeof testBackend>;
 
@@ -21,6 +21,10 @@ export async function edit(t: Backend, blocks: RichElement[], options: EditOptio
 
 export async function deleteMessage(t: Backend, options: Parameters<typeof messageDeletedEvent>[0] = {}) {
   return t.fetch("/slack/events", await signedRequest(messageDeletedEvent(options)));
+}
+
+export async function memberChanged(t: Backend, type: Parameters<typeof memberEvent>[0], user: Parameters<typeof memberEvent>[1]) {
+  return t.fetch("/slack/events", await signedRequest(memberEvent(type, user)));
 }
 
 export async function settle(t: Backend) {

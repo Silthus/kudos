@@ -4,6 +4,7 @@ export type SlackUser = {
   deleted?: boolean;
   is_bot?: boolean;
   tz?: string;
+  updated?: number;
 };
 
 export type SlackCall = { method: string; args: Record<string, string> };
@@ -25,6 +26,7 @@ export const landsButTimesOut: ScriptedAnswer = (answerAsSlackWould) => {
 export class FakeSlack {
   readonly calls: SlackCall[] = [];
   private readonly users = new Map<string, SlackUser>();
+  private readonly joinTimes = new Map<string, number>();
   private readonly reactionsByMessage = new Map<string, string[]>();
   private readonly scripted = new Map<string, ScriptedAnswer[]>();
   private readonly callTimes = new Map<SlackCall, number>();
@@ -33,6 +35,11 @@ export class FakeSlack {
   withMember(id: string, options: Partial<SlackUser> = {}) {
     this.users.set(id, { id, team_id: "T1", ...options });
     return this;
+  }
+
+  joiningAt(id: string, at: Date, options: Partial<SlackUser> = {}) {
+    this.joinTimes.set(id, at.getTime());
+    return this.withMember(id, options);
   }
 
   answering(method: string, ...answers: ScriptedAnswer[]) {
@@ -101,7 +108,8 @@ export class FakeSlack {
   private answer(method: string, args: Record<string, string>) {
     if (method === "users.info") {
       const user = this.users.get(args.user ?? "");
-      return user ? { ok: true, user } : { ok: false, error: "user_not_found" };
+      const hasJoined = Date.now() >= (this.joinTimes.get(args.user ?? "") ?? 0);
+      return user && hasJoined ? { ok: true, user } : { ok: false, error: "user_not_found" };
     }
     if (method === "reactions.add") {
       const reactions = this.reactionsOn(args.channel ?? "", args.timestamp ?? "");
