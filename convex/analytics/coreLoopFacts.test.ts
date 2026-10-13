@@ -3,7 +3,13 @@ import { FakePostHog, postHogHost, projectToken, routedFetch, type CapturedEvent
 import { FakeSlack, httpStatus, slackError, type ScriptedAnswer } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { edit, memberChanged, post, settle, settleUntil, testBackend, type Backend } from "../../testing/slackBackend";
-import { appHomeOpened, emoji, mention, messageEvent, section, slashCommand, text, type Conversation } from "../../testing/slackMessages";
+import { appHomeOpened, emoji, mention, messageEvent, section, slashCommand, slashCommandResponseUrl, text, type Conversation } from "../../testing/slackMessages";
+import { recordUsage } from "./usage";
+
+vi.mock("./usage", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./usage")>();
+  return { recordUsage: vi.fn(actual.recordUsage) };
+});
 
 const now = new Date("2026-10-13T10:00:00Z");
 const postedAt = new Date(1760349600_000);
@@ -195,6 +201,29 @@ describe("O3 R45: app home opened", () => {
     expect(postHog.events().map((event) => event.event)).toEqual(["app home opened"]);
   });
 
+  test("a member the directory doesn't know yet sends app home opened once, at the event's time, through a failed lookup and a failed publish", async () => {
+    const t = testBackend();
+    const openedAt = new Date(now.getTime() - 2_000);
+    slack.answering("users.info", httpStatus(500)).answering("views.publish", httpStatus(500));
+
+    await t.fetch("/slack/events", await signedRequest(appHomeOpened("U_BOB", { eventTime: openedAt })));
+    await settle(t);
+
+    expect(slack.callsTo("views.publish")).toHaveLength(2);
+    expect(postHog.events().map(shapeOf)).toEqual([{ event: "app home opened", timestamp: openedAt.toISOString(), properties: shared }]);
+  });
+
+  test("R47: someone the directory doesn't know, who turns out not to be a member, sends nothing", async () => {
+    const t = testBackend();
+    slack.withMember("U_GONE", { deleted: true });
+
+    await t.fetch("/slack/events", await signedRequest(appHomeOpened("U_GONE")));
+    await settle(t);
+
+    expect(slack.callsTo("views.publish")).toHaveLength(1);
+    expect(postHog.requests).toEqual([]);
+  });
+
   test("R47: someone who isn't a member opening App Home sends nothing", async () => {
     const t = testBackend();
     slack.withMember("U_GONE", { deleted: true });
@@ -241,12 +270,36 @@ describe("O3 O5: command used", () => {
     expect(used).toMatchObject({ event: "command used", distinct_id: opened!.distinct_id, properties: { alias: true, result: "joined" } });
   });
 
+  test("a member the directory doesn't know yet sends command used", async () => {
+    const t = testBackend();
+    slack.answering("conversations.join", () => Response.json({ ok: true }));
+
+    await runCommand(t, slashCommand(publicChannel, { user: "U_ALICE" }));
+
+    expect(postHog.events().map(shapeOf)).toEqual([
+      { event: "command used", timestamp: now.toISOString(), properties: { ...shared, command: "hedgehug", alias: false, result: "joined" } },
+    ]);
+  });
+
+  test("O15: a command whose recording fails still gets its reply", async () => {
+    const t = testBackend();
+    slack.answering("conversations.join", () => Response.json({ ok: true }));
+    await memberChanged(t, "team_join", { id: "U1" });
+    vi.mocked(recordUsage).mockRejectedValueOnce(new Error("recording failed"));
+
+    await runCommand(t, slashCommand(publicChannel));
+
+    expect(slack.calls.filter((call) => call.method === new URL(slashCommandResponseUrl).pathname.split("/").pop()).map((call) => call.args)).toEqual([
+      { response_type: "ephemeral", text: "I'm in now. Mention teammates with a kudos emoji here and I'll pass the kudos on." },
+    ]);
+  });
+
   test("a non-member's command sends nothing", async () => {
     const t = testBackend();
     slack.answering("conversations.join", () => Response.json({ ok: true }));
-    await memberChanged(t, "team_join", { id: "U1", is_bot: true });
+    slack.withMember("U_GONE", { deleted: true });
 
-    await runCommand(t, slashCommand(publicChannel));
+    await runCommand(t, slashCommand(publicChannel, { user: "U_GONE" }));
 
     expect(slack.callsTo("conversations.join")).toHaveLength(1);
     expect(postHog.requests).toEqual([]);

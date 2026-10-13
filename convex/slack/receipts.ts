@@ -25,8 +25,13 @@ export const receiveHomeOpened = internalMutation({
   handler: async (ctx, { user, at, ...receipt }) => {
     if (await isRedelivered(ctx, receipt)) return;
     await ctx.db.insert("slackReceipts", receipt);
-    await reportHomeOpened(ctx, receipt.workspace, user, at);
-    await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, { workspace: receipt.workspace, user });
+    const opening = { workspace: receipt.workspace, user, at };
+    const reported = await reportHomeOpened(ctx, opening);
+    await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, {
+      workspace: receipt.workspace,
+      user,
+      ...(reported === "unknown-person" && { unreportedOpeningAt: at }),
+    });
   },
 });
 

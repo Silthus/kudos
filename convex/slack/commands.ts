@@ -1,15 +1,20 @@
-import { v } from "convex/values";
+import { v, type ObjectType } from "convex/values";
 import { internal } from "../_generated/api";
-import { httpAction, internalAction, internalMutation } from "../_generated/server";
+import { httpAction, internalAction, internalMutation, type ActionCtx } from "../_generated/server";
 import { recordUsage } from "../analytics/usage";
 import { type KudosCommandResult, renderKudosCommandReply } from "../feedback/kudosCommand";
 import { lookup } from "../workspace/directory";
+import { lookUpUser } from "./directory";
 import { readSignedBody } from "./signature";
 import { callSlack, type SlackAnswer } from "./webApi";
 
 const commandArgs = { workspace: v.string(), user: v.string(), alias: v.boolean(), arrivedAt: v.number() };
 
 const kudosCommandResultValidator = v.union(v.literal("joined"), v.literal("already-in"), v.literal("private-channel"), v.literal("direct-message"));
+
+const commandUsedArgs = { ...commandArgs, result: kudosCommandResultValidator };
+
+type CommandUsed = ObjectType<typeof commandUsedArgs>;
 
 export const slackCommands = httpAction(async (ctx, request) => {
   const arrivedAt = Date.now();
@@ -34,13 +39,19 @@ export const addToChannel = internalAction({
   handler: async (ctx, { channel, inDirectMessage, responseUrl, ...used }) => {
     const answer = await callSlack("conversations.join", { channel });
     const result = resultOfJoining(answer, inDirectMessage);
-    await ctx.runMutation(internal.slack.commands.reportCommandUsed, { ...used, result });
     await answerCommand(responseUrl, renderKudosCommandReply(result));
+    await reportCommandUsed(ctx, { ...used, result });
   },
 });
 
-export const reportCommandUsed = internalMutation({
-  args: { ...commandArgs, result: kudosCommandResultValidator },
+async function reportCommandUsed(ctx: ActionCtx, used: CommandUsed) {
+  const person = { workspace: used.workspace, user: used.user };
+  if (!(await ctx.runQuery(internal.slack.directory.knows, person))) await lookUpUser(ctx, person.workspace, person.user);
+  await ctx.runMutation(internal.slack.commands.recordCommandUsed, used);
+}
+
+export const recordCommandUsed = internalMutation({
+  args: commandUsedArgs,
   handler: async (ctx, { workspace, user, alias, arrivedAt, result }) => {
     const person = await lookup(ctx, workspace, user);
     if (person?.kind === "member") await recordUsage(ctx, { kind: "commandUsed", workspace, member: person.member, alias, result, at: arrivedAt });

@@ -3,7 +3,7 @@ import { internal } from "../_generated/api";
 import { internalAction, internalMutation, internalQuery, type ActionCtx, type MutationCtx } from "../_generated/server";
 import { awaitedUsers, recheck, type Observation } from "../engine/engine";
 import { messageRefValidator, type MessageRef } from "../engine/messageEvent";
-import type { DirectoryEntry, DirectoryRecord } from "../workspace/directory";
+import { lookup, type DirectoryEntry, type DirectoryRecord } from "../workspace/directory";
 import { readSlack } from "./webApi";
 
 type SlackUser = { id: string; team_id?: string; deleted?: boolean; is_bot?: boolean; tz?: string };
@@ -37,6 +37,11 @@ export const checkDirectory = internalAction({
     for (const user of users) await lookUpUser(ctx, ref.workspace, user);
     await ctx.runMutation(internal.slack.directory.recheckMessage, { ref, attempt });
   },
+});
+
+export const knows = internalQuery({
+  args: { workspace: v.string(), user: v.string() },
+  handler: async (ctx, { workspace, user }) => (await lookup(ctx, workspace, user)) !== undefined,
 });
 
 export const usersAwaited = internalQuery({
