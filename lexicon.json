@@ -294,6 +294,10 @@
     {
       "name": "levelReached",
       "definition": "The domain event progression publishes when a kudosGiven brings a member to a higher level: one per member and event, naming the highest level reached and the skill points it gave, with the kudos message that caused it (P6). Level-up DMs and public notices react to it."
+    },
+    {
+      "name": "public reply",
+      "definition": "The one public message under a kudos message, or in the announcement channel when a workspace admin picked one, that celebrates the progress members reached through it; posted once, then edited in place as sections from many modules (level notices, later achievements, quips and chime-in lines) arrive. It states only progress, never the kudos text or the giver (P64, D18)."
     }
   ]
 }

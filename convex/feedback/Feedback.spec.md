@@ -24,6 +24,7 @@ Feedback: the indicator on each kudos message as desired state and the private r
 - one public reply per kudos message: A kudos message gets at most one public reply in each place it is celebrated, its thread or the announcement channel: the reply is posted once and then edited in place as sections arrive, however many members level up through the message and whenever their sections arrive, and a post whose answer is lost is never posted again.
   over: every public reply the app asks Slack to post or edit for a kudos message: one member and two members levelling up through it, a level reached after the reply was posted, one reached while the post is in flight, and a post whose answer is lost
   via: D18: the one public reply
+  refuted: setPublicSection also scheduled a delivery while the reply was still posting -> the two-members test found 2 posts in the thread where 1 belongs (2026-10-13)
   because: D18 keeps the channel calm: progress from one kudos message is celebrated in one reply that grows, and a second reply in the thread, from two subscribers racing to post or from a retried post that had landed, would repeat the celebration for everyone in the channel
   kinds: message, output
   checklist: destination-confinement dismissed: the reply goes to the Slack Web API at one configured base URL, to the kudos message's conversation or the workspace's announcement channel, with no redirect followed and no destination taken from a request
