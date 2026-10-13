@@ -1,8 +1,8 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
+import { internalMutation, type ActionCtx, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
-import { lookUpUser } from "./directory";
+import { lookUpUser, type LookUp } from "./directory";
 
 export const verificationTries = 3;
 const firstRetryMs = 1000;
@@ -27,11 +27,20 @@ export function verificationOf(ctx: QueryCtx, workspace: string, user: string) {
 export const verifyMember = observedAction({
   args: personArgs,
   handler: async (ctx, { workspace, user }) => {
-    const answer = await lookUpUser(ctx, workspace, user);
+    const answer = await lookUpOrFail(ctx, workspace, user);
     const retryAfterMs = answer.kind === "failed" ? answer.retryAfterMs : undefined;
     await ctx.runMutation(internal.slack.verifyMember.recordAttempt, { workspace, user, found: answer.kind === "found", retryAfterMs });
   },
 });
+
+async function lookUpOrFail(ctx: ActionCtx, workspace: string, user: string): Promise<LookUp> {
+  try {
+    return await lookUpUser(ctx, workspace, user);
+  } catch (error) {
+    console.warn(`verifying ${user} failed: ${error}`);
+    return { kind: "failed" };
+  }
+}
 
 export const recordAttempt = internalMutation({
   args: { ...personArgs, found: v.boolean(), retryAfterMs: v.optional(v.number()) },

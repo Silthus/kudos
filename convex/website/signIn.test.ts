@@ -142,6 +142,17 @@ describe("WS8: a person the directory doesn't know yet is verified with users.in
     expect(await t.run((ctx) => ctx.db.query("members").collect())).toEqual([]);
   });
 
+  test("a person users.info keeps answering ok without a user for reads unverified after the retries", async () => {
+    const okWithoutUser = () => Response.json({ ok: true });
+    slack.withMember("U_JUNO").answering("users.info", okWithoutUser, okWithoutUser, okWithoutUser);
+    const userId = await signIn(juno);
+
+    await settleInTimeOrder(t);
+
+    expect(await profileOf(userId)).toEqual({ kind: "unverified" });
+    expect(slack.callsTo("users.info")).toHaveLength(3);
+  });
+
   test("signing in again after a failed verification starts a fresh check", async () => {
     slack.withMember("U_JUNO").answering("users.info", httpStatus(500), httpStatus(500), httpStatus(500));
     const userId = await signIn(juno);
