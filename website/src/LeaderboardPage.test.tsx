@@ -248,6 +248,123 @@ describe("WS41: the podium stands the top three on neutral pedestals", () => {
   });
 });
 
+function boardList() {
+  return within(main()).getByRole("list", { name: "No. · member, kudos given" });
+}
+
+function linesOf(list: HTMLElement) {
+  return within(list)
+    .getAllByRole("listitem")
+    .map((line) => line.textContent);
+}
+
+describe("WS42: the list shows the rest of G17's window below the podium", () => {
+  it("lists the window after the podium in order, with one … where positions are skipped", () => {
+    showBoard(leaderboardFixtures.midBoard);
+    expect(linesOf(boardList())).toEqual([
+      "…",
+      "Rank 6: 6FMFay Mensah14",
+      "Rank 7: 7GPGus Park13",
+      "Rank 8: 8HSHal Sato12",
+      "Rank 9: 9SESam ExampleYou11",
+      "Rank 10: 10IQIvy Quinn10",
+      "Rank 11: 11JVJo Vogt9",
+      "Rank 12: 12KHKai Hale8",
+    ]);
+  });
+
+  it("prints ranks in Inter with tabular figures, not display type", () => {
+    showBoard(leaderboardFixtures.midBoard);
+    const rank = within(boardList()).getByText("6");
+    expect(rank).toHaveClass("tabular-nums");
+    expect(rank.closest(".hud-display")).toBeNull();
+  });
+
+  it("marks the viewer's line with the primary ring, a left primary edge and a You label", () => {
+    showBoard(leaderboardFixtures.midBoard);
+    const mine = within(boardList()).getAllByRole("listitem").find((line) => line.textContent?.includes("Sam Example"))!;
+    expect(within(mine).getByText("You")).toBeInTheDocument();
+    expect(mine.querySelector("[data-you-ring]")).not.toBeNull();
+    expect(mine).toHaveAttribute("data-you");
+    const other = within(boardList()).getAllByRole("listitem").find((line) => line.textContent?.includes("Ivy Quinn"))!;
+    expect(other).not.toHaveAttribute("data-you");
+    expect(other.querySelector("[data-you-ring]")).toBeNull();
+  });
+
+  it("shows no list when the podium holds the whole window", () => {
+    showBoard(leaderboardFixtures.viewerLeads);
+    expect(within(main()).queryByRole("list", { name: "No. · member, kudos given" })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    { path: "/leaderboard", says: "Give kudos this week to join the board." },
+    { path: "/leaderboard?period=month", says: "Give kudos this month to join the board." },
+    { path: "/leaderboard?period=all", says: "Give kudos to join the board." },
+  ])("tells a viewer who isn't ranked how to join, with one action to Slack, at $path", ({ path, says }) => {
+    showBoard(leaderboardFixtures.notRanked, path);
+    expect(within(main()).getByText(says)).toBeInTheDocument();
+    const slack = within(main()).getByRole("link", { name: "Thank someone in Slack (opens in a new tab)" });
+    expect(slack).toHaveAttribute("href", "https://app.slack.com/client/T1");
+    expect(slack).toHaveAttribute("target", "_blank");
+  });
+
+  it("tells a viewer who left the boards where to change that, in place of their row", () => {
+    showBoard(leaderboardFixtures.left);
+    expect(within(main()).getByText("You're not on the leaderboards. You can change that in Settings in Slack.")).toBeInTheDocument();
+    expect(within(main()).queryByText("You")).not.toBeInTheDocument();
+  });
+});
+
+describe("WS44: an empty board", () => {
+  it("shows one hedgehog, Max's sentence and one action to thank someone in Slack, with no podium or list", () => {
+    showBoard(leaderboardFixtures.empty, "/leaderboard?period=all");
+    expect(pageTitle()).toHaveTextContent("Nobody is on this board yet.");
+    expect(document.title).toBe("HedgeHug · Leaderboard");
+    const board = within(main()).getByRole("region", { name: "Everyone · All time" });
+    expect([...board.querySelectorAll("svg")].filter((art) => art.closest("a") === null)).toHaveLength(1);
+    expect(within(board).getAllByRole("link")).toEqual([within(board).getByRole("link", { name: "Thank someone in Slack (opens in a new tab)" })]);
+    expect(within(main()).queryByRole("list", { name: "Top three" })).not.toBeInTheDocument();
+    expect(within(main()).queryByRole("list", { name: "No. · member, kudos given" })).not.toBeInTheDocument();
+  });
+});
+
+function onlyYou() {
+  return within(main()).queryByRole("region", { name: "Only you see these" });
+}
+
+describe("WS45: only you see these", () => {
+  it.each([
+    { line: "a gain with places", answer: leaderboardFixtures.midBoard, path: "/leaderboard", says: "▲ 3 more kudos than this time last week · ▲ 2 places" },
+    { line: "a gain without places", answer: leaderboardFixtures.left, path: "/leaderboard", says: "▲ 2 more kudos than this time last week" },
+    { line: "a best", answer: leaderboardFixtures.notRanked, path: "/leaderboard?period=month", says: "Your best month so far: 19 kudos." },
+  ])("shows G18's line for $line", ({ answer, path, says }) => {
+    showBoard(answer, path);
+    expect(onlyYou()).toHaveTextContent(says);
+    expect(onlyYou()).not.toHaveTextContent(/▼|fewer|lost|dropped/);
+  });
+
+  it("is not shown without a line", () => {
+    showBoard(leaderboardFixtures.sharedLead);
+    expect(onlyYou()).not.toBeInTheDocument();
+  });
+});
+
+describe("WS46: how it counts", () => {
+  it.each([
+    { who: "on the boards", answer: leaderboardFixtures.midBoard, status: "You're on the leaderboards." },
+    { who: "off the boards", answer: leaderboardFixtures.left, status: "You're off the leaderboards." },
+  ])("says what counts and shows the setting as a read-only status for a viewer $who", ({ answer, status }) => {
+    showBoard(answer);
+    const panel = within(main()).getByRole("region", { name: "How it counts" });
+    expect(panel).toHaveTextContent("Only kudos given count. Kudos received, XP and levels never rank anyone.");
+    expect(panel).toHaveTextContent(status);
+    expect(panel).toHaveTextContent("Settings in Slack's App Home");
+    expect(within(panel).queryByRole("switch")).not.toBeInTheDocument();
+    expect(within(panel).queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(within(panel).queryByRole("button")).not.toBeInTheDocument();
+  });
+});
+
 function crowned(spot: HTMLElement) {
   return spot.querySelector("[data-crown]") !== null;
 }
