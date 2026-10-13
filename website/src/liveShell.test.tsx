@@ -155,6 +155,17 @@ describe("WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the 
     expect(pageTitle()).toHaveTextContent("Not open yet");
   });
 
+  it("lets the failure go once auth settles, so a later signed-out answer shows the plain sign-in page", () => {
+    profileRead.mockReturnValue(shellFixtures.signedOut);
+    const { rerender } = render(<Root convexUrl="https://happy-hog-123.convex.cloud" />);
+    redemptionRejects();
+
+    auth.isLoading = false;
+    rerender(<Root convexUrl="https://happy-hog-123.convex.cloud" />);
+
+    expect(pageTitle()).toHaveTextContent(/^Sign in$/);
+  });
+
   it("ignores a rejection elsewhere on a page that brought no code from Slack", () => {
     window.history.replaceState(null, "", "/");
     profileRead.mockReturnValue(shellFixtures.signedOut);

@@ -15,5 +15,5 @@ export function useCodeRedemptionFailed(authLoading: boolean) {
     return () => window.removeEventListener("unhandledrejection", fail);
   }, [codePending, authLoading]);
 
-  return failed;
+  return failed && authLoading;
 }
