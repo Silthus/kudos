@@ -194,6 +194,11 @@ describe("R20: kudosGiven", () => {
       ["an Over allowance message edited to give", [{ mentions: tooMany, emoji: tacos(4) }, { mentions: tooMany, emoji: tacos(1) }], true],
       ["an Invalid message edited to give", [{ mentions: [person("U_ALICE")], emoji: tacos(1) }, { mentions: tooMany, emoji: tacos(1) }], true],
       ["a withdrawn attempt edited back into a kudos message", [{ mentions: tooMany, emoji: tacos(4) }, { mentions: tooMany, emoji: [] }, { mentions: tooMany, emoji: tacos(1) }], true],
+      [
+        "a withdrawn attempt edited again before it gives",
+        [{ mentions: tooMany, emoji: tacos(4) }, { mentions: tooMany, emoji: [] }, { mentions: [person("U_ALICE")], emoji: [] }, { mentions: tooMany, emoji: tacos(1) }],
+        true,
+      ],
     ])("retry for %s", async (_, revisions, retry) => {
       const t = await withDirectory({ U_ALICE: "UTC", U_BOB: "UTC" });
 

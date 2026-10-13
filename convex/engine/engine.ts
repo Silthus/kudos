@@ -90,7 +90,7 @@ async function observeFromNonMember(ctx: MutationCtx, row: KudosMessageRow | nul
 }
 
 async function withdraw(ctx: MutationCtx, row: KudosMessageRow): Promise<Observation> {
-  await ctx.db.patch(row._id, { state: "withdrawn" });
+  await ctx.db.patch(row._id, { state: "withdrawn", retry: true });
   if (showsIndicator(row)) await setIndicator(ctx, refOf(row), null);
   return { kind: "withdrawn" };
 }
