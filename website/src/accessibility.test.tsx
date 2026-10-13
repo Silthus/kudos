@@ -6,6 +6,7 @@ import { fakeSystemTheme } from "./test/systemTheme";
 
 const pages: { name: string; path: string; visitor: ShellState }[] = [
   { name: "loading", path: "/", visitor: shellFixtures.loading },
+  { name: "connecting", path: "/", visitor: shellFixtures.connecting },
   { name: "closed", path: "/", visitor: shellFixtures.closed },
   { name: "signed out", path: "/", visitor: shellFixtures.signedOut },
   { name: "sign-in didn't finish", path: "/", visitor: shellFixtures.signInUnfinished },

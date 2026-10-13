@@ -1,0 +1,347 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/followups/website
+
+ ❯ |website| src/liveShell.test.tsx (9 tests | 4 failed) 1488ms
+   ❯ WS20: a socket that never connects shows where the page stands, never a blank page forever (3)
+     × shows Can't reach HedgeHug once the socket has stayed unconnected for five seconds 9ms
+   ❯ WS5 WS20: the one-time code Slack's return brings is redeemed once, by the shell, and a failure ends the wait (4)
+     × redeems the code once, takes it off the address, and leaves Convex Auth's own redemption off 128ms
+     × shows nothing but the busy frame while the code redeems, never the signed-out page 21ms
+     × shows Sign-in didn't finish when the code fails to redeem, instead of loading forever 1020ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/liveShell.test.tsx > WS20: a socket that never connects shows where the page stands, never a blank page forever > shows Can't reach HedgeHug once the socket has stayed unconnected for five seconds
+Error: [2mexpect([22m[31mreceived[39m[2m).toHaveTextContent()[22m
+
+[31mreceived[39m value must be a Node.
+Received has type:  Null
+Received has value: [31mnull[39m
+ ❯ src/liveShell.test.tsx:94:25
+     92|     act(() => vi.advanceTimersByTime(1));
+     93|
+     94|     expect(pageTitle()).toHaveTextContent("Can't reach HedgeHug");
+       |                         ^
+     95|   });
+     96|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  |website| src/liveShell.test.tsx > WS5 WS20: the one-time code Slack's return brings is redeemed once, by the shell, and a failure ends the wait > redeems the code once, takes it off the address, and leaves Convex Auth's own redemption off
+AssertionError: expected [] to deeply equal [ [ undefined, { code: '12345678' } ] ]
+
+- Expected
++ Received
+
+- [
+-   [
+-     undefined,
+-     {
+-       "code": "12345678",
+-     },
+-   ],
+- ]
++ []
+
+ ❯ src/liveShell.test.tsx:133:43
+    131|
+    132|     expect(await screen.findByRole("heading", { level: 1, name: "Thank…
+    133|     expect(authActions.signIn.mock.calls).toEqual([[undefined, { code:…
+       |                                           ^
+    134|     expect(window.location.search).toBe("");
+    135|     expect(authProviderProps).toHaveBeenCalledWith(expect.objectContai…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  |website| src/liveShell.test.tsx > WS5 WS20: the one-time code Slack's return brings is redeemed once, by the shell, and a failure ends the wait > shows nothing but the busy frame while the code redeems, never the signed-out page
+AssertionError: expected <h1 tabindex="-1" …(1)></h1> to be null
+
+- Expected:
+null
+
++ Received:
+<h1
+  class="hud-display text-2xl font-bold tracking-tight outline-none"
+  tabindex="-1"
+>
+  Sign in
+</h1>
+
+ ❯ src/liveShell.test.tsx:143:25
+    141|     renderLiveSite();
+    142|
+    143|     expect(pageTitle()).toBeNull();
+       |                         ^
+    144|     expect(screen.queryByRole("button", { name: "Sign in with Slack" }…
+    145|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  |website| src/liveShell.test.tsx > WS5 WS20: the one-time code Slack's return brings is redeemed once, by the shell, and a failure ends the wait > shows Sign-in didn't finish when the code fails to redeem, instead of loading forever
+TestingLibraryElementError: Unable to find role="heading" and name "Sign-in didn't finish"
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"hud-root flex min-h-screen flex-col"[39m
+    [36m>[39m
+      [36m<header[39m
+        [33mclass[39m=[32m"sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"mx-auto flex h-14 w-full max-w-6xl items-center gap-3 px-4 md:px-6"[39m
+        [36m>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m"flex items-center rounded-md"[39m
+            [33mhref[39m=[32m"/"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"flex flex-col leading-none"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"hud-display text-lg font-bold"[39m
+              [36m>[39m
+                [0mHedgeHug[0m
+              [36m</span>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"text-[10px] text-muted-foreground"[39m
+              [36m>[39m
+                [0mThanks a Hog[0m
+              [36m</span>[39m
+            [36m</span>[39m
+          [36m</a>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ml-auto flex items-center gap-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33maria-label[39m=[32m"Theme"[39m
+              [33mclass[39m=[32m"flex items-center gap-0.5 rounded-full border bg-card p-0.5"[39m
+              [33mrole[39m=[32m"group"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Use system setting"[39m
+                [33maria-pressed[39m=[32m"true"[39m
+                [33mclass[39m=[32m"relative flex size-7 items-center justify-center rounded-full border transition-colors border-primary bg-fill-selected text-foreground"[39m
+                [33mtitle[39m=[32m"Use system setting"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33mclass[39m=[32m"LemonIcon size-4"[39m
+                  [33mfill[39m=[32m"currentColor"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"100%"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33mclip-rule[39m=[32m"evenodd"[39m
+                    [33md[39m=[32m"M3 5.75A2.75 2.75 0 0 1 5.75 3h12.5A2.75 2.75 0 0 1 21 5.75V16h1.25a.75.75 0 0 1 .75.75v1.5A2.75 2.75 0 0 1 20.25 21H3.75A2.75 2.75 0 0 1 1 18.25v-1.5a.75.75 0 0 1 .75-.75H3V5.75ZM4.5 16h15V5.75c0-.69-.56-1.25-1.25-1.25H5.75c-.69 0-1.25.56-1.25 1.25V16Zm-2 1.5v.75c0 .69.56 1.25 1.25 1.25h16.5c.69 0 1.25-.56 1.25-1.25v-.75h-19Z"[39m
+                    [33mfill-rule[39m=[32m"evenodd"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [36m<span[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"absolute -bottom-0.5 -right-0.5 flex size-3 items-center justify-center rounded-full bg-primary text-primary-foreground"[39m
+                  [33mdata-selected-mark[39m=[32m"true"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33mclass[39m=[32m"LemonIcon size-2.5"[39m
+                    [33mfill[39m=[32m"currentColor"[39m
+                    [33mviewBox[39m=[32m"0 0 24 24"[39m
+                    [33mwidth[39m=[32m"100%"[39m
+                    [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                  [36m>[39m
+                    [36m<g[39m
+                      [33mclip-path[39m=[32m"url(#icon/check__a)"[39m
+                    [36m>[39m
+                      [36m<path[39m
+                        [33mclip-rule[39m=[32m"evenodd"[39m
+                        [33md[39m=[32m"M21.225 3.67a.75.75 0 0 1 .105 1.055L8.87 19.955a.75.75 0 0 1-1.11.056l-5.54-5.538a.75.75 0 0 1 1.061-1.061l4.953 4.952L20.169 3.775a.75.75 0 0 1 1.056-.105Z"[39m
+                        [33mfill-rule[39m=[32m"evenodd"[39m
+                      [36m/>[39m
+                    [36m</g>[39m
+                    [36m<defs>[39m
+                      [36m<clippath[39m
+                        [33mid[39m=[32m"icon/check__a"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"M0 0h20v18H0z"[39m
+                          [33mtransform[39m=[32m"translate(2 3)"[39m
+                        [36m/>[39m
+                      [36m</clippath>[39m
+                    [36m</defs>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Light"[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"[39m
+                [33mtitle[39m=[32m"Light"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33mclass[39m=[32m"LemonIcon size-4"[39m
+                  [33mfill[39m=[32m"currentColor"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"100%"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M12.0002 3.79083V2.26758M5.8418 18.6586L4.7647 19.7357M12.0002 22.7327V21.2094M19.2353 5.26468L18.1582 6.34179M20.709 12.5001H22.2322M18.1582 18.6586L19.2353 19.7357M1.76758 12.5001H3.29083M4.76462 5.26462L5.84173 6.34173M15.7123 8.78781C17.7626 10.8381 17.7626 14.1622 15.7123 16.2124C13.6621 18.2627 10.3379 18.2627 8.28769 16.2124C6.23744 14.1622 6.23744 10.8381 8.28769 8.78781C10.3379 6.73756 13.6621 6.73756 15.7123 8.78781Z"[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"1.5"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Dark"[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"[39m
+                [33mtitle[39m=[32m"Dark"[39m
+           ...
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"hud-root flex min-h-screen flex-col"[39m
+    [36m>[39m
+      [36m<header[39m
+        [33mclass[39m=[32m"sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"mx-auto flex h-14 w-full max-w-6xl items-center gap-3 px-4 md:px-6"[39m
+        [36m>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m"flex items-center rounded-md"[39m
+            [33mhref[39m=[32m"/"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"flex flex-col leading-none"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"hud-display text-lg font-bold"[39m
+              [36m>[39m
+                [0mHedgeHug[0m
+              [36m</span>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"text-[10px] text-muted-foreground"[39m
+              [36m>[39m
+                [0mThanks a Hog[0m
+              [36m</span>[39m
+            [36m</span>[39m
+          [36m</a>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ml-auto flex items-center gap-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33maria-label[39m=[32m"Theme"[39m
+              [33mclass[39m=[32m"flex items-center gap-0.5 rounded-full border bg-card p-0.5"[39m
+              [33mrole[39m=[32m"group"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Use system setting"[39m
+                [33maria-pressed[39m=[32m"true"[39m
+                [33mclass[39m=[32m"relative flex size-7 items-center justify-center rounded-full border transition-colors border-primary bg-fill-selected text-foreground"[39m
+                [33mtitle[39m=[32m"Use system setting"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33mclass[39m=[32m"LemonIcon size-4"[39m
+                  [33mfill[39m=[32m"currentColor"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"100%"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33mclip-rule[39m=[32m"evenodd"[39m
+                    [33md[39m=[32m"M3 5.75A2.75 2.75 0 0 1 5.75 3h12.5A2.75 2.75 0 0 1 21 5.75V16h1.25a.75.75 0 0 1 .75.75v1.5A2.75 2.75 0 0 1 20.25 21H3.75A2.75 2.75 0 0 1 1 18.25v-1.5a.75.75 0 0 1 .75-.75H3V5.75ZM4.5 16h15V5.75c0-.69-.56-1.25-1.25-1.25H5.75c-.69 0-1.25.56-1.25 1.25V16Zm-2 1.5v.75c0 .69.56 1.25 1.25 1.25h16.5c.69 0 1.25-.56 1.25-1.25v-.75h-19Z"[39m
+                    [33mfill-rule[39m=[32m"evenodd"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [36m<span[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"absolute -bottom-0.5 -right-0.5 flex size-3 items-center justify-center rounded-full bg-primary text-primary-foreground"[39m
+                  [33mdata-selected-mark[39m=[32m"true"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33mclass[39m=[32m"LemonIcon size-2.5"[39m
+                    [33mfill[39m=[32m"currentColor"[39m
+                    [33mviewBox[39m=[32m"0 0 24 24"[39m
+                    [33mwidth[39m=[32m"100%"[39m
+                    [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                  [36m>[39m
+                    [36m<g[39m
+                      [33mclip-path[39m=[32m"url(#icon/check__a)"[39m
+                    [36m>[39m
+                      [36m<path[39m
+                        [33mclip-rule[39m=[32m"evenodd"[39m
+                        [33md[39m=[32m"M21.225 3.67a.75.75 0 0 1 .105 1.055L8.87 19.955a.75.75 0 0 1-1.11.056l-5.54-5.538a.75.75 0 0 1 1.061-1.061l4.953 4.952L20.169 3.775a.75.75 0 0 1 1.056-.105Z"[39m
+                        [33mfill-rule[39m=[32m"evenodd"[39m
+                      [36m/>[39m
+                    [36m</g>[39m
+                    [36m<defs>[39m
+                      [36m<clippath[39m
+                        [33mid[39m=[32m"icon/check__a"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"M0 0h20v18H0z"[39m
+                          [33mtransform[39m=[32m"translate(2 3)"[39m
+                        [36m/>[39m
+                      [36m</clippath>[39m
+                    [36m</defs>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Light"[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"[39m
+                [33mtitle[39m=[32m"Light"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33mclass[39m=[32m"LemonIcon size-4"[39m
+                  [33mfill[39m=[32m"currentColor"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"100%"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M12.0002 3.79083V2.26758M5.8418 18.6586L4.7647 19.7357M12.0002 22.7327V21.2094M19.2353 5.26468L18.1582 6.34179M20.709 12.5001H22.2322M18.1582 18.6586L19.2353 19.7357M1.76758 12.5001H3.29083M4.76462 5.26462L5.84173 6.34173M15.7123 8.78781C17.7626 10.8381 17.7626 14.1622 15.7123 16.2124C13.6621 18.2627 10.3379 18.2627 8.28769 16.2124C6.23744 14.1622 6.23744 10.8381 8.28769 8.78781C10.3379 6.73756 13.6621 6.73756 15.7123 8.78781Z"[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"1.5"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Dark"[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"[39m
+                [33mtitle[39m=[32m"Dark"[39m
+           ...
+ ❯ waitForWrapper ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ src/liveShell.test.tsx:152:25
+    150|     renderLiveSite();
+    151|
+    152|     expect(await screen.findByRole("heading", { level: 1, name: "Sign-…
+       |                         ^
+    153|     expect(screen.getByRole("button", { name: "Try again" })).toBeInTh…
+    154|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 5 passed (9)
+   Start at  22:33:07
+   Duration  3.26s (tests 47%, import 31%, environment 13%, transform 6%, setup 3%)
+
