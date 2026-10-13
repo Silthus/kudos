@@ -1,3 +1,5 @@
+import { v } from "convex/values";
+import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx } from "../_generated/server";
 import { republish } from "../feedback/homes";
@@ -7,14 +9,18 @@ import { xpLevelsShownIn } from "../progression/xpLevels";
 import { shippedIn, type ScheduledFeature } from "./schedule";
 import { reachedAt, storeReadiness } from "./unlocks";
 
+const membersPerSweep = 100;
+
 export const sweep = internalMutation({
-  args: {},
-  handler: async (ctx): Promise<void> => {
+  args: { cursor: v.optional(v.string()) },
+  handler: async (ctx, { cursor }): Promise<void> => {
     const shipped = shipStates(ctx);
-    for await (const member of ctx.db.query("members")) {
+    const members = await ctx.db.query("members").paginate({ numItems: membersPerSweep, cursor: cursor ?? null });
+    for (const member of members.page) {
       if (member.kind !== "member") continue;
       await makeShippedReady(ctx, member, await shipped(member.workspace));
     }
+    if (!members.isDone) await ctx.scheduler.runAfter(0, internal.unlocks.sweep.sweep, { cursor: members.continueCursor });
   },
 });
 

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack } from "../../testing/fakeSlack";
 import type { FakePostHog } from "../../testing/fakePostHog";
 import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone } from "../../testing/flags";
-import { testBackend, type Backend } from "../../testing/slackBackend";
+import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { internal } from "../_generated/api";
 import type { LevelReachedEvent } from "../bus/events";
 import { publish } from "../bus/publish";
@@ -235,7 +235,31 @@ describe("P78: a feature that ships later is made ready once by the ship sweep",
     expect(await unlocksOf(t, alice)).toEqual([{ feature: "leaderboard", state: "locked", readyAt: null, openedAt: null }]);
     expect(published("unlockReady")).toEqual([]);
   });
+
+  test("a sweep that makes the Leaderboard ready for 600 members schedules fewer than Convex's 1000 functions per mutation, and every one of them ends up ready", async () => {
+    vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
+    const { t } = await withMember();
+    const members = await t.run(async (ctx) => {
+      const ids: MemberId[] = [];
+      for (let index = 0; index < 600; index += 1) {
+        const member = await ctx.db.insert("members", { workspace: "T1", user: `U_${index}`, kind: "member", timeZone: "UTC" });
+        await ctx.db.insert("memberProgress", { member, xp: 100, pointsSpent: 0 });
+        ids.push(member);
+      }
+      return ids;
+    });
+
+    await sweep(t);
+    expect(await scheduledCount(t)).toBeLessThan(1000);
+    await settle(t);
+
+    expect(published("unlockReady")).toHaveLength(members.length);
+  }, 60_000);
 });
+
+function scheduledCount(t: Backend) {
+  return t.run(async (ctx) => (await ctx.db.system.query("_scheduled_functions").collect()).length);
+}
 
 function sweep(t: Backend) {
   return t.mutation(internal.unlocks.sweep.sweep, {});
