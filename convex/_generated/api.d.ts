@@ -79,6 +79,7 @@ import type * as slack_verifyMember from "../slack/verifyMember.js";
 import type * as slack_webApi from "../slack/webApi.js";
 import type * as slack_welcome from "../slack/welcome.js";
 import type * as slack_workspaceLink from "../slack/workspaceLink.js";
+import type * as website_abandonedHandshakes from "../website/abandonedHandshakes.js";
 import type * as website_clock from "../website/clock.js";
 import type * as website_flag from "../website/flag.js";
 import type * as website_hosting from "../website/hosting.js";
@@ -168,6 +169,7 @@ declare const fullApi: ApiFromModules<{
   "slack/webApi": typeof slack_webApi;
   "slack/welcome": typeof slack_welcome;
   "slack/workspaceLink": typeof slack_workspaceLink;
+  "website/abandonedHandshakes": typeof website_abandonedHandshakes;
   "website/clock": typeof website_clock;
   "website/flag": typeof website_flag;
   "website/hosting": typeof website_hosting;
