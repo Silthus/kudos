@@ -219,7 +219,7 @@ describe("P69: the Admin tab", () => {
     expect(publishedHome(slack, "U_ALICE")).toEqual([
       "header: Your kudos",
       "actions: Profile | Settings | [Admin]",
-      "section: I celebrate level ups in <#C_NEWS>. [channels_select: C_NEWS]",
+      "section: I celebrate level ups in this channel. [channels_select: C_NEWS]",
       "section: Or celebrate them in a thread under each kudos message again. [button: Use threads]",
       "divider",
       "context: Only workspace admins and owners see this tab.",

@@ -52,47 +52,64 @@ function profileTab({ kudos, progression }: MemberHome): HomeLine[][] {
   return [[allowanceOf(kudos)], [progressOf(progression)], [totalsOf(kudos)], howToGive(kudos.kudosEmoji)];
 }
 
-function settingsTab({ hideLevel, hideAchievements, muteNotices, dms }: ProgressSettings): HomeLine[][] {
+function settingsTab(settings: ProgressSettings): HomeLine[][] {
   return [
-    [
-      setting(hideLevel, { text: "Your level is hidden from other members.", label: "Show level" }, { text: "Other members can see your level.", label: "Hide level" }, (on) => ({ hideLevel: on })),
-      setting(
-        hideAchievements,
-        { text: "Your achievements are hidden from other members.", label: "Show achievements" },
-        { text: "Other members can see your achievements.", label: "Hide achievements" },
-        (on) => ({ hideAchievements: on }),
-      ),
-    ],
-    [
-      setting(muteNotices, { text: "I don't post public notices about you.", label: "Unmute notices" }, { text: "I celebrate your level ups in public.", label: "Mute notices" }, (on) => ({ muteNotices: on })),
-      setting(dms, { text: "I send you a DM when you reach a level.", label: "Turn off DMs" }, { text: "I don't send you DMs.", label: "Turn on DMs" }, (on) => ({ dms: on })),
-    ],
+    [setting(settings, "hideLevel"), setting(settings, "hideAchievements")],
+    [setting(settings, "muteNotices"), setting(settings, "dms")],
     [{ kind: "hint", text: "Your App Home and your DMs always show you everything." }],
   ];
 }
 
+type SettingCopy = Record<"whenOn" | "whenOff", { text: string; label: string }>;
+
+const settingCopy: Record<keyof ProgressSettings, SettingCopy> = {
+  hideLevel: {
+    whenOn: { text: "Your level is hidden from other members.", label: "Show level" },
+    whenOff: { text: "Other members can see your level.", label: "Hide level" },
+  },
+  hideAchievements: {
+    whenOn: { text: "Your achievements are hidden from other members.", label: "Show achievements" },
+    whenOff: { text: "Other members can see your achievements.", label: "Hide achievements" },
+  },
+  muteNotices: {
+    whenOn: { text: "I don't post public notices about you.", label: "Unmute notices" },
+    whenOff: { text: "I celebrate your level ups in public.", label: "Mute notices" },
+  },
+  dms: {
+    whenOn: { text: "I send you a DM when you reach a level.", label: "Turn off DMs" },
+    whenOff: { text: "I don't send you DMs.", label: "Turn on DMs" },
+  },
+};
+
+function setting(settings: ProgressSettings, key: keyof ProgressSettings): HomeLine {
+  const on = settings[key];
+  const { text, label } = settingCopy[key][on ? "whenOn" : "whenOff"];
+  return { kind: "action", text, action: { label, intent: { type: "setProgressSettings", ...changeOf(key, !on) } } };
+}
+
+function changeOf(key: keyof ProgressSettings, value: boolean): Partial<ProgressSettings> {
+  return { [key]: value };
+}
+
 function adminTab({ announcementChannel }: AdminHome): HomeLine[][] {
-  const picks = "setAnnouncementChannel";
-  const channelLines: HomeLine[] =
-    announcementChannel === null
-      ? [{ kind: "pick-channel", text: "I celebrate level ups in a thread under each kudos message. Pick a channel to post them there instead.", picked: null, picks }]
-      : [
-          { kind: "pick-channel", text: `I celebrate level ups in <#${announcementChannel}>.`, picked: announcementChannel, picks },
-          {
-            kind: "action",
-            text: "Or celebrate them in a thread under each kudos message again.",
-            action: { label: "Use threads", intent: { type: picks, channel: null } },
-          },
-        ];
+  const channelLines = announcementChannel === null ? threadLines() : announcementChannelLines(announcementChannel);
   return [channelLines, [{ kind: "hint", text: "Only workspace admins and owners see this tab." }]];
 }
 
-type SettingCopy = { text: string; label: string };
-type SettingChange = Omit<Extract<Intent, { type: "setProgressSettings" }>, "type">;
+function threadLines(): HomeLine[] {
+  const text = "I celebrate level ups in a thread under each kudos message. Pick a channel to post them there instead.";
+  return [{ kind: "pick-channel", text, picked: null, picks: "setAnnouncementChannel" }];
+}
 
-function setting(on: boolean, whenOn: SettingCopy, whenOff: SettingCopy, change: (on: boolean) => SettingChange): HomeLine {
-  const { text, label } = on ? whenOn : whenOff;
-  return { kind: "action", text, action: { label, intent: { type: "setProgressSettings", ...change(!on) } } };
+function announcementChannelLines(channel: string): HomeLine[] {
+  return [
+    { kind: "pick-channel", text: "I celebrate level ups in this channel.", picked: channel, picks: "setAnnouncementChannel" },
+    {
+      kind: "action",
+      text: "Or celebrate them in a thread under each kudos message again.",
+      action: { label: "Use threads", intent: { type: "setAnnouncementChannel", channel: null } },
+    },
+  ];
 }
 
 function allowanceOf({ left, base }: KudosHome): HomeLine {

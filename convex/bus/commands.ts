@@ -20,7 +20,8 @@ export const setAnnouncementChannelCommand = v.object({ type: v.literal("setAnno
 export const commandValidator = v.union(showHomeTabCommand, setProgressSettingsCommand, setAnnouncementChannelCommand);
 
 export type Command = Infer<typeof commandValidator>;
-export type Intent = Command extends infer C ? (C extends Command ? Omit<C, "member"> : never) : never;
+type WithoutMember<C> = C extends unknown ? Omit<C, "member"> : never;
+export type Intent = WithoutMember<Command>;
 
 type CommandOf<T extends Command["type"]> = Extract<Command, { type: T }>;
 export type CommandResult = "done" | "refused";
@@ -39,5 +40,5 @@ export function dispatch<T extends Command["type"]>(ctx: ActionCtx, command: Com
 }
 
 export function isCommandType(type: string): type is Command["type"] {
-  return type in handlers;
+  return Object.hasOwn(handlers, type);
 }
