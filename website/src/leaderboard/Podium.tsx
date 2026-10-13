@@ -38,7 +38,7 @@ function Spot({ row }: { row: LeaderboardRow }) {
         {row.you && <YouLabel />}
       </span>
       <span className="mt-1 flex items-baseline gap-1">
-        <span className={`hud-display font-bold tabular-nums leading-none ${leads ? "text-3xl sm:text-4xl" : "text-2xl sm:text-3xl"}`}>{row.kudos}</span>{" "}
+        <span className={`font-bold tabular-nums leading-none ${leads ? "text-3xl sm:text-4xl" : "text-2xl sm:text-3xl"}`}>{row.kudos}</span>{" "}
         <span className="text-[11px] text-muted-foreground">kudos</span>
       </span>
       <span
@@ -46,7 +46,7 @@ function Spot({ row }: { row: LeaderboardRow }) {
         aria-hidden="true"
         className={`mt-3 flex w-full items-start justify-center rounded-t-lg border border-b-0 pt-1.5 ${pedestalHeight[step]} ${leads ? "bg-gradient-to-b from-foreground/15 to-foreground/[0.03]" : "bg-gradient-to-b from-muted to-transparent"}`}
       >
-        <span className={`hud-display text-xl font-bold leading-none sm:text-3xl ${leads ? "text-foreground" : "text-muted-foreground"}`}>
+        <span className={`text-xl font-bold leading-none tabular-nums sm:text-3xl ${leads ? "text-foreground" : "text-muted-foreground"}`}>
           {row.rank}
           {row.tied && <span className="text-sm">=</span>}
         </span>

@@ -6,8 +6,8 @@ type Edge = "top" | "bottom";
 
 export function WholeBoard({ rows }: { rows: LeaderboardRow[] }) {
   const scroller = useRef<HTMLDivElement>(null);
-  const edge = useEdgeOfTheViewerRow(scroller);
   const mine = rows.find((row) => row.you);
+  const edge = useEdgeOfTheViewerRow(scroller, mine?.position);
 
   useLayoutEffect(() => centreTheViewerRow(scroller.current, "instant"), []);
 
@@ -53,9 +53,10 @@ function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-function useEdgeOfTheViewerRow(scroller: RefObject<HTMLDivElement | null>) {
+function useEdgeOfTheViewerRow(scroller: RefObject<HTMLDivElement | null>, viewerPosition: number | undefined) {
   const [edge, setEdge] = useState<Edge>();
   useEffect(() => {
+    setEdge(undefined);
     const row = viewerRowIn(scroller.current);
     if (row === null || typeof IntersectionObserver === "undefined") return;
     const watch = new IntersectionObserver(
@@ -68,6 +69,6 @@ function useEdgeOfTheViewerRow(scroller: RefObject<HTMLDivElement | null>) {
     );
     watch.observe(row);
     return () => watch.disconnect();
-  }, [scroller]);
+  }, [scroller, viewerPosition]);
   return edge;
 }

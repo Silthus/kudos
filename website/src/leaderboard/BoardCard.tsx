@@ -8,7 +8,7 @@ export function BoardCard({ board }: { board: Leaderboard }) {
         <IconGlobe className="size-5" />
       </span>
       <div className="flex min-w-0 flex-col">
-        <h2 id="everyone-board-title" className="hud-display text-xl font-bold leading-tight">
+        <h2 id="everyone-board-title" className="text-lg font-semibold leading-tight">
           Everyone
         </h2>
         <p className="text-xs text-muted-foreground">The whole company on one board</p>

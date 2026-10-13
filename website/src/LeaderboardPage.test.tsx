@@ -192,7 +192,9 @@ describe("WS39: the board card and the periods", () => {
     { standing: "left", answer: leaderboardFixtures.left, says: "Off the board" },
   ])("shows one Everyone card as a heading with the viewer's standing when $standing", ({ answer, says }) => {
     showBoard(answer);
-    const card = within(main()).getByRole("heading", { level: 2, name: "Everyone" }).closest("section")!;
+    const title = within(main()).getByRole("heading", { level: 2, name: "Everyone" });
+    expect(title).not.toHaveClass("hud-display");
+    const card = title.closest("section")!;
     expect(card).toHaveTextContent("The whole company on one board");
     expect(card).toHaveTextContent(says);
     expect(within(main()).queryByRole("tab")).not.toBeInTheDocument();
@@ -238,6 +240,15 @@ describe("WS41: the podium stands the top three on neutral pedestals", () => {
     expect(spots[2]).toHaveTextContent("Rank 3, tied");
     expect(spots[2]).toHaveTextContent("3=");
     expect(within(spots[1]!).getByText("AL")).toBeInTheDocument();
+  });
+
+  it("prints the podium's kudos and ranks in Inter with tabular figures, not display type", () => {
+    showBoard(leaderboardFixtures.midBoard);
+    const ada = podiumSpots()[1]!;
+    for (const number of [within(ada).getByText("21"), ada.querySelector("[data-pedestal] span")!]) {
+      expect(number).toHaveClass("tabular-nums");
+      expect(number.closest(".hud-display")).toBeNull();
+    }
   });
 
   it("gives the crown and the tallest pedestal to every leader, so tied leaders stand equal", () => {
@@ -389,6 +400,19 @@ describe("WS43: the whole board and Jump to me", () => {
     expect(mine).toHaveFocus();
     viewerRow.see({ visible: true });
     expect(within(main()).queryByRole("button", { name: "Jump to me" })).not.toBeInTheDocument();
+  });
+
+  it("follows the viewer's row when kudos move them on the open whole board", async () => {
+    const viewerRow = watchTheViewerRow();
+    let board = leaderboardFixtures.midBoard;
+    visit("/leaderboard");
+    const { user, showVisitor } = renderApp(withTheBoard, (period) => period && { ...board, period });
+    await user.click(within(main()).getByRole("button", { name: "Show the whole board" }));
+
+    board = leaderboardFixtures.midBoardAfterAClimb;
+    showVisitor(withTheBoard);
+    viewerRow.see({ visible: false, edge: "bottom" });
+    expect(within(main()).getByRole("button", { name: "Jump to me" }).closest("[data-pinned]")).toHaveTextContent("Sam Example");
   });
 
   it("pins the copy to the top edge when the viewer's row is scrolled above, and jumps instantly under reduced motion", async () => {

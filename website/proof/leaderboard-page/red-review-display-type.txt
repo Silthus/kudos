@@ -1,0 +1,6 @@
+     × shows one Everyone card as a heading with the viewer's standing when ranked 39ms
+     × shows one Everyone card as a heading with the viewer's standing when tied 30ms
+     × shows one Everyone card as a heading with the viewer's standing when not ranked 29ms
+     × shows one Everyone card as a heading with the viewer's standing when left 30ms
+     × prints the podium's kudos and ranks in Inter with tabular figures, not display type 26ms
+      Tests  5 failed | 52 passed (57)

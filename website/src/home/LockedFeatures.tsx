@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 import { HedgehogExplorer, HedgehogMoney, HedgehogOrganized, HedgehogReading, HedgehogStar, HedgehogWizard } from "@posthog/brand/hoggies";
-import { IconLock } from "@posthog/icons";
+import { IconLock, IconStar } from "@posthog/icons";
 import { Card, CardContent } from "@posthog/quill";
 import { AppLink } from "../AppLink";
 
@@ -48,8 +48,8 @@ function OpenFeatures() {
         <AppLink href="/leaderboard" className="rounded-xl">
           <Card size="sm" className="h-full hover:bg-fill-hover">
             <CardContent className="flex items-center gap-3">
-              <span aria-hidden="true" className="shrink-0">
-                <HedgehogStar size={48} title="" />
+              <span aria-hidden="true" className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                <IconStar className="size-5" />
               </span>
               <div className="flex min-w-0 flex-col gap-0.5">
                 <h3 className="text-sm font-medium">{leaderboard.name}</h3>

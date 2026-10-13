@@ -39,6 +39,17 @@ const midBoard: Leaderboard = {
   improvement: { gain: 3, places: 2 },
 };
 
+const midBoardAfterAClimb: Leaderboard = {
+  ...midBoard,
+  rows: [...midBoard.rows.slice(0, 5), { ...midBoard.rows[8]!, position: 6, rank: 6, kudos: 16 }, ...midBoard.rows.slice(5, 8), ...midBoard.rows.slice(9)].map((row, i) => ({
+    ...row,
+    position: i + 1,
+    rank: i < 5 ? row.rank : i + 1,
+  })),
+  window: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+  standing: { kind: "ranked", position: 6, rank: 6 },
+};
+
 const viewerLeads: Leaderboard = {
   ...board,
   rows: [row(1, 1, "Sam Example", 12, { me: true }), row(2, 2, "Ada Lindqvist", 8), row(3, 3, "Bo Okafor", 5)],
@@ -88,7 +99,7 @@ const leftALongBoard: Leaderboard = {
 
 const empty: Leaderboard = { ...board, period: "all", rows: [], window: [], standing: { kind: "not-ranked" }, improvement: null };
 
-export const leaderboardFixtures = { midBoard, viewerLeads, sharedLead, tiedBelowTheLead, notRanked, left, leftALongBoard, empty } as const satisfies Record<string, Leaderboard>;
+export const leaderboardFixtures = { midBoard, midBoardAfterAClimb, viewerLeads, sharedLead, tiedBelowTheLead, notRanked, left, leftALongBoard, empty } as const satisfies Record<string, Leaderboard>;
 
 export function fixedLeaderboard(answer: Leaderboard): LeaderboardRead {
   return (period) => (period === undefined ? undefined : { ...answer, period });
