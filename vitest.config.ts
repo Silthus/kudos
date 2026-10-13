@@ -7,5 +7,6 @@ export default defineConfig({
     environment: "edge-runtime",
     server: { deps: { inline: ["convex-test"] } },
     passWithNoTests: true,
+    env: { KUDOS_EMOJI: "" },
   },
 });
