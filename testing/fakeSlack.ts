@@ -10,6 +10,8 @@ export type SlackArgs = Record<string, unknown>;
 
 export type SlackCall = { method: string; args: SlackArgs };
 
+export type PostedMessage = { channel: string; ts: string; threadTs?: string; text: string };
+
 export type ScriptedAnswer = (answerAsSlackWould: () => Response) => Response | Promise<Response>;
 
 export const slackError = (error: string): ScriptedAnswer => () => Response.json({ ok: false, error });
@@ -32,6 +34,7 @@ export class FakeSlack {
   private readonly users = new Map<string, SlackUser>();
   private readonly joinTimes = new Map<string, number>();
   private readonly reactionsByMessage = new Map<string, string[]>();
+  private readonly posted: PostedMessage[] = [];
   private readonly scripted = new Map<string, ScriptedAnswer[]>();
   private readonly callTimes = new Map<SlackCall, number>();
   private readonly holds: Array<{ method: string; about: string; meanwhile: () => Promise<void> }> = [];
@@ -77,6 +80,10 @@ export class FakeSlack {
     return this.reactionsByMessage.get(`${channel}/${ts}`) ?? [];
   }
 
+  messagesIn(channel: string) {
+    return this.posted.filter((message) => message.channel === channel);
+  }
+
   ephemeralsTo(user: string) {
     return this.callsTo("chat.postEphemeral").filter((args) => args.user === user);
   }
@@ -103,7 +110,7 @@ export class FakeSlack {
   };
 
   private async releaseHold(method: string, args: SlackArgs) {
-    const index = this.holds.findIndex((hold) => hold.method === method && (args.name ?? args.user) === hold.about);
+    const index = this.holds.findIndex((hold) => hold.method === method && (args.name ?? args.user ?? args.channel) === hold.about);
     if (index === -1) return;
     const [hold] = this.holds.splice(index, 1);
     await hold!.meanwhile();
@@ -130,8 +137,23 @@ export class FakeSlack {
     }
     if (method === "chat.postEphemeral") return { ok: true, message_ts: "1760349700.000100" };
     if (method === "views.publish") return { ok: true };
-    if (method === "chat.postMessage") return { ok: true, channel: args.channel, ts: "1760349700.000100" };
+    if (method === "chat.postMessage") return this.postMessage(args);
+    if (method === "chat.update") return this.updateMessage(args);
     return { ok: false, error: "unknown_method" };
+  }
+
+  private postMessage(args: SlackArgs) {
+    const channel = String(args.channel);
+    const ts = `1760349700.${String(100 + this.posted.length).padStart(6, "0")}`;
+    this.posted.push({ channel, ts, ...(args.thread_ts !== undefined && { threadTs: String(args.thread_ts) }), text: String(args.text) });
+    return { ok: true, channel, ts };
+  }
+
+  private updateMessage(args: SlackArgs) {
+    const message = this.posted.find(({ channel, ts }) => channel === args.channel && ts === args.ts);
+    if (message === undefined) return { ok: false, error: "message_not_found" };
+    message.text = String(args.text);
+    return { ok: true, channel: message.channel, ts: message.ts };
   }
 
   private setReactions(channel: string, ts: string, reactions: string[]) {

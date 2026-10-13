@@ -1,6 +1,6 @@
 export type SlackFailure = { ok: false; error: string; retryAfterMs?: number };
 
-export type SlackAnswer = { ok: true; warning?: string } | SlackFailure;
+export type SlackAnswer = { ok: true; warning?: string; ts?: string } | SlackFailure;
 
 const tooManyRequests = 429;
 const answerTimeoutMs = 10_000;

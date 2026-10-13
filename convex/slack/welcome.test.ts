@@ -134,7 +134,8 @@ function homeFacts(t: Backend, user: string) {
 
 function attemptsPerUser() {
   const attempts: Record<string, number> = {};
-  for (const { channel } of slack.callsTo("chat.postMessage")) attempts[String(channel)] = (attempts[String(channel)] ?? 0) + 1;
+  const welcomes = slack.callsTo("chat.postMessage").filter(({ text }) => String(text).startsWith("👋 Welcome to HedgeHug!"));
+  for (const { channel } of welcomes) attempts[String(channel)] = (attempts[String(channel)] ?? 0) + 1;
   return attempts;
 }
 

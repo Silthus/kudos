@@ -14,8 +14,8 @@ const goneErrors = new Set(["message_not_found", "channel_not_found", "not_in_ch
 const reactionShown = new Set(["already_reacted"]);
 const reactionNotShown = new Set(["no_reaction"]);
 
-type Attempt = { kind: "delivered" } | { kind: "gone" } | { kind: "held"; until: number } | { kind: "failed"; retryAt?: number };
-type Retry = { at: number; attempt: number } | null;
+export type Attempt = { kind: "delivered"; ts?: string } | { kind: "gone" } | { kind: "held"; until: number } | { kind: "failed"; retryAt?: number };
+export type Retry = { at: number; attempt: number } | null;
 type Send = (attempt: number) => Promise<Retry>;
 
 export const deliverIndicator = internalAction({
@@ -37,9 +37,11 @@ export const deliverPrivateReply = internalAction({
   },
 });
 
-export async function tryAtMostThreeTimes(attempt: number, send: Send, tryAgain: (retry: NonNullable<Retry>) => Promise<unknown>) {
+export async function tryAtMostThreeTimes(attempt: number, send: Send, tryAgain: (retry: NonNullable<Retry>) => Promise<unknown>, giveUp: () => Promise<unknown> = async () => {}) {
   const retry = await retryOnAnyError(attempt, () => send(attempt));
-  if (retry !== null && retry.attempt <= atMostAttempts) await tryAgain(retry);
+  if (retry === null) return;
+  if (retry.attempt <= atMostAttempts) await tryAgain(retry);
+  else await giveUp();
 }
 
 export async function sendOnce(ctx: ActionCtx, workspace: string, method: string, args: Record<string, unknown>, attempt: number): Promise<Retry> {
@@ -100,12 +102,13 @@ function reactionArgs(ref: MessageRef, emoji: string) {
   return { channel: ref.conversation, timestamp: ref.message, name: emoji };
 }
 
-async function attemptCall(ctx: ActionCtx, workspace: string, method: string, args: Record<string, unknown>, alsoDelivered = new Set<string>()): Promise<Attempt> {
+export async function attemptCall(ctx: ActionCtx, workspace: string, method: string, args: Record<string, unknown>, alsoDelivered = new Set<string>()): Promise<Attempt> {
   const until = await ctx.runQuery(internal.slack.rateLimits.heldUntil, { workspace, method });
   if (until > Date.now()) return { kind: "held", until };
   const answer = await answerOrUnknown(method, args);
   if (answer === "unknown") return { kind: "failed" };
-  if (answer.ok || alsoDelivered.has(answer.error)) return { kind: "delivered" };
+  if (answer.ok) return { kind: "delivered", ...(answer.ts !== undefined && { ts: answer.ts }) };
+  if (alsoDelivered.has(answer.error)) return { kind: "delivered" };
   if (goneErrors.has(answer.error)) return { kind: "gone" };
   console.warn(`${method} failed: ${answer.error}`);
   if (answer.retryAfterMs === undefined) return { kind: "failed" };
@@ -123,12 +126,12 @@ async function answerOrUnknown(method: string, args: Record<string, unknown>): P
   }
 }
 
-function retryAfter(result: { kind: "held"; until: number } | { kind: "failed"; retryAt?: number }, attempt: number): Retry {
+export function retryAfter(result: { kind: "held"; until: number } | { kind: "failed"; retryAt?: number }, attempt: number): Retry {
   if (result.kind === "held") return { at: result.until, attempt };
   return { at: result.retryAt ?? Date.now() + Math.min(1000 * 2 ** attempt, longestRetryDelayMs), attempt: attempt + 1 };
 }
 
-function slackTextOf(lines: Line[]) {
+export function slackTextOf(lines: Line[]) {
   return lines.map((line) => line.map(slackTextOfSegment).join("")).join("\n");
 }
 

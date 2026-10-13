@@ -1,6 +1,7 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
+import { publicSectionValidator } from "./feedback/publicReplies";
 import { segmentValidator } from "./feedback/replies";
 import { effectsRecordValidator } from "./progression/progress";
 
@@ -92,6 +93,18 @@ export default defineSchema({
     to: v.string(),
     lines: v.array(v.array(segmentValidator)),
   }),
+
+  publicReplies: defineTable({
+    workspace: v.string(),
+    conversation: v.string(),
+    message: v.string(),
+    channel: v.string(),
+    threadTs: v.optional(v.string()),
+    sections: v.array(publicSectionValidator),
+    version: v.number(),
+    posting: v.boolean(),
+    postedTs: v.optional(v.string()),
+  }).index("by_destination", ["workspace", "conversation", "message", "channel"]),
 
   placedReactions: defineTable({
     workspace: v.string(),
