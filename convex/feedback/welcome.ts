@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import { internalQuery, type MutationCtx } from "../_generated/server";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
+import { productName, slashCommand } from "./naming";
 
 export type WelcomeMessage = { lines: string[]; openAppHome: string };
 
@@ -18,9 +19,9 @@ export const welcomeMessage = internalQuery({
     const emoji = `:${kudosEmoji}:`;
     return {
       lines: [
-        `👋 Welcome to Kudos! Thank a teammate by mentioning them and adding ${emoji} to your message in any channel I'm in. Each ${emoji} gives everyone you mention 1 kudos.`,
+        `👋 Welcome to ${productName}! Thank a teammate by mentioning them and adding ${emoji} to your message in any channel I'm in. Each ${emoji} gives everyone you mention 1 kudos.`,
         `You can give ${baseAllowance} kudos a day, and they refill at midnight in your time zone.`,
-        "To add me to a channel, type `/kudos` there.",
+        `To add me to a channel, type \`${slashCommand}\` there.`,
       ],
       openAppHome: "Open App Home",
     };

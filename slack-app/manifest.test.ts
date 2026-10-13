@@ -19,14 +19,18 @@ describe.each(["sandbox", "real"] as const)("the %s manifest", (environment) => 
     });
   });
 
-  test("registers /kudos at the deployment's commands route, with escaping on", () => {
+  test("registers only /hedgehug at the deployment's commands route, with escaping on", () => {
     expect(manifest.features.slash_commands).toEqual([
       expect.objectContaining({
-        command: "/kudos",
+        command: "/hedgehug",
         url: "https://example-deployment.convex.site/slack/commands",
         should_escape: true,
       }),
     ]);
+  });
+
+  test("names the bot hedgehug", () => {
+    expect(manifest.features.bot_user.display_name).toBe("hedgehug");
   });
 
   test("turns the Home tab on", () => {
@@ -39,8 +43,8 @@ describe.each(["sandbox", "real"] as const)("the %s manifest", (environment) => 
 });
 
 test("the sandbox app is told apart from the real one by its name", () => {
-  expect(renderManifest("sandbox", siteUrl).display_information.name).toBe("Kudos (sandbox)");
-  expect(renderManifest("real", siteUrl).display_information.name).toBe("Kudos");
+  expect(renderManifest("sandbox", siteUrl).display_information.name).toBe("HedgeHug (sandbox)");
+  expect(renderManifest("real", siteUrl).display_information.name).toBe("HedgeHug");
 });
 
 test("a site URL with a trailing slash renders the same routes", () => {

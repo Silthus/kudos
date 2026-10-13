@@ -25,10 +25,10 @@ afterEach(() => {
 });
 
 describe("POST /slack/commands", () => {
-  test("acknowledges /kudos at once with an empty 200, before calling Slack", async () => {
+  test("acknowledges /hedgehug at once with an empty 200, before calling Slack", async () => {
     const t = convexTest(schema, modules);
 
-    const response = await postSigned(t, kudosCommand(publicChannel));
+    const response = await postSigned(t, hedgehugCommand(publicChannel));
 
     expect(response.status).toBe(200);
     expect(await response.text()).toBe("");
@@ -39,7 +39,7 @@ describe("POST /slack/commands", () => {
     const t = convexTest(schema, modules);
     slack.answerJoin({ ok: true, channel: { id: "C1" } });
 
-    await runCommand(t, kudosCommand(publicChannel));
+    await runCommand(t, hedgehugCommand(publicChannel));
 
     expect(slack.calls).toEqual([
       { url: "https://slack.com/api/conversations.join", authorization: `Bearer ${botToken}`, body: { channel: "C1" } },
@@ -55,7 +55,7 @@ describe("POST /slack/commands", () => {
     const t = convexTest(schema, modules);
     slack.answerJoin({ ok: true, channel: { id: "C1" }, warning: "already_in_channel", response_metadata: { warnings: ["already_in_channel"] } });
 
-    await runCommand(t, kudosCommand(publicChannel));
+    await runCommand(t, hedgehugCommand(publicChannel));
 
     expect(slack.privateReplies()).toEqual(["I'm already in this channel. Mention teammates with a kudos emoji to give kudos."]);
   });
@@ -66,9 +66,9 @@ describe("POST /slack/commands", () => {
       const t = convexTest(schema, modules);
       slack.answerJoin({ ok: false, error });
 
-      await runCommand(t, kudosCommand({ channel_id: "C2", channel_name: "privategroup" }));
+      await runCommand(t, hedgehugCommand({ channel_id: "C2", channel_name: "privategroup" }));
 
-      expect(slack.privateReplies()).toEqual(["I can't join private channels by myself. Type `/invite @Kudos` here and I'll start counting kudos."]);
+      expect(slack.privateReplies()).toEqual(["I can't join private channels by myself. Type `/invite @hedgehug` here and I'll start counting kudos."]);
     },
   );
 
@@ -79,26 +79,35 @@ describe("POST /slack/commands", () => {
     const t = convexTest(schema, modules);
     slack.answerJoin({ ok: false, error: "method_not_supported_for_channel_type" });
 
-    await runCommand(t, kudosCommand(conversation));
+    await runCommand(t, hedgehugCommand(conversation));
 
-    expect(slack.privateReplies()).toEqual(["I only count kudos in channels. Run /kudos in the channel you want me in."]);
+    expect(slack.privateReplies()).toEqual(["I only count kudos in channels. Run `/hedgehug` in the channel you want me in."]);
   });
 
   test.each(["directmessage", "mpdm-roadmap"])("R39: a public channel named %s is still joined", async (channel_name) => {
     const t = convexTest(schema, modules);
     slack.answerJoin({ ok: true, channel: { id: "C4" } });
 
-    await runCommand(t, kudosCommand({ channel_id: "C4", channel_name }));
+    await runCommand(t, hedgehugCommand({ channel_id: "C4", channel_name }));
+
+    expect(slack.privateReplies()).toEqual(["I'm in now. Mention teammates with a kudos emoji here and I'll pass the kudos on."]);
+  });
+
+  test("R39: /kudos, the later alias of /hedgehug, adds the app the same way", async () => {
+    const t = convexTest(schema, modules);
+    slack.answerJoin({ ok: true, channel: { id: "C1" } });
+
+    await runCommand(t, slashCommand(publicChannel, "/kudos"));
 
     expect(slack.privateReplies()).toEqual(["I'm in now. Mention teammates with a kudos emoji here and I'll pass the kudos on."]);
   });
 
   describe("R48: a command Slack did not sign gets 401 and does nothing", () => {
     test.each([
-      ["signed with another secret", () => signedRequest(kudosCommand(publicChannel), { secret: "someone-elses-secret" })],
-      ["unsigned", async () => ({ method: "POST", body: kudosCommand(publicChannel) })],
-      ["with a body changed after signing", async () => ({ ...(await signedRequest(kudosCommand(publicChannel))), body: kudosCommand({ channel_id: "C9", channel_name: "general" }) })],
-      ["signed more than 5 minutes ago", () => signedRequest(kudosCommand(publicChannel), { signedAt: minutesBefore(now, 6) })],
+      ["signed with another secret", () => signedRequest(hedgehugCommand(publicChannel), { secret: "someone-elses-secret" })],
+      ["unsigned", async () => ({ method: "POST", body: hedgehugCommand(publicChannel) })],
+      ["with a body changed after signing", async () => ({ ...(await signedRequest(hedgehugCommand(publicChannel))), body: hedgehugCommand({ channel_id: "C9", channel_name: "general" }) })],
+      ["signed more than 5 minutes ago", () => signedRequest(hedgehugCommand(publicChannel), { signedAt: minutesBefore(now, 6) })],
     ])("%s", async (_, request) => {
       const t = convexTest(schema, modules);
 
@@ -116,7 +125,11 @@ type Conversation = { channel_id: string; channel_name: string };
 
 const publicChannel: Conversation = { channel_id: "C1", channel_name: "general" };
 
-function kudosCommand(conversation: Conversation) {
+function hedgehugCommand(conversation: Conversation) {
+  return slashCommand(conversation, "/hedgehug");
+}
+
+function slashCommand(conversation: Conversation, command: string) {
   return new URLSearchParams({
     token: "legacy-verification-token",
     team_id: "T1",
@@ -124,7 +137,7 @@ function kudosCommand(conversation: Conversation) {
     ...conversation,
     user_id: "U1",
     user_name: "ann",
-    command: "/kudos",
+    command,
     text: "",
     api_app_id: "A1",
     response_url: responseUrl,

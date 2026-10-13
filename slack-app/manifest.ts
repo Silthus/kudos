@@ -1,8 +1,10 @@
+import { botName, productName, slashCommand } from "../convex/feedback/naming.ts";
+
 export type Environment = "sandbox" | "real";
 
 export const environments: readonly Environment[] = ["sandbox", "real"];
 
-const appNames: Record<Environment, string> = { sandbox: "Kudos (sandbox)", real: "Kudos" };
+const appNames: Record<Environment, string> = { sandbox: `${productName} (sandbox)`, real: productName };
 
 export function renderManifest(environment: Environment, siteUrl: string) {
   const route = (path: string) => new URL(path, siteUrl).toString();
@@ -13,12 +15,12 @@ export function renderManifest(environment: Environment, siteUrl: string) {
     },
     features: {
       app_home: { home_tab_enabled: true, messages_tab_enabled: true, messages_tab_read_only_enabled: true },
-      bot_user: { display_name: "Kudos", always_online: true },
+      bot_user: { display_name: botName, always_online: true },
       slash_commands: [
         {
-          command: "/kudos",
+          command: slashCommand,
           url: route("/slack/commands"),
-          description: "Add Kudos to this channel",
+          description: `Add ${productName} to this channel`,
           should_escape: true,
         },
       ],

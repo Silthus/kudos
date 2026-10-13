@@ -39,7 +39,7 @@ describe("R45 R46: a member opens App Home", () => {
       "section fields: *Given this week*\n*0* | *Received this week*\n*0* | *Given in total*\n*0* | *Received in total*\n*0*",
       "divider",
       "context: To give kudos, mention a teammate and add :taco: to your message. Each :taco: gives everyone you mention 1 kudos.",
-      "context: To add me to a channel, type `/kudos` there.",
+      "context: To add me to a channel, type `/hedgehug` there.",
     ]);
   });
 
@@ -132,7 +132,7 @@ describe("R47: someone who isn't a member opens App Home", () => {
 
     await openHome(t, user);
 
-    expect(publishedHome(user)).toEqual(["header: Kudos", "section: Kudos is for active members of this workspace."]);
+    expect(publishedHome(user)).toEqual(["header: HedgeHug", "section: HedgeHug is for active members of this workspace."]);
   });
 });
 

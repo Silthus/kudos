@@ -20,6 +20,7 @@ import type * as engine_totals from "../engine/totals.js";
 import type * as feedback_home from "../feedback/home.js";
 import type * as feedback_indicator from "../feedback/indicator.js";
 import type * as feedback_kudosCommand from "../feedback/kudosCommand.js";
+import type * as feedback_naming from "../feedback/naming.js";
 import type * as feedback_replies from "../feedback/replies.js";
 import type * as feedback_welcome from "../feedback/welcome.js";
 import type * as http from "../http.js";
@@ -60,6 +61,7 @@ declare const fullApi: ApiFromModules<{
   "feedback/home": typeof feedback_home;
   "feedback/indicator": typeof feedback_indicator;
   "feedback/kudosCommand": typeof feedback_kudosCommand;
+  "feedback/naming": typeof feedback_naming;
   "feedback/replies": typeof feedback_replies;
   "feedback/welcome": typeof feedback_welcome;
   http: typeof http;

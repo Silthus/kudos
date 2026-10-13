@@ -27,7 +27,7 @@ afterEach(() => {
 });
 
 describe("R42 R43: the welcome message", () => {
-  test("a member's first Given award welcomes the giver and the recipient by DM with how Kudos works", async () => {
+  test("a member's first Given award welcomes the giver and the recipient by DM with how HedgeHug works", async () => {
     const t = testBackend();
 
     await giveKudos(t, "U_ALICE", "U_BOB");
@@ -64,9 +64,9 @@ describe("R42 R43: the welcome message", () => {
 
 function welcomeText({ emoji, base }: { emoji: string; base: number }) {
   return [
-    `👋 Welcome to Kudos! Thank a teammate by mentioning them and adding ${emoji} to your message in any channel I'm in. Each ${emoji} gives everyone you mention 1 kudos.`,
+    `👋 Welcome to HedgeHug! Thank a teammate by mentioning them and adding ${emoji} to your message in any channel I'm in. Each ${emoji} gives everyone you mention 1 kudos.`,
     `You can give ${base} kudos a day, and they refill at midnight in your time zone.`,
-    "To add me to a channel, type `/kudos` there.",
+    "To add me to a channel, type `/hedgehug` there.",
     "<slack://app?team=T1&id=A_KUDOS&tab=home|Open App Home>",
   ].join("\n");
 }
