@@ -306,6 +306,14 @@
     {
       "name": "capture",
       "definition": "Whether a deployment records and sends product events: on only when it has both the PostHog project token and a valid KUDOS_ENVIRONMENT (sandbox or production). With capture off nothing is recorded and nothing is sent."
+    },
+    {
+      "name": "flag",
+      "definition": "A switch declared once in code with its key, its subject (a member or the workspace), its values and a safe default, whose value PostHog decides per subject; a new member-facing slice ships behind one whose safe default is off"
+    },
+    {
+      "name": "exposure",
+      "definition": "The $feature_flag_called event sent once per member, flag and value, from the mutation in which the member first enters the flagged path"
     }
   ]
 }

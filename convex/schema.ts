@@ -127,4 +127,10 @@ export default defineSchema({
   }).index("by_state", ["state"]),
 
   analyticsDrain: defineTable({}),
+
+  flagExposures: defineTable({
+    member: v.id("members"),
+    flag: v.string(),
+    value: v.union(v.string(), v.boolean()),
+  }).index("by_member_flag_value", ["member", "flag", "value"]),
 });

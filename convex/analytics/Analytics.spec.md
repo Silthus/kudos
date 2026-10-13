@@ -1,6 +1,6 @@
 # Analytics
 
-Analytics: the only module that knows PostHog. It projects each kudosGiven domain event into the product events kudos given and kudos received, records them in the outbox in the subscriber's transaction while capture is on, under an opaque analytics ID per member and a workspace key per workspace, and one drain at a time sends due events to PostHog's batch endpoint, at most 100 per request, deleting them when PostHog answers 2xx. Every function is internal; the PostHog spec is issue #69.
+Analytics: the only module that knows PostHog. It projects each kudosGiven domain event into the product events kudos given and kudos received, records them in the outbox in the subscriber's transaction while capture is on, under an opaque analytics ID per member and a workspace key per workspace, and one drain at a time sends due events to PostHog's batch endpoint, at most 100 per request, deleting them when PostHog answers 2xx. It is also the feature flag seam: a flag is declared once with its key, subject, values and safe default, is read through the PostHog component's locally evaluated definitions on the subject's analytics ID or workspace key, and sends its exposure once per member, flag and value. Every function is internal; the PostHog spec is issue #69.
 
 ## invariants
 - only allowlisted properties leave the deployment: Only the properties a projection lists by name for its event leave the deployment for PostHog; message text, names, time zones, emoji names, Slack IDs and Convex document IDs never do.
@@ -46,3 +46,16 @@ Analytics: the only module that knows PostHog. It projects each kudosGiven domai
   checklist: commit-ordered-effects dismissed: the subscriber runs after the engine's transaction commits, and the drain after the subscriber's
   checklist: resumption-coverage dismissed: the drain resumes by claiming whatever is pending; it keeps no checkpoint
   checklist: retry-classification dismissed: a failed batch never reaches the domain; how it retries belongs to ticket #72
+- a flag answers its safe default whenever it can't be evaluated: Reading a flag never throws, and answers the flag's safe default without the flags key, before PostHog's definitions are cached, for a flag PostHog doesn't have, for a value the flag doesn't declare, for a condition local evaluation can't answer, and in a query for a subject that has no analytics ID yet.
+  over: reading a boolean and a variant flag in a mutation and in a query, with no key, an empty cache, definitions PostHog serves for other flags, an undeclared variant, a cohort condition, a sandbox-only condition without the environment, and a member without an analytics ID
+  via: a flag answers its safe default whenever it can't be evaluated
+  because: every new member-facing slice ships dark behind a flag whose safe default is off (the owner's rule, 2026-10-13), so a missing key, a cold cache or an unexpected value must leave the slice off rather than turn it on or break the core loop (O31, O33, O34)
+  refuted: declaredValue returned PostHog's value unchecked -> the test failed on its assertion that a value the flag doesn't declare answers the safe default, receiving purple instead of control (2026-10-13)
+  kinds: state
+  checklist: revalidated-permission dismissed: reading a flag grants nothing; the slice it gates checks its own permissions
+  checklist: separation-of-duties dismissed: flags are switched in PostHog, outside this deployment; no approval policy applies to reading one
+  checklist: legal-state-succession dismissed: reading a flag changes no state; only the analytics ID or workspace key a mutation creates for the subject, once
+  checklist: supersession-safety dismissed: a value that affects an award or a permanent effect is stored with the effect where it is read (O35), so a later definition never rewrites it
+  checklist: worker-fencing dismissed: no worker owns a flag; the component's refresh loop replaces the cached definitions in one mutation
+  checklist: commit-ordered-effects dismissed: reading a flag has no external effect; its exposure is an outbox row written in the reading mutation
+  checklist: resumption-coverage dismissed: nothing resumes; a cold cache answers safe defaults until the component's refresh lands
