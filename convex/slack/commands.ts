@@ -29,7 +29,7 @@ export const slackCommands = observedHttpAction(async (ctx, request) => {
 
   const command = new URLSearchParams(new TextDecoder().decode(body));
   const [argument, ...rest] = argumentsOf(command);
-  if (argument === "leaderboard") return replyPrivately(await leaderboardReply(ctx, command, rest));
+  if (argument === "leaderboard" && (await isEveryoneBoardShown(ctx, command))) return replyPrivately(await leaderboardReply(ctx, command, rest));
 
   await ctx.scheduler.runAfter(0, internal.slack.commands.addToChannel, {
     workspace: field(command, "team_id"),
@@ -80,6 +80,10 @@ export const recordCommandUsed = internalMutation({
     if (person?.kind === "member") await recordUsage(ctx, { kind: "commandUsed", workspace, member: person.member, alias, result, at: arrivedAt });
   },
 });
+
+function isEveryoneBoardShown(ctx: ActionCtx, command: URLSearchParams) {
+  return ctx.runMutation(internal.leaderboard.flag.isEveryoneBoardShown, { workspace: field(command, "team_id"), user: field(command, "user_id") });
+}
 
 async function leaderboardReply(ctx: ActionCtx, command: URLSearchParams, rest: string[]): Promise<Line[]> {
   const period = periodOf(rest);

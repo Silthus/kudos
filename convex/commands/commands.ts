@@ -1,6 +1,7 @@
 import { v, type Infer } from "convex/values";
 import type { MutationCtx } from "../_generated/server";
 import { homeTabValidator, selectHomeTab, selectLeaderboardPeriod } from "../feedback/homeTabs";
+import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import { periodValidator } from "../leaderboard/periods";
 import { setLeaderboardVisibility } from "../leaderboard/visibility";
 import { lookup, type MemberId } from "../workspace/directory";
@@ -16,7 +17,7 @@ export type Command = Infer<typeof commandValidator>;
 export async function runCommand(ctx: MutationCtx, workspace: string, user: string, command: Command) {
   const person = await lookup(ctx, workspace, user);
   if (person?.kind !== "member") return false;
-  await route(ctx, person.member, command);
+  if (await isEveryoneBoardShownTo(ctx, workspace, person.member)) await route(ctx, person.member, command);
   return true;
 }
 

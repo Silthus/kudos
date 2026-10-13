@@ -67,7 +67,7 @@ export const publishHome = observedAction({
 async function desiredHomeOf(ctx: ActionCtx, workspace: string, user: string): Promise<{ kind: "view"; view: SlackHomeView } | Unavailable> {
   const facts = await homeFactsOf(ctx, workspace, user);
   if (facts.kind === "unavailable") return facts;
-  const shown = await ctx.runQuery(internal.feedback.homeTabs.shownTabOf, { workspace, user });
+  const shown = await ctx.runMutation(internal.feedback.homeTabs.shownTabOf, { workspace, user });
   return { kind: "view", view: homeView(renderHome(facts, shown)) };
 }
 

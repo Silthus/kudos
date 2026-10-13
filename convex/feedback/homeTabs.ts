@@ -1,5 +1,6 @@
 import { v, type Infer } from "convex/values";
-import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
+import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
+import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import type { Period } from "../leaderboard/periods";
 import { everyoneBoardOf, type EveryoneBoardView } from "../leaderboard/totals";
 import { isOnTheBoards } from "../leaderboard/visibility";
@@ -18,11 +19,11 @@ type HomeSelection = { tab: HomeTab; period: Period };
 
 const opensOn: HomeSelection = { tab: "profile", period: "week" };
 
-export const shownTabOf = internalQuery({
+export const shownTabOf = internalMutation({
   args: { workspace: v.string(), user: v.string() },
-  handler: async (ctx, { workspace, user }): Promise<ShownTab> => {
+  handler: async (ctx, { workspace, user }): Promise<ShownTab | null> => {
     const person = await lookup(ctx, workspace, user);
-    if (person?.kind !== "member") return { tab: "profile" };
+    if (person?.kind !== "member" || !(await isEveryoneBoardShownTo(ctx, workspace, person.member))) return null;
     const { tab, period } = await selectionOf(ctx, person.member);
     switch (tab) {
       case "profile":

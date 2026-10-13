@@ -17,10 +17,11 @@ export type HomeLine =
 
 export type Choice = { label: string; command: Command; selected: boolean };
 
-export function renderHome(facts: HomeFacts, shown: ShownTab): HomeView {
+export function renderHome(facts: HomeFacts, shown: ShownTab | null): HomeView {
   if (facts.kind === "not-a-member") {
     return { title: productName, groups: [[{ kind: "text", text: `${productName} is for active members of this workspace.` }]] };
   }
+  if (shown === null) return profileOf(facts);
   return { tabBar: tabBar(shown.tab), ...tabOf(facts, shown) };
 }
 
@@ -45,12 +46,16 @@ function tabBar(selected: HomeTab): Choice[] {
 function tabOf(facts: MemberHome, shown: ShownTab): Omit<HomeView, "tabBar"> {
   switch (shown.tab) {
     case "profile":
-      return { title: "Your kudos", groups: [[allowanceOf(facts)], [totalsOf(facts)], howToGive(facts.kudosEmoji)] };
+      return profileOf(facts);
     case "leaderboard":
       return { title: "Leaderboard", groups: [[periodChoices(shown.period), { kind: "lines", lines: renderEveryoneBoard(shown.board, shown.period) }]] };
     case "settings":
       return { title: "Settings", groups: [leaderboardSwitch(shown.onTheBoards)] };
   }
+}
+
+function profileOf(facts: MemberHome): HomeView {
+  return { title: "Your kudos", groups: [[allowanceOf(facts)], [totalsOf(facts)], howToGive(facts.kudosEmoji)] };
 }
 
 function periodChoices(selected: Period): HomeLine {

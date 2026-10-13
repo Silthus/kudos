@@ -32,7 +32,6 @@ describe("R45 R46: a member opens App Home", () => {
 
     expect(response.status).toBe(200);
     expect(publishedHome("U_BOB")).toEqual([
-      "actions: [Profile] | Leaderboard | Settings",
       "header: Your kudos",
       "section: You have *3* kudos left today. You get *3* more at midnight.",
       "divider",
@@ -157,7 +156,7 @@ describe("R45: publishing App Home through Slack's failures", () => {
 
     const [rateLimitedAt, publishedAt] = slack.timesOf("views.publish");
     expect(publishedAt! - rateLimitedAt!).toBeGreaterThanOrEqual(30_000);
-    expect(titleOf(publishedHome("U_BOB"))).toBe("header: Your kudos");
+    expect(publishedHome("U_BOB")[0]).toBe("header: Your kudos");
   });
 
   test("a person whose lookup fails is looked up again, then sees their Home", async () => {
@@ -167,7 +166,7 @@ describe("R45: publishing App Home through Slack's failures", () => {
     await openHome(t, "U_BOB");
 
     expect(slack.callsTo("users.info")).toHaveLength(2);
-    expect(titleOf(publishedHome("U_BOB"))).toBe("header: Your kudos");
+    expect(publishedHome("U_BOB")[0]).toBe("header: Your kudos");
   });
 
   test("a rate-limited lookup is tried again after Slack's Retry-After", async () => {
@@ -178,7 +177,7 @@ describe("R45: publishing App Home through Slack's failures", () => {
 
     const [rateLimitedAt, lookedUpAt] = slack.timesOf("users.info");
     expect(lookedUpAt! - rateLimitedAt!).toBeGreaterThanOrEqual(30_000);
-    expect(titleOf(publishedHome("U_BOB"))).toBe("header: Your kudos");
+    expect(publishedHome("U_BOB")[0]).toBe("header: Your kudos");
   });
 
   test("a publish that keeps failing is tried 3 times and never again", async () => {
@@ -217,11 +216,7 @@ function publishedHome(user: string) {
 }
 
 function allowanceIn(home: string[]) {
-  return home[2];
-}
-
-function titleOf(home: string[]) {
-  return home.find((line) => line.startsWith("header: "));
+  return home[1];
 }
 
 function totalsIn(home: string[]) {
