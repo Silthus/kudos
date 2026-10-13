@@ -4,7 +4,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
 import { ReportableError } from "../analytics/exceptions";
-import { linesOf } from "../feedback/publicReplies";
+import { linesOf, threadTsOf } from "../feedback/publicReplies";
 import { attemptArgs, attemptCall, retryAfter, slackTextOf, tryAtMostThreeTimes, type Retry } from "./delivery";
 
 export const deliverPublicReply = observedAction({
@@ -35,7 +35,8 @@ async function nothingToShow(ctx: ActionCtx, row: Doc<"publicReplies">): Promise
 
 async function post(ctx: ActionCtx, row: Doc<"publicReplies">, attempt: number): Promise<Retry> {
   if (!(await ctx.runMutation(internal.feedback.publicReplies.startSending, { reply: row._id }))) return null;
-  const message = { channel: row.channel, text: slackTextOf(linesOf(row)), ...(row.threadTs && { thread_ts: row.threadTs }) };
+  const threadTs = threadTsOf(row);
+  const message = { channel: row.channel, text: slackTextOf(linesOf(row)), ...(threadTs && { thread_ts: threadTs }) };
   const result = await attemptCall<{ ts: string }>(ctx, row.workspace, "chat.postMessage", message);
   if (result.kind === "unknown") return null;
   if (result.kind === "gone") {

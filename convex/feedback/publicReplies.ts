@@ -2,7 +2,7 @@ import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { levelReachedEventValidator } from "../bus/events";
+import { levelReachedEventValidator, type LevelReachedEvent } from "../bus/events";
 import { threadOf } from "../engine/engine";
 import type { MessageRef } from "../engine/messageEvent";
 import { progressSettingsOf } from "../progression/settings";
@@ -20,6 +20,13 @@ export const shownValidator = v.union(
   v.object({ state: v.literal("posted"), ts: v.string() }),
 );
 
+const replyFields = { workspace: v.string(), channel: v.string(), sections: v.array(publicSectionValidator), version: v.number(), shown: shownValidator };
+
+export const publicReplyValidator = v.union(
+  v.object({ ...replyFields, conversation: v.string(), message: v.string(), threadTs: v.optional(v.string()) }),
+  v.object({ ...replyFields, reached: v.object({ member: v.id("members"), level: v.number() }) }),
+);
+
 export type PublicSection = Infer<typeof publicSectionValidator>;
 
 type Destination = { channel: string; threadTs?: string };
@@ -27,9 +34,11 @@ type Destination = { channel: string; threadTs?: string };
 export const celebrateLevel = internalMutation({
   args: { event: levelReachedEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
-    if (event.message === undefined || !(await xpLevelsShownTo(ctx, event.member))) return;
+    if (!(await xpLevelsShownTo(ctx, event.member))) return;
     const { user } = await chatUserOf(ctx, event.member);
-    await setPublicSection(ctx, event.message, levelSection(event.member, user, event.level));
+    const section = levelSection(event.member, user, event.level);
+    if (event.message === undefined) await announceRewardedLevel(ctx, event, section);
+    else await setPublicSection(ctx, event.message, section);
   },
 });
 
@@ -47,6 +56,13 @@ export async function setPublicSection(ctx: MutationCtx, ref: MessageRef, sectio
     await ctx.db.patch(existing._id, { shown: { state: "posting" } });
     await deliver(ctx, existing._id);
   }
+}
+
+async function announceRewardedLevel(ctx: MutationCtx, { workspace, member, level }: LevelReachedEvent, section: PublicSection) {
+  const { announcementChannel } = await settingsOf(ctx, workspace);
+  if (announcementChannel === null || (await levelNoticeRow(ctx, member, level)) !== null) return;
+  const notice = { workspace, reached: { member, level }, channel: announcementChannel, sections: [section], version: 1, shown: { state: "posting" as const } };
+  await deliver(ctx, await ctx.db.insert("publicReplies", notice));
 }
 
 export const desired = internalQuery({
@@ -108,6 +124,10 @@ export function linesOf(reply: Pick<Doc<"publicReplies">, "sections">): Line[] {
   return reply.sections.map(({ line }) => line);
 }
 
+export function threadTsOf(reply: Doc<"publicReplies">): string | undefined {
+  return "threadTs" in reply ? reply.threadTs : undefined;
+}
+
 async function isShownPublicly(ctx: QueryCtx, { member }: PublicSection) {
   return !(await progressSettingsOf(ctx, member)).muteNotices;
 }
@@ -137,5 +157,12 @@ function publicReplyRow(ctx: QueryCtx, ref: MessageRef, { channel, threadTs }: D
     .withIndex("by_destination", (q) =>
       q.eq("workspace", ref.workspace).eq("conversation", ref.conversation).eq("message", ref.message).eq("channel", channel).eq("threadTs", threadTs),
     )
+    .unique();
+}
+
+function levelNoticeRow(ctx: QueryCtx, member: MemberId, level: number) {
+  return ctx.db
+    .query("publicReplies")
+    .withIndex("by_level_reached", (q) => q.eq("reached.member", member).eq("reached.level", level))
     .unique();
 }
