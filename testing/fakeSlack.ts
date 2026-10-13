@@ -8,30 +8,34 @@ export type SlackUser = {
 
 export type SlackCall = { method: string; args: Record<string, string> };
 
-export type SlackFailure =
-  | { error: string }
-  | { rateLimitedForSeconds: number }
-  | { httpStatus: number }
-  | { timeout: true }
-  | { timeoutAfterApplying: true }
-  | { heldUntil: Promise<void> };
+export type ScriptedAnswer = (answerAsSlackWould: () => Response) => Response | Promise<Response>;
+
+export const slackError = (error: string): ScriptedAnswer => () => Response.json({ ok: false, error });
+export const httpStatus = (status: number): ScriptedAnswer => () => new Response("upstream trouble", { status });
+export const rateLimitedFor = (seconds: number): ScriptedAnswer => () =>
+  Response.json({ ok: false, error: "ratelimited" }, { status: 429, headers: { "retry-after": String(seconds) } });
+export const timesOut: ScriptedAnswer = () => {
+  throw new DOMException("The operation timed out.", "TimeoutError");
+};
+export const landsButTimesOut: ScriptedAnswer = (answerAsSlackWould) => {
+  answerAsSlackWould();
+  return timesOut(answerAsSlackWould);
+};
 
 export class FakeSlack {
   readonly calls: SlackCall[] = [];
-  private readonly callTimes: number[] = [];
   private readonly users = new Map<string, SlackUser>();
   private readonly reactionsByMessage = new Map<string, string[]>();
-  private readonly failuresByMethod = new Map<string, SlackFailure[]>();
-  private readonly onHold = new Map<string, () => void>();
+  private readonly scripted = new Map<string, ScriptedAnswer[]>();
+  private readonly callTimes = new Map<SlackCall, number>();
 
   withMember(id: string, options: Partial<SlackUser> = {}) {
     this.users.set(id, { id, team_id: "T1", ...options });
     return this;
   }
 
-  failNext(method: string, failure: SlackFailure, times = 1) {
-    const failures = this.failuresByMethod.get(method) ?? [];
-    this.failuresByMethod.set(method, [...failures, ...Array.from({ length: times }, () => failure)]);
+  answering(method: string, ...answers: ScriptedAnswer[]) {
+    this.scripted.set(method, [...(this.scripted.get(method) ?? []), ...answers]);
     return this;
   }
 
@@ -40,8 +44,11 @@ export class FakeSlack {
     const released = new Promise<void>((resolve) => (release = resolve));
     let signalReached = () => {};
     const reached = new Promise<void>((resolve) => (signalReached = resolve));
-    this.failNext(method, { heldUntil: released.then(() => undefined) });
-    this.onHold.set(method, signalReached);
+    this.answering(method, async (answerAsSlackWould) => {
+      signalReached();
+      await released;
+      return answerAsSlackWould();
+    });
     return { reached, release };
   }
 
@@ -61,35 +68,21 @@ export class FakeSlack {
     return this.calls.filter((call) => call.method === method).map((call) => call.args);
   }
 
-  timesOfCallsTo(method: string) {
-    return this.calls.flatMap((call, index) => (call.method === method ? [this.callTimes[index]!] : []));
+  timesOf(method: string, matching: (args: Record<string, string>) => boolean = () => true) {
+    return this.calls.filter((call) => call.method === method && matching(call.args)).map((call) => this.callTimes.get(call)!);
   }
 
   readonly fetch = async (input: string | URL | Request, init?: RequestInit) => {
     const url = new URL(input instanceof Request ? input.url : input);
     const method = url.pathname.split("/").pop() ?? "";
     const args = init?.body ? (JSON.parse(String(init.body)) as Record<string, string>) : Object.fromEntries(url.searchParams);
-    this.calls.push({ method, args });
-    this.callTimes.push(Date.now());
-    const failure = this.failuresByMethod.get(method)?.shift();
-    if (failure === undefined) return Response.json(this.answer(method, args));
-    return this.fail(failure, method, args);
+    const call = { method, args };
+    this.calls.push(call);
+    this.callTimes.set(call, Date.now());
+    const answerAsSlackWould = () => Response.json(this.answer(method, args));
+    const scripted = this.scripted.get(method)?.shift();
+    return scripted ? scripted(answerAsSlackWould) : answerAsSlackWould();
   };
-
-  private async fail(failure: SlackFailure, method: string, args: Record<string, string>) {
-    if ("heldUntil" in failure) {
-      this.onHold.get(method)?.();
-      await failure.heldUntil;
-      return Response.json(this.answer(method, args));
-    }
-    if ("error" in failure) return Response.json({ ok: false, error: failure.error });
-    if ("rateLimitedForSeconds" in failure) {
-      return Response.json({ ok: false, error: "ratelimited" }, { status: 429, headers: { "retry-after": String(failure.rateLimitedForSeconds) } });
-    }
-    if ("httpStatus" in failure) return new Response("upstream trouble", { status: failure.httpStatus });
-    if ("timeoutAfterApplying" in failure) this.answer(method, args);
-    throw new DOMException("The operation timed out.", "TimeoutError");
-  }
 
   private answer(method: string, args: Record<string, string>) {
     if (method === "users.info") {
@@ -109,6 +102,8 @@ export class FakeSlack {
       return { ok: true };
     }
     if (method === "chat.postEphemeral") return { ok: true, message_ts: "1760349700.000100" };
+    if (method === "views.publish") return { ok: true };
+    if (method === "chat.postMessage") return { ok: true, channel: args.channel, ts: "1760349700.000100" };
     return { ok: false, error: "unknown_method" };
   }
 

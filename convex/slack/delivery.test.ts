@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { FakeSlack, type SlackFailure } from "../../testing/fakeSlack";
+import { FakeSlack, httpStatus, landsButTimesOut, rateLimitedFor, slackError, timesOut, type ScriptedAnswer } from "../../testing/fakeSlack";
 import { kudosReceived, kudosSpent, postMessage, settle, settleUntil, testBackend, type Backend } from "../../testing/kudosBackend";
 import { signingSecret } from "../../testing/signedSlack";
 import { emoji, mention, section } from "../../testing/slackMessages";
@@ -29,15 +29,15 @@ afterEach(() => {
 describe("R35: Retry-After", () => {
   test("a 429 on reactions.add holds the next reaction until Retry-After has passed, while private replies go on", async () => {
     const t = testBackend();
-    slack.failNext("reactions.add", { rateLimitedForSeconds: 30 });
+    slack.answering("reactions.add", rateLimitedFor(30));
     await giveKudos(t, firstTs);
     await settleUntil(t, new Date(now.getTime() + 10_000));
 
     await giveKudos(t, secondTs);
     await settleUntil(t, new Date(now.getTime() + 60_000));
 
-    const [limited, ...later] = slack.timesOfCallsTo("reactions.add");
-    const replies = slack.timesOfCallsTo("chat.postEphemeral");
+    const [limited, ...later] = slack.timesOf("reactions.add");
+    const replies = slack.timesOf("chat.postEphemeral");
     expect(later).toHaveLength(2);
     expect(later.every((at) => at >= limited! + 30_000)).toBe(true);
     expect(replies).toHaveLength(2);
@@ -48,13 +48,13 @@ describe("R35: Retry-After", () => {
 });
 
 describe("R32 R35: the indicator is retried until the message shows it", () => {
-  test.each<[string, SlackFailure]>([
-    ["an error", { error: "internal_error" }],
-    ["an HTTP 500", { httpStatus: 500 }],
-    ["a timeout", { timeout: true }],
+  test.each<[string, ScriptedAnswer]>([
+    ["an error", slackError("internal_error")],
+    ["an HTTP 500", httpStatus(500)],
+    ["a timeout", timesOut],
   ])("reactions.add failing with %s three times still ends with exactly :taco:", async (_, failure) => {
     const t = testBackend();
-    slack.failNext("reactions.add", failure, 3);
+    slack.answering("reactions.add", ...repeated(3, failure));
 
     await giveKudos(t, firstTs);
     await settle(t);
@@ -65,7 +65,7 @@ describe("R32 R35: the indicator is retried until the message shows it", () => {
 
   test("a timed-out reaction that landed anyway is taken off when the indicator changes", async () => {
     const t = testBackend();
-    slack.failNext("reactions.add", { timeoutAfterApplying: true });
+    slack.answering("reactions.add", landsButTimesOut);
     await giveKudos(t, firstTs);
     await settle(t);
 
@@ -79,7 +79,7 @@ describe("R32 R35: the indicator is retried until the message shows it", () => {
     const t = testBackend();
     await giveKudos(t, firstTs);
     await settle(t);
-    slack.failNext("reactions.remove", { httpStatus: 503 }, 2);
+    slack.answering("reactions.remove", httpStatus(503), httpStatus(503));
 
     await setIndicator(t, firstTs, { emoji: "hourglass_flowing_sand" });
     await setIndicator(t, firstTs, null);
@@ -123,14 +123,14 @@ describe("R32 R35: the indicator is retried until the message shows it", () => {
 });
 
 describe("R35: a private reply is tried at most 3 times", () => {
-  test.each<[string, SlackFailure]>([
-    ["an error", { error: "internal_error" }],
-    ["an HTTP 500", { httpStatus: 500 }],
-    ["a 429", { rateLimitedForSeconds: 5 }],
-    ["an unknown result", { timeoutAfterApplying: true }],
+  test.each<[string, ScriptedAnswer]>([
+    ["an error", slackError("internal_error")],
+    ["an HTTP 500", httpStatus(500)],
+    ["a 429", rateLimitedFor(5)],
+    ["an unknown result", landsButTimesOut],
   ])("a reply failing with %s every time is sent 3 times and then given up", async (_, failure) => {
     const t = testBackend();
-    slack.failNext("chat.postEphemeral", failure, 10);
+    slack.answering("chat.postEphemeral", ...repeated(10, failure));
 
     await giveKudos(t, firstTs);
     await settle(t);
@@ -141,12 +141,12 @@ describe("R35: a private reply is tried at most 3 times", () => {
 
   test("a reply that fails twice is delivered on the third try, after the Retry-After Slack asked for", async () => {
     const t = testBackend();
-    slack.failNext("chat.postEphemeral", { httpStatus: 502 }).failNext("chat.postEphemeral", { rateLimitedForSeconds: 20 });
+    slack.answering("chat.postEphemeral", httpStatus(502), rateLimitedFor(20));
 
     await giveKudos(t, firstTs);
     await settleUntil(t, new Date(now.getTime() + 60_000));
 
-    const [, limited, delivered] = slack.timesOfCallsTo("chat.postEphemeral");
+    const [, limited, delivered] = slack.timesOf("chat.postEphemeral");
     expect(slack.ephemeralsTo("U_ALICE")).toHaveLength(3);
     expect(delivered).toBeGreaterThanOrEqual(limited! + 20_000);
   });
@@ -155,7 +155,7 @@ describe("R35: a private reply is tried at most 3 times", () => {
 describe("R34: feedback is separate from awards", () => {
   test("failing and repeated deliveries never evaluate again and never change awards or allowance", async () => {
     const t = testBackend();
-    slack.failNext("reactions.add", { timeout: true }, 2).failNext("chat.postEphemeral", { error: "internal_error" }, 2);
+    slack.answering("reactions.add", timesOut, timesOut).answering("chat.postEphemeral", slackError("internal_error"), slackError("internal_error"));
 
     await giveKudos(t, firstTs);
     await settle(t);
@@ -172,7 +172,7 @@ describe("R34: feedback is separate from awards", () => {
 describe("R35: a delivery whose message or channel is gone stops for good", () => {
   test.each(["message_not_found", "channel_not_found", "not_in_channel"])("reactions.add answering %s is not retried, and awards and spending stay", async (error) => {
     const t = testBackend();
-    slack.failNext("reactions.add", { error }, 10);
+    slack.answering("reactions.add", ...repeated(10, slackError(error)));
 
     await giveKudos(t, firstTs);
     await settle(t);
@@ -184,7 +184,7 @@ describe("R35: a delivery whose message or channel is gone stops for good", () =
 
   test.each(["message_not_found", "channel_not_found", "not_in_channel"])("chat.postEphemeral answering %s is not retried, and awards and spending stay", async (error) => {
     const t = testBackend();
-    slack.failNext("chat.postEphemeral", { error }, 10);
+    slack.answering("chat.postEphemeral", ...repeated(10, slackError(error)));
 
     await giveKudos(t, firstTs);
     await settle(t);
@@ -197,6 +197,10 @@ describe("R35: a delivery whose message or channel is gone stops for good", () =
 
 function setIndicator(t: Backend, ts: string, indicator: Indicator) {
   return t.run((ctx) => setDesiredIndicator(ctx, { workspace: "T1", conversation: "C1", message: ts }, indicator));
+}
+
+function repeated(times: number, answer: ScriptedAnswer) {
+  return Array.from({ length: times }, () => answer);
 }
 
 function giveKudos(t: Backend, ts: string) {

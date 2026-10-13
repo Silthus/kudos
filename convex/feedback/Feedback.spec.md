@@ -1,6 +1,6 @@
 # Feedback
 
-Feedback: the indicator on each kudos message as desired state and the private reply to its giver, both written with the outcome and delivered by the adapter afterwards, and the copy every reply is rendered from.
+Feedback: the indicator on each kudos message as desired state and the private reply to its giver, both written with the outcome and delivered by the adapter afterwards, and the copy every reply is rendered from: the private replies, the welcome message, App Home and the `/kudos` replies.
 
 ## invariants
 - private replies reach only the giver: A private reply about a kudos message reaches only its giver: an ephemeral to the message's author beside the message, in the thread for a thread reply and in the channel otherwise, and nobody else, recipients included, is sent anything about it.
