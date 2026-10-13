@@ -236,7 +236,7 @@ describe("P78: a feature that ships later is made ready once by the ship sweep",
     expect(published("unlockReady")).toEqual([]);
   });
 
-  test("a sweep that makes the Leaderboard ready for 600 members schedules fewer than Convex's 1000 functions per mutation, and every one of them ends up ready", async () => {
+  test("a sweep that makes the Leaderboard ready for 600 members schedules fewer than Convex's 1000 functions in each of its mutations, and every one of them ends up ready", async () => {
     vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
     const { t } = await withMember();
     const members = await t.run(async (ctx) => {
@@ -249,16 +249,27 @@ describe("P78: a feature that ships later is made ready once by the ship sweep",
       return ids;
     });
 
-    await sweep(t);
-    expect(await scheduledCount(t)).toBeLessThan(1000);
-    await settle(t);
+    const scheduledPerPage = await sweepPageByPage(t);
 
+    for (const scheduled of scheduledPerPage) expect(scheduled).toBeLessThan(1000);
+    expect(scheduledPerPage.length).toBeGreaterThan(1);
     expect(published("unlockReady")).toHaveLength(members.length);
-  }, 60_000);
+  }, 30_000);
 });
 
-function scheduledCount(t: Backend) {
-  return t.run(async (ctx) => (await ctx.db.system.query("_scheduled_functions").collect()).length);
+async function sweepPageByPage(t: Backend) {
+  const scheduledPerPage: number[] = [];
+  let next: { cursor?: string } | undefined = {};
+  while (next !== undefined) {
+    await t.mutation(internal.unlocks.sweep.sweep, next);
+    const scheduled = (await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect())).filter(({ state }) => state.kind === "pending");
+    scheduledPerPage.push(scheduled.length);
+    next = scheduled.find(({ name }) => name === "unlocks/sweep:sweep")?.args[0] as { cursor: string } | undefined;
+    await t.run(async (ctx) => {
+      for (const { _id } of scheduled) await ctx.scheduler.cancel(_id);
+    });
+  }
+  return scheduledPerPage;
 }
 
 function sweep(t: Backend) {
