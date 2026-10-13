@@ -6,6 +6,7 @@ import { republish } from "../feedback/homes";
 import { notifyFeaturesShipped } from "../feedback/notify";
 import { levelOf } from "../progression/levels";
 import { xpLevelsShownIn } from "../progression/xpLevels";
+import { unlocksLiveIn } from "./launch";
 import { shippedIn, type ScheduledFeature } from "./schedule";
 import { reachedAt, storeReadiness } from "./unlocks";
 
@@ -35,9 +36,14 @@ async function makeShippedReady(ctx: MutationCtx, { _id: member, workspace }: Do
 function shipStates(ctx: MutationCtx) {
   const byWorkspace = new Map<string, Promise<ScheduledFeature[]>>();
   return (workspace: string) => {
-    if (!byWorkspace.has(workspace)) byWorkspace.set(workspace, shippedIn(ctx, workspace));
+    if (!byWorkspace.has(workspace)) byWorkspace.set(workspace, launchedThenShipped(ctx, workspace));
     return byWorkspace.get(workspace)!;
   };
+}
+
+async function launchedThenShipped(ctx: MutationCtx, workspace: string) {
+  await unlocksLiveIn(ctx, workspace);
+  return shippedIn(ctx, workspace);
 }
 
 async function levelOfMember(ctx: MutationCtx, member: Doc<"members">["_id"]) {

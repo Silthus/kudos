@@ -49,14 +49,18 @@ describe("P63: the level-up DM", () => {
     ]);
   });
 
-  test("P4: level 4 names no skill points", async () => {
+  test.each([
+    ["level 4 names no skill points", 290, "🎉 You reached level 4!\nLevel 5 is 300 XP away."],
+    ["level 5 names the first skill point, saved for the skill tree", 590, "🎉 You reached level 5! You have 1 skill point saved for the skill tree.\nLevel 6 is 400 XP away."],
+    ["level 6 names every saved skill point", 990, "🎉 You reached level 6! You have 2 skill points saved for the skill tree.\nLevel 7 is 500 XP away."],
+  ])("P4: %s", async (_, xp, text) => {
     const t = await workspaceWithAllowance(10);
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
-    await withXp(t, "U_ALICE", 290);
+    await withXp(t, "U_ALICE", xp);
 
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
-    expect(levelUpDms().filter(({ channel }) => channel === "U_ALICE").map((dm) => dm.text)).toEqual(["🎉 You reached level 4!\nLevel 5 is 300 XP away."]);
+    expect(levelUpDms().filter(({ channel }) => channel === "U_ALICE").map((dm) => dm.text)).toEqual([text]);
   });
 
   test("a recipient who reaches a level gets the DM, and a giver who stays on their level gets none", async () => {

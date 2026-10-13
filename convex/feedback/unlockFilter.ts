@@ -1,7 +1,8 @@
 import { v } from "convex/values";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
+import { xpLevelsShownIn } from "../progression/xpLevels";
 import { featureValidator, type Feature } from "../unlocks/feature";
+import { unlocksLiveIn, unlocksShownTo } from "../unlocks/launch";
 import { scheduled, shippedIn, type ScheduledFeature } from "../unlocks/schedule";
 import { stateOf, type UnlockState } from "../unlocks/unlocks";
 import { lookup, type MemberId } from "../workspace/directory";
@@ -20,7 +21,7 @@ export const unopenedReplyOf = internalMutation({
   handler: async (ctx, { workspace, user, feature }): Promise<Line[] | null> => {
     const person = await lookup(ctx, workspace, user);
     const member = person?.kind === "member" ? person.member : undefined;
-    if (!(await unlocksShownTo(ctx, workspace, member))) return null;
+    if (!(await unlocksShownToViewer(ctx, workspace, member))) return null;
     const state = member === undefined ? await strangerStateOf(ctx, workspace, feature) : await stateOf(ctx, member, feature);
     if (state === "ready" || state === "locked") return renderUnopenedReply(scheduled(feature), state);
     return null;
@@ -32,8 +33,9 @@ export function renderUnopenedReply({ name, level }: ScheduledFeature, state: "r
   return [[{ text }]];
 }
 
-function unlocksShownTo(ctx: MutationCtx, workspace: string, member: MemberId | undefined) {
-  return member === undefined ? xpLevelsShownIn(ctx, workspace) : xpLevelsShownTo(ctx, member);
+async function unlocksShownToViewer(ctx: MutationCtx, workspace: string, member: MemberId | undefined) {
+  if (member !== undefined) return unlocksShownTo(ctx, member);
+  return (await xpLevelsShownIn(ctx, workspace)) && (await unlocksLiveIn(ctx, workspace));
 }
 
 async function strangerStateOf(ctx: QueryCtx, workspace: string, feature: Feature): Promise<UnlockState> {

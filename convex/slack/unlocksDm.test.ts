@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack, rateLimitedFor } from "../../testing/fakeSlack";
-import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone } from "../../testing/flags";
+import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { blockActions, buttonIn, publishedHome, readBlocks, type Block } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
@@ -28,7 +28,7 @@ beforeEach(() => {
   vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
   vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
   slack = new FakeSlack().withMember("U_ALICE").withMember("U_BOB");
-  postHog = flagsOnForEveryone(slack.fetch, "xp-levels", "everyone-board");
+  postHog = flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "everyone-board");
   sentMessages = 0;
 });
 
@@ -79,7 +79,7 @@ describe("P74 P73: the level-up DM names what the level made ready, each with Op
 
   test("with everyone-board off, reaching level 3 sends the level-up DM without naming any feature", async () => {
     const t = await workspace();
-    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), offForEveryone("everyone-board"));
+    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("everyone-board"));
 
     await giveKudos(t, "U_ALICE", "U_BOB", 10);
 
@@ -92,7 +92,7 @@ describe("R34: a level-up DM rechecks what it names before each try", () => {
     const t = await workspace();
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
     slack.holdingBack("chat.postMessage", "U_ALICE", async () => {
-      await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), offForEveryone("everyone-board"));
+      await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("everyone-board"));
       slack.answering("chat.postMessage", rateLimitedFor(30));
     });
 
@@ -146,12 +146,12 @@ describe("P74: one owner for readiness and the level-up DM", () => {
 
   test("a levelReached replayed after everyone-board went on makes nothing ready and sends nothing, leaving that readiness to the ship sweep", async () => {
     const t = await workspace();
-    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), offForEveryone("everyone-board"));
+    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("everyone-board"));
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
     const reached = await levelThreeReachedBy(t, "U_ALICE");
     await t.mutation(internal.unlocks.unlocks.makeReady, { event: reached });
     await settle(t);
-    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("everyone-board"));
+    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("everyone-board"));
 
     await t.mutation(internal.unlocks.unlocks.makeReady, { event: reached });
     await settle(t);
@@ -278,7 +278,7 @@ describe("P78: a feature that ships later becomes ready for members past its lev
 type PostedDm = Record<string, unknown>;
 
 function boardTurned(t: Backend, value: "on" | "off") {
-  return flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), (value === "on" ? onForEveryone : offForEveryone)("everyone-board"));
+  return flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), (value === "on" ? onForEveryone : offForEveryone)("everyone-board"));
 }
 
 async function sweep(t: Backend) {
@@ -345,7 +345,7 @@ async function publishHome(t: Backend, user: string) {
 async function workspace() {
   const t = await flagsLoaded(testBackend());
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
-  return t;
+  return unlocksShippedBeforeAnyoneJoined(t);
 }
 
 async function giveKudos(t: Backend, giver: string, recipient: string, kudos: number) {

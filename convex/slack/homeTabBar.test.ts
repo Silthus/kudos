@@ -51,7 +51,7 @@ type Flags = { board: boolean; xp: boolean };
 
 const flagsOf = ({ board: boardOn, xp }: Flags) => [boardOn ? onForEveryone(board) : offForEveryone(board), xp ? onForEveryone(xpLevels) : offForEveryone(xpLevels)];
 
-describe("the App Home tab bar shows each tab only while its own flag is on, to a member who has opened the Leaderboard", () => {
+describe("the App Home tab bar shows each tab only while its own flag is on", () => {
   test("with both flags off there is no tab bar, and App Home is the core loop's", async () => {
     const t = await workspaceWith({ board: false, xp: false });
 
@@ -120,18 +120,7 @@ async function workspaceWith(flags: Flags, { admin = false } = {}) {
   const t = await flagsFromPostHog(testBackend(), postHog, ...flagsOf(flags));
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
   await giveKudos(t, "U_ALICE", "U_BOB", 2);
-  await leaderboardOpenedBy(t, "U_ALICE");
   return t;
-}
-
-async function leaderboardOpenedBy(t: Backend, user: string) {
-  await t.run(async (ctx) => {
-    const member = await ctx.db
-      .query("members")
-      .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", user))
-      .unique();
-    await ctx.db.insert("unlocks", { member: member!._id, feature: "leaderboard", readyAt: now.getTime(), openedAt: now.getTime() });
-  });
 }
 
 async function giveKudos(t: Backend, giver: string, recipient: string, kudos: number) {

@@ -6,6 +6,7 @@ import { skillTreeLevel } from "../progression/levels";
 import { progressSettingsOf } from "../progression/settings";
 import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { featureValidator } from "../unlocks/feature";
+import { unlocksAppliedIn, unlocksShownTo } from "../unlocks/launch";
 import { scheduled, shippedIn, type ScheduledFeature } from "../unlocks/schedule";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { readyCrateOf, type HomeAction } from "./home";
@@ -29,12 +30,13 @@ export type NotificationLine = string | { text: string; action: HomeAction };
 
 export async function notifyLevelReached(ctx: MutationCtx, { member, level, skillPoints, xpToNextLevel }: LevelReachedEvent, ready: ScheduledFeature[]) {
   if (!(await xpLevelsShownTo(ctx, member))) return;
+  if (!(await unlocksShownTo(ctx, member))) return notify(ctx, member, { kind: "level-reached", level, skillPoints, xpToNextLevel, ready: [] });
   const toldSkillPoints = await whenOpened(ctx, member, "skillTree", skillPoints);
   await notify(ctx, member, { kind: "level-reached", level, skillPoints: toldSkillPoints, xpToNextLevel, ready: featuresOf(ready) });
 }
 
 export async function notifyFeaturesShipped(ctx: MutationCtx, member: MemberId, ready: ScheduledFeature[]) {
-  if (!(await xpLevelsShownTo(ctx, member))) return;
+  if (!(await unlocksShownTo(ctx, member))) return;
   await notify(ctx, member, { kind: "features-shipped", ready: featuresOf(ready) });
 }
 
@@ -66,6 +68,7 @@ function levelReachedLines({ level, skillPoints, xpToNextLevel }: Extract<Notifi
 }
 
 async function stillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: Notification): Promise<Notification> {
+  if (!(await unlocksAppliedIn(ctx, workspace))) return { ...notification, ready: [] };
   const shipped = (await shippedIn(ctx, workspace)).map(({ feature }) => feature);
   const ready = notification.ready.filter((feature) => shipped.includes(feature));
   if (notification.kind !== "level-reached" || notification.skillPoints === null) return { ...notification, ready };

@@ -8,6 +8,7 @@ import { notifyLevelReached } from "../feedback/notify";
 import { xpLevelsShownIn } from "../progression/xpLevels";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import type { Feature } from "./feature";
+import { unlocksLiveIn, unlocksShownTo } from "./launch";
 import { scheduled, shippedIn, type ScheduledFeature } from "./schedule";
 
 export type UnlockState = "unshipped" | "locked" | "ready" | "open";
@@ -23,6 +24,7 @@ export const makeReady = internalMutation({
   handler: async (ctx, { event }): Promise<void> => {
     const { workspace, member, level, at } = event;
     if ((await levelUpOf(ctx, member, level)) !== null) return;
+    await unlocksLiveIn(ctx, workspace);
     const madeReady = await storeReadiness(ctx, { workspace, member, at }, reachedAt(await shippedIn(ctx, workspace), level));
     await ctx.db.insert("levelUps", { member, level, ready: madeReady.map(({ feature }) => feature), at });
     await notifyLevelReached(ctx, event, madeReady);
@@ -31,13 +33,19 @@ export const makeReady = internalMutation({
 });
 
 export async function openUnlock(ctx: MutationCtx, member: MemberId, feature: Feature): Promise<"done" | "refused"> {
+  if (!(await unlocksShownTo(ctx, member))) return "refused";
   const { workspace } = await chatUserOf(ctx, member);
-  const row = await unlockRow(ctx, member, feature);
-  if (stateFrom(row) !== "ready" || !(await isShipped(ctx, workspace, feature))) return "refused";
-  const at = Date.now();
-  await ctx.db.patch(row!._id, { openedAt: at });
-  await publish(ctx, { type: "unlockOpened", workspace, member, feature, at });
+  if ((await stateOf(ctx, member, feature)) !== "ready") return "refused";
+  await keepOpen(ctx, { workspace, member, at: Date.now() }, feature);
   return "done";
+}
+
+export async function keepOpen(ctx: MutationCtx, { workspace, member, at }: { workspace: string; member: MemberId; at: number }, feature: Feature) {
+  const row = await unlockRow(ctx, member, feature);
+  if (row?.openedAt !== undefined) return;
+  if (row === null) await ctx.db.insert("unlocks", { member, feature, readyAt: at, openedAt: at });
+  else await ctx.db.patch(row._id, { openedAt: at });
+  await publish(ctx, { type: "unlockOpened", workspace, member, feature, at });
 }
 
 export const memberUnlocks = internalQuery({

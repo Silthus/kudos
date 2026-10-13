@@ -46,7 +46,7 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       if ((await xpLevelsShownTo(ctx, member)) && (await setAnnouncementChannel(ctx, workspace, person, command.channel))) await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
       return;
     case "openUnlock":
-      if (await xpLevelsShownTo(ctx, member)) await openUnlock(ctx, member, command.feature);
+      await openUnlock(ctx, member, command.feature);
       return;
   }
 }

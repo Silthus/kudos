@@ -151,6 +151,12 @@ export default defineSchema({
     openedAt: v.optional(v.number()),
   }).index("by_member_feature", ["member", "feature"]),
 
+  unlockLaunches: defineTable({
+    workspace: v.string(),
+    at: v.number(),
+    shipped: v.array(featureValidator),
+  }).index("by_workspace", ["workspace"]),
+
   levelUps: defineTable({
     member: v.id("members"),
     level: v.number(),

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone } from "../../testing/flags";
+import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { blockActions, buttonInHome, publishedHome } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
@@ -24,7 +24,7 @@ beforeEach(() => {
   vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
   vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
   slack = new FakeSlack().withMember("U_ALICE").withMember("U_BOB");
-  postHog = flagsOnForEveryone(slack.fetch, "xp-levels", "everyone-board");
+  postHog = flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "everyone-board");
   sentMessages = 0;
 });
 
@@ -85,7 +85,7 @@ describe("P74 P73: App Home's Profile tab lists each ready feature with Open", (
     await giveKudos(t, "U_ALICE", "U_BOB", 10);
     await openHome(t, "U_ALICE");
     const openButton = buttonInHome(slack, "U_ALICE", "Open");
-    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), offForEveryone("everyone-board"));
+    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("everyone-board"));
 
     await send(t, blockActions("U_ALICE", openButton));
 
@@ -123,7 +123,7 @@ describe("P74 P78: the Next line names the lowest shipped feature still locked",
 
   test("with everyone-board off, no feature is ready, named or teased at any level", async () => {
     const t = await workspace();
-    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), offForEveryone("everyone-board"));
+    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("everyone-board"));
     await giveKudos(t, "U_ALICE", "U_BOB", 10);
 
     await openHome(t, "U_ALICE");
@@ -160,7 +160,7 @@ async function levelThreeReachedBy(t: Backend, user: string): Promise<LevelReach
 async function workspace() {
   const t = await flagsLoaded(testBackend());
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
-  return t;
+  return unlocksShippedBeforeAnyoneJoined(t);
 }
 
 async function giveKudos(t: Backend, giver: string, recipient: string, kudos: number) {

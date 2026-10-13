@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack } from "../../testing/fakeSlack";
 import type { FakePostHog } from "../../testing/fakePostHog";
-import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone } from "../../testing/flags";
+import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { internal } from "../_generated/api";
 import type { LevelReachedEvent } from "../bus/events";
@@ -24,7 +24,7 @@ let postHog: FakePostHog;
 beforeEach(() => {
   vi.useFakeTimers({ now });
   vi.mocked(publish).mockClear();
-  postHog = flagsOnForEveryone(new FakeSlack().fetch, "xp-levels", "everyone-board");
+  postHog = flagsOnForEveryone(new FakeSlack().fetch, "xp-levels", "unlocks", "everyone-board");
 });
 
 afterEach(() => {
@@ -266,11 +266,11 @@ function sweep(t: Backend) {
 }
 
 function boardTurned(t: Backend, value: "on" | "off") {
-  return flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), (value === "on" ? onForEveryone : offForEveryone)("everyone-board"));
+  return flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), (value === "on" ? onForEveryone : offForEveryone)("everyone-board"));
 }
 
 async function withMember() {
-  const t = await flagsLoaded(testBackend());
+  const t = await unlocksShippedBeforeAnyoneJoined(await flagsLoaded(testBackend()));
   const alice = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: "U_ALICE", kind: "member", timeZone: "UTC" }));
   return { t, alice };
 }

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack, rateLimitedFor } from "../../testing/fakeSlack";
-import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone } from "../../testing/flags";
+import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { blockActions, buttonInHome, publishedHome, readBlocks, type Block } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
@@ -32,7 +32,7 @@ afterEach(() => {
 
 describe("P76: a feature's lines wait for its opening", () => {
   test("a member who reaches level 5 while the skill tree is unshipped is told nothing of skill points or perks, and still has the point stored", async () => {
-    flagsOnForEveryone(slack.fetch, "xp-levels");
+    flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks");
     const t = await workspaceWithAllowance(10);
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
     await withXp(t, "U_ALICE", 590);
@@ -47,7 +47,7 @@ describe("P76: a feature's lines wait for its opening", () => {
   });
 
   test("a member whose skill tree is ready but not opened sees its crate and no skill point line, in the DM and in App Home", async () => {
-    flagsOnForEveryone(slack.fetch, "xp-levels", "skill-tree");
+    flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "skill-tree");
     const t = await workspaceWithAllowance(10);
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
     await withXp(t, "U_ALICE", 590);
@@ -60,7 +60,7 @@ describe("P76: a feature's lines wait for its opening", () => {
   });
 
   test("a member below level 5 sees the shipped skill tree as Next, not yet ready", async () => {
-    flagsOnForEveryone(slack.fetch, "xp-levels", "skill-tree");
+    flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "skill-tree");
     const t = await workspaceWithAllowance(10);
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
 
@@ -70,7 +70,7 @@ describe("P76: a feature's lines wait for its opening", () => {
   });
 
   test("once the member opens the skill tree, the level-up DM and App Home name their saved skill points", async () => {
-    flagsOnForEveryone(slack.fetch, "xp-levels", "skill-tree");
+    flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "skill-tree");
     const t = await workspaceWithAllowance(10);
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
     await withXp(t, "U_ALICE", 590);
@@ -88,7 +88,7 @@ describe("P76: a feature's lines wait for its opening", () => {
   });
 
   test("a level-up DM Slack held back names no skill points once the skill tree went off before its retry", async () => {
-    const postHog = flagsOnForEveryone(slack.fetch, "xp-levels", "skill-tree");
+    const postHog = flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "skill-tree");
     const t = await workspaceWithAllowance(10);
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
     await withXp(t, "U_ALICE", 590);
@@ -97,7 +97,7 @@ describe("P76: a feature's lines wait for its opening", () => {
     await click(t, "U_ALICE", "Open");
     await withXp(t, "U_ALICE", 990);
     slack.holdingBack("chat.postMessage", "U_ALICE", async () => {
-      await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), offForEveryone("skill-tree"));
+      await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("skill-tree"));
       slack.answering("chat.postMessage", rateLimitedFor(30));
     });
 
@@ -110,7 +110,7 @@ describe("P76: a feature's lines wait for its opening", () => {
   });
 
   test("with everyone-board on, a level 1 member is told the Leaderboard opens at level 3, by /hedgehug leaderboard, and App Home has no Leaderboard tab", async () => {
-    flagsOnForEveryone(slack.fetch, "xp-levels", "everyone-board");
+    flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "everyone-board");
     const t = await workspaceWithAllowance(10);
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
@@ -123,7 +123,7 @@ describe("P76: a feature's lines wait for its opening", () => {
   });
 
   test("at level 3, before opening, /hedgehug leaderboard says the Leaderboard is ready, and App Home shows its crate but no Leaderboard tab", async () => {
-    flagsOnForEveryone(slack.fetch, "xp-levels", "everyone-board");
+    flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "everyone-board");
     const t = await workspaceWithAllowance(10);
     await giveKudos(t, "U_ALICE", "U_BOB", 10);
 
@@ -136,7 +136,7 @@ describe("P76: a feature's lines wait for its opening", () => {
   });
 
   test("once the member opens the Leaderboard, its tab and /hedgehug leaderboard show the board, with members who haven't opened it on it", async () => {
-    flagsOnForEveryone(slack.fetch, "xp-levels", "everyone-board");
+    flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "everyone-board");
     const t = await workspaceWithAllowance(10);
     await giveKudos(t, "U_BOB", "U_ALICE", 1);
     await giveKudos(t, "U_ALICE", "U_BOB", 10);
@@ -154,7 +154,7 @@ describe("P76: a feature's lines wait for its opening", () => {
   });
 
   test("with everyone-board off, a level 3 member's /hedgehug leaderboard answers as /hedgehug, and nothing names the Leaderboard", async () => {
-    flagsOnForEveryone(slack.fetch, "xp-levels");
+    flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks");
     const t = await workspaceWithAllowance(10);
     await giveKudos(t, "U_ALICE", "U_BOB", 10);
 
@@ -167,9 +167,9 @@ describe("P76: a feature's lines wait for its opening", () => {
   });
 });
 
-describe("O36: the leaderboard command records the xp-levels exposure it decides by", () => {
-  test("a member whose xp-levels exposure isn't recorded yet has it recorded when /hedgehug leaderboard tells them the Leaderboard opens at level 3", async () => {
-    flagsOnForEveryone(slack.fetch, "xp-levels", "everyone-board");
+describe("O36: the leaderboard command records the exposures it decides by", () => {
+  test("a member whose exposures aren't recorded yet has them recorded when /hedgehug leaderboard tells them the Leaderboard opens at level 3", async () => {
+    flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "everyone-board");
     const t = await workspaceWithAllowance(10);
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
     const member = await memberOf(t, "U_ALICE");
@@ -182,6 +182,7 @@ describe("O36: the leaderboard command records the xp-levels exposure it decides
     const recorded = await t.run((ctx) => ctx.db.query("flagExposures").collect());
     expect(recorded.filter((row) => row.member === member).map(({ flag, value }) => [flag, value]).sort()).toEqual([
       ["everyone-board", true],
+      ["unlocks", true],
       ["xp-levels", true],
     ]);
   });
@@ -207,7 +208,7 @@ function progressionOf(home: string[]) {
 async function workspaceWithAllowance(baseAllowance: number) {
   const t = await flagsLoaded(testBackend());
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance }));
-  return t;
+  return unlocksShippedBeforeAnyoneJoined(t);
 }
 
 async function giveKudos(t: Backend, giver: string, recipient: string, kudos: number) {
