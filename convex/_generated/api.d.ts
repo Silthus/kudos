@@ -48,6 +48,7 @@ import type * as progression_levels from "../progression/levels.js";
 import type * as progression_progress from "../progression/progress.js";
 import type * as progression_progression from "../progression/progression.js";
 import type * as progression_settings from "../progression/settings.js";
+import type * as progression_xpLevels from "../progression/xpLevels.js";
 import type * as slack_appHome from "../slack/appHome.js";
 import type * as slack_commands from "../slack/commands.js";
 import type * as slack_delivery from "../slack/delivery.js";
@@ -89,7 +90,7 @@ declare const fullApi: ApiFromModules<{
   "bus/commands": typeof bus_commands;
   "bus/events": typeof bus_events;
   "bus/publish": typeof bus_publish;
-  "crons": typeof crons;
+  crons: typeof crons;
   "engine/allowance": typeof engine_allowance;
   "engine/awards": typeof engine_awards;
   "engine/engine": typeof engine_engine;
@@ -105,7 +106,7 @@ declare const fullApi: ApiFromModules<{
   "feedback/publicReplies": typeof feedback_publicReplies;
   "feedback/replies": typeof feedback_replies;
   "feedback/welcome": typeof feedback_welcome;
-  "http": typeof http;
+  http: typeof http;
   "parser/parser": typeof parser_parser;
   "progression/backfill": typeof progression_backfill;
   "progression/catalogue": typeof progression_catalogue;
@@ -115,6 +116,7 @@ declare const fullApi: ApiFromModules<{
   "progression/progress": typeof progression_progress;
   "progression/progression": typeof progression_progression;
   "progression/settings": typeof progression_settings;
+  "progression/xpLevels": typeof progression_xpLevels;
   "slack/appHome": typeof slack_appHome;
   "slack/commands": typeof slack_commands;
   "slack/delivery": typeof slack_delivery;
@@ -134,8 +136,6 @@ declare const fullApi: ApiFromModules<{
   "welcome/welcome": typeof welcome_welcome;
   "workspace/directory": typeof workspace_directory;
   "workspace/settings": typeof workspace_settings;
-  crons: typeof crons;
-  http: typeof http;
 }>;
 
 /**
