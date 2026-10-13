@@ -25,7 +25,8 @@ afterEach(() => {
 });
 
 describe("the deployment's default kudos emoji", () => {
-  test("without KUDOS_EMOJI, :taco: gives kudos and is the reaction", async () => {
+  test.each([undefined, ""])("with KUDOS_EMOJI=%s, :taco: gives kudos and is the reaction", async (setting) => {
+    vi.stubEnv("KUDOS_EMOJI", setting);
     const t = testBackend();
 
     await post(t, [section(mention("U_BOB"), emoji("taco"))]);
@@ -35,7 +36,7 @@ describe("the deployment's default kudos emoji", () => {
     expect(slack.reactionsOn("C1", postedTs)).toEqual(["taco"]);
   });
 
-  test.each(["hedgehog", ":hedgehog:"])("with KUDOS_EMOJI=%s, :hedgehog: gives kudos and is the reaction", async (setting) => {
+  test.each(["hedgehog", ":hedgehog:", "HedgeHog"])("with KUDOS_EMOJI=%s, :hedgehog: gives kudos and is the reaction", async (setting) => {
     vi.stubEnv("KUDOS_EMOJI", setting);
     const t = testBackend();
 

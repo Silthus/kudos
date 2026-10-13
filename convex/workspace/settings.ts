@@ -17,6 +17,6 @@ export async function settingsOf(ctx: QueryCtx, workspace: string): Promise<Work
 }
 
 export function defaultKudosEmoji() {
-  const configured = process.env.KUDOS_EMOJI?.trim().replace(/^:|:$/g, "");
+  const configured = process.env.KUDOS_EMOJI?.trim().toLowerCase().replace(/^:|:$/g, "");
   return configured || fallbackKudosEmoji;
 }

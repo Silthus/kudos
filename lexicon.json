@@ -3,7 +3,7 @@
   "concepts": [
     {
       "name": "kudos",
-      "definition": "The unit of recognition a giver gives a recipient. The word is the same in the singular and the plural: 1 kudos, 3 kudos. Not a point, credit or currency, and not a taco: :taco: is only the default kudos emoji.",
+      "definition": "The unit of recognition a giver gives a recipient. The word is the same in the singular and the plural: 1 kudos, 3 kudos. Not a point, credit or currency, and not a taco: :taco: is only the fallback default kudos emoji, used when the deployment sets none.",
       "rejected": [
         {
           "alternative": "karma",
