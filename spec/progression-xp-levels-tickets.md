@@ -1,8 +1,8 @@
 # Planned implementation tickets: stopping point 1, XP and levels
 
-> **Draft for approval on [#13](https://github.com/Silthus/kudos/issues/13).** Not published yet. On approval, stopping point 1 becomes a `wayfinder:spec` sub-issue of #13 and each ticket below a `wayfinder:implement` sub-issue of #13 with native blocking edges. Rule numbers (`P7`, `R36`) refer to the [progression spec](progression.md) and the [core loop spec](https://github.com/Silthus/kudos/blob/docs/spec-core-loop/spec/core-loop.md).
+> **Approved on [#13](https://github.com/Silthus/kudos/issues/13) (2026-10-13).** Stopping point 1 is a `wayfinder:spec` sub-issue of #13 and each ticket below a `wayfinder:implement` sub-issue of #13 with native blocking edges. Rule numbers (`P7`, `R36`) refer to the [progression spec](progression.md) and the [core loop spec](https://github.com/Silthus/kudos/blob/docs/spec-core-loop/spec/core-loop.md).
 
-**What stopping point 1 ships:** every Given kudos earns XP (10 given, 5 received) recorded once with its award; levels and saved skill points; a level-up DM; a public level notice under the kudos message or in an announcement channel; App Home with level, XP and privacy settings; earlier kudos counted. No perks, coins or cosmetics yet.
+**What stopping point 1 ships:** every Given kudos earns XP (10 given, 5 received) recorded once with its award; levels and saved skill points; a level-up DM; a public level notice under the kudos message or in an announcement channel; the core loop's App Home extended with level, XP and privacy settings; earlier kudos counted. No perks, coins or cosmetics yet.
 
 Every ticket is a reviewed pull request, tested outside-in at the spec's seams, with `pnpm gate` green. The conductor's `ship` ticket deploys stopping point 1 to production and runs the backfill there.
 
@@ -12,7 +12,7 @@ flowchart LR
   T1 --> T2["2 Level-up DM"]
   T1 --> T3["3 Public level notice"]
   T1 --> T5["5 Earlier kudos count"]
-  T2 --> T4["4 App Home and settings"]
+  T2 --> T4["4 Progression in App Home"]
   T3 --> T4
   C["C Content catalogue v1 (lands in stopping point 2)"]
   T4 --> SHIP["ship (conductor)"]
@@ -68,19 +68,19 @@ flowchart LR
 
 **Context:** spec P64–P65; brief D18, §13 E3; core loop R33 (relaxed: public replies are now allowed), R45.
 
-## 4. App Home and progression settings
+## 4. Progression in App Home
 
 **Blocked by:** 2, 3.
 
-**What to build:** a member opens the app's Home tab and sees their level, XP and settings. It adds `app_home_opened` and `views.publish` through a platform-neutral `homeOf(member)` view, App Home as desired state republished after changes, the `/slack/interactivity` route with signature checks, the command registry (D17) with its first commands (progression settings, announcement channel), and the manifest's App Home tab and interactivity URL.
+**What to build:** the App Home the core loop's slice 1 builds gains progression. Its Profile tab shows level, XP and skill points, its Settings tab hiding, muting and DMs, and its Admin tab the announcement channel (layout `d-766ac71d`). It adds progression's part of the platform-neutral home view, App Home as desired state republished after changes, and, unless the core loop or groups spec built them first, the `/slack/interactivity` route with signature checks, the command registry (D17) and the manifest's interactivity URL.
 
 **Acceptance criteria**
-- [ ] Opening App Home shows level, XP, XP to the next level, skill points saved, today's kudos left, and the settings (P67).
+- [ ] App Home's Profile tab shows level, XP to the next level and skill points saved beside the core loop's contents; Settings shows the progression settings (P67).
 - [ ] After a level up, the member's App Home is republished; the latest version wins and a failed publish is retried (P68).
 - [ ] Toggling hide level, hide achievements, mute notices or progression DMs takes effect on the next notice or DM (P63, P65), and repeating the same click changes nothing (command idempotency).
-- [ ] Workspace admins, and only admins, see a channel picker that sets or clears the announcement channel (P69).
+- [ ] Workspace admins and owners, and only they, see in the Admin tab a channel picker that sets or clears the announcement channel (P69).
 - [ ] An unsigned or stale interactivity request gets 401 and does nothing (R42); interactions are acknowledged within 3 s.
-- [ ] Coherence: the `/slack/interactivity` entrance is declared; the lexicon settles App Home, command and announcement channel use.
+- [ ] Coherence: the `/slack/interactivity` entrance is declared; the lexicon settles command and announcement channel use.
 
 **Context:** spec P63–P69, "Contracts" (commands, App Home); brief D17, §13 E1; Slack research ([#5](https://github.com/Silthus/kudos/issues/5)) on App Home and interactivity.
 

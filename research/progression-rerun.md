@@ -75,4 +75,4 @@ The Crowd booster is the only booster nobody buys or chooses. It adds to the XP 
 
 ## Limits
 
-Same limits as the research: member-local dates, no closed network, no time zones or daylight saving, no concurrency, synthetic behaviour. Chime-in volumes and crowd sizes are assumptions; the closed-network argument bounds their mean, not their shape. Team auras are not re-simulated. Drop rates and pool sizes are unchanged.
+Same limits as the research: member-local dates, no closed network, no time zones or daylight saving, no concurrency, synthetic behaviour. Chime-in volumes and crowd sizes are assumptions; the closed-network argument bounds their mean, not their shape. Group auras are not re-simulated. Drop rates and pool sizes are unchanged.

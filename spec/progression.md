@@ -1,6 +1,6 @@
 # Spec: progression
 
-> **Draft for approval on [#13](https://github.com/Silthus/kudos/issues/13), map [#1](https://github.com/Silthus/kudos/issues/1).** This file lives on the branch `docs/spec-progression` and is never merged. It is the target design for the whole game. It ships as stopping-point specs ([progression-stopping-points.md](progression-stopping-points.md)), each published as its own `wayfinder:spec` issue under #13 once Michael approves. The first one's implementation tickets are in [progression-xp-levels-tickets.md](progression-xp-levels-tickets.md).
+> **Approved by Michael on 2026-10-13 ([#13](https://github.com/Silthus/kudos/issues/13), map [#1](https://github.com/Silthus/kudos/issues/1)), with every open call at its recommendation and the groups grilling's amendments ([#10](https://github.com/Silthus/kudos/issues/10)).** This file lives on the branch `docs/spec-progression` and is never merged. It is the target design for the whole game. It ships as stopping-point specs ([progression-stopping-points.md](progression-stopping-points.md)), each published as its own `wayfinder:spec` issue under #13 once Michael approves. The first one's implementation tickets are in [progression-xp-levels-tickets.md](progression-xp-levels-tickets.md).
 >
 > Sources: the progression grilling ([#9 handoff](https://github.com/Silthus/kudos/issues/9)) and its journal records, ADR-0002 to ADR-0004, the Coherence lexicon, the accepted architecture ([#11 handoff](https://github.com/Silthus/kudos/issues/11), [brief](https://github.com/Silthus/kudos/blob/prototype/architecture/prototype/architecture.md) §3, §7 and §13), the core loop spec draft ([`spec/core-loop.md` on `docs/spec-core-loop`](https://github.com/Silthus/kudos/blob/docs/spec-core-loop/spec/core-loop.md)), the balance research and the [rerun](../research/progression-rerun.md) on this branch, which sets every price and strength below.
 
@@ -24,7 +24,7 @@ Every member progresses automatically. Each kudos given earns 10 XP and each kud
 7. As a member, I want a DM when I level up that tells me my points and how far the next level is, so that I notice the moment.
 8. As a member, I want my XP and level never to go down, so that nothing I earned is taken away (ADR-0002).
 9. As a member who joined before progression shipped, I want my earlier kudos to count, so that the early adopters aren't behind.
-10. As a teammate, I want a short public line when someone reaches a level, so that we can celebrate together.
+10. As a colleague, I want a short public line when someone reaches a level, so that we can celebrate together.
 
 **Thoughtful kudos**
 11. As a giver, I want a kudos that says why to count as thoughtful, so that the game rewards meaningful thanks.
@@ -85,8 +85,8 @@ Every member progresses automatically. Each kudos given earns 10 XP and each kud
 52. As a member, I want to hide my streak and get no reminders, so that it never nags me.
 
 **Chime-ins**
-53. As a teammate, I want to join a kudos by clicking the app's reaction, so that one thank-you can come from many people.
-54. As a teammate, I want a chime-in to cost me one kudos per recipient, so that it is real recognition.
+53. As a colleague, I want to join a kudos by clicking the app's reaction, so that one thank-you can come from many people.
+54. As a colleague, I want a chime-in to cost me one kudos per recipient, so that it is real recognition.
 55. As a giver, I want my kudos to draw a crowd that boosts everyone involved, so that group thanks feel bigger.
 56. As a recipient, I want bonus XP when many people chime in, so that a big moment counts.
 57. As a member, I want removing my reaction to change nothing, so that chime-ins behave like kudos (ADR-0001).
@@ -101,7 +101,7 @@ Every member progresses automatically. Each kudos given earns 10 XP and each kud
 **Robustness and operations**
 63. As a member, I want every effect of an award written once and never recomputed, so that a Slack retry can't mint coins or re-roll a drop (ADR-0004).
 64. As Michael, I want each stopping point shipped and deployed on its own, so that the game grows in usable steps.
-65. As a later module (teams, the leaderboard), I want progression's derived events and stable catalogue IDs, so that I can build on them without reading progression's tables.
+65. As a later module (groups, the leaderboard), I want progression's derived events and stable catalogue IDs, so that I can build on them without reading progression's tables.
 
 ## Rules
 
@@ -110,7 +110,7 @@ Each rule is a testable statement; tests cite it (`P7`). Core loop rules are cit
 ### XP and levels
 
 - **P1. Base XP.** Every Given award gives its giver 10 XP and its recipient 5 XP per kudos, whether it came from a kudos message or a chime-in. Base XP is never gated (P13).
-- **P2. Where XP comes from.** XP comes only from base XP (P1), bonus XP from effects the member chose (perks, boosters and team auras, P20, P45), and chime-in thresholds on kudos the member received (P53). Level ups, achievements, coins, streaks, purchases and opening the app give no XP.
+- **P2. Where XP comes from.** XP comes only from base XP (P1), bonus XP from effects the member chose (perks, boosters and group auras, P20, P45), and chime-in thresholds on kudos the member received (P53). Level ups, achievements, coins, streaks, purchases and opening the app give no XP.
 - **P3. Levels.** Level 1 at 0 XP, level 2 at 20 XP, and from level 3 the total is `50 × (L − 1) × (L − 2)`: level 3 at 100, level 4 at 300, level 10 at 3,600, level 20 at 17,100. So reaching L+1 from L ≥ 3 takes `100 × (L − 1)` more. There is no cap.
 - **P4. Skill points.** Every level reached from level 2 on gives one skill point. A member's unspent points are `level − 1 − spent`. They never expire; a spent point is never refunded (ADR-0002).
 - **P5. Permanent.** XP, levels, skill points, perks, cosmetics, achievements and coins earned never go down, reset or expire. There is no respec. A perk retired from the catalogue stays with its owners and keeps working.
@@ -118,7 +118,7 @@ Each rule is a testable statement; tests cite it (`P7`). Core loop rules are cit
 
 ### Effects are stored with their award (ADR-0004)
 
-- **P7. Effects records.** Progression writes one effects record per side of every award (giver, recipient). It holds the base XP, every bonus XP line with its source (perk ID and tier, booster, team aura, chime-in threshold), coins earned, the gate decision (P12), drops with the pseudo-random charges after the draw, and the catalogue version in force. Levels, skill points, coin balances, streaks and achievements are derived from effects records plus purchases.
+- **P7. Effects records.** Progression writes one effects record per side of every award (giver, recipient). It holds the base XP, every bonus XP line with its source (perk ID and tier, booster, group aura, chime-in threshold), coins earned, the gate decision (P12), drops with the pseudo-random charges after the draw, and the catalogue version in force. Levels, skill points, coin balances, streaks and achievements are derived from effects records plus purchases.
 - **P8. Exactly once.** An award's effects records are written once. Redeliveries, retried subscribers and replays never write a second record or change one. Records are insert-only.
 - **P9. No recomputation.** Effects use the member's perks, boosters, auras and the catalogue in force when the record is written. A later purchase, price change or retired item never rewrites an earlier record.
 - **P10. Backfill.** When progression first ships, it replays every existing award in award order into effects records with base XP only: no bonus, coins, drops or level-up notices from before it shipped. Achievement replay follows P62.
@@ -140,7 +140,7 @@ Each rule is a testable statement; tests cite it (`P7`). Core loop rules are cit
 
 - **P18. The catalogue.** Branches, effects and costs (coins from the rerun):
 
-| ID | Branch | Effect | Min level | Skill points | Coins | Requires | Teams |
+| ID | Branch | Effect | Min level | Skill points | Coins | Requires | Groups |
 |---|---|---|---:|---:|---:|---|---|
 | `spark` | daily | +5 XP on the first qualifying recognition of each scheduled, unpaused workday | 2 | 1 | | | |
 | `flame` | daily | `spark` becomes +9 | 6 | 2 | 150 | `spark` | |
@@ -160,11 +160,11 @@ Each rule is a testable statement; tests cite it (`P7`). Core loop rules are cit
 | `signature` | expression | choose one named common cosmetic from its pool | 2 | | 120 | | |
 | `gallery` | expression | choose three named cosmetics from its pool | 6 | | 450 | `signature` | |
 | `keepsake` | expression | on the first qualifying recognition after purchase, then at least 28 days apart: choose one of 12 named cosmetics | 4 | | 300 | | |
-| `rally` | team | team aura: +1 XP on every qualifying recognition by opted-in teammates | 5 | 3 | | | yes |
-| `beacon` | team | team aura: drop rates +15% of base for opted-in teammates | 5 | 3 | | | yes |
-| `provision` | team | team aura: weekly reserve +1 for opted-in teammates | 5 | 3 | | | yes |
+| `rally` | group | group aura: +1 XP on every qualifying recognition by opted-in group members | 5 | 3 | | | yes |
+| `beacon` | group | group aura: drop rates +15% of base for opted-in group members | 5 | 3 | | | yes |
+| `provision` | group | group aura: weekly reserve +1 for opted-in group members | 5 | 3 | | | yes |
 
-- **P19. Buying.** A purchase succeeds when the member's level is at least the minimum, the prerequisite is owned, the perk isn't owned, and the member has the skill points and coins; it debits both and grants the perk in one step. Otherwise nothing changes and the reason is shown. A repeated purchase command (same idempotency key) returns the first result. Team perks are sold only once the teams spec ships.
+- **P19. Buying.** A purchase succeeds when the member's level is at least the minimum, the prerequisite is owned, the perk isn't owned, and the member has the skill points and coins; it debits both and grants the perk in one step. Otherwise nothing changes and the reason is shown. A repeated purchase command (same idempotency key) returns the first result. Group perks are sold only once the groups spec ships.
 - **P20. Effects add up.** A recognition's bonus XP is the sum of every applicable line. Each line is computed from base values, never from another bonus: no cap, no clipping, no compounding. An upgrade replaces its lower tier's effect.
 - **P21. When a perk starts.** A perk applies to awards whose effects are written after the purchase. `reserve`, `reservoir` and `provision` apply from the next Monday refill.
 - **P22. Focus.** Switching `focus` on is a command, at most once per giver's week, for the giver's current day. Unused charges end with that day. No reminders.
@@ -174,13 +174,13 @@ Each rule is a testable statement; tests cite it (`P7`). Core loop rules are cit
 ### The weekly reserve
 
 - **P25. Daily allowance.** The daily allowance is the workspace base only. Perks never add to it (the core loop's perks hook returns a daily bonus of 0).
-- **P26. Reserve size.** The weekly reserve is `reserve` +2 or `reservoir` +4, plus `provision` +1 from an opted-in team aura, at most 5. Its size is fixed by what the giver owns when the week starts (P21). It refills Monday 00:00 in the giver's time zone, and nothing carries over.
+- **P26. Reserve size.** The weekly reserve is `reserve` +2 or `reservoir` +4, plus `provision` +1 from an opted-in group aura, at most 5. Its size is fixed by what the giver owns when the week starts (P21). It refills Monday 00:00 in the giver's time zone, and nothing carries over.
 - **P27. Spending.** A kudos message or chime-in pays from the daily allowance first and then the reserve, atomically, all or nothing (R15). The reserve counts only for a thoughtful message (P13); for any other message it is 0.
 - **P28. Copy.** While a giver's reserve size is above 0, replies use R38's weekly line, naming the pool "bonus kudos". When a message is Over allowance only because it isn't thoughtful, the reply adds `Add why they earned it to use your bonus kudos.`
 
 ### Coins
 
-- **P29. Earning.** A giver earns 4 coins per qualifying recognition. A recipient earns 2 coins for each different giver whose award to them was thoughtful in the recipient's week (chime-ins count as awards from the clicker). Nothing else earns coins: not levels, achievements, streaks, receiving more from the same giver, or opening the app. *Open call: cap receiving coins at 20 a week (see Further Notes).*
+- **P29. Earning.** A giver earns 4 coins per qualifying recognition. A recipient earns 2 coins for each different giver whose award to them was thoughtful in the recipient's week (chime-ins count as awards from the clicker), at most 20 coins in the recipient's week. Nothing else earns coins: not levels, achievements, streaks, receiving more from the same giver, or opening the app.
 - **P30. The wallet.** A member's balance is coins earned minus coins spent, never below 0. Coins never expire, can't be transferred, and never turn into kudos or allowance. A purchase debits and grants in one step.
 
 ### The store
@@ -223,9 +223,9 @@ Each rule is a testable statement; tests cite it (`P7`). Core loop rules are cit
 - **P43. Stored first.** The draw and the charges are stored in the effects record before anyone is told. A replay reads the stored draw and never draws again.
 - **P44. Shown odds.** App Home shows each rarity's long-run chance with the member's modifiers, never the current charge.
 
-### Team auras
+### Group auras
 
-- **P45. Team auras.** One teammate owning `rally`, `beacon` or `provision` gives the aura to every teammate of their primary team who opted in. Only the strongest aura of each kind counts; a second owner adds nothing. Primary teams, rosters and opting in belong to the teams spec (#14).
+- **P45. Group auras.** An aura from `rally`, `beacon` or `provision` follows its owner to their current primary group and reaches every member with the same primary group who opted in. Only the strongest aura of each kind counts; a second owner adds nothing. Groups, primary groups and opting in belong to the groups spec (#14).
 
 ### Chime-ins
 
@@ -259,7 +259,7 @@ Each rule is a testable statement; tests cite it (`P7`). Core loop rules are cit
 | Applause | days thanking 3+ different people | 3 Shout-out | 10 Hype Squad | 30 Thunderous Applause | 100 Grand Chorus |
 | Seasons | calendar months with a kudos given | 1 First Chapter | 3 Season of Thanks | 6 Half-Year Hero | 12 Year of Gratitude |
 | Old Friends | thanking someone again 30+ days after you last did | 1 Remembered | 3 Old Friends | 6 Long Memory | 12 Evergreen |
-| Team Spirit | sticker albums completed (own team, 2, 4, all) | Team Spirit | All Hands | Tight-Knit | Unbreakable Crew |
+| Team Spirit | sticker albums completed (your primary group's, then 2, 4, 8) | Team Spirit | All Hands | Tight-Knit | Unbreakable Crew |
 | Crowd Favourite | chime-ins on kudos messages you gave, in total | 5 Crowd Pleaser | 10 Rallying Cry | 20 Talk of the Town | 50 Living Legend |
 | Standing Ovation | most chime-ins on one kudos you received | 3 Applauded | 10 Encore | 20 Crowd Roar | 50 Stadium Legend |
 | Amplifier | times you chimed in | 5 Joined In | 25 Backup Vocals | 100 Amplifier | 500 One-Person Crowd |
@@ -274,18 +274,18 @@ Each rule is a testable statement; tests cite it (`P7`). Core loop rules are cit
 - **P63. DMs.** Level ups, achievements, unlocks and drops send the member a DM. DMs are on by default and can be turned off in App Home; the DM thread is the member's history.
 - **P64. Public notices.** Level ups and achievements post a public notice in the kudos message's one public reply (D18), or in the announcement channel if a workspace admin picked one. A notice states only the progress, never the thank-you text or the giver.
 - **P65. Privacy.** A member can hide their level, hide their achievements, and mute public notices about them. Hidden progress appears on no surface other members see; muted notices are not posted. Their own App Home and DMs still show everything.
-- **P66. Not a performance measure.** Nothing ranks members by XP, level, coins or achievements. The leaderboard (teams spec) counts kudos, never XP or bonuses.
+- **P66. Not a performance measure.** Nothing ranks members by XP, level, coins or achievements. The leaderboard (groups spec) counts kudos, never XP or bonuses.
 
 ### App Home
 
-- **P67. Profile.** App Home shows the member's level, XP and XP to the next level, skill points, today's kudos left and the reserve, and their privacy and DM settings. Later stopping points add perks, coins, the store, the collection and loadout, drop odds and the streak.
+- **P67. Profile.** Progression extends the App Home the core loop's slice 1 builds (how to give, allowance left, kudos given and received). Its Profile tab adds level, XP to the next level and skill points; its Settings tab adds hiding, muting and DMs; its Admin tab adds the announcement channel. Later stopping points add the Perks, Collection and Achievements tabs, coins, title and card, the streak, workdays, pauses, quips and drop odds (layout `d-766ac71d`).
 - **P68. Fresh.** App Home is published when the member opens it and again after any change to what it shows, as desired state: the latest version wins, and a failed publish is retried.
 - **P69. Admin.** Workspace admins (from the directory) also see the announcement channel picker and, from the cosmetics stopping point, the custom emoji picker.
 
 ### Copy
 
 - **P70. Voice.** The app speaks as "I", plain and short, and names coins `🪙`.
-- **P71. Success extras.** The core loop's success reply (R36) gets at most one extra line, joining the extras in this order with ` · `: coins earned, a new sticker (teams spec), a drop. Example: `+4 🪙 · New sticker: {recipient} · Found a 🟩 Uncommon card: Paper High-Five`. When the gate isn't met, the extras line is the hint (P15) instead.
+- **P71. Success extras.** The core loop's success reply (R36) gets at most one extra line, joining the extras in this order with ` · `: coins earned, a new sticker (groups spec), a drop. Example: `+4 🪙 · New sticker: {recipient} · Found a 🟩 Uncommon card: Paper High-Five`. When the gate isn't met, the extras line is the hint (P15) instead.
 
 | Message | Text |
 |---|---|
@@ -417,14 +417,14 @@ The module returns a result; the adapter renders it (update the DM, an ephemeral
 
 ## Out of Scope
 
-- **Teams, auras and the sticker book**: the teams spec (#14, grilling #10). This spec names the seams: team perks (`rally`, `beacon`, `provision`) and their aura rules (P45), the Team Spirit ladder, the sticker line in the extras (P71), and that the leaderboard counts kudos (P66).
+- **Groups, auras and the sticker book**: the groups spec (#14, grilling #10). This spec names the seams: group perks (`rally`, `beacon`, `provision`) and their aura rules (P45), the Team Spirit ladder, the sticker line in the extras (P71), and that the leaderboard counts kudos (P66).
 - **Parked by the grilling**: real-world rewards, a respec token, picking a quip per message, an App Home activity feed, the AI judge for thoughtful kudos (only its seam, D16), banners, the mascot, frames, seasonal cosmetics, more allowance tiers.
 - **Quests, trading, gardens, 3D and 2D.**
 - **A web UI** and admin tools beyond the announcement channel and custom emoji pickers.
 
 ## Further Notes
 
-**Calls this spec makes (each open to Michael's veto)**
+**Calls this spec makes (approved with the spec)**
 - The XP booster's +25% is rounded half up per award, so one kudos gets +3 (P31).
 - Every bonus, coin and drop fires once per qualifying recognition (first thoughtful award to each recipient per giver's day, P16), carried over from the research; the grilling named it only for coins.
 - Expression perks keep a minimum level and cost coins only (P18): `signature` 120, `keepsake` 300, `gallery` 450.
@@ -433,15 +433,17 @@ The module returns a result; the adapter renders it (update the DM, an ephemeral
 - Crowd Favourite counts chime-ins on all your kudos messages in total (P58).
 - A member who chimes in after a threshold gets the current tier's booster (P51).
 - Backfill gives base XP only and sends no level-up notices for the past (P10).
-- Minimal App Home ships with XP and levels (the slice order's "core loop + minimal App Home" lands here, since the core loop spec leaves App Home out).
+- The minimal App Home and the welcome message land in the core loop's slice 1 (`d-1c7a971d`); progression extends them.
 
-**Open findings from the rerun** ([report](../research/progression-rerun.md))
-- **Receiving coins make popular receivers the richest members** (89 coins a week against 66 for a steady giver). Recommendation: cap receiving coins at 20 a week (10 different givers).
-- Receiver is now the most common winning build, by 1–5%. Recommendation: accept and revisit with real data.
-- Popular receivers level fastest. Recommendation: accept; progression is not a performance measure.
+**Findings from the rerun** ([report](../research/progression-rerun.md))
+- **Receiving coins made popular receivers the richest members** (89 coins a week against 66 for a steady giver): approved cap of 20 a week (P29).
+- Receiver is now the most common winning build, by 1–5%. Accepted; revisit with real data.
+- Popular receivers level fastest. Accepted; progression is not a performance measure.
 
 **Changes to earlier specs**
 - Core loop (#12): `kudosGiven` gains `awards[].award`, `via` and `chimeIns`; the perks hook gets the message's annotations; the engine gains `chimeIn`; R33's "Recipients get nothing extra" is relaxed by quips and notices (D18, `d-fe8e7f4a`). All additive; the core loop builds none of them.
 - The core loop's perks hook keeps a daily bonus of 0 forever (P25).
+
+**From the groups grilling (#10):** "team" is "group" throughout (Slack's API "team" is the workspace); Team Spirit counts 1/2/4/8 albums, and an album is complete when you've thanked or been thanked by every other current member of the group; the welcome message on the first Given award is the core loop's; the profile card lands with XP and levels in the groups spec's thin slice (`d-1c7a971d`).
 
 **Vocabulary to settle in Coherence** (each in the ticket that first uses it): App Home, effects record, gate decision, qualifying recognition, catalogue, command, public reply, and Crowd booster's "crowd". "Bonus kudos" in the copy is the weekly reserve's user-facing name.
