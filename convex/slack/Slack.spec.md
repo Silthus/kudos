@@ -70,11 +70,11 @@ The Slack adapter, the only code that knows Slack: it verifies and acknowledges 
   checklist: keyed-ordering dismissed: one reply per evaluation, with no ordering promised between messages
   checklist: acknowledgment-barrier dismissed: nothing retires work on a delivery's acknowledgment; awards and spending commit before any delivery runs
   checklist: retry-classification declared as a gone delivery stops for good
-- a level-up DM is tried at most 3 times: A level-up DM is tried at most 3 times on any failure of opening the member's DM conversation or posting to it, an unknown result included, each retry waits at least the Retry-After Slack asked for, and no attempt changes the member's XP or level.
-  over: conversations.open and chat.postMessage answering an error, an HTTP 5xx or a network failure every time, and chat.postMessage answering a 429 with Retry-After once
+- a level-up DM is tried at most 3 times: A level-up DM is tried at most 3 times on any failure of opening the member's DM conversation or posting to it, an unknown result included, each retry waits at least the Retry-After Slack asked for and posts to the conversation already opened, and no attempt changes the member's XP or level.
+  over: conversations.open and chat.postMessage answering an error, an HTTP 5xx or a network failure every time, chat.postMessage answering a 429 with Retry-After once, and a post held by a 429 and then failing
   via: R34 R35: a level-up DM is tried at most 3 times
   because: a posted DM cannot be told apart from a lost one after an unknown result, so every retry risks a duplicate the member sees; 3 tries bounds that while a passing Slack failure still reaches them, and the level was earned when the award was recorded, so delivery must never take it back (R34, R35, P63)
-  refuted: deliverDirectMessage rescheduled every retry as attempt 1, so the 3-attempt bound never applied -> 2 of 3 cases failed: the always-failing post and the always-failing open each tried 5 times (2026-10-13)
+  refuted: deliverDirectMessage rescheduled every retry as attempt 1, so the 3-attempt bound never applied -> 2 of 3 cases failed: the always-failing post and the always-failing open each tried 5 times (2026-10-13); witnessed again after retries began carrying the opened conversation: the same break failed 2 of 4 cases the same way (2026-10-13)
   kinds: message
   checklist: destination-confinement dismissed: every delivery goes to Slack's API at one configured base URL, with no redirect followed and no destination taken from input
   checklist: message-authenticity dismissed: deliveries are outbound; the kudos message that earned the level is verified by signed Slack requests only

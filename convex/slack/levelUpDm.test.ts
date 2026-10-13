@@ -106,6 +106,16 @@ describe("R34 R35: a level-up DM is tried at most 3 times", () => {
     expect(levelUpDms()).toHaveLength(2);
     expect(retry! - first!).toBeGreaterThanOrEqual(30_000);
   });
+  test("a DM whose post is held or fails is retried on the conversation it opened, and opens it once", async () => {
+    const t = await workspaceWithAllowance(10);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    slack.answering("chat.postMessage", rateLimitedFor(30), httpStatus(500));
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(slack.callsTo("conversations.open")).toEqual([{ users: "U_ALICE" }]);
+    expect(levelUpDms().map(({ channel }) => channel)).toEqual(["D_U_ALICE", "D_U_ALICE", "D_U_ALICE"]);
+  });
 });
 
 async function workspaceWithAllowance(baseAllowance: number) {
