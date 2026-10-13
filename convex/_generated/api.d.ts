@@ -16,6 +16,7 @@ import type * as analytics_outbox from "../analytics/outbox.js";
 import type * as analytics_projections from "../analytics/projections.js";
 import type * as analytics_subscribers from "../analytics/subscribers.js";
 import type * as analytics_sweep from "../analytics/sweep.js";
+import type * as analytics_usage from "../analytics/usage.js";
 import type * as bus_events from "../bus/events.js";
 import type * as bus_publish from "../bus/publish.js";
 import type * as crons from "../crons.js";
@@ -65,6 +66,7 @@ declare const fullApi: ApiFromModules<{
   "analytics/projections": typeof analytics_projections;
   "analytics/subscribers": typeof analytics_subscribers;
   "analytics/sweep": typeof analytics_sweep;
+  "analytics/usage": typeof analytics_usage;
   "bus/events": typeof bus_events;
   "bus/publish": typeof bus_publish;
   crons: typeof crons;

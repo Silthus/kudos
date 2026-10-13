@@ -308,6 +308,10 @@
       "definition": "Whether a deployment records and sends product events: on only when it has both the PostHog project token and a valid KUDOS_ENVIRONMENT (sandbox or production). With capture off nothing is recorded and nothing is sent."
     },
     {
+      "name": "usage fact",
+      "definition": "A platform-neutral fact a chat adapter reports to the analytics module when a member uses the app outside a kudos message: App Home opened, or a command typed with its result. It is recorded in the mutation that handles it and becomes a product event; it drives nothing in the domain."
+    },
+    {
       "name": "error boundary",
       "definition": "The wrapper every HTTP route and action outside the analytics module runs inside. When the function throws an error nobody caught, it records one exception for PostHog Error Tracking in its own transaction and rethrows an error marked [reported], so Convex and Slack still see the failure and no outer boundary or the failed-job sweep reports it again. If recording fails, it logs a fixed code and rethrows the original error."
     },
