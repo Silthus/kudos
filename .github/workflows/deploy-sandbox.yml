@@ -1,10 +1,9 @@
-# Every push to the integration branch deploys it to the sandbox Convex deployment.
+# A run started by hand deploys the chosen branch to the sandbox Convex deployment, which every lane shares.
 # The deploy key is scoped to that one deployment and reaches only the deploy step.
 name: Deploy sandbox
 
 on:
-  push:
-    branches: [spec/core-loop]
+  workflow_dispatch:
 
 permissions:
   contents: read
