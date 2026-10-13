@@ -17,6 +17,7 @@ const member: MemberProfile = {
   thisWeek: { given: 2, received: 1 },
   lifetime: { given: 14, received: 9 },
   chatUrl: "https://app.slack.com/client/T1",
+  leaderboard: "off",
   progression: null,
 };
 

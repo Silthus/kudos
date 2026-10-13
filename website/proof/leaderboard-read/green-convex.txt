@@ -1,0 +1,86 @@
+tree: working tree on 6db13bc with the review's fix
+ ✓ |convex| convex/leaderboard/totals.test.ts > the kudosGiven subscriber and this week's Everyone board > G13: the board counts kudos given, never kudos received 28ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > the kudosGiven subscriber and this week's Everyone board > G44: delivering the same kudosGiven twice counts its awards once 4ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > the kudosGiven subscriber and this week's Everyone board > G16: givers with equal totals list by the name the directory knows 6ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > the kudosGiven subscriber and this week's Everyone board > G15: a giver who is no longer a member leaves the board 4ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > the kudosGiven subscriber and this week's Everyone board > this week is the week of the viewer's allowance day, and an award counts in the week of its own 5ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > the kudosGiven subscriber and this week's Everyone board > a viewer the directory doesn't know isn't ranked 2ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > G23: the Everyone board of a period > week ranks the kudos given in it 5ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > G23: the Everyone board of a period > month ranks the kudos given in it 3ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > G23: the Everyone board of a period > all ranks the kudos given in it 4ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > G18: the improvement line compares with the previous period up to the same day > on a Monday, last week counts only its … 5ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > G18: the improvement line compares with the previous period up to the same day > on a Sunday, last week counts all seven… 5ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > G18: the improvement line compares with the previous period up to the same day > in UTC it is still Sunday, so last week… 4ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > G18: the improvement line compares with the previous period up to the same day > in Berlin it is already Monday, so last… 5ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > G18: the improvement line compares with the previous period up to the same day > the month compares up to the same day o… 3ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > G18: the improvement line compares with the previous period up to the same day > a 31st compares with the whole of a 30-… 3ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > G18: the improvement line compares with the previous period up to the same day > a 30th leaves out the 31st of a 31-day … 3ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > G18: the improvement line compares with the previous period up to the same day > a 31st of March compares with the whole… 3ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > G18: the improvement line compares with the previous period up to the same day > in UTC it is still October 31st, so Sep… 4ms
+ ✓ |convex| convex/website/leaderboard.test.ts > website reads pass one guard > getLeaderboard reads closed while the website flag is off, even with everyone-board on 66ms
+ ✓ |convex| convex/website/leaderboard.test.ts > website reads pass one guard > getLeaderboard reads signed out without a session 5ms
+ ✓ |convex| convex/website/leaderboard.test.ts > website reads pass one guard > getLeaderboard reads not-a-member for a former member with a live session 5ms
+ ✓ |convex| convex/website/leaderboard.test.ts > website reads pass one guard > getLeaderboard reaches the board only for a verified member 18ms
+ ✓ |convex| convex/website/leaderboard.test.ts > website reads pass one guard > an argument that names another member is rejected by the validator 4ms
+ ✓ |convex| convex/website/leaderboard.test.ts > website reads pass one guard > a period other than week, month or all is rejected by the validator 2ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS2 WS3 WS4: the website flag closes every read > a member with a live session reads closed while the flag is off 64ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS2 WS3 WS4: the website flag closes every read > a visitor with no session reads closed, not signed out, while the flag is off 3ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS2 WS3 WS4: the website flag closes every read > a flag nobody created in PostHog answers off 3ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS2 WS3 WS4: the website flag closes every read > the flag on for the workspace still reads closed until prepareWebsiteFlag made its workspace key 3ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS2 WS3 WS4: the website flag closes every read > an unset SLACK_WORKSPACE_ID reads closed, whatever the flag says 2ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS2 WS3 WS4: the website flag closes every read > switching the flag off closes a session that was reading the member's profile 21ms
+ ✓ |convex| convex/publicSurface.test.ts > WS10: the public surface is exact > only HTTP routes, Convex Auth's signIn, signOut and isAuthenticated, and the website's signed-in functions are public 427ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > G18: the improvement line compares with the previous period up to the same day > in Berlin it is already November 1st, s… 4ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > G18: the improvement line compares with the previous period up to the same day > a January compares with the December be… 3ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > G18: the improvement line compares with the previous period up to the same day > without a gain, the best completed week… 3ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > G18: the improvement line compares with the previous period up to the same day > without a gain, the best completed mont… 3ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > G18: the improvement line compares with the previous period up to the same day > without a gain or a completed period, n… 1ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > G18: the improvement line compares with the previous period up to the same day > all time has no line 2ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > G18: the improvement line compares with the previous period up to the same day > G15 G18: places compare with last week's board without the people who are no longer members 5ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > rankedBoardOf: the whole Everyone board beside G17's window > every ranked member in order, with position, rank, tie and member, and the window's positions 3ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > rankedBoardOf: the whole Everyone board beside G17's window > a member without a display name has no name, and still ranks as App Home ranks them 2ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > rankedBoardOf: the whole Everyone board beside G17's window > G17: a viewer who gave nothing is not ranked, and the window is the top three 4ms
+ ✓ |convex| convex/leaderboard/totals.test.ts > rankedBoardOf: the whole Everyone board beside G17's window > G22: a viewer who left is in no row, stands as left, and keeps their gain without places 4ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS30: the website's board is invisible while everyone-board is off > while PostHog has no everyone-board flag, getLeaderboard answers not-found and getMyProfile's leaderboard is off 11ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS30: the website's board is invisible while everyone-board is off > in production, while the flag is on in …, getLeaderboard answers not-found and getMyProfile's leaderboard is off 7ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS30: the website's board is invisible while everyone-board is off > while everyone-board is on, getLeaderboard answers the board and getMyProfile's leaderboard is open 7ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS30: the website's board is invisible while everyone-board is off > switching everyone-board off under an open session turns the board to not-found 7ms
+ ✓ |convex| convex/website/leaderboard.test.ts > a website board row carries only what a board shows > a row holds exactly position, rank, tied, name, face, kudos and you 6ms
+ ✓ |convex| convex/website/leaderboard.test.ts > a website board row carries only what a board shows > the answer carries no Slack user ID, member ID or kudos received 5ms
+ ✓ |convex| convex/website/leaderboard.test.ts > a website board row carries only what a board shows > G13: a member who only received is not on the board 6ms
+ ✓ |convex| convex/website/leaderboard.test.ts > a website board row carries only what a board shows > G22: a member who left the boards is on nobody's board, their own included 7ms
+ ✓ |convex| convex/website/leaderboard.test.ts > a website board row carries only what a board shows > G15: a giver who is no longer a member is not on the board 4ms
+ ✓ |convex| convex/website/leaderboard.test.ts > a website board row carries only what a board shows > WS34: a member without a display name shows as a teammate on a question-mark tile 3ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > G23: week ranks the kudos given in it 4ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > G23: month ranks the kudos given in it 4ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > G23: all ranks the kudos given in it 5ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > G16: equal totals share a rank and are marked tied 4ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > G17: a viewer at position 2 sees the first ten positions, and the whole board is in rows 11ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS9 WS11 WS14: every read checks the live session, the workspace and the directory, in that order > a visitor with no session is signed out, never an empty profile 3ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS9 WS11 WS14: every read checks the live session, the workspace and the directory, in that order > a still-valid token whose session was signed out reads signed out 3ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS9 WS11 WS14: every read checks the live session, the workspace and the directory, in that order > an expired session reads signed out 3ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS9 WS11 WS14: every read checks the live session, the workspace and the directory, in that order > a session left over after SLACK_WORKSPACE_ID changes reads signed out, even for a member of its old workspace 3ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS9 WS11 WS14: every read checks the live session, the workspace and the directory, in that order > a signed-in person the directory doesn't know yet is being verified 3ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS9 WS11 WS14: every read checks the live session, the workspace and the directory, in that order > a signed-in person whose verification failed reads unverified, never a member 3ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS9 WS11 WS14: every read checks the live session, the workspace and the directory, in that order > a member user_change deactivates reads not-a-member on their next read, whatever their session 25ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS9 WS11 WS14: every read checks the live session, the workspace and the directory, in that order > a member reads their own name and Slack picture from the sign-in 7ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS9 WS11 WS14: every read checks the live session, the workspace and the directory, in that order > a member's Slack picture carries their initials for when it fails to load 4ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS9 WS11 WS14: every read checks the live session, the workspace and the directory, in that order > a member without a Slack picture reads their initials 5ms
+ ✓ |convex| convex/website/profile.test.ts > WS13 WS15 WS18: a member's home answer projects their own homeFacts > a member reads their own kudos left, refill, this week and in total, with where to thank someone in Slack 14ms
+ ✓ |convex| convex/website/profile.test.ts > WS13 WS15 WS18: a member's home answer projects their own homeFacts > the answer is the member's homeFacts, never another member's 9ms
+ ✓ |convex| convex/website/profile.test.ts > WS13 WS15 WS18: a member's home answer projects their own homeFacts > the answer updates after a kudos lands 9ms
+ ✓ |convex| convex/website/profile.test.ts > WS13 WS15 WS18: a member's home answer projects their own homeFacts > after the member's midnight and a clock tick, the answer is the new day's, without another kudos 11ms
+ ✓ |convex| convex/website/profile.test.ts > WS13 WS15 WS18: a member's home answer projects their own homeFacts > after the week turns and a clock tick, the answer starts the new week, keeping the totals 6ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > G17: a viewer at position 9 sees the top three, then three around them, skipping positions 4 and 5 12ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > G17: a viewer who gave nothing this period is not ranked and sees the top three 5ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > G22 G18: a viewer who left is off the board and keeps their gain without places 4ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > G18: the improvement line passes through, with places climbed 6ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > the rows in the window equal App Home's board, with a gap where positions skip (viewer at 2 of 15) 11ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > the rows in the window equal App Home's board, with a gap where positions skip (viewer at 9 of 15) 11ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > the rows in the window equal App Home's board, with a gap where positions skip (viewer at 14 of 15) 10ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > the rows in the window equal App Home's board, with a gap where positions skip (viewer at 0 of 6) 5ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > WS35: the viewer's row carries their own face, and the chat link opens the workspace in Slack 3ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS36: an open board turns over with the period on a clock tick > after the viewer's local Monday midnight and a clock tick, the week's board is the new week's 4ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS36: an open board turns over with the period on a clock tick > after the first of the month and a clock tick, the month's board is the new month's 4ms
+ Test Files  4 passed (4)
+      Tests  83 passed (83)

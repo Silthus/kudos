@@ -1,4 +1,6 @@
 import { getAuthSessionId, getAuthUserId } from "@convex-dev/auth/server";
+import type { RegisteredQuery } from "convex/server";
+import type { ObjectType, PropertyValidators } from "convex/values";
 import { query, type QueryCtx } from "../_generated/server";
 import { signInWorkspace } from "../slack/signIn";
 import { lookup, type MemberId } from "../workspace/directory";
@@ -19,12 +21,20 @@ export type VerifiedMember = {
 
 type SignedIn = Omit<VerifiedMember, "member">;
 
-export function memberQuery<Result>(handler: (ctx: QueryCtx, me: VerifiedMember) => Promise<Result>) {
+type MemberHandler<Args, Result> = (ctx: QueryCtx, me: VerifiedMember, args: Args) => Promise<Result>;
+
+export function memberQuery<Result>(handler: MemberHandler<Record<string, never>, Result>): RegisteredQuery<"public", Record<string, never>, Promise<Result | Denial>>;
+export function memberQuery<Args extends PropertyValidators, Result>(definition: {
+  args: Args;
+  handler: MemberHandler<ObjectType<Args>, Result>;
+}): RegisteredQuery<"public", ObjectType<Args>, Promise<Result | Denial>>;
+export function memberQuery(definition: MemberHandler<never, unknown> | { args: PropertyValidators; handler: MemberHandler<never, unknown> }) {
+  const { args, handler } = typeof definition === "function" ? { args: {}, handler: definition } : definition;
   return query({
-    args: {},
-    handler: async (ctx): Promise<Result | Denial> => {
+    args,
+    handler: async (ctx, given) => {
       const me = await verifiedMember(ctx);
-      return "kind" in me ? me : handler(ctx, me);
+      return "kind" in me ? me : handler(ctx, me, given as never);
     },
   });
 }

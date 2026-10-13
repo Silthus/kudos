@@ -1,0 +1,67 @@
+# #133 running-app proof: getLeaderboard on a disposable local backend (6db13bc, ports 3920/3921, fake PostHog 3922)
+
+## flags served by the local fake: website everyone-board
+
+### getLeaderboard week, signed in as the synthetic member Wren Halloway
+period: week | standing: {"kind": "ranked", "position": 9, "rank": 9} | improvement: {"gain": 10} | onTheBoards: True
+window: [1, 2, 3, 6, 7, 8, 9, 10, 11, 12]
+   1  1 Ada Quill 40 initials:AQ 
+   2  2 Bo Marsh 35 initials:BM 
+   3 =3 Cy Orrin 30 initials:CO 
+   …
+   6  6 Fern Ash 22 initials:FA 
+   7  7 Gil Rook 20 initials:GR 
+   8  8 Hap Lunde 18 initials:HL 
+   9  9 Wren Halloway 15 initials:WH (you)
+   10  10 Ivo Stray 12 initials:IS 
+   11  11 Jun Teal 10 initials:JT 
+   12  12 Kit Brae 8 initials:KB 
+rows: 13 | row keys: ['face', 'kudos', 'name', 'position', 'rank', 'tied', 'you']
+
+### App Home's everyoneBoard for the same viewer (internal)
+   1 Ada Quill 40
+   2 Bo Marsh 35
+   3 Cy Orrin 30
+   …
+   6 Fern Ash 22
+   7 Gil Rook 20
+   8 Hap Lunde 18
+   9 Wren Halloway 15
+   10 Ivo Stray 12
+   11 Jun Teal 10
+   12 Kit Brae 8
+improvement: {'gain': 10}
+
+### getLeaderboard all
+period: all | standing: {"kind": "ranked", "position": 1, "rank": 1} | improvement: null | onTheBoards: True
+window: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+   1  1 Wren Halloway 60 initials:WH (you)
+
+### getMyProfile.leaderboard
+open
+
+### no session
+{
+  "kind": "signed-out"
+}
+
+### an argument naming another member
+ArgumentValidationError: Object contains extra field `user` that is not in the validator.
+Object: {period: "week", user: "U_P01"}
+
+## flags served by the local fake: website (everyone-board switched off, flags refreshed)
+
+### getLeaderboard week
+{
+  "kind": "not-found"
+}
+
+### getMyProfile.leaderboard
+off
+
+## everyone-board switched back on
+
+### the whole board beyond the window, and who is absent
+position 13: A teammate 6 {'initials': '?', 'kind': 'initials'}
+Lee Away (left the boards, 50 given) in rows: False | Gone Former (not a member, 45 given) in rows: False
+answer mentions a U_ user ID: False

@@ -1,11 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { internal } from "../_generated/api";
+import type { QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import type { KudosGivenEvent } from "../bus/events";
 import { record, type DirectoryEntry } from "../workspace/directory";
 import { testBackend, type Backend } from "../../testing/slackBackend";
 import type { BoardView } from "./board";
 import type { Period } from "./periods";
+import { rankedBoardOf } from "./totals";
+import { setLeaderboardVisibility } from "./visibility";
 
 const tuesday = new Date("2026-10-13T10:00:00Z");
 
@@ -25,6 +28,7 @@ describe("the kudosGiven subscriber and this week's Everyone board", () => {
     await countKudosGiven(t, kudosGiven("U2", { "U1": 1 }, { message: "2" }));
 
     expect(shown(await everyoneBoard(t, "U3"))).toEqual(["1 Ann 6", "2 Bob 1"]);
+    expect((await rankedBoard(t, "U3")).rows.map(({ rank, name, kudos }) => `${rank} ${name} ${kudos}`)).toEqual(["1 Ann 6", "2 Bob 1"]);
   });
 
   test("G44: delivering the same kudosGiven twice counts its awards once", async () => {
@@ -122,6 +126,7 @@ describe("G18: the improvement line compares with the previous period up to the 
     for (const [index, [day, kudos]] of Object.entries(given).entries()) await countKudosGiven(t, kudosGiven("U1", { "U2": kudos }, { message: `${index}`, day }));
 
     expect((await everyoneBoard(t, "U1", period)).improvement).toEqual(line);
+    expect((await rankedBoard(t, "U1", period)).improvement).toEqual(line);
   });
 
   test("G15 G18: places compare with last week's board without the people who are no longer members", async () => {
@@ -136,6 +141,69 @@ describe("G18: the improvement line compares with the previous period up to the 
     await recordInDirectory(t, "U3", { kind: "not-a-member" }, Date.now());
 
     expect((await everyoneBoard(t, "U1")).improvement).toEqual({ gain: 3, places: 1 });
+    expect((await rankedBoard(t, "U1")).improvement).toEqual({ gain: 3, places: 1 });
+  });
+});
+
+describe("rankedBoardOf: the whole Everyone board beside G17's window", () => {
+  test("every ranked member in order, with position, rank, tie and member, and the window's positions", async () => {
+    const t = testBackend();
+    await members(t, ["U1", "Zoe"], ["U2", "Al"], ["U3", "Cy"]);
+    await countKudosGiven(t, kudosGiven("U1", { "U3": 2 }, { message: "1" }));
+    await countKudosGiven(t, kudosGiven("U2", { "U3": 2 }, { message: "2" }));
+    await countKudosGiven(t, kudosGiven("U3", { "U1": 1 }, { message: "3" }));
+
+    const ranked = await rankedBoard(t, "U3");
+
+    expect(ranked).toEqual({
+      rows: [
+        { position: 1, rank: 1, tied: true, member: await memberId(t, "U2"), name: "Al", kudos: 2, viewer: false },
+        { position: 2, rank: 1, tied: true, member: await memberId(t, "U1"), name: "Zoe", kudos: 2, viewer: false },
+        { position: 3, rank: 3, tied: false, member: await memberId(t, "U3"), name: "Cy", kudos: 1, viewer: true },
+      ],
+      window: [1, 2, 3],
+      standing: { kind: "ranked", position: 3, rank: 3 },
+      improvement: { gain: 1 },
+    });
+  });
+
+  test("a member without a display name has no name, and still ranks as App Home ranks them", async () => {
+    const t = testBackend();
+    await members(t, ["U1", "Ann"]);
+    await recordInDirectory(t, "U2", { kind: "member" }, 0);
+    await countKudosGiven(t, kudosGiven("U2", { "U1": 2 }, { message: "1" }));
+
+    const { rows } = await rankedBoard(t, "U1");
+
+    expect(rows).toEqual([{ position: 1, rank: 1, tied: false, member: await memberId(t, "U2"), name: undefined, kudos: 2, viewer: false }]);
+  });
+
+  test("G17: a viewer who gave nothing is not ranked, and the window is the top three", async () => {
+    const t = testBackend();
+    await members(t, ["U1", "Ann"], ["U2", "Bob"], ["U3", "Cy"], ["U4", "Dee"], ["U5", "Eve"]);
+    for (const [index, user] of ["U1", "U2", "U3", "U4"].entries()) await countKudosGiven(t, kudosGiven(user, { "U5": 4 - index }, { message: `${index}` }));
+
+    const ranked = await rankedBoard(t, "U5");
+
+    expect(ranked.rows).toHaveLength(4);
+    expect(ranked.window).toEqual([1, 2, 3]);
+    expect(ranked.standing).toEqual({ kind: "not-ranked" });
+  });
+
+  test("G22: a viewer who left is in no row, stands as left, and keeps their gain without places", async () => {
+    const t = testBackend();
+    await members(t, ["U1", "Ann"], ["U2", "Bob"]);
+    await countKudosGiven(t, kudosGiven("U2", { "U1": 2 }, { message: "1", day: "2026-10-06" }));
+    await countKudosGiven(t, kudosGiven("U1", { "U2": 3 }, { message: "2" }));
+    await countKudosGiven(t, kudosGiven("U2", { "U1": 1 }, { message: "3" }));
+    await countKudosGiven(t, kudosGiven("U1", { "U2": 1 }, { message: "4", day: "2026-10-06" }));
+    await t.run(async (ctx) => setLeaderboardVisibility(ctx, await memberIdIn(ctx, "U1"), false));
+
+    const ranked = await rankedBoard(t, "U1");
+
+    expect(ranked.rows.map(({ name }) => name)).toEqual(["Bob"]);
+    expect(ranked.standing).toEqual({ kind: "left" });
+    expect(ranked.improvement).toEqual({ gain: 2 });
   });
 });
 
@@ -150,13 +218,15 @@ async function recordInDirectory(t: Backend, user: string, entry: DirectoryEntry
 }
 
 async function memberId(t: Backend, user: string) {
-  return t.run(async (ctx) => {
-    const row = await ctx.db
-      .query("members")
-      .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", user))
-      .unique();
-    return row!._id;
-  });
+  return t.run((ctx) => memberIdIn(ctx, user));
+}
+
+async function memberIdIn(ctx: QueryCtx, user: string) {
+  const row = await ctx.db
+    .query("members")
+    .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", user))
+    .unique();
+  return row!._id;
 }
 
 type Options = { message?: string; day?: string };
@@ -194,6 +264,10 @@ async function countKudosGiven(t: Backend, event: (t: Backend) => Promise<KudosG
 
 function everyoneBoard(t: Backend, viewer: string, period?: Period) {
   return t.query(internal.leaderboard.totals.everyoneBoard, { workspace: "T1", viewer, ...(period && { period }) });
+}
+
+function rankedBoard(t: Backend, viewer: string, period: Period = "week") {
+  return t.run((ctx) => rankedBoardOf(ctx, "T1", viewer, period));
 }
 
 function shown(view: BoardView) {

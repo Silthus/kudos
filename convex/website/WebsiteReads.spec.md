@@ -1,10 +1,14 @@
 # Website reads
 
-The website's signed-in reads, the sign-in callback, and the link App Home shows, `${SITE_URL}/` with no identity, only while the website flag is on, SITE_URL is set and the App Home is the deployment's workspace: every website query is built on memberQuery, which answers closed while the website flag is off, signed-out without a live session of the deployment's workspace, and verifying, unverified or not-a-member until the directory knows the person as a member, and calls its handler only with a verified member taken from the session, never from arguments; getMyProfile answers that member with their own homeFacts (kudos left, when they refill, given and received this week and in total) beside their sign-in name, their face (their company profile cutout on its colour when exactly one company profile matches their Slack real name, else their sign-in picture, else initials), and, only while the xp-levels flag is on for the workspace, their level and XP from progression's own read with the thresholds of their level and the next, and reads the website clock, a row a cron ticks every 15 minutes, so an open home turns to the new day and the new week without another kudos; the sign-in callback refuses while the flag is off and links an account only by the Slack pair.
+The website's signed-in reads, the sign-in callback, and the link App Home shows, `${SITE_URL}/` with no identity, only while the website flag is on, SITE_URL is set and the App Home is the deployment's workspace: every website query is built on memberQuery, which answers closed while the website flag is off, signed-out without a live session of the deployment's workspace, and verifying, unverified or not-a-member until the directory knows the person as a member, and calls its handler only with a verified member taken from the session, never from arguments; getMyProfile answers that member with their own homeFacts (kudos left, when they refill, given and received this week and in total) beside their sign-in name, their face (their company profile cutout on its colour when exactly one company profile matches their Slack real name, else their sign-in picture, else initials), and, only while the xp-levels flag is on for the workspace, their level and XP from progression's own read with the thresholds of their level and the next, and reads the website clock, a row a cron ticks every 15 minutes, so an open home turns to the new day and the new week without another kudos; getMyProfile also says whether the Everyone board is open, and getLeaderboard answers one period's Everyone board as the leaderboard module's rankedBoardOf gives it to that member (every ranked row with its position, rank, tie, display name or "A teammate", face and kudos given, the window's positions, their standing and their improvement line), not-found while the everyone-board flag is off for the workspace, reading that flag without an exposure and following the same clock; the sign-in callback refuses while the flag is off and links an account only by the Slack pair.
 
 ## entrances
 - query getMyProfile: a browser asks for the signed-in person's own website answer, with no arguments
   handler: getMyProfile in convex/website/profile.ts
+  trust: browser
+
+- query getLeaderboard: a browser asks for one period's Everyone board as the signed-in member sees it, with the period as its only argument
+  handler: getLeaderboard in convex/website/leaderboard.ts
   trust: browser
 
 ## invariants
@@ -22,11 +26,11 @@ The website's signed-in reads, the sign-in callback, and the link App Home shows
   checklist: canonical-encoding dismissed: function paths are compared as the module glob lists them, sorted; no identity is encoded
   checklist: identity-continuity dismissed: the surface carries no identity across a succession
 - website reads pass one guard: A website read answers closed while the website flag is off, signed-out without a live session of the deployment's current workspace, verifying, unverified or not-a-member until the directory knows the person as a member, and reaches its handler only with that verified member, taken from the session.
-  over: getMyProfile for no session, a signed-out and an expired session, a session left over after SLACK_WORKSPACE_ID changes, an unknown person being verified, a failed verification, a member user_change deactivates, the flag off, never created, without its workspace key, switched off under an open session, and SLACK_WORKSPACE_ID unset
+  over: getMyProfile for no session, a signed-out and an expired session, a session left over after SLACK_WORKSPACE_ID changes, an unknown person being verified, a failed verification, a member user_change deactivates, the flag off, never created, without its workspace key, switched off under an open session, and SLACK_WORKSPACE_ID unset; getLeaderboard for no session, the flag off, a former member, a member, and an argument beside the period
   via: website reads pass one guard
   because: the shell is public and a JWT outlives sign-out and membership, so every read must recheck the flag, the live session, the workspace and the directory in that order, or a closed site, a signed-out browser or a former member would read a member's kudos (WS3, WS9, WS11, WS14)
   crossing: browser -> domain
-  entrances: query getMyProfile
+  entrances: query getMyProfile, query getLeaderboard
   refuted: memberQuery dropped the check that the session's workspace is the current SLACK_WORKSPACE_ID -> the leftover session after SLACK_WORKSPACE_ID changes read member instead of signed-out (2026-10-13)
   kinds: read, identity
   checklist: scoped-reads declared as website reads pass one guard
@@ -81,3 +85,23 @@ The website's signed-in reads, the sign-in callback, and the link App Home shows
   checklist: capability-authorization dismissed: the account key is Slack's workspace and user from a verified ID token; no credential with bounded permission is accepted
   checklist: canonical-encoding dismissed: the account key is `<workspace>/<user>` exactly as Slack's claims carry them, with no normalisation to disagree on
   checklist: identity-continuity declared as accounts link only by the Slack pair
+- the website's board is invisible while everyone-board is off: While the everyone-board flag is off for the workspace, getLeaderboard answers not-found and getMyProfile's leaderboard reads off; only while it is on does getLeaderboard answer the board and leaderboard read open.
+  over: getLeaderboard and getMyProfile for a member while PostHog has no everyone-board flag, in production while the flag is on in the sandbox only, and with the flag switched off under an open session
+  via: WS30: the website's board is invisible while everyone-board is off
+  because: the website must never show more than Slack shows (WS30, O33); a board Slack keeps dark must not reach a browser before the owner switches its flag
+  crossing: browser -> domain
+  entrances: query getLeaderboard, query getMyProfile
+  refuted: getLeaderboard read the everyone-board flag but no longer answered not-found while it is off -> 3 of the 4 tests failed, the board answering while PostHog had no flag, in production and after the switch-off (2026-10-13)
+  kinds: read
+  checklist: scoped-reads declared as website reads pass one guard
+  checklist: redaction dismissed: not-found carries no board fact, and leaderboard is one word
+- a website board row carries only what a board shows: A row of getLeaderboard's board holds exactly its position, rank, tie, name, face, kudos given and whether it is the viewer's own; it never carries a Slack user ID, a member ID, kudos received, XP, a level or a group, and a member who left the boards, a member who only received and a former member are in no row.
+  over: getLeaderboard's board with a member who left the boards seen by themselves and by another member, a member who only received, a former member, and a member without a display name
+  via: a website board row carries only what a board shows
+  because: a board shows only kudos given (G13, P66) and keeps a member's choice to leave it (G22); an ID or a received count in a row would reach every member's browser (WS32, WS33)
+  crossing: browser -> domain
+  entrances: query getLeaderboard
+  refuted: getLeaderboard's rows also carried the member's ID -> the exact-row and the no-ID tests failed (2026-10-13)
+  kinds: read
+  checklist: scoped-reads declared as website reads pass one guard
+  checklist: redaction declared as a website board row carries only what a board shows
