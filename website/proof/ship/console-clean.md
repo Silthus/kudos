@@ -2,7 +2,7 @@
 
 **Before.** Every page load logged one `style-src 'self'` violation (hash `sha256-jaH+qsR8…`). At module load, `@posthog/quill` 0.3.0-beta.30 appends `<style id="quill-scroll-area-shadows">` unless an element with that id already exists. The same violation showed on the sandbox's signed-out page. Quill's only other injected style, the ThemeProvider's transition guard, is never mounted here, and no other violation appeared.
 
-**Fix.** `website/index.html` links `/quill-scroll-area-shadows.css` under Quill's id, before the module script, so Quill finds it and injects nothing. The file is Quill's exported `scrollShadowsCss`, byte for byte, served from the site's own origin. WS25's `style-src 'self'` stays as written, with no hash.
+**Fix.** `website/index.html` links `/quill-scroll-area-shadows-<quill version>.css` under Quill's id, before the module script, so Quill finds it and injects nothing. The file is Quill's exported `scrollShadowsCss`, byte for byte, served from the site's own origin. WS25's `style-src 'self'` stays as written, with no hash.
 
 **Tests.** `website/src/quillStyles.test.tsx`: red in `red-quill-styles.txt`, green in `green-quill-styles.txt`. The second test fails if a Quill upgrade changes the CSS.
 
@@ -15,3 +15,5 @@
 `console-clean-member-dark.png` shows the member page in that state.
 
 **Sandbox.** After deploying af67e1c to the sandbox by hand (`convex deploy`, `static-hosting upload`, `prepareWebsiteFlag`), the signed-out page on the live sandbox, with the flag on and a live Convex socket, logged no console entries, before and after switching to dark (`sandbox-signed-out-dark.png`, `sandbox-curl.txt`). Signing in there redirects to Slack with no client ID until #115's credentials are set.
+
+**Caching.** The edge serves every non-HTML file with `max-age=31536000`, and the component reads the hyphenated name as content-hashed. So the file name carries Quill's version, and the test fails on a Quill upgrade until the stylesheet is regenerated under the new name (`red-quill-styles-versioned.txt`, `green-quill-styles-versioned.txt`).

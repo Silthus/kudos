@@ -8,6 +8,6 @@ export default defineConfig({
     include: ["src/**/*.test.tsx"],
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
-    css: { include: [/quill-scroll-area-shadows\.css/] },
+    css: { include: [/quill-scroll-area-shadows-[^/]+\.css/] },
   },
 });

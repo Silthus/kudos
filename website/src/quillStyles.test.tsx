@@ -1,13 +1,14 @@
 import { describe, expect, test } from "vitest";
 import indexHtml from "../index.html?raw";
-import shippedScrollShadows from "../public/quill-scroll-area-shadows.css?raw";
+import quill from "@posthog/quill/package.json";
+import shippedScrollShadows from "../public/quill-scroll-area-shadows-0.3.0-beta.30.css?raw";
 
 function pageHead() {
   return new DOMParser().parseFromString(indexHtml, "text/html").head;
 }
 
 describe("WS25: Quill's scroll shadows load as the site's own stylesheet, never an inline style", () => {
-  test("the page links them under Quill's id before Quill loads, so Quill injects no style element", async () => {
+  test("the page links them under Quill's id, at a URL that changes with Quill's version, before Quill loads, so Quill injects no style element", async () => {
     document.head.replaceChildren(...pageHead().childNodes);
 
     const { SCROLL_SHADOWS_STYLE_ID } = await import("@posthog/quill");
@@ -15,7 +16,7 @@ describe("WS25: Quill's scroll shadows load as the site's own stylesheet, never 
     const linked = document.getElementById(SCROLL_SHADOWS_STYLE_ID);
     expect(linked).toBeInstanceOf(HTMLLinkElement);
     expect(linked).toHaveAttribute("rel", "stylesheet");
-    expect(linked).toHaveAttribute("href", "/quill-scroll-area-shadows.css");
+    expect(linked).toHaveAttribute("href", `/quill-scroll-area-shadows-${quill.version}.css`);
     expect(document.querySelectorAll("style")).toHaveLength(0);
   });
 
