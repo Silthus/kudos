@@ -29,7 +29,7 @@ export class FakeSlack {
   readonly fetch = async (input: string | URL | Request, init?: RequestInit) => {
     const url = new URL(input instanceof Request ? input.url : input);
     const method = url.pathname.split("/").pop() ?? "";
-    const args = Object.fromEntries(new URLSearchParams(String(init?.body ?? "")));
+    const args = init?.body ? (JSON.parse(String(init.body)) as Record<string, string>) : Object.fromEntries(url.searchParams);
     this.calls.push({ method, args });
     return Response.json(this.answer(method, args));
   };
