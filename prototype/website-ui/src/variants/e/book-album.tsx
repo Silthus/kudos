@@ -1,4 +1,4 @@
-// Variant E book album: a Panini-style spread with the team crest, a framed team photo and numbered die-cut stickers of members' profile pictures.
+// Variant E book album: a Panini-style spread with the team crest, a framed team photo and numbered die-cut stickers with ink name strips; the upload action is the page's one primary.
 import type { ChangeEvent, ComponentType } from "react";
 import {
   HedgehogBasketballCoach,
@@ -25,6 +25,8 @@ export type TeamPhoto = { kind: "upload"; url: string } | { kind: "posthog" };
 type Art = ComponentType<{ size?: number; className?: string; title?: string }>;
 
 const crests: Record<string, Art> = { g1: HedgehogGardener, g2: HedgehogConstruction, g3: HedgehogCoffeeCup, g4: HedgehogClimber, g5: HedgehogSafari };
+
+export const crestOf = (groupId: string): Art => crests[groupId] ?? HedgehogSitting;
 
 const teamSpirit = ladders.find((l) => l.id === "team-spirit");
 const completedOn = teamSpirit && earnedDate(teamSpirit, 0);
@@ -61,11 +63,11 @@ export function AlbumSpread({ album, photo, onPhoto }: { album: Album; photo?: T
 }
 
 function TeamHeader({ album }: { album: Album }) {
-  const Crest = crests[album.group.id] ?? HedgehogSitting;
+  const Crest = crestOf(album.group.id);
   const primary = album.group.id === me.primaryGroup.id;
   return (
     <header className="flex items-center gap-4">
-      <span className="bk-crest relative grid size-16 shrink-0 place-items-center bg-primary/15 sm:size-20">
+      <span className="bk-crest relative grid size-16 shrink-0 place-items-center bg-foreground/10 sm:size-20">
         <span className="bk-crest absolute inset-1 bg-card/70" aria-hidden />
         <Crest size={56} className="relative" title={`${album.group.name} crest`} />
       </span>
@@ -123,8 +125,8 @@ function PosthogTeamPhoto({ name }: { name: string }) {
   const back: Art[] = [HedgehogSoccerCoach, HedgehogBasketballCoach, HedgehogParty];
   const front: Art[] = [HedgehogFootballPlayer, HedgehogSitting];
   return (
-    <div role="img" aria-label={`${name} team photo, an illustration from posthog.com`} className="relative size-full overflow-hidden bg-gradient-to-b from-primary/10 to-muted">
-      <div className="absolute inset-x-0 bottom-0 h-[34%] bg-primary/15" aria-hidden />
+    <div role="img" aria-label={`${name} team photo, an illustration from posthog.com`} className="bk-photo-sky relative size-full overflow-hidden">
+      <div className="absolute inset-x-0 bottom-0 h-[34%] bk-photo-ground" aria-hidden />
       <div className="absolute inset-x-0 bottom-[24%] flex items-end justify-center gap-[3%]">
         {back.map((Hog, i) => (
           <Hog key={i} size={76} className="h-auto w-[21%]" title="" />
@@ -135,7 +137,7 @@ function PosthogTeamPhoto({ name }: { name: string }) {
           <Hog key={i} size={88} className="h-auto w-[25%]" title="" />
         ))}
       </div>
-      <span className="hud-display absolute left-2 top-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{name}</span>
+      <span className="hud-display absolute left-2 top-1.5 text-[10px] font-bold uppercase tracking-widest text-black/45">{name}</span>
     </div>
   );
 }
@@ -183,7 +185,7 @@ function AlbumNotes({ album, className }: { album: Album; className: string }) {
           </span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-muted ring-1 ring-inset ring-border" role="img" aria-label={`${percent}% collected`}>
-          <div className={`hud-fill h-full rounded-full ${album.complete ? "bg-success-foreground" : "bk-bar-fill"}`} style={{ width: `${percent}%` }} />
+          <div className={`hud-fill h-full rounded-full ${album.complete ? "bg-foreground" : "bk-bar-fill"}`} style={{ width: `${percent}%` }} />
         </div>
         {!album.complete && album.missing.length > 0 && <p className="text-xs text-muted-foreground">Still to swap thanks with {album.missing.map((m) => m.name).join(", ")}.</p>}
       </div>
@@ -209,7 +211,7 @@ function StickerCard({ slot, groupId }: { slot: Slot; groupId: string }) {
       <div className="bk-sheen relative flex-1 overflow-hidden rounded-[6px] bg-muted">
         <img src={avatarUrl(slot.member.name)} alt="" loading="lazy" className="absolute inset-0 size-full object-cover" />
         <span className="hud-display absolute left-1 top-1 grid h-5 min-w-5 place-items-center rounded-full bg-card px-1 text-[11px] font-bold tabular-nums text-foreground shadow-sm">{slot.number}</span>
-        <figcaption className="absolute inset-x-0 bottom-0 truncate bg-primary px-1.5 py-1 text-center text-[11px] font-semibold leading-tight text-primary-foreground">{slot.member.name}</figcaption>
+        <figcaption className="bk-name-strip absolute inset-x-0 bottom-0 truncate px-1.5 py-1 text-center text-[11px] font-semibold leading-tight">{slot.member.name}</figcaption>
       </div>
       <span className="sr-only">{facts}</span>
     </figure>

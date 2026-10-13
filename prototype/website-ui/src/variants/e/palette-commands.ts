@@ -1,6 +1,6 @@
 // Variant E command registry for the Cmd/Ctrl-K palette, adapted from D: commands navigate, a few are witty traps.
 import type { ComponentType } from "react";
-import { IconBook, IconDay, IconLeave, IconListTree, IconPalette, IconQuestion, IconRibbon, IconStar, IconUser } from "@posthog/icons";
+import { IconBook, IconBox, IconDay, IconLeave, IconListTree, IconPalette, IconQuestion, IconRibbon, IconStar, IconUser } from "@posthog/icons";
 import type { ScreenId } from "../../nav";
 
 export type Shell = { go: (screen: ScreenId, param?: string) => void; dark: boolean; toggleTheme: () => void; openHelp: () => void; signOut: () => void };
@@ -32,7 +32,8 @@ const goTo = (shell: Shell, screen: ScreenId, param?: string): Outcome => {
 };
 
 export const commands: Command[] = [
-  { name: "profile", aliases: ["whoami", "me", "home", "gear", "loadout", "equip", "inventory"], usage: "profile", blurb: "Your character sheet and gear", Icon: IconUser, run: (_args, shell) => goTo(shell, "profile") },
+  { name: "profile", aliases: ["whoami", "me", "home", "gear", "loadout", "equip"], usage: "profile", blurb: "Your character sheet and gear", Icon: IconUser, run: (_args, shell) => goTo(shell, "profile") },
+  { name: "inventory", aliases: ["bag", "titles", "quips", "emoji", "cosmetics"], usage: "inventory", blurb: "Titles, quips and emoji, owned and not yet", Icon: IconBox, run: (_args, shell) => goTo(shell, "profile", "inventory") },
   { name: "skills", aliases: ["perks", "tree"], usage: "skills [perk]", blurb: "21 perks, 9 branches, zero refunds", Icon: IconListTree, run: (args, shell) => goTo(shell, "skills", wordsOf(args)[0]?.toLowerCase()) },
   {
     name: "lb",
@@ -48,7 +49,7 @@ export const commands: Command[] = [
   },
   { name: "stickers", aliases: ["album"], usage: "stickers", blurb: "The faces you've thanked", Icon: IconBook, run: (_args, shell) => goTo(shell, "stickers") },
   { name: "achievements", aliases: ["ladders"], usage: "achievements", blurb: "12 ladders, 4 tiers. Tiers are not rarities", Icon: IconRibbon, run: (_args, shell) => goTo(shell, "achievements") },
-  { name: "collection", aliases: ["hogs", "hedgehogs", "cosmetics", "store"], usage: "collection", blurb: "Hedgehogs, titles, quips and emoji", Icon: IconPalette, run: (_args, shell) => goTo(shell, "collection") },
+  { name: "collection", aliases: ["hogs", "hedgehogs", "shelf", "store"], usage: "collection", blurb: "Every hedgehog, owned or not", Icon: IconPalette, run: (_args, shell) => goTo(shell, "collection") },
   {
     name: "theme",
     aliases: ["dark", "light"],
@@ -80,7 +81,7 @@ export const commands: Command[] = [
   { name: "sudo", aliases: ["su"], usage: "sudo", blurb: "Kudos are given in Slack, by humans", hidden: true, run: () => error("sudo: nice try. Kudos are given in Slack, by humans.") },
   { name: "give", aliases: ["kudos", "thank", "thanks"], usage: "give", blurb: "This is only the mirror", hidden: true, run: () => ok("Kudos are given in Slack: react with the kudos emoji on a teammate's message. This website is only the mirror.") },
   { name: "rm", aliases: [], usage: "rm", blurb: "You can't take back a thank-you", hidden: true, run: () => error("rm: refusing. You can't take back a thank-you.") },
-  { name: "ls", aliases: ["dir"], usage: "ls", blurb: "Lists the screens", hidden: true, run: () => ok("profile  skills  stickers  achievements  collection  lb") },
+  { name: "ls", aliases: ["dir"], usage: "ls", blurb: "Lists the screens", hidden: true, run: () => ok("profile  inventory  skills  stickers  achievements  collection  lb") },
   { name: "cd", aliases: [], usage: "cd", blurb: "There is only home", hidden: true, run: () => ok("cd: you're already home.") },
   { name: "vim", aliases: ["vi", "emacs", "nano"], usage: "vim", blurb: "Not an editor", hidden: true, run: (_args, _shell, invokedAs) => ok(`${invokedAs}: this is a hedgehog, not an editor. :q works in your head only.`) },
 ];

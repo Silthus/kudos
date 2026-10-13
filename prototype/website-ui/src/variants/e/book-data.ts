@@ -1,6 +1,6 @@
-// Variant E book facts: the page index, album rosters, achievement categories and made-up earned dates, all mocked locally.
-import { albums, ladders, members, stickers } from "../../data/mock";
-import type { Album, Ladder, LadderTier, Member, Sticker } from "../../data/types";
+// Variant E book facts: the page index, album rosters, achievement categories, made-up earned dates, the next tier closest to earning and reward rarities, all mocked locally.
+import { albums, cosmetics, ladders, members, stickers } from "../../data/mock";
+import type { Album, Ladder, LadderTier, Member, Rarity, Sticker, Tier } from "../../data/types";
 
 export const albumsMineFirst: Album[] = [...albums].sort((a, b) => Number(b.mine) - Number(a.mine));
 
@@ -97,11 +97,36 @@ export const recentlyEarned: Earned[] = ladders
   .filter((e): e is Earned => e.date !== undefined)
   .sort((a, b) => b.date.localeCompare(a.date));
 
-export type Reward = { kind: string; name: string };
+export const bestTier = (ladder: Ladder): Tier | undefined => ladder.tiers.filter((t) => t.earned).at(-1)?.tier;
 
-export function rewardOf(reward: string): Reward {
-  const [kind, ...rest] = reward.split(": ");
-  const name = rest.join(": ");
-  if (!name) return { kind: "Reward", name: reward };
-  return { kind: kind === "Card" ? "Title" : kind, name };
+export const nextTierOf = (ladder: Ladder): LadderTier | undefined => ladder.tiers.find((t) => !t.earned);
+
+export type NextUp = { ladder: Ladder; tier: LadderTier };
+
+export function closestNext(shown: Ladder[]): NextUp | undefined {
+  const progress = ({ ladder, tier }: NextUp) => ladder.count / tier.threshold;
+  return shown
+    .flatMap((ladder) => {
+      const tier = nextTierOf(ladder);
+      return tier ? [{ ladder, tier }] : [];
+    })
+    .sort((a, b) => progress(b) - progress(a))[0];
 }
+
+export type Reward = { kind: string; name: string; rarity: Rarity };
+
+const unlistedRarity: Record<Tier, Rarity> = { bronze: "common", silver: "uncommon", gold: "rare", diamond: "epic" };
+
+const unquoted = (text: string) => text.replace(/^[“"]|[”"]$/g, "");
+
+export function rewardOf(tier: LadderTier): Reward {
+  const [kind, ...rest] = tier.reward.split(": ");
+  const name = unquoted(rest.join(": "));
+  const cosmetic = cosmetics.find((c) => c.name === name || c.preview === name);
+  const rarity = cosmetic?.rarity ?? unlistedRarity[tier.tier];
+  if (!name) return { kind: "Reward", name: tier.reward, rarity };
+  if (kind === "Emoji") return { kind, name: cosmetic?.name ?? name, rarity };
+  return { kind: kind === "Card" ? "Title" : kind, name, rarity };
+}
+
+export const emojiOf = (tier: LadderTier) => tier.reward.replace(/^Emoji: /, "");

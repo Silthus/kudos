@@ -1,4 +1,4 @@
-// Variant E leaderboard podium: the top three of the window on stepped pedestals, second, first and third from left to right.
+// Variant E leaderboard podium: the top three on neutral stepped pedestals, second, first and third from left to right, with only your face ringed in primary.
 import type { ReactNode } from "react";
 import { IconCrown } from "@posthog/icons";
 import { Tag } from "./hud";
@@ -22,7 +22,7 @@ function Step({ spot }: { spot: Spot }) {
   const first = step === 1;
   return (
     <li className="hud-rise flex min-w-0 flex-col items-center" style={{ animationDelay: `${stagger[step]}ms` }} aria-label={`Rank ${spot.rank}${spot.tie ? ", tied" : ""}: ${spot.name}`}>
-      {first ? <IconCrown className="mb-1 size-5 text-primary sm:size-6" aria-hidden /> : <span className="mb-1 h-5 sm:h-6" aria-hidden />}
+      {first ? <IconCrown className="mb-1 size-5 text-foreground sm:size-6" aria-hidden /> : <span className="mb-1 h-5 sm:h-6" aria-hidden />}
       <span className="hidden sm:block">{spot.face(first ? 88 : 68)}</span>
       <span className="sm:hidden">{spot.face(first ? 60 : 48)}</span>
       <span className="mt-2 flex w-full min-w-0 items-center justify-center gap-1.5">
@@ -39,10 +39,10 @@ function Step({ spot }: { spot: Spot }) {
       </span>
       {spot.detail && <span className="mt-0.5 hidden text-[11px] text-muted-foreground sm:block">{spot.detail}</span>}
       <span
-        className={`mt-3 flex w-full items-start justify-center rounded-t-lg border border-b-0 pt-1.5 ${pedestal[step]} ${first ? "border-primary/40 bg-gradient-to-b from-primary/20 to-primary/5" : spot.mine ? "border-primary/30 bg-fill-selected" : "bg-gradient-to-b from-muted to-transparent"}`}
+        className={`mt-3 flex w-full items-start justify-center rounded-t-lg border border-b-0 pt-1.5 ${pedestal[step]} ${first ? "bg-gradient-to-b from-foreground/15 to-foreground/[0.03]" : "bg-gradient-to-b from-muted to-transparent"}`}
         aria-hidden
       >
-        <span className={`hud-display text-xl font-bold leading-none sm:text-3xl ${first ? "text-primary" : "text-muted-foreground"}`}>
+        <span className={`hud-display text-xl font-bold leading-none sm:text-3xl ${first ? "text-foreground" : "text-muted-foreground"}`}>
           {spot.rank}
           {spot.tie && <span className="text-sm">=</span>}
         </span>

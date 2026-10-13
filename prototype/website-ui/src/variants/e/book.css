@@ -1,4 +1,4 @@
-/* Variant E book: warm album paper, a spine on wide screens, die-cut stickers, printed empty slots, photo corners and the rubber stamp. */
+/* Variant E book: warm album paper, a spine on wide screens, die-cut stickers with ink name strips, printed empty slots, photo corners, the rubber stamp, ink bars, and emblems that tilt and shine once. */
 .bk-paper {
   position: relative;
   background-color: color-mix(in oklab, var(--card) 93%, var(--warning-foreground) 7%);
@@ -50,7 +50,42 @@
 .bk-stamp { color: var(--success-foreground); border: 3px double currentColor; border-radius: 8px; transform: rotate(-11deg); opacity: .88; mix-blend-mode: multiply; }
 .dark .bk-stamp { mix-blend-mode: screen; }
 
-.bk-bar-fill { background: color-mix(in oklab, var(--primary) 62%, var(--card)); }
+.bk-bar-fill { background: color-mix(in oklab, var(--foreground) 22%, var(--card)); }
+.bk-bar-focus { background: color-mix(in oklab, var(--primary) 70%, var(--card)); }
+.dark .bk-bar-fill { background: color-mix(in oklab, var(--foreground) 26%, var(--card)); }
+
+.bk-photo-sky { background: linear-gradient(to bottom, #cfe5f4, #f3f1e6 70%); }
+.bk-photo-ground { background: linear-gradient(to bottom, #c9dfae, #b5d293); }
+
+.bk-name-strip { background: #23251f; color: #f5f4ef; }
+
+.bk-plank {
+  background: linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 20%, var(--card)), color-mix(in oklab, var(--foreground) 11%, var(--card)));
+  box-shadow: 0 1px 0 color-mix(in oklab, var(--foreground) 22%, transparent), 0 10px 14px -10px color-mix(in oklab, var(--foreground) 55%, transparent);
+}
+
+.bk-emblem { transition: transform .22s cubic-bezier(.2, .8, .2, 1.3); }
+.bk-emblem-face::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(120deg, transparent 35%, color-mix(in oklab, white 55%, transparent) 50%, transparent 65%); transform: translateX(-120%); }
+.bk-silhouette { filter: brightness(0); opacity: .16; }
+.dark .bk-silhouette { filter: brightness(0) invert(1); opacity: .16; }
+.bk-emblem-locked .bk-emblem-face::after { display: none; }
+.bk-hog { transition: transform .22s cubic-bezier(.2, .8, .2, 1.3); transform-origin: 50% 90%; }
+.bk-index-hog { transition: transform .2s ease; }
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .bk-emblem:hover, a:hover > .bk-emblem, .bk-tile:hover .bk-emblem:hover { transform: rotate(-7deg) scale(1.06); }
+  .bk-emblem:hover .bk-emblem-face::after, a:hover > .bk-emblem .bk-emblem-face::after { transform: translateX(120%); transition: transform .65s ease; }
+  .bk-emblem-locked:hover { transform: rotate(-3deg); }
+  .bk-hog:hover, .bk-tile:hover .bk-hog { transform: rotate(-6deg) translateY(-2px); }
+  a:hover .bk-index-hog, a[aria-current="page"] .bk-index-hog { transform: rotate(-8deg); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .bk-emblem-earn { animation: bk-earn .7s cubic-bezier(.2, .8, .2, 1.2) .3s backwards; }
+  .bk-emblem-earn .bk-emblem-face::after { animation: bk-shine .8s ease .85s backwards; }
+}
+@keyframes bk-earn { 0% { transform: scale(.6) rotate(-14deg); opacity: 0; } 60% { transform: scale(1.12) rotate(4deg); opacity: 1; } 100% { transform: none; } }
+@keyframes bk-shine { from { transform: translateX(-120%); } to { transform: translateX(120%); } }
 
 @media (prefers-reduced-motion: no-preference) {
   .bk-stamp-in { animation: bk-stamp .42s cubic-bezier(.2, .8, .2, 1.1) .25s both; }

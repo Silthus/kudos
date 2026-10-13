@@ -1,15 +1,18 @@
-// Variant E profile, from B: the character sheet with the equipped hedgehog, a Max line of facts, the RPG gear panel with its inventory, A's streak heatmap, effects and the public card.
-import { useState, type ComponentType, type ReactNode } from "react";
-import { IconChevronDown, IconBolt, IconLightBulb, IconLock } from "@posthog/icons";
+// Variant E profile: the hero with the equipped hedgehog, a Max line, the stats, one gear panel that swirls between character and inventory, active effects, the public card, then streak and standing; primary is spent on the level and the next action only.
+import { useState, type ReactNode } from "react";
+import { IconChevronDown, IconLock } from "@posthog/icons";
 import { Button, Switch } from "@posthog/quill";
 import { ladders, me, perks } from "../../data/mock";
 import type { Tier } from "../../data/types";
-import { Rarity, TierMedal } from "../../ui";
+import { TierMedal } from "../../ui";
 import { MaxLine } from "../a/insight";
-import { CharacterPanel } from "./gear-character";
+import { GearPanel } from "./gear-character";
+import { ActiveEffects } from "./gear-effects";
 import { useGear } from "./hedgehogs";
-import { CoinGlyph, CountUp, LevelRing, Panel, Pips, SkillPointGlyph, Tag, levelProgress, useHud, useMounted } from "./hud";
+import { CoinGlyph, CountUp, LevelRing, Panel, SkillPointGlyph, levelProgress, useHud, useMounted } from "./hud";
 import { StreakPanel } from "./profile-streak";
+import { Standing } from "./profile-standing";
+import { RarityName } from "./rarity";
 
 const tierOrder: Tier[] = ["bronze", "silver", "gold", "diamond"];
 
@@ -23,7 +26,7 @@ const readyPerk = perks.find((p) => p.id === "rhythm" && p.state.kind === "avail
 
 const maxFacts = [`${(me.xpNextLevel - me.xp).toLocaleString()} XP to level ${me.level + 1}.`, readyPerk && `${readyPerk.name} is ready to buy and pays off on full weeks.`].filter(Boolean).join(" ");
 
-export function Profile(_props: { param?: string }) {
+export function Profile({ param }: { param?: string }) {
   useHud();
   const [hideLevel, setHideLevel] = useState(me.privacy.hideLevel);
   const [hideAchievements, setHideAchievements] = useState(me.privacy.hideAchievements);
@@ -41,7 +44,7 @@ export function Profile(_props: { param?: string }) {
               {me.kudosLeftToday}
               <span className="text-base text-muted-foreground">/{me.dailyAllowance}</span>
             </span>
-            <Pips filled={me.kudosLeftToday} total={me.dailyAllowance} />
+            <AllowancePips left={me.kudosLeftToday} total={me.dailyAllowance} />
           </div>
         </StatBlock>
         <StatBlock label="Kudos given" hint="All time">
@@ -66,39 +69,31 @@ export function Profile(_props: { param?: string }) {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
+        <GearPanel key={param} initialSide={param === "inventory" ? "inventory" : "character"} />
         <div className="flex flex-col gap-6">
-          <CharacterPanel />
-          {!me.streak.hidden && <StreakPanel />}
-          <Panel label="Active effects">
-            <ul className="flex flex-col divide-y">
-              {me.boosters.map((b) => (
-                <Effect
-                  key={b.name}
-                  Icon={b.name === "Discovery Lantern" ? IconLightBulb : IconBolt}
-                  running={b.state === "running"}
-                  name={b.name}
-                  detail={b.state === "running" ? `Running · ${b.endsIn} left` : "Ready when you are"}
-                  action={b.state === "running" ? <Tag variant="success">Running</Tag> : <Button variant="outline" size="sm">Switch on</Button>}
-                />
-              ))}
-            </ul>
+          <ActiveEffects />
+          <Panel label="What teammates see">
+            <div className="flex flex-col gap-4">
+              <PublicCard hideLevel={hideLevel} hideAchievements={hideAchievements} />
+              <label className="flex items-center justify-between gap-3 text-sm">
+                Hide my level
+                <Switch checked={hideLevel} onCheckedChange={setHideLevel} />
+              </label>
+              <label className="flex items-center justify-between gap-3 text-sm">
+                Hide my achievements
+                <Switch checked={hideAchievements} onCheckedChange={setHideAchievements} />
+              </label>
+              <p className="text-xs text-muted-foreground">Hidden things never show to anyone. The card never shows your XP, coins, perks, streak, or kudos given and received.</p>
+            </div>
           </Panel>
         </div>
+      </div>
 
-        <Panel label="What teammates see" className="lg:sticky lg:top-24">
-          <div className="flex flex-col gap-4">
-            <PublicCard hideLevel={hideLevel} hideAchievements={hideAchievements} />
-            <label className="flex items-center justify-between gap-3 text-sm">
-              Hide my level
-              <Switch checked={hideLevel} onCheckedChange={setHideLevel} />
-            </label>
-            <label className="flex items-center justify-between gap-3 text-sm">
-              Hide my achievements
-              <Switch checked={hideAchievements} onCheckedChange={setHideAchievements} />
-            </label>
-            <p className="text-xs text-muted-foreground">Hidden things never show to anyone. The card never shows your XP, coins, perks, streak, or kudos given and received.</p>
-          </div>
-        </Panel>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
+        {!me.streak.hidden && <StreakPanel />}
+        <div className="lg:col-start-2">
+          <Standing />
+        </div>
       </div>
     </div>
   );
@@ -112,13 +107,12 @@ function Hero({ progress }: { progress: number }) {
     <section className="hud-rise flex flex-col items-center gap-6 text-center sm:flex-row sm:items-center sm:gap-8 sm:text-left">
       <div className="flex shrink-0 flex-col items-center gap-1.5">
         <div className="relative">
-          <div className="absolute inset-x-6 bottom-2 h-5 rounded-full bg-primary/30 blur-lg" aria-hidden />
+          <div className="absolute inset-x-8 bottom-2 h-4 rounded-full bg-foreground/15 blur-lg" aria-hidden />
           <equipped.Art size={176} className="hud-lift relative" title={`Your hedgehog: ${equipped.name}`} />
         </div>
-        <span className="flex items-center gap-2 text-xs">
-          <span className="font-medium">{equipped.name}</span>
-          <Rarity rarity={equipped.rarity} className="text-muted-foreground" />
-        </span>
+        <RarityName rarity={equipped.rarity} className="text-xs">
+          {equipped.name}
+        </RarityName>
         <button type="button" onClick={() => document.getElementById("gear")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="group inline-flex items-center gap-1 text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
           Change gear
           <IconChevronDown className="size-3 transition-transform group-hover:translate-y-0.5" />
@@ -130,9 +124,8 @@ function Hero({ progress }: { progress: number }) {
         <h1 className="hud-display mt-1 text-4xl font-bold leading-none">{me.name}</h1>
         <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
           {title && (
-            <span key={title.id} className="hud-fade inline-flex items-center gap-2 rounded-md border bg-card px-2.5 py-1 text-sm font-semibold">
-              {title.name}
-              <Rarity rarity={title.rarity} className="text-muted-foreground" />
+            <span key={title.id} className="hud-fade inline-flex items-center rounded-md border bg-card px-2.5 py-1 text-sm">
+              <RarityName rarity={title.rarity}>{title.name}</RarityName>
             </span>
           )}
           <span className="text-sm text-muted-foreground">{me.primaryGroup.name}</span>
@@ -161,7 +154,7 @@ function XpBar({ progress }: { progress: number }) {
   const mounted = useMounted();
   return (
     <div className="mt-4 h-3 w-full overflow-hidden rounded-full bg-muted ring-1 ring-inset ring-border" role="progressbar" aria-label="Progress to the next level" aria-valuenow={Math.round(progress)} aria-valuemin={0} aria-valuemax={100}>
-      <div className="hud-xp hud-fill h-full rounded-full bg-primary" style={{ width: `${mounted ? progress : 0}%` }} />
+      <div className="hud-fill h-full rounded-full bg-foreground" style={{ width: `${mounted ? progress : 0}%` }} />
     </div>
   );
 }
@@ -175,18 +168,13 @@ function StatBlock({ label, hint, children }: { label: ReactNode; hint: string; 
   );
 }
 
-function Effect({ Icon, running, name, detail, action }: { Icon: ComponentType<{ className?: string }>; running: boolean; name: string; detail: string; action?: ReactNode }) {
+function AllowancePips({ left, total }: { left: number; total: number }) {
   return (
-    <li className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
-      <span className={`flex size-9 shrink-0 items-center justify-center rounded-md ring-1 ring-inset ${running ? "bg-primary/15 text-primary ring-primary/30" : "bg-muted text-muted-foreground ring-border"}`} aria-hidden>
-        <Icon className="size-4" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium">{name}</span>
-        <span className="block text-xs text-muted-foreground">{detail}</span>
-      </span>
-      {action}
-    </li>
+    <span className="inline-flex items-center gap-1" role="img" aria-label={`${left} of ${total} left`}>
+      {Array.from({ length: total }, (_, i) => (
+        <span key={i} className={`h-3.5 w-2.5 rounded-sm ${i < left ? "bg-foreground" : "bg-muted ring-1 ring-inset ring-border"}`} />
+      ))}
+    </span>
   );
 }
 
@@ -195,7 +183,6 @@ function PublicCard({ hideLevel, hideAchievements }: { hideLevel: boolean; hideA
   const title = itemIn("title", 0);
   return (
     <div className="hud-lift relative mx-auto w-full max-w-xs overflow-hidden rounded-xl border bg-gradient-to-b from-card to-muted p-4 shadow-md">
-      <div className="absolute -right-8 -top-8 size-28 rounded-full bg-primary/15 blur-2xl" aria-hidden />
       <div className="flex items-start justify-between">
         <span className="hud-label">Profile card</span>
         {!hideLevel && <span className="hud-display text-lg font-bold leading-none">Lv {me.level}</span>}

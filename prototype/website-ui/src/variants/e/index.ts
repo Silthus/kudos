@@ -10,7 +10,7 @@ import { Skills } from "./Skills";
 export const variant: Variant = {
   key: "E",
   name: "Combined",
-  tagline: "Round 5: three deep trees, one book, gear on the profile",
+  tagline: "Round 6: one gear panel, calmer colour, the whole board",
   Layout: Frame,
   screens: { profile: Profile, skills: Skills, stickers: Book, achievements: Book, leaderboard: Leaderboard, collection: Collection, landing: Moments },
 };

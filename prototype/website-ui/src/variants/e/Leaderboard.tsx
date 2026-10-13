@@ -1,11 +1,13 @@
-// Variant E leaderboard: three big board cards as the primary switch, a headline over a podium, the rest of the window in HUD rows, and private notes beside it.
+// Variant E leaderboard: three big board cards as the switch, a headline over a neutral podium, then the rows around you, growable up and down or opened as the whole scrollable board.
 import { useState, type ComponentType, type ReactNode } from "react";
 import { IconGlobe, IconGroups, IconLock, IconPeople, IconTrending } from "@posthog/icons";
 import { Switch, ToggleGroup, ToggleGroupItem } from "@posthog/quill";
 import { boards, me } from "../../data/mock";
-import type { BoardRow, Boards, GroupRow, Period } from "../../data/types";
+import type { Boards, Period } from "../../data/types";
 import { CountUp, Panel, Tag, useHud } from "./hud";
+import { wholeBoardsByPeriod, type WholeBoards } from "./leaderboard-boards";
 import { GroupCrest, HiddenFace, MemberFace } from "./leaderboard-faces";
+import { BoardList, type Entry } from "./leaderboard-list";
 import { Podium, type Spot } from "./leaderboard-podium";
 import { readRoute, writeRoute, type Board } from "./leaderboard-route";
 import { groupStanding, groupStory, peopleStory, personStanding, splitPodium, tiedRanks, type PersonRow, type TeamRow } from "./leaderboard-story";
@@ -16,14 +18,14 @@ const periods: Array<{ id: Period; label: string; phrase: string }> = [
   { id: "all", label: "All time", phrase: "all time" },
 ];
 
-type BoardInfo = { id: Board; label: string; blurb: string; Icon: ComponentType<{ className?: string }>; standing: (facts: Boards, showMe: boolean) => Standing };
+type BoardInfo = { id: Board; label: string; blurb: string; Icon: ComponentType<{ className?: string }>; standing: (whole: WholeBoards, showMe: boolean) => Standing };
 
 type Standing = { rank?: number; text: string; short: string };
 
 const boardInfo: BoardInfo[] = [
-  { id: "groups", label: "Groups", blurb: "Teams ranked by kudos per person", Icon: IconGroups, standing: (facts) => groupStanding(facts.groups.rows) },
-  { id: "group", label: "My group", blurb: `Everyone in ${me.primaryGroup.name}`, Icon: IconPeople, standing: (facts, showMe) => personStanding(facts.myGroup.rows, showMe) },
-  { id: "everyone", label: "Everyone", blurb: "The whole company on one board", Icon: IconGlobe, standing: (facts, showMe) => personStanding(facts.everyone.rows, showMe) },
+  { id: "groups", label: "Groups", blurb: "Teams ranked by kudos per person", Icon: IconGroups, standing: (whole) => groupStanding(whole.groups) },
+  { id: "group", label: "My group", blurb: `Everyone in ${me.primaryGroup.name}`, Icon: IconPeople, standing: (whole, showMe) => personStanding(whole.myGroup, showMe) },
+  { id: "everyone", label: "Everyone", blurb: "The whole company on one board", Icon: IconGlobe, standing: (whole, showMe) => personStanding(whole.everyone, showMe) },
 ];
 
 export function Leaderboard({ param }: { param?: string }) {
@@ -31,9 +33,10 @@ export function Leaderboard({ param }: { param?: string }) {
   const { board, period } = readRoute(param);
   const [showMe, setShowMe] = useState(me.privacy.showOnLeaderboards);
   const facts = boards[period];
+  const whole = wholeBoardsByPeriod[period];
   const when = periods.find((p) => p.id === period) ?? periods[0];
-  const people = board === "group" ? facts.myGroup.rows : facts.everyone.rows;
-  const story = board === "groups" ? groupStory(facts.groups.rows, when.phrase) : peopleStory(people, when.phrase, showMe);
+  const people = board === "group" ? whole.myGroup : whole.everyone;
+  const story = board === "groups" ? groupStory(whole.groups, when.phrase) : peopleStory(people, when.phrase, showMe);
   const boardName = board === "groups" ? "All groups" : board === "group" ? me.primaryGroup.name : "Everyone";
 
   return (
@@ -51,7 +54,7 @@ export function Leaderboard({ param }: { param?: string }) {
         </div>
         <div role="tablist" aria-label="Board" className="grid grid-cols-3 gap-2 sm:gap-3">
           {boardInfo.map((info) => (
-            <BoardCard key={info.id} info={info} selected={info.id === board} standing={info.standing(facts, showMe)} onSelect={() => writeRoute(info.id, period)} />
+            <BoardCard key={info.id} info={info} selected={info.id === board} standing={info.standing(whole, showMe)} onSelect={() => writeRoute(info.id, period)} />
           ))}
         </div>
       </section>
@@ -63,9 +66,9 @@ export function Leaderboard({ param }: { param?: string }) {
               <h1 className="hud-display text-[clamp(1.75rem,5vw,3rem)] font-bold leading-[0.95] text-balance">{story.headline}</h1>
               <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">{story.deck}</p>
             </div>
-            {board === "groups" ? <GroupPodium rows={facts.groups.rows} /> : <PeoplePodium rows={people} showMe={showMe} />}
+            {board === "groups" ? <GroupPodium rows={whole.groups} /> : <PeoplePodium rows={people} showMe={showMe} />}
           </Panel>
-          {board === "groups" ? <GroupRows rows={facts.groups.rows} /> : <PeopleRows rows={people} showMe={showMe} />}
+          {board === "groups" ? <GroupRows rows={whole.groups} /> : <PeopleRows rows={people} showMe={showMe} />}
         </div>
 
         <aside className="flex flex-col gap-5 lg:sticky lg:top-24">
@@ -92,10 +95,10 @@ function BoardCard({ info, selected, standing, onSelect }: { info: BoardInfo; se
       role="tab"
       aria-selected={selected}
       onClick={onSelect}
-      className={`relative flex min-w-0 flex-col gap-2 rounded-xl border p-3 text-left transition-colors sm:p-4 ${selected ? "hud-panel border-primary/60 bg-fill-selected shadow-[inset_0_-3px_0_var(--primary)]" : "hud-lift bg-card hover:bg-fill-hover"}`}
+      className={`relative flex min-w-0 flex-col gap-2 rounded-xl border p-3 text-left transition-colors sm:p-4 ${selected ? "hud-panel border-foreground/25 bg-fill-selected shadow-[inset_0_-3px_0_var(--primary)]" : "hud-lift bg-card hover:bg-fill-hover"}`}
     >
       <span className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-        <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg sm:size-10 ${selected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`} aria-hidden>
+        <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg sm:size-10 ${selected ? "bg-foreground text-background" : "bg-muted text-muted-foreground"}`} aria-hidden>
           <info.Icon className="size-5" />
         </span>
         <span className="min-w-0">
@@ -110,7 +113,7 @@ function BoardCard({ info, selected, standing, onSelect }: { info: BoardInfo; se
           <>
             <span className="hidden sm:inline">{standing.text}</span>
             <span className="sm:hidden">{standing.short}</span>
-            <span className={`hud-display text-lg font-bold leading-none sm:text-2xl ${selected ? "text-foreground" : "text-foreground/80"}`}>#{standing.rank}</span>
+            <span className={`hud-display text-lg font-bold leading-none sm:text-2xl ${selected ? "text-primary" : "text-foreground/80"}`}>#{standing.rank}</span>
           </>
         )}
       </span>
@@ -118,7 +121,7 @@ function BoardCard({ info, selected, standing, onSelect }: { info: BoardInfo; se
   );
 }
 
-function PeoplePodium({ rows, showMe }: { rows: BoardRow[]; showMe: boolean }) {
+function PeoplePodium({ rows, showMe }: { rows: PersonRow[]; showMe: boolean }) {
   const tied = tiedRanks(rows);
   const spots: Spot[] = splitPodium(rows).podium.map((row) => {
     const hidden = row.me && !showMe;
@@ -136,7 +139,7 @@ function PeoplePodium({ rows, showMe }: { rows: BoardRow[]; showMe: boolean }) {
   return <Podium spots={spots} />;
 }
 
-function GroupPodium({ rows }: { rows: GroupRow[] }) {
+function GroupPodium({ rows }: { rows: TeamRow[] }) {
   const tied = tiedRanks(rows);
   const spots: Spot[] = splitPodium(rows).podium.map((row) => ({
     key: row.group,
@@ -152,19 +155,19 @@ function GroupPodium({ rows }: { rows: GroupRow[] }) {
   return <Podium spots={spots} />;
 }
 
-function PeopleRows({ rows, showMe }: { rows: BoardRow[]; showMe: boolean }) {
+function PeopleRows({ rows, showMe }: { rows: PersonRow[]; showMe: boolean }) {
   const tied = tiedRanks(rows);
   const { rest } = splitPodium(rows);
   if (rest.length === 0) return null;
+  const entries: Entry[] = rest.map((row) => ({
+    key: String(row.position),
+    position: row.position,
+    mine: Boolean(row.me),
+    line: row.me && !showMe ? <HiddenLine /> : <PersonLine row={row} tie={tied(row.rank)} />,
+  }));
   return (
     <Panel flush label="No. · member" action={<span className="hud-label pr-1">Kudos given</span>}>
-      <ol className="flex flex-col">
-        {rest.map((row, i) => {
-          if (row.kind === "gap") return <GapLine key={`gap-${i}`} />;
-          if (row.me && !showMe) return <HiddenLine key="me" />;
-          return <PersonLine key={row.position} row={row} tie={tied(row.rank)} />;
-        })}
-      </ol>
+      <BoardList entries={entries} />
     </Panel>
   );
 }
@@ -179,23 +182,23 @@ function PersonLine({ row, tie }: { row: PersonRow; tie: boolean }) {
   );
 }
 
-function GroupRows({ rows }: { rows: GroupRow[] }) {
+function GroupRows({ rows }: { rows: TeamRow[] }) {
   const tied = tiedRanks(rows);
   const { rest } = splitPodium(rows);
   if (rest.length === 0) return null;
+  const entries: Entry[] = rest.map((row) => ({
+    key: row.group,
+    position: row.position,
+    mine: Boolean(row.mine),
+    line: (
+      <Line rank={row.rank} tie={tied(row.rank)} highlight={row.mine} value={row.score.toFixed(1)}>
+        <TeamLine row={row} />
+      </Line>
+    ),
+  }));
   return (
     <Panel flush label="No. · group" action={<span className="hud-label pr-1">Per person</span>}>
-      <ol className="flex flex-col">
-        {rest.map((row, i) =>
-          row.kind === "gap" ? (
-            <GapLine key={`gap-${i}`} />
-          ) : (
-            <Line key={row.group} rank={row.rank} tie={tied(row.rank)} highlight={row.mine} value={row.score.toFixed(1)}>
-              <TeamLine row={row} />
-            </Line>
-          ),
-        )}
-      </ol>
+      <BoardList entries={entries} />
     </Panel>
   );
 }
@@ -211,7 +214,7 @@ function TeamLine({ row }: { row: TeamRow }) {
         </span>
         <span className="flex items-center gap-2 text-xs tabular-nums text-muted-foreground">
           <span className="h-1.5 w-14 overflow-hidden rounded-full bg-muted ring-1 ring-inset ring-border" role="img" aria-label={`${row.participation}% gave`}>
-            <span className="block h-full rounded-full bg-foreground/50" style={{ width: `${row.participation}%` }} />
+            <span className="block h-full rounded-full bg-muted-foreground" style={{ width: `${row.participation}%` }} />
           </span>
           {row.participation}% gave · {row.total} total
         </span>
@@ -222,7 +225,7 @@ function TeamLine({ row }: { row: TeamRow }) {
 
 function Line({ rank, tie, highlight, value, children }: { rank: number; tie: boolean; highlight?: boolean; value: ReactNode; children: ReactNode }) {
   return (
-    <li className={`grid grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-3 border-t px-3 py-2.5 ${highlight ? "bg-fill-selected shadow-[inset_3px_0_0_var(--primary)]" : ""}`}>
+    <li data-mine={highlight || undefined} className={`grid grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-3 border-t px-3 py-2.5 ${highlight ? "bg-fill-selected shadow-[inset_3px_0_0_var(--primary)]" : ""}`}>
       <span className="flex items-baseline gap-0.5 leading-none text-muted-foreground" aria-label={`Rank ${rank}${tie ? ", tied" : ""}`}>
         <span className="hud-display text-2xl font-bold tabular-nums">{String(rank).padStart(2, "0")}</span>
         {tie && <span className="text-xs">=</span>}
@@ -233,19 +236,9 @@ function Line({ rank, tie, highlight, value, children }: { rank: number; tie: bo
   );
 }
 
-function GapLine() {
-  return (
-    <li className="flex items-center gap-3 border-t px-3 py-1.5" aria-label="Skipped positions">
-      <span className="h-px flex-1 border-t border-dashed" />
-      <span className="hud-label">· · ·</span>
-      <span className="h-px flex-1 border-t border-dashed" />
-    </li>
-  );
-}
-
 function HiddenLine() {
   return (
-    <li className="flex items-center gap-3 border-t bg-fill-selected px-3 py-3 text-sm text-muted-foreground shadow-[inset_3px_0_0_var(--primary)]">
+    <li data-mine className="flex items-center gap-3 border-t bg-fill-selected px-3 py-3 text-sm text-muted-foreground shadow-[inset_3px_0_0_var(--primary)]">
       <HiddenFace size={32} />
       You're off the board by choice. Switch on “Show me on the leaderboards” to come back.
     </li>
@@ -278,7 +271,7 @@ function PrivateNotes({ board, facts }: { board: Board; facts: Boards }) {
         </div>
       )}
       {shown.map((line) => (
-        <p key={line} className="border-l-2 border-primary/60 pl-3 leading-relaxed">
+        <p key={line} className="border-l-2 border-foreground/20 pl-3 leading-relaxed">
           {line}
         </p>
       ))}

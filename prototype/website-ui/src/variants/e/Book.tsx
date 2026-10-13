@@ -1,23 +1,24 @@
-// Variant E book: sticker albums and achievements as one album, with a WoW-style page index on the left and Panini spreads or achievement pages on the right.
+// Variant E book: sticker albums and achievements as one album, with a hedgehog page index on the left whose only primary is the current page marker, and Panini spreads or achievement pages on the right.
 import { useEffect, useRef, useState } from "react";
 import { IconBook, IconCheck, IconChevronDown } from "@posthog/icons";
 import { ladders, me } from "../../data/mock";
 import { useHashRoute } from "../../nav";
-import { AlbumSpread, type TeamPhoto } from "./book-album";
+import { AlbumSpread, crestOf, type TeamPhoto } from "./book-album";
 import { CategoryPage, Overview } from "./book-achievements";
 import { albumsMineFirst, categories, laddersIn, pageFor, pageHref, pageKey, tierCount, type BookPage } from "./book-data";
+import { artOfCategory, BookArt, type Art } from "./book-emblems";
 import { useHud } from "./hud";
 import "./book.css";
 
-type Entry = { page: BookPage; label: string; value: number; max: number; done: boolean; note?: string };
+type Entry = { page: BookPage; label: string; art: Art; value: number; max: number; done: boolean; note?: string };
 
-const overviewEntry: Entry = { page: { kind: "overview" }, label: "Overview", ...countOf(tierCount(ladders)), done: false };
+const overviewEntry: Entry = { page: { kind: "overview" }, label: "Overview", art: BookArt, ...countOf(tierCount(ladders)), done: false };
 
-const albumEntries: Entry[] = albumsMineFirst.map((album) => ({ page: { kind: "album", album }, label: album.group.name, value: album.held, max: album.pages, done: album.complete, note: album.mine ? "Yours" : undefined }));
+const albumEntries: Entry[] = albumsMineFirst.map((album) => ({ page: { kind: "album", album }, label: album.group.name, art: crestOf(album.group.id), value: album.held, max: album.pages, done: album.complete, note: album.mine ? "Yours" : undefined }));
 
 const categoryEntries: Entry[] = categories.map((category) => {
   const count = tierCount(laddersIn(category));
-  return { page: { kind: "category", category }, label: category.name, ...countOf(count), done: count.earned === count.total };
+  return { page: { kind: "category", category }, label: category.name, art: artOfCategory(category.id), ...countOf(count), done: count.earned === count.total };
 });
 
 function countOf({ earned, total }: { earned: number; total: number }) {
@@ -33,7 +34,7 @@ export function Book({ param }: { param?: string }) {
   const key = pageKey(page);
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start lg:gap-6">
+    <div className="grid gap-5 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start lg:gap-6">
       <PageIndex current={key} />
       <MobileIndex current={page} />
       <div key={key} className="hud-rise min-w-0">
@@ -99,15 +100,16 @@ function IndexLink({ entry, current }: { entry: Entry; current: string }) {
       className={`relative flex flex-col gap-1 rounded-md px-2 py-1.5 transition-colors ${active ? "bg-fill-selected text-foreground before:absolute before:inset-y-1.5 before:-left-2 before:w-1 before:rounded-r-full before:bg-primary" : "text-muted-foreground hover:bg-fill-hover hover:text-foreground"}`}
     >
       <span className="flex items-center gap-2 text-sm">
+        <entry.art size={26} className={`bk-index-hog -my-1 shrink-0 ${active ? "" : "opacity-80"}`} title="" />
         <span className={`min-w-0 flex-1 truncate ${active ? "font-medium" : ""}`}>{entry.label}</span>
         {entry.note && <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{entry.note}</span>}
-        {entry.done ? <IconCheck className="size-3.5 text-success-foreground" aria-label="Complete" /> : null}
+        {entry.done ? <IconCheck className="size-3.5 text-foreground" aria-label="Complete" /> : null}
         <span className="text-xs tabular-nums text-muted-foreground">
           {entry.value}/{entry.max}
         </span>
       </span>
-      <span className="h-1 overflow-hidden rounded-full bg-muted" aria-hidden>
-        <span className={`block h-full rounded-full ${entry.done ? "bg-success-foreground" : "bk-bar-fill"}`} style={{ width: `${percent}%` }} />
+      <span className="ml-[34px] h-1 overflow-hidden rounded-full bg-muted" aria-hidden>
+        <span className={`block h-full rounded-full ${entry.done ? "bg-foreground/70" : "bk-bar-fill"}`} style={{ width: `${percent}%` }} />
       </span>
     </a>
   );

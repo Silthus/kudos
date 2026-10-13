@@ -14,6 +14,19 @@
   --color-r-rare: #0070dd;
   --color-r-epic: #a335ee;
   --color-r-legendary: #ff8000;
+  --color-rt-common: #6e6e6e;
+  --color-rt-uncommon: #1a8a00;
+  --color-rt-rare: #0062c4;
+  --color-rt-epic: #8a2fd0;
+  --color-rt-legendary: #c96400;
+}
+
+.dark {
+  --color-rt-common: #9d9d9d;
+  --color-rt-uncommon: #1eff00;
+  --color-rt-rare: #3d95ff;
+  --color-rt-epic: #b45cf5;
+  --color-rt-legendary: #ff8000;
 }
 
 html,
