@@ -6,9 +6,13 @@
 
 What is the module map of the new Kudos backend, and what are the contracts at its seams? The destination is a production Convex deployment wired to a new Slack app that covers the core loop, progression (XP, levels, unlockable messages, achievements) and a team leaderboard with a Slack-only profile. Only the Slack adapter may know Slack, so another chat platform could replace it.
 
-This brief answers it greenfield: there is no backend code on `main` yet. Its grounding is the four research reports and the rules settled in the [#8 handoff](https://github.com/Silthus/kudos/issues/8). It proves the eight seam follow-ups from #8 with runnable scenarios (§9), settles where Sign in with Slack goes, maps the three specs onto modules (§11), and proposes how the core loop spec [#12](https://github.com/Silthus/kudos/issues/12) slices into implementation tickets (§12). Progression internals stay open while the [#9](https://github.com/Silthus/kudos/issues/9) grilling runs. Only the seam the kudos engine uses to announce "kudos given" is shaped here.
+This brief answers it greenfield: there is no backend code on `main` yet. Its grounding is the four research reports and the rules settled in the [#8 handoff](https://github.com/Silthus/kudos/issues/8). It proves the eight seam follow-ups from #8 with runnable scenarios (§9), settles where Sign in with Slack goes, maps the three specs onto modules (§11), and proposes how the core loop spec [#12](https://github.com/Silthus/kudos/issues/12) slices into implementation tickets (§12). Progression internals stay open while the [#9](https://github.com/Silthus/kudos/issues/9) grilling runs. Only the event the kudos engine publishes when kudos are given, and the hooks progression plugs into, are shaped here.
 
 **How to read it:** §2 (map) and §7 (decision cards) are the core. §3 to §6 hold the detail behind the cards.
+
+**Round log**
+- **Round 1 feedback (Michael):** make it event-driven. The engine issues events, and other modules subscribe or hook in, so the engine never knows who listens. Now locked as L8. It adds the event bus and hook points (§2, §3.3, `events.ts`), scenarios 13 and 14, and three new cards: D12 (how the bus delivers), D13 (where a plug-in may shape a decision) and D14 (which events spec 1 publishes).
+- **Round 1 feedback (Michael), second message:** add a parser that turns the message into a kudos message before the engine processes it, with parse hooks that add-ons can register (for example special unlocked emoji), so a later Jev decision engine that judges how mindful a kudos message is can add XP without tight coupling. Now locked as L9. It adds the kudos parser (§3.2, `parser.ts`), scenarios 14 and 15, and two new cards: D15 (two hooks claim the same emoji) and D16 (how a later mindfulness assessor reads the note). L4 and L6 changed with it.
 
 ## 2. Module map
 
@@ -28,33 +32,39 @@ flowchart LR
     unlocks["message unlocks"]
     achievements["achievements"]
     teams["teams and leaderboard"]
+    bus["event bus and hooks<br/>publish, registry"]
+    parser["kudos parser<br/>parse hooks"]
   end
 
   ingress -->|"MessageEvent (direct call, same mutation)"| kudos
   kudos -->|"reads members"| workspace
-  kudos -->|"reads perks"| progression
   kudos -->|"writes intents"| feedback
-  kudos -.->|"kudosGiven announcement"| progression
-  kudos -.->|"kudosGiven announcement"| achievements
-  kudos -.->|"kudosGiven announcement"| teams
+  kudos -->|"parse(content, giver)"| parser
+  parser -->|"asks parse hooks"| bus
+  kudos -->|"publishes kudosGiven, asks the perks hook"| bus
+  bus -.->|"kudosGiven"| progression
+  bus -.->|"kudosGiven"| achievements
+  bus -.->|"kudosGiven"| teams
+  progression -->|"publishes levelReached, contributes perks"| bus
+  achievements -->|"contributes perks"| bus
+  bus -.->|"levelReached"| unlocks
+  unlocks -->|"contributes parse hooks"| bus
   directorySync -->|"upserts members"| workspace
   directorySync -->|"recheck"| kudos
   feedback -->|"drained by"| delivery
   home -->|"reads"| kudos
   home -->|"reads"| progression
   home -->|"reads"| teams
-  progression -.->|"levelReached"| unlocks
-  progression -.->|"levelReached"| achievements
 
   classDef spec1 fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
   classDef spec2 fill:#fef3c7,stroke:#b45309,color:#0f172a
   classDef spec3 fill:#dcfce7,stroke:#15803d,color:#0f172a
-  class ingress,directorySync,delivery,workspace,kudos,feedback spec1
+  class ingress,directorySync,delivery,workspace,kudos,feedback,bus,parser spec1
   class progression,unlocks,achievements spec2
   class home,teams spec3
 ```
 
-Legend: blue = spec 1 (core loop), amber = spec 2 (progression), green = spec 3 (leaderboard and profile). A solid arrow is a direct call inside one Convex transaction. A dotted arrow is an **announcement**: the caller schedules each subscriber's internal mutation in its own transaction (card D1).
+Legend: blue = spec 1 (core loop), amber = spec 2 (progression), green = spec 3 (leaderboard and profile). A solid arrow is a direct call inside one Convex transaction. A dotted arrow is a **domain event** delivered by the bus to every module that subscribed in the registry (L8). The kudos engine imports the bus and nothing downstream of it.
 
 | Module | Folder | Owns (Convex tables) | Interface (all `internal` except HTTP routes) |
 | --- | --- | --- | --- |
@@ -62,9 +72,11 @@ Legend: blue = spec 1 (core loop), amber = spec 2 (progression), green = spec 3 
 | workspace | `convex/workspace/` | `workspaces` (settings), `members` (directory) | `settingsOf`, `lookupMember`, `upsertMember` |
 | kudos engine | `convex/kudos/` | `kudosMessages`, `awards`, `allowanceDays` | `observe(MessageEvent)`, `recheck(MessageRef)`, `allowanceLeft(member)` |
 | feedback outbox | `convex/feedback/` | `indicators`, `privateReplies` | `setIndicator`, `replyPrivately`, `claimDue`, `markDelivered`, `render(Reply)` |
-| progression | `convex/progression/` | open until #9 | implements `Perks`; subscribes to `kudosGiven` |
-| message unlocks | `convex/unlocks/` | open until #9 | open until #9 (card D10) |
-| achievements | `convex/achievements/` | open until #9 | subscribes to `kudosGiven`, `levelReached` |
+| kudos parser | `convex/parser/` | none | `parse(content, context) → KudosMessage \| null`; runs the registered parse hooks |
+| event bus and hooks | `convex/events/` | none (D12 A); the Convex scheduler holds queued jobs | `publish(event)`; `registry.ts` wires subscribers and hook contributors |
+| progression | `convex/progression/` | open until #9 | subscribes to `kudosGiven`; publishes `levelReached`; contributes to the perks hook |
+| message unlocks | `convex/unlocks/` | open until #9 | may contribute parse hooks (unlocked kudos emoji) and the success-line hook (D10) |
+| achievements | `convex/achievements/` | open until #9 | subscribes to `kudosGiven`, `levelReached`; may contribute to the perks hook |
 | teams and leaderboard | `convex/teams/` | spec 3 | subscribes to `kudosGiven`; leaderboard queries |
 
 ## 3. Contracts at the seams
@@ -84,7 +96,7 @@ type MessageEvent = {
   author: ChatUserId;
   revision: bigint;
   at: number;
-  content: { mentions: Mention[]; emoji: string[] };
+  content: { mentions: Mention[]; emoji: string[]; text: string };
 };
 
 interface KudosEngine {
@@ -101,12 +113,40 @@ type Observation =
   | { kind: "evaluated"; outcome: Outcome };
 ```
 
-- **Invariants.** `ref` identifies the message, not the delivery. `revision` strictly increases per message (Slack: `edited.ts`, else the event `ts`, as integer microseconds). `content` holds only the countable rich text: the adapter drops code, quotes, strikethrough, attachments and forwards. It passes **every** emoji name, because only the engine knows a giver's kudos emoji. Message text never crosses the seam and is never stored.
+- **Invariants.** `ref` identifies the message, not the delivery. `revision` strictly increases per message (Slack: `edited.ts`, else the event `ts`, as integer microseconds). `content` holds only the countable rich text: the adapter drops code, quotes, strikethrough, attachments and forwards. It passes **every** emoji name, because only the parser knows a giver's kudos emoji. `text` is the countable prose, so parse hooks can compute facts about the note. It lives in memory for one evaluation and is never stored (L4).
 - **Idempotent per revision.** A revision at or below the stored one is `ignored` and changes nothing. A message gives kudos at most once.
 - **Errors.** None thrown for domain cases. `awaiting-directory` tells the caller to verify the users and call `recheck` after `retryInMs`. The engine owns the retry budget (card D6).
 - **Performance.** One mutation that reads the message row, the giver's members, settings, perks and one allowance-day row, then writes at most the message row, N award rows, the allowance-day row and the outbox rows. It never calls the network.
 
-### 3.2 Kudos engine → workspace, progression (direct reads)
+### 3.2 Chat message → kudos message: the parser
+
+Slack parsing has two stages. The adapter turns a Slack payload into the platform-neutral chat message above (only it knows Slack). The domain parser turns that chat message into a **kudos message**, and the engine evaluates only kudos messages. Parse hooks plug into the second stage, so an add-on never sees a Slack payload and survives a platform swap. See [`parser.ts`](architecture/parser.ts).
+
+```ts
+type ParseContext = { workspace: WorkspaceId; giver: MemberId | undefined };
+type KudosMessage = {
+  mentions: Mention[];
+  kudosEmoji: Array<{ name: string; kudos: number }>;
+  perRecipient: number;
+  annotations: Record<string, string | number | boolean>;
+};
+type ParseHook = {
+  name: string;
+  kudosEmoji?(context: ParseContext): Array<{ name: string; kudos: number }>;
+  annotate?(content: MessageContent, context: ParseContext): Annotations;
+};
+interface KudosParser { parse(content: MessageContent, context: ParseContext): KudosMessage | null }
+```
+
+- **`null` means ordinary chat.** It returns `null` when there is no mention, or when no emoji is claimed by a hook.
+- **The core rule is itself a hook.** The workspace emoji is worth 1 (`workspaceEmojiHook`). Spec 2 can register a hook that makes a giver's unlocked `:star:` worth 2 (scenario 14), and the engine doesn't change.
+- **Annotations are facts about the note**, for example a word count. They travel with `kudosGiven`, so a subscriber reads facts, never text (scenario 15).
+- **Two hooks claiming the same emoji:** the highest value wins (D15).
+- **The parser runs inside the engine's mutation**, so hooks are synchronous reads with no network calls. A message from an author the directory doesn't know yet is parsed without a giver: an unknown member can't have unlocked anything.
+- **The engine stores the kudos message, not the chat message.** A recheck after a directory miss evaluates the stored kudos message, so hooks don't run twice and no text is kept.
+- **Editing.** The fingerprint that tells a retry from a prose edit is computed from the kudos message (mentions plus kudos emoji), so annotations never turn a prose edit into a retry.
+
+### 3.2b Kudos engine → workspace, perks (direct reads)
 
 ```ts
 interface Directory { lookup(workspace: WorkspaceId, user: ChatUserId): MemberFacts | undefined }
@@ -116,28 +156,54 @@ type MemberFacts =
   | { kind: "not-a-member" };
 
 interface Settings { of(workspace: WorkspaceId): { baseAllowance: number; kudosEmoji: string } }
-interface Perks { of(giver: MemberId): { allowanceBonus: number; kudosEmoji: string[] } }
+interface Perks { of(giver: MemberId): { allowanceBonus: number } }
 ```
 
-`undefined` means unknown, not "not a member". `Perks` is the seam progression fills in spec 2: until then a constant adapter returns `{ allowanceBonus: 0, kudosEmoji: [] }`. Settings are read when the message is evaluated, as #8 rules.
+`undefined` means unknown, not "not a member". `Perks` is a **hook**: any module can contribute, and the hook sums the allowance bonuses (`combinePerks` in [`events.ts`](architecture/events.ts)). Spec 1 registers no contributors, so the bonus is zero. Unlocked kudos emoji moved to parse hooks, so "what counts in a message" lives only in the parser. Settings are read when the message is evaluated, as #8 rules.
 
-### 3.3 Kudos engine → downstream (the "kudos given" announcement)
+### 3.3 Domain events and hooks: the engine publishes, modules subscribe
 
 ```ts
-type KudosGiven = {
+type DomainEvent = KudosGivenEvent; // spec 2 adds LevelReachedEvent, and so on
+type KudosGivenEvent = {
+  type: "kudosGiven";
   workspace: WorkspaceId;
   message: MessageRef;
   giver: MemberId;
   awards: Array<{ giver: MemberId; recipient: MemberId; kudos: number }>;
   kudosEmoji: string;
+  annotations: Annotations; // from parse hooks
   day: DayKey;
   at: number;
 };
+
+interface EventBus { publish(event: DomainEvent): void }
+
+// convex/events/registry.ts: the only file that knows who listens or contributes
+export const subscriptions = {
+  kudosGiven: [internal.progression.events.onKudosGiven, internal.achievements.events.onKudosGiven, internal.teams.events.onKudosGiven],
+  levelReached: [internal.unlocks.events.onLevelReached, internal.achievements.events.onLevelReached],
+} satisfies Subscriptions;
+export const perkContributors = [progressionPerks, achievementPerks] satisfies PerkContributor[];
+export const parseHooks = [workspaceEmojiHook, unlockedEmojiHook, noteWordsHook] satisfies ParseHook[];
 ```
 
-- Announced in the same mutation that commits the awards, as one scheduled internal mutation per subscriber (`ctx.scheduler.runAfter(0, internal.progression.onKudosGiven, fact)`). Convex commits the schedule with the awards, and a scheduled mutation runs exactly once, so a subscriber sees each award exactly once without its own dedupe.
-- A subscriber's bug fails only its own job. It never blocks or reverses the award. Awards are permanent ([ADR-0001](https://github.com/Silthus/kudos/blob/main/docs/adr/0001-awards-are-permanent.md)), so there is no "kudos revoked" event to design.
-- Open until #9: whether the fact carries note facts (for example a word count the adapter computes) if XP rewards the note. Adding a field is backward compatible for queued jobs.
+- **Publishers know only the bus.** The kudos engine calls `publish` and never imports progression, achievements or the leaderboard. `registry.ts` is the one place that wires subscribers. A new subscriber is one line there, and no publisher changes. Spec 1 ships the bus with an empty registry.
+- **Delivery (D12).** In the recommended option, `publish` schedules each registered handler (`ctx.scheduler.runAfter(0, handler, { event })`) in the publisher's transaction. The jobs commit with the awards, and a scheduled mutation runs exactly once, so every subscriber sees each event exactly once without its own dedupe. Scenario 13 shows a failing subscriber touching neither the award nor the other subscribers. Its failed run stays visible in Convex's scheduled-functions table.
+- **Events are past-tense facts.** They react after the commit and cannot change the decision. Their shape grows only by adding fields, because queued jobs keep the arguments they were scheduled with.
+- **Hooks are for shaping a decision (D13).** A hook is a named, synchronous extension point inside the transaction, with a rule for combining contributions. Spec 1 has two: parse hooks and perks. Spec 2 may add a success-line hook (D10). Scenario 14 shows a perk raising the allowance and a parse hook making an unlocked emoji worth 2, and the engine knows neither of them.
+- **No "kudos revoked" event.** Awards are permanent ([ADR-0001](https://github.com/Silthus/kudos/blob/main/docs/adr/0001-awards-are-permanent.md)).
+- Open until #9: which annotations spec 2 needs (D11).
+
+### 3.3b Later: a Jev decision engine that judges how mindful a kudos message is
+
+It fits as a subscriber, not as a parse hook. A parse hook runs inside the giving transaction, and a model call there is impossible (a mutation can't call the network) and unwanted (giving would wait on a model). So:
+
+1. The assessor subscribes to `kudosGiven` and runs as an action that calls the model.
+2. It publishes `kudosAssessed { message, giver, score }`.
+3. Progression subscribes to `kudosAssessed` and adds XP.
+
+Neither the engine nor progression knows the assessor exists. The open question is how it reads the note (D16). It isn't on the map yet, so it's a follow-up for the conductor.
 
 ### 3.4 Kudos engine → feedback outbox → Slack delivery
 
@@ -186,7 +252,8 @@ sequenceDiagram
   A-->>H: accepted | duplicate
   H-->>S: 200 (within 3s)
   P->>K: observe(event), same transaction
-  K->>K: awards, allowance day, indicator, private reply, schedule kudosGiven subscribers
+  K->>K: parse into a kudos message (parse hooks)
+  K->>K: awards, allowance day, indicator, private reply, publish kudosGiven
   K-->>P: Observation
   P->>D: scheduled because the outbox has due items
   D->>S: reactions.add / chat.postEphemeral
@@ -226,18 +293,20 @@ sequenceDiagram
 
 After the last retry the message is `abandoned`: no reaction, no reply (#8 rule 10).
 
-### 4.4 Kudos given → progression
+### 4.4 Kudos given → whoever subscribed
 
 ```mermaid
 sequenceDiagram
   participant K as kudos.observe (mutation)
+  participant B as event bus
   participant Q as Convex scheduler
   participant G as progression.onKudosGiven
   participant C as achievements.onKudosGiven
-  K->>Q: runAfter(0, onKudosGiven, fact), committed with the awards
+  K->>B: publish(kudosGiven)
+  B->>Q: runAfter(0, handler) per registered subscriber, committed with the awards
   Q->>G: exactly once
   Q->>C: exactly once
-  G-->>Q: may announce levelReached
+  G->>B: may publish levelReached
 ```
 
 ## 5. Data (spec 1 tables)
@@ -255,7 +324,7 @@ members: defineTable({
 kudosMessages: defineTable({
   workspace: v.id("workspaces"), conversation: v.string(), message: v.string(),
   threadRoot: v.optional(v.string()), author: v.string(), revision: v.int64(),
-  fingerprint: v.string(), content: contentValidator, spendsAt: v.number(), verifyTries: v.number(),
+  fingerprint: v.string(), parsed: v.union(kudosMessageValidator, v.null()), spendsAt: v.number(), verifyTries: v.number(),
   state: v.union(/* watermark | awaiting-directory | abandoned | given | over-allowance | invalid | withdrawn */),
 }).index("by_message", ["workspace", "conversation", "message"]),
 awards: defineTable({
@@ -271,7 +340,7 @@ privateReplies: defineTable({ kudosMessage: v.id("kudosMessages"), to: v.string(
 slackReceipts: defineTable({ key: v.string(), receivedAt: v.number() }).index("by_key", ["key"]),
 ```
 
-- `content` holds mention IDs and kudos emoji names, never message text. A `watermark` row is a tiny tombstone that makes "newest revision wins" hold when an edit arrives before its original or removes the emoji.
+- `parsed` holds the kudos message: mention IDs, kudos emoji with their values, and annotations, never message text. A `watermark` row is a tiny tombstone that makes "newest revision wins" hold when an edit arrives before its original or removes the emoji.
 - Award rows are immutable and only ever inserted (ADR-0001). There is no migration: this is the first schema.
 - Receipts are deleted by a daily cron after 7 days. That is safe because the engine's revision check, not the receipt, is what prevents a second award.
 
@@ -288,13 +357,31 @@ slackReceipts: defineTable({ key: v.string(), receivedAt: v.number() }).index("b
 
 ### Open: round 1
 
-Every card below is independent of the others. Answer with the card's id and an option, or "rec" to take the recommendation.
+Every card below is independent of the others. Answer with the card's id and an option, or "rec" to take the recommendation. D1 is locked as L8 after round 1 feedback.
 
-**D1. How do modules talk?**
-- **A. Direct reads upstream, announcements downstream.** The engine calls workspace, perks and feedback inside its mutation. It announces `kudosGiven` by scheduling one internal mutation per subscriber in the same commit. Atomic with the award, exactly once per subscriber, and a progression bug can't block giving.
-- B. Direct calls everywhere. Progression and achievements run inside the award's mutation: simplest and fully atomic, but every subscriber's cost and failure sits in the giving transaction.
-- C. A durable event table that subscribers poll from a cron. It decouples the most and replays easily, but adds latency, a cursor per subscriber and a cron to babysit.
-- **Recommendation: A.** It is the smallest design that keeps the award path independent of progression, and Convex's scheduler gives exactly-once for free.
+**D12. How does the bus deliver an event?** (new in round 1)
+- **A. Fan-out on publish.** `publish` reads the registry and schedules each handler in the publisher's transaction. No table. A failed run shows in Convex's scheduled-functions table and is re-run by hand.
+- B. A durable event log. `publish` appends to an `events` table and schedules a dispatcher that records delivery per subscriber. You get an audit trail, replay, backfill for a new subscriber and automatic retry, at the cost of a table, a dispatcher and delivery bookkeeping.
+- C. A Workpool component per subscriber. Retries and concurrency limits come built in, for one more dependency.
+- **Recommendation: A.** The awards table is already a permanent log, so a later subscriber (the leaderboard in spec 3) backfills from it. Move to B when a second reason for replay appears. `publish` looks the same under A and B, so switching later touches only the bus.
+
+**D13. Where may a plug-in shape a decision, not just react to it?** (new in round 1)
+- **A. Events plus named hooks.** Async events for reacting, and a few synchronous hooks inside the transaction where modules contribute to a decision: parse hooks and perks now, perhaps the success line in spec 2. Each hook has a combine rule.
+- B. Events only. Progression's subscriber writes bonuses and unlocked emoji to a table, and the engine reads it. One mechanism, but the engine depends on that table, and it lags one event behind.
+- C. Generic lifecycle hooks (before and after evaluation, before a reply) that any module can intercept. The most flexible, but the order between plug-ins starts to matter, and the result is hard to reason about and test.
+- **Recommendation: A.**
+
+**D14. Which events does spec 1 publish?** (new in round 1)
+- **A. Only `kudosGiven`**, the one event with a known subscriber. Adding another later is a type in the union plus a registry line.
+- B. The whole attempt lifecycle: message observed, attempt evaluated (all three outcomes), retried, withdrawn, kudos given. Ready for achievements such as "first time over allowance", but unused until someone subscribes.
+- **Recommendation: A.**
+
+
+**D15. Two parse hooks claim the same emoji. Which value counts?** (new in round 1)
+- **A. The highest value.** An unlock can only make an emoji worth more, never less, and the order of registration doesn't matter.
+- B. The first registered hook wins. Predictable, but the registry's order becomes a rule.
+- C. The values add up. Two plug-ins can stack, and an emoji's worth can grow by accident.
+- **Recommendation: A.**
 
 **D2. Where are recipients checked?**
 - **A. A members table in the domain.** The engine reads it and parks the message as `awaiting-directory` on a miss. A Slack action verifies and calls `recheck`. Every decision stays in a mutation, tests need no network, and #8's retry rule lives in the engine.
@@ -342,20 +429,30 @@ Every card below is independent of the others. Answer with the card's id and an 
 ### Open: waits on the progression grilling (#9)
 
 **D10. How does an unlockable message reach the success reply?**
-- A. The engine asks the unlocks module for the giver's success line, a direct read inside the award's mutation, and puts it in the `given` reply. One reply, so the line counts as seen only when the reply goes out.
+- A. A success-line hook (D13): unlocks contributes the giver's line inside the award's mutation, and it goes into the `given` reply. One reply, so the line counts as seen only when the reply goes out.
 - B. Unlocks subscribes to `kudosGiven` and sends its own follow-up. Looser coupling, but two messages for one kudos message.
 - Leaning A. Decided with #9's answer on what "unlockable" means.
 
-**D11. Does `kudosGiven` carry facts about the note?** Only if XP rewards the note (word count, story length). The adapter would count words and pass a number, never text.
+**D11. Which annotations does spec 2 need?** The mechanism is settled (parse hooks annotate, and `kudosGiven` carries the annotations). Only the content depends on whether XP rewards the note (word count, story length).
+
+### Open: waits on the mindfulness assessor (a later feature)
+
+**D16. How does the Jev decision engine read the note?** The text is never stored (L4), but a model needs it.
+- A. `kudosGiven` carries the text. It sits only in the queued job's arguments, which Convex keeps for a while after the run. Simplest, but every subscriber receives the text.
+- B. The assessor asks the Slack adapter for the message text when it runs (a "read message" port, `conversations.history`). No text stored on our side, at the cost of a Slack call per kudos message and one more adapter capability.
+- C. Store notes with a retention window. Re-assessment becomes possible, but the data needs deletion when someone leaves.
+- Leaning B. Decide on the assessor's ticket.
 
 ### Locked (reopen any of them)
 
 - **L1. Only HTTP routes are public; every domain function is `internal`.** Reason: Convex research (#7); a signed Slack request is the only caller.
 - **L2. Receipts dedupe deliveries; the revision check dedupes attempts.** Reason: #8 follow-up, Slack's separate `event_id` and `message.ts` identities. Proven in scenario 2.
 - **L3. The indicator is delivered as desired state.** Reason: an add/remove queue can leave a stale hourglass after a retry; desired state can't (scenarios 3 and 11).
-- **L4. Message text is never stored.** Reason: nothing needs it, and it keeps data deletion and the public repo simple. Note facts, if #9 needs them, are numbers.
+- **L4. Message text is never stored.** It crosses the adapter seam in memory so parse hooks can annotate, then it is dropped. Reason: nothing downstream needs the text itself, and it keeps data deletion and the public repo simple. (Changed in round 1: the text used to stop at the adapter.)
 - **L5. Deletions are dropped at the adapter.** Reason: ADR-0001. One consequence: a message deleted while it waits for a recipient check still gives when the check succeeds.
-- **L6. `Perks` is a port the kudos engine owns, with a zero adapter until spec 2.** Reason: #8 fixes the allowance at base + unlocked bonus and a per-giver kudos emoji set.
+- **L6. Perks come from a hook that sums allowance bonuses. Spec 1 registers no contributors.** Reason: #8 fixes the allowance at base + unlocked bonus. Unlocked kudos emoji are parse hooks (L9). (Changed in round 1.)
+- **L8. Modules talk through domain events: the engine publishes to a bus, and modules subscribe through one registry.** The engine knows no subscriber. Michael, round 1 (replaces the old D1).
+- **L9. A domain kudos parser with parse hooks sits between the adapter and the engine.** The adapter turns Slack into a chat message, the parser turns it into a kudos message, and the engine evaluates only kudos messages. Michael, round 1.
 - **L7. Tests run outside-in at three seams with `convex-test`:** signed requests through `t.fetch('/slack/events')`, the engine's internal mutations with a seeded members table, and delivery with a stubbed global `fetch`. Reason: Convex research (#7).
 
 ## 8. Blast radius
@@ -386,18 +483,22 @@ Each scenario sends Slack-shaped envelopes through `normalize` into the engine a
 | Prompting an invite | card D7 | Not observable from Slack, so it is a product choice |
 | Sign in with Slack | card D8 | |
 
+| A failing subscriber is isolated (round 1) | 13 | Achievements throws; the award and the other subscribers are unaffected |
+| Plug-ins (round 1) | 14 | A perk gives allowance 3 + 1; a parse hook makes Alice's unlocked `:star:` worth 2 (3 kudos to Bob); Bob hasn't unlocked it, so his `:star:` is ordinary chat |
+| Annotations, no stored text (round 1) | 15 | A word-count hook annotates the note; the subscriber sees `noteWords: 7`; the stored records contain no text |
+
 Scenarios 1 and 12 add skipped mentions (self, bot, broadcast, external) and struck-through emoji.
 
 ## 10. New words this brief uses
 
-Not in `lexicon.json` yet. They are settled through Coherence in the first implementation ticket that uses them: **revision** (one version of a message, ordered), **indicator** (the reaction showing an attempt's outcome), **directory** (the members table as a cache of the chat platform's users), **announcement** (a scheduled, exactly-once notice to another module).
+Not in `lexicon.json` yet. They are settled through Coherence in the first implementation ticket that uses them: **revision** (one version of a message, ordered), **indicator** (the reaction showing an attempt's outcome), **directory** (the members table as a cache of the chat platform's users), **domain event** (a past-tense fact one module publishes and any module can subscribe to), **hook** (a synchronous extension point where modules contribute to a decision), **parse hook** (a hook that decides which emoji give kudos and annotates the note), **annotation** (a fact about the note that travels with `kudosGiven`).
 
 ## 11. The three specs on the modules
 
 | Spec | Modules it builds | Seams it adds or fills |
 | --- | --- | --- |
-| 1. Core loop on Slack, in production | Slack ingress, normalize, directory sync, delivery; workspace; kudos engine; feedback outbox; receipts cron; manifest and deploy | `MessageEvent`, `Observation`, `Directory`, `Settings`, `Feedback`; `Perks` with its zero adapter; `kudosGiven` announced with no subscribers yet |
-| 2. Progression | progression, unlocks, achievements | Fills `Perks`; subscribes to `kudosGiven`; adds `levelReached`; adds success lines to `Reply` (D10) |
+| 1. Core loop on Slack, in production | Slack ingress, normalize, directory sync, delivery; workspace; kudos engine; feedback outbox; receipts cron; manifest and deploy | `MessageEvent`, `Observation`, `Directory`, `Settings`, `Feedback`; the kudos parser with the workspace emoji hook; the event bus with `kudosGiven` and no subscribers; the perks hook with no contributors |
+| 2. Progression | progression, unlocks, achievements | Registers subscribers, perk contributors and parse hooks (unlocked emoji, annotations); publishes `levelReached`; may add the success-line hook (D10) |
 | 3. Leaderboard and Slack profile | teams (Slack user groups through the adapter's directory sync), leaderboard queries, App Home and `/kudos` | Subscribes to `kudosGiven` or reads `awards`; profile reads from kudos, progression and teams |
 
 ## 12. Proposed slicing of the core loop spec (#12)
@@ -405,7 +506,7 @@ Not in `lexicon.json` yet. They are settled through Coherence in the first imple
 Each slice is a vertical, deployable pull request, tested outside-in. The order is a dependency chain unless a slice says otherwise.
 
 1. **Walking skeleton.** Add Convex and `convex-test`. Add `/slack/events` with signature check, `url_verification`, receipt and schedule, and a processing step that does nothing yet. Carries the bootstrap's Coherence follow-ups: the entry spec with trust levels, the httpAction entrance declared by hand, `convex/_generated` ignored. Deploys to the sandbox deployment.
-2. **The first kudos.** Normalize posted messages; workspace settings with defaults; the members directory filled by `users.info`; `observe` for posts with the Given outcome, allowance day in the giver's time zone, awards; the indicator and its delivery.
+2. **The first kudos.** Normalize posted messages; the kudos parser with the workspace emoji hook; workspace settings with defaults; the members directory filled by `users.info`; `observe` for posts with the Given outcome, allowance day in the giver's time zone, awards; the indicator and its delivery.
 3. **Saying no.** Over allowance and Invalid, skipped mentions, and every private reply with the #8 copy (D4).
 4. **Edit-to-retry.** `message_changed`, revisions and watermarks, retry, withdrawal, the accepted-message reply, the indicator swap.
 5. **Recipients the app can't check.** `awaiting-directory`, the retry ladder (D6), directory refresh from `team_join` and `user_change`.

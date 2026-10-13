@@ -11,12 +11,14 @@
     "messages": {
       "1760000000.000100": "given @rev 1760000000000100"
     },
+    "storedText": false,
     "slackReactions": {},
     "replies": [
       "given → UALICE"
     ],
-    "announced": [
-      "kudosGiven m-alice → m-bob"
+    "subscribers": [
+      "progression: m-alice gave 1 award(s)",
+      "leaderboard: +m-bob×2"
     ]
   }
 
@@ -34,12 +36,14 @@
     "messages": {
       "1760000000.000100": "given @rev 1760000000000100"
     },
+    "storedText": false,
     "slackReactions": {},
     "replies": [
       "given → UALICE"
     ],
-    "announced": [
-      "kudosGiven m-alice → m-bob"
+    "subscribers": [
+      "progression: m-alice gave 1 award(s)",
+      "leaderboard: +m-bob×1"
     ]
   }
 
@@ -58,6 +62,7 @@
     "messages": {
       "1760000000.000100": "given @rev 1760000060000100"
     },
+    "storedText": false,
     "slackReactions": {
       "1760000000.000100": [
         "taco"
@@ -67,8 +72,9 @@
       "over-allowance → UALICE",
       "given → UALICE"
     ],
-    "announced": [
-      "kudosGiven m-alice → m-bob"
+    "subscribers": [
+      "progression: m-alice gave 1 award(s)",
+      "leaderboard: +m-bob×2"
     ]
   }
 
@@ -85,12 +91,14 @@
     "messages": {
       "1760000000.000100": "given @rev 1760000060000100"
     },
+    "storedText": false,
     "slackReactions": {},
     "replies": [
       "given → UALICE"
     ],
-    "announced": [
-      "kudosGiven m-alice → m-bob"
+    "subscribers": [
+      "progression: m-alice gave 1 award(s)",
+      "leaderboard: +m-bob×1"
     ]
   }
 
@@ -104,11 +112,12 @@
     "messages": {
       "1760000000.000100": "withdrawn @rev 1760000120000100"
     },
+    "storedText": false,
     "slackReactions": {},
     "replies": [
       "over-allowance → UALICE"
     ],
-    "announced": []
+    "subscribers": []
   }
 
 === 6. edits to a given message: prose ignored, mentions told
@@ -125,13 +134,15 @@
     "messages": {
       "1760000000.000100": "given @rev 1760000120000100"
     },
+    "storedText": false,
     "slackReactions": {},
     "replies": [
       "given → UALICE",
       "accepted-message-edited → UALICE"
     ],
-    "announced": [
-      "kudosGiven m-alice → m-bob"
+    "subscribers": [
+      "progression: m-alice gave 1 award(s)",
+      "leaderboard: +m-bob×1"
     ]
   }
 
@@ -148,12 +159,14 @@
     "messages": {
       "1760000000.000100": "given @rev 1760000300000100"
     },
+    "storedText": false,
     "slackReactions": {},
     "replies": [
       "given → UALICE"
     ],
-    "announced": [
-      "kudosGiven m-alice → m-bob"
+    "subscribers": [
+      "progression: m-alice gave 1 award(s)",
+      "leaderboard: +m-bob×1"
     ]
   }
 
@@ -171,12 +184,14 @@
       "1760000500.000100": "given @rev 1760000500000100",
       "1760000000.000100": "watermark @rev 1760000500000200"
     },
+    "storedText": false,
     "slackReactions": {},
     "replies": [
       "given → UALICE (thread 1760000000.000100)"
     ],
-    "announced": [
-      "kudosGiven m-alice → m-bob"
+    "subscribers": [
+      "progression: m-alice gave 1 award(s)",
+      "leaderboard: +m-bob×1"
     ]
   }
 
@@ -195,12 +210,14 @@
     "messages": {
       "1760000000.000100": "given @rev 1760000000000100"
     },
+    "storedText": false,
     "slackReactions": {},
     "replies": [
       "given → UALICE"
     ],
-    "announced": [
-      "kudosGiven m-alice → m-dave"
+    "subscribers": [
+      "progression: m-alice gave 1 award(s)",
+      "leaderboard: +m-dave×1"
     ]
   }
 
@@ -217,9 +234,10 @@
     "messages": {
       "1760000000.000100": "abandoned @rev 1760000000000100"
     },
+    "storedText": false,
     "slackReactions": {},
     "replies": [],
-    "announced": []
+    "subscribers": []
   }
 
 === 11. feedback failing after the award never awards twice
@@ -237,6 +255,7 @@
     "messages": {
       "1760000000.000100": "given @rev 1760000000000100"
     },
+    "storedText": false,
     "slackReactions": {
       "1760000000.000100": [
         "taco"
@@ -245,8 +264,9 @@
     "replies": [
       "given → UALICE"
     ],
-    "announced": [
-      "kudosGiven m-alice → m-bob"
+    "subscribers": [
+      "progression: m-alice gave 1 award(s)",
+      "leaderboard: +m-bob×1"
     ]
   }
 
@@ -259,9 +279,80 @@
     "messages": {
       "1760000001.000100": "invalid @rev 1760000001000100"
     },
+    "storedText": false,
     "slackReactions": {},
     "replies": [
       "invalid → UALICE"
     ],
-    "announced": []
+    "subscribers": []
+  }
+
+=== 13. a failing subscriber blocks neither the award nor the other subscribers
+  → {"kind":"evaluated","outcome":{"kind":"given","awards":[{"giver":"m-alice","recipient":"m-bob","kudos":1}],"kudosEmoji":"taco","left":2,"skipped":[]}}
+  state: {
+    "awards": [
+      "m-alice→m-bob ×1 (2025-10-09)"
+    ],
+    "spent": {
+      "m-alice|2025-10-09": 1
+    },
+    "messages": {
+      "1760000000.000100": "given @rev 1760000000000100"
+    },
+    "storedText": false,
+    "slackReactions": {},
+    "replies": [
+      "given → UALICE"
+    ],
+    "subscribers": [
+      "progression: m-alice gave 1 award(s)",
+      "leaderboard: +m-bob×1",
+      "achievements FAILED: bug in achievements (award untouched, other subscribers still ran)"
+    ]
+  }
+
+=== 14. plug-ins: a perk raises the allowance, a parse hook makes an unlocked :star: worth 2
+  → {"kind":"evaluated","outcome":{"kind":"given","awards":[{"giver":"m-alice","recipient":"m-bob","kudos":3}],"kudosEmoji":"taco","left":1,"skipped":[]}}
+  → {"kind":"ignored","why":"ordinary-chat"}
+  state: {
+    "awards": [
+      "m-alice→m-bob ×3 (2025-10-09)"
+    ],
+    "spent": {
+      "m-alice|2025-10-09": 3
+    },
+    "messages": {
+      "1760000000.000100": "given @rev 1760000000000100"
+    },
+    "storedText": false,
+    "slackReactions": {},
+    "replies": [
+      "given → UALICE"
+    ],
+    "subscribers": [
+      "progression: m-alice gave 1 award(s)",
+      "leaderboard: +m-bob×3"
+    ]
+  }
+
+=== 15. an annotation hook reads the note; the fact travels with kudosGiven, the text is never stored
+  → {"kind":"evaluated","outcome":{"kind":"given","awards":[{"giver":"m-alice","recipient":"m-bob","kudos":1}],"kudosEmoji":"taco","left":2,"skipped":[]}}
+  state: {
+    "awards": [
+      "m-alice→m-bob ×1 (2025-10-09)"
+    ],
+    "spent": {
+      "m-alice|2025-10-09": 1
+    },
+    "messages": {
+      "1760000000.000100": "given @rev 1760000000000100"
+    },
+    "storedText": false,
+    "slackReactions": {},
+    "replies": [
+      "given → UALICE"
+    ],
+    "subscribers": [
+      "assessor sees annotations {\"noteWords\":7}"
+    ]
   }

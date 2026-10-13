@@ -8,6 +8,7 @@ type RichElement = {
   elements?: RichElement[];
   user_id?: string;
   name?: string;
+  text?: string;
   style?: { strike?: boolean; code?: boolean };
 };
 
@@ -78,16 +79,18 @@ export function toRevision(ts: string): bigint {
 function countableContent(message: SlackMessage) {
   const mentions: Mention[] = [];
   const emoji: string[] = [];
+  const text: string[] = [];
   const visit = (element: RichElement) => {
     if (UNCOUNTED_CONTAINERS.has(element.type) || isStruckOrCode(element)) return;
     if (element.type === "user") mentions.push({ kind: "person", user: element.user_id as ChatUserId });
     else if (element.type === "usergroup") mentions.push({ kind: "group" });
     else if (element.type === "broadcast") mentions.push({ kind: "broadcast" });
     else if (element.type === "emoji") emoji.push(withoutSkinTone(element.name ?? ""));
+    else if (element.type === "text") text.push(element.text ?? "");
     for (const child of element.elements ?? []) visit(child);
   };
   for (const block of message.blocks ?? []) if (block.type === "rich_text") for (const element of block.elements ?? []) visit(element);
-  return { mentions, emoji };
+  return { mentions, emoji, text: text.join("").trim() };
 }
 
 function isStruckOrCode(element: RichElement) {

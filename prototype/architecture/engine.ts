@@ -2,16 +2,19 @@
 // In Convex, `observe` and `recheck` are internal mutations and the Maps below are tables.
 
 import type {
-  Announcer,
   Award,
   ChatUserId,
   DayKey,
   Directory,
+  EventBus,
   Feedback,
+  KudosEmojiValue,
   KudosEngine,
+  KudosMessage,
+  KudosParser,
   MemberFacts,
   MemberId,
-  MessageContent,
+  Mention,
   MessageEvent,
   MessageRef,
   Observation,
@@ -40,7 +43,7 @@ type MessageRecord = {
   revision: Revision;
   fingerprint: string;
   state: MessageState;
-  content: MessageContent;
+  parsed: KudosMessage | null;
   spendsAt: number;
   verifyTries: number;
 };
@@ -58,43 +61,39 @@ export function emptyTables(): EngineTables {
 type Ports = {
   directory: Directory;
   settings: Settings;
+  parser: KudosParser;
   perks: Perks;
   feedback: Feedback;
-  announcer: Announcer;
+  events: EventBus;
   tables: EngineTables;
 };
 
+type Giver = Extract<MemberFacts, { kind: "member" }>;
+
 export function createKudosEngine(ports: Ports): KudosEngine {
-  const { directory, settings, perks, feedback, announcer, tables } = ports;
+  const { directory, settings, parser, perks, feedback, events, tables } = ports;
 
   function observe(event: MessageEvent): Observation {
-    const key = messageKey(event.ref);
-    const existing = tables.messages.get(key);
+    const existing = tables.messages.get(messageKey(event.ref));
     if (existing && event.revision <= existing.revision) {
       return { kind: "ignored", why: event.revision === existing.revision ? "unchanged" : "stale-revision" };
     }
 
     const author = directory.lookup(event.ref.workspace, event.author);
-    if (author === undefined) {
-      if (!couldBeKudos(event.content)) return { kind: "ignored", why: "ordinary-chat" };
-      return awaitDirectory(event, existing, [event.author]);
-    }
-    if (author.kind !== "member") return { kind: "ignored", why: "not-a-member" };
-
-    const kudosEmoji = kudosEmojiSet(event.ref.workspace, author.member);
-    const fingerprint = fingerprintOf(event.content, kudosEmoji);
-    const isKudosMessage = isKudos(event.content, kudosEmoji);
+    if (author && author.kind !== "member") return { kind: "ignored", why: "not-a-member" };
+    const parsed = parser.parse(event.content, { workspace: event.ref.workspace, giver: author?.member });
+    const fingerprint = fingerprintOf(parsed);
 
     if (!existing) {
-      if (!isKudosMessage) {
-        if (event.kind === "edited") remember(event, fingerprint, "watermark");
+      if (!parsed) {
+        if (event.kind === "edited") remember(event, parsed, fingerprint, "watermark");
         return { kind: "ignored", why: "ordinary-chat" };
       }
-      return evaluate(remember(event, fingerprint, "awaiting-directory"));
+      return evaluate(remember(event, parsed, fingerprint, "awaiting-directory"));
     }
 
     const previousFingerprint = existing.fingerprint;
-    Object.assign(existing, { revision: event.revision, content: event.content, fingerprint });
+    Object.assign(existing, { revision: event.revision, parsed, fingerprint });
 
     if (existing.state === "given") {
       const changed = fingerprint !== previousFingerprint;
@@ -102,7 +101,7 @@ export function createKudosEngine(ports: Ports): KudosEngine {
       return { kind: "already-given", toldGiver: changed };
     }
     if (fingerprint === previousFingerprint) return { kind: "ignored", why: "unchanged" };
-    if (!isKudosMessage) return hasOpenAttempt(existing) ? withdraw(existing) : ignoreAsChat(existing);
+    if (!parsed) return hasOpenAttempt(existing) ? withdraw(existing) : ignoreAsChat(existing);
 
     Object.assign(existing, { spendsAt: event.at, verifyTries: 0, state: "awaiting-directory" });
     return evaluate(existing);
@@ -115,58 +114,50 @@ export function createKudosEngine(ports: Ports): KudosEngine {
   }
 
   function evaluate(record: MessageRecord): Observation {
-    const workspace = record.ref.workspace;
-    const unknown = unknownUsers(record);
+    const parsed = record.parsed as KudosMessage;
+    const unknown = unknownUsers(record.ref, record.author, parsed);
     if (unknown.length > 0) return retryLater(record, unknown);
 
-    const giver = directory.lookup(workspace, record.author) as MemberFacts;
+    const giver = directory.lookup(record.ref.workspace, record.author) as MemberFacts;
     if (giver.kind !== "member") return ignoreAsChat(record, "not-a-member");
-    const kudosEmoji = kudosEmojiSet(workspace, giver.member);
-    record.fingerprint = fingerprintOf(record.content, kudosEmoji);
-    if (!isKudos(record.content, kudosEmoji)) return ignoreAsChat(record);
-    const perRecipient = record.content.emoji.filter((name) => kudosEmoji.has(name)).length;
-    const { recipients, skipped } = classify(record, giver.member);
-    const outcome = decide(record, giver, recipients, skipped, perRecipient, kudosEmoji);
+    const { recipients, skipped } = classify(record.ref, parsed, giver.member);
+    const outcome = decide(record, giver, recipients, skipped, parsed);
 
     record.state = outcome.kind;
-    announceFeedback(record, outcome);
+    sendFeedback(record, outcome);
     return { kind: "evaluated", outcome };
   }
 
-  function decide(
-    record: MessageRecord,
-    giver: Extract<MemberFacts, { kind: "member" }>,
-    recipients: MemberId[],
-    skipped: SkippedMention[],
-    perRecipient: number,
-    kudosEmoji: Set<string>,
-  ): Outcome {
+  function decide(record: MessageRecord, giver: Giver, recipients: MemberId[], skipped: SkippedMention[], parsed: KudosMessage): Outcome {
     if (recipients.length === 0) return { kind: "invalid", skipped };
 
     const day = dayKey(record.spendsAt, giver.timeZone);
     const spentKey = `${giver.member}|${day}`;
     const spent = tables.spent.get(spentKey) ?? 0;
     const left = Math.max(0, allowanceOf(record.ref, giver.member) - spent);
+    const { perRecipient } = parsed;
     const cost = recipients.length * perRecipient;
     if (cost > left) return { kind: "over-allowance", cost, recipients: recipients.length, perRecipient, left };
 
     const awards = recipients.map((recipient) => ({ giver: giver.member, recipient, kudos: perRecipient }));
     tables.spent.set(spentKey, spent + cost);
     tables.awards.push(...awards.map((award) => ({ ...award, message: messageKey(record.ref), day })));
-    const firstKudosEmoji = record.content.emoji.find((name) => kudosEmoji.has(name)) as string;
-    announcer.kudosGiven({
+    const kudosEmoji = (parsed.kudosEmoji[0] as KudosEmojiValue).name;
+    events.publish({
+      type: "kudosGiven",
       workspace: record.ref.workspace,
       message: record.ref,
       giver: giver.member,
       awards,
-      kudosEmoji: firstKudosEmoji,
+      kudosEmoji,
+      annotations: parsed.annotations,
       day,
       at: record.spendsAt,
     });
-    return { kind: "given", awards, kudosEmoji: firstKudosEmoji, left: left - cost, skipped };
+    return { kind: "given", awards, kudosEmoji, left: left - cost, skipped };
   }
 
-  function announceFeedback(record: MessageRecord, outcome: Outcome) {
+  function sendFeedback(record: MessageRecord, outcome: Outcome) {
     const base = settings.of(record.ref.workspace).baseAllowance;
     feedback.setIndicator(record.ref, { emoji: indicatorEmoji(outcome) });
     const reply =
@@ -190,12 +181,6 @@ export function createKudosEngine(ports: Ports): KudosEngine {
     return { kind: "ignored", why };
   }
 
-  function awaitDirectory(event: MessageEvent, existing: MessageRecord | undefined, users: ChatUserId[]): Observation {
-    const record = existing ?? remember(event, "", "awaiting-directory");
-    Object.assign(record, { revision: event.revision, content: event.content, state: "awaiting-directory", spendsAt: event.at });
-    return retryLater(record, users);
-  }
-
   function retryLater(record: MessageRecord, users: ChatUserId[]): Observation {
     const retryInMs = VERIFY_BACKOFF_MS[record.verifyTries];
     if (retryInMs === undefined) {
@@ -206,7 +191,7 @@ export function createKudosEngine(ports: Ports): KudosEngine {
     return { kind: "awaiting-directory", users, retryInMs };
   }
 
-  function remember(event: MessageEvent, fingerprint: string, state: MessageState): MessageRecord {
+  function remember(event: MessageEvent, parsed: KudosMessage | null, fingerprint: string, state: MessageState): MessageRecord {
     const record: MessageRecord = {
       ref: event.ref,
       threadRoot: event.threadRoot,
@@ -214,7 +199,7 @@ export function createKudosEngine(ports: Ports): KudosEngine {
       revision: event.revision,
       fingerprint,
       state,
-      content: event.content,
+      parsed,
       spendsAt: event.at,
       verifyTries: 0,
     };
@@ -222,30 +207,26 @@ export function createKudosEngine(ports: Ports): KudosEngine {
     return record;
   }
 
-  function unknownUsers(record: MessageRecord): ChatUserId[] {
-    const users = [record.author, ...personMentions(record.content)];
-    return [...new Set(users)].filter((user) => directory.lookup(record.ref.workspace, user) === undefined);
+  function unknownUsers(ref: MessageRef, author: ChatUserId, parsed: KudosMessage): ChatUserId[] {
+    const users = [author, ...personMentions(parsed.mentions)];
+    return [...new Set(users)].filter((user) => directory.lookup(ref.workspace, user) === undefined);
   }
 
-  function classify(record: MessageRecord, giver: MemberId) {
+  function classify(ref: MessageRef, parsed: KudosMessage, giver: MemberId) {
     const recipients: MemberId[] = [];
     const skipped: SkippedMention[] = [];
-    for (const mention of dedupe(record.content.mentions)) {
+    for (const mention of dedupe(parsed.mentions)) {
       if (mention.kind !== "person") {
         skipped.push({ mention, reason: "group-or-broadcast" });
         continue;
       }
-      const facts = directory.lookup(record.ref.workspace, mention.user) as MemberFacts;
+      const facts = directory.lookup(ref.workspace, mention.user) as MemberFacts;
       if (facts.kind === "bot") skipped.push({ mention, reason: "bot" });
       else if (facts.kind === "not-a-member") skipped.push({ mention, reason: "not-a-member" });
       else if (facts.member === giver) skipped.push({ mention, reason: "self" });
       else recipients.push(facts.member);
     }
     return { recipients, skipped };
-  }
-
-  function kudosEmojiSet(workspace: MessageRef["workspace"], giver: MemberId) {
-    return new Set([settings.of(workspace).kudosEmoji, ...perks.of(giver).kudosEmoji]);
   }
 
   function allowanceOf(ref: MessageRef, giver: MemberId) {
@@ -259,32 +240,25 @@ function hasOpenAttempt(record: MessageRecord) {
   return record.state === "over-allowance" || record.state === "invalid" || record.state === "awaiting-directory";
 }
 
-function couldBeKudos(content: MessageContent) {
-  return content.mentions.length > 0 && content.emoji.length > 0;
-}
-
 function indicatorEmoji(outcome: Outcome) {
   if (outcome.kind === "given") return outcome.kudosEmoji;
   return outcome.kind === "over-allowance" ? "hourglass_flowing_sand" : "x";
 }
 
-function isKudos(content: MessageContent, kudosEmoji: Set<string>) {
-  return content.mentions.length > 0 && content.emoji.some((name) => kudosEmoji.has(name));
-}
-
-function fingerprintOf(content: MessageContent, kudosEmoji: Set<string>) {
-  const mentions = dedupe(content.mentions)
+function fingerprintOf(parsed: KudosMessage | null) {
+  if (!parsed) return "";
+  const mentions = dedupe(parsed.mentions)
     .map((mention) => (mention.kind === "person" ? `@${mention.user}` : `!${mention.kind}`))
     .sort();
-  const emoji = content.emoji.filter((name) => kudosEmoji.has(name)).sort();
+  const emoji = parsed.kudosEmoji.map((value) => value.name).sort();
   return JSON.stringify({ mentions, emoji });
 }
 
-function personMentions(content: MessageContent): ChatUserId[] {
-  return content.mentions.flatMap((mention) => (mention.kind === "person" ? [mention.user] : []));
+function personMentions(mentions: Mention[]): ChatUserId[] {
+  return mentions.flatMap((mention) => (mention.kind === "person" ? [mention.user] : []));
 }
 
-function dedupe(mentions: MessageContent["mentions"]) {
+function dedupe(mentions: Mention[]) {
   const seen = new Set<string>();
   return mentions.filter((mention) => {
     const key = mention.kind === "person" ? mention.user : mention.kind;

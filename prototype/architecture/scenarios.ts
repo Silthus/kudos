@@ -4,8 +4,8 @@
 
 import type {
   ChatUserId,
+  ParseHook,
   Indicator,
-  KudosGiven,
   MemberFacts,
   MemberId,
   Observation,
@@ -13,13 +13,28 @@ import type {
   WorkspaceId,
 } from "./contracts.ts";
 import { createKudosEngine, emptyTables, messageKey } from "./engine.ts";
+import { combinePerks, createEventBus, type Job, type PerkContributor, type Subscriptions } from "./events.ts";
+import { createKudosParser, workspaceEmojiHook } from "./parser.ts";
 import { reconcileIndicator } from "./reconcile-indicator.ts";
 import { normalize, type SlackEnvelope } from "./slack-normalize.ts";
 
 const TEAM = "T1";
 const CHANNEL = "C1";
 
-function harness() {
+type Wiring = {
+  subscriptions?: (log: string[]) => Subscriptions;
+  perkContributors?: PerkContributor[];
+  parseHooks?: ParseHook[];
+};
+
+const defaultSubscriptions = (log: string[]): Subscriptions => ({
+  kudosGiven: [
+    { name: "progression", handle: (e) => log.push(`progression: ${e.giver} gave ${e.awards.length} award(s)`) },
+    { name: "leaderboard", handle: (e) => log.push(`leaderboard: +${e.awards.map((a) => `${a.recipient}×${a.kudos}`).join(",")}`) },
+  ],
+});
+
+function harness(wiring: Wiring = {}) {
   const people = new Map<string, MemberFacts>([
     ["UALICE", { kind: "member", member: "m-alice" as MemberId, timeZone: "Europe/Berlin" }],
     ["UBOB", { kind: "member", member: "m-bob" as MemberId, timeZone: "America/New_York" }],
@@ -29,16 +44,19 @@ function harness() {
   ]);
   const indicators = new Map<string, { desired: Indicator; version: number }>();
   const replies: Array<{ to: ChatUserId; thread?: string; reply: Reply["kind"] }> = [];
-  const announced: KudosGiven[] = [];
+  const subscriberLog: string[] = [];
+  const scheduled: Job[] = [];
   const receipts = new Set<string>();
   const slackReactions = new Map<string, Set<string>>();
   const tables = emptyTables();
   let failNextDelivery = false;
 
+  const settings = { of: () => ({ baseAllowance: 3, kudosEmoji: "taco" }) };
   const engine = createKudosEngine({
     directory: { lookup: (_workspace, user) => people.get(user) },
-    settings: { of: () => ({ baseAllowance: 3, kudosEmoji: "taco" }) },
-    perks: { of: () => ({ allowanceBonus: 0, kudosEmoji: [] }) },
+    settings,
+    parser: createKudosParser([workspaceEmojiHook(settings), ...(wiring.parseHooks ?? [])]),
+    perks: combinePerks(wiring.perkContributors ?? []),
     feedback: {
       setIndicator: (ref, desired) => {
         const key = messageKey(ref);
@@ -46,7 +64,7 @@ function harness() {
       },
       replyPrivately: (_ref, thread, to, reply) => replies.push({ to, thread, reply: reply.kind }),
     },
-    announcer: { kudosGiven: (fact) => announced.push(fact) },
+    events: createEventBus((wiring.subscriptions ?? defaultSubscriptions)(subscriberLog), (job) => scheduled.push(job)),
     tables,
   });
 
@@ -54,7 +72,20 @@ function harness() {
     const { receiptKey, event } = normalize(envelope);
     if (receipts.has(receiptKey)) return "duplicate delivery";
     receipts.add(receiptKey);
-    return event ? engine.observe(event) : "not a message for the engine";
+    if (!event) return "not a message for the engine";
+    const observation = engine.observe(event);
+    runScheduledJobs();
+    return observation;
+  }
+
+  function runScheduledJobs() {
+    for (const job of scheduled.splice(0)) {
+      try {
+        job.run();
+      } catch (error) {
+        subscriberLog.push(`${job.subscriber} FAILED: ${(error as Error).message} (award untouched, other subscribers still ran)`);
+      }
+    }
   }
 
   function deliver() {
@@ -74,9 +105,10 @@ function harness() {
       awards: tables.awards.map((a) => `${a.giver}→${a.recipient} ×${a.kudos} (${a.day})`),
       spent: Object.fromEntries(tables.spent),
       messages: Object.fromEntries([...tables.messages].map(([k, r]) => [k.split("/").pop(), `${r.state} @rev ${r.revision}`])),
+      storedText: [...tables.messages.values()].some((record) => JSON.stringify(record, (_k, v) => (typeof v === "bigint" ? 0 : v)).includes("great demo")),
       slackReactions: Object.fromEntries([...slackReactions].map(([k, v]) => [k.split("/").pop(), [...v]])),
       replies: replies.map((r) => `${r.reply} → ${r.to}${r.thread ? ` (thread ${r.thread})` : ""}`),
-      announced: announced.map((f) => `kudosGiven ${f.giver} → ${f.awards.map((a) => a.recipient).join(",")}`),
+      subscribers: subscriberLog,
     };
   }
 
@@ -85,7 +117,11 @@ function harness() {
     deliver,
     state,
     learn: (user: string, facts: MemberFacts) => people.set(user, facts),
-    recheck: (ts: string) => engine.recheck({ workspace: TEAM as WorkspaceId, conversation: CHANNEL, message: ts }),
+    recheck: (ts: string) => {
+      const observation = engine.recheck({ workspace: TEAM as WorkspaceId, conversation: CHANNEL, message: ts });
+      runScheduledJobs();
+      return observation;
+    },
     failNextDelivery: () => (failNextDelivery = true),
   };
 }
@@ -128,6 +164,29 @@ function edit(eventId: string, editTs: string | undefined, originalTs: string, u
     },
   };
 }
+
+const wiringFor: Record<string, Wiring> = {
+  "13. a failing subscriber blocks neither the award nor the other subscribers": {
+    subscriptions: (log) => ({
+      kudosGiven: [
+        ...defaultSubscriptions(log).kudosGiven,
+        { name: "achievements", handle: () => { throw new Error("bug in achievements"); } },
+      ],
+    }),
+  },
+  "14. plug-ins: a perk raises the allowance, a parse hook makes an unlocked :star: worth 2": {
+    perkContributors: [{ name: "progression", perksOf: () => ({ allowanceBonus: 1 }) }],
+    parseHooks: [
+      { name: "unlocked emoji", kudosEmoji: ({ giver }) => (giver === "m-alice" ? [{ name: "star", kudos: 2 }] : []) },
+    ],
+  },
+  "15. an annotation hook reads the note; the fact travels with kudosGiven, the text is never stored": {
+    parseHooks: [{ name: "note words", annotate: (content) => ({ noteWords: content.text.split(/\s+/).filter(Boolean).length }) }],
+    subscriptions: (log) => ({
+      kudosGiven: [{ name: "mindfulness assessor (later)", handle: (e) => log.push(`assessor sees annotations ${JSON.stringify(e.annotations)}`) }],
+    }),
+  },
+};
 
 const scenarios: Record<string, (h: ReturnType<typeof harness>) => unknown[]> = {
   "1. happy path with skipped mentions": (h) => [
@@ -195,9 +254,22 @@ const scenarios: Record<string, (h: ReturnType<typeof harness>) => unknown[]> = 
   ],
 };
 
+Object.assign(scenarios, {
+  "13. a failing subscriber blocks neither the award nor the other subscribers": (h: ReturnType<typeof harness>) => [
+    h.ingest(post("Ev1", "1760000000.000100", "UALICE", ["@UBOB", ":taco:"])),
+  ],
+  "14. plug-ins: a perk raises the allowance, a parse hook makes an unlocked :star: worth 2": (h: ReturnType<typeof harness>) => [
+    h.ingest(post("Ev1", "1760000000.000100", "UALICE", ["@UBOB", ":taco:", ":star:"])),
+    h.ingest(post("Ev2", "1760000001.000100", "UBOB", ["@UALICE", ":star:"])),
+  ],
+  "15. an annotation hook reads the note; the fact travels with kudosGiven, the text is never stored": (h: ReturnType<typeof harness>) => [
+    h.ingest(post("Ev1", "1760000000.000100", "UALICE", ["@UBOB", ":taco:", " great demo of the new onboarding flow"])),
+  ],
+});
+
 const replacer = (_key: string, value: unknown) => (typeof value === "bigint" ? value.toString() : value);
 for (const [name, run] of Object.entries(scenarios)) {
-  const h = harness();
+  const h = harness(wiringFor[name]);
   console.log(`\n=== ${name}`);
   for (const step of run(h)) console.log("  →", JSON.stringify(step, replacer));
   console.log("  state:", JSON.stringify(h.state(), replacer, 2).replaceAll("\n", "\n  "));

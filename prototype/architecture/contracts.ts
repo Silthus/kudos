@@ -24,6 +24,7 @@ export type Mention =
 export type MessageContent = {
   mentions: Mention[];
   emoji: string[];
+  text: string;
 };
 
 export type MessageEvent = {
@@ -69,24 +70,49 @@ export interface Settings {
   of(workspace: WorkspaceId): WorkspaceSettings;
 }
 
-export type GiverPerks = { allowanceBonus: number; kudosEmoji: string[] };
+export type GiverPerks = { allowanceBonus: number };
+
+export type ParseContext = { workspace: WorkspaceId; giver: MemberId | undefined };
+export type KudosEmojiValue = { name: string; kudos: number };
+export type Annotations = Record<string, string | number | boolean>;
+
+export type KudosMessage = {
+  mentions: Mention[];
+  kudosEmoji: KudosEmojiValue[];
+  perRecipient: number;
+  annotations: Annotations;
+};
+
+export type ParseHook = {
+  name: string;
+  kudosEmoji?(context: ParseContext): KudosEmojiValue[];
+  annotate?(content: MessageContent, context: ParseContext): Annotations;
+};
+
+export interface KudosParser {
+  parse(content: MessageContent, context: ParseContext): KudosMessage | null;
+}
 
 export interface Perks {
   of(giver: MemberId): GiverPerks;
 }
 
-export type KudosGiven = {
+export type KudosGivenEvent = {
+  type: "kudosGiven";
   workspace: WorkspaceId;
   message: MessageRef;
   giver: MemberId;
   awards: Award[];
   kudosEmoji: string;
+  annotations: Annotations;
   day: DayKey;
   at: number;
 };
 
-export interface Announcer {
-  kudosGiven(fact: KudosGiven): void;
+export type DomainEvent = KudosGivenEvent;
+
+export interface EventBus {
+  publish(event: DomainEvent): void;
 }
 
 export type Indicator = { emoji: string } | null;
