@@ -1,0 +1,28 @@
+$ vitest run --config vitest.handshake.config.ts
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/followups
+
+ ❯ |handshake| testing/handshake/signIn.handshake.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |handshake| testing/handshake/signIn.handshake.ts [ testing/handshake/signIn.handshake.ts ]
+Error: HANDSHAKE_ENV_FILE is not set: the handshake test runs against a disposable local backend (see testing/handshake/README.md)
+ ❯ required testing/handshake/signIn.handshake.ts:236:21
+    234| function required(name: string) {
+    235|   const value = process.env[name];
+    236|   if (!value) throw new Error(`${name} is not set: the handshake test …
+       |                     ^
+    237|   return value;
+    238| }
+ ❯ testing/handshake/signIn.handshake.ts:10:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  22:35:41
+   Duration  317ms (worker 97%, environment 3%)
+
+[ELIFECYCLE] Command failed with exit code 1.

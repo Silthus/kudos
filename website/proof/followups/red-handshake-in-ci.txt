@@ -1,0 +1,26 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/followups
+
+ ❯ |convex| .github/workflows/gate.test.ts (1 test | 1 failed) 4ms
+   × the sign-in handshake runs on every pull request and every push to main, in its own job beside the gate 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| .github/workflows/gate.test.ts > the sign-in handshake runs on every pull request and every push to main, in its own job beside the gate
+AssertionError: expected undefined to be defined
+ ❯ .github/workflows/gate.test.ts:20:21
+     18|
+     19|   expect(workflow.on).toEqual({ pull_request: null, push: { branches: …
+     20|   expect(handshake).toBeDefined();
+       |                     ^
+     21|   expect(handshake?.[0]).not.toBe(gate?.[0]);
+     22|   expect(handshake?.[1].steps.find((step) => step.uses?.startsWith("ac…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  22:36:15
+   Duration  139ms (import 56%, transform 30%, tests 8%, worker 6%)
+
