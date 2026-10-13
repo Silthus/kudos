@@ -150,6 +150,19 @@ describe("P64: a change of route", () => {
 
     expect(slack.messagesIn("C1")).toEqual([threadReply, { channel: "C1", ts: expect.any(String), text: "🎉 <@U_BOB> reached level 2." }]);
   });
+
+  test("a last attempt Slack accepted without answering its ts is never posted again when another level follows", async () => {
+    const t = await flagsLoaded(testBackend());
+    await onlyPublicRepliesPosted(t, "U_ALICE", "U_BOB");
+    slack.answering("chat.postMessage", slackError("internal_error"), slackError("internal_error"), acceptedButAnsweredWithoutTs);
+
+    await post(t, [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("taco"))]);
+    await settle(t);
+    await t.mutation(internal.feedback.publicReplies.celebrateLevel, { event: await levelReached(t, "U_BOB", 2) });
+    await settle(t);
+
+    expect(slack.messagesIn("C1").map((message) => message.text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
+  });
 });
 
 describe("R35: delivering the public reply", () => {
@@ -162,6 +175,21 @@ describe("R35: delivering the public reply", () => {
     await settle(t);
     expect(slack.callsTo("chat.postMessage")).toHaveLength(3);
     expect(slack.messagesIn("C1")).toEqual([]);
+
+    await t.mutation(internal.feedback.publicReplies.celebrateLevel, { event: await levelReached(t, "U_ALICE", 3) });
+    await settle(t);
+
+    expect(slack.messagesIn("C1").map((message) => message.text)).toEqual(["🎉 <@U_ALICE> reached level 3."]);
+  });
+
+  test("a notice Slack answers is gone is tried once, and the next level under that message posts the reply afresh", async () => {
+    const t = await flagsLoaded(testBackend());
+    await onlyPublicRepliesPosted(t, "U_ALICE", "U_BOB");
+    slack.answering("chat.postMessage", slackError("not_in_channel"));
+
+    await post(t, [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("taco"))]);
+    await settle(t);
+    expect(slack.callsTo("chat.postMessage")).toHaveLength(1);
 
     await t.mutation(internal.feedback.publicReplies.celebrateLevel, { event: await levelReached(t, "U_ALICE", 3) });
     await settle(t);
