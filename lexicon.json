@@ -237,7 +237,7 @@
     },
     {
       "name": "profile card",
-      "definition": "What any member sees of another member: name, equipped title and card, primary group, and level and achievement tiers unless hidden. Never coins, perks, streaks, XP or kudos received."
+      "definition": "What any member sees of another member: name, equipped title and card, primary group, and level and achievement tiers. Never coins, perks, streaks, XP or kudos received."
     },
     {
       "name": "sandbox",

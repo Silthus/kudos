@@ -49,14 +49,17 @@ describe("P67: the Profile tab", () => {
     ]);
   });
 
-  test("from level 5 it also shows the member's saved skill points", async () => {
+  test.each([
+    ["level 4 still leaves skill points out", 300, "section fields: *Level*\n*4* | *XP to level 5*\n*300*"],
+    ["level 5 shows the member's saved skill points", 600, "section fields: *Level*\n*5* | *XP to level 6*\n*400* | *Skill points saved*\n*4*"],
+  ])("%s", async (_, xp, progress) => {
     const t = await workspaceWithAllowance(10);
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
-    await withXp(t, "U_ALICE", 600);
+    await withXp(t, "U_ALICE", xp);
 
     await openHome(t, "U_ALICE");
 
-    expect(publishedHome(slack, "U_ALICE")).toContain("section fields: *Level*\n*5* | *XP to level 6*\n*400* | *Skill points saved*\n*4*");
+    expect(publishedHome(slack, "U_ALICE")).toContain(progress);
   });
 });
 
