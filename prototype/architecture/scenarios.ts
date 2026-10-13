@@ -169,13 +169,13 @@ const wiringFor: Record<string, Wiring> = {
   "13. a failing subscriber blocks neither the award nor the other subscribers": {
     subscriptions: (log) => ({
       kudosGiven: [
-        ...defaultSubscriptions(log).kudosGiven,
+        ...(defaultSubscriptions(log).kudosGiven ?? []),
         { name: "achievements", handle: () => { throw new Error("bug in achievements"); } },
       ],
     }),
   },
   "14. plug-ins: a perk raises the allowance, a parse hook makes an unlocked :star: worth 2": {
-    perkContributors: [{ name: "progression", perksOf: () => ({ allowanceBonus: 1 }) }],
+    perkContributors: [{ name: "progression", perksOf: () => ({ dailyBonus: 1 }) }],
     parseHooks: [
       { name: "unlocked emoji", kudosEmoji: ({ giver }) => (giver === "m-alice" ? [{ name: "star", kudos: 2 }] : []) },
     ],

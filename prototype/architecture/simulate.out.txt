@@ -1,0 +1,9 @@
+Four workweeks, seeded RNG 42. XP curve: L2 20, L3 100, then 50·(L−2)·(L−1). Base 10 XP given, 5 received.
+
+| Archetype | Kudos given | Over allowance | Level | XP | of which bonus | Quip drops | Perks | Unspent points |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: |
+| thoughtful daily giver | 60 | 0 | 5 | 707 | 107 | 1 | first-spark, pocket-surprise, three-cheers | 1 |
+| allowance maximiser | 66 | 17 | 5 | 660 | 0 | 0 | first-spark, second-wind, three-cheers | 0 |
+| twice-a-week giver | 8 | 0 | 2 | 80 | 0 | 0 | pocket-surprise | 0 |
+
+Recipients: R1 L3, R2 L3, R3 L3, R4 L3, R5 L3

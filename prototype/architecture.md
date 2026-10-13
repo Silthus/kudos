@@ -8,11 +8,12 @@ What is the module map of the new Kudos backend, and what are the contracts at i
 
 This brief answers it greenfield: there is no backend code on `main` yet. Its grounding is the four research reports and the rules settled in the [#8 handoff](https://github.com/Silthus/kudos/issues/8). It proves the eight seam follow-ups from #8 with runnable scenarios (§9), settles where Sign in with Slack goes, maps the three specs onto modules (§11), and proposes how the core loop spec [#12](https://github.com/Silthus/kudos/issues/12) slices into implementation tickets (§12). Progression internals stay open while the [#9](https://github.com/Silthus/kudos/issues/9) grilling runs. Only the event the kudos engine publishes when kudos are given, and the hooks progression plugs into, are shaped here.
 
-**How to read it:** §2 (map) and §7 (decision cards) are the core. §3 to §6 hold the detail behind the cards.
+**How to read it:** §2 (map) and §7 (decision cards) are the core. §3 to §6 hold the detail behind the cards. §13 battle-tests the design against every game idea from the progression grilling.
 
 **Round log**
 - **Round 1 feedback (Michael):** make it event-driven. The engine issues events, and other modules subscribe or hook in, so the engine never knows who listens. Now locked as L8. It adds the event bus and hook points (§2, §3.3, `events.ts`), scenarios 13 and 14, and three new cards: D12 (how the bus delivers), D13 (where a plug-in may shape a decision) and D14 (which events spec 1 publishes).
 - **Round 1 feedback (Michael), second message:** add a parser that turns the message into a kudos message before the engine processes it, with parse hooks that add-ons can register (for example special unlocked emoji), so a later Jev decision engine that judges how mindful a kudos message is can add XP without tight coupling. Now locked as L9. It adds the kudos parser (§3.2, `parser.ts`), scenarios 14 and 15, and two new cards: D15 (two hooks claim the same emoji) and D16 (how a later mindfulness assessor reads the note). L4 and L6 changed with it.
+- **Round 2 (Michael): battle-test it against the game ideas** from the progression grilling (#9 thread, rounds 1–4, and its Octalysis research). Verdict: the design holds, with six extensions (§13). It adds allowance pools (daily plus weekly, in `engine.ts`), allowance facts on `kudosGiven`, a progression reducer sketch (`progression-sketch.ts`), a simulation (`simulate.ts`), cards D17–D21, lock L10, and a new lean on D16.
 
 ## 2. Module map
 
@@ -156,10 +157,10 @@ type MemberFacts =
   | { kind: "not-a-member" };
 
 interface Settings { of(workspace: WorkspaceId): { baseAllowance: number; kudosEmoji: string } }
-interface Perks { of(giver: MemberId): { allowanceBonus: number } }
+interface Perks { of(giver: MemberId, day: DayKey): { dailyBonus: number; weeklyBonus: number } }
 ```
 
-`undefined` means unknown, not "not a member". `Perks` is a **hook**: any module can contribute, and the hook sums the allowance bonuses (`combinePerks` in [`events.ts`](architecture/events.ts)). Spec 1 registers no contributors, so the bonus is zero. Unlocked kudos emoji moved to parse hooks, so "what counts in a message" lives only in the parser. Settings are read when the message is evaluated, as #8 rules.
+`undefined` means unknown, not "not a member". `Perks` is a **hook**: any module can contribute, and the hook sums the daily and weekly bonuses (`combinePerks` in [`events.ts`](architecture/events.ts)). It gets the allowance day, so a perk can start "from the next local reset". The engine owns the spending: the daily pool first, then the weekly pool (D19). Spec 1 registers no contributors, so both bonuses are zero. Unlocked kudos emoji moved to parse hooks, so "what counts in a message" lives only in the parser. Settings are read when the message is evaluated, as #8 rules.
 
 ### 3.3 Domain events and hooks: the engine publishes, modules subscribe
 
@@ -173,6 +174,7 @@ type KudosGivenEvent = {
   awards: Array<{ giver: MemberId; recipient: MemberId; kudos: number }>;
   kudosEmoji: string;
   annotations: Annotations; // from parse hooks
+  allowance: { dailyOpening: number; dailyLeft: number; weeklyLeft: number }; // after this award
   day: DayKey;
   at: number;
 };
@@ -360,7 +362,7 @@ slackReceipts: defineTable({ key: v.string(), receivedAt: v.number() }).index("b
 Every card below is independent of the others. Answer with the card's id and an option, or "rec" to take the recommendation. D1 is locked as L8 after round 1 feedback.
 
 **D12. How does the bus deliver an event?** (new in round 1)
-- **A. Fan-out on publish.** `publish` reads the registry and schedules each handler in the publisher's transaction. No table. A failed run shows in Convex's scheduled-functions table and is re-run by hand.
+- **A. Fan-out on publish.** `publish` reads the registry and schedules each handler in the publisher's transaction. No table. A failed run shows in Convex's scheduled-functions table and is re-run by hand. *Battle test:* a subscriber that calls the network (the Jev assessor, a Slack read) is an action, and Convex runs a scheduled action at most once. So under A, action subscribers run through a retrying runner (the Workpool component), and mutation subscribers stay plain.
 - B. A durable event log. `publish` appends to an `events` table and schedules a dispatcher that records delivery per subscriber. You get an audit trail, replay, backfill for a new subscriber and automatic retry, at the cost of a table, a dispatcher and delivery bookkeeping.
 - C. A Workpool component per subscriber. Retries and concurrency limits come built in, for one more dependency.
 - **Recommendation: A.** The awards table is already a permanent log, so a later subscriber (the leaderboard in spec 3) backfills from it. Move to B when a second reason for replay appears. `publish` looks the same under A and B, so switching later touches only the bus.
@@ -426,12 +428,40 @@ Every card below is independent of the others. Answer with the card's id and an 
 - B. One distributed app with an OAuth install per workspace, one Events URL and an installations table holding a token per workspace, on one production deployment. Real multi-tenancy, but sandbox traffic and data share production.
 - **Recommendation: A.** It is the smallest setup that keeps sandbox data out of production. B becomes a later ticket only if more workspaces should install Kudos.
 
+### Open: round 2 (from the battle test, §13)
+
+**D17. How do button clicks and commands reach a module?** Perk purchases, active perks, quip choices, settings and later the store are all Slack interactions, but only the adapter may know Slack.
+- **A. A command registry, mirroring the event registry.** The adapter verifies the request (`/slack/interactivity`, `/slack/commands`), turns it into a platform-neutral command such as `{ type: "buyPerk", member, perk }`, adds an idempotency key from the request, and the registry routes it to the owning module's internal mutation. The module returns a result, and the adapter renders it (update the DM, an ephemeral, or refresh App Home).
+- B. Each module ships its own Slack handlers. Fewer layers, but Slack leaks into every domain module and breaks the adapter seam.
+- **Recommendation: A.**
+
+**D18. Several modules want to say something under the same kudos message** (a quip, a level up, an achievement). The research asks for one reply per kudos message.
+- **A. One public reply per kudos message, as desired state.** Each module writes its section into the feedback module. Delivery posts the reply and later edits it (`chat.update`) as more sections arrive, like the indicator (L3). The admin's announcement channel and the members' mute and hide choices are routing rules inside the feedback module.
+- B. Each module posts its own reply. Simple, but noisy.
+- C. Wait a fixed window, then post once. Fewer edits, but every quip arrives late.
+- **Recommendation: A.**
+
+**D19. Weekly bonus kudos ("overshield")**: your idea from #9 round 4. Bonus kudos per week, spent once the daily allowance is used up. This **changes a #8 rule**: the daily allowance stops being the only budget, and the copy has to show both.
+- **A. Two pools owned by the engine.** The daily pool resets at local midnight. The weekly pool resets on the giver's local Monday. A kudos message is paid from the daily pool first, then the weekly pool. Plug-ins only contribute pool sizes through the perks hook. One message can draw from both pools (scenario: `simulate.ts`, the maximiser).
+- B. No weekly pool. Bonuses only ever raise the daily allowance.
+- **Recommendation: A, recorded as a change to #8**, if you confirm the overshield idea.
+
+**D20. Which "day" do progression rules use?** The research says the time the award was evaluated. The engine has its own day: the allowance day (the posted day, the edit day for a retry, the posted day after a late recipient check).
+- **A. The `day` on `kudosGiven`**, so streaks, "first kudos of the day", Weekly Rhythm and the allowance agree on one calendar.
+- B. The evaluation time. It differs from the allowance day for late checks and messages near midnight.
+- **Recommendation: A.**
+
+**D21. How is progression built?**
+- **A. As a pure reducer over domain events**, `(state, event, catalogue, random) → (state, events)`, wrapped by thin Convex subscribers. The same code then runs in tests, in retroactive achievement replay and in a balancing simulation that drives the real engine with no Slack (`progression-sketch.ts`, `simulate.ts`).
+- B. Rules written directly inside Convex mutations. Less structure, but simulation and replay need a second implementation.
+- **Recommendation: A.** Your "simulate it to balance it" request in #9 gets production code instead of a spreadsheet.
+
 ### Open: waits on the progression grilling (#9)
 
-**D10. How does an unlockable message reach the success reply?**
-- A. A success-line hook (D13): unlocks contributes the giver's line inside the award's mutation, and it goes into the `given` reply. One reply, so the line counts as seen only when the reply goes out.
-- B. Unlocks subscribes to `kudosGiven` and sends its own follow-up. Looser coupling, but two messages for one kudos message.
-- Leaning A. Decided with #9's answer on what "unlockable" means.
+**D10. How does an unlockable message (quip) reach people?** #9 round 2 made quips public, as a thread reply under the kudos message.
+- A. A success-line hook inside the award's mutation that puts the quip into the giver's private reply. This was the round 1 idea, and #9 overtook it.
+- **B. Quips subscribe to `kudosGiven` and add their section to the one public reply (D18).** No synchronous hook is needed, and the success reply stays as #8 wrote it.
+- Leaning B after the battle test. Decided with #9.
 
 **D11. Which annotations does spec 2 need?** The mechanism is settled (parse hooks annotate, and `kudosGiven` carries the annotations). Only the content depends on whether XP rewards the note (word count, story length).
 
@@ -441,7 +471,7 @@ Every card below is independent of the others. Answer with the card's id and an 
 - A. `kudosGiven` carries the text. It sits only in the queued job's arguments, which Convex keeps for a while after the run. Simplest, but every subscriber receives the text.
 - B. The assessor asks the Slack adapter for the message text when it runs (a "read message" port, `conversations.history`). No text stored on our side, at the cost of a Slack call per kudos message and one more adapter capability.
 - C. Store notes with a retention window. Re-assessment becomes possible, but the data needs deletion when someone leaves.
-- Leaning B. Decide on the assessor's ticket.
+- ~~Leaning B.~~ **Now leaning A, narrowed**: the battle test shows that B has a loophole. Under B, a giver could get a kudos message accepted, then edit it into something thoughtful before the assessor reads it. The judgment must see the accepted revision. So the note travels with the event, and the bus hands it only to subscribers that declare they need it (the assessor), never to the others. Decide on the assessor's ticket.
 
 ### Locked (reopen any of them)
 
@@ -452,6 +482,7 @@ Every card below is independent of the others. Answer with the card's id and an 
 - **L5. Deletions are dropped at the adapter.** Reason: ADR-0001. One consequence: a message deleted while it waits for a recipient check still gives when the check succeeds.
 - **L6. Perks come from a hook that sums allowance bonuses. Spec 1 registers no contributors.** Reason: #8 fixes the allowance at base + unlocked bonus. Unlocked kudos emoji are parse hooks (L9). (Changed in round 1.)
 - **L8. Modules talk through domain events: the engine publishes to a bus, and modules subscribe through one registry.** The engine knows no subscriber. Michael, round 1 (replaces the old D1).
+- **L10. A module that needs another module's derived state subscribes to that module's event, and never recomputes the state from the original event.** For example, achievements read streaks from progression's `streakExtended`, not from `kudosGiven`. Reason: subscribers to one event run in parallel and can't see each other's writes (found in the battle test, §13).
 - **L9. A domain kudos parser with parse hooks sits between the adapter and the engine.** The adapter turns Slack into a chat message, the parser turns it into a kudos message, and the engine evaluates only kudos messages. Michael, round 1.
 - **L7. Tests run outside-in at three seams with `convex-test`:** signed requests through `t.fetch('/slack/events')`, the engine's internal mutations with a seeded members table, and delivery with a stubbed global `fetch`. Reason: Convex research (#7).
 
@@ -515,3 +546,61 @@ Each slice is a vertical, deployable pull request, tested outside-in. The order 
 8. **Go-live.** The manifest template and the two apps (D9), the production deploy pipeline, the real-workspace install. This is the spec's `ship` ticket.
 
 Settings mid-day (the base drops below what was given, or the emoji changes) falls out of "settings in force at evaluation" and "never below 0". Slice 3 tests it.
+
+## 13. Battle test: the game ideas from the progression grilling
+
+Every mechanic proposed in the #9 thread (rounds 1–4 and its Octalysis research) is listed below, with the seam that carries it. The economy simulation and cosmetics research started in #9 round 4 hadn't reported when this ran, so their results aren't covered. **Holds** means no new seam. **Extends** names the extension (E1–E6) it needed. Nothing **breaks**: no mechanic forces the engine to know a game module.
+
+| Mechanic (#9 source) | Carried by | Verdict |
+| --- | --- | --- |
+| Base XP 10 per kudos given, 5 received (R1) | progression subscribes to `kudosGiven` | Holds |
+| Level curve, quick first win, skill point per level (R2) | progression state; publishes `levelReached` | Holds |
+| Perks bought with skill points, level gates, prerequisites, no respec (R2, R4) | progression state; purchase is a command | Extends: E1 |
+| First Spark, Steady Flame, Three Cheers, Open Circle, Weekly Rhythm (R4) | progression reduces `kudosGiven` against its own per-day facts | Holds; needs one calendar (D20) |
+| Bonus XP and drops count only your first kudos to each person per day, max 3 (R4) | progression, inside the reducer | Holds |
+| "Only thoughtful kudos activate perks and bonus XP" via a Jev judgment (R4) | assessor subscribes to `kudosGiven` and publishes `kudosAssessed`; progression pays base XP now and bonuses on assessment | Extends: E4 (action subscribers), D16 |
+| Extra Mile +1 daily allowance, from the next reset (R4) | perks hook with the allowance day | Extends: E2 |
+| Weekly bonus kudos, spent after the daily ("overshield") (R4) | engine-owned weekly pool | Extends: E2; changes #8 (D19) |
+| Team perk: one extra kudos per teammate per week (R4) | teams contributes to the weekly pool through the perks hook | Holds after E2; needs teams |
+| Unlockable kudos emoji, curated plus admin custom emoji, achievement emoji (R1, R2) | parse hooks from progression and achievements | Holds (scenario 14); collisions D15 |
+| Quips with five WoW rarities, stable IDs, chosen in App Home (R2, R4) | a quips module; choices are commands | Extends: E1 |
+| Quip shown publicly under the kudos message (R2) | quips subscribes to `kudosGiven` and adds a section to the public reply | Extends: E3 (D18); replaces D10's hook idea |
+| Choose a quip per kudos message from an ephemeral menu (R2, parked) | interaction command updates that message's reply section | Holds after E1 and E3 |
+| Luck perks with WoW-style rising chance after each miss (R4) | progression or quips reducer; the draw is stored in the same exactly-once mutation, so a retry never rerolls | Holds (`simulate.ts` uses a rising-chance table) |
+| Grand Finale: a legendary chance on the day you use your whole allowance (R4) | needs the allowance facts | Extends: E5 |
+| Active perks: Spotlight, workspace Rally, team-wide multipliers (R4) | activation is a command; effects apply in progression's reducer; expiry is computed from timestamps | Holds after E1; team-wide needs teams |
+| Streaks over member workdays, free pauses, best streak, no reminders (R4) | progression state; breaks are computed lazily on the next give or read, so no cron | Holds |
+| Streak freezes, boosters, cosmetics, a kudos coins store (R2, R4, later) | wallet, store and inventory modules; a purchase is one mutation that debits and grants; boosters activate through progression's command | Holds as new modules. Out of the map's scope (see below) |
+| 9 achievement ladders × 4 tiers, streak ladder, retroactive on new ladders (R4) | achievements subscribes to `kudosGiven` and progression's events; replays awards through the kudos module's query | Extends: E6 (L10) |
+| "All in": use your whole daily allowance | needs the allowance facts | Extends: E5 |
+| DM plus a public notice, admin announcement channel, members can mute and hide (R2, R4) | the feedback module as a shared notification service | Extends: E3 |
+| Unlockable stickers or GIFs (R4 idea) | an image segment in reply sections; Slack shows images, it has no stickers | Holds after E3 |
+| Group super kudos (map, later) | a new adapter event (clicks on the app's own reaction) into a new engine entry; publishes `superKudosReached` | Holds |
+| A balancing simulation (R4) | the progression reducer runs outside Convex | Extends: E6 (D21) |
+
+### The extensions
+
+- **E1. A command registry for interactions** (D17). It is the twin of the event registry, so the adapter stays the only Slack code.
+- **E2. Allowance pools** (D19), shown in `engine.ts`. The daily and weekly pools are both owned by the engine and spent in one transaction. The perks hook now takes the allowance day and returns `{ dailyBonus, weeklyBonus }`.
+- **E3. Feedback becomes a shared notification service** (D18). It covers DMs, one public reply per kudos message as desired state with sections from many modules, the announcement channel, mute and hide, and image segments.
+- **E4. Subscribers that call the network run through a retrying runner** (D12, Workpool). The note goes only to subscribers that declare they need it (D16).
+- **E5. `kudosGiven` carries allowance facts** (opening daily allowance, daily and weekly left), shown in `contracts.ts`. The change is additive and safe for queued jobs.
+- **E6. Derived events and a pure progression reducer** (L10, D21). Progression publishes what it derives (`levelReached`, `streakExtended`, `quipDropped`). Achievements and quips subscribe to those, and the reducer runs the same in Convex, tests, replay and simulation.
+
+### What the simulation shows (`node prototype/architecture/simulate.ts`)
+
+It runs four workweeks through the real engine, parser, bus and progression reducer, entering at the platform-neutral seam with no Slack. A note-word parse hook stands in for the Jev assessor ([output](architecture/simulate.out.txt)).
+
+| Archetype | Kudos given | XP | Bonus XP | Level |
+| --- | ---: | ---: | ---: | ---: |
+| Thoughtful daily giver (3 people a day, real notes) | 60 | 707 | 107 | 5 |
+| Allowance maximiser ("ty", buys the weekly pool) | 66 | 660 | 0 | 5 |
+| Twice-a-week giver | 8 | 80 | 0 | 2 |
+
+The architecture finding: every mechanic composed through hooks and events, and once the maximiser bought the weekly-pool perk (in week 2), it paid out exactly 2 extra kudos a week. A **balancing signal for #9**, not decided here: gating only the bonus on thoughtfulness still leaves the maximiser at 93% of the thoughtful giver's XP, because base XP dominates. If thoughtfulness should matter more, it has to touch base XP or the bonuses have to be bigger. That is #9's call.
+
+### Scope flags for the conductor
+
+- The store, coins, cosmetics and quests are "Out of scope" on map #1, but #9 is now designing coins. The #9 worker flagged the same conflict. This brief only shows they fit as new modules.
+- The Jev assessor isn't on the map.
+

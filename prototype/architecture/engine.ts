@@ -52,10 +52,11 @@ export type EngineTables = {
   messages: Map<string, MessageRecord>;
   awards: Array<Award & { message: string; day: DayKey }>;
   spent: Map<string, number>;
+  spentWeekly: Map<string, number>;
 };
 
 export function emptyTables(): EngineTables {
-  return { messages: new Map(), awards: [], spent: new Map() };
+  return { messages: new Map(), awards: [], spent: new Map(), spentWeekly: new Map() };
 }
 
 type Ports = {
@@ -132,15 +133,16 @@ export function createKudosEngine(ports: Ports): KudosEngine {
     if (recipients.length === 0) return { kind: "invalid", skipped };
 
     const day = dayKey(record.spendsAt, giver.timeZone);
-    const spentKey = `${giver.member}|${day}`;
-    const spent = tables.spent.get(spentKey) ?? 0;
-    const left = Math.max(0, allowanceOf(record.ref, giver.member) - spent);
+    const pools = allowancePools(record.ref, giver.member, day);
+    const left = pools.dailyLeft + pools.weeklyLeft;
     const { perRecipient } = parsed;
     const cost = recipients.length * perRecipient;
     if (cost > left) return { kind: "over-allowance", cost, recipients: recipients.length, perRecipient, left };
 
     const awards = recipients.map((recipient) => ({ giver: giver.member, recipient, kudos: perRecipient }));
-    tables.spent.set(spentKey, spent + cost);
+    const fromDaily = Math.min(cost, pools.dailyLeft);
+    tables.spent.set(pools.dailyKey, pools.dailySpent + fromDaily);
+    tables.spentWeekly.set(pools.weeklyKey, pools.weeklySpent + cost - fromDaily);
     tables.awards.push(...awards.map((award) => ({ ...award, message: messageKey(record.ref), day })));
     const kudosEmoji = (parsed.kudosEmoji[0] as KudosEmojiValue).name;
     events.publish({
@@ -151,6 +153,7 @@ export function createKudosEngine(ports: Ports): KudosEngine {
       awards,
       kudosEmoji,
       annotations: parsed.annotations,
+      allowance: { dailyOpening: pools.dailyOpening, dailyLeft: pools.dailyLeft - fromDaily, weeklyLeft: pools.weeklyLeft - (cost - fromDaily) },
       day,
       at: record.spendsAt,
     });
@@ -229,8 +232,22 @@ export function createKudosEngine(ports: Ports): KudosEngine {
     return { recipients, skipped };
   }
 
-  function allowanceOf(ref: MessageRef, giver: MemberId) {
-    return settings.of(ref.workspace).baseAllowance + perks.of(giver).allowanceBonus;
+  function allowancePools(ref: MessageRef, giver: MemberId, day: DayKey) {
+    const bonus = perks.of(giver, day);
+    const dailyOpening = settings.of(ref.workspace).baseAllowance + bonus.dailyBonus;
+    const dailyKey = `${giver}|${day}`;
+    const weeklyKey = `${giver}|${weekKey(day)}`;
+    const dailySpent = tables.spent.get(dailyKey) ?? 0;
+    const weeklySpent = tables.spentWeekly.get(weeklyKey) ?? 0;
+    return {
+      dailyOpening,
+      dailyKey,
+      weeklyKey,
+      dailySpent,
+      weeklySpent,
+      dailyLeft: Math.max(0, dailyOpening - dailySpent),
+      weeklyLeft: Math.max(0, bonus.weeklyBonus - weeklySpent),
+    };
   }
 
   return { observe, recheck };
@@ -270,6 +287,12 @@ function dedupe(mentions: Mention[]) {
 
 export function dayKey(at: number, timeZone: string | undefined): DayKey {
   return new Intl.DateTimeFormat("en-CA", { timeZone: timeZone ?? "UTC" }).format(at) as DayKey;
+}
+
+export function weekKey(day: DayKey): string {
+  const date = new Date(`${day}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - ((date.getUTCDay() + 6) % 7));
+  return `week-of-${date.toISOString().slice(0, 10)}`;
 }
 
 export function messageKey(ref: MessageRef) {

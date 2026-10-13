@@ -70,7 +70,7 @@ export interface Settings {
   of(workspace: WorkspaceId): WorkspaceSettings;
 }
 
-export type GiverPerks = { allowanceBonus: number };
+export type GiverPerks = { dailyBonus: number; weeklyBonus: number };
 
 export type ParseContext = { workspace: WorkspaceId; giver: MemberId | undefined };
 export type KudosEmojiValue = { name: string; kudos: number };
@@ -94,7 +94,7 @@ export interface KudosParser {
 }
 
 export interface Perks {
-  of(giver: MemberId): GiverPerks;
+  of(giver: MemberId, day: DayKey): GiverPerks;
 }
 
 export type KudosGivenEvent = {
@@ -105,11 +105,16 @@ export type KudosGivenEvent = {
   awards: Award[];
   kudosEmoji: string;
   annotations: Annotations;
+  allowance: { dailyOpening: number; dailyLeft: number; weeklyLeft: number };
   day: DayKey;
   at: number;
 };
 
-export type DomainEvent = KudosGivenEvent;
+export type KudosAssessedEvent = { type: "kudosAssessed"; message: MessageRef; giver: MemberId; thoughtful: boolean };
+export type LevelReachedEvent = { type: "levelReached"; member: MemberId; level: number; skillPoints: number };
+export type QuipDroppedEvent = { type: "quipDropped"; member: MemberId; message: MessageRef; rarity: string };
+
+export type DomainEvent = KudosGivenEvent | KudosAssessedEvent | LevelReachedEvent | QuipDroppedEvent;
 
 export interface EventBus {
   publish(event: DomainEvent): void;
