@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "concepts": [
+    {
+      "name": "kudos",
+      "definition": "The unit of recognition a giver gives a recipient. The word is the same in the singular and the plural: 1 kudos, 3 kudos. Not a point, credit or currency, and not a taco: :taco: is only the default kudos emoji.",
+      "rejected": [
+        {
+          "alternative": "karma",
+          "because": "Michael chose the safe set of rejected names in grilling #8"
+        }
+      ]
+    },
+    {
+      "name": "member",
+      "definition": "An active human in a workspace where Kudos is installed, guests included. Only members give and receive kudos; bots, deactivated people and people from another workspace are not members."
+    },
+    {
+      "name": "giver",
+      "definition": "The member who wrote a kudos message and spends their daily allowance on it."
+    },
+    {
+      "name": "recipient",
+      "definition": "A member mentioned in a kudos message who receives its kudos. Every recipient receives one kudos for each kudos emoji in the message."
+    },
+    {
+      "name": "daily allowance",
+      "definition": "How many kudos a giver can still give today: the workspace's base plus the bonus the giver has unlocked, minus what they have given today, and never below zero. It starts fresh at midnight in the giver's time zone, and nothing carries over."
+    },
+    {
+      "name": "kudos emoji",
+      "definition": "An emoji that gives kudos for a giver: the workspace's emoji, :taco: unless changed, plus any the giver has unlocked. Each occurrence in a kudos message is one kudos for every recipient."
+    },
+    {
+      "name": "kudos message",
+      "definition": "A message by a member with at least one kudos emoji and at least one mention. Only the message's own text counts, not code, quotes, strikethrough or attachments. It costs the giver one kudos per recipient per kudos emoji."
+    },
+    {
+      "name": "attempt",
+      "definition": "The evaluation of one kudos message against the rules and the giver's daily allowance. It ends in an outcome, and a retry evaluates it again. A message has at most one attempt and gives kudos at most once."
+    },
+    {
+      "name": "outcome",
+      "definition": "How an attempt ended: Given (its recipients received kudos), Over allowance (it cost more than the daily allowance left, so nothing was given) or Invalid (no mention could receive kudos)."
+    },
+    {
+      "name": "award",
+      "definition": "The kudos one giver gave one recipient through one kudos message. An award is permanent: neither editing nor deleting the message changes it (ADR-0001). Not a grant or gift.",
+      "rejected": [
+        {
+          "alternative": "gift",
+          "because": "Michael chose the safe set of rejected names in grilling #8"
+        }
+      ]
+    },
+    {
+      "name": "retry",
+      "definition": "An edit to a message that has not given kudos which changes its mentions or kudos emoji, so it is evaluated again as if it were new. A retry that gives kudos spends the daily allowance of the day of the edit; removing every kudos emoji instead withdraws the attempt."
+    },
+    {
+      "name": "skipped mention",
+      "definition": "A mention in a kudos message that cannot receive kudos: the giver, a bot, a group or broadcast, or someone who is not a member. The other recipients still receive."
+    }
+  ]
+}
