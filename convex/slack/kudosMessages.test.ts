@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { FakeSlack } from "../../testing/fakeSlack";
+import { FakeSlack, type SlackCall } from "../../testing/fakeSlack";
 import { everythingStored, kudosReceived, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { signingSecret } from "../../testing/signedSlack";
 import { broadcast, codeBlock, emoji, mention, quote, section, text, userGroup, type MessageOptions, type RichElement } from "../../testing/slackMessages";
@@ -82,7 +82,8 @@ describe("R33: the private reply", () => {
     expect(slack.callsTo("chat.postEphemeral")).toEqual([
       { channel: "C1", user: "U_ALICE", thread_ts: threadRoot, text: "<@U_BOB> and <@U_CAROL> got 1 kudos from you. You have 1 kudos left today." },
     ]);
-    expect(callsIn("C1").map((call) => call.method).sort()).toEqual(["chat.postEphemeral", "reactions.add"]);
+    expect(callsBesideWelcomes().map((call) => call.method).sort()).toEqual(["chat.postEphemeral", "reactions.add"]);
+    expect(welcomedPeople()).toEqual(["U_ALICE", "U_BOB", "U_CAROL"]);
   });
 
   test("R37: the giver's last kudos says how many come at midnight", async () => {
@@ -97,20 +98,22 @@ describe("R33: the private reply", () => {
   });
 
   describe("R33: replies reach only the giver", () => {
-    test.each<[string, RichElement[], MessageOptions]>([
-      ["Given in the channel", [section(mention("U_BOB"), mention("U_ALICE"), emoji("taco"))], {}],
-      ["Given in a thread", [section(mention("U_BOB"), emoji("taco"))], { threadTs: "1760349000.000100" }],
-      ["Over allowance in the channel", [section(mention("U_BOB"), mention("U_CAROL"), emoji("taco"), emoji("taco"))], {}],
-      ["Over allowance in a thread", [section(mention("U_BOB"), mention("U_CAROL"), emoji("taco"), emoji("taco"))], { threadTs: "1760349000.000100" }],
-      ["Invalid in the channel", [section(mention("U_ALICE"), broadcast("here"), emoji("taco"))], {}],
-      ["Invalid in a thread", [section(mention("U_ALICE"), broadcast("here"), emoji("taco"))], { threadTs: "1760349000.000100", subtype: "thread_broadcast" }],
-    ])("beside the message: %s", async (_, blocks, options) => {
+    const firstAward = ["U_ALICE", "U_BOB"];
+    test.each<[string, RichElement[], MessageOptions, string[]]>([
+      ["Given in the channel", [section(mention("U_BOB"), mention("U_ALICE"), emoji("taco"))], {}, firstAward],
+      ["Given in a thread", [section(mention("U_BOB"), emoji("taco"))], { threadTs: "1760349000.000100" }, firstAward],
+      ["Over allowance in the channel", [section(mention("U_BOB"), mention("U_CAROL"), emoji("taco"), emoji("taco"))], {}, []],
+      ["Over allowance in a thread", [section(mention("U_BOB"), mention("U_CAROL"), emoji("taco"), emoji("taco"))], { threadTs: "1760349000.000100" }, []],
+      ["Invalid in the channel", [section(mention("U_ALICE"), broadcast("here"), emoji("taco"))], {}, []],
+      ["Invalid in a thread", [section(mention("U_ALICE"), broadcast("here"), emoji("taco"))], { threadTs: "1760349000.000100", subtype: "thread_broadcast" }, []],
+    ])("beside the message: %s", async (_, blocks, options, welcomed) => {
       const t = testBackend();
 
       await post(t, blocks, options);
       await settle(t);
 
-      const messagesSent = callsIn("C1").filter((call) => call.method.startsWith("chat."));
+      expect(welcomedPeople()).toEqual(welcomed);
+      const messagesSent = callsBesideWelcomes().filter((call) => call.method.startsWith("chat."));
       expect(messagesSent).toEqual([
         { method: "chat.postEphemeral", args: expect.objectContaining({ channel: "C1", user: "U_ALICE", ...(options.threadTs && { thread_ts: options.threadTs }) }) },
       ]);
@@ -327,6 +330,14 @@ function stringify(value: unknown) {
   return JSON.stringify(value, (_, item) => (typeof item === "bigint" ? item.toString() : item));
 }
 
-function callsIn(conversation: string) {
-  return slack.calls.filter((call) => call.args.channel === conversation);
+function callsBesideWelcomes() {
+  return slack.calls.filter((call) => call.method !== "users.info" && !isWelcome(call));
+}
+
+function welcomedPeople() {
+  return slack.calls.filter(isWelcome).map((call) => String(call.args.channel)).sort();
+}
+
+function isWelcome(call: SlackCall) {
+  return call.method === "chat.postMessage" && String(call.args.text).startsWith("👋 Welcome to HedgeHug!");
 }
