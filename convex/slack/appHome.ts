@@ -80,7 +80,8 @@ async function desiredHomeOf(ctx: ActionCtx, home: Home): Promise<{ kind: "view"
   const facts = await homeFactsOf(ctx, home);
   if (facts.kind === "unavailable") return facts;
   const shown = await ctx.runMutation(internal.feedback.homes.shownHomeOf, { workspace: home.workspace, user: home.user });
-  return { kind: "view", view: homeView(renderHome(facts, shown)) };
+  const website = await ctx.runQuery(internal.website.link.websiteLinkOf, { workspace: home.workspace });
+  return { kind: "view", view: homeView(renderHome(facts, shown, website)) };
 }
 
 async function changedWhileSent(ctx: ActionCtx, { workspace, user }: Home, sent: SlackHomeView) {
@@ -115,6 +116,7 @@ function blockOf(line: HomeLine) {
   if (line.kind === "hint") return { type: "context", elements: [mrkdwn(line.text)] };
   if (line.kind === "action") return { type: "section", text: mrkdwn(line.text), accessory: buttonOf(line.action) };
   if (line.kind === "pick-channel") return { type: "section", text: mrkdwn(line.text), accessory: channelPickerOf(line) };
+  if (line.kind === "link") return { type: "section", text: mrkdwn(`<${line.url}|${line.label}>`) };
   return { type: "section", text: mrkdwn(line.text) };
 }
 

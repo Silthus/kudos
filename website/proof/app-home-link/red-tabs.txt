@@ -1,0 +1,101 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/app-home-link
+
+ ❯ |convex| convex/slack/appHome.test.ts (22 tests | 2 failed | 15 skipped) 235ms
+   ❯ WS28: App Home links to the website while it is open (7)
+     × while the website flag is on and SITE_URL is set, a member's Home links to the site's root, carrying no identity 165ms
+     × with the Everyone board's tabs, every tab ends with the link, the tab App Home reopens on included 36ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/slack/appHome.test.ts > WS28: App Home links to the website while it is open > while the website flag is on and SITE_URL is set, a member's Home links to the site's root, carrying no identity
+AssertionError: expected [ 'header: Your kudos', …(8) ] to deeply equal [ 'header: Your kudos', …(8) ]
+
+- Expected
++ Received
+
+@@ -6,10 +6,10 @@
+  *0* | *Received this week*
+  *0* | *Given in total*
+  *0* | *Received in total*
+  *0*",
+    "divider",
++   "section: <https://kudos-site.test/|Open HedgeHug on the web>",
++   "divider",
+    "context: To give kudos, mention a teammate and add :taco: to your message. Each :taco: gives everyone you mention 1 kudos.",
+    "context: To add me to a channel, type `/hedgehug` there.",
+-   "divider",
+-   "section: <https://kudos-site.test/|Open HedgeHug on the web>",
+  ]
+
+ ❯ convex/slack/appHome.test.ts:175:36
+    173|     await openHome(t, "U_BOB");
+    174|
+    175|     expect(publishedHome("U_BOB")).toEqual([
+       |                                    ^
+    176|       "header: Your kudos",
+    177|       "section: You have *3* kudos left today. You get *3* more at mid…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |convex| convex/slack/appHome.test.ts > WS28: App Home links to the website while it is open > with the Everyone board's tabs, every tab ends with the link, the tab App Home reopens on included
+AssertionError: expected [ …(4) ] to deeply equal [ Array(4) ]
+
+- Expected
++ Received
+
+  [
+    [
+      "header: Your kudos",
+      [
+-       "divider",
+-       "section: <https://kudos-site.test/|Open HedgeHug on the web>",
++       "context: To give kudos, mention a teammate and add :taco: to your message. Each :taco: gives everyone you mention 1 kudos.",
++       "context: To add me to a channel, type `/hedgehug` there.",
+      ],
+    ],
+    [
+      "header: Leaderboard",
+      [
+-       "divider",
+-       "section: <https://kudos-site.test/|Open HedgeHug on the web>",
++       "actions: [This week] | This month | All time",
++       "section: Give kudos this week to join the board.",
+      ],
+    ],
+    [
+      "header: Settings",
+      [
+-       "divider",
+-       "section: <https://kudos-site.test/|Open HedgeHug on the web>",
++       "actions: [On] | Off",
++       "context: When it's off, nobody sees you on the leaderboards, you included.",
+      ],
+    ],
+    [
+      "header: Settings",
+      [
+-       "divider",
+-       "section: <https://kudos-site.test/|Open HedgeHug on the web>",
++       "actions: [On] | Off",
++       "context: When it's off, nobody sees you on the leaderboards, you included.",
+      ],
+    ],
+  ]
+
+ ❯ convex/slack/appHome.test.ts:200:106
+    198|     const reopened = publishedHome("U_BOB");
+    199|
+    200|     expect([profileTab, leaderboardTab, settingsTab, reopened].map((ho…
+       |                                                                                                          ^
+    201|       ["header: Your kudos", ["divider", websiteLink]],
+    202|       ["header: Leaderboard", ["divider", websiteLink]],
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 5 passed | 15 skipped (22)
+   Start at  20:41:56
+   Duration  709ms (tests 37%, transform 32%, import 24%, environment 6%, worker 1%)
+

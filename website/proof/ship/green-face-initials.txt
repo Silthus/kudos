@@ -1,0 +1,9 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/ship-website
+
+
+ Test Files  2 passed (2)
+      Tests  46 passed (46)
+   Start at  21:56:06
+   Duration  761ms (transform 36%, tests 34%, import 23%, environment 6%)
+

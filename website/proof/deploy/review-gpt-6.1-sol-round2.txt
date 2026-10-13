@@ -1,0 +1,13 @@
+codex exec -m gpt-6.1-sol -c model_reasoning_effort=high --sandbox read-only (round 2, #111)
+
+Prompt:
+Round 2 review of ticket #111 in Silthus/kudos (current directory, branch spec/website/deploy). Read-only; do not edit files or run tests (the sandbox blocks Vitest's temp dir).
+
+Round 1 (you) reviewed commits 88632f9 (deploy workflows upload the website with the static-hosting CLI and run prepareWebsiteFlag after convex deploy; deploy.test.ts) and the merge a907d25, and found nothing. Since then one commit landed: `git show HEAD`. It:
+1. drops `--prod` from `pnpm exec static-hosting upload --build ...` and `pnpm exec convex run website/flag:prepareWebsiteFlag` in both deploy workflows and their test, because with CONVEX_DEPLOY_KEY the Convex CLI ignores --prod (see node_modules/convex/dist/cjs/cli/lib/api.js, validateDeploymentSelectionForExistingDeployment) and rejects it on self-hosted backends. Verify: with only CONVEX_DEPLOY_KEY set in CI (no CONVEX_DEPLOYMENT), does `static-hosting upload` without --prod still resolve URLs and upload to the key's deployment (node_modules/@convex-dev/static-hosting/dist/cli/upload.js), and does `convex run` target the key's deployment?
+2. loosens one assertion in testing/handshake/signIn.handshake.ts to toMatchObject, because getMyProfile now returns the home projection (convex/website/profile.ts). Is that the right oracle for WS5 per `git show origin/docs/spec-website:spec/website.md`?
+
+The spec oracle is WS2, WS27. Report findings as a numbered list with severity, file:line, failure scenario and fix, or "no findings".
+
+Verdict:
+no findings

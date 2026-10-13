@@ -1,0 +1,9 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/faces/website
+
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  21:26:17
+   Duration  3.13s (tests 45%, import 32%, environment 14%, transform 6%, setup 3%)
+

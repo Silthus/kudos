@@ -1,0 +1,57 @@
+$ vitest run --config vitest.handshake.config.ts
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/deploy
+
+ ❯ |handshake| testing/handshake/signIn.handshake.ts (17 tests | 1 failed) 16602ms
+   ❯ WS5 L-W1: a member signs in with Slack (1)
+     × Slack is asked for openid profile in the deployment's workspace, with state and nonce, and the member lands home 757ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |handshake| testing/handshake/signIn.handshake.ts > WS5 L-W1: a member signs in with Slack > Slack is asked for openid profile in the deployment's workspace, with state and nonce, and the member lands home
+AssertionError: expected { allowance: { base: 3, …(2) }, …(7) } to deeply equal { kind: 'member', …(2) }
+
+- Expected
++ Received
+
+  {
++   "allowance": {
++     "base": 3,
++     "left": 3,
++     "refillsAt": 1791928800000,
++   },
++   "chatUrl": "https://app.slack.com/client/TALLOWED",
+    "face": {
+      "initials": "AL",
+      "kind": "initials",
+    },
+    "kind": "member",
++   "kudosEmoji": "taco",
++   "lifetime": {
++     "given": 0,
++     "received": 0,
++   },
+    "name": "Ada Lovelace",
++   "thisWeek": {
++     "given": 0,
++     "received": 0,
++   },
+  }
+
+ ❯ testing/handshake/signIn.handshake.ts:56:61
+     54|     const session = await redeem(landing, verifier);
+     55|
+     56|     expect(await eventuallyReads(session.client, "member")).toEqual({ …
+       |                                                             ^
+     57|   });
+     58| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 16 passed (17)
+   Start at  21:22:51
+   Duration  16.94s (tests 98%, import 1%)
+
+[ELIFECYCLE] Command failed with exit code 1.

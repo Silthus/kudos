@@ -1,0 +1,54 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/scaffold/website
+
+ ❯ |website| src/App.test.tsx (0 test)
+ ❯ |website| src/accessibility.test.tsx (0 test)
+ ❯ |website| src/theme.test.tsx (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/App.test.tsx [ src/App.test.tsx ]
+Error: Failed to resolve import "./App" from "src/App.test.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /home/coder/dev/kudos-wt/scaffold/website/src/App.test.tsx:3:20
+  1  |  import { render, screen, within } from "@testing-library/react";
+  2  |  import { beforeEach, describe, expect, it } from "vitest";
+  3  |  import { App } from "./App";
+     |                       ^
+  4  |  import { shellFixtures } from "./shell";
+  5  |  import { fakeSystemTheme } from "./test/systemTheme";
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  |website| src/accessibility.test.tsx [ src/accessibility.test.tsx ]
+Error: Failed to resolve import "./shell" from "src/accessibility.test.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /home/coder/dev/kudos-wt/scaffold/website/src/accessibility.test.tsx:5:49
+  3  |  import { describe, expect, it } from "vitest";
+  4  |  import { App } from "./App";
+  5  |  import { shellFixtures } from "./shell";
+     |                                 ^
+  6  |  import { fakeSystemTheme } from "./test/systemTheme";
+  7  |  var _jsxFileName = "/home/coder/dev/kudos-wt/scaffold/website/src/accessibility.test.tsx";
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  |website| src/theme.test.tsx [ src/theme.test.tsx ]
+Error: Failed to resolve import "./App" from "src/theme.test.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /home/coder/dev/kudos-wt/scaffold/website/src/theme.test.tsx:4:20
+  2  |  import userEvent from "@testing-library/user-event";
+  3  |  import { describe, expect, it } from "vitest";
+  4  |  import { App } from "./App";
+     |                       ^
+  5  |  import { shellFixtures } from "./shell";
+  6  |  import { fakeSystemTheme } from "./test/systemTheme";
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  3 failed (3)
+      Tests  no tests
+   Start at  19:48:05
+   Duration  794ms (environment 79%, setup 17%, transform 3%, worker 1%)
+

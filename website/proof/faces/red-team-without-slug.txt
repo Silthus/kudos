@@ -1,0 +1,42 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/faces
+
+stderr | convex/companyProfiles/faces.test.ts > WS21 V19 V21: a member's face is their company profile cutout on its colour > a profile on a team without a slug is still a face
+companyProfiles.read_failed { reason: 'malformed' }
+
+ ❯ |convex| convex/companyProfiles/faces.test.ts (19 tests | 1 failed | 18 skipped) 113ms
+   ❯ WS21 V19 V21: a member's face is their company profile cutout on its colour (7)
+     × a profile on a team without a slug is still a face 112ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/companyProfiles/faces.test.ts > WS21 V19 V21: a member's face is their company profile cutout on its colour > a profile on a team without a slug is still a face
+AssertionError: expected { …(2) } to deeply equal { kind: 'company-profile', …(2) }
+
+- Expected
++ Received
+
+  {
+-   "colour": "#8567FF",
+-   "image": "https://res.cloudinary.com/posthog-test/image/upload/c_limit,w_160,f_auto,q_auto/v1/ada.png",
+-   "kind": "company-profile",
++   "image": "https://avatars.slack-edge.com/ada.png",
++   "kind": "slack",
+  }
+
+ ❯ convex/companyProfiles/faces.test.ts:87:31
+     85|     await syncCompanyProfiles();
+     86|
+     87|     expect(await faceOf(ada)).toEqual(adasFace);
+       |                               ^
+     88|   });
+     89|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 18 skipped (19)
+   Start at  21:21:18
+   Duration  603ms (transform 40%, import 29%, tests 22%, environment 9%, worker 1%)
+

@@ -1,0 +1,4 @@
+view-flag-on.json: {"ok":true}
+view-flag-off.json: {"ok":true}
+view-tabs-profile.json: {"ok":true}
+view-tabs-leaderboard.json: {"ok":true}

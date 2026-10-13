@@ -1,0 +1,16 @@
+Review of #108 by gpt-6.1-sol (high), codex exec --sandbox read-only, over git diff origin/spec/website...5bc5759, with spec/website.md as the oracle.
+
+Three findings:
+
+- **Major — [Hero.tsx:22](/home/coder/dev/kudos-wt/home/website/src/home/Hero.tsx:22):** The primary action’s light-theme text contrast is **3.54:1**. Quill’s `lg` button still uses 13px text, requiring 4.5:1 under V24/WCAG AA. Use compliant primary foreground/background tokens and verify contrast in both themes. The existing axe helper disables contrast checks.
+- **Minor — [profile.test.ts:216](/home/coder/dev/kudos-wt/home/convex/website/profile.test.ts:216):** Midnight/week tests issue fresh queries after ticking; they would pass with the clock dependency removed. Test an existing subscription receiving updated allowance/week facts solely from a clock tick.
+- **Minor — [LockedFeatures.tsx:38](/home/coder/dev/kudos-wt/home/website/src/home/LockedFeatures.tsx:38):** `opacity-40 grayscale` preserves illustration details, violating WS19/V23’s silhouette requirement. Use solid neutral silhouettes or CSS masks.
+
+Clean areas:
+
+- **Correctness:** no findings in timezone/DST math, clock dependency invalidation, or session-scoped facts.
+- **Privacy/R51:** no findings; received counts remain member-scoped, the profile card shows none, and no message text is added to storage or displayed.
+- **CSP:** no findings in added components; the illustrations emit no inline styles.
+- **Other spec requirements and code quality:** no findings.
+
+Direct DST checks passed. Vitest could not start because the read-only sandbox blocked its temporary-directory writes. No files changed.

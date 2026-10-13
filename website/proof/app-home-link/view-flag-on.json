@@ -1,0 +1,74 @@
+{
+  "type": "home",
+  "blocks": [
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "Your kudos"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "You have *3* kudos left today. You get *3* more at midnight."
+      }
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "section",
+      "fields": [
+        {
+          "type": "mrkdwn",
+          "text": "*Given this week*\n*0*"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Received this week*\n*0*"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Given in total*\n*0*"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Received in total*\n*0*"
+        }
+      ]
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "To give kudos, mention a teammate and add :taco: to your message. Each :taco: gives everyone you mention 1 kudos."
+        }
+      ]
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "To add me to a channel, type `/hedgehug` there."
+        }
+      ]
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "<http://127.0.0.1:3621/|Open HedgeHug on the web>"
+      }
+    }
+  ]
+}

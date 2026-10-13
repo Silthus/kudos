@@ -1,0 +1,49 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/ship-website
+
+stderr | convex/website/signIn.test.ts > WS8: a person the directory doesn't know yet is verified with users.info > a person users.info keeps answering ok without a user for reads unverified after the retries
+Error when running scheduled function slack/verifyMember:verifyMember Error: [reported] TypeError
+    at reported (/home/coder/dev/kudos-wt/ship-website/convex/analytics/boundary.ts:71:23)
+    at observed (/home/coder/dev/kudos-wt/ship-website/convex/analytics/boundary.ts:57:11)
+    at async invokeFunction (file:///home/coder/dev/kudos-wt/ship-website/node_modules/.pnpm/convex@1.46.0_react@19.3.0/node_modules/convex/dist/esm/server/impl/registration_impl.js:56:14)
+    at async invokeAction (file:///home/coder/dev/kudos-wt/ship-website/node_modules/.pnpm/convex@1.46.0_react@19.3.0/node_modules/convex/dist/esm/server/impl/registration_impl.js:202:18)
+    at /home/coder/dev/kudos-wt/ship-website/node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2140:35
+    at runActionWithHandler (/home/coder/dev/kudos-wt/ship-website/node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2138:16)
+    at Object.actionFromPath (/home/coder/dev/kudos-wt/ship-website/node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2219:28)
+    at Object.fun (/home/coder/dev/kudos-wt/ship-website/node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2304:24)
+    at /home/coder/dev/kudos-wt/ship-website/node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1076:13
+    at runScheduledFunction (/home/coder/dev/kudos-wt/ship-website/node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1056:5)
+
+ ❯ |convex| convex/website/signIn.test.ts (12 tests | 1 failed | 11 skipped) 82ms
+   ❯ WS8: a person the directory doesn't know yet is verified with users.info (6)
+     × a person users.info keeps answering ok without a user for reads unverified after the retries 81ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/signIn.test.ts > WS8: a person the directory doesn't know yet is verified with users.info > a person users.info keeps answering ok without a user for reads unverified after the retries
+AssertionError: expected { kind: 'verifying' } to deeply equal { kind: 'unverified' }
+
+- Expected
++ Received
+
+  {
+-   "kind": "unverified",
++   "kind": "verifying",
+  }
+
+ ❯ convex/website/signIn.test.ts:152:37
+    150|     await settleInTimeOrder(t);
+    151|
+    152|     expect(await profileOf(userId)).toEqual({ kind: "unverified" });
+       |                                     ^
+    153|     expect(slack.callsTo("users.info")).toHaveLength(3);
+    154|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 11 skipped (12)
+   Start at  21:54:35
+   Duration  626ms (transform 48%, import 29%, tests 15%, environment 8%, worker 1%)
+

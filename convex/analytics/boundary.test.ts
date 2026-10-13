@@ -56,14 +56,18 @@ describe("O22: the error boundary", () => {
 });
 
 describe("O22: coverage", () => {
-  test("every exported httpAction and internalAction runs inside the error boundary, except the analytics module's own", async () => {
+  test("every exported httpAction and internalAction runs inside the error boundary, except the analytics module's own and Convex Auth's", async () => {
     const actions = await exportedActions();
+    const ours = actions.filter(({ path }) => !convexAuthActions.includes(path));
 
-    expect(actions.filter(({ path, observed }) => !path.startsWith("analytics/") && !observed).map(({ path }) => path)).toEqual([]);
+    expect(actions.map(({ path }) => path)).toEqual(expect.arrayContaining(convexAuthActions));
+    expect(ours.filter(({ path, observed }) => !path.startsWith("analytics/") && !observed).map(({ path }) => path)).toEqual([]);
     expect(actions.filter(({ path, observed }) => path.startsWith("analytics/") && observed).map(({ path }) => path)).toEqual([]);
     expect(actions.map(({ path }) => path)).toEqual(expect.arrayContaining(["analytics/drain:drain", "slack/events:slackEvents", "slack/commands:addToChannel"]));
   });
 });
+
+const convexAuthActions = ["auth:signIn", "auth:signOut"];
 
 type RegisteredFunction = { isAction?: boolean; isHttp?: boolean };
 

@@ -1,0 +1,56 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/ship-website
+
+ ❯ |website| src/HomePage.test.tsx (12 tests | 2 failed) 1546ms
+   ❯ WS21 V19: the member's face (3)
+     × falls back to the member's initials wherever a Slack picture fails to load 92ms
+     × falls back to the member's initials wherever a company profile cutout fails to load 75ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS21 V19: the member's face > falls back to the member's initials wherever a Slack picture fails to load
+AssertionError: expected <img alt …(2)></img>
+…(2) to have a length of +0 but got 3
+
+- Expected
++ Received
+
+- 0
++ 3
+
+ ❯ src/HomePage.test.tsx:88:51
+     86|     for (const image of document.querySelectorAll(`img[src="${face.ima…
+     87|
+     88|     expect(document.querySelectorAll("img[src]")).toHaveLength(0);
+       |                                                   ^
+     89|     expect(screen.getAllByText("SE")).toHaveLength(3);
+     90|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS21 V19: the member's face > falls back to the member's initials wherever a company profile cutout fails to load
+AssertionError: expected <img alt …(3)></img>
+…(2) to have a length of +0 but got 3
+
+- Expected
++ Received
+
+- 0
++ 3
+
+ ❯ src/HomePage.test.tsx:88:51
+     86|     for (const image of document.querySelectorAll(`img[src="${face.ima…
+     87|
+     88|     expect(document.querySelectorAll("img[src]")).toHaveLength(0);
+       |                                                   ^
+     89|     expect(screen.getAllByText("SE")).toHaveLength(3);
+     90|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 10 passed (12)
+   Start at  21:56:56
+   Duration  3.33s (tests 48%, import 30%, environment 13%, transform 6%, setup 3%)
+

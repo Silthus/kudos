@@ -1,0 +1,160 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/home
+
+ ❯ |convex| convex/website/profile.test.ts (20 tests | 5 failed) 253ms
+   ❯ WS13 WS15 WS18: a member's home answer projects their own homeFacts (5)
+     × a member reads their own kudos left, refill, this week and in total, with where to thank someone in Slack 30ms
+     × the answer is the member's homeFacts, never another member's 7ms
+     × the answer updates after a kudos lands 3ms
+     × an open page turns to the new day on the clock tick after the member's midnight, without another kudos 4ms
+     × an open page starts a new week on the clock tick after the week turns, keeping the totals 9ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/profile.test.ts > WS13 WS15 WS18: a member's home answer projects their own homeFacts > a member reads their own kudos left, refill, this week and in total, with where to thank someone in Slack
+AssertionError: expected { Object (face, kind, ...) } to deeply equal { kind: 'member', …(7) }
+
+- Expected
++ Received
+
+  {
+-   "allowance": {
+-     "base": 3,
+-     "left": 1,
+-     "refillsAt": 1791936000000,
+-   },
+-   "chatUrl": "https://app.slack.com/client/T1",
+    "face": {
+      "image": "https://avatars.slack-edge.com/ada.png",
+      "kind": "slack",
+    },
+    "kind": "member",
+-   "kudosEmoji": "taco",
+-   "lifetime": {
+-     "given": 2,
+-     "received": 1,
+-   },
+    "name": "Ada Lovelace",
+-   "thisWeek": {
+-     "given": 2,
+-     "received": 0,
+-   },
+  }
+
+ ❯ convex/website/profile.test.ts:175:41
+    173|     const { asSignedIn } = await aSession(t, ada);
+    174|
+    175|     expect(await myProfile(asSignedIn)).toEqual({
+       |                                         ^
+    176|       kind: "member",
+    177|       name: "Ada Lovelace",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  |convex| convex/website/profile.test.ts > WS13 WS15 WS18: a member's home answer projects their own homeFacts > the answer is the member's homeFacts, never another member's
+AssertionError: expected undefined to deeply equal { left: 3, base: 3, …(1) }
+
+- Expected:
+{
+  "base": 3,
+  "left": 3,
+  "refillsAt": 1791936000000,
+}
+
++ Received:
+undefined
+
+ ❯ convex/website/profile.test.ts:198:31
+    196|     expect([facts?.kind, profile.kind]).toEqual(["member", "member"]);
+    197|     if (facts?.kind !== "member" || profile.kind !== "member") return;
+    198|     expect(profile.allowance).toEqual({ left: facts.left, base: facts.…
+       |                               ^
+    199|     expect(profile.thisWeek).toEqual({ given: facts.givenWeek, receive…
+    200|     expect(profile.lifetime).toEqual({ given: facts.given, received: f…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  |convex| convex/website/profile.test.ts > WS13 WS15 WS18: a member's home answer projects their own homeFacts > the answer updates after a kudos lands
+AssertionError: expected { Object (face, kind, ...) } to match object { allowance: { left: 3 }, …(1) }
+(5 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "allowance": {
+-     "left": 3,
+-   },
+-   "thisWeek": {
+-     "given": 0,
++   "face": {
++     "image": "https://avatars.slack-edge.com/ada.png",
++     "kind": "slack",
+    },
++   "kind": "member",
++   "name": "Ada Lovelace",
+  }
+
+ ❯ convex/website/profile.test.ts:208:41
+    206|     await aMember(t, "U_BOB");
+    207|     const { asSignedIn } = await aSession(t, ada);
+    208|     expect(await myProfile(asSignedIn)).toMatchObject({ allowance: { l…
+       |                                         ^
+    209|
+    210|     await give(t, ada.user, "U_BOB", 1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  |convex| convex/website/profile.test.ts > WS13 WS15 WS18: a member's home answer projects their own homeFacts > an open page turns to the new day on the clock tick after the member's midnight, without another kudos
+AssertionError: expected { Object (face, kind, ...) } to match object { allowance: { left: +0, …(1) } }
+(5 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "allowance": {
+-     "left": 0,
+-     "refillsAt": 1791928800000,
++   "face": {
++     "image": "https://avatars.slack-edge.com/ada.png",
++     "kind": "slack",
+    },
++   "kind": "member",
++   "name": "Ada Lovelace",
+  }
+
+ ❯ convex/website/profile.test.ts:220:41
+    218|     await give(t, ada.user, "U_BOB", 3);
+    219|     const { asSignedIn } = await aSession(t, ada);
+    220|     expect(await myProfile(asSignedIn)).toMatchObject({ allowance: { l…
+       |                                         ^
+    221|
+    222|     vi.setSystemTime(new Date("2026-10-13T22:05:00Z"));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  |convex| convex/website/profile.test.ts > WS13 WS15 WS18: a member's home answer projects their own homeFacts > an open page starts a new week on the clock tick after the week turns, keeping the totals
+Error: Could not find module for: "website/clock"
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1550:19
+    1548|         const module = modulesWithoutExtension[prefix + path];
+    1549|         if (module === undefined) {
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1551|         }
+    1552|         return await module();
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2487:76
+ ❯ Object.mutationFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2202:40
+ ❯ mutation node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2252:41
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:80
+ ❯ Object.result.<computed> [as mutation] node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:56
+ ❯ convex/website/profile.test.ts:235:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 15 passed (20)
+   Start at  20:39:50
+   Duration  689ms (tests 43%, transform 29%, import 21%, environment 7%, worker 1%)
+
