@@ -111,7 +111,9 @@ export default defineSchema({
     member: v.id("members"),
     day: v.string(),
     kudos: v.number(),
-  }).index("by_member_day", ["member", "day"]),
+  })
+    .index("by_member_day", ["member", "day"])
+    .index("by_workspace_day", ["workspace", "day"]),
 
   givenTotals: defineTable({
     workspace: v.string(),
