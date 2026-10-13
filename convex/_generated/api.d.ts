@@ -8,6 +8,17 @@
  * @module
  */
 
+import type * as analytics_boundary from "../analytics/boundary.js";
+import type * as analytics_capture from "../analytics/capture.js";
+import type * as analytics_drain from "../analytics/drain.js";
+import type * as analytics_exceptions from "../analytics/exceptions.js";
+import type * as analytics_failures from "../analytics/failures.js";
+import type * as analytics_flags from "../analytics/flags.js";
+import type * as analytics_outbox from "../analytics/outbox.js";
+import type * as analytics_projections from "../analytics/projections.js";
+import type * as analytics_subscribers from "../analytics/subscribers.js";
+import type * as analytics_sweep from "../analytics/sweep.js";
+import type * as analytics_usage from "../analytics/usage.js";
 import type * as bus_events from "../bus/events.js";
 import type * as bus_publish from "../bus/publish.js";
 import type * as crons from "../crons.js";
@@ -49,6 +60,17 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "analytics/boundary": typeof analytics_boundary;
+  "analytics/capture": typeof analytics_capture;
+  "analytics/drain": typeof analytics_drain;
+  "analytics/exceptions": typeof analytics_exceptions;
+  "analytics/failures": typeof analytics_failures;
+  "analytics/flags": typeof analytics_flags;
+  "analytics/outbox": typeof analytics_outbox;
+  "analytics/projections": typeof analytics_projections;
+  "analytics/subscribers": typeof analytics_subscribers;
+  "analytics/sweep": typeof analytics_sweep;
+  "analytics/usage": typeof analytics_usage;
   "bus/events": typeof bus_events;
   "bus/publish": typeof bus_publish;
   crons: typeof crons;
@@ -110,4 +132,6 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  posthog: import("@posthog/convex/_generated/component.js").ComponentApi<"posthog">;
+};
