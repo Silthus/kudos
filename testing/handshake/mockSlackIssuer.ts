@@ -11,6 +11,8 @@ export type NextSignIn = { team: string; user: string; name?: string; wrongNonce
 
 type Grant = NextSignIn & { nonce: string; redirectUri: string };
 
+const onForEveryone = { groups: [{ properties: [], rollout_percentage: 100 }] };
+
 const keys = await generateKeyPair("RS256");
 const jwk = { ...(await exportJWK(keys.publicKey)), kid: "mock", alg: "RS256", use: "sig" };
 
@@ -22,6 +24,7 @@ export class MockSlackIssuer {
   private readonly grants = new Map<string, Grant>();
   private next: NextSignIn = { team: allowedWorkspace, user: "U_JUNO", name: "Juno Whitlock" };
   private websiteOpen = true;
+  private readonly alsoOn = (process.env.MOCK_FLAGS_ON ?? "").split(",").filter((key) => key !== "");
   readonly usersInfoCalls: string[] = [];
 
   signsInNext(who: NextSignIn) {
@@ -84,9 +87,11 @@ export class MockSlackIssuer {
   }
 
   private flagDefinitions() {
-    const flag = { id: 1, key: "website", name: "website", deleted: false, active: this.websiteOpen, ensure_experience_continuity: false };
-    const filters = { groups: [{ properties: [], rollout_percentage: 100 }] };
-    return { flags: [{ ...flag, filters }], group_type_mapping: {}, cohorts: {} };
+    const flags = [
+      { key: "website", active: this.websiteOpen },
+      ...this.alsoOn.map((key) => ({ key, active: true })),
+    ].map(({ key, active }, index) => ({ id: index + 1, key, name: key, deleted: false, active, ensure_experience_continuity: false, filters: onForEveryone }));
+    return { flags, group_type_mapping: {}, cohorts: {} };
   }
 }
 

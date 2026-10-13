@@ -1,0 +1,771 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/level-xp/website
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ❯ |website| src/HomePage.test.tsx (20 tests | 6 failed) 2787ms
+   ❯ WS47 WS48 WS49 WS50 WS51: level and XP on the home, only while progression is present (8)
+     × rings the member's face in the hero with their level, named Level n, the number in RoundHog 252ms
+     × rings the avatar in the HUD with the level, which the account menu button reads as its description 77ms
+     × says the level and the XP to the next one at level 1 in one quiet line with a bar from the level's start to the next 254ms
+     × says the level and the XP to the next one past level 5 in one quiet line with a bar from the level's start to the next 220ms
+     × puts the level line after thanking and the allowance, before Max, and never as the hero's heading 94ms
+     × shows Level n on the profile card beside the name, and still no received count 81ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS47 WS48 WS49 WS50 WS51: level and XP on the home, only while progression is present > rings the member's face in the hero with their level, named Level n, the number in RoundHog
+TestingLibraryElementError: Unable to find an accessible element with the role "img" and name "Level 7"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Thank someone for work you noticed":
+  <h1
+    class="hud-display text-2xl font-bold tracking-tight outline-none"
+    id="home-title"
+    tabindex="-1"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  --------------------------------------------------link:
+
+  Name "Thank someone in Slack (opens in a new tab)":
+  <a
+    class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-lg"
+    href="https://app.slack.com/client/T1"
+    rel="noreferrer"
+    target="_blank"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground tabular-nums"
+  />
+
+  --------------------------------------------------
+  time:
+
+  Name "":
+  <time
+    datetime="2026-10-14T00:00:00.000Z"
+  />
+
+  --------------------------------------------------paragraph:
+
+  Name "":
+  <p
+    class="flex items-center gap-3 text-sm"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<section
+  aria-labelledby="home-title"
+  class="hud-panel relative flex flex-col gap-5 rounded-xl border bg-card p-6"
+>
+  <div
+    class="flex items-center gap-3"
+  >
+    <span
+      aria-hidden="true"
+      class="inline-flex shrink-0 items-center justify-center rounded-full border bg-muted text-xs font-semibold text-muted-foreground size-12"
+    >
+      SE
+    </span>
+    <span
+      class="font-medium"
+    >
+      Sam Example
+    </span>
+  </div>
+  <div
+    class="flex flex-col gap-2"
+  >
+    <h1
+      class="hud-display text-2xl font-bold tracking-tight outline-none"
+      id="home-title"
+      tabindex="-1"
+    >
+      Thank someone for work you noticed
+    </h1>
+    <p
+      class="text-sm text-muted-foreground"
+    >
+      Mention them in a Slack message with :
+      taco
+      : and say what they did.
+    </p>
+  </div>
+  <div
+    class="flex flex-col items-start gap-2"
+  >
+    <a
+      class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-lg"
+      href="https://app.slack.com/client/T1"
+      rel="noreferrer"
+      target="_blank"
+    >
+      Thank someone in Slack
+       
+      <span
+        class="sr-only"
+      >
+        (opens in a new tab)
+      </span>
+      <svg
+        aria-hidden="true"
+        class="LemonIcon size-4"
+        fill="currentColor"
+        viewBox="0 0 24 24"
+        width="100%"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          clip-rule="evenodd"
+          d="M13 3.75a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 .75.75v6.5a.75.75 0 0 1-1.5 0V5.56l-7.97 7.97a.75.75 0 1 1-1.06-1.06l7.97-7.97h-4.69a.75.75 0 0 1-.75-.75ZM5.324 5H9.25a.75.75 0 1 1 0 1.5h-3.9c-.292 0-.467 0-.596.011a.628.628 0 0 0-.12.018.25.25 0 0 0-.105.104.626.626 0 0 0-.018.121c-.01.13-.011.304-.011.596v11.3c0 .292 0 .467.011.596a.625.625 0 0 0 .018.12.25.25 0 0 0 .104.105.638.638 0 0 0 .121.018c.13.01.304.011.596.011h11.3c.292 0 .467 0 .596-.011a.636.636 0 0 0 .12-.018.25.25 0 0 0 .105-.105.636.636 0 0 0 .018-.12c.01-.13.011-.304.011-.596V14a.75.75 0 0 1 1.5 0v4.676c0 .258 0 .494-.016.692a1.775 1.775 0 0 1-.175.677 1.75 1.75 0 0 1-.765.764c-.23.118-.463.157-.676.175-.198.016-.434.016-.692.016H5.324c-.258 0-.494 0-.692-.016a1.775 1.775 0 0 1-.676-.175 1.75 1.75 0 0 1-.765-.765 1.774 1.774 0 0 1-.175-.676A9.053 9.053 0 0 1 3 18.676V7.324c0-.258 0-.494.016-.692.018-.213.057-.446.175-.676a1.75 1.75 0 0 1 .765-.765c.23-.118.463-.157.676-.175C4.83 5 5.066 5 5.324 5ZM17.47 19.37v-.002Zm-.1.1h-.003Zm-12.74 0h.002Zm-.1-.102a.02.02 0 0 1 0 .001Zm0-12.737v.001Zm.102-.102h-.001Z"
+          fill-rule="evenodd"
+        />
+      </svg>
+    </a>
+    <p
+      class="text-sm text-muted-foreground tabular-nums"
+    >
+      1
+       of 
+      3
+       kudos left today · Refills at 
+      <time
+        datetime="2026-10-14T00:00:00.000Z"
+      >
+        12:00 AM
+      </time>
+    </p>
+  </div>
+  <div
+    class="border-t pt-4"
+  >
+    <p
+      class="flex items-center gap-3 text-sm"
+    >
+      <svg
+        aria-hidden="true"
+        class="shrink-0"
+        fill="none"
+        viewBox="0 0 1000 1000"
+        width="40"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M727.4 890.65v-.16q0-.13-.03-.24l.02.24v.43c0-.14 0-.27.02-.29zm8.68 1.12c0 3.55-1.32 6.97-2.97 9.93-2.1 3.72-5.23 6.63-8.34 9.25a64 64 0 0 1-8.3 5.6c-3 1.8-6.16 3.28-9.3 4.75a161 161 0 0 1-9.65 4.01 217 217 0 0 1-19.56 6.39 440 440 0 0 1-40.07 9.12c-26.2 4.8-52.64 7.98-79.11 10.2q-40.7 3.4-81.5 4.22-17.27.35-34.55.36-23.89.02-47.75-.81c-27.41-.98-54.8-2.49-82.15-4.9-27.01-2.4-54-5.5-80.82-9.9a807 807 0 0 1-40.5-7.6 461 461 0 0 1-38.1-9.73q-10.03-3.08-19.92-6.76-4.81-1.78-9.54-3.91c-3.04-1.4-6.08-2.76-9.04-4.34-3.28-1.76-6.5-3.62-9.63-5.68a64 64 0 0 1-8.22-6.55 30 30 0 0 1-6.24-8.07c-1.6-3.08-2.7-6.67-2.58-10.27.12-3.04.87-5.82 2.13-8.5a28 28 0 0 1 3.8-5.7c2.12-2.57 4.72-4.66 7.3-6.63 1.43-1.08 2.94-2.02 4.44-2.96a71 71 0 0 1 4.46-2.58c6.2-3.28 12.6-5.98 19.14-8.35 12.48-4.55 25.35-7.94 38.24-10.76a585 585 0 0 1 32.17-6.09h.1l1.24-.22q.12 0 .23-.03a796 796 0 0 1 35.31-4.78l.9-.1.22-.03.54-.05a970 970 0 0 1 35.55-3.35c27.42-2.08 54.87-3.28 82.34-3.7l3.63-.05c14.15-.24 28.32-.15 42.48.03q19.93.25 39.86 1.11 41.18 1.73 82.23 5.65 20.37 1.97 40.67 4.7a954 954 0 0 1 40.84 6.3 700 700 0 0 1 41.08 8.55 374 374 0 0 1 38.96 11.44 222 222 0 0 1 19.68 8.14c2.97 1.4 5.87 3 8.74 4.65 1.38.8 2.75 1.69 4.1 2.57 1.45.97 2.92 1.93 4.28 3.05a100 100 0 0 1 4.33 3.74 35 35 0 0 1 3.43 3.78 25.5 25.5 0 0 1 4.96 9.91c.33 1.65.46 3.25.46 4.93z"
+          fill="#320601"
+          fill-opacity=".24"
+        />
+        <path
+          d="m712.2 515 .59-.24q-.45.19-.83.4zm-1.3.85.1-.07-.2.18zm-70.67 42.37a4.7 4.7 0 0 1 1.36-6.44c6.34-4.24 12.66-8.54 18.98-12.81l31.45-21.2c5.64-3.81 11.33-7.57 16.94-11.42l.23-.17.58-.39a4.7 4.7 0 0 1 6.42 1.32l.03.04q.63.99.72 2.07l-1.6 1.7.2-.2-.77.82.26-.27-.06.06.1-.11.07-.07-.02.02.06-.06.17-.19c-1.6 1.71-3.14 3.49-4.74 5.2q-.45.4-.82.9l-4.53 3.05-29.24 19.72c-9.76 6.59-19.5 13.22-29.3 19.75l-.05.04a4.67 4.67 0 0 1-6.44-1.36m82.35-54.86-.1.1zm-.13.14.03-.02.26-.27q-.18.17-.34.35z"
+          fill="#320601"
+        />
+        <path
+          d="M705.54 510.2c.16-2.99 3.2-4.43 5.56-5.54a30 30 0 0 1 13.55-3.43l-1.92 1.98-.15.16q-.22.2-.4.41l.24-.25-.03.04v-.01l-.05.06q0-.02.03-.04l.01-.01-.01.01q-1.4 1.41-2.77 2.86l.01-.01.04-.04-.03.04q-2.16 2.25-4.27 4.5l.2-.2-.77.81.3-.32-.1.12.2-.22.17-.19q-1.85 2-3.66 4.02-.92.31-1.87.2c-2.36-.24-4.52-2.3-4.3-4.95z...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/HomePage.test.tsx:150:33
+    148|   it("rings the member's face in the hero with their level, named Leve…
+    149|     renderApp(shellFixtures.memberAtLevel7);
+    150|     const ring = within(hero()).getByRole("img", { name: "Level 7" });
+       |                                 ^
+    151|     expect(within(ring).getByText("SE")).toBeInTheDocument();
+    152|     expect(within(ring).getByText("7")).toHaveClass("hud-display");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS47 WS48 WS49 WS50 WS51: level and XP on the home, only while progression is present > rings the avatar in the HUD with the level, which the account menu button reads as its description
+Error: expect(element).toHaveAccessibleDescription()
+
+Expected element to have accessible description:
+  Level 7
+Received:
+
+ ❯ src/HomePage.test.tsx:158:20
+    156|     renderApp(shellFixtures.memberAtLevel7);
+    157|     const avatar = screen.getByRole("button", { name: "Account menu fo…
+    158|     expect(avatar).toHaveAccessibleDescription("Level 7");
+       |                    ^
+    159|     expect(within(avatar).getByText("7")).toHaveClass("hud-display");
+    160|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS47 WS48 WS49 WS50 WS51: level and XP on the home, only while progression is present > says the level and the XP to the next one at level 1 in one quiet line with a bar from the level's start to the next
+TestingLibraryElementError: Unable to find an accessible element with the role "progressbar" and name "Level 1 · 20 XP to level 2"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Thank someone for work you noticed":
+  <h1
+    class="hud-display text-2xl font-bold tracking-tight outline-none"
+    id="home-title"
+    tabindex="-1"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  --------------------------------------------------link:
+
+  Name "Thank someone in Slack (opens in a new tab)":
+  <a
+    class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-lg"
+    href="https://app.slack.com/client/T1"
+    rel="noreferrer"
+    target="_blank"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground tabular-nums"
+  />
+
+  --------------------------------------------------
+  time:
+
+  Name "":
+  <time
+    datetime="2026-10-14T00:00:00.000Z"
+  />
+
+  --------------------------------------------------paragraph:
+
+  Name "":
+  <p
+    class="flex items-center gap-3 text-sm"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<section
+  aria-labelledby="home-title"
+  class="hud-panel relative flex flex-col gap-5 rounded-xl border bg-card p-6"
+>
+  <div
+    class="flex items-center gap-3"
+  >
+    <span
+      aria-hidden="true"
+      class="inline-flex shrink-0 items-center justify-center rounded-full border bg-muted text-xs font-semibold text-muted-foreground size-12"
+    >
+      SE
+    </span>
+    <span
+      class="font-medium"
+    >
+      Sam Example
+    </span>
+  </div>
+  <div
+    class="flex flex-col gap-2"
+  >
+    <h1
+      class="hud-display text-2xl font-bold tracking-tight outline-none"
+      id="home-title"
+      tabindex="-1"
+    >
+      Thank someone for work you noticed
+    </h1>
+    <p
+      class="text-sm text-muted-foreground"
+    >
+      Mention them in a Slack message with :
+      taco
+      : and say what they did.
+    </p>
+  </div>
+  <div
+    class="flex flex-col items-start gap-2"
+  >
+    <a
+      class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-lg"
+      href="https://app.slack.com/client/T1"
+      rel="noreferrer"
+      target="_blank"
+    >
+      Thank someone in Slack
+       
+      <span
+        class="sr-only"
+      >
+        (opens in a new tab)
+      </span>
+      <svg
+        aria-hidden="true"
+        class="LemonIcon size-4"
+        fill="currentColor"
+        viewBox="0 0 24 24"
+        width="100%"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          clip-rule="evenodd"
+          d="M13 3.75a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 .75.75v6.5a.75.75 0 0 1-1.5 0V5.56l-7.97 7.97a.75.75 0 1 1-1.06-1.06l7.97-7.97h-4.69a.75.75 0 0 1-.75-.75ZM5.324 5H9.25a.75.75 0 1 1 0 1.5h-3.9c-.292 0-.467 0-.596.011a.628.628 0 0 0-.12.018.25.25 0 0 0-.105.104.626.626 0 0 0-.018.121c-.01.13-.011.304-.011.596v11.3c0 .292 0 .467.011.596a.625.625 0 0 0 .018.12.25.25 0 0 0 .104.105.638.638 0 0 0 .121.018c.13.01.304.011.596.011h11.3c.292 0 .467 0 .596-.011a.636.636 0 0 0 .12-.018.25.25 0 0 0 .105-.105.636.636 0 0 0 .018-.12c.01-.13.011-.304.011-.596V14a.75.75 0 0 1 1.5 0v4.676c0 .258 0 .494-.016.692a1.775 1.775 0 0 1-.175.677 1.75 1.75 0 0 1-.765.764c-.23.118-.463.157-.676.175-.198.016-.434.016-.692.016H5.324c-.258 0-.494 0-.692-.016a1.775 1.775 0 0 1-.676-.175 1.75 1.75 0 0 1-.765-.765 1.774 1.774 0 0 1-.175-.676A9.053 9.053 0 0 1 3 18.676V7.324c0-.258 0-.494.016-.692.018-.213.057-.446.175-.676a1.75 1.75 0 0 1 .765-.765c.23-.118.463-.157.676-.175C4.83 5 5.066 5 5.324 5ZM17.47 19.37v-.002Zm-.1.1h-.003Zm-12.74 0h.002Zm-.1-.102a.02.02 0 0 1 0 .001Zm0-12.737v.001Zm.102-.102h-.001Z"
+          fill-rule="evenodd"
+        />
+      </svg>
+    </a>
+    <p
+      class="text-sm text-muted-foreground tabular-nums"
+    >
+      1
+       of 
+      3
+       kudos left today · Refills at 
+      <time
+        datetime="2026-10-14T00:00:00.000Z"
+      >
+        12:00 AM
+      </time>
+    </p>
+  </div>
+  <div
+    class="border-t pt-4"
+  >
+    <p
+      class="flex items-center gap-3 text-sm"
+    >
+      <svg
+        aria-hidden="true"
+        class="shrink-0"
+        fill="none"
+        viewBox="0 0 1000 1000"
+        width="40"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M727.4 890.65v-.16q0-.13-.03-.24l.02.24v.43c0-.14 0-.27.02-.29zm8.68 1.12c0 3.55-1.32 6.97-2.97 9.93-2.1 3.72-5.23 6.63-8.34 9.25a64 64 0 0 1-8.3 5.6c-3 1.8-6.16 3.28-9.3 4.75a161 161 0 0 1-9.65 4.01 217 217 0 0 1-19.56 6.39 440 440 0 0 1-40.07 9.12c-26.2 4.8-52.64 7.98-79.11 10.2q-40.7 3.4-81.5 4.22-17.27.35-34.55.36-23.89.02-47.75-.81c-27.41-.98-54.8-2.49-82.15-4.9-27.01-2.4-54-5.5-80.82-9.9a807 807 0 0 1-40.5-7.6 461 461 0 0 1-38.1-9.73q-10.03-3.08-19.92-6.76-4.81-1.78-9.54-3.91c-3.04-1.4-6.08-2.76-9.04-4.34-3.28-1.76-6.5-3.62-9.63-5.68a64 64 0 0 1-8.22-6.55 30 30 0 0 1-6.24-8.07c-1.6-3.08-2.7-6.67-2.58-10.27.12-3.04.87-5.82 2.13-8.5a28 28 0 0 1 3.8-5.7c2.12-2.57 4.72-4.66 7.3-6.63 1.43-1.08 2.94-2.02 4.44-2.96a71 71 0 0 1 4.46-2.58c6.2-3.28 12.6-5.98 19.14-8.35 12.48-4.55 25.35-7.94 38.24-10.76a585 585 0 0 1 32.17-6.09h.1l1.24-.22q.12 0 .23-.03a796 796 0 0 1 35.31-4.78l.9-.1.22-.03.54-.05a970 970 0 0 1 35.55-3.35c27.42-2.08 54.87-3.28 82.34-3.7l3.63-.05c14.15-.24 28.32-.15 42.48.03q19.93.25 39.86 1.11 41.18 1.73 82.23 5.65 20.37 1.97 40.67 4.7a954 954 0 0 1 40.84 6.3 700 700 0 0 1 41.08 8.55 374 374 0 0 1 38.96 11.44 222 222 0 0 1 19.68 8.14c2.97 1.4 5.87 3 8.74 4.65 1.38.8 2.75 1.69 4.1 2.57 1.45.97 2.92 1.93 4.28 3.05a100 100 0 0 1 4.33 3.74 35 35 0 0 1 3.43 3.78 25.5 25.5 0 0 1 4.96 9.91c.33 1.65.46 3.25.46 4.93z"
+          fill="#320601"
+          fill-opacity=".24"
+        />
+        <path
+          d="m712.2 515 .59-.24q-.45.19-.83.4zm-1.3.85.1-.07-.2.18zm-70.67 42.37a4.7 4.7 0 0 1 1.36-6.44c6.34-4.24 12.66-8.54 18.98-12.81l31.45-21.2c5.64-3.81 11.33-7.57 16.94-11.42l.23-.17.58-.39a4.7 4.7 0 0 1 6.42 1.32l.03.04q.63.99.72 2.07l-1.6 1.7.2-.2-.77.82.26-.27-.06.06.1-.11.07-.07-.02.02.06-.06.17-.19c-1.6 1.71-3.14 3.49-4.74 5.2q-.45.4-.82.9l-4.53 3.05-29.24 19.72c-9.76 6.59-19.5 13.22-29.3 19.75l-.05.04a4.67 4.67 0 0 1-6.44-1.36m82.35-54.86-.1.1zm-.13.14.03-.02.26-.27q-.18.17-.34.35z"
+          fill="#320601"
+        />
+        <path
+          d="M705.54 510.2c.16-2.99 3.2-4.43 5.56-5.54a30 30 0 0 1 13.55-3.43l-1.92 1.98-.15.16q-.22.2-.4.41l.24-.25-.03.04v-.01l-.05.06q0-.02.03-.04l.01-.01-.01.01q-1.4 1.41-2.77 2.86l.01-.01.04-.04-.03.04q-2.16 2.25-4.27 4.5l.2-.2-.77.81.3-.32-.1.12.2-.22.17-.19q-1.85 2-3.66 4.02-.92.31-1.87.2c-2.36-.24-4.52-2.3-4.3-4.95z...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/HomePage.test.tsx:167:32
+    165|   ])("says the level and the XP to the next one %s in one quiet line w…
+    166|     renderApp(member);
+    167|     const bar = within(hero()).getByRole("progressbar", { name: line }…
+       |                                ^
+    168|     expect(bar).toHaveAttribute("aria-valuemin", min);
+    169|     expect(bar).toHaveAttribute("aria-valuemax", max);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS47 WS48 WS49 WS50 WS51: level and XP on the home, only while progression is present > says the level and the XP to the next one past level 5 in one quiet line with a bar from the level's start to the next
+TestingLibraryElementError: Unable to find an accessible element with the role "progressbar" and name "Level 7 · 500 XP to level 8"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Thank someone for work you noticed":
+  <h1
+    class="hud-display text-2xl font-bold tracking-tight outline-none"
+    id="home-title"
+    tabindex="-1"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  --------------------------------------------------link:
+
+  Name "Thank someone in Slack (opens in a new tab)":
+  <a
+    class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-lg"
+    href="https://app.slack.com/client/T1"
+    rel="noreferrer"
+    target="_blank"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground tabular-nums"
+  />
+
+  --------------------------------------------------
+  time:
+
+  Name "":
+  <time
+    datetime="2026-10-14T00:00:00.000Z"
+  />
+
+  --------------------------------------------------paragraph:
+
+  Name "":
+  <p
+    class="flex items-center gap-3 text-sm"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<section
+  aria-labelledby="home-title"
+  class="hud-panel relative flex flex-col gap-5 rounded-xl border bg-card p-6"
+>
+  <div
+    class="flex items-center gap-3"
+  >
+    <span
+      aria-hidden="true"
+      class="inline-flex shrink-0 items-center justify-center rounded-full border bg-muted text-xs font-semibold text-muted-foreground size-12"
+    >
+      SE
+    </span>
+    <span
+      class="font-medium"
+    >
+      Sam Example
+    </span>
+  </div>
+  <div
+    class="flex flex-col gap-2"
+  >
+    <h1
+      class="hud-display text-2xl font-bold tracking-tight outline-none"
+      id="home-title"
+      tabindex="-1"
+    >
+      Thank someone for work you noticed
+    </h1>
+    <p
+      class="text-sm text-muted-foreground"
+    >
+      Mention them in a Slack message with :
+      taco
+      : and say what they did.
+    </p>
+  </div>
+  <div
+    class="flex flex-col items-start gap-2"
+  >
+    <a
+      class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-lg"
+      href="https://app.slack.com/client/T1"
+      rel="noreferrer"
+      target="_blank"
+    >
+      Thank someone in Slack
+       
+      <span
+        class="sr-only"
+      >
+        (opens in a new tab)
+      </span>
+      <svg
+        aria-hidden="true"
+        class="LemonIcon size-4"
+        fill="currentColor"
+        viewBox="0 0 24 24"
+        width="100%"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          clip-rule="evenodd"
+          d="M13 3.75a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 .75.75v6.5a.75.75 0 0 1-1.5 0V5.56l-7.97 7.97a.75.75 0 1 1-1.06-1.06l7.97-7.97h-4.69a.75.75 0 0 1-.75-.75ZM5.324 5H9.25a.75.75 0 1 1 0 1.5h-3.9c-.292 0-.467 0-.596.011a.628.628 0 0 0-.12.018.25.25 0 0 0-.105.104.626.626 0 0 0-.018.121c-.01.13-.011.304-.011.596v11.3c0 .292 0 .467.011.596a.625.625 0 0 0 .018.12.25.25 0 0 0 .104.105.638.638 0 0 0 .121.018c.13.01.304.011.596.011h11.3c.292 0 .467 0 .596-.011a.636.636 0 0 0 .12-.018.25.25 0 0 0 .105-.105.636.636 0 0 0 .018-.12c.01-.13.011-.304.011-.596V14a.75.75 0 0 1 1.5 0v4.676c0 .258 0 .494-.016.692a1.775 1.775 0 0 1-.175.677 1.75 1.75 0 0 1-.765.764c-.23.118-.463.157-.676.175-.198.016-.434.016-.692.016H5.324c-.258 0-.494 0-.692-.016a1.775 1.775 0 0 1-.676-.175 1.75 1.75 0 0 1-.765-.765 1.774 1.774 0 0 1-.175-.676A9.053 9.053 0 0 1 3 18.676V7.324c0-.258 0-.494.016-.692.018-.213.057-.446.175-.676a1.75 1.75 0 0 1 .765-.765c.23-.118.463-.157.676-.175C4.83 5 5.066 5 5.324 5ZM17.47 19.37v-.002Zm-.1.1h-.003Zm-12.74 0h.002Zm-.1-.102a.02.02 0 0 1 0 .001Zm0-12.737v.001Zm.102-.102h-.001Z"
+          fill-rule="evenodd"
+        />
+      </svg>
+    </a>
+    <p
+      class="text-sm text-muted-foreground tabular-nums"
+    >
+      1
+       of 
+      3
+       kudos left today · Refills at 
+      <time
+        datetime="2026-10-14T00:00:00.000Z"
+      >
+        12:00 AM
+      </time>
+    </p>
+  </div>
+  <div
+    class="border-t pt-4"
+  >
+    <p
+      class="flex items-center gap-3 text-sm"
+    >
+      <svg
+        aria-hidden="true"
+        class="shrink-0"
+        fill="none"
+        viewBox="0 0 1000 1000"
+        width="40"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M727.4 890.65v-.16q0-.13-.03-.24l.02.24v.43c0-.14 0-.27.02-.29zm8.68 1.12c0 3.55-1.32 6.97-2.97 9.93-2.1 3.72-5.23 6.63-8.34 9.25a64 64 0 0 1-8.3 5.6c-3 1.8-6.16 3.28-9.3 4.75a161 161 0 0 1-9.65 4.01 217 217 0 0 1-19.56 6.39 440 440 0 0 1-40.07 9.12c-26.2 4.8-52.64 7.98-79.11 10.2q-40.7 3.4-81.5 4.22-17.27.35-34.55.36-23.89.02-47.75-.81c-27.41-.98-54.8-2.49-82.15-4.9-27.01-2.4-54-5.5-80.82-9.9a807 807 0 0 1-40.5-7.6 461 461 0 0 1-38.1-9.73q-10.03-3.08-19.92-6.76-4.81-1.78-9.54-3.91c-3.04-1.4-6.08-2.76-9.04-4.34-3.28-1.76-6.5-3.62-9.63-5.68a64 64 0 0 1-8.22-6.55 30 30 0 0 1-6.24-8.07c-1.6-3.08-2.7-6.67-2.58-10.27.12-3.04.87-5.82 2.13-8.5a28 28 0 0 1 3.8-5.7c2.12-2.57 4.72-4.66 7.3-6.63 1.43-1.08 2.94-2.02 4.44-2.96a71 71 0 0 1 4.46-2.58c6.2-3.28 12.6-5.98 19.14-8.35 12.48-4.55 25.35-7.94 38.24-10.76a585 585 0 0 1 32.17-6.09h.1l1.24-.22q.12 0 .23-.03a796 796 0 0 1 35.31-4.78l.9-.1.22-.03.54-.05a970 970 0 0 1 35.55-3.35c27.42-2.08 54.87-3.28 82.34-3.7l3.63-.05c14.15-.24 28.32-.15 42.48.03q19.93.25 39.86 1.11 41.18 1.73 82.23 5.65 20.37 1.97 40.67 4.7a954 954 0 0 1 40.84 6.3 700 700 0 0 1 41.08 8.55 374 374 0 0 1 38.96 11.44 222 222 0 0 1 19.68 8.14c2.97 1.4 5.87 3 8.74 4.65 1.38.8 2.75 1.69 4.1 2.57 1.45.97 2.92 1.93 4.28 3.05a100 100 0 0 1 4.33 3.74 35 35 0 0 1 3.43 3.78 25.5 25.5 0 0 1 4.96 9.91c.33 1.65.46 3.25.46 4.93z"
+          fill="#320601"
+          fill-opacity=".24"
+        />
+        <path
+          d="m712.2 515 .59-.24q-.45.19-.83.4zm-1.3.85.1-.07-.2.18zm-70.67 42.37a4.7 4.7 0 0 1 1.36-6.44c6.34-4.24 12.66-8.54 18.98-12.81l31.45-21.2c5.64-3.81 11.33-7.57 16.94-11.42l.23-.17.58-.39a4.7 4.7 0 0 1 6.42 1.32l.03.04q.63.99.72 2.07l-1.6 1.7.2-.2-.77.82.26-.27-.06.06.1-.11.07-.07-.02.02.06-.06.17-.19c-1.6 1.71-3.14 3.49-4.74 5.2q-.45.4-.82.9l-4.53 3.05-29.24 19.72c-9.76 6.59-19.5 13.22-29.3 19.75l-.05.04a4.67 4.67 0 0 1-6.44-1.36m82.35-54.86-.1.1zm-.13.14.03-.02.26-.27q-.18.17-.34.35z"
+          fill="#320601"
+        />
+        <path
+          d="M705.54 510.2c.16-2.99 3.2-4.43 5.56-5.54a30 30 0 0 1 13.55-3.43l-1.92 1.98-.15.16q-.22.2-.4.41l.24-.25-.03.04v-.01l-.05.06q0-.02.03-.04l.01-.01-.01.01q-1.4 1.41-2.77 2.86l.01-.01.04-.04-.03.04q-2.16 2.25-4.27 4.5l.2-.2-.77.81.3-.32-.1.12.2-.22.17-.19q-1.85 2-3.66 4.02-.92.31-1.87.2c-2.36-.24-4.52-2.3-4.3-4.95z...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/HomePage.test.tsx:167:32
+    165|   ])("says the level and the XP to the next one %s in one quiet line w…
+    166|     renderApp(member);
+    167|     const bar = within(hero()).getByRole("progressbar", { name: line }…
+       |                                ^
+    168|     expect(bar).toHaveAttribute("aria-valuemin", min);
+    169|     expect(bar).toHaveAttribute("aria-valuemax", max);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS47 WS48 WS49 WS50 WS51: level and XP on the home, only while progression is present > puts the level line after thanking and the allowance, before Max, and never as the hero's heading
+TestingLibraryElementError: Unable to find an element with the text: Level 7 · 500 XP to level 8. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<section
+  aria-labelledby="home-title"
+  class="hud-panel relative flex flex-col gap-5 rounded-xl border bg-card p-6"
+>
+  <div
+    class="flex items-center gap-3"
+  >
+    <span
+      aria-hidden="true"
+      class="inline-flex shrink-0 items-center justify-center rounded-full border bg-muted text-xs font-semibold text-muted-foreground size-12"
+    >
+      SE
+    </span>
+    <span
+      class="font-medium"
+    >
+      Sam Example
+    </span>
+  </div>
+  <div
+    class="flex flex-col gap-2"
+  >
+    <h1
+      class="hud-display text-2xl font-bold tracking-tight outline-none"
+      id="home-title"
+      tabindex="-1"
+    >
+      Thank someone for work you noticed
+    </h1>
+    <p
+      class="text-sm text-muted-foreground"
+    >
+      Mention them in a Slack message with :
+      taco
+      : and say what they did.
+    </p>
+  </div>
+  <div
+    class="flex flex-col items-start gap-2"
+  >
+    <a
+      class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-lg"
+      href="https://app.slack.com/client/T1"
+      rel="noreferrer"
+      target="_blank"
+    >
+      Thank someone in Slack
+       
+      <span
+        class="sr-only"
+      >
+        (opens in a new tab)
+      </span>
+      <svg
+        aria-hidden="true"
+        class="LemonIcon size-4"
+        fill="currentColor"
+        viewBox="0 0 24 24"
+        width="100%"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          clip-rule="evenodd"
+          d="M13 3.75a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 .75.75v6.5a.75.75 0 0 1-1.5 0V5.56l-7.97 7.97a.75.75 0 1 1-1.06-1.06l7.97-7.97h-4.69a.75.75 0 0 1-.75-.75ZM5.324 5H9.25a.75.75 0 1 1 0 1.5h-3.9c-.292 0-.467 0-.596.011a.628.628 0 0 0-.12.018.25.25 0 0 0-.105.104.626.626 0 0 0-.018.121c-.01.13-.011.304-.011.596v11.3c0 .292 0 .467.011.596a.625.625 0 0 0 .018.12.25.25 0 0 0 .104.105.638.638 0 0 0 .121.018c.13.01.304.011.596.011h11.3c.292 0 .467 0 .596-.011a.636.636 0 0 0 .12-.018.25.25 0 0 0 .105-.105.636.636 0 0 0 .018-.12c.01-.13.011-.304.011-.596V14a.75.75 0 0 1 1.5 0v4.676c0 .258 0 .494-.016.692a1.775 1.775 0 0 1-.175.677 1.75 1.75 0 0 1-.765.764c-.23.118-.463.157-.676.175-.198.016-.434.016-.692.016H5.324c-.258 0-.494 0-.692-.016a1.775 1.775 0 0 1-.676-.175 1.75 1.75 0 0 1-.765-.765 1.774 1.774 0 0 1-.175-.676A9.053 9.053 0 0 1 3 18.676V7.324c0-.258 0-.494.016-.692.018-.213.057-.446.175-.676a1.75 1.75 0 0 1 .765-.765c.23-.118.463-.157.676-.175C4.83 5 5.066 5 5.324 5ZM17.47 19.37v-.002Zm-.1.1h-.003Zm-12.74 0h.002Zm-.1-.102a.02.02 0 0 1 0 .001Zm0-12.737v.001Zm.102-.102h-.001Z"
+          fill-rule="evenodd"
+        />
+      </svg>
+    </a>
+    <p
+      class="text-sm text-muted-foreground tabular-nums"
+    >
+      1
+       of 
+      3
+       kudos left today · Refills at 
+      <time
+        datetime="2026-10-14T00:00:00.000Z"
+      >
+        12:00 AM
+      </time>
+    </p>
+  </div>
+  <div
+    class="border-t pt-4"
+  >
+    <p
+      class="flex items-center gap-3 text-sm"
+    >
+      <svg
+        aria-hidden="true"
+        class="shrink-0"
+        fill="none"
+        viewBox="0 0 1000 1000"
+        width="40"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M727.4 890.65v-.16q0-.13-.03-.24l.02.24v.43c0-.14 0-.27.02-.29zm8.68 1.12c0 3.55-1.32 6.97-2.97 9.93-2.1 3.72-5.23 6.63-8.34 9.25a64 64 0 0 1-8.3 5.6c-3 1.8-6.16 3.28-9.3 4.75a161 161 0 0 1-9.65 4.01 217 217 0 0 1-19.56 6.39 440 440 0 0 1-40.07 9.12c-26.2 4.8-52.64 7.98-79.11 10.2q-40.7 3.4-81.5 4.22-17.27.35-34.55.36-23.89.02-47.75-.81c-27.41-.98-54.8-2.49-82.15-4.9-27.01-2.4-54-5.5-80.82-9.9a807 807 0 0 1-40.5-7.6 461 461 0 0 1-38.1-9.73q-10.03-3.08-19.92-6.76-4.81-1.78-9.54-3.91c-3.04-1.4-6.08-2.76-9.04-4.34-3.28-1.76-6.5-3.62-9.63-5.68a64 64 0 0 1-8.22-6.55 30 30 0 0 1-6.24-8.07c-1.6-3.08-2.7-6.67-2.58-10.27.12-3.04.87-5.82 2.13-8.5a28 28 0 0 1 3.8-5.7c2.12-2.57 4.72-4.66 7.3-6.63 1.43-1.08 2.94-2.02 4.44-2.96a71 71 0 0 1 4.46-2.58c6.2-3.28 12.6-5.98 19.14-8.35 12.48-4.55 25.35-7.94 38.24-10.76a585 585 0 0 1 32.17-6.09h.1l1.24-.22q.12 0 .23-.03a796 796 0 0 1 35.31-4.78l.9-.1.22-.03.54-.05a970 970 0 0 1 35.55-3.35c27.42-2.08 54.87-3.28 82.34-3.7l3.63-.05c14.15-.24 28.32-.15 42.48.03q19.93.25 39.86 1.11 41.18 1.73 82.23 5.65 20.37 1.97 40.67 4.7a954 954 0 0 1 40.84 6.3 700 700 0 0 1 41.08 8.55 374 374 0 0 1 38.96 11.44 222 222 0 0 1 19.68 8.14c2.97 1.4 5.87 3 8.74 4.65 1.38.8 2.75 1.69 4.1 2.57 1.45.97 2.92 1.93 4.28 3.05a100 100 0 0 1 4.33 3.74 35 35 0 0 1 3.43 3.78 25.5 25.5 0 0 1 4.96 9.91c.33 1.65.46 3.25.46 4.93z"
+          fill="#320601"
+          fill-opacity=".24"
+        />
+        <path
+          d="m712.2 515 .59-.24q-.45.19-.83.4zm-1.3.85.1-.07-.2.18zm-70.67 42.37a4.7 4.7 0 0 1 1.36-6.44c6.34-4.24 12.66-8.54 18.98-12.81l31.45-21.2c5.64-3.81 11.33-7.57 16.94-11.42l.23-.17.58-.39a4.7 4.7 0 0 1 6.42 1.32l.03.04q.63.99.72 2.07l-1.6 1.7.2-.2-.77.82.26-.27-.06.06.1-.11.07-.07-.02.02.06-.06.17-.19c-1.6 1.71-3.14 3.49-4.74 5.2q-.45.4-.82.9l-4.53 3.05-29.24 19.72c-9.76 6.59-19.5 13.22-29.3 19.75l-.05.04a4.67 4.67 0 0 1-6.44-1.36m82.35-54.86-.1.1zm-.13.14.03-.02.26-.27q-.18.17-.34.35z"
+          fill="#320601"
+        />
+        <path
+          d="M705.54 510.2c.16-2.99 3.2-4.43 5.56-5.54a30 30 0 0 1 13.55-3.43l-1.92 1.98-.15.16q-.22.2-.4.41l.24-.25-.03.04v-.01l-.05.06q0-.02.03-.04l.01-.01-.01.01q-1.4 1.41-2.77 2.86l.01-.01.04-.04-.03.04q-2.16 2.25-4.27 4.5l.2-.2-.77.81.3-.32-.1.12.2-.22.17-.19q-1.85 2-3.66 4.02-.92.31-1.87.2c-2.36-.24-4.52-2.3-4.3-4.95z...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/HomePage.test.tsx:176:33
+    174|   it("puts the level line after thanking and the allowance, before Max…
+    175|     renderApp(shellFixtures.memberAtLevel7);
+    176|     const line = within(hero()).getByText("Level 7 · 500 XP to level 8…
+       |                                 ^
+    177|     const allowance = within(hero()).getByText(/1 of 3 kudos left toda…
+    178|     const max = within(hero()).getByText("This week you gave 2 kudos a…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS47 WS48 WS49 WS50 WS51: level and XP on the home, only while progression is present > shows Level n on the profile card beside the name, and still no received count
+TestingLibraryElementError: Unable to find an element with the text: Level 7. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<section
+  aria-labelledby="profile-card-title"
+>
+  <div
+    class="quill-card group/card flex flex-col"
+    data-quill="true"
+    data-size="sm"
+    data-slot="card"
+  >
+    <div
+      class="quill-card__content flex flex-col gap-3"
+      data-slot="card-content"
+    >
+      <h2
+        class="hud-label"
+        id="profile-card-title"
+      >
+        Your profile card
+      </h2>
+      <div
+        class="flex items-center gap-3 rounded-lg border bg-muted/40 p-3"
+      >
+        <span
+          aria-hidden="true"
+          class="inline-flex shrink-0 items-center justify-center rounded-full border bg-muted text-xs font-semibold text-muted-foreground size-10"
+        >
+          SE
+        </span>
+        <span
+          class="font-medium"
+        >
+          Sam Example
+        </span>
+      </div>
+      <p
+        class="text-xs text-muted-foreground"
+      >
+        Teammates see your face and name. The kudos you receive stay private.
+      </p>
+    </div>
+  </div>
+</section>
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/HomePage.test.tsx:189:25
+    187|     renderApp(shellFixtures.memberAtLevel7);
+    188|     const card = within(main()).getByRole("region", { name: "Your prof…
+    189|     expect(within(card).getByText("Level 7")).toBeInTheDocument();
+       |                         ^
+    190|     expect(within(card).getByText("Sam Example")).toBeInTheDocument();
+    191|     expect(card.textContent!.replace("Level 7", "")).not.toMatch(/\d/);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  6 failed | 42 passed (48)
+   Start at  22:42:26
+   Duration  12.42s (tests 80%, import 12%, environment 5%, transform 2%, setup 1%)
+
