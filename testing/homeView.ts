@@ -1,8 +1,9 @@
 import { expect } from "vitest";
 import type { FakeSlack } from "./fakeSlack";
+import type { BlockAction } from "./slackMessages";
 
 type TextObject = { type: string; text: string };
-type Element = { type: string; text?: TextObject; style?: string; initial_channel?: string };
+type Element = { type: string; text?: TextObject; style?: string; initial_channel?: string; action_id?: string; value?: string };
 type Block = { type: string; text?: TextObject; fields?: TextObject[]; elements?: unknown[]; accessory?: Element };
 type HomeView = { type: string; blocks: Block[] };
 
@@ -47,4 +48,21 @@ function plainText(text: TextObject | undefined) {
 function mrkdwn(text: TextObject | undefined) {
   expect(text?.type).toBe("mrkdwn");
   return text?.text;
+}
+
+export function buttonInHome(slack: FakeSlack, user: string, label: string): BlockAction {
+  const button = elementsInHome(slack, user).find((element) => element.type === "button" && element.text?.text === label);
+  expect(button, `a ${label} button in ${user}'s App Home`).toBeDefined();
+  return { type: "button", action_id: button!.action_id!, ...(button!.value !== undefined && { value: button!.value }) };
+}
+
+export function channelPickerInHome(slack: FakeSlack, user: string, channel: string | null): BlockAction {
+  const picker = elementsInHome(slack, user).find((element) => element.type === "channels_select");
+  expect(picker, `a channel picker in ${user}'s App Home`).toBeDefined();
+  return { type: "channels_select", action_id: picker!.action_id!, selected_channel: channel };
+}
+
+function elementsInHome(slack: FakeSlack, user: string) {
+  const blocks = publishedViews(slack, user).at(-1)?.blocks ?? [];
+  return blocks.flatMap((block) => [...(block.type === "actions" ? (block.elements as Element[]) : []), ...(block.accessory ? [block.accessory] : [])]);
 }

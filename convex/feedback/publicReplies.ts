@@ -5,6 +5,7 @@ import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from
 import { levelReachedEventValidator } from "../bus/events";
 import { threadOf } from "../engine/engine";
 import type { MessageRef } from "../engine/messageEvent";
+import { progressSettingsOf } from "../progression/settings";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { segmentValidator, type Line } from "./replies";
@@ -97,12 +98,8 @@ export function linesOf(reply: Pick<Doc<"publicReplies">, "sections">): Line[] {
 }
 
 async function isShownPublicly(ctx: QueryCtx, { member, about }: PublicSection) {
-  const settings = await ctx.db
-    .query("progressSettings")
-    .withIndex("by_member", (q) => q.eq("member", member))
-    .unique();
-  const hidden = about === "level" && (settings?.hideLevel ?? false);
-  return !hidden && !(settings?.muteNotices ?? false);
+  const { hideLevel, muteNotices } = await progressSettingsOf(ctx, member);
+  return !(about === "level" && hideLevel) && !muteNotices;
 }
 
 function levelSection(member: MemberId, user: string, level: number): PublicSection {

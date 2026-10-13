@@ -1,6 +1,7 @@
 import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { levelReachedEventValidator } from "../bus/events";
+import { progressSettingsOf } from "../progression/settings";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 
 export type Notification = { kind: "level-reached"; level: number; skillPoints: number; xpToNextLevel: number };
@@ -23,11 +24,7 @@ export function renderNotification({ level, skillPoints, xpToNextLevel }: Notifi
 }
 
 async function wantsDms(ctx: QueryCtx, member: MemberId) {
-  const settings = await ctx.db
-    .query("progressSettings")
-    .withIndex("by_member", (q) => q.eq("member", member))
-    .unique();
-  return settings?.dms ?? true;
+  return (await progressSettingsOf(ctx, member)).dms;
 }
 
 function skillPointsOf(count: number) {

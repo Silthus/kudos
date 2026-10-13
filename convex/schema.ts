@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
 import { publicSectionValidator, shownValidator } from "./feedback/publicReplies";
 import { segmentValidator } from "./feedback/replies";
+import { homeTabValidator } from "./feedback/home";
 import { effectsRecordValidator } from "./progression/progress";
 
 export default defineSchema({
@@ -125,7 +126,14 @@ export default defineSchema({
     member: v.id("members"),
     dms: v.optional(v.boolean()),
     hideLevel: v.optional(v.boolean()),
+    hideAchievements: v.optional(v.boolean()),
     muteNotices: v.optional(v.boolean()),
+  }).index("by_member", ["member"]),
+
+  homes: defineTable({
+    member: v.id("members"),
+    tab: homeTabValidator,
+    version: v.number(),
   }).index("by_member", ["member"]),
 
   slackRateLimits: defineTable({

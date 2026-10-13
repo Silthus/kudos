@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalAction, type ActionCtx } from "../_generated/server";
-import { renderHome, type HomeLine, type HomeView } from "../feedback/home";
+import { renderHome, type HomeAction, type HomeLine, type HomeView } from "../feedback/home";
 import type { HomeFacts } from "../feedback/homes";
 import { attemptArgs, failedAttempt, sendOnce, tryAtMostThreeTimes } from "./delivery";
 import { lookUpUser } from "./directory";
@@ -50,15 +50,17 @@ function homeView({ title, tabs, groups }: HomeView) {
 }
 
 function tabBarOf(tabs: HomeView["tabs"]) {
-  return {
-    type: "actions",
-    elements: tabs.map(({ tab, label, current }) => ({
-      type: "button",
-      action_id: `tab:${tab}`,
-      text: plainText(label),
-      ...(current && { style: "primary" }),
-    })),
-  };
+  return { type: "actions", elements: tabs.map((tab) => ({ ...buttonOf(tab), ...(tab.current && { style: "primary" }) })) };
+}
+
+function buttonOf({ label, intent }: HomeAction) {
+  return { type: "button", action_id: actionIdOf(intent), text: plainText(label), value: JSON.stringify(intent) };
+}
+
+function actionIdOf(intent: HomeAction["intent"]) {
+  return Object.entries(intent)
+    .map(([key, value]) => `${key}=${value}`)
+    .join("&");
 }
 
 const divider = { type: "divider" };
@@ -66,6 +68,7 @@ const divider = { type: "divider" };
 function blockOf(line: HomeLine) {
   if (line.kind === "fields") return { type: "section", fields: line.fields.map(mrkdwn) };
   if (line.kind === "hint") return { type: "context", elements: [mrkdwn(line.text)] };
+  if (line.kind === "action") return { type: "section", text: mrkdwn(line.text), accessory: buttonOf(line.action) };
   return { type: "section", text: mrkdwn(line.text) };
 }
 

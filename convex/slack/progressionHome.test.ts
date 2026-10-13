@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { publishedHome } from "../../testing/homeView";
+import { buttonInHome, publishedHome } from "../../testing/homeView";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
+import { appHomeOpened, blockActions, emoji, mention, messageEvent, section, type BlockAction } from "../../testing/slackMessages";
 
 const now = new Date("2026-10-13T10:00:00Z");
 
@@ -48,6 +48,101 @@ describe("P67: the Profile tab", () => {
   });
 });
 
+describe("P67: the Settings tab", () => {
+  test("clicking Settings is acknowledged at once and republishes App Home on the Settings tab with the member's progression settings", async () => {
+    const t = await workspaceWithAllowance(10);
+    await openHome(t, "U_ALICE");
+
+    const response = await click(t, "U_ALICE", "Settings");
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("");
+    expect(publishedHome(slack, "U_ALICE")).toEqual([
+      "header: Your kudos",
+      "actions: Profile | [Settings]",
+      "section: Other members can see your level. [button: Hide level]",
+      "section: Other members can see your achievements. [button: Hide achievements]",
+      "divider",
+      "section: I celebrate your level ups in public. [button: Mute notices]",
+      "section: I send you a DM when you reach a level. [button: Turn off DMs]",
+      "divider",
+      "context: Your App Home and your DMs always show you everything.",
+    ]);
+  });
+});
+
+describe("P63 P65: a setting takes effect on the next notice or DM, and repeating the same click changes nothing", () => {
+  test("muted notices: the next level up posts no public notice, the member still gets their DM, and Settings offers to unmute", async () => {
+    const t = await settingsOpen("U_ALICE");
+    const mute = buttonInHome(slack, "U_ALICE", "Mute notices");
+
+    await interact(t, "U_ALICE", mute);
+    await interact(t, "U_ALICE", mute);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(slack.messagesIn("C1")).toEqual([]);
+    expect(dmsTo("U_ALICE")).toEqual(["🎉 You reached level 2! You have 1 skill point saved for perks.\nLevel 3 is 80 XP away."]);
+    expect(publishedHome(slack, "U_ALICE")).toContain("section: I don't post public notices about you. [button: Unmute notices]");
+  });
+
+  test("a hidden level: the next level up posts no public notice, and Settings offers to show it", async () => {
+    const t = await settingsOpen("U_ALICE");
+    const hide = buttonInHome(slack, "U_ALICE", "Hide level");
+
+    await interact(t, "U_ALICE", hide);
+    await interact(t, "U_ALICE", hide);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(slack.messagesIn("C1")).toEqual([]);
+    expect(publishedHome(slack, "U_ALICE")).toContain("section: Your level is hidden from other members. [button: Show level]");
+  });
+
+  test("a level shown again: the next level up is celebrated in public again", async () => {
+    const t = await settingsOpen("U_ALICE");
+    await click(t, "U_ALICE", "Hide level");
+
+    await click(t, "U_ALICE", "Show level");
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(slack.messagesIn("C1").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
+  });
+
+  test("DMs turned off: the next level up sends no DM, the public notice still goes out, and Settings offers to turn them on", async () => {
+    const t = await settingsOpen("U_ALICE");
+    const turnOff = buttonInHome(slack, "U_ALICE", "Turn off DMs");
+
+    await interact(t, "U_ALICE", turnOff);
+    await interact(t, "U_ALICE", turnOff);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(dmsTo("U_ALICE")).toEqual([]);
+    expect(slack.messagesIn("C1").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
+    expect(publishedHome(slack, "U_ALICE")).toContain("section: I don't send you DMs. [button: Turn on DMs]");
+  });
+
+  test("hidden achievements: Settings shows them hidden and offers to show them", async () => {
+    const t = await settingsOpen("U_ALICE");
+    const hide = buttonInHome(slack, "U_ALICE", "Hide achievements");
+
+    await interact(t, "U_ALICE", hide);
+    await interact(t, "U_ALICE", hide);
+
+    expect(publishedHome(slack, "U_ALICE")).toContain("section: Your achievements are hidden from other members. [button: Show achievements]");
+  });
+});
+
+async function settingsOpen(user: string) {
+  const t = await workspaceWithAllowance(10);
+  await giveKudos(t, user, "U_BOB", 1);
+  await openHome(t, user);
+  await click(t, user, "Settings");
+  return t;
+}
+
+function dmsTo(user: string) {
+  return slack.callsTo("chat.postMessage").filter(({ channel }) => channel === `D_${user}`).map(({ text }) => text);
+}
+
 async function workspaceWithAllowance(baseAllowance: number) {
   const t = testBackend();
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance }));
@@ -63,6 +158,16 @@ async function giveKudos(t: Backend, giver: string, recipient: string, kudos: nu
 
 async function openHome(t: Backend, user: string) {
   const response = await t.fetch("/slack/events", await signedRequest(appHomeOpened(user)));
+  await settle(t);
+  return response;
+}
+
+async function click(t: Backend, user: string, label: string) {
+  return interact(t, user, buttonInHome(slack, user, label));
+}
+
+async function interact(t: Backend, user: string, action: BlockAction) {
+  const response = await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, action), { contentType: "application/x-www-form-urlencoded" }));
   await settle(t);
   return response;
 }

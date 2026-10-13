@@ -1,16 +1,26 @@
+import { v, type Infer } from "convex/values";
+import type { Intent } from "../bus/commands";
 import type { KudosHome } from "../engine/home";
 import type { ProgressionHome } from "../progression/progression";
+import type { ProgressSettings } from "../progression/settings";
 import type { HomeFacts } from "./homes";
 import { productName, slashCommand } from "./naming";
 
-export type HomeTab = "profile" | "settings";
+export const homeTabValidator = v.union(v.literal("profile"), v.literal("settings"));
 
-export type HomeView = { title: string; tabs: Array<{ tab: HomeTab; label: string; current: boolean }>; groups: HomeLine[][] };
+export type HomeTab = Infer<typeof homeTabValidator>;
+
+export type HomeAction = { label: string; intent: Intent };
+
+export type HomeView = { title: string; tabs: Array<HomeAction & { current: boolean }>; groups: HomeLine[][] };
 
 export type HomeLine =
   | { kind: "text"; text: string }
   | { kind: "fields"; fields: string[] }
-  | { kind: "hint"; text: string };
+  | { kind: "hint"; text: string }
+  | { kind: "action"; text: string; action: HomeAction };
+
+type MemberHome = Extract<HomeFacts, { kind: "member" }>;
 
 const tabLabels: Record<HomeTab, string> = { profile: "Profile", settings: "Settings" };
 
@@ -18,15 +28,46 @@ export function renderHome(facts: HomeFacts): HomeView {
   if (facts.kind === "not-a-member") {
     return { title: productName, tabs: [], groups: [[{ kind: "text", text: `${productName} is for active members of this workspace.` }]] };
   }
-  return {
-    title: "Your kudos",
-    tabs: tabsOf("profile"),
-    groups: [[allowanceOf(facts.kudos)], [progressOf(facts.progression)], [totalsOf(facts.kudos)], howToGive(facts.kudos.kudosEmoji)],
-  };
+  return { title: "Your kudos", tabs: tabsOf(facts.tab), groups: facts.tab === "settings" ? settingsTab(facts.settings) : profileTab(facts) };
 }
 
 function tabsOf(current: HomeTab) {
-  return (Object.keys(tabLabels) as HomeTab[]).map((tab) => ({ tab, label: tabLabels[tab], current: tab === current }));
+  return (Object.keys(tabLabels) as HomeTab[]).map((tab) => ({
+    label: tabLabels[tab],
+    intent: { type: "showHomeTab" as const, tab },
+    current: tab === current,
+  }));
+}
+
+function profileTab({ kudos, progression }: MemberHome): HomeLine[][] {
+  return [[allowanceOf(kudos)], [progressOf(progression)], [totalsOf(kudos)], howToGive(kudos.kudosEmoji)];
+}
+
+function settingsTab({ hideLevel, hideAchievements, muteNotices, dms }: ProgressSettings): HomeLine[][] {
+  return [
+    [
+      setting(hideLevel, { text: "Your level is hidden from other members.", label: "Show level" }, { text: "Other members can see your level.", label: "Hide level" }, (on) => ({ hideLevel: on })),
+      setting(
+        hideAchievements,
+        { text: "Your achievements are hidden from other members.", label: "Show achievements" },
+        { text: "Other members can see your achievements.", label: "Hide achievements" },
+        (on) => ({ hideAchievements: on }),
+      ),
+    ],
+    [
+      setting(muteNotices, { text: "I don't post public notices about you.", label: "Unmute notices" }, { text: "I celebrate your level ups in public.", label: "Mute notices" }, (on) => ({ muteNotices: on })),
+      setting(dms, { text: "I send you a DM when you reach a level.", label: "Turn off DMs" }, { text: "I don't send you DMs.", label: "Turn on DMs" }, (on) => ({ dms: on })),
+    ],
+    [{ kind: "hint", text: "Your App Home and your DMs always show you everything." }],
+  ];
+}
+
+type SettingCopy = { text: string; label: string };
+type SettingChange = Omit<Extract<Intent, { type: "setProgressSettings" }>, "type">;
+
+function setting(on: boolean, whenOn: SettingCopy, whenOff: SettingCopy, change: (on: boolean) => SettingChange): HomeLine {
+  const { text, label } = on ? whenOn : whenOff;
+  return { kind: "action", text, action: { label, intent: { type: "setProgressSettings", ...change(!on) } } };
 }
 
 function allowanceOf({ left, base }: KudosHome): HomeLine {

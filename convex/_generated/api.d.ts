@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as bus_commands from "../bus/commands.js";
 import type * as bus_events from "../bus/events.js";
 import type * as bus_publish from "../bus/publish.js";
 import type * as crons from "../crons.js";
@@ -34,12 +35,14 @@ import type * as progression_gate from "../progression/gate.js";
 import type * as progression_levels from "../progression/levels.js";
 import type * as progression_progress from "../progression/progress.js";
 import type * as progression_progression from "../progression/progression.js";
+import type * as progression_settings from "../progression/settings.js";
 import type * as slack_appHome from "../slack/appHome.js";
 import type * as slack_commands from "../slack/commands.js";
 import type * as slack_delivery from "../slack/delivery.js";
 import type * as slack_directMessages from "../slack/directMessages.js";
 import type * as slack_directory from "../slack/directory.js";
 import type * as slack_events from "../slack/events.js";
+import type * as slack_interactivity from "../slack/interactivity.js";
 import type * as slack_normalize from "../slack/normalize.js";
 import type * as slack_placedReactions from "../slack/placedReactions.js";
 import type * as slack_processEvent from "../slack/processEvent.js";
@@ -60,6 +63,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "bus/commands": typeof bus_commands;
   "bus/events": typeof bus_events;
   "bus/publish": typeof bus_publish;
   crons: typeof crons;
@@ -86,12 +90,14 @@ declare const fullApi: ApiFromModules<{
   "progression/levels": typeof progression_levels;
   "progression/progress": typeof progression_progress;
   "progression/progression": typeof progression_progression;
+  "progression/settings": typeof progression_settings;
   "slack/appHome": typeof slack_appHome;
   "slack/commands": typeof slack_commands;
   "slack/delivery": typeof slack_delivery;
   "slack/directMessages": typeof slack_directMessages;
   "slack/directory": typeof slack_directory;
   "slack/events": typeof slack_events;
+  "slack/interactivity": typeof slack_interactivity;
   "slack/normalize": typeof slack_normalize;
   "slack/placedReactions": typeof slack_placedReactions;
   "slack/processEvent": typeof slack_processEvent;

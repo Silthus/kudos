@@ -1,6 +1,6 @@
 import { v, type Infer, type ObjectType } from "convex/values";
 import type { Id } from "../_generated/dataModel";
-import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
+import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import type { ChatUserId } from "../engine/messageEvent";
 
 export type MemberId = Id<"members">;
@@ -24,6 +24,14 @@ export async function lookup(ctx: QueryCtx, workspace: string, user: ChatUserId)
   if (row.kind === "member") return { kind: "member", member: row._id, timeZone: row.timeZone };
   return { kind: row.kind };
 }
+
+export const memberOf = internalQuery({
+  args: { workspace: v.string(), user: v.string() },
+  handler: async (ctx, { workspace, user }): Promise<MemberId | null> => {
+    const person = await lookup(ctx, workspace, user);
+    return person?.kind === "member" ? person.member : null;
+  },
+});
 
 export async function chatUserOf(ctx: QueryCtx, member: MemberId): Promise<{ workspace: string; user: ChatUserId }> {
   const row = await ctx.db.get(member);
