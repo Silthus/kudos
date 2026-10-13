@@ -1,5 +1,7 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { exceptionValidator } from "./analytics/exceptions";
+import { propertiesValidator } from "./analytics/projections";
 import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
 import { segmentValidator } from "./feedback/replies";
 
@@ -40,6 +42,7 @@ export default defineSchema({
       v.literal("withdrawn"),
     ),
     attempt: v.int64(),
+    retry: v.optional(v.boolean()),
     content: v.object({ mentions: v.array(mentionValidator), emoji: v.array(v.string()) }),
     annotations: annotationsValidator,
     spendsAt: v.number(),
@@ -104,4 +107,54 @@ export default defineSchema({
     method: v.string(),
     until: v.number(),
   }).index("by_method", ["workspace", "method"]),
+
+  analyticsIds: defineTable({
+    member: v.id("members"),
+    analyticsId: v.string(),
+  }).index("by_member", ["member"]),
+
+  workspaceKeys: defineTable({
+    workspace: v.string(),
+    workspaceKey: v.string(),
+  }).index("by_workspace", ["workspace"]),
+
+  analyticsOutbox: defineTable({
+    uuid: v.string(),
+    event: v.string(),
+    distinctId: v.string(),
+    timestamp: v.number(),
+    properties: propertiesValidator,
+    exception: v.optional(exceptionValidator),
+    state: v.union(v.literal("pending"), v.literal("sending"), v.literal("exhausted")),
+    failures: v.number(),
+    dueAt: v.number(),
+    lease: v.optional(v.string()),
+    reason: v.optional(v.union(v.literal("rejected"), v.literal("exhausted"), v.literal("expired"))),
+  })
+    .index("by_state", ["state"])
+    .index("by_due", ["state", "dueAt"]),
+
+  analyticsDrain: defineTable({
+    job: v.id("_scheduled_functions"),
+    generation: v.string(),
+  }),
+
+  errorSweep: defineTable({
+    cursor: v.number(),
+    watchCursor: v.number(),
+  }),
+
+  watchedJobs: defineTable({
+    job: v.id("_scheduled_functions"),
+  }).index("by_job", ["job"]),
+
+  reportedJobs: defineTable({
+    job: v.id("_scheduled_functions"),
+  }).index("by_job", ["job"]),
+
+  flagExposures: defineTable({
+    member: v.id("members"),
+    flag: v.string(),
+    value: v.union(v.string(), v.boolean()),
+  }).index("by_member_flag_value", ["member", "flag", "value"]),
 });

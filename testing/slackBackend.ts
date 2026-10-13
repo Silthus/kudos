@@ -1,3 +1,4 @@
+import postHogComponent from "@posthog/convex/test";
 import { convexTest } from "convex-test";
 import { vi } from "vitest";
 import schema from "../convex/schema";
@@ -7,8 +8,13 @@ import { memberEvent, messageChangedEvent, messageDeletedEvent, messageEvent, ty
 
 export type Backend = ReturnType<typeof testBackend>;
 
+const realSetTimeout = globalThis.setTimeout;
+const idleAfterMs = 200;
+
 export function testBackend() {
-  return convexTest(schema, modules);
+  const t = convexTest(schema, modules);
+  postHogComponent.register(t);
+  return t;
 }
 
 export async function post(t: Backend, blocks: RichElement[], options: MessageOptions = {}) {
@@ -29,6 +35,18 @@ export async function memberChanged(t: Backend, ...event: Parameters<typeof memb
 
 export async function settle(t: Backend) {
   await t.finishAllScheduledFunctions(vi.runAllTimers);
+}
+
+export async function settleInTimeOrder(t: Backend, { until = Infinity, maxTimers = 200 } = {}) {
+  for (let fired = 0; fired < maxTimers; fired += 1) {
+    await Promise.race([
+      t.finishInProgressScheduledFunctions(),
+      new Promise((resolve) => realSetTimeout(resolve, idleAfterMs)),
+    ]);
+    if (vi.getTimerCount() === 0 || Date.now() >= until) return;
+    vi.advanceTimersToNextTimer();
+  }
+  throw new Error(`settleInTimeOrder: more than ${maxTimers} timers fired`);
 }
 
 export async function settleUntil(t: Backend, until: Date) {

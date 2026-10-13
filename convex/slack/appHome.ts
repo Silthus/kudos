@@ -1,8 +1,12 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { internalAction, type ActionCtx } from "../_generated/server";
+import { internalMutation, type ActionCtx, type MutationCtx } from "../_generated/server";
+import { observedAction } from "../analytics/boundary";
+import { ReportableError } from "../analytics/exceptions";
+import { recordUsage, recordUsageWithoutBlocking } from "../analytics/usage";
 import type { HomeFacts } from "../engine/home";
 import { renderHome, type HomeLine, type HomeView } from "../feedback/home";
+import { lookup } from "../workspace/directory";
 import { attemptArgs, failedAttempt, sendOnce, tryAtMostThreeTimes } from "./delivery";
 import { lookUpUser } from "./directory";
 
@@ -12,17 +16,44 @@ export function isHomeTabOpened(event: { type: string }): event is HomeOpened {
   return event.type === "app_home_opened" && (event as HomeOpened).tab === "home";
 }
 
-export const publishHome = internalAction({
-  args: { workspace: v.string(), user: v.string(), ...attemptArgs },
-  handler: async (ctx, { attempt = 1, ...opened }) => {
+type Opening = { workspace: string; user: string; at: number };
+
+export async function reportHomeOpened(ctx: MutationCtx, { workspace, user, at }: Opening): Promise<"reported" | "unknown-person"> {
+  const person = await lookup(ctx, workspace, user);
+  if (person === undefined) return "unknown-person";
+  if (person.kind === "member") await recordUsage(ctx, { kind: "appHomeOpened", workspace, member: person.member, at });
+  return "reported";
+}
+
+export const reportLookedUpHomeOpening = internalMutation({
+  args: { workspace: v.string(), user: v.string(), at: v.number() },
+  handler: async (ctx, opening) => {
+    await reportHomeOpened(ctx, opening);
+  },
+});
+
+export const publishHome = observedAction({
+  args: { workspace: v.string(), user: v.string(), unreportedOpeningAt: v.optional(v.number()), ...attemptArgs },
+  handler: async (ctx, { attempt = 1, unreportedOpeningAt, ...opened }) => {
+    let unreported = unreportedOpeningAt;
     await tryAtMostThreeTimes(
       attempt,
       async (attempt) => {
         const facts = await homeFactsOf(ctx, opened.workspace, opened.user);
         if (facts.kind === "unavailable") return failedAttempt(attempt, facts.retryAfterMs);
+        if (unreported !== undefined) {
+          const at = unreported;
+          await recordUsageWithoutBlocking(() => ctx.runMutation(internal.slack.appHome.reportLookedUpHomeOpening, { ...opened, at }));
+          unreported = undefined;
+        }
         return sendOnce(ctx, opened.workspace, "views.publish", { user_id: opened.user, view: homeView(renderHome(facts)) }, attempt);
       },
-      (retry) => ctx.scheduler.runAt(retry.at, internal.slack.appHome.publishHome, { ...opened, attempt: retry.attempt }),
+      (retry) =>
+        ctx.scheduler.runAt(retry.at, internal.slack.appHome.publishHome, {
+          ...opened,
+          ...(unreported !== undefined && { unreportedOpeningAt: unreported }),
+          attempt: retry.attempt,
+        }),
     );
   },
 });
@@ -62,6 +93,6 @@ function mrkdwn(text: string) {
 
 function appId() {
   const id = process.env.SLACK_APP_ID;
-  if (!id) throw new Error("SLACK_APP_ID is not set");
+  if (!id) throw new ReportableError("SLACK_APP_ID is not set");
   return id;
 }
