@@ -1,7 +1,7 @@
 import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { kudosGivenEventValidator, membersNamedIn } from "../bus/events";
+import { xpRecordedEventValidator } from "../bus/events";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import type { Period } from "../leaderboard/periods";
 import { everyoneBoardOf, type EveryoneBoardView } from "../leaderboard/totals";
@@ -61,11 +61,10 @@ export async function selectLeaderboardPeriod(ctx: MutationCtx, member: MemberId
   await select(ctx, member, { tab: "leaderboard", period });
 }
 
-export const refreshHomesOnKudos = internalMutation({
-  args: { event: kudosGivenEventValidator },
+export const refreshHomeOnXp = internalMutation({
+  args: { event: xpRecordedEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
-    if (!(await xpLevelsShownIn(ctx, event.workspace))) return;
-    for (const member of membersNamedIn(event)) await republish(ctx, member);
+    if (await xpLevelsShownIn(ctx, event.workspace)) await republish(ctx, event.member);
   },
 });
 

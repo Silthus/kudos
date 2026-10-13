@@ -34,6 +34,13 @@ export const levelReachedEventValidator = v.object({
   at: v.number(),
 });
 
+export const xpRecordedEventValidator = v.object({
+  type: v.literal("xpRecorded"),
+  workspace: v.string(),
+  member: v.id("members"),
+  at: v.number(),
+});
+
 export type KudosGivenEvent = Infer<typeof kudosGivenEventValidator>;
 
 export const attemptFailedEventValidator = v.object({
@@ -67,7 +74,9 @@ export type MemberWelcomedEvent = Infer<typeof memberWelcomedEventValidator>;
 
 export type LevelReachedEvent = Infer<typeof levelReachedEventValidator>;
 
-export type DomainEvent = KudosGivenEvent | AttemptFailedEvent | MemberWelcomedEvent | LevelReachedEvent;
+export type XpRecordedEvent = Infer<typeof xpRecordedEventValidator>;
+
+export type DomainEvent = KudosGivenEvent | AttemptFailedEvent | MemberWelcomedEvent | LevelReachedEvent | XpRecordedEvent;
 
 export function membersNamedIn(event: KudosGivenEvent): MemberId[] {
   return [...new Set([event.giver, ...event.awards.map((award) => award.recipient)])];

@@ -3,7 +3,9 @@ import { flagsLoaded, flagsOnForEveryone } from "../../testing/flags";
 import { FakeSlack, httpStatus } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { memberChanged, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { kudosGivenEventWithAward } from "../../testing/busEvents";
 import { internal } from "../_generated/api";
+import type { QueryCtx } from "../_generated/server";
 import { type BlockAction, blockActions, buttonInHome, channelPickerInHome, publishedHome, publishedViews } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 
@@ -163,6 +165,17 @@ describe("P68: App Home is republished after a change, the latest version wins, 
     expect(publishedHome(slack, "U_ALICE")).toContain("section fields: *Level*\n*1* | *XP to level 2*\n*10*");
     expect(publishedHome(slack, "U_ALICE")).toContain("section fields: *Given this week*\n*1* | *Received this week*\n*0* | *Given in total*\n*1* | *Received in total*\n*0*");
     expect(publishedHome(slack, "U_BOB")).toContain("section fields: *Level*\n*1* | *XP to level 2*\n*15*");
+  });
+
+  test("App Home is republished from the transaction that records the XP, so it never shows XP from before it", async () => {
+    const t = await workspaceWithAllowance(10);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    const event = await t.run(async (ctx) => kudosGivenEventWithAward(ctx, await memberId(ctx, "U_ALICE"), await memberId(ctx, "U_BOB")));
+
+    await t.mutation(internal.progression.progression.recordEffects, { event });
+    await settle(t);
+
+    expect(publishedHome(slack, "U_BOB")).toContain("section fields: *Level*\n*1* | *XP to level 2*\n*10*");
   });
 
   test("a republish that fails is tried again until the new level shows", async () => {
@@ -372,6 +385,14 @@ async function settingsOpen(user: string) {
   await openHome(t, user);
   await click(t, user, "Settings");
   return t;
+}
+
+async function memberId(ctx: QueryCtx, user: string) {
+  const member = await ctx.db
+    .query("members")
+    .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", user))
+    .unique();
+  return member!._id;
 }
 
 async function withXp(t: Backend, user: string, xp: number) {

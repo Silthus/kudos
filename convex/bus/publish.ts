@@ -10,13 +10,13 @@ export const subscribers: Registry = {
   kudosGiven: [
     internal.welcome.welcome.welcomeNewMembers,
     internal.progression.progression.recordEffects,
-    internal.feedback.homes.refreshHomesOnKudos,
     internal.leaderboard.totals.countKudosGiven,
     internal.analytics.subscribers.recordKudosGiven,
   ],
   attemptFailed: [internal.analytics.subscribers.recordAttemptFailed],
   memberWelcomed: [internal.analytics.subscribers.recordMemberWelcomed],
   levelReached: [internal.feedback.notify.notifyLevelReached, internal.feedback.publicReplies.celebrateLevel],
+  xpRecorded: [internal.feedback.homes.refreshHomeOnXp],
 };
 
 export async function publish(ctx: MutationCtx, event: DomainEvent) {
