@@ -1,0 +1,10 @@
+$ vitest run --config vitest.handshake.config.ts
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/deploy
+
+
+ Test Files  1 passed (1)
+      Tests  17 passed (17)
+   Start at  21:23:29
+   Duration  16.89s (tests 99%, import 1%)
+

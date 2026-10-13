@@ -38,12 +38,12 @@ describe.each(deployments)("deploying the $name deployment", ({ name, file, bran
 
   test("WS27: after convex deploy, the website is built against this deployment and uploaded to its static hosting", () => {
     expect(steps.indexOf(uploadStep!)).toBeGreaterThan(steps.indexOf(deployStep!));
-    expect(uploadStep?.run).toBe('pnpm exec static-hosting upload --prod --build --build-command "pnpm website:build" --dist website/dist');
+    expect(uploadStep?.run).toBe('pnpm exec static-hosting upload --build --build-command "pnpm website:build" --dist website/dist');
   });
 
   test("WS2 WS27: every deploy runs prepareWebsiteFlag on this deployment once the website is uploaded", () => {
     expect(steps.indexOf(prepareStep!)).toBeGreaterThan(steps.indexOf(uploadStep!));
-    expect(prepareStep?.run).toBe("pnpm exec convex run --prod website/flag:prepareWebsiteFlag");
+    expect(prepareStep?.run).toBe("pnpm exec convex run website/flag:prepareWebsiteFlag");
   });
 
   test("the workflow reads the repository and nothing more, and keeps no git credentials", () => {
