@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
 import { IconHome } from "@posthog/icons";
 import { AccountMenu } from "./AccountMenu";
-import type { SignedInMember } from "./shell";
+import type { MemberProfile } from "./shell";
 import { ThemeControl } from "./ThemeControl";
 
-type FrameProps = { member?: SignedInMember; atHome: boolean; busy: boolean; onSignOut: () => void; children: ReactNode };
+type FrameProps = { member?: MemberProfile; atHome: boolean; busy: boolean; onSignOut?: () => void; children: ReactNode };
 
 export function Frame({ member, atHome, busy, onSignOut, children }: FrameProps) {
   return (
@@ -15,7 +15,7 @@ export function Frame({ member, atHome, busy, onSignOut, children }: FrameProps)
           {member && <ScreenNav atHome={atHome} />}
           <div className="ml-auto flex items-center gap-2">
             <ThemeControl />
-            {member && <AccountMenu member={member} onSignOut={onSignOut} />}
+            {member && onSignOut && <AccountMenu member={member} onSignOut={onSignOut} />}
           </div>
         </div>
       </header>

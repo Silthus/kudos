@@ -19,7 +19,7 @@ function signInStarted() {
   }
 }
 
-function forgetSignInStarted() {
+export function forgetSignInStarted() {
   try {
     sessionStorage.removeItem(storageKey);
   } catch {

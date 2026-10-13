@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { StrictMode } from "react";
 import { vi } from "vitest";
 import { App } from "../App";
+import { ShellBoundary } from "../Root";
 import type { ShellState } from "../shell";
 
 export function renderApp(visitor: ShellState) {
@@ -10,7 +11,9 @@ export function renderApp(visitor: ShellState) {
   const user = userEvent.setup();
   const appFor = (state: ShellState) => (
     <StrictMode>
-      <App visitor={state} actions={actions} />
+      <ShellBoundary>
+        <App visitor={state} actions={actions} />
+      </ShellBoundary>
     </StrictMode>
   );
   const view = render(appFor(visitor));
