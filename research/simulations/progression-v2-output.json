@@ -42,26 +42,31 @@
   },
   "journey": [
     {
+      "id": "first-thanks",
       "level": 1,
       "xp": 10,
       "coins": 0
     },
     {
+      "id": "first-quest",
       "level": 2,
       "xp": 20,
       "coins": 0
     },
     {
+      "id": "someone-new",
       "level": 3,
       "xp": 30,
       "coins": 0
     },
     {
+      "id": "two-days",
       "level": 4,
       "xp": 30,
       "coins": 0
     },
     {
+      "id": "your-emoji",
       "level": 6,
       "xp": 40,
       "coins": 20
@@ -164,18 +169,18 @@
     {
       "archetype": "steady",
       "bestBuild": "steady",
-      "xp": 29835,
+      "xp": 29837,
       "level": 25.3,
       "noPerkLevel": 20,
-      "buildSpread": 29.5,
+      "buildSpread": 30,
       "daysToLevel": {
         "2": 0,
-        "3": 1,
+        "3": 2,
         "4": 7,
-        "5": 14,
-        "6": 24,
-        "7": 36,
-        "9": 66,
+        "5": 15,
+        "6": 25,
+        "7": 37,
+        "9": 67,
         "12": 119
       },
       "xpShare": {
@@ -184,187 +189,187 @@
         "quests": 11.8,
         "journey": 0.4
       },
-      "coinsPerWeek": 119,
+      "coinsPerWeek": 118.6,
       "coinShare": {
-        "giving": 42,
-        "receiving": 10.4,
-        "perks": 13.8,
-        "quests": 26.3,
+        "giving": 42.3,
+        "receiving": 10.3,
+        "perks": 13.9,
+        "quests": 26,
         "achievements": 7.2,
         "journey": 0.2
       },
-      "coinsWaitingAtLevel6": 403,
+      "coinsWaitingAtLevel6": 415,
       "upgradeWaitDays": 0,
-      "firstStoreHedgehogDay": 37,
+      "firstStoreHedgehogDay": 38,
       "storeHedgehogs": 5,
       "storeEmoji": 6,
       "tiers": 27,
-      "wallet": 2261
+      "wallet": 2232
     },
     {
       "archetype": "burst",
       "bestBuild": "burst",
-      "xp": 15358,
-      "level": 18.5,
+      "xp": 15138,
+      "level": 18.3,
       "noPerkLevel": 15,
-      "buildSpread": 17.6,
+      "buildSpread": 16.4,
       "daysToLevel": {
         "2": 2,
-        "3": 4,
-        "4": 15,
-        "5": 29,
-        "6": 52,
-        "7": 73,
+        "3": 7,
+        "4": 16,
+        "5": 32,
+        "6": 53,
+        "7": 77,
         "9": 134,
-        "12": 252
+        "12": 247
       },
       "xpShare": {
         "base": 53.2,
-        "perks": 30.3,
-        "quests": 15.6,
-        "journey": 0.8
+        "perks": 30.1,
+        "quests": 15.8,
+        "journey": 0.9
       },
-      "coinsPerWeek": 72.7,
+      "coinsPerWeek": 72.2,
       "coinShare": {
-        "giving": 35.6,
-        "receiving": 8.8,
-        "perks": 14.9,
-        "quests": 32,
+        "giving": 35.2,
+        "receiving": 8.9,
+        "perks": 14.7,
+        "quests": 32.5,
         "achievements": 8.3,
         "journey": 0.4
       },
-      "coinsWaitingAtLevel6": 440,
+      "coinsWaitingAtLevel6": 435,
       "upgradeWaitDays": 0,
-      "firstStoreHedgehogDay": 84,
+      "firstStoreHedgehogDay": 88,
       "storeHedgehogs": 4,
       "storeEmoji": 6,
       "tiers": 25,
-      "wallet": 1604
+      "wallet": 1559
     },
     {
       "archetype": "popular",
       "bestBuild": "receiver",
-      "xp": 31940,
-      "level": 26.3,
-      "noPerkLevel": 22.5,
-      "buildSpread": 30.9,
+      "xp": 32076,
+      "level": 26.4,
+      "noPerkLevel": 22.6,
+      "buildSpread": 31.2,
       "daysToLevel": {
         "2": 0,
         "3": 1,
-        "4": 4,
+        "4": 7,
         "5": 11,
         "6": 22,
-        "7": 32,
-        "9": 63,
-        "12": 116
+        "7": 35,
+        "9": 60,
+        "12": 114
       },
       "xpShare": {
-        "base": 62.9,
-        "perks": 28.3,
+        "base": 62.8,
+        "perks": 28.4,
         "quests": 8.4,
         "journey": 0.4
       },
-      "coinsPerWeek": 68.7,
+      "coinsPerWeek": 68.6,
       "coinShare": {
-        "giving": 17.9,
+        "giving": 18,
         "receiving": 28.9,
-        "perks": 6.2,
-        "quests": 36.8,
-        "achievements": 9.8,
+        "perks": 6.3,
+        "quests": 36.7,
+        "achievements": 9.7,
         "journey": 0.4
       },
-      "coinsWaitingAtLevel6": 244,
-      "upgradeWaitDays": 10,
-      "firstStoreHedgehogDay": 32,
+      "coinsWaitingAtLevel6": 229,
+      "upgradeWaitDays": 11,
+      "firstStoreHedgehogDay": 35,
       "storeHedgehogs": 4,
       "storeEmoji": 6,
-      "tiers": 22.7,
-      "wallet": 1486
+      "tiers": 22.6,
+      "wallet": 1485
     },
     {
       "archetype": "parttime",
       "bestBuild": "steady",
-      "xp": 14108,
-      "level": 18,
-      "noPerkLevel": 14.9,
-      "buildSpread": 22.9,
+      "xp": 14109,
+      "level": 17.9,
+      "noPerkLevel": 15,
+      "buildSpread": 24.3,
       "daysToLevel": {
         "2": 0,
-        "3": 4,
+        "3": 7,
         "4": 14,
         "5": 30,
         "6": 51,
-        "7": 74,
+        "7": 72,
         "9": 133,
         "12": 238
       },
       "xpShare": {
-        "base": 46.8,
-        "perks": 33.9,
+        "base": 46.9,
+        "perks": 33.8,
         "quests": 18.4,
         "journey": 0.9
       },
-      "coinsPerWeek": 58.7,
+      "coinsPerWeek": 58.3,
       "coinShare": {
-        "giving": 33.9,
-        "receiving": 12.3,
-        "perks": 5.4,
-        "quests": 42.3,
+        "giving": 34,
+        "receiving": 12.5,
+        "perks": 5.5,
+        "quests": 41.8,
         "achievements": 5.7,
         "journey": 0.4
       },
-      "coinsWaitingAtLevel6": 426,
+      "coinsWaitingAtLevel6": 425,
       "upgradeWaitDays": 0,
       "firstStoreHedgehogDay": 77,
       "storeHedgehogs": 4,
       "storeEmoji": 6,
       "tiers": 19,
-      "wallet": 560
+      "wallet": 530
     },
     {
       "archetype": "newhire",
       "bestBuild": "steady",
-      "xp": 15822,
-      "level": 19,
+      "xp": 15705,
+      "level": 18.8,
       "noPerkLevel": 15,
-      "buildSpread": 26.7,
+      "buildSpread": 25.5,
       "daysToLevel": {
         "2": 0,
         "3": 3,
         "4": 10,
-        "5": 20,
-        "6": 35,
+        "5": 19,
+        "6": 34,
         "7": 52,
         "9": 90,
-        "12": 157
+        "12": 164
       },
       "xpShare": {
-        "base": 48.1,
-        "perks": 34.9,
-        "quests": 16.1,
+        "base": 48,
+        "perks": 34.8,
+        "quests": 16.4,
         "journey": 0.8
       },
-      "coinsPerWeek": 86.7,
+      "coinsPerWeek": 86.2,
       "coinShare": {
-        "giving": 35.2,
+        "giving": 35.1,
         "receiving": 14.2,
-        "perks": 6.8,
-        "quests": 35.7,
-        "achievements": 7.7,
+        "perks": 6.7,
+        "quests": 36,
+        "achievements": 7.6,
         "journey": 0.4
       },
-      "coinsWaitingAtLevel6": 413,
+      "coinsWaitingAtLevel6": 411,
       "upgradeWaitDays": 0,
       "firstStoreHedgehogDay": 52,
       "storeHedgehogs": 4,
       "storeEmoji": 6,
-      "tiers": 21.2,
-      "wallet": 872
+      "tiers": 21.1,
+      "wallet": 845
     },
     {
       "archetype": "holiday",
       "bestBuild": "steady",
-      "xp": 26240,
+      "xp": 26267,
       "level": 24,
       "noPerkLevel": 19.1,
       "buildSpread": 28.6,
@@ -372,150 +377,150 @@
         "2": 0,
         "3": 2,
         "4": 7,
-        "5": 15,
-        "6": 25,
-        "7": 37,
-        "9": 66,
-        "12": 133
+        "5": 14,
+        "6": 24,
+        "7": 36,
+        "9": 65,
+        "12": 128
       },
       "xpShare": {
-        "base": 49.2,
-        "perks": 36.6,
-        "quests": 13.6,
+        "base": 49.3,
+        "perks": 36.5,
+        "quests": 13.7,
         "journey": 0.5
       },
-      "coinsPerWeek": 107.6,
+      "coinsPerWeek": 107.8,
       "coinShare": {
-        "giving": 40.6,
+        "giving": 40.4,
         "receiving": 9.8,
         "perks": 12.5,
-        "quests": 28.9,
+        "quests": 29.1,
         "achievements": 8,
         "journey": 0.2
       },
-      "coinsWaitingAtLevel6": 407,
+      "coinsWaitingAtLevel6": 394,
       "upgradeWaitDays": 0,
-      "firstStoreHedgehogDay": 38,
+      "firstStoreHedgehogDay": 36,
       "storeHedgehogs": 5,
       "storeEmoji": 6,
       "tiers": 27,
-      "wallet": 1372
+      "wallet": 1391
     },
     {
       "archetype": "swapper",
       "bestBuild": "steady",
-      "xp": 20711,
+      "xp": 20805,
       "level": 21.2,
       "noPerkLevel": 20,
-      "buildSpread": 5.1,
+      "buildSpread": 5.9,
       "daysToLevel": {
         "2": 0,
         "3": 2,
         "4": 8,
-        "5": 17,
-        "6": 29,
-        "7": 44,
-        "9": 80,
-        "12": 155
+        "5": 16,
+        "6": 28,
+        "7": 42,
+        "9": 79,
+        "12": 151
       },
       "xpShare": {
-        "base": 86.1,
-        "perks": 12.7,
+        "base": 85.7,
+        "perks": 12.6,
         "quests": 1.1,
-        "journey": 0.1
+        "journey": 0.6
       },
-      "coinsPerWeek": 31.1,
+      "coinsPerWeek": 31.6,
       "coinShare": {
-        "giving": 22.1,
-        "receiving": 23.7,
+        "giving": 21.4,
+        "receiving": 23.2,
         "perks": 5.8,
-        "quests": 30.4,
-        "achievements": 18.1,
-        "journey": 0
+        "quests": 30.9,
+        "achievements": 17.8,
+        "journey": 0.8
       },
-      "coinsWaitingAtLevel6": 138,
-      "upgradeWaitDays": 18,
-      "firstStoreHedgehogDay": 165,
-      "storeHedgehogs": 2.2,
+      "coinsWaitingAtLevel6": 131,
+      "upgradeWaitDays": 19,
+      "firstStoreHedgehogDay": 161,
+      "storeHedgehogs": 2.4,
       "storeEmoji": 6,
       "tiers": 16,
-      "wallet": 492
+      "wallet": 356
     },
     {
       "archetype": "minmax",
       "bestBuild": "steady",
-      "xp": 35661,
-      "level": 27.8,
-      "noPerkLevel": 22.1,
-      "buildSpread": 14.8,
+      "xp": 35563,
+      "level": 27.9,
+      "noPerkLevel": 22,
+      "buildSpread": 14.5,
       "daysToLevel": {
         "2": 0,
         "3": 1,
-        "4": 4,
-        "5": 11,
+        "4": 7,
+        "5": 14,
         "6": 21,
-        "7": 31,
-        "9": 59,
+        "7": 32,
+        "9": 58,
         "12": 105
       },
       "xpShare": {
-        "base": 51.9,
+        "base": 51.8,
         "perks": 36.1,
-        "quests": 11.6,
+        "quests": 11.7,
         "journey": 0.4
       },
-      "coinsPerWeek": 127.7,
+      "coinsPerWeek": 127.4,
       "coinShare": {
-        "giving": 38.2,
+        "giving": 38.1,
         "receiving": 13,
         "perks": 13.8,
         "quests": 27.1,
         "achievements": 7.7,
         "journey": 0.2
       },
-      "coinsWaitingAtLevel6": 454,
-      "upgradeWaitDays": 2,
+      "coinsWaitingAtLevel6": 401,
+      "upgradeWaitDays": 1,
       "firstStoreHedgehogDay": 35,
       "storeHedgehogs": 5,
       "storeEmoji": 6,
       "tiers": 28,
-      "wallet": 2937
+      "wallet": 2921
     },
     {
       "archetype": "quiet",
       "bestBuild": "social",
-      "xp": 6509,
-      "level": 12.3,
+      "xp": 6650,
+      "level": 12.5,
       "noPerkLevel": 10.8,
-      "buildSpread": 15.1,
+      "buildSpread": 16.3,
       "daysToLevel": {
         "2": 1,
-        "3": 8,
-        "4": 28,
-        "5": 63,
-        "6": 105,
-        "7": 148,
-        "9": 262,
-        "12": 477
+        "3": 9,
+        "4": 30,
+        "5": 58,
+        "6": 99,
+        "7": 147,
+        "9": 254,
+        "12": 463
       },
       "xpShare": {
-        "base": 50.9,
-        "perks": 27,
-        "quests": 20.1,
+        "base": 50.6,
+        "perks": 27.2,
+        "quests": 20.3,
         "journey": 2
       },
-      "coinsPerWeek": 32.8,
+      "coinsPerWeek": 33.4,
       "coinShare": {
-        "giving": 21.6,
-        "receiving": 17.5,
+        "giving": 21.4,
+        "receiving": 17.4,
         "perks": 0,
-        "quests": 49.9,
-        "achievements": 10.2,
+        "quests": 50.4,
+        "achievements": 10,
         "journey": 0.8
       },
-      "coinsWaitingAtLevel6": 485,
+      "coinsWaitingAtLevel6": 473,
       "upgradeWaitDays": 0,
-      "firstStoreHedgehogDay": 154,
+      "firstStoreHedgehogDay": 149,
       "storeHedgehogs": 3,
       "storeEmoji": 6,
       "tiers": 19,
@@ -525,41 +530,41 @@
       "archetype": "pair",
       "bestBuild": "steady",
       "xp": 23950,
-      "level": 23,
-      "noPerkLevel": 20.6,
-      "buildSpread": 7.9,
+      "level": 22.9,
+      "noPerkLevel": 20.8,
+      "buildSpread": 7.4,
       "daysToLevel": {
         "2": 0,
-        "3": 1,
+        "3": 2,
         "4": 7,
-        "5": 15,
-        "6": 25,
-        "7": 38,
-        "9": 70,
-        "12": 133
+        "5": 14,
+        "6": 24,
+        "7": 36,
+        "9": 67,
+        "12": 129
       },
       "xpShare": {
-        "base": 73.8,
+        "base": 73.1,
         "perks": 19.8,
-        "quests": 6.3,
-        "journey": 0.1
+        "quests": 6.5,
+        "journey": 0.5
       },
-      "coinsPerWeek": 51.7,
+      "coinsPerWeek": 52.4,
       "coinShare": {
-        "giving": 38.7,
-        "receiving": 3.9,
-        "perks": 11.8,
-        "quests": 34.7,
-        "achievements": 10.9,
-        "journey": 0
+        "giving": 38.1,
+        "receiving": 3.8,
+        "perks": 11.6,
+        "quests": 35.2,
+        "achievements": 10.8,
+        "journey": 0.5
       },
-      "coinsWaitingAtLevel6": 183,
-      "upgradeWaitDays": 18,
-      "firstStoreHedgehogDay": 42,
-      "storeHedgehogs": 3.5,
+      "coinsWaitingAtLevel6": 175,
+      "upgradeWaitDays": 14,
+      "firstStoreHedgehogDay": 38,
+      "storeHedgehogs": 3.6,
       "storeEmoji": 6,
       "tiers": 16,
-      "wallet": 764
+      "wallet": 695
     }
   ],
   "questXpSweep": [
@@ -567,75 +572,75 @@
       "questXp": 15,
       "questShare": {
         "steady": 9.2,
-        "burst": 12.6,
-        "popular": 6.4,
-        "parttime": 14.5,
-        "newhire": 12.9,
-        "holiday": 10.4,
+        "burst": 12.4,
+        "popular": 6.5,
+        "parttime": 14.6,
+        "newhire": 12.7,
+        "holiday": 10.6,
         "swapper": 0.8,
         "minmax": 9,
-        "quiet": 16,
-        "pair": 4.8
+        "quiet": 16.1,
+        "pair": 5
       }
     },
     {
       "questXp": 20,
       "questShare": {
         "steady": 11.8,
-        "burst": 15.6,
+        "burst": 15.8,
         "popular": 8.4,
         "parttime": 18.4,
-        "newhire": 16.1,
-        "holiday": 13.6,
+        "newhire": 16.4,
+        "holiday": 13.7,
         "swapper": 1.1,
-        "minmax": 11.6,
-        "quiet": 20.1,
-        "pair": 6.3
+        "minmax": 11.7,
+        "quiet": 20.3,
+        "pair": 6.5
       }
     },
     {
       "questXp": 25,
       "questShare": {
-        "steady": 14.4,
-        "burst": 18.8,
+        "steady": 14.2,
+        "burst": 19,
         "popular": 10.3,
-        "parttime": 21.8,
-        "newhire": 19.5,
-        "holiday": 16.3,
+        "parttime": 21.9,
+        "newhire": 19.6,
+        "holiday": 16.6,
         "swapper": 1.4,
         "minmax": 14.1,
-        "quiet": 23.2,
-        "pair": 7.8
+        "quiet": 23.5,
+        "pair": 8.1
       }
     },
     {
       "questXp": 40,
       "questShare": {
-        "steady": 20.9,
-        "burst": 26.1,
+        "steady": 20.7,
+        "burst": 26.2,
         "popular": 15.4,
-        "parttime": 30.4,
+        "parttime": 30.9,
         "newhire": 27.6,
-        "holiday": 23.5,
+        "holiday": 23.8,
         "swapper": 2.2,
-        "minmax": 20.5,
+        "minmax": 20.7,
         "quiet": 32.7,
-        "pair": 12
+        "pair": 12.3
       }
     },
     {
       "questXp": 60,
       "questShare": {
-        "steady": 28.4,
-        "burst": 34.1,
+        "steady": 28.5,
+        "burst": 33.6,
         "popular": 21.4,
-        "parttime": 39,
+        "parttime": 39.3,
         "newhire": 36.3,
-        "holiday": 31.8,
+        "holiday": 32.1,
         "swapper": 3.3,
-        "minmax": 28,
-        "quiet": 41.3,
-        "pair": 17
+        "minmax": 28.1,
+        "quiet": 41.1,
+        "pair": 17.4
       }
     }
   ],
@@ -645,64 +650,64 @@
       "groupXp": 30,
       "results": {
         "steady": {
-          "base": 46.4,
-          "quests": 17.9,
-          "level": 26.3,
+          "base": 46.5,
+          "quests": 17.6,
+          "level": 26.2,
           "daysToLevel5": 14
         },
         "burst": {
           "base": 47,
           "quests": 24.1,
-          "level": 19.9,
-          "daysToLevel5": 25
+          "level": 20.1,
+          "daysToLevel5": 28
         },
         "popular": {
           "base": 59.2,
-          "quests": 13.6,
-          "level": 27.2,
+          "quests": 13.5,
+          "level": 27.1,
           "daysToLevel5": 11
         },
         "parttime": {
-          "base": 41,
-          "quests": 27.7,
+          "base": 40.8,
+          "quests": 27.9,
           "level": 19,
           "daysToLevel5": 28
         },
         "newhire": {
-          "base": 43.3,
-          "quests": 23.8,
+          "base": 43.2,
+          "quests": 23.6,
           "level": 19.8,
           "daysToLevel5": 18
         },
         "holiday": {
           "base": 45.2,
-          "quests": 20.2,
-          "level": 24.8,
+          "quests": 20.3,
+          "level": 25,
           "daysToLevel5": 14
         },
         "swapper": {
-          "base": 81,
-          "quests": 7,
+          "base": 80.5,
+          "quests": 7.1,
           "level": 22,
-          "daysToLevel5": 16
+          "daysToLevel5": 15
         },
         "minmax": {
-          "base": 48.5,
+          "base": 48.6,
           "quests": 16.9,
           "level": 28.7,
-          "daysToLevel5": 10
+          "daysToLevel5": 11
         },
         "quiet": {
-          "base": 39.6,
-          "quests": 34.8,
-          "level": 14,
-          "daysToLevel5": 44
+          "base": 39.7,
+          "quests": 34.7,
+          "level": 14.1,
+          "daysToLevel5": 49
         },
         "pair": {
-          "base": 69,
-          "quests": 12.4,
+          "base": 68.2,
+          "quests": 12.7,
           "level": 23.8,
-          "daysToLevel5": 15
+          "daysToLevel5": 14
         }
       }
     },
@@ -711,64 +716,64 @@
       "groupXp": 30,
       "results": {
         "steady": {
-          "base": 47.7,
-          "quests": 15.6,
+          "base": 47.9,
+          "quests": 15.3,
           "level": 26,
           "daysToLevel5": 14
         },
         "burst": {
           "base": 48.9,
-          "quests": 21.6,
+          "quests": 21.7,
           "level": 19.3,
-          "daysToLevel5": 25
+          "daysToLevel5": 29
         },
         "popular": {
           "base": 60.4,
           "quests": 11.8,
-          "level": 26.8,
+          "level": 26.7,
           "daysToLevel5": 11
         },
         "parttime": {
           "base": 42.7,
           "quests": 24.9,
-          "level": 18.6,
+          "level": 18.7,
           "daysToLevel5": 28
         },
         "newhire": {
-          "base": 45.3,
-          "quests": 20.7,
+          "base": 45.2,
+          "quests": 21,
           "level": 19.3,
           "daysToLevel5": 19
         },
         "holiday": {
-          "base": 46.9,
-          "quests": 17.5,
-          "level": 24.7,
+          "base": 46.8,
+          "quests": 17.7,
+          "level": 24.8,
           "daysToLevel5": 14
         },
         "swapper": {
-          "base": 81.2,
-          "quests": 6.7,
+          "base": 80.7,
+          "quests": 6.8,
           "level": 22,
-          "daysToLevel5": 16
+          "daysToLevel5": 15
         },
         "minmax": {
-          "base": 49.8,
-          "quests": 14.7,
-          "level": 28.1,
+          "base": 49.9,
+          "quests": 14.8,
+          "level": 28.2,
           "daysToLevel5": 11
         },
         "quiet": {
-          "base": 41.4,
-          "quests": 32.5,
-          "level": 13.7,
+          "base": 41.7,
+          "quests": 32.1,
+          "level": 13.6,
           "daysToLevel5": 49
         },
         "pair": {
-          "base": 70,
-          "quests": 11.1,
+          "base": 69.3,
+          "quests": 11.4,
           "level": 23.5,
-          "daysToLevel5": 15
+          "daysToLevel5": 14
         }
       }
     },
@@ -777,64 +782,64 @@
       "groupXp": 0,
       "results": {
         "steady": {
-          "base": 48.5,
-          "quests": 14.4,
+          "base": 48.6,
+          "quests": 14.2,
           "level": 26,
           "daysToLevel5": 14
         },
         "burst": {
-          "base": 51,
-          "quests": 18.8,
-          "level": 19,
-          "daysToLevel5": 28
+          "base": 50.9,
+          "quests": 19,
+          "level": 18.9,
+          "daysToLevel5": 30
         },
         "popular": {
           "base": 61.5,
           "quests": 10.3,
-          "level": 26.5,
+          "level": 26.7,
           "daysToLevel5": 11
         },
         "parttime": {
-          "base": 44.9,
-          "quests": 21.8,
-          "level": 18.1,
+          "base": 44.5,
+          "quests": 21.9,
+          "level": 18,
           "daysToLevel5": 28
         },
         "newhire": {
-          "base": 46,
-          "quests": 19.5,
-          "level": 19.2,
-          "daysToLevel5": 19
+          "base": 45.9,
+          "quests": 19.6,
+          "level": 19.1,
+          "daysToLevel5": 18
         },
         "holiday": {
-          "base": 47.6,
-          "quests": 16.3,
-          "level": 24.3,
+          "base": 47.5,
+          "quests": 16.6,
+          "level": 24.2,
           "daysToLevel5": 14
         },
         "swapper": {
-          "base": 85.8,
+          "base": 85.4,
           "quests": 1.4,
-          "level": 21.2,
-          "daysToLevel5": 17
+          "level": 21.1,
+          "daysToLevel5": 16
         },
         "minmax": {
-          "base": 50.2,
+          "base": 50.3,
           "quests": 14.1,
-          "level": 28.2,
+          "level": 28,
           "daysToLevel5": 11
         },
         "quiet": {
-          "base": 48.5,
-          "quests": 23.2,
-          "level": 12.8,
+          "base": 48,
+          "quests": 23.5,
+          "level": 12.9,
           "daysToLevel5": 56
         },
         "pair": {
-          "base": 72.6,
-          "quests": 7.8,
-          "level": 23,
-          "daysToLevel5": 15
+          "base": 71.9,
+          "quests": 8.1,
+          "level": 23.1,
+          "daysToLevel5": 14
         }
       }
     },
@@ -846,61 +851,61 @@
           "base": 50.1,
           "quests": 11.8,
           "level": 25.3,
-          "daysToLevel5": 14
+          "daysToLevel5": 15
         },
         "burst": {
           "base": 53.2,
-          "quests": 15.6,
-          "level": 18.5,
-          "daysToLevel5": 29
+          "quests": 15.8,
+          "level": 18.3,
+          "daysToLevel5": 32
         },
         "popular": {
-          "base": 62.9,
+          "base": 62.8,
           "quests": 8.4,
-          "level": 26.3,
+          "level": 26.4,
           "daysToLevel5": 11
         },
         "parttime": {
-          "base": 46.8,
+          "base": 46.9,
           "quests": 18.4,
-          "level": 18,
+          "level": 17.9,
           "daysToLevel5": 30
         },
         "newhire": {
-          "base": 48.1,
-          "quests": 16.1,
-          "level": 19,
-          "daysToLevel5": 20
+          "base": 48,
+          "quests": 16.4,
+          "level": 18.8,
+          "daysToLevel5": 19
         },
         "holiday": {
-          "base": 49.2,
-          "quests": 13.6,
+          "base": 49.3,
+          "quests": 13.7,
           "level": 24,
-          "daysToLevel5": 15
+          "daysToLevel5": 14
         },
         "swapper": {
-          "base": 86.1,
+          "base": 85.7,
           "quests": 1.1,
           "level": 21.2,
-          "daysToLevel5": 17
+          "daysToLevel5": 16
         },
         "minmax": {
-          "base": 51.9,
-          "quests": 11.6,
-          "level": 27.8,
-          "daysToLevel5": 11
+          "base": 51.8,
+          "quests": 11.7,
+          "level": 27.9,
+          "daysToLevel5": 14
         },
         "quiet": {
-          "base": 50.9,
-          "quests": 20.1,
-          "level": 12.3,
-          "daysToLevel5": 63
+          "base": 50.6,
+          "quests": 20.3,
+          "level": 12.5,
+          "daysToLevel5": 58
         },
         "pair": {
-          "base": 73.8,
-          "quests": 6.3,
-          "level": 23,
-          "daysToLevel5": 15
+          "base": 73.1,
+          "quests": 6.5,
+          "level": 22.9,
+          "daysToLevel5": 14
         }
       }
     }
@@ -911,73 +916,73 @@
       "results": {
         "steady": {
           "perkShare": 43.9,
-          "level": 26.8,
-          "spread": 38.4,
+          "level": 26.9,
+          "spread": 38.7,
           "best": "steady",
           "day12": 114
         },
         "burst": {
-          "perkShare": 38.2,
-          "level": 19,
-          "spread": 18.7,
+          "perkShare": 38.1,
+          "level": 18.9,
+          "spread": 17.8,
           "best": "steady",
           "day12": 217
         },
         "popular": {
-          "perkShare": 36.3,
+          "perkShare": 36.2,
           "level": 27.8,
-          "spread": 45.8,
+          "spread": 46,
           "best": "receiver",
           "day12": 112
         },
         "parttime": {
-          "perkShare": 39.5,
+          "perkShare": 39.6,
           "level": 18.7,
-          "spread": 30.6,
+          "spread": 32.5,
           "best": "steady",
           "day12": 228
         },
         "newhire": {
-          "perkShare": 40.9,
+          "perkShare": 40.7,
           "level": 19.6,
-          "spread": 35.6,
+          "spread": 34,
           "best": "steady",
-          "day12": 150
+          "day12": 152
         },
         "holiday": {
-          "perkShare": 42.6,
-          "level": 25.1,
-          "spread": 37.8,
+          "perkShare": 42.7,
+          "level": 25,
+          "spread": 37.2,
           "best": "steady",
           "day12": 126
         },
         "swapper": {
-          "perkShare": 16.4,
+          "perkShare": 16.3,
           "level": 22,
-          "spread": 7.5,
+          "spread": 8.4,
           "best": "steady",
-          "day12": 154
+          "day12": 150
         },
         "minmax": {
           "perkShare": 42.6,
-          "level": 29,
+          "level": 29.1,
           "spread": 20.9,
           "best": "steady",
           "day12": 101
         },
         "quiet": {
-          "perkShare": 31.3,
+          "perkShare": 31.5,
           "level": 12.9,
-          "spread": 20.2,
+          "spread": 21.7,
           "best": "social",
-          "day12": 452
+          "day12": 448
         },
         "pair": {
-          "perkShare": 23.8,
-          "level": 23.5,
-          "spread": 11.8,
+          "perkShare": 23.9,
+          "level": 23.4,
+          "spread": 11.4,
           "best": "steady",
-          "day12": 128
+          "day12": 126
         }
       }
     },
@@ -987,72 +992,72 @@
         "steady": {
           "perkShare": 37.7,
           "level": 25.3,
-          "spread": 29.5,
+          "spread": 30,
           "best": "steady",
           "day12": 119
         },
         "burst": {
-          "perkShare": 30.3,
-          "level": 18.5,
-          "spread": 17.6,
+          "perkShare": 30.1,
+          "level": 18.3,
+          "spread": 16.4,
           "best": "burst",
-          "day12": 252
+          "day12": 247
         },
         "popular": {
-          "perkShare": 28.3,
-          "level": 26.3,
-          "spread": 30.9,
+          "perkShare": 28.4,
+          "level": 26.4,
+          "spread": 31.2,
           "best": "receiver",
-          "day12": 116
+          "day12": 114
         },
         "parttime": {
-          "perkShare": 33.9,
-          "level": 18,
-          "spread": 22.9,
+          "perkShare": 33.8,
+          "level": 17.9,
+          "spread": 24.3,
           "best": "steady",
           "day12": 238
         },
         "newhire": {
-          "perkShare": 34.9,
-          "level": 19,
-          "spread": 26.7,
+          "perkShare": 34.8,
+          "level": 18.8,
+          "spread": 25.5,
           "best": "steady",
-          "day12": 157
+          "day12": 164
         },
         "holiday": {
-          "perkShare": 36.6,
+          "perkShare": 36.5,
           "level": 24,
           "spread": 28.6,
           "best": "steady",
-          "day12": 133
+          "day12": 128
         },
         "swapper": {
-          "perkShare": 12.7,
+          "perkShare": 12.6,
           "level": 21.2,
-          "spread": 5.1,
+          "spread": 5.9,
           "best": "steady",
-          "day12": 155
+          "day12": 151
         },
         "minmax": {
           "perkShare": 36.1,
-          "level": 27.8,
-          "spread": 14.8,
+          "level": 27.9,
+          "spread": 14.5,
           "best": "steady",
           "day12": 105
         },
         "quiet": {
-          "perkShare": 27,
-          "level": 12.3,
-          "spread": 15.1,
+          "perkShare": 27.2,
+          "level": 12.5,
+          "spread": 16.3,
           "best": "social",
-          "day12": 477
+          "day12": 463
         },
         "pair": {
           "perkShare": 19.8,
-          "level": 23,
-          "spread": 7.9,
+          "level": 22.9,
+          "spread": 7.4,
           "best": "steady",
-          "day12": 133
+          "day12": 129
         }
       }
     }

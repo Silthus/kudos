@@ -2,7 +2,7 @@
 
 2026-10-13 · Ticket [#86](https://github.com/Silthus/kudos/issues/86) · **Synthetic archetypes only. No real usage data went in.**
 
-**Revision 5 (#97, 2026-10-13)** takes the Octalysis walk-through's findings ([#85](https://github.com/Silthus/kudos/issues/85), report on `research/octalysis` at `f0b786f`): a personal quest pays 20 XP instead of 25, the group quest pays no XP, and the Journey drops its two steps that paid for spending a skill point and equipping a hedgehog. Every table below is revision 5; the [spec](../spec/progression.md) carries the numbers.
+**Revision 5 (#97, 2026-10-13)** takes the Octalysis walk-through's findings ([#85](https://github.com/Silthus/kudos/issues/85), report on `research/octalysis` at `f0b786f`): a personal quest pays 20 XP instead of 25, the group quest pays no XP, and the Journey drops its two steps that paid for spending a skill point and equipping a hedgehog. Revision 5.1, after #97's review, models each Journey goal as P89 and P90 state it instead of as a chance. Every table below is revision 5.1; the [spec](../spec/progression.md) carries the numbers.
 
 Michael cut the game to its core loop (map #1, decision 12). This rerun, revision 4 of the [balance research](https://github.com/Silthus/kudos/blob/research/progression-economy/research/progression-balance.md), sets the numbers in the [revised spec](../spec/progression.md): skill points from level 5, the 14-perk tree, quest and Journey rewards, achievement tier coins, and the store.
 
@@ -33,60 +33,60 @@ Days to a level count from the member's first day. XP and coin shares are percen
 
 | Archetype | Best build | Level at 18 months | No-perk level | Build spread | Days to level 2 / 3 / 4 / 5 / 6 / 7 / 12 | XP: base / perks / quests / Journey | Coins a week | Coins: giving / receiving / perks / quests / tiers | Coins when Coins opens | Upgrade wait (days) | First store hedgehog (day) | Coins left |
 |---|---|---:|---:|---:|---|---|---:|---|---:|---:|---:|---:|
-| Steady | steady | 25.3 | 20 | 29.5% | 0 / 1 / 7 / 14 / 24 / 36 / 119 | 50 / 38 / 12 / 0 | 119 | 42 / 10 / 14 / 26 / 7 | 403 | 0 | 37 | 2,261 |
-| Burst | burst | 18.5 | 15 | 17.6% | 2 / 4 / 15 / 29 / 52 / 73 / 252 | 53 / 30 / 16 / 1 | 73 | 36 / 9 / 15 / 32 / 8 | 440 | 0 | 84 | 1,604 |
-| Popular | receiver | 26.3 | 22.5 | 30.9% | 0 / 1 / 4 / 11 / 22 / 32 / 116 | 63 / 28 / 8 / 0 | 69 | 18 / 29 / 6 / 37 / 10 | 244 | 10 | 32 | 1,486 |
-| Part-time | steady | 18 | 14.9 | 22.9% | 0 / 4 / 14 / 30 / 51 / 74 / 238 | 47 / 34 / 18 / 1 | 59 | 34 / 12 / 5 / 42 / 6 | 426 | 0 | 77 | 560 |
-| New hire | steady | 19 | 15 | 26.7% | 0 / 3 / 10 / 20 / 35 / 52 / 157 | 48 / 35 / 16 / 1 | 87 | 35 / 14 / 7 / 36 / 8 | 413 | 0 | 52 | 872 |
-| Holiday | steady | 24 | 19.1 | 28.6% | 0 / 2 / 7 / 15 / 25 / 37 / 133 | 49 / 37 / 14 / 0 | 108 | 41 / 10 / 12 / 29 / 8 | 407 | 0 | 38 | 1,372 |
-| Swapper | steady | 21.2 | 20 | 5.1% | 0 / 2 / 8 / 17 / 29 / 44 / 155 | 86 / 13 / 1 / 0 | 31 | 22 / 24 / 6 / 30 / 18 | 138 | 18 | 165 | 492 |
-| Min-maxer | steady | 27.8 | 22.1 | 14.8% | 0 / 1 / 4 / 11 / 21 / 31 / 105 | 52 / 36 / 12 / 0 | 128 | 38 / 13 / 14 / 27 / 8 | 454 | 2 | 35 | 2,937 |
-| Quiet | social | 12.3 | 10.8 | 15.1% | 1 / 8 / 28 / 63 / 105 / 148 / 477 | 51 / 27 / 20 / 2 | 33 | 22 / 18 / 0 / 50 / 10 | 485 | 0 | 154 | 436 |
-| Colluding pair | steady | 23 | 20.6 | 7.9% | 0 / 1 / 7 / 15 / 25 / 38 / 133 | 74 / 20 / 6 / 0 | 52 | 39 / 4 / 12 / 35 / 11 | 183 | 18 | 42 | 764 |
+| Steady | steady | 25.3 | 20 | 30% | 0 / 2 / 7 / 15 / 25 / 37 / 119 | 50 / 38 / 12 / 0 | 119 | 42 / 10 / 14 / 26 / 7 | 415 | 0 | 38 | 2,232 |
+| Burst | burst | 18.3 | 15 | 16.4% | 2 / 7 / 16 / 32 / 53 / 77 / 247 | 53 / 30 / 16 / 1 | 72 | 35 / 9 / 15 / 32 / 8 | 435 | 0 | 88 | 1,559 |
+| Popular | receiver | 26.4 | 22.6 | 31.2% | 0 / 1 / 7 / 11 / 22 / 35 / 114 | 63 / 28 / 8 / 0 | 69 | 18 / 29 / 6 / 37 / 10 | 229 | 11 | 35 | 1,485 |
+| Part-time | steady | 17.9 | 15 | 24.3% | 0 / 7 / 14 / 30 / 51 / 72 / 238 | 47 / 34 / 18 / 1 | 58 | 34 / 12 / 6 / 42 / 6 | 425 | 0 | 77 | 530 |
+| New hire | steady | 18.8 | 15 | 25.5% | 0 / 3 / 10 / 19 / 34 / 52 / 164 | 48 / 35 / 16 / 1 | 86 | 35 / 14 / 7 / 36 / 8 | 411 | 0 | 52 | 845 |
+| Holiday | steady | 24 | 19.1 | 28.6% | 0 / 2 / 7 / 14 / 24 / 36 / 128 | 49 / 36 / 14 / 0 | 108 | 40 / 10 / 12 / 29 / 8 | 394 | 0 | 36 | 1,391 |
+| Swapper | steady | 21.2 | 20 | 5.9% | 0 / 2 / 8 / 16 / 28 / 42 / 151 | 86 / 13 / 1 / 1 | 32 | 21 / 23 / 6 / 31 / 18 | 131 | 19 | 161 | 356 |
+| Min-maxer | steady | 27.9 | 22 | 14.5% | 0 / 1 / 7 / 14 / 21 / 32 / 105 | 52 / 36 / 12 / 0 | 127 | 38 / 13 / 14 / 27 / 8 | 401 | 1 | 35 | 2,921 |
+| Quiet | social | 12.5 | 10.8 | 16.3% | 1 / 9 / 30 / 58 / 99 / 147 / 463 | 51 / 27 / 20 / 2 | 33 | 21 / 17 / 0 / 50 / 10 | 473 | 0 | 149 | 436 |
+| Colluding pair | steady | 22.9 | 20.8 | 7.4% | 0 / 2 / 7 / 14 / 24 / 36 / 129 | 73 / 20 / 6 / 0 | 52 | 38 / 4 / 12 / 35 / 11 | 175 | 14 | 38 | 695 |
 
-- **The unlock schedule paces well.** Most members open the leaderboard in their first days, the skill tree in their second or third week, and hedgehogs within a month or two. A quiet member reaches the skill tree in about nine weeks and hedgehogs in about five months (six weeks and four months in revision 4, when quests paid more).
+- **The unlock schedule paces well.** Most members open the leaderboard in their first days, the skill tree in their second or third week, and hedgehogs within a month or two. A quiet member reaches the skill tree in about eight weeks and hedgehogs in about five months (seven weeks at revision 4's quest rewards).
 - **Four builds win** (steady, burst, receiver, social), so no pick order wins for every kind of member.
-- **Collusion pays less than breadth.** The colluding pair earns 52 coins a week against 119 for a steady giver, because coins and most perks pay once per recipient a day and receiving coins once per giver a week. It waits 18 days for an upgrade and gets 20% of its XP from perks.
-- **Coins wait for level 6.** Most members open Coins with 400–490 coins: the first emoji and the first hedgehog right away. The popular receiver opens with 244, because receiving coins are capped.
+- **Collusion pays less than breadth.** The colluding pair earns 52 coins a week against 119 for a steady giver, because coins and most perks pay once per recipient a day and receiving coins once per giver a week. It waits 14 days for an upgrade and gets 20% of its XP from perks.
+- **Coins wait for level 6.** Most members open Coins with 390–475 coins: the first emoji and the first hedgehog right away. The popular receiver opens with 229, because receiving coins are capped.
 - **Upgrades rarely wait for coins.** Skill points, not coins, pace the tree. Coins pace the store.
-- **Abuse stays slow.** The swapper (mostly quick, unthoughtful kudos) earns 31 coins a week, waits 18 days for an upgrade, and gets 13% of its XP from perks.
+- **Abuse stays slow.** The swapper (mostly quick, unthoughtful kudos) earns 32 coins a week, waits 19 days for an upgrade, and gets 13% of its XP from perks.
 
 ## Calibration sweeps
 
-**Perk strengths.** At the prototype's values (`flame` +10, `cadence` +4, `bridge` +10, `echo` +3, `resonance` +8) perks made 44% of a steady giver's XP, with a 38% spread between builds. The tuned values in P18 bring that to 38% and a 30% spread.
+**Perk strengths.** At the prototype's values (`flame` +10, `cadence` +4, `bridge` +10, `echo` +3, `resonance` +8) perks made 44% of a steady giver's XP, with a 39% spread between builds. The tuned values in P18 bring that to 38% and a 30% spread (41% and 36% in revision 4, when quests paid more XP).
 
 | Perk share of XP  Steady | Burst | Popular | Part-time | New hire | Holiday | Swapper | Min-maxer | Quiet | Colluding pair |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Prototype values | 43.9 | 38.2 | 36.3 | 39.5 | 40.9 | 42.6 | 16.4 | 42.6 | 31.3 | 23.8 |
-| Tuned (P18) | 37.7 | 30.3 | 28.3 | 33.9 | 34.9 | 36.6 | 12.7 | 36.1 | 27 | 19.8 |
+| Prototype values | 43.9 | 38.1 | 36.2 | 39.6 | 40.7 | 42.7 | 16.3 | 42.6 | 31.5 | 23.9 |
+| Tuned (P18) | 37.7 | 30.1 | 28.4 | 33.8 | 34.8 | 36.5 | 12.6 | 36.1 | 27.2 | 19.8 |
 
 **Quest XP.** The prototype's mock rewards were 40–90 XP. The share of XP from quests, by personal quest XP, with the group quest at no XP:
 
 | Quest XP  Steady | Burst | Popular | Part-time | New hire | Holiday | Swapper | Min-maxer | Quiet | Colluding pair |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 15 | 9.2 | 12.6 | 6.4 | 14.5 | 12.9 | 10.4 | 0.8 | 9 | 16 | 4.8 |
-| **20** | **11.8** | **15.6** | **8.4** | **18.4** | **16.1** | **13.6** | **1.1** | **11.6** | **20.1** | **6.3** |
-| 25 | 14.4 | 18.8 | 10.3 | 21.8 | 19.5 | 16.3 | 1.4 | 14.1 | 23.2 | 7.8 |
-| 40 | 20.9 | 26.1 | 15.4 | 30.4 | 27.6 | 23.5 | 2.2 | 20.5 | 32.7 | 12 |
-| 60 | 28.4 | 34.1 | 21.4 | 39 | 36.3 | 31.8 | 3.3 | 28 | 41.3 | 17 |
+| 15 | 9.2 | 12.4 | 6.5 | 14.6 | 12.7 | 10.6 | 0.8 | 9 | 16.1 | 5 |
+| **20** | **11.8** | **15.8** | **8.4** | **18.4** | **16.4** | **13.7** | **1.1** | **11.7** | **20.3** | **6.5** |
+| 25 | 14.2 | 19 | 10.3 | 21.9 | 19.6 | 16.6 | 1.4 | 14.1 | 23.5 | 8.1 |
+| 40 | 20.7 | 26.2 | 15.4 | 30.9 | 27.6 | 23.8 | 2.2 | 20.7 | 32.7 | 12.3 |
+| 60 | 28.5 | 33.6 | 21.4 | 39.3 | 36.3 | 32.1 | 3.3 | 28.1 | 41.1 | 17.4 |
 
 **Quest budgets (revision 5).** #85 found that the prototype's quests could pay 240 XP a week against 150 base XP for spending the whole allowance, and proposed at most 20 XP a personal quest and no XP for group or teaching tasks. Revision 4's 25 XP and 30 for the group quest already cut that to 105 a week; revision 5 tests #85's budget. Base XP share / quest XP share by archetype, and the quiet member's days to level 5:
 
 | Personal / group XP | Steady | Burst | Popular | Part-time | New hire | Holiday | Swapper | Min-maxer | Quiet | Colluding pair | Quiet: days to 5 |
 |---|---|---|---|---|---|---|---|---|---|---|---:|
-| 25 / 30 (revision 4) | 46.4 / 17.9 | 47 / 24.1 | 59.2 / 13.6 | 41 / 27.7 | 43.3 / 23.8 | 45.2 / 20.2 | 81 / 7 | 48.5 / 16.9 | 39.6 / 34.8 | 69 / 12.4 | 44 |
-| 20 / 30 | 47.7 / 15.6 | 48.9 / 21.6 | 60.4 / 11.8 | 42.7 / 24.9 | 45.3 / 20.7 | 46.9 / 17.5 | 81.2 / 6.7 | 49.8 / 14.7 | 41.4 / 32.5 | 70 / 11.1 | 49 |
-| 25 / 0 | 48.5 / 14.4 | 51 / 18.8 | 61.5 / 10.3 | 44.9 / 21.8 | 46 / 19.5 | 47.6 / 16.3 | 85.8 / 1.4 | 50.2 / 14.1 | 48.5 / 23.2 | 72.6 / 7.8 | 56 |
-| **20 / 0 (revision 5)** | **50.1 / 11.8** | **53.2 / 15.6** | **62.9 / 8.4** | **46.8 / 18.4** | **48.1 / 16.1** | **49.2 / 13.6** | **86.1 / 1.1** | **51.9 / 11.6** | **50.9 / 20.1** | **73.8 / 6.3** | **63** |
+| 25 / 30 (revision 4) | 46.5 / 17.6 | 47 / 24.1 | 59.2 / 13.5 | 40.8 / 27.9 | 43.2 / 23.6 | 45.2 / 20.3 | 80.5 / 7.1 | 48.6 / 16.9 | 39.7 / 34.7 | 68.2 / 12.7 | 49 |
+| 20 / 30 | 47.9 / 15.3 | 48.9 / 21.7 | 60.4 / 11.8 | 42.7 / 24.9 | 45.2 / 21 | 46.8 / 17.7 | 80.7 / 6.8 | 49.9 / 14.8 | 41.7 / 32.1 | 69.3 / 11.4 | 49 |
+| 25 / 0 | 48.6 / 14.2 | 50.9 / 19 | 61.5 / 10.3 | 44.5 / 21.9 | 45.9 / 19.6 | 47.5 / 16.6 | 85.4 / 1.4 | 50.3 / 14.1 | 48 / 23.5 | 71.9 / 8.1 | 56 |
+| **20 / 0 (revision 5)** | **50.1 / 11.8** | **53.2 / 15.8** | **62.8 / 8.4** | **46.9 / 18.4** | **48 / 16.4** | **49.3 / 13.7** | **85.7 / 1.1** | **51.8 / 11.7** | **50.6 / 20.3** | **73.1 / 6.5** | **58** |
 
-At 20 / 0, base XP is the largest source of XP for every archetype by a clear margin, the quiet member included (51% base against 20% quests; at 25 / 30 it was 40 against 35). The group quest's XP was the one income a member got for what others did: the swapper, who finishes almost no personal quest, got 7% of its XP from it. The price is pace for the quiet member, who reaches the skill tree in 63 days instead of 44. That's accepted: unlocks never gate earning (ADR-0005), and the quiet member's coins still come half from quests.
+At 20 / 0, base XP is the largest source of XP for every archetype by a clear margin, the quiet member included (51% base against 20% quests; at 25 / 30 it was 40 against 35). The group quest's XP was the one income a member got for what others did: the swapper, who finishes almost no personal quest, got 7% of its XP from it. The price is pace for the quiet member, who reaches the skill tree in 58 days instead of 49. That's accepted: unlocks never gate earning (ADR-0005), and the quiet member's coins still come half from quests.
 
 ## Open findings
 
-1. **Coins pile up at the top.** A steady giver who bought every perk and store item holds about 2,260 coins after 18 months. **Recommendation: accept.** Coins can't be traded or turned into kudos, so a pile harms nothing; new hedgehogs are the planned sink.
+1. **Coins pile up at the top.** A steady giver who bought the ten perks of its build (800 coins of upgrades; the whole tree costs 1,700) and every store item holds about 2,230 coins after 18 months. **Recommendation: accept.** Coins can't be traded or turned into kudos, so a pile harms nothing; new hedgehogs are the planned sink.
 2. **Quests are a fifth of a quiet member's XP and half their coins** (a third of their XP in revision 4). **Settled on #97:** #85 checked it, and revision 5 lowers quest XP so base XP leads for everyone; quest coins stay.
 3. **Quests are about a quarter to two fifths of everyone's coins.** They're the second coin source after giving. **Recommendation: accept**; quest coins reward breadth and thoughtfulness, which giving coins also reward.
 
 ## Limits
 
-Same limits as the research: member-local dates, no closed network, no time zones or daylight saving, no concurrency, synthetic behaviour. Quest completion is a per-archetype chance, not a model of each goal. Chime-ins aren't simulated: without the crowd booster they add only base XP (revision 5 also drops the recipient's threshold XP, which the first rerun measured at under 2%). Achievement ladders that need chime-ins or groups aren't counted.
+Same limits as the research: member-local dates, no closed network, no time zones or daylight saving, no concurrency, synthetic behaviour. Weekly quest completion is a per-archetype chance, not a model of each goal; the Journey's goals are modelled. Chime-ins aren't simulated, so their base XP, perk bonuses and coins are missing from every archetype (revision 5 also drops the recipient's threshold XP, which the first rerun measured at under 2%). Achievement ladders that need chime-ins or groups aren't counted.

@@ -4,6 +4,7 @@ import {fileURLToPath} from 'node:url';
 // Revision 4 of the progression economy: the game after Michael's scope cut (decision 12, #86).
 // Revision 5 (#97) takes the Octalysis findings (#85): personal quests pay 20 XP, the group quest pays no XP,
 // and the Journey drops its two steps that paid for spending a skill point and equipping a hedgehog.
+// Revision 5.1 (#97 review): the Journey's five goals are modelled as P89/P90 state them, not as chances.
 // Gone: boosters, group auras, drops, rarities, titles, quips, cards, streaks and freezes.
 // New: skill points from level 5, one tree of 14 perks, weekly quests and the Journey, achievement
 // tier rewards in coins, kudos emoji and hedgehogs, and a store of hedgehogs and kudos emoji.
@@ -84,12 +85,13 @@ export const economy: Economy = {
   perk: {spark: 5, flame: 8, rhythm: 2, cadence: 3, circle: 5, bridgeOutside: 8, echo: 2, resonance: 5, focus: 12, spotlight: 24, treasurer: 2, banker: 4}
 };
 
-const journey = [
-  {level: 1, xp: 10, coins: 0},
-  {level: 2, xp: 20, coins: 0},
-  {level: 3, xp: 30, coins: 0},
-  {level: 4, xp: 30, coins: 0},
-  {level: 6, xp: 40, coins: 20}
+type JourneyStepId = 'first-thanks' | 'first-quest' | 'someone-new' | 'two-days' | 'your-emoji';
+const journey: Array<{id: JourneyStepId; level: number; xp: number; coins: number}> = [
+  {id: 'first-thanks', level: 1, xp: 10, coins: 0},
+  {id: 'first-quest', level: 2, xp: 20, coins: 0},
+  {id: 'someone-new', level: 3, xp: 30, coins: 0},
+  {id: 'two-days', level: 4, xp: 30, coins: 0},
+  {id: 'your-emoji', level: 6, xp: 40, coins: 20}
 ];
 
 const ladders: Record<string, number[]> = {
@@ -120,7 +122,9 @@ export function simulate(a: Archetype, buildId: string, seed: number, eco: Econo
   const earnedTier: Record<string, number> = Object.fromEntries(Object.keys(ladders).map(k => [k, 0]));
   const everThanked = new Map<number, number>();
   const monthsGiven = new Set<string>();
-  let journeyStep = 0;
+  const journeyActiveSince = new Map<JourneyStepId, {day: number; questsDone: number; thoughtfulDays: number}>();
+  const journeyDone = new Set<JourneyStepId>();
+  let thoughtfulDays = 0;
   let weekRecipients = new Set<number>();
   let weekGivers = new Set<number>();
   let weekReceivingCoins = 0;
@@ -178,14 +182,28 @@ export function simulate(a: Archetype, buildId: string, seed: number, eco: Econo
       while (earnedTier[ladder] < 4 && counts[ladder] >= steps[earnedTier[ladder]]) tierReward(earnedTier[ladder]++);
     }
   };
+  // P88-P90: each step activates with its feature's level, and counts only after it is active, except the
+  // first-thanks state. someone-new is finished when nobody is left the member hasn't thanked (P90).
+  // your-emoji assumes the starter emoji sits in the loadout (P38), so any thoughtful kudos after it activates counts.
   const advanceJourney = (day: number, didThoughtful: boolean, newPerson: boolean) => {
-    const step = journey[journeyStep];
-    if (!step || r.level < step.level) return;
-    const done = journeyStep === 0 ? didThoughtful : journeyStep === 2 ? newPerson : random() < Math.max(.35, a.questSkill);
-    if (!done) return;
-    journeyStep++;
-    addXp('journeyXp', step.xp, day);
-    if (step.coins) addCoins('journey', step.coins);
+    if (didThoughtful) thoughtfulDays++;
+    for (const step of journey) {
+      if (journeyDone.has(step.id) || r.level < step.level) continue;
+      if (!journeyActiveSince.has(step.id)) {
+        journeyActiveSince.set(step.id, {day, questsDone: r.questsDone, thoughtfulDays: thoughtfulDays - (didThoughtful ? 1 : 0)});
+        if (step.id !== 'first-thanks' && step.id !== 'someone-new') continue;
+      }
+      const since = journeyActiveSince.get(step.id)!;
+      const done = step.id === 'first-thanks' ? thoughtfulDays > 0
+        : step.id === 'first-quest' ? r.questsDone > since.questsDone
+        : step.id === 'someone-new' ? (since.day < day && newPerson) || everThanked.size >= a.breadth
+        : step.id === 'two-days' ? thoughtfulDays - since.thoughtfulDays >= 2
+        : didThoughtful;
+      if (!done) continue;
+      journeyDone.add(step.id);
+      addXp('journeyXp', step.xp, day);
+      if (step.coins) addCoins('journey', step.coins);
+    }
   };
 
   for (let day = a.join; day < duration; day++) {
