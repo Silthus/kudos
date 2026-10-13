@@ -282,6 +282,10 @@
     {
       "name": "website",
       "definition": "The signed-in browser surface where a member sees and manages their Kudos. It sits beside App Home and never replaces it."
+    },
+    {
+      "name": "journey",
+      "definition": "The onboarding first quest chain, retained by Michael after the website scope cut. Its detailed steps and rewards remain unspecified."
     }
   ]
 }
