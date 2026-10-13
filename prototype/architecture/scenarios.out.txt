@@ -1,0 +1,267 @@
+
+=== 1. happy path with skipped mentions
+  → {"kind":"evaluated","outcome":{"kind":"given","awards":[{"giver":"m-alice","recipient":"m-bob","kudos":2}],"kudosEmoji":"taco","left":1,"skipped":[{"mention":{"kind":"person","user":"UALICE"},"reason":"self"},{"mention":{"kind":"person","user":"UBOT"},"reason":"bot"},{"mention":{"kind":"broadcast"},"reason":"group-or-broadcast"}]}}
+  state: {
+    "awards": [
+      "m-alice→m-bob ×2 (2025-10-09)"
+    ],
+    "spent": {
+      "m-alice|2025-10-09": 2
+    },
+    "messages": {
+      "1760000000.000100": "given @rev 1760000000000100"
+    },
+    "slackReactions": {},
+    "replies": [
+      "given → UALICE"
+    ],
+    "announced": [
+      "kudosGiven m-alice → m-bob"
+    ]
+  }
+
+=== 2. a delivery receipt is deduped apart from the attempt
+  → {"kind":"evaluated","outcome":{"kind":"given","awards":[{"giver":"m-alice","recipient":"m-bob","kudos":1}],"kudosEmoji":"taco","left":2,"skipped":[]}}
+  → "duplicate delivery"
+  → {"kind":"ignored","why":"unchanged"}
+  state: {
+    "awards": [
+      "m-alice→m-bob ×1 (2025-10-09)"
+    ],
+    "spent": {
+      "m-alice|2025-10-09": 1
+    },
+    "messages": {
+      "1760000000.000100": "given @rev 1760000000000100"
+    },
+    "slackReactions": {},
+    "replies": [
+      "given → UALICE"
+    ],
+    "announced": [
+      "kudosGiven m-alice → m-bob"
+    ]
+  }
+
+=== 3. over allowance, then a retry by edit swaps the reaction
+  → {"kind":"evaluated","outcome":{"kind":"over-allowance","cost":4,"recipients":2,"perRecipient":2,"left":3}}
+  → "delivered"
+  → {"kind":"evaluated","outcome":{"kind":"given","awards":[{"giver":"m-alice","recipient":"m-bob","kudos":2}],"kudosEmoji":"taco","left":1,"skipped":[]}}
+  → "delivered"
+  state: {
+    "awards": [
+      "m-alice→m-bob ×2 (2025-10-09)"
+    ],
+    "spent": {
+      "m-alice|2025-10-09": 2
+    },
+    "messages": {
+      "1760000000.000100": "given @rev 1760000060000100"
+    },
+    "slackReactions": {
+      "1760000000.000100": [
+        "taco"
+      ]
+    },
+    "replies": [
+      "over-allowance → UALICE",
+      "given → UALICE"
+    ],
+    "announced": [
+      "kudosGiven m-alice → m-bob"
+    ]
+  }
+
+=== 4. an edit arrives before its original; the original is stale
+  → {"kind":"evaluated","outcome":{"kind":"given","awards":[{"giver":"m-alice","recipient":"m-bob","kudos":1}],"kudosEmoji":"taco","left":2,"skipped":[]}}
+  → {"kind":"ignored","why":"stale-revision"}
+  state: {
+    "awards": [
+      "m-alice→m-bob ×1 (2025-10-09)"
+    ],
+    "spent": {
+      "m-alice|2025-10-09": 1
+    },
+    "messages": {
+      "1760000000.000100": "given @rev 1760000060000100"
+    },
+    "slackReactions": {},
+    "replies": [
+      "given → UALICE"
+    ],
+    "announced": [
+      "kudosGiven m-alice → m-bob"
+    ]
+  }
+
+=== 5. newest revision wins: a withdrawal beats a late older retry
+  → {"kind":"evaluated","outcome":{"kind":"over-allowance","cost":4,"recipients":2,"perRecipient":2,"left":3}}
+  → {"kind":"withdrawn"}
+  → {"kind":"ignored","why":"stale-revision"}
+  state: {
+    "awards": [],
+    "spent": {},
+    "messages": {
+      "1760000000.000100": "withdrawn @rev 1760000120000100"
+    },
+    "slackReactions": {},
+    "replies": [
+      "over-allowance → UALICE"
+    ],
+    "announced": []
+  }
+
+=== 6. edits to a given message: prose ignored, mentions told
+  → {"kind":"evaluated","outcome":{"kind":"given","awards":[{"giver":"m-alice","recipient":"m-bob","kudos":1}],"kudosEmoji":"taco","left":2,"skipped":[]}}
+  → {"kind":"already-given","toldGiver":false}
+  → {"kind":"already-given","toldGiver":true}
+  state: {
+    "awards": [
+      "m-alice→m-bob ×1 (2025-10-09)"
+    ],
+    "spent": {
+      "m-alice|2025-10-09": 1
+    },
+    "messages": {
+      "1760000000.000100": "given @rev 1760000120000100"
+    },
+    "slackReactions": {},
+    "replies": [
+      "given → UALICE",
+      "accepted-message-edited → UALICE"
+    ],
+    "announced": [
+      "kudosGiven m-alice → m-bob"
+    ]
+  }
+
+=== 7. metadata-only change and a thread parent's reply metadata are ignored
+  → {"kind":"evaluated","outcome":{"kind":"given","awards":[{"giver":"m-alice","recipient":"m-bob","kudos":1}],"kudosEmoji":"taco","left":2,"skipped":[]}}
+  → {"kind":"already-given","toldGiver":false}
+  state: {
+    "awards": [
+      "m-alice→m-bob ×1 (2025-10-09)"
+    ],
+    "spent": {
+      "m-alice|2025-10-09": 1
+    },
+    "messages": {
+      "1760000000.000100": "given @rev 1760000300000100"
+    },
+    "slackReactions": {},
+    "replies": [
+      "given → UALICE"
+    ],
+    "announced": [
+      "kudosGiven m-alice → m-bob"
+    ]
+  }
+
+=== 8. a thread reply also sent to the channel counts once, feedback in the thread
+  → {"kind":"evaluated","outcome":{"kind":"given","awards":[{"giver":"m-alice","recipient":"m-bob","kudos":1}],"kudosEmoji":"taco","left":2,"skipped":[]}}
+  → {"kind":"ignored","why":"ordinary-chat"}
+  state: {
+    "awards": [
+      "m-alice→m-bob ×1 (2025-10-09)"
+    ],
+    "spent": {
+      "m-alice|2025-10-09": 1
+    },
+    "messages": {
+      "1760000500.000100": "given @rev 1760000500000100",
+      "1760000000.000100": "watermark @rev 1760000500000200"
+    },
+    "slackReactions": {},
+    "replies": [
+      "given → UALICE (thread 1760000000.000100)"
+    ],
+    "announced": [
+      "kudosGiven m-alice → m-bob"
+    ]
+  }
+
+=== 9. an unverifiable recipient waits, then is given on the posted day
+  → {"kind":"awaiting-directory","users":["UDAVE"],"retryInMs":60000}
+  → {"kind":"awaiting-directory","users":["UDAVE"],"retryInMs":300000}
+  → "directory learned UDAVE"
+  → {"kind":"evaluated","outcome":{"kind":"given","awards":[{"giver":"m-alice","recipient":"m-dave","kudos":1}],"kudosEmoji":"taco","left":2,"skipped":[]}}
+  state: {
+    "awards": [
+      "m-alice→m-dave ×1 (2025-10-09)"
+    ],
+    "spent": {
+      "m-alice|2025-10-09": 1
+    },
+    "messages": {
+      "1760000000.000100": "given @rev 1760000000000100"
+    },
+    "slackReactions": {},
+    "replies": [
+      "given → UALICE"
+    ],
+    "announced": [
+      "kudosGiven m-alice → m-dave"
+    ]
+  }
+
+=== 10. an unverifiable recipient is abandoned after bounded retries
+  → {"kind":"awaiting-directory","users":["UGHOST"],"retryInMs":60000}
+  → {"kind":"awaiting-directory","users":["UGHOST"],"retryInMs":300000}
+  → {"kind":"awaiting-directory","users":["UGHOST"],"retryInMs":1800000}
+  → {"kind":"awaiting-directory","users":["UGHOST"],"retryInMs":7200000}
+  → {"kind":"awaiting-directory","users":["UGHOST"],"retryInMs":21600000}
+  → {"kind":"abandoned"}
+  state: {
+    "awards": [],
+    "spent": {},
+    "messages": {
+      "1760000000.000100": "abandoned @rev 1760000000000100"
+    },
+    "slackReactions": {},
+    "replies": [],
+    "announced": []
+  }
+
+=== 11. feedback failing after the award never awards twice
+  → {"kind":"evaluated","outcome":{"kind":"given","awards":[{"giver":"m-alice","recipient":"m-bob","kudos":1}],"kudosEmoji":"taco","left":2,"skipped":[]}}
+  → "Slack will time out"
+  → "delivery failed: Slack timed out"
+  → "delivery retried"
+  state: {
+    "awards": [
+      "m-alice→m-bob ×1 (2025-10-09)"
+    ],
+    "spent": {
+      "m-alice|2025-10-09": 1
+    },
+    "messages": {
+      "1760000000.000100": "given @rev 1760000000000100"
+    },
+    "slackReactions": {
+      "1760000000.000100": [
+        "taco"
+      ]
+    },
+    "replies": [
+      "given → UALICE"
+    ],
+    "announced": [
+      "kudosGiven m-alice → m-bob"
+    ]
+  }
+
+=== 12. struck-through emoji and an external mention do not count
+  → {"kind":"ignored","why":"ordinary-chat"}
+  → {"kind":"evaluated","outcome":{"kind":"invalid","skipped":[{"mention":{"kind":"person","user":"UEXT"},"reason":"not-a-member"}]}}
+  state: {
+    "awards": [],
+    "spent": {},
+    "messages": {
+      "1760000001.000100": "invalid @rev 1760000001000100"
+    },
+    "slackReactions": {},
+    "replies": [
+      "invalid → UALICE"
+    ],
+    "announced": []
+  }
