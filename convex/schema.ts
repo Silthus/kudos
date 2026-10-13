@@ -9,6 +9,7 @@ import { segmentValidator } from "./feedback/replies";
 import { periodValidator } from "./leaderboard/periods";
 import { effectsRecordValidator } from "./progression/progress";
 import { rewardRecordValidator } from "./progression/rewards";
+import { crateOpeningValidator } from "./quests/crates";
 import { journeyActivationValidator } from "./quests/journey";
 import { featureValidator } from "./unlocks/feature";
 
@@ -131,6 +132,8 @@ export default defineSchema({
   rewardRecords: defineTable(rewardRecordValidator).index("by_member_key", ["member", "key"]),
 
   journeySteps: defineTable(journeyActivationValidator).index("by_member_step", ["member", "step"]),
+
+  crateOpenings: defineTable(crateOpeningValidator).index("by_member_key", ["member", "key"]),
 
   effectsBackfill: defineTable({
     before: v.number(),

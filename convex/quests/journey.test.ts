@@ -3,18 +3,29 @@ import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } fro
 import { FakeSlack } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { publishedHome } from "../../testing/slackInteractions";
+import { blockActions, buttonIn, buttonInHome, publishedHome, readBlocks, type Block, type BlockAction } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
+import { publish } from "../bus/publish";
 import { standingOf } from "../progression/progression";
+
+vi.mock("../bus/publish", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../bus/publish")>();
+  return { ...actual, publish: vi.fn(actual.publish) };
+});
 
 const now = new Date("2026-10-13T10:00:00Z");
 const saysWhy = "thanks for untangling the release notes today";
+const form = { contentType: "application/x-www-form-urlencoded" };
+const finishedStep = "✅ You finished a Journey step: Give a kudos that says why. You earned *10 XP*.";
+const crateInHome = "section: *Journey:* ✅ Give a kudos that says why. You earned *10 XP*. [button: Open]";
+const openedInHome = "section: *Journey:* ✅ Give a kudos that says why. You earned *10 XP*.";
 
 let slack: FakeSlack;
 let sentMessages = 0;
 
 beforeEach(() => {
   vi.useFakeTimers({ now });
+  vi.mocked(publish).mockClear();
   vi.stubEnv("SLACK_SIGNING_SECRET", signingSecret);
   vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
   vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
@@ -65,7 +76,7 @@ describe("P67 P89: App Home's Profile tab shows the Journey", () => {
 
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
 
-    expect(journeyIn(publishedHome(slack, "U_ALICE"))).toEqual(["section: *Journey:* ✅ Give a kudos that says why. You earned *10 XP*."]);
+    expect(journeyIn(publishedHome(slack, "U_ALICE"))).toEqual([crateInHome]);
   });
 
   test("a kudos that doesn't say why records nothing for the Journey, and the step stays active", async () => {
@@ -76,6 +87,88 @@ describe("P67 P89: App Home's Profile tab shows the Journey", () => {
 
     expect(await standing(t, "U_ALICE")).toEqual({ xp: 10, level: 1, skillPoints: 0 });
     expect(journeyIn(publishedHome(slack, "U_ALICE"))[0]).toBe("section: *Journey:* Give a kudos that says why. It pays *10 XP*.");
+  });
+});
+
+describe("P63 P85: a finished Journey step's crate opens from its DM or App Home", () => {
+  test("finishing the step sends one DM naming it and what it earned, with Open, and its text says the same", async () => {
+    const t = await workspace();
+
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+
+    expect(questDmsTo("U_ALICE").map(readDm)).toEqual([[`section: ${finishedStep} [button: Open]`]]);
+    expect(questDmsTo("U_ALICE")[0]?.text).toBe(finishedStep);
+  });
+
+  test("clicking Open in the DM stores one crate opening, publishes questOpened and shows the step as opened in App Home; a second click changes nothing", async () => {
+    const t = await workspace();
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+    const openButton = buttonIn(blocksOf(questDmsTo("U_ALICE")[0]!), "Open");
+    const inDm = { channel: "U_ALICE", ts: "1760349700.000100" };
+    vi.setSystemTime(now.getTime() + 60_000);
+
+    expect((await click(t, "U_ALICE", openButton, inDm)).status).toBe(200);
+
+    const opened = await crateOpenings(t);
+    expect(opened).toEqual([{ user: "U_ALICE", key: "journey:first-thanks", at: now.getTime() + 60_000 }]);
+    expect(questOpenedEvents()).toHaveLength(1);
+    expect(journeyIn(publishedHome(slack, "U_ALICE"))).toEqual([openedInHome]);
+
+    vi.setSystemTime(now.getTime() + 120_000);
+    await click(t, "U_ALICE", openButton, inDm);
+
+    expect(await crateOpenings(t)).toEqual(opened);
+    expect(questOpenedEvents()).toHaveLength(1);
+  });
+
+  test("clicking Open in App Home opens the crate the same way", async () => {
+    const t = await workspace();
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+
+    await click(t, "U_ALICE", buttonInHome(slack, "U_ALICE", "Open"));
+
+    expect(await crateOpenings(t)).toEqual([{ user: "U_ALICE", key: "journey:first-thanks", at: expect.any(Number) }]);
+    expect(questOpenedEvents()).toHaveLength(1);
+    expect(journeyIn(publishedHome(slack, "U_ALICE"))).toEqual([openedInHome]);
+  });
+
+  test("a member who turned DMs off gets no DM for the finished step, and App Home still shows its crate", async () => {
+    const t = await workspace();
+    await openHome(t, "U_ALICE");
+    await click(t, "U_ALICE", buttonInHome(slack, "U_ALICE", "Settings"));
+    await click(t, "U_ALICE", buttonInHome(slack, "U_ALICE", "Turn off DMs"));
+    await click(t, "U_ALICE", buttonInHome(slack, "U_ALICE", "Profile"));
+
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+    await openHome(t, "U_ALICE");
+
+    expect(questDmsTo("U_ALICE")).toEqual([]);
+    expect(journeyIn(publishedHome(slack, "U_ALICE"))).toEqual([crateInHome]);
+  });
+
+  test("another member clicking the same Open opens nothing, since a click only ever names the member who clicked", async () => {
+    const t = await workspace();
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+    const openButton = buttonIn(blocksOf(questDmsTo("U_ALICE")[0]!), "Open");
+
+    await click(t, "U_BOB", openButton);
+
+    expect(await crateOpenings(t)).toEqual([]);
+    expect(questOpenedEvents()).toEqual([]);
+  });
+
+  test.each([
+    ["an unknown step", { type: "openQuestCrate", quest: { kind: "journey", step: "first-quest" } }],
+    ["a reward key with a member in it", { type: "openQuestCrate", quest: { kind: "journey", step: "first-thanks", member: "U_ALICE" } }],
+    ["a bare string for a reward key", { type: "openQuestCrate", quest: "journey:first-thanks" }],
+  ])("a click carrying %s opens nothing", async (_, command) => {
+    const t = await workspace();
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+
+    await click(t, "U_ALICE", { type: "button", action_id: "openQuestCrate", value: JSON.stringify(command) });
+
+    expect(await crateOpenings(t)).toEqual([]);
+    expect(questOpenedEvents()).toEqual([]);
   });
 });
 
@@ -113,6 +206,41 @@ async function openHome(t: Backend, user: string) {
 function journeyIn(home: string[]) {
   const start = home.findIndex((line) => line.includes("*Journey:*"));
   return start === -1 ? [] : home.slice(start, home.indexOf("divider", start));
+}
+
+async function click(t: Backend, user: string, action: BlockAction, inMessage?: { channel: string; ts: string }) {
+  const response = await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, action, inMessage === undefined ? {} : { inMessage }), form));
+  await settle(t);
+  return response;
+}
+
+type PostedDm = { text?: unknown; blocks?: unknown };
+
+function questDmsTo(user: string): PostedDm[] {
+  return slack.callsTo("chat.postMessage").filter(({ channel, text }) => channel === user && String(text).startsWith("✅ You finished"));
+}
+
+function blocksOf(dm: PostedDm) {
+  expect(dm.blocks, "the DM's blocks").toBeDefined();
+  return dm.blocks as Block[];
+}
+
+function readDm(dm: PostedDm) {
+  return readBlocks(blocksOf(dm));
+}
+
+async function crateOpenings(t: Backend) {
+  return t.run(async (ctx) => {
+    const openings = await ctx.db.query("crateOpenings").collect();
+    return Promise.all(openings.map(async ({ member, key, at }) => ({ user: (await ctx.db.get(member))!.user, key, at })));
+  });
+}
+
+function questOpenedEvents() {
+  return vi
+    .mocked(publish)
+    .mock.calls.map(([, event]) => event)
+    .filter((event) => event.type === "questOpened");
 }
 
 function levelUpDmsTo(user: string) {

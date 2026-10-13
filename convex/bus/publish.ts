@@ -21,6 +21,7 @@ export const subscribers: Registry = {
   unlockReady: [],
   unlockOpened: [],
   questFinished: [],
+  questOpened: [],
 };
 
 export async function publish(ctx: MutationCtx, event: DomainEvent) {

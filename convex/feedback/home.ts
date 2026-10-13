@@ -4,7 +4,7 @@ import type { Period } from "../leaderboard/periods";
 import { skillTreeLevel } from "../progression/levels";
 import type { ProgressSettings } from "../progression/settings";
 import type { JourneyStepFacts } from "../quests/journey";
-import type { JourneyStep } from "../quests/step";
+import type { JourneyStep, Quest } from "../quests/step";
 import type { ScheduledFeature } from "../unlocks/schedule";
 import type { UnlocksHome } from "../unlocks/unlocks";
 import type { HomeTab, ShownHome, ShownTab, ToldProgression } from "./homes";
@@ -158,13 +158,28 @@ const journeyGoals: Record<JourneyStep, { goal: string; condition: string }> = {
   "first-thanks": { goal: "Give a kudos that says why.", condition: "It counts when your message has 5 or more words besides mentions and emoji." },
 };
 
-function journeyStepLines({ step, reward, finishedAt }: JourneyStepFacts): HomeLine[] {
+function journeyStepLines({ step, reward, finishedAt, openedAt }: JourneyStepFacts): HomeLine[] {
   const { goal, condition } = journeyGoals[step];
-  if (finishedAt !== null) return [{ kind: "text", text: `${bold("Journey:")} ✅ ${goal} You earned ${bold(`${reward.xp} XP`)}.` }];
+  if (finishedAt !== null) {
+    const text = `${bold("Journey:")} ✅ ${goal} ${earned(reward.xp)}`;
+    return [openedAt === null ? { kind: "action", text, action: openCrate({ kind: "journey", step }) } : { kind: "text", text }];
+  }
   return [
     { kind: "text", text: `${bold("Journey:")} ${goal} It pays ${bold(`${reward.xp} XP`)}.` },
     { kind: "hint", text: condition },
   ];
+}
+
+export function finishedQuestCrateOf(quest: Quest, xp: number): { text: string; action: HomeAction } {
+  return { text: `✅ You finished a Journey step: ${journeyGoals[quest.step].goal} ${earned(xp)}`, action: openCrate(quest) };
+}
+
+function openCrate(quest: Quest): HomeAction {
+  return { label: "Open", command: { type: "openQuestCrate", quest } };
+}
+
+function earned(xp: number) {
+  return `You earned ${bold(`${xp} XP`)}.`;
 }
 
 export function readyCrateOf({ feature, name, opens }: ScheduledFeature): { text: string; action: HomeAction } {

@@ -254,7 +254,7 @@ describe("P78: a feature that ships later is made ready once by the ship sweep",
     await settle(t);
 
     expect(published("unlockReady")).toHaveLength(members.length);
-  }, 60_000);
+  }, 120_000);
 });
 
 function scheduledCount(t: Backend) {

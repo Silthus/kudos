@@ -1,7 +1,7 @@
 import { v, type Infer } from "convex/values";
 import { awardIdValidator } from "../engine/awards";
 import { annotationsValidator, messageRefValidator } from "../engine/messageEvent";
-import { journeyStepValidator } from "../quests/step";
+import { questValidator } from "../quests/step";
 import { featureValidator } from "../unlocks/feature";
 import type { MemberId } from "../workspace/directory";
 
@@ -88,15 +88,15 @@ export type UnlockReadyEvent = Infer<typeof unlockReadyEventValidator>;
 
 export type UnlockOpenedEvent = Infer<typeof unlockOpenedEventValidator>;
 
-export const questFinishedEventValidator = v.object({
-  type: v.literal("questFinished"),
-  workspace: v.string(),
-  member: v.id("members"),
-  quest: v.object({ kind: v.literal("journey"), step: journeyStepValidator }),
-  at: v.number(),
-});
+const questFields = { workspace: v.string(), member: v.id("members"), quest: questValidator, at: v.number() };
+
+export const questFinishedEventValidator = v.object({ type: v.literal("questFinished"), ...questFields });
+
+export const questOpenedEventValidator = v.object({ type: v.literal("questOpened"), ...questFields });
 
 export type QuestFinishedEvent = Infer<typeof questFinishedEventValidator>;
+
+export type QuestOpenedEvent = Infer<typeof questOpenedEventValidator>;
 
 export type DomainEvent =
   | KudosGivenEvent
@@ -106,7 +106,8 @@ export type DomainEvent =
   | XpRecordedEvent
   | UnlockReadyEvent
   | UnlockOpenedEvent
-  | QuestFinishedEvent;
+  | QuestFinishedEvent
+  | QuestOpenedEvent;
 
 export function membersNamedIn(event: KudosGivenEvent): MemberId[] {
   return [...new Set([event.giver, ...event.awards.map((award) => award.recipient)])];
