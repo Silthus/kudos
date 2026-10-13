@@ -75,7 +75,7 @@ const notRanked: Leaderboard = {
 const left: Leaderboard = {
   ...board,
   rows: [row(1, 1, "Ada Lindqvist", 21), row(2, 2, "Bo Okafor", 19), row(3, 3, "Cleo Marchetti", 17), row(4, 4, "Dev Rao", 12)],
-  window: [1, 2, 3, 4],
+  window: [1, 2, 3],
   standing: { kind: "left" },
   improvement: { gain: 2 },
   onTheBoards: false,
@@ -84,7 +84,6 @@ const left: Leaderboard = {
 const leftALongBoard: Leaderboard = {
   ...left,
   rows: midBoard.rows.filter((row) => !row.you).map((row, i) => ({ ...row, position: i + 1, rank: row.rank > 9 ? row.rank - 1 : row.rank })),
-  window: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 };
 
 const empty: Leaderboard = { ...board, period: "all", rows: [], window: [], standing: { kind: "not-ranked" }, improvement: null };

@@ -398,16 +398,17 @@ describe("WS43: the whole board and Jump to me", () => {
   it("offers Show fewer, and never Jump to me, to a viewer who isn't on the board", async () => {
     watchTheViewerRow();
     const { user } = showBoard(leaderboardFixtures.leftALongBoard);
-    expect(within(main()).getByText("No. 4–10 of 12")).toBeInTheDocument();
+    expect(within(main()).getByText("No. 1–3 of 12")).toBeInTheDocument();
     await user.click(within(main()).getByRole("button", { name: "Show the whole board" }));
     expect(within(wholeBoard()).getAllByRole("listitem")).toHaveLength(12);
     expect(within(main()).queryByRole("button", { name: "Jump to me" })).not.toBeInTheDocument();
     await user.click(within(main()).getByRole("button", { name: "Show fewer" }));
-    expect(linesOf(boardList())).toHaveLength(7);
+    expect(within(main()).queryByRole("region", { name: "The whole board" })).not.toBeInTheDocument();
+    expect(within(main()).getByText("No. 1–3 of 12")).toBeInTheDocument();
   });
 
   it("offers no whole board when the window already shows every row", () => {
-    showBoard(leaderboardFixtures.left);
+    showBoard(leaderboardFixtures.viewerLeads);
     expect(within(main()).queryByRole("button", { name: "Show the whole board" })).not.toBeInTheDocument();
   });
 });

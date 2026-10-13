@@ -19,7 +19,7 @@ export function BoardList({ board, after }: { board: Leaderboard; after?: ReactN
       {after}
       {longer && (
         <div className="flex flex-wrap items-center justify-between gap-2 border-t px-3 py-2">
-          <span className="hud-label tabular-nums">{whole ? `No. 1–${board.rows.length} of ${board.rows.length}` : `No. ${below[0]}–${below.at(-1)} of ${board.rows.length}`}</span>
+          <span className="hud-label tabular-nums">{whole ? `No. 1–${board.rows.length} of ${board.rows.length}` : shownRange(below.length > 0 ? below : board.window, board.rows.length)}</span>
           <Button variant="outline" size="sm" onClick={() => setWhole(!whole)}>
             {whole ? returnWords(board) : "Show the whole board"}
           </Button>
@@ -27,6 +27,10 @@ export function BoardList({ board, after }: { board: Leaderboard; after?: ReactN
       )}
     </Card>
   );
+}
+
+function shownRange(positions: number[], total: number) {
+  return `No. ${positions[0]}–${positions.at(-1)} of ${total}`;
 }
 
 function returnWords({ standing }: Leaderboard) {
