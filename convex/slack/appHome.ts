@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalAction, type ActionCtx } from "../_generated/server";
 import type { HomeFacts } from "../engine/home";
-import { renderHome } from "../feedback/home";
+import { renderHome, type HomeLine, type HomeView } from "../feedback/home";
 import { lookUpUser } from "./directory";
 import { callSlack } from "./webApi";
 
@@ -34,8 +34,22 @@ async function homeFactsOf(ctx: ActionCtx, workspace: string, user: string): Pro
   return ctx.runQuery(internal.engine.home.homeOf, { workspace, user });
 }
 
-function homeView(lines: string[]) {
-  return { type: "home", blocks: lines.map((line) => ({ type: "section", text: { type: "mrkdwn", text: line } })) };
+function homeView({ title, groups }: HomeView) {
+  const header = { type: "header", text: { type: "plain_text", text: title } };
+  const body = groups.flatMap((group, index) => [...(index > 0 ? [divider] : []), ...group.map(blockOf)]);
+  return { type: "home", blocks: [header, ...body] };
+}
+
+const divider = { type: "divider" };
+
+function blockOf(line: HomeLine) {
+  if (line.kind === "fields") return { type: "section", fields: line.fields.map(mrkdwn) };
+  if (line.kind === "hint") return { type: "context", elements: [mrkdwn(line.text)] };
+  return { type: "section", text: mrkdwn(line.text) };
+}
+
+function mrkdwn(text: string) {
+  return { type: "mrkdwn", text };
 }
 
 function appId() {
