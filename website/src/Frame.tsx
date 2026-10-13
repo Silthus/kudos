@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { HedgehogHeart } from "@posthog/brand/hoggies";
 import { IconHome } from "@posthog/icons";
 import { MemberFace } from "./Face";
 import type { SignedInMember } from "./shell";
@@ -14,7 +13,7 @@ export function Frame({ member, atHome, children }: { member?: SignedInMember; a
           {member && <ScreenNav atHome={atHome} />}
           <div className="ml-auto flex items-center gap-2">
             <ThemeControl />
-            {member && <MemberFace member={member} size={36} />}
+            {member && <MemberFace member={member} className="size-9" />}
           </div>
         </div>
       </header>
@@ -25,8 +24,7 @@ export function Frame({ member, atHome, children }: { member?: SignedInMember; a
 
 function Wordmark() {
   return (
-    <a href="/" className="flex items-center gap-2.5 rounded-md">
-      <HedgehogHeart size={34} title="" />
+    <a href="/" className="flex items-center rounded-md">
       <span className="flex flex-col leading-none">
         <span className="hud-display text-lg font-bold">HedgeHug</span>
         <span className="text-[10px] text-muted-foreground">Thanks a Hog</span>

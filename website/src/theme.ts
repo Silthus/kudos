@@ -6,13 +6,25 @@ const storageKey = "hedgehug.theme";
 const darkSystemQuery = "(prefers-color-scheme: dark)";
 
 function storedChoice(): ThemeChoice {
-  const stored = localStorage.getItem(storageKey);
+  const stored = readStorage();
   return stored === "light" || stored === "dark" ? stored : "system";
 }
 
+function readStorage() {
+  try {
+    return localStorage.getItem(storageKey);
+  } catch {
+    return null;
+  }
+}
+
 function rememberChoice(choice: ThemeChoice) {
-  if (choice === "system") localStorage.removeItem(storageKey);
-  else localStorage.setItem(storageKey, choice);
+  try {
+    if (choice === "system") localStorage.removeItem(storageKey);
+    else localStorage.setItem(storageKey, choice);
+  } catch {
+    return;
+  }
 }
 
 function systemIsDark() {

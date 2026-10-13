@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { IconDay, IconLaptop, IconNight } from "@posthog/icons";
+import { IconCheck, IconDay, IconLaptop, IconNight } from "@posthog/icons";
 import { useTheme, type ThemeChoice } from "./theme";
 
 const options: { choice: ThemeChoice; label: string; Icon: ComponentType<{ className?: string }> }[] = [
@@ -22,12 +22,21 @@ export function ThemeControl() {
             aria-label={option.label}
             title={option.label}
             onClick={() => choose(option.choice)}
-            className={`flex size-7 items-center justify-center rounded-full border transition-colors ${selected ? "border-primary bg-fill-selected text-foreground" : "border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"}`}
+            className={`relative flex size-7 items-center justify-center rounded-full border transition-colors ${selected ? "border-primary bg-fill-selected text-foreground" : "border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"}`}
           >
             <option.Icon className="size-4" />
+            {selected && <SelectedMark />}
           </button>
         );
       })}
     </div>
+  );
+}
+
+function SelectedMark() {
+  return (
+    <span data-selected-mark aria-hidden="true" className="absolute -bottom-0.5 -right-0.5 flex size-3 items-center justify-center rounded-full bg-primary text-primary-foreground">
+      <IconCheck className="size-2.5" />
+    </span>
   );
 }

@@ -6,7 +6,7 @@ type HttpHandler = (ctx: GenericActionCtx<GenericDataModel>, request: Request) =
 
 const slackAvatars = "https://avatars.slack-edge.com";
 const companyProfileImages = "https://res.cloudinary.com";
-const builtAssets = "/assets/";
+const builtAsset = /^\/assets\/[^/]+\.[A-Za-z0-9]+$/;
 const immutable = "public, max-age=31536000, immutable";
 
 export function registerWebsite(http: HttpRouter) {
@@ -35,7 +35,7 @@ function handlerOf(action: PublicHttpAction): HttpHandler {
 
 function isBuiltAsset(request: Request, response: Response) {
   const served = response.status === 200 || response.status === 304;
-  return served && new URL(request.url).pathname.startsWith(builtAssets);
+  return served && builtAsset.test(new URL(request.url).pathname);
 }
 
 function isHtml(response: Response) {

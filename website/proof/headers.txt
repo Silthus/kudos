@@ -35,3 +35,11 @@ $ curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:3411/slack/eve
 (with a throwaway SLACK_SIGNING_SECRET set on the local backend: an unsigned request is refused)
 
 In a browser, framing http://127.0.0.1:3411/ in an iframe: "Framing 'http://127.0.0.1:3411/' violates the following Content Security Policy directive: frame-ancestors 'none'", net::ERR_BLOCKED_BY_RESPONSE.
+
+# Conditional requests (If-None-Match): an extensionless /assets/ path is the SPA fallback and keeps revalidating; a built file stays immutable
+$ curl -sI -H 'If-None-Match: <etag>' http://127.0.0.1:3411/assets/anything
+HTTP/1.1 304 Not Modified
+cache-control: public, max-age=0, must-revalidate
+$ curl -sI -H 'If-None-Match: <etag>' http://127.0.0.1:3411/assets/index-CnYnaLnn.js
+HTTP/1.1 304 Not Modified
+cache-control: public, max-age=31536000, immutable

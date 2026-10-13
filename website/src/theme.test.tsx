@@ -1,9 +1,13 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
 import { shellFixtures } from "./shell";
 import { fakeSystemTheme } from "./test/systemTheme";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 const isDark = () => document.documentElement.classList.contains("dark");
 
@@ -46,5 +50,28 @@ describe("V6: the theme control follows the system first, overrides it per brows
     expect(isDark()).toBe(false);
     act(() => system.turnDark(true));
     expect(isDark()).toBe(true);
+  });
+
+  it("still renders and switches theme when the browser refuses storage", async () => {
+    fakeSystemTheme(true);
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new DOMException("Storage is disabled", "SecurityError");
+    });
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("Storage is disabled", "SecurityError");
+    });
+    const { user } = renderShell();
+    expect(screen.getByRole("heading", { level: 1, name: "Sign in" })).toBeInTheDocument();
+    expect(isDark()).toBe(true);
+    await user.click(screen.getByRole("button", { name: "Light" }));
+    expect(isDark()).toBe(false);
+  });
+
+  it("marks the selected option with a visible check, not colour alone", async () => {
+    fakeSystemTheme(false);
+    const { user } = renderShell();
+    await user.click(screen.getByRole("button", { name: "Dark" }));
+    expect(screen.getByRole("button", { name: "Dark" }).querySelector("[data-selected-mark]")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Light" }).querySelector("[data-selected-mark]")).toBeNull();
   });
 });
