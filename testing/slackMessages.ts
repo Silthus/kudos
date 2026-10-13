@@ -9,6 +9,8 @@ export type RichElement =
 type Style = { strike?: boolean; code?: boolean; bold?: boolean };
 
 export const mention = (user: string, style?: Style): RichElement => ({ type: "user", user_id: user, ...(style && { style }) });
+export const userGroup = (id: string): RichElement => ({ type: "usergroup", usergroup_id: id });
+export const broadcast = (range: "here" | "channel" | "everyone"): RichElement => ({ type: "broadcast", range });
 export const emoji = (name: string, style?: Style): RichElement => ({ type: "emoji", name, ...(style && { style }) });
 export const text = (value: string, style?: Style): RichElement => ({ type: "text", text: value, ...(style && { style }) });
 export const section = (...elements: RichElement[]): RichElement => ({ type: "rich_text_section", elements });

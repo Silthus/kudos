@@ -1,6 +1,7 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
+import { segmentValidator } from "./feedback/replies";
 
 export default defineSchema({
   slackReceipts: defineTable({
@@ -25,6 +26,7 @@ export default defineSchema({
     workspace: v.string(),
     conversation: v.string(),
     message: v.string(),
+    threadRoot: v.optional(v.string()),
     author: v.string(),
     revision: v.int64(),
     state: v.union(
@@ -69,4 +71,13 @@ export default defineSchema({
     message: v.string(),
     emoji: v.union(v.string(), v.null()),
   }).index("by_message", ["workspace", "conversation", "message"]),
+
+  privateReplies: defineTable({
+    workspace: v.string(),
+    conversation: v.string(),
+    message: v.string(),
+    threadRoot: v.optional(v.string()),
+    to: v.string(),
+    lines: v.array(v.array(segmentValidator)),
+  }),
 });

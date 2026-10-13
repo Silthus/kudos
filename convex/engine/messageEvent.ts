@@ -2,8 +2,8 @@ import { v, type Infer } from "convex/values";
 
 export const mentionValidator = v.union(
   v.object({ kind: v.literal("person"), user: v.string() }),
-  v.object({ kind: v.literal("group") }),
-  v.object({ kind: v.literal("broadcast") }),
+  v.object({ kind: v.literal("group"), group: v.string() }),
+  v.object({ kind: v.literal("broadcast"), range: v.string() }),
 );
 
 export const annotationsValidator = v.record(v.string(), v.union(v.string(), v.number(), v.boolean()));

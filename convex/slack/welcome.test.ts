@@ -92,8 +92,8 @@ describe("R44 R34: delivering the welcome message", () => {
 
     expect(attemptsPerUser()).toEqual({ U_ALICE: 2, U_BOB: 2 });
     for (const user of ["U_ALICE", "U_BOB"]) {
-      const [first, retry] = slack.calls.filter((call) => call.method === "chat.postMessage" && call.args.channel === user);
-      expect(retry!.at - first!.at).toBeGreaterThanOrEqual(30_000);
+      const [first, retry] = slack.timesOf("chat.postMessage", (args) => args.channel === user);
+      expect(retry! - first!).toBeGreaterThanOrEqual(30_000);
     }
   });
 });

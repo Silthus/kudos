@@ -6,6 +6,8 @@ type RichElement = {
   type: string;
   elements?: RichElement[];
   user_id?: string;
+  usergroup_id?: string;
+  range?: string;
   name?: string;
   text?: string;
   style?: Style;
@@ -83,8 +85,8 @@ function countableContent(message: SlackMessage): MessageContent {
 
 function mentionOf(element: RichElement): Mention | undefined {
   if (element.type === "user" && element.user_id) return { kind: "person", user: element.user_id };
-  if (element.type === "usergroup") return { kind: "group" };
-  if (element.type === "broadcast") return { kind: "broadcast" };
+  if (element.type === "usergroup" && element.usergroup_id) return { kind: "group", group: element.usergroup_id };
+  if (element.type === "broadcast" && element.range) return { kind: "broadcast", range: element.range };
   return undefined;
 }
 
