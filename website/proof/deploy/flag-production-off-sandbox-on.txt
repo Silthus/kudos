@@ -1,0 +1,27 @@
+Local backend i111 (127.0.0.1:3410), SLACK_WORKSPACE_ID=TALLOWED, SITE_URL=http://127.0.0.1:3411.
+POSTHOG_HOST is a recording proxy that forwards only /flags/definitions to PostHog US cloud with the real project token and flags key; every other request is recorded, never forwarded.
+
+$ KUDOS_ENVIRONMENT=production
+$ convex run --component posthog lib:refreshFlagDefinitions
+}
+$ convex run website/flag:prepareWebsiteFlag
+$ convex run website/link:websiteLinkOf {"workspace":"TALLOWED"}
+(no output: the CLI prints nothing for null, so App Home gets no link and the website flag answers off)
+$ KUDOS_ENVIRONMENT=sandbox
+$ convex run --component posthog lib:refreshFlagDefinitions
+}
+$ convex run website/flag:prepareWebsiteFlag
+$ convex run website/link:websiteLinkOf {"workspace":"TALLOWED"}
+"http://127.0.0.1:3411/"
+
+$ KUDOS_ENVIRONMENT=production
+$ convex run --component posthog lib:refreshFlagDefinitions
+}
+$ convex run website/flag:prepareWebsiteFlag
+$ convex run website/link:websiteLinkOf {"workspace":"TALLOWED"}
+(no output: the CLI prints nothing for null, so App Home gets no link and the website flag answers off)
+--- proxy log
+listening on 3414
+forwarded GET /flags/definitions -> 200 flags=everyone-board,kudos-flag-seam-check,unlocks,website,xp-levels
+forwarded GET /flags/definitions -> 200 flags=everyone-board,kudos-flag-seam-check,unlocks,website,xp-levels
+forwarded GET /flags/definitions -> 200 flags=everyone-board,kudos-flag-seam-check,unlocks,website,xp-levels
