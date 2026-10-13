@@ -1,0 +1,9 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/scaffold/website
+
+
+ Test Files  3 passed (3)
+      Tests  19 passed (19)
+   Start at  19:49:01
+   Duration  3.90s (import 35%, tests 27%, environment 17%, transform 16%, setup 5%)
+

@@ -49,6 +49,7 @@ import type * as slack_receipts from "../slack/receipts.js";
 import type * as slack_signature from "../slack/signature.js";
 import type * as slack_webApi from "../slack/webApi.js";
 import type * as slack_welcome from "../slack/welcome.js";
+import type * as website_hosting from "../website/hosting.js";
 import type * as welcome_welcome from "../welcome/welcome.js";
 import type * as workspace_directory from "../workspace/directory.js";
 import type * as workspace_settings from "../workspace/settings.js";
@@ -101,6 +102,7 @@ declare const fullApi: ApiFromModules<{
   "slack/signature": typeof slack_signature;
   "slack/webApi": typeof slack_webApi;
   "slack/welcome": typeof slack_welcome;
+  "website/hosting": typeof website_hosting;
   "welcome/welcome": typeof welcome_welcome;
   "workspace/directory": typeof workspace_directory;
   "workspace/settings": typeof workspace_settings;
@@ -134,4 +136,5 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   posthog: import("@posthog/convex/_generated/component.js").ComponentApi<"posthog">;
+  staticHosting: import("@convex-dev/static-hosting/_generated/component.js").ComponentApi<"staticHosting">;
 };

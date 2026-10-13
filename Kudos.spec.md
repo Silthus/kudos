@@ -4,6 +4,7 @@ Peer recognition for Slack on one Convex deployment per workspace; the product r
 
 ## trust levels
 - slack-request (outside): what anyone on the internet sends to the deployment's Slack routes, claiming to be Slack
+- browser (outside): what anyone on the internet sends to the website's public functions, the sign-in routes and the static pages
 - domain: the deployment's internal functions and the rows they keep
 - operator: a maintainer running the project's scripts on their own machine
 

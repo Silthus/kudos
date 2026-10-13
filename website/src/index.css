@@ -1,0 +1,42 @@
+@import "tailwindcss";
+@import "@posthog/quill/tokens.css";
+@import "@posthog/quill/base.css";
+@import "@posthog/quill/primitives.css";
+@import "@posthog/quill/tailwind.css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@font-face {
+  font-family: RoundHog;
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("@posthog/brand/fonts/RoundHog-Bold.woff2") format("woff2");
+}
+
+:root {
+  --font-sans: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+html,
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.hud-display {
+  font-family: RoundHog, var(--font-sans);
+  letter-spacing: -0.01em;
+}
+
+.hud-root {
+  background-image: radial-gradient(70rem 30rem at 50% -10rem, color-mix(in oklab, var(--primary) 8%, transparent), transparent 70%);
+}
+
+.dark .hud-root {
+  background-image:
+    radial-gradient(70rem 30rem at 50% -10rem, color-mix(in oklab, var(--primary) 14%, transparent), transparent 70%),
+    radial-gradient(40rem 40rem at 100% 100%, color-mix(in oklab, var(--completed-foreground) 10%, transparent), transparent 70%);
+}
