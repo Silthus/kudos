@@ -1,9 +1,10 @@
 import { internal } from "../_generated/api";
-import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
+import { v } from "convex/values";
+import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { levelReachedEventValidator } from "../bus/events";
 import { skillTreeLevel } from "../progression/levels";
 import { progressSettingsOf } from "../progression/settings";
-import { xpLevelsShownTo } from "../progression/xpLevels";
+import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { skillPointsOf } from "./naming";
 
@@ -20,8 +21,16 @@ export const notifyLevelReached = internalMutation({
 export async function notify(ctx: MutationCtx, member: MemberId, notification: Notification) {
   if (!(await wantsDms(ctx, member))) return;
   const { workspace, user } = await chatUserOf(ctx, member);
-  await ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverDirectMessage, { workspace, user, lines: renderNotification(notification) });
+  await ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverDirectMessage, { member, workspace, user, lines: renderNotification(notification) });
 }
+
+export const isStillWanted = internalQuery({
+  args: { member: v.id("members") },
+  handler: async (ctx, { member }): Promise<boolean> => {
+    const { workspace } = await chatUserOf(ctx, member);
+    return (await xpLevelsShownIn(ctx, workspace)) && (await wantsDms(ctx, member));
+  },
+});
 
 export function renderNotification({ level, skillPoints, xpToNextLevel }: Notification): string[] {
   const reached = `🎉 You reached level ${level}!`;

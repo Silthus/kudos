@@ -8,7 +8,7 @@ describe.each(["sandbox", "real"] as const)("the %s manifest", (environment) => 
 
   test("asks for every spec 1 bot scope up front", () => {
     expect(manifest.oauth_config.scopes.bot.toSorted()).toEqual(
-      ["channels:history", "channels:join", "chat:write", "chat:write.public", "commands", "groups:history", "im:write", "reactions:write", "users:read"],
+      ["channels:history", "channels:join", "chat:write", "chat:write.public", "commands", "groups:history", "reactions:write", "users:read"],
     );
   });
 

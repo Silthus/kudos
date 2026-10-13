@@ -381,7 +381,7 @@ function progressionOf(home: string[]) {
 }
 
 function dmsTo(user: string) {
-  return slack.callsTo("chat.postMessage").filter(({ channel }) => channel === `D_${user}`).map(({ text }) => text);
+  return slack.messagesIn(user).map(({ text }) => String(text)).filter((text) => text.startsWith("🎉 You reached level"));
 }
 
 async function workspaceWithAllowance(baseAllowance: number) {

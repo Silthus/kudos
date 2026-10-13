@@ -33,9 +33,9 @@ describe("P63: the level-up DM", () => {
 
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
 
-    expect(slack.callsTo("conversations.open")).toEqual([{ users: "U_ALICE" }]);
+    expect(slack.callsTo("conversations.open")).toEqual([]);
     expect(levelUpDms()).toEqual([
-      { channel: "D_U_ALICE", text: "🎉 You reached level 2!\nLevel 3 is 80 XP away." },
+      { channel: "U_ALICE", text: "🎉 You reached level 2!\nLevel 3 is 80 XP away." },
     ]);
   });
 
@@ -44,8 +44,8 @@ describe("P63: the level-up DM", () => {
 
     await giveKudos(t, "U_ALICE", "U_BOB", 10);
 
-    expect(levelUpDms().filter(({ channel }) => channel === "D_U_ALICE")).toEqual([
-      { channel: "D_U_ALICE", text: "🎉 You reached level 3!\nLevel 4 is 200 XP away." },
+    expect(levelUpDms().filter(({ channel }) => channel === "U_ALICE")).toEqual([
+      { channel: "U_ALICE", text: "🎉 You reached level 3!\nLevel 4 is 200 XP away." },
     ]);
   });
 
@@ -60,7 +60,7 @@ describe("P63: the level-up DM", () => {
 
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
-    expect(levelUpDms().filter(({ channel }) => channel === "D_U_ALICE").map((dm) => dm.text)).toEqual([text]);
+    expect(levelUpDms().filter(({ channel }) => channel === "U_ALICE").map((dm) => dm.text)).toEqual([text]);
   });
 
   test("a recipient who reaches a level gets the DM, and a giver who stays on their level gets none", async () => {
@@ -69,7 +69,7 @@ describe("P63: the level-up DM", () => {
 
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
 
-    expect(levelUpDms().map(({ channel }) => channel)).toEqual(["D_U_ALICE", "D_U_BOB"]);
+    expect(levelUpDms().map(({ channel }) => channel)).toEqual(["U_ALICE", "U_BOB"]);
     expect(levelUpDms()[1]?.text).toBe("🎉 You reached level 2!\nLevel 3 is 80 XP away.");
   });
 
@@ -80,10 +80,9 @@ describe("P63: the level-up DM", () => {
 
     await giveKudos(t, "U_ALICE", "U_BOB", 3);
 
-    expect(slack.callsTo("conversations.open")).toEqual([{ users: "U_BOB" }]);
-    expect(levelUpDms().map(({ channel }) => channel)).toEqual(["D_U_BOB"]);
+    expect(levelUpDms().map(({ channel }) => channel)).toEqual(["U_BOB"]);
     expect(await standing(t, "U_ALICE")).toEqual({ xp: 40, level: 2, skillPoints: 0 });
-    expect(slack.callsTo("chat.postMessage").map(({ channel }) => channel)).toEqual(["U_ALICE", "U_BOB", "D_U_BOB", "C1"]);
+    expect(slack.callsTo("chat.postMessage").map(({ channel }) => channel)).toEqual(["U_ALICE", "U_BOB", "U_BOB", "C1"]);
   });
 });
 
@@ -99,17 +98,6 @@ describe("R34 R35: a level-up DM is tried at most 3 times", () => {
     expect(await standing(t, "U_ALICE")).toEqual({ xp: 20, level: 2, skillPoints: 0 });
   });
 
-  test("a DM whose conversation can't be opened is tried 3 times, and the XP and level stand", async () => {
-    const t = await workspaceWithAllowance(10);
-    slack.answering("conversations.open", networkFailure, httpStatus(500), slackError("internal_error"), networkFailure);
-
-    await giveKudos(t, "U_ALICE", "U_BOB", 2);
-
-    expect(slack.callsTo("conversations.open")).toHaveLength(3);
-    expect(levelUpDms()).toEqual([]);
-    expect(await standing(t, "U_ALICE")).toEqual({ xp: 20, level: 2, skillPoints: 0 });
-  });
-
   test("a rate-limited DM is tried again after Slack's Retry-After, and then not again once it arrived", async () => {
     const t = await workspaceWithAllowance(10);
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
@@ -117,19 +105,22 @@ describe("R34 R35: a level-up DM is tried at most 3 times", () => {
 
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
-    const [first, retry] = slack.timesOf("chat.postMessage", (args) => args.channel === "D_U_ALICE");
+    const [first, retry] = slack.timesOf("chat.postMessage", isLevelUpDm);
     expect(levelUpDms()).toHaveLength(2);
     expect(retry! - first!).toBeGreaterThanOrEqual(30_000);
   });
-  test("a DM whose post is held or fails is retried on the conversation it opened, and opens it once", async () => {
+  test("a DM Slack held back is not sent once the member turned DMs off", async () => {
     const t = await workspaceWithAllowance(10);
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
-    slack.answering("chat.postMessage", rateLimitedFor(30), httpStatus(500));
+    slack.holdingBack("chat.postMessage", "U_ALICE", async () => {
+      await turnDmsOff(t, "U_ALICE");
+      slack.answering("chat.postMessage", rateLimitedFor(30));
+    });
 
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
-    expect(slack.callsTo("conversations.open")).toEqual([{ users: "U_ALICE" }]);
-    expect(levelUpDms().map(({ channel }) => channel)).toEqual(["D_U_ALICE", "D_U_ALICE", "D_U_ALICE"]);
+    expect(levelUpDms()).toHaveLength(1);
+    expect(slack.messagesIn("U_ALICE").filter(isLevelUpDm)).toEqual([]);
   });
 });
 
@@ -147,7 +138,11 @@ async function giveKudos(t: Backend, giver: string, recipient: string, kudos: nu
 }
 
 function levelUpDms() {
-  return slack.callsTo("chat.postMessage").filter(({ channel }) => String(channel).startsWith("D_"));
+  return slack.callsTo("chat.postMessage").filter(isLevelUpDm);
+}
+
+function isLevelUpDm({ text }: { text?: unknown }) {
+  return String(text).startsWith("🎉 You reached level");
 }
 
 async function memberOf(t: Backend, user: string) {

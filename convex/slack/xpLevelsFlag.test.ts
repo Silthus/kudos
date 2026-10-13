@@ -98,6 +98,19 @@ describe("the xp-levels flag hides the slice while it is off", () => {
     expect(slack.messagesIn("C1")).toEqual([]);
   });
 
+  test("a level-up DM Slack held back while the flag was on is not sent once it is off", async () => {
+    const t = await workspaceDeciding("sandbox", onForEveryone(xpLevels));
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    slack.holdingBack("chat.postMessage", "U_ALICE", async () => {
+      await flagsFromPostHog(t, postHog, offForEveryone(xpLevels));
+      slack.answering("chat.postMessage", rateLimitedFor(30));
+    });
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(slack.messagesIn("U_ALICE").filter(({ text }) => String(text).startsWith("🎉 You reached level"))).toEqual([]);
+  });
+
   test("a click on a button from an App Home published while the flag was on changes nothing once it is off", async () => {
     const t = await workspaceDeciding("sandbox", onForEveryone(xpLevels));
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
