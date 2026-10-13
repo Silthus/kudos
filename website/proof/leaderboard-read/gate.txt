@@ -1,0 +1,12 @@
+pnpm gate (through fleet heavy) on 0945ca4, exit 0
+
+$ pnpm typecheck && pnpm test && pnpm coherence
+$ tsc --noEmit && tsc --noEmit -p website
+$ vitest run
+ Test Files  56 passed (56)
+      Tests  803 passed (803)
+$ coherence spec --check && coherence lexicon --check
+15 components, 36 bullets: 36 invariants, 0 requirements
+lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-13T22:47:34.577Z (223 runs)
+defects: 2 recorded, 2 closed (0 guarded, 2 decided, 0 with neither); 0 guard failures
+0 rejected names, 0 unknown nouns (289 files), 17 in records
