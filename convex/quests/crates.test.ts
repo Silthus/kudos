@@ -117,11 +117,8 @@ async function journeyOf(t: Backend, member: MemberId) {
   return (await t.query(internal.quests.quests.questsOf, { member }))?.journey;
 }
 
-function published() {
-  return vi
-    .mocked(publish)
-    .mock.calls.map(([, event]) => event)
-    .filter((event): event is DomainEvent => event.type === "questOpened");
+function published(): DomainEvent[] {
+  return vi.mocked(publish).mock.calls.map(([, event]) => event);
 }
 
 async function everyTable(t: Backend) {
