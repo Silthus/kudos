@@ -1,6 +1,7 @@
 import { vi } from "vitest";
 import { components } from "../convex/_generated/api";
 import { FakePostHog, flagsKey, postHogHost, projectToken, routedFetch, type FlagDefinition } from "./fakePostHog";
+import { unlocksLiveIn } from "../convex/unlocks/launch";
 import { testBackend, type Backend } from "./slackBackend";
 
 export const onForEveryone = (key: string): FlagDefinition => ({ key, filters: { groups: [{ properties: [], rollout_percentage: 100 }] } });
@@ -37,5 +38,10 @@ export function flagsOnForEveryone(chatFetch: typeof fetch, ...keys: string[]) {
 
 export async function flagsLoaded(t: Backend) {
   await t.action(components.posthog.lib.refreshFlagDefinitions, {});
+  return t;
+}
+
+export async function unlocksShippedBeforeAnyoneJoined(t: Backend, workspace = "T1") {
+  await t.run((ctx) => unlocksLiveIn(ctx, workspace));
   return t;
 }

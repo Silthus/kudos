@@ -5,12 +5,12 @@ import { observedAction } from "../analytics/boundary";
 import { ReportableError } from "../analytics/exceptions";
 import { recordUsage, recordUsageWithoutBlocking } from "../analytics/usage";
 import type { HomeFacts } from "../engine/home";
-import { renderHome, type Choice, type HomeAction, type HomeLine, type HomeView } from "../feedback/home";
+import { renderHome, type Choice, type HomeLine, type HomeView } from "../feedback/home";
 import { xpLevelsShownTo } from "../progression/xpLevels";
 import { lookup } from "../workspace/directory";
+import { buttonOf, mrkdwn, plainText } from "./blocks";
 import { attemptArgs, failedAttempt, sendOnce, slackTextOf, tryAtMostThreeTimes } from "./delivery";
 import { lookUpUser, refreshUser } from "./directory";
-import { encodeHomeAction } from "./interactivity";
 
 export type HomeOpened = { type: "app_home_opened"; user: string; tab: "home" | "messages" };
 
@@ -124,21 +124,8 @@ function buttonsOf(choices: Choice[]) {
   return { type: "actions", elements: choices.map(({ selected, ...action }) => ({ ...buttonOf(action), ...(selected && { style: "primary" }) })) };
 }
 
-function buttonOf({ label, command }: HomeAction) {
-  const action = encodeHomeAction(command);
-  return { type: "button", text: plainText(label), action_id: action, value: action };
-}
-
 function channelPickerOf({ picks, picked }: Extract<HomeLine, { kind: "pick-channel" }>) {
   return { type: "channels_select", action_id: picks, placeholder: plainText("Pick a channel"), ...(picked !== null && { initial_channel: picked }) };
-}
-
-function mrkdwn(text: string) {
-  return { type: "mrkdwn", text };
-}
-
-function plainText(text: string) {
-  return { type: "plain_text", text };
 }
 
 function appId() {

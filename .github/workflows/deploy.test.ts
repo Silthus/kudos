@@ -14,11 +14,23 @@ type Workflow = {
 };
 
 const deployments = [
-  { name: "sandbox", file: "deploy-sandbox.yml", branch: "spec/core-loop", secret: "CONVEX_DEPLOY_KEY_SANDBOX" },
-  { name: "production", file: "deploy-production.yml", branch: "main", secret: "CONVEX_DEPLOY_KEY_PRODUCTION" },
+  {
+    name: "sandbox",
+    file: "deploy-sandbox.yml",
+    trigger: "only a run started by hand deploys, never a push or a pull request",
+    on: { workflow_dispatch: null },
+    secret: "CONVEX_DEPLOY_KEY_SANDBOX",
+  },
+  {
+    name: "production",
+    file: "deploy-production.yml",
+    trigger: "only a push to main deploys, never a pull request",
+    on: { push: { branches: ["main"] } },
+    secret: "CONVEX_DEPLOY_KEY_PRODUCTION",
+  },
 ];
 
-describe.each(deployments)("deploying the $name deployment", ({ name, file, branch, secret }) => {
+describe.each(deployments)("deploying the $name deployment", ({ name, file, trigger, on, secret }) => {
   const workflow = parse(readFileSync(new URL(`./${file}`, import.meta.url), "utf8")) as Workflow;
   const steps = Object.values(workflow.jobs).flatMap((job) => job.steps);
   const deployStep = steps.find((step) => step.run?.includes("convex deploy"));
@@ -27,8 +39,8 @@ describe.each(deployments)("deploying the $name deployment", ({ name, file, bran
   const faceSyncStep = steps.find((step) => step.run?.includes("companyProfiles/sync:syncCompanyProfiles"));
   const keyedSteps = [deployStep, uploadStep, prepareStep, faceSyncStep];
 
-  test(`only a push to ${branch} deploys, never a pull request`, () => {
-    expect(workflow.on).toEqual({ push: { branches: [branch] } });
+  test(trigger, () => {
+    expect(workflow.on).toEqual(on);
   });
 
   test("WS27: the deploy key comes from its GitHub secret and reaches only the deploy, the website upload, prepareWebsiteFlag and the face sync", () => {

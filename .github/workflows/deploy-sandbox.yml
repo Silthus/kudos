@@ -1,15 +1,14 @@
-# Every push to the integration branch deploys it to the sandbox Convex deployment.
+# A run started by hand deploys the chosen branch to the sandbox Convex deployment, which every lane shares.
 # The deploy key is scoped to that one deployment and reaches only the steps that deploy, upload the website, prepare its flag and read the faces.
 name: Deploy sandbox
 
 on:
-  push:
-    branches: [spec/core-loop]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
-# One deploy at a time; a newer push waits for the running deploy, then the newest one wins.
+# One deploy at a time; a newer run waits for the running deploy, then the newest one wins.
 concurrency:
   group: deploy-sandbox
   cancel-in-progress: false
@@ -38,8 +37,8 @@ jobs:
 
       - run: pnpm gate
 
-      # A rerun of an older push must not roll the sandbox back past the branch's tip.
-      - name: Check this push is still the branch's tip
+      # A run for a commit the branch has moved past must not roll the sandbox back past the branch's tip.
+      - name: Check this commit is still the branch's tip
         id: tip
         run: |
           tip=$(git ls-remote origin "$GITHUB_REF" | cut -f1)

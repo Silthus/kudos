@@ -1,12 +1,14 @@
 import { v, type GenericValidator, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
-import { homeTabValidator, selectLeaderboardPeriod, showHomeTab, type HomeMember } from "../feedback/homes";
+import { homeTabValidator, isLeaderboardShownTo, selectLeaderboardPeriod, showHomeTab, type HomeMember } from "../feedback/homes";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import { periodValidator } from "../leaderboard/periods";
 import { setLeaderboardVisibility } from "../leaderboard/visibility";
 import { setProgressSettings } from "../progression/settings";
 import { xpLevelsShownTo } from "../progression/xpLevels";
+import { featureValidator } from "../unlocks/feature";
+import { openUnlock } from "../unlocks/unlocks";
 import { setAnnouncementChannel } from "../workspace/settings";
 
 export const commandValidator = v.union(
@@ -15,6 +17,7 @@ export const commandValidator = v.union(
   v.object({ type: v.literal("setLeaderboardVisibility"), visible: v.boolean() }),
   v.object({ type: v.literal("setProgressSettings"), muteNotices: v.optional(v.boolean()), dms: v.optional(v.boolean()) }),
   v.object({ type: v.literal("setAnnouncementChannel"), channel: v.union(v.string(), v.null()) }),
+  v.object({ type: v.literal("openUnlock"), feature: featureValidator }),
 );
 
 export type Command = Infer<typeof commandValidator>;
@@ -29,7 +32,7 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
     case "showHomeTab":
       return showHomeTab(ctx, workspace, person, command.tab);
     case "showLeaderboard":
-      if (await isEveryoneBoardShownTo(ctx, workspace, member)) await selectLeaderboardPeriod(ctx, member, command.period);
+      if (await isLeaderboardShownTo(ctx, workspace, member)) await selectLeaderboardPeriod(ctx, member, command.period);
       return;
     case "setLeaderboardVisibility":
       if (await isEveryoneBoardShownTo(ctx, workspace, member)) await setLeaderboardVisibility(ctx, member, command.visible);
@@ -41,6 +44,9 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
     }
     case "setAnnouncementChannel":
       if ((await xpLevelsShownTo(ctx, member)) && (await setAnnouncementChannel(ctx, workspace, person, command.channel))) await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
+      return;
+    case "openUnlock":
+      await openUnlock(ctx, member, command.feature);
       return;
   }
 }

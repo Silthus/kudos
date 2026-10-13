@@ -2,9 +2,10 @@ import type { Command } from "../commands/commands";
 import type { HomeFacts, KudosHome } from "../engine/home";
 import type { Period } from "../leaderboard/periods";
 import { skillTreeLevel } from "../progression/levels";
-import type { ProgressionHome } from "../progression/progression";
 import type { ProgressSettings } from "../progression/settings";
-import type { HomeTab, ShownHome, ShownTab } from "./homes";
+import type { ScheduledFeature } from "../unlocks/schedule";
+import type { UnlocksHome } from "../unlocks/unlocks";
+import type { HomeTab, ShownHome, ShownTab, ToldProgression } from "./homes";
 import { renderEveryoneBoard } from "./leaderboard";
 import { productName, skillPointsOf, slashCommand } from "./naming";
 import type { Line } from "./replies";
@@ -43,7 +44,7 @@ export function renderHome(facts: HomeFacts, home: ShownHome | null, website: st
 }
 
 function memberViewOf(facts: MemberHome, home: ShownHome | null): HomeView {
-  if (home === null) return profileOf(facts, null);
+  if (home === null) return profileOf(facts, null, null);
   return { tabBar: tabBar(home.tabs, home.shown.tab), ...tabOf(facts, home.shown) };
 }
 
@@ -59,7 +60,7 @@ function tabBar(tabs: HomeTab[], selected: HomeTab): Choice[] {
 function tabOf(facts: MemberHome, shown: ShownTab): HomeView {
   switch (shown.tab) {
     case "profile":
-      return profileOf(facts, shown.progression);
+      return profileOf(facts, shown.progression, shown.unlocks);
     case "leaderboard":
       return { title: "Leaderboard", groups: [[periodChoices(shown.period), { kind: "lines", lines: renderEveryoneBoard(shown.board, shown.period) }]] };
     case "settings":
@@ -69,8 +70,8 @@ function tabOf(facts: MemberHome, shown: ShownTab): HomeView {
   }
 }
 
-function profileOf(kudos: KudosHome, progression: ProgressionHome | null): HomeView {
-  const progress = progression === null ? [] : [progressOf(progression)];
+function profileOf(kudos: KudosHome, progression: ToldProgression | null, unlocks: UnlocksHome | null): HomeView {
+  const progress = progression === null ? [] : [[...progressOf(progression), ...(unlocks === null ? [] : unlockLinesOf(unlocks))]];
   return { title: "Your kudos", groups: [[allowanceOf(kudos)], ...progress, [totalsOf(kudos)], howToGive(kudos.kudosEmoji)] };
 }
 
@@ -148,10 +149,20 @@ function allowanceOf({ left, base }: KudosHome): HomeLine {
   return { kind: "text", text };
 }
 
-function progressOf({ level, xpToNextLevel, skillPoints }: ProgressionHome): HomeLine[] {
+function progressOf({ level, xpToNextLevel, skillPoints }: ToldProgression): HomeLine[] {
   const levelFigures: HomeLine = { kind: "fields", fields: [figure("Level", level), figure(`XP to level ${level + 1}`, xpToNextLevel)] };
-  if (level < skillTreeLevel) return [levelFigures];
+  if (skillPoints === null || level < skillTreeLevel) return [levelFigures];
   return [levelFigures, { kind: "text", text: `You have ${bold(skillPointsOf(skillPoints))} saved for the skill tree.` }];
+}
+
+function unlockLinesOf({ ready, next }: UnlocksHome): HomeLine[] {
+  const readyLines = ready.map((feature): HomeLine => ({ kind: "action", ...readyCrateOf(feature) }));
+  const nextLine: HomeLine[] = next === null ? [] : [{ kind: "text", text: `Next: ${next.name} at level ${next.level}.` }];
+  return [...readyLines, ...nextLine];
+}
+
+export function readyCrateOf({ feature, name, opens }: ScheduledFeature): { text: string; action: HomeAction } {
+  return { text: `${bold(name)} is ready. It opens ${opens}.`, action: { label: "Open", command: { type: "openUnlock", feature } } };
 }
 
 function totalsOf(kudos: KudosHome): HomeLine {

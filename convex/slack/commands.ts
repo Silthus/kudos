@@ -84,27 +84,33 @@ export const recordCommandUsed = internalMutation({
 async function isEveryoneBoardShown(ctx: ActionCtx, command: URLSearchParams) {
   const viewer = { workspace: field(command, "team_id"), user: field(command, "user_id") };
   const { shown, viewerKnown } = await ctx.runMutation(internal.leaderboard.flag.isEveryoneBoardShown, viewer);
-  if (!viewerKnown) await ctx.scheduler.runAfter(0, internal.slack.commands.exposeBoardOnceKnown, { ...viewer, shown });
+  if (!viewerKnown) await ctx.scheduler.runAfter(0, internal.slack.commands.exposeOnceKnown, { ...viewer, flag: "everyone-board", shown });
   return shown;
 }
 
-export const exposeBoardOnceKnown = observedAction({
-  args: { workspace: v.string(), user: v.string(), shown: v.boolean(), ...attemptArgs },
-  handler: async (ctx, { attempt = 1, ...seen }) => {
+const exposureOf = { "everyone-board": internal.leaderboard.flag.exposeEveryoneBoard, unlocks: internal.unlocks.launch.exposeUnlocks };
+
+export const exposeOnceKnown = observedAction({
+  args: { workspace: v.string(), user: v.string(), flag: v.union(v.literal("everyone-board"), v.literal("unlocks")), shown: v.boolean(), ...attemptArgs },
+  handler: async (ctx, { attempt = 1, flag, ...seen }) => {
     await tryAtMostThreeTimes(
       attempt,
       async (attempt) => {
         const person = await knownOrLookedUp(ctx, seen);
         if (person.kind === "failed") return failedAttempt(attempt, person.retryAfterMs);
-        await ctx.runMutation(internal.leaderboard.flag.exposeEveryoneBoard, seen);
+        await ctx.runMutation(exposureOf[flag], seen);
         return null;
       },
-      (retry) => ctx.scheduler.runAt(retry.at, internal.slack.commands.exposeBoardOnceKnown, { ...seen, attempt: retry.attempt }),
+      (retry) => ctx.scheduler.runAt(retry.at, internal.slack.commands.exposeOnceKnown, { ...seen, flag, attempt: retry.attempt }),
     );
   },
 });
 
 async function leaderboardReply(ctx: ActionCtx, command: URLSearchParams, rest: string[]): Promise<Line[]> {
+  const viewer = { workspace: field(command, "team_id"), user: field(command, "user_id") };
+  const { lines: unopened, shownToUnknownViewer } = await ctx.runMutation(internal.feedback.unlockFilter.unopenedReplyOf, { ...viewer, feature: "leaderboard" });
+  if (shownToUnknownViewer !== null) await ctx.scheduler.runAfter(0, internal.slack.commands.exposeOnceKnown, { ...viewer, flag: "unlocks", shown: shownToUnknownViewer });
+  if (unopened !== null) return unopened;
   const period = periodOf(rest);
   if (period === null) return renderLeaderboardUsage();
   const view = await ctx.runQuery(internal.leaderboard.totals.everyoneBoard, { workspace: field(command, "team_id"), viewer: field(command, "user_id"), period });
