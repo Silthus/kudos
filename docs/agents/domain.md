@@ -23,7 +23,7 @@ An ADR is written only for a decision that is hard to reverse, surprising withou
 Every ADR is referenced from Coherence:
 
 1. Write the ADR.
-2. Record it with `coherence decide "ADR-NNNN (docs/adr/NNNN-slug.md): <what was chosen>" --over ... --because ...`.
+2. Record it with `npx --no -- coherence decide "ADR-NNNN (docs/adr/NNNN-slug.md): <what was chosen>" --over "<rejected>" --because "<why>" --session <id> --agent <name>`.
 3. Put the decision's id into the ADR.
 4. Cite the decision (`--cite <id>`) from the lexicon entries and later decisions that rest on it.
 

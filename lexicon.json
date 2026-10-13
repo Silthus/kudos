@@ -25,7 +25,7 @@
     },
     {
       "name": "daily allowance",
-      "definition": "How many kudos a giver can still give today: the workspace's base plus the bonus the giver has unlocked, minus what they have given today. It starts fresh at midnight in the giver's time zone, and nothing carries over."
+      "definition": "How many kudos a giver can still give today: the workspace's base plus the bonus the giver has unlocked, minus what they have given today, and never below zero. It starts fresh at midnight in the giver's time zone, and nothing carries over."
     },
     {
       "name": "kudos emoji",
@@ -33,7 +33,7 @@
     },
     {
       "name": "kudos message",
-      "definition": "A message by a member with at least one kudos emoji and at least one mention. Only the message's own text counts, not code, quotes or attachments. It costs the giver one kudos per recipient per kudos emoji."
+      "definition": "A message by a member with at least one kudos emoji and at least one mention. Only the message's own text counts, not code, quotes, strikethrough or attachments. It costs the giver one kudos per recipient per kudos emoji."
     },
     {
       "name": "attempt",
@@ -55,7 +55,7 @@
     },
     {
       "name": "retry",
-      "definition": "An edit to a message that has not given kudos, which evaluates it again as if it were new and spends the daily allowance of the day of the edit."
+      "definition": "An edit to a message that has not given kudos which changes its mentions or kudos emoji, so it is evaluated again as if it were new. A retry that gives kudos spends the daily allowance of the day of the edit; removing every kudos emoji instead withdraws the attempt."
     },
     {
       "name": "skipped mention",
