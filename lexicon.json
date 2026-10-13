@@ -63,7 +63,7 @@
     },
     {
       "name": "xp",
-      "definition": "Experience a member earns from Given awards: 10 for each kudos given and 5 for each kudos received, plus bonus XP from perks, boosters and team auras the member chose, and from chime-in thresholds on kudos they received. XP decides the member's level and never goes down (ADR-0002). It is not kudos and not coins."
+      "definition": "Experience a member earns from Given awards: 10 for each kudos given and 5 for each kudos received, plus bonus XP from perks, boosters and group auras the member chose, and from chime-in thresholds on kudos they received. XP decides the member's level and never goes down (ADR-0002). It is not kudos and not coins."
     },
     {
       "name": "level",
@@ -78,8 +78,14 @@
       "definition": "Something a member owns for good from the perk list. An effect perk's first step costs skill points and its upgrade costs skill points and coins; an expression perk is bought with coins. Some need a minimum level. An active perk works only for a limited time after the member switches it on."
     },
     {
-      "name": "team aura",
-      "definition": "The effect of a team perk: one member buys it and every teammate who opts in benefits. Only the strongest aura of each kind counts, however many teammates own it."
+      "name": "group aura",
+      "definition": "The effect of a group perk: one member buys it, and every member who opted in and has the same primary group as its owner benefits. It follows its owner when they change primary group. Only the strongest aura of each kind counts, however many members own it.",
+      "rejected": [
+        {
+          "alternative": "team aura",
+          "because": "grilling #10 renamed team to group"
+        }
+      ]
     },
     {
       "name": "booster",
@@ -187,7 +193,7 @@
     },
     {
       "name": "sticker book",
-      "definition": "A member's private album of the people they have thanked and the people who have thanked them, one sticker each, with team albums to complete."
+      "definition": "A member's private album of the people they have thanked and the people who have thanked them, one sticker each, with an album for every group to complete: an album is complete once the member has thanked or been thanked by every other current member of the group, and it stays complete."
     },
     {
       "name": "sticker",
@@ -208,6 +214,30 @@
     {
       "name": "crowd booster",
       "definition": "A booster for 24 hours that a chime-in threshold gives everyone who chimed in on a kudos message and its giver, stronger at each higher threshold. Only the strongest Crowd booster a member holds counts."
+    },
+    {
+      "name": "group",
+      "definition": "A Slack user group that counts for Kudos: every enabled custom user group unless a workspace admin picked an allowlist, never Slack's automatic admin and owner groups. A member can be in several groups. A group mention in a kudos message is still a skipped mention."
+    },
+    {
+      "name": "primary group",
+      "definition": "The one group a member's kudos count for on the leaderboard, and whose group auras they can receive. A member in one group has it automatically; a member in several picks one in the welcome message or App Home, and until then it is the smallest. The primary group is stored with each award when it is given, so history never moves."
+    },
+    {
+      "name": "leaderboard",
+      "definition": "A positive ranking of kudos given in a period (this week, this month or all time, by the giver's allowance day): groups by kudos given per member, then participation; and members inside their primary group or across the workspace, showing the top 3 and the member with the 3 people above and below. It never ranks kudos received or XP, and a member can leave the individual boards."
+    },
+    {
+      "name": "participation",
+      "definition": "The share of a group's members who gave at least one kudos in a period. It breaks ties between groups on the leaderboard."
+    },
+    {
+      "name": "welcome message",
+      "definition": "The one DM the app sends a member the first time they give or receive a Given award: how Kudos works, and, once groups exist, the pick of their primary group."
+    },
+    {
+      "name": "profile card",
+      "definition": "What any member sees of another member: name, equipped title and card, primary group, and level and achievement tiers unless hidden. Never coins, perks, streaks, XP or kudos received."
     }
   ]
 }
