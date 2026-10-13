@@ -9,11 +9,25 @@ export type CapturedEvent = {
   properties: Record<string, unknown>;
 };
 
-export type BatchRequest = { url: string; body: string; apiKey: unknown; events: CapturedEvent[] };
+export type BatchRequest = {
+  url: string;
+  body: string;
+  apiKey: unknown;
+  events: CapturedEvent[];
+  startedAt: number;
+  endedAt?: number;
+};
 
-type Answer = () => Response;
+type Answer = (signal?: AbortSignal) => Response | Promise<Response>;
 
 export const answersWith = (status: number): Answer => () => new Response(null, { status });
+
+export const failsToConnect: Answer = () => {
+  throw new TypeError("fetch failed");
+};
+
+export const neverAnswers: Answer = (signal) =>
+  new Promise((_, reject) => signal?.addEventListener("abort", () => reject(signal.reason)));
 
 export class FakePostHog {
   readonly requests: BatchRequest[] = [];
@@ -36,9 +50,14 @@ export class FakePostHog {
     const url = new URL(input instanceof Request ? input.url : input);
     const body = String(init?.body ?? "");
     const parsed = JSON.parse(body) as { api_key: unknown; batch: CapturedEvent[] };
-    this.requests.push({ url: url.href, body, apiKey: parsed.api_key, events: parsed.batch });
+    const request: BatchRequest = { url: url.href, body, apiKey: parsed.api_key, events: parsed.batch, startedAt: Date.now() };
+    this.requests.push(request);
     const answer = this.scripted.shift() ?? answersWith(200);
-    return answer();
+    try {
+      return await answer(init?.signal ?? undefined);
+    } finally {
+      request.endedAt = Date.now();
+    }
   };
 }
 

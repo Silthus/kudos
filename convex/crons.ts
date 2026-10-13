@@ -4,5 +4,7 @@ import { internal } from "./_generated/api";
 const crons = cronJobs();
 
 crons.daily("delete expired Slack receipts", { hourUTC: 3, minuteUTC: 0 }, internal.slack.receipts.deleteExpired);
+crons.interval("restart a stale analytics drain", { minutes: 10 }, internal.analytics.drain.recover);
+crons.daily("clean up the analytics outbox", { hourUTC: 3, minuteUTC: 15 }, internal.analytics.drain.cleanUp);
 
 export default crons;

@@ -7,6 +7,9 @@ import { memberEvent, messageChangedEvent, messageDeletedEvent, messageEvent, ty
 
 export type Backend = ReturnType<typeof testBackend>;
 
+const realSetTimeout = globalThis.setTimeout;
+const idleAfterMs = 200;
+
 export function testBackend() {
   return convexTest(schema, modules);
 }
@@ -29,6 +32,18 @@ export async function memberChanged(t: Backend, ...event: Parameters<typeof memb
 
 export async function settle(t: Backend) {
   await t.finishAllScheduledFunctions(vi.runAllTimers);
+}
+
+export async function settleInTimeOrder(t: Backend, maxTimers = 200) {
+  for (let fired = 0; fired < maxTimers; fired += 1) {
+    const finished = await Promise.race([
+      t.finishInProgressScheduledFunctions().then(() => true),
+      new Promise<false>((resolve) => realSetTimeout(() => resolve(false), idleAfterMs)),
+    ]);
+    if (finished && vi.getTimerCount() === 0) return;
+    vi.advanceTimersToNextTimer();
+  }
+  throw new Error(`settleInTimeOrder: more than ${maxTimers} timers fired`);
 }
 
 export async function settleUntil(t: Backend, until: Date) {

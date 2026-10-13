@@ -169,13 +169,14 @@ describe("O15: analytics never blocks the domain", () => {
       const response = await post(t, thanksBobAndCarol);
       await settle(t);
       const awards = (await t.run((ctx) => ctx.db.query("awards").collect())).map(({ kudos, day, at }) => ({ kudos, day, at }));
-      return { status: response.status, awards, slackCalls: slack.calls, postHogRequests: postHog.requests.length };
+      return { status: response.status, awards, slackCalls: slack.calls, postHogAsked: postHog.requests.length > 0 };
     };
 
     const whenUp = await seenWhenPostHogAnswers(200);
     const whenDown = await seenWhenPostHogAnswers(503);
 
     expect(whenDown).toEqual(whenUp);
+    expect(whenDown.postHogAsked).toBe(true);
     expect(whenDown.slackCalls.map((call) => call.method)).toEqual(expect.arrayContaining(["reactions.add", "chat.postEphemeral"]));
   });
 });

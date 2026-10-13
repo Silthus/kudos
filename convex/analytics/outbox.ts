@@ -1,7 +1,7 @@
-import { internal } from "../_generated/api";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
 import { captureSettings } from "./capture";
+import { wakeDrain } from "./drain";
 import type { ProductEvent } from "./projections";
 
 const taxonomyVersion = 1;
@@ -18,15 +18,11 @@ export async function record(ctx: MutationCtx, workspace: string, events: Produc
       timestamp: at,
       properties: { ...properties, ...shared },
       state: "pending",
+      failures: 0,
+      dueAt: Date.now(),
     });
   }
-  await startDrain(ctx);
-}
-
-async function startDrain(ctx: MutationCtx) {
-  if ((await ctx.db.query("analyticsDrain").first()) !== null) return;
-  await ctx.db.insert("analyticsDrain", {});
-  await ctx.scheduler.runAfter(0, internal.analytics.drain.drain, {});
+  await wakeDrain(ctx);
 }
 
 async function analyticsIdOf(ctx: MutationCtx, member: MemberId) {

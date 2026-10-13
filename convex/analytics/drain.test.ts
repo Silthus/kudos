@@ -1,12 +1,16 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { FakePostHog, answersWith, postHogHost, projectToken } from "../../testing/fakePostHog";
-import { settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { FakePostHog, answersWith, failsToConnect, neverAnswers, postHogHost, projectToken, type BatchRequest } from "../../testing/fakePostHog";
+import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { internal } from "../_generated/api";
 import type { KudosGivenEvent } from "../bus/events";
 
 const now = new Date("2026-10-13T10:00:00Z");
+const minutes = (count: number) => count * 60_000;
+const days = (count: number) => count * 24 * 60 * minutes(1);
 
 let postHog: FakePostHog;
+let warnings: ReturnType<typeof vi.spyOn>;
+let errors: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
   vi.useFakeTimers({ now });
@@ -15,19 +19,22 @@ beforeEach(() => {
   vi.stubEnv("POSTHOG_HOST", postHogHost);
   postHog = new FakePostHog();
   vi.stubGlobal("fetch", postHog.fetch);
+  warnings = vi.spyOn(console, "warn").mockImplementation(() => {});
+  errors = vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe("O13 O15: recording", () => {
   test("records the events in the outbox and makes no network call", async () => {
     const t = testBackend();
 
-    await t.mutation(internal.analytics.subscribers.recordKudosGiven, { event: await kudosGiven(t) });
+    await recordKudosGiven(t);
 
     expect(postHog.requests).toEqual([]);
     expect((await outbox(t)).map(({ event, state }) => [event, state])).toEqual([
@@ -39,9 +46,7 @@ describe("O13 O15: recording", () => {
   test("O16: only one drain is scheduled however many facts are recorded", async () => {
     const t = testBackend();
 
-    for (let message = 0; message < 3; message += 1) {
-      await t.mutation(internal.analytics.subscribers.recordKudosGiven, { event: await kudosGiven(t) });
-    }
+    for (let message = 0; message < 3; message += 1) await recordKudosGiven(t);
 
     expect(await scheduledDrains(t)).toBe(1);
   });
@@ -63,49 +68,235 @@ describe("O16: the drain", () => {
 
   test("a fact recorded after the drain finished starts a new drain", async () => {
     const t = testBackend();
-    await t.mutation(internal.analytics.subscribers.recordKudosGiven, { event: await kudosGiven(t) });
+    await recordKudosGiven(t);
     await settle(t);
 
-    await t.mutation(internal.analytics.subscribers.recordKudosGiven, { event: await kudosGiven(t) });
+    await recordKudosGiven(t);
     await settle(t);
 
     expect(postHog.requests.map((request) => request.events.length)).toEqual([2, 2]);
   });
+});
 
+describe("O18: a batch PostHog doesn't accept is retried", () => {
   test.each([
+    ["429", answersWith(429)],
     ["503", answersWith(503)],
-    ["a network error", () => { throw new TypeError("fetch failed"); }],
-  ])("O14: a batch PostHog doesn't accept (%s) stays in the outbox and is sent later with the same identity", async (_, failure) => {
+    ["401", answersWith(401)],
+    ["a network error", failsToConnect],
+    ["no answer within 10 seconds", neverAnswers],
+  ])("on %s, every event is retried after successive delays of 1, 5, 30, 120 and 360 minutes and given up on its sixth failure", async (_, failure) => {
     const t = testBackend();
-    postHog.answering(failure as () => Response);
-    await t.mutation(internal.analytics.subscribers.recordKudosGiven, { event: await kudosGiven(t) });
+    postHog.answering(...Array(7).fill(failure));
+
+    await recordKudosGiven(t);
+    await settleInTimeOrder(t);
+
+    const delays = postHog.requests.slice(1).map((retry, index) => (retry.startedAt - postHog.requests[index]!.endedAt!) / minutes(1));
+    expect(delays).toEqual([1, 5, 30, 120, 360]);
+    expect((await outbox(t)).map(({ state, reason }) => ({ state, reason }))).toEqual([
+      { state: "exhausted", reason: "exhausted" },
+      { state: "exhausted", reason: "exhausted" },
+    ]);
+    expect(warnings.mock.calls).toEqual([["analytics.events_given_up", { reason: "exhausted", events: ["kudos given", "kudos received"] }]]);
+  });
+
+  test("failures that PostHog answers at once fall 1, 6, 36, 156 and 516 minutes after the first", async () => {
+    const t = testBackend();
+    postHog.answering(...Array(6).fill(answersWith(503)));
+
+    await recordKudosGiven(t);
+    await settleInTimeOrder(t);
+
+    const [first, ...retries] = postHog.requests;
+    expect(retries.map((retry) => (retry.startedAt - first!.endedAt!) / minutes(1))).toEqual([1, 6, 36, 156, 516]);
+  });
+
+  test("O14: every retry sends the same UUID, name, distinct_id and timestamp as the first attempt", async () => {
+    const t = testBackend();
+    postHog.answering(answersWith(503), failsToConnect, neverAnswers, answersWith(200));
+    await recordKudosGiven(t);
+    const recorded = await outbox(t);
+
     await settle(t);
-    const kept = await outbox(t);
 
-    await t.action(internal.analytics.drain.drain, {});
-
-    const [failed, delivered] = postHog.requests.map((request) => request.events);
-    expect(kept.map((row) => row.state)).toEqual(["pending", "pending"]);
-    expect(delivered).toEqual(failed);
-    expect(delivered!.map(({ uuid, event, distinct_id, timestamp }) => ({ uuid, event, distinct_id, timestamp }))).toEqual(
-      kept.map((row) => ({ uuid: row.uuid, event: row.event, distinct_id: row.distinctId, timestamp: new Date(row.timestamp).toISOString() })),
-    );
+    const identities = postHog.requests.map((request) => request.events.map(identity));
+    expect(identities).toHaveLength(4);
+    for (const attempt of identities) {
+      expect(attempt).toEqual(recorded.map((row) => ({ uuid: row.uuid, event: row.event, distinct_id: row.distinctId, timestamp: new Date(row.timestamp).toISOString() })));
+    }
     expect(await outbox(t)).toEqual([]);
   });
 
-  test("O26: with capture switched off, the drain sends nothing and leaves the outbox as it is", async () => {
+  test.each([400, 413])("a batch PostHog answers with %i is given up at once as rejected", async (status) => {
     const t = testBackend();
-    postHog.answering(answersWith(503));
-    await t.mutation(internal.analytics.subscribers.recordKudosGiven, { event: await kudosGiven(t) });
-    await settle(t);
-    vi.stubEnv("POSTHOG_PROJECT_TOKEN", "");
+    postHog.answering(answersWith(status));
 
-    await t.action(internal.analytics.drain.drain, {});
+    await recordKudosGiven(t);
+    await settle(t);
 
     expect(postHog.requests).toHaveLength(1);
-    expect((await outbox(t)).map((row) => row.state)).toEqual(["pending", "pending"]);
+    expect((await outbox(t)).map(({ state, reason }) => ({ state, reason }))).toEqual([
+      { state: "exhausted", reason: "rejected" },
+      { state: "exhausted", reason: "rejected" },
+    ]);
+    expect(warnings.mock.calls).toEqual([["analytics.events_given_up", { reason: "rejected", events: ["kudos given", "kudos received"] }]]);
   });
 });
+
+describe("O19: given-up events are kept for 7 days", () => {
+  test("the daily cleanup deletes an event 7 days after it was given up, not earlier", async () => {
+    const t = testBackend();
+    postHog.answering(answersWith(400));
+    await recordKudosGiven(t);
+    await settle(t);
+    const givenUpAt = postHog.requests[0]!.endedAt!;
+
+    vi.setSystemTime(givenUpAt + days(7) - minutes(1));
+    await t.mutation(internal.analytics.drain.cleanUp, {});
+    expect(await outbox(t)).toHaveLength(2);
+
+    vi.setSystemTime(givenUpAt + days(7));
+    await t.mutation(internal.analytics.drain.cleanUp, {});
+    expect(await outbox(t)).toEqual([]);
+  });
+});
+
+describe("O16 O17: leases", () => {
+  test("a drain that dies mid-batch has its batch released at its lease's expiry and sent within 3 minutes", async () => {
+    const t = testBackend();
+    await recordKudosGiven(t);
+    const recordedAt = Date.now();
+
+    await drainDiesHoldingItsBatch(t);
+    await settleInTimeOrder(t);
+
+    expect(postHog.requests).toHaveLength(1);
+    expect(postHog.requests[0]!.startedAt - recordedAt).toBeLessThanOrEqual(minutes(3));
+    expect(await outbox(t)).toEqual([]);
+  });
+
+  test("a drain that resumes after its lease expired changes nothing it no longer holds", async () => {
+    const t = testBackend();
+    await recordKudosGiven(t);
+    const late = await t.mutation(internal.analytics.drain.claim, {});
+
+    vi.setSystemTime(Date.now() + minutes(2));
+    await t.mutation(internal.analytics.drain.recover, {});
+    const current = await t.mutation(internal.analytics.drain.claim, {});
+    const heldByCurrent = await outbox(t);
+
+    await t.mutation(internal.analytics.drain.settle, { token: late!.token, rows: late!.rows.map((row) => row._id), answer: "delivered" });
+    await t.mutation(internal.analytics.drain.settle, { token: late!.token, rows: late!.rows.map((row) => row._id), answer: "rejected" });
+
+    expect(current!.token).not.toBe(late!.token);
+    expect(await outbox(t)).toEqual(heldByCurrent);
+  });
+
+  test("an event recorded while a dead drain holds its batch is still sent, and so is the batch", async () => {
+    const t = testBackend();
+    await recordKudosGiven(t);
+    await drainDiesHoldingItsBatch(t);
+
+    vi.setSystemTime(Date.now() + minutes(1));
+    await recordKudosGiven(t);
+    await settleInTimeOrder(t);
+
+    expect(postHog.requests.map((request) => request.events.length)).toEqual([2, 2]);
+    expect(await outbox(t)).toEqual([]);
+  });
+
+  test("the backstop starts a drain when the drain is gone and events are due", async () => {
+    const t = testBackend();
+    await recordKudosGiven(t);
+    await drainDies(t);
+
+    await t.mutation(internal.analytics.drain.recover, {});
+    await settle(t);
+
+    expect(postHog.events()).toHaveLength(2);
+    expect(await outbox(t)).toEqual([]);
+  });
+});
+
+describe("O26: capture switched off pauses the outbox", () => {
+  test("the drain makes no request and counts no failure, and switching capture back on sends the events", async () => {
+    const t = testBackend();
+    await recordKudosGiven(t);
+    vi.stubEnv("POSTHOG_PROJECT_TOKEN", "");
+
+    await settle(t);
+    expect(postHog.requests).toEqual([]);
+    expect((await outbox(t)).map(({ state, failures }) => ({ state, failures }))).toEqual([
+      { state: "pending", failures: 0 },
+      { state: "pending", failures: 0 },
+    ]);
+
+    vi.stubEnv("POSTHOG_PROJECT_TOKEN", projectToken);
+    await t.mutation(internal.analytics.drain.recover, {});
+    await settle(t);
+    expect(postHog.events()).toHaveLength(2);
+    expect(await outbox(t)).toEqual([]);
+  });
+
+  test("an event still pending 7 days after it was recorded is given up as expired", async () => {
+    const t = testBackend();
+    await recordKudosGiven(t);
+    const recordedAt = Date.now();
+    vi.stubEnv("POSTHOG_PROJECT_TOKEN", "");
+    await settle(t);
+
+    vi.setSystemTime(recordedAt + days(7) - minutes(1));
+    await t.mutation(internal.analytics.drain.cleanUp, {});
+    expect((await outbox(t)).map((row) => row.state)).toEqual(["pending", "pending"]);
+
+    vi.setSystemTime(recordedAt + days(7) + minutes(1));
+    await t.mutation(internal.analytics.drain.cleanUp, {});
+    expect((await outbox(t)).map(({ state, reason }) => ({ state, reason }))).toEqual([
+      { state: "exhausted", reason: "expired" },
+      { state: "exhausted", reason: "expired" },
+    ]);
+    expect(warnings.mock.calls).toEqual([["analytics.events_given_up", { reason: "expired", events: ["kudos given", "kudos received"] }]]);
+  });
+});
+
+describe("O20: the analytics module's own failures", () => {
+  test("a failing drain is logged with a fixed code and recorded as nothing", async () => {
+    const t = testBackend();
+    await recordKudosGiven(t);
+    vi.spyOn(crypto, "randomUUID").mockImplementationOnce(() => {
+      throw new Error("leases ran out");
+    });
+
+    await settle(t);
+
+    expect(errors.mock.calls).toEqual([["analytics.drain_failed", { error: "Error" }]]);
+    expect((await outbox(t)).map(({ event, state }) => [event, state])).toEqual([
+      ["kudos given", "pending"],
+      ["kudos received", "pending"],
+    ]);
+  });
+});
+
+async function recordKudosGiven(t: Backend) {
+  await t.mutation(internal.analytics.subscribers.recordKudosGiven, { event: await kudosGiven(t) });
+}
+
+async function drainDies(t: Backend) {
+  await t.run(async (ctx) => {
+    const drain = await ctx.db.query("analyticsDrain").first();
+    await ctx.scheduler.cancel(drain!.job);
+  });
+}
+
+async function drainDiesHoldingItsBatch(t: Backend) {
+  await t.mutation(internal.analytics.drain.claim, {});
+  await drainDies(t);
+}
+
+function identity({ uuid, event, distinct_id, timestamp }: BatchRequest["events"][number]) {
+  return { uuid, event, distinct_id, timestamp };
+}
 
 async function kudosGiven(t: Backend): Promise<KudosGivenEvent> {
   const [giver, recipient] = await t.run(async (ctx) => [

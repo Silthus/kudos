@@ -123,8 +123,16 @@ export default defineSchema({
     distinctId: v.string(),
     timestamp: v.number(),
     properties: propertiesValidator,
-    state: v.union(v.literal("pending"), v.literal("sending")),
-  }).index("by_state", ["state"]),
+    state: v.union(v.literal("pending"), v.literal("sending"), v.literal("exhausted")),
+    failures: v.number(),
+    dueAt: v.number(),
+    lease: v.optional(v.string()),
+    reason: v.optional(v.union(v.literal("rejected"), v.literal("exhausted"), v.literal("expired"))),
+  })
+    .index("by_state", ["state"])
+    .index("by_due", ["state", "dueAt"]),
 
-  analyticsDrain: defineTable({}),
+  analyticsDrain: defineTable({
+    job: v.id("_scheduled_functions"),
+  }),
 });
