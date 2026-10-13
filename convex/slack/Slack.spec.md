@@ -17,7 +17,7 @@ The Slack adapter, the only code that knows Slack: it verifies and acknowledges 
   because: the route is public, so a forged request must not record a receipt or reach the domain; anyone could otherwise forge kudos (R48)
   crossing: slack-request -> domain
   entrances: route POST /slack/events
-  refuted: removed the 401 return for a request whose signature does not verify in slackEvents -> all 6 rejection cases failed on their 401 and no-receipt assertions (2026-10-13)
+  refuted: readSignedBody returned the body whether or not the signature verified -> all 7 rejection cases failed, against the real engine with no processing mock (2026-10-13)
   kinds: identity, credential
   checklist: capability-authorization dismissed: the signing secret proves only that Slack sent the request; no credential carrying bounded permission is accepted
   checklist: revalidated-permission dismissed: nothing is queued between acceptance and processing; the receipt and the processing step run in one transaction
