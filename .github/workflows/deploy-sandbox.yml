@@ -38,7 +38,15 @@ jobs:
 
       - run: pnpm gate
 
+      # A rerun of an older push must not roll the sandbox back past the branch's tip.
+      - name: Check this push is still the branch's tip
+        id: tip
+        run: |
+          tip=$(git ls-remote origin "$GITHUB_REF" | cut -f1)
+          if [ "$tip" = "$GITHUB_SHA" ]; then echo "current=true"; else echo "current=false"; fi >> "$GITHUB_OUTPUT"
+
       - name: Deploy to the sandbox deployment
+        if: steps.tip.outputs.current == 'true'
         run: pnpm exec convex deploy
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_SANDBOX }}

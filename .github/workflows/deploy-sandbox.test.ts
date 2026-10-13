@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 import { parse } from "yaml";
 
-type Step = { name?: string; run?: string; uses?: string; with?: Record<string, unknown>; env?: Record<string, string> };
+type Step = { id?: string; name?: string; if?: string; run?: string; uses?: string; with?: Record<string, unknown>; env?: Record<string, string> };
 type Job = { env?: Record<string, string>; steps: Step[] };
 type Workflow = {
   on: unknown;
@@ -41,4 +41,10 @@ test("the gate passes before the deploy runs", () => {
 
 test("deploys run one at a time and a running deploy is never cancelled", () => {
   expect(workflow.concurrency).toEqual({ group: "deploy-sandbox", "cancel-in-progress": false });
+});
+
+test("a run the branch has already moved past deploys nothing, so a rerun never rolls the sandbox back", () => {
+  const tipCheck = steps[steps.indexOf(deployStep!) - 1];
+  expect(tipCheck?.run).toContain('git ls-remote origin "$GITHUB_REF"');
+  expect(deployStep?.if).toBe(`steps.${tipCheck?.id}.outputs.current == 'true'`);
 });
