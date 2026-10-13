@@ -7,6 +7,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "manifest": "node slack-app/render-manifest.ts",
     "coherence": "coherence spec --check && coherence lexicon --check",
     "gate": "pnpm typecheck && pnpm test && pnpm coherence"
   },
