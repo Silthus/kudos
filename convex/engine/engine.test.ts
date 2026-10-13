@@ -72,7 +72,7 @@ describe("Given", () => {
   test("R10: a kudos message whose mentions are all skipped gives nothing", async () => {
     const t = await withDirectory({ U_ALICE: "UTC" });
 
-    const observation = await t.run((ctx) => observe(ctx, kudosMessage("U_ALICE", [person("U_ALICE"), { kind: "broadcast" }], ["taco"])));
+    const observation = await t.run((ctx) => observe(ctx, kudosMessage("U_ALICE", [person("U_ALICE"), { kind: "broadcast", range: "here" }], ["taco"])));
 
     expect(observation).toMatchObject({ outcome: { kind: "invalid" } });
     expect(await awardsOf(t)).toEqual([]);
@@ -114,6 +114,45 @@ test("R17: a giver's next message sees what the previous one spent", async () =>
   expect(first).toMatchObject({ outcome: { kind: "given", left: 1 } });
   expect(second).toMatchObject({ outcome: { kind: "over-allowance", cost: 2, left: 1 } });
   expect((await awardsOf(t)).reduce((sum, award) => sum + award.kudos, 0)).toBe(2);
+});
+
+describe("R16: settings in force at evaluation", () => {
+  test("a base lowered below what the giver already spent leaves 0", async () => {
+    const t = await withDirectory({ U_ALICE: "UTC", U_BOB: "UTC" });
+    const workspace = await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", baseAllowance: 5 }));
+    await t.run((ctx) => observe(ctx, kudosMessage("U_ALICE", [person("U_BOB")], ["taco", "taco", "taco"], { message: "1" })));
+
+    await t.run((ctx) => ctx.db.patch(workspace, { baseAllowance: 2 }));
+    const observation = await t.run((ctx) => observe(ctx, kudosMessage("U_ALICE", [person("U_BOB")], ["taco"], { message: "2" })));
+
+    expect(observation).toMatchObject({ outcome: { kind: "over-allowance", cost: 1, left: 0 } });
+  });
+});
+
+describe("R9 R10: skipped mentions", () => {
+  test("each skipped mention keeps its reason, once, in the order it first appears", async () => {
+    const t = await withDirectory({ U_ALICE: "UTC", U_BOB: "UTC" });
+    await t.run(async (ctx) => {
+      await ctx.db.insert("members", { workspace: "T1", user: "U_HELPER", kind: "bot" });
+      await ctx.db.insert("members", { workspace: "T1", user: "U_DAVE", kind: "not-a-member" });
+    });
+    const mentions: Mention[] = [person("U_DAVE"), { kind: "group", group: "S1" }, person("U_ALICE"), person("U_BOB"), person("U_HELPER"), person("U_DAVE")];
+
+    const observation = await t.run((ctx) => observe(ctx, kudosMessage("U_ALICE", mentions, ["taco"])));
+
+    expect(observation).toMatchObject({
+      outcome: {
+        kind: "given",
+        recipients: ["U_BOB"],
+        skipped: [
+          { mention: person("U_DAVE"), reason: "not-a-member" },
+          { mention: { kind: "group", group: "S1" }, reason: "group-or-broadcast" },
+          { mention: person("U_ALICE"), reason: "self" },
+          { mention: person("U_HELPER"), reason: "bot" },
+        ],
+      },
+    });
+  });
 });
 
 describe("R20: kudosGiven", () => {

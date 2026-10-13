@@ -16,6 +16,7 @@ import type * as engine_engine from "../engine/engine.js";
 import type * as engine_messageEvent from "../engine/messageEvent.js";
 import type * as feedback_indicator from "../feedback/indicator.js";
 import type * as feedback_kudosCommand from "../feedback/kudosCommand.js";
+import type * as feedback_replies from "../feedback/replies.js";
 import type * as http from "../http.js";
 import type * as parser_parser from "../parser/parser.js";
 import type * as slack_commands from "../slack/commands.js";
@@ -45,6 +46,7 @@ declare const fullApi: ApiFromModules<{
   "engine/messageEvent": typeof engine_messageEvent;
   "feedback/indicator": typeof feedback_indicator;
   "feedback/kudosCommand": typeof feedback_kudosCommand;
+  "feedback/replies": typeof feedback_replies;
   http: typeof http;
   "parser/parser": typeof parser_parser;
   "slack/commands": typeof slack_commands;

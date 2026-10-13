@@ -2,7 +2,7 @@ import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
-import { codeBlock, emoji, mention, messageEvent, quote, section, text, type MessageOptions, type RichElement } from "../../testing/slackMessages";
+import { broadcast, codeBlock, emoji, mention, messageEvent, quote, section, text, userGroup, type MessageOptions, type RichElement } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import schema from "../schema";
 import { modules } from "../test.setup";
@@ -72,6 +72,109 @@ describe("a kudos message in a channel the app is in", () => {
   });
 });
 
+describe("R33: the private reply", () => {
+  test("R36 R37: a thread reply's Given reply goes to the giver only, in the thread, with what's left", async () => {
+    const t = testBackend();
+    const threadRoot = "1760349000.000100";
+
+    await post(t, [section(text("thanks "), mention("U_BOB"), text(" and "), mention("U_CAROL"), emoji("taco"))], { threadTs: threadRoot });
+    await settle(t);
+
+    expect(slack.callsTo("chat.postEphemeral")).toEqual([
+      { channel: "C1", user: "U_ALICE", thread_ts: threadRoot, text: "<@U_BOB> and <@U_CAROL> got 1 kudos from you. You have 1 kudos left today." },
+    ]);
+    expect(slack.calls.map((call) => call.method).filter((method) => method !== "users.info")).toEqual(["reactions.add", "chat.postEphemeral"]);
+  });
+
+  test("R37: the giver's last kudos says how many come at midnight", async () => {
+    const t = testBackend();
+
+    await post(t, [section(mention("U_BOB"), emoji("taco"), emoji("taco"), emoji("taco"))]);
+    await settle(t);
+
+    expect(slack.ephemeralsTo("U_ALICE").map((reply) => reply.text)).toEqual([
+      "<@U_BOB> got 3 kudos from you. That was your last kudos for today, and you'll have 3 more at midnight.",
+    ]);
+  });
+
+  describe("R33: replies reach only the giver", () => {
+    test.each<[string, RichElement[], MessageOptions]>([
+      ["Given in the channel", [section(mention("U_BOB"), mention("U_ALICE"), emoji("taco"))], {}],
+      ["Given in a thread", [section(mention("U_BOB"), emoji("taco"))], { threadTs: "1760349000.000100" }],
+      ["Over allowance in the channel", [section(mention("U_BOB"), mention("U_CAROL"), emoji("taco"), emoji("taco"))], {}],
+      ["Over allowance in a thread", [section(mention("U_BOB"), mention("U_CAROL"), emoji("taco"), emoji("taco"))], { threadTs: "1760349000.000100" }],
+      ["Invalid in the channel", [section(mention("U_ALICE"), broadcast("here"), emoji("taco"))], {}],
+      ["Invalid in a thread", [section(mention("U_ALICE"), broadcast("here"), emoji("taco"))], { threadTs: "1760349000.000100", subtype: "thread_broadcast" }],
+    ])("beside the message: %s", async (_, blocks, options) => {
+      const t = testBackend();
+
+      await post(t, blocks, options);
+      await settle(t);
+
+      const messagesSent = slack.calls.filter((call) => call.method.startsWith("chat."));
+      expect(messagesSent).toEqual([
+        { method: "chat.postEphemeral", args: expect.objectContaining({ channel: "C1", user: "U_ALICE", ...(options.threadTs && { thread_ts: options.threadTs }) }) },
+      ]);
+      expect(Object.keys(messagesSent[0]!.args).sort()).toEqual(options.threadTs ? ["channel", "text", "thread_ts", "user"] : ["channel", "text", "user"]);
+    });
+  });
+});
+
+describe("saying no", () => {
+  test("R15 R32 R33 R36: a message costing more than the kudos left spends nothing, gets the hourglass and tells the giver in the channel", async () => {
+    const t = testBackend();
+
+    await post(t, [section(mention("U_BOB"), mention("U_CAROL"), emoji("taco"), emoji("taco"))]);
+    await settle(t);
+
+    expect(await kudosReceived(t, "U_BOB")).toBe(0);
+    expect(slack.reactionsOn("C1", postedTs)).toEqual(["hourglass_flowing_sand"]);
+    expect(slack.ephemeralsTo("U_ALICE")).toEqual([
+      {
+        channel: "C1",
+        user: "U_ALICE",
+        text: "This needs 4 kudos (2 people × 2 kudos emoji), but you have 3 left today. Edit the message to give fewer and I'll try again, or edit it after midnight when you have 3 again.",
+      },
+    ]);
+  });
+
+  test("R9 R10 R36 R37: a message where nobody can receive gets the red X and the distinct reasons", async () => {
+    const t = testBackend();
+    slack.withMember("U_HELPER", { is_bot: true });
+
+    await post(t, [section(mention("U_ALICE"), mention("U_HELPER"), broadcast("here"), userGroup("S1"), mention("U_ALICE"), emoji("taco"))]);
+    await settle(t);
+
+    expect(slack.reactionsOn("C1", postedTs)).toEqual(["x"]);
+    expect(slack.ephemeralsTo("U_ALICE").map((reply) => reply.text)).toEqual([
+      "Nobody in this message can receive kudos: you can't give kudos to yourself, bots don't receive kudos and `@here`, `@channel` and user groups don't receive kudos, so tag people individually. Tag a teammate and edit the message to try again.",
+    ]);
+  });
+
+  test("R9 R36: skipped mentions are named with their reasons while the rest receive", async () => {
+    const t = testBackend();
+    slack.withMember("U_HELPER", { is_bot: true }).withMember("U_DAVE", { team_id: "T2" }).withMember("U_ERIN", { deleted: true });
+
+    await post(t, [
+      section(mention("U_ALICE"), mention("U_HELPER"), mention("U_DAVE"), userGroup("S1"), mention("U_BOB"), broadcast("channel"), mention("U_ERIN"), emoji("taco")),
+    ]);
+    await settle(t);
+
+    expect(await kudosReceived(t, "U_BOB")).toBe(1);
+    expect(slack.reactionsOn("C1", postedTs)).toEqual(["taco"]);
+    expect(slack.ephemeralsTo("U_ALICE").map((reply) => reply.text?.split("\n"))).toEqual([
+      [
+        "<@U_BOB> got 1 kudos from you. You have 2 kudos left today.",
+        "I skipped <@U_ALICE>: you can't give kudos to yourself.",
+        "I skipped <@U_HELPER>: bots don't receive kudos.",
+        "I skipped <@U_DAVE>: <@U_DAVE> isn't an active member of this workspace.",
+        "I skipped <!subteam^S1> and `@channel`: `@here`, `@channel` and user groups don't receive kudos, so tag people individually.",
+        "I skipped <@U_ERIN>: <@U_ERIN> isn't an active member of this workspace.",
+      ],
+    ]);
+  });
+});
+
 describe("R1 R2: only countable content makes a kudos message", () => {
   test.each<[string, RichElement[], MessageOptions?]>([
     ["the emoji inside a quote", [section(mention("U_BOB")), quote(emoji("taco"))]],
@@ -105,6 +208,19 @@ describe("R1 R2: only countable content makes a kudos message", () => {
     expect(slack.callsTo("reactions.add")).toEqual([]);
     expect(await kudosReceived(t, "U_BOB")).toBe(0);
   });
+});
+
+test("R16: a message waiting on a directory check is ordinary chat when the workspace emoji changes before the check", async () => {
+  const t = testBackend();
+
+  await post(t, [section(mention("U_BOB"), emoji("taco"))]);
+  await setWorkspaceEmoji(t, "pizza");
+  await settle(t);
+
+  expect(slack.callsTo("users.info")).not.toEqual([]);
+  expect(slack.callsTo("reactions.add")).toEqual([]);
+  expect(slack.callsTo("chat.postEphemeral")).toEqual([]);
+  expect(await kudosReceived(t, "U_BOB")).toBe(0);
 });
 
 describe("R5 R6 R7: whose messages count, and where", () => {

@@ -22,6 +22,10 @@ export class FakeSlack {
     return this.reactionsByMessage.get(`${channel}/${ts}`) ?? [];
   }
 
+  ephemeralsTo(user: string) {
+    return this.callsTo("chat.postEphemeral").filter((args) => args.user === user);
+  }
+
   callsTo(method: string) {
     return this.calls.filter((call) => call.method === method).map((call) => call.args);
   }
@@ -46,6 +50,7 @@ export class FakeSlack {
       this.reactionsByMessage.set(key, [...reactions, args.name ?? ""]);
       return { ok: true };
     }
+    if (method === "chat.postEphemeral") return { ok: true, message_ts: "1760349700.000100" };
     return { ok: false, error: "unknown_method" };
   }
 }

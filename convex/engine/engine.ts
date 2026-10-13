@@ -1,7 +1,8 @@
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
 import { publish } from "../bus/publish";
-import { setIndicator } from "../feedback/indicator";
+import { setIndicator, type Indicator } from "../feedback/indicator";
+import { replyPrivately, type Given, type Invalid, type OverAllowance, type Reply, type SkipReason, type SkippedMention } from "../feedback/replies";
 import { lookup, type MemberFacts, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { allowanceDay, dailyAllowance } from "./allowance";
@@ -10,9 +11,9 @@ import { messageRefValidator, type ChatUserId, type Mention, type MessageEvent, 
 import { annotationsOf, kudosMessageOf, type KudosMessage } from "../parser/parser";
 
 export type Outcome =
-  | { kind: "given"; awards: Award[]; kudosEmoji: string; left: number }
-  | { kind: "over-allowance"; cost: number; recipients: number; perRecipient: number; left: number }
-  | { kind: "invalid" };
+  | ({ kind: "given"; awards: Award[]; kudosEmoji: string } & Given)
+  | ({ kind: "over-allowance" } & OverAllowance)
+  | ({ kind: "invalid" } & Invalid);
 
 export type Observation =
   | { kind: "ignored"; why: "not-a-member" | "ordinary-chat" | "stale-revision" | "unchanged" }
@@ -34,6 +35,7 @@ export async function observe(ctx: MutationCtx, event: MessageEvent): Promise<Ob
 
   const id = await ctx.db.insert("kudosMessages", {
     ...event.ref,
+    ...(event.threadRoot && { threadRoot: event.threadRoot }),
     author: event.author,
     revision: event.revision,
     state: "awaiting-directory",
@@ -66,24 +68,46 @@ async function evaluate(ctx: MutationCtx, row: KudosMessageRow, { lastCheck }: {
   const kudos = await kudosMessageOf(ctx, row.content, { workspace: row.workspace, giver: giver.member });
   if (kudos === null) return ignore(ctx, row, "ordinary-chat");
 
-  const outcome = await decide(ctx, row, giver, kudos);
+  const settings = await settingsOf(ctx, row.workspace);
+  const outcome = await decide(ctx, row, giver, kudos, settings.baseAllowance);
   await ctx.db.patch(row._id, { state: outcome.kind });
-  if (outcome.kind === "given") await setIndicator(ctx, refOf(row), { emoji: outcome.kudosEmoji });
+  await tellGiver(ctx, row, outcome, settings.baseAllowance);
   return { kind: "evaluated", outcome };
 }
 
-async function decide(ctx: MutationCtx, row: KudosMessageRow, giver: Member, kudos: KudosMessage): Promise<Outcome> {
-  const recipients = await recipientsOf(ctx, row.workspace, kudos.mentions, giver.member);
-  if (recipients.length === 0) return { kind: "invalid" };
+async function tellGiver(ctx: MutationCtx, row: KudosMessageRow, outcome: Outcome, base: number) {
+  await setIndicator(ctx, refOf(row), indicatorOf(outcome));
+  await replyPrivately(ctx, refOf(row), row.threadRoot, row.author, replyOf(outcome, base));
+}
 
-  const { baseAllowance } = await settingsOf(ctx, row.workspace);
+function replyOf(outcome: Outcome, base: number): Reply {
+  switch (outcome.kind) {
+    case "given":
+      return { kind: "given", outcome, base };
+    case "over-allowance":
+      return { kind: "over-allowance", outcome, base };
+    case "invalid":
+      return { kind: "invalid", outcome };
+  }
+}
+
+function indicatorOf(outcome: Outcome): Indicator {
+  if (outcome.kind === "given") return { emoji: outcome.kudosEmoji };
+  if (outcome.kind === "over-allowance") return { emoji: "hourglass_flowing_sand" };
+  return { emoji: "x" };
+}
+
+async function decide(ctx: MutationCtx, row: KudosMessageRow, giver: Member, kudos: KudosMessage, baseAllowance: number): Promise<Outcome> {
+  const { recipients, skipped } = await sortMentions(ctx, row.workspace, kudos.mentions, giver.member);
+  if (recipients.length === 0) return { kind: "invalid", skipped };
+
   const day = allowanceDay(row.spendsAt, giver.timeZone);
   const allowance = await dailyAllowance(ctx, giver.member, day, baseAllowance);
   const { perRecipient } = kudos;
   const cost = recipients.length * perRecipient;
   if (cost > allowance.left) return { kind: "over-allowance", cost, recipients: recipients.length, perRecipient, left: allowance.left };
 
-  const awards = recipients.map((recipient) => ({ giver: giver.member, recipient, kudos: perRecipient }));
+  const awards = recipients.map(({ member }) => ({ giver: giver.member, recipient: member, kudos: perRecipient }));
   const kudosEmoji = kudos.kudosEmoji[0]!;
   const left = allowance.left - cost;
   await allowance.spend(cost);
@@ -100,16 +124,33 @@ async function decide(ctx: MutationCtx, row: KudosMessageRow, giver: Member, kud
     day,
     at: row.spendsAt,
   });
-  return { kind: "given", awards, kudosEmoji, left };
+  return { kind: "given", awards, kudosEmoji, recipients: recipients.map(({ user }) => user), perRecipient, left, skipped };
 }
 
-async function recipientsOf(ctx: QueryCtx, workspace: string, mentions: Mention[], giver: MemberId): Promise<MemberId[]> {
-  const recipients: MemberId[] = [];
-  for (const user of personMentions(mentions)) {
-    const facts = await lookup(ctx, workspace, user);
-    if (facts?.kind === "member" && facts.member !== giver && !recipients.includes(facts.member)) recipients.push(facts.member);
+type Recipient = { member: MemberId; user: ChatUserId };
+
+async function sortMentions(ctx: QueryCtx, workspace: string, mentions: Mention[], giver: MemberId) {
+  const recipients: Recipient[] = [];
+  const skipped: SkippedMention[] = [];
+  for (const mention of uniqueMentions(mentions)) {
+    const sorted = await recipientOrSkipReason(ctx, workspace, mention, giver);
+    if (typeof sorted === "string") skipped.push({ mention, reason: sorted });
+    else recipients.push(sorted);
   }
-  return recipients;
+  return { recipients, skipped };
+}
+
+async function recipientOrSkipReason(ctx: QueryCtx, workspace: string, mention: Mention, giver: MemberId): Promise<Recipient | SkipReason> {
+  if (mention.kind !== "person") return "group-or-broadcast";
+  const facts = await lookup(ctx, workspace, mention.user);
+  if (facts?.kind === "bot") return "bot";
+  if (facts?.kind !== "member") return "not-a-member";
+  if (facts.member === giver) return "self";
+  return { member: facts.member, user: mention.user };
+}
+
+function uniqueMentions(mentions: Mention[]) {
+  return [...new Map(mentions.map((mention) => [JSON.stringify(mention), mention])).values()];
 }
 
 async function unknownUsers(ctx: QueryCtx, row: KudosMessageRow): Promise<ChatUserId[]> {
