@@ -9,20 +9,17 @@ import { fakeSystemTheme } from "./test/systemTheme";
 const profileRead = vi.fn();
 const authActions = { signIn: vi.fn(), signOut: vi.fn() };
 const socket = { isWebSocketConnected: true };
-const authProviderProps = vi.fn();
+const auth = { isLoading: false, isAuthenticated: true };
 
 vi.mock("convex/react", () => ({
   ConvexReactClient: class {},
-  useConvexAuth: () => ({ isLoading: false, isAuthenticated: true }),
+  useConvexAuth: () => ({ ...auth }),
   useConvexConnectionState: () => ({ ...socket }),
   useQuery: () => profileRead(),
 }));
 
 vi.mock("@convex-dev/auth/react", () => ({
-  ConvexAuthProvider: ({ children, ...props }: { children: ReactNode }) => {
-    authProviderProps(props);
-    return children;
-  },
+  ConvexAuthProvider: ({ children }: { children: ReactNode }) => children,
   useAuthActions: () => authActions,
 }));
 
@@ -45,7 +42,7 @@ afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
   socket.isWebSocketConnected = true;
-  authProviderProps.mockReset();
+  auth.isLoading = false;
   profileRead.mockReset();
   authActions.signIn.mockReset();
   authActions.signOut.mockReset();
@@ -119,45 +116,52 @@ describe("WS20: a socket that never connects shows where the page stands, never 
   });
 });
 
-describe("WS5 WS20: the one-time code Slack's return brings is redeemed once, by the shell, and a failure ends the wait", () => {
+describe("WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait", () => {
   beforeEach(() => {
     window.history.replaceState(null, "", "/?code=12345678");
+    auth.isLoading = true;
   });
 
-  it("redeems the code once, takes it off the address, and leaves Convex Auth's own redemption off", async () => {
-    profileRead.mockReturnValue(shellFixtures.member);
-    authActions.signIn.mockResolvedValue({ signingIn: true });
-    renderLiveSite();
+  function redemptionRejects() {
+    act(() => {
+      window.dispatchEvent(Object.assign(new Event("unhandledrejection"), { reason: new Error("Connection lost while action was in flight") }));
+    });
+  }
 
-    expect(await screen.findByRole("heading", { level: 1, name: "Thank someone for work you noticed" })).toBeInTheDocument();
-    expect(authActions.signIn.mock.calls).toEqual([[undefined, { code: "12345678" }]]);
-    expect(window.location.search).toBe("");
-    expect(authProviderProps).toHaveBeenCalledWith(expect.objectContaining({ shouldHandleCode: false }));
-  });
-
-  it("shows nothing but the busy frame while the code redeems, never the signed-out page", () => {
+  it("shows nothing but the busy frame while Convex Auth redeems the code, never the signed-out page", () => {
     profileRead.mockReturnValue(shellFixtures.signedOut);
-    authActions.signIn.mockReturnValue(new Promise(() => undefined));
     renderLiveSite();
 
     expect(pageTitle()).toBeNull();
     expect(screen.queryByRole("button", { name: "Sign in with Slack" })).toBeNull();
   });
 
-  it("shows Sign-in didn't finish when the code fails to redeem, instead of loading forever", async () => {
+  it("shows Sign-in didn't finish when the redemption is rejected, instead of loading forever", () => {
     profileRead.mockReturnValue(shellFixtures.signedOut);
-    authActions.signIn.mockRejectedValue(new Error("Server Error"));
     renderLiveSite();
 
-    expect(await screen.findByRole("heading", { level: 1, name: "Sign-in didn't finish" })).toBeInTheDocument();
+    redemptionRejects();
+
+    expect(pageTitle()).toHaveTextContent("Sign-in didn't finish");
     expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
   });
 
-  it("shows the closed page when the code fails to redeem while the website is closed", async () => {
+  it("shows the closed page when the redemption is rejected while the website is closed", () => {
     profileRead.mockReturnValue(shellFixtures.closed);
-    authActions.signIn.mockRejectedValue(new Error("Server Error"));
     renderLiveSite();
 
-    expect(await screen.findByRole("heading", { level: 1, name: "Not open yet" })).toBeInTheDocument();
+    redemptionRejects();
+
+    expect(pageTitle()).toHaveTextContent("Not open yet");
+  });
+
+  it("ignores a rejection elsewhere on a page that brought no code from Slack", () => {
+    window.history.replaceState(null, "", "/");
+    profileRead.mockReturnValue(shellFixtures.signedOut);
+    renderLiveSite();
+
+    redemptionRejects();
+
+    expect(pageTitle()).toBeNull();
   });
 });
