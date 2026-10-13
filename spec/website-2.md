@@ -157,9 +157,9 @@ A board reads every period total of the workspace, as App Home's does. That is f
 | Flag | Owner | Subject | Gates on the website | State |
 |---|---|---|---|---|
 | `website` | this map ([957148](https://us.posthog.com/project/662840/feature_flags/957148)) | workspace | the whole site (WS2–WS4) | sandbox-only, already created |
-| `everyone-board` | map #1 (#83) | workspace | the leaderboard page, its nav item and the home's card (WS30, WS37, WS38) | sandbox-only, already created by map #1 |
-| `xp-levels` | map #1 (#82) | workspace | level and XP on the home and the profile card panel (WS47–WS50) | sandbox-only, already created by map #1 |
-| `unlocks` | map #1 (#104) | workspace | the leaderboard page's P76 states, from ticket 5 (WS52) | map #1's, when #105 ships |
+| `everyone-board` | map #1 (#83, [956734](https://us.posthog.com/project/662840/feature_flags/956734)) | workspace | the leaderboard page, its nav item and the home's card (WS30, WS37, WS38) | sandbox-only, already created by map #1 |
+| `xp-levels` | map #1 (#82, [956733](https://us.posthog.com/project/662840/feature_flags/956733)) | workspace | level and XP on the home and the profile card panel (WS47–WS50) | sandbox-only, already created by map #1 |
+| `unlocks` | map #1 (#104, [956771](https://us.posthog.com/project/662840/feature_flags/956771)) | workspace | the leaderboard page's P76 states, from ticket 5 (WS52) | sandbox-only, already created by map #1; read from #137 once #105 ships |
 
 The website creates no new flag. Opening each piece in production is the product owner's switch on the flag that already gates it in Slack, so the website never shows more than Slack does. All are read on the server through the seam.
 
@@ -192,13 +192,13 @@ Proposed declarations. Each ticket writes its part and makes `coherence spec --c
 
 ## Slices
 
-Each ticket is a sub-issue of map #57, sized to one agent session, and merges into the conductor's integration branch for this slice, never into `main` (WS27). Blocking edges: 1 → 2; 2 and 3 → 4; 2 → 5.
+Each ticket is a sub-issue of map #57, sized to one agent session, and merges into the conductor's integration branch for this slice, never into `main` (WS27). Blocking edges (native on GitHub): #133 → #134; #134 and #135 → #136; #134 → #137.
 
-1. **The leaderboard read** — `memberQuery` with arguments, `rankedBoardOf` in the leaderboard module, `getLeaderboard`, `getMyProfile.leaderboard`, the public surface list, and the Coherence entrance and invariants. WS29–WS36. Blocked by nothing.
-2. **The leaderboard page** — the router, the nav item, the home's leaderboard card, the board card, the period switch, the headline, the podium, the list, the whole board with `Jump to me`, the two side panels, and the empty state. WS37–WS46, WS54. Blocked by 1.
-3. **Level and XP on the home** — `getMyProfile.progression`, the level ring in the HUD and the hero, the level line and bar, and `Level {n}` on the profile card panel. WS47–WS51, WS54. Blocked by nothing.
-4. **Prove the second slice on the sandbox** — merge `origin/main`, deploy the integration branch to `different-dog-467` (the first slice's rules 1 and 2 for the shared sandbox), check `everyone-board` and `xp-levels` answer on there and off in production, and record screenshots in light and dark of the leaderboard page and the home. Blocked by 2 and 3.
-5. **The leaderboard page follows its unlock** — WS52 and WS53, through the unlocks read map #1 ships with #105. Blocked by 2, and starts only once #105 has merged to `main`. A prerequisite of this slice's ship whenever #105 is on `main` by then.
+1. [#133](https://github.com/Silthus/kudos/issues/133) **The leaderboard read** — `memberQuery` with arguments, `rankedBoardOf` in the leaderboard module, `getLeaderboard`, `getMyProfile.leaderboard`, the public surface list, and the Coherence entrance and invariants. WS29–WS36. Blocked by nothing.
+2. [#134](https://github.com/Silthus/kudos/issues/134) **The leaderboard page** — the router, the nav item, the home's leaderboard card, the board card, the period switch, the headline, the podium, the list, the whole board with `Jump to me`, the two side panels, and the empty state. WS37–WS46, WS54. Blocked by 1.
+3. [#135](https://github.com/Silthus/kudos/issues/135) **Level and XP on the home** — `getMyProfile.progression`, the level ring in the HUD and the hero, the level line and bar, and `Level {n}` on the profile card panel. WS47–WS51, WS54. Blocked by nothing.
+4. [#136](https://github.com/Silthus/kudos/issues/136) **Prove the second slice on the sandbox** — merge `origin/main`, deploy the integration branch to `different-dog-467` (the first slice's rules 1 and 2 for the shared sandbox), check `everyone-board` and `xp-levels` answer on there and off in production, and record screenshots in light and dark of the leaderboard page and the home. Blocked by 2 and 3.
+5. [#137](https://github.com/Silthus/kudos/issues/137) **The leaderboard page follows its unlock** — WS52 and WS53, through the unlocks read map #1 ships with #105. Blocked by 2, and starts only once #105 has merged to `main`. A prerequisite of this slice's ship whenever #105 is on `main` by then.
 
 ## Cross-map needs on map #1
 
