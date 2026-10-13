@@ -6,7 +6,7 @@ export type RichElement =
   | { type: "text"; text: string; style?: Style }
   | { type: "link"; url: string; text?: string }
   | { type: "channel"; channel_id: string }
-  | { type: "rich_text_section" | "rich_text_quote" | "rich_text_preformatted"; elements: RichElement[] };
+  | { type: "rich_text_section" | "rich_text_quote" | "rich_text_preformatted" | "rich_text_list"; elements: RichElement[] };
 
 type Style = { strike?: boolean; code?: boolean; bold?: boolean };
 
@@ -18,6 +18,7 @@ export const text = (value: string, style?: Style): RichElement => ({ type: "tex
 export const link = (url: string, label?: string): RichElement => ({ type: "link", url, ...(label && { text: label }) });
 export const channel = (id: string): RichElement => ({ type: "channel", channel_id: id });
 export const section = (...elements: RichElement[]): RichElement => ({ type: "rich_text_section", elements });
+export const list = (...items: RichElement[]): RichElement => ({ type: "rich_text_list", elements: items });
 export const quote = (...elements: RichElement[]): RichElement => ({ type: "rich_text_quote", elements });
 export const codeBlock = (...elements: RichElement[]): RichElement => ({ type: "rich_text_preformatted", elements });
 

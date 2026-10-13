@@ -35,6 +35,7 @@ export type EventCallback = { type: "event_callback"; team_id: string; event_id:
 const countedSubtypes = new Set([undefined, "thread_broadcast", "file_share"]);
 const channelTypes = new Set(["channel", "group"]);
 const uncountedContainers = new Set(["rich_text_quote", "rich_text_preformatted"]);
+const containerBoundary = "\n";
 
 export function isMessage(event: { type: string }): event is SlackMessage {
   return event.type === "message";
@@ -96,7 +97,9 @@ function countableContent(message: ChatMessage): MessageContent {
     if (mention) content.mentions.push(mention);
     else if (element.type === "emoji" && element.name) content.emoji.push(element.name);
     else if (element.type === "text") content.text += element.text ?? "";
-    element.elements?.forEach(visit);
+    if (element.elements === undefined) return;
+    element.elements.forEach(visit);
+    content.text += containerBoundary;
   };
   for (const block of message.blocks ?? []) if (block.type === "rich_text") block.elements?.forEach(visit);
   return content;

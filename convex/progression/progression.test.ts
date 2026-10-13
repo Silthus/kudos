@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { signingSecret } from "../../testing/signedSlack";
 import { post, settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { channel, emoji, link, mention, section, text } from "../../testing/slackMessages";
+import { channel, emoji, link, list, mention, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import type { DomainEvent } from "../bus/events";
 import { publish } from "../bus/publish";
@@ -76,6 +76,16 @@ test("P11: mentions, emoji, channel links and URLs in a Slack message don't coun
   expect(kudosGiven?.annotations.gate).toEqual({ version: 1, thoughtful: false, words: 3 });
 });
 
+test("P11: list items and paragraphs of a Slack message are separate words", async () => {
+  const t = testBackend();
+
+  await post(t, [list(section(text("thanks for")), section(text("the great fix"))), section(mention("U_BOB"), emoji("taco"))], { user: "U_ALICE" });
+  await settle(t);
+
+  const [kudosGiven] = publishedEvents("kudosGiven");
+  expect(kudosGiven?.annotations.gate).toEqual({ version: 1, thoughtful: true, words: 5 });
+});
+
 describe("P12: the gate is decided once per revision", () => {
   test("a recheck after a directory wait reuses the decision made from the text", async () => {
     const t = await withDirectory("U_ALICE");
@@ -88,6 +98,20 @@ describe("P12: the gate is decided once per revision", () => {
 
     const [kudosGiven] = publishedEvents("kudosGiven");
     expect(kudosGiven?.annotations.gate).toEqual({ version: 1, thoughtful: true, words: 6 });
+  });
+
+  test("a prose edit while the message waits on the directory keeps the decision of the attempt that waits", async () => {
+    const t = await withDirectory("U_ALICE");
+    const message = kudosMessage("U_ALICE", ["U_DANA"], ["taco"], "thanks");
+    await t.run((ctx) => observe(ctx, message));
+    await t.run((ctx) => observe(ctx, editOf(kudosMessage("U_ALICE", ["U_DANA"], ["taco"], "thanks for covering my on-call shift"), 60_000)));
+    await withDirectoryEntries(t, "U_DANA");
+
+    await t.run((ctx) => recheck(ctx, message.ref, message.revision));
+    await settle(t);
+
+    const [kudosGiven] = publishedEvents("kudosGiven");
+    expect(kudosGiven?.annotations.gate).toEqual({ version: 1, thoughtful: false, words: 1 });
   });
 
   test("a retry decides again from its own text", async () => {

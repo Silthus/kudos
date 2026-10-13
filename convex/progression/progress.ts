@@ -1,12 +1,13 @@
 import { v, type Infer } from "convex/values";
 import type { KudosGivenEvent, LevelReachedEvent } from "../bus/events";
+import { awardIdValidator } from "../engine/awards";
 import type { MemberId } from "../workspace/directory";
 import type { Catalogue } from "./catalogue";
 import { gateDecisionOf, gateDecisionValidator } from "./gate";
 import { levelOf } from "./levels";
 
 export const effectsRecordValidator = v.object({
-  award: v.id("awards"),
+  award: awardIdValidator,
   side: v.union(v.literal("giver"), v.literal("recipient")),
   member: v.id("members"),
   day: v.string(),

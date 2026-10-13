@@ -1,3 +1,4 @@
+import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
@@ -7,7 +8,11 @@ import { addToTotals } from "./totals";
 
 export type Award = { giver: MemberId; recipient: MemberId; kudos: number };
 
-export type AwardWithId = Award & { award: Id<"awards"> };
+export const awardIdValidator = v.id("awards");
+
+export type AwardId = Id<"awards">;
+
+export type AwardWithId = Award & { award: AwardId };
 
 export type WeekTotals = { givenWeek: number; receivedWeek: number };
 

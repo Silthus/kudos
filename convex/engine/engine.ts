@@ -64,7 +64,7 @@ async function observeFirstRevision(ctx: MutationCtx, event: MessageEvent, revis
 }
 
 async function observeEdit(ctx: MutationCtx, row: KudosMessageRow, event: MessageEvent, revision: Revision, { isKudosMessage, changesKudos }: Edit): Promise<Observation> {
-  await ctx.db.patch(row._id, revision);
+  await ctx.db.patch(row._id, withoutAnnotations(revision));
   if (row.state === "given") {
     if (changesKudos) await replyPrivately(ctx, refOf(row), row.threadRoot, row.author, { kind: "accepted-message-edited" });
     return { kind: "already-given", toldGiver: changesKudos };
@@ -72,7 +72,7 @@ async function observeEdit(ctx: MutationCtx, row: KudosMessageRow, event: Messag
   if (!changesKudos) return { kind: "ignored", why: "unchanged" };
   if (!isKudosMessage) return hasOpenAttempt(row) ? withdraw(ctx, row) : ignore(ctx, row, "ordinary-chat");
 
-  await ctx.db.patch(row._id, { state: "awaiting-directory", attempt: event.revision, spendsAt: event.at, checks: 0 });
+  await ctx.db.patch(row._id, { state: "awaiting-directory", attempt: event.revision, spendsAt: event.at, checks: 0, annotations: revision.annotations });
   const observation = await evaluate(ctx, (await ctx.db.get(row._id))!);
   if (observation.kind === "awaiting-directory" && showsIndicator(row)) await setIndicator(ctx, refOf(row), null);
   return observation;
@@ -85,7 +85,7 @@ async function observeFromNonMember(ctx: MutationCtx, row: KudosMessageRow | nul
     return notAMember;
   }
   const changesKudos = await changesKudosOf(ctx, event, row, context);
-  await ctx.db.patch(row._id, revision);
+  await ctx.db.patch(row._id, withoutAnnotations(revision));
   return changesKudos && hasOpenAttempt(row) ? withdraw(ctx, row) : notAMember;
 }
 
@@ -93,6 +93,10 @@ async function withdraw(ctx: MutationCtx, row: KudosMessageRow): Promise<Observa
   await ctx.db.patch(row._id, { state: "withdrawn" });
   if (showsIndicator(row)) await setIndicator(ctx, refOf(row), null);
   return { kind: "withdrawn" };
+}
+
+function withoutAnnotations({ revision, content }: Revision) {
+  return { revision, content };
 }
 
 function hasOpenAttempt(row: KudosMessageRow) {

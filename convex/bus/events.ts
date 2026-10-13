@@ -1,8 +1,9 @@
 import { v, type Infer } from "convex/values";
+import { awardIdValidator } from "../engine/awards";
 import { annotationsValidator, messageRefValidator } from "../engine/messageEvent";
 import type { MemberId } from "../workspace/directory";
 
-export const awardValidator = v.object({ award: v.id("awards"), giver: v.id("members"), recipient: v.id("members"), kudos: v.number() });
+export const awardValidator = v.object({ award: awardIdValidator, giver: v.id("members"), recipient: v.id("members"), kudos: v.number() });
 
 export const kudosGivenEventValidator = v.object({
   type: v.literal("kudosGiven"),
