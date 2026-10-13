@@ -1,11 +1,12 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
+import type { AttemptFailedEvent } from "../bus/events";
 import { publish } from "../bus/publish";
 import { setIndicator, type Indicator } from "../feedback/indicator";
 import { replyPrivately, type Given, type Invalid, type OverAllowance, type Reply, type SkipReason, type SkippedMention } from "../feedback/replies";
 import { lookup, type MemberFacts, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
-import { allowanceDay, dailyAllowance } from "./allowance";
+import { allowanceDay, dailyAllowance, type DayKey } from "./allowance";
 import { insertAwards, type Award } from "./awards";
 import type { ChatUserId, Mention, MessageEvent, MessageRef } from "./messageEvent";
 import { annotationsOf, fingerprintOf, kudosMessageOf, type KudosMessage, type ParseContext } from "../parser/parser";
@@ -184,13 +185,20 @@ function indicatorOf(outcome: Outcome): Indicator {
 
 async function decide(ctx: MutationCtx, row: KudosMessageRow, giver: Member, kudos: KudosMessage, baseAllowance: number): Promise<Outcome> {
   const { recipients, skipped } = await sortMentions(ctx, row.workspace, kudos.mentions, giver.member);
-  if (recipients.length === 0) return { kind: "invalid", skipped };
-
   const day = allowanceDay(row.spendsAt, giver.timeZone);
   const allowance = await dailyAllowance(ctx, giver.member, day, baseAllowance);
   const { perRecipient } = kudos;
   const cost = recipients.length * perRecipient;
-  if (cost > allowance.left) return { kind: "over-allowance", cost, recipients: recipients.length, perRecipient, left: allowance.left };
+  const attempt = attemptFacts(row, giver, skipped, day);
+
+  if (recipients.length === 0) {
+    await publishFailure(ctx, attempt, { outcome: "invalid", recipients: 0, perRecipient, cost, allowance: { dailyLeft: allowance.left } });
+    return { kind: "invalid", skipped };
+  }
+  if (cost > allowance.left) {
+    await publishFailure(ctx, attempt, { outcome: "over-allowance", recipients: recipients.length, perRecipient, cost, allowance: { dailyLeft: allowance.left } });
+    return { kind: "over-allowance", cost, recipients: recipients.length, perRecipient, left: allowance.left };
+  }
 
   const awards = recipients.map(({ member }) => ({ giver: giver.member, recipient: member, kudos: perRecipient }));
   const kudosEmoji = kudos.kudosEmoji[0]!;
@@ -199,20 +207,33 @@ async function decide(ctx: MutationCtx, row: KudosMessageRow, giver: Member, kud
   await insertAwards(ctx, refOf(row), awards, day, row.spendsAt);
   await publish(ctx, {
     type: "kudosGiven",
-    workspace: row.workspace,
-    message: refOf(row),
-    giver: giver.member,
+    ...attempt,
     awards,
     kudosEmoji,
     annotations: row.annotations,
     allowance: { dailyOpening: allowance.opening, dailyLeft: left },
+  });
+  return { kind: "given", awards, kudosEmoji, recipients: recipients.map(({ user }) => user), perRecipient, left, skipped };
+}
+
+type AttemptFacts = Pick<AttemptFailedEvent, "workspace" | "message" | "giver" | "skippedMentions" | "retry" | "inThread" | "day" | "at">;
+type Failure = Pick<AttemptFailedEvent, "outcome" | "recipients" | "perRecipient" | "cost" | "allowance">;
+
+function attemptFacts(row: KudosMessageRow, giver: Member, skipped: SkippedMention[], day: DayKey): AttemptFacts {
+  return {
+    workspace: row.workspace,
+    message: refOf(row),
+    giver: giver.member,
     skippedMentions: skipped.length,
     retry: row.retry === true,
     inThread: row.threadRoot !== undefined,
     day,
     at: row.spendsAt,
-  });
-  return { kind: "given", awards, kudosEmoji, recipients: recipients.map(({ user }) => user), perRecipient, left, skipped };
+  };
+}
+
+async function publishFailure(ctx: MutationCtx, attempt: AttemptFacts, failure: Failure) {
+  await publish(ctx, { type: "attemptFailed", ...attempt, ...failure });
 }
 
 type Recipient = { member: MemberId; user: ChatUserId };

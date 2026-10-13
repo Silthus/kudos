@@ -308,6 +308,10 @@
       "definition": "Whether a deployment records and sends product events: on only when it has both the PostHog project token and a valid KUDOS_ENVIRONMENT (sandbox or production). With capture off nothing is recorded and nothing is sent."
     },
     {
+      "name": "usage fact",
+      "definition": "A platform-neutral fact a chat adapter reports to the analytics module when a member uses the app outside a kudos message: App Home opened, or a command typed with its result. It is recorded in the mutation that handles it and becomes a product event; it drives nothing in the domain."
+    },
+    {
       "name": "flag",
       "definition": "A switch declared once in code with its key, its subject (a member or the workspace), its values and a safe default, whose value PostHog decides per subject; a new member-facing slice ships behind one whose safe default is off"
     },

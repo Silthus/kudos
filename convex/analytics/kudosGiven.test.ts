@@ -3,7 +3,7 @@ import { FakePostHog, answersWith, postHogHost, projectToken, routedFetch } from
 import { FakeSlack } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { everythingStored, post, settle, settleUntil, testBackend, type Backend } from "../../testing/slackBackend";
-import { emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
+import { appHomeOpened, emoji, mention, messageEvent, section, slashCommand, text } from "../../testing/slackMessages";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -33,15 +33,15 @@ afterEach(() => {
 const thanksBobAndCarol = [section(text("thanks "), mention("U_BOB"), text(" and "), mention("U_CAROL"), text(" "), emoji("taco"))];
 
 describe("O1 O2 O3: a kudos message that gives", () => {
-  test("sends one batch with kudos given on the giver and kudos received on each recipient, with exactly their properties", async () => {
+  test("sends kudos given on the giver and kudos received on each recipient to the batch endpoint, with exactly their properties", async () => {
     const t = testBackend();
 
     await post(t, thanksBobAndCarol);
     await settle(t);
 
-    expect(postHog.requests.map((request) => [request.url, request.apiKey])).toEqual([[`${postHogHost}/batch/`, projectToken]]);
+    expect(new Set(postHog.requests.map((request) => `${request.apiKey} ${request.url}`))).toEqual(new Set([`${projectToken} ${postHogHost}/batch/`]));
     const shared = { environment: "sandbox", workspace_key: expect.stringMatching(uuid), taxonomy_version: 1 };
-    expect(postHog.events().map(({ event, properties }) => ({ event, properties }))).toEqual([
+    expect(kudosEvents().map(({ event, properties }) => ({ event, properties }))).toEqual([
       {
         event: "kudos given",
         properties: {
@@ -69,7 +69,7 @@ describe("O1 O2 O3: a kudos message that gives", () => {
     await post(t, [section(mention("U_BOB"), mention("U_ALICE"), emoji("pizza"), emoji("pizza"))], { threadTs: "1760349000.000100" });
     await settle(t);
 
-    expect(postHog.events().find((event) => event.event === "kudos given")?.properties).toMatchObject({
+    expect(kudosEvents().find((event) => event.event === "kudos given")?.properties).toMatchObject({
       recipients: 1,
       kudos_per_recipient: 2,
       kudos_total: 2,
@@ -86,7 +86,7 @@ describe("O1 O2 O3: a kudos message that gives", () => {
     await settle(t);
 
     const [award] = await t.run((ctx) => ctx.db.query("awards").collect());
-    expect(new Set(postHog.events().map((event) => event.timestamp))).toEqual(new Set([new Date(award!.at).toISOString()]));
+    expect(new Set(kudosEvents().map((event) => event.timestamp))).toEqual(new Set([new Date(award!.at).toISOString()]));
   });
 });
 
@@ -99,7 +99,7 @@ describe("O7 O8: identity", () => {
     await post(t, [section(mention("U_BOB"), emoji("taco"))], { ts: "1760349601.000100" });
     await settle(t);
 
-    const events = postHog.events();
+    const events = kudosEvents();
     const [aliceFirst, bobFirst, carol, aliceAgain, bobAgain] = events.map((event) => event.distinct_id);
     expect(events.map((event) => event.event)).toEqual(["kudos given", "kudos received", "kudos received", "kudos given", "kudos received"]);
     expect(aliceAgain).toBe(aliceFirst);
@@ -125,20 +125,40 @@ describe("O10: never sent", () => {
     vi.stubGlobal("fetch", routedFetch(postHog, slack.fetch));
     await t.run((ctx) => ctx.db.insert("workspaces", { workspace: team, kudosEmoji: "artichokeparty" }));
 
+    const fromZephyrine = { team, channel, user: people.giver, threadTs: "1760349000.737373" };
+    slack.answering("conversations.join", () => Response.json({ ok: true, channel: { id: channel } }));
+
     await post(
       t,
       [section(text("Marmalade gratitude, Zephyrine says thanks Barnaby Flintlock for the quokka migration "), mention(people.recipient), emoji("artichokeparty"))],
-      { team, channel, user: people.giver, ts: "1760349600.424242", threadTs: "1760349000.737373" },
+      { ...fromZephyrine, ts: "1760349600.424242" },
+    );
+    await post(
+      t,
+      [section(text("Marmalade overflow for Barnaby "), mention(people.recipient), emoji("artichokeparty"), emoji("artichokeparty"), emoji("artichokeparty"))],
+      { ...fromZephyrine, ts: "1760349601.515151" },
+    );
+    await post(t, [section(text("Marmalade note to Zephyrine herself "), mention(people.giver), emoji("artichokeparty"))], { ...fromZephyrine, ts: "1760349602.626262" });
+    await settle(t);
+    await t.fetch("/slack/events", await signedRequest(appHomeOpened(people.giver, { team })));
+    await t.fetch(
+      "/slack/commands",
+      await signedRequest(slashCommand({ channel_id: channel, channel_name: "marmalade-quokkas" }, { team, user: people.giver, responseUrl: `https://hooks.slack.com/commands/${team}/1/quokka` }), {
+        contentType: "application/x-www-form-urlencoded",
+      }),
     );
     await settle(t);
 
     const bodies = postHog.requests.map((request) => request.body).join("\n");
-    expect(postHog.events().map((event) => event.event)).toEqual(["kudos given", "kudos received"]);
+    expect(new Set(postHog.events().map((event) => event.event))).toEqual(
+      new Set(["kudos given", "kudos received", "member welcomed", "attempt failed", "app home opened", "command used"]),
+    );
     const stored = await everythingStored(t);
     const forbidden = [
       "Marmalade", "Zephyrine", "Barnaby", "Flintlock", "quokka", "zephy", "barns", "Quokkason",
       "artichokeparty", "Pacific/Chatham", "America/St_Johns", "Chatham", "St_Johns",
-      team, channel, people.giver, people.recipient, "1760349600", "424242", "737373", "Ev",
+      team, channel, people.giver, people.recipient, "1760349600", "424242", "515151", "626262", "737373", "Ev",
+      "overflow", "herself", "hooks.slack.com", "ann", "acme", "1.2.3",
       ...stored.map((row) => row._id),
     ];
     for (const value of forbidden) expect(bodies).not.toContain(value);
@@ -155,7 +175,7 @@ describe("O4 O14: one fact, one event", () => {
     await t.fetch("/slack/events", await signedRequest(body));
     await settle(t);
 
-    expect(postHog.events().map((event) => event.event)).toEqual(["kudos given", "kudos received", "kudos received"]);
+    expect(kudosEvents().map((event) => event.event)).toEqual(["kudos given", "kudos received", "kudos received"]);
   });
 });
 
@@ -187,7 +207,7 @@ describe("O16 O17: delivery", () => {
     await post(t, thanksBobAndCarol);
     await settleUntil(t, new Date(now.getTime() + 60_000));
 
-    expect(postHog.events()).toHaveLength(3);
+    expect(kudosEvents()).toHaveLength(3);
     expect(await outbox(t)).toEqual([]);
   });
 });
@@ -209,6 +229,10 @@ describe("O26: capture is off", () => {
     expect((await t.run((ctx) => ctx.db.query("awards").collect())).length).toBe(2);
   });
 });
+
+function kudosEvents() {
+  return postHog.events().filter((event) => event.event === "kudos given" || event.event === "kudos received");
+}
 
 async function outbox(t: Backend) {
   return t.run((ctx) => ctx.db.query("analyticsOutbox").collect());
