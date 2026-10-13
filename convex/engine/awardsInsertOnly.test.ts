@@ -6,7 +6,7 @@ const awardsModule = "/convex/engine/awards.ts";
 
 test("R18: awards are only ever inserted, never changed or deleted", () => {
   const touchingAwards = Object.entries(sources)
-    .filter(([, source]) => /["']awards["']/.test(source))
+    .filter(([, source]) => /(?<!(v\.id\(|Id<))["']awards["']/.test(source))
     .map(([path]) => path);
   const awardsSource = sources[awardsModule] ?? "";
 

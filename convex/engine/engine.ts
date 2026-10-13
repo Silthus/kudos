@@ -192,13 +192,13 @@ async function decide(ctx: MutationCtx, row: KudosMessageRow, giver: Member, kud
   const kudosEmoji = kudos.kudosEmoji[0]!;
   const left = allowance.left - cost;
   await allowance.spend(cost);
-  await insertAwards(ctx, refOf(row), awards, day, row.spendsAt);
   await publish(ctx, {
     type: "kudosGiven",
     workspace: row.workspace,
     message: refOf(row),
     giver: giver.member,
-    awards,
+    awards: await insertAwards(ctx, refOf(row), awards, day, row.spendsAt),
+    via: "message",
     kudosEmoji,
     annotations: row.annotations,
     allowance: { dailyOpening: allowance.opening, dailyLeft: left },

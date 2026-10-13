@@ -1,6 +1,7 @@
 import type { QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
+import { thoughtfulKudos } from "../progression/gate";
 import type { Annotations, CountableContent, Mention, MessageContent } from "../engine/messageEvent";
 
 export type ParseContext = { workspace: string; giver: MemberId | undefined };
@@ -18,7 +19,7 @@ const workspaceEmoji: ParseHook = {
   kudosEmoji: async (ctx, { workspace }) => [(await settingsOf(ctx, workspace)).kudosEmoji],
 };
 
-export const parseHooks: ParseHook[] = [workspaceEmoji];
+export const parseHooks: ParseHook[] = [workspaceEmoji, thoughtfulKudos];
 
 export async function kudosMessageOf(ctx: QueryCtx, content: CountableContent, context: ParseContext): Promise<KudosMessage | null> {
   const kudosEmoji = await kudosEmojiIn(ctx, content, context);

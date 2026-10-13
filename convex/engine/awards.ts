@@ -1,3 +1,4 @@
+import type { Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
 import type { DayKey, Week } from "./allowance";
@@ -6,13 +7,17 @@ import { addToTotals } from "./totals";
 
 export type Award = { giver: MemberId; recipient: MemberId; kudos: number };
 
+export type AwardWithId = Award & { award: Id<"awards"> };
+
 export type WeekTotals = { givenWeek: number; receivedWeek: number };
 
-export async function insertAwards(ctx: MutationCtx, message: MessageRef, awards: Award[], day: DayKey, at: number) {
+export async function insertAwards(ctx: MutationCtx, message: MessageRef, awards: Award[], day: DayKey, at: number): Promise<AwardWithId[]> {
+  const inserted: AwardWithId[] = [];
   for (const award of awards) {
-    await ctx.db.insert("awards", { ...message, ...award, day, at });
+    inserted.push({ award: await ctx.db.insert("awards", { ...message, ...award, day, at }), ...award });
     await addToTotals(ctx, award);
   }
+  return inserted;
 }
 
 export async function weekTotals(ctx: QueryCtx, member: MemberId, week: Week): Promise<WeekTotals> {

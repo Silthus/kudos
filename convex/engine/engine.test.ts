@@ -163,17 +163,19 @@ describe("R20: kudosGiven", () => {
     expect(publish).toHaveBeenCalledOnce();
     const [, event] = vi.mocked(publish).mock.calls[0]!;
     const ids = await memberIds(t);
+    const [toBob, toCarol] = await t.run((ctx) => ctx.db.query("awards").collect());
     expect(event).toEqual({
       type: "kudosGiven",
       workspace: "T1",
       message: { workspace: "T1", conversation: "C1", message: "1" },
       giver: ids.U_ALICE,
       awards: [
-        { giver: ids.U_ALICE, recipient: ids.U_BOB, kudos: 1 },
-        { giver: ids.U_ALICE, recipient: ids.U_CAROL, kudos: 1 },
+        { award: toBob!._id, giver: ids.U_ALICE, recipient: ids.U_BOB, kudos: 1 },
+        { award: toCarol!._id, giver: ids.U_ALICE, recipient: ids.U_CAROL, kudos: 1 },
       ],
+      via: "message",
       kudosEmoji: "taco",
-      annotations: {},
+      annotations: { gate: { version: 1, thoughtful: false, words: 1 } },
       allowance: { dailyOpening: 3, dailyLeft: 1 },
       day: "2026-10-14",
       at,

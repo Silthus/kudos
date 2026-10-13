@@ -2,6 +2,7 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
 import { segmentValidator } from "./feedback/replies";
+import { effectsRecordValidator } from "./progression/progress";
 
 export default defineSchema({
   slackReceipts: defineTable({
@@ -98,6 +99,14 @@ export default defineSchema({
     message: v.string(),
     emoji: v.array(v.string()),
   }).index("by_message", ["workspace", "conversation", "message"]),
+
+  effectsRecords: defineTable(effectsRecordValidator).index("by_award", ["award", "side"]),
+
+  memberProgress: defineTable({
+    member: v.id("members"),
+    xp: v.number(),
+    pointsSpent: v.number(),
+  }).index("by_member", ["member"]),
 
   slackRateLimits: defineTable({
     workspace: v.string(),

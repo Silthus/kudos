@@ -1,5 +1,5 @@
 import { internalMutation, type MutationCtx } from "../_generated/server";
-import { kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
+import { kudosGivenEventValidator, membersNamedIn } from "../bus/events";
 import { requestWelcome } from "../feedback/welcome";
 import type { MemberId } from "../workspace/directory";
 
@@ -13,10 +13,6 @@ export const welcomeNewMembers = internalMutation({
     }
   },
 });
-
-function membersNamedIn(event: KudosGivenEvent): MemberId[] {
-  return [...new Set([event.giver, ...event.awards.map((award) => award.recipient)])];
-}
 
 async function isWelcomed(ctx: MutationCtx, member: MemberId) {
   const welcome = await ctx.db
