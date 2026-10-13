@@ -1,0 +1,46 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/app-home-link
+
+ ✓ |convex| convex/slack/appHome.test.ts > R45 R46: a member opens App Home > before any award it shows a full allowance, nothing given or received, and how to give 128ms
+ ✓ |convex| convex/slack/appHome.test.ts > R45 R46: a member opens App Home > after awards it shows what is left and the kudos given and received this week and in total 36ms
+ ✓ |convex| convex/slack/appHome.test.ts > R45 R46: a member opens App Home > with nothing left it says the member has used all their kudos for today 15ms
+ ✓ |convex| convex/slack/appHome.test.ts > R45 R46: a member opens App Home > {left} turns at the member's local midnight, just as the next kudos message sees it 18ms
+ ✓ |convex| convex/slack/appHome.test.ts > R45 R46: a member opens App Home > the week runs Monday to Sunday in the member's time zone 19ms
+ ✓ |convex| convex/slack/appHome.test.ts > R45 R46: a member opens App Home > it names the workspace emoji and base in force 4ms
+ ✓ |convex| convex/slack/appHome.test.ts > R47: someone who isn't a member opens App Home > a deactivated person sees the members-only line 3ms
+ ✓ |convex| convex/slack/appHome.test.ts > R47: someone who isn't a member opens App Home > a person from another workspace sees the members-only line 3ms
+ ✓ |convex| convex/slack/appHome.test.ts > R47: someone who isn't a member opens App Home > a bot sees the members-only line 3ms
+ ✓ |convex| convex/slack/appHome.test.ts > WS28: App Home links to the website while it is open > while the website flag is on and SITE_URL is set, a member's Home links to the site's root, carrying no identity 36ms
+ ✓ |convex| convex/slack/appHome.test.ts > WS28: App Home links to the website while it is open > with the Everyone board's tabs, every tab ends with the link, the tab App Home reopens on included 25ms
+ ✓ |convex| convex/slack/appHome.test.ts > WS28: App Home links to the website while it is open > a SITE_URL ending in a slash still links to one root 7ms
+ ✓ |convex| convex/slack/appHome.test.ts > WS28: App Home links to the website while it is open > while PostHog has no website flag, a member's Home is unchanged 6ms
+ ✓ |convex| convex/slack/appHome.test.ts > WS28: App Home links to the website while it is open > while SITE_URL is unset, a member's Home is unchanged 6ms
+ ✓ |convex| convex/slack/appHome.test.ts > WS28: App Home links to the website while it is open > while the website is open for another w…, a member's Home is unchanged 5ms
+stderr | convex/slack/appHome.test.ts > R45: publishing App Home through Slack's failures > a rate-limited publish is tried again after Slack's Retry-After
+views.publish failed: ratelimited
+
+stderr | convex/slack/appHome.test.ts > R45: publishing App Home through Slack's failures > a person whose lookup fails is looked up again, then sees their Home
+users.info failed for U_BOB: ReportableError: Slack users.info answered HTTP 500
+
+stderr | convex/slack/appHome.test.ts > R45: publishing App Home through Slack's failures > a publish that keeps failing is tried 3 times and never again
+views.publish has no known result: ReportableError: Slack views.publish answered HTTP 500
+
+stderr | convex/slack/appHome.test.ts > R45: publishing App Home through Slack's failures > a publish that keeps failing is tried 3 times and never again
+views.publish has no known result: ReportableError: Slack views.publish answered HTTP 500
+
+stderr | convex/slack/appHome.test.ts > R45: publishing App Home through Slack's failures > a publish that keeps failing is tried 3 times and never again
+views.publish has no known result: ReportableError: Slack views.publish answered HTTP 500
+
+ ✓ |convex| convex/slack/appHome.test.ts > WS28: App Home links to the website while it is open > someone who isn't a member sees only the members-only line 4ms
+ ✓ |convex| convex/slack/appHome.test.ts > R49: a redelivered App Home event is acknowledged and publishes once 4ms
+ ✓ |convex| convex/slack/appHome.test.ts > R45: publishing App Home through Slack's failures > a rate-limited publish is tried again after Slack's Retry-After 5ms
+ ✓ |convex| convex/slack/appHome.test.ts > R45: publishing App Home through Slack's failures > a person whose lookup fails is looked up again, then sees their Home 4ms
+ ✓ |convex| convex/slack/appHome.test.ts > R45: publishing App Home through Slack's failures > a rate-limited lookup is tried again after Slack's Retry-After 4ms
+ ✓ |convex| convex/slack/appHome.test.ts > R45: publishing App Home through Slack's failures > a publish that keeps failing is tried 3 times and never again 5ms
+ ✓ |convex| convex/slack/appHome.test.ts > opening the app's Messages tab publishes nothing 1ms
+
+ Test Files  1 passed (1)
+      Tests  22 passed (22)
+   Start at  20:43:41
+   Duration  808ms (tests 47%, transform 27%, import 20%, environment 5%)
+

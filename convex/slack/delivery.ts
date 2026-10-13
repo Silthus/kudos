@@ -129,7 +129,7 @@ function retryAfter(result: { kind: "held"; until: number } | { kind: "failed"; 
   return { at: result.retryAt ?? Date.now() + Math.min(1000 * 2 ** attempt, longestRetryDelayMs), attempt: attempt + 1 };
 }
 
-function slackTextOf(lines: Line[]) {
+export function slackTextOf(lines: Line[]) {
   return lines.map((line) => line.map(slackTextOfSegment).join("")).join("\n");
 }
 

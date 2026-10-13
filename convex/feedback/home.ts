@@ -1,24 +1,90 @@
+import type { Command } from "../commands/commands";
 import type { HomeFacts } from "../engine/home";
+import type { Period } from "../leaderboard/periods";
+import type { HomeTab, ShownTab } from "./homeTabs";
+import { renderEveryoneBoard } from "./leaderboard";
 import { productName, slashCommand } from "./naming";
+import type { Line } from "./replies";
 
-export type HomeView = { title: string; groups: HomeLine[][] };
+export type HomeView = { tabBar?: Choice[]; title: string; groups: HomeLine[][] };
 
 export type HomeLine =
   | { kind: "text"; text: string }
   | { kind: "fields"; fields: string[] }
-  | { kind: "hint"; text: string };
+  | { kind: "hint"; text: string }
+  | { kind: "choices"; choices: Choice[] }
+  | { kind: "lines"; lines: Line[] }
+  | { kind: "link"; label: string; url: string };
 
-export function renderHome(facts: HomeFacts): HomeView {
+export type Choice = { label: string; command: Command; selected: boolean };
+
+export function renderHome(facts: HomeFacts, shown: ShownTab | null, website: string | null): HomeView {
   if (facts.kind === "not-a-member") {
     return { title: productName, groups: [[{ kind: "text", text: `${productName} is for active members of this workspace.` }]] };
   }
-  return {
-    title: "Your kudos",
-    groups: [[allowanceOf(facts)], [totalsOf(facts)], howToGive(facts.kudosEmoji)],
-  };
+  return withWebsiteLink(memberViewOf(facts, shown), website);
+}
+
+function memberViewOf(facts: MemberHome, shown: ShownTab | null): HomeView {
+  if (shown === null) return profileOf(facts);
+  return { tabBar: tabBar(shown.tab), ...tabOf(facts, shown) };
+}
+
+function withWebsiteLink(view: HomeView, website: string | null): HomeView {
+  if (website === null) return view;
+  return { ...view, groups: [...view.groups, [{ kind: "link", label: `Open ${productName} on the web`, url: website }]] };
 }
 
 type MemberHome = Extract<HomeFacts, { kind: "member" }>;
+
+const tabs: Array<{ tab: HomeTab; label: string }> = [
+  { tab: "profile", label: "Profile" },
+  { tab: "leaderboard", label: "Leaderboard" },
+  { tab: "settings", label: "Settings" },
+];
+
+const periods: Array<{ period: Period; label: string }> = [
+  { period: "week", label: "This week" },
+  { period: "month", label: "This month" },
+  { period: "all", label: "All time" },
+];
+
+function tabBar(selected: HomeTab): Choice[] {
+  return tabs.map(({ tab, label }) => ({ label, command: { type: "showHomeTab", tab }, selected: tab === selected }));
+}
+
+function tabOf(facts: MemberHome, shown: ShownTab): Omit<HomeView, "tabBar"> {
+  switch (shown.tab) {
+    case "profile":
+      return profileOf(facts);
+    case "leaderboard":
+      return { title: "Leaderboard", groups: [[periodChoices(shown.period), { kind: "lines", lines: renderEveryoneBoard(shown.board, shown.period) }]] };
+    case "settings":
+      return { title: "Settings", groups: [leaderboardSwitch(shown.onTheBoards)] };
+  }
+}
+
+function profileOf(facts: MemberHome): HomeView {
+  return { title: "Your kudos", groups: [[allowanceOf(facts)], [totalsOf(facts)], howToGive(facts.kudosEmoji)] };
+}
+
+function periodChoices(selected: Period): HomeLine {
+  return { kind: "choices", choices: periods.map(({ period, label }) => ({ label, command: { type: "showLeaderboard", period }, selected: period === selected })) };
+}
+
+function leaderboardSwitch(onTheBoards: boolean): HomeLine[] {
+  return [
+    { kind: "text", text: bold("Show me on the leaderboards") },
+    {
+      kind: "choices",
+      choices: [
+        { label: "On", command: { type: "setLeaderboardVisibility", visible: true }, selected: onTheBoards },
+        { label: "Off", command: { type: "setLeaderboardVisibility", visible: false }, selected: !onTheBoards },
+      ],
+    },
+    { kind: "hint", text: "When it's off, nobody sees you on the leaderboards, you included." },
+  ];
+}
 
 function allowanceOf({ left, base }: MemberHome): HomeLine {
   const refill = `You get ${bold(base)} more at midnight.`;

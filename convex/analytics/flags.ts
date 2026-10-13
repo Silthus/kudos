@@ -32,7 +32,7 @@ export async function flag<V extends FlagValue, S extends SubjectKind>(ctx: Quer
 }
 
 export async function exposed<V extends FlagValue>(ctx: MutationCtx, read: Flag<V>, member: MemberId, value: NoInfer<V>): Promise<void> {
-  if (captureSettings() === null) return;
+  if (captureSettings() === null || !flagsKeySet()) return;
   const exposure = { member, flag: read.key, value };
   const earlier = await ctx.db
     .query("flagExposures")

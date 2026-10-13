@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { internal } from "../_generated/api";
+import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack, httpStatus, rateLimitedFor } from "../../testing/fakeSlack";
+import { everyone, serveFlags, stubSandboxWithFlags } from "../../testing/flags";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { blockActions, buttonIn, publishedHome as publishedHomeOf, publishedHomeBlocks } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 
@@ -134,6 +138,108 @@ describe("R47: someone who isn't a member opens App Home", () => {
   });
 });
 
+describe("WS28: App Home links to the website while it is open", () => {
+  const siteUrl = "https://kudos-site.test";
+  const websiteLink = "section: <https://kudos-site.test/|Open HedgeHug on the web>";
+  const homeWithoutLink = [
+    "header: Your kudos",
+    "section: You have *3* kudos left today. You get *3* more at midnight.",
+    "divider",
+    "section fields: *Given this week*\n*0* | *Received this week*\n*0* | *Given in total*\n*0* | *Received in total*\n*0*",
+    "divider",
+    "context: To give kudos, mention a teammate and add :taco: to your message. Each :taco: gives everyone you mention 1 kudos.",
+    "context: To add me to a channel, type `/hedgehug` there.",
+  ];
+  let postHog: FakePostHog;
+
+  beforeEach(() => {
+    stubSandboxWithFlags();
+    vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
+    vi.stubEnv("SITE_URL", siteUrl);
+    postHog = new FakePostHog();
+    vi.stubGlobal("fetch", routedFetch(postHog, slack.fetch));
+  });
+
+  async function backendWithWebsite(...flagKeys: string[]) {
+    const t = testBackend();
+    await serveFlags(t, postHog, ...flagKeys.map(everyone));
+    await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
+    return t;
+  }
+
+  test("while the website flag is on and SITE_URL is set, a member's Home links to the site's root, carrying no identity", async () => {
+    const t = await backendWithWebsite("website");
+
+    await openHome(t, "U_BOB");
+
+    expect(publishedHome("U_BOB")).toEqual([
+      "header: Your kudos",
+      "section: You have *3* kudos left today. You get *3* more at midnight.",
+      "divider",
+      "section fields: *Given this week*\n*0* | *Received this week*\n*0* | *Given in total*\n*0* | *Received in total*\n*0*",
+      "divider",
+      "context: To give kudos, mention a teammate and add :taco: to your message. Each :taco: gives everyone you mention 1 kudos.",
+      "context: To add me to a channel, type `/hedgehug` there.",
+      "divider",
+      websiteLink,
+    ]);
+  });
+
+  test("with the Everyone board's tabs, every tab ends with the link, the tab App Home reopens on included", async () => {
+    const t = await backendWithWebsite("website", "everyone-board");
+    await openHome(t, "U_BOB");
+    const profileTab = publishedHome("U_BOB");
+
+    await click(t, "U_BOB", "Leaderboard");
+    const leaderboardTab = publishedHome("U_BOB");
+    await click(t, "U_BOB", "Settings");
+    const settingsTab = publishedHome("U_BOB");
+    await openHome(t, "U_BOB");
+    const reopened = publishedHome("U_BOB");
+
+    expect([profileTab, leaderboardTab, settingsTab, reopened].map((home) => [home[1], home.slice(-2)])).toEqual([
+      ["header: Your kudos", ["divider", websiteLink]],
+      ["header: Leaderboard", ["divider", websiteLink]],
+      ["header: Settings", ["divider", websiteLink]],
+      ["header: Settings", ["divider", websiteLink]],
+    ]);
+    expect(reopened.filter((line) => line === websiteLink)).toHaveLength(1);
+  });
+
+  test("a SITE_URL ending in a slash still links to one root", async () => {
+    vi.stubEnv("SITE_URL", `${siteUrl}/`);
+    const t = await backendWithWebsite("website");
+
+    await openHome(t, "U_BOB");
+
+    expect(publishedHome("U_BOB")).toContain(websiteLink);
+  });
+
+  const closed: Array<{ condition: string; flags: string[]; env?: Record<string, string> }> = [
+    { condition: "while PostHog has no website flag", flags: ["another-flag"] },
+    { condition: "while SITE_URL is unset", flags: ["website"], env: { SITE_URL: "" } },
+    { condition: "while the website is open for another workspace only", flags: ["website"], env: { SLACK_WORKSPACE_ID: "T_OTHER" } },
+  ];
+
+  test.each(closed)("$condition, a member's Home is unchanged", async ({ flags, env = {} }) => {
+    for (const [name, value] of Object.entries(env)) vi.stubEnv(name, value);
+    const t = await backendWithWebsite(...flags);
+
+    await openHome(t, "U_BOB");
+
+    expect(publishedHome("U_BOB")).toEqual(homeWithoutLink);
+  });
+
+  test("someone who isn't a member sees only the members-only line", async () => {
+    slack.withMember("U_GONE", { deleted: true });
+    const t = await backendWithWebsite("website");
+
+    await openHome(t, "U_GONE");
+
+    expect(publishedHome("U_GONE")).toEqual(["header: HedgeHug", "section: HedgeHug is for active members of this workspace."]);
+  });
+});
+
 test("R49: a redelivered App Home event is acknowledged and publishes once", async () => {
   const t = testBackend();
   const opened = appHomeOpened("U_BOB");
@@ -204,39 +310,20 @@ async function openHome(t: Backend, user: string, options: Parameters<typeof app
   return response;
 }
 
+async function click(t: Backend, user: string, label: string) {
+  const body = blockActions(user, buttonIn(publishedHomeBlocks(slack, user), label));
+  await t.fetch("/slack/interactivity", await signedRequest(body, { contentType: "application/x-www-form-urlencoded" }));
+  await settle(t);
+}
+
 async function giveKudos(t: Backend, giver: string, recipient: string, ts: string, kudosEmoji = ["taco"]) {
   const blocks = [section(mention(recipient), ...kudosEmoji.map((name) => emoji(name)))];
   await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts })));
   await settle(t);
 }
 
-type TextObject = { type: string; text: string };
-type Block = { type: string; text?: TextObject; fields?: TextObject[]; elements?: TextObject[] };
-type HomeView = { type: string; blocks: Block[] };
-
 function publishedHome(user: string) {
-  const published = slack.callsTo("views.publish").filter((args) => args.user_id === user);
-  const view = published.at(-1)?.view as HomeView | undefined;
-  expect(view?.type).toBe("home");
-  return (view?.blocks ?? []).map(readBlock);
-}
-
-function readBlock(block: Block) {
-  if (block.type === "divider") return "divider";
-  if (block.type === "header") return `header: ${plainText(block.text)}`;
-  if (block.type === "context") return `context: ${block.elements?.map(mrkdwn).join(" ")}`;
-  if (block.fields) return `${block.type} fields: ${block.fields.map(mrkdwn).join(" | ")}`;
-  return `${block.type}: ${mrkdwn(block.text)}`;
-}
-
-function plainText(text: TextObject | undefined) {
-  expect(text?.type).toBe("plain_text");
-  return text?.text;
-}
-
-function mrkdwn(text: TextObject | undefined) {
-  expect(text?.type).toBe("mrkdwn");
-  return text?.text;
+  return publishedHomeOf(slack, user);
 }
 
 function allowanceIn(home: string[]) {

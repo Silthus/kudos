@@ -37,6 +37,7 @@ export function renderManifest(environment: Environment, siteUrl: string) {
         request_url: route("/slack/events"),
         bot_events: ["app_home_opened", "message.channels", "message.groups", "team_join", "user_change"],
       },
+      interactivity: { is_enabled: true, request_url: route("/slack/interactivity") },
       org_deploy_enabled: false,
       socket_mode_enabled: false,
       token_rotation_enabled: false,
