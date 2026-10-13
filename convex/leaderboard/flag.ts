@@ -11,11 +11,22 @@ export async function isEveryoneBoardShownTo(ctx: MutationCtx, workspace: string
   return shown;
 }
 
+const viewerArgs = { workspace: v.string(), user: v.string() };
+
 export const isEveryoneBoardShown = internalMutation({
-  args: { workspace: v.string(), user: v.string() },
-  returns: v.boolean(),
+  args: viewerArgs,
+  returns: v.object({ shown: v.boolean(), viewerKnown: v.boolean() }),
   handler: async (ctx, { workspace, user }) => {
     const person = await lookup(ctx, workspace, user);
-    return isEveryoneBoardShownTo(ctx, workspace, person?.kind === "member" ? person.member : undefined);
+    const shown = await isEveryoneBoardShownTo(ctx, workspace, person?.kind === "member" ? person.member : undefined);
+    return { shown, viewerKnown: person !== undefined };
+  },
+});
+
+export const exposeEveryoneBoard = internalMutation({
+  args: { ...viewerArgs, shown: v.boolean() },
+  handler: async (ctx, { workspace, user, shown }) => {
+    const person = await lookup(ctx, workspace, user);
+    if (person?.kind === "member") await exposed(ctx, everyoneBoardFlag, person.member, shown);
   },
 });

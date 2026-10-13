@@ -148,6 +148,19 @@ describe("#83: the Everyone board while everyone-board is on", () => {
       { distinct_id: analyticsId, $feature_flag: boardFlag, $feature_flag_response: false, locally_evaluated: true },
     ]);
   });
+
+  test("O36: a teammate the directory doesn't know yet is looked up after their first /hedgehug leaderboard, and exposed once", async () => {
+    const t = testBackend();
+    await serveFlags(t, postHog, everyone(boardFlag));
+
+    await replyText(t, "U_ANN");
+    await settle(t);
+    await replyText(t, "U_ANN");
+    await settle(t);
+
+    expect(slack.callsTo("users.info")).toEqual([{ user: "U_ANN" }]);
+    expect(exposures()).toEqual([{ distinct_id: await analyticsIdOf(t, "U_ANN"), $feature_flag: boardFlag, $feature_flag_response: true, locally_evaluated: true }]);
+  });
 });
 
 function exposures() {

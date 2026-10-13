@@ -157,7 +157,7 @@ describe("G23: /hedgehug leaderboard", () => {
       response_type: "ephemeral",
       text: "Try `/hedgehug leaderboard`, `/hedgehug leaderboard month` or `/hedgehug leaderboard all`.",
     });
-    expect(slack.calls).toEqual([]);
+    expect(slack.calls.map(({ method }) => method)).toEqual(["users.info"]);
   });
 });
 

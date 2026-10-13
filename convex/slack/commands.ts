@@ -1,4 +1,4 @@
-import { v, type ObjectType } from "convex/values";
+import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type ActionCtx } from "../_generated/server";
 import { observedAction, observedHttpAction } from "../analytics/boundary";
@@ -20,7 +20,7 @@ const kudosCommandResultValidator = v.union(v.literal("joined"), v.literal("alre
 
 const commandUsedArgs = { ...commandArgs, result: kudosCommandResultValidator };
 
-type CommandUsed = ObjectType<typeof commandUsedArgs>;
+type Viewer = { workspace: string; user: string };
 
 export const slackCommands = observedHttpAction(async (ctx, request) => {
   const arrivedAt = Date.now();
@@ -68,7 +68,7 @@ export const reportCommandUsed = observedAction({
   },
 });
 
-async function knownOrLookedUp(ctx: ActionCtx, { workspace, user }: CommandUsed): Promise<LookUp> {
+async function knownOrLookedUp(ctx: ActionCtx, { workspace, user }: Viewer): Promise<LookUp> {
   if (await ctx.runQuery(internal.slack.directory.knows, { workspace, user })) return { kind: "found" };
   return lookUpUser(ctx, workspace, user);
 }
@@ -81,9 +81,28 @@ export const recordCommandUsed = internalMutation({
   },
 });
 
-function isEveryoneBoardShown(ctx: ActionCtx, command: URLSearchParams) {
-  return ctx.runMutation(internal.leaderboard.flag.isEveryoneBoardShown, { workspace: field(command, "team_id"), user: field(command, "user_id") });
+async function isEveryoneBoardShown(ctx: ActionCtx, command: URLSearchParams) {
+  const viewer = { workspace: field(command, "team_id"), user: field(command, "user_id") };
+  const { shown, viewerKnown } = await ctx.runMutation(internal.leaderboard.flag.isEveryoneBoardShown, viewer);
+  if (!viewerKnown) await ctx.scheduler.runAfter(0, internal.slack.commands.exposeBoardOnceKnown, { ...viewer, shown });
+  return shown;
 }
+
+export const exposeBoardOnceKnown = observedAction({
+  args: { workspace: v.string(), user: v.string(), shown: v.boolean(), ...attemptArgs },
+  handler: async (ctx, { attempt = 1, ...seen }) => {
+    await tryAtMostThreeTimes(
+      attempt,
+      async (attempt) => {
+        const person = await knownOrLookedUp(ctx, seen);
+        if (person.kind === "failed") return failedAttempt(attempt, person.retryAfterMs);
+        await ctx.runMutation(internal.leaderboard.flag.exposeEveryoneBoard, seen);
+        return null;
+      },
+      (retry) => ctx.scheduler.runAt(retry.at, internal.slack.commands.exposeBoardOnceKnown, { ...seen, attempt: retry.attempt }),
+    );
+  },
+});
 
 async function leaderboardReply(ctx: ActionCtx, command: URLSearchParams, rest: string[]): Promise<Line[]> {
   const period = periodOf(rest);
