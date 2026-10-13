@@ -237,6 +237,9 @@ describe("P69: the Admin tab", () => {
     expect(slack.messagesIn("C1").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
   });
 
+});
+
+describe("P69: only workspace admins and owners set the announcement channel", () => {
   test("a member who isn't an admin can't set the announcement channel, even with a crafted click", async () => {
     const t = await adminTabOpen("U_ALICE");
     await openHome(t, "U_BOB");

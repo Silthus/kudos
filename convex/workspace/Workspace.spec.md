@@ -1,5 +1,22 @@
 # Workspace
 
-Workspace: the settings with their defaults and the directory of the workspace's people, which the engine reads directly.
+Workspace: the settings with their defaults and the directory of the workspace's people, with whether each member is a workspace admin or owner, which the engine reads directly; the setAnnouncementChannel command sets or clears the announcement channel for admins only.
 
 ## invariants
+- only admins set the announcement channel: Only a member the directory knows as a workspace admin or owner can set or clear the announcement channel; a command from anyone else, or from an admin Slack has since removed, changes nothing and makes the app join no channel.
+  over: setAnnouncementChannel commands from a member who isn't an admin, sent as a channel pick and as a button the member never saw, and from an admin removed by a later user_change
+  via: P69: only workspace admins and owners set the announcement channel
+  because: the announcement channel decides where every member's level-up notice is posted for the whole workspace (P64, P69, d-c98c9372); if any member could set it, one person could move everyone's celebrations into a channel of their choosing, and a removed admin must lose that power at once
+  crossing: slack-request -> domain
+  entrances: route POST /slack/interactivity
+  kinds: identity, state
+  checklist: capability-authorization dismissed: no credential carrying bounded permission is accepted; the acting member is the one Slack names in the signed payload, and the role is read from the directory
+  checklist: revalidated-permission declared as only admins set the announcement channel
+  checklist: canonical-encoding dismissed: no key or digest is derived from the command
+  checklist: identity-continuity dismissed: no identity succession is undertaken; a member is one Slack user in one workspace
+  checklist: separation-of-duties dismissed: no approval policy applies; one admin's pick is the whole operation
+  checklist: legal-state-succession dismissed: the channel is a single value that any admin may replace or clear from any prior value, with no forbidden transition
+  checklist: supersession-safety dismissed: the command writes the channel in its own transaction; nothing late publishes it
+  checklist: worker-fencing dismissed: no worker owns the setting
+  checklist: commit-ordered-effects dismissed: the channel join is scheduled only after the command's mutation committed and returned done
+  checklist: resumption-coverage dismissed: no batch operation resumes

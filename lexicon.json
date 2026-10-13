@@ -306,6 +306,10 @@
     {
       "name": "public reply",
       "definition": "The one public message under a kudos message, or in the announcement channel when a workspace admin picked one, that celebrates the progress members reached through it; posted once, then edited in place as sections from many modules (level notices, later achievements, quips and chime-in lines) arrive. It states only progress, never the kudos text or the giver (P64, D18)."
+    },
+    {
+      "name": "command",
+      "definition": "A member's request from a chat surface, such as a click in App Home, that the adapter turns into a platform-neutral instruction (showHomeTab, setProgressSettings, setAnnouncementChannel) and the command registry routes to its owning module's internal mutation. A command carries the value it sets, so repeating one changes nothing. Not a slash command: /hedgehug is Slack's typed command, which the adapter answers itself."
     }
   ]
 }
