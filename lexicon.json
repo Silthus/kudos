@@ -274,6 +274,14 @@
     {
       "name": "app home",
       "definition": "A member's private page of Kudos in Slack, the app's Home tab. It shows how to give kudos, the daily allowance left today and when it refills, and the kudos the member gave and received this week and in total; later specs add their sections."
+    },
+    {
+      "name": "HedgeHug",
+      "definition": "The product's name as members see it: the Slack app, the bot, the slash command and the website. Code, classes and docs keep calling the product Kudos. Hug is flavour only, never the unit: the unit stays kudos."
+    },
+    {
+      "name": "website",
+      "definition": "The signed-in browser surface where a member sees and manages their Kudos. It sits beside App Home and never replaces it."
     }
   ]
 }
