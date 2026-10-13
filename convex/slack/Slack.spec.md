@@ -9,6 +9,9 @@ The Slack adapter, the only code that knows Slack: it verifies and acknowledges 
 - route POST /slack/commands: Slack delivers a slash command a member typed, `/hedgehug` or its alias `/kudos` to add the app to a channel
   handler: slackCommands in convex/slack/commands.ts
   trust: slack-request
+- route POST /slack/interactivity: Slack delivers a member's click in App Home, a tab, a progression setting or the announcement channel picker
+  handler: slackInteractivity in convex/slack/interactivity.ts
+  trust: slack-request
 
 ## invariants
 - signed Slack requests only: A request to the Slack events route that Slack did not sign records nothing and reaches no domain function.
@@ -42,6 +45,22 @@ The Slack adapter, the only code that knows Slack: it verifies and acknowledges 
   checklist: canonical-encoding dismissed: the signature is checked over the raw form body as received, never over a re-encoding
   checklist: identity-continuity dismissed: the route carries no member identity across a succession
   checklist: separation-of-duties dismissed: no approval policy applies to adding the app to a channel
+- signed Slack interactions only: An interaction Slack did not sign gets 401, dispatches no command, changes no setting and makes no Slack call.
+  over: the interactions slackInteractivity receives unsigned, signed with another secret, with a body changed after signing, and signed more than 5 minutes ago
+  via: R42: an interaction Slack did not sign gets 401 and does nothing
+  because: the route is public and a click names the member it acts for, so a forged interaction could change anyone's privacy settings or, for an admin, the announcement channel (R42, P65, P69)
+  crossing: slack-request -> domain
+  entrances: route POST /slack/interactivity
+  refuted: slackInteractivity read the body without checking the signature -> all 4 rejection cases failed: each muted the member's notices and published App Home (2026-10-13)
+  kinds: identity, credential
+  checklist: capability-authorization dismissed: the signing secret proves only that Slack sent the interaction; the acting member is the one Slack names, and an admin-only command checks the directory itself
+  checklist: revalidated-permission dismissed: the command runs in the request's own transaction, right after the signature is checked; nothing is queued in between
+  checklist: message-authenticity declared as signed Slack interactions only
+  checklist: encrypted-storage dismissed: the signing secret lives only in the deployment's environment variables, never in a row
+  checklist: key-rotation-compatibility dismissed: nothing is encrypted; a rotated signing secret replaces the environment variable at once
+  checklist: canonical-encoding dismissed: the signature is checked over the raw form body as received, never over a re-encoding
+  checklist: identity-continuity dismissed: the route carries no member identity across a succession
+  checklist: separation-of-duties dismissed: no approval policy applies to a member's own settings or an admin's channel pick
 - the indicator converges: After any number of failed, timed-out, rate-limited, repeated or late deliveries, a kudos message shows exactly the latest indicator the app wants on it, and none of the app's earlier ones.
   over: indicator deliveries whose reactions.add or reactions.remove answers an error, an HTTP 5xx or a timeout, a timed-out add that landed, a removal Slack already made, and a desired indicator that changes while a delivery is retrying
   via: R32 R35: the indicator is retried until the message shows it

@@ -6,6 +6,7 @@ import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, blockActions, emoji, mention, messageEvent, section, type BlockAction } from "../../testing/slackMessages";
 
 const now = new Date("2026-10-13T10:00:00Z");
+const form = { contentType: "application/x-www-form-urlencoded" };
 
 let slack: FakeSlack;
 let sentMessages = 0;
@@ -131,6 +132,27 @@ describe("P63 P65: a setting takes effect on the next notice or DM, and repeatin
   });
 });
 
+describe("R42: an interaction Slack did not sign gets 401 and does nothing", () => {
+  test.each([
+    ["signed with another secret", (body: string) => signedRequest(body, { ...form, secret: "someone-elses-secret" })],
+    ["unsigned", async (body: string) => ({ method: "POST", headers: { "content-type": form.contentType }, body })],
+    ["with a body changed after signing", async (body: string) => ({ ...(await signedRequest(body, form)), body: body.replace("muteNotices", "hideLevel") })],
+    ["signed more than 5 minutes ago", (body: string) => signedRequest(body, { ...form, signedAt: new Date(now.getTime() - 6 * 60 * 1000) })],
+  ])("%s", async (_, request) => {
+    const t = await settingsOpen("U_ALICE");
+    const forged = blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Mute notices"));
+    const callsBefore = slack.calls.length;
+
+    const response = await t.fetch("/slack/interactivity", await request(forged));
+    await settle(t);
+
+    expect(response.status).toBe(401);
+    expect(slack.calls.slice(callsBefore)).toEqual([]);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    expect(slack.messagesIn("C1").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
+  });
+});
+
 async function settingsOpen(user: string) {
   const t = await workspaceWithAllowance(10);
   await giveKudos(t, user, "U_BOB", 1);
@@ -167,7 +189,7 @@ async function click(t: Backend, user: string, label: string) {
 }
 
 async function interact(t: Backend, user: string, action: BlockAction) {
-  const response = await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, action), { contentType: "application/x-www-form-urlencoded" }));
+  const response = await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, action), form));
   await settle(t);
   return response;
 }
