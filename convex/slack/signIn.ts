@@ -32,23 +32,38 @@ export function signInWorkspace(): string | undefined {
 }
 
 export function signedInProfile(claims: SlackClaims, allowedWorkspace: string | undefined): SignedInProfile {
+  const profile = {
+    chatWorkspace: claims["https://slack.com/team_id"],
+    chatUser: claims["https://slack.com/user_id"],
+    name: claims.name,
+    givenName: claims.given_name,
+    familyName: claims.family_name,
+    image: claims.picture,
+  };
+  return allowedProfile(profile, allowedWorkspace);
+}
+
+export function allowedSignIn(profile: Record<string, unknown>): SignedInProfile {
+  return allowedProfile(profile, signInWorkspace());
+}
+
+function allowedProfile(profile: Record<string, unknown>, allowedWorkspace: string | undefined): SignedInProfile {
   if (allowedWorkspace === undefined) throw new Error("SLACK_WORKSPACE_ID is not set, so nobody signs in");
-  const workspace = requiredClaim(claims, "https://slack.com/team_id");
-  const user = requiredClaim(claims, "https://slack.com/user_id");
+  const workspace = requiredClaim(profile.chatWorkspace, "https://slack.com/team_id");
+  const user = requiredClaim(profile.chatUser, "https://slack.com/user_id");
   if (workspace !== allowedWorkspace) throw new Error("a sign-in from another workspace is not allowed here");
   return {
     id: `${workspace}/${user}`,
     chatWorkspace: workspace,
     chatUser: user,
-    ...optionalClaim("name", claims.name),
-    ...optionalClaim("givenName", claims.given_name),
-    ...optionalClaim("familyName", claims.family_name),
-    ...optionalClaim("image", claims.picture),
+    ...optionalClaim("name", profile.name),
+    ...optionalClaim("givenName", profile.givenName),
+    ...optionalClaim("familyName", profile.familyName),
+    ...optionalClaim("image", profile.image),
   };
 }
 
-function requiredClaim(claims: SlackClaims, claim: keyof SlackClaims) {
-  const value = claims[claim];
+function requiredClaim(value: unknown, claim: keyof SlackClaims) {
   if (typeof value !== "string" || value.trim() === "") throw new Error(`Slack sent no ${claim} claim`);
   return value;
 }
