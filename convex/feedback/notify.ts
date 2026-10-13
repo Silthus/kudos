@@ -8,16 +8,18 @@ import type { ScheduledFeature } from "../unlocks/schedule";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { readyCrateOf, type HomeAction } from "./home";
 import { skillPointsOf } from "./naming";
+import { whenOpened } from "./unlockFilter";
 
 export type Notification =
-  | { kind: "level-reached"; level: number; skillPoints: number; xpToNextLevel: number; ready: ScheduledFeature[] }
+  | { kind: "level-reached"; level: number; skillPoints: number | null; xpToNextLevel: number; ready: ScheduledFeature[] }
   | { kind: "features-shipped"; ready: ScheduledFeature[] };
 
 export type NotificationLine = string | { text: string; action: HomeAction };
 
 export async function notifyLevelReached(ctx: MutationCtx, { member, level, skillPoints, xpToNextLevel }: LevelReachedEvent, ready: ScheduledFeature[]) {
   if (!(await xpLevelsShownTo(ctx, member))) return;
-  await notify(ctx, member, { kind: "level-reached", level, skillPoints, xpToNextLevel, ready });
+  const toldSkillPoints = await whenOpened(ctx, member, "skillTree", skillPoints);
+  await notify(ctx, member, { kind: "level-reached", level, skillPoints: toldSkillPoints, xpToNextLevel, ready });
 }
 
 export async function notifyFeaturesShipped(ctx: MutationCtx, member: MemberId, ready: ScheduledFeature[]) {
@@ -38,7 +40,7 @@ export function renderNotification(notification: Notification): NotificationLine
 
 function levelReachedLines({ level, skillPoints, xpToNextLevel }: Extract<Notification, { kind: "level-reached" }>) {
   const reached = `🎉 You reached level ${level}!`;
-  const headline = level >= skillTreeLevel ? `${reached} You have ${skillPointsOf(skillPoints)} saved for the skill tree.` : reached;
+  const headline = skillPoints !== null && level >= skillTreeLevel ? `${reached} You have ${skillPointsOf(skillPoints)} saved for the skill tree.` : reached;
   return [headline, `Level ${level + 1} is ${xpToNextLevel} XP away.`];
 }
 

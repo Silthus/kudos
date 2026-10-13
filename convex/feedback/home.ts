@@ -2,11 +2,10 @@ import { v, type Infer } from "convex/values";
 import type { Intent } from "../bus/commands";
 import type { KudosHome } from "../engine/home";
 import { skillTreeLevel } from "../progression/levels";
-import type { ProgressionHome } from "../progression/progression";
 import type { ProgressSettings } from "../progression/settings";
 import type { ScheduledFeature } from "../unlocks/schedule";
 import type { UnlocksHome } from "../unlocks/unlocks";
-import type { AdminHome, HomeFacts } from "./homes";
+import type { AdminHome, HomeFacts, ToldProgression } from "./homes";
 import { productName, skillPointsOf, slashCommand } from "./naming";
 
 export const homeTabValidator = v.union(v.literal("profile"), v.literal("settings"), v.literal("admin"));
@@ -116,9 +115,9 @@ function allowanceOf({ left, base }: KudosHome): HomeLine {
   return { kind: "text", text };
 }
 
-function progressOf({ level, xpToNextLevel, skillPoints }: ProgressionHome): HomeLine[] {
+function progressOf({ level, xpToNextLevel, skillPoints }: ToldProgression): HomeLine[] {
   const levelFigures: HomeLine = { kind: "fields", fields: [figure("Level", level), figure(`XP to level ${level + 1}`, xpToNextLevel)] };
-  if (level < skillTreeLevel) return [levelFigures];
+  if (skillPoints === null || level < skillTreeLevel) return [levelFigures];
   return [levelFigures, { kind: "text", text: `You have ${bold(skillPointsOf(skillPoints))} saved for the skill tree.` }];
 }
 
