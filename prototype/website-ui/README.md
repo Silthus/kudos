@@ -5,7 +5,8 @@ Throwaway UI prototype for [#62](https://github.com/Silthus/kudos/issues/62) on 
 **Question:** what should the Kudos website look and feel like, in the PostHog brand, in light and dark mode?
 
 - **Published:** <https://earnest-ibis-715.convex.site> (Convex static hosting, project `kudos-website-prototype`, prototype-only).
-- **Round 5 (current, `?v=E`, the default):** round 4's combined variant with Michael's notes applied:
+- **Round 9 (current, `?v=E`):** only the core loop: XP, levels, quests, leaderboard, the Book, one skill tree, coins, kudos emoji and hedgehogs, each opened by a crate the member opens. Boosters, auras, drops, rarities, titles, quips, streaks and freezes are cut. Preview any level with `?lvl=N` or the bar at the bottom left.
+- **Round 5:** round 4's combined variant with Michael's notes applied:
   - the skill tree as three deep WoW-style talent trees
   - stickers and achievements as one book, laid out like WoW's achievement window, with Panini-style team albums
   - gear (hedgehog, title, quips, kudos emoji) equipped on the profile from an inventory, with cards dropped

@@ -1,6 +1,6 @@
 // Variant E moments: the hand-built treasure chest and egg that open to reveal a found item.
 import { useEffect, useId, useState, type CSSProperties, type ReactNode } from "react";
-import { useReducedMotion } from "../b/hud";
+import { useReducedMotion } from "./hud";
 
 const ink = "#141414";
 const tangerine = "#FF5C1C";

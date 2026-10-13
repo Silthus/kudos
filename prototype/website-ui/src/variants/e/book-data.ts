@@ -1,6 +1,8 @@
-// Variant E book facts: the page index, album rosters, achievement categories, made-up earned dates, the next tier closest to earning and reward rarities, all mocked locally.
-import { albums, cosmetics, ladders, members, stickers } from "../../data/mock";
-import type { Album, Ladder, LadderTier, Member, Rarity, Sticker, Tier } from "../../data/types";
+// Variant E book facts: the page index, album rosters, the eleven achievement ladders in four categories, made-up earned dates and the next tier closest to earning, all mocked locally.
+import { albums, ladders, members, stickers } from "../../data/mock";
+import type { Album, Ladder, LadderTier, Member, Sticker, Tier } from "../../data/types";
+
+export const bookLadders: Ladder[] = ladders.filter((l) => l.id !== "momentum");
 
 export const albumsMineFirst: Album[] = [...albums].sort((a, b) => Number(b.mine) - Number(a.mine));
 
@@ -11,10 +13,9 @@ export const categories: Category[] = [
   { id: "thanked", name: "Being thanked", blurb: "Thanks that find their way back to you.", ladderIds: ["recognition", "standing-ovation"] },
   { id: "connections", name: "Connections", blurb: "The people you thank, old friends, and the albums you fill.", ladderIds: ["connections", "old-friends", "team-spirit"] },
   { id: "crowd", name: "Crowd", blurb: "Chime-ins: the crowd joining your kudos, and you joining theirs.", ladderIds: ["applause", "crowd-favourite", "amplifier"] },
-  { id: "streaks", name: "Streaks", blurb: "Workdays in a row with a kudos given.", ladderIds: ["momentum"] },
 ];
 
-export const laddersIn = (category: Category): Ladder[] => category.ladderIds.map((id) => ladders.find((l) => l.id === id)).filter((l): l is Ladder => l !== undefined);
+export const laddersIn = (category: Category): Ladder[] => category.ladderIds.map((id) => bookLadders.find((l) => l.id === id)).filter((l): l is Ladder => l !== undefined);
 
 export const tierCount = (shown: Ladder[]) => {
   const tiers = shown.flatMap((l) => l.tiers);
@@ -73,7 +74,6 @@ const earnedOn: Record<string, string[]> = {
   generosity: ["2026-01-12", "2026-03-02", "2026-07-21"],
   recognition: ["2026-01-14", "2026-04-09"],
   connections: ["2026-01-20", "2026-02-17", "2026-09-30"],
-  momentum: ["2026-05-08"],
   dependability: ["2026-02-03", "2026-04-28"],
   applause: ["2026-06-11"],
   seasons: ["2026-01-12", "2026-03-02", "2026-06-01"],
@@ -92,7 +92,7 @@ export const formatDate = (iso: string) => dateFormat.format(new Date(`${iso}T12
 
 export type Earned = { ladder: Ladder; tier: LadderTier; date: string };
 
-export const recentlyEarned: Earned[] = ladders
+export const recentlyEarned: Earned[] = bookLadders
   .flatMap((ladder) => ladder.tiers.map((tier, i) => ({ ladder, tier, date: earnedDate(ladder, i) })))
   .filter((e): e is Earned => e.date !== undefined)
   .sort((a, b) => b.date.localeCompare(a.date));
@@ -112,21 +112,3 @@ export function closestNext(shown: Ladder[]): NextUp | undefined {
     })
     .sort((a, b) => progress(b) - progress(a))[0];
 }
-
-export type Reward = { kind: string; name: string; rarity: Rarity };
-
-const unlistedRarity: Record<Tier, Rarity> = { bronze: "common", silver: "uncommon", gold: "rare", diamond: "epic" };
-
-const unquoted = (text: string) => text.replace(/^[“"]|[”"]$/g, "");
-
-export function rewardOf(tier: LadderTier): Reward {
-  const [kind, ...rest] = tier.reward.split(": ");
-  const name = unquoted(rest.join(": "));
-  const cosmetic = cosmetics.find((c) => c.name === name || c.preview === name);
-  const rarity = cosmetic?.rarity ?? unlistedRarity[tier.tier];
-  if (!name) return { kind: "Reward", name: tier.reward, rarity };
-  if (kind === "Emoji") return { kind, name: cosmetic?.name ?? name, rarity };
-  return { kind: kind === "Card" ? "Title" : kind, name, rarity };
-}
-
-export const emojiOf = (tier: LadderTier) => tier.reward.replace(/^Emoji: /, "");

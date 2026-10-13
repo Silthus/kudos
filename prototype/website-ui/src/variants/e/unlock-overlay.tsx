@@ -4,7 +4,7 @@ import { IconArrowRight, IconCheck } from "@posthog/icons";
 import { Button } from "@posthog/quill";
 import { useNav } from "../../nav";
 import { unlockMoments } from "./moments-data";
-import { CrateGlyph, CrateStage, isOpened, useCrateOpening } from "./unlock-crate";
+import { CrateGlyph, FeatureCrateStage, isOpened, useFeatureCrate } from "./unlock-crate";
 import { featureLook } from "./unlock-features";
 import { showCrate, unlockOf, useReadyFeatures, useShownCrate, type Feature } from "./unlocks";
 
@@ -17,7 +17,7 @@ export function UnlockOverlay() {
 
 function CrateDialog({ feature }: { feature: Feature }) {
   const { go } = useNav();
-  const { phase, open } = useCrateOpening(feature);
+  const { phase, open } = useFeatureCrate(feature);
   const waiting = useReadyFeatures().filter((f) => f !== feature);
   const unlock = unlockOf(feature);
   const facts = unlockMoments[feature];
@@ -37,7 +37,7 @@ function CrateDialog({ feature }: { feature: Feature }) {
           {opened ? facts.headline : "Something's inside"}
         </h2>
         <div className="mt-2">
-          <CrateStage feature={feature} phase={phase} onOpen={open} width={Math.min(260, innerWidth - 120)} autoFocus />
+          <FeatureCrateStage feature={feature} phase={phase} onOpen={open} width={Math.min(260, innerWidth - 120)} autoFocus />
         </div>
         {revealed ? (
           <Reveal feature={feature} waiting={waiting} onGo={() => (showCrate(null), go(screen, param))} onLater={later} />

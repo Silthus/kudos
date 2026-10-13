@@ -1,4 +1,4 @@
-// Variant E frame, from B: a sticky game HUD bar whose screens turn into glowing crates when ready and into real screens once the member opens them, an unlocks-ready pill by the hedgehog avatar, a Cmd/Ctrl-K palette and a prototype level scrubber.
+// Variant E frame, from B: a sticky game HUD bar whose screens, ordered by the level they open at, turn into glowing crates when ready and into real screens once the member opens them, an unlocks-ready pill by the hedgehog avatar, a Cmd/Ctrl-K palette and a prototype level scrubber.
 import { Fragment, useCallback, useState, type ComponentType, type ReactNode } from "react";
 import { HedgehogHeart } from "@posthog/brand/hoggies";
 import { IconBook, IconLeave, IconLock } from "@posthog/icons";
@@ -8,6 +8,7 @@ import { ThemeButton, type LayoutProps } from "../../Layout";
 import { useNav, type ScreenId } from "../../nav";
 import { screens } from "../../screens";
 import { CoinGlyph, HogAvatar, ResourceChip, SkillPointGlyph, levelProgress, useHud } from "./hud";
+import { unspentPointsAt } from "./moments-data";
 import { CommandPalette, paletteKey, usePaletteHotkey } from "./palette";
 import { CrateGlyph } from "./unlock-crate";
 import { nextUnlock, screenFeature } from "./unlock-features";
@@ -19,8 +20,10 @@ const bookScreens: ScreenId[] = ["stickers", "achievements"];
 
 type NavEntry = { id: ScreenId; label: string; Icon: ComponentType<{ className?: string }>; feature?: Feature };
 
-const navEntries: NavEntry[] = screens
-  .filter((s) => s.inNav && s.id !== "achievements")
+const navOrder: ScreenId[] = ["profile", "quests", "leaderboard", "stickers", "skills", "collection"];
+
+const navEntries: NavEntry[] = navOrder
+  .map((id) => screens.find((s) => s.id === id)!)
   .map((s) => ({ ...(s.id === "stickers" ? { ...s, label: "Book", Icon: IconBook } : s), feature: screenFeature[s.id] }));
 
 const navFeatures = navEntries.flatMap((e) => (e.feature ? [e.feature] : []));
@@ -77,7 +80,7 @@ export function Frame({ current, dark, toggle, children }: LayoutProps) {
             {unlockedAt("skills", level) && (
               <PopIn feature="skills">
                 <ResourceChip icon={<SkillPointGlyph />} title="Skill points to spend" href="#/skills">
-                  {me.skillPointsUnspent}
+                  {unspentPointsAt(level)}
                 </ResourceChip>
               </PopIn>
             )}

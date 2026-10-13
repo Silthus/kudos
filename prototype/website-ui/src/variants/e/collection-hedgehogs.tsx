@@ -1,10 +1,9 @@
-// Variant E hedgehog shelf: every collectable hedgehog with its name in its rarity colour; equip the owned ones, buy store ones, see what unlocks the rest.
+// Variant E hedgehog shelf: every collectable hedgehog by plain name; equip the owned ones, buy store ones, and see the level, achievement or quest that earns the rest.
 import { useState } from "react";
 import { IconCheck, IconLock } from "@posthog/icons";
 import { Button } from "@posthog/quill";
 import { CoinGlyph, Panel, ResourceChip } from "./hud";
 import { hedgehogs, sourceLabel, useHogs, type Hog } from "./hedgehogs";
-import { RarityName } from "./rarity";
 
 const css = `
 .collection-silhouette{filter:brightness(0);opacity:.18}
@@ -66,9 +65,7 @@ function HogCard({ hog, owned, equipped, coins, revealed, onEquip, onBuy }: { ho
         </span>
       </div>
       <div className="flex min-w-0 flex-col gap-1">
-        <RarityName rarity={hog.rarity} className={`truncate ${locked ? "opacity-70" : ""}`}>
-          {hog.name}
-        </RarityName>
+        <span className={`truncate text-sm font-medium ${locked ? "opacity-70" : ""}`}>{hog.name}</span>
         <span className="flex items-start gap-1 text-xs text-muted-foreground">
           {locked && <IconLock className="mt-px size-3.5 shrink-0" />}
           {sourceLabel(hog.source)}

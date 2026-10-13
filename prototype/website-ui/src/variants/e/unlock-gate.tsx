@@ -6,7 +6,7 @@ import { useNav } from "../../nav";
 import type { ScreenComponent } from "../types";
 import { hedgehogs } from "./hedgehogs";
 import { Panel, useHud } from "./hud";
-import { CrateStage } from "./unlock-crate";
+import { FeatureCrateStage } from "./unlock-crate";
 import { featureLook, levelsToGoText } from "./unlock-features";
 import { showCrate, unlockOf, useFeatureState, usePreviewLevel, type Feature } from "./unlocks";
 
@@ -32,7 +32,7 @@ export function ReadyScreen({ feature }: { feature: Feature }) {
           <h1 className="mo-headline text-[clamp(2.25rem,8vw,3.75rem)]">Your level {unlock.level} unlock is here</h1>
           <p className="max-w-md text-balance text-base text-white/75">{unlock.teaser}</p>
           <div className="mt-6">
-            <CrateStage feature={feature} phase="closed" onOpen={open} width={200} hint="Tap the crate" headroom={false} />
+            <FeatureCrateStage feature={feature} phase="closed" onOpen={open} width={200} hint="Tap the crate" headroom={false} />
           </div>
           <Button variant="primary" size="lg" className="mt-2" onClick={open}>
             Open it
@@ -156,10 +156,44 @@ function SlotGhost() {
   );
 }
 
+function ListGhost() {
+  return (
+    <div className={ghostFrame}>
+      <div className="flex w-full flex-col gap-3">
+        {Array.from({ length: 4 }, (_, i) => (
+          <span key={i} className="flex items-center gap-3 rounded-lg border-2 border-muted-foreground/30 bg-muted p-3">
+            <span className="size-8 shrink-0 rounded-md bg-muted-foreground/35" />
+            <span className="h-2.5 flex-1 rounded-full bg-muted-foreground/25">
+              <span className="block h-full rounded-full bg-foreground/60" style={{ width: `${70 - i * 15}%` }} />
+            </span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PodiumGhost() {
+  return (
+    <div className={ghostFrame}>
+      <div className="flex w-full max-w-md items-end justify-center gap-4">
+        {[62, 88, 46].map((height, i) => (
+          <span key={i} className="flex flex-1 flex-col items-center gap-2">
+            <span className="size-12 rounded-full bg-muted-foreground/40" />
+            <span className={`w-full rounded-t-lg ${i === 1 ? "bg-foreground/60" : "bg-muted-foreground/35"}`} style={{ height: height * 2 }} />
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const ghosts: Record<Feature, ComponentType> = {
+  quests: ListGhost,
+  leaderboard: PodiumGhost,
   book: BookGhost,
-  gear: SlotGhost,
   skills: TreeGhost,
   coins: SlotGhost,
+  inventory: SlotGhost,
   collection: ShelfGhost,
 };

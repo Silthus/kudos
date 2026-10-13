@@ -1,21 +1,20 @@
-// Variant E skill tree: three WoW-style perk trees that open at level 4, with neutral owned nodes, primary only for what you can buy and your selection, upgrades shown as "this became that", and a one-entry-per-chain perk ledger.
+// Variant E skill tree: one WoW-style perk tree that opens at level 5, its rows gated by level with each upgrade right below its base, neutral owned nodes, primary only for what you can buy and your selection, upgrades shown as "this became that", and a one-entry-per-chain perk ledger.
 import { useEffect, useState } from "react";
-import { IconArrowRightDown, IconCheck, IconLock, IconPeople, IconSparkles } from "@posthog/icons";
-import { Button, Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, Tabs, TabsContent, TabsList, TabsTrigger } from "@posthog/quill";
-import { me, perks } from "../../data/mock";
-import type { Perk, PerkState } from "../../data/types";
-import { blockedReason, costText, perkName, shortState } from "../../screens/skills/perks";
-import { baseOf, effectOf, mockStateOf, upgradeOf } from "./skills-chains";
+import { IconArrowRightDown, IconCheck, IconLock, IconSparkles } from "@posthog/icons";
+import { Button, Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from "@posthog/quill";
+import { me } from "../../data/mock";
+import type { PerkState } from "../../data/types";
+import { blockedReason, shortState } from "../../screens/skills/perks";
 import { CoinGlyph, Panel, ResourceChip, SkillPointGlyph, Tag, useHud } from "./hud";
-import { PerkIcon, TreeIcon } from "./skills-icons";
-import { layouts, treeColumns, treeLevelOf, treeOf, trees, type PlacedPerk, type TreeId, type TreeLayout } from "./skills-trees";
+import { PerkIcon } from "./skills-icons";
+import { baseOf, costText, ownedAt, perkById, perks, pointsEarnedAt, pointsSpentOn, pointsText, rowOf, stateOfPerk, treeColumns, treeLevels, upgradeOf, type TreePerk } from "./skills-perks";
 import { unlockOf, usePreviewLevel, useUnlocked } from "./unlocks";
 
-type StateOf = (perk: Perk) => PerkState;
+type StateOf = (perk: TreePerk) => PerkState;
 
 type NodeKind = "owned" | "replaced" | "available" | "locked";
 
-type TreeProps = { stateOf: StateOf; selectedId?: string; bought: Set<string>; onSelect: (id: string) => void };
+type TreeProps = { stateOf: StateOf; level: number; selectedId?: string; bought: Set<string>; onSelect: (id: string) => void };
 
 const rail = 16;
 const nodeBlock = 78;
@@ -23,44 +22,42 @@ const rowHeight = 104;
 
 const isLocked = (state: PerkState) => state.kind !== "owned" && state.kind !== "available";
 
-const ownedUpgradeOf = (perk: Perk, stateOf: StateOf) => {
+const ownedUpgradeOf = (perk: TreePerk, stateOf: StateOf) => {
   const upgrade = upgradeOf(perk);
   return upgrade && stateOf(upgrade).kind === "owned" ? upgrade : undefined;
 };
 
-const ownedBaseOf = (perk: Perk, stateOf: StateOf) => {
+const ownedBaseOf = (perk: TreePerk, stateOf: StateOf) => {
   const base = baseOf(perk);
   return base && stateOf(perk).kind === "owned" && stateOf(base).kind === "owned" ? base : undefined;
 };
 
-function kindOf(perk: Perk, stateOf: StateOf): NodeKind {
+function kindOf(perk: TreePerk, stateOf: StateOf): NodeKind {
   const state = stateOf(perk);
   if (state.kind === "owned") return ownedUpgradeOf(perk, stateOf) ? "replaced" : "owned";
   return state.kind === "available" ? "available" : "locked";
 }
 
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
-
 export function Skills({ param }: { param?: string }) {
   useHud();
   const wide = useMedia("(min-width: 1024px)");
-  const sideBySide = useMedia("(min-width: 1280px)");
-  const [bought, setBought] = useState<Set<string>>(new Set());
-  const [selectedId, setSelectedId] = useState(() => perks.find((p) => p.id === param)?.id ?? perks.find((p) => mockStateOf(p).kind === "available")?.id);
-  const [drawerOpen, setDrawerOpen] = useState(() => perks.some((p) => p.id === param));
-  const selected = perks.find((p) => p.id === selectedId);
-  const [activeTree, setActiveTree] = useState<TreeId>(() => (selected ? treeOf(selected).id : trees[0].id));
-  const stateOf: StateOf = (perk) => (bought.has(perk.id) ? { kind: "owned" } : mockStateOf(perk));
-  const owned = perks.filter((p) => stateOf(p).kind === "owned");
   const level = usePreviewLevel();
   const coinsOpen = useUnlocked("coins");
+  const [bought, setBought] = useState<Set<string>>(new Set());
+  const owned = new Set([...ownedAt(level), ...bought]);
+  const stateOf: StateOf = (perk) => stateOfPerk(perk, level, owned);
+  const toSpend = pointsEarnedAt(level) - pointsSpentOn(owned);
+  const [selectedId, setSelectedId] = useState(() => perkById(param)?.id ?? perks.find((p) => stateOf(p).kind === "available")?.id ?? perks[0].id);
+  const [drawerOpen, setDrawerOpen] = useState(() => perkById(param) !== undefined);
+  const selected = perkById(selectedId);
+  const ownedPerks = perks.filter((p) => owned.has(p.id));
 
   const select = (id: string) => {
     setSelectedId(id);
     setDrawerOpen(true);
   };
   const buy = (id: string) => setBought((prev) => new Set(prev).add(id));
-  const treeProps: TreeProps = { stateOf, selectedId: wide || drawerOpen ? selectedId : undefined, bought, onSelect: select };
+  const treeProps: TreeProps = { stateOf, level, selectedId: wide || drawerOpen ? selectedId : undefined, bought, onSelect: select };
 
   return (
     <div className="flex flex-col gap-6">
@@ -70,15 +67,14 @@ export function Skills({ param }: { param?: string }) {
           <h1 className="hud-display mt-1 text-4xl font-bold leading-none">Perks</h1>
           <p className="mt-2 text-sm">
             <span className="font-semibold tabular-nums">
-              {owned.length} of {perks.length}
+              {ownedPerks.length} of {perks.length}
             </span>{" "}
-            perks owned <span className="text-muted-foreground">·</span>{" "}
-            <span className="font-semibold tabular-nums">{plural(me.skillPointsUnspent, "skill point")}</span> to spend
+            perks owned <span className="text-muted-foreground">·</span> <span className="font-semibold tabular-nums">{pointsText(toSpend)}</span> to spend
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <ResourceChip icon={<SkillPointGlyph />} title="Skill points to spend">
-            {plural(me.skillPointsUnspent, "skill point")}
+          <ResourceChip icon={<SkillPointGlyph />} title="Skill points to spend. Every level from 5 gives one.">
+            {pointsText(toSpend)}
           </ResourceChip>
           {coinsOpen && (
             <ResourceChip icon={<CoinGlyph />} title={`Coins. ${unlockOf("coins").how}`}>
@@ -93,42 +89,17 @@ export function Skills({ param }: { param?: string }) {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
         <div className="flex min-w-0 flex-col gap-6">
-          <Panel label="Perk trees" action={<Legend />}>
-            {sideBySide ? (
-              <div className="grid grid-cols-3 divide-x">
-                {layouts.map((layout) => (
-                  <PerkTree key={layout.tree.id} layout={layout} {...treeProps} />
-                ))}
-              </div>
-            ) : (
-              <Tabs value={activeTree} onValueChange={(value) => setActiveTree(value as TreeId)} className="flex flex-col gap-4">
-                <TabsList className="w-full">
-                  {layouts.map((layout) => (
-                    <TabsTrigger key={layout.tree.id} value={layout.tree.id} className="min-w-0 flex-1 gap-1 px-1.5 text-[13px]">
-                      <TreeIcon tree={layout.tree.id} className="hidden size-3.5 sm:block" />
-                      {layout.tree.name}
-                      <span className="text-[10px] tabular-nums text-muted-foreground">{ownedIn(layout, stateOf)}</span>
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-                {layouts.map((layout) => (
-                  <TabsContent key={layout.tree.id} value={layout.tree.id}>
-                    <PerkTree layout={layout} {...treeProps} />
-                  </TabsContent>
-                ))}
-              </Tabs>
-            )}
+          <Panel label="Perk tree" action={<Legend />}>
+            <PerkTree {...treeProps} />
           </Panel>
-          <YourPerks owned={owned} stateOf={stateOf} onSelect={select} />
+          <YourPerks owned={ownedPerks} stateOf={stateOf} onSelect={select} />
         </div>
-        {wide && selected && <PerkSheet key={selected.id} perk={selected} stateOf={stateOf} onBuy={() => buy(selected.id)} />}
+        {wide && selected && <PerkSheet key={selected.id} perk={selected} stateOf={stateOf} level={level} onBuy={() => buy(selected.id)} />}
       </div>
-      {!wide && selected && <PerkDrawer key={selected.id} perk={selected} stateOf={stateOf} open={drawerOpen} onOpenChange={setDrawerOpen} onBuy={() => buy(selected.id)} />}
+      {!wide && selected && <PerkDrawer key={selected.id} perk={selected} stateOf={stateOf} level={level} open={drawerOpen} onOpenChange={setDrawerOpen} onBuy={() => buy(selected.id)} />}
     </div>
   );
 }
-
-const ownedIn = (layout: TreeLayout, stateOf: StateOf) => `${layout.nodes.filter((n) => stateOf(n.perk).kind === "owned").length}/${layout.nodes.length}`;
 
 function Legend() {
   return (
@@ -149,50 +120,29 @@ function Legend() {
   );
 }
 
-function PerkTree({ layout, ...props }: { layout: TreeLayout } & TreeProps) {
-  const { tree, levels, nodes } = layout;
-  const ownedCount = nodes.filter((n) => props.stateOf(n.perk).kind === "owned").length;
+function PerkTree(props: TreeProps) {
   return (
-    <section className="flex min-w-0 flex-col gap-4 px-2.5 first:pl-0 last:pr-0" aria-label={`${tree.name} tree`}>
-      <div className="flex items-start gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border bg-muted text-foreground">
-          <TreeIcon tree={tree.id} className="size-5" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-baseline justify-between gap-2">
-            <h2 className="hud-display text-lg font-bold leading-tight">{tree.name}</h2>
-            <span className="text-xs tabular-nums text-muted-foreground" aria-label={`${ownedCount} of ${nodes.length} owned`}>
-              <span className="font-semibold text-foreground">{ownedCount}</span> / {nodes.length}
-            </span>
-          </div>
-          <p className="text-xs leading-snug text-muted-foreground">{tree.theme}</p>
-          <div className="mt-2 h-1 overflow-hidden rounded-full bg-muted" aria-hidden>
-            <div className="hud-fill h-full rounded-full bg-foreground" style={{ width: `${(ownedCount / nodes.length) * 100}%` }} />
-          </div>
-        </div>
-      </div>
-      <div className="relative" style={{ height: levels.length * rowHeight - (rowHeight - rail - nodeBlock) }}>
-        {levels.map((level, row) => (
-          <LevelRail key={level} level={level} row={row} />
-        ))}
-        {nodes.map((node) => (
-          <Connector key={`link-${node.perk.id}`} node={node} nodes={nodes} stateOf={props.stateOf} />
-        ))}
-        {nodes.map((node) => (
-          <PerkNode key={node.perk.id} node={node} stateOf={props.stateOf} selected={props.selectedId === node.perk.id} justBought={props.bought.has(node.perk.id)} onSelect={() => props.onSelect(node.perk.id)} />
-        ))}
-      </div>
-    </section>
+    <div className="relative mx-auto w-full max-w-xl" style={{ height: treeLevels.length * rowHeight - (rowHeight - rail - nodeBlock) }} role="group" aria-label="Perk tree">
+      {treeLevels.map((gate, row) => (
+        <LevelRail key={gate} gate={gate} row={row} level={props.level} />
+      ))}
+      {perks.map((perk) => (
+        <Connector key={`link-${perk.id}`} perk={perk} stateOf={props.stateOf} />
+      ))}
+      {perks.map((perk) => (
+        <PerkNode key={perk.id} perk={perk} stateOf={props.stateOf} level={props.level} selected={props.selectedId === perk.id} justBought={props.bought.has(perk.id)} onSelect={() => props.onSelect(perk.id)} />
+      ))}
+    </div>
   );
 }
 
-function LevelRail({ level, row }: { level: number; row: number }) {
-  const gated = level > me.level;
+function LevelRail({ gate, row, level }: { gate: number; row: number; level: number }) {
+  const gated = gate > level;
   return (
     <div className="absolute inset-x-0 flex items-center gap-1.5" style={{ top: row * rowHeight, height: rail - 4 }} aria-hidden>
       <span className={`relative z-10 flex items-center gap-0.5 bg-card pr-1 text-[9px] font-semibold uppercase tracking-[.12em] ${gated ? "text-muted-foreground/70" : "text-muted-foreground"}`}>
         {gated && <IconLock className="size-2.5" />}
-        Level {level}
+        Level {gate}
       </span>
       <span className="h-px flex-1 bg-border" />
     </div>
@@ -207,14 +157,14 @@ function connectorLook(parentOwned: boolean, childOwned: boolean) {
   return "border-dashed text-muted-foreground/35";
 }
 
-function Connector({ node, nodes, stateOf }: { node: PlacedPerk; nodes: PlacedPerk[]; stateOf: StateOf }) {
-  const parent = nodes.find((n) => n.perk.id === node.perk.requires);
+function Connector({ perk, stateOf }: { perk: TreePerk; stateOf: StateOf }) {
+  const parent = baseOf(perk);
   if (!parent) return null;
-  const look = connectorLook(stateOf(parent.perk).kind === "owned", stateOf(node.perk).kind === "owned");
-  const top = parent.row * rowHeight + rail + nodeBlock;
-  const bottom = node.row * rowHeight + rail - 3;
+  const look = connectorLook(stateOf(parent).kind === "owned", stateOf(perk).kind === "owned");
+  const top = rowOf(parent) * rowHeight + rail + nodeBlock;
+  const bottom = rowOf(perk) * rowHeight + rail - 3;
   return (
-    <div className={`absolute w-0 -translate-x-1/2 border-l-2 border-current transition-colors ${look}`} style={{ left: columnCenter(node.column), top, height: bottom - top }} aria-hidden>
+    <div className={`absolute w-0 -translate-x-1/2 border-l-2 border-current transition-colors ${look}`} style={{ left: columnCenter(perk.column), top, height: bottom - top }} aria-hidden>
       <span className="absolute -bottom-[3px] left-1/2 size-0 -translate-x-1/2 border-x-[5px] border-t-[6px] border-x-transparent border-t-current" style={{ marginLeft: -1 }} />
     </div>
   );
@@ -227,26 +177,25 @@ const nodeLook: Record<NodeKind, string> = {
   locked: "border-border bg-muted text-muted-foreground/70 hover:text-muted-foreground",
 };
 
-function nodeLabel(perk: Perk, kind: NodeKind, stateOf: StateOf) {
+function nodeLabel(perk: TreePerk, kind: NodeKind, stateOf: StateOf) {
   if (kind === "replaced") return `${perk.name}: upgraded to ${ownedUpgradeOf(perk, stateOf)?.name}`;
   const base = ownedBaseOf(perk, stateOf);
   if (base) return `${perk.name}: owned, upgraded from ${base.name}`;
   return `${perk.name}: ${shortState(stateOf(perk))}`;
 }
 
-function PerkNode({ node, stateOf, selected, justBought, onSelect }: { node: PlacedPerk; stateOf: StateOf; selected: boolean; justBought: boolean; onSelect: () => void }) {
-  const { perk } = node;
+function PerkNode({ perk, stateOf, level, selected, justBought, onSelect }: { perk: TreePerk; stateOf: StateOf; level: number; selected: boolean; justBought: boolean; onSelect: () => void }) {
   const kind = kindOf(perk, stateOf);
   const absorbed = ownedBaseOf(perk, stateOf);
-  const reason = blockedReason(stateOf(perk), me.level);
+  const reason = blockedReason(stateOf(perk), level);
   return (
-    <div className="absolute flex -translate-x-1/2 flex-col items-center" style={{ left: columnCenter(node.column), top: node.row * rowHeight + rail, width: `${100 / treeColumns}%` }}>
+    <div className="absolute flex -translate-x-1/2 flex-col items-center" style={{ left: columnCenter(perk.column), top: rowOf(perk) * rowHeight + rail, width: `${100 / treeColumns}%` }}>
       <button
         type="button"
         onClick={onSelect}
         aria-pressed={selected}
         aria-label={nodeLabel(perk, kind, stateOf)}
-        title={reason ? `${perk.name}. ${reason}` : perk.name}
+        title={reason ? `${perk.name}. ${reason}` : `${perk.name}. ${perk.summary}`}
         className={`relative flex size-11 items-center justify-center rounded-lg border-2 transition-colors ${nodeLook[kind]} ${selected ? "ring-2 ring-primary ring-offset-2 ring-offset-card" : ""} ${justBought ? "hud-burst hud-pop" : ""}`}
       >
         <PerkIcon perk={perk.id} />
@@ -258,11 +207,6 @@ function PerkNode({ node, stateOf, selected, justBought, onSelect }: { node: Pla
         {kind === "locked" && (
           <span className="absolute -right-1.5 -top-1.5 flex size-4 items-center justify-center rounded-full bg-card text-muted-foreground ring-1 ring-border">
             <IconLock className="size-2.5" />
-          </span>
-        )}
-        {perk.group && (
-          <span className="absolute -bottom-1.5 -left-1.5 flex size-4 items-center justify-center rounded-full bg-card text-muted-foreground ring-1 ring-border" title="Group aura">
-            <IconPeople className="size-2.5" />
           </span>
         )}
         {absorbed && (
@@ -280,7 +224,7 @@ function PerkNode({ node, stateOf, selected, justBought, onSelect }: { node: Pla
   );
 }
 
-function BecameCaption({ upgrade }: { upgrade?: Perk }) {
+function BecameCaption({ upgrade }: { upgrade?: TreePerk }) {
   if (!upgrade) return null;
   return (
     <span className="relative inline-flex items-center gap-0.5 bg-card px-1 text-[10px] text-muted-foreground">
@@ -290,7 +234,7 @@ function BecameCaption({ upgrade }: { upgrade?: Perk }) {
   );
 }
 
-function CostChip({ perk }: { perk: Perk }) {
+function CostChip({ perk }: { perk: TreePerk }) {
   return (
     <span className="inline-flex h-4 items-center rounded-full border bg-muted px-1.5 text-[10px] font-semibold text-foreground">
       <Cost perk={perk} className="text-[10px]" />
@@ -298,15 +242,13 @@ function CostChip({ perk }: { perk: Perk }) {
   );
 }
 
-function Cost({ perk, className = "text-[10px]" }: { perk: Perk; className?: string }) {
+function Cost({ perk, className = "text-[10px]" }: { perk: TreePerk; className?: string }) {
   return (
     <span className={`inline-flex items-center justify-center gap-1.5 tabular-nums ${className}`} aria-label={costText(perk)}>
-      {perk.skillPoints && (
-        <span className="inline-flex items-center gap-0.5">
-          <SkillPointGlyph className="size-2.5" />
-          {perk.skillPoints}
-        </span>
-      )}
+      <span className="inline-flex items-center gap-0.5">
+        <SkillPointGlyph className="size-2.5" />
+        {perk.skillPoints}
+      </span>
       {perk.coins && (
         <span className="inline-flex items-center gap-0.5">
           <CoinGlyph className="size-2.5" />
@@ -317,37 +259,24 @@ function Cost({ perk, className = "text-[10px]" }: { perk: Perk; className?: str
   );
 }
 
-function YourPerks({ owned, stateOf, onSelect }: { owned: Perk[]; stateOf: StateOf; onSelect: (id: string) => void }) {
+function YourPerks({ owned, stateOf, onSelect }: { owned: TreePerk[]; stateOf: StateOf; onSelect: (id: string) => void }) {
   const active = owned.filter((perk) => !ownedUpgradeOf(perk, stateOf));
   return (
     <Panel label={`Your perks · ${active.length}`} action={<span className="text-xs text-muted-foreground">Permanent, always on</span>}>
-      <div className="grid gap-5 md:grid-cols-3">
-        {trees.map((tree) => {
-          const mine = active.filter((p) => treeOf(p).id === tree.id);
-          return (
-            <section key={tree.id} className="flex min-w-0 flex-col gap-2" aria-label={`Your ${tree.name} perks`}>
-              <h3 className="flex items-center gap-1.5 text-xs font-semibold">
-                <TreeIcon tree={tree.id} className="size-3.5 text-muted-foreground" />
-                {tree.name}
-              </h3>
-              {mine.length === 0 ? (
-                <p className="text-xs text-muted-foreground">Nothing yet.</p>
-              ) : (
-                <ul className="flex flex-col gap-2">
-                  {mine.map((perk) => (
-                    <OwnedPerk key={perk.id} perk={perk} base={ownedBaseOf(perk, stateOf)} onSelect={onSelect} />
-                  ))}
-                </ul>
-              )}
-            </section>
-          );
-        })}
-      </div>
+      {active.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Nothing yet. Pick a perk on the Level 5 row to start.</p>
+      ) : (
+        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {active.map((perk) => (
+            <OwnedPerk key={perk.id} perk={perk} base={ownedBaseOf(perk, stateOf)} onSelect={onSelect} />
+          ))}
+        </ul>
+      )}
     </Panel>
   );
 }
 
-function OwnedPerk({ perk, base, onSelect }: { perk: Perk; base?: Perk; onSelect: (id: string) => void }) {
+function OwnedPerk({ perk, base, onSelect }: { perk: TreePerk; base?: TreePerk; onSelect: (id: string) => void }) {
   return (
     <li className={`relative ${base ? "pb-[22px]" : ""}`}>
       {base && (
@@ -366,16 +295,21 @@ function OwnedPerk({ perk, base, onSelect }: { perk: Perk; base?: Perk; onSelect
         </span>
         <span className="min-w-0">
           <span className="block text-sm font-medium leading-tight">{perk.name}</span>
-          <span className="block text-xs leading-snug text-muted-foreground">{effectOf(perk)}</span>
+          <span className="block text-xs leading-snug text-muted-foreground">{perk.effect}</span>
         </span>
       </button>
     </li>
   );
 }
 
-const subtitle = (perk: Perk) => (perk.requires ? `${treeOf(perk).name} tree · upgrade of ${perkName(perk.requires)}` : `${treeOf(perk).name} tree`);
+const subtitle = (perk: TreePerk) => {
+  const base = baseOf(perk);
+  return base ? `Level ${perk.level} · upgrade of ${base.name}` : `Level ${perk.level} perk`;
+};
 
-function PerkSheet({ perk, stateOf, onBuy }: { perk: Perk; stateOf: StateOf; onBuy: () => void }) {
+type SheetProps = { perk: TreePerk; stateOf: StateOf; level: number; onBuy: () => void };
+
+function PerkSheet({ perk, stateOf, level, onBuy }: SheetProps) {
   return (
     <Panel label={subtitle(perk)} className="hud-rise lg:sticky lg:top-24">
       <div className="flex flex-col gap-4">
@@ -387,13 +321,13 @@ function PerkSheet({ perk, stateOf, onBuy }: { perk: Perk; stateOf: StateOf; onB
           </div>
         </div>
         <PerkFacts perk={perk} />
-        <PerkAction perk={perk} stateOf={stateOf} onBuy={onBuy} />
+        <PerkAction perk={perk} stateOf={stateOf} level={level} onBuy={onBuy} />
       </div>
     </Panel>
   );
 }
 
-function SheetIcon({ perk, kind }: { perk: Perk; kind: NodeKind }) {
+function SheetIcon({ perk, kind }: { perk: TreePerk; kind: NodeKind }) {
   return (
     <span className={`flex size-12 shrink-0 items-center justify-center rounded-lg border-2 ${nodeLook[kind]}`}>
       <PerkIcon perk={perk.id} className="size-6" />
@@ -401,29 +335,29 @@ function SheetIcon({ perk, kind }: { perk: Perk; kind: NodeKind }) {
   );
 }
 
-function PerkDrawer({ perk, stateOf, open, onOpenChange, onBuy }: { perk: Perk; stateOf: StateOf; open: boolean; onOpenChange: (open: boolean) => void; onBuy: () => void }) {
+function PerkDrawer({ open, onOpenChange, ...props }: SheetProps & { open: boolean; onOpenChange: (open: boolean) => void }) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent>
         <DrawerHeader>
-          <DrawerTitle className="hud-display text-2xl">{perk.name}</DrawerTitle>
-          <DrawerDescription>{subtitle(perk)}</DrawerDescription>
+          <DrawerTitle className="hud-display text-2xl">{props.perk.name}</DrawerTitle>
+          <DrawerDescription>{subtitle(props.perk)}</DrawerDescription>
         </DrawerHeader>
         <div className="flex flex-col gap-4 px-4">
           <div>
-            <StateTag perk={perk} stateOf={stateOf} />
+            <StateTag perk={props.perk} stateOf={props.stateOf} />
           </div>
-          <PerkFacts perk={perk} />
+          <PerkFacts perk={props.perk} />
         </div>
         <DrawerFooter>
-          <PerkAction perk={perk} stateOf={stateOf} onBuy={onBuy} />
+          <PerkAction {...props} />
         </DrawerFooter>
       </DrawerContent>
     </Drawer>
   );
 }
 
-function StateTag({ perk, stateOf }: { perk: Perk; stateOf: StateOf }) {
+function StateTag({ perk, stateOf }: { perk: TreePerk; stateOf: StateOf }) {
   const state = stateOf(perk);
   const upgrade = ownedUpgradeOf(perk, stateOf);
   if (upgrade)
@@ -449,22 +383,20 @@ function StateTag({ perk, stateOf }: { perk: Perk; stateOf: StateOf }) {
   );
 }
 
-function PerkFacts({ perk }: { perk: Perk }) {
+function PerkFacts({ perk }: { perk: TreePerk }) {
   const base = baseOf(perk);
   const coins = unlockOf("coins");
   const coinsOpen = useUnlocked("coins");
   const notes = [
     perk.coins && !coinsOpen && `Its coins come later: coins unlock at level ${coins.level}.`,
-    base && `An upgrade: it replaces ${base.name}'s effect rather than adding to it.`,
-    perk.group && `A group aura for ${me.primaryGroup.name}, your primary group.`,
-    !perk.skillPoints && "Coins only, no skill points.",
+    base && `${perk.summary}. It replaces ${base.name}'s effect rather than adding to it.`,
   ].filter((n): n is string => typeof n === "string");
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm">{effectOf(perk)}</p>
+      <p className="text-sm">{perk.effect}</p>
       <dl className="grid grid-cols-[3.5rem_1fr] gap-x-3 gap-y-1.5 text-sm">
         <dt className="text-muted-foreground">Level</dt>
-        <dd>{treeLevelOf(perk)} or higher</dd>
+        <dd>{perk.level} or higher</dd>
         <dt className="text-muted-foreground">Cost</dt>
         <dd>
           <Cost perk={perk} className="text-sm" />
@@ -487,7 +419,7 @@ function PerkFacts({ perk }: { perk: Perk }) {
   );
 }
 
-function PerkAction({ perk, stateOf, onBuy }: { perk: Perk; stateOf: StateOf; onBuy: () => void }) {
+function PerkAction({ perk, stateOf, level, onBuy }: SheetProps) {
   const [bought, setBought] = useState(false);
   const [switchedOn, setSwitchedOn] = useState(false);
   const state = stateOf(perk);
@@ -504,7 +436,7 @@ function PerkAction({ perk, stateOf, onBuy }: { perk: Perk; stateOf: StateOf; on
   if (upgrade) return <p className="text-sm text-muted-foreground">{upgrade.name} took over this perk. Its stronger effect is the one that counts now.</p>;
 
   if (state.kind === "owned") {
-    if (perk.branch !== "active") return <p className="text-sm text-muted-foreground">You own this one. Perks are permanent.</p>;
+    if (!perk.switchable) return <p className="text-sm text-muted-foreground">You own this one. Perks are permanent.</p>;
     return (
       <div className="flex flex-col gap-2">
         <p className="text-sm text-muted-foreground">You own this one. Switch it on for one day a week.</p>
@@ -515,8 +447,7 @@ function PerkAction({ perk, stateOf, onBuy }: { perk: Perk; stateOf: StateOf; on
     );
   }
 
-  const spendsPoints = (perk.skillPoints ?? 0) > 0;
-  const reason = blockedReason(state, me.level);
+  const reason = blockedReason(state, level);
   return (
     <div className="flex flex-col gap-2">
       <Button
@@ -529,7 +460,7 @@ function PerkAction({ perk, stateOf, onBuy }: { perk: Perk; stateOf: StateOf; on
       >
         Buy for {costText(perk)}
       </Button>
-      <p className="text-xs text-muted-foreground">{reason ?? (spendsPoints ? "Spent skill points never come back, and there's no respec." : `This spends ${perk.coins} coins for good.`)}</p>
+      <p className="text-xs text-muted-foreground">{reason ?? "Spent skill points never come back, and there's no respec."}</p>
     </div>
   );
 }
@@ -544,4 +475,3 @@ function useMedia(query: string) {
   }, [query]);
   return matches;
 }
-

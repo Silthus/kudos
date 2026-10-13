@@ -1,18 +1,19 @@
-// Variant E deep-link landings: one celebratory moment per Slack link, a cover band over a HUD panel; a level-up ends with the unlocks it made ready, and an unlock moment is a loot crate the member opens.
+// Variant E deep-link landings: one celebratory moment per Slack link, a cover band over a HUD panel; a level-up says what the level unlocks, and unlocks and quest rewards are loot crates the member opens.
 import { useEffect, useState, type ComponentType, type CSSProperties, type ReactNode } from "react";
 import { Button } from "@posthog/quill";
-import { HedgehogHeart, HedgehogLevelUp, HedgehogMagnifyingGlass, HedgehogReading, HedgehogStampApproved } from "@posthog/brand/hoggies";
-import { IconArrowRight, IconCheck, IconLock, IconRefresh } from "@posthog/icons";
+import { HedgehogHeart, HedgehogLevelUp, HedgehogReading, HedgehogStampApproved } from "@posthog/brand/hoggies";
+import { IconArrowRight, IconCheck, IconLock, IconRefresh, IconSparkles } from "@posthog/icons";
 import { useNav, type ScreenId } from "../../nav";
-import { Rarity, TierMedal, tierLabel } from "../../ui";
-import type { Rarity as RarityKind } from "../../data/types";
-import { CoinGlyph, ResourceChip, SkillPointGlyph, useHud } from "../b/hud";
+import { TierMedal, tierLabel } from "../../ui";
+import { CoinGlyph, ResourceChip, SkillPointGlyph, useHud } from "./hud";
 import { hedgehogs, sourceLabel, useHogs } from "./hedgehogs";
 import { Chest, Egg, useBeat, useOpenable } from "./moments-chest";
-import { achievement, asMomentKind, asUnlockFeature, discovery, kudos, levelUp, momentKinds, newHogId, tour, unlockMoments, type MomentKind, type TourStop } from "./moments-data";
-import { CrateGlyph, CrateStage, isOpened, useCrateOpening } from "./unlock-crate";
+import { achievement, asMomentKind, asUnlockFeature, kudos, levelUp, momentKinds, newHogId, questReward, tour, unlockMoments, unspentPointsAt, type MomentKind, type TourStop } from "./moments-data";
+import { pointsText } from "./skills-perks";
+import { CrateGlyph, FeatureCrateStage, isOpened, useFeatureCrate } from "./unlock-crate";
 import { featureLook, nextUnlock, unlocksAtLevel } from "./unlock-features";
-import { markReady, setPreviewLevel, showCrate, unlockOf, unlocks, usePreviewLevel, useReadyFeatures, useUnlocked, type Feature } from "./unlocks";
+import { RewardCrate } from "./unlock-reward";
+import { featureStateAt, markReady, setPreviewLevel, showCrate, unlockOf, unlocks, usePreviewLevel, useReadyFeatures, useUnlocked, type Feature, type Unlock } from "./unlocks";
 import "./moments.css";
 
 type Ink = "tangerine" | "lemon" | "blue" | "night";
@@ -41,8 +42,8 @@ type MomentProps = { onReplay: () => void };
 const moments: Record<MomentKind, ComponentType<MomentProps>> = {
   "level-up": LevelUpMoment,
   unlock: UnlockMoment,
+  quest: QuestMoment,
   achievement: AchievementMoment,
-  discovery: DiscoveryMoment,
   hedgehog: HedgehogMoment,
   kudos: KudosMoment,
   "app-home": AppHomeMoment,
@@ -76,7 +77,7 @@ function Picker({ current, feature }: { current: MomentKind; feature?: Feature }
   );
 }
 
-function MomentShell({ ink, kicker, aside, headline, hog: Hog, stage, primary, onReplay, children }: { ink: Ink; kicker: string; aside?: ReactNode; headline: ReactNode; hog?: HogArt; stage?: ReactNode; primary: Primary; onReplay: () => void; children: ReactNode }) {
+function MomentShell({ ink, kicker, aside, headline, hog: Hog, stage, primary, onReplay, children }: { ink: Ink; kicker: string; aside?: ReactNode; headline: ReactNode; hog?: HogArt; stage?: ReactNode; primary?: Primary; onReplay: () => void; children: ReactNode }) {
   return (
     <article className="hud-panel relative overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm">
       <section className={`mo-band mo-band-${ink} px-5 pb-8 pt-6 md:px-10 md:pb-10 md:pt-8`}>
@@ -100,7 +101,7 @@ function MomentShell({ ink, kicker, aside, headline, hog: Hog, stage, primary, o
   );
 }
 
-function Actions({ primary, onReplay }: { primary: Primary; onReplay: () => void }) {
+function Actions({ primary, onReplay }: { primary?: Primary; onReplay: () => void }) {
   const [leaving, setLeaving] = useState(false);
   return (
     <div className="flex flex-col gap-2 border-t pt-5">
@@ -114,11 +115,13 @@ function Actions({ primary, onReplay }: { primary: Primary; onReplay: () => void
             Replay
           </Button>
         </div>
-        <Button variant={primary.done ? "outline" : "primary"} className="sm:ml-auto" onClick={primary.onClick} disabled={primary.done}>
-          {primary.done && <IconCheck className="size-4" />}
-          {primary.label}
-          {!primary.done && <IconArrowRight className="size-4" />}
-        </Button>
+        {primary && (
+          <Button variant={primary.done ? "outline" : "primary"} className="sm:ml-auto" onClick={primary.onClick} disabled={primary.done}>
+            {primary.done && <IconCheck className="size-4" />}
+            {primary.label}
+            {!primary.done && <IconArrowRight className="size-4" />}
+          </Button>
+        )}
       </div>
       {leaving && <p className="text-center text-xs text-muted-foreground sm:text-left">Prototype: this would return to Slack.</p>}
     </div>
@@ -166,23 +169,18 @@ function LevelUpMoment({ onReplay }: MomentProps) {
   const to = useGo();
   const reached = Math.max(2, usePreviewLevel());
   const next = reached + 1;
-  const skills = unlockOf("skills");
-  const treeReached = reached >= skills.level;
+  const pointsStart = unlockOf("skills").level;
+  const earnsPoint = reached >= pointsStart;
   const treeOpen = useUnlocked("skills");
   const ready = useReadyFeatures();
+  const opens = unlocksAtLevel(reached);
   useReachedLevel(reached);
   useEffect(() => markReady(unlocksAtLevel(reached).map((u) => u.feature)), [reached]);
-  const pointsLine = !treeReached
-    ? `Skill points wait for you until the skill tree opens at level ${skills.level}.`
-    : !treeOpen
-      ? "Your skill points wait inside the skill tree's crate."
-      : reached === levelUp.to
-        ? `You have ${levelUp.pointsToSpend} skill points to spend.`
-        : "Your new skill point is ready to spend.";
+  const pointsLine = treeOpen ? `You have ${pointsText(unspentPointsAt(reached))} to spend.` : "It waits inside the skill tree's crate.";
   const primary: Primary =
     ready.length > 0
       ? { label: ready.length === 1 ? "Open it" : "Open the first one", onClick: () => showCrate(ready[0]) }
-      : treeOpen
+      : earnsPoint && treeOpen
         ? { label: "Spend skill points", onClick: to("skills") }
         : { label: "Go to my profile", onClick: to("profile") };
   return (
@@ -214,45 +212,56 @@ function LevelUpMoment({ onReplay }: MomentProps) {
         </div>
       }
     >
-      <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:text-left">
-        <span className="mo-fly inline-flex" style={{ ...delay(1.55), "--fy": "-110px" } as CSSProperties}>
-          <ResourceChip icon={<SkillPointGlyph />} title={treeOpen ? "Skill point gained" : "Skill point banked"}>
-            +{levelUp.pointsGained} skill point{treeOpen ? "" : ", banked"}
-          </ResourceChip>
-        </span>
-        <p className="mo-in text-sm md:text-base" style={delay(2.1)}>
-          {pointsLine} Level {next} is <span className="tabular-nums">{levelUp.xpToNext}</span> XP away.
-        </p>
-      </div>
-      {ready.length > 0 && <ReadyCrates ready={ready} />}
+      {earnsPoint && (
+        <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:text-left">
+          <span className="mo-fly inline-flex" style={{ ...delay(1.55), "--fy": "-110px" } as CSSProperties}>
+            <ResourceChip icon={<SkillPointGlyph />} title="Skill point gained">
+              +1 skill point
+            </ResourceChip>
+          </span>
+          <p className="mo-in text-sm md:text-base" style={delay(2.1)}>
+            {pointsLine}
+          </p>
+        </div>
+      )}
+      <LevelOpens level={reached} opens={opens} />
     </MomentShell>
   );
 }
 
-function ReadyCrates({ ready }: { ready: Feature[] }) {
+function LevelOpens({ level, opens }: { level: number; opens: Unlock[] }) {
+  const after = nextUnlock(level);
   return (
-    <section className="mo-in flex flex-col gap-2" style={delay(2.4)} aria-label="Unlocks ready">
-      <span className="hud-label">{ready.length === 1 ? "1 unlock ready" : `${ready.length} unlocks ready`}</span>
-      <ul className="flex flex-col gap-2">
-        {ready.map((feature) => {
-          const unlock = unlockOf(feature);
-          return (
-            <li key={feature}>
-              <button type="button" onClick={() => showCrate(feature)} className="hud-lift flex w-full items-center gap-3 rounded-lg border bg-card p-3 text-left hover:bg-fill-hover">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted">
-                  <CrateGlyph className="size-6" />
-                </span>
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="text-sm font-semibold">{unlock.name}</span>
-                  <span className="text-xs text-muted-foreground">Ready to open · level {unlock.level}</span>
-                </span>
-                <IconArrowRight className="size-4 shrink-0 text-muted-foreground" />
-              </button>
+    <section className="mo-in flex flex-col gap-2" style={delay(2.4)} aria-label={`What level ${level} unlocks`}>
+      <span className="hud-label">Level {level} unlocks</span>
+      {opens.length > 0 ? (
+        <ul className="flex flex-col gap-2">
+          {opens.map((unlock) => (
+            <li key={unlock.feature}>
+              <OpensRow unlock={unlock} level={level} />
             </li>
-          );
-        })}
-      </ul>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-muted-foreground">Nothing new this time. {after ? `Next: ${after.name} at level ${after.level}.` : "Every part of HedgeHug is already yours."}</p>
+      )}
     </section>
+  );
+}
+
+function OpensRow({ unlock, level }: { unlock: Unlock; level: number }) {
+  const { go } = useNav();
+  const ready = featureStateAt(unlock.feature, level) === "ready";
+  const { screen, param } = featureLook[unlock.feature];
+  return (
+    <button type="button" onClick={() => (ready ? showCrate(unlock.feature) : go(screen, param))} className="hud-lift flex w-full items-center gap-3 rounded-lg border bg-card p-3 text-left hover:bg-fill-hover">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted">{ready ? <CrateGlyph className="size-6" /> : <IconCheck className="size-4" />}</span>
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="text-sm font-semibold">{unlock.name}</span>
+        <span className="text-xs text-muted-foreground">{ready ? "Ready to open" : unlock.teaser}</span>
+      </span>
+      <IconArrowRight className="size-4 shrink-0 text-muted-foreground" />
+    </button>
   );
 }
 
@@ -262,7 +271,7 @@ function UnlockMoment({ onReplay }: MomentProps) {
   const unlock = unlockOf(feature);
   const facts = unlockMoments[feature];
   const { screen, param } = featureLook[feature];
-  const { phase, open } = useCrateOpening(feature);
+  const { phase, open } = useFeatureCrate(feature);
   const opened = isOpened(phase);
   const after = nextUnlock(unlock.level);
   useReachedLevel(unlock.level);
@@ -274,7 +283,7 @@ function UnlockMoment({ onReplay }: MomentProps) {
       headline={opened ? facts.headline : "Something's inside"}
       primary={opened ? { label: facts.cta, onClick: to(screen, param) } : { label: "Open it", onClick: open }}
       onReplay={onReplay}
-      stage={<CrateStage feature={feature} phase={phase} onOpen={open} width={220} />}
+      stage={<FeatureCrateStage feature={feature} phase={phase} onOpen={open} width={220} />}
     >
       {phase === "open" ? (
         <section className="flex flex-col gap-2.5" aria-label="Waiting for you">
@@ -305,15 +314,50 @@ function UnlockMoment({ onReplay }: MomentProps) {
   );
 }
 
-function FoundCard({ preview, name, kind, rarity }: { preview: string; name: string; kind: string; rarity: RarityKind }) {
+function QuestMoment({ onReplay }: MomentProps) {
+  const to = useGo();
+  const [claimed, setClaimed] = useState(false);
+  const inventory = unlockOf("inventory");
+  const inventoryOpen = useUnlocked("inventory");
+  const coinsOpen = useUnlocked("coins");
+  const rewards = coinsOpen ? questReward.rewards : { ...questReward.rewards, coins: undefined };
+  useReachedLevel(unlockOf("quests").level);
   return (
-    <div className={`mo-glow-${rarity === "rare" ? "rare" : "uncommon"} flex items-center gap-3 rounded-xl bg-card px-3.5 py-2.5 text-left text-card-foreground shadow-lg`}>
+    <MomentShell
+      ink="night"
+      kicker="Weekly quest complete"
+      headline={claimed ? "Reward claimed" : "Your reward crate is here"}
+      primary={claimed ? { label: "See this week's quests", onClick: to("quests") } : undefined}
+      onReplay={onReplay}
+      stage={<RewardCrate rewards={rewards} name={`Reward for ${questReward.quest}`} onOpened={() => setClaimed(true)} width={220} dropIn />}
+    >
+      <div className="flex flex-col gap-1.5">
+        <span className="flex items-center gap-2 text-base font-semibold">
+          <IconCheck className="size-4 shrink-0 text-muted-foreground" />
+          {questReward.quest}
+        </span>
+        <span className="text-sm text-muted-foreground">{questReward.progress}</span>
+      </div>
+      <p className="text-sm md:text-base">
+        {claimed ? (
+          <>
+            All yours. {inventoryOpen ? `The ${questReward.rewards.emoji} emoji is in your inventory.` : `The ${questReward.rewards.emoji} emoji waits for your inventory, which opens at level ${inventory.level}.`}
+          </>
+        ) : (
+          <span className="text-muted-foreground">Tap the crate to claim what's inside.</span>
+        )}
+      </p>
+    </MomentShell>
+  );
+}
+
+function FoundCard({ preview, name, detail }: { preview: string; name: string; detail: string }) {
+  return (
+    <div className="mo-glow-item flex items-center gap-3 rounded-xl bg-card px-3.5 py-2.5 text-left text-card-foreground shadow-lg">
       <span className="text-3xl leading-none">{preview}</span>
       <span className="flex flex-col gap-0.5">
         <span className="text-sm font-semibold leading-tight">{name}</span>
-        <span className="flex items-center gap-2 text-xs text-muted-foreground">
-          {kind} <Rarity rarity={rarity} />
-        </span>
+        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">{detail}</span>
       </span>
     </div>
   );
@@ -323,7 +367,9 @@ function AchievementMoment({ onReplay }: MomentProps) {
   const to = useGo();
   const bookOpen = useUnlocked("book");
   const open = useBeat(1250);
+  const coinsOpen = useUnlocked("coins");
   const { reward } = achievement;
+  const emoji = `${reward.name} emoji`;
   return (
     <MomentShell
       ink="lemon"
@@ -347,56 +393,13 @@ function AchievementMoment({ onReplay }: MomentProps) {
               {tierLabel[achievement.tier]} · {achievement.ladder}
             </span>
           </div>
-          <Chest open={open} width={136} label={`Reward: ${reward.name}`} item={<FoundCard {...reward} />} />
+          <Chest open={open} width={136} label={`Reward: ${emoji}${coinsOpen ? ` and ${reward.coins} coins` : ""}`} item={<FoundCard preview={reward.emoji} name={emoji} detail={coinsOpen ? `+${reward.coins} coins` : "Kudos emoji"} />} />
         </div>
       }
     >
       <p className="mo-in text-sm md:text-base" style={delay(2)}>
-        {achievement.counts}. The <span className="font-semibold">{reward.name}</span> {reward.kind.toLowerCase()} is in your inventory.
+        {achievement.counts}. The <span className="font-semibold">{reward.name}</span> emoji is yours{coinsOpen ? `, plus ${reward.coins} coins` : ""}.
       </p>
-    </MomentShell>
-  );
-}
-
-function DiscoveryMoment({ onReplay }: MomentProps) {
-  const to = useGo();
-  const gear = unlockOf("gear");
-  const gearOpen = useUnlocked("gear");
-  const { open, openNow } = useOpenable(1600);
-  return (
-    <MomentShell
-      ink="blue"
-      kicker={`Drop · ${discovery.foundWhile}`}
-      headline={`You found a new ${discovery.kind.toLowerCase()}`}
-      hog={HedgehogMagnifyingGlass}
-      primary={gearOpen ? { label: "Equip it", onClick: to("profile", "inventory") } : { label: "Go to my profile", onClick: to("profile") }}
-      onReplay={onReplay}
-      stage={
-        <Chest
-          open={open}
-          onOpen={openNow}
-          width={200}
-          label="Open the chest"
-          tapHint="Tap to open"
-          item={
-            <div className="mo-glow-rare mb-1 w-[min(18rem,78vw)] rounded-2xl bg-card p-4 text-left text-card-foreground shadow-xl">
-              <div className="flex items-center justify-between gap-3">
-                <span className="hud-label">{discovery.kind}</span>
-                <Rarity rarity={discovery.rarity} />
-              </div>
-              <p className="mo-headline mt-2 text-2xl md:text-3xl">“{discovery.text}”</p>
-            </div>
-          }
-        />
-      }
-    >
-      {open ? (
-        <p className="mo-in text-sm md:text-base" style={delay(0.9)}>
-          {gearOpen ? "A new quip for your inventory. Equip it and it can ride along on the kudos you give." : `A new quip. It waits for you until your inventory opens at level ${gear.level}.`}
-        </p>
-      ) : (
-        <p className="text-sm text-muted-foreground md:text-base">Something dropped while you gave kudos.</p>
-      )}
     </MomentShell>
   );
 }
@@ -413,13 +416,10 @@ function HedgehogMoment({ onReplay }: MomentProps) {
       headline="A new hedgehog joined you"
       primary={isAvatar ? { label: "It's your avatar", onClick: () => {}, done: true } : { label: "Make it my avatar", onClick: () => equip(hog.id) }}
       onReplay={onReplay}
-      stage={<Egg open={open} onOpen={openNow} width={168} label="Hatch the egg" tapHint="Tap to hatch" item={<hog.Art size={220} title={hog.name} className={`h-auto w-44 mo-hog-glow-${hog.rarity}`} />} />}
+      stage={<Egg open={open} onOpen={openNow} width={168} label="Hatch the egg" tapHint="Tap to hatch" item={<hog.Art size={220} title={hog.name} className="h-auto w-44" />} />}
     >
       <div className={`flex flex-col gap-1 ${open ? "mo-in" : "invisible"}`} style={delay(0.8)}>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span className="hud-display text-2xl font-bold">{hog.name}</span>
-          <Rarity rarity={hog.rarity} />
-        </div>
+        <span className="hud-display text-2xl font-bold">{hog.name}</span>
         <p className="text-sm text-muted-foreground">
           {sourceLabel(hog.source)}. {isAvatar ? `${hog.name} is your avatar everywhere in HedgeHug.` : "Make it your avatar and teammates see it on your profile card."}
         </p>
@@ -433,7 +433,6 @@ function KudosMoment({ onReplay }: MomentProps) {
   const book = unlockOf("book");
   const bookOpen = useUnlocked("book");
   const coinsOpen = useUnlocked("coins");
-  const open = useBeat(1850);
   return (
     <MomentShell
       ink="tangerine"
@@ -458,46 +457,41 @@ function KudosMoment({ onReplay }: MomentProps) {
         </figure>
       }
     >
-      <div className="grid items-center gap-5 sm:grid-cols-[minmax(0,1fr)_auto]">
-        <ul className="flex flex-col gap-2.5">
-          <li className="mo-chip-pop flex items-center gap-3" style={delay(0.85)}>
-            <ResourceChip icon={<SkillPointGlyph className="size-3.5 text-primary" />} title="XP gained">
+      <ul className="flex flex-col gap-2.5">
+        <li className="mo-chip-pop flex items-center gap-3" style={delay(0.85)}>
+          <ResourceChip icon={<IconSparkles className="size-3.5" />} title="XP gained">
+            <span>
+              +<Count to={kudos.xp} at={0.85} /> XP
+            </span>
+          </ResourceChip>
+        </li>
+        {coinsOpen && (
+          <li className="mo-chip-pop flex flex-wrap items-center gap-x-3 gap-y-1" style={delay(1.1)}>
+            <ResourceChip icon={<CoinGlyph />} title="Coins gained">
               <span>
-                +<Count to={kudos.xp} at={0.85} /> XP
+                +<Count to={kudos.coins} at={1.1} /> coins
               </span>
             </ResourceChip>
+            <span className="text-sm text-muted-foreground">A thoughtful kudos: it says why</span>
           </li>
-          {coinsOpen && (
-            <li className="mo-chip-pop flex items-center gap-3" style={delay(1.1)}>
-              <ResourceChip icon={<CoinGlyph />} title="Coins gained">
-                <span>
-                  +<Count to={kudos.coins} at={1.1} /> coins
-                </span>
-              </ResourceChip>
-            </li>
-          )}
-          <li className="flex items-center gap-3">
-            <span className="mo-sticker inline-flex size-10 items-center justify-center rounded-full border-2 border-white text-xs font-bold text-white shadow-md ring-1 ring-black/10" style={{ background: `hsl(${kudos.hue} 70% 48%)`, ...delay(1.35) }} aria-hidden>
-              {kudos.initials}
-            </span>
-            <span className="mo-in text-sm" style={delay(1.45)}>
-              {bookOpen ? (
-                <>
-                  New sticker: <span className="font-semibold">{kudos.first}</span>
-                </>
-              ) : (
-                <>
-                  <span className="font-semibold">{kudos.first}</span>'s sticker waits for the Book, which opens at level {book.level}
-                </>
-              )}
-            </span>
-          </li>
-        </ul>
-        <div className="mo-in isolate flex flex-col items-center gap-4 overflow-hidden rounded-xl bg-muted px-6 pb-4 pt-3" style={{ ...delay(1.5), "--mo-ray": "var(--border)" } as CSSProperties}>
-          <span className="hud-label">You found</span>
-          <Chest open={open} width={104} label={`Found: ${kudos.drop.name}`} item={<FoundCard {...kudos.drop} />} />
-        </div>
-      </div>
+        )}
+        <li className="flex items-center gap-3">
+          <span className="mo-sticker inline-flex size-10 items-center justify-center rounded-full border-2 border-white text-xs font-bold text-white shadow-md ring-1 ring-black/10" style={{ background: `hsl(${kudos.hue} 70% 48%)`, ...delay(1.35) }} aria-hidden>
+            {kudos.initials}
+          </span>
+          <span className="mo-in text-sm" style={delay(1.45)}>
+            {bookOpen ? (
+              <>
+                New sticker: <span className="font-semibold">{kudos.first}</span>
+              </>
+            ) : (
+              <>
+                <span className="font-semibold">{kudos.first}</span>'s sticker waits for the Book, which opens at level {book.level}
+              </>
+            )}
+          </span>
+        </li>
+      </ul>
     </MomentShell>
   );
 }

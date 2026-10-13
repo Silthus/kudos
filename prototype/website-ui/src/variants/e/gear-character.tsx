@@ -1,57 +1,45 @@
-// Variant E gear panel: one card with two sides swirled by the header toggle only; a character slot flips just the centre stage into a picker, and the inventory equips in place.
+// Variant E gear panel, once the inventory opens: one card with two sides swirled by the header toggle only; the hedgehog or an emoji slot flips just the centre stage into a picker, and the inventory equips in place.
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { IconBox, IconUser } from "@posthog/icons";
 import { ToggleGroup, ToggleGroupItem } from "@posthog/quill";
 import { me } from "../../data/mock";
-import { slotCount, type GearKind } from "./gear-items";
-import { InventorySide, type Filter } from "./gear-bag";
+import { InventorySide } from "./gear-bag";
+import { emojiSlots } from "./gear-items";
 import { kindIcon, slotName, type InventoryItem } from "./gear-inventory";
 import { useGearAtLevel } from "./gear-level";
-import { GearLocked } from "./gear-locked";
 import { MoreHogsLine, SlotPicker } from "./gear-picker";
 import { gearCss } from "./gear-sheet";
 import { useTurn } from "./gear-turn";
 import type { SlotRef } from "./hedgehogs";
 import { Panel } from "./hud";
-import { RarityName } from "./rarity";
 
-export type Side = "character" | "inventory";
+type Side = "character" | "inventory";
 
 type Stage = "portrait" | "picker";
 
 type Landed = { slot: SlotRef; n: number };
 
+const hogSlot: SlotRef = { kind: "hedgehog", index: 0 };
+
+const emojiIndexes = Array.from({ length: emojiSlots }, (_, i) => i);
 
 const sameSlot = (a: SlotRef | undefined, b: SlotRef) => a?.kind === b.kind && a.index === b.index;
-const indexes = (kind: GearKind) => Array.from({ length: slotCount[kind] }, (_, i) => i);
 
 export function GearPanel({ initialSide = "character" }: { initialSide?: Side }) {
-  const { gearOpen } = useGearAtLevel();
-  return gearOpen ? <OpenGearPanel initialSide={initialSide} /> : <GearLocked />;
-}
-
-function OpenGearPanel({ initialSide }: { initialSide: Side }) {
   const { face: side, toward, turnClass, turnTo } = useTurn<Side>(initialSide);
-  const [filter, setFilter] = useState<Filter>("all");
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (initialSide === "inventory") panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [initialSide]);
 
-  const switchSide = (to: Side) => {
-    if (to === side) return;
-    if (to === "inventory") setFilter("all");
-    turnTo(to);
-  };
-
   return (
     <div ref={panelRef} id="gear" className="scroll-mt-24">
       <style>{gearCss}</style>
       <Panel
-        label={toward === "character" ? <>Character · {2 + slotCount.quip + slotCount.emoji} slots</> : "Inventory"}
+        label={toward === "character" ? <>Character · {1 + emojiSlots} slots</> : "Inventory"}
         action={
-          <ToggleGroup variant="outline" size="sm" value={[toward]} onValueChange={(v) => v[0] && switchSide(v[0] as Side)} aria-label="Gear side">
+          <ToggleGroup variant="outline" size="sm" value={[toward]} onValueChange={(v) => v[0] && v[0] !== side && turnTo(v[0] as Side)} aria-label="Gear side">
             <ToggleGroupItem value="character">
               <IconUser /> Character
             </ToggleGroupItem>
@@ -61,7 +49,7 @@ function OpenGearPanel({ initialSide }: { initialSide: Side }) {
           </ToggleGroup>
         }
       >
-        <div className={`gear-face ${turnClass("gear")}`}>{side === "character" ? <CharacterSide /> : <InventorySide filter={filter} onFilter={setFilter} />}</div>
+        <div className={`gear-face ${turnClass("gear")}`}>{side === "character" ? <CharacterSide /> : <InventorySide />}</div>
       </Panel>
     </div>
   );
@@ -84,9 +72,9 @@ function CharacterSide() {
 
   const pick = (item: InventoryItem | null) => {
     if (!picking) return;
-    if (item === null) g.unequip(picking.kind as GearKind, picking.index);
+    if (item === null) g.unequipEmoji(picking.index);
     else if (item.kind === "hedgehog") g.equipHog(item.id);
-    else g.equipGear(item.kind, picking.index, item.id);
+    else g.equipEmoji(picking.index, item.id);
     close(picking);
   };
 
@@ -107,7 +95,7 @@ function CharacterSide() {
     <div className="flex flex-col gap-3">
       <div className="gear-sheet">
         <div data-area style={{ gridArea: "stage" }} className={`gear-stage gear-face relative flex min-h-64 flex-col overflow-hidden rounded-lg border ${turnClass("stage")}`}>
-          <Portrait hidden={stage === "picker"} landed={landedIn({ kind: "hedgehog", index: 0 })} />
+          <Portrait hidden={stage === "picker"} landed={landedIn(hogSlot)} />
           {stage === "picker" && picking && (
             <div className="absolute inset-0 p-3">
               <SlotPicker slot={picking} onPick={pick} onDone={() => close()} />
@@ -116,32 +104,17 @@ function CharacterSide() {
         </div>
         <div data-area style={{ gridArea: "hog" }} className="flex">
           {slot(
-            { kind: "hedgehog", index: 0 },
+            hogSlot,
             g.hog.name,
-            <span className="flex min-w-0 flex-col gap-1.5">
-              <span className="flex min-w-0 items-center gap-2">
-                <g.hog.Art size={44} title="" />
-                <RarityName rarity={g.hog.rarity} className="truncate text-sm">
-                  {g.hog.name}
-                </RarityName>
-              </span>
+            <span className="flex min-w-0 flex-1 flex-col items-center gap-2 text-center sm:justify-center">
+              <g.hog.Art size={72} title="" />
+              <span className="max-w-full truncate text-sm font-medium">{g.hog.name}</span>
               {!g.hogsOpen && <MoreHogsLine />}
             </span>,
           )}
         </div>
-        <div data-area style={{ gridArea: "title" }} className="flex">
-          {slot(
-            { kind: "title", index: 0 },
-            g.title?.name,
-            g.title && (
-              <RarityName rarity={g.title.rarity} className="hud-display text-base leading-tight">
-                {g.title.name}
-              </RarityName>
-            ),
-          )}
-        </div>
-        {indexes("emoji").map((i) => {
-          const item = g.itemIn("emoji", i);
+        {emojiIndexes.map((i) => {
+          const item = g.emojiIn(i);
           return (
             <div key={i} data-area style={{ gridArea: `e${i}` }} className="flex">
               {slot(
@@ -149,10 +122,8 @@ function CharacterSide() {
                 item?.name,
                 item && (
                   <span className="flex min-w-0 flex-col items-center gap-1">
-                    <span className="text-3xl leading-none">{item.preview}</span>
-                    <RarityName rarity={item.rarity} className="max-w-full truncate text-[11px]">
-                      {item.name}
-                    </RarityName>
+                    <span className="text-3xl leading-none">{item.glyph}</span>
+                    <span className="max-w-full truncate text-[11px]">{item.name}</span>
                   </span>
                 ),
               )}
@@ -160,24 +131,6 @@ function CharacterSide() {
           );
         })}
       </div>
-      <ul className="grid gap-2.5 sm:grid-cols-3">
-        {indexes("quip").map((i) => {
-          const item = g.itemIn("quip", i);
-          return (
-            <li key={i} className="flex">
-              {slot(
-                { kind: "quip", index: i },
-                item?.name,
-                item && (
-                  <RarityName rarity={item.rarity} className="line-clamp-2 text-sm leading-snug">
-                    “{item.name}”
-                  </RarityName>
-                ),
-              )}
-            </li>
-          );
-        })}
-      </ul>
       <p className="text-xs text-muted-foreground">{stage === "picker" ? "Pick something to wear, or press Escape to keep it as it is." : "Pick a slot to change what is in it."}</p>
     </div>
   );
@@ -193,8 +146,12 @@ function Portrait({ hidden, landed }: { hidden: boolean; landed?: number }) {
       </span>
       <div className="leading-tight">
         <div className="hud-display text-2xl font-bold">{me.name}</div>
-        <div key={g.title?.id} className="hud-fade text-sm">
-          {g.title ? <RarityName rarity={g.title.rarity}>{g.title.name}</RarityName> : <span className="text-muted-foreground">No title</span>}
+        <div className="flex justify-center gap-1 pt-1 text-xl leading-none" aria-label="Your kudos emoji">
+          {emojiIndexes.map((i) => (
+            <span key={`${i}-${g.emojiIn(i)?.id}`} className="hud-fade">
+              {g.emojiIn(i)?.glyph}
+            </span>
+          ))}
         </div>
       </div>
     </div>
@@ -217,7 +174,7 @@ function GearSlot({ slotRef, name, landed, choosing, onOpen, children }: { slotR
         <Icon className="size-3" />
         {label}
       </span>
-      <span key={`${name}-${landed ?? 0}`} className={`flex min-w-0 flex-1 items-center ${slotRef.kind === "emoji" ? "justify-center" : ""} ${landed !== undefined ? "hud-pop" : ""}`}>
+      <span key={`${name}-${landed ?? 0}`} className={`flex min-w-0 flex-1 items-center justify-center ${landed !== undefined ? "hud-pop" : ""}`}>
         {children ?? <span className="text-xs text-muted-foreground">Empty</span>}
       </span>
     </button>

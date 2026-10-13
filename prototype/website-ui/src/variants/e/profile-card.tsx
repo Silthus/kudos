@@ -1,9 +1,10 @@
-// Variant E public profile card: what every teammate sees, the level, title, hedgehog and best achievement tiers, and a note on what always stays with the member.
+// Variant E public profile card: what every teammate sees, the hedgehog, name, group, level and best achievement tiers, and a note on what always stays with the member.
 import { ladders, me } from "../../data/mock";
 import type { Tier } from "../../data/types";
 import { TierMedal } from "../../ui";
 import { useGearAtLevel } from "./gear-level";
 import { Panel } from "./hud";
+import { useUnlocked } from "./unlocks";
 
 const tierOrder: Tier[] = ["bronze", "silver", "gold", "diamond"];
 
@@ -17,7 +18,7 @@ const listed = (words: string[]) => `${words.slice(0, -1).join(", ")} and ${word
 
 export function ProfileCardPanel() {
   const g = useGearAtLevel();
-  const privateThings = ["XP", g.coinsOpen && "coins", g.skillsOpen && "perks", "streak", "kudos counts"].filter((w): w is string => Boolean(w));
+  const privateThings = ["XP", g.coinsOpen && "coins", g.skillsOpen && "perks", "kudos counts"].filter((w): w is string => Boolean(w));
   return (
     <Panel label="What teammates see" action={<span className="text-[11px] text-muted-foreground">Public</span>}>
       <div className="flex flex-col gap-3">
@@ -29,7 +30,8 @@ export function ProfileCardPanel() {
 }
 
 function ProfileCard() {
-  const { hog, title, level } = useGearAtLevel();
+  const { hog, level } = useGearAtLevel();
+  const bookOpen = useUnlocked("book");
   return (
     <div className="relative flex items-center gap-3 overflow-hidden rounded-xl border bg-gradient-to-br from-card to-muted p-3 shadow-md">
       <span key={hog.id} className="hud-pop flex shrink-0">
@@ -40,17 +42,14 @@ function ProfileCard() {
           <span className="hud-display truncate text-lg font-bold leading-tight">{me.name}</span>
           <span className="hud-display shrink-0 text-sm font-bold leading-none">Lv {level}</span>
         </div>
-        {title && (
-          <span key={title.id} className="hud-fade truncate text-sm font-medium">
-            {title.name}
+        <span className="truncate text-xs text-muted-foreground">{me.primaryGroup.name}</span>
+        {bookOpen && (
+          <span className="mt-1.5 flex gap-1" aria-label="Best achievement tiers">
+            {bestTiers.map((t, i) => (
+              <TierMedal key={i} tier={t} earned size={18} />
+            ))}
           </span>
         )}
-        <span className="truncate text-xs text-muted-foreground">{me.primaryGroup.name}</span>
-        <span className="mt-1.5 flex gap-1" aria-label="Best achievement tiers">
-          {bestTiers.map((t, i) => (
-            <TierMedal key={i} tier={t} earned size={18} />
-          ))}
-        </span>
       </div>
     </div>
   );

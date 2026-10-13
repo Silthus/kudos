@@ -1,22 +1,19 @@
-// Variant E slot picker on the back of the character stage: what you own that fits one slot, picked in place, with a way to take a quip or emoji off.
+// Variant E slot picker on the back of the character stage: the hedgehogs or kudos emoji you own that fit one slot, picked in place, with a way to take an emoji off.
 import { useEffect, useRef } from "react";
 import { IconCheck, IconLock } from "@posthog/icons";
-import { kindIcon, itemLabel, itemsOf, slotName, type InventoryItem } from "./gear-inventory";
+import { kindIcon, itemsOf, slotName, type InventoryItem } from "./gear-inventory";
 import { useGearAtLevel } from "./gear-level";
-import { unlockOf } from "./unlocks";
 import type { SlotRef } from "./hedgehogs";
-import { RarityName } from "./rarity";
-
-const tiled = (slot: SlotRef) => slot.kind === "hedgehog" || slot.kind === "emoji";
+import { unlockOf } from "./unlocks";
 
 export function SlotPicker({ slot, onPick, onDone }: { slot: SlotRef; onPick: (item: InventoryItem | null) => void; onDone: () => void }) {
   const g = useGearAtLevel();
   const listRef = useRef<HTMLUListElement>(null);
   const Icon = kindIcon[slot.kind];
-  const current = slot.kind === "hedgehog" ? g.hog.id : g.slots[slot.kind][slot.index];
-  const items = itemsOf(slot.kind).filter((i) => g.canWear(i.id));
-  const removable = (slot.kind === "quip" || slot.kind === "emoji") && current;
-  const elsewhere = (item: InventoryItem) => (item.kind === "quip" || item.kind === "emoji" ? g.slotOf(item.kind, item.id) : -1);
+  const current = slot.kind === "hedgehog" ? g.hog.id : g.emojiSlots[slot.index];
+  const items = itemsOf(slot.kind).filter((i) => (i.kind === "hedgehog" ? g.canWearHog(i.id) : g.isOwned(i.id)));
+  const removable = slot.kind === "emoji" && current;
+  const elsewhere = (item: InventoryItem) => (item.kind === "emoji" ? g.emojiSlotOf(item.id) : -1);
 
   useEffect(() => {
     listRef.current?.querySelector<HTMLButtonElement>("[data-current], button")?.focus({ preventScroll: true });
@@ -40,7 +37,7 @@ export function SlotPicker({ slot, onPick, onDone }: { slot: SlotRef; onPick: (i
           </button>
         </span>
       </div>
-      <ul ref={listRef} className={`grid min-h-0 flex-1 content-start gap-1.5 overflow-y-auto p-0.5 ${tiled(slot) ? "grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))]" : "grid-cols-1"}`}>
+      <ul ref={listRef} className="grid min-h-0 flex-1 grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] content-start gap-1.5 overflow-y-auto p-0.5">
         {items.map((item) => {
           const here = item.id === current;
           const other = elsewhere(item);
@@ -51,18 +48,11 @@ export function SlotPicker({ slot, onPick, onDone }: { slot: SlotRef; onPick: (i
                 data-current={here || undefined}
                 onClick={() => (here ? onDone() : onPick(item))}
                 aria-label={`${here ? "Keep" : "Equip"} ${item.name} in ${slotName(slot)}${other >= 0 && !here ? `, moves it from slot ${other + 1}` : ""}`}
-                className={`relative flex w-full gap-2 rounded-md border p-2 hover:bg-fill-hover ${here ? "bg-fill-selected" : "bg-card"} ${tiled(slot) ? "flex-col items-center text-center" : "min-h-10 items-center text-left"}`}
+                className={`relative flex w-full flex-col items-center gap-2 rounded-md border p-2 text-center hover:bg-fill-hover ${here ? "bg-fill-selected" : "bg-card"}`}
               >
-                {item.kind === "hedgehog" && <item.hog.Art size={40} title="" />}
-                {item.kind === "emoji" && <span className="text-2xl leading-none">{item.item.preview}</span>}
-                <RarityName rarity={item.rarity} className={tiled(slot) ? "w-full truncate text-[11px]" : `min-w-0 flex-1 ${item.kind === "title" ? "hud-display text-base" : "text-sm leading-snug"}`}>
-                  {itemLabel(item)}
-                </RarityName>
-                {here ? (
-                  <IconCheck className={`size-3.5 shrink-0 text-foreground ${tiled(slot) ? "absolute right-1 top-1" : ""}`} />
-                ) : (
-                  other >= 0 && <span className={`shrink-0 text-[10px] text-muted-foreground tabular-nums ${tiled(slot) ? "absolute right-1 top-1" : ""}`}>{tiled(slot) ? other + 1 : `In ${other + 1}`}</span>
-                )}
+                {item.kind === "hedgehog" ? <item.hog.Art size={40} title="" /> : <span className="text-2xl leading-none">{item.emoji.glyph}</span>}
+                <span className="w-full truncate text-[11px]">{item.name}</span>
+                {here ? <IconCheck className="absolute right-1 top-1 size-3.5 shrink-0 text-foreground" /> : other >= 0 && <span className="absolute right-1 top-1 text-[10px] text-muted-foreground tabular-nums">{other + 1}</span>}
               </button>
             </li>
           );

@@ -14,8 +14,6 @@ import {
   HedgehogParty,
   HedgehogPuzzle,
   HedgehogReadingIsMagic,
-  HedgehogRocket,
-  HedgehogRollerCoaster,
   HedgehogScottPilgrim,
   HedgehogStar,
   HedgehogSuccess,
@@ -30,7 +28,6 @@ const ladderArt: Record<string, Art> = {
   generosity: HedgehogHeart,
   recognition: HedgehogStar,
   connections: HedgehogExplorer,
-  momentum: HedgehogRollerCoaster,
   dependability: HedgehogOrganized,
   applause: HedgehogSuccess,
   seasons: HedgehogHourglass,
@@ -46,7 +43,6 @@ const categoryArt: Record<string, Art> = {
   thanked: HedgehogKatyPerry,
   connections: HedgehogCodingGroup,
   crowd: HedgehogParty,
-  streaks: HedgehogRocket,
 };
 
 export const BookArt = HedgehogReadingIsMagic;

@@ -5,6 +5,7 @@ import { Frame } from "./Frame";
 import { Leaderboard } from "./Leaderboard";
 import { Moments } from "./Moments";
 import { Profile } from "./Profile";
+import { Quests } from "./Quests";
 import { Skills } from "./Skills";
 import { gated } from "./unlock-gate";
 
@@ -13,7 +14,16 @@ const GatedBook = gated("book", Book);
 export const variant: Variant = {
   key: "E",
   name: "Combined",
-  tagline: "Round 8: open each unlock like a loot crate",
+  tagline: "Round 9: only the core loop, with quests",
   Layout: Frame,
-  screens: { profile: Profile, skills: gated("skills", Skills), stickers: GatedBook, achievements: GatedBook, leaderboard: Leaderboard, collection: gated("collection", Collection), landing: Moments },
+  screens: {
+    profile: Profile,
+    quests: gated("quests", Quests),
+    leaderboard: gated("leaderboard", Leaderboard),
+    stickers: GatedBook,
+    achievements: GatedBook,
+    skills: gated("skills", Skills),
+    collection: gated("collection", Collection),
+    landing: Moments,
+  },
 };

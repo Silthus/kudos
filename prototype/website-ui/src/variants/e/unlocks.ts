@@ -3,11 +3,13 @@ import { useSyncExternalStore } from "react";
 import { me } from "../../data/mock";
 
 const schedule = [
-  { feature: "book", level: 2, name: "The Book", teaser: "Sticker albums for every team, and your achievements.", how: "Every teammate who thanks you becomes a sticker." },
-  { feature: "gear", level: 3, name: "Character and inventory", teaser: "Equip a title, quips and extra kudos emoji.", how: "Things you earn before then wait for you here." },
-  { feature: "skills", level: 4, name: "Skill tree", teaser: "Spend skill points on perks that make every thank-you count for more.", how: "Every level from 2 gives a skill point. They wait for you until then." },
-  { feature: "coins", level: 5, name: "Coins", teaser: "Coins buy hedgehogs and perk upgrades.", how: "A thoughtful kudos, one that says why in at least five words, can earn coins." },
-  { feature: "collection", level: 5, name: "Hedgehog collection", teaser: "Collect hedgehogs and pick one as your avatar.", how: "Find them, earn them, or buy them with coins." },
+  { feature: "quests", level: 2, name: "Quests", teaser: "Three weekly quests, plus one your whole group works on together.", how: "New quests every Monday. Each one pays out in a reward crate." },
+  { feature: "leaderboard", level: 3, name: "Leaderboard", teaser: "See where you and your group stand this week.", how: "Only kudos given count, so anyone can top it." },
+  { feature: "book", level: 4, name: "The Book", teaser: "Sticker albums for every team, and your achievements.", how: "Every teammate who thanks you becomes a sticker." },
+  { feature: "skills", level: 5, name: "Skill tree", teaser: "Spend skill points on perks that make your kudos worth more XP or coins, or give you more kudos.", how: "Skill points start at level 5: one per level." },
+  { feature: "coins", level: 6, name: "Coins", teaser: "Coins buy hedgehogs and extra kudos emoji.", how: "A thoughtful kudos, one that says why in at least five words, earns coins." },
+  { feature: "inventory", level: 6, name: "Inventory", teaser: "Your hedgehog avatar slot, plus three slots for kudos emoji.", how: "Emoji you earn before then wait for you here." },
+  { feature: "collection", level: 7, name: "Hedgehog collection", teaser: "Collect hedgehogs and pick one as your avatar.", how: "Earn them from levels, achievements and quests, or buy them with coins." },
 ] as const;
 
 export type Feature = (typeof schedule)[number]["feature"];

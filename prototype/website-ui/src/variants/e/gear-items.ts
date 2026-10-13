@@ -1,43 +1,49 @@
-// Variant E gear catalogue: titles, quips and kudos emoji with their store prices and one-line explainers per kind. Cards no longer exist.
-import { cosmetics, dropOdds } from "../../data/mock";
-import type { Cosmetic } from "../../data/types";
+// Variant E kudos emoji catalogue: the extra emoji a member thanks with, how each one is earned or its store price, and how many the character sheet holds.
+export type ItemSource =
+  | { kind: "starter" }
+  | { kind: "level"; level: number }
+  | { kind: "achievement"; name: string }
+  | { kind: "quest"; name: string }
+  | { kind: "store"; price: number };
 
-export type GearKind = "title" | "quip" | "emoji";
+export type Emoji = { id: string; name: string; glyph: string; source: ItemSource; owned: boolean };
 
-export type GearItem = Omit<Cosmetic, "kind"> & { kind: GearKind; price?: number };
+export const emojiSlots = 3;
 
-export const slotCount: Record<GearKind, number> = { title: 1, quip: 3, emoji: 3 };
-
-export const explainer: Record<GearKind | "hedgehog", string> = {
+export const explainer = {
   hedgehog: "Your avatar on your profile card, the leaderboard and the top bar.",
-  title: "Shown after your name on your profile card.",
-  quip: "One is picked at random when you give or get kudos, seen only by the two of you.",
   emoji: "Extra kudos emoji to thank with, beside the standard one.",
 };
 
-const storePrices: Record<string, number> = {
-  "title-thank-you-machine": 400,
-  "title-chief-cheerleader": 900,
-  "quip-legend": 60,
-  "quip-ship-it": 180,
-  "emoji-raised-hands": 80,
-  "emoji-party": 120,
-  "title-pathfinder": 350,
-};
-
-const extraFinds: Cosmetic[] = [
-  { id: "title-night-owl", kind: "title", name: "Night Owl", rarity: "epic", source: "drop", owned: false, preview: "🏷️" },
-  { id: "title-pathfinder", kind: "title", name: "Pathfinder", rarity: "uncommon", source: "store", owned: false, preview: "🏷️" },
-  { id: "quip-ten-hogs", kind: "quip", name: "Ten out of ten hedgehogs.", rarity: "rare", source: "drop", owned: false, preview: "💬" },
-  { id: "emoji-party", kind: "emoji", name: "Party popper", rarity: "uncommon", source: "store", owned: false, preview: "🎉" },
+export const emoji: Emoji[] = [
+  { id: "emoji-hog", name: "Hedgehog", glyph: "🦔", source: { kind: "starter" }, owned: true },
+  { id: "emoji-raised-hands", name: "Raised hands", glyph: "🙌", source: { kind: "store", price: 80 }, owned: true },
+  { id: "emoji-star", name: "Glowing star", glyph: "🌟", source: { kind: "level", level: 6 }, owned: true },
+  { id: "emoji-butterfly", name: "Butterfly", glyph: "🦋", source: { kind: "achievement", name: "Social Butterfly" }, owned: true },
+  { id: "emoji-fire", name: "Fire", glyph: "🔥", source: { kind: "quest", name: "Warm welcome" }, owned: true },
+  { id: "emoji-party", name: "Party popper", glyph: "🎉", source: { kind: "store", price: 120 }, owned: false },
+  { id: "emoji-crown", name: "Crown", glyph: "👑", source: { kind: "achievement", name: "Patron of Praise" }, owned: false },
+  { id: "emoji-rocket", name: "Rocket", glyph: "🚀", source: { kind: "level", level: 10 }, owned: false },
+  { id: "emoji-trophy", name: "Trophy", glyph: "🏆", source: { kind: "quest", name: "All hands" }, owned: false },
 ];
 
-const isGear = (c: Cosmetic): c is Cosmetic & { kind: GearKind } => c.kind !== "card";
+export const emojiById = (id: string) => emoji.find((e) => e.id === id);
 
-export const gear: GearItem[] = [...cosmetics, ...extraFinds].filter(isGear).map((c) => ({ ...c, price: storePrices[c.id] }));
+export const emojiIdFor = (glyph: string) => emoji.find((e) => e.glyph === glyph)?.id;
 
-export const gearById = (id: string) => gear.find((g) => g.id === id);
+export const priceOf = (source: ItemSource) => (source.kind === "store" ? source.price : undefined);
 
-export const gearIdFor = (kind: GearKind, nameOrGlyph: string) => gear.find((g) => g.kind === kind && (g.name === nameOrGlyph || g.preview === nameOrGlyph))?.id;
-
-export { dropOdds };
+export function howToGet(source: ItemSource): string {
+  switch (source.kind) {
+    case "starter":
+      return "Everyone has it";
+    case "level":
+      return `At level ${source.level}`;
+    case "achievement":
+      return `From ${source.name}`;
+    case "quest":
+      return `From the ${source.name} quest`;
+    case "store":
+      return "In the store";
+  }
+}

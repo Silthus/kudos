@@ -1,5 +1,5 @@
-// Variant E unlock crate: the loot crate a member opens to unlock a feature, from drop-in and shake to the lid bursting off and the feature's hedgehog rising out, plus the small crate glyph the chrome uses.
-import { useEffect, useId, useState, type CSSProperties, type ReactNode } from "react";
+// Variant E crate: the loot crate a member opens, from drop-in and shake to the lid bursting off and a hedgehog rising out, used for feature unlocks and rewards alike, plus the small crate glyph the chrome uses.
+import { useEffect, useId, useRef, useState, type ComponentType, type CSSProperties, type ReactNode } from "react";
 import { useReducedMotion } from "./hud";
 import { featureLook } from "./unlock-features";
 import { openUnlock, unlockOf, type Feature } from "./unlocks";
@@ -11,15 +11,18 @@ const ember = "#D9420B";
 const lemon = "#FFCE1C";
 const blue = "#106FB2";
 
-export type CratePhase = "drop" | "closed" | "shake" | "burst" | "open";
+type CratePhase = "drop" | "closed" | "shake" | "burst" | "open";
 
 const following: Partial<Record<CratePhase, [CratePhase, number]>> = { drop: ["closed", 900], shake: ["burst", 700], burst: ["open", 1000] };
 
 export const isOpened = (phase: CratePhase) => phase === "burst" || phase === "open";
 
-export function useCrateOpening(feature: Feature, { dropIn = true } = {}) {
+export function useCrateOpening({ dropIn = true, onOpened }: { dropIn?: boolean; onOpened?: () => void } = {}) {
   const reduced = useReducedMotion();
   const [phase, setPhase] = useState<CratePhase>(dropIn && !reduced ? "drop" : "closed");
+  const latestOnOpened = useRef(onOpened);
+  latestOnOpened.current = onOpened;
+  const opened = isOpened(phase);
   useEffect(() => {
     const next = following[phase];
     if (!next) return;
@@ -27,11 +30,13 @@ export function useCrateOpening(feature: Feature, { dropIn = true } = {}) {
     return () => clearTimeout(timer);
   }, [phase]);
   useEffect(() => {
-    if (isOpened(phase)) openUnlock(feature);
-  }, [phase, feature]);
+    if (opened) latestOnOpened.current?.();
+  }, [opened]);
   const open = () => setPhase((p) => (p === "drop" || p === "closed" ? (reduced ? "open" : "shake") : p));
   return { phase, open };
 }
+
+export const useFeatureCrate = (feature: Feature) => useCrateOpening({ onOpened: () => openUnlock(feature) });
 
 const sparks = Array.from({ length: 14 }, (_, i) => {
   const angle = (i / 14) * Math.PI * 2 + (i % 2) * 0.2;
@@ -39,11 +44,17 @@ const sparks = Array.from({ length: 14 }, (_, i) => {
   return { x: Math.cos(angle) * reach, y: Math.sin(angle) * reach * 0.8 - 40, d: 0.04 * (i % 5), tone: [lemon, "#ffffff", tangerine][i % 3], size: 10 + (i % 3) * 5 };
 });
 
-type CrateStageProps = { feature: Feature; phase: CratePhase; onOpen: () => void; width?: number; hint?: string; headroom?: boolean; autoFocus?: boolean };
+type HogArt = ComponentType<{ size?: number; className?: string; title?: string }>;
 
-export function CrateStage({ feature, phase, onOpen, width = 240, hint = "Tap to open", headroom = true, autoFocus = false }: CrateStageProps) {
-  const { Hog } = featureLook[feature];
-  const unlock = unlockOf(feature);
+type StageOptions = { phase: CratePhase; onOpen: () => void; width?: number; hint?: string; headroom?: boolean; autoFocus?: boolean };
+
+type CrateStageProps = StageOptions & { Hog: HogArt; name: string };
+
+export function FeatureCrateStage({ feature, ...options }: StageOptions & { feature: Feature }) {
+  return <CrateStage {...options} Hog={featureLook[feature].Hog} name={unlockOf(feature).name} />;
+}
+
+export function CrateStage({ Hog, name, phase, onOpen, width = 240, hint = "Tap to open", headroom = true, autoFocus = false }: CrateStageProps) {
   const closed = !isOpened(phase);
   const crate = (
     <span className="uc-crate" data-phase={phase} style={{ width, "--uc-w": `${width}px` } as CSSProperties}>
@@ -52,7 +63,7 @@ export function CrateStage({ feature, phase, onOpen, width = 240, hint = "Tap to
       <span className="uc-ring" aria-hidden />
       <CrateArt>
         <span className="uc-hog" aria-hidden={closed}>
-          <Hog size={Math.round(width * 0.78)} className="h-auto w-full" title={closed ? "" : unlock.name} />
+          <Hog size={Math.round(width * 0.78)} className="h-auto w-full" title={closed ? "" : name} />
         </span>
       </CrateArt>
       {sparks.map((s, i) => (
@@ -65,7 +76,7 @@ export function CrateStage({ feature, phase, onOpen, width = 240, hint = "Tap to
   return (
     <div className="uc-stage" style={{ paddingTop: headroom ? width * 0.62 : 0 }}>
       {closed ? (
-        <button type="button" className="uc-button" onClick={onOpen} aria-label={`Open the crate for ${unlock.name}`} autoFocus={autoFocus}>
+        <button type="button" className="uc-button" onClick={onOpen} aria-label={`Open the crate: ${name}`} autoFocus={autoFocus}>
           {crate}
         </button>
       ) : (

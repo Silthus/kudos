@@ -1,4 +1,4 @@
-// PROTOTYPE: hedgehogs as a collectable avatar, and the one in-memory gear store every E screen shares: hedgehog, title, quips, kudos emoji and coins, with the slot a new quip or emoji lands in.
+// PROTOTYPE: hedgehogs as a collectable avatar, earned by level, achievement or quest or bought in the store, and the one in-memory gear store every E screen shares: hedgehog, kudos emoji and coins, with the slot a new emoji lands in.
 import { useSyncExternalStore, type ComponentType } from "react";
 import {
   HedgehogAngel,
@@ -15,69 +15,58 @@ import {
   HedgehogWizard,
 } from "@posthog/brand/hoggies";
 import { me } from "../../data/mock";
-import type { Rarity } from "../../data/types";
-import { gear, gearById, gearIdFor, slotCount, type GearKind } from "./gear-items";
+import { emoji, emojiById, emojiIdFor, emojiSlots, priceOf, type ItemSource } from "./gear-items";
 import { useUnlocked } from "./unlocks";
-
-export type HogSource =
-  | { kind: "starter" }
-  | { kind: "level"; level: number }
-  | { kind: "achievement"; tier: string }
-  | { kind: "store"; price: number }
-  | { kind: "drop" };
 
 export type Hog = {
   id: string;
   name: string;
   Art: ComponentType<{ size?: number; className?: string; title?: string }>;
-  rarity: Rarity;
-  source: HogSource;
+  source: ItemSource;
   owned: boolean;
 };
 
 export const hedgehogs: Hog[] = [
-  { id: "hog-sitting", name: "Sunday Hog", Art: HedgehogSitting, rarity: "common", source: { kind: "starter" }, owned: true },
-  { id: "hog-superhero", name: "Super Hog", Art: HedgehogSuperhero, rarity: "rare", source: { kind: "level", level: 5 }, owned: true },
-  { id: "hog-level-up", name: "1-Up Hog", Art: HedgehogLevelUp, rarity: "uncommon", source: { kind: "level", level: 8 }, owned: true },
-  { id: "hog-explorer", name: "Explorer", Art: HedgehogExplorer, rarity: "uncommon", source: { kind: "achievement", tier: "Social Butterfly" }, owned: true },
-  { id: "hog-reading", name: "Bookworm", Art: HedgehogReading, rarity: "common", source: { kind: "store", price: 120 }, owned: false },
-  { id: "hog-gardener", name: "Gardener", Art: HedgehogGardener, rarity: "uncommon", source: { kind: "store", price: 300 }, owned: false },
-  { id: "hog-chef", name: "Chef", Art: HedgehogChef, rarity: "rare", source: { kind: "store", price: 700 }, owned: false },
-  { id: "hog-dj", name: "DJ Hog", Art: HedgehogDj, rarity: "epic", source: { kind: "store", price: 1500 }, owned: false },
-  { id: "hog-rocket", name: "Rocket Hog", Art: HedgehogRocket, rarity: "rare", source: { kind: "level", level: 10 }, owned: false },
-  { id: "hog-wizard", name: "Wizard", Art: HedgehogWizard, rarity: "epic", source: { kind: "achievement", tier: "Patron of Praise" }, owned: false },
-  { id: "hog-gladiator", name: "Gladiator", Art: HedgehogGladiator, rarity: "legendary", source: { kind: "drop" }, owned: false },
-  { id: "hog-angel", name: "Angel", Art: HedgehogAngel, rarity: "legendary", source: { kind: "store", price: 3000 }, owned: false },
+  { id: "hog-sitting", name: "Sunday Hog", Art: HedgehogSitting, source: { kind: "starter" }, owned: true },
+  { id: "hog-superhero", name: "Super Hog", Art: HedgehogSuperhero, source: { kind: "level", level: 5 }, owned: true },
+  { id: "hog-level-up", name: "1-Up Hog", Art: HedgehogLevelUp, source: { kind: "level", level: 8 }, owned: true },
+  { id: "hog-explorer", name: "Explorer", Art: HedgehogExplorer, source: { kind: "achievement", name: "Social Butterfly" }, owned: true },
+  { id: "hog-reading", name: "Bookworm", Art: HedgehogReading, source: { kind: "store", price: 120 }, owned: false },
+  { id: "hog-gardener", name: "Gardener", Art: HedgehogGardener, source: { kind: "store", price: 300 }, owned: false },
+  { id: "hog-chef", name: "Chef", Art: HedgehogChef, source: { kind: "store", price: 700 }, owned: false },
+  { id: "hog-dj", name: "DJ Hog", Art: HedgehogDj, source: { kind: "store", price: 1500 }, owned: false },
+  { id: "hog-rocket", name: "Rocket Hog", Art: HedgehogRocket, source: { kind: "level", level: 10 }, owned: false },
+  { id: "hog-wizard", name: "Wizard", Art: HedgehogWizard, source: { kind: "achievement", name: "Patron of Praise" }, owned: false },
+  { id: "hog-gladiator", name: "Gladiator", Art: HedgehogGladiator, source: { kind: "quest", name: "All hands" }, owned: false },
+  { id: "hog-angel", name: "Angel", Art: HedgehogAngel, source: { kind: "store", price: 3000 }, owned: false },
 ];
 
-export function sourceLabel(source: HogSource): string {
+export function sourceLabel(source: ItemSource): string {
   switch (source.kind) {
     case "starter":
       return "Everyone starts with this one";
     case "level":
       return `Unlocks at level ${source.level}`;
     case "achievement":
-      return `Unlocked by ${source.tier}`;
+      return `Earned with ${source.name}`;
+    case "quest":
+      return `Reward for the ${source.name} quest`;
     case "store":
       return `${source.price.toLocaleString()} coins in the store`;
-    case "drop":
-      return "Only found as a drop";
   }
 }
 
-export type SlotKind = GearKind | "hedgehog";
+export type SlotKind = "hedgehog" | "emoji";
 
 export type SlotRef = { kind: SlotKind; index: number };
-
-const filled = (kind: GearKind, seeds: string[]) => Array.from({ length: slotCount[kind] }, (_, i) => (seeds[i] ? (gearIdFor(kind, seeds[i]) ?? null) : null));
 
 const state = {
   hogId: "hog-superhero",
   coins: me.coins,
-  owned: new Set([...hedgehogs.filter((h) => h.owned).map((h) => h.id), ...gear.filter((g) => g.owned).map((g) => g.id)]),
-  slots: { title: filled("title", [me.loadout.title]), quip: filled("quip", me.loadout.quips), emoji: filled("emoji", me.loadout.emoji) } as Record<GearKind, (string | null)[]>,
-  equippedAt: { title: [0], quip: [0, 1, 2], emoji: [0, 1, 2] } as Record<GearKind, number[]>,
-  clock: 3,
+  owned: new Set([...hedgehogs, ...emoji].filter((i) => i.owned).map((i) => i.id)),
+  emoji: Array.from({ length: emojiSlots }, (_, i) => emojiIdFor(me.loadout.emoji[i] ?? "") ?? null),
+  equippedAt: Array.from({ length: emojiSlots }, (_, i) => i),
+  clock: emojiSlots,
 };
 
 export const starterHog = hedgehogs.find((h) => h.source.kind === "starter")!;
@@ -101,38 +90,30 @@ function equipHog(id: string) {
   emit();
 }
 
-function equipGear(kind: GearKind, index: number, id: string) {
-  if (!state.owned.has(id) || gearById(id)?.kind !== kind) return;
-  const slots = [...state.slots[kind]];
+function equipEmoji(index: number, id: string) {
+  if (!state.owned.has(id) || !emojiById(id)) return;
+  const slots = [...state.emoji];
   const from = slots.indexOf(id);
   if (from >= 0) slots[from] = slots[index];
   slots[index] = id;
-  state.slots = { ...state.slots, [kind]: slots };
-  state.equippedAt = { ...state.equippedAt, [kind]: state.equippedAt[kind].map((at, i) => (i === index ? ++state.clock : at)) };
+  state.emoji = slots;
+  state.equippedAt = state.equippedAt.map((at, i) => (i === index ? ++state.clock : at));
   emit();
 }
 
-function unequip(kind: GearKind, index: number) {
-  if (kind === "title") return;
-  state.slots = { ...state.slots, [kind]: state.slots[kind].map((id, i) => (i === index ? null : id)) };
+function unequipEmoji(index: number) {
+  state.emoji = state.emoji.map((id, i) => (i === index ? null : id));
   emit();
 }
 
-function slotForNew(kind: GearKind) {
-  const empty = state.slots[kind].indexOf(null);
-  if (empty >= 0) return empty;
-  const at = state.equippedAt[kind];
-  return at.indexOf(Math.min(...at));
+function slotForNewEmoji() {
+  const empty = state.emoji.indexOf(null);
+  return empty >= 0 ? empty : state.equippedAt.indexOf(Math.min(...state.equippedAt));
 }
-
-const priceOf = (id: string) => {
-  const hog = hogById(id);
-  if (hog) return hog.source.kind === "store" ? hog.source.price : undefined;
-  return gearById(id)?.price;
-};
 
 function buy(id: string) {
-  const price = priceOf(id);
+  const item = hogById(id) ?? emojiById(id);
+  const price = item && priceOf(item.source);
   if (price === undefined || state.owned.has(id) || price > state.coins) return;
   state.coins -= price;
   state.owned.add(id);
@@ -144,15 +125,14 @@ export function useGear() {
   return {
     hog: hogById(state.hogId) ?? hedgehogs[0],
     coins: state.coins,
-    slots: state.slots,
+    emojiSlots: state.emoji,
     isOwned: (id: string) => state.owned.has(id),
-    isEquipped: (id: string) => state.hogId === id || Object.values(state.slots).some((s) => s.includes(id)),
-    itemIn: (kind: GearKind, index: number) => gearById(state.slots[kind][index] ?? ""),
-    slotOf: (kind: GearKind, id: string) => state.slots[kind].indexOf(id),
-    slotForNew,
+    emojiIn: (index: number) => emojiById(state.emoji[index] ?? ""),
+    emojiSlotOf: (id: string) => state.emoji.indexOf(id),
+    slotForNewEmoji,
     equipHog,
-    equipGear,
-    unequip,
+    equipEmoji,
+    unequipEmoji,
     buy,
   };
 }

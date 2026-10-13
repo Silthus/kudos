@@ -1,49 +1,37 @@
-// Variant E profile: the hero beside the public card on top, the stats and one gear panel in the wide column, and a rail of active effects, streak and standing; what is not unlocked yet shows as a calm teaser, and primary is spent on the level and the next action only.
-import type { ReactNode } from "react";
-import { IconChevronDown, IconLock } from "@posthog/icons";
+// Variant E home: a lean page that grows with level. Level 1 is the hero with kudos left today, the public card and one nudge to give a first kudos; the quest card, where you stand and the gear panel join only once they open, and nothing locked shows here.
+import { IconChevronDown, IconMessage } from "@posthog/icons";
 import { Button } from "@posthog/quill";
-import { me, perks } from "../../data/mock";
-import { MaxLine } from "../a/insight";
+import { me } from "../../data/mock";
 import { GearPanel } from "./gear-character";
-import { ActiveEffects } from "./gear-effects";
 import { useGearAtLevel } from "./gear-level";
-import { CoinGlyph, CountUp, LevelRing, Panel, SkillPointGlyph, levelProgress, useHud, useMounted } from "./hud";
+import { CountUp, LevelRing, Panel, SkillPointGlyph, levelProgress, useHud, useMounted } from "./hud";
 import { ProfileCardPanel } from "./profile-card";
-import { StreakPanel } from "./profile-streak";
 import { Standing } from "./profile-standing";
-import { RarityName } from "./rarity";
-import { unlockOf } from "./unlocks";
-
-const readyPerk = perks.find((p) => p.id === "rhythm" && p.state.kind === "available");
+import { QuestCard } from "./quests-card";
 
 const xpToNext = me.xpNextLevel - me.xp;
 
 export function Profile({ param }: { param?: string }) {
   useHud();
-  const { level, skillsOpen } = useGearAtLevel();
-  const progress = levelProgress(me.xp, me.xpThisLevelStart, me.xpNextLevel);
-  const maxFacts = [`${xpToNext.toLocaleString()} XP to level ${level + 1}.`, skillsOpen && readyPerk && `${readyPerk.name} is ready to buy and pays off on full weeks.`].filter(Boolean).join(" ");
-
+  const { questsOpen, standingOpen, inventoryOpen } = useGearAtLevel();
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
       <div className="flex min-w-0 flex-col gap-6">
-        <Hero progress={progress} />
-        <MaxLine>{maxFacts}</MaxLine>
-        <Stats />
-        <GearPanel key={param} initialSide={param === "inventory" ? "inventory" : "character"} />
+        <Hero />
+        {questsOpen ? <QuestCard /> : <FirstKudosNudge />}
+        {inventoryOpen && <GearPanel key={param} initialSide={param === "inventory" ? "inventory" : "character"} />}
       </div>
       <div className="flex min-w-0 flex-col gap-6">
         <ProfileCardPanel />
-        <ActiveEffects />
-        {!me.streak.hidden && <StreakPanel />}
-        <Standing />
+        {standingOpen && <Standing />}
       </div>
     </div>
   );
 }
 
-function Hero({ progress }: { progress: number }) {
-  const { hog, title, level, gearOpen, skillsOpen } = useGearAtLevel();
+function Hero() {
+  const { hog, level, inventoryOpen, questsOpen, skillsOpen } = useGearAtLevel();
+  const progress = levelProgress(me.xp, me.xpThisLevelStart, me.xpNextLevel);
   return (
     <section className="hud-rise flex flex-col items-center gap-6 text-center sm:flex-row sm:items-center sm:gap-7 sm:py-4 sm:text-left">
       <div className="flex shrink-0 flex-col items-center gap-1.5">
@@ -51,10 +39,8 @@ function Hero({ progress }: { progress: number }) {
           <div className="absolute inset-x-8 bottom-2 h-4 rounded-full bg-foreground/15 blur-lg" aria-hidden />
           <hog.Art size={168} className="hud-lift relative" title={`Your hedgehog: ${hog.name}`} />
         </div>
-        <RarityName rarity={hog.rarity} className="text-xs">
-          {hog.name}
-        </RarityName>
-        {gearOpen && (
+        <span className="text-xs font-medium">{hog.name}</span>
+        {inventoryOpen && (
           <button type="button" onClick={() => document.getElementById("gear")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="group inline-flex items-center gap-1 text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
             Change gear
             <IconChevronDown className="size-3 transition-transform group-hover:translate-y-0.5" />
@@ -65,14 +51,7 @@ function Hero({ progress }: { progress: number }) {
       <div className="w-full min-w-0 flex-1">
         <div className="hud-label">Character</div>
         <h1 className="hud-display mt-1 text-4xl font-bold leading-none">{me.name}</h1>
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-          {title && (
-            <span key={title.id} className="hud-fade inline-flex items-center rounded-md border bg-card px-2.5 py-1 text-sm">
-              <RarityName rarity={title.rarity}>{title.name}</RarityName>
-            </span>
-          )}
-          <span className="text-sm text-muted-foreground">{me.primaryGroup.name}</span>
-        </div>
+        <div className="mt-2 text-sm text-muted-foreground">{me.primaryGroup.name}</div>
         <XpBar progress={progress} />
         <div className="mt-1.5 flex justify-between gap-3 text-xs text-muted-foreground tabular-nums">
           <span>
@@ -82,9 +61,15 @@ function Hero({ progress }: { progress: number }) {
             <span className="font-medium text-foreground">{xpToNext.toLocaleString()} XP</span> to level {level + 1}
           </span>
         </div>
+        <KudosLeftToday />
+        {questsOpen && (
+          <p className="mt-2 text-xs text-muted-foreground tabular-nums">
+            You've given {me.kudosGiven.toLocaleString()} kudos and received {me.kudosReceived.toLocaleString()}.
+          </p>
+        )}
         {skillsOpen && me.skillPointsUnspent > 0 && (
-          <Button variant="primary" className="mt-4" onClick={() => (location.hash = "/skills")}>
-            <SkillPointGlyph className="size-4 text-primary-foreground" />
+          <Button variant="outline" className="mt-4" onClick={() => (location.hash = "/skills")}>
+            <SkillPointGlyph className="size-4" />
             Spend {me.skillPointsUnspent} skill points
           </Button>
         )}
@@ -102,78 +87,38 @@ function XpBar({ progress }: { progress: number }) {
   );
 }
 
-function Stats() {
-  const { coinsOpen } = useGearAtLevel();
+function KudosLeftToday() {
+  const left = me.kudosLeftToday;
+  const total = me.dailyAllowance;
   return (
-    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-      <StatBlock label="Kudos left today" hint="Refills at your midnight">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1.5">
-          <span className="hud-display text-3xl font-bold tabular-nums">
-            {me.kudosLeftToday}
-            <span className="text-base text-muted-foreground">/{me.dailyAllowance}</span>
-          </span>
-          <AllowancePips left={me.kudosLeftToday} total={me.dailyAllowance} />
-        </div>
-      </StatBlock>
-      <StatBlock label="Kudos given" hint="All time">
-        <CountUp value={me.kudosGiven} className="hud-display text-3xl font-bold" />
-      </StatBlock>
-      <StatBlock
-        label={
-          <>
-            <IconLock className="size-3" /> Kudos received
-          </>
-        }
-        hint="Only you see this"
-      >
-        <CountUp value={me.kudosReceived} className="hud-display text-3xl font-bold" />
-      </StatBlock>
-      {coinsOpen ? (
-        <StatBlock label="Coins" hint="From thoughtful kudos">
-          <span className="flex items-center gap-2">
-            <CoinGlyph className="size-5" />
-            <CountUp value={me.coins} className="hud-display text-3xl font-bold" />
-          </span>
-        </StatBlock>
-      ) : (
-        <CoinsTeaser />
-      )}
+    <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 border-t pt-4 sm:justify-start">
+      <span className="hud-label">Kudos left today</span>
+      <span className="hud-display text-2xl font-bold leading-none tabular-nums">
+        {left}
+        <span className="text-sm text-muted-foreground">/{total}</span>
+      </span>
+      <span className="inline-flex items-center gap-1" role="img" aria-label={`${left} of ${total} left`}>
+        {Array.from({ length: total }, (_, i) => (
+          <span key={i} className={`h-3.5 w-2.5 rounded-sm ${i < left ? "bg-foreground" : "bg-muted ring-1 ring-inset ring-border"}`} />
+        ))}
+      </span>
+      <span className="text-xs text-muted-foreground">Refills at your midnight</span>
     </div>
   );
 }
 
-function CoinsTeaser() {
-  const coins = unlockOf("coins");
+function FirstKudosNudge() {
   return (
-    <Panel
-      label={
-        <>
-          <IconLock className="size-3" /> Coins
-        </>
-      }
-      className="border-dashed"
-    >
-      <div className="text-sm font-semibold leading-tight">Coins unlock at level {coins.level}</div>
-      <div className="mt-1.5 text-xs text-muted-foreground">{coins.how}</div>
+    <Panel>
+      <div className="flex items-start gap-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted ring-1 ring-inset ring-border" aria-hidden>
+          <IconMessage className="size-5" />
+        </span>
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <h2 className="hud-display text-lg font-bold leading-tight">Give your first kudos in Slack</h2>
+          <p className="text-sm text-muted-foreground">React to a teammate's message with the kudos emoji and say why in five words or more. Every kudos earns XP toward level 2.</p>
+        </div>
+      </div>
     </Panel>
-  );
-}
-
-function StatBlock({ label, hint, children }: { label: ReactNode; hint: string; children: ReactNode }) {
-  return (
-    <Panel label={label} className="hud-lift">
-      <div className="leading-none">{children}</div>
-      <div className="mt-1.5 text-xs text-muted-foreground">{hint}</div>
-    </Panel>
-  );
-}
-
-function AllowancePips({ left, total }: { left: number; total: number }) {
-  return (
-    <span className="inline-flex items-center gap-1" role="img" aria-label={`${left} of ${total} left`}>
-      {Array.from({ length: total }, (_, i) => (
-        <span key={i} className={`h-3.5 w-2.5 rounded-sm ${i < left ? "bg-foreground" : "bg-muted ring-1 ring-inset ring-border"}`} />
-      ))}
-    </span>
   );
 }

@@ -1,8 +1,8 @@
-// Variant E gear sheet styles: the slot grid around the centre stage, and the turns of the panel and the stage.
+// Variant E gear sheet styles: the hedgehog slot and three emoji slots around the centre stage, and the turns of the panel and the stage.
 export const gearCss = `
-.gear-sheet{display:grid;gap:.625rem;grid-template-columns:repeat(6,minmax(0,1fr));grid-template-areas:"stage stage stage stage stage stage" "hog hog hog title title title" "e0 e0 e1 e1 e2 e2"}
+.gear-sheet{display:grid;gap:.625rem;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-areas:"stage stage stage" "hog hog hog" "e0 e1 e2"}
 .gear-sheet>[data-area]{min-width:0}
-@media (min-width:640px){.gear-sheet{grid-template-columns:minmax(0,11rem) minmax(0,1fr) 6.5rem;grid-template-rows:repeat(6,minmax(0,auto));grid-template-areas:"hog stage e0" "hog stage e0" "hog stage e1" "title stage e1" "title stage e2" "title stage e2"}}
+@media (min-width:640px){.gear-sheet{grid-template-columns:minmax(0,11rem) minmax(0,1fr) 6.5rem;grid-template-rows:repeat(3,minmax(0,1fr));grid-template-areas:"hog stage e0" "hog stage e1" "hog stage e2"}}
 .gear-stage{background:radial-gradient(closest-side,color-mix(in oklab,var(--foreground) 7%,transparent),transparent 75%),var(--muted)}
 .gear-face{transform-origin:50% 40%;backface-visibility:hidden}
 @media (prefers-reduced-motion:no-preference){

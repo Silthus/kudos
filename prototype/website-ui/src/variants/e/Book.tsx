@@ -1,18 +1,18 @@
 // Variant E book: sticker albums and achievements as one album, with a hedgehog page index on the left whose only primary is the current page marker, and Panini spreads or achievement pages on the right.
 import { useEffect, useRef, useState } from "react";
 import { IconBook, IconCheck, IconChevronDown } from "@posthog/icons";
-import { ladders, me } from "../../data/mock";
+import { me } from "../../data/mock";
 import { useHashRoute } from "../../nav";
 import { AlbumSpread, crestOf, type TeamPhoto } from "./book-album";
 import { CategoryPage, Overview } from "./book-achievements";
-import { albumsMineFirst, categories, laddersIn, pageFor, pageHref, pageKey, tierCount, type BookPage } from "./book-data";
+import { albumsMineFirst, bookLadders, categories, laddersIn, pageFor, pageHref, pageKey, tierCount, type BookPage } from "./book-data";
 import { artOfCategory, BookArt, type Art } from "./book-emblems";
 import { useHud } from "./hud";
 import "./book.css";
 
 type Entry = { page: BookPage; label: string; art: Art; value: number; max: number; done: boolean; note?: string };
 
-const overviewEntry: Entry = { page: { kind: "overview" }, label: "Overview", art: BookArt, ...countOf(tierCount(ladders)), done: false };
+const overviewEntry: Entry = { page: { kind: "overview" }, label: "Overview", art: BookArt, ...countOf(tierCount(bookLadders)), done: false };
 
 const albumEntries: Entry[] = albumsMineFirst.map((album) => ({ page: { kind: "album", album }, label: album.group.name, art: crestOf(album.group.id), value: album.held, max: album.pages, done: album.complete, note: album.mine ? "Yours" : undefined }));
 

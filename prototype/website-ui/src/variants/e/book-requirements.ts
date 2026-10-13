@@ -9,7 +9,6 @@ const sentences: Record<string, (need: Need) => string> = {
   generosity: ({ more }) => `${more.toLocaleString()} more kudos to give`,
   recognition: ({ more }) => `${more.toLocaleString()} more kudos to receive`,
   connections: ({ more }) => `${plural(more, "more different person", "more different people")} to thank`,
-  momentum: ({ threshold }) => `Give kudos ${plural(threshold, "workday", "workdays")} in a row`,
   dependability: ({ more }) => `${plural(more, "more day", "more days")} with a kudos given`,
   applause: ({ more }) => `Thank 3+ different people on ${plural(more, "more day", "more days")}`,
   seasons: ({ more }) => `${plural(more, "more calendar month", "more calendar months")} with a kudos given`,
