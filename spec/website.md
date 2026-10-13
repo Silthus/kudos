@@ -240,14 +240,14 @@ Proposed declarations. Each ticket writes its part and makes `coherence spec --c
 
 ## Slices
 
-Each ticket is a sub-issue of map #57, sized to one agent session, and merges into the conductor's integration branch (WS27).
+Each ticket is a sub-issue of map #57, sized to one agent session, and merges into the conductor's integration branch (WS27). Blocking edges: #106 → #107 → #108 and #109; #108 → #110; #108 and #109 → #111.
 
-1. **Scaffold and hosting** — the `website/` package, the HUD shell in light and dark with the closed, signed-out, not-found and error pages on fixtures, static hosting and routing, the CSP header, the gate and Coherence covering the package. WS1, WS16, WS20 (pages), WS23–WS26. Blocked by nothing.
-2. **Sign in with Slack** — Convex Auth, the Slack provider, the allowed workspace, the auth tables, `memberQuery`, `verifyMember` with its retries, the `website` flag, `prepareWebsiteFlag` and the closed path, the public surface test, and the sign-in, sign-out, verifying, unverified, not-a-member and "didn't finish" screens. WS2–WS12, WS14. Blocked by 1. Needs map #1's flag seam (#75).
-3. **The home** — `getMyProfile`'s member answer from `homeFacts` (with `refillsAt`), the clock, the hero, the counters, the profile card panel, the locked cards and the empty state. WS13, WS15, WS17–WS21. Blocked by 2. Needs `homeFacts` (#87, shipped by #90).
-4. **App Home links to the website** — WS28. Blocked by 2.
-5. **Faces from posthog.com** — the sync, its table and the matcher. WS21–WS22. Blocked by 3. Not on the sandbox deploy's path; it lands before production opens.
-6. **Deploy to the sandbox, prepare production** — the workflows, the env, the flag, the live sign-in on the sandbox from the integration branch, and production's env ready for the ship merge. WS27. Blocked by 3 and 4. The live check parks on the owner's manifest step and Slack credentials.
+1. [#106](https://github.com/Silthus/kudos/issues/106) **Scaffold and hosting** — the `website/` package, the HUD shell in light and dark with the closed, signed-out, not-found and error pages on fixtures, static hosting and routing, the CSP header, the gate and Coherence covering the package. WS1, WS16, WS20 (pages), WS23–WS26. Blocked by nothing.
+2. [#107](https://github.com/Silthus/kudos/issues/107) **Sign in with Slack** — Convex Auth, the Slack provider, the allowed workspace, the auth tables, `memberQuery`, `verifyMember` with its retries, the `website` flag, `prepareWebsiteFlag` and the closed path, the public surface test, and the sign-in, sign-out, verifying, unverified, not-a-member and "didn't finish" screens. WS2–WS12, WS14. Blocked by 1. Needs map #1's flag seam (#75).
+3. [#108](https://github.com/Silthus/kudos/issues/108) **The home** — `getMyProfile`'s member answer from `homeFacts` (with `refillsAt`), the clock, the hero, the counters, the profile card panel, the locked cards and the empty state. WS13, WS15, WS17–WS21. Blocked by 2. Needs `homeFacts` (#87, shipped by #90).
+4. [#109](https://github.com/Silthus/kudos/issues/109) **App Home links to the website** — WS28. Blocked by 2.
+5. [#110](https://github.com/Silthus/kudos/issues/110) **Faces from posthog.com** — the sync, its table and the matcher. WS21–WS22. Blocked by 3. Not on the sandbox deploy's path; it lands before production opens.
+6. [#111](https://github.com/Silthus/kudos/issues/111) **Deploy to the sandbox, prepare production** — the workflows, the env, the flag, the live sign-in on the sandbox from the integration branch, and production's env ready for the ship merge. WS27. Blocked by 3 and 4. The live check parks on the owner's manifest step and Slack credentials.
 
 ## Cross-map needs on map #1
 
