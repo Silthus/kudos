@@ -1,9 +1,17 @@
+import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
 import { segmentValidator } from "./feedback/replies";
 
 export default defineSchema({
+  ...authTables,
+  users: defineTable({
+    name: v.optional(v.string()),
+    image: v.optional(v.string()),
+    chatIdentity: v.optional(v.object({ workspace: v.string(), user: v.string() })),
+  }),
+
   slackReceipts: defineTable({
     workspace: v.string(),
     eventId: v.string(),

@@ -51,6 +51,11 @@ export const recheckMessage = internalMutation({
   },
 });
 
+export const verifyMember = internalAction({
+  args: { workspace: v.string(), user: v.string() },
+  handler: (ctx, { workspace, user }) => lookUpUser(ctx, workspace, user),
+});
+
 export async function lookUpUser(ctx: ActionCtx, workspace: string, user: string) {
   const askedAt = Date.now();
   const answer = await usersInfo(user);

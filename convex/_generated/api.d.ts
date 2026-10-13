@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as auth from "../auth.js";
 import type * as bus_events from "../bus/events.js";
 import type * as bus_publish from "../bus/publish.js";
 import type * as crons from "../crons.js";
@@ -34,9 +35,13 @@ import type * as slack_placedReactions from "../slack/placedReactions.js";
 import type * as slack_processEvent from "../slack/processEvent.js";
 import type * as slack_rateLimits from "../slack/rateLimits.js";
 import type * as slack_receipts from "../slack/receipts.js";
+import type * as slack_signIn from "../slack/signIn.js";
 import type * as slack_signature from "../slack/signature.js";
 import type * as slack_webApi from "../slack/webApi.js";
 import type * as slack_welcome from "../slack/welcome.js";
+import type * as website_profile from "../website/profile.js";
+import type * as website_signIn from "../website/signIn.js";
+import type * as website_signedInMember from "../website/signedInMember.js";
 import type * as welcome_welcome from "../welcome/welcome.js";
 import type * as workspace_directory from "../workspace/directory.js";
 import type * as workspace_settings from "../workspace/settings.js";
@@ -48,6 +53,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  auth: typeof auth;
   "bus/events": typeof bus_events;
   "bus/publish": typeof bus_publish;
   crons: typeof crons;
@@ -74,9 +80,13 @@ declare const fullApi: ApiFromModules<{
   "slack/processEvent": typeof slack_processEvent;
   "slack/rateLimits": typeof slack_rateLimits;
   "slack/receipts": typeof slack_receipts;
+  "slack/signIn": typeof slack_signIn;
   "slack/signature": typeof slack_signature;
   "slack/webApi": typeof slack_webApi;
   "slack/welcome": typeof slack_welcome;
+  "website/profile": typeof website_profile;
+  "website/signIn": typeof website_signIn;
+  "website/signedInMember": typeof website_signedInMember;
   "welcome/welcome": typeof welcome_welcome;
   "workspace/directory": typeof workspace_directory;
   "workspace/settings": typeof workspace_settings;
@@ -108,4 +118,6 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  staticHosting: import("@convex-dev/static-hosting/_generated/component.js").ComponentApi<"staticHosting">;
+};

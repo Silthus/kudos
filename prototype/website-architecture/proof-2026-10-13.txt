@@ -1,0 +1,26 @@
+PASS  POST /slack/events still answers an unsigned request with 401
+PASS  GET / is served by static hosting
+PASS  GET /profile (a deep link) falls back to the SPA shell
+PASS  GET /api/auth/signin/slack is Convex Auth's, not the static catch-all
+PASS  authorize goes to Slack's issuer
+PASS  authorize carries state
+PASS  authorize carries nonce
+PASS  authorize asks for openid profile
+PASS  authorize pins the deployment's workspace
+PASS  the callback is the deployment's /api/auth/callback/slack
+PASS  the handshake cookies are HttpOnly
+PASS  the callback lands on the website page that started sign-in
+PASS  the callback hands the browser a one-time code
+PASS  the code and the browser's verifier become a session token
+PASS  right after a first sign-in the directory is being verified, or already knows the member
+PASS  once users.info answers, the member sees their own profile
+PASS  the one-time code cannot be used twice
+PASS  sign-in with a foreign workspace gets no code
+PASS  sign-in with a wrong nonce gets no code
+PASS  sign-in with a wrong audience gets no code
+PASS  sign-in with no state cookie gets no code
+PASS  sign-in with a tampered state gets no code
+PASS  sign-in with neither state nor cookies (login CSRF) gets no code
+PASS  a code stolen from the redirect is useless without the browser's verifier
+PASS  the refresh token renews the session
+PASS  after sign-out, a still-unexpired token reads signed-out
