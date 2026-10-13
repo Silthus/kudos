@@ -168,6 +168,17 @@ describe("R45: publishing App Home through Slack's failures", () => {
     expect(publishedHome("U_BOB")[0]).toBe("header: Your kudos");
   });
 
+  test("a rate-limited lookup is tried again after Slack's Retry-After", async () => {
+    const t = testBackend();
+    slack.answering("users.info", rateLimitedFor(30));
+
+    await openHome(t, "U_BOB");
+
+    const [rateLimitedAt, lookedUpAt] = slack.timesOf("users.info");
+    expect(lookedUpAt! - rateLimitedAt!).toBeGreaterThanOrEqual(30_000);
+    expect(publishedHome("U_BOB")[0]).toBe("header: Your kudos");
+  });
+
   test("a publish that keeps failing is tried 3 times and never again", async () => {
     const t = testBackend();
     slack.answering("views.publish", httpStatus(500), httpStatus(500), httpStatus(500), httpStatus(500));

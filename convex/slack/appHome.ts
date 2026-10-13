@@ -19,7 +19,7 @@ export const publishHome = internalAction({
       attempt,
       async (attempt) => {
         const facts = await homeFactsOf(ctx, opened.workspace, opened.user);
-        if (facts === null) return failedAttempt(attempt);
+        if (facts.kind === "unavailable") return failedAttempt(attempt, facts.retryAfterMs);
         return sendOnce(ctx, opened.workspace, "views.publish", { user_id: opened.user, view: homeView(renderHome(facts)) }, attempt);
       },
       (retry) => ctx.scheduler.runAt(retry.at, internal.slack.appHome.publishHome, { ...opened, attempt: retry.attempt }),
@@ -32,11 +32,14 @@ export function appHomeLink(workspace: string, label: string) {
   return `<slack://app?${query}|${label}>`;
 }
 
-async function homeFactsOf(ctx: ActionCtx, workspace: string, user: string): Promise<HomeFacts | null> {
+type Unavailable = { kind: "unavailable"; retryAfterMs?: number };
+
+async function homeFactsOf(ctx: ActionCtx, workspace: string, user: string): Promise<HomeFacts | Unavailable> {
   const known = await ctx.runQuery(internal.engine.home.homeOf, { workspace, user });
   if (known !== null) return known;
-  await lookUpUser(ctx, workspace, user);
-  return ctx.runQuery(internal.engine.home.homeOf, { workspace, user });
+  const lookUp = await lookUpUser(ctx, workspace, user);
+  if (lookUp.kind === "failed") return { kind: "unavailable", ...(lookUp.retryAfterMs !== undefined && { retryAfterMs: lookUp.retryAfterMs }) };
+  return (await ctx.runQuery(internal.engine.home.homeOf, { workspace, user })) ?? { kind: "unavailable" };
 }
 
 function homeView({ title, groups }: HomeView) {

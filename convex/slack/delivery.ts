@@ -48,8 +48,8 @@ export async function sendOnce(ctx: ActionCtx, workspace: string, method: string
   return retryAfter(result, attempt);
 }
 
-export function failedAttempt(attempt: number): Retry {
-  return retryAfter({ kind: "failed" }, attempt);
+export function failedAttempt(attempt: number, retryAfterMs?: number): Retry {
+  return retryAfter({ kind: "failed", ...(retryAfterMs !== undefined && { retryAt: Date.now() + retryAfterMs }) }, attempt);
 }
 
 async function reconcileIndicator(ctx: ActionCtx, ref: MessageRef, attempt: number): Promise<Retry> {

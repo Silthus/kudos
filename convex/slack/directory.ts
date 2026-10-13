@@ -51,11 +51,14 @@ export const recheckMessage = internalMutation({
   },
 });
 
-export async function lookUpUser(ctx: ActionCtx, workspace: string, user: string) {
+export type LookUp = { kind: "found" } | { kind: "failed"; retryAfterMs?: number };
+
+export async function lookUpUser(ctx: ActionCtx, workspace: string, user: string): Promise<LookUp> {
   const askedAt = Date.now();
   const answer = await usersInfo(user);
-  if (!answer?.ok) return;
+  if (!answer?.ok) return { kind: "failed", ...(answer?.retryAfterMs !== undefined && { retryAfterMs: answer.retryAfterMs }) };
   await ctx.runMutation(internal.workspace.directory.fillEntry, directoryRecordOf(workspace, answer.user, askedAt));
+  return { kind: "found" };
 }
 
 async function usersInfo(user: string) {
