@@ -10,7 +10,7 @@ Welcome: the first kudosGiven subscriber. It records each member it welcomes and
   refuted: removed the isWelcomed check in welcomeNewMembers -> the test failed on its one-welcome-per-member assertion with 3, 3 and 2 welcomes (2026-10-13)
   kinds: message, state
   checklist: revalidated-permission dismissed: the welcome needs no permission beyond the bot's chat:write scope, which Slack checks when the DM is sent
-  checklist: destination-confinement dismissed: the DM goes only to the welcomed member's own Slack user id through the fixed Slack Web API URL, and no response can redirect it
+  checklist: destination-confinement dismissed: the DM goes only to the welcomed member's own Slack user id through Slack's API at one configured base URL, and no response can redirect it
   checklist: message-authenticity dismissed: the kudosGiven event comes from the engine's own transaction, never from outside; the Slack event behind it is covered by signed Slack requests only
   checklist: input-validation dismissed: the subscriber's argument is checked by the kudosGiven event validator, and only the engine publishes the event
   checklist: separation-of-duties dismissed: no approval policy applies to welcoming a member
