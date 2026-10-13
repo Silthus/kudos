@@ -1,6 +1,6 @@
-import { v, type Infer } from "convex/values";
+import { v, type Infer, type ObjectType } from "convex/values";
 import type { Id } from "../_generated/dataModel";
-import { internalMutation, type QueryCtx } from "../_generated/server";
+import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import type { ChatUserId } from "../engine/messageEvent";
 
 export type MemberId = Id<"members">;
@@ -31,15 +31,21 @@ export async function chatUserOf(ctx: QueryCtx, member: MemberId): Promise<{ wor
   return { workspace: row.workspace, user: row.user };
 }
 
-export const record = internalMutation({
-  args: { workspace: v.string(), user: v.string(), entry: directoryEntryValidator, asOf: v.optional(v.number()) },
-  handler: async (ctx, { workspace, user, entry, asOf }) => {
-    const row = { workspace, user, timeZone: undefined, asOf, ...entry };
-    const existing = await memberRow(ctx, workspace, user);
-    if (existing === null) await ctx.db.insert("members", row);
-    else if (!isOlder(asOf, existing.asOf)) await ctx.db.replace(existing._id, row);
-  },
+const directoryRecordArgs = { workspace: v.string(), user: v.string(), entry: directoryEntryValidator, asOf: v.optional(v.number()) };
+
+export type DirectoryRecord = ObjectType<typeof directoryRecordArgs>;
+
+export const recordEntry = internalMutation({
+  args: directoryRecordArgs,
+  handler: (ctx, directoryRecord) => record(ctx, directoryRecord),
 });
+
+export async function record(ctx: MutationCtx, { workspace, user, entry, asOf }: DirectoryRecord) {
+  const row = { workspace, user, timeZone: undefined, asOf, ...entry };
+  const existing = await memberRow(ctx, workspace, user);
+  if (existing === null) await ctx.db.insert("members", row);
+  else if (!isOlder(asOf, existing.asOf)) await ctx.db.replace(existing._id, row);
+}
 
 function isOlder(asOf: number | undefined, known: number | undefined) {
   return asOf !== undefined && known !== undefined && asOf < known;

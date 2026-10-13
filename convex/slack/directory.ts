@@ -3,7 +3,7 @@ import { internal } from "../_generated/api";
 import { internalAction, internalMutation, internalQuery, type ActionCtx, type MutationCtx } from "../_generated/server";
 import { awaitedUsers, recheck, type Observation } from "../engine/engine";
 import { messageRefValidator, type MessageRef } from "../engine/messageEvent";
-import type { DirectoryEntry } from "../workspace/directory";
+import type { DirectoryEntry, DirectoryRecord } from "../workspace/directory";
 import { readSlack } from "./webApi";
 
 type SlackUser = { id: string; team_id?: string; deleted?: boolean; is_bot?: boolean; tz?: string; updated?: number };
@@ -16,7 +16,7 @@ export function isMemberChanged(event: { type: string }): event is MemberChanged
   return event.type === "team_join" || event.type === "user_change";
 }
 
-export function directoryRecordOf(workspace: string, user: SlackUser) {
+export function directoryRecordOf(workspace: string, user: SlackUser): DirectoryRecord {
   return {
     workspace,
     user: user.id,
@@ -55,7 +55,7 @@ export const recheckMessage = internalMutation({
 export async function lookUpUser(ctx: ActionCtx, workspace: string, user: string) {
   const answer = await usersInfo(user);
   if (!answer?.ok) return;
-  await ctx.runMutation(internal.workspace.directory.record, directoryRecordOf(workspace, answer.user));
+  await ctx.runMutation(internal.workspace.directory.recordEntry, directoryRecordOf(workspace, answer.user));
 }
 
 async function usersInfo(user: string) {

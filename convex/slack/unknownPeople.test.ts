@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack, httpStatus } from "../../testing/fakeSlack";
-import { signingSecret } from "../../testing/signedSlack";
-import { awardsTo, deleteMessage, edit, kudosReceived, kudosSpent, memberChanged, post, settle, settleUntil, testBackend } from "../../testing/slackBackend";
-import { emoji, mention, section, text, type MessageOptions, type RichElement } from "../../testing/slackMessages";
+import { signedRequest, signingSecret } from "../../testing/signedSlack";
+import { awardsTo, deleteMessage, edit, kudosReceived, kudosSpent, memberChanged, post, settle, settleUntil, testBackend, type Backend } from "../../testing/slackBackend";
+import { emoji, memberEvent, mention, section, text, type MessageOptions, type RichElement } from "../../testing/slackMessages";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const postedTs = slackTs(now);
@@ -105,13 +105,29 @@ test("R16: a workspace emoji changed while a message waits makes it ordinary cha
   await post(t, [section(mention("U_DAVE"), emoji("taco"))], { ts: postedTs });
   await settleUntil(t, at(2));
 
-  await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "pizza" }));
+  await setWorkspaceEmoji(t, "pizza");
   await settle(t);
 
   expect(minutesOfLookups("U_DAVE")).toEqual([0, 1, 6]);
   expect(await kudosReceived(t, "U_DAVE")).toBe(0);
   expect(slack.reactionsOn("C1", postedTs)).toEqual([]);
   expect(slack.callsTo("chat.postEphemeral")).toEqual([]);
+});
+
+test("R16: an emoji change that a still-unknown person's recheck sees ends the attempt, whatever the emoji is later", async () => {
+  const t = testBackend();
+  slack.joiningAt("U_DAVE", at(10));
+  await post(t, [section(mention("U_DAVE"), emoji("taco"))], { ts: postedTs });
+  await settleUntil(t, at(2));
+  await setWorkspaceEmoji(t, "pizza");
+  await settleUntil(t, at(7));
+
+  await setWorkspaceEmoji(t, "taco");
+  await settle(t);
+
+  expect(minutesOfLookups("U_DAVE")).toEqual([0, 1, 6]);
+  expect(await kudosReceived(t, "U_DAVE")).toBe(0);
+  expect(slack.reactionsOn("C1", postedTs)).toEqual([]);
 });
 
 test("R27: a message deleted while it waits still gives when the recheck confirms its people", async () => {
@@ -197,6 +213,19 @@ describe("R28: team_join and user_change keep the directory fresh", () => {
     expect(await awardsTo(t, "U_CAROL")).toEqual([expect.objectContaining({ kudos: 1, day: "2026-10-14" })]);
   });
 
+  test("R49: a redelivered team_join doesn't bring back a member deactivated in the same second", async () => {
+    const t = testBackend();
+    const join = await signedRequest(memberEvent("team_join", { id: "U_DAVE", updated: 1760349600 }));
+    await t.fetch("/slack/events", join);
+
+    await memberChanged(t, "user_change", { id: "U_DAVE", deleted: true, updated: 1760349600 });
+    await t.fetch("/slack/events", await signedRequest(String(join.body)));
+    await post(t, [section(mention("U_DAVE"), emoji("taco"))], { ts: postedTs });
+    await settle(t);
+
+    expect(await kudosReceived(t, "U_DAVE")).toBe(0);
+  });
+
   test("a user_change older than what the directory knows changes nothing", async () => {
     const t = testBackend();
 
@@ -208,6 +237,14 @@ describe("R28: team_join and user_change keep the directory fresh", () => {
     expect(await kudosReceived(t, "U_BOB")).toBe(0);
   });
 });
+
+async function setWorkspaceEmoji(t: Backend, kudosEmoji: string) {
+  await t.run(async (ctx) => {
+    const settings = await ctx.db.query("workspaces").first();
+    if (settings === null) await ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji });
+    else await ctx.db.patch(settings._id, { kudosEmoji });
+  });
+}
 
 function at(minutesAfterNow: number) {
   return new Date(now.getTime() + minutesAfterNow * minute);

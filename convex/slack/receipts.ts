@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type QueryCtx } from "../_generated/server";
 import { messageEventValidator } from "../engine/messageEvent";
+import { directoryEntryValidator, record } from "../workspace/directory";
 import { processEvent, type Receipt } from "./processEvent";
 
 const keptForMs = 7 * 24 * 60 * 60 * 1000;
@@ -22,6 +23,16 @@ export const receiveHomeOpened = internalMutation({
     if (await isRedelivered(ctx, receipt)) return;
     await ctx.db.insert("slackReceipts", receipt);
     await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, { workspace: receipt.workspace, user });
+  },
+});
+
+export const receiveMemberChanged = internalMutation({
+  args: { workspace: v.string(), eventId: v.string(), user: v.string(), entry: directoryEntryValidator, asOf: v.optional(v.number()) },
+  handler: async (ctx, { eventId, ...directoryRecord }) => {
+    const receipt = { workspace: directoryRecord.workspace, eventId };
+    if (await isRedelivered(ctx, receipt)) return;
+    await ctx.db.insert("slackReceipts", receipt);
+    await record(ctx, directoryRecord);
   },
 });
 

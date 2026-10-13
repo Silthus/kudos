@@ -116,13 +116,13 @@ export async function recheck(ctx: MutationCtx, ref: MessageRef, attempt: bigint
 }
 
 async function evaluate(ctx: MutationCtx, row: KudosMessageRow): Promise<Observation> {
-  const unknown = await unknownUsers(ctx, row);
-  if (unknown.length > 0) return awaitDirectory(ctx, row, unknown);
-
   const giver = await lookup(ctx, row.workspace, row.author);
-  if (giver?.kind !== "member") return ignore(ctx, row, "not-a-member");
-  const kudos = await kudosMessageOf(ctx, row.content, { workspace: row.workspace, giver: giver.member });
+  if (giver !== undefined && giver.kind !== "member") return ignore(ctx, row, "not-a-member");
+  const kudos = await kudosMessageOf(ctx, row.content, { workspace: row.workspace, giver: giver?.member });
   if (kudos === null) return ignore(ctx, row, "ordinary-chat");
+
+  const unknown = await unknownUsers(ctx, row);
+  if (giver === undefined || unknown.length > 0) return awaitDirectory(ctx, row, unknown);
 
   const settings = await settingsOf(ctx, row.workspace);
   const outcome = await decide(ctx, row, giver, kudos, settings.baseAllowance);
