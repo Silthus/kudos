@@ -79,6 +79,16 @@ describe("O1 O2 O3: a kudos message that gives", () => {
     });
   });
 
+  test("O3: the deployment's own default kudos emoji counts as the default in kudos given", async () => {
+    vi.stubEnv("KUDOS_EMOJI", "hedgehog");
+    const t = testBackend();
+
+    await post(t, [section(mention("U_BOB"), emoji("hedgehog"))]);
+    await settle(t);
+
+    expect(kudosEvents().find((event) => event.event === "kudos given")?.properties).toMatchObject({ default_kudos_emoji: true });
+  });
+
   test("O5: every event's timestamp is the spend instant", async () => {
     const t = testBackend();
 

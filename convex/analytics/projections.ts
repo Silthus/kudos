@@ -48,7 +48,7 @@ function kudosGiven(event: KudosGivenEvent): ProductEvent {
       in_thread: event.inThread,
       daily_allowance_opening: event.allowance.dailyOpening,
       daily_allowance_left: event.allowance.dailyLeft,
-      default_kudos_emoji: event.kudosEmoji === defaultKudosEmoji,
+      default_kudos_emoji: event.kudosEmoji === defaultKudosEmoji(),
     },
   };
 }
