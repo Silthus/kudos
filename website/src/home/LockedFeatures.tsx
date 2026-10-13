@@ -35,7 +35,7 @@ function LockedCard({ name, sentence, Hog }: { name: string; sentence: string; H
       <Card size="sm" className="h-full">
         <CardContent className="flex items-center gap-3">
           <span aria-hidden="true" className="shrink-0">
-            <Hog size={48} title="" className="opacity-40 grayscale" />
+            <Hog size={48} title="" className="opacity-25 brightness-0 dark:invert" />
           </span>
           <div className="flex min-w-0 flex-col gap-0.5">
             <h3 className="text-sm font-medium">{name}</h3>

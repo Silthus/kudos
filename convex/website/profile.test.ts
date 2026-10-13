@@ -213,7 +213,7 @@ describe("WS13 WS15 WS18: a member's home answer projects their own homeFacts", 
     expect(await myProfile(asSignedIn)).toMatchObject({ allowance: { left: 2 }, thisWeek: { given: 1 }, lifetime: { given: 1 } });
   });
 
-  test("an open page turns to the new day on the clock tick after the member's midnight, without another kudos", async () => {
+  test("after the member's midnight and a clock tick, the answer is the new day's, without another kudos", async () => {
     await aMember(t, ada.user, "member", "T1", "Europe/Berlin");
     await aMember(t, "U_BOB");
     await give(t, ada.user, "U_BOB", 3);
@@ -226,7 +226,7 @@ describe("WS13 WS15 WS18: a member's home answer projects their own homeFacts", 
     expect(await myProfile(asSignedIn)).toMatchObject({ allowance: { left: 3, refillsAt: Date.parse("2026-10-14T22:00:00Z") } });
   });
 
-  test("an open page starts a new week on the clock tick after the week turns, keeping the totals", async () => {
+  test("after the week turns and a clock tick, the answer starts the new week, keeping the totals", async () => {
     await aMember(t, ada.user);
     await aMember(t, "U_BOB");
     await give(t, ada.user, "U_BOB", 2);
