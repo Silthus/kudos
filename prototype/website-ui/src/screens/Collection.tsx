@@ -1,81 +1,99 @@
-// PROTOTYPE collection and loadout: owned cosmetics, a live Slack preview, drop odds and boosters.
+// PROTOTYPE collection and loadout: what a member owns, what they wear, and how it shows in Slack.
 import { useState, type ReactNode } from "react";
-import { cosmetics, dropOdds, me } from "../data/mock";
-import type { Cosmetic, CosmeticKind, CosmeticSource, Rarity as RarityKind } from "../data/types";
-import { Arrow, Button, Hand, Hog, Panel, Pill, Rarity, rarityBorder } from "../ui";
-import { SlackPreview, type ShownLoadout } from "./collection/SlackPreview";
+import {
+  Avatar,
+  AvatarFallback,
+  Badge as Tag,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemTitle,
+  Switch,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  ThreadItem,
+  ThreadItemAuthor,
+  ThreadItemBody,
+  ThreadItemContent,
+  ThreadItemGroup,
+  ThreadItemGutter,
+  ThreadItemHeader,
+  ThreadItemMention,
+  ThreadItemTimestamp,
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@posthog/quill";
+import { IconCheck, IconTriangleDown, IconTriangleUp } from "@posthog/icons";
+import { cosmetics, dropOdds, me, members } from "../data/mock";
+import type { Cosmetic, CosmeticKind, CosmeticSource, Me } from "../data/types";
+import { HedgehogExplorer, PageHeader, Rarity } from "../ui";
 
-type Loadout = { title: string; card: string; quips: string[]; emoji: string[] };
+type Loadout = Me["loadout"];
+type KindFilter = CosmeticKind | "all";
 
-const kindLabel: Record<CosmeticKind, string> = { quip: "Quips", card: "Cards", title: "Titles", emoji: "Kudos emoji" };
+const kindLabel: Record<CosmeticKind, string> = { title: "Title", card: "Card", quip: "Quip", emoji: "Kudos emoji" };
 const sourceLabel: Record<CosmeticSource, string> = { store: "Store", achievement: "Achievement", drop: "Drop", expression: "Expression perk" };
-const notYetHint: Record<CosmeticSource, string> = {
-  store: "In the store",
-  achievement: "From an achievement",
-  drop: "Found as a drop",
-  expression: "Pick with an Expression perk",
-};
-const rarities: RarityKind[] = ["common", "uncommon", "rare", "epic", "legendary"];
-const kinds: CosmeticKind[] = ["title", "card", "quip", "emoji"];
+const filters: Array<{ value: KindFilter; label: string }> = [
+  { value: "all", label: "All" },
+  { value: "title", label: "Titles" },
+  { value: "card", label: "Cards" },
+  { value: "quip", label: "Quips" },
+  { value: "emoji", label: "Kudos emoji" },
+];
+const recipients = [members[0], members[1]];
 
-const byId = (id: string) => cosmetics.find((c) => c.id === id)!;
-const idOf = (kind: CosmeticKind, match: (c: Cosmetic) => boolean) => cosmetics.find((c) => c.kind === kind && match(c))!.id;
-const owned = (kind: CosmeticKind) => cosmetics.filter((c) => c.kind === kind && c.owned);
+const byName = (kind: CosmeticKind, name: string) => cosmetics.find((c) => c.kind === kind && c.name === name)!;
+const emojiByGlyph = (glyph: string) => cosmetics.find((c) => c.kind === "emoji" && c.preview === glyph)!;
+const isSingle = (kind: CosmeticKind) => kind === "title" || kind === "card";
 
-const startingLoadout: Loadout = {
-  title: idOf("title", (c) => c.name === me.loadout.title),
-  card: idOf("card", (c) => c.name === me.loadout.card),
-  quips: me.loadout.quips.map((q) => idOf("quip", (c) => c.name === q)),
-  emoji: me.loadout.emoji.map((e) => idOf("emoji", (c) => c.preview === e)),
-};
+function isEquipped(loadout: Loadout, c: Cosmetic) {
+  if (c.kind === "title") return loadout.title === c.name;
+  if (c.kind === "card") return loadout.card === c.name;
+  if (c.kind === "quip") return loadout.quips.includes(c.name);
+  return loadout.emoji.includes(c.preview);
+}
 
-function move<T>(list: T[], from: number, to: number): T[] {
-  if (to < 0 || to >= list.length) return list;
+const toggled = (list: string[], value: string) => (list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
+
+function equip(loadout: Loadout, c: Cosmetic): Loadout {
+  if (c.kind === "title") return { ...loadout, title: c.name };
+  if (c.kind === "card") return { ...loadout, card: c.name };
+  if (c.kind === "quip") return { ...loadout, quips: toggled(loadout.quips, c.name) };
+  return { ...loadout, emoji: toggled(loadout.emoji, c.preview) };
+}
+
+function moved(list: string[], from: number, to: number) {
   const next = [...list];
-  [next[from], next[to]] = [next[to], next[from]];
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
   return next;
 }
 
-const toggle = (list: string[], id: string) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
-
 export function Collection(_props: { param?: string }) {
-  const [loadout, setLoadout] = useState<Loadout>(startingLoadout);
-  const [animate, setAnimate] = useState(false);
-  const [trying, setTrying] = useState<Cosmetic | null>(null);
-  const [quipTurn, setQuipTurn] = useState(0);
-  const [emojiShown, setEmojiShown] = useState(0);
-
-  const equip = (c: Cosmetic) => {
-    setTrying(null);
-    setLoadout((l) => {
-      if (c.kind === "title") return { ...l, title: c.id };
-      if (c.kind === "card") return { ...l, card: c.id };
-      if (c.kind === "quip") return { ...l, quips: toggle(l.quips, c.id) };
-      return { ...l, emoji: l.emoji.length === 1 && l.emoji[0] === c.id ? l.emoji : toggle(l.emoji, c.id) };
-    });
-  };
-
-  const shown = shownLoadout(loadout, trying, quipTurn, emojiShown);
-
+  const [loadout, setLoadout] = useState<Loadout>(me.loadout);
+  const ownedCount = cosmetics.filter((c) => c.owned).length;
   return (
-    <div className="space-y-6">
-      <Intro />
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <LoadoutPanel loadout={loadout} setLoadout={setLoadout} equip={equip} animate={animate} setAnimate={setAnimate} />
-        <PreviewPanel
-          shown={shown}
-          animate={animate}
-          trying={trying}
-          stopTrying={() => setTrying(null)}
-          quipCount={loadout.quips.length}
-          nextQuip={() => setQuipTurn((t) => t + 1)}
-          emoji={loadout.emoji}
-          emojiShown={emojiShown}
-          setEmojiShown={setEmojiShown}
-        />
-      </div>
-      <CollectionPanel loadout={loadout} equip={equip} tryOn={setTrying} trying={trying} />
-      <div className="grid gap-6 md:grid-cols-2">
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Collection"
+        hog={HedgehogExplorer}
+        description={`${ownedCount} cosmetics so far. They change how your kudos look, never what they're worth. Equipping, previewing and switching off animation are free and instant.`}
+      />
+      <LoadoutCard loadout={loadout} moveQuip={(from, to) => setLoadout((l) => ({ ...l, quips: moved(l.quips, from, to) }))} />
+      <CollectionTable loadout={loadout} onEquip={(c) => setLoadout((l) => equip(l, c))} />
+      <div className="grid gap-4 sm:grid-cols-2">
         <DropOdds />
         <Boosters />
       </div>
@@ -83,368 +101,244 @@ export function Collection(_props: { param?: string }) {
   );
 }
 
-function shownLoadout(loadout: Loadout, trying: Cosmetic | null, quipTurn: number, emojiShown: number): ShownLoadout {
-  const quips = loadout.quips.map(byId);
-  const emoji = loadout.emoji.map(byId);
-  const base: ShownLoadout = {
-    title: byId(loadout.title),
-    card: byId(loadout.card),
-    quip: quips.length ? quips[quipTurn % quips.length] : undefined,
-    emoji: emoji.length ? emoji[emojiShown % emoji.length].preview : "🦔",
-  };
-  if (!trying) return base;
-  if (trying.kind === "title") return { ...base, title: trying };
-  if (trying.kind === "card") return { ...base, card: trying };
-  if (trying.kind === "quip") return { ...base, quip: trying };
-  return { ...base, emoji: trying.preview };
-}
-
-function Intro() {
-  const ownedCount = cosmetics.filter((c) => c.owned).length;
+function LoadoutCard({ loadout, moveQuip }: { loadout: Loadout; moveQuip: (from: number, to: number) => void }) {
+  const title = byName("title", loadout.title);
+  const card = byName("card", loadout.card);
   return (
-    <Panel bodyClass="p-5 sm:p-6">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-        <Hog size={96} mood="happy" hat="glasses" className="shrink-0 self-center" />
-        <div className="min-w-0 flex-1 space-y-2">
-          <h1 className="font-display text-2xl font-black tracking-tight sm:text-3xl">
-            Your <span className="marker">collection</span>
-          </h1>
-          <p className="text-sm text-muted">
-            {ownedCount} cosmetics so far. They change how your kudos look, never what they're worth. Pick a loadout and your next kudos shows it off in Slack.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Pill tone="marker">🔒 Only you can see your collection</Pill>
-            <Pill tone="green">Equipping, previewing and switching off animation are free and instant</Pill>
-          </div>
-        </div>
-      </div>
-    </Panel>
+    <Card size="sm">
+      <CardHeader>
+        <CardTitle>Loadout</CardTitle>
+        <CardDescription>What your next kudos wears.</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-6 lg:grid-cols-2">
+        <dl className="flex flex-col gap-4 text-sm">
+          <LoadoutField label="Title">
+            <NameWithRarity name={title.name} cosmetic={title} />
+          </LoadoutField>
+          <LoadoutField label="Card">
+            <NameWithRarity name={`${card.preview} ${card.name}`} cosmetic={card} />
+          </LoadoutField>
+          <LoadoutField label="Quips" hint="They take turns, in this order.">
+            {loadout.quips.length === 0 ? (
+              <span className="text-muted-foreground">None. Your kudos go out without one.</span>
+            ) : (
+              <ol className="flex flex-col gap-1.5">
+                {loadout.quips.map((name, i) => (
+                  <li key={name} className="flex items-center gap-2">
+                    <span className="w-4 text-xs tabular-nums text-muted-foreground">{i + 1}</span>
+                    <span className="min-w-0 flex-1 truncate">“{name}”</span>
+                    <Button variant="outline" size="icon-xs" aria-label="Move up" disabled={i === 0} onClick={() => moveQuip(i, i - 1)}>
+                      <IconTriangleUp />
+                    </Button>
+                    <Button variant="outline" size="icon-xs" aria-label="Move down" disabled={i === loadout.quips.length - 1} onClick={() => moveQuip(i, i + 1)}>
+                      <IconTriangleDown />
+                    </Button>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </LoadoutField>
+          <LoadoutField label="Kudos emoji" hint="Each one is worth 1 kudos.">
+            <span className="flex flex-wrap gap-2 text-lg">
+              {loadout.emoji.map((glyph) => (
+                <span key={glyph} title={emojiByGlyph(glyph).name}>
+                  {glyph}
+                </span>
+              ))}
+            </span>
+          </LoadoutField>
+        </dl>
+        <SlackPreview loadout={loadout} />
+      </CardContent>
+    </Card>
   );
 }
 
-function OptionChip({ cosmetic, on, onClick }: { cosmetic: Cosmetic; on: boolean; onClick: () => void }) {
+function LoadoutField({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
-    <button
-      onClick={onClick}
-      aria-pressed={on}
-      className={`flex cursor-pointer items-center gap-2 rounded-md border-2 px-2.5 py-1.5 text-left text-sm font-semibold ${on ? `${rarityBorder[cosmetic.rarity]} bg-marker/50` : "border-line bg-surface-2 text-muted hover:border-line-strong hover:text-ink"}`}
-    >
-      <span>{cosmetic.preview}</span>
-      <span className="min-w-0">
-        <span className="block truncate">{cosmetic.kind === "quip" ? `“${cosmetic.name}”` : cosmetic.name}</span>
-        <Rarity rarity={cosmetic.rarity} className="font-medium text-muted" />
-      </span>
-    </button>
-  );
-}
-
-function LoadoutRow({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
-  return (
-    <div className="space-y-2">
-      <div className="flex items-baseline justify-between gap-2">
-        <h3 className="text-xs font-bold uppercase tracking-wide text-faint">{label}</h3>
-        {hint && <span className="text-xs text-faint">{hint}</span>}
-      </div>
-      {children}
+    <div className="grid gap-1 sm:grid-cols-[7rem_1fr] sm:gap-3">
+      <dt className="text-xs font-medium text-muted-foreground sm:pt-0.5">{label}</dt>
+      <dd className="flex flex-col gap-1">
+        {children}
+        {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
+      </dd>
     </div>
   );
 }
 
-function LoadoutPanel({
-  loadout,
-  setLoadout,
-  equip,
-  animate,
-  setAnimate,
-}: {
-  loadout: Loadout;
-  setLoadout: (f: (l: Loadout) => Loadout) => void;
-  equip: (c: Cosmetic) => void;
-  animate: boolean;
-  setAnimate: (v: boolean) => void;
-}) {
-  const favourites = loadout.quips.map(byId);
-  const spareQuips = owned("quip").filter((q) => !loadout.quips.includes(q.id));
+function NameWithRarity({ name, cosmetic }: { name: string; cosmetic: Cosmetic }) {
   return (
-    <Panel title="Loadout" bodyClass="p-4 sm:p-5 space-y-5">
-      <LoadoutRow label="Title" hint="one">
-        <div className="flex flex-wrap gap-2">
-          {owned("title").map((c) => (
-            <OptionChip key={c.id} cosmetic={c} on={loadout.title === c.id} onClick={() => equip(c)} />
-          ))}
-        </div>
-      </LoadoutRow>
-      <LoadoutRow label="Card" hint="one">
-        <div className="flex flex-wrap gap-2">
-          {owned("card").map((c) => (
-            <OptionChip key={c.id} cosmetic={c} on={loadout.card === c.id} onClick={() => equip(c)} />
-          ))}
-        </div>
-        <label className="flex cursor-pointer items-center gap-2 pt-1 text-sm">
-          <input type="checkbox" className="size-4 accent-orange" checked={animate} onChange={(e) => setAnimate(e.target.checked)} />
-          Animate my card <span className="text-xs text-faint">(cards are still by default)</span>
-        </label>
-      </LoadoutRow>
-      <LoadoutRow label="Quips" hint="none, one or a few favourites">
-        {favourites.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-strong px-3 py-2 text-sm text-muted">No quips. That's fine too.</p>
-        ) : (
-          <ol className="space-y-1.5">
-            {favourites.map((q, i) => (
-              <li key={q.id} className="flex items-center gap-2 rounded-md border border-line bg-surface-2 px-2 py-1.5">
-                <span className="w-5 text-center font-display text-sm font-black text-faint">{i + 1}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold">“{q.name}”</span>
-                  <Rarity rarity={q.rarity} className="font-medium text-muted" />
+    <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <span className="font-medium">{name}</span>
+      <Rarity rarity={cosmetic.rarity} className="text-muted-foreground" />
+    </span>
+  );
+}
+
+function SlackPreview({ loadout }: { loadout: Loadout }) {
+  const card = byName("card", loadout.card);
+  const emoji = loadout.emoji[0] ?? "🦔";
+  const quip = loadout.quips[0];
+  return (
+    <div className="flex flex-col gap-2">
+      <h3 className="text-xs font-medium text-muted-foreground">How it shows in Slack</h3>
+      <div className="rounded-md border bg-background p-3">
+        <ThreadItemGroup>
+          <ThreadItem>
+            <ThreadItemGutter>
+              <Avatar size="sm">
+                <AvatarFallback>{me.initials}</AvatarFallback>
+              </Avatar>
+            </ThreadItemGutter>
+            <ThreadItemContent>
+              <ThreadItemHeader>
+                <ThreadItemAuthor>{me.name}</ThreadItemAuthor>
+                <ThreadItemTimestamp>10:42</ThreadItemTimestamp>
+              </ThreadItemHeader>
+              <ThreadItemBody>
+                <Mentions /> thanks for untangling the release {emoji}
+              </ThreadItemBody>
+            </ThreadItemContent>
+          </ThreadItem>
+          <ThreadItem>
+            <ThreadItemGutter>
+              <Avatar size="sm">
+                <AvatarFallback>HH</AvatarFallback>
+              </Avatar>
+            </ThreadItemGutter>
+            <ThreadItemContent>
+              <ThreadItemHeader>
+                <ThreadItemAuthor>HedgeHug</ThreadItemAuthor>
+                <Tag>App</Tag>
+                <ThreadItemTimestamp>10:42</ThreadItemTimestamp>
+              </ThreadItemHeader>
+              <ThreadItemBody className="flex flex-col gap-1.5">
+                <span className="inline-flex w-fit items-center gap-2 rounded-md border bg-muted px-2.5 py-1.5 text-xs font-medium">
+                  <span className="text-base">{card.preview}</span>
+                  {card.name}
                 </span>
-                <IconButton label="Move up" disabled={i === 0} onClick={() => setLoadout((l) => ({ ...l, quips: move(l.quips, i, i - 1) }))}>
-                  ↑
-                </IconButton>
-                <IconButton label="Move down" disabled={i === favourites.length - 1} onClick={() => setLoadout((l) => ({ ...l, quips: move(l.quips, i, i + 1) }))}>
-                  ↓
-                </IconButton>
-                <IconButton label="Remove" onClick={() => equip(q)}>
-                  ✕
-                </IconButton>
-              </li>
-            ))}
-          </ol>
-        )}
-        {favourites.length > 1 && <p className="text-xs text-muted">Your kudos take turns through these, top to bottom.</p>}
-        {spareQuips.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {spareQuips.map((q) => (
-              <button key={q.id} onClick={() => equip(q)} className="cursor-pointer rounded-full border border-dashed border-line-strong px-2.5 py-1 text-xs font-semibold text-muted hover:text-ink">
-                + “{q.name}”
-              </button>
-            ))}
-          </div>
-        )}
-      </LoadoutRow>
-      <LoadoutRow label="Kudos emoji" hint="every one is worth 1 kudos">
-        <div className="flex flex-wrap gap-2">
-          {owned("emoji").map((c) => {
-            const on = loadout.emoji.includes(c.id);
-            return (
-              <button
-                key={c.id}
-                onClick={() => equip(c)}
-                aria-pressed={on}
-                title={c.name}
-                className={`flex cursor-pointer flex-col items-center gap-0.5 rounded-md border-2 px-2.5 py-1.5 ${on ? `${rarityBorder[c.rarity]} bg-marker/50` : "border-line bg-surface-2 opacity-70 hover:opacity-100"}`}
-              >
-                <span className="text-2xl">{c.preview}</span>
-                <Rarity rarity={c.rarity} className="text-[10px] font-medium text-muted" />
-              </button>
-            );
-          })}
-        </div>
-      </LoadoutRow>
-    </Panel>
-  );
-}
-
-function IconButton({ label, disabled, onClick, children }: { label: string; disabled?: boolean; onClick: () => void; children: ReactNode }) {
-  return (
-    <button
-      aria-label={label}
-      title={label}
-      disabled={disabled}
-      onClick={onClick}
-      className="flex size-7 cursor-pointer items-center justify-center rounded border border-line bg-surface text-sm font-bold text-muted hover:border-line-strong hover:text-ink disabled:cursor-not-allowed disabled:opacity-35"
-    >
-      {children}
-    </button>
-  );
-}
-
-function PreviewPanel({
-  shown,
-  animate,
-  trying,
-  stopTrying,
-  quipCount,
-  nextQuip,
-  emoji,
-  emojiShown,
-  setEmojiShown,
-}: {
-  shown: ShownLoadout;
-  animate: boolean;
-  trying: Cosmetic | null;
-  stopTrying: () => void;
-  quipCount: number;
-  nextQuip: () => void;
-  emoji: string[];
-  emojiShown: number;
-  setEmojiShown: (i: number) => void;
-}) {
-  return (
-    <Panel title="How it looks in Slack" bodyClass="p-4 sm:p-5 space-y-3">
-      <div className="flex items-end gap-1">
-        <Hand className="text-lg">everyone in the channel sees this</Hand>
-        <Arrow className="hidden -rotate-12 sm:block" />
+                <span>
+                  {emoji} <b>{me.name} · {loadout.title}</b> → <Mentions />
+                </span>
+                {quip && <span className="text-muted-foreground">“{quip}”</span>}
+              </ThreadItemBody>
+            </ThreadItemContent>
+          </ThreadItem>
+        </ThreadItemGroup>
       </div>
-      {trying && (
-        <div className="flex items-center gap-2 rounded-md bg-marker px-3 py-2 text-sm">
-          <span className="min-w-0 flex-1">
-            Previewing <b>{trying.name}</b>
-            {!trying.owned && <span className="text-muted"> · not yours yet, {notYetHint[trying.source].toLowerCase()}</span>}
-          </span>
-          <Button small tone="plain" onClick={stopTrying}>
-            Stop
-          </Button>
-        </div>
-      )}
-      <SlackPreview shown={shown} animate={animate} />
-      <div className="flex flex-wrap items-center gap-2 text-sm">
-        {quipCount > 1 && (
-          <Button small tone="plain" onClick={nextQuip}>
-            ↻ Next quip
-          </Button>
-        )}
-        {emoji.length > 1 && (
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-muted">Kudos with</span>
-            {emoji.map((id, i) => (
-              <button
-                key={id}
-                onClick={() => setEmojiShown(i)}
-                aria-pressed={i === emojiShown % emoji.length}
-                className={`cursor-pointer rounded px-1 text-lg ${i === emojiShown % emoji.length ? "bg-surface-2 ring-1 ring-line-strong" : "opacity-60"}`}
-              >
-                {byId(id).preview}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-      <p className="text-xs text-muted">The app posts this as one reply under your kudos message, only when you have a quip picked.</p>
-    </Panel>
+      <p className="text-xs text-muted-foreground">The bot's reply under your kudos message. It shows your first quip; the next kudos uses the next one.</p>
+    </div>
   );
 }
 
-function CollectionPanel({ loadout, equip, tryOn, trying }: { loadout: Loadout; equip: (c: Cosmetic) => void; tryOn: (c: Cosmetic) => void; trying: Cosmetic | null }) {
-  const [kind, setKind] = useState<CosmeticKind | "all">("all");
-  const [rarity, setRarity] = useState<RarityKind | "all">("all");
-  const [showNotYet, setShowNotYet] = useState(true);
-  const list = cosmetics.filter((c) => (kind === "all" || c.kind === kind) && (rarity === "all" || c.rarity === rarity) && (showNotYet || c.owned));
-  const equipped = (c: Cosmetic) => [loadout.title, loadout.card, ...loadout.quips, ...loadout.emoji].includes(c.id);
-
-  return (
-    <Panel title="Everything you own" bodyClass="p-4 sm:p-5 space-y-4">
-      <div className="space-y-2">
-        <FilterRow>
-          <FilterChip on={kind === "all"} onClick={() => setKind("all")}>
-            All kinds
-          </FilterChip>
-          {kinds.map((k) => (
-            <FilterChip key={k} on={kind === k} onClick={() => setKind(k)}>
-              {kindLabel[k]}
-            </FilterChip>
-          ))}
-        </FilterRow>
-        <FilterRow>
-          <FilterChip on={rarity === "all"} onClick={() => setRarity("all")}>
-            Any rarity
-          </FilterChip>
-          {rarities.map((r) => (
-            <FilterChip key={r} on={rarity === r} onClick={() => setRarity(r)}>
-              <Rarity rarity={r} />
-            </FilterChip>
-          ))}
-        </FilterRow>
-        <label className="flex cursor-pointer items-center gap-2 text-sm text-muted">
-          <input type="checkbox" className="size-4 accent-orange" checked={showNotYet} onChange={(e) => setShowNotYet(e.target.checked)} />
-          Show ones you don't have yet
-        </label>
-      </div>
-      {list.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted">Nothing here with these filters.</p>
-      ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {list.map((c) => (
-            <CosmeticCard key={c.id} cosmetic={c} equipped={equipped(c)} previewing={trying?.id === c.id} equip={() => equip(c)} tryOn={() => tryOn(c)} />
-          ))}
-        </div>
-      )}
-    </Panel>
-  );
-}
-
-function FilterRow({ children }: { children: ReactNode }) {
-  return <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">{children}</div>;
-}
-
-function FilterChip({ on, onClick, children }: { on: boolean; onClick: () => void; children: ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      aria-pressed={on}
-      className={`flex shrink-0 cursor-pointer items-center whitespace-nowrap rounded-full border px-3 py-1 text-xs font-bold ${on ? "border-ink bg-ink text-bg" : "border-line bg-surface-2 text-muted hover:text-ink"}`}
-    >
-      {children}
-    </button>
-  );
-}
-
-function CosmeticCard({ cosmetic: c, equipped, previewing, equip, tryOn }: { cosmetic: Cosmetic; equipped: boolean; previewing: boolean; equip: () => void; tryOn: () => void }) {
-  const kindSingular = { quip: "Quip", card: "Card", title: "Title", emoji: "Kudos emoji" }[c.kind];
-  return (
-    <article className={`flex flex-col rounded-lg border-2 bg-surface p-3 ${c.owned ? rarityBorder[c.rarity] : "border-dashed border-line"}`}>
-      <div className={`mb-2 flex h-16 items-center justify-center rounded-md bg-surface-2 text-3xl ${c.owned ? "" : "opacity-40 grayscale"}`}>
-        {c.kind === "quip" ? <span className="px-2 text-center text-sm font-semibold italic">“{c.name}”</span> : c.preview}
-      </div>
-      <div className={`min-w-0 flex-1 space-y-1 ${c.owned ? "" : "opacity-70"}`}>
-        <div className="text-[11px] font-bold uppercase tracking-wide text-faint">{kindSingular}</div>
-        {c.kind !== "quip" && <div className="truncate font-display text-sm font-extrabold">{c.name}</div>}
-        <Rarity rarity={c.rarity} />
-        <div className="text-xs text-muted">{c.owned ? sourceLabel[c.source] : notYetHint[c.source]}</div>
-      </div>
-      <div className="mt-3 flex flex-wrap items-center gap-1.5">
-        {c.owned ? <OwnedActions kind={c.kind} equipped={equipped} equip={equip} /> : <NotYetActions source={c.source} previewing={previewing} tryOn={tryOn} />}
-      </div>
-    </article>
-  );
-}
-
-function OwnedActions({ kind, equipped, equip }: { kind: CosmeticKind; equipped: boolean; equip: () => void }) {
-  const single = kind === "title" || kind === "card";
-  if (equipped && single) return <Pill tone="green">✓ Equipped</Pill>;
-  return (
-    <Button small tone={equipped ? "plain" : "yellow"} onClick={equip}>
-      {equipped ? "Take off" : single ? "Equip" : "Add"}
-    </Button>
-  );
-}
-
-function NotYetActions({ source, previewing, tryOn }: { source: CosmeticSource; previewing: boolean; tryOn: () => void }) {
+function Mentions() {
   return (
     <>
-      <Pill>Not yet</Pill>
-      {source === "store" && (
-        <Button small tone="plain" onClick={tryOn} disabled={previewing}>
-          {previewing ? "Previewing" : "Preview"}
-        </Button>
-      )}
+      {recipients.map((r, i) => (
+        <span key={r.id}>
+          {i > 0 && " "}
+          <ThreadItemMention>@{r.name}</ThreadItemMention>
+        </span>
+      ))}
     </>
+  );
+}
+
+function CollectionTable({ loadout, onEquip }: { loadout: Loadout; onEquip: (c: Cosmetic) => void }) {
+  const [kind, setKind] = useState<KindFilter>("all");
+  const shown = cosmetics.filter((c) => kind === "all" || c.kind === kind);
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-sm font-medium">Everything you've found</h2>
+        <ToggleGroup variant="outline" size="sm" value={[kind]} onValueChange={(v) => v[0] && setKind(v[0] as KindFilter)} className="flex-wrap">
+          {filters.map((f) => (
+            <ToggleGroupItem key={f.value} value={f.value}>
+              {f.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </div>
+      <Card size="sm" flush>
+        <Table size="sm" fullWidth>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead className="hidden sm:table-cell">Kind</TableHead>
+              <TableHead>Rarity</TableHead>
+              <TableHead className="hidden sm:table-cell">Source</TableHead>
+              <TableHead className="text-right">
+                <span className="sr-only">Action</span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {shown.map((c) => (
+              <TableRow key={c.id}>
+                <TableCell>
+                  <div className={`flex items-center gap-2 ${c.owned ? "" : "text-muted-foreground"}`}>
+                    {(c.kind === "card" || c.kind === "emoji") && <span className="text-base">{c.preview}</span>}
+                    <span className="font-medium">{c.kind === "quip" ? `“${c.name}”` : c.name}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground sm:hidden">
+                    {kindLabel[c.kind]} · {sourceLabel[c.source]}
+                  </div>
+                </TableCell>
+                <TableCell className="hidden text-muted-foreground sm:table-cell">{kindLabel[c.kind]}</TableCell>
+                <TableCell>
+                  <Rarity rarity={c.rarity} />
+                </TableCell>
+                <TableCell className="hidden text-muted-foreground sm:table-cell">{sourceLabel[c.source]}</TableCell>
+                <TableCell className="text-right">
+                  <EquipAction cosmetic={c} equipped={isEquipped(loadout, c)} onEquip={() => onEquip(c)} />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+    </section>
+  );
+}
+
+function EquipAction({ cosmetic, equipped, onEquip }: { cosmetic: Cosmetic; equipped: boolean; onEquip: () => void }) {
+  if (!cosmetic.owned) return <span className="whitespace-nowrap text-xs text-muted-foreground">Not found yet</span>;
+  if (!equipped)
+    return (
+      <Button variant="outline" size="xs" onClick={onEquip}>
+        Equip
+      </Button>
+    );
+  const single = isSingle(cosmetic.kind);
+  return (
+    <Button variant="default" size="xs" onClick={single ? undefined : onEquip} disabled={single} aria-pressed={!single || undefined} title={single ? undefined : "Take off"}>
+      <IconCheck />
+      Equipped
+    </Button>
   );
 }
 
 function DropOdds() {
   return (
-    <Panel title="Drop odds">
-      <p className="mb-3 text-sm text-muted">The long-run chance that a thoughtful kudos you give finds a cosmetic, by rarity. The chance creeps up after every miss, and you never find the same one twice.</p>
-      <ul className="divide-y divide-line rounded-md border border-line">
-        {dropOdds.map((d) => (
-          <li key={d.rarity} className="flex items-center justify-between px-3 py-2">
-            <Rarity rarity={d.rarity} className="text-sm" />
-            <span className="font-mono text-sm font-semibold tabular-nums">{d.chance}</span>
-          </li>
-        ))}
-      </ul>
-      <p className="mt-3 text-xs text-muted">Rarity never changes what a kudos is worth. A legendary card and a common one both say thanks the same.</p>
-    </Panel>
+    <Card size="sm">
+      <CardHeader>
+        <CardTitle>Drop odds</CardTitle>
+        <CardDescription>The long-run chance that a thoughtful kudos you give finds a cosmetic.</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <dl className="flex flex-col divide-y text-sm">
+          {dropOdds.map((d) => (
+            <div key={d.rarity} className="flex items-center justify-between py-1.5">
+              <dt>
+                <Rarity rarity={d.rarity} />
+              </dt>
+              <dd className="tabular-nums">{d.chance}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="text-xs text-muted-foreground">Rarity never changes what a kudos is worth. A legendary card says thanks the same as a common one.</p>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -452,26 +346,26 @@ function Boosters() {
   const [boosters, setBoosters] = useState(me.boosters);
   const switchOn = (name: string) => setBoosters((list) => list.map((b) => (b.name === name ? { ...b, state: "running" as const } : b)));
   return (
-    <Panel title="Boosters">
-      <p className="mb-3 text-sm text-muted">Boosters you hold. A waiting one keeps until you switch it on, whenever suits you.</p>
-      <ul className="space-y-2">
-        {boosters.map((b) => (
-          <li key={b.name} className="flex items-center gap-3 rounded-md border border-line bg-surface-2 px-3 py-2.5">
-            <span className="text-xl">{b.name.includes("Lantern") ? "🏮" : "⚡"}</span>
-            <div className="min-w-0 flex-1">
-              <div className="text-sm font-bold">{b.name}</div>
-              <div className="text-xs text-muted">{b.state === "waiting" ? "Waiting to be switched on" : b.endsIn ? `Running, for about ${b.endsIn} more` : "Running"}</div>
-            </div>
-            {b.state === "running" ? (
-              <Pill tone="green">Running</Pill>
-            ) : (
-              <Button small onClick={() => switchOn(b.name)}>
-                Switch on
-              </Button>
-            )}
-          </li>
-        ))}
-      </ul>
-    </Panel>
+    <Card size="sm">
+      <CardHeader>
+        <CardTitle>Boosters</CardTitle>
+        <CardDescription>A waiting booster keeps until you switch it on, whenever suits you.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ItemGroup>
+          {boosters.map((b) => (
+            <Item key={b.name} size="sm">
+              <ItemContent>
+                <ItemTitle>{b.name}</ItemTitle>
+                <ItemDescription>{b.state === "running" ? "Running" : "Waiting"}</ItemDescription>
+              </ItemContent>
+              <ItemActions>
+                <Switch checked={b.state === "running"} disabled={b.state === "running"} onCheckedChange={(on) => on && switchOn(b.name)} aria-label={`Switch on ${b.name}`} />
+              </ItemActions>
+            </Item>
+          ))}
+        </ItemGroup>
+      </CardContent>
+    </Card>
   );
 }

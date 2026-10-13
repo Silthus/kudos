@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import { IconBook, IconHome, IconListTree, IconPalette, IconRibbon, IconStar, IconUser } from "@posthog/icons";
 import type { ScreenId } from "../nav";
 import { Achievements } from "./Achievements";
 import { Collection } from "./Collection";
@@ -8,14 +9,14 @@ import { Profile } from "./Profile";
 import { Skills } from "./Skills";
 import { Stickers } from "./Stickers";
 
-export type ScreenDef = { id: ScreenId; label: string; icon: string; Component: ComponentType<{ param?: string }>; inNav: boolean };
+export type ScreenDef = { id: ScreenId; label: string; Icon: ComponentType<{ className?: string }>; Component: ComponentType<{ param?: string }>; inNav: boolean };
 
 export const screens: ScreenDef[] = [
-  { id: "profile", label: "Profile", icon: "🦔", Component: Profile, inNav: true },
-  { id: "skills", label: "Skill tree", icon: "🌱", Component: Skills, inNav: true },
-  { id: "stickers", label: "Sticker book", icon: "📒", Component: Stickers, inNav: true },
-  { id: "achievements", label: "Achievements", icon: "🏅", Component: Achievements, inNav: true },
-  { id: "collection", label: "Collection", icon: "🎒", Component: Collection, inNav: true },
-  { id: "leaderboard", label: "Leaderboard", icon: "🏆", Component: Leaderboard, inNav: true },
-  { id: "landing", label: "Welcome back", icon: "🔗", Component: Landing, inNav: false },
+  { id: "profile", label: "Profile", Icon: IconUser, Component: Profile, inNav: true },
+  { id: "skills", label: "Skill tree", Icon: IconListTree, Component: Skills, inNav: true },
+  { id: "stickers", label: "Sticker book", Icon: IconBook, Component: Stickers, inNav: true },
+  { id: "achievements", label: "Achievements", Icon: IconRibbon, Component: Achievements, inNav: true },
+  { id: "collection", label: "Collection", Icon: IconPalette, Component: Collection, inNav: true },
+  { id: "leaderboard", label: "Leaderboard", Icon: IconStar, Component: Leaderboard, inNav: true },
+  { id: "landing", label: "Welcome back", Icon: IconHome, Component: Landing, inNav: false },
 ];

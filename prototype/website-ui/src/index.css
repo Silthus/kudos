@@ -1,77 +1,15 @@
 @import "tailwindcss";
+@import "@posthog/quill/tokens.css";
+@import "@posthog/quill/base.css";
+@import "@posthog/quill/primitives.css";
+@import "@posthog/quill/tailwind.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* PROTOTYPE tokens. Colour values follow the PostHog brand palette (brand.posthog.com/colors)
-   and posthog.com. Fonts: IBM Plex Sans (body, as posthog.com) and Nunito as a free stand-in
-   for PostHog's licensed RoundHog display face. */
-:root {
-  --bg: #eeefe9;
-  --desk: #e5e7e0;
-  --surface: #fdfdf8;
-  --surface-2: #f4f4ef;
-  --border: #d0d1c9;
-  --border-strong: #b6b7af;
-  --ink: #151515;
-  --muted: #5d5f57;
-  --faint: #8c8e85;
-  --marker: #f5e2b2;
-  --orange: #f54e00;
-  --orange-dark: #c23d00;
-  --yellow: #f7a501;
-  --yellow-dark: #c98600;
-  --blue: #1d4aff;
-  --blue-light: #a1d3f7;
-  --green: #47c861;
-  --teal: #43dab3;
-  --violet: #6d4fff;
-  --coral: #ff474d;
-  --lemon: #ffce1c;
-  --shadow: 0 1px 0 rgba(0, 0, 0, 0.04), 0 8px 24px -12px rgba(30, 31, 35, 0.25);
-}
-
-.dark {
-  --bg: #1c1d22;
-  --desk: #16171b;
-  --surface: #26272d;
-  --surface-2: #2f3037;
-  --border: #3b3d45;
-  --border-strong: #555761;
-  --ink: #eeefe9;
-  --muted: #b3b4ab;
-  --faint: #868880;
-  --marker: #6b5418;
-  --shadow: 0 1px 0 rgba(0, 0, 0, 0.3), 0 10px 30px -12px rgba(0, 0, 0, 0.7);
-}
-
+/* PROTOTYPE. Everything uses Quill's tokens. The WoW rarity colours (P35) are the only extra colours,
+   used only through <Rarity />. */
 @theme {
-  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif, "Noto Color Emoji";
-  --font-display: "Nunito", "IBM Plex Sans", ui-sans-serif, sans-serif, "Noto Color Emoji";
-  --font-hand: "Caveat", "Comic Sans MS", cursive, "Noto Color Emoji";
-  --font-mono: "Source Code Pro", ui-monospace, monospace, "Noto Color Emoji";
-  --color-bg: var(--bg);
-  --color-desk: var(--desk);
-  --color-surface: var(--surface);
-  --color-surface-2: var(--surface-2);
-  --color-line: var(--border);
-  --color-line-strong: var(--border-strong);
-  --color-ink: var(--ink);
-  --color-muted: var(--muted);
-  --color-faint: var(--faint);
-  --color-marker: var(--marker);
-  --color-orange: var(--orange);
-  --color-orange-dark: var(--orange-dark);
-  --color-yellow: var(--yellow);
-  --color-yellow-dark: var(--yellow-dark);
-  --color-blue: var(--blue);
-  --color-blue-light: var(--blue-light);
-  --color-green: var(--green);
-  --color-teal: var(--teal);
-  --color-violet: var(--violet);
-  --color-coral: var(--coral);
-  --color-lemon: var(--lemon);
-  /* WoW rarity colours (P35). Use ONLY through <Rarity />. */
-  --color-r-common: #b9b9b9;
+  --color-r-common: #9d9d9d;
   --color-r-uncommon: #1eff00;
   --color-r-rare: #0070dd;
   --color-r-epic: #a335ee;
@@ -80,78 +18,12 @@
 
 html,
 body {
-  background: var(--bg);
-  color: var(--ink);
+  background: var(--background);
+  color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
-.shadow-ph {
-  box-shadow: var(--shadow);
-}
-
-/* posthog.com's chunky buttons: a solid face sitting on a darker ledge */
-.btn-3d {
-  position: relative;
-  border-radius: 6px;
-  border: 1.5px solid var(--btn-edge);
-  background: var(--btn-ledge);
-  padding: 0 0 3px 0;
-  transition: transform 80ms ease;
-}
-.btn-3d > span {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  border-radius: 5px;
-  background: var(--btn-face);
-  color: var(--btn-ink);
-  padding: 0.45rem 0.9rem;
-  font-weight: 700;
-  transform: translateY(-2px);
-  transition: transform 80ms ease;
-}
-.btn-3d:hover > span {
-  transform: translateY(-3px);
-}
-.btn-3d:active > span {
-  transform: translateY(0);
-}
-.btn-3d:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-/* highlighter marker behind words, as on posthog.com */
-.marker {
-  background: linear-gradient(100deg, transparent 2%, var(--marker) 4%, var(--marker) 94%, transparent 97%);
-  background-size: 100% 70%;
-  background-position: 0 70%;
-  background-repeat: no-repeat;
-  padding: 0 0.15em;
-  border-radius: 3px;
-  box-decoration-break: clone;
-}
-
-.dotgrid {
-  background-image: radial-gradient(var(--border) 1px, transparent 1px);
-  background-size: 18px 18px;
-}
-
-@keyframes pop {
-  0% { transform: scale(0.6) rotate(-6deg); opacity: 0; }
-  60% { transform: scale(1.08) rotate(2deg); opacity: 1; }
-  100% { transform: scale(1) rotate(0); }
-}
-.animate-pop { animation: pop 450ms cubic-bezier(.2,.9,.3,1.3) both; }
-
-@keyframes wiggle {
-  0%, 100% { transform: rotate(-3deg); }
-  50% { transform: rotate(3deg); }
-}
-.animate-wiggle { animation: wiggle 1.6s ease-in-out infinite; transform-origin: 50% 90%; }
-
-@keyframes confetti-fall {
-  0% { transform: translateY(-20px) rotate(0); opacity: 1; }
-  100% { transform: translateY(260px) rotate(540deg); opacity: 0; }
+:root {
+  --font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif, "Noto Color Emoji";
 }

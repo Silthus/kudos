@@ -9,6 +9,9 @@
   },
   "dependencies": {
     "@convex-dev/static-hosting": "^0.2.1",
+    "@posthog/brand": "^0.13.0",
+    "@posthog/icons": "0.39.0",
+    "@posthog/quill": "0.3.0-beta.30",
     "convex": "^1.46.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"

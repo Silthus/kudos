@@ -1,123 +1,112 @@
-// PROTOTYPE achievements screen: a summary, the closest next tiers, a privacy stub, and every ladder.
+// PROTOTYPE achievements: every ladder in one table, its four tiers, the count and the next tier to earn.
+import { Card, CardContent, Label, Switch, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tooltip, TooltipContent, TooltipTrigger } from "@posthog/quill";
 import { useState } from "react";
 import { ladders, me } from "../data/mock";
-import type { Tier } from "../data/types";
-import { Bubble, Hand, Hog, Panel, Squiggle, TierMedal } from "../ui";
-import { LadderCard, nextTierOf, toGo } from "./achievements/LadderCard";
+import type { Ladder, LadderTier } from "../data/types";
+import { HedgehogStar, PageHeader, TierMedal, tierLabel } from "../ui";
 
-const tierOrder: Tier[] = ["bronze", "silver", "gold", "diamond"];
+const allTiers = ladders.flatMap((l) => l.tiers);
+const earnedTiers = allTiers.filter((t) => t.earned).length;
 
 export function Achievements(_props: { param?: string }) {
-  return (
-    <div className="space-y-6">
-      <Summary />
-      <div className="grid gap-4 lg:grid-cols-2">
-        {ladders.map((l) => (
-          <LadderCard key={l.id} ladder={l} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function Summary() {
-  const allTiers = ladders.flatMap((l) => l.tiers);
-  const earned = allTiers.filter((t) => t.earned).length;
-  return (
-    <section className="rounded-lg border border-line bg-surface p-5 shadow-ph">
-      <div className="grid gap-6 md:grid-cols-[1fr_auto]">
-        <div className="space-y-4">
-          <div>
-            <h1 className="font-display text-3xl font-black tracking-tight">Achievements</h1>
-            <p className="mt-1 text-sm text-muted">
-              <span className="marker font-bold text-ink">
-                {earned} of {allTiers.length} tiers
-              </span>{" "}
-              earned across {ladders.length} ladders.
-            </p>
-            <Squiggle className="mt-1" width={140} />
-          </div>
-          <ul className="grid grid-cols-4 gap-2 sm:max-w-md">
-            {tierOrder.map((tier) => {
-              const ofTier = allTiers.filter((t) => t.tier === tier);
-              const got = ofTier.filter((t) => t.earned).length;
-              return (
-                <li key={tier} className="flex flex-col items-center rounded-md border border-line bg-surface-2 px-1 py-2 text-center">
-                  <TierMedal tier={tier} earned={got > 0} size={32} />
-                  <span className="font-display text-lg font-black leading-none">
-                    {got}
-                    <span className="text-xs font-semibold text-faint">/{ofTier.length}</span>
-                  </span>
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-faint">{tier}</span>
-                </li>
-              );
-            })}
-          </ul>
-          <p className="text-xs text-muted">Every tier unlocks an exclusive cosmetic. That's the whole prize: no XP, no skill points, no coins. Just nice things to show off.</p>
-        </div>
-        <ClosestNext />
-      </div>
-      <PrivacyStub />
-    </section>
-  );
-}
-
-function ClosestNext() {
-  const closest = ladders
-    .flatMap((l) => {
-      const next = nextTierOf(l);
-      return next ? [{ ladder: l, tier: next, closeness: l.count / next.threshold }] : [];
-    })
-    .sort((a, b) => b.closeness - a.closeness)
-    .slice(0, 3);
-  const [top] = closest;
-  if (!top) return null;
-  return (
-    <div className="space-y-3 md:w-72">
-      <div className="flex items-end gap-2">
-        <Hog size={64} mood="happy" className="shrink-0" />
-        <Bubble className="mb-6">
-          {top.ladder.name} is {toGo(top.ladder, top.tier)} away from {top.tier.name}. So close I can smell it.
-        </Bubble>
-      </div>
-      <div>
-        <Hand className="text-lg">closest next tiers</Hand>
-        <ul className="mt-1 space-y-1.5">
-          {closest.map(({ ladder, tier }) => (
-            <li key={ladder.id} className="flex items-center gap-2 rounded-md border border-line bg-surface-2 px-2.5 py-1.5 text-sm">
-              <TierMedal tier={tier.tier} earned={false} size={24} />
-              <span className="min-w-0 flex-1 truncate">
-                <span className="font-bold">{tier.name}</span> <span className="text-muted">· {ladder.name}</span>
-              </span>
-              <span className="shrink-0 text-xs font-bold text-orange">{toGo(ladder, tier)} to go</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-}
-
-function PrivacyStub() {
   const [hidden, setHidden] = useState(me.privacy.hideAchievements);
   return (
-    <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line pt-4">
-      <button
-        role="switch"
-        aria-checked={hidden}
-        onClick={() => setHidden((h) => !h)}
-        className="inline-flex items-center gap-2 rounded-full border border-line-strong bg-surface-2 py-1 pl-1 pr-3 text-sm font-semibold"
-      >
-        <span className={`flex h-5 w-9 items-center rounded-full p-0.5 transition ${hidden ? "bg-orange" : "bg-line-strong"}`}>
-          <span className={`size-4 rounded-full bg-surface shadow transition ${hidden ? "translate-x-4" : ""}`} />
-        </span>
-        Hidden from teammates: {hidden ? "on" : "off"}
-      </button>
-      <p className="min-w-0 flex-1 basis-64 text-xs text-muted">
-        {hidden
-          ? "Done. Your achievements, and any you earn later, never show to anyone else. You still see them here. (Prototype: nothing was saved.)"
-          : "Switch it on and your achievements never show to anyone else. You'll still see them here."}
-      </p>
+    <>
+      <PageHeader
+        title="Achievements"
+        hog={HedgehogStar}
+        description={
+          <>
+            <span className="font-medium text-foreground">
+              {earnedTiers} of {allTiers.length} tiers earned
+            </span>{" "}
+            across {ladders.length} ladders. Tiers unlock cosmetics, never XP, skill points or coins.
+          </>
+        }
+        actions={
+          <Label className="flex items-center gap-2 text-sm">
+            <Switch size="sm" checked={hidden} onCheckedChange={setHidden} />
+            Hide my achievements from teammates
+          </Label>
+        }
+      />
+      {hidden && <p className="-mt-2 mb-4 text-xs text-muted-foreground">Hidden. Teammates won't see these, now or later. You still do. Prototype: nothing was saved.</p>}
+      <Card size="sm" flush>
+        <CardContent>
+          <Table fullWidth>
+            <TableHeader>
+              <TableRow>
+                <TableHead expand>Ladder</TableHead>
+                <TableHead className="hidden sm:table-cell">Tiers</TableHead>
+                <TableHead align="right">Next tier</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {ladders.map((ladder) => (
+                <LadderRow key={ladder.id} ladder={ladder} />
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
+function LadderRow({ ladder }: { ladder: Ladder }) {
+  const next = ladder.tiers.find((t) => !t.earned);
+  return (
+    <TableRow>
+      <TableCell expand>
+        <div className="text-sm font-medium">{ladder.name}</div>
+        <div className="text-xs text-muted-foreground">
+          {sentenceCase(ladder.counts)}: <span className="tabular-nums">{ladder.count}</span>
+        </div>
+        <Medals ladder={ladder} className="mt-2 sm:hidden" />
+      </TableCell>
+      <TableCell className="hidden sm:table-cell">
+        <Medals ladder={ladder} />
+      </TableCell>
+      <TableCell align="right">
+        {next ? (
+          <>
+            <div className="text-sm sm:whitespace-nowrap">{next.name}</div>
+            <div className="text-xs tabular-nums text-muted-foreground">{next.threshold - ladder.count} to go</div>
+          </>
+        ) : (
+          <div className="text-sm text-muted-foreground">All four earned</div>
+        )}
+      </TableCell>
+    </TableRow>
+  );
+}
+
+const sentenceCase = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
+function Medals({ ladder, className = "" }: { ladder: Ladder; className?: string }) {
+  return (
+    <div className={`flex items-center gap-1 ${className}`}>
+      {ladder.tiers.map((tier) => (
+        <TierTip key={tier.tier} tier={tier} counts={ladder.counts} />
+      ))}
     </div>
+  );
+}
+
+function TierTip({ tier, counts }: { tier: LadderTier; counts: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger render={<button type="button" className="rounded-full" />}>
+        <TierMedal tier={tier.tier} earned={tier.earned} size={22} />
+      </TooltipTrigger>
+      <TooltipContent>
+        <div className="font-medium">
+          {tierLabel[tier.tier]}: {tier.name}
+        </div>
+        <div>
+          {tier.threshold} {counts}. Unlocks {tier.reward}.{tier.earned ? " Earned." : ""}
+        </div>
+      </TooltipContent>
+    </Tooltip>
   );
 }
