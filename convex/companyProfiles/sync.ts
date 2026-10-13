@@ -108,7 +108,8 @@ function teamsPage(body: unknown): TeamsPage | undefined {
 function isConsistent(parsed: TeamsPage, page: number, pageCountSoFar: number) {
   const firstPage = page === 1;
   const pageCountHolds = firstPage ? Number.isInteger(parsed.pageCount) && parsed.pageCount >= 1 && parsed.pageCount <= mostPages : parsed.pageCount === pageCountSoFar;
-  return parsed.page === page && pageCountHolds;
+  const teamsHold = firstPage || parsed.teams.length > 0;
+  return parsed.page === page && pageCountHolds && teamsHold;
 }
 
 function teamOf(team: unknown): Team | undefined {
@@ -156,7 +157,7 @@ function sizedCutout(cutout: unknown) {
 }
 
 function colourOf(name: unknown) {
-  return (typeof name === "string" && profileColours[name]) || neutralColour;
+  return typeof name === "string" && Object.hasOwn(profileColours, name) ? profileColours[name]! : neutralColour;
 }
 
 function at(value: unknown, ...path: string[]): unknown {
