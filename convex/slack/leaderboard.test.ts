@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { internal } from "../_generated/api";
 import { record } from "../workspace/directory";
-import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
+import { type FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { everyone, stubSandboxWithFlags, testBackendServing } from "../../testing/flags";
+import { onForEveryone, postHogDeciding, testBackendServing } from "../../testing/flags";
 import { settle, type Backend } from "../../testing/slackBackend";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { emoji, mention, messageEvent, section } from "../../testing/slackMessages";
@@ -19,8 +19,7 @@ beforeEach(() => {
   vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
   vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
   slack = new FakeSlack().withMember("U_REC");
-  stubSandboxWithFlags();
-  postHog = new FakePostHog();
+  postHog = postHogDeciding();
   vi.stubGlobal("fetch", routedFetch(postHog, slack.fetch));
 });
 
@@ -34,7 +33,7 @@ const nineGivers = ["U1", "U2", "U3", "U4", "U5", "U6", "U7", "U8", "U9"];
 
 describe("G23: /hedgehug leaderboard", () => {
   test("G13 G16 G17: privately shows this week's Everyone board of kudos given, with medals, shared ranks and one gap above the viewer", async () => {
-    const t = await testBackendServing(postHog, everyone("everyone-board"));
+    const t = await testBackendServing(postHog, onForEveryone("everyone-board"));
     for (const [index, giver] of nineGivers.entries()) {
       slack.withMember(giver, { profile: { display_name: `Person ${index + 1}` } });
       await giveKudos(t, giver, "U_REC", 3 - Math.floor(index / 3), index);
@@ -61,7 +60,7 @@ describe("G23: /hedgehug leaderboard", () => {
   });
 
   test("G13 G17: a member who only received kudos isn't on it, sees the top 3 and is told how to join", async () => {
-    const t = await testBackendServing(postHog, everyone("everyone-board"));
+    const t = await testBackendServing(postHog, onForEveryone("everyone-board"));
     for (const [index, giver] of nineGivers.slice(0, 4).entries()) {
       slack.withMember(giver);
       await giveKudos(t, giver, "U_REC", 3 - index, index);
@@ -73,7 +72,7 @@ describe("G23: /hedgehug leaderboard", () => {
   });
 
   test("G16: givers with equal totals list by their Slack display name, or their real name without one", async () => {
-    const t = await testBackendServing(postHog, everyone("everyone-board"));
+    const t = await testBackendServing(postHog, onForEveryone("everyone-board"));
     slack.withMember("U_ANN", { profile: { display_name: "Zora" } }).withMember("U_BOB", { real_name: "Ava Stone", profile: { display_name: "" } });
     await giveKudos(t, "U_ANN", "U_REC", 1, 0);
     await giveKudos(t, "U_BOB", "U_REC", 1, 1);
@@ -84,7 +83,7 @@ describe("G23: /hedgehug leaderboard", () => {
   });
 
   test("G16: members the directory knew before it kept names get them from users.list, and a name it has stays", async () => {
-    const t = await testBackendServing(postHog, everyone("everyone-board"));
+    const t = await testBackendServing(postHog, onForEveryone("everyone-board"));
     await knownWithoutName(t, "U_ANN", "U_BOB", "U_CY");
     slack.withMember("U_ANN", { profile: { display_name: "Zora" } }).withMember("U_BOB", { profile: { display_name: "Ava" } }).withMember("U_CY", { profile: { display_name: "Abe" } });
     await t.run((ctx) => record(ctx, { workspace: "T1", user: "U_CY", entry: { kind: "member", name: "Zed" }, asOf: Date.now() }));
@@ -98,7 +97,7 @@ describe("G23: /hedgehug leaderboard", () => {
   test("an award counts in the week of its giver's allowance day, in each giver's time zone", async () => {
     const mondayMorningInBerlin = new Date("2026-10-12T05:00:00Z");
     vi.setSystemTime(mondayMorningInBerlin);
-    const t = await testBackendServing(postHog, everyone("everyone-board"));
+    const t = await testBackendServing(postHog, onForEveryone("everyone-board"));
     slack.withMember("U_LA", { tz: "America/Los_Angeles" }).withMember("U_BERLIN", { tz: "Europe/Berlin" });
     await giveKudos(t, "U_LA", "U_REC", 2, 0);
     await giveKudos(t, "U_BERLIN", "U_REC", 1, 1);
@@ -113,7 +112,7 @@ describe("G23: /hedgehug leaderboard", () => {
     { text: "leaderboard month", period: "month", rows: ["🥇 <@U1> · 2 kudos", "🥈 <@U3> · 1 kudos", "Give kudos this month to join the board."] },
     { text: "leaderboard all", period: "all time", rows: ["🥇 <@U1> · 2 kudos", "🥈 <@U2> · 1 kudos", "🥈 <@U3> · 1 kudos", "Give kudos to join the board."] },
   ])("`$text` privately shows the Everyone board of $period", async ({ text, rows }) => {
-    const t = await testBackendServing(postHog, everyone("everyone-board"));
+    const t = await testBackendServing(postHog, onForEveryone("everyone-board"));
     slack.withMember("U1", { profile: { display_name: "Ann" } }).withMember("U2", { profile: { display_name: "Bob" } }).withMember("U3", { profile: { display_name: "Cy" } });
     await giveKudosOn(t, "2026-09-20T10:00:00Z", "U2", 1);
     await giveKudosOn(t, "2026-10-01T10:00:00Z", "U1", 2);
@@ -123,7 +122,7 @@ describe("G23: /hedgehug leaderboard", () => {
   });
 
   test("G18: under this week's board the viewer sees how many more kudos they gave than this time last week, and the places they climbed", async () => {
-    const t = await testBackendServing(postHog, everyone("everyone-board"));
+    const t = await testBackendServing(postHog, onForEveryone("everyone-board"));
     slack.withMember("U1", { profile: { display_name: "Ann" } }).withMember("U2", { profile: { display_name: "Bob" } });
     await giveKudosOn(t, "2026-10-05T10:00:00Z", "U1", 1);
     await giveKudosOn(t, "2026-10-06T10:00:00Z", "U2", 2);
@@ -137,7 +136,7 @@ describe("G23: /hedgehug leaderboard", () => {
   });
 
   test("G18: without a gain the viewer sees their best completed month, and all time has no line", async () => {
-    const t = await testBackendServing(postHog, everyone("everyone-board"));
+    const t = await testBackendServing(postHog, onForEveryone("everyone-board"));
     slack.withMember("U1", { profile: { display_name: "Ann" } });
     await giveKudosOn(t, "2026-08-03T10:00:00Z", "U1", 2);
     await giveKudosOn(t, "2026-08-04T10:00:00Z", "U1", 2);
@@ -149,7 +148,7 @@ describe("G23: /hedgehug leaderboard", () => {
   });
 
   test.each(["leaderboard yesterday", "leaderboard of everyone", "leaderboard month all"])("an unknown argument after leaderboard, as in `%s`, gets the usage line", async (text) => {
-    const t = await testBackendServing(postHog, everyone("everyone-board"));
+    const t = await testBackendServing(postHog, onForEveryone("everyone-board"));
 
     const reply = await command(t, "U_REC", text);
 

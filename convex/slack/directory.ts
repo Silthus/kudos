@@ -5,7 +5,8 @@ import { observedAction } from "../analytics/boundary";
 import { ReportableError } from "../analytics/exceptions";
 import { awaitedUsers, recheck, type Observation } from "../engine/engine";
 import { messageRefValidator, type MessageRef } from "../engine/messageEvent";
-import { lookup, type DirectoryEntry, type DirectoryRecord } from "../workspace/directory";
+import { republishOnRoleChange } from "../feedback/homes";
+import { directoryRecordArgs, lookup, record, type DirectoryEntry, type DirectoryRecord } from "../workspace/directory";
 import { readSlack } from "./webApi";
 
 type SlackUser = {
@@ -13,6 +14,8 @@ type SlackUser = {
   team_id?: string;
   deleted?: boolean;
   is_bot?: boolean;
+  is_admin?: boolean;
+  is_owner?: boolean;
   tz?: string;
   name?: string;
   real_name?: string;
@@ -67,6 +70,17 @@ export const recheckMessage = internalMutation({
   },
 });
 
+export const refreshPerson = internalMutation({
+  args: directoryRecordArgs,
+  handler: (ctx, directoryRecord) => recordPerson(ctx, directoryRecord),
+});
+
+export async function recordPerson(ctx: MutationCtx, directoryRecord: DirectoryRecord) {
+  const before = await lookup(ctx, directoryRecord.workspace, directoryRecord.user);
+  await record(ctx, directoryRecord);
+  await republishOnRoleChange(ctx, before, await lookup(ctx, directoryRecord.workspace, directoryRecord.user));
+}
+
 type UsersPage = { members: SlackUser[]; response_metadata?: { next_cursor?: string } };
 
 export const fillMissingNames = observedAction({
@@ -90,11 +104,21 @@ function memberNameOf(user: SlackUser) {
 
 export type LookUp = { kind: "found" } | { kind: "failed"; retryAfterMs?: number };
 
-export async function lookUpUser(ctx: ActionCtx, workspace: string, user: string): Promise<LookUp> {
+export function lookUpUser(ctx: ActionCtx, workspace: string, user: string): Promise<LookUp> {
+  return askSlackAbout(ctx, workspace, user, internal.workspace.directory.fillEntry);
+}
+
+export function refreshUser(ctx: ActionCtx, workspace: string, user: string): Promise<LookUp> {
+  return askSlackAbout(ctx, workspace, user, internal.slack.directory.refreshPerson);
+}
+
+type Keep = typeof internal.workspace.directory.fillEntry | typeof internal.slack.directory.refreshPerson;
+
+async function askSlackAbout(ctx: ActionCtx, workspace: string, user: string, keep: Keep): Promise<LookUp> {
   const askedAt = Date.now();
   const answer = await usersInfo(user);
   if (!answer?.ok) return { kind: "failed", ...(answer?.retryAfterMs !== undefined && { retryAfterMs: answer.retryAfterMs }) };
-  await ctx.runMutation(internal.workspace.directory.fillEntry, directoryRecordOf(workspace, answer.user, askedAt));
+  await ctx.runMutation(keep, directoryRecordOf(workspace, answer.user, askedAt));
   return { kind: "found" };
 }
 
@@ -111,7 +135,7 @@ function directoryEntryOf(user: SlackUser, workspace: string): DirectoryEntry {
   if (user.is_bot || user.id === slackbot) return { kind: "bot" };
   if (user.deleted || user.team_id !== workspace) return { kind: "not-a-member" };
   const name = displayNameOf(user);
-  return { kind: "member", ...(name && { name }), ...(user.tz && { timeZone: user.tz }) };
+  return { kind: "member", ...(name && { name }), ...(user.tz && { timeZone: user.tz }), ...((user.is_admin || user.is_owner) && { admin: true }) };
 }
 
 function displayNameOf(user: SlackUser) {

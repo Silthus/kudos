@@ -164,17 +164,19 @@ describe("R20: kudosGiven", () => {
     expect(published("kudosGiven")).toHaveLength(1);
     const [event] = published("kudosGiven");
     const ids = await memberIds(t);
+    const [toBob, toCarol] = await t.run((ctx) => ctx.db.query("awards").collect());
     expect(event).toEqual({
       type: "kudosGiven",
       workspace: "T1",
       message: { workspace: "T1", conversation: "C1", message: "1" },
       giver: ids.U_ALICE,
       awards: [
-        { giver: ids.U_ALICE, recipient: ids.U_BOB, kudos: 1 },
-        { giver: ids.U_ALICE, recipient: ids.U_CAROL, kudos: 1 },
+        { award: toBob!._id, giver: ids.U_ALICE, recipient: ids.U_BOB, kudos: 1 },
+        { award: toCarol!._id, giver: ids.U_ALICE, recipient: ids.U_CAROL, kudos: 1 },
       ],
+      via: "message",
       kudosEmoji: "taco",
-      annotations: {},
+      annotations: { gate: { version: 1, thoughtful: false, words: 1 } },
       allowance: { dailyOpening: 3, dailyLeft: 1 },
       skippedMentions: 0,
       retry: false,

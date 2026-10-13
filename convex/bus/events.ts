@@ -1,7 +1,9 @@
 import { v, type Infer } from "convex/values";
+import { awardIdValidator } from "../engine/awards";
 import { annotationsValidator, messageRefValidator } from "../engine/messageEvent";
+import type { MemberId } from "../workspace/directory";
 
-export const awardValidator = v.object({ giver: v.id("members"), recipient: v.id("members"), kudos: v.number() });
+export const awardValidator = v.object({ award: awardIdValidator, giver: v.id("members"), recipient: v.id("members"), kudos: v.number() });
 
 export const kudosGivenEventValidator = v.object({
   type: v.literal("kudosGiven"),
@@ -9,6 +11,7 @@ export const kudosGivenEventValidator = v.object({
   message: messageRefValidator,
   giver: v.id("members"),
   awards: v.array(awardValidator),
+  via: v.union(v.literal("message"), v.literal("chime-in")),
   kudosEmoji: v.string(),
   annotations: annotationsValidator,
   allowance: v.object({ dailyOpening: v.number(), dailyLeft: v.number() }),
@@ -16,6 +19,25 @@ export const kudosGivenEventValidator = v.object({
   retry: v.boolean(),
   inThread: v.boolean(),
   day: v.string(),
+  at: v.number(),
+});
+
+export const levelReachedEventValidator = v.object({
+  type: v.literal("levelReached"),
+  workspace: v.string(),
+  member: v.id("members"),
+  level: v.number(),
+  skillPointsGained: v.number(),
+  skillPoints: v.number(),
+  xpToNextLevel: v.number(),
+  message: messageRefValidator,
+  at: v.number(),
+});
+
+export const xpRecordedEventValidator = v.object({
+  type: v.literal("xpRecorded"),
+  workspace: v.string(),
+  member: v.id("members"),
   at: v.number(),
 });
 
@@ -50,4 +72,12 @@ export const memberWelcomedEventValidator = v.object({
 
 export type MemberWelcomedEvent = Infer<typeof memberWelcomedEventValidator>;
 
-export type DomainEvent = KudosGivenEvent | AttemptFailedEvent | MemberWelcomedEvent;
+export type LevelReachedEvent = Infer<typeof levelReachedEventValidator>;
+
+export type XpRecordedEvent = Infer<typeof xpRecordedEventValidator>;
+
+export type DomainEvent = KudosGivenEvent | AttemptFailedEvent | MemberWelcomedEvent | LevelReachedEvent | XpRecordedEvent;
+
+export function membersNamedIn(event: KudosGivenEvent): MemberId[] {
+  return [...new Set([event.giver, ...event.awards.map((award) => award.recipient)])];
+}

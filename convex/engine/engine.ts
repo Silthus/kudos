@@ -65,7 +65,7 @@ async function observeFirstRevision(ctx: MutationCtx, event: MessageEvent, revis
 }
 
 async function observeEdit(ctx: MutationCtx, row: KudosMessageRow, event: MessageEvent, revision: Revision, { isKudosMessage, changesKudos }: Edit): Promise<Observation> {
-  await ctx.db.patch(row._id, revision);
+  await ctx.db.patch(row._id, withoutAnnotations(revision));
   if (row.state === "given") {
     if (changesKudos) await replyPrivately(ctx, refOf(row), row.threadRoot, row.author, { kind: "accepted-message-edited" });
     return { kind: "already-given", toldGiver: changesKudos };
@@ -73,7 +73,7 @@ async function observeEdit(ctx: MutationCtx, row: KudosMessageRow, event: Messag
   if (!changesKudos) return { kind: "ignored", why: "unchanged" };
   if (!isKudosMessage) return hasOpenAttempt(row) ? withdraw(ctx, row) : ignore(ctx, row, "ordinary-chat");
 
-  await ctx.db.patch(row._id, { state: "awaiting-directory", attempt: event.revision, spendsAt: event.at, checks: 0, retry: isRetry(row) });
+  await ctx.db.patch(row._id, { state: "awaiting-directory", attempt: event.revision, spendsAt: event.at, checks: 0, retry: isRetry(row), annotations: revision.annotations });
   const observation = await evaluate(ctx, (await ctx.db.get(row._id))!);
   if (observation.kind === "awaiting-directory" && showsIndicator(row)) await setIndicator(ctx, refOf(row), null);
   return observation;
@@ -86,7 +86,7 @@ async function observeFromNonMember(ctx: MutationCtx, row: KudosMessageRow | nul
     return notAMember;
   }
   const changesKudos = await changesKudosOf(ctx, event, row, context);
-  await ctx.db.patch(row._id, revision);
+  await ctx.db.patch(row._id, withoutAnnotations(revision));
   return changesKudos && hasOpenAttempt(row) ? withdraw(ctx, row) : notAMember;
 }
 
@@ -94,6 +94,10 @@ async function withdraw(ctx: MutationCtx, row: KudosMessageRow): Promise<Observa
   await ctx.db.patch(row._id, { state: "withdrawn", retry: true });
   if (showsIndicator(row)) await setIndicator(ctx, refOf(row), null);
   return { kind: "withdrawn" };
+}
+
+function withoutAnnotations({ revision, content }: Revision) {
+  return { revision, content };
 }
 
 function isRetry(row: KudosMessageRow) {
@@ -120,6 +124,11 @@ async function insertRow(ctx: MutationCtx, event: MessageEvent, revision: Revisi
     checks: 0,
   });
   return (await ctx.db.get(id))!;
+}
+
+export async function threadOf(ctx: QueryCtx, ref: MessageRef): Promise<string> {
+  const row = await kudosMessageRow(ctx, ref);
+  return row?.threadRoot ?? ref.message;
 }
 
 export async function awaitedUsers(ctx: QueryCtx, ref: MessageRef, attempt: bigint): Promise<ChatUserId[] | null> {
@@ -204,11 +213,11 @@ async function decide(ctx: MutationCtx, row: KudosMessageRow, giver: Member, kud
   const kudosEmoji = kudos.kudosEmoji[0]!;
   const left = allowance.left - cost;
   await allowance.spend(cost);
-  await insertAwards(ctx, refOf(row), awards, day, row.spendsAt);
   await publish(ctx, {
     type: "kudosGiven",
     ...attempt,
-    awards,
+    awards: await insertAwards(ctx, refOf(row), awards, day, row.spendsAt),
+    via: "message",
     kudosEmoji,
     annotations: row.annotations,
     allowance: { dailyOpening: allowance.opening, dailyLeft: left },

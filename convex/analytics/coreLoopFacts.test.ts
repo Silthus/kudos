@@ -56,7 +56,7 @@ describe("O3: attempt failed", () => {
     await post(t, fourTacosToBob);
     await settle(t);
 
-    expect(withoutWelcomes(postHog.events()).map(shapeOf)).toEqual([
+    expect(withoutWelcomes(coreLoopEvents()).map(shapeOf)).toEqual([
       {
         event: "attempt failed",
         timestamp: postedAt.toISOString(),
@@ -81,7 +81,7 @@ describe("O3: attempt failed", () => {
     await post(t, tacoToMyself, { threadTs: "1760349000.000100" });
     await settle(t);
 
-    expect(postHog.events().map(shapeOf)).toEqual([
+    expect(coreLoopEvents().map(shapeOf)).toEqual([
       {
         event: "attempt failed",
         timestamp: postedAt.toISOString(),
@@ -110,7 +110,7 @@ describe("O3: attempt failed", () => {
     await edit(t, oneTacoToBob, { editedTs: "1760349660.000100" });
     await settle(t);
 
-    const events = withoutWelcomes(postHog.events());
+    const events = withoutWelcomes(coreLoopEvents());
     expect(events.map((event) => [event.event, event.properties.retry])).toEqual([
       ["attempt failed", false],
       ["kudos given", true],
@@ -127,7 +127,7 @@ describe("O3: attempt failed", () => {
     await t.fetch("/slack/events", await signedRequest(body));
     await settle(t);
 
-    expect(postHog.events().map((event) => event.event)).toEqual(["attempt failed"]);
+    expect(coreLoopEvents().map((event) => event.event)).toEqual(["attempt failed"]);
   });
 });
 
@@ -141,7 +141,7 @@ describe("O3: attempts that send nothing", () => {
     await edit(t, [section(text("thanks "), mention("U_BOB"))]);
     await settle(t);
 
-    expect(postHog.events().map((event) => event.event)).toEqual(["attempt failed"]);
+    expect(coreLoopEvents().map((event) => event.event)).toEqual(["attempt failed"]);
   });
 
   test("a message waiting on the directory sends nothing, nor does it once abandoned", async () => {
@@ -172,7 +172,7 @@ describe("O3 R42: member welcomed", () => {
     await post(t, [section(mention("U_ALICE"), emoji("taco"))], { user: "U_BOB", ts: "1760349601.000100" });
     await settle(t);
 
-    const events = postHog.events();
+    const events = coreLoopEvents();
     const [given, toBob, toCarol] = events.filter((event) => event.event !== "member welcomed");
     expect(events.filter((event) => event.event === "member welcomed").map(({ distinct_id, timestamp, properties }) => ({ distinct_id, timestamp, properties }))).toEqual([
       { distinct_id: given!.distinct_id, timestamp: now.toISOString(), properties: { ...shared, as: "giver" } },
@@ -191,7 +191,7 @@ describe("O3 R45: app home opened", () => {
     await t.fetch("/slack/events", await signedRequest(appHomeOpened("U_BOB", { eventTime: openedAt })));
     await settle(t);
 
-    expect(postHog.events().map(shapeOf)).toEqual([{ event: "app home opened", timestamp: openedAt.toISOString(), properties: shared }]);
+    expect(coreLoopEvents().map(shapeOf)).toEqual([{ event: "app home opened", timestamp: openedAt.toISOString(), properties: shared }]);
   });
 
   test("O4 R49: a redelivered app_home_opened and a retried views.publish send nothing more", async () => {
@@ -205,7 +205,7 @@ describe("O3 R45: app home opened", () => {
     await settle(t);
 
     expect(slack.callsTo("views.publish")).toHaveLength(2);
-    expect(postHog.events().map((event) => event.event)).toEqual(["app home opened"]);
+    expect(coreLoopEvents().map((event) => event.event)).toEqual(["app home opened"]);
   });
 
   test("a member the directory doesn't know yet sends app home opened once, at the event's time, through a failed lookup and a failed publish", async () => {
@@ -217,7 +217,7 @@ describe("O3 R45: app home opened", () => {
     await settle(t);
 
     expect(slack.callsTo("views.publish")).toHaveLength(2);
-    expect(postHog.events().map(shapeOf)).toEqual([{ event: "app home opened", timestamp: openedAt.toISOString(), properties: shared }]);
+    expect(coreLoopEvents().map(shapeOf)).toEqual([{ event: "app home opened", timestamp: openedAt.toISOString(), properties: shared }]);
   });
 
   test("O15 O20: an opening whose recording fails still publishes App Home, logs a fixed code and reports no exception", async () => {
@@ -230,7 +230,7 @@ describe("O3 R45: app home opened", () => {
 
     expect(slack.callsTo("views.publish")).toHaveLength(1);
     expect(console.error).toHaveBeenCalledWith("analytics.usage_not_recorded", { error: "Error" });
-    expect(postHog.events()).toEqual([]);
+    expect(coreLoopEvents()).toEqual([]);
   });
 
   test("R47: someone the directory doesn't know, who turns out not to be a member, sends nothing", async () => {
@@ -273,7 +273,7 @@ describe("O3 O5: command used", () => {
 
     await runCommand(t, slashCommand(conversation));
 
-    expect(postHog.events().map(shapeOf)).toEqual([
+    expect(coreLoopEvents().map(shapeOf)).toEqual([
       { event: "command used", timestamp: now.toISOString(), properties: { ...shared, command: "hedgehug", alias: false, result } },
     ]);
   });
@@ -287,7 +287,7 @@ describe("O3 O5: command used", () => {
 
     await runCommand(t, slashCommand(publicChannel, { command: "/kudos" }));
 
-    const [opened, used] = postHog.events();
+    const [opened, used] = coreLoopEvents();
     expect(used).toMatchObject({ event: "command used", distinct_id: opened!.distinct_id, properties: { alias: true, result: "joined" } });
   });
 
@@ -297,7 +297,7 @@ describe("O3 O5: command used", () => {
 
     await runCommand(t, slashCommand(publicChannel, { user: "U_ALICE" }));
 
-    expect(postHog.events().map(shapeOf)).toEqual([
+    expect(coreLoopEvents().map(shapeOf)).toEqual([
       { event: "command used", timestamp: now.toISOString(), properties: { ...shared, command: "hedgehug", alias: false, result: "joined" } },
     ]);
   });
@@ -308,7 +308,7 @@ describe("O3 O5: command used", () => {
 
     await runCommand(t, slashCommand(publicChannel, { user: "U_ALICE" }));
 
-    expect(postHog.events().map(shapeOf)).toEqual([
+    expect(coreLoopEvents().map(shapeOf)).toEqual([
       { event: "command used", timestamp: now.toISOString(), properties: { ...shared, command: "hedgehug", alias: false, result: "joined" } },
     ]);
   });
@@ -320,7 +320,7 @@ describe("O3 O5: command used", () => {
 
     await runCommand(t, slashCommand(publicChannel));
 
-    expect(postHog.events().filter((event) => event.event !== "$exception").map(shapeOf)).toEqual([
+    expect(coreLoopEvents().filter((event) => event.event !== "$exception").map(shapeOf)).toEqual([
       { event: "command used", timestamp: now.toISOString(), properties: { ...shared, command: "hedgehug", alias: false, result: "joined" } },
     ]);
   });
@@ -338,7 +338,7 @@ describe("O3 O5: command used", () => {
       { response_type: "ephemeral", text: "I'm in now. Mention teammates with a kudos emoji here and I'll pass the kudos on." },
     ]);
     expect(console.error).toHaveBeenCalledWith("analytics.usage_not_recorded", { error: "Error" });
-    expect(postHog.events()).toEqual([]);
+    expect(coreLoopEvents()).toEqual([]);
   });
 
   test("a non-member's command sends nothing", async () => {
@@ -365,4 +365,8 @@ async function runCommand(t: Backend, body: string) {
   const response = await t.fetch("/slack/commands", await signedRequest(body, { contentType: "application/x-www-form-urlencoded" }));
   expect(response.status).toBe(200);
   await settle(t);
+}
+
+function coreLoopEvents() {
+  return postHog.events().filter((event) => event.event !== "$feature_flag_called");
 }
