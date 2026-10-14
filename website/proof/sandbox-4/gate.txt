@@ -1,3 +1,4 @@
+Fleet heavy: 2 heavy jobs run already; waiting for a free slot.
 $ pnpm typecheck && pnpm test && pnpm coherence
 $ tsc --noEmit && tsc --noEmit -p website
 $ vitest run
@@ -120,8 +121,8 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 
  Test Files  139 passed (139)
       Tests  2269 passed (2269)
-   Start at  09:10:20
-   Duration  117.25s (tests 80%, import 11%, transform 4%, environment 4%, setup 1%)
+   Start at  09:34:41
+   Duration  96.30s (tests 82%, import 9%, transform 5%, environment 3%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
