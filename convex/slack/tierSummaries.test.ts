@@ -98,6 +98,22 @@ describe("P62 P64 P65: a member whose Book is open when a batch completes gets o
     expect(tierLinesIn("C1")).toEqual([]);
   });
 
+  test("when unlocks launch with the Book already shipped and open the Book for everyone, each member gets the DM summary and the channel gets no notice", async () => {
+    const t = await workspaceRow("C_NEWS");
+    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), offForEveryone("unlocks"), onForEveryone("achievements"));
+    await giveKudos(t, "U_ALICE", "U_BOB");
+    await giveKudos(t, "U_BOB", "U_ALICE");
+
+    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("achievements"));
+    vi.setSystemTime(Date.now() + 60_000);
+    await t.mutation(internal.unlocks.sweep.sweep, {});
+    await settle(t);
+
+    expect(tierDmsTo("U_ALICE")).toEqual([bothBronzes]);
+    expect(tierDmsTo("U_BOB")).toHaveLength(1);
+    expect(tierLinesEverywhere()).toEqual([]);
+  });
+
   test("without an announcement channel, nothing is posted in public", async () => {
     const t = await workspaceBeforeTheBook();
     await giveKudos(t, "U_ALICE", "U_BOB");
@@ -173,6 +189,7 @@ describe("P62 P76: a tier is told once, whichever summary tells it", () => {
   test("a batch that completes while another is still replaying tells only its own tiers, and the other batch tells the rest when it completes", async () => {
     const t = await workspaceWithTheBook("C_NEWS");
     const alice = await memberWithTheBookOpen(t, "U_ALICE");
+    vi.setSystemTime(Date.now() + 60_000);
     const [first, second] = await t.run(async (ctx) => [await ctx.db.insert("bookBatches", { workspace: "T1", at: Date.now() }), await ctx.db.insert("bookBatches", { workspace: "T1", at: Date.now() })]);
     await earned(t, alice, "generosity", first!);
     await earned(t, alice, "recognition", second!);
@@ -185,6 +202,24 @@ describe("P62 P76: a tier is told once, whichever summary tells it", () => {
       "🏅 You earned Noticed (Recognition, bronze).\nNext: Appreciated at 25 kudos received.",
     ]);
     expect(tierLinesIn("C_NEWS")).toEqual(["🏅 <@U_ALICE> earned First Thanks.", "🏅 <@U_ALICE> earned Noticed."]);
+  });
+
+  test("a member who opens the Book while the batch is still replaying hears of its tiers once, in the batch's summary and not in public, and sees the Book published again when it completes", async () => {
+    const t = await workspaceWithTheBook("C_NEWS");
+    const batch = await t.run((ctx) => ctx.db.insert("bookBatches", { workspace: "T1", at: Date.now() }));
+    vi.setSystemTime(Date.now() + 60_000);
+    const alice = await memberWithTheBookOpen(t, "U_ALICE");
+    await earned(t, alice, "generosity", batch);
+
+    await t.mutation(internal.feedback.tierNotices.tellOpeningSummary, { event: { type: "unlockOpened", workspace: "T1", member: alice, feature: "book", at: Date.now() } });
+    await settle(t);
+    await earned(t, alice, "recognition", batch);
+    const publishedBefore = slack.callsTo("views.publish").filter(({ user_id }) => user_id === "U_ALICE").length;
+    await completeBatch(t, batch);
+
+    expect(tierDmsTo("U_ALICE")).toEqual(["🏅 You earned First Thanks (Generosity, bronze).\n🏅 You earned Noticed (Recognition, bronze).\nNext: Generous Soul at 25 kudos given.\nNext: Appreciated at 25 kudos received."]);
+    expect(tierLinesEverywhere()).toEqual([]);
+    expect(slack.callsTo("views.publish").filter(({ user_id }) => user_id === "U_ALICE").length).toBeGreaterThan(publishedBefore);
   });
 
   test("a member who opened the Book after the batch completed hears of its tiers only from the opening's summary, even when the batch's summary runs later", async () => {
