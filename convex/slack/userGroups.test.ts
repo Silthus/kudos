@@ -164,11 +164,23 @@ describe("an answer the directory can't trust changes nothing", () => {
     expect(await groupsOf(t, "U_BOB")).toEqual([gardeners]);
   });
 
+  test("a members list as long as a user group keeps replaces every member within Convex's write limit", async () => {
+    const t = testBackend({ transactionLimits: true });
+    slack.withUserGroup("S_GARDEN", { handle: "gardeners", name: "Gardeners", users: Array.from({ length: 7_500 }, (_, index) => `U_OLD_${index}`) });
+    await sync(t);
+    slack.withUserGroup("S_GARDEN", { handle: "gardeners", name: "Gardeners", users: Array.from({ length: 7_500 }, (_, index) => `U_NEW_${index}`) });
+
+    await t.action(internal.slack.userGroups.refreshMembers, { workspace: "T1", group: "S_GARDEN" });
+
+    expect(await groupsOf(t, "U_OLD_0")).toEqual([]);
+    expect(await groupsOf(t, "U_NEW_7499")).toEqual([gardeners]);
+  });
+
   test("a members list longer than a user group can keep fails and keeps the members", async () => {
     const t = testBackend();
     slack.withUserGroup("S_GARDEN", { handle: "gardeners", name: "Gardeners", users: ["U_ANN"] });
     await sync(t);
-    slack.answering("usergroups.users.list", () => Response.json({ ok: true, users: Array.from({ length: 8_001 }, (_, index) => `U_${index}`) }));
+    slack.answering("usergroups.users.list", () => Response.json({ ok: true, users: Array.from({ length: 7_501 }, (_, index) => `U_${index}`) }));
 
     await expect(t.action(internal.slack.userGroups.refreshMembers, { workspace: "T1", group: "S_GARDEN" })).rejects.toThrow("Slack usergroups.users.list answered more members than a user group keeps");
 
