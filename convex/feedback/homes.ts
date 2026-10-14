@@ -1,6 +1,8 @@
 import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
+import { bookFactsOf, type AchievementFacts } from "../achievements/achievements";
+import { achievementsShownTo } from "../achievements/flag";
 import { xpRecordedEventValidator } from "../bus/events";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import type { Period } from "../leaderboard/periods";
@@ -18,13 +20,14 @@ import { adminsIn, chatUserOf, lookup, type MemberFacts, type MemberId } from ".
 import { settingsOf } from "../workspace/settings";
 import { isOpened, whenOpened } from "./unlockFilter";
 
-export const homeTabValidator = v.union(v.literal("profile"), v.literal("leaderboard"), v.literal("settings"), v.literal("admin"));
+export const homeTabValidator = v.union(v.literal("profile"), v.literal("leaderboard"), v.literal("book"), v.literal("settings"), v.literal("admin"));
 
 export type HomeTab = Infer<typeof homeTabValidator>;
 
 export type ShownTab =
   | { tab: "profile"; progression: ToldProgression | null; unlocks: UnlocksHome | null; quests: WeeklyQuests | null; journey: JourneyStepFacts[] | null }
   | { tab: "leaderboard"; period: Period; board: EveryoneBoardView }
+  | { tab: "book"; book: AchievementFacts; timeZone: string | undefined }
   | { tab: "settings"; onTheBoards: boolean | null; progress: ProgressSettings | null }
   | { tab: "admin"; announcementChannel: string | null };
 
@@ -34,7 +37,7 @@ export type ToldProgression = Omit<ProgressionHome, "skillPoints"> & { skillPoin
 
 export type HomeMember = Extract<MemberFacts, { kind: "member" }>;
 
-type Slices = { board: boolean; leaderboard: boolean; xp: boolean; unlocks: boolean; quests: boolean; admin: boolean };
+type Slices = { board: boolean; leaderboard: boolean; xp: boolean; unlocks: boolean; quests: boolean; book: boolean; admin: boolean };
 
 type HomeSelection = { tab: HomeTab; period: Period };
 
@@ -42,6 +45,7 @@ const opensOn: HomeSelection = { tab: "profile", period: "week" };
 
 const tabsBesideProfile: Array<{ tab: HomeTab; shownWith: (slices: Slices) => boolean }> = [
   { tab: "leaderboard", shownWith: ({ leaderboard }) => leaderboard },
+  { tab: "book", shownWith: ({ book }) => book },
   { tab: "settings", shownWith: ({ board, xp }) => board || xp },
   { tab: "admin", shownWith: ({ xp, admin }) => xp && admin },
 ];
@@ -104,7 +108,8 @@ async function slicesShownTo(ctx: MutationCtx, workspace: string, person: HomeMe
   const xp = await xpLevelsShownTo(ctx, person.member);
   const unlocks = await unlocksShownTo(ctx, person.member);
   const quests = await questsShownTo(ctx, person.member);
-  return { board, leaderboard: board && (await isLeaderboardOpenTo(ctx, person.member, unlocks)), xp, unlocks, quests, admin: person.admin };
+  const book = unlocks && (await achievementsShownTo(ctx, person.member)) && (await isOpened(ctx, person.member, "book"));
+  return { board, leaderboard: board && (await isLeaderboardOpenTo(ctx, person.member, unlocks)), xp, unlocks, quests, book, admin: person.admin };
 }
 
 async function isLeaderboardOpenTo(ctx: QueryCtx, member: MemberId, unlocksShown: boolean) {
@@ -132,6 +137,8 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
       };
     case "leaderboard":
       return { tab, period, board: await everyoneBoardOf(ctx, viewer.workspace, viewer.user, period) };
+    case "book":
+      return { tab, book: await bookFactsOf(ctx, viewer.member), timeZone: (await ctx.db.get(viewer.member))?.timeZone };
     case "settings":
       return {
         tab,

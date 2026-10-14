@@ -8,6 +8,11 @@
  * @module
  */
 
+import type * as achievements_achievements from "../achievements/achievements.js";
+import type * as achievements_achievementsFlag from "../achievements/achievementsFlag.js";
+import type * as achievements_flag from "../achievements/flag.js";
+import type * as achievements_ladders from "../achievements/ladders.js";
+import type * as achievements_tiers from "../achievements/tiers.js";
 import type * as analytics_boundary from "../analytics/boundary.js";
 import type * as analytics_capture from "../analytics/capture.js";
 import type * as analytics_drain from "../analytics/drain.js";
@@ -122,6 +127,11 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "achievements/achievements": typeof achievements_achievements;
+  "achievements/achievementsFlag": typeof achievements_achievementsFlag;
+  "achievements/flag": typeof achievements_flag;
+  "achievements/ladders": typeof achievements_ladders;
+  "achievements/tiers": typeof achievements_tiers;
   "analytics/boundary": typeof analytics_boundary;
   "analytics/capture": typeof analytics_capture;
   "analytics/drain": typeof analytics_drain;

@@ -426,6 +426,10 @@
     {
       "name": "swap",
       "definition": "A member's once-a-week replacement of one unfinished weekly quest with a feasible quest not in that week's draw, stored for good with the replaced quest, the new quest and the facts that made it feasible (P81, the spec's reroll)."
+    },
+    {
+      "name": "Book",
+      "definition": "The feature that opens at level 4, where a member sees their achievement ladders and the tiers they earned, each with its date; it opens achievements, and the sticker book with its albums once that ships."
     }
   ]
 }

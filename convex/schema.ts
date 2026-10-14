@@ -1,7 +1,10 @@
 import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { ladderValidator } from "./achievements/ladders";
+import { earnedTierValidator } from "./achievements/tiers";
 import { exceptionValidator } from "./analytics/exceptions";
+import { awardIdValidator } from "./engine/awards";
 import { propertiesValidator } from "./analytics/projections";
 import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
 import { homeTabValidator } from "./feedback/homes";
@@ -165,6 +168,25 @@ export default defineSchema({
     workspace: v.string(),
     at: v.number(),
   }).index("by_workspace", ["workspace"]),
+
+  bookLaunches: defineTable({
+    workspace: v.string(),
+    at: v.number(),
+  }).index("by_workspace", ["workspace"]),
+
+  ladderCounts: defineTable({
+    member: v.id("members"),
+    ladder: ladderValidator,
+    count: v.number(),
+  }).index("by_member_ladder", ["member", "ladder"]),
+
+  countedAwards: defineTable({
+    award: awardIdValidator,
+    member: v.id("members"),
+    ladder: ladderValidator,
+  }).index("by_award_member_ladder", ["award", "member", "ladder"]),
+
+  earnedTiers: defineTable(earnedTierValidator).index("by_member_ladder_tier", ["member", "ladder", "tier"]),
 
   questDraws: defineTable(questDrawValidator).index("by_member_week", ["member", "week"]),
 

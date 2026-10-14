@@ -13,6 +13,7 @@ export const subscribers: Registry = {
     internal.welcome.welcome.welcomeNewMembers,
     internal.progression.progression.recordEffects,
     internal.quests.quests.followKudosGiven,
+    internal.achievements.achievements.countKudosGiven,
     internal.leaderboard.totals.countKudosGiven,
     internal.analytics.subscribers.recordKudosGiven,
   ],
@@ -27,6 +28,7 @@ export const subscribers: Registry = {
   ],
   questFinished: [{ subscriber: internal.quests.journey.finishFirstQuest, only: ({ quest }) => quest.kind === "weekly" }],
   questOpened: [],
+  achievementEarned: [],
   memberLeft: [internal.quests.journey.recheckSomeoneNew],
   memberRejoined: [internal.quests.journey.recheckRejoined],
 };
