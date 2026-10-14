@@ -13,7 +13,7 @@ The link has E's shape: an outline control with the skill point glyph, after the
 
 ## Tests
 
-- [red.txt](red.txt): the final tests run against `main`'s `Hero.tsx`. Six fail: the link for 1 and 2 points, the one-primary check, following the link, and the glyph's contrast in light and dark.
+- [red.txt](red.txt): the final tests run against `main`'s `Hero.tsx`. Seven of 80 fail: the link for 1 and 2 points, the one-primary check, following the link, the keyboard walk, and the outline and glyph contrast in light and dark.
 - [green.txt](green.txt): the same tests on this branch, all passing.
 - [gate.txt](gate.txt): `pnpm gate` under `fleet heavy`.
 
