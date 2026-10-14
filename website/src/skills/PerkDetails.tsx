@@ -27,12 +27,12 @@ export function PerkDetailsPanel({ perk, level, purchasing }: DetailsProps) {
   );
 }
 
-type DrawerProps = DetailsProps & { open: boolean; onClose: () => void; returnFocusTo: () => HTMLElement | null };
+type DrawerProps = DetailsProps & { open: boolean; headingFirst: boolean; onClose: () => void; returnFocusTo: () => HTMLElement | null };
 
-export function PerkDetailsDrawer({ perk, level, purchasing, open, onClose, returnFocusTo }: DrawerProps) {
+export function PerkDetailsDrawer({ perk, level, purchasing, open, headingFirst, onClose, returnFocusTo }: DrawerProps) {
   return (
     <Drawer open={open} onOpenChange={(next) => !next && onClose()}>
-      <DrawerContent finalFocus={returnFocusTo}>
+      <DrawerContent initialFocus={headingFirst ? () => document.getElementById(detailsHeadingId) : undefined} finalFocus={returnFocusTo}>
         <DrawerHeader>
           <DrawerTitle id={detailsHeadingId} tabIndex={-1} className="hud-display text-2xl outline-none">
             {perk.name}
@@ -108,7 +108,7 @@ function isShownBeside(notice: Notice, perk: PerkNode) {
   return notice.kind === "unreachable" || perk.state !== "available";
 }
 
-function PurchaseAnnouncement({ purchasing }: { purchasing: Purchasing }) {
+export function PurchaseAnnouncement({ purchasing }: { purchasing: Purchasing }) {
   return (
     <p role="status" className="sr-only">
       {purchasing.notice?.text}

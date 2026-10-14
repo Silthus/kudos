@@ -2,7 +2,7 @@ import { Card, CardContent } from "@posthog/quill";
 import { useEffect, useRef, useState } from "react";
 import { PageTitle } from "../PageTitle";
 import type { PerkNode, ShellActions, SkillTreeAnswer, TreeRow } from "../shell";
-import { detailsHeadingId, PerkDetailsDrawer, PerkDetailsPanel, type SelectedPerk } from "../skills/PerkDetails";
+import { detailsHeadingId, PerkDetailsDrawer, PerkDetailsPanel, PurchaseAnnouncement, type SelectedPerk } from "../skills/PerkDetails";
 import { PerkTree } from "../skills/PerkTree";
 import { pointsToSpend } from "../skills/perkWords";
 import { usePurchase } from "../skills/purchase";
@@ -11,22 +11,25 @@ import { YourPerks } from "../skills/YourPerks";
 
 type Tree = Extract<SkillTreeAnswer, { kind: "tree" }>;
 
+type DrawerState = "closed" | "open" | "open-on-purchase";
+
 type SkillTreePageProps = { tree: Tree; buyPerk: ShellActions["buyPerk"] };
 
 export function SkillTreePage({ tree, buyPerk }: SkillTreePageProps) {
   const wide = useWideScreen();
   const [chosen, setChosen] = useState(() => selectedIn(tree.rows, undefined)?.perk.perk);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawer, setDrawer] = useState<DrawerState>("closed");
   const focusDetailsHeading = useDetailsHeadingFocus();
   const purchasing = usePurchase(buyPerk, (bought) => {
     setChosen(bought);
+    if (!wide) setDrawer("open-on-purchase");
     focusDetailsHeading();
   });
   const nodes = useRef(new Map<PerkNode["perk"], HTMLButtonElement | null>());
   const selected = selectedIn(tree.rows, chosen);
   const select = (perk: PerkNode["perk"]) => {
     setChosen(perk);
-    setDrawerOpen(!wide);
+    setDrawer(wide ? "closed" : "open");
   };
   return (
     <div className="flex flex-col gap-6">
@@ -45,7 +48,8 @@ export function SkillTreePage({ tree, buyPerk }: SkillTreePageProps) {
           <HowPerksWork />
         </div>
       </div>
-      {!wide && selected && <PerkDetailsDrawer {...selected} purchasing={purchasing} open={drawerOpen} onClose={() => setDrawerOpen(false)} returnFocusTo={() => nodes.current.get(selected.perk.perk) ?? null} />}
+      {!wide && drawer === "closed" && <PurchaseAnnouncement purchasing={purchasing} />}
+      {!wide && selected && <PerkDetailsDrawer {...selected} purchasing={purchasing} open={drawer !== "closed"} headingFirst={drawer === "open-on-purchase"} onClose={() => setDrawer("closed")} returnFocusTo={() => nodes.current.get(selected.perk.perk) ?? null} />}
     </div>
   );
 }

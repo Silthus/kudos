@@ -1,4 +1,4 @@
-import { act, screen, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { skillTreeFixtures } from "./skillTreeFixtures";
 import { shellFixtures, type BuyAnswer, type MemberProfile, type MySkillTree, type Purchase, type ShellState } from "./shell";
@@ -167,6 +167,35 @@ describe("WS87: a bought perk turns owned in place", () => {
     showVisitor(shellFixtures.memberWithNoSkillPointsLeft);
     expect(within(drawer).getByRole("status")).toHaveTextContent("You bought Rhythm.");
     expect(within(drawer).getByRole("heading", { name: "Rhythm" })).toHaveFocus();
+  });
+
+  it("reopens the bought perk's drawer and focuses its heading when the drawer was closed before the answer", async () => {
+    const tree = theTree(skillTreeFixtures.withPoints);
+    const pending = answerLater();
+    const { user, showVisitor } = renderApp(withTheTree, undefined, { buyPerk: () => pending.answer }, undefined, undefined, tree.read);
+    await user.click(nodeOf("Rhythm"));
+    const drawer = await screen.findByRole("dialog", { name: "Rhythm" });
+    await user.click(within(drawer).getByRole("button", { name: "Buy for 1 skill point" }));
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await pending.settle({ kind: "bought" });
+    tree.becomes(skillTreeFixtures.noPointsLeft);
+    showVisitor(shellFixtures.memberWithNoSkillPointsLeft);
+    const reopened = await screen.findByRole("dialog", { name: "Rhythm" });
+    expect(within(reopened).getByRole("status")).toHaveTextContent("You bought Rhythm.");
+    await waitFor(() => expect(within(reopened).getByRole("heading", { name: "Rhythm" })).toHaveFocus());
+  });
+
+  it("says an unreachable server in the page while the drawer is closed", async () => {
+    const pending = answerLater();
+    const { user } = renderApp(withTheTree, undefined, { buyPerk: () => pending.answer }, undefined, undefined, theTree(skillTreeFixtures.withPoints).read);
+    await user.click(nodeOf("Rhythm"));
+    const drawer = await screen.findByRole("dialog", { name: "Rhythm" });
+    await user.click(within(drawer).getByRole("button", { name: "Buy for 1 skill point" }));
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await pending.fail();
+    expect(screen.getAllByRole("status").map((status) => status.textContent)).toContain("Couldn't reach HedgeHug. Try again.");
   });
 });
 

@@ -175,6 +175,8 @@ const purchaseStates: { name: string; answer: () => Promise<BuyAnswer>; wide: bo
   { name: "unreachable", answer: async () => Promise.reject(new Error("socket closed")), wide: true },
   { name: "buying in the drawer", answer: () => new Promise(() => undefined), wide: false },
   { name: "refused in the drawer", answer: async () => ({ kind: "refused", reason: "points" }), wide: false },
+  { name: "bought in the drawer", answer: async () => ({ kind: "bought" }), wide: false },
+  { name: "unreachable in the drawer", answer: async () => Promise.reject(new Error("socket closed")), wide: false },
 ];
 
 describe("WS24 WS87: every purchase state passes axe in light and dark", () => {
@@ -184,11 +186,17 @@ describe("WS24 WS87: every purchase state passes axe in light and dark", () => {
         fakeSystemTheme(dark);
         if (state.wide) preferWideScreen();
         window.history.replaceState(null, "", "/skills");
-        const { user } = renderApp(shellFixtures.memberWithEveryFeatureOpen, undefined, { buyPerk: state.answer }, undefined, undefined, fixedSkillTree(skillTreeFixtures.withPoints));
+        let shownTree: MySkillTree = skillTreeFixtures.withPoints;
+        const { user, showVisitor } = renderApp(shellFixtures.memberWithEveryFeatureOpen, undefined, { buyPerk: state.answer }, undefined, undefined, (asking) => (asking ? shownTree : undefined));
         await user.click(within(screen.getByRole("region", { name: "Perk tree" })).getByRole("button", { name: /^Rhythm\./ }));
         const details = state.wide ? screen.getByRole("region", { name: "Perk details" }) : await screen.findByRole("dialog", { name: "Rhythm" });
         await user.click(within(details).getByRole("button", { name: "Buy for 1 skill point" }));
         await act(async () => undefined);
+        if (state.name.startsWith("bought")) {
+          shownTree = skillTreeFixtures.noPointsLeft;
+          showVisitor(shellFixtures.memberWithNoSkillPointsLeft);
+          await act(async () => undefined);
+        }
         expect(await violationsIn(document.body, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
       });
     }
