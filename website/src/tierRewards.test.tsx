@@ -11,6 +11,22 @@ import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
 
 const firstThanksAt = Date.parse("2026-10-13T22:30:00Z");
 
+const siteCss = readFileSync(join(__dirname, "index.css"), "utf8");
+
+function hexIn(css: string, token: string) {
+  return new RegExp(`--${token}: (#[0-9a-f]{6});`).exec(css)![1]!;
+}
+
+function luminance(colour: string) {
+  const [r, g, b] = [1, 3, 5].map((at) => parseInt(colour.slice(at, at + 2), 16) / 255).map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+}
+
+function contrast(one: string, other: string) {
+  const [a, b] = [luminance(one), luminance(other)];
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
 beforeEach(() => {
   fakeSystemTheme(false);
   localStorage.clear();
@@ -160,16 +176,17 @@ describe("WS347: the achievement-earned page", () => {
     expect(css).not.toMatch(/infinite/);
   });
 
-  it("keeps the band's words at 4.5:1 on E's lemon", () => {
-    const site = readFileSync(join(__dirname, "index.css"), "utf8");
-    const hex = (token: string) => new RegExp(`--${token}: (#[0-9a-f]{6});`).exec(site)![1]!;
-    const luminance = (colour: string) => {
-      const [r, g, b] = [1, 3, 5].map((at) => parseInt(colour.slice(at, at + 2), 16) / 255).map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
-      return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
-    };
-    const [ink, lemon] = [luminance(hex("band-lemon-ink")), luminance(hex("band-lemon"))];
-    expect((Math.max(ink, lemon) + 0.05) / (Math.min(ink, lemon) + 0.05)).toBeGreaterThanOrEqual(4.5);
+  it("keeps the band's words, the plaque and the reward pill at 4.5:1 on E's lemon", () => {
+    expect(contrast(hexIn(siteCss, "band-lemon-ink"), hexIn(siteCss, "band-lemon"))).toBeGreaterThanOrEqual(4.5);
+    expect(readFileSync(join(__dirname, "book", "earned.css"), "utf8")).toMatch(/\.earned-plaque \{\s*background-color: var\(--band-lemon-ink\);[\s\S]*\.earned-pill \{\s*background-color: var\(--band-lemon-ink\);\s*color: var\(--band-lemon\);/);
   });
+
+  for (const [mode, selector] of [["light", ":root"], ["dark", ".dark"]] as const) {
+    it.each(["bronze", "silver", "gold", "diamond"])(`keeps the %s medal at 3:1 on the plaque's ink in ${mode}`, (tier) => {
+      const block = siteCss.slice(siteCss.indexOf(`${selector} {`), siteCss.indexOf("}", siteCss.indexOf(`${selector} {`)));
+      expect(contrast(hexIn(block, `medal-${tier}`), hexIn(siteCss, "band-lemon-ink"))).toBeGreaterThanOrEqual(3);
+    });
+  }
 });
 
 describe("WS339: tier rewards and the earned page pass axe in light and dark", () => {

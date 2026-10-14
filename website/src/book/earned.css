@@ -19,7 +19,13 @@
 }
 
 .earned-plaque {
+  background-color: var(--band-lemon-ink);
   box-shadow: 0 10px 0 rgb(20 20 20 / 0.18);
+}
+
+.earned-pill {
+  background-color: var(--band-lemon-ink);
+  color: var(--band-lemon);
 }
 
 @media (prefers-reduced-motion: no-preference) {

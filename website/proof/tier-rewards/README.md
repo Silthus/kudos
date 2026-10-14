@@ -31,10 +31,11 @@ These screenshots come from the fixture build (`VITE_SHELL_FIXTURE=member-with-t
 - **Screen-reader wording:** the page title is `You earned First Thanks`, and the list `Tiers earned` reads `Bronze · Generosity` and `+10 coins`. A ladder tier reads `Reward: 10 coins`. A shelf entry's name ends `, reward 10 coins`.
 - **Contrast:**
   - The band ink `#141414` on lemon `#ffce1c` is about 12:1, measured by a test.
-  - Medals sit on a card-coloured plaque, and the existing metal tests prove 3:1 against the card in both modes.
+  - Medals sit on E's night plaque (`--band-lemon-ink`), and the reward pill is lemon on that ink. A test proves 3:1 for every metal on the ink, in light and dark.
   - The coin glyph is drawn in muted-foreground on the card, about 7:1 in light and dark.
 - **axe:** the earned page, a category page with reward lines and the shelf pass axe in light and dark (`tierRewards.test.tsx`).
 
 ## Reviews
 
 - `review-round-1.md`: GPT-6.1 Sol, one finding, rejected with its reason (the tier DM's link is map #1's).
+- `fable-spot-check.md`: Fable 5.1, ship with fixes. The must-fix is fixed: the plaque and pill were white on lemon at about 1.5:1, and are now on the night ink. The polish items were skipped, each with its reason.

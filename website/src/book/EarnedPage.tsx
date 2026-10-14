@@ -56,7 +56,7 @@ function EarnedMoment({ earned, chatUrl }: { earned: Shelved[]; chatUrl: string 
 function EarnedTier({ entry: { ladder, tier } }: { entry: Shelved }) {
   return (
     <li className="flex flex-col items-center gap-2 text-center">
-      <span className="earned-plaque grid size-28 place-items-center rounded-[28px] border bg-card sm:size-32">
+      <span className="earned-plaque grid size-28 place-items-center rounded-[28px] sm:size-32">
         <span className="earned-stamp inline-flex">
           <Medal tier={tier.tier} earned size={84} />
         </span>
@@ -64,7 +64,7 @@ function EarnedTier({ entry: { ladder, tier } }: { entry: Shelved }) {
       <span className="text-sm font-semibold">{`${tierWords[tier.tier]} · ${ladder.name}`}</span>
       {tier.rewards.length > 0 && (
         <span className="earned-reward flex flex-wrap justify-center gap-2">
-          <RewardGains rewards={tier.rewards} className="rounded-full border bg-card px-2.5 py-1 text-xs font-semibold tabular-nums text-card-foreground" />
+          <RewardGains rewards={tier.rewards} className="earned-pill rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums" />
         </span>
       )}
     </li>
