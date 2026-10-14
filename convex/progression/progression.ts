@@ -5,7 +5,8 @@ import type { MemberId } from "../workspace/directory";
 import { catalogue } from "./catalogue";
 import type { AwardWithId } from "../engine/awards";
 import { insertEffects, isRecorded } from "./effects";
-import { progress, sideOf, standing, xpToNextLevel, type MemberProgress, type Progressed, type Standing } from "./progress";
+import { progress, rewarded, sideOf, standing, xpToNextLevel, type MemberProgress, type Progressed, type Standing } from "./progress";
+import { insertReward, rewardOf, type RewardRecord } from "./rewards";
 
 export const recordEffects = internalMutation({
   args: { event: kudosGivenEventValidator },
@@ -20,6 +21,17 @@ export const recordEffects = internalMutation({
     }
   },
 });
+
+export async function recordReward(ctx: MutationCtx, workspace: string, reward: RewardRecord): Promise<"recorded" | "already recorded"> {
+  const { member, at } = reward;
+  if ((await rewardOf(ctx, member, reward.key)) !== null) return "already recorded";
+  await insertReward(ctx, reward);
+  const { state, events } = rewarded(await progressOf(ctx, member), reward, { workspace, at });
+  await saveProgress(ctx, state);
+  await publish(ctx, { type: "xpRecorded", workspace, member, at });
+  for (const levelReached of events) await publish(ctx, levelReached);
+  return "recorded";
+}
 
 export async function unrecordedAwardsOf<A extends AwardWithId>(ctx: QueryCtx, member: MemberId, awards: A[]): Promise<A[]> {
   const unrecorded: A[] = [];

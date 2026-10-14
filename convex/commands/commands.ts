@@ -6,6 +6,9 @@ import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import { periodValidator } from "../leaderboard/periods";
 import { setLeaderboardVisibility } from "../leaderboard/visibility";
 import { setProgressSettings } from "../progression/settings";
+import { openQuestCrate } from "../quests/crates";
+import { questValidator, weeklyQuestValidator } from "../quests/step";
+import { rerollQuest } from "../quests/weekly";
 import { xpLevelsShownTo } from "../progression/xpLevels";
 import { featureValidator } from "../unlocks/feature";
 import { openUnlock } from "../unlocks/unlocks";
@@ -18,6 +21,8 @@ export const commandValidator = v.union(
   v.object({ type: v.literal("setProgressSettings"), muteNotices: v.optional(v.boolean()), dms: v.optional(v.boolean()) }),
   v.object({ type: v.literal("setAnnouncementChannel"), channel: v.union(v.string(), v.null()) }),
   v.object({ type: v.literal("openUnlock"), feature: featureValidator }),
+  v.object({ type: v.literal("openQuestCrate"), quest: questValidator }),
+  v.object({ type: v.literal("rerollQuest"), quest: weeklyQuestValidator }),
 );
 
 export type Command = Infer<typeof commandValidator>;
@@ -48,6 +53,12 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
     case "openUnlock":
       await openUnlock(ctx, member, command.feature);
       return;
+    case "openQuestCrate":
+      await openQuestCrate(ctx, member, command.quest);
+      return;
+    case "rerollQuest":
+      await rerollQuest(ctx, member, command.quest);
+      return;
   }
 }
 
@@ -63,6 +74,8 @@ function conforms(validator: GenericValidator, value: unknown): boolean {
       return typeof value === "boolean";
     case "string":
       return typeof value === "string";
+    case "float64":
+      return typeof value === "number";
     case "null":
       return value === null;
     default:

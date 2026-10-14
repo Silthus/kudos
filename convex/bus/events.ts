@@ -1,6 +1,7 @@
 import { v, type Infer } from "convex/values";
 import { awardIdValidator } from "../engine/awards";
 import { annotationsValidator, messageRefValidator } from "../engine/messageEvent";
+import { questValidator } from "../quests/step";
 import { featureValidator } from "../unlocks/feature";
 import type { MemberId } from "../workspace/directory";
 
@@ -31,7 +32,7 @@ export const levelReachedEventValidator = v.object({
   skillPointsGained: v.number(),
   skillPoints: v.number(),
   xpToNextLevel: v.number(),
-  message: messageRefValidator,
+  message: v.optional(messageRefValidator),
   at: v.number(),
 });
 
@@ -81,13 +82,44 @@ const unlockFields = { workspace: v.string(), member: v.id("members"), feature: 
 
 export const unlockReadyEventValidator = v.object({ type: v.literal("unlockReady"), ...unlockFields });
 
-export const unlockOpenedEventValidator = v.object({ type: v.literal("unlockOpened"), ...unlockFields });
+export const unlockOpenedEventValidator = v.object({ type: v.literal("unlockOpened"), ...unlockFields, byLaunch: v.optional(v.literal(true)) });
 
 export type UnlockReadyEvent = Infer<typeof unlockReadyEventValidator>;
 
 export type UnlockOpenedEvent = Infer<typeof unlockOpenedEventValidator>;
 
-export type DomainEvent = KudosGivenEvent | AttemptFailedEvent | MemberWelcomedEvent | LevelReachedEvent | XpRecordedEvent | UnlockReadyEvent | UnlockOpenedEvent;
+const questFields = { workspace: v.string(), member: v.id("members"), quest: questValidator, at: v.number() };
+
+export const questFinishedEventValidator = v.object({ type: v.literal("questFinished"), ...questFields });
+
+export const questOpenedEventValidator = v.object({ type: v.literal("questOpened"), ...questFields });
+
+const membershipFields = { workspace: v.string(), member: v.id("members"), at: v.number() };
+
+export const memberLeftEventValidator = v.object({ type: v.literal("memberLeft"), ...membershipFields });
+
+export const memberRejoinedEventValidator = v.object({ type: v.literal("memberRejoined"), ...membershipFields });
+
+export type MemberLeftEvent = Infer<typeof memberLeftEventValidator>;
+
+export type MemberRejoinedEvent = Infer<typeof memberRejoinedEventValidator>;
+
+export type QuestFinishedEvent = Infer<typeof questFinishedEventValidator>;
+
+export type QuestOpenedEvent = Infer<typeof questOpenedEventValidator>;
+
+export type DomainEvent =
+  | KudosGivenEvent
+  | AttemptFailedEvent
+  | MemberWelcomedEvent
+  | LevelReachedEvent
+  | XpRecordedEvent
+  | UnlockReadyEvent
+  | UnlockOpenedEvent
+  | QuestFinishedEvent
+  | QuestOpenedEvent
+  | MemberLeftEvent
+  | MemberRejoinedEvent;
 
 export function membersNamedIn(event: KudosGivenEvent): MemberId[] {
   return [...new Set([event.giver, ...event.awards.map((award) => award.recipient)])];
