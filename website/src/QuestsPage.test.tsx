@@ -6,6 +6,7 @@ import { fixedQuests, questsFixtures } from "./questsFixtures";
 import type { QuestsRead } from "./questsRead";
 import { shellFixtures, type MyQuests, type OpenAnswer } from "./shell";
 import { renderApp } from "./test/renderApp";
+import { navEntryNames } from "./test/screensNav";
 import { fakeSystemTheme, preferReducedMotion } from "./test/systemTheme";
 
 const withQuests = shellFixtures.memberWithQuests;
@@ -208,22 +209,23 @@ describe("WS73 WS67 WS69: /quests while Quests isn't open", () => {
   });
 });
 
-describe("WS73 WS59: the nav shows Quests while it is open", () => {
-  it("lists Quests after Home and marks it current on /quests", () => {
+describe("WS73 WS301: the nav shows Quests in its state", () => {
+  it("lists Quests after Profile and marks it current on /quests", () => {
     showQuests(questsFixtures.week);
     const quests = within(screens()).getByRole("link", { name: "Quests" });
     expect(quests).toHaveAttribute("href", "/quests");
     expect(quests).toHaveAttribute("aria-current", "page");
-    expect(within(screens()).getAllByRole("link").map((link) => link.textContent)).toEqual(["Home", "Quests"]);
+    expect(navEntryNames()).toEqual(["Profile", "Quests"]);
   });
 
   it.each([
-    ["locked", shellFixtures.memberStartingTheJourney],
-    ["ready", shellFixtures.memberWithQuestsReady],
-  ])("has no Quests item while Quests is %s", (_, member) => {
+    ["locked", shellFixtures.memberStartingTheJourney, "Quests, locked. Unlocks at level 2"],
+    ["ready", shellFixtures.memberWithQuestsReady, "Quests: unlock ready. Open its crate"],
+  ])("has no Quests link while Quests is %s, only its entry in that state", (_, member, entry) => {
     window.history.replaceState(null, "", "/");
     renderApp(member);
-    expect(within(screens()).getAllByRole("link").map((link) => link.textContent)).toEqual(["Home"]);
+    expect(navEntryNames()).toEqual(["Profile", entry]);
+    expect(within(screens()).queryByRole("link", { name: "Quests" })).not.toBeInTheDocument();
   });
 
   it("goes to /quests from the nav without a reload, moving focus to the page title", async () => {
@@ -298,7 +300,7 @@ function flight() {
 }
 
 function avatar() {
-  return screen.getByRole("button", { name: "Account menu for Sam Example" });
+  return screen.getByRole("link", { name: /^Sam Example/ });
 }
 
 async function claimAndClose(user: ReturnType<typeof showQuests>["user"]) {

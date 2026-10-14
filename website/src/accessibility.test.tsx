@@ -1,4 +1,4 @@
-import { act, screen, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import axe from "axe-core";
 import { describe, expect, it } from "vitest";
 import type { BoardAnswer, BoardRead } from "./boardRead";
@@ -40,6 +40,7 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "home with the leaderboard opened and the skill tree locked", path: "/", visitor: shellFixtures.memberWithTheBoardOpened },
   { name: "home with every shipped feature open", path: "/", visitor: shellFixtures.memberWithEveryFeatureOpen },
   { name: "home with no feature shipped", path: "/", visitor: shellFixtures.memberWithNothingShipped },
+  { name: "quests with the nav in every state", path: "/quests", visitor: shellFixtures.memberWithEveryNavState, quests: questsFixtures.week },
   { name: "home with every panel locked", path: "/", visitor: shellFixtures.memberWithEveryPanelLocked },
   { name: "home with every panel ready", path: "/", visitor: shellFixtures.memberWithEveryPanelReady },
   { name: "home with every panel open", path: "/", visitor: shellFixtures.memberWithEveryPanelOpen },
@@ -144,11 +145,11 @@ describe("WS24: every page passes axe in light and dark", () => {
       expect(await violationsIn(document.body, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
     });
 
-    it(`the open avatar menu, portaled outside the landmarks, meets WCAG 2.2 AA in ${dark ? "dark" : "light"}`, async () => {
+    it(`the next unlock's tooltip, portaled outside the landmarks, meets WCAG 2.2 AA in ${dark ? "dark" : "light"}`, async () => {
       fakeSystemTheme(dark);
-      const { user, getByRole, findByRole } = renderApp(shellFixtures.member);
-      await user.click(getByRole("button", { name: "Account menu for Sam Example" }));
-      await findByRole("menuitem", { name: "Sign out" });
+      const { user, getByRole } = renderApp(shellFixtures.memberWithEveryNavState);
+      await user.hover(within(getByRole("navigation", { name: "Screens" })).getByRole("link", { name: "Book, locked. Unlocks at level 4" }));
+      await waitFor(() => expect(document.querySelector('[data-slot="tooltip-content"]')).toHaveTextContent("Next unlock · Book"));
       expect(await violationsIn(document.body, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
     });
   }
