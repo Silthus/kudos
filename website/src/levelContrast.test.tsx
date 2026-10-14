@@ -24,10 +24,10 @@ function heroGraphics() {
   const avatar = within(screen.getByRole("banner")).getByRole("link", { name: "Sam Example, level 7" });
   const bar = within(hero).getByRole("progressbar");
   return [
-    { part: "the hero ring's arc and track", surfaces: ["card"], elements: [...within(hero).getByRole("img", { name: /^Level 7/ }).querySelectorAll("circle")] },
+    { part: "the hero ring's arc and track", surfaces: ["background"], elements: [...within(hero).getByRole("img", { name: /^Level 7/ }).querySelectorAll("circle")] },
     { part: "the HUD ring's arc and track", surfaces: ["card", "background"], elements: [...within(avatar).getByRole("img", { name: /^Level 7/ }).querySelectorAll("circle")] },
-    { part: "the XP bar's track and fill", surfaces: ["card"], elements: [bar, bar.firstElementChild!] },
-    { part: "the pips, left and spent", surfaces: ["card"], elements: [...within(hero).getByRole("img", { name: "1 of 3 kudos left today" }).children] },
+    { part: "the XP bar's track and fill", surfaces: ["background"], elements: [bar, bar.firstElementChild!] },
+    { part: "the pips, left and spent", surfaces: ["background"], elements: [...within(hero).getByRole("img", { name: "1 of 3 kudos left today" }).children] },
   ];
 }
 
@@ -42,6 +42,23 @@ describe("WS112 V24: the ring, the XP bar and the pips meet 3:1 against their su
         elements.flatMap((element) => paintsOf(element).flatMap((paint) => surfaces.map((surface) => ({ part, paint, surface, ratio: contrast(mode, paint, surface) })))),
       );
       expect(measured.length).toBeGreaterThanOrEqual(12);
+      expect(measured.filter(({ ratio }) => ratio < 3)).toEqual([]);
+    });
+  }
+});
+
+describe("WS312 WS339 V24: the first-kudos nudge's icon and its frame meet 3:1 in both modes", () => {
+  for (const mode of ["light", "dark"] as const) {
+    it(`in ${mode}`, () => {
+      renderApp(shellFixtures.memberBeforeTheirFirstKudos);
+      const nudge = within(screen.getByRole("main")).getByRole("region", { name: "Give your first kudos in Slack" });
+      const icon = nudge.querySelector("svg")!;
+      const parts = [
+        { part: "the message icon", surface: "muted", element: icon },
+        { part: "the icon's frame", surface: "card", element: icon.parentElement! },
+      ];
+      const measured = parts.flatMap(({ part, surface, element }) => paintsOf(element).map((paint) => ({ part, paint, surface, ratio: contrast(mode, paint, surface) })));
+      expect(measured.map(({ paint }) => paint)).toEqual(["foreground", "muted-foreground"]);
       expect(measured.filter(({ ratio }) => ratio < 3)).toEqual([]);
     });
   }
