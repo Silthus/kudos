@@ -48,8 +48,8 @@ export const receiveHomeClick = internalMutation({
     const person = await lookup(ctx, receipt.workspace, user);
     if (person?.kind !== "member") return;
     for (const command of commands) {
-      const reply = await runCommand(ctx, receipt.workspace, person, command, `slack:${receipt.eventId}`);
-      if (reply !== null && conversation !== undefined) await ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverReply, { workspace: receipt.workspace, conversation, text: reply });
+      const outcome = await runCommand(ctx, receipt.workspace, person, command, `slack:${receipt.eventId}`);
+      if (outcome !== null && conversation !== undefined) await ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverPurchaseReply, { member: person.member, workspace: receipt.workspace, conversation, outcome });
     }
     await republish(ctx, person.member);
   },

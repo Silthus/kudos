@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { observedAction } from "../analytics/boundary";
 import { notificationValidator, type NotificationLine } from "../feedback/notify";
+import { purchaseOutcomeValidator } from "../progression/perks";
 import { buttonOf, mrkdwn } from "./blocks";
 import { attemptArgs, sendOnce, tryAtMostThreeTimes } from "./delivery";
 
@@ -22,13 +23,17 @@ export const deliverDirectMessage = observedAction({
   },
 });
 
-export const deliverReply = observedAction({
-  args: { workspace: v.string(), conversation: v.string(), text: v.string(), ...attemptArgs },
+export const deliverPurchaseReply = observedAction({
+  args: { member: v.id("members"), workspace: v.string(), conversation: v.string(), outcome: purchaseOutcomeValidator, ...attemptArgs },
   handler: async (ctx, { attempt = 1, ...reply }) => {
     await tryAtMostThreeTimes(
       attempt,
-      (attempt) => sendOnce(ctx, reply.workspace, "chat.postMessage", { channel: reply.conversation, text: reply.text }, attempt),
-      (retry) => ctx.scheduler.runAt(retry.at, internal.slack.directMessages.deliverReply, { ...reply, attempt: retry.attempt }),
+      async (attempt) => {
+        const text = await ctx.runQuery(internal.feedback.notify.purchaseReplyStillWanted, { member: reply.member, outcome: reply.outcome });
+        if (text === null) return null;
+        return sendOnce(ctx, reply.workspace, "chat.postMessage", { channel: reply.conversation, text }, attempt);
+      },
+      (retry) => ctx.scheduler.runAt(retry.at, internal.slack.directMessages.deliverPurchaseReply, { ...reply, attempt: retry.attempt }),
     );
   },
 });

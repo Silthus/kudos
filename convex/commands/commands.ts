@@ -1,12 +1,11 @@
 import { v, type GenericValidator, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
-import { purchaseReplyOf } from "../feedback/home";
 import { homeTabValidator, isLeaderboardShownTo, selectLeaderboardPeriod, showHomeTab, type HomeMember } from "../feedback/homes";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import { periodValidator } from "../leaderboard/periods";
 import { setLeaderboardVisibility } from "../leaderboard/visibility";
-import { buyPerk } from "../progression/perks";
+import { buyPerk, type PurchaseOutcome } from "../progression/perks";
 import { setProgressSettings } from "../progression/settings";
 import { perkValidator } from "../progression/tree";
 import { openQuestCrate } from "../quests/crates";
@@ -35,7 +34,7 @@ export function commandOf(candidate: unknown): Command | null {
   return conforms(commandValidator, candidate) ? (candidate as Command) : null;
 }
 
-export async function runCommand(ctx: MutationCtx, workspace: string, person: HomeMember, command: Command, idempotencyKey: string): Promise<string | null> {
+export async function runCommand(ctx: MutationCtx, workspace: string, person: HomeMember, command: Command, idempotencyKey: string): Promise<PurchaseOutcome | null> {
   const { member } = person;
   switch (command.type) {
     case "showHomeTab":
@@ -67,7 +66,7 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
     case "buyPerk": {
       const outcome = await buyPerk(ctx, member, command.perk, idempotencyKey);
       await showHomeTab(ctx, workspace, person, "skillTree");
-      return outcome === null ? null : purchaseReplyOf(outcome);
+      return outcome;
     }
   }
 }

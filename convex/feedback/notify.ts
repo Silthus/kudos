@@ -3,7 +3,7 @@ import { internal } from "../_generated/api";
 import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import type { LevelReachedEvent } from "../bus/events";
 import { skillTreeLevel } from "../progression/levels";
-import { memberPerksOf, skillTreeAppliesIn } from "../progression/perks";
+import { memberPerksOf, purchaseOutcomeValidator, skillTreeAppliesIn } from "../progression/perks";
 import { progressSettingsOf } from "../progression/settings";
 import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { questsApplyIn } from "../quests/flag";
@@ -13,7 +13,7 @@ import { unlocksAppliedIn, unlocksShownTo } from "../unlocks/launch";
 import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import { stateOf } from "../unlocks/unlocks";
 import { chatUserOf, type MemberId } from "../workspace/directory";
-import { finishedQuestCrateOf, finishedWeeklyQuestCrateOf, perkOfferOf, readyCrateOf, type HomeAction } from "./home";
+import { finishedQuestCrateOf, finishedWeeklyQuestCrateOf, perkOfferOf, purchaseReplyOf, readyCrateOf, type HomeAction } from "./home";
 import { skillPointsOf } from "./naming";
 import { whenOpened } from "./unlockFilter";
 
@@ -73,6 +73,14 @@ export const linesStillWanted = internalQuery({
     const told = await stillToldOf(ctx, workspace, member, notification);
     const lines = [...renderNotification(told), ...(await perkOffersOf(ctx, workspace, member, told))];
     return lines.length === 0 ? null : lines;
+  },
+});
+
+export const purchaseReplyStillWanted = internalQuery({
+  args: { member: v.id("members"), outcome: purchaseOutcomeValidator },
+  handler: async (ctx, { member, outcome }): Promise<string | null> => {
+    const { workspace } = await chatUserOf(ctx, member);
+    return (await skillTreeAppliesIn(ctx, workspace)) ? purchaseReplyOf(outcome) : null;
   },
 });
 

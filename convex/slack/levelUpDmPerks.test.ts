@@ -118,6 +118,22 @@ describe("P78: where the skill tree doesn't apply, the level-up DM offers nothin
   });
 });
 
+describe("P78 R34: the line a Buy answers with is checked again before each try", () => {
+  test("a reply Slack held back is not sent once skill-tree went off before its retry, and the purchase stands", async () => {
+    const t = await skillTreeOpenedAtLevelFive("U_ALICE");
+    await reachLevelSix(t, "U_ALICE");
+    slack.holdingBack("chat.postMessage", inDm.channel, async () => {
+      await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("skill-tree"));
+      slack.answering("chat.postMessage", rateLimitedFor(30));
+    });
+
+    await clickInDm(t, "U_ALICE", buyButtonInDm("rhythm"));
+
+    expect(repliesIn(inDm.channel)).toEqual(["You bought Rhythm."]);
+    expect(await perksOwnedBy(t, "U_ALICE")).toEqual(["rhythm"]);
+  });
+});
+
 type PostedDm = Record<string, unknown>;
 
 async function skillTreeOpenedAtLevelFive(user: string) {
