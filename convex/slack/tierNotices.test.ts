@@ -33,9 +33,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("P63 P64 P76: a tier you earn is told by DM and celebrated in the kudos message's reply", () => {
+describe("P63 P64 P76: a tier you earn is told by DM and celebrated in the announcement channel", () => {
   test("a kudos that earns the giver Generosity silver and the recipient Recognition bronze sends each one DM and puts a line for each in the message's one public reply", async () => {
-    const t = await workspace();
+    const t = await workspace({ announcementChannel: "C_NEWS" });
     const [alice] = await membersWithTheBookOpen(t, "U_ALICE", "U_BOB");
     await withGiven(t, alice!, 24);
 
@@ -43,33 +43,49 @@ describe("P63 P64 P76: a tier you earn is told by DM and celebrated in the kudos
 
     expect(tierDmsTo("U_ALICE")).toEqual(["🏅 You earned Generous Soul (Generosity, silver).\n🏅 You earned First Chapter (Seasons, bronze).\nNext: Heart of the Team at 100 kudos given.\nNext: Season of Thanks at 3 calendar months with a kudos given."]);
     expect(tierDmsTo("U_BOB")).toEqual(["🏅 You earned Noticed (Recognition, bronze).\nNext: Appreciated at 25 kudos received."]);
-    expect(publicPostsIn("C1")).toHaveLength(1);
-    expect(tierLinesIn("C1")).toEqual(["🏅 <@U_ALICE> earned Generous Soul and First Chapter.", "🏅 <@U_BOB> earned Noticed."]);
+    expect(publicPostsIn("C_NEWS")).toHaveLength(1);
+    expect(tierLinesIn("C_NEWS")).toEqual(["🏅 <@U_ALICE> earned Generous Soul and First Chapter.", "🏅 <@U_BOB> earned Noticed."]);
   });
 
-  test("with an announcement channel picked, the lines go there and the thread gets none", async () => {
+  test.each([
+    ["at a channel's top level", {}],
+    ["in a thread", { threadTs: "1760349000.000100" }],
+  ])("QM2: with no announcement channel picked, the tiers a kudos posted %s earns are told by DM and celebrated nowhere in public", async (_, where) => {
+    const t = await workspace();
+    await membersWithTheBookOpen(t, "U_ALICE", "U_BOB");
+
+    await giveKudos(t, "U_ALICE", "U_BOB", where);
+
+    expect(tierDmsTo("U_ALICE")).toHaveLength(1);
+    expect(tierDmsTo("U_BOB")).toHaveLength(1);
+    expect(publicPosts()).toEqual([]);
+    expect(await t.run((ctx) => ctx.db.query("publicReplies").collect())).toEqual([]);
+  });
+
+  test("QM1: the tiers a kudos posted in a thread earns are celebrated at the announcement channel's top level, and the kudos message's conversation gets nothing", async () => {
     const t = await workspace({ announcementChannel: "C_NEWS" });
     await membersWithTheBookOpen(t, "U_ALICE", "U_BOB");
 
-    await giveKudos(t, "U_ALICE", "U_BOB");
+    await giveKudos(t, "U_ALICE", "U_BOB", { threadTs: "1760349000.000100" });
 
+    expect(publicPostsIn("C_NEWS").map(({ thread_ts }) => thread_ts)).toEqual([undefined]);
     expect(tierLinesIn("C_NEWS")).toEqual(["🏅 <@U_ALICE> earned First Thanks and First Chapter.", "🏅 <@U_BOB> earned Noticed."]);
-    expect(tierLinesIn("C1")).toEqual([]);
+    expect(publicPostsIn("C1")).toEqual([]);
   });
 
   test("a member who hasn't opened the Book gets no DM and no public line, and the member who has still does", async () => {
-    const t = await workspace();
+    const t = await workspace({ announcementChannel: "C_NEWS" });
     await membersWithTheBookOpen(t, "U_ALICE");
 
     await giveKudos(t, "U_ALICE", "U_BOB");
 
     expect(tierDmsTo("U_ALICE")).toHaveLength(1);
     expect(tierDmsTo("U_BOB")).toEqual([]);
-    expect(tierLinesIn("C1")).toEqual(["🏅 <@U_ALICE> earned First Thanks and First Chapter."]);
+    expect(tierLinesIn("C_NEWS")).toEqual(["🏅 <@U_ALICE> earned First Thanks and First Chapter."]);
   });
 
   test("a tier earned before the member opened the Book gets no public line, even when the opening lands before the count, and arrives as a DM summary", async () => {
-    const t = await workspace();
+    const t = await workspace({ announcementChannel: "C_NEWS" });
     const [alice, bob] = await membersWithTheBookOpen(t);
     const earnedBeforeOpening = await t.run((ctx) => kudosGivenEventWithAward(ctx, alice!, bob!, { at: Date.now() }));
     vi.setSystemTime(now.getTime() + 60_000);
@@ -80,33 +96,33 @@ describe("P63 P64 P76: a tier you earn is told by DM and celebrated in the kudos
 
     expect(tierDmsTo("U_ALICE")).toEqual(["🏅 You earned First Thanks (Generosity, bronze).\n🏅 You earned First Chapter (Seasons, bronze).\nNext: Generous Soul at 25 kudos given.\nNext: Season of Thanks at 3 calendar months with a kudos given."]);
     expect(tierDmsTo("U_BOB")).toEqual(["🏅 You earned Noticed (Recognition, bronze).\nNext: Appreciated at 25 kudos received."]);
-    expect(tierLinesIn("C1")).toEqual([]);
+    expect(tierLinesIn("C_NEWS")).toEqual([]);
   });
 
   test("P65: a member who muted notices gets no public line, and their DM still arrives", async () => {
-    const t = await workspace();
+    const t = await workspace({ announcementChannel: "C_NEWS" });
     const [alice] = await membersWithTheBookOpen(t, "U_ALICE", "U_BOB");
     await t.run((ctx) => ctx.db.insert("progressSettings", { member: alice!, muteNotices: true }));
 
     await giveKudos(t, "U_ALICE", "U_BOB");
 
     expect(tierDmsTo("U_ALICE")).toEqual(["🏅 You earned First Thanks (Generosity, bronze).\n🏅 You earned First Chapter (Seasons, bronze).\nNext: Generous Soul at 25 kudos given.\nNext: Season of Thanks at 3 calendar months with a kudos given."]);
-    expect(tierLinesIn("C1")).toEqual(["🏅 <@U_BOB> earned Noticed."]);
+    expect(tierLinesIn("C_NEWS")).toEqual(["🏅 <@U_BOB> earned Noticed."]);
   });
 
   test("a member who turned DMs off gets no DM, and their public line is still posted", async () => {
-    const t = await workspace();
+    const t = await workspace({ announcementChannel: "C_NEWS" });
     const [alice] = await membersWithTheBookOpen(t, "U_ALICE", "U_BOB");
     await t.run((ctx) => ctx.db.insert("progressSettings", { member: alice!, dms: false }));
 
     await giveKudos(t, "U_ALICE", "U_BOB");
 
     expect(tierDmsTo("U_ALICE")).toEqual([]);
-    expect(tierLinesIn("C1")).toEqual(["🏅 <@U_ALICE> earned First Thanks and First Chapter.", "🏅 <@U_BOB> earned Noticed."]);
+    expect(tierLinesIn("C_NEWS")).toEqual(["🏅 <@U_ALICE> earned First Thanks and First Chapter.", "🏅 <@U_BOB> earned Noticed."]);
   });
 
   test("a kudos that reaches two tiers of one ladder names both in one DM and one line", async () => {
-    const t = await workspace();
+    const t = await workspace({ announcementChannel: "C_NEWS" });
     const [alice, bob] = await membersWithTheBookOpen(t, "U_ALICE", "U_BOB");
     const event = await t.run((ctx) => kudosGivenEventWithAward(ctx, alice!, bob!, { at: Date.now() }));
     const reachingTwo = { ...event, awards: event.awards.map((award) => ({ ...award, kudos: 25 })) };
@@ -117,13 +133,13 @@ describe("P63 P64 P76: a tier you earn is told by DM and celebrated in the kudos
     expect(tierDmsTo("U_ALICE")).toEqual([
       "🏅 You earned First Thanks (Generosity, bronze).\n🏅 You earned Generous Soul (Generosity, silver).\n🏅 You earned First Chapter (Seasons, bronze).\nNext: Heart of the Team at 100 kudos given.\nNext: Season of Thanks at 3 calendar months with a kudos given.",
     ]);
-    expect(tierLinesIn("C1")).toEqual(["🏅 <@U_ALICE> earned First Thanks, Generous Soul and First Chapter.", "🏅 <@U_BOB> earned Noticed and Appreciated."]);
+    expect(tierLinesIn("C_NEWS")).toEqual(["🏅 <@U_ALICE> earned First Thanks, Generous Soul and First Chapter.", "🏅 <@U_BOB> earned Noticed and Appreciated."]);
   });
 });
 
 describe("P63 P64: a tier is told once per member and kudos", () => {
   test("delivering the same kudosGiven twice enqueues one DM and one line per member", async () => {
-    const t = await workspace();
+    const t = await workspace({ announcementChannel: "C_NEWS" });
     const [alice, bob] = await membersWithTheBookOpen(t, "U_ALICE", "U_BOB");
     const event = await t.run((ctx) => kudosGivenEventWithAward(ctx, alice!, bob!, { at: Date.now() }));
 
@@ -133,13 +149,13 @@ describe("P63 P64: a tier is told once per member and kudos", () => {
 
     expect(tierDmsTo("U_ALICE")).toHaveLength(1);
     expect(tierDmsTo("U_BOB")).toHaveLength(1);
-    expect(publicPostsIn("C1")).toHaveLength(1);
+    expect(publicPostsIn("C_NEWS")).toHaveLength(1);
     expect(slack.callsTo("chat.update")).toEqual([]);
-    expect(tierLinesIn("C1")).toEqual(["🏅 <@U_ALICE> earned First Thanks and First Chapter.", "🏅 <@U_BOB> earned Noticed."]);
+    expect(tierLinesIn("C_NEWS")).toEqual(["🏅 <@U_ALICE> earned First Thanks and First Chapter.", "🏅 <@U_BOB> earned Noticed."]);
   });
 
   test("telling the same member and kudos again enqueues nothing new", async () => {
-    const t = await workspace();
+    const t = await workspace({ announcementChannel: "C_NEWS" });
     const [alice] = await membersWithTheBookOpen(t, "U_ALICE");
     const told = { member: alice!, message: { workspace: "T1", conversation: "C1", message: kudosTs }, at: now.getTime(), earned: [{ ladder: "generosity" as const, tier: "bronze" as const }] };
 
@@ -148,14 +164,14 @@ describe("P63 P64: a tier is told once per member and kudos", () => {
     await settle(t);
 
     expect(tierDmsTo("U_ALICE")).toHaveLength(1);
-    expect(publicPostsIn("C1")).toHaveLength(1);
+    expect(publicPostsIn("C_NEWS")).toHaveLength(1);
     expect(slack.callsTo("chat.update")).toEqual([]);
   });
 });
 
 describe("P61 P78: a tier's copy celebrates, and names nothing unshipped", () => {
   test("no DM or line names coins, kudos emoji or hedgehogs, promises every tier, or suggests whom to thank", async () => {
-    const t = await workspace();
+    const t = await workspace({ announcementChannel: "C_NEWS" });
     const [alice, bob] = await membersWithTheBookOpen(t, "U_ALICE", "U_BOB");
     const event = await t.run((ctx) => kudosGivenEventWithAward(ctx, alice!, bob!, { at: Date.now() }));
     const reachingEvery = { ...event, awards: event.awards.map((award) => ({ ...award, kudos: 500 })) };
@@ -163,7 +179,7 @@ describe("P61 P78: a tier's copy celebrates, and names nothing unshipped", () =>
     await t.mutation(internal.achievements.achievements.countKudosGiven, { event: reachingEvery });
     await settle(t);
 
-    const told = [...tierDmsTo("U_ALICE"), ...tierDmsTo("U_BOB"), ...tierLinesIn("C1")].join("\n");
+    const told = [...tierDmsTo("U_ALICE"), ...tierDmsTo("U_BOB"), ...tierLinesIn("C_NEWS")].join("\n");
     expect(told).toContain("Patron of Praise");
     expect(told).toContain("Hall of Fame");
     expect(told).not.toMatch(/coin|🪙|emoji|:taco:|hedgehog|🦔|every tier|all tiers|whom|thank someone|thank them|ask /i);
@@ -172,22 +188,22 @@ describe("P61 P78: a tier's copy celebrates, and names nothing unshipped", () =>
 
 describe("P76 P78: where the Book doesn't apply, no tier is announced", () => {
   test("a tier earned while achievements is off sends no DM and no line, and isn't announced when it is on again", async () => {
-    const t = await workspace();
+    const t = await workspace({ announcementChannel: "C_NEWS" });
     await membersWithTheBookOpen(t, "U_ALICE", "U_BOB");
     await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("achievements"));
 
     await giveKudos(t, "U_ALICE", "U_BOB");
     await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("achievements"));
     vi.setSystemTime(now.getTime() + 60_000);
-    await giveKudos(t, "U_ALICE", "U_BOB", slackTs(Date.now()));
+    await giveKudos(t, "U_ALICE", "U_BOB", { ts: slackTs(Date.now()) });
 
     expect(tierDmsTo("U_ALICE")).toEqual([]);
     expect(tierDmsTo("U_BOB")).toEqual([]);
-    expect(tierLinesIn("C1")).toEqual([]);
+    expect(tierLinesIn("C_NEWS")).toEqual([]);
   });
 
   test("a tier told while the Book applies is dropped when it stops applying before Slack takes it", async () => {
-    const t = await workspace();
+    const t = await workspace({ announcementChannel: "C_NEWS" });
     const [alice, bob] = await membersWithTheBookOpen(t, "U_ALICE", "U_BOB");
     const event = await t.run((ctx) => kudosGivenEventWithAward(ctx, alice!, bob!, { at: Date.now() }));
     await t.mutation(internal.achievements.achievements.countKudosGiven, { event });
@@ -196,7 +212,7 @@ describe("P76 P78: where the Book doesn't apply, no tier is announced", () => {
     await settle(t);
 
     expect(tierDmsTo("U_ALICE")).toEqual([]);
-    expect(tierLinesIn("C1")).toEqual([]);
+    expect(tierLinesIn("C_NEWS")).toEqual([]);
   });
 });
 
@@ -221,7 +237,7 @@ describe("P63 P64 P69: Settings and Admin say they cover achievements where the 
     await click(t, "U_ALICE", "Admin");
 
     expect(publishedHome(slack, "U_ALICE")).toContain(
-      "section: I celebrate level ups and achievements in a thread under each kudos message. Pick a channel to post them there instead. [channels_select: none]",
+      "section: I don't celebrate level ups and achievements in public yet. Pick a channel to celebrate them there. [channels_select: none]",
     );
   });
 
@@ -239,7 +255,7 @@ describe("P63 P64 P69: Settings and Admin say they cover achievements where the 
     expect(settings).toContain("section: I celebrate your level ups in public. [button: Mute notices]");
     expect(settings).toContain("section: I send you a DM when you reach a level. [button: Turn off DMs]");
     expect(publishedHome(slack, "U_ALICE")).toContain(
-      "section: I celebrate level ups in a thread under each kudos message. Pick a channel to post them there instead. [channels_select: none]",
+      "section: I don't celebrate level ups in public yet. Pick a channel to celebrate them there. [channels_select: none]",
     );
   });
 });
@@ -277,8 +293,8 @@ async function withGiven(t: Backend, member: MemberId, count: number) {
   });
 }
 
-async function giveKudos(t: Backend, giver: string, recipient: string, ts = kudosTs) {
-  await t.fetch("/slack/events", await signedRequest(messageEvent([section(mention(recipient), emoji("taco"))], { user: giver, ts })));
+async function giveKudos(t: Backend, giver: string, recipient: string, { ts = kudosTs, threadTs }: { ts?: string; threadTs?: string } = {}) {
+  await t.fetch("/slack/events", await signedRequest(messageEvent([section(mention(recipient), emoji("taco"))], { user: giver, ts, threadTs })));
   await settle(t);
 }
 
@@ -301,6 +317,10 @@ function tierDmsTo(user: string) {
     .callsTo("chat.postMessage")
     .filter(({ channel, text }) => channel === user && String(text).startsWith("🏅"))
     .map(({ text }) => String(text));
+}
+
+function publicPosts() {
+  return slack.callsTo("chat.postMessage").filter(({ channel }) => !String(channel).startsWith("U"));
 }
 
 function publicPostsIn(channel: string) {
