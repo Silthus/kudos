@@ -35,7 +35,7 @@ describe("GB35: attribution and group totals stay within Convex's limits per wri
     expect(await totalsOf(t, members[0]!, groups[0]!)).toEqual({ "all": 31, "month:2026-10": 31, "week:2026-10-26": 6 });
   });
 
-  test("a message to 820 recipients in many groups, none reconciled yet, attributes within the limits: the giver and the first 99 recipients reconciled, the rest as their history stands", { timeout: 300_000 }, async () => {
+  test("a message to 820 recipients in many groups, none reconciled yet, attributes within the limits with every recipient reconciled first", { timeout: 300_000 }, async () => {
     const t = testBackend({ transactionLimits: true });
     const { members, groups } = await copiedGroupsNotYetReconciled(t, 821, 60);
     const [giver, ...recipients] = members;
@@ -46,7 +46,23 @@ describe("GB35: attribution and group totals stay within Convex's limits per wri
     const attribution = await t.run((ctx) => ctx.db.query("attributions").first());
     expect(attribution?.group).toBe(groups[0]);
     expect(attribution?.awards).toHaveLength(820);
-    expect(attribution?.awards.map(({ recipientGroup }) => recipientGroup !== null)).toEqual([...Array<boolean>(99).fill(true), ...Array<boolean>(721).fill(false)]);
+    expect(attribution?.awards.filter(({ recipientGroup }) => recipientGroup === null)).toEqual([]);
+    expect(await t.run(async (ctx) => (await ctx.db.query("attributions").take(2)).length)).toBe(1);
+  });
+
+  test("a kudosGiven redelivered while a message to 150 recipients is still being reconciled page by page records one attribution", { timeout: 120_000 }, async () => {
+    const t = testBackend();
+    const { members } = await copiedGroupsNotYetReconciled(t, 151, 10);
+    const [giver, ...recipients] = members;
+    const event = await kudosTo(t, giver!, recipients);
+
+    await t.mutation(internal.groups.attribution.attributeKudosGiven, { event });
+    await t.mutation(internal.groups.attribution.attributeKudosGiven, { event });
+    await settle(t);
+
+    const attributions = await t.run((ctx) => ctx.db.query("attributions").take(2));
+    expect(attributions).toHaveLength(1);
+    expect(attributions[0]?.awards.filter(({ recipientGroup }) => recipientGroup === null)).toEqual([]);
   });
 });
 
