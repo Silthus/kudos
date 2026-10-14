@@ -4,6 +4,7 @@ import { IconCheck, IconClock } from "@posthog/icons";
 import { Button, Card, CardContent } from "@posthog/quill";
 import { attemptMessages, questCrateHomeAttributes, useMoments } from "../crates/moments";
 import { questCrateOf, type CrateFacts, type QuestCrate } from "../crates/readyCrates";
+import { Claimed } from "../crates/RewardCrate";
 import { rewardChipAttributes } from "../crates/RewardFlight";
 import type { Hoggie } from "../features";
 import { PageTitle } from "../PageTitle";
@@ -146,15 +147,6 @@ function Claim({ crate, variant }: { crate: QuestCrate; variant: "primary" | "ou
         {claiming ? "Claiming…" : "Claim"}
       </Button>
     </div>
-  );
-}
-
-function Claimed() {
-  return (
-    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success px-2 py-0.5 text-[11px] font-medium leading-4 text-success-foreground">
-      <IconCheck aria-hidden="true" className="size-3" />
-      Claimed
-    </span>
   );
 }
 

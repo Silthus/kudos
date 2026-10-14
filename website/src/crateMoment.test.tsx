@@ -10,6 +10,8 @@ import { fakeSystemTheme, preferReducedMotion } from "./test/systemTheme";
 const ready = shellFixtures.memberWithTheBoardReady;
 const opened = shellFixtures.memberWithTheBoardOpened;
 
+const theWeeksBoard = fixedLeaderboard(leaderboardFixtures.midBoard);
+
 beforeEach(() => {
   fakeSystemTheme(false);
 });
@@ -49,7 +51,7 @@ function announcement() {
 }
 
 async function openTheCrate(answer: OpenAnswer = { kind: "opened" }, visitor: ShellState = ready) {
-  const view = renderApp(visitor, undefined, { openFeature: async () => answer });
+  const view = renderApp(visitor, theWeeksBoard, { openFeature: async () => answer });
   await view.user.click(openButton());
   return view;
 }
@@ -459,7 +461,7 @@ describe("WS68: the ready pill", () => {
 
 describe("WS75: the keyboard path", () => {
   it("opens with Enter, skips with Esc, replays, and closes with Done, returning focus to the card", async () => {
-    const { user, showVisitor } = renderApp(ready, undefined, { openFeature: async () => ({ kind: "opened" }) });
+    const { user, showVisitor } = renderApp(ready, theWeeksBoard, { openFeature: async () => ({ kind: "opened" }) });
     openButton().focus();
     await user.keyboard("{Enter}");
     expect(dialog()).toContainElement(document.activeElement as HTMLElement);
