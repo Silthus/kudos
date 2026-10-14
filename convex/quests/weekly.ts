@@ -7,14 +7,14 @@ import { awardIdValidator, lastThankedBefore, lastThankedBy } from "../engine/aw
 import { republish } from "../feedback/homes";
 import { notifyWeeklyQuestFinished } from "../feedback/notify";
 import { gateDecisionOf } from "../progression/gate";
-import { rewardOf } from "../progression/rewards";
+import { rewardOf, rewardsKeyedFrom } from "../progression/rewards";
 import { openedAtOf } from "../unlocks/unlocks";
 import { chatUserOf, teammatesOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
-import { crateOpeningOf, rewardKeyOf } from "./crates";
+import { crateOpeningOf, rewardKeyOf, rewardKeyPrefixOf, weeklyQuestOfRewardKey } from "./crates";
 import { finishQuest } from "./finish";
 import { questsLiveIn } from "./flag";
-import { rewardValidator } from "./journey";
+import { rewardValidator, type Reward } from "./journey";
 import { feasibility, feasibleBecauseValidator, questIdValidator, questOf, questPool, type DrawFacts, type FeasibleBecause, type PoolQuest, type QuestId, type Recipient } from "./pool";
 import { counts, isRecipient, questProgress, type CountedAward, type QuestAward } from "./progress";
 import type { WeeklyQuest } from "./step";
@@ -56,6 +56,8 @@ type FeasibleQuest = { quest: PoolQuest; feasibleBecause: FeasibleBecause };
 export type WeeklySlot = Slot & { goal: string; progress: number; target: number; finishedAt: number | null; openedAt: number | null };
 
 export type QuestSwap = { slot: number; replaced: QuestId; quest: QuestId; swappedAt: number };
+
+export type WaitingCrate = { quest: WeeklyQuest; goal: string; reward: Reward; finishedAt: number };
 
 export type WeeklyQuests = { week: WeekKey; drawnAt: number; slots: WeeklySlot[]; swap: QuestSwap | null; swapAvailable: boolean };
 
@@ -112,6 +114,23 @@ export async function weeklyQuestsOf(ctx: QueryCtx, member: MemberId, at: number
   for (const slot of slotsOf(draw, swap)) slots.push(await weeklySlotOf(ctx, draw, slot));
   const swapAvailable = swap === null && slots.some(({ finishedAt }) => finishedAt === null) && (await replacementFor(ctx, draw, at)) !== null;
   return { week, drawnAt, slots, swap: swap === null ? null : questSwapOf(swap), swapAvailable };
+}
+
+export async function waitingCratesOf(ctx: QueryCtx, member: MemberId, at: number): Promise<WaitingCrate[]> {
+  const thisWeek = weekKeyOf(at, await timeZoneOf(ctx, member));
+  const waiting: WaitingCrate[] = [];
+  for (const { key, xp, coins, item, at: finishedAt } of await rewardsKeyedFrom(ctx, member, rewardKeyPrefixOf("weekly"))) {
+    const quest = weeklyQuestOfRewardKey(key);
+    if (quest === null || quest.week >= thisWeek || (await crateOpeningOf(ctx, member, key)) !== null) continue;
+    waiting.push({ quest, goal: await goalOf(ctx, member, quest), reward: { xp, coins, item }, finishedAt });
+  }
+  return waiting.sort((one, other) => one.finishedAt - other.finishedAt);
+}
+
+async function goalOf(ctx: QueryCtx, member: MemberId, { week, slot }: WeeklyQuest): Promise<string> {
+  const draw = (await drawOf(ctx, member, week))!;
+  const finished = slotsOf(draw, await swapOf(ctx, member, week)).find((drawn) => drawn.slot === slot)!;
+  return questOf(finished.quest).goal;
 }
 
 export async function rerollQuest(ctx: MutationCtx, member: MemberId, { week, slot }: WeeklyQuest): Promise<"swapped" | "refused"> {

@@ -4,9 +4,9 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { mentionValidator, type ChatUserId, type Mention, type MessageRef } from "../engine/messageEvent";
 import { questsApplyIn, questsExposedTo } from "../quests/flag";
+import { journeyGoalOf } from "../quests/journeyCopy";
 import type { JourneyStep } from "../quests/step";
 import { lookup } from "../workspace/directory";
-import { journeyGoalOf } from "./home";
 
 export const segmentValidator = v.union(v.object({ text: v.string() }), v.object({ mention: mentionValidator }));
 

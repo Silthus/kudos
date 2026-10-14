@@ -1,0 +1,402 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/quests-read
+
+ ❯ |convex| convex/website/quests.test.ts (19 tests | 19 failed) 451ms
+   ❯ quests are invisible where they don't apply (4)
+     × WS69 WS70 WS71: with quests off after the launch, getQuests answers not-found and journey is null 73ms
+     × WS69 WS70 WS71: with xp-levels switched off after the l…, getQuests answers not-found and journey is null 14ms
+     × WS69 WS70 WS71: with unlocks switched off after the lau…, getQuests answers not-found and journey is null 14ms
+     × WS69 WS55: with every flag on and nothing launched, a website read answers not-found and runs neither launch 13ms
+   ❯ WS70: getQuests reads the quests module's facts (9)
+     × a member at level 1 reads Quests locked at level 2, with no quest fact 6ms
+     × a member at level 2 reads Quests ready, with no quest fact 9ms
+     × P80: with Quests open and nothing drawn, slots and waiting are empty, beside the link to Slack 13ms
+     × P80: fewer than three drawn quests read as that many slots, in slot order, each in progress at 0 11ms
+     × P84 P85: a slot in progress, a finished slot with its crate, and an opened slot without one 41ms
+     × P81: a swapped slot reads swapped with the quest swapped in, starting at 0 23ms
+     × every slot's value is the quests module's fact read directly 23ms
+     × P85: after the Monday turn, last week's finished, unopened crate waits, and leaves once opened 21ms
+     × WS66: a crate keeps its seen key from finished to waiting 20ms
+   ❯ WS71: getMyProfile's journey (5)
+     × P88: a website-first member with no stored activation reads first-thanks active, with its copy and the catalogue's reward 76ms
+     × the Journey isn't gated by the Quests feature: a member at level 1 reads their step 6ms
+     × P85: a finished step carries its crate and seen key; once opened it keeps the key and drops the crate 13ms
+     × P88: a step a feature activated reads active in chain order after first-thanks, with its copy and stored reward 19ms
+     × every step's value is the quests module's fact read directly 17ms
+   ❯ WS66 WS33: seen keys are per member and carry no ID (1)
+     × two members who finished the same Journey step and weekly slot read different keys, neither holding a member, Slack or workspace ID 37ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 19 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/quests.test.ts > quests are invisible where they don't apply > WS69 WS70 WS71: with quests off after the launch, getQuests answers not-found and journey is null
+ FAIL  |convex| convex/website/quests.test.ts > quests are invisible where they don't apply > WS69 WS70 WS71: with xp-levels switched off after the l…, getQuests answers not-found and journey is null
+ FAIL  |convex| convex/website/quests.test.ts > quests are invisible where they don't apply > WS69 WS70 WS71: with unlocks switched off after the lau…, getQuests answers not-found and journey is null
+AssertionError: expected 'refused' to be 'done' // Object.is equality
+
+Expected: "done"
+Received: "refused"
+
+ ❯ opens testing/unlocks.ts:15:66
+     13|
+     14| export async function opens(t: Backend, member: Id<"members">, feature…
+     15|   expect(await t.run((ctx) => openUnlock(ctx, member, feature))).toBe(…
+       |                                                                  ^
+     16| }
+     17|
+ ❯ questsOpenFor convex/website/quests.test.ts:70:3
+ ❯ convex/website/quests.test.ts:131:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/19]⎯
+
+ FAIL  |convex| convex/website/quests.test.ts > quests are invisible where they don't apply > WS69 WS55: with every flag on and nothing launched, a website read answers not-found and runs neither launch
+Error: Could not find module for: "website/quests"
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1550:19
+    1548|         const module = modulesWithoutExtension[prefix + path];
+    1549|         if (module === undefined) {
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1551|         }
+    1552|         return await module();
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2487:76
+ ❯ Object.queryFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2156:40
+ ❯ query node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2243:41
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:80
+ ❯ Object.result.<computed> [as query] node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:56
+ ❯ questsOf convex/website/quests.test.ts:94:35
+ ❯ convex/website/quests.test.ts:142:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/19]⎯
+
+ FAIL  |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > a member at level 1 reads Quests locked at level 2, with no quest fact
+Error: Could not find module for: "website/quests"
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1550:19
+    1548|         const module = modulesWithoutExtension[prefix + path];
+    1549|         if (module === undefined) {
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1551|         }
+    1552|         return await module();
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2487:76
+ ❯ Object.queryFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2156:40
+ ❯ query node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2243:41
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:80
+ ❯ Object.result.<computed> [as query] node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:56
+ ❯ questsOf convex/website/quests.test.ts:94:35
+ ❯ convex/website/quests.test.ts:155:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/19]⎯
+
+ FAIL  |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > a member at level 2 reads Quests ready, with no quest fact
+Error: Could not find module for: "website/quests"
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1550:19
+    1548|         const module = modulesWithoutExtension[prefix + path];
+    1549|         if (module === undefined) {
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1551|         }
+    1552|         return await module();
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2487:76
+ ❯ Object.queryFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2156:40
+ ❯ query node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2243:41
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:80
+ ❯ Object.result.<computed> [as query] node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:56
+ ❯ questsOf convex/website/quests.test.ts:94:35
+ ❯ convex/website/quests.test.ts:162:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/19]⎯
+
+ FAIL  |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > P80: with Quests open and nothing drawn, slots and waiting are empty, beside the link to Slack
+Error: Could not find module for: "website/quests"
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1550:19
+    1548|         const module = modulesWithoutExtension[prefix + path];
+    1549|         if (module === undefined) {
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1551|         }
+    1552|         return await module();
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2487:76
+ ❯ Object.queryFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2156:40
+ ❯ query node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2243:41
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:80
+ ❯ Object.result.<computed> [as query] node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:56
+ ❯ questsOf convex/website/quests.test.ts:94:35
+ ❯ convex/website/quests.test.ts:169:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/19]⎯
+
+ FAIL  |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > P80: fewer than three drawn quests read as that many slots, in slot order, each in progress at 0
+Error: Could not find module for: "website/quests"
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1550:19
+    1548|         const module = modulesWithoutExtension[prefix + path];
+    1549|         if (module === undefined) {
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1551|         }
+    1552|         return await module();
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2487:76
+ ❯ Object.queryFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2156:40
+ ❯ query node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2243:41
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:80
+ ❯ Object.result.<computed> [as query] node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:56
+ ❯ questsOf convex/website/quests.test.ts:94:35
+ ❯ openQuests convex/website/quests.test.ts:100:24
+ ❯ convex/website/quests.test.ts:176:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/19]⎯
+
+ FAIL  |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > P84 P85: a slot in progress, a finished slot with its crate, and an opened slot without one
+Error: Could not find module for: "website/quests"
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1550:19
+    1548|         const module = modulesWithoutExtension[prefix + path];
+    1549|         if (module === undefined) {
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1551|         }
+    1552|         return await module();
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2487:76
+ ❯ Object.queryFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2156:40
+ ❯ query node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2243:41
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:80
+ ❯ Object.result.<computed> [as query] node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:56
+ ❯ questsOf convex/website/quests.test.ts:94:35
+ ❯ openQuests convex/website/quests.test.ts:100:24
+ ❯ convex/website/quests.test.ts:188:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/19]⎯
+
+ FAIL  |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > P81: a swapped slot reads swapped with the quest swapped in, starting at 0
+Error: Could not find module for: "website/quests"
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1550:19
+    1548|         const module = modulesWithoutExtension[prefix + path];
+    1549|         if (module === undefined) {
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1551|         }
+    1552|         return await module();
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2487:76
+ ❯ Object.queryFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2156:40
+ ❯ query node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2243:41
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:80
+ ❯ Object.result.<computed> [as query] node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:56
+ ❯ questsOf convex/website/quests.test.ts:94:35
+ ❯ openQuests convex/website/quests.test.ts:100:24
+ ❯ convex/website/quests.test.ts:211:29
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/19]⎯
+
+ FAIL  |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > every slot's value is the quests module's fact read directly
+Error: Could not find module for: "website/quests"
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1550:19
+    1548|         const module = modulesWithoutExtension[prefix + path];
+    1549|         if (module === undefined) {
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1551|         }
+    1552|         return await module();
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2487:76
+ ❯ Object.queryFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2156:40
+ ❯ query node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2243:41
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:80
+ ❯ Object.result.<computed> [as query] node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:56
+ ❯ questsOf convex/website/quests.test.ts:94:35
+ ❯ openQuests convex/website/quests.test.ts:100:24
+ ❯ convex/website/quests.test.ts:226:29
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/19]⎯
+
+ FAIL  |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > P85: after the Monday turn, last week's finished, unopened crate waits, and leaves once opened
+Error: Could not find module for: "website/quests"
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1550:19
+    1548|         const module = modulesWithoutExtension[prefix + path];
+    1549|         if (module === undefined) {
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1551|         }
+    1552|         return await module();
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2487:76
+ ❯ Object.queryFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2156:40
+ ❯ query node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2243:41
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:80
+ ❯ Object.result.<computed> [as query] node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:56
+ ❯ questsOf convex/website/quests.test.ts:94:35
+ ❯ openQuests convex/website/quests.test.ts:100:24
+ ❯ convex/website/quests.test.ts:244:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/19]⎯
+
+ FAIL  |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > WS66: a crate keeps its seen key from finished to waiting
+Error: Could not find module for: "website/quests"
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1550:19
+    1548|         const module = modulesWithoutExtension[prefix + path];
+    1549|         if (module === undefined) {
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1551|         }
+    1552|         return await module();
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2487:76
+ ❯ Object.queryFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2156:40
+ ❯ query node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2243:41
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:80
+ ❯ Object.result.<computed> [as query] node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:56
+ ❯ questsOf convex/website/quests.test.ts:94:35
+ ❯ openQuests convex/website/quests.test.ts:100:24
+ ❯ convex/website/quests.test.ts:258:29
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/19]⎯
+
+ FAIL  |convex| convex/website/quests.test.ts > WS71: getMyProfile's journey > P88: a website-first member with no stored activation reads first-thanks active, with its copy and the catalogue's reward
+AssertionError: expected undefined to deeply equal [ { step: 'first-thanks', …(6) } ]
+
+- Expected:
+[
+  {
+    "crate": null,
+    "goal": "Give a kudos that says why.",
+    "hint": "It counts when your message has 5 or more words besides mentions and emoji.",
+    "reward": {
+      "xp": 10,
+    },
+    "seen": null,
+    "state": "active",
+    "step": "first-thanks",
+  },
+]
+
++ Received:
+undefined
+
+ ❯ convex/website/quests.test.ts:271:41
+    269|     const { asSignedIn } = await signedIn();
+    270|
+    271|     expect(await journeyOf(asSignedIn)).toEqual([{ step: "first-thanks…
+       |                                         ^
+    272|     expect(await t.run((ctx) => ctx.db.query("journeySteps").collect()…
+    273|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/19]⎯
+
+ FAIL  |convex| convex/website/quests.test.ts > WS71: getMyProfile's journey > the Journey isn't gated by the Quests feature: a member at level 1 reads their step
+Error: Could not find module for: "website/quests"
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1550:19
+    1548|         const module = modulesWithoutExtension[prefix + path];
+    1549|         if (module === undefined) {
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1551|         }
+    1552|         return await module();
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2487:76
+ ❯ Object.queryFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2156:40
+ ❯ query node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2243:41
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:80
+ ❯ Object.result.<computed> [as query] node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:56
+ ❯ questsOf convex/website/quests.test.ts:94:35
+ ❯ convex/website/quests.test.ts:278:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/19]⎯
+
+ FAIL  |convex| convex/website/quests.test.ts > WS71: getMyProfile's journey > P85: a finished step carries its crate and seen key; once opened it keeps the key and drops the crate
+AssertionError: expected undefined to deeply equal [ { step: 'first-thanks', …(6) } ]
+
+- Expected:
+[
+  {
+    "crate": {
+      "kind": "journey",
+      "step": "first-thanks",
+    },
+    "goal": "Give a kudos that says why.",
+    "hint": "It counts when your message has 5 or more words besides mentions and emoji.",
+    "reward": {
+      "xp": 10,
+    },
+    "seen": Any<String>,
+    "state": "finished",
+    "step": "first-thanks",
+  },
+]
+
++ Received:
+undefined
+
+ ❯ convex/website/quests.test.ts:287:22
+    285|
+    286|     const finished = await journeyOf(asSignedIn);
+    287|     expect(finished).toEqual([{ step: "first-thanks", ...firstThanksCo…
+       |                      ^
+    288|
+    289|     await opensCrate(member, firstThanks);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/19]⎯
+
+ FAIL  |convex| convex/website/quests.test.ts > WS71: getMyProfile's journey > P88: a step a feature activated reads active in chain order after first-thanks, with its copy and stored reward
+AssertionError: expected undefined to deeply equal [ Array(2) ]
+
+- Expected:
+[
+  {
+    "crate": null,
+    "goal": "Give a kudos that says why.",
+    "hint": "It counts when your message has 5 or more words besides mentions and emoji.",
+    "reward": {
+      "xp": 10,
+    },
+    "seen": null,
+    "state": "active",
+    "step": "first-thanks",
+  },
+  {
+    "crate": null,
+    "goal": "Finish a weekly quest.",
+    "hint": null,
+    "reward": {
+      "xp": 20,
+    },
+    "seen": null,
+    "state": "active",
+    "step": "first-quest",
+  },
+]
+
++ Received:
+undefined
+
+ ❯ convex/website/quests.test.ts:299:41
+    297|     await t.mutation(internal.quests.journey.activateJourney, { event:…
+    298|
+    299|     expect(await journeyOf(asSignedIn)).toEqual([
+       |                                         ^
+    300|       { step: "first-thanks", ...firstThanksCopy, reward: { xp: 10 }, …
+    301|       { step: "first-quest", goal: "Finish a weekly quest.", hint: nul…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/19]⎯
+
+ FAIL  |convex| convex/website/quests.test.ts > WS71: getMyProfile's journey > every step's value is the quests module's fact read directly
+TypeError: Cannot read properties of undefined (reading 'map')
+ ❯ convex/website/quests.test.ts:312:21
+    310|     const facts = (await domainFactsOf(member))!.journey;
+    311|
+    312|     expect(journey!.map(({ step, reward }) => ({ step, reward }))).toE…
+       |                     ^
+    313|   });
+    314| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/19]⎯
+
+ FAIL  |convex| convex/website/quests.test.ts > WS66 WS33: seen keys are per member and carry no ID > two members who finished the same Journey step and weekly slot read different keys, neither holding a member, Slack or workspace ID
+TypeError: Cannot read properties of undefined (reading '0')
+ ❯ convex/website/quests.test.ts:327:51
+    325|     await thanks(teammate.member, member);
+    326|
+    327|     const junoKeys = [(await journeyOf(asSignedIn))![0]!.seen, (await …
+       |                                                   ^
+    328|     const rowanKeys = [(await journeyOf(rowanSignedIn))![0]!.seen, (aw…
+    329|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/19]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  19 failed (19)
+   Start at  02:37:44
+   Duration  1.14s (tests 43%, transform 34%, import 18%, environment 4%)
+

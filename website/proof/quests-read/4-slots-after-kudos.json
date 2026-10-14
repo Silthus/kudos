@@ -1,0 +1,54 @@
+[
+ {
+  "crate": null,
+  "goal": "Thank 2 people you haven't thanked before.",
+  "kind": "Reach out",
+  "progress": {
+   "done": 1,
+   "target": 2
+  },
+  "reward": {
+   "xp": 20
+  },
+  "seen": null,
+  "slot": 0,
+  "state": "in-progress",
+  "swapped": false
+ },
+ {
+  "crate": {
+   "kind": "weekly",
+   "slot": 1,
+   "week": "2026-10-12"
+  },
+  "goal": "Thank someone and say why.",
+  "kind": "Say why",
+  "progress": {
+   "done": 1,
+   "target": 1
+  },
+  "reward": {
+   "xp": 20
+  },
+  "seen": "1ec204d91d1341e5dc267c6e8b713460",
+  "slot": 1,
+  "state": "finished",
+  "swapped": false
+ },
+ {
+  "crate": null,
+  "goal": "Thank someone and say why on 3 different days.",
+  "kind": "Say why",
+  "progress": {
+   "done": 1,
+   "target": 3
+  },
+  "reward": {
+   "xp": 20
+  },
+  "seen": null,
+  "slot": 2,
+  "state": "in-progress",
+  "swapped": false
+ }
+]

@@ -1,0 +1,2 @@
+{ "_creationTime": 1791945952150.1436, "_id": "ms755s0jgacpxa9reqqgfsxcks8g95vj", "activatedAt": 1791945952092, "catalogueVersion": "1", "member": "nn7fe8ew39rjpgstwr6wgbc6998g8bwp", "reward": { "coins": 0, "item": null, "xp": 20 }, "step": "first-quest" }
+{ "_creationTime": 1791945952150.1433, "_id": "ms7e6x1sqkvdc02e08m90484x98g8t29", "activatedAt": 1791945952092, "catalogueVersion": "1", "member": "nn7fe8ew39rjpgstwr6wgbc6998g8bwp", "reward": { "coins": 0, "item": null, "xp": 10 }, "step": "first-thanks" }

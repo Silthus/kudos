@@ -1,0 +1,34 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/quests-read
+
+ ✓ |convex| convex/publicSurface.test.ts > WS10: the public surface is exact > only HTTP routes, Convex Auth's signIn, signOut and isAuthenticated, and the website's signed-in functions are public 511ms
+ ✓ |convex| convex/website/quests.test.ts > website reads pass one guard > getQuests reads closed while the website flag is off, even with quests on 62ms
+ ✓ |convex| convex/website/quests.test.ts > website reads pass one guard > getQuests reads signed out without a session 6ms
+ ✓ |convex| convex/website/quests.test.ts > website reads pass one guard > getQuests reads not-a-member for a former member with a live session 6ms
+ ✓ |convex| convex/website/quests.test.ts > website reads pass one guard > an argument that names another member is rejected by the validator 6ms
+ ✓ |convex| convex/website/quests.test.ts > quests are invisible where they don't apply > WS69 WS70 WS71: with quests switched off after a member finished a quest and a Journey step, getQuests answers not-found and journey is null 49ms
+ ✓ |convex| convex/website/quests.test.ts > quests are invisible where they don't apply > WS69 WS70 WS71: with xp-levels switched off after a member finished a quest and a Journey step, getQuests answers not-found and journey is null 21ms
+ ✓ |convex| convex/website/quests.test.ts > quests are invisible where they don't apply > WS69 WS70 WS71: with unlocks switched off after a member finished a quest and a Journey step, getQuests answers not-found and journey is null 22ms
+ ✓ |convex| convex/website/quests.test.ts > quests are invisible where they don't apply > WS69 WS55: with every flag on and nothing launched, a website read answers not-found and runs neither launch 8ms
+ ✓ |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > a member at level 1 reads Quests locked at level 2, with no quest fact 7ms
+ ✓ |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > a member at level 2 reads Quests ready, with no quest fact 10ms
+ ✓ |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > P80: with Quests open and nothing drawn, slots and waiting are empty, beside the link to Slack 13ms
+ ✓ |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > P80: fewer than three drawn quests read as that many slots, in slot order, each in progress at 0 14ms
+ ✓ |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > P84 P85: a slot in progress, a finished slot with its crate, and an opened slot without one 22ms
+ ✓ |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > P81: a swapped slot reads swapped, with the quest swapped in at 0 18ms
+ ✓ |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > every slot's value is the quests module's fact read directly 25ms
+ ✓ |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > P85: after the Monday turn, last week's finished, unopened crate waits, and leaves once opened 24ms
+ ✓ |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > P85: crates of two earlier weeks wait oldest first 23ms
+ ✓ |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > WS66: a crate keeps its seen key from finished to waiting 20ms
+ ✓ |convex| convex/website/quests.test.ts > WS71: getMyProfile's journey > P88: a website-first member with no stored activation reads first-thanks active, with its copy and the catalogue's reward 9ms
+ ✓ |convex| convex/website/quests.test.ts > WS71: getMyProfile's journey > the Journey isn't gated by the Quests feature: a member at level 1 reads their step 11ms
+ ✓ |convex| convex/website/quests.test.ts > WS71: getMyProfile's journey > P85: a finished step carries its crate and seen key; once opened it keeps the key and drops the crate 21ms
+ ✓ |convex| convex/website/quests.test.ts > WS71: getMyProfile's journey > P88: a step a feature activated reads active in chain order after first-thanks, with its copy and stored reward 14ms
+ ✓ |convex| convex/website/quests.test.ts > WS71: getMyProfile's journey > every step's value is the quests module's fact read directly 15ms
+ ✓ |convex| convex/website/quests.test.ts > WS66 WS33: seen keys are per member and carry no ID > two members who finished the same Journey step and weekly slot read different keys, neither holding a member, Slack or workspace ID 45ms
+
+ Test Files  2 passed (2)
+      Tests  25 passed (25)
+   Start at  02:48:09
+   Duration  1.13s (tests 59%, transform 24%, import 12%, environment 5%)
+

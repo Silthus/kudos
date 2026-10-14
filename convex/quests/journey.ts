@@ -180,6 +180,18 @@ export async function journeyOf(ctx: QueryCtx, member: MemberId): Promise<Journe
   return facts;
 }
 
+export type ProjectedJourneyStep = Omit<JourneyStepFacts, "activatedAt"> & { activatedAt: number | null };
+
+export async function projectedJourneyOf(ctx: QueryCtx, member: MemberId): Promise<ProjectedJourneyStep[]> {
+  const stored = await journeyOf(ctx, member);
+  return stored.some(({ step }) => step === "first-thanks") ? stored : [firstThanksBeforeActivation(journey), ...stored];
+}
+
+function firstThanksBeforeActivation({ version, steps }: JourneyCatalogue): ProjectedJourneyStep {
+  const { reward } = steps.find(({ step }) => step === "first-thanks")!;
+  return { step: "first-thanks", activatedAt: null, reward, catalogueVersion: version, finishedAt: null, openedAt: null };
+}
+
 export async function activeJourneyOf(ctx: MutationCtx, member: MemberId): Promise<JourneyStepFacts[]> {
   await activated(ctx, member, "first-thanks", Date.now(), journey);
   await activateOpenedSteps(ctx, member);

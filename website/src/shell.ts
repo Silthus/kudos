@@ -27,6 +27,7 @@ const member: MemberProfile = {
   chatUrl: "https://app.slack.com/client/T1",
   leaderboard: "off",
   features: null,
+  journey: null,
   progression: null,
 };
 
