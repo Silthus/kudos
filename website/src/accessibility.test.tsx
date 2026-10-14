@@ -71,6 +71,7 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "quests with last week's crate waiting", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.weekWithLastWeeksCrate },
   { name: "quests with the same quest's crate waiting from two weeks", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.weekWithTheSameQuestWaitingFromTwoWeeks },
   { name: "quests with nothing drawn", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.noDraw },
+  { name: "quests of every kind, finished and claimed", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.everyKind },
   { name: "quests locked until level 2", path: "/quests", visitor: shellFixtures.memberStartingTheJourney, quests: questsFixtures.locked },
   { name: "quests ready to open in place", path: "/quests", visitor: shellFixtures.memberWithQuestsReady, quests: questsFixtures.ready },
   { name: "error", path: "/", visitor: shellFixtures.error },
@@ -167,8 +168,8 @@ describe("WS75: every crate state passes axe in light and dark", () => {
 });
 
 const questCrates = [
-  { name: "a quest crate on /quests", path: "/quests", place: () => within(screen.getByRole("main")).getByRole("heading", { name: "Thank someone you haven't thanked before." }).closest("article")! },
-  { name: "a Journey crate on the home", path: "/", place: () => within(screen.getByRole("main")).getByRole("heading", { name: "Finish a weekly quest." }).closest("li")! },
+  { name: "a quest crate on /quests", path: "/quests", action: "Claim", place: () => within(screen.getByRole("main")).getByRole("heading", { name: "Thank someone you haven't thanked before." }).closest("article")! },
+  { name: "a Journey crate on the home", path: "/", action: "Open", place: () => within(screen.getByRole("main")).getByRole("heading", { name: "Finish a weekly quest." }).closest("li")! },
 ];
 
 describe("WS75 WS74: every quest crate state passes axe in light and dark", () => {
@@ -180,7 +181,7 @@ describe("WS75 WS74: every quest crate state passes axe in light and dark", () =
           if (state.reducedMotion) preferReducedMotion();
           window.history.replaceState(null, "", crate.path);
           const { user } = renderApp(shellFixtures.memberWithQuests, undefined, { openQuestCrate: state.answer }, fixedQuests(questsFixtures.weekWithLastWeeksCrate));
-          await user.click(within(crate.place()).getByRole("button", { name: "Open" }));
+          await user.click(within(crate.place()).getByRole("button", { name: crate.action }));
           await act(async () => undefined);
           if (state.skip) await user.keyboard("{Escape}");
           expect(await violationsIn(document.body, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
@@ -222,5 +223,20 @@ describe("WS24 WS87: every purchase state passes axe in light and dark", () => {
         expect(await violationsIn(document.body, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
       });
     }
+  }
+});
+
+describe("WS315 WS339: the reward's flight passes axe in light and dark", () => {
+  for (const dark of [false, true]) {
+    it(`flies to the HUD avatar in ${dark ? "dark" : "light"}`, async () => {
+      fakeSystemTheme(dark);
+      window.history.replaceState(null, "", "/quests");
+      const { user } = renderApp(shellFixtures.memberWithQuests, undefined, { openQuestCrate: async () => ({ kind: "opened" }) }, fixedQuests(questsFixtures.week));
+      await user.click(within(screen.getByRole("main")).getByRole("button", { name: "Claim" }));
+      await user.keyboard("{Escape}");
+      await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Done" }));
+      expect(document.querySelector("[data-reward-flight]")).not.toBeNull();
+      expect(await violationsIn(document.body, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
+    });
   }
 });

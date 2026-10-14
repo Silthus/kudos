@@ -4,6 +4,7 @@ import { IconLeave } from "@posthog/icons";
 import { Button } from "@posthog/quill";
 import { AppLink } from "./AppLink";
 import { ReadyPill, ReadyPillFailure } from "./crates/ReadyPill";
+import { hudAvatarAttributes } from "./crates/RewardFlight";
 import { isShownOn, type ReadyCrate } from "./crates/readyCrates";
 import { LeveledFace } from "./LeveledFace";
 import { levelRingName } from "./LevelRing";
@@ -66,7 +67,7 @@ function Avatar({ member }: { member: MemberProfile }) {
   const levelId = useId();
   const { progression } = member;
   return (
-    <AppLink href="/" aria-label={avatarName(member)} aria-describedby={progression !== null ? levelId : undefined} className="rounded-full">
+    <AppLink href="/" aria-label={avatarName(member)} aria-describedby={progression !== null ? levelId : undefined} className="rounded-full" {...hudAvatarAttributes()}>
       <LeveledFace member={member} className="size-8" />
       {progression !== null && <span id={levelId} hidden>{levelRingName(progression)}</span>}
     </AppLink>

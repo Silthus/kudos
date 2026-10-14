@@ -175,6 +175,7 @@ function kudosMessage(author: string, recipients: string[], text: string): Messa
     revision: BigInt(Date.now()) * 1000n,
     at: Date.now(),
     content: { mentions: recipients.map((user) => ({ kind: "person", user })), emoji: ["taco"], text },
+    words: { segments: [{ kind: "text", text: text }], visibility: "public" },
   };
 }
 

@@ -158,6 +158,8 @@ const memberWithQuestsReady: MemberProfile = { ...member, ...onTheUnlockPath({ .
 
 const memberWithQuests: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...opened }), journey: journeyUnderway };
 
+const memberWithQuestsAtLevel2: MemberProfile = { ...memberWithQuests, progression: { level: 2, xp: 50, levelStartsAt: 20, nextLevelAt: 60, xpToNextLevel: 10 } };
+
 const memberWithAQuietWeek: MemberProfile = { ...member, thisWeek: { given: 0, received: 0 } };
 
 const memberAtLevel1: MemberProfile = { ...member, progression: { level: 1, xp: 0, levelStartsAt: 0, nextLevelAt: 20, xpToNextLevel: 20 } };
@@ -203,6 +205,7 @@ export const shellFixtures = {
   memberStartingTheJourney,
   memberWithQuestsReady,
   memberWithQuests,
+  memberWithQuestsAtLevel2,
   error: { kind: "broken" },
 } as const satisfies Record<string, ShellState>;
 
@@ -237,6 +240,7 @@ const fixturesByName: Record<string, ShellState> = {
   "member-starting-the-journey": shellFixtures.memberStartingTheJourney,
   "member-with-quests-ready": shellFixtures.memberWithQuestsReady,
   "member-with-quests": shellFixtures.memberWithQuests,
+  "member-with-quests-at-level-2": shellFixtures.memberWithQuestsAtLevel2,
   error: shellFixtures.error,
 };
 
