@@ -2,7 +2,7 @@
 
 ## Width proof
 
-Chromium (T3 preview), the fixture build in `fixture/` with `?six=1`: six nav entries (Home, Quests and Leaderboard are real; The Book, Skill tree and Collection are DOM clones standing in for #193's entries), the ready pill, and a cloned chip standing in for #193's skill point chip. `document.documentElement.scrollWidth` at each viewport width:
+Chromium (T3 preview), the fixture build in `fixture/` with `?six=1`, after merging `main` with #193: six nav entries (Home, Quests, Leaderboard, Book and Skill tree are real; Collection is a DOM clone standing in for a future page), the real skill point chip, the ready pill, the theme control and the avatar. `document.documentElement.scrollWidth` at each viewport width. The `main` column was read before #193 merged, with the same six entries (Book, Skill tree and Collection cloned) and a cloned chip:
 
 | Viewport | `main` | This branch |
 |---|---|---|
@@ -15,7 +15,7 @@ Chromium (T3 preview), the fixture build in `fixture/` with `?six=1`: six nav en
 
 A real 200% browser zoom of a 1280 px window lays the page out at 640 CSS px, which the 640 px row covers.
 
-At 1024 px, six labelled entries leave no room for the controls, so they wrap to a second, right-aligned row and the page still fits. WS302's icon-only entries from `lg` to `xl` (#269) keep the bar on one row. With `main`'s three real entries, the bar is one 57 px row at 1024 px.
+At 1024 and 1440 px the bar is one 57 px row. Before the merge, with longer cloned labels, the controls wrapped to a right-aligned second row at 1024 px and the page still fit; WS302's icon-only entries from `lg` to `xl` (#269) leave more room.
 
 ## Rail behaviour in a real browser (240 px, below the 320 px floor so the third entry starts off-screen)
 
@@ -26,7 +26,7 @@ At 1024 px, six labelled entries leave no room for the controls, so they wrap to
 
 - This branch: [light](branch-390-light.png), [dark](branch-390-dark.png)
 - Variant E at level 8: [light](variant-e-390-light.png), [dark](variant-e-390-dark.png)
-- `main` with the same six entries, overflowing to 523 px: [light](main-390-light.png)
+- `main` before #193 merged, with six entries, overflowing to 523 px: [light](main-390-light.png)
 
 ## Reproduce
 
