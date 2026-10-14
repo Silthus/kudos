@@ -3,11 +3,12 @@ import { Button } from "@posthog/quill";
 import type { LeaderboardRow } from "../shell";
 import { BoardFace, RankWords, YouLabel } from "./BoardFace";
 
-export function BoardLine({ row, focusable = false }: { row: LeaderboardRow; focusable?: boolean }) {
+export function BoardLine({ row, focusable = false, revealable = false }: { row: LeaderboardRow; focusable?: boolean; revealable?: boolean }) {
   return (
     <li
       data-you={row.you || undefined}
-      tabIndex={focusable && row.you ? -1 : undefined}
+      data-position={revealable ? row.position : undefined}
+      tabIndex={revealable || (focusable && row.you) ? -1 : undefined}
       className={`grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-3 border-t px-3 py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset ${row.you ? "bg-fill-selected shadow-[inset_3px_0_0_var(--primary)]" : ""}`}
     >
       <RankWords row={row} />
