@@ -1,18 +1,28 @@
-import { AppLink } from "../AppLink";
+import { plainNameOf, type PagedFeature } from "../features";
 import { MaxSays } from "../Max";
-import type { FeatureCard, PageWaits } from "../shell";
+import { navEntriesOf } from "../nav/entries";
+import type { MemberProfile, PageWaits } from "../shell";
 import { SlackLink } from "../SlackLink";
+import { LockedPage } from "./LockedPage";
 import { ReadyPage } from "./ReadyPage";
 
-type FeatureWaitsPageProps = { name: string; waiting: PageWaits; readyCard: FeatureCard | undefined; chatUrl: string };
+type FeatureWaitsPageProps = { feature: PagedFeature; waiting: PageWaits; member: MemberProfile };
 
-export function FeatureWaitsPage({ name, waiting, readyCard, chatUrl }: FeatureWaitsPageProps) {
-  if (waiting.kind === "ready" && readyCard !== undefined) return <ReadyPage card={readyCard} />;
+export function FeatureWaitsPage({ feature, waiting, member }: FeatureWaitsPageProps) {
+  const entry = navEntriesOf(member).find((shown) => shown.state !== "open" && featureOf(shown) === feature);
+  if (entry?.state === "ready") return <ReadyPage card={entry.card} />;
+  if (entry?.state === "locked") return <LockedPage feature={feature} name={entry.name} level={entry.level} />;
+  const name = plainNameOf(feature);
+  if (waiting.kind === "locked") return <LockedPage feature={feature} name={name} level={waiting.level} />;
   return (
-    <MaxSays title={name} tab={name} action={waiting.kind === "ready" ? <OpenSlack chatUrl={chatUrl} /> : <GoHome />}>
-      {waiting.kind === "ready" ? readyInSlack(name) : `${name} opens at level ${waiting.level}.`}
+    <MaxSays title={name} tab={name} action={<OpenSlack chatUrl={member.chatUrl} />}>
+      {readyInSlack(name)}
     </MaxSays>
   );
+}
+
+function featureOf(entry: ReturnType<typeof navEntriesOf>[number]) {
+  return entry.state === "ready" ? entry.card.feature : entry.feature;
 }
 
 export function readyInSlack(name: string) {
@@ -24,13 +34,5 @@ function OpenSlack({ chatUrl }: { chatUrl: string }) {
     <SlackLink chatUrl={chatUrl} variant="primary">
       Open Slack
     </SlackLink>
-  );
-}
-
-function GoHome() {
-  return (
-    <AppLink href="/" className="text-sm font-medium underline underline-offset-4">
-      Back to your profile
-    </AppLink>
   );
 }

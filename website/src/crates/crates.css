@@ -56,6 +56,13 @@
   stroke-width: 5;
 }
 
+.crate-edge {
+  fill: none;
+  stroke: var(--crate-edge, transparent);
+  stroke-width: 11;
+  stroke-linejoin: round;
+}
+
 .crate-glyph-line {
   stroke-width: 1.5;
 }
@@ -106,7 +113,8 @@
 
 .moment-scrim {
   background: color-mix(in oklab, var(--band-night) 96%, transparent);
-  color: #ffffff;
+  color: var(--band-night-ink);
+  --crate-edge: var(--band-night-edge);
 }
 
 .moment-scrim:focus-visible {
@@ -138,6 +146,9 @@
   }
   .moment-end {
     animation: moment-rise 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .moment-scrim[data-motion="full"] .moment-line {
+    animation: moment-rise 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) var(--line-delay, 0s) both;
   }
 }
 
