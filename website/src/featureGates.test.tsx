@@ -359,6 +359,26 @@ describe("WS325: the reveal opens the next ready crate", () => {
     expect(dialog()).toHaveTextContent("Skill tree is open");
   });
 
+  it.each([
+    { outcome: "a refusal", answer: { kind: "refused" } as const },
+    { outcome: "an unreachable server", answer: undefined },
+  ])("moves focus to the reveal's first action when the next crate fails after leaving the ready list, after $outcome", async ({ answer }) => {
+    let settle!: (value: OpenAnswer) => void;
+    let fail!: () => void;
+    const pending = new Promise<OpenAnswer>((resolve, reject) => {
+      settle = resolve;
+      fail = () => reject(new Error("socket closed"));
+    });
+    const openFeature = vi.fn(async (feature: string) => (feature === "leaderboard" ? { kind: "opened" as const } : pending));
+    const { user, showVisitor } = await revealFrom(shellFixtures.memberWithEveryFeatureReady, "Leaderboard", openFeature);
+    await user.click(nextCrateButton()!);
+    const everyOpen = shellFixtures.memberWithEveryFeatureReady.features!.map((card) => ({ ...card, state: "open" as const, openedAt: Date.now() }));
+    showVisitor({ ...shellFixtures.memberWithEveryFeatureReady, features: everyOpen, leaderboard: { kind: "open" } });
+    await act(async () => (answer === undefined ? fail() : settle(answer)));
+    expect(nextCrateButton()).toBeNull();
+    expect(document.activeElement).toBe(within(dialog()).getByRole("link", { name: "Go to Leaderboard" }));
+  });
+
   it("advances to a crate whose reveal is already queued without opening it again", async () => {
     preferReducedMotion();
     const answers = { leaderboard: answerLater(), skillTree: answerLater() };

@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import { IconArrowRight, IconCheck } from "@posthog/icons";
 import { Button, buttonVariants } from "@posthog/quill";
 import { AppLink } from "../AppLink";
@@ -119,7 +119,9 @@ function NextCrate({ othersReady, onClose }: { othersReady: ReadyCrate[]; onClos
     if (revealed) onClose({ returnFocus: false });
   }, [revealed, onClose]);
   const opening = attempt === "opening";
-  if (next === undefined || moments === undefined || (othersReady.length === 0 && !opening && !revealed)) return null;
+  const shown = next !== undefined && moments !== undefined && (othersReady.length > 0 || opening || revealed);
+  useFocusTheRevealWhenGone(shown);
+  if (!shown) return null;
   const open = () => {
     if (opening) return;
     if (othersReady.some((crate) => moments.waitsToReveal(crate))) return onClose({ returnFocus: false });
@@ -135,6 +137,16 @@ function NextCrate({ othersReady, onClose }: { othersReady: ReadyCrate[]; onClos
       {attempt !== undefined && attempt !== "opening" && <p className="text-sm font-medium">{attemptMessages[attempt]}</p>}
     </div>
   );
+}
+
+function useFocusTheRevealWhenGone(shown: boolean) {
+  const wasShown = useRef(shown);
+  useLayoutEffect(() => {
+    const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+    const focusLost = !dialog?.contains(document.activeElement);
+    if (wasShown.current && !shown && focusLost) firstActionIn(dialog)?.focus();
+    wasShown.current = shown;
+  }, [shown]);
 }
 
 function NextCount({ count }: { count: number }) {
