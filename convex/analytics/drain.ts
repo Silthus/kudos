@@ -5,6 +5,7 @@ import { internalAction, internalMutation, type MutationCtx } from "../_generate
 import { captureSettings, type Capture } from "./capture";
 import { postHogExceptionList } from "./exceptions";
 import { failuresLogged } from "./failures";
+import { followPeopleSentLate, forgetRecordedProfiles, markDeliveriesUncertain, personEventsIn, withoutStalePersonEvents } from "./person";
 
 const batchSize = 100;
 const answerTimeoutMs = 10_000;
@@ -20,6 +21,7 @@ type GiveUpReason = NonNullable<OutboxRow["reason"]>;
 type Claim = { token: string; rows: OutboxRow[] };
 
 const answerValidator = v.union(v.literal("delivered"), v.literal("rejected"), v.literal("failed"));
+const sentPersonEventValidator = v.object({ row: v.id("analyticsOutbox"), distinctId: v.string() });
 type Answer = typeof answerValidator.type;
 
 export const drain = internalAction({
@@ -31,7 +33,7 @@ export const drain = internalAction({
         const claimed: Claim | null = await ctx.runMutation(internal.analytics.drain.claim, { generation });
         if (claimed === null || capture === null) return;
         const answer = await send(capture, claimed.rows);
-        await ctx.runMutation(internal.analytics.drain.settle, { token: claimed.token, rows: claimed.rows.map((row) => row._id), answer });
+        await ctx.runMutation(internal.analytics.drain.settle, { token: claimed.token, rows: claimed.rows.map((row) => row._id), people: personEventsIn(claimed.rows), answer });
       }
     }),
 });
@@ -41,7 +43,7 @@ export const claim = internalMutation({
   handler: async (ctx, { generation }): Promise<Claim | null> => {
     const current = await ctx.db.query("analyticsDrain").first();
     if (current?.generation !== generation) return null;
-    const due = captureSettings() === null ? [] : await dueRows(ctx);
+    const due = captureSettings() === null ? [] : await withoutStalePersonEvents(ctx, await dueRows(ctx));
     if (due.length === 0) {
       await ctx.db.delete(current._id);
       await wakeDrain(ctx);
@@ -56,10 +58,13 @@ export const claim = internalMutation({
 });
 
 export const settle = internalMutation({
-  args: { token: v.string(), rows: v.array(v.id("analyticsOutbox")), answer: answerValidator },
-  handler: async (ctx, { token, rows, answer }) => {
+  args: { token: v.string(), rows: v.array(v.id("analyticsOutbox")), people: v.array(sentPersonEventValidator), answer: answerValidator },
+  handler: async (ctx, { token, rows, people, answer }) => {
     const now = Date.now();
-    const held = (await Promise.all(rows.map((id) => ctx.db.get(id)))).filter((row): row is OutboxRow => row?.lease === token && row.dueAt > now);
+    const leased = (await Promise.all(rows.map((id) => ctx.db.get(id)))).filter((row): row is OutboxRow => row?.lease === token && row.dueAt > now);
+    await followPeopleSentLate(ctx, people, leased);
+    if (answer === "failed") await markDeliveriesUncertain(ctx, people);
+    const held = answer === "delivered" ? leased : await withoutStalePersonEvents(ctx, leased);
     if (answer === "delivered") {
       for (const row of held) await ctx.db.delete(row._id);
     } else if (captureSettings() === null) {
@@ -80,6 +85,7 @@ export const recover = internalMutation({
         .query("analyticsOutbox")
         .withIndex("by_due", (q) => q.eq("state", "sending").lte("dueAt", Date.now()))
         .take(cleanUpBatchSize);
+      await markDeliveriesUncertain(ctx, personEventsIn(expiredLeases));
       await release(ctx, expiredLeases);
       if (expiredLeases.length > 0) await replaceDrain(ctx);
       else await wakeDrain(ctx);
@@ -97,7 +103,7 @@ async function cleanUpOutbox(ctx: MutationCtx) {
     .query("analyticsOutbox")
     .withIndex("by_state", (q) => q.eq("state", "pending").lte("_creationTime", now - pendingKeptForMs))
     .take(cleanUpBatchSize);
-  await giveUp(ctx, expired, "expired");
+  await giveUp(ctx, await withoutStalePersonEvents(ctx, expired), "expired");
   const forgotten = await ctx.db
     .query("analyticsOutbox")
     .withIndex("by_due", (q) => q.eq("state", "exhausted").lte("dueAt", now))
@@ -161,6 +167,7 @@ async function giveUp(ctx: MutationCtx, rows: OutboxRow[], reason: GiveUpReason)
   for (const row of rows) {
     await ctx.db.patch(row._id, { state: "exhausted", reason, lease: undefined, dueAt: Date.now() + givenUpKeptForMs });
   }
+  await forgetRecordedProfiles(ctx, rows);
   console.warn("analytics.events_given_up", { reason, events: rows.map((row) => row.event) });
 }
 
@@ -195,7 +202,12 @@ function batchBody(capture: Capture, batch: OutboxRow[]) {
       distinct_id: row.distinctId,
       uuid: row.uuid,
       timestamp: new Date(row.timestamp).toISOString(),
-      properties: { ...withPostHogNames(row.properties), ...(row.exception && { $exception_list: postHogExceptionList(row.exception) }) },
+      properties: {
+        ...withPostHogNames(row.properties),
+        ...(row.exception && { $exception_list: postHogExceptionList(row.exception) }),
+        ...(row.person && { $set: row.person.set }),
+        ...(row.person && row.person.unset.length > 0 && { $unset: row.person.unset }),
+      },
     })),
   };
 }

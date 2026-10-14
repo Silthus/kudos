@@ -245,7 +245,7 @@
     },
     {
       "name": "directory",
-      "definition": "The app's record of a workspace's people: whether each is a member, a bot or not a member, and their time zone. Slack keeps it fresh, eligibility and the allowance day are read from it when a kudos message is evaluated, and a person it doesn't know makes the message wait."
+      "definition": "The app's record of a workspace's people: whether each is a member, a bot or not a member, and their time zone, and for a member the profile Slack gives (their email, real name, display name and title) and whether they are a workspace admin or owner, and the workspace's user groups with the people in each. Slack keeps it fresh, eligibility and the allowance day are read from it when a kudos message is evaluated, a person it doesn't know makes the message wait, and a member who leaves keeps no profile."
     },
     {
       "name": "indicator",
@@ -333,7 +333,7 @@
     },
     {
       "name": "analytics ID",
-      "definition": "A member's opaque identity in PostHog: a random UUID the analytics module creates the first time it records a product event for the member and keeps while the member's data exists. Sent as distinct_id; never derived from, or sent with, a Slack ID, a name, an email or a Convex document ID."
+      "definition": "A member's opaque identity in PostHog: a random UUID the analytics module creates the first time it records a product event for the member or a mutation reads a flag for them, and keeps while the member's data exists. Sent as distinct_id; never derived from a Slack ID, a name, an email or a Convex document ID, and sent together with the member's profile (email, names, title, Slack user and team ID) only in person events."
     },
     {
       "name": "workspace key",
@@ -373,7 +373,7 @@
     },
     {
       "name": "flag",
-      "definition": "A switch declared once in code with its key, its subject (a member or the workspace), its values and a safe default, whose value PostHog decides per subject; a new member-facing slice ships behind one whose safe default is off"
+      "definition": "A switch declared once in code with its key, its values and a safe default, and no fixed subject; PostHog decides it twice, as a member decision and as a workspace decision; a new member-facing slice ships behind one whose safe default is off"
     },
     {
       "name": "exposure",
@@ -482,6 +482,38 @@
     {
       "name": "front door",
       "definition": "App Home for a member to whom the website's link function answers a Home link (the website flag on, SITE_URL set, the deployment's workspace): a Profile summary of the allowance, one level line, the crates waiting with Open, the week's quests with Swap and a row of buttons to Home and each open feature with a listed page, beside Settings and Admin as before; a tab whose feature has a listed page gives way to its button (SW19 to SW24)."
+    },
+    {
+      "name": "member decision",
+      "definition": "A flag's answer for one member: evaluated on the member's analytics ID with the person properties environment and, when the directory holds one, email; in a query, for a member without an analytics ID, it is the workspace decision. It decides everything that one member sees, gets or does"
+    },
+    {
+      "name": "workspace decision",
+      "definition": "A flag's answer for the workspace: evaluated on the workspace key with the person property environment only, so an email condition never matches it. It decides only what the workspace shares: what a channel shows, what a person the directory doesn't know sees, and the moments that happen once for the whole workspace"
+    },
+    {
+      "name": "preview",
+      "definition": "A member's state for one flag while their member decision is on and the workspace decision is off, through a release condition on their email: they see and get the feature alone, nothing of it shows in a channel or a shared setting, and ending it takes nothing away (F16-F25)"
+    },
+    {
+      "name": "user group",
+      "definition": "A Slack user group as the directory keeps it: its handle, its name, whether it is enabled or one of Slack's automatic admin and owner groups, and the people in it, refreshed from Slack whenever Slack says it changed and once a day. A group is a user group that counts for Kudos. A workspace on a Slack plan without user groups has none."
+    },
+    {
+      "name": "job",
+      "definition": "A function Convex runs later from its scheduler: a scheduled mutation or action, such as a retry, a bus subscriber, a members list or a continuation of a batch. One call may schedule at most 1,000 jobs, and a job that fails without an error boundary reporting it is what the failed-job sweep finds."
+    },
+    {
+      "name": "analytics",
+      "definition": "The only module that knows PostHog: it projects domain events and the chat adapter's usage facts into product events, records them and exceptions in its outbox while capture is on, drains them to PostHog, evaluates flags with their exposures, and keeps each member's analytics ID and each workspace's workspace key. It observes and never changes what a member sees."
+    },
+    {
+      "name": "preview moment",
+      "definition": "The once-per-member moment a preview gets in place of a workspace moment: the first mutation that shows a feature to a member whose workspace has no launch of it stores it once and, for unlocks, opens for that member alone every feature shipped in their member decision then, at that moment and without a DM, and for quests joins that member alone to the Journey as of that moment, as the Journey's join joins a member who existed at its ship moment (F22); the workspace moment later adds only what that member is missing (F23)"
+    },
+    {
+      "name": "person event",
+      "definition": "A PostHog $identify or $set the analytics module records for one analytics ID, carrying the member's profile as person properties ($set, and $unset of what the profile lost) beside O2's properties; the only kind of event that carries a profile, and so names, emails or Slack IDs."
     }
   ]
 }

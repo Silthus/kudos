@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { FakePostHog, answersWith, flagsKey, postHogHost, projectToken, routedFetch } from "../../testing/fakePostHog";
+import { FakePostHog, answersWith, flagsKey, postHogHost, projectToken, routedFetch, withoutPersonProperties } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsFromPostHog, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { blockActions, buttonIn, buttonInHome, type Block } from "../../testing/slackInteractions";
@@ -170,16 +170,24 @@ describe("O7 O8: identity", () => {
   });
 });
 
-describe("O10: never sent", () => {
-  test("no PostHog request carries the message, a name, a Slack or Convex ID, an emoji name or a time zone", async () => {
+describe("O10 F7: never sent, and the profile only on the person", () => {
+  test("no PostHog request carries the message, a Slack or Convex ID, an emoji name or a time zone, and the profile rides only in $set of person events", async () => {
     const team = "T0QUOKKAWS";
     vi.stubEnv("POSTHOG_PERSONAL_API_KEY", flagsKey);
     const t = await unlocksShippedBeforeAnyoneJoined(await flagsFromPostHog(testBackend(), postHog, ...["xp-levels", "unlocks", "quests"].map(onForEveryone)), team);
     const channel = "C0MARMALADE";
     const people = { giver: "U0ZEPHYRINE", recipient: "U0BARNABY77" };
     slack = new FakeSlack()
-      .withMember(people.giver, { team_id: team, tz: "Pacific/Chatham", ...({ real_name: "Zephyrine Quokkason", profile: { display_name: "zephy" } } as object) })
-      .withMember(people.recipient, { team_id: team, tz: "America/St_Johns", ...({ real_name: "Barnaby Flintlock", profile: { display_name: "barns" } } as object) });
+      .withMember(people.giver, {
+        team_id: team,
+        tz: "Pacific/Chatham",
+        ...({ real_name: "Zephyrine Quokkason", profile: { display_name: "zephy", email: "zephyrine@example.com", title: "Quokka Wrangler" } } as object),
+      })
+      .withMember(people.recipient, {
+        team_id: team,
+        tz: "America/St_Johns",
+        ...({ real_name: "Barnaby Flintlock", profile: { display_name: "barns", email: "barnaby@example.com" } } as object),
+      });
     vi.stubGlobal("fetch", routedFetch(postHog, slack.fetch));
     await t.run((ctx) => ctx.db.insert("workspaces", { workspace: team, kudosEmoji: "artichokeparty" }));
 
@@ -223,8 +231,7 @@ describe("O10: never sent", () => {
       await settle(t);
     }
 
-    const bodies = postHog.requests.map((request) => request.body).join("\n");
-    expect(new Set(postHog.events().map((event) => event.event))).toEqual(
+    expect(new Set(postHog.productEvents().map((event) => event.event))).toEqual(
       new Set([
         "kudos given",
         "kudos received",
@@ -245,16 +252,34 @@ describe("O10: never sent", () => {
         "$feature_flag_called",
       ]),
     );
+    const profiles = new Set(postHog.personEvents().map((event) => JSON.stringify(event.properties.$set)));
+    expect([...profiles].map((profile) => JSON.parse(profile))).toEqual(expect.arrayContaining([
+      {
+        email: "zephyrine@example.com",
+        name: "Zephyrine Quokkason",
+        display_name: "zephy",
+        title: "Quokka Wrangler",
+        slack_user_id: people.giver,
+        slack_team_id: team,
+        is_admin: false,
+        environment: "sandbox",
+      },
+      { email: "barnaby@example.com", name: "Barnaby Flintlock", display_name: "barns", slack_user_id: people.recipient, slack_team_id: team, is_admin: false, environment: "sandbox" },
+    ]));
+    expect(profiles.size).toBe(2);
     const stored = await everythingStored(t);
-    const forbidden = [
-      "Marmalade", "Zephyrine", "Barnaby", "Flintlock", "quokka", "zephy", "barns", "Quokkason",
-      "artichokeparty", "Pacific/Chatham", "America/St_Johns", "Chatham", "St_Johns",
-      team, channel, people.giver, people.recipient, "1760349600", "424242", "515151", "626262", "737373", "828282", "Ev",
-      "overflow", "herself", "hooks.slack.com", "ann", "acme", "1.2.3",
+    const neverSent = [
+      "Marmalade", "artichokeparty", "Pacific/Chatham", "America/St_Johns", "Chatham", "St_Johns",
+      channel, "1760349600", "424242", "515151", "626262", "737373", "828282", "Ev",
+      "overflow", "herself", "hooks.slack.com", "ann", "acme", "1.2.3", "migration",
       ...stored.map((row) => row._id),
     ];
-    for (const value of forbidden) expect(bodies).not.toContain(value);
-    expect(bodies).not.toMatch(/\b[UTCWB][A-Z0-9]{8,}\b/);
+    const onThePersonOnly = ["Zephyrine", "Barnaby", "Flintlock", "quokka", "Quokka", "zephy", "barns", "Quokkason", "example.com", team, people.giver, people.recipient];
+    const bodies = postHog.requests.map((request) => request.body).join("\n");
+    const bodiesWithoutProfiles = postHog.requests.map((request) => withoutPersonProperties(request.body)).join("\n");
+    for (const value of neverSent) expect(bodies).not.toContain(value);
+    for (const value of onThePersonOnly) expect(bodiesWithoutProfiles).not.toContain(value);
+    expect(bodiesWithoutProfiles).not.toMatch(/\b[UTCWB][A-Z0-9]{8,}\b/);
     expect(bodies).not.toMatch(/"(words|gate)"/);
   });
 });

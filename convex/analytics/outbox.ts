@@ -1,8 +1,8 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import type { MemberId } from "../workspace/directory";
-import { captureSettings, nativeErrorReportingOn } from "./capture";
+import { captureSettings, nativeErrorReportingOn, type Capture } from "./capture";
 import { wakeDrain } from "./drain";
 import type { Exception } from "./exceptions";
+import { analyticsIdOf } from "./person";
 import type { ProductEvent } from "./projections";
 
 const taxonomyVersion = 1;
@@ -10,7 +10,7 @@ const taxonomyVersion = 1;
 export async function record(ctx: MutationCtx, workspace: string, events: ProductEvent[]) {
   const capture = captureSettings();
   if (capture === null) return;
-  const shared = { environment: capture.environment, workspace_key: await workspaceKeyOf(ctx, workspace), taxonomy_version: taxonomyVersion };
+  const shared = await sharedPropertiesOf(ctx, capture, workspace);
   for (const { event, subject, at, properties } of events) {
     await ctx.db.insert("analyticsOutbox", {
       uuid: crypto.randomUUID(),
@@ -24,6 +24,10 @@ export async function record(ctx: MutationCtx, workspace: string, events: Produc
     });
   }
   await wakeDrain(ctx);
+}
+
+export async function sharedPropertiesOf(ctx: MutationCtx, capture: Capture, workspace: string) {
+  return { environment: capture.environment, workspace_key: await workspaceKeyOf(ctx, workspace), taxonomy_version: taxonomyVersion };
 }
 
 export type FailedFunction = { path: string; kind: "http" | "action" | "mutation" };
@@ -56,22 +60,6 @@ export async function recordException(ctx: MutationCtx, failed: FailedFunction, 
 async function deploymentWorkspaceKey(ctx: QueryCtx) {
   const keys = await ctx.db.query("workspaceKeys").take(2);
   return keys.length === 1 ? keys[0]!.workspaceKey : null;
-}
-
-export async function analyticsIdOf(ctx: MutationCtx, member: MemberId) {
-  const existing = await existingAnalyticsId(ctx, member);
-  if (existing !== null) return existing;
-  const analyticsId = crypto.randomUUID();
-  await ctx.db.insert("analyticsIds", { member, analyticsId });
-  return analyticsId;
-}
-
-export async function existingAnalyticsId(ctx: QueryCtx, member: MemberId) {
-  const row = await ctx.db
-    .query("analyticsIds")
-    .withIndex("by_member", (q) => q.eq("member", member))
-    .unique();
-  return row?.analyticsId ?? null;
 }
 
 export async function workspaceKeyOf(ctx: MutationCtx, workspace: string) {

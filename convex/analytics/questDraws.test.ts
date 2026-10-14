@@ -1,6 +1,6 @@
 import { makeFunctionReference } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { routedFetch, type CapturedEvent, type FakePostHog, type FlagDefinition } from "../../testing/fakePostHog";
+import { routedFetch, withoutPersonProperties, type CapturedEvent, type FakePostHog, type FlagDefinition } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsFromPostHog, offForEveryone, onForEveryone, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
@@ -182,10 +182,13 @@ describe("O10: a draw and a swap carry only pool IDs", () => {
     expect(questsDrawn().length).toBeGreaterThan(0);
     expect(questsSwapped()).toHaveLength(1);
     const bodies = postHog.requests.map((request) => request.body).join("\n");
+    const bodiesWithoutProfiles = postHog.requests.map((request) => withoutPersonProperties(request.body)).join("\n");
     const stored = await everythingStored(t);
-    const forbidden = ["Zephyrine", "Quokkason", "zephy", "Barnaby", "Flintlock", "barns", "Pacific/Chatham", "America/St_Johns", team, people.giver, people.recipient, "2026-10-12", ...stored.map((row) => row._id)];
-    for (const value of forbidden) expect(bodies).not.toContain(value);
-    expect(bodies).not.toMatch(/\b[UTCWB][A-Z0-9]{8,}\b/);
+    const neverSent = ["Pacific/Chatham", "America/St_Johns", "2026-10-12", ...stored.map((row) => row._id)];
+    const onThePersonOnly = ["Zephyrine", "Quokkason", "zephy", "Barnaby", "Flintlock", "barns", team, people.giver, people.recipient];
+    for (const value of neverSent) expect(bodies).not.toContain(value);
+    for (const value of onThePersonOnly) expect(bodiesWithoutProfiles).not.toContain(value);
+    expect(bodiesWithoutProfiles).not.toMatch(/\b[UTCWB][A-Z0-9]{8,}\b/);
   });
 });
 
@@ -254,7 +257,7 @@ function swaps(t: Backend) {
 }
 
 function productEvents(): CapturedEvent[] {
-  return postHog.events().filter((event) => event.event !== "$feature_flag_called");
+  return postHog.productEvents().filter((event) => event.event !== "$feature_flag_called");
 }
 
 function questsDrawn() {

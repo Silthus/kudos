@@ -142,7 +142,7 @@ async function storedSettings(t: Backend) {
 }
 
 function productEvents() {
-  return postHog.events().filter((event) => event.event !== "$feature_flag_called");
+  return postHog.productEvents().filter((event) => event.event !== "$feature_flag_called");
 }
 
 function membershipChanges() {

@@ -8,7 +8,7 @@ import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import { ladders, type Ladder, type LadderId } from "../achievements/ladders";
+import { ladders, type Ladder, type LadderId, type TierId } from "../achievements/ladders";
 import type { MemberId } from "../workspace/directory";
 
 const now = new Date("2026-10-13T10:00:00Z");
@@ -68,6 +68,21 @@ describe("P62 P76: tiers the launch replays wait for the Book's opening, and arr
 
     expect(tierDmsTo("U_ALICE")).toEqual([bothBronzes]);
     expect(tierLinesEverywhere()).toEqual([]);
+  });
+
+  test("the opening summary's Next follows every tier earned, so a tier earned while the Book was hidden moves it on without being told", async () => {
+    const t = await workspaceWithTheBook();
+    await giveKudos(t, "U_ALICE", "U_BOB");
+    await withXp(t, "U_ALICE", 305);
+    await earnedWhileHidden(t, "U_ALICE", "generosity", "silver");
+
+    await t.mutation(internal.unlocks.sweep.sweep, {});
+    await settle(t);
+    await openTheBookInAppHome(t, "U_ALICE");
+
+    expect(tierDmsTo("U_ALICE")).toEqual([
+      "🏅 You earned First Thanks (Generosity, bronze).\n🏅 You earned First Chapter (Seasons, bronze).\nNext: Heart of the Team at 100 kudos given.\nNext: Season of Thanks at 3 calendar months with a kudos given.",
+    ]);
   });
 
   test("a member who turned DMs off gets no summary on opening", async () => {
@@ -260,6 +275,14 @@ async function earned(t: Backend, member: MemberId, ladder: LadderId, batch: Id<
   await t.run(async (ctx) => {
     const award = await ctx.db.insert("awards", { workspace: "T1", conversation: "C0", message: `${ladder}`, giver: member, recipient: member, kudos: 1, day: "2026-10-12", at: Date.now() - 86_400_000 });
     await ctx.db.insert("earnedTiers", { member, ladder, tier: "bronze", earnedAt: Date.now() - 86_400_000, award, catalogueVersion: "1", rewards: [], batch });
+  });
+}
+
+async function earnedWhileHidden(t: Backend, user: string, ladder: LadderId, tier: TierId) {
+  await t.run(async (ctx) => {
+    const member = await memberIn(ctx, user);
+    const award = await ctx.db.insert("awards", { workspace: "T1", conversation: "C0", message: `${ladder}-${tier}`, giver: member, recipient: member, kudos: 1, day: "2026-10-12", at: Date.now() });
+    await ctx.db.insert("earnedTiers", { member, ladder, tier, earnedAt: Date.now(), award, catalogueVersion: "1", rewards: [], hidden: true });
   });
 }
 

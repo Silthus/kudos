@@ -1,5 +1,5 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { exposed, flag } from "../analytics/flags";
+import { exposed, workspaceDecision } from "../analytics/flags";
 import { xpLevelsShownIn } from "../progression/xpLevels";
 import { unlocksAppliedIn } from "../unlocks/launch";
 import { chatUserOf, type MemberId } from "../workspace/directory";
@@ -7,7 +7,7 @@ import { achievementsFlag } from "./achievementsFlag";
 import { replayWhatIsNew } from "./replay";
 
 export async function achievementsApplyIn(ctx: QueryCtx | MutationCtx, workspace: string): Promise<boolean> {
-  return (await flag(ctx, achievementsFlag, { workspace })) && (await xpLevelsShownIn(ctx, workspace)) && (await unlocksAppliedIn(ctx, workspace));
+  return (await workspaceDecision(ctx, achievementsFlag, workspace)) && (await xpLevelsShownIn(ctx, workspace)) && (await unlocksAppliedIn(ctx, workspace));
 }
 
 export async function achievementsLiveIn(ctx: MutationCtx, workspace: string): Promise<boolean> {

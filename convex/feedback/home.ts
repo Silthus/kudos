@@ -4,13 +4,14 @@ import type { Command } from "../commands/commands";
 import type { HomeFacts, KudosHome } from "../engine/home";
 import type { Period } from "../leaderboard/periods";
 import { skillTreeLevel } from "../progression/levels";
-import type { MemberPerks } from "../progression/perks";
+import { ownsEveryPerk, type MemberPerks } from "../progression/perks";
 import type { PurchaseOutcome, Refusal } from "../progression/purchases";
 import { perkOf, type Perk } from "../progression/tree";
 import type { ProgressSettings } from "../progression/settings";
 import type { JourneyStepFacts } from "../quests/journey";
 import { journeyCopyOf, journeyGoalOf } from "../quests/journeyCopy";
 import { questOf } from "../quests/pool";
+import type { WeekKey } from "../quests/week";
 import type { UnopenedCrate, WeeklyQuests, WeeklySlot } from "../quests/weekly";
 import type { JourneyQuest, Quest, WeeklyQuest } from "../quests/step";
 import type { Feature } from "../unlocks/feature";
@@ -27,7 +28,9 @@ export type HomeView = { tabBar?: Choice[]; title: string; groups: HomeLine[][] 
 
 export type Choice = { label: string; command: Command; selected: boolean };
 
-export type HomeAction = { label: string; command: Command };
+export type Confirmation = { title: string; text: string; confirm: string; deny: string };
+
+export type HomeAction = { label: string; command: Command; accessibilityLabel?: string; confirm?: Confirmation };
 
 export type HomeLine =
   | { kind: "text"; text: string }
@@ -127,7 +130,12 @@ function readyCratesOf(unlocks: UnlocksHome | null): HomeLine[] {
 }
 
 function earlierCratesOf(crates: UnopenedCrate[] | null): HomeLine[] {
-  return (crates ?? []).slice(0, earlierCratesShown).map(({ crate, goal }) => ({ kind: "action", text: `✅ ${goal}`, action: openCrate(crate) }));
+  return (crates ?? []).slice(0, earlierCratesShown).map(({ crate, week, goal }) => ({ kind: "action", text: `${weekLabelOf(week)} ✅ ${goal}`, action: openCrate(crate) }));
+}
+
+function weekLabelOf(week: WeekKey) {
+  const monday = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "short", day: "numeric" }).format(Date.parse(week));
+  return bold(`Week of ${monday}:`);
 }
 
 function moreEarlierCrates(crates: UnopenedCrate[]): HomeLine[] {
@@ -168,16 +176,14 @@ function ladderLines({ ladder, name, count, tiers, next }: LadderFacts, timeZone
   return [{ kind: "text", text: `${bold(name)} · ${bold(count)} ${countsOf(ladder, count)}` }, ...earnedLines, ...nextLine];
 }
 
-export function tiersEarnedLines(tiers: TierRef[]): string[] {
-  const earned = tiers.map((ref) => `🏅 You earned ${tierOf(ref).name} (${ladderOf(ref.ladder).name}, ${ref.tier}).`);
-  const ladders = [...new Set(tiers.map(({ ladder }) => ladder))];
-  return [...earned, ...ladders.flatMap((ladder) => nextTierLine(ladder, tiers.filter((ref) => ref.ladder === ladder)))];
+export function tiersEarnedLines(told: TierRef[], everyTierEarned: TierRef[]): string[] {
+  const earnedLines = told.map((ref) => `🏅 You earned ${tierOf(ref).name} (${ladderOf(ref.ladder).name}, ${ref.tier}).`);
+  const ladders = [...new Set(told.map(({ ladder }) => ladder))];
+  return [...earnedLines, ...ladders.flatMap((ladder) => nextTierLine(ladder, [...told, ...everyTierEarned]))];
 }
 
-function nextTierLine(ladder: TierRef["ladder"], told: TierRef[]): string[] {
-  const { tiers } = ladderOf(ladder);
-  const highest = Math.max(...told.map(({ tier }) => tiers.findIndex((entry) => entry.tier === tier)));
-  const next = tiers[highest + 1];
+function nextTierLine(ladder: TierRef["ladder"], earned: TierRef[]): string[] {
+  const next = ladderOf(ladder).tiers.find(({ tier }) => !earned.some((ref) => ref.ladder === ladder && ref.tier === tier));
   return next === undefined ? [] : [`Next: ${next.name} at ${next.count} ${countsOf(ladder, next.count)}.`];
 }
 
@@ -185,9 +191,10 @@ function dateOf(at: number, timeZone: string | undefined) {
   return new Intl.DateTimeFormat("en-US", { timeZone: timeZone ?? "UTC", month: "short", day: "numeric", year: "numeric" }).format(at);
 }
 
-function skillTreeGroups({ skillPoints, perks }: MemberPerks): HomeLine[][] {
+function skillTreeGroups(tree: MemberPerks): HomeLine[][] {
   const condition: HomeLine = { kind: "hint", text: "Bonuses count when your message has 5 or more words besides mentions and emoji." };
-  return [[{ kind: "text", text: `You have ${bold(skillPointsOf(skillPoints))} to spend.` }], [...perks.flatMap(perkLines), condition]];
+  const toSpend: HomeLine[][] = ownsEveryPerk(tree) ? [] : [[{ kind: "text", text: `You have ${bold(skillPointsOf(tree.skillPoints))} to spend.` }]];
+  return [...toSpend, [...tree.perks.flatMap(perkLines), condition]];
 }
 
 function perkLines(perk: TreePerk): HomeLine[] {
@@ -198,7 +205,11 @@ function perkLines(perk: TreePerk): HomeLine[] {
 }
 
 export function perkOfferOf(perk: Perk): { text: string; action: HomeAction } {
-  return { text: perkTextOf(perk), action: { label: "Buy", command: { type: "buyPerk", perk: perk.perk } } };
+  return { text: perkTextOf(perk), action: { label: "Buy", command: { type: "buyPerk", perk: perk.perk }, accessibilityLabel: `Buy ${perk.name}`, confirm: purchaseConfirmationOf(perk) } };
+}
+
+function purchaseConfirmationOf({ name, skillPoints }: Perk): Confirmation {
+  return { title: `Buy ${name}?`, text: `This spends ${skillPointsOf(skillPoints)}. Skill points are never refunded.`, confirm: "Buy", deny: "Cancel" };
 }
 
 function perkTextOf({ name, skillPoints, copy }: Perk) {
@@ -338,7 +349,7 @@ function weeklyQuestLine(week: string, { slot, goal, reward, progress, target, f
 }
 
 function waitingToOpenLines(crates: UnopenedCrate[]): HomeLine[] {
-  const shown = crates.slice(0, earlierCratesShown).map(({ crate, goal, reward }): HomeLine => ({ kind: "action", text: `✅ ${goal} ${earned(reward.xp)}`, action: openCrate(crate) }));
+  const shown = crates.slice(0, earlierCratesShown).map(({ crate, week, goal, reward }): HomeLine => ({ kind: "action", text: `${weekLabelOf(week)} ✅ ${goal} ${earned(reward.xp)}`, action: openCrate(crate) }));
   return [{ kind: "text", text: bold("Waiting to open") }, ...shown, ...moreEarlierCrates(crates)];
 }
 

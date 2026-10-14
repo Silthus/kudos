@@ -7,8 +7,20 @@ export type SlackUser = {
   is_owner?: boolean;
   tz?: string;
   real_name?: string;
-  profile?: { display_name?: string; real_name?: string };
+  profile?: { display_name?: string; real_name?: string; email?: string; title?: string };
 };
+
+export type SlackUserGroup = {
+  id: string;
+  team_id: string;
+  handle: string;
+  name: string;
+  date_delete: number;
+  auto_type: "admin" | "owner" | null;
+  users: string[];
+};
+
+export type UserGroupOptions = { handle?: string; name?: string; users?: string[]; disabled?: boolean; autoType?: "admin" | "owner" };
 
 export type SlackArgs = Record<string, unknown>;
 
@@ -36,6 +48,7 @@ export const landsButTimesOut: ScriptedAnswer = (answerAsSlackWould) => {
 export class FakeSlack {
   readonly calls: SlackCall[] = [];
   private readonly users = new Map<string, SlackUser>();
+  private readonly userGroups = new Map<string, SlackUserGroup>();
   private readonly joinTimes = new Map<string, number>();
   private readonly reactionsByMessage = new Map<string, string[]>();
   private readonly posted: PostedMessage[] = [];
@@ -46,6 +59,16 @@ export class FakeSlack {
 
   withMember(id: string, options: Partial<SlackUser> = {}) {
     this.users.set(id, { id, team_id: "T1", ...options });
+    return this;
+  }
+
+  withUserGroup(id: string, { handle = id.toLowerCase(), name = handle, users = [], disabled = false, autoType }: UserGroupOptions = {}) {
+    this.userGroups.set(id, { id, team_id: "T1", handle, name, date_delete: disabled ? 1760349600 : 0, auto_type: autoType ?? null, users });
+    return this;
+  }
+
+  withoutUserGroup(id: string) {
+    this.userGroups.delete(id);
     return this;
   }
 
@@ -133,6 +156,11 @@ export class FakeSlack {
       return user && hasJoined ? { ok: true, user } : { ok: false, error: "user_not_found" };
     }
     if (method === "users.list") return { ok: true, members: [...this.users.values()], response_metadata: { next_cursor: "" } };
+    if (method === "usergroups.list") return { ok: true, usergroups: this.userGroupsListed(args) };
+    if (method === "usergroups.users.list") {
+      const group = this.userGroups.get(field("usergroup"));
+      return group ? { ok: true, users: group.users } : { ok: false, error: "no_such_subteam" };
+    }
     if (method === "reactions.add") {
       const reactions = this.reactionsOn(field("channel"), field("timestamp"));
       if (reactions.includes(field("name"))) return { ok: false, error: "already_reacted" };
@@ -154,6 +182,11 @@ export class FakeSlack {
     if (method === "chat.update") return this.updateMessage(args);
     if (method === "conversations.join") return { ok: true, channel: { id: field("channel") } };
     return { ok: false, error: "unknown_method" };
+  }
+
+  private userGroupsListed(args: SlackArgs) {
+    const groups = [...this.userGroups.values()].filter((group) => args.include_disabled === "true" || group.date_delete === 0);
+    return groups.map(({ users, ...group }) => (args.include_users === "true" ? { ...group, users } : group));
   }
 
   private postMessage(args: SlackArgs) {
