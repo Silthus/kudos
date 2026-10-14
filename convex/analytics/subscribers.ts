@@ -1,8 +1,26 @@
 import { internalMutation } from "../_generated/server";
-import { attemptFailedEventValidator, kudosGivenEventValidator, levelReachedEventValidator, memberWelcomedEventValidator } from "../bus/events";
+import {
+  attemptFailedEventValidator,
+  journeyStepActivatedEventValidator,
+  kudosGivenEventValidator,
+  levelReachedEventValidator,
+  memberWelcomedEventValidator,
+  questFinishedEventValidator,
+  questsDrawnEventValidator,
+  questSwappedEventValidator,
+} from "../bus/events";
 import { failuresLogged } from "./failures";
 import { record } from "./outbox";
-import { projectAttemptFailed, projectKudosGiven, projectLevelReached, projectMemberWelcomed } from "./projections";
+import {
+  projectAttemptFailed,
+  projectJourneyStepActivated,
+  projectKudosGiven,
+  projectLevelReached,
+  projectMemberWelcomed,
+  projectQuestFinished,
+  projectQuestsDrawn,
+  projectQuestSwapped,
+} from "./projections";
 
 export const recordKudosGiven = internalMutation({
   args: { event: kudosGivenEventValidator },
@@ -29,6 +47,34 @@ export const recordLevelReached = internalMutation({
   args: { event: levelReachedEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
     await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectLevelReached(event)]));
+  },
+});
+
+export const recordQuestsDrawn = internalMutation({
+  args: { event: questsDrawnEventValidator },
+  handler: async (ctx, { event }): Promise<void> => {
+    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, projectQuestsDrawn(event)));
+  },
+});
+
+export const recordQuestSwapped = internalMutation({
+  args: { event: questSwappedEventValidator },
+  handler: async (ctx, { event }): Promise<void> => {
+    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectQuestSwapped(event)]));
+  },
+});
+
+export const recordQuestFinished = internalMutation({
+  args: { event: questFinishedEventValidator },
+  handler: async (ctx, { event }): Promise<void> => {
+    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectQuestFinished(event)]));
+  },
+});
+
+export const recordJourneyStepActivated = internalMutation({
+  args: { event: journeyStepActivatedEventValidator },
+  handler: async (ctx, { event }): Promise<void> => {
+    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectJourneyStepActivated(event)]));
   },
 });
 

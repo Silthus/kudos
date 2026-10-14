@@ -1,5 +1,5 @@
 import { v, type Infer } from "convex/values";
-import type { AttemptFailedEvent, KudosGivenEvent, LevelReachedEvent, MemberWelcomedEvent } from "../bus/events";
+import type { AttemptFailedEvent, JourneyStepActivatedEvent, KudosGivenEvent, LevelReachedEvent, MemberWelcomedEvent, QuestFinishedEvent, QuestsDrawnEvent, QuestSwappedEvent } from "../bus/events";
 import type { Award } from "../engine/awards";
 import type { KudosCommandResult } from "../feedback/kudosCommand";
 import type { Period } from "../leaderboard/periods";
@@ -18,6 +18,10 @@ export type ProductEvent = {
     | "attempt failed"
     | "member welcomed"
     | "level reached"
+    | "quest drawn"
+    | "quest swapped"
+    | "quest finished"
+    | "journey step activated"
     | "app home opened"
     | "command used"
     | "leaderboard viewed"
@@ -108,6 +112,28 @@ export function projectLevelReached(event: LevelReachedEvent): ProductEvent {
     at: event.at,
     properties: { level: event.level, skill_points_gained: event.skillPointsGained, via: event.message === undefined ? "reward" : "kudos" },
   };
+}
+
+export function projectQuestsDrawn(event: QuestsDrawnEvent): ProductEvent[] {
+  return event.quests.map((quest) => ({ event: "quest drawn", subject: { member: event.member }, at: event.at, properties: { quest } }));
+}
+
+export function projectQuestSwapped(event: QuestSwappedEvent): ProductEvent {
+  return { event: "quest swapped", subject: { member: event.member }, at: event.at, properties: { replaced: event.replaced, quest: event.swappedIn } };
+}
+
+export function projectQuestFinished(event: QuestFinishedEvent): ProductEvent {
+  const quest = event.quest.kind === "journey" ? event.quest.step : event.poolQuest;
+  return {
+    event: "quest finished",
+    subject: { member: event.member },
+    at: event.at,
+    properties: { kind: event.quest.kind, ...(quest === undefined ? {} : { quest }), ...(event.reward === undefined ? {} : { xp: event.reward.xp, coins: event.reward.coins }) },
+  };
+}
+
+export function projectJourneyStepActivated(event: JourneyStepActivatedEvent): ProductEvent {
+  return { event: "journey step activated", subject: { member: event.member }, at: event.at, properties: { step: event.step } };
 }
 
 export function projectUsage(fact: UsageFact): ProductEvent {
