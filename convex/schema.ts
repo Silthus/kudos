@@ -2,6 +2,7 @@ import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { ladderValidator } from "./achievements/ladders";
+import { bookReplayValidator } from "./achievements/replay";
 import { earnedTierValidator } from "./achievements/tiers";
 import { exceptionValidator } from "./analytics/exceptions";
 import { awardIdValidator } from "./engine/awards";
@@ -12,7 +13,7 @@ import { publicReplyValidator } from "./feedback/publicReplies";
 import { tierNoticeValidator } from "./feedback/tierNotices";
 import { segmentValidator } from "./feedback/segments";
 import { periodValidator } from "./leaderboard/periods";
-import { purchaseOutcomeValidator } from "./progression/perks";
+import { purchaseOutcomeValidator } from "./progression/purchases";
 import { effectsRecordValidator } from "./progression/progress";
 import { rewardRecordValidator } from "./progression/rewards";
 import { perkValidator } from "./progression/tree";
@@ -113,7 +114,8 @@ export default defineSchema({
     .index("by_giver", ["giver", "day"])
     .index("by_giver_recipient", ["giver", "recipient"])
     .index("by_recipient", ["recipient", "day"])
-    .index("by_message", ["workspace", "conversation", "message"]),
+    .index("by_message", ["workspace", "conversation", "message"])
+    .index("by_workspace", ["workspace"]),
 
   kudosTotals: defineTable({
     member: v.id("members"),
@@ -188,7 +190,19 @@ export default defineSchema({
     award: awardIdValidator,
     member: v.id("members"),
     ladder: ladderValidator,
-  }).index("by_award_member_ladder", ["award", "member", "ladder"]),
+    count: v.number(),
+    at: v.number(),
+  })
+    .index("by_award_member_ladder", ["award", "member", "ladder"])
+    .index("by_member_ladder_count", ["member", "ladder", "count"]),
+
+  bookBatches: defineTable({
+    workspace: v.string(),
+    at: v.number(),
+    completedAt: v.optional(v.number()),
+  }).index("by_workspace", ["workspace"]),
+
+  bookReplays: defineTable(bookReplayValidator).index("by_workspace_ladder", ["workspace", "ladder"]).index("by_batch", ["batch"]),
 
   earnedTiers: defineTable(earnedTierValidator).index("by_member_ladder_tier", ["member", "ladder", "tier"]),
 

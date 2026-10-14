@@ -4,7 +4,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
 import type { DayKey, Week } from "./allowance";
-import type { MessageRef } from "./messageEvent";
+import type { Annotations, MessageRef } from "./messageEvent";
 import { addToTotals } from "./totals";
 
 export type Award = { giver: MemberId; recipient: MemberId; kudos: number };
@@ -46,12 +46,46 @@ export async function weekTotals(ctx: QueryCtx, member: MemberId, week: Week): P
   return { givenWeek: sumOf(given), receivedWeek: sumOf(received) };
 }
 
+export type EarlierAward = { recipient: MemberId; day: DayKey; annotations: Annotations };
+
+export async function givenEarlierInWeek(ctx: QueryCtx, giver: MemberId, { monday, sunday }: Week, before: AwardId): Promise<EarlierAward[]> {
+  const cutoff = (await ctx.db.get(before))?._creationTime ?? Infinity;
+  const awards = await ctx.db
+    .query("awards")
+    .withIndex("by_giver", (q) => q.eq("giver", giver).gte("day", monday).lte("day", sunday))
+    .collect();
+  const annotationsOfMessage = new Map<string, Annotations>();
+  const earlier: EarlierAward[] = [];
+  for (const award of awards.filter(({ _creationTime }) => _creationTime < cutoff)) {
+    const key = messageKey(award);
+    if (!annotationsOfMessage.has(key)) annotationsOfMessage.set(key, await storedAnnotationsOf(ctx, award));
+    earlier.push({ recipient: award.recipient, day: award.day, annotations: annotationsOfMessage.get(key)! });
+  }
+  return earlier;
+}
+
+async function storedAnnotationsOf(ctx: QueryCtx, { workspace, conversation, message }: AwardRow): Promise<Annotations> {
+  const kudosMessage = await ctx.db
+    .query("kudosMessages")
+    .withIndex("by_message", (q) => q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message))
+    .unique();
+  return kudosMessage?.annotations ?? {};
+}
+
 export async function awardsGivenBefore(ctx: QueryCtx, before: number, page: PaginationOptions): Promise<PaginationResult<GivenAward>> {
   const result = await ctx.db
     .query("awards")
     .withIndex("by_creation_time", (q) => q.lt("_creationTime", before))
     .paginate(page);
   return { ...result, page: result.page.map(({ _id, giver, recipient, kudos, day }) => ({ award: _id, giver, recipient, kudos, day })) };
+}
+
+export async function awardsInWorkspace(ctx: QueryCtx, workspace: string, page: PaginationOptions): Promise<PaginationResult<AwardWithId & { at: number }>> {
+  const result = await ctx.db
+    .query("awards")
+    .withIndex("by_workspace", (q) => q.eq("workspace", workspace))
+    .paginate(page);
+  return { ...result, page: result.page.map(({ _id, giver, recipient, kudos, at }) => ({ award: _id, giver, recipient, kudos, at })) };
 }
 
 export async function lastThankedBy(ctx: QueryCtx, giver: MemberId, atOrBefore: number): Promise<Map<MemberId, number>> {

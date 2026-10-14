@@ -1,45 +1,19 @@
-import { v, type Infer } from "convex/values";
+import { v } from "convex/values";
 import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { exposed, flag } from "../analytics/flags";
 import { publish } from "../bus/publish";
 import type { Annotations } from "../engine/messageEvent";
-import { unlocksAppliedIn } from "../unlocks/launch";
 import { stateOf, type UnlockState } from "../unlocks/unlocks";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { catalogue } from "./catalogue";
 import { gateDecisionOf } from "./gate";
 import { spendSkillPoints, standingOf } from "./progression";
-import { skillTreeFlag } from "./skillTreeFlag";
-import { perkOf, perkValidator, type Perk, type PerkId } from "./tree";
-import { xpLevelsShownIn } from "./xpLevels";
-
-export const refusalValidator = v.union(
-  v.literal("tree-locked"),
-  v.literal("tree-ready"),
-  v.literal("owned"),
-  v.literal("below-row"),
-  v.literal("needs-prerequisite"),
-  v.literal("no-skill-points"),
-);
-
-export type Refusal = Infer<typeof refusalValidator>;
-
-export const purchaseOutcomeValidator = v.union(
-  v.object({ kind: v.literal("bought"), perk: perkValidator }),
-  v.object({ kind: v.literal("refused"), perk: perkValidator, reason: refusalValidator }),
-);
-
-export type PurchaseOutcome = Infer<typeof purchaseOutcomeValidator>;
+import type { PurchaseOutcome, Refusal } from "./purchases";
+import { ownedPerksOf, skillTreeAppliesIn, type OwnedPerk } from "./skillTree";
+import { perkOf, type Perk, type PerkId } from "./tree";
 
 export type PerkState = "buyable" | Refusal;
 
-export type OwnedPerk = { perk: PerkId; boughtAt: number };
-
 export type MemberPerks = { skillPoints: number; owned: OwnedPerk[]; perks: Array<Perk & { state: PerkState; boughtAt: number | null }> };
-
-export async function skillTreeAppliesIn(ctx: QueryCtx | MutationCtx, workspace: string): Promise<boolean> {
-  return (await flag(ctx, skillTreeFlag, { workspace })) && (await xpLevelsShownIn(ctx, workspace)) && (await unlocksAppliedIn(ctx, workspace));
-}
 
 export async function couldEarnMoreBySayingWhy(ctx: QueryCtx, member: MemberId, annotations: Annotations): Promise<boolean> {
   if (gateDecisionOf(annotations)?.thoughtful !== false) return false;
@@ -53,14 +27,6 @@ async function ownsAPerk(ctx: QueryCtx, member: MemberId) {
     .withIndex("by_member_perk", (q) => q.eq("member", member))
     .first();
   return owned !== null;
-}
-
-export async function skillTreeShownTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
-  const { workspace } = await chatUserOf(ctx, member);
-  if (!(await xpLevelsShownIn(ctx, workspace)) || !(await unlocksAppliedIn(ctx, workspace))) return false;
-  const applies = await flag(ctx, skillTreeFlag, { workspace });
-  await exposed(ctx, skillTreeFlag, member, applies);
-  return applies;
 }
 
 export async function buyPerk(ctx: MutationCtx, member: MemberId, perk: PerkId, idempotencyKey: string): Promise<PurchaseOutcome | null> {
@@ -105,21 +71,18 @@ type TreeFacts = { tree: "locked" | "ready" | "open"; level: number; skillPoints
 
 async function treeFactsOf(ctx: QueryCtx, member: MemberId): Promise<TreeFacts> {
   const { level, skillPoints } = await standingOf(ctx, member);
-  const owned = await ctx.db
-    .query("perksOwned")
-    .withIndex("by_member_perk", (q) => q.eq("member", member))
-    .collect();
-  return { tree: treeStateOf(await stateOf(ctx, member, "skillTree")), level, skillPoints, owned: owned.map(({ perk, boughtAt }) => ({ perk, boughtAt })) };
+  return { tree: treeStateOf(await stateOf(ctx, member, "skillTree")), level, skillPoints, owned: await ownedPerksOf(ctx, member) };
 }
 
 function treeStateOf(unlock: UnlockState): TreeFacts["tree"] {
   return unlock === "open" || unlock === "ready" ? unlock : "locked";
 }
 
-function perkStateOf({ perk, row, skillPoints, requires }: Perk, facts: TreeFacts): PerkState {
+function perkStateOf({ perk, row, skillPoints, requires, retired }: Perk, facts: TreeFacts): PerkState {
   const owns = (id: PerkId) => facts.owned.some((owned) => owned.perk === id);
   if (facts.tree !== "open") return `tree-${facts.tree}`;
   if (owns(perk)) return "owned";
+  if (retired === true) return "retired";
   if (facts.level < row) return "below-row";
   if (requires !== null && !owns(requires)) return "needs-prerequisite";
   if (facts.skillPoints < skillPoints) return "no-skill-points";

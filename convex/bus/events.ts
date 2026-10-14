@@ -103,6 +103,7 @@ export const achievementEarnedEventValidator = v.object({
   ladder: ladderValidator,
   tier: tierValidator,
   at: v.number(),
+  batch: v.optional(v.id("bookBatches")),
 });
 
 export type AchievementEarnedEvent = Infer<typeof achievementEarnedEventValidator>;

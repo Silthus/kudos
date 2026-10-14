@@ -6,6 +6,7 @@ import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import { periodValidator } from "../leaderboard/periods";
 import { setLeaderboardVisibility } from "../leaderboard/visibility";
 import { buyPerk } from "../progression/perks";
+import type { PurchaseOutcome } from "../progression/purchases";
 import { setProgressSettings } from "../progression/settings";
 import { perkValidator } from "../progression/tree";
 import { openQuestCrate } from "../quests/crates";
@@ -34,38 +35,40 @@ export function commandOf(candidate: unknown): Command | null {
   return conforms(commandValidator, candidate) ? (candidate as Command) : null;
 }
 
-export async function runCommand(ctx: MutationCtx, workspace: string, person: HomeMember, command: Command, idempotencyKey: string) {
+export async function runCommand(ctx: MutationCtx, workspace: string, person: HomeMember, command: Command, idempotencyKey: string): Promise<PurchaseOutcome | null> {
   const { member } = person;
   switch (command.type) {
     case "showHomeTab":
-      return showHomeTab(ctx, workspace, person, command.tab);
+      await showHomeTab(ctx, workspace, person, command.tab);
+      return null;
     case "showLeaderboard":
       if (await isLeaderboardShownTo(ctx, workspace, member)) await selectLeaderboardPeriod(ctx, member, command.period);
-      return;
+      return null;
     case "setLeaderboardVisibility":
       if (await isEveryoneBoardShownTo(ctx, workspace, member)) await setLeaderboardVisibility(ctx, member, command.visible);
-      return;
+      return null;
     case "setProgressSettings": {
       const { type: _, ...changes } = command;
       if (await xpLevelsShownTo(ctx, member)) await setProgressSettings(ctx, member, changes);
-      return;
+      return null;
     }
     case "setAnnouncementChannel":
       if ((await xpLevelsShownTo(ctx, member)) && (await setAnnouncementChannel(ctx, workspace, person, command.channel))) await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
-      return;
+      return null;
     case "openUnlock":
       await openUnlock(ctx, member, command.feature);
-      return;
+      return null;
     case "openQuestCrate":
       await openQuestCrate(ctx, member, command.quest);
-      return;
+      return null;
     case "rerollQuest":
       await rerollQuest(ctx, member, command.quest);
-      return;
-    case "buyPerk":
-      await buyPerk(ctx, member, command.perk, idempotencyKey);
+      return null;
+    case "buyPerk": {
+      const outcome = await buyPerk(ctx, member, command.perk, idempotencyKey);
       await showHomeTab(ctx, workspace, person, "skillTree");
-      return;
+      return outcome;
+    }
   }
 }
 

@@ -4,7 +4,7 @@ import { FakePostHog, flagsKey, postHogHost, projectToken, routedFetch, type Fla
 import { achievementsLiveIn } from "../convex/achievements/flag";
 import { questsLiveIn } from "../convex/quests/flag";
 import { unlocksLiveIn } from "../convex/unlocks/launch";
-import { testBackend, type Backend } from "./slackBackend";
+import { settle, testBackend, type Backend } from "./slackBackend";
 
 export const onForEveryone = (key: string): FlagDefinition => ({ key, filters: { groups: [{ properties: [], rollout_percentage: 100 }] } });
 
@@ -57,5 +57,6 @@ export async function journeyShippedBeforeAnyoneJoined(t: Backend, workspace = "
 export async function bookShippedBeforeAnyoneJoined(t: Backend, workspace = "T1") {
   await unlocksShippedBeforeAnyoneJoined(t, workspace);
   await t.run((ctx) => achievementsLiveIn(ctx, workspace));
+  await settle(t);
   return t;
 }

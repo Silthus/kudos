@@ -10,8 +10,10 @@
 
 import type * as achievements_achievements from "../achievements/achievements.js";
 import type * as achievements_achievementsFlag from "../achievements/achievementsFlag.js";
+import type * as achievements_counting from "../achievements/counting.js";
 import type * as achievements_flag from "../achievements/flag.js";
 import type * as achievements_ladders from "../achievements/ladders.js";
+import type * as achievements_replay from "../achievements/replay.js";
 import type * as achievements_tiers from "../achievements/tiers.js";
 import type * as analytics_boundary from "../analytics/boundary.js";
 import type * as analytics_capture from "../analytics/capture.js";
@@ -67,8 +69,10 @@ import type * as progression_levels from "../progression/levels.js";
 import type * as progression_perks from "../progression/perks.js";
 import type * as progression_progress from "../progression/progress.js";
 import type * as progression_progression from "../progression/progression.js";
+import type * as progression_purchases from "../progression/purchases.js";
 import type * as progression_rewards from "../progression/rewards.js";
 import type * as progression_settings from "../progression/settings.js";
+import type * as progression_skillTree from "../progression/skillTree.js";
 import type * as progression_skillTreeFlag from "../progression/skillTreeFlag.js";
 import type * as progression_tree from "../progression/tree.js";
 import type * as progression_xpLevels from "../progression/xpLevels.js";
@@ -134,8 +138,10 @@ import type {
 declare const fullApi: ApiFromModules<{
   "achievements/achievements": typeof achievements_achievements;
   "achievements/achievementsFlag": typeof achievements_achievementsFlag;
+  "achievements/counting": typeof achievements_counting;
   "achievements/flag": typeof achievements_flag;
   "achievements/ladders": typeof achievements_ladders;
+  "achievements/replay": typeof achievements_replay;
   "achievements/tiers": typeof achievements_tiers;
   "analytics/boundary": typeof analytics_boundary;
   "analytics/capture": typeof analytics_capture;
@@ -191,8 +197,10 @@ declare const fullApi: ApiFromModules<{
   "progression/perks": typeof progression_perks;
   "progression/progress": typeof progression_progress;
   "progression/progression": typeof progression_progression;
+  "progression/purchases": typeof progression_purchases;
   "progression/rewards": typeof progression_rewards;
   "progression/settings": typeof progression_settings;
+  "progression/skillTree": typeof progression_skillTree;
   "progression/skillTreeFlag": typeof progression_skillTreeFlag;
   "progression/tree": typeof progression_tree;
   "progression/xpLevels": typeof progression_xpLevels;
