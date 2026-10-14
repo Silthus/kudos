@@ -456,6 +456,10 @@
       "definition": "The only module that knows PostHog: it projects domain events and the chat adapter's usage facts into product events, records them and exceptions in its outbox while capture is on, drains them to PostHog, evaluates flags with their exposures, and keeps each member's analytics ID and each workspace's workspace key. It observes and never changes what a member sees."
     },
     {
+      "name": "preview moment",
+      "definition": "The once-per-member moment a preview gets in place of a workspace moment: the first mutation that shows a feature to a member whose workspace has no launch of it stores it once and, for unlocks, opens for that member alone every feature shipped in their member decision then, at that moment and without a DM (F22); the workspace moment later adds only what that member is missing (F23)"
+    },
+    {
       "name": "person event",
       "definition": "A PostHog $identify or $set the analytics module records for one analytics ID, carrying the member's profile as person properties ($set, and $unset of what the profile lost) beside O2's properties; the only kind of event that carries a profile, and so names, emails or Slack IDs."
     }

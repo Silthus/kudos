@@ -104,6 +104,7 @@ describe("F16: xp-levels and everyone-board previewed by one member's email", ()
 
     expect(await exposuresOf(t, "U_ALICE")).toEqual([
       [xpLevels, true],
+      ["unlocks", false],
       [everyoneBoard, true],
     ]);
     expect(await exposuresOf(t, "U_BOB")).toEqual([

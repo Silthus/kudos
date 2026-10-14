@@ -1,8 +1,9 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { workspaceDecision, type Flag } from "../analytics/flags";
+import { memberDecision, workspaceDecision, type Flag } from "../analytics/flags";
 import { everyoneBoardFlag } from "../leaderboard/flag";
 import { questsFlag } from "../quests/questsFlag";
 import { skillTreeLevel } from "../progression/levels";
+import type { MemberId } from "../workspace/directory";
 import type { Feature } from "./feature";
 
 type ShipFlag = Flag<boolean>;
@@ -27,10 +28,18 @@ export function scheduled(feature: Feature): ScheduledFeature {
   return schedule.features.find((entry) => entry.feature === feature)!;
 }
 
-export async function shippedIn(ctx: QueryCtx | MutationCtx, workspace: string): Promise<ScheduledFeature[]> {
+export function shippedIn(ctx: QueryCtx | MutationCtx, workspace: string): Promise<ScheduledFeature[]> {
+  return shippedBy((flag) => workspaceDecision(ctx, flag, workspace), schedule.features);
+}
+
+export function shippedTo(ctx: QueryCtx | MutationCtx, member: MemberId, among: readonly ScheduledFeature[] = schedule.features): Promise<ScheduledFeature[]> {
+  return shippedBy((flag) => memberDecision(ctx, flag, member), among);
+}
+
+async function shippedBy(decides: (flag: ShipFlag) => Promise<boolean>, among: readonly ScheduledFeature[]) {
   const shipped: ScheduledFeature[] = [];
-  for (const entry of schedule.features) {
-    if (entry.shipsWith !== null && (await workspaceDecision(ctx, entry.shipsWith, workspace))) shipped.push(entry);
+  for (const entry of among) {
+    if (entry.shipsWith !== null && (await decides(entry.shipsWith))) shipped.push(entry);
   }
   return shipped;
 }
