@@ -100,6 +100,7 @@ Groups: which of the workspace's user groups count as groups (an enabled user gr
 - slice 1 is invisible where groups doesn't apply: With the `groups` flag off, missing in PostHog, unread without the flags key, or on in the sandbox only while in production, the welcome messages, every App Home tab and the `/hedgehug leaderboard` replies for this week, this month and all time read exactly as in a workspace without groups, and a welcome Save, a Settings pick or a group mode click left from while it was on stores nothing, updates no message and republishes App Home unchanged.
   over: one story of kudos over two weeks by members in two groups, one of them in both and one of them an admin, with everyone-board and xp-levels on, read in each of the four off states beside the same story in a workspace without user groups, and a stale welcome Save, Settings pick, group mode button and allowlist pick in each
   via: GB29: slice 1 is invisible where groups doesn't apply
+  refuted: groupsShownTo answered groups available without reading the groups flag -> 3 of 9 tests failed on their assertion that the story reads as in a workspace without groups, in the off, missing and production states, the boards and the peer line showing (2026-10-14)
   because: decision 18 ships slice 1 to production dark, sandbox and the owner's email only (GB29), so a member it doesn't apply to must meet main's welcome, App Home and replies and no group, while the facts keep recording (GB11)
   kinds: message, state
   checklist: revalidated-permission dismissed: the flag is read in the member decision on every publish, welcome, command and click, in the mutation that decides what the member sees
@@ -120,6 +121,7 @@ Groups: which of the workspace's user groups count as groups (an enabled user gr
 - each groups decision sends one exposure per member and value: The mutation that decides what a member sees of groups, App Home's publish, the welcome's request, a pick, the group mode or the `/hedgehug leaderboard` reply before it reads the group boards, sends one `groups` exposure per member and value, and the member decision turns groups on for the member whose email it names and for nobody else.
   over: a member meeting groups in the welcome, every App Home tab and the replies while on, again while on, then twice while off, and a flag on for one member's email beside a member it doesn't name
   via: O36: the groups exposure
+  refuted: groupsApplyTo decided the groups flag without sending its exposure -> both tests failed on their assertion, finding no groups exposure for the member (2026-10-14)
   because: GB29 reads each flag in the mutation that decides what a member sees with one exposure per member and value (O35, O36), so PostHog can tell who met groups and with what value, the way it does for the Everyone board
   kinds: state
   checklist: revalidated-permission dismissed: the exposure names only the member the decision was made for
