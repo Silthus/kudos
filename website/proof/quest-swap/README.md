@@ -14,7 +14,7 @@ WS318, WS319 and WS335 on `/quests`, ported from variant E's `RerollButton` and 
   - The live region read `…2 times..`, because pool goals already end with a period.
   - A refused swap's line vanished when another surface's swap landed at the same moment.
 - `green.txt`: the same tests passing. `publicSurface.test.ts` timed out at 5 s in that batch (the box's load average was 77), then passed alone. It also passes in the gate.
-- The full gate: see the PR.
+- `gate.txt`: `~/dev/fleet/fleet heavy -- pnpm gate` on `6416d36` (merged with `main`): 158 files, 2812 tests, Coherence clean.
 
 ## Running app
 
