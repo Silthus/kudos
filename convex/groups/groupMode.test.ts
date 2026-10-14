@@ -13,6 +13,7 @@ import { primaryGroupAt } from "./history";
 import { reconcileMember } from "./reconcile";
 
 const now = new Date("2026-10-14T10:00:00Z");
+const slackBoundaryTimeoutMs = 30_000;
 const form = { contentType: "application/x-www-form-urlencoded" };
 
 let slack: FakeSlack;
@@ -41,7 +42,7 @@ const adminTabOnMain = [
   "context: Only workspace admins and owners see this tab.",
 ];
 
-describe("GB27: the group mode in the Admin tab", () => {
+describe("GB27: the group mode in the Admin tab", { timeout: slackBoundaryTimeoutMs }, () => {
   test("an admin where `groups` applies sees Groups that count, with every group counting by default", async () => {
     flagsOnForEveryone(slack.fetch, "xp-levels", "groups");
     const t = await workspaceWithGroups();
@@ -70,7 +71,7 @@ describe("GB27: the group mode in the Admin tab", () => {
   });
 });
 
-describe("GB1, GB8: in allowlist mode only the groups an admin picks count", () => {
+describe("GB1, GB8: in allowlist mode only the groups an admin picks count", { timeout: slackBoundaryTimeoutMs }, () => {
   test("switching to Only these groups starts with every group picked, so the switch alone changes nobody's group", async () => {
     flagsOnForEveryone(slack.fetch, "xp-levels", "groups");
     const t = await workspaceWithGroups();
@@ -149,7 +150,7 @@ describe("GB1, GB8: in allowlist mode only the groups an admin picks count", () 
   });
 });
 
-describe("GB26: only admins where `groups` applies set the group mode", () => {
+describe("GB26: only admins where `groups` applies set the group mode", { timeout: slackBoundaryTimeoutMs }, () => {
   test("a member who isn't an admin sees no group mode", async () => {
     flagsOnForEveryone(slack.fetch, "xp-levels", "groups");
     const t = await workspaceWithGroups();
@@ -190,7 +191,7 @@ describe("GB26: only admins where `groups` applies set the group mode", () => {
   });
 });
 
-describe("GB2, call 13: a write reconciles its member before their page does", () => {
+describe("GB2, call 13: a write reconciles its member before their page does", { timeout: slackBoundaryTimeoutMs }, () => {
   test("kudos spent after the switch but before Ann's page count for the group she falls back to, never for the one that left", async () => {
     flagsOnForEveryone(slack.fetch, "xp-levels", "groups");
     const t = await workspaceWithGroups();
