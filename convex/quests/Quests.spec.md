@@ -390,6 +390,7 @@ Quests: owns each member's quests and the Journey (P80 to P93, ADR-0004 as amend
   over: every Quests table and the preview moments, App Home, the quest DMs and crate clicks of the previewer, the Slack calls by conversation and Quests rows of a member who isn't previewing, both giving kudos that say why, opening App Home and run through both sweeps, with quests conditioned on one member's email and with it off for everyone, and both members' exposures
   via: F17 F22: quests previewed by one member's email
   refuted: questsApplyTo read the quests flag in the workspace decision instead of the member's -> 2 of 4 tests failed: the previewer's Journey join and draw, and their weekly quest's finish (2026-10-14)
+  refuted: the preview moment scheduled the previewer's join instead of joining them in its own mutation -> 1 of 5 tests failed: no step was active at the moment until the scheduled join ran (2026-10-14)
   because: Michael wants to try quests for real in production on named members before anyone else sees them (map decision 14, `d-95bd1bd3`); a preview must test what ships, so the previewer gets the Journey's join alone (`d-78653214`, F22), and it must change nothing for anyone else (`d-fbf026bf`, F16, F17, F25), so the Journey's ship moment stays the workspace decision's (F21)
   kinds: state, output
   checklist: revalidated-permission dismissed: the preview moment acts only on the member the slice applies to, decided by their member decisions read in the same mutation
