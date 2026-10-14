@@ -59,10 +59,40 @@ describe("V6: the theme control follows the system first, overrides it per brows
       throw new DOMException("Storage is disabled", "SecurityError");
     });
     const { user } = renderShell();
-    expect(screen.getByRole("heading", { level: 1, name: "Sign in" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "HedgeHug" })).toBeInTheDocument();
     expect(isDark()).toBe(true);
     await user.click(screen.getByRole("button", { name: "Light" }));
     expect(isDark()).toBe(false);
+  });
+
+  it("keeps the choice through signing out to the standalone sign-in page when the browser refuses storage", async () => {
+    fakeSystemTheme(true);
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new DOMException("Storage is disabled", "SecurityError");
+    });
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("Storage is disabled", "SecurityError");
+    });
+    const { user, showVisitor } = renderApp(shellFixtures.member);
+    await user.click(screen.getByRole("button", { name: "Light" }));
+    showVisitor(shellFixtures.signedOut);
+    expect(screen.getByRole("heading", { level: 1, name: "HedgeHug" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Light" })).toHaveAttribute("aria-pressed", "true");
+    expect(isDark()).toBe(false);
+  });
+
+  it("keeps the choice through signing out when the browser reads its storage but refuses to write", async () => {
+    fakeSystemTheme(false);
+    localStorage.setItem("hedgehug.theme", "dark");
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("Storage is full", "QuotaExceededError");
+    });
+    const { user, showVisitor } = renderApp(shellFixtures.member);
+    await user.click(screen.getByRole("button", { name: "Light" }));
+    showVisitor(shellFixtures.signedOut);
+    expect(screen.getByRole("button", { name: "Light" })).toHaveAttribute("aria-pressed", "true");
+    expect(isDark()).toBe(false);
+    localStorage.removeItem("hedgehug.theme");
   });
 
   it("marks the selected option with a visible check, not colour alone", async () => {

@@ -17,7 +17,7 @@ export function QuestsPage({ quests }: { quests: ThisWeek }) {
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
         <div className="flex flex-col gap-1">
           <span className="hud-label">Quests</span>
-          <PageTitle tab="Quests">This week</PageTitle>
+          <PageTitle tab="Quests" size="display">This week</PageTitle>
         </div>
         <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
           <IconClock aria-hidden="true" className="size-4" />

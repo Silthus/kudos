@@ -43,11 +43,8 @@ function pngSize(name: string) {
 }
 
 describe("#258: the header carries the HedgeHug logo beside the wordmark", () => {
-  it.each([
-    { visitor: "a member", state: shellFixtures.member },
-    { visitor: "a signed-out visitor", state: shellFixtures.signedOut },
-  ])("shows the HedgehogHeart at 34 px in a link home named HedgeHug, home for $visitor", ({ state }) => {
-    renderApp(state);
+  it("shows the HedgehogHeart at 34 px in a link home named HedgeHug, home", () => {
+    renderApp(shellFixtures.member);
     const logo = homeLogo();
     expect(logo).toHaveAttribute("href", "/");
     const heart = logo.querySelector("svg");
@@ -58,12 +55,9 @@ describe("#258: the header carries the HedgeHug logo beside the wordmark", () =>
   });
 });
 
-describe("#258: the sign-in and closed pages show the logo above HedgeHug", () => {
-  it.each([
-    { page: "sign-in", state: shellFixtures.signedOut, title: "Sign in" },
-    { page: "closed", state: shellFixtures.closed, title: "Not open yet" },
-  ])("the $page page leads with the HedgehogHeart, then HedgeHug and Thanks a Hog, as its one hedgehog", ({ state, title }) => {
-    renderApp(state);
+describe("#258: the closed page shows the logo above HedgeHug", () => {
+  it("leads with the HedgehogHeart, then HedgeHug and Thanks a Hog, as its one hedgehog", () => {
+    renderApp(shellFixtures.closed);
     const main = screen.getByRole("main");
     const hedgehogs = main.querySelectorAll("svg:not(button svg)");
     expect(hedgehogs).toHaveLength(1);
@@ -71,7 +65,7 @@ describe("#258: the sign-in and closed pages show the logo above HedgeHug", () =
     expect(isTheHeart(logo)).toBe(true);
     expect(logo.compareDocumentPosition(within(main).getByText("HedgeHug"))).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(within(main).getByText("Thanks a Hog")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(title);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Not open yet");
   });
 });
 

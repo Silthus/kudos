@@ -16,6 +16,7 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "connecting", path: "/", visitor: shellFixtures.connecting },
   { name: "closed", path: "/", visitor: shellFixtures.closed },
   { name: "signed out", path: "/", visitor: shellFixtures.signedOut },
+  { name: "signed out from a deep link", path: "/leaderboard?period=month", visitor: shellFixtures.signedOut },
   { name: "sign-in didn't finish", path: "/", visitor: shellFixtures.signInUnfinished },
   { name: "checking membership", path: "/", visitor: shellFixtures.verifying },
   { name: "membership not checked", path: "/", visitor: shellFixtures.unverified },
@@ -50,10 +51,14 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "skill tree with no skill points left, on a wide screen", path: "/skills", visitor: shellFixtures.memberWithNoSkillPointsLeft, skillTree: skillTreeFixtures.noPointsLeft, wide: true },
   { name: "skill tree below its row, on a wide screen", path: "/skills", visitor: shellFixtures.memberWithNoSkillPointsLeft, skillTree: skillTreeFixtures.belowTheRow, wide: true },
   { name: "skill tree with a perk that needs its base, on a wide screen", path: "/skills", visitor: shellFixtures.memberWithOneSkillPoint, skillTree: skillTreeFixtures.needsABase, wide: true },
+  { name: "skill tree with every node state, the legend and the level chip", path: "/skills", visitor: shellFixtures.memberAtLevel7WithOneSkillPoint, skillTree: skillTreeFixtures.everyState },
   { name: "book locked until level 4", path: "/book", visitor: shellFixtures.memberWaitingForTheBook, book: bookFixtures.locked },
   { name: "book ready to open in place", path: "/book", visitor: shellFixtures.memberWithTheBookReady, book: bookFixtures.ready },
   { name: "book with a ladder at bronze and a ladder not started", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.book },
   { name: "book with every tier of a ladder earned", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyTierEarned },
+  { name: "book's overview with its page index, on a wide screen", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyLadder, wide: true },
+  { name: "book's Giving page with its page index, on a wide screen", path: "/book?page=giving", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyLadder, wide: true },
+  { name: "book's Crowd page with its page picker", path: "/book?page=crowd", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyLadder },
   { name: "home with the book locked", path: "/", visitor: shellFixtures.memberWaitingForTheBook },
   { name: "home starting the Journey with Quests locked", path: "/", visitor: shellFixtures.memberStartingTheJourney },
   { name: "home with a Journey step in each state and Quests open", path: "/", visitor: shellFixtures.memberWithQuests },
@@ -98,6 +103,16 @@ describe("WS24: every page passes axe in light and dark", () => {
       await user.click(getByRole("button", { name: "Show the whole board" }));
       viewerRow.see({ visible: false, edge: "bottom" });
       getByRole("button", { name: "Jump to me" });
+      expect(await violationsIn(container, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
+    });
+
+    it(`the board grown by Show 5 more above and below meets WCAG 2.2 AA in ${dark ? "dark" : "light"}`, async () => {
+      fakeSystemTheme(dark);
+      window.history.replaceState(null, "", "/leaderboard");
+      const { user, container, getByRole } = renderApp(shellFixtures.memberWithTheBoard, fixedLeaderboard(leaderboardFixtures.longBoardViewerInTheMiddle));
+      await user.click(getByRole("button", { name: "Show 5 more above" }));
+      await user.click(getByRole("button", { name: "Show 5 more below" }));
+      getByRole("button", { name: "Show 3 more above" });
       expect(await violationsIn(container, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
     });
 

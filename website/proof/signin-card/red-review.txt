@@ -1,0 +1,52 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/signin-card/website
+
+ ❯ |website| src/displayTitles.test.tsx (2 tests | 1 failed) 696ms
+   ❯ WS310: page titles take variant E's display sizes in RoundHog bold (2)
+     × sets /leaderboard's headline at E's fluid clamp with a 0.95 line height and balanced wrapping, breaking a long name 251ms
+ ❯ |website| src/theme.test.tsx (6 tests | 1 failed) 1243ms
+   ❯ V6: the theme control follows the system first, overrides it per browser, and returns to it (6)
+     × keeps the choice through signing out to the standalone sign-in page when the browser refuses storage 347ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/displayTitles.test.tsx > WS310: page titles take variant E's display sizes in RoundHog bold > sets /leaderboard's headline at E's fluid clamp with a 0.95 line height and balanced wrapping, breaking a long name
+Error: expect(element).toHaveClass("wrap-anywhere")
+
+Expected the element to have class:
+  wrap-anywhere
+Received:
+  hud-display font-bold outline-none text-[clamp(1.75rem,5vw,3rem)] leading-[0.95] text-balance
+ ❯ src/displayTitles.test.tsx:33:25
+     31|     renderApp(shellFixtures.memberWithTheBoard, fixedLeaderboard(leade…
+     32|     expect(pageTitle()).toHaveClass("hud-display", "font-bold", "text-…
+     33|     expect(pageTitle()).toHaveClass("wrap-anywhere");
+       |                         ^
+     34|     expect(pageTitle()).not.toHaveClass("text-2xl");
+     35|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |website| src/theme.test.tsx > V6: the theme control follows the system first, overrides it per browser, and returns to it > keeps the choice through signing out to the standalone sign-in page when the browser refuses storage
+Error: expect(element).toHaveAttribute("aria-pressed", "true") // element.getAttribute("aria-pressed") === "true"
+
+Expected the element to have attribute:
+  aria-pressed="true"
+Received:
+  aria-pressed="false"
+ ❯ src/theme.test.tsx:80:59
+     78|     showVisitor(shellFixtures.signedOut);
+     79|     expect(screen.getByRole("heading", { level: 1, name: "HedgeHug" })…
+     80|     expect(screen.getByRole("button", { name: "Light" })).toHaveAttrib…
+       |                                                           ^
+     81|     expect(isDark()).toBe(false);
+     82|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  2 failed | 6 passed (8)
+   Start at  10:58:50
+   Duration  8.29s (import 48%, environment 22%, tests 13%, transform 12%, setup 5%)
+

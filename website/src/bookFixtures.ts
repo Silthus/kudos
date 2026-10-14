@@ -1,3 +1,4 @@
+import { ladders, type Ladder } from "../../convex/achievements/ladders";
 import type { BookRead } from "./bookRead";
 import type { LadderCard, MyBook, ShellState, TierCard } from "./shell";
 
@@ -35,8 +36,15 @@ const generosityComplete: LadderCard = {
   next: null,
 };
 
+function notStarted({ ladder, name, counts, tiers }: Ladder): LadderCard {
+  return { ladder, name, counts, count: 0, tiers: tiers.map(({ tier, name, count }) => ({ tier, name, at: count, earnedAt: null })), next: { tier: "bronze", at: tiers[0]!.count } };
+}
+
+const everyShippedLadder = ladders.ladders.map((ladder) => (ladder.ladder === "generosity" ? generosityAtBronze : notStarted(ladder)));
+
 export const bookFixtures = {
   book: { kind: "book", ladders: [generosityAtBronze, recognitionNotYet], timeZone: "Europe/Berlin" },
+  everyLadder: { kind: "book", ladders: everyShippedLadder, timeZone: "Europe/Berlin" },
   everyTierEarned: { kind: "book", ladders: [generosityComplete, recognitionNotYet], timeZone: "Europe/Berlin" },
   locked: { kind: "locked", level: 4 },
   ready: { kind: "ready" },
@@ -56,5 +64,5 @@ function bookAnswerFor(visitor: ShellState): MyBook {
   if (card === undefined) return bookFixtures.notFound;
   if (card.state === "locked") return { kind: "locked", level: card.level };
   if (card.state === "ready") return bookFixtures.ready;
-  return bookFixtures.book;
+  return bookFixtures.everyLadder;
 }

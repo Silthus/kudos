@@ -1,0 +1,495 @@
+
+ RUN  v5.0.3 website
+
+ ❯ |website| src/LeaderboardPage.test.tsx (77 tests | 8 failed) 4417ms
+   ❯ WS42: the list shows the rest of G17's window below the podium (9)
+     × lists the window after the podium in order, with the skipped positions behind Show more lines 53ms
+   ❯ WS43: the whole board and Jump to me (9)
+     × goes back to the window from Back to my spot, keeping focus on the footer's button 79ms
+   ❯ WS320: Show 5 more grows the window in place (6)
+     × offers five more on each side of a viewer in the middle, and fewer once fewer are hidden 29ms
+     × steps down to the last row, moving focus to the first revealed row each time 28ms
+     × offers only rows below at the top of the board 32ms
+     × offers only rows above at the bottom of the board 35ms
+     × grows the board below the podium for a viewer who isn't on it 80ms
+     × restores the first window from Back to my spot 119ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > lists the window after the podium in order, with the skipped positions behind Show more lines
+AssertionError: expected [ '…Positions skipped', …(7) ] to deeply equal [ 'Show 2 more above', …(8) ]
+
+- Expected
++ Received
+
+  [
+-   "Show 2 more above",
++   "…Positions skipped",
+    "Rank 6: 6FMFay Mensah14",
+    "Rank 7: 7GPGus Park13",
+    "Rank 8: 8HSHal Sato12",
+    "Rank 9: 9SESam ExampleYou11",
+    "Rank 10: 10IQIvy Quinn10",
+    "Rank 11: 11JVJo Vogt9",
+    "Rank 12: 12KHKai Hale8",
+-   "Show 1 more below",
+  ]
+
+ ❯ src/LeaderboardPage.test.tsx:392:34
+    390|   it("lists the window after the podium in order, with the skipped pos…
+    391|     showBoard(leaderboardFixtures.midBoard);
+    392|     expect(linesOf(boardList())).toEqual([
+       |                                  ^
+    393|       "Show 2 more above",
+    394|       "Rank 6: 6FMFay Mensah14",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > goes back to the window from Back to my spot, keeping focus on the footer's button
+AssertionError: expected [ '…Positions skipped', …(7) ] to have a length of 9 but got 8
+
+- Expected
++ Received
+
+- 9
++ 8
+
+ ❯ src/LeaderboardPage.test.tsx:555:34
+    553|     within(main()).getByRole("button", { name: "Back to my spot" }).fo…
+    554|     await user.keyboard("{Enter}");
+    555|     expect(linesOf(boardList())).toHaveLength(9);
+       |                                  ^
+    556|     expect(within(main()).getByRole("button", { name: "Show the whole …
+    557|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  |website| src/LeaderboardPage.test.tsx > WS320: Show 5 more grows the window in place > offers five more on each side of a viewer in the middle, and fewer once fewer are hidden
+Error: [2mexpect([22m[31mreceived[39m[2m).toHaveAccessibleName()[22m
+
+[31mreceived[39m value must be an HTMLElement or an SVGElement.
+Received has type:  Null
+Received has value: [31mnull[39m
+ ❯ src/LeaderboardPage.test.tsx:620:31
+    618|   it("offers five more on each side of a viewer in the middle, and few…
+    619|     const { user } = showBoard(leaderboardFixtures.longBoardViewerInTh…
+    620|     expect(showMore("above")).toHaveAccessibleName("Show 5 more above"…
+       |                               ^
+    621|     expect(showMore("below")).toHaveAccessibleName("Show 5 more below"…
+    622|     expect(within(main()).getByText("No. 12–18 of 30")).toBeInTheDocum…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  |website| src/LeaderboardPage.test.tsx > WS320: Show 5 more grows the window in place > steps down to the last row, moving focus to the first revealed row each time
+TypeError: Cannot read properties of null (reading 'focus')
+ ❯ src/LeaderboardPage.test.tsx:638:22
+    636|   it("steps down to the last row, moving focus to the first revealed r…
+    637|     const { user } = showBoard(leaderboardFixtures.longBoardViewerInTh…
+    638|     showMore("below")!.focus();
+       |                      ^
+    639|     await user.keyboard("{Enter}");
+    640|     expect(lineAt(19)).toHaveFocus();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  |website| src/LeaderboardPage.test.tsx > WS320: Show 5 more grows the window in place > offers only rows below at the top of the board
+Error: [2mexpect([22m[31mreceived[39m[2m).toHaveAccessibleName()[22m
+
+[31mreceived[39m value must be an HTMLElement or an SVGElement.
+Received has type:  Null
+Received has value: [31mnull[39m
+ ❯ src/LeaderboardPage.test.tsx:657:31
+    655|     showBoard(leaderboardFixtures.longBoardViewerAtTheTop);
+    656|     expect(showMore("above")).not.toBeInTheDocument();
+    657|     expect(showMore("below")).toHaveAccessibleName("Show 5 more below"…
+       |                               ^
+    658|     expect(ranksIn(boardList())[0]).toBe(4);
+    659|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  |website| src/LeaderboardPage.test.tsx > WS320: Show 5 more grows the window in place > offers only rows above at the bottom of the board
+Error: [2mexpect([22m[31mreceived[39m[2m).toHaveAccessibleName()[22m
+
+[31mreceived[39m value must be an HTMLElement or an SVGElement.
+Received has type:  Null
+Received has value: [31mnull[39m
+ ❯ src/LeaderboardPage.test.tsx:663:31
+    661|   it("offers only rows above at the bottom of the board", () => {
+    662|     showBoard(leaderboardFixtures.longBoardViewerAtTheBottom);
+    663|     expect(showMore("above")).toHaveAccessibleName("Show 5 more above"…
+       |                               ^
+    664|     expect(showMore("below")).not.toBeInTheDocument();
+    665|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL  |website| src/LeaderboardPage.test.tsx > WS320: Show 5 more grows the window in place > grows the board below the podium for a viewer who isn't on it
+TestingLibraryElementError: Unable to find an accessible element with the role "list" and name "No. · member, kudos given"
+
+Here are the accessible roles:
+
+  group:
+
+  Name "Period":
+  [36m<div[39m
+    [33maria-label[39m=[32m"Period"[39m
+    [33mclass[39m=[32m"quill-toggle-group group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-stretch"[39m
+    [33mdata-orientation[39m=[32m"horizontal"[39m
+    [33mdata-quill[39m=[32m"true"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"toggle-group"[39m
+    [33mdata-spacing[39m=[32m"0"[39m
+    [33mdata-variant[39m=[32m"outline"[39m
+    [33mrole[39m=[32m"group"[39m
+    [33mstyle[39m=[32m"--gap: 0;"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  button:
+
+  Name "This week":
+  [36m<button[39m
+    [33maria-disabled[39m=[32m"false"[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mclass[39m=[32m"quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm border-primary bg-fill-selected"[39m
+    [33mdata-pressed[39m=[32m""[39m
+    [33mdata-quill[39m=[32m"true"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"toggle-group-item"[39m
+    [33mdata-spacing[39m=[32m"0"[39m
+    [33mdata-variant[39m=[32m"outline"[39m
+    [33mtabindex[39m=[32m"0"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "This month":
+  [36m<button[39m
+    [33maria-disabled[39m=[32m"false"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm"[39m
+    [33mdata-quill[39m=[32m"true"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"toggle-group-item"[39m
+    [33mdata-spacing[39m=[32m"0"[39m
+    [33mdata-variant[39m=[32m"outline"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "All time":
+  [36m<button[39m
+    [33maria-disabled[39m=[32m"false"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm"[39m
+    [33mdata-quill[39m=[32m"true"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"toggle-group-item"[39m
+    [33mdata-spacing[39m=[32m"0"[39m
+    [33mdata-variant[39m=[32m"outline"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Show the whole board":
+  [36m<button[39m
+    [33maria-disabled[39m=[32m"false"[39m
+    [33maria-expanded[39m=[32m"false"[39m
+    [33mclass[39m=[32m"quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-outline quill-button--size-sm"[39m
+    [33mdata-quill[39m=[32m"true"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"button"[39m
+    [33mtabindex[39m=[32m"0"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "Everyone":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"everyone-board-title"[39m
+    [33mclass[39m=[32m"flex items-center gap-3 rounded-xl border bg-card p-4"[39m
+  [36m/>[39m
+
+  Name "Everyone · This week":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"board-title"[39m
+  [36m/>[39m
+
+  Name "Only you see these":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"only-you-title"[39m
+  [36m/>[39m
+
+  Name "How it counts":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"how-it-counts-title"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "Everyone":
+  [36m<h2[39m
+    [33mclass[39m=[32m"text-lg font-semibold leading-tight"[39m
+    [33mid[39m=[32m"everyone-board-title"[39m
+  [36m/>[39m
+
+  Name "Everyone · This week":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"board-title"[39m
+  [36m/>[39m
+
+  Name "Ada Lindqvist leads the week.":
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display font-bold tracking-tight outline-none text-2xl"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Only you see these":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label flex items-center gap-1"[39m
+    [33mid[39m=[32m"only-you-title"[39m
+  [36m/>[39m
+
+  Name "How it counts":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label flex items-center gap-1"[39m
+    [33mid[39m=[32m"how-it-counts-title"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"ml-auto text-sm font-medium tabular-nums"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"max-w-2xl text-sm leading-relaxed text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"border-t bg-fill-selected px-3 py-3 text-sm text-muted-foreground shadow-[inset_3px_0_0_var(--primary)]"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"border-l-2 border-foreground/20 pl-3 tabular-nums"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p />[39m
+
+  --------------------------------------------------
+  list:
+
+  Name "Top three":
+  [36m<ul[39m
+    [33maria-label[39m=[32m"Top three"[39m
+    [33mclass[39m=[32m"mx-auto grid w-full max-w-2xl items-end gap-2 border-b px-1 sm:gap-4 sm:px-3 grid-cols-3"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  listitem:
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"flex min-w-0 flex-col items-center"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"flex min-w-0 flex-col items-center"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"flex min-w-0 flex-col items-center"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<div[39m
+    [33mclass[39m=[32m"flex flex-col gap-5"[39m
+  [36m>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"flex flex-col gap-3"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-wrap items-center justify-between gap-x-4 gap-y-2"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"hud-label"[39m
+        [36m>[39m
+          [0mLeaderboard · kudos given[0m
+        [36m</span>[39m
+        [36m<div[39m
+          [33maria-label[39m=[32m"Period"[39m
+          [33mclass[39m=[32m"quill-toggle-group group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-stretch"[39m
+          [33mdata-orientation[39m=[32m"horizontal"[39m
+          [33mdata-quill[39m=[32m"true"[39m
+          [33mdata-size[39m=[32m"sm"[39m
+          [33mdata-slot[39m=[32m"toggle-group"[39m
+          [33mdata-spacing[39m=[32m"0"[39m
+          [33mdata-variant[39m=[32m"outline"[39m
+          [33mrole[39m=[32m"group"[39m
+          [33mstyle[39m=[32m"--gap: 0;"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33maria-disabled[39m=[32m"false"[39m
+            [33maria-pressed[39m=[32m"true"[39m
+            [33mclass[39m=[32m"quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm border-primary bg-fill-selected"[39m
+            [33mdata-pressed[39m=[32m""[39m
+            [33mdata-quill[39m=[32m"true"[39m
+            [33mdata-size[39m=[32m"sm"[39m
+            [33mdata-slot[39m=[32m"toggle-group-item"[39m
+            [33mdata-spacing[39m=[32m"0"[39m
+            [33mdata-variant[39m=[32m"outline"[39m
+            [33mtabindex[39m=[32m"0"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"LemonIcon size-3.5"[39m
+              [33mdata-selected-mark[39m=[32m"true"[39m
+              [33mfill[39m=[32m"currentColor"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"100%"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<g[39m
+                [33mclip-path[39m=[32m"url(#icon/check__a)"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33mclip-rule[39m=[32m"evenodd"[39m
+                  [33md[39m=[32m"M21.225 3.67a.75.75 0 0 1 .105 1.055L8.87 19.955a.75.75 0 0 1-1.11.056l-5.54-5.538a.75.75 0 0 1 1.061-1.061l4.953 4.952L20.169 3.775a.75.75 0 0 1 1.056-.105Z"[39m
+                  [33mfill-rule[39m=[32m"evenodd"[39m
+                [36m/>[39m
+              [36m</g>[39m
+              [36m<defs>[39m
+                [36m<clippath[39m
+                  [33mid[39m=[32m"icon/check__a"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M0 0h20v18H0z"[39m
+                    [33mtransform[39m=[32m"translate(2 3)"[39m
+                  [36m/>[39m
+                [36m</clippath>[39m
+              [36m</defs>[39m
+            [36m</svg>[39m
+            [0mThis week[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33maria-disabled[39m=[32m"false"[39m
+            [33maria-pressed[39m=[32m"false"[39m
+            [33mclass[39m=[32m"quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm"[39m
+            [33mdata-quill[39m=[32m"true"[39m
+            [33mdata-size[39m=[32m"sm"[39m
+            [33mdata-slot[39m=[32m"toggle-group-item"[39m
+            [33mdata-spacing[39m=[32m"0"[39m
+            [33mdata-variant[39m=[32m"outline"[39m
+            [33mtabindex[39m=[32m"-1"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mThis month[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33maria-disabled[39m=[32m"false"[39m
+            [33maria-pressed[39m=[32m"false"[39m
+            [33mclass[39m=[32m"quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm"[39m
+            [33mdata-quill[39m=[32m"true"[39m
+            [33mdata-size[39m=[32m"sm"[39m
+            [33mdata-slot[39m=[32m"toggle-group-item"[39m
+            [33mdata-spacing[39m=[32m"0"[39m
+            [33mdata-variant[39m=[32m"outline"[39m
+            [33mtabindex[39m=[32m"-1"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mAll time[0m
+          [36m</button>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<section[39m
+        [33maria-labelledby[39m=[32m"everyone-board-title"[39m
+        [33mclass[39m=[32m"flex items-center gap-3 rounded-xl border bg-card p-4"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33maria-hidden[39m=[32m"true"[39m
+          [33mclass[39m=[32m"flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33mclass[39m=[32m"LemonIcon size-5"[39m
+            [33mfill[39m=[32m"currentColor"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"100%"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33mclip-rule[39m=[32m"evenodd"[39m
+              [33md[39m=[32m"m4.722 7.604 2.774 2.08a.25.25 0 0 0 .374-.088l.262-.52a1.75 1.75 0 0 1 1.136-.91l2.97-.747a.25.25 0 0 0 .182-.182l.907-3.634a8.495 8.495 0 0 0-8.604 4Zm10.06-3.638L13.875 7.6a1.75 1.75 0 0 1-1.271 1.273l-2.97.748a.25.25 0 0 0-.163.13l-.262.52a1.75 1.75 0 0 1-2.612.613L4.052 8.976a8.5 8.5 0 1 0 10.73-5.01ZM3.081 7.472A10 10 0 0 1 11.999 2c.836 0 1.649.103 2.427.297 4.35 1.084 7.573 5.016 7.573 9.703 0 5.523-4.477 10-10 10s-10-4.477-10-10a9.96 9.96 0 0 1 1.082-4.528Zm7.181 5.21a1.75 1.75 0 0 1 1.347-.507l1.223.078c.31.02.607.121.865.294l1.993 1.34c.73.49.983 1.448.59 2.235l-.33.66a1.75 1.75 0 0 1-1.566.968h-1.847a1.75 1.75 0 0 1-1.456-.78L9.834 15.1a1.75 1.75 0 0 1 .22-2.211l.208-...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ boardList src/LeaderboardPage.test.tsx:350:25
+    348|
+    349| function boardList() {
+    350|   return within(main()).getByRole("list", { name: "No. · member, kudos…
+       |                         ^
+    351| }
+    352|
+ ❯ src/LeaderboardPage.test.tsx:670:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL  |website| src/LeaderboardPage.test.tsx > WS320: Show 5 more grows the window in place > restores the first window from Back to my spot
+AssertionError: expected [ 12, 13, 14, 15, 16, 17 ] to deeply equal [ 12, 13, 14, 15, 16, 17, 18 ]
+
+- Expected
++ Received
+
+@@ -3,7 +3,6 @@
+    13,
+    14,
+    15,
+    16,
+    17,
+-   18,
+  ]
+
+ ❯ src/LeaderboardPage.test.tsx:686:47
+    684|
+    685|     await user.click(within(main()).getByRole("button", { name: "Back …
+    686|     expect(ranksIn(boardList()).slice(1, -1)).toEqual([12, 13, 14, 15,…
+       |                                               ^
+    687|     expect(showMore("above")).toHaveAccessibleName("Show 5 more above"…
+    688|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  8 failed | 69 passed (77)
+   Start at  10:40:39
+   Duration  6.45s (tests 69%, import 16%, environment 7%, transform 6%, setup 2%)
+
