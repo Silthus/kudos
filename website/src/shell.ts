@@ -1,7 +1,7 @@
 import type { Feature } from "../../convex/unlocks/feature";
 import type { Quest } from "../../convex/quests/step";
 import type { PerkId } from "../../convex/progression/tree";
-import type { CommandAnswer, PurchaseAnswer } from "../../convex/website/commands";
+import type { CommandAnswer, PurchaseAnswer, VisibilityAnswer } from "../../convex/website/commands";
 import type { Denial } from "../../convex/website/memberQuery";
 import type { FeatureCard, JourneyStep, MemberProfile, MyProfile } from "../../convex/website/profile";
 import type { QuestsAnswer } from "../../convex/website/quests";
@@ -25,6 +25,8 @@ export type Purchase = { perk: PerkId; request: string };
 
 export type BuyAnswer = PurchaseAnswer | Denial;
 
+export type VisibilityReply = VisibilityAnswer | Denial;
+
 export type MyQuests = QuestsAnswer | Denial;
 
 export type MyBook = BookAnswer | Denial;
@@ -33,7 +35,7 @@ export type Visitor = MyProfile | { kind: "loading" } | { kind: "connecting" } |
 
 export type ShellState = Visitor | { kind: "broken" };
 
-export type ShellActions = { signIn(returnTo: string): void; signOut(): void; openFeature(feature: Feature): Promise<OpenAnswer>; openQuestCrate(quest: Quest): Promise<OpenAnswer>; buyPerk(purchase: Purchase): Promise<BuyAnswer> };
+export type ShellActions = { signIn(returnTo: string): void; signOut(): void; openFeature(feature: Feature): Promise<OpenAnswer>; openQuestCrate(quest: Quest): Promise<OpenAnswer>; buyPerk(purchase: Purchase): Promise<BuyAnswer>; setBoardVisibility(visible: boolean): Promise<VisibilityReply> };
 
 const member: MemberProfile = {
   kind: "member",
@@ -250,4 +252,4 @@ export function builtShell(name: string | undefined): ShellState {
   return fixturesByName[name ?? ""] ?? shellFixtures.closed;
 }
 
-export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, openFeature: async () => ({ kind: "opened" }), openQuestCrate: async () => ({ kind: "opened" }), buyPerk: async () => ({ kind: "bought" }) };
+export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, openFeature: async () => ({ kind: "opened" }), openQuestCrate: async () => ({ kind: "opened" }), buyPerk: async () => ({ kind: "bought" }), setBoardVisibility: async (visible) => ({ kind: "set", visible }) };
