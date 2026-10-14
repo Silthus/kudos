@@ -9,7 +9,7 @@ WS317 and E076, with WS315 and WS316, ported from variant E's fresh-quest card (
 - `refutations.txt`: two refutations on the finished code.
   - Without the stored first-thanks check in `getQuests`' bonus, the not-joined test fails: a website-first member reads first-thanks as their bonus.
   - Without counting the bonus crate as shown on `/quests`, the failed-Claim test fails: the refusal line shows a second time under the ready pill.
-- `red-review-round-1.txt`: the two tests written for the review findings, failing before their fix.
+- `red-review-round-1.txt` and `red-review-round-2.txt`: the tests written for the review findings, failing before their fix.
 - `green-convex.txt` and `green-website.txt`: the same tests passing.
 - The gate: `~/dev/fleet/fleet heavy -- pnpm gate`, linked from the pull request.
 
@@ -39,5 +39,6 @@ Variant E at the same state is `prototype/website-ui/screenshots/r9-quests.png` 
 
 - **GPT-6.1 Sol, round 1** (`review/gpt-6.1-sol-round-1.md`). Fixed, test-first: the `Go to` link now stays beside a finished step's `Claim`, and the home row keeps `New` beside `Claim`. Rejected, each recorded in the Coherence journal:
   - A `Go to Quests` link on `/quests` itself does nothing.
-  - A hint guides an unfinished step. The home's Journey panel, unchanged by WS72, also shows it only while active.
+  - A hint guides an unfinished step. Round 2 disputed this, and the hint now shows in every state.
+- **GPT-6.1 Sol, round 2** (`review/gpt-6.1-sol-round-2.md`). Both fixes hold, and it found nothing new. It disputed both rejections. The hint now shows in every state, since WS317 limits only `New` to active steps. The self-link stays rejected: on `/quests`, `Go to Quests` would lead to the page already shown. Every other step keeps its link. Both calls are recorded in the Coherence journal.
 - **Fable 5.1 design spot check.** It found the screens faithful to variant E. Fixed: `New` and `Swapped` now share one quiet chip, so `New` no longer outweighs `Claim` (V4), and the focused heading's ring hugs its text.

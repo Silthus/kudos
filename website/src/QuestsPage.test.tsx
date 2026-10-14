@@ -218,8 +218,11 @@ describe("WS317: the Journey's next step is the bonus quest", () => {
     expect(card).toHaveAttribute("data-quest-target", "journey");
   });
 
-  it("shows the step's hint while it is active", () => {
-    showBonus({ ...questsFixtures.week, bonus: bonusSteps.firstThanks });
+  it.each([
+    { state: "active", step: bonusSteps.firstThanks },
+    { state: "finished", step: { ...bonusSteps.firstThanks, state: "finished", crate: { kind: "journey", step: "first-thanks" }, seen: "a1b2c3" } },
+  ] as const)("shows the step's hint while it is $state", ({ step }) => {
+    showBonus({ ...questsFixtures.week, bonus: step });
     expect(bonusCard()).toHaveTextContent("It counts when your message has 5 or more words besides mentions and emoji.");
   });
 

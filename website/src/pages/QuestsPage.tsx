@@ -234,7 +234,7 @@ function BonusCard({ step, page, firstCrate }: BonusQuestProps) {
           <h3 tabIndex={-1} className={questHeading}>
             {goal}
           </h3>
-          {active && hint !== null && <p className="text-sm text-muted-foreground">{hint}</p>}
+          {hint !== null && <p className="text-sm text-muted-foreground">{hint}</p>}
           <RewardRow xp={reward.xp} seen={seen}>
             <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1">
               {page !== undefined && feature !== null && <GoTo page={page} name={plainNameOf(feature)} />}
