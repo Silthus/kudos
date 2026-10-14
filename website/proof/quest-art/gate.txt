@@ -1,3 +1,4 @@
+Fleet heavy: 2 heavy jobs run already; waiting for a free slot.
 $ pnpm typecheck && pnpm test && pnpm coherence
 $ tsc --noEmit && tsc --noEmit -p website
 $ vitest run
@@ -6,9 +7,9 @@ $ vitest run
 
 
  Test Files  133 passed (133)
-      Tests  2123 passed (2123)
-   Start at  10:52:53
-   Duration  107.67s (tests 80%, import 12%, environment 4%, transform 3%, setup 1%)
+      Tests  2126 passed (2126)
+   Start at  11:15:46
+   Duration  131.06s (tests 81%, import 11%, environment 4%, transform 4%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
