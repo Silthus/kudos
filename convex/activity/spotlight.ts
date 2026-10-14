@@ -1,53 +1,60 @@
 import type { QueryCtx } from "../_generated/server";
-import { drawableKudosOf, type DrawableKudos } from "../engine/spotlight";
-import { drawnOnceAround, type DrawPoint, type DrawStart, type Drawn } from "../engine/spotlightDraws";
+import { drawFrom, type DrawableKudos } from "../engine/spotlight";
+import { beforeEveryDrawAt, type DrawPoint, type DrawWalk, type Drawn } from "../engine/spotlightDraws";
 import type { Spotlight } from "./entries";
 import { mentionsOfOnePage, permalinkOfMessage, personOf, readableSegmentsOf } from "./kudos";
 
 export type SpotlightFrom = { seed: number } | { after: string };
 
-const rejectedAtMost = 25;
-
-const encodedPoint = /^(\d+(?:\.\d+)?(?:e-\d+)?)_(\d+(?:\.\d+)?)$/;
+const number = String.raw`\d+(?:\.\d+)?(?:e-\d+)?`;
+const encodedPoint = String.raw`(${number})_(${number})`;
+const encodedCursor = new RegExp(`^${encodedPoint}(?:~${encodedPoint})?$`);
 
 export async function spotlightOf(ctx: QueryCtx, workspace: string, from: SpotlightFrom): Promise<Spotlight> {
-  let lastRejected: Drawn | null = null;
-  let rejected = 0;
-  for await (const drawn of drawnOnceAround(ctx, workspace, startOf(from))) {
-    if (lastRejected !== null && rejected === rejectedAtMost) return { kind: "skipped", after: encodePoint(lastRejected) };
-    const kudos = await drawableKudosOf(ctx, drawn.ref);
-    if (kudos !== null) return kudosAnswer(ctx, drawn, kudos);
-    lastRejected = drawn;
-    rejected += 1;
-  }
-  return { kind: "empty" };
+  const walk = walkOf(from);
+  const draw = await drawFrom(ctx, workspace, walk);
+  if (draw.kind === "empty") return draw;
+  if (draw.kind === "skipped") return { kind: "skipped", after: encodeCursor({ after: draw.at, through: walk.through }) };
+  return kudosAnswer(ctx, draw.drawn, draw.kudos);
 }
 
 async function kudosAnswer(ctx: QueryCtx, drawn: Drawn, { at, giver, recipients, segments, edited }: DrawableKudos): Promise<Spotlight> {
-  const workspace = drawn.ref.workspace;
   const [giverPerson, recipientPeople, readable, permalink] = await Promise.all([
     personOf(ctx, giver),
     Promise.all(recipients.map((recipient) => personOf(ctx, recipient))),
-    readableSegmentsOf(mentionsOfOnePage(ctx), workspace, segments),
+    readableSegmentsOf(mentionsOfOnePage(ctx), drawn.ref.workspace, segments),
     permalinkOfMessage(ctx, drawn.ref),
   ]);
-  return { kind: "kudos", after: encodePoint(drawn), at, giver: giverPerson, recipients: recipientPeople, permalink, message: { kind: "text", segments: readable, edited } };
+  const after = encodeCursor({ after: drawn, through: drawn });
+  return { kind: "kudos", after, at, giver: giverPerson, recipients: recipientPeople, permalink, message: { kind: "text", segments: readable, edited } };
 }
 
-function startOf(from: SpotlightFrom): DrawStart {
-  if ("after" in from) return { kind: "after", point: decodePoint(from.after) };
-  return { kind: "at", position: isDrawPosition(from.seed) ? from.seed : 0 };
+function walkOf(from: SpotlightFrom): DrawWalk {
+  if ("after" in from) return decodeCursor(from.after);
+  const seed = beforeEveryDrawAt(isDrawPosition(from.seed) ? from.seed : 0);
+  return { after: seed, through: seed };
 }
 
-function encodePoint({ position, created }: DrawPoint): string {
-  return `${position}_${created}`;
+function encodeCursor({ after, through }: DrawWalk): string {
+  const point = ({ position, created }: DrawPoint) => `${position}_${created}`;
+  return isSamePoint(after, through) ? point(after) : `${point(after)}~${point(through)}`;
 }
 
-function decodePoint(cursor: string): DrawPoint {
-  const parts = encodedPoint.exec(cursor);
-  const point = parts === null ? null : { position: Number(parts[1]), created: Number(parts[2]) };
-  if (point === null || !isDrawPosition(point.position) || !Number.isFinite(point.created)) throw new Error("unreadable spotlight cursor");
-  return point;
+function decodeCursor(cursor: string): DrawWalk {
+  const parts = encodedCursor.exec(cursor);
+  if (parts === null) throw new Error("unreadable spotlight cursor");
+  const after = { position: Number(parts[1]), created: Number(parts[2]) };
+  const through = parts[3] === undefined ? after : { position: Number(parts[3]), created: Number(parts[4]) };
+  if (!isDrawPoint(after) || !isDrawPoint(through)) throw new Error("unreadable spotlight cursor");
+  return { after, through };
+}
+
+function isSamePoint(one: DrawPoint, other: DrawPoint) {
+  return one.position === other.position && one.created === other.created;
+}
+
+function isDrawPoint({ position, created }: DrawPoint) {
+  return isDrawPosition(position) && Number.isFinite(created) && created >= 0;
 }
 
 function isDrawPosition(position: number) {

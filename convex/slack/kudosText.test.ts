@@ -9,7 +9,7 @@ import { ReportableError } from "../analytics/exceptions";
 import { forgetPageSize, wordsOf } from "../engine/kudosText";
 import type { WordSegment } from "../engine/messageEvent";
 
-const forced = vi.hoisted(() => ({ failure: false, adapterFailure: false, purgeFailure: false, hydrateFailure: false, beforeCapture: false }));
+const forced = vi.hoisted(() => ({ failure: false, adapterFailure: false, purgeFailure: false, hydrateFailure: false, beforeCapture: false, wordsReadFailure: false }));
 
 vi.mock("./richText", async (importOriginal) => {
   const original = await importOriginal<typeof import("./richText")>();
@@ -43,6 +43,11 @@ vi.mock("../engine/kudosText", async (importOriginal) => {
       if (forced.beforeCapture) return;
       return original.keepWords(...args);
     },
+    wordsOf: async (...args: Parameters<typeof original.wordsOf>) => {
+      const words = await original.wordsOf(...args);
+      if (forced.wordsReadFailure && words.kind === "text") throw new ReportableError(`could not read ${textOf(words.segments)}`);
+      return words;
+    },
     keepFetchedWords: async (...args: Parameters<typeof original.keepFetchedWords>) => {
       if (forced.hydrateFailure) throw new ReportableError(`could not hydrate ${textOf(args[1].segments)}`);
       return original.keepFetchedWords(...args);
@@ -73,6 +78,7 @@ afterEach(() => {
   forced.hydrateFailure = false;
   forced.beforeCapture = false;
   forced.purgeFailure = false;
+  forced.wordsReadFailure = false;
   vi.useRealTimers();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
@@ -644,6 +650,25 @@ describe("AT40: only kudos messages' text is stored", () => {
 
       expect(await stateOfJob(t, "engine/kudosText:forgetWordsOfLeaver")).toBe("failed");
       const rerun = await t.mutation(internal.engine.kudosText.forgetWordsOfLeaver, { event: { type: "memberLeft", workspace: "T1", member: await memberIdOf(t, "U_ALICE"), at: Date.now() } }).then(
+        () => null,
+        (error: unknown) => error,
+      );
+      expect(String(rerun)).toContain("message withheld");
+      expect(String(rerun)).not.toContain(reason);
+      expect(await storedAndScheduled(t, { besideKudosText: true })).not.toContain(reason);
+      expect(postHog.requests.map((request) => request.body).join("\n")).not.toContain(reason);
+      expect(stringify(consoleLines)).not.toContain(reason);
+    });
+
+    test("thrown in the directory recheck as it reads the words, as a reportable error, leaves no words in a job, the outbox, a captured exception or the console", async () => {
+      const t = testBackendOnce();
+      forced.wordsReadFailure = true;
+      await post(t, thanksBob);
+      await settle(t);
+
+      expect(await stateOfJob(t, "slack/directory:checkDirectory")).toBe("failed");
+      const attempt = await t.run(async (ctx) => (await ctx.db.query("kudosMessages").collect())[0]!.attempt);
+      const rerun = await t.mutation(internal.slack.directory.recheckMessage, { ref: message, attempt }).then(
         () => null,
         (error: unknown) => error,
       );

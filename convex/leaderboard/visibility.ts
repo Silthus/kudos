@@ -11,7 +11,7 @@ export async function setLeaderboardVisibility(ctx: MutationCtx, member: MemberI
   const changed = (setting?.visible ?? true) !== visible;
   if (setting === null) await ctx.db.insert("leaderboardSettings", { member, visible });
   else if (changed) await ctx.db.patch(setting._id, { visible });
-  if (changed) await ctx.scheduler.runAfter(0, internal.engine.spotlight.recomputeSpotlightOf, { member, side: "given", cursor: null });
+  if (changed) await ctx.scheduler.runAfter(0, internal.engine.spotlight.recomputeSpotlightOf, { member, side: "given", before: null });
   return changed;
 }
 

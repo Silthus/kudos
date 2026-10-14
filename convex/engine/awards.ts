@@ -105,15 +105,6 @@ export async function awardsOfMessage(ctx: QueryCtx, { workspace, conversation, 
   return awards.map(({ _id, giver, recipient, kudos, day, at }) => ({ award: _id, giver, recipient, kudos, day, at }));
 }
 
-export type Side = "given" | "received";
-
-export async function messagesOfMember(ctx: QueryCtx, member: MemberId, side: Side, page: PaginationOptions): Promise<PaginationResult<MessageRef>> {
-  const awards = ctx.db.query("awards");
-  const ofMember = side === "given" ? awards.withIndex("by_giver", (q) => q.eq("giver", member)) : awards.withIndex("by_recipient", (q) => q.eq("recipient", member));
-  const result = await ofMember.paginate(page);
-  return { ...result, page: result.page.map(refOf) };
-}
-
 export async function dayThankedBefore(ctx: QueryCtx, award: AwardId): Promise<DayKey | null> {
   const current = await ctx.db.get(award);
   if (current === null) return null;

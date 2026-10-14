@@ -253,6 +253,40 @@ describe("AT31 G22: a member who left the leaderboards", () => {
     await settleInTimeOrder(t);
     expect(await spotlightSeenBy(dave, { seed: 0 })).toEqual({ kind: "empty" });
   });
+
+  test("following skipped comes around once and answers empty while every kudos is turned away", async () => {
+    await spotlightOn();
+    for (let index = 0; index < 30; index += 1) await give(thanks(bob, `kudos number ${index} with a reason `), { user: alice.user, ts: tsOn(index) });
+    await leaveTheBoards(bob);
+
+    const kinds: string[] = [];
+    let answer = await spotlightSeenBy(dave, { seed: 0.5 });
+    for (let call = 0; call < 5 && answer.kind === "skipped"; call += 1) {
+      kinds.push(answer.kind);
+      answer = await spotlightSeenBy(dave, { after: answer.after });
+    }
+    kinds.push(answer.kind);
+
+    expect(kinds).toEqual(["skipped", "empty"]);
+  });
+});
+
+describe("AT31 AT32: the spotlight stays within Convex's limits", () => {
+  const recipientsPerKudos = 400;
+  const kudosToHer = 30;
+
+  test("turning away and recomputing kudos with hundreds of recipients each stays within Convex's limits", { timeout: 120_000 }, async () => {
+    t = testBackend({ transactionLimits: true });
+    await spotlightOn();
+    const hidden = await manyRecipientKudosTo(kudosToHer, recipientsPerKudos);
+
+    await leaveTheBoards(hidden);
+    expect(await spotlightSeenBy(dave, { seed: 0 })).toEqual({ kind: "skipped", after: expect.any(String) });
+
+    await settleInTimeOrder(t);
+    expect(await spotlightSeenBy(dave, { seed: 0 })).toEqual({ kind: "empty" });
+    expect(await failedJobs()).toEqual([]);
+  });
 });
 
 describe("AT37: the spotlight behind the activity flag", () => {
@@ -287,6 +321,28 @@ describe("website reads pass one guard", () => {
 async function spotlightAnswerTo(person: { user: string; name: string }) {
   const { asSignedIn } = await aSession(t, person);
   return asSignedIn.query(api.website.activity.getSpotlight, { seed: 0 });
+}
+
+async function manyRecipientKudosTo(count: number, recipients: number) {
+  const hidden = { user: "U_HANA", name: "Hana Hale" };
+  await t.run(async (ctx) => {
+    const giver = await ctx.db.insert("members", { workspace: "T1", user: "U_GIVER", kind: "member", name: "Gus Giver", asOf: 0 });
+    const others = [];
+    for (let index = 0; index < recipients - 1; index += 1) others.push(await ctx.db.insert("members", { workspace: "T1", user: `U_R${index}`, kind: "member", asOf: 0 }));
+    const her = await ctx.db.insert("members", { workspace: "T1", user: hidden.user, kind: "member", name: hidden.name, asOf: 0 });
+    for (let index = 0; index < count; index += 1) {
+      const message = tsOn(index);
+      for (const recipient of [...others, her]) await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message, giver, recipient, kudos: 1, day: "2026-10-14", at: (firstTs + index * day) * 1000 });
+      await ctx.db.insert("kudosTexts", { workspace: "T1", conversation: "C1", message, kind: "words", revision: 1n, author: "U_GIVER", edited: false, segments: [{ kind: "text", text: `kudos ${index} with a long reason ` }], visibility: "public", gate: { version: 1, thoughtful: true } });
+      await ctx.db.insert("spotlightDraws", { workspace: "T1", conversation: "C1", message, position: index / count });
+    }
+  });
+  return hidden;
+}
+
+async function failedJobs() {
+  const jobs = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+  return jobs.filter((job) => job.state.kind === "failed").map((job) => job.name);
 }
 
 async function shownUntil(person: { user: string; name: string }, words: string) {

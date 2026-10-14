@@ -1,8 +1,8 @@
-import { v } from "convex/values";
+import { v, type ObjectType } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, internalQuery, type ActionCtx, type MutationCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
-import { ReportableError, typeOf } from "../analytics/exceptions";
+import { ReportableError, typeOf, withholdingWords } from "../analytics/exceptions";
 import { awaitedUsers, recheck, type Observation } from "../engine/engine";
 import { messageRefValidator, type MessageRef } from "../engine/messageEvent";
 import { republishOnRoleChange } from "../feedback/homes";
@@ -66,11 +66,13 @@ export const usersAwaited = internalQuery({
   handler: (ctx, { ref, attempt }) => awaitedUsers(ctx, ref, attempt),
 });
 
+const recheckArgs = { ref: messageRefValidator, attempt: v.int64() };
+
 export const recheckMessage = internalMutation({
-  args: { ref: messageRefValidator, attempt: v.int64() },
-  handler: async (ctx, { ref, attempt }) => {
+  args: recheckArgs,
+  handler: withholdingWords(async (ctx: MutationCtx, { ref, attempt }: ObjectType<typeof recheckArgs>) => {
     await checkDirectoryLater(ctx, ref, await recheck(ctx, ref, attempt));
-  },
+  }),
 });
 
 export const refreshPerson = internalMutation({
