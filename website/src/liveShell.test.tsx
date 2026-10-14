@@ -53,14 +53,21 @@ function boardAnswers(answer: unknown) {
 
 const watchedQueries: string[] = [];
 
+const subscriptions = new Set<{ query: string; args: unknown }>();
+
 const boardWatch = {
   url: "https://happy-hog-123.convex.cloud",
-  watchQuery: (query: FunctionReference<"query">) => {
+  watchQuery: (query: FunctionReference<"query">, args: unknown) => {
     watchedQueries.push(getFunctionName(query));
     return {
       onUpdate: (notify: () => void) => {
+        const subscription = { query: getFunctionName(query), args };
         boardListeners.add(notify);
-        return () => boardListeners.delete(notify);
+        subscriptions.add(subscription);
+        return () => {
+          boardListeners.delete(notify);
+          subscriptions.delete(subscription);
+        };
       },
       localQueryResult: () => {
         const answer = boardRead();
@@ -100,6 +107,7 @@ afterEach(() => {
   profileRead.mockReset();
   boardRead.mockReset();
   watchedQueries.length = 0;
+  subscriptions.clear();
   window.history.replaceState(null, "", "/");
   authActions.signIn.mockReset();
   authActions.signOut.mockReset();
@@ -214,6 +222,33 @@ describe("WS20 WS36: the leaderboard read shows where the page stands, inside th
     boardAnswers(leaderboardFixtures.midBoard);
 
     expect(pageTitle()).toHaveTextContent("Ada Lindqvist leads the week.");
+  });
+});
+
+describe("WS111: the home's rail reads through the live shell", () => {
+  function subscriptionsTo(name: string) {
+    return [...subscriptions].filter(({ query }) => query === name).map(({ args }) => args);
+  }
+
+  it("subscribes to this week's board once while the Leaderboard is open, and adds no second getQuests", () => {
+    profileRead.mockReturnValue(shellFixtures.memberWithEveryPanelOpen);
+    boardRead.mockReturnValue(undefined);
+    renderLiveSite();
+    boardAnswers(undefined);
+    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryPanelOpen, thisWeek: { given: 3, received: 1 } });
+    boardAnswers(undefined);
+
+    expect(within(screen.getByRole("main")).getByRole("region", { name: "Where you stand" })).toHaveAttribute("aria-busy", "true");
+    expect(subscriptionsTo("website/leaderboard:getLeaderboard")).toEqual([{ period: "week" }]);
+    expect(subscriptionsTo("website/quests:getQuests")).toEqual([{}]);
+  });
+
+  it("subscribes to no board while the Leaderboard is locked", () => {
+    profileRead.mockReturnValue(shellFixtures.memberWithEveryPanelLocked);
+    boardRead.mockReturnValue(undefined);
+    renderLiveSite();
+
+    expect(watchedQueries).not.toContain("website/leaderboard:getLeaderboard");
   });
 });
 

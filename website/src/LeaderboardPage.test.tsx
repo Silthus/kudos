@@ -121,16 +121,16 @@ describe("WS37 WS1: the leaderboard lives at /leaderboard, with the period in th
   });
 });
 
-describe("WS38 WS105: the home's Leaderboard panel", () => {
+describe("WS38 WS110: the home's Leaderboard panel", () => {
   function leaderboardPanel() {
     return within(main()).getByRole("region", { name: "Leaderboard" });
   }
 
-  it("is a plain panel linking to the leaderboard while the board is open, with no rank or count", () => {
-    renderApp(withTheBoard);
-    expect(within(leaderboardPanel()).getByRole("link", { name: "Open the leaderboard" })).toHaveAttribute("href", "/leaderboard");
-    expect(leaderboardPanel()).toHaveTextContent("See who's thanking colleagues this week.");
-    expect(leaderboardPanel()).not.toHaveTextContent(/\d|Locked/);
+  it("is Where you stand, linking to the leaderboard, while the board is open", () => {
+    renderApp(withTheBoard, fixedLeaderboard(leaderboardFixtures.midBoard));
+    const standing = within(main()).getByRole("region", { name: "Where you stand" });
+    expect(within(standing).getByRole("link", { name: "Open the leaderboard" })).toHaveAttribute("href", "/leaderboard");
+    expect(standing).not.toHaveTextContent(/Locked/);
   });
 
   it("stays locked, with the other panels, while the board is off", () => {
