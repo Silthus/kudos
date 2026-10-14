@@ -1,10 +1,10 @@
-Fleet heavy: 2 heavy jobs run already; waiting for a free slot.
 $ pnpm typecheck && pnpm test && pnpm coherence
 $ tsc --noEmit && tsc --noEmit -p website
 $ vitest run
 
  RUN  v5.0.3 /home/coder/dev/kudos-wt/hud-nav
 
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
@@ -172,11 +172,30 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 
- Test Files  155 passed (155)
-      Tests  2696 passed (2696)
-   Start at  13:07:10
-   Duration  176.32s (tests 82%, import 8%, transform 6%, environment 3%)
+ Test Files  158 passed (158)
+      Tests  2797 passed (2797)
+   Start at  13:25:01
+   Duration  175.09s (tests 80%, import 11%, transform 5%, environment 4%, setup 1%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
@@ -372,6 +391,20 @@ Leaderboard  convex/leaderboard/Leaderboard.spec.md
       kinds message, state: 15 shapes apply, 0 declared, 15 dismissed
 Parser  convex/parser/Parser.spec.md
   (no invariants)
+Profile card  convex/profileCard/ProfileCard.spec.md
+  a profile card shows only name, level and medals  invariant
+      totality oracle "PC1 PC5 PC7 PC8: /hedgehug @member answers that member's profile card" over the whole reply `/hedgehug @member` answers for a member with XP and tiers on five ladders, for one who earned nothing, for a mention carrying Slack's label, and with `xp-levels` off: verified 2026-10-14
+      refuted 2026-10-14: bestMedalsOf kept the best five medals instead of four
+      kinds read, output: 6 shapes apply, 1 declared, 5 dismissed
+  a card follows what has shipped, except an own card's medals wait for the Book  invariant
+      totality oracle "PC9: a card follows what has shipped, except an own card's medals wait for the Book" over own and teammate cards before and after the member opened the Book, an opened own card whose member's own achievements decision is off, a teammate's card neither member unlocked, tiers earned while notices were held back, `achievements` off, `achievements` just turned on with no Book launch recorded, and `xp-levels` off: verified 2026-10-14
+      refuted 2026-10-14: medalsShownIn waited for the member's own Book opening on every card, a teammate's included
+      refuted 2026-10-14: medalsShownIn read the member's Book opening through Unlocks' stateOf, which follows the member's own achievements decision
+      kinds read: 2 shapes apply, 1 declared, 1 dismissed
+  a mention answers today's command while profile-card is off  invariant
+      totality oracle "PC11 PC17: the profile-card flag" over `/hedgehug` with one person mention, two mentions, an unknown person and a bot, with the flag off, compared with `/hedgehug` alone by HTTP response and Slack calls: verified 2026-10-14
+      refuted 2026-10-14: isProfileCardShownTo answered true without reading the profile-card flag
+      kinds output: 5 shapes apply, 0 declared, 5 dismissed
 Progression  convex/progression/Progression.spec.md
   effects records are insert-only  invariant
       totality oracle "P8: effects records are only ever inserted, never changed or deleted" over every module under convex/, outside its tests and the generated code: verified 2026-10-13
@@ -619,7 +652,7 @@ Website reads  convex/website/WebsiteReads.spec.md
       refuted 2026-10-13: made prepareWebsiteFlag a public mutation instead of an internal one
       kinds read, identity: 5 shapes apply, 1 declared, 4 dismissed
   website reads pass one guard  invariant
-      totality oracle "website reads pass one guard" over getMyProfile for no session, a signed-out and an expired session, a session left over after SLACK_WORKSPACE_ID changes, an unknown person being verified, a failed verification, a member user_change deactivates, the flag off, never created, without its workspace key, switched off under an open session, and SLACK_WORKSPACE_ID unset; getLeaderboard for no session, the flag off, a former member, a member, and an argument beside the period; getQuests with the flag off, no session, a former member, and an argument that names another member; getBook with the website flag off, no session, a former member, and an argument that names another member; getSkillTree with the flag off, no session, a former member, and an argument that names another member; getActivity, getRecentKudos and getSpotlight with the website flag off and the activity flag on, no session, and a member user_change deactivates: verified 2026-10-14
+      totality oracle "website reads pass one guard" over getMyProfile for no session, a signed-out and an expired session, a session left over after SLACK_WORKSPACE_ID changes, an unknown person being verified, a failed verification, a member user_change deactivates, the flag off, never created, without its workspace key, switched off under an open session, and SLACK_WORKSPACE_ID unset; getLeaderboard for no session, the flag off, a former member, a member, and an argument beside the period; getQuests with the flag off, no session, a former member, and an argument that names another member; getBook with the website flag off, no session, a former member, and an argument that names another member; getSkillTree with the flag off, no session, a former member, and an argument that names another member; getProfileCard with the website flag off, no session, a former member, and an argument that names another member; getActivity, getRecentKudos and getSpotlight with the website flag off and the activity flag on, no session, and a member user_change deactivates: verified 2026-10-14
       crossing browser -> domain
       refuted 2026-10-13: memberQuery dropped the check that the session's workspace is the current SLACK_WORKSPACE_ID
       kinds read, identity: 5 shapes apply, 1 declared, 4 dismissed
@@ -667,6 +700,16 @@ Website reads  convex/website/WebsiteReads.spec.md
       totality oracle "the Book names nothing unshipped" over getBook with only the catalogue's first two ladders shipped, for a member who earned all four tiers on both: verified 2026-10-14
       crossing browser -> domain
       refuted 2026-10-14: getBook passed each tier's promised rewards from achievementsOf through to the answer
+      kinds read: 2 shapes apply, 1 declared, 1 dismissed
+  the website card is the member's own Slack card  invariant
+      totality oracle "PC15: the website reads the member's own profile card" over getProfileCard for a member with XP and tiers on five ladders who opened the Book, compared with their own Slack card; for one who earned tiers but hasn't opened the Book, compared the same way; with xp-levels off; and for a member without a display name: verified 2026-10-14
+      crossing browser -> domain
+      refuted 2026-10-14: getProfileCard read the member's card with own false instead of true
+      kinds read: 2 shapes apply, 1 declared, 1 dismissed
+  the website card waits for profile-card  invariant
+      totality oracle "PC15 PC17: getProfileCard follows the member's own profile-card decision" over getProfileCard with profile-card off for everyone, for a member with a tier who opened the Book; and with profile-card on for one email, read by that member and by another: verified 2026-10-14
+      crossing browser -> domain
+      refuted 2026-10-14: getProfileCard answered the card without reading the profile-card flag
       kinds read: 2 shapes apply, 1 declared, 1 dismissed
   a member's home shows only their own facts  invariant
       totality oracle "WS13 WS15 WS18: a member's home answer projects their own homeFacts" over getMyProfile for a member beside members who gave and received kudos, before and after a kudos lands, and across the member's midnight and the week's turn on a clock tick: verified 2026-10-13
@@ -744,9 +787,9 @@ Workspace  convex/workspace/Workspace.spec.md
       kinds identity, state: 10 shapes apply, 1 declared, 9 dismissed
 Website  website/Website.spec.md
   (no invariants)
-19 components, 118 bullets: 118 invariants, 0 requirements
-lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T11:40:24.796Z (703 runs)
-defects: 21 recorded, 17 closed (2 guarded, 15 decided, 0 with neither); 0 guard failures
+20 components, 123 bullets: 123 invariants, 0 requirements
+lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T11:57:53.575Z (728 runs)
+defects: 23 recorded, 19 closed (3 guarded, 16 decided, 0 with neither); 0 guard failures
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "karma"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:13  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
@@ -764,6 +807,6 @@ RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:68 
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:2  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:17  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
-ADVISORY       240 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 88, receipt 31, contract 30, panel 21, zone 21; reported, never failing, since inside the project its sense wins (--json lists each)
-0 rejected names, 0 unknown nouns (662 files), 17 in records
+ADVISORY       244 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 88, receipt 31, contract 30, panel 23, zone 21; reported, never failing, since inside the project its sense wins (--json lists each)
+0 rejected names, 0 unknown nouns (680 files), 17 in records
 exit 0
