@@ -9,7 +9,6 @@ import { emoji, mention, messageChangedEvent, messageEvent, section, text } from
 import { internal } from "../_generated/api";
 import { notifyJourneyJoined, notifyQuestFinished, notifyWeeklyQuestFinished } from "../feedback/notify";
 import { replyPrivately, type Given } from "../feedback/replies";
-import { routeList } from "../website/routes";
 import type { MemberId } from "../workspace/directory";
 
 const now = new Date("2026-10-13T10:00:00Z");
@@ -194,20 +193,11 @@ describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after 
     expect(joined?.at(-1)).toBe(`section: <${siteUrl}/|See your Journey on the web>`);
   });
 
-  test("a finished weekly quest's DM links home while the Quests page isn't listed", async () => {
+  test("a finished weekly quest's DM links to the quests on the web", async () => {
     const t = await questsLive();
     const alice = await memberInserted(t, "U_ALICE");
 
     await notified(t, (ctx) => notifyWeeklyQuestFinished(ctx, alice, weeklyQuest, "Give kudos on two days.", 20));
-
-    expect(lastLineOf(dmsTo("U_ALICE"))).toEqual([`section: <${siteUrl}/|Open HedgeHug on the web>`]);
-  });
-
-  test("a finished weekly quest's DM links to the quests on the web once the route list holds /quests", async () => {
-    const t = await questsLive();
-    const alice = await memberInserted(t, "U_ALICE");
-
-    await withListed("/quests", () => notified(t, (ctx) => notifyWeeklyQuestFinished(ctx, alice, weeklyQuest, "Give kudos on two days.", 20)));
 
     expect(lastLineOf(dmsTo("U_ALICE"))).toEqual([`section: <${siteUrl}/quests|See your quests on the web>`]);
   });
@@ -256,16 +246,6 @@ async function sweep(t: Backend) {
 async function notified(t: Backend, notify: Parameters<Backend["run"]>[0]) {
   await t.run(notify);
   await settle(t);
-}
-
-async function withListed(path: string, act: () => Promise<void>) {
-  const routes = routeList as string[];
-  routes.push(path);
-  try {
-    await act();
-  } finally {
-    routes.splice(routes.indexOf(path), 1);
-  }
 }
 
 function stubbed(env: Record<string, string>) {

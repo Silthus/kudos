@@ -31,11 +31,12 @@ describe("SW11: one function builds every website link", () => {
     { page: { page: "leaderboard", period: "week" }, link: `${siteUrl}/leaderboard` },
     { page: { page: "leaderboard", period: "month" }, link: `${siteUrl}/leaderboard?period=month` },
     { page: { page: "leaderboard", period: "all" }, link: `${siteUrl}/leaderboard?period=all` },
+    { page: { page: "quests" }, link: `${siteUrl}/quests` },
   ])("a listed page links to SITE_URL plus its route: $link", async ({ page, link }) => {
     expect(await linkTo(page)).toBe(link);
   });
 
-  test.each<Page>([{ page: "quests" }, { page: "skillTree" }, { page: "book" }])("the unlisted $page page links to Home", async (page) => {
+  test.each<Page>([{ page: "skillTree" }, { page: "book" }])("the unlisted $page page links to Home", async (page) => {
     expect(await linkTo(page)).toBe(`${siteUrl}/`);
   });
 });

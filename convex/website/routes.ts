@@ -4,7 +4,7 @@ import type { pageValidator } from "./link";
 
 export type Page = Infer<typeof pageValidator>;
 
-export const routeList: readonly string[] = ["/", "/leaderboard"];
+export const routeList: readonly string[] = ["/", "/leaderboard", "/quests"];
 
 const pathOf: Record<Page["page"], string> = {
   home: "/",
