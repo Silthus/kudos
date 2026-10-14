@@ -608,6 +608,12 @@ describe("#409: a chat-style timeline, received on the left and given on the rig
     expect(within(entry).getAllByTestId("person-face").every(after)).toBe(true);
     expect(after(within(entry).getByRole("list", { name: "Earned" }))).toBe(true);
   });
+
+  it("gives every stacked recipient its own face, never a blank disc", async () => {
+    await openedWith([aGiven("g1", now - minute, { recipients: [teammates.bo, teammates.cleo, teammates.dev] })]);
+    const faces = within(article("You thanked Bo Okafor, Cleo Marchetti and Dev Rao")).getAllByTestId("person-face");
+    expect(faces.map((face) => face.textContent)).toEqual(["BO", "CM", "DR"]);
+  });
 });
 
 describe("#409: emoji drawn inline in a kudos message", () => {

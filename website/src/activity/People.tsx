@@ -1,5 +1,5 @@
 import { MemberFace } from "../Face";
-import type { Face, Person } from "../shell";
+import type { Person } from "../shell";
 
 const facesShown = 3;
 
@@ -20,13 +20,9 @@ export function Faces({ people }: { people: Person[] }) {
     <span className="flex shrink-0">
       {shown.map((person, index) => (
         <span key={index} data-testid="person-face" className={`relative rounded-full ring-2 ring-card ${index === 0 ? "" : "-ml-4"}`} style={{ zIndex: shown.length - index }}>
-          <MemberFace face={index === 0 ? person.face : behind(person.face)} className="size-8" />
+          <MemberFace face={person.face} className="size-8" />
         </span>
       ))}
     </span>
   );
-}
-
-function behind(face: Face): Face {
-  return face.kind === "initials" ? { kind: "initials", initials: "" } : face;
 }

@@ -1,6 +1,6 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
-import { emojiCharacters } from "./emojiCharacters";
+import { emojiCharacters } from "./emojiCharacters.ts";
 
 export default defineConfig({
   plugins: [react(), emojiCharacters()],
