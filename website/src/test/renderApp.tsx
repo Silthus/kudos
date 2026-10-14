@@ -5,12 +5,14 @@ import { vi } from "vitest";
 import { App } from "../App";
 import type { LeaderboardRead } from "../leaderboardFixtures";
 import { ShellBoundary } from "../Root";
-import type { ShellState } from "../shell";
+import type { ShellActions, ShellState } from "../shell";
 
 const noBoard: LeaderboardRead = (period) => (period === undefined ? undefined : { kind: "not-found" });
 
-export function renderApp(visitor: ShellState, readLeaderboard: LeaderboardRead = noBoard) {
-  const actions = { signIn: vi.fn(), signOut: vi.fn() };
+type Commands = Partial<Pick<ShellActions, "openFeature">>;
+
+export function renderApp(visitor: ShellState, readLeaderboard: LeaderboardRead = noBoard, commands: Commands = {}) {
+  const actions = { signIn: vi.fn(), signOut: vi.fn(), openFeature: vi.fn(commands.openFeature ?? (async () => ({ kind: "refused" }) as const)) };
   const user = userEvent.setup();
   const appFor = (state: ShellState) => (
     <StrictMode>

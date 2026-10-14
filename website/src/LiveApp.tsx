@@ -1,10 +1,11 @@
 import { ConvexAuthProvider, useAuthActions } from "@convex-dev/auth/react";
-import { useConvexAuth, useQuery, type ConvexReactClient } from "convex/react";
+import { useConvexAuth, useMutation, useQuery, type ConvexReactClient } from "convex/react";
 import { useMemo, useState } from "react";
 import { api } from "../../convex/_generated/api";
 import type { MyProfile } from "../../convex/website/profile";
 import { App } from "./App";
 import { useCodeRedemptionFailed } from "./codeRedemption";
+import { answerWithin } from "./commandAnswer";
 import { useSocketUnreachable } from "./connection";
 import type { Period, ShellActions, Visitor } from "./shell";
 import { forgetSignInStarted } from "./signInAttempt";
@@ -46,10 +47,14 @@ function visitorOf({ authLoading, redemptionFailed, unreachable, profile }: Answ
   return profile;
 }
 
+const commandAnswerBudgetMs = 10_000;
+
 function useLiveActions(onSignInFailure: () => void): ShellActions {
   const { signIn, signOut } = useAuthActions();
+  const openFeature = useMutation(api.website.commands.openFeature);
   return useMemo(
     () => ({
+      openFeature: (feature) => answerWithin(commandAnswerBudgetMs, openFeature({ feature })),
       signIn: () =>
         void signIn("slack", { redirectTo: "/" }).catch(() => {
           forgetSignInStarted();
@@ -57,6 +62,6 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, onSignInFailure],
+    [signIn, signOut, openFeature, onSignInFailure],
   );
 }

@@ -1,5 +1,7 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, type ReactNode } from "react";
 import { NavigateProvider } from "./AppLink";
+import { MomentsProvider, useCrateMoments, type Moments } from "./crates/moments";
+import { RevealDialog } from "./crates/RevealDialog";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { Frame } from "./Frame";
 import type { LeaderboardRead, MyLeaderboard } from "./leaderboardFixtures";
@@ -9,6 +11,7 @@ import { ErrorPage } from "./pages/ErrorPage";
 import { HomePage } from "./pages/HomePage";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { LeaderboardWaitsPage } from "./pages/LeaderboardWaitsPage";
+import { ReadyPage } from "./pages/ReadyPage";
 import { NotAMemberPage } from "./pages/NotAMemberPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { SignedOutPage } from "./pages/SignedOutPage";
@@ -17,7 +20,7 @@ import { UnverifiedPage } from "./pages/UnverifiedPage";
 import { VerifyingPage } from "./pages/VerifyingPage";
 import { useTitleFocusAfterChange, useTitleFocusOnArrival } from "./pageFocus";
 import { useRoute, type Route } from "./route";
-import type { Period, ShellActions, ShellState } from "./shell";
+import type { MemberProfile, Period, ShellActions, ShellState } from "./shell";
 import { rememberSignInStarted, useSignInOutcome } from "./signInAttempt";
 
 type AppProps = { visitor: ShellState; actions: ShellActions; useLeaderboard: LeaderboardRead };
@@ -28,7 +31,9 @@ export function App({ visitor, actions, useLeaderboard }: AppProps) {
   const member = shown.kind === "member" ? shown : undefined;
   const onTheBoard = member !== undefined && route.page === "leaderboard";
   const board = useBoardWhileTheNextLoads(useLeaderboard(onTheBoard ? route.period : undefined), onTheBoard);
-  useTitleFocusAfterChange(onTheBoard ? boardPageOf(board) : shown.kind);
+  const moments = useCrateMoments(actions.openFeature);
+  const revealing = moments.reveal !== undefined && member !== undefined;
+  useTitleFocusAfterChange(onTheBoard ? boardPageOf(board) : shown.kind, { held: revealing });
   const expectArrival = useTitleFocusOnArrival();
   const arriveAt = useCallback(
     (href: string) => {
@@ -43,12 +48,24 @@ export function App({ visitor, actions, useLeaderboard }: AppProps) {
   }, [actions]);
   return (
     <NavigateProvider value={arriveAt}>
-      <Frame member={member} current={route.page === "not-found" ? undefined : route.page} busy={shown.kind === "loading"} onSignOut={actions.signOut}>
-        <ErrorBoundary fallback={(failure) => <ErrorPage {...failure} />}>
-          <Page state={shown} route={route} board={board} onChoosePeriod={choosePeriod} onSignIn={signIn} onSignOut={actions.signOut} />
-        </ErrorBoundary>
-      </Frame>
+      <MomentsProvider value={moments}>
+        <Frame member={member} current={route.page === "not-found" ? undefined : route.page} busy={shown.kind === "loading"} inert={revealing} onSignOut={actions.signOut}>
+          <ErrorBoundary fallback={(failure) => <ErrorPage {...failure} />}>
+            <Page state={shown} route={route} board={board} onChoosePeriod={choosePeriod} onSignIn={signIn} onSignOut={actions.signOut} />
+          </ErrorBoundary>
+        </Frame>
+        {revealing && <RevealDialog {...moments.reveal!} chatUrl={member.chatUrl} onFinish={moments.finish} onClose={moments.close} />}
+        <Announcement moments={moments} />
+      </MomentsProvider>
     </NavigateProvider>
+  );
+}
+
+function Announcement({ moments }: { moments: Moments }) {
+  return (
+    <p role="status" data-testid="moment-announcement" className="sr-only">
+      {moments.announcement}
+    </p>
   );
 }
 
@@ -82,9 +99,15 @@ function Page({ state, route, board, onChoosePeriod, ...actions }: PageProps) {
   if (route.page === "home") return <HomePage member={state} />;
   if (board === undefined) return null;
   if (board.kind === "not-found") return <NotFoundPage />;
-  if (board.kind === "locked" || board.kind === "ready") return <LeaderboardWaitsPage waiting={board} chatUrl={state.chatUrl} />;
+  if (board.kind === "ready") return <ReadyPageOf member={state} feature="leaderboard" orElse={<LeaderboardWaitsPage waiting={board} chatUrl={state.chatUrl} />} />;
+  if (board.kind === "locked") return <LeaderboardWaitsPage waiting={board} chatUrl={state.chatUrl} />;
   if (board.kind !== "board") return <VisitorPage state={board} {...actions} />;
   return <LeaderboardPage board={board} period={route.period} onChoosePeriod={onChoosePeriod} />;
+}
+
+function ReadyPageOf({ member, feature, orElse }: { member: MemberProfile; feature: "leaderboard"; orElse: ReactNode }) {
+  const card = member.features?.find((entry) => entry.feature === feature && entry.state === "ready");
+  return card === undefined ? orElse : <ReadyPage card={card} />;
 }
 
 type Visitor = Exclude<ShellState, { kind: "member" | "broken" | "loading" }>;

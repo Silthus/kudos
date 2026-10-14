@@ -1,13 +1,20 @@
+import type { Feature } from "../../convex/unlocks/feature";
+import type { CommandAnswer } from "../../convex/website/commands";
+import type { Denial } from "../../convex/website/memberQuery";
 import type { FeatureCard, MemberProfile, MyProfile } from "../../convex/website/profile";
 
 export type { Face, FeatureCard, MemberProfile, Progression } from "../../convex/website/profile";
 export type { Period } from "../../convex/leaderboard/periods";
+export type { CommandAnswer } from "../../convex/website/commands";
+export type { Feature } from "../../convex/unlocks/feature";
+
+export type OpenAnswer = CommandAnswer | Denial;
 
 export type Visitor = MyProfile | { kind: "loading" } | { kind: "connecting" } | { kind: "sign-in-unfinished" };
 
 export type ShellState = Visitor | { kind: "broken" };
 
-export type ShellActions = { signIn(): void; signOut(): void };
+export type ShellActions = { signIn(): void; signOut(): void; openFeature(feature: Feature): Promise<OpenAnswer> };
 
 const member: MemberProfile = {
   kind: "member",
@@ -50,6 +57,8 @@ const memberWithTheBoardReady: MemberProfile = { ...member, ...onTheUnlockPath({
 
 const memberWithTheBoardOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...skillTreeFeature, ...locked }) };
 
+const memberWithEveryFeatureReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...ready }, { ...skillTreeFeature, ...ready }) };
+
 const memberWithEveryFeatureOpen: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...skillTreeFeature, ...opened }) };
 
 const memberWithNothingShipped: MemberProfile = { ...member, ...onTheUnlockPath() };
@@ -75,6 +84,7 @@ export const shellFixtures = {
   memberWaitingForTheBoard,
   memberWithTheBoardReady,
   memberWithTheBoardOpened,
+  memberWithEveryFeatureReady,
   memberWithEveryFeatureOpen,
   memberWithNothingShipped,
   memberAtLevel1,
@@ -97,6 +107,7 @@ const fixturesByName: Record<string, ShellState> = {
   "member-waiting-for-the-board": shellFixtures.memberWaitingForTheBoard,
   "member-with-the-board-ready": shellFixtures.memberWithTheBoardReady,
   "member-with-the-board-opened": shellFixtures.memberWithTheBoardOpened,
+  "member-with-every-feature-ready": shellFixtures.memberWithEveryFeatureReady,
   "member-with-every-feature-open": shellFixtures.memberWithEveryFeatureOpen,
   "member-with-nothing-shipped": shellFixtures.memberWithNothingShipped,
   "member-level-1": shellFixtures.memberAtLevel1,
@@ -108,4 +119,4 @@ export function builtShell(name: string | undefined): ShellState {
   return fixturesByName[name ?? ""] ?? shellFixtures.closed;
 }
 
-export const fixtureActions: ShellActions = { signIn() {}, signOut() {} };
+export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, openFeature: async () => ({ kind: "opened" }) };

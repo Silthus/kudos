@@ -60,11 +60,11 @@ describe("WS58: the home's feature cards read the member's unlock path", () => {
     expect(within(card).queryByRole("link")).not.toBeInTheDocument();
   });
 
-  it("puts a ready feature under Ready for you, saying to open it in Slack's App Home, before what is still locked", () => {
+  it("puts a ready feature's crate under Ready for you, before what is still locked", () => {
     renderApp(shellFixtures.memberWithTheBoardReady);
     expect(featureGroups()).toEqual(["Ready for you", "Still locked"]);
-    expect(cardNamesIn("Ready for you")).toEqual(["Leaderboard"]);
-    expect(cardOf("Leaderboard")).toHaveTextContent("Ready for you. Open it in Slack's App Home.");
+    expect(cardNamesIn("Ready for you")).toEqual(["Unlocks: Leaderboard"]);
+    expect(cardOf("Unlocks: Leaderboard")).not.toHaveTextContent("Open it in Slack's App Home.");
     expect(cardNamesIn("Still locked")).toEqual(["Skill tree"]);
   });
 

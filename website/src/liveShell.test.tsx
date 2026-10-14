@@ -16,6 +16,7 @@ vi.mock("convex/react", () => ({
   useConvexAuth: () => ({ ...auth }),
   useConvexConnectionState: () => ({ ...socket }),
   useQuery: () => profileRead(),
+  useMutation: () => vi.fn(),
 }));
 
 vi.mock("@convex-dev/auth/react", () => ({

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef } from "react";
-export function useTitleFocusAfterChange(kind: string) {
+export function useTitleFocusAfterChange(kind: string, { held }: { held: boolean }) {
   const lastShown = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (kind === "loading") return;
     const changed = lastShown.current !== undefined && lastShown.current !== kind;
     lastShown.current = kind;
-    if (changed) focusPageTitle();
-  }, [kind]);
+    if (changed && !held) focusPageTitle();
+  }, [kind, held]);
 }
 
 export function focusPageTitle() {

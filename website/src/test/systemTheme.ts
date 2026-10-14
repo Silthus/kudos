@@ -18,3 +18,9 @@ export function fakeSystemTheme(initiallyDark: boolean) {
     },
   };
 }
+
+export function preferReducedMotion() {
+  const system = window.matchMedia;
+  window.matchMedia = ((query: string) =>
+    query === "(prefers-reduced-motion: reduce)" ? { ...system(query), media: query, matches: true } : system(query)) as typeof window.matchMedia;
+}

@@ -1,10 +1,11 @@
+import { act, screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { describe, expect, it } from "vitest";
 import { fixedLeaderboard, leaderboardFixtures, type LeaderboardRead, type MyLeaderboard } from "./leaderboardFixtures";
-import { shellFixtures, type ShellState } from "./shell";
+import { shellFixtures, type OpenAnswer, type ShellState } from "./shell";
 import { watchTheViewerRow } from "./test/viewerRow";
 import { renderApp } from "./test/renderApp";
-import { fakeSystemTheme } from "./test/systemTheme";
+import { fakeSystemTheme, preferReducedMotion } from "./test/systemTheme";
 
 const pages: { name: string; path: string; visitor: ShellState; board?: MyLeaderboard }[] = [
   { name: "loading", path: "/", visitor: shellFixtures.loading },
@@ -32,7 +33,8 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "home with every shipped feature open", path: "/", visitor: shellFixtures.memberWithEveryFeatureOpen },
   { name: "home with no feature shipped", path: "/", visitor: shellFixtures.memberWithNothingShipped },
   { name: "leaderboard locked until level 3", path: "/leaderboard", visitor: shellFixtures.memberWaitingForTheBoard, board: { kind: "locked", level: 3 } },
-  { name: "leaderboard ready to open in Slack", path: "/leaderboard", visitor: shellFixtures.memberWithTheBoardReady, board: { kind: "ready" } },
+  { name: "leaderboard ready to open in place", path: "/leaderboard", visitor: shellFixtures.memberWithTheBoardReady, board: { kind: "ready" } },
+  { name: "home with two crates and the ready pill", path: "/", visitor: shellFixtures.memberWithEveryFeatureReady },
   { name: "empty leaderboard", path: "/leaderboard?period=all", visitor: shellFixtures.memberWithTheBoard, board: leaderboardFixtures.empty },
   { name: "error", path: "/", visitor: shellFixtures.error },
 ];
@@ -78,5 +80,31 @@ describe("WS24: every page passes axe in light and dark", () => {
       await findByRole("menuitem", { name: "Sign out" });
       expect(await violationsIn(document.body, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
     });
+  }
+});
+
+const crateStates: { name: string; answer: () => Promise<OpenAnswer>; reducedMotion?: boolean; skip?: boolean }[] = [
+  { name: "opening", answer: () => new Promise(() => undefined) },
+  { name: "refused", answer: async () => ({ kind: "refused" }) },
+  { name: "unreachable", answer: async () => Promise.reject(new Error("socket closed")) },
+  { name: "revealing", answer: async () => ({ kind: "opened" }) },
+  { name: "revealed", answer: async () => ({ kind: "opened" }), skip: true },
+  { name: "revealed under reduced motion", answer: async () => ({ kind: "opened" }), reducedMotion: true },
+];
+
+describe("WS75: every crate state passes axe in light and dark", () => {
+  for (const dark of [false, true]) {
+    for (const state of crateStates) {
+      it(`the crate ${state.name} in ${dark ? "dark" : "light"}`, async () => {
+        fakeSystemTheme(dark);
+        if (state.reducedMotion) preferReducedMotion();
+        const { user } = renderApp(shellFixtures.memberWithEveryFeatureReady, undefined, { openFeature: state.answer });
+        const crate = within(screen.getByRole("main")).getByRole("heading", { name: "Unlocks: Leaderboard" }).closest("article")!;
+        await user.click(within(crate).getByRole("button", { name: "Open" }));
+        await act(async () => undefined);
+        if (state.skip) await user.keyboard("{Escape}");
+        expect(await violationsIn(document.body, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
+      });
+    }
   }
 });
