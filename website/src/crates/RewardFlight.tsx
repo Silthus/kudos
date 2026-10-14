@@ -16,13 +16,15 @@ export type RewardFlightProps = {
 type Course = { from: Origin; dx: number; dy: number; target: HTMLElement };
 
 const particles = [
-  { delay: 0, arc: -48, spread: 0 },
-  { delay: 70, arc: -64, spread: -18 },
-  { delay: 130, arc: -36, spread: 16 },
-  { delay: 190, arc: -56, spread: -8 },
-  { delay: 240, arc: -30, spread: 22 },
-  { delay: 290, arc: -70, spread: 6 },
+  { delay: 0, arc: -48, spread: 0, size: 6 },
+  { delay: 40, arc: -64, spread: -18, size: 4 },
+  { delay: 80, arc: -36, spread: 16, size: 8 },
+  { delay: 120, arc: -56, spread: -8, size: 4 },
+  { delay: 160, arc: -30, spread: 22, size: 6 },
+  { delay: 200, arc: -70, spread: 6, size: 8 },
 ];
+
+const chipLandsLast = "260ms";
 
 const settleMs = 900;
 
@@ -78,11 +80,11 @@ export function RewardFlight({ source, target, amount, reduced, onArrived, onLan
   if (course === undefined) return null;
   return (
     <span ref={flying} data-reward-flight aria-hidden="true" className="reward-flight" style={styleOf(course)}>
-      <span data-particle className="reward-flight-chip">
+      <span data-particle className="reward-flight-chip" style={{ "--delay": chipLandsLast } as CSSProperties}>
         {amount}
       </span>
-      {particles.map(({ delay, arc, spread }) => (
-        <span key={delay} data-particle className="reward-flight-particle" style={{ "--delay": `${delay}ms`, "--arc": `${arc}px`, "--spread": `${spread}px` } as CSSProperties} />
+      {particles.map(({ delay, arc, spread, size }) => (
+        <span key={delay} data-particle className="reward-flight-particle" style={{ "--delay": `${delay}ms`, "--arc": `${arc}px`, "--spread": `${spread}px`, "--size": `${size}px` } as CSSProperties} />
       ))}
     </span>
   );
