@@ -181,8 +181,7 @@ export async function journeyOf(ctx: QueryCtx, member: MemberId): Promise<Journe
 }
 
 export async function activeJourneyOf(ctx: MutationCtx, member: MemberId): Promise<JourneyStepFacts[]> {
-  const at = Date.now();
-  await activated(ctx, member, "first-thanks", at, journey);
+  await activated(ctx, member, "first-thanks", Date.now(), journey);
   await activateOpenedSteps(ctx, member);
   return journeyOf(ctx, member);
 }
