@@ -19,10 +19,15 @@ const member: MemberProfile = {
   lifetime: { given: 14, received: 9 },
   chatUrl: "https://app.slack.com/client/T1",
   leaderboard: "off",
+  leaderboardLevel: 3,
   progression: null,
 };
 
 const memberWithTheBoard: MemberProfile = { ...member, leaderboard: "open" };
+
+const memberWaitingForTheBoard: MemberProfile = { ...member, leaderboard: "locked" };
+
+const memberWithTheBoardReady: MemberProfile = { ...member, leaderboard: "ready" };
 
 const memberWithAQuietWeek: MemberProfile = { ...member, thisWeek: { given: 0, received: 0 } };
 
@@ -42,6 +47,8 @@ export const shellFixtures = {
   member,
   memberWithAQuietWeek,
   memberWithTheBoard,
+  memberWaitingForTheBoard,
+  memberWithTheBoardReady,
   memberAtLevel1,
   memberAtLevel7,
   error: { kind: "broken" },
@@ -59,6 +66,8 @@ const fixturesByName: Record<string, ShellState> = {
   member: shellFixtures.member,
   "member-quiet-week": shellFixtures.memberWithAQuietWeek,
   "member-with-the-board": shellFixtures.memberWithTheBoard,
+  "member-waiting-for-the-board": shellFixtures.memberWaitingForTheBoard,
+  "member-with-the-board-ready": shellFixtures.memberWithTheBoardReady,
   "member-level-1": shellFixtures.memberAtLevel1,
   "member-level-7": shellFixtures.memberAtLevel7,
   error: shellFixtures.error,

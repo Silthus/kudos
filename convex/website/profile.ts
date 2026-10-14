@@ -1,12 +1,13 @@
 import type { QueryCtx } from "../_generated/server";
 import { homeFacts } from "../engine/home";
-import { everyoneBoardShownIn } from "../leaderboard/flag";
 import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import { xpLevelsShownIn } from "../progression/xpLevels";
 import { workspaceLink } from "../slack/workspaceLink";
+import { scheduled } from "../unlocks/schedule";
 import { followTheClock } from "./clock";
 import { faceOf, type Face } from "./faces";
+import { leaderboardStateOf, type LeaderboardState } from "./leaderboardState";
 import { memberQuery, type Denial, type VerifiedMember } from "./memberQuery";
 
 export type { Face } from "./faces";
@@ -24,7 +25,8 @@ export type MemberProfile = {
   thisWeek: Kudos;
   lifetime: Kudos;
   chatUrl: string;
-  leaderboard: "off" | "open";
+  leaderboard: LeaderboardState;
+  leaderboardLevel: number;
   progression: Progression | null;
 };
 
@@ -43,7 +45,8 @@ export const getMyProfile = memberQuery(async (ctx, me): Promise<MemberProfile |
     thisWeek: { given: facts.givenWeek, received: facts.receivedWeek },
     lifetime: { given: facts.given, received: facts.received },
     chatUrl: workspaceLink(me.workspace),
-    leaderboard: (await everyoneBoardShownIn(ctx, me.workspace)) ? "open" : "off",
+    leaderboard: await leaderboardStateOf(ctx, me),
+    leaderboardLevel: scheduled("leaderboard").level,
     progression: await progressionOf(ctx, me),
   };
 });

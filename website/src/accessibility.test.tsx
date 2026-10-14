@@ -1,12 +1,12 @@
 import axe from "axe-core";
 import { describe, expect, it } from "vitest";
-import { fixedLeaderboard, leaderboardFixtures, type Leaderboard } from "./leaderboardFixtures";
+import { fixedLeaderboard, leaderboardFixtures, type LeaderboardRead, type MyLeaderboard } from "./leaderboardFixtures";
 import { shellFixtures, type ShellState } from "./shell";
 import { watchTheViewerRow } from "./test/viewerRow";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
 
-const pages: { name: string; path: string; visitor: ShellState; board?: Leaderboard }[] = [
+const pages: { name: string; path: string; visitor: ShellState; board?: MyLeaderboard }[] = [
   { name: "loading", path: "/", visitor: shellFixtures.loading },
   { name: "connecting", path: "/", visitor: shellFixtures.connecting },
   { name: "closed", path: "/", visitor: shellFixtures.closed },
@@ -26,9 +26,17 @@ const pages: { name: string; path: string; visitor: ShellState; board?: Leaderbo
   { name: "leaderboard with a shared lead", path: "/leaderboard", visitor: shellFixtures.memberWithTheBoard, board: leaderboardFixtures.sharedLead },
   { name: "leaderboard for a viewer who isn't ranked", path: "/leaderboard?period=month", visitor: shellFixtures.memberWithTheBoard, board: leaderboardFixtures.notRanked },
   { name: "leaderboard for a viewer who left", path: "/leaderboard", visitor: shellFixtures.memberWithTheBoard, board: leaderboardFixtures.left },
+  { name: "home with the leaderboard locked", path: "/", visitor: shellFixtures.memberWaitingForTheBoard },
+  { name: "home with the leaderboard ready", path: "/", visitor: shellFixtures.memberWithTheBoardReady },
+  { name: "leaderboard locked until level 3", path: "/leaderboard", visitor: shellFixtures.memberWaitingForTheBoard, board: { kind: "locked", level: 3 } },
+  { name: "leaderboard ready to open in Slack", path: "/leaderboard", visitor: shellFixtures.memberWithTheBoardReady, board: { kind: "ready" } },
   { name: "empty leaderboard", path: "/leaderboard?period=all", visitor: shellFixtures.memberWithTheBoard, board: leaderboardFixtures.empty },
   { name: "error", path: "/", visitor: shellFixtures.error },
 ];
+
+function answering(board: MyLeaderboard): LeaderboardRead {
+  return board.kind === "board" ? fixedLeaderboard(board) : (period) => (period && board);
+}
 
 const wcag22AA = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
@@ -43,7 +51,7 @@ describe("WS24: every page passes axe in light and dark", () => {
       it(`${page.name} in ${dark ? "dark" : "light"}`, async () => {
         fakeSystemTheme(dark);
         window.history.replaceState(null, "", page.path);
-        const { container } = renderApp(page.visitor, page.board && fixedLeaderboard(page.board));
+        const { container } = renderApp(page.visitor, page.board && answering(page.board));
         expect(await violationsIn(container)).toEqual([]);
       });
     }

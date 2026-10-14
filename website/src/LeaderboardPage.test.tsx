@@ -124,6 +124,47 @@ describe("WS38: the home's leaderboard card", () => {
   });
 });
 
+describe("WS52: the leaderboard page waits for its unlock", () => {
+  it.each([
+    { state: "locked", visitor: shellFixtures.memberWaitingForTheBoard, answer: { kind: "locked", level: 3 } as const, says: "Leaderboard opens at level 3." },
+    { state: "ready", visitor: shellFixtures.memberWithTheBoardReady, answer: { kind: "ready" } as const, says: "Leaderboard is ready for you. Open it in Slack's App Home." },
+  ])("says the $state leaderboard's one sentence in place of the board, with no Leaderboard nav item", ({ visitor, answer, says }) => {
+    visit("/leaderboard");
+    renderApp(visitor, (period) => (period && answer));
+    expect(pageTitle()).toHaveTextContent("Leaderboard");
+    expect(document.title).toBe("HedgeHug · Leaderboard");
+    expect(main()).toHaveTextContent(says);
+    expect(within(screens()).getAllByRole("link").map((link) => link.textContent)).toEqual(["Home"]);
+    expect(within(main()).queryByRole("region", { name: /Everyone/ })).not.toBeInTheDocument();
+    expect(within(main()).queryByRole("list")).not.toBeInTheDocument();
+  });
+
+  it("sends a locked member home, and a ready member to Slack, where App Home opens it", () => {
+    visit("/leaderboard");
+    const { unmount } = renderApp(shellFixtures.memberWaitingForTheBoard, (period) => (period && { kind: "locked", level: 3 }));
+    expect(within(main()).getByRole("link", { name: "Go to Home" })).toHaveAttribute("href", "/");
+    unmount();
+
+    visit("/leaderboard");
+    renderApp(shellFixtures.memberWithTheBoardReady, (period) => (period && { kind: "ready" }));
+    const openSlack = within(main()).getByRole("link", { name: "Open Slack (opens in a new tab)" });
+    expect(openSlack).toHaveAttribute("href", shellFixtures.memberWithTheBoardReady.chatUrl);
+    expect(openSlack).toHaveAttribute("target", "_blank");
+  });
+
+  it.each([
+    { state: "locked", visitor: shellFixtures.memberWaitingForTheBoard, says: "Leaderboard opens at level 3." },
+    { state: "ready", visitor: shellFixtures.memberWithTheBoardReady, says: "Leaderboard is ready for you. Open it in Slack's App Home." },
+  ])("keeps the home's card locked while the leaderboard is $state, with that sentence", ({ visitor, says }) => {
+    renderApp(visitor);
+    expect(within(main()).queryByRole("link", { name: /Leaderboard/ })).not.toBeInTheDocument();
+    const card = within(main()).getByRole("heading", { level: 3, name: "Leaderboard" }).parentElement;
+    expect(card).toHaveTextContent("Locked");
+    expect(card).toHaveTextContent(says);
+    expect(within(screens()).getAllByRole("link").map((link) => link.textContent)).toEqual(["Home"]);
+  });
+});
+
 function showBoard(answer: Leaderboard, path = "/leaderboard") {
   visit(path);
   return renderApp(withTheBoard, fixedLeaderboard(answer));

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { onForEveryone, onInTheSandboxOnly } from "../../testing/flags";
+import { onForEveryone, onInTheSandboxOnly, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { testBackend, type Backend } from "../../testing/slackBackend";
 import { aDeploymentForWorkspace, aSession } from "../../testing/website";
 import { api, components, internal } from "../_generated/api";
@@ -9,6 +9,7 @@ import type { Id } from "../_generated/dataModel";
 import { countGiven, everyoneBoardOf } from "../leaderboard/totals";
 import type { Period } from "../leaderboard/periods";
 import { setLeaderboardVisibility } from "../leaderboard/visibility";
+import { openUnlock } from "../unlocks/unlocks";
 import type { Leaderboard, MyLeaderboard } from "./leaderboard";
 
 const tuesday = new Date("2026-10-13T10:00:00Z");
@@ -370,6 +371,120 @@ describe("WS36: an open board turns over with the period on a clock tick", () =>
   });
 });
 
+describe("WS52: the website's leaderboard waits for its unlock", () => {
+  const allFlags = ["website", "everyone-board", "xp-levels", "unlocks"];
+
+  type UnlocksDontApply = { condition: string; turnOn: () => Promise<unknown> };
+
+  const unlocksDontApply: UnlocksDontApply[] = [
+    { condition: "with xp-levels and unlocks off", turnOn: () => flagsOn("website", "everyone-board") },
+    {
+      condition: "with unlocks on and launched while xp-levels is off",
+      turnOn: async () => {
+        await flagsOn("website", "everyone-board", "unlocks");
+        await unlocksLaunched();
+      },
+    },
+    {
+      condition: "with xp-levels on and unlocks switched off after its launch",
+      turnOn: async () => {
+        await flagsOn(...allFlags);
+        await unlocksLaunched();
+        await flagsOn("website", "everyone-board", "xp-levels");
+      },
+    },
+    { condition: "with xp-levels and unlocks on before the launch", turnOn: () => flagsOn(...allFlags) },
+  ];
+
+  test.each(unlocksDontApply)("$condition, a member at level 1 reads WS30's open board", async ({ turnOn }) => {
+    await turnOn();
+    await aMember("U_JUNO", "Juno");
+    const { asSignedIn } = await aSession(t, juno);
+
+    expect(await leaderboard("week", asSignedIn)).toMatchObject({ kind: "board" });
+    expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: "open" });
+  });
+
+  test("before the launch, website reads never run it: no launch is recorded", async () => {
+    await flagsOn(...allFlags);
+    await aMember("U_JUNO", "Juno");
+    const { asSignedIn } = await aSession(t, juno);
+
+    await leaderboard("week", asSignedIn);
+    await myProfile(asSignedIn);
+
+    expect(await t.run((ctx) => ctx.db.query("unlockLaunches").collect())).toEqual([]);
+  });
+
+  describe("while unlocks apply", () => {
+    beforeEach(async () => {
+      await flagsOn(...allFlags);
+      await unlocksLaunched();
+    });
+
+    test("a member at level 1 reads locked at the leaderboard's level, with no board facts", async () => {
+      await aMember("U_JUNO", "Juno");
+      await gives("U_JUNO", 2);
+      const { asSignedIn } = await aSession(t, juno);
+
+      expect(await leaderboard("week", asSignedIn)).toEqual({ kind: "locked", level: 3 });
+      expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: "locked", leaderboardLevel: 3 });
+    });
+
+    test("a member at level 3 who hasn't opened it reads ready, with no board facts", async () => {
+      await aMember("U_JUNO", "Juno");
+      await gives("U_JUNO", 2);
+      await reachesLevelThree("U_JUNO");
+      const { asSignedIn } = await aSession(t, juno);
+
+      expect(await leaderboard("week", asSignedIn)).toEqual({ kind: "ready" });
+      expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: "ready" });
+    });
+
+    test("a member who opened it reads the board", async () => {
+      await aMember("U_JUNO", "Juno");
+      await gives("U_JUNO", 2);
+      await reachesLevelThree("U_JUNO");
+      await opensTheLeaderboard("U_JUNO");
+      const { asSignedIn } = await aSession(t, juno);
+
+      expect(shown(await board("week", asSignedIn))).toEqual(["1 Juno (you) 2"]);
+      expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: "open" });
+    });
+
+    test("with everyone-board off, the unshipped leaderboard reads not-found and off", async () => {
+      await aMember("U_JUNO", "Juno");
+      const { asSignedIn } = await aSession(t, juno);
+      await flagsOn("website", "xp-levels", "unlocks");
+
+      expect(await leaderboard("week", asSignedIn)).toEqual({ kind: "not-found" });
+      expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: "off" });
+    });
+
+    test("#103: a member's row on another member's board never depends on their own unlocks", async () => {
+      await aMember("U_JUNO", "Juno");
+      await aMember("U_ANN", "Ann");
+      await gives("U_ANN", 5);
+      await gives("U_JUNO", 2);
+      await reachesLevelThree("U_JUNO");
+      await opensTheLeaderboard("U_JUNO");
+      const { asSignedIn } = await aSession(t, juno);
+
+      expect(shown(await board("week", asSignedIn))).toEqual(["1 Ann 5", "2 Juno (you) 2"]);
+    });
+  });
+
+  test("P77: a member who was there at the launch keeps the leaderboard open", async () => {
+    await flagsOn(...allFlags);
+    await aMember("U_JUNO", "Juno");
+    await unlocksLaunched();
+    const { asSignedIn } = await aSession(t, juno);
+
+    expect(await leaderboard("week", asSignedIn)).toMatchObject({ kind: "board" });
+    expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: "open" });
+  });
+});
+
 type MemberOptions = { kind?: "member" | "not-a-member"; timeZone?: string };
 
 function aMember(user: string, name?: string, { kind = "member", timeZone }: MemberOptions = {}): Promise<Id<"members">> {
@@ -400,6 +515,22 @@ async function gives(user: string, kudos: number, { day = "2026-10-13", to }: { 
   given += 1;
   const message = { workspace: "T1", conversation: "C1", message: `${given}` };
   await t.run((ctx) => countGiven(ctx, { workspace: "T1", message, giver, awards: [{ giver, recipient, kudos }], day }));
+}
+
+function unlocksLaunched() {
+  return unlocksShippedBeforeAnyoneJoined(t);
+}
+
+async function reachesLevelThree(user: string) {
+  const member = await memberIdOf(user);
+  const message = { workspace: "T1", conversation: "C1", message: `level-3-${user}` };
+  const event = { type: "levelReached" as const, workspace: "T1", member, level: 3, skillPointsGained: 0, skillPoints: 0, xpToNextLevel: 200, message, at: Date.now() };
+  await t.mutation(internal.unlocks.unlocks.makeReady, { event });
+}
+
+async function opensTheLeaderboard(user: string) {
+  const member = await memberIdOf(user);
+  expect(await t.run((ctx) => openUnlock(ctx, member, "leaderboard"))).toBe("done");
 }
 
 async function leavesTheBoards(user: string) {

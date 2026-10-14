@@ -1,0 +1,118 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/leaderboard-unlock
+
+ ❯ |convex| convex/website/leaderboard.test.ts (43 tests | 2 failed) 354ms
+   ❯ WS52: the website's leaderboard waits for its unlock (11)
+     ❯ while unlocks apply (5)
+       × a member at level 1 reads locked at the leaderboard's level, with no board facts 10ms
+       × a member at level 3 who hasn't opened it reads ready, with no board facts 10ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/leaderboard.test.ts > WS52: the website's leaderboard waits for its unlock > while unlocks apply > a member at level 1 reads locked at the leaderboard's level, with no board facts
+AssertionError: expected { …(8) } to deeply equal { kind: 'locked', level: 3 }
+
+- Expected
++ Received
+
+  {
+-   "kind": "locked",
+-   "level": 3,
++   "chatUrl": "https://app.slack.com/client/T1",
++   "improvement": {
++     "gain": 2,
++   },
++   "kind": "board",
++   "onTheBoards": true,
++   "period": "week",
++   "rows": [
++     {
++       "face": {
++         "image": "https://avatars.slack-edge.com/juno.png",
++         "initials": "JW",
++         "kind": "slack",
++       },
++       "kudos": 2,
++       "name": "Juno",
++       "position": 1,
++       "rank": 1,
++       "tied": false,
++       "you": true,
++     },
++   ],
++   "standing": {
++     "kind": "ranked",
++     "position": 1,
++     "rank": 1,
++   },
++   "window": [
++     1,
++   ],
+  }
+
+ ❯ convex/website/leaderboard.test.ts:430:53
+    428|       const { asSignedIn } = await aSession(t, juno);
+    429|
+    430|       expect(await leaderboard("week", asSignedIn)).toEqual({ kind: "l…
+       |                                                     ^
+    431|       expect(await myProfile(asSignedIn)).toMatchObject({ kind: "membe…
+    432|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |convex| convex/website/leaderboard.test.ts > WS52: the website's leaderboard waits for its unlock > while unlocks apply > a member at level 3 who hasn't opened it reads ready, with no board facts
+AssertionError: expected { …(8) } to deeply equal { kind: 'ready' }
+
+- Expected
++ Received
+
+  {
+-   "kind": "ready",
++   "chatUrl": "https://app.slack.com/client/T1",
++   "improvement": {
++     "gain": 2,
++   },
++   "kind": "board",
++   "onTheBoards": true,
++   "period": "week",
++   "rows": [
++     {
++       "face": {
++         "image": "https://avatars.slack-edge.com/juno.png",
++         "initials": "JW",
++         "kind": "slack",
++       },
++       "kudos": 2,
++       "name": "Juno",
++       "position": 1,
++       "rank": 1,
++       "tied": false,
++       "you": true,
++     },
++   ],
++   "standing": {
++     "kind": "ranked",
++     "position": 1,
++     "rank": 1,
++   },
++   "window": [
++     1,
++   ],
+  }
+
+ ❯ convex/website/leaderboard.test.ts:440:53
+    438|       const { asSignedIn } = await aSession(t, juno);
+    439|
+    440|       expect(await leaderboard("week", asSignedIn)).toEqual({ kind: "r…
+       |                                                     ^
+    441|       expect(await myProfile(asSignedIn)).toMatchObject({ kind: "membe…
+    442|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 41 passed (43)
+   Start at  00:07:31
+   Duration  906ms (tests 43%, transform 33%, import 19%, environment 5%)
+

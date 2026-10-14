@@ -8,6 +8,7 @@ import { ConnectingPage } from "./pages/ConnectingPage";
 import { ErrorPage } from "./pages/ErrorPage";
 import { HomePage } from "./pages/HomePage";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
+import { LeaderboardWaitsPage } from "./pages/LeaderboardWaitsPage";
 import { NotAMemberPage } from "./pages/NotAMemberPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { SignedOutPage } from "./pages/SignedOutPage";
@@ -77,6 +78,7 @@ function Page({ state, route, board, onChoosePeriod, ...actions }: PageProps) {
   if (route.page === "home") return <HomePage member={state} />;
   if (board === undefined) return null;
   if (board.kind === "not-found") return <NotFoundPage />;
+  if (board.kind === "locked" || board.kind === "ready") return <LeaderboardWaitsPage waiting={board} chatUrl={state.chatUrl} />;
   if (board.kind !== "board") return <VisitorPage state={board} {...actions} />;
   return <LeaderboardPage board={board} period={route.period} onChoosePeriod={onChoosePeriod} />;
 }
