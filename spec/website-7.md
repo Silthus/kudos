@@ -215,7 +215,7 @@ Rules continue the activity slice's numbering, from `WS300`.
 ### Locked, ready and the reveal (F19, C11)
 
 - **WS323. The locked page.** A feature page whose state is `locked` (WS52, WS79) shows the feature's hedgehog in silhouette with a lock badge, the feature's name, `Unlocks at level {level}`, the feature's sentence from `features.ts`, and `Back to your profile`. No generic Max, no blurred preview, no levels to go and no progress (D3, E282, E283).
-- **WS324. The ready page.** A feature page whose state is `ready` shows E's night band: a dark band in both modes, holding the large headline `{name} is ready`, the feature's sentence, and the crate with its primary `Open` (WS67). The band's text and the crate's border meet V24's contrast in both modes, measured by a test.
+- **WS324. The ready page.** A feature page whose state is `ready` shows E's night band: a dark band in both modes, holding the large headline `{name} is ready`, or `{name} are ready` for a plural name such as `Quests are ready` (#417, decision d-a02354c0), the feature's sentence, and the crate with its primary `Open` (WS67). The band's text and the crate's border meet V24's contrast in both modes, measured by a test.
 - **WS325. A richer reveal.** After a feature crate's reveal (WS66), the end state adds:
   - **what waits:** a short checklist of what the feature holds, from `features.ts`, two or three lines per feature, naming only shipped facts and quoting P94 where it names a perk (E295);
   - **the next crate:** while other crates are ready, `Open the next one` and `{n} more ready`, opening the next ready crate in the ready pill's order (E296).
