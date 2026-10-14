@@ -1,0 +1,10 @@
+     × shows the HedgehogHeart at 34 px in a link home named HedgeHug, home for a member 980ms
+     × shows the HedgehogHeart at 34 px in a link home named HedgeHug, home for a signed-out visitor 174ms
+     × the sign-in page leads with the HedgehogHeart, then HedgeHug and Thanks a Hog, as its one hedgehog 42ms
+     × the closed page leads with the HedgehogHeart, then HedgeHug and Thanks a Hog, as its one hedgehog 34ms
+     × serves the HedgehogHeart as its SVG favicon 1ms
+     × links the SVG favicon, a 32 px PNG fallback and a 180 px apple-touch-icon from the page's head 10ms
+     × names a theme colour for light and for dark 5ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+Error: ENOENT: no such file or directory, open '/home/coder/dev/kudos-wt/logo-favicon/website/public/favicon.svg'
+      Tests  7 failed (7)

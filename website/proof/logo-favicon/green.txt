@@ -1,0 +1,9 @@
+ ✓ |website| src/logo.test.tsx > #258: the header carries the HedgeHug logo beside the wordmark > shows the HedgehogHeart at 34 px in a link home named HedgeHug, home for a member 296ms
+ ✓ |website| src/logo.test.tsx > #258: the header carries the HedgeHug logo beside the wordmark > shows the HedgehogHeart at 34 px in a link home named HedgeHug, home for a signed-out visitor 41ms
+ ✓ |website| src/logo.test.tsx > #258: the sign-in and closed pages show the logo above HedgeHug > the sign-in page leads with the HedgehogHeart, then HedgeHug and Thanks a Hog, as its one hedgehog 51ms
+ ✓ |website| src/logo.test.tsx > #258: the sign-in and closed pages show the logo above HedgeHug > the closed page leads with the HedgehogHeart, then HedgeHug and Thanks a Hog, as its one hedgehog 34ms
+ ✓ |website| src/logo.test.tsx > #258: the website has a favicon drawn from the HedgehogHeart > serves the HedgehogHeart as its SVG favicon 1ms
+ ✓ |website| src/logo.test.tsx > #258: the website has a favicon drawn from the HedgehogHeart > links the SVG favicon, a 32 px PNG fallback and a 180 px apple-touch-icon from the page's head 8ms
+ ✓ |website| src/logo.test.tsx > #258: the website has a favicon drawn from the HedgehogHeart > names a theme colour for light and for dark 4ms
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
