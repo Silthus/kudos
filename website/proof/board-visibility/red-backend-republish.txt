@@ -1,0 +1,6 @@
+     × WS321: App Home's republish is scheduled after a change, and a second identical call changes nothing and republishes nothing 53ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected [] to have a length of 1 but got +0
+- Expected
++ Received
+      Tests  1 failed | 2 passed (3)
