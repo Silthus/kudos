@@ -3,7 +3,7 @@ import { internalMutation, internalQuery, type MutationCtx } from "../_generated
 import { kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
 import { releaseSuccessReply, type QuestDone } from "../feedback/replies";
 import { chatUserOf } from "../workspace/directory";
-import { questsApplyIn } from "./flag";
+import { questsApplyIn, questsLiveIn } from "./flag";
 import { advanceJourney, finishFirstQuestOnWeeklyFinished, journey, journeyOf, type JourneyStepFacts } from "./journey";
 import { advanceWeeklyQuests, weeklyQuestsOf, type WeeklyQuests } from "./weekly";
 
@@ -21,7 +21,7 @@ export const questsOf = internalQuery({
 export const followKudosGiven = internalMutation({
   args: { event: kudosGivenEventValidator },
   handler: async (ctx, { event }) => {
-    const questsDone = (await questsApplyIn(ctx, event.workspace)) ? await questsFinishedBy(ctx, event) : [];
+    const questsDone = (await questsLiveIn(ctx, event.workspace)) ? await questsFinishedBy(ctx, event) : [];
     await releaseSuccessReply(ctx, event.message, questsDone);
   },
 });

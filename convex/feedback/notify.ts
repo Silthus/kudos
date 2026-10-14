@@ -25,6 +25,7 @@ export const notificationValidator = v.union(
   }),
   v.object({ kind: v.literal("features-shipped"), ready: v.array(featureValidator) }),
   v.object({ kind: v.literal("quest-finished"), quest: journeyQuestValidator, xp: v.number() }),
+  v.object({ kind: v.literal("journey-joined"), finished: v.array(v.object({ quest: journeyQuestValidator, xp: v.number() })) }),
   v.object({ kind: v.literal("weekly-quest-finished"), quest: weeklyQuestValidator, goal: v.string(), xp: v.number() }),
 );
 
@@ -45,6 +46,10 @@ export async function notifyFeaturesShipped(ctx: MutationCtx, member: MemberId, 
 
 export async function notifyQuestFinished(ctx: MutationCtx, member: MemberId, quest: JourneyQuest, xp: number) {
   await notify(ctx, member, { kind: "quest-finished", quest, xp });
+}
+
+export async function notifyJourneyJoined(ctx: MutationCtx, member: MemberId, finished: Array<{ quest: JourneyQuest; xp: number }>) {
+  await notify(ctx, member, { kind: "journey-joined", finished });
 }
 
 export async function notifyWeeklyQuestFinished(ctx: MutationCtx, member: MemberId, quest: WeeklyQuest, goal: string, xp: number) {
@@ -70,6 +75,7 @@ export const linesStillWanted = internalQuery({
 
 export function renderNotification(notification: Notification): NotificationLine[] {
   if (notification.kind === "quest-finished") return [finishedQuestCrateOf(notification.quest, notification.xp)];
+  if (notification.kind === "journey-joined") return notification.finished.map(({ quest, xp }) => finishedQuestCrateOf(quest, xp));
   if (notification.kind === "weekly-quest-finished") return [finishedWeeklyQuestCrateOf(notification.quest, notification.goal, notification.xp)];
   const crates = notification.ready.map((feature) => readyCrateOf(scheduled(feature)));
   return notification.kind === "level-reached" ? [...levelReachedLines(notification), ...crates] : crates;
@@ -90,8 +96,8 @@ async function stillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, n
   return { ...notification, ready, skillPoints: await whenOpened(ctx, member, "skillTree", notification.skillPoints) };
 }
 
-function isAboutQuests(notification: Notification): notification is Extract<Notification, { kind: "quest-finished" | "weekly-quest-finished" }> {
-  return notification.kind === "quest-finished" || notification.kind === "weekly-quest-finished";
+function isAboutQuests(notification: Notification): notification is Extract<Notification, { kind: "quest-finished" | "journey-joined" | "weekly-quest-finished" }> {
+  return notification.kind === "quest-finished" || notification.kind === "journey-joined" || notification.kind === "weekly-quest-finished";
 }
 
 function featuresOf(ready: ScheduledFeature[]) {

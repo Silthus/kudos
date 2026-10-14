@@ -9,7 +9,6 @@ import { publish } from "../bus/publish";
 import schema from "../schema";
 import type { MemberId } from "../workspace/directory";
 import { openQuestCrate } from "./crates";
-import { advanceJourney, journey } from "./journey";
 
 vi.mock("../bus/publish", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../bus/publish")>();
@@ -100,7 +99,7 @@ async function withFinishedFirstThanks() {
   ]);
   await unlocksShippedBeforeAnyoneJoined(t);
   const event = await t.run((ctx) => kudosGivenEventWithAward(ctx, alice!, bob!, { annotations: saysWhy }));
-  await t.run((ctx) => advanceJourney(ctx, event, journey));
+  await t.mutation(internal.quests.quests.followKudosGiven, { event });
   return { t, alice: alice!, bob: bob! };
 }
 

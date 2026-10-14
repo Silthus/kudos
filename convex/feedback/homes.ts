@@ -7,7 +7,7 @@ import type { Period } from "../leaderboard/periods";
 import { everyoneBoardOf, type EveryoneBoardView } from "../leaderboard/totals";
 import { isOnTheBoards } from "../leaderboard/visibility";
 import { progressionHomeOf, type ProgressionHome } from "../progression/progression";
-import { questsApplyIn } from "../quests/flag";
+import { questsLiveIn } from "../quests/flag";
 import { activeJourneyOf, type JourneyStepFacts } from "../quests/journey";
 import { thisWeeksQuestsOf, type WeeklyQuests } from "../quests/weekly";
 import { progressSettingsOf, type ProgressSettings } from "../progression/settings";
@@ -103,7 +103,7 @@ async function slicesShownTo(ctx: MutationCtx, workspace: string, person: HomeMe
   const board = await isEveryoneBoardShownTo(ctx, workspace, person.member);
   const xp = await xpLevelsShownTo(ctx, person.member);
   const unlocks = await unlocksShownTo(ctx, person.member);
-  const quests = await questsApplyIn(ctx, workspace);
+  const quests = await questsLiveIn(ctx, workspace);
   return { board, leaderboard: board && (await isLeaderboardOpenTo(ctx, person.member, unlocks)), xp, unlocks, quests, admin: person.admin };
 }
 

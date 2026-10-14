@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { kudosGivenEventWithAward } from "../../testing/busEvents";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { flagsLoaded, flagsOnForEveryone, journeyShippedBeforeAnyoneJoined, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { internal } from "../_generated/api";
 import type { DomainEvent, KudosGivenEvent } from "../bus/events";
@@ -134,13 +134,15 @@ describe("the slice applies only where quests, xp-levels and unlocks all apply",
 });
 
 async function withMembers() {
-  const members = await withMembersBeforeUnlocksLaunched();
-  await unlocksShippedBeforeAnyoneJoined(members.t);
-  return members;
+  const t = await journeyShippedBeforeAnyoneJoined(await flagsLoaded(testBackend()));
+  return membersOf(t);
 }
 
 async function withMembersBeforeUnlocksLaunched() {
-  const t = await flagsLoaded(testBackend());
+  return membersOf(await flagsLoaded(testBackend()));
+}
+
+async function membersOf(t: Backend) {
   const [alice, bob] = await t.run(async (ctx) => [
     await ctx.db.insert("members", { workspace: "T1", user: "U_ALICE", kind: "member" }),
     await ctx.db.insert("members", { workspace: "T1", user: "U_BOB", kind: "member" }),
