@@ -162,7 +162,16 @@ async function bobsSideOf(definitions: FlagDefinition[]) {
   await openHome(t, "U_BOB");
   const reply = await commandReply(t, "U_BOB", "leaderboard");
   await settle(t);
-  return { reply, calls: slack.calls.filter((call) => !isAbout(call, "U_ALICE")) };
+  return { reply, calls: perConversation(slack.calls.filter((call) => !isAbout(call, "U_ALICE"))) };
+}
+
+function perConversation(calls: SlackCall[]) {
+  const conversations = new Map<string, SlackCall[]>();
+  for (const call of calls) {
+    const conversation = String(call.args.channel ?? `${call.method} ${call.args.user_id ?? call.args.user ?? ""}`);
+    conversations.set(conversation, [...(conversations.get(conversation) ?? []), call]);
+  }
+  return Object.fromEntries(conversations);
 }
 
 function isAbout({ args }: SlackCall, user: string) {
