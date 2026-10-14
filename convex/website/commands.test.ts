@@ -3,7 +3,7 @@ import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { memberChanged, settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { publishedHome } from "../../testing/slackInteractions";
+import { buttonInHome } from "../../testing/slackInteractions";
 import { opens, reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aMember, aSession, switchWebsite } from "../../testing/website";
 import { api, components, internal } from "../_generated/api";
@@ -84,6 +84,11 @@ function scheduledFunctions(backend: Backend = t) {
 
 async function everythingWritten(backend: Backend = t) {
   return { tables: await everyTable(backend), scheduled: await scheduledFunctions(backend) };
+}
+
+function newScheduledFunctions(before: Array<{ _id: string }>, after: Array<{ _id: string; name: string }>) {
+  const earlier = new Set(before.map(({ _id }) => _id));
+  return after.filter(({ _id }) => !earlier.has(_id));
 }
 
 function publishedEvents() {
@@ -214,11 +219,16 @@ describe("a website command is a D17 command", () => {
   test("WS62: App Home's republished view no longer offers the Leaderboard's crate", async () => {
     await launchedThen(...allFlags);
     const { asSignedIn } = await aReadyMember();
+    await settle(t);
+    expect(buttonInHome(slack, juno.user, "Open")).toBeDefined();
+    const publishedBefore = slack.callsTo("views.publish").length;
 
     await openFeature(asSignedIn);
     await settle(t);
 
-    expect(publishedHome(slack, juno.user).join("\n")).not.toMatch(/Open/);
+    expect(slack.callsTo("views.publish").length).toBeGreaterThan(publishedBefore);
+
+    expect(() => buttonInHome(slack, juno.user, "Open")).toThrow(/no Open button/);
   });
 
   test("WS63: a doubled open opens once and answers opened again, keeping the first time", async () => {
@@ -234,23 +244,40 @@ describe("a website command is a D17 command", () => {
 
   type Refusal = { condition: string; arrange: () => Promise<{ asSignedIn: Pick<Backend, "mutation"> }>; feature?: Feature };
 
-  const refusals: Refusal[] = [
+  const refusedByUnlocks: Refusal[] = [
     { condition: "a Leaderboard still locked at level 1", arrange: async () => (await launchedThen(...allFlags), signedInMember()) },
     { condition: "a Skill tree that hasn't shipped, for a member past level 5", feature: "skillTree", arrange: async () => (await launchedThen(...allFlags), withLevel(5)) },
+  ];
+
+  test.each(refusedByUnlocks)("WS62: $condition answers refused, publishes nothing and writes only the exposure Slack's click sends", async ({ arrange, feature }) => {
+    const { asSignedIn } = await arrange();
+    const before = await everythingWritten();
+    vi.mocked(publish).mockClear();
+
+    expect(await openFeature(asSignedIn, feature)).toEqual({ kind: "refused" });
+
+    const after = await everythingWritten();
+    expect(withoutExposures(after.tables)).toEqual(withoutExposures(before.tables));
+    expect(newScheduledFunctions(before.scheduled, after.scheduled).filter(({ name }) => !name.startsWith("analytics/"))).toEqual([]);
+    expect(publishedEvents()).toEqual([]);
+  });
+
+  const refusedByTheGate: Refusal[] = [
     { condition: "a ready Leaderboard with unlocks switched off after the launch", arrange: async () => (await launchedThen("everyone-board", "xp-levels"), withLevel(3)) },
     { condition: "a ready Leaderboard with xp-levels switched off after the launch", arrange: async () => (await launchedThen("everyone-board", "unlocks"), withLevel(3)) },
     { condition: "an open Leaderboard with unlocks switched off after the launch", arrange: () => openedThen("everyone-board", "xp-levels") },
     { condition: "an open Leaderboard with xp-levels switched off after the launch", arrange: () => openedThen("everyone-board", "unlocks") },
   ];
 
-  test.each(refusals)("WS62: $condition answers refused and changes no domain table", async ({ arrange, feature }) => {
+  test.each(refusedByTheGate)("WS62: $condition answers refused before any command and writes nothing at all", async ({ arrange }) => {
     const { asSignedIn } = await arrange();
-    const before = await everyTable();
+    const before = await everythingWritten();
     vi.mocked(publish).mockClear();
 
-    expect(await openFeature(asSignedIn, feature)).toEqual({ kind: "refused" });
-    expect(withoutExposures(await everyTable())).toEqual(withoutExposures(before));
-    expect(publishedEvents().filter(({ type }) => type === "unlockOpened")).toEqual([]);
+    expect(await openFeature(asSignedIn)).toEqual({ kind: "refused" });
+
+    expect(await everythingWritten()).toEqual(before);
+    expect(publishedEvents()).toEqual([]);
   });
 
   test("WS62 WS63: an already open Leaderboard answers opened and changes no domain table", async () => {
@@ -288,13 +315,14 @@ describe("opening on the website grants nothing", () => {
     const { member, asSignedIn } = await aReadyMember();
     await t.run((ctx) => ctx.db.insert("memberProgress", { member, xp: 320, pointsSpent: 0 }));
     const before = await everyTable();
+    vi.mocked(publish).mockClear();
 
     await openFeature(asSignedIn);
 
     const after = await everyTable();
     expect(withoutExposures({ ...after, unlocks: [] })).toEqual(withoutExposures({ ...before, unlocks: [] }));
     expect(after.unlocks).toEqual(before.unlocks.map((row) => ({ ...row, openedAt: now.getTime() })));
-    expect(publishedEvents().filter(({ type }) => type !== "unlockReady")).toEqual([{ type: "unlockOpened", workspace: "T1", member, feature: "leaderboard", at: now.getTime() }]);
+    expect(publishedEvents()).toEqual([{ type: "unlockOpened", workspace: "T1", member, feature: "leaderboard", at: now.getTime() }]);
   });
 });
 

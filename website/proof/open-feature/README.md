@@ -30,7 +30,7 @@ The site has no `Open` button yet: #145 adds the crate and calls this command fr
 ## Tests
 
 - [red-convex.txt](red-convex.txt): `convex/website/commands.test.ts` and `convex/publicSurface.test.ts` on the tree before the change: 22 of 22 fail, `openFeature` is missing.
-- [green.txt](green.txt): the same files on the landed tree, verbose, none skipped.
+- [green.txt](green.txt): the same files on the landed tree, verbose, none skipped (21 commands tests after the review split the refusals, plus the surface test).
 - The gate: [gate.txt](gate.txt).
 - Coherence, in `convex/website/WebsiteReads.spec.md`, each refuted, restored and green batched and alone:
   - *website commands pass one guard*, refuted by reading the website flag through the seam's writing path: the call with a flags key but no workspace key made a key and answered `refused` instead of `closed`;
@@ -40,4 +40,4 @@ The site has no `Open` button yet: #145 adds the crate and calls this command fr
 
 ## Review
 
-One read-only GPT-6.1 Sol (high) review over the diff, with the spec as the oracle: [review-gpt-6.1-sol.txt](review-gpt-6.1-sol.txt).
+One read-only GPT-6.1 Sol (high) review over the diff, with the spec as the oracle: [review-gpt-6.1-sol.txt](review-gpt-6.1-sol.txt). No blocker or major; it agreed an already open feature answers `opened`. Its three minor test findings are fixed.

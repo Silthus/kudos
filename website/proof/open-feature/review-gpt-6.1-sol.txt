@@ -1,0 +1,15 @@
+No blocker or major findings. Implementation follows WS61–WS64; already-open returning `opened` with the gate on is correct. No nits.
+
+1. **Minor — [convex/website/commands.test.ts:252](convex/website/commands.test.ts:252): Refusal assertions exclude too much.** They erase all analytics changes, check only `unlockOpened`, and ignore scheduled functions. An unrelated event, analytics write, or scheduled job could pass. **Fix:** assert no command-time domain events, validate only permitted exposure effects, and compare `everythingWritten()` unchanged for gate failures.
+
+2. **Minor — [convex/website/commands.test.ts:297](convex/website/commands.test.ts:297): The P92 witness hides unexpected events.** Filtering out every `unlockReady` also hides one incorrectly emitted during opening, contradicting the assertion that opening publishes only `unlockOpened`. **Fix:** clear the event spy after setup and compare the complete event list with the single expected event.
+
+3. **Minor — [convex/website/commands.test.ts:214](convex/website/commands.test.ts:214): The republished-view assertion can pass using setup’s refresh.** `aReadyMember()` already schedules App Home publication; settling after opening can render the updated state through that earlier job. The separate schedule-count test helps, but this assertion doesn’t prove a fresh republish. **Fix:** settle and verify the ready crate first, then open and verify a newly published view without it.
+
+No files edited. Runtime verification was blocked because Vitest required a temporary directory forbidden by the read-only sandbox.
+
+---
+Resolution (ticket #144's worker):
+1. Fixed. Refusals split in two: a refusal by Unlocks (locked, unshipped) publishes no event and changes nothing besides the exposure tables and analytics jobs; a refusal by WS55's gate writes nothing at all, read through every table and every scheduled function, and publishes nothing.
+2. Fixed. The P92 test clears the event spy after setup and compares the complete event list with the one unlockOpened.
+3. Fixed. The republish test settles first, sees App Home's Open button, then opens, sees a new views.publish and no Open button.
