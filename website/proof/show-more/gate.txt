@@ -1,0 +1,6 @@
+pnpm gate on 7c837c2 (website/show-more), run through fleet heavy
+ Test Files  132 passed (132)
+      Tests  2097 passed (2097)
+ADVISORY       184 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 65, receipt 30, contract 22, zone 15, promise 11; reported, never failing, since inside the project its sense wins (--json lists each)
+0 rejected names, 0 unknown nouns (558 files), 17 in records
+exit 0
