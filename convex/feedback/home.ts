@@ -2,6 +2,8 @@ import type { LadderFacts } from "../achievements/achievements";
 import { countsOf, ladderOf, tierOf, type TierId, type TierRef } from "../achievements/ladders";
 import type { Command } from "../commands/commands";
 import type { HomeFacts, KudosHome } from "../engine/home";
+import type { GroupChoice } from "../groups/pick";
+import type { GroupId, GroupRef } from "../groups/groups";
 import type { Period } from "../leaderboard/periods";
 import { skillTreeLevel } from "../progression/levels";
 import { ownsEveryPerk, type MemberPerks } from "../progression/perks";
@@ -21,6 +23,7 @@ import type { UnlocksHome } from "../unlocks/unlocks";
 import type { FrontDoorLinks } from "../website/link";
 import { questCratePageOf, readyCratePageOf, urlOf, type Page } from "../website/routes";
 import type { HomeTab, ShownHome, ShownTab, ToldProgression } from "./homes";
+import { countsFor, pickQuestion } from "./groupCopy";
 import { renderEveryoneBoard } from "./leaderboard";
 import { openTheWebsite, productName, skillPointsOf, slashCommand } from "./naming";
 import type { Line } from "./segments";
@@ -46,6 +49,7 @@ export type HomeLine =
   | { kind: "lines"; lines: Line[] }
   | { kind: "action"; text: string; action: HomeAction }
   | { kind: "pick-channel"; text: string; picked: string | null; picks: Extract<Command, { channel: unknown }>["type"] }
+  | { kind: "pick-group"; text: string; groups: GroupRef[]; picked: GroupId }
   | { kind: "link"; label: string; url: string }
   | { kind: "links"; links: Array<{ label: string; url: string }> };
 
@@ -251,11 +255,17 @@ export function whyNotOf({ state, row, requires, skillPoints }: Perk & { state: 
   }
 }
 
-function settingsGroups({ onTheBoards, progress, achievements }: Extract<ShownTab, { tab: "settings" }>): HomeLine[][] {
+function settingsGroups({ onTheBoards, progress, achievements, groups }: Extract<ShownTab, { tab: "settings" }>): HomeLine[][] {
   const leaderboard = onTheBoards === null ? [] : [leaderboardSwitch(onTheBoards)];
+  const primaryGroup = groups === null ? [] : [[primaryGroupSetting(groups)]];
   const copy = settingCopyOf(achievements);
   const progression = progress === null ? [] : [[setting(copy, progress, "muteNotices"), setting(copy, progress, "dms")]];
-  return [...leaderboard, ...progression];
+  return [...leaderboard, ...primaryGroup, ...progression];
+}
+
+function primaryGroupSetting({ primary, groups }: GroupChoice): HomeLine {
+  if (groups.length === 1) return { kind: "text", text: countsFor(primary) };
+  return { kind: "pick-group", text: pickQuestion, groups, picked: primary.group };
 }
 
 function leaderboardSwitch(onTheBoards: boolean): HomeLine[] {

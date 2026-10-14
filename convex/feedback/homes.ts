@@ -4,6 +4,8 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { bookFactsOf, type AchievementFacts } from "../achievements/achievements";
 import { achievementsApplyIn, achievementsShownTo } from "../achievements/flag";
 import { xpRecordedEventValidator } from "../bus/events";
+import { groupsShownTo } from "../groups/groups";
+import { groupChoiceOf, type GroupChoice } from "../groups/pick";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import type { Period } from "../leaderboard/periods";
 import { everyoneBoardOf, type EveryoneBoardView } from "../leaderboard/totals";
@@ -31,7 +33,7 @@ export type ShownTab =
   | { tab: "leaderboard"; period: Period; board: EveryoneBoardView }
   | { tab: "book"; book: AchievementFacts; timeZone: string | undefined }
   | { tab: "skillTree"; perks: MemberPerks }
-  | { tab: "settings"; onTheBoards: boolean | null; progress: ProgressSettings | null; achievements: boolean }
+  | { tab: "settings"; onTheBoards: boolean | null; progress: ProgressSettings | null; achievements: boolean; groups: GroupChoice | null }
   | { tab: "admin"; announcementChannel: string | null; achievements: boolean };
 
 export type ShownHome = { tabs: HomeTab[]; shown: ShownTab };
@@ -158,6 +160,7 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
         onTheBoards: slices.board ? await isOnTheBoards(ctx, viewer.member) : null,
         progress: slices.xp ? await progressSettingsOf(ctx, viewer.member) : null,
         achievements: await achievementsApplyIn(ctx, viewer.workspace),
+        groups: (await groupsShownTo(ctx, viewer.member)) ? await groupChoiceOf(ctx, viewer.member) : null,
       };
     case "admin":
       return { tab, announcementChannel: (await settingsOf(ctx, viewer.workspace)).announcementChannel, achievements: await achievementsApplyIn(ctx, viewer.workspace) };

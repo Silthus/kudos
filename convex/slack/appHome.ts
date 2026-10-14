@@ -11,6 +11,7 @@ import { lookup } from "../workspace/directory";
 import { buttonOf, mrkdwn, plainText, urlButtonOf } from "./blocks";
 import { attemptArgs, failedAttempt, sendOnce, slackTextOf, tryAtMostThreeTimes } from "./delivery";
 import { lookUpUser, refreshUser } from "./directory";
+import { groupSelectOf } from "./groupPicker";
 
 export type HomeOpened = { type: "app_home_opened"; user: string; tab: "home" | "messages" };
 
@@ -109,6 +110,8 @@ function homeView({ tabBar, title, groups }: HomeView) {
 
 const divider = { type: "divider" };
 
+const settingsPick = JSON.stringify({ type: "pickPrimaryGroup", surface: "settings" });
+
 function blockOf(line: HomeLine) {
   if (line.kind === "fields") return { type: "section", fields: line.fields.map(mrkdwn) };
   if (line.kind === "choices") return buttonsOf(line.choices);
@@ -116,6 +119,7 @@ function blockOf(line: HomeLine) {
   if (line.kind === "hint") return { type: "context", elements: [mrkdwn(line.text)] };
   if (line.kind === "action") return { type: "section", text: mrkdwn(line.text), accessory: buttonOf(line.action) };
   if (line.kind === "pick-channel") return { type: "section", text: mrkdwn(line.text), accessory: channelPickerOf(line) };
+  if (line.kind === "pick-group") return { type: "section", text: mrkdwn(line.text), accessory: groupSelectOf(settingsPick, line.groups, line.picked) };
   if (line.kind === "link") return { type: "section", text: mrkdwn(`<${line.url}|${line.label}>`) };
   if (line.kind === "links") return { type: "actions", elements: line.links.map(linkButtonOf) };
   return { type: "section", text: mrkdwn(line.text) };

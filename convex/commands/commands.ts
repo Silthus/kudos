@@ -1,7 +1,9 @@
 import { v, type GenericValidator, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
-import { reportLeaderboardViewed, reportLeaderboardVisibilityChanged } from "../analytics/isolatedUsage";
+import { pickSurfaceValidator, reportLeaderboardViewed, reportLeaderboardVisibilityChanged, reportPrimaryGroupPicked } from "../analytics/isolatedUsage";
+import { groupsShownTo } from "../groups/groups";
+import { pickPrimaryGroup } from "../groups/pick";
 import { homeTabValidator, isLeaderboardShownTo, selectLeaderboardPeriod, showHomeTab, type HomeMember } from "../feedback/homes";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import { periodValidator, type Period } from "../leaderboard/periods";
@@ -29,6 +31,7 @@ export const commandValidator = v.union(
   v.object({ type: v.literal("openQuestCrate"), quest: questValidator }),
   v.object({ type: v.literal("rerollQuest"), quest: weeklyQuestValidator }),
   v.object({ type: v.literal("buyPerk"), perk: perkValidator }),
+  v.object({ type: v.literal("pickPrimaryGroup"), group: v.id("userGroups"), surface: pickSurfaceValidator }),
 );
 
 export type Command = Infer<typeof commandValidator>;
@@ -76,6 +79,10 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       await showHomeTab(ctx, workspace, person, "skillTree");
       return outcome;
     }
+    case "pickPrimaryGroup":
+      if (!(await groupsShownTo(ctx, member))) return null;
+      if ((await pickPrimaryGroup(ctx, member, command.group)) === "picked") await reportPrimaryGroupPicked(ctx, { workspace, member, surface: command.surface, at: Date.now() });
+      return null;
   }
 }
 
@@ -94,6 +101,7 @@ function conforms(validator: GenericValidator, value: unknown): boolean {
     case "boolean":
       return typeof value === "boolean";
     case "string":
+    case "id":
       return typeof value === "string";
     case "float64":
       return typeof value === "number";

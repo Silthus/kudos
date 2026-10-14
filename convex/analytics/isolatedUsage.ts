@@ -46,3 +46,25 @@ export const recordLeaderboardVisibilityChanged = internalMutation({
     await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "leaderboardVisibilityChanged", ...change }));
   },
 });
+
+export const pickSurfaceValidator = v.union(v.literal("welcome"), v.literal("settings"));
+
+const primaryGroupPickValidator = v.object({
+  workspace: v.string(),
+  member: v.id("members"),
+  surface: pickSurfaceValidator,
+  at: v.number(),
+});
+
+export type PrimaryGroupPick = Infer<typeof primaryGroupPickValidator>;
+
+export async function reportPrimaryGroupPicked(ctx: MutationCtx, pick: PrimaryGroupPick) {
+  await ctx.scheduler.runAfter(0, internal.analytics.isolatedUsage.recordPrimaryGroupPicked, pick);
+}
+
+export const recordPrimaryGroupPicked = internalMutation({
+  args: primaryGroupPickValidator,
+  handler: async (ctx, pick): Promise<void> => {
+    await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "primaryGroupPicked", ...pick }));
+  },
+});
