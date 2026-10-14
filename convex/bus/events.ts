@@ -1,6 +1,7 @@
 import { v, type Infer } from "convex/values";
 import { awardIdValidator } from "../engine/awards";
 import { annotationsValidator, messageRefValidator } from "../engine/messageEvent";
+import { questIdValidator } from "../quests/pool";
 import { questValidator } from "../quests/step";
 import { featureValidator } from "../unlocks/feature";
 import type { MemberId } from "../workspace/directory";
@@ -94,6 +95,16 @@ export const questFinishedEventValidator = v.object({ type: v.literal("questFini
 
 export const questOpenedEventValidator = v.object({ type: v.literal("questOpened"), ...questFields });
 
+const weekFields = { workspace: v.string(), member: v.id("members"), week: v.string(), at: v.number() };
+
+export const questsDrawnEventValidator = v.object({ type: v.literal("questsDrawn"), ...weekFields, quests: v.array(questIdValidator) });
+
+export const questSwappedEventValidator = v.object({ type: v.literal("questSwapped"), ...weekFields, replaced: questIdValidator, swappedIn: questIdValidator });
+
+export type QuestsDrawnEvent = Infer<typeof questsDrawnEventValidator>;
+
+export type QuestSwappedEvent = Infer<typeof questSwappedEventValidator>;
+
 const membershipFields = { workspace: v.string(), member: v.id("members"), at: v.number() };
 
 export const memberLeftEventValidator = v.object({ type: v.literal("memberLeft"), ...membershipFields });
@@ -118,6 +129,8 @@ export type DomainEvent =
   | UnlockOpenedEvent
   | QuestFinishedEvent
   | QuestOpenedEvent
+  | QuestsDrawnEvent
+  | QuestSwappedEvent
   | MemberLeftEvent
   | MemberRejoinedEvent;
 

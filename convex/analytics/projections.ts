@@ -1,5 +1,5 @@
 import { v, type Infer } from "convex/values";
-import type { AttemptFailedEvent, KudosGivenEvent, LevelReachedEvent, MemberWelcomedEvent } from "../bus/events";
+import type { AttemptFailedEvent, KudosGivenEvent, LevelReachedEvent, MemberWelcomedEvent, QuestsDrawnEvent, QuestSwappedEvent } from "../bus/events";
 import type { Award } from "../engine/awards";
 import type { KudosCommandResult } from "../feedback/kudosCommand";
 import { defaultKudosEmoji } from "../workspace/settings";
@@ -16,6 +16,8 @@ export type ProductEvent = {
     | "attempt failed"
     | "member welcomed"
     | "level reached"
+    | "quest drawn"
+    | "quest swapped"
     | "app home opened"
     | "command used"
     | "$feature_flag_called";
@@ -99,6 +101,14 @@ export function projectLevelReached(event: LevelReachedEvent): ProductEvent {
     at: event.at,
     properties: { level: event.level, skill_points_gained: event.skillPointsGained, via: event.message === undefined ? "reward" : "kudos" },
   };
+}
+
+export function projectQuestsDrawn(event: QuestsDrawnEvent): ProductEvent[] {
+  return event.quests.map((quest) => ({ event: "quest drawn", subject: { member: event.member }, at: event.at, properties: { quest } }));
+}
+
+export function projectQuestSwapped(event: QuestSwappedEvent): ProductEvent {
+  return { event: "quest swapped", subject: { member: event.member }, at: event.at, properties: { replaced: event.replaced, quest: event.swappedIn } };
 }
 
 export function projectUsage(fact: UsageFact): ProductEvent {
