@@ -21,7 +21,7 @@ function heartDrawing() {
   return holder.querySelector("svg")?.innerHTML;
 }
 
-function isTheHeart(svg: SVGElement | null) {
+function isTheHeart(svg: Element | null) {
   return svg !== null && svg.innerHTML === heartDrawing();
 }
 
@@ -67,9 +67,9 @@ describe("#258: the sign-in and closed pages show the logo above HedgeHug", () =
     const main = screen.getByRole("main");
     const hedgehogs = main.querySelectorAll("svg:not(button svg)");
     expect(hedgehogs).toHaveLength(1);
-    expect(isTheHeart(hedgehogs[0])).toBe(true);
-    const wordmark = within(main).getByText("HedgeHug");
-    expect(hedgehogs[0].compareDocumentPosition(wordmark) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const logo = hedgehogs.item(0);
+    expect(isTheHeart(logo)).toBe(true);
+    expect(logo.compareDocumentPosition(within(main).getByText("HedgeHug"))).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(within(main).getByText("Thanks a Hog")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(title);
   });
