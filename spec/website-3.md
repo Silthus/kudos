@@ -181,7 +181,7 @@ Rules continue the second slice's numbering, from `WS55`.
   - **Not on this page:** no swap control, no group quest and no bonus quest.
   - **Updates:** the page is reactive and turns over to the new week on the first clock tick after the member's local Monday midnight (WS15).
 - **WS74. Opening a quest crate.** `openQuestCrate({ quest })` in `convex/website/commands.ts` is built on `memberMutation`.
-  - **The gate first.** It checks `questsApplyIn` (query-safe, and it implies WS55's gate). If that fails, it answers `refused` without calling D17.
+  - **The gate first.** It checks `questsApplyIn` (query-safe, and it implies WS55's gate) and that the Journey's launch is recorded (`journeyShippedAt` isn't null). If either fails, it answers `refused` without calling D17, so a website call never records the Journey's launch or schedules its join (P91 stays Slack's). `openFeature({ feature: "quests" })` makes the same check before WS62's command, because opening Quests publishes `unlockOpened`, whose subscribers would otherwise record the launch.
   - **The command.** It then calls D17's `runCommand` with `{ type: "openQuestCrate", quest }`. It answers `opened` only when the gate passed and the quests module's crate opening for that quest exists afterwards, and `refused` otherwise. After `opened` it calls `republish`, as WS62 does.
   - **Validation.** `quest` is validated by the quests module's `questValidator`.
   - **Who decides.** The quests module alone decides, and opening writes only a crate opening (P85, P92), besides WS62's permitted exposure and republish.
