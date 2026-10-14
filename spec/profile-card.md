@@ -16,7 +16,7 @@ A member who gets a kudos from a colleague, or sees a name on the leaderboard, h
 
 - **The card.** The member's name, `Level {n}`, and their best four achievement tiers as medals. It never shows coins, perks, XP, kudos counts, quests or stickers. It is read live, and nothing is stored for it.
 - **What has shipped, not who has unlocked what.** Teammates see a level once XP and levels have shipped, and medals once the Book has shipped, whatever anyone's unlocks. The one exception is a member's own card: its medals wait until that member has opened the Book (P76).
-- **Slack.** `/hedgehug @member` (and the `/kudos` alias) answers with the card as a private reply. It also answers a person who isn't a member, and it shows usage help for anything that isn't exactly one person mention.
+- **Slack.** `/hedgehug @member` answers with the card as a private reply. It also answers a person who isn't a member, and it shows usage help for anything that isn't exactly one person mention.
 - **The website.** One read, `getProfileCard`, answers the signed-in member's own card in the same shape. The website renders it in "What teammates see" (WS343, #284).
 - **Behind `profile-card`.** A new flag that starts sandbox-only plus Michael's email (decision 18). While it is off, `/hedgehug @member` behaves exactly as today and the read answers `not-found`.
 - **It grows.** Groups (#52) add the primary group and hedgehogs (#96) add the avatar image, each as an addition to the same read and the same reply.
@@ -33,7 +33,7 @@ A member who gets a kudos from a colleague, or sees a name on the leaderboard, h
 7. As a member, I want each medal to name its tier, so that I know what "💎" stands for.
 8. As a member, I want to look up my own card, so that I can see what my teammates see of me.
 9. As a member who mistypes, I want a short usage line when I mention two people or a group, so that I learn the command's form.
-10. As a member, I want `/hedgehug @someone` for a bot or a guest to say they aren't an active member, so that I'm not left wondering.
+10. As a member, I want `/hedgehug @someone` for a bot, a deactivated person or someone from another workspace to say they aren't an active member, so that I'm not left wondering.
 11. As a member, I want a card for a colleague who has never used HedgeHug, so that the command works for everyone in the workspace.
 12. As a member, I want `/hedgehug` alone and `/hedgehug leaderboard` to keep working as before, so that the new form changes nothing I already use.
 13. As a member whose colleague has earned nothing yet, I want their card to show just their name and level, so that an empty card doesn't look broken.
@@ -58,13 +58,13 @@ A member who gets a kudos from a colleague, or sees a name on the leaderboard, h
 
 ### The command
 
-- **PC1. The card command.** When the text of the slash command (`/hedgehug`, or its `/kudos` alias) is exactly one person mention, it replies privately with that person's profile card. A member can show their own card.
+- **PC1. The card command.** When the text of the slash command `/hedgehug` is exactly one person mention, it replies privately with that person's profile card. A member can show their own card.
 - **PC2. Reading the text.** The manifest escapes the command's text (`should_escape`), so a person mention arrives as `<@U…>` or `<@U…|label>`. A user group (`<!subteam^…>`), a broadcast (`<!here>`, `<!channel>`, `<!everyone>`) or a channel (`<#C…>`) is not a person mention. The card command applies only when the text's first word is a mention of any kind:
   - exactly one word, a person mention: the card (PC3–PC5);
   - otherwise, when the first word is a mention: G29's usage line, ``Type `/hedgehug @someone` to see their profile card.`` (the command shown is always `/hedgehug`, as the other usage lines do);
   - text whose first word isn't a mention keeps today's behaviour: none joins the channel, `leaderboard` shows the board, and anything else joins the channel.
-- **PC3. Who the card is for.** The directory decides. A member gets their card. A bot or a person the directory records as not a member gets ``<@U…> isn't an active member of this workspace.`` (G29, with the mention as the name). A person the directory doesn't know yet is looked up in Slack first, the same way the command's usage fact looks up its viewer, at most three tries. If every try fails, the reply is ``I couldn't look up <@U…> right now. Try again in a minute.``
-- **PC4. Answering in time.** When the directory already knows the person, the command's HTTP response carries the reply. Otherwise a scheduled action looks the person up and answers through the command's `response_url`, as the channel join does today. Either way the reply is an ephemeral `response_type`.
+- **PC3. Who the card is for.** The directory decides. A member gets their card, guests included, since the directory counts any active, non-bot person of the workspace as a member. A bot or a person the directory records as not a member (deactivated, or from another workspace) gets ``<@U…> isn't an active member of this workspace.`` (G29, with the mention as the name). A person the directory doesn't know yet is looked up in Slack first, the same way the command's usage fact looks up its viewer, at most three tries, all within the reply window (PC4). If every try fails, or the next try would land after the window closes, the reply is ``I couldn't look up <@U…> right now. Try again in a minute.``
+- **PC4. Answering in time.** Slack needs the command acknowledged within 3 seconds and accepts `response_url` answers for 30 minutes. When the directory already knows the person, the command's HTTP response carries the reply, computed by one mutation (the flag decision and the card) with no other awaited work. Otherwise the HTTP response is empty and a scheduled action looks the person up and answers through the command's `response_url`, as the channel join does today. The action carries the command's arrival time; the **reply window** closes 25 minutes after it, which leaves a margin before Slack's limit, and a retry delayed by `Retry-After` past it gives up with PC3's lookup-failed line instead. Either way the reply is an ephemeral `response_type`.
 - **PC5. What Slack shows.** The reply has up to three lines, each present only when it has content:
   1. the member's name, as a bold person mention;
   2. `Level {n}` (PC7);
@@ -84,7 +84,7 @@ A member who gets a kudos from a colleague, or sees a name on the leaderboard, h
 
 - **PC11. The `profile-card` flag.** A new flag declared like the others (`safeDefault: false`). The command consults it only on PC2's mention path. It reads the member decision of the person typing the command when the directory knows them as a member, and the workspace decision otherwise. It sends the exposure once per member and value, and for a viewer the directory doesn't know yet, once they are known, the way `/hedgehug leaderboard` does. While the flag is off, the command behaves exactly as on `main`: it joins the channel and answers today's join line.
 - **PC12. Rollout.** Per decision 18, `profile-card` starts sandbox-only plus Michael's email. The ship creates it in PostHog that way and never widens it. Widening to production is Michael's call once he has tried it.
-- **PC13. Product event.** Each card shown in Slack to a member records a usage fact that projects to the product event `profile card viewed`, with properties `own` (the viewer looked up themselves) and `surface: "command"`. Recording never blocks or fails the reply. Usage lines, not-a-member replies, lookups that failed and the website read record nothing.
+- **PC13. Product event.** Each card shown in Slack to a member records a usage fact that projects to the product event `profile card viewed`, with properties `own` (the viewer looked up themselves) and `surface: "command"`. Recording is scheduled apart from the reply (as the channel join's `commandUsed` is), so it never delays or fails it: the HTTP action never awaits it. Usage lines, not-a-member replies, lookups that failed and the website read record nothing.
 - **PC14. Later parts are additions.** The groups stopping point (#52) adds the member's primary group: in Slack it joins the second line as `{group} · Level {n}` (G28), and the read gains `group: { name } | null`. The hedgehogs stopping point (#96) adds the equipped hedgehog as the card's image and `hedgehog: { id, name } | null` in the read. Neither changes an existing field. Until they ship, the fields are absent, and absent means "not shipped".
 - **PC15. The website's read.** `getProfileCard`, a public query on `memberQuery` with no arguments, answers the signed-in member's own card, with the member taken from the session and never from arguments. It answers `Denial` first, then `{ kind: "not-found" }` while `profile-card` is off for the member (the member decision, read without an exposure, as every website query reads flags), else the card:
   - `name`: the directory's display name, the same name a board row shows, else "A teammate";
@@ -124,11 +124,11 @@ type ProfileCard = {
 - **The flag**: `profileCardFlag` (`profile-card`, `safeDefault: false`) with a `isProfileCardShown` internal mutation shaped like `isEveryoneBoardShown` (member decision with exposure for a known member, workspace decision for an unknown viewer), and the deferred exposure added to the command's `exposeOnceKnown`.
 - **The Slack adapter**: the slash command handler gains PC2's parse before today's fallthrough. A known target answers in the HTTP response. An unknown target schedules an action that looks the person up with the existing `lookUpUser` and three-try policy, then answers through `response_url` (PC4).
 - **Feedback** renders the card's lines (`renderProfileCard`), the not-a-member line, the lookup-failed line and the usage line from segments, with the Book's medal emoji (PC5). The command copy lives with the other command copy.
-- **Analytics**: a `profileCardViewed` usage fact (`own`, `surface`) and its projection to `profile card viewed` (PC13), recorded without blocking, as `leaderboardViewed` is.
+- **Analytics**: a `profileCardViewed` usage fact (`own`, `surface`) and its projection to `profile card viewed` (PC13), recorded by a scheduled function, as `reportCommandUsed` does, never awaited by the HTTP action the way `leaderboardViewed` is today.
 - **The website module** adds `getProfileCard` on `memberQuery` (PC15) and declares it as an entrance in its component spec.
 - **Coherence**: a component spec for the profile card module with the invariants "a profile card shows only name, level and medals" (PC6), "a card follows what has shipped, never anyone's unlocks, except an own card's medals wait for the Book" (PC9) and "`/hedgehug @member` is today's command while `profile-card` is off" (PC11, PC17). Commands' and Slack's component specs gain the card command, and Website reads gains `getProfileCard`. The lexicon's **profile card** stays as it is. It already names name, hedgehog avatar, primary group, level and tiers, and this spec builds the parts that have shipped.
 - **No schema change.** The card stores nothing (PC10).
-- **No manifest change.** `should_escape` is already on, and the command keeps its description, so no re-paste is needed.
+- **No manifest change.** `should_escape` is already on, the manifest registers only `/hedgehug`, and the command keeps its description, so no re-paste is needed. The handler's existing `/kudos` alias flag changes nothing here: the card works for whichever registered command reaches the handler.
 
 ## Testing Decisions
 
@@ -139,7 +139,7 @@ type ProfileCard = {
   - with `achievements` off or the Book not launched, there is no medal line, and with `xp-levels` off, there is no level line;
   - two mentions, a group mention or a mention followed by words answer the usage line;
   - a bot and a not-a-member answer the not-a-member line;
-  - an unknown person is looked up and answered through `response_url`, and three failed lookups answer the lookup-failed line;
+  - an unknown person is looked up and answered through `response_url`; three failed lookups, or a `Retry-After` that would cross the reply window, answer the lookup-failed line;
   - with the flag off, `/hedgehug <@U…>` is byte-for-byte `main`'s join path, and `/hedgehug` and `/hedgehug leaderboard` are unchanged with the flag on;
   - the exposure is sent once per member and value, also for a viewer the directory learns later;
   - `profile card viewed` is captured with `own` true and false, and not for the usage or not-a-member replies.
@@ -154,6 +154,15 @@ type ProfileCard = {
 - The website's UI for the card (#284 on map #57).
 - A Slack shortcut, an App Home button or a message action that opens a card. The slash command is the one entry.
 - Changing the slash command's manifest description.
+
+## Review
+
+A GPT-6.1 Sol review (high) of `4e441bd` found 3 majors and 1 minor. All 4 were fixed here:
+
+1. **Major: the analytics pattern blocked the synchronous reply.** `leaderboardViewed` is awaited by the HTTP action. The card's usage fact is now scheduled apart from the reply (PC13).
+2. **Major: lookup retries could outlive `response_url`.** A reply window of 25 minutes now bounds the retries, with the lookup-failed line before it closes (PC3, PC4).
+3. **Major: `/kudos` isn't registered in the manifest.** The spec no longer promises the alias (PC1).
+4. **Minor: guests.** The directory counts guests as members, so they get a card. Story 10 now names bots, deactivated people and other workspaces' people (PC3).
 
 ## Further Notes
 
