@@ -18,7 +18,7 @@ export function useCountUp(value: number) {
     }
     let tick = 0;
     const counting = setInterval(() => {
-      tick += 1;
+      tick = prefersReducedMotion() ? ticks : tick + 1;
       setShown(Math.round(from + (value - from) * easeOut(tick / ticks)));
       if (tick === ticks) clearInterval(counting);
     }, tickMs);

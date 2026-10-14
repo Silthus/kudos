@@ -22,3 +22,41 @@ Feature crates flying no XP and deferring coins are sound decisions. Vitest was 
 3. **Medium, fixed.** A flight charts its reward once it starts (`moments.chart`), and the hold uses that reward from then on. Test: "keeps holding the skill point the flight set out with when more XP arrives before it lands".
 4. **Medium, rejected.** A member switch with the frame mounted needs a session swap mid-fill. Sign-out unmounts the frame, `forgetEverything` drops every flight, and the leftover is a 1.3 s fill class with nothing to break: the next member's values are already live.
 5. **Low, rejected.** The chip's accessible name is the true count. A screen reader should not hear the intermediate numbers of a visual count-up, and the hold already keeps the name at the before value until the hop lands.
+
+# Round 2
+
+Three defects remain, most severe first.
+
+1. **Medium — [rewards.ts:38](/home/coder/dev/kudos-wt/reward-flights/website/src/crates/rewards.ts:38): mixed crates double-allocate skill points.** At live XP **1,010**, with **2 skill points**, queue a Skill tree crate and a 20-XP quest crate. The feature claims both points; the quest independently claims the level-6 point.
+   
+   Feature first: its `+2` hop produces only **0 → 1**. Quest first: its `+1` hop produces **0 → 0**, then the feature produces **0 → 2**. The clamp prevents negative counts but hides the overlap.
+   
+   **Fix:** allocate disjoint rewards across the queue and preserve those allocations after earlier flights leave it.
+
+2. **Medium — [CrateRewardFlight.tsx:91](/home/coder/dev/kudos-wt/reward-flights/website/src/crates/CrateRewardFlight.tsx:91): consecutive XP flights do not replay the fill.** Two ordinary queued flights land **960 ms apart**, but `reward-filling` remains for **1,300 ms**. The second landing adds an existing class, so its 600-ms CSS animation does not restart: XP jumps to its new share. The first cleanup then removes the class 340 ms after the second landing.
+   
+   **Fix:** clear ordinary fills when their animation completes; restarting a settlement should cancel its previous cleanup. Existing tests dispatch synthetic `animationend` events and inspect classes, so they miss this failure.
+
+3. **Low — [countUp.ts:15](/home/coder/dev/kudos-wt/reward-flights/website/src/countUp.ts:15): active count-ups ignore reduced-motion changes.** During a **990 → 1,010** count-up, enable reduced motion at 120 ms. The displayed number continues **1,000 → 1,006 → 1,010** because the preference is checked only when the value changes.
+   
+   **Fix:** observe motion-preference changes, cancel the interval, and show the final value immediately.
+
+The round-1 fixes hold for the focused scenarios:
+
+- Two 20-XP crates at live XP 1,010 hold **970**, then release **990 → 1,010**, without rewinding. Only the second receives the level-up point.
+- Closing one reveal while another remains open preserves its hold through `flightsAfterClose` and transfer into `flights`.
+- Charting replaces the estimate without changing held totals. An active flight’s frozen skill point remains held when live XP increases to 1,030.
+- Reduced motion during turnover releases the hold at the 600-ms boundary with a fade. StrictMode’s double effects produced no render loop or duplicate landing.
+
+**Finding 4:** I would not retain it as material. Normal sign-out unmounts the frame; the remaining session-swap case is cosmetic. However, `forgetEverything` itself does not clear settlement classes.
+
+**Finding 5:** I accept the rejection: exposing the final available balance while visual digits interpolate is reasonable.
+
+Verified with read-only, in-memory probes of the actual modules and React components. I made no changes.
+## Outcomes
+
+1. **Medium, fixed.** The Skill tree crate gets only the points that no XP on its way earned, and every queued flight charts its reward as soon as its reveal has closed (`moments.chart`, run from `App`), so the shares never change after an earlier flight leaves. Test: `crates/rewards.test.tsx`.
+2. **Medium, fixed.** `settle` restarts its classes (remove, reflow, add) and replaces the earlier cleanup timer, so a second fill replays and lasts its full time. Test: "restarts the fill for a second reward that lands while the first one's fill still plays".
+3. **Low, fixed.** A running count-up checks the motion preference on every tick and jumps to the end. Test: "shows the hero's XP at once when reduced motion is turned on while it counts up".
+
+Round 2 confirmed the round 1 fixes and accepted the rejection of finding 5. It no longer holds finding 4 as material.

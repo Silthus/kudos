@@ -20,7 +20,7 @@ export type Moments = {
   claim(crate: ReadyCrate): void;
   reveal: Reveal | undefined;
   flight: Flight | undefined;
-  chart(reward: Reward): void;
+  chart(rewards: Reward[]): void;
   landed(kind: RewardKind): void;
   land(): void;
   finish(crate: ReadyCrate): void;
@@ -109,7 +109,10 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
 
   const changeTheFlying = useCallback((change: (flying: Flight) => Flight) => setFlights(([flying, ...queued]) => (flying === undefined ? [] : [change(flying), ...queued])), []);
 
-  const chart = useCallback((reward: Reward) => changeTheFlying((flying) => ({ ...flying, reward })), [changeTheFlying]);
+  const chart = useCallback(
+    (rewards: Reward[]) => setFlights((queued) => (queued.every(({ reward }) => reward !== undefined) ? queued : queued.map((flight, at) => ({ ...flight, reward: flight.reward ?? rewards[at] })))),
+    [],
+  );
 
   const landed = useCallback((kind: RewardKind) => changeTheFlying((flying) => ({ ...flying, landed: [...flying.landed, kind] })), [changeTheFlying]);
 

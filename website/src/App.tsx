@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useLayoutEffect, useRef } from "react";
 import { NavigateProvider } from "./AppLink";
 import { MomentAnnouncement } from "./crates/MomentAnnouncement";
 import { MomentsProvider, useCrateMoments, useMembersShown } from "./crates/moments";
@@ -54,6 +54,9 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
   const reveal = member !== undefined ? moments.reveal : undefined;
   const revealing = reveal !== undefined;
   const memberShown = member === undefined ? undefined : withTheRewardsHeld(member, moments.onTheWay);
+  const rewards = member === undefined ? [] : rewardsOf(member, moments.onTheWay);
+  const { chart } = moments;
+  useLayoutEffect(() => chart(rewards), [chart, rewards]);
   useTitleFocusAfterChange(onTheBoard ? boardPageOf(board) : onQuests ? questsPageOf(quests) : onBook ? bookPageOf(book) : onSkills ? skillTreePageOf(skillTree) : shown.kind, { held: revealing });
   useTitleFocusWhenTheFocusedElementGoes();
   const expectArrival = useTitleFocusOnArrival();
@@ -88,7 +91,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
           <RevealDialog key={reveal.crate.seen} {...reveal} chatUrl={member.chatUrl} questsOpen={questsOpen} onFinish={moments.finish} onClose={moments.close} />
         )}
         {moments.flight !== undefined && member !== undefined && memberShown !== undefined && (
-          <CrateRewardFlight key={moments.flight.crate.seen} flight={moments.flight} reward={rewardsOf(member, moments.onTheWay)[0]!} shown={memberShown} onCharted={moments.chart} onRewardLanded={moments.landed} onLanded={moments.land} />
+          <CrateRewardFlight key={moments.flight.crate.seen} flight={moments.flight} reward={rewards[0]!} shown={memberShown} onRewardLanded={moments.landed} onLanded={moments.land} />
         )}
         <MomentAnnouncement text={moments.announcement} />
       </MomentsProvider>

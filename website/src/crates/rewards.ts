@@ -10,12 +10,16 @@ export type OnTheWay = { crate: ReadyCrate; landed: RewardKind[]; reward?: Rewar
 
 export function rewardsOf(member: MemberProfile, onTheWay: OnTheWay[]): Reward[] {
   let xpLandingLater = 0;
-  const lastFirst = [...onTheWay].reverse().map((item) => {
-    const reward = item.reward ?? rewardOf(item.crate, member, xpLandingLater);
-    if (!item.landed.includes("xp")) xpLandingLater += reward.xp;
-    return reward;
-  });
-  return lastFirst.reverse();
+  const xpRewards = [...onTheWay]
+    .reverse()
+    .map((item) => {
+      const reward = item.reward ?? xpRewardOf(item.crate, member, xpLandingLater);
+      if (!item.landed.includes("xp")) xpLandingLater += reward.xp;
+      return reward;
+    })
+    .reverse();
+  const pointsEarnedOnTheWay = xpRewards.reduce((sum, { skillPoints }, at) => (onTheWay[at]!.crate.kind === "quest" ? sum + skillPoints : sum), 0);
+  return onTheWay.map(({ crate, reward }, at) => reward ?? (isTheSkillTree(crate) ? { xp: 0, skillPoints: Math.max(0, (member.skillPoints ?? 0) - pointsEarnedOnTheWay) } : xpRewards[at]!));
 }
 
 export function withTheRewardsHeld(member: MemberProfile, onTheWay: OnTheWay[]): MemberProfile {
@@ -34,8 +38,12 @@ export function crossesALevel({ xp, nextLevelAt }: Progression, reward: number) 
   return xp + reward >= nextLevelAt;
 }
 
-function rewardOf(crate: ReadyCrate, { progression, skillPoints }: MemberProfile, xpLandingLater: number): Reward {
-  if (crate.kind === "feature") return { xp: 0, skillPoints: crate.card.feature === "skillTree" ? (skillPoints ?? 0) : 0 };
+function isTheSkillTree(crate: ReadyCrate) {
+  return crate.kind === "feature" && crate.card.feature === "skillTree";
+}
+
+function xpRewardOf(crate: ReadyCrate, { progression, skillPoints }: MemberProfile, xpLandingLater: number): Reward {
+  if (crate.kind === "feature") return { xp: 0, skillPoints: 0 };
   if (progression === null || skillPoints === null) return { xp: crate.xp, skillPoints: 0 };
   const levelOnceLanded = progressionBefore(progression, xpLandingLater).level;
   const levelBefore = progressionBefore(progression, xpLandingLater + crate.xp).level;

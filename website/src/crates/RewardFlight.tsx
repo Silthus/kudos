@@ -123,9 +123,14 @@ export function RewardFlight({ source, target, amount, onArrived, onLanded }: Re
   );
 }
 
+const settling = new WeakMap<HTMLElement, ReturnType<typeof setTimeout>>();
+
 export function settle(target: HTMLElement, classes: string[], forMs = settleMs) {
+  clearTimeout(settling.get(target));
+  target.classList.remove(...classes);
+  void target.offsetWidth;
   target.classList.add(...classes);
-  setTimeout(() => target.classList.remove(...classes), forMs);
+  settling.set(target, setTimeout(() => target.classList.remove(...classes), forMs));
 }
 
 function courseOf(from: Origin | undefined, target: HTMLElement | null): Course | undefined {

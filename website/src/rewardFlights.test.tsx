@@ -225,6 +225,20 @@ describe("#354 review: the held values stay true through motion changes and late
   });
 });
 
+describe("#354 review round 2: fills restart and count-ups stop for reduced motion", () => {
+  it("shows the hero's XP at once when reduced motion is turned on while it counts up", async () => {
+    const { user } = openJourneyCrate(atLevel2);
+    await openAndClose(user, journeyCrate());
+    vi.useFakeTimers();
+    landAll(flight()!);
+    act(() => vi.advanceTimersByTime(120));
+    preferReducedMotion();
+    act(() => vi.advanceTimersByTime(40));
+
+    expect(xpBar()).toHaveAccessibleName("50 XP 10 XP to level 3");
+  });
+});
+
 describe("#354: the Skill tree crate's skill points fly onto the HUD chip", () => {
   it("shows the chip at 0 from the reveal, flies +{n} skill point from the crate onto it, and counts up once it lands", async () => {
     let shown = skillTreeReady;

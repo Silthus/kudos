@@ -13,7 +13,6 @@ type CrateRewardFlightProps = {
   flight: Flight;
   reward: Reward;
   shown: MemberProfile;
-  onCharted: (reward: Reward) => void;
   onRewardLanded: (kind: RewardKind) => void;
   onLanded: () => void;
 };
@@ -22,7 +21,7 @@ const levellingMs = 1300;
 
 const levelTurnsOverMs = 600;
 
-export function CrateRewardFlight({ flight, reward: rewardNow, shown, onCharted, onRewardLanded, onLanded }: CrateRewardFlightProps) {
+export function CrateRewardFlight({ flight, reward: rewardNow, shown, onRewardLanded, onLanded }: CrateRewardFlightProps) {
   const shownNow = useRef(shown);
   shownNow.current = shown;
   const [reward] = useState(rewardNow);
@@ -33,8 +32,6 @@ export function CrateRewardFlight({ flight, reward: rewardNow, shown, onCharted,
   const turnover = useRef<ReturnType<typeof setTimeout>>(undefined);
   const current = hops[hop];
   const still = prefersReducedMotion();
-
-  useLayoutEffect(() => onCharted(reward), [onCharted, reward]);
 
   const finish = useCallback(() => {
     if (finished.current) return;

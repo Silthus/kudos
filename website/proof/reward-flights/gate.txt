@@ -1,0 +1,11 @@
+# ~/dev/fleet/fleet heavy -- pnpm gate on f283e24 (origin/main 2dfcd7e merged)
+$ pnpm typecheck && pnpm test && pnpm coherence
+$ tsc --noEmit && tsc --noEmit -p website
+$ vitest run
+ Test Files  156 passed (156)
+      Tests  2723 passed (2723)
+   Duration  157.94s (tests 85%, import 8%, transform 3%, environment 3%)
+$ coherence spec --check && coherence lexicon --check
+ADVISORY       242 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 88, receipt 31, contract 30, panel 21, zone 21; reported, never failing, since inside the project its sense wins (--json lists each)
+0 rejected names, 0 unknown nouns (673 files), 17 in records
+exit 0

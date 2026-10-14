@@ -16,6 +16,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
 });
 
@@ -464,6 +465,27 @@ describe("WS315 E184: the reward flies into the HUD level ring once a Claim's re
     expect(levelRing()).toHaveAccessibleName("Level 2, 30 XP to level 3");
     landAll(flight()!);
     expect(levelRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
+  });
+
+  it("restarts the fill for a second reward that lands while the first one's fill still plays", async () => {
+    const answers: (() => void)[] = [];
+    const openQuestCrate = () => new Promise<OpenAnswer>((resolve) => answers.push(() => resolve({ kind: "opened" })));
+    const { user } = renderApp(nearLevel3, undefined, { openQuestCrate }, fixedQuests(questsFixtures.weekWithAFinishedQuestEach));
+    for (const claim of within(questCards()).getAllByRole("button", { name: "Claim" })) await user.click(claim);
+    await act(async () => answers.forEach((answer) => answer()));
+    for (let reveal = 0; reveal < 2; reveal++) {
+      await user.keyboard("{Escape}");
+      await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Done" }));
+    }
+    vi.useFakeTimers();
+    landAll(flight()!);
+    act(() => vi.advanceTimersByTime(500));
+    landAll(flight()!);
+    expect(frame().style.getPropertyValue("--reward-from")).toBe("62.5");
+    act(() => vi.advanceTimersByTime(900));
+
+    expect(frame()).toHaveClass("reward-filling");
+    vi.useRealTimers();
   });
 
   it("stops at once, with no bump or fill, when the browser cancels it, as turning on reduced motion mid-flight does", async () => {
