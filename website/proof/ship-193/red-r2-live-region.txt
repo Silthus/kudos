@@ -1,0 +1,50 @@
+
+ RUN  v5.0.3 <worktree>
+
+ ❯ |website| src/buyPerk.test.tsx (35 tests | 2 failed | 33 skipped) 476ms
+   ❯ WS87: a bought perk turns owned in place (8)
+     × says an unreachable server visibly in the page's live region when the drawer was closed before the answer 319ms
+     × says a refusal visibly in the page's live region when the drawer was closed before the answer 156ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/buyPerk.test.tsx > WS87: a bought perk turns owned in place > says an unreachable server visibly in the page's live region when the drawer was closed before the answer
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  Couldn't reach HedgeHug. Try again.[39m
+Received:
+[31m[39m
+ ❯ src/buyPerk.test.tsx:202:20
+    200|     const status = within(main()).getByRole("status");
+    201|     await answer(pending);
+    202|     expect(status).toHaveTextContent(says);
+       |                    ^
+    203|     expect(status).not.toHaveClass("sr-only");
+    204|     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |website| src/buyPerk.test.tsx > WS87: a bought perk turns owned in place > says a refusal visibly in the page's live region when the drawer was closed before the answer
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  That couldn't be bought. No skill points to spend.[39m
+Received:
+[31m[39m
+ ❯ src/buyPerk.test.tsx:202:20
+    200|     const status = within(main()).getByRole("status");
+    201|     await answer(pending);
+    202|     expect(status).toHaveTextContent(says);
+       |                    ^
+    203|     expect(status).not.toHaveClass("sr-only");
+    204|     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 33 skipped (35)
+   Start at  10:38:18
+   Duration  2.50s (import 43%, tests 20%, environment 19%, transform 15%, setup 4%)
+

@@ -1,0 +1,25 @@
+# codex exec -m gpt-6.1-sol -c model_reasoning_effort=high --sandbox read-only, over the diff against origin/spec/website-4 at 8ebb942
+
+## Prompt
+
+You are reviewing one ticket's change in the public repo Silthus/kudos (a Convex + React website for peer recognition). Read-only review: do not edit files.
+
+Ticket: /tmp/i186/ticket.md (issue #186, "the Skill tree and Book pages follow their unlock").
+Oracle: the spec /tmp/i186/spec-website-4.md, rules WS78–WS82 (ticket 1 of its Slices). Earlier rules (WS52, WS56–WS59, WS66, WS67) are on branch docs/spec-website-3 (`git show origin/docs/spec-website-3:spec/website-3.md`).
+The diff against the integration tip origin/spec/website-4: /tmp/i186/diff.patch. The worktree with the change is the current directory (branch spec/website-4/feature-pages); read any file you need.
+
+Check the change against the spec and the ticket's "What to build" and "Test seams":
+- correctness of featurePageOf and leaderboardStateOf (the leaderboard's answers must stay byte for byte),
+- the routes, tabs and page states (off/locked/ready/open) of /skills and /book,
+- the shared locked/ready frame with /leaderboard, the nav order, the home's open cards, the reveal's Go to, the Book's card sentence,
+- focus handling (WS24 rule: focus moves to the page title after a state change), accessibility,
+- test quality: tests enter at seams, assert observable behaviour, and are not weakened.
+Out of scope for this ticket: getSkillTree, getBook, buyPerk, skillPoints, the HUD chip (tickets 2–7).
+
+Report each finding as: severity (blocker/major/minor/nit), file:line, the defect, and a concrete failure scenario. If there are none, say so. Be concise.
+
+## Answer
+
+No findings in scope. The implementation and tests match the ticket and WS78–WS82, including unchanged leaderboard answers and focus handling.
+
+Reviewed the supplied patch and commit `8ebb942`. Tests were not rerun because the worktree was being modified concurrently.

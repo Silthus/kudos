@@ -5,7 +5,7 @@ export type Mode = "light" | "dark";
 
 type Rgb = [number, number, number];
 
-const websiteDirectory = join(__dirname, "..", "..");
+export const websiteDirectory = join(__dirname, "..", "..");
 const stylesheets = [
   readFileSync(join(websiteDirectory, "node_modules", "@posthog", "quill", "dist", "tokens.css"), "utf8"),
   readFileSync(join(websiteDirectory, "src", "index.css"), "utf8"),

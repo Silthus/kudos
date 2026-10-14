@@ -5,7 +5,7 @@ import type { Period } from "./shell";
 
 export type QuestTarget = number | "journey";
 
-export type Route = { page: "home" } | { page: "leaderboard"; period: Period } | { page: "quests"; quest?: QuestTarget } | { page: "not-found" };
+export type Route = { page: "home" } | { page: "leaderboard"; period: Period } | { page: "quests"; quest?: QuestTarget } | { page: "book" } | { page: "skills" } | { page: "not-found" };
 
 export type Screen = Exclude<Route["page"], "not-found">;
 
@@ -13,6 +13,8 @@ const routeAt = {
   "/": () => ({ page: "home" }),
   "/leaderboard": (search) => ({ page: "leaderboard", period: periodIn(search) }),
   "/quests": (search) => ({ page: "quests", quest: questIn(search) }),
+  "/skills": () => ({ page: "skills" }),
+  "/book": () => ({ page: "book" }),
 } satisfies Record<string, (search: string) => Route>;
 
 type ServedPath = keyof typeof routeAt;
@@ -32,7 +34,8 @@ export function withoutTheSignInEntry(pathname: string) {
 export function hrefOf(route: Route) {
   if (route.page === "leaderboard") return leaderboardHref(route.period);
   if (route.page === "quests") return questsHref(route.quest);
-  return "/";
+  if (route.page === "home" || route.page === "not-found") return "/";
+  return `/${route.page}`;
 }
 
 export function questsHref(quest?: QuestTarget) {

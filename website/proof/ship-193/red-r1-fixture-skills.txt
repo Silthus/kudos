@@ -1,0 +1,88 @@
+
+ RUN  v5.0.3 <worktree>
+
+ ❯ |website| src/SkillTreePage.test.tsx (46 tests | 5 failed | 39 skipped) 333ms
+   ❯ WS80 WS85: the fixture build's /skills agrees with its member (7)
+     × member-with-nothing-shipped shows Page not found 151ms
+     × member-with-the-board-ready shows Skill tree 36ms
+     × member-with-the-skill-tree-ready shows Skill tree 40ms
+     × member-with-every-feature-open spends the points its HUD shows: 2 skill points to spend 27ms
+     × member-with-no-skill-points-left spends the points its HUD shows: No skill points to spend 23ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS80 WS85: the fixture build's /skills agrees with its member > member-with-nothing-shipped shows Page not found
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  Page not found[39m
+Received:
+[31m  Perks[39m
+ ❯ src/SkillTreePage.test.tsx:355:25
+    353|   ])("%s shows %s", (fixture, title) => {
+    354|     render(<Root fixture={fixture} />);
+    355|     expect(pageTitle()).toHaveTextContent(title);
+       |                         ^
+    356|   });
+    357|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS80 WS85: the fixture build's /skills agrees with its member > member-with-the-board-ready shows Skill tree
+ FAIL  |website| src/SkillTreePage.test.tsx > WS80 WS85: the fixture build's /skills agrees with its member > member-with-the-skill-tree-ready shows Skill tree
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  Skill tree[39m
+Received:
+[31m  Perks[39m
+ ❯ src/SkillTreePage.test.tsx:355:25
+    353|   ])("%s shows %s", (fixture, title) => {
+    354|     render(<Root fixture={fixture} />);
+    355|     expect(pageTitle()).toHaveTextContent(title);
+       |                         ^
+    356|   });
+    357|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS80 WS85: the fixture build's /skills agrees with its member > member-with-every-feature-open spends the points its HUD shows: 2 skill points to spend
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  2 skill points to spend[39m
+Received:
+[31m  Skill treePerks1 skill point to spendPerk treeLevel 5SparkOwnedRhythm1SelectedCircle1Your perksSpark+5 XP the first time each day you thank someone and say why.How perks workPerks give bonus XP when you thank someone and say why. Bonuses count when your message has 5 or more words besides mentions and emoji. Every level from 5 on gives one skill point. A spent skill point never comes back, and there's no respec.[39m
+ ❯ src/SkillTreePage.test.tsx:364:20
+    362|   ])("%s spends the points its HUD shows: %s", (fixture, points) => {
+    363|     render(<Root fixture={fixture} />);
+    364|     expect(main()).toHaveTextContent(points);
+       |                    ^
+    365|   });
+    366| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS80 WS85: the fixture build's /skills agrees with its member > member-with-no-skill-points-left spends the points its HUD shows: No skill points to spend
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  No skill points to spend[39m
+Received:
+[31m  Skill treePerks1 skill point to spendPerk treeLevel 5SparkOwnedRhythm1SelectedCircle1Your perksSpark+5 XP the first time each day you thank someone and say why.How perks workPerks give bonus XP when you thank someone and say why. Bonuses count when your message has 5 or more words besides mentions and emoji. Every level from 5 on gives one skill point. A spent skill point never comes back, and there's no respec.[39m
+ ❯ src/SkillTreePage.test.tsx:364:20
+    362|   ])("%s spends the points its HUD shows: %s", (fixture, points) => {
+    363|     render(<Root fixture={fixture} />);
+    364|     expect(main()).toHaveTextContent(points);
+       |                    ^
+    365|   });
+    366| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 2 passed | 39 skipped (46)
+   Start at  10:29:31
+   Duration  2.64s (import 46%, environment 19%, transform 17%, tests 13%, setup 4%)
+

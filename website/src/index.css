@@ -21,6 +21,17 @@
   --band-lemon: #ffce1c;
   --band-blue: #106fb2;
   --band-night: #141414;
+  --medal-bronze: #a3622c;
+  --medal-silver: #737780;
+  --medal-gold: #94700a;
+  --medal-diamond: #2a7f9e;
+}
+
+.dark {
+  --medal-bronze: #d39a68;
+  --medal-silver: #bfc2c8;
+  --medal-gold: #e2b53a;
+  --medal-diamond: #7cc9de;
 }
 
 html,
@@ -79,4 +90,13 @@ body {
   border-bottom-width: 1.5px;
   border-right-width: 1.5px;
   border-bottom-right-radius: 4px;
+}
+
+.book-silhouette {
+  filter: brightness(0);
+  opacity: 0.18;
+}
+
+.dark .book-silhouette {
+  filter: brightness(0) invert(1);
 }

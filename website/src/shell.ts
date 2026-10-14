@@ -1,27 +1,39 @@
 import type { Feature } from "../../convex/unlocks/feature";
 import type { Quest } from "../../convex/quests/step";
-import type { CommandAnswer } from "../../convex/website/commands";
+import type { PerkId } from "../../convex/progression/tree";
+import type { CommandAnswer, PurchaseAnswer } from "../../convex/website/commands";
 import type { Denial } from "../../convex/website/memberQuery";
 import type { FeatureCard, JourneyStep, MemberProfile, MyProfile } from "../../convex/website/profile";
 import type { QuestsAnswer } from "../../convex/website/quests";
+import type { BookAnswer } from "../../convex/website/book";
+import type { MySkillTree } from "../../convex/website/skillTree";
 
-export type { Face, FeatureCard, JourneyStep, MemberProfile, Progression } from "../../convex/website/profile";
+export type { Face, FeatureCard, JourneyStep, MemberProfile, PageWaits, Progression } from "../../convex/website/profile";
 export type { QuestsAnswer, QuestSlot, WaitingCrate } from "../../convex/website/quests";
+export type { BookAnswer, LadderCard, TierCard } from "../../convex/website/book";
+export type { TierId } from "../../convex/achievements/ladders";
+export type { MySkillTree, PerkNode, SkillTreeAnswer, TreeRow } from "../../convex/website/skillTree";
 export type { Leaderboard, LeaderboardRow, MyLeaderboard } from "../../convex/website/leaderboard";
 export type { Period } from "../../convex/leaderboard/periods";
-export type { CommandAnswer } from "../../convex/website/commands";
+export type { CommandAnswer, PurchaseAnswer, PurchaseRefusal } from "../../convex/website/commands";
 export type { Feature } from "../../convex/unlocks/feature";
 export type { Quest } from "../../convex/quests/step";
 
 export type OpenAnswer = CommandAnswer | Denial;
 
+export type Purchase = { perk: PerkId; request: string };
+
+export type BuyAnswer = PurchaseAnswer | Denial;
+
 export type MyQuests = QuestsAnswer | Denial;
+
+export type MyBook = BookAnswer | Denial;
 
 export type Visitor = MyProfile | { kind: "loading" } | { kind: "connecting" } | { kind: "sign-in-unfinished" };
 
 export type ShellState = Visitor | { kind: "broken" };
 
-export type ShellActions = { signIn(returnTo: string): void; signOut(): void; openFeature(feature: Feature): Promise<OpenAnswer>; openQuestCrate(quest: Quest): Promise<OpenAnswer> };
+export type ShellActions = { signIn(returnTo: string): void; signOut(): void; openFeature(feature: Feature): Promise<OpenAnswer>; openQuestCrate(quest: Quest): Promise<OpenAnswer>; buyPerk(purchase: Purchase): Promise<BuyAnswer> };
 
 const member: MemberProfile = {
   kind: "member",
@@ -36,6 +48,7 @@ const member: MemberProfile = {
   features: null,
   journey: null,
   progression: null,
+  skillPoints: null,
 };
 
 const readyAt = Date.parse("2026-10-12T09:00:00Z");
@@ -44,9 +57,13 @@ const openedAt = Date.parse("2026-10-13T09:00:00Z");
 
 const leaderboardFeature = { feature: "leaderboard", name: "Leaderboard", opens: "the boards", level: 3, seen: "5e3a0c" } as const;
 
+const bookFeature = { feature: "book", name: "Book", opens: "your achievements", level: 4, seen: "c4f8a1" } as const;
+
 const skillTreeFeature = { feature: "skillTree", name: "Skill tree", opens: "the tree and your first skill point", level: 5, seen: "9b71d2" } as const;
 
 const questsFeature = { feature: "quests", name: "Quests", opens: "your weekly quests", level: 2, seen: "4c8e1f" } as const;
+
+const coinsFeature = { feature: "coins", name: "Coins and inventory", opens: "the wallet, the store's kudos emoji and your emoji slots", level: 6, seen: "e5a6b7" } as const;
 
 const locked = { state: "locked", readyAt: null, openedAt: null } as const;
 
@@ -73,9 +90,29 @@ const memberWithTheBoardReady: MemberProfile = { ...member, ...onTheUnlockPath({
 
 const memberWithTheBoardOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...skillTreeFeature, ...locked }) };
 
+const memberWithTheQuestsReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...ready }, { ...leaderboardFeature, ...locked }) };
+
+const memberWithTheQuestsOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...opened }, { ...leaderboardFeature, ...opened }) };
+
+const memberWithTheSkillTreeReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...skillTreeFeature, ...ready }) };
+
+const memberWaitingForTheBook: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...bookFeature, ...locked }, { ...skillTreeFeature, ...locked }) };
+
+const memberWithTheBookReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...bookFeature, ...ready }, { ...skillTreeFeature, ...locked }) };
+
+const memberWithTheBookOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...bookFeature, ...opened }, { ...skillTreeFeature, ...locked }) };
+
 const memberWithEveryFeatureReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...ready }, { ...skillTreeFeature, ...ready }) };
 
-const memberWithEveryFeatureOpen: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...skillTreeFeature, ...opened }) };
+const memberWithEveryFeatureOpen: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...bookFeature, ...opened }, { ...skillTreeFeature, ...opened }), skillPoints: 2 };
+
+const memberWithOneSkillPoint: MemberProfile = { ...memberWithEveryFeatureOpen, skillPoints: 1 };
+
+const memberWithNoSkillPointsLeft: MemberProfile = { ...memberWithEveryFeatureOpen, skillPoints: 0 };
+
+const memberWithCoinsReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...coinsFeature, ...ready }) };
+
+const memberWithCoinsOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...coinsFeature, ...opened }) };
 
 const memberWithNothingShipped: MemberProfile = { ...member, ...onTheUnlockPath() };
 
@@ -122,8 +159,18 @@ export const shellFixtures = {
   memberWaitingForTheBoard,
   memberWithTheBoardReady,
   memberWithTheBoardOpened,
+  memberWithTheQuestsReady,
+  memberWithTheQuestsOpened,
+  memberWithTheSkillTreeReady,
+  memberWaitingForTheBook,
+  memberWithTheBookReady,
+  memberWithTheBookOpened,
   memberWithEveryFeatureReady,
   memberWithEveryFeatureOpen,
+  memberWithOneSkillPoint,
+  memberWithNoSkillPointsLeft,
+  memberWithCoinsReady,
+  memberWithCoinsOpened,
   memberWithNothingShipped,
   memberAtLevel1,
   memberAtLevel7,
@@ -148,8 +195,14 @@ const fixturesByName: Record<string, ShellState> = {
   "member-waiting-for-the-board": shellFixtures.memberWaitingForTheBoard,
   "member-with-the-board-ready": shellFixtures.memberWithTheBoardReady,
   "member-with-the-board-opened": shellFixtures.memberWithTheBoardOpened,
+  "member-with-the-skill-tree-ready": shellFixtures.memberWithTheSkillTreeReady,
+  "member-waiting-for-the-book": shellFixtures.memberWaitingForTheBook,
+  "member-with-the-book-ready": shellFixtures.memberWithTheBookReady,
+  "member-with-the-book-opened": shellFixtures.memberWithTheBookOpened,
   "member-with-every-feature-ready": shellFixtures.memberWithEveryFeatureReady,
   "member-with-every-feature-open": shellFixtures.memberWithEveryFeatureOpen,
+  "member-with-one-skill-point": shellFixtures.memberWithOneSkillPoint,
+  "member-with-no-skill-points-left": shellFixtures.memberWithNoSkillPointsLeft,
   "member-with-nothing-shipped": shellFixtures.memberWithNothingShipped,
   "member-level-1": shellFixtures.memberAtLevel1,
   "member-level-7": shellFixtures.memberAtLevel7,
@@ -163,4 +216,4 @@ export function builtShell(name: string | undefined): ShellState {
   return fixturesByName[name ?? ""] ?? shellFixtures.closed;
 }
 
-export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, openFeature: async () => ({ kind: "opened" }), openQuestCrate: async () => ({ kind: "opened" }) };
+export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, openFeature: async () => ({ kind: "opened" }), openQuestCrate: async () => ({ kind: "opened" }), buyPerk: async () => ({ kind: "bought" }) };

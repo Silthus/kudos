@@ -1,0 +1,37 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/buy-perk
+
+ ❯ |convex| convex/website/buyPerkCatalogue.test.ts (3 tests | 1 failed) 164ms
+   ❯ a website command is a D17 command (3)
+     × WS88: a perk in a row above the member's level is refused with progression's reason kind, never words 116ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/buyPerkCatalogue.test.ts > a website command is a D17 command > WS88: a perk in a row above the member's level is refused with progression's reason kind, never words
+AssertionError: expected { kind: 'refused', reason: 'points' } to deeply equal { kind: 'refused', reason: 'level' }
+
+- Expected
++ Received
+
+  {
+    "kind": "refused",
+-   "reason": "level",
++   "reason": "points",
+  }
+
+ ❯ convex/website/buyPerkCatalogue.test.ts:60:88
+     58|     const asSignedIn = await aMemberWithTheTreeOpenAt(level, xp);
+     59|
+     60|     expect(await asSignedIn.mutation(api.website.commands.buyPerk, { p…
+       |                                                                                        ^
+     61|   });
+     62| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)
+   Start at  07:43:48
+   Duration  965ms (transform 52%, import 24%, tests 19%, environment 5%)
+

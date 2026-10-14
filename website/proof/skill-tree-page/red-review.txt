@@ -1,0 +1,149 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/skill-tree-page
+
+ ❯ |website| src/SkillTreePage.test.tsx (40 tests | 2 failed) 1774ms
+   ❯ WS85: /skills shows the tree while the Skill tree is open (16)
+     × keeps the first-load selection when that perk turns owned elsewhere, such as in Slack 51ms
+   ❯ WS85 WS86: the selected perk's details (9)
+     × return focus to the node on Esc even when the press didn't focus it, as Safari's clicks don't 83ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > keeps the first-load selection when that perk turns owned elsewhere, such as in Slack
+Error: expect(element).toHaveAttribute("aria-pressed", "true") // element.getAttribute("aria-pressed") === "true"
+
+Expected the element to have attribute:
+  aria-pressed="true"
+Received:
+  aria-pressed="false"
+ ❯ src/SkillTreePage.test.tsx:133:29
+    131|     answer = skillTreeFixtures.sparkOwned;
+    132|     showVisitor(shellFixtures.memberWithOneSkillPoint);
+    133|     expect(nodeOf("Spark")).toHaveAttribute("aria-pressed", "true");
+       |                             ^
+    134|     expect(nodeOf("Rhythm")).toHaveAttribute("aria-pressed", "false");
+    135|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85 WS86: the selected perk's details > return focus to the node on Esc even when the press didn't focus it, as Safari's clicks don't
+Error: expect(element).toHaveFocus()
+
+Expected element with focus:
+  <button
+  aria-label="Rhythm. Can buy. Costs 1 skill point."
+  aria-pressed="true"
+  class="hud-panel relative flex w-full flex-col items-center gap-1.5 rounded-xl border bg-card px-2 pb-3 pt-4 text-center hover:bg-fill-hover focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring ring-2 ring-primary ring-offset-2 ring-offset-card"
+  data-perk="rhythm"
+  type="button"
+>
+  <span
+    class="relative flex size-11 items-center justify-center rounded-lg border-2 border-foreground/70 bg-card text-foreground"
+  >
+    <span
+      aria-hidden="true"
+      class="contents"
+    >
+      <svg
+        class="LemonIcon shrink-0 size-5"
+        fill="currentColor"
+        viewBox="0 0 24 24"
+        width="100%"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          clip-rule="evenodd"
+          d="M3 5.75A2.75 2.75 0 0 1 5.75 3h12.5A2.75 2.75 0 0 1 21 5.75v12.5A2.75 2.75 0 0 1 18.25 21H5.75A2.75 2.75 0 0 1 3 18.25V5.75ZM4.5 8.5v9.75c0 .69.56 1.25 1.25 1.25h12.5c.69 0 1.25-.56 1.25-1.25V8.5h-15Zm15-1.5h-15V5.75c0-.69.56-1.25 1.25-1.25h12.5c.69 0 1.25.56 1.25 1.25V7Z"
+          fill-rule="evenodd"
+        />
+        <path
+          d="M7 12a1 1 0 1 1 2 0 1 1 0 0 1-2 0Zm0 4a1 1 0 1 1 2 0 1 1 0 0 1-2 0Zm4 0a1 1 0 1 1 2 0 1 1 0 0 1-2 0Zm0-4a1 1 0 1 1 2 0 1 1 0 0 1-2 0Zm4 0a1 1 0 1 1 2 0 1 1 0 0 1-2 0Z"
+        />
+      </svg>
+    </span>
+  </span>
+  <span
+    class="text-sm font-medium leading-tight "
+  >
+    Rhythm
+  </span>
+  <span
+    class="inline-flex items-center gap-1 text-xs font-semibold tabular-nums"
+    data-testid="perk-cost"
+  >
+    <svg
+      aria-hidden="true"
+      class="shrink-0 text-completed-foreground size-3"
+      viewBox="0 0 16 16"
+    >
+      <path
+        d="M8 1 15 8 8 15 1 8Z"
+        fill="currentColor"
+      />
+      <path
+        d="M8 4.5 11.5 8 8 11.5 4.5 8Z"
+        fill="var(--card)"
+        opacity=".55"
+      />
+    </svg>
+    1
+  </span>
+  <span
+    class="rounded-full border border-primary px-2 text-[11px] font-semibold leading-4 text-foreground"
+  >
+    Selected
+  </span>
+</button>
+Received element with focus:
+  <body
+  style=""
+>
+  <div>
+    <div
+      class="hud-root flex min-h-screen flex-col"
+    >
+      <header
+        class="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"
+      >
+        <div
+          class="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-3 px-4 max-sm:gap-x-2 max-sm:gap-y-1 max-sm:pt-2 md:px-6"
+        >
+          <a … />
+          <nav … />
+          <div … />
+        </div>
+      </header>
+      <main
+        class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+      >
+        <div
+          class="flex flex-col gap-6"
+        >
+          <header … />
+          <div … />
+        </div>
+      </main>
+    </div>
+    <p
+      class="sr-only"
+      data-testid="moment-announcement"
+      role="status"
+    />
+  </div>
+</body>
+ ❯ src/SkillTreePage.test.tsx:210:30
+    208|     await act(async () => undefined);
+    209|     expect(drawer()).toBeNull();
+    210|     expect(nodeOf("Rhythm")).toHaveFocus();
+       |                              ^
+    211|   });
+    212|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  2 failed | 57 passed (59)
+   Start at  07:23:40
+   Duration  3.76s (tests 43%, import 31%, environment 13%, transform 10%, setup 3%)
+

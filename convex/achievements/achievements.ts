@@ -41,12 +41,14 @@ export const countKudosGiven = internalMutation({
 
 export const achievementsOf = internalQuery({
   args: { member: v.id("members") },
-  handler: async (ctx, { member }): Promise<AchievementFacts | null> => {
-    const { workspace } = await chatUserOf(ctx, member);
-    if (!(await achievementsApplyIn(ctx, workspace)) || (await bookLaunchedAt(ctx, workspace)) === null) return null;
-    return bookFactsOf(ctx, member);
-  },
+  handler: (ctx, { member }) => achievementFactsOf(ctx, member),
 });
+
+export async function achievementFactsOf(ctx: QueryCtx, member: MemberId): Promise<AchievementFacts | null> {
+  const { workspace } = await chatUserOf(ctx, member);
+  if (!(await achievementsApplyIn(ctx, workspace)) || (await bookLaunchedAt(ctx, workspace)) === null) return null;
+  return bookFactsOf(ctx, member);
+}
 
 export async function bookFactsOf(ctx: QueryCtx, member: MemberId): Promise<AchievementFacts> {
   const facts: LadderFacts[] = [];

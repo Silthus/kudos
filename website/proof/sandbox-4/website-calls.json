@@ -1,0 +1,145 @@
+{
+  "deployed": "a9a5e37",
+  "calls": [
+    {
+      "at": "2026-10-14T09:07:56.287Z",
+      "call": "query website/skillTree:getSkillTree",
+      "args": {},
+      "session": true,
+      "status": "success",
+      "value": {
+        "kind": "locked",
+        "level": 5
+      }
+    },
+    {
+      "at": "2026-10-14T09:07:56.477Z",
+      "call": "query website/book:getBook",
+      "args": {},
+      "session": true,
+      "status": "success",
+      "value": {
+        "kind": "locked",
+        "level": 4
+      }
+    },
+    {
+      "at": "2026-10-14T09:07:56.812Z",
+      "call": "query website/profile:getMyProfile",
+      "args": {},
+      "session": true,
+      "status": "success",
+      "value": {
+        "kind": "member",
+        "features": [
+          {
+            "feature": "quests",
+            "level": 2,
+            "state": "open",
+            "readyAt": 1791941423604,
+            "openedAt": 1791944280040
+          },
+          {
+            "feature": "leaderboard",
+            "level": 3,
+            "state": "open",
+            "readyAt": 1791929501429,
+            "openedAt": 1791929501429
+          },
+          {
+            "feature": "book",
+            "level": 4,
+            "state": "locked",
+            "readyAt": null,
+            "openedAt": null
+          },
+          {
+            "feature": "skillTree",
+            "level": 5,
+            "state": "locked",
+            "readyAt": null,
+            "openedAt": null
+          }
+        ],
+        "skillPoints": null
+      }
+    },
+    {
+      "at": "2026-10-14T09:07:57.001Z",
+      "call": "mutation website/commands:buyPerk",
+      "args": {
+        "perk": "spark",
+        "request": "96cec9b5-8a6e-4e8a-b042-1ad1bcc59e6d"
+      },
+      "session": true,
+      "status": "success",
+      "value": {
+        "kind": "refused",
+        "reason": null
+      }
+    },
+    {
+      "at": "2026-10-14T09:07:57.186Z",
+      "call": "mutation website/commands:buyPerk",
+      "args": {
+        "perk": "spark",
+        "request": "96cec9b5-8a6e-4e8a-b042-1ad1bcc59e6d"
+      },
+      "session": true,
+      "status": "success",
+      "value": {
+        "kind": "refused",
+        "reason": null
+      }
+    },
+    {
+      "at": "2026-10-14T09:07:57.264Z",
+      "call": "mutation website/commands:buyPerk",
+      "args": {
+        "perk": "spark",
+        "request": "not-a-uuid"
+      },
+      "session": true,
+      "status": "error",
+      "value": null,
+      "error": "Server Error"
+    },
+    {
+      "at": "2026-10-14T09:07:57.325Z",
+      "call": "mutation website/commands:buyPerk",
+      "args": {
+        "perk": "spark",
+        "request": "7eb5e99c-8bea-4fa3-b885-c347078f0482"
+      },
+      "session": false,
+      "status": "success",
+      "value": {
+        "kind": "signed-out"
+      }
+    },
+    {
+      "at": "2026-10-14T09:07:57.709Z",
+      "call": "mutation website/commands:openFeature",
+      "args": {
+        "feature": "skillTree"
+      },
+      "session": true,
+      "status": "success",
+      "value": {
+        "kind": "refused"
+      }
+    },
+    {
+      "at": "2026-10-14T09:07:58.122Z",
+      "call": "mutation website/commands:openFeature",
+      "args": {
+        "feature": "book"
+      },
+      "session": true,
+      "status": "success",
+      "value": {
+        "kind": "refused"
+      }
+    }
+  ]
+}

@@ -142,7 +142,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
   };
 }
 
-function useMembersShown(crates: string[] | undefined) {
+export function useMembersShown(crates: string[] | undefined) {
   const lastCrates = useRef<string[] | undefined>(undefined);
   const members = useRef(1);
   if (crates !== undefined) {
