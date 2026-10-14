@@ -83,7 +83,7 @@ describe("P76: a feature's lines wait for its opening", () => {
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
     expect(opened).toEqual(["section fields: *Level*\n*5* | *XP to level 6*\n*400*", "section: You have *1 skill point* to spend in the *Skill tree* tab."]);
-    expect(dmsTo("U_ALICE").at(-1)).toEqual(["🎉 You reached level 6! You have 2 skill points saved for the skill tree.", "Level 7 is 500 XP away."]);
+    expect(dmsTo("U_ALICE").at(-1)).toEqual(levelSixDmOfferingRowFive);
     expect(progressionOf(publishedHome(slack, "U_ALICE"))).toEqual(["section fields: *Level*\n*6* | *XP to level 7*\n*500*", "section: You have *2 skill points* to spend in the *Skill tree* tab."]);
   });
 
@@ -103,10 +103,7 @@ describe("P76: a feature's lines wait for its opening", () => {
 
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
-    expect(dmsTo("U_ALICE").slice(-2)).toEqual([
-      ["🎉 You reached level 6! You have 2 skill points saved for the skill tree.", "Level 7 is 500 XP away."],
-      ["🎉 You reached level 6!", "Level 7 is 500 XP away."],
-    ]);
+    expect(dmsTo("U_ALICE").slice(-2)).toEqual([levelSixDmOfferingRowFive, ["🎉 You reached level 6!", "Level 7 is 500 XP away."]]);
   });
 
   test("with everyone-board on, a level 1 member is told the Leaderboard opens at level 3, by /hedgehug leaderboard, and App Home has no Leaderboard tab", async () => {
@@ -199,6 +196,14 @@ describe("O36: the leaderboard command records the exposures it decides by", () 
     ]);
   });
 });
+
+const levelSixDmOfferingRowFive = [
+  "section: 🎉 You reached level 6! You have 2 skill points to spend.",
+  "section: Level 7 is 500 XP away.",
+  "section: *Spark* · 1 skill point\n+5 XP the first time each day you thank someone and say why. [button: Buy]",
+  "section: *Rhythm* · 1 skill point\n+2 XP each time you thank someone and say why, once per person a day. [button: Buy]",
+  "section: *Circle* · 1 skill point\n+5 XP the first time each week you thank a person and say why. [button: Buy]",
+];
 
 function dmsTo(user: string) {
   return slack
