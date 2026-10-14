@@ -6,7 +6,7 @@ WS55–WS68, WS76, WS77 and WS27, on the shared sandbox. This ticket deployed `s
 
 [`sandbox-deploy.txt`](sandbox-deploy.txt) holds the deploy workflow's four commands, run by hand: `convex deploy`, `static-hosting upload --build`, `prepareWebsiteFlag` and `syncCompanyProfiles`. All four exited 0. The sandbox's env was left as it was.
 
-The schema push passed, so no sandbox data was cleared or migrated. It did remove 11 indexes on tables this tree's schema doesn't declare (`questDraws`, `journeySteps`, `crateOpenings` and others). Map #1's quests lane had deployed its branch over the sandbox after #136, and this deploy replaced it, as every hand deploy replaces the last one. Those tables' rows stay. The quests lane's next deploy rebuilds its indexes.
+The schema push passed, so no sandbox data was cleared or migrated. It did remove 11 indexes that map #1's quests lane had added when it deployed its branch over the sandbox after #136: seven on quest tables this tree's schema doesn't declare (`questDraws`, `journeySteps`, `crateOpenings` and others), and one each on `awards`, `privateReplies`, `publicReplies` and `effectsRecords`, which this tree declares without them. This deploy replaced the quests lane's, as every hand deploy replaces the last one. Every row stays, and the quests lane's next deploy rebuilds its indexes.
 
 ## The flags answer on in the sandbox and off in production
 
@@ -46,7 +46,7 @@ A proof session signed the browser in, as in #136: one `authSessions` row and on
 4. `openFeature({ feature: "skillTree" })` answered `refused`.
 5. Without a session it answered `signed-out` (WS61).
 6. With a `member` beside the feature, the argument validator rejected the call before any handler ran (WS61).
-7. App Home was republished after each `opened`: two `publishHome` runs succeeded at 02:09:24Z ([`republish.txt`](republish.txt)). The member has no crate to drop, so the content of a republish without the crate is proven locally by #144.
+7. App Home's republish ran after each `opened`: two `publishHome` jobs completed at 02:09:24Z without scheduling a retry ([`republish.txt`](republish.txt)). A completed job doesn't show that Slack accepted the view, and Slack's acknowledgement isn't visible from here. The member has no crate to drop, so the content of a republish without the crate is proven locally by #144.
 
 **The launch rule held.** [`unlock-tables.txt`](unlock-tables.txt) is identical before and after: one `unlockLaunches` row, the same two `unlocks` rows with the same times, and one `levelUps` row. The website added no launch and opened nothing twice.
 
@@ -70,3 +70,10 @@ In PostHog project 662840, each switch adds `production` to the flag's one `envi
 2. **`xp-levels` (956733):** level and XP on the home and the profile card, and half of WS55's gate. The same flag as Slack's levels.
 3. **`unlocks` (956771):** the unlock path: the three card groups, the crates, `openFeature` and the ready pill. The same flag as Slack's unlocks. P77's launch takes a snapshot of the shipped features the first time `unlocks` is on. With `everyone-board` already on, every existing member keeps the leaderboard and doesn't have to reach level 3 for it.
 4. **`website` (957148):** the whole site. It needs #115 first: `AUTH_SLACK_ID` and `AUTH_SLACK_SECRET` on production, plus #88's redirect URL and `openid` and `profile` scopes on the production Slack app.
+
+After part A, outside this ticket: **`quests` (957184)** gets its production condition once map #1's quests ship (#129) is on `main` (the spec's order, step 3).
+
+## Gate and review
+
+- The gate on the landed tree: [`gate.txt`](gate.txt), green: 69 files and 1119 tests, typecheck clean, Coherence with 0 problems and 0 unknown nouns. This ticket adds no behaviour, so it has no red test of its own; the executable check is `flagAnswers.proof.ts`, 3 of 3 green on the deployments' real caches.
+- GPT-6.1 Sol (high), read-only, with the spec as the oracle: [`review-gpt-6.1-sol.txt`](review-gpt-6.1-sol.txt). One major and two minor findings, all fixed.
