@@ -55,6 +55,10 @@ function openIn(element: HTMLElement) {
   return within(element).getByRole("button", { name: /^(Open|Opening…)$/ });
 }
 
+function claimIn(element: HTMLElement) {
+  return within(element).getByRole("button", { name: /^(Claim|Claiming…)$/ });
+}
+
 type Commands = { openQuestCrate?: () => Promise<OpenAnswer>; openFeature?: () => Promise<OpenAnswer> };
 
 function onQuests(answer: MyQuests = questsFixtures.week, commands: Commands = { openQuestCrate: async () => ({ kind: "opened" }) }, visitor: MemberProfile = withQuests) {
@@ -67,16 +71,16 @@ function onTheHome(visitor: MemberProfile = withQuests, commands: Commands = { o
 }
 
 describe("WS74: opening a quest crate follows the server", () => {
-  it("sends openQuestCrate with the crate's own quest from the read, and shows Opening… without a dialog until it answers", async () => {
+  it("sends openQuestCrate with the crate's own quest from the read, and shows Claiming… without a dialog until it answers", async () => {
     const pending = answerLater();
     const openQuestCrate = vi.fn(() => pending.answer);
     const { user } = onQuests(questsFixtures.week, { openQuestCrate });
 
-    await user.click(openIn(questCard()));
+    await user.click(claimIn(questCard()));
 
     expect(openQuestCrate).toHaveBeenCalledExactlyOnceWith(thisWeeksCrate);
-    expect(openIn(questCard())).toHaveAccessibleName("Opening…");
-    expect(openIn(questCard())).toHaveAttribute("aria-disabled", "true");
+    expect(claimIn(questCard())).toHaveAccessibleName("Claiming…");
+    expect(claimIn(questCard())).toHaveAttribute("aria-disabled", "true");
     expect(dialog()).toBeNull();
     await pending.settle({ kind: "opened" });
     expect(dialog()).toHaveAccessibleName("Quest reward");
@@ -84,7 +88,7 @@ describe("WS74: opening a quest crate follows the server", () => {
 
   it("ends on You earned {xp} XP with Done and Replay, and no way to this week's quests from /quests", async () => {
     const { user } = onQuests();
-    await user.click(openIn(questCard()));
+    await user.click(claimIn(questCard()));
     await user.keyboard("{Escape}");
 
     const reveal = dialog()!;
@@ -121,30 +125,30 @@ describe("WS74: opening a quest crate follows the server", () => {
 
   it("plays no reveal after refused, and says so on the card and in the live region", async () => {
     const { user } = onQuests(questsFixtures.week, { openQuestCrate: async () => ({ kind: "refused" }) });
-    await user.click(openIn(questCard()));
+    await user.click(claimIn(questCard()));
 
     expect(dialog()).toBeNull();
     expect(questCard()).toHaveTextContent("That couldn't be opened.");
     expect(announcement()).toHaveTextContent("That couldn't be opened.");
-    expect(openIn(questCard())).toHaveAccessibleName("Open");
+    expect(claimIn(questCard())).toHaveAccessibleName("Claim");
   });
 
   it("closes the crate again after an error, says HedgeHug couldn't be reached, and lets the member retry", async () => {
     const openQuestCrate = vi.fn<() => Promise<OpenAnswer>>().mockRejectedValueOnce(new Error("socket closed")).mockResolvedValueOnce({ kind: "opened" });
     const { user } = onQuests(questsFixtures.week, { openQuestCrate });
-    await user.click(openIn(questCard()));
+    await user.click(claimIn(questCard()));
 
     expect(questCard()).toHaveTextContent("Couldn't reach HedgeHug. Try again.");
     expect(announcement()).toHaveTextContent("Couldn't reach HedgeHug. Try again.");
-    expect(openIn(questCard())).not.toHaveAttribute("aria-disabled");
-    await user.click(openIn(questCard()));
+    expect(claimIn(questCard())).not.toHaveAttribute("aria-disabled");
+    await user.click(claimIn(questCard()));
     expect(dialog()).toHaveAccessibleName("Quest reward");
   });
 
   it("opens an earlier week's waiting crate with its own quest", async () => {
     const openQuestCrate = vi.fn(async () => ({ kind: "opened" }) as const);
     const { user } = onQuests(questsFixtures.weekWithLastWeeksCrate, { openQuestCrate });
-    await user.click(openIn(within(main()).getByRole("region", { name: "Waiting to open" })));
+    await user.click(claimIn(within(main()).getByRole("region", { name: "Waiting to open" })));
 
     expect(openQuestCrate).toHaveBeenCalledExactlyOnceWith({ kind: "weekly", week: "2026-10-05", slot: 0 });
     expect(dialog()).toHaveAccessibleName("Quest reward");
@@ -155,7 +159,7 @@ describe("WS74 WS66: focus and the live region after a quest crate's reveal", ()
   it("returns focus to the quest's card on /quests when Done closes the reveal, and announces what opened", async () => {
     const { user } = onQuests();
     const card = questCard();
-    await user.click(openIn(card));
+    await user.click(claimIn(card));
     await user.keyboard("{Escape}");
     expect(announcement()).toHaveTextContent("You opened your quest reward.");
     await user.click(within(dialog()!).getByRole("button", { name: "Done" }));
@@ -179,7 +183,7 @@ describe("WS74 WS66: focus and the live region after a quest crate's reveal", ()
     let answer: MyQuests = questsFixtures.weekWithLastWeeksCrate;
     window.history.replaceState(null, "", "/quests");
     const { user, showVisitor } = renderApp(withQuests, undefined, { openQuestCrate: async () => ({ kind: "opened" }) }, (asking) => (asking ? answer : undefined));
-    await user.click(openIn(within(main()).getByRole("region", { name: "Waiting to open" })));
+    await user.click(claimIn(within(main()).getByRole("region", { name: "Waiting to open" })));
     answer = questsFixtures.week;
     showVisitor({ ...withQuests });
     expect(within(main()).queryByRole("region", { name: "Waiting to open" })).toBeNull();
@@ -193,7 +197,7 @@ describe("WS74 WS66: focus and the live region after a quest crate's reveal", ()
   it("opens a crate this member has seen on its end state, keyed by the read's seen key", async () => {
     markSeen("c41d77");
     const { user } = onQuests();
-    await user.click(openIn(questCard()));
+    await user.click(claimIn(questCard()));
 
     expect(within(dialog()!).getByRole("heading", { name: "You earned 20 XP" })).toBeVisible();
   });
@@ -245,7 +249,7 @@ describe("WS68 WS74: the ready pill counts quest and Journey crates", () => {
 describe("WS75 WS74: the keyboard path for a quest crate", () => {
   it("opens with Space, skips with Esc, tabs through Done and Replay, and closes with Done, returning focus to the quest's card", async () => {
     const { user } = onQuests();
-    openIn(questCard()).focus();
+    claimIn(questCard()).focus();
     await user.keyboard(" ");
     expect(dialog()).toContainElement(document.activeElement as HTMLElement);
     await user.keyboard("{Escape}");

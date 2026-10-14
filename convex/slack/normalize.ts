@@ -1,39 +1,27 @@
-import type { Mention, MessageContent, MessageEvent } from "../engine/messageEvent";
+import type { FetchedMessage, Mention, MessageContent, MessageDeleted, MessageEvent, MessageRef, Visibility } from "../engine/messageEvent";
+import { isText, segmentsOf, type RichElement, type RichTextMessage } from "./richText";
 
-type Style = { strike?: boolean; code?: boolean };
-
-type RichElement = {
-  type: string;
-  elements?: RichElement[];
-  user_id?: string;
-  usergroup_id?: string;
-  range?: string;
-  name?: string;
-  text?: string;
-  style?: Style;
-};
-
-type ChatMessage = {
+type ChatMessage = RichTextMessage & {
   subtype?: string;
   user?: string;
   bot_id?: string;
   ts: string;
   thread_ts?: string;
   edited?: { ts: string };
-  blocks?: Array<{ type: string; elements?: RichElement[] }>;
 };
 
 export type SlackMessage = ChatMessage & {
   type: string;
   channel: string;
   channel_type?: string;
+  deleted_ts?: string;
   message?: ChatMessage;
+  previous_message?: ChatMessage;
 };
 
 export type EventCallback = { type: "event_callback"; team_id: string; event_id: string; event_time: number; event: { type: string } };
 
 const countedSubtypes = new Set([undefined, "thread_broadcast", "file_share"]);
-const channelTypes = new Set(["channel", "group"]);
 const uncountedContainers = new Set(["rich_text_quote", "rich_text_preformatted"]);
 const containerBoundary = "\n";
 
@@ -41,23 +29,50 @@ export function isMessage(event: { type: string }): event is SlackMessage {
   return event.type === "message";
 }
 
-export function messageEventOf(envelope: EventCallback): MessageEvent | null {
+export function messageEventOf(envelope: EventCallback): MessageEvent | MessageDeleted | null {
   const event = envelope.event;
-  if (!isMessage(event) || !channelTypes.has(event.channel_type ?? "")) return null;
-  if (event.subtype === "message_changed") return editOf(envelope.team_id, event);
+  if (!isMessage(event) || !isText(envelope.team_id) || !isText(envelope.event_id) || !isText(event.channel)) return null;
+  if (isDeletion(event)) return deletionOf(envelope.team_id, event);
+  const visibility = visibilityOf(event.channel_type);
+  if (visibility === undefined) return null;
+  const source = { workspace: envelope.team_id, channel: event.channel, visibility };
+  if (event.subtype === "message_changed") return editOf(source, event);
   if (!countedSubtypes.has(event.subtype)) return null;
-  return messageEventFrom({ kind: "posted", workspace: envelope.team_id, channel: event.channel, message: event, revisionTs: event.ts });
+  return messageEventFrom({ ...source, kind: "posted", message: event, revisionTs: event.ts });
 }
 
-function editOf(workspace: string, event: SlackMessage): MessageEvent | null {
+function visibilityOf(channelType: string | undefined): Visibility | undefined {
+  if (channelType === "channel") return "public";
+  if (channelType === "group") return "private";
+  return undefined;
+}
+
+function isDeletion(event: SlackMessage) {
+  return event.subtype === "message_deleted" || (event.subtype === "message_changed" && event.message?.subtype === "tombstone");
+}
+
+function deletionOf(workspace: string, event: SlackMessage): MessageDeleted | null {
+  const deletedTs = event.subtype === "message_deleted" ? event.deleted_ts : event.message?.ts;
+  if (!isText(deletedTs)) return null;
+  return {
+    kind: "deleted",
+    ref: { workspace, conversation: event.channel, message: deletedTs },
+    wasKudosCandidate: event.previous_message !== undefined && isKudosCandidate(countableContent(event.previous_message)),
+  };
+}
+
+type Channel = { workspace: string; channel: string; visibility: Visibility };
+
+function editOf(channel: Channel, event: SlackMessage): MessageEvent | null {
   const message = event.message;
-  if (message?.edited === undefined) return null;
-  return messageEventFrom({ kind: "edited", workspace, channel: event.channel, message, revisionTs: message.edited.ts });
+  const editedTs = message?.edited?.ts;
+  if (message === undefined || !isText(editedTs)) return null;
+  return messageEventFrom({ ...channel, kind: "edited", message, revisionTs: editedTs });
 }
 
-type Source = { kind: MessageEvent["kind"]; workspace: string; channel: string; message: ChatMessage; revisionTs: string };
+type Source = Channel & { kind: MessageEvent["kind"]; message: ChatMessage; revisionTs: string };
 
-function messageEventFrom({ kind, workspace, channel, message, revisionTs }: Source): MessageEvent | null {
+function messageEventFrom({ kind, workspace, channel, visibility, message, revisionTs }: Source): MessageEvent | null {
   if (!isPostedByAPerson(message)) return null;
   const revision = revisionOf(revisionTs);
   return {
@@ -68,20 +83,44 @@ function messageEventFrom({ kind, workspace, channel, message, revisionTs }: Sou
     revision,
     at: Number(revision / 1000n),
     content: countableContent(message),
+    words: { segments: segmentsOf(message), visibility },
   };
 }
 
-export function mayGiveKudos(event: MessageEvent | null): event is MessageEvent {
+export type Fetched = { kind: "found"; message: FetchedMessage } | { kind: "deleted" } | { kind: "unreadable" };
+
+export function fetchedMessageOf(ref: MessageRef, messages: unknown): Fetched {
+  if (!Array.isArray(messages)) return { kind: "unreadable" };
+  const message: unknown = messages.find((listed: unknown) => isChatMessage(listed) && listed.ts === ref.message);
+  if (!isChatMessage(message) || message.subtype === "tombstone") return { kind: "deleted" };
+  if (!countedSubtypes.has(message.subtype) || !isPostedByAPerson(message)) return { kind: "unreadable" };
+  const editedTs = message.edited?.ts;
+  const edited = isText(editedTs);
+  return {
+    kind: "found",
+    message: { ref, author: message.user, revision: revisionOf(edited ? editedTs : message.ts), edited, content: countableContent(message), segments: segmentsOf(message) },
+  };
+}
+
+function isChatMessage(value: unknown): value is ChatMessage {
+  return typeof value === "object" && value !== null && isText((value as ChatMessage).ts);
+}
+
+export function mayAffectKudos(event: MessageEvent | MessageDeleted | null): event is MessageEvent | MessageDeleted {
   if (event === null) return false;
-  return event.kind === "edited" || (event.content.mentions.length > 0 && event.content.emoji.length > 0);
+  return event.kind !== "posted" || isKudosCandidate(event.content);
+}
+
+function isKudosCandidate(content: MessageContent) {
+  return content.mentions.length > 0 && content.emoji.length > 0;
 }
 
 function isPostedByAPerson(message: ChatMessage): message is ChatMessage & { user: string } {
-  return message.user !== undefined && message.bot_id === undefined;
+  return isText(message.user) && isText(message.ts) && message.bot_id === undefined;
 }
 
 function isThreadReply(message: ChatMessage) {
-  return message.thread_ts !== undefined && message.thread_ts !== message.ts;
+  return isText(message.thread_ts) && message.thread_ts !== message.ts;
 }
 
 function revisionOf(ts: string): bigint {
@@ -95,8 +134,8 @@ function countableContent(message: ChatMessage): MessageContent {
     if (uncountedContainers.has(element.type) || isStruckOrCode(element.style)) return;
     const mention = mentionOf(element);
     if (mention) content.mentions.push(mention);
-    else if (element.type === "emoji" && element.name) content.emoji.push(element.name);
-    else if (element.type === "text") content.text += element.text ?? "";
+    else if (element.type === "emoji" && isText(element.name)) content.emoji.push(element.name);
+    else if (element.type === "text" && isText(element.text)) content.text += element.text;
     if (element.elements === undefined) return;
     element.elements.forEach(visit);
     content.text += containerBoundary;
@@ -106,12 +145,12 @@ function countableContent(message: ChatMessage): MessageContent {
 }
 
 function mentionOf(element: RichElement): Mention | undefined {
-  if (element.type === "user" && element.user_id) return { kind: "person", user: element.user_id };
-  if (element.type === "usergroup" && element.usergroup_id) return { kind: "group", group: element.usergroup_id };
-  if (element.type === "broadcast" && element.range) return { kind: "broadcast", range: element.range };
+  if (element.type === "user" && isText(element.user_id)) return { kind: "person", user: element.user_id };
+  if (element.type === "usergroup" && isText(element.usergroup_id)) return { kind: "group", group: element.usergroup_id };
+  if (element.type === "broadcast" && isText(element.range)) return { kind: "broadcast", range: element.range };
   return undefined;
 }
 
-function isStruckOrCode(style: Style | undefined) {
+function isStruckOrCode(style: RichElement["style"]) {
   return style?.strike === true || style?.code === true;
 }

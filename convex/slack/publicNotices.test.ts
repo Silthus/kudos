@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { FakeSlack, landsButTimesOut, slackError, type ScriptedAnswer } from "../../testing/fakeSlack";
 import { signingSecret } from "../../testing/signedSlack";
-import { everythingStored, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { everythingStored, post, setWorkspaceSettings, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -40,7 +40,7 @@ describe("P64: the public level notice", () => {
     expect(slack.messagesIn("C_NEWS")).toEqual([{ channel: "C_NEWS", ts: expect.any(String), text: "🎉 <@U_ALICE> reached level 2." }]);
   });
 
-  test("R45: a recipient's notice states only their progress, never the giver or the thank-you, and no text is stored", async () => {
+  test("R45 AT1: a recipient's notice states only their progress, never the giver or the thank-you, whose words are only in the kudos text", async () => {
     const t = await announcingIn("C_NEWS");
     await withXp(t, "U_BOB", 15);
 
@@ -48,7 +48,7 @@ describe("P64: the public level notice", () => {
     await settle(t);
 
     expect(slack.messagesIn("C_NEWS").map((message) => message.text)).toEqual(["🎉 <@U_BOB> reached level 2."]);
-    const stored = JSON.stringify(await everythingStored(t), (_, value) => (typeof value === "bigint" ? String(value) : value));
+    const stored = JSON.stringify(await everythingStored(t, { except: ["kudosTexts"] }), (_, value) => (typeof value === "bigint" ? String(value) : value));
     expect(stored).not.toContain("rescuing");
   });
 });
@@ -122,10 +122,7 @@ describe("P64: a change of route", () => {
     const t = await announcingIn("C_NEWS");
     await post(t, thanksBobTwice);
     await settle(t);
-    await t.run(async (ctx) => {
-      const workspace = await ctx.db.query("workspaces").first();
-      await ctx.db.patch(workspace!._id, { announcementChannel: "C_PICKED_ANEW" });
-    });
+    await setWorkspaceSettings(t, { announcementChannel: "C_PICKED_ANEW" });
 
     await t.mutation(internal.feedback.publicReplies.celebrateLevel, { event: await levelReached(t, "U_BOB", 2) });
     await settle(t);
@@ -363,7 +360,7 @@ const acceptedButAnsweredWithoutTs: ScriptedAnswer = async (answerAsSlackWould) 
 
 async function journeyWorkspace(settings: { announcementChannel?: string } = {}) {
   const t = await unlocksShippedBeforeAnyoneJoined(await flagsLoaded(testBackend()));
-  await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", ...settings }));
+  await setWorkspaceSettings(t, settings);
   return t;
 }
 
@@ -380,7 +377,7 @@ function announcingIn(announcementChannel: string) {
 
 async function withAnnouncementChannel(backend: Backend | Promise<Backend>, announcementChannel: string) {
   const t = await backend;
-  await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", announcementChannel }));
+  await setWorkspaceSettings(t, { announcementChannel });
   return t;
 }
 

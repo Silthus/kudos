@@ -4,7 +4,7 @@ import { rankedBoardOf, type RankedRow, type Standing } from "../leaderboard/tot
 import { isOnTheBoards } from "../leaderboard/visibility";
 import { workspaceLink } from "../slack/workspaceLink";
 import { followTheClock } from "./clock";
-import { faceOf, teammateFaceOf, type Face } from "./faces";
+import { faceOf, teammateOf, type Face } from "./faces";
 import { memberQuery, type Denial } from "./memberQuery";
 import { leaderboardStateOf, unlockPathOf, type PageWaits } from "./unlockPath";
 
@@ -24,8 +24,6 @@ export type Leaderboard = {
 export type LeaderboardAnswer = { kind: "not-found" } | PageWaits | Leaderboard;
 
 export type MyLeaderboard = Denial | LeaderboardAnswer;
-
-const nameless = "A teammate";
 
 export const getLeaderboard = memberQuery({
   args: { period: periodValidator },
@@ -50,5 +48,6 @@ export const getLeaderboard = memberQuery({
 });
 
 function leaderboardRowOf({ position, rank, tied, name, picture, kudos, viewer }: RankedRow, myFace: Face): LeaderboardRow {
-  return { position, rank, tied, name: name ?? nameless, face: viewer ? myFace : teammateFaceOf(name, picture), kudos, you: viewer };
+  const teammate = teammateOf(name, picture);
+  return { position, rank, tied, name: teammate.name, face: viewer ? myFace : teammate.face, kudos, you: viewer };
 }

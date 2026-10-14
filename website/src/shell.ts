@@ -116,6 +116,18 @@ const memberWithCoinsReady: MemberProfile = { ...member, ...onTheUnlockPath({ ..
 
 const memberWithCoinsOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...coinsFeature, ...opened }) };
 
+const memberAcrossTheSheet: MemberProfile = {
+  ...member,
+  ...onTheUnlockPath({ ...questsFeature, ...opened }, { ...leaderboardFeature, ...ready }, { ...bookFeature, ...opened }, { ...skillTreeFeature, ...locked }),
+  skillPoints: 0,
+};
+
+const memberWithEveryPanelLocked: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...locked }, { ...leaderboardFeature, ...locked }, { ...bookFeature, ...locked }, { ...skillTreeFeature, ...locked }) };
+
+const memberWithEveryPanelReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...ready }, { ...leaderboardFeature, ...ready }, { ...bookFeature, ...ready }, { ...skillTreeFeature, ...ready }) };
+
+const memberWithEveryPanelOpen: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...opened }, { ...leaderboardFeature, ...opened }, { ...bookFeature, ...opened }, { ...skillTreeFeature, ...opened }), skillPoints: 2 };
+
 const memberWithNothingShipped: MemberProfile = { ...member, ...onTheUnlockPath() };
 
 const firstThanks = { step: "first-thanks", goal: "Give a kudos that says why.", hint: "It counts when your message has 5 or more words besides mentions and emoji.", reward: { xp: 10 } } as const;
@@ -139,6 +151,8 @@ const memberStartingTheJourney: MemberProfile = { ...member, ...onTheUnlockPath(
 const memberWithQuestsReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...ready }), journey: journeyStarted };
 
 const memberWithQuests: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...opened }), journey: journeyUnderway };
+
+const memberWithQuestsAtLevel2: MemberProfile = { ...memberWithQuests, progression: { level: 2, xp: 50, levelStartsAt: 20, nextLevelAt: 60, xpToNextLevel: 10 } };
 
 const memberWithAQuietWeek: MemberProfile = { ...member, thisWeek: { given: 0, received: 0 } };
 
@@ -175,11 +189,16 @@ export const shellFixtures = {
   memberWithCoinsReady,
   memberWithCoinsOpened,
   memberWithNothingShipped,
+  memberAcrossTheSheet,
+  memberWithEveryPanelLocked,
+  memberWithEveryPanelReady,
+  memberWithEveryPanelOpen,
   memberAtLevel1,
   memberAtLevel7,
   memberStartingTheJourney,
   memberWithQuestsReady,
   memberWithQuests,
+  memberWithQuestsAtLevel2,
   error: { kind: "broken" },
 } as const satisfies Record<string, ShellState>;
 
@@ -213,6 +232,7 @@ const fixturesByName: Record<string, ShellState> = {
   "member-starting-the-journey": shellFixtures.memberStartingTheJourney,
   "member-with-quests-ready": shellFixtures.memberWithQuestsReady,
   "member-with-quests": shellFixtures.memberWithQuests,
+  "member-with-quests-at-level-2": shellFixtures.memberWithQuestsAtLevel2,
   error: shellFixtures.error,
 };
 

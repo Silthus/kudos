@@ -99,6 +99,7 @@ async function give(t: Backend, giver: string, recipient: string, kudos: number,
       revision: BigInt(now.getTime()) * 1000n,
       at: now.getTime(),
       content: { mentions: [{ kind: "person", user: recipient }], emoji: Array(kudos).fill("taco"), text: "thanks" },
+      words: { segments: [{ kind: "text", text: "thanks" }], visibility: "public" },
     }),
   );
 }
