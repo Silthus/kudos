@@ -12,6 +12,7 @@ import type { QuestId } from "../quests/pool";
 const tuesday = Date.parse("2026-10-13T10:00:00Z");
 const saturday = Date.parse("2026-10-17T10:00:00Z");
 const nextMonday = Date.parse("2026-10-19T10:00:00Z");
+const dayMs = 24 * 60 * 60 * 1000;
 const siteUrl = "https://kudos-site.test";
 const form = { contentType: "application/x-www-form-urlencoded" };
 const saysWhy = "thanks for untangling the release notes today";
@@ -203,7 +204,7 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     await openHome(t, "U_ALICE");
 
     expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual([
-      `section: ✅ ${sayWhy} [button: Open]`,
+      `section: *Week of Oct 12:* ✅ ${sayWhy} [button: Open]`,
       "section: ✅ Give a kudos that says why. [button: Open]",
       "section: ✅ Finish a weekly quest. [button: Open]",
       "section: ✅ Thank someone you haven't thanked before. [button: Open]",
@@ -226,7 +227,7 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
 
     await openHome(t, "U_ALICE");
 
-    const crate = `section: ✅ ${sayWhy} [button: Open]`;
+    const crate = `section: *Week of Oct 5:* ✅ ${sayWhy} [button: Open]`;
     expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual([
       crate,
       crate,
@@ -236,6 +237,24 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
       "section: ✅ Give a kudos that says why. [button: Open]",
       "section: ✅ Thank someone you haven't thanked before. [button: Open]",
       "context: 2 more crates from earlier weeks wait to open.",
+    ]);
+  });
+
+  test("P85: each crate waiting from an earlier week names its week by the Monday its member's week began, and this week's crates stay as they were", async () => {
+    slack.withMember("U_ALICE", { tz: "America/Los_Angeles" });
+    const t = await workspace(...everyFlag, "website");
+    await levelThreeWithQuestsDrawn(t);
+    await openReadyFeatures(t);
+    await waitingFromAnEarlierWeek(t, "U_ALICE", 1, "2026-09-28");
+    await waitingFromAnEarlierWeek(t, "U_ALICE", 1, "2026-10-05");
+
+    await openHome(t, "U_ALICE");
+
+    expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual([
+      `section: *Week of Sep 28:* ✅ ${sayWhy} [button: Open]`,
+      `section: *Week of Oct 5:* ✅ ${sayWhy} [button: Open]`,
+      "section: ✅ Give a kudos that says why. [button: Open]",
+      "section: ✅ Thank someone you haven't thanked before. [button: Open]",
     ]);
   });
 
@@ -315,8 +334,7 @@ async function drawFor(t: Backend, user: string, quests: QuestId[]) {
   await t.run((ctx) => ctx.db.insert("questDraws", { member, week: "2026-10-12", drawnAt: Date.now(), slots }));
 }
 
-async function waitingFromAnEarlierWeek(t: Backend, user: string, crates: number) {
-  const week = "2026-10-05";
+async function waitingFromAnEarlierWeek(t: Backend, user: string, crates: number, week = "2026-10-05") {
   const reward = { xp: 20, coins: 0, item: null };
   const slots = Array.from({ length: crates }, (_, slot) => ({ slot, quest: "say-why" as QuestId, reward, catalogueVersion: "1", feasibleBecause: { peopleLeft: 1, recognitionsLeft: 18 } }));
   const member = await memberOf(t, user);
@@ -324,7 +342,7 @@ async function waitingFromAnEarlierWeek(t: Backend, user: string, crates: number
     await ctx.db.insert("questDraws", { member, week, drawnAt: Date.parse(`${week}T00:00:00Z`), slots });
     for (const { slot } of slots) {
       const key = `weekly:${week}:${slot}`;
-      await ctx.db.insert("rewardRecords", { member, key, ...reward, catalogueVersion: "1", at: Date.parse("2026-10-07T10:00:00Z") + slot });
+      await ctx.db.insert("rewardRecords", { member, key, ...reward, catalogueVersion: "1", at: Date.parse(`${week}T10:00:00Z`) + 2 * dayMs + slot });
       await ctx.db.insert("pendingCrates", { member, key });
     }
   });

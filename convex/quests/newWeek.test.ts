@@ -20,6 +20,8 @@ const tuesday = Date.parse("2026-10-13T10:00:00Z");
 const mondayInAuckland = Date.parse("2026-10-18T11:00:00Z");
 const mondayInUtc = Date.parse("2026-10-19T00:00:00Z");
 const minuteMs = 60 * 1000;
+const hourMs = 60 * minuteMs;
+const dayMs = 24 * hourMs;
 const lastWeek = "2026-10-12";
 const thisWeek = "2026-10-19";
 const auckland = "Pacific/Auckland";
@@ -236,7 +238,7 @@ describe("P80 P85: a new week replaces the last on App Home without a penalty, a
 
     await openHome(t, "U_ALICE");
 
-    expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual(["section: *Waiting to open*", "section: ✅ Thank someone and say why. You earned *20 XP*. [button: Open]"]);
+    expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual(["section: *Waiting to open*", "section: *Week of Oct 12:* ✅ Thank someone and say why. You earned *20 XP*. [button: Open]"]);
 
     await send(t, blockActions("U_ALICE", buttonBeside("✅ Thank someone and say why.", "Open")));
 
@@ -253,7 +255,7 @@ describe("P80 P85: a new week replaces the last on App Home without a penalty, a
 
     await openHome(t, "U_ALICE");
 
-    const crate = "section: ✅ Thank someone and say why. You earned *20 XP*. [button: Open]";
+    const crate = "section: *Week of Oct 5:* ✅ Thank someone and say why. You earned *20 XP*. [button: Open]";
     expect(publishedHomeBlocks(slack, "U_ALICE").length).toBeLessThanOrEqual(100);
     expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual(["section: *Waiting to open*", crate, crate, crate, crate, crate, "context: 95 more crates from earlier weeks wait to open."]);
 
@@ -275,8 +277,25 @@ describe("P80 P85: a new week replaces the last on App Home without a penalty, a
     expect(waitingIn(publishedHome(slack, "U_ALICE")).at(-1)).toBe("context: 1 more crate from earlier weeks waits to open.");
   });
 
-  async function waitingFromAnEarlierWeek(t: Backend, user: string, crates: number) {
-    const week = "2026-10-05";
+  test("each crate waiting from an earlier week names its week by the Monday its member's week began", async () => {
+    slack.withMember("U_ALICE", { tz: "America/Los_Angeles" });
+    const t = await slackWorkspace();
+    await giveKudos(t, "U_ALICE", "U_BOB");
+    await openHome(t, "U_ALICE");
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Open")));
+    await waitingFromAnEarlierWeek(t, "U_ALICE", 1, "2026-09-28");
+    await waitingFromAnEarlierWeek(t, "U_ALICE", 1, "2026-10-05");
+
+    await openHome(t, "U_ALICE");
+
+    expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual([
+      "section: *Waiting to open*",
+      "section: *Week of Sep 28:* ✅ Thank someone and say why. You earned *20 XP*. [button: Open]",
+      "section: *Week of Oct 5:* ✅ Thank someone and say why. You earned *20 XP*. [button: Open]",
+    ]);
+  });
+
+  async function waitingFromAnEarlierWeek(t: Backend, user: string, crates: number, week = "2026-10-05") {
     const reward = { xp: 20, coins: 0, item: null };
     const slots = Array.from({ length: crates }, (_, slot) => ({ slot, quest: "say-why" as QuestId, reward, catalogueVersion: "1", feasibleBecause: { peopleLeft: 1, recognitionsLeft: 18 } }));
     await t.run(async (ctx) => {
@@ -284,7 +303,7 @@ describe("P80 P85: a new week replaces the last on App Home without a penalty, a
       await ctx.db.insert("questDraws", { member, week, drawnAt: Date.parse(`${week}T00:00:00Z`), slots });
       for (const { slot } of slots) {
         const key = `weekly:${week}:${slot}`;
-        await ctx.db.insert("rewardRecords", { member, key, ...reward, catalogueVersion: "1", at: Date.parse("2026-10-07T10:00:00Z") + slot });
+        await ctx.db.insert("rewardRecords", { member, key, ...reward, catalogueVersion: "1", at: Date.parse(`${week}T00:00:00Z`) + 2 * dayMs + 10 * hourMs + slot });
         await ctx.db.insert("pendingCrates", { member, key });
       }
     });
