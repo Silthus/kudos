@@ -176,16 +176,7 @@ describe("WS85 WS86: the selected perk's details", () => {
     showWideTree(skillTreeFixtures.sparkOwned);
     act(() => nodeOf("Spark").click());
     expect(details()).toHaveTextContent("Owned since 13 Oct 2026");
-    expect(details()).not.toHaveTextContent("Buy it in Slack's App Home.");
-  });
-
-  it("point an available perk to Slack's App Home until buying ships, with the line a spent point never comes back", () => {
-    showWideTree(skillTreeFixtures.withPoints);
-    expect(details()).toHaveTextContent("A spent skill point never comes back.");
-    expect(details()).toHaveTextContent("Buy it in Slack's App Home.");
-    const slack = within(details()).getByRole("link", { name: "Open Slack (opens in a new tab)" });
-    expect(slack).toHaveAttribute("href", "https://app.slack.com/client/T1");
-    expect(within(details()).queryByRole("button")).toBeNull();
+    expect(within(details()).queryByRole("button", { name: /^Buy/ })).toBeNull();
   });
 
   it.each([
@@ -196,7 +187,7 @@ describe("WS85 WS86: the selected perk's details", () => {
     showWideTree(answer);
     act(() => nodeOf(perk).click());
     expect(details()).toHaveTextContent(reason);
-    expect(details()).not.toHaveTextContent("Buy it in Slack's App Home.");
+    expect(within(details()).queryByRole("button", { name: /^Buy/ })).toBeNull();
     expect(details()).not.toHaveTextContent("Owned since");
   });
 

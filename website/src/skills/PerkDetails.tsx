@@ -1,43 +1,49 @@
-import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from "@posthog/quill";
+import { Button, Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from "@posthog/quill";
 import type { PerkNode } from "../shell";
-import { SlackLink } from "../SlackLink";
 import { SkillPointGlyph } from "./glyphs";
 import { ownedSince, reasonOf, skillPointsText } from "./perkWords";
+import type { Purchasing } from "./purchase";
 
 export type SelectedPerk = { perk: PerkNode; level: number };
 
-type DetailsProps = SelectedPerk & { chatUrl: string };
+type DetailsProps = SelectedPerk & { purchasing: Purchasing };
 
-export function PerkDetailsPanel({ perk, level, chatUrl }: DetailsProps) {
+export const detailsHeadingId = "perk-details-title";
+
+export function PerkDetailsPanel({ perk, level, purchasing }: DetailsProps) {
   return (
     <section aria-labelledby="perk-details-label" className="hud-panel relative flex flex-col gap-4 rounded-xl border bg-card p-4 lg:sticky lg:top-24">
       <span id="perk-details-label" className="hud-label">
         Perk details
       </span>
-      <h2 id="perk-details-title" tabIndex={-1} className="hud-display text-2xl font-bold leading-none outline-none">
+      <h2 id={detailsHeadingId} tabIndex={-1} className="hud-display text-2xl font-bold leading-none outline-none">
         {perk.name}
       </h2>
       <Facts perk={perk} level={level} />
-      <Outcome perk={perk} level={level} chatUrl={chatUrl} />
+      <Outcome perk={perk} level={level} purchasing={purchasing} />
+      <PurchaseAnnouncement purchasing={purchasing} />
     </section>
   );
 }
 
 type DrawerProps = DetailsProps & { open: boolean; onClose: () => void; returnFocusTo: () => HTMLElement | null };
 
-export function PerkDetailsDrawer({ perk, level, chatUrl, open, onClose, returnFocusTo }: DrawerProps) {
+export function PerkDetailsDrawer({ perk, level, purchasing, open, onClose, returnFocusTo }: DrawerProps) {
   return (
     <Drawer open={open} onOpenChange={(next) => !next && onClose()}>
       <DrawerContent finalFocus={returnFocusTo}>
         <DrawerHeader>
-          <DrawerTitle className="hud-display text-2xl">{perk.name}</DrawerTitle>
+          <DrawerTitle id={detailsHeadingId} tabIndex={-1} className="hud-display text-2xl outline-none">
+            {perk.name}
+          </DrawerTitle>
           <DrawerDescription>{perk.copy}</DrawerDescription>
         </DrawerHeader>
         <div className="px-4">
           <FactList perk={perk} level={level} />
         </div>
         <DrawerFooter>
-          <Outcome perk={perk} level={level} chatUrl={chatUrl} />
+          <Outcome perk={perk} level={level} purchasing={purchasing} />
+          <PurchaseAnnouncement purchasing={purchasing} />
         </DrawerFooter>
       </DrawerContent>
     </Drawer>
@@ -67,16 +73,34 @@ function FactList({ perk, level }: SelectedPerk) {
   );
 }
 
-function Outcome({ perk, level, chatUrl }: DetailsProps) {
+function Outcome({ perk, level, purchasing }: DetailsProps) {
   if (perk.state === "owned") return <p className="text-sm font-medium">{ownedSince(perk.ownedAt!)}</p>;
   if (perk.state === "unavailable") return <p className="text-sm text-muted-foreground">{reasonOf(perk, level)}</p>;
+  return <BuyAction perk={perk} level={level} purchasing={purchasing} />;
+}
+
+function BuyAction({ perk, level, purchasing }: DetailsProps) {
+  const { buying, notice } = purchasing;
+  const busy = buying !== undefined;
   return (
     <div className="flex flex-col items-start gap-2">
       <p className="text-xs text-muted-foreground">A spent skill point never comes back.</p>
-      <p className="text-sm">Buy it in Slack's App Home.</p>
-      <SlackLink chatUrl={chatUrl} variant="outline">
-        Open Slack
-      </SlackLink>
+      <Button
+        variant="primary"
+        aria-disabled={busy || undefined}
+        onClick={() => purchasing.buy({ perk, level })}
+      >
+        {buying === perk.perk ? "Buying…" : `Buy for ${skillPointsText(perk.cost.skillPoints)}`}
+      </Button>
+      {notice?.shownInDetails && notice.perk === perk.perk && <p className="text-xs font-medium">{notice.text}</p>}
     </div>
+  );
+}
+
+function PurchaseAnnouncement({ purchasing }: { purchasing: Purchasing }) {
+  return (
+    <p role="status" className="sr-only">
+      {purchasing.notice?.text}
+    </p>
   );
 }

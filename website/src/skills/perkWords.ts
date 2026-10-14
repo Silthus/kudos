@@ -1,4 +1,4 @@
-import type { PerkNode } from "../shell";
+import type { PerkNode, PurchaseRefusal } from "../shell";
 
 const ownedDate = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
@@ -32,4 +32,20 @@ export function nodeNameOf(perk: PerkNode, level: number) {
 
 export function ownedSince(ownedAt: number) {
   return `Owned since ${ownedDate.format(ownedAt)}`;
+}
+
+export function boughtText({ name }: PerkNode) {
+  return `You bought ${name}.`;
+}
+
+export function refusedText(perk: PerkNode, level: number, reason: PurchaseRefusal | null) {
+  const refused = "That couldn't be bought.";
+  const why = refusalReasonOf(perk, level, reason);
+  return why === undefined ? refused : `${refused} ${why}`;
+}
+
+function refusalReasonOf(perk: PerkNode, level: number, reason: PurchaseRefusal | null) {
+  if (reason === "owned") return `You already own ${perk.name}.`;
+  if (reason === "level" || reason === "requires" || reason === "points") return shortReasonOf({ ...perk, reason }, level);
+  return undefined;
 }

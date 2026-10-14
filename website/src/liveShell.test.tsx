@@ -9,12 +9,13 @@ import { bookFixtures } from "./bookFixtures";
 import { leaderboardFixtures } from "./leaderboardFixtures";
 import { shellFixtures } from "./shell";
 import { skillTreeFixtures } from "./skillTreeFixtures";
-import { fakeSystemTheme } from "./test/systemTheme";
+import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
 
 const profileRead = vi.fn();
 const boardRead = vi.fn();
 const authActions = { signIn: vi.fn(), signOut: vi.fn() };
 const openFeatureCall = vi.fn();
+const buyPerkCall = vi.fn();
 const socket = { isWebSocketConnected: true };
 const auth = { isLoading: false, isAuthenticated: true };
 
@@ -24,7 +25,7 @@ vi.mock("convex/react", async (importOriginal) => ({
   useConvexAuth: () => ({ ...auth }),
   useConvexConnectionState: () => ({ ...socket }),
   useQuery: () => profileRead(),
-  useMutation: () => openFeatureCall,
+  useMutation: (mutation: FunctionReference<"mutation">) => (getFunctionName(mutation) === "website/commands:buyPerk" ? buyPerkCall : openFeatureCall),
 }));
 
 const boardListeners = new Set<() => void>();
@@ -85,6 +86,7 @@ afterEach(() => {
   authActions.signIn.mockReset();
   authActions.signOut.mockReset();
   openFeatureCall.mockReset();
+  buyPerkCall.mockReset();
 });
 
 describe("WS20 WS24: the live site shows the error page when a call fails, with focus on its title after a state change", () => {
@@ -221,6 +223,50 @@ describe("WS85: the skill tree page reads getSkillTree through the live shell", 
 
     expect(await errorPage()).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Screens" })).toBeInTheDocument();
+  });
+});
+
+describe("WS87: the skill tree page buys through the live shell's buyPerk", () => {
+  beforeEach(() => {
+    window.history.replaceState(null, "", "/skills");
+    profileRead.mockReturnValue(shellFixtures.memberWithEveryFeatureOpen);
+    boardRead.mockReturnValue(skillTreeFixtures.withPoints);
+    preferWideScreen();
+  });
+
+  function buyButton() {
+    return within(screen.getByRole("main")).getByRole("button", { name: /^Buy/ });
+  }
+
+  it("calls buyPerk with the perk and a browser request, and announces the answer", async () => {
+    buyPerkCall.mockResolvedValue({ kind: "refused", reason: "points" });
+    renderLiveSite();
+
+    fireEvent.click(buyButton());
+    await act(async () => undefined);
+
+    expect(buyPerkCall).toHaveBeenCalledExactlyOnceWith({ perk: "spark", request: expect.stringMatching(/^[0-9a-f-]{36}$/) });
+    expect(openFeatureCall).not.toHaveBeenCalled();
+    expect(within(screen.getByRole("main")).getByRole("status")).toHaveTextContent("That couldn't be bought. No skill points to spend.");
+  });
+
+  it("ends Buying… after ten seconds without an answer, says HedgeHug couldn't be reached, and a retry resends the same request", async () => {
+    vi.useFakeTimers();
+    buyPerkCall.mockReturnValueOnce(new Promise(() => undefined)).mockResolvedValueOnce({ kind: "bought" });
+    renderLiveSite();
+
+    fireEvent.click(buyButton());
+    await act(async () => vi.advanceTimersByTime(9_999));
+    expect(buyButton()).toHaveAccessibleName("Buying…");
+    await act(async () => vi.advanceTimersByTime(1));
+
+    expect(within(screen.getByRole("main")).getByRole("status")).toHaveTextContent("Couldn't reach HedgeHug. Try again.");
+    fireEvent.click(buyButton());
+    await act(async () => undefined);
+
+    expect(buyPerkCall).toHaveBeenCalledTimes(2);
+    expect(buyPerkCall.mock.calls[1]).toEqual(buyPerkCall.mock.calls[0]);
+    expect(within(screen.getByRole("main")).getByRole("status")).toHaveTextContent("You bought Spark.");
   });
 });
 

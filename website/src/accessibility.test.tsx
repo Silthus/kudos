@@ -5,7 +5,7 @@ import type { BoardRead } from "./boardRead";
 import { bookFixtures, fixedBook } from "./bookFixtures";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
-import { shellFixtures, type MyBook, type MyLeaderboard, type MyQuests, type MySkillTree, type OpenAnswer, type ShellState } from "./shell";
+import { shellFixtures, type MyBook, type MyLeaderboard, type MyQuests, type BuyAnswer, type MySkillTree, type OpenAnswer, type ShellState } from "./shell";
 import { fixedSkillTree, skillTreeFixtures } from "./skillTreeFixtures";
 import { watchTheViewerRow } from "./test/viewerRow";
 import { renderApp } from "./test/renderApp";
@@ -164,6 +164,33 @@ describe("WS75 WS74: every quest crate state passes axe in light and dark", () =
           expect(await violationsIn(document.body, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
         });
       }
+    }
+  }
+});
+
+const purchaseStates: { name: string; answer: () => Promise<BuyAnswer>; wide: boolean }[] = [
+  { name: "buying", answer: () => new Promise(() => undefined), wide: true },
+  { name: "bought", answer: async () => ({ kind: "bought" }), wide: true },
+  { name: "refused with a reason", answer: async () => ({ kind: "refused", reason: "points" }), wide: true },
+  { name: "unreachable", answer: async () => Promise.reject(new Error("socket closed")), wide: true },
+  { name: "buying in the drawer", answer: () => new Promise(() => undefined), wide: false },
+  { name: "refused in the drawer", answer: async () => ({ kind: "refused", reason: "points" }), wide: false },
+];
+
+describe("WS24 WS87: every purchase state passes axe in light and dark", () => {
+  for (const dark of [false, true]) {
+    for (const state of purchaseStates) {
+      it(`the perk ${state.name} in ${dark ? "dark" : "light"}`, async () => {
+        fakeSystemTheme(dark);
+        if (state.wide) preferWideScreen();
+        window.history.replaceState(null, "", "/skills");
+        const { user } = renderApp(shellFixtures.memberWithEveryFeatureOpen, undefined, { buyPerk: state.answer }, undefined, undefined, fixedSkillTree(skillTreeFixtures.withPoints));
+        await user.click(within(screen.getByRole("region", { name: "Perk tree" })).getByRole("button", { name: /^Rhythm\./ }));
+        const details = state.wide ? screen.getByRole("region", { name: "Perk details" }) : await screen.findByRole("dialog", { name: "Rhythm" });
+        await user.click(within(details).getByRole("button", { name: "Buy for 1 skill point" }));
+        await act(async () => undefined);
+        expect(await violationsIn(document.body, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
+      });
     }
   }
 });

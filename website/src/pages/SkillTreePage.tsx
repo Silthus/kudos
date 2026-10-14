@@ -1,19 +1,27 @@
 import { Card, CardContent } from "@posthog/quill";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PageTitle } from "../PageTitle";
-import type { PerkNode, SkillTreeAnswer, TreeRow } from "../shell";
-import { PerkDetailsDrawer, PerkDetailsPanel, type SelectedPerk } from "../skills/PerkDetails";
+import type { PerkNode, ShellActions, SkillTreeAnswer, TreeRow } from "../shell";
+import { detailsHeadingId, PerkDetailsDrawer, PerkDetailsPanel, type SelectedPerk } from "../skills/PerkDetails";
 import { PerkTree } from "../skills/PerkTree";
 import { pointsToSpend } from "../skills/perkWords";
+import { usePurchase } from "../skills/purchase";
 import { useWideScreen } from "../skills/useWideScreen";
 import { YourPerks } from "../skills/YourPerks";
 
 type Tree = Extract<SkillTreeAnswer, { kind: "tree" }>;
 
-export function SkillTreePage({ tree }: { tree: Tree }) {
+type SkillTreePageProps = { tree: Tree; buyPerk: ShellActions["buyPerk"] };
+
+export function SkillTreePage({ tree, buyPerk }: SkillTreePageProps) {
   const wide = useWideScreen();
   const [chosen, setChosen] = useState(() => selectedIn(tree.rows, undefined)?.perk.perk);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const focusDetailsHeading = useDetailsHeadingFocus();
+  const purchasing = usePurchase(buyPerk, (bought) => {
+    setChosen(bought);
+    focusDetailsHeading();
+  });
   const nodes = useRef(new Map<PerkNode["perk"], HTMLButtonElement | null>());
   const selected = selectedIn(tree.rows, chosen);
   const select = (perk: PerkNode["perk"]) => {
@@ -33,13 +41,21 @@ export function SkillTreePage({ tree }: { tree: Tree }) {
           <YourPerks rows={tree.rows} />
         </div>
         <div className="flex flex-col gap-6">
-          {wide && selected && <PerkDetailsPanel {...selected} chatUrl={tree.chatUrl} />}
+          {wide && selected && <PerkDetailsPanel {...selected} purchasing={purchasing} />}
           <HowPerksWork />
         </div>
       </div>
-      {!wide && selected && <PerkDetailsDrawer {...selected} chatUrl={tree.chatUrl} open={drawerOpen} onClose={() => setDrawerOpen(false)} returnFocusTo={() => nodes.current.get(selected.perk.perk) ?? null} />}
+      {!wide && selected && <PerkDetailsDrawer {...selected} purchasing={purchasing} open={drawerOpen} onClose={() => setDrawerOpen(false)} returnFocusTo={() => nodes.current.get(selected.perk.perk) ?? null} />}
     </div>
   );
+}
+
+function useDetailsHeadingFocus() {
+  const [asked, setAsked] = useState(0);
+  useEffect(() => {
+    if (asked > 0) document.getElementById(detailsHeadingId)?.focus();
+  }, [asked]);
+  return () => setAsked((times) => times + 1);
 }
 
 function selectedIn(rows: TreeRow[], chosen: PerkNode["perk"] | undefined): SelectedPerk | undefined {

@@ -1,6 +1,7 @@
 import type { Feature } from "../../convex/unlocks/feature";
 import type { Quest } from "../../convex/quests/step";
-import type { CommandAnswer } from "../../convex/website/commands";
+import type { PerkId } from "../../convex/progression/tree";
+import type { CommandAnswer, PurchaseAnswer } from "../../convex/website/commands";
 import type { Denial } from "../../convex/website/memberQuery";
 import type { FeatureCard, JourneyStep, MemberProfile, MyProfile } from "../../convex/website/profile";
 import type { QuestsAnswer } from "../../convex/website/quests";
@@ -14,11 +15,15 @@ export type { TierId } from "../../convex/achievements/ladders";
 export type { MySkillTree, PerkNode, SkillTreeAnswer, TreeRow } from "../../convex/website/skillTree";
 export type { Leaderboard, LeaderboardRow, MyLeaderboard } from "../../convex/website/leaderboard";
 export type { Period } from "../../convex/leaderboard/periods";
-export type { CommandAnswer } from "../../convex/website/commands";
+export type { CommandAnswer, PurchaseAnswer, PurchaseRefusal } from "../../convex/website/commands";
 export type { Feature } from "../../convex/unlocks/feature";
 export type { Quest } from "../../convex/quests/step";
 
 export type OpenAnswer = CommandAnswer | Denial;
+
+export type Purchase = { perk: PerkId; request: string };
+
+export type BuyAnswer = PurchaseAnswer | Denial;
 
 export type MyQuests = QuestsAnswer | Denial;
 
@@ -28,7 +33,7 @@ export type Visitor = MyProfile | { kind: "loading" } | { kind: "connecting" } |
 
 export type ShellState = Visitor | { kind: "broken" };
 
-export type ShellActions = { signIn(returnTo: string): void; signOut(): void; openFeature(feature: Feature): Promise<OpenAnswer>; openQuestCrate(quest: Quest): Promise<OpenAnswer> };
+export type ShellActions = { signIn(returnTo: string): void; signOut(): void; openFeature(feature: Feature): Promise<OpenAnswer>; openQuestCrate(quest: Quest): Promise<OpenAnswer>; buyPerk(purchase: Purchase): Promise<BuyAnswer> };
 
 const member: MemberProfile = {
   kind: "member",
@@ -211,4 +216,4 @@ export function builtShell(name: string | undefined): ShellState {
   return fixturesByName[name ?? ""] ?? shellFixtures.closed;
 }
 
-export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, openFeature: async () => ({ kind: "opened" }), openQuestCrate: async () => ({ kind: "opened" }) };
+export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, openFeature: async () => ({ kind: "opened" }), openQuestCrate: async () => ({ kind: "opened" }), buyPerk: async () => ({ kind: "bought" }) };
