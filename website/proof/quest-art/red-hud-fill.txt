@@ -1,0 +1,12 @@
+ × flies the +{xp} XP chip and its particles from the card to the HUD avatar, once, and bumps the avatar when the last lands 1252ms
+ × holds the HUD ring at the XP from when Claim was pressed, and fills it to the read's new XP once the reward lands 1111ms
+ × does not fill the ring backwards across a level-up 768ms
+ ✓ measures the card where it is once focus is back on it 591ms
+ ✓ still flies from an earlier week's crate that left the read while its reveal played 918ms
+ × flies each of two Claims pressed together, one after the other 763ms
+ × stops at once, with no bump or fill, when the browser cancels it, as turning on reduced motion mid-flight does 649ms
+ × never flies under reduced motion, and shows the new XP at once with a short fade 577ms
+ ✓ never flies on a reload, for a quest claimed before 242ms
+ ✓ flies only after a Claim, not after the ready pill opens a crate 448ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  6 failed | 4 passed | 44 skipped (54)

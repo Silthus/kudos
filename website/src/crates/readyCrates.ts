@@ -9,7 +9,7 @@ export type QuestCrate = { kind: "quest"; quest: Quest; xp: number; seen: string
 
 export type ReadyCrate = FeatureCrate | QuestCrate;
 
-type CrateFacts = { crate: Quest | null; seen: string | null; reward: { xp: number } };
+export type CrateFacts = { crate: Quest | null; seen: string | null; reward: { xp: number } };
 
 export function featureCrateOf(card: FeatureCard): FeatureCrate {
   return { kind: "feature", card, seen: card.seen };

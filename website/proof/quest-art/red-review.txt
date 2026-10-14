@@ -1,0 +1,4 @@
+     × still flies from an earlier week's crate that left the read while its reveal played 836ms
+     × stops at once, with no bump, when the browser cancels it, as turning on reduced motion mid-flight does 446ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  2 failed | 5 passed | 44 skipped (51)

@@ -1,0 +1,7 @@
+Found two new defects:
+
+1. **Medium — [moments.ts:123](/home/coder/dev/kudos-wt/quest-art/website/src/crates/moments.ts:123): queued Claims lose earlier flights (WS315).** Press two different Claims before either command answers, then let both succeed. Closing the first reveal defers its flight because another reveal remains; closing the second overwrites it. Only the second reward flies. Reproduced with a read-only React probe. **Fix:** preserve each pending flight and play each once, keeping focus restoration before measurement.
+
+2. **Low — [RewardFlight.tsx:75](/home/coder/dev/kudos-wt/quest-art/website/src/crates/RewardFlight.tsx:75): cancelling the landing bump leaves its class attached (WS339).** Enable reduced motion during the avatar’s 320 ms bump. The new CSS cancels the animation, but cleanup listens only for `animationend`. Turning reduced motion off later restarts the old bump without another Claim. The cancellation probe confirmed the retained class. **Fix:** remove `reward-landed` on both end and cancellation, removing both listeners when either fires.
+
+The four Round 1 fixes hold; focus-before-measurement was verified without StrictMode. No defects found in the merged `/skills` or `/book` routing. No files changed.
