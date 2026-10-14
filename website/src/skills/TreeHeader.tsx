@@ -13,7 +13,7 @@ export function TreeHeader({ tree, level }: { tree: Tree; level: number | undefi
     <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="flex flex-col gap-1">
         <span className="hud-label">Skill tree</span>
-        <PageTitle tab="Skill tree">Perks</PageTitle>
+        <PageTitle tab="Skill tree" size="display">Perks</PageTitle>
         <p className="text-sm text-muted-foreground">
           {ownedCountLine(owned, perks.length)} · {pointsToSpend(tree.skillPoints)}
         </p>

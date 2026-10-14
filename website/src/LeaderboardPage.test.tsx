@@ -387,10 +387,10 @@ describe("WS34 V19: teammates show their Slack faces", () => {
 });
 
 describe("WS42: the list shows the rest of G17's window below the podium", () => {
-  it("lists the window after the podium in order, with one … where positions are skipped", () => {
+  it("lists the window after the podium in order, with the skipped positions behind Show more lines", () => {
     showBoard(leaderboardFixtures.midBoard);
     expect(linesOf(boardList())).toEqual([
-      "…Positions skipped",
+      "Show 2 more above",
       "Rank 6: 6FMFay Mensah14",
       "Rank 7: 7GPGus Park13",
       "Rank 8: 8HSHal Sato12",
@@ -398,6 +398,7 @@ describe("WS42: the list shows the rest of G17's window below the podium", () =>
       "Rank 10: 10IQIvy Quinn10",
       "Rank 11: 11JVJo Vogt9",
       "Rank 12: 12KHKai Hale8",
+      "Show 1 more below",
     ]);
   });
 
@@ -419,12 +420,6 @@ describe("WS42: the list shows the rest of G17's window below the podium", () =>
     expect(other.querySelector("[data-you-ring]")).toBeNull();
   });
 
-  it("reads the gap as skipped positions and hides the ellipsis from screen readers", () => {
-    showBoard(leaderboardFixtures.midBoard);
-    const gap = within(boardList()).getAllByRole("listitem")[0]!;
-    expect(within(gap).getByText("…")).toHaveAttribute("aria-hidden", "true");
-    expect(within(gap).getByText("Positions skipped")).toHaveClass("sr-only");
-  });
 
   it("shows the column header only over lines, never over the join line alone", () => {
     showBoard(leaderboardFixtures.notRanked);
@@ -557,7 +552,7 @@ describe("WS43: the whole board and Jump to me", () => {
     await user.click(within(main()).getByRole("button", { name: "Show the whole board" }));
     within(main()).getByRole("button", { name: "Back to my spot" }).focus();
     await user.keyboard("{Enter}");
-    expect(linesOf(boardList())).toHaveLength(8);
+    expect(linesOf(boardList())).toHaveLength(9);
     expect(within(main()).getByRole("button", { name: "Show the whole board" })).toHaveFocus();
   });
 
@@ -597,13 +592,131 @@ describe("WS43: the whole board and Jump to me", () => {
     await user.click(within(main()).getByRole("button", { name: "Back to my spot" }));
 
     expect(within(main()).queryByRole("region", { name: "The whole board" })).not.toBeInTheDocument();
-    expect(linesOf(boardList())).toHaveLength(10);
+    expect(ranksIn(boardList())).toEqual([3, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
     expect(pageTitle()).toHaveFocus();
   });
 
   it("offers no whole board when the window already shows every row", () => {
     showBoard(leaderboardFixtures.viewerLeads);
     expect(within(main()).queryByRole("button", { name: "Show the whole board" })).not.toBeInTheDocument();
+  });
+});
+
+function ranksIn(list: HTMLElement) {
+  return linesOf(list).map((line) => Number(/^Rank (\d+)/.exec(line ?? "")?.[1] ?? line));
+}
+
+function showMore(side: "above" | "below") {
+  return within(main()).queryByRole("button", { name: new RegExp(`^Show \\d+ more ${side}$`) });
+}
+
+function lineAt(position: number) {
+  return within(boardList()).getAllByRole("listitem").find((line) => line.textContent?.startsWith(`Rank ${position}:`));
+}
+
+describe("WS320: Show 5 more grows the window in place", () => {
+  it("offers five more on each side of a viewer in the middle, and fewer once fewer are hidden", async () => {
+    const { user } = showBoard(leaderboardFixtures.longBoardViewerInTheMiddle);
+    expect(showMore("above")).toHaveAccessibleName("Show 5 more above");
+    expect(showMore("below")).toHaveAccessibleName("Show 5 more below");
+    expect(within(main()).getByText("No. 12–18 of 30")).toBeInTheDocument();
+
+    await user.click(showMore("above")!);
+    expect(ranksIn(boardList())).toEqual([Number.NaN, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, Number.NaN]);
+    expect(lineAt(7)).toHaveFocus();
+    expect(showMore("above")).toHaveAccessibleName("Show 3 more above");
+    expect(within(main()).getByText("No. 7–18 of 30")).toBeInTheDocument();
+
+    await user.click(showMore("above")!);
+    expect(lineAt(4)).toHaveFocus();
+    expect(showMore("above")).not.toBeInTheDocument();
+    expect(ranksIn(boardList()).slice(0, 2)).toEqual([4, 5]);
+  });
+
+  it("steps down to the last row, moving focus to the first revealed row each time", async () => {
+    const { user } = showBoard(leaderboardFixtures.longBoardViewerInTheMiddle);
+    showMore("below")!.focus();
+    await user.keyboard("{Enter}");
+    expect(lineAt(19)).toHaveFocus();
+    expect(showMore("below")).toHaveAccessibleName("Show 5 more below");
+
+    await user.click(showMore("below")!);
+    expect(lineAt(24)).toHaveFocus();
+    expect(showMore("below")).toHaveAccessibleName("Show 2 more below");
+
+    await user.click(showMore("below")!);
+    expect(lineAt(29)).toHaveFocus();
+    expect(showMore("below")).not.toBeInTheDocument();
+    expect(ranksIn(boardList()).slice(-2)).toEqual([29, 30]);
+    expect(within(main()).getByText("No. 12–30 of 30")).toBeInTheDocument();
+  });
+
+  it("offers only rows below at the top of the board", () => {
+    showBoard(leaderboardFixtures.longBoardViewerAtTheTop);
+    expect(showMore("above")).not.toBeInTheDocument();
+    expect(showMore("below")).toHaveAccessibleName("Show 5 more below");
+    expect(ranksIn(boardList())[0]).toBe(4);
+  });
+
+  it("offers only rows above at the bottom of the board", () => {
+    showBoard(leaderboardFixtures.longBoardViewerAtTheBottom);
+    expect(showMore("above")).toHaveAccessibleName("Show 5 more above");
+    expect(showMore("below")).not.toBeInTheDocument();
+  });
+
+  it("grows the board below the podium for a viewer who isn't on it", async () => {
+    const { user } = showBoard(leaderboardFixtures.leftALongBoard);
+    await user.click(showMore("below")!);
+    expect(linesOf(boardList())[0]).toContain("Dev Rao");
+    expect(ranksIn(boardList())).toEqual([3, 5, 6, 7, 8, Number.NaN]);
+    expect(document.activeElement).toBe(within(boardList()).getAllByRole("listitem")[0]);
+    expect(within(main()).getByText("No. 4–8 of 12")).toBeInTheDocument();
+  });
+
+  it("keeps Show the whole board and Back to my spot once every row is shown", async () => {
+    watchTheViewerRow();
+    Element.prototype.scrollTo = () => undefined;
+    const { user } = showBoard(leaderboardFixtures.midBoard);
+    await user.click(showMore("above")!);
+    await user.click(showMore("below")!);
+    expect(within(main()).getByText("No. 4–13 of 13")).toBeInTheDocument();
+
+    await user.click(within(main()).getByRole("button", { name: "Show the whole board" }));
+    await user.click(within(main()).getByRole("button", { name: "Back to my spot" }));
+    expect(showMore("above")).toHaveAccessibleName("Show 2 more above");
+    expect(within(main()).getByText("No. 6–12 of 13")).toBeInTheDocument();
+  });
+
+  it("moves focus only on a press, never when a live update brings a revealed row back", async () => {
+    let board: Leaderboard = leaderboardFixtures.longBoardViewerInTheMiddle;
+    visit("/leaderboard");
+    const { user, showVisitor } = renderApp(withTheBoard, (period) => period && { ...board, period });
+    await user.click(showMore("above")!);
+    expect(lineAt(7)).toHaveFocus();
+
+    const thisMonth = within(main()).getByRole("button", { name: "This month" });
+    thisMonth.focus();
+    const firstWindow = board.window;
+    board = { ...board, window: [1, 2, 3, 22, 23, 24, 25, 26, 27, 28] };
+    showVisitor(withTheBoard);
+    board = { ...board, window: firstWindow };
+    showVisitor(withTheBoard);
+    expect(lineAt(7)).toBeInTheDocument();
+    expect(thisMonth).toHaveFocus();
+  });
+
+  it("restores the first window from Back to my spot", async () => {
+    watchTheViewerRow();
+    Element.prototype.scrollTo = () => undefined;
+    const { user } = showBoard(leaderboardFixtures.longBoardViewerInTheMiddle);
+    await user.click(showMore("above")!);
+    await user.click(showMore("below")!);
+    await user.click(within(main()).getByRole("button", { name: "Show the whole board" }));
+    expect(within(wholeBoard()).getAllByRole("listitem")).toHaveLength(30);
+
+    await user.click(within(main()).getByRole("button", { name: "Back to my spot" }));
+    expect(ranksIn(boardList()).slice(1, -1)).toEqual([12, 13, 14, 15, 16, 17, 18]);
+    expect(showMore("above")).toHaveAccessibleName("Show 5 more above");
   });
 });
 
