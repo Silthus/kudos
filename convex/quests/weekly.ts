@@ -59,7 +59,7 @@ export type WeeklySlot = Slot & { goal: string; progress: number; target: number
 
 export type QuestSwap = { slot: number; replaced: QuestId; quest: QuestId; swappedAt: number };
 
-export type UnopenedCrate = { crate: WeeklyQuest; goal: string; reward: Reward; finishedAt: number };
+export type UnopenedCrate = { crate: WeeklyQuest; week: WeekKey; goal: string; reward: Reward; finishedAt: number };
 
 export type DrawnWeek = Omit<WeeklyQuests, "slots" | "swapAvailable"> & { slots: Array<WeeklySlot & { crate: WeeklyQuest }> };
 
@@ -145,7 +145,7 @@ export async function unopenedCratesOf(ctx: QueryCtx, member: MemberId, at: numb
   for (const { key } of await pendingWeeklyCratesBefore(ctx, member, thisWeek)) {
     const crate = weeklyQuestOfRewardKey(key)!;
     const { xp, coins, item, at: finishedAt } = (await rewardOf(ctx, member, key))!;
-    unopened.push({ crate, goal: await goalOf(ctx, member, crate), reward: { xp, coins, item }, finishedAt });
+    unopened.push({ crate, week: crate.week, goal: await goalOf(ctx, member, crate), reward: { xp, coins, item }, finishedAt });
   }
   return unopened.sort((one, other) => one.finishedAt - other.finishedAt);
 }

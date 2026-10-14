@@ -318,7 +318,7 @@ describe("WS70: getQuests reads the quests module's facts", () => {
     const afterTheTurn = await openQuests(asSignedIn);
 
     expect(afterTheTurn.slots).toEqual([]);
-    expect(afterTheTurn.waiting).toEqual([{ goal: "Thank someone and say why.", reward: { xp: 20 }, crate: { kind: "weekly", week: thisWeek, slot: 0 }, seen: expect.any(String) }]);
+    expect(afterTheTurn.waiting).toEqual([{ goal: "Thank someone and say why.", week: thisWeek, reward: { xp: 20 }, crate: { kind: "weekly", week: thisWeek, slot: 0 }, seen: expect.any(String) }]);
 
     await opensCrate(member, afterTheTurn.waiting[0]!.crate);
 
@@ -339,6 +339,23 @@ describe("WS70: getQuests reads the quests module's facts", () => {
     expect((await openQuests(asSignedIn)).waiting.map(({ crate }) => crate)).toEqual([
       { kind: "weekly", week: "2026-10-05", slot: 1 },
       { kind: "weekly", week: thisWeek, slot: 1 },
+    ]);
+  });
+
+  test("WS70: two earlier weeks that finished the same quest each wait with their own week", async () => {
+    const { member, asSignedIn, teammate } = await aTeam();
+    vi.setSystemTime(new Date("2026-10-07T10:00:00Z"));
+    await questsOpenFor(member);
+    await drawnIn(member, "2026-10-05", ["say-why"]);
+    await thanks(member, teammate.member);
+    vi.setSystemTime(now);
+    await drawnIn(member, thisWeek, ["say-why"]);
+    await thanks(member, teammate.member);
+    vi.setSystemTime(nextMonday);
+
+    expect((await openQuests(asSignedIn)).waiting.map(({ goal, week }) => ({ goal, week }))).toEqual([
+      { goal: "Thank someone and say why.", week: "2026-10-05" },
+      { goal: "Thank someone and say why.", week: thisWeek },
     ]);
   });
 
