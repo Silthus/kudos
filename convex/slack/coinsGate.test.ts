@@ -107,6 +107,7 @@ describe("CO14 P78: coins are dark where they aren't shown, and still recorded",
   ])("with coins %s, a stale Open for Coins and a stale Buy for each coin perk write nothing and publish nothing", async (_, definitions) => {
     const t = await workspaceDeciding(...definitions);
     await walkEveryCoinsPath(t, "U_ALICE");
+    await click(t, "U_ALICE", { type: "showHomeTab", tab: "profile" });
     const stored = await everythingStored(t, { except: ["slackReceipts"] });
     const published = vi.mocked(publish).mock.calls.length;
 

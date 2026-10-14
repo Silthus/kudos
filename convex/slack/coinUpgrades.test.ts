@@ -4,7 +4,7 @@ import { FakeSlack, rateLimitedFor } from "../../testing/fakeSlack";
 import { flagsFromPostHog, offForEveryone, onForEmails, onForEveryone, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, buttonInHome, publishedHome, publishedHomeBlocks, staleButtonOf, type BlockAction } from "../../testing/slackInteractions";
+import { blockActions, buttonIn as buttonInBlocks, buttonInHome, publishedHome, publishedHomeBlocks, staleButtonOf, type Block, type BlockAction } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import { xpToReach } from "../progression/levels";
@@ -19,6 +19,7 @@ const saysWhy = "thanks for untangling the release notes today";
 const form = { contentType: "application/x-www-form-urlencoded" };
 const alicesEmail = "alice@example.com";
 const coinsEarnedOnTheWay = 8;
+const siteUrl = "https://kudos-site.test";
 
 const sparkCopy = "+5 XP the first time each day you thank someone and say why.";
 const rhythmCopy = "+2 XP each time you thank someone and say why, once per person a day.";
@@ -121,6 +122,23 @@ describe("CO22 CO23 CO24: a level-7 member with Coins open buys flame with a ski
 
     expect(await purchasesOf(t)).toEqual([{ kind: "refused", perk: "flame", reason: "coins-not-open" }]);
     expect(await treeTables(t)).toEqual(before);
+  });
+
+  test("while the website is open, which doesn't draw coin perks yet, the level-up DM's Buy on a coin perk stays a Slack button and buys it, and other perks link to the web", async () => {
+    vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
+    vi.stubEnv("SITE_URL", siteUrl);
+    const t = await aliceWithTheTreeOpen({ owns: ["spark"], coins: 150, level: 6, flags: [...previewedByAlice, onForEveryone("website")] });
+    await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
+    await xpOf(t, "U_ALICE", xpToReach(7) - 10);
+
+    await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy);
+    const levelUp = levelUpDmTo("U_ALICE", 7);
+    await send(t, blockActions("U_ALICE", buttonIn(levelUp, "Buy", "*Flame*"), { inMessage: { channel: "D_ALICE", ts: "1760349700.000100" } }));
+
+    expect(JSON.parse(accessoryBeside(levelUp, "*Flame*")?.value ?? "null")).toEqual({ type: "buyPerk", perk: "flame" });
+    expect(accessoryBeside(levelUp, "*Flame*")).not.toHaveProperty("url");
+    expect(accessoryBeside(levelUp, "*Rhythm*")).toMatchObject({ url: `${siteUrl}/skills` });
+    expect(await perksOwnedBy(t, "U_ALICE")).toEqual(["spark", "flame"]);
   });
 
   test("a Buy from the level-up DM that Coins isn't open for says so in the conversation", async () => {
@@ -478,4 +496,18 @@ async function giverRecordsOf(t: Backend, user: string) {
 
 function successRepliesTo(user: string) {
   return slack.ephemeralsTo(user).map(({ text }) => String(text).split("\n"));
+}
+
+function levelUpDmTo(user: string, level: number): Block[] {
+  const dm = slack.callsTo("chat.postMessage").find(({ channel, text }) => channel === user && String(text).startsWith(`🎉 You reached level ${level}!`));
+  expect(dm?.blocks, `${user}'s level ${level} DM`).toBeDefined();
+  return dm!.blocks as Block[];
+}
+
+function accessoryBeside(blocks: Block[], text: string) {
+  return blocks.find((block) => block.text?.text.startsWith(text))?.accessory;
+}
+
+function buttonIn(blocks: Block[], label: string, beside: string): BlockAction {
+  return buttonInBlocks([blocks.find((block) => block.text?.text.startsWith(beside))!], label);
 }
