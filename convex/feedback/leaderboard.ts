@@ -3,7 +3,7 @@ import { improvementLine } from "../leaderboard/improvementLine";
 import type { Period } from "../leaderboard/periods";
 import type { EveryoneBoardView } from "../leaderboard/totals";
 import { slashCommand } from "./naming";
-import type { Line } from "./replies";
+import type { Line } from "./segments";
 
 const medals = ["🥇", "🥈", "🥉"];
 

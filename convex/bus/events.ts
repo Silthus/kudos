@@ -1,6 +1,8 @@
 import { v, type Infer } from "convex/values";
+import { ladderValidator, tierValidator } from "../achievements/ladders";
 import { awardIdValidator } from "../engine/awards";
 import { annotationsValidator, messageRefValidator } from "../engine/messageEvent";
+import { perkValidator } from "../progression/tree";
 import { questIdValidator } from "../quests/pool";
 import { journeyStepValidator, questValidator } from "../quests/step";
 import { featureValidator } from "../unlocks/feature";
@@ -119,6 +121,22 @@ export type QuestsDrawnEvent = Infer<typeof questsDrawnEventValidator>;
 
 export type QuestSwappedEvent = Infer<typeof questSwappedEventValidator>;
 
+export const achievementEarnedEventValidator = v.object({
+  type: v.literal("achievementEarned"),
+  workspace: v.string(),
+  member: v.id("members"),
+  ladder: ladderValidator,
+  tier: tierValidator,
+  at: v.number(),
+  batch: v.optional(v.id("bookBatches")),
+});
+
+export type AchievementEarnedEvent = Infer<typeof achievementEarnedEventValidator>;
+
+export const perkBoughtEventValidator = v.object({ type: v.literal("perkBought"), workspace: v.string(), member: v.id("members"), perk: perkValidator, at: v.number() });
+
+export type PerkBoughtEvent = Infer<typeof perkBoughtEventValidator>;
+
 const membershipFields = { workspace: v.string(), member: v.id("members"), at: v.number() };
 
 export const memberLeftEventValidator = v.object({ type: v.literal("memberLeft"), ...membershipFields });
@@ -157,6 +175,8 @@ export type DomainEvent =
   | QuestsDrawnEvent
   | QuestSwappedEvent
   | JourneyStepActivatedEvent
+  | AchievementEarnedEvent
+  | PerkBoughtEvent
   | MemberLeftEvent
   | MemberRejoinedEvent;
 

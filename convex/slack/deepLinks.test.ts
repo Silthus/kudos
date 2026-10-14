@@ -79,7 +79,7 @@ describe("SW13 SW14 SW18: the success reply ends its extras line with a link to 
   test("a reply held for Quests whose website turns off before its release goes out with no link", async () => {
     const t = await unlocksShippedBeforeAnyoneJoined(await workspaceDeciding("xp-levels", "unlocks", "quests", "website"));
     await memberInserted(t, "U_ALICE");
-    await t.run((ctx) => replyPrivately(ctx, ref, undefined, "U_ALICE", { kind: "given", outcome: givenToBob, base: 10 }));
+    await t.run((ctx) => replyPrivately(ctx, ref, undefined, "U_ALICE", { kind: "given", outcome: givenToBob, base: 10, annotations: {} }));
 
     await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("quests"), offForEveryone("website"));
     vi.advanceTimersByTime(10_000);

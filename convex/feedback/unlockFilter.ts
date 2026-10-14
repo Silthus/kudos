@@ -6,7 +6,7 @@ import { unlocksLiveIn, unlocksShownTo } from "../unlocks/launch";
 import { scheduled, shippedIn, type ScheduledFeature } from "../unlocks/schedule";
 import { stateOf, type UnlockState } from "../unlocks/unlocks";
 import { lookup, type MemberId } from "../workspace/directory";
-import type { Line } from "./replies";
+import type { Line } from "./segments";
 
 export async function whenOpened<T>(ctx: QueryCtx, member: MemberId, feature: Feature, told: T): Promise<T | null> {
   return (await isOpened(ctx, member, feature)) ? told : null;
@@ -30,9 +30,12 @@ export const unopenedReplyOf = internalMutation({
   },
 });
 
-export function renderUnopenedReply({ name, level }: ScheduledFeature, state: "ready" | "locked"): Line[] {
-  const text = state === "ready" ? `${name} is ready for you. Open it in App Home.` : `${name} opens at level ${level}.`;
-  return [[{ text }]];
+export function renderUnopenedReply(feature: ScheduledFeature, state: "ready" | "locked"): Line[] {
+  return [[{ text: unopenedTextOf(feature, state) }]];
+}
+
+export function unopenedTextOf({ name, level }: ScheduledFeature, state: "ready" | "locked") {
+  return state === "ready" ? `${name} is ready for you. Open it in App Home.` : `${name} opens at level ${level}.`;
 }
 
 async function memberReplyOf(ctx: MutationCtx, member: MemberId, feature: Feature) {

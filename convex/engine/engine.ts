@@ -172,13 +172,13 @@ async function awaitDirectory(ctx: MutationCtx, row: KudosMessageRow, users: Cha
 
 async function tellGiver(ctx: MutationCtx, row: KudosMessageRow, outcome: Outcome, base: number) {
   await setIndicator(ctx, refOf(row), indicatorOf(outcome));
-  await replyPrivately(ctx, refOf(row), row.threadRoot, row.author, replyOf(outcome, base));
+  await replyPrivately(ctx, refOf(row), row.threadRoot, row.author, replyOf(row, outcome, base));
 }
 
-function replyOf(outcome: Outcome, base: number): Reply {
+function replyOf({ annotations }: KudosMessageRow, outcome: Outcome, base: number): Reply {
   switch (outcome.kind) {
     case "given":
-      return { kind: "given", outcome, base };
+      return { kind: "given", outcome, base, annotations };
     case "over-allowance":
       return { kind: "over-allowance", outcome, base };
     case "invalid":

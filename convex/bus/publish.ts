@@ -13,6 +13,7 @@ export const subscribers: Registry = {
     internal.welcome.welcome.welcomeNewMembers,
     internal.progression.progression.recordEffects,
     internal.quests.quests.followKudosGiven,
+    internal.achievements.achievements.countKudosGiven,
     internal.leaderboard.totals.countKudosGiven,
     internal.analytics.subscribers.recordKudosGiven,
   ],
@@ -25,6 +26,7 @@ export const subscribers: Registry = {
     { subscriber: internal.analytics.subscribers.recordUnlockOpened, only: ({ byLaunch }) => byLaunch !== true },
     { subscriber: internal.quests.weekly.drawWeeklyQuests, only: ({ feature, byLaunch }) => byLaunch !== true && feature === "quests" },
     { subscriber: internal.quests.journey.activateJourney, only: ({ feature, byLaunch }) => byLaunch !== true && journeyStepOpenedBy(feature) !== null },
+    { subscriber: internal.feedback.tierNotices.tellOpeningSummary, only: ({ feature, byLaunch }) => byLaunch !== true && feature === "book" },
   ],
   unlocksLaunched: [internal.analytics.subscribers.recordUnlocksLaunched],
   questFinished: [
@@ -35,6 +37,8 @@ export const subscribers: Registry = {
   questsDrawn: [internal.analytics.subscribers.recordQuestsDrawn],
   questSwapped: [internal.analytics.subscribers.recordQuestSwapped],
   journeyStepActivated: [internal.analytics.subscribers.recordJourneyStepActivated],
+  achievementEarned: [],
+  perkBought: [],
   memberLeft: [internal.quests.journey.recheckSomeoneNew],
   memberRejoined: [internal.quests.journey.recheckRejoined],
 };

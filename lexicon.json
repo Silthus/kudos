@@ -63,7 +63,7 @@
     },
     {
       "name": "xp",
-      "definition": "Experience a member earns from Given awards: 10 for each kudos given and 5 for each kudos received, plus bonus XP from perks, boosters and group auras the member chose, and from chime-in thresholds on kudos they received. XP decides the member's level and never goes down (ADR-0002). It is not kudos and not coins."
+      "definition": "Experience a member earns: base XP on Given awards, 10 for each kudos given and 5 for each kudos received, bonus XP from perks the member owns, and personal quest and Journey rewards (P2). XP decides the member's level and never goes down (ADR-0002). It is not kudos and not coins."
     },
     {
       "name": "level",
@@ -430,6 +430,42 @@
     {
       "name": "swap",
       "definition": "A member's once-a-week replacement of one unfinished weekly quest with a feasible quest not in that week's draw, stored for good with the replaced quest, the new quest and the facts that made it feasible (P81, the spec's reroll)."
+    },
+    {
+      "name": "Book",
+      "definition": "The feature that opens at level 4, where a member sees their achievement ladders and the tiers they earned, each with its date; it opens achievements, and the sticker book with its albums once that ships."
+    },
+    {
+      "name": "qualifying recognition",
+      "definition": "The first award from a giver to a recipient on the giver's day whose stored gate decision says it is thoughtful kudos, from a kudos message or, later, a chime-in. Every per-recognition bonus XP line and giving coin pays once per qualifying recognition, however many kudos the award carries; base XP still counts every kudos. Whether an award is one, and whether it is the giver's first of the day or the first to that recipient in the giver's week, is kept for every award whether or not the giver owns a perk (P16, P17)."
+    },
+    {
+      "name": "launch batch",
+      "definition": "The ladders and tiers one mutation finds unevaluated in a workspace, the Book's launch or the first mutation after a deploy that adds one, replayed together: every tier their replays earn carries the batch, and the batch is complete only when all its replays are (P62)."
+    },
+    {
+      "name": "applause",
+      "definition": "The ladder that counts the days a member thanked 3 or more different people, on the giver's day, across any number of messages that day (P58, P59)."
+    },
+    {
+      "name": "seasons",
+      "definition": "The ladder that counts the calendar months in which a member gave a kudos, on the giver's day (P58, P59)."
+    },
+    {
+      "name": "connections",
+      "definition": "The ladder that counts the different people a member has thanked (P58)."
+    },
+    {
+      "name": "dependability",
+      "definition": "The ladder that counts the days on which a member gave a kudos, on the giver's day; a day counts once (P58, P59)."
+    },
+    {
+      "name": "Old Friends",
+      "definition": "The ladder that counts the times a member thanked someone again 30 or more of the giver's days after the giver's previous award to them; a first thanks to someone counts nothing (P58)."
+    },
+    {
+      "name": "reward",
+      "definition": "What a goal or a tier promises a member, fixed when it is promised: a quest's or Journey step's XP, coins and item, paid once through a reward record (P86, P87), or a tier's reward kind and reward ID, paid once that kind ships (P58, P62)"
     },
     {
       "name": "gains line",
