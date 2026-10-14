@@ -1,7 +1,9 @@
 import staticHostingComponent from "@convex-dev/static-hosting/test";
 import postHogComponent from "@posthog/convex/test";
 import { convexTest } from "convex-test";
+import type { GenericDatabaseReader } from "convex/server";
 import { vi } from "vitest";
+import type { DataModel } from "../convex/_generated/dataModel";
 import schema from "../convex/schema";
 import { modules } from "../convex/test.setup";
 import { signedRequest } from "./signedSlack";
@@ -62,6 +64,20 @@ export async function settleUntil(t: Backend, until: Date) {
     vi.advanceTimersByTime(Math.min(timeStepMs, until.getTime() - Date.now()));
     await t.finishInProgressScheduledFunctions();
   }
+}
+
+export async function convexStops(t: Backend, functionName: string) {
+  await t.run(async (ctx) => {
+    for (const job of await pendingJobsOf(ctx, functionName)) await ctx.scheduler.cancel(job._id);
+  });
+}
+
+export function pendingJobs(t: Backend, functionName: string) {
+  return t.run(async (ctx) => (await pendingJobsOf(ctx, functionName)).length);
+}
+
+async function pendingJobsOf(ctx: { db: GenericDatabaseReader<DataModel> }, functionName: string) {
+  return (await ctx.db.system.query("_scheduled_functions").collect()).filter((job) => job.name === functionName && job.state.kind === "pending");
 }
 
 export async function setWorkspaceSettings(t: Backend, settings: { kudosEmoji?: string; announcementChannel?: string }, workspace = "T1") {

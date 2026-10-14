@@ -246,8 +246,28 @@ async function awaitDirectory(ctx: MutationCtx, row: KudosMessageRow, users: Cha
     await ctx.db.patch(row._id, { state: "abandoned" });
     return { kind: "abandoned" };
   }
-  await ctx.db.patch(row._id, { checks: row.checks + 1 });
+  await ctx.db.patch(row._id, { checks: row.checks + 1, nextCheckAt: Date.now() + retryInMs });
   return { kind: "awaiting-directory", users, retryInMs, attempt: row.attempt };
+}
+
+export async function takeStrandedChecks(ctx: MutationCtx, dueBefore: number, limit: number): Promise<{ checkAgain: { ref: MessageRef; attempt: bigint }[]; pageWasFull: boolean }> {
+  const stranded = await ctx.db
+    .query("kudosMessages")
+    .withIndex("by_state_and_next_check", (q) => q.eq("state", "awaiting-directory").gte("nextCheckAt", 0).lt("nextCheckAt", dueBefore))
+    .take(limit);
+  const checkAgain = [];
+  for (const row of stranded) {
+    if (await giveUpWhenChecksRanOut(ctx, row)) continue;
+    await ctx.db.patch(row._id, { checks: row.checks + 1, nextCheckAt: Date.now() });
+    checkAgain.push({ ref: refOf(row), attempt: row.attempt });
+  }
+  return { checkAgain, pageWasFull: stranded.length === limit };
+}
+
+async function giveUpWhenChecksRanOut(ctx: MutationCtx, row: KudosMessageRow) {
+  const checksRanOut = row.checks > directoryCheckDelaysMs.length;
+  if (checksRanOut) await ctx.db.patch(row._id, { state: "abandoned" });
+  return checksRanOut;
 }
 
 async function tellGiver(ctx: MutationCtx, row: KudosMessageRow, outcome: Outcome, base: number) {
