@@ -19,11 +19,14 @@ export async function settingsOf(ctx: QueryCtx, workspace: string): Promise<Work
 
 export const pickAnnouncementChannel = internalMutation({
   args: { workspace: v.string(), channel: v.union(v.string(), v.null()) },
-  handler: (ctx, { workspace, channel }): Promise<boolean> => announceIn(ctx, workspace, channel),
+  handler: async (ctx, { workspace, channel }): Promise<boolean> => {
+    if ((await workspaceRow(ctx, workspace)) === null) throw new Error(`Kudos knows no workspace ${workspace}`);
+    return announceIn(ctx, workspace, channel);
+  },
 });
 
-export async function setAnnouncementChannel(ctx: MutationCtx, workspace: string, person: { admin: boolean }, channel: string | null): Promise<boolean> {
-  return person.admin && (await announceIn(ctx, workspace, channel));
+export async function setAnnouncementChannel(ctx: MutationCtx, workspace: string, person: { admin: boolean }, channel: string | null): Promise<void> {
+  if (person.admin) await announceIn(ctx, workspace, channel);
 }
 
 async function announceIn(ctx: MutationCtx, workspace: string, channel: string | null): Promise<boolean> {

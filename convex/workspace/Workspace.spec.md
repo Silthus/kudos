@@ -14,7 +14,7 @@ Workspace: the settings with their defaults and the directory of the workspace's
 - pick a workspace's announcement channel: a maintainer runs pickAnnouncementChannel with a workspace ID and a channel ID, or none to clear it, when none of the workspace's admins can pick it in App Home, so the next level-up notice is posted there, or nowhere in public once cleared, and the admins' App Home is republished with it
   handler: pickAnnouncementChannel in convex/workspace/settings.ts
   trust: operator
-  control: none — it takes only IDs, saves the channel exactly as an admin's pick would, and only where XP and levels are shown in the workspace; it skips only the admin check, which a maintainer has no Slack member to pass
+  control: none — it takes only IDs, refuses a workspace Kudos doesn't know, saves the channel exactly as an admin's pick would, and only where XP and levels are shown in the workspace; it skips only the admin check, which a maintainer has no Slack member to pass
 
 ## invariants
 - only admins set the announcement channel: Only a member the directory knows as a workspace admin or owner can set or clear the announcement channel from Slack; a command from anyone else, or from an admin Slack has since removed, changes nothing.

@@ -367,6 +367,14 @@ describe("a maintainer picks the announcement channel for a workspace whose admi
     expect(publicPosts()).toEqual([]);
   });
 
+  test("a pick for a workspace Kudos doesn't know is refused and records no workspace", async () => {
+    const t = await workspaceWithAllowance(10);
+
+    await expect(t.mutation(internal.workspace.settings.pickAnnouncementChannel, { workspace: "T_TYPO", channel: "C_NEWS" })).rejects.toThrow("Kudos knows no workspace T_TYPO");
+
+    expect(await t.run((ctx) => ctx.db.query("workspaces").collect())).toEqual([expect.objectContaining({ workspace: "T1" })]);
+  });
+
   test("a pick in a workspace where XP and levels are off changes nothing, as an admin's would", async () => {
     const t = await workspaceWithAllowance(10, { announcementChannel: "C_NEWS" });
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
