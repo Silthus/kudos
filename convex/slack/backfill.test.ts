@@ -190,6 +190,23 @@ describe("AT35: hydrate refuses", () => {
     expect(await kudosReceived(t, "U_BOB")).toBe(1);
   });
 
+  test("a message whose words were removed when its author left, even once they are back", async () => {
+    const t = testBackend();
+    await givenBeforeCapture(t, thanksBob, { ts: topLevelTs });
+    await backfill(t);
+    await memberChanged(t, "user_change", { id: "U_ALICE", team_id: "T1", deleted: true });
+    await settle(t);
+    await memberChanged(t, "user_change", { id: "U_ALICE", team_id: "T1", deleted: false }, { eventTs: `${Date.now() / 1000 + 60}` });
+    await settle(t);
+    const reads = slack.callsTo("conversations.history").length;
+
+    await backfill(t);
+
+    expect(await wordsAt(t, topLevelTs)).toEqual({ kind: "unavailable", reason: "removed" });
+    expect(slack.callsTo("conversations.history")).toHaveLength(reads);
+    expect(await storedAndScheduled(t)).not.toContain(reason);
+  });
+
   test("a message that isn't Given", async () => {
     const t = testBackend();
     const thanksMyself = [section(text(`thanks ${reason} `), mention("U_ALICE"), text(" "), emoji("taco"))];

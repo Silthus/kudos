@@ -125,7 +125,7 @@ export default defineSchema({
     checks: v.number(),
   }).index("by_message", ["workspace", "conversation", "message"]),
 
-  kudosTexts: defineTable(kudosTextValidator).index("by_message", ["workspace", "conversation", "message"]),
+  kudosTexts: defineTable(kudosTextValidator).index("by_message", ["workspace", "conversation", "message"]).index("by_author", ["workspace", "author"]),
 
   awards: defineTable({
     workspace: v.string(),
