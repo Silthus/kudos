@@ -21,17 +21,17 @@ const featurePages: Partial<Record<Feature, Page>> = {
   skillTree: { page: "skillTree" },
 };
 
+export function listed(page: Page): boolean {
+  return routeList.includes(pathOf[page.page]);
+}
+
 export function routeOf(page: Page): string {
-  if (!isListed(page)) return pathOf.home;
+  if (!listed(page)) return pathOf.home;
   const path = pathOf[page.page];
   return page.page === "leaderboard" && page.period !== "week" ? `${path}?period=${page.period}` : path;
 }
 
 export function listedPageOf(feature: Feature): Page | null {
   const page = featurePages[feature];
-  return page !== undefined && isListed(page) ? page : null;
-}
-
-function isListed(page: Page) {
-  return routeList.includes(pathOf[page.page]);
+  return page !== undefined && listed(page) ? page : null;
 }

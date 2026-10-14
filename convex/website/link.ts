@@ -24,11 +24,13 @@ export type FrontDoorLinks = Infer<typeof frontDoorLinksValidator>;
 export const websiteLinkOf = internalQuery({
   args: { workspace: v.string(), page: pageValidator },
   returns: v.union(v.string(), v.null()),
-  handler: async (ctx, { workspace, page }) => {
-    const origin = await websiteOrigin(ctx, workspace);
-    return origin === null ? null : linkTo(origin, page);
-  },
+  handler: (ctx, { workspace, page }) => websiteLink(ctx, workspace, page),
 });
+
+export async function websiteLink(ctx: QueryCtx, workspace: string, page: Page): Promise<string | null> {
+  const origin = await websiteOrigin(ctx, workspace);
+  return origin === null ? null : linkTo(origin, page);
+}
 
 export const frontDoorLinksOf = internalQuery({
   args: { workspace: v.string(), user: v.string() },

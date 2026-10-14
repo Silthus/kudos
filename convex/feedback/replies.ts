@@ -9,6 +9,7 @@ import { xpLevelsShownTo, xpLevelsShownWithoutWritingIn } from "../progression/x
 import { questsApplyIn, questsExposedTo } from "../quests/flag";
 import { journeyStepValidator } from "../quests/step";
 import { lookup, type MemberId } from "../workspace/directory";
+import { deepLinkOf, deepLinks, type DeepLink } from "./deepLinks";
 import { journeyGoalOf } from "./home";
 
 export const segmentValidator = v.union(v.object({ text: v.string() }), v.object({ mention: mentionValidator }), v.object({ link: v.object({ url: v.string(), label: v.string() }) }));
@@ -83,8 +84,8 @@ export const privateReply = internalQuery({
     const row = await ctx.db.get(reply);
     if (row === null) return null;
     const { gains, questsDone: _, ...stored } = row;
-    const gainsLine = gains === undefined ? null : gainsLineOf(await gainsShownIn(ctx, row.workspace, gains));
-    return { ...stored, lines: gainsLine === null ? row.lines : [...row.lines, gainsLine] };
+    const extrasLine = gains === undefined ? null : extrasLineOf(await gainsShownIn(ctx, row.workspace, gains), await deepLinkOf(ctx, row.workspace, deepLinks.successReply));
+    return { ...stored, lines: extrasLine === null ? row.lines : [...row.lines, extrasLine] };
   },
 });
 
@@ -111,8 +112,8 @@ async function gainsShownIn(ctx: QueryCtx, workspace: string, { xp, questsDone =
   };
 }
 
-function gainsLineOf({ xp, questsDone }: Required<Gains>): Line | null {
-  const parts: Line[] = [...(xp > 0 ? [[{ text: `+${xp} XP` }]] : []), ...questsDoneParts(questsDone)];
+function extrasLineOf({ xp, questsDone }: Required<Gains>, link: DeepLink | null): Line | null {
+  const parts: Line[] = [...(xp > 0 ? [[{ text: `+${xp} XP` }]] : []), ...questsDoneParts(questsDone), ...(link === null ? [] : [[{ link }]])];
   return parts.length === 0 ? null : parts.flatMap((part, index) => (index === 0 ? part : [{ text: " · " }, ...part]));
 }
 
