@@ -1,27 +1,26 @@
-Fleet heavy: 2 heavy jobs run already; waiting for a free slot.
 $ pnpm typecheck && pnpm test && pnpm coherence
 $ tsc --noEmit && tsc --noEmit -p website
 $ vitest run
 
  RUN  v5.0.3 /home/coder/dev/kudos-wt/spotlight
 
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: navigation to another Document
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
@@ -240,9 +239,9 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 
  Test Files  167 passed (167)
-      Tests  3102 passed (3102)
-   Start at  15:15:36
-   Duration  193.84s (tests 84%, import 9%, environment 3%, transform 3%, setup 1%)
+      Tests  3103 passed (3103)
+   Start at  15:41:17
+   Duration  139.48s (tests 85%, import 9%, environment 4%, transform 2%, setup 1%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
@@ -871,5 +870,5 @@ RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:2  
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:17  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 ADVISORY       260 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 90, contract 32, receipt 31, panel 28, zone 22; reported, never failing, since inside the project its sense wins (--json lists each)
-0 rejected names, 0 unknown nouns (726 files), 17 in records
+0 rejected names, 0 unknown nouns (727 files), 17 in records
 exit=0
