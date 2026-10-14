@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 export type Mode = "light" | "dark";
 
-const websiteDirectory = join(__dirname, "..", "..");
+export const websiteDirectory = join(__dirname, "..", "..");
 const stylesheets = [
   readFileSync(join(websiteDirectory, "node_modules", "@posthog", "quill", "dist", "tokens.css"), "utf8"),
   readFileSync(join(websiteDirectory, "src", "index.css"), "utf8"),

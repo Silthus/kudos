@@ -1,9 +1,11 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
 import { shellFixtures } from "./shell";
 import { renderApp } from "./test/renderApp";
-import { contrast } from "./test/themeContrast";
+import { contrast, websiteDirectory } from "./test/themeContrast";
 import { fakeSystemTheme } from "./test/systemTheme";
 
 function paintsOf(element: Element) {
