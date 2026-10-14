@@ -446,6 +446,14 @@
     {
       "name": "user group",
       "definition": "A Slack user group as the directory keeps it: its handle, its name, whether it is enabled or one of Slack's automatic admin and owner groups, and the people in it, refreshed from Slack whenever Slack says it changed and once a day. A group is a user group that counts for Kudos. A workspace on a Slack plan without user groups has none."
+    },
+    {
+      "name": "job",
+      "definition": "A function Convex runs later from its scheduler: a scheduled mutation or action, such as a retry, a bus subscriber, a members list or a continuation of a batch. One call may schedule at most 1,000 jobs, and a job that fails without an error boundary reporting it is what the failed-job sweep finds."
+    },
+    {
+      "name": "analytics",
+      "definition": "The only module that knows PostHog: it projects domain events and the chat adapter's usage facts into product events, records them and exceptions in its outbox while capture is on, drains them to PostHog, evaluates flags with their exposures, and keeps each member's analytics ID and each workspace's workspace key. It observes and never changes what a member sees."
     }
   ]
 }
