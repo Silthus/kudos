@@ -1,0 +1,2 @@
+<production>: website/skillTree.js:getSkillTree absent; website/book.js:getBook absent; website/commands.js:buyPerk absent; website/profile.js:getMyProfile present (8 public functions)
+<sandbox>: website/skillTree.js:getSkillTree present; website/book.js:getBook present; website/commands.js:buyPerk present; website/profile.js:getMyProfile present (11 public functions)
