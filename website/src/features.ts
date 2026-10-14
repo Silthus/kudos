@@ -63,6 +63,11 @@ export function webPageOf(feature: Feature): WebPage | undefined {
   return hasWebPage(feature) ? webPages[feature] : undefined;
 }
 
+export function openWebPageOf({ features }: Pick<MemberProfile, "features">, feature: Feature): WebPage | undefined {
+  const open = (features ?? []).some((card) => card.feature === feature && card.state === "open");
+  return open ? webPageOf(feature) : undefined;
+}
+
 export function pageOf(feature: PagedFeature): WebPage {
   return webPages[feature];
 }

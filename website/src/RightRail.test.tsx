@@ -198,6 +198,31 @@ describe("WS109 WS315 WS316: Quests this week", () => {
     expect(within(quests).queryByRole("button")).not.toBeInTheDocument();
   });
 
+  it("E076 WS317: ends with the Journey's next step as a row tagged New, linking to its card on /quests", () => {
+    showingQuests(questsFixtures.weekWithABonus);
+    const quests = panel("Quests this week");
+    expect(linksIn(quests)).toEqual([
+      ["Thank someone and say why, 3 times.", "/quests"],
+      ["Thank someone you haven't thanked before. Claim", "/quests?quest=1"],
+      ["Thank someone you haven't thanked in the last 30 days.", "/quests"],
+      ["Thank someone you haven't thanked before. New", "/quests?quest=journey"],
+      ["See all quests", "/quests"],
+    ]);
+  });
+
+  it("WS315 WS317: reads Claim on a finished bonus row, without New", () => {
+    showingQuests(questsFixtures.weekWithAFinishedBonus);
+    const quests = panel("Quests this week");
+    expect(within(quests).getByRole("link", { name: "Finish a weekly quest. Claim" })).toHaveAttribute("href", "/quests?quest=journey");
+    expect(within(quests).queryByText("New")).not.toBeInTheDocument();
+  });
+
+  it("WS317: shows the bonus row in a week with nothing drawn", () => {
+    showingQuests({ ...questsFixtures.noDraw, bonus: questsFixtures.weekWithABonus.bonus });
+    const quests = panel("Quests this week");
+    expect(within(quests).getByRole("link", { name: "Thank someone you haven't thanked before. New" })).toHaveAttribute("href", "/quests?quest=journey");
+  });
+
   it("shows no XP, swap or waiting crates, which /quests shows", () => {
     showingQuests(questsFixtures.weekWithLastWeeksCrate);
     const quests = panel("Quests this week");
