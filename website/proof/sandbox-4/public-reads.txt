@@ -1,0 +1,8 @@
+<sandbox> anonymous query website/skillTree:getSkillTree -> {"status":"success","value":{"kind":"signed-out"}}
+<sandbox> anonymous query website/book:getBook -> {"status":"success","value":{"kind":"signed-out"}}
+<sandbox> anonymous query website/profile:getMyProfile -> {"status":"success","value":{"kind":"signed-out"}}
+<sandbox> anonymous mutation website/commands:buyPerk -> {"status":"success","value":{"kind":"signed-out"}}
+<production> anonymous query website/skillTree:getSkillTree -> {"status":"error","errorMessage":"Server Error"}
+<production> anonymous query website/book:getBook -> {"status":"error","errorMessage":"Server Error"}
+<production> anonymous query website/profile:getMyProfile -> {"status":"success","value":{"kind":"signed-out"}}
+<production> anonymous mutation website/commands:buyPerk -> {"status":"error","errorMessage":"Server Error"}

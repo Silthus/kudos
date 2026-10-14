@@ -1,0 +1,133 @@
+Check this commit is still the branch's tip	﻿2026-10-14T08:28:11.2677502Z ##[group]Run tip=$(git ls-remote origin "$GITHUB_REF" | cut -f1)
+Check this commit is still the branch's tip	2026-10-14T08:28:11.2677994Z ^[[36;1mtip=$(git ls-remote origin "$GITHUB_REF" | cut -f1)^[[0m
+Check this commit is still the branch's tip	2026-10-14T08:28:11.2678558Z ^[[36;1mif [ "$tip" = "$GITHUB_SHA" ]; then echo "current=true"; else echo "current=false"; fi >> "$GITHUB_OUTPUT"^[[0m
+Check this commit is still the branch's tip	2026-10-14T08:28:11.2743819Z shell: /usr/bin/bash -e {0}
+Check this commit is still the branch's tip	2026-10-14T08:28:11.2744076Z env:
+Check this commit is still the branch's tip	2026-10-14T08:28:11.2744269Z   COHERENCE_TELEMETRY: 0
+Check this commit is still the branch's tip	2026-10-14T08:28:11.2744501Z   DO_NOT_TRACK: 1
+Check this commit is still the branch's tip	2026-10-14T08:28:11.2744709Z   COHERENCE_NO_UPDATE_CHECK: 1
+Check this commit is still the branch's tip	2026-10-14T08:28:11.2744998Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+Check this commit is still the branch's tip	2026-10-14T08:28:11.2745305Z ##[endgroup]
+Deploy to the sandbox deployment	﻿2026-10-14T08:28:11.5160409Z ##[group]Run pnpm exec convex deploy
+Deploy to the sandbox deployment	2026-10-14T08:28:11.5160750Z ^[[36;1mpnpm exec convex deploy^[[0m
+Deploy to the sandbox deployment	2026-10-14T08:28:11.5225509Z shell: /usr/bin/bash -e {0}
+Deploy to the sandbox deployment	2026-10-14T08:28:11.5225783Z env:
+Deploy to the sandbox deployment	2026-10-14T08:28:11.5225977Z   COHERENCE_TELEMETRY: 0
+Deploy to the sandbox deployment	2026-10-14T08:28:11.5226215Z   DO_NOT_TRACK: 1
+Deploy to the sandbox deployment	2026-10-14T08:28:11.5226430Z   COHERENCE_NO_UPDATE_CHECK: 1
+Deploy to the sandbox deployment	2026-10-14T08:28:11.5226733Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+Deploy to the sandbox deployment	2026-10-14T08:28:11.5227419Z   CONVEX_DEPLOY_KEY: ***
+Deploy to the sandbox deployment	2026-10-14T08:28:11.5227653Z ##[endgroup]
+Deploy to the sandbox deployment	2026-10-14T08:28:12.3255962Z ▌ Deploying code to deployment:
+Deploy to the sandbox deployment	2026-10-14T08:28:12.3257888Z ▌ [Production] lonir:kudos-sandbox:production (prod) (dashboard: https://dashboard.convex.dev/t/lonir/kudos-sandbox/<sandbox>)
+Deploy to the sandbox deployment	2026-10-14T08:28:12.3259605Z ▌ └─ https://<sandbox>.convex.cloud
+Deploy to the sandbox deployment	2026-10-14T08:28:12.3327442Z - Deploying to https://<sandbox>.convex.cloud...
+Deploy to the sandbox deployment	2026-10-14T08:28:12.3328157Z 
+Deploy to the sandbox deployment	2026-10-14T08:28:12.6241217Z Convex AI files are not installed. Run npx convex ai-files install to get started or npx convex ai-files disable to hide this message.
+Deploy to the sandbox deployment	2026-10-14T08:28:13.7830244Z ^[[32m✔^[[39m No indexes are deleted by this push
+Deploy to the sandbox deployment	2026-10-14T08:28:13.7830934Z Uploading functions to Convex...
+Deploy to the sandbox deployment	2026-10-14T08:28:14.7737869Z Generating TypeScript bindings...
+Deploy to the sandbox deployment	2026-10-14T08:28:14.8572994Z Running TypeScript...
+Deploy to the sandbox deployment	2026-10-14T08:28:16.6514665Z Pushing code to your Convex deployment...
+Deploy to the sandbox deployment	2026-10-14T08:28:16.7131589Z Schema validation complete.
+Deploy to the sandbox deployment	2026-10-14T08:28:16.7133735Z Finalizing push...
+Deploy to the sandbox deployment	2026-10-14T08:28:17.0492408Z ✔ Deployed Convex functions to https://<sandbox>.convex.cloud
+Build the website and upload it to the sandbox deployment	﻿2026-10-14T08:28:17.0743370Z ##[group]Run pnpm exec static-hosting upload --build --build-command "pnpm website:build" --dist website/dist
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:17.0744849Z ^[[36;1mpnpm exec static-hosting upload --build --build-command "pnpm website:build" --dist website/dist^[[0m
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:17.0808551Z shell: /usr/bin/bash -e {0}
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:17.0808800Z env:
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:17.0808991Z   COHERENCE_TELEMETRY: 0
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:17.0809219Z   DO_NOT_TRACK: 1
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:17.0809426Z   COHERENCE_NO_UPDATE_CHECK: 1
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:17.0809739Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:17.0810381Z   CONVEX_DEPLOY_KEY: ***
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:17.0810612Z ##[endgroup]
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:17.9589968Z 🔨 Building for development...
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:17.9591667Z    Build command: pnpm website:build
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:17.9592263Z    VITE_CONVEX_URL=https://<sandbox>.convex.cloud
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:17.9592716Z    STATIC_HOSTING_BASE_PATH=/
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:17.9592915Z 
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:17.9767722Z $ pnpm --dir website build
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:17.9950964Z $ vite build
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:18.2913126Z ^[[36mvite v8.3.4 ^[[32mbuilding client environment for production...^[[36m^[[39m
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:18.3017365Z transforming...
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:19.3800728Z ✓ 3244 modules transformed.
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:19.4695798Z rendering chunks...
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:19.6197529Z computing gzip size...
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:19.6850855Z dist/index.html                                                0.55 kB │ gzip:     0.32 kB
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:19.6851841Z dist/assets/inter-vietnamese-wght-normal-CBcvBZtf.woff2       10.25 kB
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:19.6852725Z dist/assets/inter-greek-ext-wght-normal-DlzME5K_.woff2        11.23 kB
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:19.6853893Z dist/assets/inter-cyrillic-wght-normal-DqGufNeO.woff2         18.74 kB
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:19.6854771Z dist/assets/inter-greek-wght-normal-CkhJZR-_.woff2            18.99 kB
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:19.6855685Z dist/assets/inter-cyrillic-ext-wght-normal-BOeWTOD4.woff2     25.96 kB
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:19.6856623Z dist/assets/inter-latin-wght-normal-Dx4kXJAl.woff2            48.25 kB
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:19.6857542Z dist/assets/inter-latin-ext-wght-normal-DO1Apj_S.woff2        85.06 kB
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:19.6858428Z dist/assets/RoundHog-Bold-B1xHlSPP.woff2                     121.67 kB
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:19.6859530Z dist/assets/index-Dp5lx931.css                               206.87 kB │ gzip:    31.28 kB
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:19.6860622Z dist/assets/index-CzbWqmcJ.js                              3,506.46 kB │ gzip: 1,357.37 kB
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:19.6861152Z 
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:19.6951887Z ^[[33m[plugin builtin:vite-reporter] 
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:19.6952621Z (!) Some chunks are larger than 500 kB after minification. Consider:
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:19.6953590Z - Using dynamic import() to code-split the application
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:19.6955119Z - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:19.6956923Z - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.^[[39m
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:19.7264602Z ^[[32m✓ built in 1.43s^[[39m
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:19.7691443Z 
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:22.5963363Z 🚀 Deploying to development environment
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:22.5964757Z 🔒 Using secure internal functions (requires Convex CLI auth)
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:22.5965503Z Uploading 13 files with deployment ID: 9a8dd988-1803-464c-bc50-1463751addc5
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:22.5966026Z Component: staticHosting
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:22.5974329Z 
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:22.5975047Z   Generating 13 upload URLs...
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:23.7195220Z   [1/13] /assets/index-Dp5lx931.css (storage)
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:23.7245058Z   [2/13] /assets/RoundHog-Bold-B1xHlSPP.woff2 (storage)
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:23.7828432Z   [3/13] /assets/inter-cyrillic-ext-wght-normal-BOeWTOD4.woff2 (storage)
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:23.8113077Z   [4/13] /assets/inter-cyrillic-wght-normal-DqGufNeO.woff2 (storage)
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:23.9832190Z   [5/13] /assets/inter-greek-ext-wght-normal-DlzME5K_.woff2 (storage)
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:23.9962697Z   [6/13] /assets/inter-greek-wght-normal-CkhJZR-_.woff2 (storage)
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:24.0405525Z   [7/13] /assets/inter-latin-wght-normal-Dx4kXJAl.woff2 (storage)
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:24.0529506Z   [8/13] /assets/inter-latin-ext-wght-normal-DO1Apj_S.woff2 (storage)
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:24.1219372Z   [9/13] /assets/index-CzbWqmcJ.js (storage)
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:24.2379369Z   [10/13] /assets/inter-vietnamese-wght-normal-CBcvBZtf.woff2 (storage)
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:24.2812636Z   [11/13] /index.html (storage/html)
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:24.3409332Z   [12/13] /theme-eb6b27e0.js (storage)
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:24.3644902Z   [13/13] /quill-scroll-area-shadows-0.3.0-beta.30.css (storage)
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:24.3649144Z   Staging manifest chunk 1/1...
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:25.1298407Z   Publishing deployment...
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:25.9460652Z 
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:26.7391158Z Cleaned up 13 old storage file(s) from previous deployments
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:26.7391529Z 
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:26.7391869Z ✨ Upload complete!
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:26.7392013Z 
+Build the website and upload it to the sandbox deployment	2026-10-14T08:28:26.7392298Z Your app is now available at: https://<sandbox>.convex.site
+Prepare the website flag's workspace key	﻿2026-10-14T08:28:26.7561015Z ##[group]Run pnpm exec convex run website/flag:prepareWebsiteFlag
+Prepare the website flag's workspace key	2026-10-14T08:28:26.7561535Z ^[[36;1mpnpm exec convex run website/flag:prepareWebsiteFlag^[[0m
+Prepare the website flag's workspace key	2026-10-14T08:28:26.7624708Z shell: /usr/bin/bash -e {0}
+Prepare the website flag's workspace key	2026-10-14T08:28:26.7624970Z env:
+Prepare the website flag's workspace key	2026-10-14T08:28:26.7625162Z   COHERENCE_TELEMETRY: 0
+Prepare the website flag's workspace key	2026-10-14T08:28:26.7625388Z   DO_NOT_TRACK: 1
+Prepare the website flag's workspace key	2026-10-14T08:28:26.7625601Z   COHERENCE_NO_UPDATE_CHECK: 1
+Prepare the website flag's workspace key	2026-10-14T08:28:26.7625928Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+Prepare the website flag's workspace key	2026-10-14T08:28:26.7626755Z   CONVEX_DEPLOY_KEY: ***
+Prepare the website flag's workspace key	2026-10-14T08:28:26.7626999Z ##[endgroup]
+Read the company profiles once	﻿2026-10-14T08:28:27.4734929Z ##[group]Run pnpm exec convex run companyProfiles/sync:syncCompanyProfiles
+Read the company profiles once	2026-10-14T08:28:27.4735522Z ^[[36;1mpnpm exec convex run companyProfiles/sync:syncCompanyProfiles^[[0m
+Read the company profiles once	2026-10-14T08:28:27.4799460Z shell: /usr/bin/bash -e {0}
+Read the company profiles once	2026-10-14T08:28:27.4799733Z env:
+Read the company profiles once	2026-10-14T08:28:27.4799941Z   COHERENCE_TELEMETRY: 0
+Read the company profiles once	2026-10-14T08:28:27.4800183Z   DO_NOT_TRACK: 1
+Read the company profiles once	2026-10-14T08:28:27.4800404Z   COHERENCE_NO_UPDATE_CHECK: 1
+Read the company profiles once	2026-10-14T08:28:27.4800713Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+Read the company profiles once	2026-10-14T08:28:27.4801433Z   CONVEX_DEPLOY_KEY: ***
+Read the company profiles once	2026-10-14T08:28:27.4801676Z ##[endgroup]
+Rebuild the pending-crate index	﻿2026-10-14T08:28:28.6583091Z ##[group]Run pnpm exec convex run quests/pendingCrates:backfillPendingCrates '{"restart":true}'
+Rebuild the pending-crate index	2026-10-14T08:28:28.6584094Z ^[[36;1mpnpm exec convex run quests/pendingCrates:backfillPendingCrates '{"restart":true}'^[[0m
+Rebuild the pending-crate index	2026-10-14T08:28:28.6646995Z shell: /usr/bin/bash -e {0}
+Rebuild the pending-crate index	2026-10-14T08:28:28.6647252Z env:
+Rebuild the pending-crate index	2026-10-14T08:28:28.6647441Z   COHERENCE_TELEMETRY: 0
+Rebuild the pending-crate index	2026-10-14T08:28:28.6647676Z   DO_NOT_TRACK: 1
+Rebuild the pending-crate index	2026-10-14T08:28:28.6647889Z   COHERENCE_NO_UPDATE_CHECK: 1
+Rebuild the pending-crate index	2026-10-14T08:28:28.6648189Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+Rebuild the pending-crate index	2026-10-14T08:28:28.6648839Z   CONVEX_DEPLOY_KEY: ***
+Rebuild the pending-crate index	2026-10-14T08:28:28.6649073Z ##[endgroup]
+Complete job	﻿2026-10-14T08:28:29.9561183Z Cleaning up orphan processes

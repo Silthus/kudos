@@ -1,0 +1,153 @@
+## before the deploy at 2026-10-14T08:21:33Z
+### unlockLaunches
+{ "at": 1791929501429, "shipped": ["leaderboard"], "workspace": "<workspace>" }
+### journeyLaunches
+{ "at": 1791941423604, "workspace": "<workspace>" }
+### bookLaunches
+{ "at": 1791955492055, "workspace": "<workspace>" }
+### previewMoments
+There are no documents in this table.
+### unlocks
+{ "feature": "quests", "member": "<member>", "openedAt": 1791944280040, "readyAt": 1791941423604 }
+{ "feature": "leaderboard", "member": "<member>", "openedAt": 1791929501429, "readyAt": 1791929501429 }
+### levelUps
+{ "at": 1791941423604, "level": 2, "member": "<member>", "ready": ["quests"] }
+### memberProgress
+{ "member": "<member>", "pointsSpent": 0, "xp": 30 }
+### perkPurchases
+There are no documents in this table.
+### perksOwned
+There are no documents in this table.
+### skillPoints
+There are no documents in this table.
+### earnedTiers
+There are no documents in this table.
+### tierSummaries
+There are no documents in this table.
+### homeSelections
+{ "member": "<member>", "period": "month", "tab": "profile" }
+### analyticsIds
+{ "analyticsId": "<id>", "member": "<member>", "profileFingerprint": "429175db4ddc0a1f660fa930b58a3d95788f7232d1e341baf64ce1594ade2cee" }
+### _scheduled_functions (count, name, state; newest 200)
+      7 achievements/replay.js:replayPage success
+     27 analytics/drain.js:drain canceled
+      1 analytics/drain.js:drain pending
+     37 analytics/drain.js:drain success
+     37 analytics/drain.js:recover success
+      3 analytics/isolatedUsage.js:recordLeaderboardViewed success
+      4 analytics/isolatedUsage.js:recordLeaderboardVisibilityChanged success
+      4 analytics/person.js:followMembers success
+      1 analytics/subscribers.js:recordAttemptFailed success
+      1 feedback/homes.js:republishAdminsIn success
+      1 feedback/tierNotices.js:tellBatchSummaries success
+      1 quests/journey.js:activateJourney success
+      6 quests/weekly.js:drawNewWeek success
+      1 quests/weekly.js:drawWeeklyQuests success
+     40 slack/appHome.js:publishHome success
+      1 slack/commands.js:addToChannel success
+      1 slack/commands.js:reportCommandUsed success
+      1 slack/delivery.js:deliverIndicator success
+      1 slack/delivery.js:deliverPrivateReply success
+     25 slack/receipts.js:receiveHomeClick success
+## after the deploy, before the website calls at 2026-10-14T08:28:43Z
+### unlockLaunches
+{ "at": 1791929501429, "shipped": ["leaderboard"], "workspace": "<workspace>" }
+### journeyLaunches
+{ "at": 1791941423604, "workspace": "<workspace>" }
+### bookLaunches
+{ "at": 1791955492055, "workspace": "<workspace>" }
+### previewMoments
+There are no documents in this table.
+### unlocks
+{ "feature": "quests", "member": "<member>", "openedAt": 1791944280040, "readyAt": 1791941423604 }
+{ "feature": "leaderboard", "member": "<member>", "openedAt": 1791929501429, "readyAt": 1791929501429 }
+### levelUps
+{ "at": 1791941423604, "level": 2, "member": "<member>", "ready": ["quests"] }
+### memberProgress
+{ "member": "<member>", "pointsSpent": 0, "xp": 30 }
+### perkPurchases
+There are no documents in this table.
+### perksOwned
+There are no documents in this table.
+### skillPoints
+There are no documents in this table.
+### earnedTiers
+There are no documents in this table.
+### tierSummaries
+There are no documents in this table.
+### homeSelections
+{ "member": "<member>", "period": "month", "tab": "profile" }
+### analyticsIds
+{ "analyticsId": "<id>", "member": "<member>", "profileFingerprint": "429175db4ddc0a1f660fa930b58a3d95788f7232d1e341baf64ce1594ade2cee" }
+### _scheduled_functions (count, name, state; newest 200)
+      7 achievements/replay.js:replayPage success
+     27 analytics/drain.js:drain canceled
+      1 analytics/drain.js:drain pending
+     37 analytics/drain.js:drain success
+     37 analytics/drain.js:recover success
+      3 analytics/isolatedUsage.js:recordLeaderboardViewed success
+      4 analytics/isolatedUsage.js:recordLeaderboardVisibilityChanged success
+      4 analytics/person.js:followMembers success
+      1 analytics/subscribers.js:recordAttemptFailed success
+      1 feedback/homes.js:republishAdminsIn success
+      1 feedback/tierNotices.js:tellBatchSummaries success
+      1 quests/journey.js:activateJourney success
+      6 quests/weekly.js:drawNewWeek success
+      1 quests/weekly.js:drawWeeklyQuests success
+     40 slack/appHome.js:publishHome success
+      1 slack/commands.js:addToChannel success
+      1 slack/commands.js:reportCommandUsed success
+      1 slack/delivery.js:deliverIndicator success
+      1 slack/delivery.js:deliverPrivateReply success
+     25 slack/receipts.js:receiveHomeClick success
+## after the website calls at 2026-10-14T08:31:41Z
+### unlockLaunches
+{ "at": 1791929501429, "shipped": ["leaderboard"], "workspace": "<workspace>" }
+### journeyLaunches
+{ "at": 1791941423604, "workspace": "<workspace>" }
+### bookLaunches
+{ "at": 1791955492055, "workspace": "<workspace>" }
+### previewMoments
+There are no documents in this table.
+### unlocks
+{ "feature": "quests", "member": "<member>", "openedAt": 1791944280040, "readyAt": 1791941423604 }
+{ "feature": "leaderboard", "member": "<member>", "openedAt": 1791929501429, "readyAt": 1791929501429 }
+### levelUps
+{ "at": 1791941423604, "level": 2, "member": "<member>", "ready": ["quests"] }
+### memberProgress
+{ "member": "<member>", "pointsSpent": 0, "xp": 30 }
+### perkPurchases
+There are no documents in this table.
+### perksOwned
+There are no documents in this table.
+### skillPoints
+There are no documents in this table.
+### earnedTiers
+There are no documents in this table.
+### tierSummaries
+There are no documents in this table.
+### homeSelections
+{ "member": "<member>", "period": "month", "tab": "profile" }
+### analyticsIds
+{ "analyticsId": "<id>", "member": "<member>", "profileFingerprint": "429175db4ddc0a1f660fa930b58a3d95788f7232d1e341baf64ce1594ade2cee" }
+### _scheduled_functions (count, name, state; newest 200)
+      7 achievements/replay.js:replayPage success
+     27 analytics/drain.js:drain canceled
+      1 analytics/drain.js:drain pending
+     37 analytics/drain.js:drain success
+     37 analytics/drain.js:recover success
+      3 analytics/isolatedUsage.js:recordLeaderboardViewed success
+      4 analytics/isolatedUsage.js:recordLeaderboardVisibilityChanged success
+      4 analytics/person.js:followMembers success
+      1 analytics/subscribers.js:recordAttemptFailed success
+      1 feedback/homes.js:republishAdminsIn success
+      1 feedback/tierNotices.js:tellBatchSummaries success
+      1 quests/journey.js:activateJourney success
+      6 quests/weekly.js:drawNewWeek success
+      1 quests/weekly.js:drawWeeklyQuests success
+     40 slack/appHome.js:publishHome success
+      1 slack/commands.js:addToChannel success
+      1 slack/commands.js:reportCommandUsed success
+      1 slack/delivery.js:deliverIndicator success
+      1 slack/delivery.js:deliverPrivateReply success
+     25 slack/receipts.js:receiveHomeClick success
