@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
+import { achievementsLiveIn } from "../achievements/flag";
 import { exposed, flag, type Flag } from "../analytics/flags";
 import { xpLevels, xpLevelsShownTo } from "../progression/xpLevels";
 import { chatUserOf, lookup, type MemberId } from "../workspace/directory";
@@ -29,6 +30,7 @@ export const exposeUnlocks = internalMutation({
 export async function unlocksLiveIn(ctx: MutationCtx, workspace: string): Promise<boolean> {
   if (!(await flag(ctx, unlocksFlag, { workspace }))) return false;
   if ((await launchIn(ctx, workspace)) === null) await launch(ctx, workspace);
+  await achievementsLiveIn(ctx, workspace);
   return true;
 }
 

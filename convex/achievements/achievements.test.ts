@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { kudosGivenEvent } from "../../testing/busEvents";
+import type { FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { bookShippedBeforeAnyoneJoined, flagsLoaded, flagsOnForEveryone } from "../../testing/flags";
+import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { testBackend, type Backend } from "../../testing/slackBackend";
 import { internal } from "../_generated/api";
 import type { DomainEvent, KudosGivenEvent } from "../bus/events";
@@ -17,11 +18,13 @@ vi.mock("../bus/publish", async (importOriginal) => {
 const now = new Date("2026-10-13T10:00:00Z");
 const minuteMs = 60_000;
 
+let postHog: FakePostHog;
+
 beforeEach(() => {
   vi.useFakeTimers({ now });
   vi.mocked(publish).mockClear();
   vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
-  flagsOnForEveryone(new FakeSlack().fetch, "xp-levels", "unlocks", "achievements");
+  postHog = flagsOnForEveryone(new FakeSlack().fetch, "xp-levels", "unlocks", "achievements");
 });
 
 afterEach(() => {
@@ -115,6 +118,15 @@ describe("P79: achievementsOf gives the website each ladder's facts", () => {
     const generosity = await ladderOf(t, alice, "generosity");
     expect(earnedIn(generosity).map(({ tier }) => tier)).toEqual(["bronze", "silver", "gold", "diamond"]);
     expect(generosity.next).toBeNull();
+  });
+
+  test("before the Book's launch in the workspace, achievementsOf answers null even where it applies", async () => {
+    const t = await flagsFromPostHog(testBackend(), postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("achievements"));
+    await unlocksShippedBeforeAnyoneJoined(t);
+    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("achievements"));
+    const member = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: "U_ALICE", kind: "member" }));
+
+    expect(await t.query(internal.achievements.achievements.achievementsOf, { member })).toBeNull();
   });
 
   test("where the Book doesn't apply, achievementsOf answers null", async () => {

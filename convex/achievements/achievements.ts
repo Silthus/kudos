@@ -36,7 +36,7 @@ export const achievementsOf = internalQuery({
   args: { member: v.id("members") },
   handler: async (ctx, { member }): Promise<AchievementFacts | null> => {
     const { workspace } = await chatUserOf(ctx, member);
-    if (!(await achievementsApplyIn(ctx, workspace))) return null;
+    if (!(await achievementsApplyIn(ctx, workspace)) || (await bookLaunchedAt(ctx, workspace)) === null) return null;
     return bookFactsOf(ctx, member);
   },
 });

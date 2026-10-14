@@ -136,6 +136,27 @@ describe("P75: the Book counts from its launch, whatever any flag says later", (
     expect(generosity).toMatchObject({ count: 1, tiers: [{ tier: "bronze", earnedAt: afterLaunchAt }, { earnedAt: null }, { earnedAt: null }, { earnedAt: null }] });
   });
 
+  test("the ship sweep that makes the Book ready launches it, so a kudos made after the sweep counts even when it is processed later", async () => {
+    const t = await workspace({ launched: false });
+    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("achievements"));
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    await withXp(t, "U_ALICE", 305);
+    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("achievements"));
+    vi.setSystemTime(now.getTime() + 60_000);
+    const sweptAt = Date.now();
+
+    await t.mutation(internal.unlocks.sweep.sweep, {});
+    const launchedBySweep = await t.run(async (ctx) => (await ctx.db.query("bookLaunches").take(2)).map(({ at }) => at));
+    await settle(t);
+    vi.setSystemTime(sweptAt + 60_000);
+    const [alice, bob] = [await memberOf(t, "U_ALICE"), await memberOf(t, "U_BOB")];
+    const madeAfterTheSweep = await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob, { at: sweptAt + 1000 }));
+    await t.mutation(internal.achievements.achievements.countKudosGiven, { event: madeAfterTheSweep });
+
+    expect(launchedBySweep).toEqual([sweptAt]);
+    expect((await achievementsOf(t, "U_ALICE"))?.ladders[0]).toMatchObject({ ladder: "generosity", count: 1 });
+  });
+
   test("while achievements is off after the launch, kudos still count and earn, and turning it on again shows them", async () => {
     const t = await workspace();
     await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("achievements"));
@@ -152,7 +173,9 @@ describe("P75: the Book counts from its launch, whatever any flag says later", (
 async function workspace({ launched = true } = {}) {
   const t = await flagsLoaded(testBackend());
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
-  return launched ? bookShippedBeforeAnyoneJoined(t) : unlocksShippedBeforeAnyoneJoined(t);
+  if (launched) return bookShippedBeforeAnyoneJoined(t);
+  await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("achievements"));
+  return unlocksShippedBeforeAnyoneJoined(t);
 }
 
 async function giveKudos(t: Backend, giver: string, recipient: string, kudos: number) {
