@@ -76,7 +76,8 @@ async function checkAgainAfterFailure(ctx: ActionCtx, { ref, attempt, failures =
   await ctx.scheduler.runAfter(retryInMs, internal.slack.directory.checkDirectory, { ref, attempt, failures: failures + 1 });
 }
 
-const strandedAfterMs = failedCheckRetriesMs.reduce((total, retryMs) => total + retryMs, 0) + convexActionTimeLimitMs;
+const checkTries = failedCheckRetriesMs.length + 1;
+const strandedAfterMs = failedCheckRetriesMs.reduce((total, retryMs) => total + retryMs, 0) + checkTries * convexActionTimeLimitMs;
 
 export const recheckStranded = internalMutation({
   args: {},

@@ -63,7 +63,7 @@ export const retryStranded = internalMutation({
   handler: async (ctx): Promise<void> => {
     const stranded = await ctx.db
       .query("memberVerifications")
-      .withIndex("by_state_and_next_try", (q) => q.eq("state", "pending").lt("nextTryAt", Date.now() - convexActionTimeLimitMs))
+      .withIndex("by_state_and_next_try", (q) => q.eq("state", "pending").gte("nextTryAt", 0).lt("nextTryAt", Date.now() - convexActionTimeLimitMs))
       .take(strandedPerSweep);
     for (const { _id, workspace, user } of stranded) {
       await ctx.db.patch(_id, { nextTryAt: Date.now() });

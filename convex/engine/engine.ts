@@ -253,7 +253,7 @@ async function awaitDirectory(ctx: MutationCtx, row: KudosMessageRow, users: Cha
 export async function takeStrandedChecks(ctx: MutationCtx, dueBefore: number, limit: number): Promise<{ ref: MessageRef; attempt: bigint }[]> {
   const stranded = await ctx.db
     .query("kudosMessages")
-    .withIndex("by_state_and_next_check", (q) => q.eq("state", "awaiting-directory").lt("nextCheckAt", dueBefore))
+    .withIndex("by_state_and_next_check", (q) => q.eq("state", "awaiting-directory").gte("nextCheckAt", 0).lt("nextCheckAt", dueBefore))
     .take(limit);
   for (const row of stranded) await ctx.db.patch(row._id, { nextCheckAt: Date.now() });
   return stranded.map((row) => ({ ref: refOf(row), attempt: row.attempt }));

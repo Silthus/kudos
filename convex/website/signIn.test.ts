@@ -221,6 +221,20 @@ describe("a stranded verification is tried again", () => {
     expect(slack.callsTo("users.info")).toHaveLength(1);
   });
 
+  test("a verification from before due times were recorded is left to its own try", async () => {
+    slack.withMember("U_JUNO").answering("users.info", rateLimitedFor(30 * 60));
+    await signIn(juno);
+    await settleUntil(t, minutesAfterSignIn(11));
+    await t.run(async (ctx) => {
+      for (const row of await ctx.db.query("memberVerifications").collect()) await ctx.db.patch(row._id, { nextTryAt: undefined });
+    });
+
+    await t.mutation(internal.slack.verifyMember.retryStranded, {});
+    await settleUntil(t, minutesAfterSignIn(12));
+
+    expect(slack.callsTo("users.info")).toHaveLength(1);
+  });
+
   test("a stranded verification keeps the tries it already used", async () => {
     slack.withMember("U_JUNO").answering("users.info", httpStatus(500), httpStatus(500), httpStatus(500));
     const userId = await signIn(juno);
