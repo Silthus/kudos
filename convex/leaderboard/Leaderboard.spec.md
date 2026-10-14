@@ -1,6 +1,6 @@
 # Leaderboard
 
-Leaderboard: totals of kudos given per member by day, week, month and all time, fed by the kudosGiven subscriber once per message and by a one-off backfill of the awards given before it shipped, and the Everyone board for this week, this month or all time, ranked and windowed by a pure board function, with the viewer's improvement line against the previous period up to the same day, worded once by improvementLine for Slack and the website, and the same board whole for the website through rankedBoardOf (every ranked member with their position, rank and tie and the picture the directory holds for them, the window's positions, and the viewer's standing), and each member's `Show me on the leaderboards` setting, which leaves them off every board. The board ships behind the flag `everyone-board`, safe default off: its totals count while the flag is off, and a member sees the board, the App Home tabs or the `/hedgehug leaderboard` reply only while it is on in their member decision (a caller the directory doesn't know: the workspace decision) and, while `xp-levels` and `unlocks` are on, only once they have opened the Leaderboard (G23, G42 under P76), though they appear on the board others see either way, with one exposure per member and value from the mutation that decides what they see.
+Leaderboard: totals of kudos given per member by day, week, month and all time, each week and month total keeping its running total by day of the period, fed by the kudosGiven subscriber once per message, by a one-off backfill of the awards given before it shipped and by a one-off fill of the running totals of the totals counted before they shipped, and the Everyone board for this week, this month or all time, ranked and windowed by a pure board function, with the viewer's improvement line against the previous period up to the same day, read from one totals row per member of that period, worded once by improvementLine for Slack and the website, and the same board whole for the website through rankedBoardOf (every ranked member with their position, rank and tie, their places climbed against that same comparison, and the picture the directory holds for them, the window's positions, and the viewer's standing), and each member's `Show me on the leaderboards` setting, which leaves them off every board. The board ships behind the flag `everyone-board`, safe default off: its totals count while the flag is off, and a member sees the board, the App Home tabs or the `/hedgehug leaderboard` reply only while it is on in their member decision (a caller the directory doesn't know: the workspace decision) and, while `xp-levels` and `unlocks` are on, only once they have opened the Leaderboard (G23, G42 under P76), though they appear on the board others see either way, with one exposure per member and value from the mutation that decides what they see.
 
 ## invariants
 - the leaderboard counts kudos given, never kudos received: A board ranks members by the kudos they gave in the period, and kudos a member received never add to their total or put them on a board.
@@ -75,3 +75,42 @@ Leaderboard: totals of kudos given per member by day, week, month and all time, 
   checklist: keyed-ordering dismissed: the flag is read fresh on every request, so the order of requests does not change what a later one sees
   checklist: acknowledgment-barrier dismissed: the command acknowledges with its reply or `/hedgehug`'s empty 200, and events and clicks are acknowledged before the gate runs in their scheduled functions
   checklist: retry-classification dismissed: reading the flag never throws (O33); a failure to read answers the safe default, so the gate adds no failure to classify
+- a board row never states a drop: Every ranked row of the Everyone board carries its places climbed against the previous period up to the same day, a positive number, and nothing when the member fell, stayed, wasn't on that board then, or the period is all time; a member who left the boards is compared on no board, their own view included.
+  over: this week's, this month's on a 31st and all time's Everyone board through rankedBoardOf, with members who rose, fell, stayed and are new, and a viewer who left the boards
+  via: GB18: places climbed
+  because: the website shows rank-change arrows to encourage (GB18, user story 46); a row that said how far a member dropped would turn the board into the reproach the groups spec rules out (G18)
+  refuted: placesClimbed gave every row that was on last period's board its position before minus its position now, a fall or a stay included -> 3 of the 4 tests failed, the member who fell from 2nd to 3rd reading -1 (2026-10-14)
+  kinds: state
+  checklist: revalidated-permission dismissed: the places are computed for the viewer from totals when they ask; no permission applies
+  checklist: separation-of-duties dismissed: no approval policy applies to showing a board
+  checklist: legal-state-succession dismissed: the places are derived on every read and hold no state of their own
+  checklist: supersession-safety dismissed: the places are derived on every read; nothing is written that a later value could displace
+  checklist: worker-fencing dismissed: one read-only query computes the board; no lease or ownership applies
+  checklist: commit-ordered-effects dismissed: computing the places issues no external effect
+  checklist: resumption-coverage dismissed: no batch resumes from a checkpoint; the board is computed in one query
+- the Everyone board reads within Convex's limits: A board and its comparison with the previous period up to the same day read one totals row per member for each of the two periods and one directory row and one setting per ranked member, so a workspace of 1,500 members who each gave every day for two months reads its month board within Convex's transaction limits.
+  over: the month board on October 31st of a workspace of 1,500 members who each gave kudos every day of September and October, read through rankedBoardOf with Convex's transaction limits enforced
+  via: GB35: the Everyone board at scale
+  refuted: the comparison added up each member's day rows of the previous period instead of reading the running total on their one totals row -> the test failed on Convex's limit, too many index ranges read in a single function execution (2026-10-14)
+  because: the comparison used to add up every member's day rows of the previous period, which at a large workspace near a month's end reads more documents than one Convex query may, and a board that throws shows nobody anything (GB35, call 16)
+  kinds: state
+  checklist: revalidated-permission dismissed: the board is read for the viewer from totals when they ask; no permission applies
+  checklist: separation-of-duties dismissed: no approval policy applies to reading a board
+  checklist: legal-state-succession dismissed: the read writes nothing; a running total only grows by addition
+  checklist: supersession-safety dismissed: the read writes nothing; Convex serializes the mutations that add to one totals row
+  checklist: worker-fencing dismissed: one read-only query reads the board; no lease or ownership applies
+  checklist: commit-ordered-effects dismissed: reading the board issues no external effect
+  checklist: resumption-coverage dismissed: no batch resumes from a checkpoint; the board is read in one query
+- every day counts once in a running total, live or filled: The running total of a week or month total holds each day's kudos once, whether the kudosGiven subscriber added them after it shipped or the fill computed it from the day totals, and a total counted before it shipped, counted again live before the fill, compares the same before and after the fill, which a second run leaves unchanged.
+  over: the running totals and this week's improvement line of a member whose totals were counted before running totals shipped, who gave kudos live before the fill, filled in pages of one, and filled again
+  via: GB35: running totals for the totals counted before they shipped
+  refuted: a live count on a total without a running total started one from that count alone, which the fill then skipped -> the test failed on its running totals, the week holding only the live kudos (2026-10-14)
+  because: the comparison with the previous period reads only the running total (GB35); a day counted twice, or left out because a live count started a running total the fill then skipped, would show a member a gain or places they didn't make
+  kinds: state
+  checklist: revalidated-permission dismissed: the fill is an internal function the ship ticket runs once from the CLI; counting needs no permission
+  checklist: separation-of-duties dismissed: no approval policy applies to counting kudos
+  checklist: legal-state-succession dismissed: a total has a running total or not; the fill writes one only where there is none, in the transaction that reads the day totals it adds up
+  checklist: supersession-safety dismissed: Convex serializes the fill's and the subscriber's mutations on one totals row and its day totals, so neither overwrites the other's addition
+  checklist: worker-fencing dismissed: each page of the fill and each subscriber run is one serialized mutation; no lease or ownership applies
+  checklist: commit-ordered-effects dismissed: filling issues no external effect
+  checklist: resumption-coverage dismissed: the fill keeps no checkpoint; a resumed run starts again from the first total and skips every total that has a running total

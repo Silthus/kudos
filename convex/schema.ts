@@ -341,6 +341,7 @@ export default defineSchema({
     member: v.id("members"),
     period: v.string(),
     kudos: v.number(),
+    runningTotal: v.optional(v.array(v.number())),
   })
     .index("by_period", ["workspace", "period"])
     .index("by_member_period", ["member", "period"]),

@@ -8,6 +8,7 @@ import schema from "../schema";
 import { modules } from "../test.setup";
 import { testBackend, type Backend } from "../../testing/slackBackend";
 import type { BoardView } from "./board";
+import type { EveryoneBoardView } from "./totals";
 
 const tuesday = new Date("2026-10-13T10:00:00Z");
 
@@ -101,6 +102,27 @@ describe("G14: earlier kudos count on the board", () => {
   });
 });
 
+describe("GB35: running totals for the totals counted before they shipped", () => {
+  test("filling counts each day's kudos once, a kudos counted live before the fill included, and filling again changes nothing", async () => {
+    const t = testBackend();
+    await members(t, ["U1", "Ann"], ["U2", "Bob"]);
+    await givenLive(t, "U1", { "U2": 2 }, { message: "1", day: "2026-10-05" });
+    await givenLive(t, "U1", { "U2": 1 }, { message: "2", day: "2026-10-06" });
+    await givenLive(t, "U1", { "U2": 4 }, { message: "3", day: "2026-10-07" });
+    await countedBeforeRunningTotalsShipped(t);
+    await givenLive(t, "U1", { "U2": 3 }, { message: "4", day: "2026-10-06" });
+    await givenLive(t, "U1", { "U2": 7 }, { message: "5", day: "2026-10-13" });
+    expect((await everyoneBoard(t, "U1")).improvement).toEqual({ gain: 1 });
+
+    expect(await fillRunningTotals(t, { pageSize: 1 })).toMatchObject({ filled: 2 });
+
+    expect(await runningTotalsOf(t, "U1")).toEqual({ "week:2026-10-05": [2, 6, 10], "month:2026-10": [0, 0, 0, 0, 2, 6, 10, 10, 10, 10, 10, 10, 17], "week:2026-10-12": [0, 7] });
+    expect((await everyoneBoard(t, "U1")).improvement).toEqual({ gain: 1 });
+    expect(await fillRunningTotals(t)).toMatchObject({ filled: 0 });
+    expect(await runningTotalsOf(t, "U1")).toEqual({ "week:2026-10-05": [2, 6, 10], "month:2026-10": [0, 0, 0, 0, 2, 6, 10, 10, 10, 10, 10, 10, 17], "week:2026-10-12": [0, 7] });
+  });
+});
+
 type Person = [user: string, name: string];
 
 async function members(t: Backend, ...people: Person[]) {
@@ -154,11 +176,27 @@ async function countEarlierKudos(t: Backend, args: { pageSize?: number } = {}) {
   return t.action(internal.leaderboard.backfill.countEarlierKudos, args);
 }
 
+async function fillRunningTotals(t: Backend, args: { pageSize?: number } = {}) {
+  return t.action(internal.leaderboard.backfill.fillRunningTotals, args);
+}
+
+async function countedBeforeRunningTotalsShipped(t: Backend) {
+  await t.run(async (ctx) => {
+    for (const total of await ctx.db.query("givenTotals").collect()) await ctx.db.replace(total._id, { workspace: total.workspace, member: total.member, period: total.period, kudos: total.kudos });
+  });
+}
+
+async function runningTotalsOf(t: Backend, user: string) {
+  const member = await memberId(t, user);
+  const rows = await t.run((ctx) => ctx.db.query("givenTotals").collect());
+  return Object.fromEntries(rows.filter((row) => row.member === member && row.runningTotal !== undefined).map((row) => [row.period, row.runningTotal]));
+}
+
 async function interruptedAfterFirstPage(t: Backend) {
   await t.mutation(internal.leaderboard.backfill.countEarlierKudosPage, { cursor: null, pageSize: 1 });
 }
 
-function everyoneBoard(t: Backend, viewer: string) {
+function everyoneBoard(t: Backend, viewer: string): Promise<EveryoneBoardView> {
   return t.query(internal.leaderboard.totals.everyoneBoard, { workspace: "T1", viewer });
 }
 
