@@ -11,7 +11,7 @@ import { journeyStepValidator } from "../quests/step";
 import { lookup, type MemberId } from "../workspace/directory";
 import { journeyGoalOf } from "./home";
 
-export const segmentValidator = v.union(v.object({ text: v.string() }), v.object({ mention: mentionValidator }));
+export const segmentValidator = v.union(v.object({ text: v.string() }), v.object({ mention: mentionValidator }), v.object({ link: v.object({ url: v.string(), label: v.string() }) }));
 
 export type Segment = Infer<typeof segmentValidator>;
 export type Line = Segment[];
@@ -112,17 +112,17 @@ async function gainsShownIn(ctx: QueryCtx, workspace: string, { xp, questsDone =
 }
 
 function gainsLineOf({ xp, questsDone }: Required<Gains>): Line | null {
-  const parts = [...(xp > 0 ? [`+${xp} XP`] : []), ...questsDoneParts(questsDone)];
-  return parts.length === 0 ? null : [{ text: parts.join(" · ") }];
+  const parts: Line[] = [...(xp > 0 ? [[{ text: `+${xp} XP` }]] : []), ...questsDoneParts(questsDone)];
+  return parts.length === 0 ? null : parts.flatMap((part, index) => (index === 0 ? part : [{ text: " · " }, ...part]));
 }
 
-function questsDoneParts(questsDone: QuestDone[]) {
+function questsDoneParts(questsDone: QuestDone[]): Line[] {
   const xpByGoal = new Map<string, number>();
   for (const done of questsDone) {
     const goal = withoutFullStop(goalOf(done));
     xpByGoal.set(goal, (xpByGoal.get(goal) ?? 0) + done.xp);
   }
-  return [...xpByGoal].map(([goal, xp]) => `Quest done: ${goal} (+${xp} XP)`);
+  return [...xpByGoal].map(([goal, xp]) => [{ text: `Quest done: ${goal} (+${xp} XP)` }]);
 }
 
 function goalOf(done: QuestDone) {

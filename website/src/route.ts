@@ -6,10 +6,18 @@ export type Route = { page: "home" } | { page: "leaderboard"; period: Period } |
 
 export type Screen = Exclude<Route["page"], "not-found">;
 
+const routeAt = {
+  "/": () => ({ page: "home" }),
+  "/leaderboard": (search) => ({ page: "leaderboard", period: periodIn(search) }),
+} satisfies Record<string, (search: string) => Route>;
+
+type ServedPath = keyof typeof routeAt;
+
+export const servedPaths = Object.keys(routeAt) as ServedPath[];
+
 export function routeOf({ pathname, search }: { pathname: string; search: string }): Route {
-  if (pathname === "/") return { page: "home" };
-  if (pathname === "/leaderboard") return { page: "leaderboard", period: periodIn(search) };
-  return { page: "not-found" };
+  const served = servedPaths.find((path) => path === pathname);
+  return served === undefined ? { page: "not-found" } : routeAt[served](search);
 }
 
 export function hrefOf(route: Route) {
