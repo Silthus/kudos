@@ -1,35 +1,75 @@
 import type { ComponentType } from "react";
 import { HedgehogExplorer, HedgehogMoney, HedgehogOrganized, HedgehogReading, HedgehogStar, HedgehogWizard } from "@posthog/brand/hoggies";
-import { IconLock } from "@posthog/icons";
+import { IconLock, IconStar } from "@posthog/icons";
 import { Card, CardContent } from "@posthog/quill";
+import { AppLink } from "../AppLink";
+import { leaderboardWaitingWords } from "../leaderboard/waiting";
+import type { MemberProfile } from "../shell";
 
 type Hoggie = ComponentType<{ size?: number; title?: string; className?: string }>;
 
-const lockedFeatures: { name: string; sentence: string; Hog: Hoggie }[] = [
+type Feature = { name: string; sentence: string; Hog: Hoggie };
+
+const leaderboard: Feature = { name: "Leaderboard", sentence: "See where you and your group stand.", Hog: HedgehogStar };
+
+const lockedFeatures: Feature[] = [
   { name: "Quests", sentence: "Weekly quests of your own, and one your group takes on together.", Hog: HedgehogOrganized },
-  { name: "Leaderboard", sentence: "See where you and your group stand.", Hog: HedgehogStar },
+  leaderboard,
   { name: "Sticker book and achievements", sentence: "Stickers from colleagues you thanked or who thanked you, and the achievements you collect.", Hog: HedgehogReading },
   { name: "Skill tree", sentence: "Perks you choose with skill points.", Hog: HedgehogWizard },
   { name: "Coins", sentence: "Coins you spend on hedgehogs and kudos emoji.", Hog: HedgehogMoney },
   { name: "Hedgehogs", sentence: "Hedgehogs to collect, and one to pick as your avatar.", Hog: HedgehogExplorer },
 ];
 
-export function LockedFeatures() {
+export function LockedFeatures({ member }: { member: MemberProfile }) {
+  const state = member.leaderboard;
+  const leaderboardOpen = state.kind === "open";
+  const locked = lockedFeatures
+    .filter((feature) => !leaderboardOpen || feature !== leaderboard)
+    .map((feature) => (feature === leaderboard && (state.kind === "locked" || state.kind === "ready") ? { ...feature, sentence: leaderboardWaitingWords(state) } : feature));
   return (
-    <section aria-labelledby="still-locked-title" className="flex flex-col gap-3">
-      <h2 id="still-locked-title" className="hud-label">
-        Still locked
+    <>
+      {leaderboardOpen && <OpenFeatures />}
+      <section aria-labelledby="still-locked-title" className="flex flex-col gap-3">
+        <h2 id="still-locked-title" className="hud-label">
+          Still locked
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {locked.map((feature) => (
+            <LockedCard key={feature.name} {...feature} />
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
+
+function OpenFeatures() {
+  return (
+    <section aria-labelledby="open-title" className="flex flex-col gap-3">
+      <h2 id="open-title" className="hud-label">
+        Open
       </h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {lockedFeatures.map((feature) => (
-          <LockedCard key={feature.name} {...feature} />
-        ))}
+        <AppLink href="/leaderboard" className="rounded-xl">
+          <Card size="sm" className="h-full hover:bg-fill-hover">
+            <CardContent className="flex items-center gap-3">
+              <span aria-hidden="true" className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                <IconStar className="size-5" />
+              </span>
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <h3 className="text-sm font-medium">{leaderboard.name}</h3>
+                <p className="text-xs text-muted-foreground">See who's thanking colleagues this week.</p>
+              </div>
+            </CardContent>
+          </Card>
+        </AppLink>
       </div>
     </section>
   );
 }
 
-function LockedCard({ name, sentence, Hog }: { name: string; sentence: string; Hog: Hoggie }) {
+function LockedCard({ name, sentence, Hog }: Feature) {
   return (
     <article>
       <Card size="sm" className="h-full">

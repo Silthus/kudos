@@ -1,16 +1,20 @@
-import { companyFaceOf } from "../companyProfiles/faces";
 import type { QueryCtx } from "../_generated/server";
 import { homeFacts } from "../engine/home";
+import { xpToReach } from "../progression/levels";
+import { progressionHomeOf } from "../progression/progression";
+import { xpLevelsShownIn } from "../progression/xpLevels";
 import { workspaceLink } from "../slack/workspaceLink";
 import { followTheClock } from "./clock";
+import { faceOf, type Face } from "./faces";
+import { leaderboardStateOf, type LeaderboardState } from "./leaderboardState";
 import { memberQuery, type Denial, type VerifiedMember } from "./memberQuery";
 
-export type Face =
-  | { kind: "company-profile"; image: string; colour: string; initials: string }
-  | { kind: "slack"; image: string; initials: string }
-  | { kind: "initials"; initials: string };
+export type { Face } from "./faces";
+export type { LeaderboardState, LeaderboardWaits } from "./leaderboardState";
 
 export type Kudos = { given: number; received: number };
+
+export type Progression = { level: number; xp: number; levelStartsAt: number; nextLevelAt: number; xpToNextLevel: number };
 
 export type MemberProfile = {
   kind: "member";
@@ -21,6 +25,8 @@ export type MemberProfile = {
   thisWeek: Kudos;
   lifetime: Kudos;
   chatUrl: string;
+  leaderboard: LeaderboardState;
+  progression: Progression | null;
 };
 
 export type MyProfile = Denial | MemberProfile;
@@ -38,27 +44,13 @@ export const getMyProfile = memberQuery(async (ctx, me): Promise<MemberProfile |
     thisWeek: { given: facts.givenWeek, received: facts.receivedWeek },
     lifetime: { given: facts.given, received: facts.received },
     chatUrl: workspaceLink(me.workspace),
+    leaderboard: await leaderboardStateOf(ctx, me),
+    progression: await progressionOf(ctx, me),
   };
 });
 
-async function faceOf(ctx: QueryCtx, me: VerifiedMember): Promise<Face> {
-  const initials = initialsOf(me);
-  const companyFace = await companyFaceOf(ctx, realNameOf(me));
-  if (companyFace !== undefined) return { kind: "company-profile", ...companyFace, initials };
-  if (me.image !== undefined) return { kind: "slack", image: me.image, initials };
-  return { kind: "initials", initials };
-}
-
-function realNameOf({ name, givenName, familyName }: VerifiedMember) {
-  return name ?? [givenName, familyName].filter((part) => part !== undefined).join(" ");
-}
-
-function initialsOf({ name, givenName, familyName }: VerifiedMember) {
-  const words = givenName !== undefined && familyName !== undefined ? [givenName, familyName] : (name ?? "").split(/\s+/);
-  const initials = words
-    .filter((word) => word !== "")
-    .slice(0, 2)
-    .map((word) => word[0]!.toUpperCase())
-    .join("");
-  return initials === "" ? "?" : initials;
+async function progressionOf(ctx: QueryCtx, me: VerifiedMember): Promise<Progression | null> {
+  if (!(await xpLevelsShownIn(ctx, me.workspace))) return null;
+  const { level, xp, xpToNextLevel } = await progressionHomeOf(ctx, me.member);
+  return { level, xp, levelStartsAt: xpToReach(level), nextLevelAt: xpToReach(level + 1), xpToNextLevel };
 }

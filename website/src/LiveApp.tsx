@@ -1,12 +1,13 @@
 import { ConvexAuthProvider, useAuthActions } from "@convex-dev/auth/react";
-import { useConvexAuth, useQuery, type ConvexReactClient } from "convex/react";
+import { useConvexAuth, useQueries, useQuery, type ConvexReactClient, type RequestForQueries } from "convex/react";
 import { useMemo, useState } from "react";
 import { api } from "../../convex/_generated/api";
 import type { MyProfile } from "../../convex/website/profile";
 import { App } from "./App";
+import type { BoardAnswer } from "./boardRead";
 import { useCodeRedemptionFailed } from "./codeRedemption";
 import { useSocketUnreachable } from "./connection";
-import type { ShellActions, Visitor } from "./shell";
+import type { Period, ShellActions, Visitor } from "./shell";
 import { forgetSignInStarted } from "./signInAttempt";
 
 export function LiveShell({ client }: { client: ConvexReactClient }) {
@@ -25,7 +26,21 @@ function LiveApp() {
   const profile = useQuery(api.website.profile.getMyProfile, {});
   const actions = useLiveActions(() => setSignInFailed(true));
   if (signInFailed) throw new Error("The sign-in didn't start.");
-  return <App visitor={visitorOf({ authLoading: isLoading, redemptionFailed, unreachable, profile })} actions={actions} />;
+  return (
+    <App
+      visitor={visitorOf({ authLoading: isLoading, redemptionFailed, unreachable, profile })}
+      actions={actions}
+      useLeaderboard={(period) => useLiveLeaderboard(period, unreachable)}
+    />
+  );
+}
+
+function useLiveLeaderboard(period: Period | undefined, unreachable: boolean): BoardAnswer | undefined {
+  const request = useMemo((): RequestForQueries => (period === undefined ? {} : { board: { query: api.website.leaderboard.getLeaderboard, args: { period } } }), [period]);
+  const { board } = useQueries(request);
+  if (board instanceof Error) return { kind: "broken" };
+  if (board === undefined && unreachable) return { kind: "connecting" };
+  return board;
 }
 
 type Answers = { authLoading: boolean; redemptionFailed: boolean; unreachable: boolean; profile: MyProfile | undefined };

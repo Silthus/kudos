@@ -7,20 +7,27 @@ export type BoardView = {
   viewerAbsent?: "not-ranked" | "left";
 };
 
+export type Placed<E extends Entry> = E & { position: number; rank: number; tied: boolean; viewer: boolean };
+
+export type Ranking<E extends Entry> = { rows: Array<Placed<E>>; window: number[] };
+
 const topPositions = 3;
 const positionsAroundViewer = 3;
 const mostRows = 10;
 const lastPositionShowingTheFirstTen = mostRows - positionsAroundViewer;
 
 export function board(entries: Entry[], viewer: string | null): BoardView {
-  const ranked = rankedRows(entries, viewer);
-  const viewerPosition = ranked.findIndex((row) => row.viewer) + 1;
-  if (viewerPosition === 0) return { rows: ranked.slice(0, topPositions), viewerAbsent: "not-ranked" };
-  if (viewerPosition <= lastPositionShowingTheFirstTen) return { rows: ranked.slice(0, mostRows) };
+  const { rows, window } = ranking(entries, viewer);
+  const shown = window.flatMap((position, index) => [
+    ...(skipsBefore(window, index) ? [{ gap: true as const }] : []),
+    boardRowOf(rows[position - 1]!),
+  ]);
+  return rows.some((row) => row.viewer) ? { rows: shown } : { rows: shown, viewerAbsent: "not-ranked" };
+}
 
-  const aroundViewer = ranked.slice(viewerPosition - 1 - positionsAroundViewer, viewerPosition + positionsAroundViewer);
-  const skipsPositions = viewerPosition - positionsAroundViewer > topPositions + 1;
-  return { rows: [...ranked.slice(0, topPositions), ...(skipsPositions ? [{ gap: true as const }] : []), ...aroundViewer] };
+export function ranking<E extends Entry>(entries: E[], viewer: string | null): Ranking<E> {
+  const rows = rankedRows(entries, viewer);
+  return { rows, window: windowOf(rows.length, rows.findIndex((row) => row.viewer) + 1) };
 }
 
 export function positionOf(entries: Entry[], viewer: string): number | null {
@@ -28,13 +35,35 @@ export function positionOf(entries: Entry[], viewer: string): number | null {
   return position === 0 ? null : position;
 }
 
-function rankedRows(entries: Entry[], viewer: string | null): BoardRow[] {
+function windowOf(ranked: number, viewerPosition: number): number[] {
+  if (viewerPosition === 0) return positions(1, Math.min(topPositions, ranked));
+  if (viewerPosition <= lastPositionShowingTheFirstTen) return positions(1, Math.min(mostRows, ranked));
+  const aroundViewer = positions(viewerPosition - positionsAroundViewer, Math.min(viewerPosition + positionsAroundViewer, ranked));
+  return [...positions(1, topPositions), ...aroundViewer];
+}
+
+function positions(first: number, last: number) {
+  return Array.from({ length: Math.max(0, last - first + 1) }, (_, index) => first + index);
+}
+
+function skipsBefore(window: number[], index: number) {
+  return index > 0 && window[index]! > window[index - 1]! + 1;
+}
+
+function rankedRows<E extends Entry>(entries: E[], viewer: string | null): Array<Placed<E>> {
   const ordered = entries.filter((entry) => entry.value > 0).toSorted(byValueThenName);
-  return ordered.map((entry) => ({
+  const rankOf = (entry: E) => ordered.findIndex((other) => other.value === entry.value) + 1;
+  return ordered.map((entry, index) => ({
     ...entry,
-    rank: ordered.findIndex((other) => other.value === entry.value) + 1,
+    position: index + 1,
+    rank: rankOf(entry),
+    tied: ordered.some((other) => other !== entry && other.value === entry.value),
     viewer: entry.id === viewer,
   }));
+}
+
+function boardRowOf({ rank, id, name, value, viewer }: Placed<Entry>): BoardRow {
+  return { rank, id, name, value, viewer };
 }
 
 function byValueThenName(a: Entry, b: Entry) {

@@ -1,0 +1,17 @@
+Command: codex exec -m gpt-6.1-sol -c model_reasoning_effort=high --sandbox read-only, over git diff c860ff3..d7f8432, with spec/website-2.md as the oracle. Its final answer:
+
+No **blocker**, **major**, or **nit** findings. Two **minor** findings:
+
+1. **Minor — [website/src/App.tsx:81](website/src/App.tsx:81): focus is lost when the ready page becomes the board.**  
+   **Rule:** WS54 carries WS24’s requirement that focus land on the page title after a state change.  
+   **Scenario:** A member focuses “Open Slack,” opens the leaderboard in Slack, then receives the reactive `ready → board` update. The focused link disappears, but the focus hook watches only `shown.kind`, which remains `"member"`. Focus falls to `<body>`. I reproduced this with an in-memory test, without editing files.  
+   **Fix:** Track changes in the rendered leaderboard state and focus the new title, while preserving focus during ordinary board updates and period changes. Add a transition test.
+
+2. **Minor — [convex/website/leaderboard.test.ts:379](convex/website/leaderboard.test.ts:379): the prescribed flag matrix is incomplete.**  
+   **Rule:** Test seams 4a requires every `xp-levels`/`unlocks` combination before and after launch.  
+   **Scenario:** The suite omits XP on/unlocks off before launch, XP off/unlocks on before launch, and both off after launch. These rollout states lack the required proof that both queries retain WS30’s open behavior. This is a coverage gap, not an observed runtime defect.  
+   **Fix:** Extend the parameterized cases to cover all eight combinations and assert both queries.
+
+The backend gate matches the specified Slack semantics, uses only `unlocksAppliedIn`, returns no board facts for locked/ready, and preserves other members’ rows independently of their unlocks.
+
+Validation: **159 existing tests passed**—43 backend, 62 leaderboard UI, and 54 accessibility tests. The accessibility harness disables contrast checks. No files were edited.

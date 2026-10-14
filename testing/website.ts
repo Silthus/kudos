@@ -2,6 +2,7 @@ import { vi } from "vitest";
 import { components, internal } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { FakePostHog, flagsKey, postHogHost, projectToken, type FlagDefinition } from "./fakePostHog";
+import { onForEveryone } from "./flags";
 import { signingSecret } from "./signedSlack";
 import type { Backend } from "./slackBackend";
 
@@ -23,8 +24,8 @@ export function aDeploymentForWorkspace(workspace: string | undefined = allowedW
   vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
 }
 
-export async function switchWebsite(t: Backend, postHog: FakePostHog, open: boolean) {
-  postHog.withFlags(open ? onEverywhere : offEverywhere);
+export async function switchWebsite(t: Backend, postHog: FakePostHog, open: boolean, ...alsoOn: string[]) {
+  postHog.withFlags(open ? onEverywhere : offEverywhere, ...alsoOn.map(onForEveryone));
   await t.action(components.posthog.lib.refreshFlagDefinitions, {});
   await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
 }

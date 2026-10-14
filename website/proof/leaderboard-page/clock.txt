@@ -1,0 +1,16 @@
+WS36 on the leaderboard page: what this run showed, and what it hands to #136.
+
+Disposable local backend on 127.0.0.1:4210/4211, mock Slack issuer on 4212. Juno's time zone is
+Atlantic/Reykjavik (local midnight 00:00Z). Juno gave 2 kudos on 2026-10-06 and 5 on 2026-10-07, and 11 this
+week, so G18's line depends on the day: it compares this week with last week up to the same weekday.
+
+23:21:24Z  open /leaderboard, one navigation: "▲ 9 more kudos than this time last week"   (clock-1-before-midnight.png)
+           last week up to Tuesday 2026-10-06: 2 kudos, so the gain is 11 - 2 = 9
+00:00:00Z  Juno's local midnight
+00:00:54Z  a fresh subscription in a new tab: "▲ 4 more kudos than this time last week"
+           last week up to Wednesday 2026-10-07: 7 kudos, so the gain is 11 - 7 = 4
+
+Not shown: the same open page turning over on the clock's first cron tick after midnight. The preview
+browser closed the tab that held the page open before 00:00Z, so the new tab's subscription computed afresh.
+getLeaderboard reads the websiteClock through the same followTheClock as getMyProfile, whose open-page
+turnover #108 proved live (website/proof/home/clock.txt). The open-page proof for the board goes to #136.

@@ -1,12 +1,20 @@
+import { useId } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@posthog/quill";
-import { MemberFace } from "./Face";
+import { LeveledFace } from "./LeveledFace";
 import type { MemberProfile } from "./shell";
 
 export function AccountMenu({ member, onSignOut }: { member: MemberProfile; onSignOut: () => void }) {
+  const levelId = useId();
+  const { progression } = member;
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger aria-label={`Account menu for ${member.name ?? "you"}`} className="rounded-full">
-        <MemberFace member={member} className="size-9" />
+      <DropdownMenuTrigger
+        aria-label={`Account menu for ${member.name ?? "you"}`}
+        aria-describedby={progression !== null ? levelId : undefined}
+        className="rounded-full"
+      >
+        <LeveledFace member={member} className="size-9" />
+        {progression !== null && <span id={levelId} hidden>{`Level ${progression.level}`}</span>}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-auto min-w-36">
         <DropdownMenuItem onClick={onSignOut}>Sign out</DropdownMenuItem>

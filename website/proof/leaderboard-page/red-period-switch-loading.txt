@@ -1,0 +1,2 @@
+     × keeps the board and focus on the switch while the next period's board loads 234ms
+      Tests  1 failed | 54 skipped (55)

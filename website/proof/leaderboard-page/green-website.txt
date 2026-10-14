@@ -1,0 +1,105 @@
+# Green: the same files on the landed tree
+# npx vitest run --project website website/src/LeaderboardPage.test.tsx website/src/accessibility.test.tsx
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > shows Home and Leaderboard in the screen nav while the board is open, with the current one marked 157ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > loading in light 135ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > marks Home as current at the root 124ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > shows no Leaderboard item while the board is off 96ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > closed in light 195ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > renders the not-found page when the read answers not-found 33ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > still renders the not-found page on any other path 23ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > renders the page of a denial the read answers, as the home does 36ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > reads /leaderboard as the week board 25ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > signed out in light 175ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > reads /leaderboard?period=month as the month board 24ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > reads /leaderboard?period=all as the all board 22ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > reads any other period as this week and rewrites the address without a reload 23ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > leaves the home's query string alone, so the sign-in code reaches Convex Auth 13ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > sign-in didn't finish in light 158ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > follows the nav to the leaderboard and back without a reload, moving focus to the page title 266ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > checking membership in light 158ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS38: the home's leaderboard card > is a plain card linking to the leaderboard while the board is open, with no rank or count 98ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > membership not checked in light 158ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS38: the home's leaderboard card > stays locked, with the other cards, while the board is off 122ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > labels the page and offers the three periods, with this week selected by a border, a check mark and aria-pressed 35ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > switches the period from the keyboard and rewrites the address without a reload 141ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > keeps the board and focus on the switch while the next period's board loads 90ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > keeps the selected period when it is chosen again 48ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > shows one Everyone card as a heading with the viewer's standing when ranked 35ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > shows one Everyone card as a heading with the viewer's standing when tied 27ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > shows one Everyone card as a heading with the viewer's standing when not ranked 29ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > shows one Everyone card as a heading with the viewer's standing when left 29ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > for one leader 32ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > for the viewer 25ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > for a shared lead 24ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > for a viewer tied below the lead 20ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > for a viewer who isn't ranked 21ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > for a viewer who left 20ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > says all time for the all-time board 20ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS41: the podium stands the top three on neutral pedestals > orders second, first and third from left to right, each with face, name, kudos and rank read out 28ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS41: the podium stands the top three on neutral pedestals > prints the podium's kudos and ranks in Inter with tabular figures, not display type 24ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS41: the podium stands the top three on neutral pedestals > gives the crown and the tallest pedestal to every leader, so tied leaders stand equal 25ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS41: the podium stands the top three on neutral pedestals > rings only the viewer's spot and labels it You 21ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not a member in light 153ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS41: the podium stands the top three on neutral pedestals > leaves out the empty pedestals when fewer than three are ranked 20ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS41: the podium stands the top three on neutral pedestals > uses no medal or rarity colour 21ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > lists the window after the podium in order, with one … where positions are skipped 26ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > prints ranks in Inter with tabular figures, not display type 24ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > marks the viewer's line with the primary ring, a left primary edge and a You label 29ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > shows no list when the podium holds the whole window 17ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > tells a viewer who isn't ranked how to join, with one action to Slack, at /leaderboard 21ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > tells a viewer who isn't ranked how to join, with one action to Slack, at /leaderboard?period=month 21ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > tells a viewer who isn't ranked how to join, with one action to Slack, at /leaderboard?period=all 21ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > tells a viewer who left the boards where to change that, in place of their row 17ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > says which positions the list shows, and opens the whole board centred on the viewer by keyboard 98ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > pins a copy of the viewer's row with Jump to me while it is scrolled away, which brings it back and focuses it 130ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > follows the viewer's row when kudos move them on the open whole board 71ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > pins the copy to the top edge when the viewer's row is scrolled above, and jumps instantly under reduced motion 86ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in light 705ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > goes back to the window from Back to my spot, keeping focus on the footer's button 80ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > offers Show fewer, and never Jump to me, to a viewer who isn't on the board 86ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > offers no whole board when the window already shows every row 23ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS44: an empty board > shows one hedgehog, Max's sentence and one action to thank someone in Slack, with no podium or list 49ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS45: only you see these > shows G18's line for a gain with places 33ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS45: only you see these > shows G18's line for a gain without places 34ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS45: only you see these > shows G18's line for a best 25ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS45: only you see these > is not shown without a line 19ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS46: how it counts > says what counts and shows the setting as a read-only status for a viewer on the boards 24ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS46: how it counts > says what counts and shows the setting as a read-only status for a viewer off the boards 23ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in a quiet week in light 669ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home at level 1 in light 684ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home past level 5 in light 674ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not found in light 159ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard open in light 609ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard with the viewer mid-board in light 137ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard led by the viewer in light 94ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard with a shared lead in light 89ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard for a viewer who isn't ranked in light 92ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard for a viewer who left in light 95ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > empty leaderboard in light 206ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > error in light 168ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the whole board with the viewer's row pinned and Jump to me meets WCAG 2.2 AA in light 234ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the open avatar menu, portaled outside the landmarks, meets WCAG 2.2 AA in light 1263ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > loading in dark 27ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > closed in dark 153ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > signed out in dark 158ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > sign-in didn't finish in dark 152ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > checking membership in dark 155ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > membership not checked in dark 155ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not a member in dark 152ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in dark 662ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in a quiet week in dark 663ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home at level 1 in dark 657ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home past level 5 in dark 670ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not found in dark 157ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard open in dark 609ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard with the viewer mid-board in dark 126ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard led by the viewer in dark 92ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard with a shared lead in dark 89ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard for a viewer who isn't ranked in dark 91ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard for a viewer who left in dark 95ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > empty leaderboard in dark 209ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > error in dark 163ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the whole board with the viewer's row pinned and Jump to me meets WCAG 2.2 AA in dark 203ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the open avatar menu, portaled outside the landmarks, meets WCAG 2.2 AA in dark 1208ms
+ Test Files  2 passed (2)
+      Tests  101 passed (101)

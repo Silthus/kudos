@@ -1,0 +1,65 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/leaderboard-unlock
+
+ ❯ |website| src/LeaderboardPage.test.tsx (63 tests | 1 failed | 62 skipped) 255ms
+   ❯ WS52: the leaderboard page waits for its unlock (6)
+     × moves focus to the board's title when the ready leaderboard opens under the open page 253ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/LeaderboardPage.test.tsx > WS52: the leaderboard page waits for its unlock > moves focus to the board's title when the ready leaderboard opens under the open page
+Error: [2mexpect([22m[31melement[39m[2m).toHaveFocus()[22m
+
+Expected element with focus:
+  [32m<h1
+  class="hud-display text-2xl font-bold tracking-tight outline-none"
+  tabindex="-1"
+>
+  Ada Lindqvist leads the week.
+</h1>[39m
+Received element with focus:
+  [31m<body>
+  <div>
+    <div
+      class="hud-root flex min-h-screen flex-col"
+    >
+      <header
+        class="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"
+      >
+        <div
+          class="mx-auto flex h-14 w-full max-w-6xl items-center gap-3 px-4 md:px-6"
+        >
+          <a … />
+          <nav … />
+          <div … />
+        </div>
+      </header>
+      <main
+        class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+      >
+        <div
+          class="flex flex-col gap-5"
+        >
+          <div … />
+          <div … />
+        </div>
+      </main>
+    </div>
+  </div>
+</body>[39m
+ ❯ src/LeaderboardPage.test.tsx:165:25
+    163|
+    164|     expect(pageTitle()).toHaveTextContent("Ada Lindqvist leads the wee…
+    165|     expect(pageTitle()).toHaveFocus();
+       |                         ^
+    166|   });
+    167|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 62 skipped (63)
+   Start at  00:17:57
+   Duration  2.52s (import 50%, environment 21%, transform 14%, tests 11%, setup 5%)
+

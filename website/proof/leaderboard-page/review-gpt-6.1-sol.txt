@@ -1,0 +1,12 @@
+codex
+Reviewed through `8dc24d7`.
+
+- **Major — `website/src/leaderboard/WholeBoard.tsx:71`: “Jump to me” tracks the wrong row after a live rank change.** The observer depends only on the stable scroller ref, while rows are keyed by position. When the viewer moves, it keeps observing whoever occupies their old position. Reproduced with the actual component. This breaks **WS43**; an initially unranked viewer joining also remains unobserved. **Fix:** reconnect when the viewer’s position changes and clear stale edge state.
+
+- **Minor — `website/src/Frame.tsx:62`: the current navigation item lacks the required visible selection mark.** It has an underline and `aria-current`, but neither a check mark nor “Selected” label, contrary to **WS54/V24**. **Fix:** add a visible check mark or label to the current link.
+
+- **Minor — `website/src/home/LockedFeatures.tsx:52`: the open leaderboard card retains a decorative hedgehog.** An unlocked navigation card falls outside **V17**’s permitted hedgehog contexts. **Fix:** remove `HedgehogStar` from the open card.
+
+- **Minor — `website/src/leaderboard/Podium.tsx:41`: podium counts and ranks use RoundHog.** This span and the rank at line 49 use `hud-display`; **V5** reserves RoundHog for its specified display elements and requires everything else in Inter. **Fix:** remove `hud-display` from both spans and retain tabular figures.
+
+Verdict: changes requested — one major bug and three minor rule violations.

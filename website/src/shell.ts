@@ -1,6 +1,8 @@
 import type { MemberProfile, MyProfile } from "../../convex/website/profile";
 
-export type { Face, MemberProfile } from "../../convex/website/profile";
+export type { Face, LeaderboardWaits, MemberProfile, Progression } from "../../convex/website/profile";
+export type { Leaderboard, LeaderboardRow, MyLeaderboard } from "../../convex/website/leaderboard";
+export type { Period } from "../../convex/leaderboard/periods";
 
 export type Visitor = MyProfile | { kind: "loading" } | { kind: "connecting" } | { kind: "sign-in-unfinished" };
 
@@ -17,9 +19,21 @@ const member: MemberProfile = {
   thisWeek: { given: 2, received: 1 },
   lifetime: { given: 14, received: 9 },
   chatUrl: "https://app.slack.com/client/T1",
+  leaderboard: { kind: "off" },
+  progression: null,
 };
 
+const memberWithTheBoard: MemberProfile = { ...member, leaderboard: { kind: "open" } };
+
+const memberWaitingForTheBoard: MemberProfile = { ...member, leaderboard: { kind: "locked", level: 3 } };
+
+const memberWithTheBoardReady: MemberProfile = { ...member, leaderboard: { kind: "ready" } };
+
 const memberWithAQuietWeek: MemberProfile = { ...member, thisWeek: { given: 0, received: 0 } };
+
+const memberAtLevel1: MemberProfile = { ...member, progression: { level: 1, xp: 0, levelStartsAt: 0, nextLevelAt: 20, xpToNextLevel: 20 } };
+
+const memberAtLevel7: MemberProfile = { ...member, progression: { level: 7, xp: 1600, levelStartsAt: 1500, nextLevelAt: 2100, xpToNextLevel: 500 } };
 
 export const shellFixtures = {
   loading: { kind: "loading" },
@@ -32,6 +46,11 @@ export const shellFixtures = {
   notAMember: { kind: "not-a-member" },
   member,
   memberWithAQuietWeek,
+  memberWithTheBoard,
+  memberWaitingForTheBoard,
+  memberWithTheBoardReady,
+  memberAtLevel1,
+  memberAtLevel7,
   error: { kind: "broken" },
 } as const satisfies Record<string, ShellState>;
 
@@ -46,6 +65,11 @@ const fixturesByName: Record<string, ShellState> = {
   "not-a-member": shellFixtures.notAMember,
   member: shellFixtures.member,
   "member-quiet-week": shellFixtures.memberWithAQuietWeek,
+  "member-with-the-board": shellFixtures.memberWithTheBoard,
+  "member-waiting-for-the-board": shellFixtures.memberWaitingForTheBoard,
+  "member-with-the-board-ready": shellFixtures.memberWithTheBoardReady,
+  "member-level-1": shellFixtures.memberAtLevel1,
+  "member-level-7": shellFixtures.memberAtLevel7,
   error: shellFixtures.error,
 };
 

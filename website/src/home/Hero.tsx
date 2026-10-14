@@ -1,15 +1,15 @@
-import { IconExternal } from "@posthog/icons";
-import { buttonVariants } from "@posthog/quill";
-import { MemberFace } from "../Face";
+import { LeveledFace } from "../LeveledFace";
 import { MaxLine } from "../Max";
 import { PageTitle } from "../PageTitle";
+import { SlackLink } from "../SlackLink";
 import type { MemberProfile } from "../shell";
+import { LevelLine } from "./LevelLine";
 
 export function Hero({ member }: { member: MemberProfile }) {
   return (
     <section aria-labelledby="home-title" className="hud-panel relative flex flex-col gap-5 rounded-xl border bg-card p-6">
       <div className="flex items-center gap-3">
-        <MemberFace member={member} className="size-12" />
+        <LeveledFace member={member} className="size-12" />
         {member.name !== undefined && <span className="font-medium">{member.name}</span>}
       </div>
       <div className="flex flex-col gap-2">
@@ -19,12 +19,11 @@ export function Hero({ member }: { member: MemberProfile }) {
         <p className="text-sm text-muted-foreground">Mention them in a Slack message with :{member.kudosEmoji}: and say what they did.</p>
       </div>
       <div className="flex flex-col items-start gap-2">
-        <a href={member.chatUrl} target="_blank" rel="noreferrer" className={buttonVariants({ variant: "primary", size: "lg" })}>
-          Thank someone in Slack{" "}
-          <span className="sr-only">(opens in a new tab)</span>
-          <IconExternal aria-hidden="true" className="size-4" />
-        </a>
+        <SlackLink chatUrl={member.chatUrl} variant="primary" size="lg">
+          Thank someone in Slack
+        </SlackLink>
         <AllowanceLine allowance={member.allowance} />
+        {member.progression !== null && <LevelLine progression={member.progression} />}
       </div>
       <div className="border-t pt-4">
         <MaxLine>{weekInWords(member.thisWeek)}</MaxLine>

@@ -1,8 +1,7 @@
 import { useState, type CSSProperties } from "react";
-import type { Face, MemberProfile } from "./shell";
+import type { Face } from "./shell";
 
-export function MemberFace({ member, className }: { member: MemberProfile; className: string }) {
-  const { face } = member;
+export function MemberFace({ face, className }: { face: Face; className: string }) {
   if (face.kind === "initials") return <Initials initials={face.initials} className={className} />;
   return <FaceImage key={face.image} face={face} className={className} />;
 }
