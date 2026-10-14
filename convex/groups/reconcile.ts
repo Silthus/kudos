@@ -62,6 +62,17 @@ export async function reconcileMember(ctx: MutationCtx, member: MemberId, record
   if (person !== null) await reconcile(ctx, person, new GroupRows(ctx, person.workspace), cause);
 }
 
+export async function reconcileFirstPageOf(ctx: MutationCtx, members: MemberId[]) {
+  const people = (await Promise.all(members.slice(0, usersPerPage).map((member) => ctx.db.get(member)))).filter((person) => person !== null);
+  const groups = new Map<string, GroupRows>();
+  for (const person of people) {
+    const rows = groups.get(person.workspace) ?? new GroupRows(ctx, person.workspace);
+    groups.set(person.workspace, rows);
+    if (rows.membershipsRead >= membershipsPerPage) return;
+    await reconcile(ctx, person, rows);
+  }
+}
+
 function everyGroupAt(recordedAt: number | undefined): Cause | undefined {
   return recordedAt === undefined ? undefined : { at: recordedAt, groups: "every-group" };
 }

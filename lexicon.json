@@ -522,6 +522,14 @@
     {
       "name": "places climbed",
       "definition": "How many positions a ranked row of a board rose against the same board in the previous period up to the same day (G18's comparison): a positive number, or nothing when it didn't rise, wasn't on that board then, or the period is all time; no read ever states a drop, and Slack shows none (GB18). The improvement line's places are the viewer's own."
+    },
+    {
+      "name": "attribution",
+      "definition": "The record that a Given kudos message counts for the giver's primary group at its spend instant, or for no group: made once per message after reconciling the giver, insert-only, with its kudos, allowance day, spend instant, each award's stored gate decision and each recipient's primary group at that instant, and published as awardsAttributed (GB10). Group totals and the group quest follow it, never kudosGiven itself. Not Coherence's attribution of a journal record to its session and agent."
+    },
+    {
+      "name": "group total",
+      "definition": "The kudos one member gave for one group in one period (week, month or all time), with the period's running total by day for a week or month, fed only by awardsAttributed, exactly once per kudos message (GB12, GB30). A cache: it can be rebuilt from the attributions."
     }
   ]
 }
