@@ -95,13 +95,13 @@ describe("SW16: replies other than a success and public messages carry no link",
     const t = await workspaceDeciding("xp-levels", "website", "everyone-board");
     await giveKudos(t, "U_ALICE", ["U_BOB"], 11);
     await giveKudos(t, "U_ALICE", ["U_ALICE"]);
-    await giveKudos(t, "U_ALICE", ["U_BOB"]);
+    await giveKudos(t, "U_ALICE", ["U_BOB"], 2);
     await editLastKudos(t, "U_ALICE", ["U_CAROL"]);
 
     const replies = slack.ephemeralsTo("U_ALICE").map(({ text }) => String(text));
-    expect(replies.filter((text) => !text.includes("got 1 kudos from you"))).toHaveLength(3);
-    expect(replies.filter((text) => text.includes(siteUrl))).toEqual([expect.stringContaining("got 1 kudos from you")]);
-    expect(channelPosts().filter((text) => text.includes(siteUrl))).toEqual([]);
+    expect(replies.filter((text) => !text.includes("got 2 kudos from you"))).toHaveLength(3);
+    expect(replies.filter((text) => text.includes(siteUrl))).toEqual([expect.stringContaining("got 2 kudos from you")]);
+    expect(channelPosts()).toEqual(["🎉 <@U_ALICE> reached level 2."]);
   });
 });
 
