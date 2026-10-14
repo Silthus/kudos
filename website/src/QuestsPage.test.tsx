@@ -17,6 +17,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
 });
 
@@ -172,15 +173,7 @@ describe("WS73: /quests shows this week's quests while Quests is open", () => {
     expect(within(main()).getByRole("link", { name: "Open Slack (opens in a new tab)" })).toHaveClass("quill-button--variant-outline");
   });
 
-  it("explains how quests work in WS73's words", () => {
-    showQuests(questsFixtures.week);
-    const how = within(main()).getByRole("region", { name: "How quests work" });
-    expect(how).toHaveTextContent(
-      "Quests reward thanking someone new, someone you haven't thanked in a while, and thanks that say why. A thanks says why when your message has 5 or more words besides mentions and emoji. New quests arrive every Monday. You can swap one quest a week in Slack's App Home.",
-    );
-  });
-
-  it("offers no swap, group quest or bonus quest, and never calls a kudos thoughtful", () => {
+  it("offers no group quest or bonus quest, and never calls a kudos thoughtful", () => {
     showQuests(questsFixtures.weekWithLastWeeksCrate);
     expect(within(main()).getAllByRole("button").map((button) => button.textContent)).toEqual(["Claim", "Claim"]);
     expect(main()).not.toHaveTextContent(/group quest|bonus|thoughtful|reroll/i);
@@ -311,6 +304,10 @@ function avatar() {
   return screen.getByRole("link", { name: /^Sam Example/ });
 }
 
+function frame() {
+  return document.querySelector<HTMLElement>(".hud-root")!;
+}
+
 async function claimAndClose(user: ReturnType<typeof showQuests>["user"]) {
   await user.click(within(cardOf("Thank someone you haven't thanked before.")).getByRole("button", { name: "Claim" }));
   await user.keyboard("{Escape}");
@@ -322,6 +319,8 @@ function claimOn(answer: MyQuests = questsFixtures.week) {
 }
 
 const claimer = shellFixtures.memberWithQuestsAtLevel2;
+
+const nearLevel3 = { ...claimer, progression: { level: 2, xp: 90, levelStartsAt: 20, nextLevelAt: 100, xpToNextLevel: 10 } };
 
 function levelRing() {
   return within(avatar()).getByRole("img", { name: /^Level / });
@@ -366,7 +365,8 @@ describe("WS315 E184: the reward flies into the HUD level ring once a Claim's re
     expect(levelRing()).toHaveAccessibleName("Level 2, 30 XP to level 3");
     landAll(flight()!);
     expect(levelRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
-    expect(avatar()).toHaveClass("reward-filling");
+    expect(frame()).toHaveClass("reward-filling");
+    expect(frame().style.getPropertyValue("--reward-from")).toBe("25");
   });
 
   it("keeps the held ring in step with XP that arrives while the reveal plays, never rewinding it", async () => {
@@ -382,15 +382,20 @@ describe("WS315 E184: the reward flies into the HUD level ring once a Claim's re
     expect(levelRing()).toHaveAccessibleName("Level 2, 5 XP to level 3");
   });
 
-  it("does not hold or fill the ring when the reward crossed a level", async () => {
-    const levelledUp = { ...claimer, progression: { level: 3, xp: 62, levelStartsAt: 60, nextLevelAt: 120, xpToNextLevel: 58 } };
+  it("holds the old level when the reward crossed one, then completes the ring and starts the new level", async () => {
+    const levelledUp = { ...claimer, progression: { level: 3, xp: 110, levelStartsAt: 100, nextLevelAt: 300, xpToNextLevel: 190 } };
     const { user } = renderApp(levelledUp, undefined, { openQuestCrate: async () => ({ kind: "opened" }) }, fixedQuests(questsFixtures.week));
     await claimAndClose(user);
 
-    expect(levelRing()).toHaveAccessibleName("Level 3, 58 XP to level 4");
+    expect(levelRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
+    vi.useFakeTimers();
     landAll(flight()!);
     expect(avatar()).toHaveClass("reward-landed");
-    expect(avatar()).not.toHaveClass("reward-filling");
+    expect(frame()).toHaveClass("reward-levelling");
+    expect(levelRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
+    act(() => vi.advanceTimersByTime(600));
+    expect(levelRing()).toHaveAccessibleName("Level 3, 190 XP to level 4");
+    vi.useRealTimers();
   });
 
   it("measures the card where it is once focus is back on it", async () => {
@@ -422,7 +427,7 @@ describe("WS315 E184: the reward flies into the HUD level ring once a Claim's re
   it("flies each of two Claims pressed together, one after the other", async () => {
     const answers: (() => void)[] = [];
     const openQuestCrate = () => new Promise<OpenAnswer>((resolve) => answers.push(() => resolve({ kind: "opened" })));
-    const { user } = renderApp(claimer, undefined, { openQuestCrate }, fixedQuests(questsFixtures.weekWithAFinishedQuestEach));
+    const { user } = renderApp(nearLevel3, undefined, { openQuestCrate }, fixedQuests(questsFixtures.weekWithAFinishedQuestEach));
     for (const claim of within(questCards()).getAllByRole("button", { name: "Claim" })) await user.click(claim);
     await act(async () => answers.forEach((answer) => answer()));
     for (let reveal = 0; reveal < 2; reveal++) {
@@ -436,6 +441,47 @@ describe("WS315 E184: the reward flies into the HUD level ring once a Claim's re
     expect(flight()).toBeNull();
   });
 
+  it("holds both rewards of two Claims pressed together and releases them in turn, never rewinding the ring", async () => {
+    const answers: (() => void)[] = [];
+    const openQuestCrate = () => new Promise<OpenAnswer>((resolve) => answers.push(() => resolve({ kind: "opened" })));
+    const { user } = renderApp(nearLevel3, undefined, { openQuestCrate }, fixedQuests(questsFixtures.weekWithAFinishedQuestEach));
+    for (const claim of within(questCards()).getAllByRole("button", { name: "Claim" })) await user.click(claim);
+    await act(async () => answers.forEach((answer) => answer()));
+    for (let reveal = 0; reveal < 2; reveal++) {
+      await user.keyboard("{Escape}");
+      await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Done" }));
+    }
+
+    expect(levelRing()).toHaveAccessibleName("Level 2, 50 XP to level 3");
+    landAll(flight()!);
+    expect(levelRing()).toHaveAccessibleName("Level 2, 30 XP to level 3");
+    expect(flight()).not.toBeNull();
+    expect(levelRing()).toHaveAccessibleName("Level 2, 30 XP to level 3");
+    landAll(flight()!);
+    expect(levelRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
+  });
+
+  it("restarts the fill for a second reward that lands while the first one's fill still plays", async () => {
+    const answers: (() => void)[] = [];
+    const openQuestCrate = () => new Promise<OpenAnswer>((resolve) => answers.push(() => resolve({ kind: "opened" })));
+    const { user } = renderApp(nearLevel3, undefined, { openQuestCrate }, fixedQuests(questsFixtures.weekWithAFinishedQuestEach));
+    for (const claim of within(questCards()).getAllByRole("button", { name: "Claim" })) await user.click(claim);
+    await act(async () => answers.forEach((answer) => answer()));
+    for (let reveal = 0; reveal < 2; reveal++) {
+      await user.keyboard("{Escape}");
+      await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Done" }));
+    }
+    vi.useFakeTimers();
+    landAll(flight()!);
+    act(() => vi.advanceTimersByTime(500));
+    landAll(flight()!);
+    expect(frame().style.getPropertyValue("--reward-from")).toBe("62.5");
+    act(() => vi.advanceTimersByTime(900));
+
+    expect(frame()).toHaveClass("reward-filling");
+    vi.useRealTimers();
+  });
+
   it("stops at once, with no bump or fill, when the browser cancels it, as turning on reduced motion mid-flight does", async () => {
     const { user } = claimOn();
     await claimAndClose(user);
@@ -443,7 +489,7 @@ describe("WS315 E184: the reward flies into the HUD level ring once a Claim's re
 
     expect(flight()).toBeNull();
     expect(avatar()).not.toHaveClass("reward-landed");
-    expect(avatar()).not.toHaveClass("reward-filling");
+    expect(frame()).not.toHaveClass("reward-filling");
   });
 
   it("never flies under reduced motion, and shows the XP at once with a short fade", async () => {
@@ -456,7 +502,7 @@ describe("WS315 E184: the reward flies into the HUD level ring once a Claim's re
     expect(flight()).toBeNull();
     expect(levelRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
     expect(avatar()).toHaveClass("reward-faded");
-    expect(avatar()).not.toHaveClass("reward-filling");
+    expect(frame()).not.toHaveClass("reward-filling");
   });
 
   it("lands a queued flight at once when reduced motion is turned on before it starts", async () => {

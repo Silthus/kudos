@@ -1,6 +1,7 @@
 import { BookIndex, BookPagePicker } from "../book/BookIndex";
 import { chaptersOf, type Chapter } from "../book/categories";
 import { Ladder } from "../book/Ladder";
+import { Overview } from "../book/Overview";
 import { PageTitle } from "../PageTitle";
 import type { BookPageId } from "../route";
 import type { BookAnswer, LadderCard } from "../shell";
@@ -17,30 +18,35 @@ export function BookPage({ book, page }: { book: YourBook; page: BookPageId }) {
     <div className="grid gap-5 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start lg:gap-6">
       {wide ? <BookIndex chapters={chapters} current={current} /> : <BookPagePicker chapters={chapters} current={current} />}
       <div className="flex min-w-0 flex-col gap-6">
-        {chapter === undefined ? <Overview /> : <ChapterHeader chapter={chapter} />}
-        <Ladders ladders={chapter?.ladders ?? book.ladders} timeZone={book.timeZone} />
+        {chapter === undefined ? <OverviewPage book={book} /> : <ChapterPage chapter={chapter} timeZone={book.timeZone} />}
       </div>
     </div>
   );
 }
 
-function Overview() {
+function OverviewPage({ book }: { book: YourBook }) {
   return (
-    <header className="flex flex-col gap-1">
-      <span className="hud-label">Book</span>
-      <PageTitle tab="Book" size="display">Achievements</PageTitle>
-      <p className="text-sm text-muted-foreground">Tiers you earn by thanking colleagues and being thanked. Each one is yours for good.</p>
-    </header>
+    <>
+      <header className="flex flex-col gap-1">
+        <span className="hud-label">Book</span>
+        <PageTitle tab="Book" size="display">Achievements</PageTitle>
+        <p className="text-sm text-muted-foreground">Tiers you earn by thanking colleagues and being thanked. Each one is yours for good.</p>
+      </header>
+      <Overview ladders={book.ladders} timeZone={book.timeZone} />
+    </>
   );
 }
 
-function ChapterHeader({ chapter: { category } }: { chapter: Chapter }) {
+function ChapterPage({ chapter: { category, ladders }, timeZone }: { chapter: Chapter; timeZone: string }) {
   return (
-    <header className="flex flex-col gap-1">
-      <span className="hud-label">Achievements</span>
-      <PageTitle tab={`Book · ${category.name}`} size="display">{category.name}</PageTitle>
-      {category.blurb !== null && <p className="text-sm text-muted-foreground">{category.blurb}</p>}
-    </header>
+    <>
+      <header className="flex flex-col gap-1">
+        <span className="hud-label">Achievements</span>
+        <PageTitle tab={`Book · ${category.name}`} size="display">{category.name}</PageTitle>
+        {category.blurb !== null && <p className="text-sm text-muted-foreground">{category.blurb}</p>}
+      </header>
+      <Ladders ladders={ladders} timeZone={timeZone} />
+    </>
   );
 }
 

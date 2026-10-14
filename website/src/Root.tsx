@@ -7,6 +7,7 @@ import { Frame } from "./Frame";
 import { LiveShell } from "./LiveApp";
 import { ErrorPage } from "./pages/ErrorPage";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
+import { fixtureProfileCardFor } from "./profileCardFixtures";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
 import { builtShell, fixtureActions, type ShellState } from "./shell";
 import { fixtureSkillTreeFor } from "./skillTreeFixtures";
@@ -20,7 +21,7 @@ export function Root({ fixture, convexUrl }: { fixture?: string; convexUrl?: str
 }
 
 function FixtureApp({ visitor }: { visitor: ShellState }) {
-  return <App visitor={visitor} actions={fixtureActions} useLeaderboard={fixtureLeaderboard} useQuests={fixtureQuests} useBook={fixtureBookFor(visitor)} useSkillTree={fixtureSkillTreeFor(visitor)} />;
+  return <App visitor={visitor} actions={fixtureActions} useLeaderboard={fixtureLeaderboard} useQuests={fixtureQuests} useBook={fixtureBookFor(visitor)} useSkillTree={fixtureSkillTreeFor(visitor)} useProfileCard={fixtureProfileCardFor(visitor)} />;
 }
 
 export function ShellBoundary({ children }: { children: ReactNode }) {

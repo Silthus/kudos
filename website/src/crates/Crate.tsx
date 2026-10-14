@@ -19,7 +19,7 @@ export function Crate({ card, heading: Heading, open, artWidth, framed = true }:
   if (attempt !== undefined && !stillSinceOpen) keepStill(true);
   return (
     <article className={`flex items-center gap-4 ${framed ? frame : ""}`}>
-      <CrateArt phase="closed" width={artWidth} Hog={aboutOf(card.feature).Hog} nudge={!stillSinceOpen} />
+      <CrateArt phase="closed" width={artWidth} Hog={aboutOf(card.feature).Hog} nudge={!stillSinceOpen} seen={card.seen} />
       <div className="flex min-w-0 flex-col items-start gap-1">
         <Heading className="text-sm font-medium">{`Unlocks: ${card.name}`}</Heading>
         <p className="text-xs text-muted-foreground">{`It opens ${card.opens}.`}</p>
@@ -30,7 +30,7 @@ export function Crate({ card, heading: Heading, open, artWidth, framed = true }:
           className="mt-1"
           aria-disabled={opening || undefined}
           onClick={() => {
-            if (!opening) moments?.open(crate);
+            if (!opening) moments?.claim(crate);
           }}
         >
           {opening ? "Opening…" : "Open"}

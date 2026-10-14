@@ -4,6 +4,7 @@ import type { BoardAnswer } from "../boardRead";
 import { Crate } from "../crates/Crate";
 import { aboutOf, pageOf, plainNameOf, type PagedFeature } from "../features";
 import { readyInSlack } from "../pages/FeatureWaitsPage";
+import type { ProfileCardShown } from "../profileCardRead";
 import type { QuestsShown } from "../questsRead";
 import type { Feature, FeatureCard, MemberProfile } from "../shell";
 import { pointsToSpend } from "../skills/perkWords";
@@ -17,7 +18,7 @@ type MainSlot = "book" | "skillTree";
 
 type RailSlot = "quests" | "leaderboard";
 
-export type RailReads = { quests: QuestsShown | undefined; board: BoardAnswer | undefined };
+export type RailReads = { quests: QuestsShown | undefined; board: BoardAnswer | undefined; card: ProfileCardShown | undefined };
 
 const mainColumn: MainSlot[] = ["book", "skillTree"];
 
