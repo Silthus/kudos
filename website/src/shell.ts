@@ -41,6 +41,7 @@ const member: MemberProfile = {
   features: null,
   journey: null,
   progression: null,
+  skillPoints: null,
 };
 
 const readyAt = Date.parse("2026-10-12T09:00:00Z");

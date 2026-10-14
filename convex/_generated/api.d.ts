@@ -138,6 +138,7 @@ import type * as website_quests from "../website/quests.js";
 import type * as website_routes from "../website/routes.js";
 import type * as website_seen from "../website/seen.js";
 import type * as website_signIn from "../website/signIn.js";
+import type * as website_skillTree from "../website/skillTree.js";
 import type * as website_unlockPath from "../website/unlockPath.js";
 import type * as welcome_welcome from "../welcome/welcome.js";
 import type * as workspace_directory from "../workspace/directory.js";
@@ -280,6 +281,7 @@ declare const fullApi: ApiFromModules<{
   "website/routes": typeof website_routes;
   "website/seen": typeof website_seen;
   "website/signIn": typeof website_signIn;
+  "website/skillTree": typeof website_skillTree;
   "website/unlockPath": typeof website_unlockPath;
   "welcome/welcome": typeof welcome_welcome;
   "workspace/directory": typeof workspace_directory;
