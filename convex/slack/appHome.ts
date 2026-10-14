@@ -5,6 +5,7 @@ import { observedAction } from "../analytics/boundary";
 import { ReportableError } from "../analytics/exceptions";
 import { recordUsage, recordUsageWithoutBlocking } from "../analytics/usage";
 import type { HomeFacts } from "../engine/home";
+import type { Command } from "../commands/commands";
 import { renderHome, type Choice, type HomeLine, type HomeView } from "../feedback/home";
 import { xpLevelsShownTo } from "../progression/xpLevels";
 import { lookup } from "../workspace/directory";
@@ -116,6 +117,7 @@ function blockOf(line: HomeLine) {
   if (line.kind === "hint") return { type: "context", elements: [mrkdwn(line.text)] };
   if (line.kind === "action") return { type: "section", text: mrkdwn(line.text), accessory: buttonOf(line.action) };
   if (line.kind === "pick-channel") return { type: "section", text: mrkdwn(line.text), accessory: channelPickerOf(line) };
+  if (line.kind === "pick-groups") return { type: "actions", elements: [groupPickerOf(line)] };
   if (line.kind === "link") return { type: "section", text: mrkdwn(`<${line.url}|${line.label}>`) };
   if (line.kind === "links") return { type: "actions", elements: line.links.map(linkButtonOf) };
   return { type: "section", text: mrkdwn(line.text) };
@@ -131,6 +133,31 @@ function linkButtonOf({ label, url }: { label: string; url: string }, index: num
 
 function channelPickerOf({ picks, picked }: Extract<HomeLine, { kind: "pick-channel" }>) {
   return { type: "channels_select", action_id: picks, placeholder: plainText("Pick a channel"), ...(picked !== null && { initial_channel: picked }) };
+}
+
+const optionsPerList = 100;
+const optionTextLimit = 75;
+
+function groupPickerOf({ groups, picked }: Extract<HomeLine, { kind: "pick-groups" }>) {
+  const options = groups.map(({ group, name }) => ({ text: plainText(shortened(name, optionTextLimit)), value: group }));
+  const initial = options.filter(({ value }) => picked.includes(value));
+  return {
+    type: "multi_static_select",
+    action_id: "setGroupMode" satisfies Command["type"],
+    placeholder: plainText("Pick groups"),
+    ...listsOf(options),
+    ...(initial.length > 0 && { initial_options: initial }),
+  };
+}
+
+function listsOf<Option>(options: Option[]) {
+  if (options.length <= optionsPerList) return { options };
+  const lists = Array.from({ length: Math.ceil(options.length / optionsPerList) }, (_, index) => options.slice(index * optionsPerList, (index + 1) * optionsPerList));
+  return { option_groups: lists.map((list, index) => ({ label: plainText(`Groups ${index * optionsPerList + 1}–${index * optionsPerList + list.length}`), options: list })) };
+}
+
+function shortened(text: string, limit: number) {
+  return text.length <= limit ? text : `${text.slice(0, limit - 1)}…`;
 }
 
 function appId() {

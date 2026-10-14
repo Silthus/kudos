@@ -3,7 +3,7 @@ import { observedHttpAction } from "../analytics/boundary";
 import { commandOf, type Command } from "../commands/commands";
 import { readSignedBody } from "./signature";
 
-type Action = { type: string; action_id: string; value?: string; selected_channel?: string | null };
+type Action = { type: string; action_id: string; value?: string; selected_channel?: string | null; selected_options?: Array<{ value: string }> };
 
 type MemberClick = {
   type: "block_actions";
@@ -38,8 +38,14 @@ export function encodeHomeAction(command: Command) {
 }
 
 function commandsOf(action: Action): Command[] {
-  const command = commandOf(action.type === "channels_select" ? { type: action.action_id, channel: action.selected_channel ?? null } : buttonCommandOf(action));
+  const command = commandOf(candidateOf(action));
   return command === null ? [] : [command];
+}
+
+function candidateOf(action: Action): unknown {
+  if (action.type === "channels_select") return { type: action.action_id, channel: action.selected_channel ?? null };
+  if (action.type === "multi_static_select") return { type: action.action_id, mode: "allowlist", allowlist: (action.selected_options ?? []).map(({ value }) => value) };
+  return buttonCommandOf(action);
 }
 
 function buttonCommandOf({ type, value }: Action): unknown {

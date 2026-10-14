@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { bookFactsOf, type AchievementFacts } from "../achievements/achievements";
 import { achievementsApplyIn, achievementsShownTo } from "../achievements/flag";
+import { groupModeShownTo, type GroupModeFacts } from "../groups/groupMode";
 import { xpRecordedEventValidator } from "../bus/events";
 import type { GroupId } from "../groups/groups";
 import { groupBoardsOf } from "../leaderboard/groupBoards";
@@ -35,7 +36,7 @@ export type ShownTab =
   | { tab: "book"; book: AchievementFacts; timeZone: string | undefined }
   | { tab: "skillTree"; perks: MemberPerks }
   | { tab: "settings"; onTheBoards: boolean | null; progress: ProgressSettings | null; achievements: boolean }
-  | { tab: "admin"; announcementChannel: string | null; achievements: boolean };
+  | { tab: "admin"; announcementChannel: string | null; achievements: boolean; groupMode: GroupModeFacts | null };
 
 export type ShownHome = { tabs: HomeTab[]; shown: ShownTab };
 
@@ -70,7 +71,7 @@ export const shownHomeOf = internalMutation({
     if (tabs.length === 0) return null;
     const { tab, period } = await selectionOf(ctx, person.member);
     const viewer = { workspace, user, member: person.member };
-    return { tabs, shown: await shownTabOf(ctx, viewer, slices, { tab: tabs.includes(tab) ? tab : "profile", period }) };
+    return { tabs, shown: await shownTabOf(ctx, { ...viewer, admin: person.admin }, slices, { tab: tabs.includes(tab) ? tab : "profile", period }) };
   },
 });
 
@@ -134,7 +135,7 @@ function tabsOf(slices: Slices & Door): HomeTab[] {
   return besideProfile.length === 0 ? [] : ["profile", ...besideProfile];
 }
 
-type Viewer = { workspace: string; user: string; member: MemberId };
+type Viewer = { workspace: string; user: string; member: MemberId; admin: boolean };
 
 async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { tab, period }: HomeSelection): Promise<ShownTab> {
   switch (tab) {
@@ -163,7 +164,12 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
         achievements: await achievementsApplyIn(ctx, viewer.workspace),
       };
     case "admin":
-      return { tab, announcementChannel: (await settingsOf(ctx, viewer.workspace)).announcementChannel, achievements: await achievementsApplyIn(ctx, viewer.workspace) };
+      return {
+        tab,
+        announcementChannel: (await settingsOf(ctx, viewer.workspace)).announcementChannel,
+        achievements: await achievementsApplyIn(ctx, viewer.workspace),
+        groupMode: await groupModeShownTo(ctx, viewer.workspace, viewer),
+      };
   }
 }
 

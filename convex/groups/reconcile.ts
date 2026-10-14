@@ -4,8 +4,8 @@ import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx } from "../_generated/server";
 import type { ChatUserId } from "../engine/messageEvent";
 import type { MemberId } from "../workspace/directory";
-import { userGroupMembershipsOf, userGroupRow } from "../workspace/userGroups";
-import { countsAsGroup, memberGroupsOf, type GroupId } from "./groups";
+import { keepsMembers, userGroupMembershipsOf, userGroupRow } from "../workspace/userGroups";
+import { countsAsGroup, groupModeOf, isAllowed, memberGroupsOf, type GroupId, type GroupMode } from "./groups";
 import { recordChange } from "./history";
 
 const usersPerPage = 100;
@@ -47,6 +47,30 @@ export const reconcileUsers = internalMutation({
   },
 });
 
+export async function reconcileEveryMemberLater(ctx: MutationCtx, workspace: string) {
+  await ctx.scheduler.runAfter(0, internal.groups.reconcile.reconcileWorkspace, { workspace });
+}
+
+export const reconcileWorkspace = internalMutation({
+  args: { workspace: v.string(), after: v.optional(v.string()) },
+  handler: async (ctx, { workspace, after }) => {
+    const people = await ctx.db
+      .query("members")
+      .withIndex("by_user", (q) => (after === undefined ? q.eq("workspace", workspace) : q.eq("workspace", workspace).gt("user", after)))
+      .take(usersPerPage);
+    const groups = new GroupRows(ctx, workspace);
+    let reconciled = after;
+    for (const person of people) {
+      if (groups.membershipsRead >= membershipsPerPage) break;
+      await reconcile(ctx, person, groups);
+      reconciled = person.user;
+    }
+    const lastRead = people.at(-1)?.user;
+    if (lastRead === undefined) return;
+    if (people.length === usersPerPage || reconciled !== lastRead) await ctx.scheduler.runAfter(0, internal.groups.reconcile.reconcileWorkspace, { workspace, after: reconciled });
+  },
+});
+
 export async function reconcileUser(ctx: MutationCtx, workspace: string, user: ChatUserId, recordedAt?: number) {
   const cause = everyGroupAt(recordedAt);
   const person = await ctx.db
@@ -84,6 +108,7 @@ type CountingGroup = { row: Doc<"userGroups">; joinedAt: number };
 class GroupRows {
   private readonly rows = new Map<string, Promise<Doc<"userGroups"> | null>>();
   private readonly rowsById = new Map<GroupId, Promise<Doc<"userGroups"> | null>>();
+  private mode: Promise<GroupMode> | undefined;
   membershipsRead = 0;
 
   constructor(
@@ -95,7 +120,24 @@ class GroupRows {
     const memberships = await userGroupMembershipsOf(this.ctx, this.workspace, user);
     this.membershipsRead += memberships.length;
     const groups = await Promise.all(memberships.map(async ({ group, _creationTime }) => ({ row: await this.rowOf(group), joinedAt: _creationTime })));
-    return groups.filter((group): group is CountingGroup => group.row !== null && countsAsGroup(group.row));
+    const mode = await this.modeOf();
+    return groups.filter((group): group is CountingGroup => group.row !== null && countsAsGroup(group.row, mode));
+  }
+
+  async counts(row: Doc<"userGroups">): Promise<boolean> {
+    return countsAsGroup(row, await this.modeOf());
+  }
+
+  async stoppedCountingAt(row: Doc<"userGroups">): Promise<number | undefined> {
+    const disabledAt = keepsMembers(row) ? undefined : row.changedAt;
+    const leftAllowlistAt = isAllowed(row, await this.modeOf()) ? undefined : (row.allowlistChangedAt ?? row.changedAt);
+    const causes = [disabledAt, leftAllowlistAt].filter((at): at is number => at !== undefined);
+    return causes.length === 0 ? undefined : Math.min(...causes);
+  }
+
+  private modeOf() {
+    this.mode ??= groupModeOf(this.ctx, this.workspace);
+    return this.mode;
   }
 
   leftGroupsOf(groups: GroupId[]): Promise<(Doc<"userGroups"> | null)[]> {
@@ -129,19 +171,29 @@ async function reconcile(ctx: MutationCtx, person: Doc<"members">, groupRows: Gr
   const joined = counting.filter(({ row: group }) => !(row?.groups ?? []).includes(group._id));
   const changedAt = from === null ? (cause?.at ?? latestChangeOf(joined.map(({ row }) => row))) : await departedAt(groupRows, from, cause);
   const primaryJoinedAt = joined.find(({ row }) => row._id === primary)?.joinedAt ?? changedAt;
-  await recordChange(ctx, person, from, primary, from === null ? "default" : "fallback", Math.min(Date.now(), Math.max(changedAt, primaryJoinedAt)));
+  const primaryRow = counting.find(({ row }) => row._id === primary)?.row;
+  const arrivedAt = Math.min(Date.now(), Math.max(changedAt, primaryJoinedAt, primaryRow === undefined ? changedAt : countsSince(primaryRow)));
+  const changeCause = from === null ? "default" : "fallback";
+  const leftBeforeArriving = from !== null && primary !== null && arrivedAt > changedAt;
+  if (leftBeforeArriving) await recordChange(ctx, person, from, null, changeCause, changedAt);
+  await recordChange(ctx, person, leftBeforeArriving ? null : from, primary, changeCause, arrivedAt);
+}
+
+function countsSince({ allowlistChangedAt, changedAt }: Doc<"userGroups">): number {
+  return Math.max(allowlistChangedAt ?? Number.NEGATIVE_INFINITY, changedAt ?? Number.NEGATIVE_INFINITY);
 }
 
 async function departedAt(groupRows: GroupRows, from: GroupId, cause: Cause | undefined): Promise<number> {
   const [left] = await groupRows.leftGroupsOf([from]);
   if (left === null || left === undefined) return cause?.at ?? Date.now();
-  if (!countsAsGroup(left) && left.changedAt !== undefined) return left.changedAt;
+  const stoppedAt = await groupRows.stoppedCountingAt(left);
+  if (stoppedAt !== undefined) return stoppedAt;
   if (cause !== undefined && (cause.groups === "every-group" || cause.groups.includes(left.group))) return cause.at;
   return left.changedAt ?? cause?.at ?? Date.now();
 }
 
 function latestChangeOf(groups: Doc<"userGroups">[]): number {
-  const changedAt = groups.flatMap(({ changedAt }) => (changedAt === undefined ? [] : [changedAt]));
+  const changedAt = groups.flatMap(({ changedAt, allowlistChangedAt }) => [changedAt, allowlistChangedAt].filter((at): at is number => at !== undefined));
   return changedAt.length === 0 ? Date.now() : Math.max(...changedAt);
 }
 
