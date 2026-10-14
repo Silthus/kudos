@@ -430,6 +430,10 @@
     {
       "name": "Book",
       "definition": "The feature that opens at level 4, where a member sees their achievement ladders and the tiers they earned, each with its date; it opens achievements, and the sticker book with its albums once that ships."
+    },
+    {
+      "name": "launch batch",
+      "definition": "The ladders and tiers one mutation finds unevaluated in a workspace, the Book's launch or the first mutation after a deploy that adds one, replayed together: every tier their replays earn carries the batch, and the batch is complete only when all its replays are (P62)."
     }
   ]
 }
