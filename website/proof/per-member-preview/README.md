@@ -28,3 +28,5 @@ The gate on `8c0226e`: `gate-8c0226e.txt`. The launch refusal round 1 added (a f
 10. She signed out, and Bob opened `/sign-in/`. The callback refused him and the page shows "Not open yet" at `/` (`merged-other-member-refused-dark.png`). The backend still held only Alice's account, and no `unlockLaunches` or `journeyLaunches` row.
 
 The gate on `31a3fd4`: `gate-31a3fd4.txt` (131 files, 2082 tests).
+
+The gate on `3c98509`, the last code commit (a doubled slash behind the entry stays on the site; red run `red-doubled-slash.txt`): `gate-3c98509.txt` (131 files, 2083 tests).
