@@ -19,7 +19,7 @@ export function Faces({ people }: { people: Person[] }) {
   return (
     <span className="flex shrink-0">
       {shown.map((person, index) => (
-        <span key={index} data-testid="person-face" className={`relative rounded-full ring-2 ring-card ${index === 0 ? "" : "-ml-4"}`} style={{ zIndex: shown.length - index }}>
+        <span key={index} data-testid="person-face" className={`relative rounded-full ring-2 ring-card ${index === 0 ? "" : "-ml-1.5"}`} style={{ zIndex: shown.length - index }}>
           <MemberFace face={person.face} className="size-8" />
         </span>
       ))}
