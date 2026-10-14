@@ -1,4 +1,5 @@
 import type { Infer } from "convex/values";
+import type { Quest } from "../quests/step";
 import type { Feature } from "../unlocks/feature";
 import type { pageValidator } from "./link";
 
@@ -34,4 +35,16 @@ export function routeOf(page: Page): string {
 export function listedPageOf(feature: Feature): Page | null {
   const page = featurePages[feature];
   return page !== undefined && listed(page) ? page : null;
+}
+
+export function readyCratePageOf(feature: Feature): Page {
+  return listedPageOf(feature) ?? { page: "home" };
+}
+
+export function questCratePageOf(quest: Quest): Page {
+  return quest.kind === "journey" ? { page: "home" } : { page: "quests" };
+}
+
+export function urlOf(origin: string, page: Page) {
+  return `${origin}${routeOf(page)}`;
 }

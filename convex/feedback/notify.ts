@@ -17,6 +17,7 @@ import { featureValidator, type Feature } from "../unlocks/feature";
 import { unlocksAppliedTo, unlocksShownTo } from "../unlocks/launch";
 import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import { stateOf } from "../unlocks/unlocks";
+import { websiteOrigin } from "../website/link";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { deepLinkOf, deepLinks, type DeepLink } from "./deepLinks";
 import { finishedQuestCrateOf, finishedWeeklyQuestCrateOf, perkOfferOf, purchaseReplyOf, readyCrateOf, tiersEarnedLines, type HomeAction } from "./home";
@@ -101,14 +102,14 @@ export const purchaseReplyStillWanted = internalQuery({
   },
 });
 
-type DeliveryFacts = { openTree: MemberPerks | null; everyTierEarned: TierRef[] };
+type DeliveryFacts = { website: string | null; openTree: MemberPerks | null; everyTierEarned: TierRef[] };
 
-export function renderNotification(notification: Notification, { openTree, everyTierEarned }: DeliveryFacts): NotificationLine[] {
-  if (notification.kind === "quest-finished") return [finishedQuestCrateOf(notification.quest, notification.xp)];
-  if (notification.kind === "journey-joined") return notification.finished.map(({ quest, xp }) => finishedQuestCrateOf(quest, xp));
-  if (notification.kind === "weekly-quest-finished") return [finishedWeeklyQuestCrateOf(notification.quest, notification.goal, notification.xp)];
+function renderNotification(notification: Notification, { website, openTree, everyTierEarned }: DeliveryFacts): NotificationLine[] {
+  if (notification.kind === "quest-finished") return [finishedQuestCrateOf(notification.quest, notification.xp, website)];
+  if (notification.kind === "journey-joined") return notification.finished.map(({ quest, xp }) => finishedQuestCrateOf(quest, xp, website));
+  if (notification.kind === "weekly-quest-finished") return [finishedWeeklyQuestCrateOf(notification.quest, notification.goal, notification.xp, website)];
   if (notification.kind === "tiers-earned") return tiersEarnedLines(notification.tiers, everyTierEarned);
-  const crates = notification.ready.map((feature) => readyCrateOf(scheduled(feature)));
+  const crates = notification.ready.map((feature) => readyCrateOf(scheduled(feature), website));
   if (notification.kind !== "level-reached") return crates;
   return [...levelReachedLines(notification, openTree), ...crates, ...perkOffersOf(openTree)];
 }
@@ -147,7 +148,11 @@ async function questsStillToldOf(ctx: QueryCtx, workspace: string, member: Membe
 type QuestNotification = Extract<Notification, { kind: "quest-finished" | "journey-joined" | "weekly-quest-finished" }>;
 
 async function deliveryFactsOf(ctx: QueryCtx, workspace: string, member: MemberId, told: Notification): Promise<DeliveryFacts> {
-  return { openTree: await openTreeOf(ctx, workspace, member, told), everyTierEarned: told.kind === "tiers-earned" ? await everyTierEarnedBy(ctx, member) : [] };
+  return {
+    website: await websiteOrigin(ctx, workspace),
+    openTree: await openTreeOf(ctx, workspace, member, told),
+    everyTierEarned: told.kind === "tiers-earned" ? await everyTierEarnedBy(ctx, member) : [],
+  };
 }
 
 async function openTreeOf(ctx: QueryCtx, workspace: string, member: MemberId, told: Notification): Promise<MemberPerks | null> {
