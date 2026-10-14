@@ -1,6 +1,7 @@
 import { useCallback, useRef } from "react";
 import { NavigateProvider } from "./AppLink";
-import { MomentsProvider, useCrateMoments, type Moments } from "./crates/moments";
+import { MomentAnnouncement } from "./crates/MomentAnnouncement";
+import { MomentsProvider, useCrateMoments } from "./crates/moments";
 import { RevealDialog } from "./crates/RevealDialog";
 import type { BoardAnswer, BoardRead } from "./boardRead";
 import { ErrorBoundary } from "./ErrorBoundary";
@@ -33,8 +34,9 @@ export function App({ visitor, actions, useLeaderboard }: AppProps) {
   const onTheBoard = member !== undefined && route.page === "leaderboard";
   const answer = useLeaderboard(onTheBoard ? route.period : undefined);
   const board = useBoardWhileTheNextLoads(answer, onTheBoard);
-  const moments = useCrateMoments(actions.openFeature, { signedOut: member === undefined && !stillAsking(shown) });
-  const revealing = moments.reveal !== undefined && member !== undefined;
+  const moments = useCrateMoments(actions.openFeature, { signedOut: member === undefined && !stillAsking(shown), crates: cratesOf(member) });
+  const reveal = member !== undefined ? moments.reveal : undefined;
+  const revealing = reveal !== undefined;
   useTitleFocusAfterChange(onTheBoard ? boardPageOf(board) : pageOf(route, member) ?? shown.kind, { held: revealing });
   useTitleFocusWhenTheFocusedElementGoes();
   const expectArrival = useTitleFocusOnArrival();
@@ -57,23 +59,22 @@ export function App({ visitor, actions, useLeaderboard }: AppProps) {
             <Page state={shown} route={route} board={board} onChoosePeriod={choosePeriod} onSignIn={signIn} onSignOut={actions.signOut} />
           </ErrorBoundary>
         </Frame>
-        {revealing && <RevealDialog key={moments.reveal!.card.seen} {...moments.reveal!} chatUrl={member.chatUrl} onFinish={moments.finish} onClose={moments.close} />}
-        <Announcement moments={moments} />
+        {reveal !== undefined && member !== undefined ? (
+          <RevealDialog key={reveal.card.seen} {...reveal} chatUrl={member.chatUrl} announcement={moments.announcement} onFinish={moments.finish} onClose={moments.close} />
+        ) : (
+          <MomentAnnouncement text={moments.announcement} />
+        )}
       </MomentsProvider>
     </NavigateProvider>
   );
 }
 
-function stillAsking(state: ShellState) {
-  return state.kind === "loading" || state.kind === "connecting";
+function cratesOf(member: MemberProfile | undefined) {
+  return member?.features?.map(({ seen }) => seen) ?? [];
 }
 
-function Announcement({ moments }: { moments: Moments }) {
-  return (
-    <p role="status" data-testid="moment-announcement" className="sr-only">
-      {moments.announcement}
-    </p>
-  );
+function stillAsking(state: ShellState) {
+  return state.kind === "loading" || state.kind === "connecting";
 }
 
 function pageOf(route: Route, member: MemberProfile | undefined) {

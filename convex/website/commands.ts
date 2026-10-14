@@ -3,7 +3,7 @@ import { republish } from "../feedback/homes";
 import { featureValidator } from "../unlocks/feature";
 import { stateOf } from "../unlocks/unlocks";
 import { memberMutation } from "./memberMutation";
-import { unlocksApplyIn } from "./unlockPath";
+import { unlockPathShownIn } from "./unlockPath";
 
 export type CommandAnswer = { kind: "opened" } | { kind: "refused" };
 
@@ -13,7 +13,7 @@ const refused: CommandAnswer = { kind: "refused" };
 export const openFeature = memberMutation({
   args: { feature: featureValidator },
   handler: async (ctx, me, person, { feature }): Promise<CommandAnswer> => {
-    if (!(await unlocksApplyIn(ctx, me.workspace))) return refused;
+    if (!(await unlockPathShownIn(ctx, me.workspace))) return refused;
     await runCommand(ctx, me.workspace, person, { type: "openUnlock", feature });
     if ((await stateOf(ctx, me.member, feature)) !== "open") return refused;
     await republish(ctx, me.member);

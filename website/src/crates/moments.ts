@@ -29,24 +29,34 @@ export function useMoments() {
   return useContext(MomentsContext);
 }
 
-export function useCrateMoments(openFeature: ShellActions["openFeature"], { signedOut }: { signedOut: boolean }): Moments {
+type Shown = { signedOut: boolean; crates: string[] };
+
+export function useCrateMoments(openFeature: ShellActions["openFeature"], { signedOut, crates }: Shown): Moments {
   const [attempts, setAttempts] = useState<Partial<Record<Feature, Attempt>>>({});
   const [reveals, setReveals] = useState<Reveal[]>([]);
   const [announcement, setAnnouncement] = useState("");
   const sending = useRef(new Set<Feature>());
   const focusAfterClose = useRef<Feature | undefined>(undefined);
   const session = useRef(0);
+  const membersShown = useMembersShown(crates);
   const reveal = reveals[0];
 
-  useEffect(() => {
-    if (!signedOut) return;
+  const forgetEverything = useCallback(() => {
     session.current += 1;
     sending.current.clear();
     focusAfterClose.current = undefined;
     setAttempts({});
     setReveals([]);
     setAnnouncement("");
-  }, [signedOut]);
+  }, []);
+
+  useEffect(() => {
+    if (signedOut) forgetEverything();
+  }, [signedOut, forgetEverything]);
+
+  useEffect(() => {
+    if (membersShown > 1) forgetEverything();
+  }, [membersShown, forgetEverything]);
 
   const attemptIs = useCallback((feature: Feature, attempt: Attempt | undefined) => setAttempts((all) => ({ ...all, [feature]: attempt })), []);
 
@@ -103,6 +113,16 @@ export function useCrateMoments(openFeature: ShellActions["openFeature"], { sign
     close,
     announcement,
   };
+}
+
+function useMembersShown(crates: string[]) {
+  const lastCrates = useRef<string[]>([]);
+  const members = useRef(1);
+  if (crates.length > 0) {
+    if (lastCrates.current.length > 0 && !crates.some((key) => lastCrates.current.includes(key))) members.current += 1;
+    lastCrates.current = crates;
+  }
+  return members.current;
 }
 
 export function featureCardAttributes(feature: Feature) {

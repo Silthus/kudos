@@ -1,17 +1,19 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
-import { IconArrowRight, IconExternal } from "@posthog/icons";
+import { IconArrowRight } from "@posthog/icons";
 import { Button, buttonVariants } from "@posthog/quill";
 import { AppLink } from "../AppLink";
+import { MomentAnnouncement } from "./MomentAnnouncement";
 import { aboutOf, webPageOf } from "../features";
 import type { FeatureCard } from "../shell";
+import { SlackLink } from "../SlackLink";
 import { CrateArt } from "./CrateArt";
 import type { Reveal } from "./moments";
 
 export const revealPlaysForMs = 1700;
 
-type RevealDialogProps = Reveal & { chatUrl: string; onFinish: (card: FeatureCard) => void; onClose: (how: { returnFocus: boolean }) => void };
+type RevealDialogProps = Reveal & { chatUrl: string; announcement: string; onFinish: (card: FeatureCard) => void; onClose: (how: { returnFocus: boolean }) => void };
 
-export function RevealDialog({ card, seenBefore, chatUrl, onFinish, onClose }: RevealDialogProps) {
+export function RevealDialog({ card, seenBefore, chatUrl, announcement, onFinish, onClose }: RevealDialogProps) {
   const labelId = useId();
   const dialog = useRef<HTMLDivElement>(null);
   const [reducedMotion] = useState(prefersReducedMotion);
@@ -64,6 +66,7 @@ export function RevealDialog({ card, seenBefore, chatUrl, onFinish, onClose }: R
         </div>
         {!playing && <EndState key={shownAt} card={card} chatUrl={chatUrl} onClose={onClose} onReplay={replay} />}
       </div>
+      <MomentAnnouncement text={announcement} />
     </div>
   );
 }
@@ -96,10 +99,9 @@ function GoThere({ card, chatUrl, onGo }: { card: FeatureCard; chatUrl: string; 
   const page = webPageOf(card.feature);
   if (page === undefined)
     return (
-      <a href={chatUrl} target="_blank" rel="noreferrer" className={buttonVariants({ variant: "primary" })}>
-        Find it in Slack's App Home. <span className="sr-only">(opens in a new tab)</span>
-        <IconExternal aria-hidden="true" className="size-4" />
-      </a>
+      <SlackLink chatUrl={chatUrl} variant="primary" size="default">
+        Find it in Slack's App Home.
+      </SlackLink>
     );
   return (
     <AppLink href={page.href} onFollow={onGo} className={buttonVariants({ variant: "primary" })}>

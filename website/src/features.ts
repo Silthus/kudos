@@ -1,9 +1,8 @@
 import type { ComponentType } from "react";
 import { HedgehogExplorer, HedgehogMoney, HedgehogOrganized, HedgehogReading, HedgehogStar, HedgehogWizard } from "@posthog/brand/hoggies";
 import { IconBook, IconListTree, IconStar } from "@posthog/icons";
-import type { Feature } from "../../convex/unlocks/feature";
 import type { FeatureScreen, Screen } from "./route";
-import type { MemberProfile } from "./shell";
+import type { Feature, MemberProfile } from "./shell";
 
 export type Hoggie = ComponentType<{ size?: number; title?: string; className?: string }>;
 
@@ -12,6 +11,17 @@ export type About = { sentence: string; Hog: Hoggie };
 export type WebPage = { screen: Screen; href: string; sentence: string; Icon: ComponentType<{ className?: string }> };
 
 export type OpenWebPage = WebPage & { feature: Feature; name: string };
+
+const plainNames: Record<Feature, string> = {
+  quests: "Quests",
+  leaderboard: "Leaderboard",
+  book: "Book",
+  skillTree: "Skill tree",
+  coins: "Coins",
+  hedgehogs: "Hedgehogs",
+};
+
+export const plainFeatures = Object.entries(plainNames).map(([feature, name]) => ({ feature: feature as Feature, name }));
 
 const about: Record<Feature, About> = {
   quests: { sentence: "Weekly quests of your own, and one your group takes on together.", Hog: HedgehogOrganized },
@@ -41,7 +51,7 @@ export function featureOn(screen: FeatureScreen): Feature {
 }
 
 export function openWebPagesOf({ features, leaderboard }: Pick<MemberProfile, "features" | "leaderboard">): OpenWebPage[] {
-  const open = features ?? (leaderboard.kind === "open" ? [{ feature: "leaderboard" as const, name: "Leaderboard", state: "open" as const }] : []);
+  const open = features ?? (leaderboard.kind === "open" ? [{ feature: "leaderboard" as const, name: plainNames.leaderboard, state: "open" as const }] : []);
   return open.flatMap(({ feature, name, state }) => {
     const page = webPageOf(feature);
     return state === "open" && page !== undefined ? [{ ...page, feature, name }] : [];

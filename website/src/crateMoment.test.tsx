@@ -183,11 +183,12 @@ describe("WS66: the reveal follows the server", () => {
     expect(dialog()).toBeNull();
   });
 
-  it("announces what opened in the live region", async () => {
+  it("announces what opened in a live region inside the modal dialog, where screen readers still read it", async () => {
     const { user } = await openTheCrate();
     await user.keyboard("{Escape}");
     expect(announcement()).toHaveTextContent("You opened Leaderboard.");
     expect(announcement()).toHaveAttribute("role", "status");
+    expect(dialog()).toContainElement(announcement());
   });
 
   it("goes to the feature's page from the end state", async () => {
@@ -233,6 +234,26 @@ describe("WS66: the reveal holds up against overlapping answers and sessions", (
     showVisitor(ready);
     expect(dialog()).toBeNull();
     expect(openButton()).toHaveAccessibleName("Open");
+  });
+
+  it("WS60: ignores an answer for the member shown before when another member replaces them without a sign-out", async () => {
+    const pending = answerLater();
+    const { user, showVisitor } = renderApp(ready, undefined, { openFeature: () => pending.answer });
+    await user.click(openButton());
+    showVisitor(shellFixtures.loading);
+    showVisitor(withSeenKeys(ready, { leaderboard: "another-member-leaderboard", skillTree: "another-member-skill-tree" }));
+    await pending.settle({ kind: "opened" });
+    expect(dialog()).toBeNull();
+    expect(openButton()).toHaveAccessibleName("Open");
+  });
+
+  it("keeps a member's own crates through a ship that adds one, so their open still plays its reveal", async () => {
+    const pending = answerLater();
+    const { user, showVisitor } = renderApp(shellFixtures.memberWithTheBoardReady, undefined, { openFeature: () => pending.answer });
+    await user.click(openButton());
+    showVisitor(withAnotherFeatureShipped(shellFixtures.memberWithTheBoardReady));
+    await pending.settle({ kind: "opened" });
+    expect(dialog()).toHaveAccessibleName("Level 3 unlock");
   });
 
   it("keeps focus in the dialog after Replay under reduced motion, so Esc still closes it", async () => {
@@ -347,6 +368,17 @@ describe("WS68: the ready pill", () => {
     expect(pill()).toBeNull();
   });
 
+  it.each([
+    { outcome: "a refusal", answer: async () => ({ kind: "refused" }) as const, message: "That couldn't be opened." },
+    { outcome: "an error", answer: async () => Promise.reject(new Error("socket closed")), message: "Couldn't reach HedgeHug. Try again." },
+  ])("shows what went wrong beside the pill after $outcome, away from the home's crate", async ({ answer, message }) => {
+    window.history.replaceState(null, "", "/leaderboard");
+    const { user } = renderApp(shellFixtures.memberWithEveryFeatureReady, fixedLeaderboard(leaderboardFixtures.midBoard), { openFeature: answer });
+    await user.click(pill()!);
+    expect(within(screen.getByRole("banner")).getByText(message)).toBeVisible();
+    expect(pill()).toHaveAccessibleName("2 ready");
+  });
+
   it("is gone while unlocks don't apply", () => {
     renderApp(shellFixtures.member);
     expect(pill()).toBeNull();
@@ -409,6 +441,11 @@ describe("WS75: the keyboard path", () => {
     expect(dialog()).toHaveAccessibleName("Level 3 unlock");
   });
 });
+
+function withAnotherFeatureShipped(member: MemberProfile): MemberProfile {
+  const quests = { feature: "quests", name: "Quests", opens: "your weekly quests", level: 2, state: "open", readyAt: null, openedAt: null, seen: "quests-of-the-same-member" } as const;
+  return { ...member, features: [quests, ...member.features!] };
+}
 
 function withSeenKeys(member: MemberProfile, keys: Record<string, string>): MemberProfile {
   return { ...member, features: member.features!.map((card) => ({ ...card, seen: keys[card.feature] ?? card.seen })) };
