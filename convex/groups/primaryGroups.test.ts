@@ -308,6 +308,27 @@ describe("GB9: primaryGroupAt answers the history entry in force at an instant",
     expect(await primaryGroupNameAt(t, "U_ANN", annLeft)).toBe("Zebras");
   });
 
+  test("a page for leaving another group doesn't backdate leaving the primary group, which the copy recorded later", async () => {
+    const t = testBackend();
+    slack.withUserGroup("S_OWL", { name: "Owls", users: ["U_ANN"] }).withUserGroup("S_ZEBRA", { name: "Zebras", users: ["U_ANN", "U_BOB"] });
+    await sync(t);
+    await joined(t, "U_ANN");
+    expect(await primaryGroupNameOf(t, "U_ANN")).toBe("Owls");
+    vi.advanceTimersByTime(60_000);
+
+    slack.withUserGroup("S_ZEBRA", { name: "Zebras", users: ["U_BOB"] });
+    await copyRecordsWithoutReconciling(t, "S_ZEBRA");
+    const leftZebras = Date.now();
+    vi.setSystemTime(leftZebras + 1_000);
+    slack.withUserGroup("S_OWL", { name: "Owls", users: [] });
+    await copyRecordsWithoutReconciling(t, "S_OWL");
+    const leftOwls = Date.now();
+    await settleInTimeOrder(t);
+
+    expect(await primaryGroupNameAt(t, "U_ANN", leftOwls - 1)).toBe("Owls");
+    expect(await primaryGroupNameAt(t, "U_ANN", leftOwls)).toBeNull();
+  });
+
   test("of two changes recorded in the same millisecond, the later one is in force at it", async () => {
     const t = testBackend();
     slack.withUserGroup("S_OWL", { name: "Owls", users: ["U_ANN"] });
@@ -420,6 +441,22 @@ describe("GB35: reconciliation pages stay within Convex's limits", () => {
     await settle(t);
 
     expect(await countingGroupCountsOf(t)).toEqual({ 0: 100 });
+  });
+
+  test("clearing 1,001 groups disabled at 1,001 different instants schedules fewer than 1,000 functions", { timeout: 60_000 }, async () => {
+    const t = testBackend();
+    await t.run(async (ctx) => {
+      for (let index = 0; index < 1_001; index += 1) {
+        const [group, user] = [`S_${index}`, `U_${String(index).padStart(4, "0")}`];
+        await ctx.db.insert("members", { workspace: "T1", user, kind: "member", timeZone: undefined, asOf: 0 });
+        await ctx.db.insert("userGroups", { workspace: "T1", group, handle: group, name: group, enabled: false, automatic: false, asOf: index, changedAt: now.getTime() + index });
+        await ctx.db.insert("userGroupMembers", { workspace: "T1", group, user });
+      }
+    });
+
+    await t.mutation(internal.workspace.userGroups.clearUnkeptMemberships, {});
+
+    expect((await pendingJobs(t)).length).toBeLessThan(1_000);
   });
 
   test("a page whose people are each in hundreds of groups hands the rest to a new page and reconciles each of them", { timeout: 120_000 }, async () => {

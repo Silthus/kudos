@@ -85,14 +85,13 @@ export const clearUnkeptMemberships = internalMutation({
   handler: async (ctx) => {
     let left = membershipsClearedPerRun;
     const cleared: Doc<"userGroupMembers">[] = [];
-    const leftAt = new Map<number, Doc<"userGroupMembers">[]>();
+    const stoppedAt: number[] = [];
     for (const row of await ctx.db.query("userGroups").collect()) {
       if (keepsMembers(row)) continue;
       const memberships = await membershipsOf(ctx, row).take(left);
       for (const membership of memberships) await ctx.db.delete(membership._id);
       cleared.push(...memberships);
-      const stoppedAt = row.changedAt ?? Date.now();
-      leftAt.set(stoppedAt, [...(leftAt.get(stoppedAt) ?? []), ...memberships]);
+      if (memberships.length > 0) stoppedAt.push(row.changedAt ?? Date.now());
       left -= memberships.length;
       if (left === 0) {
         await ctx.scheduler.runAfter(0, internal.workspace.userGroups.clearUnkeptMemberships, {});
@@ -100,7 +99,7 @@ export const clearUnkeptMemberships = internalMutation({
       }
     }
     await followPeopleWhoLeftGroups(ctx, cleared);
-    for (const [at, memberships] of leftAt) await reconcileMembershipsLater(ctx, memberships, at);
+    if (cleared.length > 0) await reconcileMembershipsLater(ctx, cleared, Math.max(...stoppedAt));
   },
 });
 
@@ -115,7 +114,7 @@ export const keepUserGroupMembers = internalMutation({
     const recordedAt = Date.now();
     await ctx.db.patch(row._id, { membersAsOf: asOf, ...count, ...(changed.length > 0 && { changedAt: recordedAt }) });
     const changedUsers = new Set(changed);
-    await reconcileLater(ctx, key.workspace, changed, recordedAt);
+    await reconcileLater(ctx, key.workspace, changed, { at: recordedAt, groups: [key.group] });
     await reconcileLater(ctx, key.workspace, users.filter((user) => !changedUsers.has(user)));
   },
 });
@@ -128,10 +127,13 @@ async function followPeopleWhoLeftGroups(ctx: MutationCtx, memberships: Doc<"use
   for (const [workspace, users] of usersByWorkspace) await followPeopleLater(ctx, workspace, [...users]);
 }
 
-async function reconcileMembershipsLater(ctx: MutationCtx, memberships: Doc<"userGroupMembers">[], recordedAt: number) {
-  const usersByWorkspace = new Map<string, Set<ChatUserId>>();
-  for (const { workspace, user } of memberships) usersByWorkspace.set(workspace, (usersByWorkspace.get(workspace) ?? new Set()).add(user));
-  for (const [workspace, users] of usersByWorkspace) await reconcileLater(ctx, workspace, [...users], recordedAt);
+async function reconcileMembershipsLater(ctx: MutationCtx, memberships: Doc<"userGroupMembers">[], at: number) {
+  const byWorkspace = new Map<string, { users: Set<ChatUserId>; groups: Set<string> }>();
+  for (const { workspace, user, group } of memberships) {
+    const touched = byWorkspace.get(workspace) ?? { users: new Set(), groups: new Set() };
+    byWorkspace.set(workspace, { users: touched.users.add(user), groups: touched.groups.add(group) });
+  }
+  for (const [workspace, { users, groups }] of byWorkspace) await reconcileLater(ctx, workspace, [...users], { at, groups: [...groups] });
 }
 
 async function keepUserGroup(ctx: MutationCtx, group: UserGroup, asOf: number): Promise<UserGroupChange> {
