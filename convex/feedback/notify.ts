@@ -19,7 +19,7 @@ import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import { stateOf } from "../unlocks/unlocks";
 import { websiteOriginFor } from "../website/link";
 import { chatUserOf, type MemberId } from "../workspace/directory";
-import { deepLinkOf, deepLinks, type DeepLink } from "./deepLinks";
+import { deepLinkFrom, deepLinks, type DeepLink } from "./deepLinks";
 import { finishedQuestCrateOf, finishedWeeklyQuestCrateOf, perkOfferOf, purchaseReplyOf, readyCrateOf, tiersEarnedLines, type HomeAction } from "./home";
 import { skillPointsOf } from "./naming";
 import { isOpened, whenOpened } from "./unlockFilter";
@@ -87,9 +87,10 @@ export const linesStillWanted = internalQuery({
     const { workspace } = await chatUserOf(ctx, member);
     if (!(await xpLevelsOnFor(ctx, member)) || !(await wantsDms(ctx, member))) return null;
     const told = await stillToldOf(ctx, workspace, member, notification);
-    const lines = told === null ? [] : renderNotification(told, await deliveryFactsOf(ctx, workspace, member, told));
+    const website = await websiteOriginFor(ctx, workspace, member);
+    const lines = told === null ? [] : renderNotification(told, await deliveryFactsOf(ctx, workspace, member, told, website));
     if (lines.length === 0) return null;
-    const link = await deepLinkOf(ctx, workspace, linkedPages[notification.kind]);
+    const link = deepLinkFrom(website, linkedPages[notification.kind]);
     return link === null ? lines : [...lines, { link }];
   },
 });
@@ -147,9 +148,9 @@ async function questsStillToldOf(ctx: QueryCtx, workspace: string, member: Membe
 
 type QuestNotification = Extract<Notification, { kind: "quest-finished" | "journey-joined" | "weekly-quest-finished" }>;
 
-async function deliveryFactsOf(ctx: QueryCtx, workspace: string, member: MemberId, told: Notification): Promise<DeliveryFacts> {
+async function deliveryFactsOf(ctx: QueryCtx, workspace: string, member: MemberId, told: Notification, website: string | null): Promise<DeliveryFacts> {
   return {
-    website: await websiteOriginFor(ctx, workspace, member),
+    website,
     openTree: await openTreeOf(ctx, workspace, member, told),
     everyTierEarned: told.kind === "tiers-earned" ? await everyTierEarnedBy(ctx, member) : [],
   };

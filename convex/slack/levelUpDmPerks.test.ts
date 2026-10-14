@@ -147,7 +147,7 @@ describe("each perk's purchase button in Slack links to the skill tree's page wh
     });
   });
 
-  test("for a member previewing the website while it is closed for the workspace, Buy links to the page's sign-in entry, as App Home's front door does", async () => {
+  test("for a member previewing the website while it is closed for the workspace, Buy and the DM's last link go through the sign-in entry, as App Home's front door does", async () => {
     slack.withMember("U_ALICE", { profile: { email: alicesEmail } });
     const t = await skillTreeOpenedAtLevelFive("U_ALICE");
     await websiteOpened(t, onForEmails("website", alicesEmail));
@@ -156,6 +156,7 @@ describe("each perk's purchase button in Slack links to the skill tree's page wh
     await clickInHome(t, "U_ALICE", staleButtonOf({ type: "showHomeTab", tab: "profile" }));
 
     expect(accessoryBeside("*Rhythm*")).toMatchObject({ url: `${siteUrl}/sign-in/skills`, action_id: "website-link:buy:rhythm" });
+    expect(readBlocks(blocksOf(lastDmTo("U_ALICE"))).at(-1)).toBe(`section: <${siteUrl}/sign-in/|See your level on the web>`);
     expect(publishedHome(slack, "U_ALICE")[0]).toBe("actions: [Profile] | Settings");
     expect(urlOfHomeButton("Skill tree")).toBe(`${siteUrl}/sign-in/skills`);
   });
