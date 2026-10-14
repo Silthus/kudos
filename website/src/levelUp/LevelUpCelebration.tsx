@@ -5,7 +5,7 @@ import { prefersReducedMotion } from "../reducedMotion";
 import { earnedLinesOf, type LevelUp } from "./useLevelUps";
 import "./levelUp.css";
 
-const playsForMs = 2800;
+const playsForMs = 2400;
 
 const staysStillForMs = 4000;
 

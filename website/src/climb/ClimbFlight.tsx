@@ -5,7 +5,7 @@ import type { MemberProfile } from "../shell";
 
 type ClimbFlightProps = { chips: number[]; shown: MemberProfile; onLanded: (xp: number) => void; onFinished: () => void };
 
-const staggerMs = 420;
+const staggerMs = 320;
 
 export function ClimbFlight({ chips, shown, onLanded, onFinished }: ClimbFlightProps) {
   const shownNow = useRef(shown);
