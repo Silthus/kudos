@@ -2,10 +2,16 @@ import type { ReactNode } from "react";
 import { HedgehogTownCrier } from "@posthog/brand/hoggies";
 import { PageTitle } from "./PageTitle";
 
-export function MaxSays({ title, tab, children, action }: { title: string; tab: string; children: ReactNode; action?: ReactNode }) {
+type SaysProps = { title: string; tab: string; children: ReactNode; action?: ReactNode };
+
+export function MaxSays(props: SaysProps) {
+  return <Says art={<HedgehogTownCrier size={112} title="" />} {...props} />;
+}
+
+export function Says({ art, title, tab, children, action }: SaysProps & { art: ReactNode }) {
   return (
     <section className="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center">
-      <HedgehogTownCrier size={112} title="" />
+      {art}
       <PageTitle tab={tab}>{title}</PageTitle>
       <p className="text-sm text-muted-foreground">{children}</p>
       {action}

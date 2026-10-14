@@ -1,0 +1,25 @@
+== /
+HTTP/1.1 200 OK
+content-type: text/html; charset=utf-8
+content-security-policy: default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' http://127.0.0.1:6810 ws://127.0.0.1:6810; img-src 'self' https://avatars.slack-edge.com https://secure.gravatar.com https://a.slack-edge.com https://res.cloudinary.com; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
+content-length: 0
+== /favicon.svg
+HTTP/1.1 200 OK
+content-type: image/svg+xml
+content-length: 0
+== /favicon-32.png
+HTTP/1.1 200 OK
+content-type: image/png
+content-length: 0
+== /apple-touch-icon.png
+HTTP/1.1 200 OK
+content-type: image/png
+content-length: 0
+favicon.svg served=3d41a88cd78bf3db committed=3d41a88cd78bf3db
+favicon-32.png served=1a4d042b9f31e82e committed=1a4d042b9f31e82e
+apple-touch-icon.png served=bb9101b735525510 committed=bb9101b735525510
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f4f0" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#121316" />
