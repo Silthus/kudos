@@ -222,7 +222,7 @@ export const fromTheNewest: Before = { at: Infinity, created: Infinity };
 
 export type ReceivedAward = { award: AwardId; message: MessageRef; giver: MemberId; kudos: number; at: number; created: number };
 
-export type GivenMessageAwards = { first: AwardId; message: MessageRef; awards: Array<{ recipient: MemberId; kudos: number }>; at: number; created: number };
+export type GivenMessageAwards = { first: AwardId; message: MessageRef; awards: Array<{ award: AwardId; recipient: MemberId; kudos: number }>; at: number; created: number };
 
 export type AtRange = { kind: "instant"; at: number; createdBefore?: number } | { kind: "older"; than?: number };
 
@@ -248,7 +248,7 @@ export async function* messagesGivenNewestFirst(ctx: QueryCtx, giver: MemberId, 
       current = null;
     }
     current ??= { first: row._id, message: refOf(row), awards: [], at: row.at, created: row._creationTime };
-    current.awards.unshift({ recipient: row.recipient, kudos: row.kudos });
+    current.awards.unshift({ award: row._id, recipient: row.recipient, kudos: row.kudos });
     current.first = row._id;
     current.created = row._creationTime;
   }

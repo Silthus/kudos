@@ -1,3 +1,4 @@
+import type { PerkId } from "../progression/tree";
 import type { Face } from "../website/faces";
 
 export type Person = { name: string; face: Face };
@@ -17,6 +18,8 @@ export type Message = { kind: "text"; segments: Segment[]; edited: boolean } | {
 export type Channel = { visibility: "public" | "private" };
 
 export type QuestDone = { kind: "weekly"; goal: string; xp: number } | { kind: "journey"; goal: string; xp: number };
+
+export type BonusEarned = { perk: { id: PerkId; name: string }; why: string; xp: number };
 
 export type KudosReceived = {
   kind: "kudosReceived";
@@ -39,7 +42,7 @@ export type KudosGiven = {
   saidWhy: boolean | null;
   permalink: string | null;
   message: Message;
-  earned: { xp: number | null; questsDone: QuestDone[] } | null;
+  earned: { xp: number | null; questsDone: QuestDone[]; bonuses: BonusEarned[] } | null;
 };
 
 export type LevelUp = { kind: "levelUp"; at: number; level: number };
