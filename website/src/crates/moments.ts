@@ -1,16 +1,18 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { focusPageTitle } from "../pageFocus";
 import { prefersReducedMotion } from "../reducedMotion";
-import type { Feature, ShellActions } from "../shell";
+import type { Feature, Progression, ShellActions } from "../shell";
 import { rewardLabelOf, type QuestCrate, type ReadyCrate } from "./readyCrates";
 import { rewardChipOrigin, type Origin } from "./RewardFlight";
 import { hasSeen, markSeen } from "./seen";
 
 export type Attempt = "opening" | "refused" | "unreachable";
 
-export type Reveal = { crate: ReadyCrate; seenBefore: boolean; fromQuests: boolean; claimedFrom: Origin | undefined };
+export type Claimed = { from: Origin | undefined; before: Progression | null };
 
-export type Flight = { crate: QuestCrate; from: Origin };
+export type Reveal = { crate: ReadyCrate; seenBefore: boolean; fromQuests: boolean; claimed: Claimed | undefined };
+
+export type Flight = { crate: QuestCrate; reduced: boolean } & Claimed;
 
 export type Moments = {
   attemptOf(crate: ReadyCrate): Attempt | undefined;
@@ -39,16 +41,18 @@ export function useMoments() {
 
 type Commands = Pick<ShellActions, "openFeature" | "openQuestCrate">;
 
-type Shown = { signedOut: boolean; crates: string[] | undefined; onQuests: boolean };
+type Shown = { signedOut: boolean; crates: string[] | undefined; onQuests: boolean; progression: Progression | null | undefined };
 
-export function useCrateMoments(commands: Commands, { signedOut, crates, onQuests }: Shown): Moments {
+export function useCrateMoments(commands: Commands, { signedOut, crates, onQuests, progression }: Shown): Moments {
   const [attempts, setAttempts] = useState<Partial<Record<string, Attempt>>>({});
   const [reveals, setReveals] = useState<Reveal[]>([]);
   const [announcement, setAnnouncement] = useState("");
-  const [flight, setFlight] = useState<Flight>();
+  const [flights, setFlights] = useState<Flight[]>([]);
   const sending = useRef(new Set<string>());
   const focusAfterClose = useRef<ReadyCrate | undefined>(undefined);
-  const flightAfterClose = useRef<Flight | undefined>(undefined);
+  const flightsAfterClose = useRef<Flight[]>([]);
+  const progressionNow = useRef(progression);
+  progressionNow.current = progression;
   const session = useRef(0);
   const membersShown = useMembersShown(crates);
   const reveal = reveals[0];
@@ -57,11 +61,11 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
     session.current += 1;
     sending.current.clear();
     focusAfterClose.current = undefined;
-    flightAfterClose.current = undefined;
+    flightsAfterClose.current = [];
     setAttempts({});
     setReveals([]);
     setAnnouncement("");
-    setFlight(undefined);
+    setFlights([]);
   }, []);
 
   useEffect(() => {
@@ -77,7 +81,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
   onQuestsNow.current = onQuests;
 
   const open = useCallback(
-    async (crate: ReadyCrate, claimedFrom: Origin | undefined) => {
+    async (crate: ReadyCrate, claimed: Claimed | undefined) => {
       const { seen } = crate;
       if (sending.current.has(seen)) return;
       const sentIn = session.current;
@@ -88,7 +92,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
       try {
         const answer = await (crate.kind === "feature" ? commands.openFeature(crate.card.feature) : commands.openQuestCrate(crate.quest));
         if (session.current !== sentIn) return;
-        if (answer.kind === "opened") setReveals((queued) => [...queued, { crate, seenBefore: hasSeen(seen), fromQuests, claimedFrom }]);
+        if (answer.kind === "opened") setReveals((queued) => [...queued, { crate, seenBefore: hasSeen(seen), fromQuests, claimed }]);
         attemptIs(seen, answer.kind === "refused" ? "refused" : undefined);
         if (answer.kind === "refused") setAnnouncement(attemptMessages.refused);
       } catch {
@@ -102,7 +106,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
     [commands, attemptIs],
   );
 
-  const land = useCallback(() => setFlight(undefined), []);
+  const land = useCallback(() => setFlights((queued) => queued.slice(1).map((next) => ({ ...next, before: progressionNow.current ?? null }))), []);
 
   const finish = useCallback((crate: ReadyCrate) => {
     markSeen(crate.seen);
@@ -112,7 +116,8 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
   const close = useCallback(
     ({ returnFocus }: { returnFocus: boolean }) => {
       focusAfterClose.current = returnFocus ? reveal?.crate : undefined;
-      flightAfterClose.current = flightOf(reveal);
+      const flight = flightOf(reveal);
+      if (flight !== undefined) flightsAfterClose.current = [...flightsAfterClose.current, flight];
       setReveals((queued) => queued.slice(1));
       setAnnouncement("");
     },
@@ -122,19 +127,19 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
   useEffect(() => {
     if (reveal !== undefined) return;
     const crate = focusAfterClose.current;
-    const launched = flightAfterClose.current;
+    const launched = flightsAfterClose.current;
     focusAfterClose.current = undefined;
-    flightAfterClose.current = undefined;
+    flightsAfterClose.current = [];
     if (crate !== undefined) focusCrateHomeOrTitle(crate);
-    if (launched !== undefined) setFlight(launched);
+    if (launched.length > 0) setFlights((queued) => [...queued, ...launched]);
   }, [reveal]);
 
   return {
     attemptOf: (crate) => attempts[crate.seen],
     open: (crate) => void open(crate, undefined),
-    claim: (crate) => void open(crate, rewardChipOrigin(crate.seen)),
+    claim: (crate) => void open(crate, { from: rewardChipOrigin(crate.seen), before: progressionNow.current ?? null }),
     reveal,
-    flight,
+    flight: flights[0],
     land,
     finish,
     close,
@@ -165,8 +170,8 @@ export function questCrateHomeAttributes(seen: string | null) {
 }
 
 function flightOf(reveal: Reveal | undefined): Flight | undefined {
-  if (reveal?.claimedFrom === undefined || reveal.crate.kind !== "quest" || prefersReducedMotion()) return undefined;
-  return { crate: reveal.crate, from: reveal.claimedFrom };
+  if (reveal?.claimed === undefined || reveal.crate.kind !== "quest") return undefined;
+  return { crate: reveal.crate, reduced: prefersReducedMotion(), ...reveal.claimed };
 }
 
 function openedAnnouncementOf(crate: ReadyCrate) {

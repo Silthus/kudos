@@ -1,10 +1,10 @@
 import { useCallback, useRef } from "react";
 import { NavigateProvider } from "./AppLink";
 import { MomentAnnouncement } from "./crates/MomentAnnouncement";
-import { MomentsProvider, useCrateMoments, useMembersShown } from "./crates/moments";
+import { MomentsProvider, useCrateMoments, useMembersShown, type Flight } from "./crates/moments";
 import { readyCratesOf } from "./crates/readyCrates";
 import { RevealDialog } from "./crates/RevealDialog";
-import { RewardFlight } from "./crates/RewardFlight";
+import { heldProgressionOf, QuestRewardFlight } from "./crates/QuestRewardFlight";
 import type { BoardAnswer, BoardRead } from "./boardRead";
 import type { BookRead, BookShown } from "./bookRead";
 import { ErrorBoundary } from "./ErrorBoundary";
@@ -49,7 +49,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
   const onSkills = member !== undefined && route.page === "skills";
   const skillTree = useSkillTree(onSkills);
   const membersShown = useMembersShown(cratesOf(member));
-  const moments = useCrateMoments(actions, { signedOut: member === undefined && !stillAsking(shown), crates: cratesOf(member), onQuests });
+  const moments = useCrateMoments(actions, { signedOut: member === undefined && !stillAsking(shown), crates: cratesOf(member), onQuests, progression: member?.progression });
   const reveal = member !== undefined ? moments.reveal : undefined;
   const revealing = reveal !== undefined;
   useTitleFocusAfterChange(onTheBoard ? boardPageOf(board) : onQuests ? questsPageOf(quests) : onBook ? bookPageOf(book) : onSkills ? skillTreePageOf(skillTree) : shown.kind, { held: revealing });
@@ -76,7 +76,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
         {signingIn ? (
           <SignedOutPage returnTo={hrefOf(route)} onSignIn={signIn} />
         ) : (
-          <Frame member={member} ready={member === undefined ? [] : readyCratesOf(member, quests)} current={route.page === "not-found" ? undefined : route.page} busy={page.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined) || (onBook && book === undefined) || (onSkills && skillTree === undefined)} inert={revealing} onSignOut={actions.signOut}>
+          <Frame member={withHeldProgression(member, moments.flight)} ready={member === undefined ? [] : readyCratesOf(member, quests)} current={route.page === "not-found" ? undefined : route.page} busy={page.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined) || (onBook && book === undefined) || (onSkills && skillTree === undefined)} inert={revealing} onSignOut={actions.signOut}>
             <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>
               <Page state={page} route={route} board={board} quests={quests} book={book} skillTree={skillTree} membersShown={membersShown} onChoosePeriod={choosePeriod} onBuyPerk={actions.buyPerk} onSignIn={signIn} onSignOut={actions.signOut} />
             </ErrorBoundary>
@@ -85,11 +85,16 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
         {reveal !== undefined && member !== undefined && (
           <RevealDialog key={reveal.crate.seen} {...reveal} chatUrl={member.chatUrl} questsOpen={questsOpen} onFinish={moments.finish} onClose={moments.close} />
         )}
-        {moments.flight !== undefined && member !== undefined && <RewardFlight key={moments.flight.crate.seen} flight={moments.flight} onLanded={moments.land} />}
+        {moments.flight !== undefined && member !== undefined && <QuestRewardFlight key={moments.flight.crate.seen} flight={moments.flight} progression={member.progression} onLanded={moments.land} />}
         <MomentAnnouncement text={moments.announcement} />
       </MomentsProvider>
     </NavigateProvider>
   );
+}
+
+function withHeldProgression(member: MemberProfile | undefined, flight: Flight | undefined) {
+  if (member === undefined || flight === undefined) return member;
+  return { ...member, progression: heldProgressionOf(flight, member.progression) };
 }
 
 function cratesOf(member: MemberProfile | undefined) {

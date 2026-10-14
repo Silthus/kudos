@@ -254,6 +254,19 @@
   position: fixed;
   z-index: 60;
   pointer-events: none;
+}
+
+.reward-flight-chip,
+.reward-flight-particle {
+  position: absolute;
+  animation: reward-flight 0.7s cubic-bezier(0.5, 0, 0.7, 1) var(--delay, 0ms) both;
+}
+
+.reward-flight-chip {
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  white-space: nowrap;
   border-radius: 9999px;
   border: 1px solid var(--border);
   background: var(--card);
@@ -263,7 +276,16 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
-  animation: reward-flight 0.6s cubic-bezier(0.5, 0, 0.7, 1) both;
+}
+
+.reward-flight-particle {
+  left: calc(50% - 3px + var(--spread, 0px));
+  top: calc(50% - 3px);
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--foreground);
+  box-shadow: 0 0 0 2px var(--card);
 }
 
 @keyframes reward-flight {
@@ -272,11 +294,11 @@
     opacity: 1;
   }
   50% {
-    transform: translate(calc(var(--flight-x) * 0.45), calc(var(--flight-y) * 0.55 - 40px)) scale(0.9);
+    transform: translate(calc(var(--flight-x) * 0.45), calc(var(--flight-y) * 0.55 + var(--arc, -40px))) scale(0.9);
     opacity: 1;
   }
   to {
-    transform: translate(var(--flight-x), var(--flight-y)) scale(0.3);
+    transform: translate(calc(var(--flight-x) - var(--spread, 0px)), var(--flight-y)) scale(0.3);
     opacity: 0.2;
   }
 }
@@ -291,13 +313,26 @@
   }
 }
 
+.reward-filling [data-arc] {
+  transition: stroke-dasharray 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.reward-faded {
+  animation: moment-fade 0.2s ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reward-flight {
     visibility: hidden;
+  }
+
+  .reward-flight-chip,
+  .reward-flight-particle,
+  .reward-landed {
     animation: none;
   }
 
-  .reward-landed {
-    animation: none;
+  .reward-filling [data-arc] {
+    transition: none;
   }
 }
