@@ -2,11 +2,11 @@
 
 > **Accepted on 2026-10-14 under the product owner's autonomous directive** (map [#57](https://github.com/Silthus/kudos/issues/57) Notes: "ship as much as you can of this autonomously proofing each step and deploying dark and safely behind feature flags"), with every open call at its recommendation (listed under "Further Notes"). Ticket [#231](https://github.com/Silthus/kudos/issues/231). This file lives on the branch `docs/spec-website-5` and is never merged. Its rules continue the earlier slices': `WS1`–`WS28` in [`spec/website.md`](https://github.com/Silthus/kudos/blob/docs/spec-website/spec/website.md), `WS29`–`WS54` in [`spec/website-2.md`](https://github.com/Silthus/kudos/blob/docs/spec-website-2/spec/website-2.md), `WS55`–`WS77` in [`spec/website-3.md`](https://github.com/Silthus/kudos/blob/docs/spec-website-3/spec/website-3.md) and `WS78`–`WS96` in [`spec/website-4.md`](https://github.com/Silthus/kudos/blob/docs/spec-website-4/spec/website-4.md). All still hold except where a rule below names the one it changes.
 >
-> Sources: the product owner's review of production on 2026-10-14 (#231's question, quoted there; his screenshot is described, never committed), the code on `main` at `384208c` and on `spec/website-4` at `c10ab6d` (the skill tree and the Book, ship #193, in flight), the accepted prototype #62's variant E (`prototype/website-ui` at `3409ade`, served at <https://earnest-ibis-715.convex.site>), the visual language ([`docs/website/visual-language.md`](https://github.com/Silthus/kudos/blob/main/docs/website/visual-language.md), V1–V24), #62's round 9 game cut, and the conductor's update moving the received-kudos card to spec [#233](https://github.com/Silthus/kudos/issues/233).
+> Sources: the product owner's review of production on 2026-10-14 (#231's question, quoted there; the product owner's screenshot is described, never committed), the code on `main` at `384208c` and on `spec/website-4` at `c10ab6d` (the skill tree and the Book, ship #193, in flight), the accepted prototype #62's variant E (`prototype/website-ui` at `3409ade`, served at <https://earnest-ibis-715.convex.site>), the visual language ([`docs/website/visual-language.md`](https://github.com/Silthus/kudos/blob/main/docs/website/visual-language.md), V1–V24), #62's round 9 game cut, and the conductor's update moving the received-kudos card to spec [#233](https://github.com/Silthus/kudos/issues/233).
 
 ## Problem Statement
 
-The product owner opened the live website and found that its home doesn't look like the prototype he accepted. Production's home is a text hero with a thin level bar, a `Your kudos` table of given and received counts, the Journey, two rows of small `Open` and `Still locked` cards, and one profile card alone on the right. The prototype's home is a game-HUD character sheet: a hero with a big level ring, the member's name as the title, an XP bar and the kudos left today as pips; a right rail with what teammates see, this week's quests and where the member stands; and every feature that isn't open yet shown as a locked panel in its own place, so the sheet has the same shape from level 1 on.
+The product owner opened the live website and found that its home doesn't look like the prototype they accepted. Production's home is a text hero with a thin level bar, a `Your kudos` table of given and received counts, the Journey, two rows of small `Open` and `Still locked` cards, and one profile card alone on the right. The prototype's home is a game-HUD character sheet: a hero with a big level ring, the member's name as the title, an XP bar and the kudos left today as pips; a right rail with what teammates see, this week's quests and where the member stands; and every feature that isn't open yet shown as a locked panel in its own place, so the sheet has the same shape from level 1 on.
 
 Each piece of the prototype's home either has its facts on `main` today or waits for a feature that hasn't shipped. The website's earlier slices built the facts but kept the first slice's layout, and two rules kept the look quieter than the prototype on purpose (WS17's quiet allowance line, WS48's unfilled ring). The other pages are close to the prototype, and nearly every difference there is a deliberate cut.
 
@@ -14,7 +14,7 @@ Each piece of the prototype's home either has its facts on `main` today or waits
 
 **The home becomes the character sheet**, built only from facts the website already reads:
 
-- **The hero is the character header.** It shows the member's face large, a level ring filled to the XP share of the level, `Character` over the member's name as the page title, a neutral XP bar, and the kudos left today as the hero's one big number with one pip per kudos. Below come the member's given and received totals in one quiet line, the invitation to thank someone with its one primary action, and Max's line on the week. The `Your kudos` table goes. The HUD's avatar carries the same filled ring.
+- **The hero is the character header.** It shows the member's face large, a level ring filled to the XP share of the level, and `Character` over the member's name as the page title. The invitation to thank someone and its one primary action come next, before any counter (#85). Then come a neutral XP bar, the kudos left today as the hero's one big number with one pip per kudos, the member's given and received totals in one quiet line, and Max's line on the week. The `Your kudos` table goes. The HUD's avatar carries the same filled ring.
 - **Every shipped feature has one panel in its own place.** The Quests and Leaderboard panels sit in the right rail, and the Book and Skill tree panels sit in the main column under the Journey. A panel shows its feature's state: locked with its level, ready with its crate, or open with its content. A feature that hasn't shipped has no panel. The three `Ready for you`, `Open` and `Still locked` groups go.
 - **The right rail is the prototype's.** It holds `What teammates see`, then a reserved slot for the recent-kudos card spec #233 designs, then `Quests this week` from `getQuests`, then `Where you stand` from `getLeaderboard` for this week.
 
@@ -68,6 +68,7 @@ Verdicts: **port** is an unshipped port that lands now, with the rule and ticket
 | The avatar is the equipped hedgehog | the member's face | **Cut**: hedgehogs haven't shipped (V20, P78). |
 | Locked nav items with `Lv 3` | open pages only | **Cut** (WS59, P78, V23). |
 | `Ctrl K` command palette | the theme control | **Cut** for now: the website has no command list (WS16). |
+| Page titles in large display type (`This week`, `Perks`, `Robin Hale`) | smaller titles on every page | **Port** for the home's title (WS98, ticket 1). **Later** for the other pages: follow-up 4. |
 | Coins chip | none | **Cut**: coins haven't shipped. |
 | Skill point chip | the chip on `spec/website-4` | Ships with #193 (WS84). |
 | The wordmark's hedgehog logo | the wordmark alone | **Cut**: no decorative hedgehogs in headers (V17). |
@@ -89,7 +90,7 @@ Verdicts: **port** is an unshipped port that lands now, with the rule and ticket
 | Coin rewards | XP only | **Cut**: coins haven't shipped (WS70). |
 | `Reroll` on the page | swapping stays in Slack | **Cut** (WS73). |
 | `Claim` | crates with `Open` | **Cut** (V13). |
-| A bonus quest per unlock | none | **Cut**: unshipped. |
+| A bonus quest per unlock | none | **Cut**: unshipped (WS73). |
 | A hedgehog per quest card | the kind label | **Cut**: a hedgehog carries meaning only in V17's places. |
 
 ### Skill tree (`spec/website-4`)
@@ -100,6 +101,8 @@ Verdicts: **port** is an unshipped port that lands now, with the rule and ticket
 | `2 of 14 perks owned`, coins, `LV 8` | none | **Cut** (WS85, WS94). |
 | A legend: Owned, Can buy, Upgraded, Locked | none | **Later**: follow-up 2 (Owned and Can buy only; `Upgraded` waits for upgrades, WS85). |
 | Compact square nodes joined by lines | wide nodes | **Later**: follow-up 2. Lines come with upgrades (WS85). |
+| Its own perk lines, such as `+2 XP on every thoughtful kudos you give` | P94's copy, word for word | **Cut** (WS86, P95). |
+| A `Can buy` node outlined in primary | an outlined neutral node; primary marks only the selection and `Buy` | **Cut** (V4, WS94). |
 
 ### Book (`spec/website-4`)
 
@@ -107,7 +110,7 @@ Verdicts: **port** is an unshipped port that lands now, with the rule and ticket
 |---|---|---|
 | Sticker albums in a side list | none | **Cut**: the sticker book hasn't shipped (WS82). |
 | `21 of 44 tiers earned` and the closest next tier | none | **Cut** (P61, WS92). |
-| Recently earned tiers with their rewards | none | **Cut** (WS91). |
+| Recently earned tiers with their rewards | none | **Cut** (WS92 for the shelf, WS91 for the rewards). |
 | Category pages | one page of ladders | **Cut** (slice 4, call 10). |
 
 ## User Stories
@@ -151,13 +154,13 @@ Rules continue the fourth slice's numbering, from `WS97`.
   - **The level ring**, while `progression` is present: a 120 px ring whose arc runs from `levelStartsAt` to `nextLevelAt` and is filled at `xp`, neutral (V4) on an outlined track that meets 3:1 in both modes (V24), with the small label `Level` over the level number in RoundHog (V5). It is drawn at its value with no fill animation (V9). It is one image whose accessible name is `Level {n}, {xpToNextLevel} XP to level {n + 1}`.
   - **The sheet:**
     - the panel label `Character`, then the member's name as the page's title in RoundHog (`You` when the sign-in carried no name), whose tab still reads `HedgeHug · Home`;
+    - the invitation, directly under the name, so contribution comes before every counter (#85): `Thank someone for work you noticed. Mention them in a Slack message with :{emoji}: and say what they did.`, then the primary `Thank someone in Slack` (WS17), the page's one primary element (V4);
     - while `progression` is present, a full-width neutral XP bar from `levelStartsAt` to `nextLevelAt` at `xp`, exposed as a progressbar labelled by the line under it: `{xp} XP` on the left and `{xpToNextLevel} XP to level {n + 1}` on the right, in tabular figures;
     - the allowance row, after a divider: the label `Kudos left today`, then `{left}/{base}` as the hero's one big number in RoundHog (V5), then one pip per kudos of the base, filled for each kudos left and outlined for each spent, as one image named `{left} of {base} kudos left today`, then `Refills at {time}` in the browser's time format;
     - one quiet line, `You've given {given} kudos and received {received}.` from the lifetime totals (WS100);
-    - the invitation: `Thank someone for work you noticed. Mention them in a Slack message with :{emoji}: and say what they did.`, then the primary `Thank someone in Slack` (WS17), the page's one primary element (V4);
     - after a divider, Max's line on this week (WS17, V18), unchanged.
 
-  While `progression` is `null`, the ring and the XP bar are absent and the rest stands, which changes WS47's "unchanged" home.
+  While `progression` is `null`, the ring and the XP bar are absent and the rest stands, which changes WS47's "unchanged" home. The XP bar still follows the action, as WS49 asks, but it is now full width and carries `{xp} XP`, which changes WS49's single quiet line. The order differs from variant E, which puts the XP bar first and has no action, because #85 asks for the contribution first and counters second (call 6).
 - **WS99. The HUD's ring shows the same progress.** The HUD avatar's level ring (WS48) becomes the hero's ring at the avatar's size, filled at the same share and neutral, with the level number on its badge. Its accessible name is the hero ring's. This changes WS48's "not filled by XP": a ring drawn at its value on a static page is what V9 allows, and only count-ups and fills on an ordinary visit stay out.
 - **WS100. The counters table goes.** The `Your kudos` table (WS17) is removed. This week's given and received stay in Max's line, and the totals in the hero's quiet line. Both appear only on the member's own home (WS18). No other surface gains a received count.
 - **WS101. The copy rules hold.** The hero leads with the member's character and the invitation to thank, and never with a received count (#85). Max still never forecasts, and nothing on the home solicits incoming thanks, names a missing person, or sets a volume or rank deadline (WS17).
@@ -178,11 +181,13 @@ Rules continue the fourth slice's numbering, from `WS97`.
   - **Skill tree:** `{n} skill points to spend` (`1 skill point to spend`, `No skill points to spend`) from `getMyProfile.skillPoints` (WS84), and the link `Open the Skill tree`.
 
   Until WS109 and WS110 land (ticket 3), the open Quests and Leaderboard panels show their WS58 sentence with a link to their page, as their open cards do today.
-- **WS106. While unlocks don't apply.** While `features` is `null` (WS55), the four slots show WS19's plain locked panel with no level, except the Leaderboard slot, which follows `getMyProfile.leaderboard` as its card does today (WS38, WS57). Coins and Hedgehogs show no panel, changing WS19's six cards to four.
+
+  **Counts on the home's open panels.** This changes three "no count" rules for open panels: WS38 (the leaderboard card never shows a rank or a count), WS72's last sentence (the Quests card shows no count) and WS81 (an open card never shows a count). The open panels now show the member's own quest progress, their rank and their neighbours' kudos given, and their unspent skill points, as variant E does. All of these come after the hero's invitation, none is a received count, and none forecasts or sets a deadline (#85, WS101). The Journey keeps WS72's other rule: no step count.
+- **WS106. While unlocks don't apply.** While `features` is `null` (WS55), the four slots show WS19's plain locked panel with no level, except the Leaderboard slot, which follows `getMyProfile.leaderboard` as its card does today (WS38, WS57). Coins and Hedgehogs show no panel, changing WS19's six cards to four. These plain panels name a feature and say nothing else, as WS19's cards do today, so they are exempt from the ship flags: the website has no unlock facts to gate them by in this state. WS102's "only shipped features" applies while unlocks apply. In production unlocks apply, so this state is a fallback.
 
 ### The right rail
 
-- **WS107. What teammates see.** The rail opens with a panel labelled `What teammates see`, with `Public` at its right. It holds the member's profile card, as raised as the prototype's: the face (V19), the name in RoundHog, and `Lv {n}` while `progression` is present (WS50). Under it: `Everyone can see this card. Your XP and kudos counts stay with you.` It never shows a received count (WS18). The team line and the best medals join only when groups ship (#52) and when teammates can see tiers on profile cards (#53, WS93).
+- **WS107. What teammates see.** The rail opens with a panel labelled `What teammates see`, with `Public` at its right. It holds the member's profile card, as raised as the prototype's: the face (V19), the name in Inter semibold, and `Lv {n}` while `progression` is present (WS50). RoundHog stays for V5's uses only, so the card doesn't use it. Under it: `Everyone can see this card. Your XP and the kudos you receive stay with you.` Kudos given aren't promised as private, because the boards rank them. It never shows a received count (WS18). The team line and the best medals join only when groups ship (#52) and when teammates can see tiers on profile cards (#53, WS93).
 - **WS108. The recent-kudos slot.** Directly under `What teammates see`, the rail reserves one slot for the recent-kudos card that spec #233 designs. This spec defines neither its content nor its read. Until #233's ticket fills it, the slot renders nothing and leaves no gap.
 - **WS109. Quests this week.** While Quests is open, the Quests panel reads `getQuests` (WS70) through the page's own subscription. The panel is labelled `Quests this week`, with `New quests every Monday.` at its right, and corner marks, because quest cards are game objects (V2). It lists the week's slots in slot order, and each row links to `/quests`:
   - the goal;
@@ -190,20 +195,27 @@ Rules continue the fourth slice's numbering, from `WS97`.
   - while `finished`, the tag `Reward ready`, because the crate opens on `/quests` or from the ready pill, never in the rail;
   - while `opened`, a check mark and `Done`.
 
-  Under the list, `See all quests` links to `/quests`. With no slots drawn, the panel says `No quests this week yet. New quests arrive every Monday.` While `getQuests` answers `locked` or `ready`, the panel follows WS103 or WS104. The panel shows no XP, swap, group quest or waiting crates, which `/quests` shows (WS73).
+  Under the list, `See all quests` links to `/quests`. With no slots drawn, the panel is V23's empty state in compact form: one small hedgehog, Max's `No quests this week yet. New quests arrive every Monday.`, and an outline `Thank someone in Slack`. The panel's state (locked, ready or open) always follows `getMyProfile.features` (WS102), never `getQuests`, so the nav, the panel and the page can't disagree. The panel shows no XP, swap, group quest or waiting crates, which `/quests` shows (WS73).
 - **WS110. Where you stand.** While the Leaderboard is open, the Leaderboard panel reads `getLeaderboard({ period: "week" })` (WS29) through the page's own subscription. The panel is labelled `Where you stand`, with `This week` at its right. It holds one row for the Everyone board, linking to `/leaderboard`:
-  - while the viewer is `ranked`: `#{rank}` in RoundHog, with `tied` under it when the viewer's row is tied (WS35); `Everyone` and `The whole company on one board`; then the faces of the row above the viewer, the viewer and the row below, each with their kudos given, the viewer's face larger and marked as "you" by a ring plus a label (V24). A missing neighbour leaves its place empty.
+  - while the viewer is `ranked`: `#{rank}` in Inter semibold with tabular figures (V5 keeps RoundHog for its own uses), with `tied` under it when the viewer's row is tied (WS35); `Everyone` and `The whole company on one board`; then the faces of the row above the viewer, the viewer and the row below, each with their kudos given, the viewer's face larger and marked as "you" by a ring plus a label (V24). A missing neighbour leaves its place empty.
+    - **Accessible text:** the faces are decorative (`MemberFace` hides them), so each neighbour carries its words: `Above you: {name}, {kudos} kudos given`, `You: {kudos} kudos given`, `Below you: {name}, {kudos} kudos given`. The row's link is named `Everyone this week: you're #{rank}` (`you're tied at #{rank}` when tied), the board card's wording (WS39).
   - while `not-ranked`: `Give kudos this week to join the board.` (the page's line);
   - while `left`: `You're not on the leaderboards. You can change that in Settings in Slack.` (the page's line).
 
   Under the row, `Open the leaderboard` links to `/leaderboard`. Neighbours are shown exactly as the board shows them (WS33, WS34). Group boards join the panel as rows when they ship. There is no rank change arrow (call 10).
-- **WS111. The rail's reads follow the page.** The two subscriptions of WS109 and WS110 exist only while their feature's panel is open. Each updates when a kudos lands, and turns over with the website clock as its page does (WS36). Neither changes `getMyProfile` or any read's answer.
+- **WS111. The rail's reads follow the page.** The two reads of WS109 and WS110 run only while their feature's panel is open. `Quests this week` uses the `getQuests` answer `App` already subscribes to while Quests is open (for the ready pill, WS68), and adds no second subscription. `Where you stand` adds one memoized `getLeaderboard({ period: "week" })` subscription. Each updates when a kudos lands, and turns over with the website clock as its page does (WS36). Neither changes `getMyProfile` or any read's answer. Every answer has one rendering:
+  - **No answer yet:** the panel shows its label with `aria-busy` and no rows. Once the socket stays unconnected for five seconds, the frame's own "Can't reach HedgeHug" decides (WS20), as on every page.
+  - **The open answer** (`quests` or `board`): WS109 or WS110.
+  - **`locked` or `ready`** while the panel still thinks it is open (the read moved first): WS103 or WS104 from the read's own answer, until `getMyProfile` catches up.
+  - **`not-found`:** the panel renders nothing, because its feature stopped shipping. `getMyProfile` removes the slot on its next answer (WS102).
+  - **A denial** (WS11): the panel renders nothing, and the frame follows `getMyProfile`'s own answer to the denial page, as on any read.
+  - **A failed read** that throws: the panel keeps only its link to the page, so the rest of the home stays up. It never shows stale rows from an earlier member: a sign-out or a change of member clears the panel (WS87's rule for browser state).
 
 ### Look, order and flags
 
 - **WS112. The look and the checks.** WS23, WS24, WS54 and WS75 hold for every new state, ported fresh from variant E's `Profile`, `profile-card`, `profile-locked`, `profile-standing` and `quests-card`:
   - **Look:** rings, bars, pips and counts are neutral (V4), and nothing counts up, fills or rises on an ordinary visit (V8, V9). Primary marks only `Thank someone in Slack`, the "you" ring in `Where you stand`, and a ready panel's crate where WS65 already uses it.
-  - **Contrast:** the ring's arc and track, the XP bar, the pips and the progress bars meet 3:1 against their card in both modes, checked by eye in the screenshots, because axe doesn't check non-text contrast (V24).
+  - **Contrast:** the ring's arc and track, the XP bar, the pips and the progress bars meet 3:1 against their card in both modes (V24). axe doesn't check non-text contrast, so a test computes the ratio from the theme tokens each element uses, in light and dark, the way `medalMetals.test.tsx` checks the medals on `spec/website-4`, and the pull request records the measured ratios.
   - **axe:** every state passes axe in light and dark.
   - **Keyboard:** the path covers the hero's action, each panel's link or crate, the quest rows, the standing row, and `Open the leaderboard`, in reading order.
   - **Manual pass:** focus order, focus visibility, reduced motion and screen-reader wording for the home, recorded in each ticket's pull request.
@@ -271,7 +283,7 @@ Each ticket rewrites its part of `website/Website.spec.md`'s description, which 
 - **Ticket 1:** the hero as the character header, the filled ring on the hero and the avatar, the removed counters.
 - **Ticket 2:** one panel per shipped feature in its slot, with its locked, ready and open states.
 - **Ticket 3:** `What teammates see`, the reserved slot, `Quests this week` and `Where you stand`.
-- **Invariants:** *the website shows only shipped features* is witnessed again with a panel per feature: with `achievements` off, the home has no Book panel, and with Coins unshipped, no Coins panel. *Received stays private* is witnessed again: the totals line is on the member's own home and nowhere else.
+- **Invariants:** *the website shows only shipped features* is witnessed again with a panel per feature while unlocks apply (WS106 exempts the plain fallback panels): with `achievements` off, the home has no Book panel, and with Coins unshipped, no Coins panel. *Received stays private* is witnessed again: the totals line is on the member's own home and nowhere else.
 - **Lexicon:** no new term. "Panel" is the visual language's word, and the spec never needs "character sheet" outside this file. A ticket that writes "character sheet" in a Coherence spec declares it first.
 
 ## Testing Decisions
@@ -286,7 +298,10 @@ Each ticket rewrites its part of `website/Website.spec.md`'s description, which 
      - a ready panel's crate opening in place;
      - `What teammates see` with no received count, and nothing rendered for the reserved slot;
      - `Quests this week` for slots in progress, finished and opened, and for an empty week;
-     - `Where you stand` for `ranked`, tied, at the top and the bottom of the board (an empty neighbour), `not-ranked` and `left`;
+     - `Where you stand` for `ranked`, tied, at the top and the bottom of the board (an empty neighbour), `not-ranked` and `left`, with each neighbour's accessible text and the row's name;
+     - each rail panel with no answer yet, `locked` or `ready` from its read, `not-found`, a denial and a failed read (WS111), and a sign-out clearing it;
+     - the hero's order: the invitation and action before the XP bar and the counters;
+     - the measured 3:1 ratios of the ring, the bars and the pips against their card in light and dark;
      - axe in light and dark for every state.
   2. **The live shell** (`liveShell.test.tsx`): the home opens the `getQuests` and `getLeaderboard` subscriptions only while their features are open, with memoized requests (memory: an unmemoized `useQueries` looped the live site).
 - **Proof each ticket owes:**
@@ -331,11 +346,11 @@ None. Every read this slice needs is on `main`. The received-kudos card and its 
 Calls taken at recommendation under the AFK directive. The product owner can override each one.
 
 1. **"Evertown profile" reads as "everything on the profile".** Every panel of the prototype's character sheet whose feature has shipped is on the home: the hero with the ring, `What teammates see`, `Quests this week`, `Where you stand`, and a panel in place for every shipped feature (WS97–WS110). Panels for unshipped features stay out (P78).
-2. **The received-kudos card is not in this spec.** The ticket first asked for it, with facts only and no message words (R51). The conductor moved it to spec #233, which fetches the words live from Slack through map #1's #232 and so keeps R51. This spec reserves its slot directly under `What teammates see` (WS108) and publishes no ticket for it.
+2. **The received-kudos card is not in this spec.** The conductor moved it, with its content and its read, to spec #233. This spec only reserves its slot directly under `What teammates see` (WS108) and publishes no ticket for it. The earlier "facts only, no words" call is withdrawn and decides nothing; what the card shows is #233's to settle.
 3. **The portrait is the face** until hedgehogs ship, because a hedgehog is the avatar only once equipped (V17, V20, WS48).
 4. **The ring's arc is neutral**, where the prototype's is primary, because primary marks only the next action, the selection or "you" (V4).
-5. **Kudos left today is the hero's one big number** (V5), changing WS17's quiet line. It is the invitation to give and never a received count, so #85's concern (leading with counters received) doesn't apply.
-6. **`Thank someone in Slack` stays in the hero** as the page's one primary action (WS17, V4). The prototype's hero has no action and puts a nudge panel below. The Journey teaches the first kudos (WS72).
+5. **Kudos left today is the hero's one big number** (V5), changing WS17's quiet line. It follows the invitation and the action, it is about giving, and it is never a received count.
+6. **The invitation and `Thank someone in Slack` come right after the name**, before the XP bar and every counter, as the page's one primary action (WS17, V4, #85). The prototype's hero has no action, puts its XP bar first, and puts a nudge panel below. The Journey teaches the first kudos (WS72).
 7. **The `Your kudos` table goes.** The week stays in Max's line and the totals in one quiet hero line, as the prototype words it (WS100). The product owner called the table out.
 8. **The Journey stays on the home**, under the hero in the main column. The prototype keeps it on the quests page only, but WS72 placed it on the home, and it is how a new member learns.
 9. **The Book and Skill tree panels sit in the main column**, under the Journey. The prototype has no home slot for them because it shows locked nav items instead, which WS59 cut.
@@ -347,6 +362,20 @@ Calls taken at recommendation under the AFK directive. The product owner can ove
 **Follow-ups:**
 1. **Teammates' faces on the leaderboard and in `Where you stand`** (V19). WS34 shows initials until the directory has each member's real name and picture. Map #1's profile backfill (`fillMemberProfiles`) waits on the product owner's manifest re-paste (#57 Notes). Once it runs, a ticket can match teammates to company profiles by name (V21) and fall back to the Slack picture.
 2. **The skill tree's legend and compact nodes.** Add `Owned` and `Can buy` to the tree's header and the prototype's square nodes, once ship #193 is on `main`.
-3. **Quests locked at level 2 in the product owner's screenshot.** He was at level 2 while Quests read `Unlocks at level 2`. That fits `quests` being switched on for production after his visit, with the ship sweep making Quests ready afterwards. The conductor confirms with a read-only check that a level-2 member now sees Quests ready or open.
+3. **Quests locked at level 2 in the product owner's screenshot.** The screenshot showed a level-2 member whose Quests card read `Unlocks at level 2`. That fits `quests` being switched on for production after the screenshot was taken, with the ship sweep making Quests ready afterwards. The conductor confirms with a read-only check that a level-2 member now sees Quests ready or open.
+4. **Page title sizes.** Give `/leaderboard`, `/quests`, `/skills` and `/book` variant E's title size, after ticket 1 sets the home's (WS23, WS54).
+
+**Review.** One read-only GPT-6.1 Sol (high) review found 11 issues, 7 major and 4 minor, and all 11 are fixed in this revision:
+- Call 2 no longer keeps the withdrawn "facts only" wording, and leaves the card to #233.
+- The invitation and action now come before the XP bar and every counter (WS98, #85), and WS49's change is named.
+- The three "no count" rules the open panels change (WS38, WS72, WS81) are named (WS105).
+- WS106's plain fallback panels are exempt from the ship flags, and the invariant applies while unlocks apply.
+- `What teammates see` promises only XP and received kudos as private, because given kudos are ranked (WS107).
+- Every rail answer state has one rendering, and `Quests this week` reuses the existing `getQuests` subscription (WS111).
+- `Where you stand` names each neighbour and the row in accessible text (WS110).
+- The card's name and the rank use Inter, not RoundHog (V5).
+- The empty week is V23's compact empty state (WS109).
+- The gap table classifies title sizes, perk copy and the `Can buy` node, and cites WS73 and WS92.
+- Non-text contrast is measured by a test, not judged by eye (WS112).
 
 The `to-spec` and `to-tickets` skills can only be started by a human, so this spec follows the earlier slices' layout instead.
