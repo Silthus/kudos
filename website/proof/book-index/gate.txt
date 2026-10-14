@@ -145,11 +145,13 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 
- Test Files  145 passed (145)
-      Tests  2394 passed (2394)
-   Start at  11:32:45
-   Duration  110.42s (tests 83%, import 10%, environment 4%, transform 3%, setup 1%)
+ Test Files  146 passed (146)
+      Tests  2414 passed (2414)
+   Start at  11:42:18
+   Duration  110.91s (tests 84%, import 9%, environment 3%, transform 3%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
@@ -711,4 +713,4 @@ RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:2  
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:17  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 ADVISORY       218 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 86, receipt 30, contract 22, zone 21, panel 14; reported, never failing, since inside the project its sense wins (--json lists each)
-0 rejected names, 0 unknown nouns (604 files), 17 in records
+0 rejected names, 0 unknown nouns (609 files), 17 in records
