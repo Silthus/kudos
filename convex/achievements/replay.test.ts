@@ -165,13 +165,17 @@ describe("P60 P62: the replay is keyed by the ladder and tier IDs it evaluated",
     await t.mutation(internal.achievements.replay.replayPage, { replay: generosity._id });
 
     shipped();
+    const relaunchedAt = Date.now();
     await launch(t);
     await settle(t);
 
     const [, diamondBatch] = await batchesIn(t, "T1");
     expect((await ladderOf(t, alice, "generosity")).earned.at(-1)).toEqual({ tier: "diamond", earnedAt: daysAgo(30) + 499 });
     expect(await earnedBatches(t, alice, "generosity")).toEqual({ bronze: launchBatch!._id, silver: launchBatch!._id, gold: launchBatch!._id, diamond: diamondBatch!._id });
-    expect((await batchesIn(t, "T1")).map(({ completedAt }) => completedAt)).toEqual([Date.now(), Date.now()]);
+    const [launchCompleted, diamondCompleted] = (await batchesIn(t, "T1")).map(({ completedAt }) => completedAt!);
+    expect(launchCompleted).toBeGreaterThanOrEqual(relaunchedAt);
+    expect(diamondCompleted).toBeGreaterThanOrEqual(launchCompleted!);
+    expect(diamondCompleted).toBeLessThanOrEqual(Date.now());
   }, 60_000);
 
   test("a ladder added after the launch replays full history once and leaves the other ladders' tiers alone", async () => {

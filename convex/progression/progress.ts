@@ -74,7 +74,13 @@ export function baseXpOf(side: Side, { kudos }: Pick<Award, "kudos">, catalogue:
   return catalogue.baseXp[side] * kudos;
 }
 
-function effectsFor(member: MemberId, awards: AwardWithId[], { day, gate }: Pick<EffectsRecord, "day" | "gate">, catalogue: Catalogue, { perks, earlier }: Giving): EffectsRecord[] {
+export function bonusPaidIn(effects: EffectsRecord[]): BonusLine[] {
+  const paid = new Map<PerkId, number>();
+  for (const { bonus = [] } of effects) for (const { source, xp } of bonus) paid.set(source, (paid.get(source) ?? 0) + xp);
+  return [...paid].map(([source, xp]) => ({ source, xp }));
+}
+
+export function effectsFor(member: MemberId, awards: AwardWithId[], { day, gate }: Pick<EffectsRecord, "day" | "gate">, catalogue: Catalogue, { perks, earlier }: Giving): EffectsRecord[] {
   const given = [...earlier];
   return awards.flatMap((award) => {
     const side = sideOf(member, award);

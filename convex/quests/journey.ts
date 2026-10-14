@@ -243,11 +243,10 @@ function firstThanksBeforeActivation({ version, steps }: JourneyCatalogue): Omit
   return { step: "first-thanks", activatedAt: null, reward, catalogueVersion: version, finishedAt: null, openedAt: null };
 }
 
-export async function activeJourneyOf(ctx: MutationCtx, member: MemberId): Promise<JourneyStepFacts[]> {
+export async function activateJourneyOf(ctx: MutationCtx, member: MemberId): Promise<void> {
   const { workspace } = await chatUserOf(ctx, member);
   await activated(ctx, workspace, member, "first-thanks", Date.now(), journey);
   await activateOpenedSteps(ctx, workspace, member);
-  return journeyOf(ctx, member);
 }
 
 async function activateOpenedSteps(ctx: MutationCtx, workspace: string, member: MemberId) {
@@ -255,7 +254,9 @@ async function activateOpenedSteps(ctx: MutationCtx, workspace: string, member: 
   for (const step of await journeyStepsApplyingIn(ctx, workspace)) {
     const feature = featureOpening(step);
     const openedAt = feature === null ? null : await openedAtOf(ctx, member, feature);
-    if (openedAt !== null && openedAt > startedAt) await activateOpened(ctx, workspace, member, step, openedAt);
+    if (openedAt === null) continue;
+    if (openedAt > startedAt) await activateOpened(ctx, workspace, member, step, openedAt);
+    else if (step === "two-days") await activateOpened(ctx, workspace, member, step, Date.now());
   }
 }
 
