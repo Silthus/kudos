@@ -54,7 +54,7 @@ function yourPerks() {
 }
 
 function showTree(answer: MySkillTree, member: MemberProfile = withTheTree) {
-  return renderApp(member, undefined, undefined, undefined, fixedSkillTree(answer));
+  return renderApp(member, undefined, undefined, undefined, undefined, fixedSkillTree(answer));
 }
 
 function showWideTree(answer: MySkillTree, member?: MemberProfile) {
@@ -126,7 +126,7 @@ describe("WS85: /skills shows the tree while the Skill tree is open", () => {
 
   it("keeps the first-load selection when that perk turns owned elsewhere, such as in Slack", () => {
     let answer: MySkillTree = skillTreeFixtures.withPoints;
-    const { showVisitor } = renderApp(withTheTree, undefined, undefined, undefined, (asking) => (asking ? answer : undefined));
+    const { showVisitor } = renderApp(withTheTree, undefined, undefined, undefined, undefined, (asking) => (asking ? answer : undefined));
     expect(nodeOf("Spark")).toHaveAttribute("aria-pressed", "true");
     answer = skillTreeFixtures.sparkOwned;
     showVisitor(shellFixtures.memberWithOneSkillPoint);
@@ -278,7 +278,7 @@ describe("WS80: /skills follows its read", () => {
 
   it("shows its crate in place with a primary Open while ready, and opens it through openFeature", async () => {
     const openFeature = vi.fn(async (): Promise<CommandAnswer> => ({ kind: "opened" }));
-    const { user } = renderApp(shellFixtures.memberWithTheSkillTreeReady, undefined, { openFeature }, undefined, fixedSkillTree(skillTreeFixtures.ready));
+    const { user } = renderApp(shellFixtures.memberWithTheSkillTreeReady, undefined, { openFeature }, undefined, undefined, fixedSkillTree(skillTreeFixtures.ready));
     const crate = within(main()).getByRole("heading", { name: "Unlocks: Skill tree" }).closest("article")!;
     const open = within(crate).getByRole("button", { name: "Open" });
     expect(open).toHaveClass("quill-button--variant-primary");
@@ -291,7 +291,7 @@ describe("WS80: /skills follows its read", () => {
 
   it("becomes the tree once opened, with focus on its title when the reveal closes", async () => {
     let answer: MySkillTree = skillTreeFixtures.ready;
-    const { user, showVisitor } = renderApp(shellFixtures.memberWithTheSkillTreeReady, undefined, { openFeature: async () => ({ kind: "opened" }) }, undefined, (asking) => (asking ? answer : undefined));
+    const { user, showVisitor } = renderApp(shellFixtures.memberWithTheSkillTreeReady, undefined, { openFeature: async () => ({ kind: "opened" }) }, undefined, undefined, (asking) => (asking ? answer : undefined));
     await user.click(within(main()).getByRole("button", { name: "Open" }));
     answer = skillTreeFixtures.withPoints;
     showVisitor(shellFixtures.memberWithEveryFeatureOpen);
@@ -312,7 +312,7 @@ describe("WS80: /skills follows its read", () => {
   it("asks for the tree only on /skills", () => {
     window.history.replaceState(null, "", "/");
     const asked: boolean[] = [];
-    renderApp(withTheTree, undefined, undefined, undefined, (asking) => {
+    renderApp(withTheTree, undefined, undefined, undefined, undefined, (asking) => {
       asked.push(asking);
       return asking ? skillTreeFixtures.withPoints : undefined;
     });
@@ -345,7 +345,7 @@ describe("WS84: the HUD's skill point chip", () => {
 
   it("leads to the skill tree page", async () => {
     window.history.replaceState(null, "", "/");
-    const { user } = renderApp(withTheTree, undefined, undefined, undefined, fixedSkillTree(skillTreeFixtures.withPoints));
+    const { user } = renderApp(withTheTree, undefined, undefined, undefined, undefined, fixedSkillTree(skillTreeFixtures.withPoints));
     await user.click(chip()!);
     expect(window.location.pathname).toBe("/skills");
     expect(pageTitle()).toHaveTextContent("Perks");

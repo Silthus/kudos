@@ -5,15 +5,15 @@ import { MomentsProvider, useCrateMoments } from "./crates/moments";
 import { readyCratesOf } from "./crates/readyCrates";
 import { RevealDialog } from "./crates/RevealDialog";
 import type { BoardAnswer, BoardRead } from "./boardRead";
+import type { BookRead, BookShown } from "./bookRead";
 import { ErrorBoundary } from "./ErrorBoundary";
-import { featureOn } from "./features";
 import { Frame } from "./Frame";
 import { ClosedPage } from "./pages/ClosedPage";
 import { ConnectingPage } from "./pages/ConnectingPage";
 import { ErrorPage } from "./pages/ErrorPage";
 import { HomePage } from "./pages/HomePage";
+import { BookPage } from "./pages/BookPage";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
-import { FeatureInSlackPage } from "./pages/FeatureInSlackPage";
 import { FeatureWaitsPage } from "./pages/FeatureWaitsPage";
 import { QuestsPage } from "./pages/QuestsPage";
 import { SkillTreePage } from "./pages/SkillTreePage";
@@ -30,9 +30,9 @@ import { hrefOf, useRoute, type Route } from "./route";
 import type { Feature, MemberProfile, Period, ShellActions, ShellState } from "./shell";
 import { rememberSignInStarted, useSignInOutcome } from "./signInAttempt";
 
-type AppProps = { visitor: ShellState; actions: ShellActions; useLeaderboard: BoardRead; useQuests: QuestsRead; useSkillTree: SkillTreeRead };
+type AppProps = { visitor: ShellState; actions: ShellActions; useLeaderboard: BoardRead; useQuests: QuestsRead; useBook: BookRead; useSkillTree: SkillTreeRead };
 
-export function App({ visitor, actions, useLeaderboard, useQuests, useSkillTree }: AppProps) {
+export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useSkillTree }: AppProps) {
   const { route, navigate, choosePeriod } = useRoute();
   const shown = useSignInOutcome(visitor);
   const member = shown.kind === "member" ? shown : undefined;
@@ -42,12 +42,14 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useSkillTree 
   const onQuests = member !== undefined && route.page === "quests";
   const questsOpen = isQuestsOpenFor(member);
   const quests = useQuests(onQuests || questsOpen);
+  const onBook = member !== undefined && route.page === "book";
+  const book = useBook(onBook);
   const onSkills = member !== undefined && route.page === "skills";
   const skillTree = useSkillTree(onSkills);
   const moments = useCrateMoments(actions, { signedOut: member === undefined && !stillAsking(shown), crates: cratesOf(member), onQuests });
   const reveal = member !== undefined ? moments.reveal : undefined;
   const revealing = reveal !== undefined;
-  useTitleFocusAfterChange(onTheBoard ? boardPageOf(board) : onQuests ? questsPageOf(quests) : onSkills ? skillTreePageOf(skillTree) : (pageOf(route, member) ?? shown.kind), { held: revealing });
+  useTitleFocusAfterChange(onTheBoard ? boardPageOf(board) : onQuests ? questsPageOf(quests) : onBook ? bookPageOf(book) : onSkills ? skillTreePageOf(skillTree) : shown.kind, { held: revealing });
   useTitleFocusWhenTheFocusedElementGoes();
   const expectArrival = useTitleFocusOnArrival();
   const arriveAt = useCallback(
@@ -64,9 +66,9 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useSkillTree 
   return (
     <NavigateProvider value={arriveAt}>
       <MomentsProvider value={moments}>
-        <Frame member={member} ready={member === undefined ? [] : readyCratesOf(member, quests)} current={route.page === "not-found" ? undefined : route.page} busy={shown.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined) || (onSkills && skillTree === undefined)} inert={revealing} onSignOut={actions.signOut}>
+        <Frame member={member} ready={member === undefined ? [] : readyCratesOf(member, quests)} current={route.page === "not-found" ? undefined : route.page} busy={shown.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined) || (onBook && book === undefined) || (onSkills && skillTree === undefined)} inert={revealing} onSignOut={actions.signOut}>
           <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>
-            <Page state={shown} route={route} board={board} quests={quests} skillTree={skillTree} onChoosePeriod={choosePeriod} onSignIn={signIn} onSignOut={actions.signOut} />
+            <Page state={shown} route={route} board={board} quests={quests} book={book} skillTree={skillTree} onChoosePeriod={choosePeriod} onSignIn={signIn} onSignOut={actions.signOut} />
           </ErrorBoundary>
         </Frame>
         {reveal !== undefined && member !== undefined && (
@@ -92,11 +94,6 @@ function stillAsking(state: ShellState) {
   return state.kind === "loading" || state.kind === "connecting";
 }
 
-function pageOf(route: Route, member: MemberProfile | undefined) {
-  if (member === undefined || route.page === "home" || route.page === "leaderboard" || route.page === "quests" || route.page === "skills" || route.page === "not-found") return undefined;
-  return `${route.page} ${cardOf(member, featureOn(route.page))?.state ?? "off"}`;
-}
-
 function cardOf(member: MemberProfile, feature: Feature) {
   return member.features?.find((entry) => entry.feature === feature);
 }
@@ -107,6 +104,10 @@ function boardPageOf(board: BoardAnswer | undefined) {
 
 function questsPageOf(quests: QuestsShown | undefined) {
   return quests === undefined ? "loading" : `quests ${quests.kind}`;
+}
+
+function bookPageOf(book: BookShown | undefined) {
+  return book === undefined ? "loading" : `book ${book.kind}`;
 }
 
 function skillTreePageOf(skillTree: SkillTreeShown | undefined) {
@@ -125,13 +126,14 @@ type PageProps = {
   route: Route;
   board: BoardAnswer | undefined;
   quests: QuestsShown | undefined;
+  book: BookShown | undefined;
   skillTree: SkillTreeShown | undefined;
   onChoosePeriod: (period: Period) => void;
   onSignIn: () => void;
   onSignOut: () => void;
 };
 
-function Page({ state, route, board, quests, skillTree, onChoosePeriod, ...actions }: PageProps) {
+function Page({ state, route, board, quests, book, skillTree, onChoosePeriod, ...actions }: PageProps) {
   if (state.kind === "broken") throw new Error("This page failed to render.");
   if (state.kind === "loading") return null;
   if (state.kind === "connecting" || state.kind === "closed") return <AnswerPage answer={state} {...actions} />;
@@ -139,21 +141,13 @@ function Page({ state, route, board, quests, skillTree, onChoosePeriod, ...actio
   if (state.kind !== "member") return <AnswerPage answer={state} {...actions} />;
   if (route.page === "home") return <HomePage member={state} />;
   if (route.page === "quests") return <QuestsAnswerPage member={state} quests={quests} {...actions} />;
+  if (route.page === "book") return <BookAnswerPage member={state} book={book} {...actions} />;
   if (route.page === "skills") return <SkillTreeAnswerPage member={state} skillTree={skillTree} {...actions} />;
-  if (route.page !== "leaderboard") return <FeaturePage member={state} feature={featureOn(route.page)} />;
   if (board === undefined) return null;
   if (board.kind === "not-found") return <NotFoundPage />;
   if (board.kind === "ready" || board.kind === "locked") return <FeatureWaitsPage name="Leaderboard" waiting={board} readyCard={readyCardOf(state, "leaderboard")} chatUrl={state.chatUrl} />;
   if (board.kind !== "board") return <AnswerPage answer={board} {...actions} />;
   return <LeaderboardPage board={board} period={route.period} onChoosePeriod={onChoosePeriod} />;
-}
-
-function FeaturePage({ member, feature }: { member: MemberProfile; feature: Feature }) {
-  const card = cardOf(member, feature);
-  if (card === undefined) return <NotFoundPage />;
-  if (card.state === "open") return <FeatureInSlackPage card={card} chatUrl={member.chatUrl} />;
-  const waiting = card.state === "locked" ? { kind: "locked" as const, level: card.level } : { kind: "ready" as const };
-  return <FeatureWaitsPage name={card.name} waiting={waiting} readyCard={readyCardOf(member, feature)} chatUrl={member.chatUrl} />;
 }
 
 function readyCardOf(member: MemberProfile, feature: Feature) {
@@ -169,6 +163,16 @@ function QuestsAnswerPage({ member, quests, ...actions }: QuestsAnswerPageProps)
   if (quests.kind === "ready" || quests.kind === "locked") return <FeatureWaitsPage name="Quests" waiting={quests} readyCard={readyCardOf(member, "quests")} chatUrl={member.chatUrl} />;
   if (quests.kind !== "quests") return <AnswerPage answer={quests} {...actions} />;
   return <QuestsPage quests={quests} />;
+}
+
+type BookAnswerPageProps = { member: MemberProfile; book: BookShown | undefined; onSignIn: () => void; onSignOut: () => void };
+
+function BookAnswerPage({ member, book, ...actions }: BookAnswerPageProps) {
+  if (book === undefined) return null;
+  if (book.kind === "not-found") return <NotFoundPage />;
+  if (book.kind === "ready" || book.kind === "locked") return <FeatureWaitsPage name="Book" waiting={book} readyCard={readyCardOf(member, "book")} chatUrl={member.chatUrl} />;
+  if (book.kind !== "book") return <AnswerPage answer={book} {...actions} />;
+  return <BookPage book={book} />;
 }
 
 type SkillTreeAnswerPageProps = { member: MemberProfile; skillTree: SkillTreeShown | undefined; onSignIn: () => void; onSignOut: () => void };

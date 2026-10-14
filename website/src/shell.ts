@@ -4,10 +4,13 @@ import type { CommandAnswer } from "../../convex/website/commands";
 import type { Denial } from "../../convex/website/memberQuery";
 import type { FeatureCard, JourneyStep, MemberProfile, MyProfile } from "../../convex/website/profile";
 import type { QuestsAnswer } from "../../convex/website/quests";
+import type { BookAnswer } from "../../convex/website/book";
 import type { MySkillTree } from "../../convex/website/skillTree";
 
 export type { Face, FeatureCard, JourneyStep, MemberProfile, PageWaits, Progression } from "../../convex/website/profile";
 export type { QuestsAnswer, QuestSlot, WaitingCrate } from "../../convex/website/quests";
+export type { BookAnswer, LadderCard, TierCard } from "../../convex/website/book";
+export type { TierId } from "../../convex/achievements/ladders";
 export type { MySkillTree, PerkNode, SkillTreeAnswer, TreeRow } from "../../convex/website/skillTree";
 export type { Leaderboard, LeaderboardRow, MyLeaderboard } from "../../convex/website/leaderboard";
 export type { Period } from "../../convex/leaderboard/periods";
@@ -18,6 +21,8 @@ export type { Quest } from "../../convex/quests/step";
 export type OpenAnswer = CommandAnswer | Denial;
 
 export type MyQuests = QuestsAnswer | Denial;
+
+export type MyBook = BookAnswer | Denial;
 
 export type Visitor = MyProfile | { kind: "loading" } | { kind: "connecting" } | { kind: "sign-in-unfinished" };
 

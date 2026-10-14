@@ -2,9 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { periods } from "./leaderboard/periods";
 import type { Period } from "./shell";
 
-export type Route = { page: "home" } | { page: "leaderboard"; period: Period } | { page: "quests" } | { page: FeatureScreen } | { page: "not-found" };
-
-export type FeatureScreen = "skills" | "book";
+export type Route = { page: "home" } | { page: "leaderboard"; period: Period } | { page: "quests" } | { page: "book" } | { page: "skills" } | { page: "not-found" };
 
 export type Screen = Exclude<Route["page"], "not-found">;
 

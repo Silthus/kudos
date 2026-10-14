@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 import { HedgehogExplorer, HedgehogMoney, HedgehogOrganized, HedgehogReading, HedgehogStar, HedgehogWizard } from "@posthog/brand/hoggies";
 import { IconBook, IconListTree, IconStar, IconTarget } from "@posthog/icons";
-import type { FeatureScreen, Screen } from "./route";
+import type { Screen } from "./route";
 import type { Feature, MemberProfile } from "./shell";
 
 export type Hoggie = ComponentType<{ size?: number; title?: string; className?: string }>;
@@ -45,10 +45,6 @@ export function aboutOf(feature: Feature): About {
 
 export function webPageOf(feature: Feature): WebPage | undefined {
   return webPages[feature];
-}
-
-export function featureOn(screen: FeatureScreen): Feature {
-  return (Object.keys(webPages) as Feature[]).find((feature) => webPages[feature]!.screen === screen)!;
 }
 
 export function openWebPagesOf({ features, leaderboard }: Pick<MemberProfile, "features" | "leaderboard">): OpenWebPage[] {

@@ -2,15 +2,16 @@ import { act, screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { describe, expect, it } from "vitest";
 import type { BoardRead } from "./boardRead";
+import { bookFixtures, fixedBook } from "./bookFixtures";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
-import { shellFixtures, type MyLeaderboard, type MyQuests, type MySkillTree, type OpenAnswer, type ShellState } from "./shell";
+import { shellFixtures, type MyBook, type MyLeaderboard, type MyQuests, type MySkillTree, type OpenAnswer, type ShellState } from "./shell";
 import { fixedSkillTree, skillTreeFixtures } from "./skillTreeFixtures";
 import { watchTheViewerRow } from "./test/viewerRow";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "./test/systemTheme";
 
-const pages: { name: string; path: string; visitor: ShellState; board?: MyLeaderboard; quests?: MyQuests; skillTree?: MySkillTree; wide?: boolean }[] = [
+const pages: { name: string; path: string; visitor: ShellState; board?: MyLeaderboard; quests?: MyQuests; book?: MyBook; skillTree?: MySkillTree; wide?: boolean }[] = [
   { name: "loading", path: "/", visitor: shellFixtures.loading },
   { name: "connecting", path: "/", visitor: shellFixtures.connecting },
   { name: "closed", path: "/", visitor: shellFixtures.closed },
@@ -47,9 +48,10 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "skill tree with no skill points left, on a wide screen", path: "/skills", visitor: shellFixtures.memberWithNoSkillPointsLeft, skillTree: skillTreeFixtures.noPointsLeft, wide: true },
   { name: "skill tree below its row, on a wide screen", path: "/skills", visitor: shellFixtures.memberWithNoSkillPointsLeft, skillTree: skillTreeFixtures.belowTheRow, wide: true },
   { name: "skill tree with a perk that needs its base, on a wide screen", path: "/skills", visitor: shellFixtures.memberWithOneSkillPoint, skillTree: skillTreeFixtures.needsABase, wide: true },
-  { name: "book locked until level 4", path: "/book", visitor: shellFixtures.memberWaitingForTheBook },
-  { name: "book ready to open in place", path: "/book", visitor: shellFixtures.memberWithTheBookReady },
-  { name: "book open, found in Slack", path: "/book", visitor: shellFixtures.memberWithTheBookOpened },
+  { name: "book locked until level 4", path: "/book", visitor: shellFixtures.memberWaitingForTheBook, book: bookFixtures.locked },
+  { name: "book ready to open in place", path: "/book", visitor: shellFixtures.memberWithTheBookReady, book: bookFixtures.ready },
+  { name: "book with a ladder at bronze and a ladder not started", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.book },
+  { name: "book with every tier of a ladder earned", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyTierEarned },
   { name: "home with the book locked", path: "/", visitor: shellFixtures.memberWaitingForTheBook },
   { name: "home starting the Journey with Quests locked", path: "/", visitor: shellFixtures.memberStartingTheJourney },
   { name: "home with a Journey step in each state and Quests open", path: "/", visitor: shellFixtures.memberWithQuests },
@@ -80,7 +82,7 @@ describe("WS24: every page passes axe in light and dark", () => {
         fakeSystemTheme(dark);
         if (page.wide) preferWideScreen();
         window.history.replaceState(null, "", page.path);
-        const { container } = renderApp(page.visitor, page.board && answering(page.board), undefined, page.quests && fixedQuests(page.quests), page.skillTree && fixedSkillTree(page.skillTree));
+        const { container } = renderApp(page.visitor, page.board && answering(page.board), undefined, page.quests && fixedQuests(page.quests), page.book && fixedBook(page.book), page.skillTree && fixedSkillTree(page.skillTree));
         expect(await violationsIn(container)).toEqual([]);
       });
     }
@@ -100,7 +102,7 @@ describe("WS24: every page passes axe in light and dark", () => {
     it(`the skill tree's open perk drawer, portaled outside the landmarks, meets WCAG 2.2 AA in ${dark ? "dark" : "light"}`, async () => {
       fakeSystemTheme(dark);
       window.history.replaceState(null, "", "/skills");
-      const { user, getByRole, findByRole } = renderApp(shellFixtures.memberWithEveryFeatureOpen, undefined, undefined, undefined, fixedSkillTree(skillTreeFixtures.withPoints));
+      const { user, getByRole, findByRole } = renderApp(shellFixtures.memberWithEveryFeatureOpen, undefined, undefined, undefined, undefined, fixedSkillTree(skillTreeFixtures.withPoints));
       await user.click(within(getByRole("region", { name: "Perk tree" })).getByRole("button", { name: /^Rhythm\./ }));
       await findByRole("dialog", { name: "Rhythm" });
       expect(await violationsIn(document.body, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
