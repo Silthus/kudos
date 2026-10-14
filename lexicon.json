@@ -29,7 +29,7 @@
     },
     {
       "name": "kudos emoji",
-      "definition": "An emoji that gives kudos for a giver: the workspace's emoji, which is the deployment's default unless the workspace changes it (:taco: when the deployment sets none), plus any the giver has unlocked. Each occurrence in a kudos message is one kudos for every recipient."
+      "definition": "An emoji that gives kudos for a giver: the workspace's emoji, which is the deployment's default unless the workspace changes it (:taco: when the deployment sets none), plus the emoji in the giver's loadout while the store is visible to them. Each occurrence in a kudos message is one kudos for every recipient."
     },
     {
       "name": "kudos message",
@@ -101,11 +101,11 @@
     },
     {
       "name": "store",
-      "definition": "Where members spend coins on items they see before buying: cosmetics, XP boosters, the Discovery Lantern and streak freezes. Nothing in it is a random draw."
+      "definition": "Where members spend coins on items they see before buying: kudos emoji now, and hedgehogs once they ship. Nothing in it is a random draw."
     },
     {
       "name": "cosmetic",
-      "definition": "An unlock that changes how a member's kudos look, never what they are worth: a quip, a card, a title or a kudos emoji. Every cosmetic has a rarity."
+      "definition": "A cut kind of unlock that only changed how kudos look, such as quips, cards and titles. What members own now are items. Every cosmetic had a rarity."
     },
     {
       "name": "quip",
@@ -121,11 +121,11 @@
     },
     {
       "name": "loadout",
-      "definition": "The cosmetics a member has chosen to show: a title, a card, quips and kudos emoji."
+      "definition": "A member's three kudos emoji slots, and their hedgehog once hedgehogs ship. The starter 🦔 fills the first slot until the member changes the loadout."
     },
     {
       "name": "collection",
-      "definition": "Every cosmetic a member has unlocked, shown privately in App Home."
+      "definition": "Every item a member owns: the starter, the items they bought and the items they earned."
     },
     {
       "name": "rarity",
@@ -546,6 +546,14 @@
     {
       "name": "spotlight",
       "definition": "One drawable kudos shown on the leaderboard page with its words, giver, recipients and Slack permalink: a Given kudos from a public channel whose current words said why, by a member, with nobody on it off the leaderboards; drawn at random from the member's own workspace, and Next walks every drawable kudos once before any repeat."
+    },
+    {
+      "name": "item",
+      "definition": "A kudos emoji or hedgehog a member can own, with a stable ID, a name, its art and exactly one source: the starter, the store or an achievement tier."
+    },
+    {
+      "name": "inventory",
+      "definition": "A member's loadout and collection together, opened with Coins."
     }
   ]
 }

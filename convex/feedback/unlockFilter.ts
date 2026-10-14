@@ -3,7 +3,8 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { xpLevelsShownIn } from "../progression/xpLevels";
 import { featureValidator, type Feature } from "../unlocks/feature";
 import { unlocksLiveIn, unlocksShownTo } from "../unlocks/launch";
-import { scheduled, shippedIn, type ScheduledFeature } from "../unlocks/schedule";
+import { storeShownAndExposedTo } from "../store/visibility";
+import { namedFor, scheduled, shippedIn, type ScheduledFeature } from "../unlocks/schedule";
 import { stateOf, type UnlockState } from "../unlocks/unlocks";
 import { lookup, type MemberId } from "../workspace/directory";
 import type { Line } from "./segments";
@@ -39,11 +40,13 @@ export function unopenedTextOf({ name, level }: ScheduledFeature, state: "ready"
 }
 
 async function memberReplyOf(ctx: MutationCtx, member: MemberId, feature: Feature) {
-  return (await unlocksShownTo(ctx, member)) ? replyOf(feature, await stateOf(ctx, member, feature)) : null;
+  if (!(await unlocksShownTo(ctx, member))) return null;
+  const storeShown = feature === "coins" && (await storeShownAndExposedTo(ctx, member));
+  return replyOf(feature, await stateOf(ctx, member, feature), storeShown);
 }
 
-function replyOf(feature: Feature, state: UnlockState): Line[] | null {
-  return state === "ready" || state === "locked" ? renderUnopenedReply(scheduled(feature), state) : null;
+function replyOf(feature: Feature, state: UnlockState, storeShown = false): Line[] | null {
+  return state === "ready" || state === "locked" ? renderUnopenedReply(namedFor(scheduled(feature), storeShown), state) : null;
 }
 
 async function strangerStateOf(ctx: QueryCtx, workspace: string, feature: Feature): Promise<UnlockState> {

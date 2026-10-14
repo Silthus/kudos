@@ -16,7 +16,10 @@ import { activateJourneyOf, journeyOf, type JourneyStepFacts } from "../quests/j
 import { thisWeeksQuestsOf, unopenedCratesOf, type UnopenedCrate, type WeeklyQuests } from "../quests/weekly";
 import { progressSettingsOf, type ProgressSettings } from "../progression/settings";
 import { xpLevelsOnFor, xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
+import { inventoryHomeOf, type InventoryHome } from "../store/inventory";
+import { storeShownAndExposedTo } from "../store/visibility";
 import { unlocksShownTo } from "../unlocks/launch";
+import { namedFor } from "../unlocks/schedule";
 import { unlocksHomeOf, type UnlocksHome } from "../unlocks/unlocks";
 import { coinsVisibleAndExposedTo } from "../wallet/visibility";
 import { balanceOf } from "../wallet/wallet";
@@ -24,7 +27,7 @@ import { adminsIn, chatUserOf, lookup, type MemberFacts, type MemberId } from ".
 import { settingsOf } from "../workspace/settings";
 import { isOpened, whenOpened } from "./unlockFilter";
 
-export const homeTabValidator = v.union(v.literal("profile"), v.literal("leaderboard"), v.literal("book"), v.literal("skillTree"), v.literal("settings"), v.literal("admin"));
+export const homeTabValidator = v.union(v.literal("profile"), v.literal("leaderboard"), v.literal("book"), v.literal("skillTree"), v.literal("inventory"), v.literal("settings"), v.literal("admin"));
 
 export type HomeTab = Infer<typeof homeTabValidator>;
 
@@ -33,6 +36,7 @@ export type ShownTab =
   | { tab: "leaderboard"; period: Period; board: EveryoneBoardView }
   | { tab: "book"; book: AchievementFacts; timeZone: string | undefined }
   | { tab: "skillTree"; perks: MemberPerks }
+  | { tab: "inventory"; balance: number; inventory: InventoryHome; kudosEmoji: string }
   | { tab: "settings"; onTheBoards: boolean | null; progress: ProgressSettings | null; achievements: boolean }
   | { tab: "admin"; announcementChannel: string | null; achievements: boolean };
 
@@ -42,7 +46,7 @@ export type ToldProgression = Omit<ProgressionHome, "skillPoints"> & { skillPoin
 
 export type HomeMember = Extract<MemberFacts, { kind: "member" }>;
 
-type Slices = { board: boolean; leaderboard: boolean; xp: boolean; unlocks: boolean; quests: boolean; book: boolean; skillTree: boolean; coins: boolean; admin: boolean; sharedSettings: boolean };
+type Slices = { board: boolean; leaderboard: boolean; xp: boolean; unlocks: boolean; quests: boolean; book: boolean; skillTree: boolean; coins: boolean; store: boolean; admin: boolean; sharedSettings: boolean };
 
 type HomeSelection = { tab: HomeTab; period: Period };
 
@@ -54,6 +58,7 @@ const tabsBesideProfile: Array<{ tab: HomeTab; shownWith: (slices: Slices & Door
   { tab: "leaderboard", shownWith: ({ leaderboard, frontDoor }) => leaderboard && !frontDoor },
   { tab: "book", shownWith: ({ book, frontDoor }) => book && !frontDoor },
   { tab: "skillTree", shownWith: ({ skillTree, frontDoor }) => skillTree && !frontDoor },
+  { tab: "inventory", shownWith: ({ coins, store }) => coins && store },
   { tab: "settings", shownWith: ({ board, xp }) => board || xp },
   { tab: "admin", shownWith: ({ sharedSettings, admin }) => sharedSettings && admin },
 ];
@@ -121,8 +126,9 @@ async function slicesShownTo(ctx: MutationCtx, workspace: string, person: HomeMe
   const book = unlocks && (await achievementsShownTo(ctx, person.member)) && (await isOpened(ctx, person.member, "book"));
   const skillTree = (await skillTreeShownTo(ctx, person.member)) && (await isOpened(ctx, person.member, "skillTree"));
   const coins = unlocks && (await coinsVisibleAndExposedTo(ctx, person.member));
+  const store = unlocks && (await storeShownAndExposedTo(ctx, person.member));
   const sharedSettings = await xpLevelsShownIn(ctx, workspace);
-  return { board, leaderboard: board && (await isLeaderboardOpenTo(ctx, person.member, unlocks)), xp, unlocks, quests, book, skillTree, coins, admin: person.admin, sharedSettings };
+  return { board, leaderboard: board && (await isLeaderboardOpenTo(ctx, person.member, unlocks)), xp, unlocks, quests, book, skillTree, coins, store, admin: person.admin, sharedSettings };
 }
 
 async function isLeaderboardOpenTo(ctx: QueryCtx, member: MemberId, unlocksShown: boolean) {
@@ -144,7 +150,7 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
       return {
         tab,
         progression: await toldProgressionOf(ctx, viewer.member, slices),
-        unlocks: await unlocksHomeOf(ctx, viewer.member),
+        unlocks: namedForStore(await unlocksHomeOf(ctx, viewer.member), slices.store),
         quests: slices.quests ? await openedQuestsOf(ctx, viewer.member) : null,
         earlierCrates: slices.quests ? await openedEarlierCratesOf(ctx, viewer.member) : null,
         journey: slices.quests ? await journeyOf(ctx, viewer.member) : null,
@@ -155,6 +161,8 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
       return { tab, book: await bookFactsOf(ctx, viewer.member), timeZone: (await ctx.db.get(viewer.member))?.timeZone };
     case "skillTree":
       return { tab, perks: await memberPerksOf(ctx, viewer.member) };
+    case "inventory":
+      return { tab, balance: await balanceOf(ctx, viewer.member), inventory: await inventoryHomeOf(ctx, viewer.member), kudosEmoji: (await settingsOf(ctx, viewer.workspace)).kudosEmoji };
     case "settings":
       return {
         tab,
@@ -165,6 +173,10 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
     case "admin":
       return { tab, announcementChannel: (await settingsOf(ctx, viewer.workspace)).announcementChannel, achievements: await achievementsApplyIn(ctx, viewer.workspace) };
   }
+}
+
+function namedForStore({ ready, next }: UnlocksHome, storeShown: boolean): UnlocksHome {
+  return { ready: ready.map((entry) => namedFor(entry, storeShown)), next: next === null ? null : namedFor(next, storeShown) };
 }
 
 async function openedQuestsOf(ctx: MutationCtx, member: MemberId) {

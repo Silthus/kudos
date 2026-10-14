@@ -16,6 +16,8 @@ import type { WeekKey } from "../quests/week";
 import type { UnopenedCrate, WeeklyQuests, WeeklySlot } from "../quests/weekly";
 import type { JourneyQuest, Quest, WeeklyQuest } from "../quests/step";
 import type { Feature } from "../unlocks/feature";
+import type { CatalogueItem } from "../store/catalogue";
+import type { InventoryHome } from "../store/inventory";
 import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import type { UnlocksHome } from "../unlocks/unlocks";
 import type { FrontDoorLinks } from "../website/link";
@@ -53,7 +55,7 @@ export type HomeLine =
 
 type MemberHome = Extract<HomeFacts, { kind: "member" }>;
 
-const tabLabels: Record<HomeTab, string> = { profile: "Profile", leaderboard: "Leaderboard", book: "Book", skillTree: "Skill tree", settings: "Settings", admin: "Admin" };
+const tabLabels: Record<HomeTab, string> = { profile: "Profile", leaderboard: "Leaderboard", book: "Book", skillTree: "Skill tree", inventory: "Inventory", settings: "Settings", admin: "Admin" };
 
 const periods: Array<{ period: Period; label: string }> = [
   { period: "week", label: "This week" },
@@ -104,6 +106,8 @@ function tabOf(facts: MemberHome, shown: ShownTab): HomeView {
       return { title: "Book", groups: bookGroups(shown) };
     case "skillTree":
       return { title: "Skill tree", groups: skillTreeGroups(shown.perks) };
+    case "inventory":
+      return { title: "Inventory", groups: inventoryGroups(shown) };
     case "settings":
       return { title: "Settings", groups: settingsGroups(shown) };
     case "admin":
@@ -216,6 +220,24 @@ function perkLines(perk: TreePerk): HomeLine[] {
   if (state === "owned") return [{ kind: "text", text: [`✅ ${bold(name)} · Owned`, copy].filter(Boolean).join("\n") }];
   if (state === "buyable") return [{ kind: "action", ...perkOfferOf(perk, null) }];
   return [{ kind: "text", text: perkTextOf(perk) }, { kind: "hint", text: whyNotOf({ ...perk, state }) }];
+}
+
+function inventoryGroups({ balance, inventory, kudosEmoji }: Extract<ShownTab, { tab: "inventory" }>): HomeLine[][] {
+  const slots = [{ kind: "text", text: bold("Your kudos emoji") }, ...slotLinesOf(inventory), { kind: "hint", text: `Each emoji in a slot counts as a kudos, like :${kudosEmoji}:.` }] satisfies HomeLine[];
+  return [[{ kind: "text", text: inCoins(balance) }], slots, ...collectionLinesOf(inventory)];
+}
+
+function slotLinesOf({ slots }: InventoryHome): HomeLine[] {
+  return slots.map((item, index) => ({ kind: "text", text: `Slot ${index + 1} · ${item === null ? "empty" : itemLabelOf(item)}` }));
+}
+
+function collectionLinesOf({ collection }: InventoryHome): HomeLine[][] {
+  if (collection.length === 0) return [];
+  return [[{ kind: "text", text: bold("Collection") }, ...collection.map((item): HomeLine => ({ kind: "text", text: itemLabelOf(item) }))]];
+}
+
+function itemLabelOf({ art, emoji, name }: CatalogueItem) {
+  return `${art.kind === "unicode" ? art.glyph : `:${emoji}:`} ${name}`;
 }
 
 export function perkOfferOf(perk: Perk, website: string | null): { text: string; action: HomeAction } {
