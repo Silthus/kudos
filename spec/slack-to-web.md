@@ -130,8 +130,8 @@ Meanwhile the website has grown a home, a leaderboard, and soon quests, a skill 
 ### Flags and shipping
 
 - **SW25. No new flag.** The gains line is gated by `xp-levels` (SW5); links and the front door by `website` (SW11, SW19). Both are dark in production today, so the ship changes nothing in production until Michael switches them, and with both off every Slack call is byte-for-byte today's. No gate ticket is needed.
-- **SW27. Buy funnels to the Skill tree page (#335).** While the link function answers a link, each perk's `Buy` in a level-up DM is a link button to `/skills`, labelled `Buy`, its accessibility label naming the perk and the page, with no confirmation, since a link spends nothing. A click on it runs no command. A `Buy` command left from an earlier DM or App Home view still buys its perk. While the link function answers nothing, `Buy` is today's command with its confirmation. Swap, Settings and Admin stay Slack buttons: the website has no page for them yet.
 - **SW26. Routes that ship later.** `/quests`, `/skills` and `/book` switch on when the website PR that adds each route also adds it to the list (SW10). The Skill tree and Book tabs, and the tier DM's Book link, need #171's code on `main`, so one follow-up ticket carries them after #171 ships.
+- **SW27. Buy funnels to the Skill tree page (#335).** While the link function answers a link, each perk's `Buy` in a level-up DM is a link button to `/skills`, labelled `Buy`, its accessibility label naming the perk and the page, with no confirmation, since a link spends nothing. A click on it runs no command. A `Buy` command left from an earlier DM or App Home view still buys its perk. While the link function answers nothing, `Buy` is today's command with its confirmation. Swap, Settings and Admin stay Slack buttons: the website has no page for them yet.
 
 ## Implementation Decisions
 
