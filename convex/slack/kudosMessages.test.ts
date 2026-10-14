@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { FakeSlack, type SlackCall } from "../../testing/fakeSlack";
+import { FakeSlack, isWelcome, type SlackCall } from "../../testing/fakeSlack";
 import { everythingStored, kudosReceived, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { signingSecret } from "../../testing/signedSlack";
 import { broadcast, codeBlock, emoji, mention, quote, section, text, userGroup, type MessageOptions, type RichElement } from "../../testing/slackMessages";
@@ -314,13 +314,13 @@ function slackTs(at: Date) {
 }
 
 function callsBesideWelcomes() {
-  return slack.calls.filter((call) => call.method !== "users.info" && !isWelcome(call));
+  return slack.calls.filter((call) => call.method !== "users.info" && !isWelcomeCall(call));
 }
 
 function welcomedPeople() {
-  return slack.calls.filter(isWelcome).map((call) => String(call.args.channel)).sort();
+  return slack.calls.filter(isWelcomeCall).map((call) => String(call.args.channel)).sort();
 }
 
-function isWelcome(call: SlackCall) {
-  return call.method === "chat.postMessage" && String(call.args.text).startsWith("👋 Welcome to HedgeHug!");
+function isWelcomeCall(call: SlackCall) {
+  return call.method === "chat.postMessage" && isWelcome(call.args);
 }

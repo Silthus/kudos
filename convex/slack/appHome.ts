@@ -68,8 +68,11 @@ export const publishHome = observedAction({
 });
 
 export function appHomeLink(workspace: string, label: string) {
-  const query = new URLSearchParams({ team: workspace, id: appId(), tab: "home" });
-  return `<slack://app?${query}|${label}>`;
+  return `<${appHomeUrl(workspace)}|${label}>`;
+}
+
+export function appHomeUrl(workspace: string) {
+  return `slack://app?${new URLSearchParams({ team: workspace, id: appId(), tab: "home" })}`;
 }
 
 type Home = { workspace: string; user: string; opened?: boolean };
