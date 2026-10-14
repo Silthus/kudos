@@ -17,6 +17,10 @@
 :root {
   --primary-foreground: oklch(0.13 0.028 262);
   --font-sans: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --band-tangerine: #ff5c1c;
+  --band-lemon: #ffce1c;
+  --band-blue: #106fb2;
+  --band-night: #141414;
 }
 
 html,

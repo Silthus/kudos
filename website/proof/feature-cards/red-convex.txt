@@ -1,0 +1,341 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/feature-cards
+
+ ❯ |convex| convex/website/features.test.ts (17 tests | 17 failed) 325ms
+   ❯ the website's feature states are Unlocks' facts (12)
+     × WS55 WS56: with xp-levels and unlocks off, before …, features is null and the leaderboard is WS30's 126ms
+     × WS55 WS56: with xp-levels on and unlocks off, befo…, features is null and the leaderboard is WS30's 11ms
+     × WS55 WS56: with unlocks on and xp-levels off, befo…, features is null and the leaderboard is WS30's 9ms
+     × WS55 WS56: with xp-levels and unlocks on, before t…, features is null and the leaderboard is WS30's 10ms
+     × WS55 WS56: with xp-levels and unlocks switched off…, features is null and the leaderboard is WS30's 13ms
+     × WS55 WS56: with xp-levels on and unlocks switched …, features is null and the leaderboard is WS30's 13ms
+     × WS55 WS56: with unlocks on and xp-levels switched …, features is null and the leaderboard is WS30's 10ms
+     × WS55: a website read never runs the P77 launch, though xp-levels and unlocks are on 9ms
+     ❯ while unlocks apply (3)
+       × WS56 WS57: a member at level 1 reads the shipped Leaderboard locked at level 3, with its name and what it opens 13ms
+       × WS56 WS57: a member at level 3 reads it ready since the moment their level made it ready 19ms
+       × WS56 WS57: a member who opened it reads it open, with when 19ms
+     × P77: a member who was there at the launch reads the Leaderboard open from the launch 9ms
+   ❯ the website shows only shipped features (4)
+     × WS56 P78: with skill-tree off, a member past level 5 reads no Skill tree entry 14ms
+     × WS56: with skill-tree on, a member at level 5 reads the Leaderboard and the Skill tree ready, in the schedule's order 17ms
+     × WS57: with everyone-board off, there is no Leaderboard entry and the leaderboard reads off 11ms
+     × WS56 P78: with no feature shipped, features is an empty list, never the plain cards 10ms
+   ❯ WS66: a crate's seen key is opaque and per member (1)
+     × two members' keys for the same crate differ, stay the same across reads, and carry no ID 10ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 17 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/features.test.ts > the website's feature states are Unlocks' facts > WS55 WS56: with xp-levels and unlocks off, before …, features is null and the leaderboard is WS30's
+ FAIL  |convex| convex/website/features.test.ts > the website's feature states are Unlocks' facts > WS55 WS56: with unlocks on and xp-levels off, befo…, features is null and the leaderboard is WS30's
+ FAIL  |convex| convex/website/features.test.ts > the website's feature states are Unlocks' facts > WS55 WS56: with xp-levels and unlocks switched off…, features is null and the leaderboard is WS30's
+ FAIL  |convex| convex/website/features.test.ts > the website's feature states are Unlocks' facts > WS55 WS56: with unlocks on and xp-levels switched …, features is null and the leaderboard is WS30's
+AssertionError: expected { allowance: { base: 3, …(2) }, …(10) } to match object { features: null, leaderboard: 'open' }
+(19 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "features": null,
+    "leaderboard": "open",
+  }
+
+ ❯ convex/website/features.test.ts:75:41
+     73|     const { asSignedIn } = await signedInMember();
+     74|
+     75|     expect(await myProfile(asSignedIn)).toMatchObject({ features: null…
+       |                                         ^
+     76|   });
+     77|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/17]⎯
+
+ FAIL  |convex| convex/website/features.test.ts > the website's feature states are Unlocks' facts > WS55 WS56: with xp-levels on and unlocks off, befo…, features is null and the leaderboard is WS30's
+ FAIL  |convex| convex/website/features.test.ts > the website's feature states are Unlocks' facts > WS55 WS56: with xp-levels and unlocks on, before t…, features is null and the leaderboard is WS30's
+ FAIL  |convex| convex/website/features.test.ts > the website's feature states are Unlocks' facts > WS55 WS56: with xp-levels on and unlocks switched …, features is null and the leaderboard is WS30's
+AssertionError: expected { allowance: { base: 3, …(2) }, …(10) } to match object { features: null, leaderboard: 'open' }
+(24 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "features": null,
+    "leaderboard": "open",
+  }
+
+ ❯ convex/website/features.test.ts:75:41
+     73|     const { asSignedIn } = await signedInMember();
+     74|
+     75|     expect(await myProfile(asSignedIn)).toMatchObject({ features: null…
+       |                                         ^
+     76|   });
+     77|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/17]⎯
+
+ FAIL  |convex| convex/website/features.test.ts > the website's feature states are Unlocks' facts > WS55: a website read never runs the P77 launch, though xp-levels and unlocks are on
+AssertionError: expected { allowance: { base: 3, …(2) }, …(10) } to match object { features: null }
+(25 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "features": null,
++   "allowance": {
++     "base": 3,
++     "left": 3,
++     "refillsAt": 1792022400000,
++   },
++   "chatUrl": "https://app.slack.com/client/T1",
++   "face": {
++     "initials": "JW",
++     "kind": "initials",
++   },
++   "kind": "member",
++   "kudosEmoji": "taco",
++   "leaderboard": "open",
++   "leaderboardLevel": 3,
++   "lifetime": {
++     "given": 0,
++     "received": 0,
++   },
++   "name": "Juno Whitlock",
++   "progression": {
++     "level": 1,
++     "levelStartsAt": 0,
++     "nextLevelAt": 20,
++     "xp": 0,
++     "xpToNextLevel": 20,
++   },
++   "thisWeek": {
++     "given": 0,
++     "received": 0,
++   },
+  }
+
+ ❯ convex/website/features.test.ts:82:41
+     80|     const { asSignedIn } = await signedInMember();
+     81|
+     82|     expect(await myProfile(asSignedIn)).toMatchObject({ features: null…
+       |                                         ^
+     83|     expect(await t.run((ctx) => ctx.db.query("unlockLaunches").collect…
+     84|     expect(await t.run((ctx) => ctx.db.query("unlocks").collect())).to…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/17]⎯
+
+ FAIL  |convex| convex/website/features.test.ts > the website's feature states are Unlocks' facts > while unlocks apply > WS56 WS57: a member at level 1 reads the shipped Leaderboard locked at level 3, with its name and what it opens
+AssertionError: expected undefined to deeply equal [ { feature: 'leaderboard', …(7) } ]
+
+- Expected:
+[
+  {
+    "feature": "leaderboard",
+    "level": 3,
+    "name": "Leaderboard",
+    "openedAt": null,
+    "opens": "the boards",
+    "readyAt": null,
+    "seen": Any<String>,
+    "state": "locked",
+  },
+]
+
++ Received:
+undefined
+
+ ❯ convex/website/features.test.ts:95:32
+     93|       const profile = await myProfile(asSignedIn);
+     94|
+     95|       expect(profile.features).toEqual([
+       |                                ^
+     96|         { feature: "leaderboard", name: "Leaderboard", opens: "the boa…
+     97|       ]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/17]⎯
+
+ FAIL  |convex| convex/website/features.test.ts > the website's feature states are Unlocks' facts > while unlocks apply > WS56 WS57: a member at level 3 reads it ready since the moment their level made it ready
+AssertionError: expected undefined to match object { state: 'ready', …(2) }
+
+- Expected:
+{
+  "openedAt": null,
+  "readyAt": 1791968400000,
+  "state": "ready",
+}
+
++ Received:
+undefined
+
+ ❯ convex/website/features.test.ts:108:43
+    106|       const profile = await myProfile(asSignedIn);
+    107|
+    108|       expect(leaderboardEntryOf(profile)).toMatchObject({ state: "read…
+       |                                           ^
+    109|       expect(profile.leaderboard).toBe("ready");
+    110|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/17]⎯
+
+ FAIL  |convex| convex/website/features.test.ts > the website's feature states are Unlocks' facts > while unlocks apply > WS56 WS57: a member who opened it reads it open, with when
+AssertionError: expected undefined to match object { state: 'open', …(2) }
+
+- Expected:
+{
+  "openedAt": 1791972000000,
+  "readyAt": 1791968400000,
+  "state": "open",
+}
+
++ Received:
+undefined
+
+ ❯ convex/website/features.test.ts:119:43
+    117|       const profile = await myProfile(asSignedIn);
+    118|
+    119|       expect(leaderboardEntryOf(profile)).toMatchObject({ state: "open…
+       |                                           ^
+    120|       expect(profile.leaderboard).toBe("open");
+    121|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/17]⎯
+
+ FAIL  |convex| convex/website/features.test.ts > the website's feature states are Unlocks' facts > P77: a member who was there at the launch reads the Leaderboard open from the launch
+AssertionError: expected undefined to match object { state: 'open', …(2) }
+
+- Expected:
+{
+  "openedAt": 1791972000000,
+  "readyAt": 1791972000000,
+  "state": "open",
+}
+
++ Received:
+undefined
+
+ ❯ convex/website/features.test.ts:131:41
+    129|     const profile = await myProfile(asSignedIn);
+    130|
+    131|     expect(leaderboardEntryOf(profile)).toMatchObject({ state: "open",…
+       |                                         ^
+    132|     expect(profile.leaderboard).toBe("open");
+    133|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/17]⎯
+
+ FAIL  |convex| convex/website/features.test.ts > the website shows only shipped features > WS56 P78: with skill-tree off, a member past level 5 reads no Skill tree entry
+AssertionError: expected undefined to deeply equal [ 'leaderboard' ]
+
+- Expected:
+[
+  "leaderboard",
+]
+
++ Received:
+undefined
+
+ ❯ convex/website/features.test.ts:142:81
+    140|     await reachesLevel(t, member, 5);
+    141|
+    142|     expect((await myProfile(asSignedIn)).features?.map((card) => card.…
+       |                                                                                 ^
+    143|   });
+    144|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/17]⎯
+
+ FAIL  |convex| convex/website/features.test.ts > the website shows only shipped features > WS56: with skill-tree on, a member at level 5 reads the Leaderboard and the Skill tree ready, in the schedule's order
+AssertionError: expected undefined to deeply equal [ …(2) ]
+
+- Expected:
+[
+  {
+    "feature": "leaderboard",
+    "level": 3,
+    "name": "Leaderboard",
+    "state": "ready",
+  },
+  {
+    "feature": "skillTree",
+    "level": 5,
+    "name": "Skill tree",
+    "state": "ready",
+  },
+]
+
++ Received:
+undefined
+
+ ❯ convex/website/features.test.ts:152:99
+    150|     const features = (await myProfile(asSignedIn)).features;
+    151|
+    152|     expect(features?.map(({ feature, name, level, state }) => ({ featu…
+       |                                                                                                   ^
+    153|       { feature: "leaderboard", name: "Leaderboard", level: 3, state: …
+    154|       { feature: "skillTree", name: "Skill tree", level: 5, state: "re…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/17]⎯
+
+ FAIL  |convex| convex/website/features.test.ts > the website shows only shipped features > WS57: with everyone-board off, there is no Leaderboard entry and the leaderboard reads off
+AssertionError: expected undefined to deeply equal [ 'skillTree' ]
+
+- Expected:
+[
+  "skillTree",
+]
+
++ Received:
+undefined
+
+ ❯ convex/website/features.test.ts:164:59
+    162|     const profile = await myProfile(asSignedIn);
+    163|
+    164|     expect(profile.features?.map((card) => card.feature)).toEqual(["sk…
+       |                                                           ^
+    165|     expect(profile.leaderboard).toBe("off");
+    166|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/17]⎯
+
+ FAIL  |convex| convex/website/features.test.ts > the website shows only shipped features > WS56 P78: with no feature shipped, features is an empty list, never the plain cards
+AssertionError: expected { allowance: { base: 3, …(2) }, …(10) } to match object { features: [], leaderboard: 'off' }
+(24 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "features": [],
+    "leaderboard": "off",
+  }
+
+ ❯ convex/website/features.test.ts:172:41
+    170|     const { asSignedIn } = await signedInMember();
+    171|
+    172|     expect(await myProfile(asSignedIn)).toMatchObject({ features: [], …
+       |                                         ^
+    173|   });
+    174| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/17]⎯
+
+ FAIL  |convex| convex/website/features.test.ts > WS66: a crate's seen key is opaque and per member > two members' keys for the same crate differ, stay the same across reads, and carry no ID
+TypeError: Cannot read properties of undefined (reading 'seen')
+ ❯ convex/website/features.test.ts:183:69
+    181|     const { asSignedIn: asBob } = await aSession(t, { user: "U_BOB", n…
+    182|
+    183|     const junoSeen = leaderboardEntryOf(await myProfile(asSignedIn))!.…
+       |                                                                     ^
+    184|     const bobSeen = leaderboardEntryOf(await myProfile(asBob))!.seen;
+    185|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/17]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  17 failed (17)
+   Start at  00:24:42
+   Duration  1.04s (transform 37%, tests 36%, import 21%, environment 5%)
+

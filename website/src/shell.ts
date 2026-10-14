@@ -1,14 +1,21 @@
-import type { MemberProfile, MyProfile } from "../../convex/website/profile";
+import type { Feature } from "../../convex/unlocks/feature";
+import type { CommandAnswer } from "../../convex/website/commands";
+import type { Denial } from "../../convex/website/memberQuery";
+import type { FeatureCard, MemberProfile, MyProfile } from "../../convex/website/profile";
 
-export type { Face, LeaderboardWaits, MemberProfile, Progression } from "../../convex/website/profile";
+export type { Face, FeatureCard, LeaderboardWaits, MemberProfile, Progression } from "../../convex/website/profile";
 export type { Leaderboard, LeaderboardRow, MyLeaderboard } from "../../convex/website/leaderboard";
 export type { Period } from "../../convex/leaderboard/periods";
+export type { CommandAnswer } from "../../convex/website/commands";
+export type { Feature } from "../../convex/unlocks/feature";
+
+export type OpenAnswer = CommandAnswer | Denial;
 
 export type Visitor = MyProfile | { kind: "loading" } | { kind: "connecting" } | { kind: "sign-in-unfinished" };
 
 export type ShellState = Visitor | { kind: "broken" };
 
-export type ShellActions = { signIn(): void; signOut(): void };
+export type ShellActions = { signIn(returnTo: string): void; signOut(): void; openFeature(feature: Feature): Promise<OpenAnswer> };
 
 const member: MemberProfile = {
   kind: "member",
@@ -20,14 +27,48 @@ const member: MemberProfile = {
   lifetime: { given: 14, received: 9 },
   chatUrl: "https://app.slack.com/client/T1",
   leaderboard: { kind: "off" },
+  features: null,
   progression: null,
 };
 
+const readyAt = Date.parse("2026-10-12T09:00:00Z");
+
+const openedAt = Date.parse("2026-10-13T09:00:00Z");
+
+const leaderboardFeature = { feature: "leaderboard", name: "Leaderboard", opens: "the boards", level: 3, seen: "5e3a0c" } as const;
+
+const skillTreeFeature = { feature: "skillTree", name: "Skill tree", opens: "the tree and your first skill point", level: 5, seen: "9b71d2" } as const;
+
+const locked = { state: "locked", readyAt: null, openedAt: null } as const;
+
+const ready = { state: "ready", readyAt, openedAt: null } as const;
+
+const opened = { state: "open", readyAt, openedAt } as const;
+
+const onTheUnlockPath = (...features: FeatureCard[]): Pick<MemberProfile, "leaderboard" | "features"> => ({
+  leaderboard: leaderboardOn(features.find(({ feature }) => feature === "leaderboard")),
+  features,
+});
+
+function leaderboardOn(card: FeatureCard | undefined): MemberProfile["leaderboard"] {
+  if (card === undefined) return { kind: "off" };
+  if (card.state === "locked") return { kind: "locked", level: card.level };
+  return { kind: card.state };
+}
+
 const memberWithTheBoard: MemberProfile = { ...member, leaderboard: { kind: "open" } };
 
-const memberWaitingForTheBoard: MemberProfile = { ...member, leaderboard: { kind: "locked", level: 3 } };
+const memberWaitingForTheBoard: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...locked }) };
 
-const memberWithTheBoardReady: MemberProfile = { ...member, leaderboard: { kind: "ready" } };
+const memberWithTheBoardReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...ready }, { ...skillTreeFeature, ...locked }) };
+
+const memberWithTheBoardOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...skillTreeFeature, ...locked }) };
+
+const memberWithEveryFeatureReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...ready }, { ...skillTreeFeature, ...ready }) };
+
+const memberWithEveryFeatureOpen: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...skillTreeFeature, ...opened }) };
+
+const memberWithNothingShipped: MemberProfile = { ...member, ...onTheUnlockPath() };
 
 const memberWithAQuietWeek: MemberProfile = { ...member, thisWeek: { given: 0, received: 0 } };
 
@@ -49,6 +90,10 @@ export const shellFixtures = {
   memberWithTheBoard,
   memberWaitingForTheBoard,
   memberWithTheBoardReady,
+  memberWithTheBoardOpened,
+  memberWithEveryFeatureReady,
+  memberWithEveryFeatureOpen,
+  memberWithNothingShipped,
   memberAtLevel1,
   memberAtLevel7,
   error: { kind: "broken" },
@@ -68,6 +113,10 @@ const fixturesByName: Record<string, ShellState> = {
   "member-with-the-board": shellFixtures.memberWithTheBoard,
   "member-waiting-for-the-board": shellFixtures.memberWaitingForTheBoard,
   "member-with-the-board-ready": shellFixtures.memberWithTheBoardReady,
+  "member-with-the-board-opened": shellFixtures.memberWithTheBoardOpened,
+  "member-with-every-feature-ready": shellFixtures.memberWithEveryFeatureReady,
+  "member-with-every-feature-open": shellFixtures.memberWithEveryFeatureOpen,
+  "member-with-nothing-shipped": shellFixtures.memberWithNothingShipped,
   "member-level-1": shellFixtures.memberAtLevel1,
   "member-level-7": shellFixtures.memberAtLevel7,
   error: shellFixtures.error,
@@ -77,4 +126,4 @@ export function builtShell(name: string | undefined): ShellState {
   return fixturesByName[name ?? ""] ?? shellFixtures.closed;
 }
 
-export const fixtureActions: ShellActions = { signIn() {}, signOut() {} };
+export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, openFeature: async () => ({ kind: "opened" }) };

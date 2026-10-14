@@ -1,0 +1,22 @@
+# 2026-10-14T02:08:29Z before the website calls
+unlockLaunches:
+  rows: 1
+   {"workspace":"<the workspace>","shipped":["leaderboard"],"at":"2026-10-13T22:11:41.429Z"}
+unlocks:
+  rows: 2
+   {"member":"<the member>","feature":"quests","readyAt":"2026-10-14T01:30:23.604Z"}
+   {"member":"<the member>","feature":"leaderboard","readyAt":"2026-10-13T22:11:41.429Z","openedAt":"2026-10-13T22:11:41.429Z"}
+levelUps:
+  rows: 1
+   {"member":"<the member>","level":2,"ready":["quests"],"at":"2026-10-14T01:30:23.604Z"}
+# 2026-10-14T02:09:31Z after the website calls
+unlockLaunches:
+  rows: 1
+   {"workspace":"<the workspace>","shipped":["leaderboard"],"at":"2026-10-13T22:11:41.429Z"}
+unlocks:
+  rows: 2
+   {"member":"<the member>","feature":"quests","readyAt":"2026-10-14T01:30:23.604Z"}
+   {"member":"<the member>","feature":"leaderboard","readyAt":"2026-10-13T22:11:41.429Z","openedAt":"2026-10-13T22:11:41.429Z"}
+levelUps:
+  rows: 1
+   {"member":"<the member>","level":2,"ready":["quests"],"at":"2026-10-14T01:30:23.604Z"}

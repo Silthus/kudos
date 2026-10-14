@@ -408,6 +408,10 @@
       "definition": "Unlocks' hourly scheduled mutation that turns a feature's flag turning on into readiness: it stores readiness, publishes unlockReady and sends one DM per member for every member at or past the level of a shipped feature who has none stored (P78)."
     },
     {
+      "name": "ready pill",
+      "definition": "The button in the website's HUD that counts the crates ready for the signed-in member, as \"{n} ready\", and opens the first through the same command as the crate's Open. It is gone at zero, and something that becomes ready during a visit joins it instead of opening by itself (V1, V15, WS68)."
+    },
+    {
       "name": "quest",
       "definition": "A goal a member pursues for a reward: one of the 3 personal quests drawn for their week, the group quest, or a step of the Journey. Finishing it records its reward at once in a reward record; its crate only reveals it. A quest counts only once its feature is open, because quests are goals, not earnings."
     },

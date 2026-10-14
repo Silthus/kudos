@@ -1,0 +1,22 @@
+The slice flags in the definitions each deployment had cached (convex run --component posthog lib:getFlagDefinitions, read 2026-10-14T02:07Z, after this ticket's deploy). PostHog project 662840.
+
+<sandbox>:
+  fetchedAt 2026-10-13T21:33:13.629Z localEvalConfigured true
+  website id 957148 active true [{"aggregation_group_type_index":null,"properties":[{"key":"environment","operator":"exact","type":"person","value":["sandbox"]}],"rollout_percentage":100}]
+  everyone-board id 956734 active true [{"aggregation_group_type_index":null,"properties":[{"key":"environment","operator":"exact","type":"person","value":["sandbox"]}],"rollout_percentage":100}]
+  xp-levels id 956733 active true [{"aggregation_group_type_index":null,"properties":[{"key":"environment","operator":"exact","type":"person","value":["sandbox"]}],"rollout_percentage":100}]
+  unlocks id 956771 active true [{"aggregation_group_type_index":null,"properties":[{"key":"environment","operator":"exact","type":"person","value":["sandbox"]}],"rollout_percentage":100}]
+  quests id 957184 active true [{"aggregation_group_type_index":null,"properties":[{"key":"environment","operator":"exact","type":"person","value":["sandbox"]}],"rollout_percentage":100}]
+  skill-tree: no such flag (answers its safe default, off)
+
+<production>:
+  fetchedAt 2026-10-13T21:32:56.628Z localEvalConfigured true
+  website id 957148 active true [{"aggregation_group_type_index":null,"properties":[{"key":"environment","operator":"exact","type":"person","value":["sandbox"]}],"rollout_percentage":100}]
+  everyone-board id 956734 active true [{"aggregation_group_type_index":null,"properties":[{"key":"environment","operator":"exact","type":"person","value":["sandbox"]}],"rollout_percentage":100}]
+  xp-levels id 956733 active true [{"aggregation_group_type_index":null,"properties":[{"key":"environment","operator":"exact","type":"person","value":["sandbox"]}],"rollout_percentage":100}]
+  unlocks id 956771 active true [{"aggregation_group_type_index":null,"properties":[{"key":"environment","operator":"exact","type":"person","value":["sandbox"]}],"rollout_percentage":100}]
+  quests id 957184 active true [{"aggregation_group_type_index":null,"properties":[{"key":"environment","operator":"exact","type":"person","value":["sandbox"]}],"rollout_percentage":100}]
+  skill-tree: no such flag (answers its safe default, off)
+
+KUDOS_ENVIRONMENT (convex env get): <sandbox> sandbox, <production> production.
+Each deployment holds exactly one workspace key for its SLACK_WORKSPACE_ID (checked, not printed).

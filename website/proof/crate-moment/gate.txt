@@ -1,0 +1,17 @@
+pnpm gate through ~/dev/fleet/fleet heavy on 3aa7708, 2026-10-14T01:22Z
+
+$ pnpm typecheck && pnpm test && pnpm coherence
+$ tsc --noEmit && tsc --noEmit -p website
+$ vitest run
+$ coherence spec --check && coherence lexicon --check
+
+ Test Files  69 passed (69)
+      Tests  1119 passed (1119)
+   Duration  34.13s (tests 68%, import 17%, transform 7%, environment 7%, setup 1%)
+
+16 components, 51 bullets: 51 invariants, 0 requirements
+lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T00:58:03.997Z (290 runs)
+defects: 5 recorded, 5 closed (0 guarded, 5 decided, 0 with neither); 0 guard failures
+0 rejected names, 0 unknown nouns (369 files), 17 in records
+
+exit 0

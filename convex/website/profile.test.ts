@@ -191,6 +191,7 @@ describe("WS13 WS15 WS18: a member's home answer projects their own homeFacts", 
       lifetime: { given: 2, received: 1 },
       chatUrl: "https://app.slack.com/client/T1",
       leaderboard: { kind: "off" },
+      features: null,
       progression: null,
     });
   });

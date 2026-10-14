@@ -2,7 +2,7 @@ import { IconExternal } from "@posthog/icons";
 import { buttonVariants } from "@posthog/quill";
 import type { ReactNode } from "react";
 
-type SlackLinkProps = { chatUrl: string; variant: "primary" | "outline"; size?: "sm" | "lg"; children: ReactNode };
+type SlackLinkProps = { chatUrl: string; variant: "primary" | "outline"; size?: "default" | "sm" | "lg"; children: ReactNode };
 
 export function SlackLink({ chatUrl, variant, size = "sm", children }: SlackLinkProps) {
   return (
