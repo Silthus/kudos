@@ -105,7 +105,6 @@ function RecentlyEarned({ ladders, chapters, timeZone }: OverviewProps & { chapt
 }
 
 function ShelfItem({ entry: { ladder, tier }, fresh, href, timeZone }: { entry: Shelved; fresh: boolean; href: string; timeZone: string }) {
-  const tierLine = `${tierWords[tier.tier]} · ${dateWords(tier.earnedAt, timeZone)}`;
   return (
     <li className="min-w-0">
       <AppLink
@@ -117,8 +116,11 @@ function ShelfItem({ entry: { ladder, tier }, fresh, href, timeZone }: { entry: 
           <LadderEmblem ladder={ladder.ladder} best={tier.tier} size={72} />
           {fresh && <Tag className="absolute -left-1 -top-1">New</Tag>}
         </span>
-        <span className="mt-4 w-full truncate px-1 text-sm font-medium leading-tight">{tier.name}</span>
-        <span className="w-full truncate px-1 text-[11px] tabular-nums text-muted-foreground">{tierLine}</span>
+        <span className="mt-4 w-full text-balance break-words px-1 text-sm font-medium leading-tight">{tier.name}</span>
+        <span className="mt-0.5 flex w-full flex-wrap justify-center gap-x-1 px-1 text-[11px] leading-tight tabular-nums text-muted-foreground">
+          <span>{tierWords[tier.tier]} ·</span>
+          <span>{dateWords(tier.earnedAt, timeZone)}</span>
+        </span>
       </AppLink>
     </li>
   );
