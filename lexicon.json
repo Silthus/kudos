@@ -438,6 +438,10 @@
     {
       "name": "workspace decision",
       "definition": "A flag's answer for the workspace: evaluated on the workspace key with the person property environment only, so an email condition never matches it. It decides only what the workspace shares: what a channel shows, what a person the directory doesn't know sees, and the moments that happen once for the whole workspace"
+    },
+    {
+      "name": "preview",
+      "definition": "A member's state for one flag while their member decision is on and the workspace decision is off, through a release condition on their email: they see and get the feature alone, nothing of it shows in a channel or a shared setting, and ending it takes nothing away (F16-F25)"
     }
   ]
 }

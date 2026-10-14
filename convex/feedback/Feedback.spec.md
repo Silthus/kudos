@@ -90,17 +90,17 @@ Feedback: the indicator on each kudos message as desired state and the private r
   checklist: worker-fencing dismissed: no worker owns a reply
   checklist: commit-ordered-effects dismissed: the delivery is scheduled by the releasing mutation and runs only after it commits
   checklist: resumption-coverage dismissed: no batch operation resumes
-- a preview never shows in a channel or a shared setting: A level a previewing member reaches posts no public notice, while with xp-levels on in the workspace decision it posts as before; and an admin who previews xp-levels sees no Admin tab and announcement channel picker, and a channel pick from an App Home published while it was on for the workspace changes no setting.
-  over: the public level notice the app asks Slack to post for a level 2 reached by a member who previews xp-levels and everyone-board through their email and by one when both are on for the workspace, and the App Home tab bar and the stored announcement channel after a previewing admin picks a channel from an Admin tab published while the flags were on for the workspace
+- a preview never shows in a channel or a shared setting: A level a previewing member reaches posts no public notice, while with xp-levels on in the workspace decision it posts as before; and a previewing member allowed to pick the announcement channel sees no picker for it, and a channel pick from an App Home published while xp-levels was on for the workspace changes no setting.
+  over: the public level notice the app asks Slack to post for a level 2 reached by a member who previews xp-levels and everyone-board through their email and by one when both are on for the workspace, and the App Home tab bar and the stored announcement channel after such a previewing member picks a channel from a picker published while the flags were on for the workspace
   via: F18: what a channel shows or the workspace shares follows the workspace decision
   because: a preview must never show in a channel or change what other members get (`d-54f92e49`, F18): the announcement channel decides every member's notices, so only the workspace decision may show or change it
-  refuted: setAnnouncementChannel was gated by the clicking member's decision -> the previewing admin's channel pick was stored (2026-10-14); celebrateLevel and the desired reply both read the member's decision -> the previewing member's level was posted in C1 (2026-10-14)
+  refuted: setAnnouncementChannel was gated by the clicking member's decision -> 1 of 3 tests failed: the previewing member's channel pick was stored (2026-10-14); celebrateLevel and the desired public reply read the member's decision of xp-levels -> 1 of 3 tests failed: the previewing member's level was posted in C1 (2026-10-14)
   kinds: output, state
   checklist: destination-confinement dismissed: the decision only withholds a notice or a setting; where a notice goes is decided by one public reply per kudos message and a rewarded level is announced once
   checklist: redaction dismissed: the decision removes whole notices and controls rather than scrubbing content inside one
   checklist: commit-ordered-effects dismissed: the notice reads the workspace decision in the mutation that schedules it and again in the query its delivery reads, and the setting reads it in the click's own mutation
   checklist: circuit-breaker-policy dismissed: the decision is read from the PostHog component's cached definitions, never by calling PostHog per read
-  checklist: declared-target-coverage dismissed: the shared surfaces are the public level notice, the Admin tab and setAnnouncementChannel, each covered by a case of the oracle
+  checklist: declared-target-coverage dismissed: the shared surfaces are the public level notice, the announcement channel picker and setAnnouncementChannel, each covered by a case of the oracle
   checklist: legal-state-succession dismissed: the announcement channel is set to the value a permitted click carries; a refused click writes nothing
   checklist: supersession-safety dismissed: the decision is read fresh in the click's mutation, so a picker from an older App Home is judged by today's decision
   checklist: worker-fencing dismissed: one mutation reads the decision and writes the setting; no lease or ownership applies
