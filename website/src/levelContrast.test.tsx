@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { screen, within } from "@testing-library/react";
+import { cleanup, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { bookFixtures, fixedBook } from "./bookFixtures";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
@@ -114,13 +114,16 @@ describe("WS339 V24: the Book index's stripe and the page picker meet 3:1 agains
 });
 
 function ladderGraphics() {
-  window.history.replaceState(null, "", "/book");
-  renderApp(shellFixtures.memberWithTheBookOpened, undefined, undefined, undefined, fixedBook(bookFixtures.everyLadder));
-  const ladders = screen.getByRole("main");
-  return [
-    { part: "each rosette's rim, ring and sparkle", surfaces: ["card"], elements: [...ladders.querySelectorAll("[data-rosette] [stroke^='var(']")] },
-    { part: "each Next cell's ring", surfaces: ["card"], elements: [...ladders.querySelectorAll(".ring-foreground")] },
-  ];
+  return ["giving", "thanked", "connections", "crowd"].flatMap((page) => {
+    cleanup();
+    window.history.replaceState(null, "", `/book?page=${page}`);
+    renderApp(shellFixtures.memberWithTheBookOpened, undefined, undefined, undefined, fixedBook(bookFixtures.everyLadder));
+    const ladders = screen.getByRole("main");
+    return [
+      { part: "each rosette's rim, ring and sparkle", surfaces: ["card"], elements: [...ladders.querySelectorAll("[data-rosette] [stroke^='var(']")] },
+      { part: "each Next cell's ring", surfaces: ["card"], elements: [...ladders.querySelectorAll(".ring-foreground")] },
+    ];
+  });
 }
 
 describe("WS333 WS339 V24: the rosettes and the Next rings meet 3:1 against their card in both modes", () => {
@@ -134,6 +137,38 @@ describe("WS333 WS339 V24: the rosettes and the Next rings meet 3:1 against thei
         elements.flatMap((element) => paintsOf(element).flatMap((paint) => surfaces.map((surface) => ({ part, paint, surface, ratio: contrast(mode, paint, surface) })))),
       );
       expect(new Set(measured.map(({ paint }) => paint))).toEqual(new Set(["medal-bronze", "medal-silver", "medal-gold", "medal-diamond", "muted-foreground", "foreground"]));
+      expect(measured.filter(({ ratio }) => ratio < 3)).toEqual([]);
+    });
+  }
+});
+
+function overviewGraphics() {
+  preferWideScreen();
+  window.history.replaceState(null, "", "/book");
+  renderApp(shellFixtures.memberWithTheBookOpened, undefined, undefined, undefined, fixedBook(bookFixtures.everyLadder));
+  const overview = screen.getByRole("main");
+  const shelf = within(overview).getByRole("list", { name: "Recently earned" });
+  const bars = [...overview.querySelectorAll("[role='progressbar'], [data-bar]")];
+  return [
+    { part: "each rosette's rim, ring and sparkle", surfaces: ["card"], elements: [...overview.querySelectorAll("[data-rosette] [stroke^='var(']")] },
+    { part: "each bar's track and fill", surfaces: ["card"], elements: bars.flatMap((bar) => [bar, bar.firstElementChild!]) },
+    { part: "the shelf's plank", surfaces: ["background"], elements: [shelf.previousElementSibling!] },
+    { part: "the Next medal's outline", surfaces: ["card"], elements: [...overview.querySelectorAll("[data-medal='outline'] circle[stroke^='var(']")] },
+  ];
+}
+
+describe("WS334 WS339 V24: the overview's rosettes, bars, plank and Next medal meet 3:1 against their surface in both modes", () => {
+  beforeEach(() => {
+    fakeSystemTheme(false);
+  });
+
+  for (const mode of ["light", "dark"] as const) {
+    it(`in ${mode}`, () => {
+      const measured = overviewGraphics().flatMap(({ part, surfaces, elements }) =>
+        elements.flatMap((element) => paintsOf(element).flatMap((paint) => surfaces.map((surface) => ({ part, paint, surface, ratio: contrast(mode, paint, surface) })))),
+      );
+      expect(new Set(measured.map(({ part }) => part)).size).toBe(4);
+      expect(new Set(measured.map(({ paint }) => paint))).toEqual(new Set(["medal-bronze", "medal-silver", "medal-gold", "medal-diamond", "muted-foreground"]));
       expect(measured.filter(({ ratio }) => ratio < 3)).toEqual([]);
     });
   }

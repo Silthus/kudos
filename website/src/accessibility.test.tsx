@@ -59,8 +59,13 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "book locked until level 4", path: "/book", visitor: shellFixtures.memberWaitingForTheBook, book: bookFixtures.locked },
   { name: "book ready to open in place", path: "/book", visitor: shellFixtures.memberWithTheBookReady, book: bookFixtures.ready },
   { name: "book with a ladder at bronze and a ladder not started", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.book },
-  { name: "book with every tier of a ladder earned", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyTierEarned },
-  { name: "book with ladders unstarted, part-way, one tier from complete and complete", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyStage },
+  { name: "book's Giving page with every tier of a ladder earned", path: "/book?page=giving", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyTierEarned },
+  { name: "book's Giving page with a ladder part-way and one a tier from complete", path: "/book?page=giving", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyStage },
+  { name: "book's Being thanked page with a ladder not started", path: "/book?page=thanked", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyStage },
+  { name: "book's Connections page with a ladder complete", path: "/book?page=connections", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyStage },
+  { name: "book's overview with a New tier on the shelf, on a narrow screen", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyLadder },
+  { name: "book's overview with every ladder complete", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: { ...bookFixtures.everyTierEarned, ladders: [bookFixtures.everyTierEarned.ladders[0]] } },
+  { name: "book's overview with no tier earned", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: { ...bookFixtures.book, ladders: [bookFixtures.book.ladders[1]] } },
   { name: "book's overview with its page index, on a wide screen", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyLadder, wide: true },
   { name: "book's Giving page with its page index, on a wide screen", path: "/book?page=giving", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyLadder, wide: true },
   { name: "book's Crowd page with its page picker", path: "/book?page=crowd", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyLadder },
@@ -83,6 +88,8 @@ function answering(board: MyLeaderboard): BoardRead {
 
 const wcag22AA = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
+const axeOnAWholePage = 30_000;
+
 async function violationsIn(container: Element, options: axe.RunOptions = {}) {
   const results = await axe.run(container, { ...options, rules: { "color-contrast": { enabled: false } } });
   return results.violations.map((v) => `${v.id}: ${v.help}`);
@@ -97,7 +104,7 @@ describe("WS24: every page passes axe in light and dark", () => {
         window.history.replaceState(null, "", page.path);
         const { container } = renderApp(page.visitor, page.board && answering(page.board), undefined, page.quests && fixedQuests(page.quests), page.book && fixedBook(page.book), page.skillTree && fixedSkillTree(page.skillTree));
         expect(await violationsIn(container)).toEqual([]);
-      });
+      }, axeOnAWholePage);
     }
 
     it(`the whole board with the viewer's row pinned and Jump to me meets WCAG 2.2 AA in ${dark ? "dark" : "light"}`, async () => {
