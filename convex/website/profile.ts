@@ -7,10 +7,10 @@ import { workspaceLink } from "../slack/workspaceLink";
 import { followTheClock } from "./clock";
 import { faceOf, type Face } from "./faces";
 import { memberQuery, type Denial, type VerifiedMember } from "./memberQuery";
-import { featureCardsOf, leaderboardStateOf, unlockPathOf, type FeatureCard, type LeaderboardState } from "./unlockPath";
+import { featureCardsOf, leaderboardStateOf, unlockPathOf, type FeatureCard, type FeaturePage } from "./unlockPath";
 
 export type { Face } from "./faces";
-export type { FeatureCard, LeaderboardState, LeaderboardWaits } from "./unlockPath";
+export type { FeatureCard, FeaturePage, PageWaits } from "./unlockPath";
 
 export type Kudos = { given: number; received: number };
 
@@ -25,7 +25,7 @@ export type MemberProfile = {
   thisWeek: Kudos;
   lifetime: Kudos;
   chatUrl: string;
-  leaderboard: LeaderboardState;
+  leaderboard: FeaturePage;
   features: FeatureCard[] | null;
   progression: Progression | null;
 };

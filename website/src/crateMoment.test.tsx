@@ -93,13 +93,13 @@ describe("WS66: the reveal follows the server", () => {
   });
 
   it("points a feature without a web page to Slack's App Home from the end state", async () => {
-    const skillTreeReady = shellFixtures.memberWithEveryFeatureReady;
-    const { user } = renderApp(skillTreeReady, undefined, { openFeature: async () => ({ kind: "opened" }) });
-    const skillTree = within(main()).getByRole("heading", { level: 3, name: "Unlocks: Skill tree" }).closest("article")!;
-    await user.click(within(skillTree).getByRole("button", { name: "Open" }));
+    const questsReady = shellFixtures.memberWithTheQuestsReady;
+    const { user } = renderApp(questsReady, undefined, { openFeature: async () => ({ kind: "opened" }) });
+    const quests = within(main()).getByRole("heading", { level: 3, name: "Unlocks: Quests" }).closest("article")!;
+    await user.click(within(quests).getByRole("button", { name: "Open" }));
     await user.keyboard("{Escape}");
     const toSlack = within(dialog()!).getByRole("link", { name: "Find it in Slack's App Home. (opens in a new tab)" });
-    expect(toSlack).toHaveAttribute("href", skillTreeReady.chatUrl);
+    expect(toSlack).toHaveAttribute("href", questsReady.chatUrl);
     expect(within(dialog()!).queryByRole("link", { name: /Go to/ })).toBeNull();
   });
 

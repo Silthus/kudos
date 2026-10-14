@@ -3,7 +3,7 @@ import type { CommandAnswer } from "../../convex/website/commands";
 import type { Denial } from "../../convex/website/memberQuery";
 import type { FeatureCard, MemberProfile, MyProfile } from "../../convex/website/profile";
 
-export type { Face, FeatureCard, LeaderboardWaits, MemberProfile, Progression } from "../../convex/website/profile";
+export type { Face, FeatureCard, MemberProfile, PageWaits, Progression } from "../../convex/website/profile";
 export type { Leaderboard, LeaderboardRow, MyLeaderboard } from "../../convex/website/leaderboard";
 export type { Period } from "../../convex/leaderboard/periods";
 export type { CommandAnswer } from "../../convex/website/commands";
@@ -37,6 +37,10 @@ const openedAt = Date.parse("2026-10-13T09:00:00Z");
 
 const leaderboardFeature = { feature: "leaderboard", name: "Leaderboard", opens: "the boards", level: 3, seen: "5e3a0c" } as const;
 
+const questsFeature = { feature: "quests", name: "Quests", opens: "your weekly quests", level: 2, seen: "7d20e4" } as const;
+
+const bookFeature = { feature: "book", name: "Book", opens: "your achievements", level: 4, seen: "c4f8a1" } as const;
+
 const skillTreeFeature = { feature: "skillTree", name: "Skill tree", opens: "the tree and your first skill point", level: 5, seen: "9b71d2" } as const;
 
 const locked = { state: "locked", readyAt: null, openedAt: null } as const;
@@ -64,9 +68,21 @@ const memberWithTheBoardReady: MemberProfile = { ...member, ...onTheUnlockPath({
 
 const memberWithTheBoardOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...skillTreeFeature, ...locked }) };
 
+const memberWithTheQuestsReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...ready }, { ...leaderboardFeature, ...locked }) };
+
+const memberWithTheQuestsOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...opened }, { ...leaderboardFeature, ...opened }) };
+
+const memberWithTheSkillTreeReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...skillTreeFeature, ...ready }) };
+
+const memberWaitingForTheBook: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...bookFeature, ...locked }, { ...skillTreeFeature, ...locked }) };
+
+const memberWithTheBookReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...bookFeature, ...ready }, { ...skillTreeFeature, ...locked }) };
+
+const memberWithTheBookOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...bookFeature, ...opened }, { ...skillTreeFeature, ...locked }) };
+
 const memberWithEveryFeatureReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...ready }, { ...skillTreeFeature, ...ready }) };
 
-const memberWithEveryFeatureOpen: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...skillTreeFeature, ...opened }) };
+const memberWithEveryFeatureOpen: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...bookFeature, ...opened }, { ...skillTreeFeature, ...opened }) };
 
 const memberWithNothingShipped: MemberProfile = { ...member, ...onTheUnlockPath() };
 
@@ -91,6 +107,12 @@ export const shellFixtures = {
   memberWaitingForTheBoard,
   memberWithTheBoardReady,
   memberWithTheBoardOpened,
+  memberWithTheQuestsReady,
+  memberWithTheQuestsOpened,
+  memberWithTheSkillTreeReady,
+  memberWaitingForTheBook,
+  memberWithTheBookReady,
+  memberWithTheBookOpened,
   memberWithEveryFeatureReady,
   memberWithEveryFeatureOpen,
   memberWithNothingShipped,
@@ -114,6 +136,10 @@ const fixturesByName: Record<string, ShellState> = {
   "member-waiting-for-the-board": shellFixtures.memberWaitingForTheBoard,
   "member-with-the-board-ready": shellFixtures.memberWithTheBoardReady,
   "member-with-the-board-opened": shellFixtures.memberWithTheBoardOpened,
+  "member-with-the-skill-tree-ready": shellFixtures.memberWithTheSkillTreeReady,
+  "member-waiting-for-the-book": shellFixtures.memberWaitingForTheBook,
+  "member-with-the-book-ready": shellFixtures.memberWithTheBookReady,
+  "member-with-the-book-opened": shellFixtures.memberWithTheBookOpened,
   "member-with-every-feature-ready": shellFixtures.memberWithEveryFeatureReady,
   "member-with-every-feature-open": shellFixtures.memberWithEveryFeatureOpen,
   "member-with-nothing-shipped": shellFixtures.memberWithNothingShipped,

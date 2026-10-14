@@ -2,13 +2,17 @@ import { useCallback, useEffect, useState } from "react";
 import { periods } from "./leaderboard/periods";
 import type { Period } from "./shell";
 
-export type Route = { page: "home" } | { page: "leaderboard"; period: Period } | { page: "not-found" };
+export type Route = { page: "home" } | { page: "leaderboard"; period: Period } | { page: FeatureScreen } | { page: "not-found" };
+
+export type FeatureScreen = "skills" | "book";
 
 export type Screen = Exclude<Route["page"], "not-found">;
 
 export function routeOf({ pathname, search }: { pathname: string; search: string }): Route {
   if (pathname === "/") return { page: "home" };
   if (pathname === "/leaderboard") return { page: "leaderboard", period: periodIn(search) };
+  if (pathname === "/skills") return { page: "skills" };
+  if (pathname === "/book") return { page: "book" };
   return { page: "not-found" };
 }
 

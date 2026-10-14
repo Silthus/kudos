@@ -37,6 +37,14 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "leaderboard ready to open in place", path: "/leaderboard", visitor: shellFixtures.memberWithTheBoardReady, board: { kind: "ready" } },
   { name: "home with two crates and the ready pill", path: "/", visitor: shellFixtures.memberWithEveryFeatureReady },
   { name: "empty leaderboard", path: "/leaderboard?period=all", visitor: shellFixtures.memberWithTheBoard, board: leaderboardFixtures.empty },
+  { name: "skill tree not found while it hasn't shipped", path: "/skills", visitor: shellFixtures.memberWaitingForTheBoard },
+  { name: "skill tree locked until level 5", path: "/skills", visitor: shellFixtures.memberWithTheBoardOpened },
+  { name: "skill tree ready to open in place", path: "/skills", visitor: shellFixtures.memberWithTheSkillTreeReady },
+  { name: "skill tree open, found in Slack", path: "/skills", visitor: shellFixtures.memberWithEveryFeatureOpen },
+  { name: "book locked until level 4", path: "/book", visitor: shellFixtures.memberWaitingForTheBook },
+  { name: "book ready to open in place", path: "/book", visitor: shellFixtures.memberWithTheBookReady },
+  { name: "book open, found in Slack", path: "/book", visitor: shellFixtures.memberWithTheBookOpened },
+  { name: "home with the book locked", path: "/", visitor: shellFixtures.memberWaitingForTheBook },
   { name: "error", path: "/", visitor: shellFixtures.error },
 ];
 

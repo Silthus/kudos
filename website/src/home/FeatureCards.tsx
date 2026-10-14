@@ -10,7 +10,7 @@ import type { Feature, FeatureCard, MemberProfile } from "../shell";
 const plainLockedCards: { feature: Feature; name: string }[] = [
   { feature: "quests", name: "Quests" },
   { feature: "leaderboard", name: "Leaderboard" },
-  { feature: "book", name: "Sticker book and achievements" },
+  { feature: "book", name: "Book" },
   { feature: "skillTree", name: "Skill tree" },
   { feature: "coins", name: "Coins" },
   { feature: "hedgehogs", name: "Hedgehogs" },

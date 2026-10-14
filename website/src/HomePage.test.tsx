@@ -4,7 +4,7 @@ import { shellFixtures } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
 
-const lockedFeatures = ["Quests", "Leaderboard", "Sticker book and achievements", "Skill tree", "Coins", "Hedgehogs"];
+const lockedFeatures = ["Quests", "Leaderboard", "Book", "Skill tree", "Coins", "Hedgehogs"];
 
 beforeEach(() => {
   fakeSystemTheme(false);
