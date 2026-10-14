@@ -1,0 +1,138 @@
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { KudosMessage } from "./activity/KudosMessage";
+import type { Message, Segment } from "./shell";
+
+function words(...segments: Segment[]): Message {
+  return { kind: "text", segments, edited: false };
+}
+
+function shown(message: Message, { clamped = false } = {}) {
+  return render(<KudosMessage message={message} clamped={clamped} />).container;
+}
+
+function hrefsIn(container: HTMLElement) {
+  return [...container.querySelectorAll("[href]")].map((element) => element.getAttribute("href"));
+}
+
+describe("WS210: one renderer for a kudos message", () => {
+  it("renders text in strong, em, s and code for each flag it carries", () => {
+    const container = shown(words({ kind: "text", text: "plain " }, { kind: "text", text: "all of them", bold: true, italic: true, strike: true, code: true }));
+
+    expect(container).toHaveTextContent("plain all of them");
+    const styled = screen.getByText("all of them");
+    expect(styled.closest("strong")).not.toBeNull();
+    expect(styled.closest("em")).not.toBeNull();
+    expect(styled.closest("s")).not.toBeNull();
+    expect(styled.closest("code")).not.toBeNull();
+    expect(screen.getByText("plain").closest("strong, em, s, code")).toBeNull();
+  });
+
+  it("renders people, groups, channels and broadcasts as plain styled text, never links", () => {
+    const container = shown(
+      words(
+        { kind: "person", name: "Dev Rao" },
+        { kind: "text", text: " " },
+        { kind: "group", handle: "design-team" },
+        { kind: "text", text: " " },
+        { kind: "channel" },
+        { kind: "text", text: " " },
+        { kind: "broadcast", range: "here" },
+        { kind: "broadcast", range: "channel" },
+        { kind: "broadcast", range: "everyone" },
+      ),
+    );
+
+    expect(container).toHaveTextContent("@Dev Rao @design-team #channel @here@channel@everyone");
+    expect(screen.getByText("#channel")).toHaveClass("text-muted-foreground");
+    expect(screen.queryAllByRole("link")).toEqual([]);
+  });
+
+  it("renders an emoji as its unicode, else as its name between colons", () => {
+    const container = shown(words({ kind: "emoji", name: "tada", unicode: "🎉" }, { kind: "emoji", name: "partyparrot" }));
+
+    expect(container).toHaveTextContent("🎉:partyparrot:");
+    expect(container.querySelector("img")).toBeNull();
+  });
+
+  it("renders a break as a line break", () => {
+    const container = shown(words({ kind: "text", text: "one" }, { kind: "break" }, { kind: "text", text: "two" }));
+
+    expect(container.querySelectorAll("br")).toHaveLength(1);
+  });
+
+  it("links an http or https URL in a new tab, showing its label or else its URL", () => {
+    shown(words({ kind: "link", url: "https://example.com/doc", label: "the doc" }, { kind: "text", text: " and " }, { kind: "link", url: "http://example.com/plain" }));
+
+    const labelled = screen.getByRole("link", { name: "the doc (opens in a new tab)" });
+    expect(labelled).toHaveAttribute("href", "https://example.com/doc");
+    expect(labelled).toHaveAttribute("target", "_blank");
+    expect(labelled).toHaveAttribute("rel", "noreferrer");
+    expect(screen.getByRole("link", { name: "http://example.com/plain (opens in a new tab)" })).toHaveAttribute("href", "http://example.com/plain");
+  });
+
+  it("renders a link with any other scheme, or no URL at all, as its text", () => {
+    const container = shown(words({ kind: "link", url: "mailto:sam@example.com", label: "write to me" }, { kind: "text", text: " " }, { kind: "link", url: "not a url" }));
+
+    expect(container).toHaveTextContent("write to me not a url");
+    expect(screen.queryAllByRole("link")).toEqual([]);
+  });
+
+  it("renders every link as text when clamped, so nothing focusable hides behind the clamp", () => {
+    const container = shown(words({ kind: "link", url: "https://example.com/doc", label: "the doc" }), { clamped: true });
+
+    expect(container).toHaveTextContent("the doc");
+    expect(screen.queryAllByRole("link")).toEqual([]);
+    expect(screen.getByTestId("kudos-message-words")).toHaveClass("line-clamp-2");
+  });
+
+  it.each([
+    ["deleted", "This message was deleted in Slack."],
+    ["removed", "The words of this message were removed."],
+    ["not-captured", "The words of this kudos are from before HedgeHug kept them."],
+  ] as const)("renders an unavailable message, %s, as one muted italic line", (reason, line) => {
+    const container = shown({ kind: "unavailable", reason });
+
+    expect(container).toHaveTextContent(line);
+    expect(screen.getByText(line)).toHaveClass("italic", "text-muted-foreground");
+  });
+
+  it("adds a muted Edited after the words of an edited message", () => {
+    const container = shown({ kind: "text", segments: [{ kind: "text", text: "Thanks" }], edited: true });
+
+    expect(container).toHaveTextContent("ThanksEdited");
+    expect(screen.getByText("Edited")).toHaveClass("text-muted-foreground");
+  });
+
+  it("renders nothing for a segment kind it doesn't know", () => {
+    const unknown = { kind: "canvas", title: "Roadmap" } as unknown as Segment;
+    const container = shown(words({ kind: "text", text: "See " }, unknown, { kind: "text", text: "above" }));
+
+    expect(container).toHaveTextContent("See above");
+    expect(container).not.toHaveTextContent("Roadmap");
+  });
+});
+
+describe("a kudos message renders as text", () => {
+  const hostile = words(
+    { kind: "text", text: "<script>alert(1)</script>" },
+    { kind: "text", text: '<img src=x onerror="alert(2)">', bold: true },
+    { kind: "text", text: "&lt;b&gt; &amp; &#60;i&#62;" },
+    { kind: "link", url: "javascript:alert(3)", label: "click me" },
+    { kind: "link", url: "data:text/html,<script>alert(4)</script>" },
+    { kind: "link", url: "https://example.com/safe", label: "safe" },
+  );
+
+  it.each([
+    ["with live links", false],
+    ["clamped", true],
+  ])("keeps markup, entities and unsafe links as text %s", (_, clamped) => {
+    const container = shown(hostile, { clamped });
+
+    expect(container).toHaveTextContent('<script>alert(1)</script><img src=x onerror="alert(2)">&lt;b&gt; &amp; &#60;i&#62;click me');
+    expect(container).toHaveTextContent("data:text/html,<script>alert(4)</script>");
+    expect(container.querySelector("script, img, b, i")).toBeNull();
+    expect(hrefsIn(container).every((href) => href !== null && /^https?:/.test(href))).toBe(true);
+    expect(hrefsIn(container)).toEqual(clamped ? [] : ["https://example.com/safe"]);
+  });
+});

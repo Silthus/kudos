@@ -40,6 +40,7 @@ function LiveApp() {
       useQuests={(asking) => useLiveQuests(asking, unreachable)}
       useBook={(asking) => useLiveBook(asking, unreachable)}
       useSkillTree={(asking) => useLiveSkillTree(asking, unreachable)}
+      useRecentKudos={() => undefined}
     />
   );
 }

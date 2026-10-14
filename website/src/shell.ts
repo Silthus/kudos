@@ -18,6 +18,7 @@ export type { Period } from "../../convex/leaderboard/periods";
 export type { CommandAnswer, PurchaseAnswer, PurchaseRefusal } from "../../convex/website/commands";
 export type { Feature } from "../../convex/unlocks/feature";
 export type { Quest } from "../../convex/quests/step";
+export type { KudosGiven, KudosReceived, Message, MyRecentKudos, Person, RecentKudos, Segment } from "../../convex/website/activity";
 
 export type OpenAnswer = CommandAnswer | Denial;
 

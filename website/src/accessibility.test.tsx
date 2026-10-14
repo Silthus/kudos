@@ -6,7 +6,8 @@ import type { QuestsShown } from "./questsRead";
 import { bookFixtures, fixedBook } from "./bookFixtures";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
-import { shellFixtures, type MyBook, type MyLeaderboard, type MyQuests, type BuyAnswer, type MySkillTree, type OpenAnswer, type ShellState, type VisibilityReply } from "./shell";
+import { fixedRecentKudos, recentKudosFixtures } from "./recentKudosFixtures";
+import { shellFixtures, type MyBook, type MyLeaderboard, type MyQuests, type BuyAnswer, type MyRecentKudos, type MySkillTree, type OpenAnswer, type ShellState, type VisibilityReply } from "./shell";
 import { fixedSkillTree, skillTreeFixtures } from "./skillTreeFixtures";
 import { watchTheViewerRow } from "./test/viewerRow";
 import { renderApp } from "./test/renderApp";
@@ -163,6 +164,28 @@ describe("WS111 WS112: every state of the home's rail passes axe in light and da
         window.history.replaceState(null, "", "/");
         const { container } = renderApp(state.visitor ?? shellFixtures.memberWithEveryPanelOpen, (period) => (period && state.board), undefined, (asking) => (asking ? state.quests : undefined));
         expect(await violationsIn(container)).toEqual([]);
+      });
+    }
+  }
+});
+
+const recentKudosStates: { name: string; received: MyRecentKudos; given: MyRecentKudos; choose?: "Given" }[] = [
+  { name: "received, with an edited message and words from before HedgeHug kept them", received: recentKudosFixtures.threeReceived, given: recentKudosFixtures.threeGiven },
+  { name: "given, to one, two and five teammates", received: recentKudosFixtures.threeReceived, given: recentKudosFixtures.threeGiven, choose: "Given" },
+  { name: "empty, received", received: recentKudosFixtures.nothingYet, given: recentKudosFixtures.nothingYet },
+  { name: "empty, given", received: recentKudosFixtures.nothingYet, given: recentKudosFixtures.nothingYet, choose: "Given" },
+  { name: "with a deleted and a removed message", received: recentKudosFixtures.unavailableWords, given: recentKudosFixtures.nothingYet },
+];
+
+describe("WS223: every state of the Recent kudos card passes axe in light and dark", () => {
+  for (const dark of [false, true]) {
+    for (const state of recentKudosStates) {
+      it(`the card ${state.name} in ${dark ? "dark" : "light"}`, async () => {
+        fakeSystemTheme(dark);
+        window.history.replaceState(null, "", "/");
+        const { user, container, getByRole } = renderApp(shellFixtures.memberWithEveryPanelOpen, undefined, undefined, fixedQuests(questsFixtures.week), undefined, undefined, fixedRecentKudos(state));
+        if (state.choose !== undefined) await user.click(getByRole("radio", { name: state.choose }));
+        expect(await violationsIn(container, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
       });
     }
   }

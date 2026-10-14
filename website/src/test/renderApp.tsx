@@ -6,6 +6,7 @@ import { App } from "../App";
 import type { BoardRead } from "../boardRead";
 import type { BookRead } from "../bookRead";
 import type { QuestsRead } from "../questsRead";
+import type { RecentKudosRead } from "../recentKudosRead";
 import type { SkillTreeRead } from "../skillTreeRead";
 import { ShellBoundary } from "../Root";
 import type { ShellActions, ShellState } from "../shell";
@@ -18,9 +19,11 @@ const noBook: BookRead = (asking) => (asking ? { kind: "not-found" } : undefined
 
 const noSkillTree: SkillTreeRead = (asking) => (asking ? { kind: "not-found" } : undefined);
 
+const noRecentKudos: RecentKudosRead = () => ({ kind: "not-found" });
+
 type Commands = Partial<Pick<ShellActions, "openFeature" | "openQuestCrate" | "buyPerk" | "setBoardVisibility">>;
 
-export function renderApp(visitor: ShellState, readLeaderboard: BoardRead = noBoard, commands: Commands = {}, readQuests: QuestsRead = noQuests, readBook: BookRead = noBook, readSkillTree: SkillTreeRead = noSkillTree) {
+export function renderApp(visitor: ShellState, readLeaderboard: BoardRead = noBoard, commands: Commands = {}, readQuests: QuestsRead = noQuests, readBook: BookRead = noBook, readSkillTree: SkillTreeRead = noSkillTree, readRecentKudos: RecentKudosRead = noRecentKudos) {
   const actions = { signIn: vi.fn(), signOut: vi.fn(), openFeature: vi.fn(commands.openFeature ?? (async () => ({ kind: "refused" }) as const)),
     openQuestCrate: vi.fn(commands.openQuestCrate ?? (async () => ({ kind: "refused" }) as const)),
     buyPerk: vi.fn(commands.buyPerk ?? (async () => ({ kind: "refused", reason: null }) as const)),
@@ -30,7 +33,7 @@ export function renderApp(visitor: ShellState, readLeaderboard: BoardRead = noBo
   const appFor = (state: ShellState) => (
     <StrictMode>
       <ShellBoundary>
-        <App visitor={state} actions={actions} useLeaderboard={readLeaderboard} useQuests={readQuests} useBook={readBook} useSkillTree={readSkillTree} />
+        <App visitor={state} actions={actions} useLeaderboard={readLeaderboard} useQuests={readQuests} useBook={readBook} useSkillTree={readSkillTree} useRecentKudos={readRecentKudos} />
       </ShellBoundary>
     </StrictMode>
   );
