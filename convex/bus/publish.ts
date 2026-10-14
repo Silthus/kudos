@@ -25,6 +25,7 @@ export const subscribers: Registry = {
   unlockOpened: [
     { subscriber: internal.quests.weekly.drawWeeklyQuests, only: ({ feature, byLaunch }) => byLaunch !== true && feature === "quests" },
     { subscriber: internal.quests.journey.activateJourney, only: ({ feature, byLaunch }) => byLaunch !== true && journeyStepOpenedBy(feature) !== null },
+    { subscriber: internal.feedback.tierNotices.tellOpeningSummary, only: ({ feature, byLaunch }) => byLaunch !== true && feature === "book" },
   ],
   questFinished: [{ subscriber: internal.quests.journey.finishFirstQuest, only: ({ quest }) => quest.kind === "weekly" }],
   questOpened: [],

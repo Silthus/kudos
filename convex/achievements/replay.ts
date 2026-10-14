@@ -114,7 +114,9 @@ async function completeIfLast(ctx: MutationCtx, batch: BatchId) {
     .query("bookReplays")
     .withIndex("by_batch", (q) => q.eq("batch", batch))
     .collect();
-  if (replays.every(({ isDone }) => isDone)) await ctx.db.patch(batch, { completedAt: Date.now() });
+  if (!replays.every(({ isDone }) => isDone)) return;
+  await ctx.db.patch(batch, { completedAt: Date.now() });
+  await ctx.scheduler.runAfter(0, internal.feedback.tierNotices.tellBatchSummaries, { batch, cursor: null });
 }
 
 function replaysIn(ctx: QueryCtx, workspace: string) {

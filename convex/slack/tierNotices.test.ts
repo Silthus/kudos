@@ -68,7 +68,7 @@ describe("P63 P64 P76: a tier you earn is told by DM and celebrated in the kudos
     expect(tierLinesIn("C1")).toEqual(["🏅 <@U_ALICE> earned First Thanks and First Chapter."]);
   });
 
-  test("a tier earned before the member opened the Book stays silent, even when the opening lands before the count", async () => {
+  test("a tier earned before the member opened the Book gets no public line, even when the opening lands before the count, and arrives as a DM summary", async () => {
     const t = await workspace();
     const [alice, bob] = await membersWithTheBookOpen(t);
     const earnedBeforeOpening = await t.run((ctx) => kudosGivenEventWithAward(ctx, alice!, bob!, { at: Date.now() }));
@@ -78,8 +78,8 @@ describe("P63 P64 P76: a tier you earn is told by DM and celebrated in the kudos
     await t.mutation(internal.achievements.achievements.countKudosGiven, { event: earnedBeforeOpening });
     await settle(t);
 
-    expect(tierDmsTo("U_ALICE")).toEqual([]);
-    expect(tierDmsTo("U_BOB")).toEqual([]);
+    expect(tierDmsTo("U_ALICE")).toEqual(["🏅 You earned First Thanks (Generosity, bronze).\nNext: Generous Soul at 25 kudos given."]);
+    expect(tierDmsTo("U_BOB")).toEqual(["🏅 You earned Noticed (Recognition, bronze).\nNext: Appreciated at 25 kudos received."]);
     expect(tierLinesIn("C1")).toEqual([]);
   });
 
