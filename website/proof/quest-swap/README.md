@@ -61,3 +61,11 @@ Fixed, each with a failing test first (`review/red-round-1.txt`):
 Rejected, with a reason recorded in the Coherence journal:
 - **The fallback scan.** On a day when no undrawn quest for anyone fits, `swapAvailable` still reads the member's lifetime awards. It is reachable only past 32,000 awards from one giver. Slack's App Home publish and Swap already run the same scan for that member. Bounding it needs an awards index by giver, recipient and time in Quests' draw path. That is a follow-up.
 - **Republishing App Home after a refused swap at the Monday turn.** WS318 republishes after `swapped`, and the new-week sweep republishes after the draw.
+
+## Review round 2
+
+GPT-6.1 Sol (high) reviewed the fixes in `review/gpt-6.1-sol-round-2.md`. All five round-1 findings are resolved, and it accepts the fallback-scan rejection. It found one more low defect, pinned by two failing tests (`review/red-round-2.txt`) and fixed:
+- When the refusal came before the read took Swap away, focus still dropped. The hook now keeps the pressed button until it leaves the page or focus moves elsewhere.
+- A late refusal from last week focused the new week's card in the same slot. The hook now moves focus only to a card that still shows the line's quest.
+
+The swarm's two-round budget ends here. Then `main` (#355 and others) was merged in, keeping both sides' commands, and the gate ran on the merged tree.

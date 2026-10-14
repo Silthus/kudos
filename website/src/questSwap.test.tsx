@@ -173,6 +173,33 @@ describe("WS318 WS319: pressing Swap sends the read's own quest and answers in p
     expect(within(main()).getByRole("heading", { name: sayingWhyThreeTimes })).toHaveFocus();
   });
 
+  it("after refused, moves focus to the card's heading when the read takes Swap away after the answer", async () => {
+    const { read, swapLands } = swappingRead();
+    const view = renderApp(withQuests, undefined, { swapQuest: async () => ({ kind: "refused" }) }, read);
+    await view.user.click(swapButtonIn(sayingWhyThreeTimes));
+    expect(cardOf(sayingWhyThreeTimes)).toHaveTextContent("That quest couldn't be swapped.");
+
+    swapLands();
+    view.showVisitor(withQuests);
+
+    expect(within(main()).getByRole("heading", { name: sayingWhyThreeTimes })).toHaveFocus();
+  });
+
+  it("a refusal from last week that lands after the Monday turn moves no focus onto the new week's quest", async () => {
+    const answer = deferred<SwapReply>();
+    let shown: MyQuests = questsFixtures.weekWithASwapLeft;
+    const read: QuestsRead = (asking) => (asking ? shown : undefined);
+    const view = renderApp(withQuests, undefined, { swapQuest: () => answer.promise }, read);
+    await view.user.click(swapButtonIn(sayingWhyThreeTimes));
+
+    shown = { ...questsFixtures.weekWithASwapLeft, slots: questsFixtures.weekWithASwapLeft.slots.map((slot) => ({ ...slot, quest: { ...slot.quest, week: "2026-10-19" } })), swap: { used: false, available: false } };
+    view.showVisitor(withQuests);
+    await act(async () => answer.resolve({ kind: "refused" }));
+
+    expect(within(main()).getByRole("heading", { name: sayingWhyThreeTimes })).not.toHaveFocus();
+    expect(cardOf(sayingWhyThreeTimes)).not.toHaveTextContent("couldn't be swapped");
+  });
+
   it("after no answer, a swap that commits late clears the line, says the new quest and moves focus to it", async () => {
     const { read, swapLands } = swappingRead();
     const view = renderApp(withQuests, undefined, { swapQuest: async () => Promise.reject(new Error("HedgeHug didn't answer in time.")) }, read);

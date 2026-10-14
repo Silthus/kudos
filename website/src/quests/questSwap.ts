@@ -24,11 +24,14 @@ export function useQuestSwap(swapQuest: ShellActions["swapQuest"], slots: QuestS
     headingOf(landed.quest)?.focus();
   }, [landed]);
 
+  const lineShown = line !== undefined && slots.some(({ quest }) => sameQuest(quest, line.quest));
   useEffect(() => {
     if (line === undefined || pressed.current === null) return;
+    const stillPressed = pressed.current.isConnected && document.activeElement === pressed.current;
+    if (stillPressed) return;
     const lost = !pressed.current.isConnected;
     pressed.current = null;
-    if (lost) headingOf(line.quest)?.focus();
+    if (lost && lineShown) headingOf(line.quest)?.focus();
   });
 
   const say = (quest: WeeklyQuest, text: string) => {
