@@ -126,6 +126,7 @@ export default defineSchema({
   }).index("by_message", ["workspace", "conversation", "message"]),
 
   kudosTexts: defineTable(kudosTextValidator).index("by_message", ["workspace", "conversation", "message"]).index("by_author", ["workspace", "author"]),
+  wordDeletionRequests: defineTable({ workspace: v.string(), author: v.union(v.string(), v.null()) }).index("by_author", ["workspace", "author"]),
 
   awards: defineTable({
     workspace: v.string(),

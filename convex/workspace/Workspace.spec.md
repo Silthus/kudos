@@ -3,14 +3,14 @@
 Workspace: the settings with their defaults and the directory of the workspace's people, with the name each one goes by, whether each member is a workspace admin or owner and the email, real name, display name and title Slack gives for a member, none of which a member who leaves keeps, and the workspace's user groups with their handle and name and the people in each, kept only for an enabled user group that isn't one of Slack's automatic admin and owner groups, each answer from Slack changing nothing an answer asked for later already wrote, which the engine reads directly, scheduling analytics to follow a member whose directory entry changes and the people a user group's members change touches, publishing memberLeft when a later directory record says a member no longer is one, and memberRejoined when one says they are one again; setting or clearing the announcement channel, which the setAnnouncementChannel command does for admins only.
 
 ## entrances
-- forget a member's words: a maintainer runs forgetWordsOfMember with a workspace and a Slack user ID when that member asks for their data to be deleted, so every kudos message they wrote loses its stored words and keeps a removed tombstone (AT8)
+- forget a member's words: a maintainer runs forgetWordsOfMember with a workspace and a Slack user ID when that member asks for their data to be deleted, so every kudos message they wrote loses its stored words and keeps a removed tombstone, and the backfill never fills the words of a kudos message they wrote before the request (AT8)
   handler: forgetWordsOfMember in convex/workspace/wordDeletion.ts
   trust: operator
-  control: none — it takes only IDs, deletes only stored words and leaves the kudos, the awards and every other row as they are; the member's later kudos are stored as before
-- forget a workspace's words: a maintainer runs forgetWordsOfWorkspace with a workspace ID when the workspace asks for its data to be deleted, so every kudos message of that workspace loses its stored words and keeps a removed tombstone (AT8)
+  control: none — it takes only IDs, deletes only stored words, records a word-free deletion request for the member and leaves the kudos, the awards and every other row as they are; the member's later kudos are stored live as before
+- forget a workspace's words: a maintainer runs forgetWordsOfWorkspace with a workspace ID when the workspace asks for its data to be deleted, so every kudos message of that workspace loses its stored words and keeps a removed tombstone, and the backfill never fills the words of a kudos message of it given before the request (AT8)
   handler: forgetWordsOfWorkspace in convex/workspace/wordDeletion.ts
   trust: operator
-  control: none — it takes only an ID, deletes only that workspace's stored words and leaves the kudos, the awards and every other row as they are
+  control: none — it takes only an ID, deletes only that workspace's stored words, records a word-free deletion request for the workspace and leaves the kudos, the awards and every other row as they are
 
 ## invariants
 - only admins set the announcement channel: Only a member the directory knows as a workspace admin or owner can set or clear the announcement channel; a command from anyone else, or from an admin Slack has since removed, changes nothing.

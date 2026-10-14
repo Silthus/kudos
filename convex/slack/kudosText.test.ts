@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, postHogHost, projectToken, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
-import { deleteMessage, deleteThreadParent, edit, everythingStored, kudosReceived, memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { broadcast, channel, channelMessage, codeBlock, emoji, link, list, mention, messageEvent, quote, section, text, unicodeEmoji, userGroup } from "../../testing/slackMessages";
+import { deleteMessage, deleteThreadParent, edit, everythingStored, kudosReceived, memberChanged, post, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
+import { broadcast, channel, channelMessage, codeBlock, emoji, link, list, mention, messageEvent, quote, section, text, unicodeEmoji, userGroup, type MessageOptions, type RichElement } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import { ReportableError } from "../analytics/exceptions";
 import { forgetPageSize, wordsOf } from "../engine/kudosText";
@@ -445,6 +445,39 @@ describe("AT8: on request", () => {
     expect(await words(t)).toEqual({ kind: "unavailable", reason: "removed" });
     expect(await words(t, { workspace: "T2" })).toMatchObject({ kind: "text" });
   });
+
+  test("a member's request bars the backfill from their earlier kudos, while another member's are filled and their later kudos stored live", async () => {
+    const t = testBackend();
+    await givenBeforeCapture(t, thanksBob, { ts: postedTs });
+    await givenBeforeCapture(t, thanksBob, { ts: postedTs, user: "U_CAROL", channel: "C2" });
+
+    await t.mutation(internal.workspace.wordDeletion.forgetWordsOfMember, { workspace: "T1", user: "U_ALICE" });
+    await settle(t);
+    await backfill(t);
+    await post(t, [section(text("still thankful "), mention("U_BOB"), emoji("taco"))], { ts: "1760349660.000100", channel: "C3" });
+    await settle(t);
+
+    expect(await words(t)).toEqual({ kind: "unavailable", reason: "not-captured" });
+    expect(await words(t, { conversation: "C2" })).toMatchObject({ kind: "text", author: "U_CAROL", visibility: "unknown" });
+    expect(await words(t, { conversation: "C3", message: "1760349660.000100" })).toMatchObject({ kind: "text", author: "U_ALICE" });
+    expect(slack.callsTo("conversations.history")).toEqual([expect.objectContaining({ channel: "C2" })]);
+  });
+
+  test("a workspace's request bars the backfill from every earlier kudos of it, while another workspace's are filled", async () => {
+    const t = testBackend();
+    slack.withMember("U_DAN", { team_id: "T2" }).withMember("U_ERIN", { team_id: "T2" });
+    await givenBeforeCapture(t, thanksBob, { ts: postedTs });
+    await givenBeforeCapture(t, thanksBob, { ts: postedTs, user: "U_CAROL", channel: "C2" });
+    await givenBeforeCapture(t, [section(text(`thanks ${reason} `), mention("U_ERIN"), text(" "), emoji("taco"))], { ts: postedTs, team: "T2", user: "U_DAN", channel: "C9" });
+
+    await t.mutation(internal.workspace.wordDeletion.forgetWordsOfWorkspace, { workspace: "T1" });
+    await settle(t);
+    await backfill(t);
+
+    expect(await words(t)).toEqual({ kind: "unavailable", reason: "not-captured" });
+    expect(await words(t, { conversation: "C2" })).toEqual({ kind: "unavailable", reason: "not-captured" });
+    expect(await words(t, { workspace: "T2", conversation: "C9" })).toMatchObject({ kind: "text", author: "U_DAN" });
+  });
 });
 
 describe("AT11: a malformed event never reaches the events mutation, whose argument check would quote the words", () => {
@@ -506,6 +539,21 @@ describe("AT40: only kudos messages' text is stored", () => {
 
     await forget(t);
     await settle(t);
+
+    expect(await kudosReceived(t, "U_BOB")).toBe(1);
+    expect(await storedAndScheduled(t)).not.toContain(reason);
+  });
+
+  test.each<[string, (t: Backend) => Promise<unknown>]>([
+    ["its author's", (t) => t.mutation(internal.workspace.wordDeletion.forgetWordsOfMember, { workspace: "T1", user: "U_ALICE" })],
+    ["its workspace's", (t) => t.mutation(internal.workspace.wordDeletion.forgetWordsOfWorkspace, { workspace: "T1" })],
+  ])("%s deletion request before the backfill leaves its words nowhere", async (_, request) => {
+    const t = testBackend();
+    await givenBeforeCapture(t, thanksBob, { ts: postedTs });
+
+    await request(t);
+    await settle(t);
+    await backfill(t);
 
     expect(await kudosReceived(t, "U_BOB")).toBe(1);
     expect(await storedAndScheduled(t)).not.toContain(reason);
@@ -628,6 +676,19 @@ describe("AT40: only kudos messages' text is stored", () => {
     }
   });
 });
+
+async function givenBeforeCapture(t: Backend, blocks: RichElement[], options: MessageOptions & { ts: string }) {
+  forced.beforeCapture = true;
+  await post(t, blocks, options);
+  await settle(t);
+  forced.beforeCapture = false;
+  slack.withMessage(options.channel ?? "C1", channelMessage(blocks, options));
+}
+
+async function backfill(t: Backend) {
+  await t.action(internal.slack.backfill.backfillWords, {});
+  await settleInTimeOrder(t);
+}
 
 async function postEvent(t: Backend, body: string) {
   return t.fetch("/slack/events", await signedRequest(body));
