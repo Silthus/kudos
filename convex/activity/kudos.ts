@@ -28,18 +28,18 @@ export type Mentions = {
 
 export function mentionsOfOnePage(ctx: QueryCtx, lookupsAtMost = mentionLookupsPerPage): Mentions {
   const looked = new Map<string, Promise<string | undefined>>();
-  const once = <Answer extends string | undefined>(key: string, fallback: Answer, lookUp: () => Promise<string | undefined>) => {
-    const known = looked.get(key) as Promise<string | Answer> | undefined;
+  const once = (key: string, lookUp: () => Promise<string | undefined>) => {
+    const known = looked.get(key);
     if (known !== undefined) return known;
-    if (looked.size >= lookupsAtMost) return Promise.resolve(fallback);
-    const answer = lookUp().then((found) => found ?? fallback);
+    if (looked.size >= lookupsAtMost) return Promise.resolve(undefined);
+    const answer = lookUp();
     looked.set(key, answer);
     return answer;
   };
   return {
-    personName: (workspace, user) => once(`person ${workspace} ${user}`, nameless, () => displayNameOfUser(ctx, workspace, user)),
-    groupHandle: (workspace, group) => once(`group ${workspace} ${group}`, unknownGroupHandle, () => userGroupHandleOf(ctx, workspace, group)),
-    emojiImage: (workspace, name) => once(`emoji ${workspace} ${name}`, undefined, () => customEmojiImageOf(ctx, workspace, name)),
+    personName: async (workspace, user) => (await once(`person ${workspace} ${user}`, () => displayNameOfUser(ctx, workspace, user))) ?? nameless,
+    groupHandle: async (workspace, group) => (await once(`group ${workspace} ${group}`, () => userGroupHandleOf(ctx, workspace, group))) ?? unknownGroupHandle,
+    emojiImage: (workspace, name) => once(`emoji ${workspace} ${name}`, () => customEmojiImageOf(ctx, workspace, name)),
   };
 }
 

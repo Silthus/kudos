@@ -86,19 +86,30 @@ describe("the custom emoji sync keeps the workspace's custom emoji in the direct
     for (const name of names) slack.withCustomEmoji(name, `https://emoji.slack-edge.com/T1/${name}/1.png`);
     await sync(t);
 
-    expect(await storedCount(t)).toBe(1_200);
-    expect(await imagesOf(t, "emoji_0", "emoji_1199")).toEqual({ emoji_0: "https://emoji.slack-edge.com/T1/emoji_0/1.png", emoji_1199: "https://emoji.slack-edge.com/T1/emoji_1199/1.png" });
+    expect(await imagesOf(t, ...names)).toEqual(Object.fromEntries(names.map((name) => [name, `https://emoji.slack-edge.com/T1/${name}/1.png`])));
 
     for (const name of names) slack.withoutCustomEmoji(name);
     await sync(t);
 
-    expect(await storedCount(t)).toBe(0);
+    expect(await imagesOf(t, ...names)).toEqual(Object.fromEntries(names.map((name) => [name, undefined])));
   });
 
   test("an app without the emoji:read scope keeps none, fails nothing and logs nothing", async () => {
     const t = testBackend();
     slack.withCustomEmoji("partyparrot", parrotGif).answering("emoji.list", slackError("missing_scope"));
 
+    await sync(t);
+
+    expect(await imagesOf(t, "partyparrot")).toEqual({ partyparrot: undefined });
+    for (const spy of logged) expect(spy).not.toHaveBeenCalled();
+  });
+
+  test("an app that lost the emoji:read scope forgets the custom emoji an earlier listing kept", async () => {
+    const t = testBackend();
+    slack.withCustomEmoji("partyparrot", parrotGif);
+    await sync(t);
+
+    slack.answering("emoji.list", slackError("missing_scope"));
     await sync(t);
 
     expect(await imagesOf(t, "partyparrot")).toEqual({ partyparrot: undefined });
@@ -228,8 +239,4 @@ function answeredNowReturnedLater() {
 async function imagesOf(t: Backend, ...names: string[]) {
   const images = await t.run((ctx) => Promise.all(names.map(async (name) => (await customEmojiImageOf(ctx, "T1", name)) ?? null)));
   return Object.fromEntries(names.map((name, index) => [name, images[index] ?? undefined]));
-}
-
-function storedCount(t: Backend) {
-  return t.run(async (ctx) => (await ctx.db.query("customEmoji").collect()).length);
 }
