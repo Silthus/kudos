@@ -8,3 +8,13 @@ A local Convex backend on its own ports (6210/6211), with the handshake mock as 
 4. `backend-rows.txt`: one account (Alice), her two preview moments and the openings they made, no `unlockLaunches` and no `journeyLaunches` row, and an anonymous `getMyProfile` answering `closed`. Capture was off on this backend, so `flagExposures` stays empty here; `convex/website/preview.test.ts` proves the exposure.
 
 Red before the change: `red-backend.txt` (6 of 11 failing), `red-website.txt` (6 failing). The gate on `4c3d85e`: `gate-4c3d85e.txt`.
+
+## Refreshed on 8c0226e, after both review rounds
+
+The same backend, redeployed at `8c0226e` with the site rebuilt:
+
+5. Alice, still signed in, opened `/leaderboard?sign-in`. The ask was dropped and the board showed with no trip to Slack (`head-signed-in-ask-dropped-light.png`).
+6. She signed out from the account menu. The page shows "Not open yet", not the blank page review round 2 found (`head-signed-out-after-ask-light.png`).
+7. She opened `/leaderboard?period=month&sign-in`. The site started Sign in with Slack and brought her back to the month's board (`head-month-board-after-sign-in-dark.png`).
+
+The gate on `8c0226e`: `gate-8c0226e.txt`. The launch refusal round 1 added (a flag switched on for the workspace after a preview) is proven in `convex/website/preview.test.ts`; its red run is `red-launch-due.txt`, and the stuck page's red run is `red-stuck-blank.txt`.

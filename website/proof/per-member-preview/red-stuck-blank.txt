@@ -1,0 +1,351 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/per-member-flags/website
+
+ ❯ |website| src/signIn.test.tsx (24 tests | 2 failed | 20 skipped) 3340ms
+   ❯ F28: a link from Slack that asks to sign in (10)
+     × shows a member who arrived with the ask the page their later closed answer calls for 1197ms
+     × shows a member who arrived with the ask the page their later signed-out answer calls for 1130ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/signIn.test.tsx > F28: a link from Slack that asks to sign in > shows a member who arrived with the ask the page their later closed answer calls for
+ FAIL  |website| src/signIn.test.tsx > F28: a link from Slack that asks to sign in > shows a member who arrived with the ask the page their later signed-out answer calls for
+TestingLibraryElementError: Unable to find role="heading"
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="hud-root flex min-h-screen flex-col"
+    >
+      <header
+        class="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"
+      >
+        <div
+          class="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-3 px-4 max-sm:gap-x-2 max-sm:gap-y-1 max-sm:pt-2 md:px-6"
+        >
+          <a
+            class="flex items-center rounded-md"
+            href="/"
+          >
+            <span
+              class="flex flex-col leading-none"
+            >
+              <span
+                class="hud-display text-lg font-bold"
+              >
+                HedgeHug
+              </span>
+              <span
+                class="text-[10px] text-muted-foreground"
+              >
+                Thanks a Hog
+              </span>
+            </span>
+          </a>
+          <div
+            class="ml-auto flex items-center gap-2 max-sm:gap-1.5"
+          >
+            <div
+              aria-label="Theme"
+              class="flex items-center gap-0.5 rounded-full border bg-card p-0.5"
+              role="group"
+            >
+              <button
+                aria-label="Use system setting"
+                aria-pressed="true"
+                class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-primary bg-fill-selected text-foreground"
+                title="Use system setting"
+                type="button"
+              >
+                <svg
+                  class="LemonIcon size-4"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  width="100%"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    clip-rule="evenodd"
+                    d="M3 5.75A2.75 2.75 0 0 1 5.75 3h12.5A2.75 2.75 0 0 1 21 5.75V16h1.25a.75.75 0 0 1 .75.75v1.5A2.75 2.75 0 0 1 20.25 21H3.75A2.75 2.75 0 0 1 1 18.25v-1.5a.75.75 0 0 1 .75-.75H3V5.75ZM4.5 16h15V5.75c0-.69-.56-1.25-1.25-1.25H5.75c-.69 0-1.25.56-1.25 1.25V16Zm-2 1.5v.75c0 .69.56 1.25 1.25 1.25h16.5c.69 0 1.25-.56 1.25-1.25v-.75h-19Z"
+                    fill-rule="evenodd"
+                  />
+                </svg>
+                <span
+                  aria-hidden="true"
+                  class="absolute -bottom-0.5 -right-0.5 flex size-3 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                  data-selected-mark="true"
+                >
+                  <svg
+                    class="LemonIcon size-2.5"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                    width="100%"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <g
+                      clip-path="url(#icon/check__a)"
+                    >
+                      <path
+                        clip-rule="evenodd"
+                        d="M21.225 3.67a.75.75 0 0 1 .105 1.055L8.87 19.955a.75.75 0 0 1-1.11.056l-5.54-5.538a.75.75 0 0 1 1.061-1.061l4.953 4.952L20.169 3.775a.75.75 0 0 1 1.056-.105Z"
+                        fill-rule="evenodd"
+                      />
+                    </g>
+                    <defs>
+                      <clippath
+                        id="icon/check__a"
+                      >
+                        <path
+                          d="M0 0h20v18H0z"
+                          transform="translate(2 3)"
+                        />
+                      </clippath>
+                    </defs>
+                  </svg>
+                </span>
+              </button>
+              <button
+                aria-label="Light"
+                aria-pressed="false"
+                class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+                title="Light"
+                type="button"
+              >
+                <svg
+                  class="LemonIcon size-4"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  width="100%"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M12.0002 3.79083V2.26758M5.8418 18.6586L4.7647 19.7357M12.0002 22.7327V21.2094M19.2353 5.26468L18.1582 6.34179M20.709 12.5001H22.2322M18.1582 18.6586L19.2353 19.7357M1.76758 12.5001H3.29083M4.76462 5.26462L5.84173 6.34173M15.7123 8.78781C17.7626 10.8381 17.7626 14.1622 15.7123 16.2124C13.6621 18.2627 10.3379 18.2627 8.28769 16.2124C6.23744 14.1622 6.23744 10.8381 8.28769 8.78781C10.3379 6.73756 13.6621 6.73756 15.7123 8.78781Z"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                  />
+                </svg>
+              </button>
+              <button
+                aria-label="Dark"
+                aria-pressed="false"
+                class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+                title="Dark"
+                type="button"
+              >
+                <svg
+                  class="LemonIcon size-4"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  width="100%"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <g>
+                    <path
+                      clip-rule="evenodd"
+                      d="M10.8644 4.0752C6.70688 4.63028 3.5 8.19064 3.5 12.5C3.5 17.1944 7.30558 21 12 21C16.3094 21 19.8697 17.7931 20.4248 13.6356C19.5298 14.0306 18.54 14.25 17.5 14.25C13.4959 14.25 10.25 11.0041 10.25 7C10.25 5.95996 10.4694 4.97015 10.8644 4.0752ZM2 12.5C2 6.97715 6.47715 2.5 12 2.5C12.0681 2.5 12.136 2.50068 12.2038 2.50204C12.4814 2.5076 12.7331 2.66599 12.8583 2.91377C12.9834 3.16155 12.9615 3.45819 12.8012 3.68485C12.139 4.62157 11.75 5.76425 11.75 7C11.75 10.1756 14.3244 12.75 17.5 12.75C18.7358 12.75 19.8784 12.361 20.8151 11.6988C21.0418 11.5385 21.3384 11.5166 21.5862 11.6417C21.834 11.7669 21.9924 12.0186 21.998 12.2962C21.9993 12.3639 22 12.4319 22 12.5C22 18.0228 17.5228 22.5 12 22.5C6.47715 22.5 2 18.0228 2 12.5Z"
+                      fill-rule="evenodd"
+                    />
+                    <path
+                      d="M16.2404 5.51756L17.052 3.89439C17.2363 3.52587 17.7622 3.52587 17.9464 3.89439L18.758 5.51756C18.8064 5.61432 18.8849 5.69278 18.9816 5.74117L20.6048 6.55275C20.9733 6.73701 20.9733 7.26292 20.6048 7.44718L18.9816 8.25876C18.8849 8.30714 18.8064 8.3856 18.758 8.48237L17.9464 10.1055C17.7622 10.4741 17.2363 10.4741 17.052 10.1055L16.2404 8.48237C16.1921 8.3856 16.1136 8.30714 16.0168 8.25876L14.3937 7.44718C14.0251 7.26292 14.0251 6.73701 14.3937 6.55275L16.0168 5.74117C16.1136 5.69278 16.1921 5.61432 16.2404 5.51756Z"
+                    />
+                  </g>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+      <main
+        aria-busy="true"
+        class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+      />
+    </div>
+    <p
+      class="sr-only"
+      data-testid="moment-announcement"
+      role="status"
+    />
+  </div>
+</body>
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="hud-root flex min-h-screen flex-col"
+    >
+      <header
+        class="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"
+      >
+        <div
+          class="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-3 px-4 max-sm:gap-x-2 max-sm:gap-y-1 max-sm:pt-2 md:px-6"
+        >
+          <a
+            class="flex items-center rounded-md"
+            href="/"
+          >
+            <span
+              class="flex flex-col leading-none"
+            >
+              <span
+                class="hud-display text-lg font-bold"
+              >
+                HedgeHug
+              </span>
+              <span
+                class="text-[10px] text-muted-foreground"
+              >
+                Thanks a Hog
+              </span>
+            </span>
+          </a>
+          <div
+            class="ml-auto flex items-center gap-2 max-sm:gap-1.5"
+          >
+            <div
+              aria-label="Theme"
+              class="flex items-center gap-0.5 rounded-full border bg-card p-0.5"
+              role="group"
+            >
+              <button
+                aria-label="Use system setting"
+                aria-pressed="true"
+                class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-primary bg-fill-selected text-foreground"
+                title="Use system setting"
+                type="button"
+              >
+                <svg
+                  class="LemonIcon size-4"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  width="100%"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    clip-rule="evenodd"
+                    d="M3 5.75A2.75 2.75 0 0 1 5.75 3h12.5A2.75 2.75 0 0 1 21 5.75V16h1.25a.75.75 0 0 1 .75.75v1.5A2.75 2.75 0 0 1 20.25 21H3.75A2.75 2.75 0 0 1 1 18.25v-1.5a.75.75 0 0 1 .75-.75H3V5.75ZM4.5 16h15V5.75c0-.69-.56-1.25-1.25-1.25H5.75c-.69 0-1.25.56-1.25 1.25V16Zm-2 1.5v.75c0 .69.56 1.25 1.25 1.25h16.5c.69 0 1.25-.56 1.25-1.25v-.75h-19Z"
+                    fill-rule="evenodd"
+                  />
+                </svg>
+                <span
+                  aria-hidden="true"
+                  class="absolute -bottom-0.5 -right-0.5 flex size-3 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                  data-selected-mark="true"
+                >
+                  <svg
+                    class="LemonIcon size-2.5"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                    width="100%"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <g
+                      clip-path="url(#icon/check__a)"
+                    >
+                      <path
+                        clip-rule="evenodd"
+                        d="M21.225 3.67a.75.75 0 0 1 .105 1.055L8.87 19.955a.75.75 0 0 1-1.11.056l-5.54-5.538a.75.75 0 0 1 1.061-1.061l4.953 4.952L20.169 3.775a.75.75 0 0 1 1.056-.105Z"
+                        fill-rule="evenodd"
+                      />
+                    </g>
+                    <defs>
+                      <clippath
+                        id="icon/check__a"
+                      >
+                        <path
+                          d="M0 0h20v18H0z"
+                          transform="translate(2 3)"
+                        />
+                      </clippath>
+                    </defs>
+                  </svg>
+                </span>
+              </button>
+              <button
+                aria-label="Light"
+                aria-pressed="false"
+                class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+                title="Light"
+                type="button"
+              >
+                <svg
+                  class="LemonIcon size-4"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  width="100%"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M12.0002 3.79083V2.26758M5.8418 18.6586L4.7647 19.7357M12.0002 22.7327V21.2094M19.2353 5.26468L18.1582 6.34179M20.709 12.5001H22.2322M18.1582 18.6586L19.2353 19.7357M1.76758 12.5001H3.29083M4.76462 5.26462L5.84173 6.34173M15.7123 8.78781C17.7626 10.8381 17.7626 14.1622 15.7123 16.2124C13.6621 18.2627 10.3379 18.2627 8.28769 16.2124C6.23744 14.1622 6.23744 10.8381 8.28769 8.78781C10.3379 6.73756 13.6621 6.73756 15.7123 8.78781Z"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                  />
+                </svg>
+              </button>
+              <button
+                aria-label="Dark"
+                aria-pressed="false"
+                class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+                title="Dark"
+                type="button"
+              >
+                <svg
+                  class="LemonIcon size-4"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  width="100%"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <g>
+                    <path
+                      clip-rule="evenodd"
+                      d="M10.8644 4.0752C6.70688 4.63028 3.5 8.19064 3.5 12.5C3.5 17.1944 7.30558 21 12 21C16.3094 21 19.8697 17.7931 20.4248 13.6356C19.5298 14.0306 18.54 14.25 17.5 14.25C13.4959 14.25 10.25 11.0041 10.25 7C10.25 5.95996 10.4694 4.97015 10.8644 4.0752ZM2 12.5C2 6.97715 6.47715 2.5 12 2.5C12.0681 2.5 12.136 2.50068 12.2038 2.50204C12.4814 2.5076 12.7331 2.66599 12.8583 2.91377C12.9834 3.16155 12.9615 3.45819 12.8012 3.68485C12.139 4.62157 11.75 5.76425 11.75 7C11.75 10.1756 14.3244 12.75 17.5 12.75C18.7358 12.75 19.8784 12.361 20.8151 11.6988C21.0418 11.5385 21.3384 11.5166 21.5862 11.6417C21.834 11.7669 21.9924 12.0186 21.998 12.2962C21.9993 12.3639 22 12.4319 22 12.5C22 18.0228 17.5228 22.5 12 22.5C6.47715 22.5 2 18.0228 2 12.5Z"
+                      fill-rule="evenodd"
+                    />
+                    <path
+                      d="M16.2404 5.51756L17.052 3.89439C17.2363 3.52587 17.7622 3.52587 17.9464 3.89439L18.758 5.51756C18.8064 5.61432 18.8849 5.69278 18.9816 5.74117L20.6048 6.55275C20.9733 6.73701 20.9733 7.26292 20.6048 7.44718L18.9816 8.25876C18.8849 8.30714 18.8064 8.3856 18.758 8.48237L17.9464 10.1055C17.7622 10.4741 17.2363 10.4741 17.052 10.1055L16.2404 8.48237C16.1921 8.3856 16.1136 8.30714 16.0168 8.25876L14.3937 7.44718C14.0251 7.26292 14.0251 6.73701 14.3937 6.55275L16.0168 5.74117C16.1136 5.69278 16.1921 5.61432 16.2404 5.51756Z"
+                    />
+                  </g>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+      <main
+        aria-busy="true"
+        class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+      />
+    </div>
+    <p
+      class="sr-only"
+      data-testid="moment-announcement"
+      role="status"
+    />
+  </div>
+</body>
+ ❯ waitForWrapper ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ src/signIn.test.tsx:213:25
+    211|     showVisitor(later);
+    212|
+    213|     expect(await screen.findByRole("heading", { level: 1 })).toHaveTex…
+       |                         ^
+    214|     expect(actions.signIn).not.toHaveBeenCalled();
+    215|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 passed | 20 skipped (24)
+   Start at  08:46:22
+   Duration  5.74s (tests 59%, import 21%, transform 9%, environment 9%, setup 2%)
+

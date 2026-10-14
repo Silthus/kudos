@@ -1,0 +1,76 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/per-member-flags
+
+ ❯ |convex| convex/website/preview.test.ts (15 tests | 1 failed | 14 skipped) 83ms
+   ❯ F26 F27 F28 F29: a member previews the website by their own decision (15)
+     ❯ F27: the website on for the workspace and off in one member's own decision (2)
+       × a member with no analytics ID yet, whose session the workspace decision admits, is refused by their own decision and the command writes nothing at all 82ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/preview.test.ts > F26 F27 F28 F29: a member previews the website by their own decision > F27: the website on for the workspace and off in one member's own decision > a member with no analytics ID yet, whose session the workspace decision admits, is refused by their own decision and the command writes nothing at all
+AssertionError: expected [ [ { …(4) } ], [ { …(5) } ], …(1) ] to deeply equal [ [], [], [] ]
+
+- Expected
++ Received
+
+  [
+-   [],
+-   [],
+-   [],
++   [
++     {
++       "_creationTime": 1791972000000.004,
++       "_id": "00000000000000010004analyticsIds",
++       "analyticsId": "id-out-0",
++       "member": "0000000000000000000010000members",
++     },
++   ],
++   [
++     {
++       "_creationTime": 1791972000000.0059,
++       "_id": "0000000000000010006flagExposures",
++       "flag": "website",
++       "member": "0000000000000000000010000members",
++       "value": false,
++     },
++   ],
++   [
++     {
++       "_creationTime": 1791972000000.0068,
++       "_id": "00000000000010007analyticsOutbox",
++       "distinctId": "id-out-0",
++       "dueAt": 1791972000000,
++       "event": "$feature_flag_called",
++       "failures": 0,
++       "properties": {
++         "environment": "sandbox",
++         "feature_flag": "website",
++         "feature_flag_response": false,
++         "locally_evaluated": true,
++         "taxonomy_version": 1,
++         "workspace_key": "id-in-1",
++       },
++       "state": "pending",
++       "timestamp": 1791972000000,
++       "uuid": "id-out-0",
++     },
++   ],
+  ]
+
+ ❯ convex/website/preview.test.ts:226:84
+    224|
+    225|       expect(await openFeature(asSignedIn)).toEqual({ kind: "closed" }…
+    226|       expect(await everyRowOf("analyticsIds", "flagExposures", "analyt…
+       |                                                                                    ^
+    227|     });
+    228|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 14 skipped (15)
+   Start at  08:38:21
+   Duration  880ms (transform 59%, import 25%, tests 11%, environment 5%)
+
