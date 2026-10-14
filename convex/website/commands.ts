@@ -1,13 +1,15 @@
 import { runCommand } from "../commands/commands";
 import { republish } from "../feedback/homes";
 import { crateOpeningOf, rewardKeyOf } from "../quests/crates";
-import { journeyShippedAt, questsApplyIn } from "../quests/flag";
+import { journeyStartedFor, questsApplyTo } from "../quests/flag";
 import { questValidator } from "../quests/step";
 import { featureValidator } from "../unlocks/feature";
-import { unlockPathShownIn } from "../unlocks/launch";
+import { unlockPathShownTo } from "../unlocks/launch";
 import { stateOf } from "../unlocks/unlocks";
 import type { MutationCtx } from "../_generated/server";
+import { workspaceLaunchDueIn } from "./flag";
 import { memberMutation } from "./memberMutation";
+import type { VerifiedMember } from "./memberQuery";
 
 export type CommandAnswer = { kind: "opened" } | { kind: "refused" };
 
@@ -17,7 +19,7 @@ const refused: CommandAnswer = { kind: "refused" };
 export const openFeature = memberMutation({
   args: { feature: featureValidator },
   handler: async (ctx, me, person, { feature }): Promise<CommandAnswer> => {
-    if (!(await launchesRecordedIn(ctx, me.workspace))) return refused;
+    if (!(await launchesRecordedFor(ctx, me))) return refused;
     await runCommand(ctx, me.workspace, person, { type: "openUnlock", feature }, `website:openFeature:${me.member}:${feature}`);
     if ((await stateOf(ctx, me.member, feature)) !== "open") return refused;
     await republish(ctx, me.member);
@@ -28,7 +30,7 @@ export const openFeature = memberMutation({
 export const openQuestCrate = memberMutation({
   args: { quest: questValidator },
   handler: async (ctx, me, person, { quest }): Promise<CommandAnswer> => {
-    if (!(await questsLaunchedIn(ctx, me.workspace))) return refused;
+    if (!(await questsLaunchedFor(ctx, me))) return refused;
     await runCommand(ctx, me.workspace, person, { type: "openQuestCrate", quest }, `website:openQuestCrate:${me.member}:${rewardKeyOf(quest)}`);
     if ((await crateOpeningOf(ctx, me.member, rewardKeyOf(quest))) === null) return refused;
     await republish(ctx, me.member);
@@ -36,15 +38,12 @@ export const openQuestCrate = memberMutation({
   },
 });
 
-async function launchesRecordedIn(ctx: MutationCtx, workspace: string) {
-  if (!(await unlockPathShownIn(ctx, workspace))) return false;
-  return !(await questsApplyIn(ctx, workspace)) || (await journeyLaunchedIn(ctx, workspace));
+async function launchesRecordedFor(ctx: MutationCtx, me: VerifiedMember) {
+  if ((await workspaceLaunchDueIn(ctx, me.workspace)) || !(await unlockPathShownTo(ctx, me.member))) return false;
+  return !(await questsApplyTo(ctx, me.member)) || (await journeyStartedFor(ctx, me.member)) !== null;
 }
 
-async function questsLaunchedIn(ctx: MutationCtx, workspace: string) {
-  return (await questsApplyIn(ctx, workspace)) && (await journeyLaunchedIn(ctx, workspace));
-}
-
-async function journeyLaunchedIn(ctx: MutationCtx, workspace: string) {
-  return (await journeyShippedAt(ctx, workspace)) !== null;
+async function questsLaunchedFor(ctx: MutationCtx, me: VerifiedMember) {
+  if (await workspaceLaunchDueIn(ctx, me.workspace)) return false;
+  return (await questsApplyTo(ctx, me.member)) && (await journeyStartedFor(ctx, me.member)) !== null;
 }

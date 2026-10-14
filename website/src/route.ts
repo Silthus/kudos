@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { signInEntry } from "../../convex/website/routes";
 import { periods } from "./leaderboard/periods";
 import type { Period } from "./shell";
 
@@ -17,8 +18,13 @@ type ServedPath = keyof typeof routeAt;
 export const servedPaths = Object.keys(routeAt) as ServedPath[];
 
 export function routeOf({ pathname, search }: { pathname: string; search: string }): Route {
-  const served = servedPaths.find((path) => path === pathname);
+  const served = servedPaths.find((path) => path === withoutTheSignInEntry(pathname));
   return served === undefined ? { page: "not-found" } : routeAt[served](search);
+}
+
+export function withoutTheSignInEntry(pathname: string) {
+  if (pathname !== signInEntry && !pathname.startsWith(`${signInEntry}/`)) return pathname;
+  return `/${pathname.slice(signInEntry.length).replace(/^\/+/, "")}`;
 }
 
 export function hrefOf(route: Route) {

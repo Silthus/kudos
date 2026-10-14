@@ -1,0 +1,59 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/per-member-flags
+
+ ❯ |convex| convex/website/preview.test.ts (14 tests | 2 failed | 12 skipped) 122ms
+   ❯ F26 F27 F28 F29: a member previews the website by their own decision (14)
+     ❯ F21: a previewer's command never records a workspace launch the flag's switch made due (2)
+       × unlocks switched on for the workspace after the preview: the previewer's open answers refused and records no unlocks launch 99ms
+       × quests switched on for the workspace after the preview, with unlocks launched: the previewer's open answers refused and records no Journey launch 22ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/preview.test.ts > F26 F27 F28 F29: a member previews the website by their own decision > F21: a previewer's command never records a workspace launch the flag's switch made due > unlocks switched on for the workspace after the preview: the previewer's open answers refused and records no unlocks launch
+AssertionError: expected { kind: 'opened' } to deeply equal { kind: 'refused' }
+
+- Expected
++ Received
+
+  {
+-   "kind": "refused",
++   "kind": "opened",
+  }
+
+ ❯ convex/website/preview.test.ts:230:42
+    228|       await flagsServed(...everyFlagOn);
+    229|
+    230|       expect(await openFeature(asAlice)).toEqual({ kind: "refused" });
+       |                                          ^
+    231|       expect(await rowsOf("unlockLaunches")).toEqual([]);
+    232|       expect(await rowsOf("journeyLaunches")).toEqual([]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |convex| convex/website/preview.test.ts > F26 F27 F28 F29: a member previews the website by their own decision > F21: a previewer's command never records a workspace launch the flag's switch made due > quests switched on for the workspace after the preview, with unlocks launched: the previewer's open answers refused and records no Journey launch
+AssertionError: expected { kind: 'opened' } to deeply equal { kind: 'refused' }
+
+- Expected
++ Received
+
+  {
+-   "kind": "refused",
++   "kind": "opened",
+  }
+
+ ❯ convex/website/preview.test.ts:243:42
+    241|       await flagsServed(...everyFlagOn);
+    242|
+    243|       expect(await openFeature(asAlice)).toEqual({ kind: "refused" });
+       |                                          ^
+    244|       expect(await rowsOf("journeyLaunches")).toEqual([]);
+    245|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 12 skipped (14)
+   Start at  08:29:58
+   Duration  926ms (transform 57%, import 23%, tests 15%, environment 5%)
+

@@ -9,9 +9,13 @@ export function everyoneBoardShownIn(ctx: QueryCtx | MutationCtx, workspace: str
   return workspaceDecision(ctx, everyoneBoardFlag, workspace);
 }
 
+export function everyoneBoardOnFor(ctx: QueryCtx | MutationCtx, member: MemberId): Promise<boolean> {
+  return memberDecision(ctx, everyoneBoardFlag, member);
+}
+
 export async function isEveryoneBoardShownTo(ctx: MutationCtx, workspace: string, member: MemberId | undefined) {
   if (member === undefined) return everyoneBoardShownIn(ctx, workspace);
-  const shown = await memberDecision(ctx, everyoneBoardFlag, member);
+  const shown = await everyoneBoardOnFor(ctx, member);
   await exposed(ctx, everyoneBoardFlag, member, shown);
   return shown;
 }

@@ -10,3 +10,4 @@ Each ticket of the website's first slice left its proof here.
 - [`deploy/`](deploy/): #111, the sandbox deploy and the production preparation.
 - [`ship/`](ship/): #112, the ship: the CSP fix and the production proof.
 - [`leaderboard-read/`](leaderboard-read/): #133, the leaderboard read (second slice), backend only.
+- [`per-member-preview/`](per-member-preview/): #204, a member PostHog names by email previews the website while the workspace stays closed.
