@@ -4,7 +4,7 @@ import { CrateArt } from "./CrateArt";
 export function RewardCrate({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3">
-      <CrateArt phase="closed" width={56} Hog={aboutOf("quests").Hog} />
+      <CrateArt phase="closed" width={56} Hog={aboutOf("quests").Hog} nudge />
       <div className="flex min-w-0 flex-col gap-0.5">
         <p className="text-sm font-medium">{label}</p>
         <p className="text-xs text-muted-foreground">Ready for you. Open it in Slack's App Home.</p>

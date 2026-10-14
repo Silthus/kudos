@@ -79,6 +79,26 @@ describe("WS73: /quests shows this week's quests while Quests is open", () => {
     expect(within(card).queryByRole("button")).not.toBeInTheDocument();
   });
 
+  it("keeps a finished quest's progress beside its crate", () => {
+    showQuests(questsFixtures.week);
+    expect(within(cardOf("Thank someone you haven't thanked before.")).getByRole("progressbar", { name: "1 of 1" })).toBeInTheDocument();
+  });
+
+  it("nudges each closed reward crate once, as every closed crate does (V8)", () => {
+    showQuests(questsFixtures.weekWithLastWeeksCrate);
+    const crates = within(main()).getAllByText("Quest reward · 20 XP");
+    expect(crates).toHaveLength(2);
+    for (const crate of crates) expect(crate.closest("article")!.querySelector(".crate-art")).toHaveAttribute("data-nudge", "true");
+  });
+
+  it("frames each quest card with corner marks and keeps How quests work a plain reading card (V2)", () => {
+    showQuests(questsFixtures.week);
+    for (const card of within(questCards()).getAllByRole("article")) expect(card).toHaveClass("hud-panel");
+    const how = within(main()).getByRole("region", { name: "How quests work" });
+    expect(how).not.toHaveClass("hud-panel");
+    expect(how.querySelector(".hud-panel")).toBeNull();
+  });
+
   it("reads ✓ Done for an opened quest", () => {
     showQuests(questsFixtures.week);
     expect(cardOf("Thank someone you haven't thanked in the last 30 days.")).toHaveTextContent("✓ Done");

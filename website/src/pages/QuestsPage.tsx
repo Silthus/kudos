@@ -1,5 +1,6 @@
 import { HedgehogTownCrier } from "@posthog/brand/hoggies";
 import { IconClock } from "@posthog/icons";
+import { Card, CardContent } from "@posthog/quill";
 import { Done, RewardCrate } from "../crates/RewardCrate";
 import { PageTitle } from "../PageTitle";
 import type { QuestsAnswer, QuestSlot, WaitingCrate } from "../shell";
@@ -49,16 +50,14 @@ function QuestCard({ kind, goal, progress, reward, state, swapped }: QuestSlot) 
         {swapped && <span className="rounded-full border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">Swapped</span>}
       </div>
       <h2 className="text-base font-semibold leading-snug">{goal}</h2>
+      <QuestProgress {...progress} />
       {state === "finished" ? (
         <RewardCrate label={`Quest reward · ${reward.xp} XP`} />
       ) : (
-        <>
-          <QuestProgress {...progress} />
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-xs font-medium tabular-nums text-muted-foreground">{`${reward.xp} XP`}</span>
-            {state === "opened" && <Done />}
-          </div>
-        </>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-xs font-medium tabular-nums text-muted-foreground">{`${reward.xp} XP`}</span>
+          {state === "opened" && <Done />}
+        </div>
       )}
     </article>
   );
@@ -109,13 +108,17 @@ function NoQuests({ chatUrl }: { chatUrl: string }) {
 
 function HowQuestsWork() {
   return (
-    <section aria-labelledby="how-quests-work-title" className="hud-panel relative flex flex-col gap-2 rounded-xl border bg-card p-4">
-      <h2 id="how-quests-work-title" className="hud-label">
-        How quests work
-      </h2>
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        Quests reward thanking someone new, someone you haven't thanked in a while, and thanks that say why. A thanks says why when your message has 5 or more words besides mentions and emoji. New quests arrive every Monday. You can swap one quest a week in Slack's App Home.
-      </p>
+    <section aria-labelledby="how-quests-work-title">
+      <Card size="sm">
+        <CardContent className="flex flex-col gap-2">
+          <h2 id="how-quests-work-title" className="hud-label">
+            How quests work
+          </h2>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Quests reward thanking someone new, someone you haven't thanked in a while, and thanks that say why. A thanks says why when your message has 5 or more words besides mentions and emoji. New quests arrive every Monday. You can swap one quest a week in Slack's App Home.
+          </p>
+        </CardContent>
+      </Card>
     </section>
   );
 }
