@@ -41,10 +41,10 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 
- Test Files  65 passed (65)
-      Tests  1025 passed (1025)
-   Start at  02:22:46
-   Duration  22.83s (tests 66%, import 18%, environment 8%, transform 7%, setup 1%)
+ Test Files  79 passed (79)
+      Tests  1217 passed (1217)
+   Start at  02:24:34
+   Duration  26.53s (tests 73%, import 14%, transform 6%, environment 5%, setup 1%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
@@ -108,11 +108,19 @@ Feedback  convex/feedback/Feedback.spec.md
       totality oracle "D18: the one public reply" over every public reply the app asks Slack to post or edit for a kudos message: one member and two members levelling up through it, a level reached after the reply was posted, one reached while the post is in flight, a post whose answer is lost and one that failed after Slack accepted it: verified 2026-10-13
       refuted 2026-10-13: setPublicSection also scheduled a delivery while the reply was still posting
       kinds message, output: 12 shapes apply, 2 declared, 10 dismissed
+  a rewarded level is announced once  invariant
+      totality oracle "P64: a level reached through a reward record" over every public notice the app asks Slack to post for the level 2 that the Journey's first-thanks step reaches: with an announcement channel picked and without one, for a member who muted public notices, and with the same levelReached delivered again: verified 2026-10-13
+      refuted 2026-10-13: announceRewardedLevel no longer looked for an existing notice for the member and level
+      kinds message, output: 12 shapes apply, 2 declared, 10 dismissed
   a feature's lines wait for its opening  invariant
       totality oracle "P76: a feature's lines wait for its opening" over the level-up DMs and App Home views the app asks Slack to send to a member reaching levels 5 and 6, with the skill tree unshipped, shipped and ready, and opened, and the member's stored skill points; and the App Home tab bar, the Leaderboard tab and the `/hedgehug leaderboard` reply for a member at level 1, at level 3 before opening and after opening the Leaderboard, with everyone-board on and off, and the board another member sees: verified 2026-10-13
       refuted 2026-10-13: whenOpened passed every line through whatever the member's unlock state
       refuted 2026-10-13: isLeaderboardOpenTo returned true whatever the member's unlock state
       kinds output: 5 shapes apply, 0 declared, 5 dismissed
+  a success reply held for Quests is never lost  invariant
+      totality oracle "P71 R36: a success reply held for Quests is never lost" over a held success reply nobody releases, before and after 10 seconds, and a kudos with quests off whose delivery is read from the scheduled functions right after its request, at the Slack boundary: verified 2026-10-14
+      refuted 2026-10-14: a held success reply got no bound, so only Quests' subscriber could release it
+      kinds message: 8 shapes apply, 0 declared, 15 dismissed
 Leaderboard  convex/leaderboard/Leaderboard.spec.md
   the leaderboard counts kudos given, never kudos received  invariant
       totality oracle "G13: the board counts kudos given, never kudos received" over the totals and this week's Everyone board after one member gives kudos to two others in one message and one of them gives kudos back, seen by the member who only received: verified 2026-10-13
@@ -140,6 +148,10 @@ Progression  convex/progression/Progression.spec.md
       totality oracle "P8: effects records are only ever inserted, never changed or deleted" over every module under convex/, outside its tests and the generated code: verified 2026-10-13
       refuted 2026-10-13: insertEffects overwrote an existing record for the same award and side with ctx.db.patch
       kinds storage: 9 shapes apply, 0 declared, 9 dismissed
+  reward records are insert-only  invariant
+      totality oracle "P87: reward records are only ever inserted, never changed or deleted" over every module under convex/, outside its tests and the generated code: verified 2026-10-13
+      refuted 2026-10-13: insertReward overwrote an existing reward record for the same member and key with ctx.db.patch
+      kinds storage: 9 shapes apply, 0 declared, 9 dismissed
   an award's side is recorded once  invariant
       totality oracle "P8 P6: delivering the same kudosGiven twice, or retrying the subscriber, leaves one record per side, counts the XP once and reaches a level once" over a Given kudos message whose kudosGiven the subscriber records, then the same event delivered to the subscriber twice more: verified 2026-10-13
       refuted 2026-10-13: removed the anyRecorded check in recordEffects
@@ -148,6 +160,108 @@ Progression  convex/progression/Progression.spec.md
       totality oracle "the xp-levels flag hides the slice while it is off" over every Slack call and App Home view the app makes for a level reached, an App Home opening and a click on a stale App Home button, with xp-levels turned off in PostHog, not created there, on in the sandbox only and read in production, and unreadable for a missing flags key: verified 2026-10-13
       refuted 2026-10-13: removed the xp-levels check in notifyLevelReached
       kinds output: 5 shapes apply, 0 declared, 5 dismissed
+Quests  convex/quests/Quests.spec.md
+  a Journey step's reward is recorded once  invariant
+      totality oracle "P8 P87: a Journey step's reward is recorded once" over a kudos that says why from a level 1 member, delivered twice to both subscribers in each order, read through the member's standing, the published levelReached and questFinished events and questsOf: verified 2026-10-13
+      refuted 2026-10-13: recordReward no longer skipped a reward key already recorded
+      kinds message, state: 15 shapes apply, 1 declared, 14 dismissed
+  a Journey step pays what it promised  invariant
+      totality oracle "P86: the reward is the one promised when the step became active" over a step activated under catalogue version 1 and finished under a retuned version 2, read through the member's standing and questsOf: verified 2026-10-13
+      refuted 2026-10-13: finishing paid the catalogue's current reward and version instead of the activation's
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+  a Journey step that opens with a feature counts only what follows it  invariant
+      totality oracle "P90: a Journey step that opens with a feature counts only what follows its activation" over a kudos to someone new before the Leaderboard was opened and the same person thanked again after, at the Slack boundary, a kudosGiven for a kudos made before the opening delivered after it, a weekly questFinished from before first-quest became active, and a kudos to someone new and a weekly quest finished after each opening but read before its activation, read through the reward records and App Home: verified 2026-10-14
+      refuted 2026-10-13: first-quest and someone-new no longer compared the event's time with the step's activation
+      refuted 2026-10-14: activation no longer finished a step with what followed the opening but was read before it
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+  someone-new never strands a member  invariant
+      totality oracle "P90: someone-new never strands a member" over a member who thanked the only other member before opening the Leaderboard, a member whose one teammate not yet thanked leaves after the opening, and a member who left and came back after that teammate left, at the Slack boundary, and a leave in a workspace of 400 members who all have someone-new active, run with Convex's transaction limits, read through the reward records, the DMs and App Home: verified 2026-10-14
+      refuted 2026-10-13: someone-new counted as everyone thanked only in a workspace with no other member, ignoring who the member had thanked
+      refuted 2026-10-14: the directory no longer published memberRejoined when a member came back
+      refuted 2026-10-14: a leave checked every unfinished member of the page in its own mutation instead of one mutation per member
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+  a Journey step that opens with a feature finishes once  invariant
+      totality oracle "P87 P90: a Journey step that opens with a feature finishes once" over the Quests opening and a weekly questFinished each delivered twice and a second weekly quest finished, and the Leaderboard opening, a kudos to someone new and a leave each delivered twice, read through the reward records, the member's standing and the published questFinished events: verified 2026-10-14
+      refuted 2026-10-13: recordReward no longer skipped a reward key already recorded
+      kinds message, state: 15 shapes apply, 1 declared, 14 dismissed
+  opening a crate grants nothing  invariant
+      totality oracle "P92: opening a crate grants nothing" over every table of the schema, read before and after openQuestCrate opens a finished first-thanks crate, and again across a second open a week later, and every event published by the opens: verified 2026-10-13
+      refuted 2026-10-13: openQuestCrate also recorded a 10 XP reward record when it opened a crate
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+  quests are dark where the slice doesn't apply  invariant
+      totality oracle "the slice applies only where quests, xp-levels and unlocks all apply" over a kudos that says why and questsOf with each of quests, xp-levels and unlocks off, and with unlocks on before it launched, and at the Slack boundary two kudos that say why, App Home, the new-week sweep and the ship sweep with quests off, quests not created, the flags key missing, unlocks off, xp-levels off, and all three on in the sandbox only read in production, read through every Quests table, each DM, each success reply and when its delivery was scheduled, and App Home, and a success reply that named a quest whose delivery Slack held back while quests, unlocks or xp-levels turned off: verified 2026-10-14
+      refuted 2026-10-13: the slice predicate ignored the quests flag
+      refuted 2026-10-13: the slice predicate launched unlocks itself through unlocksLiveIn instead of reading whether Unlocks had launched
+      refuted 2026-10-14: the success reply was held for Quests whatever the slice predicate said
+      kinds output, state: 11 shapes apply, 0 declared, 11 dismissed
+  a stale quest button writes nothing  invariant
+      totality oracle "a stale button from when the slice applied writes nothing and publishes nothing" over each of the three buttons clicked after quests, unlocks or xp-levels turned off, read through every Quests table, the Quests rows of Unlocks, the events published and App Home: verified 2026-10-14
+      refuted 2026-10-14: openQuestCrate no longer refused while the slice doesn't apply
+      kinds message, state: 15 shapes apply, 1 declared, 14 dismissed
+  turning the slice off and on loses nothing  invariant
+      totality oracle "O35: turning the slice off and on again loses nothing" over a member with a finished first-thanks step, opened Quests, a finished weekly quest with its crate opened and first-quest finished, turned off by each of the three flags, giving a kudos that says why and running both sweeps while off, then turned on again, read through every Quests table, the quest DMs and App Home's quest lines: verified 2026-10-14
+      refuted 2026-10-14: Quests' kudosGiven subscriber counted the weekly quests and the Journey whatever the slice predicate said
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+  a drawn quest is feasible  invariant
+      totality oracle "P80: opening Quests draws up to 3 different quests the member can finish this week" over draws over 12 weeks opened on a Sunday, opened on a Sunday after spending 1 of 3 kudos and after spending all 3, opened late on Saturday and drawn on Sunday, and over 12 weeks for a member who has thanked everyone beside one who hasn't, each read through questsOf, with the members' draw facts: verified 2026-10-14
+      refuted 2026-10-13: the draw took the first 3 quests of the ranked pool without checking feasibility
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+  a week is drawn once  invariant
+      totality oracle "P80: the draw is deterministic per member and week, and stored once" over two openings in one week read through questsOf and the stored draws, and the same member and week drawn on two backends a day apart: verified 2026-10-13
+      refuted 2026-10-13: drawFor no longer kept an existing draw for the week
+      kinds state, message: 15 shapes apply, 1 declared, 14 dismissed
+  the pool keeps the guardrails  invariant
+      totality oracle "P83: every quest in the pool keeps the guardrails" over every quest of the pool, and the pool's quests feasible with 1 day left and one teammate already thanked: verified 2026-10-14
+      refuted 2026-10-13: say-why-three-times counted 4 recognitions
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+  a weekly quest's reward is recorded once  invariant
+      totality oracle "P84 P87: a weekly quest's progress and finish are recorded once" over a kudos that says why delivered twice to both subscribers in each order, and a second kudos after one quest finished, read through the reward records, the member's standing, the published questFinished events and questsOf: verified 2026-10-13
+      refuted 2026-10-13: advanceWeeklyQuests no longer skipped an award already counted for the slot
+      kinds message, state: 15 shapes apply, 1 declared, 14 dismissed
+  a week swaps one unfinished quest at most  invariant
+      totality oracle "P81: a week swaps one unfinished quest at most" over a second Swap left on an earlier App Home, a Swap left on a quest that has since finished, and a Swap left on last week's App Home, each read through the stored draws, swaps, counted awards and reward records: verified 2026-10-14
+      refuted 2026-10-13: rerollQuest no longer refused a week that already held a swap
+      kinds state, message: 15 shapes apply, 1 declared, 14 dismissed
+  progress counts only awards after the draw and within its week  invariant
+      totality oracle "P84: progress counts only awards after the draw and within its week" over a kudos that says why an hour before the draw, in the week before and in the week after, from a member with no draw, and with quests off, read through questsOf, the counted awards and the reward records: verified 2026-10-13
+      refuted 2026-10-13: advanceWeeklyQuests no longer compared the award's time with the draw's
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+  a new week counts from its start  invariant
+      totality oracle "P80 P84: a new week's quests count every award from the week's start, whenever the draw is stored" over a kudos that says why 30 seconds after a member's Monday 00:00 in Pacific/Auckland, delivered twice before any sweep, before a sweep at 00:10 and after it, one made 30 seconds before that boundary and delivered after the sweep, and one made in the week Quests opens before its draw, read through the counted awards and the stored draws: verified 2026-10-14
+      refuted 2026-10-14: a later week's draw stored the time it ran instead of the week's start
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+  each member's week starts at their own Monday  invariant
+      totality oracle "P80: every Monday 00:00 in the member's time zone, the hourly sweep draws their week" over a member in Pacific/Auckland and one without a time zone, both opened into Quests the week before, read through questsOf and the stored draws across sweeps just before and at each one's Monday 00:00, a member who never opened Quests, and the sweep with quests off: verified 2026-10-14
+      refuted 2026-10-13: the sweep judged whether a member's week was drawn by the UTC week instead of their own time zone's
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+  the new-week sweep stays within Convex's limits  invariant
+      totality oracle "P80: the hourly sweep stays within Convex's limits and draws a week once" over the scheduled functions and stored draws for 105 members who opened Quests and 5 who didn't, after the first sweep mutation, after the whole run and after a second run an hour later: verified 2026-10-14
+      refuted 2026-10-13: the sweep scheduled a draw for every member who opened Quests, even one whose week was already drawn
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+  a new week replaces the last on App Home  invariant
+      totality oracle "P80 P85: a new week replaces the last on App Home without a penalty, and last week's crates stay openable" over App Home opened at 00:05 on Monday by a member who finished one of last week's quests and made progress on another, the member's standing before and after, and an Open click on last week's finished DM: verified 2026-10-14
+      refuted 2026-10-13: App Home's publish no longer drew the week's quests when none were stored
+      kinds output, state: 11 shapes apply, 0 declared, 11 dismissed
+  a new week is drawn from the facts at its start  invariant
+      totality oracle "P80: a new week is drawn from the facts at its start, whenever the draw is stored" over one member's week drawn by a sweep at 00:10 on one backend and on demand by a kudos made at 00:00:30 that spent a kudos and thanked someone new on another, the same for a first thanks to each teammate made at 00:00:00 and at 00:00:30, read through the stored draws, and a member with 1 kudos a day whose week is first drawn by their only kudos on Sunday, read through the stored draw and the counted awards: verified 2026-10-14
+      refuted 2026-10-14: a later week's draw read its facts at the time it ran instead of the week's start
+      refuted 2026-10-14: a later week's draw read whom the member had thanked up to and including the week's start
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+  the success reply names the quests its kudos finished  invariant
+      totality oracle "P71: the success reply names the quests its kudos finished" over a member who opened Quests giving a kudos that finishes first-thanks, one that doesn't say why, one that counts toward a quest, one that finishes it and with it first-quest, and one after, and two kudos sent before either is counted that together finish a quest, at the Slack boundary, read through the ephemerals sent to the giver and the counted awards: verified 2026-10-14
+      refuted 2026-10-14: the line named every weekly quest a kudos counted toward, not only the ones its mutation finished
+      refuted 2026-10-14: first-quest finished by a kudos's weekly quest was left to the questFinished subscriber, so the reply never named it
+      kinds output, message: 12 shapes apply, 0 declared, 18 dismissed
+  members already playing join the Journey once  invariant
+      totality oracle "P91: members already playing join the Journey once, when it ships" over a member with an earlier kudos that says why and the Leaderboard opened by Unlocks' launch, one who had thanked everyone, quests turned on before Unlocks launched, a second sweep, quests turned off and on, a replayed unlockOpened, a member who joins before the join runs, an award recorded without a decision followed by a kudos that says why delivered twice, and a Leaderboard opening from before the moment delivered after it, at the Slack boundary and the hourly sweep, read through questsOf, the reward records, the stored Journey and the DMs: verified 2026-10-14
+      refuted 2026-10-14: the join no longer finished first-thanks from the member's stored gate decisions
+      refuted 2026-10-14: the unlockOpened subscriber no longer left openings from before the ship moment to the join
+      kinds message, state: 15 shapes apply, 1 declared, 14 dismissed
+  the Journey's join stays within Convex's limits  invariant
+      totality oracle "P91: the Journey's join stays within Convex's limits" over the scheduled joins after one join page in a workspace of 150 members, and the activations after the whole run, and the join of a member who gave 4100 kudos without a decision before one that says why, run with Convex's transaction limits: verified 2026-10-14
+      refuted 2026-10-14: a join page read 1000 members instead of 100
+      refuted 2026-10-14: first-thanks history read each award's giver effects record with an index range of its own
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
 Slack  convex/slack/Slack.spec.md
   signed Slack requests only  invariant
       totality oracle "R48: a request Slack did not sign gets 401 and records nothing" over the requests slackEvents receives unsigned, signed with another secret, with a body changed after signing or a byte order mark added in front of it, signed more than 5 minutes before or after now, and an unsigned URL verification: verified 2026-10-13
@@ -263,9 +377,9 @@ Workspace  convex/workspace/Workspace.spec.md
       kinds identity, state: 10 shapes apply, 1 declared, 9 dismissed
 Website  website/Website.spec.md
   (no invariants)
-16 components, 45 bullets: 45 invariants, 0 requirements
-lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T02:19:25.113Z (276 runs)
-defects: 5 recorded, 5 closed (0 guarded, 5 decided, 0 with neither); 0 guard failures
+17 components, 71 bullets: 71 invariants, 0 requirements
+lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T02:19:25.113Z (403 runs)
+defects: 14 recorded, 12 closed (0 guarded, 12 decided, 0 with neither); 0 guard failures
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "karma"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:13  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
@@ -283,5 +397,5 @@ RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:68 
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:2  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:17  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
-ADVISORY       117 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 39, receipt 28, zone 10, panel 9, authority 8; reported, never failing, since inside the project its sense wins (--json lists each)
-0 rejected names, 0 unknown nouns (350 files), 17 in records
+ADVISORY       128 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 41, receipt 28, contract 10, zone 10, panel 9; reported, never failing, since inside the project its sense wins (--json lists each)
+0 rejected names, 0 unknown nouns (392 files), 17 in records
