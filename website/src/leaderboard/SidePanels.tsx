@@ -1,10 +1,12 @@
 import { IconLock } from "@posthog/icons";
 import { Card, CardContent } from "@posthog/quill";
 import type { ReactNode } from "react";
+import { improvementLine } from "../../../convex/leaderboard/improvementLine";
 import type { Leaderboard } from "../shell";
 
 export function SidePanels({ board }: { board: Leaderboard }) {
-  const line = improvementLineOf(board);
+  const { improvement, period } = board;
+  const line = improvement === null || period === "all" ? undefined : improvementLine(improvement, period);
   return (
     <div className="flex flex-col gap-5 lg:sticky lg:top-20">
       {line !== undefined && (
@@ -33,11 +35,4 @@ function Panel({ id, label, children }: { id: string; label: ReactNode; children
       </Card>
     </section>
   );
-}
-
-function improvementLineOf({ improvement, period }: Leaderboard) {
-  if (improvement === null || period === "all") return undefined;
-  if ("best" in improvement) return `Your best ${period} so far: ${improvement.best} kudos.`;
-  const places = improvement.places === undefined ? "" : ` · ▲ ${improvement.places} places`;
-  return `▲ ${improvement.gain} more kudos than this time last ${period}${places}`;
 }
