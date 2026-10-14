@@ -282,12 +282,22 @@ describe("QM1 QM2 QM3: a public celebration is never posted in a work thread", (
   test("QM2 QM4: a celebration still waiting when posting stops is never posted", async () => {
     const t = await announcingIn("C_NEWS");
     await t.mutation(internal.feedback.publicReplies.celebrateLevel, { event: await levelReached(t, "U_BOB", 2) });
-    await stopPosting(t);
+    await clearAnnouncementChannel(t);
 
     await settle(t);
 
     expect(publicNotices()).toEqual([]);
     expect((await t.run((ctx) => ctx.db.query("publicReplies").collect())).map(({ shown }) => shown)).toEqual([{ state: "unposted" }]);
+  });
+
+  test("QM2 QM4: a celebration posted before posting stops is never edited again", async () => {
+    const t = await announcingIn("C_NEWS");
+    const reply = await storedReply(t, { channel: "C_NEWS" }, { state: "posted", ts: "1760349601.000100" });
+    await clearAnnouncementChannel(t);
+
+    await deliver(t, reply);
+
+    expect(slack.callsTo("chat.update")).toEqual([]);
   });
 
   test("a reply posted in a thread before the fix is never edited again, and nothing is deleted", async () => {
@@ -320,6 +330,19 @@ describe("P64: a level reached through a reward record", () => {
   const saysWhy = "thanks for untangling the release notes today";
 
   beforeEach(() => flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "quests"));
+
+  test.each([
+    ["still picked, is posted there", ["🎉 <@U_ALICE> reached level 2."]],
+    ["cleared by Stop posting, is never posted", []],
+  ])("a notice still posting when the announcement channel is %s", async (picked, posted) => {
+    const t = await journeyWorkspace({ announcementChannel: "C_NEWS" });
+    const notice = await storedRewardedLevelNotice(t, "C_NEWS");
+    if (picked.startsWith("cleared")) await clearAnnouncementChannel(t);
+
+    await deliver(t, notice);
+
+    expect(slack.messagesIn("C_NEWS").map(({ text }) => text)).toEqual(posted);
+  });
 
   test("with an announcement channel set, the level 2 that first-thanks reaches is celebrated there once, and nowhere else", async () => {
     const t = await journeyWorkspace({ announcementChannel: "C_NEWS" });
@@ -392,18 +415,28 @@ async function withAnnouncementChannel(backend: Backend | Promise<Backend>, anno
   return t;
 }
 
-function stopPosting(t: Backend) {
+function clearAnnouncementChannel(t: Backend) {
   return setWorkspaceSettings(t, { announcementChannel: undefined });
 }
 
 async function storedReply(t: Backend, destination: { channel: string; threadTs?: string }, shown: Doc<"publicReplies">["shown"]) {
-  const member = await memberOf(t, "U_ALICE");
-  const line = [{ text: "🎉 " }, { mention: { kind: "person" as const, user: "U_ALICE" } }, { text: " reached level 2." }];
-  const sections = [{ key: "level:U_ALICE", member, about: "level" as const, line }];
+  const sections = await aliceReachedLevel2(t);
   return t.run(async (ctx) => {
     await ctx.db.insert("workspaceKeys", { workspace: "T1", workspaceKey: "workspace-key" });
     return ctx.db.insert("publicReplies", { workspace: "T1", conversation: "C1", message: postedTs, ...destination, sections, version: 2, shown });
   });
+}
+
+async function storedRewardedLevelNotice(t: Backend, channel: string) {
+  const sections = await aliceReachedLevel2(t);
+  const reached = { member: sections[0]!.member, level: 2 };
+  return t.run((ctx) => ctx.db.insert("publicReplies", { workspace: "T1", reached, channel, sections, version: 1, shown: { state: "posting" } }));
+}
+
+async function aliceReachedLevel2(t: Backend) {
+  const member = await memberOf(t, "U_ALICE");
+  const line = [{ text: "🎉 " }, { mention: { kind: "person" as const, user: "U_ALICE" } }, { text: " reached level 2." }];
+  return [{ key: "level:U_ALICE", member, about: "level" as const, line }];
 }
 
 async function deliver(t: Backend, reply: Id<"publicReplies">) {

@@ -142,9 +142,10 @@ async function isRewardShownIn(ctx: QueryCtx, row: Doc<"publicReplies">) {
 }
 
 async function isCelebratedWhereItIs(ctx: QueryCtx, row: Doc<"publicReplies">) {
-  if (!("conversation" in row)) return true;
   const { announcementChannel } = await settingsOf(ctx, row.workspace);
-  if (announcementChannel === null || row.threadTs !== undefined) return false;
+  if (announcementChannel === null) return false;
+  if (!("conversation" in row)) return true;
+  if (row.threadTs !== undefined) return false;
   return row.channel !== row.conversation || row.conversation === announcementChannel;
 }
 
