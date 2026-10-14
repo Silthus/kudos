@@ -41,6 +41,18 @@ const openedAndSwapped: QuestSlot = {
   seen: "d90a12",
 };
 
+const joiningIn: QuestSlot = {
+  slot: 2,
+  kind: "Join in",
+  goal: "Chime in on a kudos someone else gave.",
+  progress: { done: 0, target: 1 },
+  reward: { xp: 20 },
+  state: "in-progress",
+  swapped: false,
+  crate: null,
+  seen: null,
+};
+
 const lastWeeksCrate: WaitingCrate = { goal: "Thank someone and say why on 2 different days.", week: "2026-10-05", reward: { xp: 20 }, crate: { kind: "weekly", week: "2026-10-05", slot: 0 }, seen: "e3b5c8" };
 
 const twoWeeksAgosCrateOfTheSameQuest: WaitingCrate = { ...lastWeeksCrate, week: "2026-09-28", crate: { kind: "weekly", week: "2026-09-28", slot: 2 }, seen: "a7f2c1" };
@@ -58,6 +70,7 @@ export const questsFixtures = {
   weekWithLastWeeksCrate: { ...week, waiting: [lastWeeksCrate] },
   weekWithTheSameQuestWaitingFromTwoWeeks: { ...week, waiting: [twoWeeksAgosCrateOfTheSameQuest, lastWeeksCrate] },
   twoQuests: { ...week, slots: [inProgress, finished] },
+  everyKind: { ...week, slots: [inProgress, finished, joiningIn] },
   nextWeek,
   noDraw: { kind: "quests", slots: [], waiting: [], chatUrl },
   locked: { kind: "locked", level: 2 },

@@ -1,17 +1,23 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { focusPageTitle } from "../pageFocus";
+import { prefersReducedMotion } from "../reducedMotion";
 import type { Feature, ShellActions } from "../shell";
-import { rewardLabelOf, type ReadyCrate } from "./readyCrates";
+import { rewardLabelOf, type QuestCrate, type ReadyCrate } from "./readyCrates";
 import { hasSeen, markSeen } from "./seen";
 
 export type Attempt = "opening" | "refused" | "unreachable";
 
-export type Reveal = { crate: ReadyCrate; seenBefore: boolean; fromQuests: boolean };
+export type Reveal = { crate: ReadyCrate; seenBefore: boolean; fromQuests: boolean; claimed: boolean };
+
+export type Flight = { crate: QuestCrate };
 
 export type Moments = {
   attemptOf(crate: ReadyCrate): Attempt | undefined;
   open(crate: ReadyCrate): void;
+  claim(crate: QuestCrate): void;
   reveal: Reveal | undefined;
+  flight: Flight | undefined;
+  land(): void;
   finish(crate: ReadyCrate): void;
   close(how: { returnFocus: boolean }): void;
   announcement: string;
@@ -38,6 +44,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
   const [attempts, setAttempts] = useState<Partial<Record<string, Attempt>>>({});
   const [reveals, setReveals] = useState<Reveal[]>([]);
   const [announcement, setAnnouncement] = useState("");
+  const [flight, setFlight] = useState<Flight>();
   const sending = useRef(new Set<string>());
   const focusAfterClose = useRef<ReadyCrate | undefined>(undefined);
   const session = useRef(0);
@@ -51,6 +58,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
     setAttempts({});
     setReveals([]);
     setAnnouncement("");
+    setFlight(undefined);
   }, []);
 
   useEffect(() => {
@@ -66,7 +74,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
   onQuestsNow.current = onQuests;
 
   const open = useCallback(
-    async (crate: ReadyCrate) => {
+    async (crate: ReadyCrate, { claimed }: { claimed: boolean }) => {
       const { seen } = crate;
       if (sending.current.has(seen)) return;
       const sentIn = session.current;
@@ -77,7 +85,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
       try {
         const answer = await (crate.kind === "feature" ? commands.openFeature(crate.card.feature) : commands.openQuestCrate(crate.quest));
         if (session.current !== sentIn) return;
-        if (answer.kind === "opened") setReveals((queued) => [...queued, { crate, seenBefore: hasSeen(seen), fromQuests }]);
+        if (answer.kind === "opened") setReveals((queued) => [...queued, { crate, seenBefore: hasSeen(seen), fromQuests, claimed }]);
         attemptIs(seen, answer.kind === "refused" ? "refused" : undefined);
         if (answer.kind === "refused") setAnnouncement(attemptMessages.refused);
       } catch {
@@ -91,6 +99,8 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
     [commands, attemptIs],
   );
 
+  const land = useCallback(() => setFlight(undefined), []);
+
   const finish = useCallback((crate: ReadyCrate) => {
     markSeen(crate.seen);
     setAnnouncement(openedAnnouncementOf(crate));
@@ -99,6 +109,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
   const close = useCallback(
     ({ returnFocus }: { returnFocus: boolean }) => {
       focusAfterClose.current = returnFocus ? reveal?.crate : undefined;
+      if (reveal?.claimed && reveal.crate.kind === "quest" && !prefersReducedMotion()) setFlight({ crate: reveal.crate });
       setReveals((queued) => queued.slice(1));
       setAnnouncement("");
     },
@@ -114,8 +125,11 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
 
   return {
     attemptOf: (crate) => attempts[crate.seen],
-    open: (crate) => void open(crate),
+    open: (crate) => void open(crate, { claimed: false }),
+    claim: (crate) => void open(crate, { claimed: true }),
     reveal,
+    flight,
+    land,
     finish,
     close,
     announcement,

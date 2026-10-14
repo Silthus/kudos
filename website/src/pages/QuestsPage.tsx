@@ -1,10 +1,13 @@
-import { HedgehogTownCrier } from "@posthog/brand/hoggies";
-import { IconClock } from "@posthog/icons";
-import { Card, CardContent } from "@posthog/quill";
-import { questCrateHomeAttributes } from "../crates/moments";
-import { questCrateOf } from "../crates/readyCrates";
-import { Done, RewardCrate } from "../crates/RewardCrate";
+import type { ReactNode } from "react";
+import { HedgehogExplorer, HedgehogMegaphone, HedgehogReading, HedgehogTownCrier } from "@posthog/brand/hoggies";
+import { IconCheck, IconClock } from "@posthog/icons";
+import { Button, Card, CardContent } from "@posthog/quill";
+import { attemptMessages, questCrateHomeAttributes, useMoments } from "../crates/moments";
+import { questCrateOf, type CrateFacts, type QuestCrate } from "../crates/readyCrates";
+import { rewardChipAttributes } from "../crates/RewardFlight";
+import type { Hoggie } from "../features";
 import { PageTitle } from "../PageTitle";
+import { questTargetAttributes } from "../questTarget";
 import type { QuestsAnswer, QuestSlot, WaitingCrate } from "../shell";
 import { SlackLink } from "../SlackLink";
 
@@ -52,25 +55,48 @@ function QuestCards({ slots, firstCrate }: { slots: QuestSlot[] } & FirstCrate) 
 }
 
 function QuestCard({ slot, firstCrate }: { slot: QuestSlot } & FirstCrate) {
-  const { kind, goal, progress, reward, state, swapped, seen } = slot;
-  const crate = questCrateOf(slot);
+  const { slot: quest, kind, goal, progress, reward, state, swapped, seen } = slot;
+  const claimed = state === "opened";
   return (
-    <article className="hud-panel relative flex flex-col gap-2 rounded-xl border bg-card p-4" {...questCrateHomeAttributes(seen)}>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="hud-label">{kind}</span>
-        {swapped && <span className="rounded-full border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">Swapped</span>}
-      </div>
-      <h2 className="text-base font-semibold leading-snug">{goal}</h2>
-      <QuestProgress {...progress} />
-      {crate !== undefined ? (
-        <RewardCrate crate={crate} open={openVariantOf(seen, { firstCrate })} />
-      ) : (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-xs font-medium tabular-nums text-muted-foreground">{`${reward.xp} XP`}</span>
-          {state === "opened" && <Done />}
+    <article
+      className={`hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground ${claimed ? "opacity-90" : ""}`}
+      data-claimed={claimed || undefined}
+      {...questTargetAttributes(quest)}
+      {...questCrateHomeAttributes(seen)}
+    >
+      <div className="flex items-start gap-3 sm:gap-4">
+        <QuestArt kind={kind} claimed={claimed} />
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="hud-label">{kind}</span>
+            {swapped && <span className="rounded-full border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">Swapped</span>}
+          </div>
+          <h2 tabIndex={-1} className="text-base font-semibold leading-snug">
+            {goal}
+          </h2>
+          <QuestProgress {...progress} />
+          <RewardRow xp={reward.xp} seen={seen}>
+            {claimed ? <Claimed /> : <ClaimOf facts={slot} firstCrate={firstCrate} />}
+          </RewardRow>
         </div>
-      )}
+      </div>
     </article>
+  );
+}
+
+const artOf: Record<QuestSlot["kind"], Hoggie> = { "Say why": HedgehogReading, "Reach out": HedgehogExplorer, "Join in": HedgehogMegaphone };
+
+function QuestArt({ kind, claimed }: { kind: QuestSlot["kind"]; claimed: boolean }) {
+  const Hog = artOf[kind];
+  return (
+    <span data-quest-art aria-hidden="true" className="relative flex shrink-0 items-center justify-center rounded-xl bg-muted/60" style={{ width: 64, height: 64 }}>
+      <Hog size={55} title="" className={claimed ? "grayscale" : undefined} />
+      {claimed && (
+        <span data-claimed-check className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full bg-success text-success-foreground ring-2 ring-card">
+          <IconCheck className="size-3" />
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -85,6 +111,50 @@ function QuestProgress({ done, target }: QuestSlot["progress"]) {
         {label}
       </span>
     </div>
+  );
+}
+
+function RewardRow({ xp, seen, children }: { xp: number; seen: string | null; children: ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
+      <span className="text-xs font-medium tabular-nums text-muted-foreground" {...rewardChipAttributes(seen)}>{`+${xp} XP`}</span>
+      {children}
+    </div>
+  );
+}
+
+function ClaimOf({ facts, firstCrate }: { facts: CrateFacts } & FirstCrate) {
+  const crate = questCrateOf(facts);
+  return crate === undefined ? null : <Claim crate={crate} variant={openVariantOf(crate.seen, { firstCrate })} />;
+}
+
+function Claim({ crate, variant }: { crate: QuestCrate; variant: "primary" | "outline" }) {
+  const moments = useMoments();
+  const attempt = moments?.attemptOf(crate);
+  const claiming = attempt === "opening";
+  return (
+    <div className="flex flex-col items-end gap-1">
+      {attempt !== undefined && !claiming && <p className="text-xs font-medium">{attemptMessages[attempt]}</p>}
+      <Button
+        variant={variant}
+        size="sm"
+        aria-disabled={claiming || undefined}
+        onClick={() => {
+          if (!claiming) moments?.claim(crate);
+        }}
+      >
+        {claiming ? "Claiming…" : "Claim"}
+      </Button>
+    </div>
+  );
+}
+
+function Claimed() {
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success px-2 py-0.5 text-[11px] font-medium leading-4 text-success-foreground">
+      <IconCheck aria-hidden="true" className="size-3" />
+      Claimed
+    </span>
   );
 }
 
@@ -103,12 +173,13 @@ function WaitingToOpen({ waiting, firstCrate }: { waiting: WaitingCrate[] } & Fi
 }
 
 function WaitingCard({ entry, firstCrate }: { entry: WaitingCrate } & FirstCrate) {
-  const crate = questCrateOf(entry);
   return (
     <article className="hud-panel relative flex flex-col gap-2 rounded-xl border bg-card p-4" {...questCrateHomeAttributes(entry.seen)}>
       <WeekOf week={entry.week} />
       <h3 className="text-sm font-medium">{entry.goal}</h3>
-      {crate !== undefined && <RewardCrate crate={crate} open={openVariantOf(entry.seen, { firstCrate })} />}
+      <RewardRow xp={entry.reward.xp} seen={entry.seen}>
+        <ClaimOf facts={entry} firstCrate={firstCrate} />
+      </RewardRow>
     </article>
   );
 }

@@ -3,14 +3,16 @@ import { signInEntry } from "../../convex/website/routes";
 import { periods } from "./leaderboard/periods";
 import type { Period } from "./shell";
 
-export type Route = { page: "home" } | { page: "leaderboard"; period: Period } | { page: "quests" } | { page: "not-found" };
+export type QuestTarget = number | "journey";
+
+export type Route = { page: "home" } | { page: "leaderboard"; period: Period } | { page: "quests"; quest?: QuestTarget } | { page: "not-found" };
 
 export type Screen = Exclude<Route["page"], "not-found">;
 
 const routeAt = {
   "/": () => ({ page: "home" }),
   "/leaderboard": (search) => ({ page: "leaderboard", period: periodIn(search) }),
-  "/quests": () => ({ page: "quests" }),
+  "/quests": (search) => ({ page: "quests", quest: questIn(search) }),
 } satisfies Record<string, (search: string) => Route>;
 
 type ServedPath = keyof typeof routeAt;
@@ -29,7 +31,12 @@ export function withoutTheSignInEntry(pathname: string) {
 
 export function hrefOf(route: Route) {
   if (route.page === "leaderboard") return leaderboardHref(route.period);
-  return route.page === "quests" ? "/quests" : "/";
+  if (route.page === "quests") return questsHref(route.quest);
+  return "/";
+}
+
+export function questsHref(quest?: QuestTarget) {
+  return quest === undefined ? "/quests" : `/quests?quest=${quest}`;
 }
 
 export function leaderboardHref(period: Period) {
@@ -39,6 +46,12 @@ export function leaderboardHref(period: Period) {
 function periodIn(search: string): Period {
   const asked = new URLSearchParams(search).get("period");
   return periods.find(({ period }) => period === asked)?.period ?? "week";
+}
+
+function questIn(search: string): QuestTarget | undefined {
+  const asked = new URLSearchParams(search).get("quest");
+  if (asked === "journey") return asked;
+  return asked !== null && /^\d+$/.test(asked) ? Number(asked) : undefined;
 }
 
 function currentRoute() {

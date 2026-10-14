@@ -4,6 +4,7 @@ import { MomentAnnouncement } from "./crates/MomentAnnouncement";
 import { MomentsProvider, useCrateMoments } from "./crates/moments";
 import { readyCratesOf } from "./crates/readyCrates";
 import { RevealDialog } from "./crates/RevealDialog";
+import { RewardFlight } from "./crates/RewardFlight";
 import type { BoardAnswer, BoardRead } from "./boardRead";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { Frame } from "./Frame";
@@ -23,6 +24,7 @@ import { VerifyingPage } from "./pages/VerifyingPage";
 import { WaitsPage } from "./pages/WaitsPage";
 import { useTitleFocusAfterChange, useTitleFocusOnArrival, useTitleFocusWhenTheFocusedElementGoes } from "./pageFocus";
 import type { QuestsRead, QuestsShown } from "./questsRead";
+import { useQuestTargetOnceLanded } from "./questTarget";
 import { hrefOf, useRoute, type Route } from "./route";
 import type { Feature, MemberProfile, Period, ShellActions, ShellState } from "./shell";
 import { rememberSignInStarted, useSignInOutcome, useSignInWhenAsked } from "./signInAttempt";
@@ -45,6 +47,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests }: AppProps) {
   useTitleFocusAfterChange(onTheBoard ? boardPageOf(board) : onQuests ? questsPageOf(quests) : shown.kind, { held: revealing });
   useTitleFocusWhenTheFocusedElementGoes();
   const expectArrival = useTitleFocusOnArrival();
+  useQuestTargetOnceLanded(route, onQuests && quests?.kind === "quests");
   const arriveAt = useCallback(
     (href: string) => {
       expectArrival();
@@ -69,6 +72,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests }: AppProps) {
         {reveal !== undefined && member !== undefined && (
           <RevealDialog key={reveal.crate.seen} {...reveal} chatUrl={member.chatUrl} questsOpen={questsOpen} onFinish={moments.finish} onClose={moments.close} />
         )}
+        {moments.flight !== undefined && member !== undefined && <RewardFlight key={moments.flight.crate.seen} flight={moments.flight} onLanded={moments.land} />}
         <MomentAnnouncement text={moments.announcement} />
       </MomentsProvider>
     </NavigateProvider>
