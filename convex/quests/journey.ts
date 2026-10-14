@@ -18,8 +18,8 @@ import { rewardOf, rewardsKeyedFrom } from "../progression/rewards";
 import { teammatesOf, type MemberId } from "../workspace/directory";
 import { crateOpeningOf, rewardKeyOf, rewardKeyPrefixOf } from "./crates";
 import { finishQuest } from "./finish";
-import { questsApplyIn } from "./flag";
-import { journeyStepOpenedBy, journeyStepValidator, type JourneyQuest, type JourneyStep } from "./step";
+import { questsLiveIn } from "./flag";
+import { journeyStepOpenedBy, journeyStepValidator, type JourneyStep } from "./step";
 
 export const rewardValidator = v.object({ xp: v.number(), coins: v.number(), item: v.null() });
 
@@ -57,10 +57,10 @@ export const activateJourney = internalMutation({
   args: { event: unlockOpenedEventValidator },
   handler: async (ctx, { event: { workspace, member, feature, at } }) => {
     const step = journeyStepOpenedBy(feature);
-    if (step === null || !(await questsApplyIn(ctx, workspace)) || (await activationOf(ctx, member, step)) !== null) return;
+    if (step === null || !(await questsLiveIn(ctx, workspace)) || (await activationOf(ctx, member, step)) !== null) return;
     const activation = await activated(ctx, member, step, at, journey);
-    await finishWithWhatFollowed(ctx, workspace, activation);
-    if (step === "someone-new") await finishOnceEveryoneIsThanked(ctx, workspace, activation, at);
+    const finishedAt = await finishedOnActivation(ctx, workspace, activation);
+    if (finishedAt !== null) await finish(ctx, workspace, activation, finishedAt);
     await republish(ctx, member);
   },
 });
@@ -68,7 +68,7 @@ export const activateJourney = internalMutation({
 export const finishFirstQuest = internalMutation({
   args: { event: questFinishedEventValidator },
   handler: async (ctx, { event: { workspace, member, quest, at } }) => {
-    if (quest.kind !== "weekly" || !(await questsApplyIn(ctx, workspace))) return;
+    if (quest.kind !== "weekly" || !(await questsLiveIn(ctx, workspace))) return;
     const firstQuest = await activationOf(ctx, member, "first-quest");
     if (firstQuest !== null && firstQuest.activatedAt <= at) await finish(ctx, workspace, firstQuest, at);
   },
@@ -77,7 +77,7 @@ export const finishFirstQuest = internalMutation({
 export const recheckSomeoneNew = internalMutation({
   args: { event: memberLeftEventValidator, cursor: v.optional(v.string()) },
   handler: async (ctx, { event, cursor }) => {
-    if (!(await questsApplyIn(ctx, event.workspace))) return;
+    if (!(await questsLiveIn(ctx, event.workspace))) return;
     const people = await ctx.db
       .query("members")
       .withIndex("by_user", (q) => q.eq("workspace", event.workspace))
@@ -99,14 +99,14 @@ export const recheckRejoined = internalMutation({
 export const recheckSomeoneNewOf = internalMutation({
   args: { workspace: v.string(), member: v.id("members"), at: v.number() },
   handler: async (ctx, { workspace, member, at }) => {
-    if (!(await questsApplyIn(ctx, workspace))) return;
+    if (!(await questsLiveIn(ctx, workspace))) return;
     const someoneNew = await activationOf(ctx, member, "someone-new");
     if (someoneNew !== null) await finishOnceEveryoneIsThanked(ctx, workspace, someoneNew, at);
   },
 });
 
 export async function advanceJourney(ctx: MutationCtx, event: KudosGivenEvent, catalogue: JourneyCatalogue): Promise<void> {
-  if (!(await questsApplyIn(ctx, event.workspace))) return;
+  if (!(await questsLiveIn(ctx, event.workspace))) return;
   await advanceFirstThanks(ctx, event, catalogue);
   await advanceSomeoneNew(ctx, event);
 }
@@ -127,9 +127,10 @@ async function recheckLater(ctx: MutationCtx, workspace: string, member: MemberI
   await ctx.scheduler.runAfter(0, internal.quests.journey.recheckSomeoneNewOf, { workspace, member, at });
 }
 
-async function finishWithWhatFollowed(ctx: MutationCtx, workspace: string, activation: JourneyActivation) {
-  const at = activation.step === "first-quest" ? await firstWeeklyQuestFinishedSince(ctx, activation) : activation.step === "someone-new" ? await firstThanksSince(ctx, activation) : null;
-  if (at !== null) await finish(ctx, workspace, activation, at);
+export async function finishedOnActivation(ctx: QueryCtx, workspace: string, activation: JourneyActivation): Promise<number | null> {
+  if (activation.step === "first-thanks") return null;
+  if (activation.step === "first-quest") return firstWeeklyQuestFinishedSince(ctx, activation);
+  return (await firstThanksSince(ctx, activation)) ?? ((await hasThankedEveryone(ctx, workspace, activation.member, activation.activatedAt)) ? activation.activatedAt : null);
 }
 
 async function firstWeeklyQuestFinishedSince(ctx: QueryCtx, { member, activatedAt }: JourneyActivation): Promise<number | null> {
@@ -151,10 +152,13 @@ async function isUnfinished(ctx: QueryCtx, member: MemberId, step: JourneyStep) 
 }
 
 async function finishOnceEveryoneIsThanked(ctx: MutationCtx, workspace: string, someoneNew: JourneyActivation, at: number) {
-  if (await isFinished(ctx, someoneNew)) return;
-  const thanked = await lastThankedBy(ctx, someoneNew.member, at);
-  const teammates = await teammatesOf(ctx, workspace, someoneNew.member);
-  if (teammates.every((teammate) => thanked.has(teammate))) await finish(ctx, workspace, someoneNew, at);
+  if (!(await isFinished(ctx, someoneNew)) && (await hasThankedEveryone(ctx, workspace, someoneNew.member, at))) await finish(ctx, workspace, someoneNew, at);
+}
+
+async function hasThankedEveryone(ctx: QueryCtx, workspace: string, member: MemberId, at: number) {
+  const thanked = await lastThankedBy(ctx, member, at);
+  const teammates = await teammatesOf(ctx, workspace, member);
+  return teammates.every((teammate) => thanked.has(teammate));
 }
 
 async function isFinished(ctx: QueryCtx, { member, step }: JourneyActivation) {
@@ -182,7 +186,7 @@ export async function activeJourneyOf(ctx: MutationCtx, member: MemberId): Promi
   return journeyOf(ctx, member);
 }
 
-async function activated(ctx: MutationCtx, member: MemberId, step: JourneyStep, at: number, catalogue: JourneyCatalogue): Promise<JourneyActivation> {
+export async function activated(ctx: MutationCtx, member: MemberId, step: JourneyStep, at: number, catalogue: JourneyCatalogue): Promise<JourneyActivation> {
   const stored = await activationOf(ctx, member, step);
   if (stored !== null) return stored;
   const { reward } = catalogue.steps.find((entry) => entry.step === step)!;
@@ -191,9 +195,12 @@ async function activated(ctx: MutationCtx, member: MemberId, step: JourneyStep, 
   return activation;
 }
 
-async function finish(ctx: MutationCtx, workspace: string, { member, step, reward, catalogueVersion }: JourneyActivation, at: number) {
-  const quest: JourneyQuest = { kind: "journey", step };
-  if (await finishQuest(ctx, workspace, member, quest, { reward, catalogueVersion }, at)) await notifyQuestFinished(ctx, member, quest, reward.xp);
+async function finish(ctx: MutationCtx, workspace: string, activation: JourneyActivation, at: number) {
+  if (await finishSilently(ctx, workspace, activation, at)) await notifyQuestFinished(ctx, activation.member, { kind: "journey", step: activation.step }, activation.reward.xp);
+}
+
+export function finishSilently(ctx: MutationCtx, workspace: string, { member, step, reward, catalogueVersion }: JourneyActivation, at: number): Promise<boolean> {
+  return finishQuest(ctx, workspace, member, { kind: "journey", step }, { reward, catalogueVersion }, at);
 }
 
 function activationOf(ctx: QueryCtx, member: MemberId, step: JourneyStep) {

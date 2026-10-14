@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { kudosGivenEventWithAward } from "../../testing/busEvents";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { flagsLoaded, flagsOnForEveryone, journeyShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { internal } from "../_generated/api";
 import type { DomainEvent, KudosGivenEvent } from "../bus/events";
@@ -164,8 +164,7 @@ describe("P87 P6: a level crossed by a weekly quest's reward record", () => {
 });
 
 async function workspace() {
-  const t = await flagsLoaded(testBackend());
-  await unlocksShippedBeforeAnyoneJoined(t);
+  const t = await journeyShippedBeforeAnyoneJoined(await flagsLoaded(testBackend()));
   const [alice, bob, carol] = await t.run(async (ctx) => [
     await ctx.db.insert("members", { workspace: "T1", user: "U_ALICE", kind: "member" }),
     await ctx.db.insert("members", { workspace: "T1", user: "U_BOB", kind: "member" }),

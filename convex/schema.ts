@@ -128,6 +128,11 @@ export default defineSchema({
 
   journeySteps: defineTable(journeyActivationValidator).index("by_member_step", ["member", "step"]),
 
+  journeyLaunches: defineTable({
+    workspace: v.string(),
+    at: v.number(),
+  }).index("by_workspace", ["workspace"]),
+
   questDraws: defineTable(questDrawValidator).index("by_member_week", ["member", "week"]),
 
   questSwaps: defineTable(questSwapValidator).index("by_member_week", ["member", "week"]),

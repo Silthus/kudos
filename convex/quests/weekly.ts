@@ -13,7 +13,7 @@ import { chatUserOf, teammatesOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { crateOpeningOf, rewardKeyOf } from "./crates";
 import { finishQuest } from "./finish";
-import { questsApplyIn } from "./flag";
+import { questsLiveIn } from "./flag";
 import { rewardValidator } from "./journey";
 import { feasibility, feasibleBecauseValidator, questIdValidator, questOf, questPool, type DrawFacts, type FeasibleBecause, type PoolQuest, type QuestId, type Recipient } from "./pool";
 import { counts, isRecipient, questProgress, type CountedAward, type QuestAward } from "./progress";
@@ -62,7 +62,7 @@ export type WeeklyQuests = { week: WeekKey; drawnAt: number; slots: WeeklySlot[]
 export const drawWeeklyQuests = internalMutation({
   args: { event: unlockOpenedEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
-    if (event.feature !== "quests" || !(await questsApplyIn(ctx, event.workspace))) return;
+    if (event.feature !== "quests" || !(await questsLiveIn(ctx, event.workspace))) return;
     if ((await drawFor(ctx, event.member, Date.now())) === "drawn") await republish(ctx, event.member);
   },
 });
@@ -70,7 +70,7 @@ export const drawWeeklyQuests = internalMutation({
 export const advanceWeeklyQuests = internalMutation({
   args: { event: kudosGivenEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
-    if (!(await questsApplyIn(ctx, event.workspace))) return;
+    if (!(await questsLiveIn(ctx, event.workspace))) return;
     let shownChanged = (await drawWhenDue(ctx, event.giver, Date.now())) === "drawn";
     const draw = await drawOf(ctx, event.giver, weekKeyOfDay(event.day));
     if (draw !== null) {
@@ -87,7 +87,7 @@ export const drawNewWeek = internalMutation({
   args: { member: v.id("members") },
   handler: async (ctx, { member }): Promise<void> => {
     const { workspace } = await chatUserOf(ctx, member);
-    if (!(await questsApplyIn(ctx, workspace))) return;
+    if (!(await questsLiveIn(ctx, workspace))) return;
     if ((await drawWhenDue(ctx, member, Date.now())) === "drawn") await republish(ctx, member);
   },
 });
@@ -114,7 +114,7 @@ export async function weeklyQuestsOf(ctx: QueryCtx, member: MemberId, at: number
 
 export async function rerollQuest(ctx: MutationCtx, member: MemberId, { week, slot }: WeeklyQuest): Promise<"swapped" | "refused"> {
   const { workspace } = await chatUserOf(ctx, member);
-  if (!(await questsApplyIn(ctx, workspace))) return "refused";
+  if (!(await questsLiveIn(ctx, workspace))) return "refused";
   const at = Date.now();
   await drawWhenDue(ctx, member, at);
   if (week !== weekKeyOf(at, await timeZoneOf(ctx, member))) return "refused";

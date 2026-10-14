@@ -3,14 +3,14 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { publish } from "../bus/publish";
 import { rewardOf } from "../progression/rewards";
 import { chatUserOf, type MemberId } from "../workspace/directory";
-import { questsApplyIn } from "./flag";
+import { questsLiveIn } from "./flag";
 import type { Quest } from "./step";
 
 export const crateOpeningValidator = v.object({ member: v.id("members"), key: v.string(), at: v.number() });
 
 export async function openQuestCrate(ctx: MutationCtx, member: MemberId, quest: Quest): Promise<"done" | "refused"> {
   const { workspace } = await chatUserOf(ctx, member);
-  if (!(await questsApplyIn(ctx, workspace))) return "refused";
+  if (!(await questsLiveIn(ctx, workspace))) return "refused";
   const key = rewardKeyOf(quest);
   if ((await rewardOf(ctx, member, key)) === null) return "refused";
   if ((await crateOpeningOf(ctx, member, key)) !== null) return "done";
