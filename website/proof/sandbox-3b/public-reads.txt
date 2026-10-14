@@ -1,0 +1,8 @@
+# Anonymous calls with no session, at 2026-10-14T04:35:24Z, via POST /api/query and /api/mutation on each deployment's .convex.cloud URL.
+# Production runs main, which part B hasn't reached: getQuests and openQuestCrate don't exist there yet, so those calls errored and wrote nothing.
+<sandbox> query website/profile:getMyProfile (no session) -> {"status":"success","value":{"kind":"signed-out"}}
+<sandbox> query website/quests:getQuests (no session) -> {"status":"success","value":{"kind":"signed-out"}}
+<sandbox> mutation website/commands:openQuestCrate (no session) -> {"status":"success","value":{"kind":"signed-out"}}
+<production> query website/profile:getMyProfile (no session) -> {"status":"success","value":{"kind":"closed"}}
+<production> query website/quests:getQuests (no session) -> {"status":"error","errorMessage":"Server Error"}
+<production> mutation website/commands:openQuestCrate (no session) -> {"status":"error","errorMessage":"Server Error"}
