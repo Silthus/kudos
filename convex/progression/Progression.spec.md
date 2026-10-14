@@ -110,6 +110,7 @@ Progression: subscribes to kudosGiven, writes one insert-only effects record per
   via: CO24 CO30: a purchase spends once per idempotency key
   because: coins are never refunded and a spend is never reversed (CO11); a purchase replayed by a retried click, or two purchases racing for one balance, would take coins twice or grant an upgrade without them, and a debit apart from its skill points would take one without the other (user story 19)
   refuted: the purchase granted the upgrade without spending its coins through the wallet's spend step -> both cases failed: the replayed Buy left 300 coins where 150 belong, and bridge was bought without its coins (2026-10-14)
+  refuted: buyPerk no longer replayed the outcome stored under its idempotency key -> the repeated website request answered refused owned where bought belongs (2026-10-14)
   kinds: storage, message
   checklist: scoped-reads dismissed: a purchase reads one member's progress, owned perks, balance and stored outcomes by member
   checklist: destination-confinement dismissed: a purchase sends nothing anywhere; perkBought goes only to the in-process bus

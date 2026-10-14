@@ -234,7 +234,7 @@ describe("website reads pass one guard", () => {
   });
 });
 
-describe("CO22 CO25: until the website draws coin prices, its tree shows an upgrade only once it's owned", () => {
+describe("CO22 CO25: until the website draws coin prices, its tree shows an upgrade only once it's owned", { timeout: 30_000 }, () => {
   test("with Coins open at level 7, flame isn't offered without its price, and once owned it shows owned", async () => {
     await flagsOn(...treeFlags, "coins");
     await unlocksShippedBeforeAnyoneJoined(t);

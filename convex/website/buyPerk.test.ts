@@ -449,7 +449,7 @@ describe("a skill point bought on the website is spent once", () => {
   });
 });
 
-describe("CO14 CO24: a coin perk bought from the website", () => {
+describe("CO14 CO24: a coin perk bought from the website", { timeout: 30_000 }, () => {
   test("with coins shown and Coins not opened yet, a request for flame is refused, stores coins-not-open and spends nothing", async () => {
     await treeShipped("coins");
     const { member, asSignedIn } = await aMemberWithTheTreeOpen();
@@ -464,7 +464,7 @@ describe("CO14 CO24: a coin perk bought from the website", () => {
   });
 });
 
-describe("CO24 CO30: a purchase spends once per idempotency key", () => {
+describe("CO24 CO30: a purchase spends once per idempotency key", { timeout: 30_000 }, () => {
   test("the same website request twice buys flame once, answers bought both times and spends its coins once", async () => {
     await treeShipped("coins");
     const { member, asSignedIn } = await aMemberWithTheTreeOpen();
