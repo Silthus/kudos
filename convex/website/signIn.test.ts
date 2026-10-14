@@ -262,6 +262,18 @@ describe("a stranded verification is tried again", () => {
     expect(slack.callsTo("users.info")).toHaveLength(1);
   });
 
+  test("a person whose every try Convex stops reads unverified after 3 sweeps", async () => {
+    slack.withMember("U_JUNO");
+    const userId = await signIn(juno);
+    for (let sweep = 1; sweep <= 3; sweep += 1) {
+      await convexStops(t, "slack/verifyMember:verifyMember");
+      vi.setSystemTime(minutesAfterSignIn(11 * sweep));
+      await t.mutation(internal.slack.verifyMember.retryStranded, {});
+    }
+
+    expect(await profileOf(userId)).toEqual({ kind: "unverified" });
+  });
+
   test("a stranded try counts as one of the 3 tries", async () => {
     slack.withMember("U_JUNO").answering("users.info", httpStatus(500), httpStatus(500), httpStatus(500));
     const userId = await signIn(juno);

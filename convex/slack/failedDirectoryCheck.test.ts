@@ -165,6 +165,24 @@ describe("a stranded directory check is checked again", () => {
     expect(await pendingJobs(t, "slack/directory:checkDirectory")).toBe(1);
   }, 30_000);
 
+  test("a page full of messages whose checks ran out still lets the next page give", async () => {
+    const t = testBackend();
+    const givers = Array.from({ length: strandedPerSweep + 1 }, (_, index) => `U_GIVER${index}`);
+    for (const giver of givers) slack.withMember(giver);
+    for (const [index, giver] of givers.entries()) {
+      await post(t, [section(mention("U_BOB"), emoji("taco"))], { user: giver, ts: `${Math.floor(now.getTime() / 1000)}.${String(index).padStart(6, "0")}` });
+    }
+    await convexStops(t, "slack/directory:checkDirectory");
+    await t.run(async (ctx) => {
+      const rows = await ctx.db.query("kudosMessages").collect();
+      for (const row of rows.filter((row) => row.author !== givers.at(-1))) await ctx.db.patch(row._id, { checks: 7 });
+    });
+
+    await sweepAt(t, minutesAfterPosting(87));
+
+    expect(await kudosReceived(t, "U_BOB")).toBe(1);
+  }, 30_000);
+
   test("more stranded messages than one page all give", async () => {
     const t = testBackend();
     const givers = Array.from({ length: strandedPerSweep + 1 }, (_, index) => `U_GIVER${index}`);

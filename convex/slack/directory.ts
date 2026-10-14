@@ -82,9 +82,9 @@ const strandedAfterMs = failedCheckRetriesMs.reduce((total, retryMs) => total + 
 export const recheckStranded = internalMutation({
   args: {},
   handler: async (ctx): Promise<void> => {
-    const stranded = await takeStrandedChecks(ctx, Date.now() - strandedAfterMs, strandedPerSweep);
-    for (const { ref, attempt } of stranded) await ctx.scheduler.runAfter(0, internal.slack.directory.checkDirectory, { ref, attempt });
-    if (stranded.length === strandedPerSweep) await ctx.scheduler.runAfter(0, internal.slack.directory.recheckStranded, {});
+    const { checkAgain, pageWasFull } = await takeStrandedChecks(ctx, Date.now() - strandedAfterMs, strandedPerSweep);
+    for (const { ref, attempt } of checkAgain) await ctx.scheduler.runAfter(0, internal.slack.directory.checkDirectory, { ref, attempt });
+    if (pageWasFull) await ctx.scheduler.runAfter(0, internal.slack.directory.recheckStranded, {});
   },
 });
 

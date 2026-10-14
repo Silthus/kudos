@@ -250,18 +250,18 @@ async function awaitDirectory(ctx: MutationCtx, row: KudosMessageRow, users: Cha
   return { kind: "awaiting-directory", users, retryInMs, attempt: row.attempt };
 }
 
-export async function takeStrandedChecks(ctx: MutationCtx, dueBefore: number, limit: number): Promise<{ ref: MessageRef; attempt: bigint }[]> {
+export async function takeStrandedChecks(ctx: MutationCtx, dueBefore: number, limit: number): Promise<{ checkAgain: { ref: MessageRef; attempt: bigint }[]; pageWasFull: boolean }> {
   const stranded = await ctx.db
     .query("kudosMessages")
     .withIndex("by_state_and_next_check", (q) => q.eq("state", "awaiting-directory").gte("nextCheckAt", 0).lt("nextCheckAt", dueBefore))
     .take(limit);
-  const checkedAgain = [];
+  const checkAgain = [];
   for (const row of stranded) {
     if (await giveUpWhenChecksRanOut(ctx, row)) continue;
     await ctx.db.patch(row._id, { checks: row.checks + 1, nextCheckAt: Date.now() });
-    checkedAgain.push({ ref: refOf(row), attempt: row.attempt });
+    checkAgain.push({ ref: refOf(row), attempt: row.attempt });
   }
-  return checkedAgain;
+  return { checkAgain, pageWasFull: stranded.length === limit };
 }
 
 async function giveUpWhenChecksRanOut(ctx: MutationCtx, row: KudosMessageRow) {
