@@ -33,7 +33,7 @@ describe("WS98 WS101: the hero is the character header, leading with the member 
     expect(title).toHaveTextContent(/^Sam Example$/);
     expect(title).toHaveClass("hud-display");
     expect(comesBefore(within(hero()).getByText("Character"), title)).toBe(true);
-    expect(document.title).toBe("HedgeHug · Home");
+    expect(document.title).toBe("HedgeHug · Profile");
   });
 
   it("titles the sheet You when the sign-in carried no name", () => {
@@ -174,7 +174,7 @@ describe("WS47 WS50 WS51 WS98 WS99: the level ring and the XP bar, only while pr
     renderApp(shellFixtures.member);
     expect(screen.queryByRole("img", { name: /^Level/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Account menu for Sam Example" })).not.toHaveAccessibleDescription();
+    expect(within(screen.getByRole("banner")).getByRole("link", { name: "Sam Example" })).not.toHaveAccessibleDescription();
     expect(document.body.textContent).not.toMatch(/\blevel\b|\bLv\b|\d XP/i);
     expect(within(hero()).getByText("1", { selector: ".hud-display" })).toHaveTextContent(/^1\/3$/);
     expect(within(hero()).getByText("You've given 14 kudos and received 9.")).toBeInTheDocument();
@@ -209,7 +209,7 @@ describe("WS47 WS50 WS51 WS98 WS99: the level ring and the XP bar, only while pr
 
   it("rings the avatar in the HUD with the hero's ring at its size, named and described as the hero ring, with the level number beside the face", () => {
     renderApp(shellFixtures.memberAtLevel7);
-    const avatar = screen.getByRole("button", { name: "Account menu for Sam Example" });
+    const avatar = within(screen.getByRole("banner")).getByRole("link", { name: "Sam Example, level 7" });
     expect(avatar).toHaveAccessibleDescription("Level 7, 500 XP to level 8");
     const ring = within(avatar).getByRole("img", { name: "Level 7, 500 XP to level 8" });
     expect(arcOf(ring)).toHaveAttribute("pathLength", "100");
