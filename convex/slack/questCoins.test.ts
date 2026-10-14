@@ -129,7 +129,8 @@ describe("CO19: the quest-done part says its coins only while coins are visible 
     const earlier = slack.ephemeralsTo("U_ALICE").length;
 
     await sendKudos(t, "U_ALICE", ["U_BOB"], saysWhy);
-    await t.finishInProgressScheduledFunctions();
+    await untilAReplyIsReleasedWithQuestCoins(t);
+    expect(slack.ephemeralsTo("U_ALICE")).toHaveLength(earlier);
     await flagsFromPostHog(t, postHog, ...coinsOff);
     await settleInTimeOrder(t);
 
@@ -184,6 +185,20 @@ async function sendKudos(t: Backend, giver: string, recipients: string[], words:
   sentMessages += 1;
   const blocks = [section(...recipients.flatMap((recipient) => [mention(recipient), text(" ")]), text(`${words} `), emoji("taco"))];
   await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts: `${Math.floor(Date.now() / 1000) + sentMessages}.000100` })));
+}
+
+async function untilAReplyIsReleasedWithQuestCoins(t: Backend) {
+  for (let fired = 0; fired < 100; fired += 1) {
+    await t.finishInProgressScheduledFunctions();
+    if (await aReplyReleasedWithQuestCoins(t)) return;
+    vi.advanceTimersToNextTimer();
+  }
+  throw new Error("no success reply was released with a quest's coins");
+}
+
+async function aReplyReleasedWithQuestCoins(t: Backend) {
+  const replies = await t.run((ctx) => ctx.db.query("privateReplies").collect());
+  return replies.some(({ held, gains }) => held === undefined && (gains?.questsDone ?? []).some(({ coins }) => coins === 10));
 }
 
 function lastKudosGiven(): KudosGivenEvent {
