@@ -143,13 +143,19 @@ describe("WS3: while the website is closed, nobody signs in and every session re
 });
 
 describe("the mock serves flag definitions the way PostHog does", () => {
-  test("an unchanged definition answers 304 on its ETag, so nothing re-runs every minute, and a switch is fetched again", async () => {
+  test("the PostHog component's refresh of unchanged definitions answers unchanged, so nothing re-runs every minute", async () => {
     expect(await refreshFlagDefinitions()).toEqual({ status: "unchanged" });
+  });
+
+  test("a switch answers the new definitions to the ETag sent before it", async () => {
+    const before = await flagDefinitions();
+    expect((await flagDefinitions(before.headers.get("etag"))).status).toBe(304);
 
     slack.switchWebsite(false);
+    const after = await flagDefinitions(before.headers.get("etag"));
 
-    expect(await refreshFlagDefinitions()).toEqual({ status: "updated" });
-    expect(await refreshFlagDefinitions()).toEqual({ status: "unchanged" });
+    expect(after.status).toBe(200);
+    expect(after.headers.get("etag")).not.toBe(before.headers.get("etag"));
   });
 });
 
@@ -235,6 +241,10 @@ async function eventuallyReads(client: ConvexHttpClient, kind: MyProfile["kind"]
 async function switchWebsite(open: boolean) {
   slack.switchWebsite(open);
   await refreshFlagDefinitions();
+}
+
+function flagDefinitions(etag?: string | null) {
+  return fetch(`${issuer}/flags/definitions`, { headers: etag ? { "if-none-match": etag } : {} });
 }
 
 function refreshFlagDefinitions() {
