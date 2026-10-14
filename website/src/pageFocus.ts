@@ -9,6 +9,23 @@ export function useTitleFocusAfterChange(kind: string) {
   }, [kind]);
 }
 
+export function useTitleFocusWhenTheFocusedElementGoes() {
+  const lastFocused = useRef<Element | null>(null);
+  useEffect(() => {
+    const remember = (event: FocusEvent) => {
+      lastFocused.current = event.target as Element;
+    };
+    document.addEventListener("focusin", remember);
+    return () => document.removeEventListener("focusin", remember);
+  }, []);
+  useEffect(() => {
+    const gone = lastFocused.current;
+    if (gone === null || gone.isConnected || document.activeElement !== document.body) return;
+    lastFocused.current = null;
+    focusPageTitle();
+  });
+}
+
 export function focusPageTitle() {
   document.querySelector<HTMLElement>("main h1")?.focus();
 }

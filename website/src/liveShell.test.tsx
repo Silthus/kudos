@@ -1,8 +1,10 @@
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { ConvexProvider, type ConvexReactClient } from "convex/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Root } from "./Root";
+import { leaderboardFixtures } from "./leaderboardFixtures";
 import { shellFixtures } from "./shell";
 import { fakeSystemTheme } from "./test/systemTheme";
 
@@ -12,16 +14,37 @@ const authActions = { signIn: vi.fn(), signOut: vi.fn() };
 const socket = { isWebSocketConnected: true };
 const auth = { isLoading: false, isAuthenticated: true };
 
-vi.mock("convex/react", () => ({
+vi.mock("convex/react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("convex/react")>()),
   ConvexReactClient: class {},
   useConvexAuth: () => ({ ...auth }),
   useConvexConnectionState: () => ({ ...socket }),
   useQuery: () => profileRead(),
-  useQueries: (requests: Record<string, unknown>) => ("board" in requests ? { board: boardRead() } : {}),
 }));
 
+const boardListeners = new Set<() => void>();
+
+function boardAnswers(answer: unknown) {
+  boardRead.mockReturnValue(answer);
+  act(() => boardListeners.forEach((notify) => notify()));
+}
+
+const boardWatch = {
+  watchQuery: () => ({
+    onUpdate: (notify: () => void) => {
+      boardListeners.add(notify);
+      return () => boardListeners.delete(notify);
+    },
+    localQueryResult: () => {
+      const answer = boardRead();
+      if (answer instanceof Error) throw answer;
+      return answer;
+    },
+  }),
+} as unknown as ConvexReactClient;
+
 vi.mock("@convex-dev/auth/react", () => ({
-  ConvexAuthProvider: ({ children }: { children: ReactNode }) => children,
+  ConvexAuthProvider: ({ children }: { children: ReactNode }) => <ConvexProvider client={boardWatch}>{children}</ConvexProvider>,
   useAuthActions: () => authActions,
 }));
 
@@ -148,6 +171,16 @@ describe("WS20 WS36: the leaderboard read shows where the page stands, inside th
 
     expect(pageTitle()).not.toHaveTextContent("Something went wrong");
     expect(window.location.pathname).toBe("/");
+  });
+
+  it("shows the board once a failed read answers again", async () => {
+    boardRead.mockReturnValue(new Error("Too many documents read"));
+    renderLiveSite();
+    expect(await errorPage()).toBeInTheDocument();
+
+    boardAnswers(leaderboardFixtures.midBoard);
+
+    expect(pageTitle()).toHaveTextContent("Ada Lindqvist leads the week.");
   });
 });
 

@@ -1,11 +1,13 @@
 import { Button, Card } from "@posthog/quill";
 import { useId, useState, type ReactNode } from "react";
 import type { Leaderboard, LeaderboardRow } from "../shell";
+import { useTitleFocusWhenTheFocusedElementGoes } from "../pageFocus";
 import { BoardLine } from "./BoardLine";
 import { WholeBoard } from "./WholeBoard";
 
 export function BoardList({ board, after }: { board: Leaderboard; after?: ReactNode }) {
   const [whole, setWhole] = useState(false);
+  useTitleFocusWhenTheFocusedElementGoes();
   const wholeBoardId = useId();
   const below = board.window.filter((position) => position > 3);
   const offersTheWholeBoard = whole || board.rows.length > board.window.length;

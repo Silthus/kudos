@@ -15,7 +15,7 @@ import { SignedOutPage } from "./pages/SignedOutPage";
 import { SignInUnfinishedPage } from "./pages/SignInUnfinishedPage";
 import { UnverifiedPage } from "./pages/UnverifiedPage";
 import { VerifyingPage } from "./pages/VerifyingPage";
-import { useTitleFocusAfterChange, useTitleFocusOnArrival } from "./pageFocus";
+import { useTitleFocusAfterChange, useTitleFocusOnArrival, useTitleFocusWhenTheFocusedElementGoes } from "./pageFocus";
 import { useRoute, type Route } from "./route";
 import type { Period, ShellActions, ShellState } from "./shell";
 import { rememberSignInStarted, useSignInOutcome } from "./signInAttempt";
@@ -30,6 +30,7 @@ export function App({ visitor, actions, useLeaderboard }: AppProps) {
   const answer = useLeaderboard(onTheBoard ? route.period : undefined);
   const board = useBoardWhileTheNextLoads(answer, onTheBoard);
   useTitleFocusAfterChange(onTheBoard ? boardPageOf(board) : shown.kind);
+  useTitleFocusWhenTheFocusedElementGoes();
   const expectArrival = useTitleFocusOnArrival();
   const arriveAt = useCallback(
     (href: string) => {
@@ -54,9 +55,7 @@ export function App({ visitor, actions, useLeaderboard }: AppProps) {
 }
 
 function boardPageOf(board: BoardAnswer | undefined) {
-  if (board === undefined) return "loading";
-  if (board.kind === "board" && board.rows.length === 0) return "leaderboard empty";
-  return `leaderboard ${board.kind}`;
+  return board === undefined ? "loading" : `leaderboard ${board.kind}`;
 }
 
 function useBoardWhileTheNextLoads(board: BoardAnswer | undefined, onTheBoard: boolean) {
@@ -76,8 +75,9 @@ type PageProps = {
 };
 
 function Page({ state, route, board, onChoosePeriod, ...actions }: PageProps) {
+  if (state.kind === "broken") throw new Error("This page failed to render.");
   if (state.kind === "loading") return null;
-  if (state.kind === "broken" || state.kind === "connecting" || state.kind === "closed") return <AnswerPage answer={state} {...actions} />;
+  if (state.kind === "connecting" || state.kind === "closed") return <AnswerPage answer={state} {...actions} />;
   if (route.page === "not-found") return <NotFoundPage />;
   if (state.kind !== "member") return <AnswerPage answer={state} {...actions} />;
   if (route.page === "home") return <HomePage member={state} />;
@@ -93,7 +93,7 @@ type NotAMember = Exclude<ShellState, { kind: "member" | "loading" }>;
 function AnswerPage({ answer, onSignIn, onSignOut }: { answer: NotAMember; onSignIn: () => void; onSignOut: () => void }) {
   switch (answer.kind) {
     case "broken":
-      throw new Error("This page failed to render.");
+      return <ErrorPage focusWasOnPage={false} />;
     case "connecting":
       return <ConnectingPage />;
     case "closed":

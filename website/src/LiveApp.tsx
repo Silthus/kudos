@@ -1,5 +1,5 @@
 import { ConvexAuthProvider, useAuthActions } from "@convex-dev/auth/react";
-import { useConvexAuth, useQueries, useQuery, type ConvexReactClient } from "convex/react";
+import { useConvexAuth, useQueries, useQuery, type ConvexReactClient, type RequestForQueries } from "convex/react";
 import { useMemo, useState } from "react";
 import { api } from "../../convex/_generated/api";
 import type { MyProfile } from "../../convex/website/profile";
@@ -36,7 +36,8 @@ function LiveApp() {
 }
 
 function useLiveLeaderboard(period: Period | undefined, unreachable: boolean): BoardAnswer | undefined {
-  const { board } = useQueries(period === undefined ? {} : { board: { query: api.website.leaderboard.getLeaderboard, args: { period } } });
+  const request = useMemo((): RequestForQueries => (period === undefined ? {} : { board: { query: api.website.leaderboard.getLeaderboard, args: { period } } }), [period]);
+  const { board } = useQueries(request);
   if (board instanceof Error) return { kind: "broken" };
   if (board === undefined && unreachable) return { kind: "connecting" };
   return board;

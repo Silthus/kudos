@@ -234,6 +234,20 @@ describe("WS39: the board card and the periods", () => {
     expect(within(main()).getByRole("button", { name: "This month" })).toHaveFocus();
   });
 
+  it("keeps focus on the switch when the next period's board is empty, and back", async () => {
+    const read: BoardRead = (period) => period && (period === "month" ? { ...leaderboardFixtures.empty, period } : { ...leaderboardFixtures.midBoard, period });
+    visit("/leaderboard");
+    const { user } = renderApp(withTheBoard, read);
+
+    await user.click(within(main()).getByRole("button", { name: "This month" }));
+    expect(pageTitle()).toHaveTextContent("Nobody is on this board yet.");
+    expect(within(main()).getByRole("button", { name: "This month" })).toHaveFocus();
+
+    await user.click(within(main()).getByRole("button", { name: "This week" }));
+    expect(pageTitle()).toHaveTextContent("Ada Lindqvist leads the week.");
+    expect(within(main()).getByRole("button", { name: "This week" })).toHaveFocus();
+  });
+
   it("keeps the selected period when it is chosen again", async () => {
     const { user } = showBoard(leaderboardFixtures.midBoard);
     await user.click(within(main()).getByRole("button", { name: "This week" }));
@@ -561,6 +575,7 @@ describe("WS43: the whole board and Jump to me", () => {
 
     expect(within(main()).queryByRole("region", { name: "The whole board" })).not.toBeInTheDocument();
     expect(linesOf(boardList())).toHaveLength(10);
+    expect(pageTitle()).toHaveFocus();
   });
 
   it("offers no whole board when the window already shows every row", () => {
