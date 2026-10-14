@@ -261,7 +261,7 @@ describe("P91: two-days works whether the Book ships before the Journey or after
     expect(await activationsOf(t, "two-days")).toBe(3);
   });
 
-  test("a Book opened before the Journey shipped, which didn't apply at the join, makes two-days active from the join's moment once it applies again and App Home is published", async () => {
+  test("a Book opened before the Journey shipped, which didn't apply at the join, makes two-days active from the App Home publish that finds it applying again", async () => {
     postHog = flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "achievements");
     const t = await workspaceWith("U_ALICE", "U_BOB", "U_CAROL");
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
@@ -273,12 +273,13 @@ describe("P91: two-days works whether the Book ships before the Journey or after
     await hourlySweep(t);
     expect(await activationsOf(t, "two-days")).toBe(0);
 
-    vi.setSystemTime(wednesday);
     await flagsFromPostHog(t, postHog, ...on("xp-levels", "unlocks", "quests", "achievements"));
+    vi.setSystemTime(wednesday);
     await openHome(t, "U_ALICE");
 
     const alice = await memberOf(t, "U_ALICE");
-    expect(await twoDaysOf(t, alice)).toEqual({ step: "two-days", activatedAt: tuesday, reward: twoDaysReward, catalogueVersion: "1", finishedAt: null, openedAt: null });
+    expect(await twoDaysOf(t, alice)).toEqual({ step: "two-days", activatedAt: expect.any(Number), reward: twoDaysReward, catalogueVersion: "1", finishedAt: null, openedAt: null });
+    expect((await twoDaysOf(t, alice))!.activatedAt).toBeGreaterThanOrEqual(wednesday);
     expect(journeyIn(publishedHome(slack, "U_ALICE"))).toContain(twoDaysActive);
 
     aMinuteLater();
@@ -301,13 +302,43 @@ describe("P91: two-days works whether the Book ships before the Journey or after
     const alice = await memberOf(t, "U_ALICE");
     await t.run((ctx) => ctx.db.insert("homeSelections", { member: alice, tab: "settings", period: "week" }));
 
-    vi.setSystemTime(wednesday);
     await flagsFromPostHog(t, postHog, ...on("xp-levels", "unlocks", "quests", "achievements"));
+    vi.setSystemTime(wednesday);
     await openHome(t, "U_ALICE");
 
     expect(publishedHome(slack, "U_ALICE")).toContain("actions: Profile | Book | [Settings]");
-    expect((await twoDaysOf(t, alice))?.activatedAt).toBe(tuesday);
+    expect((await twoDaysOf(t, alice))!.activatedAt).toBeGreaterThanOrEqual(wednesday);
   });
+
+  test("a stranded two-days activates within Convex's transaction limits for a member who gave 4,100 kudos while the Book didn't apply", async () => {
+    postHog = flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "achievements");
+    const t = await flagsLoaded(testBackend({ transactionLimits: true }));
+    await t.run(async (ctx) => {
+      await ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 });
+      for (const user of ["U_ALICE", "U_BOB"]) await ctx.db.insert("members", { workspace: "T1", user, kind: "member" });
+    });
+    await bookShippedBeforeAnyoneJoined(t);
+    vi.setSystemTime(tuesday);
+    await flagsFromPostHog(t, postHog, ...on("xp-levels", "unlocks", "quests"));
+    await hourlySweep(t);
+    await hourlySweep(t);
+    const [alice, bob] = [await memberOf(t, "U_ALICE"), await memberOf(t, "U_BOB")];
+    for (let batch = 0; batch < 41; batch++) {
+      await t.run(async (ctx) => {
+        for (let index = 0; index < 100; index++) {
+          const at = tuesday + minuteMs + batch * 100 + index;
+          await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message: `${at}`, giver: alice, recipient: bob, kudos: 1, day: "2026-10-13", at });
+        }
+      });
+    }
+
+    await flagsFromPostHog(t, postHog, ...on("xp-levels", "unlocks", "quests", "achievements"));
+    vi.setSystemTime(wednesday);
+    await openHome(t, "U_ALICE");
+
+    expect((await twoDaysOf(t, alice))!.activatedAt).toBeGreaterThanOrEqual(wednesday);
+    expect(journeyIn(publishedHome(slack, "U_ALICE"))).toContain(twoDaysActive);
+  }, 120_000);
 
   test("the Book shipping after the Journey: opening it then makes two-days active from the opening", async () => {
     postHog = flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "quests");
