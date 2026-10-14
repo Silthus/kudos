@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { FakePostHog, answersWith, postHogHost, projectToken, routedFetch } from "../../testing/fakePostHog";
+import { FakePostHog, answersWith, flagsKey, postHogHost, projectToken, routedFetch, withoutPersonProperties } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
+import { flagsFromPostHog, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { blockActions, buttonIn, buttonInHome, type Block } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { everythingStored, post, settle, settleUntil, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, mention, messageEvent, section, slashCommand, text } from "../../testing/slackMessages";
@@ -55,6 +57,7 @@ describe("O1 O2 O3: a kudos message that gives", () => {
           daily_allowance_opening: 3,
           daily_allowance_left: 1,
           default_kudos_emoji: true,
+          thoughtful: false,
         },
       },
       { event: "kudos received", properties: { ...shared, kudos: 1, retry: false } },
@@ -100,6 +103,50 @@ describe("O1 O2 O3: a kudos message that gives", () => {
   });
 });
 
+describe("E3: kudos given says whether the giver said why", () => {
+  test.each([
+    ["five words besides mentions and emoji", true, [section(text("thanks for the great fix "), mention("U_BOB"), emoji("taco"))]],
+    ["fewer than five words", false, [section(text("thanks for the fix "), mention("U_BOB"), emoji("taco"))]],
+  ])("%s sends thoughtful %s", async (_, thoughtful, blocks) => {
+    const t = testBackend();
+
+    await post(t, blocks);
+    await settle(t);
+
+    expect(kudosGivenProperties()).toMatchObject({ thoughtful });
+  });
+
+  test("a message stored without a gate decision before the gate shipped, given after it, sends thoughtful false", async () => {
+    slack = new FakeSlack().withMember("U_ALICE");
+    vi.stubGlobal("fetch", routedFetch(postHog, slack.fetch));
+    const t = testBackend();
+    await post(t, [section(text("thanks for covering my on-call shift "), mention("U_DANA"), emoji("taco"))]);
+    await t.run(async (ctx) => {
+      for (const row of await ctx.db.query("kudosMessages").collect()) await ctx.db.patch(row._id, { annotations: {} });
+    });
+    slack.withMember("U_DANA");
+
+    await settle(t);
+
+    expect(kudosGivenProperties()).toMatchObject({ thoughtful: false });
+  });
+
+  test("O10: only the boolean leaves the deployment, never the word count the gate read", async () => {
+    const t = testBackend();
+
+    await post(t, [section(text("thanks for untangling the thirteen flaky deploy checks before the Friday release "), mention("U_BOB"), emoji("taco"))]);
+    await settle(t);
+
+    const [decision] = await t.run(async (ctx) => (await ctx.db.query("kudosMessages").collect()).map((row) => row.annotations.gate));
+    expect(decision).toEqual({ version: 1, thoughtful: true, words: 12 });
+    expect(kudosGivenProperties()).toMatchObject({ thoughtful: true });
+    expect(Object.values(kudosGivenProperties())).not.toContain(12);
+    const bodies = postHog.requests.map((request) => request.body).join("\n");
+    expect(bodies).not.toMatch(/"(words|gate|version)"/);
+    for (const word of ["untangling", "thirteen", "flaky", "deploy", "Friday", "release"]) expect(bodies).not.toContain(word);
+  });
+});
+
 describe("O7 O8: identity", () => {
   test("distinct_id is one analytics ID per member, never a Slack or Convex ID, and workspace_key is the same on every event", async () => {
     const t = testBackend();
@@ -125,8 +172,9 @@ describe("O7 O8: identity", () => {
 
 describe("O10 F7: never sent, and the profile only on the person", () => {
   test("no PostHog request carries the message, a Slack or Convex ID, an emoji name or a time zone, and the profile rides only in $set of person events", async () => {
-    const t = testBackend();
     const team = "T0QUOKKAWS";
+    vi.stubEnv("POSTHOG_PERSONAL_API_KEY", flagsKey);
+    const t = await unlocksShippedBeforeAnyoneJoined(await flagsFromPostHog(testBackend(), postHog, ...["xp-levels", "unlocks", "quests"].map(onForEveryone)), team);
     const channel = "C0MARMALADE";
     const people = { giver: "U0ZEPHYRINE", recipient: "U0BARNABY77" };
     slack = new FakeSlack()
@@ -148,7 +196,7 @@ describe("O10 F7: never sent, and the profile only on the person", () => {
 
     await post(
       t,
-      [section(text("Marmalade gratitude, Zephyrine says thanks Barnaby Flintlock for the quokka migration "), mention(people.recipient), emoji("artichokeparty"))],
+      [section(text("Marmalade gratitude, Zephyrine says thanks Barnaby Flintlock for the quokka migration "), mention(people.recipient), emoji("artichokeparty"), emoji("artichokeparty"))],
       { ...fromZephyrine, ts: "1760349600.424242" },
     );
     await post(
@@ -158,17 +206,51 @@ describe("O10 F7: never sent, and the profile only on the person", () => {
     );
     await post(t, [section(text("Marmalade note to Zephyrine herself "), mention(people.giver), emoji("artichokeparty"))], { ...fromZephyrine, ts: "1760349602.626262" });
     await settle(t);
+    const levelUpDm = slack.callsTo("chat.postMessage").find(({ channel, blocks }) => channel === people.giver && JSON.stringify(blocks ?? []).includes("openUnlock"));
+    const openQuests = blockActions(people.giver, buttonIn(levelUpDm!.blocks as Block[], "Open"), { team, inMessage: { channel: people.giver, ts: "1760349700.818181" } });
+    await t.fetch("/slack/interactivity", await signedRequest(openQuests, { contentType: "application/x-www-form-urlencoded" }));
     await t.fetch("/slack/events", await signedRequest(appHomeOpened(people.giver, { team })));
-    await t.fetch(
-      "/slack/commands",
-      await signedRequest(slashCommand({ channel_id: channel, channel_name: "marmalade-quokkas" }, { team, user: people.giver, responseUrl: `https://hooks.slack.com/commands/${team}/1/quokka` }), {
-        contentType: "application/x-www-form-urlencoded",
-      }),
-    );
+    const commandInChannel = slashCommand({ channel_id: channel, channel_name: "marmalade-quokkas" }, { team, user: people.giver, responseUrl: `https://hooks.slack.com/commands/${team}/1/quokka` });
+    const form = { contentType: "application/x-www-form-urlencoded" };
+    await t.fetch("/slack/commands", await signedRequest(commandInChannel, form));
     await settle(t);
+    const firstThanksDm = slack.callsTo("chat.postMessage").find(({ channel, text }) => channel === people.giver && String(text).startsWith("✅ You finished a Journey step"));
+    const openFirstThanks = blockActions(people.giver, buttonIn(firstThanksDm!.blocks as Block[], "Open"), { team, inMessage: { channel: people.giver, ts: "1760349700.828282" } });
+    await t.fetch("/slack/interactivity", await signedRequest(openFirstThanks, form));
+    await settle(t);
+    await flagsFromPostHog(t, postHog, ...["xp-levels", "quests", "everyone-board"].map(onForEveryone));
+    await t.fetch("/slack/events", await signedRequest(appHomeOpened(people.giver, { team })));
+    await settle(t);
+    await t.fetch("/slack/interactivity", await signedRequest(blockActions(people.giver, buttonInHome(slack, people.giver, "Leaderboard"), { team }), form));
+    const leaderboardCommand = new URLSearchParams(commandInChannel);
+    leaderboardCommand.set("text", "leaderboard month");
+    await t.fetch("/slack/commands", await signedRequest(leaderboardCommand.toString(), form));
+    await settle(t);
+    for (const label of ["Settings", "Off", "On"]) {
+      await t.fetch("/slack/interactivity", await signedRequest(blockActions(people.giver, buttonInHome(slack, people.giver, label), { team }), form));
+      await settle(t);
+    }
 
     expect(new Set(postHog.productEvents().map((event) => event.event))).toEqual(
-      new Set(["kudos given", "kudos received", "member welcomed", "attempt failed", "app home opened", "command used"]),
+      new Set([
+        "kudos given",
+        "kudos received",
+        "member welcomed",
+        "level reached",
+        "unlock made ready",
+        "unlock opened",
+        "journey step activated",
+        "quest drawn",
+        "quest finished",
+        "crate opened",
+        "attempt failed",
+        "app home opened",
+        "command used",
+        "leaderboard viewed",
+        "leaderboard left",
+        "leaderboard joined",
+        "$feature_flag_called",
+      ]),
     );
     const profiles = new Set(postHog.personEvents().map((event) => JSON.stringify(event.properties.$set)));
     expect([...profiles].map((profile) => JSON.parse(profile))).toEqual(expect.arrayContaining([
@@ -188,7 +270,7 @@ describe("O10 F7: never sent, and the profile only on the person", () => {
     const stored = await everythingStored(t);
     const neverSent = [
       "Marmalade", "artichokeparty", "Pacific/Chatham", "America/St_Johns", "Chatham", "St_Johns",
-      channel, "1760349600", "424242", "515151", "626262", "737373", "Ev",
+      channel, "1760349600", "424242", "515151", "626262", "737373", "828282", "Ev",
       "overflow", "herself", "hooks.slack.com", "ann", "acme", "1.2.3", "migration",
       ...stored.map((row) => row._id),
     ];
@@ -198,6 +280,7 @@ describe("O10 F7: never sent, and the profile only on the person", () => {
     for (const value of neverSent) expect(bodies).not.toContain(value);
     for (const value of onThePersonOnly) expect(bodiesWithoutProfiles).not.toContain(value);
     expect(bodiesWithoutProfiles).not.toMatch(/\b[UTCWB][A-Z0-9]{8,}\b/);
+    expect(bodies).not.toMatch(/"(words|gate)"/);
   });
 });
 
@@ -266,13 +349,10 @@ describe("O26: capture is off", () => {
   });
 });
 
-function withoutPersonProperties(body: string) {
-  const parsed = JSON.parse(body) as { batch: Array<{ event: string; properties: Record<string, unknown> }> };
-  for (const { properties } of parsed.batch.filter(({ event }) => event === "$identify" || event === "$set")) {
-    delete properties.$set;
-    delete properties.$unset;
-  }
-  return JSON.stringify(parsed);
+function kudosGivenProperties() {
+  const given = postHog.events().filter((event) => event.event === "kudos given");
+  expect(given).toHaveLength(1);
+  return given[0]!.properties;
 }
 
 function kudosEvents() {

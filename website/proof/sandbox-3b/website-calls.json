@@ -1,0 +1,234 @@
+[
+  {
+    "at": "2026-10-14T04:33:09.685Z",
+    "kind": "query",
+    "path": "website/quests:getQuests",
+    "args": {},
+    "session": true,
+    "http": 200,
+    "status": "success",
+    "value": {
+      "chatUrl": "https://app.slack.com/client/<workspace>",
+      "kind": "quests",
+      "slots": [],
+      "waiting": []
+    }
+  },
+  {
+    "at": "2026-10-14T04:33:09.946Z",
+    "kind": "query",
+    "path": "website/profile:getMyProfile",
+    "args": {},
+    "session": true,
+    "http": 200,
+    "status": "success",
+    "value": {
+      "kind": "member",
+      "journey": [
+        {
+          "crate": null,
+          "goal": "Give a kudos that says why.",
+          "hint": "It counts when your message has 5 or more words besides mentions and emoji.",
+          "reward": {
+            "xp": 10
+          },
+          "seen": null,
+          "state": "active",
+          "step": "first-thanks"
+        },
+        {
+          "crate": null,
+          "goal": "Finish a weekly quest.",
+          "hint": null,
+          "reward": {
+            "xp": 20
+          },
+          "seen": null,
+          "state": "active",
+          "step": "first-quest"
+        },
+        {
+          "crate": null,
+          "goal": "Thank someone you haven't thanked before.",
+          "hint": null,
+          "reward": {
+            "xp": 30
+          },
+          "seen": "c5014e4110a71e8d9f0e1195c9185baa",
+          "state": "opened",
+          "step": "someone-new"
+        }
+      ],
+      "features": [
+        {
+          "feature": "quests",
+          "level": 2,
+          "name": "Quests",
+          "openedAt": 1791944280040,
+          "opens": "your weekly quests",
+          "readyAt": 1791941423604,
+          "seen": "1da885c0e63b66348ea310960b48b91b",
+          "state": "open"
+        },
+        {
+          "feature": "leaderboard",
+          "level": 3,
+          "name": "Leaderboard",
+          "openedAt": 1791929501429,
+          "opens": "the boards",
+          "readyAt": 1791929501429,
+          "seen": "e10735952f7abf0ad5029aa228d5265b",
+          "state": "open"
+        },
+        {
+          "feature": "skillTree",
+          "level": 5,
+          "name": "Skill tree",
+          "openedAt": null,
+          "opens": "the tree and your first skill point",
+          "readyAt": null,
+          "seen": "7d4c5e96d24c195c2d13b06de5bc8a68",
+          "state": "locked"
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-10-14T04:33:10.172Z",
+    "kind": "mutation",
+    "path": "website/commands:openQuestCrate",
+    "args": {
+      "quest": {
+        "kind": "journey",
+        "step": "someone-new"
+      }
+    },
+    "session": true,
+    "http": 200,
+    "status": "success",
+    "value": {
+      "kind": "opened"
+    }
+  },
+  {
+    "at": "2026-10-14T04:33:10.408Z",
+    "kind": "mutation",
+    "path": "website/commands:openQuestCrate",
+    "args": {
+      "quest": {
+        "kind": "journey",
+        "step": "someone-new"
+      }
+    },
+    "session": true,
+    "http": 200,
+    "status": "success",
+    "value": {
+      "kind": "opened"
+    }
+  },
+  {
+    "at": "2026-10-14T04:33:10.613Z",
+    "kind": "mutation",
+    "path": "website/commands:openQuestCrate",
+    "args": {
+      "quest": {
+        "kind": "journey",
+        "step": "first-thanks"
+      }
+    },
+    "session": true,
+    "http": 200,
+    "status": "success",
+    "value": {
+      "kind": "refused"
+    }
+  },
+  {
+    "at": "2026-10-14T04:33:10.789Z",
+    "kind": "mutation",
+    "path": "website/commands:openQuestCrate",
+    "args": {
+      "quest": {
+        "kind": "journey",
+        "step": "first-quest"
+      }
+    },
+    "session": true,
+    "http": 200,
+    "status": "success",
+    "value": {
+      "kind": "refused"
+    }
+  },
+  {
+    "at": "2026-10-14T04:33:10.983Z",
+    "kind": "mutation",
+    "path": "website/commands:openQuestCrate",
+    "args": {
+      "quest": {
+        "kind": "weekly",
+        "week": "2026-10-12",
+        "slot": 0
+      }
+    },
+    "session": true,
+    "http": 200,
+    "status": "success",
+    "value": {
+      "kind": "refused"
+    }
+  },
+  {
+    "at": "2026-10-14T04:33:11.171Z",
+    "kind": "mutation",
+    "path": "website/commands:openQuestCrate",
+    "args": {
+      "quest": {
+        "kind": "weekly",
+        "week": "2026-10-05",
+        "slot": 0
+      }
+    },
+    "session": true,
+    "http": 200,
+    "status": "success",
+    "value": {
+      "kind": "refused"
+    }
+  },
+  {
+    "at": "2026-10-14T04:33:11.243Z",
+    "kind": "mutation",
+    "path": "website/commands:openQuestCrate",
+    "args": {
+      "quest": {
+        "kind": "journey",
+        "step": "someone-new"
+      }
+    },
+    "session": false,
+    "http": 200,
+    "status": "success",
+    "value": {
+      "kind": "signed-out"
+    }
+  },
+  {
+    "at": "2026-10-14T04:33:11.284Z",
+    "kind": "mutation",
+    "path": "website/commands:openQuestCrate",
+    "args": {
+      "quest": {
+        "kind": "journey",
+        "step": "someone-new"
+      },
+      "member": "anyone"
+    },
+    "session": true,
+    "http": 200,
+    "status": "error",
+    "error": "[Request ID: 93ac78be7269c95e] Server Error",
+    "log": "ArgumentValidationError: Object contains extra field `member` that is not in the validator."
+  }
+]

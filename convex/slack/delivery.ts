@@ -4,8 +4,9 @@ import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
 import { messageRefValidator, type Mention, type MessageRef } from "../engine/messageEvent";
+import type { DeepLink } from "../feedback/deepLinks";
 import type { Indicator } from "../feedback/indicator";
-import type { Line, Segment } from "../feedback/replies";
+import type { Line, Segment } from "../feedback/segments";
 import { callSlack, type SlackAnswer } from "./webApi";
 
 export const attemptArgs = { attempt: v.optional(v.number()) };
@@ -147,8 +148,14 @@ export function slackTextOf(lines: Line[]) {
   return lines.map((line) => line.map(slackTextOfSegment).join("")).join("\n");
 }
 
+export function slackLink({ url, label }: DeepLink) {
+  return `<${url}|${label}>`;
+}
+
 function slackTextOfSegment(segment: Segment) {
-  return "text" in segment ? segment.text : slackMention(segment.mention);
+  if ("text" in segment) return segment.text;
+  if ("link" in segment) return slackLink(segment.link);
+  return slackMention(segment.mention);
 }
 
 function slackMention(mention: Mention) {

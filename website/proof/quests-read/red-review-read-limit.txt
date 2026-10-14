@@ -1,0 +1,36 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/quests-read
+
+ ❯ |convex| convex/website/quests.test.ts (25 tests | 1 failed | 24 skipped) 2099ms
+   ❯ WS70: getQuests reads the quests module's facts (11)
+     × a member with a long history of kudos still reads this week's slots within Convex's read limits 2097ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > a member with a long history of kudos still reads this week's slots within Convex's read limits
+Error: Scanned too many documents in a single function execution (limit: 32000). This is a Convex limit: https://docs.convex.dev/production/state/limits
+ ❯ performAsyncSyscall node_modules/.pnpm/convex@1.46.0_react@19.3.0/node_modules/convex/src/server/impl/syscall.ts:52:11
+ ❯ QueryImpl.next node_modules/.pnpm/convex@1.46.0_react@19.3.0/node_modules/convex/src/server/impl/query_impl.ts:264:29
+ ❯ QueryImpl.collect node_modules/.pnpm/convex@1.46.0_react@19.3.0/node_modules/convex/src/server/impl/query_impl.ts:317:22
+ ❯ lastThankedBy convex/engine/awards.ts:58:18
+     56|
+     57| export async function lastThankedBy(ctx: QueryCtx, giver: MemberId, at…
+     58|   const awards = await ctx.db
+       |                  ^
+     59|     .query("awards")
+     60|     .withIndex("by_giver", (q) => q.eq("giver", giver))
+ ❯ factsWithTheDayUnspent convex/quests/weekly.ts:239:23
+ ❯ drawFactsOf convex/quests/weekly.ts:226:17
+ ❯ replacementFor convex/quests/weekly.ts:154:39
+ ❯ weeklyQuestsOf convex/quests/weekly.ts:115:98
+ ❯ convex/website/quests.ts:56:16
+ ❯ invokeFunction node_modules/.pnpm/convex@1.46.0_react@19.3.0/node_modules/convex/src/server/impl/registration_impl.ts:90:14
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 24 skipped (25)
+   Start at  02:52:54
+   Duration  2.81s (tests 77%, transform 14%, import 7%, environment 2%)
+

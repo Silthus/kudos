@@ -232,10 +232,10 @@ describe("P77: launching unlocks for members already playing stays within Convex
   test.each([
     ["Quests and the Leaderboard both ship", ["xp-levels", "unlocks", "quests", "everyone-board"]],
     ["quests is dark and the Leaderboard ships", ["xp-levels", "unlocks", "everyone-board"]],
-  ])("when %s, launching for 1,200 members schedules nothing", async (_, flags) => {
-    const t = await launchedFor(1200, flags);
+  ])("when %s, launching for 101 members, one past a page of 100, schedules only the one recording of its openings for analytics", async (_, flags) => {
+    const t = await launchedFor(101, flags);
 
-    expect(await scheduled(t)).toEqual({ total: 0, draws: 0, sweeps: 0, joins: 0, identifies: 0 });
+    expect(await scheduled(t)).toEqual({ total: 1, draws: 0, sweeps: 0, joins: 0, recordings: 1, identifies: 0 });
   });
 
   test("members opened into Quests by the launch get their draws from the hourly sweep, 100 per mutation, beside the Journey's join", async () => {
@@ -243,7 +243,7 @@ describe("P77: launching unlocks for members already playing stays within Convex
 
     await t.mutation(internal.quests.newWeek.sweep, {});
 
-    expect(await scheduled(t)).toEqual({ total: 103, draws: 100, sweeps: 1, joins: 1, identifies: 1 });
+    expect(await scheduled(t)).toEqual({ total: 104, draws: 100, sweeps: 1, joins: 1, recordings: 1, identifies: 1 });
   });
 });
 
@@ -294,6 +294,7 @@ async function scheduled(t: Backend) {
     draws: named("drawWeeklyQuests") + named("drawNewWeek"),
     sweeps: named("newWeek.js:sweep") + named("newWeek:sweep"),
     joins: named("joinJourneyPage"),
+    recordings: named("recordUnlocksLaunched"),
     identifies: named("identifyNewPeople"),
   };
 }

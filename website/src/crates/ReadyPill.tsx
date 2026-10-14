@@ -1,15 +1,13 @@
 import { Button } from "@posthog/quill";
-import { readyFeaturesOf } from "../features";
-import type { MemberProfile } from "../shell";
 import { CrateGlyph } from "./CrateArt";
 import { attemptMessages, useMoments } from "./moments";
+import type { ReadyCrate } from "./readyCrates";
 
-export function ReadyPill({ member }: { member: MemberProfile }) {
+export function ReadyPill({ crates }: { crates: ReadyCrate[] }) {
   const moments = useMoments();
-  const ready = readyFeaturesOf(member);
-  const first = ready[0];
+  const first = crates[0];
   if (moments === undefined || first === undefined) return null;
-  const opening = moments.attemptOf(first.feature) === "opening";
+  const opening = moments.attemptOf(first) === "opening";
   return (
     <Button
       variant="outline"
@@ -20,15 +18,14 @@ export function ReadyPill({ member }: { member: MemberProfile }) {
       }}
     >
       <CrateGlyph className="size-4" />
-      {opening ? "Opening…" : <ReadyCount count={ready.length} />}
+      {opening ? "Opening…" : <ReadyCount count={crates.length} />}
     </Button>
   );
 }
 
-export function ReadyPillFailure({ member }: { member: MemberProfile }) {
+export function ReadyPillFailure({ first }: { first: ReadyCrate | undefined }) {
   const moments = useMoments();
-  const first = readyFeaturesOf(member)[0];
-  const attempt = first && moments?.attemptOf(first.feature);
+  const attempt = first && moments?.attemptOf(first);
   if (attempt === undefined || attempt === "opening") return null;
   return <p className="order-last w-full pb-2 text-right text-xs font-medium max-sm:text-left">{attemptMessages[attempt]}</p>;
 }

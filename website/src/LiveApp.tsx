@@ -8,6 +8,7 @@ import type { BoardAnswer } from "./boardRead";
 import { useCodeRedemptionFailed } from "./codeRedemption";
 import { answerWithin } from "./commandAnswer";
 import { useSocketUnreachable } from "./connection";
+import type { QuestsShown } from "./questsRead";
 import type { Period, ShellActions, Visitor } from "./shell";
 import { forgetSignInStarted } from "./signInAttempt";
 
@@ -32,6 +33,7 @@ function LiveApp() {
       visitor={visitorOf({ authLoading: isLoading, redemptionFailed, unreachable, profile })}
       actions={actions}
       useLeaderboard={(period) => useLiveLeaderboard(period, unreachable)}
+      useQuests={(asking) => useLiveQuests(asking, unreachable)}
     />
   );
 }
@@ -42,6 +44,14 @@ function useLiveLeaderboard(period: Period | undefined, unreachable: boolean): B
   if (board instanceof Error) return { kind: "broken" };
   if (board === undefined && unreachable) return { kind: "connecting" };
   return board;
+}
+
+function useLiveQuests(asking: boolean, unreachable: boolean): QuestsShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking ? { quests: { query: api.website.quests.getQuests, args: {} } } : {}), [asking]);
+  const { quests } = useQueries(request);
+  if (quests instanceof Error) return { kind: "broken" };
+  if (quests === undefined && unreachable) return { kind: "connecting" };
+  return quests;
 }
 
 type Answers = { authLoading: boolean; redemptionFailed: boolean; unreachable: boolean; profile: MyProfile | undefined };
@@ -57,16 +67,18 @@ const commandAnswerBudgetMs = 10_000;
 function useLiveActions(onSignInFailure: () => void): ShellActions {
   const { signIn, signOut } = useAuthActions();
   const openFeature = useMutation(api.website.commands.openFeature);
+  const openQuestCrate = useMutation(api.website.commands.openQuestCrate);
   return useMemo(
     () => ({
       openFeature: (feature) => answerWithin(commandAnswerBudgetMs, openFeature({ feature })),
-      signIn: () =>
-        void signIn("slack", { redirectTo: "/" }).catch(() => {
+      openQuestCrate: (quest) => answerWithin(commandAnswerBudgetMs, openQuestCrate({ quest })),
+      signIn: (returnTo) =>
+        void signIn("slack", { redirectTo: returnTo }).catch(() => {
           forgetSignInStarted();
           onSignInFailure();
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, openFeature, onSignInFailure],
+    [signIn, signOut, openFeature, openQuestCrate, onSignInFailure],
   );
 }

@@ -3,7 +3,7 @@ import { improvementLine } from "../leaderboard/improvementLine";
 import type { Period } from "../leaderboard/periods";
 import type { EveryoneBoardView } from "../leaderboard/totals";
 import { slashCommand } from "./naming";
-import type { Line } from "./replies";
+import type { Line } from "./segments";
 
 const medals = ["🥇", "🥈", "🥉"];
 
@@ -18,6 +18,10 @@ export function renderEveryoneBoard(view: EveryoneBoardView, period: Period): Li
   const nudge = nudgeFor(view, period);
   const improvement = view.improvement === null || period === "all" ? [] : [[{ text: improvementLine(view.improvement, period) }]];
   return [...rows, ...nudge, ...improvement];
+}
+
+export function renderFullBoardLink(website: string | null): Line[] {
+  return website === null ? [] : [[{ link: { url: website, label: "See the full leaderboard on the web" } }]];
 }
 
 export function renderLeaderboardUsage(): Line[] {

@@ -93,7 +93,7 @@ describe("P88 P89: opening Quests or the Leaderboard shows its Journey step, and
     expect(journeyIn(publishedHome(slack, "U_ALICE")).at(-1)).toBe(someoneNewDone);
   });
 
-  test("P71: a kudos that finishes the weekly someone-new and the Journey's someone-new names that goal once in its success reply", async () => {
+  test("P71: a kudos that finishes the weekly someone-new and the Journey's someone-new names that goal for each quest, with each one's own reward", async () => {
     const t = await workspace();
     await directoryKnows(t, "U_BOB");
     await leaderboardReady(t, "U_ALICE");
@@ -108,7 +108,7 @@ describe("P88 P89: opening Quests or the Leaderboard shows its Journey step, and
     await settleInTimeOrder(t);
 
     expect(slack.ephemeralsTo("U_ALICE").map(({ text }) => String(text).split("\n"))).toEqual([
-      ["<@U_BOB> got 1 kudos from you. You have 9 kudos left today.", "Quest done: Thank someone you haven't thanked before"],
+      ["<@U_BOB> got 1 kudos from you. You have 9 kudos left today.", "+10 XP · Quest done: Thank someone you haven't thanked before (+20 XP) · Quest done: Thank someone you haven't thanked before (+30 XP)"],
     ]);
   });
 

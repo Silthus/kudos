@@ -8,7 +8,7 @@ import type { DomainEvent } from "../bus/events";
 import { publish } from "../bus/publish";
 import schema from "../schema";
 import type { MemberId } from "../workspace/directory";
-import { openQuestCrate } from "./crates";
+import { openQuestCrate } from "./open";
 
 vi.mock("../bus/publish", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../bus/publish")>();

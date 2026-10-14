@@ -57,6 +57,16 @@ describe("F22: unlocks previewed by one member's email", () => {
     expect(publishedHome(slack, "U_ALICE")[0]).toBe("actions: [Profile] | Leaderboard | Settings");
   });
 
+  test("the preview moment's openings reach analytics as opened by the launch, as the workspace launch's do", async () => {
+    const t = await workspaceDeciding(...previewedByAlice);
+
+    await openHome(t, "U_ALICE");
+
+    const opened = productEventsNamed("unlock opened");
+    expect(opened.map(({ properties }) => properties)).toEqual([expect.objectContaining({ feature: "leaderboard", by: "launch" })]);
+    expect(opened.map(({ distinct_id }) => distinct_id)).toEqual(productEventsNamed("app home opened").map(({ distinct_id }) => distinct_id));
+  });
+
   test("the other member's Slack calls, command reply and unlock rows are exactly those with unlocks off: no crate, no Next: line, no ship-sweep DM", async () => {
     const whilePreviewed = await bobsSideOf(previewedByAlice);
     vi.clearAllTimers();
@@ -238,6 +248,10 @@ function readCall({ args }: SlackCall): string[] {
 
 function namesAnUnlock(line: string) {
   return /is ready|Next:|Open\]|opens at level/.test(line);
+}
+
+function productEventsNamed(name: string) {
+  return postHog.productEvents().filter(({ event }) => event === name);
 }
 
 async function workspaceDeciding(...definitions: FlagDefinition[]) {

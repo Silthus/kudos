@@ -1,0 +1,27 @@
+{
+ "journey": [
+  {
+   "crate": null,
+   "goal": "Give a kudos that says why.",
+   "hint": "It counts when your message has 5 or more words besides mentions and emoji.",
+   "reward": {
+    "xp": 10
+   },
+   "seen": null,
+   "state": "active",
+   "step": "first-thanks"
+  }
+ ],
+ "features": [
+  {
+   "feature": "quests",
+   "level": 2,
+   "name": "Quests",
+   "openedAt": null,
+   "opens": "your weekly quests",
+   "readyAt": null,
+   "seen": "1715a2b371566c0f31cde21729296ccf",
+   "state": "locked"
+  }
+ ]
+}

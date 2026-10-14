@@ -50,6 +50,16 @@ describe("F16: xp-levels and everyone-board previewed by one member's email", ()
     expect(await commandReply(t, "U_ALICE", "leaderboard")).toEqual({ status: 200, body: { response_type: "ephemeral", text: "🥇 <@U_ALICE> · 2 kudos\n▲ 2 more kudos than this time last week" } });
   });
 
+  test("the previewing member's success reply names the XP their kudos earned them, and the other member's names none", async () => {
+    const t = await workspaceDeciding(...previewedByAlice);
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+    await giveKudos(t, "U_BOB", "U_ALICE", 2);
+
+    expect(slack.ephemeralsTo("U_ALICE").map(({ text }) => text)).toEqual(["<@U_BOB> got 2 kudos from you. You have 8 kudos left today.\n+20 XP"]);
+    expect(slack.ephemeralsTo("U_BOB").map(({ text }) => text)).toEqual(["<@U_ALICE> got 2 kudos from you. You have 8 kudos left today."]);
+  });
+
   test("the previewing member's App Home is published again after each kudos, without reopening it", async () => {
     const t = await workspaceDeciding(...previewedByAlice);
     await openHome(t, "U_ALICE");

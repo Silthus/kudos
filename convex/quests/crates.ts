@@ -1,26 +1,19 @@
 import { v } from "convex/values";
-import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { publish } from "../bus/publish";
-import { rewardOf } from "../progression/rewards";
-import { chatUserOf, type MemberId } from "../workspace/directory";
-import { questsLiveFor } from "./flag";
-import type { Quest } from "./step";
+import type { QueryCtx } from "../_generated/server";
+import type { MemberId } from "../workspace/directory";
+import type { Quest, WeeklyQuest } from "./step";
 
 export const crateOpeningValidator = v.object({ member: v.id("members"), key: v.string(), at: v.number() });
 
-export async function openQuestCrate(ctx: MutationCtx, member: MemberId, quest: Quest): Promise<"done" | "refused"> {
-  const key = rewardKeyOf(quest);
-  if ((await rewardOf(ctx, member, key)) === null || !(await questsLiveFor(ctx, member))) return "refused";
-  if ((await crateOpeningOf(ctx, member, key)) !== null) return "done";
-  const at = Date.now();
-  const { workspace } = await chatUserOf(ctx, member);
-  await ctx.db.insert("crateOpenings", { member, key, at });
-  await publish(ctx, { type: "questOpened", workspace, member, quest, at });
-  return "done";
-}
+export const pendingCrateValidator = v.object({ member: v.id("members"), key: v.string() });
 
 export function rewardKeyOf(quest: Quest) {
   return quest.kind === "journey" ? `${rewardKeyPrefixOf("journey")}${quest.step}` : `${rewardKeyPrefixOf("weekly")}${quest.week}:${quest.slot}`;
+}
+
+export function weeklyQuestOfRewardKey(key: string): WeeklyQuest | null {
+  const match = new RegExp(`^${rewardKeyPrefixOf("weekly")}(.+):(\\d+)$`).exec(key);
+  return match === null ? null : { kind: "weekly", week: match[1]!, slot: Number(match[2]) };
 }
 
 export function rewardKeyPrefixOf(kind: Quest["kind"]) {

@@ -1,6 +1,7 @@
 import { Counters } from "../home/Counters";
 import { Hero } from "../home/Hero";
 import { FeatureCards } from "../home/FeatureCards";
+import { JourneyPanel } from "../home/JourneyPanel";
 import { ProfileCardPanel } from "../home/ProfileCardPanel";
 import type { MemberProfile } from "../shell";
 
@@ -14,6 +15,7 @@ export function HomePage({ member }: { member: MemberProfile }) {
         </div>
         <ProfileCardPanel member={member} />
       </div>
+      <JourneyPanel journey={member.journey} />
       <FeatureCards member={member} />
     </div>
   );

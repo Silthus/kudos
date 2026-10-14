@@ -1,18 +1,24 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
+import { achievementsApplyIn } from "../achievements/flag";
 import { exposed, memberDecision, workspaceDecision } from "../analytics/flags";
-import { xpLevelsOnFor, xpLevelsShownIn } from "../progression/xpLevels";
-import { unlocksAppliedIn, unlocksAppliedTo } from "../unlocks/launch";
+import { xpLevelsOnFor } from "../progression/xpLevels";
+import { unlockPathShownIn, unlocksAppliedTo } from "../unlocks/launch";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { joinMember } from "./join";
 import { questsFlag } from "./questsFlag";
+import type { JourneyStep } from "./step";
 
 export async function questsApplyIn(ctx: QueryCtx | MutationCtx, workspace: string): Promise<boolean> {
-  return (await workspaceDecision(ctx, questsFlag, workspace)) && (await xpLevelsShownIn(ctx, workspace)) && (await unlocksAppliedIn(ctx, workspace));
+  return (await workspaceDecision(ctx, questsFlag, workspace)) && (await unlockPathShownIn(ctx, workspace));
 }
 
 export async function questsApplyTo(ctx: QueryCtx | MutationCtx, member: MemberId): Promise<boolean> {
   return (await memberDecision(ctx, questsFlag, member)) && (await questsDecideFor(ctx, member));
+}
+
+export async function journeyStepAppliesIn(ctx: QueryCtx | MutationCtx, workspace: string, step: JourneyStep): Promise<boolean> {
+  return step !== "two-days" || (await achievementsApplyIn(ctx, workspace));
 }
 
 export async function questsShownTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
