@@ -73,6 +73,8 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "quests with last week's crate waiting", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.weekWithLastWeeksCrate },
   { name: "quests with the same quest's crate waiting from two weeks", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.weekWithTheSameQuestWaitingFromTwoWeeks },
   { name: "quests with nothing drawn", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.noDraw },
+  { name: "quests with a swap left", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.weekWithASwapLeft },
+  { name: "quests after the week's swap", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.weekAfterTheSwap },
   { name: "quests of every kind, finished and claimed", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.everyKind },
   { name: "quests locked until level 2", path: "/quests", visitor: shellFixtures.memberStartingTheJourney, quests: questsFixtures.locked },
   { name: "quests ready to open in place", path: "/quests", visitor: shellFixtures.memberWithQuestsReady, quests: questsFixtures.ready },
@@ -111,6 +113,16 @@ describe("WS24: every page passes axe in light and dark", () => {
       await user.click(getByRole("button", { name: "Show the whole board" }));
       viewerRow.see({ visible: false, edge: "bottom" });
       getByRole("button", { name: "Jump to me" });
+      expect(await violationsIn(container, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
+    });
+
+    it(`a refused Swap's line on its quest card meets WCAG 2.2 AA in ${dark ? "dark" : "light"}`, async () => {
+      fakeSystemTheme(dark);
+      window.history.replaceState(null, "", "/quests");
+      const { user, container, getByRole } = renderApp(shellFixtures.memberWithQuests, undefined, { swapQuest: async () => ({ kind: "refused" }) }, fixedQuests(questsFixtures.weekWithASwapLeft));
+      const card = within(getByRole("main")).getByRole("heading", { name: "Thank someone and say why, 2 times." }).closest("article")!;
+      await user.click(within(card).getByRole("button", { name: /^Swap/ }));
+      within(card).getByText("That quest couldn't be swapped.");
       expect(await violationsIn(container, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
     });
 

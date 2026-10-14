@@ -1,0 +1,5 @@
+     × WS335 P77: with every flag on and no unlocks launch, a member whose Quests is open with a drawn week gets refused and nothing launches 57ms
+     × WS335 P91: with unlocks launched and no Journey launch, a swap of an open, drawn week answers refused and neither launches the Journey nor joins anyone 118ms
+     × WS335: with achievements on and no Book launch, a swappable quest answers refused and doesn't launch the Book 136ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  3 failed | 11 passed (14)
