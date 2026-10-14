@@ -1,0 +1,11 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/climb-on-return
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+ Test Files  1 passed (1)
+      Tests  16 passed (16)
+   Start at  17:14:57
+   Duration  16.50s (tests 73%, import 12%, transform 10%, environment 4%, setup 1%)
+

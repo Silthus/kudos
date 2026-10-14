@@ -73,7 +73,7 @@ export function skillPointChip() {
   return document.querySelector<HTMLElement>("header [data-skill-point-chip]");
 }
 
-function isInView(element: HTMLElement) {
+export function isInView(element: HTMLElement) {
   const { top, bottom, width } = element.getBoundingClientRect();
   const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
   return width > 0 && top >= headerBottom && bottom <= window.innerHeight;

@@ -1,10 +1,15 @@
 import { useCallback, useLayoutEffect, useRef } from "react";
 import { NavigateProvider } from "./AppLink";
-import { MomentAnnouncement } from "./crates/MomentAnnouncement";
+import { LevelUpAnnouncement, MomentAnnouncement } from "./crates/MomentAnnouncement";
 import { MomentsProvider, useCrateMoments, useMembersShown } from "./crates/moments";
 import { readyCratesOf } from "./crates/readyCrates";
 import { RevealDialog } from "./crates/RevealDialog";
 import { CrateRewardFlight } from "./crates/CrateRewardFlight";
+import { ClimbFlight } from "./climb/ClimbFlight";
+import { ClimbSummary } from "./climb/ClimbSummary";
+import { useClimbOnReturn } from "./climb/useClimbOnReturn";
+import { LevelUpCelebration } from "./levelUp/LevelUpCelebration";
+import { useLevelUps } from "./levelUp/useLevelUps";
 import { rewardsOf, withTheRewardsHeld } from "./crates/rewards";
 import type { ActivityRead, ActivityShown, ActivityWatch } from "./activityRead";
 import type { BoardAnswer, BoardRead } from "./boardRead";
@@ -63,7 +68,9 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
   const moments = useCrateMoments(actions, { signedOut: member === undefined && !stillAsking(shown), crates: cratesOf(member), onQuests });
   const reveal = member !== undefined ? moments.reveal : undefined;
   const revealing = reveal !== undefined;
-  const memberShown = member === undefined ? undefined : withTheRewardsHeld(member, moments.onTheWay);
+  const climb = useClimbOnReturn(member, membersShown, readActivity);
+  const memberShown = member === undefined ? undefined : climb.shownOf(withTheRewardsHeld(member, moments.onTheWay));
+  const levels = useLevelUps(memberShown, membersShown, climb.climbing);
   const rewards = member === undefined ? [] : rewardsOf(member, moments.onTheWay);
   const { chart } = moments;
   useLayoutEffect(() => chart(rewards), [chart, rewards]);
@@ -92,7 +99,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
         {signingIn ? (
           <SignedOutPage returnTo={hrefOf(route)} onSignIn={signIn} />
         ) : (
-          <Frame member={memberShown} ready={readyCrates} current={screenOf(route)} busy={page.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined) || (onBook && book === undefined) || (onSkills && skillTree === undefined) || (onActivity && activityWatch === undefined)} inert={revealing} onSignOut={actions.signOut}>
+          <Frame member={memberShown} ready={readyCrates} current={screenOf(route)} busy={page.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined) || (onBook && book === undefined) || (onSkills && skillTree === undefined) || (onActivity && activityWatch === undefined)} inert={revealing} notice={climb.summary !== undefined && <ClimbSummary text={climb.summary} />} onSignOut={actions.signOut}>
             <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>
               <Page state={page} route={route} board={board} quests={quests} book={book} skillTree={skillTree} profileCard={profileCard} useRecentKudos={useRecentKudos} activity={{ shown: activity, watch: activityWatch, read: readActivity, onChooseFilter: chooseFilter }} drawSpotlight={drawSpotlight} membersShown={membersShown} onChoosePeriod={choosePeriod} onBuyPerk={actions.buyPerk} onSetBoardVisibility={actions.setBoardVisibility} onSwapQuest={actions.swapQuest} onSignIn={signIn} onSignOut={actions.signOut} />
             </ErrorBoundary>
@@ -104,7 +111,10 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
         {moments.flight !== undefined && member !== undefined && memberShown !== undefined && (
           <CrateRewardFlight key={moments.flight.crate.seen} flight={moments.flight} reward={rewards[0]!} shown={memberShown} onRewardLanded={moments.landed} onLanded={moments.land} />
         )}
+        {climb.chips !== undefined && memberShown !== undefined && <ClimbFlight chips={climb.chips} shown={memberShown} onLanded={climb.landed} onFinished={climb.finish} />}
+        {levels.levelUp !== undefined && <LevelUpCelebration key={levels.levelUp.key} levelUp={levels.levelUp} onDone={levels.done} />}
         <MomentAnnouncement text={moments.announcement} />
+        <LevelUpAnnouncement text={levels.announcement} />
       </MomentsProvider>
     </NavigateProvider>
   );
