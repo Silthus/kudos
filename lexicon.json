@@ -201,7 +201,7 @@
     },
     {
       "name": "announcement channel",
-      "definition": "A public channel a workspace admin picks for level-up and achievement notices, instead of the thread under the kudos message."
+      "definition": "A public channel a workspace admin picks for level-up and achievement notices: the only place HedgeHug celebrates progress in public, at its top level, and while none is picked nothing is celebrated in public (QM1, QM2)."
     },
     {
       "name": "xp booster",
@@ -305,7 +305,7 @@
     },
     {
       "name": "public reply",
-      "definition": "The one public message under a kudos message, or in the announcement channel when a workspace admin picked one, that celebrates the progress members reached through it; posted once, then edited in place as sections from many modules (level notices, later achievements, quips and chime-in lines) arrive. It states only progress, never the kudos text or the giver (P64, D18)."
+      "definition": "The one public message at the top level of the announcement channel that celebrates the progress members reached through a kudos message; posted once, then edited in place as sections from many modules (level notices, achievements) arrive, never under or beside the kudos message, and not at all while no announcement channel is picked. It states only progress, never the kudos text or the giver (P64, D18, QM1)."
     },
     {
       "name": "command",
