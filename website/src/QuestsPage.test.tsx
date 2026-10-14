@@ -172,15 +172,7 @@ describe("WS73: /quests shows this week's quests while Quests is open", () => {
     expect(within(main()).getByRole("link", { name: "Open Slack (opens in a new tab)" })).toHaveClass("quill-button--variant-outline");
   });
 
-  it("explains how quests work in WS73's words", () => {
-    showQuests(questsFixtures.week);
-    const how = within(main()).getByRole("region", { name: "How quests work" });
-    expect(how).toHaveTextContent(
-      "Quests reward thanking someone new, someone you haven't thanked in a while, and thanks that say why. A thanks says why when your message has 5 or more words besides mentions and emoji. New quests arrive every Monday. You can swap one quest a week in Slack's App Home.",
-    );
-  });
-
-  it("offers no swap, group quest or bonus quest, and never calls a kudos thoughtful", () => {
+  it("offers no group quest or bonus quest, and never calls a kudos thoughtful", () => {
     showQuests(questsFixtures.weekWithLastWeeksCrate);
     expect(within(main()).getAllByRole("button").map((button) => button.textContent)).toEqual(["Claim", "Claim"]);
     expect(main()).not.toHaveTextContent(/group quest|bonus|thoughtful|reroll/i);

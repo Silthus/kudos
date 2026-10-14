@@ -1,0 +1,4 @@
+     × after refused, moves focus to the card's heading when the read takes Swap away after the answer 1477ms
+     × a refusal from last week that lands after the Monday turn moves no focus onto the new week's quest 284ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  2 failed | 18 passed (20)
