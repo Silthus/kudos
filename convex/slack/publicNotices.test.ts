@@ -37,7 +37,7 @@ describe("P64: the public level notice", () => {
     expect(slack.messagesIn("C1")).toEqual([{ channel: "C1", ts: expect.any(String), threadTs: postedTs, text: "🎉 <@U_ALICE> reached level 2." }]);
   });
 
-  test("R45: a recipient's notice states only their progress, never the giver or the thank-you, and no text is stored", async () => {
+  test("R45 AT1: a recipient's notice states only their progress, never the giver or the thank-you, whose words are only in the kudos text", async () => {
     const t = await flagsLoaded(testBackend());
     await withXp(t, "U_BOB", 15);
 
@@ -45,7 +45,7 @@ describe("P64: the public level notice", () => {
     await settle(t);
 
     expect(slack.messagesIn("C1").map((message) => message.text)).toEqual(["🎉 <@U_BOB> reached level 2."]);
-    const stored = JSON.stringify(await everythingStored(t), (_, value) => (typeof value === "bigint" ? String(value) : value));
+    const stored = JSON.stringify(await everythingStored(t, { except: ["kudosTexts"] }), (_, value) => (typeof value === "bigint" ? String(value) : value));
     expect(stored).not.toContain("rescuing");
   });
 });

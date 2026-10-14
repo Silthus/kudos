@@ -1,8 +1,23 @@
 # Engine
 
-Kudos engine: observes message events, checks the directory and rechecks a message that waits on it 1, 6, 36, 156 and 516 minutes after the first miss before abandoning it, decides each attempt's outcome against the daily allowance, writes awards and publishes kudosGiven for a Given attempt and attemptFailed for an Over allowance or Invalid one, reads back every Given message with its awards in award order for the backfills of later subscribers, tells when a giver last thanked each award's recipient before that award, in the order awards were recorded, and answers what App Home shows through homeFacts, a platform-neutral read of a member's facts: the daily allowance left of its base, when it refills (the member's next local midnight, or midnight UTC without a time zone), the kudos emoji, and the kudos given and received this week and in total. homeOf serves those facts to the Slack adapter; any other surface reads the same facts through homeFacts.
+Kudos engine: observes message events and their deletions, keeps the kudos text of a message while its newest revision is a kudos message (its words as segments, its channel's visibility, its author and that revision's gate decision), replacing it with each newer revision and leaving a word-free tombstone when the message is edited away or deleted in Slack, after which a deletion never lets words be stored again, checks the directory and rechecks a message that waits on it 1, 6, 36, 156 and 516 minutes after the first miss before abandoning it, decides each attempt's outcome against the daily allowance, writes awards and publishes kudosGiven for a Given attempt and attemptFailed for an Over allowance or Invalid one, reads back every Given message with its awards in award order for the backfills of later subscribers, tells when a giver last thanked each award's recipient before that award, in the order awards were recorded, and answers what App Home shows through homeFacts, a platform-neutral read of a member's facts: the daily allowance left of its base, when it refills (the member's next local midnight, or midnight UTC without a time zone), the kudos emoji, and the kudos given and received this week and in total. homeOf serves those facts to the Slack adapter; any other surface reads the same facts through homeFacts.
 
 ## invariants
+- only kudos messages' text is stored: The words of a message are stored only while its newest revision is a kudos message, and only in the kudos text: never in another table or a scheduled job's arguments, and never in a captured exception, the analytics outbox or a console line when the events mutation fails.
+  over: an ordinary chat message, a kudos message, a kudos message edited away or deleted in Slack, and a failure of the events mutation with capture on
+  via: AT40: only kudos messages' text is stored
+  because: the owner's decision of 2026-10-14 (d-9e3c1a90) is that the app keeps the words of kudos messages and nothing else (AT1, amending R51); ordinary chat must never sit in the app's database, and a kudos message's words must stay in one table so deleting them in Slack deletes them everywhere
+  refuted: forgetDeleted wrote its deleted tombstone only for a message with no kudos text yet -> the deleting it test found the words still stored (2026-10-14)
+  kinds: storage
+  checklist: scoped-reads dismissed: the invariant is about where words are written; the member reads that confine who reads them are the activity read's (AT14, AT28)
+  checklist: encrypted-storage dismissed: the words are kept readable for the member reads by the owner's decision (AT1); no field is designated encrypted at rest
+  checklist: key-rotation-compatibility dismissed: nothing is encrypted
+  checklist: input-validation dismissed: the segments reach the engine through messageEventValidator at the events mutation's boundary
+  checklist: revision-preservation dismissed: only the newest revision's words are kept (AT4); no earlier revision is kept or addressed
+  checklist: commit-ordered-effects dismissed: the kudos text is written in the mutation that records the revision it follows and issues no external effect
+  checklist: durable-dispatch-intent dismissed: nothing is dispatched from the kudos text
+  checklist: declared-target-coverage dismissed: no fan-out to a registry of targets
+  checklist: completion-evidence dismissed: the kudos text is complete when the events mutation commits; nothing is queued
 - awards are insert-only: An award, once written, is never changed or deleted, whatever later happens to its message, its giver's allowance or its delivery.
   over: every module under convex/, outside its tests and the generated code
   via: R18: awards are only ever inserted, never changed or deleted

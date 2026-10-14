@@ -7,6 +7,7 @@ import { earnedTierValidator } from "./achievements/tiers";
 import { exceptionValidator } from "./analytics/exceptions";
 import { awardIdValidator } from "./engine/awards";
 import { personPropertiesValidator, propertiesValidator } from "./analytics/projections";
+import { kudosTextValidator } from "./engine/kudosText";
 import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
 import { homeTabValidator } from "./feedback/homes";
 import { publicReplyValidator } from "./feedback/publicReplies";
@@ -123,6 +124,8 @@ export default defineSchema({
     spendsAt: v.number(),
     checks: v.number(),
   }).index("by_message", ["workspace", "conversation", "message"]),
+
+  kudosTexts: defineTable(kudosTextValidator).index("by_message", ["workspace", "conversation", "message"]),
 
   awards: defineTable({
     workspace: v.string(),

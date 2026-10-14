@@ -33,7 +33,7 @@
     },
     {
       "name": "kudos message",
-      "definition": "A message by a member with at least one kudos emoji and at least one mention. Only the message's own text counts, not code, quotes, strikethrough or attachments. It costs the giver one kudos per recipient per kudos emoji."
+      "definition": "A message by a member with at least one kudos emoji and at least one mention. Only the message's own text counts, not code, quotes, strikethrough or attachments. It costs the giver one kudos per recipient per kudos emoji. Its words are kept as the kudos text while its newest revision is a kudos message."
     },
     {
       "name": "attempt",
@@ -265,7 +265,7 @@
     },
     {
       "name": "annotation",
-      "definition": "A fact about a kudos message that a parse hook adds while the text is in memory, such as whether it says why, carried on kudosGiven in place of the text, which is never stored."
+      "definition": "A fact about a kudos message that a parse hook adds while the text is in memory, such as whether it says why, carried on kudosGiven in place of the text, which never leaves the kudos text."
     },
     {
       "name": "revision",
@@ -514,6 +514,10 @@
     {
       "name": "person event",
       "definition": "A PostHog $identify or $set the analytics module records for one analytics ID, carrying the member's profile as person properties ($set, and $unset of what the profile lost) beside O2's properties; the only kind of event that carries a profile, and so names, emails or Slack IDs."
+    },
+    {
+      "name": "kudos text",
+      "definition": "The stored words of a kudos message's newest revision: its text as segments in order, its channel's visibility, its author and that revision's gate decision. It is the only message text the app stores, kept while the message is a kudos message and replaced by a word-free tombstone when the message is edited away or deleted."
     }
   ]
 }

@@ -8,7 +8,8 @@ import { lookup, type MemberFacts, type MemberId } from "../workspace/directory"
 import { settingsOf } from "../workspace/settings";
 import { allowanceDay, dailyAllowance, type DayKey } from "./allowance";
 import { insertAwards, type Award } from "./awards";
-import type { ChatUserId, Mention, MessageEvent, MessageRef } from "./messageEvent";
+import { forgetDeleted, forgetEditedAway, keepWords } from "./kudosText";
+import type { Annotations, ChatUserId, Mention, MessageDeleted, MessageEvent, MessageRef } from "./messageEvent";
 import { annotationsOf, fingerprintOf, kudosMessageOf, type KudosMessage, type ParseContext } from "../parser/parser";
 
 export type Outcome =
@@ -21,6 +22,7 @@ export type Observation =
   | { kind: "awaiting-directory"; users: ChatUserId[]; retryInMs: number; attempt: bigint }
   | { kind: "abandoned" }
   | { kind: "withdrawn" }
+  | { kind: "deleted" }
   | { kind: "already-given"; toldGiver: boolean }
   | { kind: "evaluated"; outcome: Outcome };
 
@@ -29,7 +31,8 @@ type Member = Extract<MemberFacts, { kind: "member" }>;
 
 const directoryCheckDelaysMs = [0, 1, 5, 30, 120, 360].map((minutes) => minutes * 60_000);
 
-export async function observe(ctx: MutationCtx, event: MessageEvent): Promise<Observation> {
+export async function observe(ctx: MutationCtx, event: MessageEvent | MessageDeleted): Promise<Observation> {
+  if (event.kind === "deleted") return observeDeletion(ctx, event);
   const existing = await kudosMessageRow(ctx, event.ref);
   if (existing !== null && event.revision <= existing.revision) {
     return { kind: "ignored", why: event.revision === existing.revision ? "unchanged" : "stale-revision" };
@@ -44,9 +47,22 @@ export async function observe(ctx: MutationCtx, event: MessageEvent): Promise<Ob
   };
   if (author !== undefined && author.kind !== "member") return observeFromNonMember(ctx, existing, event, revision, context);
   const kudos = await kudosMessageOf(ctx, event.content, context);
+  await followWords(ctx, event, kudos !== null, revision.annotations);
   if (existing === null) return observeFirstRevision(ctx, event, revision, kudos !== null);
   const changesKudos = await changesKudosOf(ctx, event, existing, context);
   return observeEdit(ctx, existing, event, revision, { isKudosMessage: kudos !== null, changesKudos });
+}
+
+async function observeDeletion(ctx: MutationCtx, { ref, wasKudosCandidate }: MessageDeleted): Promise<Observation> {
+  const isKnown = (await kudosMessageRow(ctx, ref)) !== null;
+  if (!isKnown && !wasKudosCandidate) return { kind: "ignored", why: "ordinary-chat" };
+  await forgetDeleted(ctx, ref);
+  return { kind: "deleted" };
+}
+
+async function followWords(ctx: MutationCtx, event: MessageEvent, isKudosMessage: boolean, annotations: Annotations) {
+  if (isKudosMessage) await keepWords(ctx, event, annotations);
+  else await forgetEditedAway(ctx, event.ref);
 }
 
 async function changesKudosOf(ctx: QueryCtx, event: MessageEvent, row: KudosMessageRow, context: ParseContext) {
@@ -279,6 +295,7 @@ async function unknownUsers(ctx: QueryCtx, row: KudosMessageRow): Promise<ChatUs
 
 async function ignore(ctx: MutationCtx, row: KudosMessageRow, why: "not-a-member" | "ordinary-chat"): Promise<Observation> {
   await ctx.db.patch(row._id, { state: "watermark" });
+  await forgetEditedAway(ctx, refOf(row));
   return { kind: "ignored", why };
 }
 

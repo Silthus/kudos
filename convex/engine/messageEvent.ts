@@ -12,6 +12,23 @@ export const annotationsValidator = v.record(v.string(), v.union(annotationValue
 
 export const messageRefValidator = v.object({ workspace: v.string(), conversation: v.string(), message: v.string() });
 
+const styleFlag = v.optional(v.literal(true));
+
+export const wordSegmentValidator = v.union(
+  v.object({ kind: v.literal("text"), text: v.string(), bold: styleFlag, italic: styleFlag, strike: styleFlag, code: styleFlag }),
+  v.object({ kind: v.literal("person"), user: v.string() }),
+  v.object({ kind: v.literal("group"), group: v.string() }),
+  v.object({ kind: v.literal("channel") }),
+  v.object({ kind: v.literal("broadcast"), range: v.string() }),
+  v.object({ kind: v.literal("emoji"), name: v.string(), unicode: v.optional(v.string()) }),
+  v.object({ kind: v.literal("link"), url: v.string(), label: v.optional(v.string()) }),
+  v.object({ kind: v.literal("break") }),
+);
+
+export const visibilityValidator = v.union(v.literal("public"), v.literal("private"));
+
+export const wordsValidator = v.object({ segments: v.array(wordSegmentValidator), visibility: visibilityValidator });
+
 export const messageEventValidator = v.object({
   kind: v.union(v.literal("posted"), v.literal("edited")),
   ref: messageRefValidator,
@@ -20,7 +37,10 @@ export const messageEventValidator = v.object({
   revision: v.int64(),
   at: v.number(),
   content: v.object({ mentions: v.array(mentionValidator), emoji: v.array(v.string()), text: v.string() }),
+  words: v.optional(wordsValidator),
 });
+
+export const messageDeletedValidator = v.object({ kind: v.literal("deleted"), ref: messageRefValidator, wasKudosCandidate: v.boolean() });
 
 export type ChatUserId = string;
 export type Mention = Infer<typeof mentionValidator>;
@@ -28,4 +48,8 @@ export type Annotations = Infer<typeof annotationsValidator>;
 export type MessageRef = Infer<typeof messageRefValidator>;
 export type MessageEvent = Infer<typeof messageEventValidator>;
 export type MessageContent = MessageEvent["content"];
+export type MessageDeleted = Infer<typeof messageDeletedValidator>;
+export type WordSegment = Infer<typeof wordSegmentValidator>;
+export type Words = Infer<typeof wordsValidator>;
+export type Visibility = Infer<typeof visibilityValidator>;
 export type CountableContent = Omit<MessageContent, "text">;

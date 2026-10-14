@@ -5,7 +5,7 @@ import { vi } from "vitest";
 import schema from "../convex/schema";
 import { modules } from "../convex/test.setup";
 import { signedRequest } from "./signedSlack";
-import { memberEvent, messageChangedEvent, messageDeletedEvent, messageEvent, type EditOptions, type MessageOptions, type RichElement } from "./slackMessages";
+import { memberEvent, messageChangedEvent, messageDeletedEvent, messageEvent, threadParentDeletedEvent, type DeletionOptions, type EditOptions, type MessageOptions, type RichElement } from "./slackMessages";
 
 export type Backend = ReturnType<typeof testBackend>;
 
@@ -27,8 +27,12 @@ export async function edit(t: Backend, blocks: RichElement[], options: EditOptio
   return t.fetch("/slack/events", await signedRequest(messageChangedEvent(blocks, options)));
 }
 
-export async function deleteMessage(t: Backend, options: Parameters<typeof messageDeletedEvent>[0] = {}) {
+export async function deleteMessage(t: Backend, options: DeletionOptions = {}) {
   return t.fetch("/slack/events", await signedRequest(messageDeletedEvent(options)));
+}
+
+export async function deleteThreadParent(t: Backend, options: DeletionOptions = {}) {
+  return t.fetch("/slack/events", await signedRequest(threadParentDeletedEvent(options)));
 }
 
 export async function memberChanged(t: Backend, ...event: Parameters<typeof memberEvent>) {
@@ -85,9 +89,12 @@ export async function kudosSpent(t: Backend) {
   });
 }
 
-export async function everythingStored(t: Backend) {
+type Table = keyof typeof schema.tables;
+
+export async function everythingStored(t: Backend, { except = [] }: { except?: Table[] } = {}) {
+  const tables = (Object.keys(schema.tables) as Table[]).filter((table) => !except.includes(table));
   return t.run(async (ctx) => {
-    const tables = await Promise.all(Object.keys(schema.tables).map((table) => ctx.db.query(table as keyof typeof schema.tables).collect()));
-    return tables.flat();
+    const rows = await Promise.all(tables.map((table) => ctx.db.query(table).collect()));
+    return rows.flat();
   });
 }

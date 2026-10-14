@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { httpAction, internalAction, internalMutation, type ActionCtx } from "../_generated/server";
-import { carriesReportedMarker, exceptionOf, exceptionValidator, reportedMarker, typeOf } from "./exceptions";
+import { carriesReportedMarker, exceptionOf, exceptionValidator, reportedMarker, typeOf, withheldErrorOf, withheldExceptionOf } from "./exceptions";
 import { recordException, type FailedFunction } from "./outbox";
 
 type ActionDefinition<Args extends PropertyValidators, Output> = {
@@ -12,6 +12,8 @@ type ActionDefinition<Args extends PropertyValidators, Output> = {
 };
 
 type ObservedFunction = FailedFunction & { kind: "http" | "action" };
+
+type Observation = { carriesWords?: boolean };
 
 const observedFunctions = new WeakSet<object>();
 
@@ -24,10 +26,10 @@ export function observedAction<Args extends PropertyValidators, Output>(definiti
   return action;
 }
 
-export function observedHttpAction(handler: (ctx: ActionCtx, request: Request) => Promise<Response>) {
+export function observedHttpAction(handler: (ctx: ActionCtx, request: Request) => Promise<Response>, observation: Observation = {}) {
   const route = httpAction((ctx, request) => {
     const failed: ObservedFunction = { path: `${request.method} ${new URL(request.url).pathname}`, kind: "http" };
-    return observed(ctx, async () => failed, () => handler(ctx, request));
+    return observed(ctx, async () => failed, () => handler(ctx, request), observation);
   });
   observedFunctions.add(route);
   return route;
@@ -50,28 +52,29 @@ export const recordBoundaryException = internalMutation({
   },
 });
 
-async function observed<Output>(ctx: ActionCtx, failedFunction: () => Promise<ObservedFunction>, run: () => Promise<Output>): Promise<Output> {
+async function observed<Output>(ctx: ActionCtx, failedFunction: () => Promise<ObservedFunction>, run: () => Promise<Output>, observation: Observation = {}): Promise<Output> {
   try {
     return await run();
   } catch (error) {
-    throw await reported(ctx, failedFunction, error);
+    throw await reported(ctx, failedFunction, error, observation);
   }
 }
 
-async function reported(ctx: ActionCtx, failedFunction: () => Promise<ObservedFunction>, error: unknown): Promise<unknown> {
+async function reported(ctx: ActionCtx, failedFunction: () => Promise<ObservedFunction>, error: unknown, { carriesWords = false }: Observation): Promise<unknown> {
   if (carriesReportedMarker(error)) return error;
+  const unrecorded = carriesWords ? withheldErrorOf(error) : error;
   try {
     const failed = await failedFunction();
     const { scheduledFunctionId } = await ctx.meta.getRequestMetadata();
     const recorded = await ctx.runMutation(internal.analytics.boundary.recordBoundaryException, {
       failed,
-      exception: exceptionOf(error),
+      exception: carriesWords ? withheldExceptionOf(error) : exceptionOf(error),
       job: scheduledFunctionId as Id<"_scheduled_functions"> | null,
     });
-    return recorded ? new Error(`${reportedMarker} ${typeOf(error)}`) : error;
+    return recorded ? new Error(`${reportedMarker} ${typeOf(error)}`) : unrecorded;
   } catch {
     console.error("analytics.exception_not_recorded");
-    return error;
+    return unrecorded;
   }
 }
 

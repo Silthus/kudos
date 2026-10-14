@@ -1,0 +1,79 @@
+import { v, type Infer } from "convex/values";
+import type { Doc } from "../_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { gateDecisionOf, gateDecisionValidator } from "../progression/gate";
+import { messageRefValidator, visibilityValidator, wordSegmentValidator, type Annotations, type MessageEvent, type MessageRef } from "./messageEvent";
+
+const key = messageRefValidator.fields;
+
+export const kudosTextValidator = v.union(
+  v.object({
+    ...key,
+    kind: v.literal("words"),
+    revision: v.int64(),
+    author: v.string(),
+    edited: v.boolean(),
+    segments: v.array(wordSegmentValidator),
+    visibility: visibilityValidator,
+    gate: v.union(gateDecisionValidator, v.null()),
+  }),
+  v.object({ ...key, kind: v.literal("tombstone"), why: v.union(v.literal("deleted"), v.literal("edited-away")) }),
+);
+
+type KudosTextRow = Doc<"kudosTexts">;
+type StoredWords = Extract<Infer<typeof kudosTextValidator>, { kind: "words" }>;
+
+export type KudosText =
+  | ({ kind: "text" } & Pick<StoredWords, "segments" | "edited" | "visibility" | "author" | "gate">)
+  | { kind: "unavailable"; reason: "deleted" | "not-captured" };
+
+export async function keepWords(ctx: MutationCtx, event: MessageEvent, annotations: Annotations) {
+  if (event.words === undefined) return;
+  const row = await kudosTextRow(ctx, event.ref);
+  if (row !== null && !mayStoreWordsOver(row, event.revision)) return;
+  await write(ctx, row, {
+    ...event.ref,
+    kind: "words",
+    revision: event.revision,
+    author: event.author,
+    edited: event.kind === "edited",
+    segments: event.words.segments,
+    visibility: event.words.visibility,
+    gate: gateDecisionOf(annotations),
+  });
+}
+
+export async function forgetEditedAway(ctx: MutationCtx, ref: MessageRef) {
+  const row = await kudosTextRow(ctx, ref);
+  if (row?.kind === "words") await ctx.db.replace(row._id, { ...ref, kind: "tombstone", why: "edited-away" });
+}
+
+export async function forgetDeleted(ctx: MutationCtx, ref: MessageRef) {
+  const row = await kudosTextRow(ctx, ref);
+  await write(ctx, row, { ...ref, kind: "tombstone", why: "deleted" });
+}
+
+export async function wordsOf(ctx: QueryCtx, ref: MessageRef): Promise<KudosText> {
+  const row = await kudosTextRow(ctx, ref);
+  if (row === null) return { kind: "unavailable", reason: "not-captured" };
+  if (row.kind === "tombstone") return { kind: "unavailable", reason: "deleted" };
+  const { segments, edited, visibility, author, gate } = row;
+  return { kind: "text", segments, edited, visibility, author, gate };
+}
+
+function mayStoreWordsOver(row: KudosTextRow, revision: bigint) {
+  if (row.kind === "tombstone") return row.why === "edited-away";
+  return revision > row.revision;
+}
+
+async function write(ctx: MutationCtx, row: KudosTextRow | null, value: Infer<typeof kudosTextValidator>) {
+  if (row === null) await ctx.db.insert("kudosTexts", value);
+  else await ctx.db.replace(row._id, value);
+}
+
+async function kudosTextRow(ctx: QueryCtx, ref: MessageRef) {
+  return ctx.db
+    .query("kudosTexts")
+    .withIndex("by_message", (q) => q.eq("workspace", ref.workspace).eq("conversation", ref.conversation).eq("message", ref.message))
+    .unique();
+}
