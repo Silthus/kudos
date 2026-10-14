@@ -93,6 +93,16 @@ describe("F8: the person follows the directory", () => {
     ]);
   });
 
+  test("a changed Slack picture changes nothing on the person", async () => {
+    const t = testBackend();
+    await annGaveKudos(t);
+
+    await memberChanged(t, "user_change", { id: "U_ANN", profile: { ...annsSlackProfile, image_192: "https://avatars.example.com/ann-192.png" } }, { eventTs: later(1) });
+    await settle(t);
+
+    expect(personEventsOn(await annsDistinctId(t)).slice(1)).toEqual([]);
+  });
+
   test("a change back to an earlier profile is a change", async () => {
     const t = testBackend();
     await annGaveKudos(t);

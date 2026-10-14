@@ -159,9 +159,9 @@ describe("rankedBoardOf: the whole Everyone board beside G17's window", () => {
 
     expect(ranked).toEqual({
       rows: [
-        { position: 1, rank: 1, tied: true, member: await memberId(t, "U2"), name: "Al", kudos: 2, viewer: false },
-        { position: 2, rank: 1, tied: true, member: await memberId(t, "U1"), name: "Zoe", kudos: 2, viewer: false },
-        { position: 3, rank: 3, tied: false, member: await memberId(t, "U3"), name: "Cy", kudos: 1, viewer: true },
+        { position: 1, rank: 1, tied: true, member: await memberId(t, "U2"), name: "Al", picture: null, kudos: 2, viewer: false },
+        { position: 2, rank: 1, tied: true, member: await memberId(t, "U1"), name: "Zoe", picture: null, kudos: 2, viewer: false },
+        { position: 3, rank: 3, tied: false, member: await memberId(t, "U3"), name: "Cy", picture: null, kudos: 1, viewer: true },
       ],
       window: [1, 2, 3],
       standing: { kind: "ranked", position: 3, rank: 3 },
@@ -177,7 +177,22 @@ describe("rankedBoardOf: the whole Everyone board beside G17's window", () => {
 
     const { rows } = await rankedBoard(t, "U1");
 
-    expect(rows).toEqual([{ position: 1, rank: 1, tied: false, member: await memberId(t, "U2"), name: undefined, kudos: 2, viewer: false }]);
+    expect(rows).toEqual([{ position: 1, rank: 1, tied: false, member: await memberId(t, "U2"), name: undefined, picture: null, kudos: 2, viewer: false }]);
+  });
+
+  test("each row carries the member's Slack picture for the website, and null when the directory has none", async () => {
+    const t = testBackend();
+    await recordInDirectory(t, "U1", { kind: "member", name: "Ann", picture: "https://avatars.example.com/ann-192.png" }, 0);
+    await members(t, ["U2", "Bob"]);
+    await countKudosGiven(t, kudosGiven("U1", { "U2": 2 }, { message: "1" }));
+    await countKudosGiven(t, kudosGiven("U2", { "U1": 1 }, { message: "2" }));
+
+    const { rows } = await rankedBoard(t, "U2");
+
+    expect(rows.map(({ name, picture }) => ({ name, picture }))).toEqual([
+      { name: "Ann", picture: "https://avatars.example.com/ann-192.png" },
+      { name: "Bob", picture: null },
+    ]);
   });
 
   test("G17: a viewer who gave nothing is not ranked, and the window is the top three", async () => {

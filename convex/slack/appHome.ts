@@ -8,7 +8,7 @@ import type { HomeFacts } from "../engine/home";
 import { renderHome, type Choice, type HomeLine, type HomeView } from "../feedback/home";
 import { xpLevelsShownTo } from "../progression/xpLevels";
 import { lookup } from "../workspace/directory";
-import { buttonOf, mrkdwn, plainText } from "./blocks";
+import { buttonOf, mrkdwn, plainText, urlButtonOf } from "./blocks";
 import { attemptArgs, failedAttempt, sendOnce, slackTextOf, tryAtMostThreeTimes } from "./delivery";
 import { lookUpUser, refreshUser } from "./directory";
 
@@ -126,7 +126,7 @@ function buttonsOf(choices: Choice[]) {
 }
 
 function linkButtonOf({ label, url }: { label: string; url: string }, index: number) {
-  return { type: "button", text: plainText(label), url, action_id: `website-link-${index}` };
+  return urlButtonOf({ label, url, actionId: `website-link-${index}` });
 }
 
 function channelPickerOf({ picks, picked }: Extract<HomeLine, { kind: "pick-channel" }>) {

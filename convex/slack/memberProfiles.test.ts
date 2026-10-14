@@ -205,6 +205,76 @@ describe("F3: the backfill fills every known member's profile from users.list", 
   });
 });
 
+describe("the directory keeps each member's Slack picture for the website", () => {
+  const largePicture = "https://avatars.example.com/ann-192.png";
+  const smallPicture = "https://avatars.example.com/ann-72.png";
+
+  test("a member who joins is kept with the 192-pixel picture Slack gives", async () => {
+    const t = testBackend();
+
+    await memberChanged(t, "team_join", { id: "U_ANN", profile: { image_72: smallPicture, image_192: largePicture } });
+
+    expect(await pictureOf(t, "U_ANN")).toBe(largePicture);
+  });
+
+  test("the 72-pixel picture stands in when Slack gives no 192-pixel one", async () => {
+    const t = testBackend();
+
+    await memberChanged(t, "team_join", { id: "U_ANN", profile: { image_72: smallPicture, image_192: "" } });
+
+    expect(await pictureOf(t, "U_ANN")).toBe(smallPicture);
+  });
+
+  test("a newer user_change replaces the picture, and one without a picture removes it", async () => {
+    const t = testBackend();
+    await memberChanged(t, "team_join", { id: "U_ANN", profile: { image_192: smallPicture } }, { eventTs: earlierTs });
+    await memberChanged(t, "user_change", { id: "U_ANN", profile: { image_192: largePicture } }, { eventTs: nowTs });
+    const changed = await pictureOf(t, "U_ANN");
+
+    await memberChanged(t, "user_change", { id: "U_ANN", profile: {} }, { eventTs: `${now.getTime() / 1000 + 60}` });
+
+    expect(changed).toBe(largePicture);
+    expect(await pictureOf(t, "U_ANN")).toBeUndefined();
+  });
+
+  test("a picture that isn't an https address is not kept", async () => {
+    const t = testBackend();
+
+    await memberChanged(t, "team_join", { id: "U_ANN", profile: { image_192: "javascript:alert(1)", image_72: "http://avatars.example.com/ann-72.png" } });
+
+    expect(await pictureOf(t, "U_ANN")).toBeUndefined();
+  });
+
+  test("an https address without a host gives way to the 72-pixel picture", async () => {
+    const t = testBackend();
+
+    await memberChanged(t, "team_join", { id: "U_ANN", profile: { image_192: "https://", image_72: smallPicture } });
+
+    expect(await pictureOf(t, "U_ANN")).toBe(smallPicture);
+  });
+
+  test("users.info keeps the picture of a person the directory doesn't know", async () => {
+    const t = testBackend();
+    slack.withMember("U_ANN", { profile: { image_192: largePicture } });
+
+    await post(t, [section(mention("U_ANN"), emoji("taco"))]);
+    await settle(t);
+
+    expect(await pictureOf(t, "U_ANN")).toBe(largePicture);
+  });
+
+  test("the backfill fills the picture of every known member from users.list", async () => {
+    const t = testBackend();
+    await memberChanged(t, "team_join", { id: "U_ANN", profile: annsProfile }, { eventTs: earlierTs });
+    slack.withMember("U_ANN", { profile: { ...annsProfile, image_192: largePicture } });
+
+    await t.action(internal.slack.directory.fillMemberProfiles, {});
+
+    expect(await pictureOf(t, "U_ANN")).toBe(largePicture);
+    expect(await profileOf(t, "U_ANN")).toEqual(annStored);
+  });
+});
+
 describe("F6: a Slack answer that can hold a profile is never logged", () => {
   test("a malformed users.info answer logs only a fixed code, without the profile or the user ID", async () => {
     const t = testBackend();
@@ -320,4 +390,8 @@ async function profileOf(t: Backend, user: string) {
   const row = await directoryRowOf(t, user);
   const { email, realName, displayName, title } = (row ?? {}) as Partial<Record<"email" | "realName" | "displayName" | "title", string>>;
   return Object.fromEntries(Object.entries({ email, realName, displayName, title }).filter(([, value]) => value !== undefined));
+}
+
+async function pictureOf(t: Backend, user: string) {
+  return (await directoryRowOf(t, user))?.picture;
 }
