@@ -14,7 +14,7 @@ import type { UnlocksHome } from "../unlocks/unlocks";
 import type { FrontDoorLinks } from "../website/link";
 import type { HomeTab, ShownHome, ShownTab, ToldProgression } from "./homes";
 import { renderEveryoneBoard } from "./leaderboard";
-import { productName, skillPointsOf, slashCommand } from "./naming";
+import { openTheWebsite, productName, skillPointsOf, slashCommand } from "./naming";
 import type { Line } from "./replies";
 
 export type HomeView = { tabBar?: Choice[]; title: string; groups: HomeLine[][] };
@@ -66,7 +66,7 @@ function frontDoorOf(facts: MemberHome, home: ShownHome | null, links: FrontDoor
 }
 
 function withWebsiteLink(view: HomeView, website: string): HomeView {
-  return { ...view, groups: [...view.groups, [{ kind: "link", label: `Open ${productName} on the web`, url: website }]] };
+  return { ...view, groups: [...view.groups, [{ kind: "link", label: openTheWebsite, url: website }]] };
 }
 
 function tabBar(tabs: HomeTab[], selected: HomeTab): Choice[] {

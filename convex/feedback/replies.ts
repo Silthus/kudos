@@ -5,7 +5,7 @@ import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from
 import type { Award } from "../engine/awards";
 import { mentionValidator, type ChatUserId, type Mention, type MessageRef } from "../engine/messageEvent";
 import { giverXpOf } from "../progression/progression";
-import { xpLevelsShownTo, xpLevelsShownWithoutWritingIn } from "../progression/xpLevels";
+import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { questsApplyIn, questsExposedTo } from "../quests/flag";
 import { journeyGoalOf } from "../quests/journeyCopy";
 import { journeyStepValidator } from "../quests/step";
@@ -107,7 +107,7 @@ async function deliver(ctx: MutationCtx, reply: Id<"privateReplies">) {
 
 async function gainsShownIn(ctx: QueryCtx, workspace: string, { xp, questsDone = [] }: Gains): Promise<Required<Gains>> {
   return {
-    xp: (await xpLevelsShownWithoutWritingIn(ctx, workspace)) ? xp : 0,
+    xp: (await xpLevelsShownIn(ctx, workspace)) ? xp : 0,
     questsDone: questsDone.length > 0 && (await questsApplyIn(ctx, workspace)) ? questsDone : [],
   };
 }

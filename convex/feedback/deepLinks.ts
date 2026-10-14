@@ -1,14 +1,13 @@
 import type { QueryCtx } from "../_generated/server";
 import { websiteLink } from "../website/link";
 import { listed, type Page } from "../website/routes";
-import { productName } from "./naming";
+import { openTheWebsite } from "./naming";
 
 export type DeepLink = { url: string; label: string };
 
 type Destination = { page: Page; label: string };
 
 const home: Page = { page: "home" };
-const openTheWebsite = `Open ${productName} on the web`;
 
 export const deepLinks = {
   successReply: { page: home, label: "See your progress on the web" },
