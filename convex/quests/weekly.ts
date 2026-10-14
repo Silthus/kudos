@@ -68,7 +68,7 @@ export const drawWeeklyQuests = internalMutation({
 });
 
 export async function advanceWeeklyQuests(ctx: MutationCtx, event: KudosGivenEvent): Promise<string[]> {
-  let shownChanged = (await drawWhenDue(ctx, event.giver, Date.now())) === "drawn";
+  let shownChanged = (await drawWhenDue(ctx, event.giver, event.at)) === "drawn";
   const finishedGoals: string[] = [];
   const draw = await drawOf(ctx, event.giver, weekKeyOfDay(event.day));
   if (draw !== null) {
@@ -232,7 +232,7 @@ async function drawWhenDue(ctx: MutationCtx, member: MemberId, at: number): Prom
   if (openedAt === null) return "nothing to draw";
   const timeZone = await timeZoneOf(ctx, member);
   const week = weekKeyOf(at, timeZone);
-  return weekKeyOf(openedAt, timeZone) === week ? drawFor(ctx, member, at) : drawFor(ctx, member, weekStartOf(week, timeZone), factsAtTheStartOf);
+  return weekKeyOf(openedAt, timeZone) === week ? drawFor(ctx, member, Math.max(at, openedAt)) : drawFor(ctx, member, weekStartOf(week, timeZone), factsAtTheStartOf);
 }
 
 async function drawFor(ctx: MutationCtx, member: MemberId, at: number, factsOf = drawFactsOf): Promise<"drawn" | "nothing to draw"> {

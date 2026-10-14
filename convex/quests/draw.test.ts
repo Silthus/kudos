@@ -27,7 +27,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("P80: opening Quests draws 3 different quests the member can finish this week", () => {
+describe("P80: opening Quests draws up to 3 different quests the member can finish this week", () => {
   test("questsOf gives the week key, the draw time and each slot's quest, goal, promised reward and the facts that made it feasible", async () => {
     const { t, alice } = await workspace();
 
@@ -244,6 +244,35 @@ describe("P77: launching unlocks for members already playing stays within Convex
     await t.mutation(internal.quests.newWeek.sweep, {});
 
     expect(await scheduled(t)).toEqual({ total: 102, draws: 100, sweeps: 1, joins: 1 });
+  });
+});
+
+describe("P84: a member opened into Quests by the launch, whose first draw comes from a kudos", () => {
+  test("counts that kudos, delivered after it was made, toward the quests it draws", async () => {
+    const t = await launchedFor(2, ["xp-levels", "unlocks", "quests"]);
+    const [alice, bob] = await t.run(async (ctx) => (await ctx.db.query("members").collect()).map(({ _id }) => _id));
+    const event = await t.run((ctx) => kudosGivenEventWithAward(ctx, alice!, bob!, { annotations: { gate: { version: 1, thoughtful: true, words: 7 } }, at: tuesday }));
+    vi.setSystemTime(tuesday + 2000);
+
+    await t.mutation(internal.quests.quests.followKudosGiven, { event });
+
+    const week = (await questsOf(t, alice!))!.week!;
+    expect(week.drawnAt).toBe(tuesday);
+    expect(week.slots.map(({ progress }) => progress)).toEqual([1, 1, 1]);
+  });
+
+  test("never counts a kudos made before the member opened Quests", async () => {
+    const t = await launchedFor(2, ["xp-levels", "unlocks", "quests"]);
+    const [alice, bob] = await t.run(async (ctx) => (await ctx.db.query("members").collect()).map(({ _id }) => _id));
+    const openedAt = await t.run(async (ctx) => (await ctx.db.query("unlocks").collect()).find((row) => row.member === alice && row.feature === "quests")!.openedAt!);
+    const event = await t.run((ctx) => kudosGivenEventWithAward(ctx, alice!, bob!, { annotations: { gate: { version: 1, thoughtful: true, words: 7 } }, at: openedAt - 1000 }));
+    vi.setSystemTime(openedAt + 2000);
+
+    await t.mutation(internal.quests.quests.followKudosGiven, { event });
+
+    const week = (await questsOf(t, alice!))!.week!;
+    expect(week.drawnAt).toBe(openedAt);
+    expect(week.slots.map(({ progress }) => progress)).toEqual([0, 0, 0]);
   });
 });
 

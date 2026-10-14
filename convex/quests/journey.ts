@@ -188,10 +188,11 @@ export async function activeJourneyOf(ctx: MutationCtx, member: MemberId): Promi
 
 async function activateOpenedSteps(ctx: MutationCtx, member: MemberId) {
   const { workspace } = await chatUserOf(ctx, member);
+  const shippedAt = (await journeyShippedAt(ctx, workspace))!;
   for (const { step } of journey.steps) {
     const feature = featureOpening(step);
     const openedAt = feature === null ? null : await openedAtOf(ctx, member, feature);
-    if (openedAt !== null && !(await isLeftToTheJoin(ctx, workspace, openedAt))) await activateOpened(ctx, workspace, member, step, openedAt);
+    if (openedAt !== null && openedAt > shippedAt) await activateOpened(ctx, workspace, member, step, openedAt);
   }
 }
 

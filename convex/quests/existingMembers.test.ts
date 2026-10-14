@@ -81,6 +81,17 @@ describe("P91: members already playing join the Journey once, when it ships", ()
     expect(await rewardKeysOf(t, "U_ALICE")).toEqual(["journey:first-thanks", "journey:someone-new"]);
   });
 
+  test("one App Home opening that launches unlocks and ships the Journey leaves the launch's openings to the join, which sends its one DM", async () => {
+    postHog = flagsOnForEveryone(slack.fetch, "xp-levels", "everyone-board");
+    const t = await workspaceWith("U_ALICE", "U_BOB");
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("everyone-board"), onForEveryone("unlocks"), onForEveryone("quests"));
+
+    await openHome(t, "U_ALICE");
+
+    expect(journeyDmsTo("U_ALICE").map(({ text }) => text)).toEqual([`${finishedFirstThanks}\n${finishedSomeoneNew}`]);
+  });
+
   test("quests turned on before unlocks is initialised does nothing until unlocks applies, and the join then runs once", async () => {
     postHog = flagsOnForEveryone(slack.fetch, "xp-levels", "quests");
     const t = await workspaceWith("U_ALICE", "U_BOB", "U_CAROL");
