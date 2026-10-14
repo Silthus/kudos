@@ -33,7 +33,7 @@
     },
     {
       "name": "kudos message",
-      "definition": "A message by a member with at least one kudos emoji and at least one mention. Only the message's own text counts, not code, quotes, strikethrough or attachments. It costs the giver one kudos per recipient per kudos emoji."
+      "definition": "A message by a member with at least one kudos emoji and at least one mention. Only the message's own text counts, not code, quotes, strikethrough or attachments. It costs the giver one kudos per recipient per kudos emoji. Its words are kept as the kudos text while its newest revision is a kudos message."
     },
     {
       "name": "attempt",
@@ -201,7 +201,7 @@
     },
     {
       "name": "announcement channel",
-      "definition": "A public channel a workspace admin picks for level-up and achievement notices, instead of the thread under the kudos message."
+      "definition": "A public channel a workspace admin picks for level-up and achievement notices: the only place HedgeHug celebrates progress in public, at its top level, and while none is picked nothing is celebrated in public (QM1, QM2)."
     },
     {
       "name": "xp booster",
@@ -265,7 +265,7 @@
     },
     {
       "name": "annotation",
-      "definition": "A fact about a kudos message that a parse hook adds while the text is in memory, such as whether it says why, carried on kudosGiven in place of the text, which is never stored."
+      "definition": "A fact about a kudos message that a parse hook adds while the text is in memory, such as whether it says why, carried on kudosGiven in place of the text, which never leaves the kudos text."
     },
     {
       "name": "revision",
@@ -305,7 +305,7 @@
     },
     {
       "name": "public reply",
-      "definition": "The one public message under a kudos message, or in the announcement channel when a workspace admin picked one, that celebrates the progress members reached through it; posted once, then edited in place as sections from many modules (level notices, later achievements, quips and chime-in lines) arrive. It states only progress, never the kudos text or the giver (P64, D18)."
+      "definition": "The one public message at the top level of the announcement channel that celebrates the progress members reached through a kudos message; posted once, then edited in place as sections from many modules (level notices, achievements) arrive, never under or beside the kudos message, and not at all while no announcement channel is picked. It states only progress, never the kudos text or the giver (P64, D18, QM1)."
     },
     {
       "name": "command",
@@ -526,6 +526,26 @@
     {
       "name": "upgrade",
       "definition": "A perk that replaces a perk the member owns with a stronger line, costing skill points and coins: it requires the perk it upgrades, and once owned its line is paid instead of its base's."
+    },
+    {
+      "name": "category",
+      "definition": "One of the Book's four groups of achievement ladders (Giving, Being thanked, Connections, Crowd), each with its own page, name, blurb and hedgehog emblem; the website keys every ladder to one."
+    },
+    {
+      "name": "kudos text",
+      "definition": "The stored words of a kudos message's newest revision: its text as segments in order, its channel's visibility, its author and that revision's gate decision. It is the only message text the app stores, kept while the message is a kudos message and replaced by a word-free tombstone when the message is edited away or deleted."
+    },
+    {
+      "name": "activity",
+      "definition": "A member's own timeline of the kudos they received and gave, newest first, with each kudos's words and Slack permalink, read only by that member on the website behind the activity flag."
+    },
+    {
+      "name": "permalink",
+      "definition": "Slack's link to one message, built from the workspace's URL, the channel and the message's ts, with the thread root for a thread reply, never from a Slack call per message."
+    },
+    {
+      "name": "spotlight",
+      "definition": "One drawable kudos shown on the leaderboard page with its words, giver, recipients and Slack permalink: a Given kudos from a public channel whose current words said why, by a member, with nobody on it off the leaderboards; drawn at random from the member's own workspace, and Next walks every drawable kudos once before any repeat."
     }
   ]
 }

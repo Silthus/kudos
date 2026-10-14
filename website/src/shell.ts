@@ -1,23 +1,25 @@
 import type { Feature } from "../../convex/unlocks/feature";
-import type { Quest } from "../../convex/quests/step";
+import type { Quest, WeeklyQuest } from "../../convex/quests/step";
 import type { PerkId } from "../../convex/progression/tree";
-import type { CommandAnswer, PurchaseAnswer } from "../../convex/website/commands";
+import type { CommandAnswer, PurchaseAnswer, SwapAnswer, VisibilityAnswer } from "../../convex/website/commands";
 import type { Denial } from "../../convex/website/memberQuery";
 import type { FeatureCard, JourneyStep, MemberProfile, MyProfile } from "../../convex/website/profile";
 import type { QuestsAnswer } from "../../convex/website/quests";
 import type { BookAnswer } from "../../convex/website/book";
+import type { ProfileCardAnswer } from "../../convex/website/profileCard";
 import type { MySkillTree } from "../../convex/website/skillTree";
 
 export type { Face, FeatureCard, JourneyStep, MemberProfile, PageWaits, Progression } from "../../convex/website/profile";
-export type { QuestsAnswer, QuestSlot, WaitingCrate } from "../../convex/website/quests";
+export type { QuestsAnswer, QuestSlot, WaitingCrate, WeekSwap } from "../../convex/website/quests";
 export type { BookAnswer, LadderCard, TierCard } from "../../convex/website/book";
 export type { TierId } from "../../convex/achievements/ladders";
+export type { Medal } from "../../convex/profileCard/profileCard";
 export type { MySkillTree, PerkNode, SkillTreeAnswer, TreeRow } from "../../convex/website/skillTree";
 export type { Leaderboard, LeaderboardRow, MyLeaderboard } from "../../convex/website/leaderboard";
 export type { Period } from "../../convex/leaderboard/periods";
-export type { CommandAnswer, PurchaseAnswer, PurchaseRefusal } from "../../convex/website/commands";
+export type { CommandAnswer, PurchaseAnswer, PurchaseRefusal, SwapAnswer } from "../../convex/website/commands";
 export type { Feature } from "../../convex/unlocks/feature";
-export type { Quest } from "../../convex/quests/step";
+export type { Quest, WeeklyQuest } from "../../convex/quests/step";
 
 export type OpenAnswer = CommandAnswer | Denial;
 
@@ -25,15 +27,21 @@ export type Purchase = { perk: PerkId; request: string };
 
 export type BuyAnswer = PurchaseAnswer | Denial;
 
+export type SwapReply = SwapAnswer | Denial;
+
+export type VisibilityReply = VisibilityAnswer | Denial;
+
 export type MyQuests = QuestsAnswer | Denial;
 
 export type MyBook = BookAnswer | Denial;
+
+export type MyProfileCard = ProfileCardAnswer | Denial;
 
 export type Visitor = MyProfile | { kind: "loading" } | { kind: "connecting" } | { kind: "sign-in-unfinished" };
 
 export type ShellState = Visitor | { kind: "broken" };
 
-export type ShellActions = { signIn(returnTo: string): void; signOut(): void; openFeature(feature: Feature): Promise<OpenAnswer>; openQuestCrate(quest: Quest): Promise<OpenAnswer>; buyPerk(purchase: Purchase): Promise<BuyAnswer> };
+export type ShellActions = { signIn(returnTo: string): void; signOut(): void; openFeature(feature: Feature): Promise<OpenAnswer>; openQuestCrate(quest: Quest): Promise<OpenAnswer>; buyPerk(purchase: Purchase): Promise<BuyAnswer>; setBoardVisibility(visible: boolean): Promise<VisibilityReply>; swapQuest(quest: WeeklyQuest): Promise<SwapReply> };
 
 const member: MemberProfile = {
   kind: "member",
@@ -110,11 +118,31 @@ const memberWithOneSkillPoint: MemberProfile = { ...memberWithEveryFeatureOpen, 
 
 const memberWithNoSkillPointsLeft: MemberProfile = { ...memberWithEveryFeatureOpen, skillPoints: 0 };
 
+const memberAtLevel7WithOneSkillPoint: MemberProfile = { ...memberWithOneSkillPoint, progression: { level: 7, xp: 1600, levelStartsAt: 1500, nextLevelAt: 2100, xpToNextLevel: 500 } };
+
 const memberWithCoinsReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...coinsFeature, ...ready }) };
 
 const memberWithCoinsOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...coinsFeature, ...opened }) };
 
+const memberAcrossTheSheet: MemberProfile = {
+  ...member,
+  ...onTheUnlockPath({ ...questsFeature, ...opened }, { ...leaderboardFeature, ...ready }, { ...bookFeature, ...opened }, { ...skillTreeFeature, ...locked }),
+  skillPoints: 0,
+};
+
+const memberWithEveryPanelLocked: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...locked }, { ...leaderboardFeature, ...locked }, { ...bookFeature, ...locked }, { ...skillTreeFeature, ...locked }) };
+
+const memberWithEveryPanelReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...ready }, { ...leaderboardFeature, ...ready }, { ...bookFeature, ...ready }, { ...skillTreeFeature, ...ready }) };
+
+const memberWithEveryPanelOpen: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...opened }, { ...leaderboardFeature, ...opened }, { ...bookFeature, ...opened }, { ...skillTreeFeature, ...opened }), skillPoints: 2 };
+
 const memberWithNothingShipped: MemberProfile = { ...member, ...onTheUnlockPath() };
+
+const memberWithEveryNavState: MemberProfile = {
+  ...member,
+  ...onTheUnlockPath({ ...questsFeature, ...opened }, { ...leaderboardFeature, ...ready }, { ...bookFeature, ...locked }, { ...skillTreeFeature, ...locked }),
+  progression: { level: 3, xp: 130, levelStartsAt: 100, nextLevelAt: 220, xpToNextLevel: 90 },
+};
 
 const firstThanks = { step: "first-thanks", goal: "Give a kudos that says why.", hint: "It counts when your message has 5 or more words besides mentions and emoji.", reward: { xp: 10 } } as const;
 
@@ -137,6 +165,16 @@ const memberStartingTheJourney: MemberProfile = { ...member, ...onTheUnlockPath(
 const memberWithQuestsReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...ready }), journey: journeyStarted };
 
 const memberWithQuests: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...opened }), journey: journeyUnderway };
+
+const memberWithQuestsAtLevel2: MemberProfile = { ...memberWithQuests, progression: { level: 2, xp: 50, levelStartsAt: 20, nextLevelAt: 60, xpToNextLevel: 10 } };
+
+const memberCrossingIntoLevel6: MemberProfile = {
+  ...member,
+  ...onTheUnlockPath({ ...questsFeature, ...opened }, { ...leaderboardFeature, ...opened }, { ...skillTreeFeature, ...opened }),
+  journey: journeyUnderway,
+  skillPoints: 2,
+  progression: { level: 6, xp: 1010, levelStartsAt: 1000, nextLevelAt: 1500, xpToNextLevel: 490 },
+};
 
 const memberWithAQuietWeek: MemberProfile = { ...member, thisWeek: { given: 0, received: 0 } };
 
@@ -169,14 +207,22 @@ export const shellFixtures = {
   memberWithEveryFeatureOpen,
   memberWithOneSkillPoint,
   memberWithNoSkillPointsLeft,
+  memberAtLevel7WithOneSkillPoint,
   memberWithCoinsReady,
   memberWithCoinsOpened,
   memberWithNothingShipped,
+  memberWithEveryNavState,
+  memberAcrossTheSheet,
+  memberWithEveryPanelLocked,
+  memberWithEveryPanelReady,
+  memberWithEveryPanelOpen,
   memberAtLevel1,
   memberAtLevel7,
   memberStartingTheJourney,
   memberWithQuestsReady,
   memberWithQuests,
+  memberWithQuestsAtLevel2,
+  memberCrossingIntoLevel6,
   error: { kind: "broken" },
 } as const satisfies Record<string, ShellState>;
 
@@ -203,12 +249,16 @@ const fixturesByName: Record<string, ShellState> = {
   "member-with-every-feature-open": shellFixtures.memberWithEveryFeatureOpen,
   "member-with-one-skill-point": shellFixtures.memberWithOneSkillPoint,
   "member-with-no-skill-points-left": shellFixtures.memberWithNoSkillPointsLeft,
+  "member-level-7-with-one-skill-point": shellFixtures.memberAtLevel7WithOneSkillPoint,
   "member-with-nothing-shipped": shellFixtures.memberWithNothingShipped,
+  "member-with-every-nav-state": shellFixtures.memberWithEveryNavState,
   "member-level-1": shellFixtures.memberAtLevel1,
   "member-level-7": shellFixtures.memberAtLevel7,
   "member-starting-the-journey": shellFixtures.memberStartingTheJourney,
   "member-with-quests-ready": shellFixtures.memberWithQuestsReady,
   "member-with-quests": shellFixtures.memberWithQuests,
+  "member-with-quests-at-level-2": shellFixtures.memberWithQuestsAtLevel2,
+  "member-crossing-into-level-6": shellFixtures.memberCrossingIntoLevel6,
   error: shellFixtures.error,
 };
 
@@ -216,4 +266,4 @@ export function builtShell(name: string | undefined): ShellState {
   return fixturesByName[name ?? ""] ?? shellFixtures.closed;
 }
 
-export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, openFeature: async () => ({ kind: "opened" }), openQuestCrate: async () => ({ kind: "opened" }), buyPerk: async () => ({ kind: "bought" }) };
+export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, openFeature: async () => ({ kind: "opened" }), openQuestCrate: async () => ({ kind: "opened" }), buyPerk: async () => ({ kind: "bought" }), setBoardVisibility: async (visible) => ({ kind: "set", visible }), swapQuest: async () => ({ kind: "swapped" }) };

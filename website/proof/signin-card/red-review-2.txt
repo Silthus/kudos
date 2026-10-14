@@ -1,0 +1,32 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/signin-card/website
+
+ ❯ |website| src/theme.test.tsx (7 tests | 1 failed) 1990ms
+   ❯ V6: the theme control follows the system first, overrides it per browser, and returns to it (7)
+     × keeps the choice through signing out when the browser reads its storage but refuses to write 285ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/theme.test.tsx > V6: the theme control follows the system first, overrides it per browser, and returns to it > keeps the choice through signing out when the browser reads its storage but refuses to write
+Error: expect(element).toHaveAttribute("aria-pressed", "true") // element.getAttribute("aria-pressed") === "true"
+
+Expected the element to have attribute:
+  aria-pressed="true"
+Received:
+  aria-pressed="false"
+ ❯ src/theme.test.tsx:93:59
+     91|     await user.click(screen.getByRole("button", { name: "Light" }));
+     92|     showVisitor(shellFixtures.signedOut);
+     93|     expect(screen.getByRole("button", { name: "Light" })).toHaveAttrib…
+       |                                                           ^
+     94|     expect(isDark()).toBe(false);
+     95|     localStorage.removeItem("hedgehug.theme");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 6 passed (7)
+   Start at  11:16:53
+   Duration  8.91s (import 40%, tests 23%, transform 22%, environment 14%, setup 2%)
+

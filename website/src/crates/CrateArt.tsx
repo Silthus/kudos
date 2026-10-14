@@ -1,14 +1,15 @@
 import type { CSSProperties } from "react";
 import type { Hoggie } from "../features";
+import { rewardChipAttributes } from "./RewardFlight";
 import "./crates.css";
 
 export type CratePhase = "closed" | "opening" | "open";
 
-type CrateArtProps = { phase: CratePhase; width: number; Hog: Hoggie; nudge?: boolean };
+type CrateArtProps = { phase: CratePhase; width: number; Hog: Hoggie; nudge?: boolean; seen?: string };
 
-export function CrateArt({ phase, width, Hog, nudge = false }: CrateArtProps) {
+export function CrateArt({ phase, width, Hog, nudge = false, seen }: CrateArtProps) {
   return (
-    <span aria-hidden="true" className="crate-art" data-phase={phase} data-nudge={nudge || undefined} style={{ width } as CSSProperties}>
+    <span aria-hidden="true" className="crate-art" data-phase={phase} data-nudge={nudge || undefined} style={{ width } as CSSProperties} {...rewardChipAttributes(seen ?? null)}>
       <span className="crate-rays" />
       <svg viewBox="0 0 240 200" className="crate-layer">
         <ellipse cx="120" cy="190" rx="100" ry="9" className="crate-shadow" />

@@ -1,0 +1,13 @@
+     × WS321 WS335 P77: with the boards, xp-levels and unlocks on and no unlocks launch, the switch answers refused and launches nothing 98ms
+     × WS321 WS335 P91: with quests on and no Journey launch, an open board's switch answers refused and neither launches the Journey nor joins anyone 228ms
+     × WS321 WS335: with achievements on and no Book launch, an open board's switch answers refused and doesn't launch the Book 369ms
+     × WS321: a Leaderboard still locked at level 1 answers refused before D17 and writes nothing at all 39ms
+     × WS321: a ready Leaderboard answers refused before D17 and writes nothing at all 41ms
+     × WS321: the boards switched off while unlocks d… answers refused before D17 and writes nothing at all 18ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected { kind: 'set', visible: false } to deeply equal { kind: 'refused' }
+AssertionError: expected { kind: 'set', visible: false } to deeply equal { kind: 'refused' }
+AssertionError: expected { kind: 'set', visible: false } to deeply equal { kind: 'refused' }
+AssertionError: expected { kind: 'set', visible: false } to deeply equal { kind: 'refused' }
+AssertionError: expected { kind: 'set', visible: true } to deeply equal { kind: 'refused' }
+      Tests  6 failed | 8 passed (14)

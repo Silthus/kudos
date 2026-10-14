@@ -1,0 +1,17 @@
+     × Quests locked at level 1 answers refused without reaching D17 and writes nothing at all 53ms
+     × Quests ready and not yet opened answers refused without reaching D17 and writes nothing at all 42ms
+     × the quests flag off answers refused without reaching D17 and writes nothing at all 42ms
+     × P77: with every flag on and no unlocks launch, a swap answers refused and launches nothing 17ms
+     × P91: with unlocks launched and no Journey launch, a swap answers refused and neither launches the Journey nor joins anyone 24ms
+     × with achievements on and no Book launch, a swappable quest answers refused and doesn't launch the Book 35ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  6 failed | 8 passed (14)
+     × Quests locked at level 1 answers refused without reaching D17 and writes nothing at all 125ms
+     × Quests ready and not yet opened answers refused without reaching D17 and writes nothing at all 92ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  2 failed | 12 passed (14)
+     × a member with a long history of kudos still reads this week's slots and swap within Convex's read limits 2097ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > a member with a long history of kudos still reads this week's slots and swap within Convex's read limits
+Error: Scanned too many documents in a single function execution (limit: 32000). This is a Convex limit: https://docs.convex.dev/production/state/limits
+      Tests  1 failed | 30 skipped (31)

@@ -17,7 +17,23 @@ const authActions = { signIn: vi.fn(), signOut: vi.fn() };
 const openFeatureCall = vi.fn();
 const buyPerkCall = vi.fn();
 const socket = { isWebSocketConnected: true };
+const sessionToken = { current: "the-session-jwt" as string | null };
+const sentOverHttp = vi.fn();
 const auth = { isLoading: false, isAuthenticated: true };
+
+vi.mock("convex/browser", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("convex/browser")>()),
+  ConvexHttpClient: class {
+    private token: string | undefined;
+    constructor(private readonly address: string) {}
+    setAuth(token: string) {
+      this.token = token;
+    }
+    mutation(mutation: FunctionReference<"mutation">, args: unknown) {
+      return sentOverHttp({ address: this.address, token: this.token, mutation: getFunctionName(mutation), args });
+    }
+  },
+}));
 
 vi.mock("convex/react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("convex/react")>()),
@@ -37,13 +53,21 @@ function boardAnswers(answer: unknown) {
 
 const watchedQueries: string[] = [];
 
+const subscriptions = new Set<{ query: string; args: unknown }>();
+
 const boardWatch = {
-  watchQuery: (query: FunctionReference<"query">) => {
+  url: "https://happy-hog-123.convex.cloud",
+  watchQuery: (query: FunctionReference<"query">, args: unknown) => {
     watchedQueries.push(getFunctionName(query));
     return {
       onUpdate: (notify: () => void) => {
+        const subscription = { query: getFunctionName(query), args };
         boardListeners.add(notify);
-        return () => boardListeners.delete(notify);
+        subscriptions.add(subscription);
+        return () => {
+          boardListeners.delete(notify);
+          subscriptions.delete(subscription);
+        };
       },
       localQueryResult: () => {
         const answer = boardRead();
@@ -57,6 +81,7 @@ const boardWatch = {
 vi.mock("@convex-dev/auth/react", () => ({
   ConvexAuthProvider: ({ children }: { children: ReactNode }) => <ConvexProvider client={boardWatch}>{children}</ConvexProvider>,
   useAuthActions: () => authActions,
+  useAuthToken: () => sessionToken.current,
 }));
 
 function renderLiveSite() {
@@ -82,11 +107,13 @@ afterEach(() => {
   profileRead.mockReset();
   boardRead.mockReset();
   watchedQueries.length = 0;
+  subscriptions.clear();
   window.history.replaceState(null, "", "/");
   authActions.signIn.mockReset();
   authActions.signOut.mockReset();
   openFeatureCall.mockReset();
   buyPerkCall.mockReset();
+  sentOverHttp.mockReset();
 });
 
 describe("WS20 WS24: the live site shows the error page when a call fails, with focus on its title after a state change", () => {
@@ -176,12 +203,12 @@ describe("WS20 WS36: the leaderboard read shows where the page stands, inside th
     expect(screen.getByRole("navigation", { name: "Screens" })).toBeInTheDocument();
   });
 
-  it("shows the error page under the HUD when the board read fails, and Home still opens in place", async () => {
+  it("shows the error page under the HUD when the board read fails, and Profile still opens in place", async () => {
     boardRead.mockReturnValue(new Error("Too many documents read"));
     const { user } = renderLiveSite();
 
     expect(await errorPage()).toBeInTheDocument();
-    await user.click(within(screen.getByRole("navigation", { name: "Screens" })).getByRole("link", { name: "Home" }));
+    await user.click(within(screen.getByRole("navigation", { name: "Screens" })).getByRole("link", { name: "Profile" }));
 
     expect(pageTitle()).not.toHaveTextContent("Something went wrong");
     expect(window.location.pathname).toBe("/");
@@ -195,6 +222,41 @@ describe("WS20 WS36: the leaderboard read shows where the page stands, inside th
     boardAnswers(leaderboardFixtures.midBoard);
 
     expect(pageTitle()).toHaveTextContent("Ada Lindqvist leads the week.");
+  });
+});
+
+describe("WS111: the home's rail reads through the live shell", () => {
+  function subscriptionsTo(name: string) {
+    return [...subscriptions].filter(({ query }) => query === name).map(({ args }) => args);
+  }
+
+  it("subscribes to this week's board once while the Leaderboard is open, and adds no second getQuests", () => {
+    profileRead.mockReturnValue(shellFixtures.memberWithEveryPanelOpen);
+    boardRead.mockReturnValue(undefined);
+    renderLiveSite();
+    boardAnswers(undefined);
+    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryPanelOpen, thisWeek: { given: 3, received: 1 } });
+    boardAnswers(undefined);
+
+    expect(within(screen.getByRole("main")).getByRole("region", { name: "Where you stand" })).toHaveAttribute("aria-busy", "true");
+    expect(subscriptionsTo("website/leaderboard:getLeaderboard")).toEqual([{ period: "week" }]);
+    expect(subscriptionsTo("website/quests:getQuests")).toEqual([{}]);
+  });
+
+  it("WS343: subscribes once to the member's own profile card on the home", () => {
+    profileRead.mockReturnValue(shellFixtures.memberWithEveryPanelOpen);
+    boardRead.mockReturnValue(undefined);
+    renderLiveSite();
+
+    expect(subscriptionsTo("website/profileCard:getProfileCard")).toEqual([{}]);
+  });
+
+  it("subscribes to no board while the Leaderboard is locked", () => {
+    profileRead.mockReturnValue(shellFixtures.memberWithEveryPanelLocked);
+    boardRead.mockReturnValue(undefined);
+    renderLiveSite();
+
+    expect(watchedQueries).not.toContain("website/leaderboard:getLeaderboard");
   });
 });
 
@@ -270,7 +332,7 @@ describe("WS87: the skill tree page buys through the live shell's buyPerk", () =
   });
 });
 
-describe("WS90 WS92: the live site reads the Book on /book", () => {
+describe("WS90 WS334: the live site reads the Book on /book", () => {
   beforeEach(() => {
     window.history.replaceState(null, "", "/book");
     profileRead.mockReturnValue(shellFixtures.memberWithTheBookOpened);
@@ -280,7 +342,7 @@ describe("WS90 WS92: the live site reads the Book on /book", () => {
     boardRead.mockReturnValue(bookFixtures.book);
     renderLiveSite();
     expect(pageTitle()).toHaveTextContent("Achievements");
-    expect(screen.getByRole("heading", { level: 2, name: "Generosity" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "1 of 8 tiers earned" })).toBeInTheDocument();
   });
 
   it("shows the error page under the HUD when the Book read fails", async () => {
@@ -351,7 +413,7 @@ describe("WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the 
     auth.isLoading = false;
     rerender(<Root convexUrl="https://happy-hog-123.convex.cloud" />);
 
-    expect(pageTitle()).toHaveTextContent(/^Sign in$/);
+    expect(pageTitle()).toHaveTextContent(/^HedgeHug$/);
   });
 
   it("ignores a rejection elsewhere on a page that brought no code from Slack", () => {
@@ -387,5 +449,22 @@ describe("WS66: an open the server never answers ends the wait", () => {
 
     expect(openFeatureCall).toHaveBeenNthCalledWith(2, { feature: "leaderboard" });
     expect(screen.getByRole("dialog")).toHaveAccessibleName("Level 3 unlock");
+  });
+});
+
+describe("WS321: the visibility switch never sends again by itself", () => {
+  it("sends its one call over HTTP with the session's token, never through the socket's queue, which replays an unanswered mutation after a reconnect", async () => {
+    window.history.replaceState(null, "", "/leaderboard");
+    profileRead.mockReturnValue(shellFixtures.memberWithTheBoard);
+    boardRead.mockReturnValue(leaderboardFixtures.midBoard);
+    sentOverHttp.mockResolvedValue({ kind: "set", visible: false });
+    const { user } = renderLiveSite();
+
+    await user.click(await screen.findByRole("switch", { name: "Show me on the leaderboards" }));
+
+    expect(sentOverHttp).toHaveBeenCalledExactlyOnceWith({ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/commands:setBoardVisibility", args: { visible: false } });
+    expect(openFeatureCall).not.toHaveBeenCalled();
+    boardAnswers(leaderboardFixtures.left);
+    expect(await screen.findByText("You're off the leaderboards.")).toBeInTheDocument();
   });
 });

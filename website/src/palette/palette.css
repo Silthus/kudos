@@ -1,0 +1,22 @@
+@media (prefers-reduced-motion: no-preference) {
+  .palette-fade {
+    animation: palette-fade 140ms ease-out;
+  }
+
+  .palette-rise {
+    animation: palette-rise 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+}
+
+@keyframes palette-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes palette-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+}

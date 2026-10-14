@@ -7,7 +7,8 @@ import { earnedTierValidator } from "./achievements/tiers";
 import { exceptionValidator } from "./analytics/exceptions";
 import { awardIdValidator } from "./engine/awards";
 import { personPropertiesValidator, propertiesValidator } from "./analytics/projections";
-import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
+import { kudosTextValidator } from "./engine/kudosText";
+import { annotationsValidator, mentionValidator, messageRefValidator } from "./engine/messageEvent";
 import { homeTabValidator } from "./feedback/homes";
 import { publicReplyValidator } from "./feedback/publicReplies";
 import { tierNoticeValidator, tierSummaryValidator } from "./feedback/tierNotices";
@@ -66,6 +67,8 @@ export default defineSchema({
     baseAllowance: v.optional(v.number()),
     kudosEmoji: v.optional(v.string()),
     announcementChannel: v.optional(v.string()),
+    url: v.optional(v.string()),
+    urlRequestedAt: v.optional(v.number()),
   }).index("by_workspace", ["workspace"]),
 
   members: defineTable({
@@ -125,6 +128,13 @@ export default defineSchema({
     checks: v.number(),
   }).index("by_message", ["workspace", "conversation", "message"]),
 
+  kudosTexts: defineTable(kudosTextValidator).index("by_message", ["workspace", "conversation", "message"]).index("by_author", ["workspace", "author"]),
+  wordDeletionRequests: defineTable({ workspace: v.string(), author: v.union(v.string(), v.null()) }).index("by_author", ["workspace", "author"]),
+
+  spotlightDraws: defineTable({ ...messageRefValidator.fields, position: v.number() })
+    .index("by_position", ["workspace", "position"])
+    .index("by_message", ["workspace", "conversation", "message"]),
+
   awards: defineTable({
     workspace: v.string(),
     conversation: v.string(),
@@ -138,6 +148,8 @@ export default defineSchema({
     .index("by_giver", ["giver", "day"])
     .index("by_giver_recipient", ["giver", "recipient"])
     .index("by_recipient", ["recipient", "day"])
+    .index("by_recipient_at", ["recipient", "at"])
+    .index("by_giver_at", ["giver", "at"])
     .index("by_message", ["workspace", "conversation", "message"])
     .index("by_workspace", ["workspace"]),
 
@@ -191,7 +203,9 @@ export default defineSchema({
 
   effectsRecords: defineTable(effectsRecordValidator).index("by_award", ["award", "side"]).index("by_member_side", ["member", "side"]),
 
-  rewardRecords: defineTable(rewardRecordValidator).index("by_member_key", ["member", "key"]),
+  rewardRecords: defineTable(rewardRecordValidator)
+    .index("by_member_key", ["member", "key"])
+    .index("by_member_cause", ["member", "cause.workspace", "cause.conversation", "cause.message"]),
 
   receivingGivers: defineTable({
     recipient: v.id("members"),
@@ -327,7 +341,9 @@ export default defineSchema({
     level: v.number(),
     ready: v.array(featureValidator),
     at: v.number(),
-  }).index("by_member_level", ["member", "level"]),
+  })
+    .index("by_member_level", ["member", "level"])
+    .index("by_member_at", ["member", "at"]),
 
   homes: defineTable({
     member: v.id("members"),

@@ -1,23 +1,60 @@
-import { Card, CardContent } from "@posthog/quill";
+import { tierWords } from "../book/dates";
+import { Medal } from "../book/Medal";
 import { MemberFace } from "../Face";
-import type { MemberProfile } from "../shell";
+import type { ProfileCardShown } from "../profileCardRead";
+import type { Medal as CardMedal, MemberProfile } from "../shell";
+import { Panel } from "./Panel";
 
-export function ProfileCardPanel({ member }: { member: MemberProfile }) {
+export function ProfileCardPanel({ member, card }: { member: MemberProfile; card: ProfileCardShown | undefined }) {
+  const medals = card?.kind === "card" ? card.medals : [];
   return (
-    <section aria-labelledby="profile-card-title">
-      <Card size="sm">
-        <CardContent className="flex flex-col gap-3">
-          <h2 id="profile-card-title" className="hud-label">
-            Your profile card
-          </h2>
-          <div className="flex items-center gap-3 rounded-lg border bg-muted/40 p-3">
-            <MemberFace face={member.face} className="size-10" />
-            <span className="font-medium">{member.name ?? "You"}</span>
-            {member.progression !== null && <span className="ml-auto text-xs text-muted-foreground tabular-nums">{`Level ${member.progression.level}`}</span>}
+    <Panel id="profile-card" label="What teammates see" aside="Public" busy={card === undefined}>
+      <div className="flex flex-col gap-3 rounded-xl border bg-linear-to-br from-card to-muted p-3 shadow-md">
+        <div className="flex items-center gap-3">
+          <MemberFace face={member.face} className="size-14" />
+          <div className="flex min-w-0 flex-1 items-baseline justify-between gap-2">
+            <span className="truncate text-lg leading-tight font-semibold">{member.name ?? "You"}</span>
+            {member.progression !== null && <LevelTag level={member.progression.level} />}
           </div>
-          <p className="text-xs text-muted-foreground">Teammates see your face and name. The kudos you receive stay private.</p>
-        </CardContent>
-      </Card>
-    </section>
+        </div>
+        {medals.length > 0 && <BestMedals medals={medals} />}
+      </div>
+      <p className="text-xs text-muted-foreground">Everyone can see this card. Your XP and the kudos you receive stay with you.</p>
+      <MedalsNote member={member} card={card} />
+    </Panel>
   );
+}
+
+function LevelTag({ level }: { level: number }) {
+  return (
+    <span className="shrink-0 text-sm font-semibold tabular-nums">
+      <span aria-hidden="true">{`Lv ${level}`}</span>
+      <span className="sr-only">{`Level ${level}`}</span>
+    </span>
+  );
+}
+
+function BestMedals({ medals }: { medals: CardMedal[] }) {
+  return (
+    <ul aria-label="Best medals" className="flex flex-col gap-1.5 border-t pt-3">
+      {medals.map(({ ladder, tier, name }) => (
+        <li key={ladder} className="flex items-center gap-2.5">
+          <Medal tier={tier} earned />
+          <span className="min-w-0 flex-1 text-sm leading-tight font-medium">{name}</span>
+          <span className="shrink-0 text-xs text-muted-foreground">{tierWords[tier]}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function MedalsNote({ member, card }: { member: MemberProfile; card: ProfileCardShown | undefined }) {
+  if (card?.kind === "broken") return <p className="text-xs text-muted-foreground">Your medals didn't load.</p>;
+  if (card?.kind === "card" && medalsWaitForTheBook(member)) return <p className="text-xs text-muted-foreground">Medals join this card only after you open the Book.</p>;
+  return null;
+}
+
+function medalsWaitForTheBook({ features }: MemberProfile) {
+  const book = features?.find(({ feature }) => feature === "book");
+  return book !== undefined && book.state !== "open";
 }

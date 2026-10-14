@@ -1,0 +1,51 @@
+# Red: pnpm --dir website exec vitest run src/BookPage.test.tsx on 0d67870^ with book/categories.ts stubbed as an empty table (16 new tests fail; 26 pass, including the two that guard kept behaviour)
+     × shows a Book pages column on a wide screen: the Book, Overview, then each category in E's order 1021ms
+     × marks the current page, and only it, with the stripe in primary 1090ms
+     × gives each category its emblem and the overview none 887ms
+     × lists only the categories that hold a ladder the read returns 420ms
+     × is a native select with option groups on a narrow screen 953ms
+     × follows the select to a category without a reload, moving focus to its title 1115ms
+     × follows an index entry without a reload, moving focus to the page's title, and back with the browser 929ms
+     × serves the overview at /book, turning ?page=overview into /book 97ms
+     × shows the overview for a page it doesn't know, at /book 193ms
+     × shows the overview for a category whose ladders the read doesn't return 422ms
+     × /book?page=giving shows Giving with its blurb and its ladders in catalogue order 128ms
+     × /book?page=thanked shows Being thanked with its blurb and its ladders in catalogue order 306ms
+     × /book?page=connections shows Connections with its blurb and its ladders in catalogue order 337ms
+     × /book?page=crowd shows Crowd with its blurb and its ladders in catalogue order 646ms
+     × keys every shipped ladder to a category 4ms
+     × puts a ladder a newer backend returns, with no category yet, on the last category that holds a ladder 305ms
+ FAIL  |website| src/BookPage.test.tsx > WS331: the Book's page index > shows a Book pages column on a wide screen: the Book, Overview, then each category in E's order
+TestingLibraryElementError: Unable to find an accessible element with the role "navigation" and name "Book pages"
+ FAIL  |website| src/BookPage.test.tsx > WS331: the Book's page index > marks the current page, and only it, with the stripe in primary
+TestingLibraryElementError: Unable to find an accessible element with the role "navigation" and name "Book pages"
+ FAIL  |website| src/BookPage.test.tsx > WS331: the Book's page index > gives each category its emblem and the overview none
+TestingLibraryElementError: Unable to find an accessible element with the role "navigation" and name "Book pages"
+ FAIL  |website| src/BookPage.test.tsx > WS331: the Book's page index > lists only the categories that hold a ladder the read returns
+TestingLibraryElementError: Unable to find an accessible element with the role "navigation" and name "Book pages"
+ FAIL  |website| src/BookPage.test.tsx > WS331: the Book's page index > is a native select with option groups on a narrow screen
+TestingLibraryElementError: Unable to find an accessible element with the role "combobox" and name "Book page"
+ FAIL  |website| src/BookPage.test.tsx > WS331: the Book's page index > follows the select to a category without a reload, moving focus to its title
+TestingLibraryElementError: Unable to find an accessible element with the role "combobox" and name "Book page"
+ FAIL  |website| src/BookPage.test.tsx > WS331: the Book's page index > follows an index entry without a reload, moving focus to the page's title, and back with the browser
+TestingLibraryElementError: Unable to find an accessible element with the role "navigation" and name "Book pages"
+ FAIL  |website| src/BookPage.test.tsx > WS331: the Book's page index > serves the overview at /book, turning ?page=overview into /book
+AssertionError: expected '/book?page=overview' to be '/book' // Object.is equality
+ FAIL  |website| src/BookPage.test.tsx > WS331: the Book's page index > shows the overview for a page it doesn't know, at /book
+AssertionError: expected '/book?page=albums' to be '/book' // Object.is equality
+ FAIL  |website| src/BookPage.test.tsx > WS331: the Book's page index > shows the overview for a category whose ladders the read doesn't return
+TestingLibraryElementError: Unable to find an accessible element with the role "navigation" and name "Book pages"
+ FAIL  |website| src/BookPage.test.tsx > WS332: the Book's category pages > /book?page=giving shows Giving with its blurb and its ladders in catalogue order
+Error: expect(element).toHaveTextContent()
+ FAIL  |website| src/BookPage.test.tsx > WS332: the Book's category pages > /book?page=thanked shows Being thanked with its blurb and its ladders in catalogue order
+Error: expect(element).toHaveTextContent()
+ FAIL  |website| src/BookPage.test.tsx > WS332: the Book's category pages > /book?page=connections shows Connections with its blurb and its ladders in catalogue order
+Error: expect(element).toHaveTextContent()
+ FAIL  |website| src/BookPage.test.tsx > WS332: the Book's category pages > /book?page=crowd shows Crowd with its blurb and its ladders in catalogue order
+Error: expect(element).toHaveTextContent()
+ FAIL  |website| src/BookPage.test.tsx > WS332: the Book's category pages > keys every shipped ladder to a category
+AssertionError: expected [ 'generosity', 'recognition', …(5) ] to deeply equal []
+ FAIL  |website| src/BookPage.test.tsx > WS332: the Book's category pages > puts a ladder a newer backend returns, with no category yet, on the last category that holds a ladder
+TestingLibraryElementError: Unable to find an accessible element with the role "heading"
+ Test Files  1 failed (1)
+      Tests  16 failed | 26 passed (42)

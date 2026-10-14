@@ -61,7 +61,7 @@ export type QuestSwap = { slot: number; replaced: QuestId; quest: QuestId; swapp
 
 export type UnopenedCrate = { crate: WeeklyQuest; week: WeekKey; goal: string; reward: Reward; finishedAt: number };
 
-export type DrawnWeek = Omit<WeeklyQuests, "slots" | "swapAvailable"> & { slots: Array<WeeklySlot & { crate: WeeklyQuest }> };
+export type DrawnWeek = Omit<WeeklyQuests, "slots"> & { slots: Array<WeeklySlot & { crate: WeeklyQuest }> };
 
 export type WeeklyQuests = { week: WeekKey; drawnAt: number; slots: WeeklySlot[]; swap: QuestSwap | null; swapAvailable: boolean };
 
@@ -116,8 +116,7 @@ export async function weeklyQuestsOf(ctx: QueryCtx, member: MemberId, at: number
   const { week, drawnAt } = draw;
   const swap = await swapOf(ctx, member, week);
   const slots = await weeklySlotsOf(ctx, draw, swap);
-  const swapAvailable = swap === null && slots.some(({ finishedAt }) => finishedAt === null) && (await replacementFor(ctx, draw, at)) !== null;
-  return { week, drawnAt, slots, swap: swap === null ? null : questSwapOf(swap), swapAvailable };
+  return { week, drawnAt, slots, swap: swap === null ? null : questSwapOf(swap), swapAvailable: await swapAvailableIn(ctx, draw, swap, slots, at) };
 }
 
 export async function drawnWeekOf(ctx: QueryCtx, member: MemberId, at: number): Promise<DrawnWeek | null> {
@@ -125,8 +124,23 @@ export async function drawnWeekOf(ctx: QueryCtx, member: MemberId, at: number): 
   if (draw === null) return null;
   const { week, drawnAt } = draw;
   const swap = await swapOf(ctx, member, week);
-  const slots = (await weeklySlotsOf(ctx, draw, swap)).map((slot) => ({ ...slot, crate: weeklyQuest(week, slot) }));
-  return { week, drawnAt, slots, swap: swap === null ? null : questSwapOf(swap) };
+  const slots = await weeklySlotsOf(ctx, draw, swap);
+  const swapAvailable = await swapAvailableIn(ctx, draw, swap, slots, at);
+  return { week, drawnAt, slots: slots.map((slot) => ({ ...slot, crate: weeklyQuest(week, slot) })), swap: swap === null ? null : questSwapOf(swap), swapAvailable };
+}
+
+export async function swappedSlotIn(ctx: QueryCtx, member: MemberId, week: WeekKey): Promise<number | null> {
+  return (await swapOf(ctx, member, week))?.swappedIn.slot ?? null;
+}
+
+async function swapAvailableIn(ctx: QueryCtx, draw: Draw, swap: Swap | null, slots: WeeklySlot[], at: number): Promise<boolean> {
+  if (swap !== null || slots.every(({ finishedAt }) => finishedAt !== null)) return false;
+  return (await replacementForAnyoneIn(ctx, draw, at)) || (await replacementFor(ctx, draw, at)) !== null;
+}
+
+async function replacementForAnyoneIn(ctx: QueryCtx, { member, slots }: Draw, at: number): Promise<boolean> {
+  const facts = await factsWithoutHistory(ctx, member, at);
+  return questPool.quests.some((quest) => quest.progress.given.to === "anyone" && !slots.some((drawn) => drawn.quest === quest.quest) && feasibility(quest, facts) !== null);
 }
 
 async function thisWeeksDrawOf(ctx: QueryCtx, member: MemberId, at: number) {
@@ -145,12 +159,12 @@ export async function unopenedCratesOf(ctx: QueryCtx, member: MemberId, at: numb
   for (const { key } of await pendingWeeklyCratesBefore(ctx, member, thisWeek)) {
     const crate = weeklyQuestOfRewardKey(key)!;
     const { xp, coins, item, at: finishedAt } = (await rewardOf(ctx, member, key))!;
-    unopened.push({ crate, week: crate.week, goal: await goalOf(ctx, member, crate), reward: { xp, coins, item }, finishedAt });
+    unopened.push({ crate, week: crate.week, goal: await weeklyGoalOf(ctx, member, crate), reward: { xp, coins, item }, finishedAt });
   }
   return unopened.sort((one, other) => one.finishedAt - other.finishedAt);
 }
 
-async function goalOf(ctx: QueryCtx, member: MemberId, { week, slot }: WeeklyQuest): Promise<string> {
+export async function weeklyGoalOf(ctx: QueryCtx, member: MemberId, { week, slot }: WeeklyQuest): Promise<string> {
   const draw = (await drawOf(ctx, member, week))!;
   const finished = slotsOf(draw, await swapOf(ctx, member, week)).find((drawn) => drawn.slot === slot)!;
   return questOf(finished.quest).goal;
@@ -224,7 +238,7 @@ async function advanceSlot(ctx: MutationCtx, event: KudosGivenEvent, { member, w
   for (const { award, recipient, day, at } of fresh) await ctx.db.insert("questProgress", { member, week, slot: slot.slot, quest: slot.quest, award, recipient, day, at });
   const before = questProgress(pooled, counted);
   const after = questProgress(pooled, [...counted, ...fresh]);
-  if (after === pooled.progress.target && (await finishQuest(ctx, event.workspace, member, quest, { ...slot, poolQuest: slot.quest }, event.at))) {
+  if (after === pooled.progress.target && (await finishQuest(ctx, event.workspace, member, quest, { ...slot, poolQuest: slot.quest }, event.at, event.message))) {
     await notifyWeeklyQuestFinished(ctx, member, quest, pooled.goal, slot.reward.xp);
     return "finished";
   }
@@ -253,20 +267,29 @@ function weeklyQuest(week: WeekKey, { slot }: Slot): WeeklyQuest {
 }
 
 export async function drawFactsOf(ctx: QueryCtx, member: MemberId, at: number): Promise<DrawFacts> {
-  const facts = await factsWithTheDayUnspent(ctx, member, at, at);
+  return factsWithTheDaySpent(ctx, member, at, await lastThankedBy(ctx, member, at));
+}
+
+function factsWithoutHistory(ctx: QueryCtx, member: MemberId, at: number): Promise<DrawFacts> {
+  return factsWithTheDaySpent(ctx, member, at, new Map());
+}
+
+async function factsWithTheDaySpent(ctx: QueryCtx, member: MemberId, at: number, lastThanked: LastThanked): Promise<DrawFacts> {
+  const facts = await factsWithTheDayUnspent(ctx, member, at, lastThanked);
   const kudosLeftToday = await allowanceLeft(ctx, member, allowanceDay(at, await timeZoneOf(ctx, member)), facts.dailyAllowance);
   return { ...facts, kudosLeftToday };
 }
 
-function factsAtTheStartOf(ctx: QueryCtx, member: MemberId, weekStart: number): Promise<DrawFacts> {
-  return factsWithTheDayUnspent(ctx, member, weekStart, weekStart - 1);
+async function factsAtTheStartOf(ctx: QueryCtx, member: MemberId, weekStart: number): Promise<DrawFacts> {
+  return factsWithTheDayUnspent(ctx, member, weekStart, await lastThankedBy(ctx, member, weekStart - 1));
 }
 
-async function factsWithTheDayUnspent(ctx: QueryCtx, member: MemberId, at: number, thankedUpTo: number): Promise<DrawFacts> {
+type LastThanked = Map<MemberId, number>;
+
+async function factsWithTheDayUnspent(ctx: QueryCtx, member: MemberId, at: number, lastThanked: LastThanked): Promise<DrawFacts> {
   const { workspace } = await chatUserOf(ctx, member);
   const { baseAllowance } = await settingsOf(ctx, workspace);
   const teammates = await teammatesOf(ctx, workspace, member);
-  const lastThanked = await lastThankedBy(ctx, member, thankedUpTo);
   const left = (to: Recipient) => teammates.filter((teammate) => isRecipient(to, lastThanked.get(teammate) ?? null, at)).length;
   return {
     daysLeft: daysLeftInWeek(at, await timeZoneOf(ctx, member)),

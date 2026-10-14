@@ -1,8 +1,9 @@
-import { v } from "convex/values";
+import { v, type ObjectType } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
+import { withholdingWords } from "../analytics/exceptions";
 import { commandValidator, runCommand } from "../commands/commands";
-import { messageEventValidator } from "../engine/messageEvent";
+import { messageDeletedValidator, messageEventValidator } from "../engine/messageEvent";
 import { republish } from "../feedback/homes";
 import { xpLevelsOnFor, xpLevelsShownIn } from "../progression/xpLevels";
 import { directoryEntryValidator, lookup } from "../workspace/directory";
@@ -15,13 +16,17 @@ type Receipt = { workspace: string; eventId: string };
 const keptForMs = 7 * 24 * 60 * 60 * 1000;
 const deletionBatchSize = 500;
 
+const receivedEventArgs = { workspace: v.string(), eventId: v.string(), event: v.union(messageEventValidator, messageDeletedValidator, v.null()) };
+
+type ReceivedEvent = ObjectType<typeof receivedEventArgs>;
+
 export const receive = internalMutation({
-  args: { workspace: v.string(), eventId: v.string(), event: v.union(messageEventValidator, v.null()) },
-  handler: async (ctx, { event, ...receipt }) => {
+  args: receivedEventArgs,
+  handler: withholdingWords(async (ctx: MutationCtx, { event, ...receipt }: ReceivedEvent) => {
     if (await isRedelivered(ctx, receipt)) return;
     const observation = await processEvent(ctx, event);
     if (observation?.kind !== "ignored") await ctx.db.insert("slackReceipts", receipt);
-  },
+  }),
 });
 
 export const receiveHomeOpened = internalMutation({

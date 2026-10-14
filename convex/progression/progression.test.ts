@@ -176,6 +176,7 @@ function kudosMessage(author: string, recipients: string[], emoji: string[], tex
     revision: BigInt(now.getTime()) * 1000n,
     at: now.getTime(),
     content: { mentions, emoji, text },
+    words: { segments: [{ kind: "text", text: text }], visibility: "public" },
   };
 }
 

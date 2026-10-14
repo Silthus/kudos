@@ -9,8 +9,9 @@ import { perkOf } from "../progression/tree";
 import { bonusLineValidator, type BonusLine } from "../progression/progress";
 import { giverLinesOf, giverXpOf } from "../progression/progression";
 import { skillTreeAppliesIn } from "../progression/skillTree";
-import { xpLevelsOnFor, xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
-import { questsApplyIn, questsApplyTo, questsExposedTo } from "../quests/flag";
+import { questGainsShownTo, xpGainsShownTo } from "../progression/gainsView";
+import { xpLevelsShownTo } from "../progression/xpLevels";
+import { questsExposedTo } from "../quests/flag";
 import { journeyGoalOf } from "../quests/journeyCopy";
 import { journeyStepValidator } from "../quests/step";
 import { coinsShownTo, coinsVisibleTo } from "../wallet/visibility";
@@ -135,19 +136,11 @@ async function gainsShownTo(ctx: QueryCtx, workspace: string, member: MemberId |
   const coinsEarned = coins > 0 || questsDone.some((done) => (done.coins ?? 0) > 0);
   const coinsVisible = coinsEarned && (await areCoinsVisibleTo(ctx, member));
   return {
-    xp: (await isXpShownTo(ctx, workspace, member)) ? xp : 0,
+    xp: (await xpGainsShownTo(ctx, workspace, member)) ? xp : 0,
     coins: coinsVisible ? coins : 0,
-    questsDone: questsDone.length > 0 && (await areQuestsShownTo(ctx, workspace, member)) ? questsDone.map((done) => (coinsVisible ? done : withoutCoins(done))) : [],
+    questsDone: questsDone.length > 0 && (await questGainsShownTo(ctx, workspace, member)) ? questsDone.map((done) => (coinsVisible ? done : withoutCoins(done))) : [],
     bonus: bonus.length > 0 && (await skillTreeAppliesIn(ctx, workspace)) ? bonus : [],
   };
-}
-
-function isXpShownTo(ctx: QueryCtx, workspace: string, member: MemberId | null) {
-  return member === null ? xpLevelsShownIn(ctx, workspace) : xpLevelsOnFor(ctx, member);
-}
-
-function areQuestsShownTo(ctx: QueryCtx, workspace: string, member: MemberId | null) {
-  return member === null ? questsApplyIn(ctx, workspace) : questsApplyTo(ctx, member);
 }
 
 async function areCoinsVisibleTo(ctx: QueryCtx, member: MemberId | null) {
