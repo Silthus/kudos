@@ -44,15 +44,28 @@ describe("P85: the pending-crate index lists every crate still waiting, within C
     const waiting = await waitingFor(t, alice);
 
     expect(waiting).toEqual([
-      { crate: { kind: "weekly", week: twoWeeksAgo, slot: 1 }, goal: "Thank someone and say why, 2 times.", reward, finishedAt: Date.parse("2026-09-29T10:00:00Z") },
-      { crate: { kind: "weekly", week: lastWeek, slot: 0 }, goal: "Thank someone and say why, 3 times.", reward, finishedAt: Date.parse("2026-10-06T10:00:00Z") },
-      { crate: { kind: "weekly", week: lastWeek, slot: 1 }, goal: "Thank someone you haven't thanked before.", reward, finishedAt: Date.parse("2026-10-08T10:00:00Z") },
+      { crate: { kind: "weekly", week: twoWeeksAgo, slot: 1 }, week: twoWeeksAgo, goal: "Thank someone and say why, 2 times.", reward, finishedAt: Date.parse("2026-09-29T10:00:00Z") },
+      { crate: { kind: "weekly", week: lastWeek, slot: 0 }, week: lastWeek, goal: "Thank someone and say why, 3 times.", reward, finishedAt: Date.parse("2026-10-06T10:00:00Z") },
+      { crate: { kind: "weekly", week: lastWeek, slot: 1 }, week: lastWeek, goal: "Thank someone you haven't thanked before.", reward, finishedAt: Date.parse("2026-10-08T10:00:00Z") },
     ]);
     expect(await t.run(async (ctx) => (await ctx.db.query("pendingCrates").collect()).map(({ key }) => key).sort())).toEqual([
       `weekly:${twoWeeksAgo}:1`,
       `weekly:${lastWeek}:0`,
       `weekly:${lastWeek}:1`,
       `weekly:${thisWeek}:0`,
+    ]);
+  });
+
+  test("two earlier weeks that drew the same quest each list its crate with its own week", async () => {
+    const { t, alice } = await workspace();
+    await drawn(t, alice, twoWeeksAgo, ["say-why"]);
+    await drawn(t, alice, lastWeek, ["say-why"]);
+    await finishedWithTheIndex(t, alice, `weekly:${twoWeeksAgo}:0`, Date.parse("2026-09-29T10:00:00Z"));
+    await finishedWithTheIndex(t, alice, `weekly:${lastWeek}:0`, Date.parse("2026-10-06T10:00:00Z"));
+
+    expect((await waitingFor(t, alice)).map(({ goal, week }) => ({ goal, week }))).toEqual([
+      { goal: "Thank someone and say why.", week: twoWeeksAgo },
+      { goal: "Thank someone and say why.", week: lastWeek },
     ]);
   });
 
@@ -104,6 +117,11 @@ function openedBeforeTheIndex(t: Backend, member: MemberId, week: string, crates
       await ctx.db.insert("crateOpenings", { member, key, at: now });
     }
   });
+}
+
+async function finishedWithTheIndex(t: Backend, member: MemberId, key: string, at: number) {
+  await finishedBeforeTheIndex(t, member, key, at);
+  await indexed(t, member, key);
 }
 
 function indexed(t: Backend, member: MemberId, key: string) {
