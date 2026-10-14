@@ -114,6 +114,18 @@ const memberWithCoinsReady: MemberProfile = { ...member, ...onTheUnlockPath({ ..
 
 const memberWithCoinsOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...coinsFeature, ...opened }) };
 
+const memberAcrossTheSheet: MemberProfile = {
+  ...member,
+  ...onTheUnlockPath({ ...skillTreeFeature, ...locked }, { ...leaderboardFeature, ...ready }, { ...bookFeature, ...opened }, { ...questsFeature, ...opened }),
+  skillPoints: 0,
+};
+
+const memberWithEveryPanelLocked: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...locked }, { ...leaderboardFeature, ...locked }, { ...bookFeature, ...locked }, { ...skillTreeFeature, ...locked }) };
+
+const memberWithEveryPanelReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...ready }, { ...leaderboardFeature, ...ready }, { ...bookFeature, ...ready }, { ...skillTreeFeature, ...ready }) };
+
+const memberWithEveryPanelOpen: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...opened }, { ...leaderboardFeature, ...opened }, { ...bookFeature, ...opened }, { ...skillTreeFeature, ...opened }), skillPoints: 2 };
+
 const memberWithNothingShipped: MemberProfile = { ...member, ...onTheUnlockPath() };
 
 const firstThanks = { step: "first-thanks", goal: "Give a kudos that says why.", hint: "It counts when your message has 5 or more words besides mentions and emoji.", reward: { xp: 10 } } as const;
@@ -172,6 +184,10 @@ export const shellFixtures = {
   memberWithCoinsReady,
   memberWithCoinsOpened,
   memberWithNothingShipped,
+  memberAcrossTheSheet,
+  memberWithEveryPanelLocked,
+  memberWithEveryPanelReady,
+  memberWithEveryPanelOpen,
   memberAtLevel1,
   memberAtLevel7,
   memberStartingTheJourney,
