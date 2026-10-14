@@ -20,8 +20,8 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: navigation to another Document
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: navigation to another Document
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
@@ -261,8 +261,8 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 
  Test Files  179 passed (179)
       Tests  3425 passed (3425)
-   Start at  16:52:02
-   Duration  224.45s (tests 84%, import 9%, environment 4%, transform 2%, setup 1%)
+   Start at  17:07:20
+   Duration  214.77s (tests 84%, import 9%, environment 4%, transform 3%, setup 1%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
@@ -478,7 +478,7 @@ Parser  convex/parser/Parser.spec.md
   (no invariants)
 Profile card  convex/profileCard/ProfileCard.spec.md
   a profile card shows only name, level and medals  invariant
-      totality oracle "PC1 PC5 PC7 PC8: /hedgehug @member answers that member's profile card" over the whole reply `/hedgehug @member` answers for a member with XP and tiers on five ladders, for one who earned nothing, for a mention carrying Slack's label, and with `xp-levels` off: verified 2026-10-14
+      totality oracle "PC1 PC5 PC7 PC8: /hedgehug `@member` answers that member's profile card" over the whole reply `/hedgehug @member` answers for a member with XP and tiers on five ladders, for one who earned nothing, for a mention carrying Slack's label, and with `xp-levels` off: verified 2026-10-14
       refuted 2026-10-14: bestMedalsOf kept the best five medals instead of four
       kinds read, output: 6 shapes apply, 1 declared, 5 dismissed
   a card follows what has shipped, except an own card's medals wait for the Book  invariant
@@ -938,4 +938,4 @@ RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:2  
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:17  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 ADVISORY       267 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 91, contract 33, receipt 33, panel 28, zone 22; reported, never failing, since inside the project its sense wins (--json lists each)
-0 rejected names, 0 unknown nouns (768 files), 17 in records
+0 rejected names, 0 unknown nouns (769 files), 17 in records

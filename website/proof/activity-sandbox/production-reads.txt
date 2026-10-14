@@ -18,5 +18,5 @@ PostHog flag `activity` (958437), read-only:
   group 2: person property email = the product owner's address, 100%
   no production-wide condition
 
-So production members see no card, no Activity tab, no /activity and no spotlight (WS201: each surface shows only while its read answers content).
+So every production member except the product owner sees no card, no Activity tab, no /activity and no spotlight (WS201: each surface shows only while its read answers content).
 The product owner already previews all of it in production (F15).
