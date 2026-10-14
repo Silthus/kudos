@@ -85,6 +85,7 @@ export const recover = internalMutation({
         .query("analyticsOutbox")
         .withIndex("by_due", (q) => q.eq("state", "sending").lte("dueAt", Date.now()))
         .take(cleanUpBatchSize);
+      await markDeliveriesUncertain(ctx, personEventsIn(expiredLeases));
       await release(ctx, expiredLeases);
       if (expiredLeases.length > 0) await replaceDrain(ctx);
       else await wakeDrain(ctx);
