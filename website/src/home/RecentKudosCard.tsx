@@ -1,10 +1,10 @@
-import { IconLock } from "@posthog/icons";
+import { IconCheck, IconLock } from "@posthog/icons";
 import { ToggleGroup, ToggleGroupItem } from "@posthog/quill";
-import { useRef, useState } from "react";
+import { useState, type KeyboardEvent } from "react";
 import { KudosMessage } from "../activity/KudosMessage";
 import { Faces, namesOf } from "../activity/People";
-import type { Direction, RecentKudosRead } from "../recentKudosRead";
-import type { KudosGiven, KudosReceived, MyRecentKudos, RecentKudos } from "../shell";
+import type { Direction, RecentKudosRead, RecentKudosShown } from "../recentKudosRead";
+import type { KudosGiven, KudosReceived, RecentKudos } from "../shell";
 import { Panel } from "./Panel";
 
 type Entry = KudosReceived | KudosGiven;
@@ -30,11 +30,11 @@ export function RecentKudosCard({ useRecentKudos }: { useRecentKudos: RecentKudo
   );
 }
 
-function useRecentWhileTheNextLoads(answer: MyRecentKudos | undefined) {
-  const lastShown = useRef<RecentKudos | undefined>(undefined);
-  if (answer?.kind === "recent") lastShown.current = answer;
-  else if (answer !== undefined) lastShown.current = undefined;
-  return lastShown.current;
+function useRecentWhileTheNextLoads(answer: RecentKudosShown | undefined) {
+  const [lastShown, setLastShown] = useState<RecentKudos | undefined>(undefined);
+  const shown = answer === undefined ? lastShown : answer.kind === "recent" ? answer : undefined;
+  if (shown !== lastShown) setLastShown(shown);
+  return shown;
 }
 
 function isKnown(entry: Entry) {
@@ -43,17 +43,34 @@ function isKnown(entry: Entry) {
 
 function DirectionSwitch({ direction, onChoose }: { direction: Direction; onChoose: (direction: Direction) => void }) {
   return (
-    <ToggleGroup variant="outline" size="sm" role="radiogroup" aria-label="Show kudos" value={[direction]} onValueChange={(chosen) => chosen[0] && onChoose(chosen[0] as Direction)}>
+    <ToggleGroup variant="outline" size="sm" role="radiogroup" aria-label="Show kudos" value={[direction]} onValueChange={(chosen) => chosen[0] && onChoose(chosen[0] as Direction)} onKeyDown={moveOnUpAndDown}>
       {switchOrder.map((each) => {
         const selected = each === direction;
         return (
           <ToggleGroupItem key={each} value={each} role="radio" aria-checked={selected} aria-pressed={undefined} onFocus={() => onChoose(each)} className={`min-h-6 ${selected ? "border-primary bg-fill-selected" : ""}`}>
+            {selected && <IconCheck data-selected-mark aria-hidden="true" className="size-3.5" />}
             {directions[each].label}
           </ToggleGroupItem>
         );
       })}
     </ToggleGroup>
   );
+}
+
+function verticalStepOf(key: string) {
+  if (key === "ArrowDown") return 1;
+  if (key === "ArrowUp") return -1;
+  return undefined;
+}
+
+function moveOnUpAndDown(event: KeyboardEvent<HTMLDivElement>) {
+  const step = verticalStepOf(event.key);
+  if (step === undefined) return;
+  const options = [...event.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]')];
+  const current = options.findIndex((option) => option === document.activeElement);
+  if (current === -1) return;
+  event.preventDefault();
+  options[(current + step + options.length) % options.length]?.focus();
 }
 
 function Rows({ entries, empty }: { entries: Entry[]; empty: string }) {
@@ -71,9 +88,9 @@ function Row({ entry }: { entry: Entry }) {
   const people = entry.kind === "kudosReceived" ? [entry.giver] : entry.recipients;
   return (
     <li className="flex gap-3">
-      <Faces people={people} className={entry.kind === "kudosGiven" ? "w-16" : ""} />
+      <Faces people={people} />
       <div className="flex min-w-0 flex-1 flex-col gap-1 text-sm">
-        <div className="flex items-baseline justify-between gap-2">
+        <div className="flex items-start justify-between gap-2">
           <span data-testid="recent-kudos-headline" className="min-w-0 font-medium [overflow-wrap:anywhere]">
             {headlineOf(entry)}
           </span>
@@ -98,7 +115,7 @@ const dayMonthAndYear = new Intl.DateTimeFormat("en-GB", { day: "numeric", month
 function When({ at }: { at: number }) {
   const date = new Date(at);
   return (
-    <time dateTime={date.toISOString()} className="shrink-0 text-xs text-muted-foreground tabular-nums">
+    <time dateTime={date.toISOString()} className="mt-0.5 shrink-0 text-xs text-muted-foreground tabular-nums">
       {dayOf(date, new Date())}
     </time>
   );

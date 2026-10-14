@@ -18,14 +18,12 @@ export function KudosMessage({ message, clamped }: { message: Message; clamped: 
 
 function WordsOf({ message, clamped }: { message: Words; clamped: boolean }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <p data-testid="kudos-message-words" className={`[overflow-wrap:anywhere] ${clamped ? "line-clamp-2" : ""}`}>
-        {message.segments.map((segment, index) => (
-          <SegmentOf key={index} segment={segment} linked={!clamped} />
-        ))}
-      </p>
-      {message.edited && <span className="text-xs text-muted-foreground">Edited</span>}
-    </div>
+    <p data-testid="kudos-message-words" className={`[overflow-wrap:anywhere] ${clamped ? "line-clamp-2" : ""}`}>
+      {message.segments.map((segment, index) => (
+        <SegmentOf key={index} segment={segment} linked={!clamped} />
+      ))}
+      {message.edited && <span className="ml-1 text-xs text-muted-foreground">Edited</span>}
+    </p>
   );
 }
 

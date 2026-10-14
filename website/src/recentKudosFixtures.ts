@@ -1,5 +1,5 @@
-import type { Direction, RecentKudosRead } from "./recentKudosRead";
-import type { KudosGiven, KudosReceived, Message, MyRecentKudos, Person, RecentKudos } from "./shell";
+import type { Direction, RecentKudosRead, RecentKudosShown } from "./recentKudosRead";
+import type { KudosGiven, KudosReceived, Message, Person, RecentKudos } from "./shell";
 
 const today = Date.parse("2026-10-14T09:30:00");
 
@@ -25,7 +25,7 @@ const dev = teammate("Dev Rao");
 
 const eli = teammate("Eli Brandt");
 
-const formerTeammate = teammate("A teammate");
+const formerTeammate: Person = { name: "A teammate", face: { kind: "initials", initials: "" } };
 
 const publicChannel = { visibility: "public" } as const;
 
@@ -70,7 +70,7 @@ const unavailableWords: RecentKudos = {
 
 export const recentKudosFixtures = { threeReceived, threeGiven, nothingYet, unavailableWords } as const satisfies Record<string, RecentKudos>;
 
-export function fixedRecentKudos(answers: Record<Direction, MyRecentKudos | undefined>): RecentKudosRead {
+export function fixedRecentKudos(answers: Record<Direction, RecentKudosShown | undefined>): RecentKudosRead {
   return (direction) => answers[direction];
 }
 

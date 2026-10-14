@@ -274,6 +274,18 @@ describe("WS200 WS207: the Recent kudos card reads getRecentKudos through the li
     expect(recentKudosAsked()).toEqual([{ direction: "given", limit: 3 }]);
   });
 
+  it("takes the card away when the read fails after it showed rows", () => {
+    profileRead.mockReturnValue(shellFixtures.memberWithEveryPanelLocked);
+    boardRead.mockReturnValue(recentKudosFixtures.threeReceived);
+    renderLiveSite();
+    expect(within(screen.getByRole("main")).getByRole("region", { name: "Recent kudos" })).toBeInTheDocument();
+
+    boardAnswers(new Error("Too many documents read"));
+
+    expect(within(screen.getByRole("main")).queryByRole("region", { name: "Recent kudos" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Sam Example" })).toBeInTheDocument();
+  });
+
   it("renders no card and keeps the home when the read fails", () => {
     profileRead.mockReturnValue(shellFixtures.memberWithEveryPanelLocked);
     boardRead.mockReturnValue(new Error("Too many documents read"));

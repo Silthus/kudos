@@ -2,8 +2,8 @@ import { screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
 import { fixedRecentKudos, recentKudosFixtures } from "./recentKudosFixtures";
-import type { RecentKudosRead } from "./recentKudosRead";
-import { shellFixtures, type KudosGiven, type MyRecentKudos, type Person, type RecentKudos } from "./shell";
+import type { RecentKudosRead, RecentKudosShown } from "./recentKudosRead";
+import { shellFixtures, type KudosGiven, type Person, type RecentKudos } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
 
@@ -24,7 +24,7 @@ function homeWith(read: RecentKudosRead) {
   return renderApp(shellFixtures.memberWithEveryPanelOpen, undefined, undefined, fixedQuests(questsFixtures.week), undefined, undefined, read);
 }
 
-function homeAnswering(received: MyRecentKudos | undefined, given: MyRecentKudos | undefined = threeGiven) {
+function homeAnswering(received: RecentKudosShown | undefined, given: RecentKudosShown | undefined = threeGiven) {
   return homeWith(fixedRecentKudos({ received, given }));
 }
 
@@ -117,6 +117,34 @@ describe("WS206: its frame", () => {
     await user.keyboard("{ArrowLeft}");
     expect(switchOption("Received")).toBeChecked();
     expect(headlinesOf()[0]).toBe("Ada Lindqvist thanked you");
+  });
+
+  it("moves between Received and Given with the up and down arrows too, wrapping at either end", async () => {
+    const { user } = homeAnswering(threeReceived);
+    switchOption("Received").focus();
+
+    await user.keyboard("{ArrowDown}");
+    expect(switchOption("Given")).toBeChecked();
+    expect(switchOption("Given")).toHaveFocus();
+
+    await user.keyboard("{ArrowDown}");
+    expect(switchOption("Received")).toBeChecked();
+    expect(switchOption("Received")).toHaveFocus();
+
+    await user.keyboard("{ArrowUp}");
+    expect(switchOption("Given")).toBeChecked();
+    expect(headlinesOf()[0]).toBe("You thanked Cleo Marchetti");
+  });
+
+  it("marks the selected option with a check as well as its colour", async () => {
+    const { user } = homeAnswering(threeReceived);
+    expect(switchOption("Received").querySelector("[data-selected-mark]")).not.toBeNull();
+    expect(switchOption("Given").querySelector("[data-selected-mark]")).toBeNull();
+
+    await user.click(switchOption("Given"));
+
+    expect(switchOption("Given").querySelector("[data-selected-mark]")).not.toBeNull();
+    expect(switchOption("Received").querySelector("[data-selected-mark]")).toBeNull();
   });
 
   it("keeps Given selected when it is clicked again", async () => {
@@ -231,6 +259,14 @@ describe("WS201: the card shows only while the read answers it", () => {
     ["not answered yet", undefined],
   ])("renders nothing and leaves no gap while %s", (_, answer) => {
     homeAnswering(answer);
+
+    expect(queryCard()).not.toBeInTheDocument();
+    expect(panel("What teammates see").nextElementSibling).toBe(panel("Quests this week"));
+  });
+
+  it("goes away once the read fails, even after it showed rows", async () => {
+    const { user } = homeAnswering(threeReceived, { kind: "broken" });
+    await user.click(switchOption("Given"));
 
     expect(queryCard()).not.toBeInTheDocument();
     expect(panel("What teammates see").nextElementSibling).toBe(panel("Quests this week"));

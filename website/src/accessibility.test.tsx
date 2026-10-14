@@ -182,12 +182,13 @@ describe("WS111 WS112: every state of the home's rail passes axe in light and da
   }
 });
 
-const recentKudosStates: { name: string; received: MyRecentKudos; given: MyRecentKudos; choose?: "Given" }[] = [
-  { name: "received, with an edited message and words from before HedgeHug kept them", received: recentKudosFixtures.threeReceived, given: recentKudosFixtures.threeGiven },
-  { name: "given, to one, two and five teammates", received: recentKudosFixtures.threeReceived, given: recentKudosFixtures.threeGiven, choose: "Given" },
-  { name: "empty, received", received: recentKudosFixtures.nothingYet, given: recentKudosFixtures.nothingYet },
-  { name: "empty, given", received: recentKudosFixtures.nothingYet, given: recentKudosFixtures.nothingYet, choose: "Given" },
-  { name: "with a deleted and a removed message", received: recentKudosFixtures.unavailableWords, given: recentKudosFixtures.nothingYet },
+const recentKudosStates: { name: string; received: MyRecentKudos | undefined; given: MyRecentKudos | undefined; choose?: "Given"; shows: string }[] = [
+  { name: "received, with an edited message and words from before HedgeHug kept them", received: recentKudosFixtures.threeReceived, given: recentKudosFixtures.threeGiven, shows: "Edited" },
+  { name: "given, to one, two and five teammates", received: recentKudosFixtures.threeReceived, given: recentKudosFixtures.threeGiven, choose: "Given", shows: "and 3 others" },
+  { name: "empty, received", received: recentKudosFixtures.nothingYet, given: recentKudosFixtures.nothingYet, shows: "Kudos you receive show here." },
+  { name: "empty, given", received: recentKudosFixtures.nothingYet, given: recentKudosFixtures.nothingYet, choose: "Given", shows: "Kudos you give show here" },
+  { name: "with a deleted and a removed message", received: recentKudosFixtures.unavailableWords, given: recentKudosFixtures.nothingYet, shows: "This message was deleted in Slack." },
+  { name: "keeping the received rows while Given loads", received: recentKudosFixtures.threeReceived, given: undefined, choose: "Given", shows: "Ada Lindqvist thanked you" },
 ];
 
 describe("WS223: every state of the Recent kudos card passes axe in light and dark", () => {
@@ -198,6 +199,7 @@ describe("WS223: every state of the Recent kudos card passes axe in light and da
         window.history.replaceState(null, "", "/");
         const { user, container, getByRole } = renderApp(shellFixtures.memberWithEveryPanelOpen, undefined, undefined, fixedQuests(questsFixtures.week), undefined, undefined, fixedRecentKudos(state));
         if (state.choose !== undefined) await user.click(getByRole("radio", { name: state.choose }));
+        expect(getByRole("region", { name: "Recent kudos" })).toHaveTextContent(state.shows);
         expect(await violationsIn(container, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
       });
     }

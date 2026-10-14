@@ -4,4 +4,6 @@ import type { MyRecentKudos } from "./shell";
 
 export type Direction = FunctionArgs<typeof api.website.activity.getRecentKudos>["direction"];
 
-export type RecentKudosRead = (direction: Direction) => MyRecentKudos | undefined;
+export type RecentKudosShown = MyRecentKudos | { kind: "broken" };
+
+export type RecentKudosRead = (direction: Direction) => RecentKudosShown | undefined;
