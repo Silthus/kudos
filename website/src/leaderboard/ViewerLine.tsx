@@ -8,7 +8,7 @@ export const joinWords: Record<Period, string> = {
   all: "Give kudos to join the board.",
 };
 
-export const leftWords = "You're not on the leaderboards. You can change that in Settings in Slack.";
+export const leftWords = `You're off the board by choice. Switch on "Show me on the leaderboards" to come back.`;
 
 export function viewerLineOf(board: Leaderboard) {
   if (board.standing.kind === "left") return <p className={line}>{leftWords}</p>;

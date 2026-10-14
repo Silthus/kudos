@@ -17,7 +17,23 @@ const authActions = { signIn: vi.fn(), signOut: vi.fn() };
 const openFeatureCall = vi.fn();
 const buyPerkCall = vi.fn();
 const socket = { isWebSocketConnected: true };
+const sessionToken = { current: "the-session-jwt" as string | null };
+const sentOverHttp = vi.fn();
 const auth = { isLoading: false, isAuthenticated: true };
+
+vi.mock("convex/browser", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("convex/browser")>()),
+  ConvexHttpClient: class {
+    private token: string | undefined;
+    constructor(private readonly address: string) {}
+    setAuth(token: string) {
+      this.token = token;
+    }
+    mutation(mutation: FunctionReference<"mutation">, args: unknown) {
+      return sentOverHttp({ address: this.address, token: this.token, mutation: getFunctionName(mutation), args });
+    }
+  },
+}));
 
 vi.mock("convex/react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("convex/react")>()),
@@ -40,6 +56,7 @@ const watchedQueries: string[] = [];
 const subscriptions = new Set<{ query: string; args: unknown }>();
 
 const boardWatch = {
+  url: "https://happy-hog-123.convex.cloud",
   watchQuery: (query: FunctionReference<"query">, args: unknown) => {
     watchedQueries.push(getFunctionName(query));
     return {
@@ -64,6 +81,7 @@ const boardWatch = {
 vi.mock("@convex-dev/auth/react", () => ({
   ConvexAuthProvider: ({ children }: { children: ReactNode }) => <ConvexProvider client={boardWatch}>{children}</ConvexProvider>,
   useAuthActions: () => authActions,
+  useAuthToken: () => sessionToken.current,
 }));
 
 function renderLiveSite() {
@@ -95,6 +113,7 @@ afterEach(() => {
   authActions.signOut.mockReset();
   openFeatureCall.mockReset();
   buyPerkCall.mockReset();
+  sentOverHttp.mockReset();
 });
 
 describe("WS20 WS24: the live site shows the error page when a call fails, with focus on its title after a state change", () => {
@@ -422,5 +441,22 @@ describe("WS66: an open the server never answers ends the wait", () => {
 
     expect(openFeatureCall).toHaveBeenNthCalledWith(2, { feature: "leaderboard" });
     expect(screen.getByRole("dialog")).toHaveAccessibleName("Level 3 unlock");
+  });
+});
+
+describe("WS321: the visibility switch never sends again by itself", () => {
+  it("sends its one call over HTTP with the session's token, never through the socket's queue, which replays an unanswered mutation after a reconnect", async () => {
+    window.history.replaceState(null, "", "/leaderboard");
+    profileRead.mockReturnValue(shellFixtures.memberWithTheBoard);
+    boardRead.mockReturnValue(leaderboardFixtures.midBoard);
+    sentOverHttp.mockResolvedValue({ kind: "set", visible: false });
+    const { user } = renderLiveSite();
+
+    await user.click(await screen.findByRole("switch", { name: "Show me on the leaderboards" }));
+
+    expect(sentOverHttp).toHaveBeenCalledExactlyOnceWith({ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/commands:setBoardVisibility", args: { visible: false } });
+    expect(openFeatureCall).not.toHaveBeenCalled();
+    boardAnswers(leaderboardFixtures.left);
+    expect(await screen.findByText("You're off the leaderboards.")).toBeInTheDocument();
   });
 });

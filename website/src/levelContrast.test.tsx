@@ -166,3 +166,52 @@ describe("WS333 WS339 V24: the rosettes and the Next rings meet 3:1 against thei
     });
   }
 });
+
+const darkModeRule = ":is(.dark,[theme=dark]) ";
+
+function quillBackgroundToken(selector: string, inDarkMode: boolean) {
+  const escaped = (inDarkMode ? darkModeRule + selector : selector).replace(/[.[\]():,]/g, (character) => `\\${character}`);
+  const rule = new RegExp(`(?<=\\})${escaped}\\{[^}]*?background-color:var\\(--([\\w-]+)\\)`).exec(quillPrimitives);
+  return rule?.[1];
+}
+
+function quillSwitchPaint(mode: Mode, state: "checked" | "unchecked", part: "" | " .quill-switch__thumb") {
+  const selector = `.quill-switch[data-${state}]${part}`;
+  const token = (mode === "dark" ? quillBackgroundToken(selector, true) : undefined) ?? quillBackgroundToken(selector, false) ?? (part === "" ? undefined : quillBackgroundToken(".quill-switch__thumb", false));
+  if (token === undefined) throw new Error(`${selector} sets no background token in ${mode}`);
+  return token;
+}
+
+function switchedOffPaints() {
+  window.history.replaceState(null, "", "/leaderboard");
+  renderApp(shellFixtures.memberWithTheBoard, fixedLeaderboard(leaderboardFixtures.left));
+  const visibility = within(screen.getByRole("region", { name: "How it counts" })).getByRole("switch", { name: "Show me on the leaderboards" });
+  const paint = (pattern: RegExp) => {
+    const tokens = [...visibility.classList].flatMap((name) => pattern.exec(name)?.[1] ?? []);
+    expect(tokens).toHaveLength(1);
+    return tokens[0]!;
+  };
+  return { outline: paint(/^data-\[unchecked\]:border-((?:muted-)?foreground)$/), thumb: paint(/^data-\[unchecked\]:\[&_\[data-slot=switch-thumb\]\]:bg-((?:muted-)?foreground)$/), focus: paint(/^focus-visible:outline-((?:muted-)?foreground)$/) };
+}
+
+describe("WS339 V24: the visibility switch shows its position at 3:1 in both modes", () => {
+  beforeEach(() => {
+    fakeSystemTheme(false);
+  });
+
+  for (const mode of ["light", "dark"] as const) {
+    it(`in ${mode}`, () => {
+      const switchedOff = switchedOffPaints();
+      const offTrack = quillSwitchPaint(mode, "unchecked", "");
+      const onTrack = quillSwitchPaint(mode, "checked", "");
+      const measured = [
+        { part: "the switched-off outline on the card", ratio: contrast(mode, switchedOff.outline, "card") },
+        { part: "the switched-off thumb on its track", ratio: contrast(mode, switchedOff.thumb, offTrack) },
+        { part: "the focus outline on the card", ratio: contrast(mode, switchedOff.focus, "card") },
+        { part: "the switched-on track on the card", ratio: contrast(mode, onTrack, "card") },
+        { part: "the switched-on thumb on its track", ratio: contrast(mode, quillSwitchPaint(mode, "checked", " .quill-switch__thumb"), onTrack) },
+      ];
+      expect(measured.filter(({ ratio }) => ratio < 3)).toEqual([]);
+    });
+  }
+});

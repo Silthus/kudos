@@ -183,7 +183,7 @@ describe("WS110: Where you stand", () => {
 
   it.each([
     ["isn't ranked", leaderboardFixtures.notRanked, "Give kudos this week to join the board."],
-    ["left the boards", leaderboardFixtures.left, "You're not on the leaderboards. You can change that in Settings in Slack."],
+    ["left the boards", leaderboardFixtures.left, 'You\'re off the board by choice. Switch on "Show me on the leaderboards" to come back.'],
   ])("uses the page's own line for a viewer who %s, with no rank or faces", (_, board, line) => {
     const standing = standingOn(board);
     expect(standing).toHaveTextContent(line);
