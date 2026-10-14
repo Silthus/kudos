@@ -4,7 +4,7 @@ import { components } from "../_generated/api";
 
 type HttpHandler = (ctx: GenericActionCtx<GenericDataModel>, request: Request) => Promise<Response>;
 
-const slackPictures = ["https://avatars.slack-edge.com", "https://secure.gravatar.com", "https://a.slack-edge.com"].join(" ");
+const slackPictures = ["https://avatars.slack-edge.com", "https://secure.gravatar.com"].join(" ");
 const companyProfileImages = "https://res.cloudinary.com";
 const builtAsset = /^\/assets\/[^/]+\.[A-Za-z0-9]+$/;
 const immutable = "public, max-age=31536000, immutable";

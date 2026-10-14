@@ -13,6 +13,7 @@ import type { MemberId } from "../workspace/directory";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const minuteMs = 60_000;
+const aJoinOfTwoPagesSettles150JobsMs = 30_000;
 const saysWhy = "thanks for untangling the release notes today";
 const finishedFirstThanks = "✅ You finished a Journey step: Give a kudos that says why. You earned *10 XP*.";
 const finishedSomeoneNew = "✅ You finished a Journey step: Thank someone you haven't thanked before. You earned *30 XP*.";
@@ -199,7 +200,7 @@ describe("P91: the Journey's join stays within Convex's limits", () => {
     expect(await scheduledCount(t, "joinJourney")).toBeLessThanOrEqual(101);
     await settle(t);
     expect(await activationCount(t)).toBe(150);
-  });
+  }, aJoinOfTwoPagesSettles150JobsMs);
   test("a member's join reads within Convex's limits however many kudos they gave before the Journey shipped", async () => {
     const { t, alice, bob } = await membersBeforeTheJourney({ transactionLimits: true });
     for (let batch = 0; batch < 5; batch += 1) {
