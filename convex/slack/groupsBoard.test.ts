@@ -90,6 +90,29 @@ describe("GB13, GB14, GB17: the Groups board above the Everyone board", { timeou
     ]);
   });
 
+  test("GB33: with groups on but no group of 3 primary members, no Groups board shows and no view of it is sent", async () => {
+    const t = await groupsGave(boardsOn, { Pair: ["U_PIA", "U_POE"], Duo: ["U_DOT", "U_DAN"] }, [["U_PIA", 2]]);
+    await openHome(t, "U_PIA");
+
+    const reply = await command(t, "U_PIA", "leaderboard");
+    await click(t, "U_PIA", "Leaderboard");
+
+    expect(reply.text).toBe(["🥇 <@U_PIA> · 2 kudos", "▲ 2 more kudos than this time last week"].join("\n"));
+    expect(viewed()).toEqual([
+      ["everyone", "week", "command"],
+      ["everyone", "week", "app home"],
+    ]);
+  });
+
+  test("GB33: the command's view records the boards its reply showed, never reading the flag again", async () => {
+    const t = await twoGroupsGave(boardsOn);
+
+    await t.mutation(internal.slack.commands.recordLeaderboardViewed, { workspace: "T1", user: "U_ANN", period: "week", arrivedAt: Date.now() });
+    await settle(t);
+
+    expect(viewed()).toEqual([["everyone", "week", "command"]]);
+  });
+
   test("a group with 2 primary members isn't listed, and a viewer in it sees positions 1–3 and no line for their group", async () => {
     const t = await groupsGave(boardsOn, { Ants: ["U_A1", "U_A2", "U_A3"], Bees: ["U_B1", "U_B2", "U_B3"], Cats: ["U_C1", "U_C2", "U_C3"], Dogs: ["U_D1", "U_D2", "U_D3"], Pair: ["U_PIA", "U_POE"] }, [
       ["U_A1", 4],

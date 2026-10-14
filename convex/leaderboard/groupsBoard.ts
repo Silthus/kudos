@@ -39,7 +39,7 @@ type Scored<G extends string> = { group: G; name: string; members: number; perMe
 
 type Placed<G extends string> = Scored<G> & { position: number; rank: number; tied: boolean };
 
-const fewestMembersListed = 3;
+export const fewestMembersListed = 3;
 
 export function groupsBoard<G extends string>({ period, groups, viewerGroup, best }: GroupsBoardFacts<G>): GroupsBoard<G> {
   const listed = groups.filter(({ members }) => members >= fewestMembersListed);

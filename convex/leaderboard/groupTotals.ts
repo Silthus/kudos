@@ -2,12 +2,10 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { awardsAttributedEventValidator, type AwardsAttributedEvent } from "../bus/events";
 import type { MessageRef } from "../engine/messageEvent";
 import type { GroupId } from "../groups/groups";
-import { dayOfPeriod, keyOf, periods, type ComparedPeriod, type Period, type PeriodKey } from "./periods";
+import { dayOfPeriod, keyOf, periods, type Period, type PeriodKey } from "./periods";
 import { withKudosOn } from "./runningTotal";
 
 type AttributedToGroup = AwardsAttributedEvent & { group: GroupId };
-
-const comparedPeriods: ComparedPeriod[] = ["week", "month"];
 
 export const countAwardsAttributed = internalMutation({
   args: { event: awardsAttributedEventValidator },
@@ -15,7 +13,7 @@ export const countAwardsAttributed = internalMutation({
     if (event.group === null || (await wasCounted(ctx, event.message))) return;
     await ctx.db.insert("countedAttributions", event.message);
     for (const period of periods) await addToPeriod(ctx, { ...event, group: event.group }, period);
-    for (const period of comparedPeriods) await addToGroupPeriod(ctx, { ...event, group: event.group }, period);
+    for (const period of periods) await addToGroupPeriod(ctx, { ...event, group: event.group }, period);
   },
 });
 
@@ -30,14 +28,14 @@ async function addToPeriod(ctx: MutationCtx, { workspace, group, giver, day, kud
   else await ctx.db.patch(row._id, { kudos: row.kudos + kudos, ...runningTotal });
 }
 
-async function addToGroupPeriod(ctx: MutationCtx, { workspace, group, day, kudos }: AttributedToGroup, period: ComparedPeriod) {
+async function addToGroupPeriod(ctx: MutationCtx, { workspace, group, day, kudos }: AttributedToGroup, period: Period) {
   const key = keyOf(period, day);
   const row = await groupPeriodTotalOf(ctx, group, key);
   if (row === null) await ctx.db.insert("attributedGroupTotals", { workspace, group, period: key, kudos });
   else await ctx.db.patch(row._id, { kudos: row.kudos + kudos });
 }
 
-function groupPeriodTotalOf(ctx: QueryCtx, group: GroupId, period: PeriodKey) {
+export function groupPeriodTotalOf(ctx: QueryCtx, group: GroupId, period: PeriodKey) {
   return ctx.db
     .query("attributedGroupTotals")
     .withIndex("by_group_period", (q) => q.eq("group", group).eq("period", period))

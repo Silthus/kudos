@@ -138,6 +138,18 @@ describe("GB35: the Groups board at scale", () => {
     expect(board.groups?.improvement).toEqual({ gain: 34, places: 12 });
     expect(board.groups?.mostImproved).toMatchObject({ name: "Group 03", gain: 35 });
   }, 120_000);
+
+  test("1,500 members who each gave for 22 groups over time: the all-time board reads one total per current member within Convex's transaction limits", async () => {
+    postHog.withFlags(onForEveryone("groups"));
+    const t = await flagsLoaded(testBackend({ transactionLimits: true }));
+    const viewer = await sixtyGroupsOf(t, 1_500);
+    await eachGaveForTheirGroupAndTwentyOneFormerOnes(t);
+
+    const board = await t.run((ctx) => groupBoardsOf(ctx, "T1", viewer, "all"));
+
+    expect(board.groups?.rows).toHaveLength(60);
+    expect(board.groups?.rows.every(({ perMember, participation, kudos }) => perMember === 31 && participation === 100 && kudos === 775)).toBe(true);
+  }, 300_000);
 });
 
 type GroupsOf<N extends string, U extends string> = { groups: Record<N, GroupId>; members: Record<U, MemberId> };
@@ -214,4 +226,16 @@ async function eachGaveDailyFor(t: Backend, month: string, days: number, kudos: 
       await ctx.db.insert("attributedGroupTotals", { workspace: "T1", group, period: `month:${month}`, kudos: kudos(index) * days * membersByGroup[index]!.length });
     }
   });
+}
+
+async function eachGaveForTheirGroupAndTwentyOneFormerOnes(t: Backend) {
+  for (const [index, group] of groupIds.entries()) {
+    await t.run(async (ctx) => {
+      for (const member of membersByGroup[index]!) {
+        await ctx.db.insert("attributedTotals", { workspace: "T1", group, member, period: "all", kudos: 10 });
+        for (let former = 1; former <= 21; former += 1) await ctx.db.insert("attributedTotals", { workspace: "T1", group: groupIds[(index + former) % 60]!, member, period: "all", kudos: 1 });
+      }
+      await ctx.db.insert("attributedGroupTotals", { workspace: "T1", group, period: "all", kudos: 25 * 10 + 21 * 25 });
+    });
+  }
 }

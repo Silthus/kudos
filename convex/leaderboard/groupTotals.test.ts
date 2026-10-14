@@ -121,7 +121,7 @@ async function groupPeriodTotalsFoldedFromAttributions(t: Backend): Promise<Reco
   const folded: Record<string, number> = {};
   for (const { group, day, kudos } of attributions) {
     if (group === null) continue;
-    for (const period of ["week", "month"] as const) folded[`${group}:${keyOf(period, day)}`] = (folded[`${group}:${keyOf(period, day)}`] ?? 0) + kudos;
+    for (const period of periods) folded[`${group}:${keyOf(period, day)}`] = (folded[`${group}:${keyOf(period, day)}`] ?? 0) + kudos;
   }
   return folded;
 }

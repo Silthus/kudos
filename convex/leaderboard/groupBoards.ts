@@ -3,8 +3,9 @@ import type { Doc } from "../_generated/dataModel";
 import { internalQuery, type QueryCtx } from "../_generated/server";
 import { allowanceDay, type DayKey } from "../engine/allowance";
 import { groupsShownTo, memberGroupsOf, primaryMembersOf, type GroupId } from "../groups/groups";
-import { lookup, type MemberId } from "../workspace/directory";
-import { groupsBoard, type GroupFacts, type GroupsBoard, type Tally } from "./groupsBoard";
+import { chatUserOf, lookup, type MemberId } from "../workspace/directory";
+import { groupPeriodTotalOf } from "./groupTotals";
+import { fewestMembersListed, groupsBoard, type GroupFacts, type GroupsBoard, type Tally } from "./groupsBoard";
 import { keyOf, periodValidator, sameDayLastPeriod, type ComparedPeriod, type Period, type PeriodKey } from "./periods";
 import { totalUpTo } from "./runningTotal";
 
@@ -18,6 +19,8 @@ type KudosOf = (total: Doc<"attributedTotals">) => number;
 
 const nothing: Tally = { kudos: 0, givers: 0 };
 
+const allTime: PeriodKey = "all";
+
 export const groupsBoardOf = internalQuery({
   args: { workspace: v.string(), viewer: v.string(), period: periodValidator },
   handler: async (ctx, { workspace, viewer, period }) => (await groupBoardsOf(ctx, workspace, viewer, period)).groups,
@@ -28,11 +31,17 @@ export async function groupBoardsOf(ctx: QueryCtx, workspace: string, viewer: st
   if (person?.kind !== "member" || !(await groupsShownTo(ctx, person.member))) return { groups: null };
   const today = allowanceDay(Date.now(), person.timeZone);
   const groups = await groupsWithPrimaryMembersIn(ctx, workspace);
-  const now = await tallied(ctx, workspace, keyOf(period, today), groups, (total) => total.kudos);
+  const now = period === "all" ? await talliedAllTime(ctx, groups) : await tallied(ctx, workspace, keyOf(period, today), groups, (total) => total.kudos);
   const before = period === "all" ? new Map() : await talliedUpToTheSameDay(ctx, workspace, period, today, groups);
   const viewerGroup = (await memberGroupsOf(ctx, person.member))?.primary ?? null;
   const best = period === "all" || viewerGroup === null ? null : await bestCompletedPeriod(ctx, viewerGroup, period, today);
   return { groups: groupsBoard({ period, viewerGroup, best, groups: groups.map((group) => factsOf(group, now, before)) }) };
+}
+
+export async function groupsBoardShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  if (!(await groupsShownTo(ctx, member))) return false;
+  const groups = await groupsWithPrimaryMembersIn(ctx, (await chatUserOf(ctx, member)).workspace);
+  return groups.some(({ members }) => members.size >= fewestMembersListed);
 }
 
 async function groupsWithPrimaryMembersIn(ctx: QueryCtx, workspace: string): Promise<GroupMembers[]> {
@@ -42,6 +51,23 @@ async function groupsWithPrimaryMembersIn(ctx: QueryCtx, workspace: string): Pro
     if (members.length > 0) groups.push({ group: row._id, name: row.name, members: new Set(members) });
   }
   return groups;
+}
+
+async function talliedAllTime(ctx: QueryCtx, groups: GroupMembers[]): Promise<Tallies> {
+  const tallies: Tallies = new Map();
+  for (const { group, members } of groups) {
+    const total = await groupPeriodTotalOf(ctx, group, allTime);
+    const memberTotals = await Promise.all([...members].map((member) => memberTotalOf(ctx, member, group)));
+    tallies.set(group, { kudos: total?.kudos ?? 0, givers: memberTotals.filter((memberTotal) => (memberTotal?.kudos ?? 0) > 0).length });
+  }
+  return tallies;
+}
+
+function memberTotalOf(ctx: QueryCtx, member: MemberId, group: GroupId) {
+  return ctx.db
+    .query("attributedTotals")
+    .withIndex("by_member_group_period", (q) => q.eq("member", member).eq("group", group).eq("period", allTime))
+    .unique();
 }
 
 function talliedUpToTheSameDay(ctx: QueryCtx, workspace: string, period: ComparedPeriod, today: DayKey, groups: GroupMembers[]) {
