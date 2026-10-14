@@ -18,6 +18,8 @@ import { progressSettingsOf, type ProgressSettings } from "../progression/settin
 import { xpLevelsOnFor, xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { unlocksShownTo } from "../unlocks/launch";
 import { unlocksHomeOf, type UnlocksHome } from "../unlocks/unlocks";
+import { coinsVisibleAndExposedTo } from "../wallet/visibility";
+import { balanceOf } from "../wallet/wallet";
 import { adminsIn, chatUserOf, lookup, type MemberFacts, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { isOpened, whenOpened } from "./unlockFilter";
@@ -36,11 +38,11 @@ export type ShownTab =
 
 export type ShownHome = { tabs: HomeTab[]; shown: ShownTab };
 
-export type ToldProgression = Omit<ProgressionHome, "skillPoints"> & { skillPoints: number | null; skillTreeTab: boolean };
+export type ToldProgression = Omit<ProgressionHome, "skillPoints"> & { skillPoints: number | null; skillTreeTab: boolean; coins: number | null };
 
 export type HomeMember = Extract<MemberFacts, { kind: "member" }>;
 
-type Slices = { board: boolean; leaderboard: boolean; xp: boolean; unlocks: boolean; quests: boolean; book: boolean; skillTree: boolean; admin: boolean; sharedSettings: boolean };
+type Slices = { board: boolean; leaderboard: boolean; xp: boolean; unlocks: boolean; quests: boolean; book: boolean; skillTree: boolean; coins: boolean; admin: boolean; sharedSettings: boolean };
 
 type HomeSelection = { tab: HomeTab; period: Period };
 
@@ -118,8 +120,9 @@ async function slicesShownTo(ctx: MutationCtx, workspace: string, person: HomeMe
   const quests = await questsShownTo(ctx, person.member);
   const book = unlocks && (await achievementsShownTo(ctx, person.member)) && (await isOpened(ctx, person.member, "book"));
   const skillTree = (await skillTreeShownTo(ctx, person.member)) && (await isOpened(ctx, person.member, "skillTree"));
+  const coins = unlocks && (await coinsVisibleAndExposedTo(ctx, person.member));
   const sharedSettings = await xpLevelsShownIn(ctx, workspace);
-  return { board, leaderboard: board && (await isLeaderboardOpenTo(ctx, person.member, unlocks)), xp, unlocks, quests, book, skillTree, admin: person.admin, sharedSettings };
+  return { board, leaderboard: board && (await isLeaderboardOpenTo(ctx, person.member, unlocks)), xp, unlocks, quests, book, skillTree, coins, admin: person.admin, sharedSettings };
 }
 
 async function isLeaderboardOpenTo(ctx: QueryCtx, member: MemberId, unlocksShown: boolean) {
@@ -137,10 +140,10 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
   switch (tab) {
     case "profile":
       if (!slices.xp) return { tab, progression: null, unlocks: null, quests: null, earlierCrates: null, journey: null };
-      if (!slices.unlocks) return { tab, progression: { ...(await progressionHomeOf(ctx, viewer.member)), skillTreeTab: false }, unlocks: null, quests: null, earlierCrates: null, journey: null };
+      if (!slices.unlocks) return { tab, progression: { ...(await progressionHomeOf(ctx, viewer.member)), skillTreeTab: false, coins: null }, unlocks: null, quests: null, earlierCrates: null, journey: null };
       return {
         tab,
-        progression: await toldProgressionOf(ctx, viewer.member, slices.skillTree),
+        progression: await toldProgressionOf(ctx, viewer.member, slices),
         unlocks: await unlocksHomeOf(ctx, viewer.member),
         quests: slices.quests ? await openedQuestsOf(ctx, viewer.member) : null,
         earlierCrates: slices.quests ? await openedEarlierCratesOf(ctx, viewer.member) : null,
@@ -172,10 +175,11 @@ async function openedEarlierCratesOf(ctx: MutationCtx, member: MemberId) {
   return (await isOpened(ctx, member, "quests")) ? unopenedCratesOf(ctx, member, Date.now()) : null;
 }
 
-async function toldProgressionOf(ctx: QueryCtx, member: MemberId, skillTreeTab: boolean): Promise<ToldProgression> {
+async function toldProgressionOf(ctx: QueryCtx, member: MemberId, { skillTree: skillTreeTab, coins }: Slices): Promise<ToldProgression> {
   const progression = await progressionHomeOf(ctx, member);
   const nothingToBuy = skillTreeTab && ownsEveryPerk(await memberPerksOf(ctx, member));
-  return { ...progression, skillPoints: nothingToBuy ? null : await whenOpened(ctx, member, "skillTree", progression.skillPoints), skillTreeTab };
+  const skillPoints = nothingToBuy ? null : await whenOpened(ctx, member, "skillTree", progression.skillPoints);
+  return { ...progression, skillPoints, skillTreeTab, coins: coins ? await balanceOf(ctx, member) : null };
 }
 
 function roleOf(person: MemberFacts) {

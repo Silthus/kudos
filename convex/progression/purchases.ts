@@ -9,6 +9,8 @@ export const refusalValidator = v.union(
   v.literal("below-row"),
   v.literal("needs-prerequisite"),
   v.literal("no-skill-points"),
+  v.literal("coins-not-open"),
+  v.literal("no-coins"),
 );
 
 export type Refusal = Infer<typeof refusalValidator>;

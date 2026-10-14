@@ -79,8 +79,8 @@ describe("P81: once a week, a member swaps one unfinished quest for a feasible q
       slot: 1,
       quest: "say-why-two-days",
       goal: twoDays,
-      reward: { xp: 20, coins: 0, item: null },
-      catalogueVersion: "1",
+      reward: { xp: 20, coins: 10, item: null },
+      catalogueVersion: "2",
       feasibleBecause: { peopleLeft: 1, recognitionsLeft: 2, daysLeft: 2 },
       progress: 0,
       target: 2,
@@ -102,7 +102,7 @@ describe("P81: once a week, a member swaps one unfinished quest for a feasible q
     vi.setSystemTime(sunday);
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
 
-    expect(await rewardRecordsOf(t)).toEqual(expect.arrayContaining([{ key: "weekly:2026-10-12:1", xp: 20, catalogueVersion: "1" }]));
+    expect(await rewardRecordsOf(t)).toEqual(expect.arrayContaining([{ key: "weekly:2026-10-12:1", xp: 20, coins: 10, catalogueVersion: "2" }]));
     expect(questDmsTo("U_ALICE").map(({ text }) => text)).toContain(`✅ You finished a quest: ${twoDays} You earned *20 XP*.`);
     expect(questsIn(publishedHome(slack, "U_ALICE"))[2]).toBe(`section: ✅ ${twoDays} You earned *20 XP*. [button: Open]`);
   });
@@ -118,8 +118,8 @@ describe("P81: once a week, a member swaps one unfinished quest for a feasible q
 
     expect(await rewardRecordsOf(t)).toEqual(
       expect.arrayContaining([
-        { key: "weekly:2026-10-12:0", xp: 25, catalogueVersion: "0" },
-        { key: "weekly:2026-10-12:1", xp: 20, catalogueVersion: "1" },
+        { key: "weekly:2026-10-12:0", xp: 25, coins: 0, catalogueVersion: "0" },
+        { key: "weekly:2026-10-12:1", xp: 20, coins: 10, catalogueVersion: "2" },
       ]),
     );
   });
@@ -270,7 +270,7 @@ async function questState(t: Backend) {
 }
 
 async function rewardRecordsOf(t: Backend) {
-  return t.run(async (ctx) => (await ctx.db.query("rewardRecords").collect()).filter(({ key }) => key.startsWith("weekly:")).map(({ key, xp, catalogueVersion }) => ({ key, xp, catalogueVersion })));
+  return t.run(async (ctx) => (await ctx.db.query("rewardRecords").collect()).filter(({ key }) => key.startsWith("weekly:")).map(({ key, xp, coins, catalogueVersion }) => ({ key, xp, coins, catalogueVersion })));
 }
 
 function questDmsTo(user: string): Array<{ text?: unknown }> {
