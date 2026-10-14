@@ -1,9 +1,11 @@
 import { v, type Infer } from "convex/values";
 import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { publish } from "../bus/publish";
+import type { Annotations } from "../engine/messageEvent";
 import { stateOf, type UnlockState } from "../unlocks/unlocks";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { catalogue } from "./catalogue";
+import { gateDecisionOf } from "./gate";
 import { spendSkillPoints, standingOf } from "./progression";
 import { ownedPerksOf, skillTreeAppliesIn, type OwnedPerk } from "./skillTree";
 import { perkOf, perkValidator, type Perk, type PerkId } from "./tree";
@@ -30,6 +32,20 @@ export type PurchaseOutcome = Infer<typeof purchaseOutcomeValidator>;
 export type PerkState = "buyable" | Refusal;
 
 export type MemberPerks = { skillPoints: number; owned: OwnedPerk[]; perks: Array<Perk & { state: PerkState; boughtAt: number | null }> };
+
+export async function couldEarnMoreBySayingWhy(ctx: QueryCtx, member: MemberId, annotations: Annotations): Promise<boolean> {
+  if (gateDecisionOf(annotations)?.thoughtful !== false) return false;
+  const { workspace } = await chatUserOf(ctx, member);
+  return (await skillTreeAppliesIn(ctx, workspace)) && (await ownsAPerk(ctx, member));
+}
+
+async function ownsAPerk(ctx: QueryCtx, member: MemberId) {
+  const owned = await ctx.db
+    .query("perksOwned")
+    .withIndex("by_member_perk", (q) => q.eq("member", member))
+    .first();
+  return owned !== null;
+}
 
 export async function buyPerk(ctx: MutationCtx, member: MemberId, perk: PerkId, idempotencyKey: string): Promise<PurchaseOutcome | null> {
   const { workspace } = await chatUserOf(ctx, member);
