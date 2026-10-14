@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, answersWith, flagsKey, postHogHost, projectToken, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { flagsLoaded, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { flagsFromPostHog, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { blockActions, buttonIn, type Block } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { everythingStored, post, settle, settleUntil, testBackend, type Backend } from "../../testing/slackBackend";
@@ -174,8 +174,7 @@ describe("O10: never sent", () => {
   test("no PostHog request carries the message, a name, a Slack or Convex ID, an emoji name or a time zone", async () => {
     const team = "T0QUOKKAWS";
     vi.stubEnv("POSTHOG_PERSONAL_API_KEY", flagsKey);
-    postHog.withFlags(...["xp-levels", "unlocks", "quests"].map(onForEveryone));
-    const t = await unlocksShippedBeforeAnyoneJoined(await flagsLoaded(testBackend()), team);
+    const t = await unlocksShippedBeforeAnyoneJoined(await flagsFromPostHog(testBackend(), postHog, ...["xp-levels", "unlocks", "quests"].map(onForEveryone)), team);
     const channel = "C0MARMALADE";
     const people = { giver: "U0ZEPHYRINE", recipient: "U0BARNABY77" };
     slack = new FakeSlack()
@@ -220,6 +219,9 @@ describe("O10: never sent", () => {
         "level reached",
         "unlock made ready",
         "unlock opened",
+        "journey step activated",
+        "quest drawn",
+        "quest finished",
         "attempt failed",
         "app home opened",
         "command used",
