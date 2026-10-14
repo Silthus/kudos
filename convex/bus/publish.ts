@@ -28,6 +28,7 @@ export const subscribers: Registry = {
     { subscriber: internal.quests.weekly.drawWeeklyQuests, only: ({ feature, byLaunch }) => byLaunch !== true && feature === "quests" },
     { subscriber: internal.quests.journey.activateJourney, only: ({ feature, byLaunch }) => byLaunch !== true && journeyStepOpenedBy(feature) !== null },
     { subscriber: internal.feedback.tierNotices.tellOpeningSummary, only: ({ feature, byLaunch }) => byLaunch !== true && feature === "book" },
+    { subscriber: internal.feedback.coins.tellCoinsOpened, only: ({ feature, byLaunch }) => byLaunch !== true && feature === "coins" },
   ],
   unlocksLaunched: [internal.analytics.subscribers.recordUnlocksLaunched],
   questFinished: [

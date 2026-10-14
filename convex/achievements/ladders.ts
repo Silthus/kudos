@@ -28,11 +28,15 @@ export type TierRef = Infer<typeof tierRefValidator>;
 
 export type Tier = { tier: TierId; name: string; count: number; rewards: PromisedReward[] };
 
+export type CoinReward = { reward: string; coins: number };
+
 export type Ladder = { ladder: LadderId; name: string; counts: string; countsOne: string; tiers: Tier[] };
 
 type FourTiers<T> = [T, T, T, T];
 
 const kudosCounts: FourTiers<number> = [1, 25, 100, 500];
+
+const coinsOfTier: Partial<Record<TierId, number>> = { bronze: 10, diamond: 100 };
 
 export const ladders = {
   version: "1",
@@ -104,6 +108,14 @@ export function tierNameOf(ref: TierRef) {
 export function countsOf(ladder: LadderId, count: number): string {
   const { counts, countsOne } = ladderOf(ladder);
   return count === 1 ? countsOne : counts;
+}
+
+export function coinsPaidBy(tier: TierId): number {
+  return coinsOfTier[tier] ?? 0;
+}
+
+export function coinRewardsOf({ tier, rewards }: Pick<Tier, "tier" | "rewards">): CoinReward[] {
+  return rewards.filter(({ kind }) => kind === "coins").map(({ reward }) => ({ reward, coins: coinsPaidBy(tier) }));
 }
 
 function tiersOf(ladder: LadderId, [bronze, silver, gold, diamond]: FourTiers<string>, counts: FourTiers<number>): Tier[] {

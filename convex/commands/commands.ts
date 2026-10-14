@@ -85,7 +85,7 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
     }
     case "buyPerk": {
       const outcome = await buyPerk(ctx, member, command.perk, idempotencyKey);
-      await showHomeTab(ctx, workspace, person, "skillTree");
+      if (outcome !== null) await showHomeTab(ctx, workspace, person, "skillTree");
       return outcome;
     }
     case "pickPrimaryGroup": {

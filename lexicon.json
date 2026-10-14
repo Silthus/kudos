@@ -552,6 +552,14 @@
       "definition": "The private line right after the Everyone board's improvement line, for this week and this month, telling a viewer whose gain is above 0 and larger than more than half of the other current primary members of their group (at least 3 of them) that they improved more than a share of it, rounded down to a multiple of 10 (GB16)."
     },
     {
+      "name": "wallet",
+      "definition": "A member's coins: the coins on their effects and reward records minus what they spent, kept as a cached balance that never goes below 0, never expires and can't be moved to anyone else (CO9-CO12, ADR-0003). Only the wallet module writes the balance and the insert-only spend records."
+    },
+    {
+      "name": "upgrade",
+      "definition": "A perk that replaces a perk the member owns with a stronger line, costing skill points and coins: it requires the perk it upgrades, and once owned its line is paid instead of its base's."
+    },
+    {
       "name": "category",
       "definition": "One of the Book's four groups of achievement ladders (Giving, Being thanked, Connections, Crowd), each with its own page, name, blurb and hedgehog emblem; the website keys every ladder to one."
     },
