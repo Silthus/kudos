@@ -35,11 +35,11 @@ The audit put twelve questions to the product owner. Each is taken at its recomm
 | **C3** Sign-in | Restore E's standalone card with the hand-clasp hedgehog, the full-width button and the landing hint. The copy names only what every member has. | WS309 | Keep the current BrandSays page. |
 | **C4** Retained game features | The round-9 kept list stands: coins, gear, hedgehog avatars, groups and boards, profile medals, sticker albums and tier rewards are dependencies, not cuts. | WS340–WS347 | Close the cross-map tickets for whichever the product owner cuts. |
 | **C5** Home shape | Restore E's open hero, the first-kudos nudge and the hero's `Spend skill points`, beside #237's panels. The hero keeps #236's invitation, because E's nudge says the same thing. | WS311–WS313 | Drop WS311–WS313's ticket. |
-| **C6** Quests | Restore quest hedgehogs, `Claim` and the claimed card. The group quest's helper row shows names only if map #1's read supplies them: P82's "counts, never names" stands until the product owner decides. | WS314–WS316, WS344 | Drop the art and keep `Open`; or let map #1 supply helper names. |
+| **C6** Quests | Restore quest hedgehogs, `Claim` and the claimed card. The group quest's helper row stays anonymous: P82's "counts, never names" stands until the product owner changes it in words. | WS314–WS316, WS344 | Drop the art and keep `Open`; or let map #1 supply helper names. |
 | **C7** Board controls | Restore `Show 5 more` now. Rank-change arrows wait for a map #1 read of last week's rank (WS344). | WS320 | Keep the whole board only. |
 | **C8** Writes | Swap and leaderboard visibility get web commands through D17, like Slack's. Equip and Buy follow the same rule when their facts ship. | WS318, WS321, WS335 | Keep both in Slack and drop those two tickets. |
-| **C9** Skill tree | Restore the owned count, the page's resource chips, the legend, compact nodes and the primary `Can buy` border. Perk copy stays P94's, word for word, never E's mock effects. Later rows wait for their facts (WS345). | WS326–WS330 | Keep slice 4's wide neutral nodes. |
-| **C10** Book | Restore the page index, categories, overview totals, the closest next tier, the recently earned shelf, rosettes and the primary `Next` cell. Paper styling is for the albums only; achievement cards stay plain Quill cards (V2). Named album gaps wait for #54's read and stay a question for the product owner. | WS331–WS334, WS346 | Keep slice 4's flat list; drop WS334. |
+| **C9** Skill tree | Restore the owned count, the page's resource chips, the legend, compact nodes and a strong `Can buy` outline (in the foreground colour, because D2 keeps primary for one next action). Perk copy stays P94's, word for word, never E's mock effects. Later rows wait for their facts (WS345). | WS326–WS330 | Keep slice 4's wide neutral nodes. |
+| **C10** Book | Restore the page index, categories, overview totals, the closest next tier, the recently earned shelf, rosettes and the ringed `Next` cell (neutral, per D2). Paper styling is for the albums only; achievement cards stay plain Quill cards (V2). Named album gaps wait for #54's read and stay a question for the product owner. | WS331–WS334, WS346 | Keep slice 4's flat list; drop WS334. |
 | **C11** Moments | Keep delivering in stages. The standalone moment pages return as their facts ship: the hedgehog reveal with hedgehogs, the achievement page with tier rewards. Level-up, kudos and App Home tour pages are fog until map #1 plans their facts. Motion stays one-off, never looping (D1). | WS325, WS339 | Replace the moment pages with `/activity` and `/quests` for good. |
 | **C12** Prototype tooling | The level scrubber, the variant picker, the moment picker and the fake sign-in footer stay out of production. | WS338 | none |
 
@@ -54,25 +54,25 @@ Each audit group, its verdict and its ticket. **Now** builds on `main`. **After 
 | F2 | Command palette | **Now.** | WS305–WS308 | 3 |
 | F3 | Sign-in card and title sizes; the hero's open shape | **Now**; the hero part after #238. | WS309–WS313 | 4, 5 |
 | F4 | Equipped hedgehog avatar | **Cross-map** (#96) | WS340 | 16 |
-| F5 | Character panel and slot picker | **Cross-map** (#31, #96) | WS341 | 17 |
-| F6 | Inventory, equipment and prices | **Cross-map** (#30, #31) | WS341 | 17 |
-| F7 | Hedgehog shelf | **Cross-map** (#96) | WS342 | 18 |
-| F8 | Public card's group and medals | **Cross-map** (#53, #52) | WS343 | 19 |
-| F9 | Quest art, `Claim`, quest links; Swap on the web | **Now.** Coin, emoji and hedgehog rewards are cross-map (WS341, WS342). | WS314–WS316, WS318, WS319 | 6, 7 |
-| F10 | Group quest | **Cross-map** (#52) | WS344 | 21 |
+| F5 | Character panel and slot picker | **Cross-map** (#31, #96) | WS341 | 18 |
+| F6 | Inventory, equipment and prices | **Cross-map** (#30, #31) | WS341 | 17, 19 |
+| F7 | Hedgehog shelf | **Cross-map** (#96) | WS342 | 20, 21 |
+| F8 | Public card's group and medals | **Cross-map** (#53, #52) | WS343 | 22 |
+| F9 | Quest art, `Claim`, quest links; Swap on the web | **Now.** Coin, emoji and hedgehog rewards are cross-map (WS348). | WS314–WS316, WS318, WS319, WS348 | 6, 7, 31 |
+| F10 | Group quest | **Cross-map** (#52) | WS344 | 25 |
 | F11 | Fresh-unlock bonus quest | **Now**: map #1's progression call 2 made the Journey the bonus quest chain, and its facts are on `main`. | WS317 | 8 |
-| F12 | Group boards and full home standings | **Cross-map** (#52) | WS344 | 20 |
+| F12 | Group boards and full home standings | **Cross-map** (#52) | WS344 | 23, 24 |
 | F13 | `Show 5 more` and the visibility switch | **Now** | WS320–WS322 | 9, 10 |
 | F14 | Compact perk tree and legend | **After #193** | WS326–WS330 | 12 |
-| F15 | Later perk rows, upgrades and the ledger | **Cross-map** (#30, #39) | WS345 | 22 |
+| F15 | Later perk rows, upgrades and the ledger | **Cross-map** (#30, #39) | WS345 | 26, 27 |
 | F16 | Book index and categories | **After #193** | WS331, WS332 | 13 |
-| F17 | Ladder details and overview; tier rewards | **After #193**; rewards cross-map (#30, #31, #96) | WS333, WS334, WS347 | 14, 15, 24 |
-| F18 | Sticker albums | **Cross-map** (#54) | WS346 | 23 |
-| F19 | Routed locked and ready pages, the richer reveal | **Now** | WS323–WS325 | 11 |
+| F17 | Ladder details and overview; tier rewards | **After #193**; rewards cross-map (#30, #31, #96) | WS333, WS334, WS347 | 14, 15, 30 |
+| F18 | Sticker albums | **Cross-map** (#54) | WS346 | 28, 29 |
+| F19 | Routed locked and ready pages, the richer reveal | **Now**. The standalone unlock page (E303) is fog. | WS323–WS325 | 11 |
 | F20 | Level-up band page | **Fog**: no planned read | — | — |
-| F21 | Achievement earned page | **Cross-map** (tier rewards) | WS347 | 24 |
+| F21 | Achievement earned page | **Cross-map** (tier rewards) | WS347 | 30 |
 | F22 | Received-kudos and quest pages | **Fog**: no planned event read; `/activity` and `/quests` serve meanwhile | — | — |
-| F23 | New-hedgehog reveal | **Cross-map** (#96) | WS342 | 18 |
+| F23 | New-hedgehog reveal | **Cross-map** (#96) | WS342 | 21 |
 | F24 | App Home tour page | **Fog**: needs a map #1 link | — | — |
 
 **Coming elsewhere, not repeated here:** the panels in place (#237), the right rail (#238), the recent-kudos card, `/activity` and the spotlight (#248–#251), and the skill tree and the Book themselves (#193). Where this spec reaches into their files, Slices names it.
@@ -116,7 +116,8 @@ Rules continue the activity slice's numbering, from `WS300`.
 ### The HUD (F1, C1)
 
 - **WS300. The header never overflows.** At every viewport width from 320 px, with every nav entry the member can have, the ready pill, the chips, the avatar, the theme control and `Sign out`, the document's `scrollWidth` equals the viewport width.
-  - Below `lg`, the nav is its own row under the bar: a horizontal scroll rail (`overflow-x-auto`) that never wraps, with its entries in one line. The bar above it keeps the wordmark and the controls in one line.
+  - Below `lg`, the nav is its own row under the bar: a horizontal scroll rail (`overflow-x-auto`) that never wraps, with its entries in one line.
+  - Below `sm`, the bar itself is compact: the wordmark shows the logo alone (the name stays its accessible name), the theme control is one button that cycles light, dark and system with its current choice in its name, and the chips show their glyph and number only. If the controls still don't fit beside the logo, they wrap to a second row of the bar, right-aligned; nothing is clipped or hidden.
   - On load, the rail scrolls the current entry into view without animation.
   - The rail is not a focus trap: Tab moves through its entries in order, and each focused entry scrolls into view.
   - This fixes the defect the audit measured (422 px at 390 px with five pages open), which `spec/website-4`'s two new entries cause.
@@ -161,7 +162,11 @@ Rules continue the activity slice's numbering, from `WS300`.
   - while a deep link waits (WS37, #157's `redirectTo`), `You'll land on {path} afterwards.`, with the path in a code style. Only a path in the website's route list is shown; anything else shows no hint.
 
   The closed page, the error pages and the not-a-member page keep their BrandSays layout. E's "Prototype: no real sign-in happens." never ships (WS338).
-- **WS310. Display titles.** The page titles of `/leaderboard`, `/quests`, and, once they are on `main`, `/skills`, `/book` and `/activity` use E's display size: the RoundHog class E's `Quests.tsx` puts on its `h1`, with the same responsive clamp. `PageTitle` takes the size as one option, so every page sets it the same way.
+- **WS310. Display titles.** Page titles take variant E's display sizes, in RoundHog bold:
+  - `/quests`, and once they are on `main`, `/skills`, `/book` and `/activity`: E's `text-4xl` with `leading-none` (`Quests.tsx` and `Skills.tsx`, line 31 and 67);
+  - `/leaderboard`'s headline: E's `clamp(1.75rem, 5vw, 3rem)` with a 0.95 line height and balanced wrapping (`Leaderboard.tsx`, line 66).
+
+  `PageTitle` takes the size as one option, so every page sets it the same way. Ticket 4 sets it for the pages on `main`; #193 and #249 set it for theirs (Slices).
 
 ### The home's shape (F3, C5)
 
@@ -172,31 +177,38 @@ Rules continue the activity slice's numbering, from `WS300`.
 ### Quests (F9, F11, C6, C8)
 
 - **WS314. Quest art.** Each personal quest card on `/quests` carries a 64 px hedgehog for its kind, from E's quest catalogue (`quests-data.ts`): one hoggie per kind label (`Say why`, `Reach out`, `Join in`), keyed in the website. It is decorative (empty title). Once the quest's crate is opened, the hedgehog turns greyscale with a check badge, and the card is muted, with its text still at 4.5:1 (E182, V24).
-- **WS315. `Claim`.** A finished quest's crate action reads `Claim` (E181). It opens the crate through the existing full-screen reveal (D4, WS74). The first finished quest in slot order has the primary `Claim`; any others are outline. An opened quest shows a check and `Claimed`. Earlier weeks' crates (`waiting`) read `Claim` too. This changes WS73's `Open` and its `Done`. The ready pill is unchanged (WS68).
+- **WS315. `Claim`.** A finished quest's crate action reads `Claim` (E181). It opens the crate through the existing full-screen reveal (D4, WS74). The first finished quest in slot order has the primary `Claim`; any others are outline. An opened quest shows a check and `Claimed`. Earlier weeks' crates (`waiting`) read `Claim` too. This changes WS73's `Open` and its `Done`. The ready pill is unchanged (WS68). When the reveal closes after a `Claim`, the reward's chip (`+{xp} XP`) flies once from the card to the HUD avatar, as E's `flyToHud` does (E184); never under reduced motion, and never on a reload.
 - **WS316. Quest links.** `/quests?quest={slot}` (`1` to `3`) or `/quests?quest=journey` scrolls that card into view and moves focus to its heading, once, after the answer lands (E194). An unknown value is ignored. `routeAt` keeps the parameter, and `routeList` is unchanged because the path is the same. Slack may link to it later (Cross-map needs).
 - **WS317. The bonus quest is the Journey's next step.** Map #1's progression call 2 made the prototype's "bonus quest for each freshly unlocked feature" and the Journey one chain. So `/quests` shows, after the personal quests, a section `Bonus quest` with the Journey's first unfinished step as E's fresh-quest card:
   - a `New` tag while the step is `active`, the step's goal and hint (WS71), its reward `{xp} XP`;
   - a link to the page of the feature the step belongs to, when that feature has one and is open (`Go to {name}`). The step's feature comes from Quests' own mapping, `featureOpening(step)` in `convex/quests/step.ts`, composed into the Journey's steps as an additive `feature` field, never derived in the browser (WS13);
   - while the step is `finished`, its crate with `Claim` (WS315).
 
-  With every step opened, the section is absent. The home's Journey panel is unchanged (WS72).
-- **WS318. `swapQuest` is D17's `rerollQuest`.** `swapQuest({ quest, request })` in `convex/website/commands.ts` is built on `memberMutation` (WS61), following WS335:
-  - `quest` is validated by Quests' `weeklyQuestValidator`; `request` is a UUID the browser makes.
-  - **The gate first.** It answers `{ kind: "refused" }` without calling D17 unless Quests is open for the member and the quests launch is recorded, the gate `openQuestCrate` already uses (`questsLaunchedFor`).
-  - **The command.** `runCommand(ctx, workspace, person, { type: "rerollQuest", quest }, "website:{member}:{request}")`. It answers `{ kind: "swapped" }` when, afterwards, this week's swap replaced exactly that slot, and `{ kind: "refused" }` otherwise. After `swapped` it republishes App Home.
-  - Quests alone decides whether the swap may happen (one per week, unfinished slot, a replacement exists). The website writes no table itself.
-- **WS319. Swap on the page.** `getQuests`' `quests` answer gains `swapAvailable: boolean`, from Quests' `weeklyQuestsOf` (on `main`).
-  - **The header** adds `1 swap left this week` or `Swap used this week` with the swap icon (E176), only while the week has slots.
-  - **Each in-progress card,** while `swapAvailable`, has a muted link-style `Swap` button titled `Swap this quest for another. One swap a week.` One press swaps, as in E and in Slack's App Home.
-  - **Sending** reads `Swapping…`, disabled, until the answer. **`swapped`:** the reactive read shows the new quest with its `Swapped` tag; a polite live region says `Swapped. Your new quest: {goal}.`; focus moves to the new card's heading. **`refused`:** `That quest couldn't be swapped.` **A denial:** the frame follows `getMyProfile` (WS11). **An error:** `Couldn't reach HedgeHug. Try again.`, and a retry sends the same `request`, dropped after any definite answer, on sign-out and when the member changes (WS87's pending-pair rule).
+  With every step opened, the section is absent. The home's Journey panel is unchanged (WS72). The home's `Quests this week` (#238, WS109) gains the same step as its last row, with E's `New` tag, linking to `/quests?quest=journey` (E076).
+- **WS318. `swapQuest` is D17's `rerollQuest`.** `swapQuest({ quest })` in `convex/website/commands.ts` is built on `memberMutation` (WS61), following WS335:
+  - `quest` is a whole weekly quest, `{ kind: "weekly", week, slot }`, validated by Quests' `weeklyQuestValidator`. The browser takes it from the read (WS319), never builds it.
+  - **The gate first.** It answers `{ kind: "refused" }` without calling D17 unless Quests is open for the member and the quests launch is recorded: the gate `openQuestCrate` already uses (`questsLaunchedFor`).
+  - **The command.** `runCommand(ctx, workspace, person, { type: "rerollQuest", quest }, "website:swapQuest:{member}:{week}:{slot}")`. D17 ignores the key for this command, so the key only labels the call. It answers `{ kind: "swapped" }` when, afterwards, the week's swap replaced exactly that slot, and `{ kind: "refused" }` otherwise. After `swapped` it republishes App Home.
+  - **Retries are safe by state, with no request ID.** Quests allows one swap a week, so a repeated call for the same slot finds the swap already there and answers `swapped`, and a call for another slot answers `refused`. Quests alone decides whether the swap may happen (one per week, an unfinished slot, a replacement exists). The website writes no table itself.
+- **WS319. Swap on the page.** `getQuests`' `quests` answer gains two additive facts, both from Quests' `weeklyQuestsOf` and `drawnWeekOf` (on `main`):
+  - each slot gains `quest: WeeklyQuest`, its whole identity, so an unfinished slot can be swapped (today only a finished slot carries its `crate`);
+  - the answer gains `swap: { used: boolean; available: boolean }`: `used` while this week's swap exists, and `available` exactly as `weeklyQuestsOf`'s `swapAvailable`.
+
+  The page then shows:
+  - **The header,** while the week has slots: `1 swap left this week` while `available`, `Swap used this week` while `used`, and nothing otherwise (every slot finished, or no replacement to offer), with the swap icon (E176).
+  - **Each in-progress card,** while `available`, a muted link-style `Swap` button titled `Swap this quest for another. One swap a week.` One press swaps, as in E and in Slack's App Home.
+  - **Sending** reads `Swapping…`, disabled, until the answer. **`swapped`:** the reactive read shows the new quest with its `Swapped` tag; a polite live region says `Swapped. Your new quest: {goal}.`; focus moves to the new card's heading. **`refused`:** `That quest couldn't be swapped.` **A denial:** the frame follows `getMyProfile` (WS11). **An error or no answer:** `Couldn't reach HedgeHug. Try again.`, and pressing `Swap` again sends the same quest, which is safe (WS318).
   - **`How quests work`** drops "swap in Slack" and says `You can swap one quest a week.`
 
 ### The leaderboard (F13, C7, C8)
 
 - **WS320. Show 5 more.** This changes WS43's "no show 5 more stepping". The windowed list gains `Show {n} more above` over the window while rows above it are hidden, and `Show {n} more below` under it while rows below are hidden, with `n` the smaller of 5 and the hidden rows on that side. Each press grows the window in place from `rows`, and focus moves to the first revealed row. The gap marker updates. `Show the whole board`, `Jump to me` and `Back to my spot` are unchanged; `Back to my spot` also restores the first window.
 - **WS321. The visibility switch.** `How it counts` replaces WS46's read-only status with a Quill switch, `Show me on the leaderboards`, checked from the read's `onTheBoards`.
-  - **The command:** `setBoardVisibility({ visible, request })` in `convex/website/commands.ts`, on `memberMutation`, following WS335. Its gate: the Leaderboard page is open for the member (WS52) and every launch is recorded (`launchesRecordedFor`, as `openFeature`). Then `runCommand(..., { type: "setLeaderboardVisibility", visible }, "website:{member}:{request}")`, answering `{ kind: "set", visible }` from the stored setting afterwards, or `{ kind: "refused" }` at the gate. It republishes App Home after a change.
-  - **The switch** is disabled while the call is pending, and its final position always follows the reactive `onTheBoards`. A polite live region says `You're on the leaderboards.` or `You're off the leaderboards.` after a change, or `Couldn't reach HedgeHug. Try again.` after an error.
+  - **The command:** `setBoardVisibility({ visible })` in `convex/website/commands.ts`, on `memberMutation`, following WS335.
+    - **Its gate:** the Leaderboard is open for the member by `leaderboardStateOf`, which also covers the board while unlocks don't apply; no workspace launch is due (`workspaceLaunchDueIn`); and while quests apply to the member, their Journey has started (`journeyStartedFor`). So the call and App Home's republish after it can't record the P77 launch or the P91 join. It refuses with `{ kind: "refused" }` before D17 otherwise.
+    - **Then** `runCommand(..., { type: "setLeaderboardVisibility", visible }, "website:setBoardVisibility:{member}")`, which D17 ignores for this command. It answers `{ kind: "set", visible }` with the setting stored afterwards, and republishes App Home after a change.
+    - **Retries:** setting a value is idempotent, so the same call twice leaves one change. The browser never resends by itself: after an error, only the member's next toggle sends again, with the value the member then chose, so a stale retry can't overwrite a newer change from another tab.
+  - **The switch** is disabled while the call is pending, and its position always follows the reactive `onTheBoards`, never the value sent. A polite live region says `You're on the leaderboards.` or `You're off the leaderboards.` after `set`; `That couldn't be changed.` after `refused`; and `Couldn't reach HedgeHug. Try again.` after an error. A denial follows `getMyProfile` (WS11).
   - **Copy:** the `left` line on the board becomes E's `You're off the board by choice. Switch on "Show me on the leaderboards" to come back.`, and the mention of Settings in Slack goes from the page.
 - **WS322. How it counts names what never ranks.** `Only kudos given count. Kudos received, XP, levels and achievements never rank anyone.` once the Book is on `main`, and `coins` joins the list when coins ship (E165).
 
@@ -214,7 +226,7 @@ Rules continue the activity slice's numbering, from `WS300`.
 
 - **WS326. The header.** Under `Perks`, the line `{owned} of {total} perks owned`, with `total` the perks in `getSkillTree`'s answer, never E's 14. Beside it, E's resource chips: skill points to spend and `LV {n}`. The coins chip joins when coins ship. This changes WS85's and WS94's "no counts".
 - **WS327. The legend.** Above the tree, `Owned`, `Can buy` and `Locked`, each with its node look in small. `Upgraded` joins when upgrades ship (WS345).
-- **WS328. Compact nodes.** Each perk is E's compact square node with its icon, a check badge when owned, a lock badge when unavailable, the name as a caption under it, and its cost as E's pill with the skill point glyph. An available node has a primary border. This changes WS94's neutral available node: in a tree, buying is the next action (V4). Selection keeps its ring and `Selected` text, and every state stays readable without colour (V24).
+- **WS328. Compact nodes.** Each perk is E's compact square node with its icon, a check badge when owned, a lock badge when unavailable, the name as a caption under it, and its cost as E's pill with the skill point glyph. An available node has E's strong outline, drawn in the foreground colour, not primary: several nodes can be available at once, and the product owner's accepted D2 keeps primary for the one next action, the selection or "you" (V4). Primary stays on the selection's ring and on `Buy` (WS87). Every state stays readable without colour (V24).
 - **WS329. Your perks.** The ledger's heading adds `{n} active`, and the panel adds `Permanent · always on.`
 - **WS330. A one-off purchase pop.** After `bought` (WS87), the bought node pops once, as E's purchase does. Never under reduced motion. The rest of WS87 is unchanged.
 
@@ -227,13 +239,13 @@ Rules continue the activity slice's numbering, from `WS300`.
   - the latest earned tier's date beside the ladder's name (E249);
   - under the bar, `{at − count} to go for {tier name}`, from the read's numbers only. E's full sentence with a unit waits for a unit fact (Cross-map needs);
   - after the fourth tier, `Complete` and a full bar (E252);
-  - the `Next` tier cell with a primary ring (E257). This changes WS92's neutral `Next`.
+  - the `Next` tier cell with E's ring in the foreground colour and its neutral `Next` tag. Every incomplete ladder has a `Next` cell, so primary would mark many things at once, which D2 rules out (V4). This deviates from E257 on the product owner's own D2.
 
   Rewards on tiers wait for their kinds (WS91, WS347).
 - **WS334. The overview.** `/book` opens on E's overview. This changes WS92's single list and the "no totals" reading of P61 for the member's own Book. It shows only the member's own facts (WS93):
   - `{earned} of {total} tiers earned` across the shipped ladders, with a neutral bar;
   - the closest next tier: the ladder with the smallest `at − count`, ties in catalogue order, with its emblem, the tier's name and `{at − count} to go`;
-  - the recently earned shelf: up to four latest earned tiers by `earnedAt`, each with its medal, name and date, and `New` when earned in the last 7 days;
+  - the recently earned shelf, `Newest first`: the latest earned tier of each ladder, newest first, five on wide screens and three on narrow ones, each with its medal, name and date; the newest carries `New` when it was earned in the last 7 days (E's `TrophyShelf`);
   - one tile per category with E's art, its emblem, `{earned} of {total}` and a neutral bar;
   - E's book-reading hedgehog.
 
@@ -243,8 +255,15 @@ Rules continue the activity slice's numbering, from `WS300`.
 
 - **WS335. Every web write is a D17 command.** `openFeature`, `openQuestCrate`, `buyPerk`, `swapQuest`, `setBoardVisibility`, and later `equip` and `buy` (WS341, WS342) all follow WS61–WS64 and WS88:
   - built on `memberMutation`, so a denied call writes nothing, and no argument names a member;
-  - **a gate before D17** that answers `refused` unless the feature's page is open for the member and every launch it could touch is recorded. A website call never runs the P77 launch or the P91 join, the way #189's `buyPerk` refuses;
-  - one `runCommand` with the key `website:{member}:{request}` from a browser UUID, unless the command is idempotent by state, like `openFeature` (WS63);
+  - **a gate before D17, per command,** that answers `refused` unless the command's own condition holds and no workspace launch it could touch is due. A website call never records the P77 launch or a workspace's Journey launch and never schedules the P91 join, the way #189's `buyPerk` refuses. The conditions:
+    - `openFeature`: the feature is `ready` (WS62);
+    - `openQuestCrate`: the quest's reward is recorded, which can happen before Quests opens for a Journey step (WS71, WS74);
+    - `buyPerk`: the Skill tree is open (WS88);
+    - `swapQuest`: Quests is open (WS318);
+    - `setBoardVisibility`: the Leaderboard is open, including while unlocks don't apply (WS321);
+    - later `equip` and `buy`: the feature that holds the item is open (WS341, WS342);
+  - `memberMutation`'s own admission is unchanged: it may run the member's own preview moments (#204, map #1's per-member flags spec), which it already skips while a workspace launch is due. Those are the member's preview, not a workspace launch;
+  - one `runCommand`. Where D17 stores outcomes by key (`buyPerk`), the key is `website:{member}:{request}` from a browser UUID (WS88). Where it doesn't (`openUnlock`, `openQuestCrate`, `rerollQuest`, `setLeaderboardVisibility`), the command must be safe to repeat by state, and its retry rule says so (WS63, WS318, WS321);
   - an answer read from the domain's state afterwards, never guessed;
   - App Home's republish after a change, and the exposure Slack's click sends (O36);
   - WS10's exact list grows by each command, and a test compares the tables and events the website's call leaves with those Slack's click leaves (WS64).
@@ -269,10 +288,12 @@ Each rule names what the website needs from map #1. The website composes it; it 
 - **WS341. The character panel and the inventory (F5, F6).** Once the inventory, kudos emoji and coins ship (#30, #31), the home's main slot holds E's two-sided `Character · 4 slots` and `Inventory` panel: the portrait with the hedgehog slot and three emoji slots, the centre-stage picker, the owned items, `Not yours yet` with how to earn each, and prices in coins. The coins chip joins the HUD. **Needs:** a read of the member's owned and equipped items with their slots and the coin balance; the commands to equip and take off an item and to buy one with an idempotency key; the catalogue's names, art keys, sources and prices. Equip and Buy follow WS335. A purchase is never a crate (V13).
 - **WS342. The hedgehog shelf and its reveal (F7, F23).** Once hedgehogs ship (#96), `/collection` shows E's shelf: every hedgehog with its art and source, owned or silhouetted, `Equip` for an owned one, `Buy for {n} coins` for a store one, and E's new-hedgehog reveal once per new hedgehog. **Needs:** the catalogue with sources, the member's owned hedgehogs with the time each arrived, and the commands of WS341. `/collection` joins `routeList`.
 - **WS343. The public card's group and medals (F8).** Once the profile card and groups ship (#53, #52), `What teammates see` adds the member's primary group and their best four tier medals, exactly as teammates see them in Slack (E057, E070, E071). **Needs:** the profile card read for a member, as Slack shows it, never another member's private Book.
-- **WS344. Groups on the website (F10, F12).** Once groups ship (#52): the Groups and My group board cards with their stories and crests on `/leaderboard`, the My group and Groups rows in `Where you stand`, the private most-improved-group card, and the group quest on `/quests` and the home. Rank-change arrows join when a read carries last week's rank (C7). The group quest shows counts, never names, unless map #1's read supplies helper names (P82, C6). **Needs:** the group boards' ranked rows, the viewer's group and standing, last week's ranks, and the group quest's progress and reward.
+- **WS344. Groups on the website (F10, F12).** Once groups ship (#52): the Groups and My group board cards with their stories and crests on `/leaderboard`, the My group and Groups rows in `Where you stand`, the private most-improved-group card, and the group quest on `/quests` and the home. Rank-change arrows join when a read carries last week's rank (C7). The group quest shows counts, never names (P82). Helper names and E's helper row appear only after the product owner changes P82 in words (C6); a read that supplies names is not enough. **Needs:** the group boards' ranked rows, the viewer's group and standing, last week's ranks, and the group quest's progress and reward.
 - **WS345. The rest of the skill tree (F15).** Once the row-7 upgrades and the rest of the tree ship (#30, #39): rows 7, 9 and 12, the upgrade connectors, the replaced base's caption, the upgrade-aware ledger, coin costs, `Upgraded` in the legend, and `Switch on for today` for focus and spotlight. **Needs:** every row's perks in `perksOf` with upgrade links and coin costs, and the switch-on command, following WS335.
 - **WS346. The sticker albums (F18).** Once the sticker book ships (#54): the albums in the Book's index, mine first; E's numbered two-page spreads on paper; the mapped team photo from the company source or the no-photo state (D5: no uploads); collected and missing stickers; `Complete` with its date; and the privacy line. Named gaps (E277) wait for the product owner's answer to C10. **Needs:** each album's roster, the member's stickers with their facts, completion with its date, and the team-photo mapping.
 - **WS347. Tier rewards and the achievement page (F17 rewards, F21).** Once tier reward kinds ship (#30, #31, #96): each tier's reward line on the Book and in the reveal, the recently earned shelf's rewards, and E's achievement-earned page reached from the tier DM. **Needs:** each tier's stored reward in `achievementsOf`, and the earned-tier event for the page and its seen key.
+
+- **WS348. Quest rewards beyond XP (E179, E180, E301).** Once coins, kudos emoji or hedgehogs ship as quest and Journey rewards (#30, #31, #96), each quest card, the bonus quest, the home's quest rows and the crate's label show the reward's coin glyph and value, emoji glyph or hedgehog art and name, and the reveal's end state shows one chip per reward kind, after the server answers `opened` (WS66). A reward kind shows only while its feature has shipped for the member. **Needs:** each quest's and Journey step's recorded reward with its kinds in `questsOf` and the Journey's facts, as the crate already records them (P85).
 
 ## Implementation Decisions
 
@@ -290,26 +311,27 @@ Each rule names what the website needs from map #1. The website composes it; it 
   - `skills/` and `book/` from ship #193 (WS326–WS334).
 - **Convex (`convex/website/`):**
   - `commands.ts` gains `swapQuest` and `setBoardVisibility` (WS318, WS321). WS10's list and its test grow by both.
-  - `quests.ts`: `getQuests` gains `swapAvailable` and the Journey step's `feature` (WS317, WS319), both additive.
+  - `quests.ts`: `getQuests` gains each slot's `quest` and the week's `swap`, and the Journey's steps gain `feature` (WS317, WS319), all additive.
   - No other module changes. Every domain fact comes from map #1's existing exports: `weeklyQuestsOf` and the Journey's step-to-feature mapping in `convex/quests/`, `rerollQuest` and `setLeaderboardVisibility` through D17's `runCommand`.
 
 ### Contracts
 
 ```ts
 // convex/website/quests.ts (additive)
-type QuestsAnswer = /* as today */ | { kind: "quests"; slots: QuestSlot[]; waiting: WaitingCrate[]; chatUrl: string; swapAvailable: boolean };
+type QuestSlot = /* as today */ & { quest: WeeklyQuest };
+type QuestsAnswer = /* … */ | { kind: "quests"; /* as today */ swap: { used: boolean; available: boolean } };
 type JourneyStep = /* as today */ & { feature: Feature | null };
 
 // convex/website/commands.ts (new)
-swapQuest({ quest: WeeklyQuest, request: string }): { kind: "swapped" } | { kind: "refused" } | Denial;
-setBoardVisibility({ visible: boolean, request: string }): { kind: "set"; visible: boolean } | { kind: "refused" } | Denial;
+swapQuest({ quest: WeeklyQuest }): { kind: "swapped" } | { kind: "refused" } | Denial;
+setBoardVisibility({ visible: boolean }): { kind: "set"; visible: boolean } | { kind: "refused" } | Denial;
 ```
 
 `getMyProfile`, `getLeaderboard`, `getSkillTree` and `getBook` don't change.
 
 ### Data
 
-There is no new table, field or migration. The browser stores nothing new: the pending request of each write lives in the page's memory (WS87's rule).
+There is no new table, field or migration. The browser stores nothing new.
 
 ### The flags
 
@@ -345,20 +367,20 @@ Each ticket rewrites its part of `website/Website.spec.md` and `convex/website/W
 
 ## Slices
 
-Each ticket is a sub-issue of map #57 and its own pull request from `main` (WS336). Casting: UI and commands on Opus 5.5 (high), reviewed by GPT-6.1 Sol (high); tickets 2, 3, 13 and 15 also get a Fable 5.1 design spot check. The order puts the most visible gaps first.
+Each ticket is a sub-issue of map #57 and its own pull request from `main` (WS336). Casting: UI and commands on Opus 5.5 (high), reviewed by GPT-6.1 Sol (high); tickets 2, 3, 13, 15, 18, 21 and 29 also get a Fable 5.1 design spot check. The order puts the most visible gaps first.
 
 **Now, on `main`:**
-1. **The header fits a phone** (WS300). The overflow defect alone: the rail, its classes, and the browser width proof. Blocked by nothing.
-2. **The HUD nav, as in variant E** (WS301–WS304). Blocked by 1.
+1. **The header fits a phone** (WS300). The overflow defect alone: the rail, the compact bar, its classes, and the browser width proof. Blocked by nothing.
+2. **The HUD nav, as in variant E** (WS301–WS304), with `navEntriesOf`. Blocked by 1.
 3. **The command palette** (WS305–WS308). Blocked by 2.
-4. **The sign-in card and display titles** (WS309, WS310). Blocked by nothing.
-5. **The open hero, the first-kudos nudge and spending points** (WS311–WS313). Blocked by #238, the last open home ticket; its spend link also needs #193's `skillPoints`.
-6. **Quest art, `Claim` and quest links** (WS314–WS316). Blocked by nothing.
+4. **The sign-in card and display titles** (WS309, WS310) for the pages on `main`. Blocked by nothing.
+5. **The open hero, the first-kudos nudge and spending points** (WS311–WS313). Blocked by #238, the last open home ticket, and by #193 for `skillPoints`.
+6. **Quest art, `Claim`, the reward flight and quest links** (WS314–WS316). Blocked by nothing.
 7. **Swap on the website** (WS318, WS319). Blocked by 6.
-8. **The Journey's next step as the bonus quest** (WS317). Blocked by 6.
+8. **The Journey's next step as the bonus quest**, on `/quests` and in the home's quest rows (WS317). Blocked by 6 and #238.
 9. **Show 5 more on the board** (WS320). Blocked by nothing.
 10. **Show me on the leaderboards, on the web** (WS321, WS322). Blocked by nothing.
-11. **The locked and ready pages and the richer reveal** (WS323–WS325). Blocked by nothing.
+11. **The locked and ready pages and the richer reveal** (WS323–WS325). Blocked by 2, for `navEntriesOf`.
 
 **After ship #193:**
 12. **The compact skill tree** (WS326–WS330). Blocked by #193.
@@ -366,21 +388,28 @@ Each ticket is a sub-issue of map #57 and its own pull request from `main` (WS33
 14. **Ladder details** (WS333). Blocked by #193.
 15. **The Book's overview** (WS334). Blocked by 13 and 14.
 
-**Cross-map, after map #1 ships the facts** (each blocked in text by the map #1 ticket, never natively, so map #1's tickets are untouched):
+**Cross-map, after map #1 ships the facts.** Each is blocked in text by the map #1 ticket, never natively, so map #1's tickets are untouched, and natively by the website tickets it builds on. Each starts only once its facts are on `main`.
 16. **The hedgehog avatar** (WS340). After #96.
-17. **The character panel and the inventory** (WS341). After #30 and #31; the hedgehog slot after 16.
-18. **The hedgehog shelf and its reveal** (WS342). After #96; blocked by 16.
-19. **The public card's group and medals** (WS343). After #53 and #52.
-20. **Group boards and full standings** (WS344). After #52.
-21. **The group quest** (WS344). After #52; blocked by 6.
-22. **The rest of the skill tree** (WS345). After #30 and #39; blocked by 12.
-23. **The sticker albums** (WS346). After #54; blocked by 13.
-24. **Tier rewards and the achievement page** (WS347). After #30, #31 and #96; blocked by 14.
+17. **The inventory, read only, and the coins chip** (WS341). After #30 and #31.
+18. **The character panel and equipping** (WS341). After #31; blocked by 17, and its hedgehog slot by 16.
+19. **Buying kudos emoji in the inventory** (WS341). After #31; blocked by 17.
+20. **The hedgehog shelf, read only** (WS342). After #96; blocked by 16.
+21. **Equipping and buying on the shelf, and the new-hedgehog reveal** (WS342). After #96; blocked by 18, 19 and 20.
+22. **The public card's group and medals** (WS343). After #53 and #52.
+23. **Group boards on the leaderboard** (WS344). After #52.
+24. **Group rows in `Where you stand`** (WS344). After #52; blocked by 23 and #238.
+25. **The group quest** (WS344). After #52; blocked by 6.
+26. **The later perk rows and upgrades** (WS345). After #30 and #39; blocked by 12.
+27. **The upgrade-aware ledger and `Switch on for today`** (WS345). After #39; blocked by 26.
+28. **The sticker albums' index and read** (WS346). After #54; blocked by 13.
+29. **Album spreads, team photos and completion** (WS346). After #54; blocked by 28.
+30. **Tier rewards and the achievement page** (WS347). After #30, #31 and #96; blocked by 14.
+31. **Quest rewards beyond XP** (WS348). After #30, #31 or #96, for whichever reward kind ships; blocked by 6.
 
 **Extra scope for open tickets** (the conductor adds it, or the ticket that lands second does it):
 - **#238:** the `Quests this week` row of a finished quest reads `Claim` (E074) and links to `/quests?quest={slot}` (WS315, WS316); the `left` line's Settings sentence follows WS321.
-- **#249:** WS302 renames the screen nav's `Home` to `Profile`; the Activity tab's page title takes WS310's size.
-- **#193:** when it merges `main`, it keeps WS300's rail with its two new entries and WS301's states for `/skills` and `/book`.
+- **#249:** WS302 renames the screen nav's `Home` to `Profile`; `/activity`'s title takes WS310's size.
+- **#193:** when it merges `main`, it keeps WS300's rail with its two new entries and WS301's states for `/skills` and `/book`, and gives `/skills` and `/book` WS310's title size.
 
 There is no sandbox proof ticket and no integration branch: each ticket proves itself locally and then live (WS336). The conductor decides whether a `ship` ticket is needed.
 
@@ -389,22 +418,24 @@ There is no sandbox proof ticket and no integration branch: each ticket proves i
 This map never edits map #1's tickets. The conductor relays these.
 
 **Facts the published tickets wait for** (each planned by a map #1 spec ticket):
-1. **Hedgehogs (#96):** each member's equipped hedgehog (catalogue ID and name) in `homeFacts` and the board's viewer row; the hedgehog catalogue with sources; the member's owned hedgehogs with arrival times; `equip` and `buy` commands through D17 with an idempotency key the website can supply as `website:{member}:{request}`. Tickets 16, 18.
-2. **Coins, kudos emoji and the store (#30, #31):** the coin balance; the owned and equipped items with their slots; the catalogue's names, art keys, sources and prices; `equip`, `takeOff` and `buy` through D17. Ticket 17.
-3. **The profile card (#53) and groups (#52):** the profile card read as Slack shows it (group, best four tiers); the group boards' ranked rows, the viewer's group and standing; the group quest's progress, reward and, only if P82 changes, helper names. Tickets 19, 20, 21.
+1. **Hedgehogs (#96):** each member's equipped hedgehog (catalogue ID and name) in `homeFacts` and the board's viewer row; the hedgehog catalogue with sources; the member's owned hedgehogs with arrival times; `equip` and `buy` commands through D17, with `buy` storing its outcome by an idempotency key the website can supply as `website:{member}:{request}`, as `buyPerk` does. Tickets 16, 20, 21.
+2. **Coins, kudos emoji and the store (#30, #31):** the coin balance; the owned and equipped items with their slots; the catalogue's names, art keys, sources and prices; `equip`, `takeOff` and `buy` through D17, `buy` keyed as above. Tickets 17–19.
+3. **The profile card (#53) and groups (#52):** the profile card read as Slack shows it (group, best four tiers); the group boards' ranked rows, the viewer's group and standing; the group quest's progress and reward, as counts. Tickets 22–25.
 4. **Last week's rank** for rank-change arrows on boards and in `Where you stand` (C7). Not planned yet: an addition to #52 or the Everyone board.
-5. **The rest of the tree (#30 row 7, #39):** every row's perks in `perksOf`, with upgrade links and coin costs, and the switch-on command. Ticket 22.
-6. **The sticker book (#54):** each album's roster, the member's stickers with their facts, completion with its date, and the team-photo mapping. Ticket 23.
-7. **Tier rewards (#30, #31, #96):** each tier's stored reward in `achievementsOf`, and the earned-tier event with a seen key. Ticket 24.
+5. **The rest of the tree (#30 row 7, #39):** every row's perks in `perksOf`, with upgrade links and coin costs, and the switch-on command. Tickets 26, 27.
+6. **The sticker book (#54):** each album's roster, the member's stickers with their facts, completion with its date, and the team-photo mapping. Tickets 28, 29.
+7. **Tier rewards (#30, #31, #96):** each tier's stored reward in `achievementsOf`, and the earned-tier event with a seen key. Ticket 30.
+8. **Quest reward kinds:** each quest's and Journey step's recorded reward with its kinds, in `questsOf` and the Journey's facts. Ticket 31.
 
 **Notes for map #1** (no website ticket waits on them):
-8. **P61:** the website's own Book now shows the member's own totals, closest next tier and recently earned shelf (WS334, C10). Received totals stay private, and nothing names another member.
-9. **A unit for each ladder,** so the Book can say E's full requirement sentence (`3 more thoughtful kudos`) instead of `3 to go` (WS333).
-10. **Quest links:** Slack may link a quest to `/quests?quest={slot}` or `?quest=journey` (WS316). The path is already on `routeList`.
+9. **P61:** the website's own Book now shows the member's own totals, closest next tier and recently earned shelf (WS334, C10). Received totals stay private, and nothing names another member.
+10. **A unit for each ladder,** so the Book can say E's full requirement sentence (`3 more thoughtful kudos`) instead of `3 to go` (WS333).
+11. **Quest links:** Slack may link a quest to `/quests?quest={slot}` or `?quest=journey` (WS316). The path is already on `routeList`.
 
 **Fog** (no planned map #1 facts; the conductor keeps these on #57):
 - **F20, the level-up page:** needs a read of one level-up (level, time, XP, what opened) with a seen key, and the level-up DM linking to it.
 - **F22, the received-kudos and quest pages:** needs a read of one kudos event with its gains and an event link from Slack. `/activity` and `/quests` serve meanwhile (C11).
+- **E303, the standalone unlock page:** needs the level-up DM's and App Home's `Open` to link a feature's unlock page instead of the profile.
 - **F24, the App Home tour page:** needs App Home's first-open link to a tour route. Today's link goes straight to the profile.
 - **HUD event tray (E304):** live notifications for level-ups, tiers and kudos in the HUD, beyond crates. Needs the same event reads.
 - **F0:** description and social metadata, a product choice, not a gap.
@@ -429,6 +460,23 @@ This map never edits map #1's tickets. The conductor relays these.
 9. **The Book's overview shows totals** (C10) for the member's own Book only. Achievement cards stay plain Quill cards; paper is for the albums.
 10. **Moment pages arrive with their facts** (C11). Their fog entries are listed above.
 11. **No new flag, one pull request per ticket from `main`** (WS336, WS337).
-12. **The overflow defect is ticket 1 on `main`**, though it only shows with `spec/website-4`'s two extra pages. The rail is right for any number of entries, and #193 keeps it when it merges `main`.
+12. **Two places stay neutral where E used primary:** the skill tree's available nodes and the Book's `Next` cells. Several of each show at once, and the product owner's accepted D2 keeps primary for one next action, the selection or "you". Both keep E's ring or outline in the foreground colour.
+13. **The overflow defect is ticket 1 on `main`**, though it only shows with `spec/website-4`'s two extra pages. The rail is right for any number of entries, and #193 keeps it when it merges `main`.
+
+**Review.** GPT-6.1 Sol (high), read-only. Round 1 made 15 findings (1 blocker, 12 major, 2 minor). 14 are fixed in this revision:
+- Each web command now has its own gate (WS335): `openFeature` needs `ready`, `openQuestCrate` a recorded reward, the rest their open page.
+- Swap gets each slot's whole `quest` and `swap: { used, available }`, so an unfinished slot can be swapped and `Swap used this week` is true only when it is (WS318, WS319).
+- The visibility switch's gate covers the board while unlocks don't apply, and refuses while a workspace launch is due (WS321).
+- D17 ignores keys for `rerollQuest` and `setLeaderboardVisibility`, so neither takes a request ID. Swap is safe by state; the switch never resends by itself (WS318, WS321, WS335).
+- The group quest never shows helper names until the product owner changes P82 in words (WS344).
+- E076 (the bonus row on the home), E184 (the reward flight) and E303 (the unlock page, now fog) have owners.
+- Quest rewards beyond XP have their own rule and ticket (WS348, ticket 31).
+- Available nodes and `Next` cells stay neutral under D2 (WS328, WS333).
+- Ticket 11 waits for ticket 2, and the shelf's actions wait for the inventory's commands. The cross-map tickets are split into read, equip and buy steps (Slices).
+- The bar fits 320 px: a compact bar below `sm` that may wrap (WS300).
+- The trophy shelf is E's: the latest tier per ladder, five or three (WS334).
+- The title sizes are E's real ones (WS310).
+
+Rejected, with reason: the blocker that `memberMutation`'s admission writes before the command's gate. It runs only the member's own preview moments, which #204 shipped on purpose under map #1's per-member flags spec, and it already skips them while a workspace launch is due. WS335 now says so.
 
 The `to-spec` and `to-tickets` skills can only be started by a human, so this spec follows the earlier slices' layout instead.
