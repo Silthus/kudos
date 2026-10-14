@@ -89,6 +89,7 @@ export default defineSchema({
     name: v.string(),
     enabled: v.boolean(),
     automatic: v.boolean(),
+    members: v.optional(v.number()),
     asOf: v.number(),
     membersAsOf: v.optional(v.number()),
   }).index("by_group", ["workspace", "group"]),
@@ -118,12 +119,6 @@ export default defineSchema({
     cause: primaryGroupCauseValidator,
     at: v.number(),
   }).index("by_member_at", ["member", "at"]),
-
-  groupSizes: defineTable({
-    workspace: v.string(),
-    group: v.id("userGroups"),
-    members: v.number(),
-  }).index("by_group", ["group"]),
 
   kudosMessages: defineTable({
     workspace: v.string(),

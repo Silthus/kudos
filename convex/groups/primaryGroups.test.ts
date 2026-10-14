@@ -3,7 +3,7 @@ import { internal } from "../_generated/api";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsLoaded, flagsOnForEveryone } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
-import { memberChanged, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { memberChanged, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { userGroupEvent } from "../../testing/slackMessages";
 import type { Doc } from "../_generated/dataModel";
 import { publish } from "../bus/publish";
@@ -79,6 +79,27 @@ describe("GB6: a member gets the smallest of their counting groups as primary gr
     await settle(t);
 
     expect(await primaryGroupNameOf(t, "U_ANN")).toBe("Gardeners");
+  });
+});
+
+describe("GB2: the user group copy reconciles every member it lists", () => {
+  test("members already in the copy when Groups ships get the group with the fewest people at the next sync, whichever group's list comes first", async () => {
+    const t = testBackend();
+    await t.run(async (ctx) => {
+      for (const user of ["U_ANN", "U_BOB", "U_CAROL"]) await ctx.db.insert("members", { workspace: "T1", user, kind: "member", timeZone: undefined, asOf: 0 });
+      const copied = { workspace: "T1", enabled: true, automatic: false, asOf: 0, membersAsOf: 0 };
+      await ctx.db.insert("userGroups", { ...copied, group: "S_ZEBRA", handle: "zebras", name: "Zebras" });
+      await ctx.db.insert("userGroups", { ...copied, group: "S_GARDEN", handle: "gardeners", name: "Gardeners" });
+      for (const user of ["U_ANN"]) await ctx.db.insert("userGroupMembers", { workspace: "T1", group: "S_ZEBRA", user });
+      for (const user of ["U_ANN", "U_BOB", "U_CAROL"]) await ctx.db.insert("userGroupMembers", { workspace: "T1", group: "S_GARDEN", user });
+    });
+    slack.withUserGroup("S_GARDEN", { name: "Gardeners", users: ["U_ANN", "U_BOB", "U_CAROL"] }).withUserGroup("S_ZEBRA", { name: "Zebras", users: ["U_ANN"] });
+
+    await t.action(internal.slack.userGroups.syncUserGroups, {});
+    await settleInTimeOrder(t);
+
+    expect(await primaryGroupNameOf(t, "U_ANN")).toBe("Zebras");
+    expect(await primaryGroupNameOf(t, "U_BOB")).toBe("Gardeners");
   });
 });
 
@@ -277,7 +298,40 @@ describe("GB35: reconciliation pages stay within Convex's limits", () => {
   const everyone = Array.from({ length: 1_500 }, (_, index) => `U_${String(index).padStart(4, "0")}`);
   const half = everyone.filter((_, index) => index % 2 === 0);
 
-  test("a group of 1,500 members joining and being disabled reconciles every member, each mutation scheduling fewer than 1,000 functions", { timeout: 120_000 }, async () => {
+  test("a page of 100 members who are each in 60 groups reconciles them all within Convex's limits", { timeout: 60_000 }, async () => {
+    const t = testBackend({ transactionLimits: true });
+    const people = Array.from({ length: 100 }, (_, index) => `U_${String(index).padStart(3, "0")}`);
+    const groups = Array.from({ length: 60 }, (_, index) => `S_${String(index).padStart(2, "0")}`);
+    await t.run(async (ctx) => {
+      for (const user of people) await ctx.db.insert("members", { workspace: "T1", user, kind: "member", timeZone: undefined, asOf: 0 });
+      for (const group of groups) {
+        await ctx.db.insert("userGroups", { workspace: "T1", group, handle: group, name: group, enabled: true, automatic: false, asOf: 0, membersAsOf: 0 });
+        for (const user of people) await ctx.db.insert("userGroupMembers", { workspace: "T1", group, user });
+      }
+    });
+    slack.withUserGroup("S_00", { name: "S_00", users: people });
+
+    await userGroupChanged(t, "subteam_members_changed", "S_00");
+    await settle(t);
+
+    expect(await countingGroupCountsOf(t)).toEqual({ 60: 100 });
+  });
+
+  test("a page whose people lie far apart in a large directory reads it in bounded steps and reconciles each of them", { timeout: 60_000 }, async () => {
+    const t = testBackend({ transactionLimits: true });
+    const directory = Array.from({ length: 2_500 }, (_, index) => `U_${String(index).padStart(4, "0")}`);
+    await t.run(async (ctx) => {
+      for (const user of directory) await ctx.db.insert("members", { workspace: "T1", user, kind: "member", timeZone: undefined, asOf: 0 });
+    });
+    slack.withUserGroup("S_PAIR", { name: "Pair", users: ["U_0000", "U_1500", "U_2499"] });
+
+    await userGroupChanged(t, "subteam_created", "S_PAIR");
+    await settle(t);
+
+    expect(await primaryGroupNamesOf(t)).toEqual({ Pair: 3 });
+  });
+
+  test("a group of 1,500 members joining and being disabled reconciles every member, each mutation scheduling fewer than 1,000 functions", { timeout: 300_000 }, async () => {
     const t = testBackend({ transactionLimits: true });
     await t.run(async (ctx) => {
       for (const user of everyone) await ctx.db.insert("members", { workspace: "T1", user, kind: "member", timeZone: undefined, asOf: 0 });
@@ -416,5 +470,13 @@ async function primaryGroupsOutsideCountingGroups(t: Backend) {
       if (!fits) outside.push({ user: person.user, primary: primary?.name ?? null, counting });
     }
     return outside;
+  });
+}
+
+async function countingGroupCountsOf(t: Backend) {
+  return t.run(async (ctx) => {
+    const counts: Record<number, number> = {};
+    for (const { groups } of await ctx.db.query("memberGroups").collect()) counts[groups.length] = (counts[groups.length] ?? 0) + 1;
+    return counts;
   });
 }

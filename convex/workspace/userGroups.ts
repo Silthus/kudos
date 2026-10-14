@@ -15,6 +15,7 @@ export const userGroupValidator = v.object({
   name: v.string(),
   enabled: v.boolean(),
   automatic: v.boolean(),
+  members: v.optional(v.number()),
 });
 
 export type UserGroup = Infer<typeof userGroupValidator>;
@@ -35,18 +36,14 @@ export function keepsMembers({ enabled, automatic }: Pick<UserGroup, "enabled" |
 }
 
 export async function userGroupsOf(ctx: QueryCtx, workspace: string, user: ChatUserId): Promise<MembersUserGroup[]> {
-  return (await userGroupRowsOf(ctx, workspace, user))
-    .map(({ group, handle, name }) => ({ group, handle, name }))
-    .toSorted((first, second) => first.handle.localeCompare(second.handle));
-}
-
-export async function userGroupRowsOf(ctx: QueryCtx, workspace: string, user: ChatUserId): Promise<Doc<"userGroups">[]> {
   const memberships = await ctx.db
     .query("userGroupMembers")
     .withIndex("by_user", (q) => q.eq("workspace", workspace).eq("user", user))
     .collect();
   const groups = await Promise.all(memberships.map(({ group }) => userGroupRow(ctx, { workspace, group })));
-  return groups.filter((row): row is Doc<"userGroups"> => row !== null && keepsMembers(row));
+  return groups
+    .flatMap((row) => (row !== null && keepsMembers(row) ? [{ group: row.group, handle: row.handle, name: row.name }] : []))
+    .toSorted((first, second) => first.handle.localeCompare(second.handle));
 }
 
 export async function userGroupsOfUser(ctx: QueryCtx, workspace: string, user: ChatUserId): Promise<string[]> {
@@ -107,8 +104,8 @@ export const keepUserGroupMembers = internalMutation({
     if (row === null || !keepsMembers(row) || isOlder(asOf, row.membersAsOf)) return;
     const changed = await replaceMembers(ctx, key, users);
     await followPeopleLater(ctx, key.workspace, changed);
-    await reconcileLater(ctx, key.workspace, changed);
-    await ctx.db.patch(row._id, { membersAsOf: asOf });
+    await ctx.db.patch(row._id, { membersAsOf: asOf, members: users.length });
+    await reconcileLater(ctx, key.workspace, [...new Set([...changed, ...users])]);
   },
 });
 
@@ -160,7 +157,7 @@ function membershipsOf(ctx: QueryCtx, { workspace, group }: GroupKey) {
   return ctx.db.query("userGroupMembers").withIndex("by_group", (q) => q.eq("workspace", workspace).eq("group", group));
 }
 
-function userGroupRow(ctx: QueryCtx, { workspace, group }: GroupKey) {
+export function userGroupRow(ctx: QueryCtx, { workspace, group }: GroupKey) {
   return ctx.db
     .query("userGroups")
     .withIndex("by_group", (q) => q.eq("workspace", workspace).eq("group", group))

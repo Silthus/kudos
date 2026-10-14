@@ -7,7 +7,7 @@ import { keepsMembers, maxUserGroupsKept, type UserGroup } from "../workspace/us
 import { textOf } from "./directory";
 import { readSlack, slackErrorCodeOf, type SlackAnswer, type SlackFailure } from "./webApi";
 
-type SlackUserGroup = { id?: unknown; team_id?: unknown; handle?: unknown; name?: unknown; date_delete?: unknown; auto_type?: unknown };
+type SlackUserGroup = { id?: unknown; team_id?: unknown; handle?: unknown; name?: unknown; date_delete?: unknown; auto_type?: unknown; user_count?: unknown };
 
 type UserGroupChanged =
   | { type: "subteam_created" | "subteam_updated"; subteam?: { id?: unknown } }
@@ -102,7 +102,7 @@ function membersOf(answer: SlackAnswer<{ users?: unknown }>): string[] {
 }
 
 async function userGroupsListed(): Promise<Listing> {
-  const answer = await readSlack<{ usergroups?: unknown }>("usergroups.list", { include_disabled: "true" });
+  const answer = await readSlack<{ usergroups?: unknown }>("usergroups.list", { include_disabled: "true", include_count: "true" });
   if (answer.ok) return { kind: "listed", groups: listedUserGroupsOf(answer.usergroups) };
   if (answer.error === "ratelimited") return { kind: "rate-limited", retryAfterMs: retryDelayOf(answer) };
   if (answer.error === withoutUserGroups) return { kind: "listed", groups: [] };
@@ -124,7 +124,13 @@ function userGroupOf(listed: unknown): UserGroup[] {
   if (workspace === undefined || id === undefined || handle === undefined || name === undefined) return [];
   const { date_delete: disabledAt = 0, auto_type: automaticType = null } = group;
   if (typeof disabledAt !== "number" || (automaticType !== null && textOf(automaticType) === undefined)) return [];
-  return [{ workspace, group: id, handle, name, enabled: disabledAt === 0, automatic: automaticType !== null }];
+  const members = memberCountOf(group.user_count);
+  return [{ workspace, group: id, handle, name, enabled: disabledAt === 0, automatic: automaticType !== null, ...(members !== undefined && { members }) }];
+}
+
+function memberCountOf(userCount: unknown): number | undefined {
+  const count = typeof userCount === "string" ? Number(userCount) : userCount;
+  return typeof count === "number" && Number.isInteger(count) && count >= 0 ? count : undefined;
 }
 
 function nextAttempt(attempt: number, method: string) {

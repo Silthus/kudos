@@ -186,7 +186,11 @@ export class FakeSlack {
 
   private userGroupsListed(args: SlackArgs) {
     const groups = [...this.userGroups.values()].filter((group) => args.include_disabled === "true" || group.date_delete === 0);
-    return groups.map(({ users, ...group }) => (args.include_users === "true" ? { ...group, users } : group));
+    return groups.map(({ users, ...group }) => ({
+      ...group,
+      ...(args.include_users === "true" && { users }),
+      ...(args.include_count === "true" && { user_count: users.length }),
+    }));
   }
 
   private postMessage(args: SlackArgs) {
