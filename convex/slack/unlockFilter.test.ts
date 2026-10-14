@@ -198,7 +198,7 @@ describe("O36: the leaderboard command records the exposures it decides by", () 
 });
 
 const levelSixDmOfferingRowFive = [
-  "section: 🎉 You reached level 6! You have 2 skill points saved for the skill tree.",
+  "section: 🎉 You reached level 6! You have 2 skill points to spend.",
   "section: Level 7 is 500 XP away.",
   "section: *Spark* · 1 skill point\n+5 XP the first time each day you thank someone and say why. [button: Buy]",
   "section: *Rhythm* · 1 skill point\n+2 XP each time you thank someone and say why, once per person a day. [button: Buy]",

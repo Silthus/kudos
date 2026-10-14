@@ -3,7 +3,7 @@ import { internal } from "../_generated/api";
 import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import type { LevelReachedEvent } from "../bus/events";
 import { skillTreeLevel } from "../progression/levels";
-import { memberPerksOf, skillTreeAppliesIn } from "../progression/perks";
+import { memberPerksOf, skillTreeAppliesIn, type MemberPerks } from "../progression/perks";
 import { purchaseOutcomeValidator } from "../progression/purchases";
 import { progressSettingsOf } from "../progression/settings";
 import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
@@ -16,7 +16,7 @@ import { stateOf } from "../unlocks/unlocks";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { finishedQuestCrateOf, finishedWeeklyQuestCrateOf, perkOfferOf, purchaseReplyOf, readyCrateOf, type HomeAction } from "./home";
 import { skillPointsOf } from "./naming";
-import { whenOpened } from "./unlockFilter";
+import { isOpened, whenOpened } from "./unlockFilter";
 
 export const notificationValidator = v.union(
   v.object({
@@ -72,7 +72,7 @@ export const linesStillWanted = internalQuery({
     if (!(await xpLevelsShownIn(ctx, workspace)) || !(await wantsDms(ctx, member))) return null;
     if (isAboutQuests(notification) && !(await questsApplyIn(ctx, workspace))) return null;
     const told = await stillToldOf(ctx, workspace, member, notification);
-    const lines = [...renderNotification(told), ...(await perkOffersOf(ctx, workspace, member, told))];
+    const lines = renderNotification(told, await openTreeOf(ctx, workspace, member, told));
     return lines.length === 0 ? null : lines;
   },
 });
@@ -85,18 +85,26 @@ export const purchaseReplyStillWanted = internalQuery({
   },
 });
 
-export function renderNotification(notification: Notification): NotificationLine[] {
+export function renderNotification(notification: Notification, openTree: MemberPerks | null = null): NotificationLine[] {
   if (notification.kind === "quest-finished") return [finishedQuestCrateOf(notification.quest, notification.xp)];
   if (notification.kind === "journey-joined") return notification.finished.map(({ quest, xp }) => finishedQuestCrateOf(quest, xp));
   if (notification.kind === "weekly-quest-finished") return [finishedWeeklyQuestCrateOf(notification.quest, notification.goal, notification.xp)];
   const crates = notification.ready.map((feature) => readyCrateOf(scheduled(feature)));
-  return notification.kind === "level-reached" ? [...levelReachedLines(notification), ...crates] : crates;
+  if (notification.kind !== "level-reached") return crates;
+  return [...levelReachedLines(notification, openTree), ...crates, ...perkOffersOf(openTree)];
 }
 
-function levelReachedLines({ level, skillPoints, xpToNextLevel }: Extract<Notification, { kind: "level-reached" }>) {
-  const reached = `🎉 You reached level ${level}!`;
-  const headline = skillPoints !== null && level >= skillTreeLevel ? `${reached} You have ${skillPointsOf(skillPoints)} saved for the skill tree.` : reached;
-  return [headline, `Level ${level + 1} is ${xpToNextLevel} XP away.`];
+function levelReachedLines({ level, skillPoints, xpToNextLevel }: Extract<Notification, { kind: "level-reached" }>, openTree: MemberPerks | null) {
+  return [`🎉 You reached level ${level}!${skillPointsTold(level, skillPoints, openTree)}`, `Level ${level + 1} is ${xpToNextLevel} XP away.`];
+}
+
+function skillPointsTold(level: number, skillPoints: number | null, openTree: MemberPerks | null) {
+  if (openTree !== null) return ` You have ${skillPointsOf(openTree.skillPoints)} to spend.`;
+  return skillPoints !== null && level >= skillTreeLevel ? ` You have ${skillPointsOf(skillPoints)} saved for the skill tree.` : "";
+}
+
+function perkOffersOf(openTree: MemberPerks | null): NotificationLine[] {
+  return (openTree?.perks ?? []).filter(({ state }) => state === "buyable").map(perkOfferOf);
 }
 
 async function stillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: Notification): Promise<Notification> {
@@ -107,10 +115,9 @@ async function stillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, n
   return { ...notification, ready, skillPoints: await whenOpened(ctx, member, "skillTree", notification.skillPoints) };
 }
 
-async function perkOffersOf(ctx: QueryCtx, workspace: string, member: MemberId, told: Notification): Promise<NotificationLine[]> {
-  if (told.kind !== "level-reached" || !(await skillTreeAppliesIn(ctx, workspace))) return [];
-  const { perks } = await memberPerksOf(ctx, member);
-  return perks.filter(({ state }) => state === "buyable").map(perkOfferOf);
+async function openTreeOf(ctx: QueryCtx, workspace: string, member: MemberId, told: Notification): Promise<MemberPerks | null> {
+  if (told.kind !== "level-reached" || !(await skillTreeAppliesIn(ctx, workspace)) || !(await isOpened(ctx, member, "skillTree"))) return null;
+  return memberPerksOf(ctx, member);
 }
 
 function isAboutQuests(notification: Notification): notification is Extract<Notification, { kind: "quest-finished" | "journey-joined" | "weekly-quest-finished" }> {

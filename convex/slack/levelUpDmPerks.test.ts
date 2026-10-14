@@ -43,7 +43,7 @@ describe("P19 P74: once the Skill tree is open, the level-up DM offers each perk
     await reachLevelSix(t, "U_ALICE");
 
     expect(readBlocks(blocksOf(lastDmTo("U_ALICE")))).toEqual([
-      "section: 🎉 You reached level 6! You have 2 skill points saved for the skill tree.",
+      "section: 🎉 You reached level 6! You have 2 skill points to spend.",
       "section: Level 7 is 500 XP away.",
       sparkLine,
       rhythmLine,
@@ -75,7 +75,7 @@ describe("P19 P74: once the Skill tree is open, the level-up DM offers each perk
     expect(repliesIn(inDm.channel)).toEqual(["You bought Rhythm.", "I couldn't buy Circle. You need 1 skill point.", "I couldn't buy Rhythm. You own it."]);
   });
 
-  test("a level-up DM Slack held back leaves out a perk the member bought in App Home meanwhile", async () => {
+  test("a level-up DM Slack held back leaves out a perk the member bought in App Home meanwhile, and names the points left", async () => {
     const t = await skillTreeOpenedAtLevelFive("U_ALICE");
     await clickInHome(t, "U_ALICE", buttonInHome(slack, "U_ALICE", "Skill tree"));
     slack.holdingBack("chat.postMessage", "U_ALICE", async () => {
@@ -85,7 +85,7 @@ describe("P19 P74: once the Skill tree is open, the level-up DM offers each perk
 
     await reachLevelSix(t, "U_ALICE");
 
-    expect(readBlocks(blocksOf(lastDmTo("U_ALICE"))).slice(2)).toEqual([sparkLine, circleLine]);
+    expect(readBlocks(blocksOf(lastDmTo("U_ALICE")))).toEqual(["section: 🎉 You reached level 6! You have 1 skill point to spend.", "section: Level 7 is 500 XP away.", sparkLine, circleLine]);
   });
 });
 
