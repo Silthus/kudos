@@ -1,0 +1,25 @@
+    {
+-     "redirectTo": "/quests",
++     "redirectTo": "/",
+    },
+  ]
+
+
+Number of calls: 1
+
+ ❯ src/liveShell.test.tsx:199:32
+    197|     await user.click(screen.getByRole("button", { name: "Sign in with …
+    198|
+    199|     expect(authActions.signIn).toHaveBeenCalledWith("slack", { redirec…
+       |                                ^
+    200|   });
+    201| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 12 passed | 28 skipped (41)
+   Start at  04:04:53
+   Duration  2.61s (import 42%, environment 23%, tests 16%, transform 13%, setup 5%)
+

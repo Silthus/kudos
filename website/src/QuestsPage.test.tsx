@@ -37,6 +37,14 @@ function showQuests(answer: MyQuests) {
   return renderApp(withQuests, undefined, undefined, fixedQuests(answer));
 }
 
+describe("WS5: a quests address keeps the sign-in code", () => {
+  it("leaves /quests alone while it carries the sign-in code, so Convex Auth redeems it there", () => {
+    window.history.replaceState(null, "", "/quests?code=18437459");
+    renderApp(shellFixtures.loading);
+    expect(window.location.pathname + window.location.search).toBe("/quests?code=18437459");
+  });
+});
+
 describe("WS73: /quests shows this week's quests while Quests is open", () => {
   it("lives at /quests with the tab HedgeHug · Quests, the header This week, and when new quests arrive", () => {
     showQuests(questsFixtures.week);

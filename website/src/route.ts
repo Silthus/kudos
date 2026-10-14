@@ -14,7 +14,8 @@ export function routeOf({ pathname, search }: { pathname: string; search: string
 }
 
 export function hrefOf(route: Route) {
-  return route.page === "leaderboard" ? leaderboardHref(route.period) : "/";
+  if (route.page === "leaderboard") return leaderboardHref(route.period);
+  return route.page === "quests" ? "/quests" : "/";
 }
 
 export function leaderboardHref(period: Period) {
