@@ -71,7 +71,7 @@ export const desired = internalQuery({
   handler: async (ctx, { reply }) => {
     const row = await ctx.db.get(reply);
     if (row === null) return null;
-    if (!(await xpLevelsShownIn(ctx, row.workspace))) return { ...row, sections: [] };
+    if (!(await xpLevelsShownIn(ctx, row.workspace)) || !(await isRewardShownIn(ctx, row))) return { ...row, sections: [] };
     const shown = await Promise.all(row.sections.map((section) => isShownPublicly(ctx, section)));
     return { ...row, sections: row.sections.filter((_, index) => shown[index]) };
   },
@@ -127,6 +127,10 @@ export function linesOf(reply: Pick<Doc<"publicReplies">, "sections">): Line[] {
 
 export function threadTsOf(reply: Doc<"publicReplies">): string | undefined {
   return "threadTs" in reply ? reply.threadTs : undefined;
+}
+
+async function isRewardShownIn(ctx: QueryCtx, row: Doc<"publicReplies">) {
+  return !("reached" in row) || (await questsApplyIn(ctx, row.workspace));
 }
 
 async function isShownPublicly(ctx: QueryCtx, { member }: PublicSection) {

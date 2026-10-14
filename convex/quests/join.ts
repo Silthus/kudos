@@ -28,18 +28,20 @@ export const joinJourneyPage = internalMutation({
 
 export const joinJourney = internalMutation({
   args: { workspace: v.string(), at: v.number(), member: v.id("members") },
-  handler: async (ctx, { workspace, at, member }) => {
-    const finished: Array<{ quest: JourneyQuest; xp: number }> = [];
-    for (const { step } of journey.steps) {
-      const activation = await activatedIfOpened(ctx, member, step, at);
-      const finishedAt = activation === null ? null : await finishedAtJoin(ctx, workspace, activation, at);
-      if (activation !== null && finishedAt !== null && (await finishSilently(ctx, workspace, activation, finishedAt))) finished.push({ quest: { kind: "journey", step }, xp: activation.reward.xp });
-    }
-    if (finished.length === 0) return;
-    await notifyJourneyJoined(ctx, member, finished);
-    await republish(ctx, member);
-  },
+  handler: (ctx, { workspace, at, member }) => joinMember(ctx, workspace, member, at),
 });
+
+export async function joinMember(ctx: MutationCtx, workspace: string, member: MemberId, at: number) {
+  const finished: Array<{ quest: JourneyQuest; xp: number }> = [];
+  for (const { step } of journey.steps) {
+    const activation = await activatedIfOpened(ctx, member, step, at);
+    const finishedAt = activation === null ? null : await finishedAtJoin(ctx, workspace, activation, at);
+    if (activation !== null && finishedAt !== null && (await finishSilently(ctx, workspace, activation, finishedAt))) finished.push({ quest: { kind: "journey", step }, xp: activation.reward.xp });
+  }
+  if (finished.length === 0) return;
+  await notifyJourneyJoined(ctx, member, finished);
+  await republish(ctx, member);
+}
 
 async function activatedIfOpened(ctx: MutationCtx, member: MemberId, step: JourneyStep, at: number): Promise<JourneyActivation | null> {
   const feature = featureOpening(step);

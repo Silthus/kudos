@@ -1,12 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { routedFetch, type FakePostHog, type FlagDefinition } from "../../testing/fakePostHog";
-import { FakeSlack, type SlackCall } from "../../testing/fakeSlack";
+import { FakeSlack, rateLimitedFor, type SlackCall } from "../../testing/fakeSlack";
 import { flagsFromPostHog, offForEveryone, onForEmails, onForEveryone, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, buttonIn, publishedHome, publishedHomeBlocks, readBlocks, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
+import { questsLiveFor } from "../quests/flag";
 import type { QuestId } from "../quests/pool";
 
 const now = new Date("2026-10-13T10:00:00Z");
@@ -85,6 +86,27 @@ describe("F17 F22: quests previewed by one member's email", () => {
     expect(whilePreviewed).toEqual(whileOff);
   });
 
+  test("the preview moment joins the previewer in its own mutation: a Leaderboard opened before it activates someone-new at the moment, before any scheduled job runs", async () => {
+    const t = await workspaceDeciding(...previewedByAlice, onForEveryone("everyone-board"));
+    const alice = await t.run(async (ctx) => {
+      const member = await ctx.db.insert("members", { workspace: "T1", user: "U_ALICE", kind: "member", email: alicesEmail });
+      await ctx.db.insert("members", { workspace: "T1", user: "U_BOB", kind: "member", email: "bob@example.com" });
+      await ctx.db.insert("unlocks", { member, feature: "leaderboard", readyAt: now.getTime(), openedAt: now.getTime() });
+      return member;
+    });
+    const previewedAt = now.getTime() + 60_000;
+    vi.setSystemTime(previewedAt);
+
+    await t.run((ctx) => questsLiveFor(ctx, alice));
+
+    const { previewMoments, journeySteps } = await questRows(t);
+    expect(previewMoments).toEqual([{ user: "U_ALICE", moment: "journey", at: previewedAt }]);
+    expect(journeySteps.map(({ step, activatedAt }) => [step, activatedAt]).sort()).toEqual([
+      ["first-thanks", previewedAt],
+      ["someone-new", previewedAt],
+    ]);
+  });
+
   test("F25: exposures carry true for the previewing member and false for the other", async () => {
     const t = await workspaceDeciding(...previewedByAlice);
 
@@ -107,6 +129,22 @@ describe("F18: a level a previewed quest reward reaches", () => {
     expect((await questRows(t)).rewardRecords).toEqual([{ user: "U_ALICE", key: "journey:first-thanks" }]);
     expect(publicNotices()).toEqual([]);
     expect(dmsTo("U_ALICE").map(({ text }) => String(text))).toContainEqual(expect.stringContaining("You reached level 2!"));
+  });
+
+  test("queued while quests was on for the workspace, is not posted when Slack takes it after quests turned off there, though its member still previews", async () => {
+    const t = await workspaceDeciding(...onForTheWorkspace);
+    await announcingIn(t, "C_NEWS");
+    slack.holdingBack("chat.postMessage", "C_NEWS", async () => {
+      await flagsFromPostHog(t, postHog, ...previewedByAlice);
+      slack.answering("chat.postMessage", rateLimitedFor(30));
+    });
+
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+    await settle(t);
+
+    expect((await questRows(t)).rewardRecords).toEqual([{ user: "U_ALICE", key: "journey:first-thanks" }]);
+    expect(slack.callsTo("chat.postMessage").filter(({ channel }) => channel === "C_NEWS")).toHaveLength(1);
+    expect(slack.messagesIn("C_NEWS")).toEqual([]);
   });
 });
 

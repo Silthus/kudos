@@ -4,6 +4,7 @@ import { exposed, memberDecision, workspaceDecision } from "../analytics/flags";
 import { xpLevelsOnFor, xpLevelsShownIn } from "../progression/xpLevels";
 import { unlocksAppliedIn, unlocksAppliedTo } from "../unlocks/launch";
 import { chatUserOf, type MemberId } from "../workspace/directory";
+import { joinMember } from "./join";
 import { questsFlag } from "./questsFlag";
 
 export async function questsApplyIn(ctx: QueryCtx | MutationCtx, workspace: string): Promise<boolean> {
@@ -61,7 +62,7 @@ async function previewOnce(ctx: MutationCtx, workspace: string, member: MemberId
   if ((await previewMomentOf(ctx, member)) !== null) return;
   const at = Date.now();
   await ctx.db.insert("previewMoments", { member, moment: "journey", at });
-  await ctx.scheduler.runAfter(0, internal.quests.join.joinJourney, { workspace, at, member });
+  await joinMember(ctx, workspace, member, at);
 }
 
 function journeyLaunchIn(ctx: QueryCtx, workspace: string) {
