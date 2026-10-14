@@ -41,7 +41,24 @@ export async function emailOf(ctx: QueryCtx, member: MemberId): Promise<string |
   return row?.kind === "member" ? row.email : undefined;
 }
 
-export const namelessTeammate = "A teammate";
+export async function isMember(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return (await ctx.db.get(member))?.kind === "member";
+}
+
+export async function nameAndPictureOf(ctx: QueryCtx, member: MemberId): Promise<{ name: string | undefined; picture: string | null }> {
+  const row = await ctx.db.get(member);
+  return row?.kind === "member" ? { name: row.name, picture: row.picture ?? null } : { name: undefined, picture: null };
+}
+
+export async function timeZoneOf(ctx: QueryCtx, member: MemberId): Promise<string | null> {
+  const row = await ctx.db.get(member);
+  return row?.kind === "member" ? (row.timeZone ?? null) : null;
+}
+
+export async function displayNameOfUser(ctx: QueryCtx, workspace: string, user: ChatUserId): Promise<string | undefined> {
+  const row = await memberRow(ctx, workspace, user);
+  return row?.kind === "member" ? row.name : undefined;
+}
 
 export async function displayNameOf(ctx: QueryCtx, member: MemberId): Promise<string | undefined> {
   const row = await ctx.db.get(member);

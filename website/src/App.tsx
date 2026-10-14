@@ -4,6 +4,7 @@ import { MomentAnnouncement } from "./crates/MomentAnnouncement";
 import { MomentsProvider, useCrateMoments, useMembersShown } from "./crates/moments";
 import { readyCratesOf } from "./crates/readyCrates";
 import { RevealDialog } from "./crates/RevealDialog";
+import { QuestRewardFlight, rewardOnTheWay, withoutTheReward } from "./crates/QuestRewardFlight";
 import type { BoardAnswer, BoardRead } from "./boardRead";
 import type { BookRead, BookShown } from "./bookRead";
 import { ErrorBoundary } from "./ErrorBoundary";
@@ -25,6 +26,7 @@ import { UnverifiedPage } from "./pages/UnverifiedPage";
 import { VerifyingPage } from "./pages/VerifyingPage";
 import { useTitleFocusAfterChange, useTitleFocusOnArrival, useTitleFocusWhenTheFocusedElementGoes } from "./pageFocus";
 import type { QuestsRead, QuestsShown } from "./questsRead";
+import { useQuestTargetOnceLanded } from "./questTarget";
 import type { SkillTreeRead, SkillTreeShown } from "./skillTreeRead";
 import { hrefOf, useRoute, type BookPageId, type Route } from "./route";
 import type { Feature, MemberProfile, Period, ShellActions, ShellState } from "./shell";
@@ -53,6 +55,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
   useTitleFocusAfterChange(onTheBoard ? boardPageOf(board) : onQuests ? questsPageOf(quests) : onBook ? bookPageOf(book) : onSkills ? skillTreePageOf(skillTree) : shown.kind, { held: revealing });
   useTitleFocusWhenTheFocusedElementGoes();
   const expectArrival = useTitleFocusOnArrival();
+  useQuestTargetOnceLanded(route, onQuests && quests?.kind === "quests");
   const arriveAt = useCallback(
     (href: string) => {
       expectArrival();
@@ -73,7 +76,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
         {signingIn ? (
           <SignedOutPage returnTo={hrefOf(route)} onSignIn={signIn} />
         ) : (
-          <Frame member={member} ready={member === undefined ? [] : readyCratesOf(member, quests)} current={route.page === "not-found" ? undefined : route.page} busy={page.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined) || (onBook && book === undefined) || (onSkills && skillTree === undefined)} inert={revealing} onSignOut={actions.signOut}>
+          <Frame member={withHeldProgression(member, rewardOnTheWay(reveal, moments.flight))} ready={member === undefined ? [] : readyCratesOf(member, quests)} current={route.page === "not-found" ? undefined : route.page} busy={page.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined) || (onBook && book === undefined) || (onSkills && skillTree === undefined)} inert={revealing} onSignOut={actions.signOut}>
             <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>
               <Page state={page} route={route} board={board} quests={quests} book={book} skillTree={skillTree} membersShown={membersShown} onChoosePeriod={choosePeriod} onBuyPerk={actions.buyPerk} onSignIn={signIn} onSignOut={actions.signOut} />
             </ErrorBoundary>
@@ -82,10 +85,16 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
         {reveal !== undefined && member !== undefined && (
           <RevealDialog key={reveal.crate.seen} {...reveal} chatUrl={member.chatUrl} questsOpen={questsOpen} onFinish={moments.finish} onClose={moments.close} />
         )}
+        {moments.flight !== undefined && member !== undefined && <QuestRewardFlight key={moments.flight.crate.seen} flight={moments.flight} progression={member.progression} onLanded={moments.land} />}
         <MomentAnnouncement text={moments.announcement} />
       </MomentsProvider>
     </NavigateProvider>
   );
+}
+
+function withHeldProgression(member: MemberProfile | undefined, reward: number | undefined) {
+  if (member === undefined || reward === undefined) return member;
+  return { ...member, progression: withoutTheReward(member.progression, reward) };
 }
 
 function cratesOf(member: MemberProfile | undefined) {

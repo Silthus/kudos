@@ -1,5 +1,6 @@
 import { v, type Infer } from "convex/values";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { messageRefValidator, type MessageRef } from "../engine/messageEvent";
 import type { MemberId } from "../workspace/directory";
 
 export const rewardRecordValidator = v.object({
@@ -10,6 +11,7 @@ export const rewardRecordValidator = v.object({
   item: v.null(),
   catalogueVersion: v.string(),
   at: v.number(),
+  cause: v.optional(messageRefValidator),
 });
 
 export type RewardRecord = Infer<typeof rewardRecordValidator>;
@@ -33,5 +35,12 @@ export function rewardsKeyedFrom(ctx: QueryCtx, member: MemberId, keyPrefix: str
   return ctx.db
     .query("rewardRecords")
     .withIndex("by_member_key", (q) => q.eq("member", member).gte("key", keyPrefix).lt("key", `${keyPrefix}\uffff`))
+    .collect();
+}
+
+export function rewardsCausedBy(ctx: QueryCtx, member: MemberId, { workspace, conversation, message }: MessageRef) {
+  return ctx.db
+    .query("rewardRecords")
+    .withIndex("by_member_cause", (q) => q.eq("member", member).eq("cause.workspace", workspace).eq("cause.conversation", conversation).eq("cause.message", message))
     .collect();
 }

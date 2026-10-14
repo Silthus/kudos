@@ -186,6 +186,30 @@ describe("P90: two-days has its own finishing rule, never someone-new's", () => 
     expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([{ key: "journey:two-days", xp: 30, catalogueVersion: "1", at: wednesday }]);
   });
 
+  test("AT25: Wednesday's kudos, which finishes it at its own instant, is its cause", async () => {
+    const { t, alice, bob } = await membersInDirectory();
+    await opened(t, alice, "book", monday);
+    const mondayKudos = await thoughtfulKudos(t, alice, bob, monday + minuteMs, "2026-10-12");
+    const wednesdayKudos = await thoughtfulKudos(t, alice, bob, wednesday, "2026-10-14");
+
+    await followKudosGiven(t, mondayKudos);
+    await followKudosGiven(t, wednesdayKudos);
+
+    expect(await twoDaysCauseOf(t)).toEqual({ at: wednesday, cause: wednesdayKudos.message });
+  });
+
+  test("AT25: Monday's kudos followed late, finishing it at Wednesday's instant, records no cause", async () => {
+    const { t, alice, bob } = await membersInDirectory();
+    await opened(t, alice, "book", monday);
+    const mondayKudos = await thoughtfulKudos(t, alice, bob, monday + minuteMs, "2026-10-12");
+    const wednesdayKudos = await thoughtfulKudos(t, alice, bob, wednesday, "2026-10-14");
+
+    await followKudosGiven(t, wednesdayKudos);
+    await followKudosGiven(t, mondayKudos);
+
+    expect(await twoDaysCauseOf(t)).toEqual({ at: wednesday, cause: undefined });
+  });
+
   test("a member who gave 4,100 kudos without saying why since the opening finishes it on the second day that says why, within Convex's transaction limits", async () => {
     const t = await bookShippedBeforeAnyoneJoined(await flagsLoaded(testBackend({ transactionLimits: true })));
     const [alice, bob] = await t.run(async (ctx) => {
@@ -565,6 +589,13 @@ async function rewardRecordsOf(t: Backend, key: string) {
   return t.run(async (ctx) =>
     (await ctx.db.query("rewardRecords").collect()).filter((record) => record.key === key).map(({ key, xp, catalogueVersion, at }) => ({ key, xp, catalogueVersion, at })),
   );
+}
+
+async function twoDaysCauseOf(t: Backend) {
+  return t.run(async (ctx) => {
+    const [finished] = (await ctx.db.query("rewardRecords").collect()).filter((record) => record.key === "journey:two-days");
+    return { at: finished?.at, cause: finished?.cause };
+  });
 }
 
 async function journeyStepsOf(t: Backend, member: MemberId) {

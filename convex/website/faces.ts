@@ -15,7 +15,13 @@ export async function faceOf(ctx: QueryCtx, me: VerifiedMember): Promise<Face> {
   return { kind: "initials", initials };
 }
 
-export function teammateFaceOf(name: string | undefined, picture: string | null): Face {
+export const nameless = "A teammate";
+
+export function teammateOf(name: string | undefined, picture: string | null) {
+  return { name: name ?? nameless, face: teammateFaceOf(name, picture) };
+}
+
+function teammateFaceOf(name: string | undefined, picture: string | null): Face {
   const initials = initialsOf({ name });
   if (picture !== null) return { kind: "slack", image: picture, initials };
   return { kind: "initials", initials };

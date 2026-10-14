@@ -5,7 +5,8 @@ import { everyTierEarnedBy, type EarnedTier } from "../achievements/tiers";
 import { standingOf } from "../progression/progression";
 import { xpLevelsShownIn } from "../progression/xpLevels";
 import { openedAtOf } from "../unlocks/unlocks";
-import { chatUserOf, displayNameOf, namelessTeammate, type MemberId } from "../workspace/directory";
+import { nameless } from "../website/faces";
+import { chatUserOf, displayNameOf, type MemberId } from "../workspace/directory";
 
 export type Medal = { ladder: LadderId; tier: TierId; name: string };
 
@@ -20,7 +21,7 @@ const ladderOrder: readonly LadderId[] = ladders.ladders.map(({ ladder }) => lad
 export async function profileCardOf(ctx: QueryCtx, member: MemberId, { own }: Viewing): Promise<ProfileCard> {
   const { workspace } = await chatUserOf(ctx, member);
   return {
-    name: (await displayNameOf(ctx, member)) ?? namelessTeammate,
+    name: (await displayNameOf(ctx, member)) ?? nameless,
     level: (await xpLevelsShownIn(ctx, workspace)) ? (await standingOf(ctx, member)).level : null,
     medals: (await medalsShownIn(ctx, workspace, member, { own })) ? bestMedalsOf(await everyTierEarnedBy(ctx, member)) : [],
   };

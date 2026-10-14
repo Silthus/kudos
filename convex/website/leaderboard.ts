@@ -3,9 +3,8 @@ import { periodValidator, type Period } from "../leaderboard/periods";
 import { rankedBoardOf, type RankedRow, type Standing } from "../leaderboard/totals";
 import { isOnTheBoards } from "../leaderboard/visibility";
 import { workspaceLink } from "../slack/workspaceLink";
-import { namelessTeammate } from "../workspace/directory";
 import { followTheClock } from "./clock";
-import { faceOf, teammateFaceOf, type Face } from "./faces";
+import { faceOf, teammateOf, type Face } from "./faces";
 import { memberQuery, type Denial } from "./memberQuery";
 import { leaderboardStateOf, unlockPathOf, type PageWaits } from "./unlockPath";
 
@@ -49,5 +48,6 @@ export const getLeaderboard = memberQuery({
 });
 
 function leaderboardRowOf({ position, rank, tied, name, picture, kudos, viewer }: RankedRow, myFace: Face): LeaderboardRow {
-  return { position, rank, tied, name: name ?? namelessTeammate, face: viewer ? myFace : teammateFaceOf(name, picture), kudos, you: viewer };
+  const teammate = teammateOf(name, picture);
+  return { position, rank, tied, name: teammate.name, face: viewer ? myFace : teammate.face, kudos, you: viewer };
 }

@@ -17,6 +17,7 @@ export const reportedMarker = "[reported]";
 const markedFirstLine = /^(?:Uncaught Error: )?\[reported\] [A-Za-z_$][\w$]*$/;
 
 const unexpectedError = "unexpected error";
+const wordsWithheld = "message withheld: it may quote kudos text";
 const typeName = /^[A-Za-z_$][\w$]*$/;
 const stackFrame = /^\s*at (?:(.+?) \()?(.+?):(\d+):\d+\)?$/;
 const uncaughtError = /^Uncaught ([A-Za-z_$][\w$]*): (.*)$/;
@@ -25,6 +26,26 @@ export function exceptionOf(error: unknown): Exception {
   const type = typeOf(error);
   const value = error instanceof ReportableError ? error.message : unexpectedError;
   return { type, value, frames: error instanceof Error ? framesOf(error) : [] };
+}
+
+export function withheldExceptionOf(error: unknown): Exception {
+  return { ...exceptionOf(error), value: unexpectedError };
+}
+
+export function withheldErrorOf(error: unknown): Error {
+  const withheld = new Error(`${wordsWithheld} (${typeOf(error)})`);
+  if (error instanceof Error) withheld.stack = [`Error: ${withheld.message}`, ...stackLinesAfterTheMessage(error)].join("\n");
+  return withheld;
+}
+
+export function withholdingWords<Ctx, Args extends unknown[], Output>(handler: (ctx: Ctx, ...args: Args) => Promise<Output>) {
+  return async (ctx: Ctx, ...args: Args): Promise<Output> => {
+    try {
+      return await handler(ctx, ...args);
+    } catch (error) {
+      throw withheldErrorOf(error);
+    }
+  };
 }
 
 export function exceptionOfJobError(error: string | undefined): Exception {
