@@ -6,6 +6,8 @@ export type Page = Infer<typeof pageValidator>;
 
 export const routeList: readonly string[] = ["/", "/leaderboard", "/quests"];
 
+export const signInAsk = "sign-in";
+
 const pathOf: Record<Page["page"], string> = {
   home: "/",
   leaderboard: "/leaderboard",

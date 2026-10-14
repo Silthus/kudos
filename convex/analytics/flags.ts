@@ -21,6 +21,10 @@ export function memberDecision<V extends FlagValue>(ctx: QueryCtx | MutationCtx,
   return evaluated(ctx, read, () => memberSubject(ctx, member));
 }
 
+export function memberDecisionWithoutWriting<V extends FlagValue>(ctx: QueryCtx | MutationCtx, read: Flag<V>, member: MemberId): Promise<V> {
+  return evaluated(ctx, read, () => existingMemberSubject(ctx, member));
+}
+
 export function workspaceDecision<V extends FlagValue>(ctx: QueryCtx | MutationCtx, read: Flag<V>, workspace: string): Promise<V> {
   return evaluated(ctx, read, () => workspaceSubject(ctx, workspace));
 }
@@ -30,7 +34,12 @@ export function workspaceDecisionWithoutWriting<V extends FlagValue>(ctx: QueryC
 }
 
 async function memberSubject(ctx: QueryCtx | MutationCtx, member: MemberId): Promise<Subject | null> {
-  const analyticsId = canWrite(ctx) ? await analyticsIdOf(ctx, member) : await existingAnalyticsId(ctx, member);
+  if (!canWrite(ctx)) return existingMemberSubject(ctx, member);
+  return { distinctId: await analyticsIdOf(ctx, member), email: await emailOf(ctx, member) };
+}
+
+async function existingMemberSubject(ctx: QueryCtx, member: MemberId): Promise<Subject | null> {
+  const analyticsId = await existingAnalyticsId(ctx, member);
   if (analyticsId === null) return existingWorkspaceSubject(ctx, (await chatUserOf(ctx, member)).workspace);
   return { distinctId: analyticsId, email: await emailOf(ctx, member) };
 }

@@ -1,6 +1,6 @@
 import type { QueryCtx } from "../_generated/server";
-import { everyoneBoardShownIn } from "../leaderboard/flag";
-import { unlockPathShownIn } from "../unlocks/launch";
+import { everyoneBoardOnFor } from "../leaderboard/flag";
+import { unlockPathShownTo } from "../unlocks/launch";
 import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import type { Feature } from "../unlocks/feature";
 import { unlocksOf, type MemberUnlock } from "../unlocks/unlocks";
@@ -16,12 +16,12 @@ export type LeaderboardWaits = Extract<LeaderboardState, { kind: "locked" | "rea
 export type FeatureCard = MemberUnlock & Pick<ScheduledFeature, "name" | "opens" | "level"> & { seen: string };
 
 export async function unlockPathOf(ctx: QueryCtx, me: VerifiedMember): Promise<UnlockPath> {
-  if (!(await unlockPathShownIn(ctx, me.workspace))) return null;
+  if (!(await unlockPathShownTo(ctx, me.member))) return null;
   return unlocksOf(ctx, me.member);
 }
 
 export async function leaderboardStateOf(ctx: QueryCtx, me: VerifiedMember, path: UnlockPath): Promise<LeaderboardState> {
-  if (path === null) return (await everyoneBoardShownIn(ctx, me.workspace)) ? { kind: "open" } : { kind: "off" };
+  if (path === null) return (await everyoneBoardOnFor(ctx, me.member)) ? { kind: "open" } : { kind: "off" };
   const state = path.find(({ feature }) => feature === "leaderboard")?.state;
   if (state === undefined) return { kind: "off" };
   if (state === "locked") return { kind: "locked", level: scheduled("leaderboard").level };

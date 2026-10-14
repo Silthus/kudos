@@ -5,7 +5,7 @@ import { journeyShippedBeforeAnyoneJoined, unlocksShippedBeforeAnyoneJoined } fr
 import { memberChanged, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { buttonInHome } from "../../testing/slackInteractions";
 import { opens, reachesLevel } from "../../testing/unlocks";
-import { aDeploymentForWorkspace, aMember, aSession, switchWebsite } from "../../testing/website";
+import { aDeploymentForWorkspace, aMember, aSession, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, components, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { publish } from "../bus/publish";
@@ -56,7 +56,7 @@ async function launchedThen(...keys: string[]) {
 
 async function signedInMember() {
   const member = await aMember(t, juno.user);
-  const { asSignedIn, sessionId } = await aSession(t, juno);
+  const { asSignedIn, sessionId } = await aSignedInSession(t, juno);
   return { member, asSignedIn, sessionId };
 }
 
@@ -112,8 +112,8 @@ describe("website commands pass one guard", () => {
   describe("WS61: a denial answers as a read does and writes nothing at all", () => {
     test("with the website flag off, a member's open answers closed", async () => {
       await launchedThen();
-      await switchWebsite(t, postHog, false, ...allFlags);
       const { asSignedIn } = await aReadyMember();
+      await switchWebsite(t, postHog, false, ...allFlags);
       const before = await everythingWritten();
 
       expect(await openFeature(asSignedIn)).toEqual({ kind: "closed" });
@@ -123,7 +123,8 @@ describe("website commands pass one guard", () => {
     test("with a flags key but no workspace key yet, the open answers closed and makes no key", async () => {
       postHog.withFlags({ key: "website", filters: { groups: [{ properties: [], rollout_percentage: 100 }] } });
       await t.action(components.posthog.lib.refreshFlagDefinitions, {});
-      const { asSignedIn } = await signedInMember();
+      await aMember(t, juno.user);
+      const { asSignedIn } = await aSession(t, juno);
       const before = await everythingWritten();
 
       expect(await openFeature(asSignedIn)).toEqual({ kind: "closed" });
@@ -376,7 +377,7 @@ async function aReadyLeaderboardIn(backend: Backend) {
   await switchWebsite(backend, postHog, true, ...allFlags);
   await unlocksShippedBeforeAnyoneJoined(backend);
   const member = await aMember(backend, juno.user);
-  const { asSignedIn } = await aSession(backend, juno);
+  const { asSignedIn } = await aSignedInSession(backend, juno);
   await reachesLevel(backend, member, 3, Date.parse("2026-10-14T09:00:00Z"));
   return { backend, member, asSignedIn };
 }

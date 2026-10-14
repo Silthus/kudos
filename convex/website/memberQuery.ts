@@ -5,7 +5,7 @@ import { query, type QueryCtx } from "../_generated/server";
 import { signInWorkspace } from "../slack/signIn";
 import type { HomeMember } from "../feedback/homes";
 import { lookup, type MemberId } from "../workspace/directory";
-import { websiteOpenWithoutWriting } from "./flag";
+import { websiteOpenTo, websiteOpenWithoutWriting } from "./flag";
 import { verificationOf } from "../slack/verifyMember";
 
 export type Denial = { kind: "closed" } | { kind: "signed-out" } | { kind: "verifying" } | { kind: "unverified" } | { kind: "not-a-member" };
@@ -42,11 +42,18 @@ export function memberQuery(definition: MemberHandler<never, unknown> | { args: 
   });
 }
 
+const closed: Denial = { kind: "closed" };
+
 export async function verifiedMember(ctx: QueryCtx): Promise<Verified | Denial> {
-  if (!(await websiteOpenWithoutWriting(ctx))) return { kind: "closed" };
   const signedIn = await liveSession(ctx);
-  if (signedIn === null || signedIn.workspace !== signInWorkspace()) return { kind: "signed-out" };
-  return directoryAnswer(ctx, signedIn);
+  if (signedIn === null || signedIn.workspace !== signInWorkspace()) return answerWhileOpen(ctx, { kind: "signed-out" });
+  const verified = await directoryAnswer(ctx, signedIn);
+  if ("kind" in verified) return answerWhileOpen(ctx, verified);
+  return (await websiteOpenTo(ctx, verified.me.member)) ? verified : closed;
+}
+
+async function answerWhileOpen(ctx: QueryCtx, denial: Denial): Promise<Denial> {
+  return (await websiteOpenWithoutWriting(ctx)) ? denial : closed;
 }
 
 async function liveSession(ctx: QueryCtx): Promise<SignedIn | null> {
