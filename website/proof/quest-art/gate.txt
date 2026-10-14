@@ -6,10 +6,10 @@ $ vitest run
  RUN  v5.0.3 /home/coder/dev/kudos-wt/quest-art
 
 
- Test Files  146 passed (146)
-      Tests  2406 passed (2406)
-   Start at  11:46:15
-   Duration  113.49s (tests 83%, import 9%, environment 3%, transform 3%)
+ Test Files  147 passed (147)
+      Tests  2479 passed (2479)
+   Start at  12:03:12
+   Duration  114.07s (tests 82%, import 10%, environment 3%, transform 3%, setup 1%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
@@ -570,5 +570,5 @@ RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:68 
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:2  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:17  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
-ADVISORY       214 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 86, receipt 30, contract 22, zone 21, panel 13; reported, never failing, since inside the project its sense wins (--json lists each)
-0 rejected names, 0 unknown nouns (608 files), 17 in records
+ADVISORY       225 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 86, receipt 30, contract 22, panel 21, zone 21; reported, never failing, since inside the project its sense wins (--json lists each)
+0 rejected names, 0 unknown nouns (616 files), 17 in records
