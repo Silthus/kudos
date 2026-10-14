@@ -3,7 +3,7 @@ import { internal } from "../_generated/api";
 import type { ActionCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
 import { ReportableError } from "../analytics/exceptions";
-import { keepsMembers, type UserGroup } from "../workspace/userGroups";
+import { keepsMembers, maxUserGroupsKept, type UserGroup } from "../workspace/userGroups";
 import { readSlack, slackErrorCodeOf, type SlackAnswer, type SlackFailure } from "./webApi";
 
 type SlackUserGroup = { id?: unknown; team_id?: unknown; handle?: unknown; name?: unknown; date_delete?: unknown; auto_type?: unknown };
@@ -23,7 +23,6 @@ const membersListSpacingMs = 3_000;
 const membersListsPerRun = 100;
 const maxAttempts = 3;
 const maxMembersKept = 8_000;
-const maxUserGroupsKept = 2_000;
 const attemptArgs = { attempt: v.optional(v.number()) };
 
 export function isUserGroupChanged(event: { type: string }): event is UserGroupChanged {

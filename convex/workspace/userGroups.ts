@@ -2,6 +2,7 @@ import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
+import { ReportableError } from "../analytics/exceptions";
 import type { ChatUserId } from "../engine/messageEvent";
 
 export const userGroupValidator = v.object({
@@ -19,6 +20,7 @@ export type MembersUserGroup = Pick<UserGroup, "group" | "handle" | "name">;
 
 type GroupKey = Pick<UserGroup, "workspace" | "group">;
 
+export const maxUserGroupsKept = 2_000;
 const membershipsClearedPerRun = 4_000;
 
 const listingScopeValidator = v.union(v.object({ kind: v.literal("every-group") }), v.object({ kind: v.literal("one-group"), workspace: v.string(), group: v.string() }));
@@ -43,7 +45,11 @@ export async function userGroupsOf(ctx: QueryCtx, workspace: string, user: ChatU
 export const keepUserGroups = internalMutation({
   args: { listed: v.array(userGroupValidator), scope: listingScopeValidator, asOf: v.number() },
   handler: async (ctx, { listed, scope, asOf }) => {
-    const gone = (await unlistedIn(ctx, scope, listed)).map((group) => ({ ...group, enabled: false }));
+    const stored = await ctx.db.query("userGroups").take(maxUserGroupsKept + 1);
+    const storedKeys = new Set(stored.map(keyOf));
+    const unknown = listed.filter((group) => !storedKeys.has(keyOf(group)));
+    if (stored.length + unknown.length > maxUserGroupsKept) throw new ReportableError("Slack listed more user groups than the directory keeps");
+    const gone = unlistedIn(stored, scope, listed).map((group) => ({ ...group, enabled: false }));
     let anyStoppedKeepingMembers = false;
     for (const group of [...listed, ...gone]) if (await keepUserGroup(ctx, group, asOf)) anyStoppedKeepingMembers = true;
     if (anyStoppedKeepingMembers) await ctx.scheduler.runAfter(0, internal.workspace.userGroups.clearUnkeptMemberships, {});
@@ -85,10 +91,14 @@ async function keepUserGroup(ctx: MutationCtx, group: UserGroup, asOf: number) {
   return row !== null && keepsMembers(row) && !keepsMembers(group);
 }
 
-async function unlistedIn(ctx: QueryCtx, scope: ListingScope, listed: UserGroup[]): Promise<UserGroup[]> {
-  const isListed = (key: GroupKey) => listed.some((group) => group.workspace === key.workspace && group.group === key.group);
-  const inScope = scope.kind === "every-group" ? await ctx.db.query("userGroups").collect() : [await userGroupRow(ctx, scope)];
-  return inScope.flatMap((row) => (row === null || isListed(row) ? [] : [userGroupOf(row)]));
+function unlistedIn(stored: Doc<"userGroups">[], scope: ListingScope, listed: UserGroup[]): UserGroup[] {
+  const listedKeys = new Set(listed.map(keyOf));
+  const inScope = (row: Doc<"userGroups">) => scope.kind === "every-group" || keyOf(row) === keyOf(scope);
+  return stored.filter((row) => inScope(row) && !listedKeys.has(keyOf(row))).map(userGroupOf);
+}
+
+function keyOf({ workspace, group }: GroupKey) {
+  return `${workspace}/${group}`;
 }
 
 function userGroupOf({ workspace, group, handle, name, enabled, automatic }: Doc<"userGroups">): UserGroup {
