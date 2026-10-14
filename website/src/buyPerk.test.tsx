@@ -234,6 +234,18 @@ describe("WS87: a refused purchase changes nothing and says why", () => {
     expect(nodeOf(perk)).toHaveAccessibleName(`${perk}. Can buy. Costs 1 skill point.`);
   });
 
+  it.each([
+    { reason: "coins", says: "That couldn't be bought. Not enough coins." },
+    { reason: "coins-not-open", says: "That couldn't be bought. Open Coins first." },
+  ] as const)("WS345: says $says for an upgrade refused for $reason", async ({ reason, says }) => {
+    const { user } = buyWith(async () => ({ kind: "refused", reason }), skillTreeFixtures.upgradeForCoins);
+    await user.click(nodeOf("Flame"));
+    await user.click(buyButton());
+    expect(announcement()).toHaveTextContent(new RegExp(`^${says}$`));
+    expect(details()).toHaveTextContent(says);
+    expect(buyButton()).toHaveAccessibleName("Buy for 1 skill point and 150 coins");
+  });
+
   it("keeps saying why in the perk's details when the read already shows it bought elsewhere", async () => {
     const later = answerLater();
     const { user, showTree } = buyWith(() => later.answer);
