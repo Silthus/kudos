@@ -1,11 +1,10 @@
+Fleet heavy: 2 heavy jobs run already; waiting for a free slot.
 $ pnpm typecheck && pnpm test && pnpm coherence
 $ tsc --noEmit && tsc --noEmit -p website
 $ vitest run
 
  RUN  v5.0.3 /home/coder/dev/kudos-wt/board-visibility
 
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
@@ -163,11 +162,17 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 
- Test Files  147 passed (147)
-      Tests  2476 passed (2476)
-   Start at  12:30:34
-   Duration  129.32s (tests 84%, import 8%, transform 4%, environment 3%)
+ Test Files  153 passed (153)
+      Tests  2653 passed (2653)
+   Start at  12:37:06
+   Duration  136.70s (tests 81%, import 11%, environment 4%, transform 3%, setup 1%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
@@ -210,6 +215,8 @@ Achievements  convex/achievements/Achievements.spec.md
       totality oracle "a tier the Book's replay earns while the Book doesn't apply is never announced" over a member's kudos before the launch, the launch storing the replay, a flag turned off before the replay's pages run, and the member opening the Book after the ship sweep once it is back, for each of the three flags, read through the member's DMs, the public posts and the Book tab: verified 2026-10-14
       refuted 2026-10-14: the replay pages stored no hidden mark
       kinds state, output: 11 shapes apply, 0 declared, 11 dismissed
+Activity  convex/activity/Activity.spec.md
+  (no invariants)
 Analytics  convex/analytics/Analytics.spec.md
   only allowlisted properties leave the deployment  invariant
       totality oracle "O10 F7: never sent, and the profile only on the person" over every PostHog request body the drain sends, with xp-levels, unlocks and quests on, for a kudos message that takes its giver to level 2 and activates and finishes their Journey's first-thanks, whose crate they then open from its DM, full of distinctive words, between two members whose Slack profiles carry distinctive real names, display names, emails and a title, with a custom kudos emoji, time zones, Slack user, team, channel, message and thread IDs, run through the whole loop from a signed Slack request, followed by an Over allowance and an Invalid message from the same giver, their App Home opening and their /hedgehug in a named channel, then with unlocks off and everyone-board on their Leaderboard tab, their /hedgehug leaderboard month and their `Show me on the leaderboards` turned off and back on, checked against those values, every stored Convex document ID, any Slack-shaped ID and the gate decision's fields, with each person event's $set and $unset taken out for the profile's own values: verified 2026-10-14
@@ -255,6 +262,13 @@ Company profiles  convex/companyProfiles/CompanyProfiles.spec.md
       refuted 2026-10-13: companyFaceOf took the first of two profiles with the member's name instead of falling back
       kinds read, identity: 5 shapes apply, 1 declared, 4 dismissed
 Engine  convex/engine/Engine.spec.md
+  only kudos messages' text is stored  invariant
+      totality oracle "AT40: only kudos messages' text is stored" over an ordinary chat message, a kudos message, a kudos message edited away or deleted in Slack, a kudos message whose author leaves Slack, a kudos message the backfill fills, a kudos message the backfill reaches after its author's or its workspace's deletion request, a kudos message the backfill reaches after its author left and came back, and a failure of the events mutation, of the directory recheck or of hydrate with capture on: verified 2026-10-14
+      refuted 2026-10-14: forgetDeleted wrote its deleted tombstone only for a message with no kudos text yet
+      refuted 2026-10-14: hydrateWords lost withholdingWords and backfillWords its carriesWords observation
+      refuted 2026-10-14: deletionRequested answered false, so neither the backfill's page nor hydrate saw a deletion request
+      refuted 2026-10-14: forgetWordsOfLeaver recorded no deletion request
+      kinds storage: 9 shapes apply, 0 declared, 9 dismissed
   awards are insert-only  invariant
       totality oracle "R18: awards are only ever inserted, never changed or deleted" over every module under convex/, outside its tests and the generated code: verified 2026-10-13
       refuted 2026-10-13: added withdrawAward to the awards module, which deletes an award by id
@@ -594,7 +608,7 @@ Website reads  convex/website/WebsiteReads.spec.md
       refuted 2026-10-13: made prepareWebsiteFlag a public mutation instead of an internal one
       kinds read, identity: 5 shapes apply, 1 declared, 4 dismissed
   website reads pass one guard  invariant
-      totality oracle "website reads pass one guard" over getMyProfile for no session, a signed-out and an expired session, a session left over after SLACK_WORKSPACE_ID changes, an unknown person being verified, a failed verification, a member user_change deactivates, the flag off, never created, without its workspace key, switched off under an open session, and SLACK_WORKSPACE_ID unset; getLeaderboard for no session, the flag off, a former member, a member, and an argument beside the period; getQuests with the flag off, no session, a former member, and an argument that names another member; getBook with the website flag off, no session, a former member, and an argument that names another member; getSkillTree with the flag off, no session, a former member, and an argument that names another member: verified 2026-10-14
+      totality oracle "website reads pass one guard" over getMyProfile for no session, a signed-out and an expired session, a session left over after SLACK_WORKSPACE_ID changes, an unknown person being verified, a failed verification, a member user_change deactivates, the flag off, never created, without its workspace key, switched off under an open session, and SLACK_WORKSPACE_ID unset; getLeaderboard for no session, the flag off, a former member, a member, and an argument beside the period; getQuests with the flag off, no session, a former member, and an argument that names another member; getBook with the website flag off, no session, a former member, and an argument that names another member; getSkillTree with the flag off, no session, a former member, and an argument that names another member; getActivity, getRecentKudos and getSpotlight with the website flag off and the activity flag on, no session, and a member user_change deactivates: verified 2026-10-14
       crossing browser -> domain
       refuted 2026-10-13: memberQuery dropped the check that the session's workspace is the current SLACK_WORKSPACE_ID
       kinds read, identity: 5 shapes apply, 1 declared, 4 dismissed
@@ -696,6 +710,16 @@ Website reads  convex/website/WebsiteReads.spec.md
       crossing browser -> domain
       refuted 2026-10-13: getLeaderboard's rows also carried the member's ID
       kinds read: 2 shapes apply, 2 declared, 0 dismissed
+  a member's activity holds only kudos they gave or received  invariant
+      totality oracle "AT14 AT28: a member's activity holds only kudos they gave or received" over getActivity and getRecentKudos in both directions for a member beside a private-channel kudos between two other members and one kudos to the member: verified 2026-10-14
+      crossing browser -> domain
+      refuted 2026-10-14: awardsReceivedNewestFirst read the whole recipient index instead of the member's own awards
+      kinds read: 2 shapes apply, 2 declared, 0 dismissed
+  the spotlight draws only public, said-why kudos of the member's workspace  invariant
+      totality oracle "AT31 AT34: the spotlight draws only public, said-why kudos of the member's workspace" over getSpotlight from a seed and through Next beside a private-channel kudos, a bare kudos, a kudos that gave nothing, a backfilled kudos with unknown visibility and another workspace's kudos, after an edit drops the reason, after a deletion in Slack, after the author leaves Slack, and while and after a giver or recipient leaves the leaderboards: verified 2026-10-14
+      crossing browser -> domain
+      refuted 2026-10-14: drawableKudosOf no longer required the kudos text's visibility to be public
+      kinds read: 2 shapes apply, 2 declared, 0 dismissed
 Welcome  convex/welcome/Welcome.spec.md
   welcomed at most once  invariant
       totality oracle "a member is welcomed at most once, whatever Slack redelivers and whichever awards follow" over the welcome messages sent for a first Given award, a redelivery of the Slack event that gave it, and later awards that name the same members as giver or recipient: verified 2026-10-13
@@ -709,9 +733,9 @@ Workspace  convex/workspace/Workspace.spec.md
       kinds identity, state: 10 shapes apply, 1 declared, 9 dismissed
 Website  website/Website.spec.md
   (no invariants)
-18 components, 114 bullets: 114 invariants, 0 requirements
-lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T10:16:45.688Z (647 runs)
-defects: 20 recorded, 17 closed (2 guarded, 15 decided, 0 with neither); 0 guard failures
+19 components, 117 bullets: 117 invariants, 0 requirements
+lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T10:16:45.688Z (685 runs)
+defects: 21 recorded, 17 closed (2 guarded, 15 decided, 0 with neither); 0 guard failures
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "karma"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:13  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
@@ -729,5 +753,5 @@ RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:68 
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:2  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:17  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
-ADVISORY       229 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 88, receipt 30, contract 23, panel 21, zone 21; reported, never failing, since inside the project its sense wins (--json lists each)
-0 rejected names, 0 unknown nouns (613 files), 17 in records
+ADVISORY       239 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 88, receipt 31, contract 30, panel 21, zone 21; reported, never failing, since inside the project its sense wins (--json lists each)
+0 rejected names, 0 unknown nouns (652 files), 17 in records
