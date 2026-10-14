@@ -8,8 +8,10 @@ import { homeTabValidator } from "./feedback/homes";
 import { publicReplyValidator } from "./feedback/publicReplies";
 import { segmentValidator } from "./feedback/replies";
 import { periodValidator } from "./leaderboard/periods";
+import { purchaseOutcomeValidator } from "./progression/perks";
 import { effectsRecordValidator } from "./progression/progress";
 import { rewardRecordValidator } from "./progression/rewards";
+import { perkValidator } from "./progression/tree";
 import { crateOpeningValidator } from "./quests/crates";
 import { journeyActivationValidator } from "./quests/journey";
 import { questDrawValidator, questProgressValidator, questSwapValidator } from "./quests/weekly";
@@ -185,6 +187,19 @@ export default defineSchema({
     xp: v.number(),
     pointsSpent: v.number(),
   }).index("by_member", ["member"]),
+
+  perksOwned: defineTable({
+    member: v.id("members"),
+    perk: perkValidator,
+    boughtAt: v.number(),
+    catalogueVersion: v.string(),
+  }).index("by_member_perk", ["member", "perk"]),
+
+  perkPurchases: defineTable({
+    member: v.id("members"),
+    key: v.string(),
+    outcome: purchaseOutcomeValidator,
+  }).index("by_member_key", ["member", "key"]),
 
   progressSettings: defineTable({
     member: v.id("members"),

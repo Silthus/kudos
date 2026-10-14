@@ -82,9 +82,9 @@ describe("P76: a feature's lines wait for its opening", () => {
     await withXp(t, "U_ALICE", 990);
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
-    expect(opened).toEqual(["section fields: *Level*\n*5* | *XP to level 6*\n*400*", "section: You have *1 skill point* saved for the skill tree."]);
+    expect(opened).toEqual(["section fields: *Level*\n*5* | *XP to level 6*\n*400*", "section: You have *1 skill point* to spend in the *Skill tree* tab."]);
     expect(dmsTo("U_ALICE").at(-1)).toEqual(["🎉 You reached level 6! You have 2 skill points saved for the skill tree.", "Level 7 is 500 XP away."]);
-    expect(progressionOf(publishedHome(slack, "U_ALICE"))).toEqual(["section fields: *Level*\n*6* | *XP to level 7*\n*500*", "section: You have *2 skill points* saved for the skill tree."]);
+    expect(progressionOf(publishedHome(slack, "U_ALICE"))).toEqual(["section fields: *Level*\n*6* | *XP to level 7*\n*500*", "section: You have *2 skill points* to spend in the *Skill tree* tab."]);
   });
 
   test("a level-up DM Slack held back names no skill points once the skill tree went off before its retry", async () => {

@@ -58,6 +58,11 @@ export async function progressionHomeOf(ctx: QueryCtx, member: MemberId): Promis
   return { ...memberStanding, xpToNextLevel: xpToNextLevel(memberStanding) };
 }
 
+export async function spendSkillPoints(ctx: MutationCtx, member: MemberId, points: number) {
+  const state = await progressOf(ctx, member);
+  await saveProgress(ctx, { ...state, pointsSpent: state.pointsSpent + points });
+}
+
 export async function progressOf(ctx: QueryCtx, member: MemberId): Promise<MemberProgress> {
   const row = await progressRow(ctx, member);
   return { member, xp: row?.xp ?? 0, pointsSpent: row?.pointsSpent ?? 0 };

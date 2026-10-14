@@ -47,7 +47,7 @@ export const receiveHomeClick = internalMutation({
     await ctx.db.insert("slackReceipts", receipt);
     const person = await lookup(ctx, receipt.workspace, user);
     if (person?.kind !== "member") return;
-    for (const command of commands) await runCommand(ctx, receipt.workspace, person, command);
+    for (const command of commands) await runCommand(ctx, receipt.workspace, person, command, receipt.eventId);
     await republish(ctx, person.member);
   },
 });

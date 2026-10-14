@@ -2,17 +2,20 @@ import type { Command } from "../commands/commands";
 import type { HomeFacts, KudosHome } from "../engine/home";
 import type { Period } from "../leaderboard/periods";
 import { skillTreeLevel } from "../progression/levels";
+import type { MemberPerks, Refusal } from "../progression/perks";
+import { perkOf } from "../progression/tree";
 import type { ProgressSettings } from "../progression/settings";
 import type { JourneyStepFacts } from "../quests/journey";
 import { questOf } from "../quests/pool";
 import type { WeeklyQuests, WeeklySlot } from "../quests/weekly";
 import type { JourneyQuest, JourneyStep, Quest, WeeklyQuest } from "../quests/step";
-import type { ScheduledFeature } from "../unlocks/schedule";
+import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import type { UnlocksHome } from "../unlocks/unlocks";
 import type { HomeTab, ShownHome, ShownTab, ToldProgression } from "./homes";
 import { renderEveryoneBoard } from "./leaderboard";
 import { productName, skillPointsOf, slashCommand } from "./naming";
 import type { Line } from "./replies";
+import { unopenedTextOf } from "./unlockFilter";
 
 export type HomeView = { tabBar?: Choice[]; title: string; groups: HomeLine[][] };
 
@@ -32,7 +35,7 @@ export type HomeLine =
 
 type MemberHome = Extract<HomeFacts, { kind: "member" }>;
 
-const tabLabels: Record<HomeTab, string> = { profile: "Profile", leaderboard: "Leaderboard", settings: "Settings", admin: "Admin" };
+const tabLabels: Record<HomeTab, string> = { profile: "Profile", leaderboard: "Leaderboard", skillTree: "Skill tree", settings: "Settings", admin: "Admin" };
 
 const periods: Array<{ period: Period; label: string }> = [
   { period: "week", label: "This week" },
@@ -67,6 +70,8 @@ function tabOf(facts: MemberHome, shown: ShownTab): HomeView {
       return profileOf(facts, shown);
     case "leaderboard":
       return { title: "Leaderboard", groups: [[periodChoices(shown.period), { kind: "lines", lines: renderEveryoneBoard(shown.board, shown.period) }]] };
+    case "skillTree":
+      return { title: "Skill tree", groups: skillTreeGroups(shown.perks) };
     case "settings":
       return { title: "Settings", groups: settingsGroups(shown) };
     case "admin":
@@ -85,6 +90,38 @@ function profileOf(kudos: KudosHome, { progression, unlocks, quests, journey }: 
 
 function periodChoices(selected: Period): HomeLine {
   return { kind: "choices", choices: periods.map(({ period, label }) => ({ label, command: { type: "showLeaderboard", period }, selected: period === selected })) };
+}
+
+function skillTreeGroups({ skillPoints, perks }: MemberPerks): HomeLine[][] {
+  const condition: HomeLine = { kind: "hint", text: "Bonuses count when your message has 5 or more words besides mentions and emoji." };
+  return [[{ kind: "text", text: `You have ${bold(skillPointsOf(skillPoints))} to spend.` }], [...perks.flatMap(perkLines), condition]];
+}
+
+function perkLines(perk: TreePerk): HomeLine[] {
+  const { name, skillPoints, copy, state } = perk;
+  if (state === "owned") return [{ kind: "text", text: `✅ ${bold(name)} · Owned\n${copy}` }];
+  const text = `${bold(name)} · ${skillPointsOf(skillPoints)}\n${copy}`;
+  if (state === "buyable") return [{ kind: "action", text, action: { label: "Buy", command: { type: "buyPerk", perk: perk.perk } } }];
+  return [{ kind: "text", text }, { kind: "hint", text: whyNotOf({ ...perk, state }) }];
+}
+
+type TreePerk = MemberPerks["perks"][number];
+
+export function whyNotOf({ state, row, requires, skillPoints }: TreePerk & { state: Refusal }) {
+  switch (state) {
+    case "tree-locked":
+      return unopenedTextOf(scheduled("skillTree"), "locked");
+    case "tree-ready":
+      return unopenedTextOf(scheduled("skillTree"), "ready");
+    case "owned":
+      return "You own it.";
+    case "below-row":
+      return `It opens at level ${row}.`;
+    case "needs-prerequisite":
+      return `You need ${perkOf(requires!).name} first.`;
+    case "no-skill-points":
+      return `You need ${skillPointsOf(skillPoints)}.`;
+  }
 }
 
 function settingsGroups({ onTheBoards, progress }: Extract<ShownTab, { tab: "settings" }>): HomeLine[][] {
@@ -157,10 +194,11 @@ function allowanceOf({ left, base }: KudosHome): HomeLine {
   return { kind: "text", text };
 }
 
-function progressOf({ level, xpToNextLevel, skillPoints }: ToldProgression): HomeLine[] {
+function progressOf({ level, xpToNextLevel, skillPoints, skillTreeTab }: ToldProgression): HomeLine[] {
   const levelFigures: HomeLine = { kind: "fields", fields: [figure("Level", level), figure(`XP to level ${level + 1}`, xpToNextLevel)] };
   if (skillPoints === null || level < skillTreeLevel) return [levelFigures];
-  return [levelFigures, { kind: "text", text: `You have ${bold(skillPointsOf(skillPoints))} saved for the skill tree.` }];
+  const spentWhere = skillTreeTab ? `to spend in the ${bold("Skill tree")} tab` : "saved for the skill tree";
+  return [levelFigures, { kind: "text", text: `You have ${bold(skillPointsOf(skillPoints))} ${spentWhere}.` }];
 }
 
 function unlockLinesOf({ ready, next }: UnlocksHome): HomeLine[] {
