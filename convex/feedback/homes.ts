@@ -60,9 +60,11 @@ export const shownHomeOf = internalMutation({
   },
 });
 
-export async function showHomeTab(ctx: MutationCtx, workspace: string, person: HomeMember, tab: HomeTab) {
-  if (!tabsOf(await slicesShownTo(ctx, workspace, person)).includes(tab)) return;
-  await select(ctx, person.member, { ...(await selectionOf(ctx, person.member)), tab });
+export async function showHomeTab(ctx: MutationCtx, workspace: string, person: HomeMember, tab: HomeTab): Promise<HomeSelection | null> {
+  if (!tabsOf(await slicesShownTo(ctx, workspace, person)).includes(tab)) return null;
+  const selection = { ...(await selectionOf(ctx, person.member)), tab };
+  await select(ctx, person.member, selection);
+  return selection;
 }
 
 export async function selectLeaderboardPeriod(ctx: MutationCtx, member: MemberId, period: Period) {

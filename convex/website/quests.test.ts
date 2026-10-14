@@ -8,7 +8,7 @@ import { opens, reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aMember, aSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import { allowanceDay } from "../engine/allowance";
-import { openQuestCrate } from "../quests/crates";
+import { openQuestCrate } from "../quests/open";
 import { questOf, type QuestId } from "../quests/pool";
 import type { Quest } from "../quests/step";
 import { rerollQuest } from "../quests/weekly";

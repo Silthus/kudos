@@ -238,7 +238,7 @@ describe("a website command is a D17 command", () => {
     expect(await openQuestCrate(asSignedIn, firstSlot)).toEqual({ kind: "opened" });
 
     expect(await crateOpeningsOf(member)).toContainEqual(expect.objectContaining({ key: `weekly:${thisWeek}:0` }));
-    expect(publishedEvents()).toContainEqual({ type: "questOpened", workspace: "T1", member, quest: firstSlot, at: now.getTime() });
+    expect(publishedEvents()).toContainEqual({ type: "questOpened", workspace: "T1", member, quest: firstSlot, poolQuest: "say-why", at: now.getTime() });
   });
 
   test("WS74: App Home's republished view no longer offers the step's crate", async () => {
