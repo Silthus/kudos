@@ -41,38 +41,39 @@ Each rule is a testable statement; tests cite it (`E3`). PostHog rules are cited
 
   | Event | Sent for | On whom | Properties besides O2 |
   |---|---|---|---|
-  | `level reached` | each `levelReached` (P6: one per award or reward record that crosses a level, for the highest level reached) | the member | `level`, `skill_points_gained`, `via` (`kudos`, `reward`) |
+  | `level reached` | each `levelReached`: one per member for the awards of one kudos message they are named in, or for one reward record, that cross a level, for the highest level reached (P6) | the member | `level`, `skill_points_gained`, `via` (`kudos`, `reward`) |
   | `unlock made ready` | each `unlockReady` (P73 at a level up, P78 at a ship) | the member | `feature` |
   | `unlock opened` | each `unlockOpened` (P73, P77) | the member | `feature`, `by` (`member`, `launch`) |
   | `quest drawn` | each quest in a stored weekly draw (P80) | the member | `quest` |
   | `quest swapped` | each stored swap (P81) | the member | `replaced`, `quest` |
   | `quest finished` | each `questFinished` (P85, P87) | the member | `kind` (`weekly`, `journey`), `quest`, `xp`, `coins` |
   | `crate opened` | each `questOpened` (P85, P92) | the member | `kind` (`weekly`, `journey`), `quest` |
+  | `journey step activated` | each Journey step stored as active (P88, P91) | the member | `step` |
 
-  `via` is `reward` when the level was crossed by a reward record, which has no kudos message (P64, P87), and `kudos` otherwise. `feature` is one of `quests`, `leaderboard`, `book`, `skill tree`, `coins`, `hedgehogs` (P72). `by` is `launch` for the openings P77 stores when unlocks first ship and `member` for an `Open`. `quest` is the quest pool's stable ID for a weekly quest (for example `say-why-two-days`) and the step's ID for a Journey step (for example `first-thanks`); `replaced` is the pool ID of the quest a swap took out. `xp` and `coins` are what the reward record holds (P86, P87). A Journey step has no `quest drawn`: it becomes active when its feature opens (P88), which `unlock opened` already records.
+  `via` is `reward` when the level was crossed by a reward record, which has no kudos message (P64, P87), and `kudos` otherwise. `feature` is one of `quests`, `leaderboard`, `book`, `skill tree`, `coins`, `hedgehogs` (P72). `by` is `launch` for the openings P77 stores when unlocks first ship and `member` for an `Open`. `quest` is the quest pool's stable ID for a weekly quest (for example `say-why-two-days`) and the step's ID for a Journey step (for example `first-thanks`); `replaced` is the pool ID of the quest a swap took out. `xp` and `coins` are what the reward record holds (P86, P87). `step` is the Journey step's ID. A Journey step is never drawn: `journey step activated` records when it becomes active, whether from the start (`first-thanks`), at its feature's opening, or by the Journey's join for members already playing (P91), which launch openings don't announce.
 - **E2. The leaderboard's events.**
 
   | Event | Sent for | On whom | Properties besides O2 |
   |---|---|---|---|
-  | `leaderboard viewed` | each time a member asks to see a board and is shown it: the App Home Leaderboard tab, a period choice on it, or `/hedgehug leaderboard` | the member | `board` (`everyone`), `period` (`week`, `month`, `all`), `surface` (`app home`, `command`) |
+  | `leaderboard viewed` | each accepted request to see a board that today's rules let the member see: choosing the App Home Leaderboard tab, a period on it, or `/hedgehug leaderboard` with a board in its reply | the member | `board` (`everyone`), `period` (`week`, `month`, `all`), `surface` (`app home`, `command`) |
   | `leaderboard left` | `Show me on the leaderboards` turned off (G22) | the member | none |
   | `leaderboard joined` | `Show me on the leaderboards` turned back on | the member | none |
 
-  A request the member isn't shown a board for (the board is dark, Leaderboard is unopened, the command's period is unknown) sends nothing. Opening App Home onto a tab it already shows is `app home opened` only. A setting that doesn't change (on while already on, the first setting stored at its default) sends nothing.
+  The event records the request, once, in the mutation that accepts it, not the App Home publish that follows: a publish can be retried, superseded or fail, and recording there would count one request several times. Eligibility is whatever the board's own rules decide today (G23, P76 through `isLeaderboardShownTo` and the unlock filter): a request they don't show a board for (the board dark, Leaderboard ready but not opened while unlocks apply, an unknown period) sends nothing, and one they do, including where unlocks don't apply, is a view. Opening App Home onto a tab it already shows is `app home opened` only. A setting that doesn't change (on while already on, the first setting stored at its default) sends nothing.
 - **E3. `kudos given` grows** `thoughtful`: true when the giver's gate decision (P12) says the message counts as thoughtful (P11), false otherwise. Only the boolean is sent, never the word count or anything the gate read (O10).
 - **E4. The version stays.** Every addition is new events or a new property on `kudos given`; no existing event changes its meaning, so `taxonomy_version` stays 1 (O2, O6).
 
 ### Where the events come from
 
-- **E5. From domain events.** Each progression event is projected from the domain event that makes its fact true, recorded by an analytics subscriber in the transaction the bus schedules for it (O13). Domain events grow only additively (D14): `questFinished` and `questOpened` gain the weekly quest's pool ID, `questFinished` gains the reward's `xp` and `coins`, and quests publishes two new ones, `questsDrawn` and `questSwapped`, whose only subscriber is analytics. A field added to an existing domain event is optional in its validator, so a subscriber job queued before the deploy still runs.
-- **E6. From usage facts.** The leaderboard's events are usage facts recorded in the mutation that shows the board or changes the setting, like `app home opened` (O13). A command answered in an action records through one internal mutation once it knows it showed a board.
-- **E7. Exactly once.** Each fact sends its event once (O4): a level up, readiness, opening, draw, swap, finish and crate opening are each stored once, and their domain events are published only when they are; a redelivered or retried Slack request that finds the fact already stored publishes and records nothing.
+- **E5. From domain events.** Each progression event is projected from the domain event that makes its fact true, recorded by an analytics subscriber in the transaction the bus schedules for it (O13). Domain events grow only additively (D14): `questFinished` and `questOpened` gain the weekly quest's pool ID, `questFinished` gains the reward's `xp` and `coins`, and quests publishes three new ones, `questsDrawn`, `questSwapped` and `journeyStepActivated`, whose only subscriber is analytics. A field added to an existing domain event is optional in its validator, so a subscriber job queued before the deploy still runs.
+- **E6. From usage facts.** The leaderboard's events are usage facts recorded with the mutation that accepts the request or changes the setting, like `app home opened` (O13). A command answered in an action records through one internal mutation once it knows it showed a board. Recording is isolated: a recording failure is logged with a fixed code and never rolls back the member's change, their interaction or their reply (O15, O20), for example by recording in a scheduled internal mutation of its own.
+- **E7. Exactly once.** Each fact sends its event once (O4): a level up, readiness, opening, draw, swap, finish and crate opening are each stored once, and their domain events are published only when they are; a redelivered or retried Slack request that finds the fact already stored publishes and records nothing. Slack doesn't redeliver slash commands or interaction payloads, so each accepted request records once; a member asking again is a new request and a new view (as for `command used`, #69).
 - **E8. No history.** Events start when this stopping point ships. Nothing replays earlier levels, unlocks, quests or views, and backfills send nothing: P10's progression backfill and the leaderboard's backfill publish no domain events (O4: an event is recorded at its fact, never by a replay).
 
 ### Dark features
 
 - **E9. Sent whatever the flag.** An event is sent whenever its fact happens, while its feature's flag is on or off. Analytics reads no feature flag and has no flag of its own.
-- **E10. A dark feature's facts don't happen.** Unlocks, quests and the Everyone board record nothing while they are dark (#104, #128, #81), so they send nothing. XP and levels are recorded dark in production (#80), so production sends `level reached` and `thoughtful` while `xp-levels` is off.
+- **E10. A dark feature's facts happen only as its own rules allow.** In production today every progression flag is off: unlocks, quests and the Everyone board record nothing (#105, #129, #81), so they send nothing, while XP and levels are recorded dark (#80), so production sends `level reached` and `thoughtful` while `xp-levels` is off. Where a mix of flags is on (for example `quests` on and `unlocks` off, where readiness is still stored), or a job queued before a switch-off still runs (the Journey's join), analytics sends whatever facts happen. It never filters by flag.
 - **E11. Analytics never reveals a dark feature.** Recording an event writes only the analytics outbox (and an analytics ID or workspace key the first time): it publishes no domain event, sends no exposure (O36), republishes no App Home, schedules nothing but the drain, and changes no row another module reads. So no event can make a dark feature ready, opened, shown or named to a member (P76, P78), and with capture on or off a member sees the same Slack calls.
 - **E12. No dark marker.** Events carry no property saying whether their feature was switched on. A flag's switch-on is dated by its PostHog activity history, and production insights about a feature start from it.
 
@@ -84,8 +85,8 @@ Each rule is a testable statement; tests cite it (`E3`). PostHog rules are cited
 
 ### Modules
 
-- **Analytics (extended)**: one projection per new event, pure and table-tested, beside the core loop's; analytics subscribers for `levelReached`, `unlockReady`, `unlockOpened`, `questsDrawn`, `questSwapped`, `questFinished` and `questOpened`; usage facts for the leaderboard's events; `thoughtful` in the `kudos given` projection, read from the gate decision in the event's annotations. Its component spec gains the new events and E11 as an invariant.
-- **Quests (extended)**: publishes `questsDrawn` when a weekly draw is stored and `questSwapped` when a swap is stored, and adds the pool ID and the reward to the events it already publishes. It knows nothing of PostHog.
+- **Analytics (extended)**: one projection per new event, pure and table-tested, beside the core loop's; analytics subscribers for `levelReached`, `unlockReady`, `unlockOpened`, `questsDrawn`, `questSwapped`, `questFinished`, `questOpened` and `journeyStepActivated`; usage facts for the leaderboard's events; `thoughtful` in the `kudos given` projection, read from the gate decision in the event's annotations. Its component spec gains the new events and E11 as an invariant.
+- **Quests (extended)**: publishes `questsDrawn` when a weekly draw is stored, `questSwapped` when a swap is stored and `journeyStepActivated` where a Journey step's activation is inserted (one place today), and adds the pool ID and the reward to the events it already publishes. It knows nothing of PostHog.
 - **Leaderboard, Commands and the Slack adapter (extended)**: report a shown board and a changed `Show me on the leaderboards` setting as platform-neutral usage facts.
 - **Progression and unlocks**: unchanged. Their domain events already carry what the projections need.
 
@@ -98,6 +99,7 @@ type QuestFinishedEvent = { /* today's fields */ poolQuest?: QuestId; reward?: {
 type QuestOpenedEvent = { /* today's fields */ poolQuest?: QuestId };
 type QuestsDrawnEvent = { type: "questsDrawn"; workspace: string; member: MemberId; week: string; quests: QuestId[]; at: number };
 type QuestSwappedEvent = { type: "questSwapped"; workspace: string; member: MemberId; week: string; replaced: QuestId; swappedIn: QuestId; at: number };
+type JourneyStepActivatedEvent = { type: "journeyStepActivated"; workspace: string; member: MemberId; step: JourneyStep; at: number };
 ```
 
 `poolQuest` is set for weekly quests and absent for Journey steps, whose ID is already in `quest.step`. The bus's registry gains the analytics subscribers; `unlockReady` and `questOpened`, whose subscriber lists are empty today, get their first.
@@ -121,6 +123,7 @@ function projectQuestsDrawn(event: QuestsDrawnEvent): ProductEvent[];           
 function projectQuestSwapped(event: QuestSwappedEvent): ProductEvent;
 function projectQuestFinished(event: QuestFinishedEvent): ProductEvent;
 function projectQuestOpened(event: QuestOpenedEvent): ProductEvent;             // crate opened
+function projectJourneyStepActivated(event: JourneyStepActivatedEvent): ProductEvent;
 ```
 
 Feature IDs map to the spaced names of E1 in one table (`skillTree` → `skill tree`), like `outcome` today.
@@ -136,7 +139,8 @@ No new table, no new environment variable, no new flag, no person property and n
   1. **The Slack boundary**, as in #75: signed Slack requests through the HTTP router with `convex-test`, the one `fetch` stub that answers Slack's Web API and PostHog's `/batch/`, the scheduled drain run, and the PostHog requests read back. Each ticket proves its events end to end from a member's action: a kudos that crosses a level, an `Open` click, a swap, a kudos that finishes a quest, a crate's `Open`, a tab or period choice, `/hedgehug leaderboard`, the settings toggle. The privacy invariant's whole-loop test grows to cover each new event (O10).
   2. **The analytics module's projections** as rule tables (E1–E3), including the feature-name table and `via`, `by` and `kind`.
 - **Exactly once (E7)** is tested by repeating the member's action and redelivering its Slack request: the second sends nothing.
-- **Dark (E9–E11)** is tested with the flags key and every flag off, with the flags key missing, and with every flag on: a kudos that crosses a level sends `level reached` while `xp-levels` is off, unlocks, quests and the board send nothing while dark, and with capture on and off every Slack call a member gets is the same.
+- **Dark (E9–E11)** is tested with the flags key and every flag off, with the flags key missing, with a mix (`quests` on and `unlocks` off), with every flag on, and with the Journey's join queued before a switch-off: a kudos that crosses a level sends `level reached` while `xp-levels` is off, a feature sends exactly the facts it stored, and with capture on and off every Slack call a member gets is the same.
+- **Isolation (E6)** is tested by making the recording fail: the member's tab, period or setting change, the interaction's answer and every Slack call stay as they would without analytics.
 - **Prior art:** `convex/analytics/coreLoopFacts.test.ts`, `kudosGiven.test.ts`, `projections.test.ts`, the flag tests in `convex/slack/*Flag.test.ts`, and `testing/fakePostHog.ts`, `testing/flags.ts` and `settleInTimeOrder` in `testing/slackBackend.ts` (convex-test's plain settle can run a later job before an earlier one).
 - **The gate** (`pnpm gate`) is green on every ticket. The analytics component spec declares E11 as an invariant with a witnessed refutation.
 
@@ -175,7 +179,7 @@ Acceptance criteria for the conductor to fold into each stopping point's tickets
 3. **No new flag.** Events need none, and E11 makes them invisible to members. Nothing for the conductor to create in PostHog.
 4. **No `xp earned` yet**, because base XP is already counted by the kudos events and the only other XP today is quest rewards (Out of Scope). The skill tree's stopping point adds it with bonus XP.
 5. **No person properties** (O12): `level` as a person property would need nested `$set` support in the outbox for a breakdown cohorts already give.
-6. **Quests publish two new domain events**, `questsDrawn` and `questSwapped`, whose only subscriber is analytics, like `attemptFailed`. Analytics never reads quests' tables (P93's intent: build on derived events).
+6. **Quests publish new domain events**, `questsDrawn`, `questSwapped` and `journeyStepActivated`, whose only subscriber is analytics, like `attemptFailed`. Analytics never reads quests' tables (P93's intent: build on derived events).
 7. **Weekly quests are named by their pool ID**, carried on `questFinished` and `questOpened`, because the slot key (week and slot) says nothing about the quest. Journey steps are named by their step ID; `kind` keeps the two apart where IDs coincide (`someone-new`).
 8. **New domain event fields are optional** (E5), so a subscriber job queued before the deploy doesn't fail on its arguments.
 9. **A quest crate's opening is `crate opened`, a ready feature's is `unlock opened`**, following the domain events. Opening an unlock changes what the member sees; opening a quest crate only reveals (P92).
@@ -183,4 +187,7 @@ Acceptance criteria for the conductor to fold into each stopping point's tickets
 11. **Leaderboard views count requests to see a board** (E2), not App Home opens onto a tab already shown, and carry `board` now so group boards add a value instead of a property.
 12. **No history** (E8): nothing is replayed, so production's events about the game start at this ship.
 13. **Groups' `group_key` and the group analytics switch wait for #52**, since no domain group exists.
-14. **Thin tickets on one integration branch**, each proven at the Slack boundary, with the ship merging `main` first. The `to-spec` and `to-tickets` skills aren't installed on this devbox, so the spec and the breakdown follow their shape by hand.
+14. **`journey step activated` gets its own domain event** (E1, E5), published where the activation is inserted, because `unlock opened` misses `first-thanks` and the join's activations, so it can't be the Journey's denominator.
+15. **A leaderboard view is an accepted, eligible request**, recorded once where it is accepted (E2), not at the App Home publish, which retries and compares; eligibility follows the board's rules as they are, unlocks applying or not.
+16. **Usage-fact recording is isolated from the member's change** (E6), because a throw in the same mutation would roll back the change itself.
+17. **Thin tickets on one integration branch**, each proven at the Slack boundary, with the ship merging `main` first. The `to-spec` and `to-tickets` skills aren't installed on this devbox, so the spec and the breakdown follow their shape by hand.
