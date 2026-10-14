@@ -190,6 +190,16 @@ describe("WS85 WS86: the selected perk's details", () => {
     expect(details()).not.toHaveTextContent("Owned since");
   });
 
+  it("open no drawer for a press made on a wide screen once the screen narrows", async () => {
+    const { user, showVisitor } = showWideTree(skillTreeFixtures.withPoints);
+    await user.click(nodeOf("Circle"));
+    fakeSystemTheme(false);
+    showVisitor(withTheTree);
+    await act(async () => undefined);
+    expect(drawer()).toBeNull();
+    expect(nodeOf("Circle")).toHaveAttribute("aria-pressed", "true");
+  });
+
   it("open in a drawer on narrow screens, which Esc closes with focus back on the node", async () => {
     const { user } = showTree(skillTreeFixtures.withPoints);
     expect(within(main()).queryByRole("region", { name: "Perk details" })).toBeNull();

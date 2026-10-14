@@ -17,7 +17,7 @@ export function SkillTreePage({ tree }: { tree: Tree }) {
   const selected = selectedIn(tree.rows, chosen);
   const select = (perk: PerkNode["perk"]) => {
     setChosen(perk);
-    setDrawerOpen(true);
+    setDrawerOpen(!wide);
   };
   return (
     <div className="flex flex-col gap-6">
