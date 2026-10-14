@@ -25,7 +25,10 @@ export const subscribers: Registry = {
     { subscriber: internal.quests.weekly.drawWeeklyQuests, only: ({ feature, byLaunch }) => byLaunch !== true && feature === "quests" },
     { subscriber: internal.quests.journey.activateJourney, only: ({ feature, byLaunch }) => byLaunch !== true && journeyStepOpenedBy(feature) !== null },
   ],
-  questFinished: [{ subscriber: internal.quests.journey.finishFirstQuest, only: ({ quest }) => quest.kind === "weekly" }],
+  questFinished: [
+    { subscriber: internal.quests.journey.finishFirstQuest, only: ({ quest }) => quest.kind === "weekly" },
+    internal.analytics.subscribers.recordQuestFinished,
+  ],
   questOpened: [],
   journeyStepActivated: [internal.analytics.subscribers.recordJourneyStepActivated],
   memberLeft: [internal.quests.journey.recheckSomeoneNew],

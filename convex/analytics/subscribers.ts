@@ -5,10 +5,11 @@ import {
   kudosGivenEventValidator,
   levelReachedEventValidator,
   memberWelcomedEventValidator,
+  questFinishedEventValidator,
 } from "../bus/events";
 import { failuresLogged } from "./failures";
 import { record } from "./outbox";
-import { projectAttemptFailed, projectJourneyStepActivated, projectKudosGiven, projectLevelReached, projectMemberWelcomed } from "./projections";
+import { projectAttemptFailed, projectJourneyStepActivated, projectKudosGiven, projectLevelReached, projectMemberWelcomed, projectQuestFinished } from "./projections";
 
 export const recordKudosGiven = internalMutation({
   args: { event: kudosGivenEventValidator },
@@ -35,6 +36,13 @@ export const recordLevelReached = internalMutation({
   args: { event: levelReachedEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
     await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectLevelReached(event)]));
+  },
+});
+
+export const recordQuestFinished = internalMutation({
+  args: { event: questFinishedEventValidator },
+  handler: async (ctx, { event }): Promise<void> => {
+    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectQuestFinished(event)]));
   },
 });
 

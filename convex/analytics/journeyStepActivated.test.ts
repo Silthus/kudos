@@ -130,7 +130,7 @@ describe("E1 P91: the Journey's join for members already playing", () => {
     expect(await rewardTimesOf(t, "U_ALICE")).toEqual({ "journey:first-thanks": shipped, "journey:someone-new": shipped });
   });
 
-  test("a step the join finishes at once is published active before its questFinished", async () => {
+  test("a step the join finishes at once sends journey step activated before its quest finished", async () => {
     const t = await workspaceWith("xp-levels", "unlocks", "everyone-board");
     await directoryKnows(t, "U_ALICE");
     await directoryKnows(t, "U_BOB");
@@ -146,6 +146,8 @@ describe("E1 P91: the Journey's join for members already playing", () => {
       "journeyStepActivated someone-new",
       "questFinished someone-new",
     ]);
+    const alice = giverId();
+    expect(journeyEventsSentOn(alice)).toEqual(["journey step activated first-thanks", "quest finished first-thanks", "journey step activated someone-new", "quest finished someone-new"]);
   });
 });
 
@@ -250,6 +252,12 @@ function journeyFactsPublishedFor(member: MemberId) {
       if (event.type === "questFinished" && event.member === member && event.quest.kind === "journey") return [`${event.type} ${event.quest.step}`];
       return [];
     });
+}
+
+function journeyEventsSentOn(distinctId: string) {
+  return productEvents()
+    .filter((event) => event.distinct_id === distinctId && (event.event === "journey step activated" || event.properties.kind === "journey"))
+    .map(({ event, properties }) => `${event} ${String(properties.step ?? properties.quest)}`);
 }
 
 function productEvents(): CapturedEvent[] {
