@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Root } from "./Root";
 import { bookFixtures } from "./bookFixtures";
 import { leaderboardFixtures } from "./leaderboardFixtures";
+import { recentKudosFixtures } from "./recentKudosFixtures";
 import { shellFixtures } from "./shell";
 import { skillTreeFixtures } from "./skillTreeFixtures";
 import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
@@ -257,6 +258,49 @@ describe("WS111: the home's rail reads through the live shell", () => {
     renderLiveSite();
 
     expect(watchedQueries).not.toContain("website/leaderboard:getLeaderboard");
+  });
+});
+
+describe("WS200 WS207: the Recent kudos card reads getRecentKudos through the live shell", () => {
+  function recentKudosAsked() {
+    return [...subscriptions].filter(({ query }) => query === "website/activity:getRecentKudos").map(({ args }) => args);
+  }
+
+  it("subscribes once to the last three kudos received across re-renders, then to the last three given once switched", async () => {
+    profileRead.mockReturnValue(shellFixtures.memberWithEveryPanelLocked);
+    boardRead.mockReturnValue(recentKudosFixtures.threeReceived);
+    const { user } = renderLiveSite();
+    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryPanelLocked, thisWeek: { given: 3, received: 1 } });
+    boardAnswers(recentKudosFixtures.threeReceived);
+
+    const card = within(screen.getByRole("main")).getByRole("region", { name: "Recent kudos" });
+    expect(card).toHaveTextContent("Ada Lindqvist thanked you");
+    expect(recentKudosAsked()).toEqual([{ direction: "received", limit: 3 }]);
+
+    await user.click(within(card).getByRole("radio", { name: "Given" }));
+
+    expect(recentKudosAsked()).toEqual([{ direction: "given", limit: 3 }]);
+  });
+
+  it("takes the card away when the read fails after it showed rows", () => {
+    profileRead.mockReturnValue(shellFixtures.memberWithEveryPanelLocked);
+    boardRead.mockReturnValue(recentKudosFixtures.threeReceived);
+    renderLiveSite();
+    expect(within(screen.getByRole("main")).getByRole("region", { name: "Recent kudos" })).toBeInTheDocument();
+
+    boardAnswers(new Error("Too many documents read"));
+
+    expect(within(screen.getByRole("main")).queryByRole("region", { name: "Recent kudos" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Sam Example" })).toBeInTheDocument();
+  });
+
+  it("renders no card and keeps the home when the read fails", () => {
+    profileRead.mockReturnValue(shellFixtures.memberWithEveryPanelLocked);
+    boardRead.mockReturnValue(new Error("Too many documents read"));
+    renderLiveSite();
+
+    expect(within(screen.getByRole("main")).queryByRole("region", { name: "Recent kudos" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Sam Example" })).toBeInTheDocument();
   });
 });
 
