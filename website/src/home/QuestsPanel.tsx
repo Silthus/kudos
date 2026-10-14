@@ -1,7 +1,8 @@
 import { AppLink } from "../AppLink";
-import { Done } from "../crates/RewardCrate";
+import { Claimed } from "../crates/RewardCrate";
 import { MaxLine } from "../Max";
 import type { QuestsShown } from "../questsRead";
+import { questsHref } from "../route";
 import type { QuestSlot } from "../shell";
 import { SlackLink } from "../SlackLink";
 import { PageLink, Panel } from "./Panel";
@@ -34,12 +35,16 @@ function QuestRow({ slot: { slot, goal, progress, state } }: { slot: QuestSlot }
   const finished = state === "finished";
   return (
     <li className="relative flex flex-col gap-1.5 rounded-lg px-2 py-2 hover:bg-fill-hover">
-      <AppLink href={finished ? `/quests?quest=${slot}` : "/quests"} className="flex items-start justify-between gap-2 text-sm leading-snug after:absolute after:inset-0 after:rounded-lg">
+      <AppLink href={questsHref(finished ? slot : undefined)} className="flex items-start justify-between gap-2 text-sm leading-snug after:absolute after:inset-0 after:rounded-lg">
         <span className="min-w-0">{goal}</span>
         {finished && <Claim />}
       </AppLink>
       {state === "in-progress" && <Progress goal={goal} {...progress} />}
-      {state === "opened" && <Done />}
+      {state === "opened" && (
+        <span className="self-start">
+          <Claimed />
+        </span>
+      )}
     </li>
   );
 }

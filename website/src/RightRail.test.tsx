@@ -105,11 +105,12 @@ describe("WS109 WS315 WS316: Quests this week", () => {
     expect(quests).toHaveTextContent("1/3");
   });
 
-  it("lets a finished quest read Claim and link to its own card, and an opened quest show a check and Done", () => {
+  it("lets a finished quest read Claim and link to its own card, and an opened quest show a check and Claimed, as /quests does", () => {
     const quests = questsPanel();
     expect(within(quests).getByRole("link", { name: "Thank someone you haven't thanked before. Claim" })).toHaveAttribute("href", "/quests?quest=1");
     expect(quests).not.toHaveTextContent("Reward ready");
-    expect(within(quests).getByText("Done")).toBeInTheDocument();
+    expect(quests).not.toHaveTextContent("Done");
+    expect(within(quests).getByText("Claimed")).toBeInTheDocument();
     expect(within(quests).queryByRole("button")).not.toBeInTheDocument();
   });
 
