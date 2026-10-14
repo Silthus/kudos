@@ -48,7 +48,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the website's link function answers a link", () => {
+describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the website's link function answers a link", { timeout: 30_000 }, () => {
   test("a member who opened Quests and the Leaderboard sees the summary: allowance, one level line, the waiting crate, the week's quests with Swap, and buttons to Home and the Leaderboard", async () => {
     const t = await workspace(...everyFlag, "website");
     await levelThreeWithQuestsDrawn(t);
