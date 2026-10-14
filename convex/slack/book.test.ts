@@ -9,6 +9,7 @@ import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import type { LadderId, TierId } from "../achievements/ladders";
+import type { AchievementFacts } from "../achievements/achievements";
 import type { MemberId } from "../workspace/directory";
 
 const now = new Date("2026-10-13T10:00:00Z");
@@ -79,6 +80,9 @@ describe("P58 P61 P67 P76: a member at level 4 opens the Book and sees the tiers
       "section: *Seasons* · *1* calendar month with a kudos given",
       "section: 🥉 *First Chapter* · earned Oct 13, 2026",
       "context: Next: *Season of Thanks* at 3 calendar months with a kudos given.",
+      "divider",
+      "section: *Old Friends* · *0* thanks again after 30+ days",
+      "context: Next: *Remembered* at 1 thanks again after 30+ days.",
     ]);
     const bob = await achievementsOf(t, "U_BOB");
     expect(bob?.ladders.find(({ ladder }) => ladder === "recognition")).toMatchObject({
@@ -181,6 +185,9 @@ describe("P62: the Book counts your whole history at its launch", () => {
       "section: *Seasons* · *1* calendar month with a kudos given",
       "section: 🥉 *First Chapter* · earned Oct 13, 2026",
       "context: Next: *Season of Thanks* at 3 calendar months with a kudos given.",
+      "divider",
+      "section: *Old Friends* · *0* thanks again after 30+ days",
+      "context: Next: *Remembered* at 1 thanks again after 30+ days.",
     ]);
   });
 });
@@ -228,6 +235,37 @@ describe("P58 P59 P62: Connections, Dependability, Applause and Seasons count th
       ],
     });
     expect(await earnedTierRows(t, "U_ALICE", "connections")).toEqual(["bronze", "silver"]);
+  });
+});
+
+describe("P58 P62: Old Friends counts thanking someone again 30 or more days after you last did", () => {
+  test("the launch replays a history where a thanks 29 days on counts nothing and one 30 days on earns Remembered, dated by it; a live kudos 30 days later counts once", async () => {
+    const t = await workspace({ launched: false });
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    vi.setSystemTime(now.getTime() + 29 * dayMs);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    vi.setSystemTime(now.getTime() + 59 * dayMs);
+    const rememberedAt = await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    await withXp(t, "U_ALICE", 305);
+    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("achievements"));
+    vi.setSystemTime(now.getTime() + 60 * dayMs);
+    await t.mutation(internal.unlocks.sweep.sweep, {});
+    await settle(t);
+    expect(oldFriendsIn(await achievementsOf(t, "U_ALICE"))).toMatchObject({ count: 1, tiers: [{ tier: "bronze", earnedAt: rememberedAt }, { earnedAt: null }, { earnedAt: null }, { earnedAt: null }] });
+
+    vi.setSystemTime(now.getTime() + 89 * dayMs);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    await openHome(t, "U_ALICE");
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Open")));
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Book")));
+
+    const book = publishedHome(slack, "U_ALICE");
+    expect(book.slice(book.indexOf("section: *Old Friends* · *2* thanks again after 30+ days"))).toEqual([
+      "section: *Old Friends* · *2* thanks again after 30+ days",
+      "section: 🥉 *Remembered* · earned Dec 11, 2026",
+      "context: Next: *Old Friends* at 3 thanks again after 30+ days.",
+    ]);
+    expect(oldFriendsIn(await achievementsOf(t, "U_BOB"))).toMatchObject({ count: 0 });
   });
 });
 
@@ -373,4 +411,8 @@ async function countedRows(t: Backend) {
 
 function levelUpDmsTo(user: string) {
   return slack.callsTo("chat.postMessage").filter(({ channel, text }) => channel === user && String(text).startsWith("🎉")) as Array<{ channel: string; text: string }>;
+}
+
+function oldFriendsIn(book: AchievementFacts | null) {
+  return book?.ladders.find(({ ladder }) => ladder === "old-friends");
 }

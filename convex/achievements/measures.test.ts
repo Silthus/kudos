@@ -1,19 +1,15 @@
 import { describe, expect, test } from "vitest";
 import type { Id } from "../_generated/dataModel";
 import { allowanceDay } from "../engine/allowance";
-import type { LadderId } from "./ladders";
-import { markOf, stepOf, type MeasuredAward } from "./measures";
+import { markOf, stepOf, type MarkedLadder, type MeasuredAward } from "./measures";
 
-const alice = memberId("alice");
 const bob = memberId("bob");
 const carol = memberId("carol");
 const dave = memberId("dave");
 const erin = memberId("erin");
 
 describe("P58 P59: each ladder counts its awards on the giver's days and months", () => {
-  test.each<[LadderId, string, MeasuredAward[], number]>([
-    ["generosity", "kudos units given", [thanks(bob, "2026-10-13", 2), thanks(bob, "2026-10-13", 3)], 5],
-    ["recognition", "kudos units received", [thanks(bob, "2026-10-13", 2), thanks(carol, "2026-10-14", 1)], 3],
+  test.each<[MarkedLadder, string, MeasuredAward[], number]>([
     ["connections", "three different people", [thanks(bob, "2026-10-13"), thanks(carol, "2026-10-13"), thanks(dave, "2026-10-14")], 3],
     ["connections", "the same person on two days counts once", [thanks(bob, "2026-10-13"), thanks(bob, "2026-11-20")], 1],
     ["dependability", "two kudos on one day count one day", [thanks(bob, "2026-10-13"), thanks(carol, "2026-10-13")], 1],
@@ -35,21 +31,21 @@ describe("P58 P59: each ladder counts its awards on the giver's days and months"
   });
 });
 
-function countOf(ladder: LadderId, awards: MeasuredAward[]) {
+function countOf(ladder: MarkedLadder, awards: MeasuredAward[]) {
   const marked = new Map<string, string[]>();
   let count = 0;
   for (const award of awards) {
     const mark = markOf(ladder, award);
-    const keys = mark === null ? [] : (marked.get(mark.group) ?? []);
-    const { adds, keeps } = stepOf(award, mark, keys);
-    if (mark !== null && keeps) marked.set(mark.group, [...keys, mark.key]);
+    const keys = marked.get(mark.group) ?? [];
+    const { adds, keeps } = stepOf(mark, keys);
+    if (keeps) marked.set(mark.group, [...keys, mark.key]);
     count += adds;
   }
   return count;
 }
 
-function thanks(recipient: Id<"members">, day: string, kudos = 1): MeasuredAward {
-  return { giver: alice, recipient, kudos, day };
+function thanks(recipient: Id<"members">, day: string): MeasuredAward {
+  return { recipient, day };
 }
 
 function givenIn(timeZone: string, ...instants: string[]): MeasuredAward[] {

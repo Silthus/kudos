@@ -454,6 +454,10 @@
     {
       "name": "dependability",
       "definition": "The ladder that counts the days on which a member gave a kudos, on the giver's day; a day counts once (P58, P59)."
+    },
+    {
+      "name": "Old Friends",
+      "definition": "The ladder that counts the times a member thanked someone again 30 or more of the giver's days after the giver's previous award to them; a first thanks to someone counts nothing (P58)."
     }
   ]
 }

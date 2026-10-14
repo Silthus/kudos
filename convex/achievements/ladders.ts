@@ -7,6 +7,7 @@ export const ladderValidator = v.union(
   v.literal("dependability"),
   v.literal("applause"),
   v.literal("seasons"),
+  v.literal("old-friends"),
 );
 
 export const tierValidator = v.union(v.literal("bronze"), v.literal("silver"), v.literal("gold"), v.literal("diamond"));
@@ -29,6 +30,10 @@ export type Tier = { tier: TierId; name: string; count: number; rewards: Promise
 
 export type Ladder = { ladder: LadderId; name: string; counts: string; countsOne: string; tiers: Tier[] };
 
+type FourTiers<T> = [T, T, T, T];
+
+const kudosCounts: FourTiers<number> = [1, 25, 100, 500];
+
 export const ladders = {
   version: "1",
   ladders: [
@@ -37,72 +42,49 @@ export const ladders = {
       name: "Generosity",
       counts: "kudos given",
       countsOne: "kudos given",
-      tiers: tiersOf("generosity", [
-        ["First Thanks", 1],
-        ["Generous Soul", 25],
-        ["Heart of the Team", 100],
-        ["Patron of Praise", 500],
-      ]),
+      tiers: tiersOf("generosity", ["First Thanks", "Generous Soul", "Heart of the Team", "Patron of Praise"], kudosCounts),
     },
     {
       ladder: "recognition",
       name: "Recognition",
       counts: "kudos received",
       countsOne: "kudos received",
-      tiers: tiersOf("recognition", [
-        ["Noticed", 1],
-        ["Appreciated", 25],
-        ["Highly Valued", 100],
-        ["Hall of Fame", 500],
-      ]),
+      tiers: tiersOf("recognition", ["Noticed", "Appreciated", "Highly Valued", "Hall of Fame"], kudosCounts),
     },
     {
       ladder: "connections",
       name: "Connections",
       counts: "different people thanked",
       countsOne: "person thanked",
-      tiers: tiersOf("connections", [
-        ["Friendly Face", 3],
-        ["Connector", 6],
-        ["Social Butterfly", 12],
-        ["Constellation Maker", 24],
-      ]),
+      tiers: tiersOf("connections", ["Friendly Face", "Connector", "Social Butterfly", "Constellation Maker"], [3, 6, 12, 24]),
     },
     {
       ladder: "dependability",
       name: "Dependability",
       counts: "days with a kudos given",
       countsOne: "day with a kudos given",
-      tiers: tiersOf("dependability", [
-        ["Regular", 10],
-        ["Mainstay", 30],
-        ["Pillar", 100],
-        ["Cornerstone", 250],
-      ]),
+      tiers: tiersOf("dependability", ["Regular", "Mainstay", "Pillar", "Cornerstone"], [10, 30, 100, 250]),
     },
     {
       ladder: "applause",
       name: "Applause",
       counts: "days thanking 3+ different people",
       countsOne: "day thanking 3+ different people",
-      tiers: tiersOf("applause", [
-        ["Shout-out", 3],
-        ["Hype Squad", 10],
-        ["Thunderous Applause", 30],
-        ["Grand Chorus", 100],
-      ]),
+      tiers: tiersOf("applause", ["Shout-out", "Hype Squad", "Thunderous Applause", "Grand Chorus"], [3, 10, 30, 100]),
     },
     {
       ladder: "seasons",
       name: "Seasons",
       counts: "calendar months with a kudos given",
       countsOne: "calendar month with a kudos given",
-      tiers: tiersOf("seasons", [
-        ["First Chapter", 1],
-        ["Season of Thanks", 3],
-        ["Half-Year Hero", 6],
-        ["Year of Gratitude", 12],
-      ]),
+      tiers: tiersOf("seasons", ["First Chapter", "Season of Thanks", "Half-Year Hero", "Year of Gratitude"], [1, 3, 6, 12]),
+    },
+    {
+      ladder: "old-friends",
+      name: "Old Friends",
+      counts: "thanks again after 30+ days",
+      countsOne: "thanks again after 30+ days",
+      tiers: tiersOf("old-friends", ["Remembered", "Old Friends", "Long Memory", "Evergreen"], [1, 3, 6, 12]),
     },
   ],
 } as const satisfies { version: string; ladders: readonly Ladder[] };
@@ -110,8 +92,6 @@ export const ladders = {
 export function ladderOf(ladder: LadderId): Ladder {
   return ladders.ladders.find((entry) => entry.ladder === ladder)!;
 }
-
-type TierNaming = [name: string, count: number];
 
 export function tierOf({ ladder, tier }: TierRef): Tier {
   return ladderOf(ladder).tiers.find((entry) => entry.tier === tier)!;
@@ -126,15 +106,15 @@ export function countsOf(ladder: LadderId, count: number): string {
   return count === 1 ? countsOne : counts;
 }
 
-function tiersOf(ladder: LadderId, [[bronze, atBronze], [silver, atSilver], [gold, atGold], [diamond, atDiamond]]: [TierNaming, TierNaming, TierNaming, TierNaming]): Tier[] {
+function tiersOf(ladder: LadderId, [bronze, silver, gold, diamond]: FourTiers<string>, counts: FourTiers<number>): Tier[] {
   return [
-    { tier: "bronze", name: bronze, count: atBronze, rewards: [{ kind: "coins", reward: `${ladder}-bronze-coins` }] },
-    { tier: "silver", name: silver, count: atSilver, rewards: [{ kind: "kudosEmoji", reward: `${ladder}-silver-kudos-emoji` }] },
-    { tier: "gold", name: gold, count: atGold, rewards: [{ kind: "hedgehog", reward: `${ladder}-gold-hedgehog` }] },
+    { tier: "bronze", name: bronze, count: counts[0], rewards: [{ kind: "coins", reward: `${ladder}-bronze-coins` }] },
+    { tier: "silver", name: silver, count: counts[1], rewards: [{ kind: "kudosEmoji", reward: `${ladder}-silver-kudos-emoji` }] },
+    { tier: "gold", name: gold, count: counts[2], rewards: [{ kind: "hedgehog", reward: `${ladder}-gold-hedgehog` }] },
     {
       tier: "diamond",
       name: diamond,
-      count: atDiamond,
+      count: counts[3],
       rewards: [
         { kind: "coins", reward: `${ladder}-diamond-coins` },
         { kind: "hedgehog", reward: `${ladder}-diamond-hedgehog` },

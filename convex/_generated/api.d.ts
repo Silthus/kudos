@@ -13,6 +13,7 @@ import type * as achievements_achievementsFlag from "../achievements/achievement
 import type * as achievements_counting from "../achievements/counting.js";
 import type * as achievements_flag from "../achievements/flag.js";
 import type * as achievements_ladders from "../achievements/ladders.js";
+import type * as achievements_oldFriends from "../achievements/oldFriends.js";
 import type * as achievements_replay from "../achievements/replay.js";
 import type * as achievements_tiers from "../achievements/tiers.js";
 import type * as analytics_boundary from "../analytics/boundary.js";
@@ -141,6 +142,7 @@ declare const fullApi: ApiFromModules<{
   "achievements/counting": typeof achievements_counting;
   "achievements/flag": typeof achievements_flag;
   "achievements/ladders": typeof achievements_ladders;
+  "achievements/oldFriends": typeof achievements_oldFriends;
   "achievements/replay": typeof achievements_replay;
   "achievements/tiers": typeof achievements_tiers;
   "analytics/boundary": typeof analytics_boundary;

@@ -56,7 +56,7 @@ describe("P62: at the Book's launch, achievements count every member's whole his
     await settle(t);
 
     expect(await ladderOf(t, alice, "generosity")).toEqual({ count: 2, earned: [{ tier: "bronze", earnedAt: first.at }] });
-    expect(await replaysIn(t, "T1")).toHaveLength(catalogue.ladders.length);
+    expect(await replaysIn(t, "T1")).toHaveLength(ladders.ladders.length);
     expect(await batchesIn(t, "T1")).toHaveLength(1);
   });
 
@@ -208,7 +208,7 @@ describe("P58 P62: Connections, Dependability, Applause and Seasons replay on th
     await settle(t);
     const generosityBefore = await earnedRows(t, alice, "generosity");
     const recognitionBefore = await earnedRows(t, bob, "recognition");
-    expect(await replaysIn(t, "T1")).toHaveLength(2);
+    expect(await replaysIn(t, "T1")).toHaveLength(ladders.ladders.length);
 
     shipped();
     await launch(t);
@@ -222,7 +222,7 @@ describe("P58 P62: Connections, Dependability, Applause and Seasons replay on th
     expect(await ladderOf(t, alice, "seasons")).toEqual({ count: 2, earned: [{ tier: "bronze", earnedAt: firstMonth.at }] });
     expect(await earnedRows(t, alice, "generosity")).toEqual(generosityBefore);
     expect(await earnedRows(t, bob, "recognition")).toEqual(recognitionBefore);
-    expect(await replaysIn(t, "T1")).toHaveLength(6);
+    expect(await replaysIn(t, "T1")).toHaveLength(ladders.ladders.length);
     expect(await batchesIn(t, "T1")).toHaveLength(2);
   });
 });
@@ -234,10 +234,11 @@ describe("P62: one launch batch with a completion barrier", () => {
     await launch(t);
     const [batch] = await batchesIn(t, "T1");
     const replays = await replaysIn(t, "T1");
+    const last = replays.pop()!;
 
-    for (const { _id } of replays.slice(0, -1)) await replayToTheEnd(t, _id);
+    for (const { _id } of replays) await replayToTheEnd(t, _id);
     expect((await batchesIn(t, "T1"))[0]!.completedAt).toBeUndefined();
-    await replayToTheEnd(t, replays.at(-1)!._id);
+    await replayToTheEnd(t, last._id);
 
     expect((await batchesIn(t, "T1"))[0]!.completedAt).toBe(Date.now());
     expect(await earnedBatches(t, alice, "generosity")).toEqual({ bronze: batch!._id, silver: batch!._id });
