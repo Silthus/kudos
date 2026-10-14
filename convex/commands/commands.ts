@@ -1,7 +1,9 @@
 import { v, type GenericValidator, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
-import { reportLeaderboardViewed, reportLeaderboardVisibilityChanged } from "../analytics/isolatedUsage";
+import { pickSurfaceValidator, reportLeaderboardViewed, reportLeaderboardVisibilityChanged, reportPrimaryGroupPicked } from "../analytics/isolatedUsage";
+import { groupsShownTo } from "../groups/groups";
+import { pickPrimaryGroup } from "../groups/pick";
 import { homeTabValidator, isLeaderboardShownTo, selectLeaderboardPeriod, showHomeTab, type HomeMember } from "../feedback/homes";
 import { setGroupMode } from "../groups/groupMode";
 import { groupModeValidator } from "../groups/mode";
@@ -32,6 +34,7 @@ export const commandValidator = v.union(
   v.object({ type: v.literal("openQuestCrate"), quest: questValidator }),
   v.object({ type: v.literal("rerollQuest"), quest: weeklyQuestValidator }),
   v.object({ type: v.literal("buyPerk"), perk: perkValidator }),
+  v.object({ type: v.literal("pickPrimaryGroup"), group: v.string(), surface: pickSurfaceValidator }),
   v.object({ type: v.literal("setGroupMode"), mode: groupModeValidator, allowlist: v.optional(v.array(v.string())) }),
 );
 
@@ -84,6 +87,12 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       const outcome = await buyPerk(ctx, member, command.perk, idempotencyKey);
       await showHomeTab(ctx, workspace, person, "skillTree");
       return outcome;
+    }
+    case "pickPrimaryGroup": {
+      const group = ctx.db.normalizeId("userGroups", command.group);
+      if (group === null || !(await groupsShownTo(ctx, member))) return null;
+      if ((await pickPrimaryGroup(ctx, member, group)) === "picked") await reportPrimaryGroupPicked(ctx, { workspace, member, surface: command.surface, at: Date.now() });
+      return null;
     }
   }
 }

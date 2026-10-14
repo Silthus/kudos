@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { commandValidator, runCommand } from "../commands/commands";
+import { welcomePickOf } from "../feedback/welcome";
 import { messageEventValidator } from "../engine/messageEvent";
 import { republish } from "../feedback/homes";
 import { xpLevelsOnFor, xpLevelsShownIn } from "../progression/xpLevels";
@@ -41,8 +42,8 @@ export const receiveHomeOpened = internalMutation({
 });
 
 export const receiveHomeClick = internalMutation({
-  args: { workspace: v.string(), eventId: v.string(), user: v.string(), commands: v.array(commandValidator), conversation: v.optional(v.string()) },
-  handler: async (ctx, { user, commands, conversation, ...receipt }) => {
+  args: { workspace: v.string(), eventId: v.string(), user: v.string(), commands: v.array(commandValidator), conversation: v.optional(v.string()), message: v.optional(v.string()) },
+  handler: async (ctx, { user, commands, conversation, message, ...receipt }) => {
     if (await isRedelivered(ctx, receipt)) return;
     await ctx.db.insert("slackReceipts", receipt);
     const person = await lookup(ctx, receipt.workspace, user);
@@ -50,6 +51,10 @@ export const receiveHomeClick = internalMutation({
     for (const command of commands) {
       const outcome = await runCommand(ctx, receipt.workspace, person, command, `slack:${receipt.eventId}`);
       if (outcome !== null && conversation !== undefined) await ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverPurchaseReply, { member: person.member, workspace: receipt.workspace, conversation, outcome });
+      if (command.type === "pickPrimaryGroup" && command.surface === "welcome" && conversation !== undefined && message !== undefined) {
+        const pick = await welcomePickOf(ctx, person.member, command.group);
+        if (pick !== null) await ctx.scheduler.runAfter(0, internal.slack.welcome.updateWelcome, { workspace: receipt.workspace, user, conversation, message, pick });
+      }
     }
     await republish(ctx, person.member);
   },

@@ -5,7 +5,8 @@ import { bookFactsOf, type AchievementFacts } from "../achievements/achievements
 import { achievementsApplyIn, achievementsShownTo } from "../achievements/flag";
 import { groupModeShownTo, type GroupModeFacts } from "../groups/groupMode";
 import { xpRecordedEventValidator } from "../bus/events";
-import type { GroupId } from "../groups/groups";
+import { groupsShownTo, type GroupId } from "../groups/groups";
+import { groupChoiceOf, type GroupChoice } from "../groups/pick";
 import type { GroupsBoard } from "../leaderboard/groupsBoard";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import type { Period } from "../leaderboard/periods";
@@ -34,7 +35,7 @@ export type ShownTab =
   | { tab: "leaderboard"; period: Period; board: EveryoneBoardView; groups: GroupsBoard<GroupId> | null }
   | { tab: "book"; book: AchievementFacts; timeZone: string | undefined }
   | { tab: "skillTree"; perks: MemberPerks }
-  | { tab: "settings"; onTheBoards: boolean | null; progress: ProgressSettings | null; achievements: boolean }
+  | { tab: "settings"; onTheBoards: boolean | null; progress: ProgressSettings | null; achievements: boolean; groups: GroupChoice | null }
   | { tab: "admin"; announcementChannel: string | null; achievements: boolean; groupMode: GroupModeFacts | null };
 
 export type ShownHome = { tabs: HomeTab[]; shown: ShownTab };
@@ -43,7 +44,18 @@ export type ToldProgression = Omit<ProgressionHome, "skillPoints"> & { skillPoin
 
 export type HomeMember = Extract<MemberFacts, { kind: "member" }>;
 
-type Slices = { board: boolean; leaderboard: boolean; xp: boolean; unlocks: boolean; quests: boolean; book: boolean; skillTree: boolean; admin: boolean; sharedSettings: boolean };
+type Slices = {
+  board: boolean;
+  leaderboard: boolean;
+  xp: boolean;
+  unlocks: boolean;
+  quests: boolean;
+  book: boolean;
+  skillTree: boolean;
+  admin: boolean;
+  sharedSettings: boolean;
+  groups: GroupChoice | null;
+};
 
 type HomeSelection = { tab: HomeTab; period: Period };
 
@@ -55,7 +67,7 @@ const tabsBesideProfile: Array<{ tab: HomeTab; shownWith: (slices: Slices & Door
   { tab: "leaderboard", shownWith: ({ leaderboard, frontDoor }) => leaderboard && !frontDoor },
   { tab: "book", shownWith: ({ book }) => book },
   { tab: "skillTree", shownWith: ({ skillTree }) => skillTree },
-  { tab: "settings", shownWith: ({ board, xp }) => board || xp },
+  { tab: "settings", shownWith: ({ board, xp, groups }) => board || xp || groups !== null },
   { tab: "admin", shownWith: ({ sharedSettings, admin }) => sharedSettings && admin },
 ];
 
@@ -122,7 +134,8 @@ async function slicesShownTo(ctx: MutationCtx, workspace: string, person: HomeMe
   const book = unlocks && (await achievementsShownTo(ctx, person.member)) && (await isOpened(ctx, person.member, "book"));
   const skillTree = (await skillTreeShownTo(ctx, person.member)) && (await isOpened(ctx, person.member, "skillTree"));
   const sharedSettings = await xpLevelsShownIn(ctx, workspace);
-  return { board, leaderboard: board && (await isLeaderboardOpenTo(ctx, person.member, unlocks)), xp, unlocks, quests, book, skillTree, admin: person.admin, sharedSettings };
+  const groups = (await groupsShownTo(ctx, person.member)) ? await groupChoiceOf(ctx, person.member) : null;
+  return { board, leaderboard: board && (await isLeaderboardOpenTo(ctx, person.member, unlocks)), xp, unlocks, quests, book, skillTree, admin: person.admin, sharedSettings, groups };
 }
 
 async function isLeaderboardOpenTo(ctx: QueryCtx, member: MemberId, unlocksShown: boolean) {
@@ -161,6 +174,7 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
         onTheBoards: slices.board ? await isOnTheBoards(ctx, viewer.member) : null,
         progress: slices.xp ? await progressSettingsOf(ctx, viewer.member) : null,
         achievements: await achievementsApplyIn(ctx, viewer.workspace),
+        groups: slices.groups,
       };
     case "admin":
       return {
