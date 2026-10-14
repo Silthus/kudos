@@ -143,8 +143,8 @@ describe("WS38 WS110: the home's Leaderboard panel", () => {
 
 describe("WS52: the leaderboard page waits for its unlock", () => {
   it.each([
-    { state: "locked", visitor: shellFixtures.memberWaitingForTheBoard, answer: { kind: "locked", level: 3 } as const, says: "Leaderboard opens at level 3.", entry: "Leaderboard, locked. Unlocks at level 3" },
-    { state: "ready", visitor: shellFixtures.memberWithTheBoardReady, answer: { kind: "ready" } as const, says: "Unlocks: LeaderboardIt opens the boards.", entry: "Leaderboard: unlock ready. Open its crate" },
+    { state: "locked", visitor: shellFixtures.memberWaitingForTheBoard, answer: { kind: "locked", level: 3 } as const, says: "Unlocks at level 3", entry: "Leaderboard, locked. Unlocks at level 3" },
+    { state: "ready", visitor: shellFixtures.memberWithTheBoardReady, answer: { kind: "ready" } as const, says: "Leaderboard is ready", entry: "Leaderboard: unlock ready. Open its crate" },
   ])("says what the $state leaderboard waits for in place of the board, with its nav entry in that state and no link", ({ visitor, answer, says, entry }) => {
     visit("/leaderboard");
     renderApp(visitor, (period) => (period && answer));

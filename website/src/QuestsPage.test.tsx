@@ -200,12 +200,12 @@ describe("WS73 WS67 WS69: /quests while Quests isn't open", () => {
     renderApp(shellFixtures.memberStartingTheJourney, undefined, undefined, fixedQuests(questsFixtures.locked));
     expect(pageTitle()).toHaveTextContent("Quests");
     expect(document.title).toBe("HedgeHug · Quests");
-    expect(main()).toHaveTextContent("Quests opens at level 2.");
+    expect(pageTitle()).toHaveTextContent("Unlocks at level 2");
   });
 
   it("shows the Quests crate with a primary Open in place while it is ready", () => {
     renderApp(shellFixtures.memberWithQuestsReady, undefined, undefined, fixedQuests(questsFixtures.ready));
-    const crate = within(main()).getByRole("heading", { name: "Unlocks: Quests" }).closest("article")!;
+    const crate = within(main()).getByRole("heading", { level: 1, name: "Quests is ready" }).closest("section")!;
     expect(within(crate).getByRole("button", { name: "Open" })).toHaveClass("quill-button--variant-primary");
   });
 });

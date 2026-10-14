@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { FakeSlack, rateLimitedFor } from "../../testing/fakeSlack";
+import { FakeSlack, isWelcome, rateLimitedFor } from "../../testing/fakeSlack";
 import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { blockActions, buttonInHome, publishedHome, readBlocks, type Block } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
@@ -208,7 +208,7 @@ const levelSixDmOfferingRowFive = [
 function dmsTo(user: string) {
   return slack
     .callsTo("chat.postMessage")
-    .filter(({ channel, text }) => channel === user && !String(text).startsWith("👋 Welcome"))
+    .filter(({ channel, text }) => channel === user && !isWelcome({ text }))
     .map((dm) => (dm.blocks === undefined ? String(dm.text).split("\n") : readBlocks(dm.blocks as Block[])));
 }
 

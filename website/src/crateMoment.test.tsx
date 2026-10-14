@@ -343,10 +343,10 @@ describe("WS67: /leaderboard's ready state opens in place", () => {
     return renderApp(ready, readyBoard, { openFeature });
   }
 
-  it("shows the crate with a primary Open in place of WS52's sentence", () => {
+  it("shows the crate with a primary Open in place of the locked page", () => {
     onTheReadyPage();
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Leaderboard");
-    const page = within(main()).getByRole("heading", { name: "Unlocks: Leaderboard" }).closest("article")!;
+    const page = within(main()).getByRole("heading", { level: 1, name: "Leaderboard is ready" }).closest("section")!;
     expect(within(page).getByRole("button", { name: "Open" })).toHaveClass("quill-button--variant-primary");
     expect(main()).not.toHaveTextContent("Open it in Slack's App Home");
     expect(document.title).toBe("HedgeHug · Leaderboard");
@@ -367,10 +367,10 @@ describe("WS67: /leaderboard's ready state opens in place", () => {
     expect(document.activeElement).toBe(screen.getByRole("heading", { level: 1 }));
   });
 
-  it("keeps WS52's sentence while the board is locked", () => {
+  it("keeps the locked page while the board is locked", () => {
     window.history.replaceState(null, "", "/leaderboard");
     renderApp(shellFixtures.memberWaitingForTheBoard, (period) => (period && { kind: "locked", level: 3 }));
-    expect(main()).toHaveTextContent("Leaderboard opens at level 3.");
+    expect(main()).toHaveTextContent("Unlocks at level 3");
     expect(within(main()).queryByRole("button", { name: "Open" })).toBeNull();
   });
 });
@@ -421,7 +421,7 @@ describe("WS68: the ready pill", () => {
     const { user } = renderApp(shellFixtures.memberWithQuestsReady, undefined, { openFeature: async () => ({ kind: "refused" }) }, fixedQuests(questsFixtures.ready));
     await user.click(pill()!);
     expect(within(screen.getByRole("banner")).queryByText("That couldn't be opened.")).toBeNull();
-    const readyCrate = within(main()).getByRole("heading", { level: 2, name: "Unlocks: Quests" }).closest("article")!;
+    const readyCrate = within(main()).getByRole("heading", { level: 1, name: "Quests is ready" }).closest("section")!;
     expect(within(readyCrate).getByText("That couldn't be opened.")).toBeVisible();
   });
 

@@ -52,18 +52,18 @@ describe("WS80: /book answers like the leaderboard", () => {
     expect(pageTitle()).toHaveTextContent("Page not found");
   });
 
-  it("says Max's Book opens at level 4. with Back to your profile while getBook answers locked", () => {
+  it("shows the locked page, Unlocks at level 4, with Back to your profile while getBook answers locked", () => {
     showBook(bookFixtures.locked, shellFixtures.memberWaitingForTheBook);
     expect(pageTitle()).toHaveTextContent("Book");
     expect(document.title).toBe("HedgeHug · Book");
-    expect(main()).toHaveTextContent("Book opens at level 4.");
+    expect(pageTitle()).toHaveTextContent("Unlocks at level 4");
     expect(within(main()).getByRole("link", { name: "Back to your profile" })).toHaveAttribute("href", "/");
   });
 
   it("shows the Book's crate in place with a primary Open while getBook answers ready, and opens it through openFeature", async () => {
     const openFeature = vi.fn(async (): Promise<CommandAnswer> => ({ kind: "opened" }));
     const { user } = renderApp(shellFixtures.memberWithTheBookReady, undefined, { openFeature }, undefined, fixedBook(bookFixtures.ready));
-    const crate = within(main()).getByRole("heading", { name: "Unlocks: Book" }).closest("article")!;
+    const crate = within(main()).getByRole("heading", { level: 1, name: "Book is ready" }).closest("section")!;
     const open = within(crate).getByRole("button", { name: "Open" });
     expect(open).toHaveClass("quill-button--variant-primary");
 
@@ -199,12 +199,12 @@ describe("WS80 WS81: the fixture build's /book agrees with its member", () => {
     expect(pageTitle()).toHaveTextContent(title);
   });
 
-  it("shows the locked sentence for a member waiting for the Book, and the crate for one whose Book is ready", () => {
+  it("shows the locked page for a member waiting for the Book, and the crate for one whose Book is ready", () => {
     const waiting = render(<Root fixture="member-waiting-for-the-book" />);
-    expect(main()).toHaveTextContent("Book opens at level 4.");
+    expect(main()).toHaveTextContent("Unlocks at level 4");
     waiting.unmount();
     render(<Root fixture="member-with-the-book-ready" />);
-    expect(within(main()).getByRole("heading", { name: "Unlocks: Book" })).toBeInTheDocument();
+    expect(within(main()).getByRole("heading", { level: 1, name: "Book is ready" })).toBeInTheDocument();
   });
 });
 

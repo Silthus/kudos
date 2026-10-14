@@ -67,10 +67,8 @@ describe("the deployment's default kudos emoji", () => {
 
     const welcomes = slack.callsTo("chat.postMessage").map((args) => String(args.text));
     expect(welcomes).toHaveLength(2);
-    for (const welcome of welcomes) {
-      expect(welcome).toContain("adding :hedgehog: to your message");
-      expect(welcome).not.toContain(":taco:");
-    }
+    expect(welcomes.find((welcome) => welcome.includes("just thanked you"))).toContain("add :hedgehog: to your message");
+    for (const welcome of welcomes) expect(welcome).not.toContain(":taco:");
   });
 
   test("with KUDOS_EMOJI set, App Home names it", async () => {

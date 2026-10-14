@@ -253,3 +253,7 @@ function order(ts: string) {
   const [seconds = "0", fraction = ""] = ts.split(".");
   return Number(seconds) * 1_000_000 + Number(fraction.padEnd(6, "0").slice(0, 6));
 }
+
+export function isWelcome(args: SlackArgs) {
+  return String(args.text).includes("Welcome to HedgeHug");
+}
