@@ -72,9 +72,11 @@ export const drawWeeklyQuests = internalMutation({
   },
 });
 
-export async function advanceWeeklyQuests(ctx: MutationCtx, event: KudosGivenEvent): Promise<string[]> {
+export type FinishedWeeklyQuest = { goal: string; reward: Slot["reward"] };
+
+export async function advanceWeeklyQuests(ctx: MutationCtx, event: KudosGivenEvent): Promise<FinishedWeeklyQuest[]> {
   let shownChanged = (await drawWhenDue(ctx, event.giver, event.at)) === "drawn";
-  const finishedGoals: string[] = [];
+  const finished: FinishedWeeklyQuest[] = [];
   const draw = await drawOf(ctx, event.giver, weekKeyOfDay(event.day));
   if (draw !== null) {
     const swap = await swapOf(ctx, draw.member, draw.week);
@@ -82,12 +84,12 @@ export async function advanceWeeklyQuests(ctx: MutationCtx, event: KudosGivenEve
     const awards = open.length === 0 ? [] : await questAwardsOf(ctx, event);
     for (const slot of open) {
       const advanced = await advanceSlot(ctx, event, draw, slot, awards);
-      if (advanced === "finished") finishedGoals.push(questOf(slot.quest).goal);
+      if (advanced === "finished") finished.push({ goal: questOf(slot.quest).goal, reward: slot.reward });
       shownChanged = advanced !== "unchanged" || shownChanged;
     }
   }
   if (shownChanged) await republish(ctx, event.giver);
-  return finishedGoals;
+  return finished;
 }
 
 export const drawNewWeek = internalMutation({

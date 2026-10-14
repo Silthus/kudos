@@ -95,28 +95,30 @@ export const recheckSomeoneNewOf = internalMutation({
   },
 });
 
-export async function advanceJourney(ctx: MutationCtx, event: KudosGivenEvent, catalogue: JourneyCatalogue): Promise<JourneyStep[]> {
-  const finished: JourneyStep[] = [];
-  if (await advanceFirstThanks(ctx, event, catalogue)) finished.push("first-thanks");
-  if (await advanceSomeoneNew(ctx, event)) finished.push("someone-new");
-  return finished;
+export async function advanceJourney(ctx: MutationCtx, event: KudosGivenEvent, catalogue: JourneyCatalogue): Promise<JourneyActivation[]> {
+  const finished = [await advanceFirstThanks(ctx, event, catalogue), await advanceSomeoneNew(ctx, event)];
+  return finished.filter((step) => step !== null);
 }
 
-export async function finishFirstQuestOnWeeklyFinished(ctx: MutationCtx, workspace: string, member: MemberId, at: number): Promise<boolean> {
+export async function finishFirstQuestOnWeeklyFinished(ctx: MutationCtx, workspace: string, member: MemberId, at: number): Promise<JourneyActivation | null> {
   const firstQuest = await activationOf(ctx, member, "first-quest");
-  return firstQuest !== null && firstQuest.activatedAt <= at && (await finish(ctx, workspace, firstQuest, at));
+  return firstQuest !== null && firstQuest.activatedAt <= at ? finishedOrNull(ctx, workspace, firstQuest, at) : null;
 }
 
-async function advanceFirstThanks(ctx: MutationCtx, event: KudosGivenEvent, catalogue: JourneyCatalogue): Promise<boolean> {
+async function advanceFirstThanks(ctx: MutationCtx, event: KudosGivenEvent, catalogue: JourneyCatalogue): Promise<JourneyActivation | null> {
   const firstThanks = await activated(ctx, event.workspace, event.giver, "first-thanks", event.at, catalogue);
-  return gateDecisionOf(event.annotations)?.thoughtful === true && (await finish(ctx, event.workspace, firstThanks, event.at));
+  return gateDecisionOf(event.annotations)?.thoughtful === true ? finishedOrNull(ctx, event.workspace, firstThanks, event.at) : null;
 }
 
-async function advanceSomeoneNew(ctx: MutationCtx, event: KudosGivenEvent): Promise<boolean> {
+async function advanceSomeoneNew(ctx: MutationCtx, event: KudosGivenEvent): Promise<JourneyActivation | null> {
   const someoneNew = await activationOf(ctx, event.giver, "someone-new");
-  if (someoneNew === null || event.at < someoneNew.activatedAt || (await isFinished(ctx, someoneNew))) return false;
+  if (someoneNew === null || event.at < someoneNew.activatedAt || (await isFinished(ctx, someoneNew))) return null;
   const lastThanked = await lastThankedBefore(ctx, event.awards);
-  return [...lastThanked.values()].includes(null) && (await finish(ctx, event.workspace, someoneNew, event.at));
+  return [...lastThanked.values()].includes(null) ? finishedOrNull(ctx, event.workspace, someoneNew, event.at) : null;
+}
+
+async function finishedOrNull(ctx: MutationCtx, workspace: string, activation: JourneyActivation, at: number): Promise<JourneyActivation | null> {
+  return (await finish(ctx, workspace, activation, at)) ? activation : null;
 }
 
 async function isLeftToTheJoin(ctx: QueryCtx, workspace: string, openedAt: number) {

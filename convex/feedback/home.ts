@@ -8,11 +8,13 @@ import { journeyCopyOf, journeyGoalOf } from "../quests/journeyCopy";
 import { questOf } from "../quests/pool";
 import type { WeeklyQuests, WeeklySlot } from "../quests/weekly";
 import type { JourneyQuest, Quest, WeeklyQuest } from "../quests/step";
+import type { Feature } from "../unlocks/feature";
 import type { ScheduledFeature } from "../unlocks/schedule";
 import type { UnlocksHome } from "../unlocks/unlocks";
+import type { FrontDoorLinks } from "../website/link";
 import type { HomeTab, ShownHome, ShownTab, ToldProgression } from "./homes";
 import { renderEveryoneBoard } from "./leaderboard";
-import { productName, skillPointsOf, slashCommand } from "./naming";
+import { openTheWebsite, productName, skillPointsOf, slashCommand } from "./naming";
 import type { Line } from "./replies";
 
 export type HomeView = { tabBar?: Choice[]; title: string; groups: HomeLine[][] };
@@ -29,7 +31,8 @@ export type HomeLine =
   | { kind: "lines"; lines: Line[] }
   | { kind: "action"; text: string; action: HomeAction }
   | { kind: "pick-channel"; text: string; picked: string | null; picks: Extract<Command, { channel: unknown }>["type"] }
-  | { kind: "link"; label: string; url: string };
+  | { kind: "link"; label: string; url: string }
+  | { kind: "links"; links: Array<{ label: string; url: string }> };
 
 type MemberHome = Extract<HomeFacts, { kind: "member" }>;
 
@@ -41,21 +44,29 @@ const periods: Array<{ period: Period; label: string }> = [
   { period: "all", label: "All time" },
 ];
 
-export function renderHome(facts: HomeFacts, home: ShownHome | null, website: string | null): HomeView {
+const noProfileFacts: ProfileFacts = { progression: null, unlocks: null, quests: null, journey: null };
+
+export function renderHome(facts: HomeFacts, home: ShownHome | null, frontDoor: FrontDoorLinks | null): HomeView {
   if (facts.kind === "not-a-member") {
     return { title: productName, groups: [[{ kind: "text", text: `${productName} is for active members of this workspace.` }]] };
   }
-  return withWebsiteLink(memberViewOf(facts, home), website);
+  return frontDoor === null ? memberViewOf(facts, home) : frontDoorOf(facts, home, frontDoor);
 }
 
 function memberViewOf(facts: MemberHome, home: ShownHome | null): HomeView {
-  if (home === null) return profileOf(facts, { progression: null, unlocks: null, quests: null, journey: null });
+  if (home === null) return profileOf(facts, noProfileFacts);
   return { tabBar: tabBar(home.tabs, home.shown.tab), ...tabOf(facts, home.shown) };
 }
 
-function withWebsiteLink(view: HomeView, website: string | null): HomeView {
-  if (website === null) return view;
-  return { ...view, groups: [...view.groups, [{ kind: "link", label: `Open ${productName} on the web`, url: website }]] };
+function frontDoorOf(facts: MemberHome, home: ShownHome | null, links: FrontDoorLinks): HomeView {
+  if (home === null) return summaryOf(facts, noProfileFacts, links);
+  const { shown } = home;
+  const view = shown.tab === "profile" ? summaryOf(facts, shown, links) : withWebsiteLink(tabOf(facts, shown), links.home);
+  return { tabBar: tabBar(home.tabs, shown.tab), ...view };
+}
+
+function withWebsiteLink(view: HomeView, website: string): HomeView {
+  return { ...view, groups: [...view.groups, [{ kind: "link", label: openTheWebsite, url: website }]] };
 }
 
 function tabBar(tabs: HomeTab[], selected: HomeTab): Choice[] {
@@ -79,9 +90,40 @@ type ProfileFacts = Omit<Extract<ShownTab, { tab: "profile" }>, "tab">;
 
 function profileOf(kudos: KudosHome, { progression, unlocks, quests, journey }: ProfileFacts): HomeView {
   const progress = progression === null ? [] : [[...progressOf(progression), ...(unlocks === null ? [] : unlockLinesOf(unlocks))]];
-  const weekly = quests === null || quests.slots.length === 0 ? [] : [weeklyQuestLines(quests)];
+  const weekly = quests === null || quests.slots.length === 0 ? [] : [weeklyQuestLines(quests, { cratesShownApart: false })];
   const steps = journey === null || journey.length === 0 ? [] : [journey.flatMap(journeyStepLines)];
   return { title: "Your kudos", groups: [[allowanceOf(kudos)], ...progress, ...weekly, ...steps, [totalsOf(kudos)], howToGive(kudos.kudosEmoji)] };
+}
+
+function summaryOf(kudos: KudosHome, { progression, unlocks, quests, journey }: ProfileFacts, links: FrontDoorLinks): HomeView {
+  const status = [allowanceOf(kudos), ...(progression === null ? [] : [levelLineOf(progression)])];
+  const waiting = [...readyCratesOf(unlocks), ...weeklyCratesOf(quests), ...journeyCratesOf(journey)];
+  const weekly = quests === null || quests.slots.length === 0 ? [] : [weeklyQuestLines(quests, { cratesShownApart: true })];
+  return { title: "Your kudos", groups: [status, ...(waiting.length === 0 ? [] : [waiting]), ...weekly, [websiteButtonsOf(links)], howToGive(kudos.kudosEmoji)] };
+}
+
+function levelLineOf({ level, xpToNextLevel, skillPoints }: ToldProgression): HomeLine {
+  const skillTree = skillPoints === null || level < skillTreeLevel ? "" : ` · ${skillPointsOf(skillPoints)} to spend`;
+  return { kind: "text", text: `Level ${level} · ${xpToNextLevel} XP to level ${level + 1}${skillTree}` };
+}
+
+function readyCratesOf(unlocks: UnlocksHome | null): HomeLine[] {
+  return (unlocks?.ready ?? []).map(({ feature, name }) => ({ kind: "action", text: `${bold(name)} is ready.`, action: openUnlock(feature) }));
+}
+
+function weeklyCratesOf(quests: WeeklyQuests | null): HomeLine[] {
+  if (quests === null) return [];
+  const unopened = quests.slots.filter(({ finishedAt, openedAt }) => finishedAt !== null && openedAt === null);
+  return unopened.map(({ slot, goal }) => ({ kind: "action", text: `✅ ${goal}`, action: openCrate({ kind: "weekly", week: quests.week, slot }) }));
+}
+
+function journeyCratesOf(journey: JourneyStepFacts[] | null): HomeLine[] {
+  const unopened = (journey ?? []).filter(({ finishedAt, openedAt }) => finishedAt !== null && openedAt === null);
+  return unopened.map(({ step }) => ({ kind: "action", text: `✅ ${journeyGoalOf(step)}`, action: openCrate({ kind: "journey", step }) }));
+}
+
+function websiteButtonsOf({ home, pages }: FrontDoorLinks): HomeLine {
+  return { kind: "links", links: [{ label: `Open ${productName}`, url: home }, ...pages] };
 }
 
 function periodChoices(selected: Period): HomeLine {
@@ -170,19 +212,19 @@ function unlockLinesOf({ ready, next }: UnlocksHome): HomeLine[] {
   return [...readyLines, ...nextLine];
 }
 
-function weeklyQuestLines({ week, slots, swapAvailable }: WeeklyQuests): HomeLine[] {
+function weeklyQuestLines({ week, slots, swapAvailable }: WeeklyQuests, { cratesShownApart }: { cratesShownApart: boolean }): HomeLine[] {
   const asksToSayWhy = slots.some(({ quest, finishedAt }) => finishedAt === null && questOf(quest).progress.given.saysWhy);
   const condition: HomeLine[] = asksToSayWhy ? [{ kind: "hint", text: "Saying why counts when your message has 5 or more words besides mentions and emoji." }] : [];
-  return [{ kind: "text", text: bold("Quests this week") }, ...slots.map((slot) => weeklyQuestLine(week, slot, swapAvailable)), ...condition];
+  return [{ kind: "text", text: bold("Quests this week") }, ...slots.map((slot) => weeklyQuestLine(week, slot, swapAvailable, cratesShownApart)), ...condition];
 }
 
-function weeklyQuestLine(week: string, { slot, goal, reward, progress, target, finishedAt, openedAt }: WeeklySlot, swapAvailable: boolean): HomeLine {
+function weeklyQuestLine(week: string, { slot, goal, reward, progress, target, finishedAt, openedAt }: WeeklySlot, swapAvailable: boolean, crateShownApart: boolean): HomeLine {
   if (finishedAt === null) {
     const text = `${goal} ${bold(`${progress}/${target}`)} · ${bold(`${reward.xp} XP`)}`;
     return swapAvailable ? { kind: "action", text, action: swapQuest({ kind: "weekly", week, slot }) } : { kind: "text", text };
   }
   const text = `✅ ${goal} ${earned(reward.xp)}`;
-  return openedAt === null ? { kind: "action", text, action: openCrate({ kind: "weekly", week, slot }) } : { kind: "text", text };
+  return openedAt === null && !crateShownApart ? { kind: "action", text, action: openCrate({ kind: "weekly", week, slot }) } : { kind: "text", text };
 }
 
 function journeyStepLines({ step, reward, finishedAt, openedAt }: JourneyStepFacts): HomeLine[] {
@@ -216,7 +258,11 @@ function earned(xp: number) {
 }
 
 export function readyCrateOf({ feature, name, opens }: ScheduledFeature): { text: string; action: HomeAction } {
-  return { text: `${bold(name)} is ready. It opens ${opens}.`, action: { label: "Open", command: { type: "openUnlock", feature } } };
+  return { text: `${bold(name)} is ready. It opens ${opens}.`, action: openUnlock(feature) };
+}
+
+function openUnlock(feature: Feature): HomeAction {
+  return { label: "Open", command: { type: "openUnlock", feature } };
 }
 
 function totalsOf(kudos: KudosHome): HomeLine {

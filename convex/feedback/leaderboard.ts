@@ -20,6 +20,10 @@ export function renderEveryoneBoard(view: EveryoneBoardView, period: Period): Li
   return [...rows, ...nudge, ...improvement];
 }
 
+export function renderFullBoardLink(website: string | null): Line[] {
+  return website === null ? [] : [[{ link: { url: website, label: "See the full leaderboard on the web" } }]];
+}
+
 export function renderLeaderboardUsage(): Line[] {
   const forms = ["", " month", " all"].map((period) => `\`${slashCommand} leaderboard${period}\``);
   return [[{ text: `Try ${forms[0]}, ${forms[1]} or ${forms[2]}.` }]];

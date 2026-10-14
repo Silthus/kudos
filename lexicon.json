@@ -273,7 +273,7 @@
     },
     {
       "name": "app home",
-      "definition": "A member's private page of Kudos in Slack, the app's Home tab. It shows how to give kudos, the daily allowance left today and when it refills, and the kudos the member gave and received this week and in total; later specs add their sections."
+      "definition": "A member's private page of Kudos in Slack, the app's Home tab. It shows how to give kudos, the daily allowance left today and when it refills, and the kudos the member gave and received this week and in total; later specs add their sections. For a member with a Home link it is the front door, a summary that sends them to the website for the rest (SW19)."
     },
     {
       "name": "HedgeHug",
@@ -430,6 +430,22 @@
     {
       "name": "swap",
       "definition": "A member's once-a-week replacement of one unfinished weekly quest with a feasible quest not in that week's draw, stored for good with the replaced quest, the new quest and the facts that made it feasible (P81, the spec's reroll)."
+    },
+    {
+      "name": "gains line",
+      "definition": "The parts of a Given success reply's extras line that say what the kudos earned its giver, in one order joined with ' · ': the base XP the whole message gave them (+{xp} XP, from Progression's one function the effects records use) and each quest it finished with its own reward (Quest done: {goal} (+{xp} XP)); stored as facts when the reply is written and shown at each delivery only as far as the giver can still see them (SW1-SW5, amending P71)."
+    },
+    {
+      "name": "route list",
+      "definition": "The website pages Slack may link to, each as SITE_URL plus its route: exactly the paths the website's router serves, kept equal to the router's own list by a contract test (SW9, SW10). A page that isn't listed yet resolves to Home."
+    },
+    {
+      "name": "deep link",
+      "definition": "A link at the end of a Slack message to one member that opens the listed website page its subject lives on, built by the website's one link function and shown only while that function answers one, so never in a public message (SW11, SW13, SW14, SW16)."
+    },
+    {
+      "name": "front door",
+      "definition": "App Home for a member to whom the website's link function answers a Home link (the website flag on, SITE_URL set, the deployment's workspace): a Profile summary of the allowance, one level line, the crates waiting with Open, the week's quests with Swap and a row of buttons to Home and each open feature with a listed page, beside Settings and Admin as before; a tab whose feature has a listed page gives way to its button (SW19 to SW24)."
     }
   ]
 }
