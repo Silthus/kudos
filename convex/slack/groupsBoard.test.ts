@@ -37,7 +37,7 @@ const boardsOn = [onForEveryone("everyone-board"), onForEveryone("groups")];
 
 const antsAndBees = { Ants: ["U_ANN", "U_AL", "U_AMY"], Bees: ["U_BOB", "U_BEA", "U_BEN"], Pair: ["U_PIA", "U_POE"] };
 
-const groupsThisWeek = ["*Groups*", "🥇 Ants · 1.0 per person · 33% gave · 3 kudos", "🥈 Bees · 0.3 per person · 33% gave · 1 kudos", "▲ 1.0 more per person than this time last week · ▲ 1 places", "📈 Most improved: Ants"];
+const groupsThisWeek = ["*Groups*", "🥇 Ants · 1.0 per person · 33% gave · 3 kudos", "🥈 Bees · 0.3 per person · 33% gave · 1 kudos", "▲ 1.0 more per person than this time last week · ▲ 1 place", "📈 Most improved: Ants"];
 const groupsThisMonth = ["*Groups*", "🥇 Bees · 1.3 per person · 66% gave · 4 kudos", "🥈 Ants · 1.0 per person · 33% gave · 3 kudos", "▲ 1.0 more per person than this time last month", "📈 Most improved: Bees"];
 const groupsAllTime = ["*Groups*", "🥇 Bees · 1.3 per person · 66% gave · 4 kudos", "🥈 Ants · 1.0 per person · 33% gave · 3 kudos"];
 const everyoneThisWeek = ["🥇 <@U_PIA> · 5 kudos", "🥈 <@U_ANN> · 3 kudos", "🥉 <@U_BEA> · 1 kudos", "▲ 3 more kudos than this time last week"];
@@ -147,7 +147,7 @@ describe("GB13, GB14, GB17: the Groups board above the Everyone board", { timeou
       "*Groups*",
       "🥇 Ants · 20.0 per person · 100% gave · 60 kudos",
       "🥈 Bees · 15.0 per person · 100% gave · 45 kudos",
-      "▲ 10.0 more per person than this time last week · ▲ 1 places",
+      "▲ 10.0 more per person than this time last week · ▲ 1 place",
       "📈 Most improved: Ants",
     ]);
   });

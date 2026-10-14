@@ -154,6 +154,7 @@ async function leaderboardReply(ctx: ActionCtx, viewer: Viewer, rest: string[]):
   const period = periodOf(rest);
   if (period === null) return { lines: renderLeaderboardUsage(), period: null, shown: noGroupBoards };
   const asked = { workspace: viewer.workspace, viewer: viewer.user, period };
+  await ctx.runMutation(internal.groups.flag.exposeGroups, viewer);
   const groups = await ctx.runQuery(internal.leaderboard.groupBoards.groupsBoardOf, asked);
   const myGroup = await ctx.runQuery(internal.leaderboard.myGroupBoard.myGroupBoardViewOf, asked);
   const everyone = await ctx.runQuery(internal.leaderboard.totals.everyoneBoard, asked);

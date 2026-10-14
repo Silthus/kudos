@@ -4,7 +4,7 @@ import { ReportableError } from "../analytics/exceptions";
 import { memberDecision } from "../analytics/flags";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { keepsMembers } from "../workspace/userGroups";
-import { groupsFlag } from "./flag";
+import { groupsApplyTo, groupsFlag } from "./flag";
 import type { GroupModeKind } from "./mode";
 
 export type GroupId = Id<"userGroups">;
@@ -49,6 +49,10 @@ export async function availableIn(ctx: QueryCtx, workspace: string): Promise<boo
 
 export async function groupsShownTo(ctx: QueryCtx | MutationCtx, member: MemberId): Promise<boolean> {
   return (await memberDecision(ctx, groupsFlag, member)) && (await availableIn(ctx, (await chatUserOf(ctx, member)).workspace));
+}
+
+export async function isGroupsShownTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
+  return (await groupsApplyTo(ctx, member)) && (await availableIn(ctx, (await chatUserOf(ctx, member)).workspace));
 }
 
 export async function primaryGroupOf(ctx: QueryCtx, member: MemberId): Promise<GroupRef | null> {

@@ -2,7 +2,7 @@ import type { ViewedBoard } from "../analytics/projections";
 import type { GroupId } from "../groups/groups";
 import type { BoardRow, BoardView } from "../leaderboard/board";
 import type { GroupImprovement, GroupsBoard, GroupsBoardRow } from "../leaderboard/groupsBoard";
-import { improvementLine } from "../leaderboard/improvementLine";
+import { improvementLine, placesClimbedPart } from "../leaderboard/improvementLine";
 import type { MyGroupBoardView } from "../leaderboard/myGroupBoard";
 import type { Peer } from "../leaderboard/peer";
 import type { Period } from "../leaderboard/periods";
@@ -84,8 +84,7 @@ function groupRow(row: GroupsBoardRow<GroupId>): Line {
 
 function groupImprovementLine(improvement: GroupImprovement, group: GroupsBoardRow<GroupId>, period: Exclude<Period, "all">) {
   if ("best" in improvement) return `${asWritten(group)}'s best ${period} so far: ${improvement.best.toFixed(1)} per person.`;
-  const places = improvement.places === undefined ? "" : ` · ▲ ${improvement.places} places`;
-  return `▲ ${improvement.gain.toFixed(1)} more per person than this time last ${period}${places}`;
+  return `▲ ${improvement.gain.toFixed(1)} more per person than this time last ${period}${placesClimbedPart(improvement.places)}`;
 }
 
 function skipsBefore(window: number[], index: number) {

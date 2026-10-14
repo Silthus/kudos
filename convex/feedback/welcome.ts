@@ -3,7 +3,7 @@ import { internal } from "../_generated/api";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { bookAppliesIn } from "../achievements/flag";
 import { analyticsIdOf } from "../analytics/person";
-import { groupsShownTo, primaryGroupOf, type GroupId, type GroupRef } from "../groups/groups";
+import { groupsShownTo, isGroupsShownTo, primaryGroupOf, type GroupId, type GroupRef } from "../groups/groups";
 import { groupChoiceOf, type GroupChoice } from "../groups/pick";
 import { reconcileMember } from "../groups/reconcile";
 import { skillTreeAppliesIn } from "../progression/skillTree";
@@ -30,7 +30,7 @@ const namedAtMost = 3;
 export async function requestWelcome(ctx: MutationCtx, member: MemberId, welcomed: WelcomedAs) {
   const { workspace, user } = await chatUserOf(ctx, member);
   await decidedAsMemberAtDelivery(ctx, member);
-  const groups = await groupsShownTo(ctx, member);
+  const groups = await isGroupsShownTo(ctx, member);
   await ctx.scheduler.runAfter(0, internal.slack.welcome.deliverWelcome, { workspace, user, welcomed, ...(groups && { groups }), attempt: 1 });
 }
 
@@ -60,7 +60,7 @@ type WelcomePick = Infer<typeof welcomePickValidator>;
 
 export async function welcomePickOf(ctx: MutationCtx, member: MemberId, picked: string): Promise<WelcomePick | null> {
   const group = ctx.db.normalizeId("userGroups", picked);
-  if (group === null || !(await groupsShownTo(ctx, member))) return null;
+  if (group === null || !(await isGroupsShownTo(ctx, member))) return null;
   return { group, saved: (await primaryGroupOf(ctx, member))?.group === group };
 }
 

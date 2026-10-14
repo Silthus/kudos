@@ -1,9 +1,8 @@
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
-import { memberDecision } from "../analytics/flags";
 import type { MemberId } from "../workspace/directory";
 import { keepsMembers } from "../workspace/userGroups";
-import { groupsFlag } from "./flag";
+import { groupsApplyTo } from "./flag";
 import { countsAsGroup, groupModeOf, isAllowed, groupSettingsRow, userGroupsIn, type GroupId, type GroupMode, type GroupRef } from "./groups";
 import type { GroupModeKind } from "./mode";
 import { reconcileEveryMemberLater } from "./reconcile";
@@ -37,7 +36,7 @@ export async function setGroupMode(ctx: MutationCtx, workspace: string, person: 
 }
 
 async function setsGroupMode(ctx: MutationCtx, { member, admin }: Admin) {
-  return admin && (await memberDecision(ctx, groupsFlag, member));
+  return admin && (await groupsApplyTo(ctx, member));
 }
 
 function allowlistOf(groups: Doc<"userGroups">[], before: GroupMode, { mode, allowlist }: GroupModeChange): GroupId[] | undefined {
