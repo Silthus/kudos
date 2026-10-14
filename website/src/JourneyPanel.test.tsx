@@ -58,10 +58,10 @@ describe("WS72: the Journey panel on the home", () => {
     expect(journey()).not.toHaveTextContent(/\d+ of \d+|step \d|thoughtful|claim/i);
   });
 
-  it("is a game object with corner marks, after the hero and the counters and before the feature cards", () => {
+  it("is a game object with corner marks, after the hero and before the feature cards", () => {
     renderApp(shellFixtures.memberWithQuests);
     expect(journey()).toHaveClass("hud-panel");
-    expect(comesBefore(within(main()).getByRole("table", { name: "Your kudos" }), journey())).toBe(true);
+    expect(comesBefore(within(main()).getByRole("region", { name: "Sam Example" }), journey())).toBe(true);
     expect(comesBefore(journey(), within(main()).getByRole("region", { name: "Open" }))).toBe(true);
   });
 

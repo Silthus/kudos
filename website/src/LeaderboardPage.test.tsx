@@ -116,7 +116,7 @@ describe("WS37 WS1: the leaderboard lives at /leaderboard, with the period in th
 
     await user.click(within(screens()).getByRole("link", { name: "Home" }));
     expect(window.location.pathname).toBe("/");
-    expect(pageTitle()).toHaveTextContent("Thank someone for work you noticed");
+    expect(pageTitle()).toHaveTextContent("Sam Example");
     expect(pageTitle()).toHaveFocus();
   });
 });
