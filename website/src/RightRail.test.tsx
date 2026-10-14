@@ -201,11 +201,11 @@ describe("WS110: Where you stand", () => {
 
 describe("WS111: every answer has one rendering", () => {
   const panels = [
-    { name: "Quests this week", feature: "Quests", show: showingQuests, link: ["See all quests", "/quests"], locked: { kind: "locked", level: 2 } as const },
-    { name: "Where you stand", feature: "Leaderboard", show: showingBoard, link: ["Open the leaderboard", "/leaderboard"], locked: { kind: "locked", level: 3 } as const },
+    { name: "Quests this week", feature: "Quests", show: showingQuests, link: ["See all quests", "/quests"], locked: { kind: "locked", level: 2 } as const, showOpen: () => showingQuests(questsFixtures.week), row: "Thank someone and say why, 3 times." },
+    { name: "Where you stand", feature: "Leaderboard", show: showingBoard, link: ["Open the leaderboard", "/leaderboard"], locked: { kind: "locked", level: 3 } as const, showOpen: () => showingBoard(leaderboardFixtures.midBoard), row: "Above you: Hal Sato, 12 kudos given" },
   ];
 
-  describe.each(panels)("$name", ({ name, feature, show, link, locked }) => {
+  describe.each(panels)("$name", ({ name, feature, show, link, locked, showOpen, row }) => {
     it.each([["no answer yet", undefined], ["a socket that isn't connected", { kind: "connecting" } as const]])("shows its label busy, with no rows, for %s", (_, answer) => {
       show(answer);
       const busy = panel(name);
@@ -236,11 +236,20 @@ describe("WS111: every answer has one rendering", () => {
       expect(panel("What teammates see")).toBeInTheDocument();
     });
 
-    it("clears on sign-out", () => {
-      const { showVisitor } = show(undefined);
+    it("clears its rows on sign-out", () => {
+      const { showVisitor } = showOpen();
+      expect(panel(name)).toHaveTextContent(row);
       showVisitor(shellFixtures.signedOut);
       expect(screen.queryByRole("region", { name })).toBeNull();
+      expect(document.body).not.toHaveTextContent(row);
     });
+  });
+
+  it("says the Leaderboard is ready in Slack when the board answers ready while unlocks don't apply, with no crate to open", () => {
+    showingBoard({ kind: "ready" }, shellFixtures.memberWithTheBoard);
+    const ready = panel("Leaderboard");
+    expect(ready).toHaveTextContent("Leaderboard is ready for you. Open it in Slack's App Home.");
+    expect(within(ready).queryByRole("button")).not.toBeInTheDocument();
   });
 
   it("follows getMyProfile, never getQuests, for the panel's state", () => {

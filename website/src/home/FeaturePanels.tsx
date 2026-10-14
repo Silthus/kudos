@@ -3,6 +3,7 @@ import { IconLock } from "@posthog/icons";
 import type { BoardAnswer } from "../boardRead";
 import { Crate } from "../crates/Crate";
 import { aboutOf, pageOf, plainNameOf, type PagedFeature } from "../features";
+import { readyInSlack } from "../pages/FeatureWaitsPage";
 import type { QuestsShown } from "../questsRead";
 import type { Feature, FeatureCard, MemberProfile } from "../shell";
 import { pointsToSpend } from "../skills/perkWords";
@@ -48,7 +49,7 @@ function cardOf(member: MemberProfile, slot: Slot) {
 function RailPanel({ slot, card, reads }: { slot: RailSlot; card: FeatureCard | undefined; reads: RailReads }) {
   const answer = slot === "quests" ? reads.quests : reads.board;
   if (answer?.kind === "locked") return <LockedPanel card={{ feature: slot, name: card?.name ?? plainNameOf(slot), level: answer.level }} />;
-  if (answer?.kind === "ready") return card === undefined ? null : <ReadyPanel card={{ ...card, state: "ready", openedAt: null }} />;
+  if (answer?.kind === "ready") return card === undefined ? <ReadyInSlackPanel slot={slot} /> : <ReadyPanel card={{ ...card, state: "ready", openedAt: null }} />;
   return slot === "quests" ? <QuestsPanel quests={reads.quests} /> : <StandingPanel board={reads.board} />;
 }
 
@@ -83,6 +84,15 @@ function ReadyPanel({ card }: { card: FeatureCard }) {
   return (
     <Panel id={card.feature} label={card.name} gameObject>
       <Crate card={card} heading="h3" open="outline" artWidth={72} framed={false} />
+    </Panel>
+  );
+}
+
+function ReadyInSlackPanel({ slot }: { slot: RailSlot }) {
+  const name = plainNameOf(slot);
+  return (
+    <Panel id={slot} label={name}>
+      <p className="text-sm text-muted-foreground">{readyInSlack(name)}</p>
     </Panel>
   );
 }
