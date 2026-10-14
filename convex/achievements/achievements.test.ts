@@ -5,6 +5,7 @@ import { bookShippedBeforeAnyoneJoined, flagsLoaded, flagsOnForEveryone } from "
 import { testBackend, type Backend } from "../../testing/slackBackend";
 import { internal } from "../_generated/api";
 import type { DomainEvent, KudosGivenEvent } from "../bus/events";
+import type { LadderFacts } from "./achievements";
 import { publish } from "../bus/publish";
 import type { MemberId } from "../workspace/directory";
 
@@ -40,7 +41,7 @@ describe("P59 P61 P93: a tier is earned once and never taken back", () => {
 
     const generosity = await ladderOf(t, alice, "generosity");
     expect(generosity.count).toBe(25);
-    expect(generosity.earned.map(({ tier, earnedAt }) => ({ tier, earnedAt }))).toEqual([
+    expect(earnedIn(generosity)).toEqual([
       { tier: "bronze", earnedAt: now.getTime() },
       { tier: "silver", earnedAt: reaching.at },
     ]);
@@ -56,42 +57,71 @@ describe("P59 P61 P93: a tier is earned once and never taken back", () => {
 
     await count(t, await kudosGiven(t, alice, bob, { kudos: 1, at: now.getTime() + minuteMs }));
 
-    expect((await ladderOf(t, alice, "generosity")).earned.map(({ tier, earnedAt }) => ({ tier, earnedAt }))).toEqual([{ tier: "bronze", earnedAt: now.getTime() }]);
+    expect(earnedIn(await ladderOf(t, alice, "generosity"))).toEqual([{ tier: "bronze", earnedAt: now.getTime() }]);
     expect(earned().filter(({ member, ladder }) => member === alice && ladder === "generosity")).toHaveLength(1);
   });
 });
 
 describe("P79: achievementsOf gives the website each ladder's facts", () => {
-  test("it returns each ladder's count, every earned tier with its date, catalogue version and promised rewards, and the next tier with its count", async () => {
+  test("it returns each ladder in catalogue order with its name, what it counts and its count, every tier in order with its name, threshold, earned time, catalogue version and promised rewards, and the next tier", async () => {
     const { t, alice, bob } = await withMembers();
 
     await count(t, await kudosGiven(t, alice, bob, { kudos: 3, at: now.getTime() }));
 
+    const unearned = (tier: string, name: string, count: number, rewards: object[]) => ({ tier, name, count, earnedAt: null, catalogueVersion: null, rewards });
     expect(await t.query(internal.achievements.achievements.achievementsOf, { member: bob })).toEqual({
       ladders: [
-        { ladder: "generosity", count: 0, earned: [], next: { tier: "bronze", count: 1, rewards: [{ kind: "coins", reward: "generosity-bronze-coins" }] } },
+        {
+          ladder: "generosity",
+          name: "Generosity",
+          counts: "kudos given",
+          count: 0,
+          tiers: [
+            unearned("bronze", "First Thanks", 1, [{ kind: "coins", reward: "generosity-bronze-coins" }]),
+            unearned("silver", "Generous Soul", 25, [{ kind: "kudosEmoji", reward: "generosity-silver-kudos-emoji" }]),
+            unearned("gold", "Heart of the Team", 100, [{ kind: "hedgehog", reward: "generosity-gold-hedgehog" }]),
+            unearned("diamond", "Patron of Praise", 500, [
+              { kind: "coins", reward: "generosity-diamond-coins" },
+              { kind: "hedgehog", reward: "generosity-diamond-hedgehog" },
+            ]),
+          ],
+          next: "bronze",
+        },
         {
           ladder: "recognition",
+          name: "Recognition",
+          counts: "kudos received",
           count: 3,
-          earned: [{ tier: "bronze", earnedAt: now.getTime(), catalogueVersion: "1", rewards: [{ kind: "coins", reward: "recognition-bronze-coins" }] }],
-          next: { tier: "silver", count: 25, rewards: [{ kind: "kudosEmoji", reward: "recognition-silver-kudos-emoji" }] },
+          tiers: [
+            { tier: "bronze", name: "Noticed", count: 1, earnedAt: now.getTime(), catalogueVersion: "1", rewards: [{ kind: "coins", reward: "recognition-bronze-coins" }] },
+            unearned("silver", "Appreciated", 25, [{ kind: "kudosEmoji", reward: "recognition-silver-kudos-emoji" }]),
+            unearned("gold", "Highly Valued", 100, [{ kind: "hedgehog", reward: "recognition-gold-hedgehog" }]),
+            unearned("diamond", "Hall of Fame", 500, [
+              { kind: "coins", reward: "recognition-diamond-coins" },
+              { kind: "hedgehog", reward: "recognition-diamond-hedgehog" },
+            ]),
+          ],
+          next: "silver",
         },
       ],
     });
   });
 
-  test("a member past 500 has every tier in ladder order, diamond with both its rewards, and no next tier", async () => {
+  test("a member past 500 has every tier earned in ladder order and no next tier", async () => {
     const { t, alice, bob } = await withMembers();
 
     await count(t, await kudosGiven(t, alice, bob, { kudos: 500, at: now.getTime() }));
 
     const generosity = await ladderOf(t, alice, "generosity");
-    expect(generosity.earned.map(({ tier }) => tier)).toEqual(["bronze", "silver", "gold", "diamond"]);
-    expect(generosity.earned[3]?.rewards).toEqual([
-      { kind: "coins", reward: "generosity-diamond-coins" },
-      { kind: "hedgehog", reward: "generosity-diamond-hedgehog" },
-    ]);
+    expect(earnedIn(generosity).map(({ tier }) => tier)).toEqual(["bronze", "silver", "gold", "diamond"]);
     expect(generosity.next).toBeNull();
+  });
+
+  test("where the Book doesn't apply, achievementsOf answers null", async () => {
+    const t = await flagsLoaded(testBackend());
+    const member = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: "U_ALICE", kind: "member" }));
+
+    expect(await t.query(internal.achievements.achievements.achievementsOf, { member })).toBeNull();
   });
 });
 
@@ -120,6 +150,10 @@ async function count(t: Backend, event: KudosGivenEvent) {
 async function ladderOf(t: Backend, member: MemberId, ladder: "generosity" | "recognition") {
   const facts = await t.query(internal.achievements.achievements.achievementsOf, { member });
   return facts!.ladders.find((entry) => entry.ladder === ladder)!;
+}
+
+function earnedIn({ tiers }: LadderFacts) {
+  return tiers.filter(({ earnedAt }) => earnedAt !== null).map(({ tier, earnedAt }) => ({ tier, earnedAt }));
 }
 
 function earned() {

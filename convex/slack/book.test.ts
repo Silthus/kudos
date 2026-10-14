@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { FakePostHog } from "../../testing/fakePostHog";
+import { kudosGivenEventWithAward } from "../../testing/busEvents";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { blockActions, buttonInHome, publishedHome } from "../../testing/slackInteractions";
@@ -64,12 +65,30 @@ describe("P58 P61 P67 P76: a member at level 4 opens the Book and sees the tiers
       "context: Next: *Noticed* at 1 kudos received.",
     ]);
     const bob = await achievementsOf(t, "U_BOB");
-    expect(bob?.ladders.find(({ ladder }) => ladder === "recognition")).toEqual({
-      ladder: "recognition",
+    expect(bob?.ladders.find(({ ladder }) => ladder === "recognition")).toMatchObject({
       count: 2,
-      earned: [{ tier: "bronze", earnedAt: firstKudosAt, catalogueVersion: "1", rewards: [{ kind: "coins", reward: "recognition-bronze-coins" }] }],
-      next: { tier: "silver", count: 25, rewards: [{ kind: "kudosEmoji", reward: "recognition-silver-kudos-emoji" }] },
+      tiers: [{ tier: "bronze", earnedAt: firstKudosAt }, { tier: "silver", earnedAt: null }, { tier: "gold", earnedAt: null }, { tier: "diamond", earnedAt: null }],
+      next: "silver",
     });
+  });
+});
+
+describe("P68: an open Book is published again after its counts change", () => {
+  test("when the count lands after App Home was published, the Book tab is published again with it", async () => {
+    const t = await workspace();
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    await withXp(t, "U_ALICE", 295);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    await openHome(t, "U_ALICE");
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Open")));
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Book")));
+    const [alice, bob] = [await memberOf(t, "U_ALICE"), await memberOf(t, "U_BOB")];
+    const event = await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob, { at: Date.now() }));
+
+    await t.mutation(internal.achievements.achievements.countKudosGiven, { event });
+    await settle(t);
+
+    expect(publishedHome(slack, "U_ALICE")[2]).toBe("section: *Generosity* · *3* kudos given");
   });
 });
 
@@ -114,7 +133,7 @@ describe("P75: the Book counts from its launch, whatever any flag says later", (
     const afterLaunchAt = await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
     const generosity = (await achievementsOf(t, "U_ALICE"))?.ladders.find(({ ladder }) => ladder === "generosity");
-    expect(generosity).toMatchObject({ count: 1, earned: [{ tier: "bronze", earnedAt: afterLaunchAt }] });
+    expect(generosity).toMatchObject({ count: 1, tiers: [{ tier: "bronze", earnedAt: afterLaunchAt }, { earnedAt: null }, { earnedAt: null }, { earnedAt: null }] });
   });
 
   test("while achievements is off after the launch, kudos still count and earn, and turning it on again shows them", async () => {
@@ -126,7 +145,7 @@ describe("P75: the Book counts from its launch, whatever any flag says later", (
     expect(await achievementsOf(t, "U_ALICE")).toBeNull();
     await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("achievements"));
     const generosity = (await achievementsOf(t, "U_ALICE"))?.ladders.find(({ ladder }) => ladder === "generosity");
-    expect(generosity).toMatchObject({ count: 1, earned: [{ tier: "bronze", earnedAt: hiddenKudosAt }] });
+    expect(generosity).toMatchObject({ count: 1, tiers: [{ tier: "bronze", earnedAt: hiddenKudosAt }, { earnedAt: null }, { earnedAt: null }, { earnedAt: null }] });
   });
 });
 

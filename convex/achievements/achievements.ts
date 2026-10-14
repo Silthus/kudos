@@ -2,16 +2,16 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
 import type { AwardWithId } from "../engine/awards";
+import { republish } from "../feedback/homes";
+import { isOpened } from "../feedback/unlockFilter";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { achievementsApplyIn, achievementsLiveIn, bookLaunchedAt } from "./flag";
-import { ladders, ladderOf, type LadderId, type PromisedReward, type TierId } from "./ladders";
-import { earnedTiersOf, earnTier } from "./tiers";
+import { ladders, ladderOf, type LadderId, type PromisedReward, type Tier, type TierId } from "./ladders";
+import { earnedTiersOf, earnTier, type EarnedTier } from "./tiers";
 
-export type EarnedTierFacts = { tier: TierId; earnedAt: number; catalogueVersion: string; rewards: PromisedReward[] };
+export type TierFacts = { tier: TierId; name: string; count: number; earnedAt: number | null; catalogueVersion: string | null; rewards: PromisedReward[] };
 
-export type NextTierFacts = { tier: TierId; count: number; rewards: PromisedReward[] };
-
-export type LadderFacts = { ladder: LadderId; count: number; earned: EarnedTierFacts[]; next: NextTierFacts | null };
+export type LadderFacts = { ladder: LadderId; name: string; counts: string; count: number; tiers: TierFacts[]; next: TierId | null };
 
 export type AchievementFacts = { ladders: LadderFacts[] };
 
@@ -20,13 +20,15 @@ type Counting = { member: MemberId; ladder: LadderId };
 export const countKudosGiven = internalMutation({
   args: { event: kudosGivenEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
-    await achievementsLiveIn(ctx, event.workspace);
+    const shown = await achievementsLiveIn(ctx, event.workspace);
     const launchedAt = await bookLaunchedAt(ctx, event.workspace);
     if (launchedAt === null || event.at < launchedAt) return;
+    const counted = new Set<MemberId>();
     for (const award of event.awards) {
-      await countAward(ctx, event, { member: award.giver, ladder: "generosity" }, award);
-      await countAward(ctx, event, { member: award.recipient, ladder: "recognition" }, award);
+      if (await countAward(ctx, event, { member: award.giver, ladder: "generosity" }, award)) counted.add(award.giver);
+      if (await countAward(ctx, event, { member: award.recipient, ladder: "recognition" }, award)) counted.add(award.recipient);
     }
+    if (shown) for (const member of counted) if (await isOpened(ctx, member, "book")) await republish(ctx, member);
   },
 });
 
@@ -47,19 +49,24 @@ export async function bookFactsOf(ctx: QueryCtx, member: MemberId): Promise<Achi
 
 async function ladderFactsOf(ctx: QueryCtx, member: MemberId, ladder: LadderId): Promise<LadderFacts> {
   const count = (await countRow(ctx, { member, ladder }))?.count ?? 0;
-  const earnedRows = await earnedTiersOf(ctx, member, ladder);
-  const { tiers } = ladderOf(ladder);
-  const earned = tiers.flatMap(({ tier }) => earnedRows.filter((row) => row.tier === tier)).map(({ tier, earnedAt, catalogueVersion, rewards }) => ({ tier, earnedAt, catalogueVersion, rewards }));
-  const next = tiers.find(({ tier }) => !earned.some((row) => row.tier === tier));
-  return { ladder, count, earned, next: next === undefined ? null : { tier: next.tier, count: next.count, rewards: next.rewards } };
+  const earned = await earnedTiersOf(ctx, member, ladder);
+  const { name, counts, tiers } = ladderOf(ladder);
+  const tierFacts = tiers.map((tier) => tierFactsOf(tier, earned.find((row) => row.tier === tier.tier)));
+  return { ladder, name, counts, count, tiers: tierFacts, next: tierFacts.find(({ earnedAt }) => earnedAt === null)?.tier ?? null };
 }
 
-async function countAward(ctx: MutationCtx, event: KudosGivenEvent, counting: Counting, award: AwardWithId) {
-  if (await isCounted(ctx, counting, award)) return;
+function tierFactsOf({ tier, name, count, rewards }: Tier, earned: EarnedTier | undefined): TierFacts {
+  if (earned === undefined) return { tier, name, count, earnedAt: null, catalogueVersion: null, rewards };
+  return { tier, name, count, earnedAt: earned.earnedAt, catalogueVersion: earned.catalogueVersion, rewards: earned.rewards };
+}
+
+async function countAward(ctx: MutationCtx, event: KudosGivenEvent, counting: Counting, award: AwardWithId): Promise<boolean> {
+  if (await isCounted(ctx, counting, award)) return false;
   await ctx.db.insert("countedAwards", { award: award.award, ...counting });
   const count = await addToCount(ctx, counting, award.kudos);
   const reaching = { workspace: event.workspace, ...counting, award: award.award, at: event.at };
   for (const tier of ladderOf(counting.ladder).tiers) if (tier.count <= count) await earnTier(ctx, reaching, tier);
+  return true;
 }
 
 async function addToCount(ctx: MutationCtx, counting: Counting, kudos: number) {
