@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { IconCalendar, IconCompass, IconDay, IconInfinity, IconPiggyBank, IconPulse, IconReceipt, IconSparkles } from "@posthog/icons";
+import { IconCalendar, IconCompass, IconDay, IconHandMoney, IconHandwave, IconPiggyBank, IconRocket, IconSparkles } from "@posthog/icons";
 import type { PerkNode } from "../shell";
 
 export function SkillPointGlyph({ className = "size-3.5" }: { className?: string }) {
@@ -11,14 +11,23 @@ export function SkillPointGlyph({ className = "size-3.5" }: { className?: string
   );
 }
 
+export function CoinGlyph({ className = "size-3.5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" data-testid="coin-glyph" className={`shrink-0 text-warning-foreground ${className}`} aria-hidden="true">
+      <circle cx="8" cy="8" r="7" fill="currentColor" />
+      <circle cx="8" cy="8" r="4.5" fill="none" stroke="var(--card)" strokeWidth="1.2" opacity=".7" />
+    </svg>
+  );
+}
+
 const perkIcons: Record<PerkNode["perk"], ComponentType<{ className?: string }>> = {
   spark: IconDay,
   rhythm: IconCalendar,
   circle: IconCompass,
   flame: IconSparkles,
-  cadence: IconPulse,
-  bridge: IconInfinity,
-  treasurer: IconReceipt,
+  cadence: IconRocket,
+  bridge: IconHandwave,
+  treasurer: IconHandMoney,
   banker: IconPiggyBank,
 };
 
