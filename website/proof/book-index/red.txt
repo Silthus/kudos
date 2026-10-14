@@ -1,0 +1,4394 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/book-index/website
+
+stderr | src/BookPage.test.tsx > WS332: the Book's category pages > puts a ladder a newer backend returns, with no category yet, on the last category that holds a ladder
+Error: Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check the render method of `LadderEmblem`.
+  [stack]: [Getter/Setter],
+  [message]: "Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.\n" +
+    '\n' +
+    'Check the render method of `LadderEmblem`.'
+}
+
+The above error occurred in the <span> component.
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+
+
+     × shows a Book pages column on a wide screen: the Book, Overview, then each category in E's order 1021ms
+     × marks the current page, and only it, with the stripe in primary 1090ms
+     × gives each category its emblem and the overview none 887ms
+     × lists only the categories that hold a ladder the read returns 420ms
+     × is a native select with option groups on a narrow screen 953ms
+     × follows the select to a category without a reload, moving focus to its title 1115ms
+     × follows an index entry without a reload, moving focus to the page's title, and back with the browser 929ms
+     × serves the overview at /book, turning ?page=overview into /book 97ms
+     × shows the overview for a page it doesn't know, at /book 193ms
+     × shows the overview for a category whose ladders the read doesn't return 422ms
+     × /book?page=giving shows Giving with its blurb and its ladders in catalogue order 128ms
+     × /book?page=thanked shows Being thanked with its blurb and its ladders in catalogue order 306ms
+     × /book?page=connections shows Connections with its blurb and its ladders in catalogue order 337ms
+     × /book?page=crowd shows Crowd with its blurb and its ladders in catalogue order 646ms
+     × keys every shipped ladder to a category 4ms
+     × puts a ladder a newer backend returns, with no category yet, on the last category that holds a ladder 305ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 16 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/BookPage.test.tsx > WS331: the Book's page index > shows a Book pages column on a wide screen: the Book, Overview, then each category in E's order
+TestingLibraryElementError: Unable to find an accessible element with the role "navigation" and name "Book pages"
+
+Here are the accessible roles:
+
+  banner:
+
+  Name "":
+  <header
+    class="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"
+  />
+
+  Name "":
+  <header
+    class="flex flex-col gap-1"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "HedgeHug, home":
+  <a
+    aria-label="HedgeHug, home"
+    class="flex items-center gap-2.5 rounded-md"
+    href="/"
+  />
+
+  Name "Home":
+  <a
+    class="relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    href="/"
+  />
+
+  Name "Leaderboard":
+  <a
+    class="relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    href="/leaderboard"
+  />
+
+  Name "Book":
+  <a
+    aria-current="page"
+    class="relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-foreground after:absolute after:inset-x-2 after:-bottom-[12px] after:h-0.5 max-sm:after:-bottom-1 after:rounded-full after:bg-primary"
+    href="/book"
+  />
+
+  --------------------------------------------------
+  navigation:
+
+  Name "Screens":
+  <nav
+    aria-label="Screens"
+    class="mx-auto flex items-center gap-0.5 max-sm:order-last max-sm:mx-0 max-sm:w-full max-sm:pb-1"
+  />
+
+  --------------------------------------------------
+  group:
+
+  Name "Theme":
+  <div
+    aria-label="Theme"
+    class="flex items-center gap-0.5 rounded-full border bg-card p-0.5"
+    role="group"
+  />
+
+  --------------------------------------------------
+  button:
+
+  Name "Use system setting":
+  <button
+    aria-label="Use system setting"
+    aria-pressed="true"
+    class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-primary bg-fill-selected text-foreground"
+    title="Use system setting"
+    type="button"
+  />
+
+  Name "Light":
+  <button
+    aria-label="Light"
+    aria-pressed="false"
+    class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    title="Light"
+    type="button"
+  />
+
+  Name "Dark":
+  <button
+    aria-label="Dark"
+    aria-pressed="false"
+    class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    title="Dark"
+    type="button"
+  />
+
+  Name "Account menu for Sam Example":
+  <button
+    aria-expanded="false"
+    aria-haspopup="menu"
+    aria-label="Account menu for Sam Example"
+    class="rounded-full"
+    data-slot="dropdown-menu-trigger"
+    id="base-ui-_r_4s_"
+    tabindex="0"
+    type="button"
+  />
+
+  --------------------------------------------------
+  main:
+
+  Name "":
+  <main
+    class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+  />
+
+  --------------------------------------------------
+  heading:
+
+  Name "Achievements":
+  <h1
+    class="hud-display font-bold tracking-tight outline-none text-2xl"
+    tabindex="-1"
+  />
+
+  Name "Generosity":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-generosity"
+  />
+
+  Name "Recognition":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-recognition"
+  />
+
+  Name "Connections":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-connections"
+  />
+
+  Name "Dependability":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-dependability"
+  />
+
+  Name "Applause":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-applause"
+  />
+
+  Name "Seasons":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-seasons"
+  />
+
+  Name "Old Friends":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-old-friends"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  --------------------------------------------------
+  article:
+
+  Name "Generosity":
+  <article
+    aria-labelledby="ladder-generosity"
+  />
+
+  Name "Recognition":
+  <article
+    aria-labelledby="ladder-recognition"
+  />
+
+  Name "Connections":
+  <article
+    aria-labelledby="ladder-connections"
+  />
+
+  Name "Dependability":
+  <article
+    aria-labelledby="ladder-dependability"
+  />
+
+  Name "Applause":
+  <article
+    aria-labelledby="ladder-applause"
+  />
+
+  Name "Seasons":
+  <article
+    aria-labelledby="ladder-seasons"
+  />
+
+  Name "Old Friends":
+  <article
+    aria-labelledby="ladder-old-friends"
+  />
+
+  --------------------------------------------------
+  progressbar:
+
+  Name "3 of 25 for Generous Soul":
+  <div
+    aria-label="3 of 25 for Generous Soul"
+    aria-valuemax="25"
+    aria-valuemin="0"
+    aria-valuenow="3"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 1 for Noticed":
+  <div
+    aria-label="0 of 1 for Noticed"
+    aria-valuemax="1"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 3 for Friendly Face":
+  <div
+    aria-label="0 of 3 for Friendly Face"
+    aria-valuemax="3"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 10 for Regular":
+  <div
+    aria-label="0 of 10 for Regular"
+    aria-valuemax="10"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 3 for Shout-out":
+  <div
+    aria-label="0 of 3 for Shout-out"
+    aria-valuemax="3"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 1 for First Chapter":
+  <div
+    aria-label="0 of 1 for First Chapter"
+    aria-valuemax="1"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 1 for Remembered":
+  <div
+    aria-label="0 of 1 for Remembered"
+    aria-valuemax="1"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  --------------------------------------------------
+  list:
+
+  Name "Generosity tiers":
+  <ol
+    aria-label="Generosity tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Recognition tiers":
+  <ol
+    aria-label="Recognition tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Connections tiers":
+  <ol
+    aria-label="Connections tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Dependability tiers":
+  <ol
+    aria-label="Dependability tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Applause tiers":
+  <ol
+    aria-label="Applause tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Seasons tiers":
+  <ol
+    aria-label="Seasons tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Old Friends tiers":
+  <ol
+    aria-label="Old Friends tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  --------------------------------------------------
+  listitem:
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 bg-muted"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  --------------------------------------------------
+  time:
+
+  Name "":
+  <time
+    datetime="2026-10-13T22:30:00.000Z"
+  />
+
+  --------------------------------------------------
+  status:
+
+  Name "":
+  <p
+    class="sr-only"
+    data-testid="moment-announcement"
+    role="status"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="hud-root flex min-h-screen flex-col"
+    >
+      <header
+        class="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"
+      >
+        <div
+          class="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-3 px-4 max-sm:gap-x-2 max-sm:gap-y-1 max-sm:pt-2 md:px-6"
+        >
+          <a
+            aria-label="HedgeHug, home"
+            class="flex items-center gap-2.5 rounded-md"
+            href="/"
+          >
+            <svg
+              aria-hidden="true"
+              class="shrink-0"
+              fill="none"
+              viewBox="0 0 1000 1000"
+              width="34"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M759.27 916.1v-.14q0-.12-.03-.22l.02.22v.38zm7.72 1c0 3.15-1.17 6.2-2.65 8.83-1.86 3.31-4.65 5.9-7.42 8.22a57 57 0 0 1-7.38 5c-2.66 1.59-5.48 2.9-8.27 4.2-2.82 1.32-5.7 2.46-8.58 3.58-5.7 2.2-11.55 4.04-17.4 5.68a391 391 0 0 1-35.64 8.12c-23.3 4.27-46.81 7.1-70.36 9.06q-36.2 3.03-72.49 3.76-15.36.31-30.73.32-21.25.01-42.47-.72c-24.38-.87-48.74-2.21-73.07-4.36a984 984 0 0 1-71.88-8.8 718 718 0 0 1-36.03-6.76 411 411 0 0 1-33.87-8.66 320 320 0 0 1-17.73-6q-4.29-1.6-8.49-3.49c-2.7-1.24-5.4-2.45-8.04-3.86a114 114 0 0 1-8.56-5.05c-2.6-1.7-5-3.68-7.31-5.82a27 27 0 0 1-5.55-7.18 19 19 0 0 1-2.3-9.14c.11-2.7.78-5.17 1.9-7.57.9-1.87 2.1-3.5 3.38-5.06 1.88-2.29 4.2-4.14 6.49-5.9 1.27-.96 2.62-1.79 3.95-2.63a62 62 0 0 1 3.97-2.3c5.5-2.9 11.21-5.31 17.02-7.42 11.1-4.05 22.55-7.06 34.01-9.57q14.26-3.11 28.62-5.41l.08-.01 1.11-.19q.1 0 .2-.03a709 709 0 0 1 31.4-4.25l.81-.1.2-.01.47-.05a864 864 0 0 1 31.63-2.98c24.38-1.85 48.8-2.92 73.23-3.3 1.12 0 2.23-.03 3.23-.04 12.59-.2 25.2-.13 37.78.03q17.74.23 35.45.99 36.63 1.54 73.15 5.02a989 989 0 0 1 36.17 4.18 848 848 0 0 1 36.32 5.61 623 623 0 0 1 36.54 7.6 333 333 0 0 1 34.66 10.17 197 197 0 0 1 17.5 7.25 110 110 0 0 1 7.77 4.13q1.85 1.08 3.65 2.3c1.3.85 2.6 1.71 3.8 2.7a88 88 0 0 1 3.85 3.33c1.1 1 2.1 2.18 3.05 3.36a23 23 0 0 1 4.42 8.82c.3 1.46.4 2.88.4 4.38z"
+                fill="#320601"
+                fill-opacity=".24"
+              />
+              <path
+                d="M751.03 394.3c-7.05-.88-4.44-8.95-4.6-13.81.43-21.73-3.5-43.5-11.5-63.7-23.05-59.85-83.84-102.04-147.96-102.7-89.42-3.19-167.93 73.72-166.35 163.22.38 4.7-5.79 7.63-9.16 4.27-3.67-4.64-.9-11.79-1.29-17.34.8-10.9 2.62-21.7 5.44-32.24a175 175 0 0 1 34.48-66.4c74.4-91.31 222.6-79.92 282.3 21.57a175 175 0 0 1 24.75 80.92c-.75 6.76 3.88 26.5-6.1 26.2zM241.76 883.31C124.27 865.03 59.31 730.94 117.94 627.48c1.2-1.77 3.3-5.33 5.9-9.54l-.92 4.01a623 623 0 0 0-5.41 26.07c-.7 3.76-1.41 7.56-1.87 11.36-38.26 111.08 53.24 225.02 167.8 214.85h.72q8.3.16 16.63.37l5.7.3c7.04.38 14.1.73 21.15.86a176 176 0 0 1-57.95 9.84c-9.35 0-18.69-.75-27.92-2.28m443.58-1.94q-.1 0-.19.02h-1.1z"
+                fill="#401c05"
+              />
+              <path
+                d="M615.68 874.2q3.8-.11 7.59-.19h.44-.19.7-.03.21-.04.27-.01.13c14.37-.22 28.74-.3 43.08-1.15.95 0 1.94 0 2.87-.17a8 8 0 0 0 3.6-1.58c11.2-.44 22.35-2.04 33.25-4.85 90.9-22.21 139.91-116.65 117.55-200.53a6.7 6.7 0 0 0 1.7-4.8 31 31 0 0 0-1.36-6.77l-.87-5.3q-.43-2.56-.92-5.1l-.58-2.77c-.4-1.86-.74-3.88-1.79-5.51q-.42-.7-.92-1.31-.1-.52-.24-1.03a37 37 0 0 0-.82-2.6 73 73 0 0 0-1.36-3.5q-.9-2.15-1.82-4.28l-2.2-4.97q-.98-3.18-1.93-6.35a173 173 0 0 1 17.85 34.39c42.33 107.52-33.9 224.85-144.45 235.58l-16.76.26-11.38.17a169 169 0 0 1-41.56-7.62zM741.5 339.58a274 274 0 0 0-1.42-17.44 289 289 0 0 0-5.6-32.13q1.6 2.47 3.17 4.95c2.19 3.53 4.2 7.13 6.2 10.76l.12.25 2.9 5.39c1.06 1.95 1.98 4.1 3.59 5.65q1.4 10.99 1.94 22.06a5.5 5.5 0 0 1-5.2 5.72h-.24a5.5 5.5 0 0 1-5.47-5.2M415.12 70.5C530.65 48 653.65 106.25 712.84 206.47q-.48-.16-.99-.26-.6-1.09-1.26-2.16l-.93-1.52a7.6 7.6 0 0 0-3.86-3.02c-2.55-1-5.66-.04-7.42 1.99q-.53.6-.87 1.27c-62.55-95.69-183-147.42-298.5-117.7-99.32 23.48-179.99 106.42-202.66 205.4-2.35 6.9-4.68 13.78-6.88 20.72l.26-.84a478 478 0 0 0-6.13 20.2 461 461 0 0 0-5.15 20.03l-.45 1.98C177.82 218.1 279.8 92.16 415.12 70.5"
+                fill="#401c05"
+              />
+              <path
+                d="M102.7 684.5a5.44 5.44 0 0 1-3.75-6.74l.5-2.2.02-.09 6.2-27.68 11.21-49.95 11.28-50.27 11.35-50.59 11.56-51.53 11.31-50.42 11.35-50.56 10.48-46.73.3-1.37c.68-2.9 4-4.53 6.75-3.75a5.5 5.5 0 0 1 3.25 2.56c.74 1.31.83 2.74.5 4.18l-9.77 43.58-11.14 49.67-11.56 51.5-11.36 50.7-11.35 50.6-11.52 51.31-11.03 49.2-7.32 32.63-.49 2.2c-.54 2.42-2.95 3.95-5.32 3.95q-.73 0-1.42-.2zm724.41-8.93-4.3-17.69-9.71-39.98-11.52-47.37-11.71-48.2-11.97-49.27-12.2-50.18q-5.92-24.28-11.81-48.58-5.98-24.56-11.94-49.13c-1.59-6.54-3.24-13.07-4.78-19.62a5.7 5.7 0 0 1 .54-4.22 5.5 5.5 0 0 1 2.4-2.2 332 332 0 0 1 3.71 6.61l3.04 5.63c1.12 2.07 2.1 4.37 3.9 5.95q.3.24.6.44l1.54 6.32 5.97 24.6 11.86 48.79 11.99 49.33 11.94 49.15q5.99 24.59 11.95 49.17l11.64 47.9 11.13 45.78 6.3 25.95 1.93 7.9c.7 2.89-.85 5.9-3.79 6.73q-.7.2-1.4.2a5.46 5.46 0 0 1-5.32-3.99zM284.96 883.71h-.15c-2.97 0-5.34-2.8-5.23-5.68a5.5 5.5 0 0 1 1.8-3.83 5.8 5.8 0 0 1 3.88-1.4c16.03-.12 32.06-.13 48.1-.19l50.6-.2 50.03-.2q24.98-.14 49.94-.2 24.93-.08 49.87-.2l49.08-.21 46.56-.19 35.84-.14 6-.03c2.98-.01 5.34 2.8 5.23 5.68a5.5 5.5 0 0 1-3.01 4.66l-4.9.07q-21.4.31-42.82.67l-1 .02-25.59.1q-24.15.08-48.3.2l-4.22.02q-1.13-.39-2.37-.6c-1.81-.28-3.62-.58-5.45-.71-5.62-.42-11.27-.39-16.9-.54-5.74-.16-11.45.18-17.17.53l-1.78.1-2.04.12 1.13-.06c-3.33.2-6.67.42-10 .57l-1.33.03c-3.43.07-6.87.15-10.3.12-4.2-.04-8.41-.26-12.62-.15-4.4.11-8.8.48-13.18.96l-3.81.02-50.12.2-50.2.2-49.97.2q-7.8.05-15.61.07h-.02zm158.19-408.23a5.5 5.5 0 0 1 1.76-3.86 5.7 5.7 0 0 1 3.85-1.44c15.53-.2 31.04-.49 46.56-.74l48.47-.77 46.92-.76 48.67-.77 47.87-.76 28.14-.45h.17c2.97-.05 5.37 2.74 5.3 5.62a5.5 5.5 0 0 1-1.77 3.86 5.7 5.7 0 0 1-3.86 1.44l-26.6.42q-24.04.37-48.09.77l-48.66.77-46.5.75-49 .77-47.47.76h-.53c-2.95 0-5.32-2.76-5.24-5.62zM325.27 699.47c-2.8-.75-4.7-3.84-3.85-6.69l8.5-28.42 14.09-47.13 14.3-47.86q7.34-24.52 14.66-49.05l.92-3.04.03-.12.83-2.77a5.5 5.5 0 0 1 6.69-3.86c2.81.76 4.7 3.84 3.85 6.69q-7.21 24.18-14.45 48.35l-14.2 47.51-14.27 47.74-10.4 34.77v.01a5.6 5.6 0 0 1-5.29 4.04q-.7 0-1.4-.18"
+                fill="#401c05"
+              />
+              <path
+                d="M448.92 883.33c-82.45-1.55-127.53-68.16...
+    217|
+    218| function bookPages() {
+    219|   return screen.getByRole("navigation", { name: "Book pages" });
+       |                 ^
+    220| }
+    221|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/16]⎯
+
+ FAIL  |website| src/BookPage.test.tsx > WS331: the Book's page index > marks the current page, and only it, with the stripe in primary
+TestingLibraryElementError: Unable to find an accessible element with the role "navigation" and name "Book pages"
+
+Here are the accessible roles:
+
+  banner:
+
+  Name "":
+  <header
+    class="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"
+  />
+
+  Name "":
+  <header
+    class="flex flex-col gap-1"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "HedgeHug, home":
+  <a
+    aria-label="HedgeHug, home"
+    class="flex items-center gap-2.5 rounded-md"
+    href="/"
+  />
+
+  Name "Home":
+  <a
+    class="relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    href="/"
+  />
+
+  Name "Leaderboard":
+  <a
+    class="relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    href="/leaderboard"
+  />
+
+  Name "Book":
+  <a
+    aria-current="page"
+    class="relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-foreground after:absolute after:inset-x-2 after:-bottom-[12px] after:h-0.5 max-sm:after:-bottom-1 after:rounded-full after:bg-primary"
+    href="/book"
+  />
+
+  --------------------------------------------------
+  navigation:
+
+  Name "Screens":
+  <nav
+    aria-label="Screens"
+    class="mx-auto flex items-center gap-0.5 max-sm:order-last max-sm:mx-0 max-sm:w-full max-sm:pb-1"
+  />
+
+  --------------------------------------------------
+  group:
+
+  Name "Theme":
+  <div
+    aria-label="Theme"
+    class="flex items-center gap-0.5 rounded-full border bg-card p-0.5"
+    role="group"
+  />
+
+  --------------------------------------------------
+  button:
+
+  Name "Use system setting":
+  <button
+    aria-label="Use system setting"
+    aria-pressed="true"
+    class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-primary bg-fill-selected text-foreground"
+    title="Use system setting"
+    type="button"
+  />
+
+  Name "Light":
+  <button
+    aria-label="Light"
+    aria-pressed="false"
+    class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    title="Light"
+    type="button"
+  />
+
+  Name "Dark":
+  <button
+    aria-label="Dark"
+    aria-pressed="false"
+    class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    title="Dark"
+    type="button"
+  />
+
+  Name "Account menu for Sam Example":
+  <button
+    aria-expanded="false"
+    aria-haspopup="menu"
+    aria-label="Account menu for Sam Example"
+    class="rounded-full"
+    data-slot="dropdown-menu-trigger"
+    id="base-ui-_r_52_"
+    tabindex="0"
+    type="button"
+  />
+
+  --------------------------------------------------
+  main:
+
+  Name "":
+  <main
+    class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+  />
+
+  --------------------------------------------------
+  heading:
+
+  Name "Achievements":
+  <h1
+    class="hud-display font-bold tracking-tight outline-none text-2xl"
+    tabindex="-1"
+  />
+
+  Name "Generosity":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-generosity"
+  />
+
+  Name "Recognition":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-recognition"
+  />
+
+  Name "Connections":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-connections"
+  />
+
+  Name "Dependability":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-dependability"
+  />
+
+  Name "Applause":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-applause"
+  />
+
+  Name "Seasons":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-seasons"
+  />
+
+  Name "Old Friends":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-old-friends"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  --------------------------------------------------
+  article:
+
+  Name "Generosity":
+  <article
+    aria-labelledby="ladder-generosity"
+  />
+
+  Name "Recognition":
+  <article
+    aria-labelledby="ladder-recognition"
+  />
+
+  Name "Connections":
+  <article
+    aria-labelledby="ladder-connections"
+  />
+
+  Name "Dependability":
+  <article
+    aria-labelledby="ladder-dependability"
+  />
+
+  Name "Applause":
+  <article
+    aria-labelledby="ladder-applause"
+  />
+
+  Name "Seasons":
+  <article
+    aria-labelledby="ladder-seasons"
+  />
+
+  Name "Old Friends":
+  <article
+    aria-labelledby="ladder-old-friends"
+  />
+
+  --------------------------------------------------
+  progressbar:
+
+  Name "3 of 25 for Generous Soul":
+  <div
+    aria-label="3 of 25 for Generous Soul"
+    aria-valuemax="25"
+    aria-valuemin="0"
+    aria-valuenow="3"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 1 for Noticed":
+  <div
+    aria-label="0 of 1 for Noticed"
+    aria-valuemax="1"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 3 for Friendly Face":
+  <div
+    aria-label="0 of 3 for Friendly Face"
+    aria-valuemax="3"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 10 for Regular":
+  <div
+    aria-label="0 of 10 for Regular"
+    aria-valuemax="10"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 3 for Shout-out":
+  <div
+    aria-label="0 of 3 for Shout-out"
+    aria-valuemax="3"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 1 for First Chapter":
+  <div
+    aria-label="0 of 1 for First Chapter"
+    aria-valuemax="1"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 1 for Remembered":
+  <div
+    aria-label="0 of 1 for Remembered"
+    aria-valuemax="1"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  --------------------------------------------------
+  list:
+
+  Name "Generosity tiers":
+  <ol
+    aria-label="Generosity tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Recognition tiers":
+  <ol
+    aria-label="Recognition tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Connections tiers":
+  <ol
+    aria-label="Connections tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Dependability tiers":
+  <ol
+    aria-label="Dependability tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Applause tiers":
+  <ol
+    aria-label="Applause tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Seasons tiers":
+  <ol
+    aria-label="Seasons tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Old Friends tiers":
+  <ol
+    aria-label="Old Friends tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  --------------------------------------------------
+  listitem:
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 bg-muted"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  --------------------------------------------------
+  time:
+
+  Name "":
+  <time
+    datetime="2026-10-13T22:30:00.000Z"
+  />
+
+  --------------------------------------------------
+  status:
+
+  Name "":
+  <p
+    class="sr-only"
+    data-testid="moment-announcement"
+    role="status"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="hud-root flex min-h-screen flex-col"
+    >
+      <header
+        class="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"
+      >
+        <div
+          class="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-3 px-4 max-sm:gap-x-2 max-sm:gap-y-1 max-sm:pt-2 md:px-6"
+        >
+          <a
+            aria-label="HedgeHug, home"
+            class="flex items-center gap-2.5 rounded-md"
+            href="/"
+          >
+            <svg
+              aria-hidden="true"
+              class="shrink-0"
+              fill="none"
+              viewBox="0 0 1000 1000"
+              width="34"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M759.27 916.1v-.14q0-.12-.03-.22l.02.22v.38zm7.72 1c0 3.15-1.17 6.2-2.65 8.83-1.86 3.31-4.65 5.9-7.42 8.22a57 57 0 0 1-7.38 5c-2.66 1.59-5.48 2.9-8.27 4.2-2.82 1.32-5.7 2.46-8.58 3.58-5.7 2.2-11.55 4.04-17.4 5.68a391 391 0 0 1-35.64 8.12c-23.3 4.27-46.81 7.1-70.36 9.06q-36.2 3.03-72.49 3.76-15.36.31-30.73.32-21.25.01-42.47-.72c-24.38-.87-48.74-2.21-73.07-4.36a984 984 0 0 1-71.88-8.8 718 718 0 0 1-36.03-6.76 411 411 0 0 1-33.87-8.66 320 320 0 0 1-17.73-6q-4.29-1.6-8.49-3.49c-2.7-1.24-5.4-2.45-8.04-3.86a114 114 0 0 1-8.56-5.05c-2.6-1.7-5-3.68-7.31-5.82a27 27 0 0 1-5.55-7.18 19 19 0 0 1-2.3-9.14c.11-2.7.78-5.17 1.9-7.57.9-1.87 2.1-3.5 3.38-5.06 1.88-2.29 4.2-4.14 6.49-5.9 1.27-.96 2.62-1.79 3.95-2.63a62 62 0 0 1 3.97-2.3c5.5-2.9 11.21-5.31 17.02-7.42 11.1-4.05 22.55-7.06 34.01-9.57q14.26-3.11 28.62-5.41l.08-.01 1.11-.19q.1 0 .2-.03a709 709 0 0 1 31.4-4.25l.81-.1.2-.01.47-.05a864 864 0 0 1 31.63-2.98c24.38-1.85 48.8-2.92 73.23-3.3 1.12 0 2.23-.03 3.23-.04 12.59-.2 25.2-.13 37.78.03q17.74.23 35.45.99 36.63 1.54 73.15 5.02a989 989 0 0 1 36.17 4.18 848 848 0 0 1 36.32 5.61 623 623 0 0 1 36.54 7.6 333 333 0 0 1 34.66 10.17 197 197 0 0 1 17.5 7.25 110 110 0 0 1 7.77 4.13q1.85 1.08 3.65 2.3c1.3.85 2.6 1.71 3.8 2.7a88 88 0 0 1 3.85 3.33c1.1 1 2.1 2.18 3.05 3.36a23 23 0 0 1 4.42 8.82c.3 1.46.4 2.88.4 4.38z"
+                fill="#320601"
+                fill-opacity=".24"
+              />
+              <path
+                d="M751.03 394.3c-7.05-.88-4.44-8.95-4.6-13.81.43-21.73-3.5-43.5-11.5-63.7-23.05-59.85-83.84-102.04-147.96-102.7-89.42-3.19-167.93 73.72-166.35 163.22.38 4.7-5.79 7.63-9.16 4.27-3.67-4.64-.9-11.79-1.29-17.34.8-10.9 2.62-21.7 5.44-32.24a175 175 0 0 1 34.48-66.4c74.4-91.31 222.6-79.92 282.3 21.57a175 175 0 0 1 24.75 80.92c-.75 6.76 3.88 26.5-6.1 26.2zM241.76 883.31C124.27 865.03 59.31 730.94 117.94 627.48c1.2-1.77 3.3-5.33 5.9-9.54l-.92 4.01a623 623 0 0 0-5.41 26.07c-.7 3.76-1.41 7.56-1.87 11.36-38.26 111.08 53.24 225.02 167.8 214.85h.72q8.3.16 16.63.37l5.7.3c7.04.38 14.1.73 21.15.86a176 176 0 0 1-57.95 9.84c-9.35 0-18.69-.75-27.92-2.28m443.58-1.94q-.1 0-.19.02h-1.1z"
+                fill="#401c05"
+              />
+              <path
+                d="M615.68 874.2q3.8-.11 7.59-.19h.44-.19.7-.03.21-.04.27-.01.13c14.37-.22 28.74-.3 43.08-1.15.95 0 1.94 0 2.87-.17a8 8 0 0 0 3.6-1.58c11.2-.44 22.35-2.04 33.25-4.85 90.9-22.21 139.91-116.65 117.55-200.53a6.7 6.7 0 0 0 1.7-4.8 31 31 0 0 0-1.36-6.77l-.87-5.3q-.43-2.56-.92-5.1l-.58-2.77c-.4-1.86-.74-3.88-1.79-5.51q-.42-.7-.92-1.31-.1-.52-.24-1.03a37 37 0 0 0-.82-2.6 73 73 0 0 0-1.36-3.5q-.9-2.15-1.82-4.28l-2.2-4.97q-.98-3.18-1.93-6.35a173 173 0 0 1 17.85 34.39c42.33 107.52-33.9 224.85-144.45 235.58l-16.76.26-11.38.17a169 169 0 0 1-41.56-7.62zM741.5 339.58a274 274 0 0 0-1.42-17.44 289 289 0 0 0-5.6-32.13q1.6 2.47 3.17 4.95c2.19 3.53 4.2 7.13 6.2 10.76l.12.25 2.9 5.39c1.06 1.95 1.98 4.1 3.59 5.65q1.4 10.99 1.94 22.06a5.5 5.5 0 0 1-5.2 5.72h-.24a5.5 5.5 0 0 1-5.47-5.2M415.12 70.5C530.65 48 653.65 106.25 712.84 206.47q-.48-.16-.99-.26-.6-1.09-1.26-2.16l-.93-1.52a7.6 7.6 0 0 0-3.86-3.02c-2.55-1-5.66-.04-7.42 1.99q-.53.6-.87 1.27c-62.55-95.69-183-147.42-298.5-117.7-99.32 23.48-179.99 106.42-202.66 205.4-2.35 6.9-4.68 13.78-6.88 20.72l.26-.84a478 478 0 0 0-6.13 20.2 461 461 0 0 0-5.15 20.03l-.45 1.98C177.82 218.1 279.8 92.16 415.12 70.5"
+                fill="#401c05"
+              />
+              <path
+                d="M102.7 684.5a5.44 5.44 0 0 1-3.75-6.74l.5-2.2.02-.09 6.2-27.68 11.21-49.95 11.28-50.27 11.35-50.59 11.56-51.53 11.31-50.42 11.35-50.56 10.48-46.73.3-1.37c.68-2.9 4-4.53 6.75-3.75a5.5 5.5 0 0 1 3.25 2.56c.74 1.31.83 2.74.5 4.18l-9.77 43.58-11.14 49.67-11.56 51.5-11.36 50.7-11.35 50.6-11.52 51.31-11.03 49.2-7.32 32.63-.49 2.2c-.54 2.42-2.95 3.95-5.32 3.95q-.73 0-1.42-.2zm724.41-8.93-4.3-17.69-9.71-39.98-11.52-47.37-11.71-48.2-11.97-49.27-12.2-50.18q-5.92-24.28-11.81-48.58-5.98-24.56-11.94-49.13c-1.59-6.54-3.24-13.07-4.78-19.62a5.7 5.7 0 0 1 .54-4.22 5.5 5.5 0 0 1 2.4-2.2 332 332 0 0 1 3.71 6.61l3.04 5.63c1.12 2.07 2.1 4.37 3.9 5.95q.3.24.6.44l1.54 6.32 5.97 24.6 11.86 48.79 11.99 49.33 11.94 49.15q5.99 24.59 11.95 49.17l11.64 47.9 11.13 45.78 6.3 25.95 1.93 7.9c.7 2.89-.85 5.9-3.79 6.73q-.7.2-1.4.2a5.46 5.46 0 0 1-5.32-3.99zM284.96 883.71h-.15c-2.97 0-5.34-2.8-5.23-5.68a5.5 5.5 0 0 1 1.8-3.83 5.8 5.8 0 0 1 3.88-1.4c16.03-.12 32.06-.13 48.1-.19l50.6-.2 50.03-.2q24.98-.14 49.94-.2 24.93-.08 49.87-.2l49.08-.21 46.56-.19 35.84-.14 6-.03c2.98-.01 5.34 2.8 5.23 5.68a5.5 5.5 0 0 1-3.01 4.66l-4.9.07q-21.4.31-42.82.67l-1 .02-25.59.1q-24.15.08-48.3.2l-4.22.02q-1.13-.39-2.37-.6c-1.81-.28-3.62-.58-5.45-.71-5.62-.42-11.27-.39-16.9-.54-5.74-.16-11.45.18-17.17.53l-1.78.1-2.04.12 1.13-.06c-3.33.2-6.67.42-10 .57l-1.33.03c-3.43.07-6.87.15-10.3.12-4.2-.04-8.41-.26-12.62-.15-4.4.11-8.8.48-13.18.96l-3.81.02-50.12.2-50.2.2-49.97.2q-7.8.05-15.61.07h-.02zm158.19-408.23a5.5 5.5 0 0 1 1.76-3.86 5.7 5.7 0 0 1 3.85-1.44c15.53-.2 31.04-.49 46.56-.74l48.47-.77 46.92-.76 48.67-.77 47.87-.76 28.14-.45h.17c2.97-.05 5.37 2.74 5.3 5.62a5.5 5.5 0 0 1-1.77 3.86 5.7 5.7 0 0 1-3.86 1.44l-26.6.42q-24.04.37-48.09.77l-48.66.77-46.5.75-49 .77-47.47.76h-.53c-2.95 0-5.32-2.76-5.24-5.62zM325.27 699.47c-2.8-.75-4.7-3.84-3.85-6.69l8.5-28.42 14.09-47.13 14.3-47.86q7.34-24.52 14.66-49.05l.92-3.04.03-.12.83-2.77a5.5 5.5 0 0 1 6.69-3.86c2.81.76 4.7 3.84 3.85 6.69q-7.21 24.18-14.45 48.35l-14.2 47.51-14.27 47.74-10.4 34.77v.01a5.6 5.6 0 0 1-5.29 4.04q-.7 0-1.4-.18"
+                fill="#401c05"
+              />
+              <path
+                d="M448.92 883.33c-82.45-1.55-127.53-68.16...
+    217|
+    218| function bookPages() {
+    219|   return screen.getByRole("navigation", { name: "Book pages" });
+       |                 ^
+    220| }
+    221|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/16]⎯
+
+ FAIL  |website| src/BookPage.test.tsx > WS331: the Book's page index > gives each category its emblem and the overview none
+TestingLibraryElementError: Unable to find an accessible element with the role "navigation" and name "Book pages"
+
+Here are the accessible roles:
+
+  banner:
+
+  Name "":
+  <header
+    class="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"
+  />
+
+  Name "":
+  <header
+    class="flex flex-col gap-1"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "HedgeHug, home":
+  <a
+    aria-label="HedgeHug, home"
+    class="flex items-center gap-2.5 rounded-md"
+    href="/"
+  />
+
+  Name "Home":
+  <a
+    class="relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    href="/"
+  />
+
+  Name "Leaderboard":
+  <a
+    class="relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    href="/leaderboard"
+  />
+
+  Name "Book":
+  <a
+    aria-current="page"
+    class="relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-foreground after:absolute after:inset-x-2 after:-bottom-[12px] after:h-0.5 max-sm:after:-bottom-1 after:rounded-full after:bg-primary"
+    href="/book"
+  />
+
+  --------------------------------------------------
+  navigation:
+
+  Name "Screens":
+  <nav
+    aria-label="Screens"
+    class="mx-auto flex items-center gap-0.5 max-sm:order-last max-sm:mx-0 max-sm:w-full max-sm:pb-1"
+  />
+
+  --------------------------------------------------
+  group:
+
+  Name "Theme":
+  <div
+    aria-label="Theme"
+    class="flex items-center gap-0.5 rounded-full border bg-card p-0.5"
+    role="group"
+  />
+
+  --------------------------------------------------
+  button:
+
+  Name "Use system setting":
+  <button
+    aria-label="Use system setting"
+    aria-pressed="true"
+    class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-primary bg-fill-selected text-foreground"
+    title="Use system setting"
+    type="button"
+  />
+
+  Name "Light":
+  <button
+    aria-label="Light"
+    aria-pressed="false"
+    class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    title="Light"
+    type="button"
+  />
+
+  Name "Dark":
+  <button
+    aria-label="Dark"
+    aria-pressed="false"
+    class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    title="Dark"
+    type="button"
+  />
+
+  Name "Account menu for Sam Example":
+  <button
+    aria-expanded="false"
+    aria-haspopup="menu"
+    aria-label="Account menu for Sam Example"
+    class="rounded-full"
+    data-slot="dropdown-menu-trigger"
+    id="base-ui-_r_58_"
+    tabindex="0"
+    type="button"
+  />
+
+  --------------------------------------------------
+  main:
+
+  Name "":
+  <main
+    class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+  />
+
+  --------------------------------------------------
+  heading:
+
+  Name "Achievements":
+  <h1
+    class="hud-display font-bold tracking-tight outline-none text-2xl"
+    tabindex="-1"
+  />
+
+  Name "Generosity":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-generosity"
+  />
+
+  Name "Recognition":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-recognition"
+  />
+
+  Name "Connections":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-connections"
+  />
+
+  Name "Dependability":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-dependability"
+  />
+
+  Name "Applause":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-applause"
+  />
+
+  Name "Seasons":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-seasons"
+  />
+
+  Name "Old Friends":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-old-friends"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  --------------------------------------------------
+  article:
+
+  Name "Generosity":
+  <article
+    aria-labelledby="ladder-generosity"
+  />
+
+  Name "Recognition":
+  <article
+    aria-labelledby="ladder-recognition"
+  />
+
+  Name "Connections":
+  <article
+    aria-labelledby="ladder-connections"
+  />
+
+  Name "Dependability":
+  <article
+    aria-labelledby="ladder-dependability"
+  />
+
+  Name "Applause":
+  <article
+    aria-labelledby="ladder-applause"
+  />
+
+  Name "Seasons":
+  <article
+    aria-labelledby="ladder-seasons"
+  />
+
+  Name "Old Friends":
+  <article
+    aria-labelledby="ladder-old-friends"
+  />
+
+  --------------------------------------------------
+  progressbar:
+
+  Name "3 of 25 for Generous Soul":
+  <div
+    aria-label="3 of 25 for Generous Soul"
+    aria-valuemax="25"
+    aria-valuemin="0"
+    aria-valuenow="3"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 1 for Noticed":
+  <div
+    aria-label="0 of 1 for Noticed"
+    aria-valuemax="1"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 3 for Friendly Face":
+  <div
+    aria-label="0 of 3 for Friendly Face"
+    aria-valuemax="3"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 10 for Regular":
+  <div
+    aria-label="0 of 10 for Regular"
+    aria-valuemax="10"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 3 for Shout-out":
+  <div
+    aria-label="0 of 3 for Shout-out"
+    aria-valuemax="3"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 1 for First Chapter":
+  <div
+    aria-label="0 of 1 for First Chapter"
+    aria-valuemax="1"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 1 for Remembered":
+  <div
+    aria-label="0 of 1 for Remembered"
+    aria-valuemax="1"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  --------------------------------------------------
+  list:
+
+  Name "Generosity tiers":
+  <ol
+    aria-label="Generosity tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Recognition tiers":
+  <ol
+    aria-label="Recognition tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Connections tiers":
+  <ol
+    aria-label="Connections tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Dependability tiers":
+  <ol
+    aria-label="Dependability tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Applause tiers":
+  <ol
+    aria-label="Applause tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Seasons tiers":
+  <ol
+    aria-label="Seasons tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Old Friends tiers":
+  <ol
+    aria-label="Old Friends tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  --------------------------------------------------
+  listitem:
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 bg-muted"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  --------------------------------------------------
+  time:
+
+  Name "":
+  <time
+    datetime="2026-10-13T22:30:00.000Z"
+  />
+
+  --------------------------------------------------
+  status:
+
+  Name "":
+  <p
+    class="sr-only"
+    data-testid="moment-announcement"
+    role="status"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="hud-root flex min-h-screen flex-col"
+    >
+      <header
+        class="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"
+      >
+        <div
+          class="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-3 px-4 max-sm:gap-x-2 max-sm:gap-y-1 max-sm:pt-2 md:px-6"
+        >
+          <a
+            aria-label="HedgeHug, home"
+            class="flex items-center gap-2.5 rounded-md"
+            href="/"
+          >
+            <svg
+              aria-hidden="true"
+              class="shrink-0"
+              fill="none"
+              viewBox="0 0 1000 1000"
+              width="34"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M759.27 916.1v-.14q0-.12-.03-.22l.02.22v.38zm7.72 1c0 3.15-1.17 6.2-2.65 8.83-1.86 3.31-4.65 5.9-7.42 8.22a57 57 0 0 1-7.38 5c-2.66 1.59-5.48 2.9-8.27 4.2-2.82 1.32-5.7 2.46-8.58 3.58-5.7 2.2-11.55 4.04-17.4 5.68a391 391 0 0 1-35.64 8.12c-23.3 4.27-46.81 7.1-70.36 9.06q-36.2 3.03-72.49 3.76-15.36.31-30.73.32-21.25.01-42.47-.72c-24.38-.87-48.74-2.21-73.07-4.36a984 984 0 0 1-71.88-8.8 718 718 0 0 1-36.03-6.76 411 411 0 0 1-33.87-8.66 320 320 0 0 1-17.73-6q-4.29-1.6-8.49-3.49c-2.7-1.24-5.4-2.45-8.04-3.86a114 114 0 0 1-8.56-5.05c-2.6-1.7-5-3.68-7.31-5.82a27 27 0 0 1-5.55-7.18 19 19 0 0 1-2.3-9.14c.11-2.7.78-5.17 1.9-7.57.9-1.87 2.1-3.5 3.38-5.06 1.88-2.29 4.2-4.14 6.49-5.9 1.27-.96 2.62-1.79 3.95-2.63a62 62 0 0 1 3.97-2.3c5.5-2.9 11.21-5.31 17.02-7.42 11.1-4.05 22.55-7.06 34.01-9.57q14.26-3.11 28.62-5.41l.08-.01 1.11-.19q.1 0 .2-.03a709 709 0 0 1 31.4-4.25l.81-.1.2-.01.47-.05a864 864 0 0 1 31.63-2.98c24.38-1.85 48.8-2.92 73.23-3.3 1.12 0 2.23-.03 3.23-.04 12.59-.2 25.2-.13 37.78.03q17.74.23 35.45.99 36.63 1.54 73.15 5.02a989 989 0 0 1 36.17 4.18 848 848 0 0 1 36.32 5.61 623 623 0 0 1 36.54 7.6 333 333 0 0 1 34.66 10.17 197 197 0 0 1 17.5 7.25 110 110 0 0 1 7.77 4.13q1.85 1.08 3.65 2.3c1.3.85 2.6 1.71 3.8 2.7a88 88 0 0 1 3.85 3.33c1.1 1 2.1 2.18 3.05 3.36a23 23 0 0 1 4.42 8.82c.3 1.46.4 2.88.4 4.38z"
+                fill="#320601"
+                fill-opacity=".24"
+              />
+              <path
+                d="M751.03 394.3c-7.05-.88-4.44-8.95-4.6-13.81.43-21.73-3.5-43.5-11.5-63.7-23.05-59.85-83.84-102.04-147.96-102.7-89.42-3.19-167.93 73.72-166.35 163.22.38 4.7-5.79 7.63-9.16 4.27-3.67-4.64-.9-11.79-1.29-17.34.8-10.9 2.62-21.7 5.44-32.24a175 175 0 0 1 34.48-66.4c74.4-91.31 222.6-79.92 282.3 21.57a175 175 0 0 1 24.75 80.92c-.75 6.76 3.88 26.5-6.1 26.2zM241.76 883.31C124.27 865.03 59.31 730.94 117.94 627.48c1.2-1.77 3.3-5.33 5.9-9.54l-.92 4.01a623 623 0 0 0-5.41 26.07c-.7 3.76-1.41 7.56-1.87 11.36-38.26 111.08 53.24 225.02 167.8 214.85h.72q8.3.16 16.63.37l5.7.3c7.04.38 14.1.73 21.15.86a176 176 0 0 1-57.95 9.84c-9.35 0-18.69-.75-27.92-2.28m443.58-1.94q-.1 0-.19.02h-1.1z"
+                fill="#401c05"
+              />
+              <path
+                d="M615.68 874.2q3.8-.11 7.59-.19h.44-.19.7-.03.21-.04.27-.01.13c14.37-.22 28.74-.3 43.08-1.15.95 0 1.94 0 2.87-.17a8 8 0 0 0 3.6-1.58c11.2-.44 22.35-2.04 33.25-4.85 90.9-22.21 139.91-116.65 117.55-200.53a6.7 6.7 0 0 0 1.7-4.8 31 31 0 0 0-1.36-6.77l-.87-5.3q-.43-2.56-.92-5.1l-.58-2.77c-.4-1.86-.74-3.88-1.79-5.51q-.42-.7-.92-1.31-.1-.52-.24-1.03a37 37 0 0 0-.82-2.6 73 73 0 0 0-1.36-3.5q-.9-2.15-1.82-4.28l-2.2-4.97q-.98-3.18-1.93-6.35a173 173 0 0 1 17.85 34.39c42.33 107.52-33.9 224.85-144.45 235.58l-16.76.26-11.38.17a169 169 0 0 1-41.56-7.62zM741.5 339.58a274 274 0 0 0-1.42-17.44 289 289 0 0 0-5.6-32.13q1.6 2.47 3.17 4.95c2.19 3.53 4.2 7.13 6.2 10.76l.12.25 2.9 5.39c1.06 1.95 1.98 4.1 3.59 5.65q1.4 10.99 1.94 22.06a5.5 5.5 0 0 1-5.2 5.72h-.24a5.5 5.5 0 0 1-5.47-5.2M415.12 70.5C530.65 48 653.65 106.25 712.84 206.47q-.48-.16-.99-.26-.6-1.09-1.26-2.16l-.93-1.52a7.6 7.6 0 0 0-3.86-3.02c-2.55-1-5.66-.04-7.42 1.99q-.53.6-.87 1.27c-62.55-95.69-183-147.42-298.5-117.7-99.32 23.48-179.99 106.42-202.66 205.4-2.35 6.9-4.68 13.78-6.88 20.72l.26-.84a478 478 0 0 0-6.13 20.2 461 461 0 0 0-5.15 20.03l-.45 1.98C177.82 218.1 279.8 92.16 415.12 70.5"
+                fill="#401c05"
+              />
+              <path
+                d="M102.7 684.5a5.44 5.44 0 0 1-3.75-6.74l.5-2.2.02-.09 6.2-27.68 11.21-49.95 11.28-50.27 11.35-50.59 11.56-51.53 11.31-50.42 11.35-50.56 10.48-46.73.3-1.37c.68-2.9 4-4.53 6.75-3.75a5.5 5.5 0 0 1 3.25 2.56c.74 1.31.83 2.74.5 4.18l-9.77 43.58-11.14 49.67-11.56 51.5-11.36 50.7-11.35 50.6-11.52 51.31-11.03 49.2-7.32 32.63-.49 2.2c-.54 2.42-2.95 3.95-5.32 3.95q-.73 0-1.42-.2zm724.41-8.93-4.3-17.69-9.71-39.98-11.52-47.37-11.71-48.2-11.97-49.27-12.2-50.18q-5.92-24.28-11.81-48.58-5.98-24.56-11.94-49.13c-1.59-6.54-3.24-13.07-4.78-19.62a5.7 5.7 0 0 1 .54-4.22 5.5 5.5 0 0 1 2.4-2.2 332 332 0 0 1 3.71 6.61l3.04 5.63c1.12 2.07 2.1 4.37 3.9 5.95q.3.24.6.44l1.54 6.32 5.97 24.6 11.86 48.79 11.99 49.33 11.94 49.15q5.99 24.59 11.95 49.17l11.64 47.9 11.13 45.78 6.3 25.95 1.93 7.9c.7 2.89-.85 5.9-3.79 6.73q-.7.2-1.4.2a5.46 5.46 0 0 1-5.32-3.99zM284.96 883.71h-.15c-2.97 0-5.34-2.8-5.23-5.68a5.5 5.5 0 0 1 1.8-3.83 5.8 5.8 0 0 1 3.88-1.4c16.03-.12 32.06-.13 48.1-.19l50.6-.2 50.03-.2q24.98-.14 49.94-.2 24.93-.08 49.87-.2l49.08-.21 46.56-.19 35.84-.14 6-.03c2.98-.01 5.34 2.8 5.23 5.68a5.5 5.5 0 0 1-3.01 4.66l-4.9.07q-21.4.31-42.82.67l-1 .02-25.59.1q-24.15.08-48.3.2l-4.22.02q-1.13-.39-2.37-.6c-1.81-.28-3.62-.58-5.45-.71-5.62-.42-11.27-.39-16.9-.54-5.74-.16-11.45.18-17.17.53l-1.78.1-2.04.12 1.13-.06c-3.33.2-6.67.42-10 .57l-1.33.03c-3.43.07-6.87.15-10.3.12-4.2-.04-8.41-.26-12.62-.15-4.4.11-8.8.48-13.18.96l-3.81.02-50.12.2-50.2.2-49.97.2q-7.8.05-15.61.07h-.02zm158.19-408.23a5.5 5.5 0 0 1 1.76-3.86 5.7 5.7 0 0 1 3.85-1.44c15.53-.2 31.04-.49 46.56-.74l48.47-.77 46.92-.76 48.67-.77 47.87-.76 28.14-.45h.17c2.97-.05 5.37 2.74 5.3 5.62a5.5 5.5 0 0 1-1.77 3.86 5.7 5.7 0 0 1-3.86 1.44l-26.6.42q-24.04.37-48.09.77l-48.66.77-46.5.75-49 .77-47.47.76h-.53c-2.95 0-5.32-2.76-5.24-5.62zM325.27 699.47c-2.8-.75-4.7-3.84-3.85-6.69l8.5-28.42 14.09-47.13 14.3-47.86q7.34-24.52 14.66-49.05l.92-3.04.03-.12.83-2.77a5.5 5.5 0 0 1 6.69-3.86c2.81.76 4.7 3.84 3.85 6.69q-7.21 24.18-14.45 48.35l-14.2 47.51-14.27 47.74-10.4 34.77v.01a5.6 5.6 0 0 1-5.29 4.04q-.7 0-1.4-.18"
+                fill="#401c05"
+              />
+              <path
+                d="M448.92 883.33c-82.45-1.55-127.53-68.16...
+    217|
+    218| function bookPages() {
+    219|   return screen.getByRole("navigation", { name: "Book pages" });
+       |                 ^
+    220| }
+    221|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/16]⎯
+
+ FAIL  |website| src/BookPage.test.tsx > WS331: the Book's page index > lists only the categories that hold a ladder the read returns
+TestingLibraryElementError: Unable to find an accessible element with the role "navigation" and name "Book pages"
+
+Here are the accessible roles:
+
+  banner:
+
+  Name "":
+  <header
+    class="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"
+  />
+
+  Name "":
+  <header
+    class="flex flex-col gap-1"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "HedgeHug, home":
+  <a
+    aria-label="HedgeHug, home"
+    class="flex items-center gap-2.5 rounded-md"
+    href="/"
+  />
+
+  Name "Home":
+  <a
+    class="relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    href="/"
+  />
+
+  Name "Leaderboard":
+  <a
+    class="relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    href="/leaderboard"
+  />
+
+  Name "Book":
+  <a
+    aria-current="page"
+    class="relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-foreground after:absolute after:inset-x-2 after:-bottom-[12px] after:h-0.5 max-sm:after:-bottom-1 after:rounded-full after:bg-primary"
+    href="/book"
+  />
+
+  --------------------------------------------------
+  navigation:
+
+  Name "Screens":
+  <nav
+    aria-label="Screens"
+    class="mx-auto flex items-center gap-0.5 max-sm:order-last max-sm:mx-0 max-sm:w-full max-sm:pb-1"
+  />
+
+  --------------------------------------------------
+  group:
+
+  Name "Theme":
+  <div
+    aria-label="Theme"
+    class="flex items-center gap-0.5 rounded-full border bg-card p-0.5"
+    role="group"
+  />
+
+  --------------------------------------------------
+  button:
+
+  Name "Use system setting":
+  <button
+    aria-label="Use system setting"
+    aria-pressed="true"
+    class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-primary bg-fill-selected text-foreground"
+    title="Use system setting"
+    type="button"
+  />
+
+  Name "Light":
+  <button
+    aria-label="Light"
+    aria-pressed="false"
+    class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    title="Light"
+    type="button"
+  />
+
+  Name "Dark":
+  <button
+    aria-label="Dark"
+    aria-pressed="false"
+    class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    title="Dark"
+    type="button"
+  />
+
+  Name "Account menu for Sam Example":
+  <button
+    aria-expanded="false"
+    aria-haspopup="menu"
+    aria-label="Account menu for Sam Example"
+    class="rounded-full"
+    data-slot="dropdown-menu-trigger"
+    id="base-ui-_r_5e_"
+    tabindex="0"
+    type="button"
+  />
+
+  --------------------------------------------------
+  main:
+
+  Name "":
+  <main
+    class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+  />
+
+  --------------------------------------------------
+  heading:
+
+  Name "Achievements":
+  <h1
+    class="hud-display font-bold tracking-tight outline-none text-2xl"
+    tabindex="-1"
+  />
+
+  Name "Generosity":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-generosity"
+  />
+
+  Name "Recognition":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-recognition"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  --------------------------------------------------
+  article:
+
+  Name "Generosity":
+  <article
+    aria-labelledby="ladder-generosity"
+  />
+
+  Name "Recognition":
+  <article
+    aria-labelledby="ladder-recognition"
+  />
+
+  --------------------------------------------------
+  progressbar:
+
+  Name "3 of 25 for Generous Soul":
+  <div
+    aria-label="3 of 25 for Generous Soul"
+    aria-valuemax="25"
+    aria-valuemin="0"
+    aria-valuenow="3"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 1 for Noticed":
+  <div
+    aria-label="0 of 1 for Noticed"
+    aria-valuemax="1"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  --------------------------------------------------
+  list:
+
+  Name "Generosity tiers":
+  <ol
+    aria-label="Generosity tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Recognition tiers":
+  <ol
+    aria-label="Recognition tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  --------------------------------------------------
+  listitem:
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 bg-muted"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  --------------------------------------------------
+  time:
+
+  Name "":
+  <time
+    datetime="2026-10-13T22:30:00.000Z"
+  />
+
+  --------------------------------------------------
+  status:
+
+  Name "":
+  <p
+    class="sr-only"
+    data-testid="moment-announcement"
+    role="status"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="hud-root flex min-h-screen flex-col"
+    >
+      <header
+        class="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"
+      >
+        <div
+          class="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-3 px-4 max-sm:gap-x-2 max-sm:gap-y-1 max-sm:pt-2 md:px-6"
+        >
+          <a
+            aria-label="HedgeHug, home"
+            class="flex items-center gap-2.5 rounded-md"
+            href="/"
+          >
+            <svg
+              aria-hidden="true"
+              class="shrink-0"
+              fill="none"
+              viewBox="0 0 1000 1000"
+              width="34"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M759.27 916.1v-.14q0-.12-.03-.22l.02.22v.38zm7.72 1c0 3.15-1.17 6.2-2.65 8.83-1.86 3.31-4.65 5.9-7.42 8.22a57 57 0 0 1-7.38 5c-2.66 1.59-5.48 2.9-8.27 4.2-2.82 1.32-5.7 2.46-8.58 3.58-5.7 2.2-11.55 4.04-17.4 5.68a391 391 0 0 1-35.64 8.12c-23.3 4.27-46.81 7.1-70.36 9.06q-36.2 3.03-72.49 3.76-15.36.31-30.73.32-21.25.01-42.47-.72c-24.38-.87-48.74-2.21-73.07-4.36a984 984 0 0 1-71.88-8.8 718 718 0 0 1-36.03-6.76 411 411 0 0 1-33.87-8.66 320 320 0 0 1-17.73-6q-4.29-1.6-8.49-3.49c-2.7-1.24-5.4-2.45-8.04-3.86a114 114 0 0 1-8.56-5.05c-2.6-1.7-5-3.68-7.31-5.82a27 27 0 0 1-5.55-7.18 19 19 0 0 1-2.3-9.14c.11-2.7.78-5.17 1.9-7.57.9-1.87 2.1-3.5 3.38-5.06 1.88-2.29 4.2-4.14 6.49-5.9 1.27-.96 2.62-1.79 3.95-2.63a62 62 0 0 1 3.97-2.3c5.5-2.9 11.21-5.31 17.02-7.42 11.1-4.05 22.55-7.06 34.01-9.57q14.26-3.11 28.62-5.41l.08-.01 1.11-.19q.1 0 .2-.03a709 709 0 0 1 31.4-4.25l.81-.1.2-.01.47-.05a864 864 0 0 1 31.63-2.98c24.38-1.85 48.8-2.92 73.23-3.3 1.12 0 2.23-.03 3.23-.04 12.59-.2 25.2-.13 37.78.03q17.74.23 35.45.99 36.63 1.54 73.15 5.02a989 989 0 0 1 36.17 4.18 848 848 0 0 1 36.32 5.61 623 623 0 0 1 36.54 7.6 333 333 0 0 1 34.66 10.17 197 197 0 0 1 17.5 7.25 110 110 0 0 1 7.77 4.13q1.85 1.08 3.65 2.3c1.3.85 2.6 1.71 3.8 2.7a88 88 0 0 1 3.85 3.33c1.1 1 2.1 2.18 3.05 3.36a23 23 0 0 1 4.42 8.82c.3 1.46.4 2.88.4 4.38z"
+                fill="#320601"
+                fill-opacity=".24"
+              />
+              <path
+                d="M751.03 394.3c-7.05-.88-4.44-8.95-4.6-13.81.43-21.73-3.5-43.5-11.5-63.7-23.05-59.85-83.84-102.04-147.96-102.7-89.42-3.19-167.93 73.72-166.35 163.22.38 4.7-5.79 7.63-9.16 4.27-3.67-4.64-.9-11.79-1.29-17.34.8-10.9 2.62-21.7 5.44-32.24a175 175 0 0 1 34.48-66.4c74.4-91.31 222.6-79.92 282.3 21.57a175 175 0 0 1 24.75 80.92c-.75 6.76 3.88 26.5-6.1 26.2zM241.76 883.31C124.27 865.03 59.31 730.94 117.94 627.48c1.2-1.77 3.3-5.33 5.9-9.54l-.92 4.01a623 623 0 0 0-5.41 26.07c-.7 3.76-1.41 7.56-1.87 11.36-38.26 111.08 53.24 225.02 167.8 214.85h.72q8.3.16 16.63.37l5.7.3c7.04.38 14.1.73 21.15.86a176 176 0 0 1-57.95 9.84c-9.35 0-18.69-.75-27.92-2.28m443.58-1.94q-.1 0-.19.02h-1.1z"
+                fill="#401c05"
+              />
+              <path
+                d="M615.68 874.2q3.8-.11 7.59-.19h.44-.19.7-.03.21-.04.27-.01.13c14.37-.22 28.74-.3 43.08-1.15.95 0 1.94 0 2.87-.17a8 8 0 0 0 3.6-1.58c11.2-.44 22.35-2.04 33.25-4.85 90.9-22.21 139.91-116.65 117.55-200.53a6.7 6.7 0 0 0 1.7-4.8 31 31 0 0 0-1.36-6.77l-.87-5.3q-.43-2.56-.92-5.1l-.58-2.77c-.4-1.86-.74-3.88-1.79-5.51q-.42-.7-.92-1.31-.1-.52-.24-1.03a37 37 0 0 0-.82-2.6 73 73 0 0 0-1.36-3.5q-.9-2.15-1.82-4.28l-2.2-4.97q-.98-3.18-1.93-6.35a173 173 0 0 1 17.85 34.39c42.33 107.52-33.9 224.85-144.45 235.58l-16.76.26-11.38.17a169 169 0 0 1-41.56-7.62zM741.5 339.58a274 274 0 0 0-1.42-17.44 289 289 0 0 0-5.6-32.13q1.6 2.47 3.17 4.95c2.19 3.53 4.2 7.13 6.2 10.76l.12.25 2.9 5.39c1.06 1.95 1.98 4.1 3.59 5.65q1.4 10.99 1.94 22.06a5.5 5.5 0 0 1-5.2 5.72h-.24a5.5 5.5 0 0 1-5.47-5.2M415.12 70.5C530.65 48 653.65 106.25 712.84 206.47q-.48-.16-.99-.26-.6-1.09-1.26-2.16l-.93-1.52a7.6 7.6 0 0 0-3.86-3.02c-2.55-1-5.66-.04-7.42 1.99q-.53.6-.87 1.27c-62.55-95.69-183-147.42-298.5-117.7-99.32 23.48-179.99 106.42-202.66 205.4-2.35 6.9-4.68 13.78-6.88 20.72l.26-.84a478 478 0 0 0-6.13 20.2 461 461 0 0 0-5.15 20.03l-.45 1.98C177.82 218.1 279.8 92.16 415.12 70.5"
+                fill="#401c05"
+              />
+              <path
+                d="M102.7 684.5a5.44 5.44 0 0 1-3.75-6.74l.5-2.2.02-.09 6.2-27.68 11.21-49.95 11.28-50.27 11.35-50.59 11.56-51.53 11.31-50.42 11.35-50.56 10.48-46.73.3-1.37c.68-2.9 4-4.53 6.75-3.75a5.5 5.5 0 0 1 3.25 2.56c.74 1.31.83 2.74.5 4.18l-9.77 43.58-11.14 49.67-11.56 51.5-11.36 50.7-11.35 50.6-11.52 51.31-11.03 49.2-7.32 32.63-.49 2.2c-.54 2.42-2.95 3.95-5.32 3.95q-.73 0-1.42-.2zm724.41-8.93-4.3-17.69-9.71-39.98-11.52-47.37-11.71-48.2-11.97-49.27-12.2-50.18q-5.92-24.28-11.81-48.58-5.98-24.56-11.94-49.13c-1.59-6.54-3.24-13.07-4.78-19.62a5.7 5.7 0 0 1 .54-4.22 5.5 5.5 0 0 1 2.4-2.2 332 332 0 0 1 3.71 6.61l3.04 5.63c1.12 2.07 2.1 4.37 3.9 5.95q.3.24.6.44l1.54 6.32 5.97 24.6 11.86 48.79 11.99 49.33 11.94 49.15q5.99 24.59 11.95 49.17l11.64 47.9 11.13 45.78 6.3 25.95 1.93 7.9c.7 2.89-.85 5.9-3.79 6.73q-.7.2-1.4.2a5.46 5.46 0 0 1-5.32-3.99zM284.96 883.71h-.15c-2.97 0-5.34-2.8-5.23-5.68a5.5 5.5 0 0 1 1.8-3.83 5.8 5.8 0 0 1 3.88-1.4c16.03-.12 32.06-.13 48.1-.19l50.6-.2 50.03-.2q24.98-.14 49.94-.2 24.93-.08 49.87-.2l49.08-.21 46.56-.19 35.84-.14 6-.03c2.98-.01 5.34 2.8 5.23 5.68a5.5 5.5 0 0 1-3.01 4.66l-4.9.07q-21.4.31-42.82.67l-1 .02-25.59.1q-24.15.08-48.3.2l-4.22.02q-1.13-.39-2.37-.6c-1.81-.28-3.62-.58-5.45-.71-5.62-.42-11.27-.39-16.9-.54-5.74-.16-11.45.18-17.17.53l-1.78.1-2.04.12 1.13-.06c-3.33.2-6.67.42-10 .57l-1.33.03c-3.43.07-6.87.15-10.3.12-4.2-.04-8.41-.26-12.62-.15-4.4.11-8.8.48-13.18.96l-3.81.02-50.12.2-50.2.2-49.97.2q-7.8.05-15.61.07h-.02zm158.19-408.23a5.5 5.5 0 0 1 1.76-3.86 5.7 5.7 0 0 1 3.85-1.44c15.53-.2 31.04-.49 46.56-.74l48.47-.77 46.92-.76 48.67-.77 47.87-.76 28.14-.45h.17c2.97-.05 5.37 2.74 5.3 5.62a5.5 5.5 0 0 1-1.77 3.86 5.7 5.7 0 0 1-3.86 1.44l-26.6.42q-24.04.37-48.09.77l-48.66.77-46.5.75-49 .77-47.47.76h-.53c-2.95 0-5.32-2.76-5.24-5.62zM325.27 699.47c-2.8-.75-4.7-3.84-3.85-6.69l8.5-28.42 14.09-47.13 14.3-47.86q7.34-24.52 14.66-49.05l.92-3.04.03-.12.83-2.77a5.5 5.5 0 0 1 6.69-3.86c2.81.76 4.7 3.84 3.85 6.69q-7.21 24.18-14.45 48.35l-14.2 47.51-14.27 47.74-10.4 34.77v.01a5.6 5.6 0 0 1-5.29 4.04q-.7 0-1.4-.18"
+                fill="#401c05"
+              />
+              <path
+                d="M448.92 883.33c-82.45-1.55-127.53-68.16...
+    217|
+    218| function bookPages() {
+    219|   return screen.getByRole("navigation", { name: "Book pages" });
+       |                 ^
+    220| }
+    221|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/16]⎯
+
+ FAIL  |website| src/BookPage.test.tsx > WS331: the Book's page index > is a native select with option groups on a narrow screen
+TestingLibraryElementError: Unable to find an accessible element with the role "combobox" and name "Book page"
+
+Here are the accessible roles:
+
+  banner:
+
+  Name "":
+  <header
+    class="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"
+  />
+
+  Name "":
+  <header
+    class="flex flex-col gap-1"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "HedgeHug, home":
+  <a
+    aria-label="HedgeHug, home"
+    class="flex items-center gap-2.5 rounded-md"
+    href="/"
+  />
+
+  Name "Home":
+  <a
+    class="relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    href="/"
+  />
+
+  Name "Leaderboard":
+  <a
+    class="relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    href="/leaderboard"
+  />
+
+  Name "Book":
+  <a
+    aria-current="page"
+    class="relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-foreground after:absolute after:inset-x-2 after:-bottom-[12px] after:h-0.5 max-sm:after:-bottom-1 after:rounded-full after:bg-primary"
+    href="/book"
+  />
+
+  --------------------------------------------------
+  navigation:
+
+  Name "Screens":
+  <nav
+    aria-label="Screens"
+    class="mx-auto flex items-center gap-0.5 max-sm:order-last max-sm:mx-0 max-sm:w-full max-sm:pb-1"
+  />
+
+  --------------------------------------------------
+  group:
+
+  Name "Theme":
+  <div
+    aria-label="Theme"
+    class="flex items-center gap-0.5 rounded-full border bg-card p-0.5"
+    role="group"
+  />
+
+  --------------------------------------------------
+  button:
+
+  Name "Use system setting":
+  <button
+    aria-label="Use system setting"
+    aria-pressed="true"
+    class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-primary bg-fill-selected text-foreground"
+    title="Use system setting"
+    type="button"
+  />
+
+  Name "Light":
+  <button
+    aria-label="Light"
+    aria-pressed="false"
+    class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    title="Light"
+    type="button"
+  />
+
+  Name "Dark":
+  <button
+    aria-label="Dark"
+    aria-pressed="false"
+    class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    title="Dark"
+    type="button"
+  />
+
+  Name "Account menu for Sam Example":
+  <button
+    aria-expanded="false"
+    aria-haspopup="menu"
+    aria-label="Account menu for Sam Example"
+    class="rounded-full"
+    data-slot="dropdown-menu-trigger"
+    id="base-ui-_r_5k_"
+    tabindex="0"
+    type="button"
+  />
+
+  --------------------------------------------------
+  main:
+
+  Name "":
+  <main
+    class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+  />
+
+  --------------------------------------------------
+  heading:
+
+  Name "Achievements":
+  <h1
+    class="hud-display font-bold tracking-tight outline-none text-2xl"
+    tabindex="-1"
+  />
+
+  Name "Generosity":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-generosity"
+  />
+
+  Name "Recognition":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-recognition"
+  />
+
+  Name "Connections":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-connections"
+  />
+
+  Name "Dependability":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-dependability"
+  />
+
+  Name "Applause":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-applause"
+  />
+
+  Name "Seasons":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-seasons"
+  />
+
+  Name "Old Friends":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-old-friends"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  --------------------------------------------------
+  article:
+
+  Name "Generosity":
+  <article
+    aria-labelledby="ladder-generosity"
+  />
+
+  Name "Recognition":
+  <article
+    aria-labelledby="ladder-recognition"
+  />
+
+  Name "Connections":
+  <article
+    aria-labelledby="ladder-connections"
+  />
+
+  Name "Dependability":
+  <article
+    aria-labelledby="ladder-dependability"
+  />
+
+  Name "Applause":
+  <article
+    aria-labelledby="ladder-applause"
+  />
+
+  Name "Seasons":
+  <article
+    aria-labelledby="ladder-seasons"
+  />
+
+  Name "Old Friends":
+  <article
+    aria-labelledby="ladder-old-friends"
+  />
+
+  --------------------------------------------------
+  progressbar:
+
+  Name "3 of 25 for Generous Soul":
+  <div
+    aria-label="3 of 25 for Generous Soul"
+    aria-valuemax="25"
+    aria-valuemin="0"
+    aria-valuenow="3"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 1 for Noticed":
+  <div
+    aria-label="0 of 1 for Noticed"
+    aria-valuemax="1"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 3 for Friendly Face":
+  <div
+    aria-label="0 of 3 for Friendly Face"
+    aria-valuemax="3"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 10 for Regular":
+  <div
+    aria-label="0 of 10 for Regular"
+    aria-valuemax="10"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 3 for Shout-out":
+  <div
+    aria-label="0 of 3 for Shout-out"
+    aria-valuemax="3"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 1 for First Chapter":
+  <div
+    aria-label="0 of 1 for First Chapter"
+    aria-valuemax="1"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 1 for Remembered":
+  <div
+    aria-label="0 of 1 for Remembered"
+    aria-valuemax="1"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  --------------------------------------------------
+  list:
+
+  Name "Generosity tiers":
+  <ol
+    aria-label="Generosity tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Recognition tiers":
+  <ol
+    aria-label="Recognition tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Connections tiers":
+  <ol
+    aria-label="Connections tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Dependability tiers":
+  <ol
+    aria-label="Dependability tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Applause tiers":
+  <ol
+    aria-label="Applause tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Seasons tiers":
+  <ol
+    aria-label="Seasons tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Old Friends tiers":
+  <ol
+    aria-label="Old Friends tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  --------------------------------------------------
+  listitem:
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 bg-muted"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  --------------------------------------------------
+  time:
+
+  Name "":
+  <time
+    datetime="2026-10-13T22:30:00.000Z"
+  />
+
+  --------------------------------------------------
+  status:
+
+  Name "":
+  <p
+    class="sr-only"
+    data-testid="moment-announcement"
+    role="status"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="hud-root flex min-h-screen flex-col"
+    >
+      <header
+        class="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"
+      >
+        <div
+          class="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-3 px-4 max-sm:gap-x-2 max-sm:gap-y-1 max-sm:pt-2 md:px-6"
+        >
+          <a
+            aria-label="HedgeHug, home"
+            class="flex items-center gap-2.5 rounded-md"
+            href="/"
+          >
+            <svg
+              aria-hidden="true"
+              class="shrink-0"
+              fill="none"
+              viewBox="0 0 1000 1000"
+              width="34"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M759.27 916.1v-.14q0-.12-.03-.22l.02.22v.38zm7.72 1c0 3.15-1.17 6.2-2.65 8.83-1.86 3.31-4.65 5.9-7.42 8.22a57 57 0 0 1-7.38 5c-2.66 1.59-5.48 2.9-8.27 4.2-2.82 1.32-5.7 2.46-8.58 3.58-5.7 2.2-11.55 4.04-17.4 5.68a391 391 0 0 1-35.64 8.12c-23.3 4.27-46.81 7.1-70.36 9.06q-36.2 3.03-72.49 3.76-15.36.31-30.73.32-21.25.01-42.47-.72c-24.38-.87-48.74-2.21-73.07-4.36a984 984 0 0 1-71.88-8.8 718 718 0 0 1-36.03-6.76 411 411 0 0 1-33.87-8.66 320 320 0 0 1-17.73-6q-4.29-1.6-8.49-3.49c-2.7-1.24-5.4-2.45-8.04-3.86a114 114 0 0 1-8.56-5.05c-2.6-1.7-5-3.68-7.31-5.82a27 27 0 0 1-5.55-7.18 19 19 0 0 1-2.3-9.14c.11-2.7.78-5.17 1.9-7.57.9-1.87 2.1-3.5 3.38-5.06 1.88-2.29 4.2-4.14 6.49-5.9 1.27-.96 2.62-1.79 3.95-2.63a62 62 0 0 1 3.97-2.3c5.5-2.9 11.21-5.31 17.02-7.42 11.1-4.05 22.55-7.06 34.01-9.57q14.26-3.11 28.62-5.41l.08-.01 1.11-.19q.1 0 .2-.03a709 709 0 0 1 31.4-4.25l.81-.1.2-.01.47-.05a864 864 0 0 1 31.63-2.98c24.38-1.85 48.8-2.92 73.23-3.3 1.12 0 2.23-.03 3.23-.04 12.59-.2 25.2-.13 37.78.03q17.74.23 35.45.99 36.63 1.54 73.15 5.02a989 989 0 0 1 36.17 4.18 848 848 0 0 1 36.32 5.61 623 623 0 0 1 36.54 7.6 333 333 0 0 1 34.66 10.17 197 197 0 0 1 17.5 7.25 110 110 0 0 1 7.77 4.13q1.85 1.08 3.65 2.3c1.3.85 2.6 1.71 3.8 2.7a88 88 0 0 1 3.85 3.33c1.1 1 2.1 2.18 3.05 3.36a23 23 0 0 1 4.42 8.82c.3 1.46.4 2.88.4 4.38z"
+                fill="#320601"
+                fill-opacity=".24"
+              />
+              <path
+                d="M751.03 394.3c-7.05-.88-4.44-8.95-4.6-13.81.43-21.73-3.5-43.5-11.5-63.7-23.05-59.85-83.84-102.04-147.96-102.7-89.42-3.19-167.93 73.72-166.35 163.22.38 4.7-5.79 7.63-9.16 4.27-3.67-4.64-.9-11.79-1.29-17.34.8-10.9 2.62-21.7 5.44-32.24a175 175 0 0 1 34.48-66.4c74.4-91.31 222.6-79.92 282.3 21.57a175 175 0 0 1 24.75 80.92c-.75 6.76 3.88 26.5-6.1 26.2zM241.76 883.31C124.27 865.03 59.31 730.94 117.94 627.48c1.2-1.77 3.3-5.33 5.9-9.54l-.92 4.01a623 623 0 0 0-5.41 26.07c-.7 3.76-1.41 7.56-1.87 11.36-38.26 111.08 53.24 225.02 167.8 214.85h.72q8.3.16 16.63.37l5.7.3c7.04.38 14.1.73 21.15.86a176 176 0 0 1-57.95 9.84c-9.35 0-18.69-.75-27.92-2.28m443.58-1.94q-.1 0-.19.02h-1.1z"
+                fill="#401c05"
+              />
+              <path
+                d="M615.68 874.2q3.8-.11 7.59-.19h.44-.19.7-.03.21-.04.27-.01.13c14.37-.22 28.74-.3 43.08-1.15.95 0 1.94 0 2.87-.17a8 8 0 0 0 3.6-1.58c11.2-.44 22.35-2.04 33.25-4.85 90.9-22.21 139.91-116.65 117.55-200.53a6.7 6.7 0 0 0 1.7-4.8 31 31 0 0 0-1.36-6.77l-.87-5.3q-.43-2.56-.92-5.1l-.58-2.77c-.4-1.86-.74-3.88-1.79-5.51q-.42-.7-.92-1.31-.1-.52-.24-1.03a37 37 0 0 0-.82-2.6 73 73 0 0 0-1.36-3.5q-.9-2.15-1.82-4.28l-2.2-4.97q-.98-3.18-1.93-6.35a173 173 0 0 1 17.85 34.39c42.33 107.52-33.9 224.85-144.45 235.58l-16.76.26-11.38.17a169 169 0 0 1-41.56-7.62zM741.5 339.58a274 274 0 0 0-1.42-17.44 289 289 0 0 0-5.6-32.13q1.6 2.47 3.17 4.95c2.19 3.53 4.2 7.13 6.2 10.76l.12.25 2.9 5.39c1.06 1.95 1.98 4.1 3.59 5.65q1.4 10.99 1.94 22.06a5.5 5.5 0 0 1-5.2 5.72h-.24a5.5 5.5 0 0 1-5.47-5.2M415.12 70.5C530.65 48 653.65 106.25 712.84 206.47q-.48-.16-.99-.26-.6-1.09-1.26-2.16l-.93-1.52a7.6 7.6 0 0 0-3.86-3.02c-2.55-1-5.66-.04-7.42 1.99q-.53.6-.87 1.27c-62.55-95.69-183-147.42-298.5-117.7-99.32 23.48-179.99 106.42-202.66 205.4-2.35 6.9-4.68 13.78-6.88 20.72l.26-.84a478 478 0 0 0-6.13 20.2 461 461 0 0 0-5.15 20.03l-.45 1.98C177.82 218.1 279.8 92.16 415.12 70.5"
+                fill="#401c05"
+              />
+              <path
+                d="M102.7 684.5a5.44 5.44 0 0 1-3.75-6.74l.5-2.2.02-.09 6.2-27.68 11.21-49.95 11.28-50.27 11.35-50.59 11.56-51.53 11.31-50.42 11.35-50.56 10.48-46.73.3-1.37c.68-2.9 4-4.53 6.75-3.75a5.5 5.5 0 0 1 3.25 2.56c.74 1.31.83 2.74.5 4.18l-9.77 43.58-11.14 49.67-11.56 51.5-11.36 50.7-11.35 50.6-11.52 51.31-11.03 49.2-7.32 32.63-.49 2.2c-.54 2.42-2.95 3.95-5.32 3.95q-.73 0-1.42-.2zm724.41-8.93-4.3-17.69-9.71-39.98-11.52-47.37-11.71-48.2-11.97-49.27-12.2-50.18q-5.92-24.28-11.81-48.58-5.98-24.56-11.94-49.13c-1.59-6.54-3.24-13.07-4.78-19.62a5.7 5.7 0 0 1 .54-4.22 5.5 5.5 0 0 1 2.4-2.2 332 332 0 0 1 3.71 6.61l3.04 5.63c1.12 2.07 2.1 4.37 3.9 5.95q.3.24.6.44l1.54 6.32 5.97 24.6 11.86 48.79 11.99 49.33 11.94 49.15q5.99 24.59 11.95 49.17l11.64 47.9 11.13 45.78 6.3 25.95 1.93 7.9c.7 2.89-.85 5.9-3.79 6.73q-.7.2-1.4.2a5.46 5.46 0 0 1-5.32-3.99zM284.96 883.71h-.15c-2.97 0-5.34-2.8-5.23-5.68a5.5 5.5 0 0 1 1.8-3.83 5.8 5.8 0 0 1 3.88-1.4c16.03-.12 32.06-.13 48.1-.19l50.6-.2 50.03-.2q24.98-.14 49.94-.2 24.93-.08 49.87-.2l49.08-.21 46.56-.19 35.84-.14 6-.03c2.98-.01 5.34 2.8 5.23 5.68a5.5 5.5 0 0 1-3.01 4.66l-4.9.07q-21.4.31-42.82.67l-1 .02-25.59.1q-24.15.08-48.3.2l-4.22.02q-1.13-.39-2.37-.6c-1.81-.28-3.62-.58-5.45-.71-5.62-.42-11.27-.39-16.9-.54-5.74-.16-11.45.18-17.17.53l-1.78.1-2.04.12 1.13-.06c-3.33.2-6.67.42-10 .57l-1.33.03c-3.43.07-6.87.15-10.3.12-4.2-.04-8.41-.26-12.62-.15-4.4.11-8.8.48-13.18.96l-3.81.02-50.12.2-50.2.2-49.97.2q-7.8.05-15.61.07h-.02zm158.19-408.23a5.5 5.5 0 0 1 1.76-3.86 5.7 5.7 0 0 1 3.85-1.44c15.53-.2 31.04-.49 46.56-.74l48.47-.77 46.92-.76 48.67-.77 47.87-.76 28.14-.45h.17c2.97-.05 5.37 2.74 5.3 5.62a5.5 5.5 0 0 1-1.77 3.86 5.7 5.7 0 0 1-3.86 1.44l-26.6.42q-24.04.37-48.09.77l-48.66.77-46.5.75-49 .77-47.47.76h-.53c-2.95 0-5.32-2.76-5.24-5.62zM325.27 699.47c-2.8-.75-4.7-3.84-3.85-6.69l8.5-28.42 14.09-47.13 14.3-47.86q7.34-24.52 14.66-49.05l.92-3.04.03-.12.83-2.77a5.5 5.5 0 0 1 6.69-3.86c2.81.76 4.7 3.84 3.85 6.69q-7.21 24.18-14.45 48.35l-14.2 47.51-14.27 47.74-10.4 34.77v.01a5.6 5.6 0 0 1-5.29 4.04q-.7 0-1.4-.18"
+                fill="#401c05"
+              />
+              <path
+                d="M448.92 883.33c-82.45-1.55-127.53-68.16...
+    282|   it("is a native select with option groups on a narrow screen", () =>…
+    283|     showBookAt("/book");
+    284|     const select = screen.getByRole("combobox", { name: "Book page" });
+       |                           ^
+    285|     expect(select.tagName).toBe("SELECT");
+    286|     expect(select).toHaveValue("/book");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/16]⎯
+
+ FAIL  |website| src/BookPage.test.tsx > WS331: the Book's page index > follows the select to a category without a reload, moving focus to its title
+TestingLibraryElementError: Unable to find an accessible element with the role "combobox" and name "Book page"
+
+Here are the accessible roles:
+
+  banner:
+
+  Name "":
+  <header
+    class="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"
+  />
+
+  Name "":
+  <header
+    class="flex flex-col gap-1"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "HedgeHug, home":
+  <a
+    aria-label="HedgeHug, home"
+    class="flex items-center gap-2.5 rounded-md"
+    href="/"
+  />
+
+  Name "Home":
+  <a
+    class="relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    href="/"
+  />
+
+  Name "Leaderboard":
+  <a
+    class="relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    href="/leaderboard"
+  />
+
+  Name "Book":
+  <a
+    aria-current="page"
+    class="relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-foreground after:absolute after:inset-x-2 after:-bottom-[12px] after:h-0.5 max-sm:after:-bottom-1 after:rounded-full after:bg-primary"
+    href="/book"
+  />
+
+  --------------------------------------------------
+  navigation:
+
+  Name "Screens":
+  <nav
+    aria-label="Screens"
+    class="mx-auto flex items-center gap-0.5 max-sm:order-last max-sm:mx-0 max-sm:w-full max-sm:pb-1"
+  />
+
+  --------------------------------------------------
+  group:
+
+  Name "Theme":
+  <div
+    aria-label="Theme"
+    class="flex items-center gap-0.5 rounded-full border bg-card p-0.5"
+    role="group"
+  />
+
+  --------------------------------------------------
+  button:
+
+  Name "Use system setting":
+  <button
+    aria-label="Use system setting"
+    aria-pressed="true"
+    class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-primary bg-fill-selected text-foreground"
+    title="Use system setting"
+    type="button"
+  />
+
+  Name "Light":
+  <button
+    aria-label="Light"
+    aria-pressed="false"
+    class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    title="Light"
+    type="button"
+  />
+
+  Name "Dark":
+  <button
+    aria-label="Dark"
+    aria-pressed="false"
+    class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    title="Dark"
+    type="button"
+  />
+
+  Name "Account menu for Sam Example":
+  <button
+    aria-expanded="false"
+    aria-haspopup="menu"
+    aria-label="Account menu for Sam Example"
+    class="rounded-full"
+    data-slot="dropdown-menu-trigger"
+    id="base-ui-_r_5q_"
+    tabindex="0"
+    type="button"
+  />
+
+  --------------------------------------------------
+  main:
+
+  Name "":
+  <main
+    class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+  />
+
+  --------------------------------------------------
+  heading:
+
+  Name "Achievements":
+  <h1
+    class="hud-display font-bold tracking-tight outline-none text-2xl"
+    tabindex="-1"
+  />
+
+  Name "Generosity":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-generosity"
+  />
+
+  Name "Recognition":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-recognition"
+  />
+
+  Name "Connections":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-connections"
+  />
+
+  Name "Dependability":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-dependability"
+  />
+
+  Name "Applause":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-applause"
+  />
+
+  Name "Seasons":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-seasons"
+  />
+
+  Name "Old Friends":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-old-friends"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  --------------------------------------------------
+  article:
+
+  Name "Generosity":
+  <article
+    aria-labelledby="ladder-generosity"
+  />
+
+  Name "Recognition":
+  <article
+    aria-labelledby="ladder-recognition"
+  />
+
+  Name "Connections":
+  <article
+    aria-labelledby="ladder-connections"
+  />
+
+  Name "Dependability":
+  <article
+    aria-labelledby="ladder-dependability"
+  />
+
+  Name "Applause":
+  <article
+    aria-labelledby="ladder-applause"
+  />
+
+  Name "Seasons":
+  <article
+    aria-labelledby="ladder-seasons"
+  />
+
+  Name "Old Friends":
+  <article
+    aria-labelledby="ladder-old-friends"
+  />
+
+  --------------------------------------------------
+  progressbar:
+
+  Name "3 of 25 for Generous Soul":
+  <div
+    aria-label="3 of 25 for Generous Soul"
+    aria-valuemax="25"
+    aria-valuemin="0"
+    aria-valuenow="3"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 1 for Noticed":
+  <div
+    aria-label="0 of 1 for Noticed"
+    aria-valuemax="1"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 3 for Friendly Face":
+  <div
+    aria-label="0 of 3 for Friendly Face"
+    aria-valuemax="3"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 10 for Regular":
+  <div
+    aria-label="0 of 10 for Regular"
+    aria-valuemax="10"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 3 for Shout-out":
+  <div
+    aria-label="0 of 3 for Shout-out"
+    aria-valuemax="3"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 1 for First Chapter":
+  <div
+    aria-label="0 of 1 for First Chapter"
+    aria-valuemax="1"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 1 for Remembered":
+  <div
+    aria-label="0 of 1 for Remembered"
+    aria-valuemax="1"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  --------------------------------------------------
+  list:
+
+  Name "Generosity tiers":
+  <ol
+    aria-label="Generosity tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Recognition tiers":
+  <ol
+    aria-label="Recognition tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Connections tiers":
+  <ol
+    aria-label="Connections tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Dependability tiers":
+  <ol
+    aria-label="Dependability tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Applause tiers":
+  <ol
+    aria-label="Applause tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Seasons tiers":
+  <ol
+    aria-label="Seasons tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Old Friends tiers":
+  <ol
+    aria-label="Old Friends tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  --------------------------------------------------
+  listitem:
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 bg-muted"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  --------------------------------------------------
+  time:
+
+  Name "":
+  <time
+    datetime="2026-10-13T22:30:00.000Z"
+  />
+
+  --------------------------------------------------
+  status:
+
+  Name "":
+  <p
+    class="sr-only"
+    data-testid="moment-announcement"
+    role="status"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="hud-root flex min-h-screen flex-col"
+    >
+      <header
+        class="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"
+      >
+        <div
+          class="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-3 px-4 max-sm:gap-x-2 max-sm:gap-y-1 max-sm:pt-2 md:px-6"
+        >
+          <a
+            aria-label="HedgeHug, home"
+            class="flex items-center gap-2.5 rounded-md"
+            href="/"
+          >
+            <svg
+              aria-hidden="true"
+              class="shrink-0"
+              fill="none"
+              viewBox="0 0 1000 1000"
+              width="34"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M759.27 916.1v-.14q0-.12-.03-.22l.02.22v.38zm7.72 1c0 3.15-1.17 6.2-2.65 8.83-1.86 3.31-4.65 5.9-7.42 8.22a57 57 0 0 1-7.38 5c-2.66 1.59-5.48 2.9-8.27 4.2-2.82 1.32-5.7 2.46-8.58 3.58-5.7 2.2-11.55 4.04-17.4 5.68a391 391 0 0 1-35.64 8.12c-23.3 4.27-46.81 7.1-70.36 9.06q-36.2 3.03-72.49 3.76-15.36.31-30.73.32-21.25.01-42.47-.72c-24.38-.87-48.74-2.21-73.07-4.36a984 984 0 0 1-71.88-8.8 718 718 0 0 1-36.03-6.76 411 411 0 0 1-33.87-8.66 320 320 0 0 1-17.73-6q-4.29-1.6-8.49-3.49c-2.7-1.24-5.4-2.45-8.04-3.86a114 114 0 0 1-8.56-5.05c-2.6-1.7-5-3.68-7.31-5.82a27 27 0 0 1-5.55-7.18 19 19 0 0 1-2.3-9.14c.11-2.7.78-5.17 1.9-7.57.9-1.87 2.1-3.5 3.38-5.06 1.88-2.29 4.2-4.14 6.49-5.9 1.27-.96 2.62-1.79 3.95-2.63a62 62 0 0 1 3.97-2.3c5.5-2.9 11.21-5.31 17.02-7.42 11.1-4.05 22.55-7.06 34.01-9.57q14.26-3.11 28.62-5.41l.08-.01 1.11-.19q.1 0 .2-.03a709 709 0 0 1 31.4-4.25l.81-.1.2-.01.47-.05a864 864 0 0 1 31.63-2.98c24.38-1.85 48.8-2.92 73.23-3.3 1.12 0 2.23-.03 3.23-.04 12.59-.2 25.2-.13 37.78.03q17.74.23 35.45.99 36.63 1.54 73.15 5.02a989 989 0 0 1 36.17 4.18 848 848 0 0 1 36.32 5.61 623 623 0 0 1 36.54 7.6 333 333 0 0 1 34.66 10.17 197 197 0 0 1 17.5 7.25 110 110 0 0 1 7.77 4.13q1.85 1.08 3.65 2.3c1.3.85 2.6 1.71 3.8 2.7a88 88 0 0 1 3.85 3.33c1.1 1 2.1 2.18 3.05 3.36a23 23 0 0 1 4.42 8.82c.3 1.46.4 2.88.4 4.38z"
+                fill="#320601"
+                fill-opacity=".24"
+              />
+              <path
+                d="M751.03 394.3c-7.05-.88-4.44-8.95-4.6-13.81.43-21.73-3.5-43.5-11.5-63.7-23.05-59.85-83.84-102.04-147.96-102.7-89.42-3.19-167.93 73.72-166.35 163.22.38 4.7-5.79 7.63-9.16 4.27-3.67-4.64-.9-11.79-1.29-17.34.8-10.9 2.62-21.7 5.44-32.24a175 175 0 0 1 34.48-66.4c74.4-91.31 222.6-79.92 282.3 21.57a175 175 0 0 1 24.75 80.92c-.75 6.76 3.88 26.5-6.1 26.2zM241.76 883.31C124.27 865.03 59.31 730.94 117.94 627.48c1.2-1.77 3.3-5.33 5.9-9.54l-.92 4.01a623 623 0 0 0-5.41 26.07c-.7 3.76-1.41 7.56-1.87 11.36-38.26 111.08 53.24 225.02 167.8 214.85h.72q8.3.16 16.63.37l5.7.3c7.04.38 14.1.73 21.15.86a176 176 0 0 1-57.95 9.84c-9.35 0-18.69-.75-27.92-2.28m443.58-1.94q-.1 0-.19.02h-1.1z"
+                fill="#401c05"
+              />
+              <path
+                d="M615.68 874.2q3.8-.11 7.59-.19h.44-.19.7-.03.21-.04.27-.01.13c14.37-.22 28.74-.3 43.08-1.15.95 0 1.94 0 2.87-.17a8 8 0 0 0 3.6-1.58c11.2-.44 22.35-2.04 33.25-4.85 90.9-22.21 139.91-116.65 117.55-200.53a6.7 6.7 0 0 0 1.7-4.8 31 31 0 0 0-1.36-6.77l-.87-5.3q-.43-2.56-.92-5.1l-.58-2.77c-.4-1.86-.74-3.88-1.79-5.51q-.42-.7-.92-1.31-.1-.52-.24-1.03a37 37 0 0 0-.82-2.6 73 73 0 0 0-1.36-3.5q-.9-2.15-1.82-4.28l-2.2-4.97q-.98-3.18-1.93-6.35a173 173 0 0 1 17.85 34.39c42.33 107.52-33.9 224.85-144.45 235.58l-16.76.26-11.38.17a169 169 0 0 1-41.56-7.62zM741.5 339.58a274 274 0 0 0-1.42-17.44 289 289 0 0 0-5.6-32.13q1.6 2.47 3.17 4.95c2.19 3.53 4.2 7.13 6.2 10.76l.12.25 2.9 5.39c1.06 1.95 1.98 4.1 3.59 5.65q1.4 10.99 1.94 22.06a5.5 5.5 0 0 1-5.2 5.72h-.24a5.5 5.5 0 0 1-5.47-5.2M415.12 70.5C530.65 48 653.65 106.25 712.84 206.47q-.48-.16-.99-.26-.6-1.09-1.26-2.16l-.93-1.52a7.6 7.6 0 0 0-3.86-3.02c-2.55-1-5.66-.04-7.42 1.99q-.53.6-.87 1.27c-62.55-95.69-183-147.42-298.5-117.7-99.32 23.48-179.99 106.42-202.66 205.4-2.35 6.9-4.68 13.78-6.88 20.72l.26-.84a478 478 0 0 0-6.13 20.2 461 461 0 0 0-5.15 20.03l-.45 1.98C177.82 218.1 279.8 92.16 415.12 70.5"
+                fill="#401c05"
+              />
+              <path
+                d="M102.7 684.5a5.44 5.44 0 0 1-3.75-6.74l.5-2.2.02-.09 6.2-27.68 11.21-49.95 11.28-50.27 11.35-50.59 11.56-51.53 11.31-50.42 11.35-50.56 10.48-46.73.3-1.37c.68-2.9 4-4.53 6.75-3.75a5.5 5.5 0 0 1 3.25 2.56c.74 1.31.83 2.74.5 4.18l-9.77 43.58-11.14 49.67-11.56 51.5-11.36 50.7-11.35 50.6-11.52 51.31-11.03 49.2-7.32 32.63-.49 2.2c-.54 2.42-2.95 3.95-5.32 3.95q-.73 0-1.42-.2zm724.41-8.93-4.3-17.69-9.71-39.98-11.52-47.37-11.71-48.2-11.97-49.27-12.2-50.18q-5.92-24.28-11.81-48.58-5.98-24.56-11.94-49.13c-1.59-6.54-3.24-13.07-4.78-19.62a5.7 5.7 0 0 1 .54-4.22 5.5 5.5 0 0 1 2.4-2.2 332 332 0 0 1 3.71 6.61l3.04 5.63c1.12 2.07 2.1 4.37 3.9 5.95q.3.24.6.44l1.54 6.32 5.97 24.6 11.86 48.79 11.99 49.33 11.94 49.15q5.99 24.59 11.95 49.17l11.64 47.9 11.13 45.78 6.3 25.95 1.93 7.9c.7 2.89-.85 5.9-3.79 6.73q-.7.2-1.4.2a5.46 5.46 0 0 1-5.32-3.99zM284.96 883.71h-.15c-2.97 0-5.34-2.8-5.23-5.68a5.5 5.5 0 0 1 1.8-3.83 5.8 5.8 0 0 1 3.88-1.4c16.03-.12 32.06-.13 48.1-.19l50.6-.2 50.03-.2q24.98-.14 49.94-.2 24.93-.08 49.87-.2l49.08-.21 46.56-.19 35.84-.14 6-.03c2.98-.01 5.34 2.8 5.23 5.68a5.5 5.5 0 0 1-3.01 4.66l-4.9.07q-21.4.31-42.82.67l-1 .02-25.59.1q-24.15.08-48.3.2l-4.22.02q-1.13-.39-2.37-.6c-1.81-.28-3.62-.58-5.45-.71-5.62-.42-11.27-.39-16.9-.54-5.74-.16-11.45.18-17.17.53l-1.78.1-2.04.12 1.13-.06c-3.33.2-6.67.42-10 .57l-1.33.03c-3.43.07-6.87.15-10.3.12-4.2-.04-8.41-.26-12.62-.15-4.4.11-8.8.48-13.18.96l-3.81.02-50.12.2-50.2.2-49.97.2q-7.8.05-15.61.07h-.02zm158.19-408.23a5.5 5.5 0 0 1 1.76-3.86 5.7 5.7 0 0 1 3.85-1.44c15.53-.2 31.04-.49 46.56-.74l48.47-.77 46.92-.76 48.67-.77 47.87-.76 28.14-.45h.17c2.97-.05 5.37 2.74 5.3 5.62a5.5 5.5 0 0 1-1.77 3.86 5.7 5.7 0 0 1-3.86 1.44l-26.6.42q-24.04.37-48.09.77l-48.66.77-46.5.75-49 .77-47.47.76h-.53c-2.95 0-5.32-2.76-5.24-5.62zM325.27 699.47c-2.8-.75-4.7-3.84-3.85-6.69l8.5-28.42 14.09-47.13 14.3-47.86q7.34-24.52 14.66-49.05l.92-3.04.03-.12.83-2.77a5.5 5.5 0 0 1 6.69-3.86c2.81.76 4.7 3.84 3.85 6.69q-7.21 24.18-14.45 48.35l-14.2 47.51-14.27 47.74-10.4 34.77v.01a5.6 5.6 0 0 1-5.29 4.04q-.7 0-1.4-.18"
+                fill="#401c05"
+              />
+              <path
+                d="M448.92 883.33c-82.45-1.55-127.53-68.16...
+    292|   it("follows the select to a category without a reload, moving focus …
+    293|     const { user } = showBookAt("/book");
+    294|     await user.selectOptions(screen.getByRole("combobox", { name: "Boo…
+       |                                     ^
+    295|     expect(window.location.pathname + window.location.search).toBe("/b…
+    296|     expect(pageTitle()).toHaveTextContent("Crowd");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/16]⎯
+
+ FAIL  |website| src/BookPage.test.tsx > WS331: the Book's page index > follows an index entry without a reload, moving focus to the page's title, and back with the browser
+TestingLibraryElementError: Unable to find an accessible element with the role "navigation" and name "Book pages"
+
+Here are the accessible roles:
+
+  banner:
+
+  Name "":
+  <header
+    class="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"
+  />
+
+  Name "":
+  <header
+    class="flex flex-col gap-1"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "HedgeHug, home":
+  <a
+    aria-label="HedgeHug, home"
+    class="flex items-center gap-2.5 rounded-md"
+    href="/"
+  />
+
+  Name "Home":
+  <a
+    class="relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    href="/"
+  />
+
+  Name "Leaderboard":
+  <a
+    class="relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    href="/leaderboard"
+  />
+
+  Name "Book":
+  <a
+    aria-current="page"
+    class="relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-foreground after:absolute after:inset-x-2 after:-bottom-[12px] after:h-0.5 max-sm:after:-bottom-1 after:rounded-full after:bg-primary"
+    href="/book"
+  />
+
+  --------------------------------------------------
+  navigation:
+
+  Name "Screens":
+  <nav
+    aria-label="Screens"
+    class="mx-auto flex items-center gap-0.5 max-sm:order-last max-sm:mx-0 max-sm:w-full max-sm:pb-1"
+  />
+
+  --------------------------------------------------
+  group:
+
+  Name "Theme":
+  <div
+    aria-label="Theme"
+    class="flex items-center gap-0.5 rounded-full border bg-card p-0.5"
+    role="group"
+  />
+
+  --------------------------------------------------
+  button:
+
+  Name "Use system setting":
+  <button
+    aria-label="Use system setting"
+    aria-pressed="true"
+    class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-primary bg-fill-selected text-foreground"
+    title="Use system setting"
+    type="button"
+  />
+
+  Name "Light":
+  <button
+    aria-label="Light"
+    aria-pressed="false"
+    class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    title="Light"
+    type="button"
+  />
+
+  Name "Dark":
+  <button
+    aria-label="Dark"
+    aria-pressed="false"
+    class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    title="Dark"
+    type="button"
+  />
+
+  Name "Account menu for Sam Example":
+  <button
+    aria-expanded="false"
+    aria-haspopup="menu"
+    aria-label="Account menu for Sam Example"
+    class="rounded-full"
+    data-slot="dropdown-menu-trigger"
+    id="base-ui-_r_60_"
+    tabindex="0"
+    type="button"
+  />
+
+  --------------------------------------------------
+  main:
+
+  Name "":
+  <main
+    class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+  />
+
+  --------------------------------------------------
+  heading:
+
+  Name "Achievements":
+  <h1
+    class="hud-display font-bold tracking-tight outline-none text-2xl"
+    tabindex="-1"
+  />
+
+  Name "Generosity":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-generosity"
+  />
+
+  Name "Recognition":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-recognition"
+  />
+
+  Name "Connections":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-connections"
+  />
+
+  Name "Dependability":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-dependability"
+  />
+
+  Name "Applause":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-applause"
+  />
+
+  Name "Seasons":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-seasons"
+  />
+
+  Name "Old Friends":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-old-friends"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  --------------------------------------------------
+  article:
+
+  Name "Generosity":
+  <article
+    aria-labelledby="ladder-generosity"
+  />
+
+  Name "Recognition":
+  <article
+    aria-labelledby="ladder-recognition"
+  />
+
+  Name "Connections":
+  <article
+    aria-labelledby="ladder-connections"
+  />
+
+  Name "Dependability":
+  <article
+    aria-labelledby="ladder-dependability"
+  />
+
+  Name "Applause":
+  <article
+    aria-labelledby="ladder-applause"
+  />
+
+  Name "Seasons":
+  <article
+    aria-labelledby="ladder-seasons"
+  />
+
+  Name "Old Friends":
+  <article
+    aria-labelledby="ladder-old-friends"
+  />
+
+  --------------------------------------------------
+  progressbar:
+
+  Name "3 of 25 for Generous Soul":
+  <div
+    aria-label="3 of 25 for Generous Soul"
+    aria-valuemax="25"
+    aria-valuemin="0"
+    aria-valuenow="3"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 1 for Noticed":
+  <div
+    aria-label="0 of 1 for Noticed"
+    aria-valuemax="1"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 3 for Friendly Face":
+  <div
+    aria-label="0 of 3 for Friendly Face"
+    aria-valuemax="3"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 10 for Regular":
+  <div
+    aria-label="0 of 10 for Regular"
+    aria-valuemax="10"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 3 for Shout-out":
+  <div
+    aria-label="0 of 3 for Shout-out"
+    aria-valuemax="3"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 1 for First Chapter":
+  <div
+    aria-label="0 of 1 for First Chapter"
+    aria-valuemax="1"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 1 for Remembered":
+  <div
+    aria-label="0 of 1 for Remembered"
+    aria-valuemax="1"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  --------------------------------------------------
+  list:
+
+  Name "Generosity tiers":
+  <ol
+    aria-label="Generosity tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Recognition tiers":
+  <ol
+    aria-label="Recognition tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Connections tiers":
+  <ol
+    aria-label="Connections tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Dependability tiers":
+  <ol
+    aria-label="Dependability tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Applause tiers":
+  <ol
+    aria-label="Applause tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Seasons tiers":
+  <ol
+    aria-label="Seasons tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Old Friends tiers":
+  <ol
+    aria-label="Old Friends tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  --------------------------------------------------
+  listitem:
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 bg-muted"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  --------------------------------------------------
+  time:
+
+  Name "":
+  <time
+    datetime="2026-10-13T22:30:00.000Z"
+  />
+
+  --------------------------------------------------
+  status:
+
+  Name "":
+  <p
+    class="sr-only"
+    data-testid="moment-announcement"
+    role="status"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="hud-root flex min-h-screen flex-col"
+    >
+      <header
+        class="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"
+      >
+        <div
+          class="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-3 px-4 max-sm:gap-x-2 max-sm:gap-y-1 max-sm:pt-2 md:px-6"
+        >
+          <a
+            aria-label="HedgeHug, home"
+            class="flex items-center gap-2.5 rounded-md"
+            href="/"
+          >
+            <svg
+              aria-hidden="true"
+              class="shrink-0"
+              fill="none"
+              viewBox="0 0 1000 1000"
+              width="34"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M759.27 916.1v-.14q0-.12-.03-.22l.02.22v.38zm7.72 1c0 3.15-1.17 6.2-2.65 8.83-1.86 3.31-4.65 5.9-7.42 8.22a57 57 0 0 1-7.38 5c-2.66 1.59-5.48 2.9-8.27 4.2-2.82 1.32-5.7 2.46-8.58 3.58-5.7 2.2-11.55 4.04-17.4 5.68a391 391 0 0 1-35.64 8.12c-23.3 4.27-46.81 7.1-70.36 9.06q-36.2 3.03-72.49 3.76-15.36.31-30.73.32-21.25.01-42.47-.72c-24.38-.87-48.74-2.21-73.07-4.36a984 984 0 0 1-71.88-8.8 718 718 0 0 1-36.03-6.76 411 411 0 0 1-33.87-8.66 320 320 0 0 1-17.73-6q-4.29-1.6-8.49-3.49c-2.7-1.24-5.4-2.45-8.04-3.86a114 114 0 0 1-8.56-5.05c-2.6-1.7-5-3.68-7.31-5.82a27 27 0 0 1-5.55-7.18 19 19 0 0 1-2.3-9.14c.11-2.7.78-5.17 1.9-7.57.9-1.87 2.1-3.5 3.38-5.06 1.88-2.29 4.2-4.14 6.49-5.9 1.27-.96 2.62-1.79 3.95-2.63a62 62 0 0 1 3.97-2.3c5.5-2.9 11.21-5.31 17.02-7.42 11.1-4.05 22.55-7.06 34.01-9.57q14.26-3.11 28.62-5.41l.08-.01 1.11-.19q.1 0 .2-.03a709 709 0 0 1 31.4-4.25l.81-.1.2-.01.47-.05a864 864 0 0 1 31.63-2.98c24.38-1.85 48.8-2.92 73.23-3.3 1.12 0 2.23-.03 3.23-.04 12.59-.2 25.2-.13 37.78.03q17.74.23 35.45.99 36.63 1.54 73.15 5.02a989 989 0 0 1 36.17 4.18 848 848 0 0 1 36.32 5.61 623 623 0 0 1 36.54 7.6 333 333 0 0 1 34.66 10.17 197 197 0 0 1 17.5 7.25 110 110 0 0 1 7.77 4.13q1.85 1.08 3.65 2.3c1.3.85 2.6 1.71 3.8 2.7a88 88 0 0 1 3.85 3.33c1.1 1 2.1 2.18 3.05 3.36a23 23 0 0 1 4.42 8.82c.3 1.46.4 2.88.4 4.38z"
+                fill="#320601"
+                fill-opacity=".24"
+              />
+              <path
+                d="M751.03 394.3c-7.05-.88-4.44-8.95-4.6-13.81.43-21.73-3.5-43.5-11.5-63.7-23.05-59.85-83.84-102.04-147.96-102.7-89.42-3.19-167.93 73.72-166.35 163.22.38 4.7-5.79 7.63-9.16 4.27-3.67-4.64-.9-11.79-1.29-17.34.8-10.9 2.62-21.7 5.44-32.24a175 175 0 0 1 34.48-66.4c74.4-91.31 222.6-79.92 282.3 21.57a175 175 0 0 1 24.75 80.92c-.75 6.76 3.88 26.5-6.1 26.2zM241.76 883.31C124.27 865.03 59.31 730.94 117.94 627.48c1.2-1.77 3.3-5.33 5.9-9.54l-.92 4.01a623 623 0 0 0-5.41 26.07c-.7 3.76-1.41 7.56-1.87 11.36-38.26 111.08 53.24 225.02 167.8 214.85h.72q8.3.16 16.63.37l5.7.3c7.04.38 14.1.73 21.15.86a176 176 0 0 1-57.95 9.84c-9.35 0-18.69-.75-27.92-2.28m443.58-1.94q-.1 0-.19.02h-1.1z"
+                fill="#401c05"
+              />
+              <path
+                d="M615.68 874.2q3.8-.11 7.59-.19h.44-.19.7-.03.21-.04.27-.01.13c14.37-.22 28.74-.3 43.08-1.15.95 0 1.94 0 2.87-.17a8 8 0 0 0 3.6-1.58c11.2-.44 22.35-2.04 33.25-4.85 90.9-22.21 139.91-116.65 117.55-200.53a6.7 6.7 0 0 0 1.7-4.8 31 31 0 0 0-1.36-6.77l-.87-5.3q-.43-2.56-.92-5.1l-.58-2.77c-.4-1.86-.74-3.88-1.79-5.51q-.42-.7-.92-1.31-.1-.52-.24-1.03a37 37 0 0 0-.82-2.6 73 73 0 0 0-1.36-3.5q-.9-2.15-1.82-4.28l-2.2-4.97q-.98-3.18-1.93-6.35a173 173 0 0 1 17.85 34.39c42.33 107.52-33.9 224.85-144.45 235.58l-16.76.26-11.38.17a169 169 0 0 1-41.56-7.62zM741.5 339.58a274 274 0 0 0-1.42-17.44 289 289 0 0 0-5.6-32.13q1.6 2.47 3.17 4.95c2.19 3.53 4.2 7.13 6.2 10.76l.12.25 2.9 5.39c1.06 1.95 1.98 4.1 3.59 5.65q1.4 10.99 1.94 22.06a5.5 5.5 0 0 1-5.2 5.72h-.24a5.5 5.5 0 0 1-5.47-5.2M415.12 70.5C530.65 48 653.65 106.25 712.84 206.47q-.48-.16-.99-.26-.6-1.09-1.26-2.16l-.93-1.52a7.6 7.6 0 0 0-3.86-3.02c-2.55-1-5.66-.04-7.42 1.99q-.53.6-.87 1.27c-62.55-95.69-183-147.42-298.5-117.7-99.32 23.48-179.99 106.42-202.66 205.4-2.35 6.9-4.68 13.78-6.88 20.72l.26-.84a478 478 0 0 0-6.13 20.2 461 461 0 0 0-5.15 20.03l-.45 1.98C177.82 218.1 279.8 92.16 415.12 70.5"
+                fill="#401c05"
+              />
+              <path
+                d="M102.7 684.5a5.44 5.44 0 0 1-3.75-6.74l.5-2.2.02-.09 6.2-27.68 11.21-49.95 11.28-50.27 11.35-50.59 11.56-51.53 11.31-50.42 11.35-50.56 10.48-46.73.3-1.37c.68-2.9 4-4.53 6.75-3.75a5.5 5.5 0 0 1 3.25 2.56c.74 1.31.83 2.74.5 4.18l-9.77 43.58-11.14 49.67-11.56 51.5-11.36 50.7-11.35 50.6-11.52 51.31-11.03 49.2-7.32 32.63-.49 2.2c-.54 2.42-2.95 3.95-5.32 3.95q-.73 0-1.42-.2zm724.41-8.93-4.3-17.69-9.71-39.98-11.52-47.37-11.71-48.2-11.97-49.27-12.2-50.18q-5.92-24.28-11.81-48.58-5.98-24.56-11.94-49.13c-1.59-6.54-3.24-13.07-4.78-19.62a5.7 5.7 0 0 1 .54-4.22 5.5 5.5 0 0 1 2.4-2.2 332 332 0 0 1 3.71 6.61l3.04 5.63c1.12 2.07 2.1 4.37 3.9 5.95q.3.24.6.44l1.54 6.32 5.97 24.6 11.86 48.79 11.99 49.33 11.94 49.15q5.99 24.59 11.95 49.17l11.64 47.9 11.13 45.78 6.3 25.95 1.93 7.9c.7 2.89-.85 5.9-3.79 6.73q-.7.2-1.4.2a5.46 5.46 0 0 1-5.32-3.99zM284.96 883.71h-.15c-2.97 0-5.34-2.8-5.23-5.68a5.5 5.5 0 0 1 1.8-3.83 5.8 5.8 0 0 1 3.88-1.4c16.03-.12 32.06-.13 48.1-.19l50.6-.2 50.03-.2q24.98-.14 49.94-.2 24.93-.08 49.87-.2l49.08-.21 46.56-.19 35.84-.14 6-.03c2.98-.01 5.34 2.8 5.23 5.68a5.5 5.5 0 0 1-3.01 4.66l-4.9.07q-21.4.31-42.82.67l-1 .02-25.59.1q-24.15.08-48.3.2l-4.22.02q-1.13-.39-2.37-.6c-1.81-.28-3.62-.58-5.45-.71-5.62-.42-11.27-.39-16.9-.54-5.74-.16-11.45.18-17.17.53l-1.78.1-2.04.12 1.13-.06c-3.33.2-6.67.42-10 .57l-1.33.03c-3.43.07-6.87.15-10.3.12-4.2-.04-8.41-.26-12.62-.15-4.4.11-8.8.48-13.18.96l-3.81.02-50.12.2-50.2.2-49.97.2q-7.8.05-15.61.07h-.02zm158.19-408.23a5.5 5.5 0 0 1 1.76-3.86 5.7 5.7 0 0 1 3.85-1.44c15.53-.2 31.04-.49 46.56-.74l48.47-.77 46.92-.76 48.67-.77 47.87-.76 28.14-.45h.17c2.97-.05 5.37 2.74 5.3 5.62a5.5 5.5 0 0 1-1.77 3.86 5.7 5.7 0 0 1-3.86 1.44l-26.6.42q-24.04.37-48.09.77l-48.66.77-46.5.75-49 .77-47.47.76h-.53c-2.95 0-5.32-2.76-5.24-5.62zM325.27 699.47c-2.8-.75-4.7-3.84-3.85-6.69l8.5-28.42 14.09-47.13 14.3-47.86q7.34-24.52 14.66-49.05l.92-3.04.03-.12.83-2.77a5.5 5.5 0 0 1 6.69-3.86c2.81.76 4.7 3.84 3.85 6.69q-7.21 24.18-14.45 48.35l-14.2 47.51-14.27 47.74-10.4 34.77v.01a5.6 5.6 0 0 1-5.29 4.04q-.7 0-1.4-.18"
+                fill="#401c05"
+              />
+              <path
+                d="M448.92 883.33c-82.45-1.55-127.53-68.16...
+    217|
+    218| function bookPages() {
+    219|   return screen.getByRole("navigation", { name: "Book pages" });
+       |                 ^
+    220| }
+    221|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/16]⎯
+
+ FAIL  |website| src/BookPage.test.tsx > WS331: the Book's page index > serves the overview at /book, turning ?page=overview into /book
+AssertionError: expected '/book?page=overview' to be '/book' // Object.is equality
+
+Expected: "/book"
+Received: "/book?page=overview"
+
+    318|     showBookAt("/book?page=overview");
+    319|     expect(pageTitle()).toHaveTextContent("Achievements");
+    320|     expect(window.location.pathname + window.location.search).toBe("/b…
+       |                                                               ^
+    321|   });
+    322|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/16]⎯
+
+ FAIL  |website| src/BookPage.test.tsx > WS331: the Book's page index > shows the overview for a page it doesn't know, at /book
+AssertionError: expected '/book?page=albums' to be '/book' // Object.is equality
+
+Expected: "/book"
+Received: "/book?page=albums"
+
+    324|     showBookAt("/book?page=albums");
+    325|     expect(pageTitle()).toHaveTextContent("Achievements");
+    326|     expect(window.location.pathname + window.location.search).toBe("/b…
+       |                                                               ^
+    327|   });
+    328|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/16]⎯
+
+ FAIL  |website| src/BookPage.test.tsx > WS331: the Book's page index > shows the overview for a category whose ladders the read doesn't return
+TestingLibraryElementError: Unable to find an accessible element with the role "navigation" and name "Book pages"
+
+Here are the accessible roles:
+
+  banner:
+
+  Name "":
+  <header
+    class="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"
+  />
+
+  Name "":
+  <header
+    class="flex flex-col gap-1"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "HedgeHug, home":
+  <a
+    aria-label="HedgeHug, home"
+    class="flex items-center gap-2.5 rounded-md"
+    href="/"
+  />
+
+  Name "Home":
+  <a
+    class="relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    href="/"
+  />
+
+  Name "Leaderboard":
+  <a
+    class="relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    href="/leaderboard"
+  />
+
+  Name "Book":
+  <a
+    aria-current="page"
+    class="relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-foreground after:absolute after:inset-x-2 after:-bottom-[12px] after:h-0.5 max-sm:after:-bottom-1 after:rounded-full after:bg-primary"
+    href="/book"
+  />
+
+  --------------------------------------------------
+  navigation:
+
+  Name "Screens":
+  <nav
+    aria-label="Screens"
+    class="mx-auto flex items-center gap-0.5 max-sm:order-last max-sm:mx-0 max-sm:w-full max-sm:pb-1"
+  />
+
+  --------------------------------------------------
+  group:
+
+  Name "Theme":
+  <div
+    aria-label="Theme"
+    class="flex items-center gap-0.5 rounded-full border bg-card p-0.5"
+    role="group"
+  />
+
+  --------------------------------------------------
+  button:
+
+  Name "Use system setting":
+  <button
+    aria-label="Use system setting"
+    aria-pressed="true"
+    class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-primary bg-fill-selected text-foreground"
+    title="Use system setting"
+    type="button"
+  />
+
+  Name "Light":
+  <button
+    aria-label="Light"
+    aria-pressed="false"
+    class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    title="Light"
+    type="button"
+  />
+
+  Name "Dark":
+  <button
+    aria-label="Dark"
+    aria-pressed="false"
+    class="relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"
+    title="Dark"
+    type="button"
+  />
+
+  Name "Account menu for Sam Example":
+  <button
+    aria-expanded="false"
+    aria-haspopup="menu"
+    aria-label="Account menu for Sam Example"
+    class="rounded-full"
+    data-slot="dropdown-menu-trigger"
+    id="base-ui-_r_6i_"
+    tabindex="0"
+    type="button"
+  />
+
+  --------------------------------------------------
+  main:
+
+  Name "":
+  <main
+    class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+  />
+
+  --------------------------------------------------
+  heading:
+
+  Name "Achievements":
+  <h1
+    class="hud-display font-bold tracking-tight outline-none text-2xl"
+    tabindex="-1"
+  />
+
+  Name "Generosity":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-generosity"
+  />
+
+  Name "Recognition":
+  <h2
+    class="text-lg font-semibold leading-tight"
+    id="ladder-recognition"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground first-letter:uppercase"
+  />
+
+  --------------------------------------------------
+  article:
+
+  Name "Generosity":
+  <article
+    aria-labelledby="ladder-generosity"
+  />
+
+  Name "Recognition":
+  <article
+    aria-labelledby="ladder-recognition"
+  />
+
+  --------------------------------------------------
+  progressbar:
+
+  Name "3 of 25 for Generous Soul":
+  <div
+    aria-label="3 of 25 for Generous Soul"
+    aria-valuemax="25"
+    aria-valuemin="0"
+    aria-valuenow="3"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  Name "0 of 1 for Noticed":
+  <div
+    aria-label="0 of 1 for Noticed"
+    aria-valuemax="1"
+    aria-valuemin="0"
+    aria-valuenow="0"
+    class="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"
+    role="progressbar"
+  />
+
+  --------------------------------------------------
+  list:
+
+  Name "Generosity tiers":
+  <ol
+    aria-label="Generosity tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  Name "Recognition tiers":
+  <ol
+    aria-label="Recognition tiers"
+    class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+  />
+
+  --------------------------------------------------
+  listitem:
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 bg-muted"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  Name "":
+  <li
+    class="flex items-start gap-2.5 rounded-lg border p-2.5 border-dashed"
+  />
+
+  --------------------------------------------------
+  time:
+
+  Name "":
+  <time
+    datetime="2026-10-13T22:30:00.000Z"
+  />
+
+  --------------------------------------------------
+  status:
+
+  Name "":
+  <p
+    class="sr-only"
+    data-testid="moment-announcement"
+    role="status"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="hud-root flex min-h-screen flex-col"
+    >
+      <header
+        class="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"
+      >
+        <div
+          class="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-3 px-4 max-sm:gap-x-2 max-sm:gap-y-1 max-sm:pt-2 md:px-6"
+        >
+          <a
+            aria-label="HedgeHug, home"
+            class="flex items-center gap-2.5 rounded-md"
+            href="/"
+          >
+            <svg
+              aria-hidden="true"
+              class="shrink-0"
+              fill="none"
+              viewBox="0 0 1000 1000"
+              width="34"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M759.27 916.1v-.14q0-.12-.03-.22l.02.22v.38zm7.72 1c0 3.15-1.17 6.2-2.65 8.83-1.86 3.31-4.65 5.9-7.42 8.22a57 57 0 0 1-7.38 5c-2.66 1.59-5.48 2.9-8.27 4.2-2.82 1.32-5.7 2.46-8.58 3.58-5.7 2.2-11.55 4.04-17.4 5.68a391 391 0 0 1-35.64 8.12c-23.3 4.27-46.81 7.1-70.36 9.06q-36.2 3.03-72.49 3.76-15.36.31-30.73.32-21.25.01-42.47-.72c-24.38-.87-48.74-2.21-73.07-4.36a984 984 0 0 1-71.88-8.8 718 718 0 0 1-36.03-6.76 411 411 0 0 1-33.87-8.66 320 320 0 0 1-17.73-6q-4.29-1.6-8.49-3.49c-2.7-1.24-5.4-2.45-8.04-3.86a114 114 0 0 1-8.56-5.05c-2.6-1.7-5-3.68-7.31-5.82a27 27 0 0 1-5.55-7.18 19 19 0 0 1-2.3-9.14c.11-2.7.78-5.17 1.9-7.57.9-1.87 2.1-3.5 3.38-5.06 1.88-2.29 4.2-4.14 6.49-5.9 1.27-.96 2.62-1.79 3.95-2.63a62 62 0 0 1 3.97-2.3c5.5-2.9 11.21-5.31 17.02-7.42 11.1-4.05 22.55-7.06 34.01-9.57q14.26-3.11 28.62-5.41l.08-.01 1.11-.19q.1 0 .2-.03a709 709 0 0 1 31.4-4.25l.81-.1.2-.01.47-.05a864 864 0 0 1 31.63-2.98c24.38-1.85 48.8-2.92 73.23-3.3 1.12 0 2.23-.03 3.23-.04 12.59-.2 25.2-.13 37.78.03q17.74.23 35.45.99 36.63 1.54 73.15 5.02a989 989 0 0 1 36.17 4.18 848 848 0 0 1 36.32 5.61 623 623 0 0 1 36.54 7.6 333 333 0 0 1 34.66 10.17 197 197 0 0 1 17.5 7.25 110 110 0 0 1 7.77 4.13q1.85 1.08 3.65 2.3c1.3.85 2.6 1.71 3.8 2.7a88 88 0 0 1 3.85 3.33c1.1 1 2.1 2.18 3.05 3.36a23 23 0 0 1 4.42 8.82c.3 1.46.4 2.88.4 4.38z"
+                fill="#320601"
+                fill-opacity=".24"
+              />
+              <path
+                d="M751.03 394.3c-7.05-.88-4.44-8.95-4.6-13.81.43-21.73-3.5-43.5-11.5-63.7-23.05-59.85-83.84-102.04-147.96-102.7-89.42-3.19-167.93 73.72-166.35 163.22.38 4.7-5.79 7.63-9.16 4.27-3.67-4.64-.9-11.79-1.29-17.34.8-10.9 2.62-21.7 5.44-32.24a175 175 0 0 1 34.48-66.4c74.4-91.31 222.6-79.92 282.3 21.57a175 175 0 0 1 24.75 80.92c-.75 6.76 3.88 26.5-6.1 26.2zM241.76 883.31C124.27 865.03 59.31 730.94 117.94 627.48c1.2-1.77 3.3-5.33 5.9-9.54l-.92 4.01a623 623 0 0 0-5.41 26.07c-.7 3.76-1.41 7.56-1.87 11.36-38.26 111.08 53.24 225.02 167.8 214.85h.72q8.3.16 16.63.37l5.7.3c7.04.38 14.1.73 21.15.86a176 176 0 0 1-57.95 9.84c-9.35 0-18.69-.75-27.92-2.28m443.58-1.94q-.1 0-.19.02h-1.1z"
+                fill="#401c05"
+              />
+              <path
+                d="M615.68 874.2q3.8-.11 7.59-.19h.44-.19.7-.03.21-.04.27-.01.13c14.37-.22 28.74-.3 43.08-1.15.95 0 1.94 0 2.87-.17a8 8 0 0 0 3.6-1.58c11.2-.44 22.35-2.04 33.25-4.85 90.9-22.21 139.91-116.65 117.55-200.53a6.7 6.7 0 0 0 1.7-4.8 31 31 0 0 0-1.36-6.77l-.87-5.3q-.43-2.56-.92-5.1l-.58-2.77c-.4-1.86-.74-3.88-1.79-5.51q-.42-.7-.92-1.31-.1-.52-.24-1.03a37 37 0 0 0-.82-2.6 73 73 0 0 0-1.36-3.5q-.9-2.15-1.82-4.28l-2.2-4.97q-.98-3.18-1.93-6.35a173 173 0 0 1 17.85 34.39c42.33 107.52-33.9 224.85-144.45 235.58l-16.76.26-11.38.17a169 169 0 0 1-41.56-7.62zM741.5 339.58a274 274 0 0 0-1.42-17.44 289 289 0 0 0-5.6-32.13q1.6 2.47 3.17 4.95c2.19 3.53 4.2 7.13 6.2 10.76l.12.25 2.9 5.39c1.06 1.95 1.98 4.1 3.59 5.65q1.4 10.99 1.94 22.06a5.5 5.5 0 0 1-5.2 5.72h-.24a5.5 5.5 0 0 1-5.47-5.2M415.12 70.5C530.65 48 653.65 106.25 712.84 206.47q-.48-.16-.99-.26-.6-1.09-1.26-2.16l-.93-1.52a7.6 7.6 0 0 0-3.86-3.02c-2.55-1-5.66-.04-7.42 1.99q-.53.6-.87 1.27c-62.55-95.69-183-147.42-298.5-117.7-99.32 23.48-179.99 106.42-202.66 205.4-2.35 6.9-4.68 13.78-6.88 20.72l.26-.84a478 478 0 0 0-6.13 20.2 461 461 0 0 0-5.15 20.03l-.45 1.98C177.82 218.1 279.8 92.16 415.12 70.5"
+                fill="#401c05"
+              />
+              <path
+                d="M102.7 684.5a5.44 5.44 0 0 1-3.75-6.74l.5-2.2.02-.09 6.2-27.68 11.21-49.95 11.28-50.27 11.35-50.59 11.56-51.53 11.31-50.42 11.35-50.56 10.48-46.73.3-1.37c.68-2.9 4-4.53 6.75-3.75a5.5 5.5 0 0 1 3.25 2.56c.74 1.31.83 2.74.5 4.18l-9.77 43.58-11.14 49.67-11.56 51.5-11.36 50.7-11.35 50.6-11.52 51.31-11.03 49.2-7.32 32.63-.49 2.2c-.54 2.42-2.95 3.95-5.32 3.95q-.73 0-1.42-.2zm724.41-8.93-4.3-17.69-9.71-39.98-11.52-47.37-11.71-48.2-11.97-49.27-12.2-50.18q-5.92-24.28-11.81-48.58-5.98-24.56-11.94-49.13c-1.59-6.54-3.24-13.07-4.78-19.62a5.7 5.7 0 0 1 .54-4.22 5.5 5.5 0 0 1 2.4-2.2 332 332 0 0 1 3.71 6.61l3.04 5.63c1.12 2.07 2.1 4.37 3.9 5.95q.3.24.6.44l1.54 6.32 5.97 24.6 11.86 48.79 11.99 49.33 11.94 49.15q5.99 24.59 11.95 49.17l11.64 47.9 11.13 45.78 6.3 25.95 1.93 7.9c.7 2.89-.85 5.9-3.79 6.73q-.7.2-1.4.2a5.46 5.46 0 0 1-5.32-3.99zM284.96 883.71h-.15c-2.97 0-5.34-2.8-5.23-5.68a5.5 5.5 0 0 1 1.8-3.83 5.8 5.8 0 0 1 3.88-1.4c16.03-.12 32.06-.13 48.1-.19l50.6-.2 50.03-.2q24.98-.14 49.94-.2 24.93-.08 49.87-.2l49.08-.21 46.56-.19 35.84-.14 6-.03c2.98-.01 5.34 2.8 5.23 5.68a5.5 5.5 0 0 1-3.01 4.66l-4.9.07q-21.4.31-42.82.67l-1 .02-25.59.1q-24.15.08-48.3.2l-4.22.02q-1.13-.39-2.37-.6c-1.81-.28-3.62-.58-5.45-.71-5.62-.42-11.27-.39-16.9-.54-5.74-.16-11.45.18-17.17.53l-1.78.1-2.04.12 1.13-.06c-3.33.2-6.67.42-10 .57l-1.33.03c-3.43.07-6.87.15-10.3.12-4.2-.04-8.41-.26-12.62-.15-4.4.11-8.8.48-13.18.96l-3.81.02-50.12.2-50.2.2-49.97.2q-7.8.05-15.61.07h-.02zm158.19-408.23a5.5 5.5 0 0 1 1.76-3.86 5.7 5.7 0 0 1 3.85-1.44c15.53-.2 31.04-.49 46.56-.74l48.47-.77 46.92-.76 48.67-.77 47.87-.76 28.14-.45h.17c2.97-.05 5.37 2.74 5.3 5.62a5.5 5.5 0 0 1-1.77 3.86 5.7 5.7 0 0 1-3.86 1.44l-26.6.42q-24.04.37-48.09.77l-48.66.77-46.5.75-49 .77-47.47.76h-.53c-2.95 0-5.32-2.76-5.24-5.62zM325.27 699.47c-2.8-.75-4.7-3.84-3.85-6.69l8.5-28.42 14.09-47.13 14.3-47.86q7.34-24.52 14.66-49.05l.92-3.04.03-.12.83-2.77a5.5 5.5 0 0 1 6.69-3.86c2.81.76 4.7 3.84 3.85 6.69q-7.21 24.18-14.45 48.35l-14.2 47.51-14.27 47.74-10.4 34.77v.01a5.6 5.6 0 0 1-5.29 4.04q-.7 0-1.4-.18"
+                fill="#401c05"
+              />
+              <path
+                d="M448.92 883.33c-82.45-1.55-127.53-68.16...
+    217|
+    218| function bookPages() {
+    219|   return screen.getByRole("navigation", { name: "Book pages" });
+       |                 ^
+    220| }
+    221|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/16]⎯
+
+ FAIL  |website| src/BookPage.test.tsx > WS332: the Book's category pages > /book?page=giving shows Giving with its blurb and its ladders in catalogue order
+Error: expect(element).toHaveTextContent()
+
+Expected element to have text content:
+  Giving
+Received:
+  Achievements
+    343|   it.each(categoryPages)("/book?page=$page shows $name with its blurb …
+    344|     showBookAt(`/book?page=${page}`);
+    345|     expect(pageTitle()).toHaveTextContent(name);
+       |                         ^
+    346|     expect(document.title).toBe(`HedgeHug · Book · ${name}`);
+    347|     expect(within(main()).getByText("Achievements", { selector: ".hud-…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/16]⎯
+
+ FAIL  |website| src/BookPage.test.tsx > WS332: the Book's category pages > /book?page=thanked shows Being thanked with its blurb and its ladders in catalogue order
+Error: expect(element).toHaveTextContent()
+
+Expected element to have text content:
+  Being thanked
+Received:
+  Achievements
+    343|   it.each(categoryPages)("/book?page=$page shows $name with its blurb …
+    344|     showBookAt(`/book?page=${page}`);
+    345|     expect(pageTitle()).toHaveTextContent(name);
+       |                         ^
+    346|     expect(document.title).toBe(`HedgeHug · Book · ${name}`);
+    347|     expect(within(main()).getByText("Achievements", { selector: ".hud-…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/16]⎯
+
+ FAIL  |website| src/BookPage.test.tsx > WS332: the Book's category pages > /book?page=connections shows Connections with its blurb and its ladders in catalogue order
+Error: expect(element).toHaveTextContent()
+
+Expected element to have text content:
+  Connections
+Received:
+  Achievements
+    343|   it.each(categoryPages)("/book?page=$page shows $name with its blurb …
+    344|     showBookAt(`/book?page=${page}`);
+    345|     expect(pageTitle()).toHaveTextContent(name);
+       |                         ^
+    346|     expect(document.title).toBe(`HedgeHug · Book · ${name}`);
+    347|     expect(within(main()).getByText("Achievements", { selector: ".hud-…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/16]⎯
+
+ FAIL  |website| src/BookPage.test.tsx > WS332: the Book's category pages > /book?page=crowd shows Crowd with its blurb and its ladders in catalogue order
+Error: expect(element).toHaveTextContent()
+
+Expected element to have text content:
+  Crowd
+Received:
+  Achievements
+    343|   it.each(categoryPages)("/book?page=$page shows $name with its blurb …
+    344|     showBookAt(`/book?page=${page}`);
+    345|     expect(pageTitle()).toHaveTextContent(name);
+       |                         ^
+    346|     expect(document.title).toBe(`HedgeHug · Book · ${name}`);
+    347|     expect(within(main()).getByText("Achievements", { selector: ".hud-…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/16]⎯
+
+ FAIL  |website| src/BookPage.test.tsx > WS332: the Book's category pages > keys every shipped ladder to a category
+AssertionError: expected [ 'generosity', 'recognition', …(5) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "generosity",
++   "recognition",
++   "connections",
++   "dependability",
++   "applause",
++   "seasons",
++   "old-friends",
++ ]
+
+    361|   it("keys every shipped ladder to a category", () => {
+    362|     const unkeyed = ladders.ladders.map(({ ladder }) => ladder).filter…
+    363|     expect(unkeyed).toEqual([]);
+       |                     ^
+    364|   });
+    365|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/16]⎯
+
+ FAIL  |website| src/BookPage.test.tsx > WS332: the Book's category pages > puts a ladder a newer backend returns, with no category yet, on the last category that holds a ladder
+TestingLibraryElementError: Unable to find an accessible element with the role "heading"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Something went wrong":
+  <h1
+    class="hud-display font-bold tracking-tight outline-none text-2xl"
+    tabindex="-1"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  --------------------------------------------------
+  button:
+
+  Name "Try again":
+  <button
+    aria-disabled="false"
+    class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-outline quill-button--size-default"
+    data-quill="true"
+    data-size="default"
+    data-slot="button"
+    tabindex="0"
+    type="button"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<main
+  class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+>
+  <section
+    class="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center"
+  >
+    <svg
+      aria-hidden="true"
+      fill="none"
+      viewBox="0 0 1000 1000"
+      width="112"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M727.4 890.65v-.16q0-.13-.03-.24l.02.24v.43c0-.14 0-.27.02-.29zm8.68 1.12c0 3.55-1.32 6.97-2.97 9.93-2.1 3.72-5.23 6.63-8.34 9.25a64 64 0 0 1-8.3 5.6c-3 1.8-6.16 3.28-9.3 4.75a161 161 0 0 1-9.65 4.01 217 217 0 0 1-19.56 6.39 440 440 0 0 1-40.07 9.12c-26.2 4.8-52.64 7.98-79.11 10.2q-40.7 3.4-81.5 4.22-17.27.35-34.55.36-23.89.02-47.75-.81c-27.41-.98-54.8-2.49-82.15-4.9-27.01-2.4-54-5.5-80.82-9.9a807 807 0 0 1-40.5-7.6 461 461 0 0 1-38.1-9.73q-10.03-3.08-19.92-6.76-4.81-1.78-9.54-3.91c-3.04-1.4-6.08-2.76-9.04-4.34-3.28-1.76-6.5-3.62-9.63-5.68a64 64 0 0 1-8.22-6.55 30 30 0 0 1-6.24-8.07c-1.6-3.08-2.7-6.67-2.58-10.27.12-3.04.87-5.82 2.13-8.5a28 28 0 0 1 3.8-5.7c2.12-2.57 4.72-4.66 7.3-6.63 1.43-1.08 2.94-2.02 4.44-2.96a71 71 0 0 1 4.46-2.58c6.2-3.28 12.6-5.98 19.14-8.35 12.48-4.55 25.35-7.94 38.24-10.76a585 585 0 0 1 32.17-6.09h.1l1.24-.22q.12 0 .23-.03a796 796 0 0 1 35.31-4.78l.9-.1.22-.03.54-.05a970 970 0 0 1 35.55-3.35c27.42-2.08 54.87-3.28 82.34-3.7l3.63-.05c14.15-.24 28.32-.15 42.48.03q19.93.25 39.86 1.11 41.18 1.73 82.23 5.65 20.37 1.97 40.67 4.7a954 954 0 0 1 40.84 6.3 700 700 0 0 1 41.08 8.55 374 374 0 0 1 38.96 11.44 222 222 0 0 1 19.68 8.14c2.97 1.4 5.87 3 8.74 4.65 1.38.8 2.75 1.69 4.1 2.57 1.45.97 2.92 1.93 4.28 3.05a100 100 0 0 1 4.33 3.74 35 35 0 0 1 3.43 3.78 25.5 25.5 0 0 1 4.96 9.91c.33 1.65.46 3.25.46 4.93z"
+        fill="#320601"
+        fill-opacity=".24"
+      />
+      <path
+        d="m712.2 515 .59-.24q-.45.19-.83.4zm-1.3.85.1-.07-.2.18zm-70.67 42.37a4.7 4.7 0 0 1 1.36-6.44c6.34-4.24 12.66-8.54 18.98-12.81l31.45-21.2c5.64-3.81 11.33-7.57 16.94-11.42l.23-.17.58-.39a4.7 4.7 0 0 1 6.42 1.32l.03.04q.63.99.72 2.07l-1.6 1.7.2-.2-.77.82.26-.27-.06.06.1-.11.07-.07-.02.02.06-.06.17-.19c-1.6 1.71-3.14 3.49-4.74 5.2q-.45.4-.82.9l-4.53 3.05-29.24 19.72c-9.76 6.59-19.5 13.22-29.3 19.75l-.05.04a4.67 4.67 0 0 1-6.44-1.36m82.35-54.86-.1.1zm-.13.14.03-.02.26-.27q-.18.17-.34.35z"
+        fill="#320601"
+      />
+      <path
+        d="M705.54 510.2c.16-2.99 3.2-4.43 5.56-5.54a30 30 0 0 1 13.55-3.43l-1.92 1.98-.15.16q-.22.2-.4.41l.24-.25-.03.04v-.01l-.05.06q0-.02.03-.04l.01-.01-.01.01q-1.4 1.41-2.77 2.86l.01-.01.04-.04-.03.04q-2.16 2.25-4.27 4.5l.2-.2-.77.81.3-.32-.1.12.2-.22.17-.19q-1.85 2-3.66 4.02-.92.31-1.87.2c-2.36-.24-4.52-2.3-4.3-4.95zm38.31 26.28-.14.15-.1.1z"
+        fill="#320601"
+      />
+      <path
+        d="M736.34 544.55c.3-1.64 1.6-2.55 2.71-3.62 1.04-.52 1.86-1.37 2.68-2.22l1.8-1.88-.19.2.26-.28.12-.13.2-.2-.07.06 2.15-2.35-.12.13.3-.34.18-.18-.03.02.27-.3q3.16-3.6 6.07-7.37a31.4 31.4 0 0 1-5.26 19.38 18 18 0 0 1-4 3.95c-.87.63-1.87.85-2.83.75-2.59-.27-4.94-2.83-4.24-5.62"
+        fill="#320601"
+      />
+      <path
+        d="m676.91 594.08.6-.4.23-.16c5.65-3.8 11.37-7.49 17.06-11.23l31.67-20.88c6.37-4.2 12.73-8.43 19.13-12.6a4.7 4.7 0 0 0 1.42-6.43 4.7 4.7 0 0 0-6.49-1.39c-9.85 6.44-19.66 12.96-29.5 19.44l-29.44 19.4c-3.23 2.13-6.47 4.22-9.68 6.39a4.7 4.7 0 0 0-1.42 6.43l.03.04a4.7 4.7 0 0 0 6.4 1.38"
+        fill="#320601"
+      />
+      <path
+        d="M645.12 593.17c8.8 6.36 20.88 6.99 30.47 2.04 2.37-1.1 5.42-2.5 5.63-5.49.38-3.9-4.48-6.58-7.51-4.02-5.1 3.02-11.31 4.54-17.12 2.78-13.35-3.84-16.2-16.77-9.93-28.13 1.07-2.1 3.67-2.9 4.12-5.3 1.01-3.82-3.75-7.25-7.02-4.94a18 18 0 0 0-4.03 3.9c-8.37 11.98-7.68 30.8 5.4 39.17zm64-75.13-.2.12zm-4.86 1.02a4.7 4.7 0 0 1-.36-6.58q7.55-8.62 15.03-17.28l24.89-28.63c4.47-5.13 8.98-10.23 13.4-15.4l.18-.22.47-.54a4.7 4.7 0 0 1 6.53-.39l.04.03a4.7 4.7 0 0 1 .36 6.58c-2.5 2.94-5.07 5.83-7.6 8.75L734.06 492c-7.05 8.1-14.06 16.24-21.13 24.32-1.61.37-3.1 1.32-4.5 2.14l.16-.1-2.71 1.65q-.9-.3-1.62-.93z"
+        fill="#320601"
+      />
+      <path
+        d="M788.74 442.72c-10.19-3.75-21.98-1.1-29.89 6.25-1.99 1.7-4.55 3.86-3.94 6.79.69 3.88 6.08 5.13 8.32 1.86 4.1-4.29 9.68-7.42 15.74-7.28 13.9.1 20.12 11.8 17.13 24.42-.47 2.31-2.75 3.78-2.54 6.22.06 3.94 5.57 5.97 8.1 2.86a18 18 0 0 0 2.83-4.84c4.84-13.8-.9-31.73-15.74-36.28"
+        fill="#320601"
+      />
+      <path
+        d="M748.96 544.2q.22-.27.47-.53l.18-.23c4.48-5.12 9.05-10.17 13.58-15.26l25.18-28.35q7.59-8.59 15.22-17.13a4.7 4.7 0 0 0-.29-6.58 4.7 4.7 0 0 0-6.58.29l-.04.05c-7.86 8.76-15.65 17.6-23.46 26.41l-23.43 26.37q-3.86 4.3-7.7 8.67a4.7 4.7 0 0 0 .3 6.57l.04.04a4.7 4.7 0 0 0 6.53-.33m-45.53-22.65.06-.03-.08.05zm-.18.11-.08.05zm-.08.05.04-.01z"
+        fill="#320601"
+      />
+      <path
+        d="M702.67 515.11a18 18 0 0 1 2.88-4.82c2.56-3.08 8.05-1 8.06 2.95.1 1.23-.44 2.2-1.05 3.16-1.42.4-2.75 1.23-4 1.97l-.13.08.13-.08.04-.02q-2.55 1.5-5.03 3.1l.15-.1q-.09.08-.19.12l-.16.1h.02-.03l-.02.02-.45.29.02-.01-1.95 1.26c.2-2.74.76-5.45 1.7-8.02m20.03 37.75a342 342 0 0 0 10.27-6.07c1.08-.67 2.2-1.33 3.23-2.1.84-.61 1.53-1.21 2.24-1.97a6.4 6.4 0 0 0 1.45-2.55 27 27 0 0 0 3.81-3.24c2.27-3.25 7.66-1.93 8.3 1.95.58 2.93-2.01 5.08-4.01 6.75a30 30 0 0 1-25.3 7.24"
+        fill="#320601"
+      />
+      <path
+        d="M778.96 450.34c13.9.1 20.13 11.79 17.13 24.42-.38 1.94-2.06 3.29-2.46 5.12-6.83 7.65-13.6 15.33-20.42 23l-23.42 26.36c-2.56 2.89-5.16 5.76-7.7 8.67q-.46.54-.75 1.17-.7.57-1.46 1.1l-.11.33q-.35.24-.72.44c-.86.82-1.82 1.55-2.35 2.58-8.57 5.62-17.11 11.3-25.67 16.93l-29.44 19.4c-3.23 2.13-6.48 4.22-9.68 6.38q-.6.4-1.02.93c-4.49 2-9.53 2.77-14.31 1.32-13.35-3.84-16.2-16.77-9.93-28.13a6 6 0 0 1 1.18-1.53c9.42-6.3 18.8-12.68 28.2-19.02L700.96 523l-.01.17 1.84-1.2q.04 0 .07-.04l.04-.02.26-.17.08-.05.1-.06.02-.02.03-.02.03-.02.07-.04.07-.04 2.5-1.58 2.48-1.5q.03 0 .04-.03l.1-.06.38-.23.04-.02.1-.06.29-.17.49-.28.24-.14q.5-.27 1-.5l.26-.12.78-.28.27-.08.38-.1q10.59-12.15 21.13-24.32l23.14-26.62c2.54-2.91 5.1-5.8 7.6-8.75a5 5 0 0 0 .75-1.17c3.78-3.13 8.43-5.22 13.42-5.11z"
+        fill="#a26045"
+      />
+      <path
+        d="m427.48 842.04-.02-.01-15.34-5.72.1.04.17.05.17.05.16.06.16.0...
+    222| function ladderNames() {
+    223|   return within(main())
+    224|     .getAllByRole("heading", { level: 2 })
+       |      ^
+    225|     .map((heading) => heading.textContent);
+    226| }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/16]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  16 failed | 26 passed (42)
+   Start at  11:01:00
+   Duration  15.32s (tests 82%, import 9%, transform 5%, environment 4%, setup 1%)
+

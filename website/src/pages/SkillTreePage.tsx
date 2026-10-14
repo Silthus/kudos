@@ -6,7 +6,7 @@ import { detailsHeadingId, PerkDetailsDrawer, PerkDetailsPanel, PurchaseAnnounce
 import { PerkTree } from "../skills/PerkTree";
 import { pointsToSpend } from "../skills/perkWords";
 import { usePurchase } from "../skills/purchase";
-import { isWideScreen, useWideScreen } from "../skills/useWideScreen";
+import { isWideScreen, useWideScreen } from "../useWideScreen";
 import { YourPerks } from "../skills/YourPerks";
 
 type Tree = Extract<SkillTreeAnswer, { kind: "tree" }>;

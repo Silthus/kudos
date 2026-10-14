@@ -2,9 +2,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
+import { bookFixtures, fixedBook } from "./bookFixtures";
 import { shellFixtures } from "./shell";
 import { renderApp } from "./test/renderApp";
-import { fakeSystemTheme } from "./test/systemTheme";
+import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
 
 type Mode = "light" | "dark";
 
@@ -60,7 +61,7 @@ function contrast(mode: Mode, paint: string, surface: string) {
 
 function paintsOf(element: Element) {
   const fromStroke = [...(element.getAttribute("stroke") ?? "").matchAll(/var\(--([\w-]+)\)/g)].map((match) => match[1]!);
-  const fromClasses = [...element.classList].flatMap((name) => /^(?:bg|border)-((?:muted-)?foreground)$/.exec(name)?.[1] ?? []);
+  const fromClasses = [...element.classList].flatMap((name) => /^(?:before:)?(?:bg|border|text)-((?:muted-)?foreground|primary)$/.exec(name)?.[1] ?? []);
   const paints = [...fromStroke, ...fromClasses];
   if (paints.length === 0) throw new Error(`<${element.tagName.toLowerCase()} class="${element.className}"> paints with no theme token`);
   return paints;
@@ -90,6 +91,38 @@ describe("WS112 V24: the ring, the XP bar and the pips meet 3:1 against their su
         elements.flatMap((element) => paintsOf(element).flatMap((paint) => surfaces.map((surface) => ({ part, paint, surface, ratio: contrast(mode, paint, surface) })))),
       );
       expect(measured.length).toBeGreaterThanOrEqual(12);
+      expect(measured.filter(({ ratio }) => ratio < 3)).toEqual([]);
+    });
+  }
+});
+
+function bookIndexGraphics() {
+  window.history.replaceState(null, "", "/book?page=giving");
+  const narrow = renderApp(shellFixtures.memberWithTheBookOpened, undefined, undefined, undefined, fixedBook(bookFixtures.everyLadder));
+  const picker = screen.getByRole("combobox", { name: "Book page" });
+  const chevron = picker.parentElement!.querySelector("svg[aria-hidden='true']")!;
+  const pickerParts = [picker, chevron];
+  narrow.unmount();
+  preferWideScreen();
+  renderApp(shellFixtures.memberWithTheBookOpened, undefined, undefined, undefined, fixedBook(bookFixtures.everyLadder));
+  const current = within(screen.getByRole("navigation", { name: "Book pages" })).getByRole("link", { current: "page" });
+  return [
+    { part: "the picker's border and chevron", surfaces: ["card"], elements: pickerParts },
+    { part: "the index's current-page stripe", surfaces: ["card"], elements: [current] },
+  ];
+}
+
+describe("WS339 V24: the Book index's stripe and the page picker meet 3:1 against their card in both modes", () => {
+  beforeEach(() => {
+    fakeSystemTheme(false);
+  });
+
+  for (const mode of ["light", "dark"] as const) {
+    it(`in ${mode}`, () => {
+      const measured = bookIndexGraphics().flatMap(({ part, surfaces, elements }) =>
+        elements.flatMap((element) => paintsOf(element).flatMap((paint) => surfaces.map((surface) => ({ part, paint, surface, ratio: contrast(mode, paint, surface) })))),
+      );
+      expect(measured.map(({ paint }) => paint)).toEqual(expect.arrayContaining(["muted-foreground", "primary"]));
       expect(measured.filter(({ ratio }) => ratio < 3)).toEqual([]);
     });
   }
