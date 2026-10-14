@@ -1,7 +1,8 @@
 import { screen, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fixedLeaderboard, leaderboardFixtures, type Leaderboard, type LeaderboardRead, type MyLeaderboard } from "./leaderboardFixtures";
-import { shellFixtures, type Period } from "./shell";
+import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
+import type { BoardRead } from "./boardRead";
+import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
+import { shellFixtures, type Leaderboard, type MyLeaderboard, type Period } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
 import { watchTheViewerRow } from "./test/viewerRow";
@@ -75,14 +76,14 @@ describe("WS37 WS1: the leaderboard lives at /leaderboard, with the period in th
     { path: "/leaderboard?period=all", period: "all" },
   ])("reads $path as the $period board", ({ path, period }) => {
     visit(path);
-    const read = vi.fn<LeaderboardRead>(fixedLeaderboard(leaderboardFixtures.midBoard));
+    const read = vi.fn<BoardRead>(fixedLeaderboard(leaderboardFixtures.midBoard));
     renderApp(withTheBoard, read);
     expect(read).toHaveBeenLastCalledWith(period);
   });
 
   it("reads any other period as this week and rewrites the address without a reload", () => {
     visit("/leaderboard?period=year");
-    const read = vi.fn<LeaderboardRead>(fixedLeaderboard(leaderboardFixtures.midBoard));
+    const read = vi.fn<BoardRead>(fixedLeaderboard(leaderboardFixtures.midBoard));
     renderApp(withTheBoard, read);
     expect(read).toHaveBeenLastCalledWith("week");
     expect(window.location.pathname + window.location.search).toBe("/leaderboard");
@@ -197,7 +198,7 @@ describe("WS39: the board card and the periods", () => {
   });
 
   it("switches the period from the keyboard and rewrites the address without a reload", async () => {
-    const read = vi.fn<LeaderboardRead>(fixedLeaderboard(leaderboardFixtures.midBoard));
+    const read = vi.fn<BoardRead>(fixedLeaderboard(leaderboardFixtures.midBoard));
     visit("/leaderboard");
     const { user } = renderApp(withTheBoard, read);
     const thisMonth = within(main()).getByRole("button", { name: "This month" });
@@ -217,7 +218,7 @@ describe("WS39: the board card and the periods", () => {
 
   it("keeps the board and focus on the switch while the next period's board loads", async () => {
     const loaded = new Set<Period | undefined>(["week"]);
-    const read: LeaderboardRead = (period) => (loaded.has(period) ? { ...leaderboardFixtures.midBoard, period: period! } : undefined);
+    const read: BoardRead = (period) => (loaded.has(period) ? { ...leaderboardFixtures.midBoard, period: period! } : undefined);
     visit("/leaderboard");
     const { user, showVisitor } = renderApp(withTheBoard, read);
     await user.click(within(main()).getByRole("button", { name: "This month" }));
@@ -352,7 +353,7 @@ describe("WS42: the list shows the rest of G17's window below the podium", () =>
   it("lists the window after the podium in order, with one … where positions are skipped", () => {
     showBoard(leaderboardFixtures.midBoard);
     expect(linesOf(boardList())).toEqual([
-      "…",
+      "…Positions skipped",
       "Rank 6: 6FMFay Mensah14",
       "Rank 7: 7GPGus Park13",
       "Rank 8: 8HSHal Sato12",
@@ -381,6 +382,19 @@ describe("WS42: the list shows the rest of G17's window below the podium", () =>
     expect(other.querySelector("[data-you-ring]")).toBeNull();
   });
 
+  it("reads the gap as skipped positions and hides the ellipsis from screen readers", () => {
+    showBoard(leaderboardFixtures.midBoard);
+    const gap = within(boardList()).getAllByRole("listitem")[0]!;
+    expect(within(gap).getByText("…")).toHaveAttribute("aria-hidden", "true");
+    expect(within(gap).getByText("Positions skipped")).toHaveClass("sr-only");
+  });
+
+  it("shows the column header only over lines, never over the join line alone", () => {
+    showBoard(leaderboardFixtures.notRanked);
+    expect(within(main()).getByText("Give kudos this week to join the board.")).toBeInTheDocument();
+    expect(within(main()).queryByText("No. · member")).not.toBeInTheDocument();
+  });
+
   it("shows no list when the podium holds the whole window", () => {
     showBoard(leaderboardFixtures.viewerLeads);
     expect(within(main()).queryByRole("list", { name: "No. · member, kudos given" })).not.toBeInTheDocument();
@@ -405,6 +419,23 @@ describe("WS42: the list shows the rest of G17's window below the podium", () =>
   });
 });
 
+function placeEachLine({ height, scrollerHeight }: { height: number; scrollerHeight: number }) {
+  const geometry: Record<string, (this: HTMLElement) => number> = {
+    offsetHeight: () => height,
+    offsetTop(this: HTMLElement) {
+      return this.parentElement === null ? 0 : [...this.parentElement.children].indexOf(this) * height;
+    },
+    clientHeight: () => scrollerHeight,
+  };
+  for (const [name, get] of Object.entries(geometry)) {
+    const jsdom = Object.getOwnPropertyDescriptor(HTMLElement.prototype, name) ?? Object.getOwnPropertyDescriptor(Element.prototype, name)!;
+    Object.defineProperty(HTMLElement.prototype, name, { configurable: true, get });
+    onTestFinished(() => {
+      Object.defineProperty(HTMLElement.prototype, name, jsdom);
+    });
+  }
+}
+
 function wholeBoard() {
   return within(main()).getByRole("region", { name: "The whole board" });
 }
@@ -421,6 +452,7 @@ describe("WS43: the whole board and Jump to me", () => {
 
   it("says which positions the list shows, and opens the whole board centred on the viewer by keyboard", async () => {
     watchTheViewerRow();
+    placeEachLine({ height: 40, scrollerHeight: 400 });
     const { user } = showBoard(leaderboardFixtures.midBoard);
     expect(within(main()).getByText("No. 6–12 of 13")).toBeInTheDocument();
     within(main()).getByRole("button", { name: "Show the whole board" }).focus();
@@ -430,6 +462,7 @@ describe("WS43: the whole board and Jump to me", () => {
     expect(within(wholeBoard()).getAllByRole("listitem")).toHaveLength(13);
     expect(wholeBoard()).toHaveAttribute("tabindex", "0");
     expect(new Set(scrolls.map((scroll) => scroll.behavior))).toEqual(new Set(["instant"]));
+    expect(scrolls.at(-1)).toEqual(expect.objectContaining({ top: 8 * 40 - (400 - 40) / 2 }));
     expect(within(main()).getByRole("button", { name: "Back to my spot" })).toHaveFocus();
 
     await user.tab({ shift: true });
@@ -503,6 +536,33 @@ describe("WS43: the whole board and Jump to me", () => {
     expect(within(main()).getByText("No. 1–3 of 12")).toBeInTheDocument();
   });
 
+  it("tells assistive tech the footer's button shows and hides the whole board", async () => {
+    watchTheViewerRow();
+    const { user } = showBoard(leaderboardFixtures.midBoard);
+    const showWhole = within(main()).getByRole("button", { name: "Show the whole board" });
+    expect(showWhole).toHaveAttribute("aria-expanded", "false");
+    await user.click(showWhole);
+    const backToMySpot = within(main()).getByRole("button", { name: "Back to my spot" });
+    expect(backToMySpot).toHaveAttribute("aria-expanded", "true");
+    expect(document.getElementById(backToMySpot.getAttribute("aria-controls")!)).toBe(wholeBoard());
+  });
+
+  it("keeps Back to my spot while the whole board is open, even once kudos make the window cover every row", async () => {
+    watchTheViewerRow();
+    let board: Leaderboard = leaderboardFixtures.midBoard;
+    visit("/leaderboard");
+    const { user, showVisitor } = renderApp(withTheBoard, (period) => period && { ...board, period });
+    await user.click(within(main()).getByRole("button", { name: "Show the whole board" }));
+
+    board = { ...board, window: board.rows.map((row) => row.position) };
+    showVisitor(withTheBoard);
+    expect(wholeBoard()).toBeInTheDocument();
+    await user.click(within(main()).getByRole("button", { name: "Back to my spot" }));
+
+    expect(within(main()).queryByRole("region", { name: "The whole board" })).not.toBeInTheDocument();
+    expect(linesOf(boardList())).toHaveLength(10);
+  });
+
   it("offers no whole board when the window already shows every row", () => {
     showBoard(leaderboardFixtures.viewerLeads);
     expect(within(main()).queryByRole("button", { name: "Show the whole board" })).not.toBeInTheDocument();
@@ -510,6 +570,19 @@ describe("WS43: the whole board and Jump to me", () => {
 });
 
 describe("WS44: an empty board", () => {
+  it("keeps focus on the title when the empty board fills while its title has focus", () => {
+    let board: Leaderboard = leaderboardFixtures.empty;
+    visit("/leaderboard");
+    const { showVisitor } = renderApp(withTheBoard, (period) => period && { ...board, period });
+    pageTitle().focus();
+
+    board = leaderboardFixtures.midBoard;
+    showVisitor(withTheBoard);
+
+    expect(pageTitle()).toHaveTextContent("Ada Lindqvist leads the week.");
+    expect(pageTitle()).toHaveFocus();
+  });
+
   it("shows one hedgehog, Max's sentence and one action to thank someone in Slack, with no podium or list", () => {
     showBoard(leaderboardFixtures.empty, "/leaderboard?period=all");
     expect(pageTitle()).toHaveTextContent("Nobody is on this board yet.");

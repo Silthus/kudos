@@ -1,6 +1,6 @@
 import { IconTarget } from "@posthog/icons";
 import { Button } from "@posthog/quill";
-import type { LeaderboardRow } from "../leaderboardFixtures";
+import type { LeaderboardRow } from "../shell";
 import { BoardFace, RankWords, YouLabel } from "./BoardFace";
 
 export function BoardLine({ row, focusable = false }: { row: LeaderboardRow; focusable?: boolean }) {
@@ -17,7 +17,9 @@ export function BoardLine({ row, focusable = false }: { row: LeaderboardRow; foc
       </span>
       <span className="flex min-w-0 items-center gap-2.5 text-sm">
         <BoardFace row={row} className="size-8" />
-        <span className="truncate font-medium">{row.name}</span>
+        <span title={row.name} className="truncate font-medium">
+          {row.name}
+        </span>
         {row.you && <YouLabel />}
       </span>
       <span className="text-right text-lg font-semibold tabular-nums">{row.kudos}</span>

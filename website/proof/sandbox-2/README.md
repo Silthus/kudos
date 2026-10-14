@@ -46,7 +46,7 @@ The browser held only that refresh token. The sandbox's own Convex Auth refresh 
 | `/leaderboard`, this week | [leaderboard-week-light.png](leaderboard-week-light.png) | [leaderboard-week-dark.png](leaderboard-week-dark.png) |
 | `/leaderboard`, all time | [leaderboard-all-light.png](leaderboard-all-light.png) | [leaderboard-all-dark.png](leaderboard-all-dark.png) |
 
-The sandbox's data has one human member, who has given no kudos. So both boards show the empty board (WS46), `Not ranked yet`, and the side panel's `You're on the leaderboards` line. The populated board, its podium and its window are shown on a local backend in `../leaderboard-page/`.
+The sandbox's data has one human member, who has given no kudos. So both boards show the empty board (WS44), `Not ranked yet`, and the side panel's `You're on the leaderboards` line. The populated board, its podium and its window are shown on a local backend in `../leaderboard-page/`.
 
 ## The unlock gate (WS52, WS53)
 

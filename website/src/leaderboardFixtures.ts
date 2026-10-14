@@ -1,9 +1,5 @@
-import type { Leaderboard, LeaderboardRow, MyLeaderboard } from "../../convex/website/leaderboard";
-import type { Period } from "./shell";
-
-export type { Leaderboard, LeaderboardRow, MyLeaderboard } from "../../convex/website/leaderboard";
-
-export type LeaderboardRead = (period: Period | undefined) => MyLeaderboard | undefined;
+import type { BoardRead } from "./boardRead";
+import type { Leaderboard, LeaderboardRow } from "./shell";
 
 const you = { kind: "initials", initials: "SE" } as const;
 
@@ -101,6 +97,6 @@ const empty: Leaderboard = { ...board, period: "all", rows: [], window: [], stan
 
 export const leaderboardFixtures = { midBoard, midBoardAfterAClimb, viewerLeads, sharedLead, tiedBelowTheLead, notRanked, left, leftALongBoard, empty } as const satisfies Record<string, Leaderboard>;
 
-export function fixedLeaderboard(answer: Leaderboard): LeaderboardRead {
+export function fixedLeaderboard(answer: Leaderboard): BoardRead {
   return (period) => (period === undefined ? undefined : { ...answer, period });
 }

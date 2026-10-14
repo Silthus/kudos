@@ -1,7 +1,7 @@
 import { IconLock } from "@posthog/icons";
 import { Card, CardContent } from "@posthog/quill";
 import type { ReactNode } from "react";
-import type { Leaderboard } from "../leaderboardFixtures";
+import type { Leaderboard } from "../shell";
 
 export function SidePanels({ board }: { board: Leaderboard }) {
   const line = improvementLineOf(board);

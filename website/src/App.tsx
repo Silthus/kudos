@@ -1,8 +1,8 @@
 import { useCallback, useRef } from "react";
 import { NavigateProvider } from "./AppLink";
+import type { BoardAnswer, BoardRead } from "./boardRead";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { Frame } from "./Frame";
-import type { LeaderboardRead, MyLeaderboard } from "./leaderboardFixtures";
 import { ClosedPage } from "./pages/ClosedPage";
 import { ConnectingPage } from "./pages/ConnectingPage";
 import { ErrorPage } from "./pages/ErrorPage";
@@ -20,14 +20,15 @@ import { useRoute, type Route } from "./route";
 import type { Period, ShellActions, ShellState } from "./shell";
 import { rememberSignInStarted, useSignInOutcome } from "./signInAttempt";
 
-type AppProps = { visitor: ShellState; actions: ShellActions; useLeaderboard: LeaderboardRead };
+type AppProps = { visitor: ShellState; actions: ShellActions; useLeaderboard: BoardRead };
 
 export function App({ visitor, actions, useLeaderboard }: AppProps) {
   const { route, navigate, choosePeriod } = useRoute();
   const shown = useSignInOutcome(visitor);
   const member = shown.kind === "member" ? shown : undefined;
   const onTheBoard = member !== undefined && route.page === "leaderboard";
-  const board = useBoardWhileTheNextLoads(useLeaderboard(onTheBoard ? route.period : undefined), onTheBoard);
+  const answer = useLeaderboard(onTheBoard ? route.period : undefined);
+  const board = useBoardWhileTheNextLoads(answer, onTheBoard);
   useTitleFocusAfterChange(onTheBoard ? boardPageOf(board) : shown.kind);
   const expectArrival = useTitleFocusOnArrival();
   const arriveAt = useCallback(
@@ -43,8 +44,8 @@ export function App({ visitor, actions, useLeaderboard }: AppProps) {
   }, [actions]);
   return (
     <NavigateProvider value={arriveAt}>
-      <Frame member={member} current={route.page === "not-found" ? undefined : route.page} busy={shown.kind === "loading"} onSignOut={actions.signOut}>
-        <ErrorBoundary fallback={(failure) => <ErrorPage {...failure} />}>
+      <Frame member={member} current={route.page === "not-found" ? undefined : route.page} busy={shown.kind === "loading" || (onTheBoard && answer === undefined)} onSignOut={actions.signOut}>
+        <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>
           <Page state={shown} route={route} board={board} onChoosePeriod={choosePeriod} onSignIn={signIn} onSignOut={actions.signOut} />
         </ErrorBoundary>
       </Frame>
@@ -52,12 +53,14 @@ export function App({ visitor, actions, useLeaderboard }: AppProps) {
   );
 }
 
-function boardPageOf(board: MyLeaderboard | undefined) {
-  return board === undefined ? "loading" : `leaderboard ${board.kind}`;
+function boardPageOf(board: BoardAnswer | undefined) {
+  if (board === undefined) return "loading";
+  if (board.kind === "board" && board.rows.length === 0) return "leaderboard empty";
+  return `leaderboard ${board.kind}`;
 }
 
-function useBoardWhileTheNextLoads(board: MyLeaderboard | undefined, onTheBoard: boolean) {
-  const lastShown = useRef<MyLeaderboard | undefined>(undefined);
+function useBoardWhileTheNextLoads(board: BoardAnswer | undefined, onTheBoard: boolean) {
+  const lastShown = useRef<BoardAnswer | undefined>(undefined);
   if (!onTheBoard) lastShown.current = undefined;
   else if (board !== undefined) lastShown.current = board;
   return board ?? lastShown.current;
@@ -66,31 +69,33 @@ function useBoardWhileTheNextLoads(board: MyLeaderboard | undefined, onTheBoard:
 type PageProps = {
   state: ShellState;
   route: Route;
-  board: MyLeaderboard | undefined;
+  board: BoardAnswer | undefined;
   onChoosePeriod: (period: Period) => void;
   onSignIn: () => void;
   onSignOut: () => void;
 };
 
 function Page({ state, route, board, onChoosePeriod, ...actions }: PageProps) {
-  if (state.kind === "broken") throw new Error("This page failed to render.");
   if (state.kind === "loading") return null;
-  if (state.kind === "connecting") return <ConnectingPage />;
-  if (state.kind === "closed") return <ClosedPage />;
+  if (state.kind === "broken" || state.kind === "connecting" || state.kind === "closed") return <AnswerPage answer={state} {...actions} />;
   if (route.page === "not-found") return <NotFoundPage />;
-  if (state.kind !== "member") return <VisitorPage state={state} {...actions} />;
+  if (state.kind !== "member") return <AnswerPage answer={state} {...actions} />;
   if (route.page === "home") return <HomePage member={state} />;
   if (board === undefined) return null;
   if (board.kind === "not-found") return <NotFoundPage />;
   if (board.kind === "locked" || board.kind === "ready") return <LeaderboardWaitsPage waiting={board} chatUrl={state.chatUrl} />;
-  if (board.kind !== "board") return <VisitorPage state={board} {...actions} />;
+  if (board.kind !== "board") return <AnswerPage answer={board} {...actions} />;
   return <LeaderboardPage board={board} period={route.period} onChoosePeriod={onChoosePeriod} />;
 }
 
-type Visitor = Exclude<ShellState, { kind: "member" | "broken" | "loading" }>;
+type NotAMember = Exclude<ShellState, { kind: "member" | "loading" }>;
 
-function VisitorPage({ state, onSignIn, onSignOut }: { state: Visitor; onSignIn: () => void; onSignOut: () => void }) {
-  switch (state.kind) {
+function AnswerPage({ answer, onSignIn, onSignOut }: { answer: NotAMember; onSignIn: () => void; onSignOut: () => void }) {
+  switch (answer.kind) {
+    case "broken":
+      throw new Error("This page failed to render.");
+    case "connecting":
+      return <ConnectingPage />;
     case "closed":
       return <ClosedPage />;
     case "signed-out":
