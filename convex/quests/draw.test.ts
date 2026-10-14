@@ -28,7 +28,7 @@ afterEach(() => {
 });
 
 describe("P80: opening Quests draws up to 3 different quests the member can finish this week", () => {
-  test("questsOf gives the week key, the draw time and each slot's quest, goal, promised reward and the facts that made it feasible", async () => {
+  test("CO6 CO29: questsOf gives the week key, the draw time and each slot's quest, goal, promised reward and the facts that made it feasible", async () => {
     const { t, alice } = await workspace();
 
     await openQuests(t, alice, tuesday);
@@ -41,8 +41,8 @@ describe("P80: opening Quests draws up to 3 different quests the member can fini
         slot: slot.slot,
         quest: expect.any(String),
         goal: expect.stringMatching(/^Thank /),
-        reward: { xp: 20, coins: 0, item: null },
-        catalogueVersion: "1",
+        reward: { xp: 20, coins: 10, item: null },
+        catalogueVersion: "2",
         feasibleBecause: { peopleLeft: 1, recognitionsLeft: 6, ...(overDays.includes(slot.quest) && { daysLeft: 6 }) },
         progress: 0,
         target: expect.any(Number),

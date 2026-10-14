@@ -9,6 +9,7 @@ import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import { tellTiersEarned } from "../feedback/tierNotices";
+import { balanceOf } from "../wallet/wallet";
 import type { MemberId } from "../workspace/directory";
 
 const now = new Date("2026-10-13T10:00:00Z");
@@ -170,6 +171,62 @@ describe("P61 P78: a tier's copy celebrates, and names nothing unshipped", () =>
   });
 });
 
+describe("CO20: a tier DM line that paid coins says them while coins are visible", () => {
+  test("with Coins open, each bronze line of the giver's DM ends with +10 🪙; the recipient, who hasn't opened Coins, gets the lines as before, and no public line names coins", async () => {
+    const t = await workspaceWithCoins();
+    const [alice] = await membersWithTheBookOpen(t, "U_ALICE", "U_BOB");
+    await openCoins(t, alice!);
+
+    await giveKudos(t, "U_ALICE", "U_BOB");
+
+    expect(tierDmsTo("U_ALICE")).toEqual([
+      "🏅 You earned First Thanks (Generosity, bronze). +10 🪙\n🏅 You earned First Chapter (Seasons, bronze). +10 🪙\nNext: Generous Soul at 25 kudos given.\nNext: Season of Thanks at 3 calendar months with a kudos given.",
+    ]);
+    expect(tierDmsTo("U_BOB")).toEqual(["🏅 You earned Noticed (Recognition, bronze).\nNext: Appreciated at 25 kudos received."]);
+    expect(tierLinesIn("C1")).toEqual(["🏅 <@U_ALICE> earned First Thanks and First Chapter.", "🏅 <@U_BOB> earned Noticed."]);
+  });
+
+  test("a diamond line says +100 🪙, and the silver and gold lines, which pay no coins, say none", async () => {
+    const t = await workspaceWithCoins();
+    const [alice, bob] = await membersWithTheBookOpen(t, "U_ALICE", "U_BOB");
+    await openCoins(t, bob!);
+    const event = await t.run((ctx) => kudosGivenEventWithAward(ctx, alice!, bob!, { at: Date.now() }));
+
+    await t.mutation(internal.achievements.achievements.countKudosGiven, { event: { ...event, awards: event.awards.map((award) => ({ ...award, kudos: 500 })) } });
+    await settle(t);
+
+    expect(tierDmsTo("U_BOB")).toEqual([
+      "🏅 You earned Noticed (Recognition, bronze). +10 🪙\n🏅 You earned Appreciated (Recognition, silver).\n🏅 You earned Highly Valued (Recognition, gold).\n🏅 You earned Hall of Fame (Recognition, diamond). +100 🪙",
+    ]);
+  });
+
+  test("a summary of tiers earned before the Book was opened says each tier's coins", async () => {
+    const t = await workspaceWithCoins();
+    const [alice, bob] = await membersWithTheBookOpen(t);
+    await openCoins(t, bob!);
+    const earnedBeforeOpening = await t.run((ctx) => kudosGivenEventWithAward(ctx, alice!, bob!, { at: Date.now() }));
+    vi.setSystemTime(now.getTime() + 60_000);
+    await openTheBook(t, alice!, bob!);
+
+    await t.mutation(internal.achievements.achievements.countKudosGiven, { event: earnedBeforeOpening });
+    await settle(t);
+
+    expect(tierDmsTo("U_BOB")).toEqual(["🏅 You earned Noticed (Recognition, bronze). +10 🪙\nNext: Appreciated at 25 kudos received."]);
+  });
+
+  test("with coins turned off after the member opened Coins, the DM says no coins, and the coins stay recorded", async () => {
+    const t = await workspaceWithCoins();
+    const [alice] = await membersWithTheBookOpen(t, "U_ALICE", "U_BOB");
+    await openCoins(t, alice!);
+    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("achievements"), offForEveryone("coins"));
+
+    await giveKudos(t, "U_ALICE", "U_BOB");
+
+    expect(tierDmsTo("U_ALICE")).toEqual(["🏅 You earned First Thanks (Generosity, bronze).\n🏅 You earned First Chapter (Seasons, bronze).\nNext: Generous Soul at 25 kudos given.\nNext: Season of Thanks at 3 calendar months with a kudos given."]);
+    expect(await t.run((ctx) => balanceOf(ctx, alice!))).toBe(20);
+  });
+});
+
 describe("P76 P78: where the Book doesn't apply, no tier is announced", () => {
   test("a tier earned while achievements is off sends no DM and no line, and isn't announced when it is on again", async () => {
     const t = await workspace();
@@ -248,6 +305,15 @@ async function workspace({ announcementChannel }: { announcementChannel?: string
   const t = await flagsLoaded(testBackend());
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10, ...(announcementChannel && { announcementChannel }) }));
   return bookShippedBeforeAnyoneJoined(t);
+}
+
+async function workspaceWithCoins() {
+  const t = await workspace();
+  return flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("achievements"), onForEveryone("coins"));
+}
+
+async function openCoins(t: Backend, member: MemberId) {
+  await t.run((ctx) => ctx.db.insert("unlocks", { member, feature: "coins", readyAt: Date.now(), openedAt: Date.now() }));
 }
 
 async function membersWithTheBookOpen(t: Backend, ...users: string[]): Promise<MemberId[]> {

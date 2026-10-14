@@ -20,7 +20,7 @@ import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import type { UnlocksHome } from "../unlocks/unlocks";
 import type { FrontDoorLinks } from "../website/link";
 import { questCratePageOf, readyCratePageOf, urlOf, type Page } from "../website/routes";
-import { inCoins } from "./coins";
+import { coinsPartOf, inCoins } from "./coins";
 import type { HomeTab, ShownHome, ShownTab, ToldProgression } from "./homes";
 import { renderEveryoneBoard } from "./leaderboard";
 import { openTheWebsite, productName, skillPointsOf, slashCommand } from "./naming";
@@ -187,10 +187,14 @@ function ladderLines({ ladder, name, count, tiers, next }: LadderFacts, timeZone
   return [{ kind: "text", text: `${bold(name)} · ${bold(count)} ${countsOf(ladder, count)}` }, ...earnedLines, ...nextLine];
 }
 
-export function tiersEarnedLines(told: TierRef[], everyTierEarned: TierRef[]): string[] {
-  const earnedLines = told.map((ref) => `🏅 You earned ${tierOf(ref).name} (${ladderOf(ref.ladder).name}, ${ref.tier}).`);
+export function tiersEarnedLines(told: TierRef[], everyTierEarned: TierRef[], coinsPaidFor: (ref: TierRef) => number): string[] {
+  const earnedLines = told.map((ref) => `🏅 You earned ${tierOf(ref).name} (${ladderOf(ref.ladder).name}, ${ref.tier}).${tierCoinsPartOf(coinsPaidFor(ref))}`);
   const ladders = [...new Set(told.map(({ ladder }) => ladder))];
   return [...earnedLines, ...ladders.flatMap((ladder) => nextTierLine(ladder, [...told, ...everyTierEarned]))];
+}
+
+function tierCoinsPartOf(coins: number) {
+  return coins === 0 ? "" : ` ${coinsPartOf(coins)}`;
 }
 
 function nextTierLine(ladder: TierRef["ladder"], earned: TierRef[]): string[] {

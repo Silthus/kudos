@@ -20,8 +20,8 @@ import { deepLinkOf, deepLinks, type DeepLink } from "./deepLinks";
 import type { Line, Segment } from "./segments";
 
 export const questDoneValidator = v.union(
-  v.object({ kind: v.literal("journey"), step: journeyStepValidator, xp: v.number() }),
-  v.object({ kind: v.literal("weekly"), goal: v.string(), xp: v.number() }),
+  v.object({ kind: v.literal("journey"), step: journeyStepValidator, xp: v.number(), coins: v.optional(v.number()) }),
+  v.object({ kind: v.literal("weekly"), goal: v.string(), xp: v.number(), coins: v.optional(v.number()) }),
 );
 
 export type QuestDone = Infer<typeof questDoneValidator>;
@@ -132,10 +132,12 @@ function isHintShownTo(ctx: QueryCtx, workspace: string, member: MemberId | null
 }
 
 async function gainsShownTo(ctx: QueryCtx, workspace: string, member: MemberId | null, { xp, coins = 0, questsDone = [], bonus = [] }: Gains): Promise<Required<Gains>> {
+  const coinsEarned = coins > 0 || questsDone.some((done) => (done.coins ?? 0) > 0);
+  const coinsVisible = coinsEarned && (await areCoinsVisibleTo(ctx, member));
   return {
     xp: (await isXpShownTo(ctx, workspace, member)) ? xp : 0,
-    coins: coins > 0 && (await areCoinsVisibleTo(ctx, member)) ? coins : 0,
-    questsDone: questsDone.length > 0 && (await areQuestsShownTo(ctx, workspace, member)) ? questsDone : [],
+    coins: coinsVisible ? coins : 0,
+    questsDone: questsDone.length > 0 && (await areQuestsShownTo(ctx, workspace, member)) ? questsDone.map((done) => (coinsVisible ? done : withoutCoins(done))) : [],
     bonus: bonus.length > 0 && (await skillTreeAppliesIn(ctx, workspace)) ? bonus : [],
   };
 }
@@ -168,8 +170,16 @@ function bonusParts(bonus: BonusLine[]): Line[] {
   return bonus.map(({ source, xp }) => [{ text: `${perkOf(source).name} bonus (+${xp} XP)` }]);
 }
 
+function withoutCoins({ coins: _, ...done }: QuestDone): QuestDone {
+  return done;
+}
+
 function questsDoneParts(questsDone: QuestDone[]): Line[] {
-  return questsDone.map((done) => [{ text: `Quest done: ${withoutFullStop(goalOf(done))} (+${done.xp} XP)` }]);
+  return questsDone.map((done) => [{ text: `Quest done: ${withoutFullStop(goalOf(done))} (${questRewardOf(done)})` }]);
+}
+
+function questRewardOf({ xp, coins = 0 }: QuestDone) {
+  return coins > 0 ? `+${xp} XP, ${coinsPartOf(coins)}` : `+${xp} XP`;
 }
 
 function goalOf(done: QuestDone) {

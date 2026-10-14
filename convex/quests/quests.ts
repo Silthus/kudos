@@ -3,7 +3,7 @@ import { internalMutation, internalQuery, type MutationCtx } from "../_generated
 import { kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
 import { releaseSuccessReply, type QuestDone } from "../feedback/replies";
 import { questsApplyTo, questsShownTo } from "./flag";
-import { advanceJourney, finishFirstQuestOnWeeklyFinished, journey, journeyOf, type JourneyStepFacts } from "./journey";
+import { advanceJourney, finishFirstQuestOnWeeklyFinished, journey, journeyOf, type JourneyStepFacts, type Reward } from "./journey";
 import { advanceWeeklyQuests, weeklyQuestsOf, type WeeklyQuests } from "./weekly";
 
 export type QuestFacts = { journey: JourneyStepFacts[]; week: WeeklyQuests | null };
@@ -30,7 +30,11 @@ async function questsFinishedBy(ctx: MutationCtx, event: KudosGivenEvent): Promi
   const firstQuest = weekly.length === 0 ? null : await finishFirstQuestOnWeeklyFinished(ctx, event.workspace, event.giver, event.at);
   if (firstQuest !== null) steps.push(firstQuest);
   return [
-    ...weekly.map(({ goal, reward }): QuestDone => ({ kind: "weekly", goal, xp: reward.xp })),
-    ...steps.map(({ step, reward }): QuestDone => ({ kind: "journey", step, xp: reward.xp })),
+    ...weekly.map(({ goal, reward }): QuestDone => ({ kind: "weekly", goal, ...gainsOf(reward) })),
+    ...steps.map(({ step, reward }): QuestDone => ({ kind: "journey", step, ...gainsOf(reward) })),
   ];
+}
+
+function gainsOf({ xp, coins }: Reward) {
+  return { xp, ...(coins > 0 && { coins }) };
 }
