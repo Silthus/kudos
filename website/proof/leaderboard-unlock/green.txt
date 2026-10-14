@@ -1,0 +1,283 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/leaderboard-unlock
+
+ ✓ |convex| convex/website/leaderboard.test.ts > website reads pass one guard > getLeaderboard reads closed while the website flag is off, even with everyone-board on 55ms
+ ✓ |convex| convex/website/leaderboard.test.ts > website reads pass one guard > getLeaderboard reads signed out without a session 6ms
+ ✓ |convex| convex/website/leaderboard.test.ts > website reads pass one guard > getLeaderboard reads not-a-member for a former member with a live session 5ms
+ ✓ |convex| convex/website/leaderboard.test.ts > website reads pass one guard > getLeaderboard reaches the board only for a verified member 19ms
+ ✓ |convex| convex/website/leaderboard.test.ts > website reads pass one guard > an argument that names another member is rejected by the validator 4ms
+ ✓ |convex| convex/website/leaderboard.test.ts > website reads pass one guard > a period other than week, month or all is rejected by the validator 3ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS2 WS3 WS4: the website flag closes every read > a member with a live session reads closed while the flag is off 108ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS2 WS3 WS4: the website flag closes every read > a visitor with no session reads closed, not signed out, while the flag is off 4ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS2 WS3 WS4: the website flag closes every read > a flag nobody created in PostHog answers off 4ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS2 WS3 WS4: the website flag closes every read > the flag on for the workspace still reads closed until prepareWebsiteFlag made its workspace key 3ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS2 WS3 WS4: the website flag closes every read > an unset SLACK_WORKSPACE_ID reads closed, whatever the flag says 4ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS2 WS3 WS4: the website flag closes every read > switching the flag off closes a session that was reading the member's profile 25ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS9 WS11 WS14: every read checks the live session, the workspace and the directory, in that order > a visitor with no session is signed out, never an empty profile 3ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS9 WS11 WS14: every read checks the live session, the workspace and the directory, in that order > a still-valid token whose session was signed out reads signed out 4ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS9 WS11 WS14: every read checks the live session, the workspace and the directory, in that order > an expired session reads signed out 4ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS9 WS11 WS14: every read checks the live session, the workspace and the directory, in that order > a session left over after SLACK_WORKSPACE_ID changes reads signed out, even for a member of its old workspace 5ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS9 WS11 WS14: every read checks the live session, the workspace and the directory, in that order > a signed-in person the directory doesn't know yet is being verified 4ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS9 WS11 WS14: every read checks the live session, the workspace and the directory, in that order > a signed-in person whose verification failed reads unverified, never a member 4ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS30: the website's board is invisible while everyone-board is off > while PostHog has no everyone-board flag, getLeaderboard answers not-found and getMyProfile's leaderboard is off 32ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS30: the website's board is invisible while everyone-board is off > in production, while the flag is on in …, getLeaderboard answers not-found and getMyProfile's leaderboard is off 11ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS30: the website's board is invisible while everyone-board is off > while everyone-board is on, getLeaderboard answers the board and getMyProfile's leaderboard is open 12ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS30: the website's board is invisible while everyone-board is off > switching everyone-board off under an open session turns the board to not-found 8ms
+ ✓ |convex| convex/website/leaderboard.test.ts > a website board row carries only what a board shows > a row holds exactly position, rank, tied, name, face, kudos and you 7ms
+ ✓ |convex| convex/website/leaderboard.test.ts > a website board row carries only what a board shows > the answer carries no Slack user ID, member ID or kudos received 5ms
+ ✓ |convex| convex/website/leaderboard.test.ts > a website board row carries only what a board shows > G13: a member who only received is not on the board 5ms
+ ✓ |convex| convex/website/leaderboard.test.ts > a website board row carries only what a board shows > G22: a member who left the boards is on nobody's board, their own included 10ms
+ ✓ |convex| convex/website/leaderboard.test.ts > a website board row carries only what a board shows > G15: a giver who is no longer a member is not on the board 8ms
+ ✓ |convex| convex/website/leaderboard.test.ts > a website board row carries only what a board shows > WS34: a member without a display name shows as a teammate on a question-mark tile 5ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > G23: week ranks the kudos given in it 6ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > G23: month ranks the kudos given in it 6ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > G23: all ranks the kudos given in it 7ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > G16: equal totals share a rank and are marked tied 7ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > G17: a viewer at position 2 sees the first ten positions, and the whole board is in rows 17ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > G17: a viewer at position 9 sees the top three, then three around them, skipping positions 4 and 5 13ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > G17: a viewer who gave nothing this period is not ranked and sees the top three 9ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > G22 G18: a viewer who left is off the board and keeps their gain without places 7ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > G18: the improvement line passes through, with places climbed 9ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > the rows in the window equal App Home's board, with a gap where positions skip (viewer at 2 of 15) 15ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > the rows in the window equal App Home's board, with a gap where positions skip (viewer at 9 of 15) 13ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > the rows in the window equal App Home's board, with a gap where positions skip (viewer at 14 of 15) 15ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > the rows in the window equal App Home's board, with a gap where positions skip (viewer at 0 of 6) 8ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS31 WS32 WS35: the board is the leaderboard module's, as the viewer sees it > WS35: the viewer's row carries their own face, and the chat link opens the workspace in Slack 5ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS9 WS11 WS14: every read checks the live session, the workspace and the directory, in that order > a member user_change deactivates reads not-a-member on their next read, whatever their session 186ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS9 WS11 WS14: every read checks the live session, the workspace and the directory, in that order > a member reads their own name and Slack picture from the sign-in 8ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS9 WS11 WS14: every read checks the live session, the workspace and the directory, in that order > a member's Slack picture carries their initials for when it fails to load 7ms
+ ✓ |convex| convex/website/profile.test.ts > website reads pass one guard > WS9 WS11 WS14: every read checks the live session, the workspace and the directory, in that order > a member without a Slack picture reads their initials 7ms
+ ✓ |convex| convex/website/profile.test.ts > WS13 WS15 WS18: a member's home answer projects their own homeFacts > a member reads their own kudos left, refill, this week and in total, with where to thank someone in Slack 19ms
+ ✓ |convex| convex/website/profile.test.ts > WS13 WS15 WS18: a member's home answer projects their own homeFacts > the answer is the member's homeFacts, never another member's 12ms
+ ✓ |convex| convex/website/profile.test.ts > WS13 WS15 WS18: a member's home answer projects their own homeFacts > the answer updates after a kudos lands 15ms
+ ✓ |convex| convex/website/profile.test.ts > WS13 WS15 WS18: a member's home answer projects their own homeFacts > after the member's midnight and a clock tick, the answer is the new day's, without another kudos 15ms
+ ✓ |convex| convex/website/profile.test.ts > WS13 WS15 WS18: a member's home answer projects their own homeFacts > after the week turns and a clock tick, the answer starts the new week, keeping the totals 9ms
+ ✓ |convex| convex/website/profile.test.ts > level and XP are invisible while xp-levels is off > WS47: while xp-levels is off, a member with XP reads no progression 6ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS36: an open board turns over with the period on a clock tick > after the viewer's local Monday midnight and a clock tick, the week's board is the new week's 9ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS36: an open board turns over with the period on a clock tick > after the first of the month and a clock tick, the month's board is the new month's 8ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS52: the website's leaderboard waits for its unlock > with xp-levels and unlocks off, before …, a member at level 1 reads WS30's open board 8ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS52: the website's leaderboard waits for its unlock > with xp-levels on and unlocks off, befo…, a member at level 1 reads WS30's open board 9ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS52: the website's leaderboard waits for its unlock > with unlocks on and xp-levels off, befo…, a member at level 1 reads WS30's open board 8ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS52: the website's leaderboard waits for its unlock > with xp-levels and unlocks on, before t…, a member at level 1 reads WS30's open board 9ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS52: the website's leaderboard waits for its unlock > with xp-levels and unlocks switched off…, a member at level 1 reads WS30's open board 12ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS52: the website's leaderboard waits for its unlock > with xp-levels on and unlocks switched …, a member at level 1 reads WS30's open board 12ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS52: the website's leaderboard waits for its unlock > with unlocks on and xp-levels switched …, a member at level 1 reads WS30's open board 10ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS52: the website's leaderboard waits for its unlock > with xp-levels and unlocks on after the launch, the same member reads locked 12ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS52: the website's leaderboard waits for its unlock > before the launch, website reads never run it: no launch is recorded 8ms
+ ✓ |convex| convex/website/profile.test.ts > level and XP are invisible while xp-levels is off > WS47 WS51: while xp-levels is on, a member at level 1 with no XP yet reads their level and the XP to the next one 8ms
+ ✓ |convex| convex/website/profile.test.ts > level and XP are invisible while xp-levels is off > WS47 WS51: while xp-levels is on, a member exactly on a level's threshold reads their level and the XP to the next one 8ms
+ ✓ |convex| convex/website/profile.test.ts > level and XP are invisible while xp-levels is off > WS47 WS51: while xp-levels is on, a member past level 5, still without skill points reads their level and the XP to the next one 7ms
+ ✓ |convex| convex/website/profile.test.ts > level and XP are invisible while xp-levels is off > WS47: the progression is progression's own read of the member, never another member's 7ms
+ ✓ |convex| convex/website/profile.test.ts > level and XP are invisible while xp-levels is off > WS47: switching xp-levels off hides the progression of a session that was reading it 11ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS52: the website's leaderboard waits for its unlock > while unlocks apply > a member at level 1 reads locked at the leaderboard's level, with no board facts 13ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS52: the website's leaderboard waits for its unlock > while unlocks apply > a member at level 3 who hasn't opened it reads ready, with no board facts 18ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS52: the website's leaderboard waits for its unlock > while unlocks apply > a member who opened it reads the board 18ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS52: the website's leaderboard waits for its unlock > while unlocks apply > with everyone-board off, the unshipped leaderboard reads not-found and off 14ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS52: the website's leaderboard waits for its unlock > while unlocks apply > #103: a member's row on another member's board never depends on their own unlocks 13ms
+ ✓ |convex| convex/website/leaderboard.test.ts > WS52: the website's leaderboard waits for its unlock > P77: a member who was there at the launch keeps the leaderboard open 10ms
+ ✓ |website| src/pageFocus.test.tsx > WS24: focus lands on the page title after a state change, never on first load > leaves focus alone on the first page shown 139ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > shows Home and Leaderboard in the screen nav while the board is open, with the current one marked 196ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > loading in light 171ms
+ ✓ |website| src/pageFocus.test.tsx > WS24: focus lands on the page title after a state change, never on first load > leaves focus alone when the first answer arrives after loading 148ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > marks Home as current at the root 148ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > shows no Leaderboard item while the board is off 116ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > renders the not-found page when the read answers not-found 39ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > still renders the not-found page on any other path 29ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > connecting in light 233ms
+ ✓ |website| src/pageFocus.test.tsx > WS24: focus lands on the page title after a state change, never on first load > moves focus to the home's title when the membership check turns into a member 174ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > renders the page of a denial the read answers, as the home does 42ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > reads /leaderboard as the week board 33ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > reads /leaderboard?period=month as the month board 31ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > reads /leaderboard?period=all as the all board 29ms
+ ✓ |website| src/pageFocus.test.tsx > WS24: focus lands on the page title after a state change, never on first load > moves focus to the closed page's title when the site closes under an open page 141ms
+ ✓ |website| src/pageFocus.test.tsx > WS24: focus lands on the page title after a state change, never on first load > moves focus to the sign-in page's title after signing out 119ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > closed in light 194ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > reads any other period as this week and rewrites the address without a reload 31ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > leaves the home's query string alone, so the sign-in code reaches Convex Auth 16ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > signed out in light 190ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > sign-in didn't finish in light 172ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > follows the nav to the leaderboard and back without a reload, moving focus to the page title 327ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS38: the home's leaderboard card > is a plain card linking to the leaderboard while the board is open, with no rank or count 116ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > checking membership in light 176ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS38: the home's leaderboard card > stays locked, with the other cards, while the board is off 144ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS52: the leaderboard page waits for its unlock > says the locked leaderboard's one sentence in place of the board, with no Leaderboard nav item 38ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS52: the leaderboard page waits for its unlock > says the ready leaderboard's one sentence in place of the board, with no Leaderboard nav item 51ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > membership not checked in light 180ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS52: the leaderboard page waits for its unlock > sends a locked member home, and a ready member to Slack, where App Home opens it 56ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS52: the leaderboard page waits for its unlock > moves focus to the board's title when the ready leaderboard opens under the open page 83ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS52: the leaderboard page waits for its unlock > keeps the home's card locked while the leaderboard is locked, with that sentence 136ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS52: the leaderboard page waits for its unlock > keeps the home's card locked while the leaderboard is ready, with that sentence 146ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > labels the page and offers the three periods, with this week selected by a border, a check mark and aria-pressed 60ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > switches the period from the keyboard and rewrites the address without a reload 163ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > keeps the board and focus on the switch while the next period's board loads 123ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > keeps the selected period when it is chosen again 57ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not a member in light 174ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > shows one Everyone card as a heading with the viewer's standing when ranked 43ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > shows one Everyone card as a heading with the viewer's standing when tied 34ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > shows one Everyone card as a heading with the viewer's standing when not ranked 40ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > shows one Everyone card as a heading with the viewer's standing when left 38ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > for one leader 37ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > for the viewer 32ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > for a shared lead 32ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > for a viewer tied below the lead 31ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > for a viewer who isn't ranked 32ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > for a viewer who left 36ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > says all time for the all-time board 33ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS41: the podium stands the top three on neutral pedestals > orders second, first and third from left to right, each with face, name, kudos and rank read out 41ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS41: the podium stands the top three on neutral pedestals > prints the podium's kudos and ranks in Inter with tabular figures, not display type 40ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS41: the podium stands the top three on neutral pedestals > gives the crown and the tallest pedestal to every leader, so tied leaders stand equal 38ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS41: the podium stands the top three on neutral pedestals > rings only the viewer's spot and labels it You 31ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS41: the podium stands the top three on neutral pedestals > leaves out the empty pedestals when fewer than three are ranked 26ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS41: the podium stands the top three on neutral pedestals > uses no medal or rarity colour 32ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > lists the window after the podium in order, with one … where positions are skipped 33ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > prints ranks in Inter with tabular figures, not display type 28ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > marks the viewer's line with the primary ring, a left primary edge and a You label 38ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > shows no list when the podium holds the whole window 24ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > tells a viewer who isn't ranked how to join, with one action to Slack, at /leaderboard 30ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > tells a viewer who isn't ranked how to join, with one action to Slack, at /leaderboard?period=month 34ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in light 805ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > tells a viewer who isn't ranked how to join, with one action to Slack, at /leaderboard?period=all 29ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > tells a viewer who left the boards where to change that, in place of their row 24ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > says which positions the list shows, and opens the whole board centred on the viewer by keyboard 127ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > pins a copy of the viewer's row with Jump to me while it is scrolled away, which brings it back and focuses it 165ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > follows the viewer's row when kudos move them on the open whole board 90ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > pins the copy to the top edge when the viewer's row is scrolled above, and jumps instantly under reduced motion 104ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > goes back to the window from Back to my spot, keeping focus on the footer's button 101ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in a quiet week in light 752ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > offers Show fewer, and never Jump to me, to a viewer who isn't on the board 107ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > offers no whole board when the window already shows every row 29ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS44: an empty board > shows one hedgehog, Max's sentence and one action to thank someone in Slack, with no podium or list 65ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS45: only you see these > shows G18's line for a gain with places 42ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS45: only you see these > shows G18's line for a gain without places 35ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS45: only you see these > shows G18's line for a best 32ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS45: only you see these > is not shown without a line 26ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS46: how it counts > says what counts and shows the setting as a read-only status for a viewer on the boards 40ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS46: how it counts > says what counts and shows the setting as a read-only status for a viewer off the boards 30ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home at level 1 in light 767ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home past level 5 in light 749ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not found in light 181ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard open in light 689ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard with the viewer mid-board in light 169ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard led by the viewer in light 115ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard with a shared lead in light 112ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard for a viewer who isn't ranked in light 122ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard for a viewer who left in light 118ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard locked in light 730ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard ready in light 727ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard locked until level 3 in light 175ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard ready to open in Slack in light 180ms
+stderr | src/accessibility.test.tsx > WS24: every page passes axe in light and dark > error in light
+Error: This page failed to render.
+    at Page (/home/coder/dev/kudos-wt/leaderboard-unlock/website/src/App.tsx:76:38)
+    at Object.react_stack_bottom_frame (/home/coder/dev/kudos-wt/leaderboard-unlock/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:28571:20)
+    at renderWithHooks (/home/coder/dev/kudos-wt/leaderboard-unlock/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:8030:22)
+    at updateFunctionComponent (/home/coder/dev/kudos-wt/leaderboard-unlock/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:10569:19)
+    at beginWork (/home/coder/dev/kudos-wt/leaderboard-unlock/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:12205:18)
+    at runWithFiberInDEV (/home/coder/dev/kudos-wt/leaderboard-unlock/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:1048:13)
+    at performUnitOfWork (/home/coder/dev/kudos-wt/leaderboard-unlock/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:19176:22)
+    at workLoopSync (/home/coder/dev/kudos-wt/leaderboard-unlock/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:19004:41)
+    at renderRootSync (/home/coder/dev/kudos-wt/leaderboard-unlock/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:18985:11)
+    at performWorkOnRoot (/home/coder/dev/kudos-wt/leaderboard-unlock/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:18094:35) {
+  [stack]: [Getter/Setter],
+  [message]: 'This page failed to render.'
+}
+
+The above error occurred in the <Page> component.
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+
+
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > empty leaderboard in light 234ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > error in light 193ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the whole board with the viewer's row pinned and Jump to me meets WCAG 2.2 AA in light 278ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the open avatar menu, portaled outside the landmarks, meets WCAG 2.2 AA in light 1460ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > loading in dark 35ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > connecting in dark 173ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > closed in dark 173ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > signed out in dark 176ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > sign-in didn't finish in dark 172ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > checking membership in dark 173ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > membership not checked in dark 173ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not a member in dark 174ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in dark 758ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in a quiet week in dark 760ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home at level 1 in dark 762ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home past level 5 in dark 731ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not found in dark 179ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard open in dark 677ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard with the viewer mid-board in dark 149ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard led by the viewer in dark 112ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard with a shared lead in dark 105ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard for a viewer who isn't ranked in dark 110ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard for a viewer who left in dark 116ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard locked in dark 731ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard ready in dark 793ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard locked until level 3 in dark 181ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard ready to open in Slack in dark 183ms
+stderr | src/accessibility.test.tsx > WS24: every page passes axe in light and dark > error in dark
+Error: This page failed to render.
+    at Page (/home/coder/dev/kudos-wt/leaderboard-unlock/website/src/App.tsx:76:38)
+    at Object.react_stack_bottom_frame (/home/coder/dev/kudos-wt/leaderboard-unlock/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:28571:20)
+    at renderWithHooks (/home/coder/dev/kudos-wt/leaderboard-unlock/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:8030:22)
+    at updateFunctionComponent (/home/coder/dev/kudos-wt/leaderboard-unlock/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:10569:19)
+    at beginWork (/home/coder/dev/kudos-wt/leaderboard-unlock/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:12205:18)
+    at runWithFiberInDEV (/home/coder/dev/kudos-wt/leaderboard-unlock/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:1048:13)
+    at performUnitOfWork (/home/coder/dev/kudos-wt/leaderboard-unlock/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:19176:22)
+    at workLoopSync (/home/coder/dev/kudos-wt/leaderboard-unlock/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:19004:41)
+    at renderRootSync (/home/coder/dev/kudos-wt/leaderboard-unlock/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:18985:11)
+    at performWorkOnRoot (/home/coder/dev/kudos-wt/leaderboard-unlock/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:18094:35) {
+  [stack]: [Getter/Setter],
+  [message]: 'This page failed to render.'
+}
+
+The above error occurred in the <Page> component.
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+
+
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > empty leaderboard in dark 239ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > error in dark 187ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the whole board with the viewer's row pinned and Jump to me meets WCAG 2.2 AA in dark 238ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the open avatar menu, portaled outside the landmarks, meets WCAG 2.2 AA in dark 1354ms
+
+ Test Files  5 passed (5)
+      Tests  196 passed (196)
+   Start at  00:18:55
+   Duration  21.82s (tests 78%, import 12%, environment 5%, transform 4%, setup 1%)
+

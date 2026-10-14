@@ -28,7 +28,7 @@ export function App({ visitor, actions, useLeaderboard }: AppProps) {
   const member = shown.kind === "member" ? shown : undefined;
   const onTheBoard = member !== undefined && route.page === "leaderboard";
   const board = useBoardWhileTheNextLoads(useLeaderboard(onTheBoard ? route.period : undefined), onTheBoard);
-  useTitleFocusAfterChange(shown.kind);
+  useTitleFocusAfterChange(onTheBoard ? boardPageOf(board) : shown.kind);
   const expectArrival = useTitleFocusOnArrival();
   const arriveAt = useCallback(
     (href: string) => {
@@ -50,6 +50,10 @@ export function App({ visitor, actions, useLeaderboard }: AppProps) {
       </Frame>
     </NavigateProvider>
   );
+}
+
+function boardPageOf(board: MyLeaderboard | undefined) {
+  return board === undefined ? "loading" : `leaderboard ${board.kind}`;
 }
 
 function useBoardWhileTheNextLoads(board: MyLeaderboard | undefined, onTheBoard: boolean) {

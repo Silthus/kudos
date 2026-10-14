@@ -92,6 +92,7 @@ import type * as website_faces from "../website/faces.js";
 import type * as website_flag from "../website/flag.js";
 import type * as website_hosting from "../website/hosting.js";
 import type * as website_leaderboard from "../website/leaderboard.js";
+import type * as website_leaderboardState from "../website/leaderboardState.js";
 import type * as website_link from "../website/link.js";
 import type * as website_memberQuery from "../website/memberQuery.js";
 import type * as website_profile from "../website/profile.js";
@@ -191,6 +192,7 @@ declare const fullApi: ApiFromModules<{
   "website/flag": typeof website_flag;
   "website/hosting": typeof website_hosting;
   "website/leaderboard": typeof website_leaderboard;
+  "website/leaderboardState": typeof website_leaderboardState;
   "website/link": typeof website_link;
   "website/memberQuery": typeof website_memberQuery;
   "website/profile": typeof website_profile;

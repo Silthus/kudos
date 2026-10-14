@@ -1,6 +1,6 @@
 import { screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fixedLeaderboard, leaderboardFixtures, type Leaderboard, type LeaderboardRead } from "./leaderboardFixtures";
+import { fixedLeaderboard, leaderboardFixtures, type Leaderboard, type LeaderboardRead, type MyLeaderboard } from "./leaderboardFixtures";
 import { shellFixtures, type Period } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
@@ -150,6 +150,19 @@ describe("WS52: the leaderboard page waits for its unlock", () => {
     const openSlack = within(main()).getByRole("link", { name: "Open Slack (opens in a new tab)" });
     expect(openSlack).toHaveAttribute("href", shellFixtures.memberWithTheBoardReady.chatUrl);
     expect(openSlack).toHaveAttribute("target", "_blank");
+  });
+
+  it("moves focus to the board's title when the ready leaderboard opens under the open page", () => {
+    visit("/leaderboard");
+    let answer: MyLeaderboard = { kind: "ready" };
+    const { showVisitor } = renderApp(shellFixtures.memberWithTheBoardReady, (period) => (period && answer));
+    within(main()).getByRole("link", { name: "Open Slack (opens in a new tab)" }).focus();
+
+    answer = leaderboardFixtures.midBoard;
+    showVisitor(withTheBoard);
+
+    expect(pageTitle()).toHaveTextContent("Ada Lindqvist leads the week.");
+    expect(pageTitle()).toHaveFocus();
   });
 
   it.each([

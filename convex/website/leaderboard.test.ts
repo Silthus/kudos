@@ -377,24 +377,20 @@ describe("WS52: the website's leaderboard waits for its unlock", () => {
   type UnlocksDontApply = { condition: string; turnOn: () => Promise<unknown> };
 
   const unlocksDontApply: UnlocksDontApply[] = [
-    { condition: "with xp-levels and unlocks off", turnOn: () => flagsOn("website", "everyone-board") },
-    {
-      condition: "with unlocks on and launched while xp-levels is off",
-      turnOn: async () => {
-        await flagsOn("website", "everyone-board", "unlocks");
-        await unlocksLaunched();
-      },
-    },
-    {
-      condition: "with xp-levels on and unlocks switched off after its launch",
-      turnOn: async () => {
-        await flagsOn(...allFlags);
-        await unlocksLaunched();
-        await flagsOn("website", "everyone-board", "xp-levels");
-      },
-    },
-    { condition: "with xp-levels and unlocks on before the launch", turnOn: () => flagsOn(...allFlags) },
+    { condition: "with xp-levels and unlocks off, before any launch", turnOn: () => flagsOn("website", "everyone-board") },
+    { condition: "with xp-levels on and unlocks off, before any launch", turnOn: () => flagsOn("website", "everyone-board", "xp-levels") },
+    { condition: "with unlocks on and xp-levels off, before the launch", turnOn: () => flagsOn("website", "everyone-board", "unlocks") },
+    { condition: "with xp-levels and unlocks on, before the launch", turnOn: () => flagsOn(...allFlags) },
+    { condition: "with xp-levels and unlocks switched off after the launch", turnOn: () => launchedThen("website", "everyone-board") },
+    { condition: "with xp-levels on and unlocks switched off after the launch", turnOn: () => launchedThen("website", "everyone-board", "xp-levels") },
+    { condition: "with unlocks on and xp-levels switched off after the launch", turnOn: () => launchedThen("website", "everyone-board", "unlocks") },
   ];
+
+  async function launchedThen(...keys: string[]) {
+    await flagsOn(...allFlags);
+    await unlocksLaunched();
+    await flagsOn(...keys);
+  }
 
   test.each(unlocksDontApply)("$condition, a member at level 1 reads WS30's open board", async ({ turnOn }) => {
     await turnOn();
@@ -403,6 +399,15 @@ describe("WS52: the website's leaderboard waits for its unlock", () => {
 
     expect(await leaderboard("week", asSignedIn)).toMatchObject({ kind: "board" });
     expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: "open" });
+  });
+
+  test("with xp-levels and unlocks on after the launch, the same member reads locked", async () => {
+    await launchedThen(...allFlags);
+    await aMember("U_JUNO", "Juno");
+    const { asSignedIn } = await aSession(t, juno);
+
+    expect(await leaderboard("week", asSignedIn)).toEqual({ kind: "locked", level: 3 });
+    expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: "locked" });
   });
 
   test("before the launch, website reads never run it: no launch is recorded", async () => {
