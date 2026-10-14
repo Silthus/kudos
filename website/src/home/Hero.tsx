@@ -68,9 +68,11 @@ function XpBar({ progression }: { progression: Progression }) {
         <div className="h-full rounded-full bg-foreground" style={{ width: `${levelShare(progression)}%` }} />
       </div>
       <div className="mt-1.5 flex justify-between gap-3 text-xs text-muted-foreground tabular-nums">
-        <span id={xpId}>{xp.toLocaleString()} XP</span>
+        <span id={xpId}>
+          <span className="font-medium text-foreground">{xp.toLocaleString()}</span> XP
+        </span>
         <span id={toNextId}>
-          {xpToNextLevel.toLocaleString()} XP to level {level + 1}
+          <span className="font-medium text-foreground">{xpToNextLevel.toLocaleString()} XP</span> to level {level + 1}
         </span>
       </div>
     </div>

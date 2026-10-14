@@ -207,7 +207,7 @@ describe("WS47 WS50 WS51 WS98 WS99: the level ring and the XP bar, only while pr
     expect(bar).toHaveAttribute("aria-valuenow", now);
     expect(bar).toHaveClass("w-full");
     expect(bar.firstElementChild).toHaveStyle({ width: filled });
-    expect(within(hero()).getByText(xp).parentElement).toHaveClass("tabular-nums");
+    expect(within(hero()).getByText(xp.replace(" XP", "")).closest(".tabular-nums")).not.toBeNull();
   });
 
   it("rings the avatar in the HUD with the hero's ring at its size, named and described as the hero ring, with the level number beside the face", () => {
