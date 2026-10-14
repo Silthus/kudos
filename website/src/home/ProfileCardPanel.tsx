@@ -7,7 +7,7 @@ import { Panel } from "./Panel";
 export function ProfileCardPanel({ member, card }: { member: MemberProfile; card: ProfileCardShown | undefined }) {
   const medals = card?.kind === "card" ? card.medals : [];
   return (
-    <Panel id="profile-card" label="What teammates see" aside="Public">
+    <Panel id="profile-card" label="What teammates see" aside="Public" busy={card === undefined}>
       <div className="flex flex-col gap-3 rounded-xl border bg-linear-to-br from-card to-muted p-3 shadow-md">
         <div className="flex items-center gap-3">
           <MemberFace face={member.face} className="size-14" />
@@ -19,7 +19,7 @@ export function ProfileCardPanel({ member, card }: { member: MemberProfile; card
         {medals.length > 0 && <BestMedals medals={medals} />}
       </div>
       <p className="text-xs text-muted-foreground">Everyone can see this card. Your XP and the kudos you receive stay with you.</p>
-      {card?.kind === "card" && medalsWaitForTheBook(member) && <p className="text-xs text-muted-foreground">Teammates also see any medals you've earned. They show here once you open the Book.</p>}
+      <MedalsNote member={member} card={card} />
     </Panel>
   );
 }
@@ -45,6 +45,12 @@ function BestMedals({ medals }: { medals: CardMedal[] }) {
       ))}
     </ul>
   );
+}
+
+function MedalsNote({ member, card }: { member: MemberProfile; card: ProfileCardShown | undefined }) {
+  if (card?.kind === "broken") return <p className="text-xs text-muted-foreground">Your medals didn't load.</p>;
+  if (card?.kind === "card" && medalsWaitForTheBook(member)) return <p className="text-xs text-muted-foreground">Medals join this card only after you open the Book.</p>;
+  return null;
 }
 
 function medalsWaitForTheBook({ features }: MemberProfile) {

@@ -156,7 +156,7 @@ const railStates: { name: string; board: BoardAnswer | undefined; quests: Quests
   { name: "ready by the reads before getMyProfile catches up", board: { kind: "ready" }, quests: { kind: "ready" } },
   { name: "at level 7", board: leaderboardFixtures.viewerLeads, quests: questsFixtures.week, visitor: { ...shellFixtures.memberWithEveryPanelOpen, progression: shellFixtures.memberAtLevel7.progression } },
   { name: "with the best four medals on the public card", board: leaderboardFixtures.midBoard, quests: questsFixtures.week, card: profileCardFixtures.bestFour },
-  { name: "before the Book opens, saying teammates see any medals", board: undefined, quests: undefined, visitor: shellFixtures.memberWaitingForTheBook, card: profileCardFixtures.noMedals },
+  { name: "before the Book opens, saying medals join the card after it opens", board: undefined, quests: undefined, visitor: shellFixtures.memberWaitingForTheBook, card: profileCardFixtures.noMedals },
 ];
 
 describe("WS111 WS112: every state of the home's rail passes axe in light and dark", () => {

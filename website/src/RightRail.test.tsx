@@ -5,8 +5,8 @@ import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
 import type { QuestsRead, QuestsShown } from "./questsRead";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
 import { fixedProfileCard, profileCardFixtures } from "./profileCardFixtures";
-import type { ProfileCardRead } from "./profileCardRead";
-import { shellFixtures, type Leaderboard, type MemberProfile, type MyProfileCard } from "./shell";
+import type { ProfileCardRead, ProfileCardShown } from "./profileCardRead";
+import { shellFixtures, type Leaderboard, type MemberProfile } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
 
@@ -70,8 +70,8 @@ describe("WS107: What teammates see", () => {
   });
 });
 
-function cardShowing(answer: MyProfileCard, member: MemberProfile = everyPanelOpen) {
-  renderApp(member, undefined, undefined, undefined, undefined, undefined, fixedProfileCard(answer));
+function cardShowing(answer: ProfileCardShown | undefined, member: MemberProfile = everyPanelOpen) {
+  renderApp(member, undefined, undefined, undefined, undefined, undefined, (asking) => (asking ? answer : undefined));
   return panel("What teammates see");
 }
 
@@ -81,7 +81,7 @@ function medalsOn(card: HTMLElement) {
     .map((medal) => ({ words: within(medal).getAllByText(/.+/).map((word) => word.textContent), metal: medal.querySelector("[data-medal='earned'] circle")?.getAttribute("fill") }));
 }
 
-const beforeTheBookOpens = "Teammates also see any medals you've earned. They show here once you open the Book.";
+const beforeTheBookOpens = "Medals join this card only after you open the Book.";
 
 describe("WS343 V16: the public card's best medals, as teammates see them in Slack", () => {
   it("lists the card's best four medals best first, each in its tier's metal with the tier's word beside its name", () => {
@@ -106,20 +106,30 @@ describe("WS343 V16: the public card's best medals, as teammates see them in Sla
     expect(card).not.toHaveTextContent(/medal/i);
   });
 
-  it.each([
-    ["the profile card hasn't shipped to the member", profileCardFixtures.notFound],
-    ["the card read failed", { kind: "broken" } as const],
-  ])("keeps the card as it was, with no medals, while %s", (_, answer) => {
-    const card = cardShowing(answer as MyProfileCard, shellFixtures.memberWaitingForTheBook);
+  it("keeps the card as it was, with no medals, while the profile card hasn't shipped to the member", () => {
+    const card = cardShowing(profileCardFixtures.notFound, shellFixtures.memberWaitingForTheBook);
     expect(within(card).queryByRole("list")).not.toBeInTheDocument();
     expect(card).not.toHaveTextContent(/medal/i);
     expect(card).toHaveTextContent("Everyone can see this card. Your XP and the kudos you receive stay with you.");
   });
 
+  it("marks the card busy while the card read loads", () => {
+    const card = cardShowing(undefined);
+    expect(card).toHaveAttribute("aria-busy", "true");
+    expect(card).not.toHaveTextContent(/medal/i);
+  });
+
+  it("says the medals didn't load when the card read fails, instead of showing a card without them", () => {
+    const card = cardShowing({ kind: "broken" });
+    expect(card).not.toHaveAttribute("aria-busy");
+    expect(within(card).queryByRole("list")).not.toBeInTheDocument();
+    expect(card).toHaveTextContent("Your medals didn't load.");
+  });
+
   it.each([
     ["locked", shellFixtures.memberWaitingForTheBook],
     ["ready", shellFixtures.memberWithTheBookReady],
-  ])("says teammates see any medals earned, shown here once the Book opens, while the Book is %s", (_, member) => {
+  ])("says medals join the card only after the Book opens, while the Book is %s", (_, member) => {
     const card = cardShowing(profileCardFixtures.noMedals, member);
     expect(within(card).queryByRole("list")).not.toBeInTheDocument();
     expect(card).toHaveTextContent(beforeTheBookOpens);
