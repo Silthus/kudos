@@ -81,6 +81,17 @@ describe("WS97 WS102: one panel per shipped feature, in its slot", () => {
     expect(headings).not.toContain("Still locked");
   });
 
+  it("walks the keyboard from the hero's action through the main column's panels, then the rail's, in reading order", async () => {
+    const { user } = renderApp({ ...shellFixtures.memberWithEveryPanelOpen, chatUrl: "https://app.slack.com/client/T1" });
+    within(hero()).getByRole("link", { name: /Thank someone in Slack/ }).focus();
+    const path = [];
+    for (let step = 0; step < 4; step++) {
+      await user.tab();
+      path.push(document.activeElement?.textContent);
+    }
+    expect(path).toEqual(["Open the Book", "Open the Skill tree", "See all quests", "Open the leaderboard"]);
+  });
+
   it("leaves the nav unchanged: Home and each open feature with a web page", () => {
     renderApp(shellFixtures.memberAcrossTheSheet);
     const nav = within(screen.getByRole("navigation", { name: "Screens" })).getAllByRole("link");
@@ -106,12 +117,12 @@ describe("WS103: a locked panel", () => {
     expect(locked).not.toHaveClass("hud-panel");
   });
 
-  it("shows the feature's hedgehog in silhouette under a lock badge, hidden from assistive technology", () => {
+  it("shows the feature's hedgehog in silhouette under a padlock, hidden from assistive technology", () => {
     renderApp(shellFixtures.memberWithEveryPanelLocked);
     const art = panel("Book").querySelector("[data-locked-hog]")!;
     expect(art).toHaveAttribute("aria-hidden", "true");
     expect(art.querySelector("svg")).toHaveClass("brightness-0");
-    expect(art.querySelector("[data-lock-badge]")).not.toBeNull();
+    expect(art.querySelector("[data-padlock]")).not.toBeNull();
   });
 });
 

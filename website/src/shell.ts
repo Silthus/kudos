@@ -116,7 +116,7 @@ const memberWithCoinsOpened: MemberProfile = { ...member, ...onTheUnlockPath({ .
 
 const memberAcrossTheSheet: MemberProfile = {
   ...member,
-  ...onTheUnlockPath({ ...skillTreeFeature, ...locked }, { ...leaderboardFeature, ...ready }, { ...bookFeature, ...opened }, { ...questsFeature, ...opened }),
+  ...onTheUnlockPath({ ...questsFeature, ...opened }, { ...leaderboardFeature, ...ready }, { ...bookFeature, ...opened }, { ...skillTreeFeature, ...locked }),
   skillPoints: 0,
 };
 
