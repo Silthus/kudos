@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { focusPageTitle } from "../pageFocus";
 import type { Feature, ShellActions } from "../shell";
-import { rewardLabelOf, type QuestCrate, type ReadyCrate } from "./readyCrates";
+import { rewardLabelOf, type ReadyCrate } from "./readyCrates";
+import type { RewardKind } from "./rewards";
 import { rewardChipOrigin, type Origin } from "./RewardFlight";
 import { hasSeen, markSeen } from "./seen";
 
@@ -11,14 +12,15 @@ export type Claimed = { from: Origin | undefined };
 
 export type Reveal = { crate: ReadyCrate; seenBefore: boolean; fromQuests: boolean; claimed: Claimed | undefined };
 
-export type Flight = { crate: QuestCrate } & Claimed;
+export type Flight = { crate: ReadyCrate; landed: RewardKind[] } & Claimed;
 
 export type Moments = {
   attemptOf(crate: ReadyCrate): Attempt | undefined;
   open(crate: ReadyCrate): void;
-  claim(crate: QuestCrate): void;
+  claim(crate: ReadyCrate): void;
   reveal: Reveal | undefined;
   flight: Flight | undefined;
+  landed(kind: RewardKind): void;
   land(): void;
   finish(crate: ReadyCrate): void;
   close(how: { returnFocus: boolean }): void;
@@ -103,6 +105,8 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
     [commands, attemptIs],
   );
 
+  const landed = useCallback((kind: RewardKind) => setFlights(([flying, ...queued]) => (flying === undefined ? [] : [{ ...flying, landed: [...flying.landed, kind] }, ...queued])), []);
+
   const land = useCallback(() => setFlights((queued) => queued.slice(1)), []);
 
   const finish = useCallback((crate: ReadyCrate) => {
@@ -137,6 +141,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
     claim: (crate) => void open(crate, { from: rewardChipOrigin(crate.seen) }),
     reveal,
     flight: flights[0],
+    landed,
     land,
     finish,
     close,
@@ -167,8 +172,8 @@ export function questCrateHomeAttributes(seen: string | null) {
 }
 
 function flightOf(reveal: Reveal | undefined): Flight | undefined {
-  if (reveal?.claimed === undefined || reveal.crate.kind !== "quest") return undefined;
-  return { crate: reveal.crate, ...reveal.claimed };
+  if (reveal?.claimed === undefined) return undefined;
+  return { crate: reveal.crate, landed: [], ...reveal.claimed };
 }
 
 function openedAnnouncementOf(crate: ReadyCrate) {

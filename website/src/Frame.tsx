@@ -4,6 +4,8 @@ import { IconHome } from "@posthog/icons";
 import { AccountMenu } from "./AccountMenu";
 import { AppLink } from "./AppLink";
 import { ReadyPill, ReadyPillFailure } from "./crates/ReadyPill";
+import { skillPointChipAttributes } from "./crates/RewardFlight";
+import { useCountUp } from "./countUp";
 import { isShownOn, type ReadyCrate } from "./crates/readyCrates";
 import { openWebPagesOf } from "./features";
 import type { Screen } from "./route";
@@ -49,10 +51,11 @@ function Wordmark() {
 }
 
 function SkillPointChip({ points }: { points: number }) {
+  const counted = useCountUp(points);
   return (
-    <AppLink href="/skills" aria-label={chipName(points)} className="inline-flex h-8 items-center gap-1.5 rounded-full border bg-card px-2.5 text-sm font-medium tabular-nums hover:bg-fill-hover">
+    <AppLink href="/skills" aria-label={chipName(points)} className="inline-flex h-8 items-center gap-1.5 rounded-full border bg-card px-2.5 text-sm font-medium tabular-nums hover:bg-fill-hover" {...skillPointChipAttributes()}>
       <SkillPointGlyph />
-      {points}
+      {counted}
     </AppLink>
   );
 }

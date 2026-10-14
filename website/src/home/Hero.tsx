@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { heroXpBarAttributes } from "../crates/RewardFlight";
 import { MemberFace } from "../Face";
 import { LevelRing, levelShare } from "../LevelRing";
 import { MaxLine } from "../Max";
@@ -64,8 +65,9 @@ function XpBar({ progression }: { progression: Progression }) {
         aria-valuemax={nextLevelAt}
         aria-valuenow={xp}
         className="h-3 w-full overflow-hidden rounded-full border border-muted-foreground p-px"
+        {...heroXpBarAttributes()}
       >
-        <div className="h-full rounded-full bg-foreground" style={{ width: `${levelShare(progression)}%` }} />
+        <div data-xp-fill className="h-full rounded-full bg-foreground" style={{ width: `${levelShare(progression)}%` }} />
       </div>
       <div className="mt-1.5 flex justify-between gap-3 text-xs text-muted-foreground tabular-nums">
         <span id={xpId}>

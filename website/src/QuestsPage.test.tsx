@@ -309,6 +309,10 @@ function avatar() {
   return screen.getByRole("button", { name: "Account menu for Sam Example" });
 }
 
+function frame() {
+  return document.querySelector<HTMLElement>(".hud-root")!;
+}
+
 async function claimAndClose(user: ReturnType<typeof showQuests>["user"]) {
   await user.click(within(cardOf("Thank someone you haven't thanked before.")).getByRole("button", { name: "Claim" }));
   await user.keyboard("{Escape}");
@@ -364,7 +368,8 @@ describe("WS315 E184: the reward flies into the HUD level ring once a Claim's re
     expect(levelRing()).toHaveAccessibleName("Level 2, 30 XP to level 3");
     landAll(flight()!);
     expect(levelRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
-    expect(avatar()).toHaveClass("reward-filling");
+    expect(frame()).toHaveClass("reward-filling");
+    expect(frame().style.getPropertyValue("--reward-from")).toBe("25");
   });
 
   it("keeps the held ring in step with XP that arrives while the reveal plays, never rewinding it", async () => {
@@ -380,15 +385,16 @@ describe("WS315 E184: the reward flies into the HUD level ring once a Claim's re
     expect(levelRing()).toHaveAccessibleName("Level 2, 5 XP to level 3");
   });
 
-  it("does not hold or fill the ring when the reward crossed a level", async () => {
-    const levelledUp = { ...claimer, progression: { level: 3, xp: 62, levelStartsAt: 60, nextLevelAt: 120, xpToNextLevel: 58 } };
+  it("holds the old level when the reward crossed one, then completes the ring and starts the new level", async () => {
+    const levelledUp = { ...claimer, progression: { level: 3, xp: 110, levelStartsAt: 100, nextLevelAt: 300, xpToNextLevel: 190 } };
     const { user } = renderApp(levelledUp, undefined, { openQuestCrate: async () => ({ kind: "opened" }) }, fixedQuests(questsFixtures.week));
     await claimAndClose(user);
 
-    expect(levelRing()).toHaveAccessibleName("Level 3, 58 XP to level 4");
+    expect(levelRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
     landAll(flight()!);
+    expect(levelRing()).toHaveAccessibleName("Level 3, 190 XP to level 4");
     expect(avatar()).toHaveClass("reward-landed");
-    expect(avatar()).not.toHaveClass("reward-filling");
+    expect(frame()).toHaveClass("reward-levelling");
   });
 
   it("measures the card where it is once focus is back on it", async () => {
@@ -441,7 +447,7 @@ describe("WS315 E184: the reward flies into the HUD level ring once a Claim's re
 
     expect(flight()).toBeNull();
     expect(avatar()).not.toHaveClass("reward-landed");
-    expect(avatar()).not.toHaveClass("reward-filling");
+    expect(frame()).not.toHaveClass("reward-filling");
   });
 
   it("never flies under reduced motion, and shows the XP at once with a short fade", async () => {
@@ -454,7 +460,7 @@ describe("WS315 E184: the reward flies into the HUD level ring once a Claim's re
     expect(flight()).toBeNull();
     expect(levelRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
     expect(avatar()).toHaveClass("reward-faded");
-    expect(avatar()).not.toHaveClass("reward-filling");
+    expect(frame()).not.toHaveClass("reward-filling");
   });
 
   it("lands a queued flight at once when reduced motion is turned on before it starts", async () => {

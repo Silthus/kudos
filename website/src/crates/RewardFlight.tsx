@@ -2,15 +2,14 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from
 
 export type Origin = Pick<DOMRect, "left" | "top" | "width" | "height">;
 
-type Arrival = "landed" | "cancelled";
+export type Arrival = "landed" | "cancelled";
 
 export type RewardFlightProps = {
   source: () => Origin | undefined;
   target: () => HTMLElement | null;
   amount: string;
-  reduced: boolean;
   onArrived: (target: HTMLElement) => void;
-  onLanded: () => void;
+  onLanded: (how: Arrival) => void;
 };
 
 type Course = { from: Origin; dx: number; dy: number; target: HTMLElement };
@@ -36,6 +35,14 @@ export function hudAvatarAttributes() {
   return { "data-hud-avatar": "" };
 }
 
+export function heroXpBarAttributes() {
+  return { "data-xp-bar": "" };
+}
+
+export function skillPointChipAttributes() {
+  return { "data-skill-point-chip": "" };
+}
+
 export function rewardChipOrigin(seen: string): Origin | undefined {
   return document.querySelector<HTMLElement>(`main [data-reward-chip="${seen}"]`)?.getBoundingClientRect();
 }
@@ -44,17 +51,30 @@ export function hudAvatar() {
   return document.querySelector<HTMLElement>("header [data-hud-avatar]");
 }
 
-export function RewardFlight({ source, target, amount, reduced, onArrived, onLanded }: RewardFlightProps) {
+export function xpDisplay() {
+  const bar = document.querySelector<HTMLElement>("main [data-xp-bar]");
+  return bar !== null && isInView(bar) ? bar : hudAvatar();
+}
+
+export function skillPointChip() {
+  return document.querySelector<HTMLElement>("header [data-skill-point-chip]");
+}
+
+function isInView(element: HTMLElement) {
+  const { top, bottom, width } = element.getBoundingClientRect();
+  const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+  return width > 0 && top >= headerBottom && bottom <= window.innerHeight;
+}
+
+export function RewardFlight({ source, target, amount, onArrived, onLanded }: RewardFlightProps) {
   const [course, setCourse] = useState<Course>();
   const flying = useRef<HTMLSpanElement>(null);
 
   useLayoutEffect(() => {
-    const destination = target();
-    if (reduced && destination !== null) settle(destination, ["reward-faded"]);
-    const charted = reduced ? undefined : courseOf(source(), destination);
-    if (charted === undefined) onLanded();
+    const charted = courseOf(source(), target());
+    if (charted === undefined) onLanded("cancelled");
     else setCourse(charted);
-  }, [source, target, reduced, onLanded]);
+  }, [source, target, onLanded]);
 
   useEffect(() => {
     const swarm = flying.current;
@@ -62,7 +82,7 @@ export function RewardFlight({ source, target, amount, reduced, onArrived, onLan
     let ended = 0;
     const arrive = (how: Arrival) => {
       if (how === "landed") onArrived(course.target);
-      onLanded();
+      onLanded(how);
     };
     const onEnd = () => {
       ended += 1;
@@ -90,9 +110,9 @@ export function RewardFlight({ source, target, amount, reduced, onArrived, onLan
   );
 }
 
-export function settle(target: HTMLElement, classes: string[]) {
+export function settle(target: HTMLElement, classes: string[], forMs = settleMs) {
   target.classList.add(...classes);
-  setTimeout(() => target.classList.remove(...classes), settleMs);
+  setTimeout(() => target.classList.remove(...classes), forMs);
 }
 
 function courseOf(from: Origin | undefined, target: HTMLElement | null): Course | undefined {
