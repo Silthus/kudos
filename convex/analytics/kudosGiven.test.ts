@@ -5,7 +5,6 @@ import { flagsFromPostHog, onForEveryone, unlocksShippedBeforeAnyoneJoined } fro
 import { blockActions, buttonIn, buttonInHome, type Block } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { everythingStored, post, settle, settleUntil, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, buttonIn, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, slashCommand, text } from "../../testing/slackMessages";
 
 const now = new Date("2026-10-13T10:00:00Z");
@@ -207,6 +206,10 @@ describe("O10: never sent", () => {
     const form = { contentType: "application/x-www-form-urlencoded" };
     await t.fetch("/slack/commands", await signedRequest(commandInChannel, form));
     await settle(t);
+    const firstThanksDm = slack.callsTo("chat.postMessage").find(({ channel, text }) => channel === people.giver && String(text).startsWith("✅ You finished a Journey step"));
+    const openFirstThanks = blockActions(people.giver, buttonIn(firstThanksDm!.blocks as Block[], "Open"), { team, inMessage: { channel: people.giver, ts: "1760349700.828282" } });
+    await t.fetch("/slack/interactivity", await signedRequest(openFirstThanks, form));
+    await settle(t);
     await flagsFromPostHog(t, postHog, ...["xp-levels", "quests", "everyone-board"].map(onForEveryone));
     await t.fetch("/slack/events", await signedRequest(appHomeOpened(people.giver, { team })));
     await settle(t);
@@ -214,10 +217,6 @@ describe("O10: never sent", () => {
     const leaderboardCommand = new URLSearchParams(commandInChannel);
     leaderboardCommand.set("text", "leaderboard month");
     await t.fetch("/slack/commands", await signedRequest(leaderboardCommand.toString(), form));
-    await settle(t);
-    const firstThanksDm = slack.callsTo("chat.postMessage").find(({ channel, text }) => channel === people.giver && String(text).startsWith("✅ You finished a Journey step"));
-    const openFirstThanks = blockActions(people.giver, buttonIn(firstThanksDm!.blocks as Block[], "Open"), { team, inMessage: { channel: people.giver, ts: "1760349700.828282" } });
-    await t.fetch("/slack/interactivity", await signedRequest(openFirstThanks, { contentType: "application/x-www-form-urlencoded" }));
     await settle(t);
 
     const bodies = postHog.requests.map((request) => request.body).join("\n");
