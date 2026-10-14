@@ -139,9 +139,16 @@ async function advanceTwoDays(ctx: MutationCtx, event: KudosGivenEvent): Promise
   if (!(await journeyStepAppliesIn(ctx, event.workspace, "two-days")) || (await isFinished(ctx, twoDays))) return null;
   const counted = twoDays.sayingWhy;
   const days = new Set<DayKey>([event.day, ...(counted === undefined ? [] : [counted.day]), ...(await daysSayingWhyBeforeActivation(ctx, twoDays, event.at))]);
-  if (days.size >= daysSayingWhyToFinishTwoDays) return finishedOrNull(ctx, event.workspace, twoDays, Math.max(event.at, counted?.at ?? event.at), event.message);
+  if (days.size >= daysSayingWhyToFinishTwoDays) {
+    const { at, cause } = finishOfTwoDays(event, counted);
+    return finishedOrNull(ctx, event.workspace, twoDays, at, cause);
+  }
   if (counted === undefined) await ctx.db.patch(twoDays._id, { sayingWhy: { day: event.day, at: event.at } });
   return null;
+}
+
+function finishOfTwoDays({ at, message }: KudosGivenEvent, counted: JourneyActivation["sayingWhy"]): { at: number; cause?: MessageRef } {
+  return counted !== undefined && counted.at > at ? { at: counted.at } : { at, cause: message };
 }
 
 async function daysSayingWhyBeforeActivation(ctx: QueryCtx, activation: Doc<"journeySteps">, until: number): Promise<DayKey[]> {
