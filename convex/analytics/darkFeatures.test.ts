@@ -37,6 +37,7 @@ type Setup = { name: string; flags: FlagDefinition[] | "no flags key"; boardShow
 const now = new Date("2026-10-13T10:00:00Z");
 const stepMs = 10 * 60_000;
 const stepWindowMs = 9 * 60_000;
+const aTotalityOverEveryRecorderWalksThreeTimesMs = 20_000;
 const week = "2026-10-12";
 const saysWhy = "thanks for untangling the release notes today";
 const form = { contentType: "application/x-www-form-urlencoded" };
@@ -188,7 +189,7 @@ describe("E11: recording a product event writes only analytics' own rows and sch
     }
 
     expect([...reRun].sort()).toEqual(everyRecorder().sort());
-  });
+  }, aTotalityOverEveryRecorderWalksThreeTimesMs);
 });
 
 async function expectOnlyObserving(t: Backend, { name, args }: { name: string; args: Record<string, unknown> }) {
