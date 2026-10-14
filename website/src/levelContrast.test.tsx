@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
+import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
 import { shellFixtures } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
@@ -91,6 +92,41 @@ describe("WS112 V24: the ring, the XP bar and the pips meet 3:1 against their su
       );
       expect(measured.length).toBeGreaterThanOrEqual(12);
       expect(measured.filter(({ ratio }) => ratio < 3)).toEqual([]);
+    });
+  }
+});
+
+const quillPrimitives = readFileSync(join(websiteDirectory, "node_modules", "@posthog", "quill", "dist", "primitives.css"), "utf8");
+
+function colourTokenOfQuillClass(name: string) {
+  const rule = new RegExp(`\\.${name}\\{color:var\\(--([\\w-]+)\\)`).exec(quillPrimitives);
+  if (rule === null) throw new Error(`.${name} sets no colour token`);
+  return rule[1]!;
+}
+
+function showMoreChevrons() {
+  window.history.replaceState(null, "", "/leaderboard");
+  renderApp(shellFixtures.memberWithTheBoard, fixedLeaderboard(leaderboardFixtures.longBoardViewerInTheMiddle));
+  return within(screen.getByRole("main"))
+    .getAllByRole("button", { name: /^Show \d+ more (above|below)$/ })
+    .map((button) => {
+      const variant = [...button.classList].find((name) => name.startsWith("quill-button--variant-"))!;
+      const chevron = button.querySelector("svg")!;
+      expect([...chevron.classList].filter((name) => /^(text|fill|stroke)-/.test(name))).toEqual([]);
+      return colourTokenOfQuillClass(variant);
+    });
+}
+
+describe("WS339 V24: the Show more chevrons meet 3:1 against the board's card in both modes", () => {
+  beforeEach(() => {
+    fakeSystemTheme(false);
+  });
+
+  for (const mode of ["light", "dark"] as const) {
+    it(`in ${mode}`, () => {
+      const paints = showMoreChevrons();
+      expect(paints).toHaveLength(2);
+      expect(paints.filter((paint) => contrast(mode, paint, "card") < 3)).toEqual([]);
     });
   }
 });

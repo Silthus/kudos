@@ -106,9 +106,29 @@ const withTeammatesFaces: Leaderboard = {
   }),
 };
 
+const longBoardLength = 30;
+
+function longBoardWith({ viewerAt }: { viewerAt: number }): Leaderboard {
+  const rows = Array.from({ length: longBoardLength }, (_, i) => {
+    const position = i + 1;
+    return position === viewerAt ? row(position, position, "Sam Example", 100 - position, { me: true }) : row(position, position, `Teammate ${position}`, 100 - position);
+  });
+  return { ...board, rows, window: windowAround(viewerAt), standing: { kind: "ranked", position: viewerAt, rank: viewerAt }, improvement: null };
+}
+
+function windowAround(viewerAt: number) {
+  const from = (first: number, last: number) => Array.from({ length: last - first + 1 }, (_, i) => first + i);
+  if (viewerAt <= 7) return from(1, 10);
+  return [1, 2, 3, ...from(viewerAt - 3, Math.min(viewerAt + 3, longBoardLength))];
+}
+
+const longBoardViewerInTheMiddle = longBoardWith({ viewerAt: 15 });
+const longBoardViewerAtTheTop = longBoardWith({ viewerAt: 2 });
+const longBoardViewerAtTheBottom = longBoardWith({ viewerAt: longBoardLength });
+
 const empty: Leaderboard = { ...board, period: "all", rows: [], window: [], standing: { kind: "not-ranked" }, improvement: null };
 
-export const leaderboardFixtures = { midBoard, midBoardAfterAClimb, withTeammatesFaces, viewerLeads, sharedLead, tiedBelowTheLead, notRanked, left, leftALongBoard, empty } as const satisfies Record<string, Leaderboard>;
+export const leaderboardFixtures = { midBoard, midBoardAfterAClimb, withTeammatesFaces, viewerLeads, sharedLead, tiedBelowTheLead, notRanked, left, leftALongBoard, longBoardViewerInTheMiddle, longBoardViewerAtTheTop, longBoardViewerAtTheBottom, empty } as const satisfies Record<string, Leaderboard>;
 
 export function fixedLeaderboard(answer: Leaderboard): BoardRead {
   return (period) => (period === undefined ? undefined : { ...answer, period });
