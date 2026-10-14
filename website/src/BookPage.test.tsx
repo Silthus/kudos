@@ -412,7 +412,7 @@ describe("WS333: ladder details", () => {
   it("shows Complete and a full neutral bar after the fourth tier, with nothing left to go", () => {
     showBook(bookFixtures.everyStage);
     const card = ladderCard("Connections");
-    const bar = within(card).getByRole("progressbar", { name: "Complete" });
+    const bar = within(card).getByRole("progressbar", { name: "Complete, 31 different people thanked" });
     expect(bar).toHaveAttribute("aria-valuenow", "1");
     expect(bar).toHaveAttribute("aria-valuemax", "1");
     expect(bar.outerHTML).not.toMatch(/primary|success|warning|danger/);

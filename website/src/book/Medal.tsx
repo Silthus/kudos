@@ -1,5 +1,5 @@
 import type { TierId } from "../shell";
-import { glintOf, metalOf } from "./metal";
+import { metalOf } from "./metal";
 
 const pipsOf: Record<TierId, number> = { bronze: 1, silver: 2, gold: 3, diamond: 4 };
 
@@ -17,7 +17,7 @@ export function Medal({ tier, earned }: { tier: TierId; earned: boolean }) {
       {Array.from({ length: pips }, (_, pip) => (
         <circle key={pip} data-pip="" cx={12 + (pip - (pips - 1) / 2) * pipSpacing} cy="12" r="1.3" strokeWidth="1" {...ink} />
       ))}
-      {sparkles.has(tier) && <path data-sparkle="" d="M20 0.5 21.2 3.8 24.5 5 21.2 6.2 20 9.5 18.8 6.2 15.5 5 18.8 3.8Z" fill={earned ? glintOf(tier) : "var(--card)"} stroke={earned ? metal : "var(--muted-foreground)"} strokeWidth="1" strokeLinejoin="round" />}
+      {sparkles.has(tier) && <path data-sparkle="" d="M20 0.5 21.2 3.8 24.5 5 21.2 6.2 20 9.5 18.8 6.2 15.5 5 18.8 3.8Z" fill="var(--card)" stroke={earned ? metal : "var(--muted-foreground)"} strokeWidth="1" strokeLinejoin="round" />}
     </svg>
   );
 }

@@ -21,7 +21,7 @@ E at the same state, for comparison: the #259 audit's [category pair](https://gi
 Fable checked the screenshots against E and the visual language. Its findings and what changed:
 
 - **Must fix, the light rosettes lost their metal:** the face mixed the dark light-mode tokens with the cream card, so gold and bronze both read tan, and in dark the face went olive-black under a bright rim. **Fixed:** the face is a relative colour of the token (`oklch(from var(--medal-{tier}) 0.92 calc(c * 1.4) h)` to the token), so it stays bright and keeps its hue in both modes; the rim stays on the token.
-- **The sparkle read hollow in dark:** **fixed** with the same glint fill, in the rosette and in the tier medals, so the two sparkles stay one family.
+- **The sparkle read hollow in dark:** **fixed** on the rosette with the same glint fill. **Kept** on the tier medals, whose sparkle overlaps the metal disk: a glint there falls under 3:1 against the metal in dark (Sol round 2), so the medal keeps slice 4's card-coloured sparkle.
 - **`Complete` dropped the count and its bar ran to the edge:** **fixed**, the count sits in the same right slot as `3 of 25`.
 - **The unstarted scallops nearly vanished:** **fixed** with a hairline outline in `--muted-foreground`, which also meets 3:1 (Sol's second finding).
 - **The `Next` cell's text sat 1 px off:** **fixed** with a transparent border.
@@ -30,12 +30,17 @@ Fable checked the screenshots against E and the visual language. Its findings an
 
 [`review-round-1.md`](review-round-1.md):
 
-- **The thin inner metal ring sat on the metal gradient (≈1.4:1) and the test measured it against the card:** **fixed** by dropping that decorative ring; every remaining stroke borders the card.
+- **The thin inner metal ring sat on the metal gradient (≈1.4:1) and the test measured it against the card:** **fixed** by dropping that decorative ring; the rim and the inner ring each border the card on one side, which is what the test measures.
 - **The unstarted scallop outline was `--muted` on `--card` (≈1.1:1) and unmeasured:** **fixed** with the `--muted-foreground` hairline, which the contrast test now measures.
+
+[`review-round-2.md`](review-round-2.md):
+
+- **The tier medals' new glint sparkle fell to ≈1.4:1 against the metal disk it overlaps in dark:** **fixed** by keeping slice 4's card fill on the medal sparkle.
+- **The Complete row's count was hidden from screen readers:** **fixed**, the bar is named `Complete, 31 different people thanked`, and the test asserts that name.
 
 ## Manual pass (V24)
 
 - **Focus order:** unchanged. The ladder details add no focusable element.
 - **Focus visibility:** nothing new to focus.
 - **Reduced motion:** nothing moves. `document.getAnimations()` is empty on the Giving page, and the sparkle is a static path.
-- **Screen-reader wording:** each card is an `article` named by the ladder. The headline reads `Bronze earned 14 Oct 2026` or `Not started`. The bar is a `progressbar` named `3 of 25 for Generous Soul`, followed by `22 to go for Generous Soul`. A complete ladder's bar is named `Complete` and its visible `Complete` line is hidden from the reader to avoid a repeat. The `Next` pill is read after its tier's text. The emblem and its rosette are `aria-hidden`, because the headline names the tier in words.
+- **Screen-reader wording:** each card is an `article` named by the ladder. The headline reads `Bronze earned 14 Oct 2026` or `Not started`. The bar is a `progressbar` named `3 of 25 for Generous Soul`, followed by `22 to go for Generous Soul`. A complete ladder's bar is named `Complete, 31 different people thanked`; its visible `Complete` line and count are hidden from the reader to avoid a repeat. The `Next` pill is read after its tier's text. The emblem and its rosette are `aria-hidden`, because the headline names the tier in words.

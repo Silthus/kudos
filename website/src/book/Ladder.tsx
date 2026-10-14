@@ -28,7 +28,7 @@ export function Ladder({ ladder, timeZone }: { ladder: LadderCard; timeZone: str
                 </div>
                 <p className="text-sm text-muted-foreground first-letter:uppercase">{counts}</p>
               </div>
-              {next === null ? <Complete count={ladder.count} /> : <WayToNext ladder={ladder} next={next} />}
+              {next === null ? <Complete count={ladder.count} counts={counts} /> : <WayToNext ladder={ladder} next={next} />}
             </div>
           </div>
           <ol aria-label={`${name} tiers`} className="grid grid-cols-2 gap-x-2 gap-y-3 sm:grid-cols-4">
@@ -72,11 +72,11 @@ function WayToNext({ ladder, next }: { ladder: LadderCard; next: NonNullable<Lad
   );
 }
 
-function Complete({ count }: { count: number }) {
+function Complete({ count, counts }: { count: number; counts: string }) {
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-2.5">
-        <Bar label="Complete" value={1} max={1} />
+        <Bar label={`Complete, ${count} ${counts}`} value={1} max={1} />
         <span aria-hidden="true" className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
           {count}
         </span>
